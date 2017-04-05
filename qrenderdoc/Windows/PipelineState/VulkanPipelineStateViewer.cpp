@@ -586,10 +586,9 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
   QString addVal = "";
 
   QString filter = "";
-  QString filtPrefix = "";
-  QString filtVal = "";
 
-  QString addr[] = {ToQStr(descriptor.addrU), ToQStr(descriptor.addrV), ToQStr(descriptor.addrW)};
+  QString addr[] = {ToQStr(descriptor.AddressU), ToQStr(descriptor.AddressV),
+                    ToQStr(descriptor.AddressW)};
 
   // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
   for(int a = 0; a < 3; a++)
@@ -611,40 +610,25 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
 
   addressing += addPrefix + ": " + addVal;
 
-  if(descriptor.borderEnable)
-    addressing += " " + ToQStr(descriptor.border);
+  if(descriptor.UseBorder())
+    addressing += QString(" <%1, %2, %3, %4>")
+                      .arg(descriptor.BorderColor[0])
+                      .arg(descriptor.BorderColor[1])
+                      .arg(descriptor.BorderColor[2])
+                      .arg(descriptor.BorderColor[3]);
 
   if(descriptor.unnormalized)
     addressing += " (Un-norm)";
 
-  QString filters[] = {ToQStr(descriptor.min), ToQStr(descriptor.mag), ToQStr(descriptor.mip)};
-  QString filterPrefixes[] = {"Min", "Mag", "Mip"};
-
-  // arrange as addressing above
-  for(int a = 0; a < 3; a++)
-  {
-    if(a == 0 || filters[a] == filters[a - 1])
-    {
-      if(filtPrefix != "")
-        filtPrefix += "/";
-      filtPrefix += filterPrefixes[a];
-    }
-    else
-    {
-      filter += filtPrefix + ": " + filtVal + ", ";
-
-      filtPrefix = filterPrefixes[a];
-    }
-    filtVal = filters[a];
-  }
-
-  filter += filtPrefix + ": " + filtVal;
+  filter = ToQStr(descriptor.Filter);
 
   if(descriptor.maxAniso > 1.0f)
     filter += QString(" Aniso %1x").arg(descriptor.maxAniso);
 
-  if(descriptor.compareEnable)
+  if(descriptor.Filter.func == FilterFunc::Comparison)
     filter += QString(" (%1)").arg(ToQStr(descriptor.comparison));
+  else if(descriptor.Filter.func != FilterFunc::Normal)
+    filter += QString(" (%1)").arg(ToQStr(descriptor.Filter.func));
 
   QString lod = "LODs: " +
                 (descriptor.minlod == -FLT_MAX ? "0" : QString::number(descriptor.minlod)) + " - " +
@@ -1918,7 +1902,7 @@ void VulkanPipelineStateViewer::setState()
                                .arg(state.CB.blendConst[1], 2)
                                .arg(state.CB.blendConst[2], 2)
                                .arg(state.CB.blendConst[3], 2));
-  ui->logicOp->setText(state.CB.logicOpEnable ? ToQStr(state.CB.logicOp) : "-");
+  ui->logicOp->setText(state.CB.logicOpEnable ? ToQStr(state.CB.logic) : "-");
   ui->alphaToOne->setPixmap(state.CB.alphaToOneEnable ? tick : cross);
 
   ui->depthEnabled->setPixmap(state.DS.depthTestEnable ? tick : cross);
@@ -1942,13 +1926,13 @@ void VulkanPipelineStateViewer::setState()
   if(state.DS.stencilTestEnable)
   {
     ui->stencils->addTopLevelItems(
-        {makeTreeNode({"Front", ToQStr(state.DS.front.func), ToQStr(state.DS.front.failOp),
-                       ToQStr(state.DS.front.depthFailOp), ToQStr(state.DS.front.passOp),
+        {makeTreeNode({"Front", ToQStr(state.DS.front.Func), ToQStr(state.DS.front.FailOp),
+                       ToQStr(state.DS.front.DepthFailOp), ToQStr(state.DS.front.PassOp),
                        QString("%1").arg(state.DS.front.writeMask, 2, 16, QChar('0')).toUpper(),
                        QString("%1").arg(state.DS.front.compareMask, 2, 16, QChar('0')).toUpper(),
                        QString("%1").arg(state.DS.front.ref, 2, 16, QChar('0')).toUpper()}),
-         makeTreeNode({"Back", ToQStr(state.DS.back.func), ToQStr(state.DS.back.failOp),
-                       ToQStr(state.DS.back.depthFailOp), ToQStr(state.DS.back.passOp),
+         makeTreeNode({"Back", ToQStr(state.DS.back.Func), ToQStr(state.DS.back.FailOp),
+                       ToQStr(state.DS.back.DepthFailOp), ToQStr(state.DS.back.PassOp),
                        QString("%1").arg(state.DS.back.writeMask, 2, 16, QChar('0')).toUpper(),
                        QString("%1").arg(state.DS.back.compareMask, 2, 16, QChar('0')).toUpper(),
                        QString("%1").arg(state.DS.back.ref, 2, 16, QChar('0')).toUpper()})});

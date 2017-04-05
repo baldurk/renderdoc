@@ -977,7 +977,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
       QString rootel = s.Immediate ? QString("#%1 Static").arg(s.RootElement)
                                    : QString("#%1 Table[%2]").arg(s.RootElement).arg(s.TableIndex);
 
-      bool filledSlot = (!s.AddressU.empty());
+      bool filledSlot = s.Filter.minify != FilterMode::NoFilter;
       bool usedSlot = (bind && bind->used);
 
       if(showNode(usedSlot, filledSlot))
@@ -1019,7 +1019,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
 
         addressing += addPrefix + ": " + addVal;
 
-        if(s.UseBorder)
+        if(s.UseBorder())
           addressing += QString("<%1>").arg(borderColor);
 
         QString filter = ToQStr(s.Filter);
@@ -1027,8 +1027,10 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
         if(s.MaxAniso > 1)
           filter += QString(" %1x").arg(s.MaxAniso);
 
-        if(s.UseComparison)
-          filter = QString(" (%1)").arg(ToQStr(s.Comparison));
+        if(s.Filter.func == FilterFunc::Comparison)
+          filter += QString(" (%1)").arg(ToQStr(s.Comparison));
+        else if(s.Filter.func != FilterFunc::Normal)
+          filter += QString(" (%1)").arg(ToQStr(s.Filter.func));
 
         QTreeWidgetItem *node =
             makeTreeNode({rootel, space, regname, addressing, filter,
@@ -1564,7 +1566,7 @@ void D3D12PipelineStateViewer::setState()
                           ToQStr(blend.m_AlphaBlend.Source), ToQStr(blend.m_AlphaBlend.Destination),
                           ToQStr(blend.m_AlphaBlend.Operation),
 
-                          ToQStr(blend.LogicOp),
+                          ToQStr(blend.Logic),
 
                           QString("%1%2%3%4")
                               .arg((blend.WriteMask & 0x1) == 0 ? "_" : "R")

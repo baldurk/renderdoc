@@ -109,18 +109,23 @@ struct Texture
 struct Sampler
 {
   ResourceId Samp;
-  rdctype::str AddressS, AddressT, AddressR;
+  AddressMode AddressS = AddressMode::Wrap;
+  AddressMode AddressT = AddressMode::Wrap;
+  AddressMode AddressR = AddressMode::Wrap;
   float BorderColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-  rdctype::str Comparison;
-  rdctype::str MinFilter;
-  rdctype::str MagFilter;
-  bool32 UseBorder = false;
-  bool32 UseComparison = false;
+  CompareFunc Comparison = CompareFunc::AlwaysTrue;
+  TextureFilter Filter;
   bool32 SeamlessCube = false;
   float MaxAniso = 0.0f;
   float MaxLOD = 0.0f;
   float MinLOD = 0.0f;
   float MipLODBias = 0.0f;
+
+  bool UseBorder() const
+  {
+    return AddressS == AddressMode::ClampBorder || AddressT == AddressMode::ClampBorder ||
+           AddressR == AddressMode::ClampBorder;
+  }
 };
 
 struct Buffer
@@ -211,19 +216,19 @@ struct Rasterizer
 struct DepthState
 {
   bool32 DepthEnable = false;
-  rdctype::str DepthFunc;
+  CompareFunc DepthFunc = CompareFunc::AlwaysTrue;
   bool32 DepthWrites = false;
   bool32 DepthBounds = false;
   double NearBound = 0.0;
   double FarBound = 0.0;
 };
 
-struct StencilOp
+struct StencilFace
 {
-  rdctype::str FailOp;
-  rdctype::str DepthFailOp;
-  rdctype::str PassOp;
-  rdctype::str Func;
+  StencilOp FailOp = StencilOp::Keep;
+  StencilOp DepthFailOp = StencilOp::Keep;
+  StencilOp PassOp = StencilOp::Keep;
+  CompareFunc Func = CompareFunc::AlwaysTrue;
   uint32_t Ref = 0;
   uint32_t ValueMask = 0;
   uint32_t WriteMask = 0;
@@ -233,7 +238,7 @@ struct StencilState
 {
   bool32 StencilEnable = false;
 
-  StencilOp m_FrontFace, m_BackFace;
+  StencilFace m_FrontFace, m_BackFace;
 };
 
 struct Attachment
@@ -256,18 +261,18 @@ struct FBO
   int32_t ReadBuffer = 0;
 };
 
-struct BlendOp
+struct BlendEquation
 {
-  rdctype::str Source;
-  rdctype::str Destination;
-  rdctype::str Operation;
+  BlendMultiplier Source = BlendMultiplier::One;
+  BlendMultiplier Destination = BlendMultiplier::One;
+  BlendOp Operation = BlendOp::Add;
 };
 
 struct Blend
 {
-  BlendOp m_Blend, m_AlphaBlend;
+  BlendEquation m_Blend, m_AlphaBlend;
 
-  rdctype::str LogicOp;
+  LogicOp Logic = LogicOp::NoOp;
 
   bool32 Enabled = false;
   byte WriteMask = 0;
@@ -347,11 +352,11 @@ DECLARE_REFLECTION_STRUCT(GLPipe::Scissor);
 DECLARE_REFLECTION_STRUCT(GLPipe::RasterizerState);
 DECLARE_REFLECTION_STRUCT(GLPipe::Rasterizer);
 DECLARE_REFLECTION_STRUCT(GLPipe::DepthState);
-DECLARE_REFLECTION_STRUCT(GLPipe::StencilOp);
+DECLARE_REFLECTION_STRUCT(GLPipe::StencilFace);
 DECLARE_REFLECTION_STRUCT(GLPipe::StencilState);
 DECLARE_REFLECTION_STRUCT(GLPipe::Attachment);
 DECLARE_REFLECTION_STRUCT(GLPipe::FBO);
-DECLARE_REFLECTION_STRUCT(GLPipe::BlendOp);
+DECLARE_REFLECTION_STRUCT(GLPipe::BlendEquation);
 DECLARE_REFLECTION_STRUCT(GLPipe::Blend);
 DECLARE_REFLECTION_STRUCT(GLPipe::BlendState);
 DECLARE_REFLECTION_STRUCT(GLPipe::FrameBuffer);

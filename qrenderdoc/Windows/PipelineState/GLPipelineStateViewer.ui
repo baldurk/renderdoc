@@ -821,12 +821,7 @@ padding: 0px;</string>
             </column>
             <column>
              <property name="text">
-              <string>Min Filter</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Mag Filter</string>
+              <string>Filter</string>
              </property>
             </column>
             <column>
@@ -1389,12 +1384,7 @@ padding: 0px;</string>
             </column>
             <column>
              <property name="text">
-              <string>Min Filter</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Mag Filter</string>
+              <string>Filter</string>
              </property>
             </column>
             <column>
@@ -1957,12 +1947,7 @@ padding: 0px;</string>
             </column>
             <column>
              <property name="text">
-              <string>Min Filter</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Mag Filter</string>
+              <string>Filter</string>
              </property>
             </column>
             <column>
@@ -2525,12 +2510,7 @@ padding: 0px;</string>
             </column>
             <column>
              <property name="text">
-              <string>Min Filter</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Mag Filter</string>
+              <string>Filter</string>
              </property>
             </column>
             <column>
@@ -4104,12 +4084,7 @@ padding: 0px;</string>
             </column>
             <column>
              <property name="text">
-              <string>Min Filter</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Mag Filter</string>
+              <string>Filter</string>
              </property>
             </column>
             <column>
@@ -5247,12 +5222,7 @@ padding: 0px;</string>
             </column>
             <column>
              <property name="text">
-              <string>Min Filter</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Mag Filter</string>
+              <string>Filter</string>
              </property>
             </column>
             <column>

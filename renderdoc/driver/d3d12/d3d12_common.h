@@ -43,6 +43,18 @@ struct D3D12MarkerRegion
   ID3D12GraphicsCommandList *list;
 };
 
+TextureDim MakeTextureDim(D3D12_SRV_DIMENSION dim);
+TextureDim MakeTextureDim(D3D12_RTV_DIMENSION dim);
+TextureDim MakeTextureDim(D3D12_DSV_DIMENSION dim);
+TextureDim MakeTextureDim(D3D12_UAV_DIMENSION dim);
+AddressMode MakeAddressMode(D3D12_TEXTURE_ADDRESS_MODE addr);
+CompareFunc MakeCompareFunc(D3D12_COMPARISON_FUNC func);
+TextureFilter MakeFilter(D3D12_FILTER filter);
+LogicOp MakeLogicOp(D3D12_LOGIC_OP op);
+BlendMultiplier MakeBlendMultiplier(D3D12_BLEND blend, bool alpha);
+BlendOp MakeBlendOp(D3D12_BLEND_OP op);
+StencilOp MakeStencilOp(D3D12_STENCIL_OP op);
+
 void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
                           ShaderBindpointMapping *mapping);
 

@@ -75,7 +75,7 @@ struct View
   uint32_t TableIndex = ~0U;
 
   ResourceId Resource;
-  rdctype::str Type;
+  TextureDim Type;
   ResourceFormat Format;
 
   TextureSwizzle swizzle[4] = {TextureSwizzle::Red, TextureSwizzle::Green, TextureSwizzle::Blue,
@@ -103,19 +103,22 @@ struct Sampler
   bool32 Immediate = 0;
   uint32_t RootElement = ~0U;
   uint32_t TableIndex = ~0U;
-
-  rdctype::str AddressU;
-  rdctype::str AddressV;
-  rdctype::str AddressW;
+  AddressMode AddressU = AddressMode::Wrap;
+  AddressMode AddressV = AddressMode::Wrap;
+  AddressMode AddressW = AddressMode::Wrap;
   float BorderColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-  rdctype::str Comparison;
-  rdctype::str Filter;
-  bool32 UseBorder = false;
-  bool32 UseComparison = false;
+  CompareFunc Comparison = CompareFunc::AlwaysTrue;
+  TextureFilter Filter;
   uint32_t MaxAniso = 0;
   float MaxLOD = 0.0f;
   float MinLOD = 0.0f;
   float MipLODBias = 0.0f;
+
+  bool UseBorder() const
+  {
+    return AddressU == AddressMode::ClampBorder || AddressV == AddressMode::ClampBorder ||
+           AddressW == AddressMode::ClampBorder;
+  }
 };
 
 struct CBuffer
@@ -219,42 +222,42 @@ struct Rasterizer
   RasterizerState m_State;
 };
 
-struct StencilOp
+struct StencilFace
 {
-  rdctype::str FailOp;
-  rdctype::str DepthFailOp;
-  rdctype::str PassOp;
-  rdctype::str Func;
+  StencilOp FailOp = StencilOp::Keep;
+  StencilOp DepthFailOp = StencilOp::Keep;
+  StencilOp PassOp = StencilOp::Keep;
+  CompareFunc Func = CompareFunc::AlwaysTrue;
 };
 
 struct DepthStencilState
 {
   bool32 DepthEnable = false;
   bool32 DepthWrites = false;
-  rdctype::str DepthFunc;
+  CompareFunc DepthFunc = CompareFunc::AlwaysTrue;
   bool32 StencilEnable = false;
   byte StencilReadMask = 0;
   byte StencilWriteMask = 0;
 
-  StencilOp m_FrontFace;
-  StencilOp m_BackFace;
+  StencilFace m_FrontFace;
+  StencilFace m_BackFace;
 
   uint32_t StencilRef = 0;
 };
 
-struct BlendOp
+struct BlendEquation
 {
-  rdctype::str Source;
-  rdctype::str Destination;
-  rdctype::str Operation;
+  BlendMultiplier Source = BlendMultiplier::One;
+  BlendMultiplier Destination = BlendMultiplier::One;
+  BlendOp Operation = BlendOp::Add;
 };
 
 struct Blend
 {
-  BlendOp m_Blend;
-  BlendOp m_AlphaBlend;
+  BlendEquation m_Blend;
+  BlendEquation m_AlphaBlend;
 
-  rdctype::str LogicOp;
+  LogicOp Logic = LogicOp::NoOp;
 
   bool32 Enabled = false;
   bool32 LogicEnabled = false;
@@ -340,9 +343,9 @@ DECLARE_REFLECTION_STRUCT(D3D12Pipe::Viewport);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::Scissor);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::RasterizerState);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::Rasterizer);
-DECLARE_REFLECTION_STRUCT(D3D12Pipe::StencilOp);
+DECLARE_REFLECTION_STRUCT(D3D12Pipe::StencilFace);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::DepthStencilState);
-DECLARE_REFLECTION_STRUCT(D3D12Pipe::BlendOp);
+DECLARE_REFLECTION_STRUCT(D3D12Pipe::BlendEquation);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::Blend);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::BlendState);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::OM);

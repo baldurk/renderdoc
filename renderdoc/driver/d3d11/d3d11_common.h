@@ -47,6 +47,18 @@ struct D3D11MarkerRegion
   static WrappedID3D11Device *device;
 };
 
+TextureDim MakeTextureDim(D3D11_SRV_DIMENSION dim);
+TextureDim MakeTextureDim(D3D11_RTV_DIMENSION dim);
+TextureDim MakeTextureDim(D3D11_DSV_DIMENSION dim);
+TextureDim MakeTextureDim(D3D11_UAV_DIMENSION dim);
+AddressMode MakeAddressMode(D3D11_TEXTURE_ADDRESS_MODE addr);
+CompareFunc MakeCompareFunc(D3D11_COMPARISON_FUNC func);
+TextureFilter MakeFilter(D3D11_FILTER filter);
+LogicOp MakeLogicOp(D3D11_LOGIC_OP op);
+BlendMultiplier MakeBlendMultiplier(D3D11_BLEND blend, bool alpha);
+BlendOp MakeBlendOp(D3D11_BLEND_OP op);
+StencilOp MakeStencilOp(D3D11_STENCIL_OP op);
+
 ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc);
 
 template <class T>

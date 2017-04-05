@@ -212,6 +212,15 @@ enum class TextureSwizzle : uint32_t
   One,
 };
 
+enum class AddressMode : uint32_t
+{
+  Wrap,
+  Mirror,
+  MirrorOnce,
+  ClampEdge,
+  ClampBorder,
+};
+
 enum class TextureDim : uint32_t
 {
   Unknown,
@@ -727,6 +736,99 @@ enum class CullMode : uint32_t
   Front,
   Back,
   FrontAndBack,
+};
+
+enum class FilterMode : uint32_t
+{
+  NoFilter,
+  Point,
+  Linear,
+  Cubic,
+  Anisotropic,
+};
+
+enum class FilterFunc : uint32_t
+{
+  Normal,
+  Comparison,
+  Minimum,
+  Maximum,
+};
+
+enum class CompareFunc : uint32_t
+{
+  Never,
+  AlwaysTrue,
+  Less,
+  LessEqual,
+  Greater,
+  GreaterEqual,
+  Equal,
+  NotEqual,
+};
+
+enum class StencilOp : uint32_t
+{
+  Keep,
+  Zero,
+  Replace,
+  IncSat,
+  DecSat,
+  IncWrap,
+  DecWrap,
+  Invert,
+};
+
+enum class BlendMultiplier : uint32_t
+{
+  Zero,
+  One,
+  SrcCol,
+  InvSrcCol,
+  DstCol,
+  InvDstCol,
+  SrcAlpha,
+  InvSrcAlpha,
+  DstAlpha,
+  InvDstAlpha,
+  SrcAlphaSat,
+  FactorRGB,
+  InvFactorRGB,
+  FactorAlpha,
+  InvFactorAlpha,
+  Src1Col,
+  InvSrc1Col,
+  Src1Alpha,
+  InvSrc1Alpha,
+};
+
+enum class BlendOp : uint32_t
+{
+  Add,
+  Subtract,
+  ReversedSubtract,
+  Minimum,
+  Maximum,
+};
+
+enum class LogicOp : uint32_t
+{
+  NoOp,
+  Clear,
+  Set,
+  Copy,
+  CopyInverted,
+  Invert,
+  And,
+  Nand,
+  Or,
+  Xor,
+  Nor,
+  Equivalent,
+  AndReverse,
+  AndInverted,
+  OrReverse,
+  OrInverted,
 };
 
 enum class GPUCounter : uint32_t

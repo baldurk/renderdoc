@@ -945,6 +945,160 @@ GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint i)
   return buffer;
 }
 
+AddressMode MakeAddressMode(GLenum addr)
+{
+  switch(addr)
+  {
+    case eGL_REPEAT: return AddressMode::Wrap;
+    case eGL_MIRRORED_REPEAT: return AddressMode::Mirror;
+    case eGL_CLAMP_TO_EDGE: return AddressMode::ClampEdge;
+    case eGL_CLAMP_TO_BORDER: return AddressMode::ClampBorder;
+    case eGL_MIRROR_CLAMP_TO_EDGE: return AddressMode::MirrorOnce;
+    default: break;
+  }
+
+  return AddressMode::Wrap;
+}
+
+TextureFilter MakeFilter(GLenum minf, GLenum magf, bool shadowSampler, float maxAniso)
+{
+  TextureFilter ret;
+
+  if(maxAniso > 1.0f)
+  {
+    ret.minify = ret.magnify = ret.mip = FilterMode::Anisotropic;
+  }
+  else
+  {
+    if(minf == eGL_NEAREST || minf == eGL_LINEAR)
+    {
+      ret.minify = (minf == eGL_LINEAR) ? FilterMode::Linear : FilterMode::Point;
+      ret.mip = FilterMode::NoFilter;
+    }
+    else if(minf == eGL_NEAREST_MIPMAP_LINEAR || minf == eGL_LINEAR_MIPMAP_LINEAR)
+    {
+      ret.minify = (minf == eGL_LINEAR_MIPMAP_LINEAR) ? FilterMode::Linear : FilterMode::Point;
+      ret.mip = FilterMode::Linear;
+    }
+    else if(minf == eGL_NEAREST_MIPMAP_NEAREST || minf == eGL_LINEAR_MIPMAP_NEAREST)
+    {
+      ret.minify = (minf == eGL_LINEAR_MIPMAP_LINEAR) ? FilterMode::Linear : FilterMode::Point;
+      ret.mip = FilterMode::Point;
+    }
+
+    ret.magnify = (magf == eGL_LINEAR) ? FilterMode::Linear : FilterMode::Point;
+  }
+  ret.func = shadowSampler ? FilterFunc::Comparison : FilterFunc::Normal;
+
+  return ret;
+}
+
+CompareFunc MakeCompareFunc(GLenum func)
+{
+  switch(func)
+  {
+    case GL_NEVER: return CompareFunc::Never;
+    case GL_LESS: return CompareFunc::Less;
+    case GL_EQUAL: return CompareFunc::Equal;
+    case GL_LEQUAL: return CompareFunc::LessEqual;
+    case GL_GREATER: return CompareFunc::Greater;
+    case GL_NOTEQUAL: return CompareFunc::NotEqual;
+    case GL_GEQUAL: return CompareFunc::GreaterEqual;
+    case GL_ALWAYS: return CompareFunc::AlwaysTrue;
+    default: break;
+  }
+
+  return CompareFunc::AlwaysTrue;
+}
+
+StencilOp MakeStencilOp(GLenum op)
+{
+  switch(op)
+  {
+    case eGL_KEEP: return StencilOp::Keep;
+    case eGL_ZERO: return StencilOp::Zero;
+    case eGL_REPLACE: return StencilOp::Replace;
+    case eGL_INCR: return StencilOp::IncSat;
+    case eGL_DECR: return StencilOp::DecSat;
+    case eGL_INVERT: return StencilOp::Invert;
+    case eGL_INCR_WRAP: return StencilOp::IncWrap;
+    case eGL_DECR_WRAP: return StencilOp::DecWrap;
+    default: break;
+  }
+
+  return StencilOp::Keep;
+}
+
+LogicOp MakeLogicOp(GLenum op)
+{
+  switch(op)
+  {
+    case GL_CLEAR: return LogicOp::Clear;
+    case GL_AND: return LogicOp::And;
+    case GL_AND_REVERSE: return LogicOp::AndReverse;
+    case GL_COPY: return LogicOp::Copy;
+    case GL_AND_INVERTED: return LogicOp::AndInverted;
+    case GL_NOOP: return LogicOp::NoOp;
+    case GL_XOR: return LogicOp::Xor;
+    case GL_OR: return LogicOp::Or;
+    case GL_NOR: return LogicOp::Nor;
+    case GL_EQUIV: return LogicOp::Equivalent;
+    case GL_INVERT: return LogicOp::Invert;
+    case GL_OR_REVERSE: return LogicOp::OrReverse;
+    case GL_COPY_INVERTED: return LogicOp::CopyInverted;
+    case GL_OR_INVERTED: return LogicOp::OrInverted;
+    case GL_NAND: return LogicOp::Nand;
+    case GL_SET: return LogicOp::Set;
+    default: break;
+  }
+
+  return LogicOp::NoOp;
+}
+
+BlendMultiplier MakeBlendMultiplier(GLenum blend)
+{
+  switch(blend)
+  {
+    case eGL_ZERO: return BlendMultiplier::Zero;
+    case eGL_ONE: return BlendMultiplier::One;
+    case eGL_SRC_COLOR: return BlendMultiplier::SrcCol;
+    case eGL_ONE_MINUS_SRC_COLOR: return BlendMultiplier::InvSrcCol;
+    case eGL_DST_COLOR: return BlendMultiplier::DstCol;
+    case eGL_ONE_MINUS_DST_COLOR: return BlendMultiplier::InvDstCol;
+    case eGL_SRC_ALPHA: return BlendMultiplier::SrcAlpha;
+    case eGL_ONE_MINUS_SRC_ALPHA: return BlendMultiplier::InvSrcAlpha;
+    case eGL_DST_ALPHA: return BlendMultiplier::DstAlpha;
+    case eGL_ONE_MINUS_DST_ALPHA: return BlendMultiplier::InvDstAlpha;
+    case eGL_CONSTANT_COLOR: return BlendMultiplier::FactorRGB;
+    case eGL_ONE_MINUS_CONSTANT_COLOR: return BlendMultiplier::InvFactorRGB;
+    case eGL_CONSTANT_ALPHA: return BlendMultiplier::FactorAlpha;
+    case eGL_ONE_MINUS_CONSTANT_ALPHA: return BlendMultiplier::InvFactorAlpha;
+    case eGL_SRC_ALPHA_SATURATE: return BlendMultiplier::SrcAlphaSat;
+    case eGL_SRC1_COLOR: return BlendMultiplier::Src1Col;
+    case eGL_ONE_MINUS_SRC1_COLOR: return BlendMultiplier::InvSrc1Col;
+    case eGL_SRC1_ALPHA: return BlendMultiplier::Src1Alpha;
+    case eGL_ONE_MINUS_SRC1_ALPHA: return BlendMultiplier::InvSrc1Alpha;
+    default: break;
+  }
+
+  return BlendMultiplier::One;
+}
+
+BlendOp MakeBlendOp(GLenum op)
+{
+  switch(op)
+  {
+    case eGL_FUNC_ADD: return BlendOp::Add;
+    case eGL_FUNC_SUBTRACT: return BlendOp::Subtract;
+    case eGL_FUNC_REVERSE_SUBTRACT: return BlendOp::ReversedSubtract;
+    case eGL_MIN: return BlendOp::Minimum;
+    case eGL_MAX: return BlendOp::Maximum;
+    default: break;
+  }
+
+  return BlendOp::Add;
+}
+
 const char *BlendString(GLenum blendenum)
 {
   switch(blendenum)

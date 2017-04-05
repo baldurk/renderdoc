@@ -3359,7 +3359,7 @@ void VulkanReplay::SavePipelineState()
       m_VulkanPipelineState.CB.logicOpEnable = p.logicOpEnable;
       m_VulkanPipelineState.CB.alphaToCoverageEnable = p.alphaToCoverageEnable;
       m_VulkanPipelineState.CB.alphaToOneEnable = p.alphaToOneEnable;
-      m_VulkanPipelineState.CB.logicOp = ToStr::Get(p.logicOp);
+      m_VulkanPipelineState.CB.logic = MakeLogicOp(p.logicOp);
 
       create_array_uninit(m_VulkanPipelineState.CB.attachments, p.attachments.size());
       for(size_t i = 0; i < p.attachments.size(); i++)
@@ -3367,18 +3367,18 @@ void VulkanReplay::SavePipelineState()
         m_VulkanPipelineState.CB.attachments[i].blendEnable = p.attachments[i].blendEnable;
 
         m_VulkanPipelineState.CB.attachments[i].blend.Source =
-            ToStr::Get(p.attachments[i].blend.Source);
+            MakeBlendMultiplier(p.attachments[i].blend.Source);
         m_VulkanPipelineState.CB.attachments[i].blend.Destination =
-            ToStr::Get(p.attachments[i].blend.Destination);
+            MakeBlendMultiplier(p.attachments[i].blend.Destination);
         m_VulkanPipelineState.CB.attachments[i].blend.Operation =
-            ToStr::Get(p.attachments[i].blend.Operation);
+            MakeBlendOp(p.attachments[i].blend.Operation);
 
         m_VulkanPipelineState.CB.attachments[i].alphaBlend.Source =
-            ToStr::Get(p.attachments[i].alphaBlend.Source);
+            MakeBlendMultiplier(p.attachments[i].alphaBlend.Source);
         m_VulkanPipelineState.CB.attachments[i].alphaBlend.Destination =
-            ToStr::Get(p.attachments[i].alphaBlend.Destination);
+            MakeBlendMultiplier(p.attachments[i].alphaBlend.Destination);
         m_VulkanPipelineState.CB.attachments[i].alphaBlend.Operation =
-            ToStr::Get(p.attachments[i].alphaBlend.Operation);
+            MakeBlendOp(p.attachments[i].alphaBlend.Operation);
 
         m_VulkanPipelineState.CB.attachments[i].writeMask = p.attachments[i].channelWriteMask;
       }
@@ -3389,18 +3389,18 @@ void VulkanReplay::SavePipelineState()
       m_VulkanPipelineState.DS.depthTestEnable = p.depthTestEnable;
       m_VulkanPipelineState.DS.depthWriteEnable = p.depthWriteEnable;
       m_VulkanPipelineState.DS.depthBoundsEnable = p.depthBoundsEnable;
-      m_VulkanPipelineState.DS.depthCompareOp = ToStr::Get(p.depthCompareOp);
+      m_VulkanPipelineState.DS.depthCompareOp = MakeCompareFunc(p.depthCompareOp);
       m_VulkanPipelineState.DS.stencilTestEnable = p.stencilTestEnable;
 
-      m_VulkanPipelineState.DS.front.passOp = ToStr::Get(p.front.passOp);
-      m_VulkanPipelineState.DS.front.failOp = ToStr::Get(p.front.failOp);
-      m_VulkanPipelineState.DS.front.depthFailOp = ToStr::Get(p.front.depthFailOp);
-      m_VulkanPipelineState.DS.front.func = ToStr::Get(p.front.compareOp);
+      m_VulkanPipelineState.DS.front.PassOp = MakeStencilOp(p.front.passOp);
+      m_VulkanPipelineState.DS.front.FailOp = MakeStencilOp(p.front.failOp);
+      m_VulkanPipelineState.DS.front.DepthFailOp = MakeStencilOp(p.front.depthFailOp);
+      m_VulkanPipelineState.DS.front.Func = MakeCompareFunc(p.front.compareOp);
 
-      m_VulkanPipelineState.DS.back.passOp = ToStr::Get(p.back.passOp);
-      m_VulkanPipelineState.DS.back.failOp = ToStr::Get(p.back.failOp);
-      m_VulkanPipelineState.DS.back.depthFailOp = ToStr::Get(p.back.depthFailOp);
-      m_VulkanPipelineState.DS.back.func = ToStr::Get(p.back.compareOp);
+      m_VulkanPipelineState.DS.back.PassOp = MakeStencilOp(p.back.passOp);
+      m_VulkanPipelineState.DS.back.FailOp = MakeStencilOp(p.back.failOp);
+      m_VulkanPipelineState.DS.back.DepthFailOp = MakeStencilOp(p.back.depthFailOp);
+      m_VulkanPipelineState.DS.back.Func = MakeCompareFunc(p.back.compareOp);
 
       m_VulkanPipelineState.DS.minDepthBounds = state.mindepth;
       m_VulkanPipelineState.DS.maxDepthBounds = state.maxdepth;
@@ -3597,24 +3597,17 @@ void VulkanReplay::SavePipelineState()
                   }
 
                   // sampler info
-                  el.mag = ToStr::Get(sampl.magFilter);
-                  el.min = ToStr::Get(sampl.minFilter);
-                  el.mip = ToStr::Get(sampl.mipmapMode);
-                  el.addrU = ToStr::Get(sampl.address[0]);
-                  el.addrV = ToStr::Get(sampl.address[1]);
-                  el.addrW = ToStr::Get(sampl.address[2]);
+                  el.Filter = MakeFilter(sampl.minFilter, sampl.magFilter, sampl.mipmapMode,
+                                         sampl.maxAnisotropy > 1.0f, sampl.compareEnable);
+                  el.AddressU = MakeAddressMode(sampl.address[0]);
+                  el.AddressV = MakeAddressMode(sampl.address[1]);
+                  el.AddressW = MakeAddressMode(sampl.address[2]);
                   el.mipBias = sampl.mipLodBias;
                   el.maxAniso = sampl.maxAnisotropy;
-                  el.compareEnable = sampl.compareEnable;
-                  el.comparison = ToStr::Get(sampl.compareOp);
+                  el.comparison = MakeCompareFunc(sampl.compareOp);
                   el.minlod = sampl.minLod;
                   el.maxlod = sampl.maxLod;
-                  el.borderEnable = false;
-                  if(sampl.address[0] == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER ||
-                     sampl.address[1] == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER ||
-                     sampl.address[2] == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER)
-                    el.borderEnable = true;
-                  el.border = ToStr::Get(sampl.borderColor);
+                  MakeBorderColor(sampl.borderColor, (FloatVector *)el.BorderColor);
                   el.unnormalized = sampl.unnormalizedCoordinates;
                 }
               }

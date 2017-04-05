@@ -89,6 +89,14 @@ struct ResourceFormat
 
 DECLARE_REFLECTION_STRUCT(ResourceFormat);
 
+struct TextureFilter
+{
+  FilterMode minify = FilterMode::NoFilter;
+  FilterMode magnify = FilterMode::NoFilter;
+  FilterMode mip = FilterMode::NoFilter;
+  FilterFunc func = FilterFunc::Normal;
+};
+
 struct BufferDescription
 {
   ResourceId ID;

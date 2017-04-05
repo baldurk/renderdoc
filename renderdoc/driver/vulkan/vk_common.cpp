@@ -1197,6 +1197,193 @@ VkPrimitiveTopology MakeVkPrimitiveTopology(Topology Topo)
   return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
 }
 
+AddressMode MakeAddressMode(VkSamplerAddressMode addr)
+{
+  switch(addr)
+  {
+    case VK_SAMPLER_ADDRESS_MODE_REPEAT: return AddressMode::Wrap;
+    case VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT: return AddressMode::Mirror;
+    case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE: return AddressMode::ClampEdge;
+    case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER: return AddressMode::ClampBorder;
+    case VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE: return AddressMode::MirrorOnce;
+    default: break;
+  }
+
+  return AddressMode::Wrap;
+}
+
+void MakeBorderColor(VkBorderColor border, FloatVector *BorderColor)
+{
+  // we don't distinguish float/int, assume it matches
+  switch(border)
+  {
+    case VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK:
+    case VK_BORDER_COLOR_INT_TRANSPARENT_BLACK:
+      *BorderColor = FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
+      break;
+    case VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK:
+    case VK_BORDER_COLOR_INT_OPAQUE_BLACK:
+      *BorderColor = FloatVector(0.0f, 0.0f, 0.0f, 1.0f);
+      break;
+    case VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE:
+    case VK_BORDER_COLOR_INT_OPAQUE_WHITE:
+      *BorderColor = FloatVector(1.0f, 1.0f, 1.0f, 1.0f);
+      break;
+    default: memset(BorderColor, 0, sizeof(FloatVector)); break;
+  }
+}
+
+CompareFunc MakeCompareFunc(VkCompareOp func)
+{
+  switch(func)
+  {
+    case VK_COMPARE_OP_NEVER: return CompareFunc::Never;
+    case VK_COMPARE_OP_LESS: return CompareFunc::Less;
+    case VK_COMPARE_OP_EQUAL: return CompareFunc::Equal;
+    case VK_COMPARE_OP_LESS_OR_EQUAL: return CompareFunc::LessEqual;
+    case VK_COMPARE_OP_GREATER: return CompareFunc::Greater;
+    case VK_COMPARE_OP_NOT_EQUAL: return CompareFunc::NotEqual;
+    case VK_COMPARE_OP_GREATER_OR_EQUAL: return CompareFunc::GreaterEqual;
+    case VK_COMPARE_OP_ALWAYS: return CompareFunc::AlwaysTrue;
+    default: break;
+  }
+
+  return CompareFunc::AlwaysTrue;
+}
+
+static FilterMode MakeFilterMode(VkFilter f)
+{
+  switch(f)
+  {
+    case VK_FILTER_NEAREST: return FilterMode::Point;
+    case VK_FILTER_LINEAR: return FilterMode::Linear;
+    case VK_FILTER_CUBIC_IMG: return FilterMode::Cubic;
+    default: break;
+  }
+
+  return FilterMode::NoFilter;
+}
+
+static FilterMode MakeFilterMode(VkSamplerMipmapMode f)
+{
+  switch(f)
+  {
+    case VK_SAMPLER_MIPMAP_MODE_NEAREST: return FilterMode::Point;
+    case VK_SAMPLER_MIPMAP_MODE_LINEAR: return FilterMode::Linear;
+    default: break;
+  }
+
+  return FilterMode::NoFilter;
+}
+
+TextureFilter MakeFilter(VkFilter minFilter, VkFilter magFilter, VkSamplerMipmapMode mipmapMode,
+                         bool anisoEnable, bool compareEnable)
+{
+  TextureFilter ret;
+
+  if(anisoEnable)
+  {
+    ret.minify = ret.magnify = ret.mip = FilterMode::Anisotropic;
+  }
+  else
+  {
+    ret.minify = MakeFilterMode(minFilter);
+    ret.magnify = MakeFilterMode(magFilter);
+    ret.mip = MakeFilterMode(mipmapMode);
+  }
+  ret.func = compareEnable ? FilterFunc::Comparison : FilterFunc::Normal;
+
+  return ret;
+}
+
+LogicOp MakeLogicOp(VkLogicOp op)
+{
+  switch(op)
+  {
+    case VK_LOGIC_OP_CLEAR: return LogicOp::Clear;
+    case VK_LOGIC_OP_AND: return LogicOp::And;
+    case VK_LOGIC_OP_AND_REVERSE: return LogicOp::AndReverse;
+    case VK_LOGIC_OP_COPY: return LogicOp::Copy;
+    case VK_LOGIC_OP_AND_INVERTED: return LogicOp::AndInverted;
+    case VK_LOGIC_OP_NO_OP: return LogicOp::NoOp;
+    case VK_LOGIC_OP_XOR: return LogicOp::Xor;
+    case VK_LOGIC_OP_OR: return LogicOp::Or;
+    case VK_LOGIC_OP_NOR: return LogicOp::Nor;
+    case VK_LOGIC_OP_EQUIVALENT: return LogicOp::Equivalent;
+    case VK_LOGIC_OP_INVERT: return LogicOp::Invert;
+    case VK_LOGIC_OP_OR_REVERSE: return LogicOp::OrReverse;
+    case VK_LOGIC_OP_COPY_INVERTED: return LogicOp::CopyInverted;
+    case VK_LOGIC_OP_OR_INVERTED: return LogicOp::OrInverted;
+    case VK_LOGIC_OP_NAND: return LogicOp::Nand;
+    case VK_LOGIC_OP_SET: return LogicOp::Set;
+    default: break;
+  }
+
+  return LogicOp::NoOp;
+}
+
+BlendMultiplier MakeBlendMultiplier(VkBlendFactor blend)
+{
+  switch(blend)
+  {
+    case VK_BLEND_FACTOR_ZERO: return BlendMultiplier::Zero;
+    case VK_BLEND_FACTOR_ONE: return BlendMultiplier::One;
+    case VK_BLEND_FACTOR_SRC_COLOR: return BlendMultiplier::SrcCol;
+    case VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR: return BlendMultiplier::InvSrcCol;
+    case VK_BLEND_FACTOR_DST_COLOR: return BlendMultiplier::DstCol;
+    case VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR: return BlendMultiplier::InvDstCol;
+    case VK_BLEND_FACTOR_SRC_ALPHA: return BlendMultiplier::SrcAlpha;
+    case VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA: return BlendMultiplier::InvSrcAlpha;
+    case VK_BLEND_FACTOR_DST_ALPHA: return BlendMultiplier::DstAlpha;
+    case VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA: return BlendMultiplier::InvDstAlpha;
+    case VK_BLEND_FACTOR_CONSTANT_COLOR: return BlendMultiplier::FactorRGB;
+    case VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR: return BlendMultiplier::InvFactorRGB;
+    case VK_BLEND_FACTOR_CONSTANT_ALPHA: return BlendMultiplier::FactorAlpha;
+    case VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA: return BlendMultiplier::InvFactorAlpha;
+    case VK_BLEND_FACTOR_SRC_ALPHA_SATURATE: return BlendMultiplier::SrcAlphaSat;
+    case VK_BLEND_FACTOR_SRC1_COLOR: return BlendMultiplier::Src1Col;
+    case VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR: return BlendMultiplier::InvSrc1Col;
+    case VK_BLEND_FACTOR_SRC1_ALPHA: return BlendMultiplier::Src1Alpha;
+    case VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA: return BlendMultiplier::InvSrc1Alpha;
+    default: break;
+  }
+
+  return BlendMultiplier::One;
+}
+
+BlendOp MakeBlendOp(VkBlendOp op)
+{
+  switch(op)
+  {
+    case VK_BLEND_OP_ADD: return BlendOp::Add;
+    case VK_BLEND_OP_SUBTRACT: return BlendOp::Subtract;
+    case VK_BLEND_OP_REVERSE_SUBTRACT: return BlendOp::ReversedSubtract;
+    case VK_BLEND_OP_MIN: return BlendOp::Minimum;
+    case VK_BLEND_OP_MAX: return BlendOp::Maximum;
+    default: break;
+  }
+
+  return BlendOp::Add;
+}
+
+StencilOp MakeStencilOp(VkStencilOp op)
+{
+  switch(op)
+  {
+    case VK_STENCIL_OP_KEEP: return StencilOp::Keep;
+    case VK_STENCIL_OP_ZERO: return StencilOp::Zero;
+    case VK_STENCIL_OP_REPLACE: return StencilOp::Replace;
+    case VK_STENCIL_OP_INCREMENT_AND_CLAMP: return StencilOp::IncSat;
+    case VK_STENCIL_OP_DECREMENT_AND_CLAMP: return StencilOp::DecSat;
+    case VK_STENCIL_OP_INVERT: return StencilOp::Invert;
+    case VK_STENCIL_OP_INCREMENT_AND_WRAP: return StencilOp::IncWrap;
+    case VK_STENCIL_OP_DECREMENT_AND_WRAP: return StencilOp::DecWrap;
+    default: break;
+  }
+
+  return StencilOp::Keep;
+}
+
 // we cast to this type when serialising as a placeholder indicating that
 // the given flags field doesn't have any bits defined
 enum VkFlagWithNoBits

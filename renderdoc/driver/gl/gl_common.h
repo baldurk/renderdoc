@@ -266,6 +266,13 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
 GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt);
 Topology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo);
 GLenum MakeGLPrimitiveTopology(Topology Topo);
+AddressMode MakeAddressMode(GLenum addr);
+TextureFilter MakeFilter(GLenum minf, GLenum magf, bool shadowSampler, float maxAniso);
+CompareFunc MakeCompareFunc(GLenum func);
+StencilOp MakeStencilOp(GLenum op);
+LogicOp MakeLogicOp(GLenum op);
+BlendMultiplier MakeBlendMultiplier(GLenum blend);
+BlendOp MakeBlendOp(GLenum op);
 const char *BlendString(GLenum blendenum);
 const char *SamplerString(GLenum smpenum);
 

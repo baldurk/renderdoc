@@ -629,28 +629,20 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
           D3D11_SAMPLER_DESC desc;
           src.Samplers[s]->GetDesc(&desc);
 
-          samp.AddressU = ToStr::Get(desc.AddressU);
-          samp.AddressV = ToStr::Get(desc.AddressV);
-          samp.AddressW = ToStr::Get(desc.AddressW);
+          samp.AddressU = MakeAddressMode(desc.AddressU);
+          samp.AddressV = MakeAddressMode(desc.AddressV);
+          samp.AddressW = MakeAddressMode(desc.AddressW);
 
           memcpy(samp.BorderColor, desc.BorderColor, sizeof(FLOAT) * 4);
 
-          samp.Comparison = ToStr::Get(desc.ComparisonFunc);
-          samp.Filter = ToStr::Get(desc.Filter);
+          samp.Comparison = MakeCompareFunc(desc.ComparisonFunc);
+          samp.Filter = MakeFilter(desc.Filter);
           samp.MaxAniso = 0;
-          if(desc.Filter == D3D11_FILTER_ANISOTROPIC ||
-             desc.Filter == D3D11_FILTER_COMPARISON_ANISOTROPIC ||
-             desc.Filter == D3D11_FILTER_MINIMUM_ANISOTROPIC ||
-             desc.Filter == D3D11_FILTER_MAXIMUM_ANISOTROPIC)
+          if(samp.Filter.mip == FilterMode::Anisotropic)
             samp.MaxAniso = desc.MaxAnisotropy;
           samp.MaxLOD = desc.MaxLOD;
           samp.MinLOD = desc.MinLOD;
           samp.MipLODBias = desc.MipLODBias;
-          samp.UseComparison = (desc.Filter >= D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT &&
-                                desc.Filter <= D3D11_FILTER_COMPARISON_ANISOTROPIC);
-          samp.UseBorder = (desc.AddressU == D3D11_TEXTURE_ADDRESS_BORDER ||
-                            desc.AddressV == D3D11_TEXTURE_ADDRESS_BORDER ||
-                            desc.AddressW == D3D11_TEXTURE_ADDRESS_BORDER);
         }
       }
 
@@ -679,7 +671,7 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
 
           view.Resource = rm->GetOriginalID(GetIDForResource(res));
 
-          view.Type = ToStr::Get(desc.ViewDimension);
+          view.Type = MakeTextureDim(desc.ViewDimension);
 
           if(desc.ViewDimension == D3D11_SRV_DIMENSION_BUFFER)
           {
@@ -785,7 +777,7 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
           view.Resource = rm->GetOriginalID(GetIDForResource(res));
 
           view.Format = MakeResourceFormat(desc.Format);
-          view.Type = ToStr::Get(desc.ViewDimension);
+          view.Type = MakeTextureDim(desc.ViewDimension);
 
           if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER)
           {
@@ -987,7 +979,7 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
         view.Resource = rm->GetOriginalID(GetIDForResource(res));
 
         view.Format = MakeResourceFormat(desc.Format);
-        view.Type = ToStr::Get(desc.ViewDimension);
+        view.Type = MakeTextureDim(desc.ViewDimension);
 
         if(desc.ViewDimension == D3D11_RTV_DIMENSION_BUFFER)
         {
@@ -1060,7 +1052,7 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
         view.Resource = rm->GetOriginalID(GetIDForResource(res));
 
         view.Format = MakeResourceFormat(desc.Format);
-        view.Type = ToStr::Get(desc.ViewDimension);
+        view.Type = MakeTextureDim(desc.ViewDimension);
 
         if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER)
         {
@@ -1143,7 +1135,7 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
         view.Resource = rm->GetOriginalID(GetIDForResource(res));
 
         view.Format = MakeResourceFormat(desc.Format);
-        view.Type = ToStr::Get(desc.ViewDimension);
+        view.Type = MakeTextureDim(desc.ViewDimension);
 
         if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1D)
         {
@@ -1207,15 +1199,16 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
         blend.Enabled = desc.RenderTarget[i].BlendEnable == TRUE;
 
         blend.LogicEnabled = state1 && desc1.RenderTarget[i].LogicOpEnable == TRUE;
-        blend.LogicOp = state1 ? ToStr::Get(desc1.RenderTarget[i].LogicOp) : "NOOP";
+        blend.Logic = state1 ? MakeLogicOp(desc1.RenderTarget[i].LogicOp) : LogicOp::NoOp;
 
-        blend.m_AlphaBlend.Source = ToStr::Get(desc.RenderTarget[i].SrcBlendAlpha);
-        blend.m_AlphaBlend.Destination = ToStr::Get(desc.RenderTarget[i].DestBlendAlpha);
-        blend.m_AlphaBlend.Operation = ToStr::Get(desc.RenderTarget[i].BlendOpAlpha);
+        blend.m_AlphaBlend.Source = MakeBlendMultiplier(desc.RenderTarget[i].SrcBlendAlpha, true);
+        blend.m_AlphaBlend.Destination =
+            MakeBlendMultiplier(desc.RenderTarget[i].DestBlendAlpha, true);
+        blend.m_AlphaBlend.Operation = MakeBlendOp(desc.RenderTarget[i].BlendOpAlpha);
 
-        blend.m_Blend.Source = ToStr::Get(desc.RenderTarget[i].SrcBlend);
-        blend.m_Blend.Destination = ToStr::Get(desc.RenderTarget[i].DestBlend);
-        blend.m_Blend.Operation = ToStr::Get(desc.RenderTarget[i].BlendOp);
+        blend.m_Blend.Source = MakeBlendMultiplier(desc.RenderTarget[i].SrcBlend, false);
+        blend.m_Blend.Destination = MakeBlendMultiplier(desc.RenderTarget[i].DestBlend, false);
+        blend.m_Blend.Operation = MakeBlendOp(desc.RenderTarget[i].BlendOp);
 
         blend.WriteMask = desc.RenderTarget[i].RenderTargetWriteMask;
       }
@@ -1231,16 +1224,16 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
 
       blend.Enabled = false;
 
-      blend.m_AlphaBlend.Source = ToStr::Get(D3D11_BLEND_ONE);
-      blend.m_AlphaBlend.Destination = ToStr::Get(D3D11_BLEND_ZERO);
-      blend.m_AlphaBlend.Operation = ToStr::Get(D3D11_BLEND_OP_ADD);
+      blend.m_AlphaBlend.Source = BlendMultiplier::One;
+      blend.m_AlphaBlend.Destination = BlendMultiplier::Zero;
+      blend.m_AlphaBlend.Operation = BlendOp::Add;
 
-      blend.m_Blend.Source = ToStr::Get(D3D11_BLEND_ONE);
-      blend.m_Blend.Destination = ToStr::Get(D3D11_BLEND_ZERO);
-      blend.m_Blend.Operation = ToStr::Get(D3D11_BLEND_OP_ADD);
+      blend.m_Blend.Source = BlendMultiplier::One;
+      blend.m_Blend.Destination = BlendMultiplier::Zero;
+      blend.m_Blend.Operation = BlendOp::Add;
 
       blend.LogicEnabled = false;
-      blend.LogicOp = ToStr::Get(D3D11_LOGIC_OP_NOOP);
+      blend.Logic = LogicOp::NoOp;
 
       blend.WriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
@@ -1255,7 +1248,7 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
       rs->OM.DepthStencilState->GetDesc(&desc);
 
       ret.m_OM.m_State.DepthEnable = desc.DepthEnable == TRUE;
-      ret.m_OM.m_State.DepthFunc = ToStr::Get(desc.DepthFunc);
+      ret.m_OM.m_State.DepthFunc = MakeCompareFunc(desc.DepthFunc);
       ret.m_OM.m_State.DepthWrites = desc.DepthWriteMask == D3D11_DEPTH_WRITE_MASK_ALL;
       ret.m_OM.m_State.StencilEnable = desc.StencilEnable == TRUE;
       ret.m_OM.m_State.StencilRef = rs->OM.StencRef;
@@ -1263,20 +1256,20 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
       ret.m_OM.m_State.StencilWriteMask = desc.StencilWriteMask;
       ret.m_OM.m_State.State = rm->GetOriginalID(GetIDForResource(rs->OM.DepthStencilState));
 
-      ret.m_OM.m_State.m_FrontFace.Func = ToStr::Get(desc.FrontFace.StencilFunc);
-      ret.m_OM.m_State.m_FrontFace.DepthFailOp = ToStr::Get(desc.FrontFace.StencilDepthFailOp);
-      ret.m_OM.m_State.m_FrontFace.PassOp = ToStr::Get(desc.FrontFace.StencilPassOp);
-      ret.m_OM.m_State.m_FrontFace.FailOp = ToStr::Get(desc.FrontFace.StencilFailOp);
+      ret.m_OM.m_State.m_FrontFace.Func = MakeCompareFunc(desc.FrontFace.StencilFunc);
+      ret.m_OM.m_State.m_FrontFace.DepthFailOp = MakeStencilOp(desc.FrontFace.StencilDepthFailOp);
+      ret.m_OM.m_State.m_FrontFace.PassOp = MakeStencilOp(desc.FrontFace.StencilPassOp);
+      ret.m_OM.m_State.m_FrontFace.FailOp = MakeStencilOp(desc.FrontFace.StencilFailOp);
 
-      ret.m_OM.m_State.m_BackFace.Func = ToStr::Get(desc.BackFace.StencilFunc);
-      ret.m_OM.m_State.m_BackFace.DepthFailOp = ToStr::Get(desc.BackFace.StencilDepthFailOp);
-      ret.m_OM.m_State.m_BackFace.PassOp = ToStr::Get(desc.BackFace.StencilPassOp);
-      ret.m_OM.m_State.m_BackFace.FailOp = ToStr::Get(desc.BackFace.StencilFailOp);
+      ret.m_OM.m_State.m_BackFace.Func = MakeCompareFunc(desc.BackFace.StencilFunc);
+      ret.m_OM.m_State.m_BackFace.DepthFailOp = MakeStencilOp(desc.BackFace.StencilDepthFailOp);
+      ret.m_OM.m_State.m_BackFace.PassOp = MakeStencilOp(desc.BackFace.StencilPassOp);
+      ret.m_OM.m_State.m_BackFace.FailOp = MakeStencilOp(desc.BackFace.StencilFailOp);
     }
     else
     {
       ret.m_OM.m_State.DepthEnable = true;
-      ret.m_OM.m_State.DepthFunc = ToStr::Get(D3D11_COMPARISON_LESS);
+      ret.m_OM.m_State.DepthFunc = CompareFunc::Less;
       ret.m_OM.m_State.DepthWrites = true;
       ret.m_OM.m_State.StencilEnable = false;
       ret.m_OM.m_State.StencilRef = rs->OM.StencRef;
@@ -1284,15 +1277,15 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
       ret.m_OM.m_State.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
       ret.m_OM.m_State.State = ResourceId();
 
-      ret.m_OM.m_State.m_FrontFace.Func = ToStr::Get(D3D11_COMPARISON_ALWAYS);
-      ret.m_OM.m_State.m_FrontFace.DepthFailOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
-      ret.m_OM.m_State.m_FrontFace.PassOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
-      ret.m_OM.m_State.m_FrontFace.FailOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
+      ret.m_OM.m_State.m_FrontFace.Func = CompareFunc::AlwaysTrue;
+      ret.m_OM.m_State.m_FrontFace.DepthFailOp = StencilOp::Keep;
+      ret.m_OM.m_State.m_FrontFace.PassOp = StencilOp::Keep;
+      ret.m_OM.m_State.m_FrontFace.FailOp = StencilOp::Keep;
 
-      ret.m_OM.m_State.m_BackFace.Func = ToStr::Get(D3D11_COMPARISON_ALWAYS);
-      ret.m_OM.m_State.m_BackFace.DepthFailOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
-      ret.m_OM.m_State.m_BackFace.PassOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
-      ret.m_OM.m_State.m_BackFace.FailOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
+      ret.m_OM.m_State.m_BackFace.Func = CompareFunc::AlwaysTrue;
+      ret.m_OM.m_State.m_BackFace.DepthFailOp = StencilOp::Keep;
+      ret.m_OM.m_State.m_BackFace.PassOp = StencilOp::Keep;
+      ret.m_OM.m_State.m_BackFace.FailOp = StencilOp::Keep;
     }
   }
 

@@ -1298,14 +1298,11 @@ void GLReplay::SavePipelineState()
         pipe.Textures[unit].Swizzle[3] = TextureSwizzle::Alpha;
 
         RDCEraseEl(pipe.Samplers[unit].BorderColor);
-        pipe.Samplers[unit].AddressS = "";
-        pipe.Samplers[unit].AddressT = "";
-        pipe.Samplers[unit].AddressR = "";
-        pipe.Samplers[unit].Comparison = "";
-        pipe.Samplers[unit].MinFilter = "";
-        pipe.Samplers[unit].MagFilter = "";
-        pipe.Samplers[unit].UseBorder = false;
-        pipe.Samplers[unit].UseComparison = false;
+        pipe.Samplers[unit].AddressS = AddressMode::Wrap;
+        pipe.Samplers[unit].AddressT = AddressMode::Wrap;
+        pipe.Samplers[unit].AddressR = AddressMode::Wrap;
+        pipe.Samplers[unit].Comparison = CompareFunc::AlwaysTrue;
+        pipe.Samplers[unit].Filter = TextureFilter();
         pipe.Samplers[unit].SeamlessCube = false;
         pipe.Samplers[unit].MaxAniso = 0.0f;
         pipe.Samplers[unit].MaxLOD = 0.0f;
@@ -1382,33 +1379,27 @@ void GLReplay::SavePipelineState()
             gl.glGetTexParameterfv(target, eGL_TEXTURE_BORDER_COLOR,
                                    &pipe.Samplers[unit].BorderColor[0]);
 
-          pipe.Samplers[unit].UseBorder = false;
-          pipe.Samplers[unit].UseComparison = shadow;
-
           GLint v;
           v = 0;
           if(samp != 0)
             gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_S, &v);
           else
             gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_S, &v);
-          pipe.Samplers[unit].AddressS = SamplerString((GLenum)v);
-          pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+          pipe.Samplers[unit].AddressS = MakeAddressMode((GLenum)v);
 
           v = 0;
           if(samp != 0)
             gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_T, &v);
           else
             gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_T, &v);
-          pipe.Samplers[unit].AddressT = SamplerString((GLenum)v);
-          pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+          pipe.Samplers[unit].AddressT = MakeAddressMode((GLenum)v);
 
           v = 0;
           if(samp != 0)
             gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_R, &v);
           else
             gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_R, &v);
-          pipe.Samplers[unit].AddressR = SamplerString((GLenum)v);
-          pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+          pipe.Samplers[unit].AddressR = MakeAddressMode((GLenum)v);
 
           v = 0;
           if(HasExt[ARB_seamless_cubemap_per_texture])
@@ -1426,21 +1417,19 @@ void GLReplay::SavePipelineState()
             gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_FUNC, &v);
           else
             gl.glGetTexParameteriv(target, eGL_TEXTURE_COMPARE_FUNC, &v);
-          pipe.Samplers[unit].Comparison = ToStr::Get((GLenum)v).substr(3).c_str();
+          pipe.Samplers[unit].Comparison = MakeCompareFunc((GLenum)v);
 
-          v = 0;
+          GLint minf = 0;
+          GLint magf = 0;
           if(samp != 0)
-            gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MIN_FILTER, &v);
+            gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MIN_FILTER, &minf);
           else
-            gl.glGetTexParameteriv(target, eGL_TEXTURE_MIN_FILTER, &v);
-          pipe.Samplers[unit].MinFilter = SamplerString((GLenum)v);
+            gl.glGetTexParameteriv(target, eGL_TEXTURE_MIN_FILTER, &minf);
 
-          v = 0;
           if(samp != 0)
-            gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MAG_FILTER, &v);
+            gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MAG_FILTER, &magf);
           else
-            gl.glGetTexParameteriv(target, eGL_TEXTURE_MAG_FILTER, &v);
-          pipe.Samplers[unit].MagFilter = SamplerString((GLenum)v);
+            gl.glGetTexParameteriv(target, eGL_TEXTURE_MAG_FILTER, &magf);
 
           if(HasExt[EXT_texture_filter_anisotropic])
           {
@@ -1456,6 +1445,9 @@ void GLReplay::SavePipelineState()
             pipe.Samplers[unit].MaxAniso = 0.0f;
           }
 
+          pipe.Samplers[unit].Filter =
+              MakeFilter((GLenum)minf, (GLenum)magf, shadow, pipe.Samplers[unit].MaxAniso);
+
           gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.Samplers[unit].MaxLOD);
           gl.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.Samplers[unit].MinLOD);
           if(!IsGLES)
@@ -1467,14 +1459,11 @@ void GLReplay::SavePipelineState()
         {
           // texture buffers don't support sampling
           RDCEraseEl(pipe.Samplers[unit].BorderColor);
-          pipe.Samplers[unit].AddressS = "";
-          pipe.Samplers[unit].AddressT = "";
-          pipe.Samplers[unit].AddressR = "";
-          pipe.Samplers[unit].Comparison = "";
-          pipe.Samplers[unit].MinFilter = "";
-          pipe.Samplers[unit].MagFilter = "";
-          pipe.Samplers[unit].UseBorder = false;
-          pipe.Samplers[unit].UseComparison = false;
+          pipe.Samplers[unit].AddressS = AddressMode::Wrap;
+          pipe.Samplers[unit].AddressT = AddressMode::Wrap;
+          pipe.Samplers[unit].AddressR = AddressMode::Wrap;
+          pipe.Samplers[unit].Comparison = CompareFunc::AlwaysTrue;
+          pipe.Samplers[unit].Filter = TextureFilter();
           pipe.Samplers[unit].SeamlessCube = false;
           pipe.Samplers[unit].MaxAniso = 0.0f;
           pipe.Samplers[unit].MaxLOD = 0.0f;
@@ -1680,7 +1669,7 @@ void GLReplay::SavePipelineState()
 
   pipe.m_DepthState.DepthEnable = rs.Enabled[GLRenderState::eEnabled_DepthTest];
   pipe.m_DepthState.DepthWrites = rs.DepthWriteMask != 0;
-  pipe.m_DepthState.DepthFunc = ToStr::Get(rs.DepthFunc).substr(3);
+  pipe.m_DepthState.DepthFunc = MakeCompareFunc(rs.DepthFunc);
 
   pipe.m_DepthState.DepthBounds = rs.Enabled[GLRenderState::eEnabled_DepthBoundsEXT];
   pipe.m_DepthState.NearBound = rs.DepthBounds.nearZ;
@@ -1690,17 +1679,17 @@ void GLReplay::SavePipelineState()
   pipe.m_StencilState.m_FrontFace.ValueMask = rs.StencilFront.valuemask;
   pipe.m_StencilState.m_FrontFace.WriteMask = rs.StencilFront.writemask;
   pipe.m_StencilState.m_FrontFace.Ref = rs.StencilFront.ref;
-  pipe.m_StencilState.m_FrontFace.Func = ToStr::Get(rs.StencilFront.func).substr(3);
-  pipe.m_StencilState.m_FrontFace.PassOp = ToStr::Get(rs.StencilFront.pass).substr(3);
-  pipe.m_StencilState.m_FrontFace.FailOp = ToStr::Get(rs.StencilFront.stencilFail).substr(3);
-  pipe.m_StencilState.m_FrontFace.DepthFailOp = ToStr::Get(rs.StencilFront.depthFail).substr(3);
+  pipe.m_StencilState.m_FrontFace.Func = MakeCompareFunc(rs.StencilFront.func);
+  pipe.m_StencilState.m_FrontFace.PassOp = MakeStencilOp(rs.StencilFront.pass);
+  pipe.m_StencilState.m_FrontFace.FailOp = MakeStencilOp(rs.StencilFront.stencilFail);
+  pipe.m_StencilState.m_FrontFace.DepthFailOp = MakeStencilOp(rs.StencilFront.depthFail);
   pipe.m_StencilState.m_BackFace.ValueMask = rs.StencilBack.valuemask;
   pipe.m_StencilState.m_BackFace.WriteMask = rs.StencilBack.writemask;
   pipe.m_StencilState.m_BackFace.Ref = rs.StencilBack.ref;
-  pipe.m_StencilState.m_BackFace.Func = ToStr::Get(rs.StencilBack.func).substr(3);
-  pipe.m_StencilState.m_BackFace.PassOp = ToStr::Get(rs.StencilBack.pass).substr(3);
-  pipe.m_StencilState.m_BackFace.FailOp = ToStr::Get(rs.StencilBack.stencilFail).substr(3);
-  pipe.m_StencilState.m_BackFace.DepthFailOp = ToStr::Get(rs.StencilBack.depthFail).substr(3);
+  pipe.m_StencilState.m_BackFace.Func = MakeCompareFunc(rs.StencilBack.func);
+  pipe.m_StencilState.m_BackFace.PassOp = MakeStencilOp(rs.StencilBack.pass);
+  pipe.m_StencilState.m_BackFace.FailOp = MakeStencilOp(rs.StencilBack.stencilFail);
+  pipe.m_StencilState.m_BackFace.DepthFailOp = MakeStencilOp(rs.StencilBack.depthFail);
 
   // Frame buffer
 
@@ -1902,20 +1891,23 @@ void GLReplay::SavePipelineState()
   for(size_t i = 0; i < ARRAY_COUNT(rs.Blends); i++)
   {
     pipe.m_FB.m_Blending.Blends[i].Enabled = rs.Blends[i].Enabled;
-    pipe.m_FB.m_Blending.Blends[i].LogicOp = "";
+    pipe.m_FB.m_Blending.Blends[i].Logic = LogicOp::NoOp;
     if(rs.LogicOp != eGL_NONE && rs.LogicOp != eGL_COPY &&
        rs.Enabled[GLRenderState::eEnabled_ColorLogicOp])
-      pipe.m_FB.m_Blending.Blends[i].LogicOp =
-          ToStr::Get(rs.LogicOp).substr(3);    // 3 == strlen("GL_")
+    {
+      pipe.m_FB.m_Blending.Blends[i].Logic = MakeLogicOp(rs.LogicOp);
+    }
 
-    pipe.m_FB.m_Blending.Blends[i].m_Blend.Source = BlendString(rs.Blends[i].SourceRGB);
-    pipe.m_FB.m_Blending.Blends[i].m_Blend.Destination = BlendString(rs.Blends[i].DestinationRGB);
-    pipe.m_FB.m_Blending.Blends[i].m_Blend.Operation = BlendString(rs.Blends[i].EquationRGB);
+    pipe.m_FB.m_Blending.Blends[i].m_Blend.Source = MakeBlendMultiplier(rs.Blends[i].SourceRGB);
+    pipe.m_FB.m_Blending.Blends[i].m_Blend.Destination =
+        MakeBlendMultiplier(rs.Blends[i].DestinationRGB);
+    pipe.m_FB.m_Blending.Blends[i].m_Blend.Operation = MakeBlendOp(rs.Blends[i].EquationRGB);
 
-    pipe.m_FB.m_Blending.Blends[i].m_AlphaBlend.Source = BlendString(rs.Blends[i].SourceAlpha);
+    pipe.m_FB.m_Blending.Blends[i].m_AlphaBlend.Source =
+        MakeBlendMultiplier(rs.Blends[i].SourceAlpha);
     pipe.m_FB.m_Blending.Blends[i].m_AlphaBlend.Destination =
-        BlendString(rs.Blends[i].DestinationAlpha);
-    pipe.m_FB.m_Blending.Blends[i].m_AlphaBlend.Operation = BlendString(rs.Blends[i].EquationAlpha);
+        MakeBlendMultiplier(rs.Blends[i].DestinationAlpha);
+    pipe.m_FB.m_Blending.Blends[i].m_AlphaBlend.Operation = MakeBlendOp(rs.Blends[i].EquationAlpha);
 
     pipe.m_FB.m_Blending.Blends[i].WriteMask = 0;
     if(rs.ColorMasks[i].red)

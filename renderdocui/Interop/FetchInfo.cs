@@ -280,6 +280,44 @@ namespace renderdoc
     };
 
     [StructLayout(LayoutKind.Sequential)]
+    public class TextureFilter
+    {
+        public FilterMode minify;
+        public FilterMode magnify;
+        public FilterMode mip;
+        public FilterFunc func;
+
+        public override string ToString()
+        {
+            string[] filters = { minify.ToString(), magnify.ToString(), mip.ToString() };
+            string[] filterPrefixes = { "Min", "Mag", "Mip" };
+
+            string filter = "", filtPrefix = "", filtVal = "";
+
+            for (int a = 0; a < 3; a++)
+            {
+                if (a == 0 || filters[a] == filters[a - 1])
+                {
+                    if (filtPrefix != "")
+                        filtPrefix += "/";
+                    filtPrefix += filterPrefixes[a];
+                }
+                else
+                {
+                    filter += filtPrefix + ": " + filtVal + ", ";
+
+                    filtPrefix = filterPrefixes[a];
+                }
+                filtVal = filters[a];
+            }
+
+            filter += filtPrefix + ": " + filtVal;
+
+            return filter;
+        }
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
     public class FetchBuffer
     {
         public ResourceId ID;

@@ -596,7 +596,7 @@ namespace renderdocui.Windows.PipelineState
 
                     string rootel = s.Immediate ? String.Format("#{0} Static", s.RootElement) : String.Format("#{0} Table[{1}]", s.RootElement, s.TableIndex);
 
-                    bool filledSlot = (s.AddressU.Length > 0);
+                    bool filledSlot = (s.Filter.minify != FilterMode.NoFilter);
                     bool usedSlot = (bind != null && bind.used);
 
                     // show if
@@ -626,9 +626,9 @@ namespace renderdocui.Windows.PipelineState
                                           s.BorderColor[2].ToString() + ", " +
                                           s.BorderColor[3].ToString();
 
-                            addr[0] = s.AddressU;
-                            addr[1] = s.AddressV;
-                            addr[2] = s.AddressW;
+                            addr[0] = s.AddressU.ToString();
+                            addr[1] = s.AddressV.ToString();
+                            addr[2] = s.AddressW.ToString();
                         }
 
                         // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
@@ -657,16 +657,18 @@ namespace renderdocui.Windows.PipelineState
 
                         if (s != null)
                         {
-                            if (s.UseBorder)
+                            if (s.UseBorder())
                                 addressing += String.Format("<{0}>", borderColor);
 
-                            filter = s.Filter;
+                            filter = s.Filter.ToString();
 
                             if (s.MaxAniso > 0)
                                 filter += String.Format(" {0}x", s.MaxAniso);
 
-                            if (s.UseComparison)
+                            if (s.Filter.func == FilterFunc.Comparison)
                                 filter += String.Format(" ({0})", s.Comparison);
+                            else if (s.Filter.func != FilterFunc.Normal)
+                                filter += String.Format(" ({0})", s.Filter.func);
 
                             lodclamp = (s.MinLOD == -float.MaxValue ? "0" : s.MinLOD.ToString()) + " - " +
                                        (s.MaxLOD == float.MaxValue ? "FLT_MAX" : s.MaxLOD.ToString());
@@ -1421,7 +1423,7 @@ namespace renderdocui.Windows.PipelineState
                                                         blend.m_AlphaBlend.Destination,
                                                         blend.m_AlphaBlend.Operation,
 
-                                                        blend.LogicOp,
+                                                        blend.Logic,
 
                                                         ((blend.WriteMask & 0x1) == 0 ? "_" : "R") +
                                                         ((blend.WriteMask & 0x2) == 0 ? "_" : "G") +
@@ -1456,7 +1458,7 @@ namespace renderdocui.Windows.PipelineState
             sampleMask.Text = state.m_RS.SampleMask.ToString("X8");
 
             depthEnable.Image = state.m_OM.m_State.DepthEnable ? tick : cross;
-            depthFunc.Text = state.m_OM.m_State.DepthFunc;
+            depthFunc.Text = state.m_OM.m_State.DepthFunc.ToString();
             depthWrite.Image = state.m_OM.m_State.DepthWrites ? tick : cross;
 
             stencilEnable.Image = state.m_OM.m_State.StencilEnable ? tick : cross;
@@ -3083,7 +3085,7 @@ namespace renderdocui.Windows.PipelineState
                         b.Enabled ? "Yes" : "No", b.LogicEnabled ? "Yes" : "No",
                         b.m_Blend.Source, b.m_Blend.Destination, b.m_Blend.Operation,
                         b.m_AlphaBlend.Source, b.m_AlphaBlend.Destination, b.m_AlphaBlend.Operation,
-                        b.LogicOp,
+                        b.Logic,
                         ((b.WriteMask & 0x1) == 0 ? "_" : "R") +
                         ((b.WriteMask & 0x2) == 0 ? "_" : "G") +
                         ((b.WriteMask & 0x4) == 0 ? "_" : "B") +

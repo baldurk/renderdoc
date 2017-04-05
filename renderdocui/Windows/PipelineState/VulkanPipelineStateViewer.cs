@@ -313,10 +313,8 @@ namespace renderdocui.Windows.PipelineState
             string addVal = "";
 
             string filter = "";
-            string filtPrefix = "";
-            string filtVal = "";
 
-            string[] addr = { descriptor.addrU, descriptor.addrV, descriptor.addrW };
+            string[] addr = { descriptor.addrU.ToString(), descriptor.addrV.ToString(), descriptor.addrW.ToString() };
 
             // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
             for (int a = 0; a < 3; a++)
@@ -338,40 +336,24 @@ namespace renderdocui.Windows.PipelineState
 
             addressing += addPrefix + ": " + addVal;
 
-            if (descriptor.borderEnable)
-                addressing += " " + descriptor.border;
+            if (descriptor.UseBorder())
+                addressing += " <" + descriptor.BorderColor[0].ToString() + ", " +
+                                            descriptor.BorderColor[1].ToString() + ", " +
+                                            descriptor.BorderColor[2].ToString() + ", " +
+                                            descriptor.BorderColor[3].ToString() + ">";
 
             if (descriptor.unnormalized)
                 addressing += " (Un-norm)";
 
-            string[] filters = { descriptor.min, descriptor.mag, descriptor.mip };
-            string[] filterPrefixes = { "Min", "Mag", "Mip" };
-
-            // arrange as addressing above
-            for (int a = 0; a < 3; a++)
-            {
-                if (a == 0 || filters[a] == filters[a - 1])
-                {
-                    if (filtPrefix != "")
-                        filtPrefix += "/";
-                    filtPrefix += filterPrefixes[a];
-                }
-                else
-                {
-                    filter += filtPrefix + ": " + filtVal + ", ";
-
-                    filtPrefix = filterPrefixes[a];
-                }
-                filtVal = filters[a];
-            }
-
-            filter += filtPrefix + ": " + filtVal;
+            filter += descriptor.Filter.ToString();
 
             if (descriptor.maxAniso > 1.0f)
                 filter += String.Format(" Aniso {0}x", descriptor.maxAniso);
 
-            if (descriptor.compareEnable)
+            if (descriptor.Filter.func == FilterFunc.Comparison)
                 filter += String.Format(" ({0})", descriptor.comparison);
+            else if (descriptor.Filter.func != FilterFunc.Normal)
+                filter += String.Format(" ({0})", descriptor.Filter.func);
 
             string lod = "LODs: " +
                          (descriptor.minlod == -float.MaxValue ? "0" : descriptor.minlod.ToString()) + " - " +
@@ -1701,11 +1683,11 @@ namespace renderdocui.Windows.PipelineState
                                 state.CB.blendConst[1].ToString("F2") + ", " +
                                 state.CB.blendConst[2].ToString("F2") + ", " +
                                 state.CB.blendConst[3].ToString("F2");
-            logicOp.Text = state.CB.logicOpEnable ? state.CB.LogicOp : "-";
+            logicOp.Text = state.CB.logicOpEnable ? state.CB.Logic.ToString() : "-";
             alphaToOne.Image = state.CB.alphaToOneEnable ? tick : cross;
 
             depthEnable.Image = state.DS.depthTestEnable ? tick : cross;
-            depthFunc.Text = state.DS.depthCompareOp;
+            depthFunc.Text = state.DS.depthCompareOp.ToString();
             depthWrite.Image = state.DS.depthWriteEnable ? tick : cross;
 
             if (state.DS.depthBoundsEnable)
@@ -1723,13 +1705,13 @@ namespace renderdocui.Windows.PipelineState
             stencilFuncs.Nodes.Clear();
             if (state.DS.stencilTestEnable)
             {
-                stencilFuncs.Nodes.Add(new object[] { "Front", state.DS.front.func, state.DS.front.failOp, 
-                                                 state.DS.front.depthFailOp, state.DS.front.passOp,
+                stencilFuncs.Nodes.Add(new object[] { "Front", state.DS.front.Func, state.DS.front.FailOp, 
+                                                 state.DS.front.DepthFailOp, state.DS.front.PassOp,
                                                  state.DS.front.writeMask.ToString("X2"),
                                                  state.DS.front.compareMask.ToString("X2"),
                                                  state.DS.front.stencilref.ToString("X2")});
-                stencilFuncs.Nodes.Add(new object[] { "Back", state.DS.back.func, state.DS.back.failOp, 
-                                                 state.DS.back.depthFailOp, state.DS.back.passOp,
+                stencilFuncs.Nodes.Add(new object[] { "Back", state.DS.back.Func, state.DS.back.FailOp, 
+                                                 state.DS.back.DepthFailOp, state.DS.back.PassOp,
                                                  state.DS.back.writeMask.ToString("X2"),
                                                  state.DS.back.compareMask.ToString("X2"),
                                                  state.DS.back.stencilref.ToString("X2")});
@@ -3265,7 +3247,7 @@ namespace renderdocui.Windows.PipelineState
             ExportHTMLTable(writer,
                 new string[] { "Alpha to Coverage", "Alpha to One", "Logic Op", "Blend Constant" },
                 new object[] { cb.alphaToCoverageEnable ? "Yes" : "No", cb.alphaToOneEnable ? "Yes" : "No",
-                                cb.logicOpEnable ? cb.LogicOp : "Disabled", blendConst, });
+                                cb.logicOpEnable ? cb.Logic.ToString() : "Disabled", blendConst, });
 
 
             writer.WriteStartElement("h3");
@@ -3329,13 +3311,13 @@ namespace renderdocui.Windows.PipelineState
                     rows.Add(new object[] {
                         "Front",
                         ds.front.stencilref.ToString("X2"), ds.front.compareMask.ToString("X2"), ds.front.writeMask.ToString("X2"),
-                        ds.front.func, ds.front.passOp, ds.front.failOp, ds.front.depthFailOp
+                        ds.front.Func, ds.front.PassOp, ds.front.FailOp, ds.front.DepthFailOp
                     });
 
                     rows.Add(new object[] {
                         "Back",
                         ds.back.stencilref.ToString("X2"), ds.back.compareMask.ToString("X2"), ds.back.writeMask.ToString("X2"),
-                        ds.back.func, ds.back.passOp, ds.back.failOp, ds.back.depthFailOp
+                        ds.back.Func, ds.back.PassOp, ds.back.FailOp, ds.back.DepthFailOp
                     });
 
                     ExportHTMLTable(writer,

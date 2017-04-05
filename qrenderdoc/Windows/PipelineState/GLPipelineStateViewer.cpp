@@ -207,14 +207,13 @@ GLPipelineStateViewer::GLPipelineStateViewer(CaptureContext &ctx, PipelineStateV
 
   for(RDTreeWidget *samp : samplers)
   {
-    // Slot | Addressing | Min Filter | Mag Filter | LOD Clamp | LOD Bias
+    // Slot | Addressing | Filter | LOD Clamp | LOD Bias
     samp->header()->resizeSection(0, 120);
     samp->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     samp->header()->setSectionResizeMode(1, QHeaderView::Stretch);
     samp->header()->setSectionResizeMode(2, QHeaderView::Stretch);
-    samp->header()->setSectionResizeMode(3, QHeaderView::Stretch);
+    samp->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     samp->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    samp->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
   }
 
   for(RDTreeWidget *ubo : ubos)
@@ -712,7 +711,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
 
         addressing += addPrefix + ": " + addVal;
 
-        if(s.UseBorder)
+        if(s.UseBorder())
           addressing += QString("<%1>").arg(borderColor);
 
         if(r.ResType == TextureDim::TextureCube || r.ResType == TextureDim::TextureCubeArray)
@@ -720,16 +719,18 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
           addressing += s.SeamlessCube ? " Seamless" : " Non-Seamless";
         }
 
-        QString minfilter = ToQStr(s.MinFilter);
+        QString filter = ToQStr(s.Filter);
 
         if(s.MaxAniso > 1)
-          minfilter += QString(" Aniso%1x").arg(s.MaxAniso);
+          filter += QString(" Aniso%1x").arg(s.MaxAniso);
 
-        if(s.UseComparison)
-          minfilter = ToQStr(s.Comparison);
+        if(s.Filter.func == FilterFunc::Comparison)
+          filter += QString(" (%1)").arg(ToQStr(s.Comparison));
+        else if(s.Filter.func != FilterFunc::Normal)
+          filter += QString(" (%1)").arg(ToQStr(s.Filter.func));
 
         QTreeWidgetItem *node =
-            makeTreeNode({slotname, addressing, minfilter, ToQStr(s.MagFilter),
+            makeTreeNode({slotname, addressing, filter,
                           (s.MinLOD == -FLT_MAX ? "0" : QString::number(s.MinLOD)) + " - " +
                               (s.MaxLOD == FLT_MAX ? "FLT_MAX" : QString::number(s.MaxLOD)),
                           s.MipLODBias});
@@ -1769,7 +1770,7 @@ void GLPipelineStateViewer::setState()
   ui->blends->setUpdatesEnabled(false);
   ui->blends->clear();
   {
-    bool logic = !state.m_FB.m_Blending.Blends[0].LogicOp.empty();
+    bool logic = state.m_FB.m_Blending.Blends[0].Logic != LogicOp::NoOp;
 
     int i = 0;
     for(const GLPipe::Blend &blend : state.m_FB.m_Blending.Blends)
@@ -1789,7 +1790,7 @@ void GLPipelineStateViewer::setState()
         {
           node = makeTreeNode({i, tr("True"),
 
-                               "-", "-", ToQStr(blend.LogicOp),
+                               "-", "-", ToQStr(blend.Logic),
 
                                "-", "-", "-",
 

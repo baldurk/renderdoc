@@ -505,7 +505,7 @@ namespace renderdocui.Windows.PipelineState
                         }
                     }
 
-                    bool filledSlot = (s.AddressU.Length > 0);
+                    bool filledSlot = (s.Samp != ResourceId.Null);
                     bool usedSlot = (shaderInput != null);
                     
                     // show if
@@ -532,7 +532,7 @@ namespace renderdocui.Windows.PipelineState
                         string addPrefix = "";
                         string addVal = "";
 
-                        string[] addr = { s.AddressU, s.AddressV, s.AddressW };
+                        string[] addr = { s.AddressU.ToString(), s.AddressV.ToString(), s.AddressW.ToString() };
 
                         // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
                         for (int a = 0; a < 3; a++)
@@ -554,16 +554,18 @@ namespace renderdocui.Windows.PipelineState
 
                         addressing += addPrefix + ": " + addVal;
 
-                        if(s.UseBorder)
+                        if(s.UseBorder())
                             addressing += String.Format("<{0}>", borderColor);
 
-                        string filter = s.Filter;
+                        string filter = s.Filter.ToString();
 
                         if (s.MaxAniso > 0)
                             filter += String.Format(" {0}x", s.MaxAniso);
 
-                        if (s.UseComparison)
+                        if (s.Filter.func == FilterFunc.Comparison)
                             filter += String.Format(" ({0})", s.Comparison);
+                        else if(s.Filter.func != FilterFunc.Normal)
+                            filter += String.Format(" ({0})", s.Filter.func);
 
                         var node = samplers.Nodes.Add(new object[] { slotname, addressing,
                                                             filter,
@@ -1693,7 +1695,7 @@ namespace renderdocui.Windows.PipelineState
                                                         blend.m_AlphaBlend.Destination,
                                                         blend.m_AlphaBlend.Operation,
 
-                                                        blend.LogicOp,
+                                                        blend.Logic,
 
                                                         ((blend.WriteMask & 0x1) == 0 ? "_" : "R") +
                                                         ((blend.WriteMask & 0x2) == 0 ? "_" : "G") +
@@ -1728,7 +1730,7 @@ namespace renderdocui.Windows.PipelineState
             sampleMask.Text = state.m_OM.m_BlendState.SampleMask.ToString("X8");
 
             depthEnable.Image = state.m_OM.m_State.DepthEnable ? tick : cross;
-            depthFunc.Text = state.m_OM.m_State.DepthFunc;
+            depthFunc.Text = state.m_OM.m_State.DepthFunc.ToString();
             depthWrite.Image = state.m_OM.m_State.DepthWrites ? tick : cross;
 
             stencilEnable.Image = state.m_OM.m_State.StencilEnable ? tick : cross;
@@ -3418,7 +3420,7 @@ namespace renderdocui.Windows.PipelineState
                     string addPrefix = "";
                     string addVal = "";
 
-                    string[] addr = { s.AddressU, s.AddressV, s.AddressW };
+                    string[] addr = { s.AddressU.ToString(), s.AddressV.ToString(), s.AddressW.ToString() };
 
                     // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
                     for (int a = 0; a < 3; a++)
@@ -3666,7 +3668,7 @@ namespace renderdocui.Windows.PipelineState
                         b.Enabled ? "Yes" : "No", b.LogicEnabled ? "Yes" : "No",
                         b.m_Blend.Source, b.m_Blend.Destination, b.m_Blend.Operation,
                         b.m_AlphaBlend.Source, b.m_AlphaBlend.Destination, b.m_AlphaBlend.Operation,
-                        b.LogicOp,
+                        b.Logic,
                         ((b.WriteMask & 0x1) == 0 ? "_" : "R") +
                         ((b.WriteMask & 0x2) == 0 ? "_" : "G") +
                         ((b.WriteMask & 0x4) == 0 ? "_" : "B") +

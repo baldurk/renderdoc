@@ -74,6 +74,15 @@ namespace renderdoc
         One,
     };
 
+    public enum AddressMode
+    {
+        Wrap,
+        Mirror,
+        MirrorOnce,
+        ClampEdge,
+        ClampBorder,
+    };
+
     public enum ShaderResourceType
     {
         None,
@@ -498,6 +507,95 @@ namespace renderdoc
         Front,
         Back,
         FrontAndBack,
+    };
+
+    public enum FilterMode
+    {
+        NoFilter,
+        Point,
+        Linear,
+        Anisotropic,
+    };
+
+    public enum FilterFunc
+    {
+        Normal,
+        Comparison,
+        Minimum,
+        Maximum,
+    };
+
+    public enum CompareFunc
+    {
+        Never,
+        AlwaysTrue,
+        Less,
+        LessEqual,
+        Greater,
+        GreaterEqual,
+        Equal,
+        NotEqual,
+    };
+
+    public enum StencilOp
+    {
+        Keep,
+        Zero,
+        Replace,
+        IncSat,
+        DecSat,
+        IncWrap,
+        DecWrap,
+        Invert,
+    };
+
+    public enum BlendMultiplier
+    {
+        Zero,
+        One,
+        SrcCol,
+        InvSrcCol,
+        SrcAlpha,
+        InvSrcAlpha,
+        DstAlpha,
+        InvDstAlpha,
+        SrcAlphaSat,
+        FactorRGB,
+        InvFactorRGB,
+        FactorAlpha,
+        InvFactorAlpha,
+        Src1Col,
+        InvSrc1Col,
+        Src1Alpha,
+        InvSrc1Alpha,
+    };
+
+    public enum BlendOp
+    {
+        Add,
+        Subtract,
+        ReversedSubtract,
+        Minimum,
+        Maximum,
+    };
+
+    public enum LogicOp
+    {
+        NoOp,
+        Clear,
+        Set,
+        Copy,
+        CopyInverted,
+        Invert,
+        And,
+        Nand,
+        Or,
+        Xor,
+        Equivalent,
+        AndReverse,
+        AndInverted,
+        OrReverse,
+        OrInverted,
     };
 
     public enum GPUCounters : uint

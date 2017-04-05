@@ -325,7 +325,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
 
     if(desc->GetType() == D3D12Descriptor::TypeRTV)
     {
-      view.Type = ToStr::Get(desc->nonsamp.rtv.ViewDimension);
+      view.Type = MakeTextureDim(desc->nonsamp.rtv.ViewDimension);
 
       if(desc->nonsamp.rtv.ViewDimension == D3D12_RTV_DIMENSION_BUFFER)
       {
@@ -369,7 +369,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
     }
     else if(desc->GetType() == D3D12Descriptor::TypeDSV)
     {
-      view.Type = ToStr::Get(desc->nonsamp.dsv.ViewDimension);
+      view.Type = MakeTextureDim(desc->nonsamp.dsv.ViewDimension);
 
       if(desc->nonsamp.dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE1D)
       {
@@ -402,7 +402,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
     }
     else if(desc->GetType() == D3D12Descriptor::TypeSRV)
     {
-      view.Type = ToStr::Get(desc->nonsamp.srv.ViewDimension);
+      view.Type = MakeTextureDim(desc->nonsamp.srv.ViewDimension);
 
       view.swizzle[0] = (TextureSwizzle)D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(
           0, desc->nonsamp.srv.Shader4ComponentMapping);
@@ -471,7 +471,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
 
       view.CounterResource = rm->GetOriginalID(GetResID(desc->nonsamp.uav.counterResource));
 
-      view.Type = ToStr::Get(uav.ViewDimension);
+      view.Type = MakeTextureDim(uav.ViewDimension);
 
       if(uav.ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
       {
@@ -605,7 +605,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
           // parameters from resource/view
           view.Resource = rm->GetOriginalID(e.id);
-          view.Type = ToStr::Get(D3D12_SRV_DIMENSION_BUFFER);
+          view.Type = TextureDim::Buffer;
           view.Format = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
 
           view.ElementSize = sizeof(uint32_t);
@@ -630,7 +630,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
           // parameters from resource/view
           view.Resource = rm->GetOriginalID(e.id);
-          view.Type = ToStr::Get(D3D12_UAV_DIMENSION_BUFFER);
+          view.Type = TextureDim::Buffer;
           view.Format = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
 
           view.ElementSize = sizeof(uint32_t);
@@ -693,28 +693,20 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
             {
               D3D12_SAMPLER_DESC &sampDesc = desc->samp.desc;
 
-              samp.AddressU = ToStr::Get(sampDesc.AddressU);
-              samp.AddressV = ToStr::Get(sampDesc.AddressV);
-              samp.AddressW = ToStr::Get(sampDesc.AddressW);
+              samp.AddressU = MakeAddressMode(sampDesc.AddressU);
+              samp.AddressV = MakeAddressMode(sampDesc.AddressV);
+              samp.AddressW = MakeAddressMode(sampDesc.AddressW);
 
               memcpy(samp.BorderColor, sampDesc.BorderColor, sizeof(FLOAT) * 4);
 
-              samp.Comparison = ToStr::Get(sampDesc.ComparisonFunc);
-              samp.Filter = ToStr::Get(sampDesc.Filter);
+              samp.Comparison = MakeCompareFunc(sampDesc.ComparisonFunc);
+              samp.Filter = MakeFilter(sampDesc.Filter);
               samp.MaxAniso = 0;
-              if(sampDesc.Filter == D3D12_FILTER_ANISOTROPIC ||
-                 sampDesc.Filter == D3D12_FILTER_COMPARISON_ANISOTROPIC ||
-                 sampDesc.Filter == D3D12_FILTER_MINIMUM_ANISOTROPIC ||
-                 sampDesc.Filter == D3D12_FILTER_MAXIMUM_ANISOTROPIC)
+              if(samp.Filter.minify == FilterMode::Anisotropic)
                 samp.MaxAniso = sampDesc.MaxAnisotropy;
               samp.MaxLOD = sampDesc.MaxLOD;
               samp.MinLOD = sampDesc.MinLOD;
               samp.MipLODBias = sampDesc.MipLODBias;
-              samp.UseComparison = (sampDesc.Filter >= D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT &&
-                                    sampDesc.Filter <= D3D12_FILTER_COMPARISON_ANISOTROPIC);
-              samp.UseBorder = (sampDesc.AddressU == D3D12_TEXTURE_ADDRESS_MODE_BORDER ||
-                                sampDesc.AddressV == D3D12_TEXTURE_ADDRESS_MODE_BORDER ||
-                                sampDesc.AddressW == D3D12_TEXTURE_ADDRESS_MODE_BORDER);
 
               desc++;
             }
@@ -803,9 +795,9 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     samp.Immediate = true;
     samp.RootElement = (uint32_t)i;
 
-    samp.AddressU = ToStr::Get(sampDesc.AddressU);
-    samp.AddressV = ToStr::Get(sampDesc.AddressV);
-    samp.AddressW = ToStr::Get(sampDesc.AddressW);
+    samp.AddressU = MakeAddressMode(sampDesc.AddressU);
+    samp.AddressV = MakeAddressMode(sampDesc.AddressV);
+    samp.AddressW = MakeAddressMode(sampDesc.AddressW);
 
     if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK)
     {
@@ -833,22 +825,14 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
       RDCERR("Unexpected static border colour: %u", sampDesc.BorderColor);
     }
 
-    samp.Comparison = ToStr::Get(sampDesc.ComparisonFunc);
-    samp.Filter = ToStr::Get(sampDesc.Filter);
+    samp.Comparison = MakeCompareFunc(sampDesc.ComparisonFunc);
+    samp.Filter = MakeFilter(sampDesc.Filter);
     samp.MaxAniso = 0;
-    if(sampDesc.Filter == D3D12_FILTER_ANISOTROPIC ||
-       sampDesc.Filter == D3D12_FILTER_COMPARISON_ANISOTROPIC ||
-       sampDesc.Filter == D3D12_FILTER_MINIMUM_ANISOTROPIC ||
-       sampDesc.Filter == D3D12_FILTER_MAXIMUM_ANISOTROPIC)
+    if(samp.Filter.minify == FilterMode::Anisotropic)
       samp.MaxAniso = sampDesc.MaxAnisotropy;
     samp.MaxLOD = sampDesc.MaxLOD;
     samp.MinLOD = sampDesc.MinLOD;
     samp.MipLODBias = sampDesc.MipLODBias;
-    samp.UseComparison = (sampDesc.Filter >= D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT &&
-                          sampDesc.Filter <= D3D12_FILTER_COMPARISON_ANISOTROPIC);
-    samp.UseBorder = (sampDesc.AddressU == D3D12_TEXTURE_ADDRESS_MODE_BORDER ||
-                      sampDesc.AddressV == D3D12_TEXTURE_ADDRESS_MODE_BORDER ||
-                      sampDesc.AddressW == D3D12_TEXTURE_ADDRESS_MODE_BORDER);
   }
 
   for(uint32_t i = 0; i < sig->sig.numSpaces; i++)
@@ -1108,15 +1092,16 @@ void D3D12Replay::MakePipelineState()
         blend.Enabled = src.RenderTarget[i].BlendEnable == TRUE;
 
         blend.LogicEnabled = src.RenderTarget[i].LogicOpEnable == TRUE;
-        blend.LogicOp = ToStr::Get(src.RenderTarget[i].LogicOp);
+        blend.Logic = MakeLogicOp(src.RenderTarget[i].LogicOp);
 
-        blend.m_AlphaBlend.Source = ToStr::Get(src.RenderTarget[i].SrcBlendAlpha);
-        blend.m_AlphaBlend.Destination = ToStr::Get(src.RenderTarget[i].DestBlendAlpha);
-        blend.m_AlphaBlend.Operation = ToStr::Get(src.RenderTarget[i].BlendOpAlpha);
+        blend.m_AlphaBlend.Source = MakeBlendMultiplier(src.RenderTarget[i].SrcBlendAlpha, true);
+        blend.m_AlphaBlend.Destination =
+            MakeBlendMultiplier(src.RenderTarget[i].DestBlendAlpha, true);
+        blend.m_AlphaBlend.Operation = MakeBlendOp(src.RenderTarget[i].BlendOpAlpha);
 
-        blend.m_Blend.Source = ToStr::Get(src.RenderTarget[i].SrcBlend);
-        blend.m_Blend.Destination = ToStr::Get(src.RenderTarget[i].DestBlend);
-        blend.m_Blend.Operation = ToStr::Get(src.RenderTarget[i].BlendOp);
+        blend.m_Blend.Source = MakeBlendMultiplier(src.RenderTarget[i].SrcBlend, false);
+        blend.m_Blend.Destination = MakeBlendMultiplier(src.RenderTarget[i].DestBlend, false);
+        blend.m_Blend.Operation = MakeBlendOp(src.RenderTarget[i].BlendOp);
 
         blend.WriteMask = src.RenderTarget[i].RenderTargetWriteMask;
       }
@@ -1126,22 +1111,22 @@ void D3D12Replay::MakePipelineState()
       D3D12_DEPTH_STENCIL_DESC &src = pipe->graphics->DepthStencilState;
 
       state.m_OM.m_State.DepthEnable = src.DepthEnable == TRUE;
-      state.m_OM.m_State.DepthFunc = ToStr::Get(src.DepthFunc);
+      state.m_OM.m_State.DepthFunc = MakeCompareFunc(src.DepthFunc);
       state.m_OM.m_State.DepthWrites = src.DepthWriteMask == D3D12_DEPTH_WRITE_MASK_ALL;
       state.m_OM.m_State.StencilEnable = src.StencilEnable == TRUE;
       state.m_OM.m_State.StencilRef = rs.stencilRef;
       state.m_OM.m_State.StencilReadMask = src.StencilReadMask;
       state.m_OM.m_State.StencilWriteMask = src.StencilWriteMask;
 
-      state.m_OM.m_State.m_FrontFace.Func = ToStr::Get(src.FrontFace.StencilFunc);
-      state.m_OM.m_State.m_FrontFace.DepthFailOp = ToStr::Get(src.FrontFace.StencilDepthFailOp);
-      state.m_OM.m_State.m_FrontFace.PassOp = ToStr::Get(src.FrontFace.StencilPassOp);
-      state.m_OM.m_State.m_FrontFace.FailOp = ToStr::Get(src.FrontFace.StencilFailOp);
+      state.m_OM.m_State.m_FrontFace.Func = MakeCompareFunc(src.FrontFace.StencilFunc);
+      state.m_OM.m_State.m_FrontFace.DepthFailOp = MakeStencilOp(src.FrontFace.StencilDepthFailOp);
+      state.m_OM.m_State.m_FrontFace.PassOp = MakeStencilOp(src.FrontFace.StencilPassOp);
+      state.m_OM.m_State.m_FrontFace.FailOp = MakeStencilOp(src.FrontFace.StencilFailOp);
 
-      state.m_OM.m_State.m_BackFace.Func = ToStr::Get(src.BackFace.StencilFunc);
-      state.m_OM.m_State.m_BackFace.DepthFailOp = ToStr::Get(src.BackFace.StencilDepthFailOp);
-      state.m_OM.m_State.m_BackFace.PassOp = ToStr::Get(src.BackFace.StencilPassOp);
-      state.m_OM.m_State.m_BackFace.FailOp = ToStr::Get(src.BackFace.StencilFailOp);
+      state.m_OM.m_State.m_BackFace.Func = MakeCompareFunc(src.BackFace.StencilFunc);
+      state.m_OM.m_State.m_BackFace.DepthFailOp = MakeStencilOp(src.BackFace.StencilDepthFailOp);
+      state.m_OM.m_State.m_BackFace.PassOp = MakeStencilOp(src.BackFace.StencilPassOp);
+      state.m_OM.m_State.m_BackFace.FailOp = MakeStencilOp(src.BackFace.StencilFailOp);
     }
   }
 

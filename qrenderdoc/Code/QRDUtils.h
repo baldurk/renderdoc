@@ -234,6 +234,171 @@ struct ToStr
     return "Unknown";
   }
 
+  static std::string Get(const FilterMode &el)
+  {
+    switch(el)
+    {
+      case FilterMode::NoFilter: return "None";
+      case FilterMode::Point: return "Point";
+      case FilterMode::Linear: return "Linear";
+      case FilterMode::Cubic: return "Cubic";
+      case FilterMode::Anisotropic: return "Anisotropic";
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const FilterFunc &el)
+  {
+    switch(el)
+    {
+      case FilterFunc::Normal: return "Normal";
+      case FilterFunc::Comparison: return "Comparison";
+      case FilterFunc::Minimum: return "Minimum";
+      case FilterFunc::Maximum: return "Maximum";
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const CompareFunc &el)
+  {
+    switch(el)
+    {
+      case CompareFunc::Never: return "Never";
+      case CompareFunc::AlwaysTrue: return "Always";
+      case CompareFunc::Less: return "Less";
+      case CompareFunc::LessEqual: return "Less Equal";
+      case CompareFunc::Greater: return "Greater";
+      case CompareFunc::GreaterEqual: return "Greater Equal";
+      case CompareFunc::Equal: return "Equal";
+      case CompareFunc::NotEqual: return "NotEqual";
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const AddressMode &el)
+  {
+    switch(el)
+    {
+      case AddressMode::Wrap: return "Wrap";
+      case AddressMode::Mirror: return "Mirror";
+      case AddressMode::MirrorOnce: return "Mirror Once";
+      case AddressMode::ClampEdge: return "Clamp Edge";
+      case AddressMode::ClampBorder: return "Clamp Border";
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const BlendMultiplier &el)
+  {
+    switch(el)
+    {
+      case BlendMultiplier::Zero: return "Zero";
+      case BlendMultiplier::One: return "One";
+      case BlendMultiplier::SrcCol: return "Src Col";
+      case BlendMultiplier::InvSrcCol: return "1 - Src Col";
+      case BlendMultiplier::DstCol: return "Dst Col";
+      case BlendMultiplier::InvDstCol: return "1 - Dst Col";
+      case BlendMultiplier::SrcAlpha: return "Src Alpha";
+      case BlendMultiplier::InvSrcAlpha: return "1 - Src Alpha";
+      case BlendMultiplier::DstAlpha: return "Dst Alpha";
+      case BlendMultiplier::InvDstAlpha: return "1 - Dst Alpha";
+      case BlendMultiplier::SrcAlphaSat: return "Src Alpha Sat";
+      case BlendMultiplier::FactorRGB: return "Constant RGB";
+      case BlendMultiplier::InvFactorRGB: return "1 - Constant RGB";
+      case BlendMultiplier::FactorAlpha: return "Constant A";
+      case BlendMultiplier::InvFactorAlpha: return "1 - Constant A";
+      case BlendMultiplier::Src1Col: return "Src1 Col";
+      case BlendMultiplier::InvSrc1Col: return "1 - Src1 Col";
+      case BlendMultiplier::Src1Alpha: return "Src1 Alpha";
+      case BlendMultiplier::InvSrc1Alpha: return "1 - Src1 Alpha";
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const BlendOp &el)
+  {
+    switch(el)
+    {
+      case BlendOp::Add: return "Add";
+      case BlendOp::Subtract: return "Subtract";
+      case BlendOp::ReversedSubtract: return "Rev. Subtract";
+      case BlendOp::Minimum: return "Minimum";
+      case BlendOp::Maximum: return "Maximum";
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const StencilOp &el)
+  {
+    switch(el)
+    {
+      case StencilOp::Keep: return "Keep";
+      case StencilOp::Zero: return "Zero";
+      case StencilOp::Replace: return "Replace";
+      case StencilOp::IncSat: return "Inc Sat";
+      case StencilOp::DecSat: return "Dec Sat";
+      case StencilOp::IncWrap: return "Inc Wrap";
+      case StencilOp::DecWrap: return "Dec Wrap";
+      case StencilOp::Invert: return "Invert";
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const LogicOp &el)
+  {
+    switch(el)
+    {
+      case LogicOp::NoOp: return "No-Op";
+      case LogicOp::Clear: return "Clear";
+      case LogicOp::Set: return "Set";
+      case LogicOp::Copy: return "Copy";
+      case LogicOp::CopyInverted: return "Copy Inverted";
+      case LogicOp::Invert: return "Invert";
+      case LogicOp::And: return "And";
+      case LogicOp::Nand: return "Nand";
+      case LogicOp::Or: return "Or";
+      case LogicOp::Xor: return "Xor";
+      case LogicOp::Nor: return "Nor";
+      case LogicOp::Equivalent: return "Equivalent";
+      case LogicOp::AndReverse: return "And Reverse";
+      case LogicOp::AndInverted: return "And Inverted";
+      case LogicOp::OrReverse: return "Or Reverse";
+      case LogicOp::OrInverted: return "Or Inverted";
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const TextureFilter &el)
+  {
+    std::string filter = "";
+    std::string filtPrefix = "";
+    std::string filtVal = "";
+
+    std::string filters[] = {ToStr::Get(el.minify), ToStr::Get(el.magnify), ToStr::Get(el.mip)};
+    std::string filterPrefixes[] = {"Min", "Mag", "Mip"};
+
+    for(int a = 0; a < 3; a++)
+    {
+      if(a == 0 || filters[a] == filters[a - 1])
+      {
+        if(filtPrefix != "")
+          filtPrefix += "/";
+        filtPrefix += filterPrefixes[a];
+      }
+      else
+      {
+        filter += filtPrefix + ": " + filtVal + ", ";
+
+        filtPrefix = filterPrefixes[a];
+      }
+      filtVal = filters[a];
+    }
+
+    filter += filtPrefix + ": " + filtVal;
+
+    return filter;
+  }
+
   static std::string Get(const TextureDim &el)
   {
     switch(el)

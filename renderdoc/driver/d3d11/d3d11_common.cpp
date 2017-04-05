@@ -65,6 +65,272 @@ D3D11MarkerRegion::~D3D11MarkerRegion()
     annot->EndEvent();
 }
 
+TextureDim MakeTextureDim(D3D11_SRV_DIMENSION dim)
+{
+  switch(dim)
+  {
+    case D3D11_SRV_DIMENSION_UNKNOWN: return TextureDim::Unknown;
+    case D3D11_SRV_DIMENSION_BUFFER:
+    case D3D11_SRV_DIMENSION_BUFFEREX: return TextureDim::Buffer;
+    case D3D11_SRV_DIMENSION_TEXTURE1D: return TextureDim::Texture1D;
+    case D3D11_SRV_DIMENSION_TEXTURE1DARRAY: return TextureDim::Texture1DArray;
+    case D3D11_SRV_DIMENSION_TEXTURE2D: return TextureDim::Texture2D;
+    case D3D11_SRV_DIMENSION_TEXTURE2DARRAY: return TextureDim::Texture2DArray;
+    case D3D11_SRV_DIMENSION_TEXTURE2DMS: return TextureDim::Texture2DMS;
+    case D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY: return TextureDim::Texture2DMSArray;
+    case D3D11_SRV_DIMENSION_TEXTURE3D: return TextureDim::Texture3D;
+    case D3D11_SRV_DIMENSION_TEXTURECUBE: return TextureDim::TextureCube;
+    case D3D11_SRV_DIMENSION_TEXTURECUBEARRAY: return TextureDim::TextureCubeArray;
+  }
+
+  return TextureDim::Unknown;
+}
+
+TextureDim MakeTextureDim(D3D11_RTV_DIMENSION dim)
+{
+  switch(dim)
+  {
+    case D3D11_RTV_DIMENSION_UNKNOWN: return TextureDim::Unknown;
+    case D3D11_RTV_DIMENSION_BUFFER: return TextureDim::Buffer;
+    case D3D11_RTV_DIMENSION_TEXTURE1D: return TextureDim::Texture1D;
+    case D3D11_RTV_DIMENSION_TEXTURE1DARRAY: return TextureDim::Texture1DArray;
+    case D3D11_RTV_DIMENSION_TEXTURE2D: return TextureDim::Texture2D;
+    case D3D11_RTV_DIMENSION_TEXTURE2DARRAY: return TextureDim::Texture2DArray;
+    case D3D11_RTV_DIMENSION_TEXTURE2DMS: return TextureDim::Texture2DMS;
+    case D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY: return TextureDim::Texture2DMSArray;
+    case D3D11_RTV_DIMENSION_TEXTURE3D: return TextureDim::Texture3D;
+  }
+
+  return TextureDim::Unknown;
+}
+
+TextureDim MakeTextureDim(D3D11_DSV_DIMENSION dim)
+{
+  switch(dim)
+  {
+    case D3D11_DSV_DIMENSION_UNKNOWN: return TextureDim::Unknown;
+    case D3D11_DSV_DIMENSION_TEXTURE1D: return TextureDim::Texture1D;
+    case D3D11_DSV_DIMENSION_TEXTURE1DARRAY: return TextureDim::Texture1DArray;
+    case D3D11_DSV_DIMENSION_TEXTURE2D: return TextureDim::Texture2D;
+    case D3D11_DSV_DIMENSION_TEXTURE2DARRAY: return TextureDim::Texture2DArray;
+    case D3D11_DSV_DIMENSION_TEXTURE2DMS: return TextureDim::Texture2DMS;
+    case D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY: return TextureDim::Texture2DMSArray;
+  }
+
+  return TextureDim::Unknown;
+}
+
+TextureDim MakeTextureDim(D3D11_UAV_DIMENSION dim)
+{
+  switch(dim)
+  {
+    case D3D11_UAV_DIMENSION_UNKNOWN: return TextureDim::Unknown;
+    case D3D11_UAV_DIMENSION_BUFFER: return TextureDim::Buffer;
+    case D3D11_UAV_DIMENSION_TEXTURE1D: return TextureDim::Texture1D;
+    case D3D11_UAV_DIMENSION_TEXTURE1DARRAY: return TextureDim::Texture1DArray;
+    case D3D11_UAV_DIMENSION_TEXTURE2D: return TextureDim::Texture2D;
+    case D3D11_UAV_DIMENSION_TEXTURE2DARRAY: return TextureDim::Texture2DArray;
+    case D3D11_UAV_DIMENSION_TEXTURE3D: return TextureDim::Texture3D;
+  }
+
+  return TextureDim::Unknown;
+}
+
+AddressMode MakeAddressMode(D3D11_TEXTURE_ADDRESS_MODE addr)
+{
+  switch(addr)
+  {
+    case D3D11_TEXTURE_ADDRESS_WRAP: return AddressMode::Wrap;
+    case D3D11_TEXTURE_ADDRESS_MIRROR: return AddressMode::Mirror;
+    case D3D11_TEXTURE_ADDRESS_CLAMP: return AddressMode::ClampEdge;
+    case D3D11_TEXTURE_ADDRESS_BORDER: return AddressMode::ClampBorder;
+    case D3D11_TEXTURE_ADDRESS_MIRROR_ONCE: return AddressMode::MirrorOnce;
+    default: break;
+  }
+
+  return AddressMode::Wrap;
+}
+
+CompareFunc MakeCompareFunc(D3D11_COMPARISON_FUNC func)
+{
+  switch(func)
+  {
+    case D3D11_COMPARISON_NEVER: return CompareFunc::Never;
+    case D3D11_COMPARISON_LESS: return CompareFunc::Less;
+    case D3D11_COMPARISON_EQUAL: return CompareFunc::Equal;
+    case D3D11_COMPARISON_LESS_EQUAL: return CompareFunc::LessEqual;
+    case D3D11_COMPARISON_GREATER: return CompareFunc::Greater;
+    case D3D11_COMPARISON_NOT_EQUAL: return CompareFunc::NotEqual;
+    case D3D11_COMPARISON_GREATER_EQUAL: return CompareFunc::GreaterEqual;
+    case D3D11_COMPARISON_ALWAYS: return CompareFunc::AlwaysTrue;
+    default: break;
+  }
+
+  return CompareFunc::AlwaysTrue;
+}
+
+TextureFilter MakeFilter(D3D11_FILTER filter)
+{
+  TextureFilter ret;
+
+  ret.func = FilterFunc::Normal;
+
+  if(filter >= D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT &&
+     filter < D3D11_FILTER_COMPARISON_ANISOTROPIC)
+  {
+    ret.func = FilterFunc::Comparison;
+    // the first 0x7f is the min/mag/mip filtering
+    filter = D3D11_FILTER(filter & 0x7f);
+  }
+  else if(filter >= D3D11_FILTER_MINIMUM_MIN_MAG_MIP_POINT &&
+          filter < D3D11_FILTER_MINIMUM_ANISOTROPIC)
+  {
+    ret.func = FilterFunc::Minimum;
+    // the first 0x7f is the min/mag/mip filtering
+    filter = D3D11_FILTER(filter & 0x7f);
+  }
+  else if(filter >= D3D11_FILTER_MAXIMUM_MIN_MAG_MIP_POINT &&
+          filter < D3D11_FILTER_MAXIMUM_ANISOTROPIC)
+  {
+    ret.func = FilterFunc::Maximum;
+    // the first 0x7f is the min/mag/mip filtering
+    filter = D3D11_FILTER(filter & 0x7f);
+  }
+
+  if(filter == D3D11_FILTER_ANISOTROPIC)
+  {
+    ret.minify = ret.magnify = ret.mip = FilterMode::Anisotropic;
+  }
+  else
+  {
+    switch(filter)
+    {
+      case D3D11_FILTER_MIN_MAG_MIP_POINT:
+        ret.minify = ret.magnify = ret.mip = FilterMode::Point;
+        break;
+      case D3D11_FILTER_MIN_MAG_POINT_MIP_LINEAR:
+        ret.minify = ret.magnify = FilterMode::Point;
+        ret.mip = FilterMode::Linear;
+        break;
+      case D3D11_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT:
+        ret.minify = FilterMode::Point;
+        ret.magnify = FilterMode::Linear;
+        ret.mip = FilterMode::Point;
+        break;
+      case D3D11_FILTER_MIN_POINT_MAG_MIP_LINEAR:
+        ret.minify = FilterMode::Point;
+        ret.magnify = ret.mip = FilterMode::Linear;
+        break;
+      case D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT:
+        ret.minify = FilterMode::Linear;
+        ret.magnify = ret.mip = FilterMode::Point;
+        break;
+      case D3D11_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR:
+        ret.minify = FilterMode::Linear;
+        ret.magnify = FilterMode::Point;
+        ret.mip = FilterMode::Linear;
+        break;
+      case D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT:
+        ret.minify = ret.magnify = FilterMode::Linear;
+        ret.mip = FilterMode::Point;
+        break;
+      case D3D11_FILTER_MIN_MAG_MIP_LINEAR:
+        ret.minify = ret.magnify = ret.mip = FilterMode::Linear;
+        break;
+    }
+  }
+
+  return ret;
+}
+
+LogicOp MakeLogicOp(D3D11_LOGIC_OP op)
+{
+  switch(op)
+  {
+    case D3D11_LOGIC_OP_CLEAR: return LogicOp::Clear;
+    case D3D11_LOGIC_OP_AND: return LogicOp::And;
+    case D3D11_LOGIC_OP_AND_REVERSE: return LogicOp::AndReverse;
+    case D3D11_LOGIC_OP_COPY: return LogicOp::Copy;
+    case D3D11_LOGIC_OP_AND_INVERTED: return LogicOp::AndInverted;
+    case D3D11_LOGIC_OP_NOOP: return LogicOp::NoOp;
+    case D3D11_LOGIC_OP_XOR: return LogicOp::Xor;
+    case D3D11_LOGIC_OP_OR: return LogicOp::Or;
+    case D3D11_LOGIC_OP_NOR: return LogicOp::Nor;
+    case D3D11_LOGIC_OP_EQUIV: return LogicOp::Equivalent;
+    case D3D11_LOGIC_OP_INVERT: return LogicOp::Invert;
+    case D3D11_LOGIC_OP_OR_REVERSE: return LogicOp::OrReverse;
+    case D3D11_LOGIC_OP_COPY_INVERTED: return LogicOp::CopyInverted;
+    case D3D11_LOGIC_OP_OR_INVERTED: return LogicOp::OrInverted;
+    case D3D11_LOGIC_OP_NAND: return LogicOp::Nand;
+    case D3D11_LOGIC_OP_SET: return LogicOp::Set;
+    default: break;
+  }
+
+  return LogicOp::NoOp;
+}
+
+BlendMultiplier MakeBlendMultiplier(D3D11_BLEND blend, bool alpha)
+{
+  switch(blend)
+  {
+    case D3D11_BLEND_ZERO: return BlendMultiplier::Zero;
+    case D3D11_BLEND_ONE: return BlendMultiplier::One;
+    case D3D11_BLEND_SRC_COLOR: return BlendMultiplier::SrcCol;
+    case D3D11_BLEND_INV_SRC_COLOR: return BlendMultiplier::InvSrcCol;
+    case D3D11_BLEND_DEST_COLOR: return BlendMultiplier::DstCol;
+    case D3D11_BLEND_INV_DEST_COLOR: return BlendMultiplier::InvDstCol;
+    case D3D11_BLEND_SRC_ALPHA: return BlendMultiplier::SrcAlpha;
+    case D3D11_BLEND_INV_SRC_ALPHA: return BlendMultiplier::InvSrcAlpha;
+    case D3D11_BLEND_DEST_ALPHA: return BlendMultiplier::DstAlpha;
+    case D3D11_BLEND_INV_DEST_ALPHA: return BlendMultiplier::InvDstAlpha;
+    case D3D11_BLEND_BLEND_FACTOR:
+      return alpha ? BlendMultiplier::FactorAlpha : BlendMultiplier::FactorRGB;
+    case D3D11_BLEND_INV_BLEND_FACTOR:
+      return alpha ? BlendMultiplier::InvFactorAlpha : BlendMultiplier::InvFactorRGB;
+    case D3D11_BLEND_SRC_ALPHA_SAT: return BlendMultiplier::SrcAlphaSat;
+    case D3D11_BLEND_SRC1_COLOR: return BlendMultiplier::Src1Col;
+    case D3D11_BLEND_INV_SRC1_COLOR: return BlendMultiplier::InvSrc1Col;
+    case D3D11_BLEND_SRC1_ALPHA: return BlendMultiplier::Src1Alpha;
+    case D3D11_BLEND_INV_SRC1_ALPHA: return BlendMultiplier::InvSrc1Alpha;
+    default: break;
+  }
+
+  return BlendMultiplier::One;
+}
+
+BlendOp MakeBlendOp(D3D11_BLEND_OP op)
+{
+  switch(op)
+  {
+    case D3D11_BLEND_OP_ADD: return BlendOp::Add;
+    case D3D11_BLEND_OP_SUBTRACT: return BlendOp::Subtract;
+    case D3D11_BLEND_OP_REV_SUBTRACT: return BlendOp::ReversedSubtract;
+    case D3D11_BLEND_OP_MIN: return BlendOp::Minimum;
+    case D3D11_BLEND_OP_MAX: return BlendOp::Maximum;
+    default: break;
+  }
+
+  return BlendOp::Add;
+}
+
+StencilOp MakeStencilOp(D3D11_STENCIL_OP op)
+{
+  switch(op)
+  {
+    case D3D11_STENCIL_OP_KEEP: return StencilOp::Keep;
+    case D3D11_STENCIL_OP_ZERO: return StencilOp::Zero;
+    case D3D11_STENCIL_OP_REPLACE: return StencilOp::Replace;
+    case D3D11_STENCIL_OP_INCR_SAT: return StencilOp::IncSat;
+    case D3D11_STENCIL_OP_DECR_SAT: return StencilOp::DecSat;
+    case D3D11_STENCIL_OP_INVERT: return StencilOp::Invert;
+    case D3D11_STENCIL_OP_INCR: return StencilOp::IncWrap;
+    case D3D11_STENCIL_OP_DECR: return StencilOp::DecWrap;
+    default: break;
+  }
+
+  return StencilOp::Keep;
+}
+
 static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var, uint32_t &offset);
 
 static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32_t &offset)

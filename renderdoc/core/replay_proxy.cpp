@@ -360,14 +360,12 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::Sampler &el)
   SerialisePODArray<4>("", el.BorderColor);
   Serialise("", el.Comparison);
   Serialise("", el.Filter);
-  Serialise("", el.UseBorder);
-  Serialise("", el.UseComparison);
   Serialise("", el.MaxAniso);
   Serialise("", el.MaxLOD);
   Serialise("", el.MinLOD);
   Serialise("", el.MipLODBias);
 
-  SIZE_CHECK(152);
+  SIZE_CHECK(96);
 }
 
 template <>
@@ -413,13 +411,13 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::Blend &el)
   Serialise("", el.m_AlphaBlend.Destination);
   Serialise("", el.m_AlphaBlend.Operation);
 
-  Serialise("", el.LogicOp);
+  Serialise("", el.Logic);
 
   Serialise("", el.Enabled);
   Serialise("", el.LogicEnabled);
   Serialise("", el.WriteMask);
 
-  SIZE_CHECK(128);
+  SIZE_CHECK(40);
 }
 
 template <>
@@ -464,7 +462,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::OM &el)
   Serialise("", el.DepthReadOnly);
   Serialise("", el.StencilReadOnly);
 
-  SIZE_CHECK(416);
+  SIZE_CHECK(280);
 }
 
 template <>
@@ -484,7 +482,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::State &el)
   Serialise("", el.m_RS);
   Serialise("", el.m_OM);
 
-  SIZE_CHECK(1760);
+  SIZE_CHECK(1624);
 }
 
 #pragma endregion D3D11 pipeline state
@@ -546,14 +544,12 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::Sampler &el)
   SerialisePODArray<4>("", el.BorderColor);
   Serialise("", el.Comparison);
   Serialise("", el.Filter);
-  Serialise("", el.UseBorder);
-  Serialise("", el.UseComparison);
   Serialise("", el.MaxAniso);
   Serialise("", el.MaxLOD);
   Serialise("", el.MinLOD);
   Serialise("", el.MipLODBias);
 
-  SIZE_CHECK(136);
+  SIZE_CHECK(76);
 }
 
 template <>
@@ -584,7 +580,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::View &el)
 
   Serialise("", el.MinLODClamp);
 
-  SIZE_CHECK(176);
+  SIZE_CHECK(168);
 }
 
 template <>
@@ -631,13 +627,13 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::Blend &el)
   Serialise("", el.m_AlphaBlend.Destination);
   Serialise("", el.m_AlphaBlend.Operation);
 
-  Serialise("", el.LogicOp);
+  Serialise("", el.Logic);
 
   Serialise("", el.Enabled);
   Serialise("", el.LogicEnabled);
   Serialise("", el.WriteMask);
 
-  SIZE_CHECK(128);
+  SIZE_CHECK(40);
 }
 
 template <>
@@ -679,7 +675,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::OM &el)
   Serialise("", el.multiSampleCount);
   Serialise("", el.multiSampleQuality);
 
-  SIZE_CHECK(416);
+  SIZE_CHECK(296);
 }
 
 template <>
@@ -725,7 +721,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::State &el)
 
   Serialise("", el.Resources);
 
-  SIZE_CHECK(1264);
+  SIZE_CHECK(1144);
 }
 
 #pragma endregion D3D12 pipeline state
@@ -791,17 +787,14 @@ void Serialiser::Serialise(const char *name, GLPipe::Sampler &el)
   Serialise("", el.AddressR);
   SerialisePODArray<4>("", el.BorderColor);
   Serialise("", el.Comparison);
-  Serialise("", el.MinFilter);
-  Serialise("", el.MagFilter);
-  Serialise("", el.UseBorder);
-  Serialise("", el.UseComparison);
+  Serialise("", el.Filter);
   Serialise("", el.SeamlessCube);
   Serialise("", el.MaxAniso);
   Serialise("", el.MaxLOD);
   Serialise("", el.MinLOD);
   Serialise("", el.MipLODBias);
 
-  SIZE_CHECK(152);
+  SIZE_CHECK(80);
 }
 
 template <>
@@ -839,7 +832,7 @@ void Serialiser::Serialise(const char *name, GLPipe::DepthState &el)
   Serialise("", el.NearBound);
   Serialise("", el.FarBound);
 
-  SIZE_CHECK(48);
+  SIZE_CHECK(32);
 }
 
 template <>
@@ -863,7 +856,7 @@ void Serialiser::Serialise(const char *name, GLPipe::StencilState &el)
   Serialise("", el.m_BackFace.ValueMask);
   Serialise("", el.m_BackFace.WriteMask);
 
-  SIZE_CHECK(168);
+  SIZE_CHECK(60);
 }
 
 template <>
@@ -871,7 +864,7 @@ void Serialiser::Serialise(const char *name, GLPipe::Blend &el)
 {
   Serialise("", el.Enabled);
   Serialise("", el.WriteMask);
-  Serialise("", el.LogicOp);
+  Serialise("", el.Logic);
 
   Serialise("", el.m_Blend.Source);
   Serialise("", el.m_Blend.Destination);
@@ -881,7 +874,7 @@ void Serialiser::Serialise(const char *name, GLPipe::Blend &el)
   Serialise("", el.m_AlphaBlend.Destination);
   Serialise("", el.m_AlphaBlend.Operation);
 
-  SIZE_CHECK(120);
+  SIZE_CHECK(36);
 }
 
 template <>
@@ -960,7 +953,7 @@ void Serialiser::Serialise(const char *name, GLPipe::State &el)
 
   Serialise("", el.m_Hints);
 
-  SIZE_CHECK(2016);
+  SIZE_CHECK(1896);
 }
 
 #pragma endregion OpenGL pipeline state
@@ -988,23 +981,19 @@ void Serialiser::Serialise(const char *name, VKPipe::BindingElement &el)
   Serialise("", el.offset);
   Serialise("", el.size);
 
-  Serialise("", el.mag);
-  Serialise("", el.min);
-  Serialise("", el.mip);
-  Serialise("", el.addrU);
-  Serialise("", el.addrV);
-  Serialise("", el.addrW);
+  Serialise("", el.Filter);
+  Serialise("", el.AddressU);
+  Serialise("", el.AddressV);
+  Serialise("", el.AddressW);
   Serialise("", el.mipBias);
   Serialise("", el.maxAniso);
-  Serialise("", el.compareEnable);
   Serialise("", el.comparison);
   Serialise("", el.minlod);
   Serialise("", el.maxlod);
-  Serialise("", el.borderEnable);
-  Serialise("", el.border);
+  SerialisePODArray<4>("", el.BorderColor);
   Serialise("", el.unnormalized);
 
-  SIZE_CHECK(320);
+  SIZE_CHECK(224);
 };
 
 template <>
@@ -1113,7 +1102,7 @@ void Serialiser::Serialise(const char *name, VKPipe::Blend &el)
 
   Serialise("", el.writeMask);
 
-  SIZE_CHECK(112);
+  SIZE_CHECK(32);
 }
 
 template <>
@@ -1122,13 +1111,13 @@ void Serialiser::Serialise(const char *name, VKPipe::ColorBlend &el)
   Serialise("", el.alphaToCoverageEnable);
   Serialise("", el.alphaToOneEnable);
   Serialise("", el.logicOpEnable);
-  Serialise("", el.logicOp);
+  Serialise("", el.logic);
 
   Serialise("", el.attachments);
 
   SerialisePODArray<4>("", el.blendConst);
 
-  SIZE_CHECK(64);
+  SIZE_CHECK(48);
 }
 
 template <>
@@ -1158,18 +1147,18 @@ void Serialiser::Serialise(const char *name, VKPipe::DepthStencil &el)
 
   Serialise("", el.stencilTestEnable);
 
-  Serialise("", el.front.failOp);
-  Serialise("", el.front.depthFailOp);
-  Serialise("", el.front.passOp);
-  Serialise("", el.front.func);
+  Serialise("", el.front.FailOp);
+  Serialise("", el.front.DepthFailOp);
+  Serialise("", el.front.PassOp);
+  Serialise("", el.front.Func);
   Serialise("", el.front.ref);
   Serialise("", el.front.compareMask);
   Serialise("", el.front.writeMask);
 
-  Serialise("", el.back.failOp);
-  Serialise("", el.back.depthFailOp);
-  Serialise("", el.back.passOp);
-  Serialise("", el.back.func);
+  Serialise("", el.back.FailOp);
+  Serialise("", el.back.DepthFailOp);
+  Serialise("", el.back.PassOp);
+  Serialise("", el.back.Func);
   Serialise("", el.back.ref);
   Serialise("", el.back.compareMask);
   Serialise("", el.back.writeMask);
@@ -1177,7 +1166,7 @@ void Serialiser::Serialise(const char *name, VKPipe::DepthStencil &el)
   Serialise("", el.minDepthBounds);
   Serialise("", el.maxDepthBounds);
 
-  SIZE_CHECK(208);
+  SIZE_CHECK(84);
 }
 
 template <>
@@ -1247,7 +1236,7 @@ void Serialiser::Serialise(const char *name, VKPipe::State &el)
 
   Serialise("", el.images);
 
-  SIZE_CHECK(1472);
+  SIZE_CHECK(1336);
 }
 
 #pragma endregion Vulkan pipeline state
@@ -1697,6 +1686,36 @@ string ToStrHelper<false, TextureSwizzle>::Get(const TextureSwizzle &el)
   return "<...>";
 }
 template <>
+string ToStrHelper<false, AddressMode>::Get(const AddressMode &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, CompareFunc>::Get(const CompareFunc &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, BlendMultiplier>::Get(const BlendMultiplier &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, BlendOp>::Get(const BlendOp &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, LogicOp>::Get(const LogicOp &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, StencilOp>::Get(const StencilOp &el)
+{
+  return "<...>";
+}
+template <>
 string ToStrHelper<false, CounterUnit>::Get(const CounterUnit &el)
 {
   return "<...>";
@@ -1929,6 +1948,11 @@ string ToStrHelper<false, ReplayLogType>::Get(const ReplayLogType &el)
 }
 template <>
 string ToStrHelper<false, FloatVector>::Get(const FloatVector &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, TextureFilter>::Get(const TextureFilter &el)
 {
   return "<...>";
 }

@@ -50,17 +50,23 @@ struct BindingElement
   uint64_t size = 0;
 
   // sampler info
-  rdctype::str mag, min, mip;
-  rdctype::str addrU, addrV, addrW;
+  TextureFilter Filter;
+  AddressMode AddressU = AddressMode::Wrap;
+  AddressMode AddressV = AddressMode::Wrap;
+  AddressMode AddressW = AddressMode::Wrap;
   float mipBias = 0.0f;
   float maxAniso = 0.0f;
-  bool32 compareEnable = false;
-  rdctype::str comparison;
+  CompareFunc comparison = CompareFunc::AlwaysTrue;
   float minlod = 0.0f;
   float maxlod = 0.0f;
-  bool32 borderEnable = false;
-  rdctype::str border;
+  float BorderColor[4];
   bool32 unnormalized = false;
+
+  bool UseBorder() const
+  {
+    return AddressU == AddressMode::ClampBorder || AddressV == AddressMode::ClampBorder ||
+           AddressW == AddressMode::ClampBorder;
+  }
 };
 
 struct DescriptorBinding
@@ -212,18 +218,18 @@ struct MultiSample
   uint32_t sampleMask = 0;
 };
 
-struct BlendOp
+struct BlendEquation
 {
-  rdctype::str Source;
-  rdctype::str Destination;
-  rdctype::str Operation;
+  BlendMultiplier Source = BlendMultiplier::One;
+  BlendMultiplier Destination = BlendMultiplier::One;
+  BlendOp Operation = BlendOp::Add;
 };
 
 struct Blend
 {
   bool32 blendEnable = false;
 
-  BlendOp blend, alphaBlend;
+  BlendEquation blend, alphaBlend;
 
   uint8_t writeMask = 0;
 };
@@ -233,7 +239,7 @@ struct ColorBlend
   bool32 alphaToCoverageEnable = false;
   bool32 alphaToOneEnable = false;
   bool32 logicOpEnable = false;
-  rdctype::str logicOp;
+  LogicOp logic = LogicOp::NoOp;
 
   rdctype::array<Blend> attachments;
 
@@ -241,12 +247,12 @@ struct ColorBlend
   float blendConst[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 };
 
-struct StencilOp
+struct StencilFace
 {
-  rdctype::str failOp;
-  rdctype::str depthFailOp;
-  rdctype::str passOp;
-  rdctype::str func;
+  StencilOp FailOp = StencilOp::Keep;
+  StencilOp DepthFailOp = StencilOp::Keep;
+  StencilOp PassOp = StencilOp::Keep;
+  CompareFunc Func = CompareFunc::AlwaysTrue;
 
   // dynamic
   uint32_t ref = 0;
@@ -259,11 +265,11 @@ struct DepthStencil
   bool32 depthTestEnable = false;
   bool32 depthWriteEnable = false;
   bool32 depthBoundsEnable = false;
-  rdctype::str depthCompareOp;
+  CompareFunc depthCompareOp = CompareFunc::AlwaysTrue;
 
   bool32 stencilTestEnable = false;
 
-  StencilOp front, back;
+  StencilFace front, back;
 
   // dynamic
   float minDepthBounds = 0.0f;
@@ -380,10 +386,10 @@ DECLARE_REFLECTION_STRUCT(VKPipe::ViewportScissor);
 DECLARE_REFLECTION_STRUCT(VKPipe::ViewState);
 DECLARE_REFLECTION_STRUCT(VKPipe::Raster);
 DECLARE_REFLECTION_STRUCT(VKPipe::MultiSample);
-DECLARE_REFLECTION_STRUCT(VKPipe::BlendOp);
+DECLARE_REFLECTION_STRUCT(VKPipe::BlendEquation);
 DECLARE_REFLECTION_STRUCT(VKPipe::Blend);
 DECLARE_REFLECTION_STRUCT(VKPipe::ColorBlend);
-DECLARE_REFLECTION_STRUCT(VKPipe::StencilOp);
+DECLARE_REFLECTION_STRUCT(VKPipe::StencilFace);
 DECLARE_REFLECTION_STRUCT(VKPipe::DepthStencil);
 DECLARE_REFLECTION_STRUCT(VKPipe::RenderPass);
 DECLARE_REFLECTION_STRUCT(VKPipe::Attachment);
