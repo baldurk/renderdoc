@@ -31,41 +31,34 @@ namespace D3D11Pipe
 {
 struct Layout
 {
-  Layout()
-      : SemanticIndex(0), InputSlot(0), ByteOffset(0), PerInstance(false), InstanceDataStepRate(0)
-  {
-  }
   rdctype::str SemanticName;
-  uint32_t SemanticIndex;
+  uint32_t SemanticIndex = 0;
   ResourceFormat Format;
-  uint32_t InputSlot;
-  uint32_t ByteOffset;
-  bool32 PerInstance;
-  uint32_t InstanceDataStepRate;
+  uint32_t InputSlot = 0;
+  uint32_t ByteOffset = 0;
+  bool32 PerInstance = false;
+  uint32_t InstanceDataStepRate = 0;
 };
 
 struct VB
 {
-  VB() : Buffer(), Stride(0), Offset(0) {}
   ResourceId Buffer;
-  uint32_t Stride;
-  uint32_t Offset;
+  uint32_t Stride = 0;
+  uint32_t Offset = 0;
 };
 
 struct IB
 {
-  IB() : Buffer(), Offset(0) {}
   ResourceId Buffer;
-  uint32_t Offset;
+  uint32_t Offset = 0;
 };
 
 struct IA
 {
-  IA() : Bytecode(NULL), customName(false) {}
   rdctype::array<Layout> layouts;
   ResourceId layout;
-  ShaderReflection *Bytecode;
-  bool32 customName;
+  ShaderReflection *Bytecode = NULL;
+  bool32 customName = false;
 
   rdctype::str name;
   rdctype::array<VB> vbuffers;
@@ -75,97 +68,66 @@ struct IA
 
 struct View
 {
-  View()
-      : Object(),
-        Resource(),
-        Format(),
-        Structured(false),
-        BufferStructCount(0),
-        ElementSize(0),
-        FirstElement(0),
-        NumElements(1),
-        Flags(D3DBufferViewFlags::NoFlags),
-        HighestMip(0),
-        NumMipLevels(1),
-        ArraySize(1),
-        FirstArraySlice(0)
-  {
-  }
-
   ResourceId Object;
   ResourceId Resource;
   rdctype::str Type;
   ResourceFormat Format;
 
-  bool32 Structured;
-  uint32_t BufferStructCount;
-  uint32_t ElementSize;
+  bool32 Structured = false;
+  uint32_t BufferStructCount = 0;
+  uint32_t ElementSize = 0;
 
   // Buffer (UAV)
-  uint32_t FirstElement;
-  uint32_t NumElements;
+  uint32_t FirstElement = 0;
+  uint32_t NumElements = 1;
 
   // BufferEx
-  D3DBufferViewFlags Flags;
+  D3DBufferViewFlags Flags = D3DBufferViewFlags::NoFlags;
 
   // Texture
-  uint32_t HighestMip;
-  uint32_t NumMipLevels;
+  uint32_t HighestMip = 0;
+  uint32_t NumMipLevels = 0;
 
   // Texture Array
-  uint32_t ArraySize;
-  uint32_t FirstArraySlice;
+  uint32_t ArraySize = 1;
+  uint32_t FirstArraySlice = 0;
 };
 
 struct Sampler
 {
-  Sampler()
-      : Samp(),
-        customName(false),
-        UseBorder(false),
-        UseComparison(false),
-        MaxAniso(0),
-        MaxLOD(0.0f),
-        MinLOD(0.0f),
-        MipLODBias(0.0f)
-  {
-    BorderColor[0] = BorderColor[1] = BorderColor[2] = BorderColor[3] = 0.0f;
-  }
   ResourceId Samp;
   rdctype::str name;
-  bool32 customName;
+  bool32 customName = false;
   rdctype::str AddressU;
   rdctype::str AddressV;
   rdctype::str AddressW;
-  float BorderColor[4];
+  float BorderColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
   rdctype::str Comparison;
   rdctype::str Filter;
-  bool32 UseBorder;
-  bool32 UseComparison;
-  uint32_t MaxAniso;
-  float MaxLOD;
-  float MinLOD;
-  float MipLODBias;
+  bool32 UseBorder = false;
+  bool32 UseComparison = false;
+  uint32_t MaxAniso = 0;
+  float MaxLOD = 0.0f;
+  float MinLOD = 0.0f;
+  float MipLODBias = 0.0f;
 };
 
 struct CBuffer
 {
-  CBuffer() : Buffer(), VecOffset(0), VecCount(0) {}
   ResourceId Buffer;
-  uint32_t VecOffset;
-  uint32_t VecCount;
+  uint32_t VecOffset = 0;
+  uint32_t VecCount = 0;
 };
 
 struct Shader
 {
-  Shader() : Object(), customName(false), ShaderDetails(NULL), stage(ShaderStage::Vertex) {}
   ResourceId Object;
   rdctype::str name;
-  bool32 customName;
-  ShaderReflection *ShaderDetails;
+  bool32 customName = false;
+  ShaderReflection *ShaderDetails = NULL;
   ShaderBindpointMapping BindpointMapping;
 
-  ShaderStage stage;
+  ShaderStage stage = ShaderStage::Vertex;
 
   rdctype::array<View> SRVs;
   rdctype::array<View> UAVs;
@@ -179,9 +141,8 @@ struct Shader
 
 struct SOBind
 {
-  SOBind() : Buffer(), Offset(0) {}
   ResourceId Buffer;
-  uint32_t Offset;
+  uint32_t Offset = 0;
 };
 
 struct SO
@@ -191,64 +152,49 @@ struct SO
 
 struct Viewport
 {
-  Viewport()
-      : X(0.0f), Y(0.0f), Width(0.0f), Height(0.0f), MinDepth(0.0f), MaxDepth(0.0f), Enabled(false)
-  {
-  }
+  Viewport() = default;
   Viewport(float TX, float TY, float W, float H, float MN, float MX, bool en)
       : X(TX), Y(TY), Width(W), Height(H), MinDepth(MN), MaxDepth(MX), Enabled(en)
   {
   }
-  float X;
-  float Y;
-  float Width;
-  float Height;
-  float MinDepth;
-  float MaxDepth;
-  bool32 Enabled;
+  float X = 0.0f;
+  float Y = 0.0f;
+  float Width = 0.0f;
+  float Height = 0.0f;
+  float MinDepth = 0.0f;
+  float MaxDepth = 0.0f;
+  bool32 Enabled = false;
 };
 
 struct Scissor
 {
-  Scissor() : left(0), top(0), right(0), bottom(0), Enabled(false) {}
+  Scissor() = default;
   Scissor(int l, int t, int r, int b, bool en) : left(l), top(t), right(r), bottom(b), Enabled(en)
   {
   }
-  int32_t left, top, right, bottom;
-  bool32 Enabled;
+
+  int32_t left = 0;
+  int32_t top = 0;
+  int32_t right = 0;
+  int32_t bottom = 0;
+  bool32 Enabled = false;
 };
 
 struct RasterizerState
 {
-  RasterizerState()
-      : State(),
-        fillMode(FillMode::Solid),
-        cullMode(CullMode::NoCull),
-        FrontCCW(false),
-        DepthBias(0),
-        DepthBiasClamp(0.0f),
-        SlopeScaledDepthBias(0.0f),
-        DepthClip(false),
-        ScissorEnable(false),
-        MultisampleEnable(false),
-        AntialiasedLineEnable(false),
-        ForcedSampleCount(0),
-        ConservativeRasterization(false)
-  {
-  }
   ResourceId State;
-  FillMode fillMode;
-  CullMode cullMode;
-  bool32 FrontCCW;
-  int32_t DepthBias;
-  float DepthBiasClamp;
-  float SlopeScaledDepthBias;
-  bool32 DepthClip;
-  bool32 ScissorEnable;
-  bool32 MultisampleEnable;
-  bool32 AntialiasedLineEnable;
-  uint32_t ForcedSampleCount;
-  bool32 ConservativeRasterization;
+  FillMode fillMode = FillMode::Solid;
+  CullMode cullMode = CullMode::NoCull;
+  bool32 FrontCCW = false;
+  int32_t DepthBias = 0;
+  float DepthBiasClamp = 0.0f;
+  float SlopeScaledDepthBias = 0.0f;
+  bool32 DepthClip = false;
+  bool32 ScissorEnable = false;
+  bool32 MultisampleEnable = false;
+  bool32 AntialiasedLineEnable = false;
+  uint32_t ForcedSampleCount = 0;
+  bool32 ConservativeRasterization = false;
 };
 
 struct Rasterizer
@@ -269,27 +215,17 @@ struct StencilOp
 
 struct DepthStencilState
 {
-  DepthStencilState()
-      : State(),
-        DepthEnable(false),
-        DepthWrites(false),
-        StencilEnable(false),
-        StencilReadMask(0),
-        StencilWriteMask(0),
-        StencilRef(0)
-  {
-  }
   ResourceId State;
-  bool32 DepthEnable;
+  bool32 DepthEnable = false;
   rdctype::str DepthFunc;
-  bool32 DepthWrites;
-  bool32 StencilEnable;
-  byte StencilReadMask;
-  byte StencilWriteMask;
+  bool32 DepthWrites = false;
+  bool32 StencilEnable = false;
+  byte StencilReadMask = 0;
+  byte StencilWriteMask = 0;
 
   StencilOp m_FrontFace, m_BackFace;
 
-  uint32_t StencilRef;
+  uint32_t StencilRef = 0;
 };
 
 struct BlendOp
@@ -301,53 +237,45 @@ struct BlendOp
 
 struct Blend
 {
-  Blend() : Enabled(false), LogicEnabled(false), WriteMask(0) {}
   BlendOp m_Blend, m_AlphaBlend;
 
   rdctype::str LogicOp;
 
-  bool32 Enabled;
-  bool32 LogicEnabled;
-  byte WriteMask;
+  bool32 Enabled = false;
+  bool32 LogicEnabled = false;
+  byte WriteMask = 0;
 };
 
 struct BlendState
 {
-  BlendState() : AlphaToCoverage(false), IndependentBlend(false), SampleMask(0)
-  {
-    BlendFactor[0] = BlendFactor[1] = BlendFactor[2] = BlendFactor[3] = 0.0f;
-  }
-
   ResourceId State;
 
-  bool32 AlphaToCoverage;
-  bool32 IndependentBlend;
+  bool32 AlphaToCoverage = false;
+  bool32 IndependentBlend = false;
 
   rdctype::array<Blend> Blends;
 
-  float BlendFactor[4];
-  uint32_t SampleMask;
+  float BlendFactor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+  uint32_t SampleMask = ~0U;
 };
 
 struct OM
 {
-  OM() : UAVStartSlot(0), DepthReadOnly(false), StencilReadOnly(false) {}
   DepthStencilState m_State;
   BlendState m_BlendState;
 
   rdctype::array<View> RenderTargets;
 
-  uint32_t UAVStartSlot;
+  uint32_t UAVStartSlot = 0;
   rdctype::array<View> UAVs;
 
   View DepthTarget;
-  bool32 DepthReadOnly;
-  bool32 StencilReadOnly;
+  bool32 DepthReadOnly = false;
+  bool32 StencilReadOnly = false;
 };
 
 struct State
 {
-  State() {}
   IA m_IA;
 
   Shader m_VS, m_HS, m_DS, m_GS, m_PS, m_CS;

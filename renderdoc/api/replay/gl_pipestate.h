@@ -31,252 +31,172 @@ namespace GLPipe
 {
 struct VertexAttribute
 {
-  VertexAttribute() : BufferSlot(0), RelativeOffset(0) {}
-  bool32 Enabled;
+  bool32 Enabled = false;
   ResourceFormat Format;
 
   PixelValue GenericValue;
 
-  uint32_t BufferSlot;
-  uint32_t RelativeOffset;
+  uint32_t BufferSlot = 0;
+  uint32_t RelativeOffset = 0;
 };
 
 struct VB
 {
-  VB() : Buffer(), Stride(0), Offset(0), Divisor(0) {}
   ResourceId Buffer;
-  uint32_t Stride;
-  uint32_t Offset;
-  uint32_t Divisor;
+  uint32_t Stride = 0;
+  uint32_t Offset = 0;
+  uint32_t Divisor = 0;
 };
 
 struct VertexInput
 {
-  VertexInput() : ibuffer(), primitiveRestart(false), restartIndex(0), provokingVertexLast(false) {}
   rdctype::array<VertexAttribute> attributes;
 
   rdctype::array<VB> vbuffers;
 
   ResourceId ibuffer;
-  bool32 primitiveRestart;
-  uint32_t restartIndex;
+  bool32 primitiveRestart = false;
+  uint32_t restartIndex = 0;
 
-  bool32 provokingVertexLast;
+  bool32 provokingVertexLast = false;
 };
 
 struct Shader
 {
-  Shader()
-      : Object(),
-        customShaderName(false),
-        customProgramName(false),
-        PipelineActive(false),
-        customPipelineName(false),
-        ShaderDetails(NULL),
-        stage(ShaderStage::Vertex)
-  {
-  }
   ResourceId Object;
 
   rdctype::str ShaderName;
-  bool32 customShaderName;
+  bool32 customShaderName = false;
 
   rdctype::str ProgramName;
-  bool32 customProgramName;
+  bool32 customProgramName = false;
 
-  bool32 PipelineActive;
+  bool32 PipelineActive = false;
   rdctype::str PipelineName;
-  bool32 customPipelineName;
+  bool32 customPipelineName = false;
 
-  ShaderReflection *ShaderDetails;
+  ShaderReflection *ShaderDetails = NULL;
   ShaderBindpointMapping BindpointMapping;
 
-  ShaderStage stage;
+  ShaderStage stage = ShaderStage::Vertex;
 
   rdctype::array<uint32_t> Subroutines;
 };
 
 struct FixedVertexProcessing
 {
-  FixedVertexProcessing() : discard(0), clipOriginLowerLeft(0), clipNegativeOneToOne(0)
-  {
-    defaultInnerLevel[0] = defaultInnerLevel[1] = 0.0f;
-    defaultOuterLevel[0] = defaultOuterLevel[1] = defaultOuterLevel[2] = defaultOuterLevel[3] = 0.0f;
-    clipPlanes[0] = clipPlanes[1] = clipPlanes[2] = clipPlanes[3] = clipPlanes[4] = clipPlanes[5] =
-        clipPlanes[6] = clipPlanes[7] = 0;
-  }
+  float defaultInnerLevel[2] = {0.0f, 0.0f};
+  float defaultOuterLevel[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+  bool32 discard = false;
 
-  float defaultInnerLevel[2];
-  float defaultOuterLevel[4];
-  bool32 discard;
-
-  bool32 clipPlanes[8];
-  bool32 clipOriginLowerLeft;
-  bool32 clipNegativeOneToOne;
+  bool32 clipPlanes[8] = {false, false, false, false, false, false, false, false};
+  bool32 clipOriginLowerLeft = false;
+  bool32 clipNegativeOneToOne = false;
 };
 
 struct Texture
 {
-  Texture() : Resource(), FirstSlice(0), ResType(TextureDim::Unknown), DepthReadChannel(-1)
-  {
-    Swizzle[0] = TextureSwizzle::Red;
-    Swizzle[1] = TextureSwizzle::Green;
-    Swizzle[2] = TextureSwizzle::Blue;
-    Swizzle[3] = TextureSwizzle::Alpha;
-  }
   ResourceId Resource;
-  uint32_t FirstSlice;
-  uint32_t HighestMip;
-  TextureDim ResType;
+  uint32_t FirstSlice = 0;
+  uint32_t HighestMip = 0;
+  TextureDim ResType = TextureDim::Unknown;
 
-  TextureSwizzle Swizzle[4];
-  int32_t DepthReadChannel;
+  TextureSwizzle Swizzle[4] = {TextureSwizzle::Red, TextureSwizzle::Green, TextureSwizzle::Blue,
+                               TextureSwizzle::Alpha};
+  int32_t DepthReadChannel = -1;
 };
 
 struct Sampler
 {
-  Sampler()
-      : Samp(),
-        UseBorder(false),
-        UseComparison(false),
-        SeamlessCube(false),
-        MaxAniso(0.0f),
-        MaxLOD(0.0f),
-        MinLOD(0.0f),
-        MipLODBias(0.0f)
-  {
-    BorderColor[0] = BorderColor[1] = BorderColor[2] = BorderColor[3] = 0.0f;
-  }
   ResourceId Samp;
   rdctype::str AddressS, AddressT, AddressR;
-  float BorderColor[4];
+  float BorderColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
   rdctype::str Comparison;
   rdctype::str MinFilter;
   rdctype::str MagFilter;
-  bool32 UseBorder;
-  bool32 UseComparison;
-  bool32 SeamlessCube;
-  float MaxAniso;
-  float MaxLOD;
-  float MinLOD;
-  float MipLODBias;
+  bool32 UseBorder = false;
+  bool32 UseComparison = false;
+  bool32 SeamlessCube = false;
+  float MaxAniso = 0.0f;
+  float MaxLOD = 0.0f;
+  float MinLOD = 0.0f;
+  float MipLODBias = 0.0f;
 };
 
 struct Buffer
 {
-  Buffer() : Resource(), Offset(0), Size(0) {}
   ResourceId Resource;
-  uint64_t Offset;
-  uint64_t Size;
+  uint64_t Offset = 0;
+  uint64_t Size = 0;
 };
 
 struct ImageLoadStore
 {
-  ImageLoadStore()
-      : Resource(),
-        Level(0),
-        Layered(false),
-        Layer(0),
-        ResType(TextureDim::Unknown),
-        readAllowed(false),
-        writeAllowed(false)
-  {
-  }
   ResourceId Resource;
-  uint32_t Level;
-  bool32 Layered;
-  uint32_t Layer;
-  TextureDim ResType;
-  bool32 readAllowed;
-  bool32 writeAllowed;
+  uint32_t Level = 0;
+  bool32 Layered = false;
+  uint32_t Layer = 0;
+  TextureDim ResType = TextureDim::Unknown;
+  bool32 readAllowed = false;
+  bool32 writeAllowed = false;
   ResourceFormat Format;
 };
 
 struct Feedback
 {
-  Feedback() : Active(false), Paused(false)
-  {
-    Offset[0] = Offset[1] = Offset[2] = Offset[3] = 0;
-    Size[0] = Size[1] = Size[2] = Size[3] = 0;
-  }
-
   ResourceId Obj;
   ResourceId BufferBinding[4];
-  uint64_t Offset[4];
-  uint64_t Size[4];
-  bool32 Active;
-  bool32 Paused;
+  uint64_t Offset[4] = {0, 0, 0, 0};
+  uint64_t Size[4] = {0, 0, 0, 0};
+  bool32 Active = false;
+  bool32 Paused = false;
 };
 
 struct Viewport
 {
-  Viewport() : Left(0.0f), Bottom(0.0f), Width(0.0f), Height(0.0f), MinDepth(0.0f), MaxDepth(0.0f)
-  {
-  }
-  float Left, Bottom;
-  float Width, Height;
-  double MinDepth, MaxDepth;
+  float Left = 0.0f;
+  float Bottom = 0.0f;
+  float Width = 0.0f;
+  float Height = 0.0f;
+  double MinDepth = 0.0;
+  double MaxDepth = 0.0;
 };
 
 struct Scissor
 {
-  Scissor() : Left(0), Bottom(0), Width(0), Height(0), Enabled(false) {}
-  int32_t Left, Bottom;
-  int32_t Width, Height;
-  bool32 Enabled;
+  int32_t Left = 0;
+  int32_t Bottom = 0;
+  int32_t Width = 0;
+  int32_t Height = 0;
+  bool32 Enabled = false;
 };
 
 struct RasterizerState
 {
-  RasterizerState()
-      : fillMode(FillMode::Solid),
-        cullMode(CullMode::NoCull),
-        FrontCCW(false),
-        DepthBias(0),
-        SlopeScaledDepthBias(0.0f),
-        OffsetClamp(0.0f),
-        DepthClamp(false),
-        MultisampleEnable(false),
-        SampleShading(false),
-        SampleMask(false),
-        SampleMaskValue(~0U),
-        SampleCoverage(false),
-        SampleCoverageInvert(false),
-        SampleCoverageValue(1.0f),
-        SampleAlphaToCoverage(false),
-        SampleAlphaToOne(false),
-        MinSampleShadingRate(0.0f),
-        ProgrammablePointSize(false),
-        PointSize(1.0f),
-        LineWidth(1.0f),
-        PointFadeThreshold(0.0f),
-        PointOriginUpperLeft(false)
-  {
-  }
-  FillMode fillMode;
-  CullMode cullMode;
-  bool32 FrontCCW;
-  float DepthBias;
-  float SlopeScaledDepthBias;
-  float OffsetClamp;
-  bool32 DepthClamp;
+  FillMode fillMode = FillMode::Solid;
+  CullMode cullMode = CullMode::NoCull;
+  bool32 FrontCCW = false;
+  float DepthBias = 0.0f;
+  float SlopeScaledDepthBias = 0.0f;
+  float OffsetClamp = 0.0f;
+  bool32 DepthClamp = false;
 
-  bool32 MultisampleEnable;
-  bool32 SampleShading;
-  bool32 SampleMask;
-  uint32_t SampleMaskValue;
-  bool32 SampleCoverage;
-  bool32 SampleCoverageInvert;
-  float SampleCoverageValue;
-  bool32 SampleAlphaToCoverage;
-  bool32 SampleAlphaToOne;
-  float MinSampleShadingRate;
+  bool32 MultisampleEnable = false;
+  bool32 SampleShading = false;
+  bool32 SampleMask = false;
+  uint32_t SampleMaskValue = ~0U;
+  bool32 SampleCoverage = false;
+  bool32 SampleCoverageInvert = false;
+  float SampleCoverageValue = 1.0f;
+  bool32 SampleAlphaToCoverage = false;
+  bool32 SampleAlphaToOne = false;
+  float MinSampleShadingRate = 0.0f;
 
-  bool32 ProgrammablePointSize;
-  float PointSize;
-  float LineWidth;
-  float PointFadeThreshold;
-  bool32 PointOriginUpperLeft;
+  bool32 ProgrammablePointSize = false;
+  float PointSize = 1.0f;
+  float LineWidth = 1.0f;
+  float PointFadeThreshold = 0.0f;
+  bool32 PointOriginUpperLeft = false;
 };
 
 struct Rasterizer
@@ -290,62 +210,50 @@ struct Rasterizer
 
 struct DepthState
 {
-  DepthState()
-      : DepthEnable(false), DepthWrites(false), DepthBounds(false), NearBound(0), FarBound(0)
-  {
-  }
-  bool32 DepthEnable;
+  bool32 DepthEnable = false;
   rdctype::str DepthFunc;
-  bool32 DepthWrites;
-  bool32 DepthBounds;
-  double NearBound, FarBound;
+  bool32 DepthWrites = false;
+  bool32 DepthBounds = false;
+  double NearBound = 0.0;
+  double FarBound = 0.0;
 };
 
 struct StencilOp
 {
-  StencilOp() : Ref(0), ValueMask(0), WriteMask(0) {}
   rdctype::str FailOp;
   rdctype::str DepthFailOp;
   rdctype::str PassOp;
   rdctype::str Func;
-  uint32_t Ref;
-  uint32_t ValueMask;
-  uint32_t WriteMask;
+  uint32_t Ref = 0;
+  uint32_t ValueMask = 0;
+  uint32_t WriteMask = 0;
 };
 
 struct StencilState
 {
-  StencilState() : StencilEnable(false) {}
-  bool32 StencilEnable;
+  bool32 StencilEnable = false;
 
   StencilOp m_FrontFace, m_BackFace;
 };
 
 struct Attachment
 {
-  Attachment() : Obj(), Layer(0), Mip(0)
-  {
-    Swizzle[0] = TextureSwizzle::Red;
-    Swizzle[1] = TextureSwizzle::Green;
-    Swizzle[2] = TextureSwizzle::Blue;
-    Swizzle[3] = TextureSwizzle::Alpha;
-  }
   ResourceId Obj;
-  uint32_t Layer;
-  uint32_t Mip;
-  TextureSwizzle Swizzle[4];
+  uint32_t Layer = 0;
+  uint32_t Mip = 0;
+  TextureSwizzle Swizzle[4] = {TextureSwizzle::Red, TextureSwizzle::Green, TextureSwizzle::Blue,
+                               TextureSwizzle::Alpha};
 };
 
 struct FBO
 {
-  FBO() : Obj(), Depth(), Stencil(), ReadBuffer(0) {}
   ResourceId Obj;
   rdctype::array<Attachment> Color;
   Attachment Depth;
   Attachment Stencil;
 
   rdctype::array<int32_t> DrawBuffers;
-  int32_t ReadBuffer;
+  int32_t ReadBuffer = 0;
 };
 
 struct BlendOp
@@ -357,28 +265,25 @@ struct BlendOp
 
 struct Blend
 {
-  Blend() : Enabled(false), WriteMask(0) {}
   BlendOp m_Blend, m_AlphaBlend;
 
   rdctype::str LogicOp;
 
-  bool32 Enabled;
-  byte WriteMask;
+  bool32 Enabled = false;
+  byte WriteMask = 0;
 };
 
 struct BlendState
 {
-  BlendState() { BlendFactor[0] = BlendFactor[1] = BlendFactor[2] = BlendFactor[3] = 0.0f; }
   rdctype::array<Blend> Blends;
 
-  float BlendFactor[4];
+  float BlendFactor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 };
 
 struct FrameBuffer
 {
-  FrameBuffer() : FramebufferSRGB(false), Dither(false) {}
-  bool32 FramebufferSRGB;
-  bool32 Dither;
+  bool32 FramebufferSRGB = false;
+  bool32 Dither = false;
 
   FBO m_DrawFBO, m_ReadFBO;
 
@@ -387,27 +292,16 @@ struct FrameBuffer
 
 struct Hints
 {
-  Hints()
-      : Derivatives(QualityHint::DontCare),
-        LineSmooth(QualityHint::DontCare),
-        PolySmooth(QualityHint::DontCare),
-        TexCompression(QualityHint::DontCare),
-        LineSmoothEnabled(0),
-        PolySmoothEnabled(0)
-  {
-  }
-
-  QualityHint Derivatives;
-  QualityHint LineSmooth;
-  QualityHint PolySmooth;
-  QualityHint TexCompression;
-  bool32 LineSmoothEnabled;
-  bool32 PolySmoothEnabled;
+  QualityHint Derivatives = QualityHint::DontCare;
+  QualityHint LineSmooth = QualityHint::DontCare;
+  QualityHint PolySmooth = QualityHint::DontCare;
+  QualityHint TexCompression = QualityHint::DontCare;
+  bool32 LineSmoothEnabled = false;
+  bool32 PolySmoothEnabled = false;
 };
 
 struct State
 {
-  State() {}
   VertexInput m_VtxIn;
 
   Shader m_VS, m_TCS, m_TES, m_GS, m_FS, m_CS;
