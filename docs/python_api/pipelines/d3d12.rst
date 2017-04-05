@@ -1,8 +1,15 @@
 D3D12 Pipeline State
 ====================
 
-.. automodule:: renderdoc
+.. module:: renderdoc
+
+.. autoclass:: D3D12_State
   :members:
   :undoc-members:
+
+.. automodule:: renderdoc
+  :members:
+  :noindex:
+  :undoc-members:
   :imported-members:
-  :exclude-members: free_functions__, enum_constants__, name_match__include_only__startswith__D3D12_
+  :exclude-members: D3D12_State, free_functions__, enum_constants__, name_match__include_only__startswith__D3D12_

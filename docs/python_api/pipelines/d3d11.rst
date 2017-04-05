@@ -1,8 +1,15 @@
 D3D11 Pipeline State
 ====================
 
-.. automodule:: renderdoc
+.. module:: renderdoc
+
+.. autoclass:: D3D11_State
   :members:
   :undoc-members:
+
+.. automodule:: renderdoc
+  :members:
+  :noindex:
+  :undoc-members:
   :imported-members:
-  :exclude-members: free_functions__, enum_constants__, name_match__include_only__startswith__D3D11_
+  :exclude-members: D3D11_State, free_functions__, enum_constants__, name_match__include_only__startswith__D3D11_

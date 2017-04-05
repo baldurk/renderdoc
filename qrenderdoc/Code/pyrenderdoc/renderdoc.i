@@ -1,4 +1,4 @@
-%module(docstring="This is the API to RenderDoc's internals.") renderdoc
+%module renderdoc
 
 %feature("autodoc", "0");
 
