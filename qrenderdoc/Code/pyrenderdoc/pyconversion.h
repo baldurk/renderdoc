@@ -305,6 +305,48 @@ struct TypeConversion<rdctype::pair<A, B>, false>
   }
 };
 
+// specialisation for array<byte>
+template <>
+struct TypeConversion<rdctype::array<byte>, false>
+{
+  // we add some extra parameters so the typemaps for array can use these to get
+  // nicer failure error messages out with the index that failed
+  static int ConvertFromPy(PyObject *in, rdctype::array<byte> &out, int *failIdx)
+  {
+    if(!PyBytes_Check(in))
+      return SWIG_TypeError;
+
+    Py_ssize_t len = PyBytes_Size(in);
+
+    out.create((int)len);
+    memcpy(&out[0], PyBytes_AsString(in), out.count);
+
+    return SWIG_OK;
+  }
+
+  static int ConvertFromPy(PyObject *in, rdctype::array<byte> &out)
+  {
+    return ConvertFromPy(in, out, NULL);
+  }
+
+  static PyObject *ConvertToPyInPlace(PyObject *self, PyObject *list,
+                                      const rdctype::array<byte> &in, int *failIdx)
+  {
+    // can't modify bytes objects
+    return NULL;
+  }
+
+  static PyObject *ConvertToPy(PyObject *self, const rdctype::array<byte> &in, int *failIdx)
+  {
+    return PyBytes_FromStringAndSize((const char *)in.elems, (Py_ssize_t)in.count);
+  }
+
+  static PyObject *ConvertToPy(PyObject *self, const rdctype::array<byte> &in)
+  {
+    return ConvertToPy(self, in, NULL);
+  }
+};
+
 // specialisation for array
 template <typename U>
 struct TypeConversion<rdctype::array<U>, false>
