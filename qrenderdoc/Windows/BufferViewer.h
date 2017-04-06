@@ -52,23 +52,17 @@ struct BufferExport
   BufferExport(ExportFormat f) : format(f) {}
 };
 
-class BufferViewer : public QFrame, public ILogViewerForm
+class BufferViewer : public QFrame, public IBufferViewer, public ILogViewerForm
 {
   Q_OBJECT
 
 public:
-  explicit BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent = 0);
+  explicit BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent = 0);
   ~BufferViewer();
 
-  void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id, const QString &format = "");
-  void ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, const QString &format = "");
-
-  void OnLogfileLoaded();
-  void OnLogfileClosed();
-  void OnSelectedEventChanged(uint32_t eventID) {}
-  void OnEventChanged(uint32_t eventID);
-
-  void ScrollToRow(int row, MeshDataStage stage = MeshDataStage::VSIn)
+  // IBufferViewer
+  QWidget *Widget() override { return this; }
+  void ScrollToRow(int row, MeshDataStage stage = MeshDataStage::VSIn) override
   {
     if(stage == MeshDataStage::VSOut)
       ScrollToRow(m_ModelVSOut, row);
@@ -77,6 +71,16 @@ public:
     else
       ScrollToRow(m_ModelVSIn, row);
   }
+  void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
+                  const QString &format = "") override;
+  void ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id,
+                   const QString &format = "") override;
+
+  // ILogViewerForm
+  void OnLogfileLoaded() override;
+  void OnLogfileClosed() override;
+  void OnSelectedEventChanged(uint32_t eventID) override {}
+  void OnEventChanged(uint32_t eventID) override;
 
 private slots:
   // automatic slots
@@ -114,7 +118,7 @@ private slots:
 
 private:
   Ui::BufferViewer *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
 
   IReplayOutput *m_Output;
 

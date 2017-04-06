@@ -24,17 +24,19 @@
 
 #pragma once
 
-#include <QVariant>
+class RemoteHost;
+
+// do not include any headers here, they must all be in QRDInterface.h
+#include "QRDInterface.h"
 
 class RemoteHost
 {
 public:
   RemoteHost();
-  RemoteHost(const QVariant &var);
 
-  operator QVariant() const;
+  VARIANT_CAST(RemoteHost);
 
-  bool isValid() { return !Hostname.isEmpty(); }
+  bool IsValid() { return !Hostname.isEmpty(); }
   void CheckStatus();
   void Launch();
 
@@ -46,3 +48,5 @@ public:
   QString Hostname;
   QString RunCommand;
 };
+
+DECLARE_REFLECTION_STRUCT(RemoteHost);

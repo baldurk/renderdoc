@@ -37,18 +37,21 @@ class QMenu;
 class DebugMessageItemModel;
 class DebugMessageFilterModel;
 
-class DebugMessageView : public QFrame, public ILogViewerForm
+class DebugMessageView : public QFrame, public IDebugMessageView, public ILogViewerForm
 {
   Q_OBJECT
 
 public:
-  explicit DebugMessageView(CaptureContext &ctx, QWidget *parent = 0);
+  explicit DebugMessageView(ICaptureContext &ctx, QWidget *parent = 0);
   ~DebugMessageView();
 
-  void OnLogfileLoaded();
-  void OnLogfileClosed();
-  void OnSelectedEventChanged(uint32_t eventID) {}
-  void OnEventChanged(uint32_t eventID) {}
+  // IDebugMessageView
+  QWidget *Widget() override { return this; }
+  // ILogViewerForm
+  void OnLogfileLoaded() override;
+  void OnLogfileClosed() override;
+  void OnSelectedEventChanged(uint32_t eventID) override {}
+  void OnEventChanged(uint32_t eventID) override {}
   void RefreshMessageList();
 
 private slots:
@@ -60,9 +63,9 @@ private slots:
   void messages_toggled();
 
 private:
-  void paintEvent(QPaintEvent *e);
+  void paintEvent(QPaintEvent *e) override;
   Ui::DebugMessageView *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
 
   QVector<DebugMessage> m_Messages;
   DebugMessageItemModel *m_ItemModel;

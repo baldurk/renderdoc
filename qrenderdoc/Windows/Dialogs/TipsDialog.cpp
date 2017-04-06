@@ -28,14 +28,14 @@
 #include <stdlib.h>
 #include <time.h>
 
-TipsDialog::TipsDialog(CaptureContext &Ctx, QWidget *parent)
+TipsDialog::TipsDialog(ICaptureContext &Ctx, QWidget *parent)
     : m_Ctx(Ctx), QDialog(parent), ui(new Ui::TipsDialog), m_currentTip(0)
 {
   ui->setupUi(this);
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
   initialize();
 
-  if(m_Ctx.Config.Tips_HasSeenFirst)
+  if(m_Ctx.Config().Tips_HasSeenFirst)
   {
     showRandomTip();
   }
@@ -44,7 +44,7 @@ TipsDialog::TipsDialog(CaptureContext &Ctx, QWidget *parent)
     showTip(m_currentTip);
   }
 
-  m_Ctx.Config.Tips_HasSeenFirst = true;
+  m_Ctx.Config().Tips_HasSeenFirst = true;
 }
 
 TipsDialog::~TipsDialog()

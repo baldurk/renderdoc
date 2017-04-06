@@ -48,7 +48,7 @@ public:
     FileNameRole,
   };
 
-  RemoteFileModel(RenderManager &r, QObject *parent = NULL)
+  RemoteFileModel(IRenderManager &r, QObject *parent = NULL)
       : Renderer(r), QAbstractItemModel(parent)
   {
     makeIconStates(fileIcon, Pixmaps::page_white_database());
@@ -361,7 +361,7 @@ public:
   }
 
 private:
-  RenderManager &Renderer;
+  IRenderManager &Renderer;
 
   QIcon dirIcon[2];
   QIcon exeIcon[2];
@@ -549,7 +549,7 @@ protected:
   }
 };
 
-VirtualFileDialog::VirtualFileDialog(CaptureContext &ctx, QWidget *parent)
+VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QWidget *parent)
     : QDialog(parent), ui(new Ui::VirtualFileDialog)
 {
   ui->setupUi(this);

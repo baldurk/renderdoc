@@ -24,14 +24,10 @@
 
 #include "GLPipelineStateViewer.h"
 #include <float.h>
+#include <QMouseEvent>
 #include <QScrollBar>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/Resources.h"
-#include "Windows/BufferViewer.h"
-#include "Windows/ConstantBufferPreviewer.h"
-#include "Windows/MainWindow.h"
-#include "Windows/ShaderViewer.h"
-#include "Windows/TextureViewer.h"
 #include "PipelineStateViewer.h"
 #include "ui_GLPipelineStateViewer.h"
 
@@ -74,7 +70,7 @@ struct ReadWriteTag
 
 Q_DECLARE_METATYPE(ReadWriteTag);
 
-GLPipelineStateViewer::GLPipelineStateViewer(CaptureContext &ctx, PipelineStateViewer &common,
+GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineStateViewer &common,
                                              QWidget *parent)
     : QFrame(parent), ui(new Ui::GLPipelineStateViewer), m_Ctx(ctx), m_Common(common)
 {
@@ -127,7 +123,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(CaptureContext &ctx, PipelineStateV
     QObject::connect(b, &QToolButton::clicked, this, &GLPipelineStateViewer::shaderView_clicked);
 
   for(RDLabel *b : shaderLabels)
-    QObject::connect(b, &RDLabel::clicked, this, &GLPipelineStateViewer::shaderView_clicked);
+    QObject::connect(b, &RDLabel::clicked, [this](QMouseEvent *) { shaderView_clicked(); });
 
   for(QToolButton *b : editButtons)
     QObject::connect(b, &QToolButton::clicked, this, &GLPipelineStateViewer::shaderEdit_clicked);
@@ -419,23 +415,23 @@ const GLPipe::Shader *GLPipelineStateViewer::stageForSender(QWidget *widget)
   while(widget)
   {
     if(widget == ui->stagesTabs->widget(0))
-      return &m_Ctx.CurGLPipelineState.m_VS;
+      return &m_Ctx.CurGLPipelineState().m_VS;
     if(widget == ui->stagesTabs->widget(1))
-      return &m_Ctx.CurGLPipelineState.m_VS;
+      return &m_Ctx.CurGLPipelineState().m_VS;
     if(widget == ui->stagesTabs->widget(2))
-      return &m_Ctx.CurGLPipelineState.m_TCS;
+      return &m_Ctx.CurGLPipelineState().m_TCS;
     if(widget == ui->stagesTabs->widget(3))
-      return &m_Ctx.CurGLPipelineState.m_TES;
+      return &m_Ctx.CurGLPipelineState().m_TES;
     if(widget == ui->stagesTabs->widget(4))
-      return &m_Ctx.CurGLPipelineState.m_GS;
+      return &m_Ctx.CurGLPipelineState().m_GS;
     if(widget == ui->stagesTabs->widget(5))
-      return &m_Ctx.CurGLPipelineState.m_FS;
+      return &m_Ctx.CurGLPipelineState().m_FS;
     if(widget == ui->stagesTabs->widget(6))
-      return &m_Ctx.CurGLPipelineState.m_FS;
+      return &m_Ctx.CurGLPipelineState().m_FS;
     if(widget == ui->stagesTabs->widget(7))
-      return &m_Ctx.CurGLPipelineState.m_FS;
+      return &m_Ctx.CurGLPipelineState().m_FS;
     if(widget == ui->stagesTabs->widget(8))
-      return &m_Ctx.CurGLPipelineState.m_CS;
+      return &m_Ctx.CurGLPipelineState().m_CS;
 
     widget = widget->parentWidget();
   }
@@ -538,7 +534,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
 {
   ShaderReflection *shaderDetails = stage.ShaderDetails;
   const ShaderBindpointMapping &mapping = stage.BindpointMapping;
-  const GLPipe::State &state = m_Ctx.CurGLPipelineState;
+  const GLPipe::State &state = m_Ctx.CurGLPipelineState();
 
   const QIcon &action = Icons::action();
   const QIcon &action_hover = Icons::action_hover();
@@ -1049,7 +1045,7 @@ void GLPipelineStateViewer::setState()
     return;
   }
 
-  const GLPipe::State &state = m_Ctx.CurGLPipelineState;
+  const GLPipe::State &state = m_Ctx.CurGLPipelineState();
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   bool showDisabled = ui->showDisabled->isChecked();
@@ -1955,22 +1951,15 @@ void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int co
     {
       if(tex->resType == TextureDim::Buffer)
       {
-        BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
+        IBufferViewer *viewer = m_Ctx.ViewTextureAsBuffer(0, 0, tex->ID);
 
-        viewer->ViewTexture(0, 0, tex->ID);
-
-        m_Ctx.setupDockWindow(viewer);
-
-        ToolWindowManager *manager = ToolWindowManager::managerOf(this);
-
-        ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
-        manager->addToolWindow(viewer, ref);
+        m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
       }
       else
       {
-        if(!m_Ctx.hasTextureViewer())
-          m_Ctx.showTextureViewer();
-        TextureViewer *viewer = m_Ctx.textureViewer();
+        if(!m_Ctx.HasTextureViewer())
+          m_Ctx.ShowTextureViewer();
+        ITextureViewer *viewer = m_Ctx.GetTextureViewer();
         viewer->ViewTexture(tex->ID, true);
       }
 
@@ -2022,16 +2011,9 @@ void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int co
 
     if(buf.ID != ResourceId())
     {
-      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
+      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.offset, buf.size, buf.ID, format);
 
-      viewer->ViewBuffer(buf.offset, buf.size, buf.ID, format);
-
-      m_Ctx.setupDockWindow(viewer);
-
-      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
-
-      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
-      manager->addToolWindow(viewer, ref);
+      m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
     }
   }
 }
@@ -2050,22 +2032,9 @@ void GLPipelineStateViewer::ubo_itemActivated(QTreeWidgetItem *item, int column)
 
   int cb = tag.value<int>();
 
-  ConstantBufferPreviewer *existing = ConstantBufferPreviewer::has(stage->stage, cb, 0);
-  if(existing)
-  {
-    ToolWindowManager::raiseToolWindow(existing);
-    return;
-  }
+  IConstantBufferPreviewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb, 0);
 
-  ConstantBufferPreviewer *prev =
-      new ConstantBufferPreviewer(m_Ctx, stage->stage, cb, 0, m_Ctx.mainWindow());
-
-  m_Ctx.setupDockWindow(prev);
-
-  ToolWindowManager *manager = ToolWindowManager::managerOf(this);
-
-  ToolWindowManager::AreaReference ref(ToolWindowManager::RightOf, manager->areaOf(this), 0.3f);
-  manager->addToolWindow(prev, ref);
+  m_Ctx.AddDockWindow(prev->Widget(), DockReference::RightOf, this, 0.3f);
 }
 
 void GLPipelineStateViewer::on_viAttrs_itemActivated(QTreeWidgetItem *item, int column)
@@ -2083,16 +2052,9 @@ void GLPipelineStateViewer::on_viBuffers_itemActivated(QTreeWidgetItem *item, in
 
     if(buf.id != ResourceId())
     {
-      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
+      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.offset, UINT64_MAX, buf.id);
 
-      viewer->ViewBuffer(buf.offset, UINT64_MAX, buf.id);
-
-      m_Ctx.setupDockWindow(viewer);
-
-      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
-
-      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
-      manager->addToolWindow(viewer, ref);
+      m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
     }
   }
 }
@@ -2101,7 +2063,7 @@ void GLPipelineStateViewer::highlightIABind(int slot)
 {
   int idx = ((slot + 1) * 21) % 32;    // space neighbouring colours reasonably distinctly
 
-  const GLPipe::VertexInput &VI = m_Ctx.CurGLPipelineState.m_VtxIn;
+  const GLPipe::VertexInput &VI = m_Ctx.CurGLPipelineState().m_VtxIn;
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
 
@@ -2152,7 +2114,7 @@ void GLPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 
   vertex_leave(NULL);
 
-  const GLPipe::VertexInput &VI = m_Ctx.CurGLPipelineState.m_VtxIn;
+  const GLPipe::VertexInput &VI = m_Ctx.CurGLPipelineState().m_VtxIn;
 
   if(idx.isValid())
   {
@@ -2252,15 +2214,10 @@ void GLPipelineStateViewer::shaderView_clicked()
 
   ShaderReflection *shaderDetails = stage->ShaderDetails;
 
-  ShaderViewer *shad = ShaderViewer::viewShader(m_Ctx, &stage->BindpointMapping, shaderDetails,
-                                                stage->stage, m_Ctx.mainWindow());
+  IShaderViewer *shad = m_Ctx.ViewShader(&stage->BindpointMapping, shaderDetails, stage->stage,
+                                         m_Ctx.GetMainWindow()->Widget());
 
-  m_Ctx.setupDockWindow(shad);
-
-  ToolWindowManager *manager = ToolWindowManager::managerOf(this);
-
-  ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
-  manager->addToolWindow(shad, ref);
+  m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
 }
 
 void GLPipelineStateViewer::shaderEdit_clicked()
@@ -2320,7 +2277,7 @@ void GLPipelineStateViewer::on_exportHTML_clicked()
 
 void GLPipelineStateViewer::on_meshView_clicked()
 {
-  if(!m_Ctx.hasMeshPreview())
-    m_Ctx.showMeshPreview();
-  ToolWindowManager::raiseToolWindow(m_Ctx.meshPreview());
+  if(!m_Ctx.HasMeshPreview())
+    m_Ctx.ShowMeshPreview();
+  ToolWindowManager::raiseToolWindow(m_Ctx.GetMeshPreview()->Widget());
 }

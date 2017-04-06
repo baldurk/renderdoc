@@ -42,14 +42,15 @@ class D3D12PipelineStateViewer : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit D3D12PipelineStateViewer(CaptureContext &ctx, PipelineStateViewer &common,
+  explicit D3D12PipelineStateViewer(ICaptureContext &ctx, PipelineStateViewer &common,
                                     QWidget *parent = 0);
   ~D3D12PipelineStateViewer();
 
-  void OnLogfileLoaded();
-  void OnLogfileClosed();
-  void OnSelectedEventChanged(uint32_t eventID) {}
-  void OnEventChanged(uint32_t eventID);
+  // ILogViewerForm
+  void OnLogfileLoaded() override;
+  void OnLogfileClosed() override;
+  void OnSelectedEventChanged(uint32_t eventID) override {}
+  void OnEventChanged(uint32_t eventID) override;
 
 private slots:
   // automatic slots
@@ -73,7 +74,7 @@ private slots:
 
 private:
   Ui::D3D12PipelineStateViewer *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
 
   void setShaderState(const D3D12Pipe::Shader &stage, QLabel *shader, RDTreeWidget *tex,

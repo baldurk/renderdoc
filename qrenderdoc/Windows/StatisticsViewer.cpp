@@ -168,7 +168,7 @@ void AppendInputAssemblerStatistics(QString &statisticsLog, const FrameDescripti
                                                     vertices.bindslots));
 }
 
-void AppendShaderStatistics(CaptureContext &ctx, QString &statisticsLog,
+void AppendShaderStatistics(ICaptureContext &ctx, QString &statisticsLog,
                             const FrameDescription &frameInfo)
 {
   const ShaderChangeStats *shaders = frameInfo.stats.shaders;
@@ -188,7 +188,7 @@ void AppendShaderStatistics(CaptureContext &ctx, QString &statisticsLog,
   {
     statisticsLog.append(QString("%1 calls: %2, non-null shader sets: %3, null shader sets: %4, "
                                  "redundant shader sets: %5\n")
-                             .arg(ctx.CurPipelineState.Abbrev(StageFromIndex(s)))
+                             .arg(ctx.CurPipelineState().Abbrev(StageFromIndex(s)))
                              .arg(shaders[s].calls)
                              .arg(shaders[s].sets)
                              .arg(shaders[s].nulls)
@@ -203,7 +203,7 @@ void AppendShaderStatistics(CaptureContext &ctx, QString &statisticsLog,
                            .arg(totalShadersPerStage.redundants));
 }
 
-void AppendConstantBindStatistics(CaptureContext &ctx, QString &statisticsLog,
+void AppendConstantBindStatistics(ICaptureContext &ctx, QString &statisticsLog,
                                   const FrameDescription &frameInfo)
 {
   // #mivance C++-side we guarantee all stages will have the same slots
@@ -263,7 +263,7 @@ void AppendConstantBindStatistics(CaptureContext &ctx, QString &statisticsLog,
   for(auto s : indices<ShaderStage>())
   {
     statisticsLog.append(QString("%1 calls: %2, non-null buffer sets: %3, null buffer sets: %4\n")
-                             .arg(ctx.CurPipelineState.Abbrev(StageFromIndex(s)))
+                             .arg(ctx.CurPipelineState().Abbrev(StageFromIndex(s)))
                              .arg(totalConstantsPerStage[s].calls)
                              .arg(totalConstantsPerStage[s].sets)
                              .arg(totalConstantsPerStage[s].nulls));
@@ -299,7 +299,7 @@ void AppendConstantBindStatistics(CaptureContext &ctx, QString &statisticsLog,
   }
 }
 
-void AppendSamplerBindStatistics(CaptureContext &ctx, QString &statisticsLog,
+void AppendSamplerBindStatistics(ICaptureContext &ctx, QString &statisticsLog,
                                  const FrameDescription &frameInfo)
 {
   // #mivance see AppendConstantBindStatistics
@@ -348,7 +348,7 @@ void AppendSamplerBindStatistics(CaptureContext &ctx, QString &statisticsLog,
   for(auto s : indices<ShaderStage>())
   {
     statisticsLog.append(QString("%1 calls: %2, non-null sampler sets: %3, null sampler sets: %4\n")
-                             .arg(ctx.CurPipelineState.Abbrev(StageFromIndex(s)))
+                             .arg(ctx.CurPipelineState().Abbrev(StageFromIndex(s)))
                              .arg(totalSamplersPerStage[s].calls)
                              .arg(totalSamplersPerStage[s].sets)
                              .arg(totalSamplersPerStage[s].nulls));
@@ -364,7 +364,7 @@ void AppendSamplerBindStatistics(CaptureContext &ctx, QString &statisticsLog,
       "Aggregate slot counts per invocation across all stages", totalSamplersForAllStages.bindslots));
 }
 
-void AppendResourceBindStatistics(CaptureContext &ctx, QString &statisticsLog,
+void AppendResourceBindStatistics(ICaptureContext &ctx, QString &statisticsLog,
                                   const FrameDescription &frameInfo)
 {
   // #mivance see AppendConstantBindStatistics
@@ -424,7 +424,7 @@ void AppendResourceBindStatistics(CaptureContext &ctx, QString &statisticsLog,
   for(auto s : indices<ShaderStage>())
   {
     statisticsLog.append(QString("%1 calls: %2 non-null resource sets: %3 null resource sets: %4\n")
-                             .arg(ctx.CurPipelineState.Abbrev(StageFromIndex(s)))
+                             .arg(ctx.CurPipelineState().Abbrev(StageFromIndex(s)))
                              .arg(totalResourcesPerStage[s].calls)
                              .arg(totalResourcesPerStage[s].sets)
                              .arg(totalResourcesPerStage[s].nulls));
@@ -584,7 +584,7 @@ void AppendOutputStatistics(QString &statisticsLog, const FrameDescription &fram
   statisticsLog.append(CreateSimpleIntegerHistogram("Outputs set", outputs.bindslots));
 }
 
-void AppendDetailedInformation(CaptureContext &ctx, QString &statisticsLog,
+void AppendDetailedInformation(ICaptureContext &ctx, QString &statisticsLog,
                                const FrameDescription &frameInfo)
 {
   if(!frameInfo.stats.recorded)
@@ -665,7 +665,7 @@ QString AppendAPICallSummary(const FrameDescription &frameInfo, uint numAPICalls
   return calls;
 }
 
-QString GenerateReport(CaptureContext &ctx)
+QString GenerateReport(ICaptureContext &ctx)
 {
   QString statisticsLog;
 
@@ -798,7 +798,7 @@ QString GenerateReport(CaptureContext &ctx)
   return statisticsLog;
 }
 
-StatisticsViewer::StatisticsViewer(CaptureContext &ctx, QWidget *parent)
+StatisticsViewer::StatisticsViewer(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::StatisticsViewer), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -810,7 +810,7 @@ StatisticsViewer::StatisticsViewer(CaptureContext &ctx, QWidget *parent)
 
 StatisticsViewer::~StatisticsViewer()
 {
-  m_Ctx.windowClosed(this);
+  m_Ctx.BuiltinWindowClosed(this);
 
   m_Ctx.RemoveLogViewer(this);
   delete ui;

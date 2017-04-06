@@ -35,7 +35,6 @@ class TextureViewer;
 }
 
 class ResourcePreview;
-class ShaderViewer;
 class ThumbnailStrip;
 class TextureGoto;
 class QFileSystemWatcher;
@@ -63,34 +62,34 @@ struct Following
 
   bool operator==(const Following &o);
   bool operator!=(const Following &o);
-  static void GetDrawContext(CaptureContext &ctx, bool &copy, bool &compute);
+  static void GetDrawContext(ICaptureContext &ctx, bool &copy, bool &compute);
 
-  int GetHighestMip(CaptureContext &ctx);
-  int GetFirstArraySlice(CaptureContext &ctx);
-  CompType GetTypeHint(CaptureContext &ctx);
+  int GetHighestMip(ICaptureContext &ctx);
+  int GetFirstArraySlice(ICaptureContext &ctx);
+  CompType GetTypeHint(ICaptureContext &ctx);
 
-  ResourceId GetResourceId(CaptureContext &ctx);
-  BoundResource GetBoundResource(CaptureContext &ctx, int arrayIdx);
+  ResourceId GetResourceId(ICaptureContext &ctx);
+  BoundResource GetBoundResource(ICaptureContext &ctx, int arrayIdx);
 
-  static QVector<BoundResource> GetOutputTargets(CaptureContext &ctx);
+  static QVector<BoundResource> GetOutputTargets(ICaptureContext &ctx);
 
-  static BoundResource GetDepthTarget(CaptureContext &ctx);
+  static BoundResource GetDepthTarget(ICaptureContext &ctx);
 
-  QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext &ctx);
+  QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(ICaptureContext &ctx);
 
-  static QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext &ctx,
+  static QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(ICaptureContext &ctx,
                                                                           ShaderStage stage);
 
-  QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext &ctx);
+  QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(ICaptureContext &ctx);
 
-  static QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext &ctx,
+  static QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(ICaptureContext &ctx,
                                                                          ShaderStage stage);
 
-  const ShaderReflection *GetReflection(CaptureContext &ctx);
-  static const ShaderReflection *GetReflection(CaptureContext &ctx, ShaderStage stage);
+  const ShaderReflection *GetReflection(ICaptureContext &ctx);
+  static const ShaderReflection *GetReflection(ICaptureContext &ctx, ShaderStage stage);
 
-  const ShaderBindpointMapping &GetMapping(CaptureContext &ctx);
-  static const ShaderBindpointMapping &GetMapping(CaptureContext &ctx, ShaderStage stage);
+  const ShaderBindpointMapping &GetMapping(ICaptureContext &ctx);
+  static const ShaderBindpointMapping &GetMapping(ICaptureContext &ctx, ShaderStage stage);
 };
 
 struct TexSettings
@@ -115,7 +114,7 @@ struct TexSettings
   CompType typeHint;
 };
 
-class TextureViewer : public QFrame, public ILogViewerForm
+class TextureViewer : public QFrame, public ITextureViewer, public ILogViewerForm
 {
 private:
   Q_OBJECT
@@ -123,16 +122,19 @@ private:
   Q_PROPERTY(QVariant persistData READ persistData WRITE setPersistData DESIGNABLE false SCRIPTABLE false)
 
 public:
-  explicit TextureViewer(CaptureContext &ctx, QWidget *parent = 0);
+  explicit TextureViewer(ICaptureContext &ctx, QWidget *parent = 0);
   ~TextureViewer();
 
-  void OnLogfileLoaded();
-  void OnLogfileClosed();
-  void OnSelectedEventChanged(uint32_t eventID) {}
-  void OnEventChanged(uint32_t eventID);
+  // ITextureViewer
+  QWidget *Widget() override { return this; }
+  void ViewTexture(ResourceId ID, bool focus) override;
+  void GotoLocation(int x, int y) override;
 
-  void GotoLocation(int x, int y);
-  void ViewTexture(ResourceId ID, bool focus);
+  // ILogViewerForm
+  void OnLogfileLoaded() override;
+  void OnLogfileClosed() override;
+  void OnSelectedEventChanged(uint32_t eventID) override {}
+  void OnEventChanged(uint32_t eventID) override;
 
   QVariant persistData();
   void setPersistData(const QVariant &persistData);
@@ -296,7 +298,7 @@ private:
   TextureGoto *m_Goto;
 
   Ui::TextureViewer *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
   IReplayOutput *m_Output = NULL;
 
   TextureDescription *m_CachedTexture;
@@ -306,7 +308,7 @@ private:
   QFileSystemWatcher *m_Watcher = NULL;
   QStringList m_CustomShadersBusy;
   QMap<QString, ResourceId> m_CustomShaders;
-  QMap<QString, ShaderViewer *> m_CustomShaderEditor;
+  QMap<QString, IShaderViewer *> m_CustomShaderEditor;
 
   void reloadCustomShaders(const QString &filter);
 

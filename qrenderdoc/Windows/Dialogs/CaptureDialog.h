@@ -36,23 +36,7 @@ class CaptureDialog;
 class QStandardItemModel;
 class LiveCapture;
 
-struct CaptureSettings
-{
-  CaptureSettings();
-
-  CaptureOptions Options;
-  bool Inject;
-  bool AutoStart;
-  QString Executable;
-  QString WorkingDir;
-  QString CmdLine;
-  QList<EnvironmentModification> Environment;
-
-  QVariantMap toJSON() const;
-  void fromJSON(const QVariantMap &data);
-};
-
-class CaptureDialog : public QFrame
+class CaptureDialog : public QFrame, public ICaptureDialog
 {
   Q_OBJECT
 
@@ -65,17 +49,28 @@ public:
                              CaptureOptions opts, std::function<void(LiveCapture *)> callback)>
       OnInjectMethod;
 
-  explicit CaptureDialog(CaptureContext &ctx, OnCaptureMethod captureCallback,
+  explicit CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallback,
                          OnInjectMethod injectCallback, QWidget *parent = 0);
   ~CaptureDialog();
 
-  bool injectMode() { return m_Inject; }
-  void setInjectMode(bool inject);
+  // ICaptureDialog
+  QWidget *Widget() override { return this; }
+  bool IsInjectMode() override { return m_Inject; }
+  void SetInjectMode(bool inject) override;
 
-  void setExecutableFilename(QString filename);
-  void loadSettings(QString filename);
+  void SetExecutableFilename(const QString &filename) override;
+  void SetWorkingDirectory(const QString &dir) override;
+  void SetCommandLine(const QString &cmd) override;
+  void SetEnvironmentModifications(const QList<EnvironmentModification> &modifications) override;
 
-  void updateGlobalHook();
+  void SetSettings(CaptureSettings settings) override;
+  CaptureSettings Settings() override;
+
+  void TriggerCapture() override;
+
+  void LoadSettings(QString filename) override;
+  void SaveSettings(QString filename) override;
+  void UpdateGlobalHook() override;
 
 private slots:
   // automatic slots
@@ -101,20 +96,12 @@ private slots:
 
 private:
   Ui::CaptureDialog *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
 
   QStandardItemModel *m_ProcessModel;
 
   OnCaptureMethod m_CaptureCallback;
   OnInjectMethod m_InjectCallback;
-
-  void setEnvironmentModifications(const QList<EnvironmentModification> &modifications);
-  void triggerCapture();
-
-  void setSettings(CaptureSettings settings);
-  CaptureSettings settings();
-
-  void saveSettings(QString filename);
 
   QList<EnvironmentModification> m_EnvModifications;
   bool m_Inject;

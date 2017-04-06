@@ -27,7 +27,7 @@
 #include <QWidget>
 
 struct IReplayOutput;
-class CaptureContext;
+struct ICaptureContext;
 
 class CustomPaintWidget : public QWidget
 {
@@ -35,7 +35,7 @@ private:
   Q_OBJECT
 public:
   explicit CustomPaintWidget(QWidget *parent = 0);
-  explicit CustomPaintWidget(CaptureContext *c, QWidget *parent = 0);
+  explicit CustomPaintWidget(ICaptureContext *c, QWidget *parent = 0);
   ~CustomPaintWidget();
 
   // this is needed to solve a chicken-and-egg problem. We need to recreate the widget
@@ -74,7 +74,7 @@ public slots:
 protected:
   void paintEvent(QPaintEvent *e) override;
   QPaintEngine *paintEngine() const override { return m_Ctx ? NULL : QWidget::paintEngine(); }
-  CaptureContext *m_Ctx;
+  ICaptureContext *m_Ctx;
   IReplayOutput *m_Output;
   QColor m_Dark;
   QColor m_Light;

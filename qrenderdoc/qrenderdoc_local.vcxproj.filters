@@ -67,6 +67,9 @@
     <Filter Include="3rdparty\Scintilla\qt\ScintillaEditBase">
       <UniqueIdentifier>{4a14bfec-662c-410a-8d94-dccf5ba6cb0b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Code\Interface">
+      <UniqueIdentifier>{7986f203-466f-4a74-93a2-6feeaec3b05b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManager.cpp">
@@ -351,17 +354,11 @@
     <ClCompile Include="Widgets\Extended\RDTableWidget.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
-    <ClCompile Include="Code\RemoteHost.cpp">
-      <Filter>Code</Filter>
-    </ClCompile>
     <ClCompile Include="Windows\Dialogs\SuggestRemoteDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
     <ClCompile Include="Windows\Dialogs\VirtualFileDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
-    </ClCompile>
-    <ClCompile Include="Code\CommonPipelineState.cpp">
-      <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="Code\FormatElement.cpp">
       <Filter>Code</Filter>
@@ -371,9 +368,6 @@
     </ClCompile>
     <ClCompile Include="Windows\StatisticsViewer.cpp">
       <Filter>Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="Code\PersistantConfig.cpp">
-      <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="Windows\Dialogs\RemoteManager.cpp">
       <Filter>Windows\Dialogs</Filter>
@@ -567,6 +561,18 @@
     <ClCompile Include="$(IntDir)generated\moc_PythonContext.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Code\Interface\CommonPipelineState.cpp">
+      <Filter>Code\Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\Interface\PersistantConfig.cpp">
+      <Filter>Code\Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\Interface\RemoteHost.cpp">
+      <Filter>Code\Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\Interface\QRDInterface.cpp">
+      <Filter>Code\Interface</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -576,9 +582,6 @@
       <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="Code\CaptureContext.h">
-      <Filter>Code</Filter>
-    </ClInclude>
-    <ClInclude Include="Code\CommonPipelineState.h">
       <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="Code\qprocessinfo.h">
@@ -764,14 +767,8 @@
     <ClInclude Include="Code\ScintillaSyntax.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="Code\RemoteHost.h">
-      <Filter>Code</Filter>
-    </ClInclude>
     <ClInclude Include="Resources\resource.h">
       <Filter>Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="Code\PersistantConfig.h">
-      <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="Code\Resources.h">
       <Filter>Code</Filter>
@@ -865,6 +862,18 @@
     </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_FindReplace.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\Interface\CommonPipelineState.h">
+      <Filter>Code\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\Interface\PersistantConfig.h">
+      <Filter>Code\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\Interface\RemoteHost.h">
+      <Filter>Code\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\Interface\QRDInterface.h">
+      <Filter>Code\Interface</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

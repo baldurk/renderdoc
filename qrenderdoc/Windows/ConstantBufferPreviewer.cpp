@@ -28,7 +28,7 @@
 
 QList<ConstantBufferPreviewer *> ConstantBufferPreviewer::m_Previews;
 
-ConstantBufferPreviewer::ConstantBufferPreviewer(CaptureContext &ctx, const ShaderStage stage,
+ConstantBufferPreviewer::ConstantBufferPreviewer(ICaptureContext &ctx, const ShaderStage stage,
                                                  uint32_t slot, uint32_t idx, QWidget *parent)
     : QFrame(parent), ui(new Ui::ConstantBufferPreviewer), m_Ctx(ctx)
 {
@@ -94,11 +94,11 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventID)
 {
   uint64_t offs = 0;
   uint64_t size = 0;
-  m_Ctx.CurPipelineState.GetConstantBuffer(m_stage, m_slot, m_arrayIdx, m_cbuffer, offs, size);
+  m_Ctx.CurPipelineState().GetConstantBuffer(m_stage, m_slot, m_arrayIdx, m_cbuffer, offs, size);
 
-  m_shader = m_Ctx.CurPipelineState.GetShader(m_stage);
-  QString entryPoint = m_Ctx.CurPipelineState.GetShaderEntryPoint(m_stage);
-  const ShaderReflection *reflection = m_Ctx.CurPipelineState.GetShaderReflection(m_stage);
+  m_shader = m_Ctx.CurPipelineState().GetShader(m_stage);
+  QString entryPoint = m_Ctx.CurPipelineState().GetShaderEntryPoint(m_stage);
+  const ShaderReflection *reflection = m_Ctx.CurPipelineState().GetShaderReflection(m_stage);
 
   updateLabels();
 
@@ -218,7 +218,7 @@ void ConstantBufferPreviewer::updateLabels()
       needName = false;
   }
 
-  const ShaderReflection *reflection = m_Ctx.CurPipelineState.GetShaderReflection(m_stage);
+  const ShaderReflection *reflection = m_Ctx.CurPipelineState().GetShaderReflection(m_stage);
 
   if(reflection != NULL)
   {
@@ -234,7 +234,7 @@ void ConstantBufferPreviewer::updateLabels()
   QString title =
       QString("%1 %2 %3").arg(ToQStr(m_stage, pipeType)).arg(IsD3D(pipeType) ? "CB" : "UBO").arg(m_slot);
 
-  if(m_Ctx.CurPipelineState.SupportsResourceArrays())
+  if(m_Ctx.CurPipelineState().SupportsResourceArrays())
     title += QString(" [%1]").arg(m_arrayIdx);
 
   ui->slotLabel->setText(title);

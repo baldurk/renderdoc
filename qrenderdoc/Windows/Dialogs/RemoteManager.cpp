@@ -25,7 +25,7 @@
 #include "RemoteManager.h"
 #include <QKeyEvent>
 #include "3rdparty/flowlayout/FlowLayout.h"
-#include "Code/RemoteHost.h"
+#include "Code/Interface/QRDInterface.h"
 #include "Code/Resources.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/MainWindow.h"
@@ -81,7 +81,7 @@ static void setItalic(QTreeWidgetItem *node, bool italic)
   node->setFont(1, f);
 }
 
-RemoteManager::RemoteManager(CaptureContext &ctx, MainWindow *main)
+RemoteManager::RemoteManager(ICaptureContext &ctx, MainWindow *main)
     : QDialog(NULL), ui(new Ui::RemoteManager), m_Ctx(ctx), m_Main(main)
 {
   ui->setupUi(this);
@@ -109,9 +109,9 @@ RemoteManager::RemoteManager(CaptureContext &ctx, MainWindow *main)
   vertical->addWidget(lookupsProgressFlow);
   vertical->addWidget(ui->bottomLayout->parentWidget());
 
-  m_Ctx.Config.AddAndroidHosts();
+  m_Ctx.Config().AddAndroidHosts();
 
-  for(RemoteHost *h : m_Ctx.Config.RemoteHosts)
+  for(RemoteHost *h : m_Ctx.Config().RemoteHosts)
     addHost(h);
 
   on_hosts_itemClicked(ui->hosts->topLevelItem(0), 0);
@@ -356,9 +356,9 @@ void RemoteManager::addNewHost()
   {
     bool found = false;
 
-    for(int i = 0; i < m_Ctx.Config.RemoteHosts.count(); i++)
+    for(int i = 0; i < m_Ctx.Config().RemoteHosts.count(); i++)
     {
-      if(m_Ctx.Config.RemoteHosts[i]->Hostname.compare(host, Qt::CaseInsensitive) == 0)
+      if(m_Ctx.Config().RemoteHosts[i]->Hostname.compare(host, Qt::CaseInsensitive) == 0)
       {
         found = true;
         break;
@@ -371,8 +371,8 @@ void RemoteManager::addNewHost()
       h->Hostname = host;
       h->RunCommand = ui->runCommand->text().trimmed();
 
-      m_Ctx.Config.RemoteHosts.push_back(h);
-      m_Ctx.Config.Save();
+      m_Ctx.Config().RemoteHosts.push_back(h);
+      m_Ctx.Config().Save();
 
       addHost(h);
     }
@@ -391,7 +391,7 @@ void RemoteManager::setRunCommand()
   if(h)
   {
     h->RunCommand = ui->runCommand->text().trimmed();
-    m_Ctx.Config.Save();
+    m_Ctx.Config().Save();
   }
 }
 
@@ -661,9 +661,9 @@ void RemoteManager::on_deleteHost_clicked()
 
   if(res == QMessageBox::Yes)
   {
-    int idx = m_Ctx.Config.RemoteHosts.indexOf(host);
-    delete m_Ctx.Config.RemoteHosts.takeAt(idx);
-    m_Ctx.Config.Save();
+    int idx = m_Ctx.Config().RemoteHosts.indexOf(host);
+    delete m_Ctx.Config().RemoteHosts.takeAt(idx);
+    m_Ctx.Config().Save();
 
     deleteChildren(item);
 

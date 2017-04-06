@@ -32,24 +32,28 @@ namespace Ui
 class APIInspector;
 }
 
-class APIInspector : public QFrame, public ILogViewerForm
+class APIInspector : public QFrame, public IAPIInspector, public ILogViewerForm
 {
   Q_OBJECT
 
 public:
-  explicit APIInspector(CaptureContext &ctx, QWidget *parent = 0);
+  explicit APIInspector(ICaptureContext &ctx, QWidget *parent = 0);
   ~APIInspector();
 
-  void OnLogfileLoaded();
-  void OnLogfileClosed();
-  void OnSelectedEventChanged(uint32_t eventID);
-  void OnEventChanged(uint32_t eventID) {}
+  // IAPIInspector
+  QWidget *Widget() override { return this; }
+  void Refresh() override { on_apiEvents_itemSelectionChanged(); }
+  // ILogViewerForm
+  void OnLogfileLoaded() override;
+  void OnLogfileClosed() override;
+  void OnSelectedEventChanged(uint32_t eventID) override;
+  void OnEventChanged(uint32_t eventID) override {}
 public slots:
   void on_apiEvents_itemSelectionChanged();
 
 private:
   Ui::APIInspector *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
 
   void addCallstack(rdctype::array<rdctype::str> calls);
   void fillAPIView();

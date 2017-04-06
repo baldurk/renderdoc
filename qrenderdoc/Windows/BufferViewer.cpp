@@ -32,7 +32,6 @@
 #include <QTimer>
 #include <QtMath>
 #include "Code/Resources.h"
-#include "Windows/ShaderViewer.h"
 #include "ui_BufferViewer.h"
 
 class CameraWrapper
@@ -807,7 +806,7 @@ void CacheDataForIteration(QVector<CachedElData> &cache, const QList<FormatEleme
   }
 }
 
-BufferViewer::BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent)
+BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
     : QFrame(parent), ui(new Ui::BufferViewer), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -1135,7 +1134,7 @@ BufferViewer::~BufferViewer()
   delete m_Flycam;
 
   if(m_MeshView)
-    m_Ctx.windowClosed(this);
+    m_Ctx.BuiltinWindowClosed(this);
 
   m_Ctx.RemoveLogViewer(this);
   delete ui;
@@ -1151,7 +1150,7 @@ void BufferViewer::OnLogfileLoaded()
   WId renderID = ui->render->winId();
 
   m_Ctx.Renderer().BlockInvoke([renderID, this](IReplayRenderer *r) {
-    m_Output = r->CreateOutput(m_Ctx.m_CurWinSystem, m_Ctx.FillWindowingData(renderID),
+    m_Output = r->CreateOutput(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(renderID),
                                ReplayOutputType::Mesh);
 
     ui->render->setOutput(m_Output);
@@ -1298,9 +1297,9 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
 
   ResourceId ib;
   uint64_t ioffset = 0;
-  m_Ctx.CurPipelineState.GetIBuffer(ib, ioffset);
+  m_Ctx.CurPipelineState().GetIBuffer(ib, ioffset);
 
-  QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState.GetVBuffers();
+  QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
 
   rdctype::array<byte> idata;
   if(ib != ResourceId() && draw && (draw->flags & DrawFlags::UseIBuffer))
@@ -1810,7 +1809,7 @@ void BufferViewer::guessSecondaryColumn(BufferItemModel *model)
 
 void BufferViewer::updatePreviewColumns()
 {
-  QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState.GetVBuffers();
+  QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   if(draw)
@@ -1828,7 +1827,7 @@ void BufferViewer::updatePreviewColumns()
       m_VSInPosition.topo = draw->topology;
       m_VSInPosition.idxByteWidth = draw->indexByteWidth;
       m_VSInPosition.baseVertex = draw->baseVertex;
-      m_Ctx.CurPipelineState.GetIBuffer(m_VSInPosition.idxbuf, m_VSInPosition.idxoffs);
+      m_Ctx.CurPipelineState().GetIBuffer(m_VSInPosition.idxbuf, m_VSInPosition.idxoffs);
 
       {
         const FormatElement &el = m_ModelVSIn->columns[elIdx];
@@ -1917,7 +1916,7 @@ void BufferViewer::updatePreviewColumns()
       m_PostVSPosition.idxByteWidth = m_VSInPosition.idxByteWidth = 0;
 
     m_PostGSPosition.unproject = true;
-    m_PostVSPosition.unproject = !m_Ctx.CurPipelineState.IsTessellationEnabled();
+    m_PostVSPosition.unproject = !m_Ctx.CurPipelineState().IsTessellationEnabled();
   }
   else
   {
@@ -1938,7 +1937,7 @@ void BufferViewer::configureMeshColumns()
 {
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
-  QVector<VertexInputAttribute> vinputs = m_Ctx.CurPipelineState.GetVertexInputs();
+  QVector<VertexInputAttribute> vinputs = m_Ctx.CurPipelineState().GetVertexInputs();
 
   m_ModelVSIn->columns.reserve(vinputs.count());
 
@@ -1960,9 +1959,9 @@ void BufferViewer::configureMeshColumns()
   else
     m_ModelVSIn->numRows = draw->numIndices;
 
-  QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState.GetVBuffers();
+  QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
 
-  Viewport vp = m_Ctx.CurPipelineState.GetViewport(0);
+  Viewport vp = m_Ctx.CurPipelineState().GetViewport(0);
 
   m_Config.fov = ui->fovGuess->value();
   m_Config.aspect = vp.width / vp.height;
@@ -1977,7 +1976,7 @@ void BufferViewer::configureMeshColumns()
   if(ui->farGuess->value() > 0.0)
     m_PostVS.farPlane = m_PostGS.farPlane = ui->farGuess->value();
 
-  const ShaderReflection *vs = m_Ctx.CurPipelineState.GetShaderReflection(ShaderStage::Vertex);
+  const ShaderReflection *vs = m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Vertex);
 
   m_ModelVSOut->columns.clear();
 
@@ -2025,7 +2024,7 @@ void BufferViewer::configureMeshColumns()
       uint numComps = sig.format.compCount;
       uint elemSize = sig.format.compType == CompType::Double ? 8U : 4U;
 
-      if(m_Ctx.CurPipelineState.HasAlignedPostVSData())
+      if(m_Ctx.CurPipelineState().HasAlignedPostVSData())
       {
         if(numComps == 2)
           offset = AlignUp(offset, 2U * elemSize);
@@ -2043,9 +2042,10 @@ void BufferViewer::configureMeshColumns()
 
   if(draw)
   {
-    const ShaderReflection *last = m_Ctx.CurPipelineState.GetShaderReflection(ShaderStage::Geometry);
+    const ShaderReflection *last =
+        m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Geometry);
     if(last == NULL)
-      last = m_Ctx.CurPipelineState.GetShaderReflection(ShaderStage::Domain);
+      last = m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Domain);
 
     if(last)
     {
@@ -2091,7 +2091,7 @@ void BufferViewer::configureMeshColumns()
         uint numComps = sig.format.compCount;
         uint elemSize = sig.format.compType == CompType::Double ? 8U : 4U;
 
-        if(m_Ctx.CurPipelineState.HasAlignedPostVSData())
+        if(m_Ctx.CurPipelineState().HasAlignedPostVSData())
         {
           if(numComps == 2)
             offset = AlignUp(offset, 2U * elemSize);
@@ -2332,7 +2332,7 @@ bool BufferViewer::isCurrentRasterOut()
   }
   else if(m_CurStage == MeshDataStage::VSOut)
   {
-    if(m_Ctx.LogLoaded() && m_Ctx.CurPipelineState.IsTessellationEnabled())
+    if(m_Ctx.LogLoaded() && m_Ctx.CurPipelineState().IsTessellationEnabled())
       return false;
 
     return true;
@@ -2365,7 +2365,7 @@ void BufferViewer::Reset()
 
   m_BBoxes.clear();
 
-  CaptureContext *ctx = &m_Ctx;
+  ICaptureContext *ctx = &m_Ctx;
 
   // while a log is loaded, pass NULL into the widget
   if(!m_Ctx.LogLoaded())
@@ -2534,7 +2534,7 @@ void BufferViewer::camGuess_changed(double value)
   m_Config.aspect = 1.0f;
 
   // take a guess for the aspect ratio, for if the user hasn't overridden it
-  Viewport vp = m_Ctx.CurPipelineState.GetViewport(0);
+  Viewport vp = m_Ctx.CurPipelineState().GetViewport(0);
   m_Config.aspect = vp.width / vp.height;
 
   if(ui->aspectGuess->value() > 0.0)
@@ -2761,20 +2761,15 @@ void BufferViewer::debugVertex()
         debugContext += tr(", Instance %1").arg(m_Config.curInstance);
 
       const ShaderReflection *shaderDetails =
-          m_Ctx.CurPipelineState.GetShaderReflection(ShaderStage::Pixel);
+          m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
       const ShaderBindpointMapping &bindMapping =
-          m_Ctx.CurPipelineState.GetBindpointMapping(ShaderStage::Pixel);
+          m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Pixel);
 
       // viewer takes ownership of the trace
-      ShaderViewer *s = ShaderViewer::debugShader(m_Ctx, &bindMapping, shaderDetails,
-                                                  ShaderStage::Pixel, trace, debugContext, this);
+      IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, ShaderStage::Pixel, trace,
+                                           debugContext, this);
 
-      m_Ctx.setupDockWindow(s);
-
-      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
-
-      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
-      manager->addToolWindow(s, ref);
+      m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
     });
   });
 }

@@ -41,14 +41,15 @@ class GLPipelineStateViewer : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit GLPipelineStateViewer(CaptureContext &ctx, PipelineStateViewer &common,
+  explicit GLPipelineStateViewer(ICaptureContext &ctx, PipelineStateViewer &common,
                                  QWidget *parent = 0);
   ~GLPipelineStateViewer();
 
-  void OnLogfileLoaded();
-  void OnLogfileClosed();
-  void OnSelectedEventChanged(uint32_t eventID) {}
-  void OnEventChanged(uint32_t eventID);
+  // ILogViewerForm
+  void OnLogfileLoaded() override;
+  void OnLogfileClosed() override;
+  void OnSelectedEventChanged(uint32_t eventID) override {}
+  void OnEventChanged(uint32_t eventID) override;
 
 private slots:
   // automatic slots
@@ -72,7 +73,7 @@ private slots:
 
 private:
   Ui::GLPipelineStateViewer *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
 
   enum class GLReadWriteType

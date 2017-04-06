@@ -40,7 +40,7 @@ class TipsDialog : public QDialog
   Q_OBJECT
 
 public:
-  explicit TipsDialog(CaptureContext &Ctx, QWidget *parent = 0);
+  explicit TipsDialog(ICaptureContext &Ctx, QWidget *parent = 0);
   ~TipsDialog();
 
 protected:
@@ -58,7 +58,7 @@ protected:
 
   QVector<Tip> m_tips;
   int m_currentTip;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
 
 private slots:
   void on_nextButton_clicked();

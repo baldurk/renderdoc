@@ -26,7 +26,7 @@
 #include <QMouseEvent>
 #include "ui_ResourcePreview.h"
 
-ResourcePreview::ResourcePreview(CaptureContext &c, IReplayOutput *output, QWidget *parent)
+ResourcePreview::ResourcePreview(ICaptureContext &c, IReplayOutput *output, QWidget *parent)
     : QFrame(parent), ui(new Ui::ResourcePreview)
 {
   ui->setupUi(this);

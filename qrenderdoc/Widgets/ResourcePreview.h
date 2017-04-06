@@ -32,14 +32,14 @@ class ResourcePreview;
 }
 
 struct IReplayOutput;
-class CaptureContext;
+struct ICaptureContext;
 
 class ResourcePreview : public QFrame
 {
   Q_OBJECT
 
 public:
-  explicit ResourcePreview(CaptureContext &c, IReplayOutput *output, QWidget *parent = 0);
+  explicit ResourcePreview(ICaptureContext &c, IReplayOutput *output, QWidget *parent = 0);
   ~ResourcePreview();
 
 signals:

@@ -39,79 +39,7 @@
 
 Q_DECLARE_METATYPE(CaptureSettings);
 
-CaptureSettings::CaptureSettings()
-{
-  Inject = false;
-  AutoStart = false;
-  RENDERDOC_GetDefaultCaptureOptions(&Options);
-}
-
-QVariantMap CaptureSettings::toJSON() const
-{
-  QVariantMap ret;
-
-  ret["AutoStart"] = AutoStart;
-
-  ret["Executable"] = Executable;
-  ret["WorkingDir"] = WorkingDir;
-  ret["CmdLine"] = CmdLine;
-
-  QVariantList env;
-  for(int i = 0; i < Environment.size(); i++)
-    env.push_back(Environment[i].toJSON());
-  ret["Environment"] = env;
-
-  QVariantMap opts;
-  opts["AllowVSync"] = Options.AllowVSync;
-  opts["AllowFullscreen"] = Options.AllowFullscreen;
-  opts["APIValidation"] = Options.APIValidation;
-  opts["CaptureCallstacks"] = Options.CaptureCallstacks;
-  opts["CaptureCallstacksOnlyDraws"] = Options.CaptureCallstacksOnlyDraws;
-  opts["DelayForDebugger"] = Options.DelayForDebugger;
-  opts["VerifyMapWrites"] = Options.VerifyMapWrites;
-  opts["HookIntoChildren"] = Options.HookIntoChildren;
-  opts["RefAllResources"] = Options.RefAllResources;
-  opts["SaveAllInitials"] = Options.SaveAllInitials;
-  opts["CaptureAllCmdLists"] = Options.CaptureAllCmdLists;
-  opts["DebugOutputMute"] = Options.DebugOutputMute;
-  ret["Options"] = opts;
-
-  return ret;
-}
-
-void CaptureSettings::fromJSON(const QVariantMap &data)
-{
-  AutoStart = data["AutoStart"].toBool();
-
-  Executable = data["Executable"].toString();
-  WorkingDir = data["WorkingDir"].toString();
-  CmdLine = data["CmdLine"].toString();
-
-  QVariantList env = data["Environment"].toList();
-  for(int i = 0; i < env.size(); i++)
-  {
-    EnvironmentModification e;
-    e.fromJSON(env[i].value<QVariantMap>());
-    Environment.push_back(e);
-  }
-
-  QVariantMap opts = data["Options"].toMap();
-
-  Options.AllowVSync = opts["AllowVSync"].toBool();
-  Options.AllowFullscreen = opts["AllowFullscreen"].toBool();
-  Options.APIValidation = opts["APIValidation"].toBool();
-  Options.CaptureCallstacks = opts["CaptureCallstacks"].toBool();
-  Options.CaptureCallstacksOnlyDraws = opts["CaptureCallstacksOnlyDraws"].toBool();
-  Options.DelayForDebugger = opts["DelayForDebugger"].toUInt();
-  Options.VerifyMapWrites = opts["VerifyMapWrites"].toBool();
-  Options.HookIntoChildren = opts["HookIntoChildren"].toBool();
-  Options.RefAllResources = opts["RefAllResources"].toBool();
-  Options.SaveAllInitials = opts["SaveAllInitials"].toBool();
-  Options.CaptureAllCmdLists = opts["CaptureAllCmdLists"].toBool();
-  Options.DebugOutputMute = opts["DebugOutputMute"].toBool();
-}
-
-CaptureDialog::CaptureDialog(CaptureContext &ctx, OnCaptureMethod captureCallback,
+CaptureDialog::CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallback,
                              OnInjectMethod injectCallback, QWidget *parent)
     : QFrame(parent), ui(new Ui::CaptureDialog), m_Ctx(ctx)
 {
@@ -163,26 +91,26 @@ CaptureDialog::CaptureDialog(CaptureContext &ctx, OnCaptureMethod captureCallbac
   m_CaptureCallback = captureCallback;
   m_InjectCallback = injectCallback;
 
-  setSettings(CaptureSettings());
+  SetSettings(CaptureSettings());
 
-  updateGlobalHook();
+  UpdateGlobalHook();
 }
 
 CaptureDialog::~CaptureDialog()
 {
-  m_Ctx.windowClosed(this);
+  m_Ctx.BuiltinWindowClosed(this);
 
   if(ui->toggleGlobal->isChecked())
   {
     ui->toggleGlobal->setChecked(false);
 
-    updateGlobalHook();
+    UpdateGlobalHook();
   }
 
   delete ui;
 }
 
-void CaptureDialog::setInjectMode(bool inject)
+void CaptureDialog::SetInjectMode(bool inject)
 {
   m_Inject = inject;
 
@@ -208,7 +136,7 @@ void CaptureDialog::setInjectMode(bool inject)
                                                     QSizePolicy::Expanding);
     ui->verticalLayout->invalidate();
 
-    ui->globalGroup->setVisible(m_Ctx.Config.AllowGlobalHook);
+    ui->globalGroup->setVisible(m_Ctx.Config().AllowGlobalHook);
 
     ui->launch->setText("Launch");
     this->setWindowTitle("Capture Executable");
@@ -259,7 +187,7 @@ void CaptureDialog::on_exePath_textChanged(const QString &text)
   {
     QString path = dir.absolutePath();
 
-    if(!m_Ctx.Renderer().remote())
+    if(!m_Ctx.Renderer().CurrentRemote())
       path = QDir::toNativeSeparators(path);
 
     // match the path separators from the path
@@ -275,7 +203,7 @@ void CaptureDialog::on_exePath_textChanged(const QString &text)
     ui->workDirPath->setPlaceholderText("");
   }
 
-  updateGlobalHook();
+  UpdateGlobalHook();
 }
 
 void CaptureDialog::on_vulkanLayerWarn_clicked()
@@ -438,16 +366,16 @@ void CaptureDialog::on_exePathBrowse_clicked()
   {
     initDir = dir.absolutePath();
   }
-  else if(m_Ctx.Config.LastCapturePath != "")
+  else if(m_Ctx.Config().LastCapturePath != "")
   {
-    initDir = m_Ctx.Config.LastCapturePath;
-    if(m_Ctx.Config.LastCaptureExe != "")
-      file = m_Ctx.Config.LastCaptureExe;
+    initDir = m_Ctx.Config().LastCapturePath;
+    if(m_Ctx.Config().LastCaptureExe != "")
+      file = m_Ctx.Config().LastCaptureExe;
   }
 
   QString filename;
 
-  if(m_Ctx.Renderer().remote())
+  if(m_Ctx.Renderer().CurrentRemote())
   {
     VirtualFileDialog vfd(m_Ctx, this);
     RDDialog::show(&vfd);
@@ -459,7 +387,7 @@ void CaptureDialog::on_exePathBrowse_clicked()
   }
 
   if(filename != "")
-    setExecutableFilename(filename);
+    SetExecutableFilename(filename);
 }
 
 void CaptureDialog::on_workDirBrowse_clicked()
@@ -475,13 +403,13 @@ void CaptureDialog::on_workDirBrowse_clicked()
     QDir dir = QFileInfo(ui->exePath->text()).dir();
     if(dir.exists())
       initDir = dir.absolutePath();
-    else if(m_Ctx.Config.LastCapturePath != "")
-      initDir = m_Ctx.Config.LastCapturePath;
+    else if(m_Ctx.Config().LastCapturePath != "")
+      initDir = m_Ctx.Config().LastCapturePath;
   }
 
   QString dir;
 
-  if(m_Ctx.Renderer().remote())
+  if(m_Ctx.Renderer().CurrentRemote())
   {
     VirtualFileDialog vfd(m_Ctx, this);
     vfd.setDirBrowse();
@@ -507,7 +435,7 @@ void CaptureDialog::on_envVarEdit_clicked()
   int res = RDDialog::show(&envEditor);
 
   if(res)
-    setEnvironmentModifications(envEditor.modifications());
+    SetEnvironmentModifications(envEditor.modifications());
 }
 
 void CaptureDialog::on_toggleGlobal_clicked()
@@ -516,7 +444,7 @@ void CaptureDialog::on_toggleGlobal_clicked()
   {
     ui->toggleGlobal->setChecked(!ui->toggleGlobal->isChecked());
 
-    updateGlobalHook();
+    UpdateGlobalHook();
   }
 }
 
@@ -530,8 +458,8 @@ void CaptureDialog::on_saveSettings_clicked()
     QDir dirinfo = QFileInfo(filename).dir();
     if(dirinfo.exists())
     {
-      saveSettings(filename);
-      PersistantConfig::AddRecentFile(m_Ctx.Config.RecentCaptureSettings, filename, 10);
+      SaveSettings(filename);
+      AddRecentFile(m_Ctx.Config().RecentCaptureSettings, filename, 10);
     }
   }
 }
@@ -543,14 +471,14 @@ void CaptureDialog::on_loadSettings_clicked()
 
   if(filename != "" && QFileInfo::exists(filename))
   {
-    loadSettings(filename);
-    PersistantConfig::AddRecentFile(m_Ctx.Config.RecentCaptureSettings, filename, 10);
+    LoadSettings(filename);
+    AddRecentFile(m_Ctx.Config().RecentCaptureSettings, filename, 10);
   }
 }
 
 void CaptureDialog::on_launch_clicked()
 {
-  triggerCapture();
+  TriggerCapture();
 }
 
 void CaptureDialog::on_close_clicked()
@@ -558,15 +486,15 @@ void CaptureDialog::on_close_clicked()
   ToolWindowManager::closeToolWindow(this);
 }
 
-void CaptureDialog::setSettings(CaptureSettings settings)
+void CaptureDialog::SetSettings(CaptureSettings settings)
 {
-  setInjectMode(settings.Inject);
+  SetInjectMode(settings.Inject);
 
   ui->exePath->setText(settings.Executable);
   ui->workDirPath->setText(settings.WorkingDir);
   ui->cmdline->setText(settings.CmdLine);
 
-  setEnvironmentModifications(settings.Environment);
+  SetEnvironmentModifications(settings.Environment);
 
   ui->AllowFullscreen->setChecked(settings.Options.AllowFullscreen);
   ui->AllowVSync->setChecked(settings.Options.AllowVSync);
@@ -582,15 +510,15 @@ void CaptureDialog::setSettings(CaptureSettings settings)
 
   if(settings.AutoStart)
   {
-    triggerCapture();
+    TriggerCapture();
   }
 }
 
-CaptureSettings CaptureDialog::settings()
+CaptureSettings CaptureDialog::Settings()
 {
   CaptureSettings ret;
 
-  ret.Inject = injectMode();
+  ret.Inject = IsInjectMode();
 
   ret.AutoStart = ui->AutoStart->isChecked();
 
@@ -615,13 +543,13 @@ CaptureSettings CaptureDialog::settings()
   return ret;
 }
 
-void CaptureDialog::saveSettings(QString filename)
+void CaptureDialog::SaveSettings(QString filename)
 {
   QFile f(filename);
   if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
   {
     QVariantMap values;
-    values["settings"] = settings().toJSON();
+    values["settings"] = (QVariant)Settings();
     SaveToJSON(values, f, JSON_ID, JSON_VER);
   }
   else
@@ -650,21 +578,33 @@ void CaptureDialog::fillProcessList()
   }
 }
 
-void CaptureDialog::setExecutableFilename(QString filename)
+void CaptureDialog::SetExecutableFilename(const QString &filename)
 {
-  if(!m_Ctx.Renderer().remote())
-    filename = QDir::toNativeSeparators(QFileInfo(filename).absoluteFilePath());
+  QString fn = filename;
 
-  ui->exePath->setText(filename);
+  if(!m_Ctx.Renderer().CurrentRemote())
+    fn = QDir::toNativeSeparators(QFileInfo(fn).absoluteFilePath());
 
-  if(!m_Ctx.Renderer().remote())
+  ui->exePath->setText(fn);
+
+  if(!m_Ctx.Renderer().CurrentRemote())
   {
-    m_Ctx.Config.LastCapturePath = QFileInfo(filename).absolutePath();
-    m_Ctx.Config.LastCaptureExe = QFileInfo(filename).completeBaseName();
+    m_Ctx.Config().LastCapturePath = QFileInfo(fn).absolutePath();
+    m_Ctx.Config().LastCaptureExe = QFileInfo(fn).completeBaseName();
   }
 }
 
-void CaptureDialog::loadSettings(QString filename)
+void CaptureDialog::SetWorkingDirectory(const QString &dir)
+{
+  ui->workDirPath->setText(dir);
+}
+
+void CaptureDialog::SetCommandLine(const QString &cmd)
+{
+  ui->cmdline->setText(cmd);
+}
+
+void CaptureDialog::LoadSettings(QString filename)
 {
   QFile f(filename);
   if(f.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -675,9 +615,8 @@ void CaptureDialog::loadSettings(QString filename)
 
     if(success)
     {
-      CaptureSettings settings;
-      settings.fromJSON(values["settings"].value<QVariantMap>());
-      setSettings(settings);
+      CaptureSettings settings(values["settings"]);
+      SetSettings(settings);
     }
     else
     {
@@ -691,9 +630,9 @@ void CaptureDialog::loadSettings(QString filename)
   }
 }
 
-void CaptureDialog::updateGlobalHook()
+void CaptureDialog::UpdateGlobalHook()
 {
-  ui->globalGroup->setVisible(!injectMode() && m_Ctx.Config.AllowGlobalHook);
+  ui->globalGroup->setVisible(!IsInjectMode() && m_Ctx.Config().AllowGlobalHook);
 
   if(ui->exePath->text().length() >= 4)
   {
@@ -712,7 +651,7 @@ void CaptureDialog::updateGlobalHook()
   }
 }
 
-void CaptureDialog::setEnvironmentModifications(const QList<EnvironmentModification> &modifications)
+void CaptureDialog::SetEnvironmentModifications(const QList<EnvironmentModification> &modifications)
 {
   m_EnvModifications = modifications;
 
@@ -729,9 +668,9 @@ void CaptureDialog::setEnvironmentModifications(const QList<EnvironmentModificat
   ui->envVar->setText(envModText);
 }
 
-void CaptureDialog::triggerCapture()
+void CaptureDialog::TriggerCapture()
 {
-  if(injectMode())
+  if(IsInjectMode())
   {
     QModelIndexList sel = ui->processList->selectionModel()->selectedRows();
     if(sel.size() == 1)
@@ -745,7 +684,7 @@ void CaptureDialog::triggerCapture()
       QString name = m_ProcessModel->data(m_ProcessModel->index(item.row(), 0)).toString();
       uint32_t PID = m_ProcessModel->data(m_ProcessModel->index(item.row(), 1)).toUInt();
 
-      m_InjectCallback(PID, settings().Environment, name, settings().Options,
+      m_InjectCallback(PID, Settings().Environment, name, Settings().Options,
                        [this](LiveCapture *live) {
                          if(ui->queueFrameCap->isChecked())
                            live->QueueCapture((int)ui->queuedFrame->value());
@@ -757,7 +696,7 @@ void CaptureDialog::triggerCapture()
     QString exe = ui->exePath->text();
 
     // for non-remote captures, check the executable locally
-    if(!m_Ctx.Renderer().remote())
+    if(!m_Ctx.Renderer().CurrentRemote())
     {
       if(!QFileInfo::exists(exe))
       {
@@ -770,7 +709,7 @@ void CaptureDialog::triggerCapture()
     QString workingDir = "";
 
     // for non-remote captures, check the directory locally
-    if(m_Ctx.Renderer().remote())
+    if(m_Ctx.Renderer().CurrentRemote())
     {
       workingDir = ui->workDirPath->text();
     }
@@ -782,7 +721,7 @@ void CaptureDialog::triggerCapture()
 
     QString cmdLine = ui->cmdline->text();
 
-    m_CaptureCallback(exe, workingDir, cmdLine, settings().Environment, settings().Options,
+    m_CaptureCallback(exe, workingDir, cmdLine, Settings().Environment, Settings().Options,
                       [this](LiveCapture *live) {
                         if(ui->queueFrameCap->isChecked())
                           live->QueueCapture((int)ui->queuedFrame->value());

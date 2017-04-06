@@ -48,7 +48,7 @@ class VulkanPipelineStateViewer : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit VulkanPipelineStateViewer(CaptureContext &ctx, PipelineStateViewer &common,
+  explicit VulkanPipelineStateViewer(ICaptureContext &ctx, PipelineStateViewer &common,
                                      QWidget *parent = 0);
   ~VulkanPipelineStateViewer();
 
@@ -80,7 +80,7 @@ private slots:
 
 private:
   Ui::VulkanPipelineStateViewer *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
 
   QVariantList makeSampler(const QString &bindset, const QString &slotname,

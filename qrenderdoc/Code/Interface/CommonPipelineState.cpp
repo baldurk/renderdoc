@@ -22,8 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "CommonPipelineState.h"
-#include "QRDUtils.h"
+#include <QDebug>
+#include "Code/QRDUtils.h"
+#include "QRDInterface.h"
 
 QString CommonPipelineState::GetImageLayout(ResourceId id)
 {
@@ -94,6 +95,82 @@ QString CommonPipelineState::OutputAbbrev()
   }
 
   return "RT";
+}
+
+const D3D11Pipe::Shader &CommonPipelineState::GetD3D11Stage(ShaderStage stage)
+{
+  if(stage == ShaderStage::Vertex)
+    return m_D3D11->m_VS;
+  if(stage == ShaderStage::Domain)
+    return m_D3D11->m_DS;
+  if(stage == ShaderStage::Hull)
+    return m_D3D11->m_HS;
+  if(stage == ShaderStage::Geometry)
+    return m_D3D11->m_GS;
+  if(stage == ShaderStage::Pixel)
+    return m_D3D11->m_PS;
+  if(stage == ShaderStage::Compute)
+    return m_D3D11->m_CS;
+
+  qCritical() << "Error - invalid stage " << (int)stage;
+  return m_D3D11->m_CS;
+}
+
+const D3D12Pipe::Shader &CommonPipelineState::GetD3D12Stage(ShaderStage stage)
+{
+  if(stage == ShaderStage::Vertex)
+    return m_D3D12->m_VS;
+  if(stage == ShaderStage::Domain)
+    return m_D3D12->m_DS;
+  if(stage == ShaderStage::Hull)
+    return m_D3D12->m_HS;
+  if(stage == ShaderStage::Geometry)
+    return m_D3D12->m_GS;
+  if(stage == ShaderStage::Pixel)
+    return m_D3D12->m_PS;
+  if(stage == ShaderStage::Compute)
+    return m_D3D12->m_CS;
+
+  qCritical() << "Error - invalid stage " << (int)stage;
+  return m_D3D12->m_CS;
+}
+
+const GLPipe::Shader &CommonPipelineState::GetGLStage(ShaderStage stage)
+{
+  if(stage == ShaderStage::Vertex)
+    return m_GL->m_VS;
+  if(stage == ShaderStage::Tess_Control)
+    return m_GL->m_TCS;
+  if(stage == ShaderStage::Tess_Eval)
+    return m_GL->m_TES;
+  if(stage == ShaderStage::Geometry)
+    return m_GL->m_GS;
+  if(stage == ShaderStage::Fragment)
+    return m_GL->m_FS;
+  if(stage == ShaderStage::Compute)
+    return m_GL->m_CS;
+
+  qCritical() << "Error - invalid stage " << (int)stage;
+  return m_GL->m_CS;
+}
+
+const VKPipe::Shader &CommonPipelineState::GetVulkanStage(ShaderStage stage)
+{
+  if(stage == ShaderStage::Vertex)
+    return m_Vulkan->m_VS;
+  if(stage == ShaderStage::Tess_Control)
+    return m_Vulkan->m_TCS;
+  if(stage == ShaderStage::Tess_Eval)
+    return m_Vulkan->m_TES;
+  if(stage == ShaderStage::Geometry)
+    return m_Vulkan->m_GS;
+  if(stage == ShaderStage::Fragment)
+    return m_Vulkan->m_FS;
+  if(stage == ShaderStage::Compute)
+    return m_Vulkan->m_CS;
+
+  qCritical() << "Error - invalid stage " << (int)stage;
+  return m_Vulkan->m_CS;
 }
 
 QString CommonPipelineState::GetShaderExtension()

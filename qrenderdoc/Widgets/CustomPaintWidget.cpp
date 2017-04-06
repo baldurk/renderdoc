@@ -36,7 +36,7 @@ CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
   setMouseTracking(true);
 }
 
-CustomPaintWidget::CustomPaintWidget(CaptureContext *c, QWidget *parent) : QWidget(parent)
+CustomPaintWidget::CustomPaintWidget(ICaptureContext *c, QWidget *parent) : QWidget(parent)
 {
   m_Ctx = c;
   m_Output = NULL;

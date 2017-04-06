@@ -40,19 +40,22 @@ class QTimer;
 class FlowLayout;
 class SizeDelegate;
 
-class EventBrowser : public QFrame, public ILogViewerForm
+class EventBrowser : public QFrame, public IEventBrowser, public ILogViewerForm
 {
 private:
   Q_OBJECT
 
 public:
-  explicit EventBrowser(CaptureContext &ctx, QWidget *parent = 0);
+  explicit EventBrowser(ICaptureContext &ctx, QWidget *parent = 0);
   ~EventBrowser();
 
-  void OnLogfileLoaded();
-  void OnLogfileClosed();
-  void OnSelectedEventChanged(uint32_t eventID) {}
-  void OnEventChanged(uint32_t eventID);
+  // IEventBrowser
+  QWidget *Widget() override { return this; }
+  // ILogViewerForm
+  void OnLogfileLoaded() override;
+  void OnLogfileClosed() override;
+  void OnSelectedEventChanged(uint32_t eventID) override {}
+  void OnEventChanged(uint32_t eventID) override;
 
 private slots:
   // automatic slots
@@ -119,5 +122,5 @@ private:
   void RefreshIcon(QTreeWidgetItem *item);
 
   Ui::EventBrowser *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
 };

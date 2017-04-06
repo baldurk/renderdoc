@@ -32,19 +32,22 @@ namespace Ui
 class StatisticsViewer;
 }
 
-class StatisticsViewer : public QFrame, public ILogViewerForm
+class StatisticsViewer : public QFrame, public IStatisticsViewer, public ILogViewerForm
 {
   Q_OBJECT
 
 public:
-  explicit StatisticsViewer(CaptureContext &ctx, QWidget *parent = 0);
+  explicit StatisticsViewer(ICaptureContext &ctx, QWidget *parent = 0);
   ~StatisticsViewer();
 
-  void OnLogfileLoaded();
-  void OnLogfileClosed();
-  void OnSelectedEventChanged(uint32_t eventID) {}
-  void OnEventChanged(uint32_t eventID) {}
+  // IStatisticsViewer
+  QWidget *Widget() override { return this; }
+  // ILogViewerForm
+  void OnLogfileLoaded() override;
+  void OnLogfileClosed() override;
+  void OnSelectedEventChanged(uint32_t eventID) override {}
+  void OnEventChanged(uint32_t eventID) override {}
 private:
   Ui::StatisticsViewer *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
 };

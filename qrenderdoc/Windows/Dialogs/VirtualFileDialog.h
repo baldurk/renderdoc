@@ -31,7 +31,7 @@ namespace Ui
 class VirtualFileDialog;
 }
 
-class CaptureContext;
+struct ICaptureContext;
 class RemoteFileModel;
 class RemoteFileProxy;
 
@@ -40,7 +40,7 @@ class VirtualFileDialog : public QDialog
   Q_OBJECT
 
 public:
-  explicit VirtualFileDialog(CaptureContext &ctx, QWidget *parent = 0);
+  explicit VirtualFileDialog(ICaptureContext &ctx, QWidget *parent = 0);
   ~VirtualFileDialog();
 
   QString chosenPath() { return m_ChosenPath; }

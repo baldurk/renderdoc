@@ -31,23 +31,25 @@
 #include <QMessageBox>
 #include <QMetaObject>
 #include <QProgressDialog>
-#include <QStandardPaths>
 #include <QTimer>
 #include "Windows/APIInspector.h"
 #include "Windows/BufferViewer.h"
+#include "Windows/ConstantBufferPreviewer.h"
 #include "Windows/DebugMessageView.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/EventBrowser.h"
 #include "Windows/MainWindow.h"
 #include "Windows/PipelineState/PipelineStateViewer.h"
+#include "Windows/PixelHistoryView.h"
+#include "Windows/ShaderViewer.h"
 #include "Windows/StatisticsViewer.h"
 #include "Windows/TextureViewer.h"
 #include "QRDUtils.h"
 
 CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent,
                                bool temp, PersistantConfig &cfg)
-    : Config(cfg)
+    : m_Config(cfg)
 {
   m_LogLoaded = false;
   m_LoadInProgress = false;
@@ -90,20 +92,9 @@ bool CaptureContext::isRunning()
   return m_MainWindow && m_MainWindow->isVisible();
 }
 
-QString CaptureContext::ConfigFile(const QString &filename)
-{
-  QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-
-  QDir dir(path);
-  if(!dir.exists())
-    dir.mkdir(".");
-
-  return QDir::cleanPath(dir.absoluteFilePath(filename));
-}
-
 QString CaptureContext::TempLogFilename(QString appname)
 {
-  QString folder = Config.TemporaryCaptureDirectory;
+  QString folder = Config().TemporaryCaptureDirectory;
 
   QDir dir(folder);
 
@@ -175,7 +166,7 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
 
   m_LogLocal = local;
 
-  Config.Save();
+  Config().Save();
 
   m_LoadProgress = 0.0f;
   m_PostloadProgress = 0.0f;
@@ -201,9 +192,9 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
 
   if(!temporary)
   {
-    PersistantConfig::AddRecentFile(Config.RecentLogFiles, origFilename, 10);
+    AddRecentFile(Config().RecentLogFiles, origFilename, 10);
 
-    Config.Save();
+    Config().Save();
   }
 
   m_EventID = 0;
@@ -257,14 +248,14 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
 
     m_PostloadProgress = 0.9f;
 
-    r->GetD3D11PipelineState(&CurD3D11PipelineState);
-    r->GetD3D12PipelineState(&CurD3D12PipelineState);
-    r->GetGLPipelineState(&CurGLPipelineState);
-    r->GetVulkanPipelineState(&CurVulkanPipelineState);
-    CurPipelineState.SetStates(m_APIProps, &CurD3D11PipelineState, &CurD3D12PipelineState,
-                               &CurGLPipelineState, &CurVulkanPipelineState);
+    r->GetD3D11PipelineState(&m_CurD3D11PipelineState);
+    r->GetD3D12PipelineState(&m_CurD3D12PipelineState);
+    r->GetGLPipelineState(&m_CurGLPipelineState);
+    r->GetVulkanPipelineState(&m_CurVulkanPipelineState);
+    m_CurPipelineState.SetStates(m_APIProps, &m_CurD3D11PipelineState, &m_CurD3D12PipelineState,
+                                 &m_CurGLPipelineState, &m_CurVulkanPipelineState);
 
-    UnreadMessageCount = 0;
+    m_UnreadMessageCount = 0;
     AddMessages(m_FrameInfo.debugMessages);
 
     m_PostloadProgress = 1.0f;
@@ -275,9 +266,9 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
   QDateTime today = QDateTime::currentDateTimeUtc();
   QDateTime compare = today.addDays(-21);
 
-  if(compare > Config.DegradedLog_LastUpdate && m_APIProps.degraded)
+  if(compare > Config().DegradedLog_LastUpdate && m_APIProps.degraded)
   {
-    Config.DegradedLog_LastUpdate = today;
+    Config().DegradedLog_LastUpdate = today;
 
     RDDialog::critical(
         NULL, "Degraded support of log",
@@ -534,14 +525,14 @@ void CaptureContext::CloseLogfile()
   m_Textures.clear();
   m_TextureList.clear();
 
-  CurD3D11PipelineState = D3D11Pipe::State();
-  CurD3D12PipelineState = D3D12Pipe::State();
-  CurGLPipelineState = GLPipe::State();
-  CurVulkanPipelineState = VKPipe::State();
-  CurPipelineState.SetStates(m_APIProps, NULL, NULL, NULL, NULL);
+  m_CurD3D11PipelineState = D3D11Pipe::State();
+  m_CurD3D12PipelineState = D3D12Pipe::State();
+  m_CurGLPipelineState = GLPipe::State();
+  m_CurVulkanPipelineState = VKPipe::State();
+  m_CurPipelineState.SetStates(m_APIProps, NULL, NULL, NULL, NULL);
 
-  DebugMessages.clear();
-  UnreadMessageCount = 0;
+  m_DebugMessages.clear();
+  m_UnreadMessageCount = 0;
 
   m_LogLoaded = false;
 
@@ -564,12 +555,12 @@ void CaptureContext::SetEventID(const QVector<ILogViewerForm *> &exclude, uint32
 
   m_Renderer.BlockInvoke([this, eventID, force](IReplayRenderer *r) {
     r->SetFrameEvent(eventID, force);
-    r->GetD3D11PipelineState(&CurD3D11PipelineState);
-    r->GetD3D12PipelineState(&CurD3D12PipelineState);
-    r->GetGLPipelineState(&CurGLPipelineState);
-    r->GetVulkanPipelineState(&CurVulkanPipelineState);
-    CurPipelineState.SetStates(m_APIProps, &CurD3D11PipelineState, &CurD3D12PipelineState,
-                               &CurGLPipelineState, &CurVulkanPipelineState);
+    r->GetD3D11PipelineState(&m_CurD3D11PipelineState);
+    r->GetD3D12PipelineState(&m_CurD3D12PipelineState);
+    r->GetGLPipelineState(&m_CurGLPipelineState);
+    r->GetVulkanPipelineState(&m_CurVulkanPipelineState);
+    m_CurPipelineState.SetStates(m_APIProps, &m_CurD3D11PipelineState, &m_CurD3D12PipelineState,
+                                 &m_CurGLPipelineState, &m_CurVulkanPipelineState);
   });
 
   for(ILogViewerForm *logviewer : m_LogViewers)
@@ -584,7 +575,17 @@ void CaptureContext::SetEventID(const QVector<ILogViewerForm *> &exclude, uint32
   }
 }
 
-void *CaptureContext::FillWindowingData(WId widget)
+void CaptureContext::AddMessages(const rdctype::array<DebugMessage> &msgs)
+{
+  m_UnreadMessageCount += msgs.count;
+  for(const DebugMessage &msg : msgs)
+    m_DebugMessages.push_back(msg);
+
+  if(m_DebugMessageView)
+    m_DebugMessageView->RefreshMessageList();
+}
+
+void *CaptureContext::FillWindowingData(uintptr_t widget)
 {
 #if defined(WIN32)
 
@@ -619,7 +620,12 @@ void *CaptureContext::FillWindowingData(WId widget)
 #endif
 }
 
-EventBrowser *CaptureContext::eventBrowser()
+IMainWindow *CaptureContext::GetMainWindow()
+{
+  return m_MainWindow;
+}
+
+IEventBrowser *CaptureContext::GetEventBrowser()
 {
   if(m_EventBrowser)
     return m_EventBrowser;
@@ -631,7 +637,7 @@ EventBrowser *CaptureContext::eventBrowser()
   return m_EventBrowser;
 }
 
-APIInspector *CaptureContext::apiInspector()
+IAPIInspector *CaptureContext::GetAPIInspector()
 {
   if(m_APIInspector)
     return m_APIInspector;
@@ -643,7 +649,7 @@ APIInspector *CaptureContext::apiInspector()
   return m_APIInspector;
 }
 
-TextureViewer *CaptureContext::textureViewer()
+ITextureViewer *CaptureContext::GetTextureViewer()
 {
   if(m_TextureViewer)
     return m_TextureViewer;
@@ -655,7 +661,7 @@ TextureViewer *CaptureContext::textureViewer()
   return m_TextureViewer;
 }
 
-BufferViewer *CaptureContext::meshPreview()
+IBufferViewer *CaptureContext::GetMeshPreview()
 {
   if(m_MeshPreview)
     return m_MeshPreview;
@@ -667,7 +673,7 @@ BufferViewer *CaptureContext::meshPreview()
   return m_MeshPreview;
 }
 
-PipelineStateViewer *CaptureContext::pipelineViewer()
+IPipelineStateViewer *CaptureContext::GetPipelineViewer()
 {
   if(m_PipelineViewer)
     return m_PipelineViewer;
@@ -679,7 +685,7 @@ PipelineStateViewer *CaptureContext::pipelineViewer()
   return m_PipelineViewer;
 }
 
-CaptureDialog *CaptureContext::captureDialog()
+ICaptureDialog *CaptureContext::GetCaptureDialog()
 {
   if(m_CaptureDialog)
     return m_CaptureDialog;
@@ -702,7 +708,7 @@ CaptureDialog *CaptureContext::captureDialog()
   return m_CaptureDialog;
 }
 
-DebugMessageView *CaptureContext::debugMessageView()
+IDebugMessageView *CaptureContext::GetDebugMessageView()
 {
   if(m_DebugMessageView)
     return m_DebugMessageView;
@@ -714,7 +720,7 @@ DebugMessageView *CaptureContext::debugMessageView()
   return m_DebugMessageView;
 }
 
-StatisticsViewer *CaptureContext::statisticsViewer()
+IStatisticsViewer *CaptureContext::GetStatisticsViewer()
 {
   if(m_StatisticsViewer)
     return m_StatisticsViewer;
@@ -726,101 +732,161 @@ StatisticsViewer *CaptureContext::statisticsViewer()
   return m_StatisticsViewer;
 }
 
-void CaptureContext::showEventBrowser()
+void CaptureContext::ShowEventBrowser()
 {
   m_MainWindow->showEventBrowser();
 }
 
-void CaptureContext::showAPIInspector()
+void CaptureContext::ShowAPIInspector()
 {
   m_MainWindow->showAPIInspector();
 }
 
-void CaptureContext::showTextureViewer()
+void CaptureContext::ShowTextureViewer()
 {
   m_MainWindow->showTextureViewer();
 }
 
-void CaptureContext::showMeshPreview()
+void CaptureContext::ShowMeshPreview()
 {
   m_MainWindow->showMeshPreview();
 }
 
-void CaptureContext::showPipelineViewer()
+void CaptureContext::ShowPipelineViewer()
 {
   m_MainWindow->showPipelineViewer();
 }
 
-void CaptureContext::showCaptureDialog()
+void CaptureContext::ShowCaptureDialog()
 {
   m_MainWindow->showCaptureDialog();
 }
 
-void CaptureContext::showDebugMessageView()
+void CaptureContext::ShowDebugMessageView()
 {
   m_MainWindow->showDebugMessageView();
 }
 
-void CaptureContext::showStatisticsViewer()
+void CaptureContext::ShowStatisticsViewer()
 {
   m_MainWindow->showStatisticsViewer();
 }
 
-QWidget *CaptureContext::createToolWindow(const QString &objectName)
+IShaderViewer *CaptureContext::EditShader(bool customShader, const QString &entryPoint,
+                                          const QStringMap &files,
+                                          IShaderViewer::SaveMethod saveCallback,
+                                          IShaderViewer::CloseMethod closeCallback, QWidget *parent)
+{
+  return ShaderViewer::EditShader(*this, customShader, entryPoint, files, saveCallback,
+                                  closeCallback, parent);
+}
+
+IShaderViewer *CaptureContext::DebugShader(const ShaderBindpointMapping *bind,
+                                           const ShaderReflection *shader, ShaderStage stage,
+                                           ShaderDebugTrace *trace, const QString &debugContext,
+                                           QWidget *parent)
+{
+  return ShaderViewer::DebugShader(*this, bind, shader, stage, trace, debugContext, parent);
+}
+
+IShaderViewer *CaptureContext::ViewShader(const ShaderBindpointMapping *bind,
+                                          const ShaderReflection *shader, ShaderStage stage,
+                                          QWidget *parent)
+{
+  return ShaderViewer::ViewShader(*this, bind, shader, stage, parent);
+}
+
+IBufferViewer *CaptureContext::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
+                                          const QString &format)
+{
+  BufferViewer *viewer = new BufferViewer(*this, false, m_MainWindow);
+
+  viewer->ViewBuffer(byteOffset, byteSize, id, format);
+
+  return viewer;
+}
+
+IBufferViewer *CaptureContext::ViewTextureAsBuffer(uint32_t arrayIdx, uint32_t mip, ResourceId id,
+                                                   const QString &format)
+{
+  BufferViewer *viewer = new BufferViewer(*this, false, m_MainWindow);
+
+  viewer->ViewTexture(arrayIdx, mip, id, format);
+
+  return viewer;
+}
+
+IConstantBufferPreviewer *CaptureContext::ViewConstantBuffer(ShaderStage stage, uint32_t slot,
+                                                             uint32_t idx)
+{
+  ConstantBufferPreviewer *existing = ConstantBufferPreviewer::has(stage, slot, idx);
+  if(existing != NULL)
+    return existing;
+
+  return new ConstantBufferPreviewer(*this, stage, slot, idx, m_MainWindow);
+}
+
+IPixelHistoryView *CaptureContext::ViewPixelHistory(ResourceId texID, int x, int y,
+                                                    const TextureDisplay &display)
+{
+  return new PixelHistoryView(*this, texID, QPoint(x, y), display, m_MainWindow);
+}
+
+QWidget *CaptureContext::CreateBuiltinWindow(const QString &objectName)
 {
   if(objectName == "textureViewer")
   {
-    return textureViewer();
+    return GetTextureViewer()->Widget();
   }
   else if(objectName == "eventBrowser")
   {
-    return eventBrowser();
+    return GetEventBrowser()->Widget();
   }
   else if(objectName == "pipelineViewer")
   {
-    return pipelineViewer();
+    return GetPipelineViewer()->Widget();
   }
   else if(objectName == "meshPreview")
   {
-    return meshPreview();
+    return GetMeshPreview()->Widget();
   }
   else if(objectName == "apiInspector")
   {
-    return apiInspector();
+    return GetAPIInspector()->Widget();
   }
   else if(objectName == "capDialog")
   {
-    return captureDialog();
+    return GetCaptureDialog()->Widget();
   }
   else if(objectName == "debugMessageView")
   {
-    return debugMessageView();
+    return GetDebugMessageView()->Widget();
   }
   else if(objectName == "statisticsViewer")
   {
-    return statisticsViewer();
+    return GetStatisticsViewer()->Widget();
   }
 
   return NULL;
 }
 
-void CaptureContext::windowClosed(QWidget *window)
+void CaptureContext::BuiltinWindowClosed(QWidget *window)
 {
-  if((QWidget *)m_EventBrowser == window)
+  if(m_EventBrowser && m_EventBrowser->Widget() == window)
     m_EventBrowser = NULL;
-  else if((QWidget *)m_TextureViewer == window)
+  else if(m_TextureViewer && m_TextureViewer->Widget() == window)
     m_TextureViewer = NULL;
-  else if((QWidget *)m_CaptureDialog == window)
+  else if(m_CaptureDialog && m_CaptureDialog->Widget() == window)
     m_CaptureDialog = NULL;
-  else if((QWidget *)m_APIInspector == window)
+  else if(m_APIInspector && m_APIInspector->Widget() == window)
     m_APIInspector = NULL;
-  else if((QWidget *)m_PipelineViewer == window)
+  else if(m_PipelineViewer && m_PipelineViewer->Widget() == window)
     m_PipelineViewer = NULL;
-  else if((QWidget *)m_MeshPreview == window)
+  else if(m_MeshPreview && m_MeshPreview->Widget() == window)
     m_MeshPreview = NULL;
-  else if((QWidget *)m_DebugMessageView == window)
+  else if(m_DebugMessageView && m_DebugMessageView->Widget() == window)
     m_DebugMessageView = NULL;
-  else if((QWidget *)m_StatisticsViewer == window)
+  else if(m_StatisticsViewer && m_StatisticsViewer->Widget() == window)
     m_StatisticsViewer = NULL;
   else
     qCritical() << "Unrecognised window being closed: " << window;
@@ -829,4 +895,32 @@ void CaptureContext::windowClosed(QWidget *window)
 void CaptureContext::setupDockWindow(QWidget *shad)
 {
   shad->setWindowIcon(*m_Icon);
+}
+
+void CaptureContext::RaiseDockWindow(QWidget *dockWindow)
+{
+  ToolWindowManager::raiseToolWindow(dockWindow);
+}
+
+void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidget *refWindow,
+                                   float percentage)
+{
+  setupDockWindow(newWindow);
+
+  if(ref == DockReference::MainToolArea)
+  {
+    m_MainWindow->mainToolManager()->addToolWindow(newWindow, m_MainWindow->mainToolArea());
+    return;
+  }
+  if(ref == DockReference::LeftToolArea)
+  {
+    m_MainWindow->mainToolManager()->addToolWindow(newWindow, m_MainWindow->leftToolArea());
+    return;
+  }
+
+  ToolWindowManager *manager = ToolWindowManager::managerOf(refWindow);
+
+  ToolWindowManager::AreaReference areaRef((ToolWindowManager::AreaReferenceType)ref,
+                                           manager->areaOf(refWindow), percentage);
+  manager->addToolWindow(newWindow, areaRef);
 }

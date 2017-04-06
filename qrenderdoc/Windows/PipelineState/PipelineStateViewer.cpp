@@ -24,15 +24,13 @@
 
 #include "PipelineStateViewer.h"
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
-#include "Windows/MainWindow.h"
-#include "Windows/ShaderViewer.h"
 #include "D3D11PipelineStateViewer.h"
 #include "D3D12PipelineStateViewer.h"
 #include "GLPipelineStateViewer.h"
 #include "VulkanPipelineStateViewer.h"
 #include "ui_PipelineStateViewer.h"
 
-PipelineStateViewer::PipelineStateViewer(CaptureContext &ctx, QWidget *parent)
+PipelineStateViewer::PipelineStateViewer(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::PipelineStateViewer), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -53,7 +51,7 @@ PipelineStateViewer::~PipelineStateViewer()
 {
   reset();
 
-  m_Ctx.windowClosed(this);
+  m_Ctx.BuiltinWindowClosed(this);
   m_Ctx.RemoveLogViewer(this);
 
   delete ui;
@@ -82,7 +80,7 @@ void PipelineStateViewer::OnLogfileClosed()
 
 void PipelineStateViewer::OnEventChanged(uint32_t eventID)
 {
-  if(m_Ctx.CurPipelineState.DefaultType != m_Ctx.APIProps().pipelineType)
+  if(m_Ctx.CurPipelineState().DefaultType != m_Ctx.APIProps().pipelineType)
     OnLogfileLoaded();
 
   if(m_Current)
@@ -146,7 +144,7 @@ void PipelineStateViewer::setToD3D11()
   m_D3D11 = new D3D11PipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_D3D11);
   m_Current = m_D3D11;
-  m_Ctx.CurPipelineState.DefaultType = GraphicsAPI::D3D11;
+  m_Ctx.CurPipelineState().DefaultType = GraphicsAPI::D3D11;
 }
 
 void PipelineStateViewer::setToD3D12()
@@ -159,7 +157,7 @@ void PipelineStateViewer::setToD3D12()
   m_D3D12 = new D3D12PipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_D3D12);
   m_Current = m_D3D12;
-  m_Ctx.CurPipelineState.DefaultType = GraphicsAPI::D3D12;
+  m_Ctx.CurPipelineState().DefaultType = GraphicsAPI::D3D12;
 }
 
 void PipelineStateViewer::setToGL()
@@ -172,7 +170,7 @@ void PipelineStateViewer::setToGL()
   m_GL = new GLPipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_GL);
   m_Current = m_GL;
-  m_Ctx.CurPipelineState.DefaultType = GraphicsAPI::OpenGL;
+  m_Ctx.CurPipelineState().DefaultType = GraphicsAPI::OpenGL;
 }
 
 void PipelineStateViewer::setToVulkan()
@@ -185,7 +183,7 @@ void PipelineStateViewer::setToVulkan()
   m_Vulkan = new VulkanPipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_Vulkan);
   m_Current = m_Vulkan;
-  m_Ctx.CurPipelineState.DefaultType = GraphicsAPI::Vulkan;
+  m_Ctx.CurPipelineState().DefaultType = GraphicsAPI::Vulkan;
 }
 
 bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDetails,
@@ -227,11 +225,11 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
                                      const ShaderReflection *shaderDetails, const QString &entryFunc,
                                      const QStringMap &files, const QString &mainfile)
 {
-  ShaderViewer *sv = ShaderViewer::editShader(
-      m_Ctx, false, entryFunc, files,
+  IShaderViewer *sv = m_Ctx.EditShader(
+      false, entryFunc, files,
       // save callback
       [entryFunc, mainfile, shaderType, id, shaderDetails](
-          CaptureContext *ctx, ShaderViewer *viewer, const QStringMap &updatedfiles) {
+          ICaptureContext *ctx, IShaderViewer *viewer, const QStringMap &updatedfiles) {
         QString compileSource = updatedfiles[mainfile];
 
         // try and match up #includes against the files that we have. This isn't always
@@ -274,7 +272,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
 
           if(compileSource[ws] != '<' && compileSource[ws] != '"')
           {
-            viewer->showErrors("Invalid #include directive found:\r\n" + line);
+            viewer->ShowErrors("Invalid #include directive found:\r\n" + line);
             return;
           }
 
@@ -283,7 +281,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
 
           if(end == -1)
           {
-            viewer->showErrors("Invalid #include directive found:\r\n" + line);
+            viewer->ShowErrors("Invalid #include directive found:\r\n" + line);
             return;
           }
 
@@ -336,7 +334,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
           ResourceId to = r->BuildTargetShader(
               entryFunc.toUtf8().data(), compileSource.toUtf8().data(), flags, shaderType, &errs);
 
-          GUIInvoke::call([viewer, errs]() { viewer->showErrors(ToQStr(errs)); });
+          GUIInvoke::call([viewer, errs]() { viewer->ShowErrors(ToQStr(errs)); });
           if(to == ResourceId())
           {
             r->RemoveReplacement(from);
@@ -351,7 +349,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
       },
 
       // Close Callback
-      [id](CaptureContext *ctx) {
+      [id](ICaptureContext *ctx) {
         // remove the replacement on close (we could make this more sophisticated if there
         // was a place to control replaced resources/shaders).
         ctx->Renderer().AsyncInvoke([ctx, id](IReplayRenderer *r) {
@@ -359,14 +357,9 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
           GUIInvoke::call([ctx] { ctx->RefreshStatus(); });
         });
       },
-      m_Ctx.mainWindow());
+      m_Ctx.GetMainWindow()->Widget());
 
-  m_Ctx.setupDockWindow(sv);
-
-  ToolWindowManager *manager = ToolWindowManager::managerOf(this);
-
-  ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
-  manager->addToolWindow(sv, ref);
+  m_Ctx.AddDockWindow(sv->Widget(), DockReference::AddTo, this);
 }
 
 bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
@@ -376,15 +369,15 @@ bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
 
   QString filter;
 
-  if(m_Ctx.CurPipelineState.IsLogD3D11() || m_Ctx.CurPipelineState.IsLogD3D12())
+  if(m_Ctx.CurPipelineState().IsLogD3D11() || m_Ctx.CurPipelineState().IsLogD3D12())
   {
     filter = tr("DXBC Shader files (*.dxbc)");
   }
-  else if(m_Ctx.CurPipelineState.IsLogGL())
+  else if(m_Ctx.CurPipelineState().IsLogGL())
   {
     filter = tr("GLSL files (*.glsl)");
   }
-  else if(m_Ctx.CurPipelineState.IsLogVK())
+  else if(m_Ctx.CurPipelineState().IsLogVK())
   {
     filter = tr("SPIR-V files (*.spv)");
   }

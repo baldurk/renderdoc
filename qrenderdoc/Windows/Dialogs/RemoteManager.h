@@ -33,7 +33,7 @@ class RemoteManager;
 }
 
 class QTreeWidgetItem;
-class CaptureContext;
+struct ICaptureContext;
 class MainWindow;
 class RemoteHost;
 
@@ -42,7 +42,7 @@ class RemoteManager : public QDialog
   Q_OBJECT
 
 public:
-  explicit RemoteManager(CaptureContext &ctx, MainWindow *main);
+  explicit RemoteManager(ICaptureContext &ctx, MainWindow *main);
   ~RemoteManager();
 
 private slots:
@@ -61,7 +61,7 @@ private slots:
 
 private:
   Ui::RemoteManager *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
   MainWindow *m_Main;
   QWidget *lookupsProgressFlow;
 

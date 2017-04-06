@@ -43,7 +43,7 @@ enum
   COL_LAST_EID,
 };
 
-EventBrowser::EventBrowser(CaptureContext &ctx, QWidget *parent)
+EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::EventBrowser), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -117,7 +117,7 @@ EventBrowser::EventBrowser(CaptureContext &ctx, QWidget *parent)
 
 EventBrowser::~EventBrowser()
 {
-  m_Ctx.windowClosed(this);
+  m_Ctx.BuiltinWindowClosed(this);
   m_Ctx.RemoveLogViewer(this);
   delete ui;
   delete m_SizeDelegate;

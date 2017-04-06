@@ -32,8 +32,8 @@
 #include <QVariantMap>
 #include <QWaitCondition>
 #include <functional>
+#include "Interface/QRDInterface.h"
 #include "QRDUtils.h"
-#include "RemoteHost.h"
 #include "renderdoc_replay.h"
 
 struct IReplayRenderer;
@@ -44,85 +44,9 @@ class RemoteHost;
 #define INVOKE_MEMFN(function) \
   m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) { function(r); });
 
-struct EnvironmentModification
-{
-  QString variable;
-  QString value;
-
-  EnvMod type;
-  EnvSep separator;
-
-  QString GetTypeString() const
-  {
-    QString ret;
-
-    if(type == EnvMod::Append)
-      ret = QString("Append, %1").arg(ToQStr(separator));
-    else if(type == EnvMod::Prepend)
-      ret = QString("Prepend, %1").arg(ToQStr(separator));
-    else
-      ret = "Set";
-
-    return ret;
-  }
-
-  QString GetDescription() const
-  {
-    QString ret;
-
-    if(type == EnvMod::Append)
-      ret = QString("Append %1 with %2 using %3").arg(variable).arg(value).arg(ToQStr(separator));
-    else if(type == EnvMod::Prepend)
-      ret = QString("Prepend %1 with %2 using %3").arg(variable).arg(value).arg(ToQStr(separator));
-    else
-      ret = QString("Set %1 to %2").arg(variable).arg(value);
-
-    return ret;
-  }
-
-  QVariantMap toJSON() const
-  {
-    QVariantMap ret;
-    ret["variable"] = variable;
-    ret["value"] = value;
-    ret["type"] = ToQStr(type);
-    ret["separator"] = ToQStr(separator);
-    return ret;
-  }
-
-  void fromJSON(const QVariantMap &data)
-  {
-    variable = data["variable"].toString();
-    value = data["value"].toString();
-
-    QString t = data["type"].toString();
-
-    if(t == ToQStr(EnvMod::Append))
-      type = EnvMod::Append;
-    else if(t == ToQStr(EnvMod::Prepend))
-      type = EnvMod::Prepend;
-    else
-      type = EnvMod::Set;
-
-    QString s = data["separator"].toString();
-
-    if(s == ToQStr(EnvSep::SemiColon))
-      separator = EnvSep::SemiColon;
-    else if(s == ToQStr(EnvSep::Colon))
-      separator = EnvSep::Colon;
-    else if(s == ToQStr(EnvSep::Platform))
-      separator = EnvSep::Platform;
-    else
-      separator = EnvSep::NoSep;
-  }
-};
-
-class RenderManager
+class RenderManager : public IRenderManager
 {
 public:
-  typedef std::function<void(IReplayRenderer *)> InvokeMethod;
-  typedef std::function<void(const char *, const rdctype::array<DirectoryFile> &)> DirectoryBrowseMethod;
-
   RenderManager();
   ~RenderManager();
 
@@ -148,7 +72,7 @@ public:
   void ShutdownServer();
   void PingRemote();
 
-  const RemoteHost *remote() { return m_RemoteHost; }
+  const RemoteHost *CurrentRemote() { return m_RemoteHost; }
   uint32_t ExecuteAndInject(const QString &exe, const QString &workingDir, const QString &cmdLine,
                             const QList<EnvironmentModification> &env, const QString &logfile,
                             CaptureOptions opts);

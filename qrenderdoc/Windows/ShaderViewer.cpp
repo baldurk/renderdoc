@@ -33,7 +33,6 @@
 #include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Code/ScintillaSyntax.h"
 #include "Widgets/FindReplace.h"
-#include "Windows/PipelineState/PipelineStateViewer.h"
 #include "ui_ShaderViewer.h"
 
 struct CBufferTag
@@ -55,7 +54,7 @@ Q_DECLARE_METATYPE(CBufferTag);
 Q_DECLARE_METATYPE(ResourceTag);
 Q_DECLARE_METATYPE(ShaderVariable);
 
-ShaderViewer::ShaderViewer(CaptureContext &ctx, QWidget *parent)
+ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::ShaderViewer), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -265,10 +264,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     m_Trace = NULL;
 
   if(trace)
-    setWindowTitle(
-        QString("Debugging %1 - %2").arg(m_Ctx.CurPipelineState.GetShaderName(stage)).arg(debugContext));
+    setWindowTitle(QString("Debugging %1 - %2")
+                       .arg(m_Ctx.CurPipelineState().GetShaderName(stage))
+                       .arg(debugContext));
   else
-    setWindowTitle(m_Ctx.CurPipelineState.GetShaderName(stage));
+    setWindowTitle(m_Ctx.CurPipelineState().GetShaderName(stage));
 
   if(shader)
   {
@@ -386,9 +386,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     QObject::connect(new QShortcut(QKeySequence(Qt::Key_F5 | Qt::ShiftModifier), m_DisassemblyView),
                      &QShortcut::activated, this, &ShaderViewer::runBack);
     QObject::connect(new QShortcut(QKeySequence(Qt::Key_F9), m_DisassemblyView),
-                     &QShortcut::activated, [this]() { toggleBreakpoint(); });
+                     &QShortcut::activated, [this]() { ToggleBreakpoint(); });
 
-    setCurrentStep(0);
+    SetCurrentStep(0);
   }
   else
   {
@@ -603,10 +603,10 @@ bool ShaderViewer::stepBack()
   if(!m_Trace)
     return false;
 
-  if(currentStep() == 0)
+  if(CurrentStep() == 0)
     return false;
 
-  setCurrentStep(currentStep() - 1);
+  SetCurrentStep(CurrentStep() - 1);
 
   return true;
 }
@@ -616,10 +616,10 @@ bool ShaderViewer::stepNext()
   if(!m_Trace)
     return false;
 
-  if(currentStep() + 1 >= m_Trace->states.count)
+  if(CurrentStep() + 1 >= m_Trace->states.count)
     return false;
 
-  setCurrentStep(currentStep() + 1);
+  SetCurrentStep(CurrentStep() + 1);
 
   return true;
 }
@@ -687,7 +687,7 @@ void ShaderViewer::runTo(int runToInstruction, bool forward, ShaderEvents condit
   if(!m_Trace)
     return;
 
-  int step = currentStep();
+  int step = CurrentStep();
 
   int inc = forward ? 1 : -1;
 
@@ -712,7 +712,7 @@ void ShaderViewer::runTo(int runToInstruction, bool forward, ShaderEvents condit
     step += inc;
   }
 
-  setCurrentStep(step);
+  SetCurrentStep(step);
 }
 
 QString ShaderViewer::stringRep(const ShaderVariable &var, bool useType)
@@ -871,9 +871,9 @@ void ShaderViewer::updateDebugging()
     }
 
     QMap<BindpointMap, QVector<BoundResource>> rw =
-        m_Ctx.CurPipelineState.GetReadWriteResources(m_Stage);
+        m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
     QMap<BindpointMap, QVector<BoundResource>> ro =
-        m_Ctx.CurPipelineState.GetReadOnlyResources(m_Stage);
+        m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage);
 
     bool tree = false;
 
@@ -1009,12 +1009,12 @@ void ShaderViewer::ensureLineScrolled(ScintillaEdit *s, int line)
     s->scrollCaret();
 }
 
-int ShaderViewer::currentStep()
+int ShaderViewer::CurrentStep()
 {
   return m_CurrentStep;
 }
 
-void ShaderViewer::setCurrentStep(int step)
+void ShaderViewer::SetCurrentStep(int step)
 {
   if(m_Trace && !m_Trace->states.empty())
     m_CurrentStep = qBound(0, step, m_Trace->states.count - 1);
@@ -1024,7 +1024,7 @@ void ShaderViewer::setCurrentStep(int step)
   updateDebugging();
 }
 
-void ShaderViewer::toggleBreakpoint(int instruction)
+void ShaderViewer::ToggleBreakpoint(int instruction)
 {
   sptr_t instLine = -1;
 
@@ -1080,7 +1080,7 @@ void ShaderViewer::toggleBreakpoint(int instruction)
   }
 }
 
-void ShaderViewer::showErrors(const QString &errors)
+void ShaderViewer::ShowErrors(const QString &errors)
 {
   if(m_Errors)
   {
@@ -1400,7 +1400,7 @@ void ShaderViewer::on_save_clicked()
 {
   if(m_Trace)
   {
-    m_Ctx.pipelineViewer()->SaveShaderFile(m_ShaderDetails);
+    m_Ctx.GetPipelineViewer()->SaveShaderFile(m_ShaderDetails);
     return;
   }
 

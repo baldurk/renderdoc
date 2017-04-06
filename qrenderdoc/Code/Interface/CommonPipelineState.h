@@ -24,11 +24,8 @@
 
 #pragma once
 
-#include <QDebug>
-#include <QMap>
-#include <QString>
-#include <QVector>
-#include "renderdoc_replay.h"
+// do not include any headers here, they must all be in QRDInterface.h
+#include "QRDInterface.h"
 
 struct BoundResource
 {
@@ -53,12 +50,16 @@ struct BoundResource
   CompType typeHint;
 };
 
+DECLARE_REFLECTION_STRUCT(BoundResource);
+
 struct BoundVBuffer
 {
   ResourceId Buffer;
   uint64_t ByteOffset;
   uint32_t ByteStride;
 };
+
+DECLARE_REFLECTION_STRUCT(BoundVBuffer);
 
 struct VertexInputAttribute
 {
@@ -72,10 +73,14 @@ struct VertexInputAttribute
   bool Used;
 };
 
+DECLARE_REFLECTION_STRUCT(VertexInputAttribute);
+
 struct Viewport
 {
   float x, y, width, height;
 };
+
+DECLARE_REFLECTION_STRUCT(Viewport);
 
 class CommonPipelineState
 {
@@ -158,6 +163,7 @@ public:
   QString GetShaderEntryPoint(ShaderStage stage);
   ResourceId GetShader(ShaderStage stage);
   QString GetShaderName(ShaderStage stage);
+  QString GetShaderExtension();
   void GetIBuffer(ResourceId &buf, uint64_t &ByteOffset);
   bool IsStripRestartEnabled();
   uint32_t GetStripRestartIndex(uint32_t indexByteWidth);
@@ -177,82 +183,8 @@ private:
   VKPipe::State *m_Vulkan = NULL;
   APIProperties m_APIProps;
 
-  const D3D11Pipe::Shader &GetD3D11Stage(ShaderStage stage)
-  {
-    if(stage == ShaderStage::Vertex)
-      return m_D3D11->m_VS;
-    if(stage == ShaderStage::Domain)
-      return m_D3D11->m_DS;
-    if(stage == ShaderStage::Hull)
-      return m_D3D11->m_HS;
-    if(stage == ShaderStage::Geometry)
-      return m_D3D11->m_GS;
-    if(stage == ShaderStage::Pixel)
-      return m_D3D11->m_PS;
-    if(stage == ShaderStage::Compute)
-      return m_D3D11->m_CS;
-
-    qCritical() << "Error - invalid stage " << (int)stage;
-    return m_D3D11->m_CS;
-  }
-
-  const D3D12Pipe::Shader &GetD3D12Stage(ShaderStage stage)
-  {
-    if(stage == ShaderStage::Vertex)
-      return m_D3D12->m_VS;
-    if(stage == ShaderStage::Domain)
-      return m_D3D12->m_DS;
-    if(stage == ShaderStage::Hull)
-      return m_D3D12->m_HS;
-    if(stage == ShaderStage::Geometry)
-      return m_D3D12->m_GS;
-    if(stage == ShaderStage::Pixel)
-      return m_D3D12->m_PS;
-    if(stage == ShaderStage::Compute)
-      return m_D3D12->m_CS;
-
-    qCritical() << "Error - invalid stage " << (int)stage;
-    return m_D3D12->m_CS;
-  }
-
-  const GLPipe::Shader &GetGLStage(ShaderStage stage)
-  {
-    if(stage == ShaderStage::Vertex)
-      return m_GL->m_VS;
-    if(stage == ShaderStage::Tess_Control)
-      return m_GL->m_TCS;
-    if(stage == ShaderStage::Tess_Eval)
-      return m_GL->m_TES;
-    if(stage == ShaderStage::Geometry)
-      return m_GL->m_GS;
-    if(stage == ShaderStage::Fragment)
-      return m_GL->m_FS;
-    if(stage == ShaderStage::Compute)
-      return m_GL->m_CS;
-
-    qCritical() << "Error - invalid stage " << (int)stage;
-    return m_GL->m_CS;
-  }
-
-  const VKPipe::Shader &GetVulkanStage(ShaderStage stage)
-  {
-    if(stage == ShaderStage::Vertex)
-      return m_Vulkan->m_VS;
-    if(stage == ShaderStage::Tess_Control)
-      return m_Vulkan->m_TCS;
-    if(stage == ShaderStage::Tess_Eval)
-      return m_Vulkan->m_TES;
-    if(stage == ShaderStage::Geometry)
-      return m_Vulkan->m_GS;
-    if(stage == ShaderStage::Fragment)
-      return m_Vulkan->m_FS;
-    if(stage == ShaderStage::Compute)
-      return m_Vulkan->m_CS;
-
-    qCritical() << "Error - invalid stage " << (int)stage;
-    return m_Vulkan->m_CS;
-  }
-
-public:
-  QString GetShaderExtension();
+  const D3D11Pipe::Shader &GetD3D11Stage(ShaderStage stage);
+  const D3D12Pipe::Shader &GetD3D12Stage(ShaderStage stage);
+  const GLPipe::Shader &GetGLStage(ShaderStage stage);
+  const VKPipe::Shader &GetVulkanStage(ShaderStage stage);
 };

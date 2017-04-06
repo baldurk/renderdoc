@@ -614,13 +614,14 @@
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
-    <ClCompile Include="Code\CommonPipelineState.cpp" />
     <ClCompile Include="Code\FormatElement.cpp" />
-    <ClCompile Include="Code\PersistantConfig.cpp" />
+    <ClCompile Include="Code\Interface\CommonPipelineState.cpp" />
+    <ClCompile Include="Code\Interface\PersistantConfig.cpp" />
+    <ClCompile Include="Code\Interface\QRDInterface.cpp" />
+    <ClCompile Include="Code\Interface\RemoteHost.cpp" />
     <ClCompile Include="Code\qprocessinfo.cpp" />
     <ClCompile Include="Code\pyrenderdoc\PythonContext.cpp" />
     <ClCompile Include="Code\QRDUtils.cpp" />
-    <ClCompile Include="Code\RemoteHost.cpp" />
     <ClCompile Include="Code\Resources.cpp" />
     <ClCompile Include="Code\ScintillaSyntax.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_AboutDialog.cpp" />
@@ -851,6 +852,10 @@
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h" />
+    <ClInclude Include="Code\Interface\CommonPipelineState.h" />
+    <ClInclude Include="Code\Interface\PersistantConfig.h" />
+    <ClInclude Include="Code\Interface\QRDInterface.h" />
+    <ClInclude Include="Code\Interface\RemoteHost.h" />
     <ClInclude Include="Code\Resources.h" />
     <ClInclude Include="$(IntDir)generated\ui_AboutDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_APIInspector.h" />
@@ -884,8 +889,6 @@
     <ClInclude Include="$(IntDir)generated\ui_VulkanPipelineStateViewer.h" />
     <ClInclude Include="Resources\resource.h" />
     <ClInclude Include="Code\CaptureContext.h" />
-    <ClInclude Include="Code\CommonPipelineState.h" />
-    <ClInclude Include="Code\PersistantConfig.h" />
     <ClInclude Include="Code\qprocessinfo.h" />
     <CustomBuild Include="Code\pyrenderdoc\PythonContext.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
@@ -899,7 +902,6 @@
       <Message>MOC %(Filename).h</Message>
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
-    <ClInclude Include="Code\RemoteHost.h" />
     <ClInclude Include="Code\RenderManager.h" />
     <ClInclude Include="Code\ScintillaSyntax.h" />
     <CustomBuild Include="Widgets\BufferFormatSpecifier.h">

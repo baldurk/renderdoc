@@ -28,8 +28,6 @@
 #include <QAction>
 #include <QMenu>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
-#include "Windows/BufferViewer.h"
-#include "Windows/ShaderViewer.h"
 #include "ui_PixelHistoryView.h"
 
 struct EventTag
@@ -43,7 +41,7 @@ Q_DECLARE_METATYPE(EventTag);
 class PixelHistoryItemModel : public QAbstractItemModel
 {
 public:
-  PixelHistoryItemModel(CaptureContext &ctx, ResourceId tex, const TextureDisplay &display,
+  PixelHistoryItemModel(ICaptureContext &ctx, ResourceId tex, const TextureDisplay &display,
                         QObject *parent)
       : QAbstractItemModel(parent), m_Ctx(ctx)
   {
@@ -390,7 +388,7 @@ public:
   }
 
 private:
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
 
   const TextureDescription *m_Tex;
   TextureDisplay m_Display;
@@ -555,7 +553,7 @@ private:
   }
 };
 
-PixelHistoryView::PixelHistoryView(CaptureContext &ctx, ResourceId id, QPoint point,
+PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint point,
                                    const TextureDisplay &display, QWidget *parent)
     : QFrame(parent), ui(new Ui::PixelHistoryView), m_Ctx(ctx)
 {
@@ -628,7 +626,7 @@ void PixelHistoryView::OnLogfileClosed()
   ToolWindowManager::closeToolWindow(this);
 }
 
-void PixelHistoryView::setHistory(const rdctype::array<PixelModification> &history)
+void PixelHistoryView::SetHistory(const rdctype::array<PixelModification> &history)
 {
   m_Model->setHistory(history);
 }
@@ -657,29 +655,24 @@ void PixelHistoryView::startDebug(EventTag tag)
     QString debugContext = QString("Pixel %1,%2").arg(m_Pixel.x()).arg(m_Pixel.y());
 
     const ShaderReflection *shaderDetails =
-        m_Ctx.CurPipelineState.GetShaderReflection(ShaderStage::Pixel);
+        m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
     const ShaderBindpointMapping &bindMapping =
-        m_Ctx.CurPipelineState.GetBindpointMapping(ShaderStage::Pixel);
+        m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Pixel);
 
     // viewer takes ownership of the trace
-    ShaderViewer *s = ShaderViewer::debugShader(m_Ctx, &bindMapping, shaderDetails,
-                                                ShaderStage::Pixel, trace, debugContext, this);
+    IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, ShaderStage::Pixel, trace,
+                                         debugContext, m_Ctx.GetMainWindow()->Widget());
 
-    m_Ctx.setupDockWindow(s);
-
-    ToolWindowManager *manager = ToolWindowManager::managerOf(this);
-
-    ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
-    manager->addToolWindow(s, ref);
+    m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, m_Ctx.GetMainWindow()->Widget());
   });
 }
 
 void PixelHistoryView::jumpToPrimitive(EventTag tag)
 {
   m_Ctx.SetEventID({this}, tag.eventID, tag.eventID);
-  m_Ctx.showMeshPreview();
+  m_Ctx.ShowMeshPreview();
 
-  BufferViewer *viewer = m_Ctx.meshPreview();
+  IBufferViewer *viewer = m_Ctx.GetMeshPreview();
 
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 

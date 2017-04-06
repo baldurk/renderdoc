@@ -32,25 +32,27 @@ namespace Ui
 class PixelHistoryView;
 }
 
-class CaptureContext;
 class PixelHistoryItemModel;
 struct EventTag;
 
-class PixelHistoryView : public QFrame, public ILogViewerForm
+class PixelHistoryView : public QFrame, public IPixelHistoryView, public ILogViewerForm
 {
   Q_OBJECT
 
 public:
-  explicit PixelHistoryView(CaptureContext &ctx, ResourceId id, QPoint point,
+  explicit PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint point,
                             const TextureDisplay &display, QWidget *parent = 0);
   ~PixelHistoryView();
 
-  void OnLogfileLoaded();
-  void OnLogfileClosed();
-  void OnSelectedEventChanged(uint32_t eventID) {}
-  void OnEventChanged(uint32_t eventID) {}
-  void setHistory(const rdctype::array<PixelModification> &history);
+  // IPixelHistoryView
+  QWidget *Widget() override { return this; }
+  void SetHistory(const rdctype::array<PixelModification> &history) override;
 
+  // ILogViewerForm
+  void OnLogfileLoaded() override;
+  void OnLogfileClosed() override;
+  void OnSelectedEventChanged(uint32_t eventID) override {}
+  void OnEventChanged(uint32_t eventID) override {}
 private slots:
   // automatic slots
   void on_events_customContextMenuRequested(const QPoint &pos);
@@ -58,7 +60,7 @@ private slots:
 
 private:
   Ui::PixelHistoryView *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
 
   TextureDisplay m_Display;
   QPoint m_Pixel;

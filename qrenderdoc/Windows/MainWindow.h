@@ -42,19 +42,26 @@ class QToolButton;
 class CaptureDialog;
 class LiveCapture;
 
-class MainWindow : public QMainWindow, public ILogViewerForm
+class MainWindow : public QMainWindow, public IMainWindow, public ILogViewerForm
 {
 private:
   Q_OBJECT
 
 public:
-  explicit MainWindow(CaptureContext &ctx);
+  explicit MainWindow(ICaptureContext &ctx);
   ~MainWindow();
 
+  // IMainWindow
+  QWidget *Widget() override { return this; }
+  // ILogViewerForm
   void OnLogfileLoaded() override;
   void OnLogfileClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
+
+  ToolWindowManager *mainToolManager();
+  ToolWindowManager::AreaReference mainToolArea();
+  ToolWindowManager::AreaReference leftToolArea();
 
   void setProgress(float val);
   void takeLogOwnership() { m_OwnTempLog = true; }
@@ -114,7 +121,7 @@ private slots:
   void loadLayout_triggered();
   void messageCheck();
   void remoteProbe();
-  void statusDoubleClicked();
+  void statusDoubleClicked(QMouseEvent *event);
   void switchContext();
   void contextChooser_menuShowing();
 
@@ -126,11 +133,8 @@ private:
 
   QString dragFilename(const QMimeData *mimeData);
 
-  ToolWindowManager::AreaReference mainToolArea();
-  ToolWindowManager::AreaReference leftToolArea();
-
   Ui::MainWindow *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
 
   QList<LiveCapture *> m_LiveCaptures;
 

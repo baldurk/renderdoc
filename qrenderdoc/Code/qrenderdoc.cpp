@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
         dir.mkpath(configPath);
     }
 
-    QString configFilename = CaptureContext::ConfigFile("UI.config");
+    QString configFilename = ConfigFilePath("UI.config");
 
     if(!config.Load(configFilename))
     {

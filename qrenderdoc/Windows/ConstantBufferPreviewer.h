@@ -34,21 +34,24 @@ class ConstantBufferPreviewer;
 
 struct FormatElement;
 
-class ConstantBufferPreviewer : public QFrame, public ILogViewerForm
+class ConstantBufferPreviewer : public QFrame, public IConstantBufferPreviewer, public ILogViewerForm
 {
   Q_OBJECT
 
 public:
-  explicit ConstantBufferPreviewer(CaptureContext &ctx, const ShaderStage stage, uint32_t slot,
+  explicit ConstantBufferPreviewer(ICaptureContext &ctx, const ShaderStage stage, uint32_t slot,
                                    uint32_t idx, QWidget *parent = 0);
   ~ConstantBufferPreviewer();
 
   static ConstantBufferPreviewer *has(ShaderStage stage, uint32_t slot, uint32_t idx);
 
-  void OnLogfileLoaded();
-  void OnLogfileClosed();
-  void OnSelectedEventChanged(uint32_t eventID) {}
-  void OnEventChanged(uint32_t eventID);
+  // IConstantBufferPreviewer
+  QWidget *Widget() override { return this; }
+  // ILogViewerForm
+  void OnLogfileLoaded() override;
+  void OnLogfileClosed() override;
+  void OnSelectedEventChanged(uint32_t eventID) override {}
+  void OnEventChanged(uint32_t eventID) override;
 
 private slots:
   // automatic slots
@@ -60,7 +63,7 @@ private slots:
 
 private:
   Ui::ConstantBufferPreviewer *ui;
-  CaptureContext &m_Ctx;
+  ICaptureContext &m_Ctx;
 
   ResourceId m_cbuffer;
   ResourceId m_shader;

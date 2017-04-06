@@ -24,11 +24,8 @@
 
 #pragma once
 
-#include <QDateTime>
-#include <QList>
-#include <QMap>
-#include <QString>
-#include <QVariant>
+// do not include any headers here, they must all be in QRDInterface.h
+#include "QRDInterface.h"
 #include "RemoteHost.h"
 
 typedef QMap<QString, QString> QStringMap;
@@ -36,32 +33,14 @@ typedef QMap<QString, QString> QStringMap;
 struct SPIRVDisassembler
 {
   SPIRVDisassembler() {}
-  SPIRVDisassembler(const QVariant &var)
-  {
-    QVariantMap map = var.toMap();
-    if(map.contains("name"))
-      name = map["name"].toString();
-    if(map.contains("executable"))
-      executable = map["executable"].toString();
-    if(map.contains("args"))
-      args = map["args"].toString();
-  }
-
-  operator QVariant() const
-  {
-    QVariantMap map;
-
-    map["name"] = name;
-    map["executable"] = executable;
-    map["args"] = args;
-
-    return map;
-  }
+  VARIANT_CAST(SPIRVDisassembler);
 
   QString name;
   QString executable;
   QString args;
 };
+
+DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
 
 #define CONFIG_SETTING_VAL(access, variantType, type, name, defaultValue) \
   access:                                                                 \
@@ -144,18 +123,34 @@ struct SPIRVDisassembler
                                                                                            \
   CONFIG_SETTING(private, QVariantList, QList<RemoteHost>, RemoteHostList)
 
+enum class TimeUnit : int
+{
+  Seconds = 0,
+  Milliseconds,
+  Microseconds,
+  Nanoseconds,
+  Count,
+};
+
+inline QString UnitPrefix(TimeUnit t)
+{
+  if(t == TimeUnit::Seconds)
+    return "s";
+  else if(t == TimeUnit::Milliseconds)
+    return "ms";
+  else if(t == TimeUnit::Microseconds)
+    return "µs";
+  else if(t == TimeUnit::Nanoseconds)
+    return "ns";
+
+  return "s";
+}
+
+void AddRecentFile(QList<QString> &recentList, const QString &file, int maxItems);
+
 class PersistantConfig
 {
 public:
-  enum class TimeUnit : int
-  {
-    Seconds = 0,
-    Milliseconds,
-    Microseconds,
-    Nanoseconds,
-    Count,
-  };
-
   // Runtime list of dynamically allocated hosts.
   // Saved to/from private RemoteHostList in CONFIG_SETTINGS()
   QList<RemoteHost *> RemoteHosts;
@@ -170,22 +165,6 @@ public:
   bool Save();
 
   void SetupFormatting();
-
-  static QString UnitPrefix(TimeUnit t)
-  {
-    if(t == TimeUnit::Seconds)
-      return "s";
-    else if(t == TimeUnit::Milliseconds)
-      return "ms";
-    else if(t == TimeUnit::Microseconds)
-      return "µs";
-    else if(t == TimeUnit::Nanoseconds)
-      return "ns";
-
-    return "s";
-  }
-
-  static void AddRecentFile(QList<QString> &recentList, const QString &file, int maxItems);
 
   void SetConfigSetting(const QString &name, const QString &value);
   QString GetConfigSetting(const QString &name);

@@ -146,15 +146,16 @@ win32 {
 SOURCES += Code/qrenderdoc.cpp \
     Code/qprocessinfo.cpp \
     Code/RenderManager.cpp \
-    Code/CommonPipelineState.cpp \
-    Code/PersistantConfig.cpp \
     Code/CaptureContext.cpp \
     Code/ScintillaSyntax.cpp \
     Code/QRDUtils.cpp \
     Code/FormatElement.cpp \
-    Code/RemoteHost.cpp \
     Code/Resources.cpp \
     Code/pyrenderdoc/PythonContext.cpp \
+    Code/Interface/QRDInterface.cpp \
+    Code/Interface/CommonPipelineState.cpp \
+    Code/Interface/PersistantConfig.cpp \
+    Code/Interface/RemoteHost.cpp \
     Windows/Dialogs/AboutDialog.cpp \
     Windows/MainWindow.cpp \
     Windows/EventBrowser.cpp \
@@ -201,13 +202,14 @@ SOURCES += Code/qrenderdoc.cpp \
 HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
     Code/RenderManager.h \
-    Code/PersistantConfig.h \
-    Code/CommonPipelineState.h \
     Code/ScintillaSyntax.h \
-    Code/RemoteHost.h \
     Code/QRDUtils.h \
     Code/Resources.h \
     Code/pyrenderdoc/PythonContext.h \
+    Code/Interface/QRDInterface.h \
+    Code/Interface/CommonPipelineState.h \
+    Code/Interface/PersistantConfig.h \
+    Code/Interface/RemoteHost.h \
     Windows/Dialogs/AboutDialog.h \
     Windows/MainWindow.h \
     Windows/EventBrowser.h \

@@ -28,7 +28,7 @@
 
 Q_DECLARE_METATYPE(APIEvent);
 
-APIInspector::APIInspector(CaptureContext &ctx, QWidget *parent)
+APIInspector::APIInspector(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::APIInspector), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -49,7 +49,7 @@ APIInspector::APIInspector(CaptureContext &ctx, QWidget *parent)
 
 APIInspector::~APIInspector()
 {
-  m_Ctx.windowClosed(this);
+  m_Ctx.BuiltinWindowClosed(this);
   m_Ctx.RemoveLogViewer(this);
   delete ui;
 }

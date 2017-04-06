@@ -22,12 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "PersistantConfig.h"
 #include <QDebug>
 #include <QDir>
-#include "QRDUtils.h"
-#include "RemoteHost.h"
-#include "renderdoc_replay.h"
+#include "Code/QRDUtils.h"
+#include "QRDInterface.h"
 
 #define JSON_ID "rdocConfigData"
 #define JSON_VER 1
@@ -258,7 +256,7 @@ void PersistantConfig::SetupFormatting()
                 */
 }
 
-void PersistantConfig::AddRecentFile(QList<QString> &recentList, const QString &file, int maxItems)
+void AddRecentFile(QList<QString> &recentList, const QString &file, int maxItems)
 {
   QDir dir(file);
   QString path = dir.canonicalPath();
@@ -291,4 +289,26 @@ QString PersistantConfig::GetConfigSetting(const QString &name)
     return ConfigSettings[name];
 
   return "";
+}
+
+SPIRVDisassembler::SPIRVDisassembler(const QVariant &var)
+{
+  QVariantMap map = var.toMap();
+  if(map.contains("name"))
+    name = map["name"].toString();
+  if(map.contains("executable"))
+    executable = map["executable"].toString();
+  if(map.contains("args"))
+    args = map["args"].toString();
+}
+
+SPIRVDisassembler::operator QVariant() const
+{
+  QVariantMap map;
+
+  map["name"] = name;
+  map["executable"] = executable;
+  map["args"] = args;
+
+  return map;
 }
