@@ -203,7 +203,6 @@ namespace renderdocui.Windows
 
         private byte[] m_Zeroes = null;
 
-        private OutputConfig m_OutConfig = new OutputConfig();
         private MeshDisplay m_MeshDisplay = new MeshDisplay();
 
         private IntPtr RenderHandle = IntPtr.Zero;
@@ -301,8 +300,6 @@ namespace renderdocui.Windows
 
         private void ResetConfig()
         {
-            m_OutConfig.m_Type = OutputType.MeshDisplay;
-
             m_MeshDisplay = new MeshDisplay();
             m_MeshDisplay.type = MeshDataStage.VSIn;
             m_MeshDisplay.fov = 90.0f;
@@ -558,7 +555,6 @@ namespace renderdocui.Windows
                         return;
 
                     m_Output = r.CreateOutput(RenderHandle, OutputType.MeshDisplay);
-                    m_Output.SetOutputConfig(m_OutConfig);
                     RT_UpdateRenderOutput(r);
                     m_Output.Display(); // pump the display once, this will fetch postvs data
 

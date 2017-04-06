@@ -282,20 +282,20 @@ void CaptureDialog::on_vulkanLayerWarn_clicked()
 {
   QString caption = tr("Configure Vulkan layer settings in registry?");
 
-  uint32_t flags = 0;
+  VulkanLayerFlags flags = VulkanLayerFlags::NoFlags;
   rdctype::array<rdctype::str> myJSONs;
   rdctype::array<rdctype::str> otherJSONs;
 
   RENDERDOC_NeedVulkanLayerRegistration(&flags, &myJSONs, &otherJSONs);
 
-  const bool hasOtherJSON = (flags & eVulkan_OtherInstallsRegistered);
-  const bool thisRegistered = (flags & eVulkan_ThisInstallRegistered);
-  const bool needElevation = (flags & eVulkan_NeedElevation);
-  const bool couldElevate = (flags & eVulkan_CouldElevate);
-  const bool registerAll = (flags & eVulkan_RegisterAll);
-  const bool updateAllowed = (flags & eVulkan_UpdateAllowed);
+  const bool hasOtherJSON = bool(flags & VulkanLayerFlags::OtherInstallsRegistered);
+  const bool thisRegistered = bool(flags & VulkanLayerFlags::ThisInstallRegistered);
+  const bool needElevation = bool(flags & VulkanLayerFlags::NeedElevation);
+  const bool couldElevate = bool(flags & VulkanLayerFlags::CouldElevate);
+  const bool registerAll = bool(flags & VulkanLayerFlags::RegisterAll);
+  const bool updateAllowed = bool(flags & VulkanLayerFlags::UpdateAllowed);
 
-  if(flags & eVulkan_Unfixable)
+  if(flags & VulkanLayerFlags::Unfixable)
   {
     QString msg =
         tr("There is an unfixable problem with your vulkan layer configuration. Please consult the "

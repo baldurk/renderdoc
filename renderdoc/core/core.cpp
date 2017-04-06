@@ -37,7 +37,7 @@
 #include "crash_handler.h"
 
 // from image_viewer.cpp
-ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
+ReplayStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
 
 // not provided by tinyexr, just do by hand
 bool is_exr_file(FILE *f)
@@ -83,11 +83,11 @@ string ToStrHelper<false, WindowingSystem>::Get(const WindowingSystem &el)
 {
   switch(el)
   {
-    case eWindowingSystem_Unknown: return "Unknown";
-    case eWindowingSystem_Win32: return "Win32";
-    case eWindowingSystem_Xlib: return "Xlib";
-    case eWindowingSystem_XCB: return "XCB";
-    case eWindowingSystem_Android: return "Android";
+    case WindowingSystem::Unknown: return "Unknown";
+    case WindowingSystem::Win32: return "Win32";
+    case WindowingSystem::Xlib: return "Xlib";
+    case WindowingSystem::XCB: return "XCB";
+    case WindowingSystem::Android: return "Android";
     default: break;
   }
 
@@ -98,31 +98,31 @@ string ToStrHelper<false, WindowingSystem>::Get(const WindowingSystem &el)
 }
 
 template <>
-string ToStrHelper<false, ReplayCreateStatus>::Get(const ReplayCreateStatus &el)
+string ToStrHelper<false, ReplayStatus>::Get(const ReplayStatus &el)
 {
   switch(el)
   {
-    case eReplayCreate_Success: return "Success";
-    case eReplayCreate_UnknownError: return "Unknown error";
-    case eReplayCreate_InternalError: return "Internal error";
-    case eReplayCreate_FileNotFound: return "File not found";
-    case eReplayCreate_InjectionFailed: return "RenderDoc injection failed";
-    case eReplayCreate_IncompatibleProcess: return "Process is incompatible";
-    case eReplayCreate_NetworkIOFailed: return "Network I/O operation failed";
-    case eReplayCreate_NetworkRemoteBusy: return "Remote side of network connection is busy";
-    case eReplayCreate_NetworkVersionMismatch: return "Version mismatch between network clients";
-    case eReplayCreate_FileIOFailed: return "File I/O failed";
-    case eReplayCreate_FileIncompatibleVersion: return "File of incompatible version";
-    case eReplayCreate_FileCorrupted: return "File corrupted";
-    case eReplayCreate_APIUnsupported: return "API unsupported";
-    case eReplayCreate_APIInitFailed: return "API initialisation failed";
-    case eReplayCreate_APIIncompatibleVersion: return "API incompatible version";
-    case eReplayCreate_APIHardwareUnsupported: return "API hardware unsupported";
+    case ReplayStatus::Succeeded: return "Succeeded";
+    case ReplayStatus::UnknownError: return "Unknown error";
+    case ReplayStatus::InternalError: return "Internal error";
+    case ReplayStatus::FileNotFound: return "File not found";
+    case ReplayStatus::InjectionFailed: return "RenderDoc injection failed";
+    case ReplayStatus::IncompatibleProcess: return "Process is incompatible";
+    case ReplayStatus::NetworkIOFailed: return "Network I/O operation failed";
+    case ReplayStatus::NetworkRemoteBusy: return "Remote side of network connection is busy";
+    case ReplayStatus::NetworkVersionMismatch: return "Version mismatch between network clients";
+    case ReplayStatus::FileIOFailed: return "File I/O failed";
+    case ReplayStatus::FileIncompatibleVersion: return "File of incompatible version";
+    case ReplayStatus::FileCorrupted: return "File corrupted";
+    case ReplayStatus::APIUnsupported: return "API unsupported";
+    case ReplayStatus::APIInitFailed: return "API initialisation failed";
+    case ReplayStatus::APIIncompatibleVersion: return "API incompatible version";
+    case ReplayStatus::APIHardwareUnsupported: return "API hardware unsupported";
     default: break;
   }
 
   char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "ReplayCreateStatus<%d>", el);
+  StringFormat::snprintf(tostrBuf, 255, "StatusCode<%d>", el);
 
   return tostrBuf;
 }
@@ -748,9 +748,8 @@ Serialiser *RenderDoc::OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *par
   return fileSerialiser;
 }
 
-ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &driverType,
-                                             string &driverName, uint64_t &fileMachineIdent,
-                                             RDCInitParams *params)
+ReplayStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &driverType, string &driverName,
+                                       uint64_t &fileMachineIdent, RDCInitParams *params)
 {
   Serialiser ser(logFile, Serialiser::READING, true);
 
@@ -777,7 +776,7 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
         driverType = RDC_Image;
         driverName = "Image";
         fileMachineIdent = 0;
-        return eReplayCreate_Success;
+        return ReplayStatus::Succeeded;
       }
     }
 
@@ -785,13 +784,13 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
 
     switch(ser.ErrorCode())
     {
-      case Serialiser::eSerError_FileIO: return eReplayCreate_FileIOFailed;
-      case Serialiser::eSerError_Corrupt: return eReplayCreate_FileCorrupted;
-      case Serialiser::eSerError_UnsupportedVersion: return eReplayCreate_FileIncompatibleVersion;
+      case Serialiser::eSerError_FileIO: return ReplayStatus::FileIOFailed;
+      case Serialiser::eSerError_Corrupt: return ReplayStatus::FileCorrupted;
+      case Serialiser::eSerError_UnsupportedVersion: return ReplayStatus::FileIncompatibleVersion;
       default: break;
     }
 
-    return eReplayCreate_InternalError;
+    return ReplayStatus::InternalError;
   }
 
   ser.Rewind();
@@ -804,7 +803,7 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
     if(chunkType != THUMBNAIL_DATA)
     {
       RDCERR("Malformed logfile '%s', first chunk isn't thumbnail data", logFile);
-      return eReplayCreate_FileCorrupted;
+      return ReplayStatus::FileCorrupted;
     }
 
     ser.SkipCurrentChunk();
@@ -818,7 +817,7 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
     if(chunkType != CREATE_PARAMS)
     {
       RDCERR("Malformed logfile '%s', second chunk isn't create params", logFile);
-      return eReplayCreate_FileCorrupted;
+      return ReplayStatus::FileCorrupted;
     }
 
     ser.Serialise("DriverType", driverType);
@@ -829,7 +828,7 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
     if(chunkType != DRIVER_INIT_PARAMS)
     {
       RDCERR("Malformed logfile '%s', chunk doesn't contain driver init params", logFile);
-      return eReplayCreate_FileCorrupted;
+      return ReplayStatus::FileCorrupted;
     }
 
     if(params)
@@ -841,7 +840,7 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
   }
 
   // we can just throw away the serialiser, don't need to care about closing/popping contexts
-  return eReplayCreate_Success;
+  return ReplayStatus::Succeeded;
 }
 
 bool RenderDoc::HasReplayDriver(RDCDriver driver) const
@@ -887,11 +886,11 @@ void RenderDoc::RegisterRemoteProvider(RDCDriver driver, const char *name,
   m_RemoteDriverProviders[driver] = provider;
 }
 
-ReplayCreateStatus RenderDoc::CreateReplayDriver(RDCDriver driverType, const char *logfile,
-                                                 IReplayDriver **driver)
+ReplayStatus RenderDoc::CreateReplayDriver(RDCDriver driverType, const char *logfile,
+                                           IReplayDriver **driver)
 {
   if(driver == NULL)
-    return eReplayCreate_InternalError;
+    return ReplayStatus::InternalError;
 
   // allows passing RDC_Unknown as 'I don't care, give me a proxy driver of any type'
   // only valid if logfile is NULL and it will be used as a proxy, not to process a log
@@ -906,14 +905,14 @@ ReplayCreateStatus RenderDoc::CreateReplayDriver(RDCDriver driverType, const cha
     return m_ReplayDriverProviders[driverType](logfile, driver);
 
   RDCERR("Unsupported replay driver requested: %d", driverType);
-  return eReplayCreate_APIUnsupported;
+  return ReplayStatus::APIUnsupported;
 }
 
-ReplayCreateStatus RenderDoc::CreateRemoteDriver(RDCDriver driverType, const char *logfile,
-                                                 IRemoteDriver **driver)
+ReplayStatus RenderDoc::CreateRemoteDriver(RDCDriver driverType, const char *logfile,
+                                           IRemoteDriver **driver)
 {
   if(driver == NULL)
-    return eReplayCreate_InternalError;
+    return ReplayStatus::InternalError;
 
   if(m_RemoteDriverProviders.find(driverType) != m_RemoteDriverProviders.end())
     return m_RemoteDriverProviders[driverType](logfile, driver);
@@ -924,7 +923,7 @@ ReplayCreateStatus RenderDoc::CreateRemoteDriver(RDCDriver driverType, const cha
     IReplayDriver *dr = NULL;
     auto status = m_ReplayDriverProviders[driverType](logfile, &dr);
 
-    if(status == eReplayCreate_Success)
+    if(status == ReplayStatus::Succeeded)
       *driver = (IRemoteDriver *)dr;
     else
       RDCASSERT(dr == NULL);
@@ -933,7 +932,7 @@ ReplayCreateStatus RenderDoc::CreateRemoteDriver(RDCDriver driverType, const cha
   }
 
   RDCERR("Unsupported replay driver requested: %d", driverType);
-  return eReplayCreate_APIUnsupported;
+  return ReplayStatus::APIUnsupported;
 }
 
 void RenderDoc::SetCurrentDriver(RDCDriver driver)

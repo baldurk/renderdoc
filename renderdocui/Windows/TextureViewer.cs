@@ -1090,9 +1090,6 @@ namespace renderdocui.Windows
 
         public void OnLogfileLoaded()
         {
-            var outConfig = new OutputConfig();
-            outConfig.m_Type = OutputType.TexDisplay;
-
             saveTex.Enabled = gotoLocationButton.Enabled = viewTexBuffer.Enabled = true;
 
             m_Following = Following.Default;
@@ -1111,7 +1108,6 @@ namespace renderdocui.Windows
             {
                 m_Output = r.CreateOutput(renderHandle, OutputType.TexDisplay);
                 m_Output.SetPixelContext(contextHandle);
-                m_Output.SetOutputConfig(outConfig);
 
                 this.BeginInvoke(new Action(UI_CreateThumbnails));
             });

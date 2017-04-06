@@ -114,36 +114,36 @@ void Process::ApplyEnvironmentModification()
       name = lowername;
     }
 
-    switch(m.type)
+    switch(m.mod)
     {
-      case eEnvModification_Replace: value = m.value; break;
-      case eEnvModification_Append: value += m.value; break;
-      case eEnvModification_AppendColon:
+      case EnvMod::Set: value = m.value; break;
+      case EnvMod::Append:
+      {
         if(!value.empty())
-          value += ":";
+        {
+          if(m.sep == EnvSep::Platform || m.sep == EnvSep::SemiColon)
+            value += ";";
+          else if(m.sep == EnvSep::Colon)
+            value += ":";
+        }
         value += m.value;
         break;
-      case eEnvModification_AppendPlatform:
-      case eEnvModification_AppendSemiColon:
+      }
+      case EnvMod::Prepend:
+      {
         if(!value.empty())
-          value += ";";
-        value += m.value;
-        break;
-      case eEnvModification_Prepend: value = m.value + value; break;
-      case eEnvModification_PrependColon:
-        if(!value.empty())
-          value = m.value + ":" + value;
+        {
+          if(m.sep == EnvSep::Platform || m.sep == EnvSep::SemiColon)
+            value += ";";
+          else if(m.sep == EnvSep::Colon)
+            value += ":";
+        }
         else
+        {
           value = m.value;
+        }
         break;
-      case eEnvModification_PrependPlatform:
-      case eEnvModification_PrependSemiColon:
-        if(!value.empty())
-          value = m.value + ";" + value;
-        else
-          value = m.value;
-        break;
-      default: RDCERR("Unexpected environment modification type");
+      }
     }
 
     SetEnvironmentVariableW(name.c_str(), StringFormat::UTF82Wide(value).c_str());
@@ -186,11 +186,17 @@ extern "C" __declspec(dllexport) void __cdecl INTERNAL_EnvModValue(const char *v
     tempEnvMod.value = value;
 }
 
-extern "C" __declspec(dllexport) void __cdecl INTERNAL_EnvMod(Process::ModificationType *type)
+extern "C" __declspec(dllexport) void __cdecl INTERNAL_EnvSep(EnvSep *sep)
 {
-  if(type)
+  if(sep)
+    tempEnvMod.sep = *sep;
+}
+
+extern "C" __declspec(dllexport) void __cdecl INTERNAL_EnvMod(EnvMod *mod)
+{
+  if(mod)
   {
-    tempEnvMod.type = *type;
+    tempEnvMod.mod = *mod;
     Process::RegisterEnvironmentModification(tempEnvMod);
   }
 }
@@ -759,28 +765,29 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
       {
         string name = trim(env->name);
         string value = env->value;
-        ModificationType type = env->type;
 
         if(name == "")
           break;
 
         cmdWithEnv += L" +env-";
-        switch(type)
+        switch(env->mod)
         {
-          case eEnvModification_Replace: cmdWithEnv += L"replace "; break;
-
-          case eEnvModification_AppendPlatform: cmdWithEnv += L"append-platform "; break;
-
-          case eEnvModification_AppendSemiColon: cmdWithEnv += L"append-semicolon "; break;
-          case eEnvModification_AppendColon: cmdWithEnv += L"append-colon "; break;
-          case eEnvModification_Append: cmdWithEnv += L"append "; break;
-
-          case eEnvModification_PrependPlatform: cmdWithEnv += L"prepend-platform "; break;
-
-          case eEnvModification_PrependSemiColon: cmdWithEnv += L"prepend-semicolon "; break;
-          case eEnvModification_PrependColon: cmdWithEnv += L"prepend-colon "; break;
-          case eEnvModification_Prepend: cmdWithEnv += L"prepend "; break;
+          case EnvMod::Set: cmdWithEnv += L"replace"; break;
+          case EnvMod::Append: cmdWithEnv += L"append"; break;
+          case EnvMod::Prepend: cmdWithEnv += L"prepend"; break;
         }
+
+        if(env->mod != EnvMod::Set)
+        {
+          switch(env->sep)
+          {
+            case EnvSep::Platform: cmdWithEnv += L"-platform"; break;
+            case EnvSep::SemiColon: cmdWithEnv += L"-semicolon"; break;
+            case EnvSep::Colon: cmdWithEnv += L"-colon"; break;
+          }
+        }
+
+        cmdWithEnv += L" ";
 
         // escape the parameters
         for(auto it = name.begin(); it != name.end(); ++it)
@@ -874,7 +881,8 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
       {
         string name = trim(env->name);
         string value = env->value;
-        ModificationType type = env->type;
+        EnvMod mod = env->mod;
+        EnvSep sep = env->sep;
 
         if(name == "")
           break;
@@ -883,7 +891,8 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
                            name.size() + 1);
         InjectFunctionCall(hProcess, loc, "INTERNAL_EnvModValue", (void *)value.c_str(),
                            value.size() + 1);
-        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvMod", &type, sizeof(type));
+        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvSep", &sep, sizeof(sep));
+        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvMod", &mod, sizeof(mod));
 
         env++;
       }

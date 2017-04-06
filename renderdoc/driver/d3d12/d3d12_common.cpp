@@ -62,12 +62,12 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type,
 
   switch(type.descriptor.type)
   {
-    case DXBC::VARTYPE_INT: ret.descriptor.type = eVar_Int; break;
+    case DXBC::VARTYPE_INT: ret.descriptor.type = VarType::Int; break;
     case DXBC::VARTYPE_BOOL:
-    case DXBC::VARTYPE_UINT: ret.descriptor.type = eVar_UInt; break;
-    case DXBC::VARTYPE_DOUBLE: ret.descriptor.type = eVar_Double; break;
+    case DXBC::VARTYPE_UINT: ret.descriptor.type = VarType::UInt; break;
+    case DXBC::VARTYPE_DOUBLE: ret.descriptor.type = VarType::Double; break;
     case DXBC::VARTYPE_FLOAT:
-    default: ret.descriptor.type = eVar_Float; break;
+    default: ret.descriptor.type = VarType::Float; break;
   }
   ret.descriptor.rows = type.descriptor.rows;
   ret.descriptor.cols = type.descriptor.cols;
@@ -75,7 +75,7 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type,
   ret.descriptor.name = type.descriptor.name;
   ret.descriptor.rowMajorStorage = (type.descriptor.varClass == DXBC::CLASS_MATRIX_ROWS);
 
-  uint32_t baseElemSize = (ret.descriptor.type == eVar_Double) ? 8 : 4;
+  uint32_t baseElemSize = (ret.descriptor.type == VarType::Double) ? 8 : 4;
   if(ret.descriptor.rowMajorStorage)
   {
     uint32_t primary = ret.descriptor.rows;
@@ -271,21 +271,25 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     switch(r.dimension)
     {
       default:
-      case DXBC::ShaderInputBind::DIM_UNKNOWN: res.resType = eResType_None; break;
+      case DXBC::ShaderInputBind::DIM_UNKNOWN: res.resType = TextureDim::Unknown; break;
       case DXBC::ShaderInputBind::DIM_BUFFER:
-      case DXBC::ShaderInputBind::DIM_BUFFEREX: res.resType = eResType_Buffer; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE1D: res.resType = eResType_Texture1D; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE1DARRAY: res.resType = eResType_Texture1DArray; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE2D: res.resType = eResType_Texture2D; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE2DARRAY: res.resType = eResType_Texture2DArray; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE2DMS: res.resType = eResType_Texture2DMS; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE2DMSARRAY:
-        res.resType = eResType_Texture2DMSArray;
+      case DXBC::ShaderInputBind::DIM_BUFFEREX: res.resType = TextureDim::Buffer; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE1D: res.resType = TextureDim::Texture1D; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE1DARRAY:
+        res.resType = TextureDim::Texture1DArray;
         break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE3D: res.resType = eResType_Texture3D; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURECUBE: res.resType = eResType_TextureCube; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE2D: res.resType = TextureDim::Texture2D; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE2DARRAY:
+        res.resType = TextureDim::Texture2DArray;
+        break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE2DMS: res.resType = TextureDim::Texture2DMS; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE2DMSARRAY:
+        res.resType = TextureDim::Texture2DMSArray;
+        break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE3D: res.resType = TextureDim::Texture3D; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURECUBE: res.resType = TextureDim::TextureCube; break;
       case DXBC::ShaderInputBind::DIM_TEXTURECUBEARRAY:
-        res.resType = eResType_TextureCubeArray;
+        res.resType = TextureDim::TextureCubeArray;
         break;
     }
 
@@ -460,19 +464,19 @@ UINT GetNumSubresources(ID3D12Device *dev, const D3D12_RESOURCE_DESC *desc)
   return 1;
 }
 
-ShaderStageBits ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility)
+ShaderStageMask ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility)
 {
   switch(ShaderVisibility)
   {
-    case D3D12_SHADER_VISIBILITY_ALL: return eStageBits_All;
-    case D3D12_SHADER_VISIBILITY_VERTEX: return eStageBits_Vertex;
-    case D3D12_SHADER_VISIBILITY_HULL: return eStageBits_Hull;
-    case D3D12_SHADER_VISIBILITY_DOMAIN: return eStageBits_Domain;
-    case D3D12_SHADER_VISIBILITY_GEOMETRY: return eStageBits_Geometry;
-    case D3D12_SHADER_VISIBILITY_PIXEL: return eStageBits_Pixel;
+    case D3D12_SHADER_VISIBILITY_ALL: return ShaderStageMask::All;
+    case D3D12_SHADER_VISIBILITY_VERTEX: return ShaderStageMask::Vertex;
+    case D3D12_SHADER_VISIBILITY_HULL: return ShaderStageMask::Hull;
+    case D3D12_SHADER_VISIBILITY_DOMAIN: return ShaderStageMask::Domain;
+    case D3D12_SHADER_VISIBILITY_GEOMETRY: return ShaderStageMask::Geometry;
+    case D3D12_SHADER_VISIBILITY_PIXEL: return ShaderStageMask::Pixel;
   }
 
-  return eStageBits_Vertex;
+  return ShaderStageMask::Vertex;
 }
 
 string ToStrHelper<false, D3D12ComponentMapping>::Get(const D3D12ComponentMapping &el)

@@ -364,7 +364,7 @@ vector<FoundFile> GetFilesInDirectory(const char *path)
         string fn = "A:/";
         fn[0] = char('A' + i);
 
-        ret.push_back(FoundFile(fn, eFileProp_Directory));
+        ret.push_back(FoundFile(fn, FileProperty::Directory));
       }
     }
 
@@ -394,12 +394,12 @@ vector<FoundFile> GetFilesInDirectory(const char *path)
   {
     DWORD err = GetLastError();
 
-    uint32_t flags = eFileProp_ErrorUnknown;
+    FileProperty flags = FileProperty::ErrorUnknown;
 
     if(err == ERROR_FILE_NOT_FOUND)
-      flags = eFileProp_ErrorInvalidPath;
+      flags = FileProperty::ErrorInvalidPath;
     else if(err == ERROR_ACCESS_DENIED)
-      flags = eFileProp_ErrorAccessDenied;
+      flags = FileProperty::ErrorAccessDenied;
 
     ret.push_back(FoundFile(path, flags));
     return ret;
@@ -418,18 +418,18 @@ vector<FoundFile> GetFilesInDirectory(const char *path)
     }
     else
     {
-      uint32_t flags = 0;
+      FileProperty flags = FileProperty::NoFlags;
 
       if(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-        flags |= eFileProp_Directory;
+        flags |= FileProperty::Directory;
 
       if(findData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)
-        flags |= eFileProp_Hidden;
+        flags |= FileProperty::Hidden;
 
       if(wcsstr(findData.cFileName, L".EXE") || wcsstr(findData.cFileName, L".exe") ||
          wcsstr(findData.cFileName, L".Exe"))
       {
-        flags |= eFileProp_Executable;
+        flags |= FileProperty::Executable;
       }
 
       FoundFile f(StringFormat::Wide2UTF8(findData.cFileName), flags);

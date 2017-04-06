@@ -53,7 +53,7 @@ int NonFatalX11ErrorHandler(Display *display, XErrorEvent *error)
 
 typedef int (*X11ErrorHandler)(Display *display, XErrorEvent *error);
 
-ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCDEBUG("Creating an OpenGL replay device");
 
@@ -74,7 +74,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
       RDCERR(
           "Couldn't find required entry points, glXGetProcAddress glXDestroyContext "
           "glXSwapBuffers");
-      return eReplayCreate_APIInitFailed;
+      return ReplayStatus::APIInitFailed;
     }
 
     glXCreateContextAttribsProc = (PFNGLXCREATECONTEXTATTRIBSARBPROC)glXGetFuncProc(
@@ -86,7 +86,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     {
       RDCERR(
           "Couldn't get glx function addresses, glXCreateContextAttribsARB glXMakeContextCurrent");
-      return eReplayCreate_APIInitFailed;
+      return ReplayStatus::APIInitFailed;
     }
   }
 
@@ -98,7 +98,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   {
     auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
                                                    (RDCInitParams *)&initParams);
-    if(status != eReplayCreate_Success)
+    if(status != ReplayStatus::Succeeded)
       return status;
   }
 
@@ -127,7 +127,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   if(dpy == NULL)
   {
     RDCERR("Couldn't open default X display");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   // don't need to care about the fb config as we won't be using the default framebuffer
@@ -141,7 +141,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't choose default framebuffer config");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   GLXContext ctx = NULL;
@@ -180,7 +180,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't create 3.2 context - RenderDoc requires OpenGL 3.2 availability");
-    return eReplayCreate_APIHardwareUnsupported;
+    return ReplayStatus::APIHardwareUnsupported;
   }
 
   GLCoreVersion = major * 10 + minor;
@@ -202,7 +202,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't make pbuffer & context current");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   PFNGLGETINTEGERVPROC getInt =
@@ -220,7 +220,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     XFree(fbcfg);
     XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   const GLHookSet &real = GetRealGLFunctions();
@@ -235,7 +235,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     XFree(fbcfg);
     XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIHardwareUnsupported;
+    return ReplayStatus::APIHardwareUnsupported;
   }
 
   bool extensionsValidated = ValidateFunctionPointers(real);
@@ -247,7 +247,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     XFree(fbcfg);
     XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIHardwareUnsupported;
+    return ReplayStatus::APIHardwareUnsupported;
   }
 
   WrappedOpenGL *gl = new WrappedOpenGL(logfile, real, GetGLPlatform());
@@ -256,7 +256,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   if(gl->GetSerialiser()->HasError())
   {
     delete gl;
-    return eReplayCreate_FileIOFailed;
+    return ReplayStatus::FileIOFailed;
   }
 
   RDCLOG("Created device.");
@@ -269,5 +269,5 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   replay->SetReplayData(data);
 
   *driver = (IReplayDriver *)replay;
-  return eReplayCreate_Success;
+  return ReplayStatus::Succeeded;
 }

@@ -98,13 +98,13 @@ struct XCBWindowData
 
 #endif
 
-enum WindowingSystem
+enum class WindowingSystem : uint32_t
 {
-  eWindowingSystem_Unknown,
-  eWindowingSystem_Win32,
-  eWindowingSystem_Xlib,
-  eWindowingSystem_XCB,
-  eWindowingSystem_Android,
+  Unknown,
+  Win32,
+  Xlib,
+  XCB,
+  Android,
 };
 
 // needs to be declared up here for reference in basic_types
@@ -144,13 +144,12 @@ struct ResourceId
 
 struct IReplayOutput
 {
-  virtual bool SetOutputConfig(const OutputConfig &o) = 0;
   virtual bool SetTextureDisplay(const TextureDisplay &o) = 0;
   virtual bool SetMeshDisplay(const MeshDisplay &o) = 0;
 
   virtual bool ClearThumbnails() = 0;
   virtual bool AddThumbnail(WindowingSystem system, void *data, ResourceId texID,
-                            FormatComponentType typeHint) = 0;
+                            CompType typeHint) = 0;
 
   virtual bool Display() = 0;
 
@@ -169,8 +168,6 @@ struct IReplayOutput
 };
 
 // deprecated C interface, for renderdocui only
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetOutputConfig(IReplayOutput *output,
-                                                                          const OutputConfig &o);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetTextureDisplay(IReplayOutput *output,
                                                                             const TextureDisplay &o);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetMeshDisplay(IReplayOutput *output,
@@ -180,7 +177,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_ClearThumbnails(IRepla
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(IReplayOutput *output,
                                                                        WindowingSystem system,
                                                                        void *data, ResourceId texID,
-                                                                       FormatComponentType typeHint);
+                                                                       CompType typeHint);
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_Display(IReplayOutput *output);
 
@@ -215,7 +212,7 @@ struct IReplayRenderer
 
   virtual void GetSupportedWindowSystems(rdctype::array<WindowingSystem> *systems) = 0;
 
-  virtual IReplayOutput *CreateOutput(WindowingSystem system, void *data, OutputType type) = 0;
+  virtual IReplayOutput *CreateOutput(WindowingSystem system, void *data, ReplayOutputType type) = 0;
   virtual void Shutdown() = 0;
   virtual void ShutdownOutput(IReplayOutput *output) = 0;
 
@@ -231,12 +228,12 @@ struct IReplayRenderer
   virtual bool GetVulkanPipelineState(VulkanPipelineState *state) = 0;
 
   virtual ResourceId BuildCustomShader(const char *entry, const char *source,
-                                       const uint32_t compileFlags, ShaderStageType type,
+                                       const uint32_t compileFlags, ShaderStage type,
                                        rdctype::str *errors) = 0;
   virtual bool FreeCustomShader(ResourceId id) = 0;
 
   virtual ResourceId BuildTargetShader(const char *entry, const char *source,
-                                       const uint32_t compileFlags, ShaderStageType type,
+                                       const uint32_t compileFlags, ShaderStage type,
                                        rdctype::str *errors) = 0;
   virtual bool ReplaceResource(ResourceId from, ResourceId to) = 0;
   virtual bool RemoveReplacement(ResourceId id) = 0;
@@ -244,10 +241,10 @@ struct IReplayRenderer
 
   virtual bool GetFrameInfo(FetchFrameInfo *frame) = 0;
   virtual bool GetDrawcalls(rdctype::array<FetchDrawcall> *draws) = 0;
-  virtual bool FetchCounters(uint32_t *counters, uint32_t numCounters,
+  virtual bool FetchCounters(GPUCounter *counters, uint32_t numCounters,
                              rdctype::array<CounterResult> *results) = 0;
-  virtual bool EnumerateCounters(rdctype::array<uint32_t> *counters) = 0;
-  virtual bool DescribeCounter(uint32_t counterID, CounterDescription *desc) = 0;
+  virtual bool EnumerateCounters(rdctype::array<GPUCounter> *counters) = 0;
+  virtual bool DescribeCounter(GPUCounter counterID, CounterDescription *desc) = 0;
   virtual bool GetTextures(rdctype::array<FetchTexture> *texs) = 0;
   virtual bool GetBuffers(rdctype::array<FetchBuffer> *bufs) = 0;
   virtual bool GetResolve(uint64_t *callstack, uint32_t callstackLen,
@@ -255,7 +252,7 @@ struct IReplayRenderer
   virtual bool GetDebugMessages(rdctype::array<DebugMessage> *msgs) = 0;
 
   virtual bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-                            uint32_t sampleIdx, FormatComponentType typeHint,
+                            uint32_t sampleIdx, CompType typeHint,
                             rdctype::array<PixelModification> *history) = 0;
   virtual bool DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset,
                            uint32_t vertOffset, ShaderDebugTrace *trace) = 0;
@@ -287,7 +284,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetSupportedWindowSyst
     IReplayRenderer *rend, rdctype::array<WindowingSystem> *systems);
 
 extern "C" RENDERDOC_API IReplayOutput *RENDERDOC_CC ReplayRenderer_CreateOutput(
-    IReplayRenderer *rend, WindowingSystem system, void *data, OutputType type);
+    IReplayRenderer *rend, WindowingSystem system, void *data, ReplayOutputType type);
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_Shutdown(IReplayRenderer *rend);
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_ShutdownOutput(IReplayRenderer *rend,
                                                                          IReplayOutput *output);
@@ -311,13 +308,13 @@ ReplayRenderer_GetVulkanPipelineState(IReplayRenderer *rend, VulkanPipelineState
 
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildCustomShader(
     IReplayRenderer *rend, const char *entry, const char *source, const uint32_t compileFlags,
-    ShaderStageType type, ResourceId *shaderID, rdctype::str *errors);
+    ShaderStage type, ResourceId *shaderID, rdctype::str *errors);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FreeCustomShader(IReplayRenderer *rend,
                                                                              ResourceId id);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildTargetShader(
     IReplayRenderer *rend, const char *entry, const char *source, const uint32_t compileFlags,
-    ShaderStageType type, ResourceId *shaderID, rdctype::str *errors);
+    ShaderStage type, ResourceId *shaderID, rdctype::str *errors);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_ReplaceResource(IReplayRenderer *rend,
                                                                             ResourceId from,
                                                                             ResourceId to);
@@ -331,12 +328,12 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetFrameInfo(IReplay
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 ReplayRenderer_GetDrawcalls(IReplayRenderer *rend, rdctype::array<FetchDrawcall> *draws);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_FetchCounters(IReplayRenderer *rend, uint32_t *counters, uint32_t numCounters,
+ReplayRenderer_FetchCounters(IReplayRenderer *rend, GPUCounter *counters, uint32_t numCounters,
                              rdctype::array<CounterResult> *results);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_EnumerateCounters(IReplayRenderer *rend, rdctype::array<uint32_t> *counters);
+ReplayRenderer_EnumerateCounters(IReplayRenderer *rend, rdctype::array<GPUCounter> *counters);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DescribeCounter(IReplayRenderer *rend,
-                                                                            uint32_t counterID,
+                                                                            GPUCounter counterID,
                                                                             CounterDescription *desc);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 ReplayRenderer_GetTextures(IReplayRenderer *rend, rdctype::array<FetchTexture> *texs);
@@ -350,7 +347,7 @@ ReplayRenderer_GetDebugMessages(IReplayRenderer *rend, rdctype::array<DebugMessa
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_PixelHistory(
     IReplayRenderer *rend, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-    uint32_t sampleIdx, FormatComponentType typeHint, rdctype::array<PixelModification> *history);
+    uint32_t sampleIdx, CompType typeHint, rdctype::array<PixelModification> *history);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 ReplayRenderer_DebugVertex(IReplayRenderer *rend, uint32_t vertid, uint32_t instid, uint32_t idx,
                            uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace);
@@ -449,8 +446,8 @@ struct IRemoteServer
   virtual void CopyCaptureFromRemote(const char *remotepath, const char *localpath,
                                      float *progress) = 0;
 
-  virtual ReplayCreateStatus OpenCapture(uint32_t proxyid, const char *logfile, float *progress,
-                                         IReplayRenderer **rend) = 0;
+  virtual ReplayStatus OpenCapture(uint32_t proxyid, const char *logfile, float *progress,
+                                   IReplayRenderer **rend) = 0;
   virtual void CloseCapture(IReplayRenderer *rend) = 0;
 };
 
@@ -484,9 +481,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureFromRemote(IR
                                                                               const char *localpath,
                                                                               float *progress);
 
-extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
-RemoteServer_OpenCapture(IRemoteServer *remote, uint32_t proxyid, const char *logfile,
-                         float *progress, IReplayRenderer **rend);
+extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC RemoteServer_OpenCapture(IRemoteServer *remote,
+                                                                            uint32_t proxyid,
+                                                                            const char *logfile,
+                                                                            float *progress,
+                                                                            IReplayRenderer **rend);
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CloseCapture(IRemoteServer *remote,
                                                                      IReplayRenderer *rend);
 
@@ -521,9 +520,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC Camera_GetBasis(Camera *c, FloatVecto
 extern "C" RENDERDOC_API float RENDERDOC_CC Maths_HalfToFloat(uint16_t half);
 extern "C" RENDERDOC_API uint16_t RENDERDOC_CC Maths_FloatToHalf(float f);
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
-Topology_NumVerticesPerPrimitive(PrimitiveTopology topology);
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_VertexOffset(PrimitiveTopology topology,
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_NumVerticesPerPrimitive(Topology topology);
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_VertexOffset(Topology topology,
                                                                      uint32_t primitive);
 
 //////////////////////////////////////////////////////////////////////////
@@ -534,7 +532,7 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_VertexOffset(PrimitiveTo
 
 extern "C" RENDERDOC_API ReplaySupport RENDERDOC_CC RENDERDOC_SupportLocalReplay(
     const char *logfile, rdctype::str *driverName, rdctype::str *recordMachineIdent);
-extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
+extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
 RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, IReplayRenderer **rend);
 
 //////////////////////////////////////////////////////////////////////////
@@ -551,7 +549,7 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
 //////////////////////////////////////////////////////////////////////////
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultRemoteServerPort();
-extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
+extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
 RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, IRemoteServer **rend);
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(const char *listenhost,
                                                                         uint32_t port,
@@ -578,8 +576,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const ch
 // Vulkan layer handling
 //////////////////////////////////////////////////////////////////////////
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_NeedVulkanLayerRegistration(
-    uint32_t *flags, rdctype::array<rdctype::str> *myJSONs, rdctype::array<rdctype::str> *otherJSONs);
+extern "C" RENDERDOC_API bool RENDERDOC_CC
+RENDERDOC_NeedVulkanLayerRegistration(VulkanLayerFlags *flags, rdctype::array<rdctype::str> *myJSONs,
+                                      rdctype::array<rdctype::str> *otherJSONs);
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistration(bool systemLevel);
 
 //////////////////////////////////////////////////////////////////////////
@@ -591,9 +590,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(voi
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char *filename);
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetLogFile();
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const char *text);
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogMessageType type,
-                                                                const char *project, const char *file,
-                                                                unsigned int line, const char *text);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogType type, const char *project,
+                                                                const char *file, unsigned int line,
+                                                                const char *text);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename,
                                                                     FileType type, uint32_t maxsize,
                                                                     rdctype::array<byte> *buf);
@@ -606,8 +605,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetConfigSetting(const char
 extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_MakeEnvironmentModificationList(int numElems);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetEnvironmentModification(
-    void *mem, int idx, const char *variable, const char *value, EnvironmentModificationType type,
-    EnvironmentSeparator separator);
+    void *mem, int idx, const char *variable, const char *value, EnvMod type, EnvSep separator);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeEnvironmentModificationList(void *mem);
 

@@ -128,7 +128,7 @@ void RenderDoc::TargetControlClientThread(void *s)
       ser.Serialise("", path);
 
       rdctype::array<byte> buf;
-      RENDERDOC_GetThumbnail(captures.back().path.c_str(), eFileType_JPG, 0, &buf);
+      RENDERDOC_GetThumbnail(captures.back().path.c_str(), FileType::JPG, 0, &buf);
 
       size_t sz = buf.size();
       ser.Serialise("", buf.count);
@@ -488,7 +488,7 @@ public:
   {
     if(m_Socket == NULL)
     {
-      msg->Type = eTargetControlMsg_Disconnected;
+      msg->Type = TargetControlMessageType::Disconnected;
       return;
     }
 
@@ -497,12 +497,12 @@ public:
       if(!m_Socket->Connected())
       {
         SAFE_DELETE(m_Socket);
-        msg->Type = eTargetControlMsg_Disconnected;
+        msg->Type = TargetControlMessageType::Disconnected;
       }
       else
       {
         Threading::Sleep(2);
-        msg->Type = eTargetControlMsg_Noop;
+        msg->Type = TargetControlMessageType::Noop;
       }
 
       return;
@@ -517,7 +517,7 @@ public:
     {
       SAFE_DELETE(ser);
 
-      msg->Type = eTargetControlMsg_Disconnected;
+      msg->Type = TargetControlMessageType::Disconnected;
       return;
     }
     else
@@ -526,7 +526,7 @@ public:
       {
         SAFE_DELETE(ser);
 
-        msg->Type = eTargetControlMsg_Noop;
+        msg->Type = TargetControlMessageType::Noop;
         return;
       }
       else if(type == ePacket_Busy)
@@ -539,13 +539,13 @@ public:
         SAFE_DELETE(m_Socket);
 
         RDCLOG("Got busy signal: '%s", existingClient.c_str());
-        msg->Type = eTargetControlMsg_Busy;
+        msg->Type = TargetControlMessageType::Busy;
         msg->Busy.ClientName = existingClient;
         return;
       }
       else if(type == ePacket_CopyCapture)
       {
-        msg->Type = eTargetControlMsg_CaptureCopied;
+        msg->Type = TargetControlMessageType::CaptureCopied;
 
         ser->Serialise("", msg->NewCapture.ID);
 
@@ -558,7 +558,7 @@ public:
           SAFE_DELETE(ser);
           SAFE_DELETE(m_Socket);
 
-          msg->Type = eTargetControlMsg_Disconnected;
+          msg->Type = TargetControlMessageType::Disconnected;
           return;
         }
 
@@ -570,7 +570,7 @@ public:
       }
       else if(type == ePacket_NewChild)
       {
-        msg->Type = eTargetControlMsg_NewChild;
+        msg->Type = TargetControlMessageType::NewChild;
 
         ser->Serialise("", msg->NewChild.PID);
         ser->Serialise("", msg->NewChild.ident);
@@ -583,7 +583,7 @@ public:
       }
       else if(type == ePacket_NewCapture)
       {
-        msg->Type = eTargetControlMsg_NewCapture;
+        msg->Type = TargetControlMessageType::NewCapture;
 
         ser->Serialise("", msg->NewCapture.ID);
         ser->Serialise("", msg->NewCapture.timestamp);
@@ -611,7 +611,7 @@ public:
       }
       else if(type == ePacket_RegisterAPI)
       {
-        msg->Type = eTargetControlMsg_RegisterAPI;
+        msg->Type = TargetControlMessageType::RegisterAPI;
 
         ser->Serialise("", m_API);
         msg->RegisterAPI.APIName = m_API;
@@ -626,7 +626,7 @@ public:
 
     SAFE_DELETE(ser);
 
-    msg->Type = eTargetControlMsg_Noop;
+    msg->Type = TargetControlMessageType::Noop;
   }
 
 private:

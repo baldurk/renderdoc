@@ -156,7 +156,7 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(GLenum source, GLenum type, G
   {
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_SetMarker;
+    draw.flags |= DrawFlags::SetMarker;
 
     AddDrawcall(draw, false);
   }
@@ -238,7 +238,7 @@ bool WrappedOpenGL::Serialise_glPushDebugGroup(GLenum source, GLuint id, GLsizei
   {
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_PushMarker;
+    draw.flags |= DrawFlags::PushMarker;
 
     AddDrawcall(draw, false);
   }
@@ -265,7 +265,7 @@ bool WrappedOpenGL::Serialise_glPopDebugGroup()
   {
     FetchDrawcall draw;
     draw.name = "API Calls";
-    draw.flags |= eDraw_SetMarker | eDraw_APICalls;
+    draw.flags |= DrawFlags::SetMarker | DrawFlags::APICalls;
 
     AddDrawcall(draw, true);
   }

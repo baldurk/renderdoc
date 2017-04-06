@@ -37,7 +37,7 @@ struct FloatVector
 struct DirectoryFile
 {
   rdctype::str filename;
-  uint32_t flags;
+  FileProperty flags;
   uint32_t lastmod;
   uint64_t size;
 };
@@ -48,10 +48,10 @@ struct ResourceFormat
   {
     rawType = 0;
     special = true;
-    specialFormat = eSpecial_Unknown;
+    specialFormat = SpecialFormat::Unknown;
 
     compCount = compByteWidth = 0;
-    compType = eCompType_Float;
+    compType = CompType::Float;
 
     bgraOrder = false;
     srgbCorrected = false;
@@ -78,7 +78,7 @@ struct ResourceFormat
 
   uint32_t compCount;
   uint32_t compByteWidth;
-  FormatComponentType compType;
+  CompType compType;
 
   bool32 bgraOrder;
   bool32 srgbCorrected;
@@ -89,7 +89,7 @@ struct FetchBuffer
   ResourceId ID;
   rdctype::str name;
   bool32 customName;
-  uint32_t creationFlags;
+  BufferCategory creationFlags;
   uint64_t length;
 };
 
@@ -99,13 +99,13 @@ struct FetchTexture
   bool32 customName;
   ResourceFormat format;
   uint32_t dimension;
-  ShaderResourceType resType;
+  TextureDim resType;
   uint32_t width, height, depth;
   ResourceId ID;
   bool32 cubemap;
   uint32_t mips;
   uint32_t arraysize;
-  uint32_t creationFlags;
+  TextureCategory creationFlags;
   uint32_t msQual, msSamp;
   uint64_t byteSize;
 };
@@ -126,9 +126,9 @@ struct FetchAPIEvent
 struct DebugMessage
 {
   uint32_t eventID;
-  DebugMessageCategory category;
-  DebugMessageSeverity severity;
-  DebugMessageSource source;
+  MessageCategory category;
+  MessageSeverity severity;
+  MessageSource source;
   uint32_t messageID;
   rdctype::str description;
 };
@@ -273,16 +273,16 @@ struct FetchFrameOutputStats
 struct FetchFrameStatistics
 {
   uint32_t recorded;
-  FetchFrameConstantBindStats constants[eShaderStage_Count];
-  FetchFrameSamplerBindStats samplers[eShaderStage_Count];
-  FetchFrameResourceBindStats resources[eShaderStage_Count];
+  FetchFrameConstantBindStats constants[ENUM_ARRAY_SIZE(ShaderStage)];
+  FetchFrameSamplerBindStats samplers[ENUM_ARRAY_SIZE(ShaderStage)];
+  FetchFrameResourceBindStats resources[ENUM_ARRAY_SIZE(ShaderStage)];
   FetchFrameUpdateStats updates;
   FetchFrameDrawStats draws;
   FetchFrameDispatchStats dispatches;
   FetchFrameIndexBindStats indices;
   FetchFrameVertexBindStats vertices;
   FetchFrameLayoutBindStats layouts;
-  FetchFrameShaderStats shaders[eShaderStage_Count];
+  FetchFrameShaderStats shaders[ENUM_ARRAY_SIZE(ShaderStage)];
   FetchFrameBlendStats blends;
   FetchFrameDepthStencilStats depths;
   FetchFrameRasterizationStats rasters;
@@ -317,7 +317,7 @@ struct FetchFrameInfo
 
 struct EventUsage
 {
-  EventUsage() : eventID(0), usage(eUsage_None) {}
+  EventUsage() : eventID(0), usage(ResourceUsage::Unused) {}
   EventUsage(uint32_t e, ResourceUsage u) : eventID(e), usage(u) {}
   EventUsage(uint32_t e, ResourceUsage u, ResourceId v) : eventID(e), usage(u), view(v) {}
   bool operator<(const EventUsage &o) const
@@ -340,7 +340,7 @@ struct FetchDrawcall
   {
     eventID = 0;
     drawcallID = 0;
-    flags = 0;
+    flags = DrawFlags::NoFlags;
     markerColour[0] = markerColour[1] = markerColour[2] = markerColour[3] = 0.0f;
     numIndices = 0;
     numInstances = 0;
@@ -353,7 +353,7 @@ struct FetchDrawcall
     dispatchThreadsDimension[0] = dispatchThreadsDimension[1] = dispatchThreadsDimension[2] = 0;
 
     indexByteWidth = 0;
-    topology = eTopology_Unknown;
+    topology = Topology::Unknown;
 
     copySource = ResourceId();
     copyDestination = ResourceId();
@@ -371,7 +371,7 @@ struct FetchDrawcall
 
   rdctype::str name;
 
-  uint32_t flags;
+  DrawFlags flags;
 
   float markerColour[4];
 
@@ -386,7 +386,7 @@ struct FetchDrawcall
   uint32_t dispatchThreadsDimension[3];
 
   uint32_t indexByteWidth;
-  PrimitiveTopology topology;
+  Topology topology;
 
   ResourceId copySource;
   ResourceId copyDestination;
@@ -416,30 +416,30 @@ struct APIProperties
 
 struct CounterDescription
 {
-  uint32_t counterID;
+  GPUCounter counterID;
   rdctype::str name;
   rdctype::str description;
-  FormatComponentType resultCompType;
+  CompType resultType;
   uint32_t resultByteWidth;
-  CounterUnits units;
+  CounterUnit unit;
 };
 
 struct CounterResult
 {
-  CounterResult() : eventID(0), counterID(0) { value.u64 = 0; }
-  CounterResult(uint32_t EID, uint32_t c, float data) : eventID(EID), counterID(c)
+  CounterResult() : eventID(0), counterID(GPUCounter::EventGPUDuration) { value.u64 = 0; }
+  CounterResult(uint32_t EID, GPUCounter c, float data) : eventID(EID), counterID(c)
   {
     value.f = data;
   }
-  CounterResult(uint32_t EID, uint32_t c, double data) : eventID(EID), counterID(c)
+  CounterResult(uint32_t EID, GPUCounter c, double data) : eventID(EID), counterID(c)
   {
     value.d = data;
   }
-  CounterResult(uint32_t EID, uint32_t c, uint32_t data) : eventID(EID), counterID(c)
+  CounterResult(uint32_t EID, GPUCounter c, uint32_t data) : eventID(EID), counterID(c)
   {
     value.u32 = data;
   }
-  CounterResult(uint32_t EID, uint32_t c, uint64_t data) : eventID(EID), counterID(c)
+  CounterResult(uint32_t EID, GPUCounter c, uint64_t data) : eventID(EID), counterID(c)
   {
     value.u64 = data;
   }
@@ -462,7 +462,7 @@ struct CounterResult
   }
 
   uint32_t eventID;
-  uint32_t counterID;
+  GPUCounter counterID;
   union
   {
     float f;

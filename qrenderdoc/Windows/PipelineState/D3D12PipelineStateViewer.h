@@ -76,17 +76,10 @@ private:
   CaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
 
-  enum D3DBufferViewFlags
-  {
-    RawBuffer = 0x1,
-    AppendBuffer = 0x2,
-    CounterBuffer = 0x4,
-  };
-
-  void setShaderState(const D3D12PipelineState::ShaderStage &stage, QLabel *shader, RDTreeWidget *tex,
+  void setShaderState(const D3D12PipelineState::Shader &stage, QLabel *shader, RDTreeWidget *tex,
                       RDTreeWidget *samp, RDTreeWidget *cbuffer, RDTreeWidget *uavs);
 
-  void addResourceRow(const ViewTag &view, const D3D12PipelineState::ShaderStage *stage,
+  void addResourceRow(const ViewTag &view, const D3D12PipelineState::Shader *stage,
                       RDTreeWidget *resources);
 
   void clearShaderState(QLabel *shader, RDTreeWidget *tex, RDTreeWidget *samp,
@@ -100,7 +93,7 @@ private:
 
   QString formatMembers(int indent, const QString &nameprefix,
                         const rdctype::array<ShaderConstant> &vars);
-  const D3D12PipelineState::ShaderStage *stageForSender(QWidget *widget);
+  const D3D12PipelineState::Shader *stageForSender(QWidget *widget);
 
   bool HasImportantViewParams(const D3D12PipelineState::ResourceView &view, FetchTexture *tex);
   bool HasImportantViewParams(const D3D12PipelineState::ResourceView &view, FetchBuffer *buf);

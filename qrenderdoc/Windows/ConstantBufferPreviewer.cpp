@@ -28,7 +28,7 @@
 
 QList<ConstantBufferPreviewer *> ConstantBufferPreviewer::m_Previews;
 
-ConstantBufferPreviewer::ConstantBufferPreviewer(CaptureContext &ctx, const ShaderStageType stage,
+ConstantBufferPreviewer::ConstantBufferPreviewer(CaptureContext &ctx, const ShaderStage stage,
                                                  uint32_t slot, uint32_t idx, QWidget *parent)
     : QFrame(parent), ui(new Ui::ConstantBufferPreviewer), m_Ctx(ctx)
 {
@@ -67,8 +67,7 @@ ConstantBufferPreviewer::~ConstantBufferPreviewer()
   delete ui;
 }
 
-ConstantBufferPreviewer *ConstantBufferPreviewer::has(ShaderStageType stage, uint32_t slot,
-                                                      uint32_t idx)
+ConstantBufferPreviewer *ConstantBufferPreviewer::has(ShaderStage stage, uint32_t slot, uint32_t idx)
 {
   for(ConstantBufferPreviewer *c : m_Previews)
   {

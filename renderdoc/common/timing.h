@@ -121,7 +121,7 @@ public:
 
   ~ScopedTimer()
   {
-    rdclog_int(RDCLog_Comment, RDCLOG_PROJECT, m_File, m_Line, "Timer %s - %.3lf ms",
+    rdclog_int(LogType::Comment, RDCLOG_PROJECT, m_File, m_Line, "Timer %s - %.3lf ms",
                m_Message.c_str(), m_Timer.GetMilliseconds());
   }
 

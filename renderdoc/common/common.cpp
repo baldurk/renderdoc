@@ -81,7 +81,7 @@ float SRGB8_lookuptable[256] = {
 
 void rdcassert(const char *msg, const char *file, unsigned int line, const char *func)
 {
-  rdclog_int(RDCLog_Error, RDCLOG_PROJECT, file, line, "Assertion failed: %s", msg);
+  rdclog_int(LogType::Error, RDCLOG_PROJECT, file, line, "Assertion failed: %s", msg);
 }
 
 #if 0
@@ -317,12 +317,12 @@ void rdclogprint_int(LogType type, const char *fullMsg, const char *msg)
 #endif
 #if ENABLED(OUTPUT_LOG_TO_STDOUT)
   // don't output debug messages to stdout/stderr
-  if(type != RDCLog_Debug && log_output_enabled)
+  if(type != LogType::Debug && log_output_enabled)
     OSUtility::WriteOutput(OSUtility::Output_StdOut, msg);
 #endif
 #if ENABLED(OUTPUT_LOG_TO_STDERR)
   // don't output debug messages to stdout/stderr
-  if(type != RDCLog_Debug && log_output_enabled)
+  if(type != LogType::Debug && log_output_enabled)
     OSUtility::WriteOutput(OSUtility::Output_StdErr, msg);
 #endif
 #if ENABLED(OUTPUT_LOG_TO_DISK)
@@ -340,12 +340,6 @@ static char rdclog_outputBuffer[rdclog_outBufSize + 1];
 void rdclog_int(LogType type, const char *project, const char *file, unsigned int line,
                 const char *fmt, ...)
 {
-  if(type <= RDCLog_First || type >= RDCLog_NumTypes)
-  {
-    RDCFATAL("Unexpected log type");
-    return;
-  }
-
   va_list args;
   va_start(args, fmt);
 
@@ -361,7 +355,7 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
   StringFormat::snprintf(location, 63, "% 20s(%4d) - ", loc.c_str(), line);
 #endif
 
-  const char *typestr[RDCLog_NumTypes] = {
+  const char *typestr[(uint32_t)LogType::Count] = {
       "Debug  ", "Log    ", "Warning", "Error  ", "Fatal  ",
   };
 
@@ -374,9 +368,9 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
   char *output = rdclog_outputBuffer;
   size_t available = rdclog_outBufSize;
 
-  int numWritten =
-      StringFormat::snprintf(output, available, "% 4s %06u: %s%s%s - ", project,
-                             Process::GetCurrentPID(), timestamp, location, typestr[type]);
+  int numWritten = StringFormat::snprintf(output, available, "% 4s %06u: %s%s%s - ", project,
+                                          Process::GetCurrentPID(), timestamp, location,
+                                          typestr[(uint32_t)type]);
 
   if(numWritten < 0)
   {
@@ -388,7 +382,7 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
   available -= numWritten;
 
   // -3 is for the " - " after the type.
-  const char *noPrefixOutput = (output - 3 - (sizeof(typestr[type]) - 1));
+  const char *noPrefixOutput = (output - 3 - (sizeof(typestr[(uint32_t)type]) - 1));
 
   numWritten = StringFormat::vsnprintf(output, available, fmt, args);
 

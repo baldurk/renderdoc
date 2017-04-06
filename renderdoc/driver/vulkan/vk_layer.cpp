@@ -52,7 +52,7 @@ class VulkanHook : LibraryHook
   {
     // we assume the implicit layer is registered - the UI will prompt the user about installing it.
     Process::RegisterEnvironmentModification(Process::EnvironmentModification(
-        Process::eEnvModification_Replace, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "1"));
+        EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "1"));
 
     // check options to set further variables, and apply
     OptionsUpdated(libName);
@@ -64,7 +64,7 @@ class VulkanHook : LibraryHook
   {
     // set the env var to 0 to disable the implicit layer
     Process::RegisterEnvironmentModification(Process::EnvironmentModification(
-        Process::eEnvModification_Replace, "ENABLE_VULKAN_RENDERDOC_CAPTURE", enable ? "1" : "0"));
+        EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", enable ? "1" : "0"));
 
     Process::ApplyEnvironmentModification();
   }
@@ -73,12 +73,12 @@ class VulkanHook : LibraryHook
   {
     if(RenderDoc::Inst().GetCaptureOptions().APIValidation)
     {
-      Process::RegisterEnvironmentModification(Process::EnvironmentModification(
-          Process::eEnvModification_AppendPlatform, "VK_INSTANCE_LAYERS",
-          "VK_LAYER_LUNARG_standard_validation"));
-      Process::RegisterEnvironmentModification(Process::EnvironmentModification(
-          Process::eEnvModification_AppendPlatform, "VK_DEVICE_LAYERS",
-          "VK_LAYER_LUNARG_standard_validation"));
+      Process::RegisterEnvironmentModification(
+          Process::EnvironmentModification(EnvMod::Append, EnvSep::Platform, "VK_INSTANCE_LAYERS",
+                                           "VK_LAYER_LUNARG_standard_validation"));
+      Process::RegisterEnvironmentModification(
+          Process::EnvironmentModification(EnvMod::Append, EnvSep::Platform, "VK_DEVICE_LAYERS",
+                                           "VK_LAYER_LUNARG_standard_validation"));
     }
     else
     {

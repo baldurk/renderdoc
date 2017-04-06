@@ -51,33 +51,33 @@ QString CommonPipelineState::GetImageLayout(ResourceId id)
   return "Unknown";
 }
 
-QString CommonPipelineState::Abbrev(ShaderStageType stage)
+QString CommonPipelineState::Abbrev(ShaderStage stage)
 {
-  if(IsLogD3D11() || (!LogLoaded() && DefaultType == eGraphicsAPI_D3D11) || IsLogD3D12() ||
-     (!LogLoaded() && DefaultType == eGraphicsAPI_D3D12))
+  if(IsLogD3D11() || (!LogLoaded() && DefaultType == GraphicsAPI::D3D11) || IsLogD3D12() ||
+     (!LogLoaded() && DefaultType == GraphicsAPI::D3D12))
   {
     switch(stage)
     {
-      case eShaderStage_Vertex: return "VS";
-      case eShaderStage_Hull: return "HS";
-      case eShaderStage_Domain: return "DS";
-      case eShaderStage_Geometry: return "GS";
-      case eShaderStage_Pixel: return "PS";
-      case eShaderStage_Compute: return "CS";
+      case ShaderStage::Vertex: return "VS";
+      case ShaderStage::Hull: return "HS";
+      case ShaderStage::Domain: return "DS";
+      case ShaderStage::Geometry: return "GS";
+      case ShaderStage::Pixel: return "PS";
+      case ShaderStage::Compute: return "CS";
       default: break;
     }
   }
-  else if(IsLogGL() || (!LogLoaded() && DefaultType == eGraphicsAPI_OpenGL) || IsLogVK() ||
-          (!LogLoaded() && DefaultType == eGraphicsAPI_Vulkan))
+  else if(IsLogGL() || (!LogLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsLogVK() ||
+          (!LogLoaded() && DefaultType == GraphicsAPI::Vulkan))
   {
     switch(stage)
     {
-      case eShaderStage_Vertex: return "VS";
-      case eShaderStage_Tess_Control: return "TCS";
-      case eShaderStage_Tess_Eval: return "TES";
-      case eShaderStage_Geometry: return "GS";
-      case eShaderStage_Fragment: return "FS";
-      case eShaderStage_Compute: return "CS";
+      case ShaderStage::Vertex: return "VS";
+      case ShaderStage::Tess_Control: return "TCS";
+      case ShaderStage::Tess_Eval: return "TES";
+      case ShaderStage::Geometry: return "GS";
+      case ShaderStage::Fragment: return "FS";
+      case ShaderStage::Compute: return "CS";
       default: break;
     }
   }
@@ -87,8 +87,8 @@ QString CommonPipelineState::Abbrev(ShaderStageType stage)
 
 QString CommonPipelineState::OutputAbbrev()
 {
-  if(IsLogGL() || (!LogLoaded() && DefaultType == eGraphicsAPI_OpenGL) || IsLogVK() ||
-     (!LogLoaded() && DefaultType == eGraphicsAPI_Vulkan))
+  if(IsLogGL() || (!LogLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsLogVK() ||
+     (!LogLoaded() && DefaultType == GraphicsAPI::Vulkan))
   {
     return "FB";
   }
@@ -98,8 +98,8 @@ QString CommonPipelineState::OutputAbbrev()
 
 QString CommonPipelineState::GetShaderExtension()
 {
-  if(IsLogGL() || (!LogLoaded() && DefaultType == eGraphicsAPI_OpenGL) || IsLogVK() ||
-     (!LogLoaded() && DefaultType == eGraphicsAPI_Vulkan))
+  if(IsLogGL() || (!LogLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsLogVK() ||
+     (!LogLoaded() && DefaultType == GraphicsAPI::Vulkan))
   {
     return "glsl";
   }
@@ -150,7 +150,7 @@ Viewport CommonPipelineState::GetViewport(int index)
   return ret;
 }
 
-const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderStageType stage)
+const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderStage stage)
 {
   if(LogLoaded())
   {
@@ -158,12 +158,12 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_D3D11->m_VS.BindpointMapping;
-        case eShaderStage_Domain: return m_D3D11->m_DS.BindpointMapping;
-        case eShaderStage_Hull: return m_D3D11->m_HS.BindpointMapping;
-        case eShaderStage_Geometry: return m_D3D11->m_GS.BindpointMapping;
-        case eShaderStage_Pixel: return m_D3D11->m_PS.BindpointMapping;
-        case eShaderStage_Compute: return m_D3D11->m_CS.BindpointMapping;
+        case ShaderStage::Vertex: return m_D3D11->m_VS.BindpointMapping;
+        case ShaderStage::Domain: return m_D3D11->m_DS.BindpointMapping;
+        case ShaderStage::Hull: return m_D3D11->m_HS.BindpointMapping;
+        case ShaderStage::Geometry: return m_D3D11->m_GS.BindpointMapping;
+        case ShaderStage::Pixel: return m_D3D11->m_PS.BindpointMapping;
+        case ShaderStage::Compute: return m_D3D11->m_CS.BindpointMapping;
         default: break;
       }
     }
@@ -171,12 +171,12 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_D3D12->m_VS.BindpointMapping;
-        case eShaderStage_Domain: return m_D3D12->m_DS.BindpointMapping;
-        case eShaderStage_Hull: return m_D3D12->m_HS.BindpointMapping;
-        case eShaderStage_Geometry: return m_D3D12->m_GS.BindpointMapping;
-        case eShaderStage_Pixel: return m_D3D12->m_PS.BindpointMapping;
-        case eShaderStage_Compute: return m_D3D12->m_CS.BindpointMapping;
+        case ShaderStage::Vertex: return m_D3D12->m_VS.BindpointMapping;
+        case ShaderStage::Domain: return m_D3D12->m_DS.BindpointMapping;
+        case ShaderStage::Hull: return m_D3D12->m_HS.BindpointMapping;
+        case ShaderStage::Geometry: return m_D3D12->m_GS.BindpointMapping;
+        case ShaderStage::Pixel: return m_D3D12->m_PS.BindpointMapping;
+        case ShaderStage::Compute: return m_D3D12->m_CS.BindpointMapping;
         default: break;
       }
     }
@@ -184,12 +184,12 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_GL->m_VS.BindpointMapping;
-        case eShaderStage_Tess_Control: return m_GL->m_TCS.BindpointMapping;
-        case eShaderStage_Tess_Eval: return m_GL->m_TES.BindpointMapping;
-        case eShaderStage_Geometry: return m_GL->m_GS.BindpointMapping;
-        case eShaderStage_Fragment: return m_GL->m_FS.BindpointMapping;
-        case eShaderStage_Compute: return m_GL->m_CS.BindpointMapping;
+        case ShaderStage::Vertex: return m_GL->m_VS.BindpointMapping;
+        case ShaderStage::Tess_Control: return m_GL->m_TCS.BindpointMapping;
+        case ShaderStage::Tess_Eval: return m_GL->m_TES.BindpointMapping;
+        case ShaderStage::Geometry: return m_GL->m_GS.BindpointMapping;
+        case ShaderStage::Fragment: return m_GL->m_FS.BindpointMapping;
+        case ShaderStage::Compute: return m_GL->m_CS.BindpointMapping;
         default: break;
       }
     }
@@ -197,12 +197,12 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_Vulkan->m_VS.BindpointMapping;
-        case eShaderStage_Tess_Control: return m_Vulkan->m_TCS.BindpointMapping;
-        case eShaderStage_Tess_Eval: return m_Vulkan->m_TES.BindpointMapping;
-        case eShaderStage_Geometry: return m_Vulkan->m_GS.BindpointMapping;
-        case eShaderStage_Fragment: return m_Vulkan->m_FS.BindpointMapping;
-        case eShaderStage_Compute: return m_Vulkan->m_CS.BindpointMapping;
+        case ShaderStage::Vertex: return m_Vulkan->m_VS.BindpointMapping;
+        case ShaderStage::Tess_Control: return m_Vulkan->m_TCS.BindpointMapping;
+        case ShaderStage::Tess_Eval: return m_Vulkan->m_TES.BindpointMapping;
+        case ShaderStage::Geometry: return m_Vulkan->m_GS.BindpointMapping;
+        case ShaderStage::Fragment: return m_Vulkan->m_FS.BindpointMapping;
+        case ShaderStage::Compute: return m_Vulkan->m_CS.BindpointMapping;
         default: break;
       }
     }
@@ -213,7 +213,7 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
   return empty;
 }
 
-const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType stage)
+const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage stage)
 {
   if(LogLoaded())
   {
@@ -221,12 +221,12 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_D3D11->m_VS.ShaderDetails;
-        case eShaderStage_Domain: return m_D3D11->m_DS.ShaderDetails;
-        case eShaderStage_Hull: return m_D3D11->m_HS.ShaderDetails;
-        case eShaderStage_Geometry: return m_D3D11->m_GS.ShaderDetails;
-        case eShaderStage_Pixel: return m_D3D11->m_PS.ShaderDetails;
-        case eShaderStage_Compute: return m_D3D11->m_CS.ShaderDetails;
+        case ShaderStage::Vertex: return m_D3D11->m_VS.ShaderDetails;
+        case ShaderStage::Domain: return m_D3D11->m_DS.ShaderDetails;
+        case ShaderStage::Hull: return m_D3D11->m_HS.ShaderDetails;
+        case ShaderStage::Geometry: return m_D3D11->m_GS.ShaderDetails;
+        case ShaderStage::Pixel: return m_D3D11->m_PS.ShaderDetails;
+        case ShaderStage::Compute: return m_D3D11->m_CS.ShaderDetails;
         default: break;
       }
     }
@@ -234,12 +234,12 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_D3D12->m_VS.ShaderDetails;
-        case eShaderStage_Domain: return m_D3D12->m_DS.ShaderDetails;
-        case eShaderStage_Hull: return m_D3D12->m_HS.ShaderDetails;
-        case eShaderStage_Geometry: return m_D3D12->m_GS.ShaderDetails;
-        case eShaderStage_Pixel: return m_D3D12->m_PS.ShaderDetails;
-        case eShaderStage_Compute: return m_D3D12->m_CS.ShaderDetails;
+        case ShaderStage::Vertex: return m_D3D12->m_VS.ShaderDetails;
+        case ShaderStage::Domain: return m_D3D12->m_DS.ShaderDetails;
+        case ShaderStage::Hull: return m_D3D12->m_HS.ShaderDetails;
+        case ShaderStage::Geometry: return m_D3D12->m_GS.ShaderDetails;
+        case ShaderStage::Pixel: return m_D3D12->m_PS.ShaderDetails;
+        case ShaderStage::Compute: return m_D3D12->m_CS.ShaderDetails;
         default: break;
       }
     }
@@ -247,12 +247,12 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_GL->m_VS.ShaderDetails;
-        case eShaderStage_Tess_Control: return m_GL->m_TCS.ShaderDetails;
-        case eShaderStage_Tess_Eval: return m_GL->m_TES.ShaderDetails;
-        case eShaderStage_Geometry: return m_GL->m_GS.ShaderDetails;
-        case eShaderStage_Fragment: return m_GL->m_FS.ShaderDetails;
-        case eShaderStage_Compute: return m_GL->m_CS.ShaderDetails;
+        case ShaderStage::Vertex: return m_GL->m_VS.ShaderDetails;
+        case ShaderStage::Tess_Control: return m_GL->m_TCS.ShaderDetails;
+        case ShaderStage::Tess_Eval: return m_GL->m_TES.ShaderDetails;
+        case ShaderStage::Geometry: return m_GL->m_GS.ShaderDetails;
+        case ShaderStage::Fragment: return m_GL->m_FS.ShaderDetails;
+        case ShaderStage::Compute: return m_GL->m_CS.ShaderDetails;
         default: break;
       }
     }
@@ -260,12 +260,12 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_Vulkan->m_VS.ShaderDetails;
-        case eShaderStage_Tess_Control: return m_Vulkan->m_TCS.ShaderDetails;
-        case eShaderStage_Tess_Eval: return m_Vulkan->m_TES.ShaderDetails;
-        case eShaderStage_Geometry: return m_Vulkan->m_GS.ShaderDetails;
-        case eShaderStage_Fragment: return m_Vulkan->m_FS.ShaderDetails;
-        case eShaderStage_Compute: return m_Vulkan->m_CS.ShaderDetails;
+        case ShaderStage::Vertex: return m_Vulkan->m_VS.ShaderDetails;
+        case ShaderStage::Tess_Control: return m_Vulkan->m_TCS.ShaderDetails;
+        case ShaderStage::Tess_Eval: return m_Vulkan->m_TES.ShaderDetails;
+        case ShaderStage::Geometry: return m_Vulkan->m_GS.ShaderDetails;
+        case ShaderStage::Fragment: return m_Vulkan->m_FS.ShaderDetails;
+        case ShaderStage::Compute: return m_Vulkan->m_CS.ShaderDetails;
         default: break;
       }
     }
@@ -274,7 +274,7 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType
   return NULL;
 }
 
-QString CommonPipelineState::GetShaderEntryPoint(ShaderStageType stage)
+QString CommonPipelineState::GetShaderEntryPoint(ShaderStage stage)
 {
   QString ret;
 
@@ -282,12 +282,12 @@ QString CommonPipelineState::GetShaderEntryPoint(ShaderStageType stage)
   {
     switch(stage)
     {
-      case eShaderStage_Vertex: ret = m_Vulkan->m_VS.entryPoint; break;
-      case eShaderStage_Tess_Control: ret = m_Vulkan->m_TCS.entryPoint; break;
-      case eShaderStage_Tess_Eval: ret = m_Vulkan->m_TES.entryPoint; break;
-      case eShaderStage_Geometry: ret = m_Vulkan->m_GS.entryPoint; break;
-      case eShaderStage_Fragment: ret = m_Vulkan->m_FS.entryPoint; break;
-      case eShaderStage_Compute: ret = m_Vulkan->m_CS.entryPoint; break;
+      case ShaderStage::Vertex: ret = m_Vulkan->m_VS.entryPoint; break;
+      case ShaderStage::Tess_Control: ret = m_Vulkan->m_TCS.entryPoint; break;
+      case ShaderStage::Tess_Eval: ret = m_Vulkan->m_TES.entryPoint; break;
+      case ShaderStage::Geometry: ret = m_Vulkan->m_GS.entryPoint; break;
+      case ShaderStage::Fragment: ret = m_Vulkan->m_FS.entryPoint; break;
+      case ShaderStage::Compute: ret = m_Vulkan->m_CS.entryPoint; break;
       default: break;
     }
   }
@@ -295,7 +295,7 @@ QString CommonPipelineState::GetShaderEntryPoint(ShaderStageType stage)
   return ret;
 }
 
-ResourceId CommonPipelineState::GetShader(ShaderStageType stage)
+ResourceId CommonPipelineState::GetShader(ShaderStage stage)
 {
   if(LogLoaded())
   {
@@ -303,12 +303,12 @@ ResourceId CommonPipelineState::GetShader(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_D3D11->m_VS.Shader;
-        case eShaderStage_Domain: return m_D3D11->m_DS.Shader;
-        case eShaderStage_Hull: return m_D3D11->m_HS.Shader;
-        case eShaderStage_Geometry: return m_D3D11->m_GS.Shader;
-        case eShaderStage_Pixel: return m_D3D11->m_PS.Shader;
-        case eShaderStage_Compute: return m_D3D11->m_CS.Shader;
+        case ShaderStage::Vertex: return m_D3D11->m_VS.Object;
+        case ShaderStage::Domain: return m_D3D11->m_DS.Object;
+        case ShaderStage::Hull: return m_D3D11->m_HS.Object;
+        case ShaderStage::Geometry: return m_D3D11->m_GS.Object;
+        case ShaderStage::Pixel: return m_D3D11->m_PS.Object;
+        case ShaderStage::Compute: return m_D3D11->m_CS.Object;
         default: break;
       }
     }
@@ -316,12 +316,12 @@ ResourceId CommonPipelineState::GetShader(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_D3D12->m_VS.Shader;
-        case eShaderStage_Domain: return m_D3D12->m_DS.Shader;
-        case eShaderStage_Hull: return m_D3D12->m_HS.Shader;
-        case eShaderStage_Geometry: return m_D3D12->m_GS.Shader;
-        case eShaderStage_Pixel: return m_D3D12->m_PS.Shader;
-        case eShaderStage_Compute: return m_D3D12->m_CS.Shader;
+        case ShaderStage::Vertex: return m_D3D12->m_VS.Object;
+        case ShaderStage::Domain: return m_D3D12->m_DS.Object;
+        case ShaderStage::Hull: return m_D3D12->m_HS.Object;
+        case ShaderStage::Geometry: return m_D3D12->m_GS.Object;
+        case ShaderStage::Pixel: return m_D3D12->m_PS.Object;
+        case ShaderStage::Compute: return m_D3D12->m_CS.Object;
         default: break;
       }
     }
@@ -329,12 +329,12 @@ ResourceId CommonPipelineState::GetShader(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_GL->m_VS.Shader;
-        case eShaderStage_Tess_Control: return m_GL->m_TCS.Shader;
-        case eShaderStage_Tess_Eval: return m_GL->m_TES.Shader;
-        case eShaderStage_Geometry: return m_GL->m_GS.Shader;
-        case eShaderStage_Fragment: return m_GL->m_FS.Shader;
-        case eShaderStage_Compute: return m_GL->m_CS.Shader;
+        case ShaderStage::Vertex: return m_GL->m_VS.Object;
+        case ShaderStage::Tess_Control: return m_GL->m_TCS.Object;
+        case ShaderStage::Tess_Eval: return m_GL->m_TES.Object;
+        case ShaderStage::Geometry: return m_GL->m_GS.Object;
+        case ShaderStage::Fragment: return m_GL->m_FS.Object;
+        case ShaderStage::Compute: return m_GL->m_CS.Object;
         default: break;
       }
     }
@@ -342,12 +342,12 @@ ResourceId CommonPipelineState::GetShader(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_Vulkan->m_VS.Shader;
-        case eShaderStage_Tess_Control: return m_Vulkan->m_TCS.Shader;
-        case eShaderStage_Tess_Eval: return m_Vulkan->m_TES.Shader;
-        case eShaderStage_Geometry: return m_Vulkan->m_GS.Shader;
-        case eShaderStage_Fragment: return m_Vulkan->m_FS.Shader;
-        case eShaderStage_Compute: return m_Vulkan->m_CS.Shader;
+        case ShaderStage::Vertex: return m_Vulkan->m_VS.Object;
+        case ShaderStage::Tess_Control: return m_Vulkan->m_TCS.Object;
+        case ShaderStage::Tess_Eval: return m_Vulkan->m_TES.Object;
+        case ShaderStage::Geometry: return m_Vulkan->m_GS.Object;
+        case ShaderStage::Fragment: return m_Vulkan->m_FS.Object;
+        case ShaderStage::Compute: return m_Vulkan->m_CS.Object;
         default: break;
       }
     }
@@ -356,7 +356,7 @@ ResourceId CommonPipelineState::GetShader(ShaderStageType stage)
   return ResourceId();
 }
 
-QString CommonPipelineState::GetShaderName(ShaderStageType stage)
+QString CommonPipelineState::GetShaderName(ShaderStage stage)
 {
   QString ret;
 
@@ -366,12 +366,12 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: ret = m_D3D11->m_VS.ShaderName; break;
-        case eShaderStage_Domain: ret = m_D3D11->m_DS.ShaderName; break;
-        case eShaderStage_Hull: ret = m_D3D11->m_HS.ShaderName; break;
-        case eShaderStage_Geometry: ret = m_D3D11->m_GS.ShaderName; break;
-        case eShaderStage_Pixel: ret = m_D3D11->m_PS.ShaderName; break;
-        case eShaderStage_Compute: ret = m_D3D11->m_CS.ShaderName; break;
+        case ShaderStage::Vertex: ret = m_D3D11->m_VS.ShaderName; break;
+        case ShaderStage::Domain: ret = m_D3D11->m_DS.ShaderName; break;
+        case ShaderStage::Hull: ret = m_D3D11->m_HS.ShaderName; break;
+        case ShaderStage::Geometry: ret = m_D3D11->m_GS.ShaderName; break;
+        case ShaderStage::Pixel: ret = m_D3D11->m_PS.ShaderName; break;
+        case ShaderStage::Compute: ret = m_D3D11->m_CS.ShaderName; break;
         default: break;
       }
     }
@@ -379,12 +379,12 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: ret = QString(m_D3D12->PipelineName) + " VS"; break;
-        case eShaderStage_Domain: ret = QString(m_D3D12->PipelineName) + " DS"; break;
-        case eShaderStage_Hull: ret = QString(m_D3D12->PipelineName) + " HS"; break;
-        case eShaderStage_Geometry: ret = QString(m_D3D12->PipelineName) + " GS"; break;
-        case eShaderStage_Pixel: ret = QString(m_D3D12->PipelineName) + " PS"; break;
-        case eShaderStage_Compute: ret = QString(m_D3D12->PipelineName) + " CS"; break;
+        case ShaderStage::Vertex: ret = QString(m_D3D12->PipelineName) + " VS"; break;
+        case ShaderStage::Domain: ret = QString(m_D3D12->PipelineName) + " DS"; break;
+        case ShaderStage::Hull: ret = QString(m_D3D12->PipelineName) + " HS"; break;
+        case ShaderStage::Geometry: ret = QString(m_D3D12->PipelineName) + " GS"; break;
+        case ShaderStage::Pixel: ret = QString(m_D3D12->PipelineName) + " PS"; break;
+        case ShaderStage::Compute: ret = QString(m_D3D12->PipelineName) + " CS"; break;
         default: break;
       }
     }
@@ -392,12 +392,12 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: ret = m_GL->m_VS.ShaderName; break;
-        case eShaderStage_Tess_Control: ret = m_GL->m_TCS.ShaderName; break;
-        case eShaderStage_Tess_Eval: ret = m_GL->m_TES.ShaderName; break;
-        case eShaderStage_Geometry: ret = m_GL->m_GS.ShaderName; break;
-        case eShaderStage_Fragment: ret = m_GL->m_FS.ShaderName; break;
-        case eShaderStage_Compute: ret = m_GL->m_CS.ShaderName; break;
+        case ShaderStage::Vertex: ret = m_GL->m_VS.ShaderName; break;
+        case ShaderStage::Tess_Control: ret = m_GL->m_TCS.ShaderName; break;
+        case ShaderStage::Tess_Eval: ret = m_GL->m_TES.ShaderName; break;
+        case ShaderStage::Geometry: ret = m_GL->m_GS.ShaderName; break;
+        case ShaderStage::Fragment: ret = m_GL->m_FS.ShaderName; break;
+        case ShaderStage::Compute: ret = m_GL->m_CS.ShaderName; break;
         default: break;
       }
     }
@@ -405,12 +405,12 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: ret = m_Vulkan->m_VS.ShaderName; break;
-        case eShaderStage_Domain: ret = m_Vulkan->m_TCS.ShaderName; break;
-        case eShaderStage_Hull: ret = m_Vulkan->m_TES.ShaderName; break;
-        case eShaderStage_Geometry: ret = m_Vulkan->m_GS.ShaderName; break;
-        case eShaderStage_Pixel: ret = m_Vulkan->m_FS.ShaderName; break;
-        case eShaderStage_Compute: ret = m_Vulkan->m_CS.ShaderName; break;
+        case ShaderStage::Vertex: ret = m_Vulkan->m_VS.ShaderName; break;
+        case ShaderStage::Domain: ret = m_Vulkan->m_TCS.ShaderName; break;
+        case ShaderStage::Hull: ret = m_Vulkan->m_TES.ShaderName; break;
+        case ShaderStage::Geometry: ret = m_Vulkan->m_GS.ShaderName; break;
+        case ShaderStage::Pixel: ret = m_Vulkan->m_FS.ShaderName; break;
+        case ShaderStage::Compute: ret = m_Vulkan->m_CS.ShaderName; break;
         default: break;
       }
     }
@@ -721,19 +721,19 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
           if(!attrs[i].Enabled)
           {
             uint32_t compCount = m_GL->m_VS.ShaderDetails->InputSig[attrib].compCount;
-            FormatComponentType compType = m_GL->m_VS.ShaderDetails->InputSig[attrib].compType;
+            CompType compType = m_GL->m_VS.ShaderDetails->InputSig[attrib].compType;
 
             for(uint32_t c = 0; c < compCount; c++)
             {
-              if(compType == eCompType_Float)
+              if(compType == CompType::Float)
                 ret[a].GenericValue.value_f[c] = attrs[i].GenericValue.f[c];
-              else if(compType == eCompType_UInt)
+              else if(compType == CompType::UInt)
                 ret[a].GenericValue.value_u[c] = attrs[i].GenericValue.u[c];
-              else if(compType == eCompType_SInt)
+              else if(compType == CompType::SInt)
                 ret[a].GenericValue.value_i[c] = attrs[i].GenericValue.i[c];
-              else if(compType == eCompType_UScaled)
+              else if(compType == CompType::UScaled)
                 ret[a].GenericValue.value_f[c] = (float)attrs[i].GenericValue.u[c];
-              else if(compType == eCompType_SScaled)
+              else if(compType == CompType::SScaled)
                 ret[a].GenericValue.value_f[c] = (float)attrs[i].GenericValue.i[c];
             }
 
@@ -811,15 +811,14 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
   return QVector<VertexInputAttribute>();
 }
 
-void CommonPipelineState::GetConstantBuffer(ShaderStageType stage, uint32_t BufIdx,
-                                            uint32_t ArrayIdx, ResourceId &buf,
-                                            uint64_t &ByteOffset, uint64_t &ByteSize)
+void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, uint32_t ArrayIdx,
+                                            ResourceId &buf, uint64_t &ByteOffset, uint64_t &ByteSize)
 {
   if(LogLoaded())
   {
     if(IsLogD3D11())
     {
-      const D3D11PipelineState::ShaderStage &s = GetD3D11Stage(stage);
+      const D3D11PipelineState::Shader &s = GetD3D11Stage(stage);
 
       if(BufIdx < (uint32_t)s.ConstantBuffers.count)
       {
@@ -832,7 +831,7 @@ void CommonPipelineState::GetConstantBuffer(ShaderStageType stage, uint32_t BufI
     }
     else if(IsLogD3D12())
     {
-      const D3D12PipelineState::ShaderStage &s = GetD3D12Stage(stage);
+      const D3D12PipelineState::Shader &s = GetD3D12Stage(stage);
 
       if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count)
       {
@@ -859,7 +858,7 @@ void CommonPipelineState::GetConstantBuffer(ShaderStageType stage, uint32_t BufI
     }
     else if(IsLogGL())
     {
-      const GLPipelineState::ShaderStage &s = GetGLStage(stage);
+      const GLPipelineState::Shader &s = GetGLStage(stage);
 
       if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count)
       {
@@ -883,8 +882,8 @@ void CommonPipelineState::GetConstantBuffer(ShaderStageType stage, uint32_t BufI
     else if(IsLogVK())
     {
       VulkanPipelineState::Pipeline &pipe =
-          stage == eShaderStage_Compute ? m_Vulkan->compute : m_Vulkan->graphics;
-      const VulkanPipelineState::ShaderStage &s = GetVulkanStage(stage);
+          stage == ShaderStage::Compute ? m_Vulkan->compute : m_Vulkan->graphics;
+      const VulkanPipelineState::Shader &s = GetVulkanStage(stage);
 
       if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count)
       {
@@ -916,7 +915,7 @@ void CommonPipelineState::GetConstantBuffer(ShaderStageType stage, uint32_t BufI
   ByteSize = 0;
 }
 
-QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResources(ShaderStageType stage)
+QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResources(ShaderStage stage)
 {
   QMap<BindpointMap, QVector<BoundResource>> ret;
 
@@ -924,7 +923,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
   {
     if(IsLogD3D11())
     {
-      const D3D11PipelineState::ShaderStage &s = GetD3D11Stage(stage);
+      const D3D11PipelineState::Shader &s = GetD3D11Stage(stage);
 
       for(int i = 0; i < s.SRVs.count; i++)
       {
@@ -943,7 +942,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
     }
     else if(IsLogD3D12())
     {
-      const D3D12PipelineState::ShaderStage &s = GetD3D12Stage(stage);
+      const D3D12PipelineState::Shader &s = GetD3D12Stage(stage);
 
       for(int space = 0; space < s.Spaces.count; space++)
       {
@@ -974,7 +973,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
         val.Id = m_GL->Textures[i].Resource;
         val.HighestMip = (int)m_GL->Textures[i].HighestMip;
         val.FirstSlice = (int)m_GL->Textures[i].FirstSlice;
-        val.typeHint = eCompType_None;
+        val.typeHint = CompType::Typeless;
 
         ret[key] = {val};
       }
@@ -984,9 +983,9 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
     else if(IsLogVK())
     {
       const auto &descsets =
-          stage == eShaderStage_Compute ? m_Vulkan->compute.DescSets : m_Vulkan->graphics.DescSets;
+          stage == ShaderStage::Compute ? m_Vulkan->compute.DescSets : m_Vulkan->graphics.DescSets;
 
-      ShaderStageBits mask = (ShaderStageBits)(1 << (int)stage);
+      ShaderStageMask mask = MaskForStage(stage);
 
       for(int set = 0; set < descsets.count; set++)
       {
@@ -994,8 +993,8 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
         for(int slot = 0; slot < descset.bindings.count; slot++)
         {
           const auto &bind = descset.bindings[slot];
-          if((bind.type == eBindType_ImageSampler || bind.type == eBindType_InputAttachment ||
-              bind.type == eBindType_ReadOnlyImage || bind.type == eBindType_ReadOnlyTBuffer) &&
+          if((bind.type == BindType::ImageSampler || bind.type == BindType::InputAttachment ||
+              bind.type == BindType::ReadOnlyImage || bind.type == BindType::ReadOnlyTBuffer) &&
              (bind.stageFlags & mask) == mask)
           {
             BindpointMap key(set, slot);
@@ -1021,8 +1020,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
   return ret;
 }
 
-QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteResources(
-    ShaderStageType stage)
+QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteResources(ShaderStage stage)
 {
   QMap<BindpointMap, QVector<BoundResource>> ret;
 
@@ -1030,7 +1028,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
   {
     if(IsLogD3D11())
     {
-      if(stage == eShaderStage_Compute)
+      if(stage == ShaderStage::Compute)
       {
         for(int i = 0; i < m_D3D11->m_CS.UAVs.count; i++)
         {
@@ -1074,7 +1072,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
     }
     else if(IsLogD3D12())
     {
-      const D3D12PipelineState::ShaderStage &s = GetD3D12Stage(stage);
+      const D3D12PipelineState::Shader &s = GetD3D12Stage(stage);
 
       for(int space = 0; space < s.Spaces.count; space++)
       {
@@ -1111,9 +1109,9 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
     else if(IsLogVK())
     {
       const auto &descsets =
-          stage == eShaderStage_Compute ? m_Vulkan->compute.DescSets : m_Vulkan->graphics.DescSets;
+          stage == ShaderStage::Compute ? m_Vulkan->compute.DescSets : m_Vulkan->graphics.DescSets;
 
-      ShaderStageBits mask = (ShaderStageBits)(1 << (int)stage);
+      ShaderStageMask mask = MaskForStage(stage);
 
       for(int set = 0; set < descsets.count; set++)
       {
@@ -1121,8 +1119,8 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
         for(int slot = 0; slot < descset.bindings.count; slot++)
         {
           const auto &bind = descset.bindings[slot];
-          if((bind.type == eBindType_ReadWriteBuffer || bind.type == eBindType_ReadWriteImage ||
-              bind.type == eBindType_ReadWriteTBuffer) &&
+          if((bind.type == BindType::ReadWriteBuffer || bind.type == BindType::ReadWriteImage ||
+              bind.type == BindType::ReadWriteTBuffer) &&
              (bind.stageFlags & mask) == mask)
           {
             BindpointMap key(set, slot);
@@ -1174,7 +1172,7 @@ BoundResource CommonPipelineState::GetDepthTarget()
       ret.Id = m_GL->m_FB.m_DrawFBO.Depth.Obj;
       ret.HighestMip = (int)m_GL->m_FB.m_DrawFBO.Depth.Mip;
       ret.FirstSlice = (int)m_GL->m_FB.m_DrawFBO.Depth.Layer;
-      ret.typeHint = eCompType_None;
+      ret.typeHint = CompType::Typeless;
       return ret;
     }
     else if(IsLogVK())
@@ -1239,7 +1237,7 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
           ret[i].Id = m_GL->m_FB.m_DrawFBO.Color[db].Obj;
           ret[i].HighestMip = (int)m_GL->m_FB.m_DrawFBO.Color[db].Mip;
           ret[i].FirstSlice = (int)m_GL->m_FB.m_DrawFBO.Color[db].Layer;
-          ret[i].typeHint = eCompType_None;
+          ret[i].typeHint = CompType::Typeless;
         }
       }
     }

@@ -43,7 +43,7 @@ using std::list;
 struct GLInitParams : public RDCInitParams
 {
   GLInitParams();
-  ReplayCreateStatus Serialise();
+  ReplayStatus Serialise();
 
   uint32_t colorBits;
   uint32_t depthBits;
@@ -265,7 +265,7 @@ private:
           depth(0),
           samples(0),
           mips(1),
-          creationFlags(0),
+          creationFlags(TextureCategory::NoFlags),
           internalFormat(eGL_NONE),
           renderbufferReadTex(0)
     {
@@ -276,7 +276,7 @@ private:
     GLint dimension;
     bool emulated, view;
     GLint width, height, depth, samples, mips;
-    uint32_t creationFlags;
+    TextureCategory creationFlags;
     GLenum internalFormat;
 
     // since renderbuffers cannot be read from, we have to create a texture of identical
@@ -541,8 +541,7 @@ public:
     if(m_State < WRITING)
       m_DebugMessages.push_back(msg);
   }
-  void AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src,
-                       std::string d);
+  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
 
   void AddMissingTrack(ResourceId id) { m_MissingTracks.insert(id); }
   // replay interface

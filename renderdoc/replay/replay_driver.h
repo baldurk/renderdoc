@@ -49,7 +49,7 @@ enum RemapTextureEnum
 struct GetTextureDataParams
 {
   bool forDiskSave;
-  FormatComponentType typeHint;
+  CompType typeHint;
   bool resolve;
   RemapTextureEnum remap;
   float blackPoint;
@@ -57,7 +57,7 @@ struct GetTextureDataParams
 
   GetTextureDataParams()
       : forDiskSave(false),
-        typeHint(eCompType_None),
+        typeHint(CompType::Typeless),
         resolve(false),
         remap(eRemap_None),
         blackPoint(0.0f),
@@ -121,22 +121,21 @@ public:
                                const GetTextureDataParams &params, size_t &dataSize) = 0;
 
   virtual void BuildTargetShader(string source, string entry, const uint32_t compileFlags,
-                                 ShaderStageType type, ResourceId *id, string *errors) = 0;
+                                 ShaderStage type, ResourceId *id, string *errors) = 0;
   virtual void ReplaceResource(ResourceId from, ResourceId to) = 0;
   virtual void RemoveReplacement(ResourceId id) = 0;
   virtual void FreeTargetResource(ResourceId id) = 0;
 
-  virtual vector<uint32_t> EnumerateCounters() = 0;
-  virtual void DescribeCounter(uint32_t counterID, CounterDescription &desc) = 0;
-  virtual vector<CounterResult> FetchCounters(const vector<uint32_t> &counterID) = 0;
+  virtual vector<GPUCounter> EnumerateCounters() = 0;
+  virtual void DescribeCounter(GPUCounter counterID, CounterDescription &desc) = 0;
+  virtual vector<CounterResult> FetchCounters(const vector<GPUCounter> &counterID) = 0;
 
   virtual void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
                                     vector<ShaderVariable> &outvars, const vector<byte> &data) = 0;
 
   virtual vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target,
-                                                 uint32_t x, uint32_t y, uint32_t slice,
-                                                 uint32_t mip, uint32_t sampleIdx,
-                                                 FormatComponentType typeHint) = 0;
+                                                 uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
+                                                 uint32_t sampleIdx, CompType typeHint) = 0;
   virtual ShaderDebugTrace DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid,
                                        uint32_t idx, uint32_t instOffset, uint32_t vertOffset) = 0;
   virtual ShaderDebugTrace DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample,
@@ -144,9 +143,8 @@ public:
   virtual ShaderDebugTrace DebugThread(uint32_t eventID, uint32_t groupid[3],
                                        uint32_t threadid[3]) = 0;
 
-  virtual ResourceId RenderOverlay(ResourceId texid, FormatComponentType typeHint,
-                                   TextureDisplayOverlay overlay, uint32_t eventID,
-                                   const vector<uint32_t> &passEvents) = 0;
+  virtual ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
+                                   uint32_t eventID, const vector<uint32_t> &passEvents) = 0;
 
   virtual bool IsRenderOutput(ResourceId id) = 0;
 
@@ -175,10 +173,10 @@ public:
   virtual void FlipOutputWindow(uint64_t id) = 0;
 
   virtual bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                         FormatComponentType typeHint, float *minval, float *maxval) = 0;
+                         CompType typeHint, float *minval, float *maxval) = 0;
   virtual bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            FormatComponentType typeHint, float minval, float maxval,
-                            bool channels[4], vector<uint32_t> &histogram) = 0;
+                            CompType typeHint, float minval, float maxval, bool channels[4],
+                            vector<uint32_t> &histogram) = 0;
 
   virtual ResourceId CreateProxyTexture(const FetchTexture &templateTex) = 0;
   virtual void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
@@ -193,18 +191,17 @@ public:
   virtual bool RenderTexture(TextureDisplay cfg) = 0;
 
   virtual void BuildCustomShader(string source, string entry, const uint32_t compileFlags,
-                                 ShaderStageType type, ResourceId *id, string *errors) = 0;
+                                 ShaderStage type, ResourceId *id, string *errors) = 0;
   virtual ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                       uint32_t arrayIdx, uint32_t sampleIdx,
-                                       FormatComponentType typeHint) = 0;
+                                       uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint) = 0;
   virtual void FreeCustomShader(ResourceId id) = 0;
 
   virtual void RenderCheckerboard(Vec3f light, Vec3f dark) = 0;
 
   virtual void RenderHighlightBox(float w, float h, float scale) = 0;
 
-  virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                         uint32_t sample, FormatComponentType typeHint, float pixel[4]) = 0;
+  virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
+                         uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4]) = 0;
   virtual uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y) = 0;
 };
 
@@ -233,7 +230,8 @@ FetchDrawcall *SetupDrawcallPointers(vector<FetchDrawcall *> *drawcallTable,
 
       ret = previous = SetupDrawcallPointers(drawcallTable, draw->children, draw, previous);
     }
-    else if(draw->flags & (eDraw_PushMarker | eDraw_SetMarker | eDraw_Present | eDraw_MultiDraw))
+    else if(draw->flags & (DrawFlags::PushMarker | DrawFlags::SetMarker | DrawFlags::Present |
+                           DrawFlags::MultiDraw))
     {
       // don't want to set up previous/next links for markers, but still add them to the table
 

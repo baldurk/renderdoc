@@ -27,7 +27,7 @@
 
 void VulkanReplay::OutputWindow::SetWindowHandle(WindowingSystem system, void *data)
 {
-  RDCASSERT(system == eWindowingSystem_Android, system);
+  RDCASSERT(system == WindowingSystem::Android, system);
   wnd = (ANativeWindow *)data;
   m_WindowSystem = system;
 }
@@ -58,7 +58,7 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 
 const char *VulkanLibraryName = "libvulkan.so";
 
-bool VulkanReplay::CheckVulkanLayer(uint32_t &flags, std::vector<std::string> &myJSONs,
+bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
                                     std::vector<std::string> &otherJSONs)
 {
   // nothing to do

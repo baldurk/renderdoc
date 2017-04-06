@@ -38,7 +38,7 @@ UINT GetFormatBPP(DXGI_FORMAT f);
 
 DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f);
-DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, FormatComponentType hint);
+DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType hint);
 DXGI_FORMAT GetDepthTypedFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetFloatTypedFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetUnormTypedFormat(DXGI_FORMAT f);
@@ -57,5 +57,5 @@ bool IsIntFormat(DXGI_FORMAT f);
 bool IsSRGBFormat(DXGI_FORMAT f);
 
 // not technically DXGI, but makes more sense to have it here common between D3D versions
-PrimitiveTopology MakePrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY Topo);
-D3D_PRIMITIVE_TOPOLOGY MakeD3DPrimitiveTopology(PrimitiveTopology Topo);
+Topology MakePrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY Topo);
+D3D_PRIMITIVE_TOPOLOGY MakeD3DPrimitiveTopology(Topology Topo);

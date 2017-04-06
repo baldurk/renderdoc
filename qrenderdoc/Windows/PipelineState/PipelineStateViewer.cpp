@@ -61,13 +61,13 @@ PipelineStateViewer::~PipelineStateViewer()
 
 void PipelineStateViewer::OnLogfileLoaded()
 {
-  if(m_Ctx.APIProps().pipelineType == eGraphicsAPI_D3D11)
+  if(m_Ctx.APIProps().pipelineType == GraphicsAPI::D3D11)
     setToD3D11();
-  else if(m_Ctx.APIProps().pipelineType == eGraphicsAPI_D3D12)
+  else if(m_Ctx.APIProps().pipelineType == GraphicsAPI::D3D12)
     setToD3D12();
-  else if(m_Ctx.APIProps().pipelineType == eGraphicsAPI_OpenGL)
+  else if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
     setToGL();
-  else if(m_Ctx.APIProps().pipelineType == eGraphicsAPI_Vulkan)
+  else if(m_Ctx.APIProps().pipelineType == GraphicsAPI::Vulkan)
     setToVulkan();
 
   if(m_Current)
@@ -146,7 +146,7 @@ void PipelineStateViewer::setToD3D11()
   m_D3D11 = new D3D11PipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_D3D11);
   m_Current = m_D3D11;
-  m_Ctx.CurPipelineState.DefaultType = eGraphicsAPI_D3D11;
+  m_Ctx.CurPipelineState.DefaultType = GraphicsAPI::D3D11;
 }
 
 void PipelineStateViewer::setToD3D12()
@@ -159,7 +159,7 @@ void PipelineStateViewer::setToD3D12()
   m_D3D12 = new D3D12PipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_D3D12);
   m_Current = m_D3D12;
-  m_Ctx.CurPipelineState.DefaultType = eGraphicsAPI_D3D12;
+  m_Ctx.CurPipelineState.DefaultType = GraphicsAPI::D3D12;
 }
 
 void PipelineStateViewer::setToGL()
@@ -172,7 +172,7 @@ void PipelineStateViewer::setToGL()
   m_GL = new GLPipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_GL);
   m_Current = m_GL;
-  m_Ctx.CurPipelineState.DefaultType = eGraphicsAPI_OpenGL;
+  m_Ctx.CurPipelineState.DefaultType = GraphicsAPI::OpenGL;
 }
 
 void PipelineStateViewer::setToVulkan()
@@ -185,7 +185,7 @@ void PipelineStateViewer::setToVulkan()
   m_Vulkan = new VulkanPipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_Vulkan);
   m_Current = m_Vulkan;
-  m_Ctx.CurPipelineState.DefaultType = eGraphicsAPI_Vulkan;
+  m_Ctx.CurPipelineState.DefaultType = GraphicsAPI::Vulkan;
 }
 
 bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDetails,
@@ -223,7 +223,7 @@ bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDet
   return false;
 }
 
-void PipelineStateViewer::EditShader(ShaderStageType shaderType, ResourceId id,
+void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
                                      const ShaderReflection *shaderDetails, const QString &entryFunc,
                                      const QStringMap &files, const QString &mainfile)
 {

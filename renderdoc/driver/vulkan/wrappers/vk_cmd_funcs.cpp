@@ -744,7 +744,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser *localSerialiser,
     {
       FetchDrawcall draw;
       draw.name = "API Calls";
-      draw.flags |= eDraw_SetMarker | eDraw_APICalls;
+      draw.flags |= DrawFlags::SetMarker | DrawFlags::APICalls;
 
       AddDrawcall(draw, true);
 
@@ -892,7 +892,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(Serialiser *localSerialiser,
     AddEvent(desc);
     FetchDrawcall draw;
     draw.name = StringFormat::Fmt("vkCmdBeginRenderPass(%s)", opDesc.c_str());
-    draw.flags |= eDraw_PassBoundary | eDraw_BeginPass;
+    draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass;
 
     AddDrawcall(draw, true);
   }
@@ -994,7 +994,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(Serialiser *localSerialiser,
     FetchDrawcall draw;
     draw.name = StringFormat::Fmt("vkCmdNextSubpass() => %u",
                                   m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
-    draw.flags |= eDraw_PassBoundary | eDraw_BeginPass | eDraw_EndPass;
+    draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass | DrawFlags::EndPass;
 
     AddDrawcall(draw, true);
   }
@@ -1066,7 +1066,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(Serialiser *localSerialiser,
     AddEvent(desc);
     FetchDrawcall draw;
     draw.name = StringFormat::Fmt("vkCmdEndRenderPass(%s)", opDesc.c_str());
-    draw.flags |= eDraw_PassBoundary | eDraw_EndPass;
+    draw.flags |= DrawFlags::PassBoundary | DrawFlags::EndPass;
 
     AddDrawcall(draw, true);
 
@@ -1915,9 +1915,9 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
     for(size_t i = 0; i < imgBarriers.size(); i++)
     {
-      m_BakedCmdBufferInfo[cmdid].resourceUsage.push_back(
-          std::make_pair(GetResourceManager()->GetNonDispWrapper(imgBarriers[i].image)->id,
-                         EventUsage(m_BakedCmdBufferInfo[cmdid].curEventID, eUsage_Barrier)));
+      m_BakedCmdBufferInfo[cmdid].resourceUsage.push_back(std::make_pair(
+          GetResourceManager()->GetNonDispWrapper(imgBarriers[i].image)->id,
+          EventUsage(m_BakedCmdBufferInfo[cmdid].curEventID, ResourceUsage::Barrier)));
     }
   }
 
@@ -2353,7 +2353,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
 
     FetchDrawcall draw;
     draw.name = "vkCmdExecuteCommands(" + ToStr::Get(count) + ")";
-    draw.flags = eDraw_CmdList | eDraw_PushMarker;
+    draw.flags = DrawFlags::CmdList | DrawFlags::PushMarker;
 
     AddDrawcall(draw, true);
 
@@ -2369,7 +2369,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
       // add a fake marker
       FetchDrawcall marker;
       marker.name = name;
-      marker.flags = eDraw_PassBoundary | eDraw_BeginPass;
+      marker.flags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
       AddEvent(name);
       AddDrawcall(marker, true);
       parentCmdBufInfo.curEventID++;
@@ -2380,7 +2380,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
          (cmdBufInfo.beginFlags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT))
       {
         AddDebugMessage(
-            eDbgCategory_Execution, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+            MessageCategory::Execution, MessageSeverity::High, MessageSource::IncorrectAPIUse,
             "Executing a command buffer with RENDER_PASS_CONTINUE_BIT outside of render pass");
       }
 
@@ -2406,7 +2406,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
       name = StringFormat::Fmt("=> vkCmdExecuteCommands()[%u]: vkEndCommandBuffer(%s)", c,
                                ToStr::Get(cmdids[c]).c_str());
       marker.name = name;
-      marker.flags = eDraw_PassBoundary | eDraw_EndPass;
+      marker.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
       AddEvent(name);
       AddDrawcall(marker, true);
       parentCmdBufInfo.curEventID++;
@@ -2414,7 +2414,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
 
     // add an extra pop marker
     draw = FetchDrawcall();
-    draw.flags = eDraw_PopMarker;
+    draw.flags = DrawFlags::PopMarker;
 
     AddDrawcall(draw, true);
 
@@ -2639,7 +2639,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(Serialiser *localSerialis
   {
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_PushMarker;
+    draw.flags |= DrawFlags::PushMarker;
 
     draw.markerColour[0] = RDCCLAMP(color[0], 0.0f, 1.0f);
     draw.markerColour[1] = RDCCLAMP(color[1], 0.0f, 1.0f);
@@ -2683,7 +2683,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(Serialiser *localSerialiser
   {
     FetchDrawcall draw;
     draw.name = "API Calls";
-    draw.flags = eDraw_SetMarker | eDraw_APICalls;
+    draw.flags = DrawFlags::SetMarker | DrawFlags::APICalls;
 
     AddDrawcall(draw, true);
   }
@@ -2694,7 +2694,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(Serialiser *localSerialiser
     // is being in-lined into the call stream
     FetchDrawcall draw;
     draw.name = "Pop()";
-    draw.flags = eDraw_PopMarker;
+    draw.flags = DrawFlags::PopMarker;
 
     AddDrawcall(draw, false);
   }
@@ -2741,7 +2741,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(Serialiser *localSeriali
   {
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_SetMarker;
+    draw.flags |= DrawFlags::SetMarker;
 
     draw.markerColour[0] = RDCCLAMP(color[0], 0.0f, 1.0f);
     draw.markerColour[1] = RDCCLAMP(color[1], 0.0f, 1.0f);

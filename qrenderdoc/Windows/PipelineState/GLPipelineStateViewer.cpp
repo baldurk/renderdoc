@@ -412,7 +412,7 @@ bool GLPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
   return false;
 }
 
-const GLPipelineState::ShaderStage *GLPipelineStateViewer::stageForSender(QWidget *widget)
+const GLPipelineState::Shader *GLPipelineStateViewer::stageForSender(QWidget *widget)
 {
   if(!m_Ctx.LogLoaded())
     return NULL;
@@ -532,10 +532,10 @@ void GLPipelineStateViewer::clearState()
   ui->stencils->clear();
 }
 
-void GLPipelineStateViewer::setShaderState(const GLPipelineState::ShaderStage &stage,
-                                           QLabel *shader, RDTreeWidget *textures,
-                                           RDTreeWidget *samplers, RDTreeWidget *ubos,
-                                           RDTreeWidget *subs, RDTreeWidget *readwrites)
+void GLPipelineStateViewer::setShaderState(const GLPipelineState::Shader &stage, QLabel *shader,
+                                           RDTreeWidget *textures, RDTreeWidget *samplers,
+                                           RDTreeWidget *ubos, RDTreeWidget *subs,
+                                           RDTreeWidget *readwrites)
 {
   ShaderReflection *shaderDetails = stage.ShaderDetails;
   const ShaderBindpointMapping &mapping = stage.BindpointMapping;
@@ -544,17 +544,17 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::ShaderStage &s
   const QIcon &action = Icons::action();
   const QIcon &action_hover = Icons::action_hover();
 
-  if(stage.Shader == ResourceId())
+  if(stage.Object == ResourceId())
   {
     shader->setText(tr("Unbound Shader"));
   }
   else
   {
-    QString shaderName = ToQStr(stage.stage, eGraphicsAPI_OpenGL) + " Shader";
+    QString shaderName = ToQStr(stage.stage, GraphicsAPI::OpenGL) + " Shader";
 
     if(!stage.customShaderName && !stage.customProgramName && !stage.customPipelineName)
     {
-      shader->setText(shaderName + " " + ToQStr(stage.Shader));
+      shader->setText(shaderName + " " + ToQStr(stage.Object));
     }
     else
     {
@@ -640,17 +640,17 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::ShaderStage &s
           name = tex->name;
           typeName = ToQStr(tex->resType);
 
-          if(tex->format.special && (tex->format.specialFormat == eSpecial_D16S8 ||
-                                     tex->format.specialFormat == eSpecial_D24S8 ||
-                                     tex->format.specialFormat == eSpecial_D32S8))
+          if(tex->format.special && (tex->format.specialFormat == SpecialFormat::D16S8 ||
+                                     tex->format.specialFormat == SpecialFormat::D24S8 ||
+                                     tex->format.specialFormat == SpecialFormat::D32S8))
           {
             if(r.DepthReadChannel == 0)
               format += " Depth-Read";
             else if(r.DepthReadChannel == 1)
               format += " Stencil-Read";
           }
-          else if(r.Swizzle[0] != eSwizzle_Red || r.Swizzle[1] != eSwizzle_Green ||
-                  r.Swizzle[2] != eSwizzle_Blue || r.Swizzle[3] != eSwizzle_Alpha)
+          else if(r.Swizzle[0] != TextureSwizzle::Red || r.Swizzle[1] != TextureSwizzle::Green ||
+                  r.Swizzle[2] != TextureSwizzle::Blue || r.Swizzle[3] != TextureSwizzle::Alpha)
           {
             format += QString(" swizzle[%1%2%3%4]")
                           .arg(ToQStr(r.Swizzle[0]))
@@ -715,7 +715,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::ShaderStage &s
         if(s.UseBorder)
           addressing += QString("<%1>").arg(borderColor);
 
-        if(r.ResType == eResType_TextureCube || r.ResType == eResType_TextureCubeArray)
+        if(r.ResType == TextureDim::TextureCube || r.ResType == TextureDim::TextureCubeArray)
         {
           addressing += s.SeamlessCube ? " Seamless" : " Non-Seamless";
         }
@@ -981,8 +981,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::ShaderStage &s
 }
 
 QString GLPipelineStateViewer::MakeGenericValueString(
-    uint32_t compCount, FormatComponentType compType,
-    const GLPipelineState::VertexInput::VertexAttribute &val)
+    uint32_t compCount, CompType compType, const GLPipelineState::VertexInput::VertexAttribute &val)
 {
   QString ret = "";
   if(compCount == 1)
@@ -994,14 +993,14 @@ QString GLPipelineStateViewer::MakeGenericValueString(
   else if(compCount == 4)
     ret = "<%1, %2, %3, %4>";
 
-  if(compType == eCompType_UInt)
+  if(compType == CompType::UInt)
   {
     for(uint32_t i = 0; i < compCount; i++)
       ret = ret.arg(val.GenericValue.u[i]);
 
     return ret;
   }
-  else if(compType == eCompType_SInt)
+  else if(compType == CompType::SInt)
   {
     for(uint32_t i = 0; i < compCount; i++)
       ret = ret.arg(val.GenericValue.i[i]);
@@ -1028,7 +1027,7 @@ GLPipelineStateViewer::GLReadWriteType GLPipelineStateViewer::GetGLReadWriteType
   else
   {
     if(res.variableType.descriptor.rows == 1 && res.variableType.descriptor.cols == 1 &&
-       res.variableType.descriptor.type == eVar_UInt)
+       res.variableType.descriptor.type == VarType::UInt)
     {
       ret = GLReadWriteType::Atomic;
     }
@@ -1081,9 +1080,9 @@ void GLPipelineStateViewer::setState()
       QString name = tr("Attribute %1").arg(i);
 
       uint32_t compCount = 4;
-      FormatComponentType compType = eCompType_Float;
+      CompType compType = CompType::Float;
 
-      if(state.m_VS.Shader != ResourceId())
+      if(state.m_VS.Object != ResourceId())
       {
         int attrib = -1;
         if(i < state.m_VS.BindpointMapping.InputAttributes.count)
@@ -1124,12 +1123,11 @@ void GLPipelineStateViewer::setState()
   ui->viAttrs->setUpdatesEnabled(true);
   ui->viAttrs->verticalScrollBar()->setValue(vs);
 
-  PrimitiveTopology topo = draw ? draw->topology : eTopology_Unknown;
+  Topology topo = draw ? draw->topology : Topology::Unknown;
 
-  if(topo > eTopology_PatchList)
+  int numCPs = PatchList_Count(topo);
+  if(numCPs > 0)
   {
-    int numCPs = (int)topo - (int)eTopology_PatchList_1CPs + 1;
-
     ui->topology->setText(QString("PatchList (%1 Control Points)").arg(numCPs));
   }
   else
@@ -1137,7 +1135,7 @@ void GLPipelineStateViewer::setState()
     ui->topology->setText(ToQStr(topo));
   }
 
-  bool ibufferUsed = draw && (draw->flags & eDraw_UseIBuffer);
+  bool ibufferUsed = draw && (draw->flags & DrawFlags::UseIBuffer);
 
   if(ibufferUsed)
   {
@@ -1155,21 +1153,21 @@ void GLPipelineStateViewer::setState()
 
   switch(topo)
   {
-    case eTopology_PointList: ui->topologyDiagram->setPixmap(Pixmaps::topo_pointlist()); break;
-    case eTopology_LineList: ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist()); break;
-    case eTopology_LineStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip()); break;
-    case eTopology_TriangleList: ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist()); break;
-    case eTopology_TriangleStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip()); break;
-    case eTopology_LineList_Adj:
+    case Topology::PointList: ui->topologyDiagram->setPixmap(Pixmaps::topo_pointlist()); break;
+    case Topology::LineList: ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist()); break;
+    case Topology::LineStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip()); break;
+    case Topology::TriangleList: ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist()); break;
+    case Topology::TriangleStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip()); break;
+    case Topology::LineList_Adj:
       ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist_adj());
       break;
-    case eTopology_LineStrip_Adj:
+    case Topology::LineStrip_Adj:
       ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip_adj());
       break;
-    case eTopology_TriangleList_Adj:
+    case Topology::TriangleList_Adj:
       ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist_adj());
       break;
-    case eTopology_TriangleStrip_Adj:
+    case Topology::TriangleStrip_Adj:
       ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip_adj());
       break;
     default: ui->topologyDiagram->setPixmap(Pixmaps::topo_patch()); break;
@@ -1497,8 +1495,8 @@ void GLPipelineStateViewer::setState()
   ui->scissors->verticalScrollBar()->setValue(vs);
   ui->scissors->setUpdatesEnabled(true);
 
-  ui->fillMode->setText(ToQStr(state.m_Rasterizer.m_State.FillMode));
-  ui->cullMode->setText(ToQStr(state.m_Rasterizer.m_State.CullMode));
+  ui->fillMode->setText(ToQStr(state.m_Rasterizer.m_State.fillMode));
+  ui->cullMode->setText(ToQStr(state.m_Rasterizer.m_State.cullMode));
   ui->frontCCW->setPixmap(state.m_Rasterizer.m_State.FrontCCW ? tick : cross);
 
   ui->scissorEnabled->setPixmap(anyScissorEnable ? tick : cross);
@@ -1652,8 +1650,8 @@ void GLPipelineStateViewer::setState()
             for(int s = 0; s < state.m_FS.ShaderDetails->OutputSig.count; s++)
             {
               if(state.m_FS.ShaderDetails->OutputSig[s].regIndex == (uint32_t)db &&
-                 (state.m_FS.ShaderDetails->OutputSig[s].systemValue == eAttr_None ||
-                  state.m_FS.ShaderDetails->OutputSig[s].systemValue == eAttr_ColourOutput))
+                 (state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::Undefined ||
+                  state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::ColourOutput))
               {
                 name = QString("<%1>").arg(ToQStr(state.m_FS.ShaderDetails->OutputSig[s].varName));
               }
@@ -1661,8 +1659,8 @@ void GLPipelineStateViewer::setState()
           }
         }
 
-        if(r && (r->Swizzle[0] != eSwizzle_Red || r->Swizzle[1] != eSwizzle_Green ||
-                 r->Swizzle[2] != eSwizzle_Blue || r->Swizzle[3] != eSwizzle_Alpha))
+        if(r && (r->Swizzle[0] != TextureSwizzle::Red || r->Swizzle[1] != TextureSwizzle::Green ||
+                 r->Swizzle[2] != TextureSwizzle::Blue || r->Swizzle[3] != TextureSwizzle::Alpha))
         {
           format += tr(" swizzle[%1%2%3%4]")
                         .arg(ToQStr(r->Swizzle[0]))
@@ -1892,15 +1890,15 @@ void GLPipelineStateViewer::setState()
   {
     ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
   }
-  else if(draw->flags & eDraw_Dispatch)
+  else if(draw->flags & DrawFlags::Dispatch)
   {
     ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
   }
   else
   {
     ui->pipeFlow->setStagesEnabled(
-        {true, true, state.m_TCS.Shader != ResourceId(), state.m_TES.Shader != ResourceId(),
-         state.m_GS.Shader != ResourceId(), true, state.m_FS.Shader != ResourceId(), true, false});
+        {true, true, state.m_TCS.Object != ResourceId(), state.m_TES.Object != ResourceId(),
+         state.m_GS.Object != ResourceId(), true, state.m_FS.Object != ResourceId(), true, false});
   }
 }
 
@@ -1941,7 +1939,7 @@ QString GLPipelineStateViewer::formatMembers(int indent, const QString &namepref
 
 void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int column)
 {
-  const GLPipelineState::ShaderStage *stage = stageForSender(item->treeWidget());
+  const GLPipelineState::Shader *stage = stageForSender(item->treeWidget());
 
   if(stage == NULL)
     return;
@@ -1954,7 +1952,7 @@ void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int co
 
     if(tex)
     {
-      if(tex->resType == eResType_Buffer)
+      if(tex->resType == TextureDim::Buffer)
       {
         BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
 
@@ -2039,7 +2037,7 @@ void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int co
 
 void GLPipelineStateViewer::ubo_itemActivated(QTreeWidgetItem *item, int column)
 {
-  const GLPipelineState::ShaderStage *stage = stageForSender(item->treeWidget());
+  const GLPipelineState::Shader *stage = stageForSender(item->treeWidget());
 
   if(stage == NULL)
     return;
@@ -2246,10 +2244,9 @@ void GLPipelineStateViewer::on_pipeFlow_stageSelected(int index)
 
 void GLPipelineStateViewer::shaderView_clicked()
 {
-  const GLPipelineState::ShaderStage *stage =
-      stageForSender(qobject_cast<QWidget *>(QObject::sender()));
+  const GLPipelineState::Shader *stage = stageForSender(qobject_cast<QWidget *>(QObject::sender()));
 
-  if(stage == NULL || stage->Shader == ResourceId())
+  if(stage == NULL || stage->Object == ResourceId())
     return;
 
   ShaderReflection *shaderDetails = stage->ShaderDetails;
@@ -2268,9 +2265,9 @@ void GLPipelineStateViewer::shaderView_clicked()
 void GLPipelineStateViewer::shaderEdit_clicked()
 {
   QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
-  const GLPipelineState::ShaderStage *stage = stageForSender(sender);
+  const GLPipelineState::Shader *stage = stageForSender(sender);
 
-  if(!stage || stage->Shader == ResourceId())
+  if(!stage || stage->Object == ResourceId())
     return;
 
   const ShaderReflection *shaderDetails = stage->ShaderDetails;
@@ -2278,7 +2275,7 @@ void GLPipelineStateViewer::shaderEdit_clicked()
   if(!shaderDetails)
     return;
 
-  QString entryFunc = QString("EditedShader%1S").arg(ToQStr(stage->stage, eGraphicsAPI_OpenGL)[0]);
+  QString entryFunc = QString("EditedShader%1S").arg(ToQStr(stage->stage, GraphicsAPI::OpenGL)[0]);
 
   QString mainfile = "";
 
@@ -2298,20 +2295,19 @@ void GLPipelineStateViewer::shaderEdit_clicked()
   if(files.empty())
     return;
 
-  m_Common.EditShader(stage->stage, stage->Shader, shaderDetails, entryFunc, files, mainfile);
+  m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, files, mainfile);
 }
 
 void GLPipelineStateViewer::shaderSave_clicked()
 {
-  const GLPipelineState::ShaderStage *stage =
-      stageForSender(qobject_cast<QWidget *>(QObject::sender()));
+  const GLPipelineState::Shader *stage = stageForSender(qobject_cast<QWidget *>(QObject::sender()));
 
   if(stage == NULL)
     return;
 
   ShaderReflection *shaderDetails = stage->ShaderDetails;
 
-  if(stage->Shader == ResourceId())
+  if(stage->Object == ResourceId())
     return;
 
   m_Common.SaveShaderFile(shaderDetails);

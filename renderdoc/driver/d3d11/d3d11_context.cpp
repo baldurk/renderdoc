@@ -807,7 +807,7 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 
         FetchDrawcall draw;
         draw.name = "Present()";
-        draw.flags |= eDraw_Present;
+        draw.flags |= DrawFlags::Present;
 
         draw.copyDestination = m_pDevice->GetBackbufferResourceID();
 
@@ -852,19 +852,21 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
   const D3D11RenderState *pipe = m_CurrentPipelineState;
   uint32_t e = d.eventID;
 
-  if((d.flags & (eDraw_Drawcall | eDraw_Dispatch | eDraw_CmdList)) == 0)
+  DrawFlags DrawMask = DrawFlags::Drawcall | DrawFlags::Dispatch | DrawFlags::CmdList;
+  if(!(d.flags & DrawMask))
     return;
 
   //////////////////////////////
   // IA
 
-  if(d.flags & eDraw_UseIBuffer && pipe->IA.IndexBuffer != NULL)
+  if(d.flags & DrawFlags::UseIBuffer && pipe->IA.IndexBuffer != NULL)
     m_ResourceUses[GetIDForResource(pipe->IA.IndexBuffer)].push_back(
-        EventUsage(e, eUsage_IndexBuffer));
+        EventUsage(e, ResourceUsage::IndexBuffer));
 
   for(int i = 0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
     if(pipe->IA.Used_VB(m_pDevice, i))
-      m_ResourceUses[GetIDForResource(pipe->IA.VBs[i])].push_back(EventUsage(e, eUsage_VertexBuffer));
+      m_ResourceUses[GetIDForResource(pipe->IA.VBs[i])].push_back(
+          EventUsage(e, ResourceUsage::VertexBuffer));
 
   //////////////////////////////
   // Shaders
@@ -878,8 +880,7 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
 
     for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
       if(sh.Used_CB(i))
-        m_ResourceUses[GetIDForResource(sh.ConstantBuffers[i])].push_back(
-            EventUsage(e, (ResourceUsage)(eUsage_VS_Constants + s)));
+        m_ResourceUses[GetIDForResource(sh.ConstantBuffers[i])].push_back(EventUsage(e, CBUsage(s)));
 
     for(int i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
     {
@@ -887,7 +888,7 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
       {
         WrappedID3D11ShaderResourceView1 *view = (WrappedID3D11ShaderResourceView1 *)sh.SRVs[i];
         m_ResourceUses[view->GetResourceResID()].push_back(
-            EventUsage(e, (ResourceUsage)(eUsage_VS_Resource + s), view->GetResourceID()));
+            EventUsage(e, ResUsage(s), view->GetResourceID()));
       }
     }
 
@@ -900,7 +901,7 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
           WrappedID3D11UnorderedAccessView1 *view =
               (WrappedID3D11UnorderedAccessView1 *)pipe->CSUAVs[i];
           m_ResourceUses[view->GetResourceResID()].push_back(
-              EventUsage(e, eUsage_CS_RWResource, view->GetResourceID()));
+              EventUsage(e, ResourceUsage::CS_RWResource, view->GetResourceID()));
         }
       }
     }
@@ -911,7 +912,8 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
 
   for(int i = 0; i < D3D11_SO_BUFFER_SLOT_COUNT; i++)
     if(pipe->SO.Buffers[i])    // assuming for now that any SO target bound is used.
-      m_ResourceUses[GetIDForResource(pipe->SO.Buffers[i])].push_back(EventUsage(e, eUsage_SO));
+      m_ResourceUses[GetIDForResource(pipe->SO.Buffers[i])].push_back(
+          EventUsage(e, ResourceUsage::StreamOut));
 
   //////////////////////////////
   // OM
@@ -922,7 +924,7 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
     {
       WrappedID3D11UnorderedAccessView1 *view = (WrappedID3D11UnorderedAccessView1 *)pipe->OM.UAVs[i];
       m_ResourceUses[view->GetResourceResID()].push_back(
-          EventUsage(e, eUsage_PS_RWResource, view->GetResourceID()));
+          EventUsage(e, ResourceUsage::PS_RWResource, view->GetResourceID()));
     }
   }
 
@@ -930,7 +932,7 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
   {
     WrappedID3D11DepthStencilView *view = (WrappedID3D11DepthStencilView *)pipe->OM.DepthView;
     m_ResourceUses[view->GetResourceResID()].push_back(
-        EventUsage(e, eUsage_DepthStencilTarget, view->GetResourceID()));
+        EventUsage(e, ResourceUsage::DepthStencilTarget, view->GetResourceID()));
   }
 
   for(int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
@@ -940,7 +942,7 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
       WrappedID3D11RenderTargetView1 *view =
           (WrappedID3D11RenderTargetView1 *)pipe->OM.RenderTargets[i];
       m_ResourceUses[view->GetResourceResID()].push_back(
-          EventUsage(e, eUsage_ColourTarget, view->GetResourceID()));
+          EventUsage(e, ResourceUsage::ColourTarget, view->GetResourceID()));
     }
   }
 }
@@ -979,7 +981,8 @@ void WrappedID3D11DeviceContext::AddDrawcall(const FetchDrawcall &d, bool hasEve
   }
 
   // markers don't increment drawcall ID
-  if((draw.flags & (eDraw_SetMarker | eDraw_PushMarker)) == 0)
+  DrawFlags MarkerMask = DrawFlags::SetMarker | DrawFlags::PushMarker;
+  if(!(draw.flags & MarkerMask))
     m_CurDrawcallID++;
 
   if(hasEvents)
@@ -1533,8 +1536,9 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
         {
           ResourceUsage u = usit->usage;
 
-          if(u == eUsage_SO || (u >= eUsage_VS_RWResource && u <= eUsage_CS_RWResource) ||
-             u == eUsage_DepthStencilTarget || u == eUsage_ColourTarget)
+          if(u == ResourceUsage::StreamOut ||
+             (u >= ResourceUsage::VS_RWResource && u <= ResourceUsage::CS_RWResource) ||
+             u == ResourceUsage::DepthStencilTarget || u == ResourceUsage::ColourTarget)
           {
             written = true;
             break;
@@ -1706,12 +1710,12 @@ void WrappedID3D11DeviceContext::RecordLayoutBindStats(ID3D11InputLayout *Layout
   layouts.nulls += (Layout == NULL);
 }
 
-void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStageType stage, UINT NumBuffers,
+void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStage stage, UINT NumBuffers,
                                                      ID3D11Buffer *Buffers[])
 {
   FetchFrameStatistics &stats = m_pDevice->GetFrameStats();
-  RDCASSERT(stage < ARRAY_COUNT(stats.constants));
-  FetchFrameConstantBindStats &constants = stats.constants[stage];
+  RDCASSERT(size_t(stage) < ARRAY_COUNT(stats.constants));
+  FetchFrameConstantBindStats &constants = stats.constants[uint32_t(stage)];
   constants.calls += 1;
   RDCASSERT(NumBuffers < constants.bindslots.size());
   constants.bindslots[NumBuffers] += 1;
@@ -1736,21 +1740,21 @@ void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStageType stage, UINT
   }
 }
 
-void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStageType stage, UINT NumResources,
+void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStage stage, UINT NumResources,
                                                      ID3D11ShaderResourceView *Resources[])
 {
   FetchFrameStatistics &stats = m_pDevice->GetFrameStats();
-  RDCASSERT(stage < ARRAY_COUNT(stats.resources));
-  FetchFrameResourceBindStats &resources = stats.resources[stage];
+  RDCASSERT(size_t(stage) < ARRAY_COUNT(stats.resources));
+  FetchFrameResourceBindStats &resources = stats.resources[(uint32_t)stage];
   resources.calls += 1;
   RDCASSERT(NumResources < resources.bindslots.size());
   resources.bindslots[NumResources] += 1;
 
-  const ShaderResourceType mapping[] = {
-      eResType_None,           eResType_Buffer,           eResType_Texture1D,
-      eResType_Texture1DArray, eResType_Texture2D,        eResType_Texture2DArray,
-      eResType_Texture2DMS,    eResType_Texture2DMSArray, eResType_Texture3D,
-      eResType_TextureCube,    eResType_TextureCubeArray, eResType_Buffer,
+  const TextureDim mapping[] = {
+      TextureDim::Unknown,        TextureDim::Buffer,           TextureDim::Texture1D,
+      TextureDim::Texture1DArray, TextureDim::Texture2D,        TextureDim::Texture2DArray,
+      TextureDim::Texture2DMS,    TextureDim::Texture2DMSArray, TextureDim::Texture3D,
+      TextureDim::TextureCube,    TextureDim::TextureCubeArray, TextureDim::Buffer,
   };
   RDCCOMPILE_ASSERT(ARRAY_COUNT(mapping) == D3D_SRV_DIMENSION_BUFFEREX + 1,
                     "Update mapping table.");
@@ -1764,11 +1768,11 @@ void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStageType stage, UINT
       D3D11_SHADER_RESOURCE_VIEW_DESC desc;
       Resources[i]->GetDesc(&desc);
       RDCASSERT(desc.ViewDimension < ARRAY_COUNT(mapping));
-      ShaderResourceType type = mapping[desc.ViewDimension];
+      TextureDim type = mapping[desc.ViewDimension];
       // #mivance surprisingly this is not asserted in operator[] for
       // rdctype::array so I'm being paranoid
       RDCASSERT((int)type < (int)resources.types.size());
-      resources.types[type] += 1;
+      resources.types[(int)type] += 1;
     }
     else
     {
@@ -1777,12 +1781,12 @@ void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStageType stage, UINT
   }
 }
 
-void WrappedID3D11DeviceContext::RecordSamplerStats(ShaderStageType stage, UINT NumSamplers,
+void WrappedID3D11DeviceContext::RecordSamplerStats(ShaderStage stage, UINT NumSamplers,
                                                     ID3D11SamplerState *Samplers[])
 {
   FetchFrameStatistics &stats = m_pDevice->GetFrameStats();
-  RDCASSERT(stage < ARRAY_COUNT(stats.samplers));
-  FetchFrameSamplerBindStats &samplers = stats.samplers[stage];
+  RDCASSERT(size_t(stage) < ARRAY_COUNT(stats.samplers));
+  FetchFrameSamplerBindStats &samplers = stats.samplers[uint32_t(stage)];
   samplers.calls += 1;
   RDCASSERT(NumSamplers < samplers.bindslots.size());
   samplers.bindslots[NumSamplers] += 1;
@@ -1808,20 +1812,20 @@ void WrappedID3D11DeviceContext::RecordUpdateStats(ID3D11Resource *res, uint32_t
   updates.clients += (Server == false);
   updates.servers += (Server == true);
 
-  const ShaderResourceType mapping[] = {
-      eResType_None,         // D3D11_RESOURCE_DIMENSION_UNKNOWN	= 0,
-      eResType_Buffer,       // D3D11_RESOURCE_DIMENSION_BUFFER	= 1,
-      eResType_Texture1D,    // D3D11_RESOURCE_DIMENSION_TEXTURE1D	= 2,
-      eResType_Texture2D,    // D3D11_RESOURCE_DIMENSION_TEXTURE2D	= 3,
-      eResType_Texture3D,    // D3D11_RESOURCE_DIMENSION_TEXTURE3D	= 4
+  const TextureDim mapping[] = {
+      TextureDim::Unknown,      // D3D11_RESOURCE_DIMENSION_UNKNOWN	= 0,
+      TextureDim::Buffer,       // D3D11_RESOURCE_DIMENSION_BUFFER	= 1,
+      TextureDim::Texture1D,    // D3D11_RESOURCE_DIMENSION_TEXTURE1D	= 2,
+      TextureDim::Texture2D,    // D3D11_RESOURCE_DIMENSION_TEXTURE2D	= 3,
+      TextureDim::Texture3D,    // D3D11_RESOURCE_DIMENSION_TEXTURE3D	= 4
   };
 
   D3D11_RESOURCE_DIMENSION dim;
   res->GetType(&dim);
   RDCASSERT(dim < ARRAY_COUNT(mapping));
-  ShaderResourceType type = mapping[dim];
+  TextureDim type = mapping[dim];
   RDCASSERT((int)type < (int)updates.types.size());
-  updates.types[type] += 1;
+  updates.types[(int)type] += 1;
 
   // #mivance it might be nice to query the buffer to differentiate
   // between bindings for constant buffers
@@ -1856,12 +1860,12 @@ void WrappedID3D11DeviceContext::RecordDispatchStats(bool indirect)
   dispatches.indirect += (uint32_t)indirect;
 }
 
-void WrappedID3D11DeviceContext::RecordShaderStats(ShaderStageType stage, ID3D11DeviceChild *Current,
+void WrappedID3D11DeviceContext::RecordShaderStats(ShaderStage stage, ID3D11DeviceChild *Current,
                                                    ID3D11DeviceChild *Shader)
 {
   FetchFrameStatistics &stats = m_pDevice->GetFrameStats();
-  RDCASSERT(stage <= ARRAY_COUNT(stats.shaders));
-  FetchFrameShaderStats &shaders = stats.shaders[stage];
+  RDCASSERT(size_t(stage) <= ARRAY_COUNT(stats.shaders));
+  FetchFrameShaderStats &shaders = stats.shaders[uint32_t(stage)];
 
   shaders.calls += 1;
   shaders.sets += (Shader != NULL);

@@ -181,36 +181,36 @@ void Process::ApplyEnvironmentModification()
 
     string value = currentEnv[m.name];
 
-    switch(m.type)
+    switch(m.mod)
     {
-      case eEnvModification_Replace: value = m.value; break;
-      case eEnvModification_Append: value += m.value; break;
-      case eEnvModification_AppendPlatform:
-      case eEnvModification_AppendColon:
+      case EnvMod::Set: value = m.value; break;
+      case EnvMod::Append:
+      {
         if(!value.empty())
-          value += ":";
+        {
+          if(m.sep == EnvSep::Platform || m.sep == EnvSep::Colon)
+            value += ":";
+          else if(m.sep == EnvSep::SemiColon)
+            value += ";";
+        }
         value += m.value;
         break;
-      case eEnvModification_AppendSemiColon:
+      }
+      case EnvMod::Prepend:
+      {
         if(!value.empty())
-          value += ";";
-        value += m.value;
-        break;
-      case eEnvModification_Prepend: value = m.value + value; break;
-      case eEnvModification_PrependColon:
-        if(!value.empty())
-          value = m.value + ":" + value;
+        {
+          if(m.sep == EnvSep::Platform || m.sep == EnvSep::Colon)
+            value += ":";
+          else if(m.sep == EnvSep::SemiColon)
+            value += ";";
+        }
         else
+        {
           value = m.value;
+        }
         break;
-      case eEnvModification_PrependPlatform:
-      case eEnvModification_PrependSemiColon:
-        if(!value.empty())
-          value = m.value + ";" + value;
-        else
-          value = m.value;
-        break;
-      default: RDCERR("Unexpected environment modification type");
+      }
     }
 
     setenv(m.name.c_str(), value.c_str(), true);
@@ -513,17 +513,17 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
     }
   }
 
+  modifications.push_back(EnvironmentModification(EnvMod::Append, EnvSep::Platform,
+                                                  "LD_LIBRARY_PATH", binpath.c_str()));
+  modifications.push_back(EnvironmentModification(EnvMod::Append, EnvSep::Platform,
+                                                  "LD_LIBRARY_PATH", libpath.c_str()));
   modifications.push_back(
-      EnvironmentModification(eEnvModification_AppendPlatform, "LD_LIBRARY_PATH", binpath.c_str()));
+      EnvironmentModification(EnvMod::Append, EnvSep::Platform, "LD_PRELOAD", "librenderdoc.so"));
   modifications.push_back(
-      EnvironmentModification(eEnvModification_AppendPlatform, "LD_LIBRARY_PATH", libpath.c_str()));
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_LOGFILE", logfile));
   modifications.push_back(
-      EnvironmentModification(eEnvModification_AppendPlatform, "LD_PRELOAD", "librenderdoc.so"));
-  modifications.push_back(
-      EnvironmentModification(eEnvModification_Replace, "RENDERDOC_LOGFILE", logfile));
-  modifications.push_back(
-      EnvironmentModification(eEnvModification_Replace, "RENDERDOC_CAPTUREOPTS", optstr.c_str()));
-  modifications.push_back(EnvironmentModification(eEnvModification_Replace,
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_CAPTUREOPTS", optstr.c_str()));
+  modifications.push_back(EnvironmentModification(EnvMod::Set, EnvSep::NoSep,
                                                   "RENDERDOC_DEBUG_LOG_FILE", RDCGETLOGFILE()));
 
   for(size_t i = 0; i < modifications.size(); i++)
@@ -532,36 +532,36 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 
     string &value = env[m.name];
 
-    switch(m.type)
+    switch(m.mod)
     {
-      case eEnvModification_Replace: value = m.value; break;
-      case eEnvModification_Append: value += m.value; break;
-      case eEnvModification_AppendPlatform:
-      case eEnvModification_AppendColon:
+      case EnvMod::Set: value = m.value; break;
+      case EnvMod::Append:
+      {
         if(!value.empty())
-          value += ":";
+        {
+          if(m.sep == EnvSep::Platform || m.sep == EnvSep::Colon)
+            value += ":";
+          else if(m.sep == EnvSep::SemiColon)
+            value += ";";
+        }
         value += m.value;
         break;
-      case eEnvModification_AppendSemiColon:
+      }
+      case EnvMod::Prepend:
+      {
         if(!value.empty())
-          value += ";";
-        value += m.value;
-        break;
-      case eEnvModification_Prepend: value = m.value + value; break;
-      case eEnvModification_PrependColon:
-        if(!value.empty())
-          value = m.value + ":" + value;
+        {
+          if(m.sep == EnvSep::Platform || m.sep == EnvSep::Colon)
+            value += ":";
+          else if(m.sep == EnvSep::SemiColon)
+            value += ";";
+        }
         else
+        {
           value = m.value;
+        }
         break;
-      case eEnvModification_PrependPlatform:
-      case eEnvModification_PrependSemiColon:
-        if(!value.empty())
-          value = m.value + ";" + value;
-        else
-          value = m.value;
-        break;
-      default: RDCERR("Unexpected environment modification type");
+      }
     }
   }
 

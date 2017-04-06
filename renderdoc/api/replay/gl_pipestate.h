@@ -69,19 +69,19 @@ struct GLPipelineState
     bool32 provokingVertexLast;
   } m_VtxIn;
 
-  struct ShaderStage
+  struct Shader
   {
-    ShaderStage()
-        : Shader(),
+    Shader()
+        : Object(),
           customShaderName(false),
           customProgramName(false),
           PipelineActive(false),
           customPipelineName(false),
           ShaderDetails(NULL),
-          stage(eShaderStage_Vertex)
+          stage(ShaderStage::Vertex)
     {
     }
-    ResourceId Shader;
+    ResourceId Object;
 
     rdctype::str ShaderName;
     bool32 customShaderName;
@@ -96,7 +96,7 @@ struct GLPipelineState
     ShaderReflection *ShaderDetails;
     ShaderBindpointMapping BindpointMapping;
 
-    ShaderStageType stage;
+    ShaderStage stage;
 
     rdctype::array<uint32_t> Subroutines;
   } m_VS, m_TCS, m_TES, m_GS, m_FS, m_CS;
@@ -123,17 +123,17 @@ struct GLPipelineState
 
   struct Texture
   {
-    Texture() : Resource(), FirstSlice(0), ResType(eResType_None), DepthReadChannel(-1)
+    Texture() : Resource(), FirstSlice(0), ResType(TextureDim::Unknown), DepthReadChannel(-1)
     {
-      Swizzle[0] = eSwizzle_Red;
-      Swizzle[1] = eSwizzle_Green;
-      Swizzle[2] = eSwizzle_Blue;
-      Swizzle[3] = eSwizzle_Alpha;
+      Swizzle[0] = TextureSwizzle::Red;
+      Swizzle[1] = TextureSwizzle::Green;
+      Swizzle[2] = TextureSwizzle::Blue;
+      Swizzle[3] = TextureSwizzle::Alpha;
     }
     ResourceId Resource;
     uint32_t FirstSlice;
     uint32_t HighestMip;
-    ShaderResourceType ResType;
+    TextureDim ResType;
 
     TextureSwizzle Swizzle[4];
     int32_t DepthReadChannel;
@@ -188,7 +188,7 @@ struct GLPipelineState
           Level(0),
           Layered(false),
           Layer(0),
-          ResType(eResType_None),
+          ResType(TextureDim::Unknown),
           readAllowed(false),
           writeAllowed(false)
     {
@@ -197,7 +197,7 @@ struct GLPipelineState
     uint32_t Level;
     bool32 Layered;
     uint32_t Layer;
-    ShaderResourceType ResType;
+    TextureDim ResType;
     bool32 readAllowed;
     bool32 writeAllowed;
     ResourceFormat Format;
@@ -246,8 +246,8 @@ struct GLPipelineState
     struct RasterizerState
     {
       RasterizerState()
-          : FillMode(eFill_Solid),
-            CullMode(eCull_None),
+          : fillMode(FillMode::Solid),
+            cullMode(CullMode::NoCull),
             FrontCCW(false),
             DepthBias(0),
             SlopeScaledDepthBias(0.0f),
@@ -270,8 +270,8 @@ struct GLPipelineState
             PointOriginUpperLeft(false)
       {
       }
-      TriangleFillMode FillMode;
-      TriangleCullMode CullMode;
+      FillMode fillMode;
+      CullMode cullMode;
       bool32 FrontCCW;
       float DepthBias;
       float SlopeScaledDepthBias;
@@ -338,10 +338,10 @@ struct GLPipelineState
     {
       Attachment() : Obj(), Layer(0), Mip(0)
       {
-        Swizzle[0] = eSwizzle_Red;
-        Swizzle[1] = eSwizzle_Green;
-        Swizzle[2] = eSwizzle_Blue;
-        Swizzle[3] = eSwizzle_Alpha;
+        Swizzle[0] = TextureSwizzle::Red;
+        Swizzle[1] = TextureSwizzle::Green;
+        Swizzle[2] = TextureSwizzle::Blue;
+        Swizzle[3] = TextureSwizzle::Alpha;
       }
       ResourceId Obj;
       uint32_t Layer;
@@ -389,10 +389,10 @@ struct GLPipelineState
   struct Hints
   {
     Hints()
-        : Derivatives(eQuality_DontCare),
-          LineSmooth(eQuality_DontCare),
-          PolySmooth(eQuality_DontCare),
-          TexCompression(eQuality_DontCare),
+        : Derivatives(QualityHint::DontCare),
+          LineSmooth(QualityHint::DontCare),
+          PolySmooth(QualityHint::DontCare),
+          TexCompression(QualityHint::DontCare),
           LineSmoothEnabled(0),
           PolySmoothEnabled(0)
     {

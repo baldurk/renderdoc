@@ -226,7 +226,7 @@ public:
     Display *dpy = NULL;
     Drawable draw = 0;
 
-    if(system == eWindowingSystem_Xlib)
+    if(system == WindowingSystem::Xlib)
     {
 #if ENABLED(RDOC_XLIB)
       XlibWindowData *xlib = (XlibWindowData *)data;
@@ -239,7 +239,7 @@ public:
           "support compiled in");
 #endif
     }
-    else if(system == eWindowingSystem_Unknown)
+    else if(system == WindowingSystem::Unknown)
     {
       // allow undefined so that internally we can create a window-less context
       dpy = XOpenDisplay(NULL);

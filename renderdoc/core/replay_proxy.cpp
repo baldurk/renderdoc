@@ -57,40 +57,40 @@ class undersized
 #pragma region General Shader / State
 
 template <>
-string ToStrHelper<false, SystemAttribute>::Get(const SystemAttribute &el)
+string ToStrHelper<false, ShaderBuiltin>::Get(const ShaderBuiltin &el)
 {
   switch(el)
   {
-    TOSTR_CASE_STRINGIZE(eAttr_None)
-    TOSTR_CASE_STRINGIZE(eAttr_Position)
-    TOSTR_CASE_STRINGIZE(eAttr_PointSize)
-    TOSTR_CASE_STRINGIZE(eAttr_ClipDistance)
-    TOSTR_CASE_STRINGIZE(eAttr_CullDistance)
-    TOSTR_CASE_STRINGIZE(eAttr_RTIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_ViewportIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_VertexIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_PrimitiveIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_InstanceIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_InvocationIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_DispatchSize)
-    TOSTR_CASE_STRINGIZE(eAttr_DispatchThreadIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_GroupIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_GroupFlatIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_GroupThreadIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_GSInstanceIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_OutputControlPointIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_DomainLocation)
-    TOSTR_CASE_STRINGIZE(eAttr_IsFrontFace)
-    TOSTR_CASE_STRINGIZE(eAttr_MSAACoverage)
-    TOSTR_CASE_STRINGIZE(eAttr_MSAASamplePosition)
-    TOSTR_CASE_STRINGIZE(eAttr_MSAASampleIndex)
-    TOSTR_CASE_STRINGIZE(eAttr_PatchNumVertices)
-    TOSTR_CASE_STRINGIZE(eAttr_OuterTessFactor)
-    TOSTR_CASE_STRINGIZE(eAttr_InsideTessFactor)
-    TOSTR_CASE_STRINGIZE(eAttr_ColourOutput)
-    TOSTR_CASE_STRINGIZE(eAttr_DepthOutput)
-    TOSTR_CASE_STRINGIZE(eAttr_DepthOutputGreaterEqual)
-    TOSTR_CASE_STRINGIZE(eAttr_DepthOutputLessEqual)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, Undefined)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, Position)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, PointSize)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, ClipDistance)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, CullDistance)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, RTIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, ViewportIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, VertexIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, PrimitiveIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, InstanceIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, InvocationIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DispatchSize)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DispatchThreadIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, GroupIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, GroupFlatIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, GroupThreadIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, GSInstanceIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, OutputControlPointIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DomainLocation)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, IsFrontFace)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, MSAACoverage)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, MSAASamplePosition)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, MSAASampleIndex)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, PatchNumVertices)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, OuterTessFactor)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, InsideTessFactor)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, ColourOutput)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DepthOutput)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DepthOutputGreaterEqual)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DepthOutputLessEqual)
     default: break;
   }
 
@@ -329,7 +329,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler 
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage::ResourceView &el)
+void Serialiser::Serialise(const char *name, D3D11PipelineState::Shader::ResourceView &el)
 {
   Serialise("", el.View);
   Serialise("", el.Resource);
@@ -353,7 +353,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage::Re
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage::Sampler &el)
+void Serialiser::Serialise(const char *name, D3D11PipelineState::Shader::Sampler &el)
 {
   Serialise("", el.Samp);
   Serialise("", el.SamplerName);
@@ -375,9 +375,9 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage::Sa
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage &el)
+void Serialiser::Serialise(const char *name, D3D11PipelineState::Shader &el)
 {
-  Serialise("", el.Shader);
+  Serialise("", el.Object);
   Serialise("", el.stage);
   Serialise("", el.ShaderName);
   Serialise("", el.customName);
@@ -592,7 +592,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::ResourceView &e
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::ShaderStage::RegisterSpace &el)
+void Serialiser::Serialise(const char *name, D3D12PipelineState::Shader::RegisterSpace &el)
 {
   Serialise("", el.ConstantBuffers);
   Serialise("", el.Samplers);
@@ -603,9 +603,9 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::ShaderStage::Re
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::ShaderStage &el)
+void Serialiser::Serialise(const char *name, D3D12PipelineState::Shader &el)
 {
-  Serialise("", el.Shader);
+  Serialise("", el.Object);
   Serialise("", el.BindpointMapping);
   Serialise("", el.stage);
   Serialise("", el.Spaces);
@@ -762,9 +762,9 @@ void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::ShaderStage &el)
+void Serialiser::Serialise(const char *name, GLPipelineState::Shader &el)
 {
-  Serialise("", el.Shader);
+  Serialise("", el.Object);
 
   Serialise("", el.ShaderName);
   Serialise("", el.customShaderName);
@@ -1070,7 +1070,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::VertexInput &e
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::ShaderStage::SpecInfo &el)
+void Serialiser::Serialise(const char *name, VulkanPipelineState::Shader::SpecInfo &el)
 {
   Serialise("", el.specID);
   Serialise("", el.data);
@@ -1079,9 +1079,9 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::ShaderStage::S
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::ShaderStage &el)
+void Serialiser::Serialise(const char *name, VulkanPipelineState::Shader &el)
 {
-  Serialise("", el.Shader);
+  Serialise("", el.Object);
   Serialise("", el.entryPoint);
 
   Serialise("", el.ShaderName);
@@ -1537,11 +1537,11 @@ void Serialiser::Serialise(const char *name, FetchFrameStatistics &el)
   // dealing with arrays,t hey'll never be NULL and need to be assigned
   // to, so this is fine
   FetchFrameConstantBindStats *constants = el.constants;
-  SerialiseComplexArray<eShaderStage_Count>("", constants);
+  SerialiseComplexArray<(uint32_t)ShaderStage::Count>("", constants);
   FetchFrameSamplerBindStats *samplers = el.samplers;
-  SerialiseComplexArray<eShaderStage_Count>("", samplers);
+  SerialiseComplexArray<(uint32_t)ShaderStage::Count>("", samplers);
   FetchFrameResourceBindStats *resources = el.resources;
-  SerialiseComplexArray<eShaderStage_Count>("", resources);
+  SerialiseComplexArray<(uint32_t)ShaderStage::Count>("", resources);
   Serialise("", el.updates);
   Serialise("", el.draws);
   Serialise("", el.dispatches);
@@ -1549,7 +1549,7 @@ void Serialiser::Serialise(const char *name, FetchFrameStatistics &el)
   Serialise("", el.vertices);
   Serialise("", el.layouts);
   FetchFrameShaderStats *shaders = el.shaders;
-  SerialiseComplexArray<eShaderStage_Count>("", shaders);
+  SerialiseComplexArray<(uint32_t)ShaderStage::Count>("", shaders);
   Serialise("", el.blends);
   Serialise("", el.depths);
   Serialise("", el.rasters);
@@ -1616,9 +1616,9 @@ void Serialiser::Serialise(const char *name, CounterDescription &el)
   Serialise("", el.counterID);
   Serialise("", el.name);
   Serialise("", el.description);
-  Serialise("", el.resultCompType);
+  Serialise("", el.resultType);
   Serialise("", el.resultByteWidth);
-  Serialise("", el.units);
+  Serialise("", el.unit);
 
   SIZE_CHECK(56);
 }
@@ -1667,7 +1667,37 @@ string ToStrHelper<false, SpecialFormat>::Get(const SpecialFormat &el)
   return "<...>";
 }
 template <>
-string ToStrHelper<false, FormatComponentType>::Get(const FormatComponentType &el)
+string ToStrHelper<false, CompType>::Get(const CompType &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, ShaderEvents>::Get(const ShaderEvents &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, TextureCategory>::Get(const TextureCategory &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, BufferCategory>::Get(const BufferCategory &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, D3DBufferViewFlags>::Get(const D3DBufferViewFlags &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, DrawFlags>::Get(const DrawFlags &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, GPUCounter>::Get(const GPUCounter &el)
 {
   return "<...>";
 }
@@ -1677,47 +1707,47 @@ string ToStrHelper<false, TextureSwizzle>::Get(const TextureSwizzle &el)
   return "<...>";
 }
 template <>
-string ToStrHelper<false, CounterUnits>::Get(const CounterUnits &el)
+string ToStrHelper<false, CounterUnit>::Get(const CounterUnit &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, PrimitiveTopology>::Get(const PrimitiveTopology &el)
+string ToStrHelper<false, Topology>::Get(const Topology &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, ShaderStageType>::Get(const ShaderStageType &el)
+string ToStrHelper<false, ShaderStage>::Get(const ShaderStage &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, ShaderStageBits>::Get(const ShaderStageBits &el)
+string ToStrHelper<false, ShaderStageMask>::Get(const ShaderStageMask &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, ShaderBindType>::Get(const ShaderBindType &el)
+string ToStrHelper<false, BindType>::Get(const BindType &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, ShaderResourceType>::Get(const ShaderResourceType &el)
+string ToStrHelper<false, TextureDim>::Get(const TextureDim &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, DebugMessageCategory>::Get(const DebugMessageCategory &el)
+string ToStrHelper<false, MessageCategory>::Get(const MessageCategory &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, DebugMessageSeverity>::Get(const DebugMessageSeverity &el)
+string ToStrHelper<false, MessageSeverity>::Get(const MessageSeverity &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, DebugMessageSource>::Get(const DebugMessageSource &el)
+string ToStrHelper<false, MessageSource>::Get(const MessageSource &el)
 {
   return "<...>";
 }
@@ -1732,7 +1762,7 @@ string ToStrHelper<false, MeshDataStage>::Get(const MeshDataStage &el)
   return "<...>";
 }
 template <>
-string ToStrHelper<false, TextureDisplayOverlay>::Get(const TextureDisplayOverlay &el)
+string ToStrHelper<false, DebugOverlay>::Get(const DebugOverlay &el)
 {
   return "<...>";
 }
@@ -1760,8 +1790,8 @@ string ToStrHelper<false, D3D11PipelineState::Rasterizer::RasterizerState>::Get(
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D11PipelineState::ShaderStage::CBuffer>::Get(
-    const D3D11PipelineState::ShaderStage::CBuffer &el)
+string ToStrHelper<false, D3D11PipelineState::Shader::CBuffer>::Get(
+    const D3D11PipelineState::Shader::CBuffer &el)
 {
   return "<...>";
 }
@@ -1997,12 +2027,12 @@ void ReplayProxy::RemapProxyTextureIfNeeded(ResourceFormat &format, GetTextureDa
   {
     switch(format.specialFormat)
     {
-      case eSpecial_S8:
-      case eSpecial_D16S8: params.remap = eRemap_D32S8; break;
-      case eSpecial_ASTC:
-      case eSpecial_EAC:
-      case eSpecial_R5G6B5:
-      case eSpecial_ETC2: params.remap = eRemap_RGBA8; break;
+      case SpecialFormat::S8:
+      case SpecialFormat::D16S8: params.remap = eRemap_D32S8; break;
+      case SpecialFormat::ASTC:
+      case SpecialFormat::EAC:
+      case SpecialFormat::R5G6B5:
+      case SpecialFormat::ETC2: params.remap = eRemap_RGBA8; break;
       default:
         RDCERR("Don't know how to remap special format %u, falling back to RGBA32");
         params.remap = eRemap_RGBA32;
@@ -2026,19 +2056,19 @@ void ReplayProxy::RemapProxyTextureIfNeeded(ResourceFormat &format, GetTextureDa
     case eRemap_RGBA8:
       format.compCount = 4;
       format.compByteWidth = 1;
-      format.compType = eCompType_UNorm;
+      format.compType = CompType::UNorm;
       // Range adaptation is only needed when remapping a higher precision format down to RGBA8.
       params.whitePoint = 1.0f;
       break;
     case eRemap_RGBA16:
       format.compCount = 4;
       format.compByteWidth = 2;
-      format.compType = eCompType_UNorm;
+      format.compType = CompType::UNorm;
       break;
     case eRemap_RGBA32:
       format.compCount = 4;
       format.compByteWidth = 4;
-      format.compType = eCompType_Float;
+      format.compType = CompType::Float;
       break;
     case eRemap_D32S8: RDCERR("Remapping depth/stencil formats not implemented."); break;
   }
@@ -2141,7 +2171,7 @@ bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
     case eReplayProxy_FreeResource: FreeTargetResource(ResourceId()); break;
     case eReplayProxy_FetchCounters:
     {
-      vector<uint32_t> counters;
+      vector<GPUCounter> counters;
       FetchCounters(counters);
       break;
     }
@@ -2149,7 +2179,7 @@ bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
     case eReplayProxy_DescribeCounter:
     {
       CounterDescription desc;
-      DescribeCounter(0, desc);
+      DescribeCounter(GPUCounter::EventGPUDuration, desc);
       break;
     }
     case eReplayProxy_FillCBufferVariables:
@@ -2178,17 +2208,17 @@ bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
       InitPostVSBuffers(dummy);
       break;
     }
-    case eReplayProxy_GetPostVS: GetPostVSBuffers(0, 0, eMeshDataStage_Unknown); break;
+    case eReplayProxy_GetPostVS: GetPostVSBuffers(0, 0, MeshDataStage::Unknown); break;
     case eReplayProxy_BuildTargetShader:
-      BuildTargetShader("", "", 0, eShaderStage_Vertex, NULL, NULL);
+      BuildTargetShader("", "", 0, ShaderStage::Vertex, NULL, NULL);
       break;
     case eReplayProxy_ReplaceResource: ReplaceResource(ResourceId(), ResourceId()); break;
     case eReplayProxy_RemoveReplacement: RemoveReplacement(ResourceId()); break;
     case eReplayProxy_RenderOverlay:
-      RenderOverlay(ResourceId(), eCompType_None, eTexOverlay_None, 0, vector<uint32_t>());
+      RenderOverlay(ResourceId(), CompType::Typeless, DebugOverlay::NoOverlay, 0, vector<uint32_t>());
       break;
     case eReplayProxy_PixelHistory:
-      PixelHistory(vector<EventUsage>(), ResourceId(), 0, 0, 0, 0, 0, eCompType_None);
+      PixelHistory(vector<EventUsage>(), ResourceId(), 0, 0, 0, 0, 0, CompType::Typeless);
       break;
     case eReplayProxy_DebugVertex: DebugVertex(0, 0, 0, 0, 0, 0); break;
     case eReplayProxy_DebugPixel: DebugPixel(0, 0, 0, 0, 0); break;
@@ -2520,11 +2550,11 @@ ResourceId ReplayProxy::GetLiveID(ResourceId id)
   return ret;
 }
 
-vector<CounterResult> ReplayProxy::FetchCounters(const vector<uint32_t> &counters)
+vector<CounterResult> ReplayProxy::FetchCounters(const vector<GPUCounter> &counters)
 {
   vector<CounterResult> ret;
 
-  m_ToReplaySerialiser->Serialise("", (vector<uint32_t> &)counters);
+  m_ToReplaySerialiser->Serialise("", (vector<GPUCounter> &)counters);
 
   if(m_RemoteServer)
   {
@@ -2541,9 +2571,9 @@ vector<CounterResult> ReplayProxy::FetchCounters(const vector<uint32_t> &counter
   return ret;
 }
 
-vector<uint32_t> ReplayProxy::EnumerateCounters()
+vector<GPUCounter> ReplayProxy::EnumerateCounters()
 {
-  vector<uint32_t> ret;
+  vector<GPUCounter> ret;
 
   if(m_RemoteServer)
   {
@@ -2560,7 +2590,7 @@ vector<uint32_t> ReplayProxy::EnumerateCounters()
   return ret;
 }
 
-void ReplayProxy::DescribeCounter(uint32_t counterID, CounterDescription &desc)
+void ReplayProxy::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
 {
   m_ToReplaySerialiser->Serialise("", counterID);
 
@@ -2748,9 +2778,8 @@ MeshFormat ReplayProxy::GetPostVSBuffers(uint32_t eventID, uint32_t instID, Mesh
   return ret;
 }
 
-ResourceId ReplayProxy::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
-                                      TextureDisplayOverlay overlay, uint32_t eventID,
-                                      const vector<uint32_t> &passEvents)
+ResourceId ReplayProxy::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
+                                      uint32_t eventID, const vector<uint32_t> &passEvents)
 {
   ResourceId ret;
 
@@ -2905,7 +2934,7 @@ Callstack::AddressDetails ReplayProxy::GetAddr(uint64_t addr)
 }
 
 void ReplayProxy::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
-                                    ShaderStageType type, ResourceId *id, string *errors)
+                                    ShaderStage type, ResourceId *id, string *errors)
 {
   uint32_t flags = compileFlags;
   m_ToReplaySerialiser->Serialise("", source);
@@ -2972,7 +3001,7 @@ void ReplayProxy::RemoveReplacement(ResourceId id)
 vector<PixelModification> ReplayProxy::PixelHistory(vector<EventUsage> events, ResourceId target,
                                                     uint32_t x, uint32_t y, uint32_t slice,
                                                     uint32_t mip, uint32_t sampleIdx,
-                                                    FormatComponentType typeHint)
+                                                    CompType typeHint)
 {
   vector<PixelModification> ret;
 

@@ -206,16 +206,16 @@ public:
     switch(system)
     {
 #if ENABLED(RDOC_ANDROID)
-      case eWindowingSystem_Android: window = (EGLNativeWindowType)data; break;
+      case WindowingSystem::Android: window = (EGLNativeWindowType)data; break;
 #elif ENABLED(RDOC_LINUX)
-      case eWindowingSystem_Xlib:
+      case WindowingSystem::Xlib:
       {
         XlibWindowData *xlib = (XlibWindowData *)data;
         window = (EGLNativeWindowType)xlib->window;
         break;
       }
 #endif
-      case eWindowingSystem_Unknown: {
+      case WindowingSystem::Unknown: {
 #if ENABLED(RDOC_LINUX)
         // allow undefined so that internally we can create a window-less context
         Display *dpy = XOpenDisplay(NULL);

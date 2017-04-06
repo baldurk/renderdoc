@@ -215,7 +215,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
       // add a fake marker
       FetchDrawcall draw;
       draw.name = name;
-      draw.flags |= eDraw_SetMarker;
+      draw.flags |= DrawFlags::SetMarker;
       AddEvent(name);
       AddDrawcall(draw, true);
       m_RootEventID++;
@@ -405,7 +405,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
   // assign new drawcall IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)
   {
-    if(cmdBufNodes[i].draw.flags & eDraw_PopMarker)
+    if(cmdBufNodes[i].draw.flags & DrawFlags::PopMarker)
     {
       // RDCASSERT(GetDrawcallStack().size() > 1);
       if(GetDrawcallStack().size() > 1)
@@ -444,7 +444,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
     GetDrawcallStack().back()->children.push_back(n);
 
     // if this is a push marker too, step down the drawcall stack
-    if(cmdBufNodes[i].draw.flags & eDraw_PushMarker)
+    if(cmdBufNodes[i].draw.flags & DrawFlags::PushMarker)
       GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
   }
 }

@@ -85,7 +85,7 @@ public:
         node->parent = NULL;
         node->parentIndex = 0;
         node->file.filename = "/";
-        node->file.flags = eFileProp_Directory;
+        node->file.flags = FileProperty::Directory;
         roots.push_back(node);
 
         home = indexForPath(homeDir);
@@ -236,11 +236,11 @@ public:
       return ret;
 
     // if it's not a dir, there are no children
-    if(getNode(index)->file.flags & eFileProp_Directory)
+    if(getNode(index)->file.flags & FileProperty::Directory)
       ret &= ~Qt::ItemNeverHasChildren;
 
     // if we can't populate it, set it as disabled
-    if(getNode(index)->file.flags & eFileProp_ErrorAccessDenied)
+    if(getNode(index)->file.flags & FileProperty::ErrorAccessDenied)
       ret &= ~Qt::ItemIsEnabled;
 
     return ret;
@@ -306,15 +306,15 @@ public:
             }
             case 1:
             {
-              if(node->file.flags & eFileProp_Directory)
+              if(node->file.flags & FileProperty::Directory)
                 return QVariant();
               return qulonglong(node->file.size);
             }
             case 2:
             {
-              if(node->file.flags & eFileProp_Directory)
+              if(node->file.flags & FileProperty::Directory)
                 return tr("Directory");
-              else if(node->file.flags & eFileProp_Executable)
+              else if(node->file.flags & FileProperty::Executable)
                 return tr("Executable file");
               else
                 return tr("File");
@@ -332,11 +332,11 @@ public:
         case Qt::DecorationRole:
           if(index.column() == 0)
           {
-            int hideIndex = (node->file.flags & eFileProp_Hidden) ? 1 : 0;
+            int hideIndex = (node->file.flags & FileProperty::Hidden) ? 1 : 0;
 
-            if(node->file.flags & eFileProp_Directory)
+            if(node->file.flags & FileProperty::Directory)
               return dirIcon[hideIndex];
-            else if(node->file.flags & eFileProp_Executable)
+            else if(node->file.flags & FileProperty::Executable)
               return exeIcon[hideIndex];
             else
               return fileIcon[hideIndex];
@@ -345,11 +345,12 @@ public:
           if(index.column() == 1)
             return Qt::AlignRight;
           break;
-        case FileIsDirRole: return bool(node->file.flags & eFileProp_Directory);
-        case FileIsHiddenRole: return bool(node->file.flags & eFileProp_Hidden);
-        case FileIsExecutableRole: return bool(node->file.flags & eFileProp_Executable);
+        case FileIsDirRole: return bool(node->file.flags & FileProperty::Directory);
+        case FileIsHiddenRole: return bool(node->file.flags & FileProperty::Hidden);
+        case FileIsExecutableRole: return bool(node->file.flags & FileProperty::Executable);
         case FileIsRootRole: return roots.contains(node);
-        case FileIsAccessDeniedRole: return bool(node->file.flags & eFileProp_ErrorAccessDenied);
+        case FileIsAccessDeniedRole:
+          return bool(node->file.flags & FileProperty::ErrorAccessDenied);
         case FilePathRole: return makePath(node);
         case FileNameRole: return ToQStr(node->file.filename);
         default: break;
@@ -443,16 +444,16 @@ private:
     node->populated = true;
 
     // nothing to do for non-directories
-    if(!(node->file.flags & eFileProp_Directory))
+    if(!(node->file.flags & FileProperty::Directory))
       return;
 
     Renderer.ListFolder(
         makePath(node), true,
         [this, node](const char *path, const rdctype::array<DirectoryFile> &files) {
 
-          if(files.count == 1 && files[0].flags & eFileProp_ErrorAccessDenied)
+          if(files.count == 1 && (files[0].flags & FileProperty::ErrorAccessDenied))
           {
-            node->file.flags |= eFileProp_ErrorAccessDenied;
+            node->file.flags |= FileProperty::ErrorAccessDenied;
             return;
           }
 
@@ -464,8 +465,8 @@ private:
           qSort(sortedFiles.begin(), sortedFiles.end(),
                 [](const DirectoryFile &a, const DirectoryFile &b) {
                   // sort greater than so that files with the flag are sorted before those without
-                  if((a.flags & eFileProp_Directory) != (b.flags & eFileProp_Directory))
-                    return (a.flags & eFileProp_Directory) > (b.flags & eFileProp_Directory);
+                  if((a.flags & FileProperty::Directory) != (b.flags & FileProperty::Directory))
+                    return (a.flags & FileProperty::Directory) > (b.flags & FileProperty::Directory);
 
                   return strcmp(a.filename.c_str(), b.filename.c_str()) < 0;
                 });

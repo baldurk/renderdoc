@@ -35,15 +35,15 @@
 
 void sharedLogOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
-  LogMessageType logtype = eLogType_Comment;
+  LogType logtype = LogType::Comment;
 
   switch(type)
   {
-    case QtDebugMsg: logtype = eLogType_Debug; break;
-    case QtInfoMsg: logtype = eLogType_Comment; break;
-    case QtWarningMsg: logtype = eLogType_Warning; break;
-    case QtCriticalMsg: logtype = eLogType_Error; break;
-    case QtFatalMsg: logtype = eLogType_Fatal; break;
+    case QtDebugMsg: logtype = LogType::Debug; break;
+    case QtInfoMsg: logtype = LogType::Comment; break;
+    case QtWarningMsg: logtype = LogType::Warning; break;
+    case QtCriticalMsg: logtype = LogType::Error; break;
+    case QtFatalMsg: logtype = LogType::Fatal; break;
   }
 
   RENDERDOC_LogMessage(logtype, "QTRD", context.file, context.line, msg.toUtf8().data());

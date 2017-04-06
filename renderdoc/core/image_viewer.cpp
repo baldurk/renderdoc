@@ -40,7 +40,7 @@ public:
 
     // start with props so that m_Props.localRenderer is correct
     m_Props = m_Proxy->GetAPIProperties();
-    m_Props.pipelineType = eGraphicsAPI_D3D11;
+    m_Props.pipelineType = GraphicsAPI::D3D11;
     m_Props.degraded = false;
 
     m_FrameRecord.frameInfo.fileOffset = 0;
@@ -100,12 +100,12 @@ public:
     m_Proxy->RenderHighlightBox(w, h, scale);
   }
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 FormatComponentType typeHint, float *minval, float *maxval)
+                 CompType typeHint, float *minval, float *maxval)
   {
     return m_Proxy->GetMinMax(m_TextureID, sliceFace, mip, sample, typeHint, minval, maxval);
   }
   bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    FormatComponentType typeHint, float minval, float maxval, bool channels[4],
+                    CompType typeHint, float minval, float maxval, bool channels[4],
                     vector<uint32_t> &histogram)
   {
     return m_Proxy->GetHistogram(m_TextureID, sliceFace, mip, sample, typeHint, minval, maxval,
@@ -117,7 +117,7 @@ public:
     return m_Proxy->RenderTexture(cfg);
   }
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, FormatComponentType typeHint, float pixel[4])
+                 uint32_t sample, CompType typeHint, float pixel[4])
   {
     m_Proxy->PickPixel(m_TextureID, x, y, sliceFace, mip, sample, typeHint, pixel);
   }
@@ -125,14 +125,14 @@ public:
   {
     return m_Proxy->PickVertex(eventID, cfg, x, y);
   }
-  void BuildCustomShader(string source, string entry, const uint32_t compileFlags,
-                         ShaderStageType type, ResourceId *id, string *errors)
+  void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
+                         ResourceId *id, string *errors)
   {
     m_Proxy->BuildCustomShader(source, entry, compileFlags, type, id, errors);
   }
   void FreeCustomShader(ResourceId id) { m_Proxy->FreeTargetResource(id); }
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
-                               uint32_t sampleIdx, FormatComponentType typeHint)
+                               uint32_t sampleIdx, CompType typeHint)
   {
     return m_Proxy->ApplyCustomShader(shader, m_TextureID, mip, arrayIdx, sampleIdx, typeHint);
   }
@@ -170,13 +170,13 @@ public:
   vector<EventUsage> GetUsage(ResourceId id) { return vector<EventUsage>(); }
   bool IsRenderOutput(ResourceId id) { return false; }
   ResourceId GetLiveID(ResourceId id) { return id; }
-  vector<uint32_t> EnumerateCounters() { return vector<uint32_t>(); }
-  void DescribeCounter(uint32_t counterID, CounterDescription &desc)
+  vector<GPUCounter> EnumerateCounters() { return vector<GPUCounter>(); }
+  void DescribeCounter(GPUCounter counterID, CounterDescription &desc)
   {
     RDCEraseEl(desc);
     desc.counterID = counterID;
   }
-  vector<CounterResult> FetchCounters(const vector<uint32_t> &counters)
+  vector<CounterResult> FetchCounters(const vector<GPUCounter> &counters)
   {
     return vector<CounterResult>();
   }
@@ -193,9 +193,8 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  ResourceId RenderOverlay(ResourceId texid, FormatComponentType typeHint,
-                           TextureDisplayOverlay overlay, uint32_t eventID,
-                           const vector<uint32_t> &passEvents)
+  ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
+                           uint32_t eventID, const vector<uint32_t> &passEvents)
   {
     return ResourceId();
   }
@@ -206,7 +205,7 @@ public:
   void FreeTargetResource(ResourceId id) {}
   vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x,
                                          uint32_t y, uint32_t slice, uint32_t mip,
-                                         uint32_t sampleIdx, FormatComponentType typeHint)
+                                         uint32_t sampleIdx, CompType typeHint)
   {
     return vector<PixelModification>();
   }
@@ -230,8 +229,8 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  void BuildTargetShader(string source, string entry, const uint32_t compileFlags,
-                         ShaderStageType type, ResourceId *id, string *errors)
+  void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
+                         ResourceId *id, string *errors)
   {
   }
   void ReplaceResource(ResourceId from, ResourceId to) {}
@@ -273,12 +272,12 @@ private:
   FetchTexture m_TexDetails;
 };
 
-ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   FILE *f = FileIO::fopen(logfile, "rb");
 
   if(!f)
-    return eReplayCreate_FileIOFailed;
+    return ReplayStatus::FileIOFailed;
 
   // make sure the file is a type we recognise before going further
   if(is_exr_file(f))
@@ -309,7 +308,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
       RDCERR(
           "EXR file detected, but couldn't load with ParseMultiChannelEXRHeaderFromMemory %d: '%s'",
           ret, err);
-      return eReplayCreate_ImageUnsupported;
+      return ReplayStatus::ImageUnsupported;
     }
   }
   else if(stbi_is_hdr_from_file(f))
@@ -323,7 +322,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
     {
       FileIO::fclose(f);
       RDCERR("HDR file recognised, but couldn't load with stbi_loadf_from_file");
-      return eReplayCreate_ImageUnsupported;
+      return ReplayStatus::ImageUnsupported;
     }
 
     free(data);
@@ -337,7 +336,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
     {
       FileIO::fclose(f);
       RDCERR("DDS file recognised, but couldn't load");
-      return eReplayCreate_ImageUnsupported;
+      return ReplayStatus::ImageUnsupported;
     }
 
     for(int i = 0; i < read_data.slices * read_data.mips; i++)
@@ -357,7 +356,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
     if(ret == 0 || width <= 0 || width >= 65536 || height <= 0 || height >= 65536)
     {
       FileIO::fclose(f);
-      return eReplayCreate_ImageUnsupported;
+      return ReplayStatus::ImageUnsupported;
     }
 
     byte *data = stbi_load_from_file(f, &ignore, &ignore, &ignore, 4);
@@ -366,7 +365,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
     {
       FileIO::fclose(f);
       RDCERR("File recognised, but couldn't load with stbi_load_from_file");
-      return eReplayCreate_ImageUnsupported;
+      return ReplayStatus::ImageUnsupported;
     }
 
     free(data);
@@ -377,7 +376,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
   IReplayDriver *proxy = NULL;
   auto status = RenderDoc::Inst().CreateReplayDriver(RDC_Unknown, NULL, &proxy);
 
-  if(status != eReplayCreate_Success || !proxy)
+  if(status != ReplayStatus::Succeeded || !proxy)
   {
     if(proxy)
       proxy->Shutdown();
@@ -386,7 +385,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
 
   *driver = new ImageViewer(proxy, logfile);
 
-  return eReplayCreate_Success;
+  return ReplayStatus::Succeeded;
 }
 
 void ImageViewer::RefreshFile()
@@ -412,14 +411,14 @@ void ImageViewer::RefreshFile()
   ResourceFormat rgba8_unorm;
   rgba8_unorm.compByteWidth = 1;
   rgba8_unorm.compCount = 4;
-  rgba8_unorm.compType = eCompType_UNorm;
+  rgba8_unorm.compType = CompType::UNorm;
   rgba8_unorm.special = false;
 
   ResourceFormat rgba32_float = rgba8_unorm;
   rgba32_float.compByteWidth = 4;
-  rgba32_float.compType = eCompType_Float;
+  rgba32_float.compType = CompType::Float;
 
-  texDetails.creationFlags = eTextureCreate_SwapBuffer | eTextureCreate_RTV;
+  texDetails.creationFlags = TextureCategory::SwapBuffer | TextureCategory::ColorTarget;
   texDetails.cubemap = false;
   texDetails.customName = true;
   texDetails.name = m_Filename;

@@ -426,7 +426,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
 
     rdctype::str driver;
     rdctype::str machineIdent;
-    ReplaySupport support = eReplaySupport_Unsupported;
+    ReplaySupport support = ReplaySupport::Unsupported;
 
     bool remoteReplay = !local || (m_Ctx.Renderer().remote() && m_Ctx.Renderer().remote()->Connected);
 
@@ -437,7 +437,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
       // if the return value suggests remote replay, and it's not already selected, AND the user
       // hasn't previously chosen to always replay locally without being prompted, ask if they'd
       // prefer to switch to a remote context for replaying.
-      if(support == eReplaySupport_SuggestRemote && !remoteReplay && !m_Ctx.Config.AlwaysReplayLocally)
+      if(support == ReplaySupport::SuggestRemote && !remoteReplay && !m_Ctx.Config.AlwaysReplayLocally)
       {
         SuggestRemoteDialog dialog(ToQStr(driver), ToQStr(machineIdent), this);
 
@@ -493,14 +493,14 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
 
       if(remoteReplay)
       {
-        support = eReplaySupport_Unsupported;
+        support = ReplaySupport::Unsupported;
 
         QStringList remoteDrivers = m_Ctx.Renderer().GetRemoteSupport();
 
         for(const QString &d : remoteDrivers)
         {
           if(driver == d)
-            support = eReplaySupport_Supported;
+            support = ReplaySupport::Supported;
         }
       }
     }
@@ -509,7 +509,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
 
     // if driver is empty something went wrong loading the log, let it be handled as usual
     // below. Otherwise indicate that support is missing.
-    if(driver.count > 0 && support == eReplaySupport_Unsupported)
+    if(driver.count > 0 && support == ReplaySupport::Unsupported)
     {
       if(remoteReplay)
       {
@@ -1153,7 +1153,7 @@ void MainWindow::switchContext()
         host->CheckStatus();
       }
 
-      ReplayCreateStatus status = eReplayCreate_Success;
+      ReplayStatus status = ReplayStatus::Succeeded;
 
       if(host->ServerRunning && !host->Busy)
       {
@@ -1164,7 +1164,7 @@ void MainWindow::switchContext()
         contextChooser->setIcon(host->ServerRunning && !host->Busy ? Icons::connect()
                                                                    : Icons::disconnect());
 
-        if(status != eReplayCreate_Success)
+        if(status != ReplayStatus::Succeeded)
         {
           contextChooser->setIcon(Icons::cross());
           contextChooser->setText(tr("Replay Context: %1").arg("Local"));

@@ -250,11 +250,8 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
   UpdateWindow(wnd);
 
   IReplayOutput *out =
-      ReplayRenderer_CreateOutput(renderer, eWindowingSystem_Win32, wnd, eOutputType_TexDisplay);
+      ReplayRenderer_CreateOutput(renderer, WindowingSystem::Win32, wnd, ReplayOutputType::Texture);
 
-  OutputConfig c = {eOutputType_TexDisplay};
-
-  ReplayOutput_SetOutputConfig(out, c);
   ReplayOutput_SetTextureDisplay(out, displayCfg);
 
   MSG msg;

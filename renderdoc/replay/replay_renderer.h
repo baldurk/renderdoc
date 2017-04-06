@@ -38,17 +38,15 @@ struct ReplayRenderer;
 struct ReplayOutput : public IReplayOutput
 {
 public:
-  bool SetOutputConfig(const OutputConfig &o);
   bool SetTextureDisplay(const TextureDisplay &o);
   bool SetMeshDisplay(const MeshDisplay &o);
 
   bool ClearThumbnails();
-  bool AddThumbnail(WindowingSystem system, void *data, ResourceId texID,
-                    FormatComponentType typeHint);
+  bool AddThumbnail(WindowingSystem system, void *data, ResourceId texID, CompType typeHint);
 
   bool Display();
 
-  OutputType GetType() { return m_Config.m_Type; }
+  ReplayOutputType GetType() { return m_Type; }
   bool SetPixelContext(WindowingSystem system, void *data);
   bool SetPixelContextLocation(uint32_t x, uint32_t y);
   void DisablePixelContext();
@@ -63,7 +61,7 @@ public:
   uint32_t PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint32_t *pickedInstance);
 
 private:
-  ReplayOutput(ReplayRenderer *parent, WindowingSystem system, void *data, OutputType type);
+  ReplayOutput(ReplayRenderer *parent, WindowingSystem system, void *data, ReplayOutputType type);
   virtual ~ReplayOutput();
 
   void SetFrameEvent(int eventID);
@@ -87,7 +85,7 @@ private:
     ResourceId texture;
     bool depthMode;
     uint64_t wndHandle;
-    FormatComponentType typeHint;
+    CompType typeHint;
     uint64_t outputID;
 
     bool dirty;
@@ -103,7 +101,7 @@ private:
   OutputPair m_PixelContext;
 
   uint32_t m_EventID;
-  OutputConfig m_Config;
+  ReplayOutputType m_Type;
 
   vector<uint32_t> passEvents;
 
@@ -127,8 +125,8 @@ public:
 
   APIProperties GetAPIProperties();
 
-  ReplayCreateStatus CreateDevice(const char *logfile);
-  ReplayCreateStatus SetDevice(IReplayDriver *device);
+  ReplayStatus CreateDevice(const char *logfile);
+  ReplayStatus SetDevice(IReplayDriver *device);
 
   void FileChanged();
 
@@ -145,28 +143,28 @@ public:
   bool GetVulkanPipelineState(VulkanPipelineState *state);
 
   ResourceId BuildCustomShader(const char *entry, const char *source, const uint32_t compileFlags,
-                               ShaderStageType type, rdctype::str *errors);
+                               ShaderStage type, rdctype::str *errors);
   bool FreeCustomShader(ResourceId id);
 
   ResourceId BuildTargetShader(const char *entry, const char *source, const uint32_t compileFlags,
-                               ShaderStageType type, rdctype::str *errors);
+                               ShaderStage type, rdctype::str *errors);
   bool ReplaceResource(ResourceId from, ResourceId to);
   bool RemoveReplacement(ResourceId id);
   bool FreeTargetResource(ResourceId id);
 
   bool GetFrameInfo(FetchFrameInfo *frame);
   bool GetDrawcalls(rdctype::array<FetchDrawcall> *draws);
-  bool FetchCounters(uint32_t *counters, uint32_t numCounters,
+  bool FetchCounters(GPUCounter *counters, uint32_t numCounters,
                      rdctype::array<CounterResult> *results);
-  bool EnumerateCounters(rdctype::array<uint32_t> *counters);
-  bool DescribeCounter(uint32_t counterID, CounterDescription *desc);
+  bool EnumerateCounters(rdctype::array<GPUCounter> *counters);
+  bool DescribeCounter(GPUCounter counterID, CounterDescription *desc);
   bool GetTextures(rdctype::array<FetchTexture> *texs);
   bool GetBuffers(rdctype::array<FetchBuffer> *bufs);
   bool GetResolve(uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace);
   bool GetDebugMessages(rdctype::array<DebugMessage> *msgs);
 
   bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-                    uint32_t sampleIdx, FormatComponentType typeHint,
+                    uint32_t sampleIdx, CompType typeHint,
                     rdctype::array<PixelModification> *history);
   bool DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset,
                    uint32_t vertOffset, ShaderDebugTrace *trace);
@@ -189,13 +187,13 @@ public:
 
   void GetSupportedWindowSystems(rdctype::array<WindowingSystem> *systems);
 
-  ReplayOutput *CreateOutput(WindowingSystem, void *data, OutputType type);
+  ReplayOutput *CreateOutput(WindowingSystem, void *data, ReplayOutputType type);
 
   void ShutdownOutput(IReplayOutput *output);
   void Shutdown();
 
 private:
-  ReplayCreateStatus PostCreateInit(IReplayDriver *device);
+  ReplayStatus PostCreateInit(IReplayDriver *device);
 
   FetchDrawcall *GetDrawcallByEID(uint32_t eventID);
 

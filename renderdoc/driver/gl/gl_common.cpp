@@ -1015,7 +1015,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
 
   ret.rawType = (uint32_t)fmt;
   ret.special = false;
-  ret.specialFormat = eSpecial_Unknown;
+  ret.specialFormat = SpecialFormat::Unknown;
   ret.strname = ToStr::Get(fmt).substr(3);    // 3 == strlen("GL_")
 
   // special handling for formats that don't query neatly
@@ -1023,7 +1023,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
   {
     ret.compByteWidth = 1;
     ret.compCount = 1;
-    ret.compType = eCompType_UNorm;
+    ret.compType = CompType::UNorm;
     ret.srgbCorrected = false;
     return ret;
   }
@@ -1067,7 +1067,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       default: break;
     }
 
-    ret.compType = eCompType_UNorm;
+    ret.compType = CompType::UNorm;
 
     switch(fmt)
     {
@@ -1075,7 +1075,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       case eGL_COMPRESSED_SIGNED_RG_RGTC2:
       case eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB:
       case eGL_COMPRESSED_SIGNED_R11_EAC:
-      case eGL_COMPRESSED_SIGNED_RG11_EAC: ret.compType = eCompType_SNorm; break;
+      case eGL_COMPRESSED_SIGNED_RG11_EAC: ret.compType = CompType::SNorm; break;
       default: break;
     }
 
@@ -1086,44 +1086,44 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       case eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
       case eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
       case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
-        ret.specialFormat = eSpecial_BC1;
+        ret.specialFormat = SpecialFormat::BC1;
         break;
       // BC2
       case eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
       case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
-        ret.specialFormat = eSpecial_BC2;
+        ret.specialFormat = SpecialFormat::BC2;
         break;
       // BC3
       case eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
       case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
-        ret.specialFormat = eSpecial_BC3;
+        ret.specialFormat = SpecialFormat::BC3;
         break;
       // BC4
       case eGL_COMPRESSED_RED_RGTC1:
       case eGL_COMPRESSED_SIGNED_RED_RGTC1:
-        ret.specialFormat = eSpecial_BC4;
+        ret.specialFormat = SpecialFormat::BC4;
         break;
       // BC5
       case eGL_COMPRESSED_RG_RGTC2:
       case eGL_COMPRESSED_SIGNED_RG_RGTC2:
-        ret.specialFormat = eSpecial_BC5;
+        ret.specialFormat = SpecialFormat::BC5;
         break;
       // BC6
       case eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB:
       case eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB:
-        ret.specialFormat = eSpecial_BC6;
+        ret.specialFormat = SpecialFormat::BC6;
         break;
       // BC7
       case eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
       case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB:
-        ret.specialFormat = eSpecial_BC7;
+        ret.specialFormat = SpecialFormat::BC7;
         break;
       // ETC2
       case eGL_COMPRESSED_RGB8_ETC2:
       case eGL_COMPRESSED_SRGB8_ETC2:
       case eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
       case eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-        ret.specialFormat = eSpecial_ETC2;
+        ret.specialFormat = SpecialFormat::ETC2;
         break;
       // EAC
       case eGL_COMPRESSED_RGBA8_ETC2_EAC:
@@ -1132,7 +1132,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       case eGL_COMPRESSED_SIGNED_R11_EAC:
       case eGL_COMPRESSED_RG11_EAC:
       case eGL_COMPRESSED_SIGNED_RG11_EAC:
-        ret.specialFormat = eSpecial_EAC;
+        ret.specialFormat = SpecialFormat::EAC;
         break;
       // ASTC
       case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
@@ -1162,7 +1162,9 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
       case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
       case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR: ret.specialFormat = eSpecial_ASTC; break;
+      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+        ret.specialFormat = SpecialFormat::ASTC;
+        break;
       default: RDCERR("Unexpected compressed format %#x", fmt); break;
     }
     return ret;
@@ -1172,49 +1174,49 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
   if(fmt == eGL_R11F_G11F_B10F)
   {
     ret.special = true;
-    ret.specialFormat = eSpecial_R11G11B10;
+    ret.specialFormat = SpecialFormat::R11G11B10;
     return ret;
   }
 
   if(fmt == eGL_RGB565)
   {
     ret.special = true;
-    ret.specialFormat = eSpecial_R5G6B5;
+    ret.specialFormat = SpecialFormat::R5G6B5;
     return ret;
   }
 
   if(fmt == eGL_RGB5_A1)
   {
     ret.special = true;
-    ret.specialFormat = eSpecial_R5G5B5A1;
+    ret.specialFormat = SpecialFormat::R5G5B5A1;
     return ret;
   }
 
   if(fmt == eGL_RGB9_E5)
   {
     ret.special = true;
-    ret.specialFormat = eSpecial_R9G9B9E5;
+    ret.specialFormat = SpecialFormat::R9G9B9E5;
     return ret;
   }
 
   if(fmt == eGL_RGBA4)
   {
     ret.special = true;
-    ret.specialFormat = eSpecial_R4G4B4A4;
+    ret.specialFormat = SpecialFormat::R4G4B4A4;
     return ret;
   }
 
   if(fmt == eGL_RGB10_A2 || fmt == eGL_RGB10_A2UI)
   {
     ret.special = true;
-    ret.specialFormat = eSpecial_R10G10B10A2;
-    ret.compType = fmt == eGL_RGB10_A2 ? eCompType_UNorm : eCompType_UInt;
+    ret.specialFormat = SpecialFormat::R10G10B10A2;
+    ret.compType = fmt == eGL_RGB10_A2 ? CompType::UNorm : CompType::UInt;
     return ret;
   }
 
   ret.compByteWidth = 1;
   ret.compCount = 4;
-  ret.compType = eCompType_Float;
+  ret.compType = CompType::Float;
 
   GLint data[8];
   GLenum *edata = (GLenum *)data;
@@ -1266,11 +1268,11 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
     {
       switch(edata[0])
       {
-        case eGL_UNSIGNED_INT: ret.compType = eCompType_UInt; break;
-        case eGL_UNSIGNED_NORMALIZED: ret.compType = eCompType_UNorm; break;
-        case eGL_SIGNED_NORMALIZED: ret.compType = eCompType_SNorm; break;
-        case eGL_FLOAT: ret.compType = eCompType_Float; break;
-        case eGL_INT: ret.compType = eCompType_SInt; break;
+        case eGL_UNSIGNED_INT: ret.compType = CompType::UInt; break;
+        case eGL_UNSIGNED_NORMALIZED: ret.compType = CompType::UNorm; break;
+        case eGL_SIGNED_NORMALIZED: ret.compType = CompType::SNorm; break;
+        case eGL_FLOAT: ret.compType = CompType::Float; break;
+        case eGL_INT: ret.compType = CompType::SInt; break;
         default: RDCERR("Unexpected texture type");
       }
     }
@@ -1285,7 +1287,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
   else if(isdepth == GL_TRUE || isstencil == GL_TRUE)
   {
     // depth format
-    ret.compType = eCompType_Depth;
+    ret.compType = CompType::Depth;
 
     switch(fmt)
     {
@@ -1303,15 +1305,15 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
         ret.compCount = 1;
         break;
       case eGL_DEPTH24_STENCIL8:
-        ret.specialFormat = eSpecial_D24S8;
+        ret.specialFormat = SpecialFormat::D24S8;
         ret.special = true;
         break;
       case eGL_DEPTH32F_STENCIL8:
-        ret.specialFormat = eSpecial_D32S8;
+        ret.specialFormat = SpecialFormat::D32S8;
         ret.special = true;
         break;
       case eGL_STENCIL_INDEX8:
-        ret.specialFormat = eSpecial_S8;
+        ret.specialFormat = SpecialFormat::S8;
         ret.special = true;
         break;
       default: RDCERR("Unexpected depth or stencil format %x", fmt);
@@ -1334,7 +1336,7 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
   {
     switch(fmt.specialFormat)
     {
-      case eSpecial_BC1:
+      case SpecialFormat::BC1:
       {
         if(fmt.compCount == 3)
           ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT
@@ -1344,31 +1346,31 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
                                   : eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
         break;
       }
-      case eSpecial_BC2:
+      case SpecialFormat::BC2:
         ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT
                                 : eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
         break;
-      case eSpecial_BC3:
+      case SpecialFormat::BC3:
         ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT
                                 : eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
         break;
-      case eSpecial_BC4:
-        ret = fmt.compType == eCompType_SNorm ? eGL_COMPRESSED_SIGNED_RED_RGTC1
+      case SpecialFormat::BC4:
+        ret = fmt.compType == CompType::SNorm ? eGL_COMPRESSED_SIGNED_RED_RGTC1
                                               : eGL_COMPRESSED_RED_RGTC1;
         break;
-      case eSpecial_BC5:
-        ret = fmt.compType == eCompType_SNorm ? eGL_COMPRESSED_SIGNED_RG_RGTC2
+      case SpecialFormat::BC5:
+        ret = fmt.compType == CompType::SNorm ? eGL_COMPRESSED_SIGNED_RG_RGTC2
                                               : eGL_COMPRESSED_RG_RGTC2;
         break;
-      case eSpecial_BC6:
-        ret = fmt.compType == eCompType_SNorm ? eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB
+      case SpecialFormat::BC6:
+        ret = fmt.compType == CompType::SNorm ? eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB
                                               : eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
         break;
-      case eSpecial_BC7:
+      case SpecialFormat::BC7:
         ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB
                                 : eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
         break;
-      case eSpecial_ETC2:
+      case SpecialFormat::ETC2:
       {
         if(fmt.compCount == 3)
           ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB8_ETC2 : eGL_COMPRESSED_RGB8_ETC2;
@@ -1377,34 +1379,34 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
                                   : eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
         break;
       }
-      case eSpecial_EAC:
+      case SpecialFormat::EAC:
       {
         if(fmt.compCount == 1)
-          ret = fmt.compType == eCompType_SNorm ? eGL_COMPRESSED_SIGNED_R11_EAC
+          ret = fmt.compType == CompType::SNorm ? eGL_COMPRESSED_SIGNED_R11_EAC
                                                 : eGL_COMPRESSED_R11_EAC;
         else if(fmt.compCount == 2)
-          ret = fmt.compType == eCompType_SNorm ? eGL_COMPRESSED_SIGNED_RG11_EAC
+          ret = fmt.compType == CompType::SNorm ? eGL_COMPRESSED_SIGNED_RG11_EAC
                                                 : eGL_COMPRESSED_RG11_EAC;
         else
           ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC
                                   : eGL_COMPRESSED_RGBA8_ETC2_EAC;
         break;
       }
-      case eSpecial_R10G10B10A2:
-        if(fmt.compType == eCompType_UNorm)
+      case SpecialFormat::R10G10B10A2:
+        if(fmt.compType == CompType::UNorm)
           ret = eGL_RGB10_A2;
         else
           ret = eGL_RGB10_A2UI;
         break;
-      case eSpecial_R11G11B10: ret = eGL_R11F_G11F_B10F; break;
-      case eSpecial_R5G6B5: ret = eGL_RGB565; break;
-      case eSpecial_R5G5B5A1: ret = eGL_RGB5_A1; break;
-      case eSpecial_R9G9B9E5: ret = eGL_RGB9_E5; break;
-      case eSpecial_R4G4B4A4: ret = eGL_RGBA4; break;
-      case eSpecial_D24S8: ret = eGL_DEPTH24_STENCIL8; break;
-      case eSpecial_D32S8: ret = eGL_DEPTH32F_STENCIL8; break;
-      case eSpecial_ASTC: RDCERR("ASTC can't be decoded unambiguously"); break;
-      case eSpecial_S8: ret = eGL_STENCIL_INDEX8; break;
+      case SpecialFormat::R11G11B10: ret = eGL_R11F_G11F_B10F; break;
+      case SpecialFormat::R5G6B5: ret = eGL_RGB565; break;
+      case SpecialFormat::R5G5B5A1: ret = eGL_RGB5_A1; break;
+      case SpecialFormat::R9G9B9E5: ret = eGL_RGB9_E5; break;
+      case SpecialFormat::R4G4B4A4: ret = eGL_RGBA4; break;
+      case SpecialFormat::D24S8: ret = eGL_DEPTH24_STENCIL8; break;
+      case SpecialFormat::D32S8: ret = eGL_DEPTH32F_STENCIL8; break;
+      case SpecialFormat::ASTC: RDCERR("ASTC can't be decoded unambiguously"); break;
+      case SpecialFormat::S8: ret = eGL_STENCIL_INDEX8; break;
       default: RDCERR("Unsupported special format %u", fmt.specialFormat); break;
     }
   }
@@ -1416,39 +1418,39 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
     }
     else if(fmt.compByteWidth == 4)
     {
-      if(fmt.compType == eCompType_Float)
+      if(fmt.compType == CompType::Float)
         ret = eGL_RGBA32F;
-      else if(fmt.compType == eCompType_SInt)
+      else if(fmt.compType == CompType::SInt)
         ret = eGL_RGBA32I;
-      else if(fmt.compType == eCompType_UInt)
+      else if(fmt.compType == CompType::UInt)
         ret = eGL_RGBA32UI;
       else
         RDCERR("Unrecognised component type");
     }
     else if(fmt.compByteWidth == 2)
     {
-      if(fmt.compType == eCompType_Float)
+      if(fmt.compType == CompType::Float)
         ret = eGL_RGBA16F;
-      else if(fmt.compType == eCompType_SInt)
+      else if(fmt.compType == CompType::SInt)
         ret = eGL_RGBA16I;
-      else if(fmt.compType == eCompType_UInt)
+      else if(fmt.compType == CompType::UInt)
         ret = eGL_RGBA16UI;
-      else if(fmt.compType == eCompType_SNorm)
+      else if(fmt.compType == CompType::SNorm)
         ret = eGL_RGBA16_SNORM;
-      else if(fmt.compType == eCompType_UNorm)
+      else if(fmt.compType == CompType::UNorm)
         ret = eGL_RGBA16;
       else
         RDCERR("Unrecognised component type");
     }
     else if(fmt.compByteWidth == 1)
     {
-      if(fmt.compType == eCompType_SInt)
+      if(fmt.compType == CompType::SInt)
         ret = eGL_RGBA8I;
-      else if(fmt.compType == eCompType_UInt)
+      else if(fmt.compType == CompType::UInt)
         ret = eGL_RGBA8UI;
-      else if(fmt.compType == eCompType_SNorm)
+      else if(fmt.compType == CompType::SNorm)
         ret = eGL_RGBA8_SNORM;
-      else if(fmt.compType == eCompType_UNorm)
+      else if(fmt.compType == CompType::UNorm)
         ret = eGL_RGBA8;
       else
         RDCERR("Unrecognised component type");
@@ -1466,39 +1468,39 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
     }
     else if(fmt.compByteWidth == 4)
     {
-      if(fmt.compType == eCompType_Float)
+      if(fmt.compType == CompType::Float)
         ret = eGL_RGB32F;
-      else if(fmt.compType == eCompType_SInt)
+      else if(fmt.compType == CompType::SInt)
         ret = eGL_RGB32I;
-      else if(fmt.compType == eCompType_UInt)
+      else if(fmt.compType == CompType::UInt)
         ret = eGL_RGB32UI;
       else
         RDCERR("Unrecognised component type");
     }
     else if(fmt.compByteWidth == 2)
     {
-      if(fmt.compType == eCompType_Float)
+      if(fmt.compType == CompType::Float)
         ret = eGL_RGB16F;
-      else if(fmt.compType == eCompType_SInt)
+      else if(fmt.compType == CompType::SInt)
         ret = eGL_RGB16I;
-      else if(fmt.compType == eCompType_UInt)
+      else if(fmt.compType == CompType::UInt)
         ret = eGL_RGB16UI;
-      else if(fmt.compType == eCompType_SNorm)
+      else if(fmt.compType == CompType::SNorm)
         ret = eGL_RGB16_SNORM;
-      else if(fmt.compType == eCompType_UNorm)
+      else if(fmt.compType == CompType::UNorm)
         ret = eGL_RGB16;
       else
         RDCERR("Unrecognised component type");
     }
     else if(fmt.compByteWidth == 1)
     {
-      if(fmt.compType == eCompType_SInt)
+      if(fmt.compType == CompType::SInt)
         ret = eGL_RGB8I;
-      else if(fmt.compType == eCompType_UInt)
+      else if(fmt.compType == CompType::UInt)
         ret = eGL_RGB8UI;
-      else if(fmt.compType == eCompType_SNorm)
+      else if(fmt.compType == CompType::SNorm)
         ret = eGL_RGB8_SNORM;
-      else if(fmt.compType == eCompType_UNorm)
+      else if(fmt.compType == CompType::UNorm)
         ret = eGL_RGB8;
       else
         RDCERR("Unrecognised component type");
@@ -1512,39 +1514,39 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
   {
     if(fmt.compByteWidth == 4)
     {
-      if(fmt.compType == eCompType_Float)
+      if(fmt.compType == CompType::Float)
         ret = eGL_RG32F;
-      else if(fmt.compType == eCompType_SInt)
+      else if(fmt.compType == CompType::SInt)
         ret = eGL_RG32I;
-      else if(fmt.compType == eCompType_UInt)
+      else if(fmt.compType == CompType::UInt)
         ret = eGL_RG32UI;
       else
         RDCERR("Unrecognised component type");
     }
     else if(fmt.compByteWidth == 2)
     {
-      if(fmt.compType == eCompType_Float)
+      if(fmt.compType == CompType::Float)
         ret = eGL_RG16F;
-      else if(fmt.compType == eCompType_SInt)
+      else if(fmt.compType == CompType::SInt)
         ret = eGL_RG16I;
-      else if(fmt.compType == eCompType_UInt)
+      else if(fmt.compType == CompType::UInt)
         ret = eGL_RG16UI;
-      else if(fmt.compType == eCompType_SNorm)
+      else if(fmt.compType == CompType::SNorm)
         ret = eGL_RG16_SNORM;
-      else if(fmt.compType == eCompType_UNorm)
+      else if(fmt.compType == CompType::UNorm)
         ret = eGL_RG16;
       else
         RDCERR("Unrecognised component type");
     }
     else if(fmt.compByteWidth == 1)
     {
-      if(fmt.compType == eCompType_SInt)
+      if(fmt.compType == CompType::SInt)
         ret = eGL_RG8I;
-      else if(fmt.compType == eCompType_UInt)
+      else if(fmt.compType == CompType::UInt)
         ret = eGL_RG8UI;
-      else if(fmt.compType == eCompType_SNorm)
+      else if(fmt.compType == CompType::SNorm)
         ret = eGL_RG8_SNORM;
-      else if(fmt.compType == eCompType_UNorm)
+      else if(fmt.compType == CompType::UNorm)
         ret = eGL_RG8;
       else
         RDCERR("Unrecognised component type");
@@ -1558,13 +1560,13 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
   {
     if(fmt.compByteWidth == 4)
     {
-      if(fmt.compType == eCompType_Float)
+      if(fmt.compType == CompType::Float)
         ret = eGL_R32F;
-      else if(fmt.compType == eCompType_SInt)
+      else if(fmt.compType == CompType::SInt)
         ret = eGL_R32I;
-      else if(fmt.compType == eCompType_UInt)
+      else if(fmt.compType == CompType::UInt)
         ret = eGL_R32UI;
-      else if(fmt.compType == eCompType_Depth)
+      else if(fmt.compType == CompType::Depth)
         ret = eGL_DEPTH_COMPONENT32F;
       else
         RDCERR("Unrecognised component type");
@@ -1575,30 +1577,30 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
     }
     else if(fmt.compByteWidth == 2)
     {
-      if(fmt.compType == eCompType_Float)
+      if(fmt.compType == CompType::Float)
         ret = eGL_R16F;
-      else if(fmt.compType == eCompType_SInt)
+      else if(fmt.compType == CompType::SInt)
         ret = eGL_R16I;
-      else if(fmt.compType == eCompType_UInt)
+      else if(fmt.compType == CompType::UInt)
         ret = eGL_R16UI;
-      else if(fmt.compType == eCompType_SNorm)
+      else if(fmt.compType == CompType::SNorm)
         ret = eGL_R16_SNORM;
-      else if(fmt.compType == eCompType_UNorm)
+      else if(fmt.compType == CompType::UNorm)
         ret = eGL_R16;
-      else if(fmt.compType == eCompType_Depth)
+      else if(fmt.compType == CompType::Depth)
         ret = eGL_DEPTH_COMPONENT16;
       else
         RDCERR("Unrecognised component type");
     }
     else if(fmt.compByteWidth == 1)
     {
-      if(fmt.compType == eCompType_SInt)
+      if(fmt.compType == CompType::SInt)
         ret = eGL_R8I;
-      else if(fmt.compType == eCompType_UInt)
+      else if(fmt.compType == CompType::UInt)
         ret = eGL_R8UI;
-      else if(fmt.compType == eCompType_SNorm)
+      else if(fmt.compType == CompType::SNorm)
         ret = eGL_R8_SNORM;
-      else if(fmt.compType == eCompType_UNorm)
+      else if(fmt.compType == CompType::UNorm)
         ret = eGL_R8;
       else
         RDCERR("Unrecognised component type");
@@ -1619,78 +1621,78 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
   return ret;
 }
 
-GLenum MakeGLPrimitiveTopology(PrimitiveTopology Topo)
+GLenum MakeGLPrimitiveTopology(Topology Topo)
 {
   switch(Topo)
   {
     default: return eGL_NONE;
-    case eTopology_PointList: return eGL_POINTS;
-    case eTopology_LineStrip: return eGL_LINE_STRIP;
-    case eTopology_LineLoop: return eGL_LINE_LOOP;
-    case eTopology_LineList: return eGL_LINES;
-    case eTopology_LineStrip_Adj: return eGL_LINE_STRIP_ADJACENCY;
-    case eTopology_LineList_Adj: return eGL_LINES_ADJACENCY;
-    case eTopology_TriangleStrip: return eGL_TRIANGLE_STRIP;
-    case eTopology_TriangleFan: return eGL_TRIANGLE_FAN;
-    case eTopology_TriangleList: return eGL_TRIANGLES;
-    case eTopology_TriangleStrip_Adj: return eGL_TRIANGLE_STRIP_ADJACENCY;
-    case eTopology_TriangleList_Adj: return eGL_TRIANGLES_ADJACENCY;
-    case eTopology_PatchList_1CPs:
-    case eTopology_PatchList_2CPs:
-    case eTopology_PatchList_3CPs:
-    case eTopology_PatchList_4CPs:
-    case eTopology_PatchList_5CPs:
-    case eTopology_PatchList_6CPs:
-    case eTopology_PatchList_7CPs:
-    case eTopology_PatchList_8CPs:
-    case eTopology_PatchList_9CPs:
-    case eTopology_PatchList_10CPs:
-    case eTopology_PatchList_11CPs:
-    case eTopology_PatchList_12CPs:
-    case eTopology_PatchList_13CPs:
-    case eTopology_PatchList_14CPs:
-    case eTopology_PatchList_15CPs:
-    case eTopology_PatchList_16CPs:
-    case eTopology_PatchList_17CPs:
-    case eTopology_PatchList_18CPs:
-    case eTopology_PatchList_19CPs:
-    case eTopology_PatchList_20CPs:
-    case eTopology_PatchList_21CPs:
-    case eTopology_PatchList_22CPs:
-    case eTopology_PatchList_23CPs:
-    case eTopology_PatchList_24CPs:
-    case eTopology_PatchList_25CPs:
-    case eTopology_PatchList_26CPs:
-    case eTopology_PatchList_27CPs:
-    case eTopology_PatchList_28CPs:
-    case eTopology_PatchList_29CPs:
-    case eTopology_PatchList_30CPs:
-    case eTopology_PatchList_31CPs:
-    case eTopology_PatchList_32CPs: return eGL_PATCHES;
+    case Topology::PointList: return eGL_POINTS;
+    case Topology::LineStrip: return eGL_LINE_STRIP;
+    case Topology::LineLoop: return eGL_LINE_LOOP;
+    case Topology::LineList: return eGL_LINES;
+    case Topology::LineStrip_Adj: return eGL_LINE_STRIP_ADJACENCY;
+    case Topology::LineList_Adj: return eGL_LINES_ADJACENCY;
+    case Topology::TriangleStrip: return eGL_TRIANGLE_STRIP;
+    case Topology::TriangleFan: return eGL_TRIANGLE_FAN;
+    case Topology::TriangleList: return eGL_TRIANGLES;
+    case Topology::TriangleStrip_Adj: return eGL_TRIANGLE_STRIP_ADJACENCY;
+    case Topology::TriangleList_Adj: return eGL_TRIANGLES_ADJACENCY;
+    case Topology::PatchList_1CPs:
+    case Topology::PatchList_2CPs:
+    case Topology::PatchList_3CPs:
+    case Topology::PatchList_4CPs:
+    case Topology::PatchList_5CPs:
+    case Topology::PatchList_6CPs:
+    case Topology::PatchList_7CPs:
+    case Topology::PatchList_8CPs:
+    case Topology::PatchList_9CPs:
+    case Topology::PatchList_10CPs:
+    case Topology::PatchList_11CPs:
+    case Topology::PatchList_12CPs:
+    case Topology::PatchList_13CPs:
+    case Topology::PatchList_14CPs:
+    case Topology::PatchList_15CPs:
+    case Topology::PatchList_16CPs:
+    case Topology::PatchList_17CPs:
+    case Topology::PatchList_18CPs:
+    case Topology::PatchList_19CPs:
+    case Topology::PatchList_20CPs:
+    case Topology::PatchList_21CPs:
+    case Topology::PatchList_22CPs:
+    case Topology::PatchList_23CPs:
+    case Topology::PatchList_24CPs:
+    case Topology::PatchList_25CPs:
+    case Topology::PatchList_26CPs:
+    case Topology::PatchList_27CPs:
+    case Topology::PatchList_28CPs:
+    case Topology::PatchList_29CPs:
+    case Topology::PatchList_30CPs:
+    case Topology::PatchList_31CPs:
+    case Topology::PatchList_32CPs: return eGL_PATCHES;
   }
 }
 
-PrimitiveTopology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo)
+Topology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo)
 {
   switch(Topo)
   {
-    default: return eTopology_Unknown;
-    case eGL_POINTS: return eTopology_PointList;
-    case eGL_LINE_STRIP: return eTopology_LineStrip;
-    case eGL_LINE_LOOP: return eTopology_LineLoop;
-    case eGL_LINES: return eTopology_LineList;
-    case eGL_LINE_STRIP_ADJACENCY: return eTopology_LineStrip_Adj;
-    case eGL_LINES_ADJACENCY: return eTopology_LineList_Adj;
-    case eGL_TRIANGLE_STRIP: return eTopology_TriangleStrip;
-    case eGL_TRIANGLE_FAN: return eTopology_TriangleFan;
-    case eGL_TRIANGLES: return eTopology_TriangleList;
-    case eGL_TRIANGLE_STRIP_ADJACENCY: return eTopology_TriangleStrip_Adj;
-    case eGL_TRIANGLES_ADJACENCY: return eTopology_TriangleList_Adj;
+    default: return Topology::Unknown;
+    case eGL_POINTS: return Topology::PointList;
+    case eGL_LINE_STRIP: return Topology::LineStrip;
+    case eGL_LINE_LOOP: return Topology::LineLoop;
+    case eGL_LINES: return Topology::LineList;
+    case eGL_LINE_STRIP_ADJACENCY: return Topology::LineStrip_Adj;
+    case eGL_LINES_ADJACENCY: return Topology::LineList_Adj;
+    case eGL_TRIANGLE_STRIP: return Topology::TriangleStrip;
+    case eGL_TRIANGLE_FAN: return Topology::TriangleFan;
+    case eGL_TRIANGLES: return Topology::TriangleList;
+    case eGL_TRIANGLE_STRIP_ADJACENCY: return Topology::TriangleStrip_Adj;
+    case eGL_TRIANGLES_ADJACENCY: return Topology::TriangleList_Adj;
     case eGL_PATCHES:
     {
       GLint patchCount = 3;
       gl.glGetIntegerv(eGL_PATCH_VERTICES, &patchCount);
-      return PrimitiveTopology(eTopology_PatchList_1CPs + patchCount - 1);
+      return PatchList_Topology(patchCount);
     }
   }
 }
@@ -2198,7 +2200,7 @@ void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progd
   for(int32_t i = 0; i < refl->InputSig.count; i++)
   {
     // skip built-ins
-    if(refl->InputSig[i].systemValue != eAttr_None)
+    if(refl->InputSig[i].systemValue != ShaderBuiltin::Undefined)
       continue;
 
     GLint idx = gl.glGetAttribLocation(progsrc, refl->InputSig[i].varName.elems);
@@ -2214,7 +2216,7 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
   for(int32_t i = 0; i < refl->OutputSig.count; i++)
   {
     // only look at colour outputs (should be the only outputs from fs)
-    if(refl->OutputSig[i].systemValue != eAttr_ColourOutput)
+    if(refl->OutputSig[i].systemValue != ShaderBuiltin::ColourOutput)
       continue;
 
     GLint idx = gl.glGetFragDataLocation(progsrc, refl->OutputSig[i].varName.elems);

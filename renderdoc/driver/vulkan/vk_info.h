@@ -282,7 +282,7 @@ struct VulkanCreationInfo
     VkSampleCountFlagBits samples;
 
     bool cube;
-    uint32_t creationFlags;
+    TextureCategory creationFlags;
   };
   map<ResourceId, Image> m_Image;
 

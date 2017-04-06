@@ -293,14 +293,14 @@ void RenderManager::CloseThread()
   m_Thread = NULL;
 }
 
-ReplayCreateStatus RenderManager::ConnectToRemoteServer(RemoteHost *host)
+ReplayStatus RenderManager::ConnectToRemoteServer(RemoteHost *host)
 {
-  ReplayCreateStatus status =
+  ReplayStatus status =
       RENDERDOC_CreateRemoteServerConnection(host->Hostname.toUtf8().data(), 0, &m_Remote);
 
   m_RemoteHost = host;
 
-  if(status == eReplayCreate_Success)
+  if(status == ReplayStatus::Succeeded)
   {
     m_RemoteHost->Connected = true;
     return status;

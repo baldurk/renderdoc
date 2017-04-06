@@ -346,7 +346,7 @@ const uint32_t GLInitParams::GL_OLD_VERSIONS[GLInitParams::GL_NUM_SUPPORTED_OLD_
     0x000012,    // Added support for GL-DX interop
 };
 
-ReplayCreateStatus GLInitParams::Serialise()
+ReplayStatus GLInitParams::Serialise()
 {
   SERIALISE_ELEMENT(uint32_t, ver, GL_SERIALISE_VERSION);
   SerialiseVersion = ver;
@@ -369,7 +369,7 @@ ReplayCreateStatus GLInitParams::Serialise()
     if(!oldsupported)
     {
       RDCERR("Incompatible OpenGL serialise version, expected %d got %d", GL_SERIALISE_VERSION, ver);
-      return eReplayCreate_APIIncompatibleVersion;
+      return ReplayStatus::APIIncompatibleVersion;
     }
   }
 
@@ -381,7 +381,7 @@ ReplayCreateStatus GLInitParams::Serialise()
   m_pSerialiser->Serialise("Width", width);
   m_pSerialiser->Serialise("Height", height);
 
-  return eReplayCreate_Success;
+  return ReplayStatus::Succeeded;
 }
 
 void WrappedOpenGL::GetGLExtensions()
@@ -2997,10 +2997,10 @@ void WrappedOpenGL::FinishCapture()
   // m_SuccessfulCapture = false;
 }
 
-void WrappedOpenGL::AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv,
-                                    DebugMessageSource src, std::string d)
+void WrappedOpenGL::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
+                                    std::string d)
 {
-  if(m_State == READING || src == eDbgSource_RuntimeWarning)
+  if(m_State == READING || src == MessageSource::RuntimeWarning)
   {
     DebugMessage msg;
     msg.eventID = m_CurEventID;
@@ -3073,8 +3073,8 @@ void WrappedOpenGL::Serialise_DebugMessages()
     if(m_State >= WRITING)
       desc = debugMessages[i].description.elems;
 
-    SERIALISE_ELEMENT(uint32_t, Category, debugMessages[i].category);
-    SERIALISE_ELEMENT(uint32_t, Severity, debugMessages[i].severity);
+    SERIALISE_ELEMENT(MessageCategory, Category, debugMessages[i].category);
+    SERIALISE_ELEMENT(MessageSeverity, Severity, debugMessages[i].severity);
     SERIALISE_ELEMENT(uint32_t, ID, debugMessages[i].messageID);
     SERIALISE_ELEMENT(string, Description, desc);
 
@@ -3082,9 +3082,9 @@ void WrappedOpenGL::Serialise_DebugMessages()
     {
       DebugMessage msg;
       msg.eventID = m_CurEventID;
-      msg.source = eDbgSource_API;
-      msg.category = (DebugMessageCategory)Category;
-      msg.severity = (DebugMessageSeverity)Severity;
+      msg.source = MessageSource::API;
+      msg.category = Category;
+      msg.severity = Severity;
       msg.messageID = ID;
       msg.description = Description;
 
@@ -3140,32 +3140,34 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
 
       switch(severity)
       {
-        case eGL_DEBUG_SEVERITY_HIGH: msg.severity = eDbgSeverity_High; break;
-        case eGL_DEBUG_SEVERITY_MEDIUM: msg.severity = eDbgSeverity_Medium; break;
-        case eGL_DEBUG_SEVERITY_LOW: msg.severity = eDbgSeverity_Low; break;
+        case eGL_DEBUG_SEVERITY_HIGH: msg.severity = MessageSeverity::High; break;
+        case eGL_DEBUG_SEVERITY_MEDIUM: msg.severity = MessageSeverity::Medium; break;
+        case eGL_DEBUG_SEVERITY_LOW: msg.severity = MessageSeverity::Low; break;
         case eGL_DEBUG_SEVERITY_NOTIFICATION:
-        default: msg.severity = eDbgSeverity_Info; break;
+        default: msg.severity = MessageSeverity::Info; break;
       }
 
       if(source == eGL_DEBUG_SOURCE_APPLICATION || type == eGL_DEBUG_TYPE_MARKER)
       {
-        msg.category = eDbgCategory_Application_Defined;
+        msg.category = MessageCategory::Application_Defined;
       }
       else if(source == eGL_DEBUG_SOURCE_SHADER_COMPILER)
       {
-        msg.category = eDbgCategory_Shaders;
+        msg.category = MessageCategory::Shaders;
       }
       else
       {
         switch(type)
         {
-          case eGL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: msg.category = eDbgCategory_Deprecated; break;
-          case eGL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: msg.category = eDbgCategory_Undefined; break;
-          case eGL_DEBUG_TYPE_PORTABILITY: msg.category = eDbgCategory_Portability; break;
-          case eGL_DEBUG_TYPE_PERFORMANCE: msg.category = eDbgCategory_Performance; break;
+          case eGL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+            msg.category = MessageCategory::Deprecated;
+            break;
+          case eGL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: msg.category = MessageCategory::Undefined; break;
+          case eGL_DEBUG_TYPE_PORTABILITY: msg.category = MessageCategory::Portability; break;
+          case eGL_DEBUG_TYPE_PERFORMANCE: msg.category = MessageCategory::Performance; break;
           case eGL_DEBUG_TYPE_ERROR:
           case eGL_DEBUG_TYPE_OTHER:
-          default: msg.category = eDbgCategory_Miscellaneous; break;
+          default: msg.category = MessageCategory::Miscellaneous; break;
         }
       }
 
@@ -3695,7 +3697,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 
         FetchDrawcall draw;
         draw.name = "SwapBuffers()";
-        draw.flags |= eDraw_Present;
+        draw.flags |= DrawFlags::Present;
 
         draw.copyDestination = GetResourceManager()->GetOriginalID(
             GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color)));
@@ -3873,7 +3875,8 @@ void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk)
 
 void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
 {
-  if((d.flags & (eDraw_Drawcall | eDraw_Dispatch)) == 0)
+  DrawFlags DrawDispatchMask = DrawFlags::Drawcall | DrawFlags::Dispatch;
+  if(!(d.flags & DrawDispatchMask))
     return;
 
   const GLHookSet &gl = m_Real;
@@ -3887,13 +3890,14 @@ void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
   //////////////////////////////
   // Input
 
-  if(d.flags & eDraw_UseIBuffer)
+  if(d.flags & DrawFlags::UseIBuffer)
   {
     GLuint ibuffer = 0;
     gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
 
     if(ibuffer)
-      m_ResourceUses[rm->GetID(BufferRes(ctx, ibuffer))].push_back(EventUsage(e, eUsage_IndexBuffer));
+      m_ResourceUses[rm->GetID(BufferRes(ctx, ibuffer))].push_back(
+          EventUsage(e, ResourceUsage::IndexBuffer));
   }
 
   // Vertex buffers and attributes
@@ -3905,7 +3909,8 @@ void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
     GLuint buffer = GetBoundVertexBuffer(m_Real, i);
 
     if(buffer)
-      m_ResourceUses[rm->GetID(BufferRes(ctx, buffer))].push_back(EventUsage(e, eUsage_VertexBuffer));
+      m_ResourceUses[rm->GetID(BufferRes(ctx, buffer))].push_back(
+          EventUsage(e, ResourceUsage::VertexBuffer));
   }
 
   //////////////////////////////
@@ -3961,9 +3966,9 @@ void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
 
     for(size_t i = 0; i < ARRAY_COUNT(refl); i++)
     {
-      EventUsage cb = EventUsage(e, ResourceUsage(eUsage_VS_Constants + i));
-      EventUsage res = EventUsage(e, ResourceUsage(eUsage_VS_Resource + i));
-      EventUsage rw = EventUsage(e, ResourceUsage(eUsage_VS_RWResource + i));
+      EventUsage cb = EventUsage(e, CBUsage(i));
+      EventUsage res = EventUsage(e, ResUsage(i));
+      EventUsage rw = EventUsage(e, RWResUsage(i));
 
       if(refl[i])
       {
@@ -3994,7 +3999,7 @@ void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
           {
             if(refl[i]->ReadWriteResources[r].variableType.descriptor.cols == 1 &&
                refl[i]->ReadWriteResources[r].variableType.descriptor.rows == 1 &&
-               refl[i]->ReadWriteResources[r].variableType.descriptor.type == eVar_UInt)
+               refl[i]->ReadWriteResources[r].variableType.descriptor.type == VarType::UInt)
             {
               if(rs.AtomicCounter[bind].name)
                 m_ResourceUses[rm->GetID(BufferRes(ctx, rs.AtomicCounter[bind].name))].push_back(rw);
@@ -4016,52 +4021,52 @@ void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
 
           switch(refl[i]->ReadOnlyResources[r].resType)
           {
-            case eResType_None: texList = NULL; break;
-            case eResType_Buffer:
+            case TextureDim::Unknown: texList = NULL; break;
+            case TextureDim::Buffer:
               texList = rs.TexBuffer;
               listSize = (int32_t)ARRAY_COUNT(rs.TexBuffer);
               break;
-            case eResType_Texture1D:
+            case TextureDim::Texture1D:
               texList = rs.Tex1D;
               listSize = (int32_t)ARRAY_COUNT(rs.Tex1D);
               break;
-            case eResType_Texture1DArray:
+            case TextureDim::Texture1DArray:
               texList = rs.Tex1DArray;
               listSize = (int32_t)ARRAY_COUNT(rs.Tex1DArray);
               break;
-            case eResType_Texture2D:
+            case TextureDim::Texture2D:
               texList = rs.Tex2D;
               listSize = (int32_t)ARRAY_COUNT(rs.Tex2D);
               break;
-            case eResType_TextureRect:
+            case TextureDim::TextureRect:
               texList = rs.TexRect;
               listSize = (int32_t)ARRAY_COUNT(rs.TexRect);
               break;
-            case eResType_Texture2DArray:
+            case TextureDim::Texture2DArray:
               texList = rs.Tex2DArray;
               listSize = (int32_t)ARRAY_COUNT(rs.Tex2DArray);
               break;
-            case eResType_Texture2DMS:
+            case TextureDim::Texture2DMS:
               texList = rs.Tex2DMS;
               listSize = (int32_t)ARRAY_COUNT(rs.Tex2DMS);
               break;
-            case eResType_Texture2DMSArray:
+            case TextureDim::Texture2DMSArray:
               texList = rs.Tex2DMSArray;
               listSize = (int32_t)ARRAY_COUNT(rs.Tex2DMSArray);
               break;
-            case eResType_Texture3D:
+            case TextureDim::Texture3D:
               texList = rs.Tex3D;
               listSize = (int32_t)ARRAY_COUNT(rs.Tex3D);
               break;
-            case eResType_TextureCube:
+            case TextureDim::TextureCube:
               texList = rs.TexCube;
               listSize = (int32_t)ARRAY_COUNT(rs.TexCube);
               break;
-            case eResType_TextureCubeArray:
+            case TextureDim::TextureCubeArray:
               texList = rs.TexCubeArray;
               listSize = (int32_t)ARRAY_COUNT(rs.TexCubeArray);
               break;
-            case eResType_Count: RDCERR("Invalid shader resource type"); break;
+            case TextureDim::Count: RDCERR("Invalid shader resource type"); break;
           }
 
           if(texList != NULL && bind >= 0 && bind < listSize && texList[bind] != 0)
@@ -4083,7 +4088,8 @@ void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
     gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&buffer);
 
     if(buffer)
-      m_ResourceUses[rm->GetID(BufferRes(ctx, buffer))].push_back(EventUsage(e, eUsage_SO));
+      m_ResourceUses[rm->GetID(BufferRes(ctx, buffer))].push_back(
+          EventUsage(e, ResourceUsage::StreamOut));
   }
 
   //////////////////////////////
@@ -4108,10 +4114,10 @@ void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
     {
       if(type == eGL_TEXTURE)
         m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(
-            EventUsage(e, eUsage_ColourTarget));
+            EventUsage(e, ResourceUsage::ColourTarget));
       else
         m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(
-            EventUsage(e, eUsage_ColourTarget));
+            EventUsage(e, ResourceUsage::ColourTarget));
     }
   }
 
@@ -4125,10 +4131,10 @@ void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
   {
     if(type == eGL_TEXTURE)
       m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(
-          EventUsage(e, eUsage_DepthStencilTarget));
+          EventUsage(e, ResourceUsage::DepthStencilTarget));
     else
       m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(
-          EventUsage(e, eUsage_DepthStencilTarget));
+          EventUsage(e, ResourceUsage::DepthStencilTarget));
   }
 
   gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
@@ -4141,10 +4147,10 @@ void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
   {
     if(type == eGL_TEXTURE)
       m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(
-          EventUsage(e, eUsage_DepthStencilTarget));
+          EventUsage(e, ResourceUsage::DepthStencilTarget));
     else
       m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(
-          EventUsage(e, eUsage_DepthStencilTarget));
+          EventUsage(e, ResourceUsage::DepthStencilTarget));
   }
 }
 
@@ -4182,7 +4188,8 @@ void WrappedOpenGL::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
   }
 
   // markers don't increment drawcall ID
-  if((draw.flags & (eDraw_SetMarker | eDraw_PushMarker | eDraw_MultiDraw)) == 0)
+  DrawFlags MarkerMask = DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::MultiDraw;
+  if(!(draw.flags & MarkerMask))
     m_CurDrawcallID++;
 
   if(hasEvents)

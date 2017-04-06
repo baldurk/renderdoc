@@ -68,11 +68,11 @@ public:
   void OnSelectedEventChanged(uint32_t eventID) {}
   void OnEventChanged(uint32_t eventID);
 
-  void ScrollToRow(int row, MeshDataStage stage = eMeshDataStage_VSIn)
+  void ScrollToRow(int row, MeshDataStage stage = MeshDataStage::VSIn)
   {
-    if(stage == eMeshDataStage_VSOut)
+    if(stage == MeshDataStage::VSOut)
       ScrollToRow(m_ModelVSOut, row);
-    else if(stage == eMeshDataStage_GSOut)
+    else if(stage == MeshDataStage::GSOut)
       ScrollToRow(m_ModelGSOut, row);
     else
       ScrollToRow(m_ModelVSIn, row);

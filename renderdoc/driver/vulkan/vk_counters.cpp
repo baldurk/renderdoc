@@ -42,142 +42,142 @@ void VulkanReplay::PostDeviceShutdownCounters()
 {
 }
 
-vector<uint32_t> VulkanReplay::EnumerateCounters()
+vector<GPUCounter> VulkanReplay::EnumerateCounters()
 {
-  vector<uint32_t> ret;
+  vector<GPUCounter> ret;
 
   VkPhysicalDeviceFeatures availableFeatures = m_pDriver->GetDeviceFeatures();
 
-  ret.push_back(eCounter_EventGPUDuration);
+  ret.push_back(GPUCounter::EventGPUDuration);
   if(availableFeatures.pipelineStatisticsQuery)
   {
-    ret.push_back(eCounter_InputVerticesRead);
-    ret.push_back(eCounter_IAPrimitives);
-    ret.push_back(eCounter_GSPrimitives);
-    ret.push_back(eCounter_RasterizerInvocations);
-    ret.push_back(eCounter_RasterizedPrimitives);
+    ret.push_back(GPUCounter::InputVerticesRead);
+    ret.push_back(GPUCounter::IAPrimitives);
+    ret.push_back(GPUCounter::GSPrimitives);
+    ret.push_back(GPUCounter::RasterizerInvocations);
+    ret.push_back(GPUCounter::RasterizedPrimitives);
   }
 
   if(availableFeatures.occlusionQueryPrecise)
-    ret.push_back(eCounter_SamplesWritten);
+    ret.push_back(GPUCounter::SamplesWritten);
 
   if(availableFeatures.pipelineStatisticsQuery)
   {
-    ret.push_back(eCounter_VSInvocations);
-    ret.push_back(eCounter_TCSInvocations);
-    ret.push_back(eCounter_TESInvocations);
-    ret.push_back(eCounter_GSInvocations);
-    ret.push_back(eCounter_PSInvocations);
-    ret.push_back(eCounter_CSInvocations);
+    ret.push_back(GPUCounter::VSInvocations);
+    ret.push_back(GPUCounter::TCSInvocations);
+    ret.push_back(GPUCounter::TESInvocations);
+    ret.push_back(GPUCounter::GSInvocations);
+    ret.push_back(GPUCounter::PSInvocations);
+    ret.push_back(GPUCounter::CSInvocations);
   }
 
   return ret;
 }
 
-void VulkanReplay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
+void VulkanReplay::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
 {
   desc.counterID = counterID;
 
   switch(counterID)
   {
-    case eCounter_EventGPUDuration:
+    case GPUCounter::EventGPUDuration:
       desc.name = "GPU Duration";
       desc.description =
           "Time taken for this event on the GPU, as measured by delta between two GPU timestamps.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_Double;
-      desc.units = eUnits_Seconds;
+      desc.resultType = CompType::Double;
+      desc.unit = CounterUnit::Seconds;
       break;
-    case eCounter_InputVerticesRead:
+    case GPUCounter::InputVerticesRead:
       desc.name = "Input Vertices Read";
       desc.description = "Number of vertices read by input assembler.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_IAPrimitives:
+    case GPUCounter::IAPrimitives:
       desc.name = "Input Primitives";
       desc.description = "Number of primitives read by the input assembler.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_GSPrimitives:
+    case GPUCounter::GSPrimitives:
       desc.name = "GS Primitives";
       desc.description = "Number of primitives output by a geometry shader.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_RasterizerInvocations:
+    case GPUCounter::RasterizerInvocations:
       desc.name = "Rasterizer Invocations";
       desc.description = "Number of primitives that were sent to the rasterizer.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_RasterizedPrimitives:
+    case GPUCounter::RasterizedPrimitives:
       desc.name = "Rasterized Primitives";
       desc.description = "Number of primitives that were rendered.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_SamplesWritten:
+    case GPUCounter::SamplesWritten:
       desc.name = "Samples Written";
       desc.description = "Number of samples that passed depth/stencil test.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_VSInvocations:
+    case GPUCounter::VSInvocations:
       desc.name = "VS Invocations";
       desc.description = "Number of times a vertex shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_GSInvocations:
+    case GPUCounter::GSInvocations:
       desc.name = "GS Invocations";
       desc.description = "Number of times a geometry shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_TCSInvocations:
+    case GPUCounter::TCSInvocations:
       desc.name = "TCS Invocations";
       desc.description = "Number of times a tesselation control shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_TESInvocations:
+    case GPUCounter::TESInvocations:
       desc.name = "TES Invocations";
       desc.description = "Number of times a tesselation evaluation shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_PSInvocations:
+    case GPUCounter::PSInvocations:
       desc.name = "PS Invocations";
       desc.description = "Number of times a pixel shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_CSInvocations:
+    case GPUCounter::CSInvocations:
       desc.name = "CS Invocations";
       desc.description = "Number of times a compute shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
     default:
       desc.name = "Unknown";
       desc.description = "Unknown counter ID";
       desc.resultByteWidth = 0;
-      desc.resultCompType = eCompType_None;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::Typeless;
+      desc.unit = CounterUnit::Absolute;
       break;
   }
 }
@@ -223,12 +223,9 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd) { PreDraw(eid, cmd); }
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return PostDraw(eid, cmd); }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) { PostRedraw(eid, cmd); }
-  void PreMisc(uint32_t eid, DrawcallFlags flags, VkCommandBuffer cmd) { PreDraw(eid, cmd); }
-  bool PostMisc(uint32_t eid, DrawcallFlags flags, VkCommandBuffer cmd)
-  {
-    return PostDraw(eid, cmd);
-  }
-  void PostRemisc(uint32_t eid, DrawcallFlags flags, VkCommandBuffer cmd) { PostRedraw(eid, cmd); }
+  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { PreDraw(eid, cmd); }
+  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return PostDraw(eid, cmd); }
+  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { PostRedraw(eid, cmd); }
   bool RecordAllCmds() { return true; }
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
@@ -248,7 +245,7 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
   vector<pair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
-vector<CounterResult> VulkanReplay::FetchCounters(const vector<uint32_t> &counters)
+vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &counters)
 {
   uint32_t maxEID = m_pDriver->GetMaxEID();
 
@@ -374,7 +371,7 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<uint32_t> &counte
 
       switch(counters[c])
       {
-        case eCounter_EventGPUDuration:
+        case GPUCounter::EventGPUDuration:
         {
           uint64_t delta = m_TimeStampData[i * 2 + 1] - m_TimeStampData[i * 2 + 0];
           result.value.d = (double(m_pDriver->GetDeviceProps().limits.timestampPeriod) *
@@ -382,18 +379,23 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<uint32_t> &counte
                            / (1000.0 * 1000.0 * 1000.0);    // to seconds
         }
         break;
-        case eCounter_InputVerticesRead: result.value.u64 = m_PipeStatsData[i * 11 + 0]; break;
-        case eCounter_IAPrimitives: result.value.u64 = m_PipeStatsData[i * 11 + 1]; break;
-        case eCounter_GSPrimitives: result.value.u64 = m_PipeStatsData[i * 11 + 4]; break;
-        case eCounter_RasterizerInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 5]; break;
-        case eCounter_RasterizedPrimitives: result.value.u64 = m_PipeStatsData[i * 11 + 6]; break;
-        case eCounter_SamplesWritten: result.value.u64 = m_OcclusionData[i]; break;
-        case eCounter_VSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 2]; break;
-        case eCounter_TCSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 8]; break;
-        case eCounter_TESInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 9]; break;
-        case eCounter_GSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 3]; break;
-        case eCounter_PSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 9]; break;
-        case eCounter_CSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 10]; break;
+        case GPUCounter::InputVerticesRead: result.value.u64 = m_PipeStatsData[i * 11 + 0]; break;
+        case GPUCounter::IAPrimitives: result.value.u64 = m_PipeStatsData[i * 11 + 1]; break;
+        case GPUCounter::GSPrimitives: result.value.u64 = m_PipeStatsData[i * 11 + 4]; break;
+        case GPUCounter::RasterizerInvocations:
+          result.value.u64 = m_PipeStatsData[i * 11 + 5];
+          break;
+        case GPUCounter::RasterizedPrimitives:
+          result.value.u64 = m_PipeStatsData[i * 11 + 6];
+          break;
+        case GPUCounter::SamplesWritten: result.value.u64 = m_OcclusionData[i]; break;
+        case GPUCounter::VSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 2]; break;
+        case GPUCounter::TCSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 8]; break;
+        case GPUCounter::TESInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 9]; break;
+        case GPUCounter::GSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 3]; break;
+        case GPUCounter::PSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 9]; break;
+        case GPUCounter::CSInvocations: result.value.u64 = m_PipeStatsData[i * 11 + 10]; break;
+        default: break;
       }
       ret.push_back(result);
     }

@@ -851,3 +851,7 @@ struct ToStrHelper<true, T>
 // stringize the parameter
 #define TOSTR_CASE_STRINGIZE(a) \
   case a: return #a;
+
+// stringize the parameter (class enum version)
+#define TOSTR_CASE_STRINGIZE_SCOPED(a, b) \
+  case a::b: return #b;

@@ -1925,8 +1925,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
               "The original capture created a texture buffer with a range - replay will use the "
               "whole buffer, which is likely incorrect.";
           RDCERR("%s", msg);
-          m_GL->AddDebugMessage(eDbgCategory_Resource_Manipulation, eDbgSeverity_High,
-                                eDbgSource_IncorrectAPIUse, msg);
+          m_GL->AddDebugMessage(MessageCategory::Resource_Manipulation, MessageSeverity::High,
+                                MessageSource::IncorrectAPIUse, msg);
         }
 
         gl.glTextureBufferEXT(live.name, eGL_TEXTURE_BUFFER, details.internalFormat, buffer);

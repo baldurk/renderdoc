@@ -62,7 +62,7 @@ bool WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
     {
       oneSurfaceTypeSupported = true;
 
-      m_SupportedWindowSystems.push_back(eWindowingSystem_XCB);
+      m_SupportedWindowSystems.push_back(WindowingSystem::XCB);
 
       // don't add duplicates
       if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_XCB_SURFACE_EXTENSION_NAME) ==
@@ -79,7 +79,7 @@ bool WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
     {
       oneSurfaceTypeSupported = true;
 
-      m_SupportedWindowSystems.push_back(eWindowingSystem_Xlib);
+      m_SupportedWindowSystems.push_back(WindowingSystem::Xlib);
 
       // don't add duplicates
       if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_XLIB_SURFACE_EXTENSION_NAME) ==
@@ -96,7 +96,7 @@ bool WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
               supportedExtensions.end());
 
     oneSurfaceTypeSupported = true;
-    m_SupportedWindowSystems.push_back(eWindowingSystem_Android);
+    m_SupportedWindowSystems.push_back(WindowingSystem::Android);
 
     // don't add duplicates, application will have added this but just be sure
     if(std::find(extensionList.begin(), extensionList.end(),

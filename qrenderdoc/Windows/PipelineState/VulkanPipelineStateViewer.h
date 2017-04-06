@@ -86,14 +86,14 @@ private:
   QVariantList makeSampler(
       const QString &bindset, const QString &slotname,
       const VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement &descriptor);
-  void addResourceRow(ShaderReflection *shaderDetails, const VulkanPipelineState::ShaderStage &stage,
+  void addResourceRow(ShaderReflection *shaderDetails, const VulkanPipelineState::Shader &stage,
                       int bindset, int bind, const VulkanPipelineState::Pipeline &pipe,
                       RDTreeWidget *resources, QMap<ResourceId, SamplerData> &samplers);
   void addConstantBlockRow(ShaderReflection *shaderDetails,
-                           const VulkanPipelineState::ShaderStage &stage, int bindset, int bind,
+                           const VulkanPipelineState::Shader &stage, int bindset, int bind,
                            const VulkanPipelineState::Pipeline &pipe, RDTreeWidget *ubos);
 
-  void setShaderState(const VulkanPipelineState::ShaderStage &stage,
+  void setShaderState(const VulkanPipelineState::Shader &stage,
                       const VulkanPipelineState::Pipeline &pipe, QLabel *shader, RDTreeWidget *res,
                       RDTreeWidget *ubo);
   void clearShaderState(QLabel *shader, RDTreeWidget *res, RDTreeWidget *ubo);
@@ -106,7 +106,7 @@ private:
 
   QString formatMembers(int indent, const QString &nameprefix,
                         const rdctype::array<ShaderConstant> &vars);
-  const VulkanPipelineState::ShaderStage *stageForSender(QWidget *widget);
+  const VulkanPipelineState::Shader *stageForSender(QWidget *widget);
 
   QString disassembleSPIRV(const ShaderReflection *shaderDetails);
 

@@ -1916,7 +1916,7 @@ void D3D12DebugManager::OutputWindow::MakeDSV()
 
 uint64_t D3D12DebugManager::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
-  RDCASSERT(system == eWindowingSystem_Win32, system);
+  RDCASSERT(system == WindowingSystem::Win32, system);
 
   OutputWindow outw;
   outw.wnd = (HWND)data;
@@ -2288,8 +2288,7 @@ void D3D12DebugManager::FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle)
 }
 
 void D3D12DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                                  uint32_t mip, uint32_t sample, FormatComponentType typeHint,
-                                  float pixel[4])
+                                  uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4])
 {
   int oldW = GetWidth(), oldH = GetHeight();
 
@@ -2427,7 +2426,7 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
   resFmt.compCount = cfg.position.compCount;
   resFmt.compType = cfg.position.compType;
   resFmt.special = false;
-  if(cfg.position.specialFormat != eSpecial_Unknown)
+  if(cfg.position.specialFormat != SpecialFormat::Unknown)
   {
     resFmt.special = true;
     resFmt.specialFormat = cfg.position.specialFormat;
@@ -2506,22 +2505,22 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
   bool isTriangleMesh = true;
   switch(cfg.position.topo)
   {
-    case eTopology_TriangleList:
+    case Topology::TriangleList:
     {
       cbuf.MeshMode = MESH_TRIANGLE_LIST;
       break;
     }
-    case eTopology_TriangleStrip:
+    case Topology::TriangleStrip:
     {
       cbuf.MeshMode = MESH_TRIANGLE_STRIP;
       break;
     }
-    case eTopology_TriangleList_Adj:
+    case Topology::TriangleList_Adj:
     {
       cbuf.MeshMode = MESH_TRIANGLE_LIST_ADJ;
       break;
     }
-    case eTopology_TriangleStrip_Adj:
+    case Topology::TriangleStrip_Adj:
     {
       cbuf.MeshMode = MESH_TRIANGLE_STRIP_ADJ;
       break;
@@ -2784,7 +2783,7 @@ void D3D12DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
       ShaderVariable var;
       var.name = basename;
       var.rows = var.columns = 0;
-      var.type = eVar_Float;
+      var.type = VarType::Float;
 
       std::vector<ShaderVariable> varmembers;
 
@@ -2804,7 +2803,7 @@ void D3D12DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
             ShaderVariable vr;
             vr.name = basename + buf;
             vr.rows = vr.columns = 0;
-            vr.type = eVar_Float;
+            vr.type = VarType::Float;
 
             std::vector<ShaderVariable> mems;
 
@@ -2850,17 +2849,17 @@ void D3D12DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
     }
 
     size_t elemByteSize = 4;
-    VarType type = eVar_Float;
+    VarType type = VarType::Float;
     switch(invars[v].type.descriptor.type)
     {
-      case VARTYPE_INT: type = eVar_Int; break;
-      case VARTYPE_FLOAT: type = eVar_Float; break;
+      case VARTYPE_INT: type = VarType::Int; break;
+      case VARTYPE_FLOAT: type = VarType::Float; break;
       case VARTYPE_BOOL:
       case VARTYPE_UINT:
-      case VARTYPE_UINT8: type = eVar_UInt; break;
+      case VARTYPE_UINT8: type = VarType::UInt; break;
       case VARTYPE_DOUBLE:
         elemByteSize = 8;
-        type = eVar_Double;
+        type = VarType::Double;
         break;
       default:
         RDCERR("Unexpected type %d for variable '%s' in cbuffer", invars[v].type.descriptor.type,
@@ -3109,7 +3108,7 @@ void D3D12DebugManager::FillCBufferVariables(const vector<DXBC::CBufferVariable>
 }
 
 void D3D12DebugManager::BuildShader(string source, string entry, const uint32_t compileFlags,
-                                    ShaderStageType type, ResourceId *id, string *errors)
+                                    ShaderStage type, ResourceId *id, string *errors)
 {
   if(id == NULL || errors == NULL)
   {
@@ -3122,12 +3121,12 @@ void D3D12DebugManager::BuildShader(string source, string entry, const uint32_t 
 
   switch(type)
   {
-    case eShaderStage_Vertex: profile = "vs_5_0"; break;
-    case eShaderStage_Hull: profile = "hs_5_0"; break;
-    case eShaderStage_Domain: profile = "ds_5_0"; break;
-    case eShaderStage_Geometry: profile = "gs_5_0"; break;
-    case eShaderStage_Pixel: profile = "ps_5_0"; break;
-    case eShaderStage_Compute: profile = "cs_5_0"; break;
+    case ShaderStage::Vertex: profile = "vs_5_0"; break;
+    case ShaderStage::Hull: profile = "hs_5_0"; break;
+    case ShaderStage::Domain: profile = "ds_5_0"; break;
+    case ShaderStage::Geometry: profile = "gs_5_0"; break;
+    case ShaderStage::Pixel: profile = "ps_5_0"; break;
+    case ShaderStage::Compute: profile = "cs_5_0"; break;
     default:
       RDCERR("Unexpected type in BuildShader!");
       *id = ResourceId();
@@ -3383,7 +3382,7 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
       texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
       texDisplay.HDRMul = -1.0f;
       texDisplay.linearDisplayAsGamma = false;
-      texDisplay.overlay = eTexOverlay_None;
+      texDisplay.overlay = DebugOverlay::NoOverlay;
       texDisplay.FlipY = false;
       texDisplay.mip = mip;
       texDisplay.sampleIdx = params.resolve ? ~0U : arrayIdx;
@@ -3393,7 +3392,7 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
       texDisplay.rangemax = params.whitePoint;
       texDisplay.scale = 1.0f;
       texDisplay.texid = tex;
-      texDisplay.typeHint = eCompType_None;
+      texDisplay.typeHint = CompType::Typeless;
       texDisplay.rawoutput = false;
       texDisplay.offx = 0;
       texDisplay.offy = 0;
@@ -3846,7 +3845,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       decl.StartComponent = 0;
       decl.ComponentCount = sign.compCount & 0xff;
 
-      if(sign.systemValue == eAttr_Position)
+      if(sign.systemValue == ShaderBuiltin::Position)
       {
         posidx = (int)sodecls.size();
         numPosComponents = decl.ComponentCount = 4;
@@ -3910,7 +3909,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     ID3D12Resource *idxBuf = NULL;
 
-    if((drawcall->flags & eDraw_UseIBuffer) == 0)
+    if(!(drawcall->flags & DrawFlags::UseIBuffer))
     {
       m_DebugList->Reset(m_DebugAlloc, NULL);
 
@@ -4268,11 +4267,11 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
     m_PostVSData[eventID].vsout.nearPlane = nearp;
     m_PostVSData[eventID].vsout.farPlane = farp;
 
-    m_PostVSData[eventID].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
+    m_PostVSData[eventID].vsout.useIndices = bool(drawcall->flags & DrawFlags::UseIBuffer);
     m_PostVSData[eventID].vsout.numVerts = drawcall->numIndices;
 
     m_PostVSData[eventID].vsout.instStride = 0;
-    if(drawcall->flags & eDraw_Instanced)
+    if(drawcall->flags & DrawFlags::Instanced)
       m_PostVSData[eventID].vsout.instStride =
           uint32_t(numBytesWritten / RDCMAX(1U, drawcall->numInstances));
 
@@ -4333,7 +4332,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       decl.StartComponent = 0;
       decl.ComponentCount = sign.compCount & 0xff;
 
-      if(sign.systemValue == eAttr_Position)
+      if(sign.systemValue == ShaderBuiltin::Position)
       {
         posidx = (int)sodecls.size();
         numPosComponents = decl.ComponentCount = 4;
@@ -4410,7 +4409,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       // each instance wrote.
       for(uint32_t inst = 1; inst <= drawcall->numInstances; inst++)
       {
-        if(drawcall->flags & eDraw_UseIBuffer)
+        if(drawcall->flags & DrawFlags::UseIBuffer)
         {
           view.BufferFilledSizeLocation =
               m_SOBuffer->GetGPUVirtualAddress() + (inst - 1) * sizeof(UINT64);
@@ -4435,7 +4434,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       m_DebugList->SOSetTargets(0, 1, &view);
 
       // because the result is expanded we don't have to remap index buffers or anything
-      if(drawcall->flags & eDraw_UseIBuffer)
+      if(drawcall->flags & DrawFlags::UseIBuffer)
       {
         m_DebugList->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
                                           drawcall->indexOffset, drawcall->baseVertex,
@@ -4636,7 +4635,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     m_PostVSData[eventID].gsout.buf = gsoutBuffer;
     m_PostVSData[eventID].gsout.instStride = 0;
-    if(drawcall->flags & eDraw_Instanced)
+    if(drawcall->flags & DrawFlags::Instanced)
       m_PostVSData[eventID].gsout.instStride =
           uint32_t(numBytesWritten / RDCMAX(1U, drawcall->numInstances));
     m_PostVSData[eventID].gsout.vertStride = stride;
@@ -4692,7 +4691,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     m_PostVSData[eventID].gsout.numVerts = (uint32_t)numVerts;
 
-    if(drawcall->flags & eDraw_Instanced)
+    if(drawcall->flags & DrawFlags::Instanced)
       m_PostVSData[eventID].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
 
     m_PostVSData[eventID].gsout.instData = instData;
@@ -4740,8 +4739,8 @@ MeshFormat D3D12DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID
 
   ret.compCount = 4;
   ret.compByteWidth = 4;
-  ret.compType = eCompType_Float;
-  ret.specialFormat = eSpecial_Unknown;
+  ret.compType = CompType::Float;
+  ret.specialFormat = SpecialFormat::Unknown;
 
   ret.showAlpha = false;
   ret.bgraOrder = false;
@@ -5023,7 +5022,7 @@ FloatVector D3D12DebugManager::InterpretVertex(byte *data, uint32_t vert, const 
   fmt.compCount = cfg.position.compCount;
   fmt.compType = cfg.position.compType;
 
-  if(cfg.position.specialFormat == eSpecial_R10G10B10A2)
+  if(cfg.position.specialFormat == SpecialFormat::R10G10B10A2)
   {
     if(data + 4 >= end)
     {
@@ -5038,7 +5037,7 @@ FloatVector D3D12DebugManager::InterpretVertex(byte *data, uint32_t vert, const 
     ret.w = v.w;
     return ret;
   }
-  else if(cfg.position.specialFormat == eSpecial_R11G11B10)
+  else if(cfg.position.specialFormat == SpecialFormat::R11G11B10)
   {
     if(data + 4 >= end)
     {
@@ -5116,7 +5115,7 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
   bit += 6;
 
   ResourceFormat fmt;
-  fmt.special = primary.specialFormat != eSpecial_Unknown;
+  fmt.special = primary.specialFormat != SpecialFormat::Unknown;
   fmt.specialFormat = primary.specialFormat;
   fmt.compByteWidth = primary.compByteWidth;
   fmt.compCount = primary.compCount;
@@ -5124,7 +5123,7 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
 
   DXGI_FORMAT primaryFmt = MakeDXGIFormat(fmt);
 
-  fmt.special = secondary.specialFormat != eSpecial_Unknown;
+  fmt.special = secondary.specialFormat != SpecialFormat::Unknown;
   fmt.specialFormat = secondary.specialFormat;
   fmt.compByteWidth = secondary.compByteWidth;
   fmt.compCount = secondary.compCount;
@@ -5152,7 +5151,7 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
 
   MeshDisplayPipelines &cache = m_CachedMeshPipelines[key];
 
-  if(cache.pipes[eShade_None] != NULL)
+  if(cache.pipes[(uint32_t)SolidShade::NoSolid] != NULL)
     return cache;
 
   // should we try and evict old pipelines from the cache here?
@@ -5418,13 +5417,13 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     list->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(cfg.position.topo));
   }
 
-  SolidShadeMode solidShadeMode = cfg.solidShadeMode;
+  SolidShade solidShadeMode = cfg.solidShadeMode;
 
   // can't support secondary shading without a buffer - no pipeline will have been created
-  if(solidShadeMode == eShade_Secondary && cfg.second.buf == ResourceId())
-    solidShadeMode = eShade_None;
+  if(solidShadeMode == SolidShade::Secondary && cfg.second.buf == ResourceId())
+    solidShadeMode = SolidShade::NoSolid;
 
-  if(solidShadeMode == eShade_Secondary)
+  if(solidShadeMode == SolidShade::Secondary)
   {
     ID3D12Resource *vb =
         m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.buf);
@@ -5438,19 +5437,19 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   }
 
   // solid render
-  if(solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList)
+  if(solidShadeMode != SolidShade::NoSolid && cfg.position.topo < Topology::PatchList)
   {
     ID3D12PipelineState *pipe = NULL;
     switch(solidShadeMode)
     {
       default:
-      case eShade_Solid: pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]; break;
-      case eShade_Lit: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Lit]; break;
-      case eShade_Secondary: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary]; break;
+      case SolidShade::Solid: pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]; break;
+      case SolidShade::Lit: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Lit]; break;
+      case SolidShade::Secondary: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary]; break;
     }
 
     pixelData.OutputDisplayFormat = (int)cfg.solidShadeMode;
-    if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
+    if(cfg.solidShadeMode == SolidShade::Secondary && cfg.second.showAlpha)
       pixelData.OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
     pixelData.WireframeColour = Vec3f(0.8f, 0.8f, 0.0f);
 
@@ -5460,7 +5459,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     list->SetGraphicsRootConstantBufferView(0, vsCB);
     list->SetGraphicsRootConstantBufferView(1, UploadConstants(&pixelData, sizeof(pixelData)));
 
-    if(solidShadeMode == eShade_Lit)
+    if(solidShadeMode == SolidShade::Lit)
     {
       DebugGeometryCBuffer geomData;
       geomData.InvProj = projMat.Inverse();
@@ -5495,7 +5494,8 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   }
 
   // wireframe render
-  if(solidShadeMode == eShade_None || cfg.wireframeDraw || cfg.position.topo >= eTopology_PatchList)
+  if(solidShadeMode == SolidShade::NoSolid || cfg.wireframeDraw ||
+     cfg.position.topo >= Topology::PatchList)
   {
     Vec4f wireCol =
         Vec4f(cfg.position.meshColour.x, cfg.position.meshColour.y, cfg.position.meshColour.z, 1.0f);
@@ -5532,12 +5532,12 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
   MeshFormat helper;
   helper.idxByteWidth = 2;
-  helper.topo = eTopology_LineList;
+  helper.topo = Topology::LineList;
 
-  helper.specialFormat = eSpecial_Unknown;
+  helper.specialFormat = SpecialFormat::Unknown;
   helper.compByteWidth = 4;
   helper.compCount = 4;
-  helper.compType = eCompType_Float;
+  helper.compType = CompType::Float;
 
   helper.stride = sizeof(Vec4f);
 
@@ -5676,7 +5676,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       uint32_t bytesize = cfg.position.idxByteWidth;
       uint64_t maxIndex = cfg.position.numVerts;
 
-      if(cfg.position.idxByteWidth == 0 || stage == eMeshDataStage_GSOut)
+      if(cfg.position.idxByteWidth == 0 || stage == MeshDataStage::GSOut)
       {
         m_HighlightCache.indices.clear();
         m_HighlightCache.useidx = false;
@@ -5747,7 +5747,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
                     m_HighlightCache.data);
     }
 
-    PrimitiveTopology meshtopo = cfg.position.topo;
+    Topology meshtopo = cfg.position.topo;
 
     uint32_t idx = cfg.highlightVert;
 
@@ -5778,19 +5778,19 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     // will be N*M long, N adjacent prims of M verts each. M = primSize below
     vector<FloatVector> adjacentPrimVertices;
 
-    helper.topo = eTopology_TriangleList;
+    helper.topo = Topology::TriangleList;
     uint32_t primSize = 3;    // number of verts per primitive
 
-    if(meshtopo == eTopology_LineList || meshtopo == eTopology_LineStrip ||
-       meshtopo == eTopology_LineList_Adj || meshtopo == eTopology_LineStrip_Adj)
+    if(meshtopo == Topology::LineList || meshtopo == Topology::LineStrip ||
+       meshtopo == Topology::LineList_Adj || meshtopo == Topology::LineStrip_Adj)
     {
       primSize = 2;
-      helper.topo = eTopology_LineList;
+      helper.topo = Topology::LineList;
     }
     else
     {
       // update the cache, as it's currently linelist
-      helper.topo = eTopology_TriangleList;
+      helper.topo = Topology::TriangleList;
       cache = CacheMeshDisplayPipelines(helper, helper);
     }
 
@@ -5798,14 +5798,14 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
     // see http://msdn.microsoft.com/en-us/library/windows/desktop/bb205124(v=vs.85).aspx for
     // how primitive topologies are laid out
-    if(meshtopo == eTopology_LineList)
+    if(meshtopo == Topology::LineList)
     {
       uint32_t v = uint32_t(idx / 2) * 2;    // find first vert in primitive
 
       activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
       activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
     }
-    else if(meshtopo == eTopology_TriangleList)
+    else if(meshtopo == Topology::TriangleList)
     {
       uint32_t v = uint32_t(idx / 3) * 3;    // find first vert in primitive
 
@@ -5813,7 +5813,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
       activePrim.push_back(InterpretVertex(data, v + 2, cfg, dataEnd, true, valid));
     }
-    else if(meshtopo == eTopology_LineList_Adj)
+    else if(meshtopo == Topology::LineList_Adj)
     {
       uint32_t v = uint32_t(idx / 4) * 4;    // find first vert in primitive
 
@@ -5833,7 +5833,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       activePrim.push_back(vs[1]);
       activePrim.push_back(vs[2]);
     }
-    else if(meshtopo == eTopology_TriangleList_Adj)
+    else if(meshtopo == Topology::TriangleList_Adj)
     {
       uint32_t v = uint32_t(idx / 6) * 6;    // find first vert in primitive
 
@@ -5862,7 +5862,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       activePrim.push_back(vs[2]);
       activePrim.push_back(vs[4]);
     }
-    else if(meshtopo == eTopology_LineStrip)
+    else if(meshtopo == Topology::LineStrip)
     {
       // find first vert in primitive. In strips a vert isn't
       // in only one primitive, so we pick the first primitive
@@ -5873,7 +5873,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
       activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
     }
-    else if(meshtopo == eTopology_TriangleStrip)
+    else if(meshtopo == Topology::TriangleStrip)
     {
       // find first vert in primitive. In strips a vert isn't
       // in only one primitive, so we pick the first primitive
@@ -5885,7 +5885,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
       activePrim.push_back(InterpretVertex(data, v + 2, cfg, dataEnd, true, valid));
     }
-    else if(meshtopo == eTopology_LineStrip_Adj)
+    else if(meshtopo == Topology::LineStrip_Adj)
     {
       // find first vert in primitive. In strips a vert isn't
       // in only one primitive, so we pick the first primitive
@@ -5909,7 +5909,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       activePrim.push_back(vs[1]);
       activePrim.push_back(vs[2]);
     }
-    else if(meshtopo == eTopology_TriangleStrip_Adj)
+    else if(meshtopo == Topology::TriangleStrip_Adj)
     {
       // Triangle strip with adjacency is the most complex topology, as
       // we need to handle the ends separately where the pattern breaks.
@@ -6039,9 +6039,9 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
         activePrim.push_back(vs[6]);
       }
     }
-    else if(meshtopo >= eTopology_PatchList)
+    else if(meshtopo >= Topology::PatchList)
     {
-      uint32_t dim = (cfg.position.topo - eTopology_PatchList_1CPs + 1);
+      uint32_t dim = PatchList_Count(cfg.position.topo);
 
       uint32_t v0 = uint32_t(idx / dim) * dim;
 
@@ -6051,7 +6051,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
           inactiveVertices.push_back(InterpretVertex(data, v, cfg, dataEnd, true, valid));
       }
     }
-    else    // if(meshtopo == eTopology_PointList) point list, or unknown/unhandled type
+    else    // if(meshtopo == Topology::PointList) point list, or unknown/unhandled type
     {
       // no adjacency, inactive verts or active primitive
     }
@@ -6123,7 +6123,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
 
       // vertices are drawn with tri strips
-      helper.topo = eTopology_TriangleStrip;
+      helper.topo = Topology::TriangleStrip;
       cache = CacheMeshDisplayPipelines(helper, helper);
 
       FloatVector vertSprite[4] = {
@@ -6184,9 +6184,8 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 #endif
 }
 
-void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
-                                               FormatComponentType typeHint, int &resType,
-                                               vector<D3D12_RESOURCE_BARRIER> &barriers)
+void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompType typeHint,
+                                               int &resType, vector<D3D12_RESOURCE_BARRIER> &barriers)
 {
   int srvOffset = 0;
 
@@ -6448,8 +6447,8 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
   }
 }
 
-bool D3D12DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                                  FormatComponentType typeHint, float *minval, float *maxval)
+bool D3D12DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
+                                  uint32_t sample, CompType typeHint, float *minval, float *maxval)
 {
   ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
 
@@ -6617,8 +6616,8 @@ bool D3D12DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 }
 
 bool D3D12DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip,
-                                     uint32_t sample, FormatComponentType typeHint, float minval,
-                                     float maxval, bool channels[4], vector<uint32_t> &histogram)
+                                     uint32_t sample, CompType typeHint, float minval, float maxval,
+                                     bool channels[4], vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;
@@ -6993,7 +6992,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 
 ResourceId D3D12DebugManager::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
                                                 uint32_t arrayIdx, uint32_t sampleIdx,
-                                                FormatComponentType typeHint)
+                                                CompType typeHint)
 {
   ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
 
@@ -7070,7 +7069,7 @@ ResourceId D3D12DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;
   disp.sampleIdx = sampleIdx;
-  disp.overlay = eTexOverlay_None;
+  disp.overlay = DebugOverlay::NoOverlay;
   disp.rangemin = 0.0f;
   disp.rangemax = 1.0f;
   disp.rawoutput = false;
@@ -7085,9 +7084,8 @@ ResourceId D3D12DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
   return m_CustomShaderResourceId;
 }
 
-ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
-                                            TextureDisplayOverlay overlay, uint32_t eventID,
-                                            const vector<uint32_t> &passEvents)
+ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
+                                            uint32_t eventID, const vector<uint32_t> &passEvents)
 {
   ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
 
@@ -7276,11 +7274,11 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
   if(rs.pipe != ResourceId())
     pipe = m_WrappedDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
 
-  if(overlay == eTexOverlay_NaN || overlay == eTexOverlay_Clipping)
+  if(overlay == DebugOverlay::NaN || overlay == DebugOverlay::Clipping)
   {
     // just need the basic texture
   }
-  else if(overlay == eTexOverlay_Drawcall)
+  else if(overlay == DebugOverlay::Drawcall)
   {
     if(pipe && pipe->IsGraphics())
     {
@@ -7353,7 +7351,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       SAFE_RELEASE(ps);
     }
   }
-  else if(overlay == eTexOverlay_BackfaceCull)
+  else if(overlay == DebugOverlay::BackfaceCull)
   {
     if(pipe && pipe->IsGraphics())
     {
@@ -7451,7 +7449,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       SAFE_RELEASE(greenPSO);
     }
   }
-  else if(overlay == eTexOverlay_Wireframe)
+  else if(overlay == DebugOverlay::Wireframe)
   {
     if(pipe && pipe->IsGraphics())
     {
@@ -7524,11 +7522,11 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       SAFE_RELEASE(ps);
     }
   }
-  else if(overlay == eTexOverlay_ClearBeforePass || overlay == eTexOverlay_ClearBeforeDraw)
+  else if(overlay == DebugOverlay::ClearBeforePass || overlay == DebugOverlay::ClearBeforeDraw)
   {
     vector<uint32_t> events = passEvents;
 
-    if(overlay == eTexOverlay_ClearBeforeDraw)
+    if(overlay == DebugOverlay::ClearBeforeDraw)
       events.clear();
 
     events.push_back(eventID);
@@ -7541,7 +7539,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       bool rtSingle = rs.rtSingle;
       vector<PortableHandle> rts = rs.rts;
 
-      if(overlay == eTexOverlay_ClearBeforePass)
+      if(overlay == DebugOverlay::ClearBeforePass)
         m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
       list = m_WrappedDevice->GetNewList();
@@ -7572,12 +7570,12 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       {
         m_WrappedDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
-        if(overlay == eTexOverlay_ClearBeforePass && i + 1 < events.size())
+        if(overlay == DebugOverlay::ClearBeforePass && i + 1 < events.size())
           m_WrappedDevice->ReplayLog(events[i] + 1, events[i + 1], eReplay_WithoutDraw);
       }
     }
   }
-  else if(overlay == eTexOverlay_ViewportScissor)
+  else if(overlay == DebugOverlay::ViewportScissor)
   {
     if(pipe && pipe->IsGraphics() && !rs.views.empty())
     {
@@ -7638,7 +7636,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       list->DrawInstanced(3, 1, 0, 0);
     }
   }
-  else if(overlay == eTexOverlay_TriangleSizeDraw || overlay == eTexOverlay_TriangleSizePass)
+  else if(overlay == DebugOverlay::TriangleSizeDraw || overlay == DebugOverlay::TriangleSizePass)
   {
     if(pipe && pipe->IsGraphics())
     {
@@ -7646,7 +7644,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
       vector<uint32_t> events = passEvents;
 
-      if(overlay == eTexOverlay_TriangleSizeDraw)
+      if(overlay == DebugOverlay::TriangleSizeDraw)
         events.clear();
 
       while(!events.empty())
@@ -7654,7 +7652,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
         const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(events[0]);
 
         // remove any non-drawcalls, like the pass boundary.
-        if((draw->flags & eDraw_Drawcall) == 0)
+        if(!(draw->flags & DrawFlags::Drawcall))
           events.erase(events.begin());
         else
           break;
@@ -7747,9 +7745,9 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
         for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
         {
-          MeshFormat fmt = GetPostVSBuffers(events[i], inst, eMeshDataStage_GSOut);
+          MeshFormat fmt = GetPostVSBuffers(events[i], inst, MeshDataStage::GSOut);
           if(fmt.buf == ResourceId())
-            fmt = GetPostVSBuffers(events[i], inst, eMeshDataStage_VSOut);
+            fmt = GetPostVSBuffers(events[i], inst, MeshDataStage::VSOut);
 
           if(fmt.buf != ResourceId())
           {
@@ -7825,20 +7823,20 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
     // restore back to normal
     m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
   }
-  else if(overlay == eTexOverlay_QuadOverdrawPass || overlay == eTexOverlay_QuadOverdrawDraw)
+  else if(overlay == DebugOverlay::QuadOverdrawPass || overlay == DebugOverlay::QuadOverdrawDraw)
   {
     SCOPED_TIMER("Quad Overdraw");
 
     vector<uint32_t> events = passEvents;
 
-    if(overlay == eTexOverlay_QuadOverdrawDraw)
+    if(overlay == DebugOverlay::QuadOverdrawDraw)
       events.clear();
 
     events.push_back(eventID);
 
     if(!events.empty())
     {
-      if(overlay == eTexOverlay_QuadOverdrawPass)
+      if(overlay == DebugOverlay::QuadOverdrawPass)
       {
         list->Close();
         m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
@@ -7954,10 +7952,10 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       SAFE_RELEASE(overdrawTex);
     }
 
-    if(overlay == eTexOverlay_QuadOverdrawPass)
+    if(overlay == DebugOverlay::QuadOverdrawPass)
       m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
   }
-  else if(overlay == eTexOverlay_Depth || overlay == eTexOverlay_Stencil)
+  else if(overlay == DebugOverlay::Depth || overlay == DebugOverlay::Stencil)
   {
     if(pipe && pipe->IsGraphics())
     {
@@ -7979,7 +7977,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
         psoDesc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
       }
 
-      if(overlay == eTexOverlay_Depth)
+      if(overlay == DebugOverlay::Depth)
       {
         psoDesc.DepthStencilState.StencilEnable = FALSE;
         psoDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
@@ -8208,10 +8206,10 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
 
   pixelData.OutputDisplayFormat = resType;
 
-  if(cfg.overlay == eTexOverlay_NaN)
+  if(cfg.overlay == DebugOverlay::NaN)
     pixelData.OutputDisplayFormat |= TEXDISPLAY_NANS;
 
-  if(cfg.overlay == eTexOverlay_Clipping)
+  if(cfg.overlay == DebugOverlay::Clipping)
     pixelData.OutputDisplayFormat |= TEXDISPLAY_CLIPPING;
 
   if(IsUIntFormat(resourceDesc.Format))

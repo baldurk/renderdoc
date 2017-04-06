@@ -64,7 +64,7 @@ PFN_eglGetProcAddress eglGetProcAddressProc = NULL;
 const GLHookSet &GetRealGLFunctionsEGL();
 GLPlatform &GetGLPlatformEGL();
 
-ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCDEBUG("Creating an OpenGL ES replay device");
 
@@ -96,7 +96,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
       RDCERR(
           "Couldn't find required function addresses, eglGetProcAddress eglCreateContext"
           "eglSwapBuffers (etc.)");
-      return eReplayCreate_APIInitFailed;
+      return ReplayStatus::APIInitFailed;
     }
   }
 
@@ -109,7 +109,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
   {
     auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
                                                    (RDCInitParams *)&initParams);
-    if(status != eReplayCreate_Success)
+    if(status != ReplayStatus::Succeeded)
       return status;
   }
 
@@ -123,7 +123,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
   if(dpy == NULL)
   {
     RDCERR("Couldn't open default X display");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 #endif
 
@@ -133,7 +133,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
   if(!eglDisplay)
   {
     RDCERR("Couldn't open default EGL display");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   int major, minor;
@@ -156,7 +156,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
   if(!eglChooseConfigProc(eglDisplay, configAttribs, &config, 1, &numConfigs))
   {
     RDCERR("Couldn't find a suitable EGL config");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   static const EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
@@ -172,7 +172,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
 #endif
     GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't create GL ES 3.x context - RenderDoc requires OpenGL ES 3.x availability");
-    return eReplayCreate_APIHardwareUnsupported;
+    return ReplayStatus::APIHardwareUnsupported;
   }
 
   static const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
@@ -186,7 +186,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     XCloseDisplay(dpy);
 #endif
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   EGLBoolean res = eglMakeCurrentProc(eglDisplay, pbuffer, pbuffer, ctx);
@@ -199,7 +199,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     XCloseDisplay(dpy);
 #endif
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   // TODO: add extesion check just like in the GL case.
@@ -214,7 +214,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     XCloseDisplay(dpy);
 #endif
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIHardwareUnsupported;
+    return ReplayStatus::APIHardwareUnsupported;
   }
 
   WrappedOpenGL *gl = new WrappedOpenGL(logfile, real, GetGLPlatformEGL());
@@ -224,7 +224,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
   if(gl->GetSerialiser()->HasError())
   {
     delete gl;
-    return eReplayCreate_FileIOFailed;
+    return ReplayStatus::FileIOFailed;
   }
 
   RDCLOG("Created OPEN GL ES replay device.");
@@ -237,5 +237,5 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
   replay->SetReplayData(data);
 
   *driver = (IReplayDriver *)replay;
-  return eReplayCreate_Success;
+  return ReplayStatus::Succeeded;
 }

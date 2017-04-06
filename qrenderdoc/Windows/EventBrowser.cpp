@@ -180,7 +180,7 @@ uint EventBrowser::AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<Fe
     {
       lastEID = draws[i].eventID;
 
-      if((draws[i].flags & eDraw_SetMarker) && i + 1 < draws.count)
+      if((draws[i].flags & DrawFlags::SetMarker) && i + 1 < draws.count)
         lastEID = draws[i + 1].eventID;
     }
 
@@ -262,7 +262,7 @@ void EventBrowser::on_timeDraws_clicked()
 {
   m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) {
 
-    uint32_t counters[] = {eCounter_EventGPUDuration};
+    GPUCounter counters[] = {GPUCounter::EventGPUDuration};
 
     rdctype::array<CounterResult> results;
     r->FetchCounters(counters, 1, &results);

@@ -51,7 +51,7 @@ enum struct FollowType
 struct Following
 {
   FollowType Type;
-  ShaderStageType Stage;
+  ShaderStage Stage;
   int index;
   int arrayEl;
 
@@ -59,7 +59,7 @@ struct Following
 
   Following();
 
-  Following(FollowType t, ShaderStageType s, int i, int a);
+  Following(FollowType t, ShaderStage s, int i, int a);
 
   bool operator==(const Following &o);
   bool operator!=(const Following &o);
@@ -67,7 +67,7 @@ struct Following
 
   int GetHighestMip(CaptureContext &ctx);
   int GetFirstArraySlice(CaptureContext &ctx);
-  FormatComponentType GetTypeHint(CaptureContext &ctx);
+  CompType GetTypeHint(CaptureContext &ctx);
 
   ResourceId GetResourceId(CaptureContext &ctx);
   BoundResource GetBoundResource(CaptureContext &ctx, int arrayIdx);
@@ -79,18 +79,18 @@ struct Following
   QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext &ctx);
 
   static QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext &ctx,
-                                                                          ShaderStageType stage);
+                                                                          ShaderStage stage);
 
   QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext &ctx);
 
   static QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext &ctx,
-                                                                         ShaderStageType stage);
+                                                                         ShaderStage stage);
 
   const ShaderReflection *GetReflection(CaptureContext &ctx);
-  static const ShaderReflection *GetReflection(CaptureContext &ctx, ShaderStageType stage);
+  static const ShaderReflection *GetReflection(CaptureContext &ctx, ShaderStage stage);
 
   const ShaderBindpointMapping &GetMapping(CaptureContext &ctx);
-  static const ShaderBindpointMapping &GetMapping(CaptureContext &ctx, ShaderStageType stage);
+  static const ShaderBindpointMapping &GetMapping(CaptureContext &ctx, ShaderStage stage);
 };
 
 struct TexSettings
@@ -103,7 +103,7 @@ struct TexSettings
     slice = 0;
     minrange = 0.0f;
     maxrange = 1.0f;
-    typeHint = eCompType_None;
+    typeHint = CompType::Typeless;
   }
 
   int displayType;    // RGBA, RGBM, Custom
@@ -112,7 +112,7 @@ struct TexSettings
   bool depth, stencil;
   int mip, slice;
   float minrange, maxrange;
-  FormatComponentType typeHint;
+  CompType typeHint;
 };
 
 class TextureViewer : public QFrame, public ILogViewerForm
@@ -213,7 +213,7 @@ private:
   void UI_UpdateTextureDetails();
   void UI_OnTextureSelectionChanged(bool newdraw);
 
-  void UI_SetHistogramRange(const FetchTexture *tex, FormatComponentType typeHint);
+  void UI_SetHistogramRange(const FetchTexture *tex, CompType typeHint);
 
   void UI_UpdateChannels();
 
@@ -223,11 +223,10 @@ private:
 
   ResourcePreview *UI_CreateThumbnail(ThumbnailStrip *strip);
   void UI_CreateThumbnails();
-  void InitResourcePreview(ResourcePreview *prev, ResourceId id, FormatComponentType typeHint,
-                           bool force, Following &follow, const QString &bindName,
-                           const QString &slotName);
+  void InitResourcePreview(ResourcePreview *prev, ResourceId id, CompType typeHint, bool force,
+                           Following &follow, const QString &bindName, const QString &slotName);
 
-  void InitStageResourcePreviews(ShaderStageType stage,
+  void InitStageResourcePreviews(ShaderStage stage,
                                  const rdctype::array<ShaderResource> &resourceDetails,
                                  const rdctype::array<BindpointMap> &mapping,
                                  QMap<BindpointMap, QVector<BoundResource>> &ResList,

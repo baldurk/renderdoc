@@ -189,7 +189,7 @@ public:
   }
 
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 FormatComponentType typeHint, float *minval, float *maxval)
+                 CompType typeHint, float *minval, float *maxval)
   {
     if(m_Proxy)
     {
@@ -204,7 +204,7 @@ public:
   }
 
   bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    FormatComponentType typeHint, float minval, float maxval, bool channels[4],
+                    CompType typeHint, float minval, float maxval, bool channels[4],
                     vector<uint32_t> &histogram)
   {
     if(m_Proxy)
@@ -230,8 +230,8 @@ public:
 
       // due to OpenGL having origin bottom-left compared to the rest of the world,
       // we need to flip going in or out of GL.
-      if((m_APIProps.pipelineType == eGraphicsAPI_OpenGL) !=
-         (m_APIProps.localRenderer == eGraphicsAPI_OpenGL))
+      if((m_APIProps.pipelineType == GraphicsAPI::OpenGL) !=
+         (m_APIProps.localRenderer == GraphicsAPI::OpenGL))
       {
         cfg.FlipY = !cfg.FlipY;
       }
@@ -243,7 +243,7 @@ public:
   }
 
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, FormatComponentType typeHint, float pixel[4])
+                 uint32_t sample, CompType typeHint, float pixel[4])
   {
     if(m_Proxy)
     {
@@ -257,8 +257,8 @@ public:
       // we need to flip going in or out of GL.
       // This is a bit more annoying here as we don't have a bool to flip, we need to
       // manually adjust y
-      if((m_APIProps.pipelineType == eGraphicsAPI_OpenGL) !=
-         (m_APIProps.localRenderer == eGraphicsAPI_OpenGL))
+      if((m_APIProps.pipelineType == GraphicsAPI::OpenGL) !=
+         (m_APIProps.localRenderer == GraphicsAPI::OpenGL))
       {
         FetchTexture tex = m_Proxy->GetTexture(texture);
         uint32_t mipHeight = RDCMAX(1U, tex.height >> mip);
@@ -343,8 +343,8 @@ public:
     return ~0U;
   }
 
-  void BuildCustomShader(string source, string entry, const uint32_t compileFlags,
-                         ShaderStageType type, ResourceId *id, string *errors)
+  void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
+                         ResourceId *id, string *errors)
   {
     if(m_Proxy)
     {
@@ -366,7 +366,7 @@ public:
   }
 
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
-                               uint32_t sampleIdx, FormatComponentType typeHint)
+                               uint32_t sampleIdx, CompType typeHint)
   {
     if(m_Proxy)
     {
@@ -412,9 +412,9 @@ public:
 
   ResourceId GetLiveID(ResourceId id);
 
-  vector<uint32_t> EnumerateCounters();
-  void DescribeCounter(uint32_t counterID, CounterDescription &desc);
-  vector<CounterResult> FetchCounters(const vector<uint32_t> &counterID);
+  vector<GPUCounter> EnumerateCounters();
+  void DescribeCounter(GPUCounter counterID, CounterDescription &desc);
+  vector<CounterResult> FetchCounters(const vector<GPUCounter> &counterID);
 
   void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
                             vector<ShaderVariable> &outvars, const vector<byte> &data);
@@ -427,9 +427,8 @@ public:
   void InitPostVSBuffers(const vector<uint32_t> &passEvents);
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
 
-  ResourceId RenderOverlay(ResourceId texid, FormatComponentType typeHint,
-                           TextureDisplayOverlay overlay, uint32_t eventID,
-                           const vector<uint32_t> &passEvents);
+  ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
+                           uint32_t eventID, const vector<uint32_t> &passEvents);
 
   ShaderReflection *GetShader(ResourceId shader, string entryPoint);
 
@@ -443,15 +442,15 @@ public:
 
   vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x,
                                          uint32_t y, uint32_t slice, uint32_t mip,
-                                         uint32_t sampleIdx, FormatComponentType typeHint);
+                                         uint32_t sampleIdx, CompType typeHint);
   ShaderDebugTrace DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx,
                                uint32_t instOffset, uint32_t vertOffset);
   ShaderDebugTrace DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample,
                               uint32_t primitive);
   ShaderDebugTrace DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]);
 
-  void BuildTargetShader(string source, string entry, const uint32_t compileFlags,
-                         ShaderStageType type, ResourceId *id, string *errors);
+  void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
+                         ResourceId *id, string *errors);
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
 

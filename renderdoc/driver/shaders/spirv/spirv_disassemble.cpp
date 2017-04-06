@@ -3505,11 +3505,11 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
   if(type->type == SPVTypeData::eVector || type->type == SPVTypeData::eMatrix)
   {
     if(type->baseType->type == SPVTypeData::eFloat)
-      outConst.type.descriptor.type = eVar_Float;
+      outConst.type.descriptor.type = VarType::Float;
     else if(type->baseType->type == SPVTypeData::eUInt || type->baseType->type == SPVTypeData::eBool)
-      outConst.type.descriptor.type = eVar_UInt;
+      outConst.type.descriptor.type = VarType::UInt;
     else if(type->baseType->type == SPVTypeData::eSInt)
-      outConst.type.descriptor.type = eVar_Int;
+      outConst.type.descriptor.type = VarType::Int;
     else
       RDCERR("Unexpected base type of constant variable %u", type->baseType->type);
 
@@ -3540,11 +3540,11 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
   else if(type->IsScalar())
   {
     if(type->type == SPVTypeData::eFloat)
-      outConst.type.descriptor.type = eVar_Float;
+      outConst.type.descriptor.type = VarType::Float;
     else if(type->type == SPVTypeData::eUInt || type->type == SPVTypeData::eBool)
-      outConst.type.descriptor.type = eVar_UInt;
+      outConst.type.descriptor.type = VarType::UInt;
     else if(type->type == SPVTypeData::eSInt)
-      outConst.type.descriptor.type = eVar_Int;
+      outConst.type.descriptor.type = VarType::Int;
     else
       RDCERR("Unexpected base type of constant variable %u", type->type);
 
@@ -3556,7 +3556,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
   }
   else
   {
-    outConst.type.descriptor.type = eVar_Float;
+    outConst.type.descriptor.type = VarType::Float;
     outConst.type.descriptor.rowMajorStorage = false;
     outConst.type.descriptor.rows = 0;
     outConst.type.descriptor.cols = 0;
@@ -3602,7 +3602,7 @@ uint32_t CalculateMinimumByteSize(const rdctype::array<ShaderConstant> &variable
     RDCASSERT(last.type.descriptor.elements <= 1);
 
     uint32_t basicTypeSize = 4;
-    if(last.type.descriptor.type == eVar_Double)
+    if(last.type.descriptor.type == VarType::Double)
       basicTypeSize = 8;
 
     uint32_t rows = last.type.descriptor.rows;
@@ -3636,37 +3636,37 @@ uint32_t CalculateMinimumByteSize(const rdctype::array<ShaderConstant> &variable
   }
 }
 
-SystemAttribute BuiltInToSystemAttribute(const spv::BuiltIn el)
+ShaderBuiltin BuiltInToSystemAttribute(const spv::BuiltIn el)
 {
   // not complete, might need to expand system attribute list
 
   switch(el)
   {
-    case spv::BuiltInPosition: return eAttr_Position;
-    case spv::BuiltInPointSize: return eAttr_PointSize;
-    case spv::BuiltInClipDistance: return eAttr_ClipDistance;
-    case spv::BuiltInCullDistance: return eAttr_CullDistance;
-    case spv::BuiltInVertexId: return eAttr_VertexIndex;
-    case spv::BuiltInInstanceId: return eAttr_InstanceIndex;
-    case spv::BuiltInPrimitiveId: return eAttr_PrimitiveIndex;
-    case spv::BuiltInInvocationId: return eAttr_InvocationIndex;
-    case spv::BuiltInLayer: return eAttr_RTIndex;
-    case spv::BuiltInViewportIndex: return eAttr_ViewportIndex;
-    case spv::BuiltInTessLevelOuter: return eAttr_OuterTessFactor;
-    case spv::BuiltInTessLevelInner: return eAttr_InsideTessFactor;
-    case spv::BuiltInPatchVertices: return eAttr_PatchNumVertices;
-    case spv::BuiltInFrontFacing: return eAttr_IsFrontFace;
-    case spv::BuiltInSampleId: return eAttr_MSAASampleIndex;
-    case spv::BuiltInSamplePosition: return eAttr_MSAASamplePosition;
-    case spv::BuiltInSampleMask: return eAttr_MSAACoverage;
+    case spv::BuiltInPosition: return ShaderBuiltin::Position;
+    case spv::BuiltInPointSize: return ShaderBuiltin::PointSize;
+    case spv::BuiltInClipDistance: return ShaderBuiltin::ClipDistance;
+    case spv::BuiltInCullDistance: return ShaderBuiltin::CullDistance;
+    case spv::BuiltInVertexId: return ShaderBuiltin::VertexIndex;
+    case spv::BuiltInInstanceId: return ShaderBuiltin::InstanceIndex;
+    case spv::BuiltInPrimitiveId: return ShaderBuiltin::PrimitiveIndex;
+    case spv::BuiltInInvocationId: return ShaderBuiltin::InvocationIndex;
+    case spv::BuiltInLayer: return ShaderBuiltin::RTIndex;
+    case spv::BuiltInViewportIndex: return ShaderBuiltin::ViewportIndex;
+    case spv::BuiltInTessLevelOuter: return ShaderBuiltin::OuterTessFactor;
+    case spv::BuiltInTessLevelInner: return ShaderBuiltin::InsideTessFactor;
+    case spv::BuiltInPatchVertices: return ShaderBuiltin::PatchNumVertices;
+    case spv::BuiltInFrontFacing: return ShaderBuiltin::IsFrontFace;
+    case spv::BuiltInSampleId: return ShaderBuiltin::MSAASampleIndex;
+    case spv::BuiltInSamplePosition: return ShaderBuiltin::MSAASamplePosition;
+    case spv::BuiltInSampleMask: return ShaderBuiltin::MSAACoverage;
     case spv::BuiltInFragDepth:
-      return eAttr_DepthOutput;
-    // case spv::BuiltInVertexIndex:                      return eAttr_Vertex0Index;
-    // case spv::BuiltInInstanceIndex:                    return eAttr_Instance0Index;
+      return ShaderBuiltin::DepthOutput;
+    // case spv::BuiltInVertexIndex:                      return ShaderBuiltin::Vertex0Index;
+    // case spv::BuiltInInstanceIndex:                    return ShaderBuiltin::Instance0Index;
     default: break;
   }
 
-  return eAttr_None;
+  return ShaderBuiltin::Undefined;
 }
 
 template <typename T>
@@ -3696,7 +3696,7 @@ struct bindpair
 typedef bindpair<ConstantBlock> cblockpair;
 typedef bindpair<ShaderResource> shaderrespair;
 
-void AddSignatureParameter(ShaderStageType stage, uint32_t id, uint32_t childIdx, string varName,
+void AddSignatureParameter(ShaderStage stage, uint32_t id, uint32_t childIdx, string varName,
                            SPVTypeData *type, const vector<SPVDecoration> &decorations,
                            vector<SigParameter> &sigarray)
 {
@@ -3726,8 +3726,8 @@ void AddSignatureParameter(ShaderStageType stage, uint32_t id, uint32_t childIdx
   }
 
   // fragment shader outputs are implicitly colour outputs
-  if(stage == eShaderStage_Fragment && type->storage == spv::StorageClassOutput)
-    sig.systemValue = eAttr_ColourOutput;
+  if(stage == ShaderStage::Fragment && type->storage == spv::StorageClassOutput)
+    sig.systemValue = ShaderBuiltin::ColourOutput;
 
   if(type->type == SPVTypeData::ePointer)
     type = type->baseType;
@@ -3801,9 +3801,9 @@ void AddSignatureParameter(ShaderStageType stage, uint32_t id, uint32_t childIdx
   switch(type->baseType ? type->baseType->type : type->type)
   {
     case SPVTypeData::eBool:
-    case SPVTypeData::eUInt: sig.compType = eCompType_UInt; break;
-    case SPVTypeData::eSInt: sig.compType = eCompType_SInt; break;
-    case SPVTypeData::eFloat: sig.compType = eCompType_Float; break;
+    case SPVTypeData::eUInt: sig.compType = CompType::UInt; break;
+    case SPVTypeData::eSInt: sig.compType = CompType::SInt; break;
+    case SPVTypeData::eFloat: sig.compType = CompType::Float; break;
     default:
       RDCERR("Unexpected base type of input/output signature %u",
              type->baseType ? type->baseType->type : type->type);
@@ -3849,7 +3849,7 @@ void AddSignatureParameter(ShaderStageType stage, uint32_t id, uint32_t childIdx
   }
 }
 
-void SPVModule::MakeReflection(ShaderStageType stage, const string &entryPoint,
+void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
                                ShaderReflection *reflection, ShaderBindpointMapping *mapping)
 {
   vector<SigParameter> inputs;
@@ -3998,7 +3998,7 @@ void SPVModule::MakeReflection(ShaderStageType stage, const string &entryPoint,
 
               if(eliminate)
               {
-                SystemAttribute attr = BuiltInToSystemAttribute(checkBuiltin);
+                ShaderBuiltin attr = BuiltInToSystemAttribute(checkBuiltin);
                 // find this builtin in the array, and remove
                 for(auto it = sigarray->begin(); it != sigarray->end(); ++it)
                 {
@@ -4078,13 +4078,13 @@ void SPVModule::MakeReflection(ShaderStageType stage, const string &entryPoint,
           res.IsSRV = false;
           res.IsTexture = false;
           res.name = cblock.name;
-          res.resType = eResType_Buffer;
+          res.resType = TextureDim::Buffer;
 
           res.variableType.descriptor.cols = 0;
           res.variableType.descriptor.rows = 0;
           res.variableType.descriptor.rowMajorStorage = false;
           res.variableType.descriptor.rows = 0;
-          res.variableType.descriptor.type = eVar_Float;
+          res.variableType.descriptor.type = VarType::Float;
           res.variableType.descriptor.name = type->GetName();
 
           MakeConstantBlockVariables(type, res.variableType.members);
@@ -4131,27 +4131,27 @@ void SPVModule::MakeReflection(ShaderStageType stage, const string &entryPoint,
         res.name = inst->str.empty() ? StringFormat::Fmt("res%u", inst->id) : inst->str;
 
         if(type->multisampled)
-          res.resType = type->arrayed ? eResType_Texture2DMSArray : eResType_Texture2DMS;
+          res.resType = type->arrayed ? TextureDim::Texture2DMSArray : TextureDim::Texture2DMS;
         else if(type->texdim == spv::Dim1D)
-          res.resType = type->arrayed ? eResType_Texture1DArray : eResType_Texture1D;
+          res.resType = type->arrayed ? TextureDim::Texture1DArray : TextureDim::Texture1D;
         else if(type->texdim == spv::Dim2D)
-          res.resType = type->arrayed ? eResType_Texture2DArray : eResType_Texture2D;
+          res.resType = type->arrayed ? TextureDim::Texture2DArray : TextureDim::Texture2D;
         else if(type->texdim == spv::DimCube)
-          res.resType = type->arrayed ? eResType_TextureCubeArray : eResType_TextureCube;
+          res.resType = type->arrayed ? TextureDim::TextureCubeArray : TextureDim::TextureCube;
         else if(type->texdim == spv::Dim3D)
-          res.resType = eResType_Texture3D;
+          res.resType = TextureDim::Texture3D;
         else if(type->texdim == spv::DimRect)
-          res.resType = eResType_TextureRect;
+          res.resType = TextureDim::TextureRect;
         else if(type->texdim == spv::DimBuffer)
-          res.resType = eResType_Buffer;
+          res.resType = TextureDim::Buffer;
 
         res.IsSampler =
             type->type == SPVTypeData::eSampledImage || type->type == SPVTypeData::eSampler;
-        res.IsTexture = res.resType != eResType_Buffer && type->type != SPVTypeData::eSampler;
+        res.IsTexture = res.resType != TextureDim::Buffer && type->type != SPVTypeData::eSampler;
 
         if(type->type == SPVTypeData::eSampler)
         {
-          res.resType = eResType_None;
+          res.resType = TextureDim::Unknown;
           res.IsSRV = false;
         }
 
@@ -4160,19 +4160,19 @@ void SPVModule::MakeReflection(ShaderStageType stage, const string &entryPoint,
         SPVTypeData *sampledType = type->baseType;
         if(type->type == SPVTypeData::eSampler)
         {
-          res.resType = eResType_None;
+          res.resType = TextureDim::Unknown;
         }
         else if(type->texdim == spv::DimSubpassData)
         {
-          res.resType = eResType_Texture2D;
+          res.resType = TextureDim::Texture2D;
           res.IsSRV = true;
 
           if(sampledType->type == SPVTypeData::eFloat)
-            res.variableType.descriptor.type = eVar_Float;
+            res.variableType.descriptor.type = VarType::Float;
           else if(sampledType->type == SPVTypeData::eUInt)
-            res.variableType.descriptor.type = eVar_UInt;
+            res.variableType.descriptor.type = VarType::UInt;
           else if(sampledType->type == SPVTypeData::eSInt)
-            res.variableType.descriptor.type = eVar_Int;
+            res.variableType.descriptor.type = VarType::Int;
           else
             RDCERR("Unexpected base type of resource %u", sampledType->type);
         }
@@ -4191,11 +4191,11 @@ void SPVModule::MakeReflection(ShaderStageType stage, const string &entryPoint,
           res.IsSRV = !isrw;
 
           if(sampledType->type == SPVTypeData::eFloat)
-            res.variableType.descriptor.type = eVar_Float;
+            res.variableType.descriptor.type = VarType::Float;
           else if(sampledType->type == SPVTypeData::eUInt)
-            res.variableType.descriptor.type = eVar_UInt;
+            res.variableType.descriptor.type = VarType::UInt;
           else if(sampledType->type == SPVTypeData::eSInt)
-            res.variableType.descriptor.type = eVar_Int;
+            res.variableType.descriptor.type = VarType::Int;
           else
             RDCERR("Unexpected base type of resource %u", sampledType->type);
         }
@@ -4326,9 +4326,9 @@ void SPVModule::MakeReflection(ShaderStageType stage, const string &entryPoint,
 
         return strcmp(a.varName.elems, b.varName.elems) < 0;
       }
-      if(a.systemValue == eAttr_None)
+      if(a.systemValue == ShaderBuiltin::Undefined)
         return false;
-      if(b.systemValue == eAttr_None)
+      if(b.systemValue == ShaderBuiltin::Undefined)
         return true;
 
       return a.systemValue < b.systemValue;
@@ -4341,7 +4341,7 @@ void SPVModule::MakeReflection(ShaderStageType stage, const string &entryPoint,
   size_t numInputs = 16;
 
   for(size_t i = 0; i < inputs.size(); i++)
-    if(inputs[i].systemValue == eAttr_None)
+    if(inputs[i].systemValue == ShaderBuiltin::Undefined)
       numInputs = RDCMAX(numInputs, (size_t)inputs[i].regIndex + 1);
 
   create_array_uninit(mapping->InputAttributes, numInputs);
@@ -4349,7 +4349,7 @@ void SPVModule::MakeReflection(ShaderStageType stage, const string &entryPoint,
     mapping->InputAttributes[i] = -1;
 
   for(size_t i = 0; i < inputs.size(); i++)
-    if(inputs[i].systemValue == eAttr_None)
+    if(inputs[i].systemValue == ShaderBuiltin::Undefined)
       mapping->InputAttributes[inputs[i].regIndex] = (int32_t)i;
 
   reflection->InputSig = inputs;

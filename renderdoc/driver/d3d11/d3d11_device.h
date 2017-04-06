@@ -54,7 +54,7 @@ enum TextureDisplayType
 struct D3D11InitParams : public RDCInitParams
 {
   D3D11InitParams();
-  ReplayCreateStatus Serialise();
+  ReplayStatus Serialise();
 
   D3D_DRIVER_TYPE DriverType;
   UINT Flags;
@@ -443,8 +443,7 @@ public:
 
   vector<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
-  void AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src,
-                       std::string d);
+  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
   const vector<D3D11_INPUT_ELEMENT_DESC> &GetLayoutDesc(ID3D11InputLayout *layout)
   {
     return m_LayoutDescs[layout];

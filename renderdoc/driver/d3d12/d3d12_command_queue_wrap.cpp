@@ -101,17 +101,17 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       if(m_State >= WRITING)
         msgDesc = debugMessages[i].description.elems;
 
-      SERIALISE_ELEMENT(uint32_t, Category, debugMessages[i].category);
-      SERIALISE_ELEMENT(uint32_t, Severity, debugMessages[i].severity);
+      SERIALISE_ELEMENT(MessageCategory, Category, debugMessages[i].category);
+      SERIALISE_ELEMENT(MessageSeverity, Severity, debugMessages[i].severity);
       SERIALISE_ELEMENT(uint32_t, ID, debugMessages[i].messageID);
       SERIALISE_ELEMENT(string, Description, msgDesc);
 
       if(m_State == READING)
       {
         DebugMessage msg;
-        msg.source = eDbgSource_API;
-        msg.category = (DebugMessageCategory)Category;
-        msg.severity = (DebugMessageSeverity)Severity;
+        msg.source = MessageSource::API;
+        msg.category = Category;
+        msg.severity = Severity;
         msg.messageID = ID;
         msg.description = Description;
 
@@ -185,7 +185,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       // add a fake marker
       FetchDrawcall draw;
       draw.name = name;
-      draw.flags = eDraw_PassBoundary | eDraw_BeginPass;
+      draw.flags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
       m_Cmd.AddEvent(name);
       m_Cmd.AddDrawcall(draw, true);
       m_Cmd.m_RootEventID++;
@@ -222,7 +222,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       name = StringFormat::Fmt("=> %s[%u]: Close(%s)", basename.c_str(), c,
                                ToStr::Get(cmdIds[c]).c_str());
       draw.name = name;
-      draw.flags = eDraw_PassBoundary | eDraw_EndPass;
+      draw.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
       m_Cmd.AddEvent(name);
       m_Cmd.AddDrawcall(draw, true);
       m_Cmd.m_RootEventID++;

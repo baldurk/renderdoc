@@ -40,8 +40,8 @@ struct VulkanPipelineState
       struct DescriptorBinding
       {
         uint32_t descriptorCount;
-        ShaderBindType type;
-        ShaderStageBits stageFlags;
+        BindType type;
+        ShaderStageMask stageFlags;
 
         struct BindingElement
         {
@@ -60,10 +60,10 @@ struct VulkanPipelineState
                 borderEnable(false),
                 unnormalized(false)
           {
-            swizzle[0] = eSwizzle_Red;
-            swizzle[1] = eSwizzle_Green;
-            swizzle[2] = eSwizzle_Blue;
-            swizzle[3] = eSwizzle_Alpha;
+            swizzle[0] = TextureSwizzle::Red;
+            swizzle[1] = TextureSwizzle::Green;
+            swizzle[2] = TextureSwizzle::Blue;
+            swizzle[3] = TextureSwizzle::Alpha;
           }
 
           ResourceId view;    // bufferview, imageview, attachmentview
@@ -151,10 +151,10 @@ struct VulkanPipelineState
     rdctype::array<VertexBuffer> vbuffers;
   } VI;
 
-  struct ShaderStage
+  struct Shader
   {
-    ShaderStage() : Shader(), customName(false), ShaderDetails(NULL), stage(eShaderStage_Vertex) {}
-    ResourceId Shader;
+    Shader() : Object(), customName(false), ShaderDetails(NULL), stage(ShaderStage::Vertex) {}
+    ResourceId Object;
     rdctype::str entryPoint;
 
     rdctype::str ShaderName;
@@ -166,7 +166,7 @@ struct VulkanPipelineState
     // and the descriptor set and binding that they use
     ShaderBindpointMapping BindpointMapping;
 
-    ShaderStageType stage;
+    ShaderStage stage;
 
     struct SpecInfo
     {
@@ -209,8 +209,8 @@ struct VulkanPipelineState
         : depthClampEnable(false),
           rasterizerDiscardEnable(false),
           FrontCCW(false),
-          FillMode(eFill_Solid),
-          CullMode(eCull_None),
+          fillMode(FillMode::Solid),
+          cullMode(CullMode::NoCull),
           depthBias(0),
           depthBiasClamp(0),
           slopeScaledDepthBias(0),
@@ -219,8 +219,8 @@ struct VulkanPipelineState
     }
 
     bool32 depthClampEnable, rasterizerDiscardEnable, FrontCCW;
-    TriangleFillMode FillMode;
-    TriangleCullMode CullMode;
+    FillMode fillMode;
+    CullMode cullMode;
 
     // dynamic
     float depthBias, depthBiasClamp, slopeScaledDepthBias, lineWidth;
@@ -322,10 +322,10 @@ struct VulkanPipelineState
       {
         Attachment() : baseMip(0), baseLayer(0), numMip(1), numLayer(1)
         {
-          swizzle[0] = eSwizzle_Red;
-          swizzle[1] = eSwizzle_Green;
-          swizzle[2] = eSwizzle_Blue;
-          swizzle[3] = eSwizzle_Alpha;
+          swizzle[0] = TextureSwizzle::Red;
+          swizzle[1] = TextureSwizzle::Green;
+          swizzle[2] = TextureSwizzle::Blue;
+          swizzle[3] = TextureSwizzle::Alpha;
         }
         ResourceId view;
         ResourceId img;

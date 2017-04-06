@@ -42,133 +42,133 @@ void D3D12Replay::PostDeviceShutdownCounters()
 {
 }
 
-vector<uint32_t> D3D12Replay::EnumerateCounters()
+vector<GPUCounter> D3D12Replay::EnumerateCounters()
 {
-  vector<uint32_t> ret;
+  vector<GPUCounter> ret;
 
-  ret.push_back(eCounter_EventGPUDuration);
-  ret.push_back(eCounter_InputVerticesRead);
-  ret.push_back(eCounter_IAPrimitives);
-  ret.push_back(eCounter_GSPrimitives);
-  ret.push_back(eCounter_RasterizerInvocations);
-  ret.push_back(eCounter_RasterizedPrimitives);
-  ret.push_back(eCounter_SamplesWritten);
-  ret.push_back(eCounter_VSInvocations);
-  ret.push_back(eCounter_HSInvocations);
-  ret.push_back(eCounter_DSInvocations);
-  ret.push_back(eCounter_GSInvocations);
-  ret.push_back(eCounter_PSInvocations);
-  ret.push_back(eCounter_CSInvocations);
+  ret.push_back(GPUCounter::EventGPUDuration);
+  ret.push_back(GPUCounter::InputVerticesRead);
+  ret.push_back(GPUCounter::IAPrimitives);
+  ret.push_back(GPUCounter::GSPrimitives);
+  ret.push_back(GPUCounter::RasterizerInvocations);
+  ret.push_back(GPUCounter::RasterizedPrimitives);
+  ret.push_back(GPUCounter::SamplesWritten);
+  ret.push_back(GPUCounter::VSInvocations);
+  ret.push_back(GPUCounter::HSInvocations);
+  ret.push_back(GPUCounter::DSInvocations);
+  ret.push_back(GPUCounter::GSInvocations);
+  ret.push_back(GPUCounter::PSInvocations);
+  ret.push_back(GPUCounter::CSInvocations);
 
   return ret;
 }
 
-void D3D12Replay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
+void D3D12Replay::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
 {
   desc.counterID = counterID;
 
   switch(counterID)
   {
-    case eCounter_EventGPUDuration:
+    case GPUCounter::EventGPUDuration:
       desc.name = "GPU Duration";
       desc.description =
           "Time taken for this event on the GPU, as measured by delta between two GPU timestamps.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_Double;
-      desc.units = eUnits_Seconds;
+      desc.resultType = CompType::Double;
+      desc.unit = CounterUnit::Seconds;
       break;
-    case eCounter_InputVerticesRead:
+    case GPUCounter::InputVerticesRead:
       desc.name = "Input Vertices Read";
       desc.description = "Number of vertices read by input assembler.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_IAPrimitives:
+    case GPUCounter::IAPrimitives:
       desc.name = "Input Primitives";
       desc.description = "Number of primitives read by the input assembler.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_GSPrimitives:
+    case GPUCounter::GSPrimitives:
       desc.name = "GS Primitives";
       desc.description = "Number of primitives output by a geometry shader.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_RasterizerInvocations:
+    case GPUCounter::RasterizerInvocations:
       desc.name = "Rasterizer Invocations";
       desc.description = "Number of primitives that were sent to the rasterizer.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_RasterizedPrimitives:
+    case GPUCounter::RasterizedPrimitives:
       desc.name = "Rasterized Primitives";
       desc.description = "Number of primitives that were rendered.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_SamplesWritten:
+    case GPUCounter::SamplesWritten:
       desc.name = "Samples Written";
       desc.description = "Number of samples that passed depth/stencil test.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_VSInvocations:
+    case GPUCounter::VSInvocations:
       desc.name = "VS Invocations";
       desc.description = "Number of times a vertex shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_GSInvocations:
+    case GPUCounter::GSInvocations:
       desc.name = "GS Invocations";
       desc.description = "Number of times a geometry shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_HSInvocations:
+    case GPUCounter::HSInvocations:
       desc.name = "HS Invocations";
       desc.description = "Number of times a hull shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_DSInvocations:
+    case GPUCounter::DSInvocations:
       desc.name = "DS Invocations";
       desc.description =
           "Number of times a domain shader (or tesselation evaluation shader in OpenGL) was "
           "invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_PSInvocations:
+    case GPUCounter::PSInvocations:
       desc.name = "PS Invocations";
       desc.description = "Number of times a pixel shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_CSInvocations:
+    case GPUCounter::CSInvocations:
       desc.name = "CS Invocations";
       desc.description = "Number of times a compute shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
     default:
       desc.name = "Unknown";
       desc.description = "Unknown counter ID";
       desc.resultByteWidth = 0;
-      desc.resultCompType = eCompType_None;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::Typeless;
+      desc.unit = CounterUnit::Absolute;
       break;
   }
 }
@@ -243,7 +243,7 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
   vector<pair<uint32_t, uint32_t> > m_AliasEvents;
 };
 
-vector<CounterResult> D3D12Replay::FetchCounters(const vector<uint32_t> &counters)
+vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &counters)
 {
   uint32_t maxEID = m_pDevice->GetQueue()->GetMaxEID();
 
@@ -412,24 +412,24 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<uint32_t> &counter
 
       switch(counters[c])
       {
-        case eCounter_EventGPUDuration:
+        case GPUCounter::EventGPUDuration:
         {
           uint64_t delta = timestamps[i * 2 + 1] - timestamps[i * 2 + 0];
           result.value.d = double(delta) / double(freq);
         }
         break;
-        case eCounter_InputVerticesRead: result.value.u64 = pipeStats.IAVertices; break;
-        case eCounter_IAPrimitives: result.value.u64 = pipeStats.IAPrimitives; break;
-        case eCounter_GSPrimitives: result.value.u64 = pipeStats.GSPrimitives; break;
-        case eCounter_RasterizerInvocations: result.value.u64 = pipeStats.CInvocations; break;
-        case eCounter_RasterizedPrimitives: result.value.u64 = pipeStats.CPrimitives; break;
-        case eCounter_SamplesWritten: result.value.u64 = occl; break;
-        case eCounter_VSInvocations: result.value.u64 = pipeStats.VSInvocations; break;
-        case eCounter_HSInvocations: result.value.u64 = pipeStats.HSInvocations; break;
-        case eCounter_DSInvocations: result.value.u64 = pipeStats.DSInvocations; break;
-        case eCounter_GSInvocations: result.value.u64 = pipeStats.GSInvocations; break;
-        case eCounter_PSInvocations: result.value.u64 = pipeStats.PSInvocations; break;
-        case eCounter_CSInvocations: result.value.u64 = pipeStats.CSInvocations; break;
+        case GPUCounter::InputVerticesRead: result.value.u64 = pipeStats.IAVertices; break;
+        case GPUCounter::IAPrimitives: result.value.u64 = pipeStats.IAPrimitives; break;
+        case GPUCounter::GSPrimitives: result.value.u64 = pipeStats.GSPrimitives; break;
+        case GPUCounter::RasterizerInvocations: result.value.u64 = pipeStats.CInvocations; break;
+        case GPUCounter::RasterizedPrimitives: result.value.u64 = pipeStats.CPrimitives; break;
+        case GPUCounter::SamplesWritten: result.value.u64 = occl; break;
+        case GPUCounter::VSInvocations: result.value.u64 = pipeStats.VSInvocations; break;
+        case GPUCounter::HSInvocations: result.value.u64 = pipeStats.HSInvocations; break;
+        case GPUCounter::DSInvocations: result.value.u64 = pipeStats.DSInvocations; break;
+        case GPUCounter::GSInvocations: result.value.u64 = pipeStats.GSInvocations; break;
+        case GPUCounter::PSInvocations: result.value.u64 = pipeStats.PSInvocations; break;
+        case GPUCounter::CSInvocations: result.value.u64 = pipeStats.CSInvocations; break;
       }
       ret.push_back(result);
     }

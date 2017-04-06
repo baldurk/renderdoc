@@ -58,7 +58,7 @@ public:
   bool SaveShaderFile(const ShaderReflection *shader);
   bool PrepareShaderEditing(const ShaderReflection *shaderDetails, QString &entryFunc,
                             QStringMap &files, QString &mainfile);
-  void EditShader(ShaderStageType shaderType, ResourceId id, const ShaderReflection *shaderDetails,
+  void EditShader(ShaderStage shaderType, ResourceId id, const ShaderReflection *shaderDetails,
                   const QString &entryFunc, const QStringMap &files, const QString &mainfile);
 
 private:

@@ -37,20 +37,20 @@ struct BoundResource
     Id = ResourceId();
     HighestMip = -1;
     FirstSlice = -1;
-    typeHint = eCompType_None;
+    typeHint = CompType::Typeless;
   }
   BoundResource(ResourceId id)
   {
     Id = id;
     HighestMip = -1;
     FirstSlice = -1;
-    typeHint = eCompType_None;
+    typeHint = CompType::Typeless;
   }
 
   ResourceId Id;
   int HighestMip;
   int FirstSlice;
-  FormatComponentType typeHint;
+  CompType typeHint;
 };
 
 struct BoundVBuffer
@@ -91,7 +91,7 @@ public:
     m_Vulkan = vk;
   }
 
-  GraphicsAPI DefaultType = eGraphicsAPI_D3D11;
+  GraphicsAPI DefaultType = GraphicsAPI::D3D11;
 
   bool LogLoaded()
   {
@@ -100,22 +100,22 @@ public:
 
   bool IsLogD3D11()
   {
-    return LogLoaded() && m_APIProps.pipelineType == eGraphicsAPI_D3D11 && m_D3D11 != NULL;
+    return LogLoaded() && m_APIProps.pipelineType == GraphicsAPI::D3D11 && m_D3D11 != NULL;
   }
 
   bool IsLogD3D12()
   {
-    return LogLoaded() && m_APIProps.pipelineType == eGraphicsAPI_D3D12 && m_D3D12 != NULL;
+    return LogLoaded() && m_APIProps.pipelineType == GraphicsAPI::D3D12 && m_D3D12 != NULL;
   }
 
   bool IsLogGL()
   {
-    return LogLoaded() && m_APIProps.pipelineType == eGraphicsAPI_OpenGL && m_GL != NULL;
+    return LogLoaded() && m_APIProps.pipelineType == GraphicsAPI::OpenGL && m_GL != NULL;
   }
 
   bool IsLogVK()
   {
-    return LogLoaded() && m_APIProps.pipelineType == eGraphicsAPI_Vulkan && m_Vulkan != NULL;
+    return LogLoaded() && m_APIProps.pipelineType == GraphicsAPI::Vulkan && m_Vulkan != NULL;
   }
 
   // add a bunch of generic properties that people can check to save having to see which pipeline
@@ -126,16 +126,16 @@ public:
     if(LogLoaded())
     {
       if(IsLogD3D11())
-        return m_D3D11 != NULL && m_D3D11->m_HS.Shader != ResourceId();
+        return m_D3D11 != NULL && m_D3D11->m_HS.Object != ResourceId();
 
       if(IsLogD3D12())
-        return m_D3D12 != NULL && m_D3D12->m_HS.Shader != ResourceId();
+        return m_D3D12 != NULL && m_D3D12->m_HS.Object != ResourceId();
 
       if(IsLogGL())
-        return m_GL != NULL && m_GL->m_TES.Shader != ResourceId();
+        return m_GL != NULL && m_GL->m_TES.Object != ResourceId();
 
       if(IsLogVK())
-        return m_Vulkan != NULL && m_Vulkan->m_TES.Shader != ResourceId();
+        return m_Vulkan != NULL && m_Vulkan->m_TES.Object != ResourceId();
     }
 
     return false;
@@ -149,24 +149,24 @@ public:
   // shaders to dump data might have these alignment requirements
   bool HasAlignedPostVSData() { return LogLoaded() && IsLogVK(); }
   QString GetImageLayout(ResourceId id);
-  QString Abbrev(ShaderStageType stage);
+  QString Abbrev(ShaderStage stage);
   QString OutputAbbrev();
 
   Viewport GetViewport(int index);
-  const ShaderBindpointMapping &GetBindpointMapping(ShaderStageType stage);
-  const ShaderReflection *GetShaderReflection(ShaderStageType stage);
-  QString GetShaderEntryPoint(ShaderStageType stage);
-  ResourceId GetShader(ShaderStageType stage);
-  QString GetShaderName(ShaderStageType stage);
+  const ShaderBindpointMapping &GetBindpointMapping(ShaderStage stage);
+  const ShaderReflection *GetShaderReflection(ShaderStage stage);
+  QString GetShaderEntryPoint(ShaderStage stage);
+  ResourceId GetShader(ShaderStage stage);
+  QString GetShaderName(ShaderStage stage);
   void GetIBuffer(ResourceId &buf, uint64_t &ByteOffset);
   bool IsStripRestartEnabled();
   uint32_t GetStripRestartIndex(uint32_t indexByteWidth);
   QVector<BoundVBuffer> GetVBuffers();
   QVector<VertexInputAttribute> GetVertexInputs();
-  void GetConstantBuffer(ShaderStageType stage, uint32_t BufIdx, uint32_t ArrayIdx, ResourceId &buf,
+  void GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, uint32_t ArrayIdx, ResourceId &buf,
                          uint64_t &ByteOffset, uint64_t &ByteSize);
-  QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(ShaderStageType stage);
-  QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(ShaderStageType stage);
+  QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(ShaderStage stage);
+  QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(ShaderStage stage);
   BoundResource GetDepthTarget();
   QVector<BoundResource> GetOutputTargets();
 
@@ -177,76 +177,76 @@ private:
   VulkanPipelineState *m_Vulkan = NULL;
   APIProperties m_APIProps;
 
-  const D3D11PipelineState::ShaderStage &GetD3D11Stage(ShaderStageType stage)
+  const D3D11PipelineState::Shader &GetD3D11Stage(ShaderStage stage)
   {
-    if(stage == eShaderStage_Vertex)
+    if(stage == ShaderStage::Vertex)
       return m_D3D11->m_VS;
-    if(stage == eShaderStage_Domain)
+    if(stage == ShaderStage::Domain)
       return m_D3D11->m_DS;
-    if(stage == eShaderStage_Hull)
+    if(stage == ShaderStage::Hull)
       return m_D3D11->m_HS;
-    if(stage == eShaderStage_Geometry)
+    if(stage == ShaderStage::Geometry)
       return m_D3D11->m_GS;
-    if(stage == eShaderStage_Pixel)
+    if(stage == ShaderStage::Pixel)
       return m_D3D11->m_PS;
-    if(stage == eShaderStage_Compute)
+    if(stage == ShaderStage::Compute)
       return m_D3D11->m_CS;
 
     qCritical() << "Error - invalid stage " << (int)stage;
     return m_D3D11->m_CS;
   }
 
-  const D3D12PipelineState::ShaderStage &GetD3D12Stage(ShaderStageType stage)
+  const D3D12PipelineState::Shader &GetD3D12Stage(ShaderStage stage)
   {
-    if(stage == eShaderStage_Vertex)
+    if(stage == ShaderStage::Vertex)
       return m_D3D12->m_VS;
-    if(stage == eShaderStage_Domain)
+    if(stage == ShaderStage::Domain)
       return m_D3D12->m_DS;
-    if(stage == eShaderStage_Hull)
+    if(stage == ShaderStage::Hull)
       return m_D3D12->m_HS;
-    if(stage == eShaderStage_Geometry)
+    if(stage == ShaderStage::Geometry)
       return m_D3D12->m_GS;
-    if(stage == eShaderStage_Pixel)
+    if(stage == ShaderStage::Pixel)
       return m_D3D12->m_PS;
-    if(stage == eShaderStage_Compute)
+    if(stage == ShaderStage::Compute)
       return m_D3D12->m_CS;
 
     qCritical() << "Error - invalid stage " << (int)stage;
     return m_D3D12->m_CS;
   }
 
-  const GLPipelineState::ShaderStage &GetGLStage(ShaderStageType stage)
+  const GLPipelineState::Shader &GetGLStage(ShaderStage stage)
   {
-    if(stage == eShaderStage_Vertex)
+    if(stage == ShaderStage::Vertex)
       return m_GL->m_VS;
-    if(stage == eShaderStage_Tess_Control)
+    if(stage == ShaderStage::Tess_Control)
       return m_GL->m_TCS;
-    if(stage == eShaderStage_Tess_Eval)
+    if(stage == ShaderStage::Tess_Eval)
       return m_GL->m_TES;
-    if(stage == eShaderStage_Geometry)
+    if(stage == ShaderStage::Geometry)
       return m_GL->m_GS;
-    if(stage == eShaderStage_Fragment)
+    if(stage == ShaderStage::Fragment)
       return m_GL->m_FS;
-    if(stage == eShaderStage_Compute)
+    if(stage == ShaderStage::Compute)
       return m_GL->m_CS;
 
     qCritical() << "Error - invalid stage " << (int)stage;
     return m_GL->m_CS;
   }
 
-  const VulkanPipelineState::ShaderStage &GetVulkanStage(ShaderStageType stage)
+  const VulkanPipelineState::Shader &GetVulkanStage(ShaderStage stage)
   {
-    if(stage == eShaderStage_Vertex)
+    if(stage == ShaderStage::Vertex)
       return m_Vulkan->m_VS;
-    if(stage == eShaderStage_Tess_Control)
+    if(stage == ShaderStage::Tess_Control)
       return m_Vulkan->m_TCS;
-    if(stage == eShaderStage_Tess_Eval)
+    if(stage == ShaderStage::Tess_Eval)
       return m_Vulkan->m_TES;
-    if(stage == eShaderStage_Geometry)
+    if(stage == ShaderStage::Geometry)
       return m_Vulkan->m_GS;
-    if(stage == eShaderStage_Fragment)
+    if(stage == ShaderStage::Fragment)
       return m_Vulkan->m_FS;
-    if(stage == eShaderStage_Compute)
+    if(stage == ShaderStage::Compute)
       return m_Vulkan->m_CS;
 
     qCritical() << "Error - invalid stage " << (int)stage;

@@ -41,7 +41,7 @@
 struct D3D12InitParams : public RDCInitParams
 {
   D3D12InitParams();
-  ReplayCreateStatus Serialise();
+  ReplayStatus Serialise();
 
   D3D_FEATURE_LEVEL MinimumFeatureLevel;
 
@@ -366,8 +366,7 @@ public:
   FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const FetchDrawcall *GetDrawcall(uint32_t eventID);
 
-  void AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src,
-                       std::string d);
+  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
   void AddDebugMessage(const DebugMessage &msg) { m_DebugMessages.push_back(msg); }
   vector<DebugMessage> GetDebugMessages();
 

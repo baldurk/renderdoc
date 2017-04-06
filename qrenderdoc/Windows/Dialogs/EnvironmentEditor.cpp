@@ -51,7 +51,8 @@ EnvironmentEditor::EnvironmentEditor(QWidget *parent)
   QObject::connect(ui->appendValue, &QRadioButton::toggled, separatorLambda);
 
   ui->separator->addItems({
-      ToQStr(eEnvSep_Platform), ToQStr(eEnvSep_SemiColon), ToQStr(eEnvSep_Colon), ToQStr(eEnvSep_None),
+      ToQStr(EnvSep::Platform), ToQStr(EnvSep::SemiColon), ToQStr(EnvSep::Colon),
+      ToQStr(EnvSep::NoSep),
   });
 
   ui->separator->setCurrentIndex(0);
@@ -120,11 +121,11 @@ void EnvironmentEditor::on_variables_currentItemChanged(QTreeWidgetItem *current
     ui->value->setText(mod.value);
     ui->separator->setCurrentIndex((int)mod.separator);
 
-    if(mod.type == eEnvMod_Set)
+    if(mod.type == EnvMod::Set)
       ui->setValue->setChecked(true);
-    else if(mod.type == eEnvMod_Append)
+    else if(mod.type == EnvMod::Append)
       ui->appendValue->setChecked(true);
-    else if(mod.type == eEnvMod_Prepend)
+    else if(mod.type == EnvMod::Prepend)
       ui->prependValue->setChecked(true);
   }
 }
@@ -134,14 +135,14 @@ void EnvironmentEditor::on_addUpdate_clicked()
   EnvironmentModification mod;
   mod.variable = ui->name->text();
   mod.value = ui->value->text();
-  mod.separator = (EnvironmentSeparator)ui->separator->currentIndex();
+  mod.separator = (EnvSep)ui->separator->currentIndex();
 
   if(ui->appendValue->isChecked())
-    mod.type = eEnvMod_Append;
+    mod.type = EnvMod::Append;
   else if(ui->prependValue->isChecked())
-    mod.type = eEnvMod_Prepend;
+    mod.type = EnvMod::Prepend;
   else
-    mod.type = eEnvMod_Set;
+    mod.type = EnvMod::Set;
 
   addModification(mod, false);
 

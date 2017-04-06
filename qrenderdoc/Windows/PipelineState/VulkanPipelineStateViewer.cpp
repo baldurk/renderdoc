@@ -479,7 +479,7 @@ bool VulkanPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
   return false;
 }
 
-const VulkanPipelineState::ShaderStage *VulkanPipelineStateViewer::stageForSender(QWidget *widget)
+const VulkanPipelineState::Shader *VulkanPipelineStateViewer::stageForSender(QWidget *widget)
 {
   if(!m_Ctx.LogLoaded())
     return NULL;
@@ -664,9 +664,8 @@ QVariantList VulkanPipelineStateViewer::makeSampler(
 }
 
 void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
-                                               const VulkanPipelineState::ShaderStage &stage,
-                                               int bindset, int bind,
-                                               const VulkanPipelineState::Pipeline &pipe,
+                                               const VulkanPipelineState::Shader &stage, int bindset,
+                                               int bind, const VulkanPipelineState::Pipeline &pipe,
                                                RDTreeWidget *resources,
                                                QMap<ResourceId, SamplerData> &samplers)
 {
@@ -711,8 +710,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
   const rdctype::array<VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement>
       *slotBinds = NULL;
-  ShaderBindType bindType = eBindType_Unknown;
-  ShaderStageBits stageBits = (ShaderStageBits)0;
+  BindType bindType = BindType::Unknown;
+  ShaderStageMask stageBits = ShaderStageMask::Unknown;
 
   if(bindset < pipe.DescSets.count && bind < pipe.DescSets[bindset].bindings.count)
   {
@@ -723,23 +722,23 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
   else
   {
     if(shaderRes->IsSampler)
-      bindType = eBindType_Sampler;
+      bindType = BindType::Sampler;
     else if(shaderRes->IsSampler && shaderRes->IsTexture)
-      bindType = eBindType_ImageSampler;
-    else if(shaderRes->resType == eResType_Buffer)
-      bindType = eBindType_ReadOnlyTBuffer;
+      bindType = BindType::ImageSampler;
+    else if(shaderRes->resType == TextureDim::Buffer)
+      bindType = BindType::ReadOnlyTBuffer;
     else
-      bindType = eBindType_ReadOnlyImage;
+      bindType = BindType::ReadOnlyImage;
   }
 
   bool usedSlot = bindMap != NULL && bindMap->used;
-  bool stageBitsIncluded = stageBits & ((ShaderStageBits)(1 << (int)stage.stage));
+  bool stageBitsIncluded = bool(stageBits & MaskForStage(stage.stage));
 
   // skip descriptors that aren't for this shader stage
   if(!usedSlot && !stageBitsIncluded)
     return;
 
-  if(bindType == eBindType_ConstantBuffer)
+  if(bindType == BindType::ConstantBuffer)
     return;
 
   // TODO - check compatibility between bindType and shaderRes.resType ?
@@ -749,7 +748,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
   for(int idx = 0; slotBinds != NULL && idx < slotBinds->count; idx++)
   {
     filledSlot |= (*slotBinds)[idx].res != ResourceId();
-    if(bindType == eBindType_Sampler || bindType == eBindType_ImageSampler)
+    if(bindType == BindType::Sampler || bindType == BindType::ImageSampler)
       filledSlot |= (*slotBinds)[idx].sampler != ResourceId();
   }
 
@@ -814,7 +813,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       uint64_t len = 0;
       QString format = "Unknown";
       QString name = "Empty";
-      ShaderResourceType restype = eResType_None;
+      TextureDim restype = TextureDim::Unknown;
       QVariant tag;
 
       FetchTexture *tex = NULL;
@@ -851,7 +850,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           d = 0;
           a = 0;
           name = buf->name;
-          restype = eResType_Buffer;
+          restype = TextureDim::Buffer;
 
           ulong descriptorLen = descriptorBind->size;
 
@@ -874,8 +873,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       QTreeWidgetItem *node = NULL;
       QTreeWidgetItem *samplerNode = NULL;
 
-      if(bindType == eBindType_ReadWriteBuffer || bindType == eBindType_ReadOnlyTBuffer ||
-         bindType == eBindType_ReadWriteTBuffer)
+      if(bindType == BindType::ReadWriteBuffer || bindType == BindType::ReadOnlyTBuffer ||
+         bindType == BindType::ReadWriteTBuffer)
       {
         if(!isbuf)
         {
@@ -906,7 +905,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
             setInactiveRow(node);
         }
       }
-      else if(bindType == eBindType_Sampler)
+      else if(bindType == BindType::Sampler)
       {
         if(descriptorBind == NULL || descriptorBind->sampler == ResourceId())
         {
@@ -950,17 +949,17 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
           QString dim;
 
-          if(restype == eResType_Texture3D)
+          if(restype == TextureDim::Texture3D)
             dim = QString("%1x%2x%3").arg(w).arg(h).arg(d);
-          else if(restype == eResType_Texture1D || restype == eResType_Texture1DArray)
+          else if(restype == TextureDim::Texture1D || restype == TextureDim::Texture1DArray)
             dim = QString::number(w);
           else
             dim = QString("%1x%2").arg(w).arg(h);
 
-          if(descriptorBind->swizzle[0] != eSwizzle_Red ||
-             descriptorBind->swizzle[1] != eSwizzle_Green ||
-             descriptorBind->swizzle[2] != eSwizzle_Blue ||
-             descriptorBind->swizzle[3] != eSwizzle_Alpha)
+          if(descriptorBind->swizzle[0] != TextureSwizzle::Red ||
+             descriptorBind->swizzle[1] != TextureSwizzle::Green ||
+             descriptorBind->swizzle[2] != TextureSwizzle::Blue ||
+             descriptorBind->swizzle[3] != TextureSwizzle::Alpha)
           {
             format += tr(" swizzle[%1%2%3%4]")
                           .arg(ToQStr(descriptorBind->swizzle[0]))
@@ -969,13 +968,13 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
                           .arg(ToQStr(descriptorBind->swizzle[3]));
           }
 
-          if(restype == eResType_Texture1DArray || restype == eResType_Texture2DArray ||
-             restype == eResType_Texture2DMSArray || restype == eResType_TextureCubeArray)
+          if(restype == TextureDim::Texture1DArray || restype == TextureDim::Texture2DArray ||
+             restype == TextureDim::Texture2DMSArray || restype == TextureDim::TextureCubeArray)
           {
             dim += QString(" %1[%2]").arg(ToQStr(restype)).arg(a);
           }
 
-          if(restype == eResType_Texture2DMS || restype == eResType_Texture2DMSArray)
+          if(restype == TextureDim::Texture2DMS || restype == TextureDim::Texture2DMSArray)
             dim += QString(", %1x MSAA").arg(samples);
 
           node = makeTreeNode({
@@ -993,12 +992,12 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
             setInactiveRow(node);
         }
 
-        if(bindType == eBindType_ImageSampler)
+        if(bindType == BindType::ImageSampler)
         {
           if(descriptorBind == NULL || descriptorBind->sampler == ResourceId())
           {
             samplerNode = makeTreeNode({
-                "", bindset, slotname, bindType, "-", "-", "",
+                "", bindset, slotname, ToQStr(bindType), "-", "-", "",
             });
 
             setEmptyRow(node);
@@ -1045,7 +1044,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 }
 
 void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDetails,
-                                                    const VulkanPipelineState::ShaderStage &stage,
+                                                    const VulkanPipelineState::Shader &stage,
                                                     int bindset, int bind,
                                                     const VulkanPipelineState::Pipeline &pipe,
                                                     RDTreeWidget *ubos)
@@ -1077,8 +1076,8 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 
   const rdctype::array<VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement>
       *slotBinds = NULL;
-  ShaderBindType bindType = eBindType_ConstantBuffer;
-  ShaderStageBits stageBits = (ShaderStageBits)0;
+  BindType bindType = BindType::ConstantBuffer;
+  ShaderStageMask stageBits = ShaderStageMask::Unknown;
 
   if(bindset < pipe.DescSets.count && bind < pipe.DescSets[bindset].bindings.count)
   {
@@ -1088,13 +1087,13 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   }
 
   bool usedSlot = bindMap != NULL && bindMap->used;
-  bool stageBitsIncluded = stageBits & ((ShaderStageBits)(1 << (int)stage.stage));
+  bool stageBitsIncluded = bool(stageBits & MaskForStage(stage.stage));
 
   // skip descriptors that aren't for this shader stage
   if(!usedSlot && !stageBitsIncluded)
     return;
 
-  if(bindType != eBindType_ConstantBuffer)
+  if(bindType != BindType::ConstantBuffer)
     return;
 
   // consider it filled if any array element is filled (or it's push constants)
@@ -1224,7 +1223,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   }
 }
 
-void VulkanPipelineStateViewer::setShaderState(const VulkanPipelineState::ShaderStage &stage,
+void VulkanPipelineStateViewer::setShaderState(const VulkanPipelineState::Shader &stage,
                                                const VulkanPipelineState::Pipeline &pipe,
                                                QLabel *shader, RDTreeWidget *resources,
                                                RDTreeWidget *ubos)
@@ -1234,7 +1233,7 @@ void VulkanPipelineStateViewer::setShaderState(const VulkanPipelineState::Shader
   const QIcon &action = Icons::action();
   const QIcon &action_hover = Icons::action_hover();
 
-  if(stage.Shader == ResourceId())
+  if(stage.Object == ResourceId())
     shader->setText(tr("Unbound Shader"));
   else
     shader->setText(ToQStr(stage.ShaderName));
@@ -1464,7 +1463,7 @@ void VulkanPipelineStateViewer::setState()
 
       QString name = tr("Attribute %1").arg(i);
 
-      if(state.m_VS.Shader != ResourceId())
+      if(state.m_VS.Object != ResourceId())
       {
         int attrib = -1;
         if((int32_t)a.location < state.m_VS.BindpointMapping.InputAttributes.count)
@@ -1501,12 +1500,11 @@ void VulkanPipelineStateViewer::setState()
 
   m_BindNodes.clear();
 
-  PrimitiveTopology topo = draw != NULL ? draw->topology : eTopology_Unknown;
+  Topology topo = draw != NULL ? draw->topology : Topology::Unknown;
 
-  if(topo > eTopology_PatchList)
+  int numCPs = PatchList_Count(topo);
+  if(numCPs > 0)
   {
-    int numCPs = (int)topo - (int)eTopology_PatchList_1CPs + 1;
-
     ui->topology->setText(QString("PatchList (%1 Control Points)").arg(numCPs));
   }
   else
@@ -1518,21 +1516,21 @@ void VulkanPipelineStateViewer::setState()
 
   switch(topo)
   {
-    case eTopology_PointList: ui->topologyDiagram->setPixmap(Pixmaps::topo_pointlist()); break;
-    case eTopology_LineList: ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist()); break;
-    case eTopology_LineStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip()); break;
-    case eTopology_TriangleList: ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist()); break;
-    case eTopology_TriangleStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip()); break;
-    case eTopology_LineList_Adj:
+    case Topology::PointList: ui->topologyDiagram->setPixmap(Pixmaps::topo_pointlist()); break;
+    case Topology::LineList: ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist()); break;
+    case Topology::LineStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip()); break;
+    case Topology::TriangleList: ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist()); break;
+    case Topology::TriangleStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip()); break;
+    case Topology::LineList_Adj:
       ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist_adj());
       break;
-    case eTopology_LineStrip_Adj:
+    case Topology::LineStrip_Adj:
       ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip_adj());
       break;
-    case eTopology_TriangleList_Adj:
+    case Topology::TriangleList_Adj:
       ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist_adj());
       break;
-    case eTopology_TriangleStrip_Adj:
+    case Topology::TriangleStrip_Adj:
       ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip_adj());
       break;
     default: ui->topologyDiagram->setPixmap(Pixmaps::topo_patch()); break;
@@ -1542,7 +1540,7 @@ void VulkanPipelineStateViewer::setState()
   ui->viBuffers->setUpdatesEnabled(false);
   ui->viBuffers->clear();
 
-  bool ibufferUsed = draw != NULL && (draw->flags & eDraw_UseIBuffer);
+  bool ibufferUsed = draw != NULL && (draw->flags & DrawFlags::UseIBuffer);
 
   if(state.IA.ibuffer.buf != ResourceId())
   {
@@ -1756,8 +1754,8 @@ void VulkanPipelineStateViewer::setState()
   ui->viewports->setUpdatesEnabled(true);
   ui->scissors->setUpdatesEnabled(true);
 
-  ui->fillMode->setText(ToQStr(state.RS.FillMode));
-  ui->cullMode->setText(ToQStr(state.RS.CullMode));
+  ui->fillMode->setText(ToQStr(state.RS.fillMode));
+  ui->cullMode->setText(ToQStr(state.RS.cullMode));
   ui->frontCCW->setPixmap(state.RS.FrontCCW ? tick : cross);
 
   ui->depthBias->setText(Formatter::Format(state.RS.depthBias));
@@ -1830,8 +1828,8 @@ void VulkanPipelineStateViewer::setState()
             for(int s = 0; s < state.m_FS.ShaderDetails->OutputSig.count; s++)
             {
               if(state.m_FS.ShaderDetails->OutputSig[s].regIndex == (uint32_t)colIdx &&
-                 (state.m_FS.ShaderDetails->OutputSig[s].systemValue == eAttr_None ||
-                  state.m_FS.ShaderDetails->OutputSig[s].systemValue == eAttr_ColourOutput))
+                 (state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::Undefined ||
+                  state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::ColourOutput))
               {
                 name = QString("<%1>").arg(ToQStr(state.m_FS.ShaderDetails->OutputSig[s].varName));
               }
@@ -1839,8 +1837,8 @@ void VulkanPipelineStateViewer::setState()
           }
         }
 
-        if(p.swizzle[0] != eSwizzle_Red || p.swizzle[1] != eSwizzle_Green ||
-           p.swizzle[2] != eSwizzle_Blue || p.swizzle[3] != eSwizzle_Alpha)
+        if(p.swizzle[0] != TextureSwizzle::Red || p.swizzle[1] != TextureSwizzle::Green ||
+           p.swizzle[2] != TextureSwizzle::Blue || p.swizzle[3] != TextureSwizzle::Alpha)
         {
           format += tr(" swizzle[%1%2%3%4]")
                         .arg(ToQStr(p.swizzle[0]))
@@ -1978,15 +1976,15 @@ void VulkanPipelineStateViewer::setState()
   {
     ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
   }
-  else if(draw->flags & eDraw_Dispatch)
+  else if(draw->flags & DrawFlags::Dispatch)
   {
     ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
   }
   else
   {
     ui->pipeFlow->setStagesEnabled(
-        {true, true, state.m_TCS.Shader != ResourceId(), state.m_TES.Shader != ResourceId(),
-         state.m_GS.Shader != ResourceId(), true, state.m_FS.Shader != ResourceId(), true, false});
+        {true, true, state.m_TCS.Object != ResourceId(), state.m_TES.Object != ResourceId(),
+         state.m_GS.Object != ResourceId(), true, state.m_FS.Object != ResourceId(), true, false});
   }
 }
 
@@ -2027,7 +2025,7 @@ QString VulkanPipelineStateViewer::formatMembers(int indent, const QString &name
 
 void VulkanPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int column)
 {
-  const VulkanPipelineState::ShaderStage *stage = stageForSender(item->treeWidget());
+  const VulkanPipelineState::Shader *stage = stageForSender(item->treeWidget());
 
   if(stage == NULL)
     return;
@@ -2040,7 +2038,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, in
 
     if(tex)
     {
-      if(tex->resType == eResType_Buffer)
+      if(tex->resType == TextureDim::Buffer)
       {
         BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
 
@@ -2127,7 +2125,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, in
 
 void VulkanPipelineStateViewer::ubo_itemActivated(QTreeWidgetItem *item, int column)
 {
-  const VulkanPipelineState::ShaderStage *stage = stageForSender(item->treeWidget());
+  const VulkanPipelineState::Shader *stage = stageForSender(item->treeWidget());
 
   if(stage == NULL)
     return;
@@ -2343,10 +2341,10 @@ void VulkanPipelineStateViewer::on_pipeFlow_stageSelected(int index)
 
 void VulkanPipelineStateViewer::shaderView_clicked()
 {
-  const VulkanPipelineState::ShaderStage *stage =
+  const VulkanPipelineState::Shader *stage =
       stageForSender(qobject_cast<QWidget *>(QObject::sender()));
 
-  if(stage == NULL || stage->Shader == ResourceId())
+  if(stage == NULL || stage->Object == ResourceId())
     return;
 
   ShaderReflection *shaderDetails = stage->ShaderDetails;
@@ -2365,9 +2363,9 @@ void VulkanPipelineStateViewer::shaderView_clicked()
 void VulkanPipelineStateViewer::shaderEdit_clicked()
 {
   QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
-  const VulkanPipelineState::ShaderStage *stage = stageForSender(sender);
+  const VulkanPipelineState::Shader *stage = stageForSender(sender);
 
-  if(!stage || stage->Shader == ResourceId())
+  if(!stage || stage->Object == ResourceId())
     return;
 
   const ShaderReflection *shaderDetails = stage->ShaderDetails;
@@ -2375,7 +2373,7 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
   if(!shaderDetails)
     return;
 
-  QString entryFunc = QString("EditedShader%1S").arg(ToQStr(stage->stage, eGraphicsAPI_Vulkan)[0]);
+  QString entryFunc = QString("EditedShader%1S").arg(ToQStr(stage->stage, GraphicsAPI::Vulkan)[0]);
 
   QString mainfile = "";
 
@@ -2401,7 +2399,7 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
   if(files.empty())
     return;
 
-  m_Common.EditShader(stage->stage, stage->Shader, shaderDetails, entryFunc, files, mainfile);
+  m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, files, mainfile);
 }
 
 QString VulkanPipelineStateViewer::disassembleSPIRV(const ShaderReflection *shaderDetails)
@@ -2490,7 +2488,7 @@ QString VulkanPipelineStateViewer::disassembleSPIRV(const ShaderReflection *shad
 
 void VulkanPipelineStateViewer::shaderSave_clicked()
 {
-  const VulkanPipelineState::ShaderStage *stage =
+  const VulkanPipelineState::Shader *stage =
       stageForSender(qobject_cast<QWidget *>(QObject::sender()));
 
   if(stage == NULL)
@@ -2498,7 +2496,7 @@ void VulkanPipelineStateViewer::shaderSave_clicked()
 
   ShaderReflection *shaderDetails = stage->ShaderDetails;
 
-  if(stage->Shader == ResourceId())
+  if(stage->Object == ResourceId())
     return;
 
   m_Common.SaveShaderFile(shaderDetails);

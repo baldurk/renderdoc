@@ -62,13 +62,13 @@ public:
       byteWidth = 0;
       numComps = 0;
       reversed = false;
-      fmt = eCompType_None;
+      fmt = CompType::Typeless;
     }
 
     int byteWidth;
     int numComps;
     bool reversed;
-    FormatComponentType fmt;
+    CompType fmt;
 
     int Stride()
     {
@@ -121,7 +121,7 @@ public:
   {
     quadIndex = 0;
     nextInstruction = 0;
-    flags = 0;
+    flags = ShaderEvents::NoEvent;
     done = false;
     trace = NULL;
     dxbc = NULL;
@@ -132,7 +132,7 @@ public:
   {
     quadIndex = quadIdx;
     nextInstruction = 0;
-    flags = 0;
+    flags = ShaderEvents::NoEvent;
     done = false;
     trace = t;
     dxbc = f;

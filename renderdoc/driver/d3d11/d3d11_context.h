@@ -264,15 +264,14 @@ private:
   void RecordIndexBindStats(ID3D11Buffer *Buffer);
   void RecordVertexBindStats(UINT NumBuffers, ID3D11Buffer *Buffers[]);
   void RecordLayoutBindStats(ID3D11InputLayout *Layout);
-  void RecordConstantStats(ShaderStageType stage, UINT NumBuffers, ID3D11Buffer *Buffers[]);
-  void RecordResourceStats(ShaderStageType stage, UINT NumResources,
+  void RecordConstantStats(ShaderStage stage, UINT NumBuffers, ID3D11Buffer *Buffers[]);
+  void RecordResourceStats(ShaderStage stage, UINT NumResources,
                            ID3D11ShaderResourceView *Resources[]);
-  void RecordSamplerStats(ShaderStageType stage, UINT NumSamplers, ID3D11SamplerState *Samplers[]);
+  void RecordSamplerStats(ShaderStage stage, UINT NumSamplers, ID3D11SamplerState *Samplers[]);
   void RecordUpdateStats(ID3D11Resource *res, uint32_t Size, bool Server);
   void RecordDrawStats(bool instanced, bool indirect, UINT InstanceCount);
   void RecordDispatchStats(bool indirect);
-  void RecordShaderStats(ShaderStageType stage, ID3D11DeviceChild *Current,
-                         ID3D11DeviceChild *Shader);
+  void RecordShaderStats(ShaderStage stage, ID3D11DeviceChild *Current, ID3D11DeviceChild *Shader);
   void RecordBlendStats(ID3D11BlendState *Blend, FLOAT BlendFactor[4], UINT SampleMask);
   void RecordDepthStencilStats(ID3D11DepthStencilState *DepthStencil, UINT StencilRef);
   void RecordRasterizationStats(ID3D11RasterizerState *Rasterizer);

@@ -87,7 +87,7 @@ ShaderViewer::ShaderViewer(CaptureContext &ctx, QWidget *parent)
   {
     m_DisassemblyView =
         MakeEditor("scintillaDisassem", "",
-                   m_Ctx.APIProps().pipelineType == eGraphicsAPI_Vulkan ? SCLEX_GLSL : SCLEX_HLSL);
+                   m_Ctx.APIProps().pipelineType == GraphicsAPI::Vulkan ? SCLEX_GLSL : SCLEX_HLSL);
     m_DisassemblyView->setReadOnly(true);
     m_DisassemblyView->setWindowTitle(tr("Disassembly"));
 
@@ -250,7 +250,7 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
 }
 
 void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
-                               ShaderStageType stage, ShaderDebugTrace *trace,
+                               ShaderStage stage, ShaderDebugTrace *trace,
                                const QString &debugContext)
 {
   m_Mapping = bind;
@@ -504,7 +504,7 @@ ScintillaEdit *ShaderViewer::AddFileScintilla(const QString &name, const QString
 {
   ScintillaEdit *scintilla =
       MakeEditor("scintilla" + name, text,
-                 m_Ctx.APIProps().localRenderer == eGraphicsAPI_OpenGL ? SCLEX_GLSL : SCLEX_HLSL);
+                 m_Ctx.APIProps().localRenderer == GraphicsAPI::OpenGL ? SCLEX_GLSL : SCLEX_HLSL);
   scintilla->setReadOnly(true);
   scintilla->setWindowTitle(name);
   ((QWidget *)scintilla)->setProperty("name", name);
@@ -664,12 +664,12 @@ int ShaderViewer::instructionForLine(sptr_t line)
 
 void ShaderViewer::runToSample()
 {
-  runTo(-1, true, eShaderDbg_SampleLoadGather);
+  runTo(-1, true, ShaderEvents::SampleLoadGather);
 }
 
 void ShaderViewer::runToNanOrInf()
 {
-  runTo(-1, true, eShaderDbg_GeneratedNanOrInf);
+  runTo(-1, true, ShaderEvents::GeneratedNanOrInf);
 }
 
 void ShaderViewer::runBack()
@@ -682,7 +682,7 @@ void ShaderViewer::run()
   runTo(-1, true);
 }
 
-void ShaderViewer::runTo(int runToInstruction, bool forward, ShaderDebugStateFlags condition)
+void ShaderViewer::runTo(int runToInstruction, bool forward, ShaderEvents condition)
 {
   if(!m_Trace)
     return;
@@ -717,13 +717,13 @@ void ShaderViewer::runTo(int runToInstruction, bool forward, ShaderDebugStateFla
 
 QString ShaderViewer::stringRep(const ShaderVariable &var, bool useType)
 {
-  if(ui->intView->isChecked() || (useType && var.type == eVar_Int))
-    return RowString(var, 0, eVar_Int);
+  if(ui->intView->isChecked() || (useType && var.type == VarType::Int))
+    return RowString(var, 0, VarType::Int);
 
-  if(useType && var.type == eVar_UInt)
-    return RowString(var, 0, eVar_UInt);
+  if(useType && var.type == VarType::UInt)
+    return RowString(var, 0, VarType::UInt);
 
-  return RowString(var, 0, eVar_Float);
+  return RowString(var, 0, VarType::Float);
 }
 
 QTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, uint32_t idx,
@@ -750,7 +750,7 @@ QTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, ui
 
   const char *fmt = "%1%2";
 
-  if(m_Ctx.APIProps().pipelineType == eGraphicsAPI_D3D12)
+  if(m_Ctx.APIProps().pipelineType == GraphicsAPI::D3D12)
     fmt = bind.arraySize == 1 ? "t%3:%2" : "t%3:%2[%4]";
 
   QString regname = QString(fmt).arg(regChar).arg(bind.bind).arg(bind.bindset).arg(idx);
@@ -1136,13 +1136,13 @@ void ShaderViewer::snippet_textureDimensions()
                                 "// xyz == width, height, depth. w == # mips\n"
                                 "uint4 RENDERDOC_TexDim; \n\n");
   }
-  else if(api == eGraphicsAPI_OpenGL)
+  else if(api == GraphicsAPI::OpenGL)
   {
     m_Scintillas[0]->insertText(snippetPos(),
                                 "// xyz == width, height, depth. w == # mips\n"
                                 "uniform uvec4 RENDERDOC_TexDim;\n\n");
   }
-  else if(api == eGraphicsAPI_Vulkan)
+  else if(api == GraphicsAPI::Vulkan)
   {
     insertVulkanUBO();
   }
@@ -1163,13 +1163,13 @@ void ShaderViewer::snippet_selectedMip()
                                 "// selected mip in UI\n"
                                 "uint RENDERDOC_SelectedMip;\n\n");
   }
-  else if(api == eGraphicsAPI_OpenGL)
+  else if(api == GraphicsAPI::OpenGL)
   {
     m_Scintillas[0]->insertText(snippetPos(),
                                 "// selected mip in UI\n"
                                 "uniform uint RENDERDOC_SelectedMip;\n\n");
   }
-  else if(api == eGraphicsAPI_Vulkan)
+  else if(api == GraphicsAPI::Vulkan)
   {
     insertVulkanUBO();
   }
@@ -1190,13 +1190,13 @@ void ShaderViewer::snippet_selectedSlice()
                                 "// selected array slice or cubemap face in UI\n"
                                 "uint RENDERDOC_SelectedSliceFace;\n\n");
   }
-  else if(api == eGraphicsAPI_OpenGL)
+  else if(api == GraphicsAPI::OpenGL)
   {
     m_Scintillas[0]->insertText(snippetPos(),
                                 "// selected array slice or cubemap face in UI\n"
                                 "uniform uint RENDERDOC_SelectedSliceFace;\n\n");
   }
-  else if(api == eGraphicsAPI_Vulkan)
+  else if(api == GraphicsAPI::Vulkan)
   {
     insertVulkanUBO();
   }
@@ -1217,13 +1217,13 @@ void ShaderViewer::snippet_selectedSample()
                                 "// selected MSAA sample or -numSamples for resolve. See docs\n"
                                 "int RENDERDOC_SelectedSample;\n\n");
   }
-  else if(api == eGraphicsAPI_OpenGL)
+  else if(api == GraphicsAPI::OpenGL)
   {
     m_Scintillas[0]->insertText(snippetPos(),
                                 "// selected MSAA sample or -numSamples for resolve. See docs\n"
                                 "uniform int RENDERDOC_SelectedSample;\n\n");
   }
-  else if(api == eGraphicsAPI_Vulkan)
+  else if(api == GraphicsAPI::Vulkan)
   {
     insertVulkanUBO();
   }
@@ -1245,7 +1245,7 @@ void ShaderViewer::snippet_selectedType()
                                 "// 6 = Depth (MS), 7 = Depth + Stencil (MS)\n"
                                 "uint RENDERDOC_TextureType;\n\n");
   }
-  else if(api == eGraphicsAPI_OpenGL)
+  else if(api == GraphicsAPI::OpenGL)
   {
     m_Scintillas[0]->insertText(snippetPos(),
                                 "// 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube\n"
@@ -1253,7 +1253,7 @@ void ShaderViewer::snippet_selectedType()
                                 "// 8 = Rect, 9 = Buffer, 10 = 2DMS\n"
                                 "uniform uint RENDERDOC_TextureType;\n\n");
   }
-  else if(api == eGraphicsAPI_Vulkan)
+  else if(api == GraphicsAPI::Vulkan)
   {
     insertVulkanUBO();
   }
@@ -1312,7 +1312,7 @@ void ShaderViewer::snippet_resources()
         "Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t29);\n"
         "// End Textures\n\n\n");
   }
-  else if(api == eGraphicsAPI_OpenGL)
+  else if(api == GraphicsAPI::OpenGL)
   {
     m_Scintillas[0]->insertText(snippetPos(),
                                 "// Textures\n"
@@ -1353,7 +1353,7 @@ void ShaderViewer::snippet_resources()
                                 "layout (binding = 10) uniform sampler2DMS tex2DMS;\n"
                                 "// End Textures\n\n\n");
   }
-  else if(api == eGraphicsAPI_Vulkan)
+  else if(api == GraphicsAPI::Vulkan)
   {
     m_Scintillas[0]->insertText(snippetPos(),
                                 "// Textures\n"

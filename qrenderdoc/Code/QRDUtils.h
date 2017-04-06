@@ -56,45 +56,45 @@ struct ToStr
     return QString::number(el.id).toStdString();
   }
 
-  static std::string Get(const ReplayCreateStatus &el)
+  static std::string Get(const ReplayStatus &el)
   {
     switch(el)
     {
-      case eReplayCreate_Success: return "Success";
-      case eReplayCreate_UnknownError: return "Unknown error";
-      case eReplayCreate_InternalError: return "Internal error";
-      case eReplayCreate_FileNotFound: return "File not found";
-      case eReplayCreate_InjectionFailed: return "RenderDoc injection failed";
-      case eReplayCreate_IncompatibleProcess: return "Process is incompatible";
-      case eReplayCreate_NetworkIOFailed: return "Network I/O operation failed";
-      case eReplayCreate_NetworkRemoteBusy: return "Remote side of network connection is busy";
-      case eReplayCreate_NetworkVersionMismatch: return "Version mismatch between network clients";
-      case eReplayCreate_FileIOFailed: return "File I/O failed";
-      case eReplayCreate_FileIncompatibleVersion: return "File of incompatible version";
-      case eReplayCreate_FileCorrupted: return "File corrupted";
-      case eReplayCreate_APIUnsupported: return "API unsupported";
-      case eReplayCreate_APIInitFailed: return "API initialisation failed";
-      case eReplayCreate_APIIncompatibleVersion: return "API incompatible version";
-      case eReplayCreate_APIHardwareUnsupported: return "API hardware unsupported";
+      case ReplayStatus::Succeeded: return "Success";
+      case ReplayStatus::UnknownError: return "Unknown error";
+      case ReplayStatus::InternalError: return "Internal error";
+      case ReplayStatus::FileNotFound: return "File not found";
+      case ReplayStatus::InjectionFailed: return "RenderDoc injection failed";
+      case ReplayStatus::IncompatibleProcess: return "Process is incompatible";
+      case ReplayStatus::NetworkIOFailed: return "Network I/O operation failed";
+      case ReplayStatus::NetworkRemoteBusy: return "Remote side of network connection is busy";
+      case ReplayStatus::NetworkVersionMismatch: return "Version mismatch between network clients";
+      case ReplayStatus::FileIOFailed: return "File I/O failed";
+      case ReplayStatus::FileIncompatibleVersion: return "File of incompatible version";
+      case ReplayStatus::FileCorrupted: return "File corrupted";
+      case ReplayStatus::APIUnsupported: return "API unsupported";
+      case ReplayStatus::APIInitFailed: return "API initialisation failed";
+      case ReplayStatus::APIIncompatibleVersion: return "API incompatible version";
+      case ReplayStatus::APIHardwareUnsupported: return "API hardware unsupported";
       default: break;
     }
     return "Invalid error code";
   }
 
-  static std::string Get(const FormatComponentType &el)
+  static std::string Get(const CompType &el)
   {
     switch(el)
     {
-      case eCompType_None: return "Typeless";
-      case eCompType_Float: return "Float";
-      case eCompType_UNorm: return "UNorm";
-      case eCompType_SNorm: return "SNorm";
-      case eCompType_UInt: return "UInt";
-      case eCompType_SInt: return "SInt";
-      case eCompType_UScaled: return "UScaled";
-      case eCompType_SScaled: return "SScaled";
-      case eCompType_Depth: return "Depth/Stencil";
-      case eCompType_Double: return "Double";
+      case CompType::Typeless: return "Typeless";
+      case CompType::Float: return "Float";
+      case CompType::UNorm: return "UNorm";
+      case CompType::SNorm: return "SNorm";
+      case CompType::UInt: return "UInt";
+      case CompType::SInt: return "SInt";
+      case CompType::UScaled: return "UScaled";
+      case CompType::SScaled: return "SScaled";
+      case CompType::Depth: return "Depth/Stencil";
+      case CompType::Double: return "Double";
       default: break;
     }
     return "Invalid component type";
@@ -104,13 +104,13 @@ struct ToStr
   {
     switch(el)
     {
-      case eFileType_DDS: return "DDS";
-      case eFileType_PNG: return "PNG";
-      case eFileType_JPG: return "JPG";
-      case eFileType_BMP: return "BMP";
-      case eFileType_TGA: return "TGA";
-      case eFileType_HDR: return "HDR";
-      case eFileType_EXR: return "EXR";
+      case FileType::DDS: return "DDS";
+      case FileType::PNG: return "PNG";
+      case FileType::JPG: return "JPG";
+      case FileType::BMP: return "BMP";
+      case FileType::TGA: return "TGA";
+      case FileType::HDR: return "HDR";
+      case FileType::EXR: return "EXR";
       default: break;
     }
     return "Invalid file type";
@@ -120,245 +120,245 @@ struct ToStr
   {
     switch(el)
     {
-      case eAlphaMap_Discard: return "Discard";
-      case eAlphaMap_BlendToColour: return "Blend to Colour";
-      case eAlphaMap_BlendToCheckerboard: return "Blend to Checkerboard";
-      case eAlphaMap_Preserve: return "Preserve";
+      case AlphaMapping::Discard: return "Discard";
+      case AlphaMapping::BlendToColour: return "Blend to Colour";
+      case AlphaMapping::BlendToCheckerboard: return "Blend to Checkerboard";
+      case AlphaMapping::Preserve: return "Preserve";
       default: break;
     }
     return "Invalid mapping";
   }
 
-  static std::string Get(const EnvironmentModificationType &el)
+  static std::string Get(const EnvMod &el)
   {
     switch(el)
     {
-      case eEnvMod_Set: return "Set";
-      case eEnvMod_Append: return "Append";
-      case eEnvMod_Prepend: return "Prepend";
+      case EnvMod::Set: return "Set";
+      case EnvMod::Append: return "Append";
+      case EnvMod::Prepend: return "Prepend";
       default: break;
     }
     return "Invalid modification";
   }
 
-  static std::string Get(const EnvironmentSeparator &el)
+  static std::string Get(const EnvSep &el)
   {
     switch(el)
     {
-      case eEnvSep_Platform: return "Platform style";
-      case eEnvSep_SemiColon: return "Semi-colon (;)";
-      case eEnvSep_Colon: return "Colon (:)";
-      case eEnvSep_None: return "No Separator";
+      case EnvSep::Platform: return "Platform style";
+      case EnvSep::SemiColon: return "Semi-colon (;)";
+      case EnvSep::Colon: return "Colon (:)";
+      case EnvSep::NoSep: return "No Separator";
       default: break;
     }
     return "Invalid separator";
   }
 
-  static std::string Get(const PrimitiveTopology &el)
+  static std::string Get(const Topology &el)
   {
     switch(el)
     {
-      case eTopology_Unknown: return "Unknown";
-      case eTopology_PointList: return "Point List";
-      case eTopology_LineList: return "Line List";
-      case eTopology_LineStrip: return "Line Strip";
-      case eTopology_LineLoop: return "Line Loop";
-      case eTopology_TriangleList: return "Triangle List";
-      case eTopology_TriangleStrip: return "Triangle Strip";
-      case eTopology_TriangleFan: return "Triangle Fan";
-      case eTopology_LineList_Adj: return "Line List with Adjacency";
-      case eTopology_LineStrip_Adj: return "Line Strip with Adjacency";
-      case eTopology_TriangleList_Adj: return "Triangle List with Adjacency";
-      case eTopology_TriangleStrip_Adj: return "Triangle Strip with Adjacency";
-      case eTopology_PatchList_1CPs:
-      case eTopology_PatchList_2CPs:
-      case eTopology_PatchList_3CPs:
-      case eTopology_PatchList_4CPs:
-      case eTopology_PatchList_5CPs:
-      case eTopology_PatchList_6CPs:
-      case eTopology_PatchList_7CPs:
-      case eTopology_PatchList_8CPs:
-      case eTopology_PatchList_9CPs:
-      case eTopology_PatchList_10CPs:
-      case eTopology_PatchList_11CPs:
-      case eTopology_PatchList_12CPs:
-      case eTopology_PatchList_13CPs:
-      case eTopology_PatchList_14CPs:
-      case eTopology_PatchList_15CPs:
-      case eTopology_PatchList_16CPs:
-      case eTopology_PatchList_17CPs:
-      case eTopology_PatchList_18CPs:
-      case eTopology_PatchList_19CPs:
-      case eTopology_PatchList_20CPs:
-      case eTopology_PatchList_21CPs:
-      case eTopology_PatchList_22CPs:
-      case eTopology_PatchList_23CPs:
-      case eTopology_PatchList_24CPs:
-      case eTopology_PatchList_25CPs:
-      case eTopology_PatchList_26CPs:
-      case eTopology_PatchList_27CPs:
-      case eTopology_PatchList_28CPs:
-      case eTopology_PatchList_29CPs:
-      case eTopology_PatchList_30CPs:
-      case eTopology_PatchList_31CPs:
-      case eTopology_PatchList_32CPs: return "Patch List";
+      case Topology::Unknown: return "Unknown";
+      case Topology::PointList: return "Point List";
+      case Topology::LineList: return "Line List";
+      case Topology::LineStrip: return "Line Strip";
+      case Topology::LineLoop: return "Line Loop";
+      case Topology::TriangleList: return "Triangle List";
+      case Topology::TriangleStrip: return "Triangle Strip";
+      case Topology::TriangleFan: return "Triangle Fan";
+      case Topology::LineList_Adj: return "Line List with Adjacency";
+      case Topology::LineStrip_Adj: return "Line Strip with Adjacency";
+      case Topology::TriangleList_Adj: return "Triangle List with Adjacency";
+      case Topology::TriangleStrip_Adj: return "Triangle Strip with Adjacency";
+      case Topology::PatchList_1CPs:
+      case Topology::PatchList_2CPs:
+      case Topology::PatchList_3CPs:
+      case Topology::PatchList_4CPs:
+      case Topology::PatchList_5CPs:
+      case Topology::PatchList_6CPs:
+      case Topology::PatchList_7CPs:
+      case Topology::PatchList_8CPs:
+      case Topology::PatchList_9CPs:
+      case Topology::PatchList_10CPs:
+      case Topology::PatchList_11CPs:
+      case Topology::PatchList_12CPs:
+      case Topology::PatchList_13CPs:
+      case Topology::PatchList_14CPs:
+      case Topology::PatchList_15CPs:
+      case Topology::PatchList_16CPs:
+      case Topology::PatchList_17CPs:
+      case Topology::PatchList_18CPs:
+      case Topology::PatchList_19CPs:
+      case Topology::PatchList_20CPs:
+      case Topology::PatchList_21CPs:
+      case Topology::PatchList_22CPs:
+      case Topology::PatchList_23CPs:
+      case Topology::PatchList_24CPs:
+      case Topology::PatchList_25CPs:
+      case Topology::PatchList_26CPs:
+      case Topology::PatchList_27CPs:
+      case Topology::PatchList_28CPs:
+      case Topology::PatchList_29CPs:
+      case Topology::PatchList_30CPs:
+      case Topology::PatchList_31CPs:
+      case Topology::PatchList_32CPs: return "Patch List";
       default: break;
     }
     return "Unknown topology";
   }
 
-  static std::string Get(const TriangleFillMode &el)
+  static std::string Get(const FillMode &el)
   {
     switch(el)
     {
-      case eFill_Solid: return "Solid";
-      case eFill_Wireframe: return "Wireframe";
-      case eFill_Point: return "Point";
+      case FillMode::Solid: return "Solid";
+      case FillMode::Wireframe: return "Wireframe";
+      case FillMode::Point: return "Point";
       default: break;
     }
     return "Unknown";
   }
 
-  static std::string Get(const TriangleCullMode &el)
+  static std::string Get(const CullMode &el)
   {
     switch(el)
     {
-      case eCull_None: return "None";
-      case eCull_Front: return "Front";
-      case eCull_Back: return "Back";
-      case eCull_FrontAndBack: return "Front & Back";
+      case CullMode::NoCull: return "None";
+      case CullMode::Front: return "Front";
+      case CullMode::Back: return "Back";
+      case CullMode::FrontAndBack: return "Front & Back";
       default: break;
     }
     return "Unknown";
   }
 
-  static std::string Get(const ShaderResourceType &el)
+  static std::string Get(const TextureDim &el)
   {
     switch(el)
     {
-      case eResType_None: return "None";
-      case eResType_Buffer: return "Buffer";
-      case eResType_Texture1D: return "Texture 1D";
-      case eResType_Texture1DArray: return "Texture 1D Array";
-      case eResType_Texture2D: return "Texture 2D";
-      case eResType_TextureRect: return "Texture Rect";
-      case eResType_Texture2DArray: return "Texture 2D Array";
-      case eResType_Texture2DMS: return "Texture 2D MS";
-      case eResType_Texture2DMSArray: return "Texture 2D MS Array";
-      case eResType_Texture3D: return "Texture 3D";
-      case eResType_TextureCube: return "Texture Cube";
-      case eResType_TextureCubeArray: return "Texture Cube Array";
+      case TextureDim::Unknown: return "Unknown";
+      case TextureDim::Buffer: return "Buffer";
+      case TextureDim::Texture1D: return "Texture 1D";
+      case TextureDim::Texture1DArray: return "Texture 1D Array";
+      case TextureDim::Texture2D: return "Texture 2D";
+      case TextureDim::TextureRect: return "Texture Rect";
+      case TextureDim::Texture2DArray: return "Texture 2D Array";
+      case TextureDim::Texture2DMS: return "Texture 2D MS";
+      case TextureDim::Texture2DMSArray: return "Texture 2D MS Array";
+      case TextureDim::Texture3D: return "Texture 3D";
+      case TextureDim::TextureCube: return "Texture Cube";
+      case TextureDim::TextureCubeArray: return "Texture Cube Array";
       default: break;
     }
     return "Unknown";
   }
 
-  static std::string Get(const SystemAttribute &el)
+  static std::string Get(const ShaderBuiltin &el)
   {
     switch(el)
     {
-      case eAttr_None: return "None";
-      case eAttr_Position: return "Position";
-      case eAttr_PointSize: return "Point Size";
-      case eAttr_ClipDistance: return "Clip Distance";
-      case eAttr_CullDistance: return "Cull Distance";
-      case eAttr_RTIndex: return "RT Index";
-      case eAttr_ViewportIndex: return "Viewport Index";
-      case eAttr_VertexIndex: return "Vertex Index";
-      case eAttr_PrimitiveIndex: return "Primitive Index";
-      case eAttr_InstanceIndex: return "Instance Index";
-      case eAttr_InvocationIndex: return "Invocation Index";
-      case eAttr_DispatchSize: return "Dispatch Size";
-      case eAttr_DispatchThreadIndex: return "Dispatch Thread Index";
-      case eAttr_GroupIndex: return "Group Index";
-      case eAttr_GroupFlatIndex: return "Group Flat Index";
-      case eAttr_GroupThreadIndex: return "Group Thread Index";
-      case eAttr_GSInstanceIndex: return "GS Instance Index";
-      case eAttr_OutputControlPointIndex: return "Output Control Point Index";
-      case eAttr_DomainLocation: return "Domain Location";
-      case eAttr_IsFrontFace: return "Is FrontFace";
-      case eAttr_MSAACoverage: return "MSAA Coverage";
-      case eAttr_MSAASamplePosition: return "MSAA Sample Position";
-      case eAttr_MSAASampleIndex: return "MSAA Sample Index";
-      case eAttr_PatchNumVertices: return "Patch NumVertices";
-      case eAttr_OuterTessFactor: return "Outer TessFactor";
-      case eAttr_InsideTessFactor: return "Inside TessFactor";
-      case eAttr_ColourOutput: return "Colour Output";
-      case eAttr_DepthOutput: return "Depth Output";
-      case eAttr_DepthOutputGreaterEqual: return "Depth Output (GEqual)";
-      case eAttr_DepthOutputLessEqual: return "Depth Output (LEqual)";
+      case ShaderBuiltin::Undefined: return "Undefined";
+      case ShaderBuiltin::Position: return "Position";
+      case ShaderBuiltin::PointSize: return "Point Size";
+      case ShaderBuiltin::ClipDistance: return "Clip Distance";
+      case ShaderBuiltin::CullDistance: return "Cull Distance";
+      case ShaderBuiltin::RTIndex: return "RT Index";
+      case ShaderBuiltin::ViewportIndex: return "Viewport Index";
+      case ShaderBuiltin::VertexIndex: return "Vertex Index";
+      case ShaderBuiltin::PrimitiveIndex: return "Primitive Index";
+      case ShaderBuiltin::InstanceIndex: return "Instance Index";
+      case ShaderBuiltin::InvocationIndex: return "Invocation Index";
+      case ShaderBuiltin::DispatchSize: return "Dispatch Size";
+      case ShaderBuiltin::DispatchThreadIndex: return "Dispatch Thread Index";
+      case ShaderBuiltin::GroupIndex: return "Group Index";
+      case ShaderBuiltin::GroupFlatIndex: return "Group Flat Index";
+      case ShaderBuiltin::GroupThreadIndex: return "Group Thread Index";
+      case ShaderBuiltin::GSInstanceIndex: return "GS Instance Index";
+      case ShaderBuiltin::OutputControlPointIndex: return "Output Control Point Index";
+      case ShaderBuiltin::DomainLocation: return "Domain Location";
+      case ShaderBuiltin::IsFrontFace: return "Is FrontFace";
+      case ShaderBuiltin::MSAACoverage: return "MSAA Coverage";
+      case ShaderBuiltin::MSAASamplePosition: return "MSAA Sample Position";
+      case ShaderBuiltin::MSAASampleIndex: return "MSAA Sample Index";
+      case ShaderBuiltin::PatchNumVertices: return "Patch NumVertices";
+      case ShaderBuiltin::OuterTessFactor: return "Outer TessFactor";
+      case ShaderBuiltin::InsideTessFactor: return "Inside TessFactor";
+      case ShaderBuiltin::ColourOutput: return "Colour Output";
+      case ShaderBuiltin::DepthOutput: return "Depth Output";
+      case ShaderBuiltin::DepthOutputGreaterEqual: return "Depth Output (GEqual)";
+      case ShaderBuiltin::DepthOutputLessEqual: return "Depth Output (LEqual)";
       default: break;
     }
     return "Unknown";
   }
 
-  static std::string Get(const ShaderBindType &el)
+  static std::string Get(const BindType &el)
   {
     switch(el)
     {
-      case eBindType_ConstantBuffer: return "Constants";
-      case eBindType_Sampler: return "Sampler";
-      case eBindType_ImageSampler: return "Image&Sampler";
-      case eBindType_ReadOnlyImage: return "Image";
-      case eBindType_ReadWriteImage: return "RW Image";
-      case eBindType_ReadOnlyTBuffer: return "TexBuffer";
-      case eBindType_ReadWriteTBuffer: return "RW TexBuffer";
-      case eBindType_ReadOnlyBuffer: return "Buffer";
-      case eBindType_ReadWriteBuffer: return "RW Buffer";
-      case eBindType_InputAttachment: return "Input";
+      case BindType::ConstantBuffer: return "Constants";
+      case BindType::Sampler: return "Sampler";
+      case BindType::ImageSampler: return "Image&Sampler";
+      case BindType::ReadOnlyImage: return "Image";
+      case BindType::ReadWriteImage: return "RW Image";
+      case BindType::ReadOnlyTBuffer: return "TexBuffer";
+      case BindType::ReadWriteTBuffer: return "RW TexBuffer";
+      case BindType::ReadOnlyBuffer: return "Buffer";
+      case BindType::ReadWriteBuffer: return "RW Buffer";
+      case BindType::InputAttachment: return "Input";
       default: break;
     }
     return "Unknown";
   }
 
-  static std::string Get(const DebugMessageSource &el)
+  static std::string Get(const MessageSource &el)
   {
     switch(el)
     {
-      case eDbgSource_API: return "API";
-      case eDbgSource_RedundantAPIUse: return "Redundant API Use";
-      case eDbgSource_IncorrectAPIUse: return "Incorrect API Use";
-      case eDbgSource_GeneralPerformance: return "General Performance";
-      case eDbgSource_GCNPerformance: return "GCN Performance";
-      case eDbgSource_RuntimeWarning: return "Runtime Warning";
-      case eDbgSoruce_UnsupportedConfiguration: return "Unsupported Configuration";
+      case MessageSource::API: return "API";
+      case MessageSource::RedundantAPIUse: return "Redundant API Use";
+      case MessageSource::IncorrectAPIUse: return "Incorrect API Use";
+      case MessageSource::GeneralPerformance: return "General Performance";
+      case MessageSource::GCNPerformance: return "GCN Performance";
+      case MessageSource::RuntimeWarning: return "Runtime Warning";
+      case MessageSource::UnsupportedConfiguration: return "Unsupported Configuration";
       default: break;
     }
     return "Unknown";
   }
 
-  static std::string Get(const DebugMessageSeverity &el)
+  static std::string Get(const MessageSeverity &el)
   {
     switch(el)
     {
-      case eDbgSeverity_High: return "High";
-      case eDbgSeverity_Medium: return "Medium";
-      case eDbgSeverity_Low: return "Low";
-      case eDbgSeverity_Info: return "Info";
+      case MessageSeverity::High: return "High";
+      case MessageSeverity::Medium: return "Medium";
+      case MessageSeverity::Low: return "Low";
+      case MessageSeverity::Info: return "Info";
       default: break;
     }
     return "Unknown";
   }
 
-  static std::string Get(const DebugMessageCategory &el)
+  static std::string Get(const MessageCategory &el)
   {
     switch(el)
     {
-      case eDbgCategory_Application_Defined: return "Application Defined";
-      case eDbgCategory_Miscellaneous: return "Miscellaneous";
-      case eDbgCategory_Initialization: return "Initialization";
-      case eDbgCategory_Cleanup: return "Cleanup";
-      case eDbgCategory_Compilation: return "Compilation";
-      case eDbgCategory_State_Creation: return "State Creation";
-      case eDbgCategory_State_Setting: return "State Setting";
-      case eDbgCategory_State_Getting: return "State Getting";
-      case eDbgCategory_Resource_Manipulation: return "Resource Manipulation";
-      case eDbgCategory_Execution: return "Execution";
-      case eDbgCategory_Shaders: return "Shaders";
-      case eDbgCategory_Deprecated: return "Deprecated";
-      case eDbgCategory_Undefined: return "Undefined";
-      case eDbgCategory_Portability: return "Portability";
-      case eDbgCategory_Performance: return "Performance";
+      case MessageCategory::Application_Defined: return "Application Defined";
+      case MessageCategory::Miscellaneous: return "Miscellaneous";
+      case MessageCategory::Initialization: return "Initialization";
+      case MessageCategory::Cleanup: return "Cleanup";
+      case MessageCategory::Compilation: return "Compilation";
+      case MessageCategory::State_Creation: return "State Creation";
+      case MessageCategory::State_Setting: return "State Setting";
+      case MessageCategory::State_Getting: return "State Getting";
+      case MessageCategory::Resource_Manipulation: return "Resource Manipulation";
+      case MessageCategory::Execution: return "Execution";
+      case MessageCategory::Shaders: return "Shaders";
+      case MessageCategory::Deprecated: return "Deprecated";
+      case MessageCategory::Undefined: return "Undefined";
+      case MessageCategory::Portability: return "Portability";
+      case MessageCategory::Performance: return "Performance";
       default: break;
     }
     return "Unknown";
@@ -368,12 +368,12 @@ struct ToStr
   {
     switch(el)
     {
-      case eSwizzle_Red: return "R";
-      case eSwizzle_Green: return "G";
-      case eSwizzle_Blue: return "B";
-      case eSwizzle_Alpha: return "A";
-      case eSwizzle_Zero: return "0";
-      case eSwizzle_One: return "1";
+      case TextureSwizzle::Red: return "R";
+      case TextureSwizzle::Green: return "G";
+      case TextureSwizzle::Blue: return "B";
+      case TextureSwizzle::Alpha: return "A";
+      case TextureSwizzle::Zero: return "0";
+      case TextureSwizzle::One: return "1";
     }
     return "Unknown";
   }
@@ -382,11 +382,11 @@ struct ToStr
   {
     switch(el)
     {
-      case eVar_Float: return "float";
-      case eVar_Int: return "int";
-      case eVar_UInt: return "uint";
-      case eVar_Double: return "double";
-      case eVar_Unknown: break;
+      case VarType::Float: return "float";
+      case VarType::Int: return "int";
+      case VarType::UInt: return "uint";
+      case VarType::Double: return "double";
+      case VarType::Unknown: break;
     }
     return "Unknown";
   }
@@ -412,7 +412,7 @@ inline QString ToQStr(const rdctype::str &el)
 QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype);
 
 // overload for a couple of things that need to know the pipeline type when converting
-QString ToQStr(const ShaderStageType stage, const GraphicsAPI apitype);
+QString ToQStr(const ShaderStage stage, const GraphicsAPI apitype);
 
 struct FormatElement
 {
@@ -439,11 +439,11 @@ struct FormatElement
   uint32_t matrixdim;
   ResourceFormat format;
   bool hex;
-  SystemAttribute systemValue;
+  ShaderBuiltin systemValue;
 };
 
 QString TypeString(const ShaderVariable &v);
-QString RowString(const ShaderVariable &v, uint32_t row, VarType type = eVar_Unknown);
+QString RowString(const ShaderVariable &v, uint32_t row, VarType type = VarType::Unknown);
 QString VarString(const ShaderVariable &v);
 QString RowTypeString(const ShaderVariable &v);
 

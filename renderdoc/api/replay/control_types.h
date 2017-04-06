@@ -28,11 +28,6 @@
 #include "data_types.h"
 #include "replay_enums.h"
 
-struct OutputConfig
-{
-  OutputType m_Type;
-};
-
 struct MeshFormat
 {
   MeshFormat()
@@ -44,11 +39,11 @@ struct MeshFormat
     stride = 0;
     compCount = 0;
     compByteWidth = 0;
-    compType = eCompType_None;
+    compType = CompType::Typeless;
     bgraOrder = false;
-    specialFormat = eSpecial_Unknown;
+    specialFormat = SpecialFormat::Unknown;
     showAlpha = false;
-    topo = eTopology_Unknown;
+    topo = Topology::Unknown;
     numVerts = 0;
     unproject = false;
     nearPlane = farPlane = 0.0f;
@@ -65,7 +60,7 @@ struct MeshFormat
 
   uint32_t compCount;
   uint32_t compByteWidth;
-  FormatComponentType compType;
+  CompType compType;
   bool32 bgraOrder;
   SpecialFormat specialFormat;
 
@@ -73,7 +68,7 @@ struct MeshFormat
 
   bool showAlpha;
 
-  PrimitiveTopology topo;
+  Topology topo;
   uint32_t numVerts;
 
   bool32 unproject;
@@ -105,14 +100,14 @@ struct MeshDisplay
   FloatVector maxBounds;
   bool32 showBBox;
 
-  SolidShadeMode solidShadeMode;
+  SolidShade solidShadeMode;
   bool32 wireframeDraw;
 };
 
 struct TextureDisplay
 {
   ResourceId texid;
-  FormatComponentType typeHint;
+  CompType typeHint;
   float rangemin;
   float rangemax;
   float scale;
@@ -131,14 +126,14 @@ struct TextureDisplay
   FloatVector lightBackgroundColour;
   FloatVector darkBackgroundColour;
 
-  TextureDisplayOverlay overlay;
+  DebugOverlay overlay;
 };
 
 struct TextureSave
 {
   ResourceId id;
 
-  FormatComponentType typeHint;
+  CompType typeHint;
 
   FileType destType;
 

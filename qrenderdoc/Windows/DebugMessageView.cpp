@@ -127,16 +127,16 @@ public:
   {
   }
 
-  typedef QPair<QPair<DebugMessageSource, DebugMessageCategory>, uint32_t> DebugMessageType;
-  static DebugMessageType makeType(const DebugMessage &msg)
+  typedef QPair<QPair<MessageSource, MessageCategory>, uint32_t> MessageType;
+  static MessageType makeType(const DebugMessage &msg)
   {
     return qMakePair(qMakePair(msg.source, msg.category), msg.messageID);
   }
 
-  QList<DebugMessageSource> m_HiddenSources;
-  QList<DebugMessageCategory> m_HiddenCategories;
-  QList<DebugMessageSeverity> m_HiddenSeverities;
-  QList<DebugMessageType> m_HiddenTypes;
+  QList<MessageSource> m_HiddenSources;
+  QList<MessageCategory> m_HiddenCategories;
+  QList<MessageSeverity> m_HiddenSeverities;
+  QList<MessageType> m_HiddenTypes;
 
   bool showHidden = false;
 

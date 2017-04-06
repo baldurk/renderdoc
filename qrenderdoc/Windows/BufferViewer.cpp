@@ -723,28 +723,28 @@ private:
 
       switch(fmt.format.specialFormat)
       {
-        case eSpecial_BC6:
-        case eSpecial_ETC2:
-        case eSpecial_R11G11B10:
-        case eSpecial_R5G6B5:
-        case eSpecial_R9G9B9E5: compCount = 3; break;
-        case eSpecial_BC1:
-        case eSpecial_BC7:
-        case eSpecial_BC3:
-        case eSpecial_BC2:
-        case eSpecial_R10G10B10A2:
-        case eSpecial_R5G5B5A1:
-        case eSpecial_R4G4B4A4:
-        case eSpecial_ASTC: compCount = 4; break;
-        case eSpecial_BC5:
-        case eSpecial_R4G4:
-        case eSpecial_D16S8:
-        case eSpecial_D24S8:
-        case eSpecial_D32S8: compCount = 2; break;
-        case eSpecial_BC4:
-        case eSpecial_S8: compCount = 1; break;
-        case eSpecial_YUV:
-        case eSpecial_EAC:
+        case SpecialFormat::BC6:
+        case SpecialFormat::ETC2:
+        case SpecialFormat::R11G11B10:
+        case SpecialFormat::R5G6B5:
+        case SpecialFormat::R9G9B9E5: compCount = 3; break;
+        case SpecialFormat::BC1:
+        case SpecialFormat::BC7:
+        case SpecialFormat::BC3:
+        case SpecialFormat::BC2:
+        case SpecialFormat::R10G10B10A2:
+        case SpecialFormat::R5G5B5A1:
+        case SpecialFormat::R4G4B4A4:
+        case SpecialFormat::ASTC: compCount = 4; break;
+        case SpecialFormat::BC5:
+        case SpecialFormat::R4G4:
+        case SpecialFormat::D16S8:
+        case SpecialFormat::D24S8:
+        case SpecialFormat::D32S8: compCount = 2; break;
+        case SpecialFormat::BC4:
+        case SpecialFormat::S8: compCount = 1; break;
+        case SpecialFormat::YUV:
+        case SpecialFormat::EAC:
         default: compCount = fmt.format.compCount;
       }
 
@@ -823,11 +823,11 @@ BufferViewer::BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent)
   m_Output = NULL;
 
   memset(&m_Config, 0, sizeof(m_Config));
-  m_Config.type = eMeshDataStage_VSIn;
+  m_Config.type = MeshDataStage::VSIn;
   m_Config.wireframeDraw = true;
 
   ui->outputTabs->setCurrentIndex(0);
-  m_CurStage = eMeshDataStage_VSIn;
+  m_CurStage = MeshDataStage::VSIn;
 
   ui->vsinData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->vsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
@@ -873,19 +873,19 @@ BufferViewer::BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent)
   QMenu *menu = new QMenu(this);
 
   QObject::connect(ui->vsinData, &RDTableView::customContextMenuRequested,
-                   [this, menu](const QPoint &pos) { stageRowMenu(eMeshDataStage_VSIn, menu, pos); });
+                   [this, menu](const QPoint &pos) { stageRowMenu(MeshDataStage::VSIn, menu, pos); });
 
   menu = new QMenu(this);
 
   QObject::connect(
       ui->vsoutData, &RDTableView::customContextMenuRequested,
-      [this, menu](const QPoint &pos) { stageRowMenu(eMeshDataStage_VSOut, menu, pos); });
+      [this, menu](const QPoint &pos) { stageRowMenu(MeshDataStage::VSOut, menu, pos); });
 
   menu = new QMenu(this);
 
   QObject::connect(
       ui->gsoutData, &RDTableView::customContextMenuRequested,
-      [this, menu](const QPoint &pos) { stageRowMenu(eMeshDataStage_GSOut, menu, pos); });
+      [this, menu](const QPoint &pos) { stageRowMenu(MeshDataStage::GSOut, menu, pos); });
 
   ui->dockarea->setAllowFloatingWindow(false);
   ui->dockarea->setRubberBandLineWidth(50);
@@ -1040,14 +1040,16 @@ void BufferViewer::SetupMeshView()
   QObject::connect(m_SelectSecondColumn, &QAction::triggered, [this]() {
     BufferItemModel *model = (BufferItemModel *)m_CurView->model();
 
-    model->setSecondaryColumn(m_ContextColumn, m_Config.solidShadeMode == eShade_Secondary, false);
+    model->setSecondaryColumn(m_ContextColumn, m_Config.solidShadeMode == SolidShade::Secondary,
+                              false);
     updatePreviewColumns();
     INVOKE_MEMFN(RT_UpdateAndDisplay);
   });
   QObject::connect(m_SelectSecondAlphaColumn, &QAction::triggered, [this]() {
     BufferItemModel *model = (BufferItemModel *)m_CurView->model();
 
-    model->setSecondaryColumn(m_ContextColumn, m_Config.solidShadeMode == eShade_Secondary, true);
+    model->setSecondaryColumn(m_ContextColumn, m_Config.solidShadeMode == SolidShade::Secondary,
+                              true);
     updatePreviewColumns();
     INVOKE_MEMFN(RT_UpdateAndDisplay);
   });
@@ -1057,11 +1059,11 @@ void BufferViewer::SetupMeshView()
   ui->gsoutData->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
 
   QObject::connect(ui->vsinData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
-                   [this](const QPoint &pos) { meshHeaderMenu(eMeshDataStage_VSIn, pos); });
+                   [this](const QPoint &pos) { meshHeaderMenu(MeshDataStage::VSIn, pos); });
   QObject::connect(ui->vsoutData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
-                   [this](const QPoint &pos) { meshHeaderMenu(eMeshDataStage_VSOut, pos); });
+                   [this](const QPoint &pos) { meshHeaderMenu(MeshDataStage::VSOut, pos); });
   QObject::connect(ui->gsoutData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
-                   [this](const QPoint &pos) { meshHeaderMenu(eMeshDataStage_GSOut, pos); });
+                   [this](const QPoint &pos) { meshHeaderMenu(MeshDataStage::GSOut, pos); });
 
   QVBoxLayout *vertical = new QVBoxLayout(this);
 
@@ -1100,7 +1102,7 @@ void BufferViewer::stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &
 
   menu->clear();
 
-  if(m_MeshView && stage != eMeshDataStage_GSOut)
+  if(m_MeshView && stage != MeshDataStage::GSOut)
   {
     menu->addAction(m_DebugVert);
     menu->addSeparator();
@@ -1150,12 +1152,9 @@ void BufferViewer::OnLogfileLoaded()
 
   m_Ctx.Renderer().BlockInvoke([renderID, this](IReplayRenderer *r) {
     m_Output = r->CreateOutput(m_Ctx.m_CurWinSystem, m_Ctx.FillWindowingData(renderID),
-                               eOutputType_MeshDisplay);
+                               ReplayOutputType::Mesh);
 
     ui->render->setOutput(m_Output);
-
-    OutputConfig c = {eOutputType_MeshDisplay};
-    m_Output->SetOutputConfig(c);
 
     RT_UpdateAndDisplay(r);
   });
@@ -1304,7 +1303,7 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
   QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState.GetVBuffers();
 
   rdctype::array<byte> idata;
-  if(ib != ResourceId() && draw && (draw->flags & eDraw_UseIBuffer))
+  if(ib != ResourceId() && draw && (draw->flags & DrawFlags::UseIBuffer))
     r->GetBufferData(ib, ioffset + draw->indexOffset * draw->indexByteWidth,
                      draw->numIndices * draw->indexByteWidth, &idata);
 
@@ -1414,11 +1413,11 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
     m_ModelVSIn->buffers.push_back(buf);
   }
 
-  r->GetPostVSData(m_Config.curInstance, eMeshDataStage_VSOut, &m_PostVS);
+  r->GetPostVSData(m_Config.curInstance, MeshDataStage::VSOut, &m_PostVS);
 
   m_ModelVSOut->numRows = m_PostVS.numVerts;
 
-  if(draw && m_PostVS.idxbuf != ResourceId() && (draw->flags & eDraw_UseIBuffer))
+  if(draw && m_PostVS.idxbuf != ResourceId() && (draw->flags & DrawFlags::UseIBuffer))
     r->GetBufferData(m_PostVS.idxbuf, ioffset + draw->indexOffset * draw->indexByteWidth,
                      draw->numIndices * draw->indexByteWidth, &idata);
 
@@ -1468,7 +1467,7 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
     m_ModelVSOut->buffers.push_back(postvs);
   }
 
-  r->GetPostVSData(m_Config.curInstance, eMeshDataStage_GSOut, &m_PostGS);
+  r->GetPostVSData(m_Config.curInstance, MeshDataStage::GSOut, &m_PostGS);
 
   m_ModelGSOut->numRows = m_PostGS.numVerts;
 
@@ -1712,7 +1711,7 @@ void BufferViewer::guessPositionColumn(BufferItemModel *model)
     {
       const FormatElement &el = model->columns[i];
 
-      if(el.systemValue == eAttr_Position)
+      if(el.systemValue == ShaderBuiltin::Position)
       {
         posEl = i;
         break;
@@ -1806,7 +1805,7 @@ void BufferViewer::guessSecondaryColumn(BufferItemModel *model)
     }
   }
 
-  model->setSecondaryColumn(secondEl, m_Config.solidShadeMode == eShade_Secondary, false);
+  model->setSecondaryColumn(secondEl, m_Config.solidShadeMode == SolidShade::Secondary, false);
 }
 
 void BufferViewer::updatePreviewColumns()
@@ -1843,7 +1842,8 @@ void BufferViewer::updatePreviewColumns()
         m_VSInPosition.compByteWidth = el.format.compByteWidth;
         m_VSInPosition.compType = el.format.compType;
         m_VSInPosition.bgraOrder = el.format.bgraOrder;
-        m_VSInPosition.specialFormat = el.format.special ? el.format.specialFormat : eSpecial_Unknown;
+        m_VSInPosition.specialFormat =
+            el.format.special ? el.format.specialFormat : SpecialFormat::Unknown;
       }
 
       elIdx = m_ModelVSIn->secondaryColumn();
@@ -1862,7 +1862,7 @@ void BufferViewer::updatePreviewColumns()
         m_VSInSecondary.compType = el.format.compType;
         m_VSInSecondary.bgraOrder = el.format.bgraOrder;
         m_VSInSecondary.specialFormat =
-            el.format.special ? el.format.specialFormat : eSpecial_Unknown;
+            el.format.special ? el.format.specialFormat : SpecialFormat::Unknown;
         m_VSInSecondary.showAlpha = m_ModelVSIn->secondaryAlpha();
       }
     }
@@ -1913,7 +1913,7 @@ void BufferViewer::updatePreviewColumns()
 
     m_PostGSPosition.idxByteWidth = 0;
 
-    if(!(draw->flags & eDraw_UseIBuffer))
+    if(!(draw->flags & DrawFlags::UseIBuffer))
       m_PostVSPosition.idxByteWidth = m_VSInPosition.idxByteWidth = 0;
 
     m_PostGSPosition.unproject = true;
@@ -1977,7 +1977,7 @@ void BufferViewer::configureMeshColumns()
   if(ui->farGuess->value() > 0.0)
     m_PostVS.farPlane = m_PostGS.farPlane = ui->farGuess->value();
 
-  const ShaderReflection *vs = m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Vertex);
+  const ShaderReflection *vs = m_Ctx.CurPipelineState.GetShaderReflection(ShaderStage::Vertex);
 
   m_ModelVSOut->columns.clear();
 
@@ -2003,7 +2003,7 @@ void BufferViewer::configureMeshColumns()
       f.matrixdim = 1;
       f.systemValue = sig.systemValue;
 
-      if(f.systemValue == eAttr_Position)
+      if(f.systemValue == ShaderBuiltin::Position)
         posidx = i;
 
       m_ModelVSOut->columns.push_back(f);
@@ -2024,7 +2024,7 @@ void BufferViewer::configureMeshColumns()
     for(const FormatElement &sig : m_ModelVSOut->columns)
     {
       uint numComps = sig.format.compCount;
-      uint elemSize = sig.format.compType == eCompType_Double ? 8U : 4U;
+      uint elemSize = sig.format.compType == CompType::Double ? 8U : 4U;
 
       if(m_Ctx.CurPipelineState.HasAlignedPostVSData())
       {
@@ -2044,9 +2044,9 @@ void BufferViewer::configureMeshColumns()
 
   if(draw)
   {
-    const ShaderReflection *last = m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Geometry);
+    const ShaderReflection *last = m_Ctx.CurPipelineState.GetShaderReflection(ShaderStage::Geometry);
     if(last == NULL)
-      last = m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Domain);
+      last = m_Ctx.CurPipelineState.GetShaderReflection(ShaderStage::Domain);
 
     if(last)
     {
@@ -2070,7 +2070,7 @@ void BufferViewer::configureMeshColumns()
         f.matrixdim = 1;
         f.systemValue = sig.systemValue;
 
-        if(f.systemValue == eAttr_Position)
+        if(f.systemValue == ShaderBuiltin::Position)
           posidx = i;
 
         m_ModelGSOut->columns.push_back(f);
@@ -2091,7 +2091,7 @@ void BufferViewer::configureMeshColumns()
       for(const FormatElement &sig : m_ModelGSOut->columns)
       {
         uint numComps = sig.format.compCount;
-        uint elemSize = sig.format.compType == eCompType_Double ? 8U : 4U;
+        uint elemSize = sig.format.compType == CompType::Double ? 8U : 4U;
 
         if(m_Ctx.CurPipelineState.HasAlignedPostVSData())
         {
@@ -2139,15 +2139,15 @@ void BufferViewer::UpdateMeshConfig()
   m_Config.type = m_CurStage;
   switch(m_CurStage)
   {
-    case eMeshDataStage_VSIn:
+    case MeshDataStage::VSIn:
       m_Config.position = m_VSInPosition;
       m_Config.second = m_VSInSecondary;
       break;
-    case eMeshDataStage_VSOut:
+    case MeshDataStage::VSOut:
       m_Config.position = m_PostVSPosition;
       m_Config.second = m_PostVSSecondary;
       break;
-    case eMeshDataStage_GSOut:
+    case MeshDataStage::GSOut:
       m_Config.position = m_PostGSPosition;
       m_Config.second = m_PostGSSecondary;
       break;
@@ -2304,11 +2304,11 @@ void BufferViewer::RT_UpdateAndDisplay(IReplayRenderer *)
 
 RDTableView *BufferViewer::tableForStage(MeshDataStage stage)
 {
-  if(stage == eMeshDataStage_VSIn)
+  if(stage == MeshDataStage::VSIn)
     return ui->vsinData;
-  else if(stage == eMeshDataStage_VSOut)
+  else if(stage == MeshDataStage::VSOut)
     return ui->vsoutData;
-  else if(stage == eMeshDataStage_GSOut)
+  else if(stage == MeshDataStage::GSOut)
     return ui->gsoutData;
 
   return NULL;
@@ -2316,11 +2316,11 @@ RDTableView *BufferViewer::tableForStage(MeshDataStage stage)
 
 BufferItemModel *BufferViewer::modelForStage(MeshDataStage stage)
 {
-  if(stage == eMeshDataStage_VSIn)
+  if(stage == MeshDataStage::VSIn)
     return m_ModelVSIn;
-  else if(stage == eMeshDataStage_VSOut)
+  else if(stage == MeshDataStage::VSOut)
     return m_ModelVSOut;
-  else if(stage == eMeshDataStage_GSOut)
+  else if(stage == MeshDataStage::GSOut)
     return m_ModelGSOut;
 
   return NULL;
@@ -2328,18 +2328,18 @@ BufferItemModel *BufferViewer::modelForStage(MeshDataStage stage)
 
 bool BufferViewer::isCurrentRasterOut()
 {
-  if(m_CurStage == eMeshDataStage_VSIn)
+  if(m_CurStage == MeshDataStage::VSIn)
   {
     return false;
   }
-  else if(m_CurStage == eMeshDataStage_VSOut)
+  else if(m_CurStage == MeshDataStage::VSOut)
   {
     if(m_Ctx.LogLoaded() && m_Ctx.CurPipelineState.IsTessellationEnabled())
       return false;
 
     return true;
   }
-  else if(m_CurStage == eMeshDataStage_GSOut)
+  else if(m_CurStage == MeshDataStage::GSOut)
   {
     return true;
   }
@@ -2349,11 +2349,11 @@ bool BufferViewer::isCurrentRasterOut()
 
 int BufferViewer::currentStageIndex()
 {
-  if(m_CurStage == eMeshDataStage_VSIn)
+  if(m_CurStage == MeshDataStage::VSIn)
     return 0;
-  else if(m_CurStage == eMeshDataStage_VSOut)
+  else if(m_CurStage == MeshDataStage::VSOut)
     return 1;
-  else if(m_CurStage == eMeshDataStage_GSOut)
+  else if(m_CurStage == MeshDataStage::GSOut)
     return 2;
 
   return 0;
@@ -2426,12 +2426,12 @@ void BufferViewer::CalcColumnWidth()
 
   ResourceFormat floatFmt;
   floatFmt.compByteWidth = 4;
-  floatFmt.compType = eCompType_Float;
+  floatFmt.compType = CompType::Float;
   floatFmt.compCount = 1;
 
   ResourceFormat intFmt;
   floatFmt.compByteWidth = 4;
-  floatFmt.compType = eCompType_UInt;
+  floatFmt.compType = CompType::UInt;
   floatFmt.compCount = 1;
 
   FormatElement("ColumnSizeTest", 0, 0, false, 1, false, 1, floatFmt, false);
@@ -2546,9 +2546,9 @@ void BufferViewer::camGuess_changed(double value)
   // hasn't overridden the values
   m_Config.position.nearPlane = 0.1f;
 
-  if(m_CurStage == eMeshDataStage_VSOut)
+  if(m_CurStage == MeshDataStage::VSOut)
     m_Config.position.nearPlane = m_PostVS.nearPlane;
-  else if(m_CurStage == eMeshDataStage_GSOut)
+  else if(m_CurStage == MeshDataStage::GSOut)
     m_Config.position.nearPlane = m_PostGS.nearPlane;
 
   if(ui->nearGuess->value() > 0.0)
@@ -2556,9 +2556,9 @@ void BufferViewer::camGuess_changed(double value)
 
   m_Config.position.farPlane = 100.0f;
 
-  if(m_CurStage == eMeshDataStage_VSOut)
+  if(m_CurStage == MeshDataStage::VSOut)
     m_Config.position.farPlane = m_PostVS.farPlane;
-  else if(m_CurStage == eMeshDataStage_GSOut)
+  else if(m_CurStage == MeshDataStage::GSOut)
     m_Config.position.farPlane = m_PostGS.farPlane;
 
   if(ui->nearGuess->value() > 0.0)
@@ -2763,13 +2763,13 @@ void BufferViewer::debugVertex()
         debugContext += tr(", Instance %1").arg(m_Config.curInstance);
 
       const ShaderReflection *shaderDetails =
-          m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Pixel);
+          m_Ctx.CurPipelineState.GetShaderReflection(ShaderStage::Pixel);
       const ShaderBindpointMapping &bindMapping =
-          m_Ctx.CurPipelineState.GetBindpointMapping(eShaderStage_Pixel);
+          m_Ctx.CurPipelineState.GetBindpointMapping(ShaderStage::Pixel);
 
       // viewer takes ownership of the trace
       ShaderViewer *s = ShaderViewer::debugShader(m_Ctx, &bindMapping, shaderDetails,
-                                                  eShaderStage_Pixel, trace, debugContext, this);
+                                                  ShaderStage::Pixel, trace, debugContext, this);
 
       m_Ctx.setupDockWindow(s);
 
@@ -2853,11 +2853,11 @@ void BufferViewer::on_outputTabs_currentChanged(int index)
   ui->outputTabs->widget(index)->layout()->addWidget(ui->renderContainer);
 
   if(index == 0)
-    m_CurStage = eMeshDataStage_VSIn;
+    m_CurStage = MeshDataStage::VSIn;
   else if(index == 1)
-    m_CurStage = eMeshDataStage_VSOut;
+    m_CurStage = MeshDataStage::VSOut;
   else if(index == 2)
-    m_CurStage = eMeshDataStage_GSOut;
+    m_CurStage = MeshDataStage::GSOut;
 
   ui->drawRange->setEnabled(index > 0);
 
@@ -2907,16 +2907,16 @@ void BufferViewer::on_solidShading_currentIndexChanged(int index)
     m_Config.wireframeDraw = true;
   }
 
-  m_Config.solidShadeMode = (SolidShadeMode)index;
+  m_Config.solidShadeMode = (SolidShade)index;
 
   m_ModelVSIn->setSecondaryColumn(m_ModelVSIn->secondaryColumn(),
-                                  m_Config.solidShadeMode == eShade_Secondary,
+                                  m_Config.solidShadeMode == SolidShade::Secondary,
                                   m_ModelVSIn->secondaryAlpha());
   m_ModelVSOut->setSecondaryColumn(m_ModelVSOut->secondaryColumn(),
-                                   m_Config.solidShadeMode == eShade_Secondary,
+                                   m_Config.solidShadeMode == SolidShade::Secondary,
                                    m_ModelVSOut->secondaryAlpha());
   m_ModelGSOut->setSecondaryColumn(m_ModelGSOut->secondaryColumn(),
-                                   m_Config.solidShadeMode == eShade_Secondary,
+                                   m_Config.solidShadeMode == SolidShade::Secondary,
                                    m_ModelGSOut->secondaryAlpha());
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
@@ -2991,7 +2991,7 @@ void BufferViewer::on_rowOffset_valueChanged(int value)
 
 void BufferViewer::on_autofitCamera_clicked()
 {
-  if(m_CurStage != eMeshDataStage_VSIn)
+  if(m_CurStage != MeshDataStage::VSIn)
     return;
 
   ui->controlType->setCurrentIndex(1);
@@ -3008,15 +3008,15 @@ void BufferViewer::on_autofitCamera_clicked()
 
   switch(m_CurStage)
   {
-    case eMeshDataStage_VSIn:
+    case MeshDataStage::VSIn:
       model = m_ModelVSIn;
       stage = 0;
       break;
-    case eMeshDataStage_VSOut:
+    case MeshDataStage::VSOut:
       model = m_ModelVSOut;
       stage = 1;
       break;
-    case eMeshDataStage_GSOut:
+    case MeshDataStage::GSOut:
       model = m_ModelGSOut;
       stage = 2;
       break;

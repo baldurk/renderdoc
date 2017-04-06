@@ -92,7 +92,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close()
     {
       FetchDrawcall draw;
       draw.name = "API Calls";
-      draw.flags |= eDraw_SetMarker | eDraw_APICalls;
+      draw.flags |= DrawFlags::SetMarker | DrawFlags::APICalls;
 
       m_Cmd->AddDrawcall(draw, true);
 
@@ -2651,7 +2651,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(UINT Metadata, const 
   {
     FetchDrawcall draw;
     draw.name = markerText;
-    draw.flags |= eDraw_SetMarker;
+    draw.flags |= DrawFlags::SetMarker;
 
     m_Cmd->AddDrawcall(draw, false);
   }
@@ -2709,7 +2709,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(UINT Metadata, const
   {
     FetchDrawcall draw;
     draw.name = markerText;
-    draw.flags |= eDraw_PushMarker;
+    draw.flags |= DrawFlags::PushMarker;
 
     m_Cmd->AddDrawcall(draw, false);
   }
@@ -2741,7 +2741,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent()
   {
     FetchDrawcall draw;
     draw.name = "API Calls";
-    draw.flags = eDraw_SetMarker | eDraw_APICalls;
+    draw.flags = DrawFlags::SetMarker | DrawFlags::APICalls;
 
     m_Cmd->AddDrawcall(draw, true);
   }
@@ -2752,7 +2752,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent()
     // is being in-lined into the call stream
     FetchDrawcall draw;
     draw.name = "Pop()";
-    draw.flags = eDraw_PopMarker;
+    draw.flags = DrawFlags::PopMarker;
 
     m_Cmd->AddDrawcall(draw, false);
   }
@@ -2826,7 +2826,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(UINT VertexCountP
     draw.vertexOffset = startVtx;
     draw.instanceOffset = startInst;
 
-    draw.flags |= eDraw_Drawcall | eDraw_Instanced;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
 
     m_Cmd->AddDrawcall(draw, true);
   }
@@ -2903,7 +2903,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
     draw.baseVertex = startVtx;
     draw.instanceOffset = startInst;
 
-    draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_UseIBuffer;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer;
 
     m_Cmd->AddDrawcall(draw, true);
   }
@@ -2975,7 +2975,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(UINT ThreadGroupCountX
     draw.dispatchDimension[1] = y;
     draw.dispatchDimension[2] = z;
 
-    draw.flags |= eDraw_Dispatch;
+    draw.flags |= DrawFlags::Dispatch;
 
     m_Cmd->AddDrawcall(draw, true);
   }
@@ -3052,7 +3052,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(ID3D12GraphicsCom
     FetchDrawcall draw;
     draw.name = name;
 
-    draw.flags |= eDraw_CmdList;
+    draw.flags |= DrawFlags::CmdList;
 
     m_Cmd->AddDrawcall(draw, true);
   }
@@ -3146,7 +3146,7 @@ void WrappedID3D12GraphicsCommandList::ReserveExecuteIndirect(ID3D12GraphicsComm
   {
     FetchDrawcall draw;
     draw.name = "ExecuteIndirect()";
-    draw.flags = eDraw_PopMarker;
+    draw.flags = DrawFlags::PopMarker;
     m_Cmd->AddDrawcall(draw, false);
   }
   else
@@ -3205,7 +3205,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
       StringFormat::Fmt("ExecuteIndirect(maxCount %u, count <%u>)", exec.maxCount, count);
   // if there's only one command running, remove its pushmarker flag
   if(!multidraw)
-    draws[idx].draw.flags = (draws[idx].draw.flags & ~eDraw_PushMarker) | eDraw_SetMarker;
+    draws[idx].draw.flags = (draws[idx].draw.flags & ~DrawFlags::PushMarker) | DrawFlags::SetMarker;
 
   // move to the first actual draw of the commands
   idx++;
@@ -3232,7 +3232,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           draw.numInstances = args->InstanceCount;
           draw.vertexOffset = args->StartVertexLocation;
           draw.instanceOffset = args->StartInstanceLocation;
-          draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_Indirect;
+          draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
           draw.name = StringFormat::Fmt("[%u] arg%u: IndirectDraw(<%u, %u>)", i, a, draw.numIndices,
                                         draw.numInstances);
 
@@ -3276,7 +3276,8 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           draw.baseVertex = args->BaseVertexLocation;
           draw.vertexOffset = args->StartIndexLocation;
           draw.instanceOffset = args->StartInstanceLocation;
-          draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_UseIBuffer | eDraw_Indirect;
+          draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer |
+                        DrawFlags::Indirect;
           draw.name = StringFormat::Fmt("[%u] arg%u: IndirectDrawIndexed(<%u, %u>)", i, a,
                                         draw.numIndices, draw.numInstances);
 
@@ -3318,7 +3319,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           draw.dispatchDimension[0] = args->ThreadGroupCountX;
           draw.dispatchDimension[1] = args->ThreadGroupCountY;
           draw.dispatchDimension[2] = args->ThreadGroupCountZ;
-          draw.flags |= eDraw_Dispatch | eDraw_Indirect;
+          draw.flags |= DrawFlags::Dispatch | DrawFlags::Indirect;
           draw.name = StringFormat::Fmt("[%u] arg%u: IndirectDispatch(<%u, %u, %u>)", i, a,
                                         draw.dispatchDimension[0], draw.dispatchDimension[1],
                                         draw.dispatchDimension[2]);
@@ -3966,12 +3967,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
     FetchDrawcall draw;
     draw.name = "ExecuteIndirect";
 
-    draw.flags |= eDraw_MultiDraw;
+    draw.flags |= DrawFlags::MultiDraw;
 
     if(maxCount > 1 || comSig->sig.numDraws > 1)
-      draw.flags |= eDraw_PushMarker;
+      draw.flags |= DrawFlags::PushMarker;
     else
-      draw.flags |= eDraw_SetMarker;
+      draw.flags |= DrawFlags::SetMarker;
 
     // this drawcall needs an event to anchor its file offset. This is a bit of a hack,
     // but a proper solution for handling 'fake' events that don't correspond to actual
@@ -3984,11 +3985,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
 
     D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
-    drawNode.resourceUsage.push_back(std::make_pair(
-        GetResourceManager()->GetLiveID(arg), EventUsage(drawNode.draw.eventID, eUsage_Indirect)));
+    drawNode.resourceUsage.push_back(
+        std::make_pair(GetResourceManager()->GetLiveID(arg),
+                       EventUsage(drawNode.draw.eventID, ResourceUsage::Indirect)));
     drawNode.resourceUsage.push_back(
         std::make_pair(GetResourceManager()->GetLiveID(countbuf),
-                       EventUsage(drawNode.draw.eventID, eUsage_Indirect)));
+                       EventUsage(drawNode.draw.eventID, ResourceUsage::Indirect)));
 
     ID3D12GraphicsCommandList *cracked = GetCrackedList(CommandList);
 
@@ -4130,7 +4132,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
 
       FetchDrawcall draw;
       draw.name = name;
-      draw.flags |= eDraw_Clear | eDraw_ClearDepthStencil;
+      draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
 
       m_Cmd->AddDrawcall(draw, true);
 
@@ -4138,8 +4140,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
 
       D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
-      drawNode.resourceUsage.push_back(std::make_pair(
-          GetResID(descriptor->nonsamp.resource), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+      drawNode.resourceUsage.push_back(
+          std::make_pair(GetResID(descriptor->nonsamp.resource),
+                         EventUsage(drawNode.draw.eventID, ResourceUsage::Clear)));
     }
   }
 
@@ -4216,7 +4219,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
 
       FetchDrawcall draw;
       draw.name = name;
-      draw.flags |= eDraw_Clear | eDraw_ClearColour;
+      draw.flags |= DrawFlags::Clear | DrawFlags::ClearColour;
 
       m_Cmd->AddDrawcall(draw, true);
 
@@ -4224,8 +4227,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
 
       D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
-      drawNode.resourceUsage.push_back(std::make_pair(
-          GetResID(descriptor->nonsamp.resource), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+      drawNode.resourceUsage.push_back(
+          std::make_pair(GetResID(descriptor->nonsamp.resource),
+                         EventUsage(drawNode.draw.eventID, ResourceUsage::Clear)));
     }
   }
 
@@ -4313,14 +4317,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
 
       FetchDrawcall draw;
       draw.name = name;
-      draw.flags |= eDraw_Clear;
+      draw.flags |= DrawFlags::Clear;
 
       m_Cmd->AddDrawcall(draw, true);
 
       D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
-      drawNode.resourceUsage.push_back(
-          std::make_pair(GetResID(pResource), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+      drawNode.resourceUsage.push_back(std::make_pair(
+          GetResID(pResource), EventUsage(drawNode.draw.eventID, ResourceUsage::Clear)));
     }
   }
 
@@ -4416,14 +4420,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
 
       FetchDrawcall draw;
       draw.name = name;
-      draw.flags |= eDraw_Clear;
+      draw.flags |= DrawFlags::Clear;
 
       m_Cmd->AddDrawcall(draw, true);
 
       D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
-      drawNode.resourceUsage.push_back(
-          std::make_pair(GetResID(pResource), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+      drawNode.resourceUsage.push_back(std::make_pair(
+          GetResID(pResource), EventUsage(drawNode.draw.eventID, ResourceUsage::Clear)));
     }
   }
 
@@ -4555,7 +4559,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(ID3D12Resource
 
       FetchDrawcall draw;
       draw.name = name;
-      draw.flags |= eDraw_Copy;
+      draw.flags |= DrawFlags::Copy;
 
       draw.copySource = src;
       draw.copyDestination = dst;
@@ -4566,15 +4570,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(ID3D12Resource
 
       if(src == dst)
       {
-        drawNode.resourceUsage.push_back(
-            std::make_pair(GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventID, eUsage_Copy)));
+        drawNode.resourceUsage.push_back(std::make_pair(
+            GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventID, ResourceUsage::Copy)));
       }
       else
       {
         drawNode.resourceUsage.push_back(std::make_pair(
-            GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventID, eUsage_CopySrc)));
+            GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventID, ResourceUsage::CopySrc)));
         drawNode.resourceUsage.push_back(std::make_pair(
-            GetResID(pDstBuffer), EventUsage(drawNode.draw.eventID, eUsage_CopyDst)));
+            GetResID(pDstBuffer), EventUsage(drawNode.draw.eventID, ResourceUsage::CopyDst)));
       }
     }
   }
@@ -4643,7 +4647,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
 
       FetchDrawcall draw;
       draw.name = name;
-      draw.flags |= eDraw_Copy;
+      draw.flags |= DrawFlags::Copy;
 
       draw.copySource = origSrc;
       draw.copyDestination = origDst;
@@ -4655,14 +4659,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
       if(origSrc == origDst)
       {
         drawNode.resourceUsage.push_back(
-            std::make_pair(liveSrc, EventUsage(drawNode.draw.eventID, eUsage_Copy)));
+            std::make_pair(liveSrc, EventUsage(drawNode.draw.eventID, ResourceUsage::Copy)));
       }
       else
       {
         drawNode.resourceUsage.push_back(
-            std::make_pair(liveSrc, EventUsage(drawNode.draw.eventID, eUsage_CopySrc)));
+            std::make_pair(liveSrc, EventUsage(drawNode.draw.eventID, ResourceUsage::CopySrc)));
         drawNode.resourceUsage.push_back(
-            std::make_pair(liveDst, EventUsage(drawNode.draw.eventID, eUsage_CopyDst)));
+            std::make_pair(liveDst, EventUsage(drawNode.draw.eventID, ResourceUsage::CopyDst)));
       }
     }
   }
@@ -4732,7 +4736,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(ID3D12Resource *pD
 
       FetchDrawcall draw;
       draw.name = name;
-      draw.flags |= eDraw_Copy;
+      draw.flags |= DrawFlags::Copy;
 
       draw.copySource = src;
       draw.copyDestination = dst;
@@ -4743,15 +4747,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(ID3D12Resource *pD
 
       if(pSrcResource == pDstResource)
       {
-        drawNode.resourceUsage.push_back(
-            std::make_pair(GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, eUsage_Copy)));
+        drawNode.resourceUsage.push_back(std::make_pair(
+            GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, ResourceUsage::Copy)));
       }
       else
       {
         drawNode.resourceUsage.push_back(std::make_pair(
-            GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, eUsage_CopySrc)));
+            GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, ResourceUsage::CopySrc)));
         drawNode.resourceUsage.push_back(std::make_pair(
-            GetResID(pDstResource), EventUsage(drawNode.draw.eventID, eUsage_CopyDst)));
+            GetResID(pDstResource), EventUsage(drawNode.draw.eventID, ResourceUsage::CopyDst)));
       }
     }
   }
@@ -4822,7 +4826,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(ID3D12Resour
 
       FetchDrawcall draw;
       draw.name = name;
-      draw.flags |= eUsage_Resolve;
+      draw.flags |= DrawFlags::Resolve;
 
       draw.copySource = src;
       draw.copyDestination = dst;
@@ -4834,14 +4838,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(ID3D12Resour
       if(pSrcResource == pDstResource)
       {
         drawNode.resourceUsage.push_back(std::make_pair(
-            GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, eUsage_Resolve)));
+            GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, ResourceUsage::Resolve)));
       }
       else
       {
         drawNode.resourceUsage.push_back(std::make_pair(
-            GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, eUsage_ResolveSrc)));
+            GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, ResourceUsage::ResolveSrc)));
         drawNode.resourceUsage.push_back(std::make_pair(
-            GetResID(pDstResource), EventUsage(drawNode.draw.eventID, eUsage_ResolveDst)));
+            GetResID(pDstResource), EventUsage(drawNode.draw.eventID, ResourceUsage::ResolveDst)));
       }
     }
   }

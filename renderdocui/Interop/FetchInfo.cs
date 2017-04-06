@@ -315,12 +315,6 @@ namespace renderdoc
     };
 
     [StructLayout(LayoutKind.Sequential)]
-    public class OutputConfig
-    {
-        public OutputType m_Type = OutputType.None;
-    };
-
-    [StructLayout(LayoutKind.Sequential)]
     public class FetchFrameConstantBindStats
     {
         public UInt32 calls;

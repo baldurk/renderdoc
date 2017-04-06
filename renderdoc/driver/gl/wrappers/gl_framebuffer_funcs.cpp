@@ -158,7 +158,7 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureEXT(GLuint framebuffer, G
 
     if(m_State == READING && tex)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_RTV;
+      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
     }
   }
 
@@ -303,7 +303,7 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture1DEXT(GLuint framebuffer,
 
     if(m_State == READING && tex)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_RTV;
+      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
     }
   }
 
@@ -450,7 +450,7 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture2DEXT(GLuint framebuffer,
 
     if(m_State == READING && tex)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_RTV;
+      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
     }
   }
 
@@ -598,7 +598,7 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture3DEXT(GLuint framebuffer,
 
     if(m_State == READING && tex)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_RTV;
+      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
     }
   }
 
@@ -746,7 +746,7 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferRenderbufferEXT(GLuint framebuff
 
     if(m_State == READING && rb)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_RTV;
+      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
     }
   }
 
@@ -874,7 +874,7 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureLayerEXT(GLuint framebuff
 
     if(m_State == READING && tex)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_RTV;
+      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
     }
   }
 
@@ -1483,7 +1483,7 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLu
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_Resolve;
+    draw.flags |= DrawFlags::Resolve;
 
     GLint numCols = 8;
     m_Real.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
@@ -1542,7 +1542,7 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLu
 
       if(dstattachment == srcattachment && srctype == dsttype)
       {
-        m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_Copy));
+        m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
       }
       else
       {
@@ -1552,13 +1552,13 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLu
            m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE &&
            m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
         {
-          m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_ResolveSrc));
-          m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, eUsage_ResolveDst));
+          m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveSrc));
+          m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveDst));
         }
         else
         {
-          m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_CopySrc));
-          m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, eUsage_CopyDst));
+          m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
+          m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
         }
       }
     }

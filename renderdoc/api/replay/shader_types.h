@@ -39,7 +39,7 @@ struct ShaderVariable
     name = "";
     rows = columns = 0;
     displayAsHex = isStruct = false;
-    type = eVar_Float;
+    type = VarType::Float;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
   }
@@ -51,7 +51,7 @@ struct ShaderVariable
     displayAsHex = isStruct = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
-    type = eVar_Float;
+    type = VarType::Float;
     value.f.x = x;
     value.f.y = y;
     value.f.z = z;
@@ -65,7 +65,7 @@ struct ShaderVariable
     displayAsHex = isStruct = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
-    type = eVar_Int;
+    type = VarType::Int;
     value.i.x = x;
     value.i.y = y;
     value.i.z = z;
@@ -79,7 +79,7 @@ struct ShaderVariable
     displayAsHex = isStruct = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
-    type = eVar_UInt;
+    type = VarType::UInt;
     value.u.x = x;
     value.u.y = y;
     value.u.z = z;
@@ -133,7 +133,7 @@ struct ShaderDebugState
   rdctype::array<rdctype::array<ShaderVariable> > indexableTemps;
 
   uint32_t nextInstruction;
-  uint32_t flags;
+  ShaderEvents flags;
 };
 
 struct ShaderDebugTrace
@@ -150,8 +150,8 @@ struct SigParameter
       : semanticIndex(0),
         needSemanticIndex(false),
         regIndex(0),
-        systemValue(eAttr_None),
-        compType(eCompType_Float),
+        systemValue(ShaderBuiltin::Undefined),
+        compType(CompType::Float),
         regChannelMask(0),
         channelUsedMask(0),
         compCount(0),
@@ -168,9 +168,9 @@ struct SigParameter
   bool32 needSemanticIndex;
 
   uint32_t regIndex;
-  SystemAttribute systemValue;
+  ShaderBuiltin systemValue;
 
-  FormatComponentType compType;
+  CompType compType;
 
   uint8_t regChannelMask;
   uint8_t channelUsedMask;
@@ -225,7 +225,7 @@ struct ShaderResource
   bool32 IsTexture;
   bool32 IsSRV;
 
-  ShaderResourceType resType;
+  TextureDim resType;
 
   rdctype::str name;
   ShaderVariableType variableType;

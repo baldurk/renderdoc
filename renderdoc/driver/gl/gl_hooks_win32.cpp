@@ -431,7 +431,7 @@ public:
   {
     GLWindowingData ret;
 
-    RDCASSERT(system == eWindowingSystem_Win32 || system == eWindowingSystem_Unknown, system);
+    RDCASSERT(system == WindowingSystem::Win32 || system == WindowingSystem::Unknown, system);
 
     HWND w = (HWND)data;
 

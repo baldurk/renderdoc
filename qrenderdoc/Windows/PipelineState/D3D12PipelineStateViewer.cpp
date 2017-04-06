@@ -436,7 +436,7 @@ bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12PipelineState::
   // in the case of the swapchain case, types can be different and it won't have shown
   // up as taking the view's format because the swapchain already has one. Make sure to mark it
   // as important
-  if(view.Format.compType != eCompType_None && view.Format != tex->format)
+  if(view.Format.compType != CompType::Typeless && view.Format != tex->format)
     return true;
 
   return false;
@@ -581,7 +581,7 @@ void D3D12PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewT
 }
 
 void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view,
-                                              const D3D12PipelineState::ShaderStage *stage,
+                                              const D3D12PipelineState::Shader *stage,
                                               RDTreeWidget *resources)
 {
   const QIcon &action = Icons::action();
@@ -675,7 +675,7 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view,
       name = tex->name;
       typeName = ToQStr(tex->resType);
 
-      if(tex->resType == eResType_Texture2DMS || tex->resType == eResType_Texture2DMSArray)
+      if(tex->resType == TextureDim::Texture2DMS || tex->resType == TextureDim::Texture2DMSArray)
       {
         typeName += QString(" %1x").arg(tex->msSamp);
       }
@@ -699,7 +699,7 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view,
       name = buf->name;
       typeName = "Buffer";
 
-      if(r.BufferFlags & RawBuffer)
+      if(r.BufferFlags & D3DBufferViewFlags::Raw)
       {
         typeName = QString("%1ByteAddressBuffer").arg(uav ? "RW" : "");
       }
@@ -720,7 +720,7 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view,
       {
         if(!shaderInput->variableType.members.empty())
           format = "struct " + ToQStr(shaderInput->variableType.descriptor.name);
-        else if(r.Format.compType == eCompType_None)
+        else if(r.Format.compType == CompType::Typeless)
           format = ToQStr(shaderInput->variableType.descriptor.name);
         else
           format = r.Format.strname;
@@ -775,7 +775,7 @@ bool D3D12PipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
   return false;
 }
 
-const D3D12PipelineState::ShaderStage *D3D12PipelineStateViewer::stageForSender(QWidget *widget)
+const D3D12PipelineState::Shader *D3D12PipelineStateViewer::stageForSender(QWidget *widget)
 {
   if(!m_Ctx.LogLoaded())
     return NULL;
@@ -876,20 +876,19 @@ void D3D12PipelineStateViewer::clearState()
   ui->stencils->clear();
 }
 
-void D3D12PipelineStateViewer::setShaderState(const D3D12PipelineState::ShaderStage &stage,
-                                              QLabel *shader, RDTreeWidget *resources,
-                                              RDTreeWidget *samplers, RDTreeWidget *cbuffers,
-                                              RDTreeWidget *uavs)
+void D3D12PipelineStateViewer::setShaderState(const D3D12PipelineState::Shader &stage, QLabel *shader,
+                                              RDTreeWidget *resources, RDTreeWidget *samplers,
+                                              RDTreeWidget *cbuffers, RDTreeWidget *uavs)
 {
   ShaderReflection *shaderDetails = stage.ShaderDetails;
   const D3D12PipelineState &state = m_Ctx.CurD3D12PipelineState;
 
-  if(stage.Shader == ResourceId())
+  if(stage.Object == ResourceId())
     shader->setText(tr("Unbound Shader"));
   else if(state.customName)
     shader->setText(ToQStr(state.PipelineName) + " - " + m_Ctx.CurPipelineState.Abbrev(stage.stage));
   else
-    shader->setText(ToQStr(state.PipelineName) + " - " + ToQStr(stage.stage, eGraphicsAPI_D3D12) +
+    shader->setText(ToQStr(state.PipelineName) + " - " + ToQStr(stage.stage, GraphicsAPI::D3D12) +
                     " Shader");
 
   if(shaderDetails && !shaderDetails->DebugInfo.entryFunc.empty() &&
@@ -1252,12 +1251,11 @@ void D3D12PipelineStateViewer::setState()
   ui->iaLayouts->setUpdatesEnabled(true);
   ui->iaLayouts->verticalScrollBar()->setValue(vs);
 
-  PrimitiveTopology topo = draw ? draw->topology : eTopology_Unknown;
+  Topology topo = draw ? draw->topology : Topology::Unknown;
 
-  if(topo > eTopology_PatchList)
+  int numCPs = PatchList_Count(topo);
+  if(numCPs > 0)
   {
-    int numCPs = (int)topo - (int)eTopology_PatchList_1CPs + 1;
-
     ui->topology->setText(QString("PatchList (%1 Control Points)").arg(numCPs));
   }
   else
@@ -1267,27 +1265,27 @@ void D3D12PipelineStateViewer::setState()
 
   switch(topo)
   {
-    case eTopology_PointList: ui->topologyDiagram->setPixmap(Pixmaps::topo_pointlist()); break;
-    case eTopology_LineList: ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist()); break;
-    case eTopology_LineStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip()); break;
-    case eTopology_TriangleList: ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist()); break;
-    case eTopology_TriangleStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip()); break;
-    case eTopology_LineList_Adj:
+    case Topology::PointList: ui->topologyDiagram->setPixmap(Pixmaps::topo_pointlist()); break;
+    case Topology::LineList: ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist()); break;
+    case Topology::LineStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip()); break;
+    case Topology::TriangleList: ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist()); break;
+    case Topology::TriangleStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip()); break;
+    case Topology::LineList_Adj:
       ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist_adj());
       break;
-    case eTopology_LineStrip_Adj:
+    case Topology::LineStrip_Adj:
       ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip_adj());
       break;
-    case eTopology_TriangleList_Adj:
+    case Topology::TriangleList_Adj:
       ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist_adj());
       break;
-    case eTopology_TriangleStrip_Adj:
+    case Topology::TriangleStrip_Adj:
       ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip_adj());
       break;
     default: ui->topologyDiagram->setPixmap(Pixmaps::topo_patch()); break;
   }
 
-  bool ibufferUsed = draw && (draw->flags & eDraw_UseIBuffer);
+  bool ibufferUsed = draw && (draw->flags & DrawFlags::UseIBuffer);
 
   vs = ui->iaBuffers->verticalScrollBar()->value();
   ui->iaBuffers->setUpdatesEnabled(false);
@@ -1507,8 +1505,8 @@ void D3D12PipelineStateViewer::setState()
   ui->scissors->verticalScrollBar()->setValue(vs);
   ui->scissors->setUpdatesEnabled(true);
 
-  ui->fillMode->setText(ToQStr(state.m_RS.m_State.FillMode));
-  ui->cullMode->setText(ToQStr(state.m_RS.m_State.CullMode));
+  ui->fillMode->setText(ToQStr(state.m_RS.m_State.fillMode));
+  ui->cullMode->setText(ToQStr(state.m_RS.m_State.cullMode));
   ui->frontCCW->setPixmap(state.m_RS.m_State.FrontCCW ? tick : cross);
 
   ui->lineAA->setPixmap(state.m_RS.m_State.AntialiasedLineEnable ? tick : cross);
@@ -1633,15 +1631,15 @@ void D3D12PipelineStateViewer::setState()
   {
     ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
   }
-  else if(draw->flags & eDraw_Dispatch)
+  else if(draw->flags & DrawFlags::Dispatch)
   {
     ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
   }
   else
   {
     ui->pipeFlow->setStagesEnabled(
-        {true, true, state.m_HS.Shader != ResourceId(), state.m_DS.Shader != ResourceId(),
-         state.m_GS.Shader != ResourceId(), true, state.m_PS.Shader != ResourceId(), true, false});
+        {true, true, state.m_HS.Object != ResourceId(), state.m_DS.Object != ResourceId(),
+         state.m_GS.Object != ResourceId(), true, state.m_PS.Object != ResourceId(), true, false});
   }
 }
 
@@ -1682,7 +1680,7 @@ QString D3D12PipelineStateViewer::formatMembers(int indent, const QString &namep
 
 void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int column)
 {
-  const D3D12PipelineState::ShaderStage *stage = stageForSender(item->treeWidget());
+  const D3D12PipelineState::Shader *stage = stageForSender(item->treeWidget());
 
   if(stage == NULL)
     return;
@@ -1707,7 +1705,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
 
   if(tex)
   {
-    if(tex->resType == eResType_Buffer)
+    if(tex->resType == TextureDim::Buffer)
     {
       BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
 
@@ -1824,14 +1822,14 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
           const ResourceFormat &fmt = view.res.Format;
           if(fmt.special)
           {
-            if(fmt.specialFormat == eSpecial_R10G10B10A2)
+            if(fmt.specialFormat == SpecialFormat::R10G10B10A2)
             {
-              if(fmt.compType == eCompType_UInt)
+              if(fmt.compType == CompType::UInt)
                 format = "uintten";
-              if(fmt.compType == eCompType_UNorm)
+              if(fmt.compType == CompType::UNorm)
                 format = "unormten";
             }
-            else if(fmt.specialFormat == eSpecial_R11G11B10)
+            else if(fmt.specialFormat == SpecialFormat::R11G11B10)
             {
               format = "floateleven";
             }
@@ -1842,47 +1840,47 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
             {
               case 1:
               {
-                if(fmt.compType == eCompType_UNorm)
+                if(fmt.compType == CompType::UNorm)
                   format = "unormb";
-                if(fmt.compType == eCompType_SNorm)
+                if(fmt.compType == CompType::SNorm)
                   format = "snormb";
-                if(fmt.compType == eCompType_UInt)
+                if(fmt.compType == CompType::UInt)
                   format = "ubyte";
-                if(fmt.compType == eCompType_SInt)
+                if(fmt.compType == CompType::SInt)
                   format = "byte";
                 break;
               }
               case 2:
               {
-                if(fmt.compType == eCompType_UNorm)
+                if(fmt.compType == CompType::UNorm)
                   format = "unormh";
-                if(fmt.compType == eCompType_SNorm)
+                if(fmt.compType == CompType::SNorm)
                   format = "snormh";
-                if(fmt.compType == eCompType_UInt)
+                if(fmt.compType == CompType::UInt)
                   format = "ushort";
-                if(fmt.compType == eCompType_SInt)
+                if(fmt.compType == CompType::SInt)
                   format = "short";
-                if(fmt.compType == eCompType_Float)
+                if(fmt.compType == CompType::Float)
                   format = "half";
                 break;
               }
               case 4:
               {
-                if(fmt.compType == eCompType_UNorm)
+                if(fmt.compType == CompType::UNorm)
                   format = "unormf";
-                if(fmt.compType == eCompType_SNorm)
+                if(fmt.compType == CompType::SNorm)
                   format = "snormf";
-                if(fmt.compType == eCompType_UInt)
+                if(fmt.compType == CompType::UInt)
                   format = "uint";
-                if(fmt.compType == eCompType_SInt)
+                if(fmt.compType == CompType::SInt)
                   format = "int";
-                if(fmt.compType == eCompType_Float)
+                if(fmt.compType == CompType::Float)
                   format = "float";
                 break;
               }
             }
 
-            if(view.res.BufferFlags & RawBuffer)
+            if(view.res.BufferFlags & D3DBufferViewFlags::Raw)
               format = "xint";
 
             format += fmt.compCount;
@@ -1908,7 +1906,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
 
 void D3D12PipelineStateViewer::cbuffer_itemActivated(QTreeWidgetItem *item, int column)
 {
-  const D3D12PipelineState::ShaderStage *stage = stageForSender(item->treeWidget());
+  const D3D12PipelineState::Shader *stage = stageForSender(item->treeWidget());
 
   if(stage == NULL)
     return;
@@ -2150,9 +2148,9 @@ void D3D12PipelineStateViewer::on_pipeFlow_stageSelected(int index)
 void D3D12PipelineStateViewer::shaderView_clicked()
 {
   QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
-  const D3D12PipelineState::ShaderStage *stage = stageForSender(sender);
+  const D3D12PipelineState::Shader *stage = stageForSender(sender);
 
-  if(stage == NULL || stage->Shader == ResourceId())
+  if(stage == NULL || stage->Object == ResourceId())
     return;
 
   ShaderViewer *shad = ShaderViewer::viewShader(
@@ -2169,9 +2167,9 @@ void D3D12PipelineStateViewer::shaderView_clicked()
 void D3D12PipelineStateViewer::shaderEdit_clicked()
 {
   QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
-  const D3D12PipelineState::ShaderStage *stage = stageForSender(sender);
+  const D3D12PipelineState::Shader *stage = stageForSender(sender);
 
-  if(!stage || stage->Shader == ResourceId())
+  if(!stage || stage->Object == ResourceId())
     return;
 
   const ShaderReflection *shaderDetails = stage->ShaderDetails;
@@ -2179,7 +2177,7 @@ void D3D12PipelineStateViewer::shaderEdit_clicked()
   if(!shaderDetails)
     return;
 
-  QString entryFunc = QString("EditedShader%1S").arg(ToQStr(stage->stage, eGraphicsAPI_D3D12)[0]);
+  QString entryFunc = QString("EditedShader%1S").arg(ToQStr(stage->stage, GraphicsAPI::D3D12)[0]);
 
   QString mainfile = "";
 
@@ -2199,12 +2197,12 @@ void D3D12PipelineStateViewer::shaderEdit_clicked()
   if(files.empty())
     return;
 
-  m_Common.EditShader(stage->stage, stage->Shader, shaderDetails, entryFunc, files, mainfile);
+  m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, files, mainfile);
 }
 
 void D3D12PipelineStateViewer::shaderSave_clicked()
 {
-  const D3D12PipelineState::ShaderStage *stage =
+  const D3D12PipelineState::Shader *stage =
       stageForSender(qobject_cast<QWidget *>(QObject::sender()));
 
   if(stage == NULL)
@@ -2212,7 +2210,7 @@ void D3D12PipelineStateViewer::shaderSave_clicked()
 
   ShaderReflection *shaderDetails = stage->ShaderDetails;
 
-  if(stage->Shader == ResourceId())
+  if(stage->Object == ResourceId())
     return;
 
   m_Common.SaveShaderFile(shaderDetails);

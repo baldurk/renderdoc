@@ -87,7 +87,7 @@ struct SPVModule
   SPVInstruction *GetByID(uint32_t id);
   string Disassemble(const string &entryPoint);
 
-  void MakeReflection(ShaderStageType stage, const string &entryPoint, ShaderReflection *reflection,
+  void MakeReflection(ShaderStage stage, const string &entryPoint, ShaderReflection *reflection,
                       ShaderBindpointMapping *mapping);
 };
 

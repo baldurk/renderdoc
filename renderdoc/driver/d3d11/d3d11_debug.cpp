@@ -422,7 +422,7 @@ ID3D11ComputeShader *D3D11DebugManager::MakeCShader(const char *source, const ch
 }
 
 void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t compileFlags,
-                                    ShaderStageType type, ResourceId *id, string *errors)
+                                    ShaderStage type, ResourceId *id, string *errors)
 {
   if(id == NULL || errors == NULL)
   {
@@ -435,12 +435,12 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
 
   switch(type)
   {
-    case eShaderStage_Vertex: profile = "vs_5_0"; break;
-    case eShaderStage_Hull: profile = "hs_5_0"; break;
-    case eShaderStage_Domain: profile = "ds_5_0"; break;
-    case eShaderStage_Geometry: profile = "gs_5_0"; break;
-    case eShaderStage_Pixel: profile = "ps_5_0"; break;
-    case eShaderStage_Compute: profile = "cs_5_0"; break;
+    case ShaderStage::Vertex: profile = "vs_5_0"; break;
+    case ShaderStage::Hull: profile = "hs_5_0"; break;
+    case ShaderStage::Domain: profile = "ds_5_0"; break;
+    case ShaderStage::Geometry: profile = "gs_5_0"; break;
+    case ShaderStage::Pixel: profile = "ps_5_0"; break;
+    case ShaderStage::Compute: profile = "cs_5_0"; break;
     default:
       RDCERR("Unexpected type in BuildShader!");
       *id = ResourceId();
@@ -458,7 +458,7 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
 
   switch(type)
   {
-    case eShaderStage_Vertex:
+    case ShaderStage::Vertex:
     {
       ID3D11VertexShader *sh = NULL;
       m_WrappedDevice->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
@@ -471,7 +471,7 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
         *id = ResourceId();
       return;
     }
-    case eShaderStage_Hull:
+    case ShaderStage::Hull:
     {
       ID3D11HullShader *sh = NULL;
       m_WrappedDevice->CreateHullShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
@@ -484,7 +484,7 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
         *id = ResourceId();
       return;
     }
-    case eShaderStage_Domain:
+    case ShaderStage::Domain:
     {
       ID3D11DomainShader *sh = NULL;
       m_WrappedDevice->CreateDomainShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
@@ -497,7 +497,7 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
         *id = ResourceId();
       return;
     }
-    case eShaderStage_Geometry:
+    case ShaderStage::Geometry:
     {
       ID3D11GeometryShader *sh = NULL;
       m_WrappedDevice->CreateGeometryShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL,
@@ -511,7 +511,7 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
         *id = ResourceId();
       return;
     }
-    case eShaderStage_Pixel:
+    case ShaderStage::Pixel:
     {
       ID3D11PixelShader *sh = NULL;
       m_WrappedDevice->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
@@ -524,7 +524,7 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
         *id = ResourceId();
       return;
     }
-    case eShaderStage_Compute:
+    case ShaderStage::Compute:
     {
       ID3D11ComputeShader *sh = NULL;
       m_WrappedDevice->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL,
@@ -1540,7 +1540,7 @@ void D3D11DebugManager::OutputWindow::MakeDSV()
 
 uint64_t D3D11DebugManager::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
-  RDCASSERT(system == eWindowingSystem_Win32, system);
+  RDCASSERT(system == WindowingSystem::Win32, system);
 
   OutputWindow outw;
   outw.wnd = (HWND)data;
@@ -1749,8 +1749,8 @@ uint32_t D3D11DebugManager::GetStructCount(ID3D11UnorderedAccessView *uav)
 }
 
 bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip,
-                                     uint32_t sample, FormatComponentType typeHint, float minval,
-                                     float maxval, bool channels[4], vector<uint32_t> &histogram)
+                                     uint32_t sample, CompType typeHint, float minval, float maxval,
+                                     bool channels[4], vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;
@@ -1864,8 +1864,8 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
   return true;
 }
 
-bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                                  FormatComponentType typeHint, float *minval, float *maxval)
+bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
+                                  uint32_t sample, CompType typeHint, float *minval, float *maxval)
 {
   TextureShaderDetails details = GetShaderDetails(texid, typeHint, true);
 
@@ -2184,7 +2184,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
   rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY;
   rtvDesc.Format =
-      depth ? GetUIntTypedFormat(descMS.Format) : GetTypedFormat(descMS.Format, eCompType_UInt);
+      depth ? GetUIntTypedFormat(descMS.Format) : GetTypedFormat(descMS.Format, CompType::UInt);
   rtvDesc.Texture2DMSArray.ArraySize = descMS.ArraySize;
   rtvDesc.Texture2DMSArray.FirstArraySlice = 0;
 
@@ -2198,7 +2198,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
   srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
   srvDesc.Format =
-      depth ? GetUIntTypedFormat(descArr.Format) : GetTypedFormat(descArr.Format, eCompType_UInt);
+      depth ? GetUIntTypedFormat(descArr.Format) : GetTypedFormat(descArr.Format, CompType::UInt);
   srvDesc.Texture2DArray.ArraySize = descArr.ArraySize;
   srvDesc.Texture2DArray.FirstArraySlice = 0;
   srvDesc.Texture2DArray.MipLevels = descArr.MipLevels;
@@ -2477,7 +2477,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
   rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
   rtvDesc.Format =
-      depth ? GetUIntTypedFormat(descArr.Format) : GetTypedFormat(descArr.Format, eCompType_UInt);
+      depth ? GetUIntTypedFormat(descArr.Format) : GetTypedFormat(descArr.Format, CompType::UInt);
   rtvDesc.Texture2DArray.FirstArraySlice = 0;
   rtvDesc.Texture2DArray.ArraySize = 1;
   rtvDesc.Texture2DArray.MipSlice = 0;
@@ -2493,7 +2493,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
   srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
   srvDesc.Format =
-      depth ? GetUIntTypedFormat(descMS.Format) : GetTypedFormat(descMS.Format, eCompType_UInt);
+      depth ? GetUIntTypedFormat(descMS.Format) : GetTypedFormat(descMS.Format, CompType::UInt);
   srvDesc.Texture2DMSArray.ArraySize = descMS.ArraySize;
   srvDesc.Texture2DMSArray.FirstArraySlice = 0;
 
@@ -2677,8 +2677,8 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   SAFE_RELEASE(srvResource);
 }
 
-D3D11DebugManager::CacheElem &D3D11DebugManager::GetCachedElem(ResourceId id,
-                                                               FormatComponentType typeHint, bool raw)
+D3D11DebugManager::CacheElem &D3D11DebugManager::GetCachedElem(ResourceId id, CompType typeHint,
+                                                               bool raw)
 {
   for(auto it = m_ShaderItemCache.begin(); it != m_ShaderItemCache.end(); ++it)
   {
@@ -2697,8 +2697,9 @@ D3D11DebugManager::CacheElem &D3D11DebugManager::GetCachedElem(ResourceId id,
   return m_ShaderItemCache.front();
 }
 
-D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(
-    ResourceId id, FormatComponentType typeHint, bool rawOutput)
+D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(ResourceId id,
+                                                                            CompType typeHint,
+                                                                            bool rawOutput)
 {
   TextureShaderDetails details;
   HRESULT hr = S_OK;
@@ -3429,12 +3430,12 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
     pixelData.OutputDisplayFormat = RESTYPE_TEX2D_MS;
   }
 
-  if(cfg.overlay == eTexOverlay_NaN)
+  if(cfg.overlay == DebugOverlay::NaN)
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_NANS;
   }
 
-  if(cfg.overlay == eTexOverlay_Clipping)
+  if(cfg.overlay == DebugOverlay::Clipping)
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_CLIPPING;
   }
@@ -3442,13 +3443,13 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   int srvOffset = 0;
 
   if(IsUIntFormat(details.texFmt) ||
-     (IsTypelessFormat(details.texFmt) && cfg.typeHint == eCompType_UInt))
+     (IsTypelessFormat(details.texFmt) && cfg.typeHint == CompType::UInt))
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_UINT_TEX;
     srvOffset = 10;
   }
   if(IsIntFormat(details.texFmt) ||
-     (IsTypelessFormat(details.texFmt) && cfg.typeHint == eCompType_SInt))
+     (IsTypelessFormat(details.texFmt) && cfg.typeHint == CompType::SInt))
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_SINT_TEX;
     srvOffset = 20;
@@ -3657,8 +3658,8 @@ MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID
 
   ret.compCount = 4;
   ret.compByteWidth = 4;
-  ret.compType = eCompType_Float;
-  ret.specialFormat = eSpecial_Unknown;
+  ret.compType = CompType::Float;
+  ret.specialFormat = SpecialFormat::Unknown;
 
   ret.showAlpha = false;
   ret.bgraOrder = false;
@@ -3795,7 +3796,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
       decl.StartComponent = 0;
       decl.ComponentCount = sign.compCount & 0xff;
 
-      if(sign.systemValue == eAttr_Position)
+      if(sign.systemValue == ShaderBuiltin::Position)
       {
         posidx = (int)sodecls.size();
         numPosComponents = decl.ComponentCount = 4;
@@ -3838,10 +3839,10 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
     ID3D11Buffer *idxBuf = NULL;
     DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
 
-    if((drawcall->flags & eDraw_UseIBuffer) == 0)
+    if(!(drawcall->flags & DrawFlags::UseIBuffer))
     {
       m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-      if(drawcall->flags & eDraw_Instanced)
+      if(drawcall->flags & DrawFlags::Instanced)
         m_pImmediateContext->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
                                            drawcall->vertexOffset, drawcall->instanceOffset);
       else
@@ -3940,7 +3941,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
       m_pImmediateContext->IASetIndexBuffer(idxBuf, DXGI_FORMAT_R32_UINT, 0);
       SAFE_RELEASE(idxBuf);
 
-      if(drawcall->flags & eDraw_Instanced)
+      if(drawcall->flags & DrawFlags::Instanced)
         m_pImmediateContext->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0,
                                                   0, drawcall->instanceOffset);
       else
@@ -4115,11 +4116,11 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
     m_PostVSData[eventID].vsout.nearPlane = nearp;
     m_PostVSData[eventID].vsout.farPlane = farp;
 
-    m_PostVSData[eventID].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
+    m_PostVSData[eventID].vsout.useIndices = bool(drawcall->flags & DrawFlags::UseIBuffer);
     m_PostVSData[eventID].vsout.numVerts = drawcall->numIndices;
 
     m_PostVSData[eventID].vsout.instStride = 0;
-    if(drawcall->flags & eDraw_Instanced)
+    if(drawcall->flags & DrawFlags::Instanced)
       m_PostVSData[eventID].vsout.instStride =
           bufferDesc.ByteWidth / RDCMAX(1U, drawcall->numInstances);
 
@@ -4179,7 +4180,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
       decl.StartComponent = 0;
       decl.ComponentCount = sign.compCount & 0xff;
 
-      if(sign.systemValue == eAttr_Position)
+      if(sign.systemValue == ShaderBuiltin::Position)
       {
         posidx = (int)sodecls.size();
         numPosComponents = decl.ComponentCount = 4;
@@ -4221,7 +4222,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     // instanced draws must be replayed one at a time so we can record the number of primitives from
     // each drawcall, as due to expansion this can vary per-instance.
-    if(drawcall->flags & eDraw_Instanced)
+    if(drawcall->flags & DrawFlags::Instanced)
     {
       // if there is only one instance it's a trivial case and we don't need to bother with the
       // expensive path
@@ -4248,7 +4249,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
         // difference how much each instance wrote.
         for(uint32_t inst = 1; inst <= drawcall->numInstances; inst++)
         {
-          if(drawcall->flags & eDraw_UseIBuffer)
+          if(drawcall->flags & DrawFlags::UseIBuffer)
           {
             m_pImmediateContext->SOSetTargets(1, &m_SOBuffer, &offset);
             m_pImmediateContext->Begin(m_SOStatsQueries[inst - 1]);
@@ -4271,7 +4272,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
       {
         m_pImmediateContext->Begin(m_SOStatsQueries[0]);
 
-        if(drawcall->flags & eDraw_UseIBuffer)
+        if(drawcall->flags & DrawFlags::UseIBuffer)
         {
           m_pImmediateContext->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
                                                     drawcall->indexOffset, drawcall->baseVertex,
@@ -4292,13 +4293,13 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
       // trying to stream out a stream-out-auto based drawcall would be bad!
       // instead just draw the number of verts we pre-calculated
-      if(drawcall->flags & eDraw_Auto)
+      if(drawcall->flags & DrawFlags::Auto)
       {
         m_pImmediateContext->Draw(drawcall->numIndices, 0);
       }
       else
       {
-        if(drawcall->flags & eDraw_UseIBuffer)
+        if(drawcall->flags & DrawFlags::UseIBuffer)
         {
           m_pImmediateContext->DrawIndexed(drawcall->numIndices, drawcall->indexOffset,
                                            drawcall->baseVertex);
@@ -4320,7 +4321,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
     D3D11_QUERY_DATA_SO_STATISTICS numPrims = {0};
     std::vector<D3D11PostVSData::InstData> instData;
 
-    if((drawcall->flags & eDraw_Instanced) && drawcall->numInstances > 1)
+    if((drawcall->flags & DrawFlags::Instanced) && drawcall->numInstances > 1)
     {
       uint64_t prevVertCount = 0;
 
@@ -4463,7 +4464,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     m_PostVSData[eventID].gsout.buf = gsoutBuffer;
     m_PostVSData[eventID].gsout.instStride = 0;
-    if(drawcall->flags & eDraw_Instanced)
+    if(drawcall->flags & DrawFlags::Instanced)
       m_PostVSData[eventID].gsout.instStride =
           bufferDesc.ByteWidth / RDCMAX(1U, drawcall->numInstances);
     m_PostVSData[eventID].gsout.vertStride = stride;
@@ -4533,7 +4534,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
         break;
     }
 
-    if(drawcall->flags & eDraw_Instanced)
+    if(drawcall->flags & DrawFlags::Instanced)
       m_PostVSData[eventID].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
 
     m_PostVSData[eventID].gsout.instData = instData;
@@ -4565,7 +4566,7 @@ FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, const 
   fmt.compCount = cfg.position.compCount;
   fmt.compType = cfg.position.compType;
 
-  if(cfg.position.specialFormat == eSpecial_R10G10B10A2)
+  if(cfg.position.specialFormat == SpecialFormat::R10G10B10A2)
   {
     if(data + 4 >= end)
     {
@@ -4580,7 +4581,7 @@ FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, const 
     ret.w = v.w;
     return ret;
   }
-  else if(cfg.position.specialFormat == eSpecial_R11G11B10)
+  else if(cfg.position.specialFormat == SpecialFormat::R11G11B10)
   {
     if(data + 4 >= end)
     {
@@ -4669,7 +4670,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   resFmt.compCount = cfg.position.compCount;
   resFmt.compType = cfg.position.compType;
   resFmt.special = false;
-  if(cfg.position.specialFormat != eSpecial_Unknown)
+  if(cfg.position.specialFormat != SpecialFormat::Unknown)
   {
     resFmt.special = true;
     resFmt.specialFormat = cfg.position.specialFormat;
@@ -4680,7 +4681,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   resFmt2.compCount = cfg.second.compCount;
   resFmt2.compType = cfg.second.compType;
   resFmt2.special = false;
-  if(cfg.second.specialFormat != eSpecial_Unknown)
+  if(cfg.second.specialFormat != SpecialFormat::Unknown)
   {
     resFmt2.special = true;
     resFmt2.specialFormat = cfg.second.specialFormat;
@@ -4696,7 +4697,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     layoutdesc[0].SemanticIndex = 0;
     layoutdesc[0].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     if(cfg.position.buf != ResourceId() &&
-       (cfg.position.specialFormat != eSpecial_Unknown || cfg.position.compCount > 0))
+       (cfg.position.specialFormat != SpecialFormat::Unknown || cfg.position.compCount > 0))
       layoutdesc[0].Format = MakeDXGIFormat(resFmt);
     layoutdesc[0].AlignedByteOffset = 0;    // offset will be handled by vertex buffer offset
     layoutdesc[0].InputSlot = 0;
@@ -4707,7 +4708,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     layoutdesc[1].SemanticIndex = 0;
     layoutdesc[1].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     if(cfg.second.buf != ResourceId() &&
-       (cfg.second.specialFormat != eSpecial_Unknown || cfg.second.compCount > 0))
+       (cfg.second.specialFormat != SpecialFormat::Unknown || cfg.second.compCount > 0))
       layoutdesc[1].Format = MakeDXGIFormat(resFmt2);
     layoutdesc[1].AlignedByteOffset = 0;
     layoutdesc[1].InputSlot = 1;
@@ -4858,14 +4859,14 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       m_pImmediateContext->IASetIndexBuffer(NULL, DXGI_FORMAT_UNKNOWN, NULL);
 
     // draw solid shaded mode
-    if(cfg.solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList_1CPs)
+    if(cfg.solidShadeMode != SolidShade::NoSolid && cfg.position.topo < Topology::PatchList_1CPs)
     {
       m_pImmediateContext->RSSetState(m_DebugRender.RastState);
 
       m_pImmediateContext->IASetPrimitiveTopology(topo);
 
       pixelData.OutputDisplayFormat = (int)cfg.solidShadeMode;
-      if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
+      if(cfg.solidShadeMode == SolidShade::Secondary && cfg.second.showAlpha)
         pixelData.OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
       FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
@@ -4875,7 +4876,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 
-      if(cfg.solidShadeMode == eShade_Lit)
+      if(cfg.solidShadeMode == SolidShade::Lit)
       {
         DebugGeometryCBuffer geomData;
 
@@ -4892,13 +4893,13 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       else
         m_pImmediateContext->Draw(cfg.position.numVerts, 0);
 
-      if(cfg.solidShadeMode == eShade_Lit)
+      if(cfg.solidShadeMode == SolidShade::Lit)
         m_pImmediateContext->GSSetShader(NULL, NULL, 0);
     }
 
     // draw wireframe mode
-    if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw ||
-       cfg.position.topo >= eTopology_PatchList_1CPs)
+    if(cfg.solidShadeMode == SolidShade::NoSolid || cfg.wireframeDraw ||
+       cfg.position.topo >= Topology::PatchList_1CPs)
     {
       m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
 
@@ -4914,7 +4915,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 
-      if(cfg.position.topo >= eTopology_PatchList_1CPs)
+      if(cfg.position.topo >= Topology::PatchList_1CPs)
         m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
       else
         m_pImmediateContext->IASetPrimitiveTopology(topo);
@@ -4987,7 +4988,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
       GetBufferData(cfg.position.buf, 0, 0, m_HighlightCache.data);
 
-      if(cfg.position.idxByteWidth == 0 || stage == eMeshDataStage_GSOut)
+      if(cfg.position.idxByteWidth == 0 || stage == MeshDataStage::GSOut)
       {
         m_HighlightCache.indices.clear();
         m_HighlightCache.useidx = false;

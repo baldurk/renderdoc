@@ -242,7 +242,7 @@ const uint32_t D3D11InitParams::D3D11_OLD_VERSIONS[D3D11InitParams::D3D11_NUM_SU
     0x00000A,
 };
 
-ReplayCreateStatus D3D11InitParams::Serialise()
+ReplayStatus D3D11InitParams::Serialise()
 {
   SERIALISE_ELEMENT(uint32_t, ver, D3D11_SERIALISE_VERSION);
   SerialiseVersion = ver;
@@ -266,7 +266,7 @@ ReplayCreateStatus D3D11InitParams::Serialise()
     {
       RDCERR("Incompatible D3D11 serialise version, expected %d got %d", D3D11_SERIALISE_VERSION,
              ver);
-      return eReplayCreate_APIIncompatibleVersion;
+      return ReplayStatus::APIIncompatibleVersion;
     }
   }
 
@@ -280,7 +280,7 @@ ReplayCreateStatus D3D11InitParams::Serialise()
   NumFeatureLevels = numlevels;
   m_pSerialiser->SerialisePODArray<ARRAY_COUNT(FeatureLevels)>("FeatureLevels", FeatureLevels);
 
-  return eReplayCreate_Success;
+  return ReplayStatus::Succeeded;
 }
 
 void WrappedID3D11Device::NewSwapchainBuffer(IUnknown *backbuffer)
@@ -891,13 +891,13 @@ void WrappedID3D11Device::LazyInit()
     m_DebugManager = new D3D11DebugManager(this);
 }
 
-void WrappedID3D11Device::AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv,
-                                          DebugMessageSource src, std::string d)
+void WrappedID3D11Device::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
+                                          std::string d)
 {
   // Only add runtime warnings while executing.
   // While reading, add the messages from the log, and while writing add messages
   // we add (on top of the API debug messages)
-  if(m_State != EXECUTING || src == eDbgSource_RuntimeWarning)
+  if(m_State != EXECUTING || src == MessageSource::RuntimeWarning)
   {
     DebugMessage msg;
     msg.eventID = m_State >= WRITING ? 0 : m_pImmediateContext->GetEventID();
@@ -913,7 +913,7 @@ void WrappedID3D11Device::AddDebugMessage(DebugMessageCategory c, DebugMessageSe
 
 void WrappedID3D11Device::AddDebugMessage(DebugMessage msg)
 {
-  if(m_State != EXECUTING || msg.source == eDbgSource_RuntimeWarning)
+  if(m_State != EXECUTING || msg.source == MessageSource::RuntimeWarning)
     m_DebugMessages.push_back(msg);
 }
 
@@ -946,37 +946,47 @@ vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
 
     DebugMessage msg;
     msg.eventID = 0;
-    msg.source = eDbgSource_API;
-    msg.category = eDbgCategory_Miscellaneous;
-    msg.severity = eDbgSeverity_Medium;
+    msg.source = MessageSource::API;
+    msg.category = MessageCategory::Miscellaneous;
+    msg.severity = MessageSeverity::Medium;
 
     switch(message->Category)
     {
       case D3D11_MESSAGE_CATEGORY_APPLICATION_DEFINED:
-        msg.category = eDbgCategory_Application_Defined;
+        msg.category = MessageCategory::Application_Defined;
         break;
-      case D3D11_MESSAGE_CATEGORY_MISCELLANEOUS: msg.category = eDbgCategory_Miscellaneous; break;
-      case D3D11_MESSAGE_CATEGORY_INITIALIZATION: msg.category = eDbgCategory_Initialization; break;
-      case D3D11_MESSAGE_CATEGORY_CLEANUP: msg.category = eDbgCategory_Cleanup; break;
-      case D3D11_MESSAGE_CATEGORY_COMPILATION: msg.category = eDbgCategory_Compilation; break;
-      case D3D11_MESSAGE_CATEGORY_STATE_CREATION: msg.category = eDbgCategory_State_Creation; break;
-      case D3D11_MESSAGE_CATEGORY_STATE_SETTING: msg.category = eDbgCategory_State_Setting; break;
-      case D3D11_MESSAGE_CATEGORY_STATE_GETTING: msg.category = eDbgCategory_State_Getting; break;
+      case D3D11_MESSAGE_CATEGORY_MISCELLANEOUS:
+        msg.category = MessageCategory::Miscellaneous;
+        break;
+      case D3D11_MESSAGE_CATEGORY_INITIALIZATION:
+        msg.category = MessageCategory::Initialization;
+        break;
+      case D3D11_MESSAGE_CATEGORY_CLEANUP: msg.category = MessageCategory::Cleanup; break;
+      case D3D11_MESSAGE_CATEGORY_COMPILATION: msg.category = MessageCategory::Compilation; break;
+      case D3D11_MESSAGE_CATEGORY_STATE_CREATION:
+        msg.category = MessageCategory::State_Creation;
+        break;
+      case D3D11_MESSAGE_CATEGORY_STATE_SETTING:
+        msg.category = MessageCategory::State_Setting;
+        break;
+      case D3D11_MESSAGE_CATEGORY_STATE_GETTING:
+        msg.category = MessageCategory::State_Getting;
+        break;
       case D3D11_MESSAGE_CATEGORY_RESOURCE_MANIPULATION:
-        msg.category = eDbgCategory_Resource_Manipulation;
+        msg.category = MessageCategory::Resource_Manipulation;
         break;
-      case D3D11_MESSAGE_CATEGORY_EXECUTION: msg.category = eDbgCategory_Execution; break;
-      case D3D11_MESSAGE_CATEGORY_SHADER: msg.category = eDbgCategory_Shaders; break;
+      case D3D11_MESSAGE_CATEGORY_EXECUTION: msg.category = MessageCategory::Execution; break;
+      case D3D11_MESSAGE_CATEGORY_SHADER: msg.category = MessageCategory::Shaders; break;
       default: RDCWARN("Unexpected message category: %d", message->Category); break;
     }
 
     switch(message->Severity)
     {
-      case D3D11_MESSAGE_SEVERITY_CORRUPTION: msg.severity = eDbgSeverity_High; break;
-      case D3D11_MESSAGE_SEVERITY_ERROR: msg.severity = eDbgSeverity_Medium; break;
-      case D3D11_MESSAGE_SEVERITY_WARNING: msg.severity = eDbgSeverity_Low; break;
-      case D3D11_MESSAGE_SEVERITY_INFO: msg.severity = eDbgSeverity_Info; break;
-      case D3D11_MESSAGE_SEVERITY_MESSAGE: msg.severity = eDbgSeverity_Info; break;
+      case D3D11_MESSAGE_SEVERITY_CORRUPTION: msg.severity = MessageSeverity::High; break;
+      case D3D11_MESSAGE_SEVERITY_ERROR: msg.severity = MessageSeverity::Medium; break;
+      case D3D11_MESSAGE_SEVERITY_WARNING: msg.severity = MessageSeverity::Low; break;
+      case D3D11_MESSAGE_SEVERITY_INFO: msg.severity = MessageSeverity::Info; break;
+      case D3D11_MESSAGE_SEVERITY_MESSAGE: msg.severity = MessageSeverity::Info; break;
       default: RDCWARN("Unexpected message severity: %d", message->Severity); break;
     }
 
@@ -1099,7 +1109,7 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
     // #mivance GL/Vulkan don't set this so don't get stats in window
     stats.recorded = 1;
 
-    for(uint32_t stage = eShaderStage_First; stage < eShaderStage_Count; stage++)
+    for(uint32_t stage = uint32_t(ShaderStage::First); stage < uint32_t(ShaderStage::Count); stage++)
     {
       create_array(stats.constants[stage].bindslots,
                    D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT + 1);
@@ -1107,12 +1117,12 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
 
       create_array(stats.samplers[stage].bindslots, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT + 1);
 
-      create_array(stats.resources[stage].types, eResType_Count);
+      create_array(stats.resources[stage].types, uint32_t(TextureDim::Count));
       create_array(stats.resources[stage].bindslots,
                    D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT + 1);
     }
 
-    create_array(stats.updates.types, eResType_Count);
+    create_array(stats.updates.types, uint32_t(TextureDim::Count));
     create_array(stats.updates.sizes, FetchFrameUpdateStats::BUCKET_COUNT);
 
     create_array(stats.draws.counts, FetchFrameDrawStats::BUCKET_COUNT);
@@ -2905,7 +2915,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
             bool buf1010102 = false;
             bool bufBGRA = (fmt.bgraOrder != false);
 
-            if(fmt.special && fmt.specialFormat == eSpecial_R10G10B10A2)
+            if(fmt.special && fmt.specialFormat == SpecialFormat::R10G10B10A2)
             {
               stride = 4;
               buf1010102 = true;

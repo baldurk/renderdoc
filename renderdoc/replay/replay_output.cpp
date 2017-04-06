@@ -32,7 +32,7 @@ static uint64_t GetHandle(WindowingSystem system, void *data)
 {
 #if ENABLED(RDOC_LINUX)
 
-  if(system == eWindowingSystem_Xlib)
+  if(system == WindowingSystem::Xlib)
   {
 #if ENABLED(RDOC_XLIB)
     return (uint64_t)((XlibWindowData *)data)->window;
@@ -41,7 +41,7 @@ static uint64_t GetHandle(WindowingSystem system, void *data)
 #endif
   }
 
-  if(system == eWindowingSystem_XCB)
+  if(system == WindowingSystem::XCB)
   {
 #if ENABLED(RDOC_XCB)
     return (uint64_t)((XCBWindowData *)data)->window;
@@ -56,12 +56,12 @@ static uint64_t GetHandle(WindowingSystem system, void *data)
 
 #elif ENABLED(RDOC_WIN32)
 
-  RDCASSERT(system == eWindowingSystem_Win32);
+  RDCASSERT(system == WindowingSystem::Win32);
   return (uint64_t)data;    // HWND
 
 #elif ENABLED(RDOC_ANDROID)
 
-  RDCASSERT(system == eWindowingSystem_Android);
+  RDCASSERT(system == WindowingSystem::Android);
   return (uint64_t)data;    // ANativeWindow *
 
 #else
@@ -69,7 +69,8 @@ static uint64_t GetHandle(WindowingSystem system, void *data)
 #endif
 }
 
-ReplayOutput::ReplayOutput(ReplayRenderer *parent, WindowingSystem system, void *data, OutputType type)
+ReplayOutput::ReplayOutput(ReplayRenderer *parent, WindowingSystem system, void *data,
+                           ReplayOutputType type)
 {
   m_pRenderer = parent;
 
@@ -93,11 +94,10 @@ ReplayOutput::ReplayOutput(ReplayRenderer *parent, WindowingSystem system, void 
   m_ContextX = -1.0f;
   m_ContextY = -1.0f;
 
-  m_Config.m_Type = type;
+  m_Type = type;
 
-  if(system != eWindowingSystem_Unknown)
-    m_MainOutput.outputID =
-        m_pDevice->MakeOutputWindow(system, data, type == eOutputType_MeshDisplay);
+  if(system != WindowingSystem::Unknown)
+    m_MainOutput.outputID = m_pDevice->MakeOutputWindow(system, data, type == ReplayOutputType::Mesh);
   else
     m_MainOutput.outputID = 0;
   m_MainOutput.texture = ResourceId();
@@ -117,20 +117,12 @@ ReplayOutput::~ReplayOutput()
   ClearThumbnails();
 }
 
-bool ReplayOutput::SetOutputConfig(const OutputConfig &o)
-{
-  m_OverlayDirty = true;
-  m_Config = o;
-  m_MainOutput.dirty = true;
-  return true;
-}
-
 bool ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
 {
   if(o.overlay != m_RenderData.texDisplay.overlay)
   {
-    if(m_RenderData.texDisplay.overlay == eTexOverlay_ClearBeforeDraw ||
-       m_RenderData.texDisplay.overlay == eTexOverlay_ClearBeforePass)
+    if(m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforeDraw ||
+       m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforePass)
     {
       // by necessity these overlays modify the actual texture, not an
       // independent overlay texture. So if we disable them, we must
@@ -175,25 +167,25 @@ void ReplayOutput::RefreshOverlay()
   bool postVSBuffers = false;
   bool postVSWholePass = false;
 
-  if(m_Config.m_Type == eOutputType_MeshDisplay && m_OverlayDirty)
+  if(m_Type == ReplayOutputType::Mesh && m_OverlayDirty)
   {
     postVSBuffers = true;
     postVSWholePass = m_RenderData.meshDisplay.showWholePass != 0;
   }
 
-  if(m_Config.m_Type == eOutputType_TexDisplay)
+  if(m_Type == ReplayOutputType::Texture)
   {
-    postVSBuffers = m_RenderData.texDisplay.overlay == eTexOverlay_TriangleSizePass ||
-                    m_RenderData.texDisplay.overlay == eTexOverlay_TriangleSizeDraw;
-    postVSWholePass = m_RenderData.texDisplay.overlay == eTexOverlay_TriangleSizePass;
+    postVSBuffers = m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizePass ||
+                    m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizeDraw;
+    postVSWholePass = m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizePass;
   }
 
   if(postVSBuffers)
   {
-    if(m_Config.m_Type == eOutputType_MeshDisplay)
+    if(m_Type == ReplayOutputType::Mesh)
       m_OverlayDirty = false;
 
-    if(draw != NULL && (draw->flags & eDraw_Drawcall))
+    if(draw != NULL && (draw->flags & DrawFlags::Drawcall))
     {
       m_pDevice->InitPostVSBuffers(draw->eventID);
 
@@ -206,7 +198,7 @@ void ReplayOutput::RefreshOverlay()
     }
   }
 
-  if(m_Config.m_Type == eOutputType_TexDisplay && m_RenderData.texDisplay.overlay != eTexOverlay_None)
+  if(m_Type == ReplayOutputType::Texture && m_RenderData.texDisplay.overlay != DebugOverlay::NoOverlay)
   {
     if(draw && m_pDevice->IsRenderOutput(m_RenderData.texDisplay.texid))
     {
@@ -244,7 +236,7 @@ bool ReplayOutput::SetPixelContext(WindowingSystem system, void *data)
 }
 
 bool ReplayOutput::AddThumbnail(WindowingSystem system, void *data, ResourceId texID,
-                                FormatComponentType typeHint)
+                                CompType typeHint)
 {
   OutputPair p;
 
@@ -256,8 +248,8 @@ bool ReplayOutput::AddThumbnail(WindowingSystem system, void *data, ResourceId t
   {
     if(m_pRenderer->m_Textures[t].ID == texID)
     {
-      depthMode = (m_pRenderer->m_Textures[t].creationFlags & eTextureCreate_DSV) > 0;
-      depthMode |= (m_pRenderer->m_Textures[t].format.compType == eCompType_Depth);
+      depthMode = (m_pRenderer->m_Textures[t].creationFlags & TextureCategory::DepthTarget) ||
+                  (m_pRenderer->m_Textures[t].format.compType == CompType::Depth);
       break;
     }
   }
@@ -306,7 +298,7 @@ bool ReplayOutput::GetMinMax(PixelValue *minval, PixelValue *maxval)
 
   ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.texid);
 
-  FormatComponentType typeHint = m_RenderData.texDisplay.typeHint;
+  CompType typeHint = m_RenderData.texDisplay.typeHint;
   uint32_t slice = m_RenderData.texDisplay.sliceFace;
   uint32_t mip = m_RenderData.texDisplay.mip;
   uint32_t sample = m_RenderData.texDisplay.sampleIdx;
@@ -314,7 +306,7 @@ bool ReplayOutput::GetMinMax(PixelValue *minval, PixelValue *maxval)
   if(m_RenderData.texDisplay.CustomShader != ResourceId() && m_CustomShaderResourceId != ResourceId())
   {
     tex = m_CustomShaderResourceId;
-    typeHint = eCompType_None;
+    typeHint = CompType::Typeless;
     slice = 0;
     sample = 0;
   }
@@ -332,7 +324,7 @@ bool ReplayOutput::GetHistogram(float minval, float maxval, bool channels[4],
 
   ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.texid);
 
-  FormatComponentType typeHint = m_RenderData.texDisplay.typeHint;
+  CompType typeHint = m_RenderData.texDisplay.typeHint;
   uint32_t slice = m_RenderData.texDisplay.sliceFace;
   uint32_t mip = m_RenderData.texDisplay.mip;
   uint32_t sample = m_RenderData.texDisplay.sampleIdx;
@@ -340,7 +332,7 @@ bool ReplayOutput::GetHistogram(float minval, float maxval, bool channels[4],
   if(m_RenderData.texDisplay.CustomShader != ResourceId() && m_CustomShaderResourceId != ResourceId())
   {
     tex = m_CustomShaderResourceId;
-    typeHint = eCompType_None;
+    typeHint = CompType::Typeless;
     slice = 0;
     sample = 0;
   }
@@ -364,23 +356,23 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
 
   bool decodeRamp = false;
 
-  FormatComponentType typeHint = m_RenderData.texDisplay.typeHint;
+  CompType typeHint = m_RenderData.texDisplay.typeHint;
 
   if(customShader && m_RenderData.texDisplay.CustomShader != ResourceId() &&
      m_CustomShaderResourceId != ResourceId())
   {
     tex = m_CustomShaderResourceId;
-    typeHint = eCompType_None;
+    typeHint = CompType::Typeless;
   }
-  if((m_RenderData.texDisplay.overlay == eTexOverlay_QuadOverdrawDraw ||
-      m_RenderData.texDisplay.overlay == eTexOverlay_QuadOverdrawPass ||
-      m_RenderData.texDisplay.overlay == eTexOverlay_TriangleSizeDraw ||
-      m_RenderData.texDisplay.overlay == eTexOverlay_TriangleSizePass) &&
+  if((m_RenderData.texDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
+      m_RenderData.texDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
+      m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizeDraw ||
+      m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizePass) &&
      m_OverlayResourceId != ResourceId())
   {
     decodeRamp = true;
     tex = m_OverlayResourceId;
-    typeHint = eCompType_None;
+    typeHint = CompType::Typeless;
   }
 
   m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sliceFace, mip, sample, typeHint,
@@ -403,8 +395,8 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
     }
 
     // decode back into approximate pixel size area
-    if(m_RenderData.texDisplay.overlay == eTexOverlay_TriangleSizePass ||
-       m_RenderData.texDisplay.overlay == eTexOverlay_TriangleSizeDraw)
+    if(m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizePass ||
+       m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizeDraw)
     {
       float bucket = (float)ret->value_i[0];
 
@@ -427,9 +419,9 @@ uint32_t ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint
 
   if(!draw)
     return ~0U;
-  if(m_RenderData.meshDisplay.type == eMeshDataStage_Unknown)
+  if(m_RenderData.meshDisplay.type == MeshDataStage::Unknown)
     return ~0U;
-  if((draw->flags & eDraw_Drawcall) == 0)
+  if(!(draw->flags & DrawFlags::Drawcall))
     return ~0U;
 
   MeshDisplay cfg = m_RenderData.meshDisplay;
@@ -446,7 +438,7 @@ uint32_t ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint
 
   // input data either doesn't vary with instance, or is trivial (all verts the same for that
   // element), so only care about fetching the right instance for post-VS stages
-  if((draw->flags & eDraw_Instanced) && m_RenderData.meshDisplay.type != eMeshDataStage_VSIn)
+  if((draw->flags & DrawFlags::Instanced) && m_RenderData.meshDisplay.type != MeshDataStage::VSIn)
   {
     // if no special options are enabled, just look at the current instance
     uint32_t firstInst = m_RenderData.meshDisplay.curInstance;
@@ -518,7 +510,7 @@ void ReplayOutput::DisplayContext()
   float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
   m_pDevice->BindOutputWindow(m_PixelContext.outputID, false);
 
-  if((m_Config.m_Type != eOutputType_TexDisplay) || (m_ContextX < 0.0f && m_ContextY < 0.0f) ||
+  if((m_Type != ReplayOutputType::Texture) || (m_ContextX < 0.0f && m_ContextY < 0.0f) ||
      (m_RenderData.texDisplay.texid == ResourceId()))
   {
     m_pDevice->RenderCheckerboard(Vec3f(0.81f, 0.81f, 0.81f), Vec3f(0.57f, 0.57f, 0.57f));
@@ -535,10 +527,10 @@ void ReplayOutput::DisplayContext()
   if(m_RenderData.texDisplay.CustomShader != ResourceId())
     disp.texid = m_CustomShaderResourceId;
 
-  if((m_RenderData.texDisplay.overlay == eTexOverlay_QuadOverdrawDraw ||
-      m_RenderData.texDisplay.overlay == eTexOverlay_QuadOverdrawPass ||
-      m_RenderData.texDisplay.overlay == eTexOverlay_TriangleSizeDraw ||
-      m_RenderData.texDisplay.overlay == eTexOverlay_TriangleSizePass) &&
+  if((m_RenderData.texDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
+      m_RenderData.texDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
+      m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizeDraw ||
+      m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizePass) &&
      m_OverlayResourceId != ResourceId())
     disp.texid = m_OverlayResourceId;
 
@@ -636,11 +628,11 @@ bool ReplayOutput::Display()
     disp.offx = 0.0f;
     disp.offy = 0.0f;
     disp.rawoutput = false;
-    disp.overlay = eTexOverlay_None;
+    disp.overlay = DebugOverlay::NoOverlay;
 
     disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector();
 
-    if(m_Thumbnails[i].typeHint == eCompType_SNorm)
+    if(m_Thumbnails[i].typeHint == CompType::SNorm)
       disp.rangemin = -1.0f;
 
     if(m_Thumbnails[i].depthMode)
@@ -667,11 +659,11 @@ bool ReplayOutput::Display()
 
   m_MainOutput.dirty = false;
 
-  switch(m_Config.m_Type)
+  switch(m_Type)
   {
-    case eOutputType_MeshDisplay: DisplayMesh(); break;
-    case eOutputType_TexDisplay: DisplayTex(); break;
-    default: RDCERR("Unexpected display type! %d", m_Config.m_Type); break;
+    case ReplayOutputType::Mesh: DisplayMesh(); break;
+    case ReplayOutputType::Texture: DisplayTex(); break;
+    default: RDCERR("Unexpected display type! %d", m_Type); break;
   }
 
   m_pDevice->FlipOutputWindow(m_MainOutput.outputID);
@@ -701,7 +693,7 @@ void ReplayOutput::DisplayTex()
   texDisplay.rawoutput = false;
   texDisplay.texid = m_pDevice->GetLiveID(texDisplay.texid);
 
-  if(m_RenderData.texDisplay.overlay != eTexOverlay_None && draw)
+  if(m_RenderData.texDisplay.overlay != DebugOverlay::NoOverlay && draw)
   {
     if(m_OverlayDirty)
     {
@@ -723,7 +715,7 @@ void ReplayOutput::DisplayTex()
         texDisplay.sliceFace, texDisplay.sampleIdx, texDisplay.typeHint);
 
     texDisplay.texid = m_pDevice->GetLiveID(m_CustomShaderResourceId);
-    texDisplay.typeHint = eCompType_None;
+    texDisplay.typeHint = CompType::Typeless;
     texDisplay.CustomShader = ResourceId();
     texDisplay.sliceFace = 0;
   }
@@ -741,10 +733,10 @@ void ReplayOutput::DisplayTex()
 
   m_pDevice->RenderTexture(texDisplay);
 
-  if(m_RenderData.texDisplay.overlay != eTexOverlay_None && draw &&
+  if(m_RenderData.texDisplay.overlay != DebugOverlay::NoOverlay && draw &&
      m_pDevice->IsRenderOutput(m_RenderData.texDisplay.texid) &&
-     m_RenderData.texDisplay.overlay != eTexOverlay_NaN &&
-     m_RenderData.texDisplay.overlay != eTexOverlay_Clipping)
+     m_RenderData.texDisplay.overlay != DebugOverlay::NaN &&
+     m_RenderData.texDisplay.overlay != DebugOverlay::Clipping)
   {
     RDCASSERT(m_OverlayResourceId != ResourceId());
     texDisplay.texid = m_pDevice->GetLiveID(m_OverlayResourceId);
@@ -766,7 +758,8 @@ void ReplayOutput::DisplayMesh()
   FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
 
   if(draw == NULL || m_MainOutput.outputID == 0 || m_Width <= 0 || m_Height <= 0 ||
-     (m_RenderData.meshDisplay.type == eMeshDataStage_Unknown) || (draw->flags & eDraw_Drawcall) == 0)
+     (m_RenderData.meshDisplay.type == MeshDataStage::Unknown) ||
+     !(draw->flags & DrawFlags::Drawcall))
   {
     float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
@@ -813,7 +806,7 @@ void ReplayOutput::DisplayMesh()
   // lighter grey with blue tinge to contrast from main/instance draws
   const FloatVector passDraws(0.2f, 0.2f, 0.25f, 1.0f);
 
-  if(m_RenderData.meshDisplay.type != eMeshDataStage_VSIn)
+  if(m_RenderData.meshDisplay.type != MeshDataStage::VSIn)
   {
     for(size_t i = 0; m_RenderData.meshDisplay.showWholePass && i < passEvents.size(); i++)
     {
@@ -824,9 +817,9 @@ void ReplayOutput::DisplayMesh()
         for(uint32_t inst = 0; inst < RDCMAX(1U, draw->numInstances); inst++)
         {
           // get the 'most final' stage
-          MeshFormat fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, eMeshDataStage_GSOut);
+          MeshFormat fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, MeshDataStage::GSOut);
           if(fmt.buf == ResourceId())
-            fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, eMeshDataStage_VSOut);
+            fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, MeshDataStage::VSOut);
 
           fmt.meshColour = passDraws;
 
@@ -838,7 +831,7 @@ void ReplayOutput::DisplayMesh()
     }
 
     // draw previous instances in the current drawcall
-    if(draw->flags & eDraw_Instanced)
+    if(draw->flags & DrawFlags::Instanced)
     {
       uint32_t maxInst = 0;
       if(m_RenderData.meshDisplay.showPrevInstances)
@@ -849,9 +842,9 @@ void ReplayOutput::DisplayMesh()
       for(uint32_t inst = 0; inst < maxInst; inst++)
       {
         // get the 'most final' stage
-        MeshFormat fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, eMeshDataStage_GSOut);
+        MeshFormat fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, MeshDataStage::GSOut);
         if(fmt.buf == ResourceId())
-          fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, eMeshDataStage_VSOut);
+          fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, MeshDataStage::VSOut);
 
         fmt.meshColour = otherInstances;
 
@@ -867,11 +860,6 @@ void ReplayOutput::DisplayMesh()
   m_pDevice->RenderMesh(m_EventID, secondaryDraws, mesh);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetOutputConfig(IReplayOutput *output,
-                                                                          const OutputConfig &o)
-{
-  return output->SetOutputConfig(o);
-}
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetTextureDisplay(IReplayOutput *output,
                                                                             const TextureDisplay &o)
 {
@@ -890,7 +878,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_ClearThumbnails(IRepla
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(IReplayOutput *output,
                                                                        WindowingSystem system,
                                                                        void *data, ResourceId texID,
-                                                                       FormatComponentType typeHint)
+                                                                       CompType typeHint)
 {
   return output->AddThumbnail(system, data, texID, typeHint);
 }

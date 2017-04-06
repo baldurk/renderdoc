@@ -190,7 +190,7 @@ struct SIGNElement
                           // after FourCC and chunk length.
 
   uint32_t semanticIdx;
-  uint32_t systemType;
+  SVSemantic systemType;
   uint32_t componentType;
   uint32_t registerNum;
 
@@ -240,64 +240,35 @@ int TypeByteSize(VariableType t)
   }
 }
 
-SystemAttribute GetSystemValue(uint32_t systemValue)
+ShaderBuiltin GetSystemValue(SVSemantic systemValue)
 {
-  enum DXBC_SVSemantic
-  {
-    SVNAME_UNDEFINED = 0,
-    SVNAME_POSITION,
-    SVNAME_CLIP_DISTANCE,
-    SVNAME_CULL_DISTANCE,
-    SVNAME_RENDER_TARGET_ARRAY_INDEX,
-    SVNAME_VIEWPORT_ARRAY_INDEX,
-    SVNAME_VERTEX_ID,
-    SVNAME_PRIMITIVE_ID,
-    SVNAME_INSTANCE_ID,
-    SVNAME_IS_FRONT_FACE,
-    SVNAME_SAMPLE_INDEX,
-
-    // following are non-contiguous
-    SVNAME_FINAL_QUAD_EDGE_TESSFACTOR,
-    SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR = SVNAME_FINAL_QUAD_EDGE_TESSFACTOR + 4,
-    SVNAME_FINAL_TRI_EDGE_TESSFACTOR = SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR + 2,
-    SVNAME_FINAL_TRI_INSIDE_TESSFACTOR = SVNAME_FINAL_TRI_EDGE_TESSFACTOR + 3,
-    SVNAME_FINAL_LINE_DETAIL_TESSFACTOR,
-    SVNAME_FINAL_LINE_DENSITY_TESSFACTOR,
-
-    SVNAME_TARGET = 64,
-    SVNAME_DEPTH,
-    SVNAME_COVERAGE,
-    SVNAME_DEPTH_GREATER_EQUAL,
-    SVNAME_DEPTH_LESS_EQUAL,
-  };
-
   switch(systemValue)
   {
-    case SVNAME_UNDEFINED: return eAttr_None;
-    case SVNAME_POSITION: return eAttr_Position;
-    case SVNAME_CLIP_DISTANCE: return eAttr_ClipDistance;
-    case SVNAME_CULL_DISTANCE: return eAttr_CullDistance;
-    case SVNAME_RENDER_TARGET_ARRAY_INDEX: return eAttr_RTIndex;
-    case SVNAME_VIEWPORT_ARRAY_INDEX: return eAttr_ViewportIndex;
-    case SVNAME_VERTEX_ID: return eAttr_VertexIndex;
-    case SVNAME_PRIMITIVE_ID: return eAttr_PrimitiveIndex;
-    case SVNAME_INSTANCE_ID: return eAttr_InstanceIndex;
-    case SVNAME_IS_FRONT_FACE: return eAttr_IsFrontFace;
-    case SVNAME_SAMPLE_INDEX: return eAttr_MSAASampleIndex;
-    case SVNAME_FINAL_QUAD_EDGE_TESSFACTOR: return eAttr_OuterTessFactor;
-    case SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR: return eAttr_InsideTessFactor;
-    case SVNAME_FINAL_TRI_EDGE_TESSFACTOR: return eAttr_OuterTessFactor;
-    case SVNAME_FINAL_TRI_INSIDE_TESSFACTOR: return eAttr_InsideTessFactor;
-    case SVNAME_FINAL_LINE_DETAIL_TESSFACTOR: return eAttr_OuterTessFactor;
-    case SVNAME_FINAL_LINE_DENSITY_TESSFACTOR: return eAttr_InsideTessFactor;
-    case SVNAME_TARGET: return eAttr_ColourOutput;
-    case SVNAME_DEPTH: return eAttr_DepthOutput;
-    case SVNAME_COVERAGE: return eAttr_MSAACoverage;
-    case SVNAME_DEPTH_GREATER_EQUAL: return eAttr_DepthOutputGreaterEqual;
-    case SVNAME_DEPTH_LESS_EQUAL: return eAttr_DepthOutputLessEqual;
+    case SVNAME_UNDEFINED: return ShaderBuiltin::Undefined;
+    case SVNAME_POSITION: return ShaderBuiltin::Position;
+    case SVNAME_CLIP_DISTANCE: return ShaderBuiltin::ClipDistance;
+    case SVNAME_CULL_DISTANCE: return ShaderBuiltin::CullDistance;
+    case SVNAME_RENDER_TARGET_ARRAY_INDEX: return ShaderBuiltin::RTIndex;
+    case SVNAME_VIEWPORT_ARRAY_INDEX: return ShaderBuiltin::ViewportIndex;
+    case SVNAME_VERTEX_ID: return ShaderBuiltin::VertexIndex;
+    case SVNAME_PRIMITIVE_ID: return ShaderBuiltin::PrimitiveIndex;
+    case SVNAME_INSTANCE_ID: return ShaderBuiltin::InstanceIndex;
+    case SVNAME_IS_FRONT_FACE: return ShaderBuiltin::IsFrontFace;
+    case SVNAME_SAMPLE_INDEX: return ShaderBuiltin::MSAASampleIndex;
+    case SVNAME_FINAL_QUAD_EDGE_TESSFACTOR: return ShaderBuiltin::OuterTessFactor;
+    case SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR: return ShaderBuiltin::InsideTessFactor;
+    case SVNAME_FINAL_TRI_EDGE_TESSFACTOR: return ShaderBuiltin::OuterTessFactor;
+    case SVNAME_FINAL_TRI_INSIDE_TESSFACTOR: return ShaderBuiltin::InsideTessFactor;
+    case SVNAME_FINAL_LINE_DETAIL_TESSFACTOR: return ShaderBuiltin::OuterTessFactor;
+    case SVNAME_FINAL_LINE_DENSITY_TESSFACTOR: return ShaderBuiltin::InsideTessFactor;
+    case SVNAME_TARGET: return ShaderBuiltin::ColourOutput;
+    case SVNAME_DEPTH: return ShaderBuiltin::DepthOutput;
+    case SVNAME_COVERAGE: return ShaderBuiltin::MSAACoverage;
+    case SVNAME_DEPTH_GREATER_EQUAL: return ShaderBuiltin::DepthOutputGreaterEqual;
+    case SVNAME_DEPTH_LESS_EQUAL: return ShaderBuiltin::DepthOutputLessEqual;
   }
 
-  return eAttr_None;
+  return ShaderBuiltin::Undefined;
 }
 
 string TypeName(CBufferVariableType::Descriptor desc)
@@ -899,11 +870,11 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         }
 
         ComponentType compType = (ComponentType)el->componentType;
-        desc.compType = eCompType_Float;
+        desc.compType = CompType::Float;
         if(compType == COMPONENT_TYPE_UINT32)
-          desc.compType = eCompType_UInt;
+          desc.compType = CompType::UInt;
         else if(compType == COMPONENT_TYPE_SINT32)
-          desc.compType = eCompType_SInt;
+          desc.compType = CompType::SInt;
         else if(compType != COMPONENT_TYPE_FLOAT32)
           RDCERR("Unexpected component type in signature");
 
@@ -919,64 +890,64 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         RDCASSERT(m_Type != (D3D11_ShaderType)-1);
 
         // pixel shader outputs with registers are always targets
-        if(m_Type == D3D11_ShaderType_Pixel && output && desc.systemValue == eAttr_None &&
-           desc.regIndex >= 0 && desc.regIndex <= 16)
-          desc.systemValue = eAttr_ColourOutput;
+        if(m_Type == D3D11_ShaderType_Pixel && output &&
+           desc.systemValue == ShaderBuiltin::Undefined && desc.regIndex >= 0 && desc.regIndex <= 16)
+          desc.systemValue = ShaderBuiltin::ColourOutput;
 
         // check system value semantics
-        if(desc.systemValue == eAttr_None)
+        if(desc.systemValue == ShaderBuiltin::Undefined)
         {
           if(!_stricmp(desc.semanticName.elems, "SV_Position"))
-            desc.systemValue = eAttr_Position;
+            desc.systemValue = ShaderBuiltin::Position;
           if(!_stricmp(desc.semanticName.elems, "SV_ClipDistance"))
-            desc.systemValue = eAttr_ClipDistance;
+            desc.systemValue = ShaderBuiltin::ClipDistance;
           if(!_stricmp(desc.semanticName.elems, "SV_CullDistance"))
-            desc.systemValue = eAttr_CullDistance;
+            desc.systemValue = ShaderBuiltin::CullDistance;
           if(!_stricmp(desc.semanticName.elems, "SV_RenderTargetArrayIndex"))
-            desc.systemValue = eAttr_RTIndex;
+            desc.systemValue = ShaderBuiltin::RTIndex;
           if(!_stricmp(desc.semanticName.elems, "SV_ViewportArrayIndex"))
-            desc.systemValue = eAttr_ViewportIndex;
+            desc.systemValue = ShaderBuiltin::ViewportIndex;
           if(!_stricmp(desc.semanticName.elems, "SV_VertexID"))
-            desc.systemValue = eAttr_VertexIndex;
+            desc.systemValue = ShaderBuiltin::VertexIndex;
           if(!_stricmp(desc.semanticName.elems, "SV_PrimitiveID"))
-            desc.systemValue = eAttr_PrimitiveIndex;
+            desc.systemValue = ShaderBuiltin::PrimitiveIndex;
           if(!_stricmp(desc.semanticName.elems, "SV_InstanceID"))
-            desc.systemValue = eAttr_InstanceIndex;
+            desc.systemValue = ShaderBuiltin::InstanceIndex;
           if(!_stricmp(desc.semanticName.elems, "SV_DispatchThreadID"))
-            desc.systemValue = eAttr_DispatchThreadIndex;
+            desc.systemValue = ShaderBuiltin::DispatchThreadIndex;
           if(!_stricmp(desc.semanticName.elems, "SV_GroupID"))
-            desc.systemValue = eAttr_GroupIndex;
+            desc.systemValue = ShaderBuiltin::GroupIndex;
           if(!_stricmp(desc.semanticName.elems, "SV_GroupIndex"))
-            desc.systemValue = eAttr_GroupFlatIndex;
+            desc.systemValue = ShaderBuiltin::GroupFlatIndex;
           if(!_stricmp(desc.semanticName.elems, "SV_GroupThreadID"))
-            desc.systemValue = eAttr_GroupThreadIndex;
+            desc.systemValue = ShaderBuiltin::GroupThreadIndex;
           if(!_stricmp(desc.semanticName.elems, "SV_GSInstanceID"))
-            desc.systemValue = eAttr_GSInstanceIndex;
+            desc.systemValue = ShaderBuiltin::GSInstanceIndex;
           if(!_stricmp(desc.semanticName.elems, "SV_OutputControlPointID"))
-            desc.systemValue = eAttr_OutputControlPointIndex;
+            desc.systemValue = ShaderBuiltin::OutputControlPointIndex;
           if(!_stricmp(desc.semanticName.elems, "SV_DomainLocation"))
-            desc.systemValue = eAttr_DomainLocation;
+            desc.systemValue = ShaderBuiltin::DomainLocation;
           if(!_stricmp(desc.semanticName.elems, "SV_IsFrontFace"))
-            desc.systemValue = eAttr_IsFrontFace;
+            desc.systemValue = ShaderBuiltin::IsFrontFace;
           if(!_stricmp(desc.semanticName.elems, "SV_SampleIndex"))
-            desc.systemValue = eAttr_MSAASampleIndex;
+            desc.systemValue = ShaderBuiltin::MSAASampleIndex;
           if(!_stricmp(desc.semanticName.elems, "SV_TessFactor"))
-            desc.systemValue = eAttr_OuterTessFactor;
+            desc.systemValue = ShaderBuiltin::OuterTessFactor;
           if(!_stricmp(desc.semanticName.elems, "SV_InsideTessFactor"))
-            desc.systemValue = eAttr_InsideTessFactor;
+            desc.systemValue = ShaderBuiltin::InsideTessFactor;
           if(!_stricmp(desc.semanticName.elems, "SV_Target"))
-            desc.systemValue = eAttr_ColourOutput;
+            desc.systemValue = ShaderBuiltin::ColourOutput;
           if(!_stricmp(desc.semanticName.elems, "SV_Depth"))
-            desc.systemValue = eAttr_DepthOutput;
+            desc.systemValue = ShaderBuiltin::DepthOutput;
           if(!_stricmp(desc.semanticName.elems, "SV_Coverage"))
-            desc.systemValue = eAttr_MSAACoverage;
+            desc.systemValue = ShaderBuiltin::MSAACoverage;
           if(!_stricmp(desc.semanticName.elems, "SV_DepthGreaterEqual"))
-            desc.systemValue = eAttr_DepthOutputGreaterEqual;
+            desc.systemValue = ShaderBuiltin::DepthOutputGreaterEqual;
           if(!_stricmp(desc.semanticName.elems, "SV_DepthLessEqual"))
-            desc.systemValue = eAttr_DepthOutputLessEqual;
+            desc.systemValue = ShaderBuiltin::DepthOutputLessEqual;
         }
 
-        RDCASSERT(desc.systemValue != eAttr_None || desc.regIndex >= 0);
+        RDCASSERT(desc.systemValue != ShaderBuiltin::Undefined || desc.regIndex >= 0);
 
         sig->push_back(desc);
 

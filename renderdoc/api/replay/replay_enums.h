@@ -25,590 +25,825 @@
 
 #pragma once
 
-enum DirectoryFileProperty
-{
-  eFileProp_Directory = 0x1,
-  eFileProp_Hidden = 0x2,
-  eFileProp_Executable = 0x4,
+#ifdef NO_ENUM_CLASS_OPERATORS
 
-  eFileProp_ErrorUnknown = 0x2000,
-  eFileProp_ErrorAccessDenied = 0x4000,
-  eFileProp_ErrorInvalidPath = 0x8000,
+#define BITMASK_OPERATORS(a)
+#define ITERABLE_OPERATORS(a)
+
+#else
+
+#include <type_traits>
+
+// helper template that allows the result of & to be cast back to the enum or explicitly cast to
+// bool for use in if() or ?: or so on or compared against 0.
+//
+// If you get an error about missing operator then you're probably doing something like
+// (bitfield & value) == 0 or (bitfield & value) != 0 or similar. Instead prefer:
+// !(bitfield & value)     or (bitfield & value) to make use of the bool cast directly
+template <typename enum_name>
+struct EnumCastHelper
+{
+public:
+  constexpr EnumCastHelper(enum_name v) : val(v) {}
+  constexpr operator enum_name() const { return val; }
+  constexpr explicit operator bool() const
+  {
+    typedef typename std::underlying_type<enum_name>::type etype;
+    return etype(val) != 0;
+  }
+
+private:
+  const enum_name val;
 };
+
+// helper templates for iterating over all values in an enum that has sequential values and is
+// to be used for array indices or something like that.
+template <typename enum_name>
+struct ValueIterContainer
+{
+  struct ValueIter
+  {
+    ValueIter(enum_name v) : val(v) {}
+    enum_name val;
+    enum_name operator*() const { return val; }
+    bool operator!=(const ValueIter &it) const { return !(val == *it); }
+    const inline enum_name operator++()
+    {
+      ++val;
+      return val;
+    }
+  };
+
+  ValueIter begin() { return ValueIter(enum_name::First); }
+  ValueIter end() { return ValueIter(enum_name::Count); }
+};
+
+template <typename enum_name>
+struct IndexIterContainer
+{
+  typedef typename std::underlying_type<enum_name>::type etype;
+
+  struct IndexIter
+  {
+    IndexIter(enum_name v) : val(v) {}
+    enum_name val;
+    etype operator*() const { return etype(val); }
+    bool operator!=(const IndexIter &it) const { return !(val == it.val); }
+    const inline enum_name operator++()
+    {
+      ++val;
+      return val;
+    }
+  };
+
+  IndexIter begin() { return IndexIter(enum_name::First); }
+  IndexIter end() { return IndexIter(enum_name::Count); }
+};
+
+template <typename enum_name>
+constexpr inline ValueIterContainer<enum_name> values()
+{
+  return ValueIterContainer<enum_name>();
+};
+
+template <typename enum_name>
+constexpr inline IndexIterContainer<enum_name> indices()
+{
+  return IndexIterContainer<enum_name>();
+};
+
+template <typename enum_name>
+constexpr inline size_t arraydim()
+{
+  typedef typename std::underlying_type<enum_name>::type etype;
+  return (size_t)etype(enum_name::Count);
+};
+
+// clang-format makes a even more of a mess of this multi-line macro than it usually does, for some
+// reason. So we just disable it since it's still readable and this isn't really the intended case
+// we are using clang-format for.
+
+// clang-format off
+#define BITMASK_OPERATORS(enum_name)                                           \
+                                                                               \
+constexpr inline enum_name operator|(enum_name a, enum_name b)                 \
+{                                                                              \
+  typedef typename std::underlying_type<enum_name>::type etype;                \
+  return enum_name(etype(a) | etype(b));                                       \
+}                                                                              \
+                                                                               \
+constexpr inline EnumCastHelper<enum_name> operator&(enum_name a, enum_name b) \
+{                                                                              \
+  typedef typename std::underlying_type<enum_name>::type etype;                \
+  return EnumCastHelper<enum_name>(enum_name(etype(a) & etype(b)));            \
+}                                                                              \
+                                                                               \
+constexpr inline enum_name operator~(enum_name a)                              \
+{                                                                              \
+  typedef typename std::underlying_type<enum_name>::type etype;                \
+  return enum_name(~etype(a));                                                 \
+}                                                                              \
+                                                                               \
+inline enum_name &operator|=(enum_name &a, enum_name b)                        \
+{ return a = a | b; }                                                          \
+                                                                               \
+inline enum_name &operator&=(enum_name &a, enum_name b)                        \
+{ return a = a & b; }
+
+#define ITERABLE_OPERATORS(enum_name)                                          \
+                                                                               \
+inline enum_name operator++(enum_name &a)                                      \
+{                                                                              \
+  typedef typename std::underlying_type<enum_name>::type etype;                \
+  return a = enum_name(etype(a)+1);                                            \
+}
+// clang-format on
+
+#endif
+
+#define ENUM_ARRAY_SIZE(enum_name) size_t(enum_name::Count)
+
+enum class FileProperty : uint32_t
+{
+  NoFlags = 0x0,
+  Directory = 0x1,
+  Hidden = 0x2,
+  Executable = 0x4,
+
+  ErrorUnknown = 0x2000,
+  ErrorAccessDenied = 0x4000,
+  ErrorInvalidPath = 0x8000,
+};
+
+BITMASK_OPERATORS(FileProperty);
 
 // replay_shader.h
 
-enum VarType
+enum class VarType : uint32_t
 {
-  eVar_Unknown = -1,
-  eVar_Float = 0,
-  eVar_Int,
-  eVar_UInt,
-  eVar_Double,
+  Float = 0,
+  Int,
+  UInt,
+  Double,
+  Unknown = ~0U,
 };
 
-enum FormatComponentType
+enum class CompType : uint32_t
 {
-  eCompType_None = 0,
-  eCompType_Float,
-  eCompType_UNorm,
-  eCompType_SNorm,
-  eCompType_UInt,
-  eCompType_SInt,
-  eCompType_UScaled,
-  eCompType_SScaled,
-  eCompType_Depth,
-  eCompType_Double,
+  Typeless = 0,
+  Float,
+  UNorm,
+  SNorm,
+  UInt,
+  SInt,
+  UScaled,
+  SScaled,
+  Depth,
+  Double,
 };
 
-enum TextureSwizzle
+enum class TextureSwizzle : uint32_t
 {
-  eSwizzle_Red,
-  eSwizzle_Green,
-  eSwizzle_Blue,
-  eSwizzle_Alpha,
-  eSwizzle_Zero,
-  eSwizzle_One,
+  Red,
+  Green,
+  Blue,
+  Alpha,
+  Zero,
+  One,
 };
 
-enum ShaderResourceType
+enum class TextureDim : uint32_t
 {
-  eResType_None,
-  eResType_Buffer,
-  eResType_Texture1D,
-  eResType_Texture1DArray,
-  eResType_Texture2D,
-  eResType_TextureRect,
-  eResType_Texture2DArray,
-  eResType_Texture2DMS,
-  eResType_Texture2DMSArray,
-  eResType_Texture3D,
-  eResType_TextureCube,
-  eResType_TextureCubeArray,
-  eResType_Count,
+  Unknown,
+  First = Unknown,
+  Buffer,
+  Texture1D,
+  Texture1DArray,
+  Texture2D,
+  TextureRect,
+  Texture2DArray,
+  Texture2DMS,
+  Texture2DMSArray,
+  Texture3D,
+  TextureCube,
+  TextureCubeArray,
+  Count,
 };
 
-enum ShaderBindType
+ITERABLE_OPERATORS(TextureDim);
+
+enum class BindType : uint32_t
 {
-  eBindType_Unknown = 0,
-  eBindType_ConstantBuffer,
-  eBindType_Sampler,
-  eBindType_ImageSampler,
-  eBindType_ReadOnlyImage,
-  eBindType_ReadWriteImage,
-  eBindType_ReadOnlyTBuffer,
-  eBindType_ReadWriteTBuffer,
-  eBindType_ReadOnlyBuffer,
-  eBindType_ReadWriteBuffer,
-  eBindType_InputAttachment,
+  Unknown = 0,
+  ConstantBuffer,
+  Sampler,
+  ImageSampler,
+  ReadOnlyImage,
+  ReadWriteImage,
+  ReadOnlyTBuffer,
+  ReadWriteTBuffer,
+  ReadOnlyBuffer,
+  ReadWriteBuffer,
+  InputAttachment,
 };
 
-enum SystemAttribute
+enum class ShaderBuiltin : uint32_t
 {
-  eAttr_None = 0,
-  eAttr_Position,
-  eAttr_PointSize,
-  eAttr_ClipDistance,
-  eAttr_CullDistance,
-  eAttr_RTIndex,
-  eAttr_ViewportIndex,
-  eAttr_VertexIndex,
-  eAttr_PrimitiveIndex,
-  eAttr_InstanceIndex,
-  eAttr_InvocationIndex,
-  eAttr_DispatchSize,
-  eAttr_DispatchThreadIndex,
-  eAttr_GroupIndex,
-  eAttr_GroupFlatIndex,
-  eAttr_GroupThreadIndex,
-  eAttr_GSInstanceIndex,
-  eAttr_OutputControlPointIndex,
-  eAttr_DomainLocation,
-  eAttr_IsFrontFace,
-  eAttr_MSAACoverage,
-  eAttr_MSAASamplePosition,
-  eAttr_MSAASampleIndex,
-  eAttr_PatchNumVertices,
-  eAttr_OuterTessFactor,
-  eAttr_InsideTessFactor,
-  eAttr_ColourOutput,
-  eAttr_DepthOutput,
-  eAttr_DepthOutputGreaterEqual,
-  eAttr_DepthOutputLessEqual,
+  Undefined = 0,
+  Position,
+  PointSize,
+  ClipDistance,
+  CullDistance,
+  RTIndex,
+  ViewportIndex,
+  VertexIndex,
+  PrimitiveIndex,
+  InstanceIndex,
+  InvocationIndex,
+  DispatchSize,
+  DispatchThreadIndex,
+  GroupIndex,
+  GroupFlatIndex,
+  GroupThreadIndex,
+  GSInstanceIndex,
+  OutputControlPointIndex,
+  DomainLocation,
+  IsFrontFace,
+  MSAACoverage,
+  MSAASamplePosition,
+  MSAASampleIndex,
+  PatchNumVertices,
+  OuterTessFactor,
+  InsideTessFactor,
+  ColourOutput,
+  DepthOutput,
+  DepthOutputGreaterEqual,
+  DepthOutputLessEqual,
 };
 
 // replay_render.h
 
-enum OutputType
+enum class ReplayOutputType : uint32_t
 {
-  eOutputType_None = 0,
-  eOutputType_TexDisplay,
-  eOutputType_MeshDisplay,
+  Headless = 0,
+  Texture,
+  Mesh,
 };
 
-enum MeshDataStage
+enum class MeshDataStage : uint32_t
 {
-  eMeshDataStage_Unknown = 0,
-  eMeshDataStage_VSIn,
-  eMeshDataStage_VSOut,
-  eMeshDataStage_GSOut,
+  Unknown = 0,
+  VSIn,
+  VSOut,
+  GSOut,
 };
 
-enum TextureDisplayOverlay
+enum class DebugOverlay : uint32_t
 {
-  eTexOverlay_None = 0,
-  eTexOverlay_Drawcall,
-  eTexOverlay_Wireframe,
-  eTexOverlay_Depth,
-  eTexOverlay_Stencil,
-  eTexOverlay_BackfaceCull,
-  eTexOverlay_ViewportScissor,
-  eTexOverlay_NaN,
-  eTexOverlay_Clipping,
-  eTexOverlay_ClearBeforePass,
-  eTexOverlay_ClearBeforeDraw,
-  eTexOverlay_QuadOverdrawPass,
-  eTexOverlay_QuadOverdrawDraw,
-  eTexOverlay_TriangleSizePass,
-  eTexOverlay_TriangleSizeDraw,
+  NoOverlay = 0,
+  Drawcall,
+  Wireframe,
+  Depth,
+  Stencil,
+  BackfaceCull,
+  ViewportScissor,
+  NaN,
+  Clipping,
+  ClearBeforePass,
+  ClearBeforeDraw,
+  QuadOverdrawPass,
+  QuadOverdrawDraw,
+  TriangleSizePass,
+  TriangleSizeDraw,
 };
 
-enum FileType
+enum class FileType : uint32_t
 {
-  eFileType_DDS,
-  eFileType_PNG,
-  eFileType_JPG,
-  eFileType_BMP,
-  eFileType_TGA,
-  eFileType_HDR,
-  eFileType_EXR,
-  eFileType_Count,
+  DDS,
+  First = DDS,
+  PNG,
+  JPG,
+  BMP,
+  TGA,
+  HDR,
+  EXR,
+  Count,
 };
 
-enum AlphaMapping
+ITERABLE_OPERATORS(FileType);
+
+enum class AlphaMapping : uint32_t
 {
-  eAlphaMap_Discard,
-  eAlphaMap_BlendToColour,
-  eAlphaMap_BlendToCheckerboard,
-  eAlphaMap_Preserve,
-  eAlphaMap_Count,
+  Discard,
+  First = Discard,
+  BlendToColour,
+  BlendToCheckerboard,
+  Preserve,
+  Count,
 };
 
-enum SpecialFormat
+ITERABLE_OPERATORS(AlphaMapping);
+
+enum class SpecialFormat : uint32_t
 {
-  eSpecial_Unknown = 0,
-  eSpecial_BC1,
-  eSpecial_BC2,
-  eSpecial_BC3,
-  eSpecial_BC4,
-  eSpecial_BC5,
-  eSpecial_BC6,
-  eSpecial_BC7,
-  eSpecial_ETC2,
-  eSpecial_EAC,
-  eSpecial_ASTC,
-  eSpecial_R10G10B10A2,
-  eSpecial_R11G11B10,
-  eSpecial_R5G6B5,
-  eSpecial_R5G5B5A1,
-  eSpecial_R9G9B9E5,
-  eSpecial_R4G4B4A4,
-  eSpecial_R4G4,
-  eSpecial_D16S8,
-  eSpecial_D24S8,
-  eSpecial_D32S8,
-  eSpecial_S8,
-  eSpecial_YUV,
+  Unknown = 0,
+  BC1,
+  BC2,
+  BC3,
+  BC4,
+  BC5,
+  BC6,
+  BC7,
+  ETC2,
+  EAC,
+  ASTC,
+  R10G10B10A2,
+  R11G11B10,
+  R5G6B5,
+  R5G5B5A1,
+  R9G9B9E5,
+  R4G4B4A4,
+  R4G4,
+  D16S8,
+  D24S8,
+  D32S8,
+  S8,
+  YUV,
 };
 
-enum QualityHint
+enum class QualityHint : uint32_t
 {
-  eQuality_DontCare,
-  eQuality_Nicest,
-  eQuality_Fastest,
+  DontCare,
+  Nicest,
+  Fastest,
 };
 
-enum GraphicsAPI
+enum class GraphicsAPI : uint32_t
 {
-  eGraphicsAPI_D3D11,
-  eGraphicsAPI_D3D12,
-  eGraphicsAPI_OpenGL,
-  eGraphicsAPI_Vulkan,
+  D3D11,
+  D3D12,
+  OpenGL,
+  Vulkan,
 };
 
-inline bool IsD3D(GraphicsAPI api)
+constexpr inline bool IsD3D(GraphicsAPI api)
 {
-  return api == eGraphicsAPI_D3D11 || api == eGraphicsAPI_D3D12;
+  return api == GraphicsAPI::D3D11 || api == GraphicsAPI::D3D12;
 }
 
-enum PrimitiveTopology
+enum class Topology : uint32_t
 {
-  eTopology_Unknown,
-  eTopology_PointList,
-  eTopology_LineList,
-  eTopology_LineStrip,
-  eTopology_LineLoop,
-  eTopology_TriangleList,
-  eTopology_TriangleStrip,
-  eTopology_TriangleFan,
-  eTopology_LineList_Adj,
-  eTopology_LineStrip_Adj,
-  eTopology_TriangleList_Adj,
-  eTopology_TriangleStrip_Adj,
-  eTopology_PatchList,
-  eTopology_PatchList_1CPs = eTopology_PatchList,
-  eTopology_PatchList_2CPs,
-  eTopology_PatchList_3CPs,
-  eTopology_PatchList_4CPs,
-  eTopology_PatchList_5CPs,
-  eTopology_PatchList_6CPs,
-  eTopology_PatchList_7CPs,
-  eTopology_PatchList_8CPs,
-  eTopology_PatchList_9CPs,
-  eTopology_PatchList_10CPs,
-  eTopology_PatchList_11CPs,
-  eTopology_PatchList_12CPs,
-  eTopology_PatchList_13CPs,
-  eTopology_PatchList_14CPs,
-  eTopology_PatchList_15CPs,
-  eTopology_PatchList_16CPs,
-  eTopology_PatchList_17CPs,
-  eTopology_PatchList_18CPs,
-  eTopology_PatchList_19CPs,
-  eTopology_PatchList_20CPs,
-  eTopology_PatchList_21CPs,
-  eTopology_PatchList_22CPs,
-  eTopology_PatchList_23CPs,
-  eTopology_PatchList_24CPs,
-  eTopology_PatchList_25CPs,
-  eTopology_PatchList_26CPs,
-  eTopology_PatchList_27CPs,
-  eTopology_PatchList_28CPs,
-  eTopology_PatchList_29CPs,
-  eTopology_PatchList_30CPs,
-  eTopology_PatchList_31CPs,
-  eTopology_PatchList_32CPs,
+  Unknown,
+  PointList,
+  LineList,
+  LineStrip,
+  LineLoop,
+  TriangleList,
+  TriangleStrip,
+  TriangleFan,
+  LineList_Adj,
+  LineStrip_Adj,
+  TriangleList_Adj,
+  TriangleStrip_Adj,
+  PatchList,
+  PatchList_1CPs = PatchList,
+  PatchList_2CPs,
+  PatchList_3CPs,
+  PatchList_4CPs,
+  PatchList_5CPs,
+  PatchList_6CPs,
+  PatchList_7CPs,
+  PatchList_8CPs,
+  PatchList_9CPs,
+  PatchList_10CPs,
+  PatchList_11CPs,
+  PatchList_12CPs,
+  PatchList_13CPs,
+  PatchList_14CPs,
+  PatchList_15CPs,
+  PatchList_16CPs,
+  PatchList_17CPs,
+  PatchList_18CPs,
+  PatchList_19CPs,
+  PatchList_20CPs,
+  PatchList_21CPs,
+  PatchList_22CPs,
+  PatchList_23CPs,
+  PatchList_24CPs,
+  PatchList_25CPs,
+  PatchList_26CPs,
+  PatchList_27CPs,
+  PatchList_28CPs,
+  PatchList_29CPs,
+  PatchList_30CPs,
+  PatchList_31CPs,
+  PatchList_32CPs,
 };
 
-enum BufferCreationFlags
+constexpr inline Topology PatchList_Topology(uint32_t N)
 {
-  eBufferCreate_VB = 0x1,
-  eBufferCreate_IB = 0x2,
-  eBufferCreate_CB = 0x4,
-  eBufferCreate_UAV = 0x8,
-  eBufferCreate_Indirect = 0x10,
+  return (N < 1 || N > 32) ? Topology::PatchList_1CPs
+                           : Topology(uint32_t(Topology::PatchList_1CPs) + N - 1);
+}
+
+constexpr inline uint32_t PatchList_Count(Topology t)
+{
+  return uint32_t(t) < uint32_t(Topology::PatchList_1CPs)
+             ? 0
+             : uint32_t(t) - uint32_t(Topology::PatchList_1CPs);
+}
+
+enum class BufferCategory : uint32_t
+{
+  NoFlags = 0x0,
+  Vertex = 0x1,
+  Index = 0x2,
+  Constants = 0x4,
+  ReadWrite = 0x8,
+  Indirect = 0x10,
 };
 
-enum TextureCreationFlags
+BITMASK_OPERATORS(BufferCategory);
+
+enum class D3DBufferViewFlags : uint32_t
 {
-  eTextureCreate_SRV = 0x1,
-  eTextureCreate_RTV = 0x2,
-  eTextureCreate_DSV = 0x4,
-  eTextureCreate_UAV = 0x8,
-  eTextureCreate_SwapBuffer = 0x10,
+  NoFlags = 0x0,
+  Raw = 0x1,
+  Append = 0x2,
+  Counter = 0x4,
 };
 
-enum ShaderStageType
+BITMASK_OPERATORS(D3DBufferViewFlags);
+
+enum class TextureCategory : uint32_t
 {
-  eShaderStage_Vertex = 0,
-  eShaderStage_First = eShaderStage_Vertex,
-
-  eShaderStage_Hull,
-  eShaderStage_Tess_Control = eShaderStage_Hull,
-
-  eShaderStage_Domain,
-  eShaderStage_Tess_Eval = eShaderStage_Domain,
-
-  eShaderStage_Geometry,
-
-  eShaderStage_Pixel,
-  eShaderStage_Fragment = eShaderStage_Pixel,
-
-  eShaderStage_Compute,
-
-  eShaderStage_Count,
+  NoFlags = 0x0,
+  ShaderRead = 0x1,
+  ColorTarget = 0x2,
+  DepthTarget = 0x4,
+  ShaderReadWrite = 0x8,
+  SwapBuffer = 0x10,
 };
 
-enum ShaderStageBits
+BITMASK_OPERATORS(TextureCategory);
+
+enum class ShaderStage : uint32_t
 {
-  eStageBits_None = 0,
-  eStageBits_Vertex = 1 << eShaderStage_Vertex,
-  eStageBits_Hull = 1 << eShaderStage_Hull,
-  eStageBits_Tess_Control = 1 << eShaderStage_Tess_Control,
-  eStageBits_Domain = 1 << eShaderStage_Domain,
-  eStageBits_Tess_Eval = 1 << eShaderStage_Tess_Eval,
-  eStageBits_Geometry = 1 << eShaderStage_Geometry,
-  eStageBits_Pixel = 1 << eShaderStage_Pixel,
-  eStageBits_Fragment = 1 << eShaderStage_Fragment,
-  eStageBits_Compute = 1 << eShaderStage_Compute,
-  eStageBits_All = eStageBits_Vertex | eStageBits_Hull | eStageBits_Domain | eStageBits_Geometry |
-                   eStageBits_Pixel |
-                   eStageBits_Compute,
+  Vertex = 0,
+  First = Vertex,
+
+  Hull,
+  Tess_Control = Hull,
+
+  Domain,
+  Tess_Eval = Domain,
+
+  Geometry,
+
+  Pixel,
+  Fragment = Pixel,
+
+  Compute,
+
+  Count,
 };
 
-enum ShaderDebugStateFlags
+ITERABLE_OPERATORS(ShaderStage);
+
+template <typename integer>
+constexpr inline ShaderStage StageFromIndex(integer stage)
 {
-  eShaderDbg_None = 0,
-  eShaderDbg_SampleLoadGather = 0x1,
-  eShaderDbg_GeneratedNanOrInf = 0x2,
+  return ShaderStage(stage);
+}
+
+enum class ShaderStageMask : uint32_t
+{
+  Unknown = 0,
+  Vertex = 1 << uint32_t(ShaderStage::Vertex),
+  Hull = 1 << uint32_t(ShaderStage::Hull),
+  Tess_Control = Hull,
+  Domain = 1 << uint32_t(ShaderStage::Domain),
+  Tess_Eval = Domain,
+  Geometry = 1 << uint32_t(ShaderStage::Geometry),
+  Pixel = 1 << uint32_t(ShaderStage::Pixel),
+  Fragment = Pixel,
+  Compute = 1 << uint32_t(ShaderStage::Compute),
+  All = Vertex | Hull | Domain | Geometry | Pixel | Compute,
 };
 
-enum DebugMessageCategory
+BITMASK_OPERATORS(ShaderStageMask);
+
+constexpr inline ShaderStageMask MaskForStage(ShaderStage stage)
 {
-  eDbgCategory_Application_Defined = 0,
-  eDbgCategory_Miscellaneous,
-  eDbgCategory_Initialization,
-  eDbgCategory_Cleanup,
-  eDbgCategory_Compilation,
-  eDbgCategory_State_Creation,
-  eDbgCategory_State_Setting,
-  eDbgCategory_State_Getting,
-  eDbgCategory_Resource_Manipulation,
-  eDbgCategory_Execution,
-  eDbgCategory_Shaders,
-  eDbgCategory_Deprecated,
-  eDbgCategory_Undefined,
-  eDbgCategory_Portability,
-  eDbgCategory_Performance,
+  return ShaderStageMask(1 << uint32_t(stage));
+}
+
+enum class ShaderEvents : uint32_t
+{
+  NoEvent = 0,
+  SampleLoadGather = 0x1,
+  GeneratedNanOrInf = 0x2,
 };
 
-enum DebugMessageSeverity
+BITMASK_OPERATORS(ShaderEvents);
+
+enum class MessageCategory : uint32_t
 {
-  eDbgSeverity_High = 0,
-  eDbgSeverity_Medium,
-  eDbgSeverity_Low,
-  eDbgSeverity_Info,
+  Application_Defined = 0,
+  Miscellaneous,
+  Initialization,
+  Cleanup,
+  Compilation,
+  State_Creation,
+  State_Setting,
+  State_Getting,
+  Resource_Manipulation,
+  Execution,
+  Shaders,
+  Deprecated,
+  Undefined,
+  Portability,
+  Performance,
 };
 
-enum DebugMessageSource
+enum class MessageSeverity : uint32_t
 {
-  eDbgSource_API = 0,
-  eDbgSource_RedundantAPIUse,
-  eDbgSource_IncorrectAPIUse,
-  eDbgSource_GeneralPerformance,
-  eDbgSource_GCNPerformance,
-  eDbgSource_RuntimeWarning,
-  eDbgSoruce_UnsupportedConfiguration,
+  High = 0,
+  Medium,
+  Low,
+  Info,
 };
 
-enum ResourceUsage
+enum class MessageSource : uint32_t
 {
-  eUsage_None,
-
-  eUsage_VertexBuffer,
-  eUsage_IndexBuffer,
-
-  eUsage_VS_Constants,
-  eUsage_HS_Constants,
-  eUsage_DS_Constants,
-  eUsage_GS_Constants,
-  eUsage_PS_Constants,
-  eUsage_CS_Constants,
-
-  eUsage_All_Constants,
-
-  eUsage_SO,
-
-  eUsage_VS_Resource,
-  eUsage_HS_Resource,
-  eUsage_DS_Resource,
-  eUsage_GS_Resource,
-  eUsage_PS_Resource,
-  eUsage_CS_Resource,
-
-  eUsage_All_Resource,
-
-  eUsage_VS_RWResource,
-  eUsage_HS_RWResource,
-  eUsage_DS_RWResource,
-  eUsage_GS_RWResource,
-  eUsage_PS_RWResource,
-  eUsage_CS_RWResource,
-
-  eUsage_All_RWResource,
-
-  eUsage_InputTarget,
-  eUsage_ColourTarget,
-  eUsage_DepthStencilTarget,
-
-  eUsage_Indirect,
-
-  eUsage_Clear,
-
-  eUsage_GenMips,
-  eUsage_Resolve,
-  eUsage_ResolveSrc,
-  eUsage_ResolveDst,
-  eUsage_Copy,
-  eUsage_CopySrc,
-  eUsage_CopyDst,
-
-  eUsage_Barrier,
+  API = 0,
+  RedundantAPIUse,
+  IncorrectAPIUse,
+  GeneralPerformance,
+  GCNPerformance,
+  RuntimeWarning,
+  UnsupportedConfiguration,
 };
 
-enum DrawcallFlags
+enum class ResourceUsage : uint32_t
 {
+  Unused,
+
+  VertexBuffer,
+  IndexBuffer,
+
+  VS_Constants,
+  HS_Constants,
+  DS_Constants,
+  GS_Constants,
+  PS_Constants,
+  CS_Constants,
+
+  All_Constants,
+
+  StreamOut,
+
+  VS_Resource,
+  HS_Resource,
+  DS_Resource,
+  GS_Resource,
+  PS_Resource,
+  CS_Resource,
+
+  All_Resource,
+
+  VS_RWResource,
+  HS_RWResource,
+  DS_RWResource,
+  GS_RWResource,
+  PS_RWResource,
+  CS_RWResource,
+
+  All_RWResource,
+
+  InputTarget,
+  ColourTarget,
+  DepthStencilTarget,
+
+  Indirect,
+
+  Clear,
+
+  GenMips,
+  Resolve,
+  ResolveSrc,
+  ResolveDst,
+  Copy,
+  CopySrc,
+  CopyDst,
+
+  Barrier,
+};
+
+template <typename integer>
+constexpr inline ResourceUsage CBUsage(integer stage)
+{
+  return ResourceUsage(uint32_t(ResourceUsage::VS_Constants) + stage);
+}
+
+constexpr inline ResourceUsage CBUsage(ShaderStage stage)
+{
+  return CBUsage(uint32_t(stage));
+}
+
+template <typename integer>
+constexpr inline ResourceUsage ResUsage(integer stage)
+{
+  return ResourceUsage(uint32_t(ResourceUsage::VS_Resource) + stage);
+}
+
+constexpr inline ResourceUsage ResUsage(ShaderStage stage)
+{
+  return ResUsage(uint32_t(stage));
+}
+
+template <typename integer>
+constexpr inline ResourceUsage RWResUsage(integer stage)
+{
+  return ResourceUsage(uint32_t(ResourceUsage::VS_RWResource) + stage);
+}
+
+constexpr inline ResourceUsage RWResUsage(ShaderStage stage)
+{
+  return RWResUsage(uint32_t(stage));
+}
+
+enum class DrawFlags : uint32_t
+{
+  NoFlags = 0x0000,
+
   // types
-  eDraw_Clear = 0x0001,
-  eDraw_Drawcall = 0x0002,
-  eDraw_Dispatch = 0x0004,
-  eDraw_CmdList = 0x0008,
-  eDraw_SetMarker = 0x0010,
-  eDraw_PushMarker = 0x0020,
-  eDraw_PopMarker = 0x0040,    // this is only for internal tracking use
-  eDraw_Present = 0x0080,
-  eDraw_MultiDraw = 0x0100,
-  eDraw_Copy = 0x0200,
-  eDraw_Resolve = 0x0400,
-  eDraw_GenMips = 0x0800,
-  eDraw_PassBoundary = 0x1000,
+  Clear = 0x0001,
+  Drawcall = 0x0002,
+  Dispatch = 0x0004,
+  CmdList = 0x0008,
+  SetMarker = 0x0010,
+  PushMarker = 0x0020,
+  PopMarker = 0x0040,    // this is only for internal tracking use
+  Present = 0x0080,
+  MultiDraw = 0x0100,
+  Copy = 0x0200,
+  Resolve = 0x0400,
+  GenMips = 0x0800,
+  PassBoundary = 0x1000,
 
   // flags
-  eDraw_UseIBuffer = 0x010000,
-  eDraw_Instanced = 0x020000,
-  eDraw_Auto = 0x040000,
-  eDraw_Indirect = 0x080000,
-  eDraw_ClearColour = 0x100000,
-  eDraw_ClearDepthStencil = 0x200000,
-  eDraw_BeginPass = 0x400000,
-  eDraw_EndPass = 0x800000,
-  eDraw_APICalls = 0x1000000,
+  UseIBuffer = 0x010000,
+  Instanced = 0x020000,
+  Auto = 0x040000,
+  Indirect = 0x080000,
+  ClearColour = 0x100000,
+  ClearDepthStencil = 0x200000,
+  BeginPass = 0x400000,
+  EndPass = 0x800000,
+  APICalls = 0x1000000,
 };
 
-enum SolidShadeMode
+BITMASK_OPERATORS(DrawFlags);
+
+enum class SolidShade : uint32_t
 {
-  eShade_None = 0,
-  eShade_Solid,
-  eShade_Lit,
-  eShade_Secondary,
-  eShade_Count,
+  NoSolid = 0,
+  Solid,
+  Lit,
+  Secondary,
+  Count,
 };
 
-enum TriangleFillMode
+enum class FillMode : uint32_t
 {
-  eFill_Solid = 0,
-  eFill_Wireframe,
-  eFill_Point,
+  Solid = 0,
+  Wireframe,
+  Point,
 };
 
-enum TriangleCullMode
+enum class CullMode : uint32_t
 {
-  eCull_None = 0,
-  eCull_Front,
-  eCull_Back,
-  eCull_FrontAndBack,
+  NoCull = 0,
+  Front,
+  Back,
+  FrontAndBack,
 };
 
-enum GPUCounters
+enum class GPUCounter : uint32_t
 {
-  eCounter_FirstGeneric = 1,
-  eCounter_EventGPUDuration = eCounter_FirstGeneric,
-  eCounter_InputVerticesRead,
-  eCounter_IAPrimitives,
-  eCounter_GSPrimitives,
-  eCounter_RasterizerInvocations,
-  eCounter_RasterizedPrimitives,
-  eCounter_SamplesWritten,
-  eCounter_VSInvocations,
-  eCounter_HSInvocations,
-  eCounter_TCSInvocations = eCounter_HSInvocations,
-  eCounter_DSInvocations,
-  eCounter_TESInvocations = eCounter_DSInvocations,
-  eCounter_GSInvocations,
-  eCounter_PSInvocations,
-  eCounter_CSInvocations,
-  eCounter_GLMaxCounters,
+  EventGPUDuration = 1,
+  First = EventGPUDuration,
+  InputVerticesRead,
+  IAPrimitives,
+  GSPrimitives,
+  RasterizerInvocations,
+  RasterizedPrimitives,
+  SamplesWritten,
+  VSInvocations,
+  HSInvocations,
+  TCSInvocations = HSInvocations,
+  DSInvocations,
+  TESInvocations = DSInvocations,
+  GSInvocations,
+  PSInvocations,
+  FSInvocations = PSInvocations,
+  CSInvocations,
+  Count,
 
   // IHV specific counters can be set above this point
   // with ranges reserved for each IHV
-  eCounter_FirstAMD = 1000000,
+  FirstAMD = 1000000,
 
-  eCounter_FirstIntel = 2000000,
+  FirstIntel = 2000000,
 
-  eCounter_FirstNvidia = 3000000,
+  FirstNvidia = 3000000,
 };
 
-enum CounterUnits
+ITERABLE_OPERATORS(GPUCounter);
+
+enum class CounterUnit : uint32_t
 {
-  eUnits_Absolute,
-  eUnits_Seconds,
-  eUnits_Percentage,
+  Absolute,
+  Seconds,
+  Percentage,
 };
 
-enum ReplaySupport
+enum class ReplaySupport : uint32_t
 {
-  eReplaySupport_Unsupported,
-  eReplaySupport_Supported,
-  eReplaySupport_SuggestRemote,
+  Unsupported,
+  Supported,
+  SuggestRemote,
 };
 
-enum ReplayCreateStatus
+enum class ReplayStatus : uint32_t
 {
-  eReplayCreate_Success = 0,
-  eReplayCreate_UnknownError,
-  eReplayCreate_InternalError,
-  eReplayCreate_FileNotFound,
-  eReplayCreate_InjectionFailed,
-  eReplayCreate_IncompatibleProcess,
-  eReplayCreate_NetworkIOFailed,
-  eReplayCreate_NetworkRemoteBusy,
-  eReplayCreate_NetworkVersionMismatch,
-  eReplayCreate_FileIOFailed,
-  eReplayCreate_FileIncompatibleVersion,
-  eReplayCreate_FileCorrupted,
-  eReplayCreate_ImageUnsupported,
-  eReplayCreate_APIUnsupported,
-  eReplayCreate_APIInitFailed,
-  eReplayCreate_APIIncompatibleVersion,
-  eReplayCreate_APIHardwareUnsupported,
+  Succeeded = 0,
+  UnknownError,
+  InternalError,
+  FileNotFound,
+  InjectionFailed,
+  IncompatibleProcess,
+  NetworkIOFailed,
+  NetworkRemoteBusy,
+  NetworkVersionMismatch,
+  FileIOFailed,
+  FileIncompatibleVersion,
+  FileCorrupted,
+  ImageUnsupported,
+  APIUnsupported,
+  APIInitFailed,
+  APIIncompatibleVersion,
+  APIHardwareUnsupported,
 };
 
-enum TargetControlMessageType
+enum class TargetControlMessageType : uint32_t
 {
-  eTargetControlMsg_Unknown = 0,
-  eTargetControlMsg_Disconnected,
-  eTargetControlMsg_Busy,
-  eTargetControlMsg_Noop,
-  eTargetControlMsg_NewCapture,
-  eTargetControlMsg_CaptureCopied,
-  eTargetControlMsg_RegisterAPI,
-  eTargetControlMsg_NewChild,
+  Unknown = 0,
+  Disconnected,
+  Busy,
+  Noop,
+  NewCapture,
+  CaptureCopied,
+  RegisterAPI,
+  NewChild,
 };
 
-enum EnvironmentModificationType
+enum class EnvMod : uint32_t
 {
-  eEnvMod_Set,
-  eEnvMod_Append,
-  eEnvMod_Prepend,
+  Set,
+  Append,
+  Prepend,
 };
 
-enum EnvironmentSeparator
+enum class EnvSep : uint32_t
 {
-  eEnvSep_Platform,
-  eEnvSep_SemiColon,
-  eEnvSep_Colon,
-  eEnvSep_None,
+  Platform,
+  SemiColon,
+  Colon,
+  NoSep,
 };
 
-// matches enum in common.h
-enum LogMessageType
+enum class LogType : int32_t
 {
-  eLogType_First = -1,
-  eLogType_Debug,
-  eLogType_Comment,
-  eLogType_Warning,
-  eLogType_Error,
-  eLogType_Fatal,
-  eLogType_NumTypes,
+  Debug,
+  Comment,
+  Warning,
+  Error,
+  Fatal,
+  Count,
 };
 
-enum VulkanFlags
+enum class VulkanLayerFlags : uint32_t
 {
-  eVulkan_OtherInstallsRegistered = 0x1,
-  eVulkan_ThisInstallRegistered = 0x2,
-  eVulkan_NeedElevation = 0x4,
-  eVulkan_CouldElevate = 0x8,
-  eVulkan_RegisterAll = 0x10,
-  eVulkan_UpdateAllowed = 0x20,
-  eVulkan_Unfixable = 0x40,
+  NoFlags = 0x0,
+  OtherInstallsRegistered = 0x1,
+  ThisInstallRegistered = 0x2,
+  NeedElevation = 0x4,
+  CouldElevate = 0x8,
+  RegisterAll = 0x10,
+  UpdateAllowed = 0x20,
+  Unfixable = 0x40,
 };
+
+BITMASK_OPERATORS(VulkanLayerFlags);

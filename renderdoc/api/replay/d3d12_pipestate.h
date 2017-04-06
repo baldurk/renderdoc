@@ -86,7 +86,7 @@ struct D3D12PipelineState
           TableIndex(~0U),
           Resource(),
           Format(),
-          BufferFlags(0),
+          BufferFlags(D3DBufferViewFlags::NoFlags),
           BufferStructCount(0),
           ElementSize(0),
           FirstElement(0),
@@ -98,10 +98,10 @@ struct D3D12PipelineState
           FirstArraySlice(0),
           MinLODClamp(0.0f)
     {
-      swizzle[0] = eSwizzle_Red;
-      swizzle[1] = eSwizzle_Green;
-      swizzle[2] = eSwizzle_Blue;
-      swizzle[3] = eSwizzle_Alpha;
+      swizzle[0] = TextureSwizzle::Red;
+      swizzle[1] = TextureSwizzle::Green;
+      swizzle[2] = TextureSwizzle::Blue;
+      swizzle[3] = TextureSwizzle::Alpha;
     }
 
     // parameters from descriptor
@@ -115,7 +115,7 @@ struct D3D12PipelineState
     ResourceFormat Format;
 
     TextureSwizzle swizzle[4];
-    uint32_t BufferFlags;
+    D3DBufferViewFlags BufferFlags;
     uint32_t BufferStructCount;
     uint32_t ElementSize;
     uint64_t FirstElement;
@@ -185,14 +185,14 @@ struct D3D12PipelineState
     rdctype::array<uint32_t> RootValues;
   };
 
-  struct ShaderStage
+  struct Shader
   {
-    ShaderStage() : ShaderDetails(NULL), stage(eShaderStage_Vertex) {}
-    ResourceId Shader;
+    Shader() : ShaderDetails(NULL), stage(ShaderStage::Vertex) {}
+    ResourceId Object;
     ShaderReflection *ShaderDetails;
     ShaderBindpointMapping BindpointMapping;
 
-    ShaderStageType stage;
+    ShaderStage stage;
 
     struct RegisterSpace
     {
@@ -254,8 +254,8 @@ struct D3D12PipelineState
     struct RasterizerState
     {
       RasterizerState()
-          : FillMode(eFill_Solid),
-            CullMode(eCull_None),
+          : fillMode(FillMode::Solid),
+            cullMode(CullMode::NoCull),
             FrontCCW(false),
             DepthBias(0),
             DepthBiasClamp(0.0f),
@@ -267,8 +267,8 @@ struct D3D12PipelineState
             ConservativeRasterization(false)
       {
       }
-      TriangleFillMode FillMode;
-      TriangleCullMode CullMode;
+      FillMode fillMode;
+      CullMode cullMode;
       bool32 FrontCCW;
       int32_t DepthBias;
       float DepthBiasClamp;

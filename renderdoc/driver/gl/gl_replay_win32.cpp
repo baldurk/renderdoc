@@ -40,7 +40,7 @@ WGLCREATECONTEXTPROC wglCreateRC = NULL;
 WGLMAKECURRENTPROC wglMakeCurrentProc = NULL;
 WGLDELETECONTEXTPROC wglDeleteRC = NULL;
 
-ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCDEBUG("Creating an OpenGL replay device");
 
@@ -49,7 +49,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   if(lib == NULL)
   {
     RDCERR("Failed to load opengl32.dll");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   GLInitParams initParams;
@@ -60,7 +60,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   {
     auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
                                                    (RDCInitParams *)&initParams);
-    if(status != eReplayCreate_Success)
+    if(status != ReplayStatus::Succeeded)
       return status;
   }
 
@@ -76,7 +76,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     if(wglGetProc == NULL || wglCreateRC == NULL || wglMakeCurrentProc == NULL || wglDeleteRC == NULL)
     {
       RDCERR("Couldn't get wgl function addresses");
-      return eReplayCreate_APIInitFailed;
+      return ReplayStatus::APIInitFailed;
     }
 
     WNDCLASSEX wc;
@@ -91,7 +91,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     if(!RegisterClassEx(&wc))
     {
       RDCERR("Couldn't register GL window class");
-      return eReplayCreate_APIInitFailed;
+      return ReplayStatus::APIInitFailed;
     }
 
     RDCEraseEl(pfd);
@@ -115,28 +115,28 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   if(pf == 0)
   {
     RDCERR("Couldn't choose pixel format");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   BOOL res = SetPixelFormat(dc, pf, &pfd);
   if(res == FALSE)
   {
     RDCERR("Couldn't set pixel format");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   HGLRC rc = wglCreateRC(dc);
   if(rc == NULL)
   {
     RDCERR("Couldn't create simple RC");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   res = wglMakeCurrentProc(dc, rc);
   if(res == FALSE)
   {
     RDCERR("Couldn't make simple RC current");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   createContextAttribs =
@@ -147,7 +147,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   if(createContextAttribs == NULL || getPixelFormatAttrib == NULL)
   {
     RDCERR("RenderDoc requires WGL_ARB_create_context and WGL_ARB_pixel_format");
-    return eReplayCreate_APIHardwareUnsupported;
+    return ReplayStatus::APIHardwareUnsupported;
   }
 
   wglMakeCurrentProc(NULL, NULL);
@@ -176,7 +176,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     RDCERR("Couldn't choose pixel format");
     ReleaseDC(w, dc);
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   res = SetPixelFormat(dc, pf, &pfd);
@@ -185,7 +185,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     RDCERR("Couldn't set pixel format");
     ReleaseDC(w, dc);
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   int attribs[64] = {0};
@@ -232,7 +232,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     RDCERR("Couldn't create 3.2 RC - RenderDoc requires OpenGL 3.2 availability");
     ReleaseDC(w, dc);
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIHardwareUnsupported;
+    return ReplayStatus::APIHardwareUnsupported;
   }
 
   GLCoreVersion = major * 10 + minor;
@@ -245,7 +245,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     wglDeleteRC(rc);
     ReleaseDC(w, dc);
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   PFNGLGETINTEGERVPROC getInt = (PFNGLGETINTEGERVPROC)GetProcAddress(lib, "glGetIntegerv");
@@ -260,7 +260,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     wglDeleteRC(rc);
     ReleaseDC(w, dc);
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   bool missingExt = CheckReplayContext(getStr, getInt, getStri);
@@ -271,7 +271,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     wglDeleteRC(rc);
     ReleaseDC(w, dc);
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   const GLHookSet &real = GetRealGLFunctions();
@@ -284,7 +284,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     wglDeleteRC(rc);
     ReleaseDC(w, dc);
     GLReplay::PostContextShutdownCounters();
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   WrappedOpenGL *gl = new WrappedOpenGL(logfile, real, GetGLPlatform());
@@ -293,7 +293,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   if(gl->GetSerialiser()->HasError())
   {
     delete gl;
-    return eReplayCreate_FileIOFailed;
+    return ReplayStatus::FileIOFailed;
   }
 
   RDCLOG("Created device.");
@@ -306,5 +306,5 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   replay->SetReplayData(data);
 
   *driver = (IReplayDriver *)replay;
-  return eReplayCreate_Success;
+  return ReplayStatus::Succeeded;
 }

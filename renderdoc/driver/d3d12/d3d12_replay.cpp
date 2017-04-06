@@ -66,8 +66,8 @@ APIProperties D3D12Replay::GetAPIProperties()
 {
   APIProperties ret;
 
-  ret.pipelineType = eGraphicsAPI_D3D12;
-  ret.localRenderer = eGraphicsAPI_D3D12;
+  ret.pipelineType = GraphicsAPI::D3D12;
+  ret.localRenderer = GraphicsAPI::D3D12;
   ret.degraded = false;
 
   return ret;
@@ -130,26 +130,29 @@ FetchBuffer D3D12Replay::GetBuffer(ResourceId id)
 
   ret.length = desc.Width;
 
-  ret.creationFlags = 0;
+  ret.creationFlags = BufferCategory::NoFlags;
 
   const std::vector<EventUsage> &usage = m_pDevice->GetQueue()->GetUsage(id);
 
   for(size_t i = 0; i < usage.size(); i++)
   {
-    if(usage[i].usage == eUsage_VS_RWResource || usage[i].usage == eUsage_HS_RWResource ||
-       usage[i].usage == eUsage_DS_RWResource || usage[i].usage == eUsage_GS_RWResource ||
-       usage[i].usage == eUsage_PS_RWResource || usage[i].usage == eUsage_CS_RWResource)
-      ret.creationFlags |= eBufferCreate_UAV;
-    else if(usage[i].usage == eUsage_VertexBuffer)
-      ret.creationFlags |= eBufferCreate_VB;
-    else if(usage[i].usage == eUsage_IndexBuffer)
-      ret.creationFlags |= eBufferCreate_IB;
-    else if(usage[i].usage == eUsage_Indirect)
-      ret.creationFlags |= eBufferCreate_Indirect;
+    if(usage[i].usage == ResourceUsage::VS_RWResource ||
+       usage[i].usage == ResourceUsage::HS_RWResource ||
+       usage[i].usage == ResourceUsage::DS_RWResource ||
+       usage[i].usage == ResourceUsage::GS_RWResource ||
+       usage[i].usage == ResourceUsage::PS_RWResource ||
+       usage[i].usage == ResourceUsage::CS_RWResource)
+      ret.creationFlags |= BufferCategory::ReadWrite;
+    else if(usage[i].usage == ResourceUsage::VertexBuffer)
+      ret.creationFlags |= BufferCategory::Vertex;
+    else if(usage[i].usage == ResourceUsage::IndexBuffer)
+      ret.creationFlags |= BufferCategory::Index;
+    else if(usage[i].usage == ResourceUsage::Indirect)
+      ret.creationFlags |= BufferCategory::Indirect;
   }
 
   if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
-    ret.creationFlags |= eBufferCreate_UAV;
+    ret.creationFlags |= BufferCategory::ReadWrite;
 
   return ret;
 }
@@ -183,31 +186,33 @@ FetchTexture D3D12Replay::GetTexture(ResourceId id)
 
   switch(ret.dimension)
   {
-    case 1: ret.resType = ret.arraysize > 1 ? eResType_Texture1DArray : eResType_Texture1D; break;
+    case 1:
+      ret.resType = ret.arraysize > 1 ? TextureDim::Texture1DArray : TextureDim::Texture1D;
+      break;
     case 2:
       if(ret.msSamp > 1)
-        ret.resType = ret.arraysize > 1 ? eResType_Texture2DMSArray : eResType_Texture2DMS;
+        ret.resType = ret.arraysize > 1 ? TextureDim::Texture2DMSArray : TextureDim::Texture2DMS;
       else
-        ret.resType = ret.arraysize > 1 ? eResType_Texture2DArray : eResType_Texture2D;
+        ret.resType = ret.arraysize > 1 ? TextureDim::Texture2DArray : TextureDim::Texture2D;
       break;
-    case 3: ret.resType = eResType_Texture3D; break;
+    case 3: ret.resType = TextureDim::Texture3D; break;
   }
 
   ret.cubemap = m_pDevice->IsCubemap(id);
 
-  ret.creationFlags = eTextureCreate_SRV;
+  ret.creationFlags = TextureCategory::ShaderRead;
 
   if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
-    ret.creationFlags |= eTextureCreate_RTV;
+    ret.creationFlags |= TextureCategory::ColorTarget;
   if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
-    ret.creationFlags |= eTextureCreate_DSV;
+    ret.creationFlags |= TextureCategory::DepthTarget;
   if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
-    ret.creationFlags |= eTextureCreate_UAV;
+    ret.creationFlags |= TextureCategory::ShaderReadWrite;
 
   if(ret.ID == m_pDevice->GetQueue()->GetBackbufferResourceID())
   {
-    ret.format = MakeResourceFormat(GetTypedFormat(desc.Format, eCompType_UNorm));
-    ret.creationFlags |= eTextureCreate_SwapBuffer;
+    ret.format = MakeResourceFormat(GetTypedFormat(desc.Format, CompType::UNorm));
+    ret.creationFlags |= TextureCategory::SwapBuffer;
   }
 
   ret.customName = true;
@@ -221,9 +226,9 @@ FetchTexture D3D12Replay::GetTexture(ResourceId id)
     if(ret.msSamp > 1)
       ms = "MS";
 
-    if(ret.creationFlags & eTextureCreate_RTV)
+    if(ret.creationFlags & TextureCategory::ColorTarget)
       suffix = " RTV";
-    if(ret.creationFlags & eTextureCreate_DSV)
+    if(ret.creationFlags & TextureCategory::DepthTarget)
       suffix = " DSV";
 
     ret.customName = false;
@@ -413,7 +418,7 @@ void D3D12Replay::FillResourceView(D3D12PipelineState::ResourceView &view, D3D12
         view.FirstElement = desc->nonsamp.srv.Buffer.FirstElement;
         view.NumElements = desc->nonsamp.srv.Buffer.NumElements;
 
-        view.BufferFlags = desc->nonsamp.srv.Buffer.Flags;
+        view.BufferFlags = D3DBufferViewFlags(desc->nonsamp.srv.Buffer.Flags);
         if(desc->nonsamp.srv.Buffer.StructureByteStride > 0)
           view.ElementSize = desc->nonsamp.srv.Buffer.StructureByteStride;
       }
@@ -473,7 +478,7 @@ void D3D12Replay::FillResourceView(D3D12PipelineState::ResourceView &view, D3D12
         view.FirstElement = uav.Buffer.FirstElement;
         view.NumElements = uav.Buffer.NumElements;
 
-        view.BufferFlags = uav.Buffer.Flags;
+        view.BufferFlags = D3DBufferViewFlags(uav.Buffer.Flags);
         if(uav.Buffer.StructureByteStride > 0)
           view.ElementSize = uav.Buffer.StructureByteStride;
 
@@ -518,10 +523,9 @@ void D3D12Replay::FillResourceView(D3D12PipelineState::ResourceView &view, D3D12
   }
 }
 
-void D3D12Replay::FillRegisterSpaces(
-    const D3D12RenderState::RootSignature &rootSig,
-    rdctype::array<D3D12PipelineState::ShaderStage::RegisterSpace> &dstSpaces,
-    D3D12_SHADER_VISIBILITY visibility)
+void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &rootSig,
+                                     rdctype::array<D3D12PipelineState::Shader::RegisterSpace> &dstSpaces,
+                                     D3D12_SHADER_VISIBILITY visibility)
 {
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
@@ -946,8 +950,8 @@ void D3D12Replay::MakePipelineState()
   {
     WrappedID3D12Shader *sh = (WrappedID3D12Shader *)pipe->compute->CS.pShaderBytecode;
 
-    state.m_CS.Shader = sh->GetResourceID();
-    state.m_CS.stage = eShaderStage_Compute;
+    state.m_CS.Object = sh->GetResourceID();
+    state.m_CS.stage = ShaderStage::Compute;
     state.m_CS.BindpointMapping = sh->GetMapping();
 
     state.rootSig = rm->GetOriginalID(rs.compute.rootsig);
@@ -957,8 +961,8 @@ void D3D12Replay::MakePipelineState()
   }
   else if(pipe)
   {
-    D3D12PipelineState::ShaderStage *dstArr[] = {&state.m_VS, &state.m_HS, &state.m_DS, &state.m_GS,
-                                                 &state.m_PS};
+    D3D12PipelineState::Shader *dstArr[] = {&state.m_VS, &state.m_HS, &state.m_DS, &state.m_GS,
+                                            &state.m_PS};
 
     D3D12_SHADER_BYTECODE *srcArr[] = {&pipe->graphics->VS, &pipe->graphics->HS, &pipe->graphics->DS,
                                        &pipe->graphics->GS, &pipe->graphics->PS};
@@ -969,16 +973,16 @@ void D3D12Replay::MakePipelineState()
 
     for(size_t stage = 0; stage < 5; stage++)
     {
-      D3D12PipelineState::ShaderStage &dst = *dstArr[stage];
+      D3D12PipelineState::Shader &dst = *dstArr[stage];
       D3D12_SHADER_BYTECODE &src = *srcArr[stage];
 
-      dst.stage = (ShaderStageType)stage;
+      dst.stage = (ShaderStage)stage;
 
       WrappedID3D12Shader *sh = (WrappedID3D12Shader *)src.pShaderBytecode;
 
       if(sh)
       {
-        dst.Shader = sh->GetResourceID();
+        dst.Object = sh->GetResourceID();
         dst.BindpointMapping = sh->GetMapping();
       }
 
@@ -1018,15 +1022,15 @@ void D3D12Replay::MakePipelineState()
 
       dst.AntialiasedLineEnable = src.AntialiasedLineEnable == TRUE;
 
-      dst.CullMode = eCull_None;
+      dst.cullMode = CullMode::NoCull;
       if(src.CullMode == D3D12_CULL_MODE_FRONT)
-        dst.CullMode = eCull_Front;
+        dst.cullMode = CullMode::Front;
       if(src.CullMode == D3D12_CULL_MODE_BACK)
-        dst.CullMode = eCull_Back;
+        dst.cullMode = CullMode::Back;
 
-      dst.FillMode = eFill_Solid;
+      dst.fillMode = FillMode::Solid;
       if(src.FillMode == D3D12_FILL_MODE_WIREFRAME)
-        dst.FillMode = eFill_Wireframe;
+        dst.fillMode = FillMode::Wireframe;
 
       dst.DepthBias = src.DepthBias;
       dst.DepthBiasClamp = src.DepthBiasClamp;
@@ -1187,23 +1191,22 @@ void D3D12Replay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &seconda
 }
 
 bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            FormatComponentType typeHint, float *minval, float *maxval)
+                            CompType typeHint, float *minval, float *maxval)
 {
   return m_pDevice->GetDebugManager()->GetMinMax(texid, sliceFace, mip, sample, typeHint, minval,
                                                  maxval);
 }
 
 bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                               FormatComponentType typeHint, float minval, float maxval,
-                               bool channels[4], vector<uint32_t> &histogram)
+                               CompType typeHint, float minval, float maxval, bool channels[4],
+                               vector<uint32_t> &histogram)
 {
   return m_pDevice->GetDebugManager()->GetHistogram(texid, sliceFace, mip, sample, typeHint, minval,
                                                     maxval, channels, histogram);
 }
 
-ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
-                                      TextureDisplayOverlay overlay, uint32_t eventID,
-                                      const vector<uint32_t> &passEvents)
+ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
+                                      uint32_t eventID, const vector<uint32_t> &passEvents)
 {
   return m_pDevice->GetDebugManager()->RenderOverlay(texid, typeHint, overlay, eventID, passEvents);
 }
@@ -1256,12 +1259,12 @@ vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventID)
   {
     // if we've come to the beginning of a list, break out of the loop, we've
     // found the start.
-    if(start->flags & eDraw_BeginPass)
+    if(start->flags & DrawFlags::BeginPass)
       break;
 
     // if we come to the END of a list, since we were iterating backwards that
     // means we started outside of a list, so return empty set.
-    if(start->flags & eDraw_EndPass)
+    if(start->flags & DrawFlags::EndPass)
       return passEvents;
 
     // if we've come to the start of the log we were outside of a list
@@ -1295,7 +1298,7 @@ vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventID)
     // so we don't actually do anything (init postvs/draw overlay)
     // but it's useful to have the first part of the pass as part
     // of the list
-    if(start->flags & (eDraw_Drawcall | eDraw_PassBoundary))
+    if(start->flags & (DrawFlags::Drawcall | DrawFlags::PassBoundary))
       passEvents.push_back(start->eventID);
 
     start = m_pDevice->GetDrawcall((uint32_t)start->next);
@@ -1315,8 +1318,7 @@ void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, 
 }
 
 void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                            uint32_t mip, uint32_t sample, FormatComponentType typeHint,
-                            float pixel[4])
+                            uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4])
 {
   m_pDevice->GetDebugManager()->PickPixel(texture, x, y, sliceFace, mip, sample, typeHint, pixel);
 }
@@ -1540,7 +1542,7 @@ vector<DebugMessage> D3D12Replay::GetDebugMessages()
 }
 
 void D3D12Replay::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
-                                    ShaderStageType type, ResourceId *id, string *errors)
+                                    ShaderStage type, ResourceId *id, string *errors)
 {
   m_pDevice->GetDebugManager()->BuildShader(source, entry, D3DCOMPILE_DEBUG | compileFlags, type,
                                             id, errors);
@@ -1647,14 +1649,13 @@ byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 }
 
 void D3D12Replay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,
-                                    ShaderStageType type, ResourceId *id, string *errors)
+                                    ShaderStage type, ResourceId *id, string *errors)
 {
   m_pDevice->GetDebugManager()->BuildShader(source, entry, compileFlags, type, id, errors);
 }
 
 ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                          uint32_t arrayIdx, uint32_t sampleIdx,
-                                          FormatComponentType typeHint)
+                                          uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint)
 {
   return m_pDevice->GetDebugManager()->ApplyCustomShader(shader, texid, mip, arrayIdx, sampleIdx,
                                                          typeHint);
@@ -1665,7 +1666,7 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, u
 vector<PixelModification> D3D12Replay::PixelHistory(vector<EventUsage> events, ResourceId target,
                                                     uint32_t x, uint32_t y, uint32_t slice,
                                                     uint32_t mip, uint32_t sampleIdx,
-                                                    FormatComponentType typeHint)
+                                                    CompType typeHint)
 {
   return vector<PixelModification>();
 }
@@ -1714,7 +1715,7 @@ extern "C" __declspec(dllexport) HRESULT
                                                void **ppDevice);
 ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev);
 
-ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a D3D12 replay device");
 
@@ -1725,20 +1726,20 @@ ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver *
   if(lib == NULL)
   {
     RDCERR("Failed to load d3d12.dll");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   lib = LoadLibraryA("dxgi.dll");
   if(lib == NULL)
   {
     RDCERR("Failed to load dxgi.dll");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   if(GetD3DCompiler() == NULL)
   {
     RDCERR("Failed to load d3dcompiler_??.dll");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   D3D12InitParams initParams;
@@ -1749,7 +1750,7 @@ ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver *
   {
     auto status = RenderDoc::Inst().FillInitParams(logfile, driverFileType, driverName,
                                                    machineIdent, (RDCInitParams *)&initParams);
-    if(status != eReplayCreate_Success)
+    if(status != ReplayStatus::Succeeded)
       return status;
   }
 
@@ -1770,7 +1771,7 @@ ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver *
   {
     RDCERR("Couldn't create a d3d12 device :(.");
 
-    return eReplayCreate_APIHardwareUnsupported;
+    return ReplayStatus::APIHardwareUnsupported;
   }
 
   WrappedID3D12Device *wrappedDev = (WrappedID3D12Device *)dev;
@@ -1781,7 +1782,7 @@ ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver *
   if(logfile && wrappedDev->GetMainSerialiser()->HasError())
   {
     SAFE_RELEASE(wrappedDev);
-    return eReplayCreate_FileIOFailed;
+    return ReplayStatus::FileIOFailed;
   }
 
   RDCLOG("Created device.");
@@ -1790,7 +1791,7 @@ ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver *
   replay->SetProxy(logfile == NULL);
 
   *driver = (IReplayDriver *)replay;
-  return eReplayCreate_Success;
+  return ReplayStatus::Succeeded;
 }
 
 static DriverRegistration D3D12DriverRegistration(RDC_D3D12, "D3D12", &D3D12_CreateReplayDevice);

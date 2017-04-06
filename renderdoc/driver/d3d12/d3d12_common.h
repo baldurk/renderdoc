@@ -67,7 +67,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
 // buffer replay is happening
 #define VERBOSE_PARTIAL_REPLAY OPTION_ON
 
-ShaderStageBits ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility);
+ShaderStageMask ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility);
 UINT GetNumSubresources(ID3D12Device *dev, const D3D12_RESOURCE_DESC *desc);
 
 class WrappedID3D12Device;

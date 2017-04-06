@@ -50,26 +50,26 @@ public:
     m_Tex = m_Ctx.GetTexture(tex);
     m_Display = display;
 
-    FormatComponentType compType = m_Tex->format.compType;
+    CompType compType = m_Tex->format.compType;
 
-    if(compType == eCompType_None)
+    if(compType == CompType::Typeless)
       compType = display.typeHint;
 
-    m_IsUint = (compType == eCompType_UInt);
-    m_IsSint = (compType == eCompType_SInt);
+    m_IsUint = (compType == CompType::UInt);
+    m_IsSint = (compType == CompType::SInt);
     m_IsFloat = (!m_IsUint && !m_IsSint);
 
-    if(compType == eCompType_Depth)
+    if(compType == CompType::Depth)
       m_IsDepth = true;
 
     if(m_Tex->format.special)
     {
       switch(m_Tex->format.specialFormat)
       {
-        case eSpecial_D16S8:
-        case eSpecial_D24S8:
-        case eSpecial_D32S8:
-        case eSpecial_S8: m_IsDepth = true; break;
+        case SpecialFormat::D16S8:
+        case SpecialFormat::D24S8:
+        case SpecialFormat::D32S8:
+        case SpecialFormat::S8: m_IsDepth = true; break;
         default: break;
       }
     }
@@ -140,7 +140,7 @@ public:
       const QList<PixelModification> &mods = getMods(parent);
       const FetchDrawcall *draw = m_Ctx.GetDrawcall(mods.front().eventID);
 
-      if(draw->flags & eDraw_Clear)
+      if(draw->flags & DrawFlags::Clear)
         return 0;
 
       return mods.count();
@@ -657,13 +657,13 @@ void PixelHistoryView::startDebug(EventTag tag)
     QString debugContext = QString("Pixel %1,%2").arg(m_Pixel.x()).arg(m_Pixel.y());
 
     const ShaderReflection *shaderDetails =
-        m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Pixel);
+        m_Ctx.CurPipelineState.GetShaderReflection(ShaderStage::Pixel);
     const ShaderBindpointMapping &bindMapping =
-        m_Ctx.CurPipelineState.GetBindpointMapping(eShaderStage_Pixel);
+        m_Ctx.CurPipelineState.GetBindpointMapping(ShaderStage::Pixel);
 
     // viewer takes ownership of the trace
     ShaderViewer *s = ShaderViewer::debugShader(m_Ctx, &bindMapping, shaderDetails,
-                                                eShaderStage_Pixel, trace, debugContext, this);
+                                                ShaderStage::Pixel, trace, debugContext, this);
 
     m_Ctx.setupDockWindow(s);
 

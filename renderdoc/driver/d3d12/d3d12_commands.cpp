@@ -416,7 +416,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
 
         FetchDrawcall draw;
         draw.name = "Present()";
-        draw.flags |= eDraw_Present;
+        draw.flags |= DrawFlags::Present;
 
         draw.copyDestination = bbid;
 
@@ -679,8 +679,8 @@ bool WrappedID3D12GraphicsCommandList::ValidateRootGPUVA(ResourceId buffer)
       }
       else
       {
-        m_pDevice->AddDebugMessage(eDbgCategory_Resource_Manipulation, eDbgSeverity_Medium,
-                                   eDbgSource_IncorrectAPIUse,
+        m_pDevice->AddDebugMessage(MessageCategory::Resource_Manipulation, MessageSeverity::Medium,
+                                   MessageSource::IncorrectAPIUse,
                                    "Binding 0 as a GPU Virtual Address in a root constant is "
                                    "invalid. This call will be dropped during replay.");
       }
@@ -868,7 +868,7 @@ uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandList *list, bo
   // handle all aliases of this drawcall as long as it's not a multidraw
   const FetchDrawcall *draw = m_pDevice->GetDrawcall(eventID);
 
-  if(draw == NULL || (draw->flags & eDraw_MultiDraw) == 0)
+  if(draw == NULL || !(draw->flags & DrawFlags::MultiDraw))
   {
     ++it;
     while(it != m_DrawcallUses.end() && it->fileOffset == m_CurChunkOffset)
@@ -1003,12 +1003,13 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
   const D3D12RenderState &state = m_BakedCmdListInfo[m_LastCmdListID].state;
   uint32_t e = d.eventID;
 
-  if((d.flags & (eDraw_Drawcall | eDraw_Dispatch)) == 0)
+  DrawFlags DrawMask = DrawFlags::Drawcall | DrawFlags::Dispatch;
+  if(!(d.flags & DrawMask))
     return;
 
   const D3D12RenderState::RootSignature *rootdata = NULL;
 
-  if((d.flags & eDraw_Dispatch) && state.compute.rootsig != ResourceId())
+  if((d.flags & DrawFlags::Dispatch) && state.compute.rootsig != ResourceId())
   {
     rootdata = &state.compute;
   }
@@ -1016,25 +1017,25 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
   {
     rootdata = &state.graphics;
 
-    if(d.flags & eDraw_UseIBuffer && state.ibuffer.buf != ResourceId())
+    if(d.flags & DrawFlags::UseIBuffer && state.ibuffer.buf != ResourceId())
       drawNode.resourceUsage.push_back(
-          std::make_pair(state.ibuffer.buf, EventUsage(e, eUsage_IndexBuffer)));
+          std::make_pair(state.ibuffer.buf, EventUsage(e, ResourceUsage::IndexBuffer)));
 
     for(size_t i = 0; i < state.vbuffers.size(); i++)
     {
       if(state.vbuffers[i].buf != ResourceId())
         drawNode.resourceUsage.push_back(
-            std::make_pair(state.vbuffers[i].buf, EventUsage(e, eUsage_VertexBuffer)));
+            std::make_pair(state.vbuffers[i].buf, EventUsage(e, ResourceUsage::VertexBuffer)));
     }
 
     for(size_t i = 0; i < state.streamouts.size(); i++)
     {
       if(state.streamouts[i].buf != ResourceId())
         drawNode.resourceUsage.push_back(
-            std::make_pair(state.streamouts[i].buf, EventUsage(e, eUsage_SO)));
+            std::make_pair(state.streamouts[i].buf, EventUsage(e, ResourceUsage::StreamOut)));
       if(state.streamouts[i].countbuf != ResourceId())
         drawNode.resourceUsage.push_back(
-            std::make_pair(state.streamouts[i].countbuf, EventUsage(e, eUsage_SO)));
+            std::make_pair(state.streamouts[i].countbuf, EventUsage(e, ResourceUsage::StreamOut)));
     }
 
     vector<ResourceId> rts = state.GetRTVIDs();
@@ -1042,12 +1043,14 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
     for(size_t i = 0; i < rts.size(); i++)
     {
       if(rts[i] != ResourceId())
-        drawNode.resourceUsage.push_back(std::make_pair(rts[i], EventUsage(e, eUsage_ColourTarget)));
+        drawNode.resourceUsage.push_back(
+            std::make_pair(rts[i], EventUsage(e, ResourceUsage::ColourTarget)));
     }
 
     ResourceId id = state.GetDSVID();
     if(id != ResourceId())
-      drawNode.resourceUsage.push_back(std::make_pair(id, EventUsage(e, eUsage_DepthStencilTarget)));
+      drawNode.resourceUsage.push_back(
+          std::make_pair(id, EventUsage(e, ResourceUsage::DepthStencilTarget)));
   }
 
   if(rootdata)
@@ -1063,25 +1066,23 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
       const D3D12RootSignatureParameter &p = sig->sig.params[rootEl];
       const D3D12RenderState::SignatureElement &el = rootdata->sigelems[rootEl];
 
-      ResourceUsage cb = eUsage_CS_Constants;
-      ResourceUsage ro = eUsage_CS_Resource;
-      ResourceUsage rw = eUsage_CS_RWResource;
+      ResourceUsage cb = ResourceUsage::CS_Constants;
+      ResourceUsage ro = ResourceUsage::CS_Resource;
+      ResourceUsage rw = ResourceUsage::CS_RWResource;
 
       if(rootdata == &state.graphics)
       {
         if(p.ShaderVisibility == D3D12_SHADER_VISIBILITY_ALL)
         {
-          cb = eUsage_All_Constants;
-          ro = eUsage_All_Resource;
-          rw = eUsage_All_RWResource;
+          cb = ResourceUsage::All_Constants;
+          ro = ResourceUsage::All_Resource;
+          rw = ResourceUsage::All_RWResource;
         }
         else
         {
-          cb = ResourceUsage(eUsage_VS_Constants + p.ShaderVisibility -
-                             D3D12_SHADER_VISIBILITY_VERTEX);
-          ro = ResourceUsage(eUsage_VS_Resource + p.ShaderVisibility - D3D12_SHADER_VISIBILITY_VERTEX);
-          rw = ResourceUsage(eUsage_VS_RWResource + p.ShaderVisibility -
-                             D3D12_SHADER_VISIBILITY_VERTEX);
+          cb = CBUsage(p.ShaderVisibility - D3D12_SHADER_VISIBILITY_VERTEX);
+          ro = ResUsage(p.ShaderVisibility - D3D12_SHADER_VISIBILITY_VERTEX);
+          rw = RWResUsage(p.ShaderVisibility - D3D12_SHADER_VISIBILITY_VERTEX);
         }
       }
 
@@ -1170,7 +1171,7 @@ void D3D12CommandData::AddDrawcall(const FetchDrawcall &d, bool hasEvents, bool 
   draw.depthOut = ResourceId();
 
   draw.indexByteWidth = 0;
-  draw.topology = eTopology_Unknown;
+  draw.topology = Topology::Unknown;
 
   if(m_LastCmdListID != ResourceId())
   {
@@ -1230,7 +1231,7 @@ void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
   // assign new drawcall IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)
   {
-    if(cmdBufNodes[i].draw.flags & eDraw_PopMarker)
+    if(cmdBufNodes[i].draw.flags & DrawFlags::PopMarker)
     {
       if(GetDrawcallStack().size() > 1)
         GetDrawcallStack().pop_back();
@@ -1268,7 +1269,7 @@ void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
     GetDrawcallStack().back()->children.push_back(n);
 
     // if this is a push marker too, step down the drawcall stack
-    if(cmdBufNodes[i].draw.flags & eDraw_PushMarker)
+    if(cmdBufNodes[i].draw.flags & DrawFlags::PushMarker)
       GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
   }
 }

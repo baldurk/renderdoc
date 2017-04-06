@@ -51,22 +51,25 @@ bool WrappedOpenGL::Serialise_glDispatchCompute(GLuint num_groups_x, GLuint num_
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_Dispatch;
+    draw.flags |= DrawFlags::Dispatch;
 
     draw.dispatchDimension[0] = X;
     draw.dispatchDimension[1] = Y;
     draw.dispatchDimension[2] = Z;
 
     if(X == 0)
-      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+      AddDebugMessage(MessageCategory::Execution, MessageSeverity::Medium,
+                      MessageSource::IncorrectAPIUse,
                       "Dispatch call has Num Groups X=0. This will do nothing, which is unusual "
                       "for a non-indirect Dispatch. Did you mean X=1?");
     if(Y == 0)
-      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+      AddDebugMessage(MessageCategory::Execution, MessageSeverity::Medium,
+                      MessageSource::IncorrectAPIUse,
                       "Dispatch call has Num Groups Y=0. This will do nothing, which is unusual "
                       "for a non-indirect Dispatch. Did you mean Y=1?");
     if(Z == 0)
-      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+      AddDebugMessage(MessageCategory::Execution, MessageSeverity::Medium,
+                      MessageSource::IncorrectAPIUse,
                       "Dispatch call has Num Groups Z=0. This will do nothing, which is unusual "
                       "for a non-indirect Dispatch. Did you mean Z=1?");
 
@@ -129,7 +132,7 @@ bool WrappedOpenGL::Serialise_glDispatchComputeGroupSizeARB(GLuint num_groups_x,
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_Dispatch;
+    draw.flags |= DrawFlags::Dispatch;
 
     draw.dispatchDimension[0] = X;
     draw.dispatchDimension[1] = Y;
@@ -139,28 +142,34 @@ bool WrappedOpenGL::Serialise_glDispatchComputeGroupSizeARB(GLuint num_groups_x,
     draw.dispatchThreadsDimension[2] = sZ;
 
     if(X == 0)
-      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+      AddDebugMessage(MessageCategory::Execution, MessageSeverity::Medium,
+                      MessageSource::IncorrectAPIUse,
                       "Dispatch call has Num Groups X=0. This will do nothing, which is unusual "
                       "for a non-indirect Dispatch. Did you mean X=1?");
     if(Y == 0)
-      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+      AddDebugMessage(MessageCategory::Execution, MessageSeverity::Medium,
+                      MessageSource::IncorrectAPIUse,
                       "Dispatch call has Num Groups Y=0. This will do nothing, which is unusual "
                       "for a non-indirect Dispatch. Did you mean Y=1?");
     if(Z == 0)
-      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+      AddDebugMessage(MessageCategory::Execution, MessageSeverity::Medium,
+                      MessageSource::IncorrectAPIUse,
                       "Dispatch call has Num Groups Z=0. This will do nothing, which is unusual "
                       "for a non-indirect Dispatch. Did you mean Z=1?");
 
     if(sX == 0)
-      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+      AddDebugMessage(MessageCategory::Execution, MessageSeverity::Medium,
+                      MessageSource::IncorrectAPIUse,
                       "Dispatch call has Group Size X=0. This will do nothing, which is unusual "
                       "for a non-indirect Dispatch. Did you mean X=1?");
     if(sY == 0)
-      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+      AddDebugMessage(MessageCategory::Execution, MessageSeverity::Medium,
+                      MessageSource::IncorrectAPIUse,
                       "Dispatch call has Group Size Y=0. This will do nothing, which is unusual "
                       "for a non-indirect Dispatch. Did you mean Y=1?");
     if(sZ == 0)
-      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+      AddDebugMessage(MessageCategory::Execution, MessageSeverity::Medium,
+                      MessageSource::IncorrectAPIUse,
                       "Dispatch call has Group Size Z=0. This will do nothing, which is unusual "
                       "for a non-indirect Dispatch. Did you mean Z=1?");
 
@@ -223,7 +232,7 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(GLintptr indirect)
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_Dispatch | eDraw_Indirect;
+    draw.flags |= DrawFlags::Dispatch | DrawFlags::Indirect;
 
     draw.dispatchDimension[0] = groupSizes[0];
     draw.dispatchDimension[1] = groupSizes[1];
@@ -235,7 +244,7 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(GLintptr indirect)
     m_Real.glGetIntegerv(eGL_DISPATCH_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
     m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
-        EventUsage(m_CurEventID, eUsage_Indirect));
+        EventUsage(m_CurEventID, ResourceUsage::Indirect));
   }
 
   return true;
@@ -435,7 +444,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(GLenum mode, GLuint id)
     draw.vertexOffset = 0;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall;
+    draw.flags |= DrawFlags::Drawcall;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -501,7 +510,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(GLenum mode, GLui
     draw.vertexOffset = 0;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall;
+    draw.flags |= DrawFlags::Drawcall;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -566,7 +575,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(GLenum mode, GLuint 
     draw.vertexOffset = 0;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall;
+    draw.flags |= DrawFlags::Drawcall;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -636,7 +645,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(GLenum mode
     draw.vertexOffset = 0;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall;
+    draw.flags |= DrawFlags::Drawcall;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -699,7 +708,7 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
     draw.vertexOffset = First;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall;
+    draw.flags |= DrawFlags::Drawcall;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -830,7 +839,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indi
     draw.vertexOffset = params.first;
     draw.instanceOffset = params.baseInstance;
 
-    draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_Indirect;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -840,7 +849,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indi
     m_Real.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
     m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
-        EventUsage(m_CurEventID, eUsage_Indirect));
+        EventUsage(m_CurEventID, ResourceUsage::Indirect));
   }
 
   return true;
@@ -901,7 +910,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GL
     draw.vertexOffset = First;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall | eDraw_Instanced;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -973,7 +982,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLi
     draw.vertexOffset = First;
     draw.instanceOffset = BaseInstance;
 
-    draw.flags |= eDraw_Drawcall | eDraw_Instanced;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -1015,8 +1024,8 @@ bool WrappedOpenGL::Check_preElements()
 
   if(idxbuf == 0)
   {
-    AddDebugMessage(eDbgCategory_Undefined, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
-                    "No index buffer bound at indexed draw!.");
+    AddDebugMessage(MessageCategory::Undefined, MessageSeverity::High,
+                    MessageSource::IncorrectAPIUse, "No index buffer bound at indexed draw!.");
     return false;
   }
 
@@ -1084,7 +1093,8 @@ void WrappedOpenGL::Common_postElements(byte *idxDelete)
   {
     m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
 
-    AddDebugMessage(eDbgCategory_Deprecated, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+    AddDebugMessage(MessageCategory::Deprecated, MessageSeverity::High,
+                    MessageSource::IncorrectAPIUse,
                     "Assuming GL core profile is used then specifying indices as a raw array, "
                     "not as offset into element array buffer, is illegal.");
 
@@ -1132,7 +1142,7 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
     draw.vertexOffset = 0;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -1203,7 +1213,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, c
     draw.baseVertex = params.baseVertex;
     draw.instanceOffset = params.baseInstance;
 
-    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer | eDraw_Instanced | eDraw_Indirect;
+    draw.flags |=
+        DrawFlags::Drawcall | DrawFlags::UseIBuffer | DrawFlags::Instanced | DrawFlags::Indirect;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -1214,7 +1225,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, c
     m_Real.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
     m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
-        EventUsage(m_CurEventID, eUsage_Indirect));
+        EventUsage(m_CurEventID, ResourceUsage::Indirect));
   }
 
   return true;
@@ -1285,7 +1296,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
     draw.vertexOffset = 0;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -1365,7 +1376,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
     draw.baseVertex = BaseVtx;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -1442,7 +1453,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
     draw.baseVertex = BaseVtx;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -1518,7 +1529,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
     draw.vertexOffset = 0;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -1598,7 +1609,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
     draw.vertexOffset = 0;
     draw.instanceOffset = BaseInstance;
 
-    draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_UseIBuffer;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -1681,7 +1692,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
     draw.baseVertex = BaseVertex;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_UseIBuffer;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -1764,7 +1775,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
     draw.baseVertex = BaseVertex;
     draw.instanceOffset = BaseInstance;
 
-    draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_UseIBuffer;
+    draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::UseIBuffer;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -1870,7 +1881,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_MultiDraw;
+    draw.flags |= DrawFlags::MultiDraw;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -1889,7 +1900,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
       multidraw.name =
           "glMultiDrawArrays[" + ToStr::Get(i) + "](" + ToStr::Get(multidraw.numIndices) + ")";
 
-      multidraw.flags |= eDraw_Drawcall;
+      multidraw.flags |= DrawFlags::Drawcall;
 
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -2026,7 +2037,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
     FetchDrawcall draw;
     draw.name = name;
 
-    draw.flags |= eDraw_MultiDraw;
+    draw.flags |= DrawFlags::MultiDraw;
     draw.indexByteWidth = IdxSize;
     draw.numIndices = 0;
 
@@ -2050,7 +2061,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
       multidraw.name =
           "glMultiDrawElements[" + ToStr::Get(i) + "](" + ToStr::Get(multidraw.numIndices) + ")";
 
-      multidraw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+      multidraw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
 
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -2191,7 +2202,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
     FetchDrawcall draw;
     draw.name = name;
 
-    draw.flags |= eDraw_MultiDraw;
+    draw.flags |= DrawFlags::MultiDraw;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -2214,7 +2225,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
       multidraw.name = "glMultiDrawElementsBaseVertex[" + ToStr::Get(i) + "](" +
                        ToStr::Get(multidraw.numIndices) + ")";
 
-      multidraw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+      multidraw.flags |= DrawFlags::Drawcall | DrawFlags::UseIBuffer;
 
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
       multidraw.indexByteWidth = IdxSize;
@@ -2339,7 +2350,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
     FetchDrawcall draw;
     draw.name = name;
 
-    draw.flags |= eDraw_MultiDraw;
+    draw.flags |= DrawFlags::MultiDraw;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -2352,7 +2363,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
       m_Real.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
       m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
-          EventUsage(m_CurEventID, eUsage_Indirect));
+          EventUsage(m_CurEventID, ResourceUsage::Indirect));
     }
 
     GLintptr offs = (GLintptr)Offset;
@@ -2380,7 +2391,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
                        ToStr::Get(multidraw.numIndices) + ", " +
                        ToStr::Get(multidraw.numInstances) + ">)";
 
-      multidraw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_Indirect;
+      multidraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -2506,7 +2517,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
     FetchDrawcall draw;
     draw.name = name;
 
-    draw.flags |= eDraw_MultiDraw;
+    draw.flags |= DrawFlags::MultiDraw;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -2520,7 +2531,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
       m_Real.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
       m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
-          EventUsage(m_CurEventID, eUsage_Indirect));
+          EventUsage(m_CurEventID, ResourceUsage::Indirect));
     }
 
     GLintptr offs = (GLintptr)Offset;
@@ -2549,7 +2560,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
                        ToStr::Get(multidraw.numIndices) + ", " +
                        ToStr::Get(multidraw.numInstances) + ">)";
 
-      multidraw.flags |= eDraw_Drawcall | eDraw_UseIBuffer | eDraw_Instanced | eDraw_Indirect;
+      multidraw.flags |=
+          DrawFlags::Drawcall | DrawFlags::UseIBuffer | DrawFlags::Instanced | DrawFlags::Indirect;
 
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
       multidraw.indexByteWidth = IdxSize;
@@ -2682,7 +2694,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
     FetchDrawcall draw;
     draw.name = name;
 
-    draw.flags |= eDraw_MultiDraw;
+    draw.flags |= DrawFlags::MultiDraw;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -2695,7 +2707,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
       m_Real.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
       m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
-          EventUsage(m_CurEventID, eUsage_Indirect));
+          EventUsage(m_CurEventID, ResourceUsage::Indirect));
     }
 
     GLintptr offs = (GLintptr)Offset;
@@ -2723,7 +2735,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
                        ToStr::Get(multidraw.numIndices) + ", " +
                        ToStr::Get(multidraw.numInstances) + ">)";
 
-      multidraw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_Indirect;
+      multidraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 
@@ -2865,7 +2877,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
     FetchDrawcall draw;
     draw.name = name;
 
-    draw.flags |= eDraw_MultiDraw;
+    draw.flags |= DrawFlags::MultiDraw;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -2879,7 +2891,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
       m_Real.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
       m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
-          EventUsage(m_CurEventID, eUsage_Indirect));
+          EventUsage(m_CurEventID, ResourceUsage::Indirect));
     }
 
     GLintptr offs = (GLintptr)Offset;
@@ -2908,7 +2920,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
                        ToStr::Get(multidraw.numIndices) + ", " +
                        ToStr::Get(multidraw.numInstances) + ")";
 
-      multidraw.flags |= eDraw_Drawcall | eDraw_UseIBuffer | eDraw_Instanced | eDraw_Indirect;
+      multidraw.flags |=
+          DrawFlags::Drawcall | DrawFlags::UseIBuffer | DrawFlags::Instanced | DrawFlags::Indirect;
 
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
       multidraw.indexByteWidth = IdxSize;
@@ -3017,11 +3030,11 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLen
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_Clear;
+    draw.flags |= DrawFlags::Clear;
     if(buf == eGL_COLOR)
-      draw.flags |= eDraw_ClearColour;
+      draw.flags |= DrawFlags::ClearColour;
     else
-      draw.flags |= eDraw_ClearDepthStencil;
+      draw.flags |= DrawFlags::ClearDepthStencil;
 
     AddDrawcall(draw, true);
 
@@ -3038,10 +3051,10 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLen
     {
       if(type == eGL_TEXTURE)
         m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
       else
         m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
     }
   }
 
@@ -3155,11 +3168,11 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLen
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_Clear;
+    draw.flags |= DrawFlags::Clear;
     if(buf == eGL_COLOR)
-      draw.flags |= eDraw_ClearColour;
+      draw.flags |= DrawFlags::ClearColour;
     else
-      draw.flags |= eDraw_ClearDepthStencil;
+      draw.flags |= DrawFlags::ClearDepthStencil;
 
     AddDrawcall(draw, true);
 
@@ -3176,10 +3189,10 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLen
     {
       if(type == eGL_TEXTURE)
         m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
       else
         m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
     }
   }
 
@@ -3272,7 +3285,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(GLuint framebuffer, GLe
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_Clear | eDraw_ClearColour;
+    draw.flags |= DrawFlags::Clear | DrawFlags::ClearColour;
 
     AddDrawcall(draw, true);
 
@@ -3288,10 +3301,10 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(GLuint framebuffer, GLe
     {
       if(type == eGL_TEXTURE)
         m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
       else
         m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
     }
   }
 
@@ -3370,7 +3383,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(GLuint framebuffer, GLen
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_Clear | eDraw_ClearDepthStencil;
+    draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
 
     AddDrawcall(draw, true);
 
@@ -3386,10 +3399,10 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(GLuint framebuffer, GLen
     {
       if(type == eGL_TEXTURE)
         m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
       else
         m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
     }
 
     attachment = 0;
@@ -3404,10 +3417,10 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(GLuint framebuffer, GLen
     {
       if(type == eGL_TEXTURE)
         m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
       else
         m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
     }
   }
 
@@ -3761,11 +3774,11 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_Clear;
+    draw.flags |= DrawFlags::Clear;
     if(Mask & GL_COLOR_BUFFER_BIT)
-      draw.flags |= eDraw_ClearColour;
+      draw.flags |= DrawFlags::ClearColour;
     if(Mask & (eGL_DEPTH_BUFFER_BIT | eGL_STENCIL_BUFFER_BIT))
-      draw.flags |= eDraw_ClearDepthStencil;
+      draw.flags |= DrawFlags::ClearDepthStencil;
 
     AddDrawcall(draw, true);
 
@@ -3785,10 +3798,10 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
       {
         if(type == eGL_TEXTURE)
           m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-              EventUsage(m_CurEventID, eUsage_Clear));
+              EventUsage(m_CurEventID, ResourceUsage::Clear));
         else
           m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-              EventUsage(m_CurEventID, eUsage_Clear));
+              EventUsage(m_CurEventID, ResourceUsage::Clear));
       }
     }
 
@@ -3808,10 +3821,10 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
       {
         if(type == eGL_TEXTURE)
           m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-              EventUsage(m_CurEventID, eUsage_Clear));
+              EventUsage(m_CurEventID, ResourceUsage::Clear));
         else
           m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-              EventUsage(m_CurEventID, eUsage_Clear));
+              EventUsage(m_CurEventID, ResourceUsage::Clear));
       }
     }
 
@@ -3836,10 +3849,10 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
         {
           if(type == eGL_TEXTURE)
             m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-                EventUsage(m_CurEventID, eUsage_Clear));
+                EventUsage(m_CurEventID, ResourceUsage::Clear));
           else
             m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-                EventUsage(m_CurEventID, eUsage_Clear));
+                EventUsage(m_CurEventID, ResourceUsage::Clear));
         }
       }
     }

@@ -63,21 +63,20 @@ void RemoteHost::CheckStatus()
   }
 
   IRemoteServer *rend = NULL;
-  ReplayCreateStatus status =
-      RENDERDOC_CreateRemoteServerConnection(Hostname.toUtf8().data(), 0, &rend);
+  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(Hostname.toUtf8().data(), 0, &rend);
 
-  if(status == eReplayCreate_Success)
+  if(status == ReplayStatus::Succeeded)
   {
     ServerRunning = true;
     VersionMismatch = Busy = false;
   }
-  else if(status == eReplayCreate_NetworkRemoteBusy)
+  else if(status == ReplayStatus::NetworkRemoteBusy)
   {
     ServerRunning = true;
     Busy = true;
     VersionMismatch = false;
   }
-  else if(status == eReplayCreate_NetworkVersionMismatch)
+  else if(status == ReplayStatus::NetworkVersionMismatch)
   {
     ServerRunning = true;
     Busy = true;

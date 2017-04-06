@@ -77,20 +77,19 @@ public:
   void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
 
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 FormatComponentType typeHint, float *minval, float *maxval);
+                 CompType typeHint, float *minval, float *maxval);
 
   bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    FormatComponentType typeHint, float minval, float maxval, bool channels[4],
+                    CompType typeHint, float minval, float maxval, bool channels[4],
                     vector<uint32_t> &histogram);
 
-  ResourceId RenderOverlay(ResourceId texid, FormatComponentType typeHint,
-                           TextureDisplayOverlay overlay, uint32_t eventID,
-                           const vector<uint32_t> &passEvents);
+  ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
+                           uint32_t eventID, const vector<uint32_t> &passEvents);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
-                               uint32_t sampleIdx, FormatComponentType typeHint);
+                               uint32_t sampleIdx, CompType typeHint);
 
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
-                 uint32_t sample, FormatComponentType typeHint, float pixel[4]);
+                 uint32_t sample, CompType typeHint, float pixel[4]);
   uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y);
 
   void FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars,
@@ -109,7 +108,7 @@ public:
   byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                        const GetTextureDataParams &params, size_t &dataSize);
 
-  void BuildShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type,
+  void BuildShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
                    ResourceId *id, string *errors);
 
   D3D12_CPU_DESCRIPTOR_HANDLE AllocRTV();
@@ -313,7 +312,7 @@ private:
   void RenderTextInternal(ID3D12GraphicsCommandList *list, float x, float y, const char *text);
   bool RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg, bool blendAlpha);
 
-  void PrepareTextureSampling(ID3D12Resource *resource, FormatComponentType typeHint, int &resType,
+  void PrepareTextureSampling(ID3D12Resource *resource, CompType typeHint, int &resType,
                               vector<D3D12_RESOURCE_BARRIER> &barriers);
 
   string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
@@ -370,9 +369,9 @@ private:
 
     const StageData &GetStage(MeshDataStage type)
     {
-      if(type == eMeshDataStage_VSOut)
+      if(type == MeshDataStage::VSOut)
         return vsout;
-      else if(type == eMeshDataStage_GSOut)
+      else if(type == MeshDataStage::GSOut)
         return gsout;
       else
         RDCERR("Unexpected mesh data stage!");
@@ -411,7 +410,7 @@ private:
   // mesh, not jumping back and forth much between meshes.
   struct HighlightCache
   {
-    HighlightCache() : EID(0), buf(), offs(0), stage(eMeshDataStage_Unknown), useidx(false) {}
+    HighlightCache() : EID(0), buf(), offs(0), stage(MeshDataStage::Unknown), useidx(false) {}
     uint32_t EID;
     ResourceId buf;
     uint64_t offs;

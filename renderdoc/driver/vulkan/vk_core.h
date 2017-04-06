@@ -40,7 +40,7 @@ using std::list;
 struct VkInitParams : public RDCInitParams
 {
   VkInitParams();
-  ReplayCreateStatus Serialise();
+  ReplayStatus Serialise();
 
   void Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst);
 
@@ -162,9 +162,9 @@ struct VulkanDrawcallCallback
   virtual void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) = 0;
 
   // finally, these are for copy/blit/resolve/clear/etc
-  virtual void PreMisc(uint32_t eid, DrawcallFlags flags, VkCommandBuffer cmd) = 0;
-  virtual bool PostMisc(uint32_t eid, DrawcallFlags flags, VkCommandBuffer cmd) = 0;
-  virtual void PostRemisc(uint32_t eid, DrawcallFlags flags, VkCommandBuffer cmd) = 0;
+  virtual void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
+  virtual bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
+  virtual void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
 
   // should we re-record all command buffers? this needs to be true if the range
   // being replayed is larger than one command buffer (which usually means the
@@ -210,8 +210,7 @@ private:
   void Serialise_DebugMessages(Serialiser *localSerialiser, bool isDrawcall);
   vector<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
-  void AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src,
-                       std::string d);
+  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
 
   enum
   {
@@ -264,7 +263,7 @@ private:
 
   // util function to handle fetching the right eventID, calling any
   // aliases then calling PreDraw/PreDispatch.
-  uint32_t HandlePreCallback(VkCommandBuffer commandBuffer, DrawcallFlags type = eDraw_Drawcall,
+  uint32_t HandlePreCallback(VkCommandBuffer commandBuffer, DrawFlags type = DrawFlags::Drawcall,
                              uint32_t multiDrawOffset = 0);
 
   vector<WindowingSystem> m_SupportedWindowSystems;
@@ -704,7 +703,7 @@ public:
 
   bool ReleaseResource(WrappedVkRes *res);
 
-  ReplayCreateStatus Initialise(VkInitParams &params);
+  ReplayStatus Initialise(VkInitParams &params);
   uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
   void Shutdown();
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);

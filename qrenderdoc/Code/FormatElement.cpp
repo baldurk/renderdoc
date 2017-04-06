@@ -28,30 +28,30 @@
 
 static QVariant interpret(const ResourceFormat &f, uint16_t comp)
 {
-  if(f.compByteWidth != 2 || f.compType == eCompType_Float)
+  if(f.compByteWidth != 2 || f.compType == CompType::Float)
     return QVariant();
 
-  if(f.compType == eCompType_SInt)
+  if(f.compType == CompType::SInt)
   {
     return (int16_t)comp;
   }
-  else if(f.compType == eCompType_UInt)
+  else if(f.compType == CompType::UInt)
   {
     return comp;
   }
-  else if(f.compType == eCompType_SScaled)
+  else if(f.compType == CompType::SScaled)
   {
     return (float)((int16_t)comp);
   }
-  else if(f.compType == eCompType_UScaled)
+  else if(f.compType == CompType::UScaled)
   {
     return (float)comp;
   }
-  else if(f.compType == eCompType_UNorm)
+  else if(f.compType == CompType::UNorm)
   {
     return (float)comp / (float)0xffff;
   }
-  else if(f.compType == eCompType_SNorm)
+  else if(f.compType == CompType::SNorm)
   {
     int16_t cast = (int16_t)comp;
 
@@ -70,30 +70,30 @@ static QVariant interpret(const ResourceFormat &f, uint16_t comp)
 
 static QVariant interpret(const ResourceFormat &f, byte comp)
 {
-  if(f.compByteWidth != 1 || f.compType == eCompType_Float)
+  if(f.compByteWidth != 1 || f.compType == CompType::Float)
     return QVariant();
 
-  if(f.compType == eCompType_SInt)
+  if(f.compType == CompType::SInt)
   {
     return (int8_t)comp;
   }
-  else if(f.compType == eCompType_UInt)
+  else if(f.compType == CompType::UInt)
   {
     return comp;
   }
-  else if(f.compType == eCompType_SScaled)
+  else if(f.compType == CompType::SScaled)
   {
     return (float)((int8_t)comp);
   }
-  else if(f.compType == eCompType_UScaled)
+  else if(f.compType == CompType::UScaled)
   {
     return (float)comp;
   }
-  else if(f.compType == eCompType_UNorm)
+  else if(f.compType == CompType::UNorm)
   {
     return ((float)comp) / 255.0f;
   }
-  else if(f.compType == eCompType_SNorm)
+  else if(f.compType == CompType::SNorm)
   {
     int8_t cast = (int8_t)comp;
 
@@ -120,7 +120,7 @@ FormatElement::FormatElement()
   rowmajor = false;
   matrixdim = 0;
   hex = false;
-  systemValue = eAttr_None;
+  systemValue = ShaderBuiltin::Undefined;
 }
 
 FormatElement::FormatElement(const QString &Name, int buf, uint offs, bool perInst, int instRate,
@@ -135,7 +135,7 @@ FormatElement::FormatElement(const QString &Name, int buf, uint offs, bool perIn
   rowmajor = rowMat;
   matrixdim = matDim;
   hex = hexDisplay;
-  systemValue = eAttr_None;
+  systemValue = ShaderBuiltin::Undefined;
 }
 
 QList<FormatElement> FormatElement::ParseFormatString(const QString &formatString, uint64_t maxLen,
@@ -211,11 +211,11 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
     }
 
     ResourceFormat fmt;
-    fmt.compType = eCompType_None;
+    fmt.compType = CompType::Typeless;
 
     bool hex = false;
 
-    FormatComponentType type = eCompType_Float;
+    CompType type = CompType::Float;
     uint32_t count = 0;
     uint32_t arrayCount = 1;
     uint32_t matrixCount = 0;
@@ -254,97 +254,97 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
 
       if(basetype == "bool")
       {
-        type = eCompType_UInt;
+        type = CompType::UInt;
         width = 4;
       }
       else if(basetype == "byte")
       {
-        type = eCompType_SInt;
+        type = CompType::SInt;
         width = 1;
       }
       else if(basetype == "ubyte" || basetype == "xbyte")
       {
-        type = eCompType_UInt;
+        type = CompType::UInt;
         width = 1;
       }
       else if(basetype == "short")
       {
-        type = eCompType_SInt;
+        type = CompType::SInt;
         width = 2;
       }
       else if(basetype == "ushort" || basetype == "xshort")
       {
-        type = eCompType_UInt;
+        type = CompType::UInt;
         width = 2;
       }
       else if(basetype == "int" || basetype == "ivec" || basetype == "imat")
       {
-        type = eCompType_SInt;
+        type = CompType::SInt;
         width = 4;
       }
       else if(basetype == "uint" || basetype == "xint" || basetype == "uvec" || basetype == "umat")
       {
-        type = eCompType_UInt;
+        type = CompType::UInt;
         width = 4;
       }
       else if(basetype == "half")
       {
-        type = eCompType_Float;
+        type = CompType::Float;
         width = 2;
       }
       else if(basetype == "float" || basetype == "vec" || basetype == "mat")
       {
-        type = eCompType_Float;
+        type = CompType::Float;
         width = 4;
       }
       else if(basetype == "double")
       {
-        type = eCompType_Double;
+        type = CompType::Double;
         width = 8;
       }
       else if(basetype == "unormh")
       {
-        type = eCompType_UNorm;
+        type = CompType::UNorm;
         width = 2;
       }
       else if(basetype == "unormb")
       {
-        type = eCompType_UNorm;
+        type = CompType::UNorm;
         width = 1;
       }
       else if(basetype == "snormh")
       {
-        type = eCompType_SNorm;
+        type = CompType::SNorm;
         width = 2;
       }
       else if(basetype == "snormb")
       {
-        type = eCompType_SNorm;
+        type = CompType::SNorm;
         width = 1;
       }
       else if(basetype == "uintten")
       {
-        fmt.compType = eCompType_UInt;
+        fmt.compType = CompType::UInt;
         fmt.compCount = 4 * count;
         fmt.compByteWidth = 1;
         fmt.special = true;
-        fmt.specialFormat = eSpecial_R10G10B10A2;
+        fmt.specialFormat = SpecialFormat::R10G10B10A2;
       }
       else if(basetype == "unormten")
       {
-        fmt.compType = eCompType_UInt;
+        fmt.compType = CompType::UInt;
         fmt.compCount = 4 * count;
         fmt.compByteWidth = 1;
         fmt.special = true;
-        fmt.specialFormat = eSpecial_R10G10B10A2;
+        fmt.specialFormat = SpecialFormat::R10G10B10A2;
       }
       else if(basetype == "floateleven")
       {
-        fmt.compType = eCompType_Float;
+        fmt.compType = CompType::Float;
         fmt.compCount = 3 * count;
         fmt.compByteWidth = 1;
         fmt.special = true;
-        fmt.specialFormat = eSpecial_R11G11B10;
+        fmt.specialFormat = SpecialFormat::R11G11B10;
       }
       else
       {
@@ -357,7 +357,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
     if(basetype == "xint" || basetype == "xshort" || basetype == "xbyte")
       hex = true;
 
-    if(fmt.compType == eCompType_None)
+    if(fmt.compType == CompType::Typeless)
     {
       fmt.compType = type;
       fmt.compCount = count;
@@ -423,7 +423,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
     elems.clear();
 
     ResourceFormat fmt;
-    fmt.compType = eCompType_UInt;
+    fmt.compType = CompType::UInt;
     fmt.compByteWidth = 4;
     fmt.compCount = 4;
 
@@ -460,7 +460,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
 
   bool ok = true;
 
-  if(format.special && format.specialFormat == eSpecial_R5G5B5A1)
+  if(format.special && format.specialFormat == SpecialFormat::R5G5B5A1)
   {
     uint16_t packed = readObj<uint16_t>(data, end, ok);
 
@@ -476,7 +476,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
       ret[0] = tmp;
     }
   }
-  else if(format.special && format.specialFormat == eSpecial_R5G6B5)
+  else if(format.special && format.specialFormat == SpecialFormat::R5G6B5)
   {
     uint16_t packed = readObj<uint16_t>(data, end, ok);
 
@@ -491,7 +491,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
       ret[0] = tmp;
     }
   }
-  else if(format.special && format.specialFormat == eSpecial_R4G4B4A4)
+  else if(format.special && format.specialFormat == SpecialFormat::R4G4B4A4)
   {
     uint16_t packed = readObj<uint16_t>(data, end, ok);
 
@@ -507,7 +507,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
       ret[0] = tmp;
     }
   }
-  else if(format.special && format.specialFormat == eSpecial_R10G10B10A2)
+  else if(format.special && format.specialFormat == SpecialFormat::R10G10B10A2)
   {
     // allow for vectors of this format - for raw buffer viewer
     for(int i = 0; i < int(format.compCount / 4); i++)
@@ -526,21 +526,21 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
         r = tmp;
       }
 
-      if(format.compType == eCompType_UInt)
+      if(format.compType == CompType::UInt)
       {
         ret.push_back(r);
         ret.push_back(g);
         ret.push_back(b);
         ret.push_back(a);
       }
-      else if(format.compType == eCompType_UScaled)
+      else if(format.compType == CompType::UScaled)
       {
         ret.push_back((float)r);
         ret.push_back((float)g);
         ret.push_back((float)b);
         ret.push_back((float)a);
       }
-      else if(format.compType == eCompType_SInt || format.compType == eCompType_SScaled)
+      else if(format.compType == CompType::SInt || format.compType == CompType::SScaled)
       {
         int ir, ig, ib, ia;
 
@@ -566,14 +566,14 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
         else
           ia = ((int)a) - 4;
 
-        if(format.compType == eCompType_SInt)
+        if(format.compType == CompType::SInt)
         {
           ret.push_back(ir);
           ret.push_back(ig);
           ret.push_back(ib);
           ret.push_back(ia);
         }
-        else if(format.compType == eCompType_SScaled)
+        else if(format.compType == CompType::SScaled)
         {
           ret.push_back((float)ir);
           ret.push_back((float)ig);
@@ -590,7 +590,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
       }
     }
   }
-  else if(format.special && format.specialFormat == eSpecial_R11G11B10)
+  else if(format.special && format.specialFormat == SpecialFormat::R11G11B10)
   {
     uint32_t packed = readObj<uint32_t>(data, end, ok);
 
@@ -645,7 +645,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
 
     for(int i = 0; i < dim; i++)
     {
-      if(format.compType == eCompType_Float)
+      if(format.compType == CompType::Float)
       {
         if(format.compByteWidth == 8)
           ret.push_back(readObj<double>(data, end, ok));
@@ -654,7 +654,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
         else if(format.compByteWidth == 2)
           ret.push_back(Maths_HalfToFloat(readObj<uint16_t>(data, end, ok)));
       }
-      else if(format.compType == eCompType_SInt)
+      else if(format.compType == CompType::SInt)
       {
         if(format.compByteWidth == 4)
           ret.push_back((int)readObj<int32_t>(data, end, ok));
@@ -663,7 +663,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
         else if(format.compByteWidth == 1)
           ret.push_back((int)readObj<int8_t>(data, end, ok));
       }
-      else if(format.compType == eCompType_UInt)
+      else if(format.compType == CompType::UInt)
       {
         if(format.compByteWidth == 4)
           ret.push_back((uint32_t)readObj<uint32_t>(data, end, ok));
@@ -672,7 +672,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
         else if(format.compByteWidth == 1)
           ret.push_back((uint32_t)readObj<uint8_t>(data, end, ok));
       }
-      else if(format.compType == eCompType_UScaled)
+      else if(format.compType == CompType::UScaled)
       {
         if(format.compByteWidth == 4)
           ret.push_back((float)readObj<uint32_t>(data, end, ok));
@@ -681,7 +681,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
         else if(format.compByteWidth == 1)
           ret.push_back((float)readObj<uint8_t>(data, end, ok));
       }
-      else if(format.compType == eCompType_SScaled)
+      else if(format.compType == CompType::SScaled)
       {
         if(format.compByteWidth == 4)
           ret.push_back((float)readObj<int32_t>(data, end, ok));
@@ -690,7 +690,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
         else if(format.compByteWidth == 1)
           ret.push_back((float)readObj<int8_t>(data, end, ok));
       }
-      else if(format.compType == eCompType_Depth)
+      else if(format.compType == CompType::Depth)
       {
         if(format.compByteWidth == 4)
         {
@@ -711,7 +711,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
           ret.push_back(f / (float)0x0000ffff);
         }
       }
-      else if(format.compType == eCompType_Double)
+      else if(format.compType == CompType::Double)
       {
         ret.push_back(readObj<double>(data, end, ok));
       }
@@ -758,13 +758,13 @@ ShaderVariable FormatElement::GetShaderVar(const byte *&data, const byte *end) c
   ShaderVariable ret;
 
   ret.name = name.toUtf8().data();
-  ret.type = eVar_Float;
-  if(format.compType == eCompType_UInt)
-    ret.type = eVar_UInt;
-  if(format.compType == eCompType_SInt)
-    ret.type = eVar_Int;
-  if(format.compType == eCompType_Double)
-    ret.type = eVar_Double;
+  ret.type = VarType::Float;
+  if(format.compType == CompType::UInt)
+    ret.type = VarType::UInt;
+  if(format.compType == CompType::SInt)
+    ret.type = VarType::Int;
+  if(format.compType == CompType::Double)
+    ret.type = VarType::Double;
 
   ret.columns = qMin(format.compCount, 4U);
   ret.rows = qMin(matrixdim, 4U);
@@ -788,11 +788,11 @@ ShaderVariable FormatElement::GetShaderVar(const byte *&data, const byte *end) c
 
       const QVariant &o = objs[src];
 
-      if(ret.type == eVar_Double)
+      if(ret.type == VarType::Double)
         ret.value.dv[dst] = o.toDouble();
-      else if(ret.type == eVar_UInt)
+      else if(ret.type == VarType::UInt)
         ret.value.uv[dst] = o.toUInt();
-      else if(ret.type == eVar_Int)
+      else if(ret.type == VarType::Int)
         ret.value.iv[dst] = o.toInt();
       else
         ret.value.fv[dst] = o.toFloat();
@@ -808,11 +808,13 @@ uint32_t FormatElement::byteSize() const
 
   if(format.special)
   {
-    if(format.specialFormat == eSpecial_R5G5B5A1 || format.specialFormat == eSpecial_R5G6B5 ||
-       format.specialFormat == eSpecial_R4G4B4A4)
+    if(format.specialFormat == SpecialFormat::R5G5B5A1 ||
+       format.specialFormat == SpecialFormat::R5G6B5 ||
+       format.specialFormat == SpecialFormat::R4G4B4A4)
       vecSize = 2;
 
-    if(format.specialFormat == eSpecial_R10G10B10A2 || format.specialFormat == eSpecial_R11G11B10)
+    if(format.specialFormat == SpecialFormat::R10G10B10A2 ||
+       format.specialFormat == SpecialFormat::R11G11B10)
       vecSize = 4;
   }
 
@@ -831,7 +833,7 @@ QString TypeString(const ShaderVariable &v)
 
   QString typeStr = ToQStr(v.type);
 
-  if(v.displayAsHex && v.type == eVar_UInt)
+  if(v.displayAsHex && v.type == VarType::UInt)
     typeStr = "xint";
 
   if(v.rows == 1 && v.columns == 1)
@@ -858,18 +860,18 @@ static QString RowValuesToString(int cols, el x, el y, el z, el w)
 
 QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
 {
-  if(type == eVar_Unknown)
+  if(type == VarType::Unknown)
     type = v.type;
 
-  if(type == eVar_Double)
+  if(type == VarType::Double)
     return RowValuesToString((int)v.columns, v.value.dv[row * v.columns + 0],
                              v.value.dv[row * v.columns + 1], v.value.dv[row * v.columns + 2],
                              v.value.dv[row * v.columns + 3]);
-  else if(type == eVar_Int)
+  else if(type == VarType::Int)
     return RowValuesToString((int)v.columns, v.value.iv[row * v.columns + 0],
                              v.value.iv[row * v.columns + 1], v.value.iv[row * v.columns + 2],
                              v.value.iv[row * v.columns + 3]);
-  else if(type == eVar_UInt)
+  else if(type == VarType::UInt)
     return RowValuesToString((int)v.columns, v.value.uv[row * v.columns + 0],
                              v.value.uv[row * v.columns + 1], v.value.uv[row * v.columns + 2],
                              v.value.uv[row * v.columns + 3]);
@@ -913,7 +915,7 @@ QString RowTypeString(const ShaderVariable &v)
 
   QString typeStr = ToQStr(v.type);
 
-  if(v.displayAsHex && v.type == eVar_UInt)
+  if(v.displayAsHex && v.type == VarType::UInt)
     typeStr = "xint";
 
   if(v.columns == 1)

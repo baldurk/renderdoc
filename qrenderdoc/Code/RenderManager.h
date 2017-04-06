@@ -49,16 +49,16 @@ struct EnvironmentModification
   QString variable;
   QString value;
 
-  EnvironmentModificationType type;
-  EnvironmentSeparator separator;
+  EnvMod type;
+  EnvSep separator;
 
   QString GetTypeString() const
   {
     QString ret;
 
-    if(type == eEnvMod_Append)
+    if(type == EnvMod::Append)
       ret = QString("Append, %1").arg(ToQStr(separator));
-    else if(type == eEnvMod_Prepend)
+    else if(type == EnvMod::Prepend)
       ret = QString("Prepend, %1").arg(ToQStr(separator));
     else
       ret = "Set";
@@ -70,9 +70,9 @@ struct EnvironmentModification
   {
     QString ret;
 
-    if(type == eEnvMod_Append)
+    if(type == EnvMod::Append)
       ret = QString("Append %1 with %2 using %3").arg(variable).arg(value).arg(ToQStr(separator));
-    else if(type == eEnvMod_Prepend)
+    else if(type == EnvMod::Prepend)
       ret = QString("Prepend %1 with %2 using %3").arg(variable).arg(value).arg(ToQStr(separator));
     else
       ret = QString("Set %1 to %2").arg(variable).arg(value);
@@ -97,23 +97,23 @@ struct EnvironmentModification
 
     QString t = data["type"].toString();
 
-    if(t == ToQStr(eEnvMod_Append))
-      type = eEnvMod_Append;
-    else if(t == ToQStr(eEnvMod_Prepend))
-      type = eEnvMod_Prepend;
+    if(t == ToQStr(EnvMod::Append))
+      type = EnvMod::Append;
+    else if(t == ToQStr(EnvMod::Prepend))
+      type = EnvMod::Prepend;
     else
-      type = eEnvMod_Set;
+      type = EnvMod::Set;
 
     QString s = data["separator"].toString();
 
-    if(s == ToQStr(eEnvSep_SemiColon))
-      separator = eEnvSep_SemiColon;
-    else if(s == ToQStr(eEnvSep_Colon))
-      separator = eEnvSep_Colon;
-    else if(s == ToQStr(eEnvSep_Platform))
-      separator = eEnvSep_Platform;
+    if(s == ToQStr(EnvSep::SemiColon))
+      separator = EnvSep::SemiColon;
+    else if(s == ToQStr(EnvSep::Colon))
+      separator = EnvSep::Colon;
+    else if(s == ToQStr(EnvSep::Platform))
+      separator = EnvSep::Platform;
     else
-      separator = eEnvSep_None;
+      separator = EnvSep::NoSep;
   }
 };
 
@@ -130,7 +130,7 @@ public:
   void DeleteCapture(const QString &logfile, bool local);
 
   bool IsRunning();
-  ReplayCreateStatus GetCreateStatus() { return m_CreateStatus; }
+  ReplayStatus GetCreateStatus() { return m_CreateStatus; }
   // this tagged version is for cases when we might send a request - e.g. to pick a vertex or pixel
   // - and want to pre-empt it with a new request before the first has returned. Either because some
   // other work is taking a while or because we're sending requests faster than they can be
@@ -143,7 +143,7 @@ public:
 
   void CloseThread();
 
-  ReplayCreateStatus ConnectToRemoteServer(RemoteHost *host);
+  ReplayStatus ConnectToRemoteServer(RemoteHost *host);
   void DisconnectFromRemoteServer();
   void ShutdownServer();
   void PingRemote();
@@ -194,5 +194,5 @@ private:
 
   volatile bool m_Running;
   LambdaThread *m_Thread;
-  ReplayCreateStatus m_CreateStatus;
+  ReplayStatus m_CreateStatus;
 };

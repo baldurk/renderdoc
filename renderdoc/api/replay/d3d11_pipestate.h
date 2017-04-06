@@ -70,16 +70,16 @@ struct D3D11PipelineState
     } ibuffer;
   } m_IA;
 
-  struct ShaderStage
+  struct Shader
   {
-    ShaderStage() : Shader(), customName(false), ShaderDetails(NULL), stage(eShaderStage_Vertex) {}
-    ResourceId Shader;
+    Shader() : Object(), customName(false), ShaderDetails(NULL), stage(ShaderStage::Vertex) {}
+    ResourceId Object;
     rdctype::str ShaderName;
     bool32 customName;
     ShaderReflection *ShaderDetails;
     ShaderBindpointMapping BindpointMapping;
 
-    ShaderStageType stage;
+    ShaderStage stage;
 
     struct ResourceView
     {
@@ -94,7 +94,7 @@ struct D3D11PipelineState
             ElementWidth(0),
             FirstElement(0),
             NumElements(1),
-            Flags(0),
+            Flags(D3DBufferViewFlags::NoFlags),
             HighestMip(0),
             NumMipLevels(1),
             ArraySize(1),
@@ -120,7 +120,7 @@ struct D3D11PipelineState
       uint32_t NumElements;
 
       // BufferEx
-      uint32_t Flags;
+      D3DBufferViewFlags Flags;
 
       // Texture
       uint32_t HighestMip;
@@ -224,8 +224,8 @@ struct D3D11PipelineState
     {
       RasterizerState()
           : State(),
-            FillMode(eFill_Solid),
-            CullMode(eCull_None),
+            fillMode(FillMode::Solid),
+            cullMode(CullMode::NoCull),
             FrontCCW(false),
             DepthBias(0),
             DepthBiasClamp(0.0f),
@@ -239,8 +239,8 @@ struct D3D11PipelineState
       {
       }
       ResourceId State;
-      TriangleFillMode FillMode;
-      TriangleCullMode CullMode;
+      FillMode fillMode;
+      CullMode cullMode;
       bool32 FrontCCW;
       int32_t DepthBias;
       float DepthBiasClamp;
@@ -322,12 +322,12 @@ struct D3D11PipelineState
       uint32_t SampleMask;
     } m_BlendState;
 
-    rdctype::array<ShaderStage::ResourceView> RenderTargets;
+    rdctype::array<Shader::ResourceView> RenderTargets;
 
     uint32_t UAVStartSlot;
-    rdctype::array<ShaderStage::ResourceView> UAVs;
+    rdctype::array<Shader::ResourceView> UAVs;
 
-    ShaderStage::ResourceView DepthTarget;
+    Shader::ResourceView DepthTarget;
     bool32 DepthReadOnly;
     bool32 StencilReadOnly;
   } m_OM;

@@ -61,7 +61,7 @@ public:
   }
 
   static ShaderViewer *debugShader(CaptureContext &ctx, const ShaderBindpointMapping *bind,
-                                   const ShaderReflection *shader, ShaderStageType stage,
+                                   const ShaderReflection *shader, ShaderStage stage,
                                    ShaderDebugTrace *trace, const QString &debugContext,
                                    QWidget *parent)
   {
@@ -71,8 +71,7 @@ public:
   }
 
   static ShaderViewer *viewShader(CaptureContext &ctx, const ShaderBindpointMapping *bind,
-                                  const ShaderReflection *shader, ShaderStageType stage,
-                                  QWidget *parent)
+                                  const ShaderReflection *shader, ShaderStage stage, QWidget *parent)
   {
     return ShaderViewer::debugShader(ctx, bind, shader, stage, NULL, "", parent);
   }
@@ -128,13 +127,13 @@ private:
   explicit ShaderViewer(CaptureContext &ctx, QWidget *parent = 0);
   void editShader(bool customShader, const QString &entryPoint, const QStringMap &files);
   void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
-                   ShaderStageType stage, ShaderDebugTrace *trace, const QString &debugContext);
+                   ShaderStage stage, ShaderDebugTrace *trace, const QString &debugContext);
 
   Ui::ShaderViewer *ui;
   CaptureContext &m_Ctx;
   const ShaderBindpointMapping *m_Mapping = NULL;
   const ShaderReflection *m_ShaderDetails = NULL;
-  ShaderStageType m_Stage;
+  ShaderStage m_Stage;
   ScintillaEdit *m_DisassemblyView = NULL;
   ScintillaEdit *m_Errors = NULL;
   ScintillaEdit *m_FindResults = NULL;
@@ -191,7 +190,7 @@ private:
 
   void find(bool down);
 
-  void runTo(int runToInstruction, bool forward, ShaderDebugStateFlags condition = eShaderDbg_None);
+  void runTo(int runToInstruction, bool forward, ShaderEvents condition = ShaderEvents::NoEvent);
 
   QString stringRep(const ShaderVariable &var, bool useType);
   QTreeWidgetItem *makeResourceRegister(const BindpointMap &bind, uint32_t idx,

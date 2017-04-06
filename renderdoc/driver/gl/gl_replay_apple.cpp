@@ -26,8 +26,8 @@
 #include "gl_driver.h"
 #include "gl_resources.h"
 
-ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCUNIMPLEMENTED("GL_CreateReplayDevice");
-  return eReplayCreate_APIHardwareUnsupported;
+  return ReplayStatus::APIHardwareUnsupported;
 }

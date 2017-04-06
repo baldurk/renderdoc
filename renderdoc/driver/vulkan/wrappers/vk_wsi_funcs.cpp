@@ -386,7 +386,8 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(Serialiser *localSerialiser, 
       iminfo.extent.depth = 1;
       iminfo.mipLevels = 1;
       iminfo.arrayLayers = info.imageArrayLayers;
-      iminfo.creationFlags = eTextureCreate_SRV | eTextureCreate_RTV | eTextureCreate_SwapBuffer;
+      iminfo.creationFlags =
+          TextureCategory::ShaderRead | TextureCategory::ColorTarget | TextureCategory::SwapBuffer;
       iminfo.cube = false;
       iminfo.samples = VK_SAMPLE_COUNT_1_BIT;
 

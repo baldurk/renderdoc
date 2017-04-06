@@ -87,9 +87,9 @@ struct VulkanPostVSData
 
   const StageData &GetStage(MeshDataStage type)
   {
-    if(type == eMeshDataStage_VSOut)
+    if(type == MeshDataStage::VSOut)
       return vsout;
-    else if(type == eMeshDataStage_GSOut)
+    else if(type == MeshDataStage::GSOut)
       return gsout;
     else
       RDCERR("Unexpected mesh data stage!");
@@ -110,7 +110,7 @@ public:
   void RenderText(const TextPrintState &textstate, float x, float y, const char *fmt, ...);
   void EndText(const TextPrintState &textstate);
 
-  ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t eventID,
+  ResourceId RenderOverlay(ResourceId texid, DebugOverlay overlay, uint32_t eventID,
                            const vector<uint32_t> &passEvents);
 
   void InitPostVSBuffers(uint32_t eventID);

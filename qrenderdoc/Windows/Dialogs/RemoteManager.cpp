@@ -604,13 +604,13 @@ void RemoteManager::on_connect_clicked()
       else
       {
         IRemoteServer *server = NULL;
-        ReplayCreateStatus status =
+        ReplayStatus status =
             RENDERDOC_CreateRemoteServerConnection(host->Hostname.toUtf8().data(), 0, &server);
         if(server)
           server->ShutdownServerAndConnection();
         setRemoteServerLive(node, false, false);
 
-        if(status != eReplayCreate_Success)
+        if(status != ReplayStatus::Succeeded)
           RDDialog::critical(this, tr("Shutdown error"),
                              tr("Error shutting down remote server: %1").arg(ToQStr(status)));
       }

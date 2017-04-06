@@ -53,12 +53,9 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
 {
   ANativeWindow *connectionScreenWindow = android_state->window;
 
-  IReplayOutput *out = ReplayRenderer_CreateOutput(renderer, eWindowingSystem_Android,
-                                                   connectionScreenWindow, eOutputType_TexDisplay);
+  IReplayOutput *out = ReplayRenderer_CreateOutput(
+      renderer, WindowingSystem::Android, connectionScreenWindow, ReplayOutputType::Texture);
 
-  OutputConfig c = {eOutputType_TexDisplay};
-
-  ReplayOutput_SetOutputConfig(out, c);
   ReplayOutput_SetTextureDisplay(out, displayCfg);
 
   for(int i = 0; i < 100; i++)

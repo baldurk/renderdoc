@@ -89,10 +89,10 @@ static void StripUnwantedLayers(vector<string> &Layers)
   }
 }
 
-ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
+ReplayStatus WrappedVulkan::Initialise(VkInitParams &params)
 {
   if(m_pSerialiser->HasError())
-    return eReplayCreate_FileIOFailed;
+    return ReplayStatus::FileIOFailed;
 
   m_InitParams = params;
 
@@ -166,7 +166,7 @@ ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
 
   // error message will be printed to log in above function if something went wrong
   if(!ok)
-    return eReplayCreate_APIHardwareUnsupported;
+    return ReplayStatus::APIHardwareUnsupported;
 
   // verify that extensions & layers are supported
   for(size_t i = 0; i < params.Layers.size(); i++)
@@ -174,7 +174,7 @@ ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
     if(supportedLayers.find(params.Layers[i]) == supportedLayers.end())
     {
       RDCERR("Log requires layer '%s' which is not supported", params.Layers[i].c_str());
-      return eReplayCreate_APIHardwareUnsupported;
+      return ReplayStatus::APIHardwareUnsupported;
     }
   }
 
@@ -183,7 +183,7 @@ ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
     if(supportedExtensions.find(params.Extensions[i]) == supportedExtensions.end())
     {
       RDCERR("Log requires extension '%s' which is not supported", params.Extensions[i].c_str());
-      return eReplayCreate_APIHardwareUnsupported;
+      return ReplayStatus::APIHardwareUnsupported;
     }
   }
 
@@ -224,7 +224,7 @@ ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
   SAFE_DELETE_ARRAY(extscstr);
 
   if(ret != VK_SUCCESS)
-    return eReplayCreate_APIHardwareUnsupported;
+    return ReplayStatus::APIHardwareUnsupported;
 
   RDCASSERTEQUAL(ret, VK_SUCCESS);
 
@@ -271,7 +271,7 @@ ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
   for(uint32_t i = 0; i < count; i++)
     GetResourceManager()->WrapResource(m_Instance, m_ReplayPhysicalDevices[i]);
 
-  return eReplayCreate_Success;
+  return ReplayStatus::Succeeded;
 }
 
 VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo,

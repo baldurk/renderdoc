@@ -253,7 +253,7 @@ char *toString(ResourceDimension dim);
 char *toString(ResourceRetType type);
 char *toString(ResinfoRetType type);
 char *toString(InterpolationMode type);
-char *SystemValueToString(uint32_t type);
+char *SystemValueToString(SVSemantic type);
 
 bool ASMOperand::operator==(const ASMOperand &o) const
 {
@@ -1497,7 +1497,7 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
     bool ret = ExtractOperand(tokenStream, retDecl.operand);
     RDCASSERT(ret);
 
-    retDecl.systemValue = tokenStream[0];
+    retDecl.systemValue = (SVSemantic)tokenStream[0];
     tokenStream++;
 
     retDecl.str += " ";
@@ -2920,49 +2920,9 @@ char *toString(InterpolationMode interp)
   return "";
 }
 
-char *SystemValueToString(uint32_t name)
+char *SystemValueToString(SVSemantic name)
 {
-  enum DXBC_SVSemantic
-  {
-    SVNAME_UNDEFINED = 0,
-    SVNAME_POSITION,
-    SVNAME_CLIP_DISTANCE,
-    SVNAME_CULL_DISTANCE,
-    SVNAME_RENDER_TARGET_ARRAY_INDEX,
-    SVNAME_VIEWPORT_ARRAY_INDEX,
-    SVNAME_VERTEX_ID,
-    SVNAME_PRIMITIVE_ID,
-    SVNAME_INSTANCE_ID,
-    SVNAME_IS_FRONT_FACE,
-    SVNAME_SAMPLE_INDEX,
-
-    SVNAME_FINAL_QUAD_EDGE_TESSFACTOR0,
-    SVNAME_FINAL_QUAD_EDGE_TESSFACTOR1,
-    SVNAME_FINAL_QUAD_EDGE_TESSFACTOR2,
-    SVNAME_FINAL_QUAD_EDGE_TESSFACTOR3,
-
-    SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR0,
-    SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR1,
-
-    SVNAME_FINAL_TRI_EDGE_TESSFACTOR0,
-    SVNAME_FINAL_TRI_EDGE_TESSFACTOR1,
-    SVNAME_FINAL_TRI_EDGE_TESSFACTOR2,
-
-    SVNAME_FINAL_TRI_INSIDE_TESSFACTOR,
-
-    SVNAME_FINAL_LINE_DETAIL_TESSFACTOR,
-
-    SVNAME_FINAL_LINE_DENSITY_TESSFACTOR,
-
-    SVNAME_TARGET = 64,
-    SVNAME_DEPTH,
-    SVNAME_COVERAGE,
-    SVNAME_DEPTH_GREATER_EQUAL,
-    SVNAME_DEPTH_LESS_EQUAL,
-  };
-
-  // cast to uint32 for the fixup around tessellation factors where we don't use direct enum values
-  switch((DXBC_SVSemantic)name)
+  switch(name)
   {
     case SVNAME_POSITION: return "position";
     case SVNAME_CLIP_DISTANCE: return "clipdistance";

@@ -119,8 +119,6 @@ namespace renderdoc
     public class ReplayOutput
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayOutput_SetOutputConfig(IntPtr real, OutputConfig o);
-        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_SetTextureDisplay(IntPtr real, TextureDisplay o);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_SetMeshDisplay(IntPtr real, MeshDisplay o);
@@ -158,10 +156,6 @@ namespace renderdoc
 
         public ReplayOutput(IntPtr real) { m_Real = real; }
 
-        public bool SetOutputConfig(OutputConfig o)
-        {
-            return ReplayOutput_SetOutputConfig(m_Real, o);
-        }
         public bool SetTextureDisplay(TextureDisplay o)
         {
             return ReplayOutput_SetTextureDisplay(m_Real, o);

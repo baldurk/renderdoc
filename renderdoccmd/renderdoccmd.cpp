@@ -56,8 +56,8 @@ void DisplayRendererPreview(IReplayRenderer *renderer, uint32_t width, uint32_t 
   TextureDisplay d;
   d.mip = 0;
   d.sampleIdx = ~0U;
-  d.overlay = eTexOverlay_None;
-  d.typeHint = eCompType_None;
+  d.overlay = DebugOverlay::NoOverlay;
+  d.typeHint = CompType::Typeless;
   d.CustomShader = ResourceId();
   d.HDRMul = -1.0f;
   d.linearDisplayAsGamma = true;
@@ -76,7 +76,7 @@ void DisplayRendererPreview(IReplayRenderer *renderer, uint32_t width, uint32_t 
 
   for(int32_t i = 0; i < texs.count; i++)
   {
-    if(texs[i].creationFlags & eTextureCreate_SwapBuffer)
+    if(texs[i].creationFlags & TextureCategory::SwapBuffer)
     {
       d.texid = texs[i].ID;
       break;
@@ -86,7 +86,7 @@ void DisplayRendererPreview(IReplayRenderer *renderer, uint32_t width, uint32_t 
   rdctype::array<FetchDrawcall> draws;
   renderer->GetDrawcalls(&draws);
 
-  if(draws.count > 0 && draws[draws.count - 1].flags & eDraw_Present)
+  if(draws.count > 0 && draws[draws.count - 1].flags & DrawFlags::Present)
   {
     ResourceId id = draws[draws.count - 1].copyDestination;
     if(id != ResourceId())
@@ -224,30 +224,30 @@ struct ThumbCommand : public Command
 
     string format = parser.get<string>("format");
 
-    FileType type = eFileType_JPG;
+    FileType type = FileType::JPG;
 
     if(format == "png")
     {
-      type = eFileType_PNG;
+      type = FileType::PNG;
     }
     else if(format == "tga")
     {
-      type = eFileType_TGA;
+      type = FileType::TGA;
     }
     else if(format == "bmp")
     {
-      type = eFileType_BMP;
+      type = FileType::BMP;
     }
     else
     {
       const char *dot = strrchr(outfile.c_str(), '.');
 
       if(dot != NULL && strstr(dot, "png"))
-        type = eFileType_PNG;
+        type = FileType::PNG;
       else if(dot != NULL && strstr(dot, "tga"))
-        type = eFileType_TGA;
+        type = FileType::TGA;
       else if(dot != NULL && strstr(dot, "bmp"))
-        type = eFileType_BMP;
+        type = FileType::BMP;
       else
         std::cerr << "Couldn't guess format from '" << outfile << "', defaulting to jpg."
                   << std::endl;
@@ -483,10 +483,10 @@ struct ReplayCommand : public Command
                 << parser.get<uint32_t>("remote-port") << "." << std::endl;
 
       IRemoteServer *remote = NULL;
-      ReplayCreateStatus status = RENDERDOC_CreateRemoteServerConnection(
+      ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(
           parser.get<string>("remote-host").c_str(), parser.get<uint32_t>("remote-port"), &remote);
 
-      if(remote == NULL || status != eReplayCreate_Success)
+      if(remote == NULL || status != ReplayStatus::Succeeded)
       {
         std::cerr << "Error: Couldn't connect to " << parser.get<string>("remote-host") << ":"
                   << parser.get<uint32_t>("remote-port") << "." << std::endl;
@@ -503,7 +503,7 @@ struct ReplayCommand : public Command
       IReplayRenderer *renderer = NULL;
       status = remote->OpenCapture(~0U, remotePath.elems, &progress, &renderer);
 
-      if(status == eReplayCreate_Success)
+      if(status == ReplayStatus::Succeeded)
       {
         DisplayRendererPreview(renderer, parser.get<uint32_t>("width"),
                                parser.get<uint32_t>("height"));
@@ -523,10 +523,9 @@ struct ReplayCommand : public Command
 
       float progress = 0.0f;
       IReplayRenderer *renderer = NULL;
-      ReplayCreateStatus status =
-          RENDERDOC_CreateReplayRenderer(filename.c_str(), &progress, &renderer);
+      ReplayStatus status = RENDERDOC_CreateReplayRenderer(filename.c_str(), &progress, &renderer);
 
-      if(status == eReplayCreate_Success)
+      if(status == ReplayStatus::Succeeded)
       {
         DisplayRendererPreview(renderer, parser.get<uint32_t>("width"),
                                parser.get<uint32_t>("height"));
@@ -576,53 +575,53 @@ struct CapAltBitCommand : public Command
     {
       string typeString = rest[i * 3 + 0];
 
-      EnvironmentModificationType type = eEnvMod_Set;
-      EnvironmentSeparator sep = eEnvSep_None;
+      EnvMod type = EnvMod::Set;
+      EnvSep sep = EnvSep::NoSep;
 
       if(typeString == "+env-replace")
       {
-        type = eEnvMod_Set;
-        sep = eEnvSep_None;
+        type = EnvMod::Set;
+        sep = EnvSep::NoSep;
       }
       else if(typeString == "+env-append-platform")
       {
-        type = eEnvMod_Append;
-        sep = eEnvSep_Platform;
+        type = EnvMod::Append;
+        sep = EnvSep::Platform;
       }
       else if(typeString == "+env-append-semicolon")
       {
-        type = eEnvMod_Append;
-        sep = eEnvSep_SemiColon;
+        type = EnvMod::Append;
+        sep = EnvSep::SemiColon;
       }
       else if(typeString == "+env-append-colon")
       {
-        type = eEnvMod_Append;
-        sep = eEnvSep_Colon;
+        type = EnvMod::Append;
+        sep = EnvSep::Colon;
       }
       else if(typeString == "+env-append")
       {
-        type = eEnvMod_Append;
-        sep = eEnvSep_None;
+        type = EnvMod::Append;
+        sep = EnvSep::NoSep;
       }
       else if(typeString == "+env-prepend-platform")
       {
-        type = eEnvMod_Prepend;
-        sep = eEnvSep_Platform;
+        type = EnvMod::Prepend;
+        sep = EnvSep::Platform;
       }
       else if(typeString == "+env-prepend-semicolon")
       {
-        type = eEnvMod_Prepend;
-        sep = eEnvSep_SemiColon;
+        type = EnvMod::Prepend;
+        sep = EnvSep::SemiColon;
       }
       else if(typeString == "+env-prepend-colon")
       {
-        type = eEnvMod_Prepend;
-        sep = eEnvSep_Colon;
+        type = EnvMod::Prepend;
+        sep = EnvSep::Colon;
       }
       else if(typeString == "+env-prepend")
       {
-        type = eEnvMod_Prepend;
-        sep = eEnvSep_None;
+        type = EnvMod::Prepend;
+        sep = EnvSep::NoSep;
       }
       else
       {

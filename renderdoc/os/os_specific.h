@@ -37,6 +37,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 
 using std::string;
@@ -47,31 +48,15 @@ struct CaptureOptions;
 
 namespace Process
 {
-enum ModificationType
-{
-  eEnvModification_Replace = 0,
-
-  // prepend/append options will replace if there is no existing variable
-  eEnvModification_AppendPlatform,     // append, separated by colons for linux & semi-colons for
-                                       // windows
-  eEnvModification_AppendSemiColon,    // append, separated by semi-colons
-  eEnvModification_AppendColon,        // append, separated by colons
-  eEnvModification_Append,             // append with no separators
-
-  eEnvModification_PrependPlatform,     // prepend, separated by colons for linux & semi-colons for
-                                        // windows
-  eEnvModification_PrependSemiColon,    // prepend, separated by semi-colons
-  eEnvModification_PrependColon,        // prepend, separated by colons
-  eEnvModification_Prepend,             // prepend with no separators
-};
 struct EnvironmentModification
 {
-  EnvironmentModification() : type(eEnvModification_Replace), name(""), value("") {}
-  EnvironmentModification(ModificationType t, const char *n, const char *v)
-      : type(t), name(n), value(v)
+  EnvironmentModification() : mod(EnvMod::Set), sep(EnvSep::NoSep), name(""), value("") {}
+  EnvironmentModification(EnvMod m, EnvSep s, const char *n, const char *v)
+      : mod(m), sep(s), name(n), value(v)
   {
   }
-  ModificationType type;
+  EnvMod mod;
+  EnvSep sep;
   string name;
   string value;
 };
@@ -272,23 +257,12 @@ uint64_t GetModifiedTimestamp(const string &filename);
 void Copy(const char *from, const char *to, bool allowOverwrite);
 void Delete(const char *path);
 
-enum
-{
-  eFileProp_Directory = 0x1,
-  eFileProp_Hidden = 0x2,
-  eFileProp_Executable = 0x4,
-
-  eFileProp_ErrorUnknown = 0x2000,
-  eFileProp_ErrorAccessDenied = 0x4000,
-  eFileProp_ErrorInvalidPath = 0x8000,
-};
-
 struct FoundFile
 {
-  FoundFile() : flags(0) {}
-  FoundFile(string fn, uint32_t f) : filename(fn), flags(f), lastmod(0), size(0) {}
+  FoundFile() : flags(FileProperty::NoFlags) {}
+  FoundFile(string fn, FileProperty f) : filename(fn), flags(f), lastmod(0), size(0) {}
   string filename;
-  uint32_t flags;
+  FileProperty flags;
   uint32_t lastmod;
   uint64_t size;
 };

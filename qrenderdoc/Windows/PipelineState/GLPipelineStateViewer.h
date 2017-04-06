@@ -82,11 +82,11 @@ private:
     Image,
   };
 
-  QString MakeGenericValueString(uint32_t compCount, FormatComponentType compType,
+  QString MakeGenericValueString(uint32_t compCount, CompType compType,
                                  const GLPipelineState::VertexInput::VertexAttribute &val);
   GLReadWriteType GetGLReadWriteType(ShaderResource res);
 
-  void setShaderState(const GLPipelineState::ShaderStage &stage, QLabel *shader, RDTreeWidget *tex,
+  void setShaderState(const GLPipelineState::Shader &stage, QLabel *shader, RDTreeWidget *tex,
                       RDTreeWidget *samp, RDTreeWidget *ubo, RDTreeWidget *sub, RDTreeWidget *rw);
   void clearShaderState(QLabel *shader, RDTreeWidget *tex, RDTreeWidget *samp, RDTreeWidget *ubo,
                         RDTreeWidget *sub, RDTreeWidget *rw);
@@ -99,7 +99,7 @@ private:
 
   QString formatMembers(int indent, const QString &nameprefix,
                         const rdctype::array<ShaderConstant> &vars);
-  const GLPipelineState::ShaderStage *stageForSender(QWidget *widget);
+  const GLPipelineState::Shader *stageForSender(QWidget *widget);
 
   bool showNode(bool usedSlot, bool filledSlot);
 

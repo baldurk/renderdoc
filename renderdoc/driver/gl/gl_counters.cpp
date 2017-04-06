@@ -42,138 +42,138 @@ void GLReplay::PostContextShutdownCounters()
 {
 }
 
-vector<uint32_t> GLReplay::EnumerateCounters()
+vector<GPUCounter> GLReplay::EnumerateCounters()
 {
-  vector<uint32_t> ret;
+  vector<GPUCounter> ret;
 
-  ret.push_back(eCounter_EventGPUDuration);
-  ret.push_back(eCounter_InputVerticesRead);
-  ret.push_back(eCounter_IAPrimitives);
-  ret.push_back(eCounter_GSPrimitives);
-  ret.push_back(eCounter_RasterizerInvocations);
-  ret.push_back(eCounter_RasterizedPrimitives);
-  ret.push_back(eCounter_SamplesWritten);
-  ret.push_back(eCounter_VSInvocations);
-  ret.push_back(eCounter_TCSInvocations);
-  ret.push_back(eCounter_TESInvocations);
-  ret.push_back(eCounter_GSInvocations);
-  ret.push_back(eCounter_PSInvocations);
-  ret.push_back(eCounter_CSInvocations);
+  ret.push_back(GPUCounter::EventGPUDuration);
+  ret.push_back(GPUCounter::InputVerticesRead);
+  ret.push_back(GPUCounter::IAPrimitives);
+  ret.push_back(GPUCounter::GSPrimitives);
+  ret.push_back(GPUCounter::RasterizerInvocations);
+  ret.push_back(GPUCounter::RasterizedPrimitives);
+  ret.push_back(GPUCounter::SamplesWritten);
+  ret.push_back(GPUCounter::VSInvocations);
+  ret.push_back(GPUCounter::TCSInvocations);
+  ret.push_back(GPUCounter::TESInvocations);
+  ret.push_back(GPUCounter::GSInvocations);
+  ret.push_back(GPUCounter::PSInvocations);
+  ret.push_back(GPUCounter::CSInvocations);
 
   return ret;
 }
 
-void GLReplay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
+void GLReplay::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
 {
   desc.counterID = counterID;
 
   switch(counterID)
   {
-    case eCounter_EventGPUDuration:
+    case GPUCounter::EventGPUDuration:
       desc.name = "GPU Duration";
       desc.description =
           "Time taken for this event on the GPU, as measured by delta between two GPU timestamps.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_Double;
-      desc.units = eUnits_Seconds;
+      desc.resultType = CompType::Double;
+      desc.unit = CounterUnit::Seconds;
       break;
-    case eCounter_InputVerticesRead:
+    case GPUCounter::InputVerticesRead:
       desc.name = "Input Vertices Read";
       desc.description = "Number of vertices read by input assembler.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_IAPrimitives:
+    case GPUCounter::IAPrimitives:
       desc.name = "Input Primitives";
       desc.description = "Number of primitives read by the input assembler.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_GSPrimitives:
+    case GPUCounter::GSPrimitives:
       desc.name = "GS Primitives";
       desc.description = "Number of primitives output by a geometry shader.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_RasterizerInvocations:
+    case GPUCounter::RasterizerInvocations:
       desc.name = "Rasterizer Invocations";
       desc.description = "Number of primitives that were sent to the rasterizer.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_RasterizedPrimitives:
+    case GPUCounter::RasterizedPrimitives:
       desc.name = "Rasterized Primitives";
       desc.description = "Number of primitives that were rendered.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_SamplesWritten:
+    case GPUCounter::SamplesWritten:
       desc.name = "Samples Written";
       desc.description = "Number of samples that passed depth/stencil test.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_VSInvocations:
+    case GPUCounter::VSInvocations:
       desc.name = "VS Invocations";
       desc.description = "Number of times a vertex shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_GSInvocations:
+    case GPUCounter::GSInvocations:
       desc.name = "GS Invocations";
       desc.description = "Number of times a geometry shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_TCSInvocations:
+    case GPUCounter::TCSInvocations:
       desc.name = "TCS Invocations";
       desc.description = "Number of times a tesselation control shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_TESInvocations:
+    case GPUCounter::TESInvocations:
       desc.name = "TES Invocations";
       desc.description = "Number of times a tesselation evaluation shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_PSInvocations:
+    case GPUCounter::PSInvocations:
       desc.name = "PS Invocations";
       desc.description = "Number of times a pixel shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
-    case eCounter_CSInvocations:
+    case GPUCounter::CSInvocations:
       desc.name = "CS Invocations";
       desc.description = "Number of times a compute shader was invoked.";
       desc.resultByteWidth = 8;
-      desc.resultCompType = eCompType_UInt;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::UInt;
+      desc.unit = CounterUnit::Absolute;
       break;
     default:
       desc.name = "Unknown";
       desc.description = "Unknown counter ID";
       desc.resultByteWidth = 0;
-      desc.resultCompType = eCompType_None;
-      desc.units = eUnits_Absolute;
+      desc.resultType = CompType::Typeless;
+      desc.unit = CounterUnit::Absolute;
       break;
   }
 }
 
 struct GPUQueries
 {
-  GLuint obj[eCounter_GLMaxCounters];
+  GLuint obj[ENUM_ARRAY_SIZE(GPUCounter)];
   uint32_t eventID;
 };
 
@@ -186,23 +186,23 @@ struct GLCounterContext
 
 GLenum glCounters[] = {
     eGL_NONE,                                      // Undefined!!
-    eGL_TIME_ELAPSED,                              // eCounter_EventGPUDuration
-    eGL_VERTICES_SUBMITTED_ARB,                    // eCounter_InputVerticesRead
-    eGL_PRIMITIVES_SUBMITTED_ARB,                  // eCounter_IAPrimitives
-    eGL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB,    // eCounter_GSPrimitives
-    eGL_CLIPPING_INPUT_PRIMITIVES_ARB,             // eCounter_RasterizerInvocations
-    eGL_CLIPPING_OUTPUT_PRIMITIVES_ARB,            // eCounter_RasterizedPrimitives
-    eGL_SAMPLES_PASSED,                            // eCounter_SamplesWritten
-    eGL_VERTEX_SHADER_INVOCATIONS_ARB,             // eCounter_VSInvocations
-    eGL_TESS_CONTROL_SHADER_PATCHES_ARB,           // eCounter_TCSInvocations
-    eGL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB,    // eCounter_TESInvocations
-    eGL_GEOMETRY_SHADER_INVOCATIONS,               // eCounter_GSInvocations
-    eGL_FRAGMENT_SHADER_INVOCATIONS_ARB,           // eCounter_PSInvocations
-    eGL_COMPUTE_SHADER_INVOCATIONS_ARB             // eCounter_CSInvocations
+    eGL_TIME_ELAPSED,                              // GPUCounter::EventGPUDuration
+    eGL_VERTICES_SUBMITTED_ARB,                    // GPUCounter::InputVerticesRead
+    eGL_PRIMITIVES_SUBMITTED_ARB,                  // GPUCounter::IAPrimitives
+    eGL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB,    // GPUCounter::GSPrimitives
+    eGL_CLIPPING_INPUT_PRIMITIVES_ARB,             // GPUCounter::RasterizerInvocations
+    eGL_CLIPPING_OUTPUT_PRIMITIVES_ARB,            // GPUCounter::RasterizedPrimitives
+    eGL_SAMPLES_PASSED,                            // GPUCounter::SamplesWritten
+    eGL_VERTEX_SHADER_INVOCATIONS_ARB,             // GPUCounter::VSInvocations
+    eGL_TESS_CONTROL_SHADER_PATCHES_ARB,           // GPUCounter::TCSInvocations
+    eGL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB,    // GPUCounter::TESInvocations
+    eGL_GEOMETRY_SHADER_INVOCATIONS,               // GPUCounter::GSInvocations
+    eGL_FRAGMENT_SHADER_INVOCATIONS_ARB,           // GPUCounter::PSInvocations
+    eGL_COMPUTE_SHADER_INVOCATIONS_ARB             // GPUCounter::CSInvocations
 };
 
 void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallTreeNode &drawnode,
-                          const vector<uint32_t> &counters)
+                          const vector<GPUCounter> &counters)
 {
   if(drawnode.children.empty())
     return;
@@ -224,14 +224,14 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallTreeNode &drawnod
 
         queries = &ctx.queries.back();
         queries->eventID = d.eventID;
-        for(uint32_t q = 0; q < eCounter_GLMaxCounters; q++)
+        for(auto q : indices<GPUCounter>())
           queries->obj[q] = 0;
 
         for(uint32_t c = 0; c < counters.size(); c++)
         {
-          m_pDriver->glGenQueries(1, &queries->obj[counters[c]]);
+          m_pDriver->glGenQueries(1, &queries->obj[(uint32_t)counters[c]]);
           if(m_pDriver->glGetError())
-            queries->obj[counters[c]] = 0;
+            queries->obj[(uint32_t)counters[c]] = 0;
         }
       }
       else
@@ -243,7 +243,7 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallTreeNode &drawnod
     m_pDriver->ReplayLog(ctx.eventStart, d.eventID, eReplay_WithoutDraw);
 
     // Reverse order so that Timer counter is queried the last.
-    for(int32_t q = (eCounter_GLMaxCounters - 1); q >= 0; q--)
+    for(int32_t q = uint32_t(GPUCounter::Count) - 1; q >= 0; q--)
       if(queries->obj[q])
       {
         m_pDriver->glBeginQuery(glCounters[q], queries->obj[q]);
@@ -256,7 +256,7 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallTreeNode &drawnod
 
     m_pDriver->ReplayLog(ctx.eventStart, d.eventID, eReplay_OnlyDraw);
 
-    for(uint32_t q = 0; q < eCounter_GLMaxCounters; q++)
+    for(auto q : indices<GPUCounter>())
       if(queries->obj[q])
         m_pDriver->glEndQuery(glCounters[q]);
 
@@ -264,7 +264,7 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallTreeNode &drawnod
   }
 }
 
-vector<CounterResult> GLReplay::FetchCounters(const vector<uint32_t> &counters)
+vector<CounterResult> GLReplay::FetchCounters(const vector<GPUCounter> &counters)
 {
   vector<CounterResult> ret;
 
@@ -296,10 +296,11 @@ vector<CounterResult> GLReplay::FetchCounters(const vector<uint32_t> &counters)
     {
       for(uint32_t c = 0; c < counters.size(); c++)
       {
-        if(ctx.queries[i].obj[counters[c]])
+        if(ctx.queries[i].obj[(uint32_t)counters[c]])
         {
           GLuint64 data = 0;
-          m_pDriver->glGetQueryObjectui64v(ctx.queries[i].obj[counters[c]], eGL_QUERY_RESULT, &data);
+          m_pDriver->glGetQueryObjectui64v(ctx.queries[i].obj[(uint32_t)counters[c]],
+                                           eGL_QUERY_RESULT, &data);
 
           double duration = double(data) * nanosToSecs;
 
@@ -309,9 +310,10 @@ vector<CounterResult> GLReplay::FetchCounters(const vector<uint32_t> &counters)
             duration = -1;
           }
 
-          if(counters[c] == eCounter_EventGPUDuration)
+          if(counters[c] == GPUCounter::EventGPUDuration)
           {
-            ret.push_back(CounterResult(ctx.queries[i].eventID, eCounter_EventGPUDuration, duration));
+            ret.push_back(
+                CounterResult(ctx.queries[i].eventID, GPUCounter::EventGPUDuration, duration));
           }
           else
             ret.push_back(CounterResult(ctx.queries[i].eventID, counters[c], data));
@@ -326,8 +328,8 @@ vector<CounterResult> GLReplay::FetchCounters(const vector<uint32_t> &counters)
 
   for(size_t i = 0; i < ctx.queries.size(); i++)
     for(uint32_t c = 0; c < counters.size(); c++)
-      if(ctx.queries[i].obj[counters[c]])
-        m_pDriver->glDeleteQueries(1, &ctx.queries[i].obj[counters[c]]);
+      if(ctx.queries[i].obj[(uint32_t)counters[c]])
+        m_pDriver->glDeleteQueries(1, &ctx.queries[i].obj[(uint32_t)counters[c]]);
 
   return ret;
 }

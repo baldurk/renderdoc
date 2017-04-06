@@ -184,7 +184,8 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
         {
           RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
           m_pDevice->AddDebugMessage(
-              eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+              MessageCategory::Portability, MessageSeverity::High,
+              MessageSource::UnsupportedConfiguration,
               "Replaying a call to UpdateSubresource1() without D3D11.1 available");
         }
       }
@@ -293,7 +294,8 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
         {
           RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
           m_pDevice->AddDebugMessage(
-              eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+              MessageCategory::Portability, MessageSeverity::High,
+              MessageSource::UnsupportedConfiguration,
               "Replaying a call to UpdateSubresource1() without D3D11.1 available");
         }
       }
@@ -376,7 +378,8 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(
     {
       RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
       m_pDevice->AddDebugMessage(
-          eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+          MessageCategory::Portability, MessageSeverity::High,
+          MessageSource::UnsupportedConfiguration,
           "Replaying a call to CopySubresourceRegion1() without D3D11.1 available");
     }
   }
@@ -475,7 +478,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(ID3D11View *pView, const FL
 
     draw.name = name;
 
-    draw.flags |= eDraw_Clear;
+    draw.flags |= DrawFlags::Clear;
 
     AddDrawcall(draw, true);
   }
@@ -606,7 +609,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers1(UINT StartSlot_
     {
       RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
       m_pDevice->AddDebugMessage(
-          eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+          MessageCategory::Portability, MessageSeverity::High,
+          MessageSource::UnsupportedConfiguration,
           "Replaying a call to VSSetConstantBuffers1() without D3D11.1 available");
 
       // if there's a missing offset there's nothing we can do, everything will be nonsense
@@ -754,7 +758,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers1(UINT StartSlot_
     {
       RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
       m_pDevice->AddDebugMessage(
-          eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+          MessageCategory::Portability, MessageSeverity::High,
+          MessageSource::UnsupportedConfiguration,
           "Replaying a call to HSSetConstantBuffers1() without D3D11.1 available");
 
       // if there's a missing offset there's nothing we can do, everything will be nonsense
@@ -902,7 +907,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers1(UINT StartSlot_
     {
       RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
       m_pDevice->AddDebugMessage(
-          eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+          MessageCategory::Portability, MessageSeverity::High,
+          MessageSource::UnsupportedConfiguration,
           "Replaying a call to DSSetConstantBuffers1() without D3D11.1 available");
 
       // if there's a missing offset there's nothing we can do, everything will be nonsense
@@ -1050,7 +1056,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers1(UINT StartSlot_
     {
       RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
       m_pDevice->AddDebugMessage(
-          eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+          MessageCategory::Portability, MessageSeverity::High,
+          MessageSource::UnsupportedConfiguration,
           "Replaying a call to GSSetConstantBuffers1() without D3D11.1 available");
 
       // if there's a missing offset there's nothing we can do, everything will be nonsense
@@ -1198,7 +1205,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers1(UINT StartSlot_
     {
       RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
       m_pDevice->AddDebugMessage(
-          eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+          MessageCategory::Portability, MessageSeverity::High,
+          MessageSource::UnsupportedConfiguration,
           "Replaying a call to PSSetConstantBuffers1() without D3D11.1 available");
 
       // if there's a missing offset there's nothing we can do, everything will be nonsense
@@ -1346,7 +1354,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers1(UINT StartSlot_
     {
       RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
       m_pDevice->AddDebugMessage(
-          eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
+          MessageCategory::Portability, MessageSeverity::High,
+          MessageSource::UnsupportedConfiguration,
           "Replaying a call to CSSetConstantBuffers1() without D3D11.1 available");
 
       // if there's a missing offset there's nothing we can do, everything will be nonsense
@@ -1702,12 +1711,12 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardResource(ID3D11Resource *pReso
 
     draw.name = "DiscardResource()";
 
-    draw.flags |= eDraw_Clear;
+    draw.flags |= DrawFlags::Clear;
 
     AddDrawcall(draw, true);
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(res))
-      m_ResourceUses[res].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+      m_ResourceUses[res].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
   }
 
   return true;
@@ -1785,7 +1794,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(ID3D11View *pResourceView
 
     draw.name = "DiscardView()";
 
-    draw.flags |= eDraw_Clear;
+    draw.flags |= DrawFlags::Clear;
 
     AddDrawcall(draw, true);
 
@@ -1797,25 +1806,25 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(ID3D11View *pResourceView
       {
         WrappedID3D11RenderTargetView1 *view = (WrappedID3D11RenderTargetView1 *)pLiveView;
         m_ResourceUses[view->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear, view->GetResourceID()));
+            EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
       }
       else if(WrappedID3D11DepthStencilView::IsAlloc(pLiveView))
       {
         WrappedID3D11DepthStencilView *view = (WrappedID3D11DepthStencilView *)pLiveView;
         m_ResourceUses[view->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear, view->GetResourceID()));
+            EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
       }
       else if(WrappedID3D11ShaderResourceView1::IsAlloc(pLiveView))
       {
         WrappedID3D11ShaderResourceView1 *view = (WrappedID3D11ShaderResourceView1 *)pLiveView;
         m_ResourceUses[view->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear, view->GetResourceID()));
+            EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
       }
       else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pLiveView))
       {
         WrappedID3D11UnorderedAccessView1 *view = (WrappedID3D11UnorderedAccessView1 *)pLiveView;
         m_ResourceUses[view->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear, view->GetResourceID()));
+            EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
       }
     }
   }
@@ -1910,7 +1919,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(ID3D11View *pResourceVie
 
     draw.name = name;
 
-    draw.flags |= eDraw_Clear;
+    draw.flags |= DrawFlags::Clear;
 
     AddDrawcall(draw, true);
 
@@ -1920,16 +1929,16 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(ID3D11View *pResourceVie
 
       if(WrappedID3D11RenderTargetView1::IsAlloc(pLiveView))
         m_ResourceUses[((WrappedID3D11RenderTargetView1 *)pLiveView)->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
       else if(WrappedID3D11DepthStencilView::IsAlloc(pLiveView))
         m_ResourceUses[((WrappedID3D11DepthStencilView *)pLiveView)->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
       else if(WrappedID3D11ShaderResourceView1::IsAlloc(pLiveView))
         m_ResourceUses[((WrappedID3D11ShaderResourceView1 *)pLiveView)->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
       else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pLiveView))
         m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)pLiveView)->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+            EventUsage(m_CurEventID, ResourceUsage::Clear));
     }
   }
 

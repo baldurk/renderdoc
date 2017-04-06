@@ -1321,7 +1321,7 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
         {
           valid = false;
           m_pDevice->AddDebugMessage(
-              eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+              MessageCategory::State_Setting, MessageSeverity::High, MessageSource::IncorrectAPIUse,
               StringFormat::Fmt("Invalid output merger - Render targets %d and %d overlap", i, j));
           break;
         }
@@ -1332,7 +1332,7 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
       {
         valid = false;
         m_pDevice->AddDebugMessage(
-            eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+            MessageCategory::State_Setting, MessageSeverity::High, MessageSource::IncorrectAPIUse,
             StringFormat::Fmt("Invalid output merger - Render target %d and depth overlap", i));
         break;
       }
@@ -1344,7 +1344,7 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
         {
           valid = false;
           m_pDevice->AddDebugMessage(
-              eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+              MessageCategory::State_Setting, MessageSeverity::High, MessageSource::IncorrectAPIUse,
               StringFormat::Fmt("Invalid output merger - Render target %d and UAV %d overlap", i, j));
           break;
         }
@@ -1363,7 +1363,7 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
       {
         valid = false;
         m_pDevice->AddDebugMessage(
-            eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+            MessageCategory::State_Setting, MessageSeverity::High, MessageSource::IncorrectAPIUse,
             StringFormat::Fmt("Invalid output merger - UAV %d and depth overlap", i));
         break;
       }
@@ -1375,7 +1375,7 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
         {
           valid = false;
           m_pDevice->AddDebugMessage(
-              eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+              MessageCategory::State_Setting, MessageSeverity::High, MessageSource::IncorrectAPIUse,
               StringFormat::Fmt("Invalid output merger - UAVs %d and %d overlap", i, j));
           break;
         }
@@ -1400,8 +1400,8 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
     if(renderdim[i] != dim)
     {
       valid = false;
-      m_pDevice->AddDebugMessage(eDbgCategory_State_Setting, eDbgSeverity_High,
-                                 eDbgSource_IncorrectAPIUse,
+      m_pDevice->AddDebugMessage(MessageCategory::State_Setting, MessageSeverity::High,
+                                 MessageSource::IncorrectAPIUse,
                                  "Invalid output merger - Render targets of different type");
       break;
     }
@@ -1411,7 +1411,7 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
      depthdim != dim)
   {
     m_pDevice->AddDebugMessage(
-        eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+        MessageCategory::State_Setting, MessageSeverity::High, MessageSource::IncorrectAPIUse,
         "Invalid output merger - Render target(s) and depth target of different type");
     valid = false;
   }
@@ -1501,7 +1501,7 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
          desc2.SampleDesc.Quality != d2.SampleDesc.Quality)
       {
         m_pDevice->AddDebugMessage(
-            eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+            MessageCategory::State_Setting, MessageSeverity::High, MessageSource::IncorrectAPIUse,
             "Invalid output merger - Render targets are different dimensions");
         valid = false;
         break;
@@ -1555,8 +1555,8 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
       }
       else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE3D || dim == D3D11_RESOURCE_DIMENSION_BUFFER)
       {
-        m_pDevice->AddDebugMessage(eDbgCategory_State_Setting, eDbgSeverity_High,
-                                   eDbgSource_IncorrectAPIUse,
+        m_pDevice->AddDebugMessage(MessageCategory::State_Setting, MessageSeverity::High,
+                                   MessageSource::IncorrectAPIUse,
                                    "Invalid output merger - Depth target is Texture3D or Buffer "
                                    "(shouldn't be possible! How did you create this view?!)");
         valid = false;
@@ -1577,13 +1577,13 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
           {
             valid = true;
             m_pDevice->AddDebugMessage(
-                eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+                MessageCategory::State_Setting, MessageSeverity::High, MessageSource::IncorrectAPIUse,
                 "Valid but unusual output merger - Depth target is larger than render target(s)");
           }
           else
           {
-            m_pDevice->AddDebugMessage(eDbgCategory_State_Setting, eDbgSeverity_High,
-                                       eDbgSource_IncorrectAPIUse,
+            m_pDevice->AddDebugMessage(MessageCategory::State_Setting, MessageSeverity::High,
+                                       MessageSource::IncorrectAPIUse,
                                        "Invalid output merger - Depth target is different size or "
                                        "MS count to render target(s)");
           }

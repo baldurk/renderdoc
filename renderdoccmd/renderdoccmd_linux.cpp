@@ -107,7 +107,7 @@ struct VulkanRegisterCommand : public Command
 
 void VerifyVulkanLayer(int argc, char *argv[])
 {
-  uint32_t flags = 0;
+  VulkanLayerFlags flags = VulkanLayerFlags::NoFlags;
   rdctype::array<rdctype::str> myJSONs;
   rdctype::array<rdctype::str> otherJSONs;
 
@@ -115,7 +115,7 @@ void VerifyVulkanLayer(int argc, char *argv[])
 
   if(!needUpdate)
   {
-    if(!(flags & eVulkan_Unfixable))
+    if(!(flags & VulkanLayerFlags::Unfixable))
       add_command("vulkanregister", new VulkanRegisterCommand());
     return;
   }
@@ -126,22 +126,22 @@ void VerifyVulkanLayer(int argc, char *argv[])
             << std::endl;
   std::cerr << std::endl;
 
-  if(flags & eVulkan_OtherInstallsRegistered)
+  if(flags & VulkanLayerFlags::OtherInstallsRegistered)
     std::cerr << "Multiple RenderDoc layers are registered, possibly from different builds."
               << std::endl;
 
-  if(!(flags & eVulkan_ThisInstallRegistered))
+  if(!(flags & VulkanLayerFlags::ThisInstallRegistered))
     std::cerr << "This build's RenderDoc layer is not registered." << std::endl;
 
   std::cerr << "To fix this, the following actions must take place: " << std::endl << std::endl;
 
-  const bool registerAll = (flags & eVulkan_RegisterAll);
-  const bool updateAllowed = (flags & eVulkan_UpdateAllowed);
+  const bool registerAll = bool(flags & VulkanLayerFlags::RegisterAll);
+  const bool updateAllowed = bool(flags & VulkanLayerFlags::UpdateAllowed);
 
   for(const rdctype::str &j : otherJSONs)
     std::cerr << (updateAllowed ? "Unregister/update: " : "Unregister: ") << j.c_str() << std::endl;
 
-  if(!(flags & eVulkan_ThisInstallRegistered))
+  if(!(flags & VulkanLayerFlags::ThisInstallRegistered))
   {
     if(registerAll)
     {
@@ -158,7 +158,7 @@ void VerifyVulkanLayer(int argc, char *argv[])
 
   std::cerr << std::endl;
 
-  if(flags & eVulkan_Unfixable)
+  if(flags & VulkanLayerFlags::Unfixable)
   {
     std::cerr << "NOTE: The renderdoc layer registered in /usr is reserved for distribution"
               << std::endl;
@@ -273,9 +273,9 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
 
   for(int32_t i = 0; i < systems.count; i++)
   {
-    if(systems[i] == eWindowingSystem_Xlib)
+    if(systems[i] == WindowingSystem::Xlib)
       xlib = true;
-    if(systems[i] == eWindowingSystem_XCB)
+    if(systems[i] == WindowingSystem::XCB)
       xcb = true;
   }
 
@@ -288,8 +288,8 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
     windowData.connection = connection;
     windowData.window = window;
 
-    out = ReplayRenderer_CreateOutput(renderer, eWindowingSystem_XCB, &windowData,
-                                      eOutputType_TexDisplay);
+    out = ReplayRenderer_CreateOutput(renderer, WindowingSystem::XCB, &windowData,
+                                      ReplayOutputType::Texture);
   }
   else if(xlib)
   {
@@ -297,22 +297,19 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
     windowData.display = display;
     windowData.window = (Drawable)window;    // safe to cast types
 
-    out = ReplayRenderer_CreateOutput(renderer, eWindowingSystem_Xlib, &windowData,
-                                      eOutputType_TexDisplay);
+    out = ReplayRenderer_CreateOutput(renderer, WindowingSystem::Xlib, &windowData,
+                                      ReplayOutputType::Texture);
   }
   else
   {
     std::cerr << "Neither XCB nor XLib are supported, can't create window." << std::endl;
     std::cerr << "Supported systems: ";
     for(int32_t i = 0; i < systems.count; i++)
-      std::cerr << systems[i] << std::endl;
+      std::cerr << (uint32_t)systems[i] << std::endl;
     std::cerr << std::endl;
     return;
   }
 
-  OutputConfig c = {eOutputType_TexDisplay};
-
-  ReplayOutput_SetOutputConfig(out, c);
   ReplayOutput_SetTextureDisplay(out, displayCfg);
 
   xcb_flush(connection);

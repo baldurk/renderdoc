@@ -29,7 +29,7 @@ static int dllLocator = 0;
 
 void VulkanReplay::OutputWindow::SetWindowHandle(WindowingSystem system, void *data)
 {
-  RDCASSERT(system == eWindowingSystem_Win32, system);
+  RDCASSERT(system == WindowingSystem::Win32, system);
   wnd = (HWND)data;
   m_WindowSystem = system;
 }
@@ -251,7 +251,7 @@ bool ProcessImplicitLayersKey(HKEY key, const std::wstring &path,
   return thisRegistered;
 }
 
-bool VulkanReplay::CheckVulkanLayer(uint32_t &flags, std::vector<std::string> &myJSONs,
+bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
                                     std::vector<std::string> &otherJSONs)
 {
   std::wstring normalPath = GetJSONPath(false);
@@ -270,7 +270,7 @@ bool VulkanReplay::CheckVulkanLayer(uint32_t &flags, std::vector<std::string> &m
   // and it will go away as we'll have rights to create it.
   if(!key)
   {
-    flags = eVulkan_NeedElevation | eVulkan_RegisterAll;
+    flags = VulkanLayerFlags::NeedElevation | VulkanLayerFlags::RegisterAll;
     return true;
   }
 
@@ -294,13 +294,13 @@ bool VulkanReplay::CheckVulkanLayer(uint32_t &flags, std::vector<std::string> &m
   }
 #endif
 
-  flags = eVulkan_NeedElevation | eVulkan_RegisterAll;
+  flags = VulkanLayerFlags::NeedElevation | VulkanLayerFlags::RegisterAll;
 
   if(thisRegistered)
-    flags |= eVulkan_ThisInstallRegistered;
+    flags |= VulkanLayerFlags::ThisInstallRegistered;
 
   if(!otherJSONs.empty())
-    flags |= eVulkan_OtherInstallsRegistered;
+    flags |= VulkanLayerFlags::OtherInstallsRegistered;
 
   // return true if any changes are needed
   return !otherJSONs.empty() || !thisRegistered;

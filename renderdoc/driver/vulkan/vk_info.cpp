@@ -111,8 +111,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     {
       reflData.entryPoint = shad.entryPoint;
       reflData.stage = stageIndex;
-      info.m_ShaderModule[id].spirv.MakeReflection(
-          ShaderStageType(reflData.stage), reflData.entryPoint, &reflData.refl, &reflData.mapping);
+      info.m_ShaderModule[id].spirv.MakeReflection(ShaderStage(reflData.stage), reflData.entryPoint,
+                                                   &reflData.refl, &reflData.mapping);
     }
 
     if(pCreateInfo->pStages[i].pSpecializationInfo)
@@ -325,7 +325,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     if(reflData.entryPoint.empty())
     {
       reflData.entryPoint = shad.entryPoint;
-      info.m_ShaderModule[id].spirv.MakeReflection(eShaderStage_Compute, reflData.entryPoint,
+      info.m_ShaderModule[id].spirv.MakeReflection(ShaderStage::Compute, reflData.entryPoint,
                                                    &reflData.refl, &reflData.mapping);
     }
 
@@ -490,17 +490,17 @@ void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, VulkanC
   mipLevels = pCreateInfo->mipLevels;
   samples = RDCMAX(VK_SAMPLE_COUNT_1_BIT, pCreateInfo->samples);
 
-  creationFlags = 0;
+  creationFlags = TextureCategory::NoFlags;
 
   if(pCreateInfo->usage & VK_IMAGE_USAGE_SAMPLED_BIT)
-    creationFlags |= eTextureCreate_SRV;
+    creationFlags |= TextureCategory::ShaderRead;
   if(pCreateInfo->usage &
      (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT))
-    creationFlags |= eTextureCreate_RTV;
+    creationFlags |= TextureCategory::ColorTarget;
   if(pCreateInfo->usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-    creationFlags |= eTextureCreate_DSV;
+    creationFlags |= TextureCategory::DepthTarget;
   if(pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT)
-    creationFlags |= eTextureCreate_UAV;
+    creationFlags |= TextureCategory::ShaderReadWrite;
 
   cube = (pCreateInfo->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) ? true : false;
 }
@@ -530,15 +530,15 @@ static TextureSwizzle Convert(VkComponentSwizzle s, int i)
   {
     default: RDCWARN("Unexpected component swizzle value %d", (int)s);
     case VK_COMPONENT_SWIZZLE_IDENTITY: break;
-    case VK_COMPONENT_SWIZZLE_ZERO: return eSwizzle_Zero;
-    case VK_COMPONENT_SWIZZLE_ONE: return eSwizzle_One;
-    case VK_COMPONENT_SWIZZLE_R: return eSwizzle_Red;
-    case VK_COMPONENT_SWIZZLE_G: return eSwizzle_Green;
-    case VK_COMPONENT_SWIZZLE_B: return eSwizzle_Blue;
-    case VK_COMPONENT_SWIZZLE_A: return eSwizzle_Alpha;
+    case VK_COMPONENT_SWIZZLE_ZERO: return TextureSwizzle::Zero;
+    case VK_COMPONENT_SWIZZLE_ONE: return TextureSwizzle::One;
+    case VK_COMPONENT_SWIZZLE_R: return TextureSwizzle::Red;
+    case VK_COMPONENT_SWIZZLE_G: return TextureSwizzle::Green;
+    case VK_COMPONENT_SWIZZLE_B: return TextureSwizzle::Blue;
+    case VK_COMPONENT_SWIZZLE_A: return TextureSwizzle::Alpha;
   }
 
-  return TextureSwizzle(eSwizzle_Red + i);
+  return TextureSwizzle(uint32_t(TextureSwizzle::Red) + i);
 }
 
 void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,

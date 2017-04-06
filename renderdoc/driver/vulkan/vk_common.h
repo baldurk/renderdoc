@@ -82,8 +82,8 @@
 
 ResourceFormat MakeResourceFormat(VkFormat fmt);
 VkFormat MakeVkFormat(ResourceFormat fmt);
-PrimitiveTopology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patchControlPoints);
-VkPrimitiveTopology MakeVkPrimitiveTopology(PrimitiveTopology Topo);
+Topology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patchControlPoints);
+VkPrimitiveTopology MakeVkPrimitiveTopology(Topology Topo);
 
 // set conservative access bits for this image layout
 VkAccessFlags MakeAccessMask(VkImageLayout layout);

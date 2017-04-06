@@ -259,12 +259,12 @@ vector<FoundFile> GetFilesInDirectory(const char *path)
 
   if(d == NULL)
   {
-    uint32_t flags = eFileProp_ErrorUnknown;
+    FileProperty flags = FileProperty::ErrorUnknown;
 
     if(errno == ENOENT)
-      flags = eFileProp_ErrorInvalidPath;
+      flags = FileProperty::ErrorInvalidPath;
     else if(errno == EACCES)
-      flags = eFileProp_ErrorAccessDenied;
+      flags = FileProperty::ErrorAccessDenied;
 
     ret.push_back(FoundFile(path, flags));
     return ret;
@@ -294,16 +294,16 @@ vector<FoundFile> GetFilesInDirectory(const char *path)
     if(res != 0)
       continue;
 
-    uint32_t flags = 0;
+    FileProperty flags = FileProperty::NoFlags;
 
     // make directory/executable mutually exclusive for clarity's sake
     if(S_ISDIR(st.st_mode))
-      flags |= eFileProp_Directory;
+      flags |= FileProperty::Directory;
     else if(st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
-      flags |= eFileProp_Executable;
+      flags |= FileProperty::Executable;
 
     if(ent->d_name[0] == '.')
-      flags |= eFileProp_Hidden;
+      flags |= FileProperty::Hidden;
 
     FoundFile f(ent->d_name, flags);
 

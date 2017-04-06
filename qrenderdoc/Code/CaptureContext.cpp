@@ -225,21 +225,21 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
     r->GetSupportedWindowSystems(&m_WinSystems);
 
 #if defined(RENDERDOC_PLATFORM_WIN32)
-    m_CurWinSystem = eWindowingSystem_Win32;
+    m_CurWinSystem = WindowingSystem::Win32;
 #elif defined(RENDERDOC_PLATFORM_LINUX)
-    m_CurWinSystem = eWindowingSystem_Xlib;
+    m_CurWinSystem = WindowingSystem::Xlib;
 
     // prefer XCB, if supported
     for(WindowingSystem sys : m_WinSystems)
     {
-      if(sys == eWindowingSystem_XCB)
+      if(sys == WindowingSystem::XCB)
       {
-        m_CurWinSystem = eWindowingSystem_XCB;
+        m_CurWinSystem = WindowingSystem::XCB;
         break;
       }
     }
 
-    if(m_CurWinSystem == eWindowingSystem_XCB)
+    if(m_CurWinSystem == WindowingSystem::XCB)
       m_XCBConnection = QX11Info::connection();
     else
       m_X11Display = QX11Info::display();
@@ -300,11 +300,11 @@ bool CaptureContext::PassEquivalent(const FetchDrawcall &a, const FetchDrawcall 
     return false;
 
   // don't group draws and compute executes
-  if((a.flags & eDraw_Dispatch) != (b.flags & eDraw_Dispatch))
+  if((a.flags & DrawFlags::Dispatch) != (b.flags & DrawFlags::Dispatch))
     return false;
 
   // don't group present with anything
-  if((a.flags & eDraw_Present) != (b.flags & eDraw_Present))
+  if((a.flags & DrawFlags::Present) != (b.flags & DrawFlags::Present))
     return false;
 
   // don't group things with different depth outputs
@@ -373,7 +373,8 @@ bool CaptureContext::ContainsMarker(const rdctype::array<FetchDrawcall> &draws)
 
   for(const FetchDrawcall &d : draws)
   {
-    ret |= (d.flags & eDraw_PushMarker) && !(d.flags & eDraw_CmdList) && !d.children.empty();
+    ret |=
+        (d.flags & DrawFlags::PushMarker) && !(d.flags & DrawFlags::CmdList) && !d.children.empty();
     ret |= ContainsMarker(d.children);
 
     if(ret)
@@ -400,7 +401,8 @@ void CaptureContext::AddFakeProfileMarkers()
   int start = 0;
   int refdraw = 0;
 
-  uint32_t drawFlags = eDraw_Copy | eDraw_Resolve | eDraw_SetMarker | eDraw_CmdList;
+  DrawFlags drawFlags =
+      DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::SetMarker | DrawFlags::CmdList;
 
   for(int i = 1; i < draws.count; i++)
   {
@@ -436,7 +438,7 @@ void CaptureContext::AddFakeProfileMarkers()
     {
       int outCount = 0;
 
-      if(!(draws[j].flags & (eDraw_Copy | eDraw_Resolve | eDraw_Clear)))
+      if(!(draws[j].flags & (DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::Clear)))
         copyOnly = false;
 
       for(ResourceId o : draws[j].outputs)
@@ -451,7 +453,7 @@ void CaptureContext::AddFakeProfileMarkers()
     mark.eventID = draws[start].eventID;
     mark.drawcallID = draws[start].drawcallID;
 
-    mark.flags = eDraw_PushMarker;
+    mark.flags = DrawFlags::PushMarker;
     memcpy(mark.outputs, draws[end].outputs, sizeof(mark.outputs));
     mark.depthOut = draws[end].depthOut;
 
@@ -464,7 +466,7 @@ void CaptureContext::AddFakeProfileMarkers()
                       .arg(copypassID++)
                       .toUtf8()
                       .data();
-    else if(draws[refdraw].flags & eDraw_Dispatch)
+    else if(draws[refdraw].flags & DrawFlags::Dispatch)
       mark.name = QApplication::translate("CaptureContext", "Compute Pass #%1")
                       .arg(computepassID++)
                       .toUtf8()
@@ -593,7 +595,7 @@ void *CaptureContext::FillWindowingData(WId widget)
   static XCBWindowData xcb;
   static XlibWindowData xlib;
 
-  if(m_CurWinSystem == eWindowingSystem_XCB)
+  if(m_CurWinSystem == WindowingSystem::XCB)
   {
     xcb.connection = m_XCBConnection;
     xcb.window = (xcb_window_t)widget;

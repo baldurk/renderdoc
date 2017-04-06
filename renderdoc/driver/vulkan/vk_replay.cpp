@@ -35,7 +35,7 @@
 #include "data/glsl/debuguniforms.h"
 
 VulkanReplay::OutputWindow::OutputWindow()
-    : m_WindowSystem(eWindowingSystem_Unknown), width(0), height(0)
+    : m_WindowSystem(WindowingSystem::Unknown), width(0), height(0)
 {
   surface = VK_NULL_HANDLE;
   swap = VK_NULL_HANDLE;
@@ -647,8 +647,8 @@ APIProperties VulkanReplay::GetAPIProperties()
 {
   APIProperties ret;
 
-  ret.pipelineType = eGraphicsAPI_Vulkan;
-  ret.localRenderer = eGraphicsAPI_Vulkan;
+  ret.pipelineType = GraphicsAPI::Vulkan;
+  ret.localRenderer = GraphicsAPI::Vulkan;
   ret.degraded = false;
 
   return ret;
@@ -681,15 +681,15 @@ vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventID)
     // if we've come to the beginning of a pass, break out of the loop, we've
     // found the start.
     // Note that vkCmdNextSubPass has both Begin and End flags set, so it will
-    // break out here before we hit the terminating case looking for eDraw_EndPass
-    if(start->flags & eDraw_BeginPass)
+    // break out here before we hit the terminating case looking for DrawFlags::EndPass
+    if(start->flags & DrawFlags::BeginPass)
       break;
 
     // if we come to the END of a pass, since we were iterating backwards that
     // means we started outside of a pass, so return empty set.
     // Note that vkCmdNextSubPass has both Begin and End flags set, so it will
     // break out above before we hit this terminating case
-    if(start->flags & eDraw_EndPass)
+    if(start->flags & DrawFlags::EndPass)
       return passEvents;
 
     // if we've come to the start of the log we were outside of a render pass
@@ -716,7 +716,7 @@ vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventID)
     // so we don't actually do anything (init postvs/draw overlay)
     // but it's useful to have the first part of the pass as part
     // of the list
-    if(start->flags & (eDraw_Drawcall | eDraw_PassBoundary))
+    if(start->flags & (DrawFlags::Drawcall | DrawFlags::PassBoundary))
       passEvents.push_back(start->eventID);
 
     start = m_pDriver->GetDrawcall((uint32_t)start->next);
@@ -815,20 +815,20 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
   switch(iminfo.type)
   {
     case VK_IMAGE_TYPE_1D:
-      ret.resType = iminfo.arrayLayers > 1 ? eResType_Texture1DArray : eResType_Texture1D;
+      ret.resType = iminfo.arrayLayers > 1 ? TextureDim::Texture1DArray : TextureDim::Texture1D;
       ret.dimension = 1;
       break;
     case VK_IMAGE_TYPE_2D:
       if(ret.msSamp > 1)
-        ret.resType = iminfo.arrayLayers > 1 ? eResType_Texture2DMSArray : eResType_Texture2DMS;
+        ret.resType = iminfo.arrayLayers > 1 ? TextureDim::Texture2DMSArray : TextureDim::Texture2DMS;
       else if(ret.cubemap)
-        ret.resType = iminfo.arrayLayers > 6 ? eResType_TextureCubeArray : eResType_TextureCube;
+        ret.resType = iminfo.arrayLayers > 6 ? TextureDim::TextureCubeArray : TextureDim::TextureCube;
       else
-        ret.resType = iminfo.arrayLayers > 1 ? eResType_Texture2DArray : eResType_Texture2D;
+        ret.resType = iminfo.arrayLayers > 1 ? TextureDim::Texture2DArray : TextureDim::Texture2D;
       ret.dimension = 2;
       break;
     case VK_IMAGE_TYPE_3D:
-      ret.resType = eResType_Texture3D;
+      ret.resType = TextureDim::Texture3D;
       ret.dimension = 3;
       break;
     default: RDCERR("Unexpected image type"); break;
@@ -846,9 +846,9 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
     if(ret.msSamp > 1)
       ms = "MS";
 
-    if(ret.creationFlags & eTextureCreate_RTV)
+    if(ret.creationFlags & TextureCategory::ColorTarget)
       suffix = " RTV";
-    if(ret.creationFlags & eTextureCreate_DSV)
+    if(ret.creationFlags & TextureCategory::DepthTarget)
       suffix = " DSV";
 
     if(ret.cubemap)
@@ -878,18 +878,18 @@ FetchBuffer VulkanReplay::GetBuffer(ResourceId id)
   ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
   ret.length = bufinfo.size;
 
-  ret.creationFlags = 0;
+  ret.creationFlags = BufferCategory::NoFlags;
 
   if(bufinfo.usage & (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT))
-    ret.creationFlags |= eBufferCreate_UAV;
+    ret.creationFlags |= BufferCategory::ReadWrite;
   if(bufinfo.usage & (VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT))
-    ret.creationFlags |= eBufferCreate_CB;
+    ret.creationFlags |= BufferCategory::Constants;
   if(bufinfo.usage & (VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT))
-    ret.creationFlags |= eBufferCreate_Indirect;
+    ret.creationFlags |= BufferCategory::Indirect;
   if(bufinfo.usage & (VK_BUFFER_USAGE_INDEX_BUFFER_BIT))
-    ret.creationFlags |= eBufferCreate_IB;
+    ret.creationFlags |= BufferCategory::Index;
   if(bufinfo.usage & (VK_BUFFER_USAGE_VERTEX_BUFFER_BIT))
-    ret.creationFlags |= eBufferCreate_IB;
+    ret.creationFlags |= BufferCategory::Vertex;
 
   ret.customName = true;
   ret.name = m_pDriver->m_CreationInfo.m_Names[id];
@@ -929,8 +929,7 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId shader, string entryPoint)
 }
 
 void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                             uint32_t mip, uint32_t sample, FormatComponentType typeHint,
-                             float pixel[4])
+                             uint32_t mip, uint32_t sample, CompType typeHint, float pixel[4])
 {
   int oldW = m_DebugWidth, oldH = m_DebugHeight;
 
@@ -955,7 +954,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
       texDisplay.sampleIdx = sample;
       texDisplay.CustomShader = ResourceId();
       texDisplay.sliceFace = sliceFace;
-      texDisplay.overlay = eTexOverlay_None;
+      texDisplay.overlay = DebugOverlay::NoOverlay;
       texDisplay.rangemin = 0.0f;
       texDisplay.rangemax = 1.0f;
       texDisplay.scale = 1.0f;
@@ -1271,10 +1270,10 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   if(!IsSRGBFormat(iminfo.format) && cfg.linearDisplayAsGamma)
     displayformat |= TEXDISPLAY_GAMMA_CURVE;
 
-  if(cfg.overlay == eTexOverlay_NaN)
+  if(cfg.overlay == DebugOverlay::NaN)
     displayformat |= TEXDISPLAY_NANS;
 
-  if(cfg.overlay == eTexOverlay_Clipping)
+  if(cfg.overlay == DebugOverlay::Clipping)
     displayformat |= TEXDISPLAY_CLIPPING;
 
   data->OutputDisplayFormat = displayformat;
@@ -1670,9 +1669,8 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 #endif
 }
 
-ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
-                                       TextureDisplayOverlay overlay, uint32_t eventID,
-                                       const vector<uint32_t> &passEvents)
+ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
+                                       uint32_t eventID, const vector<uint32_t> &passEvents)
 {
   return GetDebugManager()->RenderOverlay(texid, overlay, eventID, passEvents);
 }
@@ -1883,13 +1881,13 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(vb), &offs);
   }
 
-  SolidShadeMode solidShadeMode = cfg.solidShadeMode;
+  SolidShade solidShadeMode = cfg.solidShadeMode;
 
   // can't support secondary shading without a buffer - no pipeline will have been created
-  if(solidShadeMode == eShade_Secondary && cfg.second.buf == ResourceId())
-    solidShadeMode = eShade_None;
+  if(solidShadeMode == SolidShade::Secondary && cfg.second.buf == ResourceId())
+    solidShadeMode = SolidShade::NoSolid;
 
-  if(solidShadeMode == eShade_Secondary)
+  if(solidShadeMode == SolidShade::Secondary)
   {
     VkBuffer vb = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(cfg.second.buf);
 
@@ -1898,21 +1896,21 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
   }
 
   // solid render
-  if(solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList)
+  if(solidShadeMode != SolidShade::NoSolid && cfg.position.topo < Topology::PatchList)
   {
     VkPipeline pipe = VK_NULL_HANDLE;
     switch(solidShadeMode)
     {
       default:
-      case eShade_Solid: pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]; break;
-      case eShade_Lit: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Lit]; break;
-      case eShade_Secondary: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary]; break;
+      case SolidShade::Solid: pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]; break;
+      case SolidShade::Lit: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Lit]; break;
+      case SolidShade::Secondary: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary]; break;
     }
 
     uint32_t uboOffs = 0;
     MeshUBOData *data = (MeshUBOData *)GetDebugManager()->m_MeshUBO.Map(&uboOffs);
 
-    if(solidShadeMode == eShade_Lit)
+    if(solidShadeMode == SolidShade::Lit)
       data->invProj = projMat.Inverse();
 
     data->mvp = ModelViewProj;
@@ -1922,7 +1920,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     data->displayFormat = (uint32_t)solidShadeMode;
     data->rawoutput = 0;
 
-    if(solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
+    if(solidShadeMode == SolidShade::Secondary && cfg.second.showAlpha)
       data->displayFormat = MESHDISPLAY_SECONDARY_ALPHA;
 
     GetDebugManager()->m_MeshUBO.Unmap();
@@ -1955,7 +1953,8 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
   }
 
   // wireframe render
-  if(solidShadeMode == eShade_None || cfg.wireframeDraw || cfg.position.topo >= eTopology_PatchList)
+  if(solidShadeMode == SolidShade::NoSolid || cfg.wireframeDraw ||
+     cfg.position.topo >= Topology::PatchList)
   {
     Vec4f wireCol =
         Vec4f(cfg.position.meshColour.x, cfg.position.meshColour.y, cfg.position.meshColour.z, 1.0f);
@@ -1965,7 +1964,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
     data->mvp = ModelViewProj;
     data->color = wireCol;
-    data->displayFormat = (uint32_t)eShade_Solid;
+    data->displayFormat = (uint32_t)SolidShade::Solid;
     data->homogenousInput = cfg.position.unproject;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
     data->rawoutput = 0;
@@ -2002,12 +2001,12 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
   MeshFormat helper;
   helper.idxByteWidth = 2;
-  helper.topo = eTopology_LineList;
+  helper.topo = Topology::LineList;
 
-  helper.specialFormat = eSpecial_Unknown;
+  helper.specialFormat = SpecialFormat::Unknown;
   helper.compByteWidth = 4;
   helper.compCount = 4;
-  helper.compType = eCompType_Float;
+  helper.compType = CompType::Float;
 
   helper.stride = sizeof(Vec4f);
 
@@ -2053,7 +2052,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
     data->mvp = ModelViewProj;
     data->color = Vec4f(0.2f, 0.2f, 1.0f, 1.0f);
-    data->displayFormat = (uint32_t)eShade_Solid;
+    data->displayFormat = (uint32_t)SolidShade::Solid;
     data->homogenousInput = 0;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
     data->rawoutput = 0;
@@ -2082,7 +2081,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
     data->mvp = ModelViewProj;
     data->color = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
-    data->displayFormat = (uint32_t)eShade_Solid;
+    data->displayFormat = (uint32_t)SolidShade::Solid;
     data->homogenousInput = 0;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
     data->rawoutput = 0;
@@ -2103,7 +2102,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
     data->mvp = ModelViewProj;
     data->color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
-    data->displayFormat = (uint32_t)eShade_Solid;
+    data->displayFormat = (uint32_t)SolidShade::Solid;
     data->homogenousInput = 0;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
     data->rawoutput = 0;
@@ -2119,7 +2118,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
     data->mvp = ModelViewProj;
     data->color = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
-    data->displayFormat = (uint32_t)eShade_Solid;
+    data->displayFormat = (uint32_t)SolidShade::Solid;
     data->homogenousInput = 0;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
     data->rawoutput = 0;
@@ -2144,7 +2143,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
     data->mvp = ModelViewProj;
     data->color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
-    data->displayFormat = (uint32_t)eShade_Solid;
+    data->displayFormat = (uint32_t)SolidShade::Solid;
     data->homogenousInput = 0;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
     data->rawoutput = 0;
@@ -2188,7 +2187,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
       uint64_t maxIndex = cfg.position.numVerts;
 
-      if(cfg.position.idxByteWidth == 0 || stage == eMeshDataStage_GSOut)
+      if(cfg.position.idxByteWidth == 0 || stage == MeshDataStage::GSOut)
       {
         m_HighlightCache.indices.clear();
         m_HighlightCache.useidx = false;
@@ -2268,7 +2267,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
       vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
     }
 
-    PrimitiveTopology meshtopo = cfg.position.topo;
+    Topology meshtopo = cfg.position.topo;
 
     uint32_t idx = cfg.highlightVert;
 
@@ -2299,19 +2298,19 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     // will be N*M long, N adjacent prims of M verts each. M = primSize below
     vector<FloatVector> adjacentPrimVertices;
 
-    helper.topo = eTopology_TriangleList;
+    helper.topo = Topology::TriangleList;
     uint32_t primSize = 3;    // number of verts per primitive
 
-    if(meshtopo == eTopology_LineList || meshtopo == eTopology_LineStrip ||
-       meshtopo == eTopology_LineList_Adj || meshtopo == eTopology_LineStrip_Adj)
+    if(meshtopo == Topology::LineList || meshtopo == Topology::LineStrip ||
+       meshtopo == Topology::LineList_Adj || meshtopo == Topology::LineStrip_Adj)
     {
       primSize = 2;
-      helper.topo = eTopology_LineList;
+      helper.topo = Topology::LineList;
     }
     else
     {
       // update the cache, as it's currently linelist
-      helper.topo = eTopology_TriangleList;
+      helper.topo = Topology::TriangleList;
       cache = GetDebugManager()->CacheMeshDisplayPipelines(helper, helper);
     }
 
@@ -2319,14 +2318,14 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
 
     // see Section 15.1.1 of the Vulkan 1.0 spec for
     // how primitive topologies are laid out
-    if(meshtopo == eTopology_LineList)
+    if(meshtopo == Topology::LineList)
     {
       uint32_t v = uint32_t(idx / 2) * 2;    // find first vert in primitive
 
       activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
       activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
     }
-    else if(meshtopo == eTopology_TriangleList)
+    else if(meshtopo == Topology::TriangleList)
     {
       uint32_t v = uint32_t(idx / 3) * 3;    // find first vert in primitive
 
@@ -2334,7 +2333,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
       activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
       activePrim.push_back(InterpretVertex(data, v + 2, cfg, dataEnd, true, valid));
     }
-    else if(meshtopo == eTopology_LineList_Adj)
+    else if(meshtopo == Topology::LineList_Adj)
     {
       uint32_t v = uint32_t(idx / 4) * 4;    // find first vert in primitive
 
@@ -2354,7 +2353,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
       activePrim.push_back(vs[1]);
       activePrim.push_back(vs[2]);
     }
-    else if(meshtopo == eTopology_TriangleList_Adj)
+    else if(meshtopo == Topology::TriangleList_Adj)
     {
       uint32_t v = uint32_t(idx / 6) * 6;    // find first vert in primitive
 
@@ -2383,7 +2382,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
       activePrim.push_back(vs[2]);
       activePrim.push_back(vs[4]);
     }
-    else if(meshtopo == eTopology_LineStrip)
+    else if(meshtopo == Topology::LineStrip)
     {
       // find first vert in primitive. In strips a vert isn't
       // in only one primitive, so we pick the first primitive
@@ -2394,7 +2393,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
       activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
       activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
     }
-    else if(meshtopo == eTopology_TriangleStrip)
+    else if(meshtopo == Topology::TriangleStrip)
     {
       // find first vert in primitive. In strips a vert isn't
       // in only one primitive, so we pick the first primitive
@@ -2406,7 +2405,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
       activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
       activePrim.push_back(InterpretVertex(data, v + 2, cfg, dataEnd, true, valid));
     }
-    else if(meshtopo == eTopology_LineStrip_Adj)
+    else if(meshtopo == Topology::LineStrip_Adj)
     {
       // find first vert in primitive. In strips a vert isn't
       // in only one primitive, so we pick the first primitive
@@ -2430,7 +2429,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
       activePrim.push_back(vs[1]);
       activePrim.push_back(vs[2]);
     }
-    else if(meshtopo == eTopology_TriangleStrip_Adj)
+    else if(meshtopo == Topology::TriangleStrip_Adj)
     {
       // Triangle strip with adjacency is the most complex topology, as
       // we need to handle the ends separately where the pattern breaks.
@@ -2560,9 +2559,9 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
         activePrim.push_back(vs[6]);
       }
     }
-    else if(meshtopo >= eTopology_PatchList)
+    else if(meshtopo >= Topology::PatchList)
     {
-      uint32_t dim = (cfg.position.topo - eTopology_PatchList_1CPs + 1);
+      uint32_t dim = PatchList_Count(cfg.position.topo);
 
       uint32_t v0 = uint32_t(idx / dim) * dim;
 
@@ -2572,7 +2571,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
           inactiveVertices.push_back(InterpretVertex(data, v, cfg, dataEnd, true, valid));
       }
     }
-    else    // if(meshtopo == eTopology_PointList) point list, or unknown/unhandled type
+    else    // if(meshtopo == Topology::PointList) point list, or unknown/unhandled type
     {
       // no adjacency, inactive verts or active primitive
     }
@@ -2591,7 +2590,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
       MeshUBOData uniforms = {};
       uniforms.mvp = ModelViewProj;
       uniforms.color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
-      uniforms.displayFormat = (uint32_t)eShade_Solid;
+      uniforms.displayFormat = (uint32_t)SolidShade::Solid;
       uniforms.homogenousInput = cfg.position.unproject;
       uniforms.pointSpriteSize = Vec2f(0.0f, 0.0f);
 
@@ -2679,7 +2678,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
                                 UnwrapPtr(GetDebugManager()->m_MeshDescSet), 1, &uboOffs);
 
       // vertices are drawn with tri strips
-      helper.topo = eTopology_TriangleStrip;
+      helper.topo = Topology::TriangleStrip;
       cache = GetDebugManager()->CacheMeshDisplayPipelines(helper, helper);
 
       FloatVector vertSprite[4] = {
@@ -2763,7 +2762,7 @@ bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
 
   OutputWindow &outw = m_OutputWindows[id];
 
-  if(outw.m_WindowSystem == eWindowingSystem_Unknown)
+  if(outw.m_WindowSystem == WindowingSystem::Unknown)
     return false;
 
   int32_t w, h;
@@ -3125,7 +3124,7 @@ uint64_t VulkanReplay::MakeOutputWindow(WindowingSystem system, void *data, bool
   m_OutputWindows[id].SetWindowHandle(system, data);
   m_OutputWindows[id].m_ResourceManager = GetResourceManager();
 
-  if(system != eWindowingSystem_Unknown)
+  if(system != WindowingSystem::Unknown)
   {
     int32_t w, h;
     GetOutputWindowDimensions(id, w, h);
@@ -3180,11 +3179,11 @@ void VulkanReplay::SavePipelineState()
 
       m_VulkanPipelineState.compute.flags = p.flags;
 
-      VulkanPipelineState::ShaderStage &stage = m_VulkanPipelineState.m_CS;
+      VulkanPipelineState::Shader &stage = m_VulkanPipelineState.m_CS;
 
       int i = 5;    // 5 is the CS idx (VS, TCS, TES, GS, FS, CS)
       {
-        stage.Shader = rm->GetOriginalID(p.shaders[i].module);
+        stage.Object = rm->GetOriginalID(p.shaders[i].module);
         stage.entryPoint = p.shaders[i].entryPoint;
         stage.ShaderDetails = NULL;
 
@@ -3193,10 +3192,10 @@ void VulkanReplay::SavePipelineState()
         if(stage.ShaderName.count == 0)
         {
           stage.customName = false;
-          stage.ShaderName = StringFormat::Fmt("Shader %llu", stage.Shader);
+          stage.ShaderName = StringFormat::Fmt("Shader %llu", stage.Object);
         }
 
-        stage.stage = eShaderStage_Compute;
+        stage.stage = ShaderStage::Compute;
         if(p.shaders[i].mapping)
           stage.BindpointMapping = *p.shaders[i].mapping;
 
@@ -3247,14 +3246,14 @@ void VulkanReplay::SavePipelineState()
       }
 
       // Shader Stages
-      VulkanPipelineState::ShaderStage *stages[] = {
+      VulkanPipelineState::Shader *stages[] = {
           &m_VulkanPipelineState.m_VS, &m_VulkanPipelineState.m_TCS, &m_VulkanPipelineState.m_TES,
           &m_VulkanPipelineState.m_GS, &m_VulkanPipelineState.m_FS,
       };
 
       for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
       {
-        stages[i]->Shader = rm->GetOriginalID(p.shaders[i].module);
+        stages[i]->Object = rm->GetOriginalID(p.shaders[i].module);
         stages[i]->entryPoint = p.shaders[i].entryPoint;
         stages[i]->ShaderDetails = NULL;
 
@@ -3263,10 +3262,10 @@ void VulkanReplay::SavePipelineState()
         if(stages[i]->ShaderName.count == 0)
         {
           stages[i]->customName = false;
-          stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", stages[i]->Shader);
+          stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", stages[i]->Object);
         }
 
-        stages[i]->stage = ShaderStageType(eShaderStage_Vertex + i);
+        stages[i]->stage = StageFromIndex(i);
         if(p.shaders[i].mapping)
           stages[i]->BindpointMapping = *p.shaders[i].mapping;
 
@@ -3322,25 +3321,25 @@ void VulkanReplay::SavePipelineState()
 
       switch(p.polygonMode)
       {
-        case VK_POLYGON_MODE_POINT: m_VulkanPipelineState.RS.FillMode = eFill_Point; break;
-        case VK_POLYGON_MODE_LINE: m_VulkanPipelineState.RS.FillMode = eFill_Wireframe; break;
-        case VK_POLYGON_MODE_FILL: m_VulkanPipelineState.RS.FillMode = eFill_Solid; break;
+        case VK_POLYGON_MODE_POINT: m_VulkanPipelineState.RS.fillMode = FillMode::Point; break;
+        case VK_POLYGON_MODE_LINE: m_VulkanPipelineState.RS.fillMode = FillMode::Wireframe; break;
+        case VK_POLYGON_MODE_FILL: m_VulkanPipelineState.RS.fillMode = FillMode::Solid; break;
         default:
-          m_VulkanPipelineState.RS.FillMode = eFill_Solid;
+          m_VulkanPipelineState.RS.fillMode = FillMode::Solid;
           RDCERR("Unexpected value for FillMode %x", p.polygonMode);
           break;
       }
 
       switch(p.cullMode)
       {
-        case VK_CULL_MODE_NONE: m_VulkanPipelineState.RS.CullMode = eCull_None; break;
-        case VK_CULL_MODE_FRONT_BIT: m_VulkanPipelineState.RS.CullMode = eCull_Front; break;
-        case VK_CULL_MODE_BACK_BIT: m_VulkanPipelineState.RS.CullMode = eCull_Back; break;
+        case VK_CULL_MODE_NONE: m_VulkanPipelineState.RS.cullMode = CullMode::NoCull; break;
+        case VK_CULL_MODE_FRONT_BIT: m_VulkanPipelineState.RS.cullMode = CullMode::Front; break;
+        case VK_CULL_MODE_BACK_BIT: m_VulkanPipelineState.RS.cullMode = CullMode::Back; break;
         case VK_CULL_MODE_FRONT_AND_BACK:
-          m_VulkanPipelineState.RS.CullMode = eCull_FrontAndBack;
+          m_VulkanPipelineState.RS.cullMode = CullMode::FrontAndBack;
           break;
         default:
-          m_VulkanPipelineState.RS.CullMode = eCull_None;
+          m_VulkanPipelineState.RS.cullMode = CullMode::NoCull;
           RDCERR("Unexpected value for CullMode %x", p.cullMode);
           break;
       }
@@ -3522,44 +3521,44 @@ void VulkanReplay::SavePipelineState()
             bool dynamicOffset = false;
 
             dst.bindings[b].descriptorCount = layoutBind.descriptorCount;
-            dst.bindings[b].stageFlags = (ShaderStageBits)layoutBind.stageFlags;
+            dst.bindings[b].stageFlags = (ShaderStageMask)layoutBind.stageFlags;
             switch(layoutBind.descriptorType)
             {
-              case VK_DESCRIPTOR_TYPE_SAMPLER: dst.bindings[b].type = eBindType_Sampler; break;
+              case VK_DESCRIPTOR_TYPE_SAMPLER: dst.bindings[b].type = BindType::Sampler; break;
               case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-                dst.bindings[b].type = eBindType_ImageSampler;
+                dst.bindings[b].type = BindType::ImageSampler;
                 break;
               case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-                dst.bindings[b].type = eBindType_ReadOnlyImage;
+                dst.bindings[b].type = BindType::ReadOnlyImage;
                 break;
               case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-                dst.bindings[b].type = eBindType_ReadWriteImage;
+                dst.bindings[b].type = BindType::ReadWriteImage;
                 break;
               case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-                dst.bindings[b].type = eBindType_ReadOnlyTBuffer;
+                dst.bindings[b].type = BindType::ReadOnlyTBuffer;
                 break;
               case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-                dst.bindings[b].type = eBindType_ReadWriteTBuffer;
+                dst.bindings[b].type = BindType::ReadWriteTBuffer;
                 break;
               case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-                dst.bindings[b].type = eBindType_ConstantBuffer;
+                dst.bindings[b].type = BindType::ConstantBuffer;
                 break;
               case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-                dst.bindings[b].type = eBindType_ReadWriteBuffer;
+                dst.bindings[b].type = BindType::ReadWriteBuffer;
                 break;
               case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-                dst.bindings[b].type = eBindType_ConstantBuffer;
+                dst.bindings[b].type = BindType::ConstantBuffer;
                 dynamicOffset = true;
                 break;
               case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-                dst.bindings[b].type = eBindType_ReadWriteBuffer;
+                dst.bindings[b].type = BindType::ReadWriteBuffer;
                 dynamicOffset = true;
                 break;
               case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-                dst.bindings[b].type = eBindType_InputAttachment;
+                dst.bindings[b].type = BindType::InputAttachment;
                 break;
               default:
-                dst.bindings[b].type = eBindType_Unknown;
+                dst.bindings[b].type = BindType::Unknown;
                 RDCERR("Unexpected descriptor type");
             }
 
@@ -3774,7 +3773,7 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars,
       ShaderVariable var;
       var.name = basename;
       var.rows = var.columns = 0;
-      var.type = eVar_Float;
+      var.type = VarType::Float;
 
       vector<ShaderVariable> varmembers;
 
@@ -3785,7 +3784,7 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars,
           ShaderVariable vr;
           vr.name = StringFormat::Fmt("%s[%u]", basename.c_str(), i);
           vr.rows = vr.columns = 0;
-          vr.type = eVar_Float;
+          vr.type = VarType::Float;
 
           vector<ShaderVariable> mems;
 
@@ -3828,7 +3827,7 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars,
       outvars[outIdx].columns = cols;
 
       size_t elemByteSize = 4;
-      if(outvars[outIdx].type == eVar_Double)
+      if(outvars[outIdx].type == VarType::Double)
         elemByteSize = 8;
 
       ShaderVariable &var = outvars[outIdx];
@@ -4030,7 +4029,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
 }
 
 bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                             FormatComponentType typeHint, float *minval, float *maxval)
+                             CompType typeHint, float *minval, float *maxval)
 {
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -4284,8 +4283,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 }
 
 bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                                FormatComponentType typeHint, float minval, float maxval,
-                                bool channels[4], vector<uint32_t> &histogram)
+                                CompType typeHint, float minval, float maxval, bool channels[4],
+                                vector<uint32_t> &histogram)
 {
   if(minval >= maxval)
     return false;
@@ -4551,9 +4550,9 @@ struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return false; }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
   // Ditto copy/etc
-  void PreMisc(uint32_t eid, DrawcallFlags flags, VkCommandBuffer cmd) {}
-  bool PostMisc(uint32_t eid, DrawcallFlags flags, VkCommandBuffer cmd) { return false; }
-  void PostRemisc(uint32_t eid, DrawcallFlags flags, VkCommandBuffer cmd) {}
+  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return false; }
+  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
   bool RecordAllCmds() { return false; }
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
@@ -4766,7 +4765,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
       texDisplay.HDRMul = -1.0f;
       texDisplay.linearDisplayAsGamma = false;
-      texDisplay.overlay = eTexOverlay_None;
+      texDisplay.overlay = DebugOverlay::NoOverlay;
       texDisplay.FlipY = false;
       texDisplay.mip = mip;
       texDisplay.sampleIdx =
@@ -4777,7 +4776,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       texDisplay.rangemax = params.whitePoint;
       texDisplay.scale = 1.0f;
       texDisplay.texid = tex;
-      texDisplay.typeHint = eCompType_None;
+      texDisplay.typeHint = CompType::Typeless;
       texDisplay.rawoutput = false;
       texDisplay.offx = 0;
       texDisplay.offy = 0;
@@ -5349,18 +5348,18 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 }
 
 void VulkanReplay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,
-                                     ShaderStageType type, ResourceId *id, string *errors)
+                                     ShaderStage type, ResourceId *id, string *errors)
 {
   SPIRVShaderStage stage = eSPIRVInvalid;
 
   switch(type)
   {
-    case eShaderStage_Vertex: stage = eSPIRVVertex; break;
-    case eShaderStage_Hull: stage = eSPIRVTessControl; break;
-    case eShaderStage_Domain: stage = eSPIRVTessEvaluation; break;
-    case eShaderStage_Geometry: stage = eSPIRVGeometry; break;
-    case eShaderStage_Pixel: stage = eSPIRVFragment; break;
-    case eShaderStage_Compute: stage = eSPIRVCompute; break;
+    case ShaderStage::Vertex: stage = eSPIRVVertex; break;
+    case ShaderStage::Hull: stage = eSPIRVTessControl; break;
+    case ShaderStage::Domain: stage = eSPIRVTessEvaluation; break;
+    case ShaderStage::Geometry: stage = eSPIRVGeometry; break;
+    case ShaderStage::Pixel: stage = eSPIRVFragment; break;
+    case ShaderStage::Compute: stage = eSPIRVCompute; break;
     default:
       RDCERR("Unexpected type in BuildShader!");
       *id = ResourceId();
@@ -5404,8 +5403,7 @@ void VulkanReplay::FreeCustomShader(ResourceId id)
 }
 
 ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                           uint32_t arrayIdx, uint32_t sampleIdx,
-                                           FormatComponentType typeHint)
+                                           uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint)
 {
   if(shader == ResourceId() || texid == ResourceId())
     return ResourceId();
@@ -5432,7 +5430,7 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;
   disp.sampleIdx = sampleIdx;
-  disp.overlay = eTexOverlay_None;
+  disp.overlay = DebugOverlay::NoOverlay;
   disp.rangemin = 0.0f;
   disp.rangemax = 1.0f;
   disp.rawoutput = false;
@@ -5462,18 +5460,18 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
 }
 
 void VulkanReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
-                                     ShaderStageType type, ResourceId *id, string *errors)
+                                     ShaderStage type, ResourceId *id, string *errors)
 {
   SPIRVShaderStage stage = eSPIRVInvalid;
 
   switch(type)
   {
-    case eShaderStage_Vertex: stage = eSPIRVVertex; break;
-    case eShaderStage_Hull: stage = eSPIRVTessControl; break;
-    case eShaderStage_Domain: stage = eSPIRVTessEvaluation; break;
-    case eShaderStage_Geometry: stage = eSPIRVGeometry; break;
-    case eShaderStage_Pixel: stage = eSPIRVFragment; break;
-    case eShaderStage_Compute: stage = eSPIRVCompute; break;
+    case ShaderStage::Vertex: stage = eSPIRVVertex; break;
+    case ShaderStage::Hull: stage = eSPIRVTessControl; break;
+    case ShaderStage::Domain: stage = eSPIRVTessEvaluation; break;
+    case ShaderStage::Geometry: stage = eSPIRVGeometry; break;
+    case ShaderStage::Pixel: stage = eSPIRVFragment; break;
+    case ShaderStage::Compute: stage = eSPIRVCompute; break;
     default:
       RDCERR("Unexpected type in BuildShader!");
       *id = ResourceId();
@@ -5529,7 +5527,7 @@ void VulkanReplay::FreeTargetResource(ResourceId id)
 vector<PixelModification> VulkanReplay::PixelHistory(vector<EventUsage> events, ResourceId target,
                                                      uint32_t x, uint32_t y, uint32_t slice,
                                                      uint32_t mip, uint32_t sampleIdx,
-                                                     FormatComponentType typeHint)
+                                                     CompType typeHint)
 {
   VULKANNOTIMP("PixelHistory");
   return vector<PixelModification>();
@@ -5584,13 +5582,13 @@ void VulkanReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataS
   VULKANNOTIMP("SetProxyTextureData");
 }
 
-ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a VulkanReplay replay device");
 
   // disable the layer env var, just in case the user left it set from a previous capture run
   Process::RegisterEnvironmentModification(Process::EnvironmentModification(
-      Process::eEnvModification_Replace, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "0"));
+      EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "0"));
   Process::ApplyEnvironmentModification();
 
   void *module = Process::LoadModule(VulkanLibraryName);
@@ -5598,7 +5596,7 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
   if(module == NULL)
   {
     RDCERR("Failed to load vulkan library");
-    return eReplayCreate_APIInitFailed;
+    return ReplayStatus::APIInitFailed;
   }
 
   VkInitParams initParams;
@@ -5610,7 +5608,7 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
     auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
                                                    (RDCInitParams *)&initParams);
 
-    if(status != eReplayCreate_Success)
+    if(status != ReplayStatus::Succeeded)
       return status;
   }
 
@@ -5623,9 +5621,9 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
   VulkanReplay::PreDeviceInitCounters();
 
   WrappedVulkan *vk = new WrappedVulkan(logfile);
-  ReplayCreateStatus status = vk->Initialise(initParams);
+  ReplayStatus status = vk->Initialise(initParams);
 
-  if(status != eReplayCreate_Success)
+  if(status != ReplayStatus::Succeeded)
   {
     delete vk;
     return status;
@@ -5637,7 +5635,7 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
 
   *driver = (IReplayDriver *)replay;
 
-  return eReplayCreate_Success;
+  return ReplayStatus::Succeeded;
 }
 
 struct VulkanDriverRegistration

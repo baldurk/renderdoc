@@ -1268,17 +1268,17 @@ void APIENTRY _glClearBufferSubData(GLenum target, GLenum internalformat, GLintp
                ToStr::Get(type).c_str());
     }
 
-    FormatComponentType compType = eCompType_UInt;
+    CompType compType = CompType::UInt;
 
     switch(type)
     {
       case eGL_UNSIGNED_BYTE:
       case eGL_UNSIGNED_SHORT:
-      case eGL_UNSIGNED_INT: compType = eCompType_UInt; break;
+      case eGL_UNSIGNED_INT: compType = CompType::UInt; break;
       case eGL_BYTE:
       case eGL_SHORT:
-      case eGL_INT: compType = eCompType_SInt; break;
-      case eGL_FLOAT: compType = eCompType_Float; break;
+      case eGL_INT: compType = CompType::SInt; break;
+      case eGL_FLOAT: compType = CompType::Float; break;
       default: break;
     }
 

@@ -994,7 +994,7 @@ void LiveCapture::connectionThreadEntry()
     TargetControlMessage msg;
     m_Connection->ReceiveMessage(&msg);
 
-    if(msg.Type == eTargetControlMsg_RegisterAPI)
+    if(msg.Type == TargetControlMessageType::RegisterAPI)
     {
       QString api = ToQStr(msg.RegisterAPI.APIName);
       GUIInvoke::call([this, api]() {
@@ -1016,7 +1016,7 @@ void LiveCapture::connectionThreadEntry()
       });
     }
 
-    if(msg.Type == eTargetControlMsg_NewCapture)
+    if(msg.Type == TargetControlMessageType::NewCapture)
     {
       uint32_t capID = msg.NewCapture.ID;
       QDateTime timestamp = QDateTime(QDate(1970, 1, 1), QTime(0, 0, 0));
@@ -1033,7 +1033,7 @@ void LiveCapture::connectionThreadEntry()
       });
     }
 
-    if(msg.Type == eTargetControlMsg_CaptureCopied)
+    if(msg.Type == TargetControlMessageType::CaptureCopied)
     {
       uint32_t capID = msg.NewCapture.ID;
       QString path = ToQStr(msg.NewCapture.path);
@@ -1041,7 +1041,7 @@ void LiveCapture::connectionThreadEntry()
       GUIInvoke::call([=]() { captureCopied(capID, path); });
     }
 
-    if(msg.Type == eTargetControlMsg_NewChild)
+    if(msg.Type == TargetControlMessageType::NewChild)
     {
       if(msg.NewChild.PID != 0)
       {
