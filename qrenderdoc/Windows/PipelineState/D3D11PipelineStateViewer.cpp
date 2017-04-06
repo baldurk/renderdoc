@@ -1539,14 +1539,23 @@ void D3D11PipelineStateViewer::setState()
     {
       const ShaderResource *shaderInput = NULL;
 
-      if(state.m_PS.ShaderDetails)
+      // any non-CS shader can use these. When that's not supported (Before feature level 11.1)
+      // this search will just boil down to only PS.
+      // When multiple stages use the UAV, we allow the last stage to 'win' and define its type,
+      // although it would be very surprising if the types were actually different anyway.
+      const D3D11PipelineState::ShaderStage *nonCS[] = {&state.m_VS, &state.m_DS, &state.m_HS,
+                                                        &state.m_GS, &state.m_PS};
+      for(const D3D11PipelineState::ShaderStage *stage : nonCS)
       {
-        for(const ShaderResource &bind : state.m_PS.ShaderDetails->ReadWriteResources)
+        if(stage->ShaderDetails)
         {
-          if(bind.bindPoint == i + (int)state.m_OM.UAVStartSlot)
+          for(const ShaderResource &bind : stage->ShaderDetails->ReadWriteResources)
           {
-            shaderInput = &bind;
-            break;
+            if(bind.bindPoint == i + (int)state.m_OM.UAVStartSlot)
+            {
+              shaderInput = &bind;
+              break;
+            }
           }
         }
       }
@@ -1765,7 +1774,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
     {
       // last thing, see if it's a streamout buffer
 
-      if(stage == &m_Ctx.CurD3D11PipelineState.m_GS)
+      if(stage->stage == eShaderStage_Geometry)
       {
         for(int i = 0; i < m_Ctx.CurD3D11PipelineState.m_SO.Outputs.count; i++)
         {
@@ -1783,6 +1792,39 @@ void D3D11PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
 
     const ShaderResource *shaderRes = NULL;
 
+    int bind = view.index;
+
+    // for OM UAVs these can be bound to any non-CS stage, so make sure
+    // we have the right shader details for it.
+    // This search allows later stage bindings to override earlier stage bindings,
+    // which is a reasonable behaviour when the same resource can be referenced
+    // in multiple places. Most likely the bindings are equivalent anyway.
+    // The main point is that it allows us to pick up the binding if it's not
+    // bound in the PS but only in an earlier stage.
+    if(view.type == ViewTag::UAV && stage->stage != eShaderStage_Compute)
+    {
+      const D3D11PipelineState &state = m_Ctx.CurD3D11PipelineState;
+      const D3D11PipelineState::ShaderStage *nonCS[] = {&state.m_VS, &state.m_DS, &state.m_HS,
+                                                        &state.m_GS, &state.m_PS};
+
+      bind += state.m_OM.UAVStartSlot;
+
+      for(const D3D11PipelineState::ShaderStage *searchstage : nonCS)
+      {
+        if(searchstage->ShaderDetails)
+        {
+          for(const ShaderResource &res : searchstage->ShaderDetails->ReadWriteResources)
+          {
+            if(!res.IsTexture && !res.IsSampler && res.bindPoint == bind)
+            {
+              stage = searchstage;
+              break;
+            }
+          }
+        }
+      }
+    }
+
     if(stage->ShaderDetails)
     {
       const rdctype::array<ShaderResource> &resArray =
@@ -1791,7 +1833,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
 
       for(const ShaderResource &res : resArray)
       {
-        if(!res.IsTexture && !res.IsSampler && res.bindPoint == view.index)
+        if(!res.IsTexture && !res.IsSampler && res.bindPoint == bind)
         {
           shaderRes = &res;
           break;

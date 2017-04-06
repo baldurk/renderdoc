@@ -1228,9 +1228,21 @@ namespace renderdocui.Code
                     }
                     else
                     {
-                        for (int i = 0; i < m_D3D11.m_OM.UAVs.Length; i++)
+                        int uavstart = (int)m_D3D11.m_OM.UAVStartSlot;
+
+                        // up to UAVStartSlot treat these bindings as empty.
+                        for (int i = 0; i < uavstart; i++)
                         {
                             var key = new BindpointMap(0, i);
+                            var val = new BoundResource();
+
+                            ret.Add(key, new BoundResource[] { val });
+                        }
+
+                        for (int i = 0; i < m_D3D11.m_OM.UAVs.Length - uavstart; i++)
+                        {
+                            // the actual UAV bindings start at the given slot
+                            var key = new BindpointMap(0, i + uavstart);
                             var val = new BoundResource();
 
                             val.Id = m_D3D11.m_OM.UAVs[i].Resource;

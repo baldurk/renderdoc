@@ -1450,14 +1450,22 @@ namespace renderdocui.Windows.PipelineState
                 {
                     ShaderResource shaderInput = null;
 
-                    if (state.m_PS.ShaderDetails != null)
+                    // any non-CS shader can use these. When that's not supported (Before feature level 11.1)
+                    // this search will just boil down to only PS.
+                    // When multiple stages use the UAV, we allow the last stage to 'win' and define its type,
+                    // although it would be very surprising if the types were actually different anyway.
+                    D3D11PipelineState.ShaderStage[] nonCS = { state.m_VS, state.m_DS, state.m_HS, state.m_GS, state.m_PS };
+                    foreach (var stage in nonCS)
                     {
-                        foreach (var bind in state.m_PS.ShaderDetails.ReadWriteResources)
+                        if (stage.ShaderDetails != null)
                         {
-                            if (bind.bindPoint == i + state.m_OM.UAVStartSlot)
+                            foreach (var bind in stage.ShaderDetails.ReadWriteResources)
                             {
-                                shaderInput = bind;
-                                break;
+                                if (bind.bindPoint == i + state.m_OM.UAVStartSlot)
+                                {
+                                    shaderInput = bind;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -1941,6 +1949,7 @@ namespace renderdocui.Windows.PipelineState
 
                 int bind = -1;
                 bool uav = false;
+                bool omuav = false;
 
                 if (view == null)
                 {
@@ -1997,7 +2006,35 @@ namespace renderdocui.Windows.PipelineState
                         {
                             bind = i + (int)m_Core.CurD3D11PipelineState.m_OM.UAVStartSlot;
                             uav = true;
+                            omuav = true;
                             break;
+                        }
+                    }
+                }
+
+                // for OM UAVs these can be bound to any non-CS stage, so make sure
+                // we have the right shader details for it.
+                // This search allows later stage bindings to override earlier stage bindings,
+                // which is a reasonable behaviour when the same resource can be referenced
+                // in multiple places. Most likely the bindings are equivalent anyway.
+                // The main point is that it allows us to pick up the binding if it's not
+                // bound in the PS but only in an earlier stage.
+                if (omuav)
+                {
+                    var state = m_Core.CurD3D11PipelineState;
+                    D3D11PipelineState.ShaderStage[] nonCS = { state.m_VS, state.m_DS, state.m_HS, state.m_GS, state.m_PS };
+                    foreach (var searchstage in nonCS)
+                    {
+                        if (searchstage.ShaderDetails != null)
+                        {
+                            foreach (var searchbind in searchstage.ShaderDetails.ReadWriteResources)
+                            {
+                                if (searchbind.bindPoint == bind)
+                                {
+                                    deets = searchstage.ShaderDetails;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }

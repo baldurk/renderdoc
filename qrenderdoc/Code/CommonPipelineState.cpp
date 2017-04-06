@@ -1047,9 +1047,20 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
       }
       else
       {
-        for(int i = 0; i < m_D3D11->m_OM.UAVs.count; i++)
+        int uavstart = (int)m_D3D11->m_OM.UAVStartSlot;
+
+        // up to UAVStartSlot treat these bindings as empty.
+        for(int i = 0; i < uavstart; i++)
         {
           BindpointMap key(0, i);
+          BoundResource val;
+
+          ret[key] = {val};
+        }
+
+        for(int i = 0; i < m_D3D11->m_OM.UAVs.count - uavstart; i++)
+        {
+          BindpointMap key(0, i + uavstart);
           BoundResource val;
 
           val.Id = m_D3D11->m_OM.UAVs[i].Resource;
