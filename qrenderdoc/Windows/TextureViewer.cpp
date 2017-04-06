@@ -1716,7 +1716,7 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
   {
     BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
 
-    viewer->ViewTexture(0, 0, ID);
+    viewer->ViewBuffer(0, 0, ID);
 
     m_Ctx.setupDockWindow(viewer);
 
