@@ -392,17 +392,14 @@ struct ICaptureContext
 
   virtual IShaderViewer *EditShader(bool customShader, const QString &entryPoint,
                                     const QStringMap &files, IShaderViewer::SaveCallback saveCallback,
-                                    IShaderViewer::CloseCallback closeCallback, QWidget *parent) = 0;
-
+                                    IShaderViewer::CloseCallback closeCallback) = 0;
   virtual IShaderViewer *DebugShader(const ShaderBindpointMapping *bind,
                                      const ShaderReflection *shader, ShaderStage stage,
-                                     ShaderDebugTrace *trace, const QString &debugContext,
-                                     QWidget *parent) = 0;
+                                     ShaderDebugTrace *trace, const QString &debugContext) = 0;
+
 
   virtual IShaderViewer *ViewShader(const ShaderBindpointMapping *bind,
-                                    const ShaderReflection *shader, ShaderStage stage,
-                                    QWidget *parent) = 0;
-
+                                    const ShaderReflection *shader, ShaderStage stage) = 0;
   virtual IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                                     const QString &format = "") = 0;
   virtual IBufferViewer *ViewTextureAsBuffer(uint32_t arrayIdx, uint32_t mip, ResourceId id,

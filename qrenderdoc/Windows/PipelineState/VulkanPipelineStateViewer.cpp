@@ -2283,8 +2283,7 @@ void VulkanPipelineStateViewer::shaderView_clicked()
 
   ShaderReflection *shaderDetails = stage->ShaderDetails;
 
-  IShaderViewer *shad = m_Ctx.ViewShader(&stage->BindpointMapping, shaderDetails, stage->stage,
-                                         m_Ctx.GetMainWindow()->Widget());
+  IShaderViewer *shad = m_Ctx.ViewShader(&stage->BindpointMapping, shaderDetails, stage->stage);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
 }

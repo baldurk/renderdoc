@@ -148,14 +148,14 @@ public:
 
   IShaderViewer *EditShader(bool customShader, const QString &entryPoint, const QStringMap &files,
                             IShaderViewer::SaveCallback saveCallback,
-                            IShaderViewer::CloseCallback closeCallback, QWidget *parent) override;
+                            IShaderViewer::CloseCallback closeCallback) override;
 
   IShaderViewer *DebugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
                              ShaderStage stage, ShaderDebugTrace *trace,
-                             const QString &debugContext, QWidget *parent) override;
+                             const QString &debugContext) override;
 
   IShaderViewer *ViewShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
-                            ShaderStage stage, QWidget *parent) override;
+                            ShaderStage stage) override;
 
   IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                             const QString &format = "") override;

@@ -659,8 +659,8 @@ void PixelHistoryView::startDebug(EventTag tag)
         m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Pixel);
 
     // viewer takes ownership of the trace
-    IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, ShaderStage::Pixel, trace,
-                                         debugContext, m_Ctx.GetMainWindow()->Widget());
+    IShaderViewer *s =
+        m_Ctx.DebugShader(&bindMapping, shaderDetails, ShaderStage::Pixel, trace, debugContext);
 
     m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, m_Ctx.GetMainWindow()->Widget());
   });

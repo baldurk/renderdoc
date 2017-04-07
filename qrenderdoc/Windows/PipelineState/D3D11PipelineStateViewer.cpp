@@ -2160,8 +2160,7 @@ void D3D11PipelineStateViewer::shaderView_clicked()
     shaderStage = stage->stage;
   }
 
-  IShaderViewer *shad =
-      m_Ctx.ViewShader(bindMap, shaderDetails, shaderStage, m_Ctx.GetMainWindow()->Widget());
+  IShaderViewer *shad = m_Ctx.ViewShader(bindMap, shaderDetails, shaderStage);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
 }

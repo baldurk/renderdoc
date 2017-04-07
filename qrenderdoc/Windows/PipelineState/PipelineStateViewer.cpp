@@ -358,8 +358,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
           r->RemoveReplacement(id);
           GUIInvoke::call([ctx] { ctx->RefreshStatus(); });
         });
-      },
-      m_Ctx.GetMainWindow()->Widget());
+      });
 
   m_Ctx.AddDockWindow(sv->Widget(), DockReference::AddTo, this);
 }

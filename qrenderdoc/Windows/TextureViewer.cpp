@@ -3300,8 +3300,8 @@ void TextureViewer::on_debugPixelContext_clicked()
           m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Pixel);
 
       // viewer takes ownership of the trace
-      IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, ShaderStage::Pixel, trace,
-                                           debugContext, this);
+      IShaderViewer *s =
+          m_Ctx.DebugShader(&bindMapping, shaderDetails, ShaderStage::Pixel, trace, debugContext);
 
       m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
     });
@@ -3619,8 +3619,7 @@ void TextureViewer::on_customEdit_clicked()
         }
       },
 
-      [this, key](ICaptureContext *ctx) { m_CustomShaderEditor.remove(key); },
-      m_Ctx.GetMainWindow()->Widget());
+      [this, key](ICaptureContext *ctx) { m_CustomShaderEditor.remove(key); });
 
   m_CustomShaderEditor[key] = s;
 

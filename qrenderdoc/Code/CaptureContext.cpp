@@ -775,25 +775,24 @@ void CaptureContext::ShowStatisticsViewer()
 IShaderViewer *CaptureContext::EditShader(bool customShader, const QString &entryPoint,
                                           const QStringMap &files,
                                           IShaderViewer::SaveCallback saveCallback,
-                                          IShaderViewer::CloseCallback closeCallback, QWidget *parent)
+                                          IShaderViewer::CloseCallback closeCallback)
 {
   return ShaderViewer::EditShader(*this, customShader, entryPoint, files, saveCallback,
-                                  closeCallback, parent);
+                                  closeCallback, m_MainWindow->Widget());
 }
 
 IShaderViewer *CaptureContext::DebugShader(const ShaderBindpointMapping *bind,
                                            const ShaderReflection *shader, ShaderStage stage,
-                                           ShaderDebugTrace *trace, const QString &debugContext,
-                                           QWidget *parent)
+                                           ShaderDebugTrace *trace, const QString &debugContext)
 {
-  return ShaderViewer::DebugShader(*this, bind, shader, stage, trace, debugContext, parent);
+  return ShaderViewer::DebugShader(*this, bind, shader, stage, trace, debugContext,
+                                   m_MainWindow->Widget());
 }
 
 IShaderViewer *CaptureContext::ViewShader(const ShaderBindpointMapping *bind,
-                                          const ShaderReflection *shader, ShaderStage stage,
-                                          QWidget *parent)
+                                          const ShaderReflection *shader, ShaderStage stage)
 {
-  return ShaderViewer::ViewShader(*this, bind, shader, stage, parent);
+  return ShaderViewer::ViewShader(*this, bind, shader, stage, m_MainWindow->Widget());
 }
 
 IBufferViewer *CaptureContext::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
