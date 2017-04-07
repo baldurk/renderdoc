@@ -176,6 +176,9 @@
     <ClCompile Include="gl_hooks_egl.cpp">
       <Filter>OS\EGL</Filter>
     </ClCompile>
+    <ClCompile Include="gl_hooks_egl_pass.cpp">
+      <Filter>OS\EGL</Filter>
+    </ClCompile>
     <ClCompile Include="gl_replay_egl.cpp">
       <Filter>OS\EGL</Filter>
     </ClCompile>
