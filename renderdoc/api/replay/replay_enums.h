@@ -1453,11 +1453,11 @@ DOCUMENT(R"(Return the number of control points in a patch list ``Topology``
 :return: The number of control points in the specified topology
 :rtype: int
 )");
-constexpr inline uint32_t PatchList_Count(Topology t)
+constexpr inline uint32_t PatchList_Count(Topology topology)
 {
-  return uint32_t(t) < uint32_t(Topology::PatchList_1CPs)
+  return uint32_t(topology) < uint32_t(Topology::PatchList_1CPs)
              ? 0
-             : uint32_t(t) - uint32_t(Topology::PatchList_1CPs);
+             : uint32_t(topology) - uint32_t(Topology::PatchList_1CPs);
 }
 
 DOCUMENT(R"(A set of flags describing how this buffer may be used

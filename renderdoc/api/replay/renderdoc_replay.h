@@ -1065,7 +1065,7 @@ integer).
 :return: The nearest half-float equivalent stored as an int.
 :rtype: ``int``
 )");
-extern "C" RENDERDOC_API uint16_t RENDERDOC_CC Maths_FloatToHalf(float f);
+extern "C" RENDERDOC_API uint16_t RENDERDOC_CC Maths_FloatToHalf(float flt);
 
 DOCUMENT(R"(A utility function that returns the number of vertices in a primitive of a given
 topology.
