@@ -43,7 +43,7 @@ struct SamplerData
   QTreeWidgetItem *node;
 };
 
-class VulkanPipelineStateViewer : public QFrame, public ILogViewerForm
+class VulkanPipelineStateViewer : public QFrame, public ILogViewer
 {
   Q_OBJECT
 

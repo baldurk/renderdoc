@@ -37,7 +37,7 @@ class D3D12PipelineStateViewer;
 class GLPipelineStateViewer;
 class VulkanPipelineStateViewer;
 
-class PipelineStateViewer : public QFrame, public IPipelineStateViewer, public ILogViewerForm
+class PipelineStateViewer : public QFrame, public IPipelineStateViewer, public ILogViewer
 {
   Q_OBJECT
 
@@ -79,5 +79,5 @@ private:
   D3D12PipelineStateViewer *m_D3D12;
   GLPipelineStateViewer *m_GL;
   VulkanPipelineStateViewer *m_Vulkan;
-  ILogViewerForm *m_Current;
+  ILogViewer *m_Current;
 };

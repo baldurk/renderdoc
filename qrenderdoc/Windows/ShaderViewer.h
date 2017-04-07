@@ -41,7 +41,7 @@ class FindReplace;
 // from Scintilla
 typedef intptr_t sptr_t;
 
-class ShaderViewer : public QFrame, public IShaderViewer, public ILogViewerForm
+class ShaderViewer : public QFrame, public IShaderViewer, public ILogViewer
 {
   Q_OBJECT
 

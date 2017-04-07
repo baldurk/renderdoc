@@ -40,7 +40,7 @@ class QTimer;
 class FlowLayout;
 class SizeDelegate;
 
-class EventBrowser : public QFrame, public IEventBrowser, public ILogViewerForm
+class EventBrowser : public QFrame, public IEventBrowser, public ILogViewer
 {
 private:
   Q_OBJECT

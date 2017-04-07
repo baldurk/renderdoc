@@ -52,7 +52,7 @@ struct BufferExport
   BufferExport(ExportFormat f) : format(f) {}
 };
 
-class BufferViewer : public QFrame, public IBufferViewer, public ILogViewerForm
+class BufferViewer : public QFrame, public IBufferViewer, public ILogViewer
 {
   Q_OBJECT
 

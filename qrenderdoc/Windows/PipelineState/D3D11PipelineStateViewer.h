@@ -37,7 +37,7 @@ class QTreeWidgetItem;
 struct ViewTag;
 class PipelineStateViewer;
 
-class D3D11PipelineStateViewer : public QFrame, public ILogViewerForm
+class D3D11PipelineStateViewer : public QFrame, public ILogViewer
 {
   Q_OBJECT
 

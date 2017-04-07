@@ -37,7 +37,7 @@ class QMenu;
 class DebugMessageItemModel;
 class DebugMessageFilterModel;
 
-class DebugMessageView : public QFrame, public IDebugMessageView, public ILogViewerForm
+class DebugMessageView : public QFrame, public IDebugMessageView, public ILogViewer
 {
   Q_OBJECT
 

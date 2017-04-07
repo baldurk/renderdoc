@@ -36,7 +36,7 @@ class RDTreeWidget;
 class QTreeWidgetItem;
 class PipelineStateViewer;
 
-class GLPipelineStateViewer : public QFrame, public ILogViewerForm
+class GLPipelineStateViewer : public QFrame, public ILogViewer
 {
   Q_OBJECT
 

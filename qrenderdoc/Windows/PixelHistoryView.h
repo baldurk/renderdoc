@@ -35,7 +35,7 @@ class PixelHistoryView;
 class PixelHistoryItemModel;
 struct EventTag;
 
-class PixelHistoryView : public QFrame, public IPixelHistoryView, public ILogViewerForm
+class PixelHistoryView : public QFrame, public IPixelHistoryView, public ILogViewer
 {
   Q_OBJECT
 

@@ -130,7 +130,7 @@ void CaptureContext::LoadLogfile(const QString &logFile, const QString &origFile
 
   if(m_LogLoaded)
   {
-    QVector<ILogViewerForm *> logviewers(m_LogViewers);
+    QVector<ILogViewer *> logviewers(m_LogViewers);
 
     // make sure we're on a consistent event before invoking log viewer forms
     const DrawcallDescription *draw = &m_Drawcalls.back();
@@ -141,7 +141,7 @@ void CaptureContext::LoadLogfile(const QString &logFile, const QString &origFile
 
     GUIInvoke::blockcall([&logviewers]() {
       // notify all the registers log viewers that a log has been loaded
-      for(ILogViewerForm *logviewer : logviewers)
+      for(ILogViewer *logviewer : logviewers)
       {
         if(logviewer)
           logviewer->OnLogfileLoaded();
@@ -536,16 +536,16 @@ void CaptureContext::CloseLogfile()
 
   m_LogLoaded = false;
 
-  QVector<ILogViewerForm *> logviewers(m_LogViewers);
+  QVector<ILogViewer *> logviewers(m_LogViewers);
 
-  for(ILogViewerForm *logviewer : logviewers)
+  for(ILogViewer *logviewer : logviewers)
   {
     if(logviewer)
       logviewer->OnLogfileClosed();
   }
 }
 
-void CaptureContext::SetEventID(const QVector<ILogViewerForm *> &exclude, uint32_t selectedEventID,
+void CaptureContext::SetEventID(const QVector<ILogViewer *> &exclude, uint32_t selectedEventID,
                                 uint32_t eventID, bool force)
 {
   uint32_t prevSelectedEventID = m_SelectedEventID;
@@ -563,7 +563,7 @@ void CaptureContext::SetEventID(const QVector<ILogViewerForm *> &exclude, uint32
                                  &m_CurGLPipelineState, &m_CurVulkanPipelineState);
   });
 
-  for(ILogViewerForm *logviewer : m_LogViewers)
+  for(ILogViewer *logviewer : m_LogViewers)
   {
     if(exclude.contains(logviewer))
       continue;

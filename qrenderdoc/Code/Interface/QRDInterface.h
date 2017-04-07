@@ -233,7 +233,7 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IPixelHistoryView);
 
-struct ILogViewerForm
+struct ILogViewer
 {
   virtual void OnLogfileLoaded() = 0;
   virtual void OnLogfileClosed() = 0;
@@ -250,11 +250,11 @@ struct ILogViewerForm
   virtual void OnEventChanged(uint32_t eventID) = 0;
 
 protected:
-  ILogViewerForm() = default;
-  ~ILogViewerForm() = default;
+  ILogViewer() = default;
+  ~ILogViewer() = default;
 };
 
-DECLARE_REFLECTION_STRUCT(ILogViewerForm);
+DECLARE_REFLECTION_STRUCT(ILogViewer);
 
 struct IReplayManager
 {
@@ -325,12 +325,12 @@ struct ICaptureContext
                            bool local) = 0;
   virtual void CloseLogfile() = 0;
 
-  virtual void SetEventID(const QVector<ILogViewerForm *> &exclude, uint32_t selectedEventID,
+  virtual void SetEventID(const QVector<ILogViewer *> &exclude, uint32_t selectedEventID,
                           uint32_t eventID, bool force = false) = 0;
   virtual void RefreshStatus() = 0;
 
-  virtual void AddLogViewer(ILogViewerForm *f) = 0;
-  virtual void RemoveLogViewer(ILogViewerForm *f) = 0;
+  virtual void AddLogViewer(ILogViewer *f) = 0;
+  virtual void RemoveLogViewer(ILogViewer *f) = 0;
 
   //////////////////////////////////////////////////////////////////////////////
   // Accessors

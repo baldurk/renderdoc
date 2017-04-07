@@ -32,7 +32,7 @@ namespace Ui
 class APIInspector;
 }
 
-class APIInspector : public QFrame, public IAPIInspector, public ILogViewerForm
+class APIInspector : public QFrame, public IAPIInspector, public ILogViewer
 {
   Q_OBJECT
 

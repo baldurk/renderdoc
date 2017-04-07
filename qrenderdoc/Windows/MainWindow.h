@@ -42,7 +42,7 @@ class QToolButton;
 class CaptureDialog;
 class LiveCapture;
 
-class MainWindow : public QMainWindow, public IMainWindow, public ILogViewerForm
+class MainWindow : public QMainWindow, public IMainWindow, public ILogViewer
 {
 private:
   Q_OBJECT

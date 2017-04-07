@@ -69,10 +69,10 @@ public:
 
   void CloseLogfile() override;
 
-  void SetEventID(const QVector<ILogViewerForm *> &exclude, uint32_t selectedEventID,
-                  uint32_t eventID, bool force = false) override;
+  void SetEventID(const QVector<ILogViewer *> &exclude, uint32_t selectedEventID, uint32_t eventID,
+                  bool force = false) override;
   void RefreshStatus() override { SetEventID({}, m_SelectedEventID, m_EventID, true); }
-  void AddLogViewer(ILogViewerForm *f) override
+  void AddLogViewer(ILogViewer *f) override
   {
     m_LogViewers.push_back(f);
 
@@ -83,7 +83,7 @@ public:
     }
   }
 
-  void RemoveLogViewer(ILogViewerForm *f) override { m_LogViewers.removeAll(f); }
+  void RemoveLogViewer(ILogViewer *f) override { m_LogViewers.removeAll(f); }
   //////////////////////////////////////////////////////////////////////////////
   // Accessors
 
@@ -191,7 +191,7 @@ private:
 
   PersistantConfig &m_Config;
 
-  QVector<ILogViewerForm *> m_LogViewers;
+  QVector<ILogViewer *> m_LogViewers;
 
   bool m_LogLoaded, m_LoadInProgress, m_LogLocal;
   QString m_LogFile;

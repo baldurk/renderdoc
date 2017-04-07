@@ -34,7 +34,7 @@ class ConstantBufferPreviewer;
 
 struct FormatElement;
 
-class ConstantBufferPreviewer : public QFrame, public IConstantBufferPreviewer, public ILogViewerForm
+class ConstantBufferPreviewer : public QFrame, public IConstantBufferPreviewer, public ILogViewer
 {
   Q_OBJECT
 

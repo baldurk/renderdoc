@@ -32,7 +32,7 @@ namespace Ui
 class StatisticsViewer;
 }
 
-class StatisticsViewer : public QFrame, public IStatisticsViewer, public ILogViewerForm
+class StatisticsViewer : public QFrame, public IStatisticsViewer, public ILogViewer
 {
   Q_OBJECT
 

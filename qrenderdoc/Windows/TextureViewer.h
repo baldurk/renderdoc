@@ -114,7 +114,7 @@ struct TexSettings
   CompType typeHint;
 };
 
-class TextureViewer : public QFrame, public ITextureViewer, public ILogViewerForm
+class TextureViewer : public QFrame, public ITextureViewer, public ILogViewer
 {
 private:
   Q_OBJECT
