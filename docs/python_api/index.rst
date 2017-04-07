@@ -6,4 +6,4 @@ Python API
 	funcs
 	enums_data
 	pipelines/index
-	qrenderdoc
+	qrenderdoc/index

@@ -29,6 +29,7 @@ class RemoteHost;
 // do not include any headers here, they must all be in QRDInterface.h
 #include "QRDInterface.h"
 
+DOCUMENT("A handle for interacting with a remote servers on a given host.");
 class RemoteHost
 {
 public:
@@ -36,16 +37,24 @@ public:
 
   VARIANT_CAST(RemoteHost);
 
-  bool IsValid() { return !Hostname.isEmpty(); }
+  DOCUMENT(
+      "Ping the host to check current status - if the server is running, connection status, etc.");
   void CheckStatus();
+  DOCUMENT("Runs the command specified in :data:`RunCommand`.");
   void Launch();
 
+  DOCUMENT("``True`` if a remote server is currently running on this host.");
   bool ServerRunning : 1;
+  DOCUMENT("``True`` if an active connection exists to this remote server.");
   bool Connected : 1;
+  DOCUMENT("``True`` if someone else is currently connected to this server.");
   bool Busy : 1;
+  DOCUMENT("``True`` if there is a code version mismatch with this server.");
   bool VersionMismatch : 1;
 
+  DOCUMENT("The hostname of this host.");
   QString Hostname;
+  DOCUMENT("The command to run locally to try to launch the server remotely.");
   QString RunCommand;
 };
 

@@ -1,6 +1,8 @@
 Options Window
 ==============
 
+.. _settings-window:
+
 The options window contains various advanced or niche settings that configure the analysis UI.
 
 Options
