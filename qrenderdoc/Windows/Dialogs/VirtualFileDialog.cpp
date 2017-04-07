@@ -576,10 +576,10 @@ VirtualFileDialog::VirtualFileDialog(CaptureContext &ctx, QWidget *parent)
 
   ui->fileList->sortByColumn(0, Qt::AscendingOrder);
 
-  ui->fileList->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-  ui->fileList->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-  ui->fileList->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-  ui->fileList->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+  ui->fileList->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+  ui->fileList->header()->setSectionResizeMode(1, QHeaderView::Stretch);
+  ui->fileList->header()->setSectionResizeMode(2, QHeaderView::Stretch);
+  ui->fileList->header()->setSectionResizeMode(3, QHeaderView::Stretch);
 
   ui->filter->addItems({tr("Executables"), tr("All Files")});
 
