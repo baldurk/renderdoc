@@ -1,6 +1,7 @@
 %module renderdoc
 
 %feature("autodoc", "0");
+%feature("autodoc:noret", "1");
 
 // just define linux platform to make sure things compile with no extra __declspec attributes
 #define RENDERDOC_PLATFORM_LINUX

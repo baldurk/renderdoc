@@ -994,8 +994,7 @@ void LiveCapture::connectionThreadEntry()
       return;
     }
 
-    TargetControlMessage msg;
-    m_Connection->ReceiveMessage(&msg);
+    TargetControlMessage msg = m_Connection->ReceiveMessage();
 
     if(msg.Type == TargetControlMessageType::RegisterAPI)
     {

@@ -320,7 +320,7 @@ private:
         // inherit logfile and capture options
         uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId, NULL,
                                                      RenderDoc::Inst().GetLogFile(),
-                                                     &RenderDoc::Inst().GetCaptureOptions(), false);
+                                                     RenderDoc::Inst().GetCaptureOptions(), false);
 
         RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, ident);
       }
@@ -404,7 +404,7 @@ private:
         // inherit logfile and capture options
         uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId, NULL,
                                                      RenderDoc::Inst().GetLogFile(),
-                                                     &RenderDoc::Inst().GetCaptureOptions(), false);
+                                                     RenderDoc::Inst().GetCaptureOptions(), false);
 
         RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, ident);
       }

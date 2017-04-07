@@ -3341,9 +3341,8 @@ namespace renderdocui.Windows
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
                 PixelValue min, max;
-                bool success = m_Output.GetMinMax(out min, out max);
+                m_Output.GetMinMax(out min, out max);
 
-                if (success)
                 {
                     float minval = float.MaxValue;
                     float maxval = -float.MaxValue;
@@ -3437,17 +3436,14 @@ namespace renderdocui.Windows
             if (m_TexDisplay.CustomShader != ResourceId.Null)
                 fmt.compCount = 4;
 
-            bool success = true;
-
             uint[] histogram;
-            success = m_Output.GetHistogram(rangeHistogram.RangeMin, rangeHistogram.RangeMax,
+            m_Output.GetHistogram(rangeHistogram.RangeMin, rangeHistogram.RangeMax,
                                      m_TexDisplay.Red,
                                      m_TexDisplay.Green && fmt.compCount > 1,
                                      m_TexDisplay.Blue && fmt.compCount > 2,
                                      m_TexDisplay.Alpha && fmt.compCount > 3,
                                      out histogram);
 
-            if (success)
             {
                 this.BeginInvoke(new Action(() =>
                 {

@@ -164,7 +164,7 @@ ReplayRenderer::~ReplayRenderer()
   m_pDevice = NULL;
 }
 
-bool ReplayRenderer::SetFrameEvent(uint32_t eventID, bool force)
+void ReplayRenderer::SetFrameEvent(uint32_t eventID, bool force)
 {
   if(eventID != m_EventID || force)
   {
@@ -179,62 +179,31 @@ bool ReplayRenderer::SetFrameEvent(uint32_t eventID, bool force)
 
     FetchPipelineState();
   }
-
-  return true;
 }
 
-bool ReplayRenderer::GetD3D11PipelineState(D3D11Pipe::State *state)
+D3D11Pipe::State ReplayRenderer::GetD3D11PipelineState()
 {
-  if(state)
-  {
-    *state = m_D3D11PipelineState;
-    return true;
-  }
-
-  return false;
+  return m_D3D11PipelineState;
 }
 
-bool ReplayRenderer::GetD3D12PipelineState(D3D12Pipe::State *state)
+D3D12Pipe::State ReplayRenderer::GetD3D12PipelineState()
 {
-  if(state)
-  {
-    *state = m_D3D12PipelineState;
-    return true;
-  }
-
-  return false;
+  return m_D3D12PipelineState;
 }
 
-bool ReplayRenderer::GetGLPipelineState(GLPipe::State *state)
+GLPipe::State ReplayRenderer::GetGLPipelineState()
 {
-  if(state)
-  {
-    *state = m_GLPipelineState;
-    return true;
-  }
-
-  return false;
+  return m_GLPipelineState;
 }
 
-bool ReplayRenderer::GetVulkanPipelineState(VKPipe::State *state)
+VKPipe::State ReplayRenderer::GetVulkanPipelineState()
 {
-  if(state)
-  {
-    *state = m_VulkanPipelineState;
-    return true;
-  }
-
-  return false;
+  return m_VulkanPipelineState;
 }
 
-bool ReplayRenderer::GetFrameInfo(FrameDescription *info)
+FrameDescription ReplayRenderer::GetFrameInfo()
 {
-  if(info == NULL)
-    return false;
-
-  *info = m_FrameRecord.frameInfo;
-
-  return true;
+  return m_FrameRecord.frameInfo;
 }
 
 DrawcallDescription *ReplayRenderer::GetDrawcallByEID(uint32_t eventID)
@@ -245,52 +214,36 @@ DrawcallDescription *ReplayRenderer::GetDrawcallByEID(uint32_t eventID)
   return m_Drawcalls[eventID];
 }
 
-bool ReplayRenderer::GetDrawcalls(rdctype::array<DrawcallDescription> *draws)
+rdctype::array<DrawcallDescription> ReplayRenderer::GetDrawcalls()
 {
-  if(draws == NULL)
-    return false;
-
-  *draws = m_FrameRecord.drawcallList;
-  return true;
+  return m_FrameRecord.drawcallList;
 }
 
-bool ReplayRenderer::FetchCounters(GPUCounter *counters, uint32_t numCounters,
-                                   rdctype::array<CounterResult> *results)
+rdctype::array<CounterResult> ReplayRenderer::FetchCounters(const rdctype::array<GPUCounter> &counters)
 {
-  if(results == NULL)
-    return false;
-
   vector<GPUCounter> counterArray;
-  counterArray.reserve(numCounters);
-  for(uint32_t i = 0; i < numCounters; i++)
+  counterArray.reserve(counters.count);
+  for(int32_t i = 0; i < counters.count; i++)
     counterArray.push_back(counters[i]);
 
-  *results = m_pDevice->FetchCounters(counterArray);
-
-  return true;
+  return m_pDevice->FetchCounters(counterArray);
 }
 
-bool ReplayRenderer::EnumerateCounters(rdctype::array<GPUCounter> *counters)
+rdctype::array<GPUCounter> ReplayRenderer::EnumerateCounters()
 {
-  if(counters == NULL)
-    return false;
-
-  *counters = m_pDevice->EnumerateCounters();
-
-  return true;
+  return m_pDevice->EnumerateCounters();
 }
 
-bool ReplayRenderer::DescribeCounter(GPUCounter counterID, CounterDescription *desc)
+CounterDescription ReplayRenderer::DescribeCounter(GPUCounter counterID)
 {
-  if(desc == NULL)
-    return false;
+  CounterDescription ret;
 
-  m_pDevice->DescribeCounter(counterID, *desc);
+  m_pDevice->DescribeCounter(counterID, ret);
 
-  return true;
+  return ret;
 }
 
-bool ReplayRenderer::GetBuffers(rdctype::array<BufferDescription> *out)
+rdctype::array<BufferDescription> ReplayRenderer::GetBuffers()
 {
   if(m_Buffers.empty())
   {
@@ -302,16 +255,10 @@ bool ReplayRenderer::GetBuffers(rdctype::array<BufferDescription> *out)
       m_Buffers[i] = m_pDevice->GetBuffer(ids[i]);
   }
 
-  if(out)
-  {
-    *out = m_Buffers;
-    return true;
-  }
-
-  return false;
+  return m_Buffers;
 }
 
-bool ReplayRenderer::GetTextures(rdctype::array<TextureDescription> *out)
+rdctype::array<TextureDescription> ReplayRenderer::GetTextures()
 {
   if(m_Textures.empty())
   {
@@ -323,132 +270,102 @@ bool ReplayRenderer::GetTextures(rdctype::array<TextureDescription> *out)
       m_Textures[i] = m_pDevice->GetTexture(ids[i]);
   }
 
-  if(out)
-  {
-    *out = m_Textures;
-    return true;
-  }
-
-  return false;
+  return m_Textures;
 }
 
-bool ReplayRenderer::GetResolve(uint64_t *callstack, uint32_t callstackLen,
-                                rdctype::array<rdctype::str> *arr)
+rdctype::array<rdctype::str> ReplayRenderer::GetResolve(const rdctype::array<uint64_t> &callstack)
 {
-  if(arr == NULL || callstack == NULL || callstackLen == 0)
-    return false;
+  rdctype::array<rdctype::str> ret;
+
+  if(callstack.empty())
+    return ret;
 
   Callstack::StackResolver *resolv = m_pDevice->GetCallstackResolver();
 
   if(resolv == NULL)
-  {
-    create_array_uninit(*arr, 1);
-    arr->elems[0] = "";
-    return true;
-  }
+    return ret;
 
-  create_array_uninit(*arr, callstackLen);
-  for(size_t i = 0; i < callstackLen; i++)
+  create_array_uninit(ret, (size_t)callstack.count);
+  for(int32_t i = 0; i < callstack.count; i++)
   {
     Callstack::AddressDetails info = resolv->GetAddr(callstack[i]);
-    arr->elems[i] = info.formattedString();
+    ret[i] = info.formattedString();
   }
 
-  return true;
+  return ret;
 }
 
-bool ReplayRenderer::GetDebugMessages(rdctype::array<DebugMessage> *msgs)
+rdctype::array<DebugMessage> ReplayRenderer::GetDebugMessages()
 {
-  if(msgs)
-  {
-    *msgs = m_pDevice->GetDebugMessages();
-    return true;
-  }
-
-  return false;
+  return m_pDevice->GetDebugMessages();
 }
 
-bool ReplayRenderer::GetUsage(ResourceId id, rdctype::array<EventUsage> *usage)
+rdctype::array<EventUsage> ReplayRenderer::GetUsage(ResourceId id)
 {
-  if(usage)
-  {
-    *usage = m_pDevice->GetUsage(m_pDevice->GetLiveID(id));
-    return true;
-  }
-
-  return false;
+  return m_pDevice->GetUsage(m_pDevice->GetLiveID(id));
 }
 
-bool ReplayRenderer::GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFormat *data)
+MeshFormat ReplayRenderer::GetPostVSData(uint32_t instID, MeshDataStage stage)
 {
-  if(data == NULL)
-    return false;
-
   DrawcallDescription *draw = GetDrawcallByEID(m_EventID);
 
   MeshFormat ret;
   RDCEraseEl(ret);
 
   if(draw == NULL || !(draw->flags & DrawFlags::Drawcall))
-  {
-    *data = MeshFormat();
-    return false;
-  }
+    return MeshFormat();
 
   instID = RDCMIN(instID, draw->numInstances - 1);
 
-  *data = m_pDevice->GetPostVSBuffers(draw->eventID, instID, stage);
-
-  return true;
+  return m_pDevice->GetPostVSBuffers(draw->eventID, instID, stage);
 }
 
-bool ReplayRenderer::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
-                                   rdctype::array<byte> *data)
+rdctype::array<byte> ReplayRenderer::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
 {
-  if(data == NULL || buff == ResourceId())
-    return false;
+  rdctype::array<byte> ret;
+
+  if(buff == ResourceId())
+    return ret;
 
   ResourceId liveId = m_pDevice->GetLiveID(buff);
 
   if(liveId == ResourceId())
   {
     RDCERR("Couldn't get Live ID for %llu getting buffer data", buff);
-    return false;
+    return ret;
   }
 
   vector<byte> retData;
   m_pDevice->GetBufferData(liveId, offset, len, retData);
 
-  create_array_init(*data, retData.size(), !retData.empty() ? &retData[0] : NULL);
+  create_array_init(ret, retData.size(), !retData.empty() ? &retData[0] : NULL);
 
-  return true;
+  return ret;
 }
 
-bool ReplayRenderer::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                                    rdctype::array<byte> *data)
+rdctype::array<byte> ReplayRenderer::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip)
 {
-  if(data == NULL)
-    return false;
+  rdctype::array<byte> ret;
 
   ResourceId liveId = m_pDevice->GetLiveID(tex);
 
   if(liveId == ResourceId())
   {
     RDCERR("Couldn't get Live ID for %llu getting texture data", tex);
-    return false;
+    return ret;
   }
 
   size_t sz = 0;
   byte *bytes = m_pDevice->GetTextureData(liveId, arrayIdx, mip, GetTextureDataParams(), sz);
 
   if(sz == 0 || bytes == NULL)
-    create_array_uninit(*data, 0);
+    create_array_uninit(ret, 0);
   else
-    create_array_init(*data, sz, bytes);
+    create_array_init(ret, sz, bytes);
 
   SAFE_DELETE_ARRAY(bytes);
 
-  return true;
+  return ret;
 }
 
 bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
@@ -1245,10 +1162,13 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
   return success;
 }
 
-bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice,
-                                  uint32_t mip, uint32_t sampleIdx, CompType typeHint,
-                                  rdctype::array<PixelModification> *history)
+rdctype::array<PixelModification> ReplayRenderer::PixelHistory(ResourceId target, uint32_t x,
+                                                               uint32_t y, uint32_t slice,
+                                                               uint32_t mip, uint32_t sampleIdx,
+                                                               CompType typeHint)
 {
+  rdctype::array<PixelModification> ret;
+
   for(size_t t = 0; t < m_Textures.size(); t++)
   {
     if(m_Textures[t].ID == target)
@@ -1257,9 +1177,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
       {
         RDCDEBUG("PixelHistory out of bounds on %llu (%u,%u) vs (%u,%u)", target, x, y,
                  m_Textures[t].width, m_Textures[t].height);
-        history->count = 0;
-        history->elems = NULL;
-        return false;
+        return ret;
       }
 
       if(m_Textures[t].msSamp == 1)
@@ -1334,64 +1252,55 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
   if(events.empty())
   {
     RDCDEBUG("Target %llu not written to before %u", target, m_EventID);
-    history->count = 0;
-    history->elems = NULL;
-    return false;
+    return ret;
   }
 
-  *history = m_pDevice->PixelHistory(events, m_pDevice->GetLiveID(target), x, y, slice, mip,
-                                     sampleIdx, typeHint);
+  ret = m_pDevice->PixelHistory(events, m_pDevice->GetLiveID(target), x, y, slice, mip, sampleIdx,
+                                typeHint);
 
   SetFrameEvent(m_EventID, true);
 
-  return true;
+  return ret;
 }
 
-bool ReplayRenderer::DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx,
-                                 uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace)
+ShaderDebugTrace *ReplayRenderer::DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx,
+                                              uint32_t instOffset, uint32_t vertOffset)
 {
-  if(trace == NULL)
-    return false;
+  ShaderDebugTrace *ret = new ShaderDebugTrace;
 
-  *trace = m_pDevice->DebugVertex(m_EventID, vertid, instid, idx, instOffset, vertOffset);
+  *ret = m_pDevice->DebugVertex(m_EventID, vertid, instid, idx, instOffset, vertOffset);
 
   SetFrameEvent(m_EventID, true);
 
-  return true;
+  return ret;
 }
 
-bool ReplayRenderer::DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive,
-                                ShaderDebugTrace *trace)
+ShaderDebugTrace *ReplayRenderer::DebugPixel(uint32_t x, uint32_t y, uint32_t sample,
+                                             uint32_t primitive)
 {
-  if(trace == NULL)
-    return false;
+  ShaderDebugTrace *ret = new ShaderDebugTrace;
 
-  *trace = m_pDevice->DebugPixel(m_EventID, x, y, sample, primitive);
+  *ret = m_pDevice->DebugPixel(m_EventID, x, y, sample, primitive);
 
   SetFrameEvent(m_EventID, true);
 
-  return true;
+  return ret;
 }
 
-bool ReplayRenderer::DebugThread(uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace)
+ShaderDebugTrace *ReplayRenderer::DebugThread(uint32_t groupid[3], uint32_t threadid[3])
 {
-  if(trace == NULL)
-    return false;
+  ShaderDebugTrace *ret = new ShaderDebugTrace;
 
-  *trace = m_pDevice->DebugThread(m_EventID, groupid, threadid);
+  *ret = m_pDevice->DebugThread(m_EventID, groupid, threadid);
 
   SetFrameEvent(m_EventID, true);
 
-  return true;
+  return ret;
 }
 
-bool ReplayRenderer::GetCBufferVariableContents(ResourceId shader, const char *entryPoint,
-                                                uint32_t cbufslot, ResourceId buffer, uint64_t offs,
-                                                rdctype::array<ShaderVariable> *vars)
+rdctype::array<ShaderVariable> ReplayRenderer::GetCBufferVariableContents(
+    ResourceId shader, const char *entryPoint, uint32_t cbufslot, ResourceId buffer, uint64_t offs)
 {
-  if(vars == NULL)
-    return false;
-
   vector<byte> data;
   if(buffer != ResourceId())
     m_pDevice->GetBufferData(m_pDevice->GetLiveID(buffer), offs, 0, data);
@@ -1400,15 +1309,12 @@ bool ReplayRenderer::GetCBufferVariableContents(ResourceId shader, const char *e
 
   m_pDevice->FillCBufferVariables(m_pDevice->GetLiveID(shader), entryPoint, cbufslot, v, data);
 
-  *vars = v;
-
-  return true;
+  return v;
 }
 
-void ReplayRenderer::GetSupportedWindowSystems(rdctype::array<WindowingSystem> *systems)
+rdctype::array<WindowingSystem> ReplayRenderer::GetSupportedWindowSystems()
 {
-  if(systems)
-    *systems = m_pDevice->GetSupportedWindowSystems();
+  return m_pDevice->GetSupportedWindowSystems();
 }
 
 ReplayOutput *ReplayRenderer::CreateOutput(WindowingSystem system, void *data, ReplayOutputType type)
@@ -1436,9 +1342,8 @@ void ReplayRenderer::Shutdown()
   delete this;
 }
 
-ResourceId ReplayRenderer::BuildTargetShader(const char *entry, const char *source,
-                                             const uint32_t compileFlags, ShaderStage type,
-                                             rdctype::str *errors)
+rdctype::pair<ResourceId, rdctype::str> ReplayRenderer::BuildTargetShader(
+    const char *entry, const char *source, const uint32_t compileFlags, ShaderStage type)
 {
   ResourceId id;
   string errs;
@@ -1451,7 +1356,9 @@ ResourceId ReplayRenderer::BuildTargetShader(const char *entry, const char *sour
     case ShaderStage::Geometry:
     case ShaderStage::Pixel:
     case ShaderStage::Compute: break;
-    default: RDCERR("Unexpected type in BuildShader!"); return ResourceId();
+    default:
+      RDCERR("Unexpected type in BuildShader!");
+      return rdctype::pair<ResourceId, rdctype::str>();
   }
 
   m_pDevice->BuildTargetShader(source, entry, compileFlags, type, &id, &errs);
@@ -1459,15 +1366,11 @@ ResourceId ReplayRenderer::BuildTargetShader(const char *entry, const char *sour
   if(id != ResourceId())
     m_TargetResources.insert(id);
 
-  if(errors)
-    *errors = errs;
-
-  return id;
+  return rdctype::make_pair<ResourceId, rdctype::str>(id, errs);
 }
 
-ResourceId ReplayRenderer::BuildCustomShader(const char *entry, const char *source,
-                                             const uint32_t compileFlags, ShaderStage type,
-                                             rdctype::str *errors)
+rdctype::pair<ResourceId, rdctype::str> ReplayRenderer::BuildCustomShader(
+    const char *entry, const char *source, const uint32_t compileFlags, ShaderStage type)
 {
   ResourceId id;
   string errs;
@@ -1480,7 +1383,9 @@ ResourceId ReplayRenderer::BuildCustomShader(const char *entry, const char *sour
     case ShaderStage::Geometry:
     case ShaderStage::Pixel:
     case ShaderStage::Compute: break;
-    default: RDCERR("Unexpected type in BuildShader!"); return ResourceId();
+    default:
+      RDCERR("Unexpected type in BuildShader!");
+      return rdctype::pair<ResourceId, rdctype::str>();
   }
 
   m_pDevice->BuildCustomShader(source, entry, compileFlags, type, &id, &errs);
@@ -1488,29 +1393,22 @@ ResourceId ReplayRenderer::BuildCustomShader(const char *entry, const char *sour
   if(id != ResourceId())
     m_CustomShaders.insert(id);
 
-  if(errors)
-    *errors = errs;
-
-  return id;
+  return rdctype::make_pair<ResourceId, rdctype::str>(id, errs);
 }
 
-bool ReplayRenderer::FreeTargetResource(ResourceId id)
+void ReplayRenderer::FreeTargetResource(ResourceId id)
 {
   m_TargetResources.erase(id);
   m_pDevice->FreeTargetResource(id);
-
-  return true;
 }
 
-bool ReplayRenderer::FreeCustomShader(ResourceId id)
+void ReplayRenderer::FreeCustomShader(ResourceId id)
 {
   m_CustomShaders.erase(id);
   m_pDevice->FreeCustomShader(id);
-
-  return true;
 }
 
-bool ReplayRenderer::ReplaceResource(ResourceId from, ResourceId to)
+void ReplayRenderer::ReplaceResource(ResourceId from, ResourceId to)
 {
   m_pDevice->ReplaceResource(from, to);
 
@@ -1519,11 +1417,9 @@ bool ReplayRenderer::ReplaceResource(ResourceId from, ResourceId to)
   for(size_t i = 0; i < m_Outputs.size(); i++)
     if(m_Outputs[i]->GetType() != ReplayOutputType::Headless)
       m_Outputs[i]->Display();
-
-  return true;
 }
 
-bool ReplayRenderer::RemoveReplacement(ResourceId id)
+void ReplayRenderer::RemoveReplacement(ResourceId id)
 {
   m_pDevice->RemoveReplacement(id);
 
@@ -1532,8 +1428,6 @@ bool ReplayRenderer::RemoveReplacement(ResourceId id)
   for(size_t i = 0; i < m_Outputs.size(); i++)
     if(m_Outputs[i]->GetType() != ReplayOutputType::Headless)
       m_Outputs[i]->Display();
-
-  return true;
 }
 
 ReplayStatus ReplayRenderer::CreateDevice(const char *logfile)
@@ -1678,7 +1572,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetAPIProperties(IRepl
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetSupportedWindowSystems(
     IReplayRenderer *rend, rdctype::array<WindowingSystem> *systems)
 {
-  rend->GetSupportedWindowSystems(systems);
+  *systems = rend->GetSupportedWindowSystems();
 }
 
 extern "C" RENDERDOC_API IReplayOutput *RENDERDOC_CC ReplayRenderer_CreateOutput(
@@ -1710,31 +1604,31 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_InitResolver(IReplay
   return rend->InitResolver();
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(IReplayRenderer *rend,
-                                                                          uint32_t eventID,
-                                                                          bool32 force)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_SetFrameEvent(IReplayRenderer *rend,
+                                                                        uint32_t eventID,
+                                                                        bool32 force)
 {
-  return rend->SetFrameEvent(eventID, force != 0);
+  rend->SetFrameEvent(eventID, force != 0);
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+extern "C" RENDERDOC_API void RENDERDOC_CC
 ReplayRenderer_GetD3D11PipelineState(IReplayRenderer *rend, D3D11Pipe::State *state)
 {
-  return rend->GetD3D11PipelineState(state);
+  *state = rend->GetD3D11PipelineState();
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+extern "C" RENDERDOC_API void RENDERDOC_CC
 ReplayRenderer_GetD3D12PipelineState(IReplayRenderer *rend, D3D12Pipe::State *state)
 {
-  return rend->GetD3D12PipelineState(state);
+  *state = rend->GetD3D12PipelineState();
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(IReplayRenderer *rend,
-                                                                               GLPipe::State *state)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetGLPipelineState(IReplayRenderer *rend,
+                                                                             GLPipe::State *state)
 {
-  return rend->GetGLPipelineState(state);
+  *state = rend->GetGLPipelineState();
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetVulkanPipelineState(IReplayRenderer *rend, VKPipe::State *state)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetVulkanPipelineState(IReplayRenderer *rend,
+                                                                                 VKPipe::State *state)
 {
-  return rend->GetVulkanPipelineState(state);
+  *state = rend->GetVulkanPipelineState();
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildCustomShader(
@@ -1744,12 +1638,16 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildCustomShader(
   if(shaderID == NULL)
     return;
 
-  *shaderID = rend->BuildCustomShader(entry, source, compileFlags, type, errors);
+  auto ret = rend->BuildCustomShader(entry, source, compileFlags, type);
+
+  *shaderID = ret.first;
+  if(errors)
+    *errors = ret.second;
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FreeCustomShader(IReplayRenderer *rend,
-                                                                             ResourceId id)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_FreeCustomShader(IReplayRenderer *rend,
+                                                                           ResourceId id)
 {
-  return rend->FreeCustomShader(id);
+  rend->FreeCustomShader(id);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildTargetShader(
@@ -1759,113 +1657,128 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildTargetShader(
   if(shaderID == NULL)
     return;
 
-  *shaderID = rend->BuildTargetShader(entry, source, compileFlags, type, errors);
+  auto ret = rend->BuildTargetShader(entry, source, compileFlags, type);
+
+  *shaderID = ret.first;
+  if(errors)
+    *errors = ret.second;
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_ReplaceResource(IReplayRenderer *rend,
-                                                                            ResourceId from,
-                                                                            ResourceId to)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_ReplaceResource(IReplayRenderer *rend,
+                                                                          ResourceId from,
+                                                                          ResourceId to)
 {
-  return rend->ReplaceResource(from, to);
+  rend->ReplaceResource(from, to);
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_RemoveReplacement(IReplayRenderer *rend,
-                                                                              ResourceId id)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_RemoveReplacement(IReplayRenderer *rend,
+                                                                            ResourceId id)
 {
-  return rend->RemoveReplacement(id);
+  rend->RemoveReplacement(id);
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FreeTargetResource(IReplayRenderer *rend,
-                                                                               ResourceId id)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_FreeTargetResource(IReplayRenderer *rend,
+                                                                             ResourceId id)
 {
-  return rend->FreeTargetResource(id);
+  rend->FreeTargetResource(id);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetFrameInfo(IReplayRenderer *rend,
-                                                                         FrameDescription *frame)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetFrameInfo(IReplayRenderer *rend,
+                                                                       FrameDescription *frame)
 {
-  return rend->GetFrameInfo(frame);
+  *frame = rend->GetFrameInfo();
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+extern "C" RENDERDOC_API void RENDERDOC_CC
 ReplayRenderer_GetDrawcalls(IReplayRenderer *rend, rdctype::array<DrawcallDescription> *draws)
 {
-  return rend->GetDrawcalls(draws);
+  *draws = rend->GetDrawcalls();
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+extern "C" RENDERDOC_API void RENDERDOC_CC
 ReplayRenderer_FetchCounters(IReplayRenderer *rend, GPUCounter *counters, uint32_t numCounters,
                              rdctype::array<CounterResult> *results)
 {
-  return rend->FetchCounters(counters, numCounters, results);
+  rdctype::array<GPUCounter> counterArray;
+  create_array_init(counterArray, (size_t)numCounters, counters);
+  *results = rend->FetchCounters(counterArray);
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+extern "C" RENDERDOC_API void RENDERDOC_CC
 ReplayRenderer_EnumerateCounters(IReplayRenderer *rend, rdctype::array<GPUCounter> *counters)
 {
-  return rend->EnumerateCounters(counters);
+  *counters = rend->EnumerateCounters();
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DescribeCounter(IReplayRenderer *rend,
-                                                                            GPUCounter counterID,
-                                                                            CounterDescription *desc)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_DescribeCounter(IReplayRenderer *rend,
+                                                                          GPUCounter counterID,
+                                                                          CounterDescription *desc)
 {
-  return rend->DescribeCounter(counterID, desc);
+  *desc = rend->DescribeCounter(counterID);
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+extern "C" RENDERDOC_API void RENDERDOC_CC
 ReplayRenderer_GetTextures(IReplayRenderer *rend, rdctype::array<TextureDescription> *texs)
 {
-  return rend->GetTextures(texs);
+  *texs = rend->GetTextures();
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+extern "C" RENDERDOC_API void RENDERDOC_CC
 ReplayRenderer_GetBuffers(IReplayRenderer *rend, rdctype::array<BufferDescription> *bufs)
 {
-  return rend->GetBuffers(bufs);
+  *bufs = rend->GetBuffers();
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+extern "C" RENDERDOC_API void RENDERDOC_CC
 ReplayRenderer_GetResolve(IReplayRenderer *rend, uint64_t *callstack, uint32_t callstackLen,
                           rdctype::array<rdctype::str> *trace)
 {
-  return rend->GetResolve(callstack, callstackLen, trace);
+  rdctype::array<uint64_t> stack;
+  create_array_init(stack, (size_t)callstackLen, callstack);
+  *trace = rend->GetResolve(stack);
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+extern "C" RENDERDOC_API void RENDERDOC_CC
 ReplayRenderer_GetDebugMessages(IReplayRenderer *rend, rdctype::array<DebugMessage> *msgs)
 {
-  return rend->GetDebugMessages(msgs);
+  *msgs = rend->GetDebugMessages();
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_PixelHistory(
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_PixelHistory(
     IReplayRenderer *rend, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
     uint32_t sampleIdx, CompType typeHint, rdctype::array<PixelModification> *history)
 {
-  return rend->PixelHistory(target, x, y, slice, mip, sampleIdx, typeHint, history);
+  *history = rend->PixelHistory(target, x, y, slice, mip, sampleIdx, typeHint);
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+extern "C" RENDERDOC_API void RENDERDOC_CC
 ReplayRenderer_DebugVertex(IReplayRenderer *rend, uint32_t vertid, uint32_t instid, uint32_t idx,
                            uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace)
 {
-  return rend->DebugVertex(vertid, instid, idx, instOffset, vertOffset, trace);
+  ShaderDebugTrace *ret = rend->DebugVertex(vertid, instid, idx, instOffset, vertOffset);
+  *trace = *ret;
+  delete ret;
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DebugPixel(IReplayRenderer *rend,
-                                                                       uint32_t x, uint32_t y,
-                                                                       uint32_t sample,
-                                                                       uint32_t primitive,
-                                                                       ShaderDebugTrace *trace)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_DebugPixel(IReplayRenderer *rend,
+                                                                     uint32_t x, uint32_t y,
+                                                                     uint32_t sample,
+                                                                     uint32_t primitive,
+                                                                     ShaderDebugTrace *trace)
 {
-  return rend->DebugPixel(x, y, sample, primitive, trace);
+  ShaderDebugTrace *ret = rend->DebugPixel(x, y, sample, primitive);
+  *trace = *ret;
+  delete ret;
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DebugThread(IReplayRenderer *rend,
-                                                                        uint32_t groupid[3],
-                                                                        uint32_t threadid[3],
-                                                                        ShaderDebugTrace *trace)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_DebugThread(IReplayRenderer *rend,
+                                                                      uint32_t groupid[3],
+                                                                      uint32_t threadid[3],
+                                                                      ShaderDebugTrace *trace)
 {
-  return rend->DebugThread(groupid, threadid, trace);
+  ShaderDebugTrace *ret = rend->DebugThread(groupid, threadid);
+  *trace = *ret;
+  delete ret;
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetUsage(IReplayRenderer *rend, ResourceId id, rdctype::array<EventUsage> *usage)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetUsage(IReplayRenderer *rend,
+                                                                   ResourceId id,
+                                                                   rdctype::array<EventUsage> *usage)
 {
-  return rend->GetUsage(id, usage);
+  *usage = rend->GetUsage(id);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetCBufferVariableContents(
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetCBufferVariableContents(
     IReplayRenderer *rend, ResourceId shader, const char *entryPoint, uint32_t cbufslot,
     ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars)
 {
-  return rend->GetCBufferVariableContents(shader, entryPoint, cbufslot, buffer, offs, vars);
+  *vars = rend->GetCBufferVariableContents(shader, entryPoint, cbufslot, buffer, offs);
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SaveTexture(IReplayRenderer *rend,
@@ -1875,23 +1788,27 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SaveTexture(IReplayR
   return rend->SaveTexture(saveData, path);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetPostVSData(IReplayRenderer *rend,
-                                                                          uint32_t instID,
-                                                                          MeshDataStage stage,
-                                                                          MeshFormat *data)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetPostVSData(IReplayRenderer *rend,
+                                                                        uint32_t instID,
+                                                                        MeshDataStage stage,
+                                                                        MeshFormat *data)
 {
-  return rend->GetPostVSData(instID, stage, data);
+  *data = rend->GetPostVSData(instID, stage);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBufferData(
-    IReplayRenderer *rend, ResourceId buff, uint64_t offset, uint64_t len, rdctype::array<byte> *data)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetBufferData(IReplayRenderer *rend,
+                                                                        ResourceId buff,
+                                                                        uint64_t offset, uint64_t len,
+                                                                        rdctype::array<byte> *data)
 {
-  return rend->GetBufferData(buff, offset, len, data);
+  *data = rend->GetBufferData(buff, offset, len);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetTextureData(IReplayRenderer *rend, ResourceId tex, uint32_t arrayIdx,
-                              uint32_t mip, rdctype::array<byte> *data)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetTextureData(IReplayRenderer *rend,
+                                                                         ResourceId tex,
+                                                                         uint32_t arrayIdx,
+                                                                         uint32_t mip,
+                                                                         rdctype::array<byte> *data)
 {
-  return rend->GetTextureData(tex, arrayIdx, mip, data);
+  *data = rend->GetTextureData(tex, arrayIdx, mip);
 }

@@ -635,13 +635,12 @@ void PixelHistoryView::startDebug(EventTag tag)
 {
   m_Ctx.SetEventID({this}, tag.eventID, tag.eventID);
 
-  ShaderDebugTrace *trace = new ShaderDebugTrace;
+  ShaderDebugTrace *trace = NULL;
 
   bool success = false;
 
-  m_Ctx.Renderer().BlockInvoke([this, &success, trace](IReplayRenderer *r) {
-    success =
-        r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(), m_Display.sampleIdx, ~0U, trace);
+  m_Ctx.Renderer().BlockInvoke([this, &success, &trace](IReplayRenderer *r) {
+    trace = r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(), m_Display.sampleIdx, ~0U);
   });
 
   if(!success || trace->states.count == 0)

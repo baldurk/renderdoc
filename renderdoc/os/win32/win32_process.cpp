@@ -481,12 +481,8 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
 }
 
 uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, const char *logfile,
-                                    const CaptureOptions *opts, bool waitForExit)
+                                    const CaptureOptions &opts, bool waitForExit)
 {
-  CaptureOptions options;
-  if(opts)
-    options = *opts;
-
   wstring wlogfile = logfile == NULL ? L"" : StringFormat::UTF82Wide(logfile);
 
   HANDLE hProcess =
@@ -494,7 +490,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
                       PROCESS_VM_WRITE | PROCESS_VM_READ | SYNCHRONIZE,
                   FALSE, pid);
 
-  if(options.DelayForDebugger > 0)
+  if(opts.DelayForDebugger > 0)
   {
     RDCDEBUG("Waiting for debugger attach to %lu", pid);
     uint32_t timeout = 0;
@@ -508,14 +504,14 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
       Sleep(10);
       timeout += 10;
 
-      if(timeout > options.DelayForDebugger * 1000)
+      if(timeout > opts.DelayForDebugger * 1000)
         break;
     }
 
     if(debuggerAttached)
       RDCDEBUG("Debugger attach detected after %.2f s", float(timeout) / 1000.0f);
     else
-      RDCDEBUG("Timed out waiting for debugger, gave up after %u s", options.DelayForDebugger);
+      RDCDEBUG("Timed out waiting for debugger, gave up after %u s", opts.DelayForDebugger);
   }
 
   RDCLOG("Injecting renderdoc into process %lu", pid);
@@ -732,7 +728,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
     string optstr;
     {
       optstr.reserve(sizeof(CaptureOptions) * 2 + 1);
-      byte *b = (byte *)opts;
+      byte *b = (byte *)&opts;
       for(size_t i = 0; i < sizeof(CaptureOptions); i++)
       {
         optstr.push_back(char('a' + ((b[i] >> 4) & 0xf)));
@@ -868,9 +864,8 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
     InjectFunctionCall(hProcess, loc, "RENDERDOC_SetDebugLogFile", (void *)debugLogfile.c_str(),
                        debugLogfile.size() + 1);
 
-    if(opts != NULL)
-      InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureOptions", (CaptureOptions *)opts,
-                         sizeof(CaptureOptions));
+    InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureOptions", (CaptureOptions *)&opts,
+                       sizeof(CaptureOptions));
 
     InjectFunctionCall(hProcess, loc, "INTERNAL_GetTargetControlIdent", &controlident,
                        sizeof(controlident));
@@ -965,7 +960,7 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
 
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
                                              const char *cmdLine, EnvironmentModification *env,
-                                             const char *logfile, const CaptureOptions *opts,
+                                             const char *logfile, const CaptureOptions &opts,
                                              bool waitForExit)
 {
   void *func =
@@ -1003,7 +998,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   return ret;
 }
 
-void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions *opts)
+void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions &opts)
 {
   if(pathmatch == NULL)
     return;
@@ -1034,7 +1029,7 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   string optstr;
   {
     optstr.reserve(sizeof(CaptureOptions) * 2 + 1);
-    byte *b = (byte *)opts;
+    byte *b = (byte *)&opts;
     for(size_t i = 0; i < sizeof(CaptureOptions); i++)
     {
       optstr.push_back(char('a' + ((b[i] >> 4) & 0xf)));

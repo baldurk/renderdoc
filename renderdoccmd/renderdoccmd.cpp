@@ -50,8 +50,7 @@ void DisplayRendererPreview(IReplayRenderer *renderer, uint32_t width, uint32_t 
   if(renderer == NULL)
     return;
 
-  rdctype::array<TextureDescription> texs;
-  renderer->GetTextures(&texs);
+  rdctype::array<TextureDescription> texs = renderer->GetTextures();
 
   TextureDisplay d;
   d.mip = 0;
@@ -83,8 +82,7 @@ void DisplayRendererPreview(IReplayRenderer *renderer, uint32_t width, uint32_t 
     }
   }
 
-  rdctype::array<DrawcallDescription> draws;
-  renderer->GetDrawcalls(&draws);
+  rdctype::array<DrawcallDescription> draws = renderer->GetDrawcalls();
 
   if(draws.count > 0 && draws[draws.count - 1].flags & DrawFlags::Present)
   {
@@ -324,7 +322,7 @@ struct CaptureCommand : public Command
 
     uint32_t ident = RENDERDOC_ExecuteAndInject(
         executable.c_str(), workingDir.empty() ? "" : workingDir.c_str(),
-        cmdLine.empty() ? "" : cmdLine.c_str(), NULL, logFile.empty() ? "" : logFile.c_str(), &opts,
+        cmdLine.empty() ? "" : cmdLine.c_str(), NULL, logFile.empty() ? "" : logFile.c_str(), opts,
         parser.exist("wait-for-exit"));
 
     if(ident == 0)
@@ -385,7 +383,7 @@ struct InjectCommand : public Command
     std::cout << "Injecting into PID " << PID << std::endl;
 
     uint32_t ident = RENDERDOC_InjectIntoProcess(PID, NULL, logFile.empty() ? "" : logFile.c_str(),
-                                                 &opts, parser.exist("wait-for-exit"));
+                                                 opts, parser.exist("wait-for-exit"));
 
     if(ident == 0)
     {
@@ -497,11 +495,10 @@ struct ReplayCommand : public Command
 
       std::cerr << "Copying capture file to remote server" << std::endl;
 
-      float progress = 0.0f;
-      rdctype::str remotePath = remote->CopyCaptureToRemote(filename.c_str(), &progress);
+      rdctype::str remotePath = remote->CopyCaptureToRemote(filename.c_str(), NULL);
 
       IReplayRenderer *renderer = NULL;
-      status = remote->OpenCapture(~0U, remotePath.elems, &progress, &renderer);
+      std::tie(status, renderer) = remote->OpenCapture(~0U, remotePath.elems, NULL);
 
       if(status == ReplayStatus::Succeeded)
       {
@@ -639,7 +636,7 @@ struct CapAltBitCommand : public Command
     RENDERDOC_SetDebugLogFile(debuglog.c_str());
 
     int ret = RENDERDOC_InjectIntoProcess(parser.get<uint32_t>("pid"), env,
-                                          parser.get<string>("log").c_str(), &cmdopts, false);
+                                          parser.get<string>("log").c_str(), cmdopts, false);
 
     RENDERDOC_FreeEnvironmentModificationList(env);
 

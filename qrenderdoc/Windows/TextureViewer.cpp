@@ -652,12 +652,12 @@ void TextureViewer::RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pic
   if(m_TexDisplay.FlipY)
     y = (texptr->height - 1) - y;
 
-  m_Output->PickPixel(m_TexDisplay.texid, true, x, y, m_TexDisplay.sliceFace, m_TexDisplay.mip,
-                      m_TexDisplay.sampleIdx, &pickValue);
+  pickValue = m_Output->PickPixel(m_TexDisplay.texid, true, x, y, m_TexDisplay.sliceFace,
+                                  m_TexDisplay.mip, m_TexDisplay.sampleIdx);
 
   if(m_TexDisplay.CustomShader != ResourceId())
-    m_Output->PickPixel(m_TexDisplay.texid, false, x, y, m_TexDisplay.sliceFace, m_TexDisplay.mip,
-                        m_TexDisplay.sampleIdx, &realValue);
+    realValue = m_Output->PickPixel(m_TexDisplay.texid, false, x, y, m_TexDisplay.sliceFace,
+                                    m_TexDisplay.mip, m_TexDisplay.sampleIdx);
 }
 
 void TextureViewer::RT_PickPixelsAndUpdate(IReplayRenderer *)
@@ -713,18 +713,15 @@ void TextureViewer::RT_UpdateVisualRange(IReplayRenderer *)
   if(m_TexDisplay.CustomShader != ResourceId())
     fmt.compCount = 4;
 
-  bool success = true;
-
   bool channels[] = {
       m_TexDisplay.Red ? true : false, m_TexDisplay.Green && fmt.compCount > 1,
       m_TexDisplay.Blue && fmt.compCount > 2, m_TexDisplay.Alpha && fmt.compCount > 3,
   };
 
-  rdctype::array<uint32_t> histogram;
-  success = m_Output->GetHistogram(ui->rangeHistogram->rangeMin(), ui->rangeHistogram->rangeMax(),
-                                   channels, &histogram);
+  rdctype::array<uint32_t> histogram = m_Output->GetHistogram(
+      ui->rangeHistogram->rangeMin(), ui->rangeHistogram->rangeMax(), channels);
 
-  if(success)
+  if(!histogram.empty())
   {
     QVector<uint32_t> histogramVec(histogram.count);
     if(histogram.count > 0)
@@ -2127,9 +2124,7 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
     else
     {
       m_Ctx.Renderer().AsyncInvoke([this, id](IReplayRenderer *r) {
-        rdctype::array<EventUsage> usage;
-
-        r->GetUsage(id, &usage);
+        rdctype::array<EventUsage> usage = r->GetUsage(id);
 
         GUIInvoke::call([this, id, usage]() { OpenResourceContextMenu(id, usage); });
       });
@@ -2977,9 +2972,8 @@ void TextureViewer::AutoFitRange()
 
   m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) {
     PixelValue min, max;
-    bool success = m_Output->GetMinMax(&min, &max);
+    std::tie(min, max) = m_Output->GetMinMax();
 
-    if(success)
     {
       float minval = FLT_MAX;
       float maxval = -FLT_MAX;
@@ -3286,11 +3280,9 @@ void TextureViewer::on_debugPixelContext_clicked()
   int y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
 
   m_Ctx.Renderer().AsyncInvoke([this, x, y](IReplayRenderer *r) {
-    ShaderDebugTrace *trace = new ShaderDebugTrace;
+    ShaderDebugTrace *trace = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.sampleIdx, ~0U);
 
-    bool success = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.sampleIdx, ~0U, trace);
-
-    if(!success || trace->states.count == 0)
+    if(trace->states.count == 0)
     {
       delete trace;
 
@@ -3335,14 +3327,11 @@ void TextureViewer::on_pixelHistory_clicked()
   LambdaThread *thread = new LambdaThread([this, texptr, x, y, hist]() {
     QThread::msleep(150);
     m_Ctx.Renderer().AsyncInvoke([this, texptr, x, y, hist](IReplayRenderer *r) {
-      rdctype::array<PixelModification> *history = new rdctype::array<PixelModification>();
-      r->PixelHistory(texptr->ID, (uint32_t)x, (int32_t)y, m_TexDisplay.sliceFace, m_TexDisplay.mip,
-                      m_TexDisplay.sampleIdx, m_TexDisplay.typeHint, history);
+      rdctype::array<PixelModification> history =
+          r->PixelHistory(texptr->ID, (uint32_t)x, (int32_t)y, m_TexDisplay.sliceFace,
+                          m_TexDisplay.mip, m_TexDisplay.sampleIdx, m_TexDisplay.typeHint);
 
-      GUIInvoke::call([hist, history] {
-        hist->SetHistory(*history);
-        delete history;
-      });
+      GUIInvoke::call([hist, history] { hist->SetHistory(history); });
     });
   });
   thread->selfDelete(true);
@@ -3483,8 +3472,9 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
         m_Ctx.Renderer().AsyncInvoke([this, fn, key, source](IReplayRenderer *r) {
           rdctype::str errors;
 
-          ResourceId id =
-              r->BuildCustomShader("main", source.toUtf8().data(), 0, ShaderStage::Pixel, &errors);
+          ResourceId id;
+          std::tie(id, errors) =
+              r->BuildCustomShader("main", source.toUtf8().data(), 0, ShaderStage::Pixel);
 
           if(m_CustomShaderEditor.contains(key))
           {

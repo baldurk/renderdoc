@@ -1239,11 +1239,11 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
         if(len == UINT64_MAX)
           len = 0;
 
-        r->GetBufferData(m_BufferID, m_ByteOffset, len, &data);
+        data = r->GetBufferData(m_BufferID, m_ByteOffset, len);
       }
       else
       {
-        r->GetTextureData(m_BufferID, m_TexArrayIdx, m_TexMip, &data);
+        data = r->GetTextureData(m_BufferID, m_TexArrayIdx, m_TexMip);
       }
 
       buf->data = new byte[data.count];
@@ -1303,8 +1303,8 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
 
   rdctype::array<byte> idata;
   if(ib != ResourceId() && draw && (draw->flags & DrawFlags::UseIBuffer))
-    r->GetBufferData(ib, ioffset + draw->indexOffset * draw->indexByteWidth,
-                     draw->numIndices * draw->indexByteWidth, &idata);
+    idata = r->GetBufferData(ib, ioffset + draw->indexOffset * draw->indexByteWidth,
+                             draw->numIndices * draw->indexByteWidth);
 
   uint32_t *indices = NULL;
   if(m_ModelVSIn->indices)
@@ -1399,9 +1399,8 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
     BufferData *buf = new BufferData;
     if(used)
     {
-      rdctype::array<byte> bufdata;
-      r->GetBufferData(vb.Buffer, vb.ByteOffset + offset * vb.ByteStride,
-                       (maxIdx + 1) * vb.ByteStride, &bufdata);
+      rdctype::array<byte> bufdata = r->GetBufferData(
+          vb.Buffer, vb.ByteOffset + offset * vb.ByteStride, (maxIdx + 1) * vb.ByteStride);
 
       buf->data = new byte[bufdata.count];
       memcpy(buf->data, bufdata.elems, bufdata.count);
@@ -1412,13 +1411,13 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
     m_ModelVSIn->buffers.push_back(buf);
   }
 
-  r->GetPostVSData(m_Config.curInstance, MeshDataStage::VSOut, &m_PostVS);
+  m_PostVS = r->GetPostVSData(m_Config.curInstance, MeshDataStage::VSOut);
 
   m_ModelVSOut->numRows = m_PostVS.numVerts;
 
   if(draw && m_PostVS.idxbuf != ResourceId() && (draw->flags & DrawFlags::UseIBuffer))
-    r->GetBufferData(m_PostVS.idxbuf, ioffset + draw->indexOffset * draw->indexByteWidth,
-                     draw->numIndices * draw->indexByteWidth, &idata);
+    idata = r->GetBufferData(m_PostVS.idxbuf, ioffset + draw->indexOffset * draw->indexByteWidth,
+                             draw->numIndices * draw->indexByteWidth);
 
   indices = NULL;
   if(m_ModelVSOut->indices)
@@ -1454,8 +1453,7 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
   if(m_PostVS.buf != ResourceId())
   {
     BufferData *postvs = new BufferData;
-    rdctype::array<byte> bufdata;
-    r->GetBufferData(m_PostVS.buf, m_PostVS.offset, 0, &bufdata);
+    rdctype::array<byte> bufdata = r->GetBufferData(m_PostVS.buf, m_PostVS.offset, 0);
 
     postvs->data = new byte[bufdata.count];
     memcpy(postvs->data, bufdata.elems, bufdata.count);
@@ -1466,7 +1464,7 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
     m_ModelVSOut->buffers.push_back(postvs);
   }
 
-  r->GetPostVSData(m_Config.curInstance, MeshDataStage::GSOut, &m_PostGS);
+  m_PostGS = r->GetPostVSData(m_Config.curInstance, MeshDataStage::GSOut);
 
   m_ModelGSOut->numRows = m_PostGS.numVerts;
 
@@ -1476,8 +1474,7 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
   if(m_PostGS.buf != ResourceId())
   {
     BufferData *postgs = new BufferData;
-    rdctype::array<byte> bufdata;
-    r->GetBufferData(m_PostGS.buf, m_PostGS.offset, 0, &bufdata);
+    rdctype::array<byte> bufdata = r->GetBufferData(m_PostGS.buf, m_PostGS.offset, 0);
 
     postgs->data = new byte[bufdata.count];
     memcpy(postgs->data, bufdata.elems, bufdata.count);
@@ -2194,8 +2191,10 @@ void BufferViewer::render_clicked(QMouseEvent *e)
   {
     m_Ctx.Renderer().AsyncInvoke("PickVertex", [this, curpos](IReplayRenderer *r) {
       uint32_t instanceSelected = 0;
-      uint32_t vertSelected = m_Output->PickVertex(m_Ctx.CurEvent(), (uint32_t)curpos.x(),
-                                                   (uint32_t)curpos.y(), &instanceSelected);
+      uint32_t vertSelected = 0;
+
+      std::tie(vertSelected, instanceSelected) =
+          m_Output->PickVertex(m_Ctx.CurEvent(), (uint32_t)curpos.x(), (uint32_t)curpos.y());
 
       if(vertSelected != ~0U)
       {
@@ -2736,13 +2735,11 @@ void BufferViewer::debugVertex()
       m_CurView->model()->data(m_CurView->model()->index(idx.row(), 1), Qt::DisplayRole).toUInt();
 
   m_Ctx.Renderer().AsyncInvoke([this, vertid, index](IReplayRenderer *r) {
-    ShaderDebugTrace *trace = new ShaderDebugTrace;
-
-    bool success =
+    ShaderDebugTrace *trace =
         r->DebugVertex(vertid, m_Config.curInstance, index, m_Ctx.CurDrawcall()->instanceOffset,
-                       m_Ctx.CurDrawcall()->vertexOffset, trace);
+                       m_Ctx.CurDrawcall()->vertexOffset);
 
-    if(!success || trace->states.count == 0)
+    if(trace->states.count == 0)
     {
       delete trace;
 

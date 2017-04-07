@@ -381,7 +381,7 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModificati
                                            env[i].value.toUtf8().data(), env[i].type,
                                            env[i].separator);
 
-    uint32_t ret = RENDERDOC_InjectIntoProcess(PID, envList, logfile.toUtf8().data(), &opts, false);
+    uint32_t ret = RENDERDOC_InjectIntoProcess(PID, envList, logfile.toUtf8().data(), opts, false);
 
     RENDERDOC_FreeEnvironmentModificationList(envList);
 
@@ -959,8 +959,7 @@ void MainWindow::messageCheck()
   if(m_Ctx.LogLoaded())
   {
     m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) {
-      rdctype::array<DebugMessage> msgs;
-      r->GetDebugMessages(&msgs);
+      rdctype::array<DebugMessage> msgs = r->GetDebugMessages();
 
       bool disconnected = false;
 

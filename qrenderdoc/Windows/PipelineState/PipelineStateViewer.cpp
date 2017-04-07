@@ -331,8 +331,10 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
           uint flags = shaderDetails->DebugInfo.compileFlags;
 
           ResourceId from = id;
-          ResourceId to = r->BuildTargetShader(
-              entryFunc.toUtf8().data(), compileSource.toUtf8().data(), flags, shaderType, &errs);
+          ResourceId to;
+
+          std::tie(to, errs) = r->BuildTargetShader(
+              entryFunc.toUtf8().data(), compileSource.toUtf8().data(), flags, shaderType);
 
           GUIInvoke::call([viewer, errs]() { viewer->ShowErrors(ToQStr(errs)); });
           if(to == ResourceId())

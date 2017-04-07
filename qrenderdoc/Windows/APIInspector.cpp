@@ -98,8 +98,7 @@ void APIInspector::on_apiEvents_itemSelectionChanged()
   if(ev.callstack.count > 0)
   {
     m_Ctx.Renderer().AsyncInvoke([this, ev](IReplayRenderer *r) {
-      rdctype::array<rdctype::str> trace;
-      r->GetResolve(ev.callstack.elems, ev.callstack.count, &trace);
+      rdctype::array<rdctype::str> trace = r->GetResolve(ev.callstack);
 
       GUIInvoke::call([this, trace]() { addCallstack(trace); });
     });

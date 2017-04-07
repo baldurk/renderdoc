@@ -117,7 +117,7 @@ ReplayOutput::~ReplayOutput()
   ClearThumbnails();
 }
 
-bool ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
+void ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
 {
   if(o.overlay != m_RenderData.texDisplay.overlay)
   {
@@ -133,16 +133,14 @@ bool ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
   }
   m_RenderData.texDisplay = o;
   m_MainOutput.dirty = true;
-  return true;
 }
 
-bool ReplayOutput::SetMeshDisplay(const MeshDisplay &o)
+void ReplayOutput::SetMeshDisplay(const MeshDisplay &o)
 {
   if(o.showWholePass != m_RenderData.meshDisplay.showWholePass)
     m_OverlayDirty = true;
   m_RenderData.meshDisplay = o;
   m_MainOutput.dirty = true;
-  return true;
 }
 
 void ReplayOutput::SetFrameEvent(int eventID)
@@ -214,14 +212,12 @@ void ReplayOutput::RefreshOverlay()
   }
 }
 
-bool ReplayOutput::ClearThumbnails()
+void ReplayOutput::ClearThumbnails()
 {
   for(size_t i = 0; i < m_Thumbnails.size(); i++)
     m_pDevice->DestroyOutputWindow(m_Thumbnails[i].outputID);
 
   m_Thumbnails.clear();
-
-  return true;
 }
 
 bool ReplayOutput::SetPixelContext(WindowingSystem system, void *data)
@@ -232,7 +228,7 @@ bool ReplayOutput::SetPixelContext(WindowingSystem system, void *data)
 
   RDCASSERT(m_PixelContext.outputID > 0);
 
-  return true;
+  return m_PixelContext.outputID != 0;
 }
 
 bool ReplayOutput::AddThumbnail(WindowingSystem system, void *data, ResourceId texID,
@@ -284,17 +280,10 @@ bool ReplayOutput::AddThumbnail(WindowingSystem system, void *data, ResourceId t
   return true;
 }
 
-bool ReplayOutput::GetMinMax(PixelValue *minval, PixelValue *maxval)
+rdctype::pair<PixelValue, PixelValue> ReplayOutput::GetMinMax()
 {
-  PixelValue *a = minval;
-  PixelValue *b = maxval;
-
-  PixelValue dummy;
-
-  if(a == NULL)
-    a = &dummy;
-  if(b == NULL)
-    b = &dummy;
+  PixelValue minval;
+  PixelValue maxval;
 
   ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.texid);
 
@@ -311,15 +300,13 @@ bool ReplayOutput::GetMinMax(PixelValue *minval, PixelValue *maxval)
     sample = 0;
   }
 
-  return m_pDevice->GetMinMax(tex, slice, mip, sample, typeHint, &a->value_f[0], &b->value_f[0]);
+  m_pDevice->GetMinMax(tex, slice, mip, sample, typeHint, &minval.value_f[0], &minval.value_f[0]);
+
+  return rdctype::make_pair(minval, maxval);
 }
 
-bool ReplayOutput::GetHistogram(float minval, float maxval, bool channels[4],
-                                rdctype::array<uint32_t> *histogram)
+rdctype::array<uint32_t> ReplayOutput::GetHistogram(float minval, float maxval, bool channels[4])
 {
-  if(histogram == NULL)
-    return false;
-
   vector<uint32_t> hist;
 
   ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.texid);
@@ -337,22 +324,20 @@ bool ReplayOutput::GetHistogram(float minval, float maxval, bool channels[4],
     sample = 0;
   }
 
-  bool ret =
-      m_pDevice->GetHistogram(tex, slice, mip, sample, typeHint, minval, maxval, channels, hist);
+  m_pDevice->GetHistogram(tex, slice, mip, sample, typeHint, minval, maxval, channels, hist);
 
-  if(ret)
-    *histogram = hist;
-
-  return ret;
+  return hist;
 }
 
-bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint32_t y,
-                             uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *ret)
+PixelValue ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint32_t y,
+                                   uint32_t sliceFace, uint32_t mip, uint32_t sample)
 {
-  if(ret == NULL || tex == ResourceId())
-    return false;
+  PixelValue ret;
 
-  RDCEraseEl(ret->value_f);
+  RDCEraseEl(ret.value_f);
+
+  if(tex == ResourceId())
+    return ret;
 
   bool decodeRamp = false;
 
@@ -376,20 +361,20 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
   }
 
   m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sliceFace, mip, sample, typeHint,
-                       ret->value_f);
+                       ret.value_f);
 
   if(decodeRamp)
   {
     for(size_t c = 0; c < ARRAY_COUNT(overdrawRamp); c++)
     {
-      if(fabs(ret->value_f[0] - overdrawRamp[c].x) < 0.00005f &&
-         fabs(ret->value_f[1] - overdrawRamp[c].y) < 0.00005f &&
-         fabs(ret->value_f[2] - overdrawRamp[c].z) < 0.00005f)
+      if(fabs(ret.value_f[0] - overdrawRamp[c].x) < 0.00005f &&
+         fabs(ret.value_f[1] - overdrawRamp[c].y) < 0.00005f &&
+         fabs(ret.value_f[2] - overdrawRamp[c].z) < 0.00005f)
       {
-        ret->value_i[0] = (int32_t)c;
-        ret->value_i[1] = 0;
-        ret->value_i[2] = 0;
-        ret->value_i[3] = 0;
+        ret.value_i[0] = (int32_t)c;
+        ret.value_i[1] = 0;
+        ret.value_i[2] = 0;
+        ret.value_i[3] = 0;
         break;
       }
     }
@@ -398,43 +383,43 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
     if(m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizePass ||
        m_RenderData.texDisplay.overlay == DebugOverlay::TriangleSizeDraw)
     {
-      float bucket = (float)ret->value_i[0];
+      float bucket = (float)ret.value_i[0];
 
       // decode bucket into approximate triangle area
       if(bucket <= 0.5f)
-        ret->value_f[0] = 0.0f;
+        ret.value_f[0] = 0.0f;
       else if(bucket < 2.0f)
-        ret->value_f[0] = 16.0f;
+        ret.value_f[0] = 16.0f;
       else
-        ret->value_f[0] = -2.5f * logf(1.0f + (bucket - 22.0f) / 20.1f);
+        ret.value_f[0] = -2.5f * logf(1.0f + (bucket - 22.0f) / 20.1f);
     }
   }
 
-  return true;
+  return ret;
 }
 
-uint32_t ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint32_t *pickedInstance)
+rdctype::pair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y)
 {
   DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(eventID);
 
+  const rdctype::pair<uint32_t, uint32_t> errorReturn = rdctype::make_pair(~0U, ~0U);
+
   if(!draw)
-    return ~0U;
+    return errorReturn;
   if(m_RenderData.meshDisplay.type == MeshDataStage::Unknown)
-    return ~0U;
+    return errorReturn;
   if(!(draw->flags & DrawFlags::Drawcall))
-    return ~0U;
+    return errorReturn;
 
   MeshDisplay cfg = m_RenderData.meshDisplay;
 
   if(cfg.position.buf == ResourceId())
-    return ~0U;
+    return errorReturn;
 
   cfg.position.buf = m_pDevice->GetLiveID(cfg.position.buf);
   cfg.position.idxbuf = m_pDevice->GetLiveID(cfg.position.idxbuf);
   cfg.second.buf = m_pDevice->GetLiveID(cfg.second.buf);
   cfg.second.idxbuf = m_pDevice->GetLiveID(cfg.second.idxbuf);
-
-  *pickedInstance = 0;
 
   // input data either doesn't vary with instance, or is trivial (all verts the same for that
   // element), so only care about fetching the right instance for post-VS stages
@@ -469,30 +454,27 @@ uint32_t ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint
       if(fmt.buf != ResourceId())
         cfg.position.offset = fmt.offset + elemOffset;
 
-      uint32_t ret = m_pDevice->PickVertex(m_EventID, cfg, x, y);
-      if(ret != ~0U)
+      uint32_t vert = m_pDevice->PickVertex(m_EventID, cfg, x, y);
+      if(vert != ~0U)
       {
-        *pickedInstance = inst;
-        return ret;
+        return rdctype::make_pair(vert, inst);
       }
     }
 
-    return ~0U;
+    return errorReturn;
   }
   else
   {
-    return m_pDevice->PickVertex(m_EventID, cfg, x, y);
+    return rdctype::make_pair(m_pDevice->PickVertex(m_EventID, cfg, x, y), 0U);
   }
 }
 
-bool ReplayOutput::SetPixelContextLocation(uint32_t x, uint32_t y)
+void ReplayOutput::SetPixelContextLocation(uint32_t x, uint32_t y)
 {
   m_ContextX = RDCMAX((float)x, 0.0f);
   m_ContextY = RDCMAX((float)y, 0.0f);
 
   DisplayContext();
-
-  return true;
 }
 
 void ReplayOutput::DisablePixelContext()
@@ -568,7 +550,7 @@ void ReplayOutput::DisplayContext()
   m_pDevice->FlipOutputWindow(m_PixelContext.outputID);
 }
 
-bool ReplayOutput::Display()
+void ReplayOutput::Display()
 {
   if(m_pDevice->CheckResizeOutputWindow(m_MainOutput.outputID))
   {
@@ -654,7 +636,7 @@ bool ReplayOutput::Display()
     m_pDevice->FlipOutputWindow(m_MainOutput.outputID);
     m_pDevice->BindOutputWindow(m_PixelContext.outputID, false);
     m_pDevice->FlipOutputWindow(m_PixelContext.outputID);
-    return true;
+    return;
   }
 
   m_MainOutput.dirty = false;
@@ -669,8 +651,6 @@ bool ReplayOutput::Display()
   m_pDevice->FlipOutputWindow(m_MainOutput.outputID);
 
   DisplayContext();
-
-  return true;
 }
 
 void ReplayOutput::DisplayTex()
@@ -860,20 +840,20 @@ void ReplayOutput::DisplayMesh()
   m_pDevice->RenderMesh(m_EventID, secondaryDraws, mesh);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetTextureDisplay(IReplayOutput *output,
-                                                                            const TextureDisplay &o)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_SetTextureDisplay(IReplayOutput *output,
+                                                                          const TextureDisplay &o)
 {
-  return output->SetTextureDisplay(o);
+  output->SetTextureDisplay(o);
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetMeshDisplay(IReplayOutput *output,
-                                                                         const MeshDisplay &o)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_SetMeshDisplay(IReplayOutput *output,
+                                                                       const MeshDisplay &o)
 {
-  return output->SetMeshDisplay(o);
+  output->SetMeshDisplay(o);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_ClearThumbnails(IReplayOutput *output)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_ClearThumbnails(IReplayOutput *output)
 {
-  return output->ClearThumbnails();
+  output->ClearThumbnails();
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(IReplayOutput *output,
                                                                        WindowingSystem system,
@@ -883,9 +863,9 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(IReplayOu
   return output->AddThumbnail(system, data, texID, typeHint);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_Display(IReplayOutput *output)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_Display(IReplayOutput *output)
 {
-  return output->Display();
+  output->Display();
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetPixelContext(IReplayOutput *output,
@@ -894,10 +874,11 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetPixelContext(IRepla
 {
   return output->SetPixelContext(system, data);
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayOutput_SetPixelContextLocation(IReplayOutput *output, uint32_t x, uint32_t y)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_SetPixelContextLocation(IReplayOutput *output,
+                                                                                uint32_t x,
+                                                                                uint32_t y)
 {
-  return output->SetPixelContextLocation(x, y);
+  output->SetPixelContextLocation(x, y);
 }
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_DisablePixelContext(IReplayOutput *output)
 {
@@ -911,25 +892,27 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_GetCustomShaderTexID(IRe
     *id = output->GetCustomShaderTexID();
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_GetMinMax(IReplayOutput *output,
-                                                                    PixelValue *minval,
-                                                                    PixelValue *maxval)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_GetMinMax(IReplayOutput *output,
+                                                                  PixelValue *minval,
+                                                                  PixelValue *maxval)
 {
-  return output->GetMinMax(minval, maxval);
+  auto ret = output->GetMinMax();
+  *minval = ret.first;
+  *maxval = ret.second;
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+extern "C" RENDERDOC_API void RENDERDOC_CC
 ReplayOutput_GetHistogram(IReplayOutput *output, float minval, float maxval, bool32 channels[4],
                           rdctype::array<uint32_t> *histogram)
 {
   bool chans[4] = {channels[0] != 0, channels[1] != 0, channels[2] != 0, channels[3] != 0};
-  return output->GetHistogram(minval, maxval, chans, histogram);
+  *histogram = output->GetHistogram(minval, maxval, chans);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_PickPixel(
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_PickPixel(
     IReplayOutput *output, ResourceId texID, bool32 customShader, uint32_t x, uint32_t y,
     uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val)
 {
-  return output->PickPixel(texID, customShader != 0, x, y, sliceFace, mip, sample, val);
+  *val = output->PickPixel(texID, customShader != 0, x, y, sliceFace, mip, sample);
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(IReplayOutput *output,
@@ -937,5 +920,7 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(IReplayOu
                                                                        uint32_t y,
                                                                        uint32_t *pickedInstance)
 {
-  return output->PickVertex(eventID, x, y, pickedInstance);
+  auto ret = output->PickVertex(eventID, x, y);
+  *pickedInstance = ret.second;
+  return ret.first;
 }

@@ -111,8 +111,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventID)
   if(!m_formatOverride.empty())
   {
     m_Ctx.Renderer().AsyncInvoke([this, offs, size](IReplayRenderer *r) {
-      rdctype::array<byte> data;
-      r->GetBufferData(m_cbuffer, offs, size, &data);
+      rdctype::array<byte> data = r->GetBufferData(m_cbuffer, offs, size);
       rdctype::array<ShaderVariable> vars = applyFormatOverride(data);
       GUIInvoke::call([this, vars] { setVariables(vars); });
     });
@@ -120,9 +119,8 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventID)
   else
   {
     m_Ctx.Renderer().AsyncInvoke([this, entryPoint, offs](IReplayRenderer *r) {
-      rdctype::array<ShaderVariable> vars;
-      r->GetCBufferVariableContents(m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offs,
-                                    &vars);
+      rdctype::array<ShaderVariable> vars = r->GetCBufferVariableContents(
+          m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offs);
       GUIInvoke::call([this, vars] { setVariables(vars); });
     });
   }

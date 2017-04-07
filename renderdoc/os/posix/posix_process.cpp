@@ -404,7 +404,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
 }
 
 uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, const char *logfile,
-                                    const CaptureOptions *opts, bool waitForExit)
+                                    const CaptureOptions &opts, bool waitForExit)
 {
   RDCUNIMPLEMENTED("Injecting into already running processes on linux");
   return 0;
@@ -461,7 +461,7 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
 
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
                                              const char *cmdLine, EnvironmentModification *envList,
-                                             const char *logfile, const CaptureOptions *opts,
+                                             const char *logfile, const CaptureOptions &opts,
                                              bool waitForExit)
 {
   if(app == NULL || app[0] == 0)
@@ -504,7 +504,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   string optstr;
   {
     optstr.reserve(sizeof(CaptureOptions) * 2 + 1);
-    byte *b = (byte *)opts;
+    byte *b = (byte *)&opts;
     for(size_t i = 0; i < sizeof(CaptureOptions); i++)
     {
       optstr.push_back(char('a' + ((b[i] >> 4) & 0xf)));
@@ -607,7 +607,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   return ret;
 }
 
-void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions *opts)
+void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions &opts)
 {
   RDCUNIMPLEMENTED("Global hooking of all processes on linux");
 }

@@ -263,10 +263,7 @@ void EventBrowser::on_timeDraws_clicked()
 {
   m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) {
 
-    GPUCounter counters[] = {GPUCounter::EventGPUDuration};
-
-    rdctype::array<CounterResult> results;
-    r->FetchCounters(counters, 1, &results);
+    rdctype::array<CounterResult> results = r->FetchCounters({GPUCounter::EventGPUDuration});
 
     GUIInvoke::call([this, results]() { SetDrawcallTimes(ui->events->topLevelItem(0), results); });
   });

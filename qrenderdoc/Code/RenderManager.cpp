@@ -91,8 +91,7 @@ QStringList RenderManager::GetRemoteSupport()
   {
     QMutexLocker autolock(&m_RemoteLock);
 
-    rdctype::array<rdctype::str> supported;
-    m_Remote->RemoteSupportedReplays(&supported);
+    rdctype::array<rdctype::str> supported = m_Remote->RemoteSupportedReplays();
     for(rdctype::str &s : supported)
       ret << ToQStr(s);
   }
@@ -368,13 +367,13 @@ uint32_t RenderManager::ExecuteAndInject(const QString &exe, const QString &work
   {
     QMutexLocker autolock(&m_RemoteLock);
     ret = m_Remote->ExecuteAndInject(exe.toUtf8().data(), workingDir.toUtf8().data(),
-                                     cmdLine.toUtf8().data(), envList, &opts);
+                                     cmdLine.toUtf8().data(), envList, opts);
   }
   else
   {
     ret = RENDERDOC_ExecuteAndInject(exe.toUtf8().data(), workingDir.toUtf8().data(),
                                      cmdLine.toUtf8().data(), envList, logfile.toUtf8().data(),
-                                     &opts, false);
+                                     opts, false);
   }
 
   RENDERDOC_FreeEnvironmentModificationList(envList);
@@ -403,7 +402,8 @@ void RenderManager::run()
   IReplayRenderer *renderer = NULL;
 
   if(m_Remote)
-    m_CreateStatus = m_Remote->OpenCapture(~0U, m_Logfile.toUtf8().data(), m_Progress, &renderer);
+    std::tie(m_CreateStatus, renderer) =
+        m_Remote->OpenCapture(~0U, m_Logfile.toUtf8().data(), m_Progress);
   else
     m_CreateStatus = RENDERDOC_CreateReplayRenderer(m_Logfile.toUtf8().data(), m_Progress, &renderer);
 

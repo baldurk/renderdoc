@@ -266,8 +266,7 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
 
   xcb_map_window(connection, window);
 
-  rdctype::array<WindowingSystem> systems;
-  renderer->GetSupportedWindowSystems(&systems);
+  rdctype::array<WindowingSystem> systems = renderer->GetSupportedWindowSystems();
 
   bool xcb = false, xlib = false;
 
