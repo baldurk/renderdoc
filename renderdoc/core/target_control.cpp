@@ -128,7 +128,13 @@ void RenderDoc::TargetControlClientThread(void *s)
       ser.Serialise("", path);
 
       rdctype::array<byte> buf;
-      RENDERDOC_GetThumbnail(captures.back().path.c_str(), FileType::JPG, 0, &buf);
+
+      ICaptureFile *file = RENDERDOC_OpenCaptureFile(captures.back().path.c_str());
+      if(file->OpenStatus() == ReplayStatus::Succeeded)
+      {
+        buf = file->GetThumbnail(FileType::JPG, 0);
+      }
+      file->Shutdown();
 
       size_t sz = buf.size();
       ser.Serialise("", buf.count);

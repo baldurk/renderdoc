@@ -385,6 +385,7 @@
     <ClCompile Include="os\win32\win32_stringio.cpp" />
     <ClCompile Include="os\win32\win32_threading.cpp" />
     <ClCompile Include="replay\app_api.cpp" />
+    <ClCompile Include="replay\capture_file.cpp" />
     <ClCompile Include="replay\capture_options.cpp" />
     <ClCompile Include="replay\entry_points.cpp" />
     <ClCompile Include="replay\replay_output.cpp" />

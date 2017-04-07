@@ -113,6 +113,7 @@ set(sources
     os/os_specific.h
     replay/app_api.cpp
     replay/capture_options.cpp
+    replay/capture_file.cpp
     replay/entry_points.cpp
     replay/replay_driver.h
     replay/replay_output.cpp

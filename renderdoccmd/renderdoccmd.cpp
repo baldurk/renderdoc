@@ -252,10 +252,19 @@ struct ThumbCommand : public Command
     }
 
     rdctype::array<byte> buf;
-    bool32 ret =
-        RENDERDOC_GetThumbnail(filename.c_str(), type, parser.get<uint32_t>("max-size"), &buf);
 
-    if(!ret)
+    ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename.c_str());
+    if(file->OpenStatus() == ReplayStatus::Succeeded)
+    {
+      buf = file->GetThumbnail(FileType::JPG, 0);
+    }
+    else
+    {
+      std::cerr << "Couldn't open '" << filename << "'" << std::endl;
+    }
+    file->Shutdown();
+
+    if(buf.empty())
     {
       std::cerr << "Couldn't fetch the thumbnail in '" << filename << "'" << std::endl;
     }
@@ -522,9 +531,19 @@ struct ReplayCommand : public Command
     {
       std::cout << "Replaying '" << filename << "' locally.." << std::endl;
 
-      float progress = 0.0f;
+      ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename.c_str());
+
+      if(file->OpenStatus() != ReplayStatus::Succeeded)
+      {
+        std::cerr << "Couldn't load '" << filename << "'." << std::endl;
+        return 1;
+      }
+
       IReplayRenderer *renderer = NULL;
-      ReplayStatus status = RENDERDOC_CreateReplayRenderer(filename.c_str(), &progress, &renderer);
+      ReplayStatus status = ReplayStatus::InternalError;
+      std::tie(status, renderer) = file->OpenCapture(NULL);
+
+      file->Shutdown();
 
       if(status == ReplayStatus::Succeeded)
       {
@@ -536,6 +555,7 @@ struct ReplayCommand : public Command
       else
       {
         std::cerr << "Couldn't load and replay '" << filename << "'." << std::endl;
+        return 1;
       }
     }
     return 0;

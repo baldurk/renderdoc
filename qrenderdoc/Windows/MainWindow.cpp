@@ -411,8 +411,8 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
     if(m_Ctx.LogLoading())
       return;
 
-    rdctype::str driver;
-    rdctype::str machineIdent;
+    QString driver;
+    QString machineIdent;
     ReplaySupport support = ReplaySupport::Unsupported;
 
     bool remoteReplay =
@@ -420,7 +420,22 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
 
     if(local)
     {
-      support = RENDERDOC_SupportLocalReplay(filename.toUtf8().data(), &driver, &machineIdent);
+      ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename.toUtf8().data());
+
+      if(file->OpenStatus() != ReplayStatus::Succeeded)
+      {
+        RDDialog::critical(NULL, tr("Error opening capture"),
+                           tr("Couldn't open file '%1'").arg(filename));
+
+        file->Shutdown();
+        return;
+      }
+
+      driver = QString::fromUtf8(file->DriverName());
+      machineIdent = QString::fromUtf8(file->RecordedMachineIdent());
+      support = file->LocalReplaySupport();
+
+      file->Shutdown();
 
       // if the return value suggests remote replay, and it's not already selected, AND the user
       // hasn't previously chosen to always replay locally without being prompted, ask if they'd
@@ -428,7 +443,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
       if(support == ReplaySupport::SuggestRemote && !remoteReplay &&
          !m_Ctx.Config().AlwaysReplayLocally)
       {
-        SuggestRemoteDialog dialog(ToQStr(driver), ToQStr(machineIdent), this);
+        SuggestRemoteDialog dialog(driver, machineIdent, this);
 
         FillRemotesMenu(dialog.remotesMenu(), false);
 
@@ -499,13 +514,13 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
 
     // if driver is empty something went wrong loading the log, let it be handled as usual
     // below. Otherwise indicate that support is missing.
-    if(driver.count > 0 && support == ReplaySupport::Unsupported)
+    if(!driver.isEmpty() && support == ReplaySupport::Unsupported)
     {
       if(remoteReplay)
       {
         QString remoteMessage =
             tr("This log was captured with %1 and cannot be replayed on %2.\n\n")
-                .arg(driver.c_str())
+                .arg(driver)
                 .arg(m_Ctx.Renderer().CurrentRemote()->Hostname);
 
         remoteMessage += "Try selecting a different remote context in the status bar.";
@@ -515,7 +530,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
       else
       {
         QString remoteMessage =
-            tr("This log was captured with %1 and cannot be replayed locally.\n\n").arg(driver.c_str());
+            tr("This log was captured with %1 and cannot be replayed locally.\n\n").arg(driver);
 
         remoteMessage += "Try selecting a remote context in the status bar.";
 

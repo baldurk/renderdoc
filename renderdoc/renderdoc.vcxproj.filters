@@ -452,6 +452,9 @@
     <ClCompile Include="3rdparty\tinyfiledialogs\tinyfiledialogs.c">
       <Filter>3rdparty\tinyfiledialogs</Filter>
     </ClCompile>
+    <ClCompile Include="replay\capture_file.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

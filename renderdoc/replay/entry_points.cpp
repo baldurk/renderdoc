@@ -28,15 +28,10 @@
 #include "api/replay/version.h"
 #include "common/common.h"
 #include "core/core.h"
-#include "jpeg-compressor/jpgd.h"
-#include "jpeg-compressor/jpge.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
-#include "replay/replay_renderer.h"
-#include "serialise/serialiser.h"
+#include "replay/type_helpers.h"
 #include "serialise/string_utils.h"
-#include "stb/stb_image_resize.h"
-#include "stb/stb_image_write.h"
 
 // these entry points are for the replay/analysis side - not for the application.
 
@@ -339,66 +334,39 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(voi
 extern "C" RENDERDOC_API ReplaySupport RENDERDOC_CC RENDERDOC_SupportLocalReplay(
     const char *logfile, rdctype::str *driver, rdctype::str *recordMachineIdent)
 {
-  if(logfile == NULL)
-    return ReplaySupport::Unsupported;
-
-  RDCDriver driverType = RDC_Unknown;
-  string driverName = "";
-  uint64_t fileMachineIdent = 0;
-  RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, fileMachineIdent, NULL);
+  ICaptureFile *file = RENDERDOC_OpenCaptureFile(logfile);
 
   if(driver)
-    *driver = driverName;
+    *driver = file->DriverName();
 
-  bool supported = RenderDoc::Inst().HasReplayDriver(driverType);
+  if(recordMachineIdent)
+    *recordMachineIdent = file->RecordedMachineIdent();
 
-  if(!supported)
-    return ReplaySupport::Unsupported;
+  ReplaySupport support = file->LocalReplaySupport();
 
-  if(fileMachineIdent != 0)
-  {
-    uint64_t machineIdent = OSUtility::GetMachineIdent();
+  file->Shutdown();
 
-    if(recordMachineIdent)
-      *recordMachineIdent = OSUtility::MakeMachineIdentString(fileMachineIdent);
-
-    if((machineIdent & OSUtility::MachineIdent_OS_Mask) !=
-       (fileMachineIdent & OSUtility::MachineIdent_OS_Mask))
-      return ReplaySupport::SuggestRemote;
-  }
-
-  return ReplaySupport::Supported;
+  return support;
 }
 
 extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
 RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, IReplayRenderer **rend)
 {
-  if(rend == NULL)
-    return ReplayStatus::InternalError;
+  ICaptureFile *file = RENDERDOC_OpenCaptureFile(logfile);
 
-  RenderDoc::Inst().SetProgressPtr(progress);
-
-  ReplayRenderer *render = new ReplayRenderer();
-
-  if(!render)
-  {
-    RenderDoc::Inst().SetProgressPtr(NULL);
-    return ReplayStatus::InternalError;
-  }
-
-  ReplayStatus ret = render->CreateDevice(logfile);
+  ReplayStatus ret = file->OpenStatus();
 
   if(ret != ReplayStatus::Succeeded)
   {
-    delete render;
-    RenderDoc::Inst().SetProgressPtr(NULL);
+    file->Shutdown();
     return ret;
   }
 
-  *rend = render;
+  std::tie(ret, *rend) = file->OpenCapture(progress);
 
-  RenderDoc::Inst().SetProgressPtr(NULL);
-  return ReplayStatus::Succeeded;
+  file->Shutdown();
+
+  return ret;
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
@@ -429,142 +397,20 @@ RENDERDOC_InjectIntoProcess(uint32_t pid, const rdctype::array<EnvironmentModifi
   return Process::InjectIntoProcess(pid, env, logfile, opts, waitForExit != 0);
 }
 
-static void writeToByteVector(void *context, void *data, int size)
-{
-  std::vector<byte> *vec = (std::vector<byte> *)context;
-  byte *start = (byte *)data;
-  byte *end = start + size;
-  vec->insert(vec->end(), start, end);
-}
-
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename,
                                                                     FileType type, uint32_t maxsize,
                                                                     rdctype::array<byte> *buf)
 {
-  Serialiser ser(filename, Serialiser::READING, false);
+  ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename);
 
-  if(ser.HasError())
-    return false;
-
-  ser.Rewind();
-
-  int chunkType = ser.PushContext(NULL, NULL, 1, false);
-
-  if(chunkType != THUMBNAIL_DATA)
-    return false;
-
-  bool HasThumbnail = false;
-  ser.Serialise(NULL, HasThumbnail);
-
-  if(!HasThumbnail)
-    return false;
-
-  byte *jpgbuf = NULL;
-  size_t thumblen = 0;
-  uint32_t thumbwidth = 0, thumbheight = 0;
+  if(file->OpenStatus() != ReplayStatus::Succeeded)
   {
-    ser.Serialise("ThumbWidth", thumbwidth);
-    ser.Serialise("ThumbHeight", thumbheight);
-    ser.SerialiseBuffer("ThumbnailPixels", jpgbuf, thumblen);
+    file->Shutdown();
+    return false;
   }
 
-  if(jpgbuf == NULL)
-    return false;
-
-  // if the desired output is jpg and either there's no max size or it's already satisfied,
-  // return the data directly
-  if(type == FileType::JPG && (maxsize == 0 || (maxsize > thumbwidth && maxsize > thumbheight)))
-  {
-    create_array_init(*buf, thumblen, jpgbuf);
-  }
-  else
-  {
-    // otherwise we need to decode, resample maybe, and re-encode
-
-    int w = (int)thumbwidth;
-    int h = (int)thumbheight;
-    int comp = 3;
-    byte *thumbpixels =
-        jpgd::decompress_jpeg_image_from_memory(jpgbuf, (int)thumblen, &w, &h, &comp, 3);
-
-    if(maxsize != 0)
-    {
-      uint32_t clampedWidth = RDCMIN(maxsize, thumbwidth);
-      uint32_t clampedHeight = RDCMIN(maxsize, thumbheight);
-
-      if(clampedWidth != thumbwidth || clampedHeight != thumbheight)
-      {
-        // preserve aspect ratio, take the smallest scale factor and multiply both
-        float scaleX = float(clampedWidth) / float(thumbwidth);
-        float scaleY = float(clampedHeight) / float(thumbheight);
-
-        if(scaleX < scaleY)
-          clampedHeight = uint32_t(scaleX * thumbheight);
-        else if(scaleY < scaleX)
-          clampedWidth = uint32_t(scaleY * thumbwidth);
-
-        byte *resizedpixels = (byte *)malloc(3 * clampedWidth * clampedHeight);
-
-        stbir_resize_uint8_srgb(thumbpixels, thumbwidth, thumbheight, 0, resizedpixels,
-                                clampedWidth, clampedHeight, 0, 3, -1, 0);
-
-        free(thumbpixels);
-
-        thumbpixels = resizedpixels;
-        thumbwidth = clampedWidth;
-        thumbheight = clampedHeight;
-      }
-    }
-
-    std::vector<byte> encodedBytes;
-
-    switch(type)
-    {
-      case FileType::JPG:
-      {
-        int len = thumbwidth * thumbheight * 3;
-        encodedBytes.resize(len);
-        jpge::params p;
-        p.m_quality = 90;
-        jpge::compress_image_to_jpeg_file_in_memory(&encodedBytes[0], len, (int)thumbwidth,
-                                                    (int)thumbheight, 3, thumbpixels, p);
-        encodedBytes.resize(len);
-        break;
-      }
-      case FileType::PNG:
-      {
-        stbi_write_png_to_func(&writeToByteVector, &encodedBytes, (int)thumbwidth, (int)thumbheight,
-                               3, thumbpixels, 0);
-        break;
-      }
-      case FileType::TGA:
-      {
-        stbi_write_tga_to_func(&writeToByteVector, &encodedBytes, (int)thumbwidth, (int)thumbheight,
-                               3, thumbpixels);
-        break;
-      }
-      case FileType::BMP:
-      {
-        stbi_write_bmp_to_func(&writeToByteVector, &encodedBytes, (int)thumbwidth, (int)thumbheight,
-                               3, thumbpixels);
-        break;
-      }
-      default:
-      {
-        RDCERR("Unsupported file type %d in thumbnail fetch", type);
-        free(thumbpixels);
-        delete[] jpgbuf;
-        return false;
-      }
-    }
-
-    *buf = encodedBytes;
-
-    free(thumbpixels);
-  }
-
-  delete[] jpgbuf;
-
+  *buf = file->GetThumbnail(type, maxsize);
+  file->Shutdown();
   return true;
 }
 

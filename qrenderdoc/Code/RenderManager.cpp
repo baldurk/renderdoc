@@ -396,10 +396,21 @@ void RenderManager::run()
   IReplayRenderer *renderer = NULL;
 
   if(m_Remote)
+  {
     std::tie(m_CreateStatus, renderer) =
         m_Remote->OpenCapture(~0U, m_Logfile.toUtf8().data(), m_Progress);
+  }
   else
-    m_CreateStatus = RENDERDOC_CreateReplayRenderer(m_Logfile.toUtf8().data(), m_Progress, &renderer);
+  {
+    ICaptureFile *file = RENDERDOC_OpenCaptureFile(m_Logfile.toUtf8().data());
+
+    m_CreateStatus = file->OpenStatus();
+
+    if(m_CreateStatus == ReplayStatus::Succeeded)
+      std::tie(m_CreateStatus, renderer) = file->OpenCapture(m_Progress);
+
+    file->Shutdown();
+  }
 
   if(renderer == NULL)
     return;

@@ -1019,6 +1019,84 @@ protected:
   ~IRemoteServer() = default;
 };
 
+DOCUMENT(R"(A handle to a capture file. Used for simple cheap processing and meta-data fetching
+without opening the capture for analysis.
+)")
+struct ICaptureFile
+{
+  DOCUMENT("Closes the handle.");
+  virtual void Shutdown() = 0;
+
+  DOCUMENT(R"(Retrieves the status of the handle.
+
+This returns an error if the capture file used to create the handle wasn't found, or was corrupted,
+or something else went wrong while processing it.
+
+:return: The status of the handle to the file.
+:rtype: ReplayStatus
+)");
+  virtual ReplayStatus OpenStatus() = 0;
+
+  DOCUMENT(R"(Retrieves the filename used to open this handle.
+
+This filename is exactly as specified without any modificaton to make it an absolute path.
+
+:return: The filename used to create this handle.
+:rtype: ``str``
+)");
+  virtual const char *Filename() = 0;
+
+  DOCUMENT(R"(Queries for how well a particular capture is supported on the local machine.
+
+:return: How much support for replay exists locally.
+:rtype: ReplaySupport
+)");
+  virtual ReplaySupport LocalReplaySupport() = 0;
+
+  DOCUMENT(R"(Retrieves the name of the driver that was used to create this capture.
+
+:return: A simple string identifying the driver used to make the capture.
+:rtype: ``str``
+)");
+  virtual const char *DriverName() = 0;
+
+  DOCUMENT(R"(Retrieves the identifying string describing what type of machine created this capture.
+
+:return: A string identifying the machine ident used to make the capture.
+:rtype: ``str``
+)");
+  virtual const char *RecordedMachineIdent() = 0;
+
+  DOCUMENT(R"(Opens a capture for replay locally and returns a handle to the capture.
+
+This function will block until the capture is fully loaded and ready.
+
+Once the replay is created, this :class:`CaptureFile` can be shut down, there is no dependency on it
+by the :class:`ReplayRenderer`.
+
+:param float progress: A reference to a ``float`` value that will be updated as the copy happens
+  from ``0.0`` to ``1.0``. The parameter can be ``None`` if no progress update is desired.
+:return: A tuple containing the status of opening the capture, whether success or failure, and the
+  resulting :class:`ReplayRenderer` handle if successful.
+:rtype: ``tuple`` of :class:`ReplayStatus` and :class:`ReplayRenderer`.
+)");
+  virtual rdctype::pair<ReplayStatus, IReplayRenderer *> OpenCapture(float *progress) = 0;
+
+  DOCUMENT(R"(Retrieves the embedded thumbnail from the capture.
+
+:param FileType type: The image format to convert the thumbnail to.
+:param int maxsize: The largest width or height allowed. If the thumbnail is larger, it's resized.
+:return: The raw contents of the thumbnail, converted to the desired type at the desired max
+  resolution.
+:rtype: ``bytes``.
+  )");
+  virtual rdctype::array<byte> GetThumbnail(FileType type, uint32_t maxsize) = 0;
+
+protected:
+  ICaptureFile() = default;
+  ~ICaptureFile() = default;
+};
+
 //////////////////////////////////////////////////////////////////////////
 // camera
 //////////////////////////////////////////////////////////////////////////
@@ -1091,39 +1169,21 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_VertexOffset(Topology to
                                                                      uint32_t primitive);
 
 //////////////////////////////////////////////////////////////////////////
-// Create a replay renderer, for playback and analysis.
+// Create a capture handle.
 //
-// Takes the filename of the log. Returns NULL in the case of any error.
+// Takes the filename of the log. Always returns a valid handle that must be shut down.
+// If any errors happen this can be queried with :meth:`CaptureFile.Status`.
 //////////////////////////////////////////////////////////////////////////
 
-DOCUMENT(R"(Queries for how well a particular capture is supported on the local machine, and returns
-some simple properties about the capture.
+DOCUMENT(R"(Create a capture handle.
 
-:param str path: The path to the capture.
-:param str driverName: A reference to a ``str`` that is filled with the name of the driver used in
-  the capture.
-:param str driverName: A reference to a ``str`` that is filled with the identifier of the type of
-  machine used such as OS and architecture.
-:return: How much support for replay exists locally.
+Takes the filename of the log. This function *always* returns a valid handle that must be shut down.
+If any errors happen this can be queried with :meth:`CaptureFile.Status`.
+
+:return: A handle to the specified path.
 :rtype: ReplaySupport
 )");
-extern "C" RENDERDOC_API ReplaySupport RENDERDOC_CC RENDERDOC_SupportLocalReplay(
-    const char *logfile, rdctype::str *driverName, rdctype::str *recordMachineIdent);
-
-DOCUMENT(R"(Opens a capture for replay locally and returns a handle to the capture.
-
-This function will block until the capture is fully loaded and ready.
-
-:param str logfile: The path to the capture.
-:param float progress: A reference to a ``float`` value that will be updated as the copy happens
-  from ``0.0`` to ``1.0``.
-:param ReplayRenderer rend: A reference to a :class:`ReplayRenderer` where the capture handle will
-  be stored.
-:return: The status of opening the capture, whether success or failure.
-:rtype: ReplayStatus
-)");
-extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
-RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, IReplayRenderer **rend);
+extern "C" RENDERDOC_API ICaptureFile *RENDERDOC_CC RENDERDOC_OpenCaptureFile(const char *logfile);
 
 //////////////////////////////////////////////////////////////////////////
 // Target Control
@@ -1314,17 +1374,6 @@ DOCUMENT("Internal function for logging messages in detail.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogType type, const char *project,
                                                                 const char *file, unsigned int line,
                                                                 const char *text);
-
-DOCUMENT(R"(Retrieves the embedded thumbnail from a capture.
-
-:param str filename: The filename of the capture to open.
-:param FileType type: The image format to convert the thumbnail to.
-:param int maxsize: The largest width or height allowed. If the thumbnail is larger, it's resized.
-:param bytes buf: A reference to a ``bytes`` to receive the data, empty if something went wrong.
-)");
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename,
-                                                                    FileType type, uint32_t maxsize,
-                                                                    rdctype::array<byte> *buf);
 
 DOCUMENT(R"(Retrieves the version string.
 
