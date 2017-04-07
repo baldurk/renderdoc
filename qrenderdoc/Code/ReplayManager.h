@@ -79,7 +79,7 @@ public:
 
   QStringList GetRemoteSupport();
   void GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb);
-  bool ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb);
+  void ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb);
   QString CopyCaptureToRemote(const QString &localpath, QWidget *window);
   void CopyCaptureFromRemote(const QString &remotepath, const QString &localpath, QWidget *window);
 

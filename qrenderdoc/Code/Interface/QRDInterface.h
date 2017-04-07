@@ -285,7 +285,7 @@ struct IReplayManager
 
   virtual QStringList GetRemoteSupport() = 0;
   virtual void GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb) = 0;
-  virtual bool ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb) = 0;
+  virtual void ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb) = 0;
   virtual QString CopyCaptureToRemote(const QString &localpath, QWidget *window) = 0;
   virtual void CopyCaptureFromRemote(const QString &remotepath, const QString &localpath,
                                      QWidget *window) = 0;

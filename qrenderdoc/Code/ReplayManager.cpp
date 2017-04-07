@@ -127,10 +127,10 @@ void ReplayManager::GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb)
   cb(home.c_str(), rdctype::array<PathEntry>());
 }
 
-bool ReplayManager::ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb)
+void ReplayManager::ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb)
 {
   if(!m_Remote)
-    return false;
+    return;
 
   QByteArray pathUTF8 = path.toUtf8();
 
@@ -144,7 +144,7 @@ bool ReplayManager::ListFolder(QString path, bool synchronous, DirectoryBrowseCa
       BlockInvoke(lambda);
     else
       AsyncInvoke(lambda);
-    return true;
+    return;
   }
 
   rdctype::array<PathEntry> contents;
@@ -157,7 +157,7 @@ bool ReplayManager::ListFolder(QString path, bool synchronous, DirectoryBrowseCa
 
   cb(pathUTF8.data(), contents);
 
-  return true;
+  return;
 }
 
 QString ReplayManager::CopyCaptureToRemote(const QString &localpath, QWidget *window)
