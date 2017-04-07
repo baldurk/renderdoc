@@ -2825,16 +2825,26 @@ string ToStrHelper<false, VkPresentModeKHR>::Get(const VkPresentModeKHR &el)
 }
 
 // we know the object will be a non-dispatchable object type
-#define SerialiseObject(type, name, obj)                                                            \
-  {                                                                                                 \
-    VulkanResourceManager *rm = (VulkanResourceManager *)GetUserData();                             \
-    ResourceId id;                                                                                  \
-    if(m_Mode >= WRITING)                                                                           \
-      id = GetResID(obj);                                                                           \
-    Serialise(name, id);                                                                            \
-    if(m_Mode < WRITING)                                                                            \
-      obj = (id == ResourceId() || !rm->HasLiveResource(id)) ? VK_NULL_HANDLE                       \
-                                                             : Unwrap(rm->GetLiveHandle<type>(id)); \
+#define SerialiseObject(type, name, obj)                                      \
+  {                                                                           \
+    VulkanResourceManager *rm = (VulkanResourceManager *)GetUserData();       \
+    ResourceId id;                                                            \
+    if(m_Mode >= WRITING)                                                     \
+      id = GetResID(obj);                                                     \
+    Serialise(name, id);                                                      \
+    if(m_Mode < WRITING)                                                      \
+    {                                                                         \
+      obj = VK_NULL_HANDLE;                                                   \
+      if(id != ResourceId())                                                  \
+      {                                                                       \
+        if(rm->HasLiveResource(id))                                           \
+          obj = Unwrap(rm->GetLiveHandle<type>(id));                          \
+        else                                                                  \
+          /* It can be OK for a resource to have no live equivalent if the    \
+          capture decided its not needed, which some APIs do fairly often. */ \
+          RDCWARN("Capture may be missing reference to " #type " resource."); \
+      }                                                                       \
+    }                                                                         \
   }
 
 static void SerialiseNext(Serialiser *ser, VkStructureType &sType, const void *&pNext)
