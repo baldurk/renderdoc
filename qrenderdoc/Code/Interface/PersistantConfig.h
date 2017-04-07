@@ -61,8 +61,6 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
                                                                                            \
   CONFIG_SETTING(public, QVariantList, QList<QString>, RecentCaptureSettings)              \
                                                                                            \
-  CONFIG_SETTING_VAL(public, int, int, CallstackLevelSkip, 0)                              \
-                                                                                           \
   CONFIG_SETTING_VAL(public, QString, QString, TemporaryCaptureDirectory, "")              \
                                                                                            \
   CONFIG_SETTING_VAL(public, QString, QString, DefaultCaptureSaveDirectory, "")            \
@@ -132,15 +130,15 @@ enum class TimeUnit : int
   Count,
 };
 
-inline QString UnitPrefix(TimeUnit t)
+inline QString UnitSuffix(TimeUnit unit)
 {
-  if(t == TimeUnit::Seconds)
+  if(unit == TimeUnit::Seconds)
     return "s";
-  else if(t == TimeUnit::Milliseconds)
+  else if(unit == TimeUnit::Milliseconds)
     return "ms";
-  else if(t == TimeUnit::Microseconds)
+  else if(unit == TimeUnit::Microseconds)
     return "µs";
-  else if(t == TimeUnit::Nanoseconds)
+  else if(unit == TimeUnit::Nanoseconds)
     return "ns";
 
   return "s";

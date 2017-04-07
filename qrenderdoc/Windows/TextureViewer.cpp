@@ -1793,7 +1793,7 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdctype::array<
   if(m_Ctx.CurPipelineState().SupportsBarriers())
   {
     contextMenu.addSeparator();
-    imageLayout.setText(tr("Image is in layout ") + m_Ctx.CurPipelineState().GetImageLayout(id));
+    imageLayout.setText(tr("Image is in layout ") + m_Ctx.CurPipelineState().GetResourceLayout(id));
     contextMenu.addAction(&imageLayout);
   }
 

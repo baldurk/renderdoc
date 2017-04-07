@@ -61,6 +61,15 @@ struct BoundVBuffer
 
 DECLARE_REFLECTION_STRUCT(BoundVBuffer);
 
+struct BoundCBuffer
+{
+  ResourceId Buffer;
+  uint64_t ByteOffset = 0;
+  uint32_t ByteSize = 0;
+};
+
+DECLARE_REFLECTION_STRUCT(BoundCBuffer);
+
 struct VertexInputAttribute
 {
   QString Name;
@@ -153,7 +162,7 @@ public:
   // or transform feedback have tightly packed data, but APIs that rewrite
   // shaders to dump data might have these alignment requirements
   bool HasAlignedPostVSData() { return LogLoaded() && IsLogVK(); }
-  QString GetImageLayout(ResourceId id);
+  QString GetResourceLayout(ResourceId id);
   QString Abbrev(ShaderStage stage);
   QString OutputAbbrev();
 
@@ -164,13 +173,12 @@ public:
   ResourceId GetShader(ShaderStage stage);
   QString GetShaderName(ShaderStage stage);
   QString GetShaderExtension();
-  void GetIBuffer(ResourceId &buf, uint64_t &ByteOffset);
+  QPair<ResourceId, uint64_t> GetIBuffer();
   bool IsStripRestartEnabled();
   uint32_t GetStripRestartIndex(uint32_t indexByteWidth);
   QVector<BoundVBuffer> GetVBuffers();
   QVector<VertexInputAttribute> GetVertexInputs();
-  void GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, uint32_t ArrayIdx, ResourceId &buf,
-                         uint64_t &ByteOffset, uint64_t &ByteSize);
+  BoundCBuffer GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, uint32_t ArrayIdx);
   QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(ShaderStage stage);
   QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(ShaderStage stage);
   BoundResource GetDepthTarget();

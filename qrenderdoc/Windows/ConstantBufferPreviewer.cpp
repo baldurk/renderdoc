@@ -92,9 +92,10 @@ void ConstantBufferPreviewer::OnLogfileClosed()
 
 void ConstantBufferPreviewer::OnEventChanged(uint32_t eventID)
 {
-  uint64_t offs = 0;
-  uint64_t size = 0;
-  m_Ctx.CurPipelineState().GetConstantBuffer(m_stage, m_slot, m_arrayIdx, m_cbuffer, offs, size);
+  BoundCBuffer cb = m_Ctx.CurPipelineState().GetConstantBuffer(m_stage, m_slot, m_arrayIdx);
+  m_cbuffer = cb.Buffer;
+  uint64_t offs = cb.ByteOffset;
+  uint64_t size = cb.ByteSize;
 
   m_shader = m_Ctx.CurPipelineState().GetShader(m_stage);
   QString entryPoint = m_Ctx.CurPipelineState().GetShaderEntryPoint(m_stage);

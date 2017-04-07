@@ -46,7 +46,7 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 
   for(int i = 0; i < (int)TimeUnit::Count; i++)
   {
-    ui->EventBrowser_TimeUnit->addItem(UnitPrefix((TimeUnit)i));
+    ui->EventBrowser_TimeUnit->addItem(UnitSuffix((TimeUnit)i));
   }
 
   ui->pages->clearSelection();

@@ -1295,15 +1295,13 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
 {
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
-  ResourceId ib;
-  uint64_t ioffset = 0;
-  m_Ctx.CurPipelineState().GetIBuffer(ib, ioffset);
+  QPair<ResourceId, uint64_t> ib = m_Ctx.CurPipelineState().GetIBuffer();
 
   QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
 
   rdctype::array<byte> idata;
-  if(ib != ResourceId() && draw && (draw->flags & DrawFlags::UseIBuffer))
-    idata = r->GetBufferData(ib, ioffset + draw->indexOffset * draw->indexByteWidth,
+  if(ib.first != ResourceId() && draw && (draw->flags & DrawFlags::UseIBuffer))
+    idata = r->GetBufferData(ib.first, ib.second + draw->indexOffset * draw->indexByteWidth,
                              draw->numIndices * draw->indexByteWidth);
 
   uint32_t *indices = NULL;
@@ -1416,7 +1414,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   m_ModelVSOut->numRows = m_PostVS.numVerts;
 
   if(draw && m_PostVS.idxbuf != ResourceId() && (draw->flags & DrawFlags::UseIBuffer))
-    idata = r->GetBufferData(m_PostVS.idxbuf, ioffset + draw->indexOffset * draw->indexByteWidth,
+    idata = r->GetBufferData(m_PostVS.idxbuf, ib.second + draw->indexOffset * draw->indexByteWidth,
                              draw->numIndices * draw->indexByteWidth);
 
   indices = NULL;
@@ -1824,7 +1822,9 @@ void BufferViewer::updatePreviewColumns()
       m_VSInPosition.topo = draw->topology;
       m_VSInPosition.idxByteWidth = draw->indexByteWidth;
       m_VSInPosition.baseVertex = draw->baseVertex;
-      m_Ctx.CurPipelineState().GetIBuffer(m_VSInPosition.idxbuf, m_VSInPosition.idxoffs);
+      QPair<ResourceId, uint64_t> ib = m_Ctx.CurPipelineState().GetIBuffer();
+      m_VSInPosition.idxbuf = ib.first;
+      m_VSInPosition.idxoffs = ib.second;
 
       {
         const FormatElement &el = m_ModelVSIn->columns[elIdx];

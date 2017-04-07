@@ -26,7 +26,7 @@
 #include "Code/QRDUtils.h"
 #include "QRDInterface.h"
 
-QString CommonPipelineState::GetImageLayout(ResourceId id)
+QString CommonPipelineState::GetResourceLayout(ResourceId id)
 {
   if(LogLoaded())
   {
@@ -496,42 +496,36 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
   return ret;
 }
 
-void CommonPipelineState::GetIBuffer(ResourceId &buf, uint64_t &ByteOffset)
+QPair<ResourceId, uint64_t> CommonPipelineState::GetIBuffer()
 {
+  ResourceId buf;
+  uint64_t ByteOffset = 0;
+
   if(LogLoaded())
   {
     if(IsLogD3D11())
     {
       buf = m_D3D11->m_IA.ibuffer.Buffer;
       ByteOffset = m_D3D11->m_IA.ibuffer.Offset;
-
-      return;
     }
     else if(IsLogD3D12())
     {
       buf = m_D3D12->m_IA.ibuffer.Buffer;
       ByteOffset = m_D3D12->m_IA.ibuffer.Offset;
-
-      return;
     }
     else if(IsLogGL())
     {
       buf = m_GL->m_VtxIn.ibuffer;
       ByteOffset = 0;    // GL only has per-draw index offset
-
-      return;
     }
     else if(IsLogVK())
     {
       buf = m_Vulkan->IA.ibuffer.buf;
       ByteOffset = m_Vulkan->IA.ibuffer.offs;
-
-      return;
     }
   }
 
-  buf = ResourceId();
-  ByteOffset = 0;
+  return qMakePair(buf, ByteOffset);
 }
 
 bool CommonPipelineState::IsStripRestartEnabled()
@@ -888,9 +882,13 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
   return QVector<VertexInputAttribute>();
 }
 
-void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, uint32_t ArrayIdx,
-                                            ResourceId &buf, uint64_t &ByteOffset, uint64_t &ByteSize)
+BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx,
+                                                    uint32_t ArrayIdx)
 {
+  ResourceId buf;
+  uint64_t ByteOffset = 0;
+  uint64_t ByteSize = 0;
+
   if(LogLoaded())
   {
     if(IsLogD3D11())
@@ -902,8 +900,6 @@ void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, 
         buf = s.ConstantBuffers[BufIdx].Buffer;
         ByteOffset = s.ConstantBuffers[BufIdx].VecOffset * 4 * sizeof(float);
         ByteSize = s.ConstantBuffers[BufIdx].VecCount * 4 * sizeof(float);
-
-        return;
       }
     }
     else if(IsLogD3D12())
@@ -916,20 +912,13 @@ void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, 
             s.BindpointMapping.ConstantBlocks[s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint];
 
         if(bind.bindset >= s.Spaces.count || bind.bind >= s.Spaces[bind.bindset].ConstantBuffers.count)
-        {
-          buf = ResourceId();
-          ByteOffset = 0;
-          ByteSize = 0;
-          return;
-        }
+          return BoundCBuffer();
 
         const D3D12Pipe::CBuffer &descriptor = s.Spaces[bind.bindset].ConstantBuffers[bind.bind];
 
         buf = descriptor.Buffer;
         ByteOffset = descriptor.Offset;
         ByteSize = descriptor.ByteSize;
-
-        return;
       }
     }
     else if(IsLogGL())
@@ -949,8 +938,6 @@ void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, 
             buf = b.Resource;
             ByteOffset = b.Offset;
             ByteSize = b.Size;
-
-            return;
           }
         }
       }
@@ -967,11 +954,10 @@ void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, 
 
         if(s.ShaderDetails->ConstantBlocks[BufIdx].bufferBacked == false)
         {
-          // dummy values, it would be nice to fetch these properly
-          buf = ResourceId();
-          ByteOffset = 0;
-          ByteSize = 1024;
-          return;
+          BoundCBuffer ret;
+          // dummy value, it would be nice to fetch this properly
+          ret.ByteSize = 1024;
+          return ret;
         }
 
         auto &descriptorBind = pipe.DescSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
@@ -979,15 +965,17 @@ void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, 
         buf = descriptorBind.res;
         ByteOffset = descriptorBind.offset;
         ByteSize = descriptorBind.size;
-
-        return;
       }
     }
   }
 
-  buf = ResourceId();
-  ByteOffset = 0;
-  ByteSize = 0;
+  BoundCBuffer ret;
+
+  ret.Buffer = buf;
+  ret.ByteOffset = ByteOffset;
+  ret.ByteSize = ByteSize;
+
+  return ret;
 }
 
 QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResources(ShaderStage stage)
