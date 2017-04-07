@@ -26,7 +26,7 @@ CONTAINER_TYPEMAPS(QMap)
 }
 
 // need to ignore the original function and add a helper that releases the python GIL while calling
-%ignore IRenderManager::BlockInvoke;
+%ignore IReplayManager::BlockInvoke;
 
 // ignore these functions as we don't map QVariantMap to/from python
 %ignore EnvironmentModification::toJSON;
@@ -59,9 +59,9 @@ CONTAINER_TYPEMAPS(QMap)
 %include "Code/Interface/RemoteHost.h"
 
 // unignore the function from above
-%rename("%s") IRenderManager::BlockInvoke;
+%rename("%s") IReplayManager::BlockInvoke;
 
-%extend IRenderManager {
+%extend IReplayManager {
   void BlockInvoke(InvokeMethod m) {
     Py_BEGIN_ALLOW_THREADS
     $self->BlockInvoke(m);

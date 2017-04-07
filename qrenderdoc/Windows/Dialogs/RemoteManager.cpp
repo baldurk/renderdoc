@@ -598,7 +598,7 @@ void RemoteManager::on_connect_clicked()
       // shut down
       if(host->Connected)
       {
-        m_Ctx.Renderer().ShutdownServer();
+        m_Ctx.Replay().ShutdownServer();
         setRemoteServerLive(node, false, false);
       }
       else

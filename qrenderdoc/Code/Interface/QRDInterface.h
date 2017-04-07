@@ -256,7 +256,7 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(ILogViewerForm);
 
-struct IRenderManager
+struct IReplayManager
 {
   typedef std::function<void(IReplayController *)> InvokeMethod;
   typedef std::function<void(const rdctype::str &, const rdctype::array<PathEntry> &)> DirectoryBrowseMethod;
@@ -291,11 +291,11 @@ struct IRenderManager
                                      QWidget *window) = 0;
 
 protected:
-  IRenderManager() = default;
-  ~IRenderManager() = default;
+  IReplayManager() = default;
+  ~IReplayManager() = default;
 };
 
-DECLARE_REFLECTION_STRUCT(IRenderManager);
+DECLARE_REFLECTION_STRUCT(IReplayManager);
 
 // should match ToolWindowManager::AreaReferenceType
 enum class DockReference : int
@@ -335,7 +335,7 @@ struct ICaptureContext
   //////////////////////////////////////////////////////////////////////////////
   // Accessors
 
-  virtual IRenderManager &Renderer() = 0;
+  virtual IReplayManager &Replay() = 0;
   virtual bool LogLoaded() = 0;
   virtual bool IsLogLocal() = 0;
   virtual bool LogLoading() = 0;

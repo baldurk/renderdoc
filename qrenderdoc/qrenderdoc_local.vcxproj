@@ -731,7 +731,7 @@
     </ClCompile>
     <ClCompile Include="Widgets\Extended\RDLineEdit.cpp" />
     <ClCompile Include="Windows\MainWindow.cpp" />
-    <ClCompile Include="Code\RenderManager.cpp" />
+    <ClCompile Include="Code\ReplayManager.cpp" />
     <ClCompile Include="Windows\PipelineState\D3D11PipelineStateViewer.cpp" />
     <ClCompile Include="Windows\PipelineState\D3D12PipelineStateViewer.cpp" />
     <ClCompile Include="Windows\PipelineState\GLPipelineStateViewer.cpp" />
@@ -906,7 +906,7 @@
       <Message>MOC %(Filename).h</Message>
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
-    <ClInclude Include="Code\RenderManager.h" />
+    <ClInclude Include="Code\ReplayManager.h" />
     <ClInclude Include="Code\ScintillaSyntax.h" />
     <CustomBuild Include="Widgets\BufferFormatSpecifier.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>

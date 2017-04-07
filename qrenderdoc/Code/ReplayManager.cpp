@@ -22,24 +22,24 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "RenderManager.h"
+#include "ReplayManager.h"
 #include <QApplication>
 #include <QMutexLocker>
 #include <QProgressDialog>
 #include "CaptureContext.h"
 #include "QRDUtils.h"
 
-RenderManager::RenderManager()
+ReplayManager::ReplayManager()
 {
   m_Running = false;
   m_Thread = NULL;
 }
 
-RenderManager::~RenderManager()
+ReplayManager::~ReplayManager()
 {
 }
 
-void RenderManager::OpenCapture(const QString &logfile, float *progress)
+void ReplayManager::OpenCapture(const QString &logfile, float *progress)
 {
   if(m_Running)
     return;
@@ -59,7 +59,7 @@ void RenderManager::OpenCapture(const QString &logfile, float *progress)
   }
 }
 
-void RenderManager::DeleteCapture(const QString &logfile, bool local)
+void ReplayManager::DeleteCapture(const QString &logfile, bool local)
 {
   if(IsRunning())
   {
@@ -83,7 +83,7 @@ void RenderManager::DeleteCapture(const QString &logfile, bool local)
   }
 }
 
-QStringList RenderManager::GetRemoteSupport()
+QStringList ReplayManager::GetRemoteSupport()
 {
   QStringList ret;
 
@@ -99,7 +99,7 @@ QStringList RenderManager::GetRemoteSupport()
   return ret;
 }
 
-void RenderManager::GetHomeFolder(bool synchronous, DirectoryBrowseMethod cb)
+void ReplayManager::GetHomeFolder(bool synchronous, DirectoryBrowseMethod cb)
 {
   if(!m_Remote)
     return;
@@ -127,7 +127,7 @@ void RenderManager::GetHomeFolder(bool synchronous, DirectoryBrowseMethod cb)
   cb(home.c_str(), rdctype::array<PathEntry>());
 }
 
-bool RenderManager::ListFolder(QString path, bool synchronous, DirectoryBrowseMethod cb)
+bool ReplayManager::ListFolder(QString path, bool synchronous, DirectoryBrowseMethod cb)
 {
   if(!m_Remote)
     return false;
@@ -160,7 +160,7 @@ bool RenderManager::ListFolder(QString path, bool synchronous, DirectoryBrowseMe
   return true;
 }
 
-QString RenderManager::CopyCaptureToRemote(const QString &localpath, QWidget *window)
+QString ReplayManager::CopyCaptureToRemote(const QString &localpath, QWidget *window)
 {
   if(!m_Remote)
     return "";
@@ -188,13 +188,13 @@ QString RenderManager::CopyCaptureToRemote(const QString &localpath, QWidget *wi
     thread->start();
   }
 
-  ShowProgressDialog(window, QApplication::translate("RenderManager", "Transferring..."),
+  ShowProgressDialog(window, QApplication::translate("ReplayManager", "Transferring..."),
                      [&copied]() { return copied; }, [&progress]() { return progress; });
 
   return remotepath;
 }
 
-void RenderManager::CopyCaptureFromRemote(const QString &remotepath, const QString &localpath,
+void ReplayManager::CopyCaptureFromRemote(const QString &remotepath, const QString &localpath,
                                           QWidget *window)
 {
   if(!m_Remote)
@@ -221,16 +221,16 @@ void RenderManager::CopyCaptureFromRemote(const QString &remotepath, const QStri
     thread->start();
   }
 
-  ShowProgressDialog(window, QApplication::translate("RenderManager", "Transferring..."),
+  ShowProgressDialog(window, QApplication::translate("ReplayManager", "Transferring..."),
                      [&copied]() { return copied; }, [&progress]() { return progress; });
 }
 
-bool RenderManager::IsRunning()
+bool ReplayManager::IsRunning()
 {
   return m_Thread && m_Thread->isRunning() && m_Running;
 }
 
-void RenderManager::AsyncInvoke(const QString &tag, RenderManager::InvokeMethod m)
+void ReplayManager::AsyncInvoke(const QString &tag, ReplayManager::InvokeMethod m)
 {
   {
     QMutexLocker autolock(&m_RenderLock);
@@ -255,7 +255,7 @@ void RenderManager::AsyncInvoke(const QString &tag, RenderManager::InvokeMethod 
   PushInvoke(cmd);
 }
 
-void RenderManager::AsyncInvoke(RenderManager::InvokeMethod m)
+void ReplayManager::AsyncInvoke(ReplayManager::InvokeMethod m)
 {
   InvokeHandle *cmd = new InvokeHandle(m);
   cmd->selfdelete = true;
@@ -263,7 +263,7 @@ void RenderManager::AsyncInvoke(RenderManager::InvokeMethod m)
   PushInvoke(cmd);
 }
 
-void RenderManager::BlockInvoke(RenderManager::InvokeMethod m)
+void ReplayManager::BlockInvoke(ReplayManager::InvokeMethod m)
 {
   InvokeHandle *cmd = new InvokeHandle(m);
 
@@ -274,7 +274,7 @@ void RenderManager::BlockInvoke(RenderManager::InvokeMethod m)
   delete cmd;
 }
 
-void RenderManager::CloseThread()
+void ReplayManager::CloseThread()
 {
   m_Running = false;
 
@@ -292,7 +292,7 @@ void RenderManager::CloseThread()
   m_Thread = NULL;
 }
 
-ReplayStatus RenderManager::ConnectToRemoteServer(RemoteHost *host)
+ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost *host)
 {
   ReplayStatus status =
       RENDERDOC_CreateRemoteServerConnection(host->Hostname.toUtf8().data(), 0, &m_Remote);
@@ -308,7 +308,7 @@ ReplayStatus RenderManager::ConnectToRemoteServer(RemoteHost *host)
   return status;
 }
 
-void RenderManager::DisconnectFromRemoteServer()
+void ReplayManager::DisconnectFromRemoteServer()
 {
   if(m_RemoteHost)
     m_RemoteHost->Connected = false;
@@ -323,7 +323,7 @@ void RenderManager::DisconnectFromRemoteServer()
   m_Remote = NULL;
 }
 
-void RenderManager::ShutdownServer()
+void ReplayManager::ShutdownServer()
 {
   if(m_Remote)
   {
@@ -334,7 +334,7 @@ void RenderManager::ShutdownServer()
   m_Remote = NULL;
 }
 
-void RenderManager::PingRemote()
+void ReplayManager::PingRemote()
 {
   if(!m_Remote)
     return;
@@ -350,7 +350,7 @@ void RenderManager::PingRemote()
   }
 }
 
-uint32_t RenderManager::ExecuteAndInject(const QString &exe, const QString &workingDir,
+uint32_t ReplayManager::ExecuteAndInject(const QString &exe, const QString &workingDir,
                                          const QString &cmdLine,
                                          const QList<EnvironmentModification> &env,
                                          const QString &logfile, CaptureOptions opts)
@@ -375,7 +375,7 @@ uint32_t RenderManager::ExecuteAndInject(const QString &exe, const QString &work
   return ret;
 }
 
-void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
+void ReplayManager::PushInvoke(ReplayManager::InvokeHandle *cmd)
 {
   if(m_Thread == NULL || !m_Thread->isRunning() || !m_Running)
   {
@@ -391,7 +391,7 @@ void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
   m_RenderCondition.wakeAll();
 }
 
-void RenderManager::run()
+void ReplayManager::run()
 {
   IReplayController *renderer = NULL;
 

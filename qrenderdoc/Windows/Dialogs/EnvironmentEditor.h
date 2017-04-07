@@ -25,7 +25,7 @@
 #pragma once
 
 #include <QDialog>
-#include "Code/RenderManager.h"
+#include "Code/ReplayManager.h"
 
 namespace Ui
 {

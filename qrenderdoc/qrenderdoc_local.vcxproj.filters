@@ -99,9 +99,6 @@
     <ClCompile Include="Windows\EventBrowser.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
-    <ClCompile Include="Code\RenderManager.cpp">
-      <Filter>Code</Filter>
-    </ClCompile>
     <ClCompile Include="Widgets\ResourcePreview.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
@@ -576,13 +573,13 @@
     <ClCompile Include="Code\Interface\QRDInterface.cpp">
       <Filter>Code\Interface</Filter>
     </ClCompile>
+    <ClCompile Include="Code\ReplayManager.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
       <Filter>3rdparty\FlowLayout</Filter>
-    </ClInclude>
-    <ClInclude Include="Code\RenderManager.h">
-      <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="Code\CaptureContext.h">
       <Filter>Code</Filter>
@@ -880,6 +877,9 @@
     </ClInclude>
     <ClInclude Include="Code\pyrenderdoc\document_check.h">
       <Filter>Code\pyrenderdoc</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ReplayManager.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

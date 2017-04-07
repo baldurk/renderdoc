@@ -149,7 +149,7 @@ win32 {
 
 SOURCES += Code/qrenderdoc.cpp \
     Code/qprocessinfo.cpp \
-    Code/RenderManager.cpp \
+    Code/ReplayManager.cpp \
     Code/CaptureContext.cpp \
     Code/ScintillaSyntax.cpp \
     Code/QRDUtils.cpp \
@@ -205,7 +205,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/Dialogs/TipsDialog.cpp
 HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
-    Code/RenderManager.h \
+    Code/ReplayManager.h \
     Code/ScintillaSyntax.h \
     Code/QRDUtils.h \
     Code/Resources.h \

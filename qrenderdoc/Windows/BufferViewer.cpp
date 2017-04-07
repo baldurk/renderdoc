@@ -1149,7 +1149,7 @@ void BufferViewer::OnLogfileLoaded()
 
   WId renderID = ui->render->winId();
 
-  m_Ctx.Renderer().BlockInvoke([renderID, this](IReplayController *r) {
+  m_Ctx.Replay().BlockInvoke([renderID, this](IReplayController *r) {
     m_Output = r->CreateOutput(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(renderID),
                                ReplayOutputType::Mesh);
 
@@ -1223,7 +1223,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       guessSecondaryColumn(m_ModelGSOut);
   }
 
-  m_Ctx.Renderer().AsyncInvoke([this, vsinHoriz, vsoutHoriz, gsoutHoriz](IReplayController *r) {
+  m_Ctx.Replay().AsyncInvoke([this, vsinHoriz, vsoutHoriz, gsoutHoriz](IReplayController *r) {
 
     if(m_MeshView)
     {
@@ -2189,7 +2189,7 @@ void BufferViewer::render_clicked(QMouseEvent *e)
 
   if((e->buttons() & Qt::RightButton) && m_Output)
   {
-    m_Ctx.Renderer().AsyncInvoke("PickVertex", [this, curpos](IReplayController *r) {
+    m_Ctx.Replay().AsyncInvoke("PickVertex", [this, curpos](IReplayController *r) {
       uint32_t instanceSelected = 0;
       uint32_t vertSelected = 0;
 
@@ -2734,7 +2734,7 @@ void BufferViewer::debugVertex()
   uint32_t index =
       m_CurView->model()->data(m_CurView->model()->index(idx.row(), 1), Qt::DisplayRole).toUInt();
 
-  m_Ctx.Renderer().AsyncInvoke([this, vertid, index](IReplayController *r) {
+  m_Ctx.Replay().AsyncInvoke([this, vertid, index](IReplayController *r) {
     ShaderDebugTrace *trace =
         r->DebugVertex(vertid, m_Config.curInstance, index, m_Ctx.CurDrawcall()->instanceOffset,
                        m_Ctx.CurDrawcall()->vertexOffset);

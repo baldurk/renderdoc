@@ -30,7 +30,7 @@
 #include <QRegExp>
 #include <QSortFilterProxyModel>
 #include "Code/CaptureContext.h"
-#include "Code/RenderManager.h"
+#include "Code/ReplayManager.h"
 #include "Code/Resources.h"
 #include "ui_VirtualFileDialog.h"
 
@@ -48,7 +48,7 @@ public:
     FileNameRole,
   };
 
-  RemoteFileModel(IRenderManager &r, QObject *parent = NULL)
+  RemoteFileModel(IReplayManager &r, QObject *parent = NULL)
       : Renderer(r), QAbstractItemModel(parent)
   {
     makeIconStates(fileIcon, Pixmaps::page_white_database());
@@ -361,7 +361,7 @@ public:
   }
 
 private:
-  IRenderManager &Renderer;
+  IReplayManager &Renderer;
 
   QIcon dirIcon[2];
   QIcon exeIcon[2];
@@ -556,7 +556,7 @@ VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QWidget *parent)
 
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-  m_Model = new RemoteFileModel(ctx.Renderer(), this);
+  m_Model = new RemoteFileModel(ctx.Replay(), this);
 
   m_DirProxy = new RemoteFileProxy(this);
   m_DirProxy->setSourceModel(m_Model);

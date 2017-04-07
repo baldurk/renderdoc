@@ -31,7 +31,7 @@
 #include <QString>
 #include <QtWidgets/QWidget>
 #include "Interface/QRDInterface.h"
-#include "RenderManager.h"
+#include "ReplayManager.h"
 
 #if defined(RENDERDOC_PLATFORM_LINUX)
 #include <QX11Info>
@@ -87,7 +87,7 @@ public:
   //////////////////////////////////////////////////////////////////////////////
   // Accessors
 
-  RenderManager &Renderer() override { return m_Renderer; }
+  ReplayManager &Replay() override { return m_Renderer; }
   bool LogLoaded() override { return m_LogLoaded; }
   bool IsLogLocal() override { return m_LogLocal; }
   bool LogLoading() override { return m_LoadInProgress; }
@@ -181,7 +181,7 @@ public:
   CommonPipelineState &CurPipelineState() override { return m_CurPipelineState; }
   PersistantConfig &Config() override { return m_Config; }
 private:
-  RenderManager m_Renderer;
+  ReplayManager m_Renderer;
 
   D3D11Pipe::State m_CurD3D11PipelineState;
   D3D12Pipe::State m_CurD3D12PipelineState;

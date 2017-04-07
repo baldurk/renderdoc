@@ -207,7 +207,7 @@ void CaptureDialog::on_exePath_textChanged(const QString &text)
   {
     QString path = dir.absolutePath();
 
-    if(!m_Ctx.Renderer().CurrentRemote())
+    if(!m_Ctx.Replay().CurrentRemote())
       path = QDir::toNativeSeparators(path);
 
     // match the path separators from the path
@@ -395,7 +395,7 @@ void CaptureDialog::on_exePathBrowse_clicked()
 
   QString filename;
 
-  if(m_Ctx.Renderer().CurrentRemote())
+  if(m_Ctx.Replay().CurrentRemote())
   {
     VirtualFileDialog vfd(m_Ctx, this);
     RDDialog::show(&vfd);
@@ -429,7 +429,7 @@ void CaptureDialog::on_workDirBrowse_clicked()
 
   QString dir;
 
-  if(m_Ctx.Renderer().CurrentRemote())
+  if(m_Ctx.Replay().CurrentRemote())
   {
     VirtualFileDialog vfd(m_Ctx, this);
     vfd.setDirBrowse();
@@ -602,12 +602,12 @@ void CaptureDialog::SetExecutableFilename(const QString &filename)
 {
   QString fn = filename;
 
-  if(!m_Ctx.Renderer().CurrentRemote())
+  if(!m_Ctx.Replay().CurrentRemote())
     fn = QDir::toNativeSeparators(QFileInfo(fn).absoluteFilePath());
 
   ui->exePath->setText(fn);
 
-  if(!m_Ctx.Renderer().CurrentRemote())
+  if(!m_Ctx.Replay().CurrentRemote())
   {
     m_Ctx.Config().LastCapturePath = QFileInfo(fn).absolutePath();
     m_Ctx.Config().LastCaptureExe = QFileInfo(fn).completeBaseName();
@@ -716,7 +716,7 @@ void CaptureDialog::TriggerCapture()
     QString exe = ui->exePath->text();
 
     // for non-remote captures, check the executable locally
-    if(!m_Ctx.Renderer().CurrentRemote())
+    if(!m_Ctx.Replay().CurrentRemote())
     {
       if(!QFileInfo::exists(exe))
       {
@@ -729,7 +729,7 @@ void CaptureDialog::TriggerCapture()
     QString workingDir = "";
 
     // for non-remote captures, check the directory locally
-    if(m_Ctx.Renderer().CurrentRemote())
+    if(m_Ctx.Replay().CurrentRemote())
     {
       workingDir = ui->workDirPath->text();
     }

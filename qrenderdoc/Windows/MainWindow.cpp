@@ -334,7 +334,7 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
   LambdaThread *th = new LambdaThread([this, exe, workingDir, cmdLine, env, opts, callback]() {
     QString logfile = m_Ctx.TempLogFilename(QFileInfo(exe).baseName());
 
-    uint32_t ret = m_Ctx.Renderer().ExecuteAndInject(exe, workingDir, cmdLine, env, logfile, opts);
+    uint32_t ret = m_Ctx.Replay().ExecuteAndInject(exe, workingDir, cmdLine, env, logfile, opts);
 
     GUIInvoke::call([this, exe, ret, callback]() {
       if(ret == 0)
@@ -347,7 +347,7 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
       }
 
       LiveCapture *live = new LiveCapture(
-          m_Ctx, m_Ctx.Renderer().CurrentRemote() ? m_Ctx.Renderer().CurrentRemote()->Hostname : "",
+          m_Ctx, m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Hostname : "",
           ret, this, this);
       ShowLiveCapture(live);
       callback(live);
@@ -416,7 +416,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
     ReplaySupport support = ReplaySupport::Unsupported;
 
     bool remoteReplay =
-        !local || (m_Ctx.Renderer().CurrentRemote() && m_Ctx.Renderer().CurrentRemote()->Connected);
+        !local || (m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->Connected);
 
     if(local)
     {
@@ -470,7 +470,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
           }
 
           remoteReplay =
-              (m_Ctx.Renderer().CurrentRemote() && m_Ctx.Renderer().CurrentRemote()->Connected);
+              (m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->Connected);
 
           if(!remoteReplay)
           {
@@ -500,7 +500,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
       {
         support = ReplaySupport::Unsupported;
 
-        QStringList remoteDrivers = m_Ctx.Renderer().GetRemoteSupport();
+        QStringList remoteDrivers = m_Ctx.Replay().GetRemoteSupport();
 
         for(const QString &d : remoteDrivers)
         {
@@ -521,7 +521,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
         QString remoteMessage =
             tr("This log was captured with %1 and cannot be replayed on %2.\n\n")
                 .arg(driver)
-                .arg(m_Ctx.Renderer().CurrentRemote()->Hostname);
+                .arg(m_Ctx.Replay().CurrentRemote()->Hostname);
 
         remoteMessage += "Try selecting a different remote context in the status bar.";
 
@@ -545,7 +545,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
 
       if(remoteReplay && local)
       {
-        fileToLoad = m_Ctx.Renderer().CopyCaptureToRemote(filename, this);
+        fileToLoad = m_Ctx.Replay().CopyCaptureToRemote(filename, this);
 
         // deliberately leave local as true so that we keep referring to the locally saved log
 
@@ -641,7 +641,7 @@ bool MainWindow::PromptSaveLog()
     }
     else
     {
-      m_Ctx.Renderer().CopyCaptureFromRemote(m_Ctx.LogFilename(), saveFilename, this);
+      m_Ctx.Replay().CopyCaptureFromRemote(m_Ctx.LogFilename(), saveFilename, this);
       success = QFile::exists(saveFilename);
 
       error = tr("File couldn't be transferred from remote host");
@@ -711,7 +711,7 @@ bool MainWindow::PromptCloseLog()
   CloseLogfile();
 
   if(!deletepath.isEmpty())
-    m_Ctx.Renderer().DeleteCapture(deletepath, loglocal);
+    m_Ctx.Replay().DeleteCapture(deletepath, loglocal);
 
   return true;
 }
@@ -735,8 +735,8 @@ void MainWindow::SetTitle(const QString &filename)
     prefix += " - ";
   }
 
-  if(m_Ctx.Renderer().CurrentRemote())
-    prefix += tr("Remote: %1 - ").arg(m_Ctx.Renderer().CurrentRemote()->Hostname);
+  if(m_Ctx.Replay().CurrentRemote())
+    prefix += tr("Remote: %1 - ").arg(m_Ctx.Replay().CurrentRemote()->Hostname);
 
   QString text = prefix + "RenderDoc ";
 
@@ -966,18 +966,18 @@ void MainWindow::messageCheck()
 {
   if(m_Ctx.LogLoaded())
   {
-    m_Ctx.Renderer().AsyncInvoke([this](IReplayController *r) {
+    m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
       rdctype::array<DebugMessage> msgs = r->GetDebugMessages();
 
       bool disconnected = false;
 
-      if(m_Ctx.Renderer().CurrentRemote())
+      if(m_Ctx.Replay().CurrentRemote())
       {
-        bool prev = m_Ctx.Renderer().CurrentRemote()->ServerRunning;
+        bool prev = m_Ctx.Replay().CurrentRemote()->ServerRunning;
 
-        m_Ctx.Renderer().PingRemote();
+        m_Ctx.Replay().PingRemote();
 
-        if(prev != m_Ctx.Renderer().CurrentRemote()->ServerRunning)
+        if(prev != m_Ctx.Replay().CurrentRemote()->ServerRunning)
           disconnected = true;
       }
 
@@ -992,7 +992,7 @@ void MainWindow::messageCheck()
                                 "RenderDoc to reconnect and load the capture again"));
         }
 
-        if(m_Ctx.Renderer().CurrentRemote() && !m_Ctx.Renderer().CurrentRemote()->ServerRunning)
+        if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->ServerRunning)
           contextChooser->setIcon(Icons::cross());
 
         if(!msgs.empty())
@@ -1011,18 +1011,18 @@ void MainWindow::messageCheck()
   }
   else if(!m_Ctx.LogLoaded() && !m_Ctx.LogLoading())
   {
-    if(m_Ctx.Renderer().CurrentRemote())
-      m_Ctx.Renderer().PingRemote();
+    if(m_Ctx.Replay().CurrentRemote())
+      m_Ctx.Replay().PingRemote();
 
     GUIInvoke::call([this]() {
-      if(m_Ctx.Renderer().CurrentRemote() && !m_Ctx.Renderer().CurrentRemote()->ServerRunning)
+      if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->ServerRunning)
       {
         contextChooser->setIcon(Icons::cross());
         contextChooser->setText(tr("Replay Context: %1").arg("Local"));
         statusText->setText(
             tr("Remote server disconnected. To attempt to reconnect please select it again."));
 
-        m_Ctx.Renderer().DisconnectFromRemoteServer();
+        m_Ctx.Replay().DisconnectFromRemoteServer();
       }
     });
   }
@@ -1124,7 +1124,7 @@ void MainWindow::switchContext()
     live->close();
   }
 
-  m_Ctx.Renderer().DisconnectFromRemoteServer();
+  m_Ctx.Replay().DisconnectFromRemoteServer();
 
   if(!host)
   {
@@ -1169,7 +1169,7 @@ void MainWindow::switchContext()
 
       if(host->ServerRunning && !host->Busy)
       {
-        status = m_Ctx.Renderer().ConnectToRemoteServer(host);
+        status = m_Ctx.Replay().ConnectToRemoteServer(host);
       }
 
       GUIInvoke::call([this, host, status]() {
@@ -1229,7 +1229,7 @@ void MainWindow::OnLogfileLoaded()
 
   setLogHasErrors(!m_Ctx.DebugMessages().empty());
 
-  m_Ctx.Renderer().AsyncInvoke([this](IReplayController *r) {
+  m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
     bool hasResolver = r->HasCallstacks();
 
     GUIInvoke::call([this, hasResolver]() {
@@ -1262,12 +1262,12 @@ void MainWindow::OnLogfileClosed()
   SetTitle();
 
   // if the remote sever disconnected during log replay, resort back to a 'disconnected' state
-  if(m_Ctx.Renderer().CurrentRemote() && !m_Ctx.Renderer().CurrentRemote()->ServerRunning)
+  if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->ServerRunning)
   {
     statusText->setText(
         tr("Remote server disconnected. To attempt to reconnect please select it again."));
     contextChooser->setText(tr("Replay Context: %1").arg("Local"));
-    m_Ctx.Renderer().DisconnectFromRemoteServer();
+    m_Ctx.Replay().DisconnectFromRemoteServer();
   }
 }
 
@@ -1401,11 +1401,11 @@ void MainWindow::on_action_Statistics_Viewer_triggered()
 
 void MainWindow::on_action_Resolve_Symbols_triggered()
 {
-  m_Ctx.Renderer().AsyncInvoke([this](IReplayController *r) { r->InitResolver(); });
+  m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) { r->InitResolver(); });
 
   ShowProgressDialog(this, tr("Please Wait - Resolving Symbols"), [this]() {
     bool running = true;
-    m_Ctx.Renderer().BlockInvoke(
+    m_Ctx.Replay().BlockInvoke(
         [&running](IReplayController *r) { running = r->HasCallstacks() && !r->InitResolver(); });
     return !running;
   });
