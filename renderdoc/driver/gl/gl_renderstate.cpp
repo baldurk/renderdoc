@@ -1500,7 +1500,9 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
     }
   }
 
-  m_Real->glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
+  if(!IsGLES)
+    m_Real->glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
+
   if(HasExt[EXT_polygon_offset_clamp] && m_Real->glPolygonOffsetClampEXT)
     m_Real->glPolygonOffsetClampEXT(PolygonOffset[0], PolygonOffset[1], PolygonOffset[2]);
   else

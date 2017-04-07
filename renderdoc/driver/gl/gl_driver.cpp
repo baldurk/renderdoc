@@ -1702,7 +1702,8 @@ struct RenderTextState
       gl.glBlendEquationSeparate(EquationRGB, EquationAlpha);
     }
 
-    gl.glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
+    if(!IsGLES)
+      gl.glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
 
     if(modern && HasExt[ARB_viewport_array])
       gl.glViewportIndexedf(0, Viewportf[0], Viewportf[1], Viewportf[2], Viewportf[3]);
@@ -1877,7 +1878,9 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       gl.glViewport(0, 0, m_InitParams.width, m_InitParams.height);
       gl.glDisable(eGL_SCISSOR_TEST);
     }
-    gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+
+    if(!IsGLES)
+      gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
     if(gl.glClipControl && HasExt[ARB_clip_control])
       gl.glClipControl(eGL_LOWER_LEFT, eGL_NEGATIVE_ONE_TO_ONE);
