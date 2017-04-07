@@ -650,6 +650,14 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
 
       record->AddChunk(scope.Get());
     }
+
+    if(pBeginInfo->pInheritanceInfo)
+    {
+      record->MarkResourceFrameReferenced(GetResID(pBeginInfo->pInheritanceInfo->renderPass),
+                                          eFrameRef_Read);
+      record->MarkResourceFrameReferenced(GetResID(pBeginInfo->pInheritanceInfo->framebuffer),
+                                          eFrameRef_Read);
+    }
   }
 
   VkCommandBufferInheritanceInfo unwrappedInfo;
