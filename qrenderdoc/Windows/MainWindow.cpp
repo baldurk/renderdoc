@@ -966,7 +966,7 @@ void MainWindow::messageCheck()
 {
   if(m_Ctx.LogLoaded())
   {
-    m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) {
+    m_Ctx.Renderer().AsyncInvoke([this](IReplayController *r) {
       rdctype::array<DebugMessage> msgs = r->GetDebugMessages();
 
       bool disconnected = false;
@@ -1229,7 +1229,7 @@ void MainWindow::OnLogfileLoaded()
 
   setLogHasErrors(!m_Ctx.DebugMessages().empty());
 
-  m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) {
+  m_Ctx.Renderer().AsyncInvoke([this](IReplayController *r) {
     bool hasResolver = r->HasCallstacks();
 
     GUIInvoke::call([this, hasResolver]() {
@@ -1401,12 +1401,12 @@ void MainWindow::on_action_Statistics_Viewer_triggered()
 
 void MainWindow::on_action_Resolve_Symbols_triggered()
 {
-  m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) { r->InitResolver(); });
+  m_Ctx.Renderer().AsyncInvoke([this](IReplayController *r) { r->InitResolver(); });
 
   ShowProgressDialog(this, tr("Please Wait - Resolving Symbols"), [this]() {
     bool running = true;
     m_Ctx.Renderer().BlockInvoke(
-        [&running](IReplayRenderer *r) { running = r->HasCallstacks() && !r->InitResolver(); });
+        [&running](IReplayController *r) { running = r->HasCallstacks() && !r->InitResolver(); });
     return !running;
   });
 

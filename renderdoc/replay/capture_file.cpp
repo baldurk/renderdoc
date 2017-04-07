@@ -26,7 +26,7 @@
 #include "core/core.h"
 #include "jpeg-compressor/jpgd.h"
 #include "jpeg-compressor/jpge.h"
-#include "replay/replay_renderer.h"
+#include "replay/replay_controller.h"
 #include "serialise/serialiser.h"
 #include "stb/stb_image_resize.h"
 #include "stb/stb_image_write.h"
@@ -50,7 +50,7 @@ public:
   ReplaySupport LocalReplaySupport() { return m_Support; }
   const char *DriverName() { return m_DriverName.c_str(); }
   const char *RecordedMachineIdent() { return m_Ident.c_str(); }
-  rdctype::pair<ReplayStatus, IReplayRenderer *> OpenCapture(float *progress);
+  rdctype::pair<ReplayStatus, IReplayController *> OpenCapture(float *progress);
 
   rdctype::array<byte> GetThumbnail(FileType type, uint32_t maxsize);
 
@@ -92,12 +92,12 @@ CaptureFile::CaptureFile(const char *f)
   }
 }
 
-rdctype::pair<ReplayStatus, IReplayRenderer *> CaptureFile::OpenCapture(float *progress)
+rdctype::pair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(float *progress)
 {
   if(m_Status != ReplayStatus::Succeeded)
-    return rdctype::make_pair<ReplayStatus, IReplayRenderer *>(m_Status, NULL);
+    return rdctype::make_pair<ReplayStatus, IReplayController *>(m_Status, NULL);
 
-  ReplayRenderer *render = new ReplayRenderer();
+  ReplayController *render = new ReplayController();
   ReplayStatus ret;
 
   RenderDoc::Inst().SetProgressPtr(progress);
@@ -109,7 +109,7 @@ rdctype::pair<ReplayStatus, IReplayRenderer *> CaptureFile::OpenCapture(float *p
   if(ret != ReplayStatus::Succeeded)
     SAFE_DELETE(render);
 
-  return rdctype::make_pair<ReplayStatus, IReplayRenderer *>(ret, render);
+  return rdctype::make_pair<ReplayStatus, IReplayController *>(ret, render);
 }
 
 rdctype::array<byte> CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)

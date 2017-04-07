@@ -204,10 +204,10 @@ private slots:
   void channelsWidget_selected(int index) { UI_UpdateChannels(); }
 private:
   void RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pickValue, PixelValue &realValue);
-  void RT_PickPixelsAndUpdate(IReplayRenderer *);
-  void RT_PickHoverAndUpdate(IReplayRenderer *);
-  void RT_UpdateAndDisplay(IReplayRenderer *);
-  void RT_UpdateVisualRange(IReplayRenderer *);
+  void RT_PickPixelsAndUpdate(IReplayController *);
+  void RT_PickHoverAndUpdate(IReplayController *);
+  void RT_UpdateAndDisplay(IReplayController *);
+  void RT_UpdateVisualRange(IReplayController *);
 
   void UI_RecreatePanels();
 

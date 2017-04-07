@@ -350,7 +350,7 @@ extern "C" RENDERDOC_API ReplaySupport RENDERDOC_CC RENDERDOC_SupportLocalReplay
 }
 
 extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
-RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, IReplayRenderer **rend)
+RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, IReplayController **rend)
 {
   ICaptureFile *file = RENDERDOC_OpenCaptureFile(logfile);
 

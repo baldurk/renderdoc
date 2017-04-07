@@ -322,10 +322,10 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
         if(updatedfiles.contains("@cmdline"))
           compileSource = updatedfiles["@cmdline"] + "\n\n" + compileSource;
 
-        // invoke off to the ReplayRenderer to replace the log's shader
+        // invoke off to the ReplayController to replace the log's shader
         // with our edited one
         ctx->Renderer().AsyncInvoke([ctx, entryFunc, compileSource, shaderType, id, shaderDetails,
-                                     viewer](IReplayRenderer *r) {
+                                     viewer](IReplayController *r) {
           rdctype::str errs;
 
           uint flags = shaderDetails->DebugInfo.compileFlags;
@@ -354,7 +354,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
       [id](ICaptureContext *ctx) {
         // remove the replacement on close (we could make this more sophisticated if there
         // was a place to control replaced resources/shaders).
-        ctx->Renderer().AsyncInvoke([ctx, id](IReplayRenderer *r) {
+        ctx->Renderer().AsyncInvoke([ctx, id](IReplayController *r) {
           r->RemoveReplacement(id);
           GUIInvoke::call([ctx] { ctx->RefreshStatus(); });
         });

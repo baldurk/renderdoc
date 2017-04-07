@@ -33,7 +33,7 @@
 #include "replay/replay_driver.h"
 #include "type_helpers.h"
 
-struct ReplayRenderer;
+struct ReplayController;
 
 struct ReplayOutput : public IReplayOutput
 {
@@ -60,7 +60,7 @@ public:
   rdctype::pair<uint32_t, uint32_t> PickVertex(uint32_t eventID, uint32_t x, uint32_t y);
 
 private:
-  ReplayOutput(ReplayRenderer *parent, WindowingSystem system, void *data, ReplayOutputType type);
+  ReplayOutput(ReplayController *parent, WindowingSystem system, void *data, ReplayOutputType type);
   virtual ~ReplayOutput();
 
   void SetFrameEvent(int eventID);
@@ -72,7 +72,7 @@ private:
 
   void DisplayMesh();
 
-  ReplayRenderer *m_pRenderer;
+  ReplayController *m_pRenderer;
 
   bool m_OverlayDirty;
   bool m_ForceOverlayRefresh;
@@ -113,14 +113,14 @@ private:
     MeshDisplay meshDisplay;
   } m_RenderData;
 
-  friend struct ReplayRenderer;
+  friend struct ReplayController;
 };
 
-struct ReplayRenderer : public IReplayRenderer
+struct ReplayController : public IReplayController
 {
 public:
-  ReplayRenderer();
-  virtual ~ReplayRenderer();
+  ReplayController();
+  virtual ~ReplayController();
 
   APIProperties GetAPIProperties();
 

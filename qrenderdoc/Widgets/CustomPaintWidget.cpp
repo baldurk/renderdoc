@@ -90,7 +90,7 @@ void CustomPaintWidget::paintEvent(QPaintEvent *e)
   if(m_Ctx)
   {
     if(m_Output != NULL)
-      m_Ctx->Renderer().AsyncInvoke([this](IReplayRenderer *r) { m_Output->Display(); });
+      m_Ctx->Renderer().AsyncInvoke([this](IReplayController *r) { m_Output->Display(); });
   }
   else if(m_Dark == m_Light)
   {

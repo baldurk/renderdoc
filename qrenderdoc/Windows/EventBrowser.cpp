@@ -261,7 +261,7 @@ void EventBrowser::on_bookmark_clicked()
 
 void EventBrowser::on_timeDraws_clicked()
 {
-  m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) {
+  m_Ctx.Renderer().AsyncInvoke([this](IReplayController *r) {
 
     rdctype::array<CounterResult> results = r->FetchCounters({GPUCounter::EventGPUDuration});
 

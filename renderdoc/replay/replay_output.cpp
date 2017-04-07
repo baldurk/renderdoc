@@ -26,7 +26,7 @@
 #include "common/common.h"
 #include "maths/matrix.h"
 #include "serialise/string_utils.h"
-#include "replay_renderer.h"
+#include "replay_controller.h"
 
 static uint64_t GetHandle(WindowingSystem system, void *data)
 {
@@ -69,7 +69,7 @@ static uint64_t GetHandle(WindowingSystem system, void *data)
 #endif
 }
 
-ReplayOutput::ReplayOutput(ReplayRenderer *parent, WindowingSystem system, void *data,
+ReplayOutput::ReplayOutput(ReplayController *parent, WindowingSystem system, void *data,
                            ReplayOutputType type)
 {
   m_pRenderer = parent;

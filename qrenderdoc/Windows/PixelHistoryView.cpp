@@ -639,7 +639,7 @@ void PixelHistoryView::startDebug(EventTag tag)
 
   bool success = false;
 
-  m_Ctx.Renderer().BlockInvoke([this, &success, &trace](IReplayRenderer *r) {
+  m_Ctx.Renderer().BlockInvoke([this, &success, &trace](IReplayController *r) {
     trace = r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(), m_Display.sampleIdx, ~0U);
   });
 

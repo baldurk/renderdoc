@@ -660,7 +660,7 @@ void TextureViewer::RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pic
                                     m_TexDisplay.mip, m_TexDisplay.sampleIdx);
 }
 
-void TextureViewer::RT_PickPixelsAndUpdate(IReplayRenderer *)
+void TextureViewer::RT_PickPixelsAndUpdate(IReplayController *)
 {
   PixelValue pickValue, realValue;
 
@@ -679,7 +679,7 @@ void TextureViewer::RT_PickPixelsAndUpdate(IReplayRenderer *)
   GUIInvoke::call([this]() { UI_UpdateStatusText(); });
 }
 
-void TextureViewer::RT_PickHoverAndUpdate(IReplayRenderer *)
+void TextureViewer::RT_PickHoverAndUpdate(IReplayController *)
 {
   PixelValue pickValue, realValue;
 
@@ -693,7 +693,7 @@ void TextureViewer::RT_PickHoverAndUpdate(IReplayRenderer *)
   GUIInvoke::call([this]() { UI_UpdateStatusText(); });
 }
 
-void TextureViewer::RT_UpdateAndDisplay(IReplayRenderer *)
+void TextureViewer::RT_UpdateAndDisplay(IReplayController *)
 {
   if(m_Output != NULL)
     m_Output->SetTextureDisplay(m_TexDisplay);
@@ -701,7 +701,7 @@ void TextureViewer::RT_UpdateAndDisplay(IReplayRenderer *)
   GUIInvoke::call([this]() { ui->render->update(); });
 }
 
-void TextureViewer::RT_UpdateVisualRange(IReplayRenderer *)
+void TextureViewer::RT_UpdateVisualRange(IReplayController *)
 {
   TextureDescription *texptr = GetCurrentTexture();
 
@@ -895,7 +895,7 @@ void TextureViewer::UI_UpdateStatusText()
 
     if(m_Output != NULL)
     {
-      m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *) { m_Output->DisablePixelContext(); });
+      m_Ctx.Renderer().AsyncInvoke([this](IReplayController *) { m_Output->DisablePixelContext(); });
     }
 
     // PixelPicked = false;
@@ -1285,7 +1285,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
   if(ui->autoFit->isChecked())
     AutoFitRange();
 
-  m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) {
+  m_Ctx.Renderer().AsyncInvoke([this](IReplayController *r) {
     RT_UpdateVisualRange(r);
 
     RT_UpdateAndDisplay(r);
@@ -1901,7 +1901,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
 
       prev->setResourceName(fullname);
       WId handle = prev->thumbWinId();
-      m_Ctx.Renderer().AsyncInvoke([this, handle, id, typeHint](IReplayRenderer *) {
+      m_Ctx.Renderer().AsyncInvoke([this, handle, id, typeHint](IReplayController *) {
         m_Output->AddThumbnail(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(handle), id,
                                typeHint);
       });
@@ -1920,7 +1920,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
 
       prev->setResourceName(fullname);
       WId handle = prev->thumbWinId();
-      m_Ctx.Renderer().AsyncInvoke([this, handle](IReplayRenderer *) {
+      m_Ctx.Renderer().AsyncInvoke([this, handle](IReplayController *) {
         m_Output->AddThumbnail(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(handle),
                                ResourceId(), CompType::Typeless);
       });
@@ -1929,7 +1929,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
     {
       prev->setResourceName("");
       WId handle = prev->thumbWinId();
-      m_Ctx.Renderer().AsyncInvoke([this, handle](IReplayRenderer *) {
+      m_Ctx.Renderer().AsyncInvoke([this, handle](IReplayController *) {
         m_Output->AddThumbnail(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(handle),
                                ResourceId(), CompType::Typeless);
       });
@@ -1947,7 +1947,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
     prev->setSelected(true);
 
     WId handle = prev->thumbWinId();
-    m_Ctx.Renderer().AsyncInvoke([this, handle](IReplayRenderer *) {
+    m_Ctx.Renderer().AsyncInvoke([this, handle](IReplayController *) {
       m_Output->AddThumbnail(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(handle),
                              ResourceId(), CompType::Typeless);
     });
@@ -2123,7 +2123,7 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
     }
     else
     {
-      m_Ctx.Renderer().AsyncInvoke([this, id](IReplayRenderer *r) {
+      m_Ctx.Renderer().AsyncInvoke([this, id](IReplayController *r) {
         rdctype::array<EventUsage> usage = r->GetUsage(id);
 
         GUIInvoke::call([this, id, usage]() { OpenResourceContextMenu(id, usage); });
@@ -2170,12 +2170,12 @@ void TextureViewer::render_mouseMove(QMouseEvent *e)
         m_PickedPoint.setY(qBound(0, m_PickedPoint.y(), (int)texptr->height - 1));
 
         m_Ctx.Renderer().AsyncInvoke("PickPixelClick",
-                                     [this](IReplayRenderer *r) { RT_PickPixelsAndUpdate(r); });
+                                     [this](IReplayController *r) { RT_PickPixelsAndUpdate(r); });
       }
       else if(e->buttons() == Qt::NoButton)
       {
         m_Ctx.Renderer().AsyncInvoke("PickPixelHover",
-                                     [this](IReplayRenderer *r) { RT_PickHoverAndUpdate(r); });
+                                     [this](IReplayController *r) { RT_PickHoverAndUpdate(r); });
       }
     }
   }
@@ -2278,7 +2278,7 @@ void TextureViewer::render_keyPress(QKeyEvent *e)
                            qBound(0, m_PickedPoint.y(), (int)texptr->height - 1));
     e->accept();
 
-    m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) {
+    m_Ctx.Renderer().AsyncInvoke([this](IReplayController *r) {
       RT_PickPixelsAndUpdate(r);
       RT_UpdateAndDisplay(r);
     });
@@ -2470,7 +2470,7 @@ void TextureViewer::OnLogfileLoaded()
   m_TexDisplay.lightBackgroundColor =
       FloatVector(lightBack.redF(), lightBack.greenF(), lightBack.blueF(), 1.0f);
 
-  m_Ctx.Renderer().BlockInvoke([renderID, contextID, this](IReplayRenderer *r) {
+  m_Ctx.Renderer().BlockInvoke([renderID, contextID, this](IReplayController *r) {
     m_Output = r->CreateOutput(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(renderID),
                                ReplayOutputType::Texture);
 
@@ -2970,7 +2970,7 @@ void TextureViewer::AutoFitRange()
   if(!m_Ctx.LogLoaded() || GetCurrentTexture() == NULL || m_Output == NULL)
     return;
 
-  m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) {
+  m_Ctx.Renderer().AsyncInvoke([this](IReplayController *r) {
     PixelValue min, max;
     std::tie(min, max) = m_Output->GetMinMax();
 
@@ -3242,7 +3242,7 @@ void TextureViewer::on_saveTex_clicked()
   {
     ResourceId id;
     m_Ctx.Renderer().BlockInvoke(
-        [this, &id](IReplayRenderer *r) { id = m_Output->GetCustomShaderTexID(); });
+        [this, &id](IReplayController *r) { id = m_Output->GetCustomShaderTexID(); });
 
     if(id != ResourceId())
       config.id = id;
@@ -3258,7 +3258,7 @@ void TextureViewer::on_saveTex_clicked()
     bool ret = false;
     QString fn = saveDialog.filename();
 
-    m_Ctx.Renderer().BlockInvoke([this, &ret, config, fn](IReplayRenderer *r) {
+    m_Ctx.Renderer().BlockInvoke([this, &ret, config, fn](IReplayController *r) {
       ret = r->SaveTexture(config, fn.toUtf8().data());
     });
 
@@ -3279,7 +3279,7 @@ void TextureViewer::on_debugPixelContext_clicked()
   int x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
   int y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
 
-  m_Ctx.Renderer().AsyncInvoke([this, x, y](IReplayRenderer *r) {
+  m_Ctx.Renderer().AsyncInvoke([this, x, y](IReplayController *r) {
     ShaderDebugTrace *trace = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.sampleIdx, ~0U);
 
     if(trace->states.count == 0)
@@ -3326,7 +3326,7 @@ void TextureViewer::on_pixelHistory_clicked()
   // render thread before we insert the long blocking pixel history task
   LambdaThread *thread = new LambdaThread([this, texptr, x, y, hist]() {
     QThread::msleep(150);
-    m_Ctx.Renderer().AsyncInvoke([this, texptr, x, y, hist](IReplayRenderer *r) {
+    m_Ctx.Renderer().AsyncInvoke([this, texptr, x, y, hist](IReplayController *r) {
       rdctype::array<PixelModification> history =
           r->PixelHistory(texptr->ID, (uint32_t)x, (int32_t)y, m_TexDisplay.sliceFace,
                           m_TexDisplay.mip, m_TexDisplay.sampleIdx, m_TexDisplay.typeHint);
@@ -3402,7 +3402,7 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
 
     QList<ResourceId> shaders = m_CustomShaders.values();
 
-    m_Ctx.Renderer().AsyncInvoke([shaders](IReplayRenderer *r) {
+    m_Ctx.Renderer().AsyncInvoke([shaders](IReplayController *r) {
       for(ResourceId s : shaders)
         r->FreeCustomShader(s);
     });
@@ -3423,7 +3423,7 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
         return;
 
       ResourceId freed = m_CustomShaders[key];
-      m_Ctx.Renderer().AsyncInvoke([freed](IReplayRenderer *r) { r->FreeCustomShader(freed); });
+      m_Ctx.Renderer().AsyncInvoke([freed](IReplayController *r) { r->FreeCustomShader(freed); });
 
       m_CustomShaders.remove(key);
 
@@ -3469,7 +3469,7 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
 
         m_CustomShaders[key] = ResourceId();
         m_CustomShadersBusy.push_back(key);
-        m_Ctx.Renderer().AsyncInvoke([this, fn, key, source](IReplayRenderer *r) {
+        m_Ctx.Renderer().AsyncInvoke([this, fn, key, source](IReplayController *r) {
           rdctype::str errors;
 
           ResourceId id;

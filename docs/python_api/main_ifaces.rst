@@ -5,10 +5,10 @@ Primary Interfaces
 
 .. module:: renderdoc
 
-ReplayRenderer
---------------
+ReplayController
+----------------
 
-.. autoclass:: renderdoc.ReplayRenderer
+.. autoclass:: renderdoc.ReplayController
   :members:
   :undoc-members:
 

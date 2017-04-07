@@ -147,7 +147,7 @@
     <ClInclude Include="replay\replay_driver.h">
       <Filter>Replay</Filter>
     </ClInclude>
-    <ClInclude Include="replay\replay_renderer.h">
+    <ClInclude Include="replay\replay_controller.h">
       <Filter>Replay</Filter>
     </ClInclude>
     <ClInclude Include="core\core.h">
@@ -326,7 +326,7 @@
     <ClCompile Include="replay\replay_output.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
-    <ClCompile Include="replay\replay_renderer.cpp">
+    <ClCompile Include="replay\replay_controller.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
     <ClCompile Include="core\core.cpp">

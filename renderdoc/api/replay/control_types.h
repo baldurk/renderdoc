@@ -237,7 +237,7 @@ See :ref:`the FAQ entry <gamma-linear-display>`.
 
   DOCUMENT(R"(The :class:`ResourceId` of a custom shader to use when rendering.
 
-See :meth:`ReplayRenderer.BuildCustomShader` for creating an appropriate custom shader.
+See :meth:`ReplayController.BuildCustomShader` for creating an appropriate custom shader.
 )");
   ResourceId CustomShader;
 

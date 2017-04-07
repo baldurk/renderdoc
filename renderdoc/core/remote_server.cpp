@@ -28,7 +28,7 @@
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 #include "os/os_specific.h"
-#include "replay/replay_renderer.h"
+#include "replay/replay_controller.h"
 #include "serialise/serialiser.h"
 #include "serialise/string_utils.h"
 #include "replay_proxy.h"
@@ -986,10 +986,10 @@ public:
     Send(eRemoteServer_TakeOwnershipCapture, sendData);
   }
 
-  rdctype::pair<ReplayStatus, IReplayRenderer *> OpenCapture(uint32_t proxyid, const char *filename,
-                                                             float *progress)
+  rdctype::pair<ReplayStatus, IReplayController *> OpenCapture(uint32_t proxyid,
+                                                               const char *filename, float *progress)
   {
-    rdctype::pair<ReplayStatus, IReplayRenderer *> ret;
+    rdctype::pair<ReplayStatus, IReplayController *> ret;
     ret.first = ReplayStatus::InternalError;
     ret.second = NULL;
 
@@ -1062,7 +1062,7 @@ public:
       return ret;
     }
 
-    ReplayRenderer *rend = new ReplayRenderer();
+    ReplayController *rend = new ReplayController();
 
     ReplayProxy *proxy = new ReplayProxy(m_Socket, proxyDriver);
     status = rend->SetDevice(proxy);
@@ -1074,7 +1074,7 @@ public:
       return ret;
     }
 
-    // ReplayRenderer takes ownership of the ProxySerialiser (as IReplayDriver)
+    // ReplayController takes ownership of the ProxySerialiser (as IReplayDriver)
     // and it cleans itself up in Shutdown.
 
     ret.first = ReplayStatus::Succeeded;
@@ -1082,7 +1082,7 @@ public:
     return ret;
   }
 
-  void CloseCapture(IReplayRenderer *rend)
+  void CloseCapture(IReplayController *rend)
   {
     Serialiser sendData("", Serialiser::WRITING, false);
     Send(eRemoteServer_CloseLog, sendData);
@@ -1193,7 +1193,7 @@ extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC RemoteServer_OpenCapture(IRem
                                                                             uint32_t proxyid,
                                                                             const char *logfile,
                                                                             float *progress,
-                                                                            IReplayRenderer **rend)
+                                                                            IReplayController **rend)
 {
   auto ret = remote->OpenCapture(proxyid, logfile, progress);
   if(rend)
@@ -1202,7 +1202,7 @@ extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC RemoteServer_OpenCapture(IRem
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CloseCapture(IRemoteServer *remote,
-                                                                     IReplayRenderer *rend)
+                                                                     IReplayController *rend)
 {
   return remote->CloseCapture(rend);
 }

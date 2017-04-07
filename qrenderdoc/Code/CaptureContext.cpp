@@ -200,7 +200,7 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
   m_EventID = 0;
 
   // fetch initial data like drawcalls, textures and buffers
-  m_Renderer.BlockInvoke([this](IReplayRenderer *r) {
+  m_Renderer.BlockInvoke([this](IReplayController *r) {
     m_FrameInfo = r->GetFrameInfo();
 
     m_APIProps = r->GetAPIProperties();
@@ -553,7 +553,7 @@ void CaptureContext::SetEventID(const QVector<ILogViewerForm *> &exclude, uint32
   uint32_t prevEventID = m_EventID;
   m_EventID = eventID;
 
-  m_Renderer.BlockInvoke([this, eventID, force](IReplayRenderer *r) {
+  m_Renderer.BlockInvoke([this, eventID, force](IReplayController *r) {
     r->SetFrameEvent(eventID, force);
     m_CurD3D11PipelineState = r->GetD3D11PipelineState();
     m_CurD3D12PipelineState = r->GetD3D12PipelineState();

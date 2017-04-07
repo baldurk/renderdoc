@@ -63,7 +63,7 @@ void RenderManager::DeleteCapture(const QString &logfile, bool local)
 {
   if(IsRunning())
   {
-    AsyncInvoke([this, logfile, local](IReplayRenderer *) { DeleteCapture(logfile, local); });
+    AsyncInvoke([this, logfile, local](IReplayController *) { DeleteCapture(logfile, local); });
     return;
   }
 
@@ -106,7 +106,7 @@ void RenderManager::GetHomeFolder(bool synchronous, DirectoryBrowseMethod cb)
 
   if(IsRunning() && m_Thread->isCurrentThread())
   {
-    auto lambda = [cb, this](IReplayRenderer *r) {
+    auto lambda = [cb, this](IReplayController *r) {
       cb(m_Remote->GetHomeFolder().c_str(), rdctype::array<PathEntry>());
     };
 
@@ -136,7 +136,7 @@ bool RenderManager::ListFolder(QString path, bool synchronous, DirectoryBrowseMe
 
   if(IsRunning() && m_Thread->isCurrentThread())
   {
-    auto lambda = [cb, pathUTF8, this](IReplayRenderer *r) {
+    auto lambda = [cb, pathUTF8, this](IReplayController *r) {
       cb(pathUTF8.data(), m_Remote->ListFolder(pathUTF8.data()));
     };
 
@@ -170,7 +170,7 @@ QString RenderManager::CopyCaptureToRemote(const QString &localpath, QWidget *wi
   bool copied = false;
   float progress = 0.0f;
 
-  auto lambda = [this, localpath, &remotepath, &progress, &copied](IReplayRenderer *r) {
+  auto lambda = [this, localpath, &remotepath, &progress, &copied](IReplayController *r) {
     QMutexLocker autolock(&m_RemoteLock);
     remotepath = m_Remote->CopyCaptureToRemote(localpath.toUtf8().data(), &progress);
     copied = true;
@@ -203,7 +203,7 @@ void RenderManager::CopyCaptureFromRemote(const QString &remotepath, const QStri
   bool copied = false;
   float progress = 0.0f;
 
-  auto lambda = [this, localpath, remotepath, &progress, &copied](IReplayRenderer *r) {
+  auto lambda = [this, localpath, remotepath, &progress, &copied](IReplayController *r) {
     QMutexLocker autolock(&m_RemoteLock);
     m_Remote->CopyCaptureFromRemote(remotepath.toUtf8().data(), localpath.toUtf8().data(), &progress);
     copied = true;
@@ -393,7 +393,7 @@ void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
 
 void RenderManager::run()
 {
-  IReplayRenderer *renderer = NULL;
+  IReplayController *renderer = NULL;
 
   if(m_Remote)
   {

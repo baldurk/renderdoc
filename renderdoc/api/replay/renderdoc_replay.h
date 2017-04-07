@@ -379,14 +379,14 @@ protected:
   ~IReplayOutput() = default;
 };
 
-DOCUMENT(R"(The primary interface to access a capture's information and control the replay and
-analysis functionality available.
+DOCUMENT(R"(The primary interface to access the information in a capture and the current state, as
+well as control the replay and analysis functionality available.
 
 .. data:: NoPreference
 
   No preference for a particular value, see :meth:`DebugPixel`.
 )");
-struct IReplayRenderer
+struct IReplayController
 {
   DOCUMENT(R"(Retrieve a :class:`APIProperties` object describing the current capture.
 
@@ -762,11 +762,11 @@ sample 0, etc.
   static const uint32_t NoPreference = ~0U;
 
 protected:
-  IReplayRenderer() = default;
-  ~IReplayRenderer() = default;
+  IReplayController() = default;
+  ~IReplayController() = default;
 };
 
-DECLARE_REFLECTION_STRUCT(IReplayRenderer);
+DECLARE_REFLECTION_STRUCT(IReplayController);
 
 DOCUMENT(R"(A connection to a running application with RenderDoc injected, which allows limited
 control over the capture process as well as querying the current status.
@@ -988,9 +988,9 @@ as possible will happen locally to save on bandwidth, processing and latency.
 This function will block until the capture is fully opened on the remote system and ready for use,
 or an error has occurred.
 
-.. note:: You *must* close the resulting :class:`ReplayRenderer` with the :meth:`CloseCapture`
+.. note:: You *must* close the resulting :class:`ReplayController` with the :meth:`CloseCapture`
   function to ensure the local proxy is correctly tidied up, instead of using
-  :meth:`ReplayRenderer.Shutdown`.
+  :meth:`ReplayController.Shutdown`.
 
 :param int proxyid: The index in the array returned by :meth:`LocalProxies` to use as a local proxy,
   or :data:`NoPreference` to indicate no preference for any proxy.
@@ -999,18 +999,18 @@ or an error has occurred.
 :param float progress: A reference to a ``float`` value that will be updated as the copy happens
   from ``0.0`` to ``1.0``. The parameter can be ``None`` if no progress update is desired.
 :return: A tuple containing the status of opening the capture, whether success or failure, and the
-  resulting :class:`ReplayRenderer` handle if successful.
-:rtype: ``tuple`` of :class:`ReplayStatus` and :class:`ReplayRenderer`
+  resulting :class:`ReplayController` handle if successful.
+:rtype: ``tuple`` of :class:`ReplayStatus` and :class:`ReplayController`
 )");
-  virtual rdctype::pair<ReplayStatus, IReplayRenderer *> OpenCapture(uint32_t proxyid,
-                                                                     const char *logfile,
-                                                                     float *progress) = 0;
+  virtual rdctype::pair<ReplayStatus, IReplayController *> OpenCapture(uint32_t proxyid,
+                                                                       const char *logfile,
+                                                                       float *progress) = 0;
 
   DOCUMENT(R"(Close a capture analysis handle previously opened by :meth:`OpenCapture`.
 
-:param ReplayRenderer rend: The ReplayRenderer that is to be closed.
+:param ReplayController rend: The ReplayController that is to be closed.
 )");
-  virtual void CloseCapture(IReplayRenderer *rend) = 0;
+  virtual void CloseCapture(IReplayController *rend) = 0;
 
   static const uint32_t NoPreference = ~0U;
 
@@ -1072,15 +1072,15 @@ This filename is exactly as specified without any modificaton to make it an abso
 This function will block until the capture is fully loaded and ready.
 
 Once the replay is created, this :class:`CaptureFile` can be shut down, there is no dependency on it
-by the :class:`ReplayRenderer`.
+by the :class:`ReplayController`.
 
 :param float progress: A reference to a ``float`` value that will be updated as the copy happens
   from ``0.0`` to ``1.0``. The parameter can be ``None`` if no progress update is desired.
 :return: A tuple containing the status of opening the capture, whether success or failure, and the
-  resulting :class:`ReplayRenderer` handle if successful.
-:rtype: ``tuple`` of :class:`ReplayStatus` and :class:`ReplayRenderer`.
+  resulting :class:`ReplayController` handle if successful.
+:rtype: ``tuple`` of :class:`ReplayStatus` and :class:`ReplayController`.
 )");
-  virtual rdctype::pair<ReplayStatus, IReplayRenderer *> OpenCapture(float *progress) = 0;
+  virtual rdctype::pair<ReplayStatus, IReplayController *> OpenCapture(float *progress) = 0;
 
   DOCUMENT(R"(Retrieves the embedded thumbnail from the capture.
 

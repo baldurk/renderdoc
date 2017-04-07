@@ -45,7 +45,7 @@ void readCapOpts(const std::string &str, CaptureOptions *opts)
     *(b++) = (byte(str[i * 2 + 0] - 'a') << 4) | byte(str[i * 2 + 1] - 'a');
 }
 
-void DisplayRendererPreview(IReplayRenderer *renderer, uint32_t width, uint32_t height)
+void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_t height)
 {
   if(renderer == NULL)
     return;
@@ -510,7 +510,7 @@ struct ReplayCommand : public Command
 
       rdctype::str remotePath = remote->CopyCaptureToRemote(filename.c_str(), NULL);
 
-      IReplayRenderer *renderer = NULL;
+      IReplayController *renderer = NULL;
       std::tie(status, renderer) = remote->OpenCapture(~0U, remotePath.elems, NULL);
 
       if(status == ReplayStatus::Succeeded)
@@ -539,7 +539,7 @@ struct ReplayCommand : public Command
         return 1;
       }
 
-      IReplayRenderer *renderer = NULL;
+      IReplayController *renderer = NULL;
       ReplayStatus status = ReplayStatus::InternalError;
       std::tie(status, renderer) = file->OpenCapture(NULL);
 

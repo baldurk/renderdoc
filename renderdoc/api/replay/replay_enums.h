@@ -2781,7 +2781,7 @@ enum class LogicOp : uint32_t
 
 DOCUMENT(R"(Pre-defined GPU counters that can be supported by a given implementation.
 
-GPU counters actually available can be queried by :meth:`ReplayRenderer.EnumerateCounters`. If any
+GPU counters actually available can be queried by :meth:`ReplayController.EnumerateCounters`. If any
 in this list are supported they will be returned with these counter IDs. More counters may be
 enumerated with IDs in the appropriate ranges.
 

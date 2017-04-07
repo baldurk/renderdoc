@@ -48,7 +48,7 @@ void Daemonise()
 {
 }
 
-void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
+void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {
   ANativeWindow *connectionScreenWindow = android_state->window;

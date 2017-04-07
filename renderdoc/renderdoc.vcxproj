@@ -287,7 +287,7 @@
     <ClInclude Include="os\win32\win32_hook.h" />
     <ClInclude Include="os\win32\win32_specific.h" />
     <ClInclude Include="replay\replay_driver.h" />
-    <ClInclude Include="replay\replay_renderer.h" />
+    <ClInclude Include="replay\replay_controller.h" />
     <ClInclude Include="replay\type_helpers.h" />
     <ClInclude Include="serialise\serialiser.h" />
     <ClInclude Include="serialise\string_utils.h" />
@@ -389,7 +389,7 @@
     <ClCompile Include="replay\capture_options.cpp" />
     <ClCompile Include="replay\entry_points.cpp" />
     <ClCompile Include="replay\replay_output.cpp" />
-    <ClCompile Include="replay\replay_renderer.cpp" />
+    <ClCompile Include="replay\replay_controller.cpp" />
     <ClCompile Include="replay\type_helpers.cpp" />
     <ClCompile Include="serialise\grisu2.cpp" />
     <ClCompile Include="serialise\serialiser.cpp" />

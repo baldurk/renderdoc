@@ -258,7 +258,7 @@ DECLARE_REFLECTION_STRUCT(ILogViewerForm);
 
 struct IRenderManager
 {
-  typedef std::function<void(IReplayRenderer *)> InvokeMethod;
+  typedef std::function<void(IReplayController *)> InvokeMethod;
   typedef std::function<void(const rdctype::str &, const rdctype::array<PathEntry> &)> DirectoryBrowseMethod;
 
   virtual void DeleteCapture(const QString &logfile, bool local) = 0;

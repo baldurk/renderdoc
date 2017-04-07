@@ -117,8 +117,8 @@ set(sources
     replay/entry_points.cpp
     replay/replay_driver.h
     replay/replay_output.cpp
-    replay/replay_renderer.cpp
-    replay/replay_renderer.h
+    replay/replay_controller.cpp
+    replay/replay_controller.h
     replay/type_helpers.cpp
     replay/type_helpers.h
     serialise/grisu2.cpp

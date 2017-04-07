@@ -233,7 +233,7 @@ void Daemonise()
   // nothing really to do, windows version of renderdoccmd is already 'detached'
 }
 
-void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
+void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {
   RECT wr = {0, 0, (LONG)width, (LONG)height};

@@ -122,8 +122,8 @@ private:
 
   IReplayOutput *m_Output;
 
-  void RT_UpdateAndDisplay(IReplayRenderer *);
-  void RT_FetchMeshData(IReplayRenderer *r);
+  void RT_UpdateAndDisplay(IReplayController *);
+  void RT_FetchMeshData(IReplayController *r);
 
   MeshDisplay m_Config;
 
