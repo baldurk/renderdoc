@@ -109,6 +109,10 @@ class Camera;
 DOCUMENT(R"(
 Describes how to render a mesh preview of one or more meshes. Describes the camera configuration as
 well as what options to use when rendering both the current mesh, and any other auxilliary meshes.
+
+.. data:: NoHighlight
+
+  Value for :data:`highlightVert` if no vertex should be highlighted.
 )");
 struct MeshDisplay
 {
@@ -139,7 +143,7 @@ struct MeshDisplay
   DOCUMENT("The index of the currently selected instance in the drawcall.");
   uint32_t curInstance;
 
-  DOCUMENT("The index of the vertex to highlight, or ``0xffffffff`` to select no vertex.");
+  DOCUMENT("The index of the vertex to highlight, or :data:`NoHighlight` to select no vertex.");
   uint32_t highlightVert;
   DOCUMENT("The :class:`MeshFormat` of the position data for the mesh.");
   MeshFormat position;
@@ -158,6 +162,8 @@ struct MeshDisplay
   SolidShade solidShadeMode;
   DOCUMENT("``True`` if the wireframe of the mesh should be rendered as well as solid shading.");
   bool32 wireframeDraw;
+
+  static const uint32_t NoHighlight = ~0U;
 };
 
 DECLARE_REFLECTION_STRUCT(MeshDisplay);
@@ -166,6 +172,10 @@ DOCUMENT(R"(
 Describes how to render a texture preview of an image. Describes the zoom and pan settings for the
 texture when rendering on a particular output, as well as the modification and selection of a
 particular subresource (such as array slice, mip or multi-sampled sample).
+
+.. data:: ResolveSamples
+
+  Value for :data:`sampleIdx` if the samples should be averaged.
 )");
 struct TextureDisplay
 {
@@ -239,7 +249,8 @@ See :meth:`ReplayRenderer.BuildCustomShader` for creating an appropriate custom 
 
   DOCUMENT(R"(Select the sample of the texture to display if it's a multi-sampled texture.
 
-If this is set to ``0xffffffff`` then a default resolve will be performed averaging all samples.
+If this is set to :data:`ResolveSamples` then a default resolve will be performed that averages all
+samples.
 )");
   uint32_t sampleIdx;
 
@@ -263,6 +274,8 @@ the input texture in cases where it isn't easy to directly fetch the input textu
 
   DOCUMENT("Selects a :class:`DebugOverlay` to draw over the top of the texture.");
   DebugOverlay overlay;
+
+  static const uint32_t ResolveSamples = ~0U;
 };
 
 DECLARE_REFLECTION_STRUCT(TextureDisplay);
@@ -279,7 +292,12 @@ struct TextureComponentMapping
 
 DECLARE_REFLECTION_STRUCT(TextureComponentMapping);
 
-DOCUMENT("How to map multisampled textures for saving to non-multisampled file formats.");
+DOCUMENT(R"(How to map multisampled textures for saving to non-multisampled file formats.
+
+.. data:: ResolveSamples
+
+  Value for :data:`sampleIndex` if the samples should be averaged.
+)");
 struct TextureSampleMapping
 {
   DOCUMENT(R"(
@@ -293,9 +311,11 @@ is ignored.
 
   DOCUMENT(R"(
 If :data:`mapToArray` is ``False`` this selects which sample should be extracted to treat as a
-normal 2D image. If set to ``0xffffffff`` then instead there's a default average resolve.
+normal 2D image. If set to :data:`ResolveSamples` then instead there's a default average resolve.
 )");
   uint32_t sampleIndex;
+
+  static const uint32_t ResolveSamples = ~0U;
 };
 
 DECLARE_REFLECTION_STRUCT(TextureSampleMapping);

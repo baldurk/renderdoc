@@ -29,7 +29,12 @@
 
 namespace D3D11Pipe
 {
-DOCUMENT("Describes a single D3D11 input layout element for one vertex input.");
+DOCUMENT(R"(Describes a single D3D11 input layout element for one vertex input.
+
+.. data:: TightlyPacked
+
+  Value for :data:`ByteOffset` that indicates this element is tightly packed.
+)");
 struct Layout
 {
   DOCUMENT("The semantic name for this input.");
@@ -47,7 +52,7 @@ struct Layout
   DOCUMENT(R"(The byte offset from the start of the vertex data in the vertex buffer from
 :data:`InputSlot`.
 
-If the value is ``0xffffffff`` then the element is packed tightly after the previous element, or 0
+If the value is :data:`TightlyPacked` then the element is packed tightly after the previous element, or 0
 if this is the first element.
 )");
   uint32_t ByteOffset = 0;
@@ -62,6 +67,9 @@ E.g. if this value is two, then two instances will be drawn with the first insta
 with the next instance data.
 )");
   uint32_t InstanceDataStepRate = 0;
+
+  // D3D11_APPEND_ALIGNED_ELEMENT
+  static const uint32_t TightlyPacked = ~0U;
 };
 
 DOCUMENT("Describes a single D3D11 vertex buffer binding.")

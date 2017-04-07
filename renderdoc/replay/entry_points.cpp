@@ -615,7 +615,7 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
   }
 
   // tried all idents remaining and found nothing
-  return ~0U;
+  return 0;
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultRemoteServerPort()

@@ -280,7 +280,7 @@ namespace renderdoc
 
                 nextIdent = RENDERDOC_EnumerateRemoteTargets(host_mem, nextIdent);
 
-                if (nextIdent == UInt32.MaxValue || prevIdent >= nextIdent)
+                if (nextIdent == 0 || prevIdent >= nextIdent)
                     break;
 
                 callback(nextIdent);

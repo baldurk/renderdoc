@@ -236,6 +236,10 @@ of the capture. This allows multiple outputs to run independently without interf
 other.
 
 The different types are enumerated in :class:`ReplayOutputType`.
+
+.. data:: NoResult
+
+  No result was found in e.g. :meth:`PickVertex`.
 )");
 struct IReplayOutput
 {
@@ -363,10 +367,12 @@ Should only be called for mesh outputs.
 :param int x: The x co-ordinate to pick from.
 :param int y: The y co-ordinate to pick from.
 :return: A tuple with the first value being the vertex index in the mesh, and the second value being
-  the instance index. The values are set to ``0xffffffff`` if no vertex was found, 
+  the instance index. The values are set to :data:`NoResult` if no vertex was found, 
 :rtype: ``tuple`` of ``int`` and ``int``
 )");
   virtual rdctype::pair<uint32_t, uint32_t> PickVertex(uint32_t eventID, uint32_t x, uint32_t y) = 0;
+
+  static const uint32_t NoResult = ~0U;
 
 protected:
   IReplayOutput() = default;
@@ -375,6 +381,10 @@ protected:
 
 DOCUMENT(R"(The primary interface to access a capture's information and control the replay and
 analysis functionality available.
+
+.. data:: NoPreference
+
+  No preference for a particular value, see :meth:`DebugPixel`.
 )");
 struct IReplayRenderer
 {
@@ -664,7 +674,7 @@ newly generated messages will be returned after that.
 :param int y: The y co-ordinate.
 :param int sample: The multi-sampled sample. Ignored if non-multisampled texture.
 :param int primitive: Debug the pixel from this primitive if there's ambiguity. If set to
-  ``0xffffffff`` then a random fragment writing to the given co-ordinate is debugged.
+  :data:`NoPreference` then a random fragment writing to the given co-ordinate is debugged.
 :return: The resulting trace resulting from debugging.
 :rtype: ShaderDebugTrace
 )");
@@ -748,6 +758,8 @@ sample 0, etc.
 :rtype: ``bytes``
 )");
   virtual rdctype::array<byte> GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip) = 0;
+
+  static const uint32_t NoPreference = ~0U;
 
 protected:
   IReplayRenderer() = default;
@@ -854,6 +866,10 @@ DOCUMENT(R"(A connection to a running remote RenderDoc server on another machine
 transfer of captures to and from the local machine, as well as remotely replaying a capture with a
 local proxy renderer, so that captures that are not supported locally can still be debugged with as
 much work as possible happening on the local machine.
+
+.. data:: NoPreference
+
+  No preference for a particular value, see :meth:`DebugPixel`.
 )");
 struct IRemoteServer
 {
@@ -976,7 +992,7 @@ or an error has occurred.
   :meth:`ReplayRenderer.Shutdown`.
 
 :param int proxyid: The index in the array returned by :meth:`LocalProxies` to use as a local proxy,
-  or ``0xffffffff`` to indicate no preference for any proxy.
+  or :data:`NoPreference` to indicate no preference for any proxy.
 :param str logfile: The path on the remote system where the file is. If the file is only available
   locally you can use :meth:`CopyCaptureToRemote` to transfer it over the remote connection.
 :param float progress: A reference to a ``float`` value that will be updated as the copy happens
@@ -994,6 +1010,8 @@ or an error has occurred.
 :param ReplayRenderer rend: The ReplayRenderer that is to be closed.
 )");
   virtual void CloseCapture(IReplayRenderer *rend) = 0;
+
+  static const uint32_t NoPreference = ~0U;
 
 protected:
   IRemoteServer() = default;
@@ -1137,7 +1155,7 @@ This function will block for a variable timeout depending on how many targets ar
 
 :param str host: The hostname to connect to. If blank, the local machine is used.
 :param int nextIdent: The next ident to scan.
-:return: The ident of the next active target, or ``0xffffffff`` if no other targets exist.
+:return: The ident of the next active target, or ``0`` if no other targets exist.
 :rtype: ``int``
 )");
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *host,

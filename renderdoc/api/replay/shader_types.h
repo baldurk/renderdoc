@@ -243,6 +243,10 @@ DECLARE_REFLECTION_STRUCT(ShaderDebugTrace);
 
 DOCUMENT(R"(The information describing an input or output signature element describing the interface
 between shader stages.
+
+.. data:: NoIndex
+
+  Value for an index that means it is invalid or not applicable for this parameter.
 )");
 struct SigParameter
 {
@@ -274,7 +278,7 @@ struct SigParameter
 
   DOCUMENT(R"(The index of the shader register/binding used to store this signature element.
 
-This may be ``0xffffffff`` if the element is system-generated and not consumed by another shader
+This may be :data:`NoIndex` if the element is system-generated and not consumed by another shader
 stage. See :data:`systemValue`.
 )");
   uint32_t regIndex;
@@ -299,8 +303,10 @@ shader itself, for APIs that pack signatures together.
       "Selects a stream for APIs that provide multiple output streams for the same named output.");
   uint32_t stream;
 
-  DOCUMENT("If this element is part of an array, indicates the index, or ``0xffffffff`` if not.");
+  DOCUMENT("If this element is part of an array, indicates the index, or :data:`NoIndex` if not.");
   uint32_t arrayIndex;
+
+  static const uint32_t NoIndex = ~0U;
 };
 
 DECLARE_REFLECTION_STRUCT(SigParameter);

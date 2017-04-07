@@ -232,7 +232,7 @@ void RemoteManager::refreshHost(QTreeWidgetItem *node)
 
       nextIdent = RENDERDOC_EnumerateRemoteTargets(hostnameBytes.data(), nextIdent);
 
-      if(nextIdent == ~0U || prevIdent >= nextIdent)
+      if(nextIdent == 0 || prevIdent >= nextIdent)
         break;
 
       ITargetControl *conn =
