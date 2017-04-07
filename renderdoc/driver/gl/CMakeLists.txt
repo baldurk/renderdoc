@@ -53,6 +53,7 @@ else()
     if(ENABLE_GLES)
         list(APPEND sources
             gl_hooks_egl.cpp
+            gl_hooks_egl_pass.cpp
             gl_replay_egl.cpp)
     endif()
 endif()

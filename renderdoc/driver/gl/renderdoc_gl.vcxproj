@@ -45,6 +45,9 @@
     <ClCompile Include="gl_hooks_egl.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="gl_hooks_egl_pass.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="gl_hooks_apple.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
