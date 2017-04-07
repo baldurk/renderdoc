@@ -110,6 +110,33 @@ struct array
     return *this;
   }
 
+  array(const std::initializer_list<T> &in)
+  {
+    elems = 0;
+    count = 0;
+    *this = in;
+  }
+  array &operator=(const std::initializer_list<T> &in)
+  {
+    Delete();
+    count = (int32_t)in.size();
+    if(count == 0)
+    {
+      elems = 0;
+    }
+    else
+    {
+      elems = (T *)allocate(sizeof(T) * count);
+      int i = 0;
+      for(const T &t : in)
+      {
+        new(elems + i) T(t);
+        i++;
+      }
+    }
+    return *this;
+  }
+
   array(const array &o)
   {
     elems = 0;
