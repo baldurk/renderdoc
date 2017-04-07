@@ -320,9 +320,11 @@ struct CaptureCommand : public Command
 
     std::cout << std::endl;
 
+    rdctype::array<EnvironmentModification> env;
+
     uint32_t ident = RENDERDOC_ExecuteAndInject(
         executable.c_str(), workingDir.empty() ? "" : workingDir.c_str(),
-        cmdLine.empty() ? "" : cmdLine.c_str(), NULL, logFile.empty() ? "" : logFile.c_str(), opts,
+        cmdLine.empty() ? "" : cmdLine.c_str(), env, logFile.empty() ? "" : logFile.c_str(), opts,
         parser.exist("wait-for-exit"));
 
     if(ident == 0)
@@ -382,7 +384,9 @@ struct InjectCommand : public Command
 
     std::cout << "Injecting into PID " << PID << std::endl;
 
-    uint32_t ident = RENDERDOC_InjectIntoProcess(PID, NULL, logFile.empty() ? "" : logFile.c_str(),
+    rdctype::array<EnvironmentModification> env;
+
+    uint32_t ident = RENDERDOC_InjectIntoProcess(PID, env, logFile.empty() ? "" : logFile.c_str(),
                                                  opts, parser.exist("wait-for-exit"));
 
     if(ident == 0)
@@ -566,7 +570,8 @@ struct CapAltBitCommand : public Command
 
     int numEnvs = int(rest.size() / 3);
 
-    void *env = RENDERDOC_MakeEnvironmentModificationList(numEnvs);
+    rdctype::array<EnvironmentModification> env;
+    env.create(numEnvs);
 
     for(int i = 0; i < numEnvs; i++)
     {
@@ -623,12 +628,10 @@ struct CapAltBitCommand : public Command
       else
       {
         std::cerr << "Invalid generated capaltbit env '" << rest[i * 3 + 0] << std::endl;
-        RENDERDOC_FreeEnvironmentModificationList(env);
         return 0;
       }
 
-      RENDERDOC_SetEnvironmentModification(env, i, rest[i * 3 + 1].c_str(), rest[i * 3 + 2].c_str(),
-                                           type, sep);
+      env[i] = EnvironmentModification(type, sep, rest[i * 3 + 1].c_str(), rest[i * 3 + 2].c_str());
     }
 
     string debuglog = parser.get<string>("debuglog");
@@ -637,8 +640,6 @@ struct CapAltBitCommand : public Command
 
     int ret = RENDERDOC_InjectIntoProcess(parser.get<uint32_t>("pid"), env,
                                           parser.get<string>("log").c_str(), cmdopts, false);
-
-    RENDERDOC_FreeEnvironmentModificationList(env);
 
     return ret;
   }

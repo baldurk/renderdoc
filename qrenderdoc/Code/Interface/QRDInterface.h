@@ -43,28 +43,6 @@ class QWidget;
 
 struct ICaptureContext;
 
-struct EnvironmentModification
-{
-  EnvironmentModification()
-  {
-    type = EnvMod::Set;
-    separator = EnvSep::NoSep;
-  }
-
-  QString variable;
-  QString value;
-
-  EnvMod type;
-  EnvSep separator;
-
-  QString GetTypeString() const;
-  QString GetDescription() const;
-
-  VARIANT_CAST(EnvironmentModification);
-};
-
-DECLARE_REFLECTION_STRUCT(EnvironmentModification);
-
 struct CaptureSettings
 {
   CaptureSettings();

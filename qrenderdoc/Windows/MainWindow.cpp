@@ -371,19 +371,12 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModificati
   if(!PromptCloseLog())
     return;
 
-  LambdaThread *th = new LambdaThread([this, PID, env, name, opts, callback]() {
+  rdctype::array<EnvironmentModification> envList = env.toVector().toStdVector();
+
+  LambdaThread *th = new LambdaThread([this, PID, envList, name, opts, callback]() {
     QString logfile = m_Ctx.TempLogFilename(name);
 
-    void *envList = RENDERDOC_MakeEnvironmentModificationList(env.size());
-
-    for(int i = 0; i < env.size(); i++)
-      RENDERDOC_SetEnvironmentModification(envList, i, env[i].variable.toUtf8().data(),
-                                           env[i].value.toUtf8().data(), env[i].type,
-                                           env[i].separator);
-
     uint32_t ret = RENDERDOC_InjectIntoProcess(PID, envList, logfile.toUtf8().data(), opts, false);
-
-    RENDERDOC_FreeEnvironmentModificationList(envList);
 
     GUIInvoke::call([this, PID, ret, callback]() {
       if(ret == 0)

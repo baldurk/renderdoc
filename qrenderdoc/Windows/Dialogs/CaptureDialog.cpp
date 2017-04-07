@@ -37,6 +37,26 @@
 #define JSON_ID "rdocCaptureSettings"
 #define JSON_VER 1
 
+static QString GetDescription(const EnvironmentModification &env)
+{
+  QString ret;
+
+  if(env.mod == EnvMod::Append)
+    ret = QString("Append %1 with %2 using %3")
+              .arg(ToQStr(env.name))
+              .arg(ToQStr(env.value))
+              .arg(ToQStr(env.sep));
+  else if(env.mod == EnvMod::Prepend)
+    ret = QString("Prepend %1 with %2 using %3")
+              .arg(ToQStr(env.name))
+              .arg(ToQStr(env.value))
+              .arg(ToQStr(env.sep));
+  else
+    ret = QString("Set %1 to %2").arg(ToQStr(env.name)).arg(ToQStr(env.value));
+
+  return ret;
+}
+
 Q_DECLARE_METATYPE(CaptureSettings);
 
 CaptureDialog::CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallback,
@@ -662,7 +682,7 @@ void CaptureDialog::SetEnvironmentModifications(const QList<EnvironmentModificat
     if(envModText != "")
       envModText += ", ";
 
-    envModText += mod.GetDescription();
+    envModText += GetDescription(mod);
   }
 
   ui->envVar->setText(envModText);

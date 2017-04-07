@@ -317,8 +317,10 @@ private:
 
       if(inject)
       {
+        rdctype::array<EnvironmentModification> env;
+
         // inherit logfile and capture options
-        uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId, NULL,
+        uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId, env,
                                                      RenderDoc::Inst().GetLogFile(),
                                                      RenderDoc::Inst().GetCaptureOptions(), false);
 
@@ -401,8 +403,10 @@ private:
 
       if(inject)
       {
+        rdctype::array<EnvironmentModification> env;
+
         // inherit logfile and capture options
-        uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId, NULL,
+        uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId, env,
                                                      RenderDoc::Inst().GetLogFile(),
                                                      RenderDoc::Inst().GetCaptureOptions(), false);
 

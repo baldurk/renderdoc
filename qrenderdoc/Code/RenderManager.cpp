@@ -355,11 +355,7 @@ uint32_t RenderManager::ExecuteAndInject(const QString &exe, const QString &work
                                          const QList<EnvironmentModification> &env,
                                          const QString &logfile, CaptureOptions opts)
 {
-  void *envList = RENDERDOC_MakeEnvironmentModificationList(env.size());
-
-  for(int i = 0; i < env.size(); i++)
-    RENDERDOC_SetEnvironmentModification(envList, i, env[i].variable.toUtf8().data(),
-                                         env[i].value.toUtf8().data(), env[i].type, env[i].separator);
+  rdctype::array<EnvironmentModification> envList = env.toVector().toStdVector();
 
   uint32_t ret = 0;
 
@@ -375,8 +371,6 @@ uint32_t RenderManager::ExecuteAndInject(const QString &exe, const QString &work
                                      cmdLine.toUtf8().data(), envList, logfile.toUtf8().data(),
                                      opts, false);
   }
-
-  RENDERDOC_FreeEnvironmentModificationList(envList);
 
   return ret;
 }

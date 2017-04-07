@@ -487,3 +487,23 @@ struct TargetControlMessage
 };
 
 DECLARE_REFLECTION_STRUCT(TargetControlMessage);
+
+DOCUMENT("A modification to a single environment variable.");
+struct EnvironmentModification
+{
+  EnvironmentModification() : mod(EnvMod::Set), sep(EnvSep::NoSep), name(""), value("") {}
+  EnvironmentModification(EnvMod m, EnvSep s, const char *n, const char *v)
+      : mod(m), sep(s), name(n), value(v)
+  {
+  }
+  DOCUMENT("The :class:`modification <EnvMod>` to use.");
+  EnvMod mod;
+  DOCUMENT("The :class:`separator <EnvSep>` to use if needed.");
+  EnvSep sep;
+  DOCUMENT("The name of the environment variable.");
+  rdctype::str name;
+  DOCUMENT("The value to use with the modification specified in :data:`mod`.");
+  rdctype::str value;
+};
+
+DECLARE_REFLECTION_STRUCT(EnvironmentModification);

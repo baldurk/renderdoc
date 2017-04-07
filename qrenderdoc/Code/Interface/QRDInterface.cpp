@@ -4,69 +4,46 @@
 #include <QStandardPaths>
 #include "Code/QRDUtils.h"
 
-QString EnvironmentModification::GetTypeString() const
-{
-  QString ret;
-
-  if(type == EnvMod::Append)
-    ret = QString("Append, %1").arg(ToQStr(separator));
-  else if(type == EnvMod::Prepend)
-    ret = QString("Prepend, %1").arg(ToQStr(separator));
-  else
-    ret = "Set";
-
-  return ret;
-}
-
-QString EnvironmentModification::GetDescription() const
-{
-  QString ret;
-
-  if(type == EnvMod::Append)
-    ret = QString("Append %1 with %2 using %3").arg(variable).arg(value).arg(ToQStr(separator));
-  else if(type == EnvMod::Prepend)
-    ret = QString("Prepend %1 with %2 using %3").arg(variable).arg(value).arg(ToQStr(separator));
-  else
-    ret = QString("Set %1 to %2").arg(variable).arg(value);
-
-  return ret;
-}
-
-EnvironmentModification::operator QVariant() const
+QVariant EnvModToVariant(const EnvironmentModification &env)
 {
   QVariantMap ret;
-  ret["variable"] = variable;
-  ret["value"] = value;
-  ret["type"] = ToQStr(type);
-  ret["separator"] = ToQStr(separator);
+  ret["variable"] = ToQStr(env.name);
+  ret["value"] = ToQStr(env.value);
+  ret["type"] = ToQStr(env.mod);
+  ret["separator"] = ToQStr(env.sep);
   return ret;
 }
 
-EnvironmentModification::EnvironmentModification(const QVariant &v)
+EnvironmentModification EnvModFromVariant(const QVariant &v)
 {
   QVariantMap data = v.toMap();
-  variable = data["variable"].toString();
-  value = data["value"].toString();
+
+  EnvironmentModification ret;
+
+  ret.name = data["variable"].toString().toUtf8().data();
+  ret.value = data["value"].toString().toUtf8().data();
 
   QString t = data["type"].toString();
 
   if(t == ToQStr(EnvMod::Append))
-    type = EnvMod::Append;
+    ret.mod = EnvMod::Append;
   else if(t == ToQStr(EnvMod::Prepend))
-    type = EnvMod::Prepend;
+    ret.mod = EnvMod::Prepend;
   else
-    type = EnvMod::Set;
+    ret.mod = EnvMod::Set;
 
   QString s = data["separator"].toString();
 
   if(s == ToQStr(EnvSep::SemiColon))
-    separator = EnvSep::SemiColon;
+    ret.sep = EnvSep::SemiColon;
   else if(s == ToQStr(EnvSep::Colon))
-    separator = EnvSep::Colon;
+    ret.sep = EnvSep::Colon;
   else if(s == ToQStr(EnvSep::Platform))
-    separator = EnvSep::Platform;
+    ret.sep = EnvSep::Platform;
   else
-    separator = EnvSep::NoSep;
+    ret.sep = EnvSep::NoSep;
+
+  return ret;
 }
 
 CaptureSettings::CaptureSettings()
@@ -88,7 +65,7 @@ CaptureSettings::operator QVariant() const
 
   QVariantList env;
   for(int i = 0; i < Environment.size(); i++)
-    env.push_back((QVariant)Environment[i]);
+    env.push_back(EnvModToVariant(Environment[i]));
   ret["Environment"] = env;
 
   QVariantMap opts;
@@ -122,7 +99,7 @@ CaptureSettings::CaptureSettings(const QVariant &v)
   QVariantList env = data["Environment"].toList();
   for(int i = 0; i < env.size(); i++)
   {
-    EnvironmentModification e(env[i]);
+    EnvironmentModification e = EnvModFromVariant(env[i]);
     Environment.push_back(e);
   }
 

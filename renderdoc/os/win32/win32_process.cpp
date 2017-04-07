@@ -44,9 +44,9 @@ static wstring lowercase(wstring in)
   return ret;
 }
 
-static vector<Process::EnvironmentModification> &GetEnvModifications()
+static vector<EnvironmentModification> &GetEnvModifications()
 {
-  static vector<Process::EnvironmentModification> envCallbacks;
+  static vector<EnvironmentModification> envCallbacks;
   return envCallbacks;
 }
 
@@ -78,7 +78,7 @@ static map<wstring, string> EnvStringToEnvMap(const wchar_t *envstring)
   return ret;
 }
 
-void Process::RegisterEnvironmentModification(Process::EnvironmentModification modif)
+void Process::RegisterEnvironmentModification(EnvironmentModification modif)
 {
   GetEnvModifications().push_back(modif);
 }
@@ -102,7 +102,7 @@ void Process::ApplyEnvironmentModification()
 
     // set all names to lower case so we can do case-insensitive lookups, but
     // preserve the original name so that added variables maintain the same case
-    wstring name = StringFormat::UTF82Wide(m.name);
+    wstring name = StringFormat::UTF82Wide(m.name.c_str());
     wstring lowername = lowercase(name);
 
     string value;
@@ -116,7 +116,7 @@ void Process::ApplyEnvironmentModification()
 
     switch(m.mod)
     {
-      case EnvMod::Set: value = m.value; break;
+      case EnvMod::Set: value = m.value.c_str(); break;
       case EnvMod::Append:
       {
         if(!value.empty())
@@ -126,7 +126,7 @@ void Process::ApplyEnvironmentModification()
           else if(m.sep == EnvSep::Colon)
             value += ":";
         }
-        value += m.value;
+        value += m.value.c_str();
         break;
       }
       case EnvMod::Prepend:
@@ -140,7 +140,7 @@ void Process::ApplyEnvironmentModification()
         }
         else
         {
-          value = m.value;
+          value = m.value.c_str();
         }
         break;
       }
@@ -172,7 +172,7 @@ extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetLogFile(const char *lo
     RenderDoc::Inst().SetLogFile(log);
 }
 
-static Process::EnvironmentModification tempEnvMod;
+static EnvironmentModification tempEnvMod;
 
 extern "C" __declspec(dllexport) void __cdecl INTERNAL_EnvModName(const char *name)
 {
@@ -480,8 +480,8 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
   return pi;
 }
 
-uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, const char *logfile,
-                                    const CaptureOptions &opts, bool waitForExit)
+uint32_t Process::InjectIntoProcess(uint32_t pid, const rdctype::array<EnvironmentModification> &env,
+                                    const char *logfile, const CaptureOptions &opts, bool waitForExit)
 {
   wstring wlogfile = logfile == NULL ? L"" : StringFormat::UTF82Wide(logfile);
 
@@ -753,29 +753,29 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
 
     wstring cmdWithEnv;
 
-    if(env)
+    if(!env.empty())
     {
       cmdWithEnv = paramsAlloc;
 
-      for(;;)
+      for(const EnvironmentModification &e : env)
       {
-        string name = trim(env->name);
-        string value = env->value;
+        string name = trim(e.name.c_str());
+        string value = e.value.c_str();
 
         if(name == "")
           break;
 
         cmdWithEnv += L" +env-";
-        switch(env->mod)
+        switch(e.mod)
         {
           case EnvMod::Set: cmdWithEnv += L"replace"; break;
           case EnvMod::Append: cmdWithEnv += L"append"; break;
           case EnvMod::Prepend: cmdWithEnv += L"prepend"; break;
         }
 
-        if(env->mod != EnvMod::Set)
+        if(e.mod != EnvMod::Set)
         {
-          switch(env->sep)
+          switch(e.sep)
           {
             case EnvSep::Platform: cmdWithEnv += L"-platform"; break;
             case EnvSep::SemiColon: cmdWithEnv += L"-semicolon"; break;
@@ -806,8 +806,6 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
 
         cmdWithEnv += L"\"" + StringFormat::UTF82Wide(name) + L"\" ";
         cmdWithEnv += L"\"" + StringFormat::UTF82Wide(value) + L"\" ";
-
-        env++;
       }
 
       commandLine = (wchar_t *)cmdWithEnv.c_str();
@@ -870,14 +868,14 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
     InjectFunctionCall(hProcess, loc, "INTERNAL_GetTargetControlIdent", &controlident,
                        sizeof(controlident));
 
-    if(env)
+    if(!env.empty())
     {
-      for(;;)
+      for(const EnvironmentModification &e : env)
       {
-        string name = trim(env->name);
-        string value = env->value;
-        EnvMod mod = env->mod;
-        EnvSep sep = env->sep;
+        string name = trim(e.name.c_str());
+        string value = e.value.c_str();
+        EnvMod mod = e.mod;
+        EnvSep sep = e.sep;
 
         if(name == "")
           break;
@@ -888,13 +886,11 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
                            value.size() + 1);
         InjectFunctionCall(hProcess, loc, "INTERNAL_EnvSep", &sep, sizeof(sep));
         InjectFunctionCall(hProcess, loc, "INTERNAL_EnvMod", &mod, sizeof(mod));
-
-        env++;
       }
 
       // parameter is unused
-      InjectFunctionCall(hProcess, loc, "INTERNAL_ApplyEnvMods", env,
-                         sizeof(EnvironmentModification));
+      void *dummy = NULL;
+      InjectFunctionCall(hProcess, loc, "INTERNAL_ApplyEnvMods", &dummy, sizeof(dummy));
     }
   }
 
@@ -959,7 +955,8 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
 }
 
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
-                                             const char *cmdLine, EnvironmentModification *env,
+                                             const char *cmdLine,
+                                             const rdctype::array<EnvironmentModification> &env,
                                              const char *logfile, const CaptureOptions &opts,
                                              bool waitForExit)
 {

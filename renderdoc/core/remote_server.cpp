@@ -72,9 +72,9 @@ string ToStrHelper<false, EnvSep>::Get(const EnvSep &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, Process::EnvironmentModification &el)
+void Serialiser::Serialise(const char *name, EnvironmentModification &el)
 {
-  ScopedContext scope(this, name, "Process::EnvironmentModification", 0, true);
+  ScopedContext scope(this, name, "EnvironmentModification", 0, true);
 
   Serialise("mod", el.mod);
   Serialise("sep", el.sep);
@@ -438,12 +438,8 @@ static void ActiveRemoteClientThread(void *data)
         recvser->Serialise("cmdLine", cmdLine);
         recvser->Serialise("opts", opts);
 
-        uint64_t envListSize = 0;
-        Process::EnvironmentModification *env = NULL;
-        recvser->Serialise("envListSize", envListSize);
-
-        if(envListSize > 0)
-          recvser->SerialiseComplexArray("env", env, envListSize);
+        rdctype::array<EnvironmentModification> env;
+        recvser->Serialise("env", env);
 
         uint32_t ident = uint32_t(ReplayStatus::NetworkIOFailed);
 
@@ -456,8 +452,6 @@ static void ActiveRemoteClientThread(void *data)
         {
           RDCWARN("Requested to execute program - disallowing based on configuration");
         }
-
-        SAFE_DELETE_ARRAY(env);
 
         sendType = eRemoteServer_ExecuteAndInject;
         sendSer.Serialise("ident", ident);
@@ -894,7 +888,8 @@ public:
     return ret;
   }
 
-  uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine, void *env,
+  uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
+                            const rdctype::array<EnvironmentModification> &env,
                             const CaptureOptions &opts)
   {
     const char *host = hostname().c_str();
@@ -905,34 +900,12 @@ public:
     string workstr = workingDir && workingDir[0] ? workingDir : "";
     string cmdstr = cmdLine && cmdLine[0] ? cmdLine : "";
 
-    Process::EnvironmentModification *envList = (Process::EnvironmentModification *)env;
-
     Serialiser sendData("", Serialiser::WRITING, false);
     sendData.Serialise("app", appstr);
     sendData.Serialise("workingDir", workstr);
     sendData.Serialise("cmdLine", cmdstr);
     sendData.Serialise("opts", (CaptureOptions &)opts);
-
-    uint64_t envListSize = 0;
-    if(envList)
-    {
-      Process::EnvironmentModification *it = envList;
-      for(;;)
-      {
-        if(it->name == "")
-          break;
-        envListSize++;
-        it++;
-      }
-
-      // include terminator
-      envListSize++;
-    }
-
-    sendData.Serialise("envListSize", envListSize);
-
-    if(envListSize > 0)
-      sendData.SerialiseComplexArray("env", envList, envListSize);
+    sendData.Serialise("env", (rdctype::array<EnvironmentModification> &)env);
 
     Send(eRemoteServer_ExecuteAndInject, sendData);
 
@@ -1185,9 +1158,9 @@ RemoteServer_RemoteSupportedReplays(IRemoteServer *remote, rdctype::array<rdctyp
   *out = remote->RemoteSupportedReplays();
 }
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
-RemoteServer_ExecuteAndInject(IRemoteServer *remote, const char *app, const char *workingDir,
-                              const char *cmdLine, void *env, const CaptureOptions &opts)
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RemoteServer_ExecuteAndInject(
+    IRemoteServer *remote, const char *app, const char *workingDir, const char *cmdLine,
+    const rdctype::array<EnvironmentModification> &env, const CaptureOptions &opts)
 {
   return remote->ExecuteAndInject(app, workingDir, cmdLine, env, opts);
 }

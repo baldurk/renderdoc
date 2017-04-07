@@ -5579,8 +5579,8 @@ ReplayStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driv
   RDCDEBUG("Creating a VulkanReplay replay device");
 
   // disable the layer env var, just in case the user left it set from a previous capture run
-  Process::RegisterEnvironmentModification(Process::EnvironmentModification(
-      EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "0"));
+  Process::RegisterEnvironmentModification(
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "0"));
   Process::ApplyEnvironmentModification();
 
   void *module = Process::LoadModule(VulkanLibraryName);

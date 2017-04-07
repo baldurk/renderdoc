@@ -260,21 +260,23 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetConfigSetting(const char
 
 extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_MakeEnvironmentModificationList(int numElems)
 {
-  return new Process::EnvironmentModification[numElems + 1];    // last one is a terminator
+  rdctype::array<EnvironmentModification> *ret = new rdctype::array<EnvironmentModification>();
+  create_array_uninit(*ret, (size_t)numElems);
+  return ret;
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetEnvironmentModification(
     void *mem, int idx, const char *variable, const char *value, EnvMod type, EnvSep separator)
 {
-  Process::EnvironmentModification *mods = (Process::EnvironmentModification *)mem;
+  rdctype::array<EnvironmentModification> *mods = (rdctype::array<EnvironmentModification> *)mem;
 
-  mods[idx] = Process::EnvironmentModification(type, separator, variable, value);
+  mods->elems[idx] = EnvironmentModification(type, separator, variable, value);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeEnvironmentModificationList(void *mem)
 {
-  Process::EnvironmentModification *mods = (Process::EnvironmentModification *)mem;
-  delete[] mods;
+  rdctype::array<EnvironmentModification> *mods = (rdctype::array<EnvironmentModification> *)mem;
+  delete mods;
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char *log)
@@ -400,11 +402,11 @@ RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, IReplayRend
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
-RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine, void *env,
-                           const char *logfile, const CaptureOptions &opts, bool32 waitForExit)
+RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
+                           const rdctype::array<EnvironmentModification> &env, const char *logfile,
+                           const CaptureOptions &opts, bool32 waitForExit)
 {
-  return Process::LaunchAndInjectIntoProcess(app, workingDir, cmdLine,
-                                             (Process::EnvironmentModification *)env, logfile, opts,
+  return Process::LaunchAndInjectIntoProcess(app, workingDir, cmdLine, env, logfile, opts,
                                              waitForExit != 0);
 }
 
@@ -420,11 +422,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartGlobalHook(const char 
   Process::StartGlobalHook(pathmatch, logfile, opts);
 }
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(
-    uint32_t pid, void *env, const char *logfile, const CaptureOptions &opts, bool32 waitForExit)
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
+RENDERDOC_InjectIntoProcess(uint32_t pid, const rdctype::array<EnvironmentModification> &env,
+                            const char *logfile, const CaptureOptions &opts, bool32 waitForExit)
 {
-  return Process::InjectIntoProcess(pid, (Process::EnvironmentModification *)env, logfile, opts,
-                                    waitForExit != 0);
+  return Process::InjectIntoProcess(pid, env, logfile, opts, waitForExit != 0);
 }
 
 static void writeToByteVector(void *context, void *data, int size)

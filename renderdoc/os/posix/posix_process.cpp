@@ -72,9 +72,9 @@ static const string GetAbsoluteAppPathFromName(const string &appName)
   return string();
 }
 
-static vector<Process::EnvironmentModification> &GetEnvModifications()
+static vector<EnvironmentModification> &GetEnvModifications()
 {
-  static vector<Process::EnvironmentModification> envCallbacks;
+  static vector<EnvironmentModification> envCallbacks;
   return envCallbacks;
 }
 
@@ -155,7 +155,7 @@ static string shellExpand(const string &in)
   return path;
 }
 
-void Process::RegisterEnvironmentModification(Process::EnvironmentModification modif)
+void Process::RegisterEnvironmentModification(EnvironmentModification modif)
 {
   GetEnvModifications().push_back(modif);
 }
@@ -178,11 +178,11 @@ void Process::ApplyEnvironmentModification()
   {
     EnvironmentModification &m = modifications[i];
 
-    string value = currentEnv[m.name];
+    string value = currentEnv[m.name.c_str()];
 
     switch(m.mod)
     {
-      case EnvMod::Set: value = m.value; break;
+      case EnvMod::Set: value = m.value.c_str(); break;
       case EnvMod::Append:
       {
         if(!value.empty())
@@ -192,7 +192,7 @@ void Process::ApplyEnvironmentModification()
           else if(m.sep == EnvSep::SemiColon)
             value += ";";
         }
-        value += m.value;
+        value += m.value.c_str();
         break;
       }
       case EnvMod::Prepend:
@@ -206,7 +206,7 @@ void Process::ApplyEnvironmentModification()
         }
         else
         {
-          value = m.value;
+          value = m.value.c_str();
         }
         break;
       }
@@ -403,8 +403,8 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   return childPid;
 }
 
-uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, const char *logfile,
-                                    const CaptureOptions &opts, bool waitForExit)
+uint32_t Process::InjectIntoProcess(uint32_t pid, const rdctype::array<EnvironmentModification> &env,
+                                    const char *logfile, const CaptureOptions &opts, bool waitForExit)
 {
   RDCUNIMPLEMENTED("Injecting into already running processes on linux");
   return 0;
@@ -460,7 +460,8 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
 }
 
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
-                                             const char *cmdLine, EnvironmentModification *envList,
+                                             const char *cmdLine,
+                                             const rdctype::array<EnvironmentModification> &envList,
                                              const char *logfile, const CaptureOptions &opts,
                                              bool waitForExit)
 {
@@ -475,21 +476,8 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   map<string, string> env = EnvStringToEnvMap((const char **)currentEnvironment);
   vector<EnvironmentModification> &modifications = GetEnvModifications();
 
-  if(envList)
-  {
-    for(;;)
-    {
-      EnvironmentModification e = *envList;
-      e.name = trim(e.name);
-
-      if(e.name == "")
-        break;
-
-      modifications.push_back(e);
-
-      envList++;
-    }
-  }
+  for(const EnvironmentModification &e : envList)
+    modifications.push_back(e);
 
   if(logfile == NULL)
     logfile = "";
@@ -529,11 +517,11 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   {
     EnvironmentModification &m = modifications[i];
 
-    string &value = env[m.name];
+    string &value = env[m.name.c_str()];
 
     switch(m.mod)
     {
-      case EnvMod::Set: value = m.value; break;
+      case EnvMod::Set: value = m.value.c_str(); break;
       case EnvMod::Append:
       {
         if(!value.empty())
@@ -543,7 +531,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
           else if(m.sep == EnvSep::SemiColon)
             value += ";";
         }
-        value += m.value;
+        value += m.value.c_str();
         break;
       }
       case EnvMod::Prepend:
@@ -557,7 +545,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
         }
         else
         {
-          value = m.value;
+          value = m.value.c_str();
         }
         break;
       }

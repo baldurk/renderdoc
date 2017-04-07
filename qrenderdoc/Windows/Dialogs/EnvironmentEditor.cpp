@@ -29,6 +29,20 @@
 #include "Code/QRDUtils.h"
 #include "ui_EnvironmentEditor.h"
 
+static QString GetTypeString(const EnvironmentModification &env)
+{
+  QString ret;
+
+  if(env.mod == EnvMod::Append)
+    ret = QString("Append, %1").arg(ToQStr(env.sep));
+  else if(env.mod == EnvMod::Prepend)
+    ret = QString("Prepend, %1").arg(ToQStr(env.sep));
+  else
+    ret = "Set";
+
+  return ret;
+}
+
 Q_DECLARE_METATYPE(EnvironmentModification);
 
 EnvironmentEditor::EnvironmentEditor(QWidget *parent)
@@ -115,17 +129,17 @@ void EnvironmentEditor::on_variables_currentItemChanged(QTreeWidgetItem *current
 
   EnvironmentModification mod = sel[0]->data(0, Qt::UserRole).value<EnvironmentModification>();
 
-  if(!mod.variable.isEmpty())
+  if(!mod.value.empty())
   {
-    ui->name->setText(mod.variable);
-    ui->value->setText(mod.value);
-    ui->separator->setCurrentIndex((int)mod.separator);
+    ui->name->setText(ToQStr(mod.name));
+    ui->value->setText(ToQStr(mod.value));
+    ui->separator->setCurrentIndex((int)mod.sep);
 
-    if(mod.type == EnvMod::Set)
+    if(mod.mod == EnvMod::Set)
       ui->setValue->setChecked(true);
-    else if(mod.type == EnvMod::Append)
+    else if(mod.mod == EnvMod::Append)
       ui->appendValue->setChecked(true);
-    else if(mod.type == EnvMod::Prepend)
+    else if(mod.mod == EnvMod::Prepend)
       ui->prependValue->setChecked(true);
   }
 }
@@ -133,16 +147,16 @@ void EnvironmentEditor::on_variables_currentItemChanged(QTreeWidgetItem *current
 void EnvironmentEditor::on_addUpdate_clicked()
 {
   EnvironmentModification mod;
-  mod.variable = ui->name->text();
-  mod.value = ui->value->text();
-  mod.separator = (EnvSep)ui->separator->currentIndex();
+  mod.name = ui->name->text().toUtf8().data();
+  mod.value = ui->value->text().toUtf8().data();
+  mod.sep = (EnvSep)ui->separator->currentIndex();
 
   if(ui->appendValue->isChecked())
-    mod.type = EnvMod::Append;
+    mod.mod = EnvMod::Append;
   else if(ui->prependValue->isChecked())
-    mod.type = EnvMod::Prepend;
+    mod.mod = EnvMod::Prepend;
   else
-    mod.type = EnvMod::Set;
+    mod.mod = EnvMod::Set;
 
   addModification(mod, false);
 
@@ -174,7 +188,7 @@ int EnvironmentEditor::existingIndex()
 
 void EnvironmentEditor::addModification(EnvironmentModification mod, bool silent)
 {
-  if(mod.variable.trimmed() == "")
+  if(mod.name.empty())
   {
     if(!silent)
       RDDialog::critical(this, tr("Invalid variable"),
@@ -189,15 +203,15 @@ void EnvironmentEditor::addModification(EnvironmentModification mod, bool silent
 
   if(idx < 0)
   {
-    node = makeTreeNode({mod.variable, mod.GetTypeString(), mod.value});
+    node = makeTreeNode({ToQStr(mod.name), GetTypeString(mod), ToQStr(mod.value)});
     ui->variables->addTopLevelItem(node);
   }
   else
   {
     node = ui->variables->topLevelItem(idx);
-    node->setText(0, mod.variable);
-    node->setText(1, mod.GetTypeString());
-    node->setText(2, mod.value);
+    node->setText(0, ToQStr(mod.name));
+    node->setText(1, GetTypeString(mod));
+    node->setText(2, ToQStr(mod.value));
   }
 
   node->setData(0, Qt::UserRole, QVariant::fromValue(mod));
@@ -225,7 +239,7 @@ QList<EnvironmentModification> EnvironmentEditor::modifications()
     EnvironmentModification mod =
         ui->variables->topLevelItem(i)->data(0, Qt::UserRole).value<EnvironmentModification>();
 
-    if(!mod.variable.isEmpty())
+    if(!mod.name.empty())
       ret.push_back(mod);
   }
 

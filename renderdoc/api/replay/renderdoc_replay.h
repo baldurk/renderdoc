@@ -931,14 +931,15 @@ This happens on the remote system, so all paths are relative to the remote files
   directory containing the application is used.
 :param str cmdLine: The command line to use when running the application, it will be processed in a
   platform specific way to generate arguments.
-:param env: Any environment variable modifications that should be made when running the program.
+:param list env: Any :class:`EnvironmentModification` that should be made when running the program.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
 :return: The ident where the new application is listening for target control, or 0 if something went
   wrong.
 :rtype: ``int``
 )");
   virtual uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
-                                    void *env, const CaptureOptions &opts) = 0;
+                                    const rdctype::array<EnvironmentModification> &env,
+                                    const CaptureOptions &opts) = 0;
 
   DOCUMENT(R"(Take ownership over a capture file.
 
@@ -1231,7 +1232,7 @@ DOCUMENT(R"(Launch an application and inject into it to allow capturing.
   directory containing the application is used.
 :param str cmdLine: The command line to use when running the application, it will be processed in a
   platform specific way to generate arguments.
-:param env: Any environment variable modifications that should be made when running the program.
+:param list env: Any :class:`EnvironmentModification` that should be made when running the program.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
 :param bool waitForExit: If ``True`` this function will block until the process exits.
 :return: The ident where the new application is listening for target control, or 0 if something went
@@ -1239,21 +1240,23 @@ DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 :rtype: ``int``
 )");
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
-RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine, void *env,
-                           const char *logfile, const CaptureOptions &opts, bool32 waitForExit);
+RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
+                           const rdctype::array<EnvironmentModification> &env, const char *logfile,
+                           const CaptureOptions &opts, bool32 waitForExit);
 
 DOCUMENT(R"(Where supported by operating system and permissions, inject into a running process.
 
 :param int pid: The Process ID (PID) to inject into.
-:param env: Any environment variable modifications that should be made when running the program.
+:param list env: Any :class:`EnvironmentModification` that should be made when running the program.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
 :param bool waitForExit: If ``True`` this function will block until the process exits.
 :return: The ident where the new application is listening for target control, or 0 if something went
   wrong.
 :rtype: ``int``
 )");
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(
-    uint32_t pid, void *env, const char *logfile, const CaptureOptions &opts, bool32 waitForExit);
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
+RENDERDOC_InjectIntoProcess(uint32_t pid, const rdctype::array<EnvironmentModification> &env,
+                            const char *logfile, const CaptureOptions &opts, bool32 waitForExit);
 
 DOCUMENT(R"(When debugging RenderDoc it can be useful to capture itself by doing a side-build with a
 temporary name. This function wraps up the use of the in-application API to start a capture.
@@ -1349,16 +1352,6 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetConfigSetting(con
 DOCUMENT("Internal function for setting a config setting.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetConfigSetting(const char *name,
                                                                       const char *value);
-
-DOCUMENT("Internal function for making an environment modification list.");
-extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_MakeEnvironmentModificationList(int numElems);
-
-DOCUMENT("Internal function for setting an element in an environment modification list.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetEnvironmentModification(
-    void *mem, int idx, const char *variable, const char *value, EnvMod type, EnvSep separator);
-
-DOCUMENT("Internal function for freeing an environment modification list.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeEnvironmentModificationList(void *mem);
 
 DOCUMENT("Internal function for enumerating android devices.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdctype::str *deviceList);
