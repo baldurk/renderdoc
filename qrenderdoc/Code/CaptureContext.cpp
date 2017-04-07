@@ -774,8 +774,8 @@ void CaptureContext::ShowStatisticsViewer()
 
 IShaderViewer *CaptureContext::EditShader(bool customShader, const QString &entryPoint,
                                           const QStringMap &files,
-                                          IShaderViewer::SaveMethod saveCallback,
-                                          IShaderViewer::CloseMethod closeCallback, QWidget *parent)
+                                          IShaderViewer::SaveCallback saveCallback,
+                                          IShaderViewer::CloseCallback closeCallback, QWidget *parent)
 {
   return ShaderViewer::EditShader(*this, customShader, entryPoint, files, saveCallback,
                                   closeCallback, parent);

@@ -191,8 +191,8 @@ DECLARE_REFLECTION_STRUCT(IStatisticsViewer);
 
 struct IShaderViewer
 {
-  typedef std::function<void(ICaptureContext *ctx, IShaderViewer *, const QStringMap &)> SaveMethod;
-  typedef std::function<void(ICaptureContext *ctx)> CloseMethod;
+  typedef std::function<void(ICaptureContext *ctx, IShaderViewer *, const QStringMap &)> SaveCallback;
+  typedef std::function<void(ICaptureContext *ctx)> CloseCallback;
 
   virtual QWidget *Widget() = 0;
 
@@ -258,8 +258,8 @@ DECLARE_REFLECTION_STRUCT(ILogViewer);
 
 struct IReplayManager
 {
-  typedef std::function<void(IReplayController *)> InvokeMethod;
-  typedef std::function<void(const rdctype::str &, const rdctype::array<PathEntry> &)> DirectoryBrowseMethod;
+  typedef std::function<void(IReplayController *)> InvokeCallback;
+  typedef std::function<void(const rdctype::str &, const rdctype::array<PathEntry> &)> DirectoryBrowseCallback;
 
   virtual void DeleteCapture(const QString &logfile, bool local) = 0;
 
@@ -269,9 +269,9 @@ struct IReplayManager
   // processed.
   // the manager processes only the request on the top of the queue, so when a new tagged invoke
   // comes in, we remove any other requests in the queue before it that have the same tag
-  virtual void AsyncInvoke(const QString &tag, InvokeMethod m) = 0;
-  virtual void AsyncInvoke(InvokeMethod m) = 0;
-  virtual void BlockInvoke(InvokeMethod m) = 0;
+  virtual void AsyncInvoke(const QString &tag, InvokeCallback m) = 0;
+  virtual void AsyncInvoke(InvokeCallback m) = 0;
+  virtual void BlockInvoke(InvokeCallback m) = 0;
 
   virtual ReplayStatus ConnectToRemoteServer(RemoteHost *host) = 0;
   virtual void DisconnectFromRemoteServer() = 0;
@@ -284,8 +284,8 @@ struct IReplayManager
                                     const QString &logfile, CaptureOptions opts) = 0;
 
   virtual QStringList GetRemoteSupport() = 0;
-  virtual void GetHomeFolder(bool synchronous, DirectoryBrowseMethod cb) = 0;
-  virtual bool ListFolder(QString path, bool synchronous, DirectoryBrowseMethod cb) = 0;
+  virtual void GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb) = 0;
+  virtual bool ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb) = 0;
   virtual QString CopyCaptureToRemote(const QString &localpath, QWidget *window) = 0;
   virtual void CopyCaptureFromRemote(const QString &remotepath, const QString &localpath,
                                      QWidget *window) = 0;
@@ -391,8 +391,8 @@ struct ICaptureContext
   virtual void ShowStatisticsViewer() = 0;
 
   virtual IShaderViewer *EditShader(bool customShader, const QString &entryPoint,
-                                    const QStringMap &files, IShaderViewer::SaveMethod saveCallback,
-                                    IShaderViewer::CloseMethod closeCallback, QWidget *parent) = 0;
+                                    const QStringMap &files, IShaderViewer::SaveCallback saveCallback,
+                                    IShaderViewer::CloseCallback closeCallback, QWidget *parent) = 0;
 
   virtual IShaderViewer *DebugShader(const ShaderBindpointMapping *bind,
                                      const ShaderReflection *shader, ShaderStage stage,

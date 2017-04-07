@@ -62,7 +62,7 @@ CONTAINER_TYPEMAPS(QMap)
 %rename("%s") IReplayManager::BlockInvoke;
 
 %extend IReplayManager {
-  void BlockInvoke(InvokeMethod m) {
+  void BlockInvoke(InvokeCallback m) {
     Py_BEGIN_ALLOW_THREADS
     $self->BlockInvoke(m);
     Py_END_ALLOW_THREADS

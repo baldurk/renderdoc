@@ -147,8 +147,8 @@ public:
   void ShowStatisticsViewer() override;
 
   IShaderViewer *EditShader(bool customShader, const QString &entryPoint, const QStringMap &files,
-                            IShaderViewer::SaveMethod saveCallback,
-                            IShaderViewer::CloseMethod closeCallback, QWidget *parent) override;
+                            IShaderViewer::SaveCallback saveCallback,
+                            IShaderViewer::CloseCallback closeCallback, QWidget *parent) override;
 
   IShaderViewer *DebugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
                              ShaderStage stage, ShaderDebugTrace *trace,

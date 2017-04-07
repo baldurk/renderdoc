@@ -47,8 +47,8 @@ class ShaderViewer : public QFrame, public IShaderViewer, public ILogViewer
 
 public:
   static IShaderViewer *EditShader(ICaptureContext &ctx, bool customShader, const QString &entryPoint,
-                                   const QStringMap &files, IShaderViewer::SaveMethod saveCallback,
-                                   IShaderViewer::CloseMethod closeCallback, QWidget *parent)
+                                   const QStringMap &files, IShaderViewer::SaveCallback saveCallback,
+                                   IShaderViewer::CloseCallback closeCallback, QWidget *parent)
   {
     ShaderViewer *ret = new ShaderViewer(ctx, parent);
     ret->m_SaveCallback = saveCallback;
@@ -157,8 +157,8 @@ private:
     QPair<int, int> prevResult;
   } m_FindState;
 
-  SaveMethod m_SaveCallback;
-  CloseMethod m_CloseCallback;
+  SaveCallback m_SaveCallback;
+  CloseCallback m_CloseCallback;
 
   ShaderDebugTrace *m_Trace = NULL;
   int m_CurrentStep;

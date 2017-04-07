@@ -61,9 +61,9 @@ public:
   // processed.
   // the manager processes only the request on the top of the queue, so when a new tagged invoke
   // comes in, we remove any other requests in the queue before it that have the same tag
-  void AsyncInvoke(const QString &tag, InvokeMethod m);
-  void AsyncInvoke(InvokeMethod m);
-  void BlockInvoke(InvokeMethod m);
+  void AsyncInvoke(const QString &tag, InvokeCallback m);
+  void AsyncInvoke(InvokeCallback m);
+  void BlockInvoke(InvokeCallback m);
 
   void CloseThread();
 
@@ -78,15 +78,15 @@ public:
                             CaptureOptions opts);
 
   QStringList GetRemoteSupport();
-  void GetHomeFolder(bool synchronous, DirectoryBrowseMethod cb);
-  bool ListFolder(QString path, bool synchronous, DirectoryBrowseMethod cb);
+  void GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb);
+  bool ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb);
   QString CopyCaptureToRemote(const QString &localpath, QWidget *window);
   void CopyCaptureFromRemote(const QString &remotepath, const QString &localpath, QWidget *window);
 
 private:
   struct InvokeHandle
   {
-    InvokeHandle(InvokeMethod m, const QString &t = QString())
+    InvokeHandle(InvokeCallback m, const QString &t = QString())
     {
       tag = t;
       method = m;
@@ -94,7 +94,7 @@ private:
     }
 
     QString tag;
-    InvokeMethod method;
+    InvokeCallback method;
     QSemaphore processed;
     bool selfdelete;
   };

@@ -99,7 +99,7 @@ QStringList ReplayManager::GetRemoteSupport()
   return ret;
 }
 
-void ReplayManager::GetHomeFolder(bool synchronous, DirectoryBrowseMethod cb)
+void ReplayManager::GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb)
 {
   if(!m_Remote)
     return;
@@ -127,7 +127,7 @@ void ReplayManager::GetHomeFolder(bool synchronous, DirectoryBrowseMethod cb)
   cb(home.c_str(), rdctype::array<PathEntry>());
 }
 
-bool ReplayManager::ListFolder(QString path, bool synchronous, DirectoryBrowseMethod cb)
+bool ReplayManager::ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb)
 {
   if(!m_Remote)
     return false;
@@ -230,7 +230,7 @@ bool ReplayManager::IsRunning()
   return m_Thread && m_Thread->isRunning() && m_Running;
 }
 
-void ReplayManager::AsyncInvoke(const QString &tag, ReplayManager::InvokeMethod m)
+void ReplayManager::AsyncInvoke(const QString &tag, ReplayManager::InvokeCallback m)
 {
   {
     QMutexLocker autolock(&m_RenderLock);
@@ -255,7 +255,7 @@ void ReplayManager::AsyncInvoke(const QString &tag, ReplayManager::InvokeMethod 
   PushInvoke(cmd);
 }
 
-void ReplayManager::AsyncInvoke(ReplayManager::InvokeMethod m)
+void ReplayManager::AsyncInvoke(ReplayManager::InvokeCallback m)
 {
   InvokeHandle *cmd = new InvokeHandle(m);
   cmd->selfdelete = true;
@@ -263,7 +263,7 @@ void ReplayManager::AsyncInvoke(ReplayManager::InvokeMethod m)
   PushInvoke(cmd);
 }
 
-void ReplayManager::BlockInvoke(ReplayManager::InvokeMethod m)
+void ReplayManager::BlockInvoke(ReplayManager::InvokeCallback m)
 {
   InvokeHandle *cmd = new InvokeHandle(m);
 
