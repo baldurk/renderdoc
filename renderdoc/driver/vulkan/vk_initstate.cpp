@@ -112,7 +112,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
   info->memDataOffs = memDataOffs;
   info->binds = binds;
 
-  memcpy(info, &buf->record->sparseInfo->opaquemappings[0], sizeof(VkSparseMemoryBind) * numElems);
+  memcpy(binds, &buf->record->sparseInfo->opaquemappings[0], sizeof(VkSparseMemoryBind) * numElems);
 
   VkDevice d = GetDev();
   // INITSTATEBATCH
