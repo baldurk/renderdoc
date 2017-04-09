@@ -304,8 +304,10 @@
                     GetPhysicalDeviceImageFormatProperties2KHR);                                    \
   HookInitExtension(VK_KHR_get_physical_device_properties2,                                         \
                     GetPhysicalDeviceQueueFamilyProperties2KHR);                                    \
+  HookInitExtension(VK_KHR_get_physical_device_properties2, GetPhysicalDeviceMemoryProperties2KHR); \
   HookInitExtension(VK_KHR_get_physical_device_properties2,                                         \
                     GetPhysicalDeviceSparseImageFormatProperties2KHR);                              \
+  HookInitExtension(VK_EXT_direct_mode_display, ReleaseDisplayEXT);                                 \
   HookInitExtension(VK_EXT_display_surface_counter, GetPhysicalDeviceSurfaceCapabilities2EXT);      \
   HookInitInstance_PlatformSpecific()
 
