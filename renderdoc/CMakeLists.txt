@@ -303,7 +303,7 @@ target_compile_definitions(renderdoc ${RDOC_DEFINITIONS})
 target_include_directories(renderdoc ${RDOC_INCLUDES})
 target_link_libraries(renderdoc ${RDOC_LIBRARIES})
 
-install (TARGETS renderdoc DESTINATION lib)
+install (TARGETS renderdoc DESTINATION lib${LIB_SUFFIX})
 
 # Copy in application API header to include
 install (FILES api/app/renderdoc_app.h DESTINATION include RENAME renderdoc.h)
