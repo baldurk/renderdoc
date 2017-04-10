@@ -24,10 +24,13 @@
 
 #include "os/posix/posix_hook.h"
 
+#include <dlfcn.h>
+
 void PosixHookInit()
 {
 }
 
 void PosixHookLibrary(const char *name, dlopenCallback cb)
 {
+  cb(dlopen(name, RTLD_NOW));
 }
