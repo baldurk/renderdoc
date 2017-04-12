@@ -33,52 +33,6 @@
 #include "Code/Resources.h"
 #include "Windows/MainWindow.h"
 
-#if defined(Q_OS_LINUX)
-
-#if defined(RENDERDOC_SUPPORT_GL)
-
-// symbol defined in libGL but not librenderdoc.
-// Forces link of libGL after renderdoc (otherwise all symbols would
-// be resolved and libGL wouldn't link, meaning dlsym(RTLD_NEXT) would fai
-extern "C" void glXWaitX();
-
-#endif
-
-#if defined(RENDERDOC_SUPPORT_GLES)
-
-// symbol defined in libEGL but not in librenderdoc.
-// Forces link of libEGL.
-extern "C" int eglWaitGL(void);
-
-#endif
-
-void linuxlibGLhack()
-{
-  volatile bool never_run = false;
-
-#if defined(RENDERDOC_SUPPORT_GL)
-
-  if(never_run)
-    glXWaitX();
-
-#endif
-
-#if defined(RENDERDOC_SUPPORT_GLES)
-
-  if(never_run)
-    eglWaitGL();
-
-#endif
-}
-
-#else
-
-void linuxlibGLhack()
-{
-}
-
-#endif
-
 void sharedLogOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
   LogMessageType logtype = eLogType_Comment;
@@ -98,8 +52,6 @@ void sharedLogOutput(QtMsgType type, const QMessageLogContext &context, const QS
 int main(int argc, char *argv[])
 {
   qInstallMessageHandler(sharedLogOutput);
-
-  linuxlibGLhack();
 
   qInfo() << "QRenderDoc initialising.";
 
