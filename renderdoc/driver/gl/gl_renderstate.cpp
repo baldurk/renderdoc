@@ -1211,7 +1211,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
     {
       // use sanitised parameters when no image is bound
       if(Images[i].name == 0)
-        m_Real->glBindImageTexture(i, 0, 0, GL_FALSE, 0, eGL_READ_ONLY, eGL_R8);
+        m_Real->glBindImageTexture(i, 0, 0, GL_FALSE, 0, eGL_READ_ONLY, eGL_RGBA8);
       else
         m_Real->glBindImageTexture(i, Images[i].name, (GLint)Images[i].level, Images[i].layered,
                                    (GLint)Images[i].layer, Images[i].access, Images[i].format);
@@ -1344,6 +1344,10 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
   {
     for(GLuint i = 0; i < RDCMIN(maxDraws, (GLuint)ARRAY_COUNT(Blends)); i++)
     {
+      if(Blends[i].EquationRGB ==
+         eGL_NONE)    // not set, possibly there were lesser draw buffers during capture
+        continue;
+
       m_Real->glBlendFuncSeparatei(i, Blends[i].SourceRGB, Blends[i].DestinationRGB,
                                    Blends[i].SourceAlpha, Blends[i].DestinationAlpha);
       m_Real->glBlendEquationSeparatei(i, Blends[i].EquationRGB, Blends[i].EquationAlpha);
@@ -1540,7 +1544,7 @@ void GLRenderState::Clear()
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Images); i++)
   {
     Images[i].access = eGL_READ_ONLY;
-    Images[i].format = eGL_R8;
+    Images[i].format = eGL_RGBA8;
   }
 
   RDCEraseEl(Program);
