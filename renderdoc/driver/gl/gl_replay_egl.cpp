@@ -113,6 +113,10 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
       return status;
   }
 
+#if ENABLED(RDOC_ANDROID)
+  initParams.isSRGB = 0;
+#endif
+
 #if DISABLED(RDOC_ANDROID)
   Display *dpy = XOpenDisplay(NULL);
 

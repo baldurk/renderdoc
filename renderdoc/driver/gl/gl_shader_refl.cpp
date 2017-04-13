@@ -283,7 +283,8 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
   gl.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
 
   // allow any vertex processing shader to redeclare gl_PerVertex
-  if(status == 0 && type != eGL_FRAGMENT_SHADER && type != eGL_COMPUTE_SHADER)
+  // on GLES it is not required
+  if(!IsGLES && status == 0 && type != eGL_FRAGMENT_SHADER && type != eGL_COMPUTE_SHADER)
   {
     gl.glDeleteProgram(sepProg);
     sepProg = 0;

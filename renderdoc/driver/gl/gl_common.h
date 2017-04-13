@@ -326,7 +326,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(99, 99, EXT_polygon_offset_clamp)             \
   EXT_TO_CHECK(99, 99, EXT_raster_multisample)               \
   EXT_TO_CHECK(99, 30, EXT_texture_swizzle)                  \
-  EXT_TO_CHECK(99, 32, KHR_blend_equation_advanced_coherent) \
+  EXT_TO_CHECK(99, 99, KHR_blend_equation_advanced_coherent) \
   /* OpenGL ES extensions */                                 \
   EXT_TO_CHECK(99, 99, EXT_clip_cull_distance)               \
   EXT_TO_CHECK(99, 99, EXT_multisample_compatibility)        \
