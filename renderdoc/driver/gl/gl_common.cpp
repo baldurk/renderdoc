@@ -510,7 +510,7 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
   // AMD throws an error if we try to copy the mips that are smaller than 4x4,
   if(gl.glGetError && gl.glGenTextures && gl.glBindTexture && gl.glCopyImageSubData &&
      gl.glTexStorage2D && gl.glTexSubImage2D && gl.glTexParameteri && gl.glDeleteTextures &&
-     HasExt[ARB_copy_image] && HasExt[ARB_texture_storage])
+     HasExt[ARB_copy_image] && HasExt[ARB_texture_storage] && !IsGLES)
   {
     GLuint texs[2];
     gl.glGenTextures(2, texs);
@@ -645,8 +645,9 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
   // only do this when we have a proper context e.g. on windows where an old
   // context is first created. Check to see if FBOs or VAOs are shared between
   // contexts.
-  if(GLCoreVersion >= 32 && gl.glGenVertexArrays && gl.glBindVertexArray && gl.glDeleteVertexArrays &&
-     gl.glGenFramebuffers && gl.glBindFramebuffer && gl.glDeleteFramebuffers)
+  if((IsGLES || GLCoreVersion >= 32) && gl.glGenVertexArrays && gl.glBindVertexArray &&
+     gl.glDeleteVertexArrays && gl.glGenFramebuffers && gl.glBindFramebuffer &&
+     gl.glDeleteFramebuffers)
   {
     // gen & create an FBO and VAO
     GLuint fbo = 0;
@@ -2218,7 +2219,18 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
 
     GLint idx = gl.glGetFragDataLocation(progsrc, refl->OutputSig[i].varName.elems);
     if(idx >= 0)
-      gl.glBindFragDataLocation(progdst, (GLuint)idx, refl->OutputSig[i].varName.elems);
+    {
+      if(gl.glBindFragDataLocation)
+      {
+        gl.glBindFragDataLocation(progdst, (GLuint)idx, refl->OutputSig[i].varName.elems);
+      }
+      else
+      {
+        // glBindFragDataLocation is not core GLES, but it is in GL_EXT_blend_func_extended
+        // TODO what to do if that extension is not supported
+        RDCERR("glBindFragDataLocation is not supported!");
+      }
+    }
   }
 }
 

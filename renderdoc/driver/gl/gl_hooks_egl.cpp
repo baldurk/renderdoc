@@ -221,8 +221,8 @@ public:
         Display *dpy = XOpenDisplay(NULL);
         if(dpy == NULL)
           return ret;
-        break;
 #endif
+        break;
       }
       default: RDCERR("Unexpected window system %u", system); break;
     }
@@ -435,8 +435,12 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
   init.depthBits = value;
   eglhooks.eglGetConfigAttrib_real(display, config, EGL_STENCIL_SIZE, &value);
   init.stencilBits = value;
-  // TODO: how to detect this?
+// TODO: how to detect this?
+#if ENABLED(RDOC_ANDROID)
+  init.isSRGB = 0;
+#else
   init.isSRGB = 1;
+#endif
 
   GLWindowingData data;
   data.egl_dpy = display;

@@ -3736,11 +3736,15 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
       if(q == eGL_NONE)
         break;
 
-      for(int j = 0; j < 8; j++)
+      int indices = IsGLES ? 1 : 8;    // GLES does not support indices
+      for(int j = 0; j < indices; j++)
       {
         if(m_ActiveQueries[i][j])
         {
-          m_Real.glEndQueryIndexed(q, j);
+          if(IsGLES)
+            m_Real.glEndQuery(q);
+          else
+            m_Real.glEndQueryIndexed(q, j);
           m_ActiveQueries[i][j] = false;
         }
       }
