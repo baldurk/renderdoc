@@ -114,6 +114,11 @@ GLenum TexBindTarget(GLenum target)
   PushPop CONCAT(prev, __LINE__)(target, hookset->glBindFramebuffer, &FramebufferBinding); \
   hookset->glBindFramebuffer(target, obj);
 
+#define PushPopRenderbuffer(obj)                                                \
+  PushPop CONCAT(prev, __LINE__)(eGL_RENDERBUFFER, hookset->glBindRenderbuffer, \
+                                 eGL_RENDERBUFFER_BINDING);                     \
+  hookset->glBindRenderbuffer(eGL_RENDERBUFFER, obj);
+
 #define PushPopVertexArray(obj)                               \
   PushPop CONCAT(prev, __LINE__)(hookset->glBindVertexArray); \
   hookset->glBindVertexArray(obj);
@@ -306,6 +311,40 @@ void APIENTRY _glFramebufferReadBufferEXT(GLuint framebuffer, GLenum mode)
 {
   PushPopFramebuffer(eGL_READ_FRAMEBUFFER, framebuffer);
   internalGL->glReadBuffer(mode);
+}
+
+void APIENTRY _glNamedFramebufferRenderbufferEXT(GLuint framebuffer, GLenum attachment,
+                                                 GLenum renderbuffertarget, GLuint renderbuffer)
+{
+  PushPopFramebuffer(eGL_DRAW_FRAMEBUFFER, framebuffer);
+  internalGL->glFramebufferRenderbuffer(eGL_DRAW_FRAMEBUFFER, attachment, renderbuffertarget,
+                                        renderbuffer);
+}
+
+#pragma endregion
+
+#pragma region Renderbuffers
+
+void APIENTRY _glNamedRenderbufferStorageEXT(GLuint renderbuffer, GLenum internalformat,
+                                             GLsizei width, GLsizei height)
+{
+  PushPopRenderbuffer(renderbuffer);
+  internalGL->glRenderbufferStorage(eGL_RENDERBUFFER, internalformat, width, height);
+}
+
+void APIENTRY _glNamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer, GLsizei samples,
+                                                        GLenum internalformat, GLsizei width,
+                                                        GLsizei height)
+{
+  PushPopRenderbuffer(renderbuffer);
+  internalGL->glRenderbufferStorageMultisample(eGL_RENDERBUFFER, samples, internalformat, width,
+                                               height);
+}
+
+void APIENTRY _glGetNamedRenderbufferParameterivEXT(GLuint renderbuffer, GLenum pname, GLint *params)
+{
+  PushPopRenderbuffer(renderbuffer);
+  internalGL->glGetRenderbufferParameteriv(eGL_RENDERBUFFER, pname, params);
 }
 
 #pragma endregion
@@ -644,6 +683,73 @@ void APIENTRY _glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level
   PushPopTexture(target, texture);
   internalGL->glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth,
                               format, type, pixels);
+}
+
+void APIENTRY _glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei levels,
+                                     GLenum internalformat, GLsizei width)
+{
+  PushPopTexture(target, texture);
+  internalGL->glTexStorage1D(target, levels, internalformat, width);
+}
+
+void APIENTRY _glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei levels,
+                                     GLenum internalformat, GLsizei width, GLsizei height)
+{
+  PushPopTexture(target, texture);
+  internalGL->glTexStorage2D(target, levels, internalformat, width, height);
+}
+
+void APIENTRY _glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei levels,
+                                     GLenum internalformat, GLsizei width, GLsizei height,
+                                     GLsizei depth)
+{
+  PushPopTexture(target, texture);
+  internalGL->glTexStorage3D(target, levels, internalformat, width, height, depth);
+}
+
+void APIENTRY _glCopyTextureImage1DEXT(GLuint texture, GLenum target, GLint level,
+                                       GLenum internalformat, GLint x, GLint y, GLsizei width,
+                                       GLint border)
+{
+  PushPopTexture(target, texture);
+  internalGL->glCopyTexImage1D(target, level, internalformat, x, y, width, border);
+}
+
+void APIENTRY _glCopyTextureImage2DEXT(GLuint texture, GLenum target, GLint level,
+                                       GLenum internalformat, GLint x, GLint y, GLsizei width,
+                                       GLsizei height, GLint border)
+{
+  PushPopTexture(target, texture);
+  internalGL->glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
+}
+
+void APIENTRY _glCopyTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset,
+                                          GLint x, GLint y, GLsizei width)
+{
+  PushPopTexture(target, texture);
+  internalGL->glCopyTexSubImage1D(target, level, xoffset, x, y, width);
+}
+
+void APIENTRY _glCopyTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset,
+                                          GLint yoffset, GLint x, GLint y, GLsizei width,
+                                          GLsizei height)
+{
+  PushPopTexture(target, texture);
+  internalGL->glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+}
+
+void APIENTRY _glCopyTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset,
+                                          GLint yoffset, GLint zoffset, GLint x, GLint y,
+                                          GLsizei width, GLsizei height)
+{
+  PushPopTexture(target, texture);
+  internalGL->glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
+}
+
+void APIENTRY _glGenerateTextureMipmapEXT(GLuint texture, GLenum target)
+{
+  PushPopTexture(target, texture);
+  internalGL->glGenerateMipmap(target);
 }
 
 #pragma endregion
@@ -1303,6 +1409,34 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
   internalGL->glDeleteFramebuffers(1, &fbo);
 }
 
+void APIENTRY _glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
+                                        const void *indices, GLint basevertex)
+{
+  if(basevertex == 0)
+    internalGL->glDrawElements(mode, count, type, indices);
+  else
+    RDCERR("glDrawElementsBaseVertex is not supported! No draw will be called!");
+}
+
+void APIENTRY _glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count, GLenum type,
+                                                 const void *indices, GLsizei instancecount,
+                                                 GLint basevertex)
+{
+  if(basevertex == 0)
+    internalGL->glDrawElementsInstanced(mode, count, type, indices, instancecount);
+  else
+    RDCERR("glDrawElementsInstancedBaseVertex is not supported! No draw will be called!");
+}
+
+void APIENTRY _glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end, GLsizei count,
+                                             GLenum type, const void *indices, GLint basevertex)
+{
+  if(basevertex == 0)
+    internalGL->glDrawRangeElements(mode, start, end, count, type, indices);
+  else
+    RDCERR("glDrawRangeElementsBaseVertex is not supported! No draw will be called!");
+}
+
 #pragma endregion
 
 void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks)
@@ -1341,6 +1475,13 @@ void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks)
   {
     EMULATE_FUNC(glGetBufferSubData);
     EMULATE_FUNC(glGetTexImage);
+
+    if(GLCoreVersion < 32)
+    {
+      EMULATE_FUNC(glDrawElementsBaseVertex);
+      EMULATE_FUNC(glDrawElementsInstancedBaseVertex);
+      EMULATE_FUNC(glDrawRangeElementsBaseVertex);
+    }
   }
 
   // Emulate the EXT_dsa functions that we'll need.
@@ -1418,6 +1559,19 @@ void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks)
     EMULATE_FUNC(glVertexArrayVertexBindingDivisorEXT);
     EMULATE_FUNC(glVertexArrayVertexAttribLOffsetEXT);
     EMULATE_FUNC(glVertexArrayVertexAttribDivisorEXT);
+    EMULATE_FUNC(glTextureStorage1DEXT);
+    EMULATE_FUNC(glTextureStorage2DEXT);
+    EMULATE_FUNC(glTextureStorage3DEXT);
+    EMULATE_FUNC(glCopyTextureImage1DEXT);
+    EMULATE_FUNC(glCopyTextureImage2DEXT);
+    EMULATE_FUNC(glCopyTextureSubImage1DEXT);
+    EMULATE_FUNC(glCopyTextureSubImage2DEXT);
+    EMULATE_FUNC(glCopyTextureSubImage3DEXT);
+    EMULATE_FUNC(glGenerateTextureMipmapEXT);
+    EMULATE_FUNC(glNamedFramebufferRenderbufferEXT);
+    EMULATE_FUNC(glNamedRenderbufferStorageEXT);
+    EMULATE_FUNC(glNamedRenderbufferStorageMultisampleEXT);
+    EMULATE_FUNC(glGetNamedRenderbufferParameterivEXT);
   }
 }
 
