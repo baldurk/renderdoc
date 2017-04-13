@@ -511,6 +511,8 @@ private:
   map<void *, BackbufferImage *> m_BackbufferImages;
 
   vector<string> globalExts;
+  void GetGLExtensions();
+  void GetGLESExtensions();
 
   // no copy semantics
   WrappedOpenGL(const WrappedOpenGL &);

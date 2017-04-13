@@ -384,12 +384,8 @@ ReplayCreateStatus GLInitParams::Serialise()
   return eReplayCreate_Success;
 }
 
-WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs, GLPlatform &platform)
-    : m_Real(funcs), m_Platform(platform)
+void WrappedOpenGL::GetGLExtensions()
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedOpenGL));
-
   globalExts.push_back("GL_ARB_arrays_of_arrays");
   globalExts.push_back("GL_ARB_base_instance");
   globalExts.push_back("GL_ARB_blend_func_extended");
@@ -714,6 +710,34 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs, GLPlat
   * GL_S3_s3tc
 
   ************************************************************************/
+}
+
+void WrappedOpenGL::GetGLESExtensions()
+{
+  const GLHookSet &gl = m_Real;
+
+  // TODO currently we give back all extensions, even if we don't support them
+  // later this list should be specified similarly to GL
+  if(gl.glGetIntegerv && gl.glGetStringi)
+  {
+    GLuint numExts = 0;
+    gl.glGetIntegerv(eGL_NUM_EXTENSIONS, (GLint *)&numExts);
+
+    for(GLuint i = 0; i < numExts; i++)
+      globalExts.push_back((const char *)gl.glGetStringi(eGL_EXTENSIONS, i));
+  }
+}
+
+WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs, GLPlatform &platform)
+    : m_Real(funcs), m_Platform(platform)
+{
+  if(RenderDoc::Inst().GetCrashHandler())
+    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedOpenGL));
+
+  if(IsGLES)
+    GetGLESExtensions();
+  else
+    GetGLExtensions();
 
   // we'll be sorting the implementation extension array, so make sure the
   // sorts are identical so we can do the intersection easily
