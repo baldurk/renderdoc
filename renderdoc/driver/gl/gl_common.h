@@ -325,6 +325,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(99, 99, EXT_direct_state_access)              \
   EXT_TO_CHECK(99, 99, EXT_polygon_offset_clamp)             \
   EXT_TO_CHECK(99, 99, EXT_raster_multisample)               \
+  EXT_TO_CHECK(99, 99, EXT_texture_filter_anisotropic)       \
   EXT_TO_CHECK(99, 30, EXT_texture_swizzle)                  \
   EXT_TO_CHECK(99, 99, KHR_blend_equation_advanced_coherent) \
   /* OpenGL ES extensions */                                 \
