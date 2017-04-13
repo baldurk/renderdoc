@@ -384,13 +384,19 @@ void CheckExtensions(const GLHookSet &gl)
     const char *renderer = (const char *)gl.glGetString(eGL_RENDERER);
     const char *version = (const char *)gl.glGetString(eGL_VERSION);
 
-    RDCLOG("Vendor checks for %u (%s / %s / %s)", GLCoreVersion, vendor, renderer, version);
-
     // check whether we are using OpenGL ES
     // GL_VERSION for OpenGL ES:
     //   "OpenGL ES N.M vendor-specific information"
     if(strncmp(version, "OpenGL ES", 9) == 0)
+    {
       IsGLES = true;
+
+      int mj = int(version[10] - '0');
+      int mn = int(version[12] - '0');
+      GLCoreVersion = mj * 10 + mn;
+    }
+
+    RDCLOG("Vendor checks for %u (%s / %s / %s)", GLCoreVersion, vendor, renderer, version);
   }
 
   if(gl.glGetStringi)
@@ -405,9 +411,8 @@ void CheckExtensions(const GLHookSet &gl)
       ext += 3;
 
 #undef EXT_TO_CHECK
-#define EXT_TO_CHECK(ver, glesver, extname)                                       \
-  if((!IsGLES && GLCoreVersion >= ver) || (IsGLES && GLCoreVersion >= glesver) || \
-     !strcmp(ext, STRINGIZE(extname)))                                            \
+#define EXT_TO_CHECK(ver, glesver, extname)                                 \
+  if((!IsGLES && GLCoreVersion >= ver) || !strcmp(ext, STRINGIZE(extname))) \
     HasExt[extname] = true;
 
       EXTENSION_CHECKS()
@@ -421,6 +426,16 @@ void CheckExtensions(const GLHookSet &gl)
         EXTENSION_COMPATIBILITY_CHECKS()
       }
     }
+  }
+
+  if(IsGLES)
+  {
+#undef EXT_TO_CHECK
+#define EXT_TO_CHECK(ver, glesver, extname) \
+  if(GLCoreVersion >= glesver)              \
+    HasExt[extname] = true;
+
+    EXTENSION_CHECKS()
   }
 }
 
