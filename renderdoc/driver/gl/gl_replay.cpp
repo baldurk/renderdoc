@@ -1441,17 +1441,26 @@ void GLReplay::SavePipelineState()
             gl.glGetTexParameteriv(target, eGL_TEXTURE_MAG_FILTER, &v);
           pipe.Samplers[unit].MagFilter = SamplerString((GLenum)v);
 
-          if(samp != 0)
-            gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY_EXT,
-                                       &pipe.Samplers[unit].MaxAniso);
+          if(HasExt[EXT_texture_filter_anisotropic])
+          {
+            if(samp != 0)
+              gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY_EXT,
+                                         &pipe.Samplers[unit].MaxAniso);
+            else
+              gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY_EXT,
+                                     &pipe.Samplers[unit].MaxAniso);
+          }
           else
-            gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY_EXT,
-                                   &pipe.Samplers[unit].MaxAniso);
+          {
+            pipe.Samplers[unit].MaxAniso = 0.0f;
+          }
 
           gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.Samplers[unit].MaxLOD);
           gl.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.Samplers[unit].MinLOD);
           if(!IsGLES)
             gl.glGetTexParameterfv(target, eGL_TEXTURE_LOD_BIAS, &pipe.Samplers[unit].MipLODBias);
+          else
+            pipe.Samplers[unit].MipLODBias = 0.0f;
         }
         else
         {
