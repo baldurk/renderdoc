@@ -304,12 +304,12 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
     for(int i = 0; i < (int)ARRAY_COUNT(data->Attachments); i++)
     {
       FramebufferAttachmentData &a = data->Attachments[i];
+      GLenum attachment = FramebufferInitialData::attachmentNames[i];
 
-      gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, data->attachmentNames[i],
-                                                       eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                       (GLint *)&object);
       gl.glGetNamedFramebufferAttachmentParameterivEXT(
-          res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+          res.name, attachment, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&object);
+      gl.glGetNamedFramebufferAttachmentParameterivEXT(
+          res.name, attachment, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
       a.renderbuffer = (type == eGL_RENDERBUFFER);
 
@@ -320,13 +320,13 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
       if(object && !a.renderbuffer)
       {
         gl.glGetNamedFramebufferAttachmentParameterivEXT(
-            res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &a.level);
+            res.name, attachment, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &a.level);
         gl.glGetNamedFramebufferAttachmentParameterivEXT(
-            res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_LAYERED, &layered);
+            res.name, attachment, eGL_FRAMEBUFFER_ATTACHMENT_LAYERED, &layered);
 
         if(layered == 0)
           gl.glGetNamedFramebufferAttachmentParameterivEXT(
-              res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, &a.layer);
+              res.name, attachment, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, &a.layer);
       }
 
       a.layered = (layered != 0);
@@ -341,8 +341,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
         {
           GLenum face;
           gl.glGetNamedFramebufferAttachmentParameterivEXT(
-              res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-              (GLint *)&face);
+              res.name, attachment, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
 
           a.layer = CubeTargetIndex(face);
         }
@@ -1951,16 +1950,28 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
       gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, live.name);
       gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, live.name);
 
+      GLint numCols = 8;
+      gl.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+
       for(int i = 0; i < (int)ARRAY_COUNT(data->Attachments); i++)
       {
         FramebufferAttachmentData &a = data->Attachments[i];
+        GLenum attachment = FramebufferInitialData::attachmentNames[i];
+
+        if(attachment != eGL_DEPTH_ATTACHMENT && attachment != eGL_STENCIL_ATTACHMENT &&
+           attachment != eGL_DEPTH_STENCIL_ATTACHMENT)
+        {
+          // color attachment
+          int attachNum = attachment - eGL_COLOR_ATTACHMENT0;
+          if(attachNum >= numCols)    // attachment is invalid on this device
+            continue;
+        }
 
         GLuint obj = a.obj == ResourceId() ? 0 : GetLiveResource(a.obj).name;
 
         if(a.renderbuffer && obj)
         {
-          gl.glNamedFramebufferRenderbufferEXT(live.name, data->attachmentNames[i],
-                                               eGL_RENDERBUFFER, obj);
+          gl.glNamedFramebufferRenderbufferEXT(live.name, attachment, eGL_RENDERBUFFER, obj);
         }
         else
         {
@@ -1982,32 +1993,30 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
               if(a.layer < 6)
               {
-                gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, data->attachmentNames[i],
-                                          faces[a.layer], obj, a.level);
+                gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, attachment, faces[a.layer], obj,
+                                          a.level);
               }
               else
               {
                 RDCWARN("Invalid layer %u used to bind cubemap to framebuffer. Binding POSITIVE_X");
-                gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, data->attachmentNames[i], faces[0],
-                                          obj, a.level);
+                gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, attachment, faces[0], obj, a.level);
               }
             }
             else if(details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY ||
                     details.curType == eGL_TEXTURE_1D_ARRAY ||
                     details.curType == eGL_TEXTURE_2D_ARRAY)
             {
-              gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, data->attachmentNames[i], obj,
-                                           a.level, a.layer);
+              gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, attachment, obj, a.level, a.layer);
             }
             else
             {
               RDCASSERT(a.layer == 0);
-              gl.glNamedFramebufferTextureEXT(live.name, data->attachmentNames[i], obj, a.level);
+              gl.glNamedFramebufferTextureEXT(live.name, attachment, obj, a.level);
             }
           }
           else
           {
-            gl.glNamedFramebufferTextureEXT(live.name, data->attachmentNames[i], obj, a.level);
+            gl.glNamedFramebufferTextureEXT(live.name, attachment, obj, a.level);
           }
         }
       }
