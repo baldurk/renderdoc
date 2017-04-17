@@ -1100,7 +1100,8 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
 
     m_LayoutDescs[ret] = descvec;
     if(BytecodeLen > 0 && ShaderBytecode)
-      m_LayoutShaders[ret] = new WrappedShader(GetIDForResource(ret), ShaderBytecode, BytecodeLen);
+      m_LayoutShaders[ret] =
+          new WrappedShader(this, GetIDForResource(ret), ShaderBytecode, BytecodeLen);
 
     SAFE_DELETE_ARRAY(ShaderBytecode);
   }

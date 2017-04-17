@@ -896,10 +896,10 @@ public:
   {
   public:
     ShaderEntry() : m_DebugInfoSearchPaths(NULL), m_DXBCFile(NULL), m_Details(NULL) {}
-    ShaderEntry(const byte *code, size_t codeLen)
+    ShaderEntry(WrappedID3D11Device *device, const byte *code, size_t codeLen)
     {
       m_Bytecode.assign(code, code + codeLen);
-      m_DebugInfoSearchPaths = NULL;
+      m_DebugInfoSearchPaths = device->GetShaderDebugInfoSearchPaths();
       m_DXBCFile = NULL;
       m_Details = NULL;
     }
@@ -910,12 +910,7 @@ public:
       SAFE_DELETE(m_Details);
     }
 
-    void SetDebugInfoPath(vector<std::string> *searchPaths, const std::string &path)
-    {
-      m_DebugInfoSearchPaths = searchPaths;
-      m_DebugInfoPath = path;
-    }
-
+    void SetDebugInfoPath(const std::string &path) { m_DebugInfoPath = path; }
     DXBC::DXBCFile *GetDXBC()
     {
       if(m_DXBCFile == NULL && !m_Bytecode.empty())
@@ -949,12 +944,13 @@ public:
   static map<ResourceId, ShaderEntry *> m_ShaderList;
   static Threading::CriticalSection m_ShaderListLock;
 
-  WrappedShader(ResourceId id, const byte *code, size_t codeLen) : m_ID(id)
+  WrappedShader(WrappedID3D11Device *device, ResourceId id, const byte *code, size_t codeLen)
+      : m_ID(id)
   {
     SCOPED_LOCK(m_ShaderListLock);
 
     RDCASSERT(m_ShaderList.find(m_ID) == m_ShaderList.end());
-    m_ShaderList[m_ID] = new ShaderEntry(code, codeLen);
+    m_ShaderList[m_ID] = new ShaderEntry(device, code, codeLen);
   }
   virtual ~WrappedShader()
   {
@@ -995,7 +991,7 @@ public:
   WrappedID3D11Shader(RealShaderType *real, const byte *code, size_t codeLen,
                       WrappedID3D11Device *device)
       : WrappedDeviceChild11<RealShaderType>(real, device),
-        WrappedShader(GetResourceID(), code, codeLen)
+        WrappedShader(device, GetResourceID(), code, codeLen)
   {
   }
   virtual ~WrappedID3D11Shader() { Shutdown(); }

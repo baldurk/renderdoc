@@ -3445,7 +3445,7 @@ bool WrappedID3D11Device::Serialise_SetShaderDebugPath(ID3D11DeviceChild *res, c
     auto it = WrappedShader::m_ShaderList.find(GetResourceManager()->GetLiveID(resource));
 
     if(it != WrappedShader::m_ShaderList.end())
-      it->second->SetDebugInfoPath(&m_ShaderSearchPaths, debugPath);
+      it->second->SetDebugInfoPath(debugPath);
   }
 
   return true;

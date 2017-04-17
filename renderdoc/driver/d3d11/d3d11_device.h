@@ -450,6 +450,7 @@ public:
     return m_LayoutDescs[layout];
   }
 
+  vector<string> *GetShaderDebugInfoSearchPaths() { return &m_ShaderSearchPaths; }
   void Serialise_CaptureScope(uint64_t offset);
 
   void StartFrameCapture(void *dev, void *wnd);
