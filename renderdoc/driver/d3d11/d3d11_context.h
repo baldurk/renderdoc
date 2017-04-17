@@ -170,6 +170,7 @@ private:
   };
 
   set<ResourceId> m_DeferredDirty;
+  set<ResourceId> m_DeferredReferences;
 
   set<ResourceId> m_HighTrafficResources;
   map<MappedResource, MapIntercept> m_OpenMaps;

@@ -1252,6 +1252,7 @@ class WrappedID3D11CommandList : public WrappedDeviceChild11<ID3D11CommandList>
                         // list
 
   set<ResourceId> m_Dirty;
+  set<ResourceId> m_References;
 
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11CommandList);
@@ -1264,12 +1265,22 @@ public:
   }
   virtual ~WrappedID3D11CommandList()
   {
+    D3D11ResourceManager *manager = m_pDevice->GetResourceManager();
+    // release the references we were holding
+    for(ResourceId id : m_References)
+    {
+      D3D11ResourceRecord *record = manager->GetResourceRecord(id);
+      if(record)
+        record->Delete(manager);
+    }
+
     // context isn't defined type at this point.
     Shutdown();
   }
 
   WrappedID3D11DeviceContext *GetContext() { return m_pContext; }
   bool IsCaptured() { return m_Successful; }
+  void SetReferences(set<ResourceId> &refs) { m_References.swap(refs); }
   void SetDirtyResources(set<ResourceId> &dirty) { m_Dirty.swap(dirty); }
   void MarkDirtyResources(D3D11ResourceManager *manager)
   {
