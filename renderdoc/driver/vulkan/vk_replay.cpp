@@ -1309,7 +1309,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   GetDebugManager()->m_TexDisplayUBO.Unmap();
 
   VkDescriptorImageInfo imdesc = {0};
-  imdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+  imdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   imdesc.imageView = Unwrap(liveImView);
   imdesc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
   if(cfg.mip == 0 && cfg.scale < 1.0f)
