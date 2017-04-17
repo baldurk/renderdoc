@@ -4,6 +4,9 @@
 //
 #include "version.h"
 
+#define TYPE_EMBED 256
+#define renderdoc_py_module 101
+
 // Next default values for new objects
 //
 #ifdef APSTUDIO_INVOKED

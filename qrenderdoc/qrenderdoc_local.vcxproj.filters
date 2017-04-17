@@ -22,6 +22,9 @@
     <Filter Include="Code">
       <UniqueIdentifier>{96c62ca7-39e7-4fca-a6a4-c8e1c3e2a324}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Code\pyrenderdoc">
+      <UniqueIdentifier>{c2e91ed4-8c04-4fdc-accf-8fed288f2cd8}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Windows">
       <UniqueIdentifier>{897f728c-8a11-41c3-ba6f-75815d9e06db}</UniqueIdentifier>
     </Filter>
@@ -540,6 +543,9 @@
     <ClCompile Include="$(IntDir)generated\moc_EnvironmentEditor.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\renderdoc_python.cxx">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
     <ClCompile Include="Windows\Dialogs\EnvironmentEditor.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
@@ -1030,6 +1036,9 @@
     <None Include="Resources\action.png">
       <Filter>Resources\Files</Filter>
     </None>
+    <None Include="Code\pyrenderdoc\pyconversion.h">
+      <Filter>Code\pyrenderdoc</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources\qrenderdoc.rc">
@@ -1285,6 +1294,9 @@
     </CustomBuild>
     <CustomBuild Include="Widgets\Extended\RDSplitter.h">
       <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Code\pyrenderdoc\renderdoc.i">
+      <Filter>Code\pyrenderdoc</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

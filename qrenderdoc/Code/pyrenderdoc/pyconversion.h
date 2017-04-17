@@ -1,0 +1,348 @@
+/******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2017 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
+
+#pragma once
+
+#include <type_traits>
+
+// struct to allow partial specialisation for enums
+template <typename T, bool isEnum = std::is_enum<T>::value>
+struct TypeConversion
+{
+  static swig_type_info *GetTypeInfo()
+  {
+    static swig_type_info *cached_type_info = NULL;
+
+    if(cached_type_info)
+      return cached_type_info;
+
+    std::string baseTypeName = TypeName<T>();
+    baseTypeName += " *";
+    cached_type_info = SWIG_TypeQuery(baseTypeName.c_str());
+
+    return cached_type_info;
+  }
+
+  static int Convert(PyObject *in, T &out)
+  {
+    swig_type_info *type_info = GetTypeInfo();
+    if(type_info == NULL)
+      return SWIG_ERROR;
+
+    T *ptr = NULL;
+    int res = SWIG_ConvertPtr(in, (void **)&ptr, type_info, 0);
+    if(SWIG_IsOK(res))
+      out = *ptr;
+
+    return res;
+  }
+
+  static PyObject *Convert(const T &in)
+  {
+    swig_type_info *type_info = GetTypeInfo();
+    if(type_info == NULL)
+      return NULL;
+
+    T *pyCopy = new T(in);
+    return SWIG_InternalNewPointerObj((void *)pyCopy, type_info, 0);
+  }
+};
+
+// specialisations for integers
+template <>
+struct TypeConversion<uint8_t, false>
+{
+  static int Convert(PyObject *in, uint8_t &out)
+  {
+    if(!PyLong_Check(in))
+      return SWIG_TypeError;
+
+    uint32_t longval = PyLong_AsUnsignedLong(in);
+
+    if(PyErr_Occurred() || longval > 0xff)
+      return SWIG_OverflowError;
+
+    out = uint8_t(longval & 0xff);
+
+    return SWIG_OK;
+  }
+
+  static PyObject *Convert(const uint8_t &in) { return PyLong_FromUnsignedLong(in); }
+};
+
+template <>
+struct TypeConversion<uint32_t, false>
+{
+  static int Convert(PyObject *in, uint32_t &out)
+  {
+    if(!PyLong_Check(in))
+      return SWIG_TypeError;
+
+    out = PyLong_AsUnsignedLong(in);
+
+    if(PyErr_Occurred())
+      return SWIG_OverflowError;
+
+    return SWIG_OK;
+  }
+
+  static PyObject *Convert(const uint32_t &in) { return PyLong_FromUnsignedLong(in); }
+};
+
+template <>
+struct TypeConversion<int32_t, false>
+{
+  static int Convert(PyObject *in, int32_t &out)
+  {
+    if(!PyLong_Check(in))
+      return SWIG_TypeError;
+
+    out = PyLong_AsLong(in);
+
+    if(PyErr_Occurred())
+      return SWIG_OverflowError;
+
+    return SWIG_OK;
+  }
+
+  static PyObject *Convert(const int32_t &in) { return PyLong_FromLong(in); }
+};
+
+template <>
+struct TypeConversion<uint64_t, false>
+{
+  static int Convert(PyObject *in, uint64_t &out)
+  {
+    if(!PyLong_Check(in))
+      return SWIG_TypeError;
+
+    out = PyLong_AsUnsignedLongLong(in);
+
+    if(PyErr_Occurred())
+      return SWIG_OverflowError;
+
+    return SWIG_OK;
+  }
+
+  static PyObject *Convert(const uint64_t &in) { return PyLong_FromUnsignedLongLong(in); }
+};
+
+// partial specialisation for enums, we just convert as their underlying type,
+// whatever integer size that happens to be
+template <typename T>
+struct TypeConversion<T, true>
+{
+  typedef typename std::underlying_type<T>::type etype;
+
+  static int Convert(PyObject *in, T &out)
+  {
+    etype int_out = 0;
+    int ret = TypeConversion<etype>::Convert(in, int_out);
+    out = T(int_out);
+    return ret;
+  }
+
+  static PyObject *Convert(const T &in) { return TypeConversion<etype>::Convert(etype(in)); }
+};
+
+// specialisation for pair
+template <typename A, typename B>
+struct TypeConversion<rdctype::pair<A, B>, false>
+{
+  static int Convert(PyObject *in, rdctype::pair<A, B> &out)
+  {
+    if(!PyTuple_Check(in))
+      return SWIG_TypeError;
+
+    Py_ssize_t size = PyTuple_Size(in);
+
+    if(size != 2)
+      return SWIG_TypeError;
+
+    int ret = TypeConversion<A>::Convert(PyTuple_GetItem(in, 0), out.first);
+    if(SWIG_IsOK(ret))
+      ret = TypeConversion<B>::Convert(PyTuple_GetItem(in, 1), out.second);
+
+    return ret;
+  }
+
+  static PyObject *Convert(const rdctype::pair<A, B> &in)
+  {
+    PyObject *first = TypeConversion<A>::Convert(in.first);
+    if(!first)
+      return NULL;
+
+    PyObject *second = TypeConversion<B>::Convert(in.second);
+    if(!second)
+      return NULL;
+
+    PyObject *ret = PyTuple_New(2);
+    if(!ret)
+      return NULL;
+
+    PyTuple_SetItem(ret, 0, first);
+    PyTuple_SetItem(ret, 1, second);
+
+    return ret;
+  }
+};
+
+// specialisation for array
+template <typename U>
+struct TypeConversion<rdctype::array<U>, false>
+{
+  // we add some extra parameters so the typemaps for array can use these to get
+  // nicer failure error messages out with the index that failed
+  static int Convert(PyObject *in, rdctype::array<U> &out, int *failIdx)
+  {
+    if(!PyList_Check(in))
+      return SWIG_TypeError;
+
+    out.create((int)PyList_Size(in));
+
+    for(int i = 0; i < out.count; i++)
+    {
+      int ret = TypeConversion<U>::Convert(PyList_GetItem(in, i), out.elems[i]);
+      if(!SWIG_IsOK(ret))
+      {
+        if(failIdx)
+          *failIdx = i;
+        return ret;
+      }
+    }
+
+    return SWIG_OK;
+  }
+
+  static int Convert(PyObject *in, rdctype::array<U> &out) { return Convert(in, out, NULL); }
+  static PyObject *ConvertList(PyObject *list, const rdctype::array<U> &in, int *failIdx)
+  {
+    for(int i = 0; i < in.count; i++)
+    {
+      PyObject *elem = TypeConversion<U>::Convert(in.elems[i]);
+
+      if(elem)
+      {
+        PyList_Append(list, elem);
+      }
+      else
+      {
+        if(failIdx)
+          *failIdx = i;
+
+        return NULL;
+      }
+    }
+
+    return list;
+  }
+
+  static PyObject *Convert(const rdctype::array<U> &in, int *failIdx)
+  {
+    PyObject *list = PyList_New(0);
+    if(!list)
+      return NULL;
+
+    PyObject *ret = ConvertList(list, in, failIdx);
+
+    // if a failure happened, don't leak the list we created
+    if(!ret)
+      Py_XDECREF(list);
+
+    return ret;
+  }
+
+  static PyObject *Convert(const rdctype::array<U> &in) { return Convert(in, NULL); }
+};
+
+// specialisation for string
+SWIGINTERN int SWIG_AsCharPtrAndSize(PyObject *obj, char **cptr, size_t *psize, int *alloc);
+
+template <>
+struct TypeConversion<rdctype::str, false>
+{
+  static swig_type_info *GetTypeInfo()
+  {
+    static swig_type_info *cached_type_info = NULL;
+
+    if(cached_type_info)
+      return cached_type_info;
+
+    cached_type_info = SWIG_TypeQuery("rdctype::str *");
+
+    return cached_type_info;
+  }
+
+  static int Convert(PyObject *in, rdctype::str &out)
+  {
+    char *buf = NULL;
+    size_t size = 0;
+    int alloc = SWIG_OLDOBJ;
+
+    if(SWIG_IsOK(SWIG_AsCharPtrAndSize(in, &buf, &size, &alloc)))
+    {
+      if(!buf)
+        return SWIG_NullReferenceError;
+
+      out.count = (int)size - 1;
+      out.elems = (char *)out.allocate(size);
+      memcpy(out.elems, buf, size - 1);
+      out.elems[size] = 0;
+
+      if(alloc == SWIG_NEWOBJ)
+        delete[] buf;
+
+      return SWIG_OK;
+    }
+
+    swig_type_info *type_info = GetTypeInfo();
+    if(!type_info)
+      return SWIG_ERROR;
+
+    rdctype::str *ptr = NULL;
+    int res = SWIG_ConvertPtr(in, (void **)&ptr, type_info, 0);
+    if(SWIG_IsOK(res))
+      out = *ptr;
+
+    return res;
+  }
+
+  static PyObject *Convert(const rdctype::str &in)
+  {
+    return PyUnicode_FromStringAndSize(in.elems, in.count);
+  }
+};
+
+// free functions forward to struct
+template <typename T>
+int Convert(PyObject *in, T &out)
+{
+  return TypeConversion<T>::Convert(in, out);
+}
+
+template <typename T>
+PyObject *Convert(const T &in)
+{
+  return TypeConversion<T>::Convert(in);
+}

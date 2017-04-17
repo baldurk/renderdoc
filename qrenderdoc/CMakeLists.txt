@@ -51,6 +51,30 @@ else()
     add_custom_command(OUTPUT RenderDoc.icns COMMAND touch RenderDoc.icns)
 endif()
 
+# Make sure Python 3 is found
+set(Python_ADDITIONAL_VERSIONS 3.4)
+find_package(PythonLibs 3 REQUIRED)
+find_package(PythonInterp 3 REQUIRED)
+# we also need python3-config for swig
+if(NOT EXISTS "${PYTHON_EXECUTABLE}-config")
+    message(FATAL_ERROR "We require python3-config to build swig, please install the python dev package for your system.")
+endif()
+
+include(ExternalProject)
+
+# Need bison for swig
+find_package(BISON)
+
+# Compile our custom SWIG that will do scoped/strong enum classes
+ExternalProject_Add(custom_swig
+    # using an URL to a zip directly so we don't clone the history etc
+    URL https://github.com/baldurk/swig/archive/renderdoc-3.0.12.zip
+    BUILD_IN_SOURCE 1
+    CONFIGURE_COMMAND ./autogen.sh > /dev/null 2>&1
+    COMMAND CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} ./configure --with-pcre=yes --prefix=${CMAKE_BINARY_DIR} > /dev/null 2>&1
+    BUILD_COMMAND $(MAKE) > /dev/null 2>&1
+    INSTALL_COMMAND $(MAKE) install > /dev/null 2>&1)
+
 # Output our configuration for qmake. We output this to a separate file so that
 # the user can then open the qrenderdoc.pro in qt creator and be able to build
 # with these configuration entries propagated for e.g. linking against libraries
@@ -73,6 +97,20 @@ file(WRITE
      "RENDERDOC_VERSION=${RENDERDOC_VERSION}\n"
      "\n"
      "OSX_ICONFILE=${CMAKE_CURRENT_BINARY_DIR}/RenderDoc.icns\n")
+
+# generate the SWIG interface file
+add_custom_command(OUTPUT renderdoc_python.cxx renderdoc.py
+        COMMAND ${CMAKE_BINARY_DIR}/bin/swig -v -Wextra -Werror -O -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I${CMAKE_SOURCE_DIR}/renderdoc/api/replay -outdir ${CMAKE_CURRENT_BINARY_DIR} -o ${CMAKE_CURRENT_BINARY_DIR}/renderdoc_python.cxx ${CMAKE_CURRENT_SOURCE_DIR}/Code/pyrenderdoc/renderdoc.i
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Code/pyrenderdoc/renderdoc.i
+        DEPENDS custom_swig
+        DEPENDS renderdoc)
+
+add_custom_command(OUTPUT renderdoc.py.c
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin renderdoc.py renderdoc.py.c
+        DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
+        DEPENDS renderdoc_python.cxx)
+
 # The case here is deliberately not matching the executable name
 # This means the custom command doesn't create this output file,
 # which causes CMake to rerun this target every time so that Qt
@@ -80,7 +118,9 @@ file(WRITE
 add_custom_command(OUTPUT QRenderDoc
 	COMMAND qmake "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
 	COMMAND $(MAKE)
-	DEPENDS RenderDoc.icns)
+	DEPENDS RenderDoc.icns
+	DEPENDS renderdoc_python.cxx
+	DEPENDS renderdoc.py.c)
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc)
 
 install (PROGRAMS ${CMAKE_BINARY_DIR}/bin/qrenderdoc DESTINATION bin)
