@@ -1014,6 +1014,12 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
     VkPhysicalDeviceFeatures availFeatures = {0};
     ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &availFeatures);
 
+    if(availFeatures.depthClamp)
+      enabledFeatures.depthClamp = true;
+    else
+      RDCWARN(
+          "depthClamp = false, overlays like highlight drawcall won't show depth-clipped pixels.");
+
     if(availFeatures.fillModeNonSolid)
       enabledFeatures.fillModeNonSolid = true;
     else

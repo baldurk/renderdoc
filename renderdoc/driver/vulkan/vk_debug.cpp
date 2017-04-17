@@ -582,7 +582,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
       NULL,
       0,
-      true,
+      false,
       false,
       VK_POLYGON_MODE_FILL,
       VK_CULL_MODE_NONE,
@@ -5369,7 +5369,11 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
         (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
     rs->cullMode = VK_CULL_MODE_NONE;
     rs->rasterizerDiscardEnable = false;
-    rs->depthClampEnable = true;
+
+    if(m_pDriver->GetDeviceFeatures().depthClamp)
+    {
+      rs->depthClampEnable = true;
+    }
 
     if(overlay == eTexOverlay_Wireframe && m_pDriver->GetDeviceFeatures().fillModeNonSolid)
     {
@@ -5655,7 +5659,9 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
     VkCullModeFlags origCullMode = rs->cullMode;
     rs->cullMode = VK_CULL_MODE_NONE;    // first render without any culling
     rs->rasterizerDiscardEnable = false;
-    rs->depthClampEnable = true;
+
+    if(m_pDriver->GetDeviceFeatures().depthClamp)
+      rs->depthClampEnable = true;
 
     VkPipelineColorBlendStateCreateInfo *cb =
         (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
@@ -5915,7 +5921,9 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
         (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
     rs->cullMode = VK_CULL_MODE_NONE;
     rs->rasterizerDiscardEnable = false;
-    rs->depthClampEnable = true;
+
+    if(m_pDriver->GetDeviceFeatures().depthClamp)
+      rs->depthClampEnable = true;
 
     VkPipelineColorBlendStateCreateInfo *cb =
         (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
