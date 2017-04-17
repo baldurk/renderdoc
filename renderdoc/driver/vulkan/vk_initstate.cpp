@@ -740,9 +740,13 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf,
 
   // unbind the entire buffer so that any new areas that are bound are unbound again
 
-  VkSparseMemoryBind unbind = {0, m_CreationInfo.m_Buffer[buf->id].size, VK_NULL_HANDLE, 0, 0};
-
   VkQueue q = GetQ();
+
+  VkMemoryRequirements mrq = {};
+  ObjDisp(q)->GetBufferMemoryRequirements(Unwrap(GetDev()), buf->real.As<VkBuffer>(), &mrq);
+
+  VkSparseMemoryBind unbind = {0, RDCMAX(mrq.size, m_CreationInfo.m_Buffer[buf->id].size),
+                               VK_NULL_HANDLE, 0, 0};
 
   VkSparseBufferMemoryBindInfo bufBind = {buf->real.As<VkBuffer>(), 1, &unbind};
 
