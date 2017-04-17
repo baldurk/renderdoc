@@ -2667,10 +2667,6 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
     if(flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
       return false;
 
-    // Ignore shader checker layer entirely
-    if(isSC)
-      return false;
-
     // Memory is aliased between image and buffer
     // ignore memory aliasing warning - we make use of the memory in disjoint ways
     // and copy image data over separately, so our use is safe
