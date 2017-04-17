@@ -424,6 +424,11 @@ void PythonContext::GlobalShutdown()
   Py_Finalize();
 }
 
+QString PythonContext::versionString()
+{
+  return QString("%1.%2.%3").arg(PY_MAJOR_VERSION).arg(PY_MINOR_VERSION).arg(PY_MICRO_VERSION);
+}
+
 void PythonContext::executeString(const QString &filename, const QString &source, bool interactive)
 {
   if(!initialised())

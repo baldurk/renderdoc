@@ -42,6 +42,7 @@
 #include "Windows/MainWindow.h"
 #include "Windows/PipelineState/PipelineStateViewer.h"
 #include "Windows/PixelHistoryView.h"
+#include "Windows/PythonShell.h"
 #include "Windows/ShaderViewer.h"
 #include "Windows/StatisticsViewer.h"
 #include "Windows/TextureViewer.h"
@@ -732,6 +733,18 @@ IStatisticsViewer *CaptureContext::GetStatisticsViewer()
   return m_StatisticsViewer;
 }
 
+IPythonShell *CaptureContext::GetPythonShell()
+{
+  if(m_PythonShell)
+    return m_PythonShell;
+
+  m_PythonShell = new PythonShell(*this, m_MainWindow);
+  m_PythonShell->setObjectName("pythonShell");
+  setupDockWindow(m_PythonShell);
+
+  return m_PythonShell;
+}
+
 void CaptureContext::ShowEventBrowser()
 {
   m_MainWindow->showEventBrowser();
@@ -770,6 +783,11 @@ void CaptureContext::ShowDebugMessageView()
 void CaptureContext::ShowStatisticsViewer()
 {
   m_MainWindow->showStatisticsViewer();
+}
+
+void CaptureContext::ShowPythonShell()
+{
+  m_MainWindow->showPythonShell();
 }
 
 IShaderViewer *CaptureContext::EditShader(bool customShader, const QString &entryPoint,
@@ -865,6 +883,10 @@ QWidget *CaptureContext::CreateBuiltinWindow(const QString &objectName)
   {
     return GetStatisticsViewer()->Widget();
   }
+  else if(objectName == "pythonShell")
+  {
+    return GetPythonShell()->Widget();
+  }
 
   return NULL;
 }
@@ -887,6 +909,8 @@ void CaptureContext::BuiltinWindowClosed(QWidget *window)
     m_DebugMessageView = NULL;
   else if(m_StatisticsViewer && m_StatisticsViewer->Widget() == window)
     m_StatisticsViewer = NULL;
+  else if(m_PythonShell && m_PythonShell->Widget() == window)
+    m_PythonShell = NULL;
   else
     qCritical() << "Unrecognised window being closed: " << window;
 }

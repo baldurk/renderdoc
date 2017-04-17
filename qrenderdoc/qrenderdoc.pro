@@ -203,7 +203,8 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/Dialogs/EnvironmentEditor.cpp \
     Widgets/FindReplace.cpp \
     Widgets/Extended/RDSplitter.cpp \
-    Windows/Dialogs/TipsDialog.cpp
+    Windows/Dialogs/TipsDialog.cpp \
+    Windows/PythonShell.cpp
 HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
     Code/ReplayManager.h \
@@ -260,7 +261,8 @@ HEADERS += Code/CaptureContext.h \
     Windows/Dialogs/EnvironmentEditor.h \
     Widgets/FindReplace.h \
     Widgets/Extended/RDSplitter.h \
-    Windows/Dialogs/TipsDialog.h
+    Windows/Dialogs/TipsDialog.h \
+    Windows/PythonShell.h
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
     Windows/EventBrowser.ui \
@@ -290,7 +292,8 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/PixelHistoryView.ui \
     Windows/Dialogs/EnvironmentEditor.ui \
     Widgets/FindReplace.ui \
-    Windows/Dialogs/TipsDialog.ui
+    Windows/Dialogs/TipsDialog.ui \
+    Windows/PythonShell.ui
 
 RESOURCES += Resources/resources.qrc
 

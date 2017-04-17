@@ -576,6 +576,12 @@
     <ClCompile Include="Code\ReplayManager.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_PythonShell.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\PythonShell.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
     <ClCompile Include="Widgets\Extended\RDTextEdit.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
@@ -886,6 +892,9 @@
     </ClInclude>
     <ClInclude Include="Code\ReplayManager.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_PythonShell.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1336,6 +1345,12 @@
     </CustomBuild>
     <CustomBuild Include="Widgets\Extended\RDTextEdit.h">
       <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PythonShell.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PythonShell.ui">
+      <Filter>Windows</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

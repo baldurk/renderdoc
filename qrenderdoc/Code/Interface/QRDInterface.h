@@ -318,6 +318,21 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IStatisticsViewer);
 
+DOCUMENT("The interactive python shell.");
+struct IPythonShell
+{
+  DOCUMENT(
+      "Retrieves the QWidget for this :class:`PythonShell` if PySide2 is available, or "
+      "``None``.");
+  virtual QWidget *Widget() = 0;
+
+protected:
+  IPythonShell() = default;
+  ~IPythonShell() = default;
+};
+
+DECLARE_REFLECTION_STRUCT(IPythonShell);
+
 DOCUMENT(R"(A shader window used for viewing, editing, or debugging.
 
 .. function:: SaveCallback(context, viewer, files)
@@ -990,6 +1005,13 @@ as well as messages generated during replay and analysis.
 )");
   virtual IStatisticsViewer *GetStatisticsViewer() = 0;
 
+  DOCUMENT(R"(Retrieve the current singleton :class:`PythonShell`.
+
+:return: The current window, which is created (but not shown) it there wasn't one open.
+:rtype: PythonShell
+)");
+  virtual IPythonShell *GetPythonShell() = 0;
+
   DOCUMENT(R"(Check if there is a current :class:`EventBrowser` open.
 
 :return: ``True`` if there is a window open.
@@ -1046,6 +1068,13 @@ as well as messages generated during replay and analysis.
 )");
   virtual bool HasStatisticsViewer() = 0;
 
+  DOCUMENT(R"(Check if there is a current :class:`PythonShell` open.
+
+:return: ``True`` if there is a window open.
+:rtype: ``bool``
+)");
+  virtual bool HasPythonShell() = 0;
+
   DOCUMENT("Raise the current :class:`EventBrowser`, showing it in the default place if needed.");
   virtual void ShowEventBrowser() = 0;
   DOCUMENT("Raise the current :class:`APIInspector`, showing it in the default place if needed.");
@@ -1064,6 +1093,8 @@ as well as messages generated during replay and analysis.
   DOCUMENT(
       "Raise the current :class:`StatisticsViewer`, showing it in the default place if needed.");
   virtual void ShowStatisticsViewer() = 0;
+  DOCUMENT("Raise the current :class:`PythonShell`, showing it in the default place if needed.");
+  virtual void ShowPythonShell() = 0;
 
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing an editable view of a given shader.
 

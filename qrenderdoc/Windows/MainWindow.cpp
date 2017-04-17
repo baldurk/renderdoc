@@ -1399,6 +1399,16 @@ void MainWindow::on_action_Statistics_Viewer_triggered()
     ui->toolWindowManager->addToolWindow(stats, mainToolArea());
 }
 
+void MainWindow::on_action_Python_Shell_triggered()
+{
+  QWidget *py = m_Ctx.GetPythonShell()->Widget();
+
+  if(ui->toolWindowManager->toolWindows().contains(py))
+    ToolWindowManager::raiseToolWindow(py);
+  else
+    ui->toolWindowManager->addToolWindow(py, mainToolArea());
+}
+
 void MainWindow::on_action_Resolve_Symbols_triggered()
 {
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) { r->InitResolver(); });

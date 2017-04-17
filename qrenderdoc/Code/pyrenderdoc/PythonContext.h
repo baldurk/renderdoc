@@ -55,6 +55,8 @@ public:
   static void GlobalInit();
   static void GlobalShutdown();
 
+  QString versionString();
+
   template <typename T>
   void setGlobal(const char *varName, T *object)
   {
