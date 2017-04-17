@@ -223,7 +223,7 @@ namespace renderdocui.Code
 
         [XmlIgnore] // not directly serializable
         public Dictionary<string, string> ConfigSettings = new Dictionary<string, string>();
-        private List<SerializableKeyValuePair<string, string>> ConfigSettingsValues = new List<SerializableKeyValuePair<string, string>>();
+        public List<SerializableKeyValuePair<string, string>> ConfigSettingsValues = new List<SerializableKeyValuePair<string, string>>();
 
         public void SetConfigSetting(string name, string value)
         {
