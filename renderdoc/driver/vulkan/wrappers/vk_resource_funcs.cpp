@@ -187,6 +187,14 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(Serialiser *localSerialiser, VkDe
       ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &buf);
       RDCASSERTEQUAL(ret, VK_SUCCESS);
 
+      // we already validated at replay time that the memory size is aligned/etc as necessary so we
+      // can create a buffer of the whole size, but just to keep the validation layers happy let's
+      // check the requirements here again.
+      VkMemoryRequirements mrq = {};
+      ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), buf, &mrq);
+
+      RDCASSERT(mrq.size <= info.allocationSize, mrq.size, info.allocationSize);
+
       ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
 
       ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buf), Unwrap(mem), 0);
@@ -439,6 +447,14 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
       ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &buf);
       RDCASSERTEQUAL(ret, VK_SUCCESS);
+
+      // we already validated above that the memory size is aligned/etc as necessary so we can
+      // create a buffer of the whole size, but just to keep the validation layers happy let's check
+      // the requirements here again.
+      VkMemoryRequirements mrq = {};
+      ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), buf, &mrq);
+
+      RDCASSERTEQUAL(mrq.size, info.allocationSize);
 
       ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
 
