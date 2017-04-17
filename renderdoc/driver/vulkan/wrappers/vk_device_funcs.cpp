@@ -413,8 +413,9 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
 void WrappedVulkan::Shutdown()
 {
-  // flush out any pending commands
+  // flush out any pending commands/semaphores
   SubmitCmds();
+  SubmitSemaphores();
   FlushQ();
 
   // since we didn't create proper registered resources for our command buffers,
@@ -426,6 +427,12 @@ void WrappedVulkan::Shutdown()
   // destroy the pool
   ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_InternalCmds.cmdpool), NULL);
   GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.cmdpool);
+
+  for(size_t i = 0; i < m_InternalCmds.freesems.size(); i++)
+  {
+    ObjDisp(m_Device)->DestroySemaphore(Unwrap(m_Device), Unwrap(m_InternalCmds.freesems[i]), NULL);
+    GetResourceManager()->ReleaseWrappedResource(m_InternalCmds.freesems[i]);
+  }
 
   // we do more in Shutdown than the equivalent vkDestroyInstance since on replay there's
   // no explicit vkDestroyDevice, we destroy the device here then the instance
