@@ -52,7 +52,7 @@ else()
 endif()
 
 # Make sure Python 3 is found
-set(Python_ADDITIONAL_VERSIONS 3.4)
+set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6)
 find_package(PythonLibs 3 REQUIRED)
 find_package(PythonInterp 3 REQUIRED)
 # we also need python3-config for swig
