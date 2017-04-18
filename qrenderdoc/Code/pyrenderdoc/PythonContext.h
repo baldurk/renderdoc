@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <QMutex>
 #include <QObject>
 #include <QString>
 #include <QWidget>
@@ -44,7 +45,8 @@ private:
   // don't allow destruction from outside, you must heap-allocate the context and let it delete
   // itself when all references are done. This handles the case where e.g. some Async work is going
   // on and needs to finish executing after the external code is done with the context
-  ~PythonContext() {}
+  ~PythonContext();
+
 public:
   explicit PythonContext(QObject *parent = NULL);
   void Finish();
@@ -120,6 +122,13 @@ private:
   bool m_Abort = false;
 
   static PyObject *QtObjectToPython(const char *typeName, QObject *object);
+
+  QTimer *outputTicker;
+  QMutex outputMutex;
+  QString outstr, errstr;
+
+  void outputTick();
+  void addText(bool isStdError, const QString &output);
 
   // Python callbacks
   static void outstream_del(PyObject *self);

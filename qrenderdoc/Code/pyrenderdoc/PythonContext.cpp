@@ -43,6 +43,7 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 #include <QDebug>
 #include <QFile>
 #include <QThread>
+#include <QTimer>
 #include "PythonContext.h"
 #include "renderdoc_replay.h"
 
@@ -382,6 +383,20 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
 
   // release the GIL again
   PyGILState_Release(gil);
+
+  // every 100ms while running, check for new output
+  outputTicker = new QTimer(this);
+  outputTicker->setInterval(100);
+  QObject::connect(outputTicker, &QTimer::timeout, this, &PythonContext::outputTick);
+
+  // we have to start it here, because we can't start on another thread.
+  outputTicker->start();
+}
+
+PythonContext::~PythonContext()
+{
+  // do a final tick to gather any remaining output
+  outputTick();
 }
 
 void PythonContext::Finish()
@@ -449,6 +464,9 @@ void PythonContext::executeString(const QString &filename, const QString &source
     ret = PyEval_EvalCode(compiled, context_namespace, context_namespace);
 
     m_State = NULL;
+
+    // catch any output
+    outputTick();
 
     Py_XDECREF(thisobj);
     Py_XDECREF(traceContext);
@@ -587,6 +605,35 @@ PyObject *PythonContext::QtObjectToPython(const char *typeName, QObject *object)
 #endif
 }
 
+// callback to flush output every so often (not constantly, to avoid spamming signals)
+void PythonContext::outputTick()
+{
+  QMutexLocker lock(&outputMutex);
+
+  if(!outstr.isEmpty())
+  {
+    emit textOutput(false, outstr);
+  }
+
+  if(!errstr.isEmpty())
+  {
+    emit textOutput(true, errstr);
+  }
+
+  outstr.clear();
+  errstr.clear();
+}
+
+void PythonContext::addText(bool isStdError, const QString &output)
+{
+  QMutexLocker lock(&outputMutex);
+
+  if(isStdError)
+    errstr += output;
+  else
+    outstr += output;
+}
+
 void PythonContext::setPyGlobal(const char *varName, PyObject *obj)
 {
   if(!initialised())
@@ -662,7 +709,7 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
 
     if(context)
     {
-      emit context->textOutput(redirector->isStdError ? true : false, QString::fromUtf8(text));
+      context->addText(redirector->isStdError ? true : false, QString::fromUtf8(text));
     }
   }
 
