@@ -71,7 +71,7 @@ ExternalProject_Add(custom_swig
     URL https://github.com/baldurk/swig/archive/renderdoc-3.0.12.zip
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ./autogen.sh > /dev/null 2>&1
-    COMMAND CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} ./configure --with-pcre=yes --prefix=${CMAKE_BINARY_DIR} > /dev/null 2>&1
+    COMMAND CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} ./configure --with-pcre=yes --prefix=${CMAKE_BINARY_DIR} > /dev/null
     BUILD_COMMAND $(MAKE) > /dev/null 2>&1
     INSTALL_COMMAND $(MAKE) install > /dev/null 2>&1)
 
