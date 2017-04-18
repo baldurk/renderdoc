@@ -108,26 +108,28 @@ On Windows there are no dependencies - you can always compile the latest version
 
 ### Linux
 
-Requirements are linking against -lX11 and -lGL. For qrenderdoc you need qt5 along with the 'x11extras' package. You must have Qt 5.6 at least
+Requirements for the core library and renderdoccmd are libx11, libxcb, libxcb-keysyms and libGL. The exact are packages for these vary by distribution.
+
+For qrenderdoc you need Qt5 >= 5.6 along with the 'x11extras' package. You also need python3-dev for the python integration, and bison, autoconf, automake and libpcre3-dev for building the custom SWIG tool for generating bindings.
 
 This is the apt-get line you'd need to install the requirements bar Qt on Ubuntu 14.04 or above:
 
 ```
-sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev cmake
+sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev cmake python3-dev bison autoconf automake libpcre3-dev
 ```
 
 Your version of Ubuntu might not include a recent enough Qt version, so you can use [Stephan Binner's ppas](https://launchpad.net/~beineri) to install a more recent version of Qt. At least 5.6.2 is required.
 
-For Archlinux (as of 2016.10.03) you'll need:
+For Archlinux (as of 2017.04.18) you'll need:
 
 ```
-sudo pacman -S libx11 libxcb xcb-util-keysyms mesa libgl qt5-base qt5-x11extras cmake
+sudo pacman -S libx11 libxcb xcb-util-keysyms mesa libgl qt5-base qt5-x11extras cmake python3 bison autoconf automake pcre
 ```
 
-For Gentoo (as of 2017.02.24), you'll need:
+For Gentoo (as of 2017.04.18), you'll need:
 
 ```
-sudo emerge --ask x11-libs/libX11 x11-libs/libxcb x11-libs/xcb-util-keysyms dev-util/cmake dev-qt/qtcore dev-qt/qtgui dev-qt/qtwidgets dev-qt/qtsvg dev-qt/qtx11extras
+sudo emerge --ask x11-libs/libX11 x11-libs/libxcb x11-libs/xcb-util-keysyms dev-util/cmake dev-qt/qtcore dev-qt/qtgui dev-qt/qtwidgets dev-qt/qtsvg dev-qt/qtx11extras sys-devel/bison sys-devel/autoconf sys-devel/automake dev-lang/python dev-libs/libpcre
 ```
 
 Checking that at least Qt 5.6 installs.
