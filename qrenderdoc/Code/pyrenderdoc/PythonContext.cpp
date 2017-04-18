@@ -635,13 +635,23 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
     // contexts. So look up the global variable that stores the context
     if(context == NULL)
     {
-      PyObject *globals = PyEval_GetGlobals();
-      if(globals)
+      _frame *frame = PyEval_GetFrame();
+
+      while(frame)
       {
-        OutputRedirector *global =
-            (OutputRedirector *)PyDict_GetItemString(globals, "_renderdoc_internal");
-        if(global)
-          context = global->context;
+        PyObject *globals = frame->f_globals;
+        if(globals)
+        {
+          OutputRedirector *global =
+              (OutputRedirector *)PyDict_GetItemString(globals, "_renderdoc_internal");
+          if(global)
+            context = global->context;
+        }
+
+        if(context)
+          break;
+
+        frame = frame->f_back;
       }
     }
 
