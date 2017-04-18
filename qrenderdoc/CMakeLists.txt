@@ -9,7 +9,7 @@ set(QMAKE_LDFLAGS "")
 
 if(STATIC_QRENDERDOC)
     set(QMAKE_CONFIG "debug static")
-    set(QMAKE_LDFLAGS "-static-libstdc++")
+    set(QMAKE_LDFLAGS "-static-libstdc++ -lutil")
 endif()
 
 set(QMAKE_CXXFLAGS "")
