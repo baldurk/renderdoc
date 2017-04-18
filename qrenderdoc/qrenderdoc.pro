@@ -165,6 +165,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/EventBrowser.cpp \
     Windows/TextureViewer.cpp \
     Widgets/Extended/RDLineEdit.cpp \
+    Widgets/Extended/RDTextEdit.cpp \
     Widgets/Extended/RDLabel.cpp \
     Widgets/Extended/RDDoubleSpinBox.cpp \
     Widgets/Extended/RDListView.cpp \
@@ -221,6 +222,7 @@ HEADERS += Code/CaptureContext.h \
     Windows/EventBrowser.h \
     Windows/TextureViewer.h \
     Widgets/Extended/RDLineEdit.h \
+    Widgets/Extended/RDTextEdit.h \
     Widgets/Extended/RDLabel.h \
     Widgets/Extended/RDDoubleSpinBox.h \
     Widgets/Extended/RDListView.h \

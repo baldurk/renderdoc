@@ -576,6 +576,12 @@
     <ClCompile Include="Code\ReplayManager.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\Extended\RDTextEdit.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDTextEdit.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1327,6 +1333,9 @@
     </CustomBuild>
     <CustomBuild Include="Code\pyrenderdoc\qrenderdoc.i">
       <Filter>Code\pyrenderdoc</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDTextEdit.h">
+      <Filter>Widgets\Extended</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>
