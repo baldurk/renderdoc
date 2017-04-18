@@ -107,11 +107,27 @@ int main(int argc, char *argv[])
     }
   }
 
+  QList<QString> pyscripts;
+
+  for(int i = 0; i + 1 < argc; i++)
+  {
+    if(!QString::compare(argv[i], "--python", Qt::CaseInsensitive) ||
+       !QString::compare(argv[i], "--py", Qt::CaseInsensitive) ||
+       !QString::compare(argv[i], "--script", Qt::CaseInsensitive))
+    {
+      QFileInfo checkFile(argv[i + 1]);
+      if(checkFile.exists() && checkFile.isFile())
+      {
+        pyscripts.push_back(argv[i + 1]);
+      }
+    }
+  }
+
   if(argc > 1)
   {
     filename = argv[argc - 1];
     QFileInfo checkFile(filename);
-    if(!checkFile.exists() || !checkFile.isFile())
+    if(!checkFile.exists() || !checkFile.isFile() || checkFile.suffix().toLower() == "py")
       filename = "";
   }
 
@@ -162,6 +178,41 @@ int main(int argc, char *argv[])
     PythonContext::GlobalInit();
     {
       CaptureContext ctx(filename, remoteHost, remoteIdent, temp, config);
+
+      if(!pyscripts.isEmpty())
+      {
+        PythonContextHandle py;
+
+        py.ctx().setGlobal("pyrenderdoc", (ICaptureContext *)&ctx);
+
+        QObject::connect(&py.ctx(), &PythonContext::exception,
+                         [](const QString &type, const QString &value, QList<QString> frames) {
+
+                           QString exString;
+
+                           if(!frames.isEmpty())
+                           {
+                             exString += "Traceback (most recent call last):\n";
+                             for(const QString &f : frames)
+                               exString += QString("  %1\n").arg(f);
+                           }
+
+                           exString += QString("%1: %2\n").arg(type).arg(value);
+
+                           fprintf(stderr, "%s", exString.toUtf8().data());
+                         });
+
+        QObject::connect(&py.ctx(), &PythonContext::textOutput,
+                         [](bool isStdError, const QString &output) {
+                           fprintf(isStdError ? stderr : stdout, "%s", output.toUtf8().data());
+                         });
+
+        for(const QString &f : pyscripts)
+        {
+          qInfo() << "running" << f;
+          py.ctx().executeFile(f);
+        }
+      }
 
       while(ctx.isRunning())
       {
