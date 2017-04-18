@@ -26,6 +26,10 @@
 #include "3rdparty/scintilla/include/SciLexer.h"
 #include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
 
+static const char *python_keywords =
+    "False None True and as assert break class continue def del elif else except finally for from "
+    "global if import in is lambda nonlocal not or pass raise return try while with yield";
+
 static const char *hlsl_keywords[2] = {
     // keyword set 0:
     // Secondary keywords and identifiers
@@ -261,5 +265,24 @@ void ConfigureSyntax(ScintillaEdit *scintilla, int language)
       scintilla->setKeyWords(0, glsl_keywords[0]);
       scintilla->setKeyWords(1, glsl_keywords[1]);
     }
+  }
+  else if(language == SCLEX_PYTHON)
+  {
+    scintilla->setProperty("tab.timmy.whinge.level", "1");
+    scintilla->setProperty("fold", "1");
+
+    scintilla->setKeyWords(0, python_keywords);
+
+    scintilla->styleSetFore(SCE_P_COMMENTLINE, SCINTILLA_COLOUR(0, 150, 0));
+    scintilla->styleSetFore(SCE_P_COMMENTBLOCK, SCINTILLA_COLOUR(0, 150, 0));
+    scintilla->styleSetFore(SCE_P_NUMBER, SCINTILLA_COLOUR(0, 150, 150));
+    scintilla->styleSetFore(SCE_P_STRING, SCINTILLA_COLOUR(150, 0, 150));
+    scintilla->styleSetFore(SCE_P_CHARACTER, SCINTILLA_COLOUR(150, 0, 150));
+    scintilla->styleSetFore(SCE_P_DEFNAME, SCINTILLA_COLOUR(150, 150, 0));
+    scintilla->styleSetFore(SCE_P_CLASSNAME, SCINTILLA_COLOUR(150, 0, 150));
+    scintilla->styleSetFore(SCE_P_WORD, SCINTILLA_COLOUR(0, 0, 150));
+    scintilla->styleSetFore(SCE_P_WORD2, SCINTILLA_COLOUR(0, 0, 150));
+    scintilla->styleSetBold(SCE_P_WORD, true);
+    scintilla->styleSetBold(SCE_P_WORD2, true);
   }
 }
