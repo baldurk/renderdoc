@@ -264,8 +264,12 @@ void PythonContext::GlobalInit()
 
   PyObject *main_module = PyImport_AddModule("__main__");
 
-  PyObject *rdoc_module = PyImport_ExecCodeModule("renderdoc", renderdoc_py_compiled);
-  PyObject *qrdoc_module = PyImport_ExecCodeModule("qrenderdoc", qrenderdoc_py_compiled);
+  // for compatibility with earlier versions of python that took a char * instead of const char *
+  char renderdoc_name[] = "renderdoc";
+  char qrenderdoc_name[] = "qrenderdoc";
+
+  PyObject *rdoc_module = PyImport_ExecCodeModule(renderdoc_name, renderdoc_py_compiled);
+  PyObject *qrdoc_module = PyImport_ExecCodeModule(qrenderdoc_name, qrenderdoc_py_compiled);
 
   Py_XDECREF(renderdoc_py_compiled);
   Py_XDECREF(qrenderdoc_py_compiled);
@@ -288,14 +292,17 @@ void PythonContext::GlobalInit()
   // sysobj.stderr = renderdoc_output_redirector()
   if(PyType_Ready(&OutputRedirectorType) >= 0)
   {
-    PyObject *redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, "");
+    // for compatibility with earlier versions of python that took a char * instead of const char *
+    char noparams[1] = "";
+
+    PyObject *redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, noparams);
     PyObject_SetAttrString(sysobj, "stdout", redirector);
 
     OutputRedirector *output = (OutputRedirector *)redirector;
     output->isStdError = 0;
     output->context = NULL;
 
-    redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, "");
+    redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, noparams);
     PyObject_SetAttrString(sysobj, "stderr", redirector);
 
     output = (OutputRedirector *)redirector;
@@ -369,9 +376,12 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
   QString valueStr = "";
   QList<QString> frames;
 
+  // for compatibility with earlier versions of python that took a char * instead of const char *
+  char noparams[1] = "";
+
   // set global output that point to this context. It is responsible for deleting the context when
   // it goes out of scope
-  PyObject *redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, "");
+  PyObject *redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, noparams);
   if(redirector)
   {
     PyDict_SetItemString(context_namespace, "_renderdoc_internal", redirector);
