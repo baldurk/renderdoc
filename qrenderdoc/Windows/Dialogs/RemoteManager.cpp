@@ -285,7 +285,6 @@ void RemoteManager::lookupComplete()
 
     if(!isVisible())
     {
-      delete this;
       return;
     }
   }
