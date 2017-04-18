@@ -159,19 +159,19 @@ int main(int argc, char *argv[])
 
     GUIInvoke::init();
 
-    CaptureContext ctx(filename, remoteHost, remoteIdent, temp, config);
-
     PythonContext::GlobalInit();
-
-    while(ctx.isRunning())
     {
-      application.processEvents(QEventLoop::WaitForMoreEvents);
-      QCoreApplication::sendPostedEvents();
+      CaptureContext ctx(filename, remoteHost, remoteIdent, temp, config);
+
+      while(ctx.isRunning())
+      {
+        application.processEvents(QEventLoop::WaitForMoreEvents);
+        QCoreApplication::sendPostedEvents();
+      }
+
+      config.Save();
     }
-
     PythonContext::GlobalShutdown();
-
-    config.Save();
   }
 
   delete[] argv_mod;
