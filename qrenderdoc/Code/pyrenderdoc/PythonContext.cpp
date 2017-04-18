@@ -442,6 +442,8 @@ void PythonContext::executeString(const QString &filename, const QString &source
 
     PyEval_SetTrace(&PythonContext::traceEvent, traceContext);
 
+    m_Abort = false;
+
     m_State = PyGILState_GetThisThreadState();
 
     ret = PyEval_EvalCode(compiled, context_namespace, context_namespace);
@@ -674,16 +676,24 @@ PyObject *PythonContext::outstream_flush(PyObject *self, PyObject *args)
 
 int PythonContext::traceEvent(PyObject *obj, PyFrameObject *frame, int what, PyObject *arg)
 {
+  PyObject *thisobj = PyDict_GetItemString(obj, "thisobj");
+
+  uint64_t thisuint64 = PyLong_AsUnsignedLongLong(thisobj);
+  uintptr_t thisint = (uintptr_t)thisuint64;
+  PythonContext *context = (PythonContext *)thisint;
+
   PyObject *compiled = PyDict_GetItemString(obj, "compiled");
   if(compiled == (PyObject *)frame->f_code && what == PyTrace_LINE)
   {
-    PyObject *thisobj = PyDict_GetItemString(obj, "thisobj");
-
-    uint64_t thisuint64 = PyLong_AsUnsignedLongLong(thisobj);
-    uintptr_t thisint = (uintptr_t)thisuint64;
-    PythonContext *context = (PythonContext *)thisint;
+    context->location.line = PyFrame_GetLineNumber(frame);
 
     emit context->traceLine(context->location.file, context->location.line);
+  }
+
+  if(context->shouldAbort())
+  {
+    PyErr_SetString(PyExc_SystemExit, "Execution aborted.");
+    return -1;
   }
 
   return 0;

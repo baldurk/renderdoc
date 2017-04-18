@@ -80,6 +80,8 @@ public:
   static PyObject *QWidgetToPy(QWidget *widget) { return QtObjectToPython("QWidget", widget); }
   static QWidget *QWidgetFromPy(PyObject *widget);
 
+  void abort() { m_Abort = true; }
+  bool shouldAbort() { return m_Abort; }
   QString currentFile() { return location.file; }
   int currentLine() { return location.line; }
 signals:
@@ -114,6 +116,8 @@ private:
     QString file;
     int line = 0;
   } location;
+
+  bool m_Abort = false;
 
   static PyObject *QtObjectToPython(const char *typeName, QObject *object);
 
