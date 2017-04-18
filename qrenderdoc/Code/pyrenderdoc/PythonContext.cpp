@@ -406,7 +406,7 @@ void PythonContext::GlobalShutdown()
   Py_Finalize();
 }
 
-void PythonContext::executeString(const QString &filename, const QString &source)
+void PythonContext::executeString(const QString &filename, const QString &source, bool interactive)
 {
   if(!initialised())
   {
@@ -421,8 +421,8 @@ void PythonContext::executeString(const QString &filename, const QString &source
 
   PyGILState_STATE gil = PyGILState_Ensure();
 
-  PyObject *compiled =
-      Py_CompileString(source.toUtf8().data(), filename.toUtf8().data(), Py_file_input);
+  PyObject *compiled = Py_CompileString(source.toUtf8().data(), filename.toUtf8().data(),
+                                        interactive ? Py_single_input : Py_file_input);
 
   PyObject *ret = NULL;
 
@@ -467,9 +467,9 @@ void PythonContext::executeString(const QString &filename, const QString &source
     emit exception(typeStr, valueStr, frames);
 }
 
-void PythonContext::executeString(const QString &source)
+void PythonContext::executeString(const QString &source, bool interactive)
 {
-  executeString("<interactive.py>", source);
+  executeString("<interactive.py>", source, interactive);
 }
 
 void PythonContext::executeFile(const QString &filename)
