@@ -84,7 +84,7 @@ public:
   int currentLine() { return location.line; }
 signals:
   void traceLine(const QString &file, int line);
-  void exception(const QString &type, const QString &value, const QList<QString> &frames);
+  void exception(const QString &type, const QString &value, QList<QString> frames);
   void textOutput(bool isStdError, const QString &output);
 
 public slots:

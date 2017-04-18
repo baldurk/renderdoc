@@ -133,7 +133,7 @@ static PyMethodDef OutputRedirector_methods[] = {
 
 PyObject *PythonContext::main_dict = NULL;
 
-void FetchException(QString &typeStr, QString &valueStr, QList<QString> frames)
+void FetchException(QString &typeStr, QString &valueStr, QList<QString> &frames)
 {
   PyObject *exObj = NULL, *valueObj = NULL, *tracebackObj = NULL;
 
@@ -199,6 +199,9 @@ void PythonContext::GlobalInit()
     qFatal("PythonContext::GlobalInit MUST be called from the UI thread");
     return;
   }
+
+  // for the exception signal
+  qRegisterMetaType<QList<QString>>("QList<QString>");
 
   PyImport_AppendInittab("_renderdoc", &PyInit__renderdoc);
   PyImport_AppendInittab("_qrenderdoc", &PyInit__qrenderdoc);
