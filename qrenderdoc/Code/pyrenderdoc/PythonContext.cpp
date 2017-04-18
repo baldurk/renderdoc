@@ -252,7 +252,7 @@ void PythonContext::GlobalInit()
 
   OutputRedirectorType.tp_name = "renderdoc_output_redirector";
   OutputRedirectorType.tp_basicsize = sizeof(OutputRedirector);
-  OutputRedirectorType.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_FINALIZE;
+  OutputRedirectorType.tp_flags = Py_TPFLAGS_DEFAULT;
   OutputRedirectorType.tp_doc =
       "Output redirector, to be able to catch output to stdout and stderr";
   OutputRedirectorType.tp_new = PyType_GenericNew;
