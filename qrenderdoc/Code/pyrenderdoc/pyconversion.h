@@ -454,9 +454,9 @@ struct TypeConversion<rdctype::str, false>
 
       if(ret == 0)
       {
-        out.count = (int)size - 1;
-        out.elems = (char *)out.allocate(size);
-        memcpy(out.elems, buf, size - 1);
+        out.count = (int)size;
+        out.elems = (char *)out.allocate(size + 1);
+        memcpy(out.elems, buf, size);
         out.elems[size] = 0;
 
         Py_DecRef(bytes);
@@ -508,7 +508,7 @@ struct TypeConversion<QString, false>
 
       if(ret == 0)
       {
-        out = QString::fromUtf8(buf, (int)(size - 1));
+        out = QString::fromUtf8(buf, (int)size);
 
         Py_DecRef(bytes);
 
