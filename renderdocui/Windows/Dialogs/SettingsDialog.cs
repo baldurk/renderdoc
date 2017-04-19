@@ -93,6 +93,7 @@ namespace renderdocui.Windows.Dialogs
             EventBrowser_HideAPICalls.Checked = m_Core.Config.EventBrowser_HideAPICalls;
             EventBrowser_ApplyColours.Checked = m_Core.Config.EventBrowser_ApplyColours;
             EventBrowser_ColourEventRow.Checked = m_Core.Config.EventBrowser_ColourEventRow;
+            EventBrowser_AddFake.Checked = m_Core.Config.EventBrowser_AddFake;
 
             // disable sub-checkbox
             EventBrowser_ColourEventRow.Enabled = EventBrowser_ApplyColours.Checked;
@@ -231,6 +232,13 @@ namespace renderdocui.Windows.Dialogs
         private void EventBrowser_ColourEventRow_CheckedChanged(object sender, EventArgs e)
         {
             m_Core.Config.EventBrowser_ColourEventRow = EventBrowser_ColourEventRow.Checked;
+
+            m_Core.Config.Serialize(Core.ConfigFilename);
+        }
+
+        private void EventBrowser_AddFake_CheckedChanged(object sender, EventArgs e)
+        {
+            m_Core.Config.EventBrowser_AddFake = EventBrowser_AddFake.Checked;
 
             m_Core.Config.Serialize(Core.ConfigFilename);
         }
