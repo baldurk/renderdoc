@@ -80,6 +80,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 find_package(PySide2)
 
+set(PYTHON_LINK "${PYTHON_LIBRARY}")
+
+# ensure we link the whole python library so that modules have all the exports they need
+if(STATIC_QRENDERDOC)
+    set(PYTHON_LINK "-rdynamic -Wl,--whole-archive ${PYTHON_LINK} -Wl,--no-whole-archive")
+endif()
+
 # Output our configuration for qmake. We output this to a separate file so that
 # the user can then open the qrenderdoc.pro in qt creator and be able to build
 # with these configuration entries propagated for e.g. linking against libraries
@@ -101,7 +108,7 @@ file(WRITE
      "\n"
      # include and link against python
      "INCLUDEPATH+=${PYTHON_INCLUDE_DIR}\n"
-     "LIBS+=${PYTHON_LIBRARY}\n"
+     "LIBS+=${PYTHON_LINK}\n"
      "\n"
      "RENDERDOC_VERSION=${RENDERDOC_VERSION}\n"
      "\n"
