@@ -268,6 +268,8 @@ namespace renderdocui.Code
         public bool EventBrowser_ApplyColours = true;
         public bool EventBrowser_ColourEventRow = true;
 
+        public bool EventBrowser_AddFake = true;
+
         public int Formatter_MinFigures = 2;
         public int Formatter_MaxFigures = 5;
         public int Formatter_NegExp = 5;

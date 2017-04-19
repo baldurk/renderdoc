@@ -54,14 +54,10 @@
             System.Windows.Forms.GroupBox groupBox4;
             System.Windows.Forms.Label label8;
             System.Windows.Forms.Label label9;
-            System.Windows.Forms.Label label35;
             System.Windows.Forms.Label label16;
             System.Windows.Forms.Label label17;
-            System.Windows.Forms.GroupBox groupBox7;
-            System.Windows.Forms.TableLayoutPanel tableLayoutPanel8;
-            System.Windows.Forms.Label label36;
-            System.Windows.Forms.Label label25;
-            TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Section", "Section")));
+            System.Windows.Forms.Label label26;
+            TreelistView.TreeListColumn treeListColumn1 = new TreelistView.TreeListColumn("Section", "Section");
             this.settingsTabs = new renderdocui.Controls.TablessControl();
             this.generalTab = new System.Windows.Forms.TabPage();
             this.AllowGlobalHook = new System.Windows.Forms.CheckBox();
@@ -103,13 +99,19 @@
             this.tableLayoutPanel5 = new System.Windows.Forms.TableLayoutPanel();
             this.EventBrowser_TimeUnit = new System.Windows.Forms.ComboBox();
             this.EventBrowser_HideEmpty = new System.Windows.Forms.CheckBox();
+            this.label35 = new System.Windows.Forms.Label();
             this.EventBrowser_HideAPICalls = new System.Windows.Forms.CheckBox();
             this.EventBrowser_ApplyColours = new System.Windows.Forms.CheckBox();
             this.EventBrowser_ColourEventRow = new System.Windows.Forms.CheckBox();
+            this.EventBrowser_AddFake = new System.Windows.Forms.CheckBox();
             this.androidTab = new System.Windows.Forms.TabPage();
+            this.groupBox7 = new System.Windows.Forms.GroupBox();
+            this.tableLayoutPanel8 = new System.Windows.Forms.TableLayoutPanel();
+            this.label25 = new System.Windows.Forms.Label();
             this.maxConnectTimeout = new System.Windows.Forms.NumericUpDown();
-            this.browseAdbPath = new System.Windows.Forms.Button();
+            this.label36 = new System.Windows.Forms.Label();
             this.adbPath = new System.Windows.Forms.TextBox();
+            this.browseAdbPath = new System.Windows.Forms.Button();
             this.pagesTree = new TreelistView.TreeListView();
             this.ok = new System.Windows.Forms.Button();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
@@ -139,13 +141,9 @@
             groupBox4 = new System.Windows.Forms.GroupBox();
             label8 = new System.Windows.Forms.Label();
             label9 = new System.Windows.Forms.Label();
-            label35 = new System.Windows.Forms.Label();
             label16 = new System.Windows.Forms.Label();
             label17 = new System.Windows.Forms.Label();
-            groupBox7 = new System.Windows.Forms.GroupBox();
-            tableLayoutPanel8 = new System.Windows.Forms.TableLayoutPanel();
-            label36 = new System.Windows.Forms.Label();
-            label25 = new System.Windows.Forms.Label();
+            label26 = new System.Windows.Forms.Label();
             tableLayoutPanel1.SuspendLayout();
             this.settingsTabs.SuspendLayout();
             this.generalTab.SuspendLayout();
@@ -170,8 +168,8 @@
             groupBox4.SuspendLayout();
             this.tableLayoutPanel5.SuspendLayout();
             this.androidTab.SuspendLayout();
-            groupBox7.SuspendLayout();
-            tableLayoutPanel8.SuspendLayout();
+            this.groupBox7.SuspendLayout();
+            this.tableLayoutPanel8.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.maxConnectTimeout)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pagesTree)).BeginInit();
             this.SuspendLayout();
@@ -215,7 +213,7 @@
             this.generalTab.Controls.Add(groupBox1);
             this.generalTab.Location = new System.Drawing.Point(23, 4);
             this.generalTab.Name = "generalTab";
-            this.generalTab.Padding = new System.Windows.Forms.Padding(3);
+            this.generalTab.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
             this.generalTab.Size = new System.Drawing.Size(343, 408);
             this.generalTab.TabIndex = 0;
             this.generalTab.Text = "General";
@@ -294,7 +292,7 @@
             label20.Location = new System.Drawing.Point(3, 211);
             label20.MinimumSize = new System.Drawing.Size(0, 20);
             label20.Name = "label20";
-            label20.Size = new System.Drawing.Size(229, 20);
+            label20.Size = new System.Drawing.Size(228, 20);
             label20.TabIndex = 21;
             label20.Text = "Default save directory for captures";
             label20.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -306,7 +304,7 @@
             this.AllowGlobalHook.AutoSize = true;
             this.AllowGlobalHook.Checked = true;
             this.AllowGlobalHook.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.AllowGlobalHook.Location = new System.Drawing.Point(238, 263);
+            this.AllowGlobalHook.Location = new System.Drawing.Point(237, 263);
             this.AllowGlobalHook.Name = "AllowGlobalHook";
             this.AllowGlobalHook.Size = new System.Drawing.Size(15, 14);
             this.AllowGlobalHook.TabIndex = 16;
@@ -322,7 +320,7 @@
             label13.AutoSize = true;
             label13.Location = new System.Drawing.Point(3, 260);
             label13.Name = "label13";
-            label13.Size = new System.Drawing.Size(229, 20);
+            label13.Size = new System.Drawing.Size(228, 20);
             label13.TabIndex = 15;
             label13.Text = "Allow global process hooking - be careful!";
             label13.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -330,14 +328,14 @@
             // 
             // Formatter_PosExp
             // 
-            this.Formatter_PosExp.Location = new System.Drawing.Point(238, 139);
+            this.Formatter_PosExp.Location = new System.Drawing.Point(237, 139);
             this.Formatter_PosExp.Maximum = new decimal(new int[] {
             20,
             0,
             0,
             0});
             this.Formatter_PosExp.Name = "Formatter_PosExp";
-            this.Formatter_PosExp.Size = new System.Drawing.Size(90, 20);
+            this.Formatter_PosExp.Size = new System.Drawing.Size(91, 20);
             this.Formatter_PosExp.TabIndex = 6;
             this.toolTip.SetToolTip(this.Formatter_PosExp, "Any numbers larger than this exponent will be displayed in scientific notation.\r\n" +
         "e.g. 1000 * 10 = 1e4");
@@ -350,14 +348,14 @@
             // 
             // Formatter_NegExp
             // 
-            this.Formatter_NegExp.Location = new System.Drawing.Point(238, 113);
+            this.Formatter_NegExp.Location = new System.Drawing.Point(237, 113);
             this.Formatter_NegExp.Maximum = new decimal(new int[] {
             20,
             0,
             0,
             0});
             this.Formatter_NegExp.Name = "Formatter_NegExp";
-            this.Formatter_NegExp.Size = new System.Drawing.Size(90, 20);
+            this.Formatter_NegExp.Size = new System.Drawing.Size(91, 20);
             this.Formatter_NegExp.TabIndex = 5;
             this.toolTip.SetToolTip(this.Formatter_NegExp, "Any numbers smaller than this exponent will be displayed in scientific notation.\r" +
         "\nE.g. a value of 3 means 0.005 / 10 = 5E-4");
@@ -375,9 +373,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             label6.AutoSize = true;
             label6.Location = new System.Drawing.Point(3, 87);
-            label6.Margin = new System.Windows.Forms.Padding(3);
+            label6.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label6.Name = "label6";
-            label6.Size = new System.Drawing.Size(229, 20);
+            label6.Size = new System.Drawing.Size(228, 20);
             label6.TabIndex = 6;
             label6.Text = "Maximum significant figures on decimals";
             label6.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -391,9 +389,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             label4.AutoSize = true;
             label4.Location = new System.Drawing.Point(3, 61);
-            label4.Margin = new System.Windows.Forms.Padding(3);
+            label4.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label4.Name = "label4";
-            label4.Size = new System.Drawing.Size(229, 20);
+            label4.Size = new System.Drawing.Size(228, 20);
             label4.TabIndex = 4;
             label4.Text = "Minimum decimal places on float values";
             label4.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -418,9 +416,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             label1.AutoSize = true;
             label1.Location = new System.Drawing.Point(3, 3);
-            label1.Margin = new System.Windows.Forms.Padding(3);
+            label1.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label1.Name = "label1";
-            label1.Size = new System.Drawing.Size(229, 23);
+            label1.Size = new System.Drawing.Size(228, 23);
             label1.TabIndex = 0;
             label1.Text = "Associate .rdc with RenderDoc";
             label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -432,9 +430,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             label2.AutoSize = true;
             label2.Location = new System.Drawing.Point(3, 32);
-            label2.Margin = new System.Windows.Forms.Padding(3);
+            label2.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label2.Name = "label2";
-            label2.Size = new System.Drawing.Size(229, 23);
+            label2.Size = new System.Drawing.Size(228, 23);
             label2.TabIndex = 2;
             label2.Text = "Associate .cap with RenderDoc";
             label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -457,9 +455,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             label5.AutoSize = true;
             label5.Location = new System.Drawing.Point(3, 113);
-            label5.Margin = new System.Windows.Forms.Padding(3);
+            label5.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label5.Name = "label5";
-            label5.Size = new System.Drawing.Size(229, 20);
+            label5.Size = new System.Drawing.Size(228, 20);
             label5.TabIndex = 5;
             label5.Text = "Negative exponential cutoff value";
             label5.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -473,9 +471,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             label7.AutoSize = true;
             label7.Location = new System.Drawing.Point(3, 139);
-            label7.Margin = new System.Windows.Forms.Padding(3);
+            label7.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label7.Name = "label7";
-            label7.Size = new System.Drawing.Size(229, 20);
+            label7.Size = new System.Drawing.Size(228, 20);
             label7.TabIndex = 7;
             label7.Text = "Positive exponential cutoff value";
             label7.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -484,7 +482,7 @@
             // 
             // Formatter_MaxFigures
             // 
-            this.Formatter_MaxFigures.Location = new System.Drawing.Point(238, 87);
+            this.Formatter_MaxFigures.Location = new System.Drawing.Point(237, 87);
             this.Formatter_MaxFigures.Maximum = new decimal(new int[] {
             29,
             0,
@@ -496,7 +494,7 @@
             0,
             0});
             this.Formatter_MaxFigures.Name = "Formatter_MaxFigures";
-            this.Formatter_MaxFigures.Size = new System.Drawing.Size(90, 20);
+            this.Formatter_MaxFigures.Size = new System.Drawing.Size(91, 20);
             this.Formatter_MaxFigures.TabIndex = 4;
             this.toolTip.SetToolTip(this.Formatter_MaxFigures, "No more significant figures than this will be displayed on floats.\r\ne.g. a value " +
         "of 5 means 0.123456789 will display as 0.12345\r\n");
@@ -510,14 +508,14 @@
             // Formatter_MinFigures
             // 
             this.Formatter_MinFigures.Anchor = System.Windows.Forms.AnchorStyles.Right;
-            this.Formatter_MinFigures.Location = new System.Drawing.Point(238, 61);
+            this.Formatter_MinFigures.Location = new System.Drawing.Point(237, 61);
             this.Formatter_MinFigures.Maximum = new decimal(new int[] {
             29,
             0,
             0,
             0});
             this.Formatter_MinFigures.Name = "Formatter_MinFigures";
-            this.Formatter_MinFigures.Size = new System.Drawing.Size(90, 20);
+            this.Formatter_MinFigures.Size = new System.Drawing.Size(91, 20);
             this.Formatter_MinFigures.TabIndex = 3;
             this.toolTip.SetToolTip(this.Formatter_MinFigures, "Decimals will display at least this many digits.\r\ne.g. a value of 2 means 0 will " +
         "display as 0.00, 0.5 as 0.50\r\n");
@@ -536,24 +534,24 @@
             label3.AutoSize = true;
             label3.Location = new System.Drawing.Point(3, 280);
             label3.Name = "label3";
-            label3.Size = new System.Drawing.Size(229, 20);
+            label3.Size = new System.Drawing.Size(228, 20);
             label3.TabIndex = 12;
             label3.Text = "Allow periodic anonymous update checks";
             label3.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.toolTip.SetToolTip(label3, "Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for n" +
-        "ew versions.");
+            this.toolTip.SetToolTip(label3, "Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for " +
+        "new versions.");
             // 
             // CheckUpdate_AllowChecks
             // 
             this.CheckUpdate_AllowChecks.AutoSize = true;
             this.CheckUpdate_AllowChecks.Checked = true;
             this.CheckUpdate_AllowChecks.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.CheckUpdate_AllowChecks.Location = new System.Drawing.Point(238, 283);
+            this.CheckUpdate_AllowChecks.Location = new System.Drawing.Point(237, 283);
             this.CheckUpdate_AllowChecks.Name = "CheckUpdate_AllowChecks";
             this.CheckUpdate_AllowChecks.Size = new System.Drawing.Size(15, 14);
             this.CheckUpdate_AllowChecks.TabIndex = 8;
-            this.toolTip.SetToolTip(this.CheckUpdate_AllowChecks, "Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for n" +
-        "ew versions.");
+            this.toolTip.SetToolTip(this.CheckUpdate_AllowChecks, "Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for " +
+        "new versions.");
             this.CheckUpdate_AllowChecks.UseVisualStyleBackColor = true;
             this.CheckUpdate_AllowChecks.CheckedChanged += new System.EventHandler(this.CheckUpdate_AllowChecks_CheckedChanged);
             // 
@@ -578,7 +576,7 @@
             label15.AutoSize = true;
             label15.Location = new System.Drawing.Point(3, 300);
             label15.Name = "label15";
-            label15.Size = new System.Drawing.Size(229, 20);
+            label15.Size = new System.Drawing.Size(228, 26);
             label15.TabIndex = 17;
             label15.Text = "Prefer monospaced fonts in UI (restart required)";
             label15.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -589,7 +587,7 @@
             this.Font_PreferMonospaced.AutoSize = true;
             this.Font_PreferMonospaced.Checked = true;
             this.Font_PreferMonospaced.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.Font_PreferMonospaced.Location = new System.Drawing.Point(238, 303);
+            this.Font_PreferMonospaced.Location = new System.Drawing.Point(237, 303);
             this.Font_PreferMonospaced.Name = "Font_PreferMonospaced";
             this.Font_PreferMonospaced.Size = new System.Drawing.Size(15, 14);
             this.Font_PreferMonospaced.TabIndex = 18;
@@ -603,9 +601,9 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             label18.AutoSize = true;
-            label18.Location = new System.Drawing.Point(3, 320);
+            label18.Location = new System.Drawing.Point(3, 326);
             label18.Name = "label18";
-            label18.Size = new System.Drawing.Size(229, 26);
+            label18.Size = new System.Drawing.Size(228, 26);
             label18.TabIndex = 19;
             label18.Text = "Always replay logs locally, never prompt about it";
             label18.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -616,7 +614,7 @@
             this.AlwaysReplayLocally.AutoSize = true;
             this.AlwaysReplayLocally.Checked = true;
             this.AlwaysReplayLocally.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.AlwaysReplayLocally.Location = new System.Drawing.Point(238, 323);
+            this.AlwaysReplayLocally.Location = new System.Drawing.Point(237, 329);
             this.AlwaysReplayLocally.Name = "AlwaysReplayLocally";
             this.AlwaysReplayLocally.Size = new System.Drawing.Size(15, 14);
             this.AlwaysReplayLocally.TabIndex = 20;
@@ -643,7 +641,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.saveDirectory.Location = new System.Drawing.Point(3, 234);
             this.saveDirectory.Name = "saveDirectory";
-            this.saveDirectory.Size = new System.Drawing.Size(229, 20);
+            this.saveDirectory.Size = new System.Drawing.Size(228, 20);
             this.saveDirectory.TabIndex = 23;
             this.toolTip.SetToolTip(this.saveDirectory, "Changes the default directory for the save dialog when saving capture files.\r\n\r\nD" +
         "efaults to blank, which follows system default behaviour.");
@@ -658,7 +656,7 @@
             label11.Location = new System.Drawing.Point(3, 162);
             label11.MinimumSize = new System.Drawing.Size(0, 20);
             label11.Name = "label11";
-            label11.Size = new System.Drawing.Size(229, 20);
+            label11.Size = new System.Drawing.Size(228, 20);
             label11.TabIndex = 14;
             label11.Text = "Directory for temporary capture files";
             label11.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -671,7 +669,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tempDirectory.Location = new System.Drawing.Point(3, 185);
             this.tempDirectory.Name = "tempDirectory";
-            this.tempDirectory.Size = new System.Drawing.Size(229, 20);
+            this.tempDirectory.Size = new System.Drawing.Size(228, 20);
             this.tempDirectory.TabIndex = 24;
             this.toolTip.SetToolTip(this.tempDirectory, "Changes the directory where capture files are saved after being created, until sa" +
         "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
@@ -682,8 +680,8 @@
             this.corePage.Controls.Add(this.groupBox5);
             this.corePage.Location = new System.Drawing.Point(23, 4);
             this.corePage.Name = "corePage";
-            this.corePage.Padding = new System.Windows.Forms.Padding(3);
-            this.corePage.Size = new System.Drawing.Size(343, 408);
+            this.corePage.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
+            this.corePage.Size = new System.Drawing.Size(344, 407);
             this.corePage.TabIndex = 4;
             this.corePage.Text = "Core";
             this.corePage.UseVisualStyleBackColor = true;
@@ -694,7 +692,7 @@
             this.groupBox5.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox5.Location = new System.Drawing.Point(3, 3);
             this.groupBox5.Name = "groupBox5";
-            this.groupBox5.Size = new System.Drawing.Size(337, 402);
+            this.groupBox5.Size = new System.Drawing.Size(338, 401);
             this.groupBox5.TabIndex = 0;
             this.groupBox5.TabStop = false;
             this.groupBox5.Text = "Core";
@@ -721,13 +719,13 @@
             tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             tableLayoutPanel6.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            tableLayoutPanel6.Size = new System.Drawing.Size(331, 383);
+            tableLayoutPanel6.Size = new System.Drawing.Size(332, 382);
             tableLayoutPanel6.TabIndex = 1;
             // 
             // chooseSearchPaths
             // 
             this.chooseSearchPaths.Anchor = System.Windows.Forms.AnchorStyles.Right;
-            this.chooseSearchPaths.Location = new System.Drawing.Point(238, 3);
+            this.chooseSearchPaths.Location = new System.Drawing.Point(239, 3);
             this.chooseSearchPaths.Name = "chooseSearchPaths";
             this.chooseSearchPaths.Size = new System.Drawing.Size(90, 23);
             this.chooseSearchPaths.TabIndex = 1;
@@ -742,9 +740,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             label19.AutoSize = true;
             label19.Location = new System.Drawing.Point(3, 3);
-            label19.Margin = new System.Windows.Forms.Padding(3);
+            label19.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label19.Name = "label19";
-            label19.Size = new System.Drawing.Size(229, 23);
+            label19.Size = new System.Drawing.Size(230, 23);
             label19.TabIndex = 0;
             label19.Text = "Shader debug search paths";
             label19.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -754,8 +752,8 @@
             this.texViewTab.Controls.Add(groupBox2);
             this.texViewTab.Location = new System.Drawing.Point(23, 4);
             this.texViewTab.Name = "texViewTab";
-            this.texViewTab.Padding = new System.Windows.Forms.Padding(3);
-            this.texViewTab.Size = new System.Drawing.Size(343, 408);
+            this.texViewTab.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
+            this.texViewTab.Size = new System.Drawing.Size(344, 407);
             this.texViewTab.TabIndex = 1;
             this.texViewTab.Text = "Texture Viewer";
             this.texViewTab.UseVisualStyleBackColor = true;
@@ -766,7 +764,7 @@
             groupBox2.Dock = System.Windows.Forms.DockStyle.Fill;
             groupBox2.Location = new System.Drawing.Point(3, 3);
             groupBox2.Name = "groupBox2";
-            groupBox2.Size = new System.Drawing.Size(337, 402);
+            groupBox2.Size = new System.Drawing.Size(338, 401);
             groupBox2.TabIndex = 0;
             groupBox2.TabStop = false;
             groupBox2.Text = "Texture Viewer";
@@ -787,14 +785,14 @@
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel3.Size = new System.Drawing.Size(331, 383);
+            this.tableLayoutPanel3.Size = new System.Drawing.Size(332, 382);
             this.tableLayoutPanel3.TabIndex = 0;
             // 
             // TextureViewer_ResetRange
             // 
             this.TextureViewer_ResetRange.AutoSize = true;
             this.TextureViewer_ResetRange.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.TextureViewer_ResetRange.Location = new System.Drawing.Point(267, 3);
+            this.TextureViewer_ResetRange.Location = new System.Drawing.Point(268, 3);
             this.TextureViewer_ResetRange.Name = "TextureViewer_ResetRange";
             this.TextureViewer_ResetRange.Size = new System.Drawing.Size(61, 14);
             this.TextureViewer_ResetRange.TabIndex = 20;
@@ -806,7 +804,7 @@
             // 
             this.TextureViewer_PerTexSettings.AutoSize = true;
             this.TextureViewer_PerTexSettings.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.TextureViewer_PerTexSettings.Location = new System.Drawing.Point(267, 23);
+            this.TextureViewer_PerTexSettings.Location = new System.Drawing.Point(268, 23);
             this.TextureViewer_PerTexSettings.Name = "TextureViewer_PerTexSettings";
             this.TextureViewer_PerTexSettings.Size = new System.Drawing.Size(61, 14);
             this.TextureViewer_PerTexSettings.TabIndex = 20;
@@ -822,9 +820,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             label10.AutoSize = true;
             label10.Location = new System.Drawing.Point(3, 3);
-            label10.Margin = new System.Windows.Forms.Padding(3);
+            label10.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label10.Name = "label10";
-            label10.Size = new System.Drawing.Size(258, 14);
+            label10.Size = new System.Drawing.Size(259, 14);
             label10.TabIndex = 4;
             label10.Text = "Reset Range on changing selection";
             label10.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -836,9 +834,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.label14.AutoSize = true;
             this.label14.Location = new System.Drawing.Point(3, 23);
-            this.label14.Margin = new System.Windows.Forms.Padding(3);
+            this.label14.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             this.label14.Name = "label14";
-            this.label14.Size = new System.Drawing.Size(258, 14);
+            this.label14.Size = new System.Drawing.Size(259, 14);
             this.label14.TabIndex = 4;
             this.label14.Text = "Visible channels && mip/slice saved per-texture";
             this.label14.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -848,8 +846,8 @@
             this.shadViewTab.Controls.Add(groupBox3);
             this.shadViewTab.Location = new System.Drawing.Point(23, 4);
             this.shadViewTab.Name = "shadViewTab";
-            this.shadViewTab.Padding = new System.Windows.Forms.Padding(3);
-            this.shadViewTab.Size = new System.Drawing.Size(343, 408);
+            this.shadViewTab.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
+            this.shadViewTab.Size = new System.Drawing.Size(344, 407);
             this.shadViewTab.TabIndex = 2;
             this.shadViewTab.Text = "Shader Viewer";
             this.shadViewTab.UseVisualStyleBackColor = true;
@@ -861,7 +859,7 @@
             groupBox3.Dock = System.Windows.Forms.DockStyle.Fill;
             groupBox3.Location = new System.Drawing.Point(3, 3);
             groupBox3.Name = "groupBox3";
-            groupBox3.Size = new System.Drawing.Size(337, 402);
+            groupBox3.Size = new System.Drawing.Size(338, 401);
             groupBox3.TabIndex = 0;
             groupBox3.TabStop = false;
             groupBox3.Text = "Shader Viewer";
@@ -872,7 +870,7 @@
             this.groupBox6.Dock = System.Windows.Forms.DockStyle.Top;
             this.groupBox6.Location = new System.Drawing.Point(3, 60);
             this.groupBox6.Name = "groupBox6";
-            this.groupBox6.Size = new System.Drawing.Size(331, 166);
+            this.groupBox6.Size = new System.Drawing.Size(332, 166);
             this.groupBox6.TabIndex = 46;
             this.groupBox6.TabStop = false;
             this.groupBox6.Text = "Vulkan";
@@ -900,14 +898,14 @@
             this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel7.Size = new System.Drawing.Size(325, 147);
+            this.tableLayoutPanel7.Size = new System.Drawing.Size(326, 147);
             this.tableLayoutPanel7.TabIndex = 0;
             // 
             // label23
             // 
             this.label23.AutoSize = true;
             this.label23.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.label23.Location = new System.Drawing.Point(3, 62);
+            this.label23.Location = new System.Drawing.Point(3, 65);
             this.label23.Name = "label23";
             this.label23.Size = new System.Drawing.Size(254, 13);
             this.label23.TabIndex = 50;
@@ -947,7 +945,6 @@
             this.externalDisassemblePath.Dock = System.Windows.Forms.DockStyle.Fill;
             this.externalDisassemblePath.Location = new System.Drawing.Point(3, 36);
             this.externalDisassemblePath.Name = "externalDisassemblePath";
-            this.externalDisassemblePath.ReadOnly = false;
             this.externalDisassemblePath.Size = new System.Drawing.Size(254, 20);
             this.externalDisassemblePath.TabIndex = 47;
             this.externalDisassemblePath.TextChanged += new System.EventHandler(this.externalDisassemblePath_TextChanged);
@@ -957,7 +954,7 @@
             this.browseExtDisasemble.Dock = System.Windows.Forms.DockStyle.Left;
             this.browseExtDisasemble.Location = new System.Drawing.Point(263, 36);
             this.browseExtDisasemble.Name = "browseExtDisasemble";
-            this.browseExtDisasemble.Size = new System.Drawing.Size(57, 23);
+            this.browseExtDisasemble.Size = new System.Drawing.Size(57, 26);
             this.browseExtDisasemble.TabIndex = 48;
             this.browseExtDisasemble.Text = "Browse";
             this.browseExtDisasemble.UseVisualStyleBackColor = true;
@@ -966,7 +963,7 @@
             // externalDisassemblerArgs
             // 
             this.externalDisassemblerArgs.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.externalDisassemblerArgs.Location = new System.Drawing.Point(3, 78);
+            this.externalDisassemblerArgs.Location = new System.Drawing.Point(3, 81);
             this.externalDisassemblerArgs.Name = "externalDisassemblerArgs";
             this.externalDisassemblerArgs.Size = new System.Drawing.Size(254, 20);
             this.externalDisassemblerArgs.TabIndex = 46;
@@ -976,12 +973,12 @@
             // 
             this.label24.AutoSize = true;
             this.label24.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.label24.Location = new System.Drawing.Point(3, 101);
+            this.label24.Location = new System.Drawing.Point(3, 104);
             this.label24.Name = "label24";
-            this.label24.Size = new System.Drawing.Size(254, 46);
+            this.label24.Size = new System.Drawing.Size(254, 43);
             this.label24.TabIndex = 51;
-            this.label24.Text = "NOTE: Use the {spv_bin} and {spv_disas} tags to indicate to the external disassembler the input SP" +
-    "IR-V binary and the output SPIR-V disassembly respectively.";
+            this.label24.Text = "NOTE: Use the {spv_bin} and {spv_disas} tags to indicate to the external disassem" +
+    "bler the input SPIR-V binary and the output SPIR-V disassembly respectively.";
             // 
             // tableLayoutPanel4
             // 
@@ -997,13 +994,13 @@
             this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel4.Size = new System.Drawing.Size(331, 44);
+            this.tableLayoutPanel4.Size = new System.Drawing.Size(332, 44);
             this.tableLayoutPanel4.TabIndex = 1;
             // 
             // ShaderViewer_FriendlyNaming
             // 
             this.ShaderViewer_FriendlyNaming.AutoSize = true;
-            this.ShaderViewer_FriendlyNaming.Location = new System.Drawing.Point(267, 3);
+            this.ShaderViewer_FriendlyNaming.Location = new System.Drawing.Point(268, 3);
             this.ShaderViewer_FriendlyNaming.Name = "ShaderViewer_FriendlyNaming";
             this.ShaderViewer_FriendlyNaming.Size = new System.Drawing.Size(15, 14);
             this.ShaderViewer_FriendlyNaming.TabIndex = 40;
@@ -1019,9 +1016,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             label12.AutoSize = true;
             label12.Location = new System.Drawing.Point(3, 3);
-            label12.Margin = new System.Windows.Forms.Padding(3);
+            label12.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label12.Name = "label12";
-            label12.Size = new System.Drawing.Size(258, 14);
+            label12.Size = new System.Drawing.Size(259, 14);
             label12.TabIndex = 6;
             label12.Text = "Rename disassembly registers";
             label12.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -1031,7 +1028,7 @@
             this.eventTab.Controls.Add(groupBox4);
             this.eventTab.Location = new System.Drawing.Point(23, 4);
             this.eventTab.Name = "eventTab";
-            this.eventTab.Padding = new System.Windows.Forms.Padding(3);
+            this.eventTab.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
             this.eventTab.Size = new System.Drawing.Size(343, 408);
             this.eventTab.TabIndex = 3;
             this.eventTab.Text = "Event Browser";
@@ -1055,24 +1052,28 @@
             this.tableLayoutPanel5.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.tableLayoutPanel5.Controls.Add(label8, 0, 0);
             this.tableLayoutPanel5.Controls.Add(this.EventBrowser_TimeUnit, 1, 0);
-            this.tableLayoutPanel5.Controls.Add(label9, 0, 1);
-            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_HideEmpty, 1, 1);
-            this.tableLayoutPanel5.Controls.Add(label35, 0, 2);
-            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_HideAPICalls, 1, 2);
-            this.tableLayoutPanel5.Controls.Add(label16, 0, 3);
-            this.tableLayoutPanel5.Controls.Add(label17, 0, 4);
-            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_ApplyColours, 1, 3);
-            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_ColourEventRow, 1, 4);
+            this.tableLayoutPanel5.Controls.Add(label9, 0, 2);
+            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_HideEmpty, 1, 2);
+            this.tableLayoutPanel5.Controls.Add(this.label35, 0, 3);
+            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_HideAPICalls, 1, 3);
+            this.tableLayoutPanel5.Controls.Add(label16, 0, 4);
+            this.tableLayoutPanel5.Controls.Add(label17, 0, 5);
+            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_ApplyColours, 1, 4);
+            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_ColourEventRow, 1, 5);
+            this.tableLayoutPanel5.Controls.Add(label26, 0, 1);
+            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_AddFake, 1, 1);
             this.tableLayoutPanel5.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel5.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel5.Name = "tableLayoutPanel5";
-            this.tableLayoutPanel5.RowCount = 6;
+            this.tableLayoutPanel5.RowCount = 7;
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.tableLayoutPanel5.Size = new System.Drawing.Size(331, 383);
             this.tableLayoutPanel5.TabIndex = 0;
             // 
@@ -1083,7 +1084,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             label8.AutoSize = true;
             label8.Location = new System.Drawing.Point(3, 3);
-            label8.Margin = new System.Windows.Forms.Padding(3);
+            label8.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label8.Name = "label8";
             label8.Size = new System.Drawing.Size(258, 21);
             label8.TabIndex = 3;
@@ -1107,8 +1108,8 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             label9.AutoSize = true;
-            label9.Location = new System.Drawing.Point(3, 30);
-            label9.Margin = new System.Windows.Forms.Padding(3);
+            label9.Location = new System.Drawing.Point(3, 49);
+            label9.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label9.Name = "label9";
             label9.Size = new System.Drawing.Size(258, 14);
             label9.TabIndex = 7;
@@ -1118,7 +1119,7 @@
             // EventBrowser_HideEmpty
             // 
             this.EventBrowser_HideEmpty.AutoSize = true;
-            this.EventBrowser_HideEmpty.Location = new System.Drawing.Point(267, 30);
+            this.EventBrowser_HideEmpty.Location = new System.Drawing.Point(267, 49);
             this.EventBrowser_HideEmpty.Name = "EventBrowser_HideEmpty";
             this.EventBrowser_HideEmpty.Size = new System.Drawing.Size(15, 14);
             this.EventBrowser_HideEmpty.TabIndex = 51;
@@ -1129,27 +1130,28 @@
             // 
             // label35
             // 
-            label35.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-            | System.Windows.Forms.AnchorStyles.Left)
+            this.label35.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            label35.AutoSize = true;
-            label35.Location = new System.Drawing.Point(3, 30);
-            label35.Margin = new System.Windows.Forms.Padding(3);
-            label35.Name = "label35";
-            label35.Size = new System.Drawing.Size(258, 14);
-            label35.TabIndex = 7;
-            label35.Text = "Hide marker sections with only non-draw API calls (requires log reload)";
-            label35.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.label35.AutoSize = true;
+            this.label35.Location = new System.Drawing.Point(3, 69);
+            this.label35.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
+            this.label35.Name = "label35";
+            this.label35.Size = new System.Drawing.Size(258, 26);
+            this.label35.TabIndex = 7;
+            this.label35.Text = "Hide marker sections with only non-draw API calls (requires log reload)";
+            this.label35.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // EventBrowser_HideAPICalls
             // 
             this.EventBrowser_HideAPICalls.AutoSize = true;
-            this.EventBrowser_HideAPICalls.Location = new System.Drawing.Point(267, 30);
+            this.EventBrowser_HideAPICalls.Location = new System.Drawing.Point(267, 69);
             this.EventBrowser_HideAPICalls.Name = "EventBrowser_HideAPICalls";
             this.EventBrowser_HideAPICalls.Size = new System.Drawing.Size(15, 14);
             this.EventBrowser_HideAPICalls.TabIndex = 51;
-            this.toolTip.SetToolTip(this.EventBrowser_HideAPICalls, "In the Event Browser and Timeline Bar, marker sections that contain only non-draw " +
-        "API calls - e.g. only queries, or only state setting - will be completely removed");
+            this.toolTip.SetToolTip(this.EventBrowser_HideAPICalls, "In the Event Browser and Timeline Bar, marker sections that contain only non-draw" +
+        " API calls - e.g. only queries, or only state setting - will be completely remov" +
+        "ed");
             this.EventBrowser_HideAPICalls.UseVisualStyleBackColor = true;
             this.EventBrowser_HideAPICalls.CheckedChanged += new System.EventHandler(this.EventBrowser_HideAPICalls_CheckedChanged);
             // 
@@ -1159,8 +1161,8 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             label16.AutoSize = true;
-            label16.Location = new System.Drawing.Point(3, 50);
-            label16.Margin = new System.Windows.Forms.Padding(3);
+            label16.Location = new System.Drawing.Point(3, 101);
+            label16.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label16.Name = "label16";
             label16.Size = new System.Drawing.Size(258, 14);
             label16.TabIndex = 52;
@@ -1173,8 +1175,8 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             label17.AutoSize = true;
-            label17.Location = new System.Drawing.Point(3, 70);
-            label17.Margin = new System.Windows.Forms.Padding(3);
+            label17.Location = new System.Drawing.Point(3, 121);
+            label17.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
             label17.Name = "label17";
             label17.Padding = new System.Windows.Forms.Padding(15, 0, 0, 0);
             label17.Size = new System.Drawing.Size(258, 14);
@@ -1185,7 +1187,7 @@
             // EventBrowser_ApplyColours
             // 
             this.EventBrowser_ApplyColours.AutoSize = true;
-            this.EventBrowser_ApplyColours.Location = new System.Drawing.Point(267, 50);
+            this.EventBrowser_ApplyColours.Location = new System.Drawing.Point(267, 101);
             this.EventBrowser_ApplyColours.Name = "EventBrowser_ApplyColours";
             this.EventBrowser_ApplyColours.Size = new System.Drawing.Size(15, 14);
             this.EventBrowser_ApplyColours.TabIndex = 54;
@@ -1197,7 +1199,7 @@
             // EventBrowser_ColourEventRow
             // 
             this.EventBrowser_ColourEventRow.AutoSize = true;
-            this.EventBrowser_ColourEventRow.Location = new System.Drawing.Point(267, 70);
+            this.EventBrowser_ColourEventRow.Location = new System.Drawing.Point(267, 121);
             this.EventBrowser_ColourEventRow.Name = "EventBrowser_ColourEventRow";
             this.EventBrowser_ColourEventRow.Size = new System.Drawing.Size(15, 14);
             this.EventBrowser_ColourEventRow.TabIndex = 55;
@@ -1206,72 +1208,98 @@
             this.EventBrowser_ColourEventRow.UseVisualStyleBackColor = true;
             this.EventBrowser_ColourEventRow.CheckedChanged += new System.EventHandler(this.EventBrowser_ColourEventRow_CheckedChanged);
             // 
+            // EventBrowser_AddFake
+            // 
+            this.EventBrowser_AddFake.AutoSize = true;
+            this.EventBrowser_AddFake.Location = new System.Drawing.Point(266, 29);
+            this.EventBrowser_AddFake.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.EventBrowser_AddFake.Name = "EventBrowser_AddFake";
+            this.EventBrowser_AddFake.Size = new System.Drawing.Size(15, 14);
+            this.EventBrowser_AddFake.TabIndex = 57;
+            this.toolTip.SetToolTip(this.EventBrowser_AddFake, "In the Event Browser, add fake markers if none found in capture");
+            this.EventBrowser_AddFake.UseVisualStyleBackColor = true;
+            this.EventBrowser_AddFake.CheckedChanged += new System.EventHandler(this.EventBrowser_AddFake_CheckedChanged);
+            // 
+            // label26
+            // 
+            label26.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            label26.AutoSize = true;
+            label26.Location = new System.Drawing.Point(3, 30);
+            label26.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
+            label26.Name = "label26";
+            label26.Size = new System.Drawing.Size(258, 13);
+            label26.TabIndex = 56;
+            label26.Text = "Add fake markers if none present (requires log reload)";
+            label26.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
             // androidTab
-            //
-            this.androidTab.Controls.Add(groupBox7);
-            this.androidTab.Location = new System.Drawing.Point(25, 4);
-            this.androidTab.Name = "tabPage1";
-            this.androidTab.Padding = new System.Windows.Forms.Padding(3);
-            this.androidTab.Size = new System.Drawing.Size(465, 503);
+            // 
+            this.androidTab.Controls.Add(this.groupBox7);
+            this.androidTab.Location = new System.Drawing.Point(23, 4);
+            this.androidTab.Name = "androidTab";
+            this.androidTab.Padding = new System.Windows.Forms.Padding(3, 3, 3, 3);
+            this.androidTab.Size = new System.Drawing.Size(344, 407);
             this.androidTab.TabIndex = 5;
             this.androidTab.Text = "Android";
             this.androidTab.UseVisualStyleBackColor = true;
-            //
+            // 
             // groupBox7
-            //
-            groupBox7.Controls.Add(tableLayoutPanel8);
-            groupBox7.Dock = System.Windows.Forms.DockStyle.Fill;
-            groupBox7.Location = new System.Drawing.Point(3, 3);
-            groupBox7.Margin = new System.Windows.Forms.Padding(4);
-            groupBox7.Name = "groupBox7";
-            groupBox7.Padding = new System.Windows.Forms.Padding(4);
-            groupBox7.Size = new System.Drawing.Size(459, 497);
-            groupBox7.TabIndex = 1;
-            groupBox7.TabStop = false;
-            groupBox7.Text = "Android";
-            //
+            // 
+            this.groupBox7.Controls.Add(this.tableLayoutPanel8);
+            this.groupBox7.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.groupBox7.Location = new System.Drawing.Point(3, 3);
+            this.groupBox7.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox7.Name = "groupBox7";
+            this.groupBox7.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox7.Size = new System.Drawing.Size(338, 401);
+            this.groupBox7.TabIndex = 1;
+            this.groupBox7.TabStop = false;
+            this.groupBox7.Text = "Android";
+            // 
             // tableLayoutPanel8
             // 
-            tableLayoutPanel8.ColumnCount = 2;
-            tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            tableLayoutPanel8.Controls.Add(label25, 0, 2);
-            tableLayoutPanel8.Controls.Add(this.maxConnectTimeout, 1, 2);
-            tableLayoutPanel8.Controls.Add(label36, 0, 0);
-            tableLayoutPanel8.Controls.Add(this.adbPath, 0, 1);
-            tableLayoutPanel8.Controls.Add(this.browseAdbPath, 1, 1);
-            tableLayoutPanel8.Dock = System.Windows.Forms.DockStyle.Fill;
-            tableLayoutPanel8.Location = new System.Drawing.Point(5, 20);
-            tableLayoutPanel8.Margin = new System.Windows.Forms.Padding(4);
-            tableLayoutPanel8.Name = "tableLayoutPanel8";
-            tableLayoutPanel8.RowCount = 4;
-            tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            tableLayoutPanel8.Size = new System.Drawing.Size(447, 470);
-            tableLayoutPanel8.TabIndex = 0;
+            this.tableLayoutPanel8.ColumnCount = 2;
+            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.tableLayoutPanel8.Controls.Add(this.label25, 0, 2);
+            this.tableLayoutPanel8.Controls.Add(this.maxConnectTimeout, 1, 2);
+            this.tableLayoutPanel8.Controls.Add(this.label36, 0, 0);
+            this.tableLayoutPanel8.Controls.Add(this.adbPath, 0, 1);
+            this.tableLayoutPanel8.Controls.Add(this.browseAdbPath, 1, 1);
+            this.tableLayoutPanel8.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tableLayoutPanel8.Location = new System.Drawing.Point(4, 17);
+            this.tableLayoutPanel8.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.tableLayoutPanel8.Name = "tableLayoutPanel8";
+            this.tableLayoutPanel8.RowCount = 4;
+            this.tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel8.Size = new System.Drawing.Size(330, 380);
+            this.tableLayoutPanel8.TabIndex = 0;
             // 
             // label25
             // 
-            label25.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this.label25.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            label25.AutoSize = true;
-            label25.Location = new System.Drawing.Point(4, 73);
-            label25.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            label25.Name = "label25";
-            label25.Size = new System.Drawing.Size(309, 22);
-            label25.TabIndex = 26;
-            label25.Text = "Max Connection Timeout (s)";
-            label25.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.toolTip.SetToolTip(label25, "Maximum time to try connecting to the target app.");
+            this.label25.AutoSize = true;
+            this.label25.Location = new System.Drawing.Point(4, 70);
+            this.label25.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.label25.Name = "label25";
+            this.label25.Size = new System.Drawing.Size(226, 20);
+            this.label25.TabIndex = 26;
+            this.label25.Text = "Max Connection Timeout (s)";
+            this.label25.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.toolTip.SetToolTip(this.label25, "Maximum time to try connecting to the target app.");
             // 
             // maxConnectTimeout
             // 
             this.maxConnectTimeout.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.maxConnectTimeout.AutoSize = true;
-            this.maxConnectTimeout.Location = new System.Drawing.Point(321, 73);
+            this.maxConnectTimeout.Location = new System.Drawing.Point(238, 70);
             this.maxConnectTimeout.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.maxConnectTimeout.Maximum = new decimal(new int[] {
             1000,
@@ -1279,34 +1307,33 @@
             0,
             0});
             this.maxConnectTimeout.Name = "maxConnectTimeout";
-            this.maxConnectTimeout.Size = new System.Drawing.Size(122, 22);
+            this.maxConnectTimeout.Size = new System.Drawing.Size(88, 20);
             this.maxConnectTimeout.TabIndex = 25;
             this.toolTip.SetToolTip(this.maxConnectTimeout, "Maximum time to try connecting to the target app.");
             this.maxConnectTimeout.ValueChanged += new System.EventHandler(this.maxConnectTimeout_ValueChanged);
             // 
             // label36
             // 
-            label36.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this.label36.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            label36.AutoSize = true;
-            label36.Location = new System.Drawing.Point(5, 0);
-            label36.Margin = new System.Windows.Forms.Padding(3);
-            label36.MinimumSize = new System.Drawing.Size(0, 31);
-            label36.Name = "label36";
-            label36.Size = new System.Drawing.Size(307, 31);
-            label36.TabIndex = 14;
-            label36.Text = "Android ADB executable path";
-            label36.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.toolTip.SetToolTip(label36, "The location of adb.exe, used to control Android devices.");
+            this.label36.AutoSize = true;
+            this.label36.Location = new System.Drawing.Point(3, 3);
+            this.label36.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
+            this.label36.MinimumSize = new System.Drawing.Size(0, 31);
+            this.label36.Name = "label36";
+            this.label36.Size = new System.Drawing.Size(228, 31);
+            this.label36.TabIndex = 14;
+            this.label36.Text = "Android ADB executable path";
+            this.label36.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.toolTip.SetToolTip(this.label36, "The location of adb.exe, used to control Android devices.");
             // 
             // adbPath
             // 
             this.adbPath.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.adbPath.Location = new System.Drawing.Point(5, 39);
-            this.adbPath.Margin = new System.Windows.Forms.Padding(3);
+            this.adbPath.Location = new System.Drawing.Point(3, 41);
             this.adbPath.Name = "adbPath";
-            this.adbPath.Size = new System.Drawing.Size(307, 22);
+            this.adbPath.Size = new System.Drawing.Size(228, 20);
             this.adbPath.TabIndex = 24;
             this.toolTip.SetToolTip(this.adbPath, "The location of adb.exe, used to control Android devices.");
             this.adbPath.TextChanged += new System.EventHandler(this.adbPath_TextChanged);
@@ -1314,8 +1341,7 @@
             // browseAdbPath
             // 
             this.browseAdbPath.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.browseAdbPath.Location = new System.Drawing.Point(322, 36);
-            this.browseAdbPath.Margin = new System.Windows.Forms.Padding(3);
+            this.browseAdbPath.Location = new System.Drawing.Point(237, 40);
             this.browseAdbPath.Name = "browseAdbPath";
             this.browseAdbPath.Size = new System.Drawing.Size(90, 23);
             this.browseAdbPath.TabIndex = 7;
@@ -1326,11 +1352,11 @@
             // 
             // pagesTree
             // 
-            treeListColumn3.AutoSize = true;
-            treeListColumn3.AutoSizeMinSize = 0;
-            treeListColumn3.Width = 50;
+            treeListColumn1.AutoSize = true;
+            treeListColumn1.AutoSizeMinSize = 0;
+            treeListColumn1.Width = 50;
             this.pagesTree.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn3});
+            treeListColumn1});
             this.pagesTree.ColumnsOptions.HeaderHeight = 1;
             this.pagesTree.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.pagesTree.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -1366,7 +1392,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(537, 451);
             this.Controls.Add(tableLayoutPanel1);
-            this.MinimumSize = new System.Drawing.Size(500, 300);
+            this.MinimumSize = new System.Drawing.Size(495, 290);
             this.Name = "SettingsDialog";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Settings";
@@ -1400,9 +1426,9 @@
             this.tableLayoutPanel5.ResumeLayout(false);
             this.tableLayoutPanel5.PerformLayout();
             this.androidTab.ResumeLayout(false);
-            groupBox7.ResumeLayout(false);
-            tableLayoutPanel8.ResumeLayout(false);
-            tableLayoutPanel8.PerformLayout();
+            this.groupBox7.ResumeLayout(false);
+            this.tableLayoutPanel8.ResumeLayout(false);
+            this.tableLayoutPanel8.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.maxConnectTimeout)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pagesTree)).EndInit();
             this.ResumeLayout(false);
@@ -1464,5 +1490,11 @@
         private System.Windows.Forms.Button browseAdbPath;
         private System.Windows.Forms.TextBox adbPath;
         private System.Windows.Forms.NumericUpDown maxConnectTimeout;
+        private System.Windows.Forms.Label label35;
+        private System.Windows.Forms.GroupBox groupBox7;
+        private System.Windows.Forms.TableLayoutPanel tableLayoutPanel8;
+        private System.Windows.Forms.Label label25;
+        private System.Windows.Forms.Label label36;
+        private System.Windows.Forms.CheckBox EventBrowser_AddFake;
     }
 }
