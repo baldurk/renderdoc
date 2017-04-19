@@ -45,6 +45,8 @@ public:
   explicit RemoteManager(ICaptureContext &ctx, MainWindow *main);
   ~RemoteManager();
 
+  void closeWhenFinished();
+
 private slots:
   // automatic slots
   void on_hosts_itemClicked(QTreeWidgetItem *item, int column);
@@ -65,7 +67,12 @@ private:
   MainWindow *m_Main;
   QWidget *lookupsProgressFlow;
 
+  // number of lookups going on. We can't close until there are no lookups remaining to process
   QSemaphore m_Lookups;
+
+  // handle that the external owner holds while the dialog is open. Once it's closed, we can
+  // delete ourselves once all lookups complete
+  QSemaphore m_ExternalRef;
 
   bool isRemoteServerLive(QTreeWidgetItem *node);
   void setRemoteServerLive(QTreeWidgetItem *node, bool live, bool busy);
@@ -75,7 +82,7 @@ private:
   void runRemoteServer(QTreeWidgetItem *node);
 
   void refreshHost(QTreeWidgetItem *node);
-  void lookupComplete();
+  void updateStatus();
   void connectToApp(QTreeWidgetItem *node);
 
   void updateConnectButton();

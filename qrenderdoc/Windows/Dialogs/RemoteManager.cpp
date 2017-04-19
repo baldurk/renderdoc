@@ -86,6 +86,8 @@ RemoteManager::RemoteManager(ICaptureContext &ctx, MainWindow *main)
 {
   ui->setupUi(this);
 
+  m_ExternalRef.release(1);
+
   ui->hosts->setClearSelectionOnFocusLoss(false);
 
   ui->hosts->header()->setSectionResizeMode(0, QHeaderView::Stretch);
@@ -120,6 +122,12 @@ RemoteManager::RemoteManager(ICaptureContext &ctx, MainWindow *main)
 RemoteManager::~RemoteManager()
 {
   delete ui;
+}
+
+void RemoteManager::closeWhenFinished()
+{
+  m_ExternalRef.acquire(1);
+  updateStatus();
 }
 
 void RemoteManager::setRemoteServerLive(QTreeWidgetItem *node, bool live, bool busy)
@@ -268,7 +276,7 @@ void RemoteManager::refreshHost(QTreeWidgetItem *node)
 
     m_Lookups.acquire();
 
-    GUIInvoke::call([this]() { lookupComplete(); });
+    GUIInvoke::call([this]() { updateStatus(); });
   });
   th->selfDelete(true);
   th->start();
@@ -276,16 +284,17 @@ void RemoteManager::refreshHost(QTreeWidgetItem *node)
 
 // don't allow the user to refresh until all pending connections have been checked
 // (to stop flooding)
-void RemoteManager::lookupComplete()
+void RemoteManager::updateStatus()
 {
   if(m_Lookups.available() == 0)
   {
     ui->refreshOne->setEnabled(true);
     ui->refreshAll->setEnabled(true);
 
-    if(!isVisible())
+    // if the external ref is gone now, we can delete ourselves
+    if(m_ExternalRef.available() == 0)
     {
-      delete this;
+      deleteLater();
       return;
     }
   }
@@ -305,7 +314,6 @@ void RemoteManager::connectToApp(QTreeWidgetItem *node)
       LiveCapture *live = new LiveCapture(m_Ctx, connect.host, connect.ident, m_Main, m_Main);
       m_Main->ShowLiveCapture(live);
       accept();
-      lookupComplete();
     }
   }
 }

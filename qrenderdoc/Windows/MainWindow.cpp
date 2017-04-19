@@ -1431,8 +1431,11 @@ void MainWindow::on_action_Attach_to_Running_Instance_triggered()
 
 void MainWindow::on_action_Manage_Remote_Servers_triggered()
 {
-  // the manager deletes itself when all lookups terminate
-  RDDialog::show(new RemoteManager(m_Ctx, this));
+  RemoteManager *rm = new RemoteManager(m_Ctx, this);
+  RDDialog::show(rm);
+  // now that we're done with it, the manager deletes itself when all lookups terminate (or
+  // immediately if there are no lookups ongoing).
+  rm->closeWhenFinished();
 }
 
 void MainWindow::on_action_Start_Android_Remote_Server_triggered()
