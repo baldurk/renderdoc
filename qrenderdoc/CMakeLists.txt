@@ -173,7 +173,7 @@ add_custom_command(OUTPUT QRenderDoc
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc)
 
 # Build python modules - primarily used for constructing documentation
-if(UNIX)
+if(UNIX AND NOT APPLE)
     add_subdirectory(Code/pyrenderdoc)
 endif()
 
