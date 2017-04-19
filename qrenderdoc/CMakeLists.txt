@@ -6,16 +6,16 @@ option(QRENDERDOC_NO_CXX11_REGEX "Disable C++11 regex in scintilla" OFF)
 
 set(QMAKE_CONFIG "debug")
 set(QMAKE_LDFLAGS "")
+set(QMAKE_CXXFLAGS "")
 
 if(STATIC_QRENDERDOC)
+    set(QMAKE_CXXFLAGS "-DSTATIC_QRENDERDOC=1")
     set(QMAKE_CONFIG "debug static")
     set(QMAKE_LDFLAGS "-static-libstdc++ -lutil")
 endif()
 
-set(QMAKE_CXXFLAGS "")
-
 if(QRENDERDOC_NO_CXX11_REGEX)
-    set(QMAKE_CXXFLAGS "-DNO_CXX11_REGEX=1")
+    set(QMAKE_CXXFLAGS "-DNO_CXX11_REGEX=1 ${QMAKE_CXXFLAGS}")
 endif()
 
 if(ENABLE_GL)

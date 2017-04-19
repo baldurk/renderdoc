@@ -41,7 +41,9 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 
 #include <QApplication>
 #include <QDebug>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QThread>
 #include <QTimer>
 #include "PythonContext.h"
@@ -112,6 +114,7 @@ static inline QString ToQStr(PyObject *value)
 }
 
 static wchar_t program_name[] = L"qrenderdoc";
+static wchar_t python_home[1024] = {0};
 
 struct OutputRedirector
 {
@@ -206,6 +209,19 @@ void PythonContext::GlobalInit()
 
   PyImport_AppendInittab("_renderdoc", &PyInit__renderdoc);
   PyImport_AppendInittab("_qrenderdoc", &PyInit__qrenderdoc);
+
+#if defined(STATIC_QRENDERDOC)
+  // add the location where our libs will be for statically-linked python installs
+  {
+    QDir bin = QFileInfo(QCoreApplication::applicationFilePath()).absoluteDir();
+
+    QString pylibs = QDir::cleanPath(bin.absoluteFilePath("../share/renderdoc/pylibs"));
+
+    pylibs.toWCharArray(python_home);
+
+    Py_SetPythonHome(python_home);
+  }
+#endif
 
   Py_SetProgramName(program_name);
 
