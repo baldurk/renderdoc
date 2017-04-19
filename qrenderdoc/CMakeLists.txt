@@ -165,6 +165,11 @@ add_custom_command(OUTPUT QRenderDoc
 	DEPENDS ${swig_output})
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc)
 
+# Build python modules - primarily used for constructing documentation
+if(UNIX)
+    add_subdirectory(Code/pyrenderdoc)
+endif()
+
 install (PROGRAMS ${CMAKE_BINARY_DIR}/bin/qrenderdoc DESTINATION bin)
 
 # Install supporting files for file associations etc

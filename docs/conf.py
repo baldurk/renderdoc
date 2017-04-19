@@ -24,12 +24,16 @@ import datetime
 
 import struct
 
+# path to module libraries for windows
 if struct.calcsize("P") == 8:
 	modulepath = '../x64/Development'
 else:
 	modulepath = '../Win32/Development'
 
 sys.path.insert(0, os.path.abspath(modulepath))
+
+# path to module libraries for linux
+sys.path.insert(0, os.path.abspath('../build/bin'))
 
 # -- General configuration ------------------------------------------------
 
