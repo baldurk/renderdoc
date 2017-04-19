@@ -163,6 +163,18 @@ uint32_t Log2Floor(uint32_t value);
 uint64_t Log2Floor(uint64_t value);
 #endif
 
+// super ugly - on apple size_t is a separate type, so we need a new overload
+#if ENABLED(RDOC_APPLE)
+inline size_t Log2Floor(size_t value)
+{
+#if ENABLED(RDOC_X64)
+  return (size_t)Log2Floor((uint64_t)value);
+#else
+  return (size_t)Log2Floor((uint32_t)value);
+#endif
+}
+#endif
+
 template <typename T, BucketRecordType bucketType = T::BucketType>
 struct BucketForRecord
 {
