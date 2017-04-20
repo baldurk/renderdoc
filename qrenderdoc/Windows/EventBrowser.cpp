@@ -115,6 +115,8 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
     QShortcut *sc = new QShortcut(QKeySequence(Qt::Key_Right | Qt::ControlModifier), this);
     QObject::connect(sc, &QShortcut::activated, this, &EventBrowser::on_stepNext_clicked);
   }
+
+  OnLogfileClosed();
 }
 
 EventBrowser::~EventBrowser()
@@ -148,6 +150,14 @@ void EventBrowser::OnLogfileLoaded()
 
   ui->events->expandItem(frame);
 
+  ui->find->setEnabled(true);
+  ui->gotoEID->setEnabled(true);
+  ui->timeDraws->setEnabled(true);
+  ui->bookmark->setEnabled(true);
+  ui->exportDraws->setEnabled(true);
+  ui->stepPrev->setEnabled(true);
+  ui->stepNext->setEnabled(true);
+
   m_Ctx.SetEventID({this}, lastEID, lastEID);
 }
 
@@ -156,6 +166,14 @@ void EventBrowser::OnLogfileClosed()
   clearBookmarks();
 
   ui->events->clear();
+
+  ui->find->setEnabled(false);
+  ui->gotoEID->setEnabled(false);
+  ui->timeDraws->setEnabled(false);
+  ui->bookmark->setEnabled(false);
+  ui->exportDraws->setEnabled(false);
+  ui->stepPrev->setEnabled(false);
+  ui->stepNext->setEnabled(false);
 }
 
 void EventBrowser::OnEventChanged(uint32_t eventID)
