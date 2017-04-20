@@ -75,6 +75,7 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   ui->AllowGlobalHook->setChecked(m_Ctx.Config().AllowGlobalHook);
 
   ui->EventBrowser_TimeUnit->setCurrentIndex((int)m_Ctx.Config().EventBrowser_TimeUnit);
+  ui->EventBrowser_AddFake->setChecked(m_Ctx.Config().EventBrowser_AddFake);
   ui->EventBrowser_HideEmpty->setChecked(m_Ctx.Config().EventBrowser_HideEmpty);
   ui->EventBrowser_HideAPICalls->setChecked(m_Ctx.Config().EventBrowser_HideAPICalls);
   ui->EventBrowser_ApplyColors->setChecked(m_Ctx.Config().EventBrowser_ApplyColors);
@@ -286,6 +287,13 @@ void SettingsDialog::on_EventBrowser_TimeUnit_currentIndexChanged(int index)
 
   if(m_Ctx.HasEventBrowser())
     m_Ctx.GetEventBrowser()->UpdateDurationColumn();
+
+  m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_EventBrowser_AddFake_toggled(bool checked)
+{
+  m_Ctx.Config().EventBrowser_AddFake = ui->EventBrowser_AddFake->isChecked();
 
   m_Ctx.Config().Save();
 }

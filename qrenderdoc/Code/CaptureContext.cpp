@@ -380,6 +380,9 @@ void CaptureContext::AddFakeProfileMarkers()
 {
   rdctype::array<DrawcallDescription> &draws = m_Drawcalls;
 
+  if(!Config().EventBrowser_AddFake)
+    return;
+
   if(ContainsMarker(draws))
     return;
 

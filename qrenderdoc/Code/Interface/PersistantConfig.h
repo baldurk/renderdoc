@@ -85,6 +85,8 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
                                                                                            \
   CONFIG_SETTING_VAL(public, int, TimeUnit, EventBrowser_TimeUnit, TimeUnit::Microseconds) \
                                                                                            \
+  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_AddFake, true)                       \
+                                                                                           \
   CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideEmpty, false)                    \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideAPICalls, false)                 \
@@ -263,6 +265,14 @@ For more information about some of these settings that are user-facing see
   The :class:`TimeUnit` to use to display the duration column in the :class:`EventBrowser`.
 
   Defaults to microseconds.
+
+.. data:: EventBrowser_AddFake
+
+  ``True`` if fake drawcall marker regions should be added to captures that don't have any markers,
+  for easier browsing. The regions are identified by grouping drawcalls that write to the same
+  targets together.
+
+  Defaults to ``True``.
 
 .. data:: EventBrowser_HideEmpty
 

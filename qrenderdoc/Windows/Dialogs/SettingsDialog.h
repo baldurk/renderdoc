@@ -75,6 +75,7 @@ private slots:
 
   // event browser
   void on_EventBrowser_TimeUnit_currentIndexChanged(int index);
+  void on_EventBrowser_AddFake_toggled(bool checked);
   void on_EventBrowser_HideEmpty_toggled(bool checked);
   void on_EventBrowser_HideAPICalls_toggled(bool checked);
   void on_EventBrowser_ApplyColors_toggled(bool checked);
