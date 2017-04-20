@@ -3704,22 +3704,55 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
     gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
     gl.glDeleteBuffers(1, &indexSetBuffer);
 
+    uint32_t stripRestartValue32 = 0;
+
+    if(IsStrip(drawcall->topology) && rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart])
+    {
+      stripRestartValue32 = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex]
+                                ? ~0U
+                                : rs.PrimitiveRestartIndex;
+    }
+
     // rebase existing index buffer to point from 0 onwards (which will index into our
     // stream-out'd vertex buffer)
     if(drawcall->indexByteWidth == 1)
     {
+      uint8_t stripRestartValue = stripRestartValue32 & 0xff;
+
       for(uint32_t i = 0; i < numIndices; i++)
+      {
+        // preserve primitive restart indices
+        if(stripRestartValue && idx8[i] == stripRestartValue)
+          continue;
+
         idx8[i] = uint8_t(indexRemap[idx8[i]]);
+      }
     }
     else if(drawcall->indexByteWidth == 2)
     {
+      uint16_t stripRestartValue = stripRestartValue32 & 0xffff;
+
       for(uint32_t i = 0; i < numIndices; i++)
+      {
+        // preserve primitive restart indices
+        if(stripRestartValue && idx16[i] == stripRestartValue)
+          continue;
+
         idx16[i] = uint16_t(indexRemap[idx16[i]]);
+      }
     }
     else
     {
+      uint32_t stripRestartValue = stripRestartValue32;
+
       for(uint32_t i = 0; i < numIndices; i++)
+      {
+        // preserve primitive restart indices
+        if(stripRestartValue && idx32[i] == stripRestartValue)
+          continue;
+
         idx32[i] = uint32_t(indexRemap[idx32[i]]);
+      }
     }
 
     // make the index buffer that can be used to render this postvs data - the original
@@ -5118,6 +5151,17 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
 
     activeVertex = InterpretVertex(data, idx, cfg, dataEnd, true, valid);
 
+    uint32_t primRestart = 0;
+    if(IsStrip(cfg.position.topo))
+    {
+      if(cfg.position.idxByteWidth == 1)
+        primRestart = 0xff;
+      else if(cfg.position.idxByteWidth == 2)
+        primRestart = 0xffff;
+      else
+        primRestart = 0xffffffff;
+    }
+
     // see Section 10.1 of the OpenGL 4.5 spec for
     // how primitive topologies are laid out
     if(meshtopo == eGL_LINES)
@@ -5192,6 +5236,14 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
       // primitive, and thereafter each point is in the next primitive
       uint32_t v = RDCMAX(idx, 1U) - 1;
 
+      // skip past any primitive restart indices
+      if(m_HighlightCache.useidx && primRestart)
+      {
+        while(v < (uint32_t)m_HighlightCache.indices.size() &&
+              m_HighlightCache.indices[v] == primRestart)
+          v++;
+      }
+
       activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
       activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
     }
@@ -5202,6 +5254,15 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
       // it's in. This means the first N points are in the first
       // primitive, and thereafter each point is in the next primitive
       uint32_t v = RDCMAX(idx, 2U) - 2;
+
+      // skip past any primitive restart indices
+      if(m_HighlightCache.useidx && primRestart)
+      {
+        while(v < (uint32_t)m_HighlightCache.indices.size() &&
+              (m_HighlightCache.indices[v + 0] == primRestart ||
+               m_HighlightCache.indices[v + 1] == primRestart))
+          v++;
+      }
 
       activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
       activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
@@ -5214,6 +5275,16 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
       // it's in. This means the first N points are in the first
       // primitive, and thereafter each point is in the next primitive
       uint32_t v = RDCMAX(idx, 3U) - 3;
+
+      // skip past any primitive restart indices
+      if(m_HighlightCache.useidx && primRestart)
+      {
+        while(v < (uint32_t)m_HighlightCache.indices.size() &&
+              (m_HighlightCache.indices[v + 0] == primRestart ||
+               m_HighlightCache.indices[v + 1] == primRestart ||
+               m_HighlightCache.indices[v + 2] == primRestart))
+          v++;
+      }
 
       FloatVector vs[] = {
           InterpretVertex(data, v + 0, cfg, dataEnd, true, valid),
@@ -5324,6 +5395,19 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
         // so our step rate is 2. The first 'middle' primitive starts at indices 5&6
         // and uses indices all the way back to 0
         uint32_t v = RDCMAX(((idx + 1) / 2) * 2, 6U) - 6;
+
+        // skip past any primitive restart indices
+        if(m_HighlightCache.useidx && primRestart)
+        {
+          while(v < (uint32_t)m_HighlightCache.indices.size() &&
+                (m_HighlightCache.indices[v + 0] == primRestart ||
+                 m_HighlightCache.indices[v + 1] == primRestart ||
+                 m_HighlightCache.indices[v + 2] == primRestart ||
+                 m_HighlightCache.indices[v + 3] == primRestart ||
+                 m_HighlightCache.indices[v + 4] == primRestart ||
+                 m_HighlightCache.indices[v + 5] == primRestart))
+            v++;
+        }
 
         // these correspond to the indices in the MSDN diagram, with {2,4,6} as the
         // main triangle

@@ -8472,15 +8472,29 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
     //
     // Note that there could also be gaps in the indices as above which must remain as
     // we don't have a 0-based dense 'vertex id' to base our SSBO indexing off, only index value.
+
+    bool stripRestart = pipeCreateInfo.pInputAssemblyState->primitiveRestartEnable == VK_TRUE &&
+                        IsStrip(drawcall->topology);
+
     if(index16)
     {
       for(uint32_t i = 0; i < numIndices; i++)
+      {
+        if(stripRestart && idx16[i] == 0xffff)
+          continue;
+
         idx16[i] = idx16[i] - uint16_t(minIndex);
+      }
     }
     else
     {
       for(uint32_t i = 0; i < numIndices; i++)
+      {
+        if(stripRestart && idx32[i] == 0xffffffff)
+          continue;
+
         idx32[i] -= minIndex;
+      }
     }
 
     // upload rebased memory

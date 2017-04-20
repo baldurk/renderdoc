@@ -1460,6 +1460,18 @@ constexpr inline uint32_t PatchList_Count(Topology topology)
              : uint32_t(topology) - uint32_t(Topology::PatchList_1CPs);
 }
 
+DOCUMENT(R"(Check whether or not this is a strip-type topology.
+
+:param Topology t: The topology to check.
+:return: ``True`` if it describes a strip topology, ``False`` for a list.
+:rtype: int
+)");
+constexpr inline bool IsStrip(Topology topology)
+{
+  return topology == Topology::LineStrip || topology == Topology::TriangleStrip ||
+         topology == Topology::LineStrip_Adj || topology == Topology::TriangleStrip_Adj;
+}
+
 DOCUMENT(R"(A set of flags describing how this buffer may be used
 
 .. data:: NoFlags

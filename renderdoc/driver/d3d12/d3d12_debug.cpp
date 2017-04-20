@@ -4037,11 +4037,21 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       m_DebugList->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0, 0,
                                         drawcall->instanceOffset);
 
+      uint32_t stripCutValue = 0;
+      if(psoDesc.IBStripCutValue == D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF)
+        stripCutValue = 0xffff;
+      else if(psoDesc.IBStripCutValue == D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF)
+        stripCutValue = 0xffffffff;
+
       // rebase existing index buffer to point to the right elements in our stream-out'd
       // vertex buffer
       for(uint32_t i = 0; i < numIndices; i++)
       {
         uint32_t i32 = rs.ibuffer.bytewidth == 2 ? uint32_t(idx16[i]) : idx32[i];
+
+        // preserve primitive restart indices
+        if(stripCutValue && i32 == stripCutValue)
+          continue;
 
         // apply baseVertex but clamp to 0 (don't allow index to become negative)
         if(i32 < idxclamp)
@@ -5796,6 +5806,17 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
     activeVertex = InterpretVertex(data, idx, cfg, dataEnd, true, valid);
 
+    uint32_t primRestart = 0;
+    if(IsStrip(cfg.position.topo))
+    {
+      if(cfg.position.idxByteWidth == 1)
+        primRestart = 0xff;
+      else if(cfg.position.idxByteWidth == 2)
+        primRestart = 0xffff;
+      else
+        primRestart = 0xffffffff;
+    }
+
     // see http://msdn.microsoft.com/en-us/library/windows/desktop/bb205124(v=vs.85).aspx for
     // how primitive topologies are laid out
     if(meshtopo == Topology::LineList)
@@ -5870,6 +5891,14 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       // primitive, and thereafter each point is in the next primitive
       uint32_t v = RDCMAX(idx, 1U) - 1;
 
+      // skip past any primitive restart indices
+      if(m_HighlightCache.useidx && primRestart)
+      {
+        while(v < (uint32_t)m_HighlightCache.indices.size() &&
+              m_HighlightCache.indices[v] == primRestart)
+          v++;
+      }
+
       activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
       activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
     }
@@ -5880,6 +5909,15 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       // it's in. This means the first N points are in the first
       // primitive, and thereafter each point is in the next primitive
       uint32_t v = RDCMAX(idx, 2U) - 2;
+
+      // skip past any primitive restart indices
+      if(m_HighlightCache.useidx && primRestart)
+      {
+        while(v < (uint32_t)m_HighlightCache.indices.size() &&
+              (m_HighlightCache.indices[v + 0] == primRestart ||
+               m_HighlightCache.indices[v + 1] == primRestart))
+          v++;
+      }
 
       activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
       activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
@@ -5892,6 +5930,16 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       // it's in. This means the first N points are in the first
       // primitive, and thereafter each point is in the next primitive
       uint32_t v = RDCMAX(idx, 3U) - 3;
+
+      // skip past any primitive restart indices
+      if(m_HighlightCache.useidx && primRestart)
+      {
+        while(v < (uint32_t)m_HighlightCache.indices.size() &&
+              (m_HighlightCache.indices[v + 0] == primRestart ||
+               m_HighlightCache.indices[v + 1] == primRestart ||
+               m_HighlightCache.indices[v + 2] == primRestart))
+          v++;
+      }
 
       FloatVector vs[] = {
           InterpretVertex(data, v + 0, cfg, dataEnd, true, valid),
@@ -6002,6 +6050,19 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
         // so our step rate is 2. The first 'middle' primitive starts at indices 5&6
         // and uses indices all the way back to 0
         uint32_t v = RDCMAX(((idx + 1) / 2) * 2, 6U) - 6;
+
+        // skip past any primitive restart indices
+        if(m_HighlightCache.useidx && primRestart)
+        {
+          while(v < (uint32_t)m_HighlightCache.indices.size() &&
+                (m_HighlightCache.indices[v + 0] == primRestart ||
+                 m_HighlightCache.indices[v + 1] == primRestart ||
+                 m_HighlightCache.indices[v + 2] == primRestart ||
+                 m_HighlightCache.indices[v + 3] == primRestart ||
+                 m_HighlightCache.indices[v + 4] == primRestart ||
+                 m_HighlightCache.indices[v + 5] == primRestart))
+            v++;
+        }
 
         // these correspond to the indices in the MSDN diagram, with {2,4,6} as the
         // main triangle
