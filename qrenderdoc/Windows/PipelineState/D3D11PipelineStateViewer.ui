@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0"?>
 <ui version="4.0">
  <class>D3D11PipelineStateViewer</class>
  <widget class="QFrame" name="D3D11PipelineStateViewer">
@@ -269,36 +269,6 @@
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string notr="true">Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Buffer</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Offset</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Stride</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Byte Length</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -363,51 +333,6 @@
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string notr="true">Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Semantic</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Index</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Format</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Input Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Offset</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Class</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Step Rate</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -797,51 +722,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Resource</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Type</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Width</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Height</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Depth</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Array Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Format</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -897,31 +777,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Addressing</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Filter</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>LOD Clamp</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Mip Bias</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -977,31 +832,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Buffer</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Vec4 Range</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -1057,21 +887,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Interface</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Instance</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -1270,51 +1085,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Resource</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Type</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Width</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Height</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Depth</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Array Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Format</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -1370,31 +1140,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Addressing</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Filter</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>LOD Clamp</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Mip Bias</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -1450,31 +1195,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Buffer</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Vec4 Range</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -1530,21 +1250,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Interface</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Instance</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -1743,51 +1448,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Resource</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Type</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Width</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Height</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Depth</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Array Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Format</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -1843,31 +1503,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Addressing</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Filter</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>LOD Clamp</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Mip Bias</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -1923,31 +1558,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Buffer</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Vec4 Range</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -2003,21 +1613,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Interface</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Instance</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -2216,51 +1811,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Resource</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Type</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Width</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Height</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Depth</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Array Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Format</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -2316,31 +1866,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Addressing</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Filter</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>LOD Clamp</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Mip Bias</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -2398,31 +1923,6 @@ padding: 0px;</string>
               <attribute name="headerStretchLastSection">
                <bool>false</bool>
               </attribute>
-              <column>
-               <property name="text">
-                <string>Slot</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>Buffer</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>Vec4 Range</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>Size</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>Go</string>
-               </property>
-              </column>
              </widget>
             </item>
            </layout>
@@ -2478,31 +1978,6 @@ padding: 0px;</string>
               <attribute name="headerStretchLastSection">
                <bool>false</bool>
               </attribute>
-              <column>
-               <property name="text">
-                <string>Slot</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>Buffer</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>Length</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>Offset</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string>Go</string>
-               </property>
-              </column>
              </widget>
             </item>
            </layout>
@@ -2560,21 +2035,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Interface</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Instance</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -2624,7 +2084,7 @@ padding: 0px;</string>
            <number>2</number>
           </property>
           <item>
-           <widget class="QTreeWidget" name="scissors">
+           <widget class="RDTreeWidget" name="scissors">
             <property name="frameShape">
              <enum>QFrame::Box</enum>
             </property>
@@ -2652,36 +2112,6 @@ padding: 0px;</string>
             <attribute name="headerMinimumSectionSize">
              <number>50</number>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>X</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Y</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Width</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Height</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Enabled</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -3092,7 +2522,7 @@ padding: 0px;</string>
            <number>2</number>
           </property>
           <item>
-           <widget class="QTreeWidget" name="viewports">
+           <widget class="RDTreeWidget" name="viewports">
             <property name="frameShape">
              <enum>QFrame::Box</enum>
             </property>
@@ -3120,41 +2550,6 @@ padding: 0px;</string>
             <attribute name="headerMinimumSectionSize">
              <number>50</number>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>X</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Y</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Width</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Height</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>MinDepth</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>MaxDepth</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -3353,51 +2748,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Resource</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Type</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Width</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Height</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Depth</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Array Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Format</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -3453,31 +2803,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Addressing</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Filter</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>LOD Clamp</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Mip Bias</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -3533,31 +2858,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Buffer</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Vec4 Range</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -3613,21 +2913,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Interface</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Instance</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -3821,51 +3106,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Resource</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Type</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Width</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Height</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Depth</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Array Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Format</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -4040,7 +3280,7 @@ padding: 0px;</string>
            <number>2</number>
           </property>
           <item>
-           <widget class="QTreeWidget" name="blends">
+           <widget class="RDTreeWidget" name="blends">
             <property name="frameShape">
              <enum>QFrame::Box</enum>
             </property>
@@ -4074,61 +3314,6 @@ padding: 0px;</string>
             <property name="expandsOnDoubleClick">
              <bool>false</bool>
             </property>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Enabled</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Logic</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Colour Src</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Colour Dst</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Colour Op</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Alpha Src</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Alpha Dst</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Alpha Op</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Logic Op</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Write Mask</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -4292,7 +3477,7 @@ padding: 0px;</string>
            </layout>
           </item>
           <item row="1" column="0">
-           <widget class="QTreeWidget" name="stencils">
+           <widget class="RDTreeWidget" name="stencils">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
               <horstretch>0</horstretch>
@@ -4344,31 +3529,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Face</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Func</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Fail Op</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Depth Fail Op</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Pass Op</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -4619,51 +3779,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Resource</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Type</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Width</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Height</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Depth</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Array Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Format</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -4719,51 +3834,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Resource</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Type</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Width</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Height</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Depth</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Array Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Format</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -4819,31 +3889,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Addressing</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Filter</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>LOD Clamp</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Mip Bias</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -4899,31 +3944,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Buffer</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Vec4 Range</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Go</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -4979,21 +3999,6 @@ padding: 0px;</string>
             <attribute name="headerStretchLastSection">
              <bool>false</bool>
             </attribute>
-            <column>
-             <property name="text">
-              <string>Slot</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Interface</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Instance</string>
-             </property>
-            </column>
            </widget>
           </item>
          </layout>
@@ -5008,7 +4013,7 @@ padding: 0px;</string>
  <customwidgets>
   <customwidget>
    <class>RDTreeWidget</class>
-   <extends>QTreeWidget</extends>
+   <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
   <customwidget>

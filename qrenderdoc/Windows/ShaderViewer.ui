@@ -23,7 +23,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QTreeWidget" name="inputSig">
+  <widget class="RDTreeWidget" name="inputSig">
    <property name="geometry">
     <rect>
      <x>570</x>
@@ -62,49 +62,11 @@
    <property name="allColumnsShowFocus">
     <bool>true</bool>
    </property>
-   <property name="columnCount">
-    <number>7</number>
-   </property>
    <property name="cornerButtonEnabled" stdset="0">
     <bool>false</bool>
    </property>
-   <column>
-    <property name="text">
-     <string>Name</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Index</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Reg</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Type</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>SysValue</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Mask</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Used</string>
-    </property>
-   </column>
   </widget>
-  <widget class="QTreeWidget" name="outputSig">
+  <widget class="RDTreeWidget" name="outputSig">
    <property name="geometry">
     <rect>
      <x>590</x>
@@ -143,47 +105,9 @@
    <property name="allColumnsShowFocus">
     <bool>true</bool>
    </property>
-   <property name="columnCount">
-    <number>7</number>
-   </property>
    <property name="cornerButtonEnabled" stdset="0">
     <bool>false</bool>
    </property>
-   <column>
-    <property name="text">
-     <string>Name</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Index</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Reg</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Type</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>SysValue</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Mask</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Used</string>
-    </property>
-   </column>
   </widget>
   <widget class="RDTreeWidget" name="constants">
    <property name="geometry">
@@ -212,21 +136,6 @@
    <property name="allColumnsShowFocus">
     <bool>true</bool>
    </property>
-   <column>
-    <property name="text">
-     <string>Name</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Type</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Value</string>
-    </property>
-   </column>
   </widget>
   <widget class="RDTreeWidget" name="variables">
    <property name="geometry">
@@ -252,21 +161,6 @@
    <property name="allColumnsShowFocus">
     <bool>true</bool>
    </property>
-   <column>
-    <property name="text">
-     <string>Name</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Type</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Value</string>
-    </property>
-   </column>
   </widget>
   <widget class="QFrame" name="toolbar">
    <property name="geometry">
@@ -562,7 +456,7 @@
  <customwidgets>
   <customwidget>
    <class>RDTreeWidget</class>
-   <extends>QTreeWidget</extends>
+   <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
   <customwidget>

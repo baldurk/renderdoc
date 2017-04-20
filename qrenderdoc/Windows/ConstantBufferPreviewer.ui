@@ -178,7 +178,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QTreeWidget" name="variables">
+        <widget class="RDTreeWidget" name="variables">
          <property name="frameShape">
           <enum>QFrame::Panel</enum>
          </property>
@@ -203,21 +203,6 @@
          <attribute name="headerStretchLastSection">
           <bool>false</bool>
          </attribute>
-         <column>
-          <property name="text">
-           <string>Name</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Value</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Type</string>
-          </property>
-         </column>
         </widget>
        </item>
       </layout>
@@ -228,6 +213,11 @@
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>RDTreeWidget</class>
+   <extends>QTreeView</extends>
+   <header>Widgets/Extended/RDTreeWidget.h</header>
+  </customwidget>
   <customwidget>
    <class>BufferFormatSpecifier</class>
    <extends>QWidget</extends>

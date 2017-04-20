@@ -33,8 +33,7 @@ APIInspector::APIInspector(ICaptureContext &ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
-  ui->apiEvents->headerItem()->setText(0, "EID");
-  ui->apiEvents->headerItem()->setText(1, "Event");
+  ui->apiEvents->setColumns({"EID", tr("Event")});
 
   ui->splitter->setCollapsible(1, true);
   ui->splitter->setSizes({1, 0});
@@ -90,7 +89,9 @@ void APIInspector::addCallstack(rdctype::array<rdctype::str> calls)
 
 void APIInspector::on_apiEvents_itemSelectionChanged()
 {
-  if(ui->apiEvents->selectedItems().count() == 0)
+  RDTreeWidgetItem *node = ui->apiEvents->selectedItem();
+
+  if(!node)
     return;
 
   APIEvent ev = ui->apiEvents->selectedItems()[0]->data(0, Qt::UserRole).value<APIEvent>();
@@ -124,20 +125,18 @@ void APIInspector::fillAPIView()
 
   if(draw != NULL && draw->events.count > 0)
   {
-    int e = 0;
     for(const APIEvent &ev : draw->events)
     {
       QStringList lines = ToQStr(ev.eventDesc).split("\n", QString::SkipEmptyParts);
 
-      QTreeWidgetItem *root =
-          new QTreeWidgetItem(ui->apiEvents, QStringList{QString::number(ev.eventID), lines[0]});
+      RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventID), lines[0]});
 
       int i = 1;
 
       if(i < lines.count() && lines[i].trimmed() == "{")
         i++;
 
-      QList<QTreeWidgetItem *> nodestack;
+      QList<RDTreeWidgetItem *> nodestack;
       nodestack.push_back(root);
 
       for(; i < lines.count(); i++)
@@ -147,27 +146,17 @@ void APIInspector::fillAPIView()
         else if(rgxclose.match(lines[i]).hasMatch())
           nodestack.pop_back();
         else if(!nodestack.empty())
-          new QTreeWidgetItem(nodestack.back(), QStringList{"", lines[i].trimmed()});
+          nodestack.back()->addChild(new RDTreeWidgetItem({"", lines[i].trimmed()}));
       }
 
       if(ev.eventID == draw->eventID)
-      {
-        QFont font = root->font(0);
-        font.setBold(true);
-        root->setFont(0, font);
-
-        font = root->font(1);
-        font.setBold(true);
-        root->setFont(1, font);
-      }
+        root->setBold(true);
 
       root->setData(0, Qt::UserRole, QVariant::fromValue(ev));
 
-      ui->apiEvents->insertTopLevelItem(e, root);
-      e++;
+      ui->apiEvents->addTopLevelItem(root);
 
-      ui->apiEvents->clearSelection();
-      ui->apiEvents->setItemSelected(root, true);
+      ui->apiEvents->setSelectedItem(root);
     }
   }
   ui->apiEvents->setUpdatesEnabled(true);

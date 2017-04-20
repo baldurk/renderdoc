@@ -33,6 +33,7 @@ namespace Ui
 class ShaderViewer;
 }
 
+class RDTreeWidgetItem;
 struct ShaderDebugTrace;
 struct ShaderReflection;
 class ScintillaEdit;
@@ -193,6 +194,6 @@ private:
   void runTo(int runToInstruction, bool forward, ShaderEvents condition = ShaderEvents::NoEvent);
 
   QString stringRep(const ShaderVariable &var, bool useType);
-  QTreeWidgetItem *makeResourceRegister(const BindpointMap &bind, uint32_t idx,
-                                        const BoundResource &ro, const ShaderResource &resources);
+  RDTreeWidgetItem *makeResourceRegister(const BindpointMap &bind, uint32_t idx,
+                                         const BoundResource &ro, const ShaderResource &resources);
 };

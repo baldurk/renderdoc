@@ -52,7 +52,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   clearBookmarks();
 
-  ui->events->setClearSelectionOnFocusLoss(false);
+  ui->events->setColumns({tr("Name"), "EID", "Duration - replaced in UpdateDurationColumn"});
 
   ui->events->header()->resizeSection(COL_EID, 80);
 
@@ -129,24 +129,25 @@ EventBrowser::~EventBrowser()
 
 void EventBrowser::OnLogfileLoaded()
 {
-  QTreeWidgetItem *frame = new QTreeWidgetItem(
-      (QTreeWidget *)NULL,
-      QStringList{QString("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), "", ""});
+  RDTreeWidgetItem *frame =
+      new RDTreeWidgetItem({QString("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), "", ""});
 
   clearBookmarks();
 
-  QTreeWidgetItem *framestart = new QTreeWidgetItem(frame, QStringList{"Frame Start", "0", ""});
+  RDTreeWidgetItem *framestart = new RDTreeWidgetItem({"Frame Start", "0", ""});
   framestart->setData(COL_EID, Qt::UserRole, QVariant(0));
   framestart->setData(COL_CURRENT, Qt::UserRole, QVariant(false));
   framestart->setData(COL_FIND, Qt::UserRole, QVariant(false));
   framestart->setData(COL_BOOKMARK, Qt::UserRole, QVariant(false));
   framestart->setData(COL_LAST_EID, Qt::UserRole, QVariant(0));
 
+  frame->addChild(framestart);
+
   uint lastEID = AddDrawcalls(frame, m_Ctx.CurDrawcalls());
   frame->setData(COL_EID, Qt::UserRole, QVariant(0));
   frame->setData(COL_LAST_EID, Qt::UserRole, QVariant(lastEID));
 
-  ui->events->insertTopLevelItem(0, frame);
+  ui->events->addTopLevelItem(frame);
 
   ui->events->expandItem(frame);
 
@@ -182,15 +183,15 @@ void EventBrowser::OnEventChanged(uint32_t eventID)
   highlightBookmarks();
 }
 
-uint EventBrowser::AddDrawcalls(QTreeWidgetItem *parent,
+uint EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
                                 const rdctype::array<DrawcallDescription> &draws)
 {
   uint lastEID = 0;
 
   for(int32_t i = 0; i < draws.count; i++)
   {
-    QTreeWidgetItem *child = new QTreeWidgetItem(
-        parent, QStringList{QString(draws[i].name), QString("%1").arg(draws[i].eventID), "0.0"});
+    RDTreeWidgetItem *child =
+        new RDTreeWidgetItem({QString(draws[i].name), QString("%1").arg(draws[i].eventID), "0.0"});
 
     lastEID = AddDrawcalls(child, draws[i].children);
 
@@ -210,12 +211,14 @@ uint EventBrowser::AddDrawcalls(QTreeWidgetItem *parent,
     child->setData(COL_FIND, Qt::UserRole, QVariant(false));
     child->setData(COL_BOOKMARK, Qt::UserRole, QVariant(false));
     child->setData(COL_LAST_EID, Qt::UserRole, QVariant(lastEID));
+
+    parent->addChild(child);
   }
 
   return lastEID;
 }
 
-void EventBrowser::SetDrawcallTimes(QTreeWidgetItem *node,
+void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node,
                                     const rdctype::array<CounterResult> &results)
 {
   if(node == NULL)
@@ -291,7 +294,7 @@ void EventBrowser::on_gotoEID_clicked()
 
 void EventBrowser::on_bookmark_clicked()
 {
-  QTreeWidgetItem *n = ui->events->currentItem();
+  RDTreeWidgetItem *n = ui->events->currentItem();
 
   if(n)
     toggleBookmark(n->data(COL_LAST_EID, Qt::UserRole).toUInt());
@@ -307,7 +310,7 @@ void EventBrowser::on_timeDraws_clicked()
   });
 }
 
-void EventBrowser::on_events_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous)
+void EventBrowser::on_events_currentItemChanged(RDTreeWidgetItem *current, RDTreeWidgetItem *previous)
 {
   if(previous)
   {
@@ -464,7 +467,7 @@ void EventBrowser::on_exportDraws_clicked()
 
         if(!m_Times.empty())
         {
-          line += QString(" | %1").arg(ui->events->headerItem()->text(COL_DURATION));
+          line += QString(" | %1").arg(ui->events->headerText(COL_DURATION));
         }
 
         stream << line << "\n";
@@ -651,7 +654,7 @@ void EventBrowser::toggleBookmark(uint32_t EID)
 {
   int index = m_Bookmarks.indexOf(EID);
 
-  QTreeWidgetItem *found = NULL;
+  RDTreeWidgetItem *found = NULL;
   FindEventNode(found, ui->events->topLevelItem(0), EID);
 
   if(index >= 0)
@@ -718,7 +721,7 @@ void EventBrowser::highlightBookmarks()
   }
 }
 
-bool EventBrowser::hasBookmark(QTreeWidgetItem *node)
+bool EventBrowser::hasBookmark(RDTreeWidgetItem *node)
 {
   if(node)
     return hasBookmark(node->data(COL_EID, Qt::UserRole).toUInt());
@@ -731,7 +734,7 @@ bool EventBrowser::hasBookmark(uint32_t EID)
   return m_Bookmarks.contains(EID);
 }
 
-void EventBrowser::RefreshIcon(QTreeWidgetItem *item)
+void EventBrowser::RefreshIcon(RDTreeWidgetItem *item)
 {
   if(item->data(COL_CURRENT, Qt::UserRole).toBool())
     item->setIcon(COL_NAME, m_CurrentIcon);
@@ -743,13 +746,13 @@ void EventBrowser::RefreshIcon(QTreeWidgetItem *item)
     item->setIcon(COL_NAME, QIcon());
 }
 
-bool EventBrowser::FindEventNode(QTreeWidgetItem *&found, QTreeWidgetItem *parent, uint32_t eventID)
+bool EventBrowser::FindEventNode(RDTreeWidgetItem *&found, RDTreeWidgetItem *parent, uint32_t eventID)
 {
   // do a reverse search to find the last match (in case of 'set' markers that
   // inherit the event of the next real draw).
   for(int i = parent->childCount() - 1; i >= 0; i--)
   {
-    QTreeWidgetItem *n = parent->child(i);
+    RDTreeWidgetItem *n = parent->child(i);
 
     uint nEID = n->data(COL_LAST_EID, Qt::UserRole).toUInt();
     uint fEID = found ? found->data(COL_LAST_EID, Qt::UserRole).toUInt() : 0;
@@ -771,12 +774,12 @@ bool EventBrowser::FindEventNode(QTreeWidgetItem *&found, QTreeWidgetItem *paren
   return false;
 }
 
-void EventBrowser::ExpandNode(QTreeWidgetItem *node)
+void EventBrowser::ExpandNode(RDTreeWidgetItem *node)
 {
-  QTreeWidgetItem *n = node;
+  RDTreeWidgetItem *n = node;
   while(node != NULL)
   {
-    node->setExpanded(true);
+    ui->events->expandItem(node);
     node = node->parent();
   }
 
@@ -789,13 +792,12 @@ bool EventBrowser::SelectEvent(uint32_t eventID)
   if(!m_Ctx.LogLoaded())
     return false;
 
-  QTreeWidgetItem *found = NULL;
+  RDTreeWidgetItem *found = NULL;
   FindEventNode(found, ui->events->topLevelItem(0), eventID);
   if(found != NULL)
   {
-    ui->events->clearSelection();
-    ui->events->setItemSelected(found, true);
     ui->events->setCurrentItem(found);
+    ui->events->setSelectedItem(found);
 
     ExpandNode(found);
     return true;
@@ -804,11 +806,11 @@ bool EventBrowser::SelectEvent(uint32_t eventID)
   return false;
 }
 
-void EventBrowser::ClearFindIcons(QTreeWidgetItem *parent)
+void EventBrowser::ClearFindIcons(RDTreeWidgetItem *parent)
 {
   for(int i = 0; i < parent->childCount(); i++)
   {
-    QTreeWidgetItem *n = parent->child(i);
+    RDTreeWidgetItem *n = parent->child(i);
 
     n->setData(COL_FIND, Qt::UserRole, QVariant(false));
     RefreshIcon(n);
@@ -824,13 +826,13 @@ void EventBrowser::ClearFindIcons()
     ClearFindIcons(ui->events->topLevelItem(0));
 }
 
-int EventBrowser::SetFindIcons(QTreeWidgetItem *parent, QString filter)
+int EventBrowser::SetFindIcons(RDTreeWidgetItem *parent, QString filter)
 {
   int results = 0;
 
   for(int i = 0; i < parent->childCount(); i++)
   {
-    QTreeWidgetItem *n = parent->child(i);
+    RDTreeWidgetItem *n = parent->child(i);
 
     if(n->text(COL_NAME).contains(filter, Qt::CaseInsensitive))
     {
@@ -856,11 +858,11 @@ int EventBrowser::SetFindIcons(QString filter)
   return SetFindIcons(ui->events->topLevelItem(0), filter);
 }
 
-QTreeWidgetItem *EventBrowser::FindNode(QTreeWidgetItem *parent, QString filter, uint32_t after)
+RDTreeWidgetItem *EventBrowser::FindNode(RDTreeWidgetItem *parent, QString filter, uint32_t after)
 {
   for(int i = 0; i < parent->childCount(); i++)
   {
-    QTreeWidgetItem *n = parent->child(i);
+    RDTreeWidgetItem *n = parent->child(i);
 
     uint eid = n->data(COL_LAST_EID, Qt::UserRole).toUInt();
 
@@ -869,7 +871,7 @@ QTreeWidgetItem *EventBrowser::FindNode(QTreeWidgetItem *parent, QString filter,
 
     if(n->childCount() > 0)
     {
-      QTreeWidgetItem *found = FindNode(n, filter, after);
+      RDTreeWidgetItem *found = FindNode(n, filter, after);
 
       if(found != NULL)
         return found;
@@ -879,7 +881,7 @@ QTreeWidgetItem *EventBrowser::FindNode(QTreeWidgetItem *parent, QString filter,
   return NULL;
 }
 
-int EventBrowser::FindEvent(QTreeWidgetItem *parent, QString filter, uint32_t after, bool forward)
+int EventBrowser::FindEvent(RDTreeWidgetItem *parent, QString filter, uint32_t after, bool forward)
 {
   if(parent == NULL)
     return -1;
@@ -926,8 +928,10 @@ void EventBrowser::Find(bool forward)
     return;
 
   uint32_t curEID = m_Ctx.CurEvent();
-  if(!ui->events->selectedItems().isEmpty())
-    curEID = ui->events->selectedItems()[0]->data(COL_LAST_EID, Qt::UserRole).toUInt();
+
+  RDTreeWidgetItem *node = ui->events->selectedItem();
+  if(node)
+    curEID = node->data(COL_LAST_EID, Qt::UserRole).toUInt();
 
   int eid = FindEvent(ui->findEvent->text(), curEID, forward);
   if(eid >= 0)
@@ -957,7 +961,7 @@ void EventBrowser::UpdateDurationColumn()
 
   m_TimeUnit = m_Ctx.Config().EventBrowser_TimeUnit;
 
-  ui->events->headerItem()->setText(COL_DURATION, tr("Duration (%1)").arg(UnitSuffix(m_TimeUnit)));
+  ui->events->setHeaderText(COL_DURATION, tr("Duration (%1)").arg(UnitSuffix(m_TimeUnit)));
 
   if(!m_Times.empty())
     SetDrawcallTimes(ui->events->topLevelItem(0), m_Times);

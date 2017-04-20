@@ -34,16 +34,6 @@
    <attribute name="headerStretchLastSection">
     <bool>false</bool>
    </attribute>
-   <column>
-    <property name="text">
-     <string>Hostname</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Running</string>
-    </property>
-   </column>
   </widget>
   <widget class="QLabel" name="progressIcon">
    <property name="geometry">
@@ -185,7 +175,7 @@
  <customwidgets>
   <customwidget>
    <class>RDTreeWidget</class>
-   <extends>QTreeWidget</extends>
+   <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
   <customwidget>

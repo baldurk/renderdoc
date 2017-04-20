@@ -29,7 +29,7 @@ namespace Ui
 class OrderedListEditor;
 }
 
-class QTreeWidgetItem;
+class RDTreeWidgetItem;
 class QToolButton;
 
 enum class BrowseMode

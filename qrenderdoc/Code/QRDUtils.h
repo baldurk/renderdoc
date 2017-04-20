@@ -842,12 +842,6 @@ class QGridLayout;
 
 void addGridLines(QGridLayout *grid);
 
-class QTreeWidgetItem;
-
-QTreeWidgetItem *makeTreeNode(const std::initializer_list<QVariant> &values);
-QTreeWidgetItem *makeTreeNode(const QVariantList &values);
-void deleteChildren(QTreeWidgetItem *item);
-
 class QProgressDialog;
 
 typedef std::function<float()> ProgressUpdateMethod;

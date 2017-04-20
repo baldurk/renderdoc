@@ -78,10 +78,11 @@ EnvironmentEditor::EnvironmentEditor(QWidget *parent)
 
   ui->name->setCompleter(m_Completer);
 
+  ui->variables->setColumns({tr("Name"), tr("Modification"), tr("Value")});
+
   ui->variables->header()->setSectionResizeMode(0, QHeaderView::Interactive);
   ui->variables->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
 
-  ui->variables->setClearSelectionOnFocusLoss(false);
   ui->variables->sortByColumn(0, Qt::DescendingOrder);
 
   ui->variables->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
@@ -101,8 +102,7 @@ void EnvironmentEditor::on_name_textChanged(const QString &text)
     ui->addUpdate->setText(tr("Update"));
     ui->deleteButton->setEnabled(true);
 
-    ui->variables->clearSelection();
-    ui->variables->topLevelItem(idx)->setSelected(true);
+    ui->variables->setSelectedItem(ui->variables->topLevelItem(idx));
   }
   else
   {
@@ -119,12 +119,12 @@ void EnvironmentEditor::on_variables_keyPress(QKeyEvent *event)
     on_deleteButton_clicked();
 }
 
-void EnvironmentEditor::on_variables_currentItemChanged(QTreeWidgetItem *current,
-                                                        QTreeWidgetItem *previous)
+void EnvironmentEditor::on_variables_currentItemChanged(RDTreeWidgetItem *current,
+                                                        RDTreeWidgetItem *previous)
 {
-  QList<QTreeWidgetItem *> sel = ui->variables->selectedItems();
+  RDTreeWidgetItem *sel = ui->variables->selectedItem();
 
-  if(sel.isEmpty())
+  if(!sel)
     return;
 
   EnvironmentModification mod = sel[0]->data(0, Qt::UserRole).value<EnvironmentModification>();
@@ -165,12 +165,12 @@ void EnvironmentEditor::on_addUpdate_clicked()
 
 void EnvironmentEditor::on_deleteButton_clicked()
 {
-  QList<QTreeWidgetItem *> sel = ui->variables->selectedItems();
+  RDTreeWidgetItem *sel = ui->variables->selectedItem();
 
-  if(sel.isEmpty())
+  if(!sel)
     return;
 
-  delete ui->variables->takeTopLevelItem(ui->variables->indexOfTopLevelItem(sel[0]));
+  delete ui->variables->takeTopLevelItem(ui->variables->indexOfTopLevelItem(sel));
 
   on_name_textChanged(ui->name->text());
 }
@@ -197,13 +197,13 @@ void EnvironmentEditor::addModification(EnvironmentModification mod, bool silent
     return;
   }
 
-  QTreeWidgetItem *node = NULL;
+  RDTreeWidgetItem *node = NULL;
 
   int idx = existingIndex();
 
   if(idx < 0)
   {
-    node = makeTreeNode({ToQStr(mod.name), GetTypeString(mod), ToQStr(mod.value)});
+    node = new RDTreeWidgetItem({ToQStr(mod.name), GetTypeString(mod), ToQStr(mod.value)});
     ui->variables->addTopLevelItem(node);
   }
   else
@@ -216,8 +216,7 @@ void EnvironmentEditor::addModification(EnvironmentModification mod, bool silent
 
   node->setData(0, Qt::UserRole, QVariant::fromValue(mod));
 
-  ui->variables->clearSelection();
-  node->setSelected(true);
+  ui->variables->setSelectedItem(node);
 
   delete m_Completer;
 

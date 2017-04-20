@@ -32,6 +32,7 @@ namespace Ui
 class ConstantBufferPreviewer;
 }
 
+class RDTreeWidgetItem;
 struct FormatElement;
 
 class ConstantBufferPreviewer : public QFrame, public IConstantBufferPreviewer, public ILogViewer
@@ -73,7 +74,7 @@ private:
 
   rdctype::array<ShaderVariable> applyFormatOverride(const rdctype::array<byte> &data);
 
-  void addVariables(QTreeWidgetItem *root, const rdctype::array<ShaderVariable> &vars);
+  void addVariables(RDTreeWidgetItem *root, const rdctype::array<ShaderVariable> &vars);
   void setVariables(const rdctype::array<ShaderVariable> &vars);
 
   void updateLabels();

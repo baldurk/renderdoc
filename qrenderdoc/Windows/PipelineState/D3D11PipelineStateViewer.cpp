@@ -73,6 +73,9 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
 {
   ui->setupUi(this);
 
+  const QIcon &action = Icons::action();
+  const QIcon &action_hover = Icons::action_hover();
+
   RDLabel *shaderLabels[] = {
       ui->vsShader, ui->hsShader, ui->dsShader,   ui->gsShader,
       ui->psShader, ui->csShader, ui->iaBytecode,
@@ -147,9 +150,10 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
   addGridLines(ui->blendStateGridLayout);
   addGridLines(ui->depthStateGridLayout);
 
-  // no way to set this up in the UI :(
   {
-    // Slot | Semantic | Index | Format | Input Slot | Offset | Class | Step Rate | Go
+    ui->iaLayouts->setColumns({tr("Slot"), tr("Semantic"), tr("Index"), tr("Format"),
+                               tr("Input Slot"), tr("Offset"), tr("Class"), tr("Step Rate"),
+                               tr("Go")});
     ui->iaLayouts->header()->resizeSection(0, 75);
     ui->iaLayouts->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->iaLayouts->header()->setSectionResizeMode(1, QHeaderView::Stretch);
@@ -161,11 +165,13 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     ui->iaLayouts->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
     ui->iaLayouts->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
 
-    ui->iaLayouts->setHoverIconColumn(8);
+    ui->iaLayouts->setClearSelectionOnFocusLoss(true);
+    ui->iaLayouts->setHoverIconColumn(8, action, action_hover);
   }
 
   {
-    // Slot | Buffer | Stride | Offset | Byte Length | Go
+    ui->iaBuffers->setColumns(
+        {tr("Slot"), tr("Buffer"), tr("Stride"), tr("Offset"), tr("Byte Length"), tr("Go")});
     ui->iaBuffers->header()->resizeSection(0, 75);
     ui->iaBuffers->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->iaBuffers->header()->setSectionResizeMode(1, QHeaderView::Stretch);
@@ -174,12 +180,14 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     ui->iaBuffers->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
     ui->iaBuffers->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
 
-    ui->iaBuffers->setHoverIconColumn(5);
+    ui->iaBuffers->setClearSelectionOnFocusLoss(true);
+    ui->iaBuffers->setHoverIconColumn(5, action, action_hover);
   }
 
   for(RDTreeWidget *tex : resources)
   {
-    // Slot | Resource | Type | Width | Height | Depth | Array Size | Format | Go
+    tex->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"), tr("Depth"),
+                     tr("Array Size"), tr("Format"), tr("Go")});
     tex->header()->resizeSection(0, 120);
     tex->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     tex->header()->setSectionResizeMode(1, QHeaderView::Stretch);
@@ -191,24 +199,26 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     tex->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
     tex->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
 
-    tex->setHoverIconColumn(8);
-    tex->setDefaultHoverColor(ui->targetOutputs->palette().color(QPalette::Window));
+    tex->setHoverIconColumn(8, action, action_hover);
+    tex->setClearSelectionOnFocusLoss(true);
   }
 
   for(RDTreeWidget *samp : samplers)
   {
-    // Slot | Addressing | Filter | LOD Clamp | LOD Bias
+    samp->setColumns({tr("Slot"), tr("Addressing"), tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")});
     samp->header()->resizeSection(0, 120);
     samp->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     samp->header()->setSectionResizeMode(1, QHeaderView::Stretch);
     samp->header()->setSectionResizeMode(2, QHeaderView::Stretch);
     samp->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     samp->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+
+    samp->setClearSelectionOnFocusLoss(true);
   }
 
   for(RDTreeWidget *cbuffer : cbuffers)
   {
-    // Slot | Buffer | Byte Range | Size | Go
+    cbuffer->setColumns({tr("Slot"), tr("Buffer"), tr("Byte Range"), tr("Size"), tr("Go")});
     cbuffer->header()->resizeSection(0, 120);
     cbuffer->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     cbuffer->header()->setSectionResizeMode(1, QHeaderView::Stretch);
@@ -216,21 +226,24 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     cbuffer->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     cbuffer->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
 
-    cbuffer->setHoverIconColumn(4);
-    cbuffer->setDefaultHoverColor(ui->targetOutputs->palette().color(QPalette::Window));
+    cbuffer->setHoverIconColumn(4, action, action_hover);
+    cbuffer->setClearSelectionOnFocusLoss(true);
   }
 
   for(RDTreeWidget *cl : classes)
   {
-    // Slot | Interface | Instance
+    cl->setColumns({tr("Slot"), tr("Interface"), tr("Instance")});
     cl->header()->resizeSection(0, 120);
     cl->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     cl->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     cl->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+
+    cl->setClearSelectionOnFocusLoss(true);
   }
 
   {
-    // Slot | X | Y | Width | Height | MinDepth | MaxDepth
+    ui->viewports->setColumns(
+        {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"), tr("MinDepth"), tr("MaxDepth")});
     ui->viewports->header()->resizeSection(0, 75);
     ui->viewports->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->viewports->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
@@ -239,20 +252,26 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     ui->viewports->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
     ui->viewports->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
     ui->viewports->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
+
+    ui->viewports->setClearSelectionOnFocusLoss(true);
   }
 
   {
-    // Slot | X | Y | Width | Height
+    ui->scissors->setColumns({tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height")});
     ui->scissors->header()->resizeSection(0, 100);
     ui->scissors->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->scissors->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     ui->scissors->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     ui->scissors->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     ui->scissors->header()->setSectionResizeMode(4, QHeaderView::Stretch);
+
+    ui->scissors->setClearSelectionOnFocusLoss(true);
   }
 
   {
-    // Slot | Resource | Type | Width | Height | Depth | Array Size | Format | Go
+    ui->targetOutputs->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"),
+                                   tr("Height"), tr("Depth"), tr("Array Size"), tr("Format"),
+                                   tr("Go")});
     ui->targetOutputs->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->targetOutputs->header()->setSectionResizeMode(1, QHeaderView::Stretch);
     ui->targetOutputs->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
@@ -263,12 +282,13 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     ui->targetOutputs->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
     ui->targetOutputs->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
 
-    ui->targetOutputs->setHoverIconColumn(8);
-    ui->targetOutputs->setDefaultHoverColor(ui->targetOutputs->palette().color(QPalette::Window));
+    ui->targetOutputs->setHoverIconColumn(8, action, action_hover);
+    ui->targetOutputs->setClearSelectionOnFocusLoss(true);
   }
 
   {
-    // Slot | Enabled | Col Src | Col Dst | Col Op | Alpha Src | Alpha Dst | Alpha Op | Write Mask
+    ui->blends->setColumns({tr("Slot"), tr("Enabled"), tr("Col Src"), tr("Col Dst"), tr("Col Op"),
+                            tr("Alpha Src"), tr("Alpha Dst"), tr("Alpha Op"), tr("Write Mask")});
     ui->blends->header()->resizeSection(0, 75);
     ui->blends->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->blends->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
@@ -279,20 +299,26 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     ui->blends->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
     ui->blends->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
     ui->blends->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
+
+    ui->blends->setClearSelectionOnFocusLoss(true);
   }
 
   {
-    // Face | Func | Fail Op | Depth Fail Op | Pass Op
+    ui->stencils->setColumns(
+        {tr("Face"), tr("Func"), tr("Fail Op"), tr("Depth Fail Op"), tr("Pass Op")});
     ui->stencils->header()->resizeSection(0, 50);
     ui->stencils->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->stencils->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     ui->stencils->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     ui->stencils->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     ui->stencils->header()->setSectionResizeMode(4, QHeaderView::Stretch);
+
+    ui->stencils->setClearSelectionOnFocusLoss(true);
   }
 
   {
-    // Slot | Resource | Type | Width | Height | Depth | Array Size | Format | Go
+    ui->csUAVs->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
+                            tr("Depth"), tr("Array Size"), tr("Format"), tr("Go")});
     ui->csUAVs->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->csUAVs->header()->setSectionResizeMode(1, QHeaderView::Stretch);
     ui->csUAVs->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
@@ -303,8 +329,8 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     ui->csUAVs->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
     ui->csUAVs->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
 
-    ui->csUAVs->setHoverIconColumn(8);
-    ui->csUAVs->setDefaultHoverColor(ui->targetOutputs->palette().color(QPalette::Window));
+    ui->csUAVs->setHoverIconColumn(8, action, action_hover);
+    ui->csUAVs->setClearSelectionOnFocusLoss(true);
   }
 
   // this is often changed just because we're changing some tab in the designer.
@@ -361,20 +387,15 @@ void D3D11PipelineStateViewer::on_showEmpty_toggled(bool checked)
   setState();
 }
 
-void D3D11PipelineStateViewer::setInactiveRow(QTreeWidgetItem *node)
+void D3D11PipelineStateViewer::setInactiveRow(RDTreeWidgetItem *node)
 {
-  for(int i = 0; i < node->columnCount(); i++)
-  {
-    QFont f = node->font(i);
-    f.setItalic(true);
-    node->setFont(i, f);
-  }
+  node->setItalic(true);
 }
 
-void D3D11PipelineStateViewer::setEmptyRow(QTreeWidgetItem *node)
+void D3D11PipelineStateViewer::setEmptyRow(RDTreeWidgetItem *node)
 {
-  for(int i = 0; i < node->columnCount(); i++)
-    node->setBackgroundColor(i, QColor(255, 70, 70));
+  node->setBackgroundColor(QColor(255, 70, 70));
+  node->setForegroundColor(QColor(0, 0, 0));
 }
 
 bool D3D11PipelineStateViewer::HasImportantViewParams(const D3D11Pipe::View &view,
@@ -407,7 +428,7 @@ bool D3D11PipelineStateViewer::HasImportantViewParams(const D3D11Pipe::View &vie
   return false;
 }
 
-void D3D11PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewTag &view,
+void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const ViewTag &view,
                                               TextureDescription *tex)
 {
   if(tex == NULL)
@@ -467,19 +488,16 @@ void D3D11PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewT
 
   text = text.trimmed();
 
-  for(int i = 0; i < node->columnCount(); i++)
-  {
-    node->setToolTip(i, text);
+  node->setToolTip(text);
 
-    if(viewdetails)
-    {
-      node->setBackgroundColor(i, QColor(127, 255, 212));
-      node->setForeground(i, QBrush(QColor(0, 0, 0)));
-    }
+  if(viewdetails)
+  {
+    node->setBackgroundColor(QColor(127, 255, 212));
+    node->setForegroundColor(QColor(0, 0, 0));
   }
 }
 
-void D3D11PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewTag &view,
+void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const ViewTag &view,
                                               BufferDescription *buf)
 {
   if(buf == NULL)
@@ -504,20 +522,14 @@ void D3D11PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewT
     return;
   }
 
-  for(int i = 0; i < node->columnCount(); i++)
-  {
-    node->setToolTip(i, text);
-    node->setBackgroundColor(i, QColor(127, 255, 212));
-    node->setForeground(i, QBrush(QColor(0, 0, 0)));
-  }
+  node->setToolTip(text);
+  node->setBackgroundColor(QColor(127, 255, 212));
+  node->setForegroundColor(QColor(0, 0, 0));
 }
 
 void D3D11PipelineStateViewer::addResourceRow(const ViewTag &view, const ShaderResource *shaderInput,
                                               RDTreeWidget *resources)
 {
-  const QIcon &action = Icons::action();
-  const QIcon &action_hover = Icons::action_hover();
-
   const D3D11Pipe::View &r = view.res;
 
   bool viewDetails = false;
@@ -627,11 +639,10 @@ void D3D11PipelineStateViewer::addResourceRow(const ViewTag &view, const ShaderR
         viewDetails = true;
     }
 
-    QTreeWidgetItem *node = makeTreeNode({slotname, name, typeName, w, h, d, a, format, ""});
+    RDTreeWidgetItem *node =
+        new RDTreeWidgetItem({slotname, name, typeName, w, h, d, a, format, ""});
 
     node->setData(0, Qt::UserRole, QVariant::fromValue(view));
-
-    resources->setHoverIcons(node, action, action_hover);
 
     if(viewDetails)
     {
@@ -907,11 +918,11 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
       else if(s.Filter.func != FilterFunc::Normal)
         filter = QString(" (%1)").arg(ToQStr(s.Filter.func));
 
-      QTreeWidgetItem *node =
-          makeTreeNode({slotname, addressing, filter,
-                        (s.MinLOD == -FLT_MAX ? "0" : QString::number(s.MinLOD)) + " - " +
-                            (s.MaxLOD == FLT_MAX ? "FLT_MAX" : QString::number(s.MaxLOD)),
-                        s.MipLODBias});
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({slotname, addressing, filter,
+                                (s.MinLOD == -FLT_MAX ? "0" : QString::number(s.MinLOD)) + " - " +
+                                    (s.MaxLOD == FLT_MAX ? "FLT_MAX" : QString::number(s.MaxLOD)),
+                                s.MipLODBias});
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -989,7 +1000,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
 
       QString vecrange = QString("%1 - %2").arg(b.VecOffset).arg(b.VecOffset + b.VecCount);
 
-      QTreeWidgetItem *node = makeTreeNode({slotname, name, vecrange, sizestr, ""});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({slotname, name, vecrange, sizestr, ""});
 
       node->setData(0, Qt::UserRole, QVariant::fromValue(i));
 
@@ -1016,7 +1027,8 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
     if(shaderDetails && i < shaderDetails->Interfaces.count)
       interfaceName = ToQStr(shaderDetails->Interfaces[i]);
 
-    classes->addTopLevelItem(makeTreeNode({i, interfaceName, ToQStr(stage.ClassInstances[i])}));
+    classes->addTopLevelItem(
+        new RDTreeWidgetItem({i, interfaceName, ToQStr(stage.ClassInstances[i])}));
   }
   classes->clearSelection();
   classes->setUpdatesEnabled(true);
@@ -1038,9 +1050,6 @@ void D3D11PipelineStateViewer::setState()
 
   const QPixmap &tick = Pixmaps::tick();
   const QPixmap &cross = Pixmaps::cross();
-
-  const QIcon &action = Icons::action();
-  const QIcon &action_hover = Icons::action_hover();
 
   ////////////////////////////////////////////////
   // Vertex Input
@@ -1182,14 +1191,12 @@ void D3D11PipelineStateViewer::setState()
 
       if(showNode(usedSlot, filledSlot))
       {
-        QTreeWidgetItem *node = makeTreeNode(
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {i, ToQStr(l.SemanticName), l.SemanticIndex, ToQStr(l.Format.strname), l.InputSlot,
              byteOffs, l.PerInstance ? "PER_INSTANCE" : "PER_VERTEX", l.InstanceDataStepRate, ""});
 
         if(usedSlot)
           usedVBuffers[l.InputSlot] = true;
-
-        ui->iaLayouts->setHoverIcons(node, action, action_hover);
 
         if(!usedSlot)
           setInactiveRow(node);
@@ -1262,10 +1269,9 @@ void D3D11PipelineStateViewer::setState()
         length = buf->length;
       }
 
-      QTreeWidgetItem *node = makeTreeNode({"Index", name, draw ? draw->indexByteWidth : 0,
-                                            state.m_IA.ibuffer.Offset, (qulonglong)length, ""});
-
-      ui->iaBuffers->setHoverIcons(node, action, action_hover);
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({"Index", name, draw ? draw->indexByteWidth : 0,
+                                state.m_IA.ibuffer.Offset, (qulonglong)length, ""});
 
       node->setData(0, Qt::UserRole, QVariant::fromValue(VBIBTag(state.m_IA.ibuffer.Buffer,
                                                                  draw ? draw->indexOffset : 0)));
@@ -1283,9 +1289,8 @@ void D3D11PipelineStateViewer::setState()
   {
     if(ibufferUsed || ui->showEmpty->isChecked())
     {
-      QTreeWidgetItem *node = makeTreeNode({"Index", tr("No Buffer Set"), "-", "-", "-", ""});
-
-      ui->iaBuffers->setHoverIcons(node, action, action_hover);
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({"Index", tr("No Buffer Set"), "-", "-", "-", ""});
 
       node->setData(0, Qt::UserRole, QVariant::fromValue(VBIBTag(state.m_IA.ibuffer.Buffer,
                                                                  draw ? draw->indexOffset : 0)));
@@ -1326,14 +1331,12 @@ void D3D11PipelineStateViewer::setState()
         length = buf->length;
       }
 
-      QTreeWidgetItem *node = NULL;
+      RDTreeWidgetItem *node = NULL;
 
       if(filledSlot)
-        node = makeTreeNode({i, name, v.Stride, v.Offset, length, ""});
+        node = new RDTreeWidgetItem({i, name, v.Stride, v.Offset, length, ""});
       else
-        node = makeTreeNode({i, "No Buffer Set", "-", "-", "-", ""});
-
-      ui->iaBuffers->setHoverIcons(node, action, action_hover);
+        node = new RDTreeWidgetItem({i, "No Buffer Set", "-", "-", "-", ""});
 
       node->setData(0, Qt::UserRole, QVariant::fromValue(VBIBTag(v.Buffer, v.Offset)));
 
@@ -1420,9 +1423,7 @@ void D3D11PipelineStateViewer::setState()
           length = buf->length;
       }
 
-      QTreeWidgetItem *node = makeTreeNode({i, name, length, s.Offset, ""});
-
-      ui->gsStreamOut->setHoverIcons(node, action, action_hover);
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({i, name, length, s.Offset, ""});
 
       node->setData(0, Qt::UserRole, QVariant::fromValue(s.Buffer));
 
@@ -1454,7 +1455,8 @@ void D3D11PipelineStateViewer::setState()
 
     if(v.Enabled || ui->showEmpty->isChecked())
     {
-      QTreeWidgetItem *node = makeTreeNode({i, v.X, v.Y, v.Width, v.Height, v.MinDepth, v.MaxDepth});
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({i, v.X, v.Y, v.Width, v.Height, v.MinDepth, v.MaxDepth});
 
       if(v.Width == 0 || v.Height == 0 || v.MinDepth == v.MaxDepth)
         setEmptyRow(node);
@@ -1478,7 +1480,8 @@ void D3D11PipelineStateViewer::setState()
 
     if(s.Enabled || ui->showEmpty->isChecked())
     {
-      QTreeWidgetItem *node = makeTreeNode({i, s.left, s.top, s.right - s.left, s.bottom - s.top});
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({i, s.left, s.top, s.right - s.left, s.bottom - s.top});
 
       if(s.right == s.left || s.bottom == s.top)
         setEmptyRow(node);
@@ -1572,25 +1575,25 @@ void D3D11PipelineStateViewer::setState()
 
       if(showNode(usedSlot, filledSlot))
       {
-        QTreeWidgetItem *node = NULL;
+        RDTreeWidgetItem *node = NULL;
 
-        node =
-            makeTreeNode({i, blend.Enabled ? tr("True") : tr("False"),
-                          blend.LogicEnabled ? tr("True") : tr("False"),
+        node = new RDTreeWidgetItem({i, blend.Enabled ? tr("True") : tr("False"),
+                                     blend.LogicEnabled ? tr("True") : tr("False"),
 
-                          ToQStr(blend.m_Blend.Source), ToQStr(blend.m_Blend.Destination),
-                          ToQStr(blend.m_Blend.Operation),
+                                     ToQStr(blend.m_Blend.Source), ToQStr(blend.m_Blend.Destination),
+                                     ToQStr(blend.m_Blend.Operation),
 
-                          ToQStr(blend.m_AlphaBlend.Source), ToQStr(blend.m_AlphaBlend.Destination),
-                          ToQStr(blend.m_AlphaBlend.Operation),
+                                     ToQStr(blend.m_AlphaBlend.Source),
+                                     ToQStr(blend.m_AlphaBlend.Destination),
+                                     ToQStr(blend.m_AlphaBlend.Operation),
 
-                          ToQStr(blend.Logic),
+                                     ToQStr(blend.Logic),
 
-                          QString("%1%2%3%4")
-                              .arg((blend.WriteMask & 0x1) == 0 ? "_" : "R")
-                              .arg((blend.WriteMask & 0x2) == 0 ? "_" : "G")
-                              .arg((blend.WriteMask & 0x4) == 0 ? "_" : "B")
-                              .arg((blend.WriteMask & 0x8) == 0 ? "_" : "A")});
+                                     QString("%1%2%3%4")
+                                         .arg((blend.WriteMask & 0x1) == 0 ? "_" : "R")
+                                         .arg((blend.WriteMask & 0x2) == 0 ? "_" : "G")
+                                         .arg((blend.WriteMask & 0x4) == 0 ? "_" : "B")
+                                         .arg((blend.WriteMask & 0x8) == 0 ? "_" : "A")});
 
         if(!filledSlot)
           setEmptyRow(node);
@@ -1633,14 +1636,15 @@ void D3D11PipelineStateViewer::setState()
 
   ui->stencils->setUpdatesEnabled(false);
   ui->stencils->clear();
-  ui->stencils->addTopLevelItems({makeTreeNode({"Front", ToQStr(state.m_OM.m_State.m_FrontFace.Func),
-                                                ToQStr(state.m_OM.m_State.m_FrontFace.FailOp),
-                                                ToQStr(state.m_OM.m_State.m_FrontFace.DepthFailOp),
-                                                ToQStr(state.m_OM.m_State.m_FrontFace.PassOp)}),
-                                  makeTreeNode({"Back", ToQStr(state.m_OM.m_State.m_BackFace.Func),
-                                                ToQStr(state.m_OM.m_State.m_BackFace.FailOp),
-                                                ToQStr(state.m_OM.m_State.m_BackFace.DepthFailOp),
-                                                ToQStr(state.m_OM.m_State.m_BackFace.PassOp)})});
+  ui->stencils->addTopLevelItem(
+      new RDTreeWidgetItem({"Front", ToQStr(state.m_OM.m_State.m_FrontFace.Func),
+                            ToQStr(state.m_OM.m_State.m_FrontFace.FailOp),
+                            ToQStr(state.m_OM.m_State.m_FrontFace.DepthFailOp),
+                            ToQStr(state.m_OM.m_State.m_FrontFace.PassOp)}));
+  ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
+      {"Back", ToQStr(state.m_OM.m_State.m_BackFace.Func),
+       ToQStr(state.m_OM.m_State.m_BackFace.FailOp), ToQStr(state.m_OM.m_State.m_BackFace.DepthFailOp),
+       ToQStr(state.m_OM.m_State.m_BackFace.PassOp)}));
   ui->stencils->clearSelection();
   ui->stencils->setUpdatesEnabled(true);
 
@@ -1696,7 +1700,7 @@ QString D3D11PipelineStateViewer::formatMembers(int indent, const QString &namep
   return ret;
 }
 
-void D3D11PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int column)
+void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int column)
 {
   const D3D11Pipe::Shader *stage = stageForSender(item->treeWidget());
 
@@ -1934,7 +1938,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
   }
 }
 
-void D3D11PipelineStateViewer::cbuffer_itemActivated(QTreeWidgetItem *item, int column)
+void D3D11PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int column)
 {
   const D3D11Pipe::Shader *stage = stageForSender(item->treeWidget());
 
@@ -1953,12 +1957,12 @@ void D3D11PipelineStateViewer::cbuffer_itemActivated(QTreeWidgetItem *item, int 
   m_Ctx.AddDockWindow(prev->Widget(), DockReference::RightOf, this, 0.3f);
 }
 
-void D3D11PipelineStateViewer::on_iaLayouts_itemActivated(QTreeWidgetItem *item, int column)
+void D3D11PipelineStateViewer::on_iaLayouts_itemActivated(RDTreeWidgetItem *item, int column)
 {
   on_meshView_clicked();
 }
 
-void D3D11PipelineStateViewer::on_iaBuffers_itemActivated(QTreeWidgetItem *item, int column)
+void D3D11PipelineStateViewer::on_iaBuffers_itemActivated(RDTreeWidgetItem *item, int column)
 {
   QVariant tag = item->data(0, Qt::UserRole);
 
@@ -1983,48 +1987,35 @@ void D3D11PipelineStateViewer::highlightIABind(int slot)
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
 
-  ui->iaLayouts->model()->blockSignals(true);
-  ui->iaBuffers->model()->blockSignals(true);
+  ui->iaLayouts->beginUpdate();
+  ui->iaBuffers->beginUpdate();
+
   if(slot < m_VBNodes.count())
   {
-    QTreeWidgetItem *item = m_VBNodes[(int)slot];
+    RDTreeWidgetItem *item = m_VBNodes[(int)slot];
 
-    for(int c = 0; c < item->columnCount(); c++)
-    {
-      item->setBackground(c, QBrush(col));
-      item->setForeground(c, QBrush(QColor(0, 0, 0)));
-    }
+    item->setBackgroundColor(col);
+    item->setForegroundColor(QColor(0, 0, 0));
   }
 
   for(int i = 0; i < ui->iaLayouts->topLevelItemCount(); i++)
   {
-    QTreeWidgetItem *item = ui->iaLayouts->topLevelItem(i);
-
-    QBrush itemBrush = QBrush(col);
+    RDTreeWidgetItem *item = ui->iaLayouts->topLevelItem(i);
 
     if((int)IA.layouts[i].InputSlot != slot)
-      itemBrush = QBrush();
-
-    for(int c = 0; c < item->columnCount(); c++)
     {
-      item->setBackground(c, itemBrush);
-      item->setForeground(c, QBrush(QColor(0, 0, 0)));
+      item->setBackground(QBrush());
+      item->setForeground(QBrush());
+    }
+    else
+    {
+      item->setBackgroundColor(col);
+      item->setForegroundColor(QColor(0, 0, 0));
     }
   }
-  ui->iaLayouts->model()->blockSignals(false);
-  ui->iaBuffers->model()->blockSignals(false);
 
-  if(ui->iaLayouts->topLevelItemCount() > 0)
-  {
-    ui->iaLayouts->topLevelItem(0)->setDisabled(true);
-    ui->iaLayouts->topLevelItem(0)->setDisabled(false);
-  }
-
-  if(ui->iaBuffers->topLevelItemCount() > 0)
-  {
-    ui->iaBuffers->topLevelItem(0)->setDisabled(true);
-    ui->iaBuffers->topLevelItem(0)->setDisabled(false);
-  }
+  ui->iaLayouts->endUpdate();
+  ui->iaBuffers->endUpdate();
 }
 
 void D3D11PipelineStateViewer::on_iaLayouts_mouseMove(QMouseEvent *e)
@@ -2054,12 +2045,10 @@ void D3D11PipelineStateViewer::on_iaBuffers_mouseMove(QMouseEvent *e)
   if(!m_Ctx.LogLoaded())
     return;
 
-  QTreeWidgetItem *item = ui->iaBuffers->itemAt(e->pos());
+  RDTreeWidgetItem *item = ui->iaBuffers->itemAt(e->pos());
 
   vertex_leave(NULL);
 
-  ui->iaLayouts->model()->blockSignals(true);
-  ui->iaBuffers->model()->blockSignals(true);
   if(item)
   {
     int idx = m_VBNodes.indexOf(item);
@@ -2069,26 +2058,9 @@ void D3D11PipelineStateViewer::on_iaBuffers_mouseMove(QMouseEvent *e)
     }
     else
     {
-      for(int c = 0; c < item->columnCount(); c++)
-      {
-        item->setBackground(c, QBrush(ui->iaBuffers->palette().color(QPalette::Window)));
-        item->setForeground(c, QBrush());
-      }
+      item->setBackground(ui->iaBuffers->palette().brush(QPalette::Window));
+      item->setForeground(QBrush());
     }
-  }
-  ui->iaLayouts->model()->blockSignals(false);
-  ui->iaBuffers->model()->blockSignals(false);
-
-  if(ui->iaLayouts->topLevelItemCount() > 0)
-  {
-    ui->iaLayouts->topLevelItem(0)->setDisabled(true);
-    ui->iaLayouts->topLevelItem(0)->setDisabled(false);
-  }
-
-  if(ui->iaBuffers->topLevelItemCount() > 0)
-  {
-    ui->iaBuffers->topLevelItem(0)->setDisabled(true);
-    ui->iaBuffers->topLevelItem(0)->setDisabled(false);
   }
 }
 
@@ -2099,41 +2071,27 @@ void D3D11PipelineStateViewer::on_pipeFlow_stageSelected(int index)
 
 void D3D11PipelineStateViewer::vertex_leave(QEvent *e)
 {
-  ui->iaLayouts->model()->blockSignals(true);
-  ui->iaBuffers->model()->blockSignals(true);
+  ui->iaLayouts->beginUpdate();
+  ui->iaBuffers->beginUpdate();
+
   for(int i = 0; i < ui->iaLayouts->topLevelItemCount(); i++)
   {
-    QTreeWidgetItem *item = ui->iaLayouts->topLevelItem(i);
-    for(int c = 0; c < item->columnCount(); c++)
-    {
-      item->setBackground(c, QBrush());
-      item->setForeground(c, QBrush());
-    }
+    RDTreeWidgetItem *item = ui->iaLayouts->topLevelItem(i);
+
+    item->setBackground(QBrush());
+    item->setForeground(QBrush());
   }
 
   for(int i = 0; i < ui->iaBuffers->topLevelItemCount(); i++)
   {
-    QTreeWidgetItem *item = ui->iaBuffers->topLevelItem(i);
-    for(int c = 0; c < item->columnCount(); c++)
-    {
-      item->setBackground(c, QBrush());
-      item->setForeground(c, QBrush());
-    }
-  }
-  ui->iaLayouts->model()->blockSignals(false);
-  ui->iaBuffers->model()->blockSignals(false);
+    RDTreeWidgetItem *item = ui->iaBuffers->topLevelItem(i);
 
-  if(ui->iaLayouts->topLevelItemCount() > 0)
-  {
-    ui->iaLayouts->topLevelItem(0)->setDisabled(true);
-    ui->iaLayouts->topLevelItem(0)->setDisabled(false);
+    item->setBackground(QBrush());
+    item->setForeground(QBrush());
   }
 
-  if(ui->iaBuffers->topLevelItemCount() > 0)
-  {
-    ui->iaBuffers->topLevelItem(0)->setDisabled(true);
-    ui->iaBuffers->topLevelItem(0)->setDisabled(false);
-  }
+  ui->iaLayouts->endUpdate();
+  ui->iaBuffers->endUpdate();
 }
 
 void D3D11PipelineStateViewer::shaderView_clicked()

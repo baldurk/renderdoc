@@ -35,7 +35,6 @@
 #include <QProcess>
 #include <QProgressDialog>
 #include <QStandardPaths>
-#include <QTreeWidget>
 #include <QtMath>
 
 QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
@@ -534,38 +533,6 @@ void addGridLines(QGridLayout *grid)
 
       w->setStyleSheet(style);
     }
-  }
-}
-
-QTreeWidgetItem *makeTreeNode(const std::initializer_list<QVariant> &values)
-{
-  QTreeWidgetItem *ret = new QTreeWidgetItem();
-
-  int i = 0;
-  for(const QVariant &v : values)
-    ret->setData(i++, Qt::DisplayRole, v);
-
-  return ret;
-}
-
-QTreeWidgetItem *makeTreeNode(const QVariantList &values)
-{
-  QTreeWidgetItem *ret = new QTreeWidgetItem();
-
-  int i = 0;
-  for(const QVariant &v : values)
-    ret->setData(i++, Qt::DisplayRole, v);
-
-  return ret;
-}
-
-void deleteChildren(QTreeWidgetItem *item)
-{
-  while(item->childCount() > 0)
-  {
-    QTreeWidgetItem *child = item->takeChild(0);
-    deleteChildren(child);
-    delete child;
   }
 }
 

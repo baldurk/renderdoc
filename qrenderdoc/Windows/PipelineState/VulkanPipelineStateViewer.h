@@ -33,14 +33,14 @@ class VulkanPipelineStateViewer;
 }
 
 class RDTreeWidget;
-class QTreeWidgetItem;
+class RDTreeWidgetItem;
 class PipelineStateViewer;
 
 struct SamplerData
 {
   SamplerData() : node(NULL) {}
-  QList<QTreeWidgetItem *> images;
-  QTreeWidgetItem *node;
+  QList<RDTreeWidgetItem *> images;
+  RDTreeWidgetItem *node;
 };
 
 class VulkanPipelineStateViewer : public QFrame, public ILogViewer
@@ -63,8 +63,8 @@ private slots:
   void on_showEmpty_toggled(bool checked);
   void on_exportHTML_clicked();
   void on_meshView_clicked();
-  void on_viAttrs_itemActivated(QTreeWidgetItem *item, int column);
-  void on_viBuffers_itemActivated(QTreeWidgetItem *item, int column);
+  void on_viAttrs_itemActivated(RDTreeWidgetItem *item, int column);
+  void on_viBuffers_itemActivated(RDTreeWidgetItem *item, int column);
   void on_viAttrs_mouseMove(QMouseEvent *event);
   void on_viBuffers_mouseMove(QMouseEvent *event);
   void on_pipeFlow_stageSelected(int index);
@@ -74,8 +74,8 @@ private slots:
   void shaderEdit_clicked();
 
   void shaderSave_clicked();
-  void resource_itemActivated(QTreeWidgetItem *item, int column);
-  void ubo_itemActivated(QTreeWidgetItem *item, int column);
+  void resource_itemActivated(RDTreeWidgetItem *item, int column);
+  void ubo_itemActivated(RDTreeWidgetItem *item, int column);
   void vertex_leave(QEvent *e);
 
 private:
@@ -83,8 +83,8 @@ private:
   ICaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
 
-  QVariantList makeSampler(const QString &bindset, const QString &slotname,
-                           const VKPipe::BindingElement &descriptor);
+  RDTreeWidgetItem *makeSampler(const QString &bindset, const QString &slotname,
+                                const VKPipe::BindingElement &descriptor);
   void addResourceRow(ShaderReflection *shaderDetails, const VKPipe::Shader &stage, int bindset,
                       int bind, const VKPipe::Pipeline &pipe, RDTreeWidget *resources,
                       QMap<ResourceId, SamplerData> &samplers);
@@ -97,8 +97,8 @@ private:
   void setState();
   void clearState();
 
-  void setInactiveRow(QTreeWidgetItem *node);
-  void setEmptyRow(QTreeWidgetItem *node);
+  void setInactiveRow(RDTreeWidgetItem *node);
+  void setEmptyRow(RDTreeWidgetItem *node);
   void highlightIABind(int slot);
 
   QString formatMembers(int indent, const QString &nameprefix,
@@ -108,17 +108,17 @@ private:
   QString disassembleSPIRV(const ShaderReflection *shaderDetails);
 
   template <typename viewType>
-  void setViewDetails(QTreeWidgetItem *node, const viewType &view, TextureDescription *tex);
+  void setViewDetails(RDTreeWidgetItem *node, const viewType &view, TextureDescription *tex);
 
   template <typename viewType>
-  void setViewDetails(QTreeWidgetItem *node, const viewType &view, BufferDescription *buf);
+  void setViewDetails(RDTreeWidgetItem *node, const viewType &view, BufferDescription *buf);
 
   bool showNode(bool usedSlot, bool filledSlot);
 
   // keep track of the VB nodes (we want to be able to highlight them easily on hover)
-  QList<QTreeWidgetItem *> m_VBNodes;
-  QList<QTreeWidgetItem *> m_BindNodes;
+  QList<RDTreeWidgetItem *> m_VBNodes;
+  QList<RDTreeWidgetItem *> m_BindNodes;
 
   // from an combined image to its sampler (since we de-duplicate)
-  QMap<QTreeWidgetItem *, QTreeWidgetItem *> m_CombinedImageSamplers;
+  QMap<RDTreeWidgetItem *, RDTreeWidgetItem *> m_CombinedImageSamplers;
 };

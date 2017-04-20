@@ -76,6 +76,9 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 {
   ui->setupUi(this);
 
+  const QIcon &action = Icons::action();
+  const QIcon &action_hover = Icons::action_hover();
+
   RDLabel *shaderLabels[] = {
       ui->vsShader, ui->tcsShader, ui->tesShader, ui->gsShader, ui->fsShader, ui->csShader,
   };
@@ -154,9 +157,9 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
   addGridLines(ui->blendStateGridLayout);
   addGridLines(ui->depthStateGridLayout);
 
-  // no way to set this up in the UI :(
   {
-    // Index | Enabled | Name | Format/Generic Value | Buffer Slot | Relative Offset | Go
+    ui->viAttrs->setColumns({tr("Index"), tr("Enabled"), tr("Name"), tr("Format/Generic Value"),
+                             tr("Buffer Slot"), tr("Relative Offset"), tr("Go")});
     ui->viAttrs->header()->resizeSection(0, 75);
     ui->viAttrs->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->viAttrs->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
@@ -166,11 +169,13 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->viAttrs->header()->setSectionResizeMode(5, QHeaderView::Stretch);
     ui->viAttrs->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
 
-    ui->viAttrs->setHoverIconColumn(6);
+    ui->viAttrs->setClearSelectionOnFocusLoss(true);
+    ui->viAttrs->setHoverIconColumn(6, action, action_hover);
   }
 
   {
-    // Slot | Buffer | Divisor | Offset | Stride | Byte Length | Go
+    ui->viBuffers->setColumns({tr("Slot"), tr("Buffer"), tr("Divisor"), tr("Offset"), tr("Stride"),
+                               tr("Byte Length"), tr("Go")});
     ui->viBuffers->header()->resizeSection(0, 75);
     ui->viBuffers->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->viBuffers->header()->setSectionResizeMode(1, QHeaderView::Stretch);
@@ -180,12 +185,14 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->viBuffers->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
     ui->viBuffers->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
 
-    ui->viBuffers->setHoverIconColumn(6);
+    ui->viBuffers->setClearSelectionOnFocusLoss(true);
+    ui->viBuffers->setHoverIconColumn(6, action, action_hover);
   }
 
   for(RDTreeWidget *tex : textures)
   {
-    // Slot | Resource | Type | Width | Height | Depth | Array Size | Format | Go
+    tex->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"), tr("Depth"),
+                     tr("Array Size"), tr("Format"), tr("Go")});
     tex->header()->resizeSection(0, 120);
     tex->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     tex->header()->setSectionResizeMode(1, QHeaderView::Stretch);
@@ -197,24 +204,26 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     tex->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
     tex->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
 
-    tex->setHoverIconColumn(8);
-    tex->setDefaultHoverColor(ui->framebuffer->palette().color(QPalette::Window));
+    tex->setHoverIconColumn(8, action, action_hover);
+    tex->setClearSelectionOnFocusLoss(true);
   }
 
   for(RDTreeWidget *samp : samplers)
   {
-    // Slot | Addressing | Filter | LOD Clamp | LOD Bias
+    samp->setColumns({tr("Slot"), tr("Addressing"), tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")});
     samp->header()->resizeSection(0, 120);
     samp->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     samp->header()->setSectionResizeMode(1, QHeaderView::Stretch);
     samp->header()->setSectionResizeMode(2, QHeaderView::Stretch);
     samp->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     samp->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+
+    samp->setClearSelectionOnFocusLoss(true);
   }
 
   for(RDTreeWidget *ubo : ubos)
   {
-    // Slot | Buffer | Byte Range | Size | Go
+    ubo->setColumns({tr("Slot"), tr("Buffer"), tr("Byte Range"), tr("Size"), tr("Go")});
     ubo->header()->resizeSection(0, 120);
     ubo->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ubo->header()->setSectionResizeMode(1, QHeaderView::Stretch);
@@ -222,21 +231,24 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ubo->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     ubo->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
 
-    ubo->setHoverIconColumn(4);
-    ubo->setDefaultHoverColor(ui->framebuffer->palette().color(QPalette::Window));
+    ubo->setHoverIconColumn(4, action, action_hover);
+    ubo->setClearSelectionOnFocusLoss(true);
   }
 
   for(RDTreeWidget *sub : subroutines)
   {
-    // Uniform | Value
+    sub->setColumns({tr("Uniform"), tr("Value")});
     sub->header()->resizeSection(0, 120);
     sub->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     sub->header()->setSectionResizeMode(1, QHeaderView::Stretch);
+
+    sub->setClearSelectionOnFocusLoss(true);
   }
 
   for(RDTreeWidget *ubo : readwrites)
   {
-    // Binding | Slot | Resource | Dimensions | Format | Access | Go
+    ubo->setColumns({tr("Binding"), tr("Slot"), tr("Resource"), tr("Dimensions"), tr("Format"),
+                     tr("Access"), tr("Go")});
     ubo->header()->resizeSection(1, 120);
     ubo->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ubo->header()->setSectionResizeMode(1, QHeaderView::Interactive);
@@ -246,12 +258,13 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ubo->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
     ubo->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
 
-    ubo->setHoverIconColumn(6);
-    ubo->setDefaultHoverColor(ui->framebuffer->palette().color(QPalette::Window));
+    ubo->setHoverIconColumn(6, action, action_hover);
+    ubo->setClearSelectionOnFocusLoss(true);
   }
 
   {
-    // Slot | X | Y | Width | Height | MinDepth | MaxDepth
+    ui->viewports->setColumns(
+        {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"), tr("MinDepth"), tr("MaxDepth")});
     ui->viewports->header()->resizeSection(0, 75);
     ui->viewports->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->viewports->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
@@ -260,10 +273,13 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->viewports->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
     ui->viewports->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
     ui->viewports->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
+
+    ui->viewports->setClearSelectionOnFocusLoss(true);
   }
 
   {
-    // Slot | X | Y | Width | Height | Enabled
+    ui->scissors->setColumns(
+        {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"), tr("Enabled")});
     ui->scissors->header()->resizeSection(0, 100);
     ui->scissors->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->scissors->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
@@ -271,10 +287,13 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->scissors->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     ui->scissors->header()->setSectionResizeMode(4, QHeaderView::Stretch);
     ui->scissors->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
+
+    ui->scissors->setClearSelectionOnFocusLoss(true);
   }
 
   {
-    // Slot | Resource | Type | Width | Height | Depth | Array Size | Format | Go
+    ui->framebuffer->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
+                                 tr("Depth"), tr("Array Size"), tr("Format"), tr("Go")});
     ui->framebuffer->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->framebuffer->header()->setSectionResizeMode(1, QHeaderView::Stretch);
     ui->framebuffer->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
@@ -285,12 +304,13 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->framebuffer->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
     ui->framebuffer->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
 
-    ui->framebuffer->setHoverIconColumn(8);
-    ui->framebuffer->setDefaultHoverColor(ui->framebuffer->palette().color(QPalette::Window));
+    ui->framebuffer->setHoverIconColumn(8, action, action_hover);
+    ui->framebuffer->setClearSelectionOnFocusLoss(true);
   }
 
   {
-    // Slot | Enabled | Col Src | Col Dst | Col Op | Alpha Src | Alpha Dst | Alpha Op | Write Mask
+    ui->blends->setColumns({tr("Slot"), tr("Enabled"), tr("Col Src"), tr("Col Dst"), tr("Col Op"),
+                            tr("Alpha Src"), tr("Alpha Dst"), tr("Alpha Op"), tr("Write Mask")});
     ui->blends->header()->resizeSection(0, 75);
     ui->blends->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->blends->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
@@ -301,10 +321,13 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->blends->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
     ui->blends->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
     ui->blends->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
+
+    ui->blends->setClearSelectionOnFocusLoss(true);
   }
 
   {
-    // Face | Func | Fail Op | Depth Fail Op | Pass Op | Write Mask | Comp Mask | Ref
+    ui->stencils->setColumns({tr("Face"), tr("Func"), tr("Fail Op"), tr("Depth Fail Op"),
+                              tr("Pass Op"), tr("Write Mask"), tr("Comp Mask"), tr("Ref")});
     ui->stencils->header()->resizeSection(0, 50);
     ui->stencils->header()->setSectionResizeMode(0, QHeaderView::Interactive);
     ui->stencils->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
@@ -314,6 +337,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->stencils->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
     ui->stencils->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
     ui->stencils->header()->setSectionResizeMode(7, QHeaderView::Stretch);
+
+    ui->stencils->setClearSelectionOnFocusLoss(true);
   }
 
   // this is often changed just because we're changing some tab in the designer.
@@ -371,20 +396,15 @@ void GLPipelineStateViewer::on_showEmpty_toggled(bool checked)
   setState();
 }
 
-void GLPipelineStateViewer::setInactiveRow(QTreeWidgetItem *node)
+void GLPipelineStateViewer::setInactiveRow(RDTreeWidgetItem *node)
 {
-  for(int i = 0; i < node->columnCount(); i++)
-  {
-    QFont f = node->font(i);
-    f.setItalic(true);
-    node->setFont(i, f);
-  }
+  node->setItalic(true);
 }
 
-void GLPipelineStateViewer::setEmptyRow(QTreeWidgetItem *node)
+void GLPipelineStateViewer::setEmptyRow(RDTreeWidgetItem *node)
 {
-  for(int i = 0; i < node->columnCount(); i++)
-    node->setBackgroundColor(i, QColor(255, 70, 70));
+  node->setBackgroundColor(QColor(255, 70, 70));
+  node->setForegroundColor(QColor(0, 0, 0));
 }
 
 bool GLPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
@@ -536,9 +556,6 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
   const ShaderBindpointMapping &mapping = stage.BindpointMapping;
   const GLPipe::State &state = m_Ctx.CurGLPipelineState();
 
-  const QIcon &action = Icons::action();
-  const QIcon &action_hover = Icons::action_hover();
-
   if(stage.Object == ResourceId())
   {
     shader->setText(tr("Unbound Shader"));
@@ -655,9 +672,8 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
           }
         }
 
-        QTreeWidgetItem *node = makeTreeNode({slotname, name, typeName, w, h, d, a, format, ""});
-
-        textures->setHoverIcons(node, action, action_hover);
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({slotname, name, typeName, w, h, d, a, format, ""});
 
         if(!filledSlot)
           setEmptyRow(node);
@@ -725,11 +741,11 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         else if(s.Filter.func != FilterFunc::Normal)
           filter += QString(" (%1)").arg(ToQStr(s.Filter.func));
 
-        QTreeWidgetItem *node =
-            makeTreeNode({slotname, addressing, filter,
-                          (s.MinLOD == -FLT_MAX ? "0" : QString::number(s.MinLOD)) + " - " +
-                              (s.MaxLOD == FLT_MAX ? "FLT_MAX" : QString::number(s.MaxLOD)),
-                          s.MipLODBias});
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({slotname, addressing, filter,
+                                  (s.MinLOD == -FLT_MAX ? "0" : QString::number(s.MinLOD)) + " - " +
+                                      (s.MaxLOD == FLT_MAX ? "FLT_MAX" : QString::number(s.MaxLOD)),
+                                  s.MipLODBias});
 
         if(!filledSlot)
           setEmptyRow(node);
@@ -810,7 +826,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         byterange = QString("%1 - %2").arg(offset).arg(offset + length);
       }
 
-      QTreeWidgetItem *node = makeTreeNode({slotname, name, byterange, sizestr, ""});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({slotname, name, byterange, sizestr, ""});
 
       node->setData(0, Qt::UserRole, QVariant::fromValue(i));
 
@@ -831,7 +847,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
   subs->setUpdatesEnabled(false);
   subs->clear();
   for(int i = 0; i < stage.Subroutines.count; i++)
-    subs->addTopLevelItem(makeTreeNode({i, stage.Subroutines[i]}));
+    subs->addTopLevelItem(new RDTreeWidgetItem({i, stage.Subroutines[i]}));
   subs->clearSelection();
   subs->setUpdatesEnabled(true);
   subs->verticalScrollBar()->setValue(vs);
@@ -956,8 +972,8 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         access = "-";
       }
 
-      QTreeWidgetItem *node =
-          makeTreeNode({binding, slotname, name, dimensions, format, access, ""});
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({binding, slotname, name, dimensions, format, access, ""});
 
       node->setData(0, Qt::UserRole, tag);
 
@@ -1054,9 +1070,6 @@ void GLPipelineStateViewer::setState()
   const QPixmap &tick = Pixmaps::tick();
   const QPixmap &cross = Pixmaps::cross();
 
-  const QIcon &action = Icons::action();
-  const QIcon &action_hover = Icons::action_hover();
-
   bool usedBindings[128] = {};
 
   ////////////////////////////////////////////////
@@ -1098,14 +1111,12 @@ void GLPipelineStateViewer::setState()
       {
         QString genericVal = "Generic=" + MakeGenericValueString(compCount, compType, a);
 
-        QTreeWidgetItem *node = makeTreeNode({i, a.Enabled ? tr("Enabled") : tr("Disabled"), name,
-                                              a.Enabled ? ToQStr(a.Format.strname) : genericVal,
-                                              a.BufferSlot, a.RelativeOffset});
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
+            {i, a.Enabled ? tr("Enabled") : tr("Disabled"), name,
+             a.Enabled ? ToQStr(a.Format.strname) : genericVal, a.BufferSlot, a.RelativeOffset});
 
         if(a.Enabled)
           usedBindings[a.BufferSlot] = true;
-
-        ui->viAttrs->setHoverIcons(node, action, action_hover);
 
         if(!usedSlot)
           setInactiveRow(node);
@@ -1192,10 +1203,8 @@ void GLPipelineStateViewer::setState()
         length = buf->length;
       }
 
-      QTreeWidgetItem *node = makeTreeNode(
+      RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {"Element", name, 0, 0, draw ? draw->indexByteWidth : 0, (qulonglong)length, ""});
-
-      ui->viBuffers->setHoverIcons(node, action, action_hover);
 
       node->setData(0, Qt::UserRole, QVariant::fromValue(VBIBTag(state.m_VtxIn.ibuffer,
                                                                  draw ? draw->indexOffset : 0)));
@@ -1213,9 +1222,8 @@ void GLPipelineStateViewer::setState()
   {
     if(ibufferUsed || showEmpty)
     {
-      QTreeWidgetItem *node = makeTreeNode({"Element", tr("No Buffer Set"), "-", "-", "-", "-", ""});
-
-      ui->viBuffers->setHoverIcons(node, action, action_hover);
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({"Element", tr("No Buffer Set"), "-", "-", "-", "-", ""});
 
       node->setData(0, Qt::UserRole, QVariant::fromValue(VBIBTag(state.m_VtxIn.ibuffer,
                                                                  draw ? draw->indexOffset : 0)));
@@ -1257,10 +1265,8 @@ void GLPipelineStateViewer::setState()
         length = buf->length;
       }
 
-      QTreeWidgetItem *node =
-          makeTreeNode({i, name, v.Stride, (qulonglong)offset, v.Divisor, (qulonglong)length, ""});
-
-      ui->viBuffers->setHoverIcons(node, action, action_hover);
+      RDTreeWidgetItem *node = new RDTreeWidgetItem(
+          {i, name, v.Stride, (qulonglong)offset, v.Divisor, (qulonglong)length, ""});
 
       node->setData(0, Qt::UserRole, QVariant::fromValue(VBIBTag(v.Buffer, v.Offset)));
 
@@ -1322,10 +1328,8 @@ void GLPipelineStateViewer::setState()
             length = buf->length;
         }
 
-        QTreeWidgetItem *node =
-            makeTreeNode({i, name, length, (qulonglong)state.m_Feedback.Offset[i], ""});
-
-        ui->gsFeedback->setHoverIcons(node, action, action_hover);
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({i, name, length, (qulonglong)state.m_Feedback.Offset[i], ""});
 
         node->setData(0, Qt::UserRole, QVariant::fromValue(state.m_Feedback.BufferBinding[i]));
 
@@ -1373,7 +1377,7 @@ void GLPipelineStateViewer::setState()
           else
             indexstring = QString::number(prev);
 
-          QTreeWidgetItem *node = makeTreeNode(
+          RDTreeWidgetItem *node = new RDTreeWidgetItem(
               {indexstring, v1.Left, v1.Bottom, v1.Width, v1.Height, v1.MinDepth, v1.MaxDepth});
 
           if(v1.Width == 0 || v1.Height == 0 || v1.MinDepth == v1.MaxDepth)
@@ -1404,7 +1408,7 @@ void GLPipelineStateViewer::setState()
         else
           indexstring = QString::number(prev);
 
-        QTreeWidgetItem *node = makeTreeNode(
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {indexstring, v1.Left, v1.Bottom, v1.Width, v1.Height, v1.MinDepth, v1.MaxDepth});
 
         if(v1.Width == 0 || v1.Height == 0 || v1.MinDepth == v1.MaxDepth)
@@ -1442,8 +1446,9 @@ void GLPipelineStateViewer::setState()
           else
             indexstring = QString::number(prev);
 
-          QTreeWidgetItem *node = makeTreeNode({indexstring, s1.Left, s1.Bottom, s1.Width,
-                                                s1.Height, s1.Enabled ? tr("True") : tr("False")});
+          RDTreeWidgetItem *node =
+              new RDTreeWidgetItem({indexstring, s1.Left, s1.Bottom, s1.Width, s1.Height,
+                                    s1.Enabled ? tr("True") : tr("False")});
 
           if(s1.Width == 0 || s1.Height == 0)
             setEmptyRow(node);
@@ -1473,8 +1478,9 @@ void GLPipelineStateViewer::setState()
         else
           indexstring = QString::number(prev);
 
-        QTreeWidgetItem *node = makeTreeNode({indexstring, s1.Left, s1.Bottom, s1.Width, s1.Height,
-                                              s1.Enabled ? tr("True") : tr("False")});
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({indexstring, s1.Left, s1.Bottom, s1.Width, s1.Height,
+                                  s1.Enabled ? tr("True") : tr("False")});
 
         if(s1.Width == 0 || s1.Height == 0)
           setEmptyRow(node);
@@ -1666,9 +1672,7 @@ void GLPipelineStateViewer::setState()
                         .arg(ToQStr(r->Swizzle[3]));
         }
 
-        QTreeWidgetItem *node = makeTreeNode({i, name, typeName, w, h, d, a, format, ""});
-
-        ui->framebuffer->setHoverIcons(node, action, action_hover);
+        RDTreeWidgetItem *node = new RDTreeWidgetItem({i, name, typeName, w, h, d, a, format, ""});
 
         if(tex)
           node->setData(0, Qt::UserRole, QVariant::fromValue(p));
@@ -1739,9 +1743,8 @@ void GLPipelineStateViewer::setState()
           slot = "Depthstencil";
         }
 
-        QTreeWidgetItem *node = makeTreeNode({slot, name, typeName, w, h, d, a, format, ""});
-
-        ui->framebuffer->setHoverIcons(node, action, action_hover);
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({slot, name, typeName, w, h, d, a, format, ""});
 
         if(tex)
           node->setData(0, Qt::UserRole, QVariant::fromValue(ds));
@@ -1780,38 +1783,38 @@ void GLPipelineStateViewer::setState()
 
       if(showNode(usedSlot, filledSlot))
       {
-        QTreeWidgetItem *node = NULL;
+        RDTreeWidgetItem *node = NULL;
 
         if(i == 0 && logic)
         {
-          node = makeTreeNode({i, tr("True"),
+          node = new RDTreeWidgetItem({i, tr("True"),
 
-                               "-", "-", ToQStr(blend.Logic),
+                                       "-", "-", ToQStr(blend.Logic),
 
-                               "-", "-", "-",
+                                       "-", "-", "-",
 
-                               QString("%1%2%3%4")
-                                   .arg((blend.WriteMask & 0x1) == 0 ? "_" : "R")
-                                   .arg((blend.WriteMask & 0x2) == 0 ? "_" : "G")
-                                   .arg((blend.WriteMask & 0x4) == 0 ? "_" : "B")
-                                   .arg((blend.WriteMask & 0x8) == 0 ? "_" : "A")});
+                                       QString("%1%2%3%4")
+                                           .arg((blend.WriteMask & 0x1) == 0 ? "_" : "R")
+                                           .arg((blend.WriteMask & 0x2) == 0 ? "_" : "G")
+                                           .arg((blend.WriteMask & 0x4) == 0 ? "_" : "B")
+                                           .arg((blend.WriteMask & 0x8) == 0 ? "_" : "A")});
         }
         else
         {
-          node = makeTreeNode({i, blend.Enabled ? tr("True") : tr("False"),
+          node = new RDTreeWidgetItem(
+              {i, blend.Enabled ? tr("True") : tr("False"),
 
-                               ToQStr(blend.m_Blend.Source), ToQStr(blend.m_Blend.Destination),
-                               ToQStr(blend.m_Blend.Operation),
+               ToQStr(blend.m_Blend.Source), ToQStr(blend.m_Blend.Destination),
+               ToQStr(blend.m_Blend.Operation),
 
-                               ToQStr(blend.m_AlphaBlend.Source),
-                               ToQStr(blend.m_AlphaBlend.Destination),
-                               ToQStr(blend.m_AlphaBlend.Operation),
+               ToQStr(blend.m_AlphaBlend.Source), ToQStr(blend.m_AlphaBlend.Destination),
+               ToQStr(blend.m_AlphaBlend.Operation),
 
-                               QString("%1%2%3%4")
-                                   .arg((blend.WriteMask & 0x1) == 0 ? "_" : "R")
-                                   .arg((blend.WriteMask & 0x2) == 0 ? "_" : "G")
-                                   .arg((blend.WriteMask & 0x4) == 0 ? "_" : "B")
-                                   .arg((blend.WriteMask & 0x8) == 0 ? "_" : "A")});
+               QString("%1%2%3%4")
+                   .arg((blend.WriteMask & 0x1) == 0 ? "_" : "R")
+                   .arg((blend.WriteMask & 0x2) == 0 ? "_" : "G")
+                   .arg((blend.WriteMask & 0x4) == 0 ? "_" : "B")
+                   .arg((blend.WriteMask & 0x8) == 0 ? "_" : "A")});
         }
 
         if(!filledSlot)
@@ -1856,28 +1859,29 @@ void GLPipelineStateViewer::setState()
   ui->stencils->clear();
   if(state.m_StencilState.StencilEnable)
   {
-    ui->stencils->addTopLevelItems(
-        {makeTreeNode(
-             {"Front", ToQStr(state.m_StencilState.m_FrontFace.Func),
-              ToQStr(state.m_StencilState.m_FrontFace.FailOp),
-              ToQStr(state.m_StencilState.m_FrontFace.DepthFailOp),
-              ToQStr(state.m_StencilState.m_FrontFace.PassOp),
-              QString("%1").arg(state.m_StencilState.m_FrontFace.WriteMask, 2, 16, QChar('0')).toUpper(),
-              QString("%1").arg(state.m_StencilState.m_FrontFace.ValueMask, 2, 16, QChar('0')).toUpper(),
-              QString("%1").arg(state.m_StencilState.m_FrontFace.Ref, 2, 16, QChar('0')).toUpper()}),
-         makeTreeNode(
-             {"Back", ToQStr(state.m_StencilState.m_BackFace.Func),
-              ToQStr(state.m_StencilState.m_BackFace.FailOp),
-              ToQStr(state.m_StencilState.m_BackFace.DepthFailOp),
-              ToQStr(state.m_StencilState.m_BackFace.PassOp),
-              QString("%1").arg(state.m_StencilState.m_BackFace.WriteMask, 2, 16, QChar('0')).toUpper(),
-              QString("%1").arg(state.m_StencilState.m_BackFace.ValueMask, 2, 16, QChar('0')).toUpper(),
-              QString("%1").arg(state.m_StencilState.m_BackFace.Ref, 2, 16, QChar('0')).toUpper()})});
+    ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
+        {"Front", ToQStr(state.m_StencilState.m_FrontFace.Func),
+         ToQStr(state.m_StencilState.m_FrontFace.FailOp),
+         ToQStr(state.m_StencilState.m_FrontFace.DepthFailOp),
+         ToQStr(state.m_StencilState.m_FrontFace.PassOp),
+         QString("%1").arg(state.m_StencilState.m_FrontFace.WriteMask, 2, 16, QChar('0')).toUpper(),
+         QString("%1").arg(state.m_StencilState.m_FrontFace.ValueMask, 2, 16, QChar('0')).toUpper(),
+         QString("%1").arg(state.m_StencilState.m_FrontFace.Ref, 2, 16, QChar('0')).toUpper()}));
+
+    ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
+        {"Back", ToQStr(state.m_StencilState.m_BackFace.Func),
+         ToQStr(state.m_StencilState.m_BackFace.FailOp),
+         ToQStr(state.m_StencilState.m_BackFace.DepthFailOp),
+         ToQStr(state.m_StencilState.m_BackFace.PassOp),
+         QString("%1").arg(state.m_StencilState.m_BackFace.WriteMask, 2, 16, QChar('0')).toUpper(),
+         QString("%1").arg(state.m_StencilState.m_BackFace.ValueMask, 2, 16, QChar('0')).toUpper(),
+         QString("%1").arg(state.m_StencilState.m_BackFace.Ref, 2, 16, QChar('0')).toUpper()}));
   }
   else
   {
-    ui->stencils->addTopLevelItems({makeTreeNode({"Front", "-", "-", "-", "-", "-", "-", "-"}),
-                                    makeTreeNode({"Back", "-", "-", "-", "-", "-", "-", "-"})});
+    ui->stencils->addTopLevelItem(
+        new RDTreeWidgetItem({"Front", "-", "-", "-", "-", "-", "-", "-"}));
+    ui->stencils->addTopLevelItem(new RDTreeWidgetItem({"Back", "-", "-", "-", "-", "-", "-", "-"}));
   }
   ui->stencils->clearSelection();
   ui->stencils->setUpdatesEnabled(true);
@@ -1934,7 +1938,7 @@ QString GLPipelineStateViewer::formatMembers(int indent, const QString &namepref
   return ret;
 }
 
-void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int column)
+void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int column)
 {
   const GLPipe::Shader *stage = stageForSender(item->treeWidget());
 
@@ -2018,7 +2022,7 @@ void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int co
   }
 }
 
-void GLPipelineStateViewer::ubo_itemActivated(QTreeWidgetItem *item, int column)
+void GLPipelineStateViewer::ubo_itemActivated(RDTreeWidgetItem *item, int column)
 {
   const GLPipe::Shader *stage = stageForSender(item->treeWidget());
 
@@ -2037,12 +2041,12 @@ void GLPipelineStateViewer::ubo_itemActivated(QTreeWidgetItem *item, int column)
   m_Ctx.AddDockWindow(prev->Widget(), DockReference::RightOf, this, 0.3f);
 }
 
-void GLPipelineStateViewer::on_viAttrs_itemActivated(QTreeWidgetItem *item, int column)
+void GLPipelineStateViewer::on_viAttrs_itemActivated(RDTreeWidgetItem *item, int column)
 {
   on_meshView_clicked();
 }
 
-void GLPipelineStateViewer::on_viBuffers_itemActivated(QTreeWidgetItem *item, int column)
+void GLPipelineStateViewer::on_viBuffers_itemActivated(RDTreeWidgetItem *item, int column)
 {
   QVariant tag = item->data(0, Qt::UserRole);
 
@@ -2067,42 +2071,33 @@ void GLPipelineStateViewer::highlightIABind(int slot)
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
 
-  ui->viAttrs->model()->blockSignals(true);
-  ui->viBuffers->model()->blockSignals(true);
+  ui->viAttrs->beginUpdate();
+  ui->viBuffers->beginUpdate();
+
   if(slot < m_VBNodes.count())
   {
-    QTreeWidgetItem *item = m_VBNodes[(int)slot];
-
-    for(int c = 0; c < item->columnCount(); c++)
-      item->setBackground(c, QBrush(col));
+    m_VBNodes[slot]->setBackgroundColor(col);
+    m_VBNodes[slot]->setForegroundColor(QColor(0, 0, 0));
   }
 
   for(int i = 0; i < ui->viAttrs->topLevelItemCount(); i++)
   {
-    QTreeWidgetItem *item = ui->viAttrs->topLevelItem(i);
-
-    QBrush itemBrush = QBrush(col);
+    RDTreeWidgetItem *item = ui->viAttrs->topLevelItem(i);
 
     if((int)VI.attributes[i].BufferSlot != slot)
-      itemBrush = QBrush();
-
-    for(int c = 0; c < item->columnCount(); c++)
-      item->setBackground(c, itemBrush);
-  }
-  ui->viAttrs->model()->blockSignals(false);
-  ui->viBuffers->model()->blockSignals(false);
-
-  if(ui->viAttrs->topLevelItemCount() > 0)
-  {
-    ui->viAttrs->topLevelItem(0)->setDisabled(true);
-    ui->viAttrs->topLevelItem(0)->setDisabled(false);
+    {
+      item->setBackground(QBrush());
+      item->setForeground(QBrush());
+    }
+    else
+    {
+      item->setBackgroundColor(col);
+      item->setForegroundColor(QColor(0, 0, 0));
+    }
   }
 
-  if(ui->viBuffers->topLevelItemCount() > 0)
-  {
-    ui->viBuffers->topLevelItem(0)->setDisabled(true);
-    ui->viBuffers->topLevelItem(0)->setDisabled(false);
-  }
+  ui->viAttrs->endUpdate();
+  ui->viBuffers->endUpdate();
 }
 
 void GLPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
@@ -2132,12 +2127,10 @@ void GLPipelineStateViewer::on_viBuffers_mouseMove(QMouseEvent *e)
   if(!m_Ctx.LogLoaded())
     return;
 
-  QTreeWidgetItem *item = ui->viBuffers->itemAt(e->pos());
+  RDTreeWidgetItem *item = ui->viBuffers->itemAt(e->pos());
 
   vertex_leave(NULL);
 
-  ui->viAttrs->model()->blockSignals(true);
-  ui->viBuffers->model()->blockSignals(true);
   if(item)
   {
     int idx = m_VBNodes.indexOf(item);
@@ -2147,57 +2140,31 @@ void GLPipelineStateViewer::on_viBuffers_mouseMove(QMouseEvent *e)
     }
     else
     {
-      for(int c = 0; c < item->columnCount(); c++)
-        item->setBackground(c, QBrush(ui->viBuffers->palette().color(QPalette::Window)));
+      item->setBackground(ui->viBuffers->palette().brush(QPalette::Window));
+      item->setForeground(ui->viBuffers->palette().brush(QPalette::WindowText));
     }
-  }
-  ui->viAttrs->model()->blockSignals(false);
-  ui->viBuffers->model()->blockSignals(false);
-
-  if(ui->viAttrs->topLevelItemCount() > 0)
-  {
-    ui->viAttrs->topLevelItem(0)->setDisabled(true);
-    ui->viAttrs->topLevelItem(0)->setDisabled(false);
-  }
-
-  if(ui->viBuffers->topLevelItemCount() > 0)
-  {
-    ui->viBuffers->topLevelItem(0)->setDisabled(true);
-    ui->viBuffers->topLevelItem(0)->setDisabled(false);
   }
 }
 
 void GLPipelineStateViewer::vertex_leave(QEvent *e)
 {
-  ui->viAttrs->model()->blockSignals(true);
-  ui->viBuffers->model()->blockSignals(true);
+  ui->viAttrs->beginUpdate();
+  ui->viBuffers->beginUpdate();
+
   for(int i = 0; i < ui->viAttrs->topLevelItemCount(); i++)
   {
-    QTreeWidgetItem *item = ui->viAttrs->topLevelItem(i);
-    for(int c = 0; c < item->columnCount(); c++)
-      item->setBackground(c, QBrush());
+    ui->viAttrs->topLevelItem(i)->setBackground(QBrush());
+    ui->viAttrs->topLevelItem(i)->setForeground(QBrush());
   }
 
   for(int i = 0; i < ui->viBuffers->topLevelItemCount(); i++)
   {
-    QTreeWidgetItem *item = ui->viBuffers->topLevelItem(i);
-    for(int c = 0; c < item->columnCount(); c++)
-      item->setBackground(c, QBrush());
-  }
-  ui->viAttrs->model()->blockSignals(false);
-  ui->viBuffers->model()->blockSignals(false);
-
-  if(ui->viAttrs->topLevelItemCount() > 0)
-  {
-    ui->viAttrs->topLevelItem(0)->setDisabled(true);
-    ui->viAttrs->topLevelItem(0)->setDisabled(false);
+    ui->viBuffers->topLevelItem(i)->setBackground(QBrush());
+    ui->viBuffers->topLevelItem(i)->setForeground(QBrush());
   }
 
-  if(ui->viBuffers->topLevelItemCount() > 0)
-  {
-    ui->viBuffers->topLevelItem(0)->setDisabled(true);
-    ui->viBuffers->topLevelItem(0)->setDisabled(false);
-  }
+  ui->viAttrs->endUpdate();
+  ui->viBuffers->endUpdate();
 }
 
 void GLPipelineStateViewer::on_pipeFlow_stageSelected(int index)

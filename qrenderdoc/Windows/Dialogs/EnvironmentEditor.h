@@ -32,7 +32,7 @@ namespace Ui
 class EnvironmentEditor;
 }
 
-class QTreeWidgetItem;
+class RDTreeWidgetItem;
 class QCompleter;
 
 class EnvironmentEditor : public QDialog
@@ -52,7 +52,7 @@ public slots:
   void on_addUpdate_clicked();
   void on_deleteButton_clicked();
   void on_variables_keyPress(QKeyEvent *event);
-  void on_variables_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
+  void on_variables_currentItemChanged(RDTreeWidgetItem *current, RDTreeWidgetItem *previous);
   void on_buttonBox_accepted();
 
 private:

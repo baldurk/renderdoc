@@ -48,7 +48,7 @@ ConstantBufferPreviewer::ConstantBufferPreviewer(ICaptureContext &ctx, const Sha
   ui->splitter->handle(1)->setEnabled(false);
 
   {
-    // Name | Value | Type
+    ui->variables->setColumns({tr("Name"), tr("Value"), tr("Type")});
     ui->variables->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->variables->header()->setSectionResizeMode(1, QHeaderView::Stretch);
     ui->variables->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
@@ -166,19 +166,19 @@ void ConstantBufferPreviewer::processFormat(const QString &format)
   OnEventChanged(m_Ctx.CurEvent());
 }
 
-void ConstantBufferPreviewer::addVariables(QTreeWidgetItem *root,
+void ConstantBufferPreviewer::addVariables(RDTreeWidgetItem *root,
                                            const rdctype::array<ShaderVariable> &vars)
 {
   for(const ShaderVariable &v : vars)
   {
-    QTreeWidgetItem *n = makeTreeNode({ToQStr(v.name), VarString(v), TypeString(v)});
+    RDTreeWidgetItem *n = new RDTreeWidgetItem({ToQStr(v.name), VarString(v), TypeString(v)});
 
     root->addChild(n);
 
     if(v.rows > 1)
     {
       for(uint32_t i = 0; i < v.rows; i++)
-        n->addChild(makeTreeNode(
+        n->addChild(new RDTreeWidgetItem(
             {QString("%1.row%2").arg(ToQStr(v.name)).arg(i), RowString(v, i), RowTypeString(v)}));
     }
 

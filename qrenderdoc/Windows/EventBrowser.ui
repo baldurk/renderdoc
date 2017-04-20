@@ -572,27 +572,6 @@
      <attribute name="headerStretchLastSection">
       <bool>false</bool>
      </attribute>
-     <column>
-      <property name="text">
-       <string>Name</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>EID</string>
-      </property>
-      <property name="toolTip">
-       <string/>
-      </property>
-      <property name="whatsThis">
-       <string/>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Duration (µs)</string>
-      </property>
-     </column>
     </widget>
    </item>
   </layout>
@@ -605,7 +584,7 @@
   </customwidget>
   <customwidget>
    <class>RDTreeWidget</class>
-   <extends>QTreeWidget</extends>
+   <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
  </customwidgets>

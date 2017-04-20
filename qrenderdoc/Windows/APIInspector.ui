@@ -37,7 +37,7 @@
      <property name="handleWidth">
       <number>27</number>
      </property>
-     <widget class="QTreeWidget" name="apiEvents">
+     <widget class="RDTreeWidget" name="apiEvents">
       <property name="editTriggers">
        <set>QAbstractItemView::NoEditTriggers</set>
       </property>
@@ -59,19 +59,6 @@
       <property name="allColumnsShowFocus">
        <bool>true</bool>
       </property>
-      <property name="columnCount">
-       <number>2</number>
-      </property>
-      <column>
-       <property name="text">
-        <string notr="true">1</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string notr="true">2</string>
-       </property>
-      </column>
      </widget>
      <widget class="QListWidget" name="callstack">
       <property name="sizePolicy">
@@ -86,6 +73,11 @@
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>RDTreeWidget</class>
+   <extends>QTreeView</extends>
+   <header>Widgets/Extended/RDTreeWidget.h</header>
+  </customwidget>
   <customwidget>
    <class>RDSplitter</class>
    <extends>QSplitter</extends>

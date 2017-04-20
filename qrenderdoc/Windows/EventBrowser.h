@@ -35,7 +35,7 @@ class EventBrowser;
 
 class QSpacerItem;
 class QToolButton;
-class QTreeWidgetItem;
+class RDTreeWidgetItem;
 class QTimer;
 class QTextStream;
 class FlowLayout;
@@ -70,7 +70,7 @@ private slots:
   void on_findEvent_returnPressed();
   void on_findEvent_keyPress(QKeyEvent *event);
   void on_findEvent_textEdited(const QString &arg1);
-  void on_events_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
+  void on_events_currentItemChanged(RDTreeWidgetItem *current, RDTreeWidgetItem *previous);
   void on_findNext_clicked();
   void on_findPrev_clicked();
   void on_stepNext_clicked();
@@ -88,25 +88,25 @@ public slots:
   void jumpToBookmark(int idx);
 
 private:
-  uint AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<DrawcallDescription> &draws);
-  void SetDrawcallTimes(QTreeWidgetItem *node, const rdctype::array<CounterResult> &results);
+  uint AddDrawcalls(RDTreeWidgetItem *parent, const rdctype::array<DrawcallDescription> &draws);
+  void SetDrawcallTimes(RDTreeWidgetItem *node, const rdctype::array<CounterResult> &results);
 
-  void ExpandNode(QTreeWidgetItem *node);
+  void ExpandNode(RDTreeWidgetItem *node);
 
-  bool FindEventNode(QTreeWidgetItem *&found, QTreeWidgetItem *parent, uint32_t eventID);
+  bool FindEventNode(RDTreeWidgetItem *&found, RDTreeWidgetItem *parent, uint32_t eventID);
   bool SelectEvent(uint32_t eventID);
 
-  void ClearFindIcons(QTreeWidgetItem *parent);
+  void ClearFindIcons(RDTreeWidgetItem *parent);
   void ClearFindIcons();
 
-  int SetFindIcons(QTreeWidgetItem *parent, QString filter);
+  int SetFindIcons(RDTreeWidgetItem *parent, QString filter);
   int SetFindIcons(QString filter);
 
   void highlightBookmarks();
-  bool hasBookmark(QTreeWidgetItem *node);
+  bool hasBookmark(RDTreeWidgetItem *node);
 
-  QTreeWidgetItem *FindNode(QTreeWidgetItem *parent, QString filter, uint32_t after);
-  int FindEvent(QTreeWidgetItem *parent, QString filter, uint32_t after, bool forward);
+  RDTreeWidgetItem *FindNode(RDTreeWidgetItem *parent, QString filter, uint32_t after);
+  int FindEvent(RDTreeWidgetItem *parent, QString filter, uint32_t after, bool forward);
   int FindEvent(QString filter, uint32_t after, bool forward);
   void Find(bool forward);
 
@@ -133,7 +133,7 @@ private:
   QList<int> m_Bookmarks;
   QList<QToolButton *> m_BookmarkButtons;
 
-  void RefreshIcon(QTreeWidgetItem *item);
+  void RefreshIcon(RDTreeWidgetItem *item);
 
   Ui::EventBrowser *ui;
   ICaptureContext &m_Ctx;

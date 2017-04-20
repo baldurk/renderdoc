@@ -33,7 +33,7 @@ class GLPipelineStateViewer;
 }
 
 class RDTreeWidget;
-class QTreeWidgetItem;
+class RDTreeWidgetItem;
 class PipelineStateViewer;
 
 class GLPipelineStateViewer : public QFrame, public ILogViewer
@@ -57,8 +57,8 @@ private slots:
   void on_showEmpty_toggled(bool checked);
   void on_exportHTML_clicked();
   void on_meshView_clicked();
-  void on_viAttrs_itemActivated(QTreeWidgetItem *item, int column);
-  void on_viBuffers_itemActivated(QTreeWidgetItem *item, int column);
+  void on_viAttrs_itemActivated(RDTreeWidgetItem *item, int column);
+  void on_viBuffers_itemActivated(RDTreeWidgetItem *item, int column);
   void on_viAttrs_mouseMove(QMouseEvent *event);
   void on_viBuffers_mouseMove(QMouseEvent *event);
   void on_pipeFlow_stageSelected(int index);
@@ -67,8 +67,8 @@ private slots:
   void shaderView_clicked();
   void shaderEdit_clicked();
   void shaderSave_clicked();
-  void resource_itemActivated(QTreeWidgetItem *item, int column);
-  void ubo_itemActivated(QTreeWidgetItem *item, int column);
+  void resource_itemActivated(RDTreeWidgetItem *item, int column);
+  void ubo_itemActivated(RDTreeWidgetItem *item, int column);
   void vertex_leave(QEvent *e);
 
 private:
@@ -94,8 +94,8 @@ private:
   void setState();
   void clearState();
 
-  void setInactiveRow(QTreeWidgetItem *node);
-  void setEmptyRow(QTreeWidgetItem *node);
+  void setInactiveRow(RDTreeWidgetItem *node);
+  void setEmptyRow(RDTreeWidgetItem *node);
   void highlightIABind(int slot);
 
   QString formatMembers(int indent, const QString &nameprefix,
@@ -105,5 +105,5 @@ private:
   bool showNode(bool usedSlot, bool filledSlot);
 
   // keep track of the VB nodes (we want to be able to highlight them easily on hover)
-  QList<QTreeWidgetItem *> m_VBNodes;
+  QList<RDTreeWidgetItem *> m_VBNodes;
 };

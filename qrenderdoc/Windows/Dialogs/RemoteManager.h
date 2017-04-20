@@ -32,7 +32,7 @@ namespace Ui
 class RemoteManager;
 }
 
-class QTreeWidgetItem;
+class RDTreeWidgetItem;
 struct ICaptureContext;
 class MainWindow;
 class RemoteHost;
@@ -49,8 +49,8 @@ public:
 
 private slots:
   // automatic slots
-  void on_hosts_itemClicked(QTreeWidgetItem *item, int column);
-  void on_hosts_itemActivated(QTreeWidgetItem *item, int column);
+  void on_hosts_itemClicked(RDTreeWidgetItem *item, int column);
+  void on_hosts_itemActivated(RDTreeWidgetItem *item, int column);
   void on_hostname_textEdited(const QString &text);
   void on_hosts_keyPress(QKeyEvent *event);
   void on_hostname_keyPress(QKeyEvent *event);
@@ -74,16 +74,16 @@ private:
   // delete ourselves once all lookups complete
   QSemaphore m_ExternalRef;
 
-  bool isRemoteServerLive(QTreeWidgetItem *node);
-  void setRemoteServerLive(QTreeWidgetItem *node, bool live, bool busy);
+  bool isRemoteServerLive(RDTreeWidgetItem *node);
+  void setRemoteServerLive(RDTreeWidgetItem *node, bool live, bool busy);
 
   void addHost(RemoteHost *host);
   void updateLookupsStatus();
-  void runRemoteServer(QTreeWidgetItem *node);
+  void runRemoteServer(RDTreeWidgetItem *node);
 
-  void refreshHost(QTreeWidgetItem *node);
+  void refreshHost(RDTreeWidgetItem *node);
   void updateStatus();
-  void connectToApp(QTreeWidgetItem *node);
+  void connectToApp(RDTreeWidgetItem *node);
 
   void updateConnectButton();
   void addNewHost();

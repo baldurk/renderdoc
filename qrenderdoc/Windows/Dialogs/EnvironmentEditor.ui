@@ -58,21 +58,6 @@
      <property name="sortingEnabled">
       <bool>true</bool>
      </property>
-     <column>
-      <property name="text">
-       <string>Name</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Modification</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Value</string>
-      </property>
-     </column>
     </widget>
    </item>
    <item row="1" column="0">
@@ -211,7 +196,7 @@
   </customwidget>
   <customwidget>
    <class>RDTreeWidget</class>
-   <extends>QTreeWidget</extends>
+   <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
  </customwidgets>

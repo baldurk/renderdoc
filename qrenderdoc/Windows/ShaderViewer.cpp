@@ -331,10 +331,12 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->inputSig->hide();
     ui->outputSig->hide();
 
+    ui->variables->setColumns({tr("Name"), tr("Type"), tr("Value")});
     ui->variables->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     ui->variables->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     ui->variables->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 
+    ui->constants->setColumns({tr("Name"), tr("Type"), tr("Value")});
     ui->constants->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     ui->constants->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     ui->constants->header()->setSectionResizeMode(2, QHeaderView::Stretch);
@@ -408,9 +410,13 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->floatView->hide();
 
     // show input and output signatures
+    ui->inputSig->setColumns(
+        {tr("Name"), tr("Index"), tr("Reg"), tr("Type"), tr("SysValue"), tr("Mask"), tr("Used")});
     for(int i = 0; i < ui->inputSig->header()->count(); i++)
       ui->inputSig->header()->setSectionResizeMode(i, QHeaderView::ResizeToContents);
 
+    ui->outputSig->setColumns(
+        {tr("Name"), tr("Index"), tr("Reg"), tr("Type"), tr("SysValue"), tr("Mask"), tr("Used")});
     for(int i = 0; i < ui->outputSig->header()->count(); i++)
       ui->outputSig->header()->setSectionResizeMode(i, QHeaderView::ResizeToContents);
 
@@ -426,7 +432,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
         QString semIdx = s.needSemanticIndex ? QString::number(s.semanticIndex) : "";
 
-        ui->inputSig->addTopLevelItem(makeTreeNode(
+        ui->inputSig->addTopLevelItem(new RDTreeWidgetItem(
             {name, semIdx, s.regIndex, TypeString(s), ToQStr(s.systemValue),
              GetComponentString(s.regChannelMask), GetComponentString(s.channelUsedMask)}));
       }
@@ -454,7 +460,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
         QString semIdx = s.needSemanticIndex ? QString::number(s.semanticIndex) : "";
 
-        ui->outputSig->addTopLevelItem(makeTreeNode(
+        ui->outputSig->addTopLevelItem(new RDTreeWidgetItem(
             {name, semIdx, s.regIndex, TypeString(s), ToQStr(s.systemValue),
              GetComponentString(s.regChannelMask), GetComponentString(s.channelUsedMask)}));
       }
@@ -726,9 +732,9 @@ QString ShaderViewer::stringRep(const ShaderVariable &var, bool useType)
   return RowString(var, 0, VarType::Float);
 }
 
-QTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, uint32_t idx,
-                                                    const BoundResource &bound,
-                                                    const ShaderResource &res)
+RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, uint32_t idx,
+                                                     const BoundResource &bound,
+                                                     const ShaderResource &res)
 {
   QString name = QString(" (%1)").arg(ToQStr(res.name));
 
@@ -765,17 +771,17 @@ QTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, ui
                        .arg(ToQStr(tex->format.strname))
                        .arg(ToQStr(tex->name));
 
-    return makeTreeNode({regname + name, "Texture", type});
+    return new RDTreeWidgetItem({regname + name, "Texture", type});
   }
   else if(buf)
   {
     QString type = QString("%1 - %2").arg(buf->length).arg(ToQStr(buf->name));
 
-    return makeTreeNode({regname + name, "Buffer", type});
+    return new RDTreeWidgetItem({regname + name, "Buffer", type});
   }
   else
   {
-    return makeTreeNode({regname + name, "Resource", "unknown"});
+    return new RDTreeWidgetItem({regname + name, "Resource", "unknown"});
   }
 }
 
@@ -847,9 +853,10 @@ void ShaderViewer::updateDebugging()
       {
         if(m_Trace->cbuffers[i][j].rows > 0 || m_Trace->cbuffers[i][j].columns > 0)
         {
-          QTreeWidgetItem *node = makeTreeNode({ToQStr(m_Trace->cbuffers[i][j].name), "cbuffer",
-                                                stringRep(m_Trace->cbuffers[i][j], false)});
           node->setData(0, Qt::UserRole, QVariant::fromValue(CBufferTag(i, j)));
+          RDTreeWidgetItem *node =
+              new RDTreeWidgetItem({ToQStr(m_Trace->cbuffers[i][j].name), "cbuffer",
+                                    stringRep(m_Trace->cbuffers[i][j], false)});
 
           ui->constants->addTopLevelItem(node);
         }
@@ -862,9 +869,9 @@ void ShaderViewer::updateDebugging()
 
       if(input.rows > 0 || input.columns > 0)
       {
-        QTreeWidgetItem *node =
-            makeTreeNode({ToQStr(input.name), ToQStr(input.type) + " input", stringRep(input, true)});
         node->setData(0, Qt::UserRole, QVariant::fromValue(ResourceTag(i)));
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
+            {ToQStr(input.name), ToQStr(input.type) + " input", stringRep(input, true)});
 
         ui->constants->addTopLevelItem(node);
       }
@@ -887,15 +894,16 @@ void ShaderViewer::updateDebugging()
 
       if(bind.arraySize == 1)
       {
-        QTreeWidgetItem *node =
+        RDTreeWidgetItem *node =
             makeResourceRegister(bind, 0, rw[bind][0], m_ShaderDetails->ReadWriteResources[i]);
         if(node)
           ui->constants->addTopLevelItem(node);
       }
       else
       {
-        QTreeWidgetItem *node = makeTreeNode({ToQStr(m_ShaderDetails->ReadWriteResources[i].name),
-                                              QString("[%1]").arg(bind.arraySize), ""});
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({ToQStr(m_ShaderDetails->ReadWriteResources[i].name),
+                                  QString("[%1]").arg(bind.arraySize), ""});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
           node->addChild(
@@ -917,15 +925,16 @@ void ShaderViewer::updateDebugging()
 
       if(bind.arraySize == 1)
       {
-        QTreeWidgetItem *node =
+        RDTreeWidgetItem *node =
             makeResourceRegister(bind, 0, ro[bind][0], m_ShaderDetails->ReadOnlyResources[i]);
         if(node)
           ui->constants->addTopLevelItem(node);
       }
       else
       {
-        QTreeWidgetItem *node = makeTreeNode({ToQStr(m_ShaderDetails->ReadOnlyResources[i].name),
-                                              QString("[%1]").arg(bind.arraySize), ""});
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({ToQStr(m_ShaderDetails->ReadOnlyResources[i].name),
+                                  QString("[%1]").arg(bind.arraySize), ""});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
           node->addChild(
@@ -948,18 +957,20 @@ void ShaderViewer::updateDebugging()
   {
     for(int i = 0; i < state.registers.count; i++)
       ui->variables->addTopLevelItem(
-          makeTreeNode({ToQStr(state.registers[i].name), "temporary", ""}));
+          new RDTreeWidgetItem({ToQStr(state.registers[i].name), "temporary", ""}));
 
     for(int i = 0; i < state.indexableTemps.count; i++)
     {
-      QTreeWidgetItem *node = makeTreeNode({QString("x%1").arg(i), "indexable", ""});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({QString("x%1").arg(i), "indexable", ""});
       for(int t = 0; t < state.indexableTemps[i].count; t++)
-        node->addChild(makeTreeNode({ToQStr(state.indexableTemps[i][t].name), "indexable", ""}));
+        node->addChild(
+            new RDTreeWidgetItem({ToQStr(state.indexableTemps[i][t].name), "indexable", ""}));
       ui->variables->addTopLevelItem(node);
     }
 
     for(int i = 0; i < state.outputs.count; i++)
-      ui->variables->addTopLevelItem(makeTreeNode({ToQStr(state.outputs[i].name), "output", ""}));
+      ui->variables->addTopLevelItem(
+          new RDTreeWidgetItem({ToQStr(state.outputs[i].name), "output", ""}));
   }
 
   ui->variables->setUpdatesEnabled(false);
@@ -968,7 +979,7 @@ void ShaderViewer::updateDebugging()
 
   for(int i = 0; i < state.registers.count; i++)
   {
-    QTreeWidgetItem *node = ui->variables->topLevelItem(v++);
+    RDTreeWidgetItem *node = ui->variables->topLevelItem(v++);
 
     node->setText(2, stringRep(state.registers[i], false));
     node->setData(0, Qt::UserRole, QVariant::fromValue(state.registers[i]));
@@ -976,11 +987,11 @@ void ShaderViewer::updateDebugging()
 
   for(int i = 0; i < state.indexableTemps.count; i++)
   {
-    QTreeWidgetItem *node = ui->variables->topLevelItem(v++);
+    RDTreeWidgetItem *node = ui->variables->topLevelItem(v++);
 
     for(int t = 0; t < state.indexableTemps[i].count; t++)
     {
-      QTreeWidgetItem *child = node->child(t);
+      RDTreeWidgetItem *child = node->child(t);
 
       child->setText(2, stringRep(state.indexableTemps[i][t], false));
       child->setData(0, Qt::UserRole, QVariant::fromValue(state.indexableTemps[i][t]));
@@ -989,7 +1000,7 @@ void ShaderViewer::updateDebugging()
 
   for(int i = 0; i < state.outputs.count; i++)
   {
-    QTreeWidgetItem *node = ui->variables->topLevelItem(v++);
+    RDTreeWidgetItem *node = ui->variables->topLevelItem(v++);
 
     node->setText(2, stringRep(state.outputs[i], false));
     node->setData(0, Qt::UserRole, QVariant::fromValue(state.outputs[i]));
