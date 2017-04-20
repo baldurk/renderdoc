@@ -364,7 +364,7 @@ Typically this is ``glsl`` or ``hlsl``.
 :return: The index value that represents a strip restart not a real index.
 :rtype: ``int``
 )");
-  uint32_t GetStripRestartIndex(uint32_t indexByteWidth);
+  uint32_t GetStripRestartIndex();
 
   DOCUMENT(R"(Retrieves the currently bound vertex buffers.
 

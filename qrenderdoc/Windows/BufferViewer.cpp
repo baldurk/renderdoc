@@ -495,6 +495,9 @@ public:
           {
             idx = CalcIndex(indices, row, baseVertex);
 
+            if(primRestart && idx == primRestart)
+              return col == 1 ? "--" : " Restart";
+
             if(idx == ~0U)
               return QVariant();
           }
@@ -597,6 +600,7 @@ public:
   BufferData *indices = NULL;
   QList<FormatElement> columns;
   QList<BufferData *> buffers;
+  uint32_t primRestart = 0;
 
   void setPosColumn(int pos)
   {
@@ -1175,6 +1179,8 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       m_ModelVSOut->secondaryName(), m_ModelGSOut->posName(),      m_ModelGSOut->secondaryName(),
   };
 
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+
   if(m_MeshView)
   {
     ClearModels();
@@ -1182,6 +1188,23 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
     CalcColumnWidth();
 
     ClearModels();
+
+    m_ModelVSIn->primRestart = 0;
+    m_ModelVSOut->primRestart = 0;
+    m_ModelGSOut->primRestart = 0;
+
+    if(m_Ctx.CurPipelineState().IsStripRestartEnabled() && (draw->flags & DrawFlags::UseIBuffer) &&
+       IsStrip(draw->topology))
+    {
+      m_ModelVSIn->primRestart = m_Ctx.CurPipelineState().GetStripRestartIndex();
+
+      if(draw->indexByteWidth == 1)
+        m_ModelVSIn->primRestart &= 0xff;
+      else if(draw->indexByteWidth == 2)
+        m_ModelVSIn->primRestart &= 0xffff;
+
+      m_ModelVSOut->primRestart = m_ModelVSIn->primRestart;
+    }
   }
 
   EnableCameraGuessControls();
@@ -1193,8 +1216,6 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   m_ModelVSIn->beginReset();
   m_ModelVSOut->beginReset();
   m_ModelGSOut->beginReset();
-
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   m_ModelVSIn->baseVertex = draw ? draw->baseVertex : 0;
 
@@ -1324,28 +1345,45 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     maxIndex = 0;
     if(draw->indexByteWidth == 1)
     {
+      uint8_t primRestart = m_ModelVSIn->primRestart & 0xff;
+
       for(size_t i = 0; i < (size_t)idata.count && (uint32_t)i < draw->numIndices; i++)
       {
+        if(primRestart && idata.elems[i] == primRestart)
+          continue;
+
         indices[i] = (uint32_t)idata.elems[i];
         maxIndex = qMax(maxIndex, indices[i]);
       }
     }
     else if(draw->indexByteWidth == 2)
     {
+      uint16_t primRestart = m_ModelVSIn->primRestart & 0xffff;
+
       uint16_t *src = (uint16_t *)idata.elems;
       for(size_t i = 0;
           i < (size_t)idata.count / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
       {
+        if(primRestart && idata.elems[i] == primRestart)
+          continue;
+
         indices[i] = (uint32_t)src[i];
         maxIndex = qMax(maxIndex, indices[i]);
       }
     }
     else if(draw->indexByteWidth == 4)
     {
+      uint16_t primRestart = m_ModelVSIn->primRestart;
+
       memcpy(indices, idata.elems, qMin((size_t)idata.count, draw->numIndices * sizeof(uint32_t)));
 
       for(uint32_t i = 0; i < draw->numIndices; i++)
+      {
+        if(primRestart && idata.elems[i] == primRestart)
+          continue;
+
         maxIndex = qMax(maxIndex, indices[i]);
+      }
     }
   }
 
@@ -1420,32 +1458,11 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   indices = NULL;
   if(m_ModelVSOut->indices)
     m_ModelVSOut->indices->deref();
-  m_ModelVSOut->indices = new BufferData();
-  if(draw && draw->indexByteWidth != 0 && idata.count != 0)
-  {
-    indices = new uint32_t[draw->numIndices];
-    m_ModelVSOut->indices->data = (byte *)indices;
-    m_ModelVSOut->indices->end = (byte *)(indices + draw->numIndices);
-  }
 
-  if(draw && idata.count > 0)
+  if(m_ModelVSIn->indices)
   {
-    if(draw->indexByteWidth == 1)
-    {
-      for(size_t i = 0; i < (size_t)idata.count && (uint32_t)i < draw->numIndices; i++)
-        indices[i] = (uint32_t)idata.elems[i];
-    }
-    else if(draw->indexByteWidth == 2)
-    {
-      uint16_t *src = (uint16_t *)idata.elems;
-      for(size_t i = 0;
-          i < (size_t)idata.count / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
-        indices[i] = (uint32_t)src[i];
-    }
-    else if(draw->indexByteWidth == 4)
-    {
-      memcpy(indices, idata.elems, qMin((size_t)idata.count, draw->numIndices * sizeof(uint32_t)));
-    }
+    m_ModelVSOut->indices = m_ModelVSIn->indices;
+    m_ModelVSOut->indices->ref();
   }
 
   if(m_PostVS.buf != ResourceId())
@@ -1466,7 +1483,6 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
 
   m_ModelGSOut->numRows = m_PostGS.numVerts;
 
-  indices = NULL;
   m_ModelGSOut->indices = NULL;
 
   if(m_PostGS.buf != ResourceId())

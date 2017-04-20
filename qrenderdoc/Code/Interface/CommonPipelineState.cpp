@@ -554,14 +554,14 @@ bool CommonPipelineState::IsStripRestartEnabled()
   return false;
 }
 
-uint32_t CommonPipelineState::GetStripRestartIndex(uint32_t indexByteWidth)
+uint32_t CommonPipelineState::GetStripRestartIndex()
 {
   if(LogLoaded())
   {
     if(IsLogD3D11() || IsLogVK())
     {
-      // D3D11 or Vulkan this is always '-1' in whichever size of index we're using
-      return indexByteWidth == 2 ? UINT16_MAX : UINT32_MAX;
+      // D3D11 or Vulkan this is always '-1'
+      return UINT32_MAX;
     }
     else if(IsLogD3D12())
     {
@@ -569,12 +569,7 @@ uint32_t CommonPipelineState::GetStripRestartIndex(uint32_t indexByteWidth)
     }
     else if(IsLogGL())
     {
-      uint32_t maxval = UINT32_MAX;
-      if(indexByteWidth == 2)
-        maxval = UINT16_MAX;
-      else if(indexByteWidth == 1)
-        maxval = 0xff;
-      return qMin(maxval, m_GL->m_VtxIn.restartIndex);
+      return qMin(UINT32_MAX, m_GL->m_VtxIn.restartIndex);
     }
   }
 
