@@ -307,6 +307,9 @@ namespace renderdocui.Code
         // pass number
         private FetchDrawcall[] FakeProfileMarkers(FetchDrawcall[] draws)
         {
+            if (Config.EventBrowser_AddFake == false)
+                return draws;
+
             if (ContainsMarker(draws))
                 return draws;
 
