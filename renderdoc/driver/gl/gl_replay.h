@@ -359,24 +359,7 @@ private:
 
   bool m_Degraded;
 
-  FloatVector InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
-                              bool useidx, bool &valid);
-
-  // simple cache for when we need buffer data for highlighting
-  // vertices, typical use will be lots of vertices in the same
-  // mesh, not jumping back and forth much between meshes.
-  struct HighlightCache
-  {
-    HighlightCache() : EID(0), buf(), offs(0), stage(MeshDataStage::Unknown), useidx(false) {}
-    uint32_t EID;
-    ResourceId buf;
-    uint64_t offs;
-    MeshDataStage stage;
-    bool useidx;
-
-    vector<byte> data;
-    vector<uint32_t> indices;
-  } m_HighlightCache;
+  HighlightCache m_HighlightCache;
 
   // eventID -> data
   map<uint32_t, GLPostVSData> m_PostVSData;

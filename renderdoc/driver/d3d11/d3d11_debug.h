@@ -31,6 +31,7 @@
 #include "api/replay/renderdoc_replay.h"
 #include "driver/dx/official/d3d11_4.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
+#include "replay/replay_driver.h"
 #include "d3d11_renderstate.h"
 
 using std::map;
@@ -342,21 +343,7 @@ private:
   // event -> data
   map<uint32_t, D3D11PostVSData> m_PostVSData;
 
-  // simple cache for when we need buffer data for highlighting
-  // vertices, typical use will be lots of vertices in the same
-  // mesh, not jumping back and forth much between meshes.
-  struct HighlightCache
-  {
-    HighlightCache() : EID(0), buf(), offs(0), stage(MeshDataStage::Unknown), useidx(false) {}
-    uint32_t EID;
-    ResourceId buf;
-    uint32_t offs;
-    MeshDataStage stage;
-    bool useidx;
-
-    vector<byte> data;
-    vector<uint32_t> indices;
-  } m_HighlightCache;
+  HighlightCache m_HighlightCache;
 
   ID3D11Texture2D *m_OverlayRenderTex;
   ResourceId m_OverlayResourceId;
@@ -380,9 +367,6 @@ private:
   ID3D11Buffer *m_AxisHelper;
   ID3D11Buffer *m_FrustumHelper;
   ID3D11Buffer *m_TriHighlightHelper;
-
-  FloatVector InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
-                              bool useidx, bool &valid);
 
   bool InitStreamOut();
   void ShutdownStreamOut();

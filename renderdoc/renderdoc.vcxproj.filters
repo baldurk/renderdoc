@@ -455,6 +455,7 @@
     <ClCompile Include="replay\capture_file.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="replay\replay_driver.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

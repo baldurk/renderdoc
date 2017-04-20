@@ -115,6 +115,7 @@ set(sources
     replay/capture_options.cpp
     replay/capture_file.cpp
     replay/entry_points.cpp
+    replay/replay_driver.cpp
     replay/replay_driver.h
     replay/replay_output.cpp
     replay/replay_controller.cpp

@@ -204,59 +204,39 @@ public:
   virtual uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y) = 0;
 };
 
-// utility function useful in any driver implementation
-template <typename DrawcallContainer>
-DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawcallTable,
-                                           DrawcallContainer &draws, DrawcallDescription *parent,
-                                           DrawcallDescription *previous)
+// utility functions useful in any driver implementation
+DrawcallDescription *SetupDrawcallPointers(std::vector<DrawcallDescription *> *drawcallTable,
+                                           rdctype::array<DrawcallDescription> &draws,
+                                           DrawcallDescription *parent,
+                                           DrawcallDescription *previous);
+
+// simple cache for when we need buffer data for highlighting
+// vertices, typical use will be lots of vertices in the same
+// mesh, not jumping back and forth much between meshes.
+struct HighlightCache
 {
-  DrawcallDescription *ret = NULL;
+  HighlightCache() : EID(0), buf(), offs(0), stage(MeshDataStage::Unknown), idxData(false) {}
+  IRemoteDriver *driver = NULL;
 
-  for(size_t i = 0; i < draws.size(); i++)
-  {
-    DrawcallDescription *draw = &draws[i];
+  uint32_t EID;
+  ResourceId buf;
+  uint64_t offs;
+  MeshDataStage stage;
+  bool idxData;
 
-    draw->parent = parent ? parent->eventID : 0;
+  std::vector<byte> vertexData;
+  std::vector<uint32_t> indices;
 
-    if(draw->children.count > 0)
-    {
-      if(drawcallTable)
-      {
-        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID);
-        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventID + 1)));
-        (*drawcallTable)[draw->eventID] = draw;
-      }
+  void CacheHighlightingData(uint32_t eventID, const MeshDisplay &cfg);
 
-      ret = previous = SetupDrawcallPointers(drawcallTable, draw->children, draw, previous);
-    }
-    else if(draw->flags & (DrawFlags::PushMarker | DrawFlags::SetMarker | DrawFlags::Present |
-                           DrawFlags::MultiDraw))
-    {
-      // don't want to set up previous/next links for markers, but still add them to the table
+  bool FetchHighlightPositions(const MeshDisplay &cfg, FloatVector &activeVertex,
+                               vector<FloatVector> &activePrim,
+                               vector<FloatVector> &adjacentPrimVertices,
+                               vector<FloatVector> &inactiveVertices);
 
-      if(drawcallTable)
-      {
-        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID);
-        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventID + 1)));
-        (*drawcallTable)[draw->eventID] = draw;
-      }
-    }
-    else
-    {
-      if(previous != NULL)
-        previous->next = draw->eventID;
-      draw->previous = previous ? previous->eventID : 0;
+  static FloatVector InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
+                                     bool &valid);
 
-      if(drawcallTable)
-      {
-        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID);
-        drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventID + 1)));
-        (*drawcallTable)[draw->eventID] = draw;
-      }
-
-      ret = previous = draw;
-    }
-  }
-
-  return ret;
-}
+  FloatVector InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
+                              bool useidx, bool &valid);
+};
