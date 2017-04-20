@@ -438,6 +438,166 @@ void EventBrowser::on_stepPrev_clicked()
     SelectEvent(draw->previous);
 }
 
+void EventBrowser::on_exportDraws_clicked()
+{
+  QString filename =
+      RDDialog::getSaveFileName(this, tr("Save Event List"), "", "Text files (*.txt)");
+
+  if(!filename.isEmpty())
+  {
+    QDir dirinfo = QFileInfo(filename).dir();
+    if(dirinfo.exists())
+    {
+      QFile f(filename);
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate))
+      {
+        QTextStream stream(&f);
+
+        stream << tr("%1 - Frame #%2\n\n").arg(m_Ctx.LogFilename()).arg(m_Ctx.FrameInfo().frameNumber);
+
+        int maxNameLength = 0;
+
+        for(const DrawcallDescription &d : m_Ctx.CurDrawcalls())
+          GetMaxNameLength(maxNameLength, 0, false, d);
+
+        QString line = QString(" EID  | %1 | Draw #").arg("Event", -maxNameLength);
+
+        if(!m_Times.empty())
+        {
+          line += QString(" | %1").arg(ui->events->headerItem()->text(COL_DURATION));
+        }
+
+        stream << line << "\n";
+
+        line = QString("--------%1-----------").arg("", maxNameLength, QChar('-'));
+
+        if(!m_Times.empty())
+        {
+          int maxDurationLength = 0;
+          maxDurationLength = qMax(maxDurationLength, Formatter::Format(1.0).length());
+          maxDurationLength = qMax(maxDurationLength, Formatter::Format(1.2345e-200).length());
+          maxDurationLength =
+              qMax(maxDurationLength, Formatter::Format(123456.7890123456789).length());
+          line += QString(3 + maxDurationLength, QChar('-'));    // 3 extra for " | "
+        }
+
+        stream << line << "\n";
+
+        for(const DrawcallDescription &d : m_Ctx.CurDrawcalls())
+          ExportDrawcall(stream, maxNameLength, 0, false, d);
+      }
+      else
+      {
+        RDDialog::critical(
+            this, tr("Error saving event list"),
+            tr("Couldn't open path %1 for write.\n%2").arg(filename).arg(f.errorString()));
+        return;
+      }
+    }
+    else
+    {
+      RDDialog::critical(this, tr("Invalid directory"),
+                         tr("Cannot find target directory to save to"));
+      return;
+    }
+  }
+}
+
+QString EventBrowser::GetExportDrawcallString(int indent, bool firstchild,
+                                              const DrawcallDescription &drawcall)
+{
+  QString prefix = QString(indent * 2 - (firstchild ? 1 : 0), QChar(' '));
+  if(firstchild)
+    prefix += '\\';
+
+  return QString("%1- %2").arg(prefix).arg(ToQStr(drawcall.name));
+}
+
+double EventBrowser::GetDrawTime(const DrawcallDescription &drawcall)
+{
+  if(!drawcall.children.empty())
+  {
+    double total = 0.0;
+
+    for(const DrawcallDescription &d : drawcall.children)
+    {
+      double f = GetDrawTime(d);
+      if(f >= 0)
+        total += f;
+    }
+
+    return total;
+  }
+
+  for(const CounterResult &r : m_Times)
+  {
+    if(r.eventID == drawcall.eventID)
+      return r.value.d;
+  }
+
+  return -1.0;
+}
+
+void EventBrowser::GetMaxNameLength(int &maxNameLength, int indent, bool firstchild,
+                                    const DrawcallDescription &drawcall)
+{
+  QString nameString = GetExportDrawcallString(indent, firstchild, drawcall);
+
+  maxNameLength = qMax(maxNameLength, nameString.count());
+
+  firstchild = true;
+
+  for(const DrawcallDescription &d : drawcall.children)
+  {
+    GetMaxNameLength(maxNameLength, indent + 1, firstchild, d);
+    firstchild = false;
+  }
+}
+
+void EventBrowser::ExportDrawcall(QTextStream &writer, int maxNameLength, int indent,
+                                  bool firstchild, const DrawcallDescription &drawcall)
+{
+  QString eidString = drawcall.children.empty() ? QString::number(drawcall.eventID) : "";
+
+  QString nameString = GetExportDrawcallString(indent, firstchild, drawcall);
+
+  QString line = QString("%1 | %2 | %3")
+                     .arg(eidString, -5)
+                     .arg(nameString, -maxNameLength)
+                     .arg(drawcall.drawcallID, -6);
+
+  if(!m_Times.empty())
+  {
+    double f = GetDrawTime(drawcall);
+
+    if(f >= 0)
+    {
+      if(m_TimeUnit == TimeUnit::Milliseconds)
+        f *= 1000.0;
+      else if(m_TimeUnit == TimeUnit::Microseconds)
+        f *= 1000000.0;
+      else if(m_TimeUnit == TimeUnit::Nanoseconds)
+        f *= 1000000000.0;
+
+      line += QString(" | %1").arg(Formatter::Format(f));
+    }
+    else
+    {
+      line += " |";
+    }
+  }
+
+  writer << line << "\n";
+
+  firstchild = true;
+
+  for(const DrawcallDescription &d : drawcall.children)
+  {
+    ExportDrawcall(writer, maxNameLength, indent + 1, firstchild, d);
+    firstchild = false;
+  }
+}
+
 void EventBrowser::events_keyPress(QKeyEvent *event)
 {
   if(!m_Ctx.LogLoaded())

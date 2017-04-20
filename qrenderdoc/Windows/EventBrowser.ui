@@ -109,18 +109,9 @@
        <property name="toolTip">
         <string>Find event by string</string>
        </property>
-       <property name="text">
-        <string/>
-       </property>
        <property name="icon">
         <iconset resource="../Resources/resources.qrc">
          <normaloff>:/find.png</normaloff>:/find.png</iconset>
-       </property>
-       <property name="checkable">
-        <bool>false</bool>
-       </property>
-       <property name="autoRepeat">
-        <bool>false</bool>
        </property>
        <property name="autoRaise">
         <bool>true</bool>
@@ -172,6 +163,20 @@
        <property name="icon">
         <iconset resource="../Resources/resources.qrc">
          <normaloff>:/asterisk_orange.png</normaloff>:/asterisk_orange.png</iconset>
+       </property>
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="exportDraws">
+       <property name="toolTip">
+        <string>Export the list of drawcalls to disk</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/save.png</normaloff>:/save.png</iconset>
        </property>
        <property name="autoRaise">
         <bool>true</bool>

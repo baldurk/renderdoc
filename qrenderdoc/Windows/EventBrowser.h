@@ -37,6 +37,7 @@ class QSpacerItem;
 class QToolButton;
 class QTreeWidgetItem;
 class QTimer;
+class QTextStream;
 class FlowLayout;
 class SizeDelegate;
 
@@ -74,6 +75,7 @@ private slots:
   void on_findPrev_clicked();
   void on_stepNext_clicked();
   void on_stepPrev_clicked();
+  void on_exportDraws_clicked();
 
   // manual slots
   void findHighlight_timeout();
@@ -107,6 +109,13 @@ private:
   int FindEvent(QTreeWidgetItem *parent, QString filter, uint32_t after, bool forward);
   int FindEvent(QString filter, uint32_t after, bool forward);
   void Find(bool forward);
+
+  QString GetExportDrawcallString(int indent, bool firstchild, const DrawcallDescription &drawcall);
+  double GetDrawTime(const DrawcallDescription &drawcall);
+  void GetMaxNameLength(int &maxNameLength, int indent, bool firstchild,
+                        const DrawcallDescription &drawcall);
+  void ExportDrawcall(QTextStream &writer, int maxNameLength, int indent, bool firstchild,
+                      const DrawcallDescription &drawcall);
 
   TimeUnit m_TimeUnit = TimeUnit::Microseconds;
 
