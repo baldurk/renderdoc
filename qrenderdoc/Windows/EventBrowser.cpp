@@ -71,6 +71,8 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   m_SizeDelegate = new SizeDelegate(QSize(0, 16));
   ui->events->setItemDelegate(m_SizeDelegate);
 
+  UpdateDurationColumn();
+
   m_FindHighlight = new QTimer(this);
   m_FindHighlight->setInterval(400);
   m_FindHighlight->setSingleShot(true);
@@ -217,7 +219,16 @@ void EventBrowser::SetDrawcallTimes(QTreeWidgetItem *node,
         duration = r.value.d;
     }
 
-    node->setText(COL_DURATION, duration < 0.0f ? "" : QString::number(duration * 1000000.0));
+    double secs = duration;
+
+    if(m_TimeUnit == TimeUnit::Milliseconds)
+      secs *= 1000.0;
+    else if(m_TimeUnit == TimeUnit::Microseconds)
+      secs *= 1000000.0;
+    else if(m_TimeUnit == TimeUnit::Nanoseconds)
+      secs *= 1000000000.0;
+
+    node->setText(COL_DURATION, duration < 0.0f ? "" : QString::number(secs));
     node->setData(COL_DURATION, Qt::UserRole, QVariant(duration));
 
     return;
@@ -233,7 +244,16 @@ void EventBrowser::SetDrawcallTimes(QTreeWidgetItem *node,
       duration += nd;
   }
 
-  node->setText(COL_DURATION, duration < 0.0f ? "" : QString::number(duration * 1000000.0));
+  double secs = duration;
+
+  if(m_TimeUnit == TimeUnit::Milliseconds)
+    secs *= 1000.0;
+  else if(m_TimeUnit == TimeUnit::Microseconds)
+    secs *= 1000000.0;
+  else if(m_TimeUnit == TimeUnit::Nanoseconds)
+    secs *= 1000000000.0;
+
+  node->setText(COL_DURATION, duration < 0.0f ? "" : QString::number(secs));
   node->setData(COL_DURATION, Qt::UserRole, QVariant(duration));
 }
 
@@ -263,9 +283,9 @@ void EventBrowser::on_timeDraws_clicked()
 {
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
 
-    rdctype::array<CounterResult> results = r->FetchCounters({GPUCounter::EventGPUDuration});
+    m_Times = r->FetchCounters({GPUCounter::EventGPUDuration});
 
-    GUIInvoke::call([this, results]() { SetDrawcallTimes(ui->events->topLevelItem(0), results); });
+    GUIInvoke::call([this]() { SetDrawcallTimes(ui->events->topLevelItem(0), m_Times); });
   });
 }
 
@@ -750,4 +770,17 @@ void EventBrowser::Find(bool forward)
       ui->findEvent->setStyleSheet("QLineEdit{background-color:#ff0000;}");
     }
   }
+}
+
+void EventBrowser::UpdateDurationColumn()
+{
+  if(m_TimeUnit == m_Ctx.Config().EventBrowser_TimeUnit)
+    return;
+
+  m_TimeUnit = m_Ctx.Config().EventBrowser_TimeUnit;
+
+  ui->events->headerItem()->setText(COL_DURATION, tr("Duration (%1)").arg(UnitSuffix(m_TimeUnit)));
+
+  if(!m_Times.empty())
+    SetDrawcallTimes(ui->events->topLevelItem(0), m_Times);
 }

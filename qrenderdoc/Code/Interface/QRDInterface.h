@@ -93,6 +93,9 @@ struct IEventBrowser
       "Retrieves the QWidget for this :class:`EventBrowser` if PySide2 is available, or ``None``.");
   virtual QWidget *Widget() = 0;
 
+  DOCUMENT("Updates the duration column if the selected time unit changes.");
+  virtual void UpdateDurationColumn() = 0;
+
 protected:
   IEventBrowser() = default;
   ~IEventBrowser() = default;

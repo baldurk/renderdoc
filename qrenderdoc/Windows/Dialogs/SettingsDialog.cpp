@@ -284,6 +284,9 @@ void SettingsDialog::on_EventBrowser_TimeUnit_currentIndexChanged(int index)
 
   m_Ctx.Config().EventBrowser_TimeUnit = (TimeUnit)ui->EventBrowser_TimeUnit->currentIndex();
 
+  if(m_Ctx.HasEventBrowser())
+    m_Ctx.GetEventBrowser()->UpdateDurationColumn();
+
   m_Ctx.Config().Save();
 }
 

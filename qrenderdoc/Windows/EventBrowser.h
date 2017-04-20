@@ -51,6 +51,7 @@ public:
 
   // IEventBrowser
   QWidget *Widget() override { return this; }
+  void UpdateDurationColumn() override;
   // ILogViewerForm
   void OnLogfileLoaded() override;
   void OnLogfileClosed() override;
@@ -106,6 +107,10 @@ private:
   int FindEvent(QTreeWidgetItem *parent, QString filter, uint32_t after, bool forward);
   int FindEvent(QString filter, uint32_t after, bool forward);
   void Find(bool forward);
+
+  TimeUnit m_TimeUnit = TimeUnit::Microseconds;
+
+  rdctype::array<CounterResult> m_Times;
 
   QIcon m_CurrentIcon;
   QIcon m_FindIcon;
