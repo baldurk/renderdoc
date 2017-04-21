@@ -24,31 +24,170 @@
 
 #pragma once
 
-#include <QTreeWidget>
+#include <QTreeView>
 
-class RDTreeWidget : public QTreeWidget
+class RDTreeWidget;
+class RDTreeWidgetModel;
+
+class RDTreeWidgetItem
+{
+public:
+  RDTreeWidgetItem() = default;
+  RDTreeWidgetItem(const std::initializer_list<QVariant> &values);
+  ~RDTreeWidgetItem();
+
+  QVariant data(int column, int role) const;
+  void setData(int column, int role, const QVariant &value);
+
+  void addChild(RDTreeWidgetItem *item);
+
+  // the data above requires allocating a bunch of vectors since it's stored per-column. Where
+  // possible, just use this single per-item tag
+  inline QVariant tag() const { return m_tag; }
+  inline void setTag(const QVariant &value) { m_tag = value; }
+  // inline accessors to the private data
+  inline void setIcon(int column, const QIcon &icon)
+  {
+    if(column >= m_icons.size())
+      return;
+
+    m_icons[column] = icon;
+    dataChanged(Qt::DecorationRole);
+  }
+  inline RDTreeWidgetItem *child(int index) const { return m_children[index]; }
+  inline int indexOfChild(RDTreeWidgetItem *child) const { return m_children.indexOf(child); }
+  RDTreeWidgetItem *takeChild(int index);
+  void removeChild(RDTreeWidgetItem *child);
+  void clear();
+  inline int childCount() const { return m_children.count(); }
+  inline RDTreeWidgetItem *parent() const { return m_parent; }
+  inline RDTreeWidget *treeWidget() const { return m_widget; }
+  inline void setBold(bool bold)
+  {
+    m_bold = bold;
+    dataChanged(Qt::FontRole);
+  }
+  inline void setItalic(bool italic)
+  {
+    m_italic = italic;
+    dataChanged(Qt::FontRole);
+  }
+  inline void setBackgroundColor(QColor background) { setBackground(QBrush(background)); }
+  inline void setForegroundColor(QColor foreground) { setForeground(QBrush(foreground)); }
+  inline void setBackground(QBrush background)
+  {
+    m_back = background;
+    dataChanged(Qt::BackgroundRole);
+  }
+  inline void setForeground(QBrush foreground)
+  {
+    m_fore = foreground;
+    dataChanged(Qt::ForegroundRole);
+  }
+  inline QString text(int column) const { return m_text[column].toString(); }
+  inline void setText(int column, const QVariant &value)
+  {
+    if(column >= m_text.size())
+      return;
+
+    m_text[column] = value;
+    dataChanged(Qt::DisplayRole);
+  }
+  inline void setToolTip(const QString &value)
+  {
+    m_tooltip = value;
+    dataChanged(Qt::ToolTipRole);
+  }
+
+private:
+  friend class RDTreeWidget;
+  friend class RDTreeWidgetModel;
+
+  void setWidget(RDTreeWidget *widget);
+  RDTreeWidget *m_widget = NULL;
+
+  RDTreeWidgetItem *m_parent = NULL;
+  QVector<RDTreeWidgetItem *> m_children;
+
+  struct RoleData
+  {
+    RoleData() : role(0), data() {}
+    RoleData(int r, const QVariant &d) : role(r), data(d) {}
+    int role;
+    QVariant data;
+  };
+
+  void dataChanged(int role);
+
+  // per-column properties
+  QVector<QVariant> m_text;
+  QVector<QIcon> m_icons;
+  // each element, per-column, is a list of other data values
+  // we allocate this lazily only if it's really needed
+  QVector<QVector<RoleData>> *m_data = NULL;
+  // bitmask of which special Qt roles have data set
+  uint64_t m_customData = 0;
+
+  // per-item properties
+  QString m_tooltip;
+  bool m_bold = false;
+  bool m_italic = false;
+  QBrush m_back;
+  QBrush m_fore;
+  QVariant m_tag;
+};
+
+class RDTreeWidget : public QTreeView
 {
   Q_OBJECT
 public:
   explicit RDTreeWidget(QWidget *parent = 0);
+  ~RDTreeWidget();
 
-  void setDefaultHoverColor(QColor col) { m_defaultHoverColour = col; }
-  void setHoverIconColumn(int column)
+  void setHoverIconColumn(int column, QIcon normal, QIcon hover)
   {
     m_hoverColumn = column;
+    m_normalHoverIcon = normal;
+    m_activeHoverIcon = hover;
     m_hoverHandCursor = true;
     m_activateOnClick = true;
   }
   void setHoverHandCursor(bool hand) { m_hoverHandCursor = hand; }
   void setHoverClickActivate(bool click) { m_activateOnClick = click; }
   void setClearSelectionOnFocusLoss(bool clear) { m_clearSelectionOnFocusLoss = clear; }
-  void setHoverIcons(QTreeWidgetItem *item, QIcon normal, QIcon hover);
-  void setHoverColour(QTreeWidgetItem *item, QColor col);
+  RDTreeWidgetItem *invisibleRootItem() { return m_root; }
+  void addTopLevelItem(RDTreeWidgetItem *item) { m_root->addChild(item); }
+  RDTreeWidgetItem *topLevelItem(int index) const { return m_root->child(index); }
+  int indexOfTopLevelItem(RDTreeWidgetItem *item) const { return m_root->indexOfChild(item); }
+  RDTreeWidgetItem *takeTopLevelItem(int index) { return m_root->takeChild(index); }
+  int topLevelItemCount() const { return m_root->childCount(); }
+  void beginUpdate();
+  void endUpdate();
+
+  void setColumns(const QStringList &columns);
+  QString headerText(int column) const { return m_headers[column]; }
+  void setHeaderText(int column, const QString &text);
+  RDTreeWidgetItem *selectedItem() const;
+  RDTreeWidgetItem *currentItem() const;
+  void setSelectedItem(RDTreeWidgetItem *node);
+  void setCurrentItem(RDTreeWidgetItem *node);
+
+  RDTreeWidgetItem *itemAt(const QPoint &p) const;
+  RDTreeWidgetItem *itemAt(int x, int y) const { return itemAt(QPoint(x, y)); }
+  void expandItem(RDTreeWidgetItem *item);
+  void scrollToItem(RDTreeWidgetItem *node);
+
+  void clear();
 
 signals:
   void mouseMove(QMouseEvent *e);
   void leave(QEvent *e);
   void keyPress(QKeyEvent *e);
+  void itemClicked(RDTreeWidgetItem *item, int column);
+  void itemDoubleClicked(RDTreeWidgetItem *item, int column);
+  void itemActivated(RDTreeWidgetItem *item, int column);
+  void currentItemChanged(RDTreeWidgetItem *current, RDTreeWidgetItem *previous);
+  void itemSelectionChanged();
 
 public slots:
 
@@ -59,16 +198,35 @@ private:
   void focusOutEvent(QFocusEvent *event) override;
   void keyPressEvent(QKeyEvent *e) override;
 
-  void clearHovers(QTreeWidgetItem *root, QTreeWidgetItem *exception);
+  void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) override;
+  void currentChanged(const QModelIndex &current, const QModelIndex &previous) override;
 
-  QColor m_defaultHoverColour;
-  int m_hoverColumn = 0;
+  void setModel(QAbstractItemModel *model) override {}
+  void dataChanged(RDTreeWidgetItem *item, int role);
+
+  friend class RDTreeWidgetModel;
+  friend class RDTreeWidgetItem;
+
+  // invisible root item, used to simplify recursion by even top-level items having a parent
+  RDTreeWidgetItem *m_root;
+
+  RDTreeWidgetModel *m_model;
+
+  QStringList m_headers;
+
+  bool m_queueUpdates;
+
+  RDTreeWidgetItem *m_queuedItem;
+  QPair<int, int> m_lowestIndex;
+  QPair<int, int> m_highestIndex;
+  uint64_t m_queuedRoles;
+
+  RDTreeWidgetItem *m_currentHoverItem = NULL;
+
+  int m_hoverColumn = -1;
+  QIcon m_normalHoverIcon;
+  QIcon m_activeHoverIcon;
   bool m_hoverHandCursor = false;
-  bool m_clearSelectionOnFocusLoss = true;
+  bool m_clearSelectionOnFocusLoss = false;
   bool m_activateOnClick = false;
-
-  static const Qt::ItemDataRole hoverIconRole = Qt::ItemDataRole(Qt::UserRole + 10000);
-  static const Qt::ItemDataRole backupNormalIconRole = Qt::ItemDataRole(Qt::UserRole + 10001);
-  static const Qt::ItemDataRole hoverBackColourRole = Qt::ItemDataRole(Qt::UserRole + 10002);
-  static const Qt::ItemDataRole backupBackColourRole = Qt::ItemDataRole(Qt::UserRole + 10002);
 };
