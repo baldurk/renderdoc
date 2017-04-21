@@ -667,22 +667,37 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
           offset = prevTableOffset;
 
+        UINT num = range.NumDescriptors;
+
         if(heap)
         {
           desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
           desc += e->offset;
           desc += offset;
+
+          if(num == UINT_MAX)
+          {
+            // find out how many descriptors are left after
+            num = heap->GetNumDescriptors() - offset - UINT(e->offset);
+          }
+        }
+        else if(num == UINT_MAX)
+        {
+          RDCWARN(
+              "Heap not available on replay with unbounded descriptor range, clamping to 1 "
+              "descriptor.");
+          num = 1;
         }
 
-        prevTableOffset = offset + range.NumDescriptors;
+        prevTableOffset = offset + num;
 
         if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
         {
-          UINT maxReg = shaderReg + range.NumDescriptors - 1;
+          UINT maxReg = shaderReg + num - 1;
           if(maxReg >= spaces[regSpace].samplers.size())
             spaces[regSpace].samplers.resize(maxReg + 1);
 
-          for(UINT i = 0; i < range.NumDescriptors; i++, shaderReg++)
+          for(UINT i = 0; i < num; i++, shaderReg++)
           {
             D3D12Pipe::Sampler &samp = spaces[regSpace].samplers[shaderReg];
             samp.Immediate = false;
@@ -714,11 +729,11 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         }
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
         {
-          UINT maxReg = shaderReg + range.NumDescriptors - 1;
+          UINT maxReg = shaderReg + num - 1;
           if(maxReg >= spaces[regSpace].cbuffers.size())
             spaces[regSpace].cbuffers.resize(maxReg + 1);
 
-          for(UINT i = 0; i < range.NumDescriptors; i++, shaderReg++)
+          for(UINT i = 0; i < num; i++, shaderReg++)
           {
             D3D12Pipe::CBuffer &cb = spaces[regSpace].cbuffers[shaderReg];
             cb.Immediate = false;
@@ -738,11 +753,11 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         }
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
         {
-          UINT maxReg = shaderReg + range.NumDescriptors - 1;
+          UINT maxReg = shaderReg + num - 1;
           if(maxReg >= spaces[regSpace].srvs.size())
             spaces[regSpace].srvs.resize(maxReg + 1);
 
-          for(UINT i = 0; i < range.NumDescriptors; i++, shaderReg++)
+          for(UINT i = 0; i < num; i++, shaderReg++)
           {
             D3D12Pipe::View &view = spaces[regSpace].srvs[shaderReg];
             view.Immediate = false;
@@ -759,11 +774,11 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         }
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
         {
-          UINT maxReg = shaderReg + range.NumDescriptors - 1;
+          UINT maxReg = shaderReg + num - 1;
           if(maxReg >= spaces[regSpace].uavs.size())
             spaces[regSpace].uavs.resize(maxReg + 1);
 
-          for(UINT i = 0; i < range.NumDescriptors; i++, shaderReg++)
+          for(UINT i = 0; i < num; i++, shaderReg++)
           {
             D3D12Pipe::View &view = spaces[regSpace].uavs[shaderReg];
             view.Immediate = false;

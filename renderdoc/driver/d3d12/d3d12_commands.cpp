@@ -1117,13 +1117,21 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
           desc += el.offset;
           desc += offset;
 
-          prevTableOffset = offset + range.NumDescriptors;
+          UINT num = range.NumDescriptors;
+
+          if(num == UINT_MAX)
+          {
+            // find out how many descriptors are left after
+            num = heap->GetNumDescriptors() - offset - UINT(el.offset);
+          }
+
+          prevTableOffset = offset + num;
 
           if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
           {
             EventUsage usage(e, cb);
 
-            for(UINT i = 0; i < range.NumDescriptors; i++)
+            for(UINT i = 0; i < num; i++)
             {
               ResourceId id =
                   WrappedID3D12Resource::GetResIDFromAddr(desc->nonsamp.cbv.BufferLocation);
@@ -1138,7 +1146,7 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
           {
             ResourceUsage usage = range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV ? ro : rw;
 
-            for(UINT i = 0; i < range.NumDescriptors; i++)
+            for(UINT i = 0; i < num; i++)
             {
               AddUsage(drawNode, GetResID(desc->nonsamp.resource), e, usage);
 
