@@ -544,6 +544,16 @@ bool IsHostADB(const char *hostname)
 string adbExecCommand(const string &args)
 {
   string adbExePath = RenderDoc::Inst().GetConfigSetting("adbExePath");
+  if(adbExePath.empty())
+  {
+    static bool warnPath = true;
+    if(warnPath)
+    {
+      RDCWARN("adbExePath not set, attempting to call 'adb' in working env");
+      warnPath = false;
+    }
+    adbExePath.append("adb");
+  }
   Process::ProcessResult result;
   Process::LaunchProcess(adbExePath.c_str(), "", args.c_str(), &result);
   RDCLOG("COMMAND: adb %s", args.c_str());
