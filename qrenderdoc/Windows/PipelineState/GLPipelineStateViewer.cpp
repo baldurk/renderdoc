@@ -828,7 +828,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem({slotname, name, byterange, sizestr, ""});
 
-      node->setData(0, Qt::UserRole, QVariant::fromValue(i));
+      node->setTag(QVariant::fromValue(i));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -975,7 +975,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({binding, slotname, name, dimensions, format, access, ""});
 
-      node->setData(0, Qt::UserRole, tag);
+      node->setTag(tag);
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -1206,8 +1206,7 @@ void GLPipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {"Element", name, 0, 0, draw ? draw->indexByteWidth : 0, (qulonglong)length, ""});
 
-      node->setData(0, Qt::UserRole, QVariant::fromValue(VBIBTag(state.m_VtxIn.ibuffer,
-                                                                 draw ? draw->indexOffset : 0)));
+      node->setTag(QVariant::fromValue(VBIBTag(state.m_VtxIn.ibuffer, draw ? draw->indexOffset : 0)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1225,8 +1224,7 @@ void GLPipelineStateViewer::setState()
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({"Element", tr("No Buffer Set"), "-", "-", "-", "-", ""});
 
-      node->setData(0, Qt::UserRole, QVariant::fromValue(VBIBTag(state.m_VtxIn.ibuffer,
-                                                                 draw ? draw->indexOffset : 0)));
+      node->setTag(QVariant::fromValue(VBIBTag(state.m_VtxIn.ibuffer, draw ? draw->indexOffset : 0)));
 
       setEmptyRow(node);
 
@@ -1268,7 +1266,7 @@ void GLPipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {i, name, v.Stride, (qulonglong)offset, v.Divisor, (qulonglong)length, ""});
 
-      node->setData(0, Qt::UserRole, QVariant::fromValue(VBIBTag(v.Buffer, v.Offset)));
+      node->setTag(QVariant::fromValue(VBIBTag(v.Buffer, v.Offset)));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -1331,7 +1329,7 @@ void GLPipelineStateViewer::setState()
         RDTreeWidgetItem *node =
             new RDTreeWidgetItem({i, name, length, (qulonglong)state.m_Feedback.Offset[i], ""});
 
-        node->setData(0, Qt::UserRole, QVariant::fromValue(state.m_Feedback.BufferBinding[i]));
+        node->setTag(QVariant::fromValue(state.m_Feedback.BufferBinding[i]));
 
         if(!filledSlot)
           setEmptyRow(node);
@@ -1675,7 +1673,7 @@ void GLPipelineStateViewer::setState()
         RDTreeWidgetItem *node = new RDTreeWidgetItem({i, name, typeName, w, h, d, a, format, ""});
 
         if(tex)
-          node->setData(0, Qt::UserRole, QVariant::fromValue(p));
+          node->setTag(QVariant::fromValue(p));
 
         if(p == ResourceId())
         {
@@ -1747,7 +1745,7 @@ void GLPipelineStateViewer::setState()
             new RDTreeWidgetItem({slot, name, typeName, w, h, d, a, format, ""});
 
         if(tex)
-          node->setData(0, Qt::UserRole, QVariant::fromValue(ds));
+          node->setTag(QVariant::fromValue(ds));
 
         if(ds == ResourceId())
           setEmptyRow(node);
@@ -1945,7 +1943,7 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
   if(stage == NULL)
     return;
 
-  QVariant tag = item->data(0, Qt::UserRole);
+  QVariant tag = item->tag();
 
   if(tag.canConvert<ResourceId>())
   {
@@ -2029,7 +2027,7 @@ void GLPipelineStateViewer::ubo_itemActivated(RDTreeWidgetItem *item, int column
   if(stage == NULL)
     return;
 
-  QVariant tag = item->data(0, Qt::UserRole);
+  QVariant tag = item->tag();
 
   if(!tag.canConvert<int>())
     return;
@@ -2048,7 +2046,7 @@ void GLPipelineStateViewer::on_viAttrs_itemActivated(RDTreeWidgetItem *item, int
 
 void GLPipelineStateViewer::on_viBuffers_itemActivated(RDTreeWidgetItem *item, int column)
 {
-  QVariant tag = item->data(0, Qt::UserRole);
+  QVariant tag = item->tag();
 
   if(tag.canConvert<VBIBTag>())
   {

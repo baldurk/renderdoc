@@ -642,7 +642,7 @@ void D3D11PipelineStateViewer::addResourceRow(const ViewTag &view, const ShaderR
     RDTreeWidgetItem *node =
         new RDTreeWidgetItem({slotname, name, typeName, w, h, d, a, format, ""});
 
-    node->setData(0, Qt::UserRole, QVariant::fromValue(view));
+    node->setTag(QVariant::fromValue(view));
 
     if(viewDetails)
     {
@@ -1002,7 +1002,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem({slotname, name, vecrange, sizestr, ""});
 
-      node->setData(0, Qt::UserRole, QVariant::fromValue(i));
+      node->setTag(QVariant::fromValue(i));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -1273,8 +1273,8 @@ void D3D11PipelineStateViewer::setState()
           new RDTreeWidgetItem({"Index", name, draw ? draw->indexByteWidth : 0,
                                 state.m_IA.ibuffer.Offset, (qulonglong)length, ""});
 
-      node->setData(0, Qt::UserRole, QVariant::fromValue(VBIBTag(state.m_IA.ibuffer.Buffer,
-                                                                 draw ? draw->indexOffset : 0)));
+      node->setTag(
+          QVariant::fromValue(VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1292,8 +1292,8 @@ void D3D11PipelineStateViewer::setState()
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({"Index", tr("No Buffer Set"), "-", "-", "-", ""});
 
-      node->setData(0, Qt::UserRole, QVariant::fromValue(VBIBTag(state.m_IA.ibuffer.Buffer,
-                                                                 draw ? draw->indexOffset : 0)));
+      node->setTag(
+          QVariant::fromValue(VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
 
       setEmptyRow(node);
 
@@ -1338,7 +1338,7 @@ void D3D11PipelineStateViewer::setState()
       else
         node = new RDTreeWidgetItem({i, "No Buffer Set", "-", "-", "-", ""});
 
-      node->setData(0, Qt::UserRole, QVariant::fromValue(VBIBTag(v.Buffer, v.Offset)));
+      node->setTag(QVariant::fromValue(VBIBTag(v.Buffer, v.Offset)));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -1425,7 +1425,7 @@ void D3D11PipelineStateViewer::setState()
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem({i, name, length, s.Offset, ""});
 
-      node->setData(0, Qt::UserRole, QVariant::fromValue(s.Buffer));
+      node->setTag(QVariant::fromValue(s.Buffer));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -1707,7 +1707,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
   if(stage == NULL)
     return;
 
-  QVariant tag = item->data(0, Qt::UserRole);
+  QVariant tag = item->tag();
 
   TextureDescription *tex = NULL;
   BufferDescription *buf = NULL;
@@ -1945,7 +1945,7 @@ void D3D11PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
   if(stage == NULL)
     return;
 
-  QVariant tag = item->data(0, Qt::UserRole);
+  QVariant tag = item->tag();
 
   if(!tag.canConvert<int>())
     return;
@@ -1964,7 +1964,7 @@ void D3D11PipelineStateViewer::on_iaLayouts_itemActivated(RDTreeWidgetItem *item
 
 void D3D11PipelineStateViewer::on_iaBuffers_itemActivated(RDTreeWidgetItem *item, int column)
 {
-  QVariant tag = item->data(0, Qt::UserRole);
+  QVariant tag = item->tag();
 
   if(tag.canConvert<VBIBTag>())
   {

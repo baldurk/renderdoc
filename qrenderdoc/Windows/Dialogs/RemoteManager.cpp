@@ -46,7 +46,7 @@ static void setRemoteConnect(RDTreeWidgetItem *item, const RemoteConnect &connec
   if(!item)
     return;
 
-  item->setData(0, Qt::UserRole, QVariant::fromValue(connect));
+  item->setTag(QVariant::fromValue(connect));
 }
 
 static RemoteConnect getRemoteConnect(RDTreeWidgetItem *item)
@@ -54,7 +54,7 @@ static RemoteConnect getRemoteConnect(RDTreeWidgetItem *item)
   if(!item)
     return RemoteConnect();
 
-  return item->data(0, Qt::UserRole).value<RemoteConnect>();
+  return item->tag().value<RemoteConnect>();
 }
 
 static void setRemoteHost(RDTreeWidgetItem *item, RemoteHost *host)
@@ -62,7 +62,7 @@ static void setRemoteHost(RDTreeWidgetItem *item, RemoteHost *host)
   if(!item)
     return;
 
-  item->setData(0, Qt::UserRole + 1, QVariant::fromValue((uintptr_t)host));
+  item->setTag(QVariant::fromValue((uintptr_t)host));
 }
 
 static RemoteHost *getRemoteHost(RDTreeWidgetItem *item)
@@ -70,7 +70,7 @@ static RemoteHost *getRemoteHost(RDTreeWidgetItem *item)
   if(!item)
     return NULL;
 
-  return (RemoteHost *)item->data(0, Qt::UserRole + 1).value<uintptr_t>();
+  return (RemoteHost *)item->tag().value<uintptr_t>();
 }
 
 RemoteManager::RemoteManager(ICaptureContext &ctx, MainWindow *main)

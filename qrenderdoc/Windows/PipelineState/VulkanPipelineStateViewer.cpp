@@ -1976,7 +1976,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
   if(stage == NULL)
     return;
 
-  QVariant tag = item->data(0, Qt::UserRole);
+  QVariant tag = item->tag();
 
   if(tag.canConvert<ResourceId>())
   {
@@ -2062,7 +2062,7 @@ void VulkanPipelineStateViewer::ubo_itemActivated(RDTreeWidgetItem *item, int co
   if(stage == NULL)
     return;
 
-  QVariant tag = item->data(0, Qt::UserRole);
+  QVariant tag = item->tag();
 
   if(!tag.canConvert<CBufferTag>())
     return;
@@ -2081,7 +2081,7 @@ void VulkanPipelineStateViewer::on_viAttrs_itemActivated(RDTreeWidgetItem *item,
 
 void VulkanPipelineStateViewer::on_viBuffers_itemActivated(RDTreeWidgetItem *item, int column)
 {
-  QVariant tag = item->data(0, Qt::UserRole);
+  QVariant tag = item->tag();
 
   if(tag.canConvert<VBIBTag>())
   {

@@ -40,6 +40,7 @@ class QTimer;
 class QTextStream;
 class FlowLayout;
 class SizeDelegate;
+struct EventItemTag;
 
 class EventBrowser : public QFrame, public IEventBrowser, public ILogViewer
 {
@@ -133,7 +134,7 @@ private:
   QList<int> m_Bookmarks;
   QList<QToolButton *> m_BookmarkButtons;
 
-  void RefreshIcon(RDTreeWidgetItem *item);
+  void RefreshIcon(RDTreeWidgetItem *item, EventItemTag tag);
 
   Ui::EventBrowser *ui;
   ICaptureContext &m_Ctx;

@@ -94,7 +94,7 @@ void APIInspector::on_apiEvents_itemSelectionChanged()
   if(!node)
     return;
 
-  APIEvent ev = ui->apiEvents->selectedItems()[0]->data(0, Qt::UserRole).value<APIEvent>();
+  APIEvent ev = node->tag().value<APIEvent>();
 
   if(ev.callstack.count > 0)
   {
@@ -152,7 +152,7 @@ void APIInspector::fillAPIView()
       if(ev.eventID == draw->eventID)
         root->setBold(true);
 
-      root->setData(0, Qt::UserRole, QVariant::fromValue(ev));
+      root->setTag(QVariant::fromValue(ev));
 
       ui->apiEvents->addTopLevelItem(root);
 

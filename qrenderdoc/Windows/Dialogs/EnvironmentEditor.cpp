@@ -127,7 +127,7 @@ void EnvironmentEditor::on_variables_currentItemChanged(RDTreeWidgetItem *curren
   if(!sel)
     return;
 
-  EnvironmentModification mod = sel[0]->data(0, Qt::UserRole).value<EnvironmentModification>();
+  EnvironmentModification mod = sel->tag().value<EnvironmentModification>();
 
   if(!mod.value.empty())
   {
@@ -214,7 +214,7 @@ void EnvironmentEditor::addModification(EnvironmentModification mod, bool silent
     node->setText(2, ToQStr(mod.value));
   }
 
-  node->setData(0, Qt::UserRole, QVariant::fromValue(mod));
+  node->setTag(QVariant::fromValue(mod));
 
   ui->variables->setSelectedItem(node);
 
@@ -236,7 +236,7 @@ QList<EnvironmentModification> EnvironmentEditor::modifications()
   for(int i = 0; i < ui->variables->topLevelItemCount(); i++)
   {
     EnvironmentModification mod =
-        ui->variables->topLevelItem(i)->data(0, Qt::UserRole).value<EnvironmentModification>();
+        ui->variables->topLevelItem(i)->tag().value<EnvironmentModification>();
 
     if(!mod.name.empty())
       ret.push_back(mod);

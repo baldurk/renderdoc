@@ -853,10 +853,10 @@ void ShaderViewer::updateDebugging()
       {
         if(m_Trace->cbuffers[i][j].rows > 0 || m_Trace->cbuffers[i][j].columns > 0)
         {
-          node->setData(0, Qt::UserRole, QVariant::fromValue(CBufferTag(i, j)));
           RDTreeWidgetItem *node =
               new RDTreeWidgetItem({ToQStr(m_Trace->cbuffers[i][j].name), "cbuffer",
                                     stringRep(m_Trace->cbuffers[i][j], false)});
+          node->setTag(QVariant::fromValue(CBufferTag(i, j)));
 
           ui->constants->addTopLevelItem(node);
         }
@@ -869,9 +869,9 @@ void ShaderViewer::updateDebugging()
 
       if(input.rows > 0 || input.columns > 0)
       {
-        node->setData(0, Qt::UserRole, QVariant::fromValue(ResourceTag(i)));
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {ToQStr(input.name), ToQStr(input.type) + " input", stringRep(input, true)});
+        node->setTag(QVariant::fromValue(ResourceTag(i)));
 
         ui->constants->addTopLevelItem(node);
       }
@@ -982,7 +982,7 @@ void ShaderViewer::updateDebugging()
     RDTreeWidgetItem *node = ui->variables->topLevelItem(v++);
 
     node->setText(2, stringRep(state.registers[i], false));
-    node->setData(0, Qt::UserRole, QVariant::fromValue(state.registers[i]));
+    node->setTag(QVariant::fromValue(state.registers[i]));
   }
 
   for(int i = 0; i < state.indexableTemps.count; i++)
@@ -994,7 +994,7 @@ void ShaderViewer::updateDebugging()
       RDTreeWidgetItem *child = node->child(t);
 
       child->setText(2, stringRep(state.indexableTemps[i][t], false));
-      child->setData(0, Qt::UserRole, QVariant::fromValue(state.indexableTemps[i][t]));
+      child->setTag(QVariant::fromValue(state.indexableTemps[i][t]));
     }
   }
 
@@ -1003,7 +1003,7 @@ void ShaderViewer::updateDebugging()
     RDTreeWidgetItem *node = ui->variables->topLevelItem(v++);
 
     node->setText(2, stringRep(state.outputs[i], false));
-    node->setData(0, Qt::UserRole, QVariant::fromValue(state.outputs[i]));
+    node->setTag(QVariant::fromValue(state.outputs[i]));
   }
 
   ui->variables->setUpdatesEnabled(true);
