@@ -1193,8 +1193,8 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
     m_ModelVSOut->primRestart = 0;
     m_ModelGSOut->primRestart = 0;
 
-    if(m_Ctx.CurPipelineState().IsStripRestartEnabled() && (draw->flags & DrawFlags::UseIBuffer) &&
-       IsStrip(draw->topology))
+    if(m_Ctx.CurPipelineState().IsStripRestartEnabled() && draw &&
+       (draw->flags & DrawFlags::UseIBuffer) && IsStrip(draw->topology))
     {
       m_ModelVSIn->primRestart = m_Ctx.CurPipelineState().GetStripRestartIndex();
 
