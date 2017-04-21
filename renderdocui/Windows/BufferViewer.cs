@@ -820,7 +820,7 @@ namespace renderdocui.Windows
                 if (IsDisposed || MeshView) return int.MaxValue;
                 int maxrows = 0;
                 int.TryParse(rowRange.Text, out maxrows);
-                return maxrows;
+                return Math.Max(0, maxrows);
             }
         }
 
