@@ -125,7 +125,7 @@ public:
     return widget->m_headers.count();
   }
 
-  bool hasChildren(const QModelIndex &parent) const
+  bool hasChildren(const QModelIndex &parent) const override
   {
     if(!parent.isValid())
       return widget->m_root->childCount() > 0;
@@ -345,7 +345,7 @@ void RDTreeWidgetItem::setWidget(RDTreeWidget *widget)
 void RDTreeWidgetItem::dataChanged(int role)
 {
   if(m_widget)
-    m_widget->dataChanged(this, role);
+    m_widget->itemDataChanged(this, role);
 }
 
 RDTreeWidgetItem *RDTreeWidgetItem::takeChild(int index)
@@ -596,7 +596,7 @@ void RDTreeWidget::currentChanged(const QModelIndex &current, const QModelIndex 
   QTreeView::currentChanged(current, previous);
 }
 
-void RDTreeWidget::dataChanged(RDTreeWidgetItem *item, int role)
+void RDTreeWidget::itemDataChanged(RDTreeWidgetItem *item, int role)
 {
   if(m_queueUpdates)
   {

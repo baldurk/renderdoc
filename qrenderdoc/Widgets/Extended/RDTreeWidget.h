@@ -202,7 +202,7 @@ private:
   void currentChanged(const QModelIndex &current, const QModelIndex &previous) override;
 
   void setModel(QAbstractItemModel *model) override {}
-  void dataChanged(RDTreeWidgetItem *item, int role);
+  void itemDataChanged(RDTreeWidgetItem *item, int role);
 
   friend class RDTreeWidgetModel;
   friend class RDTreeWidgetItem;
