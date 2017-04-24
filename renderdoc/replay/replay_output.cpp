@@ -300,7 +300,7 @@ rdctype::pair<PixelValue, PixelValue> ReplayOutput::GetMinMax()
     sample = 0;
   }
 
-  m_pDevice->GetMinMax(tex, slice, mip, sample, typeHint, &minval.value_f[0], &minval.value_f[0]);
+  m_pDevice->GetMinMax(tex, slice, mip, sample, typeHint, &minval.value_f[0], &maxval.value_f[0]);
 
   return rdctype::make_pair(minval, maxval);
 }
