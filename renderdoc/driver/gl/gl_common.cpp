@@ -2365,6 +2365,8 @@ void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progd
 void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst,
                                  ShaderReflection *refl)
 {
+  uint64_t used = 0;
+
   // copy over fragdata bindings
   for(int32_t i = 0; i < refl->OutputSig.count; i++)
   {
@@ -2375,6 +2377,17 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
     GLint idx = gl.glGetFragDataLocation(progsrc, refl->OutputSig[i].varName.elems);
     if(idx >= 0)
     {
+      uint64_t mask = 1ULL << idx;
+
+      if(used & mask)
+      {
+        RDCWARN("Multiple signatures bound to output %d, ignoring %s", i,
+                refl->OutputSig[i].varName.elems);
+        continue;
+      }
+
+      used |= mask;
+
       if(gl.glBindFragDataLocation)
       {
         gl.glBindFragDataLocation(progdst, (GLuint)idx, refl->OutputSig[i].varName.elems);
