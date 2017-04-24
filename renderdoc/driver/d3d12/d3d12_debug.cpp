@@ -216,65 +216,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   m_CustomShaderTex = NULL;
 
-  {
-    D3D12_RESOURCE_DESC soBufDesc;
-    soBufDesc.Alignment = 0;
-    soBufDesc.DepthOrArraySize = 1;
-    soBufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    // need to allow UAV access to reset the counter each time
-    soBufDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    soBufDesc.Format = DXGI_FORMAT_UNKNOWN;
-    soBufDesc.Height = 1;
-    soBufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    soBufDesc.MipLevels = 1;
-    soBufDesc.SampleDesc.Count = 1;
-    soBufDesc.SampleDesc.Quality = 0;
-    // add 64 bytes for the counter at the start
-    soBufDesc.Width = m_SOBufferSize + 64;
-
-    D3D12_HEAP_PROPERTIES heapProps;
-    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-    heapProps.CreationNodeMask = 1;
-    heapProps.VisibleNodeMask = 1;
-
-    hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc,
-                                                  D3D12_RESOURCE_STATE_STREAM_OUT, NULL,
-                                                  __uuidof(ID3D12Resource), (void **)&m_SOBuffer);
-
-    if(FAILED(hr))
-    {
-      RDCERR("Failed to create SO output buffer, HRESULT: 0x%08x", hr);
-      return;
-    }
-
-    soBufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-    heapProps.Type = D3D12_HEAP_TYPE_READBACK;
-
-    hr = m_WrappedDevice->CreateCommittedResource(
-        &heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
-        __uuidof(ID3D12Resource), (void **)&m_SOStagingBuffer);
-
-    if(FAILED(hr))
-    {
-      RDCERR("Failed to create readback buffer, HRESULT: 0x%08x", hr);
-      return;
-    }
-
-    soBufDesc.Width = m_SOPatchedIndexBufferSize;
-    heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-
-    hr = m_WrappedDevice->CreateCommittedResource(
-        &heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
-        __uuidof(ID3D12Resource), (void **)&m_SOPatchedIndexBuffer);
-
-    if(FAILED(hr))
-    {
-      RDCERR("Failed to create SO index buffer, HRESULT: 0x%08x", hr);
-      return;
-    }
-  }
+  CreateSOBuffers();
 
   {
     D3D12_RESOURCE_DESC readbackDesc;
@@ -1404,6 +1346,100 @@ D3D12DebugManager::~D3D12DebugManager()
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+}
+
+void D3D12DebugManager::CreateSOBuffers()
+{
+  HRESULT hr = S_OK;
+
+  SAFE_RELEASE(m_SOBuffer);
+  SAFE_RELEASE(m_SOStagingBuffer);
+  SAFE_RELEASE(m_SOPatchedIndexBuffer);
+  SAFE_RELEASE(m_SOQueryHeap);
+
+  D3D12_RESOURCE_DESC soBufDesc;
+  soBufDesc.Alignment = 0;
+  soBufDesc.DepthOrArraySize = 1;
+  soBufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  // need to allow UAV access to reset the counter each time
+  soBufDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+  soBufDesc.Format = DXGI_FORMAT_UNKNOWN;
+  soBufDesc.Height = 1;
+  soBufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  soBufDesc.MipLevels = 1;
+  soBufDesc.SampleDesc.Count = 1;
+  soBufDesc.SampleDesc.Quality = 0;
+  // add 64 bytes for the counter at the start
+  soBufDesc.Width = m_SOBufferSize + 64;
+
+  D3D12_HEAP_PROPERTIES heapProps;
+  heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+  heapProps.CreationNodeMask = 1;
+  heapProps.VisibleNodeMask = 1;
+
+  hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc,
+                                                D3D12_RESOURCE_STATE_STREAM_OUT, NULL,
+                                                __uuidof(ID3D12Resource), (void **)&m_SOBuffer);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create SO output buffer, HRESULT: 0x%08x", hr);
+    return;
+  }
+
+  soBufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+  heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+
+  hr = m_WrappedDevice->CreateCommittedResource(
+      &heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+      __uuidof(ID3D12Resource), (void **)&m_SOStagingBuffer);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create readback buffer, HRESULT: 0x%08x", hr);
+    return;
+  }
+
+  // this is a buffer of unique indices, so it allows for
+  // the worst case - float4 per vertex, all unique indices.
+  soBufDesc.Width = m_SOBufferSize / sizeof(Vec4f);
+  heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+  hr = m_WrappedDevice->CreateCommittedResource(
+      &heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+      __uuidof(ID3D12Resource), (void **)&m_SOPatchedIndexBuffer);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create SO index buffer, HRESULT: 0x%08x", hr);
+    return;
+  }
+
+  D3D12_QUERY_HEAP_DESC queryDesc;
+  queryDesc.Count = 16;
+  queryDesc.NodeMask = 1;
+  queryDesc.Type = D3D12_QUERY_HEAP_TYPE_SO_STATISTICS;
+  hr = m_WrappedDevice->CreateQueryHeap(&queryDesc, __uuidof(m_SOQueryHeap), (void **)&m_SOQueryHeap);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create SO query heap, HRESULT: 0x%08x", hr);
+    return;
+  }
+
+  D3D12_UNORDERED_ACCESS_VIEW_DESC counterDesc = {};
+  counterDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+  counterDesc.Format = DXGI_FORMAT_R32_UINT;
+  counterDesc.Buffer.FirstElement = 0;
+  counterDesc.Buffer.NumElements = 4;
+
+  m_WrappedDevice->CreateUnorderedAccessView(m_SOBuffer, NULL, &counterDesc,
+                                             GetCPUHandle(STREAM_OUT_UAV));
+
+  m_WrappedDevice->CreateUnorderedAccessView(m_SOBuffer, NULL, &counterDesc,
+                                             GetUAVClearHandle(STREAM_OUT_UAV));
 }
 
 string D3D12DebugManager::GetShaderBlob(const char *source, const char *entry,
@@ -3911,8 +3947,28 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     ID3D12Resource *idxBuf = NULL;
 
+    bool recreate = false;
+    uint64_t outputSize = stride * drawcall->numIndices * drawcall->numInstances;
+
+    if(m_SOBufferSize < outputSize)
+    {
+      uint64_t oldSize = m_SOBufferSize;
+      while(m_SOBufferSize < outputSize)
+        m_SOBufferSize *= 2;
+      RDCWARN("Resizing stream-out buffer from %llu to %llu for output data", oldSize,
+              m_SOBufferSize);
+      recreate = true;
+    }
+
     if(!(drawcall->flags & DrawFlags::UseIBuffer))
     {
+      if(recreate)
+      {
+        m_WrappedDevice->GPUSync();
+
+        CreateSOBuffers();
+      }
+
       m_DebugList->Reset(m_DebugAlloc, NULL);
 
       rs.ApplyState(m_DebugList);
@@ -4000,10 +4056,20 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
         indexRemap[indices[i]] = i;
       }
 
-      if(indices.size() > m_SOPatchedIndexBufferSize / sizeof(uint32_t))
+      if(m_SOBufferSize / sizeof(Vec4f) < indices.size() * sizeof(uint32_t))
       {
-        RDCWARN("Too many unique indices, clamping.");
-        indices.resize(m_SOPatchedIndexBufferSize / sizeof(uint32_t));
+        uint64_t oldSize = m_SOBufferSize;
+        while(m_SOBufferSize / sizeof(Vec4f) < indices.size() * sizeof(uint32_t))
+          m_SOBufferSize *= 2;
+        RDCWARN("Resizing stream-out buffer from %llu to %llu for indices", oldSize, m_SOBufferSize);
+        recreate = true;
+      }
+
+      if(recreate)
+      {
+        m_WrappedDevice->GPUSync();
+
+        CreateSOBuffers();
       }
 
       FillBuffer(m_SOPatchedIndexBuffer, 0, &indices[0], indices.size() * sizeof(uint32_t));
@@ -4118,18 +4184,6 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
     m_DebugList->DiscardResource(m_SOBuffer, NULL);
     m_DebugList->ResourceBarrier(1, &sobarr);
 
-    D3D12_UNORDERED_ACCESS_VIEW_DESC counterDesc = {};
-    counterDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-    counterDesc.Format = DXGI_FORMAT_R32_UINT;
-    counterDesc.Buffer.FirstElement = 0;
-    counterDesc.Buffer.NumElements = 4;
-
-    m_WrappedDevice->CreateUnorderedAccessView(m_SOBuffer, NULL, &counterDesc,
-                                               GetCPUHandle(STREAM_OUT_UAV));
-
-    m_WrappedDevice->CreateUnorderedAccessView(m_SOBuffer, NULL, &counterDesc,
-                                               GetUAVClearHandle(STREAM_OUT_UAV));
-
     UINT zeroes[4] = {0, 0, 0, 0};
     m_DebugList->ClearUnorderedAccessViewUint(
         GetGPUHandle(STREAM_OUT_UAV), GetUAVClearHandle(STREAM_OUT_UAV), m_SOBuffer, zeroes, 0, NULL);
@@ -4168,16 +4222,6 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     // skip past the counter
     byteData += 64;
-
-    if(numBytesWritten >= m_SOBufferSize)
-    {
-      RDCERR("Generated output data too large: %08x", numBytesWritten);
-
-      m_SOStagingBuffer->Unmap(0, &range);
-      SAFE_RELEASE(idxBuf);
-      SAFE_RELEASE(soSig);
-      return;
-    }
 
     uint64_t numPrims = numBytesWritten / stride;
 
@@ -4390,27 +4434,126 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       return;
     }
 
-    m_DebugList->Reset(m_DebugAlloc, NULL);
-
-    rs.ApplyState(m_DebugList);
-
-    m_DebugList->SetPipelineState(pipe);
-
-    if(soSig)
-    {
-      m_DebugList->SetGraphicsRootSignature(soSig);
-      rs.ApplyGraphicsRootElements(m_DebugList);
-    }
-
     D3D12_STREAM_OUTPUT_BUFFER_VIEW view;
+
     view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
     view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
     view.SizeInBytes = m_SOBufferSize;
-
     // draws with multiple instances must be replayed one at a time so we can record the number of
     // primitives from each drawcall, as due to expansion this can vary per-instance.
     if(drawcall->numInstances > 1)
     {
+      m_DebugList->Reset(m_DebugAlloc, NULL);
+
+      rs.ApplyState(m_DebugList);
+
+      m_DebugList->SetPipelineState(pipe);
+
+      if(soSig)
+      {
+        m_DebugList->SetGraphicsRootSignature(soSig);
+        rs.ApplyGraphicsRootElements(m_DebugList);
+      }
+
+      view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
+      view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
+      view.SizeInBytes = m_SOBufferSize;
+
+      // do a dummy draw to make sure we have enough space in the output buffer
+      m_DebugList->SOSetTargets(0, 1, &view);
+
+      m_DebugList->BeginQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
+
+      // because the result is expanded we don't have to remap index buffers or anything
+      if(drawcall->flags & DrawFlags::UseIBuffer)
+      {
+        m_DebugList->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
+                                          drawcall->indexOffset, drawcall->baseVertex,
+                                          drawcall->instanceOffset);
+      }
+      else
+      {
+        m_DebugList->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
+                                   drawcall->vertexOffset, drawcall->instanceOffset);
+      }
+
+      m_DebugList->EndQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
+
+      m_DebugList->ResolveQueryData(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0, 1,
+                                    m_SOStagingBuffer, 0);
+
+      m_DebugList->Close();
+
+      ID3D12CommandList *l = m_DebugList;
+      m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
+      m_WrappedDevice->GPUSync();
+
+      // check that things are OK, and resize up if needed
+      D3D12_RANGE range;
+      range.Begin = 0;
+      range.End = (SIZE_T)sizeof(D3D12_QUERY_DATA_SO_STATISTICS);
+
+      D3D12_QUERY_DATA_SO_STATISTICS *data;
+      hr = m_SOStagingBuffer->Map(0, &range, (void **)&data);
+
+      D3D12_QUERY_DATA_SO_STATISTICS result = *data;
+
+      range.End = 0;
+      m_SOStagingBuffer->Unmap(0, &range);
+
+      if(m_SOBufferSize < data->PrimitivesStorageNeeded * 3 * stride)
+      {
+        uint64_t oldSize = m_SOBufferSize;
+        while(m_SOBufferSize < data->PrimitivesStorageNeeded * 3 * stride)
+          m_SOBufferSize *= 2;
+        RDCWARN("Resizing stream-out buffer from %llu to %llu for output", oldSize, m_SOBufferSize);
+        CreateSOBuffers();
+      }
+
+      view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
+      view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
+      view.SizeInBytes = m_SOBufferSize;
+
+      m_DebugAlloc->Reset();
+
+      // now do the actual stream out
+      m_DebugList->Reset(m_DebugAlloc, NULL);
+
+      // first need to reset the counter byte values which may have either been written to above, or
+      // are newly created
+      {
+        D3D12_RESOURCE_BARRIER sobarr = {};
+        sobarr.Transition.pResource = m_SOBuffer;
+        sobarr.Transition.StateBefore = D3D12_RESOURCE_STATE_STREAM_OUT;
+        sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+
+        m_DebugList->ResourceBarrier(1, &sobarr);
+
+        D3D12_UNORDERED_ACCESS_VIEW_DESC counterDesc = {};
+        counterDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        counterDesc.Format = DXGI_FORMAT_R32_UINT;
+        counterDesc.Buffer.FirstElement = 0;
+        counterDesc.Buffer.NumElements = 4;
+
+        UINT zeroes[4] = {0, 0, 0, 0};
+        m_DebugList->ClearUnorderedAccessViewUint(GetGPUHandle(STREAM_OUT_UAV),
+                                                  GetUAVClearHandle(STREAM_OUT_UAV), m_SOBuffer,
+                                                  zeroes, 0, NULL);
+
+        std::swap(sobarr.Transition.StateBefore, sobarr.Transition.StateAfter);
+        m_DebugList->ResourceBarrier(1, &sobarr);
+      }
+
+      rs.ApplyState(m_DebugList);
+
+      m_DebugList->SetPipelineState(pipe);
+
+      if(soSig)
+      {
+        m_DebugList->SetGraphicsRootSignature(soSig);
+        rs.ApplyGraphicsRootElements(m_DebugList);
+      }
+
       // reserve space for enough 'buffer filled size' locations
       view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() +
                             AlignUp(uint64_t(drawcall->numInstances * sizeof(UINT64)), 64ULL);
@@ -4439,25 +4582,92 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
         }
       }
 
+      m_DebugList->Close();
+
+      l = m_DebugList;
+      m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
+      m_WrappedDevice->GPUSync();
+
       // the last draw will have written the actual data we want into the buffer
     }
     else
     {
-      m_DebugList->SOSetTargets(0, 1, &view);
+      // this only loops if we find from a query that we need to resize up
+      while(true)
+      {
+        m_DebugList->Reset(m_DebugAlloc, NULL);
 
-      // because the result is expanded we don't have to remap index buffers or anything
-      if(drawcall->flags & DrawFlags::UseIBuffer)
-      {
-        m_DebugList->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
-                                          drawcall->indexOffset, drawcall->baseVertex,
-                                          drawcall->instanceOffset);
-      }
-      else
-      {
-        m_DebugList->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
-                                   drawcall->vertexOffset, drawcall->instanceOffset);
+        rs.ApplyState(m_DebugList);
+
+        m_DebugList->SetPipelineState(pipe);
+
+        if(soSig)
+        {
+          m_DebugList->SetGraphicsRootSignature(soSig);
+          rs.ApplyGraphicsRootElements(m_DebugList);
+        }
+
+        view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
+        view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
+        view.SizeInBytes = m_SOBufferSize;
+
+        m_DebugList->SOSetTargets(0, 1, &view);
+
+        m_DebugList->BeginQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
+
+        // because the result is expanded we don't have to remap index buffers or anything
+        if(drawcall->flags & DrawFlags::UseIBuffer)
+        {
+          m_DebugList->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
+                                            drawcall->indexOffset, drawcall->baseVertex,
+                                            drawcall->instanceOffset);
+        }
+        else
+        {
+          m_DebugList->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
+                                     drawcall->vertexOffset, drawcall->instanceOffset);
+        }
+
+        m_DebugList->EndQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
+
+        m_DebugList->ResolveQueryData(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0, 1,
+                                      m_SOStagingBuffer, 0);
+
+        m_DebugList->Close();
+
+        ID3D12CommandList *l = m_DebugList;
+        m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
+        m_WrappedDevice->GPUSync();
+
+        // check that things are OK, and resize up if needed
+        D3D12_RANGE range;
+        range.Begin = 0;
+        range.End = (SIZE_T)sizeof(D3D12_QUERY_DATA_SO_STATISTICS);
+
+        D3D12_QUERY_DATA_SO_STATISTICS *data;
+        hr = m_SOStagingBuffer->Map(0, &range, (void **)&data);
+
+        if(m_SOBufferSize < data->PrimitivesStorageNeeded * 3 * stride)
+        {
+          uint64_t oldSize = m_SOBufferSize;
+          while(m_SOBufferSize < data->PrimitivesStorageNeeded * 3 * stride)
+            m_SOBufferSize *= 2;
+          RDCWARN("Resizing stream-out buffer from %llu to %llu for output", oldSize, m_SOBufferSize);
+          CreateSOBuffers();
+
+          continue;
+        }
+
+        range.End = 0;
+        m_SOStagingBuffer->Unmap(0, &range);
+
+        m_DebugAlloc->Reset();
+
+        break;
       }
     }
+
+    m_DebugList->Reset(m_DebugAlloc, NULL);
 
     D3D12_RESOURCE_BARRIER sobarr = {};
     sobarr.Transition.pResource = m_SOBuffer;
@@ -4541,15 +4751,6 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     // skip past the counter(s)
     byteData += (view.BufferLocation - m_SOBuffer->GetGPUVirtualAddress());
-
-    if(numBytesWritten >= m_SOBufferSize)
-    {
-      RDCERR("Generated output data too large: %08x", numBytesWritten);
-
-      m_SOStagingBuffer->Unmap(0, &range);
-      SAFE_RELEASE(soSig);
-      return;
-    }
 
     uint64_t numVerts = numBytesWritten / stride;
 
@@ -5298,6 +5499,9 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
         list->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(fmt.topo));
 
+        if(PatchList_Count(fmt.topo) > 0)
+          list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+
         if(fmt.idxByteWidth && fmt.idxbuf != ResourceId())
         {
           ID3D12Resource *ib =
@@ -5337,6 +5541,9 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     list->IASetVertexBuffers(1, 1, &view);
 
     list->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(cfg.position.topo));
+
+    if(PatchList_Count(cfg.position.topo) > 0)
+      list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
   }
 
   SolidShade solidShadeMode = cfg.solidShadeMode;
@@ -5639,6 +5846,9 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
       list->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(helper.topo));
 
+      if(PatchList_Count(helper.topo) > 0)
+        list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+
       list->SetGraphicsRootConstantBufferView(0, UploadConstants(&vertexData, sizeof(vertexData)));
 
       list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Solid]);
@@ -5701,6 +5911,9 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       };
 
       list->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(helper.topo));
+
+      if(PatchList_Count(helper.topo) > 0)
+        list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 
       list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Solid]);
 

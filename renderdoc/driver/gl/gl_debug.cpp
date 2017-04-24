@@ -665,7 +665,8 @@ void GLReplay::InitDebugData()
 
   gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
   gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
-  gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, 32 * 1024 * 1024, NULL, eGL_DYNAMIC_READ);
+  gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, DebugData.feedbackBufferSize, NULL,
+                          eGL_DYNAMIC_READ);
   gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
   gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);
 
@@ -3581,19 +3582,35 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
 
   gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
 
-  // need to rebind this here because of an AMD bug that seems to ignore the buffer
-  // bindings in the feedback object - or at least it errors if the default feedback
-  // object has no buffers bound. Fortunately the state is still object-local so
-  // we don't have to restore the buffer binding on the default feedback object.
-  gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
-
   GLuint idxBuf = 0;
-
-  gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
-  gl.glBeginTransformFeedback(eGL_POINTS);
 
   if(!(drawcall->flags & DrawFlags::UseIBuffer))
   {
+    uint32_t outputSize = drawcall->numIndices * drawcall->numInstances * stride;
+
+    if(drawcall->flags & DrawFlags::Instanced)
+      outputSize *= drawcall->numInstances;
+
+    // resize up the buffer if needed for the vertex output data
+    if(DebugData.feedbackBufferSize < outputSize)
+    {
+      uint32_t oldSize = DebugData.feedbackBufferSize;
+      while(DebugData.feedbackBufferSize < outputSize)
+        DebugData.feedbackBufferSize *= 2;
+      RDCWARN("Resizing xfb buffer from %u to %u for output", oldSize, DebugData.feedbackBufferSize);
+      gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, DebugData.feedbackBufferSize, NULL,
+                              eGL_DYNAMIC_READ);
+    }
+
+    // need to rebind this here because of an AMD bug that seems to ignore the buffer
+    // bindings in the feedback object - or at least it errors if the default feedback
+    // object has no buffers bound. Fortunately the state is still object-local so
+    // we don't have to restore the buffer binding on the default feedback object.
+    gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
+
+    gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
+    gl.glBeginTransformFeedback(eGL_POINTS);
+
     if(drawcall->flags & DrawFlags::Instanced)
     {
       if(HasExt[ARB_base_instance])
@@ -3681,6 +3698,31 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
     gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, indexSetBuffer);
     gl.glNamedBufferDataEXT(indexSetBuffer, sizeof(uint32_t) * indices.size(), &indices[0],
                             eGL_STATIC_DRAW);
+
+    uint32_t outputSize = (uint32_t)indices.size() * drawcall->numInstances * stride;
+
+    if(drawcall->flags & DrawFlags::Instanced)
+      outputSize *= drawcall->numInstances;
+
+    // resize up the buffer if needed for the vertex output data
+    if(DebugData.feedbackBufferSize < outputSize)
+    {
+      uint32_t oldSize = DebugData.feedbackBufferSize;
+      while(DebugData.feedbackBufferSize < outputSize)
+        DebugData.feedbackBufferSize *= 2;
+      RDCWARN("Resizing xfb buffer from %u to %u for output", oldSize, DebugData.feedbackBufferSize);
+      gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, DebugData.feedbackBufferSize, NULL,
+                              eGL_DYNAMIC_READ);
+    }
+
+    // need to rebind this here because of an AMD bug that seems to ignore the buffer
+    // bindings in the feedback object - or at least it errors if the default feedback
+    // object has no buffers bound. Fortunately the state is still object-local so
+    // we don't have to restore the buffer binding on the default feedback object.
+    gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
+
+    gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
+    gl.glBeginTransformFeedback(eGL_POINTS);
 
     if(drawcall->flags & DrawFlags::Instanced)
     {
@@ -4104,28 +4146,126 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
       GLenum shaderOutMode = eGL_TRIANGLES;
       GLenum lastOutTopo = eGL_TRIANGLES;
 
+      uint32_t maxOutputSize = stride;
+
+      if(drawcall->flags & DrawFlags::Instanced)
+        maxOutputSize *= drawcall->numInstances;
+
+      uint32_t numInputPrimitives = drawcall->numIndices;
+      GLenum drawtopo = MakeGLPrimitiveTopology(drawcall->topology);
+
+      switch(drawcall->topology)
+      {
+        case Topology::PointList: break;
+        case Topology::LineList: numInputPrimitives /= 2; break;
+        case Topology::LineStrip: numInputPrimitives -= 1; break;
+        case Topology::LineLoop: break;
+        case Topology::TriangleList: numInputPrimitives /= 3; break;
+        case Topology::TriangleStrip:
+        case Topology::TriangleFan: numInputPrimitives -= 2; break;
+        case Topology::LineList_Adj: numInputPrimitives /= 4; break;
+        case Topology::LineStrip_Adj: numInputPrimitives -= 3; break;
+        case Topology::TriangleList_Adj: numInputPrimitives /= 6; break;
+        case Topology::TriangleStrip_Adj: numInputPrimitives -= 5; break;
+        case Topology::PatchList_1CPs:
+        case Topology::PatchList_2CPs:
+        case Topology::PatchList_3CPs:
+        case Topology::PatchList_4CPs:
+        case Topology::PatchList_5CPs:
+        case Topology::PatchList_6CPs:
+        case Topology::PatchList_7CPs:
+        case Topology::PatchList_8CPs:
+        case Topology::PatchList_9CPs:
+        case Topology::PatchList_10CPs:
+        case Topology::PatchList_11CPs:
+        case Topology::PatchList_12CPs:
+        case Topology::PatchList_13CPs:
+        case Topology::PatchList_14CPs:
+        case Topology::PatchList_15CPs:
+        case Topology::PatchList_16CPs:
+        case Topology::PatchList_17CPs:
+        case Topology::PatchList_18CPs:
+        case Topology::PatchList_19CPs:
+        case Topology::PatchList_20CPs:
+        case Topology::PatchList_21CPs:
+        case Topology::PatchList_22CPs:
+        case Topology::PatchList_23CPs:
+        case Topology::PatchList_24CPs:
+        case Topology::PatchList_25CPs:
+        case Topology::PatchList_26CPs:
+        case Topology::PatchList_27CPs:
+        case Topology::PatchList_28CPs:
+        case Topology::PatchList_29CPs:
+        case Topology::PatchList_30CPs:
+        case Topology::PatchList_31CPs:
+        case Topology::PatchList_32CPs:
+          numInputPrimitives /= PatchList_Count(drawcall->topology);
+          break;
+      }
+
       if(lastProg == gsProg)
       {
         gl.glGetProgramiv(gsProg, eGL_GEOMETRY_OUTPUT_TYPE, (GLint *)&shaderOutMode);
+
+        GLint maxVerts = 1;
+
+        gl.glGetProgramiv(gsProg, eGL_GEOMETRY_VERTICES_OUT, (GLint *)&maxVerts);
+
         if(shaderOutMode == eGL_TRIANGLE_STRIP)
+        {
           lastOutTopo = eGL_TRIANGLES;
+          maxVerts = RDCMAX(3, maxVerts);
+        }
         else if(shaderOutMode == eGL_LINE_STRIP)
+        {
           lastOutTopo = eGL_LINES;
+          maxVerts = RDCMAX(2, maxVerts);
+        }
         else if(shaderOutMode == eGL_POINTS)
+        {
           lastOutTopo = eGL_POINTS;
+          maxVerts = RDCMAX(1, maxVerts);
+        }
+
+        maxOutputSize *= maxVerts * numInputPrimitives;
       }
       else if(lastProg == tesProg)
       {
         gl.glGetProgramiv(tesProg, eGL_TESS_GEN_MODE, (GLint *)&shaderOutMode);
+
+        uint32_t outputPrimitiveVerts = 1;
+
         if(shaderOutMode == eGL_QUADS)
+        {
           lastOutTopo = eGL_TRIANGLES;
+          outputPrimitiveVerts = 3;
+        }
         else if(shaderOutMode == eGL_ISOLINES)
+        {
           lastOutTopo = eGL_LINES;
+          outputPrimitiveVerts = 2;
+        }
         else if(shaderOutMode == eGL_TRIANGLES)
+        {
           lastOutTopo = eGL_TRIANGLES;
+          outputPrimitiveVerts = 3;
+        }
+
+        // assume an average maximum tessellation level of 32
+        maxOutputSize *= 32 * outputPrimitiveVerts * numInputPrimitives;
       }
 
-      GLenum drawtopo = MakeGLPrimitiveTopology(drawcall->topology);
+      // resize up the buffer if needed for the vertex output data
+      if(DebugData.feedbackBufferSize < maxOutputSize)
+      {
+        uint32_t oldSize = DebugData.feedbackBufferSize;
+        while(DebugData.feedbackBufferSize < maxOutputSize)
+          DebugData.feedbackBufferSize *= 2;
+        RDCWARN("Conservatively resizing xfb buffer from %u to %u for output", oldSize,
+                DebugData.feedbackBufferSize);
+        gl.glNamedBufferDataEXT(DebugData.feedbackBuffer, DebugData.feedbackBufferSize, NULL,
+                                eGL_DYNAMIC_READ);
+      }
 
       GLenum idxType = eGL_UNSIGNED_BYTE;
       if(drawcall->indexByteWidth == 2)

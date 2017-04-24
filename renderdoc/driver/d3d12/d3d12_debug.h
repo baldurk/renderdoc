@@ -39,7 +39,6 @@ class D3D12DebugManager
 {
 public:
   D3D12DebugManager(WrappedID3D12Device *wrapper);
-
   ~D3D12DebugManager();
 
   uint64_t MakeOutputWindow(WindowingSystem system, void *data, bool depth);
@@ -319,6 +318,8 @@ private:
                        const char *profile, ID3DBlob **srcblob);
   ID3DBlob *MakeFixedColShader(float overlayConsts[4]);
 
+  void CreateSOBuffers();
+
   struct MeshDisplayPipelines
   {
     enum
@@ -390,14 +391,11 @@ private:
   uint32_t m_PickSize;
   ID3D12Resource *m_PickResultBuf;
 
-  static const int m_SOBufferSize = 32 * 1024 * 1024;
-  ID3D12Resource *m_SOBuffer;
-  ID3D12Resource *m_SOStagingBuffer;
-
-  // this is a buffer of unique indices, so it allows for
-  // the worst case - float4 per vertex, all unique indices.
-  static const int m_SOPatchedIndexBufferSize = m_SOBufferSize / 16;
-  ID3D12Resource *m_SOPatchedIndexBuffer;
+  uint64_t m_SOBufferSize = 128;
+  ID3D12Resource *m_SOBuffer = NULL;
+  ID3D12Resource *m_SOStagingBuffer = NULL;
+  ID3D12Resource *m_SOPatchedIndexBuffer = NULL;
+  ID3D12QueryHeap *m_SOQueryHeap = NULL;
 
   map<uint32_t, D3D12PostVSData> m_PostVSData;
   map<uint32_t, uint32_t> m_PostVSAlias;

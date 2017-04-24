@@ -336,9 +336,9 @@ private:
   bool m_ShaderCacheDirty, m_CacheShaders;
   map<uint32_t, ID3DBlob *> m_ShaderCache;
 
-  static const int m_SOBufferSize = 32 * 1024 * 1024;
-  ID3D11Buffer *m_SOBuffer;
-  ID3D11Buffer *m_SOStagingBuffer;
+  uint32_t m_SOBufferSize = 32 * 1024 * 1024;
+  ID3D11Buffer *m_SOBuffer = NULL;
+  ID3D11Buffer *m_SOStagingBuffer = NULL;
   std::vector<ID3D11Query *> m_SOStatsQueries;
   // event -> data
   map<uint32_t, D3D11PostVSData> m_PostVSData;
@@ -369,6 +369,7 @@ private:
   ID3D11Buffer *m_TriHighlightHelper;
 
   bool InitStreamOut();
+  void CreateSOBuffers();
   void ShutdownStreamOut();
 
   // font/text rendering

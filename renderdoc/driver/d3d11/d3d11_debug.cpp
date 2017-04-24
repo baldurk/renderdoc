@@ -1189,23 +1189,11 @@ void D3D11DebugManager::ShutdownStreamOut()
 
 bool D3D11DebugManager::InitStreamOut()
 {
+  CreateSOBuffers();
+
   m_MeshDisplayLayout = NULL;
 
-  D3D11_BUFFER_DESC bufferDesc = {
-      m_SOBufferSize, D3D11_USAGE_DEFAULT, D3D11_BIND_STREAM_OUTPUT, 0, 0, 0};
   HRESULT hr = S_OK;
-
-  hr = m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_SOBuffer);
-
-  if(FAILED(hr))
-    RDCERR("Failed to create m_SOBuffer %08x", hr);
-
-  bufferDesc.Usage = D3D11_USAGE_STAGING;
-  bufferDesc.BindFlags = 0;
-  bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-  hr = m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_SOStagingBuffer);
-  if(FAILED(hr))
-    RDCERR("Failed to create m_SOStagingBuffer %08x", hr);
 
   D3D11_QUERY_DESC qdesc;
   qdesc.MiscFlags = 0;
@@ -1349,6 +1337,29 @@ bool D3D11DebugManager::InitStreamOut()
   }
 
   return true;
+}
+
+void D3D11DebugManager::CreateSOBuffers()
+{
+  HRESULT hr = S_OK;
+
+  SAFE_RELEASE(m_SOBuffer);
+  SAFE_RELEASE(m_SOStagingBuffer);
+
+  D3D11_BUFFER_DESC bufferDesc = {
+      m_SOBufferSize, D3D11_USAGE_DEFAULT, D3D11_BIND_STREAM_OUTPUT, 0, 0, 0};
+
+  hr = m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_SOBuffer);
+
+  if(FAILED(hr))
+    RDCERR("Failed to create m_SOBuffer %08x", hr);
+
+  bufferDesc.Usage = D3D11_USAGE_STAGING;
+  bufferDesc.BindFlags = 0;
+  bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+  hr = m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_SOStagingBuffer);
+  if(FAILED(hr))
+    RDCERR("Failed to create m_SOStagingBuffer %08x", hr);
 }
 
 bool D3D11DebugManager::InitFontRendering()
@@ -3832,32 +3843,47 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
     SAFE_RELEASE(streamoutGS);
 
     UINT offset = 0;
-    m_pImmediateContext->SOSetTargets(1, &m_SOBuffer, &offset);
-
-    m_pImmediateContext->Begin(m_SOStatsQueries[0]);
-
     ID3D11Buffer *idxBuf = NULL;
     DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
+    UINT idxOffs = 0;
+
+    m_WrappedContext->IAGetIndexBuffer(&idxBuf, &idxFmt, &idxOffs);
+
+    ID3D11Buffer *origBuf = idxBuf;
 
     if(!(drawcall->flags & DrawFlags::UseIBuffer))
     {
       m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+      uint32_t outputSize = stride * drawcall->numIndices;
+      if(drawcall->flags & DrawFlags::Instanced)
+        outputSize *= drawcall->numInstances;
+
+      if(m_SOBufferSize < outputSize)
+      {
+        int oldSize = m_SOBufferSize;
+        while(m_SOBufferSize < outputSize)
+          m_SOBufferSize *= 2;
+        RDCWARN("Resizing stream-out buffer from %d to %d", oldSize, m_SOBufferSize);
+        CreateSOBuffers();
+      }
+
+      m_pImmediateContext->SOSetTargets(1, &m_SOBuffer, &offset);
+
+      m_pImmediateContext->Begin(m_SOStatsQueries[0]);
+
       if(drawcall->flags & DrawFlags::Instanced)
         m_pImmediateContext->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
                                            drawcall->vertexOffset, drawcall->instanceOffset);
       else
         m_pImmediateContext->Draw(drawcall->numIndices, drawcall->vertexOffset);
-      m_pImmediateContext->IASetPrimitiveTopology(topo);
+
+      m_pImmediateContext->End(m_SOStatsQueries[0]);
     }
     else    // drawcall is indexed
     {
-      UINT idxOffs = 0;
-
-      m_WrappedContext->IAGetIndexBuffer(&idxBuf, &idxFmt, &idxOffs);
       bool index16 = (idxFmt == DXGI_FORMAT_R16_UINT);
       UINT bytesize = index16 ? 2 : 4;
-
-      ID3D11Buffer *origBuf = idxBuf;
 
       vector<byte> idxdata;
       GetBufferData(idxBuf, idxOffs + drawcall->indexOffset * bytesize,
@@ -3941,14 +3967,30 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
       m_pImmediateContext->IASetIndexBuffer(idxBuf, DXGI_FORMAT_R32_UINT, 0);
       SAFE_RELEASE(idxBuf);
 
+      uint32_t outputSize = stride * (uint32_t)indices.size();
+      if(drawcall->flags & DrawFlags::Instanced)
+        outputSize *= drawcall->numInstances;
+
+      if(m_SOBufferSize < outputSize)
+      {
+        int oldSize = m_SOBufferSize;
+        while(m_SOBufferSize < outputSize)
+          m_SOBufferSize *= 2;
+        RDCWARN("Resizing stream-out buffer from %d to %d", oldSize, m_SOBufferSize);
+        CreateSOBuffers();
+      }
+
+      m_pImmediateContext->SOSetTargets(1, &m_SOBuffer, &offset);
+
+      m_pImmediateContext->Begin(m_SOStatsQueries[0]);
+
       if(drawcall->flags & DrawFlags::Instanced)
         m_pImmediateContext->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0,
                                                   0, drawcall->instanceOffset);
       else
         m_pImmediateContext->DrawIndexed((UINT)indices.size(), 0, 0);
 
-      m_pImmediateContext->IASetPrimitiveTopology(topo);
-      m_pImmediateContext->IASetIndexBuffer(UNWRAP(WrappedID3D11Buffer, origBuf), idxFmt, idxOffs);
+      m_pImmediateContext->End(m_SOStatsQueries[0]);
 
       // rebase existing index buffer to point to the right elements in our stream-out'd
       // vertex buffer
@@ -3984,7 +4026,8 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
         idxBuf = NULL;
     }
 
-    m_pImmediateContext->End(m_SOStatsQueries[0]);
+    m_pImmediateContext->IASetPrimitiveTopology(topo);
+    m_pImmediateContext->IASetIndexBuffer(UNWRAP(WrappedID3D11Buffer, origBuf), idxFmt, idxOffs);
 
     m_pImmediateContext->GSSetShader(NULL, NULL, 0);
     m_pImmediateContext->SOSetTargets(0, NULL, NULL);
@@ -4022,15 +4065,6 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
                                     0,
                                     0,
                                     0};
-
-    if(bufferDesc.ByteWidth >= m_SOBufferSize)
-    {
-      RDCERR("Generated output data too large: %08x", bufferDesc.ByteWidth);
-
-      m_pImmediateContext->Unmap(m_SOStagingBuffer, 0);
-      SAFE_RELEASE(idxBuf);
-      return;
-    }
 
     ID3D11Buffer *vsoutBuffer = NULL;
 
@@ -4222,60 +4256,18 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
     SAFE_RELEASE(streamoutGS);
 
     UINT offset = 0;
-    m_pImmediateContext->SOSetTargets(1, &m_SOBuffer, &offset);
 
-    // instanced draws must be replayed one at a time so we can record the number of primitives from
-    // each drawcall, as due to expansion this can vary per-instance.
-    if(drawcall->flags & DrawFlags::Instanced)
+    D3D11_QUERY_DATA_SO_STATISTICS numPrims = {0};
+
+    // do the whole draw, and if our output buffer isn't large enough then loop around.
+    while(true)
     {
-      // if there is only one instance it's a trivial case and we don't need to bother with the
-      // expensive path
-      if(drawcall->numInstances > 1)
+      m_pImmediateContext->Begin(m_SOStatsQueries[0]);
+
+      m_pImmediateContext->SOSetTargets(1, &m_SOBuffer, &offset);
+
+      if(drawcall->flags & DrawFlags::Instanced)
       {
-        // ensure we have enough queries
-        while(m_SOStatsQueries.size() < drawcall->numInstances)
-        {
-          D3D11_QUERY_DESC qdesc;
-          qdesc.MiscFlags = 0;
-          qdesc.Query = D3D11_QUERY_SO_STATISTICS;
-
-          ID3D11Query *q = NULL;
-          hr = m_pDevice->CreateQuery(&qdesc, &q);
-          if(FAILED(hr))
-            RDCERR("Failed to create m_SOStatsQuery %08x", hr);
-
-          m_SOStatsQueries.push_back(q);
-        }
-
-        // do incremental draws to get the output size. We have to do this O(N^2) style because
-        // there's no way to replay only a single instance. We have to replay 1, 2, 3, ... N
-        // instances and count the total number of verts each time, then we can see from the
-        // difference how much each instance wrote.
-        for(uint32_t inst = 1; inst <= drawcall->numInstances; inst++)
-        {
-          if(drawcall->flags & DrawFlags::UseIBuffer)
-          {
-            m_pImmediateContext->SOSetTargets(1, &m_SOBuffer, &offset);
-            m_pImmediateContext->Begin(m_SOStatsQueries[inst - 1]);
-            m_pImmediateContext->DrawIndexedInstanced(drawcall->numIndices, inst,
-                                                      drawcall->indexOffset, drawcall->baseVertex,
-                                                      drawcall->instanceOffset);
-            m_pImmediateContext->End(m_SOStatsQueries[inst - 1]);
-          }
-          else
-          {
-            m_pImmediateContext->SOSetTargets(1, &m_SOBuffer, &offset);
-            m_pImmediateContext->Begin(m_SOStatsQueries[inst - 1]);
-            m_pImmediateContext->DrawInstanced(drawcall->numIndices, inst, drawcall->vertexOffset,
-                                               drawcall->instanceOffset);
-            m_pImmediateContext->End(m_SOStatsQueries[inst - 1]);
-          }
-        }
-      }
-      else
-      {
-        m_pImmediateContext->Begin(m_SOStatsQueries[0]);
-
         if(drawcall->flags & DrawFlags::UseIBuffer)
         {
           m_pImmediateContext->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
@@ -4287,34 +4279,92 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
           m_pImmediateContext->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
                                              drawcall->vertexOffset, drawcall->instanceOffset);
         }
-
-        m_pImmediateContext->End(m_SOStatsQueries[0]);
-      }
-    }
-    else
-    {
-      m_pImmediateContext->Begin(m_SOStatsQueries[0]);
-
-      // trying to stream out a stream-out-auto based drawcall would be bad!
-      // instead just draw the number of verts we pre-calculated
-      if(drawcall->flags & DrawFlags::Auto)
-      {
-        m_pImmediateContext->Draw(drawcall->numIndices, 0);
       }
       else
       {
-        if(drawcall->flags & DrawFlags::UseIBuffer)
+        // trying to stream out a stream-out-auto based drawcall would be bad!
+        // instead just draw the number of verts we pre-calculated
+        if(drawcall->flags & DrawFlags::Auto)
         {
-          m_pImmediateContext->DrawIndexed(drawcall->numIndices, drawcall->indexOffset,
-                                           drawcall->baseVertex);
+          m_pImmediateContext->Draw(drawcall->numIndices, 0);
         }
         else
         {
-          m_pImmediateContext->Draw(drawcall->numIndices, drawcall->vertexOffset);
+          if(drawcall->flags & DrawFlags::UseIBuffer)
+          {
+            m_pImmediateContext->DrawIndexed(drawcall->numIndices, drawcall->indexOffset,
+                                             drawcall->baseVertex);
+          }
+          else
+          {
+            m_pImmediateContext->Draw(drawcall->numIndices, drawcall->vertexOffset);
+          }
         }
       }
 
       m_pImmediateContext->End(m_SOStatsQueries[0]);
+
+      do
+      {
+        hr = m_pImmediateContext->GetData(m_SOStatsQueries[0], &numPrims,
+                                          sizeof(D3D11_QUERY_DATA_SO_STATISTICS), 0);
+      } while(hr == S_FALSE);
+
+      if(m_SOBufferSize < stride * (uint32_t)numPrims.PrimitivesStorageNeeded * 3)
+      {
+        int oldSize = m_SOBufferSize;
+        while(m_SOBufferSize < stride * (uint32_t)numPrims.PrimitivesStorageNeeded * 3)
+          m_SOBufferSize *= 2;
+        RDCWARN("Resizing stream-out buffer from %d to %d", oldSize, m_SOBufferSize);
+        CreateSOBuffers();
+        continue;
+      }
+
+      break;
+    }
+
+    // instanced draws must be replayed one at a time so we can record the number of primitives from
+    // each drawcall, as due to expansion this can vary per-instance.
+    if(drawcall->flags & DrawFlags::Instanced && drawcall->numInstances > 1)
+    {
+      // ensure we have enough queries
+      while(m_SOStatsQueries.size() < drawcall->numInstances)
+      {
+        D3D11_QUERY_DESC qdesc;
+        qdesc.MiscFlags = 0;
+        qdesc.Query = D3D11_QUERY_SO_STATISTICS;
+
+        ID3D11Query *q = NULL;
+        hr = m_pDevice->CreateQuery(&qdesc, &q);
+        if(FAILED(hr))
+          RDCERR("Failed to create m_SOStatsQuery %08x", hr);
+
+        m_SOStatsQueries.push_back(q);
+      }
+
+      // do incremental draws to get the output size. We have to do this O(N^2) style because
+      // there's no way to replay only a single instance. We have to replay 1, 2, 3, ... N
+      // instances and count the total number of verts each time, then we can see from the
+      // difference how much each instance wrote.
+      for(uint32_t inst = 1; inst <= drawcall->numInstances; inst++)
+      {
+        if(drawcall->flags & DrawFlags::UseIBuffer)
+        {
+          m_pImmediateContext->SOSetTargets(1, &m_SOBuffer, &offset);
+          m_pImmediateContext->Begin(m_SOStatsQueries[inst - 1]);
+          m_pImmediateContext->DrawIndexedInstanced(drawcall->numIndices, inst, drawcall->indexOffset,
+                                                    drawcall->baseVertex, drawcall->instanceOffset);
+          m_pImmediateContext->End(m_SOStatsQueries[inst - 1]);
+        }
+        else
+        {
+          m_pImmediateContext->SOSetTargets(1, &m_SOBuffer, &offset);
+          m_pImmediateContext->Begin(m_SOStatsQueries[inst - 1]);
+          m_pImmediateContext->DrawInstanced(drawcall->numIndices, inst, drawcall->vertexOffset,
+                                             drawcall->instanceOffset);
+          m_pImmediateContext->End(m_SOStatsQueries[inst - 1]);
+        }
+      }
     }
 
     m_pImmediateContext->GSSetShader(NULL, NULL, 0);
@@ -4322,7 +4372,6 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     m_pImmediateContext->CopyResource(m_SOStagingBuffer, m_SOBuffer);
 
-    D3D11_QUERY_DATA_SO_STATISTICS numPrims = {0};
     std::vector<D3D11PostVSData::InstData> instData;
 
     if((drawcall->flags & DrawFlags::Instanced) && drawcall->numInstances > 1)
