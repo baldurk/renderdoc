@@ -264,7 +264,6 @@ private:
           height(0),
           depth(0),
           samples(0),
-          mips(1),
           creationFlags(TextureCategory::NoFlags),
           internalFormat(eGL_NONE),
           renderbufferReadTex(0)
@@ -275,7 +274,7 @@ private:
     GLenum curType;
     GLint dimension;
     bool emulated, view;
-    GLint width, height, depth, samples, mips;
+    GLint width, height, depth, samples;
     TextureCategory creationFlags;
     GLenum internalFormat;
 

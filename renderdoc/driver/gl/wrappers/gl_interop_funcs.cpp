@@ -108,6 +108,12 @@ HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLui
     uint32_t width = 0, height = 0, depth = 0, mips = 0, layers = 0, samples = 0;
     GetDXTextureProperties(dxObject, fmt, width, height, depth, mips, layers, samples);
 
+    // defined as arrays mostly for Coverity code analysis to stay calm about passing
+    // them to the *TexParameter* functions
+    GLint maxlevel[4] = {GLint(mips - 1), 0, 0, 0};
+
+    m_Real.glTextureParameteriEXT(wrapped->res.name, type, eGL_TEXTURE_MAX_LEVEL, GLint(mips - 1));
+
     ResourceId texId = record->GetResourceID();
     m_Textures[texId].resource = wrapped->res;
     m_Textures[texId].curType = type;
@@ -115,7 +121,6 @@ HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLui
     m_Textures[texId].height = height;
     m_Textures[texId].depth = RDCMAX(depth, samples);
     m_Textures[texId].samples = samples;
-    m_Textures[texId].mips = mips;
     m_Textures[texId].dimension = 2;
     if(type == eGL_TEXTURE_1D || type == eGL_TEXTURE_1D_ARRAY)
       m_Textures[texId].dimension = 1;
@@ -311,7 +316,6 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(GLResource res, GLenum type,
     m_Textures[liveId].height = height;
     m_Textures[liveId].depth = RDCMAX(depth, samples);
     m_Textures[liveId].samples = samples;
-    m_Textures[liveId].mips = mips;
     m_Textures[liveId].dimension = 2;
     if(type == eGL_TEXTURE_1D || type == eGL_TEXTURE_1D_ARRAY)
       m_Textures[liveId].dimension = 1;
@@ -366,7 +370,9 @@ bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(GLResource res)
 
       gl.glBindTexture(textype, tex);
 
-      for(int i = 0; i < details.mips; i++)
+      int mips = GetNumMips(gl, textype, tex, details.width, details.height, details.depth);
+
+      for(int i = 0; i < mips; i++)
       {
         int w = RDCMAX(details.width >> i, 1);
         int h = RDCMAX(details.height >> i, 1);
@@ -430,7 +436,9 @@ bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(GLResource res)
 
       GLint dim = details.dimension;
 
-      for(int i = 0; i < details.mips; i++)
+      int mips = GetNumMips(m_Real, textype, tex, details.width, details.height, details.depth);
+
+      for(int i = 0; i < mips; i++)
       {
         uint32_t w = RDCMAX(details.width >> i, 1);
         uint32_t h = RDCMAX(details.height >> i, 1);

@@ -1819,6 +1819,9 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_FRAGMENT_SHADER_BIT,
                         DebugData.texDisplayProg[intIdx]);
 
+  int numMips =
+      GetNumMips(gl.m_Real, target, texname, texDetails.width, texDetails.height, texDetails.depth);
+
   if(cfg.CustomShader != ResourceId() && gl.GetResourceManager()->HasCurrentResource(cfg.CustomShader))
   {
     GLuint customProg = gl.GetResourceManager()->GetCurrentResource(cfg.CustomShader).name;
@@ -1829,7 +1832,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
     loc = gl.glGetUniformLocation(customProg, "RENDERDOC_TexDim");
     if(loc >= 0)
       gl.glProgramUniform4ui(customProg, loc, texDetails.width, texDetails.height, texDetails.depth,
-                             texDetails.mips);
+                             (uint32_t)numMips);
 
     loc = gl.glGetUniformLocation(customProg, "RENDERDOC_SelectedMip");
     if(loc >= 0)
@@ -1871,7 +1874,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   GLint clampmaxlevel[4] = {};
 
   if(cfg.texid != DebugData.CustomShaderTexID)
-    clampmaxlevel[0] = GLint(texDetails.mips - 1);
+    clampmaxlevel[0] = GLint(numMips - 1);
 
   gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
 
