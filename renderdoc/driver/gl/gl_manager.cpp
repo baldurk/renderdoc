@@ -1144,6 +1144,10 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
               count = 1;
             }
 
+            if(t == eGL_TEXTURE_CUBE_MAP_ARRAY || t == eGL_TEXTURE_1D_ARRAY ||
+               t == eGL_TEXTURE_2D_ARRAY)
+              d = details.depth;
+
             for(int trg = 0; trg < count; trg++)
             {
               size_t size = GetCompressedByteSize(w, h, d, details.internalFormat, i);
