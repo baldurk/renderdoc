@@ -712,9 +712,8 @@ void GLReplay::CacheTexture(ResourceId id)
     {
       if(compressed)
       {
-        gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, m,
-                                           eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compressed);
-        tex.byteSize += compressed;
+        tex.byteSize += (uint64_t)GetCompressedByteSize(
+            RDCMAX(1U, tex.width >> m), RDCMAX(1U, tex.height >> m), 1, (GLenum)fmt);
       }
       else if(tex.format.special)
       {

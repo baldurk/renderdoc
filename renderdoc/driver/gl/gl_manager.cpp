@@ -837,7 +837,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 
           for(int trg = 0; trg < count; trg++)
           {
-            size_t size = GetCompressedByteSize(w, h, d, details.internalFormat, i);
+            size_t size = GetCompressedByteSize(w, h, d, details.internalFormat);
 
             byte *buf = new byte[size];
 
@@ -1150,7 +1150,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
             for(int trg = 0; trg < count; trg++)
             {
-              size_t size = GetCompressedByteSize(w, h, d, details.internalFormat, i);
+              size_t size = GetCompressedByteSize(w, h, d, details.internalFormat);
 
               byte *buf = new byte[size];
 
@@ -1317,7 +1317,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
               {
                 if(isCompressed)
                 {
-                  GLsizei compSize = (GLsizei)GetCompressedByteSize(w, h, d, internalformat, m);
+                  GLsizei compSize = (GLsizei)GetCompressedByteSize(w, h, d, internalformat);
 
                   vector<byte> dummy;
                   dummy.resize(compSize);
@@ -1786,7 +1786,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
             for(int trg = 0; trg < count; trg++)
             {
-              size_t size = GetCompressedByteSize(w, h, d, details.internalFormat, i);
+              size_t size = GetCompressedByteSize(w, h, d, details.internalFormat);
 
               if(details.curType == eGL_TEXTURE_CUBE_MAP)
                 size /= 6;

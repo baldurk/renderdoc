@@ -1109,7 +1109,7 @@ void APIENTRY _glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLev
           count = 1;
         }
 
-        size_t size = GetCompressedByteSize(srcWidth, srcHeight, srcDepth, fmt, srcLevel);
+        size_t size = GetCompressedByteSize(srcWidth, srcHeight, srcDepth, fmt);
 
         if(srcTarget == eGL_TEXTURE_CUBE_MAP)
           size /= 6;

@@ -30,7 +30,7 @@ byte GLResourceRecord::markerValue[32] = {
     0xaa, 0xbb, 0xcc, 0xdd, 0x88, 0x77, 0x66, 0x55, 0x01, 0x23, 0x45, 0x67, 0x98, 0x76, 0x54, 0x32,
 };
 
-size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalformat, int mip)
+size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalformat)
 {
   if(!IsCompressedFormat(internalformat))
   {
