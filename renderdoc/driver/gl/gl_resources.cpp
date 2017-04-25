@@ -502,7 +502,7 @@ int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint 
   return RDCMAX(1, mips);
 }
 
-GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
+GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat, GLenum type)
 {
   switch(internalFormat)
   {
@@ -556,7 +556,12 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
   {
     // without the query function, just default to sensible defaults
     red = 8;
-    depth = 32;
+    if(type == eGL_FLOAT)
+      depth = 32;
+    else if(type == eGL_UNSIGNED_SHORT)
+      depth = 16;
+    else
+      depth = 24;
     stencil = 8;
   }
 
