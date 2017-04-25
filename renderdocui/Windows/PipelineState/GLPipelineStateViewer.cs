@@ -56,14 +56,16 @@ namespace renderdocui.Windows.PipelineState
 
         private struct IABufferTag
         {
-            public IABufferTag(ResourceId i, ulong offs)
+            public IABufferTag(ResourceId i, ulong offs, int vb)
             {
                 id = i;
                 offset = offs;
+                vbindex = vb;
             }
 
             public ResourceId id;
             public ulong offset;
+            public int vbindex;
         };
 
         private Core m_Core;
@@ -1016,7 +1018,7 @@ namespace renderdocui.Windows.PipelineState
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                    node.Tag = new IABufferTag(state.m_VtxIn.ibuffer, draw != null ? draw.indexOffset : 0);
+                    node.Tag = new IABufferTag(state.m_VtxIn.ibuffer, draw != null ? draw.indexOffset : 0, -1);
 
                     if (!ibufferUsed)
                         InactiveRow(node);
@@ -1033,7 +1035,7 @@ namespace renderdocui.Windows.PipelineState
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                    node.Tag = new IABufferTag(state.m_VtxIn.ibuffer, draw != null ? draw.indexOffset : 0);
+                    node.Tag = new IABufferTag(state.m_VtxIn.ibuffer, draw != null ? draw.indexOffset : 0, -1);
 
                     EmptyRow(node);
 
@@ -1080,7 +1082,7 @@ namespace renderdocui.Windows.PipelineState
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                        node.Tag = new IABufferTag(v.Buffer, v.Offset);
+                        node.Tag = new IABufferTag(v.Buffer, v.Offset, i);
 
                         if (!filledSlot)
                             EmptyRow(node);
@@ -1089,6 +1091,10 @@ namespace renderdocui.Windows.PipelineState
                             InactiveRow(node);
 
                         m_VBNodes.Add(node);
+                    }
+                    else
+                    {
+                        m_VBNodes.Add(null);
                     }
 
                     i++;
@@ -2249,17 +2255,17 @@ namespace renderdocui.Windows.PipelineState
             if (hoverNode != null)
             {
                 if(hoverNode.Tag != null && hoverNode.Tag is uint) 
-                    HighlightVtxAttribSlot((uint)hoverNode.Tag);
+                    HighlightVtxBufferSlot((uint)hoverNode.Tag);
             }
         }
 
-        private void HighlightVtxAttribSlot(uint slot)
+        private void HighlightVtxBufferSlot(uint slot)
         {
             var VtxIn = m_Core.CurGLPipelineState.m_VtxIn;
         
             Color c = HSLColor(GetHueForVB((int)slot), 1.0f, 0.95f);
 
-            if (slot < m_VBNodes.Count)
+            if (slot < m_VBNodes.Count && m_VBNodes[(int)slot] != null)
                 m_VBNodes[(int)slot].DefaultBackColor = c;
 
             for (int i = 0; i < inputLayouts.Nodes.Count; i++)
@@ -2301,7 +2307,7 @@ namespace renderdocui.Windows.PipelineState
             {
                 int idx = m_VBNodes.IndexOf(hoverNode);
                 if (idx >= 0)
-                    HighlightVtxAttribSlot((uint)idx);
+                    HighlightVtxBufferSlot((uint)idx);
                 else
                     hoverNode.DefaultBackColor = SystemColors.ControlLight;
             }
