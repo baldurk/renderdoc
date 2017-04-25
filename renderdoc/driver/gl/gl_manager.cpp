@@ -971,14 +971,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
       m_pSerialiser->Serialise("len", len);
 
-      // save old binding
-      GLuint oldbuf = 0;
-      gl.glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING, (GLint *)&oldbuf);
-
-      // bind the live buffer for readback
-      gl.glBindBuffer(eGL_COPY_READ_BUFFER, buf);
-
-      byte *readback = (byte *)gl.glMapBuffer(eGL_COPY_READ_BUFFER, eGL_READ_ONLY);
+      byte *readback = (byte *)gl.glMapNamedBufferEXT(buf, eGL_READ_ONLY);
 
       size_t sz = (size_t)len;
 
@@ -987,7 +980,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
       {
         m_pSerialiser->SerialiseBuffer("buf", readback, sz);
 
-        gl.glUnmapBuffer(eGL_COPY_READ_BUFFER);
+        gl.glUnmapNamedBufferEXT(buf);
       }
       else
       {
@@ -1000,9 +993,6 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
         SAFE_DELETE_ARRAY(dummy);
       }
-
-      // restore old binding
-      gl.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf);
     }
     else
     {
