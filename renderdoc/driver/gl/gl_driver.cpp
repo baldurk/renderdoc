@@ -344,6 +344,8 @@ const uint32_t GLInitParams::GL_OLD_VERSIONS[GLInitParams::GL_NUM_SUPPORTED_OLD_
                  // anything special to support older logs, just make sure we don't open new logs
                  // in an older version.
     0x000012,    // Added support for GL-DX interop
+    0x000013,    // Serialised vertex attribute and fragdata bindings for programs as initial
+                 // contents data
 };
 
 ReplayStatus GLInitParams::Serialise()

@@ -2402,6 +2402,77 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
   }
 }
 
+void SerialiseProgramBindings(const GLHookSet &gl, Serialiser *ser, GLuint prog, bool writing)
+{
+  char name[128] = {0};
+
+  for(int sigType = 0; sigType < 2; sigType++)
+  {
+    GLenum sigEnum = (sigType == 0 ? eGL_PROGRAM_INPUT : eGL_PROGRAM_OUTPUT);
+
+    uint64_t used = 0;
+
+    int32_t numAttrs = 0;
+
+    if(writing)
+      gl.glGetProgramInterfaceiv(prog, sigEnum, eGL_ACTIVE_RESOURCES, (GLint *)&numAttrs);
+
+    ser->Serialise("numAttrs", numAttrs);
+
+    for(GLint i = 0; i < numAttrs; i++)
+    {
+      int32_t idx = -1;
+
+      if(writing)
+      {
+        gl.glGetProgramResourceName(prog, sigEnum, i, 128, NULL, name);
+
+        if(sigType == 0)
+          idx = gl.glGetAttribLocation(prog, name);
+        else
+          idx = gl.glGetFragDataLocation(prog, name);
+      }
+
+      string n = name;
+
+      ser->Serialise("name", n);
+      ser->Serialise("idx", idx);
+
+      if(!writing && idx >= 0)
+      {
+        uint64_t mask = 1ULL << idx;
+
+        if(used & mask)
+        {
+          RDCWARN("Multiple %s items bound to location %d, ignoring %s",
+                  sigType == 0 ? "attrib" : "fragdata", idx, n.c_str());
+          continue;
+        }
+
+        used |= mask;
+
+        if(sigType == 0)
+        {
+          gl.glBindAttribLocation(prog, (GLuint)idx, n.c_str());
+        }
+        else
+        {
+          if(gl.glBindFragDataLocation)
+          {
+            gl.glBindFragDataLocation(prog, (GLuint)idx, n.c_str());
+          }
+          else
+          {
+            // glBindFragDataLocation is not core GLES, but it is in GL_EXT_blend_func_extended
+            // TODO what to do if that extension is not supported
+            RDCERR("glBindFragDataLocation is not supported!");
+          }
+        }
+      }
+    }
+  }
+}
+
 template <>
 string ToStrHelper<false, WrappedOpenGL::UniformType>::Get(const WrappedOpenGL::UniformType &el)
 {

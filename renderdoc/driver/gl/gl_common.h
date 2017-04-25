@@ -422,6 +422,7 @@ void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progd
                                ShaderReflection *refl);
 void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst,
                                  ShaderReflection *refl);
+void SerialiseProgramBindings(const GLHookSet &gl, Serialiser *ser, GLuint prog, bool writing);
 
 struct DrawElementsIndirectCommand
 {

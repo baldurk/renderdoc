@@ -473,6 +473,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
     m_pSerialiser->Serialise("Id", Id);
 
+    SerialiseProgramBindings(gl, m_pSerialiser, res.name, true);
+
     SerialiseProgramUniforms(gl, m_pSerialiser, res.name, NULL, true);
 
     SetInitialChunk(Id, scope.Get());
@@ -1069,6 +1071,14 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         gl.glGetProgramInfoLog(initProg, 1024, NULL, buffer);
         RDCERR("Link error: %s", buffer);
       }
+    }
+
+    if(m_GL->GetLogVersion() >= 0x0000014)
+    {
+      SerialiseProgramBindings(gl, m_pSerialiser, initProg, false);
+
+      // re-link the program to set the new attrib bindings
+      gl.glLinkProgram(initProg);
     }
 
     SerialiseProgramUniforms(gl, m_pSerialiser, initProg, &details.locationTranslate, false);
@@ -1929,6 +1939,24 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
   }
   else if(live.Namespace == eResProgram)
   {
+    if(m_GL->GetLogVersion() >= 0x0000014)
+    {
+      ResourceId Id = GetID(live);
+
+      const WrappedOpenGL::ProgramData &prog = m_GL->m_Programs[Id];
+
+      if(prog.stageShaders[0] != ResourceId())
+        CopyProgramAttribBindings(gl, initial.resource.name, live.name,
+                                  &m_GL->m_Shaders[prog.stageShaders[0]].reflection);
+
+      if(prog.stageShaders[4] != ResourceId())
+        CopyProgramFragDataBindings(gl, initial.resource.name, live.name,
+                                    &m_GL->m_Shaders[prog.stageShaders[4]].reflection);
+
+      // we need to re-link the program to apply the bindings.
+      gl.glLinkProgram(live.name);
+    }
+
     CopyProgramUniforms(gl, initial.resource.name, live.name);
   }
   else if(live.Namespace == eResFramebuffer)
