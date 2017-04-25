@@ -2027,7 +2027,7 @@ void WrappedOpenGL::Common_glTextureImage1DEXT(ResourceId texId, GLenum target, 
   if(IsProxyTarget(target) || internalformat == 0)
     return;
 
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
 
   bool fromunpackbuf = false;
   {
@@ -2259,7 +2259,7 @@ void WrappedOpenGL::Common_glTextureImage2DEXT(ResourceId texId, GLenum target, 
   if(IsProxyTarget(target) || internalformat == 0)
     return;
 
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
 
   bool fromunpackbuf = false;
   {
@@ -2473,7 +2473,7 @@ void WrappedOpenGL::Common_glTextureImage3DEXT(ResourceId texId, GLenum target, 
   if(IsProxyTarget(target) || internalformat == 0)
     return;
 
-  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+  internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
 
   bool fromunpackbuf = false;
   {
