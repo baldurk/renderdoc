@@ -347,6 +347,10 @@ bool WrappedOpenGL::Serialise_glDetachShader(GLuint program, GLuint shader)
     ResourceId liveProgId = GetResourceManager()->GetLiveID(progid);
     ResourceId liveShadId = GetResourceManager()->GetLiveID(shadid);
 
+    // in order to be able to relink programs, we don't replay detaches. This should be valid as
+    // it's legal to have a shader attached to multiple programs, so even if it's attached again
+    // that doesn't affect the attach here.
+    /*
     if(!m_Programs[liveProgId].linked)
     {
       for(auto it = m_Programs[liveProgId].shaders.begin();
@@ -362,6 +366,7 @@ bool WrappedOpenGL::Serialise_glDetachShader(GLuint program, GLuint shader)
 
     m_Real.glDetachShader(GetResourceManager()->GetLiveResource(progid).name,
                           GetResourceManager()->GetLiveResource(shadid).name);
+    */
   }
 
   return true;
