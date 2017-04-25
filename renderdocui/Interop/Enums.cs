@@ -126,7 +126,6 @@ namespace renderdoc
         VertexIndex,
         PrimitiveIndex,
         InstanceIndex,
-        InvocationIndex,
         DispatchSize,
         DispatchThreadIndex,
         GroupIndex,
