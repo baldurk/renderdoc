@@ -47,6 +47,11 @@ Non-windows platforms
 
 Linux and other pltaform support follows naturally when thinking about Vulkan support. There is full support for capturing and replaying on linux, with the UI based on Qt. It is also possible to capture on another platform, and then replay on windows or windows. For more information on this see :doc:`../how/how_network_capture_replay`.
 
+Android
+```````
+
+Vulkan debugging on Android is supported from Linux and Windows currently, with macOS support in the works.  For details on how to target Android, see  :doc:`../how/how_android`.
+
 See Also
 --------
 
