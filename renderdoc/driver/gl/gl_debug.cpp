@@ -4159,6 +4159,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
 
       switch(drawcall->topology)
       {
+        case Topology::Unknown:
         case Topology::PointList: break;
         case Topology::LineList: numInputPrimitives /= 2; break;
         case Topology::LineStrip: numInputPrimitives -= 1; break;
