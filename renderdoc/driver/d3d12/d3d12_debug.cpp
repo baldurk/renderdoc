@@ -4198,7 +4198,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
     SAFE_RELEASE(pipe);
 
     byte *byteData = NULL;
-    D3D12_RANGE range = {0, m_SOBufferSize};
+    D3D12_RANGE range = {0, (SIZE_T)m_SOBufferSize};
     hr = m_SOStagingBuffer->Map(0, &range, (void **)&byteData);
     if(FAILED(hr))
     {
@@ -4705,7 +4705,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
     SAFE_RELEASE(pipe);
 
     byte *byteData = NULL;
-    D3D12_RANGE range = {0, m_SOBufferSize};
+    D3D12_RANGE range = {0, (SIZE_T)m_SOBufferSize};
     hr = m_SOStagingBuffer->Map(0, &range, (void **)&byteData);
     if(FAILED(hr))
     {
