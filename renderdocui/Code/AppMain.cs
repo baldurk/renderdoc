@@ -32,6 +32,9 @@ using System.IO;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
 using renderdoc;
+using IronPython.Hosting;
+using Microsoft.Scripting.Hosting;
+using IronPython.Runtime.Exceptions;
 
 namespace renderdocui.Code
 {
@@ -124,7 +127,22 @@ namespace renderdocui.Code
                 }
             }
 
-            if (args.Length > 0 && File.Exists(args[args.Length - 1]))
+            List<String> pyscripts = new List<String>();
+
+            for (int i = 0; i + 1 < args.Length; i++)
+            {
+                if (args[i].ToUpperInvariant() == "--PYTHON" ||
+                    args[i].ToUpperInvariant() == "--PY" ||
+                    args[i].ToUpperInvariant() == "--SCRIPT")
+                {
+                    if (File.Exists(args[i + 1]))
+                    {
+                        pyscripts.Add(args[i + 1]);
+                    }
+                }
+            }
+
+            if (args.Length > 0 && File.Exists(args[args.Length - 1]) && Path.GetExtension(args[args.Length - 1]) != ".py")
             {
                 filename = args[args.Length - 1];
             }
@@ -195,6 +213,53 @@ namespace renderdocui.Code
 
             try
             {
+                if (pyscripts.Count > 0)
+                {
+                    var engine = Python.CreateEngine();
+
+                    List<string> searches = new List<string>(engine.GetSearchPaths());
+
+                    searches.Add(Directory.GetCurrentDirectory());
+
+                    string libspath = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "pythonlibs.zip");
+
+                    if (File.Exists(libspath))
+                        searches.Add(libspath);
+
+                    engine.SetSearchPaths(searches);
+
+                    engine.Runtime.LoadAssembly(typeof(AppMain).Assembly);
+
+                    var scope = engine.CreateScope();
+
+                    scope.SetVariable("pyrenderdoc", core);
+
+                    // try to import the RenderDoc namespace.
+                    // This isn't equivalent to scope.ImportModule
+                    try
+                    {
+                        engine.CreateScriptSourceFromString("import renderdoc").Execute(scope);
+                    }
+                    catch (Exception)
+                    {
+                    }
+
+                    try
+                    {
+                        core.Renderer.SetExceptionCatching(true);
+                        foreach(var script in pyscripts)
+                        engine.CreateScriptSourceFromString(File.ReadAllText(script)).Execute(scope);
+                        core.Renderer.SetExceptionCatching(false);
+                    }
+                    catch (Exception)
+                    {
+                        core.Renderer.SetExceptionCatching(false);
+
+                        // IronPython throws so many exceptions, we don't want to kill the application
+                        // so we just swallow Exception to cover all the bases
+                    }
+                }
+
                 Application.Run(core.AppWindow);
             }
             catch (Exception e)
