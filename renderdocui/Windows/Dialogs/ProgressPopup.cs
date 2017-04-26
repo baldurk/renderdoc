@@ -70,6 +70,7 @@ namespace renderdocui.Windows
                     return;
                 }
 
+                f = Helpers.Clamp(f, 0.0f, 1.0f);
                 progressBar.Value = (int)(progressBar.Maximum * f);
             }));
         }
