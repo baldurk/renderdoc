@@ -1099,6 +1099,9 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
       m_Real.glDeleteTextures(1, &ctxdata.GlyphTexture);
   }
 
+  if(ctxdata.m_ClientMemoryVBOs[0])
+    glDeleteBuffers(ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs), ctxdata.m_ClientMemoryVBOs);
+
   for(auto it = m_LastContexts.begin(); it != m_LastContexts.end(); ++it)
   {
     if(it->ctx == contextHandle)
@@ -1471,6 +1474,21 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
           DoVendorChecks(gl, m_Platform, winData);
         }
       }
+
+      if(m_State >= WRITING)
+      {
+        GLuint prevArrayBuffer = 0;
+        glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&prevArrayBuffer);
+
+        // Initialize VBOs used in case we copy from client memory.
+        glGenBuffers(ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs), ctxdata.m_ClientMemoryVBOs);
+        for(size_t i = 0; i < ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs); i++)
+        {
+          glBindBuffer(eGL_ARRAY_BUFFER, ctxdata.m_ClientMemoryVBOs[i]);
+          glBufferData(eGL_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
+        }
+        glBindBuffer(eGL_ARRAY_BUFFER, prevArrayBuffer);
+      }
     }
 
     if(m_State >= WRITING)
@@ -1478,15 +1496,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       m_Internal = m_Real;
 
       glEmulate::EmulateRequiredExtensions(&m_Real, &m_Internal);
-
-      // Initialize VBOs used in case we copy from client memory.
-      glGenBuffers(ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs), ctxdata.m_ClientMemoryVBOs);
-      for(size_t i = 0; i < ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs); i++)
-      {
-        glBindBuffer(eGL_ARRAY_BUFFER, ctxdata.m_ClientMemoryVBOs[i]);
-        glBufferData(eGL_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
-      }
-      glBindBuffer(eGL_ARRAY_BUFFER, 0);
     }
   }
 }
