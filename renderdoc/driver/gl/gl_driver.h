@@ -389,6 +389,7 @@ private:
       m_Renderbuffer = ResourceId();
       m_TextureUnit = 0;
       m_ProgramPipeline = m_Program = 0;
+      RDCEraseEl(m_ClientMemoryVBOs);
     }
 
     void *ctx;
