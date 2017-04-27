@@ -312,7 +312,7 @@ void LiveCapture::deleteCapture_triggered()
 
     delete log;
 
-    ui->captures->removeItemWidget(item);
+    delete ui->captures->takeItem(ui->captures->row(item));
   }
 }
 
