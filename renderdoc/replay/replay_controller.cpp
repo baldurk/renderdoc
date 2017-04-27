@@ -57,6 +57,18 @@ float ConvertComponent(const ResourceFormat &fmt, byte *data)
       return float(*i32);
     }
   }
+  else if(fmt.compByteWidth == 3 && fmt.compType == CompType::Depth)
+  {
+    // 24-bit depth is a weird edge case we need to assemble it by hand
+    uint8_t *u8 = (uint8_t *)data;
+
+    uint32_t depth = 0;
+    depth |= uint32_t(u8[1]);
+    depth |= uint32_t(u8[2]) << 8;
+    depth |= uint32_t(u8[3]) << 16;
+
+    return float(depth) / float(16777215.0f);
+  }
   else if(fmt.compByteWidth == 2)
   {
     uint16_t *u16 = (uint16_t *)data;
@@ -74,7 +86,8 @@ float ConvertComponent(const ResourceFormat &fmt, byte *data)
     {
       return float(*i16);
     }
-    else if(fmt.compType == CompType::UNorm)
+    // 16-bit depth is UNORM
+    else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::Depth)
     {
       return float(*u16) / 65535.0f;
     }
@@ -999,6 +1012,12 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       if(saveFmt.compType == CompType::Typeless)
         saveFmt.compType = saveFmt.compByteWidth == 4 ? CompType::Float : CompType::UNorm;
 
+      uint32_t pixStride = saveFmt.compCount * saveFmt.compByteWidth;
+
+      // 24-bit depth still has a stride of 4 bytes.
+      if(saveFmt.compType == CompType::Depth && pixStride == 3)
+        pixStride = 4;
+
       for(uint32_t y = 0; y < td.height; y++)
       {
         for(uint32_t x = 0; x < td.width; x++)
@@ -1045,7 +1064,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
             if(saveFmt.compCount >= 4)
               a = ConvertComponent(saveFmt, srcData + saveFmt.compByteWidth * 3);
 
-            srcData += saveFmt.compCount * saveFmt.compByteWidth;
+            srcData += pixStride;
           }
 
           if(saveFmt.bgraOrder)
