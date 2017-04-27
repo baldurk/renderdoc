@@ -65,6 +65,16 @@ struct IFrameCapturer
   virtual bool EndFrameCapture(void *dev, void *wnd) = 0;
 };
 
+// READING and EXECUTING are replay states.
+// WRITING_IDLE and WRITING_CAPFRAME are capture states.
+// WRITING isn't actually a state, it's just a midpoint in the enum,
+// so it takes fewer characters to check which state we're in.
+//
+// on replay, m_State < WRITING is the same as
+//(m_State == READING || m_State == EXECUTING)
+//
+// on capture, m_State >= WRITING is the same as
+//(m_State == WRITING_IDLE || m_State == WRITING_CAPFRAME)
 enum LogState
 {
   READING = 0,

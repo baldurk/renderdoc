@@ -339,6 +339,10 @@ void Serialiser::Serialise(const char *name, D3D12_CLEAR_VALUE &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D12_TEXTURE_COPY_LOCATION &el);
 template <>
+void Serialiser::Serialise(const char *name, D3D12_TILED_RESOURCE_COORDINATE &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_TILE_REGION_SIZE &el);
+template <>
 void Serialiser::Serialise(const char *name, D3D12_DISCARD_REGION &el);
 template <>
 void Serialiser::Deserialise(const D3D12_DISCARD_REGION *const el) const;
@@ -458,6 +462,11 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
   D3D12_CHUNK_MACRO(EXECUTE_CMD_LISTS, "ID3D12GraphicsCommandQueue::ExecuteCommandLists")          \
   D3D12_CHUNK_MACRO(SIGNAL, "ID3D12GraphicsCommandQueue::Signal")                                  \
   D3D12_CHUNK_MACRO(WAIT, "ID3D12GraphicsCommandQueue::Wait")                                      \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(CREATE_RESERVED_RESOURCE, "ID3D12Device::CreateReservedResource")              \
+  D3D12_CHUNK_MACRO(COPY_TILES, "ID3D12GraphicsCommandList::CopyTiles")                            \
+  D3D12_CHUNK_MACRO(UPDATE_TILE_MAPPINGS, "ID3D12GraphicsCommandQueue::UpdateTileMappings")        \
+  D3D12_CHUNK_MACRO(COPY_TILE_MAPPINGS, "ID3D12GraphicsCommandQueue::CopyTileMappings")            \
                                                                                                    \
   D3D12_CHUNK_MACRO(NUM_D3D12_CHUNKS, "")
 
