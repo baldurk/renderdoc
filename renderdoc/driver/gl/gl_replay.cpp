@@ -45,6 +45,8 @@ GLReplay::GLReplay()
   m_DebugID = 0;
 
   m_OutputWindowID = 1;
+
+  RDCEraseEl(m_GetTexturePrevData);
 }
 
 void GLReplay::Shutdown()
@@ -56,6 +58,13 @@ void GLReplay::Shutdown()
   DestroyOutputWindow(m_DebugID);
 
   CloseReplayContext();
+
+  // clean up cached GetTextureData allocations
+  for(size_t i = 0; i < ARRAY_COUNT(m_GetTexturePrevData); i++)
+  {
+    delete[] m_GetTexturePrevData[i];
+    m_GetTexturePrevData[i] = NULL;
+  }
 
   delete m_pDriver;
 
@@ -2239,7 +2248,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
      texType == eGL_TEXTURE_CUBE_MAP_ARRAY)
   {
     // array size doesn't get mip'd down
-    depth = texDetails.depth;
+    depth = 1;
     arraysize = texDetails.depth;
   }
 
@@ -2330,11 +2339,12 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     texType = newtarget;
     texname = tempTex;
     intFormat = finalFormat;
-    if(newtarget == eGL_TEXTURE_2D)
+    if(newtarget != eGL_TEXTURE_3D)
       depth = 1;
     arraysize = 1;
     samples = 1;
     mip = 0;
+    arrayIdx = 0;
 
     gl.glDeleteFramebuffers(1, &fbo);
   }
@@ -2380,6 +2390,8 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     texType = eGL_TEXTURE_2D;
     texname = tempTex;
     depth = 1;
+    mip = 0;
+    arrayIdx = 0;
     arraysize = 1;
     samples = 1;
 
@@ -2407,7 +2419,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     // rewrite the variables to temporary texture
     texType = eGL_TEXTURE_2D_ARRAY;
     texname = tempTex;
-    depth = arraysize * samples;
+    depth = 1;
     arraysize = arraysize * samples;
     samples = 1;
   }
@@ -2478,24 +2490,98 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
 
     if(IsCompressedFormat(intFormat))
     {
-      GLuint compSize;
-      gl.glGetTexLevelParameteriv(target, mip, eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, (GLint *)&compSize);
+      dataSize = (size_t)GetCompressedByteSize(width, height, depth, intFormat);
 
-      dataSize = compSize;
-
+      // contains a single slice
       ret = new byte[dataSize];
 
-      gl.glGetCompressedTexImage(target, mip, ret);
+      // Note that for array textures we fetch the whole mip level (all slices at that mip). Since
+      // GL returns all slices together, we cache it and keep the data around. This is because in
+      // many cases we don't just want one slice we want all of them, but to preserve the API
+      // querying slice-at-a-time we must cache the results of calling glGetTexImage to avoid
+      // allocating the whole N layers N times.
+
+      // check arraysize, since if we remapped or otherwise picked out a slice above, this will now
+      // be 1 and we don't have to worry about anything
+      if(arraysize > 1)
+      {
+        // if we don't have this texture cached, delete the previous data
+        // we don't have to use anything else as the cache key, because if we still have an array at
+        // this point then none of the GetTextureDataParams are relevant - only mip/arrayIdx
+        if(m_GetTexturePrevID != tex)
+        {
+          for(size_t i = 0; i < ARRAY_COUNT(m_GetTexturePrevData); i++)
+          {
+            delete[] m_GetTexturePrevData[i];
+            m_GetTexturePrevData[i] = NULL;
+          }
+        }
+
+        m_GetTexturePrevID = tex;
+
+        RDCASSERT(mip < ARRAY_COUNT(m_GetTexturePrevData));
+
+        // if we don't have this mip cached, fetch it now
+        if(m_GetTexturePrevData[mip] == NULL)
+        {
+          m_GetTexturePrevData[mip] = new byte[dataSize * arraysize];
+          gl.glGetCompressedTexImage(target, mip, m_GetTexturePrevData[mip]);
+        }
+
+        // now copy the slice from the cache into ret
+        byte *src = m_GetTexturePrevData[mip];
+        src += dataSize * arrayIdx;
+
+        memcpy(ret, src, dataSize);
+      }
+      else
+      {
+        // for non-arrays we can just readback without caching
+        gl.glGetCompressedTexImage(target, mip, ret);
+      }
     }
     else
     {
       GLenum fmt = GetBaseFormat(intFormat);
       GLenum type = GetDataType(intFormat);
 
+      size_t rowSize = GetByteSize(width, 1, 1, fmt, type);
       dataSize = GetByteSize(width, height, depth, fmt, type);
       ret = new byte[dataSize];
 
-      m_pDriver->glGetTexImage(target, (GLint)mip, fmt, type, ret);
+      // see above for the logic of handling arrays
+      if(arraysize > 1)
+      {
+        if(m_GetTexturePrevID != tex)
+        {
+          for(size_t i = 0; i < ARRAY_COUNT(m_GetTexturePrevData); i++)
+          {
+            delete[] m_GetTexturePrevData[i];
+            m_GetTexturePrevData[i] = NULL;
+          }
+        }
+
+        m_GetTexturePrevID = tex;
+
+        RDCASSERT(mip < ARRAY_COUNT(m_GetTexturePrevData));
+
+        // if we don't have this mip cached, fetch it now
+        if(m_GetTexturePrevData[mip] == NULL)
+        {
+          m_GetTexturePrevData[mip] = new byte[dataSize * arraysize];
+          gl.glGetTexImage(target, (GLint)mip, fmt, type, m_GetTexturePrevData[mip]);
+        }
+
+        // now copy the slice from the cache into ret
+        byte *src = m_GetTexturePrevData[mip];
+        src += dataSize * arrayIdx;
+
+        memcpy(ret, src, dataSize);
+      }
+      else
+      {
+        gl.glGetTexImage(target, (GLint)mip, fmt, type, ret);
+      }
 
       // if we're saving to disk we make the decision to vertically flip any non-compressed
       // images. This is a bit arbitrary, but really origin top-left is common for all disk
@@ -2509,60 +2595,30 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
         // need to vertically flip the image now to get conventional row ordering
         // we either do this when copying out the slice of interest, or just
         // on its own
-        size_t rowSize = GetByteSize(width, 1, 1, fmt, type);
         byte *src, *dst;
 
-        // for arrays just extract the slice we're interested in.
-        if(texType == eGL_TEXTURE_2D_ARRAY || texType == eGL_TEXTURE_1D_ARRAY ||
-           texType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+        byte *row = new byte[rowSize];
+
+        size_t sliceSize = GetByteSize(width, height, 1, fmt, type);
+
+        // invert all slices in a 3D texture
+        for(GLsizei d = 0; d < depth; d++)
         {
-          dataSize = GetByteSize(width, height, 1, fmt, type);
-          byte *slice = new byte[dataSize];
+          dst = ret + d * sliceSize;
+          src = dst + (height - 1) * rowSize;
 
-          // src points to the last row in the array slice image
-          src = (ret + dataSize * arrayIdx) + (height - 1) * rowSize;
-          dst = slice;
-
-          // we do memcpy + vertical flip
-          // memcpy(slice, ret + dataSize*arrayIdx, dataSize);
-
-          for(GLsizei i = 0; i < height; i++)
+          for(GLsizei i = 0; i<height>> 1; i++)
           {
-            memcpy(dst, src, rowSize);
+            memcpy(row, src, rowSize);
+            memcpy(src, dst, rowSize);
+            memcpy(dst, row, rowSize);
 
             dst += rowSize;
             src -= rowSize;
           }
-
-          delete[] ret;
-
-          ret = slice;
         }
-        else
-        {
-          byte *row = new byte[rowSize];
 
-          size_t sliceSize = GetByteSize(width, height, 1, fmt, type);
-
-          // invert all slices in a 3D texture
-          for(GLsizei d = 0; d < depth; d++)
-          {
-            dst = ret + d * sliceSize;
-            src = dst + (height - 1) * rowSize;
-
-            for(GLsizei i = 0; i<height>> 1; i++)
-            {
-              memcpy(row, src, rowSize);
-              memcpy(src, dst, rowSize);
-              memcpy(dst, row, rowSize);
-
-              dst += rowSize;
-              src -= rowSize;
-            }
-          }
-
-          delete[] row;
-        }
+        delete[] row;
       }
     }
 
