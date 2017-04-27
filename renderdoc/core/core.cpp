@@ -307,12 +307,14 @@ void RenderDoc::Initialise()
     RDCLOGFILE(m_LoggingFilename.c_str());
   }
 
-  if(IsReplayApp())
-    RDCLOG("RenderDoc v%s %s (%s) loaded in replay application", RENDERDOC_VERSION_STRING,
-           sizeof(uintptr_t) == sizeof(uint64_t) ? "x64" : "x86", GIT_COMMIT_HASH);
-  else
-    RDCLOG("RenderDoc v%s %s (%s) capturing application", RENDERDOC_VERSION_STRING,
-           sizeof(uintptr_t) == sizeof(uint64_t) ? "x64" : "x86", GIT_COMMIT_HASH);
+  RDCLOG("RenderDoc v%s %s %s (%s) %s", MAJOR_MINOR_VERSION_STRING,
+         sizeof(uintptr_t) == sizeof(uint64_t) ? "x64" : "x86",
+         ENABLED(RDOC_RELEASE) ? "Release" : "Development", GIT_COMMIT_HASH,
+         IsReplayApp() ? "loaded in replay application" : "capturing application");
+
+#if defined(DISTRIBUTION_VERSION)
+  RDCLOG("Packaged for %s (%s) - %s", DISTRIBUTION_NAME, DISTRIBUTION_VERSION, DISTRIBUTION_CONTACT);
+#endif
 
   Keyboard::Init();
 

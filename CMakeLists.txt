@@ -29,7 +29,29 @@ if(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
     message(FATAL_ERROR "In-source builds not allowed")
 endif()
 
-set(BUILD_VERSION_HASH "" CACHE STRING "The current git commit hash, possibly with suffixes to indicate build type")
+# version setting variables. See renderdoc/api/replay/version.h
+
+set(BUILD_VERSION_HASH "" CACHE STRING "The current git commit hash. See GIT_COMMIT_HASH in renderdoc/api/replay/version.h")
+option(BUILD_VERSION_STABLE "If this is a stable build. See RENDERDOC_STABLE_BUILD in renderdoc/api/replay/version.h" OFF)
+set(BUILD_VERSION_DIST_NAME "" CACHE STRING "The name of the distribution. See DISTRIBUTION_NAME in renderdoc/api/replay/version.h")
+set(BUILD_VERSION_DIST_VER "" CACHE STRING "The distribution-specific version number. See DISTRIBUTION_VERSION in renderdoc/api/replay/version.h")
+set(BUILD_VERSION_DIST_CONTACT "" CACHE STRING "The URL or email to contact with issues. See DISTRIBUTION_CONTACT in renderdoc/api/replay/version.h")
+
+if(BUILD_VERSION_STABLE)
+    add_definitions(-DRENDERDOC_STABLE_BUILD=1)
+endif()
+
+if(NOT BUILD_VERSION_DIST_NAME STREQUAL "")
+    add_definitions(-DDISTRIBUTION_NAME="${BUILD_VERSION_DIST_NAME}")
+endif()
+
+if(NOT BUILD_VERSION_DIST_VER STREQUAL "")
+    add_definitions(-DDISTRIBUTION_VERSION="${BUILD_VERSION_DIST_VER}")
+endif()
+
+if(NOT BUILD_VERSION_DIST_CONTACT STREQUAL "")
+    add_definitions(-DDISTRIBUTION_CONTACT="${BUILD_VERSION_DIST_CONTACT}")
+endif()
 
 function(get_git_hash _git_hash)
   if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
@@ -48,6 +70,11 @@ function(get_git_hash _git_hash)
   endif()
   set(${_git_hash} "${GIT_HASH}" PARENT_SCOPE)
 endfunction(get_git_hash)
+
+# get git commit hash
+get_git_hash(GIT_COMMIT_HASH)
+string(STRIP ${GIT_COMMIT_HASH} GIT_COMMIT_HASH)
+add_definitions(-DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 
 project(RenderDoc CXX C)
 

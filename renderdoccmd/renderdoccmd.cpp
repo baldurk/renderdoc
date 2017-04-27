@@ -26,6 +26,7 @@
 #include "renderdoccmd.h"
 #include <app/renderdoc_app.h>
 #include <replay/renderdoc_replay.h>
+#include <replay/version.h>
 #include <string>
 
 using std::string;
@@ -162,11 +163,18 @@ struct VersionCommand : public Command
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
-    std::cout << "renderdoccmd " << (sizeof(uintptr_t) == sizeof(uint64_t) ? "x64 " : "x86 ")
-              << RENDERDOC_GetVersionString() << "-" << RENDERDOC_GetCommitHash() << std::endl;
+    std::cout << "renderdoccmd " << (sizeof(uintptr_t) == sizeof(uint64_t) ? "x64" : "x86")
+              << " v" MAJOR_MINOR_VERSION_STRING << " built from " << GIT_COMMIT_HASH << std::endl;
+
+#if defined(DISTRIBUTION_VERSION)
+    std::cout << "Packaged for " << DISTRIBUTION_NAME << " (" << DISTRIBUTION_VERSION << ") - "
+              << DISTRIBUTION_CONTACT << std::endl;
+#endif
 
     for(size_t i = 0; i < version_lines.size(); i++)
       std::cout << version_lines[i] << std::endl;
+
+    std::cout << std::endl;
 
     return 0;
   }

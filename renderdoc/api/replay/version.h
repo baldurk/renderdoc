@@ -24,16 +24,89 @@
 
 #pragma once
 
-#define VER_STR2(a) #a
-#define VER_STR(a) VER_STR2(a)
+///////////////////////////////////////////////////////////////////////////////////////
+//
+// Build configuration variables.
+//
+// When distributing RenderDoc builds please check these variables before building and
+// set them appropriately. If you're building locally, the defaults are all fine.
+//
+// For windows builds, some of these variables are irrelevant and can be ignored.
+//
+// For non-windows builds, these variables have cmake settings that you can use to set
+// them, and are designed to be set that way. See BUILD_VERSION_*.
+//
+// However if you want to you can locally modify this file (e.g. copy a file with some fixed values
+// set, then just update the version numbers in the build process).
+//
 
+// This should be set to the last upstream git commit where the build comes from. If any later
+// commits are cherry-picked or local patches are applied, this should still point to the hash of
+// the tree that the build was based on.
+//
+// Windows users can run ./scripts/hash_version.sh from the root of the checkout to set this, anyone
+// else should set BUILD_VERSION_HASH in the cmake build command.
+#if !defined(GIT_COMMIT_HASH)
+#define GIT_COMMIT_HASH "NO_GIT_COMMIT_HASH_DEFINED"
+#endif
+
+// If this variable is set to 1, then this build is considered a stable version - based on a tagged
+// version number upstream, possibly with some patches applied as necessary.
+// Any other build whether it's including experimental local changes or just from the tip of the
+// latest code at some other point should be considered unstable and leave this as 0.
+#if !defined(RENDERDOC_STABLE_BUILD)
+#define RENDERDOC_STABLE_BUILD 0
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////
+//
+// If you are distributing to the public, you should set values for these variables below.
+//
+
+// The friendly name of the distribution that packaged this build
+#if !defined(DISTRIBUTION_NAME)
+//#define DISTRIBUTION_NAME "DistributionName"
+#endif
+
+// An arbitrary distribution version string. If set, this should include the major and minor
+// version numbers in it.
+#if !defined(DISTRIBUTION_VERSION)
+//#define DISTRIBUTION_VERSION "MAJ.MIN-foo.4b"
+#endif
+
+// Set to an URL or email of who produced this build and should be the first point of contact for
+// any issues.
+// If you're distributing builds for the public then do update this to point to your bugtracker or
+// similar.
+#if !defined(DISTRIBUTION_CONTACT)
+//#define DISTRIBUTION_CONTACT "https://distribution.example/packages/renderdoc"
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////
+//
+// Internal or derived variables
+
+// You should NOT enable this variable. This is used by upstream builds to determine whether
+// this is an official build e.g. that should send crash reports.
+#define RENDERDOC_OFFICIAL_BUILD 0
+
+// The major and minor version that describe this build. These numbers are modified linearly
+// upstream and should not be modified downstream. You can set DISTRIBUTION_VERSION to include any
+// arbitrary release marker or package version you wish.
 #define RENDERDOC_VERSION_MAJOR 0
 #define RENDERDOC_VERSION_MINOR 34
-#define RENDERDOC_VERSION_STRING \
-  VER_STR(RENDERDOC_VERSION_MAJOR) "." VER_STR(RENDERDOC_VERSION_MINOR)
 
-#if defined(GIT_COMMIT_HASH_LITERAL)
-#define GIT_COMMIT_HASH VER_STR(GIT_COMMIT_HASH_LITERAL)
-#elif !defined(GIT_COMMIT_HASH)
-#define GIT_COMMIT_HASH "NO_GIT_COMMIT_HASH_DEFINED"
+#define RDOC_INTERNAL_VERSION_STRINGIZE2(a) #a
+#define RDOC_INTERNAL_VERSION_STRINGIZE(a) RDOC_INTERNAL_VERSION_STRINGIZE2(a)
+
+// string that's just "major.minor"
+#define MAJOR_MINOR_VERSION_STRING                         \
+  RDOC_INTERNAL_VERSION_STRINGIZE(RENDERDOC_VERSION_MAJOR) \
+  "." RDOC_INTERNAL_VERSION_STRINGIZE(RENDERDOC_VERSION_MINOR)
+
+// string that's the actual version number, either from the distribution or just vX.Y
+#if defined(DISTRIBUTION_VERSION)
+#define FULL_VERSION_STRING "v" DISTRIBUTION_VERSION
+#else
+#define FULL_VERSION_STRING "v" MAJOR_MINOR_VERSION_STRING
 #endif

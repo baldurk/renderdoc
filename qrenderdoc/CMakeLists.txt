@@ -1,6 +1,3 @@
-get_git_hash(GIT_COMMIT_HASH)
-string(STRIP ${GIT_COMMIT_HASH} GIT_COMMIT_HASH)
-
 option(STATIC_QRENDERDOC "Compile qrenderdoc as static" OFF)
 option(QRENDERDOC_NO_CXX11_REGEX "Disable C++11 regex in scintilla" OFF)
 
@@ -104,7 +101,6 @@ file(WRITE
      "\n"
      # search for -lrenderdoc here
      "LIBS+=-L${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\n"
-     "DEFINES+=GIT_COMMIT_HASH_LITERAL=${GIT_COMMIT_HASH}\n"
      "\n"
      # include and link against python
      "INCLUDEPATH+=${PYTHON_INCLUDE_DIR}\n"
@@ -113,6 +109,36 @@ file(WRITE
      "RENDERDOC_VERSION=${RENDERDOC_VERSION}\n"
      "\n"
      "OSX_ICONFILE=${CMAKE_CURRENT_BINARY_DIR}/RenderDoc.icns\n")
+
+# propagate build version info. Lots of escaping needed here to pass ""s into the define value
+
+file(APPEND
+    ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+    "DEFINES+=GIT_COMMIT_HASH='\\\\\"${GIT_COMMIT_HASH}\\\\\"'\n")
+
+if(BUILD_VERSION_STABLE)
+    file(APPEND
+         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+         "DEFINES+=RENDERDOC_STABLE_BUILD=1\n")
+endif()
+
+if(NOT BUILD_VERSION_DIST_NAME STREQUAL "")
+    file(APPEND
+         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+         "DEFINES+=DISTRIBUTION_NAME='\\\\\"${BUILD_VERSION_DIST_NAME}\\\\\"'\n")
+endif()
+
+if(NOT BUILD_VERSION_DIST_VER STREQUAL "")
+    file(APPEND
+         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+         "DEFINES+=DISTRIBUTION_VERSION='\\\\\"${BUILD_VERSION_DIST_VER}\\\\\"'\n")
+endif()
+
+if(NOT BUILD_VERSION_DIST_CONTACT STREQUAL "")
+    file(APPEND
+         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+         "DEFINES+=DISTRIBUTION_CONTACT='\\\\\"${BUILD_VERSION_DIST_CONTACT}\\\\\"'\n")
+endif()
 
 if(PYSIDE2_FOUND)
     # Add configuration for PySide2

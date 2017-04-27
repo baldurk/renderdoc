@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#if USE_BREAKPAD && defined(RENDERDOC_OFFICIAL_BUILD)
+#if USE_BREAKPAD && RENDERDOC_OFFICIAL_BUILD
 
 #define RDOC_CRASH_HANDLER OPTION_ON
 
@@ -108,7 +108,7 @@ public:
         google_breakpad::CustomInfoEntry(L"gitcommit", L""),
     };
 
-    wstring wideStr = StringFormat::UTF82Wide(string(RENDERDOC_VERSION_STRING));
+    wstring wideStr = StringFormat::UTF82Wide(string(MAJOR_MINOR_VERSION_STRING));
     breakpadCustomInfo[0].set_value(wideStr.c_str());
     wideStr = StringFormat::UTF82Wide(string(RDCGETLOGFILE()));
     breakpadCustomInfo[1].set_value(wideStr.c_str());

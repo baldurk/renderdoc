@@ -41,8 +41,6 @@
 #define RESOURCE_glsl_depthms2arr_frag  427
 #define RESOURCE_glsl_gles_texsample_h  428
 
-//#define RENDERDOC_OFFICIAL_BUILD // used to determine whether to submit auto crash reports
-
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED

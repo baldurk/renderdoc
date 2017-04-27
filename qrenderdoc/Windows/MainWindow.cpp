@@ -49,25 +49,6 @@
 #define JSON_ID "rdocLayoutData"
 #define JSON_VER 1
 
-struct Version
-{
-  static bool isOfficialVersion() { return QString(GIT_COMMIT_HASH).indexOf("-official") > 0; }
-  static bool isBetaVersion() { return QString(GIT_COMMIT_HASH).indexOf("-beta") > 0; }
-  static QString bareString() { return RENDERDOC_VERSION_STRING; }
-  static QString string() { return "v" RENDERDOC_VERSION_STRING; }
-  static QString gitCommitHash()
-  {
-    QString hash(GIT_COMMIT_HASH);
-    int dash = hash.indexOf(QChar('-'));
-    if(dash < 0)
-      return hash;
-    else
-      return hash.left(dash);
-  }
-
-  static bool isMismatched() { return RENDERDOC_GetVersionString() != bareString(); }
-};
-
 #if defined(Q_OS_WIN32)
 extern "C" void *__stdcall GetModuleHandleA(const char *);
 #endif
@@ -740,14 +721,12 @@ void MainWindow::SetTitle(const QString &filename)
 
   QString text = prefix + "RenderDoc ";
 
-  if(Version::isOfficialVersion())
-    text += Version::string();
-  else if(Version::isBetaVersion())
-    text += tr("%1-beta - %2").arg(Version::string()).arg(Version::gitCommitHash());
+  if(RENDERDOC_STABLE_BUILD)
+    text += FULL_VERSION_STRING;
   else
-    text += tr("Unofficial release (%1 - %2)").arg(Version::string()).arg(Version::gitCommitHash());
+    text += tr("Unstable release (%1 - %2)").arg(FULL_VERSION_STRING).arg(GIT_COMMIT_HASH);
 
-  if(Version::isMismatched())
+  if(QString::fromUtf8(RENDERDOC_GetVersionString()) != QString(MAJOR_MINOR_VERSION_STRING))
     text += " - !! VERSION MISMATCH DETECTED !!";
 
   setWindowTitle(text);
@@ -1184,7 +1163,8 @@ void MainWindow::switchContext()
         }
         else if(host->VersionMismatch)
         {
-          statusText->setText(tr("Remote server is not running RenderDoc %1").arg(Version::string()));
+          statusText->setText(
+              tr("Remote server is not running RenderDoc %1").arg(FULL_VERSION_STRING));
         }
         else if(host->Busy)
         {
