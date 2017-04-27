@@ -55,6 +55,7 @@ public:
   rdctype::array<uint32_t> GetHistogram(float minval, float maxval, bool channels[4]);
 
   ResourceId GetCustomShaderTexID() { return m_CustomShaderResourceId; }
+  ResourceId GetDebugOverlayTexID() { return m_OverlayResourceId; }
   PixelValue PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y,
                        uint32_t sliceFace, uint32_t mip, uint32_t sample);
   rdctype::pair<uint32_t, uint32_t> PickVertex(uint32_t eventID, uint32_t x, uint32_t y);

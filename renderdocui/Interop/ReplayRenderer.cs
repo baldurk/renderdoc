@@ -140,6 +140,8 @@ namespace renderdoc
         
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void ReplayOutput_GetCustomShaderTexID(IntPtr real, ref ResourceId texid);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void ReplayOutput_GetDebugOverlayTexID(IntPtr real, ref ResourceId texid);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void ReplayOutput_GetMinMax(IntPtr real, IntPtr outminval, IntPtr outmaxval);
@@ -199,6 +201,15 @@ namespace renderdoc
             ResourceId ret = ResourceId.Null;
 
             ReplayOutput_GetCustomShaderTexID(m_Real, ref ret);
+
+            return ret;
+        }
+
+        public ResourceId GetDebugOverlayTexID()
+        {
+            ResourceId ret = ResourceId.Null;
+
+            ReplayOutput_GetDebugOverlayTexID(m_Real, ref ret);
 
             return ret;
         }

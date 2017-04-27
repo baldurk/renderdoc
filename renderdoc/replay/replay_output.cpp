@@ -892,6 +892,13 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_GetCustomShaderTexID(IRe
     *id = output->GetCustomShaderTexID();
 }
 
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_GetDebugOverlayTexID(IReplayOutput *output,
+                                                                             ResourceId *id)
+{
+  if(id)
+    *id = output->GetDebugOverlayTexID();
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_GetMinMax(IReplayOutput *output,
                                                                   PixelValue *minval,
                                                                   PixelValue *maxval)

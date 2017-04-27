@@ -341,6 +341,16 @@ Should only be called for texture outputs.
 )");
   virtual ResourceId GetCustomShaderTexID() = 0;
 
+  DOCUMENT(R"(Retrieves the :class:`ResourceId` containing the contents of the debug overlay
+rendering (if enabled).
+
+Should only be called for texture outputs.
+
+:return: The :class:`ResourceId` assigned to the texture with the debug overlay.
+:rtype: ResourceId
+)");
+  virtual ResourceId GetDebugOverlayTexID() = 0;
+
   DOCUMENT(R"(Retrieve the contents of a particular pixel in a texture.
 
 Should only be called for texture outputs.
