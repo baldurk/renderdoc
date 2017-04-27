@@ -798,6 +798,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       TextureDescription *tex = NULL;
       BufferDescription *buf = NULL;
 
+      uint64_t descriptorLen = descriptorBind ? descriptorBind->size : 0;
+
       if(filledSlot && descriptorBind != NULL)
       {
         name = "Object " + ToQStr(descriptorBind->res);
@@ -830,8 +832,6 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           a = 0;
           name = buf->name;
           restype = TextureDim::Buffer;
-
-          ulong descriptorLen = descriptorBind->size;
 
           if(descriptorLen == 0xFFFFFFFFFFFFFFFFULL)
             descriptorLen = len - descriptorBind->offset;
@@ -867,7 +867,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         {
           QString range = "-";
           if(descriptorBind != NULL)
-            range = QString("%1 - %2").arg(descriptorBind->offset).arg(descriptorBind->size);
+            range = QString("%1 - %2").arg(descriptorBind->offset).arg(descriptorLen);
 
           node = new RDTreeWidgetItem({
               "", bindset, slotname, ToQStr(bindType), name, QString("%1 bytes").arg(len), range,

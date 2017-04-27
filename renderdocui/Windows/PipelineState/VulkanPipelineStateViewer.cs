@@ -514,6 +514,11 @@ namespace renderdocui.Windows.PipelineState
                     object tag = null;
                     bool viewDetails = false;
 
+                    ulong descriptorLen = 0;
+
+                    if(descriptorBind != null)
+                        descriptorLen = descriptorBind.size;
+
                     if (filledSlot && descriptorBind != null)
                     {
                         name = "Object " + descriptorBind.res.ToString();
@@ -558,8 +563,6 @@ namespace renderdocui.Windows.PipelineState
                                 name = bufs[t].name;
                                 restype = ShaderResourceType.Buffer;
 
-                                ulong descriptorLen = descriptorBind.size;
-
                                 if(descriptorLen == ulong.MaxValue)
                                     descriptorLen = len - descriptorBind.offset;
 
@@ -601,7 +604,8 @@ namespace renderdocui.Windows.PipelineState
                         {
                             string range = "-";
                             if (descriptorBind != null)
-                                range = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.size);
+                                range = String.Format("{0} - {1}", descriptorBind.offset, descriptorLen);
+
                             node = parentNodes.Add(new object[] {
                                 "", bindset, slotname, bindType,
                                 name, 
