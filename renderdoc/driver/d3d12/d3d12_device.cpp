@@ -2269,6 +2269,10 @@ void WrappedID3D12Device::ProcessChunk(uint64_t offset, D3D12ChunkType context)
       Serialise_CreatePlacedResource(GetMainSerialiser(), NULL, 0, NULL,
                                      D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
       break;
+    case CREATE_RESERVED_RESOURCE:
+      Serialise_CreateReservedResource(GetMainSerialiser(), NULL, D3D12_RESOURCE_STATE_COMMON, NULL,
+                                       IID(), NULL);
+      break;
 
     case CREATE_QUERY_HEAP:
       Serialise_CreateQueryHeap(GetMainSerialiser(), NULL, IID(), NULL);

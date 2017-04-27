@@ -4872,6 +4872,15 @@ void WrappedID3D12GraphicsCommandList::ResolveSubresource(ID3D12Resource *pDstRe
   }
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_CopyTiles(
+    ID3D12Resource *pTiledResource, const D3D12_TILED_RESOURCE_COORDINATE *pTileRegionStartCoordinate,
+    const D3D12_TILE_REGION_SIZE *pTileRegionSize, ID3D12Resource *pBuffer,
+    UINT64 BufferStartOffsetInBytes, D3D12_TILE_COPY_FLAGS Flags)
+{
+  D3D12NOTIMP("Tiled Resources");
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::CopyTiles(
     ID3D12Resource *pTiledResource, const D3D12_TILED_RESOURCE_COORDINATE *pTileRegionStartCoordinate,
     const D3D12_TILE_REGION_SIZE *pTileRegionSize, ID3D12Resource *pBuffer,

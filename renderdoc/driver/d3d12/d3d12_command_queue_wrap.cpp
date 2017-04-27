@@ -26,6 +26,17 @@
 #include "d3d12_command_list.h"
 #include "d3d12_resources.h"
 
+bool WrappedID3D12CommandQueue::Serialise_UpdateTileMappings(
+    ID3D12Resource *pResource, UINT NumResourceRegions,
+    const D3D12_TILED_RESOURCE_COORDINATE *pResourceRegionStartCoordinates,
+    const D3D12_TILE_REGION_SIZE *pResourceRegionSizes, ID3D12Heap *pHeap, UINT NumRanges,
+    const D3D12_TILE_RANGE_FLAGS *pRangeFlags, const UINT *pHeapRangeStartOffsets,
+    const UINT *pRangeTileCounts, D3D12_TILE_MAPPING_FLAGS Flags)
+{
+  D3D12NOTIMP("Tiled Resources");
+  return true;
+}
+
 void STDMETHODCALLTYPE WrappedID3D12CommandQueue::UpdateTileMappings(
     ID3D12Resource *pResource, UINT NumResourceRegions,
     const D3D12_TILED_RESOURCE_COORDINATE *pResourceRegionStartCoordinates,
@@ -37,6 +48,15 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::UpdateTileMappings(
   m_pReal->UpdateTileMappings(Unwrap(pResource), NumResourceRegions, pResourceRegionStartCoordinates,
                               pResourceRegionSizes, Unwrap(pHeap), NumRanges, pRangeFlags,
                               pHeapRangeStartOffsets, pRangeTileCounts, Flags);
+}
+
+bool WrappedID3D12CommandQueue::Serialise_CopyTileMappings(
+    ID3D12Resource *pDstResource, const D3D12_TILED_RESOURCE_COORDINATE *pDstRegionStartCoordinate,
+    ID3D12Resource *pSrcResource, const D3D12_TILED_RESOURCE_COORDINATE *pSrcRegionStartCoordinate,
+    const D3D12_TILE_REGION_SIZE *pRegionSize, D3D12_TILE_MAPPING_FLAGS Flags)
+{
+  D3D12NOTIMP("Tiled Resources");
+  return true;
 }
 
 void STDMETHODCALLTYPE WrappedID3D12CommandQueue::CopyTileMappings(

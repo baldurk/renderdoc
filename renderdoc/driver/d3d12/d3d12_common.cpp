@@ -1697,6 +1697,29 @@ void Serialiser::Serialise(const char *name, D3D12_TEXTURE_COPY_LOCATION &el)
 }
 
 template <>
+void Serialiser::Serialise(const char *name, D3D12_TILED_RESOURCE_COORDINATE &el)
+{
+  ScopedContext scope(this, name, "D3D12_TILED_RESOURCE_COORDINATE", 0, true);
+
+  Serialise("X", el.X);
+  Serialise("Y", el.Y);
+  Serialise("Z", el.Z);
+  Serialise("Subresource", el.Subresource);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_TILE_REGION_SIZE &el)
+{
+  ScopedContext scope(this, name, "D3D12_TILE_REGION_SIZE", 0, true);
+
+  Serialise("NumTiles", el.NumTiles);
+  Serialise("UseBox", el.UseBox);
+  Serialise("Width", el.Width);
+  Serialise("Height", el.Height);
+  Serialise("Depth", el.Depth);
+}
+
+template <>
 void Serialiser::Serialise(const char *name, D3D12_DISCARD_REGION &el)
 {
   ScopedContext scope(this, name, "D3D12_DISCARD_REGION", 0, true);
@@ -2597,6 +2620,88 @@ string ToStrHelper<false, D3D12_COMMAND_QUEUE_FLAGS>::Get(const D3D12_COMMAND_QU
 
   if(el & D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT)
     ret += " | D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
+string ToStrHelper<false, D3D12_TILE_COPY_FLAGS>::Get(const D3D12_TILE_COPY_FLAGS &el)
+{
+  string ret;
+
+  if(el == D3D12_TILE_COPY_FLAG_NONE)
+    return "D3D12_TILE_COPY_FLAG_NONE";
+
+  if(el & D3D12_TILE_COPY_FLAG_NO_HAZARD)
+    ret += " | D3D12_TILE_COPY_FLAG_NO_HAZARD";
+
+  if(el & D3D12_TILE_COPY_FLAG_LINEAR_BUFFER_TO_SWIZZLED_TILED_RESOURCE)
+    ret += " | D3D12_TILE_COPY_FLAG_LINEAR_BUFFER_TO_SWIZZLED_TILED_RESOURCE";
+
+  if(el & D3D12_TILE_COPY_FLAG_SWIZZLED_TILED_RESOURCE_TO_LINEAR_BUFFER)
+    ret += " | D3D12_TILE_COPY_FLAG_SWIZZLED_TILED_RESOURCE_TO_LINEAR_BUFFER";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
+string ToStrHelper<false, D3D12_TILE_MAPPING_FLAGS>::Get(const D3D12_TILE_MAPPING_FLAGS &el)
+{
+  string ret;
+
+  if(el == D3D12_TILE_MAPPING_FLAG_NONE)
+    return "D3D12_TILE_MAPPING_FLAG_NONE";
+
+  if(el & D3D12_TILE_MAPPING_FLAG_NO_HAZARD)
+    ret += " | D3D12_TILE_MAPPING_FLAG_NO_HAZARD";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
+string ToStrHelper<false, D3D12_TILE_RANGE_FLAGS>::Get(const D3D12_TILE_RANGE_FLAGS &el)
+{
+  string ret;
+
+  if(el == D3D12_TILE_RANGE_FLAG_NONE)
+    return "D3D12_TILE_RANGE_FLAG_NONE";
+
+  if(el & D3D12_TILE_RANGE_FLAG_NULL)
+    ret += " | D3D12_TILE_RANGE_FLAG_NULL";
+
+  if(el & D3D12_TILE_RANGE_FLAG_SKIP)
+    ret += " | D3D12_TILE_RANGE_FLAG_SKIP";
+
+  if(el & D3D12_TILE_RANGE_FLAG_REUSE_SINGLE_TILE)
+    ret += " | D3D12_TILE_RANGE_FLAG_REUSE_SINGLE_TILE";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
+string ToStrHelper<false, D3D12_TILED_RESOURCES_TIER>::Get(const D3D12_TILED_RESOURCES_TIER &el)
+{
+  string ret;
+
+  if(el == D3D12_TILED_RESOURCES_TIER_NOT_SUPPORTED)
+    return "D3D12_TILED_RESOURCES_TIER_NOT_SUPPORTED";
+
+  if(el & D3D12_TILED_RESOURCES_TIER_1)
+    ret += " | D3D12_TILED_RESOURCES_TIER_1";
+
+  if(el & D3D12_TILED_RESOURCES_TIER_2)
+    ret += " | D3D12_TILED_RESOURCES_TIER_2";
+
+  if(el & D3D12_TILED_RESOURCES_TIER_3)
+    ret += " | D3D12_TILED_RESOURCES_TIER_3";
 
   if(!ret.empty())
     ret = ret.substr(3);

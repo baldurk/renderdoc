@@ -386,6 +386,13 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
       m_pDevice->Serialise_DynamicDescriptorCopies(m_pDevice->GetMainSerialiser(), NULL);
       break;
 
+    case UPDATE_TILE_MAPPINGS:
+      Serialise_UpdateTileMappings(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL,
+                                   D3D12_TILE_MAPPING_FLAG_NONE);
+      break;
+    case COPY_TILE_MAPPINGS:
+      Serialise_CopyTileMappings(NULL, NULL, NULL, NULL, NULL, D3D12_TILE_MAPPING_FLAG_NONE);
+      break;
     case EXECUTE_CMD_LISTS: Serialise_ExecuteCommandLists(0, NULL); break;
     case SIGNAL: Serialise_Signal(NULL, 0); break;
     case WAIT: Serialise_Wait(NULL, 0); break;
