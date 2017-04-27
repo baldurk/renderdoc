@@ -1820,6 +1820,9 @@ void BufferViewer::guessSecondaryColumn(BufferItemModel *model)
 
 void BufferViewer::updatePreviewColumns()
 {
+  if(!m_MeshView)
+    return;
+
   QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
