@@ -101,7 +101,7 @@ private slots:
   // manual slots
   void readonly_keyPressed(QKeyEvent *event);
   void editable_keyPressed(QKeyEvent *event);
-  void disassembly_buttonReleased(QMouseEvent *event);
+  void disassembly_contextMenu(const QPoint &pos);
   void performFind();
   void performFindAll();
   void performReplace();

@@ -90,8 +90,6 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
     m_DisassemblyView->setReadOnly(true);
     m_DisassemblyView->setWindowTitle(tr("Disassembly"));
 
-    m_DisassemblyView->usePopUp(SC_POPUP_NEVER);
-
     QObject::connect(m_DisassemblyView, &ScintillaEdit::keyPressed, this,
                      &ShaderViewer::readonly_keyPressed);
 
@@ -278,9 +276,15 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     m_DisassemblyView->setReadOnly(true);
   }
 
+  // suppress the built-in context menu and hook up our own
   if(trace)
-    QObject::connect(m_DisassemblyView, &ScintillaEdit::buttonReleased, this,
-                     &ShaderViewer::disassembly_buttonReleased);
+  {
+    m_DisassemblyView->usePopUp(SC_POPUP_NEVER);
+
+    m_DisassemblyView->setContextMenuPolicy(Qt::CustomContextMenu);
+    QObject::connect(m_DisassemblyView, &ScintillaEdit::customContextMenuRequested, this,
+                     &ShaderViewer::disassembly_contextMenu);
+  }
 
   if(shader && shader->DebugInfo.entryFunc.count > 0 && shader->DebugInfo.files.count > 0)
   {
@@ -602,9 +606,60 @@ void ShaderViewer::editable_keyPressed(QKeyEvent *event)
   }
 }
 
-void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
+void ShaderViewer::disassembly_contextMenu(const QPoint &pos)
 {
-  // TODO context menu
+  int scintillaPos = m_DisassemblyView->positionFromPoint(pos.x(), pos.y());
+
+  QMenu contextMenu(this);
+
+  QAction intDisplay(tr("Integer register display"), this);
+  QAction floatDisplay(tr("Float register display"), this);
+
+  intDisplay.setCheckable(true);
+  floatDisplay.setCheckable(true);
+
+  intDisplay.setChecked(ui->intView->isChecked());
+  floatDisplay.setChecked(ui->floatView->isChecked());
+
+  QObject::connect(&intDisplay, &QAction::triggered, this, &ShaderViewer::on_intView_clicked);
+  QObject::connect(&floatDisplay, &QAction::triggered, this, &ShaderViewer::on_floatView_clicked);
+
+  contextMenu.addAction(&intDisplay);
+  contextMenu.addAction(&floatDisplay);
+  contextMenu.addSeparator();
+
+  QAction addBreakpoint(tr("Toggle breakpoint here"), this);
+  QAction runCursor(tr("Run to Cursor"), this);
+
+  QObject::connect(&addBreakpoint, &QAction::triggered, [this, scintillaPos] {
+    m_DisassemblyView->setSelection(scintillaPos, scintillaPos);
+    ToggleBreakpoint();
+  });
+  QObject::connect(&runCursor, &QAction::triggered, [this, scintillaPos] {
+    m_DisassemblyView->setSelection(scintillaPos, scintillaPos);
+    runToCursor();
+  });
+
+  contextMenu.addAction(&addBreakpoint);
+  contextMenu.addAction(&runCursor);
+  contextMenu.addSeparator();
+
+  QAction copyText(tr("Copy"), this);
+  QAction selectAll(tr("Select All"), this);
+
+  copyText.setEnabled(!m_DisassemblyView->selectionEmpty());
+
+  QObject::connect(&copyText, &QAction::triggered, [this] {
+    m_DisassemblyView->copyRange(m_DisassemblyView->selectionStart(),
+                                 m_DisassemblyView->selectionEnd());
+  });
+  QObject::connect(&selectAll, &QAction::triggered, [this] { m_DisassemblyView->selectAll(); });
+
+  contextMenu.addAction(&copyText);
+  contextMenu.addAction(&selectAll);
+  contextMenu.addSeparator();
+
+  RDDialog::show(&contextMenu, m_DisassemblyView->viewport()->mapToGlobal(pos));
 }
 
 bool ShaderViewer::stepBack()
