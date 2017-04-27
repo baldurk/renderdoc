@@ -155,6 +155,14 @@ void LiveCapture::on_captures_mouseClicked(QMouseEvent *e)
 {
   if(e->buttons() & Qt::RightButton && !ui->captures->selectedItems().empty())
   {
+    QListWidgetItem *item = ui->captures->itemAt(e->pos());
+
+    if(item != NULL)
+    {
+      ui->captures->clearSelection();
+      item->setSelected(true);
+    }
+
     QMenu contextMenu(this);
 
     QMenu contextOpenMenu(tr("&Open in..."), this);
