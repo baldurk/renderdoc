@@ -1536,7 +1536,8 @@ struct RenderTextState
     enableBits[2] = gl.glIsEnabled(eGL_CULL_FACE) != 0;
     if(modern)
     {
-      enableBits[3] = gl.glIsEnabled(eGL_DEPTH_CLAMP) != 0;
+      if(!IsGLES)
+        enableBits[3] = gl.glIsEnabled(eGL_DEPTH_CLAMP) != 0;
 
       if(HasExt[ARB_draw_buffers_blend])
         enableBits[4] = gl.glIsEnabledi(eGL_BLEND, 0) != 0;
@@ -1655,10 +1656,13 @@ struct RenderTextState
 
     if(modern)
     {
-      if(enableBits[3])
-        gl.glEnable(eGL_DEPTH_CLAMP);
-      else
-        gl.glDisable(eGL_DEPTH_CLAMP);
+      if(!IsGLES)
+      {
+        if(enableBits[3])
+          gl.glEnable(eGL_DEPTH_CLAMP);
+        else
+          gl.glDisable(eGL_DEPTH_CLAMP);
+      }
 
       if(HasExt[ARB_draw_buffers_blend])
       {
@@ -1887,7 +1891,8 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 
     // set depth & stencil
     gl.glDisable(eGL_DEPTH_TEST);
-    gl.glDisable(eGL_DEPTH_CLAMP);
+    if(!IsGLES)
+      gl.glDisable(eGL_DEPTH_CLAMP);
     gl.glDisable(eGL_STENCIL_TEST);
     gl.glDisable(eGL_CULL_FACE);
 
