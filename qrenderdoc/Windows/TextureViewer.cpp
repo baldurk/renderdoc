@@ -3448,7 +3448,8 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
                      QDir::Files | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase);
 
   QStringList watchedFiles = m_Watcher->files();
-  m_Watcher->removePaths(watchedFiles);
+  if(!watchedFiles.isEmpty())
+    m_Watcher->removePaths(watchedFiles);
 
   for(const QString &f : files)
   {
