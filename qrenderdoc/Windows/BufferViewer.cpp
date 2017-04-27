@@ -398,9 +398,9 @@ public:
   {
     if(section < m_ColumnCount && orientation == Qt::Horizontal && role == Qt::DisplayRole)
     {
-      if(section == 0 && meshView)
+      if(section == 0)
       {
-        return "VTX";
+        return meshView ? "VTX" : "Element";
       }
       else if(section == 1 && meshView)
       {
@@ -432,7 +432,7 @@ public:
         opt.features |= QStyleOptionViewItem::HasDisplay;
 
         // pad these columns to allow for sufficiently wide data
-        if(index.column() < 2 && meshView)
+        if(index.column() < reservedColumnCount())
           opt.text = "999999";
         else
           opt.text = data(index).toString();
@@ -486,7 +486,7 @@ public:
       {
         if(col >= 0 && col < m_ColumnCount && row < numRows)
         {
-          if(col == 0 && meshView)
+          if(col == 0)
             return row;
 
           uint32_t idx = row;
@@ -687,7 +687,7 @@ private:
   bool secondaryElAlpha = false;
   bool secondaryEnabled = false;
 
-  int reservedColumnCount() const { return (meshView ? 2 : 0); }
+  int reservedColumnCount() const { return (meshView ? 2 : 1); }
   int componentForIndex(int col) const { return componentLookup[col - reservedColumnCount()]; }
   int firstColumnForElement(int el) const
   {
@@ -2127,12 +2127,12 @@ void BufferViewer::ApplyColumnWidths(int numColumns, RDTableView *view)
 {
   int start = 0;
 
+  // vertex/element
+  view->setColumnWidth(start++, m_IdxColWidth);
+
+  // mesh view only - index
   if(m_MeshView)
-  {
-    view->setColumnWidth(0, m_IdxColWidth);
-    view->setColumnWidth(1, m_IdxColWidth);
-    start = 2;
-  }
+    view->setColumnWidth(start++, m_IdxColWidth);
 
   for(int i = start; i < numColumns; i++)
     view->setColumnWidth(i, m_DataColWidth);
@@ -2508,13 +2508,12 @@ void BufferViewer::CalcColumnWidth()
   // measure this data so we can use this as column widths
   ui->vsinData->resizeColumnsToContents();
 
-  // index column
-  int col = 0;
+  // index/element column
+  m_IdxColWidth = ui->vsinData->columnWidth(0);
+
+  int col = 1;
   if(m_MeshView)
-  {
-    m_IdxColWidth = ui->vsinData->columnWidth(1);
     col = 2;
-  }
 
   m_DataColWidth = 10;
   for(int c = 0; c < 5; c++)
