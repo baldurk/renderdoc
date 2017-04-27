@@ -637,13 +637,11 @@ void PixelHistoryView::startDebug(EventTag tag)
 
   ShaderDebugTrace *trace = NULL;
 
-  bool success = false;
-
-  m_Ctx.Replay().BlockInvoke([this, &success, &trace](IReplayController *r) {
+  m_Ctx.Replay().BlockInvoke([this, &trace](IReplayController *r) {
     trace = r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(), m_Display.sampleIdx, ~0U);
   });
 
-  if(!success || trace->states.count == 0)
+  if(trace->states.count == 0)
   {
     RDDialog::critical(this, tr("Debug Error"), tr("Error debugging pixel."));
     delete trace;
@@ -662,7 +660,7 @@ void PixelHistoryView::startDebug(EventTag tag)
     IShaderViewer *s =
         m_Ctx.DebugShader(&bindMapping, shaderDetails, ShaderStage::Pixel, trace, debugContext);
 
-    m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, m_Ctx.GetMainWindow()->Widget());
+    m_Ctx.AddDockWindow(s->Widget(), DockReference::MainToolArea, NULL);
   });
 }
 
