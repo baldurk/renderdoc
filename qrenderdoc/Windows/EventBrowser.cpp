@@ -29,6 +29,7 @@
 #include "3rdparty/flowlayout/FlowLayout.h"
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
+#include "Code/Resources.h"
 #include "ui_EventBrowser.h"
 
 struct EventItemTag
@@ -101,10 +102,6 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->bookmarkStrip->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
   m_BookmarkStripLayout->addWidget(ui->bookmarkStripHeader);
   m_BookmarkStripLayout->addItem(m_BookmarkSpacer);
-
-  m_CurrentIcon.addFile(QStringLiteral(":/flag_green.png"), QSize(), QIcon::Normal, QIcon::Off);
-  m_FindIcon.addFile(QStringLiteral(":/find.png"), QSize(), QIcon::Normal, QIcon::Off);
-  m_BookmarkIcon.addFile(QStringLiteral(":/asterisk_orange.png"), QSize(), QIcon::Normal, QIcon::Off);
 
   Qt::Key keys[] = {
       Qt::Key_1, Qt::Key_2, Qt::Key_3, Qt::Key_4, Qt::Key_5,
@@ -747,11 +744,11 @@ bool EventBrowser::hasBookmark(uint32_t EID)
 void EventBrowser::RefreshIcon(RDTreeWidgetItem *item, EventItemTag tag)
 {
   if(tag.current)
-    item->setIcon(COL_NAME, m_CurrentIcon);
+    item->setIcon(COL_NAME, Icons::flag_green());
   else if(tag.bookmark)
-    item->setIcon(COL_NAME, m_BookmarkIcon);
+    item->setIcon(COL_NAME, Icons::asterisk_orange());
   else if(tag.find)
-    item->setIcon(COL_NAME, m_FindIcon);
+    item->setIcon(COL_NAME, Icons::find());
   else
     item->setIcon(COL_NAME, QIcon());
 }

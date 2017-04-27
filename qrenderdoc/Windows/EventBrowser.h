@@ -122,10 +122,6 @@ private:
 
   rdctype::array<CounterResult> m_Times;
 
-  QIcon m_CurrentIcon;
-  QIcon m_FindIcon;
-  QIcon m_BookmarkIcon;
-
   SizeDelegate *m_SizeDelegate;
   QTimer *m_FindHighlight;
 

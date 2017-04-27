@@ -150,8 +150,7 @@ void RemoteManager::setRemoteServerLive(RDTreeWidgetItem *node, bool live, bool 
 
     node->setText(1, text);
 
-    node->setIcon(0,
-                  QIcon(QPixmap(QString::fromUtf8(live ? ":/connect.png" : ":/disconnect.png"))));
+    node->setIcon(0, live ? Icons::connect() : Icons::disconnect());
   }
 }
 

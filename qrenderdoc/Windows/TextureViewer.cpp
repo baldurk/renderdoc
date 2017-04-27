@@ -38,6 +38,7 @@
 #include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
+#include "Code/Resources.h"
 #include "Dialogs/TextureSaveDialog.h"
 #include "Widgets/ResourcePreview.h"
 #include "Widgets/TextureGoto.h"
@@ -402,8 +403,8 @@ public:
       if(role == Qt::DecorationRole)
       {
         QIcon goArrow;
-        goArrow.addFile(QStringLiteral(":/action.png"), QSize(), QIcon::Normal, QIcon::Off);
-        goArrow.addFile(QStringLiteral(":/action_hover.png"), QSize(), QIcon::Active, QIcon::Off);
+        goArrow.addPixmap(Pixmaps::action(), QIcon::Normal, QIcon::Off);
+        goArrow.addPixmap(Pixmaps::action_hover(), QIcon::Normal, QIcon::Off);
         return QVariant(goArrow);
       }
     }
@@ -1683,13 +1684,10 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
 
     lockedContainer->setLayout(ui->renderLayout);
 
-    QIcon lockedIcon;
-    lockedIcon.addFile(QStringLiteral(":/page_white_link.png"), QSize(), QIcon::Normal, QIcon::Off);
-
     int idx = textureTabs->indexOf(lockedContainer);
 
     if(idx >= 0)
-      textureTabs->setTabIcon(idx, lockedIcon);
+      textureTabs->setTabIcon(idx, Icons::page_white_link());
     else
       qCritical() << "Couldn't get tab index of new tab to set icon";
 
@@ -1777,9 +1775,7 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdctype::array<
   QAction usageTitle(tr("Used:"), this);
   QAction imageLayout(this);
 
-  QIcon goArrow;
-  goArrow.addFile(QStringLiteral(":/action_hover.png"), QSize(), QIcon::Normal, QIcon::Off);
-  openLockedTab.setIcon(goArrow);
+  openLockedTab.setIcon(Icons::action_hover());
 
   showDisabled.setChecked(m_ShowDisabled);
   showDisabled.setChecked(m_ShowEmpty);
