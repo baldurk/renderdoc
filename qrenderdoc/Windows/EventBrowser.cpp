@@ -24,6 +24,7 @@
 
 #include "EventBrowser.h"
 #include <QKeyEvent>
+#include <QMenu>
 #include <QShortcut>
 #include <QTimer>
 #include "3rdparty/flowlayout/FlowLayout.h"
@@ -122,6 +123,10 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
     QShortcut *sc = new QShortcut(QKeySequence(Qt::Key_Right | Qt::ControlModifier), this);
     QObject::connect(sc, &QShortcut::activated, this, &EventBrowser::on_stepNext_clicked);
   }
+
+  ui->events->setContextMenuPolicy(Qt::CustomContextMenu);
+  QObject::connect(ui->events, &RDTreeWidget::customContextMenuRequested, this,
+                   &EventBrowser::events_contextMenu);
 
   OnLogfileClosed();
 }
@@ -639,6 +644,39 @@ void EventBrowser::events_keyPress(QKeyEvent *event)
       on_timeDraws_clicked();
       event->accept();
     }
+  }
+}
+
+void EventBrowser::events_contextMenu(const QPoint &pos)
+{
+  if(!m_Ctx.LogLoaded())
+    return;
+
+  RDTreeWidgetItem *item = ui->events->itemAt(pos);
+
+  if(item)
+  {
+    QMenu contextMenu(this);
+
+    QAction expandAll(tr("Expand All"), this);
+    QAction collapseAll(tr("Collapse All"), this);
+
+    contextMenu.addAction(&expandAll);
+    contextMenu.addAction(&collapseAll);
+
+    expandAll.setIcon(Icons::fit_window());
+    collapseAll.setIcon(Icons::arrow_in());
+
+    expandAll.setEnabled(item->childCount() > 0);
+    collapseAll.setEnabled(item->childCount() > 0);
+
+    QObject::connect(&expandAll, &QAction::triggered,
+                     [this, item]() { ui->events->expandAllItems(item); });
+
+    QObject::connect(&collapseAll, &QAction::triggered,
+                     [this, item]() { ui->events->collapseAllItems(item); });
+
+    RDDialog::show(&contextMenu, ui->events->viewport()->mapToGlobal(pos));
   }
 }
 

@@ -175,6 +175,9 @@ public:
   RDTreeWidgetItem *itemAt(const QPoint &p) const;
   RDTreeWidgetItem *itemAt(int x, int y) const { return itemAt(QPoint(x, y)); }
   void expandItem(RDTreeWidgetItem *item);
+  void expandAllItems(RDTreeWidgetItem *item);
+  void collapseItem(RDTreeWidgetItem *item);
+  void collapseAllItems(RDTreeWidgetItem *item);
   void scrollToItem(RDTreeWidgetItem *node);
 
   void clear();

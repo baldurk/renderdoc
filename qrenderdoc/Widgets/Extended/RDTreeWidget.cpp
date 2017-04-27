@@ -503,6 +503,33 @@ void RDTreeWidget::expandItem(RDTreeWidgetItem *item)
   expand(m_model->indexForItem(item, 0));
 }
 
+void RDTreeWidget::expandAllItems(RDTreeWidgetItem *item)
+{
+  expandItem(item);
+
+  for(int c = 0; c < item->childCount(); c++)
+  {
+    RDTreeWidgetItem *child = item->child(c);
+    expandAllItems(child);
+  }
+}
+
+void RDTreeWidget::collapseItem(RDTreeWidgetItem *item)
+{
+  collapse(m_model->indexForItem(item, 0));
+}
+
+void RDTreeWidget::collapseAllItems(RDTreeWidgetItem *item)
+{
+  collapseItem(item);
+
+  for(int c = 0; c < item->childCount(); c++)
+  {
+    RDTreeWidgetItem *child = item->child(c);
+    collapseAllItems(child);
+  }
+}
+
 void RDTreeWidget::scrollToItem(RDTreeWidgetItem *node)
 {
   scrollTo(m_model->indexForItem(node, 0));

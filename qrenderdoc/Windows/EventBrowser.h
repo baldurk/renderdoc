@@ -81,6 +81,7 @@ private slots:
   // manual slots
   void findHighlight_timeout();
   void events_keyPress(QKeyEvent *event);
+  void events_contextMenu(const QPoint &pos);
 
 public slots:
   void clearBookmarks();
