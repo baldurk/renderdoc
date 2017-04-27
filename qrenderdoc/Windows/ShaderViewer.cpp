@@ -888,7 +888,7 @@ void ShaderViewer::updateDebugging()
     bool tree = false;
 
     for(int i = 0;
-        i < m_Mapping->ReadWriteResources.count && m_ShaderDetails->ReadWriteResources.count; i++)
+        i < m_Mapping->ReadWriteResources.count && i < m_ShaderDetails->ReadWriteResources.count; i++)
     {
       BindpointMap bind = m_Mapping->ReadWriteResources[i];
 
@@ -919,7 +919,7 @@ void ShaderViewer::updateDebugging()
     }
 
     for(int i = 0;
-        i < m_Mapping->ReadOnlyResources.count && m_ShaderDetails->ReadOnlyResources.count; i++)
+        i < m_Mapping->ReadOnlyResources.count && i < m_ShaderDetails->ReadOnlyResources.count; i++)
     {
       BindpointMap bind = m_Mapping->ReadOnlyResources[i];
 
