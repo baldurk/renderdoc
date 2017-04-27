@@ -1317,6 +1317,11 @@ ShaderDebugTrace *ReplayController::DebugThread(uint32_t groupid[3], uint32_t th
   return ret;
 }
 
+void ReplayController::FreeTrace(ShaderDebugTrace *trace)
+{
+  delete trace;
+}
+
 rdctype::array<ShaderVariable> ReplayController::GetCBufferVariableContents(
     ResourceId shader, const char *entryPoint, uint32_t cbufslot, ResourceId buffer, uint64_t offs)
 {

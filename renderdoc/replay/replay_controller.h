@@ -171,6 +171,7 @@ public:
                                 uint32_t vertOffset);
   ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive);
   ShaderDebugTrace *DebugThread(uint32_t groupid[3], uint32_t threadid[3]);
+  void FreeTrace(ShaderDebugTrace *trace);
 
   MeshFormat GetPostVSData(uint32_t instID, MeshDataStage stage);
 

@@ -644,7 +644,7 @@ void PixelHistoryView::startDebug(EventTag tag)
   if(trace->states.count == 0)
   {
     RDDialog::critical(this, tr("Debug Error"), tr("Error debugging pixel."));
-    delete trace;
+    m_Ctx.Replay().AsyncInvoke([trace](IReplayController *r) { r->FreeTrace(trace); });
     return;
   }
 

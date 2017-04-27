@@ -484,7 +484,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
 ShaderViewer::~ShaderViewer()
 {
-  delete m_Trace;
+  // don't want to async invoke while using 'this', so save the trace separately
+  ShaderDebugTrace *trace = m_Trace;
+
+  m_Ctx.Replay().AsyncInvoke([trace](IReplayController *r) { r->FreeTrace(trace); });
 
   if(m_CloseCallback)
     m_CloseCallback(&m_Ctx);

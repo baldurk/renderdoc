@@ -672,7 +672,8 @@ newly generated messages will be returned after that.
   indexed draws or drawn from the index buffer. This must have all drawcall offsets applied.
 :param int instOffset: The value from :data:`DrawcallDescription.instanceOffset`.
 :param int vertOffset: The value from :data:`DrawcallDescription.vertexOffset`.
-:return: The resulting trace resulting from debugging.
+:return: The resulting trace resulting from debugging. Destroy with
+  :meth:`FreeTrace`.
 :rtype: ShaderDebugTrace
 )");
   virtual ShaderDebugTrace *DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx,
@@ -685,7 +686,8 @@ newly generated messages will be returned after that.
 :param int sample: The multi-sampled sample. Ignored if non-multisampled texture.
 :param int primitive: Debug the pixel from this primitive if there's ambiguity. If set to
   :data:`NoPreference` then a random fragment writing to the given co-ordinate is debugged.
-:return: The resulting trace resulting from debugging.
+:return: The resulting trace resulting from debugging. Destroy with
+  :meth:`FreeTrace`.
 :rtype: ShaderDebugTrace
 )");
   virtual ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t sample,
@@ -695,10 +697,17 @@ newly generated messages will be returned after that.
 
 :param groupid: A list containing the 3D workgroup index.
 :param threadid: A list containing the 3D thread index within the above workgroup.
-:return: The resulting trace resulting from debugging.
+:return: The resulting trace resulting from debugging. Destroy with
+  :meth:`FreeTrace`.
 :rtype: ShaderDebugTrace
 )");
   virtual ShaderDebugTrace *DebugThread(uint32_t groupid[3], uint32_t threadid[3]) = 0;
+
+  DOCUMENT(R"(Free a debugging trace from running a shader invocation debug.
+
+:param ShaderDebugTrace trace: The shader debugging trace to free.
+)");
+  virtual void FreeTrace(ShaderDebugTrace *trace) = 0;
 
   DOCUMENT(R"(Retrieve a list of ways a given resource is used.
 

@@ -3284,7 +3284,7 @@ void TextureViewer::on_debugPixelContext_clicked()
 
     if(trace->states.count == 0)
     {
-      delete trace;
+      r->FreeTrace(trace);
 
       // if we couldn't debug the pixel on this event, open up a pixel history
       GUIInvoke::call([this]() { on_pixelHistory_clicked(); });
