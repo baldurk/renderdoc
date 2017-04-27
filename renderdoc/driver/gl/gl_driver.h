@@ -509,9 +509,11 @@ private:
   BackbufferImage *SaveBackbufferImage();
   map<void *, BackbufferImage *> m_BackbufferImages;
 
-  vector<string> globalExts;
-  void GetGLExtensions();
-  void GetGLESExtensions();
+  void BuildGLExtensions();
+  void BuildGLESExtensions();
+
+  vector<string> m_GLExtensions;
+  vector<string> m_GLESExtensions;
 
   // no copy semantics
   WrappedOpenGL(const WrappedOpenGL &);
