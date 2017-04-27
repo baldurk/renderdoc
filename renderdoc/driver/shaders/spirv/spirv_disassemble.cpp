@@ -3460,8 +3460,6 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
     }
   }
 
-  string suffix = "";
-
   outConst.type.descriptor.elements = 1;
   outConst.type.descriptor.arrayStride = 0;
 
@@ -3469,12 +3467,10 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
   {
     if(type->arraySize == ~0U)
     {
-      suffix += "[]";
       outConst.type.descriptor.elements = 1;    // TODO need to handle 'array of undefined size'
     }
     else
     {
-      suffix += StringFormat::Fmt("[%u]", type->arraySize);
       outConst.type.descriptor.elements = type->arraySize;
     }
 
@@ -3535,7 +3531,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
       outConst.type.descriptor.cols = type->vectorSize;
     }
 
-    outConst.type.descriptor.name = type->GetName() + suffix;
+    outConst.type.descriptor.name = type->GetName();
   }
   else if(type->IsScalar())
   {
@@ -3552,7 +3548,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
     outConst.type.descriptor.rows = 1;
     outConst.type.descriptor.cols = 1;
 
-    outConst.type.descriptor.name = type->GetName() + suffix;
+    outConst.type.descriptor.name = type->GetName();
   }
   else
   {
@@ -3561,7 +3557,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
     outConst.type.descriptor.rows = 0;
     outConst.type.descriptor.cols = 0;
 
-    outConst.type.descriptor.name = type->GetName() + suffix;
+    outConst.type.descriptor.name = type->GetName();
 
     MakeConstantBlockVariables(type, outConst.type.members);
   }
