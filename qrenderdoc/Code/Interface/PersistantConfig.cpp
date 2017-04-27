@@ -184,6 +184,8 @@ void PersistantConfig::AddAndroidHosts()
   if(adbExePath.isEmpty())
     return;    // adb path must be non-empty in the Options dialog.
 
+  SetConfigSetting("MaxConnectTimeout", QString::number(Android_MaxConnectTimeout));
+
   rdctype::str androidHosts;
   RENDERDOC_EnumerateAndroidDevices(&androidHosts);
   for(const QString &hostName : ToQStr(androidHosts).split(',', QString::SkipEmptyParts))
