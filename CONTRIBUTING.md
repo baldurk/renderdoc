@@ -110,7 +110,7 @@ On Windows there are no dependencies - you can always compile the latest version
 
 Requirements for the core library and renderdoccmd are libx11, libxcb, libxcb-keysyms and libGL. The exact are packages for these vary by distribution.
 
-For qrenderdoc you need Qt5 >= 5.6 along with the 'x11extras' package. You also need python3-dev for the python integration, and bison, autoconf, automake and libpcre3-dev for building the custom SWIG tool for generating bindings.
+For qrenderdoc you need Qt5 >= 5.6 along with the 'svg' and 'x11extras' packages. You also need python3-dev for the python integration, and bison, autoconf, automake and libpcre3-dev for building the custom SWIG tool for generating bindings.
 
 This is the apt-get line you'd need to install the requirements bar Qt on Ubuntu 14.04 or above:
 
@@ -123,7 +123,7 @@ Your version of Ubuntu might not include a recent enough Qt version, so you can 
 For Archlinux (as of 2017.04.18) you'll need:
 
 ```
-sudo pacman -S libx11 libxcb xcb-util-keysyms mesa libgl qt5-base qt5-x11extras cmake python3 bison autoconf automake pcre
+sudo pacman -S libx11 libxcb xcb-util-keysyms mesa libgl qt5-base qt5-svg qt5-x11extras cmake python3 bison autoconf automake pcre
 ```
 
 For Gentoo (as of 2017.04.18), you'll need:
