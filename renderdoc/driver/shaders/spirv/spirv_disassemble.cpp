@@ -36,10 +36,6 @@ using std::make_pair;
 #undef min
 #undef max
 
-#if ENABLED(RDOC_MSVS)
-#pragma warning(disable : 4481)    // nonstandard extension used: override specifier 'override'
-#endif
-
 #include "3rdparty/glslang/SPIRV/GLSL.std.450.h"
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"

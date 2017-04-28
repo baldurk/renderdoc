@@ -28,10 +28,6 @@
 #undef min
 #undef max
 
-#if ENABLED(RDOC_MSVS)
-#pragma warning(disable : 4481)    // nonstandard extension used: override specifier 'override'
-#endif
-
 #include "3rdparty/glslang/SPIRV/GlslangToSpv.h"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 
