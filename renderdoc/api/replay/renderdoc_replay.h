@@ -701,7 +701,7 @@ newly generated messages will be returned after that.
   :meth:`FreeTrace`.
 :rtype: ShaderDebugTrace
 )");
-  virtual ShaderDebugTrace *DebugThread(uint32_t groupid[3], uint32_t threadid[3]) = 0;
+  virtual ShaderDebugTrace *DebugThread(const uint32_t groupid[3], const uint32_t threadid[3]) = 0;
 
   DOCUMENT(R"(Free a debugging trace from running a shader invocation debug.
 

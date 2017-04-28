@@ -5174,8 +5174,8 @@ ShaderDebugTrace VulkanReplay::DebugPixel(uint32_t eventID, uint32_t x, uint32_t
   return ShaderDebugTrace();
 }
 
-ShaderDebugTrace VulkanReplay::DebugThread(uint32_t eventID, uint32_t groupid[3],
-                                           uint32_t threadid[3])
+ShaderDebugTrace VulkanReplay::DebugThread(uint32_t eventID, const uint32_t groupid[3],
+                                           const uint32_t threadid[3])
 {
   VULKANNOTIMP("DebugThread");
   return ShaderDebugTrace();

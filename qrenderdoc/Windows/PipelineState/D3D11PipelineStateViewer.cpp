@@ -1653,6 +1653,50 @@ void D3D11PipelineStateViewer::setState()
   ui->stencils->clearSelection();
   ui->stencils->setUpdatesEnabled(true);
 
+  // set up thread debugging inputs
+  if(state.m_CS.ShaderDetails && (draw->flags & DrawFlags::Dispatch))
+  {
+    ui->groupX->setEnabled(true);
+    ui->groupY->setEnabled(true);
+    ui->groupZ->setEnabled(true);
+
+    ui->threadX->setEnabled(true);
+    ui->threadY->setEnabled(true);
+    ui->threadZ->setEnabled(true);
+
+    ui->debugThread->setEnabled(true);
+
+    // set maximums for CS debugging
+    ui->groupX->setMaximum((int)draw->dispatchDimension[0] - 1);
+    ui->groupY->setMaximum((int)draw->dispatchDimension[1] - 1);
+    ui->groupZ->setMaximum((int)draw->dispatchDimension[2] - 1);
+
+    if(draw->dispatchThreadsDimension[0] == 0)
+    {
+      ui->threadX->setMaximum((int)state.m_CS.ShaderDetails->DispatchThreadsDimension[0] - 1);
+      ui->threadY->setMaximum((int)state.m_CS.ShaderDetails->DispatchThreadsDimension[1] - 1);
+      ui->threadZ->setMaximum((int)state.m_CS.ShaderDetails->DispatchThreadsDimension[2] - 1);
+    }
+    else
+    {
+      ui->threadX->setMaximum((int)draw->dispatchThreadsDimension[0] - 1);
+      ui->threadY->setMaximum((int)draw->dispatchThreadsDimension[1] - 1);
+      ui->threadZ->setMaximum((int)draw->dispatchThreadsDimension[2] - 1);
+    }
+  }
+  else
+  {
+    ui->groupX->setEnabled(false);
+    ui->groupY->setEnabled(false);
+    ui->groupZ->setEnabled(false);
+
+    ui->threadX->setEnabled(false);
+    ui->threadY->setEnabled(false);
+    ui->threadZ->setEnabled(false);
+
+    ui->debugThread->setEnabled(false);
+  }
+
   // highlight the appropriate stages in the flowchart
   if(draw == NULL)
   {
@@ -2188,4 +2232,84 @@ void D3D11PipelineStateViewer::on_meshView_clicked()
   if(!m_Ctx.HasMeshPreview())
     m_Ctx.ShowMeshPreview();
   ToolWindowManager::raiseToolWindow(m_Ctx.GetMeshPreview()->Widget());
+}
+
+void D3D11PipelineStateViewer::on_debugThread_clicked()
+{
+  if(!m_Ctx.LogLoaded())
+    return;
+
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+
+  if(!draw)
+    return;
+
+  ShaderReflection *shaderDetails = m_Ctx.CurD3D11PipelineState().m_CS.ShaderDetails;
+
+  if(!shaderDetails)
+    return;
+
+  uint32_t groupdim[3] = {};
+
+  for(int i = 0; i < 3; i++)
+    groupdim[i] = draw->dispatchDimension[i];
+
+  uint32_t threadsdim[3] = {};
+  for(int i = 0; i < 3; i++)
+    threadsdim[i] = draw->dispatchThreadsDimension[i];
+
+  if(threadsdim[0] == 0)
+  {
+    for(int i = 0; i < 3; i++)
+      threadsdim[i] = shaderDetails->DispatchThreadsDimension[i];
+  }
+
+  struct threadSelect
+  {
+    uint32_t g[3];
+    uint32_t t[3];
+  } thread = {
+      // g[]
+      (uint32_t)ui->groupX->value(), (uint32_t)ui->groupY->value(), (uint32_t)ui->groupZ->value(),
+      // t[]
+      (uint32_t)ui->threadX->value(), (uint32_t)ui->threadY->value(), (uint32_t)ui->threadZ->value(),
+  };
+
+  m_Ctx.Replay().AsyncInvoke([this, thread](IReplayController *r) {
+    ShaderDebugTrace *trace = r->DebugThread(thread.g, thread.t);
+
+    if(trace->states.count == 0)
+    {
+      r->FreeTrace(trace);
+
+      GUIInvoke::call([this]() {
+        RDDialog::critical(
+            this, tr("Error debugging"),
+            tr("Error debugging thread - make sure a valid group and thread is selected"));
+      });
+      return;
+    }
+
+    QString debugContext = QString("Group [%1,%2,%3] Thread [%4,%5,%6]")
+                               .arg(thread.g[0])
+                               .arg(thread.g[1])
+                               .arg(thread.g[2])
+                               .arg(thread.t[0])
+                               .arg(thread.t[1])
+                               .arg(thread.t[2]);
+
+    GUIInvoke::call([this, debugContext, trace]() {
+
+      const ShaderReflection *shaderDetails =
+          m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
+      const ShaderBindpointMapping &bindMapping =
+          m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Compute);
+
+      // viewer takes ownership of the trace
+      IShaderViewer *s =
+          m_Ctx.DebugShader(&bindMapping, shaderDetails, ShaderStage::Compute, trace, debugContext);
+
+      m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
+    });
+  });
 }

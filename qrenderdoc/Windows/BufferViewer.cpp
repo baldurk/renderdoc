@@ -2764,7 +2764,6 @@ void BufferViewer::debugVertex()
     {
       r->FreeTrace(trace);
 
-      // if we couldn't debug the pixel on this event, open up a pixel history
       GUIInvoke::call([this]() {
         RDDialog::critical(this, tr("Error debugging"),
                            tr("Error debugging vertex - make sure a valid vertex is selected"));

@@ -1306,7 +1306,7 @@ ShaderDebugTrace *ReplayController::DebugPixel(uint32_t x, uint32_t y, uint32_t 
   return ret;
 }
 
-ShaderDebugTrace *ReplayController::DebugThread(uint32_t groupid[3], uint32_t threadid[3])
+ShaderDebugTrace *ReplayController::DebugThread(const uint32_t groupid[3], const uint32_t threadid[3])
 {
   ShaderDebugTrace *ret = new ShaderDebugTrace;
 

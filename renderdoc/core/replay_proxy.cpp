@@ -3072,17 +3072,21 @@ ShaderDebugTrace ReplayProxy::DebugPixel(uint32_t eventID, uint32_t x, uint32_t 
   return ret;
 }
 
-ShaderDebugTrace ReplayProxy::DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
+ShaderDebugTrace ReplayProxy::DebugThread(uint32_t eventID, const uint32_t groupid[3],
+                                          const uint32_t threadid[3])
 {
   ShaderDebugTrace ret;
 
+  uint32_t g[] = {groupid[0], groupid[1], groupid[2]};
+  uint32_t t[] = {threadid[0], threadid[1], threadid[2]};
+
   m_ToReplaySerialiser->Serialise("", eventID);
-  m_ToReplaySerialiser->SerialisePODArray<3>("", groupid);
-  m_ToReplaySerialiser->SerialisePODArray<3>("", threadid);
+  m_ToReplaySerialiser->SerialisePODArray<3>("", g);
+  m_ToReplaySerialiser->SerialisePODArray<3>("", t);
 
   if(m_RemoteServer)
   {
-    ret = m_Remote->DebugThread(eventID, groupid, threadid);
+    ret = m_Remote->DebugThread(eventID, g, t);
   }
   else
   {

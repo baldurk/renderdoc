@@ -222,7 +222,8 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  ShaderDebugTrace DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
+  ShaderDebugTrace DebugThread(uint32_t eventID, const uint32_t groupid[3],
+                               const uint32_t threadid[3])
   {
     ShaderDebugTrace ret;
     RDCEraseEl(ret);

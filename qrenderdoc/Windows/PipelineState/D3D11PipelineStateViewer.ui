@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>D3D11PipelineStateViewer</class>
  <widget class="QFrame" name="D3D11PipelineStateViewer">
@@ -182,7 +182,7 @@
    <item>
     <widget class="QTabWidget" name="stagesTabs">
      <property name="currentIndex">
-      <number>7</number>
+      <number>8</number>
      </property>
      <property name="documentMode">
       <bool>true</bool>

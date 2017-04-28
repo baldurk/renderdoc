@@ -1681,7 +1681,8 @@ ShaderDebugTrace D3D12Replay::DebugPixel(uint32_t eventID, uint32_t x, uint32_t 
   return ShaderDebugTrace();
 }
 
-ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
+ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventID, const uint32_t groupid[3],
+                                          const uint32_t threadid[3])
 {
   return ShaderDebugTrace();
 }

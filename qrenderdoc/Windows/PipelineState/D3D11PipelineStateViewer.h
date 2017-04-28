@@ -73,6 +73,8 @@ private slots:
   void cbuffer_itemActivated(RDTreeWidgetItem *item, int column);
   void vertex_leave(QEvent *e);
 
+  void on_debugThread_clicked();
+
 private:
   Ui::D3D11PipelineStateViewer *ui;
   ICaptureContext &m_Ctx;
