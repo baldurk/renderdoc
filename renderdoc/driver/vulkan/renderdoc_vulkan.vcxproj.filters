@@ -94,6 +94,9 @@
     <ClCompile Include="vk_apple.cpp">
       <Filter>OS\Posix</Filter>
     </ClCompile>
+    <ClCompile Include="precompiled.cpp">
+      <Filter>PCH</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">
@@ -135,6 +138,9 @@
     <ClInclude Include="official\vulkan.h">
       <Filter>official</Filter>
     </ClInclude>
+    <ClInclude Include="precompiled.h">
+      <Filter>PCH</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="OS">
@@ -163,6 +169,9 @@
     </Filter>
     <Filter Include="OS\Posix">
       <UniqueIdentifier>{c6141a90-0765-4409-afe2-e59d683e5a5e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PCH">
+      <UniqueIdentifier>{356d20c5-9ffd-4c8d-86cc-4e674104f275}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

@@ -65,14 +65,29 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\InReadableOrder.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\Logger.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.cpp" />
+    <ClCompile Include="precompiled.cpp">
+      <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
+    </ClCompile>
     <ClCompile Include="spirv_common.cpp">
       <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="spirv_compile.cpp">
       <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="spirv_disassemble.cpp">
       <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -126,6 +141,7 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spirv.hpp" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spvIR.h" />
+    <ClInclude Include="precompiled.h" />
     <ClInclude Include="spirv_common.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -19,6 +19,9 @@
     <Filter Include="Replay">
       <UniqueIdentifier>{97a405db-4782-4c62-b6c1-ca6a398c6a60}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PCH">
+      <UniqueIdentifier>{37c1f76c-3853-4afe-85a2-b0438d775f3c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dx\official\d3d12.h">
@@ -56,6 +59,9 @@
     </ClInclude>
     <ClInclude Include="d3d12_state.h">
       <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="precompiled.h">
+      <Filter>PCH</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -95,6 +101,11 @@
     <ClCompile Include="d3d12_state.cpp">
       <Filter>Util</Filter>
     </ClCompile>
-    <ClCompile Include="d3d12_counters.cpp" />
+    <ClCompile Include="d3d12_counters.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="precompiled.cpp">
+      <Filter>PCH</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

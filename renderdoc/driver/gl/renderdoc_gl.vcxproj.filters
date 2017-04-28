@@ -37,6 +37,9 @@
     <Filter Include="OS\EGL">
       <UniqueIdentifier>{61304e3c-ff5e-4cb6-8c25-455f37d86b48}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PCH">
+      <UniqueIdentifier>{553d1c91-551a-455e-9247-6f69e4fec941}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="official\glcorearb.h">
@@ -80,6 +83,9 @@
     </ClInclude>
     <ClInclude Include="gl_replay.h">
       <Filter>Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="precompiled.h">
+      <Filter>PCH</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -181,6 +187,9 @@
     </ClCompile>
     <ClCompile Include="gl_replay_egl.cpp">
       <Filter>OS\EGL</Filter>
+    </ClCompile>
+    <ClCompile Include="precompiled.cpp">
+      <Filter>PCH</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

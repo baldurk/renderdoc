@@ -85,6 +85,9 @@
     <Filter Include="3rdparty\tinyfiledialogs">
       <UniqueIdentifier>{25fdbb3b-123c-48c3-8ad3-286345771d07}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PCH">
+      <UniqueIdentifier>{364a44c3-ab9f-44d1-ab3f-e9f640202224}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -273,6 +276,9 @@
     <ClInclude Include="os\win32\dia2_stubs.h">
       <Filter>OS\Win32</Filter>
     </ClInclude>
+    <ClInclude Include="core\precompiled.h">
+      <Filter>PCH</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -455,7 +461,12 @@
     <ClCompile Include="replay\capture_file.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
-    <ClCompile Include="replay\replay_driver.cpp" />
+    <ClCompile Include="replay\replay_driver.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="core\precompiled.cpp">
+      <Filter>PCH</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

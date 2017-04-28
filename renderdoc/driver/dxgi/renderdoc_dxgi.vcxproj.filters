@@ -10,6 +10,9 @@
     <ClCompile Include="dxgi_common.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="precompiled.cpp">
+      <Filter>PCH</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dx\official\dxgi.h">
@@ -39,6 +42,9 @@
     <ClInclude Include="dxgi_common.h">
       <Filter>Util</Filter>
     </ClInclude>
+    <ClInclude Include="precompiled.h">
+      <Filter>PCH</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="official">
@@ -52,6 +58,9 @@
     </Filter>
     <Filter Include="Wrapped">
       <UniqueIdentifier>{846e54d9-08da-4d5a-aac1-250f6be13e33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PCH">
+      <UniqueIdentifier>{872fc0e1-6867-4782-bbb6-fc6ba44c713a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

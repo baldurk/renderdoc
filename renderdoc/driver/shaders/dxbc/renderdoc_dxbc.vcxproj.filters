@@ -5,6 +5,9 @@
     <ClCompile Include="dxbc_disassemble.cpp" />
     <ClCompile Include="dxbc_inspect.cpp" />
     <ClCompile Include="dxbc_compile.cpp" />
+    <ClCompile Include="precompiled.cpp">
+      <Filter>PCH</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxbc_debug.h" />
@@ -13,5 +16,13 @@
     <ClInclude Include="dxbc_sdbg.h" />
     <ClInclude Include="dxbc_spdb.h" />
     <ClInclude Include="dxbc_compile.h" />
+    <ClInclude Include="precompiled.h">
+      <Filter>PCH</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="PCH">
+      <UniqueIdentifier>{d5365360-5495-44cc-9598-d66610687125}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

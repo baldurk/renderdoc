@@ -22,6 +22,9 @@
     <Filter Include="official\amd">
       <UniqueIdentifier>{b92bf274-f255-4c2f-bc1f-dbd1807643a5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PCH">
+      <UniqueIdentifier>{7b0b6261-46cb-4feb-8958-8252d6349ae4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3d11_context1_wrap.cpp">
@@ -81,6 +84,9 @@
     <ClCompile Include="d3d11_device2_wrap.cpp">
       <Filter>Wrapped</Filter>
     </ClCompile>
+    <ClCompile Include="precompiled.cpp">
+      <Filter>PCH</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d11_replay.h">
@@ -139,6 +145,9 @@
     </ClInclude>
     <ClInclude Include="..\dx\official\amd\AmdDxExtApi.h">
       <Filter>official\amd</Filter>
+    </ClInclude>
+    <ClInclude Include="precompiled.h">
+      <Filter>PCH</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -16,6 +16,9 @@
     <Filter Include="Replay">
       <UniqueIdentifier>{03d937fd-e33a-4b97-aa7e-5f2990163c9b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PCH">
+      <UniqueIdentifier>{3442a8df-5f4a-49c7-bbf4-854c57362fd3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3d9_hooks.cpp">
@@ -32,6 +35,9 @@
     </ClCompile>
     <ClCompile Include="d3d9_replay.cpp">
       <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="precompiled.cpp">
+      <Filter>PCH</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -58,6 +64,9 @@
     </ClInclude>
     <ClInclude Include="d3d9_common.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="precompiled.h">
+      <Filter>PCH</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
