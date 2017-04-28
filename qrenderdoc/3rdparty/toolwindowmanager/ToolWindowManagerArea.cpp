@@ -194,14 +194,14 @@ QVariantMap ToolWindowManagerArea::saveState() {
   return result;
 }
 
-void ToolWindowManagerArea::restoreState(const QVariantMap &data) {
-  foreach(QVariant object, data["objects"].toList()) {
+void ToolWindowManagerArea::restoreState(const QVariantMap &savedData) {
+  for(QVariant object : savedData["objects"].toList()) {
     QVariantMap objectData = object.toMap();
     if (objectData.isEmpty()) { continue; }
     QString objectName = objectData["name"].toString();
     if (objectName.isEmpty()) { continue; }
     QWidget *t = NULL;
-    foreach(QWidget* toolWindow, m_manager->m_toolWindows) {
+    for(QWidget* toolWindow : m_manager->m_toolWindows) {
       if (toolWindow->objectName() == objectName) {
         t = toolWindow;
         break;
@@ -215,7 +215,7 @@ void ToolWindowManagerArea::restoreState(const QVariantMap &data) {
       qWarning("tool window with name '%s' not found or created", objectName.toLocal8Bit().constData());
     }
   }
-  setCurrentIndex(data["currentIndex"].toInt());
+  setCurrentIndex(savedData["currentIndex"].toInt());
 }
 
 void ToolWindowManagerArea::check_mouse_move() {

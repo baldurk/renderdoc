@@ -729,7 +729,6 @@
     <ClCompile Include="Windows\Dialogs\VirtualFileDialog.cpp" />
     <ClCompile Include="Windows\EventBrowser.cpp" />
     <ClCompile Include="3rdparty\flowlayout\FlowLayout.cpp">
-      <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="Widgets\Extended\RDLineEdit.cpp" />
     <ClCompile Include="Widgets\Extended\RDTextEdit.cpp" />
@@ -746,13 +745,10 @@
     <ClCompile Include="Windows\StatisticsViewer.cpp" />
     <ClCompile Include="Windows\TextureViewer.cpp" />
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManager.cpp">
-      <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManagerArea.cpp">
-      <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManagerWrapper.cpp">
-      <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="Code\qrenderdoc.cpp" />
   </ItemGroup>

@@ -81,17 +81,17 @@ QVariantMap ToolWindowManagerWrapper::saveState() {
   return result;
 }
 
-void ToolWindowManagerWrapper::restoreState(const QVariantMap &data) {
-  restoreGeometry(QByteArray::fromBase64(data["geometry"].toByteArray()));
+void ToolWindowManagerWrapper::restoreState(const QVariantMap &savedData) {
+  restoreGeometry(QByteArray::fromBase64(savedData["geometry"].toByteArray()));
   if (layout()->count() > 0) {
     qWarning("wrapper is not empty");
     return;
   }
-  if (data.contains("splitter")) {
-    layout()->addWidget(m_manager->restoreSplitterState(data["splitter"].toMap()));
-  } else if (data.contains("area")) {
+  if (savedData.contains("splitter")) {
+    layout()->addWidget(m_manager->restoreSplitterState(savedData["splitter"].toMap()));
+  } else if (savedData.contains("area")) {
     ToolWindowManagerArea* area = m_manager->createArea();
-    area->restoreState(data["area"].toMap());
+    area->restoreState(savedData["area"].toMap());
     layout()->addWidget(area);
   }
 }

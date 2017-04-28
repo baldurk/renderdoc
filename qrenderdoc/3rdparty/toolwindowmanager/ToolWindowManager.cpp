@@ -148,10 +148,10 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
   if (area.type() == NoArea) {
     //do nothing
   } else if (area.type() == NewFloatingArea) {
-    ToolWindowManagerArea* area = createArea();
-    area->addToolWindows(toolWindows);
+    ToolWindowManagerArea* floatArea = createArea();
+    floatArea->addToolWindows(toolWindows);
     ToolWindowManagerWrapper* wrapper = new ToolWindowManagerWrapper(this);
-    wrapper->layout()->addWidget(area);
+    wrapper->layout()->addWidget(floatArea);
     wrapper->move(QCursor::pos());
     wrapper->show();
   } else if (area.type() == AddTo) {
@@ -535,13 +535,13 @@ QVariantMap ToolWindowManager::saveSplitterState(QSplitter *splitter) {
   return result;
 }
 
-QSplitter *ToolWindowManager::restoreSplitterState(const QVariantMap &data) {
-  if (data["items"].toList().count() < 2) {
+QSplitter *ToolWindowManager::restoreSplitterState(const QVariantMap &savedData) {
+  if (savedData["items"].toList().count() < 2) {
     qWarning("invalid splitter encountered");
   }
   QSplitter* splitter = createSplitter();
 
-  foreach(QVariant itemData, data["items"].toList()) {
+  foreach(QVariant itemData, savedData["items"].toList()) {
     QVariantMap itemValue = itemData.toMap();
     QString itemType = itemValue["type"].toString();
     if (itemType == "splitter") {
@@ -554,7 +554,7 @@ QSplitter *ToolWindowManager::restoreSplitterState(const QVariantMap &data) {
       qWarning("unknown item type");
     }
   }
-  splitter->restoreState(QByteArray::fromBase64(data["state"].toByteArray()));
+  splitter->restoreState(QByteArray::fromBase64(savedData["state"].toByteArray()));
   return splitter;
 }
 
@@ -650,14 +650,14 @@ void ToolWindowManager::findSuggestions(ToolWindowManagerWrapper* wrapper) {
         continue;
       }
 
-      ToolWindowManagerArea* area = qobject_cast<ToolWindowManagerArea*>(parent);
-      ToolWindowManagerWrapper* wrapper = qobject_cast<ToolWindowManagerWrapper*>(parent);
+      ToolWindowManagerArea* areaParent = qobject_cast<ToolWindowManagerArea*>(parent);
+      ToolWindowManagerWrapper* wrapperParent = qobject_cast<ToolWindowManagerWrapper*>(parent);
 
       // if it's an area or wrapper, check if it's ours
-      if(area)
-        valid = area->manager() == this;
-      else if(wrapper)
-        valid = wrapper->manager() == this;
+      if(areaParent)
+        valid = areaParent->manager() == this;
+      else if(wrapperParent)
+        valid = wrapperParent->manager() == this;
 
       // we're done now, whether we checked for validity, or if we
       // found something that's none of the above
@@ -672,7 +672,7 @@ void ToolWindowManager::findSuggestions(ToolWindowManagerWrapper* wrapper) {
       candidates << area;
     }
   }
-  foreach(QWidget* widget, candidates) {
+  for(QWidget* widget : candidates) {
     QSplitter* splitter = qobject_cast<QSplitter*>(widget);
     ToolWindowManagerArea* area = qobject_cast<ToolWindowManagerArea*>(widget);
     if (!splitter && !area) {
@@ -700,7 +700,7 @@ void ToolWindowManager::findSuggestions(ToolWindowManagerWrapper* wrapper) {
         allowedSides << BottomOf;
       }
     }
-    foreach(AreaReferenceType side, allowedSides) {
+    for(AreaReferenceType side : allowedSides) {
       if (sideSensitiveArea(widget, side).contains(widget->mapFromGlobal(globalPos))) {
         m_suggestions << AreaReference(side, widget);
       }
