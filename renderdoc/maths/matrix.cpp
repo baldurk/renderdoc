@@ -288,7 +288,7 @@ Matrix4f Matrix4f::RotationXYZ(const Vec3f &rot)
   return R.GetMatrix();
 }
 
-Matrix4f Matrix4f::Orthographic(const float near, const float far)
+Matrix4f Matrix4f::Orthographic(const float Near, const float Far)
 {
   float L = -10.0f;
   float R = 10.0f;
@@ -296,10 +296,10 @@ Matrix4f Matrix4f::Orthographic(const float near, const float far)
   float T = 10.0f;
   float B = -10.0f;
 
-  float N = -fabsf(far - near) * 0.5f;
-  float F = fabsf(far - near) * 0.5f;
+  float N = -fabsf(Far - Near) * 0.5f;
+  float F = fabsf(Far - Near) * 0.5f;
 
-  if(far < near)
+  if(Far < Near)
   {
     float tmp = F;
     F = N;
