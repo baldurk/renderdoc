@@ -947,13 +947,18 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
 
     const ConstantBlock *shaderCBuf = NULL;
 
+    int cbufIdx = -1;
+
     if(shaderDetails)
     {
-      for(const ConstantBlock &bind : shaderDetails->ConstantBlocks)
+      for(int cb = 0; cb < shaderDetails->ConstantBlocks.count; cb++)
       {
+        const ConstantBlock &bind = shaderDetails->ConstantBlocks[cb];
+
         if(bind.bindPoint == i)
         {
           shaderCBuf = &bind;
+          cbufIdx = cb;
           break;
         }
       }
@@ -1002,7 +1007,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem({slotname, name, vecrange, sizestr, ""});
 
-      node->setTag(QVariant::fromValue(i));
+      node->setTag(QVariant::fromValue(cbufIdx));
 
       if(!filledSlot)
         setEmptyRow(node);
