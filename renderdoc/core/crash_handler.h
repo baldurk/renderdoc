@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#if USE_BREAKPAD && RENDERDOC_OFFICIAL_BUILD
+#if ENABLED(RDOC_RELEASE) && RENDERDOC_OFFICIAL_BUILD
 
 #define RDOC_CRASH_HANDLER OPTION_ON
 
