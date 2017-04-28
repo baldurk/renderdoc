@@ -25,6 +25,9 @@
 
 #pragma once
 
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+
 #include <intrin.h>
 #include <windows.h>
 #include "data/resource.h"

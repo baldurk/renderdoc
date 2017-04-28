@@ -29,6 +29,7 @@
 #include <windows.h>
 
 #include <Psapi.h>
+#include <commdlg.h>
 #include <shlobj.h>
 #include <tchar.h>
 #include <algorithm>
