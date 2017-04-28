@@ -53,7 +53,9 @@ CONTAINER_TYPEMAPS(QMap)
 
   #include "datetime.h"
 
+#ifndef slots
 #define slots
+#endif
 
   #include "Code/Interface/QRDInterface.h"
   #include "Code/pyrenderdoc/PythonContext.h"

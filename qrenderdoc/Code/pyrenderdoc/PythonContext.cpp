@@ -24,13 +24,16 @@
 
 #ifdef slots
 #undef slots
+#define slots_was_defined
 #endif
 
 // must be included first
 #include <Python.h>
 #include <frameobject.h>
 
+#ifdef slots_was_defined
 #define slots
+#endif
 
 #if PYSIDE2_ENABLED
 // PySide Qt integration, must be included before Qt headers
