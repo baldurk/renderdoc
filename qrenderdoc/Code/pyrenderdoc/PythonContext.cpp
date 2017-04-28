@@ -22,9 +22,15 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#ifdef slots
+#undef slots
+#endif
+
 // must be included first
 #include <Python.h>
 #include <frameobject.h>
+
+#define slots
 
 #if PYSIDE2_ENABLED
 // PySide Qt integration, must be included before Qt headers

@@ -33,6 +33,12 @@
 %rename("%(regex:/^GLPipe::(.*)/GL_\\1/)s", regextarget=1, fullname=1, %$isclass) "GLPipe::.*";
 %rename("%(regex:/^VKPipe::(.*)/VK_\\1/)s", regextarget=1, fullname=1, %$isclass) "VKPipe::.*";
 
+%begin %{
+
+#undef slots
+
+%}
+
 %fragment("pyconvert", "header") {
   static char convert_error[1024] = {};
 

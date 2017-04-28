@@ -70,6 +70,9 @@
     <Filter Include="Code\Interface">
       <UniqueIdentifier>{7986f203-466f-4a74-93a2-6feeaec3b05b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PCH">
+      <UniqueIdentifier>{4869e303-055c-4458-91d6-89ecc827f338}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManager.cpp">
@@ -588,6 +591,9 @@
     <ClCompile Include="$(IntDir)generated\moc_RDTextEdit.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Code\precompiled.cpp">
+      <Filter>PCH</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -895,6 +901,9 @@
     </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_PythonShell.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\precompiled.h">
+      <Filter>PCH</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -5,6 +5,12 @@
 // use documentation for docstrings
 #define DOCUMENT(text) %feature("docstring") text
 
+%begin %{
+
+#undef slots
+
+%}
+
 // import the renderdoc interface that we depend on
 %import "renderdoc.i"
 
@@ -46,6 +52,8 @@ CONTAINER_TYPEMAPS(QMap)
   #include <QVector>
 
   #include "datetime.h"
+
+#define slots
 
   #include "Code/Interface/QRDInterface.h"
   #include "Code/pyrenderdoc/PythonContext.h"
