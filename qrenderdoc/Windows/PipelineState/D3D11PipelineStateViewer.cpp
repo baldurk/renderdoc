@@ -2270,9 +2270,9 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
     uint32_t t[3];
   } thread = {
       // g[]
-      (uint32_t)ui->groupX->value(), (uint32_t)ui->groupY->value(), (uint32_t)ui->groupZ->value(),
+      {(uint32_t)ui->groupX->value(), (uint32_t)ui->groupY->value(), (uint32_t)ui->groupZ->value()},
       // t[]
-      (uint32_t)ui->threadX->value(), (uint32_t)ui->threadY->value(), (uint32_t)ui->threadZ->value(),
+      {(uint32_t)ui->threadX->value(), (uint32_t)ui->threadY->value(), (uint32_t)ui->threadZ->value()},
   };
 
   m_Ctx.Replay().AsyncInvoke([this, thread](IReplayController *r) {
