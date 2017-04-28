@@ -187,9 +187,72 @@ void ConstantBufferPreviewer::addVariables(RDTreeWidgetItem *root,
   }
 }
 
+bool ConstantBufferPreviewer::updateVariables(RDTreeWidgetItem *root,
+                                              const rdctype::array<ShaderVariable> &prevVars,
+                                              const rdctype::array<ShaderVariable> &newVars)
+{
+  // mismatched child count? can't update
+  if(prevVars.count != newVars.count)
+    return false;
+
+  for(int i = 0; i < prevVars.count; i++)
+  {
+    const ShaderVariable &a = prevVars[i];
+    const ShaderVariable &b = newVars[i];
+
+    // different names? can't update
+    if(strcmp(a.name.c_str(), b.name.c_str()))
+      return false;
+
+    // different size or type? can't update
+    if(a.rows != b.rows || a.columns != b.columns || a.displayAsHex != b.displayAsHex ||
+       a.isStruct != b.isStruct || a.type != b.type)
+      return false;
+
+    // update this node's value column
+    RDTreeWidgetItem *node = root->child(i);
+
+    node->setText(1, VarString(b));
+
+    if(a.rows > 1)
+    {
+      for(uint32_t r = 0; r < a.rows; r++)
+        node->child(r)->setText(1, RowString(b, r));
+    }
+
+    if(a.members.count > 0)
+    {
+      // recurse to update child members. This handles a and b having different number of variables
+      bool updated = updateVariables(node, a.members, b.members);
+
+      if(!updated)
+        return false;
+    }
+  }
+
+  // got this far without bailing? we updated!
+  return true;
+}
+
 void ConstantBufferPreviewer::setVariables(const rdctype::array<ShaderVariable> &vars)
 {
   ui->variables->setUpdatesEnabled(false);
+
+  // try to update the variables in-place by only changing their values, if the set of variables
+  // matches *exactly* to what we had before.
+  //
+  // This keeps things like expanded structs and matrices when moving between drawcalls
+  bool updated = updateVariables(ui->variables->invisibleRootItem(), m_Vars, vars);
+
+  // update the variables either way
+  m_Vars = vars;
+
+  if(updated)
+  {
+    ui->variables->setUpdatesEnabled(true);
+    return;
+  }
+
   ui->variables->clear();
 
   ui->saveCSV->setEnabled(false);

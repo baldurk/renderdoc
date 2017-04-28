@@ -77,6 +77,11 @@ private:
   void addVariables(RDTreeWidgetItem *root, const rdctype::array<ShaderVariable> &vars);
   void setVariables(const rdctype::array<ShaderVariable> &vars);
 
+  rdctype::array<ShaderVariable> m_Vars;
+
+  bool updateVariables(RDTreeWidgetItem *root, const rdctype::array<ShaderVariable> &prevVars,
+                       const rdctype::array<ShaderVariable> &newVars);
+
   void updateLabels();
 
   static QList<ConstantBufferPreviewer *> m_Previews;
