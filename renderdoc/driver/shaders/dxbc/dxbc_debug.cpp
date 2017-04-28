@@ -26,6 +26,7 @@
 // TODO remove me
 #include "dxbc_debug.h"
 #include <math.h>
+#include <algorithm>
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 #include "driver/d3d11/d3d11_device.h"
@@ -2350,9 +2351,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           case OPCODE_IMM_ATOMIC_IADD:
           case OPCODE_ATOMIC_IADD: *udst = *udst + *usrc0; break;
           case OPCODE_IMM_ATOMIC_IMAX:
-          case OPCODE_ATOMIC_IMAX: *idst = max(*idst, *isrc0); break;
+          case OPCODE_ATOMIC_IMAX: *idst = std::max(*idst, *isrc0); break;
           case OPCODE_IMM_ATOMIC_IMIN:
-          case OPCODE_ATOMIC_IMIN: *idst = min(*idst, *isrc0); break;
+          case OPCODE_ATOMIC_IMIN: *idst = std::min(*idst, *isrc0); break;
           case OPCODE_IMM_ATOMIC_AND:
           case OPCODE_ATOMIC_AND: *udst = *udst & *usrc0; break;
           case OPCODE_IMM_ATOMIC_OR:
@@ -2366,9 +2367,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
               *udst = *usrc0;
             break;
           case OPCODE_IMM_ATOMIC_UMAX:
-          case OPCODE_ATOMIC_UMAX: *udst = max(*udst, *usrc0); break;
+          case OPCODE_ATOMIC_UMAX: *udst = std::max(*udst, *usrc0); break;
           case OPCODE_IMM_ATOMIC_UMIN:
-          case OPCODE_ATOMIC_UMIN: *udst = min(*udst, *usrc0); break;
+          case OPCODE_ATOMIC_UMIN: *udst = std::min(*udst, *usrc0); break;
         }
       }
 
