@@ -684,6 +684,11 @@ a new dock window or moving an existing dock window.
   The new dock window is placed in the 'left' tool area as defined by finding an existing known
   window and using that as the main area, then adding to the left of that. In the default layout
   this is where the event browser is placed.
+
+.. data:: ConstantBufferArea
+
+  The new dock window is docked with other constant buffer views, if they exist, or to the right
+  of the existing window if there are none open.
 )");
 enum class DockReference : int
 {
@@ -700,6 +705,7 @@ enum class DockReference : int
   // extra values here
   MainToolArea,
   LeftToolArea,
+  ConstantBufferArea,
 };
 
 DOCUMENT("The capture context that the python script is running in.")

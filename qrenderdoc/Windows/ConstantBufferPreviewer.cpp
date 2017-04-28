@@ -24,6 +24,7 @@
 
 #include "ConstantBufferPreviewer.h"
 #include <QFontDatabase>
+#include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "ui_ConstantBufferPreviewer.h"
 
 QList<ConstantBufferPreviewer *> ConstantBufferPreviewer::m_Previews;
@@ -72,6 +73,17 @@ ConstantBufferPreviewer *ConstantBufferPreviewer::has(ShaderStage stage, uint32_
   for(ConstantBufferPreviewer *c : m_Previews)
   {
     if(c->m_stage == stage && c->m_slot == slot && c->m_arrayIdx == idx)
+      return c;
+  }
+
+  return NULL;
+}
+
+ConstantBufferPreviewer *ConstantBufferPreviewer::getOne()
+{
+  for(ConstantBufferPreviewer *c : m_Previews)
+  {
+    if(ToolWindowManager::managerOf(c))
       return c;
   }
 

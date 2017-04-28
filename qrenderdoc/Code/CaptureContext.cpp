@@ -943,6 +943,20 @@ void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidge
     m_MainWindow->mainToolManager()->addToolWindow(newWindow, m_MainWindow->leftToolArea());
     return;
   }
+  if(ref == DockReference::ConstantBufferArea)
+  {
+    if(ConstantBufferPreviewer::getOne())
+    {
+      ToolWindowManager *manager = ToolWindowManager::managerOf(refWindow);
+
+      manager->addToolWindow(newWindow, ToolWindowManager::AreaReference(
+                                            ToolWindowManager::AddTo,
+                                            manager->areaOf(ConstantBufferPreviewer::getOne())));
+      return;
+    }
+
+    ref = DockReference::RightOf;
+  }
 
   ToolWindowManager *manager = ToolWindowManager::managerOf(refWindow);
 
