@@ -609,11 +609,14 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
   ui->events->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
   ui->events->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
   ui->events->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+
+  m_Ctx.AddLogViewer(this);
 }
 
 PixelHistoryView::~PixelHistoryView()
 {
   ui->events->setModel(NULL);
+  m_Ctx.RemoveLogViewer(this);
   delete ui;
 }
 

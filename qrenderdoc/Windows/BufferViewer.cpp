@@ -1166,6 +1166,9 @@ void BufferViewer::OnLogfileLoaded()
 void BufferViewer::OnLogfileClosed()
 {
   Reset();
+
+  if(!m_MeshView)
+    ToolWindowManager::closeToolWindow(this);
 }
 
 void BufferViewer::OnEventChanged(uint32_t eventID)

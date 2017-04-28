@@ -88,6 +88,8 @@ void ConstantBufferPreviewer::OnLogfileClosed()
   ui->variables->clear();
 
   ui->saveCSV->setEnabled(false);
+
+  ToolWindowManager::closeToolWindow(this);
 }
 
 void ConstantBufferPreviewer::OnEventChanged(uint32_t eventID)
