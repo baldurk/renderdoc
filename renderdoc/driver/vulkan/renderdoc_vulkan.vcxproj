@@ -162,12 +162,40 @@
   <ItemGroup>
     <None Include="renderdoc.json" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="renderdoc.json">
-      <Link>renderdoc.json</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+  <Target Name="_jsonProcess" BeforeTargets="PrepareForBuild">
+    <!-- Read the version.h -->
+    <PropertyGroup>
+      <VersionFile>$([System.IO.File]::ReadAllText('$(SolutionDir)renderdoc/api/replay/version.h').Trim())</VersionFile>
+    </PropertyGroup>
+
+    <!-- Extract the major and minor lines -->
+    <PropertyGroup>
+      <!-- Find the start of the line -->
+      <MajorVersionStart>$(VersionFile.IndexOf('#define RENDERDOC_VERSION_MAJOR'))</MajorVersionStart>
+
+      <!-- Take the rest of the file and split it by newline to get an array of lines,
+           Take the first line and split it by space
+           Take the third item. This is #define MAJOR foo
+                                            0     1    2
+      -->
+      <MajorVersion>$(VersionFile.Substring($(MajorVersionStart)).Split('
+')[0].Split(' ')[2])</MajorVersion>
+
+      <MinorVersionStart>$(VersionFile.IndexOf('#define RENDERDOC_VERSION_MINOR'))</MinorVersionStart>
+      <MinorVersion>$(VersionFile.Substring($(MinorVersionStart)).Split('
+')[0].Split(' ')[2])</MinorVersion>
+    </PropertyGroup>
+
+    <Message Text="Processing layer JSON file for RenderDoc $(MajorVersion).$(MinorVersion)" Importance="High"/>
+
+    <!-- Read the template json, replace the major/minor versions -->
+    <PropertyGroup>
+      <JSONContents>$([System.IO.File]::ReadAllText('$(ProjectDir)renderdoc.json').Replace('[MAJOR]', '$(MajorVersion)').Replace('[MINOR]', '$(MinorVersion)'))</JSONContents>
+    </PropertyGroup>
+
+    <!-- Write it out to the output directory -->
+    <WriteLinesToFile File="$(OutDir)renderdoc.json" Lines="$(JSONContents)" Overwrite="true"/>
+  </Target>
   <ItemGroup>
     <ProjectReference Include="..\shaders\spirv\renderdoc_spirv.vcxproj">
       <Project>{0aae0ad1-371b-4a36-9ed1-80e10e960605}</Project>

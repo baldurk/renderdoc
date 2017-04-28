@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "api/replay/renderdoc_replay.h"
+#include "api/replay/version.h"
 #include "serialise/string_utils.h"
 
 #include <errno.h>
@@ -157,7 +158,31 @@ static std::string GenerateJSON(const std::string &sopath)
 
   size_t idx = json.find(dllPathString);
 
-  return json.substr(0, idx) + sopath + json.substr(idx + sizeof(dllPathString) - 1);
+  json = json.substr(0, idx) + sopath + json.substr(idx + sizeof(dllPathString) - 1);
+
+  const char majorString[] = "[MAJOR]";
+
+  idx = json.find(majorString);
+  while(idx != string::npos)
+  {
+    json = json.substr(0, idx) + STRINGIZE(RENDERDOC_VERSION_MAJOR) +
+           json.substr(idx + sizeof(majorString) - 1);
+
+    idx = json.find(majorString);
+  }
+
+  const char minorString[] = "[MINOR]";
+
+  idx = json.find(minorString);
+  while(idx != string::npos)
+  {
+    json = json.substr(0, idx) + STRINGIZE(RENDERDOC_VERSION_MINOR) +
+           json.substr(idx + sizeof(minorString) - 1);
+
+    idx = json.find(minorString);
+  }
+
+  return json;
 }
 
 static bool FileExists(const std::string &path)

@@ -5,7 +5,7 @@
     "type": "GLOBAL",
     "library_path": ".\\renderdoc.dll",
     "api_version": "1.0.0",
-    "implementation_version": "34",
+    "implementation_version": "[MINOR]",
     "description": "Debugging capture layer for RenderDoc",
     "functions": {
       "vkGetInstanceProcAddr": "VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr",
@@ -28,7 +28,7 @@
       "ENABLE_VULKAN_RENDERDOC_CAPTURE": "1"
     },
     "disable_environment": {
-      "DISABLE_VULKAN_RENDERDOC_CAPTURE_0_34": "1"
+      "DISABLE_VULKAN_RENDERDOC_CAPTURE_[MAJOR]_[MINOR]": "1"
     }
   }
 }
