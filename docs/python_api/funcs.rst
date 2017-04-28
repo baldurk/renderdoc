@@ -37,7 +37,6 @@ Logging & Versioning
 .. autofunction:: renderdoc.SetDebugLogFile
 .. autofunction:: renderdoc.GetLogFile
 .. autofunction:: renderdoc.GetVersionString
-.. autofunction:: renderdoc.GetCommitHash
 
 Maths & Utilities
 -----------------
