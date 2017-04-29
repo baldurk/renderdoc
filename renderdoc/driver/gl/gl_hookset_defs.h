@@ -175,8 +175,10 @@
   HookExtensionAlias(PFNGLGETBUFFERSUBDATAPROC, glGetBufferSubData, glGetBufferSubDataARB); \
   HookExtension(PFNGLMAPBUFFERPROC, glMapBuffer); \
   HookExtensionAlias(PFNGLMAPBUFFERPROC, glMapBuffer, glMapBufferARB); \
+  HookExtensionAlias(PFNGLMAPBUFFERPROC, glMapBuffer, glMapBufferOES); \
   HookExtension(PFNGLUNMAPBUFFERPROC, glUnmapBuffer); \
   HookExtensionAlias(PFNGLUNMAPBUFFERPROC, glUnmapBuffer, glUnmapBufferARB); \
+  HookExtensionAlias(PFNGLUNMAPBUFFERPROC, glUnmapBuffer, glUnmapBufferOES); \
   HookExtension(PFNGLGETBUFFERPARAMETERIVPROC, glGetBufferParameteriv); \
   HookExtensionAlias(PFNGLGETBUFFERPARAMETERIVPROC, glGetBufferParameteriv, glGetBufferParameterivARB); \
   HookExtension(PFNGLGETBUFFERPOINTERVPROC, glGetBufferPointerv); \

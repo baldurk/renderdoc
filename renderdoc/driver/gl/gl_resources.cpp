@@ -362,6 +362,8 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_RGBA16UI:
     case eGL_RGBA32UI:
     case eGL_RGBA32I: return eGL_RGBA_INTEGER;
+    case eGL_BGRA:
+    case eGL_BGRA8_EXT: return eGL_BGRA;
     case eGL_DEPTH_COMPONENT16:
     case eGL_DEPTH_COMPONENT24:
     case eGL_DEPTH_COMPONENT32:
@@ -392,6 +394,8 @@ GLenum GetDataType(GLenum internalFormat)
     case eGL_R8:
     case eGL_RGB8:
     case eGL_RGB8UI:
+    case eGL_BGRA:
+    case eGL_BGRA8_EXT:
     case eGL_SRGB8_ALPHA8:
     case eGL_SRGB8: return eGL_UNSIGNED_BYTE;
     case eGL_RGBA8I:

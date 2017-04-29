@@ -2249,8 +2249,18 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     }
     else
     {
-      gl.glTextureImage2DEXT(DebugData.overlayTex, texBindingEnum, 0, eGL_RGBA16, texDetails.width,
-                             texDetails.height, 0, eGL_RGBA, eGL_FLOAT, NULL);
+      GLint internalFormat = eGL_RGBA16;
+      GLenum format = eGL_RGBA;
+      GLenum type = eGL_FLOAT;
+
+      if(IsGLES && !HasExt[EXT_color_buffer_float])
+      {
+        internalFormat = eGL_RGBA8;
+        type = eGL_UNSIGNED_BYTE;
+      }
+
+      gl.glTextureImage2DEXT(DebugData.overlayTex, texBindingEnum, 0, internalFormat,
+                             texDetails.width, texDetails.height, 0, format, type, NULL);
       gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
       gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
       gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);

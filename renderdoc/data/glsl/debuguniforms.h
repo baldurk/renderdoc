@@ -91,6 +91,7 @@ struct Vec4u
 #else
 #define PRECISION mediump
 precision PRECISION float;
+precision PRECISION int;
 #endif
 
 #endif

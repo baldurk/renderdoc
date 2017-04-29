@@ -2881,6 +2881,9 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
 
   if(len > 0)
   {
+    // jpge::compress_image_to_jpeg_file_in_memory requires at least 1024 bytes
+    len = len >= 1024 ? len : 1024;
+
     jpgbuf = new byte[len];
 
     jpge::params p;
