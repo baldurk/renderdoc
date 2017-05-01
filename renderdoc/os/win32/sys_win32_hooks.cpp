@@ -276,6 +276,7 @@ private:
       *lpProcessInformation = dummy;
     }
 
+    bool resume = (dwCreationFlags & CREATE_SUSPENDED) == 0;
     dwCreationFlags |= CREATE_SUSPENDED;
 
     BOOL ret = realFunc(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
@@ -326,7 +327,10 @@ private:
       }
     }
 
-    ResumeThread(lpProcessInformation->hThread);
+    if(resume)
+    {
+      ResumeThread(lpProcessInformation->hThread);
+    }
 
     // ensure we clean up after ourselves
     if(dummy.dwProcessId != 0)
@@ -358,6 +362,7 @@ private:
       *lpProcessInformation = dummy;
     }
 
+    bool resume = (dwCreationFlags & CREATE_SUSPENDED) == 0;
     dwCreationFlags |= CREATE_SUSPENDED;
 
     BOOL ret = realFunc(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
@@ -410,7 +415,10 @@ private:
       }
     }
 
-    ResumeThread(lpProcessInformation->hThread);
+    if(resume)
+    {
+      ResumeThread(lpProcessInformation->hThread);
+    }
 
     // ensure we clean up after ourselves
     if(dummy.dwProcessId != 0)
