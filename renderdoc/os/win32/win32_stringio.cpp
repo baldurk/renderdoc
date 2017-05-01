@@ -466,6 +466,16 @@ FILE *fopen(const char *filename, const char *mode)
   return ret;
 }
 
+bool exists(const char *filename)
+{
+  wstring wfn = StringFormat::UTF82Wide(filename);
+
+  struct _stat st;
+  int res = _wstat(wfn.c_str(), &st);
+
+  return (res == 0);
+}
+
 string getline(FILE *f)
 {
   string ret;

@@ -373,6 +373,14 @@ int fclose(FILE *f)
   return ::fclose(f);
 }
 
+bool exists(const char *filename)
+{
+  struct ::stat st;
+  int res = stat(filename, &st);
+
+  return (res == 0);
+}
+
 void *logfile_open(const char *filename)
 {
   int fd = open(filename, O_APPEND | O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
