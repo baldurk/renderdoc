@@ -67,14 +67,14 @@ void ScintillaQt::execCommand(QAction *action)
 }
 
 #if defined(Q_OS_WIN)
-static const QString sMSDEVColumnSelect("MSDEVColumnSelect");
-static const QString sWrappedMSDEVColumnSelect("application/x-qt-windows-mime;value=\"MSDEVColumnSelect\"");
+static const QString sMSDEVColumnSelect(QStringLiteral("MSDEVColumnSelect"));
+static const QString sWrappedMSDEVColumnSelect(QStringLiteral("application/x-qt-windows-mime;value=\"MSDEVColumnSelect\""));
 #elif defined(Q_OS_MAC)
-static const QString sScintillaRecPboardType("com.scintilla.utf16-plain-text.rectangular");
-static const QString sScintillaRecMimeType("text/x-scintilla.utf16-plain-text.rectangular");
+static const QString sScintillaRecPboardType(QStringLiteral("com.scintilla.utf16-plain-text.rectangular"));
+static const QString sScintillaRecMimeType(QStringLiteral("text/x-scintilla.utf16-plain-text.rectangular"));
 #else
 // Linux
-static const QString sMimeRectangularMarker("text/x-rectangular-marker");
+static const QString sMimeRectangularMarker(QStringLiteral("text/x-rectangular-marker"));
 #endif
 
 #if defined(Q_OS_MAC) && QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
@@ -632,7 +632,7 @@ void ScintillaQt::AddToPopUp(const char *label,
                              bool enabled)
 {
 	QMenu *menu = static_cast<QMenu *>(popup.GetID());
-	QString text(label);
+	QString text = QString::fromLatin1(label);
 
 	if (text.isEmpty()) {
 		menu->addSeparator();

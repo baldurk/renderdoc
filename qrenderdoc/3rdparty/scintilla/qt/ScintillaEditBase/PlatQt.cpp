@@ -516,7 +516,7 @@ XYPOSITION SurfaceImpl::WidthText(Font &font, const char *s, int len)
 XYPOSITION SurfaceImpl::WidthChar(Font &font, char ch)
 {
 	QFontMetricsF metrics(*FontPointer(font), device);
-	return metrics.width(ch);
+	return metrics.width(QChar::fromLatin1(ch));
 }
 
 XYPOSITION SurfaceImpl::Ascent(Font &font)
@@ -729,7 +729,7 @@ void Window::SetCursor(Cursor curs)
 void Window::SetTitle(const char *s)
 {
 	if (wid)
-		window(wid)->setWindowTitle(s);
+		window(wid)->setWindowTitle(QString::fromUtf8(s));
 }
 
 /* Returns rectangle of monitor pt is on, both rect and pt are in Window's
@@ -1254,7 +1254,7 @@ void Platform::Assert(const char *c, const char *file, int line)
 	char buffer[2000];
 	sprintf(buffer, "Assertion [%s] failed at %s %d", c, file, line);
 	if (Platform::ShowAssertionPopUps(false)) {
-		QMessageBox mb("Assertion Failure", buffer, QMessageBox::NoIcon,
+		QMessageBox mb(QStringLiteral("Assertion Failure"), QString::fromUtf8(buffer), QMessageBox::NoIcon,
 			QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
 		mb.exec();
 	} else {
