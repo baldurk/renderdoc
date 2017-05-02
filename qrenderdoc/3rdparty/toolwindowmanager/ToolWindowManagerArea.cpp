@@ -174,8 +174,8 @@ bool ToolWindowManagerArea::eventFilter(QObject *object, QEvent *event) {
 
 QVariantMap ToolWindowManagerArea::saveState() {
   QVariantMap result;
-  result["type"] = "area";
-  result["currentIndex"] = currentIndex();
+  result[QStringLiteral("type")] = QStringLiteral("area");
+  result[QStringLiteral("currentIndex")] = currentIndex();
   QVariantList objects;
   objects.reserve(count());
   for(int i = 0; i < count(); i++) {
@@ -185,20 +185,20 @@ QVariantMap ToolWindowManagerArea::saveState() {
       qWarning("cannot save state of tool window without object name");
     } else {
       QVariantMap objectData;
-      objectData["name"] = name;
-      objectData["data"] = w->property("persistData");
+      objectData[QStringLiteral("name")] = name;
+      objectData[QStringLiteral("data")] = w->property("persistData");
       objects.push_back(objectData);
     }
   }
-  result["objects"] = objects;
+  result[QStringLiteral("objects")] = objects;
   return result;
 }
 
 void ToolWindowManagerArea::restoreState(const QVariantMap &savedData) {
-  for(QVariant object : savedData["objects"].toList()) {
+  for(QVariant object : savedData[QStringLiteral("objects")].toList()) {
     QVariantMap objectData = object.toMap();
     if (objectData.isEmpty()) { continue; }
-    QString objectName = objectData["name"].toString();
+    QString objectName = objectData[QStringLiteral("name")].toString();
     if (objectName.isEmpty()) { continue; }
     QWidget *t = NULL;
     for(QWidget* toolWindow : m_manager->m_toolWindows) {
@@ -209,13 +209,13 @@ void ToolWindowManagerArea::restoreState(const QVariantMap &savedData) {
     }
     if (t == NULL) t = m_manager->createToolWindow(objectName);
     if (t) {
-        t->setProperty("persistData", objectData["data"]);
+        t->setProperty("persistData", objectData[QStringLiteral("data")]);
         addToolWindow(t);
     } else {
       qWarning("tool window with name '%s' not found or created", objectName.toLocal8Bit().constData());
     }
   }
-  setCurrentIndex(savedData["currentIndex"].toInt());
+  setCurrentIndex(savedData[QStringLiteral("currentIndex")].toInt());
 }
 
 void ToolWindowManagerArea::check_mouse_move() {

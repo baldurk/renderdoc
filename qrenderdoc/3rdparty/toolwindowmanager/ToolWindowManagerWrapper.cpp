@@ -36,7 +36,7 @@ ToolWindowManagerWrapper::ToolWindowManagerWrapper(ToolWindowManager *manager) :
 , m_manager(manager)
 {
   setWindowFlags(windowFlags() | Qt::Tool);
-  setWindowTitle(" ");
+  setWindowTitle(QStringLiteral(" "));
 
   QVBoxLayout* mainLayout = new QVBoxLayout(this);
   mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -65,14 +65,14 @@ QVariantMap ToolWindowManagerWrapper::saveState() {
     return QVariantMap();
   }
   QVariantMap result;
-  result["geometry"] = saveGeometry().toBase64();
+  result[QStringLiteral("geometry")] = saveGeometry().toBase64();
   QSplitter* splitter = findChild<QSplitter*>(QString(), Qt::FindDirectChildrenOnly);
   if (splitter) {
-    result["splitter"] = m_manager->saveSplitterState(splitter);
+    result[QStringLiteral("splitter")] = m_manager->saveSplitterState(splitter);
   } else {
     ToolWindowManagerArea* area = findChild<ToolWindowManagerArea*>();
     if (area) {
-      result["area"] = area->saveState();
+      result[QStringLiteral("area")] = area->saveState();
     } else if (layout()->count() > 0) {
       qWarning("unknown child");
       return QVariantMap();
@@ -82,16 +82,16 @@ QVariantMap ToolWindowManagerWrapper::saveState() {
 }
 
 void ToolWindowManagerWrapper::restoreState(const QVariantMap &savedData) {
-  restoreGeometry(QByteArray::fromBase64(savedData["geometry"].toByteArray()));
+  restoreGeometry(QByteArray::fromBase64(savedData[QStringLiteral("geometry")].toByteArray()));
   if (layout()->count() > 0) {
     qWarning("wrapper is not empty");
     return;
   }
-  if (savedData.contains("splitter")) {
-    layout()->addWidget(m_manager->restoreSplitterState(savedData["splitter"].toMap()));
-  } else if (savedData.contains("area")) {
+  if (savedData.contains(QStringLiteral("splitter"))) {
+    layout()->addWidget(m_manager->restoreSplitterState(savedData[QStringLiteral("splitter")].toMap()));
+  } else if (savedData.contains(QStringLiteral("area"))) {
     ToolWindowManagerArea* area = m_manager->createArea();
-    area->restoreState(savedData["area"].toMap());
+    area->restoreState(savedData[QStringLiteral("area")].toMap());
     layout()->addWidget(area);
   }
 }
