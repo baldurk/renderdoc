@@ -48,7 +48,7 @@ SuggestRemoteDialog::SuggestRemoteDialog(const QString &driver, const QString &m
 
   ui->remote->setEnabled(false);
   ui->remote->setIcon(QIcon());
-  ui->remote->setText("No Remote");
+  ui->remote->setText(tr("No Remote"));
 
   ui->remote->setMenu(m_Remotes);
 }
@@ -71,7 +71,7 @@ void SuggestRemoteDialog::remotesAdded()
 
   ui->remote->setEnabled(true);
   ui->remote->setIcon(Icons::down_arrow());
-  ui->remote->setText("Remote");
+  ui->remote->setText(tr("Remote"));
 }
 
 bool SuggestRemoteDialog::alwaysReplayLocally()

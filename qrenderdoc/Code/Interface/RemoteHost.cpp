@@ -36,10 +36,10 @@ RemoteHost::RemoteHost()
 RemoteHost::RemoteHost(const QVariant &var)
 {
   QVariantMap map = var.toMap();
-  if(map.contains("Hostname"))
-    Hostname = map["Hostname"].toString();
-  if(map.contains("RunCommand"))
-    RunCommand = map["RunCommand"].toString();
+  if(map.contains(lit("Hostname")))
+    Hostname = map[lit("Hostname")].toString();
+  if(map.contains(lit("RunCommand")))
+    RunCommand = map[lit("RunCommand")].toString();
 
   ServerRunning = Connected = Busy = VersionMismatch = false;
 }
@@ -47,15 +47,15 @@ RemoteHost::RemoteHost(const QVariant &var)
 RemoteHost::operator QVariant() const
 {
   QVariantMap map;
-  map["Hostname"] = Hostname;
-  map["RunCommand"] = RunCommand;
+  map[lit("Hostname")] = Hostname;
+  map[lit("RunCommand")] = RunCommand;
   return map;
 }
 
 void RemoteHost::CheckStatus()
 {
   // special case - this is the local context
-  if(Hostname == "localhost")
+  if(Hostname == lit("localhost"))
   {
     ServerRunning = false;
     VersionMismatch = Busy = false;

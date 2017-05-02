@@ -59,7 +59,7 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
 
   memset(&m_APIProps, 0, sizeof(m_APIProps));
 
-  qApp->setApplicationVersion(RENDERDOC_GetVersionString());
+  qApp->setApplicationVersion(QString::fromLatin1(RENDERDOC_GetVersionString()));
 
   m_Icon = new QIcon();
   m_Icon->addFile(QStringLiteral(":/icon.ico"), QSize(), QIcon::Normal, QIcon::Off);
@@ -99,17 +99,19 @@ QString CaptureContext::TempLogFilename(QString appname)
 
   QDir dir(folder);
 
-  if(folder == "" || !dir.exists())
+  if(folder.isEmpty() || !dir.exists())
   {
     dir = QDir(QDir::tempPath());
 
-    dir.mkdir("RenderDoc");
+    dir.mkdir(lit("RenderDoc"));
 
-    dir = QDir(dir.absoluteFilePath("RenderDoc"));
+    dir = QDir(dir.absoluteFilePath(lit("RenderDoc")));
   }
 
   return dir.absoluteFilePath(
-      appname + "_" + QDateTime::currentDateTimeUtc().toString("yyyy.MM.dd_HH.mm.ss") + ".rdc");
+      QFormatStr("%1_%2.rdc")
+          .arg(appname)
+          .arg(QDateTime::currentDateTimeUtc().toString(lit("yyyy.MM.dd_HH.mm.ss"))));
 }
 
 void CaptureContext::LoadLogfile(const QString &logFile, const QString &origFilename,
@@ -123,9 +125,9 @@ void CaptureContext::LoadLogfile(const QString &logFile, const QString &origFile
   thread->selfDelete(true);
   thread->start();
 
-  ShowProgressDialog(
-      m_MainWindow, QApplication::translate("CaptureContext", "Loading Log: %1").arg(origFilename),
-      [this]() { return !m_LoadInProgress; }, [this]() { return UpdateLoadProgress(); });
+  ShowProgressDialog(m_MainWindow, tr("Loading Log: %1").arg(origFilename),
+                     [this]() { return !m_LoadInProgress; },
+                     [this]() { return UpdateLoadProgress(); });
 
   m_MainWindow->setProgress(-1.0f);
 
@@ -178,14 +180,14 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
   // if the renderer isn't running, we hit a failure case so display an error message
   if(!m_Renderer.IsRunning())
   {
-    QString errmsg = "Unknown error message";
-    errmsg = ToQStr(m_Renderer.GetCreateStatus());
+    QString errmsg = ToQStr(m_Renderer.GetCreateStatus());
 
-    RDDialog::critical(NULL, "Error opening log",
-                       QString("%1\nFailed to open logfile for replay: %2.\n\n"
-                               "Check diagnostic log in Help menu for more details.")
-                           .arg(logFile)
-                           .arg(errmsg));
+    QString messageText = tr("%1\nFailed to open logfile for replay: %2.\n\n"
+                             "Check diagnostic log in Help menu for more details.")
+                              .arg(logFile)
+                              .arg(errmsg);
+
+    RDDialog::critical(NULL, tr("Error opening log"), messageText);
 
     m_LoadInProgress = false;
     return;
@@ -272,12 +274,11 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
     Config().DegradedLog_LastUpdate = today;
 
     RDDialog::critical(
-        NULL, "Degraded support of log",
-        QString(
-            "%1\nThis log opened with degraded support - "
-            "this could mean missing hardware support caused a fallback to software rendering.\n\n"
-            "This warning will not appear every time this happens, "
-            "check debug errors/warnings window for more details.")
+        NULL, tr("Degraded support of log"),
+        tr("%1\nThis log opened with degraded support - "
+           "this could mean missing hardware support caused a fallback to software rendering.\n\n"
+           "This warning will not appear every time this happens, "
+           "check debug errors/warnings window for more details.")
             .arg(origFilename));
   }
 
@@ -456,34 +457,23 @@ void CaptureContext::AddFakeProfileMarkers()
 
     minOutCount = qMax(1, minOutCount);
 
+    QString targets = draws[end].depthOut == ResourceId() ? tr("Targets") : tr("Targets + Depth");
+
     if(copyOnly)
-      mark.name = QApplication::translate("CaptureContext", "Copy/Clear Pass #%1")
-                      .arg(copypassID++)
-                      .toUtf8()
-                      .data();
+      mark.name = tr("Copy/Clear Pass #%1").arg(copypassID++).toUtf8().data();
     else if(draws[refdraw].flags & DrawFlags::Dispatch)
-      mark.name = QApplication::translate("CaptureContext", "Compute Pass #%1")
-                      .arg(computepassID++)
-                      .toUtf8()
-                      .data();
+      mark.name = tr("Compute Pass #%1").arg(computepassID++).toUtf8().data();
     else if(maxOutCount == 0)
-      mark.name = QApplication::translate("CaptureContext", "Depth-only Pass #%1")
-                      .arg(depthpassID++)
-                      .toUtf8()
-                      .data();
+      mark.name = tr("Depth-only Pass #%1").arg(depthpassID++).toUtf8().data();
     else if(minOutCount == maxOutCount)
-      mark.name = QApplication::translate("CaptureContext", "Colour Pass #%1 (%2 Targets%3)")
-                      .arg(passID++)
-                      .arg(minOutCount)
-                      .arg(draws[end].depthOut == ResourceId() ? "" : " + Depth")
-                      .toUtf8()
-                      .data();
+      mark.name =
+          tr("Colour Pass #%1 (%2 %3)").arg(passID++).arg(minOutCount).arg(targets).toUtf8().data();
     else
-      mark.name = QApplication::translate("CaptureContext", "Colour Pass #%1 (%2-%3 Targets%4)")
+      mark.name = tr("Colour Pass #%1 (%2-%3 %4)")
                       .arg(passID++)
                       .arg(minOutCount)
                       .arg(maxOutCount)
-                      .arg(draws[end].depthOut == ResourceId() ? "" : " + Depth")
+                      .arg(targets)
                       .toUtf8()
                       .data();
 
@@ -518,7 +508,7 @@ void CaptureContext::CloseLogfile()
   if(!m_LogLoaded)
     return;
 
-  m_LogFile = "";
+  m_LogFile = QString();
 
   m_Renderer.CloseThread();
 
@@ -635,7 +625,7 @@ IEventBrowser *CaptureContext::GetEventBrowser()
     return m_EventBrowser;
 
   m_EventBrowser = new EventBrowser(*this, m_MainWindow);
-  m_EventBrowser->setObjectName("eventBrowser");
+  m_EventBrowser->setObjectName(lit("eventBrowser"));
   setupDockWindow(m_EventBrowser);
 
   return m_EventBrowser;
@@ -647,7 +637,7 @@ IAPIInspector *CaptureContext::GetAPIInspector()
     return m_APIInspector;
 
   m_APIInspector = new APIInspector(*this, m_MainWindow);
-  m_APIInspector->setObjectName("apiInspector");
+  m_APIInspector->setObjectName(lit("apiInspector"));
   setupDockWindow(m_APIInspector);
 
   return m_APIInspector;
@@ -659,7 +649,7 @@ ITextureViewer *CaptureContext::GetTextureViewer()
     return m_TextureViewer;
 
   m_TextureViewer = new TextureViewer(*this, m_MainWindow);
-  m_TextureViewer->setObjectName("textureViewer");
+  m_TextureViewer->setObjectName(lit("textureViewer"));
   setupDockWindow(m_TextureViewer);
 
   return m_TextureViewer;
@@ -671,7 +661,7 @@ IBufferViewer *CaptureContext::GetMeshPreview()
     return m_MeshPreview;
 
   m_MeshPreview = new BufferViewer(*this, true, m_MainWindow);
-  m_MeshPreview->setObjectName("meshPreview");
+  m_MeshPreview->setObjectName(lit("meshPreview"));
   setupDockWindow(m_MeshPreview);
 
   return m_MeshPreview;
@@ -683,7 +673,7 @@ IPipelineStateViewer *CaptureContext::GetPipelineViewer()
     return m_PipelineViewer;
 
   m_PipelineViewer = new PipelineStateViewer(*this, m_MainWindow);
-  m_PipelineViewer->setObjectName("pipelineViewer");
+  m_PipelineViewer->setObjectName(lit("pipelineViewer"));
   setupDockWindow(m_PipelineViewer);
 
   return m_PipelineViewer;
@@ -706,7 +696,7 @@ ICaptureDialog *CaptureContext::GetCaptureDialog()
         return m_MainWindow->OnInjectTrigger(PID, env, name, opts, callback);
       },
       m_MainWindow);
-  m_CaptureDialog->setObjectName("capDialog");
+  m_CaptureDialog->setObjectName(lit("capDialog"));
   m_CaptureDialog->setWindowIcon(*m_Icon);
 
   return m_CaptureDialog;
@@ -718,7 +708,7 @@ IDebugMessageView *CaptureContext::GetDebugMessageView()
     return m_DebugMessageView;
 
   m_DebugMessageView = new DebugMessageView(*this, m_MainWindow);
-  m_DebugMessageView->setObjectName("debugMessageView");
+  m_DebugMessageView->setObjectName(lit("debugMessageView"));
   setupDockWindow(m_DebugMessageView);
 
   return m_DebugMessageView;
@@ -730,7 +720,7 @@ IStatisticsViewer *CaptureContext::GetStatisticsViewer()
     return m_StatisticsViewer;
 
   m_StatisticsViewer = new StatisticsViewer(*this, m_MainWindow);
-  m_StatisticsViewer->setObjectName("statisticsViewer");
+  m_StatisticsViewer->setObjectName(lit("statisticsViewer"));
   setupDockWindow(m_StatisticsViewer);
 
   return m_StatisticsViewer;
@@ -742,7 +732,7 @@ IPythonShell *CaptureContext::GetPythonShell()
     return m_PythonShell;
 
   m_PythonShell = new PythonShell(*this, m_MainWindow);
-  m_PythonShell->setObjectName("pythonShell");
+  m_PythonShell->setObjectName(lit("pythonShell"));
   setupDockWindow(m_PythonShell);
 
   return m_PythonShell;
@@ -854,39 +844,39 @@ IPixelHistoryView *CaptureContext::ViewPixelHistory(ResourceId texID, int x, int
 
 QWidget *CaptureContext::CreateBuiltinWindow(const QString &objectName)
 {
-  if(objectName == "textureViewer")
+  if(objectName == lit("textureViewer"))
   {
     return GetTextureViewer()->Widget();
   }
-  else if(objectName == "eventBrowser")
+  else if(objectName == lit("eventBrowser"))
   {
     return GetEventBrowser()->Widget();
   }
-  else if(objectName == "pipelineViewer")
+  else if(objectName == lit("pipelineViewer"))
   {
     return GetPipelineViewer()->Widget();
   }
-  else if(objectName == "meshPreview")
+  else if(objectName == lit("meshPreview"))
   {
     return GetMeshPreview()->Widget();
   }
-  else if(objectName == "apiInspector")
+  else if(objectName == lit("apiInspector"))
   {
     return GetAPIInspector()->Widget();
   }
-  else if(objectName == "capDialog")
+  else if(objectName == lit("capDialog"))
   {
     return GetCaptureDialog()->Widget();
   }
-  else if(objectName == "debugMessageView")
+  else if(objectName == lit("debugMessageView"))
   {
     return GetDebugMessageView()->Widget();
   }
-  else if(objectName == "statisticsViewer")
+  else if(objectName == lit("statisticsViewer"))
   {
     return GetStatisticsViewer()->Widget();
   }
-  else if(objectName == "pythonShell")
+  else if(objectName == lit("pythonShell"))
   {
     return GetPythonShell()->Widget();
   }

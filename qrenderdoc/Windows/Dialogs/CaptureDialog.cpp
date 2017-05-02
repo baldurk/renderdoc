@@ -42,17 +42,17 @@ static QString GetDescription(const EnvironmentModification &env)
   QString ret;
 
   if(env.mod == EnvMod::Append)
-    ret = QString("Append %1 with %2 using %3")
+    ret = QFormatStr("Append %1 with %2 using %3")
               .arg(ToQStr(env.name))
               .arg(ToQStr(env.value))
               .arg(ToQStr(env.sep));
   else if(env.mod == EnvMod::Prepend)
-    ret = QString("Prepend %1 with %2 using %3")
+    ret = QFormatStr("Prepend %1 with %2 using %3")
               .arg(ToQStr(env.name))
               .arg(ToQStr(env.value))
               .arg(ToQStr(env.sep));
   else
-    ret = QString("Set %1 to %2").arg(ToQStr(env.name)).arg(ToQStr(env.value));
+    ret = QFormatStr("Set %1 to %2").arg(ToQStr(env.name)).arg(ToQStr(env.value));
 
   return ret;
 }
@@ -145,8 +145,8 @@ void CaptureDialog::SetInjectMode(bool inject)
 
     fillProcessList();
 
-    ui->launch->setText("Inject");
-    this->setWindowTitle("Inject into Process");
+    ui->launch->setText(lit("Inject"));
+    this->setWindowTitle(lit("Inject into Process"));
   }
   else
   {
@@ -158,8 +158,8 @@ void CaptureDialog::SetInjectMode(bool inject)
 
     ui->globalGroup->setVisible(m_Ctx.Config().AllowGlobalHook);
 
-    ui->launch->setText("Launch");
-    this->setWindowTitle("Capture Executable");
+    ui->launch->setText(lit("Launch"));
+    this->setWindowTitle(lit("Capture Executable"));
   }
 }
 
@@ -192,7 +192,7 @@ void CaptureDialog::on_exePath_textChanged(const QString &text)
 
   // This is likely due to someone pasting a full path copied using copy path. Removing the quotes
   // is safe in any case
-  if(exe.startsWith(QChar('"')) && exe.endsWith(QChar('"')) && exe.count() > 2)
+  if(exe.startsWith(QLatin1Char('"')) && exe.endsWith(QLatin1Char('"')) && exe.count() > 2)
   {
     exe = exe.mid(1, exe.count() - 2);
     ui->exePath->setText(exe);
@@ -211,16 +211,16 @@ void CaptureDialog::on_exePath_textChanged(const QString &text)
       path = QDir::toNativeSeparators(path);
 
     // match the path separators from the path
-    if(exe.count(QChar('/')) > exe.count(QChar('\\')))
-      path = path.replace('\\', '/');
+    if(exe.count(QLatin1Char('/')) > exe.count(QLatin1Char('\\')))
+      path = path.replace(QLatin1Char('\\'), QLatin1Char('/'));
     else
-      path = path.replace('/', '\\');
+      path = path.replace(QLatin1Char('/'), QLatin1Char('\\'));
 
     ui->workDirPath->setPlaceholderText(path);
   }
-  else if(exe == "")
+  else if(exe.isEmpty())
   {
-    ui->workDirPath->setPlaceholderText("");
+    ui->workDirPath->setPlaceholderText(QString());
   }
 
   UpdateGlobalHook();
@@ -250,7 +250,7 @@ void CaptureDialog::on_vulkanLayerWarn_clicked()
            "RenderDoc documentation, or package/distribution documentation on linux\n\n");
 
     for(const rdctype::str &j : otherJSONs)
-      msg += ToQStr(j) + "\n";
+      msg += ToQStr(j) + lit("\n");
 
     RDDialog::critical(this, tr("Unfixable vulkan layer configuration"), msg);
     return;
@@ -289,7 +289,7 @@ void CaptureDialog::on_vulkanLayerWarn_clicked()
     for(const rdctype::str &j : otherJSONs)
       msg += (updateAllowed ? tr("Unregister/update: %1\n") : tr("Unregister: %1\n")).arg(ToQStr(j));
 
-    msg += "\n";
+    msg += lit("\n");
   }
 
   if(!thisRegistered)
@@ -306,7 +306,7 @@ void CaptureDialog::on_vulkanLayerWarn_clicked()
         msg += tr("  -- %1\n").arg(ToQStr(j));
     }
 
-    msg += "\n";
+    msg += lit("\n");
   }
 
   msg += tr("This is a one-off change, it won't be needed again unless the installation moves.");
@@ -348,20 +348,16 @@ void CaptureDialog::on_vulkanLayerWarn_clicked()
     {
       if(admin)
       {
-        RunProcessAsAdmin(qApp->applicationFilePath(), QStringList() << "--install_vulkan_layer"
-                                                                     << "root",
-                          [this]() {
-                            // ui->vulkanLayerWarn->setVisible(RENDERDOC_NeedVulkanLayerRegistration(NULL,
-                            // NULL, NULL));
-                            ui->vulkanLayerWarn->setVisible(false);
-                          });
+        RunProcessAsAdmin(qApp->applicationFilePath(),
+                          QStringList() << lit("--install_vulkan_layer") << lit("root"),
+                          [this]() { ui->vulkanLayerWarn->setVisible(false); });
         return;
       }
       else
       {
         QProcess process;
-        process.start(qApp->applicationFilePath(), QStringList() << "--install_vulkan_layer"
-                                                                 << "user");
+        process.start(qApp->applicationFilePath(), QStringList() << lit("--install_vulkan_layer")
+                                                                 << lit("user"));
         process.waitForFinished(300);
       }
     }
@@ -377,19 +373,19 @@ void CaptureDialog::on_processRefesh_clicked()
 
 void CaptureDialog::on_exePathBrowse_clicked()
 {
-  QString initDir = "";
-  QString file = "";
+  QString initDir;
+  QString file;
 
   QFileInfo f(ui->exePath->text());
   QDir dir = f.dir();
-  if(ui->exePath->text() != "" && f.isAbsolute() && dir.exists())
+  if(f.isAbsolute() && dir.exists())
   {
     initDir = dir.absolutePath();
   }
-  else if(m_Ctx.Config().LastCapturePath != "")
+  else if(!m_Ctx.Config().LastCapturePath.isEmpty())
   {
     initDir = m_Ctx.Config().LastCapturePath;
-    if(m_Ctx.Config().LastCaptureExe != "")
+    if(!m_Ctx.Config().LastCaptureExe.isEmpty())
       file = m_Ctx.Config().LastCaptureExe;
   }
 
@@ -406,13 +402,13 @@ void CaptureDialog::on_exePathBrowse_clicked()
     filename = RDDialog::getExecutableFileName(this, tr("Choose executable"), initDir);
   }
 
-  if(filename != "")
+  if(!filename.isEmpty())
     SetExecutableFilename(filename);
 }
 
 void CaptureDialog::on_workDirBrowse_clicked()
 {
-  QString initDir = "";
+  QString initDir;
 
   if(QDir(ui->workDirPath->text()).exists())
   {
@@ -423,7 +419,7 @@ void CaptureDialog::on_workDirBrowse_clicked()
     QDir dir = QFileInfo(ui->exePath->text()).dir();
     if(dir.exists())
       initDir = dir.absolutePath();
-    else if(m_Ctx.Config().LastCapturePath != "")
+    else if(!m_Ctx.Config().LastCapturePath.isEmpty())
       initDir = m_Ctx.Config().LastCapturePath;
   }
 
@@ -438,10 +434,10 @@ void CaptureDialog::on_workDirBrowse_clicked()
   }
   else
   {
-    dir = RDDialog::getExistingDirectory(this, "Choose working directory", initDir);
+    dir = RDDialog::getExistingDirectory(this, tr("Choose working directory"), initDir);
   }
 
-  if(dir != "")
+  if(!dir.isEmpty())
     ui->workDirPath->setText(dir);
 }
 
@@ -471,9 +467,9 @@ void CaptureDialog::on_toggleGlobal_clicked()
 void CaptureDialog::on_saveSettings_clicked()
 {
   QString filename = RDDialog::getSaveFileName(this, tr("Save Settings As"), QString(),
-                                               "Capture settings (*.cap)");
+                                               lit("Capture settings (*.cap)"));
 
-  if(filename != "")
+  if(!filename.isEmpty())
   {
     QDir dirinfo = QFileInfo(filename).dir();
     if(dirinfo.exists())
@@ -486,10 +482,10 @@ void CaptureDialog::on_saveSettings_clicked()
 
 void CaptureDialog::on_loadSettings_clicked()
 {
-  QString filename =
-      RDDialog::getOpenFileName(this, tr("Open Settings"), QString(), "Capture settings (*.cap)");
+  QString filename = RDDialog::getOpenFileName(this, tr("Open Settings"), QString(),
+                                               lit("Capture settings (*.cap)"));
 
-  if(filename != "" && QFileInfo::exists(filename))
+  if(!filename.isEmpty() && QFileInfo::exists(filename))
   {
     LoadSettings(filename);
     AddRecentFile(m_Ctx.Config().RecentCaptureSettings, filename, 10);
@@ -569,12 +565,12 @@ void CaptureDialog::SaveSettings(QString filename)
   if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
   {
     QVariantMap values;
-    values["settings"] = (QVariant)Settings();
+    values[lit("settings")] = (QVariant)Settings();
     SaveToJSON(values, f, JSON_ID, JSON_VER);
   }
   else
   {
-    RDDialog::critical(this, "Error saving config",
+    RDDialog::critical(this, tr("Error saving config"),
                        tr("Couldn't open path %1 for write.").arg(filename));
   }
 }
@@ -635,18 +631,18 @@ void CaptureDialog::LoadSettings(QString filename)
 
     if(success)
     {
-      CaptureSettings settings(values["settings"]);
+      CaptureSettings settings(values[lit("settings")]);
       SetSettings(settings);
     }
     else
     {
-      RDDialog::critical(this, "Error loading config",
+      RDDialog::critical(this, tr("Error loading config"),
                          tr("Couldn't interpret settings in %1.").arg(filename));
     }
   }
   else
   {
-    RDDialog::critical(this, "Error loading config", tr("Couldn't open path %1.").arg(filename));
+    RDDialog::critical(this, tr("Error loading config"), tr("Couldn't open path %1.").arg(filename));
   }
 }
 
@@ -675,12 +671,12 @@ void CaptureDialog::SetEnvironmentModifications(const QList<EnvironmentModificat
 {
   m_EnvModifications = modifications;
 
-  QString envModText = "";
+  QString envModText;
 
   for(const EnvironmentModification &mod : modifications)
   {
-    if(envModText != "")
-      envModText += ", ";
+    if(!envModText.isEmpty())
+      envModText += lit(", ");
 
     envModText += GetDescription(mod);
   }
@@ -726,7 +722,7 @@ void CaptureDialog::TriggerCapture()
       }
     }
 
-    QString workingDir = "";
+    QString workingDir;
 
     // for non-remote captures, check the directory locally
     if(m_Ctx.Replay().CurrentRemote())

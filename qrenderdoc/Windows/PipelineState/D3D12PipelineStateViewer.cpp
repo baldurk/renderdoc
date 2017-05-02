@@ -379,11 +379,13 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
   ui->pipeFlow->setStages(
       {
-          "IA", "VS", "HS", "DS", "GS", "RS", "PS", "OM", "CS",
+          lit("IA"), lit("VS"), lit("HS"), lit("DS"), lit("GS"), lit("RS"), lit("PS"), lit("OM"),
+          lit("CS"),
       },
       {
-          "Input Assembler", "Vertex Shader", "Hull Shader", "Domain Shader", "Geometry Shader",
-          "Rasterizer", "Pixel Shader", "Output Merger", "Compute Shader",
+          tr("Input Assembler"), tr("Vertex Shader"), tr("Hull Shader"), tr("Domain Shader"),
+          tr("Geometry Shader"), tr("Rasterizer"), tr("Pixel Shader"), tr("Output Merger"),
+          tr("Compute Shader"),
       });
 
   ui->pipeFlow->setIsolatedStage(8);    // compute shader isolated
@@ -633,8 +635,8 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view, const D3D12Pi
     viewDetails = m_Ctx.CurD3D12PipelineState().m_OM.DepthReadOnly ||
                   m_Ctx.CurD3D12PipelineState().m_OM.StencilReadOnly;
 
-  QString rootel = r.Immediate ? QString("#%1 Direct").arg(r.RootElement)
-                               : QString("#%1 Table[%2]").arg(r.RootElement).arg(r.TableIndex);
+  QString rootel = r.Immediate ? tr("#%1 Direct").arg(r.RootElement)
+                               : tr("#%1 Table[%2]").arg(r.RootElement).arg(r.TableIndex);
 
   bool filledSlot = (r.Resource != ResourceId());
   bool usedSlot = (bind && bind->used);
@@ -648,22 +650,22 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view, const D3D12Pi
     QString regname = QString::number(view.reg);
 
     if(shaderInput && !shaderInput->name.empty())
-      regname += ": " + ToQStr(shaderInput->name);
+      regname += lit(": ") + ToQStr(shaderInput->name);
 
     if(view.space == ViewTag::OMDepth)
-      regname = "Depth";
+      regname = tr("Depth");
 
     uint32_t w = 1, h = 1, d = 1;
     uint32_t a = 1;
-    QString format = "Unknown";
-    QString name = QString("Shader Resource %1").arg(ToQStr(r.Resource));
-    QString typeName = "Unknown";
+    QString format = tr("Unknown");
+    QString name = tr("Shader Resource %1").arg(ToQStr(r.Resource));
+    QString typeName = tr("Unknown");
 
     if(!filledSlot)
     {
-      name = "Empty";
-      format = "-";
-      typeName = "-";
+      name = tr("Empty");
+      format = lit("-");
+      typeName = lit("-");
       w = h = d = a = 0;
     }
 
@@ -676,12 +678,12 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view, const D3D12Pi
       d = tex->depth;
       a = tex->arraysize;
       format = ToQStr(tex->format.strname);
-      name = tex->name;
+      name = ToQStr(tex->name);
       typeName = ToQStr(tex->resType);
 
       if(tex->resType == TextureDim::Texture2DMS || tex->resType == TextureDim::Texture2DMSArray)
       {
-        typeName += QString(" %1x").arg(tex->msSamp);
+        typeName += QFormatStr(" %1x").arg(tex->msSamp);
       }
 
       if(tex->format != r.Format)
@@ -699,43 +701,43 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view, const D3D12Pi
       h = 0;
       d = 0;
       a = 0;
-      format = "";
-      name = buf->name;
-      typeName = "Buffer";
+      format = QString();
+      name = ToQStr(buf->name);
+      typeName = lit("Buffer");
 
       if(r.BufferFlags & D3DBufferViewFlags::Raw)
       {
-        typeName = QString("%1ByteAddressBuffer").arg(uav ? "RW" : "");
+        typeName = QFormatStr("%1ByteAddressBuffer").arg(uav ? lit("RW") : QString());
       }
       else if(r.ElementSize > 0)
       {
         // for structured buffers, display how many 'elements' there are in the buffer
         a = buf->length / r.ElementSize;
-        typeName = QString("%1StructuredBuffer[%2]").arg(uav ? "RW" : "").arg(a);
+        typeName = QFormatStr("%1StructuredBuffer[%2]").arg(uav ? lit("RW") : QString()).arg(a);
       }
 
       if(r.CounterResource != ResourceId())
       {
-        typeName += QString(" (Count: %1)").arg(r.BufferStructCount);
+        typeName += tr(" (Count: %1)").arg(r.BufferStructCount);
       }
 
       // get the buffer type, whether it's just a basic type or a complex struct
       if(shaderInput && !shaderInput->IsTexture)
       {
         if(!shaderInput->variableType.members.empty())
-          format = "struct " + ToQStr(shaderInput->variableType.descriptor.name);
+          format = lit("struct ") + ToQStr(shaderInput->variableType.descriptor.name);
         else if(r.Format.compType == CompType::Typeless)
           format = ToQStr(shaderInput->variableType.descriptor.name);
         else
-          format = r.Format.strname;
+          format = ToQStr(r.Format.strname);
       }
 
       if(HasImportantViewParams(r, buf))
         viewDetails = true;
     }
 
-    RDTreeWidgetItem *node =
-        new RDTreeWidgetItem({rootel, view.space, regname, name, typeName, w, h, d, a, format, ""});
+    RDTreeWidgetItem *node = new RDTreeWidgetItem(
+        {rootel, view.space, regname, name, typeName, w, h, d, a, format, QString()});
 
     node->setTag(QVariant::fromValue(view));
 
@@ -827,7 +829,7 @@ void D3D12PipelineStateViewer::clearState()
 
   ui->iaLayouts->clear();
   ui->iaBuffers->clear();
-  ui->topology->setText("");
+  ui->topology->setText(QString());
   ui->topologyDiagram->setPixmap(QPixmap());
 
   clearShaderState(ui->vsShader, ui->vsResources, ui->vsSamplers, ui->vsCBuffers, ui->vsUAVs);
@@ -845,20 +847,20 @@ void D3D12PipelineStateViewer::clearState()
   ui->frontCCW->setPixmap(tick);
   ui->conservativeRaster->setPixmap(cross);
 
-  ui->depthBias->setText("0.0");
-  ui->depthBiasClamp->setText("0.0");
-  ui->slopeScaledBias->setText("0.0");
-  ui->forcedSampleCount->setText("0");
+  ui->depthBias->setText(lit("0.0"));
+  ui->depthBiasClamp->setText(lit("0.0"));
+  ui->slopeScaledBias->setText(lit("0.0"));
+  ui->forcedSampleCount->setText(lit("0"));
 
   ui->depthClip->setPixmap(tick);
   ui->multisample->setPixmap(tick);
   ui->lineAA->setPixmap(tick);
-  ui->sampleMask->setText("FFFFFFFF");
+  ui->sampleMask->setText(lit("FFFFFFFF"));
 
   ui->independentBlend->setPixmap(cross);
   ui->alphaToCoverage->setPixmap(tick);
 
-  ui->blendFactor->setText("0.00, 0.00, 0.00, 0.00");
+  ui->blendFactor->setText(lit("0.00, 0.00, 0.00, 0.00"));
 
   ui->viewports->clear();
   ui->scissors->clear();
@@ -867,13 +869,13 @@ void D3D12PipelineStateViewer::clearState()
   ui->blends->clear();
 
   ui->depthEnabled->setPixmap(tick);
-  ui->depthFunc->setText("GREATER_EQUAL");
+  ui->depthFunc->setText(lit("GREATER_EQUAL"));
   ui->depthWrite->setPixmap(tick);
 
   ui->stencilEnabled->setPixmap(cross);
-  ui->stencilReadMask->setText("FF");
-  ui->stencilWriteMask->setText("FF");
-  ui->stencilRef->setText("FF");
+  ui->stencilReadMask->setText(lit("FF"));
+  ui->stencilWriteMask->setText(lit("FF"));
+  ui->stencilRef->setText(lit("FF"));
 
   ui->stencils->clear();
 }
@@ -888,10 +890,12 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
   if(stage.Object == ResourceId())
     shader->setText(tr("Unbound Shader"));
   else if(state.customName)
-    shader->setText(ToQStr(state.name) + " - " + m_Ctx.CurPipelineState().Abbrev(stage.stage));
+    shader->setText(
+        QFormatStr("%1 - %2").arg(ToQStr(state.name)).arg(m_Ctx.CurPipelineState().Abbrev(stage.stage)));
   else
-    shader->setText(ToQStr(state.name) + " - " + ToQStr(stage.stage, GraphicsAPI::D3D12) +
-                    " Shader");
+    shader->setText(QFormatStr("%1 - %2 Shader")
+                        .arg(ToQStr(state.name))
+                        .arg(ToQStr(stage.stage, GraphicsAPI::D3D12)));
 
   if(shaderDetails && !shaderDetails->DebugInfo.entryFunc.empty() &&
      !shaderDetails->DebugInfo.files.empty())
@@ -904,7 +908,8 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
 
     shaderfn = QFileInfo(ToQStr(shaderDetails->DebugInfo.files[entryFile].first)).fileName();
 
-    shader->setText(ToQStr(shaderDetails->DebugInfo.entryFunc) + "()" + " - " + shaderfn);
+    shader->setText(
+        QFormatStr("%1() - %2").arg(ToQStr(shaderDetails->DebugInfo.entryFunc)).arg(shaderfn));
   }
 
   int vs = 0;
@@ -978,8 +983,8 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
         }
       }
 
-      QString rootel = s.Immediate ? QString("#%1 Static").arg(s.RootElement)
-                                   : QString("#%1 Table[%2]").arg(s.RootElement).arg(s.TableIndex);
+      QString rootel = s.Immediate ? tr("#%1 Static").arg(s.RootElement)
+                                   : tr("#%1 Table[%2]").arg(s.RootElement).arg(s.TableIndex);
 
       bool filledSlot = s.Filter.minify != FilterMode::NoFilter;
       bool usedSlot = (bind && bind->used);
@@ -989,23 +994,25 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
         QString regname = QString::number(reg);
 
         if(shaderInput && !shaderInput->name.empty())
-          regname += ": " + ToQStr(shaderInput->name);
+          regname += lit(": ") + ToQStr(shaderInput->name);
 
-        QString borderColor =
-            QString::number(s.BorderColor[0]) + ", " + QString::number(s.BorderColor[1]) + ", " +
-            QString::number(s.BorderColor[2]) + ", " + QString::number(s.BorderColor[3]);
+        QString borderColor = QFormatStr("%1, %2, %3, %4")
+                                  .arg(s.BorderColor[0])
+                                  .arg(s.BorderColor[1])
+                                  .arg(s.BorderColor[2])
+                                  .arg(s.BorderColor[3]);
 
-        QString addressing = "";
+        QString addressing;
 
-        QString addPrefix = "";
-        QString addVal = "";
+        QString addPrefix;
+        QString addVal;
 
         QString addr[] = {ToQStr(s.AddressU), ToQStr(s.AddressV), ToQStr(s.AddressW)};
 
         // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
         for(int a = 0; a < 3; a++)
         {
-          const QString str[] = {"U", "V", "W"};
+          const QString str[] = {lit("U"), lit("V"), lit("W")};
           QString prefix = str[a];
 
           if(a == 0 || addr[a] == addr[a - 1])
@@ -1014,33 +1021,34 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
           }
           else
           {
-            addressing += addPrefix + ": " + addVal + ", ";
+            addressing += QFormatStr("%1: %2, ").arg(addPrefix).arg(addVal);
 
             addPrefix = prefix;
           }
           addVal = addr[a];
         }
 
-        addressing += addPrefix + ": " + addVal;
+        addressing += addPrefix + lit(": ") + addVal;
 
         if(s.UseBorder())
-          addressing += QString("<%1>").arg(borderColor);
+          addressing += QFormatStr("<%1>").arg(borderColor);
 
         QString filter = ToQStr(s.Filter);
 
         if(s.MaxAniso > 1)
-          filter += QString(" %1x").arg(s.MaxAniso);
+          filter += QFormatStr(" %1x").arg(s.MaxAniso);
 
         if(s.Filter.func == FilterFunc::Comparison)
-          filter += QString(" (%1)").arg(ToQStr(s.Comparison));
+          filter += QFormatStr(" (%1)").arg(ToQStr(s.Comparison));
         else if(s.Filter.func != FilterFunc::Normal)
-          filter += QString(" (%1)").arg(ToQStr(s.Filter.func));
+          filter += QFormatStr(" (%1)").arg(ToQStr(s.Filter.func));
 
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({rootel, space, regname, addressing, filter,
-                                  (s.MinLOD == -FLT_MAX ? "0" : QString::number(s.MinLOD)) + " - " +
-                                      (s.MaxLOD == FLT_MAX ? "FLT_MAX" : QString::number(s.MaxLOD)),
-                                  s.MipLODBias});
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
+            {rootel, space, regname, addressing, filter,
+             QFormatStr("%1 - %2")
+                 .arg(s.MinLOD == -FLT_MAX ? lit("0") : QString::number(s.MinLOD))
+                 .arg(s.MaxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.MaxLOD)),
+             s.MipLODBias});
 
         if(!filledSlot)
           setEmptyRow(node);
@@ -1102,13 +1110,13 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
       if(b.Immediate)
       {
         if(!b.RootValues.empty())
-          rootel = QString("#%1 Consts").arg(b.RootElement);
+          rootel = tr("#%1 Consts").arg(b.RootElement);
         else
-          rootel = QString("#%1 Direct").arg(b.RootElement);
+          rootel = tr("#%1 Direct").arg(b.RootElement);
       }
       else
       {
-        rootel = QString("#%1 Table[%2]").arg(b.RootElement).arg(b.TableIndex);
+        rootel = tr("#%1 Table[%2]").arg(b.RootElement).arg(b.TableIndex);
       }
 
       bool filledSlot = (b.Buffer != ResourceId());
@@ -1119,7 +1127,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
 
       if(showNode(usedSlot, filledSlot))
       {
-        QString name = QString("Constant Buffer %1").arg(ToQStr(b.Buffer));
+        QString name = tr("Constant Buffer %1").arg(ToQStr(b.Buffer));
         ulong length = b.ByteSize;
         uint64_t offset = b.Offset;
         int numvars = shaderCBuf ? shaderCBuf->variables.count : 0;
@@ -1129,17 +1137,17 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
           bytesize = uint32_t(b.RootValues.count * 4);
 
         if(!filledSlot)
-          name = "Empty";
+          name = lit("Empty");
 
         BufferDescription *buf = m_Ctx.GetBuffer(b.Buffer);
 
         if(buf)
-          name = buf->name;
+          name = ToQStr(buf->name);
 
         QString regname = QString::number(reg);
 
         if(shaderCBuf && !shaderCBuf->name.empty())
-          regname += ": " + ToQStr(shaderCBuf->name);
+          regname += lit(": ") + ToQStr(shaderCBuf->name);
 
         QString sizestr;
         if(bytesize == (uint32_t)length)
@@ -1152,7 +1160,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
           filledSlot = false;
 
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {rootel, (qulonglong)space, regname, name, (qulonglong)offset, sizestr, ""});
+            {rootel, (qulonglong)space, regname, name, (qulonglong)offset, sizestr, QString()});
 
         node->setTag(tag);
 
@@ -1205,7 +1213,7 @@ void D3D12PipelineStateViewer::setState()
       // D3D12 specific value
       if(l.ByteOffset == ~0U)
       {
-        byteOffs = QString("APPEND_ALIGNED (%1)").arg(layoutOffs[l.InputSlot]);
+        byteOffs = lit("APPEND_ALIGNED (%1)").arg(layoutOffs[l.InputSlot]);
       }
       else
       {
@@ -1232,7 +1240,8 @@ void D3D12PipelineStateViewer::setState()
       {
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {i, ToQStr(l.SemanticName), l.SemanticIndex, ToQStr(l.Format.strname), l.InputSlot,
-             byteOffs, l.PerInstance ? "PER_INSTANCE" : "PER_VERTEX", l.InstanceDataStepRate, ""});
+             byteOffs, l.PerInstance ? lit("PER_INSTANCE") : lit("PER_VERTEX"),
+             l.InstanceDataStepRate, QString()});
 
         if(usedSlot)
           usedVBuffers[l.InputSlot] = true;
@@ -1255,7 +1264,7 @@ void D3D12PipelineStateViewer::setState()
   int numCPs = PatchList_Count(topo);
   if(numCPs > 0)
   {
-    ui->topology->setText(QString("PatchList (%1 Control Points)").arg(numCPs));
+    ui->topology->setText(tr("PatchList (%1 Control Points)").arg(numCPs));
   }
   else
   {
@@ -1294,7 +1303,7 @@ void D3D12PipelineStateViewer::setState()
   {
     if(ibufferUsed || ui->showDisabled->isChecked())
     {
-      QString name = "Buffer " + ToQStr(state.m_IA.ibuffer.Buffer);
+      QString name = tr("Buffer ") + ToQStr(state.m_IA.ibuffer.Buffer);
       uint64_t length = 1;
 
       if(!ibufferUsed)
@@ -1304,13 +1313,13 @@ void D3D12PipelineStateViewer::setState()
 
       if(buf)
       {
-        name = buf->name;
+        name = ToQStr(buf->name);
         length = buf->length;
       }
 
-      RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({"Index", name, draw ? draw->indexByteWidth : 0,
-                                (qulonglong)state.m_IA.ibuffer.Offset, (qulonglong)length, ""});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem(
+          {tr("Index"), name, draw ? draw->indexByteWidth : 0,
+           (qulonglong)state.m_IA.ibuffer.Offset, (qulonglong)length, QString()});
 
       node->setTag(
           QVariant::fromValue(VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
@@ -1328,8 +1337,8 @@ void D3D12PipelineStateViewer::setState()
   {
     if(ibufferUsed || ui->showEmpty->isChecked())
     {
-      RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({"Index", tr("No Buffer Set"), "-", "-", "-", ""});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem(
+          {tr("Index"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
 
       node->setTag(
           QVariant::fromValue(VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
@@ -1354,28 +1363,29 @@ void D3D12PipelineStateViewer::setState()
 
     if(showNode(usedSlot, filledSlot))
     {
-      QString name = "Buffer " + ToQStr(v.Buffer);
+      QString name = tr("Buffer ") + ToQStr(v.Buffer);
       qulonglong length = 1;
 
       if(!filledSlot)
       {
-        name = "Empty";
+        name = tr("Empty");
         length = 0;
       }
 
       BufferDescription *buf = m_Ctx.GetBuffer(v.Buffer);
       if(buf)
       {
-        name = buf->name;
+        name = ToQStr(buf->name);
         length = buf->length;
       }
 
       RDTreeWidgetItem *node = NULL;
 
       if(filledSlot)
-        node = new RDTreeWidgetItem({i, name, v.Stride, (qulonglong)v.Offset, length, ""});
+        node = new RDTreeWidgetItem({i, name, v.Stride, (qulonglong)v.Offset, length, QString()});
       else
-        node = new RDTreeWidgetItem({i, "No Buffer Set", "-", "-", "-", ""});
+        node =
+            new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
 
       node->setTag(QVariant::fromValue(VBIBTag(v.Buffer, v.Offset)));
 
@@ -1420,24 +1430,25 @@ void D3D12PipelineStateViewer::setState()
 
     if(showNode(usedSlot, filledSlot))
     {
-      QString name = "Buffer " + ToQStr(s.Buffer);
+      QString name = tr("Buffer ") + ToQStr(s.Buffer);
       qulonglong length = 0;
 
       if(!filledSlot)
       {
-        name = "Empty";
+        name = tr("Empty");
       }
 
       BufferDescription *buf = m_Ctx.GetBuffer(s.Buffer);
 
       if(buf)
       {
-        name = buf->name;
+        name = ToQStr(buf->name);
         if(length == 0)
           length = buf->length;
       }
 
-      RDTreeWidgetItem *node = new RDTreeWidgetItem({i, name, length, (qulonglong)s.Offset, ""});
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({i, name, length, (qulonglong)s.Offset, QString()});
 
       node->setTag(QVariant::fromValue(s.Buffer));
 
@@ -1562,11 +1573,11 @@ void D3D12PipelineStateViewer::setState()
 
                                      ToQStr(blend.Logic),
 
-                                     QString("%1%2%3%4")
-                                         .arg((blend.WriteMask & 0x1) == 0 ? "_" : "R")
-                                         .arg((blend.WriteMask & 0x2) == 0 ? "_" : "G")
-                                         .arg((blend.WriteMask & 0x4) == 0 ? "_" : "B")
-                                         .arg((blend.WriteMask & 0x8) == 0 ? "_" : "A")});
+                                     QFormatStr("%1%2%3%4")
+                                         .arg((blend.WriteMask & 0x1) == 0 ? lit("_") : lit("R"))
+                                         .arg((blend.WriteMask & 0x2) == 0 ? lit("_") : lit("G"))
+                                         .arg((blend.WriteMask & 0x4) == 0 ? lit("_") : lit("B"))
+                                         .arg((blend.WriteMask & 0x8) == 0 ? lit("_") : lit("A"))});
 
         if(!filledSlot)
           setEmptyRow(node);
@@ -1587,7 +1598,7 @@ void D3D12PipelineStateViewer::setState()
   ui->alphaToCoverage->setPixmap(state.m_OM.m_BlendState.AlphaToCoverage ? tick : cross);
   ui->independentBlend->setPixmap(state.m_OM.m_BlendState.IndependentBlend ? tick : cross);
 
-  ui->blendFactor->setText(QString("%1, %2, %3, %4")
+  ui->blendFactor->setText(QFormatStr("%1, %2, %3, %4")
                                .arg(state.m_OM.m_BlendState.BlendFactor[0], 2)
                                .arg(state.m_OM.m_BlendState.BlendFactor[1], 2)
                                .arg(state.m_OM.m_BlendState.BlendFactor[2], 2)
@@ -1599,21 +1610,21 @@ void D3D12PipelineStateViewer::setState()
 
   ui->stencilEnabled->setPixmap(state.m_OM.m_State.StencilEnable ? tick : cross);
   ui->stencilReadMask->setText(
-      QString("%1").arg(state.m_OM.m_State.StencilReadMask, 2, 16, QChar('0')).toUpper());
+      QFormatStr("%1").arg(state.m_OM.m_State.StencilReadMask, 2, 16, QLatin1Char('0')).toUpper());
   ui->stencilWriteMask->setText(
-      QString("%1").arg(state.m_OM.m_State.StencilWriteMask, 2, 16, QChar('0')).toUpper());
+      QFormatStr("%1").arg(state.m_OM.m_State.StencilWriteMask, 2, 16, QLatin1Char('0')).toUpper());
   ui->stencilRef->setText(
-      QString("%1").arg(state.m_OM.m_State.StencilRef, 2, 16, QChar('0')).toUpper());
+      QFormatStr("%1").arg(state.m_OM.m_State.StencilRef, 2, 16, QLatin1Char('0')).toUpper());
 
   ui->stencils->setUpdatesEnabled(false);
   ui->stencils->clear();
   ui->stencils->addTopLevelItem(
-      new RDTreeWidgetItem({"Front", ToQStr(state.m_OM.m_State.m_FrontFace.Func),
+      new RDTreeWidgetItem({tr("Front"), ToQStr(state.m_OM.m_State.m_FrontFace.Func),
                             ToQStr(state.m_OM.m_State.m_FrontFace.FailOp),
                             ToQStr(state.m_OM.m_State.m_FrontFace.DepthFailOp),
                             ToQStr(state.m_OM.m_State.m_FrontFace.PassOp)}));
   ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
-      {"Back", ToQStr(state.m_OM.m_State.m_BackFace.Func),
+      {tr("Back"), ToQStr(state.m_OM.m_State.m_BackFace.Func),
        ToQStr(state.m_OM.m_State.m_BackFace.FailOp), ToQStr(state.m_OM.m_State.m_BackFace.DepthFailOp),
        ToQStr(state.m_OM.m_State.m_BackFace.PassOp)}));
   ui->stencils->clearSelection();
@@ -1639,9 +1650,9 @@ void D3D12PipelineStateViewer::setState()
 QString D3D12PipelineStateViewer::formatMembers(int indent, const QString &nameprefix,
                                                 const rdctype::array<ShaderConstant> &vars)
 {
-  QString indentstr(indent * 4, QChar(' '));
+  QString indentstr(indent * 4, QLatin1Char(' '));
 
-  QString ret = "";
+  QString ret;
 
   int i = 0;
 
@@ -1650,19 +1661,25 @@ QString D3D12PipelineStateViewer::formatMembers(int indent, const QString &namep
     if(!v.type.members.empty())
     {
       if(i > 0)
-        ret += "\n";
-      ret += indentstr + QString("// struct %1\n").arg(ToQStr(v.type.descriptor.name));
-      ret += indentstr + "{\n" + formatMembers(indent + 1, ToQStr(v.name) + "_", v.type.members) +
-             indentstr + "}\n";
+        ret += lit("\n");
+      ret += indentstr + lit("// struct %1\n").arg(ToQStr(v.type.descriptor.name));
+      ret += indentstr + lit("{\n") +
+             formatMembers(indent + 1, ToQStr(v.name) + lit("_"), v.type.members) + indentstr +
+             lit("}\n");
       if(i < vars.count - 1)
-        ret += "\n";
+        ret += lit("\n");
     }
     else
     {
-      QString arr = "";
+      QString arr;
       if(v.type.descriptor.elements > 1)
-        arr = QString("[%1]").arg(v.type.descriptor.elements);
-      ret += indentstr + ToQStr(v.type.descriptor.name) + " " + nameprefix + v.name + arr + ";\n";
+        arr = QFormatStr("[%1]").arg(v.type.descriptor.elements);
+      ret += QFormatStr("%1%2 %3%4%5;\n")
+                 .arg(indentstr)
+                 .arg(ToQStr(v.type.descriptor.name))
+                 .arg(nameprefix)
+                 .arg(ToQStr(v.name))
+                 .arg(arr);
     }
 
     i++;
@@ -1746,7 +1763,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
       }
     }
 
-    QString format = "";
+    QString format;
 
     const ShaderResource *shaderRes = NULL;
 
@@ -1777,9 +1794,9 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
       if(!res.variableType.members.empty())
       {
-        format = QString("// struct %1\n{\n%2}")
+        format = QFormatStr("// struct %1\n{\n%2}")
                      .arg(ToQStr(res.variableType.descriptor.name))
-                     .arg(formatMembers(1, "", res.variableType.members));
+                     .arg(formatMembers(1, QString(), res.variableType.members));
       }
       else
       {
@@ -1787,21 +1804,21 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
         if(view.res.Format.strname.empty())
         {
-          format = "";
+          format = QString();
           if(desc.rowMajorStorage)
-            format += "row_major ";
+            format += lit("row_major ");
 
           format += ToQStr(desc.type);
           if(desc.rows > 1 && desc.cols > 1)
-            format += QString("%1x%2").arg(desc.rows).arg(desc.cols);
+            format += QFormatStr("%1x%2").arg(desc.rows).arg(desc.cols);
           else if(desc.cols > 1)
             format += desc.cols;
 
           if(!desc.name.empty())
-            format += " " + ToQStr(desc.name);
+            format += lit(" ") + ToQStr(desc.name);
 
           if(desc.elements > 1)
-            format += QString("[%1]").arg(desc.elements);
+            format += QFormatStr("[%1]").arg(desc.elements);
         }
         else
         {
@@ -1811,13 +1828,13 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
             if(fmt.specialFormat == SpecialFormat::R10G10B10A2)
             {
               if(fmt.compType == CompType::UInt)
-                format = "uintten";
+                format = lit("uintten");
               if(fmt.compType == CompType::UNorm)
-                format = "unormten";
+                format = lit("unormten");
             }
             else if(fmt.specialFormat == SpecialFormat::R11G11B10)
             {
-              format = "floateleven";
+              format = lit("floateleven");
             }
           }
           else
@@ -1827,47 +1844,47 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
               case 1:
               {
                 if(fmt.compType == CompType::UNorm)
-                  format = "unormb";
+                  format = lit("unormb");
                 if(fmt.compType == CompType::SNorm)
-                  format = "snormb";
+                  format = lit("snormb");
                 if(fmt.compType == CompType::UInt)
-                  format = "ubyte";
+                  format = lit("ubyte");
                 if(fmt.compType == CompType::SInt)
-                  format = "byte";
+                  format = lit("byte");
                 break;
               }
               case 2:
               {
                 if(fmt.compType == CompType::UNorm)
-                  format = "unormh";
+                  format = lit("unormh");
                 if(fmt.compType == CompType::SNorm)
-                  format = "snormh";
+                  format = lit("snormh");
                 if(fmt.compType == CompType::UInt)
-                  format = "ushort";
+                  format = lit("ushort");
                 if(fmt.compType == CompType::SInt)
-                  format = "short";
+                  format = lit("short");
                 if(fmt.compType == CompType::Float)
-                  format = "half";
+                  format = lit("half");
                 break;
               }
               case 4:
               {
                 if(fmt.compType == CompType::UNorm)
-                  format = "unormf";
+                  format = lit("unormf");
                 if(fmt.compType == CompType::SNorm)
-                  format = "snormf";
+                  format = lit("snormf");
                 if(fmt.compType == CompType::UInt)
-                  format = "uint";
+                  format = lit("uint");
                 if(fmt.compType == CompType::SInt)
-                  format = "int";
+                  format = lit("int");
                 if(fmt.compType == CompType::Float)
-                  format = "float";
+                  format = lit("float");
                 break;
               }
             }
 
             if(view.res.BufferFlags & D3DBufferViewFlags::Raw)
-              format = "xint";
+              format = lit("xint");
 
             format += fmt.compCount;
           }
@@ -2074,9 +2091,9 @@ void D3D12PipelineStateViewer::shaderEdit_clicked()
   if(!shaderDetails)
     return;
 
-  QString entryFunc = QString("EditedShader%1S").arg(ToQStr(stage->stage, GraphicsAPI::D3D12)[0]);
+  QString entryFunc = lit("EditedShader%1S").arg(ToQStr(stage->stage, GraphicsAPI::D3D12)[0]);
 
-  QString mainfile = "";
+  QString mainfile;
 
   QStringMap files;
 
@@ -2084,9 +2101,9 @@ void D3D12PipelineStateViewer::shaderEdit_clicked()
 
   if(!hasOrigSource)
   {
-    QString hlsl = "// TODO - generate stub HLSL";
+    QString hlsl = lit("// TODO - generate stub HLSL");
 
-    mainfile = "generated.hlsl";
+    mainfile = lit("generated.hlsl");
 
     files[mainfile] = hlsl;
   }

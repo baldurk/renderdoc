@@ -49,7 +49,7 @@ QString CommonPipelineState::GetResourceLayout(ResourceId id)
     }
   }
 
-  return "Unknown";
+  return lit("Unknown");
 }
 
 QString CommonPipelineState::Abbrev(ShaderStage stage)
@@ -59,12 +59,12 @@ QString CommonPipelineState::Abbrev(ShaderStage stage)
   {
     switch(stage)
     {
-      case ShaderStage::Vertex: return "VS";
-      case ShaderStage::Hull: return "HS";
-      case ShaderStage::Domain: return "DS";
-      case ShaderStage::Geometry: return "GS";
-      case ShaderStage::Pixel: return "PS";
-      case ShaderStage::Compute: return "CS";
+      case ShaderStage::Vertex: return lit("VS");
+      case ShaderStage::Hull: return lit("HS");
+      case ShaderStage::Domain: return lit("DS");
+      case ShaderStage::Geometry: return lit("GS");
+      case ShaderStage::Pixel: return lit("PS");
+      case ShaderStage::Compute: return lit("CS");
       default: break;
     }
   }
@@ -73,17 +73,17 @@ QString CommonPipelineState::Abbrev(ShaderStage stage)
   {
     switch(stage)
     {
-      case ShaderStage::Vertex: return "VS";
-      case ShaderStage::Tess_Control: return "TCS";
-      case ShaderStage::Tess_Eval: return "TES";
-      case ShaderStage::Geometry: return "GS";
-      case ShaderStage::Fragment: return "FS";
-      case ShaderStage::Compute: return "CS";
+      case ShaderStage::Vertex: return lit("VS");
+      case ShaderStage::Tess_Control: return lit("TCS");
+      case ShaderStage::Tess_Eval: return lit("TES");
+      case ShaderStage::Geometry: return lit("GS");
+      case ShaderStage::Fragment: return lit("FS");
+      case ShaderStage::Compute: return lit("CS");
       default: break;
     }
   }
 
-  return "?S";
+  return lit("?S");
 }
 
 QString CommonPipelineState::OutputAbbrev()
@@ -91,10 +91,10 @@ QString CommonPipelineState::OutputAbbrev()
   if(IsLogGL() || (!LogLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsLogVK() ||
      (!LogLoaded() && DefaultType == GraphicsAPI::Vulkan))
   {
-    return "FB";
+    return lit("FB");
   }
 
-  return "RT";
+  return lit("RT");
 }
 
 const D3D11Pipe::Shader &CommonPipelineState::GetD3D11Stage(ShaderStage stage)
@@ -178,10 +178,10 @@ QString CommonPipelineState::GetShaderExtension()
   if(IsLogGL() || (!LogLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsLogVK() ||
      (!LogLoaded() && DefaultType == GraphicsAPI::Vulkan))
   {
-    return "glsl";
+    return lit("glsl");
   }
 
-  return "hlsl";
+  return lit("hlsl");
 }
 
 Viewport CommonPipelineState::GetViewport(int index)
@@ -359,12 +359,12 @@ QString CommonPipelineState::GetShaderEntryPoint(ShaderStage stage)
   {
     switch(stage)
     {
-      case ShaderStage::Vertex: ret = m_Vulkan->m_VS.entryPoint; break;
-      case ShaderStage::Tess_Control: ret = m_Vulkan->m_TCS.entryPoint; break;
-      case ShaderStage::Tess_Eval: ret = m_Vulkan->m_TES.entryPoint; break;
-      case ShaderStage::Geometry: ret = m_Vulkan->m_GS.entryPoint; break;
-      case ShaderStage::Fragment: ret = m_Vulkan->m_FS.entryPoint; break;
-      case ShaderStage::Compute: ret = m_Vulkan->m_CS.entryPoint; break;
+      case ShaderStage::Vertex: ret = ToQStr(m_Vulkan->m_VS.entryPoint); break;
+      case ShaderStage::Tess_Control: ret = ToQStr(m_Vulkan->m_TCS.entryPoint); break;
+      case ShaderStage::Tess_Eval: ret = ToQStr(m_Vulkan->m_TES.entryPoint); break;
+      case ShaderStage::Geometry: ret = ToQStr(m_Vulkan->m_GS.entryPoint); break;
+      case ShaderStage::Fragment: ret = ToQStr(m_Vulkan->m_FS.entryPoint); break;
+      case ShaderStage::Compute: ret = ToQStr(m_Vulkan->m_CS.entryPoint); break;
       default: break;
     }
   }
@@ -443,12 +443,12 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: ret = m_D3D11->m_VS.name; break;
-        case ShaderStage::Domain: ret = m_D3D11->m_DS.name; break;
-        case ShaderStage::Hull: ret = m_D3D11->m_HS.name; break;
-        case ShaderStage::Geometry: ret = m_D3D11->m_GS.name; break;
-        case ShaderStage::Pixel: ret = m_D3D11->m_PS.name; break;
-        case ShaderStage::Compute: ret = m_D3D11->m_CS.name; break;
+        case ShaderStage::Vertex: ret = ToQStr(m_D3D11->m_VS.name); break;
+        case ShaderStage::Domain: ret = ToQStr(m_D3D11->m_DS.name); break;
+        case ShaderStage::Hull: ret = ToQStr(m_D3D11->m_HS.name); break;
+        case ShaderStage::Geometry: ret = ToQStr(m_D3D11->m_GS.name); break;
+        case ShaderStage::Pixel: ret = ToQStr(m_D3D11->m_PS.name); break;
+        case ShaderStage::Compute: ret = ToQStr(m_D3D11->m_CS.name); break;
         default: break;
       }
     }
@@ -456,12 +456,12 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: ret = QString(m_D3D12->name) + " VS"; break;
-        case ShaderStage::Domain: ret = QString(m_D3D12->name) + " DS"; break;
-        case ShaderStage::Hull: ret = QString(m_D3D12->name) + " HS"; break;
-        case ShaderStage::Geometry: ret = QString(m_D3D12->name) + " GS"; break;
-        case ShaderStage::Pixel: ret = QString(m_D3D12->name) + " PS"; break;
-        case ShaderStage::Compute: ret = QString(m_D3D12->name) + " CS"; break;
+        case ShaderStage::Vertex: ret = ToQStr(m_D3D12->name) + lit(" VS"); break;
+        case ShaderStage::Domain: ret = ToQStr(m_D3D12->name) + lit(" DS"); break;
+        case ShaderStage::Hull: ret = ToQStr(m_D3D12->name) + lit(" HS"); break;
+        case ShaderStage::Geometry: ret = ToQStr(m_D3D12->name) + lit(" GS"); break;
+        case ShaderStage::Pixel: ret = ToQStr(m_D3D12->name) + lit(" PS"); break;
+        case ShaderStage::Compute: ret = ToQStr(m_D3D12->name) + lit(" CS"); break;
         default: break;
       }
     }
@@ -469,12 +469,12 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: ret = m_GL->m_VS.ShaderName; break;
-        case ShaderStage::Tess_Control: ret = m_GL->m_TCS.ShaderName; break;
-        case ShaderStage::Tess_Eval: ret = m_GL->m_TES.ShaderName; break;
-        case ShaderStage::Geometry: ret = m_GL->m_GS.ShaderName; break;
-        case ShaderStage::Fragment: ret = m_GL->m_FS.ShaderName; break;
-        case ShaderStage::Compute: ret = m_GL->m_CS.ShaderName; break;
+        case ShaderStage::Vertex: ret = ToQStr(m_GL->m_VS.ShaderName); break;
+        case ShaderStage::Tess_Control: ret = ToQStr(m_GL->m_TCS.ShaderName); break;
+        case ShaderStage::Tess_Eval: ret = ToQStr(m_GL->m_TES.ShaderName); break;
+        case ShaderStage::Geometry: ret = ToQStr(m_GL->m_GS.ShaderName); break;
+        case ShaderStage::Fragment: ret = ToQStr(m_GL->m_FS.ShaderName); break;
+        case ShaderStage::Compute: ret = ToQStr(m_GL->m_CS.ShaderName); break;
         default: break;
       }
     }
@@ -482,12 +482,12 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: ret = m_Vulkan->m_VS.name; break;
-        case ShaderStage::Domain: ret = m_Vulkan->m_TCS.name; break;
-        case ShaderStage::Hull: ret = m_Vulkan->m_TES.name; break;
-        case ShaderStage::Geometry: ret = m_Vulkan->m_GS.name; break;
-        case ShaderStage::Pixel: ret = m_Vulkan->m_FS.name; break;
-        case ShaderStage::Compute: ret = m_Vulkan->m_CS.name; break;
+        case ShaderStage::Vertex: ret = ToQStr(m_Vulkan->m_VS.name); break;
+        case ShaderStage::Domain: ret = ToQStr(m_Vulkan->m_TCS.name); break;
+        case ShaderStage::Hull: ret = ToQStr(m_Vulkan->m_TES.name); break;
+        case ShaderStage::Geometry: ret = ToQStr(m_Vulkan->m_GS.name); break;
+        case ShaderStage::Pixel: ret = ToQStr(m_Vulkan->m_FS.name); break;
+        case ShaderStage::Compute: ret = ToQStr(m_Vulkan->m_CS.name); break;
         default: break;
       }
     }
@@ -641,12 +641,12 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       QVector<VertexInputAttribute> ret(layouts.count);
       for(int i = 0; i < layouts.count; i++)
       {
-        QString semName(layouts[i].SemanticName);
+        QString semName = ToQStr(layouts[i].SemanticName);
 
         bool needsSemanticIdx = false;
         for(int j = 0; j < layouts.count; j++)
         {
-          if(i != j && !semName.compare(QString(layouts[j].SemanticName), Qt::CaseInsensitive))
+          if(i != j && !semName.compare(ToQStr(layouts[j].SemanticName), Qt::CaseInsensitive))
           {
             needsSemanticIdx = true;
             break;
@@ -662,7 +662,8 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         byteOffs[layouts[i].InputSlot] +=
             layouts[i].Format.compByteWidth * layouts[i].Format.compCount;
 
-        ret[i].Name = semName + (needsSemanticIdx ? QString::number(layouts[i].SemanticIndex) : "");
+        ret[i].Name =
+            semName + (needsSemanticIdx ? QString::number(layouts[i].SemanticIndex) : QString());
         ret[i].VertexBuffer = (int)layouts[i].InputSlot;
         ret[i].RelativeByteOffset = offs;
         ret[i].PerInstance = layouts[i].PerInstance;
@@ -676,7 +677,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
           rdctype::array<SigParameter> &sig = m_D3D11->m_IA.Bytecode->InputSig;
           for(int ia = 0; ia < sig.count; ia++)
           {
-            if(!semName.compare(QString(sig[ia].semanticName), Qt::CaseInsensitive) &&
+            if(!semName.compare(ToQStr(sig[ia].semanticName), Qt::CaseInsensitive) &&
                sig[ia].semanticIndex == layouts[i].SemanticIndex)
             {
               ret[i].Used = true;
@@ -697,12 +698,12 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       QVector<VertexInputAttribute> ret(layouts.count);
       for(int i = 0; i < layouts.count; i++)
       {
-        QString semName(layouts[i].SemanticName);
+        QString semName = ToQStr(layouts[i].SemanticName);
 
         bool needsSemanticIdx = false;
         for(int j = 0; j < layouts.count; j++)
         {
-          if(i != j && !semName.compare(QString(layouts[j].SemanticName), Qt::CaseInsensitive))
+          if(i != j && !semName.compare(ToQStr(layouts[j].SemanticName), Qt::CaseInsensitive))
           {
             needsSemanticIdx = true;
             break;
@@ -718,7 +719,8 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         byteOffs[layouts[i].InputSlot] +=
             layouts[i].Format.compByteWidth * layouts[i].Format.compCount;
 
-        ret[i].Name = semName + (needsSemanticIdx ? QString::number(layouts[i].SemanticIndex) : "");
+        ret[i].Name =
+            semName + (needsSemanticIdx ? QString::number(layouts[i].SemanticIndex) : QString());
         ret[i].VertexBuffer = (int)layouts[i].InputSlot;
         ret[i].RelativeByteOffset = offs;
         ret[i].PerInstance = layouts[i].PerInstance;
@@ -732,7 +734,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
           rdctype::array<SigParameter> &sig = m_D3D12->m_VS.ShaderDetails->InputSig;
           for(int ia = 0; ia < sig.count; ia++)
           {
-            if(!semName.compare(QString(sig[ia].semanticName), Qt::CaseInsensitive) &&
+            if(!semName.compare(ToQStr(sig[ia].semanticName), Qt::CaseInsensitive) &&
                sig[ia].semanticIndex == layouts[i].SemanticIndex)
             {
               ret[i].Used = true;
@@ -765,7 +767,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       QVector<VertexInputAttribute> ret(attrs.count);
       for(int i = 0; i < attrs.count && a < num; i++)
       {
-        ret[a].Name = QString("attr%1").arg(i);
+        ret[a].Name = lit("attr%1").arg(i);
         memset(&ret[a].GenericValue, 0, sizeof(PixelValue));
         ret[a].VertexBuffer = (int)attrs[i].BufferSlot;
         ret[a].RelativeByteOffset = attrs[i].RelativeOffset;
@@ -779,7 +781,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
           int attrib = m_GL->m_VS.BindpointMapping.InputAttributes[i];
 
           if(attrib >= 0 && attrib < m_GL->m_VS.ShaderDetails->InputSig.count)
-            ret[a].Name = m_GL->m_VS.ShaderDetails->InputSig[attrib].varName;
+            ret[a].Name = ToQStr(m_GL->m_VS.ShaderDetails->InputSig[attrib].varName);
 
           if(attrib == -1)
             continue;
@@ -842,7 +844,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       QVector<VertexInputAttribute> ret(num);
       for(int i = 0; i < attrs.count && a < num; i++)
       {
-        ret[a].Name = QString("attr%1").arg(i);
+        ret[a].Name = lit("attr%1").arg(i);
         memset(&ret[a].GenericValue, 0, sizeof(PixelValue));
         ret[a].VertexBuffer = (int)attrs[i].binding;
         ret[a].RelativeByteOffset = attrs[i].byteoffset;
@@ -861,7 +863,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
             attrib = m_Vulkan->m_VS.BindpointMapping.InputAttributes[attrs[i].location];
 
           if(attrib >= 0 && attrib < m_Vulkan->m_VS.ShaderDetails->InputSig.count)
-            ret[a].Name = m_Vulkan->m_VS.ShaderDetails->InputSig[attrib].varName;
+            ret[a].Name = ToQStr(m_Vulkan->m_VS.ShaderDetails->InputSig[attrib].varName);
 
           if(attrib == -1)
             continue;

@@ -72,9 +72,9 @@ public:
       ScrollToRow(m_ModelVSIn, row);
   }
   void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
-                  const QString &format = "") override;
+                  const QString &format = QString()) override;
   void ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id,
-                   const QString &format = "") override;
+                   const QString &format = QString()) override;
 
   // ILogViewerForm
   void OnLogfileLoaded() override;

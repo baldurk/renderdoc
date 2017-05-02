@@ -92,30 +92,30 @@ QVariant PipelineStateViewer::persistData()
   QVariantMap state;
 
   if(m_Current == m_D3D11)
-    state["type"] = "D3D11";
+    state[lit("type")] = lit("D3D11");
   else if(m_Current == m_D3D12)
-    state["type"] = "D3D12";
+    state[lit("type")] = lit("D3D12");
   else if(m_Current == m_GL)
-    state["type"] = "GL";
+    state[lit("type")] = lit("GL");
   else if(m_Current == m_Vulkan)
-    state["type"] = "Vulkan";
+    state[lit("type")] = lit("Vulkan");
   else
-    state["type"] = "";
+    state[lit("type")] = lit("");
 
   return state;
 }
 
 void PipelineStateViewer::setPersistData(const QVariant &persistData)
 {
-  QString str = persistData.toMap()["type"].toString();
+  QString str = persistData.toMap()[lit("type")].toString();
 
-  if(str == "D3D11")
+  if(str == lit("D3D11"))
     setToD3D11();
-  else if(str == "D3D12")
+  else if(str == lit("D3D12"))
     setToD3D12();
-  else if(str == "GL")
+  else if(str == lit("GL"))
     setToGL();
-  else if(str == "Vulkan")
+  else if(str == lit("Vulkan"))
     setToVulkan();
 }
 
@@ -201,7 +201,7 @@ bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDet
       QString filename = ToQStr(s.first);
       if(uniqueFiles.contains(filename.toLower()))
       {
-        qWarning() << "Duplicate full filename" << ToQStr(s.first);
+        qWarning() << lit("Duplicate full filename") << ToQStr(s.first);
         continue;
       }
       uniqueFiles.push_back(filename.toLower());
@@ -236,20 +236,21 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
         // possible as fxc only seems to include the source for files if something in
         // that file was included in the compiled output. So you might end up with
         // dangling #includes - we just have to ignore them
-        int offs = compileSource.indexOf("#include");
+        int offs = compileSource.indexOf(lit("#include"));
 
         while(offs >= 0)
         {
           // search back to ensure this is a valid #include (ie. not in a comment).
           // Must only see whitespace before, then a newline.
           int ws = qMax(0, offs - 1);
-          while(ws >= 0 && (compileSource[ws] == ' ' || compileSource[ws] == '\t'))
+          while(ws >= 0 &&
+                (compileSource[ws] == QLatin1Char(' ') || compileSource[ws] == QLatin1Char('\t')))
             ws--;
 
           // not valid? jump to next.
-          if(ws > 0 && compileSource[ws] != '\n')
+          if(ws > 0 && compileSource[ws] != QLatin1Char('\n'))
           {
-            offs = compileSource.indexOf("#include", offs + 1);
+            offs = compileSource.indexOf(lit("#include"), offs + 1);
             continue;
           }
 
@@ -257,7 +258,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
 
           bool tail = true;
 
-          int lineEnd = compileSource.indexOf("\n", start + 1);
+          int lineEnd = compileSource.indexOf(QLatin1Char('\n'), start + 1);
           if(lineEnd == -1)
           {
             lineEnd = compileSource.length();
@@ -265,23 +266,24 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
           }
 
           ws = offs + sizeof("#include") - 1;
-          while(compileSource[ws] == ' ' || compileSource[ws] == '\t')
+          while(compileSource[ws] == QLatin1Char(' ') || compileSource[ws] == QLatin1Char('\t'))
             ws++;
 
           QString line = compileSource.mid(offs, lineEnd - offs + 1);
 
-          if(compileSource[ws] != '<' && compileSource[ws] != '"')
+          if(compileSource[ws] != QLatin1Char('<') && compileSource[ws] != QLatin1Char('"'))
           {
-            viewer->ShowErrors("Invalid #include directive found:\r\n" + line);
+            viewer->ShowErrors(lit("Invalid #include directive found:\r\n") + line);
             return;
           }
 
           // find matching char, either <> or "";
-          int end = compileSource.indexOf(compileSource[ws] == '"' ? '"' : '>', ws + 1);
+          int end = compileSource.indexOf(
+              compileSource[ws] == QLatin1Char('"') ? QLatin1Char('"') : QLatin1Char('>'), ws + 1);
 
           if(end == -1)
           {
-            viewer->ShowErrors("Invalid #include directive found:\r\n" + line);
+            viewer->ShowErrors(lit("Invalid #include directive found:\r\n") + line);
             return;
           }
 
@@ -307,20 +309,20 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
               }
             }
 
-            if(fileText == "")
-              fileText = "// Can't find file " + fname + "\n";
+            if(fileText.isEmpty())
+              fileText = QFormatStr("// Can't find file %1\n").arg(fname);
           }
 
-          compileSource = compileSource.left(offs) + "\n\n" + fileText + "\n\n" +
-                          (tail ? compileSource.mid(lineEnd + 1) : "");
+          compileSource = compileSource.left(offs) + lit("\n\n") + fileText + lit("\n\n") +
+                          (tail ? compileSource.mid(lineEnd + 1) : QString());
 
           // need to start searching from the beginning - wasteful but allows nested includes to
           // work
-          offs = compileSource.indexOf("#include");
+          offs = compileSource.indexOf(lit("#include"));
         }
 
-        if(updatedfiles.contains("@cmdline"))
-          compileSource = updatedfiles["@cmdline"] + "\n\n" + compileSource;
+        if(updatedfiles.contains(lit("@cmdline")))
+          compileSource = updatedfiles[lit("@cmdline")] + lit("\n\n") + compileSource;
 
         // invoke off to the ReplayController to replace the log's shader
         // with our edited one
@@ -385,7 +387,7 @@ bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
 
   QString filename = RDDialog::getSaveFileName(this, tr("Save Shader As"), QString(), filter);
 
-  if(filename != "")
+  if(!filename.isEmpty())
   {
     QDir dirinfo = QFileInfo(filename).dir();
     if(dirinfo.exists())

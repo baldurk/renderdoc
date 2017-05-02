@@ -65,13 +65,13 @@ TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, const TextureS
   ui->whitePoint->setText(Formatter::Format(saveData.comp.whitePoint));
 
   for(uint32_t i = 0; i < tex.mips; i++)
-    ui->mipSelect->addItem(QString::number(i) + " - " + QString::number(qMax(1U, tex.width >> i)) +
-                           "x" + QString::number(qMax(1U, tex.height >> i)));
+    ui->mipSelect->addItem(
+        QFormatStr("%1 - %2x%3").arg(i).arg(qMax(1U, tex.width >> i)).arg(qMax(1U, tex.height >> i)));
 
   ui->mipSelect->setCurrentIndex(saveData.mip >= 0 ? saveData.mip : 0);
 
   for(uint32_t i = 0; i < tex.msSamp; i++)
-    ui->sampleSelect->addItem(QString("Sample %1").arg(i));
+    ui->sampleSelect->addItem(tr("Sample %1").arg(i));
 
   ui->sampleSelect->setCurrentIndex(qMin(
       (int)tex.msSamp, (saveData.sample.sampleIndex == ~0U ? 0 : (int)saveData.sample.sampleIndex)));
@@ -85,7 +85,7 @@ TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, const TextureS
     ui->oneSample->setChecked(true);
   }
 
-  const char *cubeFaces[] = {"X+", "X-", "Y+", "Y-", "Z+", "Z-"};
+  const QString cubeFaces[] = {lit("X+"), lit("X-"), lit("Y+"), lit("Y-"), lit("Z+"), lit("Z-")};
 
   uint32_t numSlices = qMax(tex.arraysize, tex.depth);
 
@@ -96,12 +96,12 @@ TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, const TextureS
       QString name = cubeFaces[i % 6];
       // Front 1, Back 2, 3, 4 etc for cube arrays
       if(numSlices > 6)
-        name = QString("[%1] %2").arg(i / 6).arg(cubeFaces[i % 6]);
+        name = QFormatStr("[%1] %2").arg(i / 6).arg(cubeFaces[i % 6]);
       ui->sliceSelect->addItem(name);
     }
     else
     {
-      ui->sliceSelect->addItem(QString("Slice %1").arg(i));
+      ui->sliceSelect->addItem(tr("Slice %1").arg(i));
     }
   }
 
@@ -161,7 +161,7 @@ void TextureSaveDialog::SetFilenameFromFiletype()
   {
     QString selectedExt = ToQStr((FileType)idx).toLower();
 
-    if(ext != selectedExt && ext != "")
+    if(ext != selectedExt && !ext.isEmpty())
     {
       QString fn = ui->filename->text();
       fn.chop(ext.length());
@@ -495,24 +495,24 @@ void TextureSaveDialog::on_whitePoint_textEdited(const QString &arg)
 
 void TextureSaveDialog::on_browse_clicked()
 {
-  QString filter = "";
+  QString filter;
 
   for(FileType i : values<FileType>())
   {
     QString ext = ToQStr(i);
 
     if(filter.length() > 0)
-      filter += ";;";
+      filter += lit(";;");
     filter += tr("%1 Files (*.%2)").arg(ext).arg(ext.toLower());
   }
 
   QString *selectedFilter = NULL;
 
   QString filename =
-      RDDialog::getSaveFileName(this, tr("Save Texture As"), "", filter, selectedFilter);
+      RDDialog::getSaveFileName(this, tr("Save Texture As"), QString(), filter, selectedFilter);
 
   QFileInfo checkFile(filename);
-  if(filename != "")
+  if(!filename.isEmpty())
   {
     ui->filename->setText(filename);
     SetFiletypeFromFilename();

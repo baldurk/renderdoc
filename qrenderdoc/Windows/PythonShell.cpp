@@ -49,7 +49,7 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
   scriptEditor->setMarginWidthN(0, 32);
   scriptEditor->setMarginWidthN(1, 0);
   scriptEditor->setMarginWidthN(2, 16);
-  scriptEditor->setObjectName("scriptEditor");
+  scriptEditor->setObjectName(lit("scriptEditor"));
 
   scriptEditor->markerSetBack(CURRENT_MARKER, SCINTILLA_COLOUR(240, 128, 128));
   scriptEditor->markerSetBack(CURRENT_MARKER + 1, SCINTILLA_COLOUR(240, 128, 128));
@@ -102,7 +102,7 @@ void PythonShell::on_execute_clicked()
 {
   QString command = ui->lineInput->text();
 
-  appendText(ui->interactiveOutput, command + "\n");
+  appendText(ui->interactiveOutput, command + lit("\n"));
 
   if(command.trimmed().length() > 0)
     interactiveContext->executeString(command, true);
@@ -112,14 +112,14 @@ void PythonShell::on_execute_clicked()
 
   ui->lineInput->clear();
 
-  appendText(ui->interactiveOutput, ">> ");
+  appendText(ui->interactiveOutput, lit(">> "));
 }
 
 void PythonShell::on_clear_clicked()
 {
   QString minidocHeader = scriptHeader();
 
-  minidocHeader += "\n\n>> ";
+  minidocHeader += lit("\n\n>> ");
 
   ui->interactiveOutput->setText(minidocHeader);
 
@@ -133,9 +133,9 @@ void PythonShell::on_newScript_clicked()
 {
   QString minidocHeader = scriptHeader();
 
-  minidocHeader.replace('\n', "\n# ");
+  minidocHeader.replace(QLatin1Char('\n'), lit("\n# "));
 
-  minidocHeader = "# " + minidocHeader + "\n\n";
+  minidocHeader = QFormatStr("# %1\n\n").arg(minidocHeader);
 
   scriptEditor->setText(minidocHeader.toUtf8().data());
 
@@ -144,10 +144,10 @@ void PythonShell::on_newScript_clicked()
 
 void PythonShell::on_openScript_clicked()
 {
-  QString filename =
-      RDDialog::getOpenFileName(this, "Open Python Script", "", tr("Python scripts (*.py)"));
+  QString filename = RDDialog::getOpenFileName(this, tr("Open Python Script"), QString(),
+                                               tr("Python scripts (*.py)"));
 
-  if(filename != "")
+  if(!filename.isEmpty())
   {
     QFile f(filename);
     if(f.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -156,7 +156,8 @@ void PythonShell::on_openScript_clicked()
     }
     else
     {
-      RDDialog::critical(this, "Error loading script", tr("Couldn't open path %1.").arg(filename));
+      RDDialog::critical(this, tr("Error loading script"),
+                         tr("Couldn't open path %1.").arg(filename));
     }
   }
 }
@@ -166,7 +167,7 @@ void PythonShell::on_saveScript_clicked()
   QString filename = RDDialog::getSaveFileName(this, tr("Save Python Script"), QString(),
                                                tr("Python scripts (*.py)"));
 
-  if(filename != "")
+  if(!filename.isEmpty())
   {
     QDir dirinfo = QFileInfo(filename).dir();
     if(dirinfo.exists())
@@ -204,7 +205,7 @@ void PythonShell::on_runScript_clicked()
   LambdaThread *thread = new LambdaThread([this, script, context]() {
 
     scriptContext = context;
-    context->executeString("script.py", script);
+    context->executeString(lit("script.py"), script);
     scriptContext = NULL;
 
     context->Finish();
@@ -242,15 +243,15 @@ void PythonShell::exception(const QString &type, const QString &value, QList<QSt
 
   QString exString;
 
-  if(!out->toPlainText().endsWith('\n'))
-    exString = "\n";
+  if(!out->toPlainText().endsWith(QLatin1Char('\n')))
+    exString = lit("\n");
   if(!frames.isEmpty())
   {
-    exString += "Traceback (most recent call last):\n";
+    exString += tr("Traceback (most recent call last):\n");
     for(const QString &f : frames)
-      exString += QString("  %1\n").arg(f);
+      exString += QFormatStr("  %1\n").arg(f);
   }
-  exString += QString("%1: %2\n").arg(type).arg(value);
+  exString += QFormatStr("%1: %2\n").arg(type).arg(value);
 
   appendText(out, exString);
 }
@@ -278,7 +279,7 @@ void PythonShell::interactive_keypress(QKeyEvent *event)
     moved = true;
   }
 
-  QString workingtext = "";
+  QString workingtext;
 
   if(event->key() == Qt::Key_Up && historyidx + 1 < history.count())
   {

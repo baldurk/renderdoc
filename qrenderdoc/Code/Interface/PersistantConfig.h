@@ -59,19 +59,19 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
 // Note that only public properties should be documented.
 #define CONFIG_SETTINGS()                                                                  \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, LastLogPath, "")                            \
+  CONFIG_SETTING_VAL(public, QString, QString, LastLogPath, QString())                     \
                                                                                            \
   CONFIG_SETTING(public, QVariantList, QList<QString>, RecentLogFiles)                     \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, LastCapturePath, "")                        \
+  CONFIG_SETTING_VAL(public, QString, QString, LastCapturePath, QString())                 \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, LastCaptureExe, "")                         \
+  CONFIG_SETTING_VAL(public, QString, QString, LastCaptureExe, QString())                  \
                                                                                            \
   CONFIG_SETTING(public, QVariantList, QList<QString>, RecentCaptureSettings)              \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, TemporaryCaptureDirectory, "")              \
+  CONFIG_SETTING_VAL(public, QString, QString, TemporaryCaptureDirectory, QString())       \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, DefaultCaptureSaveDirectory, "")            \
+  CONFIG_SETTING_VAL(public, QString, QString, DefaultCaptureSaveDirectory, QString())     \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_ResetRange, false)                  \
                                                                                            \
@@ -105,7 +105,7 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, Font_PreferMonospaced, false)                     \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, Android_AdbExecutablePath, "")              \
+  CONFIG_SETTING_VAL(public, QString, QString, Android_AdbExecutablePath, QString())       \
                                                                                            \
   CONFIG_SETTING_VAL(public, int, int, Android_MaxConnectTimeout, 30)                      \
                                                                                            \
@@ -113,7 +113,7 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_UpdateAvailable, false)               \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, CheckUpdate_UpdateResponse, "")             \
+  CONFIG_SETTING_VAL(public, QString, QString, CheckUpdate_UpdateResponse, QString())      \
                                                                                            \
   CONFIG_SETTING_VAL(public, QDateTime, QDateTime, CheckUpdate_LastUpdate,                 \
                      QDateTime(QDate(2012, 06, 27), QTime(0, 0, 0)))                       \
@@ -166,15 +166,15 @@ DOCUMENT(R"(Gets the suffix for a time unit.
 inline QString UnitSuffix(TimeUnit unit)
 {
   if(unit == TimeUnit::Seconds)
-    return "s";
+    return lit("s");
   else if(unit == TimeUnit::Milliseconds)
-    return "ms";
+    return lit("ms");
   else if(unit == TimeUnit::Microseconds)
-    return "µs";
+    return lit("µs");
   else if(unit == TimeUnit::Nanoseconds)
-    return "ns";
+    return lit("ns");
 
-  return "s";
+  return lit("s");
 }
 
 DOCUMENT(R"(Checks if a given file is in a list. If it is, then it's shuffled to the end. If it's

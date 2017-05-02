@@ -13,6 +13,27 @@
 
 #include <functional>
 
+// For string literals - use either tr() for translated strings, lit() for untranslated strings, or
+// QFormatStr for the special case of literals without text used to format text with .arg().
+//
+// A default constructed QString() should be preferred to "".
+//
+// Instead of comparisons to "", use .isEmpty() - either !foo.isEmpty() for foo != "" or
+// foo.isEmpty() for foo == "".
+
+// this macro is fairly small/non-namespaced which is generally not good, but it's intended to
+// be correspond to the tr() function in QObject, but for string literals. It makes the code a
+// little bit more readable.
+//
+// If you have some text which should not be translated, then it should use lit().
+#define lit(a) QStringLiteral(a)
+
+// Same as lit() above, but only for formatting strings like QFormatStr("%1: %2[%3]").
+// Note that tr() and lit() can format as well, so if there's text in the format string like
+// QFormatStr("Sprocket thingy: %1.%2") then it should use either tr() or lit() depending on whether
+// or not it should be translated
+#define QFormatStr(fmt) QStringLiteral(fmt)
+
 // we depend on the internal RenderDoc API, but the bindings for that are imported entirely
 #include "renderdoc_replay.h"
 
@@ -191,7 +212,7 @@ struct IBufferViewer
 :param str format: Optionally a HLSL/GLSL style formatting string.
 )");
   virtual void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
-                          const QString &format = "") = 0;
+                          const QString &format = QString()) = 0;
   DOCUMENT(R"(In a raw buffer viewer, load the contents from a particular texture resource.
 
 :param int arrayIdx: The array slice to load from.
@@ -200,7 +221,7 @@ struct IBufferViewer
 :param str format: Optionally a HLSL/GLSL style formatting string.
 )");
   virtual void ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id,
-                           const QString &format = "") = 0;
+                           const QString &format = QString()) = 0;
 
 protected:
   IBufferViewer() = default;
@@ -1159,7 +1180,7 @@ through the execution of a given shader.
 :rtype: BufferViewer
 )");
   virtual IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
-                                    const QString &format = "") = 0;
+                                    const QString &format = QString()) = 0;
 
   DOCUMENT(R"(Show a new :class:`BufferViewer` window, showing a read-only view of a texture's raw
 bytes.
@@ -1172,7 +1193,7 @@ bytes.
 :rtype: BufferViewer
 )");
   virtual IBufferViewer *ViewTextureAsBuffer(uint32_t arrayIdx, uint32_t mip, ResourceId id,
-                                             const QString &format = "") = 0;
+                                             const QString &format = QString()) = 0;
 
   DOCUMENT(R"(Show a new :class:`ConstantBufferPreviewer` window, showing a read-only view of a the
 variables in a constant buffer with their values.

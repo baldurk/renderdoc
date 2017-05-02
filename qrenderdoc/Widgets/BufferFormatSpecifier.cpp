@@ -34,7 +34,7 @@ BufferFormatSpecifier::BufferFormatSpecifier(QWidget *parent)
 
   QObject::connect(ui->toggleHelp, &QPushButton::clicked, this, &BufferFormatSpecifier::toggleHelp);
 
-  setErrors("");
+  setErrors(QString());
 
   ui->formatText->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 }
@@ -81,6 +81,6 @@ void BufferFormatSpecifier::showHelp(bool help)
 
 void BufferFormatSpecifier::on_apply_clicked()
 {
-  setErrors("");
+  setErrors(QString());
   emit processFormat(ui->formatText->toPlainText());
 }

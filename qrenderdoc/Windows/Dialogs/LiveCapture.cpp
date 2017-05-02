@@ -84,7 +84,7 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, uint32_t
     rightAlign->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     bottomTools->addWidget(rightAlign);
 
-    previewToggle = new QAction("Preview", this);
+    previewToggle = new QAction(tr("Preview"), this);
     previewToggle->setCheckable(true);
 
     bottomTools->addAction(previewToggle);
@@ -97,7 +97,7 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, uint32_t
     openMenu->addAction(newWindowAction);
 
     openButton = new QToolButton(this);
-    openButton->setText("Open");
+    openButton->setText(tr("Open"));
     openButton->setPopupMode(QToolButton::MenuButtonPopup);
     openButton->setMenu(openMenu);
 
@@ -119,8 +119,8 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, uint32_t
     ui->mainLayout->addWidget(bottomTools);
 
     bottomTools->setStyleSheet(
-        "background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,"
-        "stop: 0 #E1E1E1, stop: 1.0 #D3D3D3);");
+        lit("background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,"
+            "stop: 0 #E1E1E1, stop: 1.0 #D3D3D3);"));
   }
 }
 
@@ -272,7 +272,7 @@ void LiveCapture::openNewWindow_triggered()
     }
 
     QStringList args;
-    args << "--tempfile" << temppath;
+    args << lit("--tempfile") << temppath;
     QProcess::startDetached(qApp->applicationFilePath(), args);
   }
 }
@@ -385,7 +385,7 @@ void LiveCapture::childUpdate()
       {
         if(!m_Children[i].added)
         {
-          QString name = "unknown";
+          QString name = tr("Unknown Process");
 
           // find the name
           for(QProcessInfo &p : processes)
@@ -397,7 +397,7 @@ void LiveCapture::childUpdate()
             }
           }
 
-          QString text = QString("%1 [PID %2]").arg(name).arg(m_Children[i].PID);
+          QString text = QFormatStr("%1 [PID %2]").arg(name).arg(m_Children[i].PID);
 
           m_Children[i].added = true;
           QListWidgetItem *item = new QListWidgetItem(text, ui->childProcesses);
@@ -450,7 +450,7 @@ void LiveCapture::killThread()
 
 void LiveCapture::setTitle(const QString &title)
 {
-  setWindowTitle((m_Hostname != "" ? (m_Hostname + " - ") : "") + title);
+  setWindowTitle((!m_Hostname.isEmpty() ? (m_Hostname + lit(" - ")) : QString()) + title);
 }
 
 LiveCapture::CaptureLog *LiveCapture::GetLog(QListWidgetItem *item)
@@ -525,10 +525,10 @@ QString LiveCapture::MakeText(CaptureLog *log)
 {
   QString text = log->exe;
   if(!log->local)
-    text += " (Remote)";
+    text += tr(" (Remote)");
 
-  text += "\n" + log->api;
-  text += "\n" + log->timestamp.toString("yyyy-MM-dd HH:mm:ss");
+  text += lit("\n") + log->api;
+  text += lit("\n") + log->timestamp.toString(lit("yyyy-MM-dd HH:mm:ss"));
 
   return text;
 }
@@ -556,11 +556,11 @@ bool LiveCapture::checkAllowClose()
 
     if(!suppressRemoteWarning)
     {
-      res =
-          RDDialog::question(this, tr("Unsaved log"), tr("Save this logfile from %1 at %2?")
-                                                          .arg(log->exe)
-                                                          .arg(log->timestamp.toString("HH:mm:ss")),
-                             RDDialog::YesNoCancel);
+      res = RDDialog::question(this, tr("Unsaved log"),
+                               tr("Save this logfile from %1 at %2?")
+                                   .arg(log->exe)
+                                   .arg(log->timestamp.toString(lit("HH:mm:ss"))),
+                               RDDialog::YesNoCancel);
     }
 
     if(res == QMessageBox::Cancel)
@@ -641,7 +641,7 @@ bool LiveCapture::saveCapture(CaptureLog *log)
 
   // we copy the temp log to the desired path, but the log item remains referring to the temp path.
   // This ensures that if the user deletes the saved path we can still open or re-save it.
-  if(path != "")
+  if(!path.isEmpty())
   {
     if(log->local)
     {
@@ -930,7 +930,7 @@ void LiveCapture::connectionThreadEntry()
   if(!m_Connection || !m_Connection->Connected())
   {
     GUIInvoke::call([this]() {
-      setTitle("Connection failed");
+      setTitle(tr("Connection failed"));
       ui->connectionStatus->setText(tr("Connection failed"));
       ui->connectionIcon->setPixmap(Pixmaps::del());
 
@@ -942,7 +942,7 @@ void LiveCapture::connectionThreadEntry()
 
   GUIInvoke::call([this]() {
     QString api = QString::fromUtf8(m_Connection->GetAPI());
-    if(api == "")
+    if(api.isEmpty())
       api = tr("No API detected");
 
     QString target = QString::fromUtf8(m_Connection->GetTarget());
@@ -957,7 +957,7 @@ void LiveCapture::connectionThreadEntry()
     {
       ui->connectionStatus->setText(
           tr("Connection established to %1 [PID %2] (%3)").arg(target).arg(pid).arg(api));
-      setTitle(QString("%1 [PID %2]").arg(target).arg(pid));
+      setTitle(QFormatStr("%1 [PID %2]").arg(target).arg(pid));
     }
     ui->connectionIcon->setPixmap(Pixmaps::connect());
   });
@@ -977,10 +977,10 @@ void LiveCapture::connectionThreadEntry()
       m_CaptureFrameNum = 0;
     }
 
-    if(m_CopyLogLocalPath != "")
+    if(!m_CopyLogLocalPath.isEmpty())
     {
       m_Connection->CopyCapture(m_CopyLogID, m_CopyLogLocalPath.toUtf8().data());
-      m_CopyLogLocalPath = "";
+      m_CopyLogLocalPath = QString();
       m_CopyLogID = ~0U;
     }
 
@@ -1018,7 +1018,7 @@ void LiveCapture::connectionThreadEntry()
         {
           ui->connectionStatus->setText(
               tr("Connection established to %1 [PID %2] (%3)").arg(target).arg(pid).arg(api));
-          setTitle(QString("%1 [PID %2]").arg(target).arg(pid));
+          setTitle(QFormatStr("%1 [PID %2]").arg(target).arg(pid));
         }
         ui->connectionIcon->setPixmap(Pixmaps::connect());
       });

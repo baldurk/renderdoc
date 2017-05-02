@@ -29,6 +29,9 @@ INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/flowlayout
 INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/include/qt
 INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/include
 
+# Disable conversions to/from const char * in QString
+DEFINES += QT_NO_CAST_FROM_ASCII QT_NO_CAST_TO_ASCII
+
 # Different output folders per platform
 win32 {
 

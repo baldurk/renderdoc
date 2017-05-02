@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <QApplication>
 #include <QRegularExpression>
 #include <QtMath>
 #include "QRDUtils.h"
@@ -112,7 +113,6 @@ static QVariant interpret(const ResourceFormat &f, byte comp)
 
 FormatElement::FormatElement()
 {
-  name = "";
   buffer = 0;
   offset = 0;
   perinstance = false;
@@ -146,42 +146,42 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
   // regex doesn't account for trailing or preceeding whitespace, or comments
 
   QRegularExpression regExpr(
-      "^(row_major\\s+)?"    // row_major matrix
-      "("
-      "uintten|unormten"
-      "|floateleven"
-      "|unormh|unormb"
-      "|snormh|snormb"
-      "|bool"                 // bool is stored as 4-byte int
-      "|byte|short|int"       // signed ints
-      "|ubyte|ushort|uint"    // unsigned ints
-      "|xbyte|xshort|xint"    // hex ints
-      "|half|float|double"    // float types
-      "|vec|uvec|ivec"        // OpenGL vector types
-      "|mat|umat|imat"        // OpenGL matrix types
-      ")"
-      "([1-9])?"                              // might be a vector
-      "(x[1-9])?"                             // or a matrix
-      "(\\s+[A-Za-z_][A-Za-z0-9_]*)?"         // get identifier name
-      "(\\[[0-9]+\\])?"                       // optional array dimension
-      "(\\s*:\\s*[A-Za-z_][A-Za-z0-9_]*)?"    // optional semantic
-      "$");
+      lit("^(row_major\\s+)?"    // row_major matrix
+          "("
+          "uintten|unormten"
+          "|floateleven"
+          "|unormh|unormb"
+          "|snormh|snormb"
+          "|bool"                 // bool is stored as 4-byte int
+          "|byte|short|int"       // signed ints
+          "|ubyte|ushort|uint"    // unsigned ints
+          "|xbyte|xshort|xint"    // hex ints
+          "|half|float|double"    // float types
+          "|vec|uvec|ivec"        // OpenGL vector types
+          "|mat|umat|imat"        // OpenGL matrix types
+          ")"
+          "([1-9])?"                              // might be a vector
+          "(x[1-9])?"                             // or a matrix
+          "(\\s+[A-Za-z_][A-Za-z0-9_]*)?"         // get identifier name
+          "(\\[[0-9]+\\])?"                       // optional array dimension
+          "(\\s*:\\s*[A-Za-z_][A-Za-z0-9_]*)?"    // optional semantic
+          "$"));
 
   bool success = true;
-  errors = "";
+  errors = QString();
 
   QString text = formatString;
 
-  text = text.replace("{", "").replace("}", "");
+  text = text.replace(lit("{"), QString()).replace(lit("}"), QString());
 
-  QRegularExpression c_comments("/\\*[^*]*\\*+(?:[^*/][^*]*\\*+)*/");
-  QRegularExpression cpp_comments("//.*");
-  text = text.replace(c_comments, "").replace(cpp_comments, "");
+  QRegularExpression c_comments(lit("/\\*[^*]*\\*+(?:[^*/][^*]*\\*+)*/"));
+  QRegularExpression cpp_comments(lit("//.*"));
+  text = text.replace(c_comments, QString()).replace(cpp_comments, QString());
 
   uint32_t offset = 0;
 
   // get each line and parse it to determine the format the user wanted
-  for(QString &l : text.split(QChar(';')))
+  for(QString &l : text.split(QLatin1Char(';')))
   {
     QString line = l.trimmed();
 
@@ -192,17 +192,17 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
 
     if(!match.hasMatch())
     {
-      errors = "Couldn't parse line:\n" + line;
+      errors = tr("Couldn't parse line: %1\n").arg(line);
       success = false;
       break;
     }
 
     QString basetype = match.captured(2);
     bool row_major = !match.captured(1).isEmpty();
-    QString vectorDim = !match.captured(3).isEmpty() ? match.captured(3) : "1";
-    QString matrixDim = !match.captured(4).isEmpty() ? match.captured(4).mid(1) : "1";
-    QString name = !match.captured(5).isEmpty() ? match.captured(5).trimmed() : "data";
-    QString arrayDim = !match.captured(6).isEmpty() ? match.captured(6).trimmed() : "[1]";
+    QString vectorDim = !match.captured(3).isEmpty() ? match.captured(3) : lit("1");
+    QString matrixDim = !match.captured(4).isEmpty() ? match.captured(4).mid(1) : lit("1");
+    QString name = !match.captured(5).isEmpty() ? match.captured(5).trimmed() : lit("data");
+    QString arrayDim = !match.captured(6).isEmpty() ? match.captured(6).trimmed() : lit("[1]");
     arrayDim = arrayDim.mid(1, arrayDim.count() - 2);
 
     if(!match.captured(4).isEmpty())
@@ -222,7 +222,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
     uint32_t width = 0;
 
     // check for square matrix declarations like 'mat4' and 'mat3'
-    if(basetype == "mat" && !match.captured(4).isEmpty())
+    if(basetype == lit("mat") && !match.captured(4).isEmpty())
       matrixDim = vectorDim;
 
     // calculate format
@@ -232,7 +232,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
       count = vectorDim.toUInt(&ok);
       if(!ok)
       {
-        errors = "Invalid vector dimension on line:\n" + line;
+        errors = tr("Invalid vector dimension on line: %1\n").arg(line);
         success = false;
         break;
       }
@@ -247,82 +247,83 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
       matrixCount = matrixDim.toUInt(&ok);
       if(!ok)
       {
-        errors = "Invalid matrix second dimension on line:\n" + line;
+        errors = tr("Invalid matrix second dimension on line: %1\n").arg(line);
         success = false;
         break;
       }
 
-      if(basetype == "bool")
+      if(basetype == lit("bool"))
       {
         type = CompType::UInt;
         width = 4;
       }
-      else if(basetype == "byte")
+      else if(basetype == lit("byte"))
       {
         type = CompType::SInt;
         width = 1;
       }
-      else if(basetype == "ubyte" || basetype == "xbyte")
+      else if(basetype == lit("ubyte") || basetype == lit("xbyte"))
       {
         type = CompType::UInt;
         width = 1;
       }
-      else if(basetype == "short")
+      else if(basetype == lit("short"))
       {
         type = CompType::SInt;
         width = 2;
       }
-      else if(basetype == "ushort" || basetype == "xshort")
+      else if(basetype == lit("ushort") || basetype == lit("xshort"))
       {
         type = CompType::UInt;
         width = 2;
       }
-      else if(basetype == "int" || basetype == "ivec" || basetype == "imat")
+      else if(basetype == lit("int") || basetype == lit("ivec") || basetype == lit("imat"))
       {
         type = CompType::SInt;
         width = 4;
       }
-      else if(basetype == "uint" || basetype == "xint" || basetype == "uvec" || basetype == "umat")
+      else if(basetype == lit("uint") || basetype == lit("xint") || basetype == lit("uvec") ||
+              basetype == lit("umat"))
       {
         type = CompType::UInt;
         width = 4;
       }
-      else if(basetype == "half")
+      else if(basetype == lit("half"))
       {
         type = CompType::Float;
         width = 2;
       }
-      else if(basetype == "float" || basetype == "vec" || basetype == "mat")
+      else if(basetype == lit("float") || basetype == lit("vec") || basetype == lit("mat"))
       {
         type = CompType::Float;
         width = 4;
       }
-      else if(basetype == "double")
+      else if(basetype == lit("double"))
       {
         type = CompType::Double;
         width = 8;
       }
-      else if(basetype == "unormh")
+      else if(basetype == lit("unormh"))
       {
         type = CompType::UNorm;
         width = 2;
       }
-      else if(basetype == "unormb")
+      else if(basetype == lit("unormb"))
       {
         type = CompType::UNorm;
         width = 1;
       }
-      else if(basetype == "snormh")
+      else if(basetype == lit("snormh"))
       {
         type = CompType::SNorm;
         width = 2;
       }
-      else if(basetype == "snormb")
+      else if(basetype == lit("snormb"))
       {
         type = CompType::SNorm;
         width = 1;
       }
-      else if(basetype == "uintten")
+      else if(basetype == lit("uintten"))
       {
         fmt.compType = CompType::UInt;
         fmt.compCount = 4 * count;
@@ -330,7 +331,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
         fmt.special = true;
         fmt.specialFormat = SpecialFormat::R10G10B10A2;
       }
-      else if(basetype == "unormten")
+      else if(basetype == lit("unormten"))
       {
         fmt.compType = CompType::UInt;
         fmt.compCount = 4 * count;
@@ -338,7 +339,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
         fmt.special = true;
         fmt.specialFormat = SpecialFormat::R10G10B10A2;
       }
-      else if(basetype == "floateleven")
+      else if(basetype == lit("floateleven"))
       {
         fmt.compType = CompType::Float;
         fmt.compCount = 3 * count;
@@ -348,13 +349,13 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
       }
       else
       {
-        errors = "Unrecognised basic type on line:\n" + line;
+        errors = tr("Unrecognised basic type on line: %1\n").arg(line);
         success = false;
         break;
       }
     }
 
-    if(basetype == "xint" || basetype == "xshort" || basetype == "xbyte")
+    if(basetype == lit("xint") || basetype == lit("xshort") || basetype == lit("xbyte"))
       hex = true;
 
     if(fmt.compType == CompType::Typeless)
@@ -400,7 +401,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
 
       for(uint a = 0; a < arrayCount; a++)
       {
-        FormatElement elem(QString("%1[%2]").arg(name).arg(a), 0, offset, false, 1, row_major,
+        FormatElement elem(QFormatStr("%1[%2]").arg(name).arg(a), 0, offset, false, 1, row_major,
                            matrixCount, fmt, hex);
 
         elems.push_back(elem);
@@ -432,7 +433,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
     if(maxLen > 0 && maxLen < 4)
       fmt.compByteWidth = 1;
 
-    elems.push_back(FormatElement("data", 0, 0, false, 1, false, 1, fmt, true));
+    elems.push_back(FormatElement(lit("data"), 0, 0, false, 1, false, 1, fmt, true));
   }
 
   return elems;
@@ -826,22 +827,22 @@ QString TypeString(const ShaderVariable &v)
   if(v.members.count > 0)
   {
     if(v.isStruct)
-      return "struct";
+      return lit("struct");
     else
-      return QString("%1[%2]").arg(TypeString(v.members[0]), v.members.count);
+      return QFormatStr("%1[%2]").arg(TypeString(v.members[0]), v.members.count);
   }
 
   QString typeStr = ToQStr(v.type);
 
   if(v.displayAsHex && v.type == VarType::UInt)
-    typeStr = "xint";
+    typeStr = lit("xint");
 
   if(v.rows == 1 && v.columns == 1)
     return typeStr;
   if(v.rows == 1)
-    return QString("%1%2").arg(typeStr).arg(v.columns);
+    return QFormatStr("%1%2").arg(typeStr).arg(v.columns);
   else
-    return QString("%1%2x%3").arg(typeStr).arg(v.rows).arg(v.columns);
+    return QFormatStr("%1%2x%3").arg(typeStr).arg(v.rows).arg(v.columns);
 }
 
 template <typename el>
@@ -850,12 +851,18 @@ static QString RowValuesToString(int cols, el x, el y, el z, el w)
   if(cols == 1)
     return Formatter::Format(x);
   else if(cols == 2)
-    return Formatter::Format(x) + ", " + Formatter::Format(y);
+    return QFormatStr("%1, %2").arg(Formatter::Format(x)).arg(Formatter::Format(y));
   else if(cols == 3)
-    return Formatter::Format(x) + ", " + Formatter::Format(y) + ", " + Formatter::Format(z);
+    return QFormatStr("%1, %2, %3, %4")
+        .arg(Formatter::Format(x))
+        .arg(Formatter::Format(y))
+        .arg(Formatter::Format(z));
   else
-    return Formatter::Format(x) + ", " + Formatter::Format(y) + ", " + Formatter::Format(z) + ", " +
-           Formatter::Format(w);
+    return QFormatStr("%1, %2, %3, %4")
+        .arg(Formatter::Format(x))
+        .arg(Formatter::Format(y))
+        .arg(Formatter::Format(z))
+        .arg(Formatter::Format(w));
 }
 
 QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
@@ -884,20 +891,20 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
 QString VarString(const ShaderVariable &v)
 {
   if(v.members.count > 0)
-    return "";
+    return QString();
 
   if(v.rows == 1)
     return RowString(v, 0);
 
-  QString ret = "";
+  QString ret;
   for(int i = 0; i < (int)v.rows; i++)
   {
     if(i > 0)
-      ret += ", ";
-    ret += "{" + RowString(v, i) + "}";
+      ret += lit(", ");
+    ret += lit("{") + RowString(v, i) + lit("}");
   }
 
-  return "{ " + ret + " }";
+  return lit("{ ") + ret + lit(" }");
 }
 
 QString RowTypeString(const ShaderVariable &v)
@@ -905,21 +912,21 @@ QString RowTypeString(const ShaderVariable &v)
   if(v.members.count > 0)
   {
     if(v.isStruct)
-      return "struct";
+      return lit("struct");
     else
-      return "flibbertygibbet";
+      return lit("flibbertygibbet");
   }
 
   if(v.rows == 0 && v.columns == 0)
-    return "-";
+    return lit("-");
 
   QString typeStr = ToQStr(v.type);
 
   if(v.displayAsHex && v.type == VarType::UInt)
-    typeStr = "xint";
+    typeStr = lit("xint");
 
   if(v.columns == 1)
     return typeStr;
 
-  return QString("%1%2").arg(typeStr).arg(v.columns);
+  return QFormatStr("%1%2").arg(typeStr).arg(v.columns);
 }

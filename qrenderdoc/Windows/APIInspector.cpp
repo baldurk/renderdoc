@@ -33,13 +33,13 @@ APIInspector::APIInspector(ICaptureContext &ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
-  ui->apiEvents->setColumns({"EID", tr("Event")});
+  ui->apiEvents->setColumns({lit("EID"), tr("Event")});
 
   ui->splitter->setCollapsible(1, true);
   ui->splitter->setSizes({1, 0});
 
   RDSplitterHandle *handle = (RDSplitterHandle *)ui->splitter->handle(1);
-  handle->setTitle("Callstack");
+  handle->setTitle(tr("Callstack"));
   handle->setIndex(1);
   handle->setCollapsed(true);
 
@@ -118,8 +118,8 @@ void APIInspector::fillAPIView()
   ui->apiEvents->setUpdatesEnabled(false);
   ui->apiEvents->clear();
 
-  QRegularExpression rgxopen("^\\s*{");
-  QRegularExpression rgxclose("^\\s*}");
+  QRegularExpression rgxopen(lit("^\\s*{"));
+  QRegularExpression rgxclose(lit("^\\s*}"));
 
   const DrawcallDescription *draw = m_Ctx.CurSelectedDrawcall();
 
@@ -127,13 +127,13 @@ void APIInspector::fillAPIView()
   {
     for(const APIEvent &ev : draw->events)
     {
-      QStringList lines = ToQStr(ev.eventDesc).split("\n", QString::SkipEmptyParts);
+      QStringList lines = ToQStr(ev.eventDesc).split(lit("\n"), QString::SkipEmptyParts);
 
       RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventID), lines[0]});
 
       int i = 1;
 
-      if(i < lines.count() && lines[i].trimmed() == "{")
+      if(i < lines.count() && lines[i].trimmed() == lit("{"))
         i++;
 
       QList<RDTreeWidgetItem *> nodestack;
@@ -146,7 +146,7 @@ void APIInspector::fillAPIView()
         else if(rgxclose.match(lines[i]).hasMatch())
           nodestack.pop_back();
         else if(!nodestack.empty())
-          nodestack.back()->addChild(new RDTreeWidgetItem({"", lines[i].trimmed()}));
+          nodestack.back()->addChild(new RDTreeWidgetItem({QString(), lines[i].trimmed()}));
       }
 
       if(ev.eventID == draw->eventID)

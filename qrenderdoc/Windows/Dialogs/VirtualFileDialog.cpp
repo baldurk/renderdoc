@@ -58,24 +58,24 @@ public:
     Renderer.GetHomeFolder(true, [this](const char *path, const rdctype::array<PathEntry> &files) {
       QString homeDir = QString::fromUtf8(path);
 
-      if(QChar(path[0]).isLetter() && path[1] == ':')
+      if(QChar(QLatin1Char(path[0])).isLetter() && path[1] == ':')
       {
         NTPaths = true;
 
         // NT paths
-        Renderer.ListFolder(
-            "/", true, [this, homeDir](const char *path, const rdctype::array<PathEntry> &files) {
-              for(int i = 0; i < files.count; i++)
-              {
-                FSNode *node = new FSNode();
-                node->parent = NULL;
-                node->parentIndex = i;
-                node->file = files[i];
-                roots.push_back(node);
+        Renderer.ListFolder(lit("/"), true, [this, homeDir](const char *path,
+                                                            const rdctype::array<PathEntry> &files) {
+          for(int i = 0; i < files.count; i++)
+          {
+            FSNode *node = new FSNode();
+            node->parent = NULL;
+            node->parentIndex = i;
+            node->file = files[i];
+            roots.push_back(node);
 
-                home = indexForPath(homeDir);
-              }
-            });
+            home = indexForPath(homeDir);
+          }
+        });
       }
       else
       {
@@ -113,11 +113,11 @@ public:
     if(NTPaths)
     {
       // normalise to unix directory separators
-      normPath.replace(QChar('\\'), QChar('/'));
+      normPath.replace(QLatin1Char('\\'), QLatin1Char('/'));
 
       for(int i = 0; i < roots.count(); i++)
       {
-        if(normPath[0] == roots[i]->file.filename.front())
+        if(normPath[0] == QLatin1Char(roots[i]->file.filename.front()))
         {
           ret = index(i, 0);
           normPath.remove(0, 2);
@@ -131,7 +131,7 @@ public:
 
     while(!normPath.isEmpty())
     {
-      if(normPath[0] != '/')
+      if(normPath[0] != QLatin1Char('/'))
       {
         qCritical() << "Malformed/unexpected path" << path;
         return QModelIndex();
@@ -139,14 +139,14 @@ public:
 
       // ignore multiple /s adjacent
       int start = 1;
-      while(start < normPath.count() && normPath[start] == '/')
+      while(start < normPath.count() && normPath[start] == QLatin1Char('/'))
         start++;
 
       // if we've hit trailing slashes just stop
       if(start >= normPath.count())
         break;
 
-      int nextDirEnd = normPath.indexOf(QChar('/'), start);
+      int nextDirEnd = normPath.indexOf(QLatin1Char('/'), start);
 
       if(nextDirEnd == -1)
         nextDirEnd = normPath.count();
@@ -417,7 +417,7 @@ private:
 
   QString makePath(FSNode *node) const
   {
-    QChar sep = NTPaths ? '\\' : '/';
+    QChar sep = NTPaths ? QLatin1Char('\\') : QLatin1Char('/');
     QString ret = ToQStr(node->file.filename);
     FSNode *parent = node->parent;
     // iterate through subdirs but stop before a root
@@ -432,7 +432,7 @@ private:
       // parent is now a root
       ret = ToQStr(parent->file.filename) + ret;
     }
-    ret.replace('/', sep);
+    ret.replace(QLatin1Char('/'), sep);
     return ret;
   }
 

@@ -149,7 +149,7 @@ void ConstantBufferPreviewer::on_setFormat_toggled(bool checked)
     ui->splitter->setSizes({1, 0});
     ui->splitter->handle(1)->setEnabled(false);
 
-    processFormat("");
+    processFormat(QString());
     return;
   }
 
@@ -167,7 +167,7 @@ void ConstantBufferPreviewer::processFormat(const QString &format)
   if(format.isEmpty())
   {
     m_formatOverride.clear();
-    ui->formatSpecifier->setErrors("");
+    ui->formatSpecifier->setErrors(QString());
   }
   else
   {
@@ -192,8 +192,8 @@ void ConstantBufferPreviewer::addVariables(RDTreeWidgetItem *root,
     if(v.rows > 1)
     {
       for(uint32_t i = 0; i < v.rows; i++)
-        n->addChild(new RDTreeWidgetItem(
-            {QString("%1.row%2").arg(ToQStr(v.name)).arg(i), RowString(v, i), RowTypeString(v)}));
+        n->addChild(new RDTreeWidgetItem({QFormatStr("%1.row%2").arg(ToQStr(v.name)).arg(i),
+                                          RowString(v, i), RowTypeString(v)}));
     }
 
     if(v.members.count > 0)
@@ -282,14 +282,14 @@ void ConstantBufferPreviewer::setVariables(const rdctype::array<ShaderVariable> 
 
 void ConstantBufferPreviewer::updateLabels()
 {
-  QString bufName = "";
+  QString bufName;
 
   bool needName = true;
 
   BufferDescription *buf = m_Ctx.GetBuffer(m_cbuffer);
   if(buf)
   {
-    bufName = buf->name;
+    bufName = ToQStr(buf->name);
     if(buf->customName)
       needName = false;
   }
@@ -300,18 +300,20 @@ void ConstantBufferPreviewer::updateLabels()
   {
     if(needName && (int)m_slot < reflection->ConstantBlocks.count &&
        reflection->ConstantBlocks[m_slot].name.count > 0)
-      bufName = "<" + ToQStr(reflection->ConstantBlocks[m_slot].name) + ">";
+      bufName = QFormatStr("<%1>").arg(ToQStr(reflection->ConstantBlocks[m_slot].name));
   }
 
   ui->nameLabel->setText(bufName);
 
   GraphicsAPI pipeType = m_Ctx.APIProps().pipelineType;
 
-  QString title =
-      QString("%1 %2 %3").arg(ToQStr(m_stage, pipeType)).arg(IsD3D(pipeType) ? "CB" : "UBO").arg(m_slot);
+  QString title = QFormatStr("%1 %2 %3")
+                      .arg(ToQStr(m_stage, pipeType))
+                      .arg(IsD3D(pipeType) ? lit("CB") : lit("UBO"))
+                      .arg(m_slot);
 
   if(m_Ctx.CurPipelineState().SupportsResourceArrays())
-    title += QString(" [%1]").arg(m_arrayIdx);
+    title += QFormatStr(" [%1]").arg(m_arrayIdx);
 
   ui->slotLabel->setText(title);
   setWindowTitle(title);

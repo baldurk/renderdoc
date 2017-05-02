@@ -55,6 +55,7 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 #include <QFileInfo>
 #include <QThread>
 #include <QTimer>
+#include "Code/QRDUtils.h"
 #include "PythonContext.h"
 #include "renderdoc_replay.h"
 
@@ -105,13 +106,13 @@ static inline QString ToQStr(PyObject *value)
   {
     PyObject *repr = PyObject_Str(value);
     if(repr == NULL)
-      return "";
+      return QString();
 
     PyObject *decoded = PyUnicode_AsUTF8String(repr);
     if(decoded == NULL)
-      return "";
+      return QString();
 
-    QString ret = PyBytes_AsString(decoded);
+    QString ret = QString::fromUtf8(PyBytes_AsString(decoded));
 
     Py_DecRef(decoded);
     Py_DecRef(repr);
@@ -119,7 +120,7 @@ static inline QString ToQStr(PyObject *value)
     return ret;
   }
 
-  return "";
+  return QString();
 }
 
 static wchar_t program_name[] = L"qrenderdoc";
@@ -162,7 +163,7 @@ void FetchException(QString &typeStr, QString &valueStr, QList<QString> &frames)
   }
   else
   {
-    typeStr = "";
+    typeStr = QString();
   }
 
   if(valueObj)
@@ -398,7 +399,7 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
   context_namespace = PyDict_Copy(main_dict);
 
   QString typeStr;
-  QString valueStr = "";
+  QString valueStr;
   QList<QString> frames;
 
   // for compatibility with earlier versions of python that took a char * instead of const char *
@@ -461,7 +462,7 @@ void PythonContext::GlobalShutdown()
 
 QString PythonContext::versionString()
 {
-  return QString("%1.%2.%3").arg(PY_MAJOR_VERSION).arg(PY_MINOR_VERSION).arg(PY_MICRO_VERSION);
+  return QFormatStr("%1.%2.%3").arg(PY_MAJOR_VERSION).arg(PY_MINOR_VERSION).arg(PY_MICRO_VERSION);
 }
 
 void PythonContext::executeString(const QString &filename, const QString &source, bool interactive)
@@ -469,8 +470,8 @@ void PythonContext::executeString(const QString &filename, const QString &source
   if(!initialised())
   {
     emit exception(
-        "SystemError",
-        "Python integration failed to initialise, see diagnostic log for more information.", {});
+        lit("SystemError"),
+        tr("Python integration failed to initialise, see diagnostic log for more information."), {});
     return;
   }
 
@@ -515,7 +516,7 @@ void PythonContext::executeString(const QString &filename, const QString &source
   Py_DecRef(compiled);
 
   QString typeStr;
-  QString valueStr = "";
+  QString valueStr;
   QList<QString> frames;
   bool caughtException = (ret == NULL);
 
@@ -532,7 +533,7 @@ void PythonContext::executeString(const QString &filename, const QString &source
 
 void PythonContext::executeString(const QString &source, bool interactive)
 {
-  executeString("<interactive.py>", source, interactive);
+  executeString(lit("<interactive.py>"), source, interactive);
 }
 
 void PythonContext::executeFile(const QString &filename)
@@ -541,7 +542,7 @@ void PythonContext::executeFile(const QString &filename)
 
   if(!f.exists())
   {
-    emit exception("FileNotFoundError", QString("No such file or directory: %1").arg(filename), {});
+    emit exception(lit("FileNotFoundError"), tr("No such file or directory: %1").arg(filename), {});
     return;
   }
 
@@ -553,7 +554,7 @@ void PythonContext::executeFile(const QString &filename)
   }
   else
   {
-    emit exception("IOError", QString("%1: %2").arg(f.errorString()).arg(filename), {});
+    emit exception(lit("IOError"), QFormatStr("%1: %2").arg(f.errorString()).arg(filename), {});
   }
 }
 
@@ -562,8 +563,8 @@ void PythonContext::setGlobal(const char *varName, const char *typeName, void *o
   if(!initialised())
   {
     emit exception(
-        "SystemError",
-        "Python integration failed to initialise, see diagnostic log for more information.", {});
+        lit("SystemError"),
+        tr("Python integration failed to initialise, see diagnostic log for more information."), {});
     return;
   }
 
@@ -581,8 +582,9 @@ void PythonContext::setGlobal(const char *varName, const char *typeName, void *o
 
   if(ret != 0)
   {
-    emit exception("RuntimeError",
-                   QString("Failed to set variable '%1' of type '%2'").arg(varName).arg(typeName),
+    emit exception(lit("RuntimeError"), tr("Failed to set variable '%1' of type '%2'")
+                                            .arg(QString::fromUtf8(varName))
+                                            .arg(QString::fromUtf8(typeName)),
                    {});
     return;
   }
@@ -679,8 +681,8 @@ void PythonContext::setPyGlobal(const char *varName, PyObject *obj)
   if(!initialised())
   {
     emit exception(
-        "SystemError",
-        "Python integration failed to initialise, see diagnostic log for more information.", {});
+        lit("SystemError"),
+        tr("Python integration failed to initialise, see diagnostic log for more information."), {});
     return;
   }
 
@@ -696,7 +698,8 @@ void PythonContext::setPyGlobal(const char *varName, PyObject *obj)
   if(ret == 0)
     return;
 
-  emit exception("RuntimeError", QString("Failed to set variable '%1'").arg(varName), {});
+  emit exception(lit("RuntimeError"),
+                 tr("Failed to set variable '%1'").arg(QString::fromUtf8(varName)), {});
 }
 
 void PythonContext::outstream_del(PyObject *self)
@@ -798,7 +801,7 @@ extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle)
 extern "C" void HandleException(PyObject *global_handle)
 {
   QString typeStr;
-  QString valueStr = "";
+  QString valueStr;
   QList<QString> frames;
 
   FetchException(typeStr, valueStr, frames);

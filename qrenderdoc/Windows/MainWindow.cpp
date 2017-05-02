@@ -94,13 +94,13 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   FillRemotesMenu(contextChooserMenu, true);
 
   contextChooser = new QToolButton(this);
-  contextChooser->setText(tr("Replay Context: %1").arg("Local"));
+  contextChooser->setText(tr("Replay Context: %1").arg(tr("Local")));
   contextChooser->setIcon(Icons::house());
   contextChooser->setAutoRaise(true);
   contextChooser->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
   contextChooser->setPopupMode(QToolButton::InstantPopup);
   contextChooser->setMenu(contextChooserMenu);
-  contextChooser->setStyleSheet("QToolButton::menu-indicator { image: none; }");
+  contextChooser->setStyleSheet(lit("QToolButton::menu-indicator { image: none; }"));
   contextChooser->setContextMenuPolicy(Qt::DefaultContextMenu);
   QObject::connect(contextChooserMenu, &QMenu::aboutToShow, this,
                    &MainWindow::contextChooser_menuShowing);
@@ -121,9 +121,9 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   statusProgress->setMinimum(0);
   statusProgress->setMaximum(1000);
 
-  statusIcon->setText("");
+  statusIcon->setText(QString());
   statusIcon->setPixmap(QPixmap());
-  statusText->setText("");
+  statusText->setText(QString());
 
   QObject::connect(statusIcon, &RDLabel::doubleClicked, this, &MainWindow::statusDoubleClicked);
   QObject::connect(statusText, &RDLabel::doubleClicked, this, &MainWindow::statusDoubleClicked);
@@ -149,7 +149,7 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   });
   m_RemoteProbe->start();
 
-  ui->statusBar->setStyleSheet("QStatusBar::item { border: 0px }");
+  ui->statusBar->setStyleSheet(lit("QStatusBar::item { border: 0px }"));
 
   SetTitle();
 
@@ -254,10 +254,10 @@ MainWindow::~MainWindow()
 
 QString MainWindow::GetLayoutPath(int layout)
 {
-  QString filename = "DefaultLayout.config";
+  QString filename = lit("DefaultLayout.config");
 
   if(layout > 0)
-    filename = QString("Layout%1.config").arg(layout);
+    filename = lit("Layout%1.config").arg(layout);
 
   return ConfigFilePath(filename);
 }
@@ -273,11 +273,11 @@ void MainWindow::on_action_Open_Log_triggered()
     return;
 
   QString filename =
-      RDDialog::getOpenFileName(this, "Select Logfile to open", m_Ctx.Config().LastLogPath,
-                                "Log Files (*.rdc);;Image Files (*.dds *.hdr *.exr *.bmp *.jpg "
-                                "*.jpeg *.png *.tga *.gif *.psd;;All Files (*.*)");
+      RDDialog::getOpenFileName(this, tr("Select Logfile to open"), m_Ctx.Config().LastLogPath,
+                                tr("Log Files (*.rdc);;Image Files (*.dds *.hdr *.exr *.bmp *.jpg "
+                                   "*.jpeg *.png *.tga *.gif *.psd;;All Files (*.*)"));
 
-  if(filename != "")
+  if(!filename.isEmpty())
     LoadFromFilename(filename);
 }
 
@@ -286,15 +286,15 @@ void MainWindow::LoadFromFilename(const QString &filename)
   QFileInfo path(filename);
   QString ext = path.suffix().toLower();
 
-  if(ext == "rdc")
+  if(ext == lit("rdc"))
   {
     LoadLogfile(filename, false, true);
   }
-  else if(ext == "cap")
+  else if(ext == lit("cap"))
   {
     OpenCaptureConfigFile(filename, false);
   }
-  else if(ext == "exe")
+  else if(ext == lit("exe"))
   {
     OpenCaptureConfigFile(filename, true);
   }
@@ -328,7 +328,8 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
       }
 
       LiveCapture *live = new LiveCapture(
-          m_Ctx, m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Hostname : "",
+          m_Ctx,
+          m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Hostname : QString(),
           ret, this, this);
       ShowLiveCapture(live);
       callback(live);
@@ -370,7 +371,7 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModificati
         return;
       }
 
-      LiveCapture *live = new LiveCapture(m_Ctx, "", ret, this, this);
+      LiveCapture *live = new LiveCapture(m_Ctx, QString(), ret, this, this);
       ShowLiveCapture(live);
     });
   });
@@ -504,7 +505,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
                 .arg(driver)
                 .arg(m_Ctx.Replay().CurrentRemote()->Hostname);
 
-        remoteMessage += "Try selecting a different remote context in the status bar.";
+        remoteMessage += tr("Try selecting a different remote context in the status bar.");
 
         RDDialog::critical(NULL, tr("Unsupported logfile type"), remoteMessage);
       }
@@ -513,7 +514,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
         QString remoteMessage =
             tr("This log was captured with %1 and cannot be replayed locally.\n\n").arg(driver);
 
-        remoteMessage += "Try selecting a remote context in the status bar.";
+        remoteMessage += tr("Try selecting a remote context in the status bar.");
 
         RDDialog::critical(NULL, tr("Unsupported logfile type"), remoteMessage);
       }
@@ -531,7 +532,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
         // deliberately leave local as true so that we keep referring to the locally saved log
 
         // some error
-        if(fileToLoad == "")
+        if(fileToLoad.isEmpty())
         {
           RDDialog::critical(NULL, tr("Error copying to remote"),
                              tr("Couldn't copy %1 to remote host for replaying").arg(filename));
@@ -547,7 +548,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
       m_Ctx.Config().LastLogPath = QFileInfo(filename).absolutePath();
     }
 
-    statusText->setText(tr("Loading ") + origFilename + "...");
+    statusText->setText(tr("Loading %1...").arg(origFilename));
   }
 }
 
@@ -568,18 +569,18 @@ QString MainWindow::GetSavePath()
 {
   QString dir;
 
-  if(m_Ctx.Config().DefaultCaptureSaveDirectory != "")
+  if(!m_Ctx.Config().DefaultCaptureSaveDirectory.isEmpty())
   {
-    if(m_LastSaveCapturePath == "")
+    if(m_LastSaveCapturePath.isEmpty())
       dir = m_Ctx.Config().DefaultCaptureSaveDirectory;
     else
       dir = m_LastSaveCapturePath;
   }
 
   QString filename =
-      RDDialog::getSaveFileName(this, tr("Save Capture As"), dir, "Log Files (*.rdc)");
+      RDDialog::getSaveFileName(this, tr("Save Capture As"), dir, tr("Log Files (*.rdc)"));
 
-  if(filename != "")
+  if(!filename.isEmpty())
   {
     QDir dirinfo = QFileInfo(filename).dir();
     if(dirinfo.exists())
@@ -588,14 +589,14 @@ QString MainWindow::GetSavePath()
     return filename;
   }
 
-  return "";
+  return QString();
 }
 
 bool MainWindow::PromptSaveLog()
 {
   QString saveFilename = GetSavePath();
 
-  if(saveFilename != "")
+  if(!saveFilename.isEmpty())
   {
     if(m_Ctx.IsLogLocal() && !QFileInfo(m_Ctx.LogFilename()).exists())
     {
@@ -653,7 +654,7 @@ bool MainWindow::PromptCloseLog()
   if(!m_Ctx.LogLoaded())
     return true;
 
-  QString deletepath = "";
+  QString deletepath;
   bool loglocal = false;
 
   if(m_OwnTempLog)
@@ -706,28 +707,28 @@ void MainWindow::CloseLogfile()
 
 void MainWindow::SetTitle(const QString &filename)
 {
-  QString prefix = "";
+  QString prefix;
 
   if(m_Ctx.LogLoaded())
   {
     prefix = QFileInfo(filename).fileName();
     if(m_Ctx.APIProps().degraded)
-      prefix += " !DEGRADED PERFORMANCE!";
-    prefix += " - ";
+      prefix += tr(" !DEGRADED PERFORMANCE!");
+    prefix += lit(" - ");
   }
 
   if(m_Ctx.Replay().CurrentRemote())
     prefix += tr("Remote: %1 - ").arg(m_Ctx.Replay().CurrentRemote()->Hostname);
 
-  QString text = prefix + "RenderDoc ";
+  QString text = prefix + lit("RenderDoc ");
 
   if(RENDERDOC_STABLE_BUILD)
-    text += FULL_VERSION_STRING;
+    text += lit(FULL_VERSION_STRING);
   else
-    text += tr("Unstable release (%1 - %2)").arg(FULL_VERSION_STRING).arg(GIT_COMMIT_HASH);
+    text += tr("Unstable release (%1 - %2)").arg(lit(FULL_VERSION_STRING)).arg(lit(GIT_COMMIT_HASH));
 
-  if(QString::fromUtf8(RENDERDOC_GetVersionString()) != QString(MAJOR_MINOR_VERSION_STRING))
-    text += " - !! VERSION MISMATCH DETECTED !!";
+  if(QString::fromLatin1(RENDERDOC_GetVersionString()) != lit(MAJOR_MINOR_VERSION_STRING))
+    text += tr(" - !! VERSION MISMATCH DETECTED !!");
 
   setWindowTitle(text);
 }
@@ -747,7 +748,7 @@ void MainWindow::PopulateRecentFiles()
   for(int i = m_Ctx.Config().RecentLogFiles.size() - 1; i >= 0; i--)
   {
     const QString &filename = m_Ctx.Config().RecentLogFiles[i];
-    ui->menu_Recent_Logs->addAction("&" + QString::number(idx) + " " + filename,
+    ui->menu_Recent_Logs->addAction(QFormatStr("&%1 %2").arg(idx).arg(filename),
                                     [this, filename] { recentLog(filename); });
     idx++;
 
@@ -768,7 +769,7 @@ void MainWindow::PopulateRecentCaptures()
   for(int i = m_Ctx.Config().RecentCaptureSettings.size() - 1; i >= 0; i--)
   {
     const QString &filename = m_Ctx.Config().RecentCaptureSettings[i];
-    ui->menu_Recent_Capture_Settings->addAction("&" + QString::number(idx) + " " + filename,
+    ui->menu_Recent_Capture_Settings->addAction(QFormatStr("&%1 %2").arg(idx).arg(filename),
                                                 [this, filename] { recentCapture(filename); });
     idx++;
 
@@ -997,7 +998,7 @@ void MainWindow::messageCheck()
       if(m_Ctx.Replay().CurrentRemote() && !m_Ctx.Replay().CurrentRemote()->ServerRunning)
       {
         contextChooser->setIcon(Icons::cross());
-        contextChooser->setText(tr("Replay Context: %1").arg("Local"));
+        contextChooser->setText(tr("Replay Context: %1").arg(tr("Local")));
         statusText->setText(
             tr("Remote server disconnected. To attempt to reconnect please select it again."));
 
@@ -1016,7 +1017,7 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
     RemoteHost *host = m_Ctx.Config().RemoteHosts[i];
 
     // add localhost at the end
-    if(host->Hostname == "localhost")
+    if(host->Hostname == lit("localhost"))
       continue;
 
     QAction *action = new QAction(menu);
@@ -1046,7 +1047,7 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
   {
     QAction *localContext = new QAction(menu);
 
-    localContext->setText("Local");
+    localContext->setText(tr("Local"));
     localContext->setIcon(Icons::house());
 
     QObject::connect(localContext, &QAction::triggered, this, &MainWindow::switchContext);
@@ -1108,11 +1109,11 @@ void MainWindow::switchContext()
   if(!host)
   {
     contextChooser->setIcon(Icons::house());
-    contextChooser->setText(tr("Replay Context: %1").arg("Local"));
+    contextChooser->setText(tr("Replay Context: %1").arg(tr("Local")));
 
     ui->action_Inject_into_Process->setEnabled(true);
 
-    statusText->setText("");
+    statusText->setText(QString());
 
     SetTitle();
   }
@@ -1134,7 +1135,7 @@ void MainWindow::switchContext()
       // see if the server is up
       host->CheckStatus();
 
-      if(!host->ServerRunning && host->RunCommand != "")
+      if(!host->ServerRunning && !host->RunCommand.isEmpty())
       {
         GUIInvoke::call([this]() { statusText->setText(tr("Running remote server command...")); });
 
@@ -1158,13 +1159,13 @@ void MainWindow::switchContext()
         if(status != ReplayStatus::Succeeded)
         {
           contextChooser->setIcon(Icons::cross());
-          contextChooser->setText(tr("Replay Context: %1").arg("Local"));
+          contextChooser->setText(tr("Replay Context: %1").arg(tr("Local")));
           statusText->setText(tr("Connection failed: %1").arg(ToQStr(status)));
         }
         else if(host->VersionMismatch)
         {
           statusText->setText(
-              tr("Remote server is not running RenderDoc %1").arg(FULL_VERSION_STRING));
+              tr("Remote server is not running RenderDoc %1").arg(lit(FULL_VERSION_STRING)));
         }
         else if(host->Busy)
         {
@@ -1176,7 +1177,7 @@ void MainWindow::switchContext()
         }
         else
         {
-          if(host->RunCommand != "")
+          if(!host->RunCommand.isEmpty())
             statusText->setText(tr("Remote server not running or failed to start"));
           else
             statusText->setText(tr("Remote server not running - no start command configured"));
@@ -1232,7 +1233,7 @@ void MainWindow::OnLogfileClosed()
 {
   contextChooser->setEnabled(true);
 
-  statusText->setText("");
+  statusText->setText(QString());
   statusIcon->setPixmap(QPixmap());
   statusProgress->setVisible(false);
 
@@ -1246,7 +1247,7 @@ void MainWindow::OnLogfileClosed()
   {
     statusText->setText(
         tr("Remote server disconnected. To attempt to reconnect please select it again."));
-    contextChooser->setText(tr("Replay Context: %1").arg("Local"));
+    contextChooser->setText(tr("Replay Context: %1").arg(tr("Local")));
     m_Ctx.Replay().DisconnectFromRemoteServer();
   }
 }
@@ -1434,11 +1435,11 @@ void MainWindow::on_action_View_Documentation_triggered()
   QFileInfo fi(QGuiApplication::applicationFilePath());
   QDir curDir = QFileInfo(QGuiApplication::applicationFilePath()).absoluteDir();
 
-  if(fi.absoluteDir().exists("renderdoc.chm"))
+  if(fi.absoluteDir().exists(lit("renderdoc.chm")))
     QDesktopServices::openUrl(
-        QUrl::fromLocalFile(fi.absoluteDir().absoluteFilePath("renderdoc.chm")));
+        QUrl::fromLocalFile(fi.absoluteDir().absoluteFilePath(lit("renderdoc.chm"))));
   else
-    QDesktopServices::openUrl(QUrl::fromUserInput("https://renderdoc.org/docs"));
+    QDesktopServices::openUrl(QUrl::fromUserInput(lit("https://renderdoc.org/docs")));
 }
 
 void MainWindow::on_action_View_Diagnostic_Log_File_triggered()
@@ -1450,12 +1451,12 @@ void MainWindow::on_action_View_Diagnostic_Log_File_triggered()
 
 void MainWindow::on_action_Source_on_github_triggered()
 {
-  QDesktopServices::openUrl(QUrl::fromUserInput("https://github.com/baldurk/renderdoc"));
+  QDesktopServices::openUrl(QUrl::fromUserInput(lit("https://github.com/baldurk/renderdoc")));
 }
 
 void MainWindow::on_action_Build_Release_downloads_triggered()
 {
-  QDesktopServices::openUrl(QUrl::fromUserInput("https://renderdoc.org/builds"));
+  QDesktopServices::openUrl(QUrl::fromUserInput(lit("https://renderdoc.org/builds")));
 }
 
 void MainWindow::on_actionShow_Tips_triggered()
@@ -1513,19 +1514,19 @@ QString MainWindow::dragFilename(const QMimeData *mimeData)
     }
   }
 
-  return "";
+  return QString();
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
-  if(dragFilename(event->mimeData()) != "")
+  if(!dragFilename(event->mimeData()).isEmpty())
     event->acceptProposedAction();
 }
 
 void MainWindow::dropEvent(QDropEvent *event)
 {
   QString fn = dragFilename(event->mimeData());
-  if(fn != "")
+  if(!fn.isEmpty())
     LoadFromFilename(fn);
 }
 
@@ -1565,9 +1566,9 @@ void MainWindow::LoadSaveLayout(QAction *action, bool save)
   if(!success)
   {
     if(save)
-      RDDialog::critical(this, "Error saving layout", "Couldn't save layout");
+      RDDialog::critical(this, tr("Error saving layout"), tr("Couldn't save layout"));
     else
-      RDDialog::critical(this, "Error loading layout", "Couldn't load layout");
+      RDDialog::critical(this, tr("Error loading layout"), tr("Couldn't load layout"));
   }
 }
 
@@ -1575,14 +1576,14 @@ QVariantMap MainWindow::saveState()
 {
   QVariantMap state = ui->toolWindowManager->saveState();
 
-  state["mainWindowGeometry"] = saveGeometry().toBase64();
+  state[lit("mainWindowGeometry")] = saveGeometry().toBase64();
 
   return state;
 }
 
 bool MainWindow::restoreState(QVariantMap &state)
 {
-  restoreGeometry(QByteArray::fromBase64(state["mainWindowGeometry"].toByteArray()));
+  restoreGeometry(QByteArray::fromBase64(state[lit("mainWindowGeometry")].toByteArray()));
 
   ui->toolWindowManager->restoreState(state);
 

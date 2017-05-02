@@ -400,11 +400,11 @@ public:
     {
       if(section == 0)
       {
-        return meshView ? "VTX" : "Element";
+        return meshView ? lit("VTX") : lit("Element");
       }
       else if(section == 1 && meshView)
       {
-        return "IDX";
+        return lit("IDX");
       }
       else
       {
@@ -413,9 +413,9 @@ public:
         if(el.format.compCount == 1)
           return el.name;
 
-        QChar comps[] = {'x', 'y', 'z', 'w'};
+        QChar comps[] = {QLatin1Char('x'), QLatin1Char('y'), QLatin1Char('z'), QLatin1Char('w')};
 
-        return QString("%1.%2").arg(el.name).arg(comps[componentForIndex(section)]);
+        return QFormatStr("%1.%2").arg(el.name).arg(comps[componentForIndex(section)]);
       }
     }
 
@@ -433,7 +433,7 @@ public:
 
         // pad these columns to allow for sufficiently wide data
         if(index.column() < reservedColumnCount())
-          opt.text = "999999";
+          opt.text = lit("999999");
         else
           opt.text = data(index).toString();
         opt.styleObject = NULL;
@@ -496,7 +496,7 @@ public:
             idx = CalcIndex(indices, row, baseVertex);
 
             if(primRestart && idx == primRestart)
-              return col == 1 ? "--" : " Restart";
+              return col == 1 ? lit("--") : lit(" Restart");
 
             if(idx == ~0U)
               return QVariant();
@@ -544,12 +544,12 @@ public:
                 if(d < 0.0)
                   ret = Formatter::Format(d);
                 else if(d > 0.0)
-                  ret = " " + Formatter::Format(d);
+                  ret = lit(" ") + Formatter::Format(d);
                 else if(qIsNaN(d))
-                  ret = " NaN";
+                  ret = lit(" NaN");
                 else
                   // force negative and positive 0 together
-                  ret = " " + Formatter::Format(0.0);
+                  ret = lit(" ") + Formatter::Format(0.0);
               }
               else if(vt == QMetaType::Float)
               {
@@ -558,12 +558,12 @@ public:
                 if(f < 0.0)
                   ret = Formatter::Format(f);
                 else if(f > 0.0)
-                  ret = " " + Formatter::Format(f);
+                  ret = lit(" ") + Formatter::Format(f);
                 else if(qIsNaN(f))
-                  ret = " NaN";
+                  ret = lit(" NaN");
                 else
                   // force negative and positive 0 together
-                  ret = " " + Formatter::Format(0.0);
+                  ret = lit(" ") + Formatter::Format(0.0);
               }
               else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
               {
@@ -573,7 +573,7 @@ public:
               {
                 int i = v.toInt();
                 if(i > 0)
-                  ret = " " + Formatter::Format(i);
+                  ret = lit(" ") + Formatter::Format(i);
                 else
                   ret = Formatter::Format(i);
               }
@@ -626,7 +626,7 @@ public:
     if(positionEl >= 0 && positionEl < columns.count())
       return columns[positionEl].name;
 
-    return "";
+    return QString();
   }
 
   void setSecondaryColumn(int sec, bool secEnabled, bool secAlpha)
@@ -656,7 +656,7 @@ public:
     if(secondaryEl >= 0 && secondaryEl < columns.count())
       return columns[secondaryEl].name;
 
-    return "";
+    return QString();
   }
   int elementIndexForColumn(int col) const
   {
@@ -1736,10 +1736,10 @@ void BufferViewer::guessPositionColumn(BufferItemModel *model)
     {
       const FormatElement &el = model->columns[i];
 
-      if(el.name.compare("POSITION", Qt::CaseInsensitive) == 0 ||
-         el.name.compare("POSITION0", Qt::CaseInsensitive) == 0 ||
-         el.name.compare("POS", Qt::CaseInsensitive) == 0 ||
-         el.name.compare("POS0", Qt::CaseInsensitive) == 0)
+      if(el.name.compare(lit("POSITION"), Qt::CaseInsensitive) == 0 ||
+         el.name.compare(lit("POSITION0"), Qt::CaseInsensitive) == 0 ||
+         el.name.compare(lit("POS"), Qt::CaseInsensitive) == 0 ||
+         el.name.compare(lit("POS0"), Qt::CaseInsensitive) == 0)
       {
         posEl = i;
         break;
@@ -1751,7 +1751,7 @@ void BufferViewer::guessPositionColumn(BufferItemModel *model)
     {
       const FormatElement &el = model->columns[i];
 
-      if(el.name.contains("POSITION", Qt::CaseInsensitive))
+      if(el.name.contains(lit("POSITION"), Qt::CaseInsensitive))
       {
         posEl = i;
         break;
@@ -1763,7 +1763,7 @@ void BufferViewer::guessPositionColumn(BufferItemModel *model)
     {
       const FormatElement &el = model->columns[i];
 
-      if(el.name.contains("POS", Qt::CaseInsensitive))
+      if(el.name.contains(lit("POS"), Qt::CaseInsensitive))
       {
         posEl = i;
         break;
@@ -1791,12 +1791,12 @@ void BufferViewer::guessSecondaryColumn(BufferItemModel *model)
     {
       const FormatElement &el = model->columns[i];
 
-      if(el.name.compare("TEXCOORD", Qt::CaseInsensitive) == 0 ||
-         el.name.compare("TEXCOORD0", Qt::CaseInsensitive) == 0 ||
-         el.name.compare("TEX", Qt::CaseInsensitive) == 0 ||
-         el.name.compare("TEX0", Qt::CaseInsensitive) == 0 ||
-         el.name.compare("UV", Qt::CaseInsensitive) == 0 ||
-         el.name.compare("UV0", Qt::CaseInsensitive) == 0)
+      if(el.name.compare(lit("TEXCOORD"), Qt::CaseInsensitive) == 0 ||
+         el.name.compare(lit("TEXCOORD0"), Qt::CaseInsensitive) == 0 ||
+         el.name.compare(lit("TEX"), Qt::CaseInsensitive) == 0 ||
+         el.name.compare(lit("TEX0"), Qt::CaseInsensitive) == 0 ||
+         el.name.compare(lit("UV"), Qt::CaseInsensitive) == 0 ||
+         el.name.compare(lit("UV0"), Qt::CaseInsensitive) == 0)
       {
         secondEl = i;
         break;
@@ -1807,10 +1807,10 @@ void BufferViewer::guessSecondaryColumn(BufferItemModel *model)
     {
       const FormatElement &el = model->columns[i];
 
-      if(el.name.compare("COLOR", Qt::CaseInsensitive) == 0 ||
-         el.name.compare("COLOR0", Qt::CaseInsensitive) == 0 ||
-         el.name.compare("COL", Qt::CaseInsensitive) == 0 ||
-         el.name.compare("COL0", Qt::CaseInsensitive) == 0)
+      if(el.name.compare(lit("COLOR"), Qt::CaseInsensitive) == 0 ||
+         el.name.compare(lit("COLOR0"), Qt::CaseInsensitive) == 0 ||
+         el.name.compare(lit("COL"), Qt::CaseInsensitive) == 0 ||
+         el.name.compare(lit("COL0"), Qt::CaseInsensitive) == 0)
       {
         secondEl = i;
         break;
@@ -2211,7 +2211,7 @@ void BufferViewer::render_clicked(QMouseEvent *e)
 
   if((e->buttons() & Qt::RightButton) && m_Output)
   {
-    m_Ctx.Replay().AsyncInvoke("PickVertex", [this, curpos](IReplayController *r) {
+    m_Ctx.Replay().AsyncInvoke(lit("PickVertex"), [this, curpos](IReplayController *r) {
       uint32_t instanceSelected = 0;
       uint32_t vertSelected = 0;
 
@@ -2265,7 +2265,7 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
 
   BufferDescription *buf = m_Ctx.GetBuffer(id);
   if(buf)
-    setWindowTitle(ToQStr(buf->name) + " - Contents");
+    setWindowTitle(ToQStr(buf->name) + lit(" - Contents"));
 
   processFormat(format);
 }
@@ -2282,7 +2282,7 @@ void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, c
 
   TextureDescription *tex = m_Ctx.GetTexture(id);
   if(tex)
-    setWindowTitle(ToQStr(tex->name) + " - Contents");
+    setWindowTitle(ToQStr(tex->name) + lit(" - Contents"));
 
   processFormat(format);
 }
@@ -2453,21 +2453,21 @@ void BufferViewer::CalcColumnWidth()
   floatFmt.compType = CompType::UInt;
   floatFmt.compCount = 1;
 
-  FormatElement("ColumnSizeTest", 0, 0, false, 1, false, 1, floatFmt, false);
-  FormatElement("ColumnSizeTest", 0, 0, false, 1, false, 1, intFmt, true);
-  FormatElement("ColumnSizeTest", 0, 0, false, 1, false, 1, intFmt, false);
+  FormatElement(lit("ColumnSizeTest"), 0, 0, false, 1, false, 1, floatFmt, false);
+  FormatElement(lit("ColumnSizeTest"), 0, 0, false, 1, false, 1, intFmt, true);
+  FormatElement(lit("ColumnSizeTest"), 0, 0, false, 1, false, 1, intFmt, false);
 
   m_ModelVSIn->columns.clear();
   m_ModelVSIn->columns.push_back(
-      FormatElement("ColumnSizeTest", 0, 0, false, 1, false, 1, floatFmt, false));
+      FormatElement(lit("ColumnSizeTest"), 0, 0, false, 1, false, 1, floatFmt, false));
   m_ModelVSIn->columns.push_back(
-      FormatElement("ColumnSizeTest", 0, 4, false, 1, false, 1, floatFmt, false));
+      FormatElement(lit("ColumnSizeTest"), 0, 4, false, 1, false, 1, floatFmt, false));
   m_ModelVSIn->columns.push_back(
-      FormatElement("ColumnSizeTest", 0, 8, false, 1, false, 1, floatFmt, false));
+      FormatElement(lit("ColumnSizeTest"), 0, 8, false, 1, false, 1, floatFmt, false));
   m_ModelVSIn->columns.push_back(
-      FormatElement("ColumnSizeTest", 0, 12, false, 1, false, 1, intFmt, true));
+      FormatElement(lit("ColumnSizeTest"), 0, 12, false, 1, false, 1, intFmt, true));
   m_ModelVSIn->columns.push_back(
-      FormatElement("ColumnSizeTest", 0, 16, false, 1, false, 1, intFmt, false));
+      FormatElement(lit("ColumnSizeTest"), 0, 16, false, 1, false, 1, intFmt, false));
 
   m_ModelVSIn->numRows = 2;
 
@@ -2618,12 +2618,12 @@ void BufferViewer::exportData(const BufferExport &params)
 
   QString filter;
   if(params.format == BufferExport::CSV)
-    filter = "CSV Files (*.csv)";
+    filter = lit("CSV Files (*.csv)");
   else if(params.format == BufferExport::RawBytes)
-    filter = "Binary Files (*.bin)";
+    filter = lit("Binary Files (*.bin)");
 
   QString filename = RDDialog::getSaveFileName(this, tr("Export buffer to bytes"), QString(),
-                                               QString("%1;;All files (*.*)").arg(filter));
+                                               QFormatStr("%1;;All files (*.*)").arg(filter));
 
   if(filename.isEmpty())
     return;

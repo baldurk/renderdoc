@@ -122,7 +122,7 @@ bool PersistantConfig::Deserialize(const QString &filename)
 
 bool PersistantConfig::Serialize(const QString &filename)
 {
-  if(filename != "")
+  if(!filename.isEmpty())
     m_Filename = filename;
 
   QVariantMap values = storeValues();
@@ -144,9 +144,9 @@ QVariantMap PersistantConfig::storeValues() const
 #undef CONFIG_SETTING
 
 #define CONFIG_SETTING_VAL(access, variantType, type, name, defaultValue) \
-  ret[#name] = convertToVariant<variantType>(name);
+  ret[lit(#name)] = convertToVariant<variantType>(name);
 #define CONFIG_SETTING(access, variantType, type, name) \
-  ret[#name] = convertToVariant<variantType>(name);
+  ret[lit(#name)] = convertToVariant<variantType>(name);
 
   CONFIG_SETTINGS()
 
@@ -159,11 +159,11 @@ void PersistantConfig::applyValues(const QVariantMap &values)
 #undef CONFIG_SETTING
 
 #define CONFIG_SETTING_VAL(access, variantType, type, name, defaultValue) \
-  if(values.contains(#name))                                              \
-    name = convertFromVariant<type>(values[#name].value<variantType>());
+  if(values.contains(lit(#name)))                                         \
+    name = convertFromVariant<type>(values[lit(#name)].value<variantType>());
 #define CONFIG_SETTING(access, variantType, type, name) \
-  if(values.contains(#name))                            \
-    name = convertFromVariant<type>(values[#name].value<variantType>());
+  if(values.contains(lit(#name)))                       \
+    name = convertFromVariant<type>(values[lit(#name)].value<variantType>());
 
   CONFIG_SETTINGS()
 }
@@ -172,26 +172,27 @@ void PersistantConfig::AddAndroidHosts()
 {
   for(int i = RemoteHosts.count() - 1; i >= 0; i--)
   {
-    if(RemoteHosts[i]->Hostname.startsWith("adb:"))
+    if(RemoteHosts[i]->Hostname.startsWith(lit("adb:")))
       delete RemoteHosts.takeAt(i);
   }
 
-  QString adbExePath = QFile::exists(Android_AdbExecutablePath) ? Android_AdbExecutablePath : "";
+  QString adbExePath =
+      QFile::exists(Android_AdbExecutablePath) ? Android_AdbExecutablePath : QString();
 
   // Set the config setting as it will be reused when we start the remoteserver etc.
-  SetConfigSetting("adbExePath", adbExePath);
+  SetConfigSetting(lit("adbExePath"), adbExePath);
 
   if(adbExePath.isEmpty())
     return;    // adb path must be non-empty in the Options dialog.
 
-  SetConfigSetting("MaxConnectTimeout", QString::number(Android_MaxConnectTimeout));
+  SetConfigSetting(lit("MaxConnectTimeout"), QString::number(Android_MaxConnectTimeout));
 
   rdctype::str androidHosts;
   RENDERDOC_EnumerateAndroidDevices(&androidHosts);
-  for(const QString &hostName : ToQStr(androidHosts).split(',', QString::SkipEmptyParts))
+  for(const QString &hostName : ToQStr(androidHosts).split(QLatin1Char(','), QString::SkipEmptyParts))
   {
     RemoteHost *host = new RemoteHost();
-    host->Hostname = "adb:" + hostName;
+    host->Hostname = lit("adb:") + hostName;
     RemoteHosts.push_back(host);
   }
 }
@@ -220,14 +221,14 @@ bool PersistantConfig::Load(const QString &filename)
   {
     RemoteHosts.push_back(new RemoteHost(host));
 
-    if(host.Hostname == "localhost")
+    if(host.Hostname == lit("localhost"))
       foundLocalhost = true;
   }
 
   if(!foundLocalhost)
   {
     RemoteHost *host = new RemoteHost();
-    host->Hostname = "localhost";
+    host->Hostname = lit("localhost");
     RemoteHosts.insert(RemoteHosts.begin(), host);
   }
 
@@ -290,27 +291,27 @@ QString PersistantConfig::GetConfigSetting(const QString &name)
   if(ConfigSettings.contains(name))
     return ConfigSettings[name];
 
-  return "";
+  return QString();
 }
 
 SPIRVDisassembler::SPIRVDisassembler(const QVariant &var)
 {
   QVariantMap map = var.toMap();
-  if(map.contains("name"))
-    name = map["name"].toString();
-  if(map.contains("executable"))
-    executable = map["executable"].toString();
-  if(map.contains("args"))
-    args = map["args"].toString();
+  if(map.contains(lit("name")))
+    name = map[lit("name")].toString();
+  if(map.contains(lit("executable")))
+    executable = map[lit("executable")].toString();
+  if(map.contains(lit("args")))
+    args = map[lit("args")].toString();
 }
 
 SPIRVDisassembler::operator QVariant() const
 {
   QVariantMap map;
 
-  map["name"] = name;
-  map["executable"] = executable;
-  map["args"] = args;
+  map[lit("name")] = name;
+  map[lit("executable")] = executable;
+  map[lit("args")] = args;
 
   return map;
 }

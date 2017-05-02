@@ -71,12 +71,12 @@ public:
     {
       switch(section)
       {
-        case 0: return "EID";
-        case 1: return "Source";
-        case 2: return "Severity";
-        case 3: return "Category";
-        case 4: return "ID";
-        case 5: return "Description";
+        case 0: return lit("EID");
+        case 1: return lit("Source");
+        case 2: return lit("Severity");
+        case 3: return lit("Category");
+        case 4: return lit("ID");
+        case 5: return lit("Description");
         default: break;
       }
     }
@@ -228,10 +228,10 @@ DebugMessageView::DebugMessageView(ICaptureContext &ctx, QWidget *parent)
   m_ContextMenu = new QMenu(this);
 
   m_ShowHidden = new QAction(tr("Show hidden rows"), this);
-  m_ToggleSource = new QAction("", this);
-  m_ToggleSeverity = new QAction("", this);
-  m_ToggleCategory = new QAction("", this);
-  m_ToggleMessageType = new QAction("", this);
+  m_ToggleSource = new QAction(QString(), this);
+  m_ToggleSeverity = new QAction(QString(), this);
+  m_ToggleCategory = new QAction(QString(), this);
+  m_ToggleMessageType = new QAction(QString(), this);
 
   m_ShowHidden->setCheckable(true);
 

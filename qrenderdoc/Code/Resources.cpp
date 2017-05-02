@@ -25,6 +25,7 @@
 #include "Resources.h"
 #include <QDebug>
 #include <QDirIterator>
+#include "QRDUtils.h"
 
 Resources::ResourceSet *Resources::resources = NULL;
 
@@ -35,20 +36,20 @@ void Resources::Initialise()
   resources = new Resources::ResourceSet();
 
 #undef RESOURCE_DEF
-#define RESOURCE_DEF(name, filename)                                         \
-  filenames.push_back(":/" filename);                                        \
-  resources->name##_data.pixmap = QPixmap(QString::fromUtf8(":/" filename)); \
+#define RESOURCE_DEF(name, filename)                           \
+  filenames.push_back(lit(":/" filename));                     \
+  resources->name##_data.pixmap = QPixmap(lit(":/" filename)); \
   resources->name##_data.icon = QIcon(resources->name##_data.pixmap);
 
   RESOURCE_LIST();
 
-  QDirIterator it(":");
+  QDirIterator it(lit(":"));
   while(it.hasNext())
   {
     QString filename = it.next();
     if(filenames.contains(filename))
       continue;
-    if(!filename.contains(".png"))
+    if(!filename.contains(lit(".png")))
       continue;
 
     qCritical() << "Resource not configured for" << filename;

@@ -155,7 +155,7 @@ private:
   bool m_OwnTempLog = false;
   bool m_SavedTempLog = false;
 
-  QString m_LastSaveCapturePath = "";
+  QString m_LastSaveCapturePath;
 
   void setLogHasErrors(bool errors);
 

@@ -87,7 +87,7 @@
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
       <AdditionalIncludeDirectories>$(ProjectDir);$(IntDir)generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\python\include;3rdparty\pyside\include\PySide2;3rdparty\pyside\include\PySide2\QtCore;3rdparty\pyside\include\PySide2\QtGui;3rdparty\pyside\include\PySide2\QtWidgets;3rdparty\pyside\include\shiboken2;3rdparty\qt\$(Platform)\include;3rdparty\qt\$(Platform)\include\QtWidgets;3rdparty\qt\$(Platform)\include\QtGui;3rdparty\qt\$(Platform)\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:strictStrings /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;WIN64;RENDERDOC_PLATFORM_WIN32;PYSIDE2_ENABLED=1;SCINTILLA_QT=1;MAKING_LIBRARY=1;SCI_LEXER=1;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;WIN64;RENDERDOC_PLATFORM_WIN32;PYSIDE2_ENABLED=1;SCINTILLA_QT=1;MAKING_LIBRARY=1;SCI_LEXER=1;QT_NO_CAST_FROM_ASCII;QT_NO_CAST_TO_ASCII;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <DisableSpecificWarnings>4100;4127;4189;4714;4718;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>

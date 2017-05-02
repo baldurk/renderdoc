@@ -26,6 +26,7 @@
 #include <QApplication>
 #include <QLabel>
 #include <QString>
+#include "Code/QRDUtils.h"
 #include "ui_AboutDialog.h"
 #include "version.h"
 
@@ -33,23 +34,25 @@ AboutDialog::AboutDialog(QWidget *parent) : QDialog(parent), ui(new Ui::AboutDia
 {
   ui->setupUi(this);
 
-  QString hash(GIT_COMMIT_HASH);
+  QString hash = lit(GIT_COMMIT_HASH);
 
-  if(hash[0] == QChar('N') && hash[1] == QChar('O'))
+  if(hash[0] == QLatin1Char('N') && hash[1] == QLatin1Char('O'))
   {
-    ui->version->setText(QString("Version %1 (built from unknown source)").arg(FULL_VERSION_STRING));
+    ui->version->setText(
+        QFormatStr("Version %1 (built from unknown source)").arg(lit(FULL_VERSION_STRING)));
   }
   else
   {
-    ui->version->setText(QString("Version %1 (built from <a href='%2'>%3</a>)")
-                             .arg(FULL_VERSION_STRING)
-                             .arg("https://github.com/baldurk/renderdoc/commit/" GIT_COMMIT_HASH)
-                             .arg(QString(GIT_COMMIT_HASH).left(8)));
+    ui->version->setText(
+        QFormatStr("Version %1 (built from <a href='%2'>%3</a>)")
+            .arg(lit(FULL_VERSION_STRING))
+            .arg(lit("https://github.com/baldurk/renderdoc/commit/" GIT_COMMIT_HASH))
+            .arg(lit(GIT_COMMIT_HASH).left(8)));
   }
 
 #if defined(DISTRIBUTION_VERSION)
-  ui->owner->setText(QString("Baldur Karlsson - Packaged for %1").arg(DISTRIBUTION_NAME));
-  ui->contact->setText(QString("<a href='%1'>%1</a>").arg(DISTRIBUTION_CONTACT));
+  ui->owner->setText(QFormatStr("Baldur Karlsson - Packaged for %1").arg(lit(DISTRIBUTION_NAME)));
+  ui->contact->setText(QFormatStr("<a href='%1'>%1</a>").arg(lit(DISTRIBUTION_CONTACT)));
 #endif
 
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);

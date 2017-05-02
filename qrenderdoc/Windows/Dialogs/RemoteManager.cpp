@@ -132,10 +132,10 @@ void RemoteManager::setRemoteServerLive(RDTreeWidgetItem *node, bool live, bool 
   host->ServerRunning = live;
   host->Busy = busy;
 
-  if(host->Hostname == "localhost")
+  if(host->Hostname == lit("localhost"))
   {
     node->setIcon(0, QIcon());
-    node->setText(1, "");
+    node->setText(1, QString());
   }
   else
   {
@@ -162,7 +162,7 @@ bool RemoteManager::isRemoteServerLive(RDTreeWidgetItem *node)
 
 void RemoteManager::addHost(RemoteHost *host)
 {
-  RDTreeWidgetItem *node = new RDTreeWidgetItem({host->Hostname, "..."});
+  RDTreeWidgetItem *node = new RDTreeWidgetItem({host->Hostname, lit("...")});
 
   node->setItalic(true);
   node->setIcon(0, Icons::hourglass());
@@ -244,7 +244,7 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
 
         QString running;
 
-        if(busy != "")
+        if(!busy.isEmpty())
           running = tr("Running %1, %2 is connected").arg(api).arg(busy);
         else
           running = tr("Running %1").arg(api);
@@ -321,7 +321,7 @@ void RemoteManager::updateConnectButton()
 
     if(host)
     {
-      if(host->Hostname == "localhost")
+      if(host->Hostname == lit("localhost"))
       {
         ui->connect->setEnabled(false);
       }
@@ -336,7 +336,7 @@ void RemoteManager::updateConnectButton()
       {
         ui->connect->setText(tr("Run Server"));
 
-        if(host->RunCommand == "")
+        if(host->RunCommand.isEmpty())
           ui->connect->setEnabled(false);
       }
     }
@@ -412,8 +412,8 @@ void RemoteManager::on_hosts_itemClicked(RDTreeWidgetItem *item, int column)
   ui->addUpdateHost->setEnabled(true);
   ui->runCommand->setEnabled(true);
 
-  ui->runCommand->setText("");
-  ui->hostname->setText("");
+  ui->runCommand->setText(QString());
+  ui->hostname->setText(QString());
 
   RemoteHost *host = getRemoteHost(item);
 
@@ -422,10 +422,10 @@ void RemoteManager::on_hosts_itemClicked(RDTreeWidgetItem *item, int column)
     if(ui->refreshAll->isEnabled())
       ui->refreshOne->setEnabled(true);
 
-    if(host->Hostname == "localhost")
+    if(host->Hostname == lit("localhost"))
     {
-      ui->runCommand->setText("");
-      ui->hostname->setText("");
+      ui->runCommand->setText(QString());
+      ui->hostname->setText(QString());
     }
     else
     {
@@ -465,7 +465,7 @@ void RemoteManager::on_hostname_textEdited(const QString &text)
 
       ui->addUpdateHost->setText(tr("Update"));
 
-      if(text == "localhost")
+      if(text == lit("localhost"))
       {
         ui->hostname->setEnabled(false);
         ui->addUpdateHost->setEnabled(false);
@@ -651,7 +651,7 @@ void RemoteManager::on_deleteHost_clicked()
 
   QString hostname = item->text(0);
 
-  if(hostname == "localhost")
+  if(hostname == lit("localhost"))
     return;
 
   QMessageBox::StandardButton res = RDDialog::question(

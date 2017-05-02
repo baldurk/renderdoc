@@ -34,11 +34,11 @@ static QString GetTypeString(const EnvironmentModification &env)
   QString ret;
 
   if(env.mod == EnvMod::Append)
-    ret = QString("Append, %1").arg(ToQStr(env.sep));
+    ret = QApplication::translate("EnvironmentModification", "Append, %1").arg(ToQStr(env.sep));
   else if(env.mod == EnvMod::Prepend)
-    ret = QString("Prepend, %1").arg(ToQStr(env.sep));
+    ret = QApplication::translate("EnvironmentModification", "Prepend, %1").arg(ToQStr(env.sep));
   else
-    ret = "Set";
+    ret = QApplication::translate("EnvironmentModification", "Set");
 
   return ret;
 }

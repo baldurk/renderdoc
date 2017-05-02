@@ -62,9 +62,9 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   // we create this up front so its state stays persistent as much as possible.
   m_FindReplace = new FindReplace(this);
 
-  m_FindResults = MakeEditor("findresults", "", SCLEX_NULL);
+  m_FindResults = MakeEditor(lit("findresults"), QString(), SCLEX_NULL);
   m_FindResults->setReadOnly(true);
-  m_FindResults->setWindowTitle("Find Results");
+  m_FindResults->setWindowTitle(lit("Find Results"));
 
   // remove margins
   m_FindResults->setMarginWidthN(0, 0);
@@ -85,7 +85,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
 
   {
     m_DisassemblyView =
-        MakeEditor("scintillaDisassem", "",
+        MakeEditor(lit("scintillaDisassem"), QString(),
                    m_Ctx.APIProps().pipelineType == GraphicsAPI::Vulkan ? SCLEX_GLSL : SCLEX_HLSL);
     m_DisassemblyView->setReadOnly(true);
     m_DisassemblyView->setWindowTitle(tr("Disassembly"));
@@ -228,9 +228,9 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
   if(files.count() > 2)
     addFileList();
 
-  m_Errors = MakeEditor("errors", "", SCLEX_NULL);
+  m_Errors = MakeEditor(lit("errors"), QString(), SCLEX_NULL);
   m_Errors->setReadOnly(true);
-  m_Errors->setWindowTitle("Errors");
+  m_Errors->setWindowTitle(lit("Errors"));
 
   // remove margins
   m_Errors->setMarginWidthN(0, 0);
@@ -262,7 +262,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     m_Trace = NULL;
 
   if(trace)
-    setWindowTitle(QString("Debugging %1 - %2")
+    setWindowTitle(QFormatStr("Debugging %1 - %2")
                        .arg(m_Ctx.CurPipelineState().GetShaderName(stage))
                        .arg(debugContext));
   else
@@ -290,7 +290,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   {
     if(trace)
       setWindowTitle(
-          QString("Debug %1() - %2").arg(ToQStr(shader->DebugInfo.entryFunc)).arg(debugContext));
+          QFormatStr("Debug %1() - %2").arg(ToQStr(shader->DebugInfo.entryFunc)).arg(debugContext));
     else
       setWindowTitle(ToQStr(shader->DebugInfo.entryFunc));
 
@@ -430,11 +430,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       {
         QString name = s.varName.count == 0
                            ? ToQStr(s.semanticName)
-                           : QString("%1 (%2)").arg(ToQStr(s.varName)).arg(ToQStr(s.semanticName));
+                           : QFormatStr("%1 (%2)").arg(ToQStr(s.varName)).arg(ToQStr(s.semanticName));
         if(s.semanticName.count == 0)
-          name = s.varName;
+          name = ToQStr(s.varName);
 
-        QString semIdx = s.needSemanticIndex ? QString::number(s.semanticIndex) : "";
+        QString semIdx = s.needSemanticIndex ? QString::number(s.semanticIndex) : QString();
 
         ui->inputSig->addTopLevelItem(new RDTreeWidgetItem(
             {name, semIdx, s.regIndex, TypeString(s), ToQStr(s.systemValue),
@@ -455,14 +455,14 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       {
         QString name = s.varName.count == 0
                            ? ToQStr(s.semanticName)
-                           : QString("%1 (%2)").arg(ToQStr(s.varName)).arg(ToQStr(s.semanticName));
+                           : QFormatStr("%1 (%2)").arg(ToQStr(s.varName)).arg(ToQStr(s.semanticName));
         if(s.semanticName.count == 0)
-          name = s.varName;
+          name = ToQStr(s.varName);
 
         if(multipleStreams)
-          name = QString("Stream %1 : %2").arg(s.stream).arg(name);
+          name = QFormatStr("Stream %1 : %2").arg(s.stream).arg(name);
 
-        QString semIdx = s.needSemanticIndex ? QString::number(s.semanticIndex) : "";
+        QString semIdx = s.needSemanticIndex ? QString::number(s.semanticIndex) : QString();
 
         ui->outputSig->addTopLevelItem(new RDTreeWidgetItem(
             {name, semIdx, s.regIndex, TypeString(s), ToQStr(s.systemValue),
@@ -516,7 +516,7 @@ void ShaderViewer::OnEventChanged(uint32_t eventID)
 ScintillaEdit *ShaderViewer::AddFileScintilla(const QString &name, const QString &text)
 {
   ScintillaEdit *scintilla =
-      MakeEditor("scintilla" + name, text,
+      MakeEditor(lit("scintilla") + name, text,
                  m_Ctx.APIProps().localRenderer == GraphicsAPI::OpenGL ? SCLEX_GLSL : SCLEX_HLSL);
   scintilla->setReadOnly(true);
   scintilla->setWindowTitle(name);
@@ -708,9 +708,9 @@ void ShaderViewer::runToCursor()
 
 int ShaderViewer::instructionForLine(sptr_t line)
 {
-  QString trimmed = m_DisassemblyView->getLine(line).trimmed();
+  QString trimmed = QString::fromUtf8(m_DisassemblyView->getLine(line).trimmed());
 
-  int colon = trimmed.indexOf(QChar(':'));
+  int colon = trimmed.indexOf(QLatin1Char(':'));
 
   if(colon > 0)
   {
@@ -794,7 +794,7 @@ RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, u
                                                      const BoundResource &bound,
                                                      const ShaderResource &res)
 {
-  QString name = QString(" (%1)").arg(ToQStr(res.name));
+  QString name = QFormatStr(" (%1)").arg(ToQStr(res.name));
 
   const TextureDescription *tex = m_Ctx.GetTexture(bound.Id);
   const BufferDescription *buf = m_Ctx.GetBuffer(bound.Id);
@@ -802,26 +802,28 @@ RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, u
   if(res.IsSampler)
     return NULL;
 
-  QChar regChar('u');
+  QChar regChar(QLatin1Char('u'));
 
   if(res.IsReadOnly)
-    regChar = QChar('t');
+    regChar = QLatin1Char('t');
 
-  // %1 = reg prefix (t or u for D3D11)
-  // %2 = bind slot
-  // %3 = bind set
-  // %4 = array index
-
-  const char *fmt = "%1%2";
+  QString regname;
 
   if(m_Ctx.APIProps().pipelineType == GraphicsAPI::D3D12)
-    fmt = bind.arraySize == 1 ? "t%3:%2" : "t%3:%2[%4]";
-
-  QString regname = QString(fmt).arg(regChar).arg(bind.bind).arg(bind.bindset).arg(idx);
+  {
+    if(bind.arraySize == 1)
+      regname = QFormatStr("%1%2:%3").arg(regChar).arg(bind.bindset).arg(bind.bind);
+    else
+      regname = QFormatStr("%1%2:%3[%4]").arg(regChar).arg(bind.bindset).arg(bind.bind).arg(idx);
+  }
+  else
+  {
+    regname = QFormatStr("%1%2").arg(regChar).arg(bind.bind);
+  }
 
   if(tex)
   {
-    QString type = QString("%1x%2x%3[%4] @ %5 - %6")
+    QString type = QFormatStr("%1x%2x%3[%4] @ %5 - %6")
                        .arg(tex->width)
                        .arg(tex->height)
                        .arg(tex->depth > 1 ? tex->depth : tex->arraysize)
@@ -829,17 +831,17 @@ RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, u
                        .arg(ToQStr(tex->format.strname))
                        .arg(ToQStr(tex->name));
 
-    return new RDTreeWidgetItem({regname + name, "Texture", type});
+    return new RDTreeWidgetItem({regname + name, lit("Texture"), type});
   }
   else if(buf)
   {
-    QString type = QString("%1 - %2").arg(buf->length).arg(ToQStr(buf->name));
+    QString type = QFormatStr("%1 - %2").arg(buf->length).arg(ToQStr(buf->name));
 
-    return new RDTreeWidgetItem({regname + name, "Buffer", type});
+    return new RDTreeWidgetItem({regname + name, lit("Buffer"), type});
   }
   else
   {
-    return new RDTreeWidgetItem({regname + name, "Resource", "unknown"});
+    return new RDTreeWidgetItem({regname + name, lit("Resource"), lit("unknown")});
   }
 }
 
@@ -887,7 +889,7 @@ void ShaderViewer::updateDebugging()
   for(sptr_t i = 0; i < m_DisassemblyView->lineCount(); i++)
   {
     if(QString::fromUtf8(m_DisassemblyView->getLine(i).trimmed())
-           .startsWith(QString("%1:").arg(nextInst)))
+           .startsWith(QFormatStr("%1:").arg(nextInst)))
     {
       m_DisassemblyView->markerAdd(i, done ? FINISHED_MARKER : CURRENT_MARKER);
       m_DisassemblyView->markerAdd(i, done ? FINISHED_MARKER + 1 : CURRENT_MARKER + 1);
@@ -912,7 +914,7 @@ void ShaderViewer::updateDebugging()
         if(m_Trace->cbuffers[i][j].rows > 0 || m_Trace->cbuffers[i][j].columns > 0)
         {
           RDTreeWidgetItem *node =
-              new RDTreeWidgetItem({ToQStr(m_Trace->cbuffers[i][j].name), "cbuffer",
+              new RDTreeWidgetItem({ToQStr(m_Trace->cbuffers[i][j].name), lit("cbuffer"),
                                     stringRep(m_Trace->cbuffers[i][j], false)});
           node->setTag(QVariant::fromValue(CBufferTag(i, j)));
 
@@ -928,7 +930,7 @@ void ShaderViewer::updateDebugging()
       if(input.rows > 0 || input.columns > 0)
       {
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {ToQStr(input.name), ToQStr(input.type) + " input", stringRep(input, true)});
+            {ToQStr(input.name), ToQStr(input.type) + lit(" input"), stringRep(input, true)});
         node->setTag(QVariant::fromValue(ResourceTag(i)));
 
         ui->constants->addTopLevelItem(node);
@@ -961,7 +963,7 @@ void ShaderViewer::updateDebugging()
       {
         RDTreeWidgetItem *node =
             new RDTreeWidgetItem({ToQStr(m_ShaderDetails->ReadWriteResources[i].name),
-                                  QString("[%1]").arg(bind.arraySize), ""});
+                                  QFormatStr("[%1]").arg(bind.arraySize), QString()});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
           node->addChild(
@@ -992,7 +994,7 @@ void ShaderViewer::updateDebugging()
       {
         RDTreeWidgetItem *node =
             new RDTreeWidgetItem({ToQStr(m_ShaderDetails->ReadOnlyResources[i].name),
-                                  QString("[%1]").arg(bind.arraySize), ""});
+                                  QFormatStr("[%1]").arg(bind.arraySize), QString()});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
           node->addChild(
@@ -1015,20 +1017,21 @@ void ShaderViewer::updateDebugging()
   {
     for(int i = 0; i < state.registers.count; i++)
       ui->variables->addTopLevelItem(
-          new RDTreeWidgetItem({ToQStr(state.registers[i].name), "temporary", ""}));
+          new RDTreeWidgetItem({ToQStr(state.registers[i].name), lit("temporary"), QString()}));
 
     for(int i = 0; i < state.indexableTemps.count; i++)
     {
-      RDTreeWidgetItem *node = new RDTreeWidgetItem({QString("x%1").arg(i), "indexable", ""});
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({QFormatStr("x%1").arg(i), lit("indexable"), QString()});
       for(int t = 0; t < state.indexableTemps[i].count; t++)
-        node->addChild(
-            new RDTreeWidgetItem({ToQStr(state.indexableTemps[i][t].name), "indexable", ""}));
+        node->addChild(new RDTreeWidgetItem(
+            {ToQStr(state.indexableTemps[i][t].name), lit("indexable"), QString()}));
       ui->variables->addTopLevelItem(node);
     }
 
     for(int i = 0; i < state.outputs.count; i++)
       ui->variables->addTopLevelItem(
-          new RDTreeWidgetItem({ToQStr(state.outputs[i].name), "output", ""}));
+          new RDTreeWidgetItem({ToQStr(state.outputs[i].name), lit("output"), QString()}));
   }
 
   ui->variables->setUpdatesEnabled(false);
@@ -1559,7 +1562,7 @@ void ShaderViewer::find(bool down)
 
   FindReplace::SearchContext context = m_FindReplace->context();
 
-  QString findHash = QString("%1%2%3").arg(find).arg(flags).arg((int)context);
+  QString findHash = QFormatStr("%1%2%3").arg(find).arg(flags).arg((int)context);
 
   if(findHash != m_FindState.hash)
   {
@@ -1706,11 +1709,11 @@ void ShaderViewer::performFindAll()
 
         QString lineText = QString::fromUtf8(s->textRange(lineStart, lineEnd));
 
-        results += QString("  %1(%2): ").arg(s->windowTitle()).arg(line, 4);
+        results += QFormatStr("  %1(%2): ").arg(s->windowTitle()).arg(line, 4);
         int startPos = results.length();
 
         results += lineText;
-        results += "\n";
+        results += lit("\n");
 
         resultList.push_back(
             qMakePair(result.first - lineStart + startPos, result.second - lineStart + startPos));
@@ -1772,7 +1775,7 @@ void ShaderViewer::performReplace()
 
   FindReplace::SearchContext context = m_FindReplace->context();
 
-  QString findHash = QString("%1%2%3").arg(find).arg(flags).arg((int)context);
+  QString findHash = QFormatStr("%1%2%3").arg(find).arg(flags).arg((int)context);
 
   // if we didn't have a valid previous find, just do a find and bail
   if(findHash != m_FindState.hash)

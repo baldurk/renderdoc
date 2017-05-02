@@ -64,7 +64,8 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   clearBookmarks();
 
-  ui->events->setColumns({tr("Name"), "EID", "Duration - replaced in UpdateDurationColumn"});
+  ui->events->setColumns(
+      {tr("Name"), lit("EID"), lit("Duration - replaced in UpdateDurationColumn")});
 
   ui->events->header()->resizeSection(COL_EID, 80);
 
@@ -141,12 +142,12 @@ EventBrowser::~EventBrowser()
 
 void EventBrowser::OnLogfileLoaded()
 {
-  RDTreeWidgetItem *frame =
-      new RDTreeWidgetItem({QString("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), "", ""});
+  RDTreeWidgetItem *frame = new RDTreeWidgetItem(
+      {QFormatStr("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), QString(), QString()});
 
   clearBookmarks();
 
-  RDTreeWidgetItem *framestart = new RDTreeWidgetItem({"Frame Start", "0", ""});
+  RDTreeWidgetItem *framestart = new RDTreeWidgetItem({tr("Frame Start"), lit("0"), QString()});
   framestart->setTag(QVariant::fromValue(EventItemTag()));
 
   frame->addChild(framestart);
@@ -197,13 +198,13 @@ uint EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
 
   for(int32_t i = 0; i < draws.count; i++)
   {
-    RDTreeWidgetItem *child =
-        new RDTreeWidgetItem({QString(draws[i].name), QString("%1").arg(draws[i].eventID), "0.0"});
+    RDTreeWidgetItem *child = new RDTreeWidgetItem(
+        {ToQStr(draws[i].name), QFormatStr("%1").arg(draws[i].eventID), lit("0.0")});
 
     lastEID = AddDrawcalls(child, draws[i].children);
 
     if(lastEID > draws[i].eventID)
-      child->setText(COL_EID, QString("%1-%2").arg(draws[i].eventID).arg(lastEID));
+      child->setText(COL_EID, QFormatStr("%1-%2").arg(draws[i].eventID).arg(lastEID));
 
     if(lastEID == 0)
     {
@@ -252,7 +253,7 @@ void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node,
     else if(m_TimeUnit == TimeUnit::Nanoseconds)
       secs *= 1000000000.0;
 
-    node->setText(COL_DURATION, duration < 0.0f ? "" : QString::number(secs));
+    node->setText(COL_DURATION, duration < 0.0f ? QString() : QString::number(secs));
     EventItemTag tag = node->tag().value<EventItemTag>();
     tag.duration = duration;
     node->setTag(QVariant::fromValue(tag));
@@ -279,7 +280,7 @@ void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node,
   else if(m_TimeUnit == TimeUnit::Nanoseconds)
     secs *= 1000000000.0;
 
-  node->setText(COL_DURATION, duration < 0.0f ? "" : QString::number(secs));
+  node->setText(COL_DURATION, duration < 0.0f ? QString() : QString::number(secs));
   EventItemTag tag = node->tag().value<EventItemTag>();
   tag.duration = duration;
   node->setTag(QVariant::fromValue(tag));
@@ -345,10 +346,10 @@ void EventBrowser::on_HideFindJump()
   ui->jumpStrip->hide();
   ui->findStrip->hide();
 
-  ui->jumpToEID->setText("");
+  ui->jumpToEID->setText(QString());
 
   ClearFindIcons();
-  ui->findEvent->setStyleSheet("");
+  ui->findEvent->setStyleSheet(QString());
 }
 
 void EventBrowser::on_jumpToEID_returnPressed()
@@ -368,9 +369,9 @@ void EventBrowser::findHighlight_timeout()
   int results = SetFindIcons(ui->findEvent->text());
 
   if(results > 0)
-    ui->findEvent->setStyleSheet("");
+    ui->findEvent->setStyleSheet(QString());
   else
-    ui->findEvent->setStyleSheet("QLineEdit{background-color:#ff0000;}");
+    ui->findEvent->setStyleSheet(lit("QLineEdit{background-color:#ff0000;}"));
 }
 
 void EventBrowser::on_findEvent_textEdited(const QString &arg1)
@@ -379,7 +380,7 @@ void EventBrowser::on_findEvent_textEdited(const QString &arg1)
   {
     m_FindHighlight->stop();
 
-    ui->findEvent->setStyleSheet("");
+    ui->findEvent->setStyleSheet(QString());
     ClearFindIcons();
   }
   else
@@ -452,7 +453,7 @@ void EventBrowser::on_stepPrev_clicked()
 void EventBrowser::on_exportDraws_clicked()
 {
   QString filename =
-      RDDialog::getSaveFileName(this, tr("Save Event List"), "", "Text files (*.txt)");
+      RDDialog::getSaveFileName(this, tr("Save Event List"), QString(), lit("Text files (*.txt)"));
 
   if(!filename.isEmpty())
   {
@@ -471,16 +472,16 @@ void EventBrowser::on_exportDraws_clicked()
         for(const DrawcallDescription &d : m_Ctx.CurDrawcalls())
           GetMaxNameLength(maxNameLength, 0, false, d);
 
-        QString line = QString(" EID  | %1 | Draw #").arg("Event", -maxNameLength);
+        QString line = QFormatStr(" EID  | %1 | Draw #").arg(lit("Event"), -maxNameLength);
 
         if(!m_Times.empty())
         {
-          line += QString(" | %1").arg(ui->events->headerText(COL_DURATION));
+          line += QFormatStr(" | %1").arg(ui->events->headerText(COL_DURATION));
         }
 
         stream << line << "\n";
 
-        line = QString("--------%1-----------").arg("", maxNameLength, QChar('-'));
+        line = QFormatStr("--------%1-----------").arg(QString(), maxNameLength, QLatin1Char('-'));
 
         if(!m_Times.empty())
         {
@@ -489,7 +490,7 @@ void EventBrowser::on_exportDraws_clicked()
           maxDurationLength = qMax(maxDurationLength, Formatter::Format(1.2345e-200).length());
           maxDurationLength =
               qMax(maxDurationLength, Formatter::Format(123456.7890123456789).length());
-          line += QString(3 + maxDurationLength, QChar('-'));    // 3 extra for " | "
+          line += QString(3 + maxDurationLength, QLatin1Char('-'));    // 3 extra for " | "
         }
 
         stream << line << "\n";
@@ -517,11 +518,11 @@ void EventBrowser::on_exportDraws_clicked()
 QString EventBrowser::GetExportDrawcallString(int indent, bool firstchild,
                                               const DrawcallDescription &drawcall)
 {
-  QString prefix = QString(indent * 2 - (firstchild ? 1 : 0), QChar(' '));
+  QString prefix = QString(indent * 2 - (firstchild ? 1 : 0), QLatin1Char(' '));
   if(firstchild)
-    prefix += '\\';
+    prefix += QLatin1Char('\\');
 
-  return QString("%1- %2").arg(prefix).arg(ToQStr(drawcall.name));
+  return QFormatStr("%1- %2").arg(prefix).arg(ToQStr(drawcall.name));
 }
 
 double EventBrowser::GetDrawTime(const DrawcallDescription &drawcall)
@@ -568,11 +569,11 @@ void EventBrowser::GetMaxNameLength(int &maxNameLength, int indent, bool firstch
 void EventBrowser::ExportDrawcall(QTextStream &writer, int maxNameLength, int indent,
                                   bool firstchild, const DrawcallDescription &drawcall)
 {
-  QString eidString = drawcall.children.empty() ? QString::number(drawcall.eventID) : "";
+  QString eidString = drawcall.children.empty() ? QString::number(drawcall.eventID) : QString();
 
   QString nameString = GetExportDrawcallString(indent, firstchild, drawcall);
 
-  QString line = QString("%1 | %2 | %3")
+  QString line = QFormatStr("%1 | %2 | %3")
                      .arg(eidString, -5)
                      .arg(nameString, -maxNameLength)
                      .arg(drawcall.drawcallID, -6);
@@ -590,11 +591,11 @@ void EventBrowser::ExportDrawcall(QTextStream &writer, int maxNameLength, int in
       else if(m_TimeUnit == TimeUnit::Nanoseconds)
         f *= 1000000000.0;
 
-      line += QString(" | %1").arg(Formatter::Format(f));
+      line += QFormatStr(" | %1").arg(Formatter::Format(f));
     }
     else
     {
-      line += " |";
+      line += lit(" |");
     }
   }
 
@@ -986,7 +987,7 @@ void EventBrowser::Find(bool forward)
   if(eid >= 0)
   {
     SelectEvent((uint32_t)eid);
-    ui->findEvent->setStyleSheet("");
+    ui->findEvent->setStyleSheet(QString());
   }
   else    // if(WrapSearch)
   {
@@ -994,11 +995,11 @@ void EventBrowser::Find(bool forward)
     if(eid >= 0)
     {
       SelectEvent((uint32_t)eid);
-      ui->findEvent->setStyleSheet("");
+      ui->findEvent->setStyleSheet(QString());
     }
     else
     {
-      ui->findEvent->setStyleSheet("QLineEdit{background-color:#ff0000;}");
+      ui->findEvent->setStyleSheet(lit("QLineEdit{background-color:#ff0000;}"));
     }
   }
 }

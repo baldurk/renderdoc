@@ -158,7 +158,7 @@ public:
   QVariant headerData(int section, Qt::Orientation orientation, int role) const override
   {
     if(orientation == Qt::Horizontal && role == Qt::DisplayRole && section == 0)
-      return "Event";
+      return lit("Event");
 
     // sizes for the colour previews
     if(orientation == Qt::Horizontal && role == Qt::SizeHintRole && (section == 2 || section == 4))
@@ -183,7 +183,7 @@ public:
       if(m_Loading)
       {
         if(role == Qt::DisplayRole && col == 0)
-          return "Loading...";
+          return tr("Loading...");
 
         return QVariant();
       }
@@ -200,7 +200,7 @@ public:
             if(!drawcall)
               return QVariant();
 
-            QString ret = "";
+            QString ret;
             QList<const DrawcallDescription *> drawstack;
             const DrawcallDescription *parent = m_Ctx.GetDrawcall(drawcall->parent);
             while(parent)
@@ -211,19 +211,19 @@ public:
 
             if(!drawstack.isEmpty())
             {
-              ret += "> " + ToQStr(drawstack.back()->name);
+              ret += lit("> ") + ToQStr(drawstack.back()->name);
 
               if(drawstack.count() > 3)
-                ret += " ...";
+                ret += lit(" ...");
 
-              ret += "\n";
+              ret += lit("\n");
 
               if(drawstack.count() > 2)
-                ret += "> " + ToQStr(drawstack[1]->name) + "\n";
+                ret += lit("> ") + ToQStr(drawstack[1]->name) + lit("\n");
               if(drawstack.count() > 1)
-                ret += "> " + ToQStr(drawstack[0]->name) + "\n";
+                ret += lit("> ") + ToQStr(drawstack[0]->name) + lit("\n");
 
-              ret += "\n";
+              ret += lit("\n");
             }
 
             bool passed = true;
@@ -248,7 +248,7 @@ public:
               for(const PixelModification &m : mods)
                 passed |= m.passed();
 
-              QString failure = passed ? "" : failureString(mods[0]);
+              QString failure = passed ? QString() : failureString(mods[0]);
 
               ret += tr("EID %1\n%2%3\n%4 Fragments touching pixel\n")
                          .arg(mods.front().eventID)
@@ -488,51 +488,51 @@ private:
 
   QString modString(const ModificationValue &val) const
   {
-    QString s = "";
+    QString s;
 
     int numComps = (int)(m_Tex->format.compCount);
 
-    static const QString colourLetterPrefix[] = {"R: ", "G: ", "B: ", "A: "};
+    static const QString colourLetterPrefix[] = {lit("R: "), lit("G: "), lit("B: "), lit("A: ")};
 
     if(!m_IsDepth)
     {
       if(m_IsUint)
       {
         for(int i = 0; i < numComps; i++)
-          s += colourLetterPrefix[i] + Formatter::Format(val.col.value_u[i]) + "\n";
+          s += colourLetterPrefix[i] + Formatter::Format(val.col.value_u[i]) + lit("\n");
       }
       else if(m_IsSint)
       {
         for(int i = 0; i < numComps; i++)
-          s += colourLetterPrefix[i] + Formatter::Format(val.col.value_i[i]) + "\n";
+          s += colourLetterPrefix[i] + Formatter::Format(val.col.value_i[i]) + lit("\n");
       }
       else
       {
         for(int i = 0; i < numComps; i++)
-          s += colourLetterPrefix[i] + Formatter::Format(val.col.value_f[i]) + "\n";
+          s += colourLetterPrefix[i] + Formatter::Format(val.col.value_f[i]) + lit("\n");
       }
     }
 
     if(val.depth >= 0.0f)
-      s += "\nD: " + Formatter::Format(val.depth);
+      s += lit("\nD: ") + Formatter::Format(val.depth);
     else if(val.depth < -1.5f)
-      s += "\nD: ?";
+      s += lit("\nD: ?");
     else
-      s += "\nD: -";
+      s += lit("\nD: -");
 
     if(val.stencil >= 0)
-      s += "\nS: 0x" + QString("%1").arg(val.stencil, 2, 16, QChar('0')).toUpper();
+      s += lit("\nS: 0x") + QFormatStr("%1").arg(val.stencil, 2, 16, QLatin1Char('0')).toUpper();
     else if(val.stencil == -2)
-      s += "\nS: ?";
+      s += lit("\nS: ?");
     else
-      s += "\nS: -";
+      s += lit("\nS: -");
 
     return s;
   }
 
   QString failureString(const PixelModification &mod) const
   {
-    QString s = "";
+    QString s;
 
     if(mod.sampleMasked)
       s += tr("\nMasked by SampleMask");
@@ -570,13 +570,13 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
     title += tr(" @ Sample %1").arg(display.sampleIdx);
   setWindowTitle(title);
 
-  QString channelStr = "";
+  QString channelStr;
   if(display.Red)
-    channelStr += "R";
+    channelStr += lit("R");
   if(display.Green)
-    channelStr += "G";
+    channelStr += lit("G");
   if(display.Blue)
-    channelStr += "B";
+    channelStr += lit("B");
 
   if(channelStr.length() > 1)
     channelStr += tr(" channels");
@@ -584,7 +584,7 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
     channelStr += tr(" channel");
 
   if(!display.Red && !display.Green && !display.Blue && display.Alpha)
-    channelStr = "Alpha";
+    channelStr = lit("Alpha");
 
   QString text;
   text = tr("Preview colours displayed in visible range %1 - %2 with %3 visible.\n\n")
@@ -592,8 +592,8 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
              .arg(Formatter::Format(display.rangemax))
              .arg(channelStr);
   text +=
-      "Double click to jump to an event.\n"
-      "Right click to debug an event, or hide failed events.";
+      tr("Double click to jump to an event.\n"
+         "Right click to debug an event, or hide failed events.");
 
   ui->label->setText(text);
 
@@ -652,7 +652,7 @@ void PixelHistoryView::startDebug(EventTag tag)
   }
 
   GUIInvoke::call([this, trace]() {
-    QString debugContext = QString("Pixel %1,%2").arg(m_Pixel.x()).arg(m_Pixel.y());
+    QString debugContext = QFormatStr("Pixel %1,%2").arg(m_Pixel.x()).arg(m_Pixel.y());
 
     const ShaderReflection *shaderDetails =
         m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);

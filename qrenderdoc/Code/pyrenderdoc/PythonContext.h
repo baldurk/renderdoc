@@ -29,6 +29,7 @@
 #include <QString>
 #include <QWidget>
 #include <typeinfo>
+#include "Code/QRDUtils.h"
 #include "renderdoc_replay.h"
 
 class QThread;
@@ -76,8 +77,9 @@ public:
     if(obj)
       setPyGlobal(varName, obj);
     else
-      emit exception("RuntimeError",
-                     QString("Failed to set variable '%1' of type '%2'").arg(varName).arg(typeName),
+      emit exception(lit("RuntimeError"), tr("Failed to set variable '%1' of type '%2'")
+                                              .arg(QString::fromUtf8(varName))
+                                              .arg(QString::fromUtf8(typeName)),
                      {});
   }
 

@@ -46,6 +46,8 @@ class RemoteHost;
 
 class ReplayManager : public IReplayManager
 {
+  Q_DECLARE_TR_FUNCTIONS(ReplayManager);
+
 public:
   ReplayManager();
   ~ReplayManager();

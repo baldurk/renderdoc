@@ -71,7 +71,7 @@ public:
   static IShaderViewer *ViewShader(ICaptureContext &ctx, const ShaderBindpointMapping *bind,
                                    const ShaderReflection *shader, ShaderStage stage, QWidget *parent)
   {
-    return DebugShader(ctx, bind, shader, stage, NULL, "", parent);
+    return DebugShader(ctx, bind, shader, stage, NULL, QString(), parent);
   }
 
   ~ShaderViewer();

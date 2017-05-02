@@ -144,14 +144,14 @@ void SettingsDialog::on_tempDirectory_textEdited(const QString &dir)
   if(QDir(dir).exists())
     m_Ctx.Config().TemporaryCaptureDirectory = dir;
   else
-    m_Ctx.Config().TemporaryCaptureDirectory = "";
+    m_Ctx.Config().TemporaryCaptureDirectory = QString();
 
   m_Ctx.Config().Save();
 }
 
 void SettingsDialog::on_saveDirectory_textEdited(const QString &dir)
 {
-  if(QDir(dir).exists() || dir == "")
+  if(QDir(dir).exists() || dir.isEmpty())
     m_Ctx.Config().DefaultCaptureSaveDirectory = dir;
 
   m_Ctx.Config().Save();
@@ -159,10 +159,11 @@ void SettingsDialog::on_saveDirectory_textEdited(const QString &dir)
 
 void SettingsDialog::on_browseSaveCaptureDirectory_clicked()
 {
-  QString dir = RDDialog::getExistingDirectory(this, "Choose default directory for saving captures",
-                                               m_Ctx.Config().DefaultCaptureSaveDirectory);
+  QString dir =
+      RDDialog::getExistingDirectory(this, tr("Choose default directory for saving captures"),
+                                     m_Ctx.Config().DefaultCaptureSaveDirectory);
 
-  if(dir != "")
+  if(!dir.isEmpty())
     m_Ctx.Config().DefaultCaptureSaveDirectory = dir;
 
   m_Ctx.Config().Save();
@@ -208,13 +209,14 @@ void SettingsDialog::on_chooseSearchPaths_clicked()
                            BrowseMode::Folder, this);
 
   listEd.setItems(m_Ctx.Config()
-                      .GetConfigSetting("shader.debug.searchPaths")
-                      .split(QChar(';'), QString::SkipEmptyParts));
+                      .GetConfigSetting(lit("shader.debug.searchPaths"))
+                      .split(QLatin1Char(';'), QString::SkipEmptyParts));
 
   int res = RDDialog::show(&listEd);
 
   if(res)
-    m_Ctx.Config().SetConfigSetting("shader.debug.searchPaths", listEd.getItems().join(QChar(';')));
+    m_Ctx.Config().SetConfigSetting(lit("shader.debug.searchPaths"),
+                                    listEd.getItems().join(QLatin1Char(';')));
 }
 
 // texture viewer
@@ -242,7 +244,7 @@ void SettingsDialog::on_ShaderViewer_FriendlyNaming_toggled(bool checked)
 
 void SettingsDialog::on_browseExtDisasemble_clicked()
 {
-  QString filePath = RDDialog::getExecutableFileName(this, "Locate SPIR-V disassembler");
+  QString filePath = RDDialog::getExecutableFileName(this, tr("Locate SPIR-V disassembler"));
 
   if(!filePath.isEmpty())
   {
@@ -256,7 +258,7 @@ void SettingsDialog::on_externalDisassemblePath_textEdited(const QString &path)
   if(m_Ctx.Config().SPIRVDisassemblers.isEmpty())
   {
     m_Ctx.Config().SPIRVDisassemblers.push_back(SPIRVDisassembler());
-    m_Ctx.Config().SPIRVDisassemblers.back().name = "Unknown";
+    m_Ctx.Config().SPIRVDisassemblers.back().name = lit("Unknown");
   }
 
   m_Ctx.Config().SPIRVDisassemblers.back().executable = path;
@@ -269,7 +271,7 @@ void SettingsDialog::on_externalDisassemblerArgs_textEdited(const QString &args)
   if(m_Ctx.Config().SPIRVDisassemblers.isEmpty())
   {
     m_Ctx.Config().SPIRVDisassemblers.push_back(SPIRVDisassembler());
-    m_Ctx.Config().SPIRVDisassemblers.back().name = "Unknown";
+    m_Ctx.Config().SPIRVDisassemblers.back().name = lit("Unknown");
   }
 
   m_Ctx.Config().SPIRVDisassemblers.back().args = args;
@@ -329,10 +331,10 @@ void SettingsDialog::on_EventBrowser_ColorEventRow_toggled(bool checked)
 // android
 void SettingsDialog::on_browseTempCaptureDirectory_clicked()
 {
-  QString dir = RDDialog::getExistingDirectory(this, "Choose directory for temporary captures",
+  QString dir = RDDialog::getExistingDirectory(this, tr("Choose directory for temporary captures"),
                                                m_Ctx.Config().TemporaryCaptureDirectory);
 
-  if(dir != "")
+  if(!dir.isEmpty())
     m_Ctx.Config().TemporaryCaptureDirectory = dir;
 
   m_Ctx.Config().Save();
@@ -341,10 +343,10 @@ void SettingsDialog::on_browseTempCaptureDirectory_clicked()
 void SettingsDialog::on_browseAdbPath_clicked()
 {
   QString adb = RDDialog::getExecutableFileName(
-      this, "Locate adb executable",
+      this, tr("Locate adb executable"),
       QFileInfo(m_Ctx.Config().Android_AdbExecutablePath).absoluteDir().path());
 
-  if(adb != "")
+  if(!adb.isEmpty())
     m_Ctx.Config().Android_AdbExecutablePath = adb;
 
   m_Ctx.Config().Save();

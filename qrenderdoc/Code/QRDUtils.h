@@ -24,12 +24,14 @@
 
 #pragma once
 
+#include <QCoreApplication>
 #include <QDebug>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QProcess>
 #include <QSemaphore>
 #include <QSortFilterProxyModel>
+#include "Code/Interface/QRDInterface.h"
 #include "renderdoc_replay.h"
 
 template <typename T>
@@ -582,6 +584,9 @@ QString ToQStr(const ShaderStage stage, const GraphicsAPI apitype);
 
 struct FormatElement
 {
+  Q_DECLARE_TR_FUNCTIONS(FormatElement);
+
+public:
   FormatElement();
   FormatElement(const QString &Name, int buf, uint offs, bool perInst, int instRate, bool rowMat,
                 uint matDim, ResourceFormat f, bool hexDisplay);
@@ -624,15 +629,15 @@ struct Formatter
   static QString Format(double f, bool hex = false);
   static QString Format(uint64_t u, bool hex = false)
   {
-    return QString("%1").arg(u, hex ? 16 : 0, hex ? 16 : 10, QChar('0'));
+    return QFormatStr("%1").arg(u, hex ? 16 : 0, hex ? 16 : 10, QLatin1Char('0'));
   }
   static QString Format(uint32_t u, bool hex = false)
   {
-    return QString("%1").arg(u, hex ? 8 : 0, hex ? 16 : 10, QChar('0'));
+    return QFormatStr("%1").arg(u, hex ? 8 : 0, hex ? 16 : 10, QLatin1Char('0'));
   }
   static QString Format(uint16_t u, bool hex = false)
   {
-    return QString("%1").arg(u, hex ? 4 : 0, hex ? 16 : 10, QChar('0'));
+    return QFormatStr("%1").arg(u, hex ? 4 : 0, hex ? 16 : 10, QLatin1Char('0'));
   }
   static QString Format(int32_t i, bool hex = false) { return QString::number(i); }
 private:

@@ -52,6 +52,8 @@ QString ConfigFilePath(const QString &filename);
 
 class CaptureContext : public ICaptureContext
 {
+  Q_DECLARE_TR_FUNCTIONS(CaptureContext);
+
 public:
   CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp,
                  PersistantConfig &cfg);
@@ -162,9 +164,9 @@ public:
                             ShaderStage stage) override;
 
   IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
-                            const QString &format = "") override;
+                            const QString &format = QString()) override;
   IBufferViewer *ViewTextureAsBuffer(uint32_t arrayIdx, uint32_t mip, ResourceId id,
-                                     const QString &format = "") override;
+                                     const QString &format = QString()) override;
 
   IConstantBufferPreviewer *ViewConstantBuffer(ShaderStage stage, uint32_t slot,
                                                uint32_t idx) override;

@@ -45,7 +45,7 @@ void ReplayManager::OpenCapture(const QString &logfile, float *progress)
     return;
 
   m_ProxyRenderer = -1;
-  m_ReplayHost = "";
+  m_ReplayHost = QString();
   m_Logfile = logfile;
   m_Progress = progress;
 
@@ -163,16 +163,16 @@ void ReplayManager::ListFolder(QString path, bool synchronous, DirectoryBrowseCa
 QString ReplayManager::CopyCaptureToRemote(const QString &localpath, QWidget *window)
 {
   if(!m_Remote)
-    return "";
+    return QString();
 
-  QString remotepath = "";
+  QString remotepath;
 
   bool copied = false;
   float progress = 0.0f;
 
   auto lambda = [this, localpath, &remotepath, &progress, &copied](IReplayController *r) {
     QMutexLocker autolock(&m_RemoteLock);
-    remotepath = m_Remote->CopyCaptureToRemote(localpath.toUtf8().data(), &progress);
+    remotepath = ToQStr(m_Remote->CopyCaptureToRemote(localpath.toUtf8().data(), &progress));
     copied = true;
   };
 
@@ -188,8 +188,8 @@ QString ReplayManager::CopyCaptureToRemote(const QString &localpath, QWidget *wi
     thread->start();
   }
 
-  ShowProgressDialog(window, QApplication::translate("ReplayManager", "Transferring..."),
-                     [&copied]() { return copied; }, [&progress]() { return progress; });
+  ShowProgressDialog(window, tr("Transferring..."), [&copied]() { return copied; },
+                     [&progress]() { return progress; });
 
   return remotepath;
 }
@@ -221,8 +221,8 @@ void ReplayManager::CopyCaptureFromRemote(const QString &remotepath, const QStri
     thread->start();
   }
 
-  ShowProgressDialog(window, QApplication::translate("ReplayManager", "Transferring..."),
-                     [&copied]() { return copied; }, [&progress]() { return progress; });
+  ShowProgressDialog(window, tr("Transferring..."), [&copied]() { return copied; },
+                     [&progress]() { return progress; });
 }
 
 bool ReplayManager::IsRunning()
