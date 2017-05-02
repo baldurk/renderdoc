@@ -126,7 +126,7 @@ QProcessList QProcessInfo::enumerate()
 {
   QProcessList ret;
 
-  QDir proc("/proc");
+  QDir proc(QStringLiteral("/proc"));
 
   QStringList files = proc.entryList();
 
@@ -140,17 +140,17 @@ QProcessList QProcessInfo::enumerate()
       QProcessInfo info;
       info.setPid(pid);
 
-      QDir processDir("/proc/" + f);
+      QDir processDir(QStringLiteral("/proc") + f);
 
       // default to the exe symlink if valid
-      QFileInfo exe(processDir.absoluteFilePath("exe"));
+      QFileInfo exe(processDir.absoluteFilePath(QStringLiteral("exe")));
       exe = QFileInfo(exe.symLinkTarget());
       info.setName(exe.completeBaseName());
 
       // if we didn't get a name from the symlink, check in the status file
-      if(info.name() == "")
+      if(info.name().isEmpty())
       {
-        QFile status(processDir.absoluteFilePath("status"));
+        QFile status(processDir.absoluteFilePath(QStringLiteral("status")));
         if(status.open(QIODevice::ReadOnly))
         {
           QByteArray contents = status.readAll();
@@ -160,11 +160,11 @@ QProcessList QProcessInfo::enumerate()
           {
             QString line = in.readLine();
 
-            if(line.startsWith("Name:"))
+            if(line.startsWith(QStringLiteral("Name:")))
             {
               line.remove(0, 5);
               // if we're using this name, surround with []s to indicate it's not a file
-              info.setName(QString("[%1]").arg(line.trimmed()));
+              info.setName(QStringLiteral("[%1]").arg(line.trimmed()));
               break;
             }
           }
@@ -173,7 +173,7 @@ QProcessList QProcessInfo::enumerate()
       }
 
       // get the command line
-      QFile cmdline(processDir.absoluteFilePath("cmdline"));
+      QFile cmdline(processDir.absoluteFilePath(QStringLiteral("cmdline")));
       if(cmdline.open(QIODevice::ReadOnly))
       {
         QByteArray contents = cmdline.readAll();
@@ -189,10 +189,10 @@ QProcessList QProcessInfo::enumerate()
             info.setName(QFileInfo(firstparam).completeBaseName());
 
           // if we don't have a name, replace it but with []s
-          if(info.name() == "")
-            info.setName(QString("[%1]").arg(firstparam));
+          if(info.name().isEmpty())
+            info.setName(QStringLiteral("[%1]").arg(firstparam));
 
-          contents.replace('\0', " ");
+          contents.replace('\0', ' ');
         }
 
         info.setCommandLine(QString::fromUtf8(contents).trimmed());
@@ -208,15 +208,13 @@ QProcessList QProcessInfo::enumerate()
     // get a list of all windows. This is faster than searching with --pid
     // for every PID, and usually there will be fewer windows than PIDs.
     QStringList params;
-    params << "search"
-           << "--onlyvisible"
-           << ".*";
+    params << QStringLiteral("search") << QStringLiteral("--onlyvisible") << QStringLiteral(".*");
 
     QList<QByteArray> windowlist;
 
     {
       QProcess process;
-      process.start("xdotool", params);
+      process.start(QStringLiteral("xdotool"), params);
       process.waitForFinished(100);
 
       windowlist = process.readAll().split('\n');
@@ -240,13 +238,13 @@ QProcessList QProcessInfo::enumerate()
       // get the PID of the window first. If one isn't available we won't
       // be able to match it up to our entries so don't proceed further
       params.clear();
-      params << "getwindowpid" << win;
+      params << QStringLiteral("getwindowpid") << QString::fromLatin1(win);
 
       uint32_t pid = 0;
 
       {
         QProcess process;
-        process.start("xdotool", params);
+        process.start(QStringLiteral("xdotool"), params);
         process.waitForFinished(100);
 
         pid = process.readAll().trimmed().toUInt(&isUInt);
@@ -258,13 +256,13 @@ QProcessList QProcessInfo::enumerate()
 
       // check to see if the geometry is somewhere offscreen
       params.clear();
-      params << "getwindowgeometry" << win;
+      params << QStringLiteral("getwindowgeometry") << QString::fromLatin1(win);
 
       QList<QByteArray> winGeometry;
 
       {
         QProcess process;
-        process.start("xdotool", params);
+        process.start(QStringLiteral("xdotool"), params);
         process.waitForFinished(100);
 
         winGeometry = process.readAll().split('\n');
@@ -273,8 +271,8 @@ QProcessList QProcessInfo::enumerate()
       // should be three lines: Window <id> \n Position: ... \n Geometry: ...
       if(winGeometry.size() >= 3)
       {
-        QRegExp pos("Position: (-?\\d+),(-?\\d+)");
-        QRegExp geometry("Geometry: (\\d+)x(\\d+)");
+        QRegExp pos(QStringLiteral("Position: (-?\\d+),(-?\\d+)"));
+        QRegExp geometry(QStringLiteral("Geometry: (\\d+)x(\\d+)"));
 
         QString posString = QString::fromUtf8(winGeometry[1]);
         QString geometryString = QString::fromUtf8(winGeometry[2]);
@@ -301,10 +299,10 @@ QProcessList QProcessInfo::enumerate()
       // take the first window name
       {
         params.clear();
-        params << "getwindowname" << win;
+        params << QStringLiteral("getwindowname") << QString::fromLatin1(win);
 
         QProcess process;
-        process.start("xdotool", params);
+        process.start(QStringLiteral("xdotool"), params);
         process.waitForFinished(100);
 
         QString windowTitle = QString::fromUtf8(process.readAll().split('\n')[0]);
