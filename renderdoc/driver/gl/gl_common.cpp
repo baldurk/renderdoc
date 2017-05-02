@@ -448,6 +448,11 @@ void CheckExtensions(const GLHookSet &gl)
 
 void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData context)
 {
+  const char *vendor = "";
+
+  if(gl.glGetString)
+    vendor = (const char *)gl.glGetString(eGL_VENDOR);
+
   //////////////////////////////////////////////////////////
   // version/driver/vendor specific hacks and checks go here
   // doing these in a central place means they're all documented and
@@ -507,10 +512,20 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
     }
   }
 
-  // AMD throws an error if we try to copy the mips that are smaller than 4x4,
-  if(gl.glGetError && gl.glGenTextures && gl.glBindTexture && gl.glCopyImageSubData &&
-     gl.glTexStorage2D && gl.glTexSubImage2D && gl.glTexParameteri && gl.glDeleteTextures &&
-     HasExt[ARB_copy_image] && HasExt[ARB_texture_storage] && !IsGLES)
+  // AMD throws an error if we try to copy the mips that are smaller than 4x4.
+  //
+  // Intel seems to completely break everything if we even run this check, so we just
+  // skip this check and assume the hack is enabled.
+
+  if(!strcmp(vendor, "Intel") || !strcmp(vendor, "intel") || !strcmp(vendor, "INTEL"))
+  {
+    RDCWARN("Using super hack-on-a-hack to avoid glCopyImageSubData tests on intel.");
+    VendorCheck[VendorCheck_AMD_copy_compressed_tinymips] = true;
+    VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] = true;
+  }
+  else if(gl.glGetError && gl.glGenTextures && gl.glBindTexture && gl.glCopyImageSubData &&
+          gl.glTexStorage2D && gl.glTexSubImage2D && gl.glTexParameteri && gl.glDeleteTextures &&
+          HasExt[ARB_copy_image] && HasExt[ARB_texture_storage] && !IsGLES)
   {
     GLuint texs[2];
     gl.glGenTextures(2, texs);
