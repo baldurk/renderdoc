@@ -50,4 +50,24 @@ public:
 private:
   Ui::StatisticsViewer *ui;
   ICaptureContext &m_Ctx;
+
+  QString m_Report;
+
+  void AppendDrawStatistics();
+  void AppendDispatchStatistics();
+  void AppendInputAssemblerStatistics();
+  void AppendShaderStatistics();
+  void AppendConstantBindStatistics();
+  void AppendSamplerBindStatistics();
+  void AppendResourceBindStatistics();
+  void AppendUpdateStatistics();
+  void AppendBlendStatistics();
+  void AppendDepthStencilStatistics();
+  void AppendRasterizationStatistics();
+  void AppendOutputStatistics();
+  void AppendDetailedInformation();
+  void CountContributingEvents(const DrawcallDescription &draw, uint32_t &drawCount,
+                               uint32_t &dispatchCount, uint32_t &diagnosticCount);
+  void AppendAPICallSummary();
+  void GenerateReport();
 };

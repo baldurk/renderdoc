@@ -92,21 +92,23 @@ QString CreateSimpleIntegerHistogram(const QString &legend, const rdctype::array
   return text;
 }
 
-void AppendDrawStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
+void StatisticsViewer::AppendDrawStatistics()
 {
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
   // #mivance see AppendConstantBindStatistics
   const DrawcallStats &draws = frameInfo.stats.draws;
 
-  statisticsLog.append("\n*** Draw Statistics ***\n\n");
+  m_Report.append(tr("\n*** Draw Statistics ***\n\n"));
 
-  statisticsLog.append(QString("Total calls: %1, instanced: %2, indirect: %3\n")
-                           .arg(draws.calls)
-                           .arg(draws.instanced)
-                           .arg(draws.indirect));
+  m_Report.append(QString("Total calls: %1, instanced: %2, indirect: %3\n")
+                      .arg(draws.calls)
+                      .arg(draws.instanced)
+                      .arg(draws.indirect));
 
   if(draws.instanced > 0)
   {
-    statisticsLog.append("\nInstance counts:\n");
+    m_Report.append(tr("\nInstance counts:\n"));
     uint32_t maxCount = 0;
     int maxWithValue = 0;
     int maximum = draws.counts.count;
@@ -122,55 +124,59 @@ void AppendDrawStatistics(QString &statisticsLog, const FrameDescription &frameI
     {
       uint32_t count = draws.counts[s];
       int slice = SliceForString(Stars, count, maxCount);
-      statisticsLog.append(QString("%1%2: %3 %4\n")
-                               .arg((s == maximum - 1) ? ">=" : "  ")
-                               .arg(s, 2)
-                               .arg(Stars.left(slice))
-                               .arg(CountOrEmpty(count)));
+      m_Report.append(QString("%1%2: %3 %4\n")
+                          .arg((s == maximum - 1) ? ">=" : "  ")
+                          .arg(s, 2)
+                          .arg(Stars.left(slice))
+                          .arg(CountOrEmpty(count)));
     }
   }
 }
 
-void AppendDispatchStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
+void StatisticsViewer::AppendDispatchStatistics()
 {
-  statisticsLog.append("\n*** Dispatch Statistics ***\n\n");
-  statisticsLog.append(QString("Total calls: %1, indirect: %2\n")
-                           .arg(frameInfo.stats.dispatches.calls)
-                           .arg(frameInfo.stats.dispatches.indirect));
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
+  m_Report.append(tr("\n*** Dispatch Statistics ***\n\n"));
+  m_Report.append(QString("Total calls: %1, indirect: %2\n")
+                      .arg(frameInfo.stats.dispatches.calls)
+                      .arg(frameInfo.stats.dispatches.indirect));
 }
 
-void AppendInputAssemblerStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
+void StatisticsViewer::AppendInputAssemblerStatistics()
 {
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
   const IndexBindStats &indices = frameInfo.stats.indices;
   const LayoutBindStats &layouts = frameInfo.stats.layouts;
 
   const VertexBindStats &vertices = frameInfo.stats.vertices;
 
-  statisticsLog.append("\n*** Input Assembler Statistics ***\n\n");
+  m_Report.append("\n*** Input Assembler Statistics ***\n\n");
 
-  statisticsLog.append(
-      QString("Total index calls: %1, non-null index sets: %2, null index sets: %3\n")
-          .arg(indices.calls)
-          .arg(indices.sets)
-          .arg(indices.nulls));
-  statisticsLog.append(
+  m_Report.append(QString("Total index calls: %1, non-null index sets: %2, null index sets: %3\n")
+                      .arg(indices.calls)
+                      .arg(indices.sets)
+                      .arg(indices.nulls));
+  m_Report.append(
       QString("Total layout calls: %1, non-null layout sets: %2, null layout sets: %3\n")
           .arg(layouts.calls)
           .arg(layouts.sets)
           .arg(layouts.nulls));
-  statisticsLog.append(
+  m_Report.append(
       QString("Total vertex calls: %1, non-null vertex sets: %2, null vertex sets: %3\n")
           .arg(vertices.calls)
           .arg(vertices.sets)
           .arg(vertices.nulls));
 
-  statisticsLog.append(CreateSimpleIntegerHistogram("Aggregate vertex slot counts per invocation",
-                                                    vertices.bindslots));
+  m_Report.append(CreateSimpleIntegerHistogram("Aggregate vertex slot counts per invocation",
+                                               vertices.bindslots));
 }
 
-void AppendShaderStatistics(ICaptureContext &ctx, QString &statisticsLog,
-                            const FrameDescription &frameInfo)
+void StatisticsViewer::AppendShaderStatistics()
 {
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
   const ShaderChangeStats *shaders = frameInfo.stats.shaders;
   ShaderChangeStats totalShadersPerStage;
   memset(&totalShadersPerStage, 0, sizeof(totalShadersPerStage));
@@ -182,30 +188,31 @@ void AppendShaderStatistics(ICaptureContext &ctx, QString &statisticsLog,
     totalShadersPerStage.redundants += shaders[s].redundants;
   }
 
-  statisticsLog.append("\n*** Shader Set Statistics ***\n\n");
+  m_Report.append("\n*** Shader Set Statistics ***\n\n");
 
   for(auto s : indices<ShaderStage>())
   {
-    statisticsLog.append(QString("%1 calls: %2, non-null shader sets: %3, null shader sets: %4, "
-                                 "redundant shader sets: %5\n")
-                             .arg(ctx.CurPipelineState().Abbrev(StageFromIndex(s)))
-                             .arg(shaders[s].calls)
-                             .arg(shaders[s].sets)
-                             .arg(shaders[s].nulls)
-                             .arg(shaders[s].redundants));
+    m_Report.append(QString("%1 calls: %2, non-null shader sets: %3, null shader sets: %4, "
+                            "redundant shader sets: %5\n")
+                        .arg(m_Ctx.CurPipelineState().Abbrev(StageFromIndex(s)))
+                        .arg(shaders[s].calls)
+                        .arg(shaders[s].sets)
+                        .arg(shaders[s].nulls)
+                        .arg(shaders[s].redundants));
   }
 
-  statisticsLog.append(QString("Total calls: %1, non-null shader sets: %2, null shader sets: %3, "
-                               "reundant shader sets: %4\n")
-                           .arg(totalShadersPerStage.calls)
-                           .arg(totalShadersPerStage.sets)
-                           .arg(totalShadersPerStage.nulls)
-                           .arg(totalShadersPerStage.redundants));
+  m_Report.append(QString("Total calls: %1, non-null shader sets: %2, null shader sets: %3, "
+                          "reundant shader sets: %4\n")
+                      .arg(totalShadersPerStage.calls)
+                      .arg(totalShadersPerStage.sets)
+                      .arg(totalShadersPerStage.nulls)
+                      .arg(totalShadersPerStage.redundants));
 }
 
-void AppendConstantBindStatistics(ICaptureContext &ctx, QString &statisticsLog,
-                                  const FrameDescription &frameInfo)
+void StatisticsViewer::AppendConstantBindStatistics()
 {
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
   // #mivance C++-side we guarantee all stages will have the same slots
   // and sizes count, so pattern off of the first frame's first stage
   const ConstantBindStats &reference = frameInfo.stats.constants[0];
@@ -258,26 +265,26 @@ void AppendConstantBindStatistics(ICaptureContext &ctx, QString &statisticsLog,
       totalConstantsForAllStages.sizes[z] += perStage.sizes[z];
   }
 
-  statisticsLog.append("\n*** Constant Bind Statistics ***\n\n");
+  m_Report.append("\n*** Constant Bind Statistics ***\n\n");
 
   for(auto s : indices<ShaderStage>())
   {
-    statisticsLog.append(QString("%1 calls: %2, non-null buffer sets: %3, null buffer sets: %4\n")
-                             .arg(ctx.CurPipelineState().Abbrev(StageFromIndex(s)))
-                             .arg(totalConstantsPerStage[s].calls)
-                             .arg(totalConstantsPerStage[s].sets)
-                             .arg(totalConstantsPerStage[s].nulls));
+    m_Report.append(QString("%1 calls: %2, non-null buffer sets: %3, null buffer sets: %4\n")
+                        .arg(m_Ctx.CurPipelineState().Abbrev(StageFromIndex(s)))
+                        .arg(totalConstantsPerStage[s].calls)
+                        .arg(totalConstantsPerStage[s].sets)
+                        .arg(totalConstantsPerStage[s].nulls));
   }
 
-  statisticsLog.append(QString("Total calls: %1, non-null buffer sets: %2, null buffer sets: %3\n")
-                           .arg(totalConstantsForAllStages.calls)
-                           .arg(totalConstantsForAllStages.sets)
-                           .arg(totalConstantsForAllStages.nulls));
+  m_Report.append(QString("Total calls: %1, non-null buffer sets: %2, null buffer sets: %3\n")
+                      .arg(totalConstantsForAllStages.calls)
+                      .arg(totalConstantsForAllStages.sets)
+                      .arg(totalConstantsForAllStages.nulls));
 
-  statisticsLog.append(CreateSimpleIntegerHistogram(
+  m_Report.append(CreateSimpleIntegerHistogram(
       "Aggregate slot counts per invocation across all stages", totalConstantsForAllStages.bindslots));
 
-  statisticsLog.append("\nAggregate constant buffer sizes across all stages:\n");
+  m_Report.append("\nAggregate constant buffer sizes across all stages:\n");
   uint32_t maxCount = 0;
   int maxWithValue = 0;
   for(int s = 0; s < totalConstantsForAllStages.sizes.count; s++)
@@ -292,16 +299,17 @@ void AppendConstantBindStatistics(ICaptureContext &ctx, QString &statisticsLog,
   {
     uint32_t count = totalConstantsForAllStages.sizes[s];
     int slice = SliceForString(Stars, count, maxCount);
-    statisticsLog.append(QString("%1: %2 %3\n")
-                             .arg(Pow2IndexAsReadable(s), 8)
-                             .arg(Stars.left(slice))
-                             .arg(CountOrEmpty(count)));
+    m_Report.append(QString("%1: %2 %3\n")
+                        .arg(Pow2IndexAsReadable(s), 8)
+                        .arg(Stars.left(slice))
+                        .arg(CountOrEmpty(count)));
   }
 }
 
-void AppendSamplerBindStatistics(ICaptureContext &ctx, QString &statisticsLog,
-                                 const FrameDescription &frameInfo)
+void StatisticsViewer::AppendSamplerBindStatistics()
 {
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
   // #mivance see AppendConstantBindStatistics
   const SamplerBindStats &reference = frameInfo.stats.samplers[0];
 
@@ -343,30 +351,30 @@ void AppendSamplerBindStatistics(ICaptureContext &ctx, QString &statisticsLog,
     }
   }
 
-  statisticsLog.append("\n*** Sampler Bind Statistics ***\n\n");
+  m_Report.append("\n*** Sampler Bind Statistics ***\n\n");
 
   for(auto s : indices<ShaderStage>())
   {
-    statisticsLog.append(QString("%1 calls: %2, non-null sampler sets: %3, null sampler sets: %4\n")
-                             .arg(ctx.CurPipelineState().Abbrev(StageFromIndex(s)))
-                             .arg(totalSamplersPerStage[s].calls)
-                             .arg(totalSamplersPerStage[s].sets)
-                             .arg(totalSamplersPerStage[s].nulls));
+    m_Report.append(QString("%1 calls: %2, non-null sampler sets: %3, null sampler sets: %4\n")
+                        .arg(m_Ctx.CurPipelineState().Abbrev(StageFromIndex(s)))
+                        .arg(totalSamplersPerStage[s].calls)
+                        .arg(totalSamplersPerStage[s].sets)
+                        .arg(totalSamplersPerStage[s].nulls));
   }
 
-  statisticsLog.append(
-      QString("Total calls: %1, non-null sampler sets: %2, null sampler sets: %3\n")
-          .arg(totalSamplersForAllStages.calls)
-          .arg(totalSamplersForAllStages.sets)
-          .arg(totalSamplersForAllStages.nulls));
+  m_Report.append(QString("Total calls: %1, non-null sampler sets: %2, null sampler sets: %3\n")
+                      .arg(totalSamplersForAllStages.calls)
+                      .arg(totalSamplersForAllStages.sets)
+                      .arg(totalSamplersForAllStages.nulls));
 
-  statisticsLog.append(CreateSimpleIntegerHistogram(
+  m_Report.append(CreateSimpleIntegerHistogram(
       "Aggregate slot counts per invocation across all stages", totalSamplersForAllStages.bindslots));
 }
 
-void AppendResourceBindStatistics(ICaptureContext &ctx, QString &statisticsLog,
-                                  const FrameDescription &frameInfo)
+void StatisticsViewer::AppendResourceBindStatistics()
 {
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
   // #mivance see AppendConstantBindStatistics
   const ResourceBindStats &reference = frameInfo.stats.resources[0];
 
@@ -419,27 +427,26 @@ void AppendResourceBindStatistics(ICaptureContext &ctx, QString &statisticsLog,
     }
   }
 
-  statisticsLog.append("\n*** Resource Bind Statistics ***\n\n");
+  m_Report.append("\n*** Resource Bind Statistics ***\n\n");
 
   for(auto s : indices<ShaderStage>())
   {
-    statisticsLog.append(QString("%1 calls: %2 non-null resource sets: %3 null resource sets: %4\n")
-                             .arg(ctx.CurPipelineState().Abbrev(StageFromIndex(s)))
-                             .arg(totalResourcesPerStage[s].calls)
-                             .arg(totalResourcesPerStage[s].sets)
-                             .arg(totalResourcesPerStage[s].nulls));
+    m_Report.append(QString("%1 calls: %2 non-null resource sets: %3 null resource sets: %4\n")
+                        .arg(m_Ctx.CurPipelineState().Abbrev(StageFromIndex(s)))
+                        .arg(totalResourcesPerStage[s].calls)
+                        .arg(totalResourcesPerStage[s].sets)
+                        .arg(totalResourcesPerStage[s].nulls));
   }
 
-  statisticsLog.append(
-      QString("Total calls: %1 non-null resource sets: %2 null resource sets: %3\n")
-          .arg(totalResourcesForAllStages.calls)
-          .arg(totalResourcesForAllStages.sets)
-          .arg(totalResourcesForAllStages.nulls));
+  m_Report.append(QString("Total calls: %1 non-null resource sets: %2 null resource sets: %3\n")
+                      .arg(totalResourcesForAllStages.calls)
+                      .arg(totalResourcesForAllStages.sets)
+                      .arg(totalResourcesForAllStages.nulls));
 
   uint32_t maxCount = 0;
   int maxWithCount = 0;
 
-  statisticsLog.append("\nResource types across all stages:\n");
+  m_Report.append("\nResource types across all stages:\n");
   for(int s = 0; s < totalResourcesForAllStages.types.count; s++)
   {
     uint32_t count = totalResourcesForAllStages.types[s];
@@ -453,16 +460,18 @@ void AppendResourceBindStatistics(ICaptureContext &ctx, QString &statisticsLog,
     uint32_t count = totalResourcesForAllStages.types[s];
     int slice = SliceForString(Stars, count, maxCount);
     TextureDim type = (TextureDim)s;
-    statisticsLog.append(
+    m_Report.append(
         QString("%1: %2 %3\n").arg(ToQStr(type), 20).arg(Stars.left(slice)).arg(CountOrEmpty(count)));
   }
 
-  statisticsLog.append(CreateSimpleIntegerHistogram(
+  m_Report.append(CreateSimpleIntegerHistogram(
       "Aggregate slot counts per invocation across all stages", totalResourcesForAllStages.bindslots));
 }
 
-void AppendUpdateStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
+void StatisticsViewer::AppendUpdateStatistics()
 {
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
   // #mivance see AppendConstantBindStatistics
   const ResourceUpdateStats &reference = frameInfo.stats.updates;
 
@@ -485,15 +494,14 @@ void AppendUpdateStatistics(QString &statisticsLog, const FrameDescription &fram
       totalUpdates.sizes[t] += updates.sizes[t];
   }
 
-  statisticsLog.append("\n*** Resource Update Statistics ***\n\n");
+  m_Report.append("\n*** Resource Update Statistics ***\n\n");
 
-  statisticsLog.append(
-      QString("Total calls: %1, client-updated memory: %2, server-updated memory: %3\n")
-          .arg(totalUpdates.calls)
-          .arg(totalUpdates.clients)
-          .arg(totalUpdates.servers));
+  m_Report.append(QString("Total calls: %1, client-updated memory: %2, server-updated memory: %3\n")
+                      .arg(totalUpdates.calls)
+                      .arg(totalUpdates.clients)
+                      .arg(totalUpdates.servers));
 
-  statisticsLog.append("\nUpdated resource types:\n");
+  m_Report.append("\nUpdated resource types:\n");
   uint32_t maxCount = 0;
   int maxWithValue = 0;
   for(int s = 1; s < totalUpdates.types.count; s++)
@@ -509,11 +517,11 @@ void AppendUpdateStatistics(QString &statisticsLog, const FrameDescription &fram
     uint32_t count = totalUpdates.types[s];
     int slice = SliceForString(Stars, count, maxCount);
     TextureDim type = (TextureDim)s;
-    statisticsLog.append(
+    m_Report.append(
         QString("%1: %2 %3\n").arg(ToQStr(type), 20).arg(Stars.left(slice)).arg(CountOrEmpty(count)));
   }
 
-  statisticsLog.append("\nUpdated resource sizes:\n");
+  m_Report.append("\nUpdated resource sizes:\n");
   maxCount = 0;
   maxWithValue = 0;
   for(int s = 0; s < totalUpdates.sizes.count; s++)
@@ -528,18 +536,20 @@ void AppendUpdateStatistics(QString &statisticsLog, const FrameDescription &fram
   {
     uint32_t count = totalUpdates.sizes[s];
     int slice = SliceForString(Stars, count, maxCount);
-    statisticsLog.append(QString("%1: %2 %3\n")
-                             .arg(Pow2IndexAsReadable(s), 8)
-                             .arg(Stars.left(slice))
-                             .arg(CountOrEmpty(count)));
+    m_Report.append(QString("%1: %2 %3\n")
+                        .arg(Pow2IndexAsReadable(s), 8)
+                        .arg(Stars.left(slice))
+                        .arg(CountOrEmpty(count)));
   }
 }
 
-void AppendBlendStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
+void StatisticsViewer::AppendBlendStatistics()
 {
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
   BlendStats blends = frameInfo.stats.blends;
-  statisticsLog.append("\n*** Blend Statistics ***\n");
-  statisticsLog.append(
+  m_Report.append("\n*** Blend Statistics ***\n");
+  m_Report.append(
       QString("Blend calls: %1 non-null sets: %2, null (default) sets: %3, redundant sets: %4\n")
           .arg(blends.calls)
           .arg(blends.sets)
@@ -547,65 +557,72 @@ void AppendBlendStatistics(QString &statisticsLog, const FrameDescription &frame
           .arg(blends.redundants));
 }
 
-void AppendDepthStencilStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
+void StatisticsViewer::AppendDepthStencilStatistics()
 {
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
   DepthStencilStats depths = frameInfo.stats.depths;
-  statisticsLog.append("\n*** Depth Stencil Statistics ***\n");
-  statisticsLog.append(QString("Depth/stencil calls: %1 non-null sets: %2, null (default) sets: "
-                               "%3, redundant sets: %4\n")
-                           .arg(depths.calls)
-                           .arg(depths.sets)
-                           .arg(depths.nulls)
-                           .arg(depths.redundants));
+  m_Report.append("\n*** Depth Stencil Statistics ***\n");
+  m_Report.append(QString("Depth/stencil calls: %1 non-null sets: %2, null (default) sets: "
+                          "%3, redundant sets: %4\n")
+                      .arg(depths.calls)
+                      .arg(depths.sets)
+                      .arg(depths.nulls)
+                      .arg(depths.redundants));
 }
 
-void AppendRasterizationStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
+void StatisticsViewer::AppendRasterizationStatistics()
 {
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
   RasterizationStats rasters = frameInfo.stats.rasters;
-  statisticsLog.append("\n*** Rasterization Statistics ***\n");
-  statisticsLog.append(QString("Rasterization calls: %1 non-null sets: %2, null (default) sets: "
-                               "%3, redundant sets: %4\n")
-                           .arg(rasters.calls)
-                           .arg(rasters.sets)
-                           .arg(rasters.nulls)
-                           .arg(rasters.redundants));
-  statisticsLog.append(CreateSimpleIntegerHistogram("Viewports set", rasters.viewports));
-  statisticsLog.append(CreateSimpleIntegerHistogram("Scissors set", rasters.rects));
+  m_Report.append("\n*** Rasterization Statistics ***\n");
+  m_Report.append(QString("Rasterization calls: %1 non-null sets: %2, null (default) sets: "
+                          "%3, redundant sets: %4\n")
+                      .arg(rasters.calls)
+                      .arg(rasters.sets)
+                      .arg(rasters.nulls)
+                      .arg(rasters.redundants));
+  m_Report.append(CreateSimpleIntegerHistogram("Viewports set", rasters.viewports));
+  m_Report.append(CreateSimpleIntegerHistogram("Scissors set", rasters.rects));
 }
 
-void AppendOutputStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
+void StatisticsViewer::AppendOutputStatistics()
 {
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
   OutputTargetStats outputs = frameInfo.stats.outputs;
-  statisticsLog.append("\n*** Output Statistics ***\n");
-  statisticsLog.append(QString("Output calls: %1 non-null sets: %2, null sets: %3\n")
-                           .arg(outputs.calls)
-                           .arg(outputs.sets)
-                           .arg(outputs.nulls));
-  statisticsLog.append(CreateSimpleIntegerHistogram("Outputs set", outputs.bindslots));
+  m_Report.append("\n*** Output Statistics ***\n");
+  m_Report.append(QString("Output calls: %1 non-null sets: %2, null sets: %3\n")
+                      .arg(outputs.calls)
+                      .arg(outputs.sets)
+                      .arg(outputs.nulls));
+  m_Report.append(CreateSimpleIntegerHistogram("Outputs set", outputs.bindslots));
 }
 
-void AppendDetailedInformation(ICaptureContext &ctx, QString &statisticsLog,
-                               const FrameDescription &frameInfo)
+void StatisticsViewer::AppendDetailedInformation()
 {
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
+
   if(!frameInfo.stats.recorded)
     return;
 
-  AppendDrawStatistics(statisticsLog, frameInfo);
-  AppendDispatchStatistics(statisticsLog, frameInfo);
-  AppendInputAssemblerStatistics(statisticsLog, frameInfo);
-  AppendShaderStatistics(ctx, statisticsLog, frameInfo);
-  AppendConstantBindStatistics(ctx, statisticsLog, frameInfo);
-  AppendSamplerBindStatistics(ctx, statisticsLog, frameInfo);
-  AppendResourceBindStatistics(ctx, statisticsLog, frameInfo);
-  AppendBlendStatistics(statisticsLog, frameInfo);
-  AppendDepthStencilStatistics(statisticsLog, frameInfo);
-  AppendRasterizationStatistics(statisticsLog, frameInfo);
-  AppendUpdateStatistics(statisticsLog, frameInfo);
-  AppendOutputStatistics(statisticsLog, frameInfo);
+  AppendDrawStatistics();
+  AppendDispatchStatistics();
+  AppendInputAssemblerStatistics();
+  AppendShaderStatistics();
+  AppendConstantBindStatistics();
+  AppendSamplerBindStatistics();
+  AppendResourceBindStatistics();
+  AppendBlendStatistics();
+  AppendDepthStencilStatistics();
+  AppendRasterizationStatistics();
+  AppendUpdateStatistics();
+  AppendOutputStatistics();
 }
 
-void CountContributingEvents(const DrawcallDescription &draw, uint32_t &drawCount,
-                             uint32_t &dispatchCount, uint32_t &diagnosticCount)
+void StatisticsViewer::CountContributingEvents(const DrawcallDescription &draw, uint32_t &drawCount,
+                                               uint32_t &dispatchCount, uint32_t &diagnosticCount)
 {
   const DrawFlags diagnosticMask =
       DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PopMarker;
@@ -624,15 +641,17 @@ void CountContributingEvents(const DrawcallDescription &draw, uint32_t &drawCoun
     CountContributingEvents(c, drawCount, dispatchCount, diagnosticCount);
 }
 
-QString AppendAPICallSummary(const FrameDescription &frameInfo, uint numAPICalls)
+void StatisticsViewer::AppendAPICallSummary()
 {
-  if(!frameInfo.stats.recorded)
-    return "";
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
 
-  uint numConstantSets = 0;
-  uint numSamplerSets = 0;
-  uint numResourceSets = 0;
-  uint numShaderSets = 0;
+  if(!frameInfo.stats.recorded)
+    return;
+
+  uint32_t numConstantSets = 0;
+  uint32_t numSamplerSets = 0;
+  uint32_t numResourceSets = 0;
+  uint32_t numShaderSets = 0;
 
   for(auto s : indices<ShaderStage>())
   {
@@ -642,34 +661,29 @@ QString AppendAPICallSummary(const FrameDescription &frameInfo, uint numAPICalls
     numShaderSets += frameInfo.stats.shaders[s].calls;
   }
 
-  uint numResourceUpdates = frameInfo.stats.updates.calls;
-  uint numIndexVertexSets = (frameInfo.stats.indices.calls + frameInfo.stats.vertices.calls +
-                             frameInfo.stats.layouts.calls);
-  uint numBlendSets = frameInfo.stats.blends.calls;
-  uint numDepthStencilSets = frameInfo.stats.depths.calls;
-  uint numRasterizationSets = frameInfo.stats.rasters.calls;
-  uint numOutputSets = frameInfo.stats.outputs.calls;
+  uint32_t numResourceUpdates = frameInfo.stats.updates.calls;
+  uint32_t numIndexVertexSets = (frameInfo.stats.indices.calls + frameInfo.stats.vertices.calls +
+                                 frameInfo.stats.layouts.calls);
+  uint32_t numBlendSets = frameInfo.stats.blends.calls;
+  uint32_t numDepthStencilSets = frameInfo.stats.depths.calls;
+  uint32_t numRasterizationSets = frameInfo.stats.rasters.calls;
+  uint32_t numOutputSets = frameInfo.stats.outputs.calls;
 
-  QString calls;
-  calls += QString("API calls: %1\n").arg(numAPICalls);
-  calls += QString("\tIndex/vertex bind calls: %1\n").arg(numIndexVertexSets);
-  calls += QString("\tConstant bind calls: %1\n").arg(numConstantSets);
-  calls += QString("\tSampler bind calls: %1\n").arg(numSamplerSets);
-  calls += QString("\tResource bind calls: %1\n").arg(numResourceSets);
-  calls += QString("\tShader set calls: %1\n").arg(numShaderSets);
-  calls += QString("\tBlend set calls: %1\n").arg(numBlendSets);
-  calls += QString("\tDepth/stencil set calls: %1\n").arg(numDepthStencilSets);
-  calls += QString("\tRasterization set calls: %1\n").arg(numRasterizationSets);
-  calls += QString("\tResource update calls: %1\n").arg(numResourceUpdates);
-  calls += QString("\tOutput set calls: %1\n").arg(numOutputSets);
-  return calls;
+  m_Report += QString("\tIndex/vertex bind calls: %1\n").arg(numIndexVertexSets);
+  m_Report += QString("\tConstant bind calls: %1\n").arg(numConstantSets);
+  m_Report += QString("\tSampler bind calls: %1\n").arg(numSamplerSets);
+  m_Report += QString("\tResource bind calls: %1\n").arg(numResourceSets);
+  m_Report += QString("\tShader set calls: %1\n").arg(numShaderSets);
+  m_Report += QString("\tBlend set calls: %1\n").arg(numBlendSets);
+  m_Report += QString("\tDepth/stencil set calls: %1\n").arg(numDepthStencilSets);
+  m_Report += QString("\tRasterization set calls: %1\n").arg(numRasterizationSets);
+  m_Report += QString("\tResource update calls: %1\n").arg(numResourceUpdates);
+  m_Report += QString("\tOutput set calls: %1\n").arg(numOutputSets);
 }
 
-QString GenerateReport(ICaptureContext &ctx)
+void StatisticsViewer::GenerateReport()
 {
-  QString statisticsLog;
-
-  const rdctype::array<DrawcallDescription> &curDraws = ctx.CurDrawcalls();
+  const rdctype::array<DrawcallDescription> &curDraws = m_Ctx.CurDrawcalls();
 
   const DrawcallDescription *lastDraw = &curDraws.back();
   while(!lastDraw->children.empty())
@@ -683,13 +697,13 @@ QString GenerateReport(ICaptureContext &ctx)
 
   uint32_t numAPIcalls = lastDraw->eventID - (drawCount + dispatchCount + diagnosticCount);
 
-  int numTextures = ctx.GetTextures().count;
-  int numBuffers = ctx.GetBuffers().count;
+  int numTextures = m_Ctx.GetTextures().count;
+  int numBuffers = m_Ctx.GetBuffers().count;
 
   uint64_t IBBytes = 0;
   uint64_t VBBytes = 0;
   uint64_t BufBytes = 0;
-  for(const BufferDescription &b : ctx.GetBuffers())
+  for(const BufferDescription &b : m_Ctx.GetBuffers())
   {
     BufBytes += b.length;
 
@@ -707,7 +721,7 @@ QString GenerateReport(ICaptureContext &ctx)
   float texW = 0, texH = 0;
   float largeTexW = 0, largeTexH = 0;
   int texCount = 0, largeTexCount = 0;
-  for(const TextureDescription &t : ctx.GetTextures())
+  for(const TextureDescription &t : m_Ctx.GetTextures())
   {
     if(t.creationFlags & (TextureCategory::ColorTarget | TextureCategory::DepthTarget))
     {
@@ -740,7 +754,7 @@ QString GenerateReport(ICaptureContext &ctx)
   largeTexW /= largeTexCount;
   largeTexH /= largeTexCount;
 
-  const FrameDescription &frameInfo = ctx.FrameInfo();
+  const FrameDescription &frameInfo = m_Ctx.FrameInfo();
 
   float compressedMB = (float)frameInfo.compressedFileSize / (1024.0f * 1024.0f);
   float uncompressedMB = (float)frameInfo.uncompressedFileSize / (1024.0f * 1024.0f);
@@ -752,7 +766,7 @@ QString GenerateReport(ICaptureContext &ctx)
       QString(
           "Stats for %1.\n\nFile size: %2MB (%3MB uncompressed, compression ratio %4:1)\n"
           "Persistent Data (approx): %5MB, Frame-initial data (approx): %6MB\n")
-          .arg(QFileInfo(ctx.LogFilename()).fileName())
+          .arg(QFileInfo(m_Ctx.LogFilename()).fileName())
           .arg(compressedMB, 2, 'f', 2)
           .arg(uncompressedMB, 2, 'f', 2)
           .arg(compressRatio, 2, 'f', 2)
@@ -760,7 +774,6 @@ QString GenerateReport(ICaptureContext &ctx)
           .arg(initDataMB, 2, 'f', 2);
   QString drawList =
       QString("Draw calls: %1\nDispatch calls: %2\n").arg(drawCount).arg(dispatchCount);
-  QString calls = AppendAPICallSummary(frameInfo, numAPIcalls);
   QString ratio = QString("API:Draw/Dispatch call ratio: %1\n\n")
                       .arg((float)numAPIcalls / (float)(drawCount + dispatchCount));
   QString textures = QString(
@@ -783,19 +796,18 @@ QString GenerateReport(ICaptureContext &ctx)
   QString load = QString("%1 MB - Grand total GPU buffer + texture load.\n")
                      .arg((float)(TexBytes + BufBytes + RTBytes) / (1024.0f * 1024.0f), 2, 'f', 2);
 
-  statisticsLog.append(header);
+  m_Report = header;
 
-  statisticsLog.append("\n*** Summary ***\n\n");
-  statisticsLog.append(drawList);
-  statisticsLog.append(calls);
-  statisticsLog.append(ratio);
-  statisticsLog.append(textures);
-  statisticsLog.append(buffers);
-  statisticsLog.append(load);
+  m_Report.append("\n*** Summary ***\n\n");
+  m_Report.append(drawList);
+  m_Report += tr("API calls: %1\n").arg(numAPICalls);
+  AppendAPICallSummary();
+  m_Report.append(ratio);
+  m_Report.append(textures);
+  m_Report.append(buffers);
+  m_Report.append(load);
 
-  AppendDetailedInformation(ctx, statisticsLog, frameInfo);
-
-  return statisticsLog;
+  AppendDetailedInformation();
 }
 
 StatisticsViewer::StatisticsViewer(ICaptureContext &ctx, QWidget *parent)
@@ -823,5 +835,6 @@ void StatisticsViewer::OnLogfileClosed()
 
 void StatisticsViewer::OnLogfileLoaded()
 {
-  ui->statistics->setText(GenerateReport(m_Ctx));
+  GenerateReport();
+  ui->statistics->setText(m_Report);
 }
