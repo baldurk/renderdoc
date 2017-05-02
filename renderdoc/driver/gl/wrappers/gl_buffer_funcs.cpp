@@ -3663,20 +3663,16 @@ bool WrappedOpenGL::Serialise_glEnableVertexArrayAttribEXT(GLuint vaobj, GLuint 
 
   if(m_State < WRITING)
   {
-    if(m_State == READING)
+    if(id != ResourceId())
     {
-      if(id != ResourceId())
-      {
-        GLResource res = GetResourceManager()->GetLiveResource(id);
-        m_Real.glBindVertexArray(res.name);
-      }
-      else
-      {
-        m_Real.glBindVertexArray(m_FakeVAO);
-      }
+      vaobj = GetResourceManager()->GetLiveResource(id).name;
+    }
+    else
+    {
+      vaobj = m_FakeVAO;
     }
 
-    m_Real.glEnableVertexAttribArray(Index);
+    m_Real.glEnableVertexArrayAttribEXT(vaobj, Index);
   }
   return true;
 }
@@ -3745,20 +3741,16 @@ bool WrappedOpenGL::Serialise_glDisableVertexArrayAttribEXT(GLuint vaobj, GLuint
 
   if(m_State < WRITING)
   {
-    if(m_State == READING)
+    if(id != ResourceId())
     {
-      if(id != ResourceId())
-      {
-        GLResource res = GetResourceManager()->GetLiveResource(id);
-        m_Real.glBindVertexArray(res.name);
-      }
-      else
-      {
-        m_Real.glBindVertexArray(m_FakeVAO);
-      }
+      vaobj = GetResourceManager()->GetLiveResource(id).name;
+    }
+    else
+    {
+      vaobj = m_FakeVAO;
     }
 
-    m_Real.glDisableVertexAttribArray(Index);
+    m_Real.glDisableVertexArrayAttribEXT(vaobj, Index);
   }
   return true;
 }
