@@ -503,7 +503,13 @@ public:
           }
 
           if(col == 1 && meshView)
+          {
+            // if we have separate displayIndices, fetch that for display instead
+            if(displayIndices && displayIndices->data)
+              idx = CalcIndex(displayIndices, row, baseVertex);
+
             return idx;
+          }
 
           const FormatElement &el = elementForColumn(col);
 
@@ -597,7 +603,13 @@ public:
   uint32_t numRows = 0;
   bool meshView = true;
   bool meshInput = false;
+
+  // we can have two index buffers for VSOut data:
+  // the original index buffer is used for the displayed value (in displayIndices), and the actual
+  // potentially remapped or permuated index buffer used for fetching data (in indices).
+  BufferData *displayIndices = NULL;
   BufferData *indices = NULL;
+
   QList<FormatElement> columns;
   QList<BufferData *> buffers;
   uint32_t primRestart = 0;
@@ -1128,6 +1140,10 @@ BufferViewer::~BufferViewer()
   if(m_ModelVSOut->indices)
     m_ModelVSOut->indices->deref();
 
+  // only VSOut has display indices - GSOut has no indices at all, and VSIn has no special case
+  if(m_ModelVSOut->displayIndices)
+    m_ModelVSOut->displayIndices->deref();
+
   for(auto vb : m_ModelVSOut->buffers)
     vb->deref();
 
@@ -1455,17 +1471,44 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   m_ModelVSOut->numRows = m_PostVS.numVerts;
 
   if(draw && m_PostVS.idxbuf != ResourceId() && (draw->flags & DrawFlags::UseIBuffer))
-    idata = r->GetBufferData(m_PostVS.idxbuf, ib.second + draw->indexOffset * draw->indexByteWidth,
-                             draw->numIndices * draw->indexByteWidth);
+    idata = r->GetBufferData(m_PostVS.idxbuf, 0, draw->numIndices * draw->indexByteWidth);
 
   indices = NULL;
   if(m_ModelVSOut->indices)
     m_ModelVSOut->indices->deref();
+  if(m_ModelVSOut->displayIndices)
+    m_ModelVSOut->displayIndices->deref();
 
   if(m_ModelVSIn->indices)
   {
-    m_ModelVSOut->indices = m_ModelVSIn->indices;
-    m_ModelVSOut->indices->ref();
+    // display the same index values
+    m_ModelVSOut->displayIndices = m_ModelVSIn->indices;
+    m_ModelVSOut->displayIndices->ref();
+
+    m_ModelVSOut->indices = new BufferData();
+    if(draw && draw->indexByteWidth != 0 && idata.count != 0)
+    {
+      indices = new uint32_t[draw->numIndices];
+      m_ModelVSOut->indices->data = (byte *)indices;
+      m_ModelVSOut->indices->end = (byte *)(indices + draw->numIndices);
+
+      if(draw->indexByteWidth == 1)
+      {
+        for(size_t i = 0; i < (size_t)idata.count && (uint32_t)i < draw->numIndices; i++)
+          indices[i] = (uint32_t)idata.elems[i];
+      }
+      else if(draw->indexByteWidth == 2)
+      {
+        uint16_t *src = (uint16_t *)idata.elems;
+        for(size_t i = 0;
+            i < (size_t)idata.count / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
+          indices[i] = (uint32_t)src[i];
+      }
+      else if(draw->indexByteWidth == 4)
+      {
+        memcpy(indices, idata.elems, qMin((size_t)idata.count, draw->numIndices * sizeof(uint32_t)));
+      }
+    }
   }
 
   if(m_PostVS.buf != ResourceId())
@@ -1486,6 +1529,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
 
   m_ModelGSOut->numRows = m_PostGS.numVerts;
 
+  indices = NULL;
   m_ModelGSOut->indices = NULL;
 
   if(m_PostGS.buf != ResourceId())
@@ -1846,7 +1890,7 @@ void BufferViewer::updatePreviewColumns()
       m_VSInPosition.baseVertex = draw->baseVertex;
       QPair<ResourceId, uint64_t> ib = m_Ctx.CurPipelineState().GetIBuffer();
       m_VSInPosition.idxbuf = ib.first;
-      m_VSInPosition.idxoffs = ib.second;
+      m_VSInPosition.idxoffs = ib.second + draw->indexOffset * draw->indexByteWidth;
 
       {
         const FormatElement &el = m_ModelVSIn->columns[elIdx];
