@@ -68,13 +68,14 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint locat
     default: break;
   }
 
+  size_t totalSize = elemSize * elemsPerVec * Count;
   if(m_State >= WRITING)
   {
-    m_pSerialiser->RawWriteBytes(value, elemSize * elemsPerVec * Count);
+    m_pSerialiser->RawWriteBytes(value, totalSize);
   }
   else if(m_State <= EXECUTING)
   {
-    value = m_pSerialiser->RawReadBytes(elemSize * elemsPerVec * Count);
+    value = m_pSerialiser->RawReadBytes(totalSize);
 
     if(GetResourceManager()->HasLiveResource(id))
     {
@@ -117,13 +118,14 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint locat
   {
     union
     {
-      float *f;
-      int32_t *i;
-      uint32_t *u;
-      double *d;
+      float f[4];
+      int32_t i[4];
+      uint32_t u[4];
+      double d[4];
     } v;
 
-    v.f = (float *)value;
+    // Copy the pointer first to guarantee alignment, which is needed on ARM.
+    memcpy(v.d, value, RDCMIN(totalSize, sizeof(v.d)));
 
     switch(Type)
     {
@@ -229,13 +231,14 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
     default: break;
   }
 
+  size_t totalSize = elemSize * elemsPerMat * Count;
   if(m_State >= WRITING)
   {
-    m_pSerialiser->RawWriteBytes(value, elemSize * elemsPerMat * Count);
+    m_pSerialiser->RawWriteBytes(value, totalSize);
   }
   else if(m_State <= EXECUTING)
   {
-    value = m_pSerialiser->RawReadBytes(elemSize * elemsPerMat * Count);
+    value = m_pSerialiser->RawReadBytes(totalSize);
 
     if(GetResourceManager()->HasLiveResource(id))
     {
@@ -314,16 +317,21 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
 
   if(m_pSerialiser->GetDebugText())
   {
-    float *fv = (float *)value;
-    double *dv = (double *)value;
+    union
+    {
+      float f[4 * 4];
+      double d[4 * 4];
+    } v;
+
+    memcpy(v.d, value, RDCMIN(totalSize, sizeof(v.d)));
 
     m_pSerialiser->DebugPrint("value: {");
     for(size_t i = 0; i < elemsPerMat; i++)
     {
       if(i == 0)
-        m_pSerialiser->DebugPrint("%f", isDouble ? (float)dv[i] : fv[i]);
+        m_pSerialiser->DebugPrint("%f", isDouble ? (float)v.d[i] : v.f[i]);
       else
-        m_pSerialiser->DebugPrint(", %f", isDouble ? (float)dv[i] : fv[i]);
+        m_pSerialiser->DebugPrint(", %f", isDouble ? (float)v.d[i] : v.f[i]);
     }
     m_pSerialiser->DebugPrint("}\n");
   }
