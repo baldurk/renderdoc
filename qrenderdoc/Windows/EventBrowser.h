@@ -119,7 +119,7 @@ private:
   void ExportDrawcall(QTextStream &writer, int maxNameLength, int indent, bool firstchild,
                       const DrawcallDescription &drawcall);
 
-  TimeUnit m_TimeUnit = TimeUnit::Microseconds;
+  TimeUnit m_TimeUnit = TimeUnit::Count;
 
   rdctype::array<CounterResult> m_Times;
 
