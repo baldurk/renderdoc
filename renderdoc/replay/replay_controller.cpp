@@ -39,7 +39,26 @@
 
 float ConvertComponent(const ResourceFormat &fmt, byte *data)
 {
-  if(fmt.compByteWidth == 4)
+  if(fmt.compByteWidth == 8)
+  {
+    // we just downcast
+    uint64_t *u64 = (uint64_t *)data;
+    int64_t *i64 = (int64_t *)data;
+
+    if(fmt.compType == CompType::Double || fmt.compType == CompType::Float)
+    {
+      return float(*(double *)u64);
+    }
+    else if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
+    {
+      return float(*u64);
+    }
+    else if(fmt.compType == CompType::SInt || fmt.compType == CompType::SScaled)
+    {
+      return float(*i64);
+    }
+  }
+  else if(fmt.compByteWidth == 4)
   {
     uint32_t *u32 = (uint32_t *)data;
     int32_t *i32 = (int32_t *)data;
