@@ -174,7 +174,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
   }
 
   {
-    ui->viBuffers->setColumns({tr("Slot"), tr("Buffer"), tr("Divisor"), tr("Offset"), tr("Stride"),
+    ui->viBuffers->setColumns({tr("Slot"), tr("Buffer"), tr("Stride"), tr("Offset"), tr("Divisor"),
                                tr("Byte Length"), tr("Go")});
     ui->viBuffers->header()->resizeSection(0, 75);
     ui->viBuffers->header()->setSectionResizeMode(0, QHeaderView::Interactive);
@@ -1209,7 +1209,7 @@ void GLPipelineStateViewer::setState()
       }
 
       RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({tr("Element"), name, 0, 0, draw ? draw->indexByteWidth : 0,
+          new RDTreeWidgetItem({tr("Element"), name, draw ? draw->indexByteWidth : 0, 0, 0,
                                 (qulonglong)length, QString()});
 
       node->setTag(QVariant::fromValue(VBIBTag(state.m_VtxIn.ibuffer, draw ? draw->indexOffset : 0)));
