@@ -225,7 +225,7 @@ void PythonContext::GlobalInit()
   {
     QDir bin = QFileInfo(QCoreApplication::applicationFilePath()).absoluteDir();
 
-    QString pylibs = QDir::cleanPath(bin.absoluteFilePath("../share/renderdoc/pylibs"));
+    QString pylibs = QDir::cleanPath(bin.absoluteFilePath(lit("../share/renderdoc/pylibs")));
 
     pylibs.toWCharArray(python_home);
 
