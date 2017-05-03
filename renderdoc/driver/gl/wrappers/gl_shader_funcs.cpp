@@ -456,6 +456,7 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
     progDetails.linked = true;
     progDetails.shaders.push_back(liveId);
     progDetails.stageShaders[ShaderIdx(Type)] = liveId;
+    progDetails.shaderProgramUnlinkable = true;
 
     auto &shadDetails = m_Shaders[liveId];
 

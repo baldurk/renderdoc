@@ -303,6 +303,13 @@ private:
 
     map<GLint, GLint> locationTranslate;
 
+    // this flag indicates the program was created with glCreateShaderProgram and cannot be relinked
+    // again (because that function implicitly detaches and destroys the shader). However we only
+    // need to relink when restoring things like frag data or attrib bindings which must be relinked
+    // to apply - and since the application *also* could not have relinked them, they must be
+    // unchanged since creation. So in this case, we can skip the relink since it was impossible for
+    // the application to modify anything.
+    bool shaderProgramUnlinkable = false;
     bool linked;
     ResourceId stageShaders[6];
   };

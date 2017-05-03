@@ -1953,8 +1953,10 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
         CopyProgramFragDataBindings(gl, initial.resource.name, live.name,
                                     &m_GL->m_Shaders[prog.stageShaders[4]].reflection);
 
-      // we need to re-link the program to apply the bindings.
-      gl.glLinkProgram(live.name);
+      // we need to re-link the program to apply the bindings, as long as it's linkable.
+      // See the comment on shaderProgramUnlinkable for more information.
+      if(!prog.shaderProgramUnlinkable)
+        gl.glLinkProgram(live.name);
     }
 
     CopyProgramUniforms(gl, initial.resource.name, live.name);
