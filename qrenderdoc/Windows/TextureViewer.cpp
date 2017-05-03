@@ -619,8 +619,8 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
 
   ui->overlay->addItems({tr("None"), tr("Highlight Drawcall"), tr("Wireframe Mesh"),
                          tr("Depth Test"), tr("Stencil Test"), tr("Backface Cull"),
-                         tr("Viewport/Scissor Region"), tr("NaN/INF/-ve Display"), tr("Clipping"),
-                         tr("Clear Before Pass"), tr("Clear Before Draw"),
+                         tr("Viewport/Scissor Region"), tr("NaN/INF/-ve Display"),
+                         tr("Histogram Clipping"), tr("Clear Before Pass"), tr("Clear Before Draw"),
                          tr("Quad Overdraw (Pass)"), tr("Quad Overdraw (Draw)"),
                          tr("Triangle Size (Pass)"), tr("Triangle Size (Draw)")});
 
