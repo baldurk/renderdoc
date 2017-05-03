@@ -112,12 +112,6 @@ private:
   const GLHookSet &m_Real;
   GLPlatform &m_Platform;
 
-  // Used to clarify when we're making an internal call that isn't just part of
-  // forwarding the capture, and allows us to emulate extensions like EXT_direct_state_access
-  // without interfering with the real functions for GL.
-  // Only populated during capture, on replay we force-patch the real hookset
-  GLHookSet m_Internal;
-
   friend class GLReplay;
   friend class GLResourceManager;
 
@@ -536,7 +530,6 @@ public:
 
   void SetFetchCounters(bool in) { m_FetchCounters = in; };
   const GLHookSet &GetHookset() { return m_Real; }
-  const GLHookSet &GetInternalHookset() { return m_Internal; }
   void SetDebugMsgContext(const char *context) { m_DebugMsgContext = context; }
   void AddDebugMessage(DebugMessage msg)
   {

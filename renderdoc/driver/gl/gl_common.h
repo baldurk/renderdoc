@@ -407,7 +407,7 @@ bool ValidateFunctionPointers(const GLHookSet &real);
 namespace glEmulate
 {
 void EmulateUnsupportedFunctions(GLHookSet *hooks);
-void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks);
+void EmulateRequiredExtensions(GLHookSet *hooks);
 };
 
 #include "core/core.h"

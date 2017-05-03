@@ -1531,13 +1531,6 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         glBindBuffer(eGL_ARRAY_BUFFER, prevArrayBuffer);
       }
     }
-
-    if(m_State >= WRITING)
-    {
-      m_Internal = m_Real;
-
-      glEmulate::EmulateRequiredExtensions(&m_Real, &m_Internal);
-    }
   }
 }
 

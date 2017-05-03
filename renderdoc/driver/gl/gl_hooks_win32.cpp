@@ -1070,8 +1070,7 @@ private:
     // see gl_emulated.cpp
     glEmulate::EmulateUnsupportedFunctions(&GL);
 
-    if(RenderDoc::Inst().IsReplayApp())
-      glEmulate::EmulateRequiredExtensions(&GL, &GL);
+    glEmulate::EmulateRequiredExtensions(&GL);
 
     return true;
   }
