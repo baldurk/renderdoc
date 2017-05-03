@@ -59,7 +59,7 @@
       <PreprocessorDefinitions>RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
-	<ItemDefinitionGroup>
+  <ItemDefinitionGroup>
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -109,7 +109,11 @@
     <ClInclude Include="gl_replay.h" />
     <ClInclude Include="gl_resources.h" />
     <ClInclude Include="gl_shader_refl.h" />
+    <ClInclude Include="official\egl.h" />
+    <ClInclude Include="official\eglext.h" />
+    <ClInclude Include="official\eglplatform.h" />
     <ClInclude Include="official\glcorearb.h" />
+    <ClInclude Include="official\glesext.h" />
     <ClInclude Include="official\glext.h" />
     <ClInclude Include="official\wglext.h" />
     <ClInclude Include="precompiled.h" />

@@ -7768,7 +7768,23 @@ GLAPI void APIENTRY glSecondaryColorPointerEXT (GLint size, GLenum type, GLsizei
 
 #ifndef GL_EXT_separate_shader_objects
 #define GL_EXT_separate_shader_objects 1
-#define GL_ACTIVE_PROGRAM_EXT             0x8B8D
+// This define has a clash with GLES extensions defined GL_ACTIVE_PROGRAM_EXT:
+//
+// official/glcorearb.h: GL_ACTIVE_PROGRAM     0x8259
+// official/glesext.h:   GL_ACTIVE_PROGRAM_EXT 0x8259
+// official/glext.h:     GL_ACTIVE_PROGRAM     0x8259
+//
+// official/glcorearb.h: GL_CURRENT_PROGRAM    0x8B8D
+// official/glext.h:     GL_CURRENT_PROGRAM    0x8B8D
+// official/glext.h:     GL_ACTIVE_PROGRAM_EXT 0x8B8D
+//
+// Also in the GLES core headers, GL_CURRENT_PROGRAM is 0x8B8D
+//
+// So since this is the odd-one-out in a sense, and since we don't need any of
+// the _EXT variant enums ourselves, we comment this one out. If we see 0x8B8D
+// we'll consider it as GL_CURRENT_PROGRAM.
+//
+//_define GL_ACTIVE_PROGRAM_EXT             0x8B8D
 typedef void (APIENTRYP PFNGLUSESHADERPROGRAMEXTPROC) (GLenum type, GLuint program);
 typedef void (APIENTRYP PFNGLACTIVEPROGRAMEXTPROC) (GLuint program);
 typedef GLuint (APIENTRYP PFNGLCREATESHADERPROGRAMEXTPROC) (GLenum type, const GLchar *string);

@@ -87,6 +87,18 @@
     <ClInclude Include="precompiled.h">
       <Filter>PCH</Filter>
     </ClInclude>
+    <ClInclude Include="official\egl.h">
+      <Filter>ARB Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="official\eglext.h">
+      <Filter>ARB Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="official\eglplatform.h">
+      <Filter>ARB Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="official\glesext.h">
+      <Filter>ARB Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="wrappers\gl_buffer_funcs.cpp">
