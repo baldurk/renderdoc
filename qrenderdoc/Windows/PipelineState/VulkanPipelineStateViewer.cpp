@@ -129,7 +129,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     QObject::connect(b, &QToolButton::clicked, this, &VulkanPipelineStateViewer::shaderView_clicked);
 
   for(RDLabel *b : shaderLabels)
-    QObject::connect(b, &RDLabel::clicked, [this](QMouseEvent *) { shaderView_clicked(); });
+    QObject::connect(b, &RDLabel::clicked, this, &VulkanPipelineStateViewer::shaderLabel_clicked);
 
   for(QToolButton *b : editButtons)
     QObject::connect(b, &QToolButton::clicked, this, &VulkanPipelineStateViewer::shaderEdit_clicked);
@@ -2240,6 +2240,13 @@ void VulkanPipelineStateViewer::shaderView_clicked()
   IShaderViewer *shad = m_Ctx.ViewShader(&stage->BindpointMapping, shaderDetails, stage->stage);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
+}
+
+void VulkanPipelineStateViewer::shaderLabel_clicked(QMouseEvent *event)
+{
+  // forward to shaderView_clicked, we only need this to handle the different parameter, and we
+  // can't use a lambda because then QObject::sender() is NULL
+  shaderView_clicked();
 }
 
 void VulkanPipelineStateViewer::shaderEdit_clicked()

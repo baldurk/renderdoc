@@ -120,7 +120,7 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     QObject::connect(b, &QToolButton::clicked, this, &D3D11PipelineStateViewer::shaderView_clicked);
 
   for(RDLabel *b : shaderLabels)
-    QObject::connect(b, &RDLabel::clicked, [this](QMouseEvent *) { shaderView_clicked(); });
+    QObject::connect(b, &RDLabel::clicked, this, &D3D11PipelineStateViewer::shaderLabel_clicked);
 
   for(QToolButton *b : editButtons)
     QObject::connect(b, &QToolButton::clicked, this, &D3D11PipelineStateViewer::shaderEdit_clicked);
@@ -2185,6 +2185,13 @@ void D3D11PipelineStateViewer::shaderView_clicked()
   IShaderViewer *shad = m_Ctx.ViewShader(bindMap, shaderDetails, shaderStage);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
+}
+
+void D3D11PipelineStateViewer::shaderLabel_clicked(QMouseEvent *event)
+{
+  // forward to shaderView_clicked, we only need this to handle the different parameter, and we
+  // can't use a lambda because then QObject::sender() is NULL
+  shaderView_clicked();
 }
 
 void D3D11PipelineStateViewer::shaderEdit_clicked()

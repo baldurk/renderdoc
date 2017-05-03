@@ -66,6 +66,7 @@ private slots:
 
   // manual slots
   void shaderView_clicked();
+  void shaderLabel_clicked(QMouseEvent *event);
   void shaderEdit_clicked();
 
   void shaderSave_clicked();
