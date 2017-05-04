@@ -361,6 +361,50 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 
   ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
 
+  ui->viAttrs->setFont(Formatter::PreferredFont());
+  ui->viBuffers->setFont(Formatter::PreferredFont());
+  ui->gsFeedback->setFont(Formatter::PreferredFont());
+  ui->vsShader->setFont(Formatter::PreferredFont());
+  ui->vsTextures->setFont(Formatter::PreferredFont());
+  ui->vsSamplers->setFont(Formatter::PreferredFont());
+  ui->vsUBOs->setFont(Formatter::PreferredFont());
+  ui->vsSubroutines->setFont(Formatter::PreferredFont());
+  ui->vsReadWrite->setFont(Formatter::PreferredFont());
+  ui->gsShader->setFont(Formatter::PreferredFont());
+  ui->gsTextures->setFont(Formatter::PreferredFont());
+  ui->gsSamplers->setFont(Formatter::PreferredFont());
+  ui->gsUBOs->setFont(Formatter::PreferredFont());
+  ui->gsSubroutines->setFont(Formatter::PreferredFont());
+  ui->gsReadWrite->setFont(Formatter::PreferredFont());
+  ui->tcsShader->setFont(Formatter::PreferredFont());
+  ui->tcsTextures->setFont(Formatter::PreferredFont());
+  ui->tcsSamplers->setFont(Formatter::PreferredFont());
+  ui->tcsUBOs->setFont(Formatter::PreferredFont());
+  ui->tcsSubroutines->setFont(Formatter::PreferredFont());
+  ui->tcsReadWrite->setFont(Formatter::PreferredFont());
+  ui->tesShader->setFont(Formatter::PreferredFont());
+  ui->tesTextures->setFont(Formatter::PreferredFont());
+  ui->tesSamplers->setFont(Formatter::PreferredFont());
+  ui->tesUBOs->setFont(Formatter::PreferredFont());
+  ui->tesSubroutines->setFont(Formatter::PreferredFont());
+  ui->tesReadWrite->setFont(Formatter::PreferredFont());
+  ui->fsShader->setFont(Formatter::PreferredFont());
+  ui->fsTextures->setFont(Formatter::PreferredFont());
+  ui->fsSamplers->setFont(Formatter::PreferredFont());
+  ui->fsUBOs->setFont(Formatter::PreferredFont());
+  ui->fsSubroutines->setFont(Formatter::PreferredFont());
+  ui->fsReadWrite->setFont(Formatter::PreferredFont());
+  ui->csShader->setFont(Formatter::PreferredFont());
+  ui->csTextures->setFont(Formatter::PreferredFont());
+  ui->csSamplers->setFont(Formatter::PreferredFont());
+  ui->csUBOs->setFont(Formatter::PreferredFont());
+  ui->csSubroutines->setFont(Formatter::PreferredFont());
+  ui->csReadWrite->setFont(Formatter::PreferredFont());
+  ui->viewports->setFont(Formatter::PreferredFont());
+  ui->scissors->setFont(Formatter::PreferredFont());
+  ui->framebuffer->setFont(Formatter::PreferredFont());
+  ui->blends->setFont(Formatter::PreferredFont());
+
   // reset everything back to defaults
   clearState();
 }

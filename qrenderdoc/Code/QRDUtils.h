@@ -624,7 +624,7 @@ QString GetComponentString(byte mask);
 
 struct Formatter
 {
-  static void setParams(int minFigures, int maxFigures, int expNegCutoff, int expPosCutoff);
+  static void setParams(const PersistantConfig &config);
 
   static QString Format(double f, bool hex = false);
   static QString Format(uint64_t u, bool hex = false)
@@ -640,9 +640,11 @@ struct Formatter
     return QFormatStr("%1").arg(u, hex ? 4 : 0, hex ? 16 : 10, QLatin1Char('0'));
   }
   static QString Format(int32_t i, bool hex = false) { return QString::number(i); }
+  static const QFont &PreferredFont() { return m_Font; }
 private:
   static int m_minFigures, m_maxFigures, m_expNegCutoff, m_expPosCutoff;
   static double m_expNegValue, m_expPosValue;
+  static QFont m_Font;
 };
 
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion);

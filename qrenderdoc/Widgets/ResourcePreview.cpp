@@ -24,6 +24,7 @@
 
 #include "ResourcePreview.h"
 #include <QMouseEvent>
+#include "Code/QRDUtils.h"
 #include "ui_ResourcePreview.h"
 
 ResourcePreview::ResourcePreview(ICaptureContext &c, IReplayOutput *output, QWidget *parent)
@@ -50,8 +51,10 @@ ResourcePreview::ResourcePreview(ICaptureContext &c, IReplayOutput *output, QWid
 
   ui->slotLabel->setAutoFillBackground(true);
   ui->slotLabel->setPalette(Pal);
+  ui->slotLabel->setFont(Formatter::PreferredFont());
   ui->descriptionLabel->setAutoFillBackground(true);
   ui->descriptionLabel->setPalette(Pal);
+  ui->descriptionLabel->setFont(Formatter::PreferredFont());
 
   QObject::connect(ui->thumbnail, &CustomPaintWidget::clicked, this, &ResourcePreview::clickEvent);
   QObject::connect(ui->slotLabel, &RDLabel::clicked, this, &ResourcePreview::clickEvent);

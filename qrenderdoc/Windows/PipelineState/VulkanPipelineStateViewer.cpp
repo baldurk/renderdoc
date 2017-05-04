@@ -321,6 +321,31 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
   ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
 
+  ui->viAttrs->setFont(Formatter::PreferredFont());
+  ui->viBuffers->setFont(Formatter::PreferredFont());
+  ui->vsShader->setFont(Formatter::PreferredFont());
+  ui->vsResources->setFont(Formatter::PreferredFont());
+  ui->vsUBOs->setFont(Formatter::PreferredFont());
+  ui->gsShader->setFont(Formatter::PreferredFont());
+  ui->gsResources->setFont(Formatter::PreferredFont());
+  ui->gsUBOs->setFont(Formatter::PreferredFont());
+  ui->tcsShader->setFont(Formatter::PreferredFont());
+  ui->tcsResources->setFont(Formatter::PreferredFont());
+  ui->tcsUBOs->setFont(Formatter::PreferredFont());
+  ui->tesShader->setFont(Formatter::PreferredFont());
+  ui->tesResources->setFont(Formatter::PreferredFont());
+  ui->tesUBOs->setFont(Formatter::PreferredFont());
+  ui->fsShader->setFont(Formatter::PreferredFont());
+  ui->fsResources->setFont(Formatter::PreferredFont());
+  ui->fsUBOs->setFont(Formatter::PreferredFont());
+  ui->csShader->setFont(Formatter::PreferredFont());
+  ui->csResources->setFont(Formatter::PreferredFont());
+  ui->csUBOs->setFont(Formatter::PreferredFont());
+  ui->viewports->setFont(Formatter::PreferredFont());
+  ui->scissors->setFont(Formatter::PreferredFont());
+  ui->framebuffer->setFont(Formatter::PreferredFont());
+  ui->blends->setFont(Formatter::PreferredFont());
+
   // reset everything back to defaults
   clearState();
 }

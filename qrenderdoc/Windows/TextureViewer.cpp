@@ -480,6 +480,16 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
+  ui->textureList->setFont(Formatter::PreferredFont());
+  ui->textureListFilter->setFont(Formatter::PreferredFont());
+  ui->rangeBlack->setFont(Formatter::PreferredFont());
+  ui->rangeWhite->setFont(Formatter::PreferredFont());
+  ui->hdrMul->setFont(Formatter::PreferredFont());
+  ui->channels->setFont(Formatter::PreferredFont());
+  ui->mipLevel->setFont(Formatter::PreferredFont());
+  ui->sliceFace->setFont(Formatter::PreferredFont());
+  ui->zoomOption->setFont(Formatter::PreferredFont());
+
   m_Ctx.AddLogViewer(this);
 
   Reset();

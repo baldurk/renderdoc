@@ -392,6 +392,50 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
   ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
 
+  ui->iaLayouts->setFont(Formatter::PreferredFont());
+  ui->iaBuffers->setFont(Formatter::PreferredFont());
+  ui->gsStreamOut->setFont(Formatter::PreferredFont());
+  ui->groupX->setFont(Formatter::PreferredFont());
+  ui->groupY->setFont(Formatter::PreferredFont());
+  ui->groupZ->setFont(Formatter::PreferredFont());
+  ui->threadX->setFont(Formatter::PreferredFont());
+  ui->threadY->setFont(Formatter::PreferredFont());
+  ui->threadZ->setFont(Formatter::PreferredFont());
+  ui->vsShader->setFont(Formatter::PreferredFont());
+  ui->vsResources->setFont(Formatter::PreferredFont());
+  ui->vsSamplers->setFont(Formatter::PreferredFont());
+  ui->vsCBuffers->setFont(Formatter::PreferredFont());
+  ui->vsUAVs->setFont(Formatter::PreferredFont());
+  ui->gsShader->setFont(Formatter::PreferredFont());
+  ui->gsResources->setFont(Formatter::PreferredFont());
+  ui->gsSamplers->setFont(Formatter::PreferredFont());
+  ui->gsCBuffers->setFont(Formatter::PreferredFont());
+  ui->gsUAVs->setFont(Formatter::PreferredFont());
+  ui->hsShader->setFont(Formatter::PreferredFont());
+  ui->hsResources->setFont(Formatter::PreferredFont());
+  ui->hsSamplers->setFont(Formatter::PreferredFont());
+  ui->hsCBuffers->setFont(Formatter::PreferredFont());
+  ui->hsUAVs->setFont(Formatter::PreferredFont());
+  ui->dsShader->setFont(Formatter::PreferredFont());
+  ui->dsResources->setFont(Formatter::PreferredFont());
+  ui->dsSamplers->setFont(Formatter::PreferredFont());
+  ui->dsCBuffers->setFont(Formatter::PreferredFont());
+  ui->dsUAVs->setFont(Formatter::PreferredFont());
+  ui->psShader->setFont(Formatter::PreferredFont());
+  ui->psResources->setFont(Formatter::PreferredFont());
+  ui->psSamplers->setFont(Formatter::PreferredFont());
+  ui->psCBuffers->setFont(Formatter::PreferredFont());
+  ui->psUAVs->setFont(Formatter::PreferredFont());
+  ui->csShader->setFont(Formatter::PreferredFont());
+  ui->csResources->setFont(Formatter::PreferredFont());
+  ui->csSamplers->setFont(Formatter::PreferredFont());
+  ui->csCBuffers->setFont(Formatter::PreferredFont());
+  ui->csUAVs->setFont(Formatter::PreferredFont());
+  ui->viewports->setFont(Formatter::PreferredFont());
+  ui->scissors->setFont(Formatter::PreferredFont());
+  ui->targetOutputs->setFont(Formatter::PreferredFont());
+  ui->blends->setFont(Formatter::PreferredFont());
+
   // reset everything back to defaults
   clearState();
 }

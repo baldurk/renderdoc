@@ -38,6 +38,15 @@ TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, const TextureS
 
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
+  ui->filename->setFont(Formatter::PreferredFont());
+  ui->fileFormat->setFont(Formatter::PreferredFont());
+  ui->jpegCompression->setFont(Formatter::PreferredFont());
+  ui->mipSelect->setFont(Formatter::PreferredFont());
+  ui->sampleSelect->setFont(Formatter::PreferredFont());
+  ui->sliceSelect->setFont(Formatter::PreferredFont());
+  ui->blackPoint->setFont(Formatter::PreferredFont());
+  ui->whitePoint->setFont(Formatter::PreferredFont());
+
   QObject::connect(&typingTimer, &QTimer::timeout, [this] { SetFiletypeFromFilename(); });
 
   ui->fileFormat->clear();

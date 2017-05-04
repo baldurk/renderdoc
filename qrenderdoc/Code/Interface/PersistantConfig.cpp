@@ -247,16 +247,7 @@ bool PersistantConfig::Save()
 
 void PersistantConfig::SetupFormatting()
 {
-  Formatter::setParams(Formatter_MinFigures, Formatter_MaxFigures, Formatter_NegExp,
-                       Formatter_PosExp);
-
-  // TODO Preferred Font
-  /*
-            PreferredFont = Font_PreferMonospaced
-                ? new System.Drawing.Font("Consolas", 9.25F, System.Drawing.FontStyle.Regular,
-     System.Drawing.GraphicsUnit.Point, ((byte)(0)))
-                : new System.Drawing.Font("Tahoma", 8.25F);
-                */
+  Formatter::setParams(*this);
 }
 
 void AddRecentFile(QList<QString> &recentList, const QString &file, int maxItems)

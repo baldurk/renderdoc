@@ -80,6 +80,10 @@ RemoteManager::RemoteManager(ICaptureContext &ctx, MainWindow *main)
 
   m_ExternalRef.release(1);
 
+  ui->hosts->setFont(Formatter::PreferredFont());
+  ui->hostname->setFont(Formatter::PreferredFont());
+  ui->runCommand->setFont(Formatter::PreferredFont());
+
   ui->hosts->setColumns({tr("Hostname"), tr("Running")});
 
   ui->hosts->header()->setSectionResizeMode(0, QHeaderView::Stretch);

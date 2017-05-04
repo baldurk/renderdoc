@@ -223,6 +223,8 @@ DebugMessageView::DebugMessageView(ICaptureContext &ctx, QWidget *parent)
   QObject::connect(ui->messages, &QWidget::customContextMenuRequested, this,
                    &DebugMessageView::messages_contextMenu);
 
+  ui->messages->setFont(Formatter::PreferredFont());
+
   m_Ctx.AddLogViewer(this);
 
   m_ContextMenu = new QMenu(this);

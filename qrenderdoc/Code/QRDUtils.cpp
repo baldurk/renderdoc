@@ -25,6 +25,7 @@
 #include "QRDUtils.h"
 #include <QApplication>
 #include <QFileSystemModel>
+#include <QFontDatabase>
 #include <QGridLayout>
 #include <QGuiApplication>
 #include <QJsonDocument>
@@ -545,16 +546,20 @@ int Formatter::m_minFigures = 2, Formatter::m_maxFigures = 5, Formatter::m_expNe
     Formatter::m_expPosCutoff = 7;
 double Formatter::m_expNegValue = 0.00001;       // 10^(-5)
 double Formatter::m_expPosValue = 10000000.0;    // 10^7
+QFont Formatter::m_Font;
 
-void Formatter::setParams(int minFigures, int maxFigures, int expNegCutoff, int expPosCutoff)
+void Formatter::setParams(const PersistantConfig &config)
 {
-  m_minFigures = qMax(0, minFigures);
-  m_maxFigures = qMax(2, maxFigures);
-  m_expNegCutoff = qMax(0, expNegCutoff);
-  m_expPosCutoff = qMax(0, expPosCutoff);
+  m_minFigures = qMax(0, config.Formatter_MinFigures);
+  m_maxFigures = qMax(2, config.Formatter_MaxFigures);
+  m_expNegCutoff = qMax(0, config.Formatter_NegExp);
+  m_expPosCutoff = qMax(0, config.Formatter_PosExp);
 
-  m_expNegValue = qPow(10.0, -m_expNegCutoff);
-  m_expPosValue = qPow(10.0, m_expPosCutoff);
+  m_expNegValue = qPow(10.0, -config.Formatter_NegExp);
+  m_expPosValue = qPow(10.0, config.Formatter_PosExp);
+
+  m_Font =
+      config.Font_PreferMonospaced ? QFontDatabase::systemFont(QFontDatabase::FixedFont) : QFont();
 }
 
 QString Formatter::Format(double f, bool)

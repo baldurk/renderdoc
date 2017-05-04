@@ -38,6 +38,9 @@ APIInspector::APIInspector(ICaptureContext &ctx, QWidget *parent)
   ui->splitter->setCollapsible(1, true);
   ui->splitter->setSizes({1, 0});
 
+  ui->callstack->setFont(Formatter::PreferredFont());
+  ui->apiEvents->setFont(Formatter::PreferredFont());
+
   RDSplitterHandle *handle = (RDSplitterHandle *)ui->splitter->handle(1);
   handle->setTitle(tr("Callstack"));
   handle->setIndex(1);

@@ -64,6 +64,10 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   clearBookmarks();
 
+  ui->jumpToEID->setFont(Formatter::PreferredFont());
+  ui->find->setFont(Formatter::PreferredFont());
+  ui->events->setFont(Formatter::PreferredFont());
+
   ui->events->setColumns(
       {tr("Name"), lit("EID"), lit("Duration - replaced in UpdateDurationColumn")});
 

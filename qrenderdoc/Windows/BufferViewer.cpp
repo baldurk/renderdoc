@@ -848,6 +848,14 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   ui->vsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->gsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
+  ui->rowOffset->setFont(Formatter::PreferredFont());
+  ui->instance->setFont(Formatter::PreferredFont());
+  ui->camSpeed->setFont(Formatter::PreferredFont());
+  ui->fovGuess->setFont(Formatter::PreferredFont());
+  ui->aspectGuess->setFont(Formatter::PreferredFont());
+  ui->nearGuess->setFont(Formatter::PreferredFont());
+  ui->farGuess->setFont(Formatter::PreferredFont());
+
   m_ModelVSIn->meshView = m_ModelVSOut->meshView = m_ModelGSOut->meshView = m_MeshView = meshview;
 
   m_ModelVSIn->meshInput = true;

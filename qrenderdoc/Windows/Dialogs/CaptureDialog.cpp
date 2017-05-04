@@ -65,6 +65,11 @@ CaptureDialog::CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallba
 {
   ui->setupUi(this);
 
+  ui->exePath->setFont(Formatter::PreferredFont());
+  ui->workDirPath->setFont(Formatter::PreferredFont());
+  ui->cmdline->setFont(Formatter::PreferredFont());
+  ui->processList->setFont(Formatter::PreferredFont());
+
   // setup FlowLayout for options group
   {
     QLayout *oldLayout = ui->optionsGroup->layout();

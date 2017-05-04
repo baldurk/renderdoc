@@ -559,6 +559,8 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
 {
   ui->setupUi(this);
 
+  ui->events->setFont(Formatter::PreferredFont());
+
   m_Pixel = point;
   m_Display = display;
 

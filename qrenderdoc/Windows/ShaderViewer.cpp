@@ -60,6 +60,12 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
+  ui->constants->setFont(Formatter::PreferredFont());
+  ui->variables->setFont(Formatter::PreferredFont());
+  ui->watch->setFont(Formatter::PreferredFont());
+  ui->inputSig->setFont(Formatter::PreferredFont());
+  ui->outputSig->setFont(Formatter::PreferredFont());
+
   // we create this up front so its state stays persistent as much as possible.
   m_FindReplace = new FindReplace(this);
 
