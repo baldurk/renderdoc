@@ -722,6 +722,7 @@ void WrappedOpenGL::BuildGLESExtensions()
 {
   m_GLESExtensions.push_back("GL_ARM_rgba8");
 
+  m_GLESExtensions.push_back("GL_KHR_debug");
   m_GLESExtensions.push_back("GL_KHR_no_error");
   m_GLESExtensions.push_back("GL_KHR_context_flush_control");
   m_GLESExtensions.push_back("GL_KHR_robust_buffer_access_behavior");

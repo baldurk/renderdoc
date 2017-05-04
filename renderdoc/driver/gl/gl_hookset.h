@@ -163,10 +163,10 @@ struct GLHookSet
   PFNGLGETPROGRAMRESOURCELOCATIONINDEXPROC glGetProgramResourceLocationIndex;
   PFNGLGETPROGRAMSTAGEIVPROC glGetProgramStageiv;
   PFNGLGETGRAPHICSRESETSTATUSPROC glGetGraphicsResetStatus;    // aliases glGetGraphicsResetStatusARB
-  PFNGLGETOBJECTLABELPROC glGetObjectLabel;
+  PFNGLGETOBJECTLABELPROC glGetObjectLabel;            // aliases glGetObjectLabelKHR
   PFNGLGETOBJECTLABELEXTPROC glGetObjectLabelEXT;
-  PFNGLGETOBJECTPTRLABELPROC glGetObjectPtrLabel;
-  PFNGLGETDEBUGMESSAGELOGPROC glGetDebugMessageLog;    // aliases glGetDebugMessageLogARB
+  PFNGLGETOBJECTPTRLABELPROC glGetObjectPtrLabel;      // aliases glGetObjectPtrLabelKHR
+  PFNGLGETDEBUGMESSAGELOGPROC glGetDebugMessageLog;    // aliases glGetDebugMessageLogARB, glGetDebugMessageLogKHR
   PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC glGetFramebufferAttachmentParameteriv;    // aliases glGetFramebufferAttachmentParameterivEXT
   PFNGLGETFRAMEBUFFERPARAMETERIVPROC glGetFramebufferParameteriv;
   PFNGLGETRENDERBUFFERPARAMETERIVPROC glGetRenderbufferParameteriv;    // aliases glGetRenderbufferParameterivEXT
@@ -268,14 +268,14 @@ struct GLHookSet
   PFNGLACTIVESHADERPROGRAMPROC glActiveShaderProgram;
   PFNGLDELETEPROGRAMPIPELINESPROC glDeleteProgramPipelines;
   PFNGLVALIDATEPROGRAMPIPELINEPROC glValidateProgramPipeline;
-  PFNGLDEBUGMESSAGECALLBACKPROC glDebugMessageCallback;    // aliases glDebugMessageCallbackARB
-  PFNGLDEBUGMESSAGECONTROLPROC glDebugMessageControl;      // aliases glDebugMessageControlARB
-  PFNGLDEBUGMESSAGEINSERTPROC glDebugMessageInsert;        // aliases glDebugMessageInsertARB
-  PFNGLPUSHDEBUGGROUPPROC glPushDebugGroup;
-  PFNGLPOPDEBUGGROUPPROC glPopDebugGroup;
-  PFNGLOBJECTLABELPROC glObjectLabel;
+  PFNGLDEBUGMESSAGECALLBACKPROC glDebugMessageCallback;    // aliases glDebugMessageCallbackARB, glDebugMessageCallbackKHR
+  PFNGLDEBUGMESSAGECONTROLPROC glDebugMessageControl;      // aliases glDebugMessageControlARB, glDebugMessageControlKHR
+  PFNGLDEBUGMESSAGEINSERTPROC glDebugMessageInsert;        // aliases glDebugMessageInsertARB, glDebugMessageInsertKHR
+  PFNGLPUSHDEBUGGROUPPROC glPushDebugGroup;                // aliases glPushDebugGroupKHR
+  PFNGLPOPDEBUGGROUPPROC glPopDebugGroup;                  // aliases glPopDebugGroupKHR
+  PFNGLOBJECTLABELPROC glObjectLabel;                      // aliases glObjectLabelKHR
   PFNGLLABELOBJECTEXTPROC glLabelObjectEXT;
-  PFNGLOBJECTPTRLABELPROC glObjectPtrLabel;
+  PFNGLOBJECTPTRLABELPROC glObjectPtrLabel;                // aliases glObjectPtrLabelKHR
   PFNGLENABLEIPROC glEnablei;                // aliases glEnableIndexedEXT
   PFNGLDISABLEIPROC glDisablei;              // aliases glDisableIndexedEXT
   PFNGLISENABLEDIPROC glIsEnabledi;          // aliases glIsEnabledIndexedEXT
