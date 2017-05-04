@@ -732,6 +732,7 @@ void WrappedOpenGL::BuildGLESExtensions()
 
   m_GLESExtensions.push_back("GL_OES_gpu_shader5");
   m_GLESExtensions.push_back("GL_OES_rgb8_rgba8");
+  m_GLESExtensions.push_back("GL_OES_mapbuffer");
   m_GLESExtensions.push_back("GL_OES_standard_derivatives");
   m_GLESExtensions.push_back("GL_OES_texture_compression_astc");
   m_GLESExtensions.push_back("GL_OES_texture_stencil8");
