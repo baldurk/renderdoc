@@ -2114,7 +2114,9 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
         if(attrib.size != 0)
         {
-          if(initialdata->VertexAttribs[i].integer == 0)
+          if(attrib.type == eGL_DOUBLE)
+            gl.glVertexAttribLFormat(i, attrib.size, attrib.type, attrib.offset);
+          else if(attrib.integer == 0)
             gl.glVertexAttribFormat(i, attrib.size, attrib.type, (GLboolean)attrib.normalized,
                                     attrib.offset);
           else
