@@ -798,18 +798,28 @@
   HookExtension(PFNGLVERTEXBINDINGDIVISORPROC, glVertexBindingDivisor); \
   HookExtension(PFNGLDEBUGMESSAGECONTROLPROC, glDebugMessageControl); \
   HookExtensionAlias(PFNGLDEBUGMESSAGECONTROLPROC, glDebugMessageControl, glDebugMessageControlARB); \
+  HookExtensionAlias(PFNGLDEBUGMESSAGECONTROLPROC, glDebugMessageControl, glDebugMessageControlKHR); \
   HookExtension(PFNGLDEBUGMESSAGEINSERTPROC, glDebugMessageInsert); \
   HookExtensionAlias(PFNGLDEBUGMESSAGEINSERTPROC, glDebugMessageInsert, glDebugMessageInsertARB); \
+  HookExtensionAlias(PFNGLDEBUGMESSAGEINSERTPROC, glDebugMessageInsert, glDebugMessageInsertKHR); \
   HookExtension(PFNGLDEBUGMESSAGECALLBACKPROC, glDebugMessageCallback); \
   HookExtensionAlias(PFNGLDEBUGMESSAGECALLBACKPROC, glDebugMessageCallback, glDebugMessageCallbackARB); \
+  HookExtensionAlias(PFNGLDEBUGMESSAGECALLBACKPROC, glDebugMessageCallback, glDebugMessageCallbackKHR); \
   HookExtension(PFNGLGETDEBUGMESSAGELOGPROC, glGetDebugMessageLog); \
   HookExtensionAlias(PFNGLGETDEBUGMESSAGELOGPROC, glGetDebugMessageLog, glGetDebugMessageLogARB); \
+  HookExtensionAlias(PFNGLGETDEBUGMESSAGELOGPROC, glGetDebugMessageLog, glGetDebugMessageLogKHR); \
   HookExtension(PFNGLPUSHDEBUGGROUPPROC, glPushDebugGroup); \
+  HookExtensionAlias(PFNGLPUSHDEBUGGROUPPROC, glPushDebugGroup, glPushDebugGroupKHR); \
   HookExtension(PFNGLPOPDEBUGGROUPPROC, glPopDebugGroup); \
+  HookExtensionAlias(PFNGLPOPDEBUGGROUPPROC, glPopDebugGroup, glPopDebugGroupKHR); \
   HookExtension(PFNGLOBJECTLABELPROC, glObjectLabel); \
+  HookExtensionAlias(PFNGLOBJECTLABELPROC, glObjectLabel, glObjectLabelKHR); \
   HookExtension(PFNGLGETOBJECTLABELPROC, glGetObjectLabel); \
+  HookExtensionAlias(PFNGLGETOBJECTLABELPROC, glGetObjectLabel, glGetObjectLabelKHR); \
   HookExtension(PFNGLOBJECTPTRLABELPROC, glObjectPtrLabel); \
+  HookExtensionAlias(PFNGLOBJECTPTRLABELPROC, glObjectPtrLabel, glObjectPtrLabelKHR); \
   HookExtension(PFNGLGETOBJECTPTRLABELPROC, glGetObjectPtrLabel); \
+  HookExtensionAlias(PFNGLGETOBJECTPTRLABELPROC, glGetObjectPtrLabel, glGetObjectPtrLabelKHR); \
   HookExtension(PFNGLBUFFERSTORAGEPROC, glBufferStorage); \
   HookExtension(PFNGLCLEARTEXIMAGEPROC, glClearTexImage); \
   HookExtension(PFNGLCLEARTEXSUBIMAGEPROC, glClearTexSubImage); \
