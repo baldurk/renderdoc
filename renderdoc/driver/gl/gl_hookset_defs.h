@@ -183,6 +183,7 @@
   HookExtensionAlias(PFNGLGETBUFFERPARAMETERIVPROC, glGetBufferParameteriv, glGetBufferParameterivARB); \
   HookExtension(PFNGLGETBUFFERPOINTERVPROC, glGetBufferPointerv); \
   HookExtensionAlias(PFNGLGETBUFFERPOINTERVPROC, glGetBufferPointerv, glGetBufferPointervARB); \
+  HookExtensionAlias(PFNGLGETBUFFERPOINTERVPROC, glGetBufferPointerv, glGetBufferPointervOES); \
   HookExtension(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate); \
   HookExtensionAlias(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate, glBlendEquationSeparateARB); \
   HookExtensionAlias(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate, glBlendEquationSeparateEXT); \

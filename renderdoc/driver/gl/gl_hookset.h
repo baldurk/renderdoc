@@ -135,7 +135,7 @@ struct GLHookSet
   PFNGLGETINTERNALFORMATI64VPROC glGetInternalformati64v;
   PFNGLGETBUFFERPARAMETERIVPROC glGetBufferParameteriv;    // aliases glGetBufferParameterivARB
   PFNGLGETBUFFERPARAMETERI64VPROC glGetBufferParameteri64v;
-  PFNGLGETBUFFERPOINTERVPROC glGetBufferPointerv;    // aliases glGetBufferPointervARB
+  PFNGLGETBUFFERPOINTERVPROC glGetBufferPointerv;    // aliases glGetBufferPointervARB, glGetBufferPointervOES
   PFNGLGETFRAGDATAINDEXPROC glGetFragDataIndex;
   PFNGLGETFRAGDATALOCATIONPROC glGetFragDataLocation;    // aliases glGetFragDataLocationEXT
   PFNGLGETSTRINGIPROC glGetStringi;
@@ -329,10 +329,10 @@ struct GLHookSet
   PFNGLBINDBUFFERRANGEPROC glBindBufferRange;    // aliases glBindBufferRangeEXT
   PFNGLBINDBUFFERSBASEPROC glBindBuffersBase;
   PFNGLBINDBUFFERSRANGEPROC glBindBuffersRange;
-  PFNGLMAPBUFFERPROC glMapBuffer;    // aliases glMapBufferARB
+  PFNGLMAPBUFFERPROC glMapBuffer;    // aliases glMapBufferARB, glMapBufferOES
   PFNGLMAPBUFFERRANGEPROC glMapBufferRange;
   PFNGLFLUSHMAPPEDBUFFERRANGEPROC glFlushMappedBufferRange;
-  PFNGLUNMAPBUFFERPROC glUnmapBuffer;    // aliases glUnmapBufferARB
+  PFNGLUNMAPBUFFERPROC glUnmapBuffer;    // aliases glUnmapBufferARB, glUnmapBufferOES
   PFNGLTRANSFORMFEEDBACKVARYINGSPROC glTransformFeedbackVaryings;    // aliases glTransformFeedbackVaryingsEXT
   PFNGLGENTRANSFORMFEEDBACKSPROC glGenTransformFeedbacks;
   PFNGLDELETETRANSFORMFEEDBACKSPROC glDeleteTransformFeedbacks;
