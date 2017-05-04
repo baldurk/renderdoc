@@ -1204,6 +1204,12 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
     float maxheight = float(ascent) * stbtt_ScaleForPixelHeight(&f, charPixelHeight);
 
     {
+      PixelUnpackState unpack;
+
+      unpack.Fetch(&gl, false);
+
+      ResetPixelUnpackState(gl, false, 1);
+
       GLuint curtex = 0;
       gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&curtex);
 
@@ -1220,6 +1226,8 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
       gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
 
       gl.glBindTexture(eGL_TEXTURE_2D, curtex);
+
+      unpack.Apply(&gl, false);
     }
 
     delete[] buf;
