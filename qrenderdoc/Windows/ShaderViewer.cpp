@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "ShaderViewer.h"
+#include <QFontDatabase>
 #include <QHBoxLayout>
 #include <QListWidget>
 #include <QMenu>
@@ -558,6 +559,8 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
   ret->setMarginWidthN(1, 0);
   ret->setMarginWidthN(2, 16);
   ret->setObjectName(name);
+
+  ret->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
   // C# DarkGreen
   ret->indicSetFore(INDICATOR_REGHIGHLIGHT, SCINTILLA_COLOUR(0, 100, 0));
