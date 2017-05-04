@@ -26,6 +26,9 @@
 #include <QColor>
 #include <QDebug>
 #include <QMouseEvent>
+#include <QPainter>
+#include <QPen>
+#include <QStack>
 
 class RDTreeWidgetModel : public QAbstractItemModel
 {
@@ -607,6 +610,106 @@ void RDTreeWidget::keyPressEvent(QKeyEvent *e)
 {
   emit(keyPress(e));
   QTreeView::keyPressEvent(e);
+}
+
+void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const
+{
+  // we do our own custom branch rendering to ensure the backgrounds for the +/- markers are filled
+  // (as otherwise they don't show up well over selection or background fills) as well as to draw
+  // any vertical branch colors.
+
+  painter->save();
+
+  // start at the left-most side of the rect
+  QRect branchRect(rect.left(), rect.top(), indentation(), rect.height());
+
+  RDTreeWidgetItem *item = m_model->itemForIndex(index);
+
+  // first draw the coloured lines - we're only interested in parents for this, so push all the
+  // parents onto a stack
+  QStack<RDTreeWidgetItem *> parents;
+
+  RDTreeWidgetItem *parent = item->parent();
+
+  while(parent && parent != m_root)
+  {
+    parents.push(parent);
+    parent = parent->parent();
+  }
+
+  // fill in the background behind the lines for the whole row, since by default it doesn't show up
+  // behind the tree lines. There's SH_ItemView_ShowDecorationSelected which controls that for the
+  // selection highlight but that requires a proxy style and there's no equivalent for the
+  // background colour.
+  //
+  // Instead we just manually fill the background colour, and handle the highlight colour when
+  // appropriate.
+
+  QRect allLinesRect(rect.left(), rect.top(), rect.left() + parents.count() * indentation() + 1,
+                     rect.height());
+  if(selectionModel()->isSelected(index))
+  {
+    QPalette::ColorGroup group = QPalette::Normal;
+
+    if(!isEnabled())
+      group = QPalette::Disabled;
+    else if(!hasFocus())
+      group = QPalette::Inactive;
+
+    painter->fillRect(allLinesRect, palette().brush(group, QPalette::Highlight));
+  }
+  else if(item->m_back != QBrush())
+  {
+    painter->fillRect(allLinesRect, item->m_back);
+  }
+
+  // we now iterate from the top-most parent down, moving in from the left
+  QPen oldPen = painter->pen();
+  while(!parents.isEmpty())
+  {
+    parent = parents.pop();
+
+    if(parent->m_treeCol.isValid())
+    {
+      // draw a centred pen vertically down the middle of branchRect
+
+      painter->setPen(QPen(QBrush(parent->m_treeCol), parent->m_treeColWidth));
+
+      QPointF topCentre = QRectF(branchRect).center();
+      QPointF bottomCentre = topCentre;
+
+      topCentre.setY(branchRect.top());
+      bottomCentre.setY(branchRect.bottom());
+
+      painter->drawLine(topCentre, bottomCentre);
+    }
+
+    branchRect.moveLeft(branchRect.left() + indentation());
+  }
+  painter->setPen(oldPen);
+
+  // branchRect is now over the box/lines for the current item.
+
+  // draw a rect of QPalette Base color behind the branch indicator if we have children, since by
+  // default there might not be one and the indicator won't always show up well over the background
+  // color
+  /*
+  if(item->childCount() > 0)
+  {
+    // TODO find a portable rect
+    const int radius = 9 / 2;
+    QPoint topleft = branchRect.center();
+    topleft.setX(topleft.x() - radius + 1);
+    topleft.setY(topleft.y() - radius + 1);
+
+    painter->fillRect(QRect(topleft, QSize(radius * 2, radius * 2)),
+  palette().brush(QPalette::Base));
+  }
+  */
+
+  painter->restore();
+
+  QTreeView::drawBranches(painter, rect, index);
 }
 
 void RDTreeWidget::selectionChanged(const QItemSelection &selected, const QItemSelection &deselected)

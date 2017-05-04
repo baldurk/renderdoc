@@ -862,3 +862,5 @@ void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinis
                         ProgressUpdateMethod update = ProgressUpdateMethod());
 
 QString GetSystemUsername();
+
+QColor contrastingColor(const QColor &col, const QColor &defaultCol);

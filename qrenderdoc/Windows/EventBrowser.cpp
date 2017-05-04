@@ -202,23 +202,45 @@ uint EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
 
   for(int32_t i = 0; i < draws.count; i++)
   {
-    RDTreeWidgetItem *child = new RDTreeWidgetItem(
-        {ToQStr(draws[i].name), QFormatStr("%1").arg(draws[i].eventID), lit("0.0")});
+    const DrawcallDescription &d = draws[i];
 
-    lastEID = AddDrawcalls(child, draws[i].children);
+    RDTreeWidgetItem *child =
+        new RDTreeWidgetItem({ToQStr(d.name), QFormatStr("%1").arg(d.eventID), lit("0.0")});
 
-    if(lastEID > draws[i].eventID)
-      child->setText(COL_EID, QFormatStr("%1-%2").arg(draws[i].eventID).arg(lastEID));
+    lastEID = AddDrawcalls(child, d.children);
+
+    if(lastEID > d.eventID)
+      child->setText(COL_EID, QFormatStr("%1-%2").arg(d.eventID).arg(lastEID));
 
     if(lastEID == 0)
     {
-      lastEID = draws[i].eventID;
+      lastEID = d.eventID;
 
       if((draws[i].flags & DrawFlags::SetMarker) && i + 1 < draws.count)
         lastEID = draws[i + 1].eventID;
     }
 
     child->setTag(QVariant::fromValue(EventItemTag(draws[i].eventID, lastEID)));
+
+    if(m_Ctx.Config().EventBrowser_ApplyColors)
+    {
+      // if alpha isn't 0, assume the colour is valid
+      if((d.flags & (DrawFlags::PushMarker | DrawFlags::SetMarker)) && d.markerColor[3] > 0.0f)
+      {
+        QColor col = QColor::fromRgb(
+            qRgb(d.markerColor[0] * 255.0f, d.markerColor[1] * 255.0f, d.markerColor[2] * 255.0f));
+
+        child->setTreeColor(col, 3.0f);
+
+        if(m_Ctx.Config().EventBrowser_ColorEventRow)
+        {
+          QColor textCol = ui->events->palette().color(QPalette::Text);
+
+          child->setBackgroundColor(col);
+          child->setForegroundColor(contrastingColor(col, textCol));
+        }
+      }
+    }
 
     parent->addChild(child);
   }

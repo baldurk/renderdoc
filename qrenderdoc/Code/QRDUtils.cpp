@@ -932,3 +932,28 @@ QString GetSystemUsername()
 
   return username;
 }
+
+static float getLuminance(const QColor &col)
+{
+  return (float)(0.2126 * qPow(col.redF(), 2.2) + 0.7152 * qPow(col.greenF(), 2.2) +
+                 0.0722 * qPow(col.blueF(), 2.2));
+}
+
+QColor contrastingColor(const QColor &col, const QColor &defaultCol)
+{
+  float backLum = getLuminance(col);
+  float textLum = getLuminance(defaultCol);
+
+  bool backDark = backLum < 0.2f;
+  bool textDark = textLum < 0.2f;
+
+  // if they're contrasting, use the text colour desired
+  if(backDark != textDark)
+    return defaultCol;
+
+  // otherwise pick a contrasting colour
+  if(backDark)
+    return QColor(Qt::white);
+  else
+    return QColor(Qt::black);
+}
