@@ -70,6 +70,11 @@ if [ -f bin-android64/RenderDocCmd.apk ]; then
 	cp bin-android64/librenderdoc.so dist/Release64/android/libs/arm64-v8a/libVkLayer_RenderDoc.so
 fi
 
+# try to copy adb.exe in as well, with its dll dependencies
+if [ -f $ANDROID_SDK/platform-tools/adb.exe ]; then
+	cp $ANDROID_SDK/platform-tools/{adb.exe,AdbWinApi.dll,AdbWinUsbApi.dll} dist/Release64/android/
+fi
+
 if [ -d dist/Release64/android ]; then
 	cp -R dist/Release64/android dist/Release32/
 fi
