@@ -3672,7 +3672,14 @@ bool WrappedOpenGL::Serialise_glEnableVertexArrayAttribEXT(GLuint vaobj, GLuint 
       vaobj = m_FakeVAO;
     }
 
+    GLint prevVAO = 0;
+    m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, &prevVAO);
+
     m_Real.glEnableVertexArrayAttribEXT(vaobj, Index);
+
+    // nvidia bug seems to sometimes change VAO binding in glEnableVertexArrayAttribEXT, although it
+    // seems like it only happens if GL_DEBUG_OUTPUT_SYNCHRONOUS is NOT enabled.
+    m_Real.glBindVertexArray(prevVAO);
   }
   return true;
 }
@@ -3750,7 +3757,14 @@ bool WrappedOpenGL::Serialise_glDisableVertexArrayAttribEXT(GLuint vaobj, GLuint
       vaobj = m_FakeVAO;
     }
 
+    GLint prevVAO = 0;
+    m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, &prevVAO);
+
     m_Real.glDisableVertexArrayAttribEXT(vaobj, Index);
+
+    // nvidia bug seems to sometimes change VAO binding in glEnableVertexArrayAttribEXT, although it
+    // seems like it only happens if GL_DEBUG_OUTPUT_SYNCHRONOUS is NOT enabled.
+    m_Real.glBindVertexArray(prevVAO);
   }
   return true;
 }
