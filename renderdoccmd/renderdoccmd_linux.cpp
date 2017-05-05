@@ -210,6 +210,9 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
   // need to create a hybrid setup xlib and xcb in case only one or the other is supported.
   // We'll prefer xcb
 
+  // call XInitThreads - although we don't use xlib concurrently the driver might need to.
+  XInitThreads();
+
   Display *display = XOpenDisplay(NULL);
 
   if(display == NULL)

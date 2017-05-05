@@ -52,6 +52,10 @@ void sharedLogOutput(QtMsgType type, const QMessageLogContext &context, const QS
 
 int main(int argc, char *argv[])
 {
+  // call this as the very first thing - no-op on other platforms, but on linux it means
+  // XInitThreads will be called allowing driver access to xlib on multiple threads.
+  QCoreApplication::setAttribute(Qt::AA_X11InitThreads);
+
   qInstallMessageHandler(sharedLogOutput);
 
   qInfo() << "QRenderDoc initialising.";
