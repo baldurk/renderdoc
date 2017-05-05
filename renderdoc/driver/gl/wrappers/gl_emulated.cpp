@@ -947,6 +947,8 @@ static const format_data formats[] = {
     {eGL_RGBA32I, eGL_INT, 4, 32, 0, 0},
     {eGL_RGBA32UI, eGL_UNSIGNED_INT, 4, 32, 0, 0},
 
+    {eGL_BGRA8_EXT, eGL_UNSIGNED_BYTE, 4, 8, 0, 0},
+
     // depth and stencil formats
     {eGL_DEPTH_COMPONENT16, eGL_NONE, 0, 0, 16, 0},
     {eGL_DEPTH_COMPONENT24, eGL_NONE, 0, 0, 24, 0},
