@@ -2398,6 +2398,9 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
       {
         auto remove = wit;
         ++wit;
+
+        RenderDoc::Inst().RemoveFrameCapturer(cit->first, remove->first);
+
         cit->second.windows.erase(remove);
       }
       else
@@ -2481,6 +2484,45 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
     RenderDoc::Inst().StartFrameCapture(ctxdata.ctx, windowHandle);
 
     m_AppControlledCapture = false;
+  }
+}
+
+void WrappedOpenGL::CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType,
+                                                GLenum internalformat, GLsizei width, GLsizei height)
+{
+  GLResource res = TextureRes(GetCtx(), tex);
+  ResourceId id = GetResourceManager()->RegisterResource(res);
+
+  if(m_State >= WRITING)
+  {
+    Chunk *chunk = NULL;
+
+    {
+      SCOPED_SERIALISE_CONTEXT(GEN_TEXTURE);
+      Serialise_glGenTextures(1, &tex);
+
+      chunk = scope.Get();
+    }
+
+    GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+    RDCASSERT(record);
+
+    record->AddChunk(chunk);
+  }
+  else
+  {
+    GetResourceManager()->AddLiveResource(id, res);
+  }
+
+  if(textureType == eGL_TEXTURE_2D_ARRAY)
+  {
+    Common_glTextureImage3DEXT(id, eGL_TEXTURE_2D, 0, internalformat, width, height, 2, 0, eGL_RGBA,
+                               eGL_UNSIGNED_BYTE, NULL);
+  }
+  else
+  {
+    Common_glTextureImage2DEXT(id, eGL_TEXTURE_2D, 0, internalformat, width, height, 0, eGL_RGBA,
+                               eGL_UNSIGNED_BYTE, NULL);
   }
 }
 
