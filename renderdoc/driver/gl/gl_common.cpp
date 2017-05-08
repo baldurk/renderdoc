@@ -1437,6 +1437,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       switch(edata[0])
       {
         case eGL_UNSIGNED_INT: ret.compType = CompType::UInt; break;
+        case eGL_UNSIGNED_BYTE:
         case eGL_UNSIGNED_NORMALIZED: ret.compType = CompType::UNorm; break;
         case eGL_SIGNED_NORMALIZED: ret.compType = CompType::SNorm; break;
         case eGL_FLOAT: ret.compType = CompType::Float; break;
