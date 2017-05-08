@@ -569,6 +569,8 @@ public:
   void ActivateContext(GLWindowingData winData);
   void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
   void SwapBuffers(void *windowHandle);
+  void CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType, GLenum internalformat,
+                                   GLsizei width, GLsizei height);
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
