@@ -4245,7 +4245,9 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
           rwresources.push_back(shaderrespair(bindmap, res));
       }
     }
-    else if(inst->var->storage == spv::StorageClassPrivate)
+    else if(inst->var->storage == spv::StorageClassPrivate ||
+            inst->var->storage == spv::StorageClassCrossWorkgroup ||
+            inst->var->storage == spv::StorageClassWorkgroup)
     {
       // silently allow
     }
