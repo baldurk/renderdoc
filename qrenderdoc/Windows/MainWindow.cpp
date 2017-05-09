@@ -89,6 +89,9 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   QObject::connect(ui->action_Save_Layout_6, &QAction::triggered, this,
                    &MainWindow::saveLayout_triggered);
 
+  QObject::connect(ui->action_Launch_Application_Window, &QAction::triggered, this,
+                   &MainWindow::on_action_Launch_Application_triggered);
+
   contextChooserMenu = new QMenu(this);
 
   FillRemotesMenu(contextChooserMenu, true);
@@ -1336,7 +1339,7 @@ void MainWindow::on_action_Pipeline_State_triggered()
     ui->toolWindowManager->addToolWindow(pipelineViewer, mainToolArea());
 }
 
-void MainWindow::on_action_Capture_Log_triggered()
+void MainWindow::on_action_Launch_Application_triggered()
 {
   ICaptureDialog *capDialog = m_Ctx.GetCaptureDialog();
 

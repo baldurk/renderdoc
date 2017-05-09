@@ -74,7 +74,7 @@
      <addaction name="separator"/>
      <addaction name="action_Clear_Capture_History"/>
     </widget>
-    <addaction name="action_Capture_Log"/>
+    <addaction name="action_Launch_Application"/>
     <addaction name="action_Attach_to_Running_Instance"/>
     <addaction name="action_Inject_into_Process"/>
     <addaction name="separator"/>
@@ -120,6 +120,7 @@
     <addaction name="menu_Save_Layout"/>
     <addaction name="menu_Load_Layout"/>
     <addaction name="separator"/>
+    <addaction name="action_Launch_Application_Window"/>
     <addaction name="action_Python_Shell"/>
     <addaction name="action_Event_Browser"/>
     <addaction name="action_Texture_Viewer"/>
@@ -152,9 +153,9 @@
    <addaction name="menu_Help"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
-  <action name="action_Capture_Log">
+  <action name="action_Launch_Application">
    <property name="text">
-    <string>&amp;Capture Log</string>
+    <string>&amp;Launch Application</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+N</string>
@@ -188,7 +189,7 @@
   </action>
   <action name="action_Close_Log">
    <property name="text">
-    <string>C&amp;lose Log</string>
+    <string>&amp;Close Log</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+W</string>
@@ -196,7 +197,7 @@
   </action>
   <action name="action_Exit">
    <property name="text">
-    <string>&amp;Exit</string>
+    <string>E&amp;xit</string>
    </property>
    <property name="shortcut">
     <string>Alt+F4</string>
@@ -400,6 +401,11 @@
   <action name="actionShow_Tips">
    <property name="text">
     <string>Show Tips</string>
+   </property>
+  </action>
+  <action name="action_Launch_Application_Window">
+   <property name="text">
+    <string>&amp;Launch Application</string>
    </property>
   </action>
  </widget>

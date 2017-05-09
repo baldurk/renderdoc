@@ -86,7 +86,7 @@ public:
   void showMeshPreview() { on_action_Mesh_Output_triggered(); }
   void showTextureViewer() { on_action_Texture_Viewer_triggered(); }
   void showPipelineViewer() { on_action_Pipeline_State_triggered(); }
-  void showCaptureDialog() { on_action_Capture_Log_triggered(); }
+  void showCaptureDialog() { on_action_Launch_Application_triggered(); }
   void showDebugMessageView() { on_action_Errors_and_Warnings_triggered(); }
   void showStatisticsViewer() { on_action_Statistics_Viewer_triggered(); }
   void showPythonShell() { on_action_Python_Shell_triggered(); }
@@ -102,7 +102,7 @@ private slots:
   void on_action_Event_Browser_triggered();
   void on_action_Texture_Viewer_triggered();
   void on_action_Pipeline_State_triggered();
-  void on_action_Capture_Log_triggered();
+  void on_action_Launch_Application_triggered();
   void on_action_Errors_and_Warnings_triggered();
   void on_action_Statistics_Viewer_triggered();
   void on_action_Python_Shell_triggered();
