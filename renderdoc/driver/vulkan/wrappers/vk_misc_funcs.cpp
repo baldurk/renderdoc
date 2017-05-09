@@ -1088,7 +1088,15 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(Serialiser *localSer
   localSerialiser->Serialise("name", name);
 
   if(m_State == READING)
-    m_CreationInfo.m_Names[GetResourceManager()->GetLiveID(id)] = name;
+  {
+    // if we don't have a live resource, this is probably a command buffer being named on the
+    // virtual non-existant parent, not any of the baked IDs. Just save the name on the original ID
+    // and we'll propagate it in Serialise_vkBeginCommandBuffer
+    if(!GetResourceManager()->HasLiveResource(id))
+      m_CreationInfo.m_Names[id] = name;
+    else
+      m_CreationInfo.m_Names[GetResourceManager()->GetLiveID(id)] = name;
+  }
 
   return true;
 }

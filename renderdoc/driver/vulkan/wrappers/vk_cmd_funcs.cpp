@@ -601,6 +601,10 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(Serialiser *localSerialiser,
       cmd = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(bakeId);
     }
 
+    // propagate any name there might be
+    if(m_CreationInfo.m_Names.find(cmdId) != m_CreationInfo.m_Names.end())
+      m_CreationInfo.m_Names[GetResourceManager()->GetLiveID(bakeId)] = m_CreationInfo.m_Names[cmdId];
+
     {
       VulkanDrawcallTreeNode *draw = new VulkanDrawcallTreeNode;
       m_BakedCmdBufferInfo[cmdId].draw = draw;
