@@ -3395,7 +3395,7 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars,
     size_t dataOffset =
         baseOffset + invars[v].reg.vec * sizeof(Vec4f) + invars[v].reg.comp * sizeof(float);
 
-    if(invars[v].type.members.count > 0)
+    if(invars[v].type.members.count > 0 || (rows == 0 && cols == 0))
     {
       ShaderVariable var;
       var.name = basename;

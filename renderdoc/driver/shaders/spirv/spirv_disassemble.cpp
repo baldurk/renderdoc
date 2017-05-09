@@ -3561,7 +3561,8 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
 
 void MakeConstantBlockVariables(SPVTypeData *structType, rdctype::array<ShaderConstant> &cblock)
 {
-  RDCASSERT(!structType->children.empty());
+  if(structType->children.empty())
+    return;
 
   create_array_uninit(cblock, structType->children.size());
   for(size_t i = 0; i < structType->children.size(); i++)
@@ -4091,7 +4092,10 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
         {
           MakeConstantBlockVariables(type, cblock.variables);
 
-          cblock.byteSize = CalculateMinimumByteSize(cblock.variables);
+          if(!type->children.empty())
+            cblock.byteSize = CalculateMinimumByteSize(cblock.variables);
+          else
+            cblock.byteSize = 0;
         }
 
         bindmap.used = false;

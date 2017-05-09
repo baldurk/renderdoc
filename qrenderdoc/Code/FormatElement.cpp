@@ -824,7 +824,7 @@ uint32_t FormatElement::byteSize() const
 
 QString TypeString(const ShaderVariable &v)
 {
-  if(v.members.count > 0)
+  if(v.members.count > 0 || v.isStruct)
   {
     if(v.isStruct)
       return lit("struct");
@@ -909,7 +909,7 @@ QString VarString(const ShaderVariable &v)
 
 QString RowTypeString(const ShaderVariable &v)
 {
-  if(v.members.count > 0)
+  if(v.members.count > 0 || v.isStruct)
   {
     if(v.isStruct)
       return lit("struct");
