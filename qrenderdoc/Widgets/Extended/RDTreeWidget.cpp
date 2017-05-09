@@ -192,7 +192,7 @@ public:
         return widget->palette().brush(QPalette::Window);
 
       // otherwise, no special background
-      return QBrush();
+      return QVariant();
     }
     else if(role == Qt::ForegroundRole)
     {
@@ -203,7 +203,7 @@ public:
       if(widget->m_currentHoverItem == item)
         return widget->palette().brush(QPalette::WindowText);
 
-      return QBrush();
+      return QVariant();
     }
     else if(role == Qt::ToolTipRole)
     {
