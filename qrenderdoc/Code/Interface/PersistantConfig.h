@@ -170,7 +170,8 @@ inline QString UnitSuffix(TimeUnit unit)
   else if(unit == TimeUnit::Milliseconds)
     return lit("ms");
   else if(unit == TimeUnit::Microseconds)
-    return lit("µs");
+    // without a BOM in the file, this will break using lit() in MSVC
+    return QString::fromUtf8("µs");
   else if(unit == TimeUnit::Nanoseconds)
     return lit("ns");
 
