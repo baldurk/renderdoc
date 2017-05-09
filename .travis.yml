@@ -10,6 +10,16 @@ env:
   global:
     - RENDERDOC_TRAVIS_BUILD=1 RENDERDOC_CI_BUILD=1
 
+# variables for the matrix, which are implicitly unset if omitted
+#
+# DOCS_BUILD - set for docs builds, unset for code builds
+#
+# At least one of these should be set:
+#
+# LINUX_BUILD - set for linux builds
+# APPLE_BUILD - set for OSX builds
+# ANDROID_BUILD - set for android builds
+
 matrix:
   fast_finish: true
   include:
@@ -17,36 +27,30 @@ matrix:
     - os: linux
       dist: trusty
       sudo: false
-      env: CODE_BUILD=0 LINUX_BUILD=0 APPLE_BUILD=0 DOCS_BUILD=1 ANDROID_BUILD=0
+      env: DOCS_BUILD=1
     - os: linux
       dist: trusty
       sudo: required
-      env: CODE_BUILD=1 LINUX_BUILD=1 APPLE_BUILD=0 DOCS_BUILD=0 ANDROID_BUILD=0
+      env: LINUX_BUILD=1
       compiler: gcc
     - os: linux
       dist: trusty
       sudo: required
-      env: CODE_BUILD=1 LINUX_BUILD=1 APPLE_BUILD=0 DOCS_BUILD=0 ANDROID_BUILD=0
+      env: LINUX_BUILD=1
       compiler: clang
     - os: linux
       dist: trusty
       sudo: required
-      env: CODE_BUILD=1 LINUX_BUILD=0 APPLE_BUILD=0 DOCS_BUILD=0 ANDROID_BUILD=1
+      env: ANDROID_BUILD=1
       compiler: clang
     - os: osx
       osx_image: xcode8.2
-      env: CODE_BUILD=1 LINUX_BUILD=0 APPLE_BUILD=1 DOCS_BUILD=0 ANDROID_BUILD=0
+      env: APPLE_BUILD=1
       compiler: clang
 
 # install dependencies
 install:
-  - if [[ "$DOCS_BUILD" == "1" ]]; then . ./scripts/travis/docs_setup.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$CODE_BUILD" == "1" ]] && [[ "$LINUX_BUILD" == 1 ]]; then . ./scripts/travis/linux_setup.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$CODE_BUILD" == "1" ]] && [[ "$ANDROID_BUILD" == 1 ]]; then . ./scripts/travis/android_setup.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$CODE_BUILD" == "1" ]] && [[ "$APPLE_BUILD" == 1 ]]; then . ./scripts/travis/osx_setup.sh ; fi
+  - . ./scripts/travis/setup.sh
 
 script:
-  - if [[ "$DOCS_BUILD" == "1" ]]; then . ./scripts/travis/docs_compile.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$CODE_BUILD" == "1" ]] && [[ "$LINUX_BUILD" == 1 ]]; then . ./scripts/travis/linux_compile.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$CODE_BUILD" == "1" ]] && [[ "$ANDROID_BUILD" == 1 ]]; then . ./scripts/travis/android_compile.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$CODE_BUILD" == "1" ]] && [[ "$APPLE_BUILD" == 1 ]]; then . ./scripts/travis/osx_compile.sh ; fi
+  - . ./scripts/travis/compile.sh
