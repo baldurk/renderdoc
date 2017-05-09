@@ -19,6 +19,8 @@ env:
 # LINUX_BUILD - set for linux builds
 # APPLE_BUILD - set for OSX builds
 # ANDROID_BUILD - set for android builds
+#
+# RELEASE_BUILD - set if a cmake should be set to a release build
 
 matrix:
   fast_finish: true
@@ -37,6 +39,11 @@ matrix:
       dist: trusty
       sudo: required
       env: LINUX_BUILD=1
+      compiler: clang
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: LINUX_BUILD=1 RELEASE_BUILD=1
       compiler: clang
     - os: linux
       dist: trusty

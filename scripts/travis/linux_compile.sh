@@ -15,5 +15,9 @@ fi
 
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Debug ..
+if [[ "$RELEASE_BUILD" == "1" ]]; then
+	cmake -DCMAKE_BUILD_TYPE=Release ..
+else
+	cmake -DCMAKE_BUILD_TYPE=Debug ..
+fi
 make
