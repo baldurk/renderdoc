@@ -2600,7 +2600,7 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
     isDL = true;
   else if(!strcmp(pLayerPrefix, "Image"))
     isIMG = true;
-  else if(!strcmp(pLayerPrefix, "PARAMCHECK"))
+  else if(!strcmp(pLayerPrefix, "PARAMCHECK") || !strcmp(pLayerPrefix, "ParameterValidation"))
     isPARAM = true;
 
   if(m_State >= WRITING)
