@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>761</width>
+    <width>788</width>
     <height>537</height>
    </rect>
   </property>
@@ -577,9 +577,9 @@
   <widget class="QFrame" name="meshToolbar">
    <property name="geometry">
     <rect>
-     <x>50</x>
+     <x>0</x>
      <y>10</y>
-     <width>435</width>
+     <width>767</width>
      <height>28</height>
     </rect>
    </property>
@@ -702,9 +702,6 @@
     </item>
     <item>
      <widget class="QSpinBox" name="rowOffset">
-      <property name="prefix">
-       <string/>
-      </property>
       <property name="maximum">
        <number>1000000</number>
       </property>
@@ -721,6 +718,41 @@
      <widget class="QSpinBox" name="instance">
       <property name="maximum">
        <number>100000</number>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="Line" name="byteRangeLine">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="byteRangeStartLabel">
+      <property name="text">
+       <string>Byte Range Start</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QSpinBox" name="byteRangeStart">
+      <property name="maximum">
+       <number>999123456</number>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="byteRangeLengthLabel">
+      <property name="text">
+       <string>Length</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QSpinBox" name="byteRangeLength">
+      <property name="maximum">
+       <number>999123456</number>
       </property>
      </widget>
     </item>
@@ -783,6 +815,11 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>ToolWindowManager</class>
+   <extends>QWidget</extends>
+   <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
+  </customwidget>
+  <customwidget>
    <class>CustomPaintWidget</class>
    <extends>QWidget</extends>
    <header>Widgets/CustomPaintWidget.h</header>
@@ -791,11 +828,6 @@
    <class>RDTableView</class>
    <extends>QTableView</extends>
    <header>Widgets/Extended/RDTableView.h</header>
-  </customwidget>
-  <customwidget>
-   <class>ToolWindowManager</class>
-   <extends>QWidget</extends>
-   <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
   </customwidget>
   <customwidget>
    <class>BufferFormatSpecifier</class>

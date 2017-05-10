@@ -1007,6 +1007,13 @@ void BufferViewer::SetupMeshView()
 {
   setWindowTitle(tr("Mesh Output"));
 
+  // hide buttons we don't want in the toolbar
+  ui->byteRangeLine->setVisible(false);
+  ui->byteRangeStartLabel->setVisible(false);
+  ui->byteRangeStart->setVisible(false);
+  ui->byteRangeLengthLabel->setVisible(false);
+  ui->byteRangeLength->setVisible(false);
+
   ui->formatSpecifier->setVisible(false);
   ui->cameraControlsGroup->setVisible(false);
 
@@ -2317,7 +2324,10 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
 
   BufferDescription *buf = m_Ctx.GetBuffer(id);
   if(buf)
+  {
     setWindowTitle(ToQStr(buf->name) + lit(" - Contents"));
+    m_ObjectByteSize = buf->length;
+  }
 
   processFormat(format);
 }
@@ -2334,7 +2344,10 @@ void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, c
 
   TextureDescription *tex = m_Ctx.GetTexture(id);
   if(tex)
+  {
     setWindowTitle(ToQStr(tex->name) + lit(" - Contents"));
+    m_ObjectByteSize = tex->byteSize;
+  }
 
   processFormat(format);
 }
@@ -2650,11 +2663,42 @@ void BufferViewer::processFormat(const QString &format)
 
   ClearModels();
 
+  m_Format = format;
+
   m_ModelVSIn->columns = FormatElement::ParseFormatString(format, 0, true, errors);
+
+  uint32_t stride = 0;
+  for(const FormatElement &el : m_ModelVSIn->columns)
+    stride += el.byteSize();
+
+  stride = qMax(1U, stride);
+
+  ui->byteRangeStart->setSingleStep((int)stride);
+  ui->byteRangeLength->setSingleStep((int)stride);
+
+  ui->byteRangeStart->setMaximum((int)m_ObjectByteSize);
+  ui->byteRangeLength->setMaximum((int)m_ObjectByteSize);
+
+  ui->byteRangeStart->setValue((int)m_ByteOffset);
+  ui->byteRangeLength->setValue((int)m_ByteSize);
 
   ui->formatSpecifier->setErrors(errors);
 
   OnEventChanged(m_Ctx.CurEvent());
+}
+
+void BufferViewer::on_byteRangeStart_valueChanged(int value)
+{
+  m_ByteOffset = value;
+
+  processFormat(m_Format);
+}
+
+void BufferViewer::on_byteRangeLength_valueChanged(int value)
+{
+  m_ByteSize = value;
+
+  processFormat(m_Format);
 }
 
 void BufferViewer::exportData(const BufferExport &params)

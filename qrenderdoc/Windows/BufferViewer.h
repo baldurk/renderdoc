@@ -95,8 +95,10 @@ private slots:
   void on_drawRange_currentIndexChanged(int index);
   void on_controlType_currentIndexChanged(int index);
   void on_camSpeed_valueChanged(double value);
-  void on_instance_valueChanged(int arg1);
-  void on_rowOffset_valueChanged(int arg1);
+  void on_instance_valueChanged(int value);
+  void on_rowOffset_valueChanged(int value);
+  void on_byteRangeStart_valueChanged(int value);
+  void on_byteRangeLength_valueChanged(int value);
 
   // manual slots
   void render_mouseMove(QMouseEvent *e);
@@ -174,9 +176,11 @@ private:
 
   // data from raw buffer view
   bool m_IsBuffer = true;
+  QString m_Format;
   uint32_t m_TexArrayIdx = 0;
   uint32_t m_TexMip = 0;
   uint64_t m_ByteOffset = 0;
+  uint64_t m_ObjectByteSize = UINT64_MAX;
   uint64_t m_ByteSize = UINT64_MAX;
   ResourceId m_BufferID;
 
