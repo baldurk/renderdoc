@@ -54,6 +54,11 @@ void BufferFormatSpecifier::toggleHelp()
     showHelp(false);
 }
 
+void BufferFormatSpecifier::setFormat(const QString &format)
+{
+  ui->formatText->setText(format);
+}
+
 void BufferFormatSpecifier::setErrors(const QString &errors)
 {
   ui->errors->setText(errors);

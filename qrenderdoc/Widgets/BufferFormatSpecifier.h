@@ -39,14 +39,14 @@ public:
   explicit BufferFormatSpecifier(QWidget *parent = 0);
   ~BufferFormatSpecifier();
 
-  void setErrors(const QString &errors);
-  void showHelp(bool help);
-
 signals:
   void processFormat(const QString &format);
 
 public slots:
   void toggleHelp();
+  void setFormat(const QString &format);
+  void setErrors(const QString &errors);
+  void showHelp(bool help);
 
 private slots:
   void on_apply_clicked();

@@ -2735,6 +2735,8 @@ void BufferViewer::processFormat(const QString &format)
 
   m_Format = format;
 
+  ui->formatSpecifier->setFormat(format);
+
   m_ModelVSIn->columns = cols;
 
   uint32_t stride = 0;
