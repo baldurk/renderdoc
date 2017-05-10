@@ -1717,24 +1717,29 @@ namespace renderdocui.Windows
                     }
                 }
 
-                if (keyData == (Keys.Control | Keys.Left))
+                Control sender = Control.FromHandle(msg.HWnd);
+
+                if (m_Core.LogLoaded && !(sender is TextBox) && !(sender is ScintillaNET.Scintilla))
                 {
-                    FetchDrawcall draw = m_Core.CurDrawcall;
+                    if (keyData == (Keys.Control | Keys.Left))
+                    {
+                        FetchDrawcall draw = m_Core.CurDrawcall;
 
-                    if (draw != null && draw.previous != null)
-                        m_Core.SetEventID(null, draw.previous.eventID);
+                        if (draw != null && draw.previous != null)
+                            m_Core.SetEventID(null, draw.previous.eventID);
 
-                    return true;
-                }
+                        return true;
+                    }
 
-                if (keyData == (Keys.Control | Keys.Right))
-                {
-                    FetchDrawcall draw = m_Core.CurDrawcall;
+                    if (keyData == (Keys.Control | Keys.Right))
+                    {
+                        FetchDrawcall draw = m_Core.CurDrawcall;
 
-                    if (draw != null && draw.next != null)
-                        m_Core.SetEventID(null, draw.next.eventID);
+                        if (draw != null && draw.next != null)
+                            m_Core.SetEventID(null, draw.next.eventID);
 
-                    return true;
+                        return true;
+                    }
                 }
             }
             return base.ProcessCmdKey(ref msg, keyData);
