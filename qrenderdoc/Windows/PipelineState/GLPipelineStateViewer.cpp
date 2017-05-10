@@ -720,6 +720,8 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         RDTreeWidgetItem *node =
             new RDTreeWidgetItem({slotname, name, typeName, w, h, d, a, format, QString()});
 
+        node->setTag(QVariant::fromValue(r.Resource));
+
         if(!filledSlot)
           setEmptyRow(node);
 
