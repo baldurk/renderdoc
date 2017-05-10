@@ -436,6 +436,9 @@ public:
           opt.text = lit("999999");
         else
           opt.text = data(index).toString();
+
+        opt.text.replace(QLatin1Char('\n'), QChar::LineSeparator);
+
         opt.styleObject = NULL;
 
         QStyle *style = opt.widget ? opt.widget->style() : QApplication::style();
@@ -603,58 +606,21 @@ public:
 
             if(comp < list.count())
             {
-              QVariant &v = list[comp];
-
               QString ret;
 
-              QMetaType::Type vt = (QMetaType::Type)v.type();
+              uint32_t rowdim = el.matrixdim;
+              uint32_t coldim = el.format.compCount;
 
-              if(vt == QMetaType::Double)
+              for(uint32_t r = 0; r < rowdim; r++)
               {
-                double d = v.toDouble();
-                // pad with space on left if sign is missing, to better align
-                if(d < 0.0)
-                  ret = Formatter::Format(d);
-                else if(d > 0.0)
-                  ret = lit(" ") + Formatter::Format(d);
-                else if(qIsNaN(d))
-                  ret = lit(" NaN");
+                if(r > 0)
+                  ret += lit("\n");
+
+                if(el.rowmajor)
+                  ret += interpretVariant(list[comp + r * coldim], el);
                 else
-                  // force negative and positive 0 together
-                  ret = lit(" ") + Formatter::Format(0.0);
+                  ret += interpretVariant(list[r + comp * rowdim], el);
               }
-              else if(vt == QMetaType::Float)
-              {
-                float f = v.toFloat();
-                // pad with space on left if sign is missing, to better align
-                if(f < 0.0)
-                  ret = Formatter::Format(f);
-                else if(f > 0.0)
-                  ret = lit(" ") + Formatter::Format(f);
-                else if(qIsNaN(f))
-                  ret = lit(" NaN");
-                else
-                  // force negative and positive 0 together
-                  ret = lit(" ") + Formatter::Format(0.0);
-              }
-              else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
-              {
-                uint u = v.toUInt();
-                if(el.hex && el.format.specialFormat == SpecialFormat::Unknown)
-                  ret = Formatter::HexFormat(u, el.format.compByteWidth);
-                else
-                  ret = Formatter::Format(u, el.hex);
-              }
-              else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
-              {
-                int i = v.toInt();
-                if(i > 0)
-                  ret = lit(" ") + Formatter::Format(i);
-                else
-                  ret = Formatter::Format(i);
-              }
-              else
-                ret = v.toString();
 
               return ret;
             }
@@ -839,6 +805,64 @@ private:
         componentLookup.push_back((int)c);
       }
     }
+  }
+
+  QString interpretVariant(QVariant &v, const FormatElement &el) const
+  {
+    QString ret;
+
+    QMetaType::Type vt = (QMetaType::Type)v.type();
+
+    if(vt == QMetaType::Double)
+    {
+      double d = v.toDouble();
+      // pad with space on left if sign is missing, to better align
+      if(d < 0.0)
+        ret = Formatter::Format(d);
+      else if(d > 0.0)
+        ret = lit(" ") + Formatter::Format(d);
+      else if(qIsNaN(d))
+        ret = lit(" NaN");
+      else
+        // force negative and positive 0 together
+        ret = lit(" ") + Formatter::Format(0.0);
+    }
+    else if(vt == QMetaType::Float)
+    {
+      float f = v.toFloat();
+      // pad with space on left if sign is missing, to better align
+      if(f < 0.0)
+        ret = Formatter::Format(f);
+      else if(f > 0.0)
+        ret = lit(" ") + Formatter::Format(f);
+      else if(qIsNaN(f))
+        ret = lit(" NaN");
+      else
+        // force negative and positive 0 together
+        ret = lit(" ") + Formatter::Format(0.0);
+    }
+    else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
+    {
+      uint u = v.toUInt();
+      if(el.hex && el.format.specialFormat == SpecialFormat::Unknown)
+        ret = Formatter::HexFormat(u, el.format.compByteWidth);
+      else
+        ret = Formatter::Format(u, el.hex);
+    }
+    else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
+    {
+      int i = v.toInt();
+      if(i > 0)
+        ret = lit(" ") + Formatter::Format(i);
+      else
+        ret = Formatter::Format(i);
+    }
+    else
+    {
+      ret = v.toString();
+    }
+
+    return ret;
   }
 };
 
@@ -1397,9 +1421,9 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       m_ModelVSOut->endReset();
       m_ModelGSOut->endReset();
 
-      ApplyColumnWidths(m_ModelVSIn->columnCount(), ui->vsinData);
-      ApplyColumnWidths(m_ModelVSOut->columnCount(), ui->vsoutData);
-      ApplyColumnWidths(m_ModelGSOut->columnCount(), ui->gsoutData);
+      ApplyRowAndColumnDims(m_ModelVSIn->columnCount(), ui->vsinData);
+      ApplyRowAndColumnDims(m_ModelVSOut->columnCount(), ui->vsoutData);
+      ApplyRowAndColumnDims(m_ModelGSOut->columnCount(), ui->gsoutData);
 
       int numRows = qMax(qMax(m_ModelVSIn->numRows, m_ModelVSOut->numRows), m_ModelGSOut->numRows);
 
@@ -2255,7 +2279,7 @@ void BufferViewer::configureMeshColumns()
   }
 }
 
-void BufferViewer::ApplyColumnWidths(int numColumns, RDTableView *view)
+void BufferViewer::ApplyRowAndColumnDims(int numColumns, RDTableView *view)
 {
   int start = 0;
 
@@ -2268,6 +2292,8 @@ void BufferViewer::ApplyColumnWidths(int numColumns, RDTableView *view)
 
   for(int i = start; i < numColumns; i++)
     view->setColumnWidth(i, m_DataColWidth);
+
+  view->verticalHeader()->setDefaultSectionSize(m_DataRowHeight);
 }
 
 void BufferViewer::UpdateMeshConfig()
@@ -2574,7 +2600,7 @@ void BufferViewer::ClearModels()
   }
 }
 
-void BufferViewer::CalcColumnWidth()
+void BufferViewer::CalcColumnWidth(int maxNumRows)
 {
   m_ModelVSIn->beginReset();
 
@@ -2592,7 +2618,7 @@ void BufferViewer::CalcColumnWidth()
 
   m_ModelVSIn->columns.clear();
   m_ModelVSIn->columns.push_back(
-      FormatElement(headerText, 0, 0, false, 1, false, 1, floatFmt, false, false));
+      FormatElement(headerText, 0, 0, false, 1, false, maxNumRows, floatFmt, false, false));
   m_ModelVSIn->columns.push_back(
       FormatElement(headerText, 0, 4, false, 1, false, 1, floatFmt, false, false));
   m_ModelVSIn->columns.push_back(
@@ -2620,7 +2646,7 @@ void BufferViewer::CalcColumnWidth()
 
   struct TestData
   {
-    float f[3];
+    float f[4];
     uint32_t ui[3];
   };
 
@@ -2635,6 +2661,7 @@ void BufferViewer::CalcColumnWidth()
   test->f[0] = 1.0f;
   test->f[1] = 1.2345e-20f;
   test->f[2] = 123456.7890123456789f;
+  test->f[4] = -1.0f;
 
   test->ui[1] = 0x12345678;
   test->ui[2] = 0xffffffff;
@@ -2657,6 +2684,10 @@ void BufferViewer::CalcColumnWidth()
     int colWidth = ui->vsinData->columnWidth(col + c);
     m_DataColWidth = qMax(m_DataColWidth, colWidth);
   }
+
+  ui->vsinData->resizeRowsToContents();
+
+  m_DataRowHeight = ui->vsinData->rowHeight(0);
 }
 
 void BufferViewer::data_selected(const QItemSelection &selected, const QItemSelection &deselected)
@@ -2729,7 +2760,12 @@ void BufferViewer::processFormat(const QString &format)
 
   QList<FormatElement> cols = FormatElement::ParseFormatString(format, 0, true, errors);
 
-  CalcColumnWidth();
+  int maxNumRows = 1;
+
+  for(const FormatElement &c : cols)
+    maxNumRows = qMax(maxNumRows, (int)c.matrixdim);
+
+  CalcColumnWidth(maxNumRows);
 
   ClearModels();
 

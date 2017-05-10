@@ -199,6 +199,7 @@ private:
 
   int m_IdxColWidth;
   int m_DataColWidth;
+  int m_DataRowHeight;
 
   QMenu *m_HeaderMenu = NULL;
 
@@ -238,8 +239,8 @@ private:
   void UpdateMeshConfig();
   void EnableCameraGuessControls();
 
-  void CalcColumnWidth();
-  void ApplyColumnWidths(int numColumns, RDTableView *view);
+  void CalcColumnWidth(int maxNumRows = 1);
+  void ApplyRowAndColumnDims(int numColumns, RDTableView *view);
 
   void SyncViews(RDTableView *primary, bool selection, bool scroll);
   void UpdateHighlightVerts();
