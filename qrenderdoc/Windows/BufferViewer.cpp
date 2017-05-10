@@ -2658,7 +2658,7 @@ void BufferViewer::CalcColumnWidth(int maxNumRows)
   test->f[0] = 1.0f;
   test->f[1] = 1.2345e-20f;
   test->f[2] = 123456.7890123456789f;
-  test->f[4] = -1.0f;
+  test->f[3] = -1.0f;
 
   test->ui[1] = 0x12345678;
   test->ui[2] = 0xffffffff;
