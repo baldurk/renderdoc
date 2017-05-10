@@ -688,7 +688,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="channelRed">
+     <widget class="RDToolButton" name="channelRed">
       <property name="toolTip">
        <string>Show Red (Right click to toggle solo)</string>
       </property>
@@ -707,7 +707,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="channelGreen">
+     <widget class="RDToolButton" name="channelGreen">
       <property name="toolTip">
        <string>Show Green (Right click to toggle solo)</string>
       </property>
@@ -726,7 +726,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="channelBlue">
+     <widget class="RDToolButton" name="channelBlue">
       <property name="toolTip">
        <string>Show Blue (Right click to toggle solo)</string>
       </property>
@@ -748,7 +748,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="channelAlpha">
+     <widget class="RDToolButton" name="channelAlpha">
       <property name="toolTip">
        <string>Show Alpha (Right click to toggle solo)</string>
       </property>
@@ -1267,11 +1267,6 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>Widgets/Extended/RDLineEdit.h</header>
-  </customwidget>
-  <customwidget>
    <class>ToolWindowManager</class>
    <extends>QWidget</extends>
    <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
@@ -1280,6 +1275,11 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
    <class>CustomPaintWidget</class>
    <extends>QWidget</extends>
    <header>Widgets/CustomPaintWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RDLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>Widgets/Extended/RDLineEdit.h</header>
   </customwidget>
   <customwidget>
    <class>ThumbnailStrip</class>
@@ -1297,6 +1297,11 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
    <extends>QWidget</extends>
    <header>Widgets/RangeHistogram.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>RDToolButton</class>
+   <extends>QToolButton</extends>
+   <header>Widgets/Extended/RDToolButton.h</header>
   </customwidget>
  </customwidgets>
  <resources>

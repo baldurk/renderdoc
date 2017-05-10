@@ -504,14 +504,6 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
   QObject::connect(ui->stencilDisplay, &QToolButton::toggled, this,
                    &TextureViewer::channelsWidget_toggled);
   QObject::connect(ui->flip_y, &QToolButton::toggled, this, &TextureViewer::channelsWidget_toggled);
-  QObject::connect(ui->channelRed, &QToolButton::toggled, this,
-                   &TextureViewer::channelsWidget_toggled);
-  QObject::connect(ui->channelGreen, &QToolButton::toggled, this,
-                   &TextureViewer::channelsWidget_toggled);
-  QObject::connect(ui->channelBlue, &QToolButton::toggled, this,
-                   &TextureViewer::channelsWidget_toggled);
-  QObject::connect(ui->channelAlpha, &QToolButton::toggled, this,
-                   &TextureViewer::channelsWidget_toggled);
   QObject::connect(ui->gammaDisplay, &QToolButton::toggled, this,
                    &TextureViewer::channelsWidget_toggled);
   QObject::connect(ui->channels, OverloadedSlot<int>::of(&QComboBox::currentIndexChanged), this,
@@ -531,6 +523,15 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
                    &TextureViewer::rangePoint_textChanged);
   QObject::connect(ui->rangeWhite, &RDLineEdit::leave, this, &TextureViewer::rangePoint_leave);
   QObject::connect(ui->rangeWhite, &RDLineEdit::keyPress, this, &TextureViewer::rangePoint_keyPress);
+
+  for(RDToolButton *butt : {ui->channelRed, ui->channelGreen, ui->channelBlue, ui->channelAlpha})
+  {
+    QObject::connect(butt, &RDToolButton::toggled, this, &TextureViewer::channelsWidget_toggled);
+    QObject::connect(butt, &RDToolButton::mouseClicked, this,
+                     &TextureViewer::channelsWidget_mouseClicked);
+    QObject::connect(butt, &RDToolButton::doubleClicked, this,
+                     &TextureViewer::channelsWidget_mouseClicked);
+  }
 
   QWidget *renderContainer = ui->renderContainer;
 
@@ -2864,6 +2865,32 @@ void TextureViewer::on_overlay_currentIndexChanged(int index)
     m_TexDisplay.overlay = (DebugOverlay)ui->overlay->currentIndex();
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
+void TextureViewer::channelsWidget_mouseClicked(QMouseEvent *event)
+{
+  RDToolButton *s = qobject_cast<RDToolButton *>(QObject::sender());
+
+  if(event->button() == Qt::RightButton && s)
+  {
+    bool checkd = false;
+
+    RDToolButton *butts[] = {ui->channelRed, ui->channelGreen, ui->channelBlue, ui->channelAlpha};
+
+    for(RDToolButton *b : butts)
+    {
+      if(b->isChecked() && b != s)
+        checkd = true;
+      if(!b->isChecked() && b == s)
+        checkd = true;
+    }
+
+    ui->channelRed->setChecked(!checkd);
+    ui->channelGreen->setChecked(!checkd);
+    ui->channelBlue->setChecked(!checkd);
+    ui->channelAlpha->setChecked(!checkd);
+    s->setChecked(checkd);
+  }
 }
 
 void TextureViewer::range_rangeUpdated()

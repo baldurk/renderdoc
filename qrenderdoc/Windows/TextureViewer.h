@@ -200,6 +200,7 @@ private slots:
 
   void customShaderModified(const QString &path);
 
+  void channelsWidget_mouseClicked(QMouseEvent *event);
   void channelsWidget_toggled(bool checked) { UI_UpdateChannels(); }
   void channelsWidget_selected(int index) { UI_UpdateChannels(); }
 private:
