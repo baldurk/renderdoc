@@ -1039,7 +1039,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
   readwrites->setUpdatesEnabled(true);
   readwrites->verticalScrollBar()->setValue(vs);
 
-  readwrites->parentWidget()->setVisible(!stage.Subroutines.empty());
+  readwrites->parentWidget()->setVisible(readwrites->invisibleRootItem()->childCount() > 0);
 }
 
 QString GLPipelineStateViewer::MakeGenericValueString(uint32_t compCount, CompType compType,
