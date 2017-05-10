@@ -594,6 +594,12 @@
     <ClCompile Include="Code\precompiled.cpp">
       <Filter>PCH</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\Extended\RDToolButton.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDToolButton.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1360,6 +1366,9 @@
     </CustomBuild>
     <CustomBuild Include="Windows\PythonShell.ui">
       <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDToolButton.h">
+      <Filter>Widgets\Extended</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>
