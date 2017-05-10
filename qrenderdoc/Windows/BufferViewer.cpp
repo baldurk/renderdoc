@@ -1069,11 +1069,8 @@ void BufferViewer::SetupRawView()
 
   // hide buttons we don't want in the toolbar
   ui->syncViews->setVisible(false);
-  ui->offsetLine->setVisible(false);
   ui->instanceLabel->setVisible(false);
   ui->instance->setVisible(false);
-  ui->rowOffsetLabel->setVisible(false);
-  ui->rowOffset->setVisible(false);
 
   ui->vsinData->setWindowTitle(tr("Buffer Contents"));
   ui->dockarea->addToolWindow(ui->vsinData, ToolWindowManager::EmptySpace);
