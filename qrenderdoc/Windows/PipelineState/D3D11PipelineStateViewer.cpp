@@ -879,7 +879,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
     {
       for(const ShaderResource &bind : shaderDetails->ReadOnlyResources)
       {
-        if(bind.IsReadOnly && bind.bindPoint == i)
+        if(!bind.IsSampler && bind.IsReadOnly && bind.bindPoint == i)
         {
           shaderInput = &bind;
           break;

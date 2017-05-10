@@ -339,7 +339,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         foreach (var bind in shaderDetails.ReadOnlyResources)
                         {
-                            if (bind.IsSRV && bind.bindPoint == i)
+                            if (!bind.IsSampler && bind.IsSRV && bind.bindPoint == i)
                             {
                                 shaderInput = bind;
                                 break;
@@ -2072,7 +2072,7 @@ namespace renderdocui.Windows.PipelineState
                     ShaderResource[] resources = uav ? deets.ReadWriteResources : deets.ReadOnlyResources;
                     foreach (var r in resources)
                     {
-                        if (r.IsTexture)
+                        if (r.IsTexture || r.IsSampler)
                             continue;
 
                         if (r.bindPoint == bind)
