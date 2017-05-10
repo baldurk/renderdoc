@@ -589,7 +589,7 @@ struct FormatElement
 public:
   FormatElement();
   FormatElement(const QString &Name, int buf, uint offs, bool perInst, int instRate, bool rowMat,
-                uint matDim, ResourceFormat f, bool hexDisplay);
+                uint matDim, ResourceFormat f, bool hexDisplay, bool rgbDisplay);
 
   static QList<FormatElement> ParseFormatString(const QString &formatString, uint64_t maxLen,
                                                 bool tightPacking, QString &errors);
@@ -602,15 +602,15 @@ public:
   uint32_t byteSize() const;
 
   QString name;
+  ResourceFormat format;
+  ShaderBuiltin systemValue;
   int buffer;
   uint32_t offset;
-  bool perinstance;
   int instancerate;
-  bool rowmajor;
   uint32_t matrixdim;
-  ResourceFormat format;
-  bool hex;
-  ShaderBuiltin systemValue;
+  bool perinstance;
+  bool rowmajor;
+  bool hex, rgb;
 };
 
 QString TypeString(const ShaderVariable &v);
@@ -638,6 +638,19 @@ struct Formatter
   static QString Format(uint16_t u, bool hex = false)
   {
     return QFormatStr("%1").arg(u, hex ? 4 : 0, hex ? 16 : 10, QLatin1Char('0'));
+  }
+  static QString Format(uint8_t u, bool hex = false)
+  {
+    return QFormatStr("%1").arg(u, hex ? 2 : 0, hex ? 16 : 10, QLatin1Char('0'));
+  }
+  static QString HexFormat(uint32_t u, uint32_t byteSize)
+  {
+    if(byteSize == 1)
+      return Format(uint8_t(u & 0xff), true);
+    else if(byteSize == 2)
+      return Format(uint16_t(u & 0xffff), true);
+    else
+      return Format(u, true);
   }
   static QString Format(int32_t i, bool hex = false) { return QString::number(i); }
   static const QFont &PreferredFont() { return m_Font; }

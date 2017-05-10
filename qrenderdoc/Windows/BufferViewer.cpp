@@ -447,37 +447,103 @@ public:
 
       if((role == Qt::BackgroundRole || role == Qt::ForegroundRole) && col >= reservedColumnCount())
       {
-        int elIdx = columnLookup[col - reservedColumnCount()];
-        int compIdx = componentForIndex(col);
-        if(elIdx == positionEl)
+        if(meshView)
         {
-          if(role == Qt::ForegroundRole)
-            return QBrush(Qt::black);
+          int elIdx = columnLookup[col - reservedColumnCount()];
+          int compIdx = componentForIndex(col);
 
-          if(compIdx != 3 || !meshInput)
+          if(elIdx == positionEl)
           {
-            // C# SkyBlue
-            return QBrush(QColor::fromRgb(135, 206, 235));
+            if(role == Qt::ForegroundRole)
+              return QBrush(Qt::black);
+
+            if(compIdx != 3 || !meshInput)
+            {
+              // C# SkyBlue
+              return QBrush(QColor::fromRgb(135, 206, 235));
+            }
+            else
+            {
+              // C# LightCyan
+              return QBrush(QColor::fromRgb(224, 255, 255));
+            }
           }
-          else
+          else if(secondaryEnabled && elIdx == secondaryEl)
           {
-            // C# LightCyan
-            return QBrush(QColor::fromRgb(224, 255, 255));
+            if(role == Qt::ForegroundRole)
+              return QBrush(Qt::black);
+
+            if((secondaryElAlpha && compIdx == 3) || (!secondaryElAlpha && compIdx != 3))
+            {
+              // C# LightGreen
+              return QBrush(QColor::fromRgb(144, 238, 144));
+            }
+            else
+            {
+              return QBrush(QColor::fromRgb(200, 238, 200));
+            }
           }
         }
-        else if(secondaryEnabled && elIdx == secondaryEl)
+        else
         {
-          if(role == Qt::ForegroundRole)
-            return QBrush(Qt::black);
+          const FormatElement &el = elementForColumn(col);
 
-          if((secondaryElAlpha && compIdx == 3) || (!secondaryElAlpha && compIdx != 3))
+          if(el.rgb && el.buffer < buffers.size())
           {
-            // C# LightGreen
-            return QBrush(QColor::fromRgb(144, 238, 144));
-          }
-          else
-          {
-            return QBrush(QColor::fromRgb(200, 238, 200));
+            const byte *data = buffers[el.buffer]->data;
+            const byte *end = buffers[el.buffer]->end;
+
+            data += buffers[el.buffer]->stride * row;
+            data += el.offset;
+
+            // only slightly wasteful, we need to fetch all variants together
+            // since some formats are packed and can't be read individually
+            QVariantList list = el.GetVariants(data, end);
+
+            if(!list.isEmpty())
+            {
+              QMetaType::Type vt = (QMetaType::Type)list[0].type();
+
+              QColor rgb;
+
+              if(vt == QMetaType::Double)
+              {
+                double r = qBound(0.0, list[0].toDouble(), 1.0);
+                double g = list.size() > 1 ? qBound(0.0, list[1].toDouble(), 1.0) : 0.0;
+                double b = list.size() > 2 ? qBound(0.0, list[2].toDouble(), 1.0) : 0.0;
+
+                rgb = QColor::fromRgbF(r, g, b);
+              }
+              else if(vt == QMetaType::Float)
+              {
+                float r = qBound(0.0f, list[0].toFloat(), 1.0f);
+                float g = list.size() > 1 ? qBound(0.0f, list[1].toFloat(), 1.0f) : 0.0;
+                float b = list.size() > 2 ? qBound(0.0f, list[2].toFloat(), 1.0f) : 0.0;
+
+                rgb = QColor::fromRgbF(r, g, b);
+              }
+              else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
+              {
+                uint r = qBound(0U, list[0].toUInt(), 255U);
+                uint g = list.size() > 1 ? qBound(0U, list[1].toUInt(), 255U) : 0.0;
+                uint b = list.size() > 2 ? qBound(0U, list[2].toUInt(), 255U) : 0.0;
+
+                rgb = QColor::fromRgb(r, g, b);
+              }
+              else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
+              {
+                int r = qBound(0, list[0].toInt(), 255);
+                int g = list.size() > 1 ? qBound(0, list[1].toInt(), 255) : 0.0;
+                int b = list.size() > 2 ? qBound(0, list[2].toInt(), 255) : 0.0;
+
+                rgb = QColor::fromRgb(r, g, b);
+              }
+
+              if(role == Qt::BackgroundRole)
+                return QBrush(rgb);
+              else if(role == Qt::ForegroundRole)
+                return QBrush(contrastingColor(rgb, QColor::fromRgb(0, 0, 0)));
+            }
           }
         }
       }
@@ -573,7 +639,11 @@ public:
               }
               else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
               {
-                ret = Formatter::Format(v.toUInt(), el.hex);
+                uint u = v.toUInt();
+                if(el.hex && el.format.specialFormat == SpecialFormat::Unknown)
+                  ret = Formatter::HexFormat(u, el.format.compByteWidth);
+                else
+                  ret = Formatter::Format(u, el.hex);
               }
               else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
               {
@@ -2027,7 +2097,7 @@ void BufferViewer::configureMeshColumns()
     FormatElement f(a.Name, a.VertexBuffer, a.RelativeByteOffset, a.PerInstance, a.InstanceRate,
                     false,    // row major matrix
                     1,        // matrix dimension
-                    a.Format, false);
+                    a.Format, false, false);
 
     m_ModelVSIn->columns.push_back(f);
   }
@@ -2514,25 +2584,23 @@ void BufferViewer::CalcColumnWidth()
   floatFmt.compCount = 1;
 
   ResourceFormat intFmt;
-  floatFmt.compByteWidth = 4;
-  floatFmt.compType = CompType::UInt;
-  floatFmt.compCount = 1;
+  intFmt.compByteWidth = 4;
+  intFmt.compType = CompType::UInt;
+  intFmt.compCount = 1;
 
-  FormatElement(lit("ColumnSizeTest"), 0, 0, false, 1, false, 1, floatFmt, false);
-  FormatElement(lit("ColumnSizeTest"), 0, 0, false, 1, false, 1, intFmt, true);
-  FormatElement(lit("ColumnSizeTest"), 0, 0, false, 1, false, 1, intFmt, false);
+  QString headerText = lit("ColumnSizeTest");
 
   m_ModelVSIn->columns.clear();
   m_ModelVSIn->columns.push_back(
-      FormatElement(lit("ColumnSizeTest"), 0, 0, false, 1, false, 1, floatFmt, false));
+      FormatElement(headerText, 0, 0, false, 1, false, 1, floatFmt, false, false));
   m_ModelVSIn->columns.push_back(
-      FormatElement(lit("ColumnSizeTest"), 0, 4, false, 1, false, 1, floatFmt, false));
+      FormatElement(headerText, 0, 4, false, 1, false, 1, floatFmt, false, false));
   m_ModelVSIn->columns.push_back(
-      FormatElement(lit("ColumnSizeTest"), 0, 8, false, 1, false, 1, floatFmt, false));
+      FormatElement(headerText, 0, 8, false, 1, false, 1, floatFmt, false, false));
   m_ModelVSIn->columns.push_back(
-      FormatElement(lit("ColumnSizeTest"), 0, 12, false, 1, false, 1, intFmt, true));
+      FormatElement(headerText, 0, 12, false, 1, false, 1, intFmt, true, false));
   m_ModelVSIn->columns.push_back(
-      FormatElement(lit("ColumnSizeTest"), 0, 16, false, 1, false, 1, intFmt, false));
+      FormatElement(headerText, 0, 16, false, 1, false, 1, intFmt, false, false));
 
   m_ModelVSIn->numRows = 2;
 
@@ -2659,13 +2727,15 @@ void BufferViewer::processFormat(const QString &format)
 
   Reset();
 
+  QList<FormatElement> cols = FormatElement::ParseFormatString(format, 0, true, errors);
+
   CalcColumnWidth();
 
   ClearModels();
 
   m_Format = format;
 
-  m_ModelVSIn->columns = FormatElement::ParseFormatString(format, 0, true, errors);
+  m_ModelVSIn->columns = cols;
 
   uint32_t stride = 0;
   for(const FormatElement &el : m_ModelVSIn->columns)

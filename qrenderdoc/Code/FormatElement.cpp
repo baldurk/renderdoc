@@ -120,11 +120,13 @@ FormatElement::FormatElement()
   rowmajor = false;
   matrixdim = 0;
   hex = false;
+  rgb = false;
   systemValue = ShaderBuiltin::Undefined;
 }
 
 FormatElement::FormatElement(const QString &Name, int buf, uint offs, bool perInst, int instRate,
-                             bool rowMat, uint matDim, ResourceFormat f, bool hexDisplay)
+                             bool rowMat, uint matDim, ResourceFormat f, bool hexDisplay,
+                             bool rgbDisplay)
 {
   name = Name;
   buffer = buf;
@@ -135,6 +137,7 @@ FormatElement::FormatElement(const QString &Name, int buf, uint offs, bool perIn
   rowmajor = rowMat;
   matrixdim = matDim;
   hex = hexDisplay;
+  rgb = rgbDisplay;
   systemValue = ShaderBuiltin::Undefined;
 }
 
@@ -146,20 +149,22 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
   // regex doesn't account for trailing or preceeding whitespace, or comments
 
   QRegularExpression regExpr(
-      lit("^(row_major\\s+)?"    // row_major matrix
-          "("
-          "uintten|unormten"
-          "|floateleven"
-          "|unormh|unormb"
-          "|snormh|snormb"
-          "|bool"                 // bool is stored as 4-byte int
-          "|byte|short|int"       // signed ints
-          "|ubyte|ushort|uint"    // unsigned ints
-          "|xbyte|xshort|xint"    // hex ints
-          "|half|float|double"    // float types
-          "|vec|uvec|ivec"        // OpenGL vector types
-          "|mat|umat|imat"        // OpenGL matrix types
-          ")"
+      lit("^"                                     // start of the line
+          "(row_major\\s+)?"                      // row_major matrix
+          "(rgb\\s+)?"                            // rgb element colourising
+          "("                                     // group the options for the type
+          "uintten|unormten"                      // R10G10B10A2 types
+          "|floateleven"                          // R11G11B10 special type
+          "|unormh|unormb"                        // UNORM 16-bit and 8-bit types
+          "|snormh|snormb"                        // SNORM 16-bit and 8-bit types
+          "|bool"                                 // bool is stored as 4-byte int
+          "|byte|short|int"                       // signed ints
+          "|ubyte|ushort|uint"                    // unsigned ints
+          "|xbyte|xshort|xint"                    // hex ints
+          "|half|float|double"                    // float types
+          "|vec|uvec|ivec"                        // OpenGL vector types
+          "|mat|umat|imat"                        // OpenGL matrix types
+          ")"                                     // end of the type group
           "([1-9])?"                              // might be a vector
           "(x[1-9])?"                             // or a matrix
           "(\\s+[A-Za-z_][A-Za-z0-9_]*)?"         // get identifier name
@@ -197,15 +202,16 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
       break;
     }
 
-    QString basetype = match.captured(2);
+    QString basetype = match.captured(3);
     bool row_major = !match.captured(1).isEmpty();
-    QString vectorDim = !match.captured(3).isEmpty() ? match.captured(3) : lit("1");
-    QString matrixDim = !match.captured(4).isEmpty() ? match.captured(4).mid(1) : lit("1");
-    QString name = !match.captured(5).isEmpty() ? match.captured(5).trimmed() : lit("data");
-    QString arrayDim = !match.captured(6).isEmpty() ? match.captured(6).trimmed() : lit("[1]");
+    bool rgb = !match.captured(2).isEmpty();
+    QString vectorDim = !match.captured(4).isEmpty() ? match.captured(4) : lit("1");
+    QString matrixDim = !match.captured(5).isEmpty() ? match.captured(5).mid(1) : lit("1");
+    QString name = !match.captured(6).isEmpty() ? match.captured(6).trimmed() : lit("data");
+    QString arrayDim = !match.captured(7).isEmpty() ? match.captured(7).trimmed() : lit("[1]");
     arrayDim = arrayDim.mid(1, arrayDim.count() - 2);
 
-    if(!match.captured(4).isEmpty())
+    if(!match.captured(5).isEmpty())
     {
       vectorDim.swap(matrixDim);
     }
@@ -222,7 +228,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
     uint32_t width = 0;
 
     // check for square matrix declarations like 'mat4' and 'mat3'
-    if(basetype == lit("mat") && !match.captured(4).isEmpty())
+    if(basetype == lit("mat") && !match.captured(5).isEmpty())
       matrixDim = vectorDim;
 
     // calculate format
@@ -367,7 +373,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
 
     if(arrayCount == 1)
     {
-      FormatElement elem(name, 0, offset, false, 1, row_major, matrixCount, fmt, hex);
+      FormatElement elem(name, 0, offset, false, 1, row_major, matrixCount, fmt, hex, rgb);
 
       uint32_t advance = elem.byteSize();
 
@@ -402,7 +408,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
       for(uint a = 0; a < arrayCount; a++)
       {
         FormatElement elem(QFormatStr("%1[%2]").arg(name).arg(a), 0, offset, false, 1, row_major,
-                           matrixCount, fmt, hex);
+                           matrixCount, fmt, hex, rgb);
 
         elems.push_back(elem);
 
@@ -433,7 +439,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
     if(maxLen > 0 && maxLen < 4)
       fmt.compByteWidth = 1;
 
-    elems.push_back(FormatElement(lit("data"), 0, 0, false, 1, false, 1, fmt, true));
+    elems.push_back(FormatElement(lit("data"), 0, 0, false, 1, false, 1, fmt, true, false));
   }
 
   return elems;

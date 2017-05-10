@@ -3212,8 +3212,77 @@ void TextureViewer::on_viewTexBuffer_clicked()
 
   if(texptr)
   {
+    QString baseType;
+
+    QString varName = lit("pixels");
+
+    uint32_t w = texptr->width;
+
+    switch(texptr->format.specialFormat)
+    {
+      case SpecialFormat::BC1:
+      case SpecialFormat::BC2:
+      case SpecialFormat::BC3:
+      case SpecialFormat::BC4:
+      case SpecialFormat::BC5:
+      case SpecialFormat::BC6:
+      case SpecialFormat::BC7:
+      case SpecialFormat::ETC2:
+      case SpecialFormat::EAC:
+      case SpecialFormat::ASTC:
+        varName = lit("block");
+        // display a 4x4 block at a time
+        w /= 4;
+      default: break;
+    }
+
+    switch(texptr->format.specialFormat)
+    {
+      case SpecialFormat::Unknown:
+      {
+        if(texptr->format.compByteWidth == 1)
+          baseType = lit("byte");
+        else if(texptr->format.compByteWidth == 2)
+          baseType = lit("short");
+        else
+          baseType = lit("int");
+
+        baseType = QFormatStr("rgb x%1%2").arg(baseType).arg(texptr->format.compCount);
+
+        break;
+      }
+      // 2x4 byte block, for 64-bit block formats
+      case SpecialFormat::BC1:
+      case SpecialFormat::BC4:
+      case SpecialFormat::ETC2:
+      case SpecialFormat::EAC:
+        baseType = lit("row_major xint2x1");
+        break;
+      // 4x4 byte block, for 128-bit block formats
+      case SpecialFormat::BC2:
+      case SpecialFormat::BC3:
+      case SpecialFormat::BC5:
+      case SpecialFormat::BC6:
+      case SpecialFormat::BC7:
+      case SpecialFormat::ASTC: baseType = lit("row_major xint4x1"); break;
+      case SpecialFormat::R10G10B10A2: baseType = lit("uintten"); break;
+      case SpecialFormat::R11G11B10: baseType = lit("rgb floateleven"); break;
+      case SpecialFormat::R5G6B5:
+      case SpecialFormat::R5G5B5A1: baseType = lit("xshort"); break;
+      case SpecialFormat::R9G9B9E5: baseType = lit("xint"); break;
+      case SpecialFormat::R4G4B4A4: baseType = lit("xbyte2"); break;
+      case SpecialFormat::R4G4: baseType = lit("xbyte"); break;
+      case SpecialFormat::D16S8:
+      case SpecialFormat::D24S8:
+      case SpecialFormat::D32S8:
+      case SpecialFormat::YUV: baseType = lit("xint4"); break;
+      case SpecialFormat::S8: baseType = lit("xbyte"); break;
+    }
+
+    QString format = QFormatStr("%1 %2[%3];").arg(baseType).arg(varName).arg(w);
+
     IBufferViewer *viewer =
-        m_Ctx.ViewTextureAsBuffer(m_TexDisplay.sliceFace, m_TexDisplay.mip, texptr->ID);
+        m_Ctx.ViewTextureAsBuffer(m_TexDisplay.sliceFace, m_TexDisplay.mip, texptr->ID, format);
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
   }
