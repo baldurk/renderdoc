@@ -962,7 +962,7 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
       v = s = ShaderVariable("", 0, 0, 0, 0);
 
       // if this Vec4f is entirely in the ICB
-      if(indices[0] * 4 + 4 <= dxbc->m_Immediate.size())
+      if(indices[0] <= dxbc->m_Immediate.size() / 4 - 1)
       {
         memcpy(s.value.uv, &dxbc->m_Immediate[indices[0] * 4], sizeof(Vec4f));
       }
