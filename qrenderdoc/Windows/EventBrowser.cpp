@@ -479,7 +479,7 @@ void EventBrowser::on_stepPrev_clicked()
 void EventBrowser::on_exportDraws_clicked()
 {
   QString filename =
-      RDDialog::getSaveFileName(this, tr("Save Event List"), QString(), lit("Text files (*.txt)"));
+      RDDialog::getSaveFileName(this, tr("Save Event List"), QString(), tr("Text files (*.txt)"));
 
   if(!filename.isEmpty())
   {

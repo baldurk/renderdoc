@@ -432,7 +432,7 @@ QString RDDialog::getExecutableFileName(QWidget *parent, const QString &caption,
 
 #if defined(Q_OS_WIN32)
   // can't filter by executable bit on windows, but we have extensions
-  filter = lit("Executables (*.exe);;All Files (*.*)");
+  filter = QApplication::translate("RDDialog", "Executables (*.exe);;All Files (*.*)");
 #endif
 
   QFileDialog fd(parent, caption, dir, filter);

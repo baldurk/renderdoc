@@ -2819,12 +2819,12 @@ void BufferViewer::exportData(const BufferExport &params)
 
   QString filter;
   if(params.format == BufferExport::CSV)
-    filter = lit("CSV Files (*.csv)");
+    filter = tr("CSV Files (*.csv)");
   else if(params.format == BufferExport::RawBytes)
-    filter = lit("Binary Files (*.bin)");
+    filter = tr("Binary Files (*.bin)");
 
   QString filename = RDDialog::getSaveFileName(this, tr("Export buffer to bytes"), QString(),
-                                               QFormatStr("%1;;All files (*.*)").arg(filter));
+                                               tr("%1;;All files (*.*)").arg(filter));
 
   if(filename.isEmpty())
     return;
