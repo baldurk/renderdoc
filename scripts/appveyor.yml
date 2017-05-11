@@ -43,7 +43,7 @@ build_script:
 - ps: >-
     if ( ($env:APPVEYOR_SCHEDULED_BUILD -eq "True" ) -and ($env:PLATFORM -eq "x64") -and ($env:CONFIGURATION -eq "Development") )
     {
-      cov-build.exe --dir cov-int msbuild renderdoc.sln /p:Configuration=Development /p:Platform=x64 /p:PlatformToolset=v120
+      cov-build.exe --dir cov-int msbuild renderdoc.sln /p:Configuration=Development /p:Platform=x64 /p:PlatformToolset=v140
 
       nuget.exe install PublishCoverity -ExcludeVersion
 
