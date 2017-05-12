@@ -33,10 +33,10 @@
 
 Q_DECLARE_METATYPE(ResourceId);
 
-struct VBIBTag
+struct GLVBIBTag
 {
-  VBIBTag() { offset = 0; }
-  VBIBTag(ResourceId i, uint64_t offs)
+  GLVBIBTag() { offset = 0; }
+  GLVBIBTag(ResourceId i, uint64_t offs)
   {
     id = i;
     offset = offs;
@@ -46,16 +46,16 @@ struct VBIBTag
   uint64_t offset;
 };
 
-Q_DECLARE_METATYPE(VBIBTag);
+Q_DECLARE_METATYPE(GLVBIBTag);
 
-struct ReadWriteTag
+struct GLReadWriteTag
 {
-  ReadWriteTag()
+  GLReadWriteTag()
   {
     bindPoint = 0;
     offset = size = 0;
   }
-  ReadWriteTag(uint32_t b, ResourceId id, uint64_t offs, uint64_t sz)
+  GLReadWriteTag(uint32_t b, ResourceId id, uint64_t offs, uint64_t sz)
   {
     bindPoint = b;
     ID = id;
@@ -68,7 +68,7 @@ struct ReadWriteTag
   uint64_t size;
 };
 
-Q_DECLARE_METATYPE(ReadWriteTag);
+Q_DECLARE_METATYPE(GLReadWriteTag);
 
 GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineStateViewer &common,
                                              QWidget *parent)
@@ -1013,7 +1013,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
 
         name = ToQStr(buf->name);
 
-        tag = QVariant::fromValue(ReadWriteTag(i, id, offset, length));
+        tag = QVariant::fromValue(GLReadWriteTag(i, id, offset, length));
       }
 
       if(!filledSlot)
@@ -1258,7 +1258,8 @@ void GLPipelineStateViewer::setState()
           new RDTreeWidgetItem({tr("Element"), name, draw ? draw->indexByteWidth : 0, 0, 0,
                                 (qulonglong)length, QString()});
 
-      node->setTag(QVariant::fromValue(VBIBTag(state.m_VtxIn.ibuffer, draw ? draw->indexOffset : 0)));
+      node->setTag(
+          QVariant::fromValue(GLVBIBTag(state.m_VtxIn.ibuffer, draw ? draw->indexOffset : 0)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1276,7 +1277,8 @@ void GLPipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Element"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(QVariant::fromValue(VBIBTag(state.m_VtxIn.ibuffer, draw ? draw->indexOffset : 0)));
+      node->setTag(
+          QVariant::fromValue(GLVBIBTag(state.m_VtxIn.ibuffer, draw ? draw->indexOffset : 0)));
 
       setEmptyRow(node);
 
@@ -1318,7 +1320,7 @@ void GLPipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {i, name, v.Stride, (qulonglong)offset, v.Divisor, (qulonglong)length, QString()});
 
-      node->setTag(QVariant::fromValue(VBIBTag(v.Buffer, v.Offset)));
+      node->setTag(QVariant::fromValue(GLVBIBTag(v.Buffer, v.Offset)));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -2027,9 +2029,9 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
       return;
     }
   }
-  else if(tag.canConvert<ReadWriteTag>())
+  else if(tag.canConvert<GLReadWriteTag>())
   {
-    ReadWriteTag buf = tag.value<ReadWriteTag>();
+    GLReadWriteTag buf = tag.value<GLReadWriteTag>();
 
     const ShaderResource &shaderRes = stage->ShaderDetails->ReadWriteResources[buf.bindPoint];
 
@@ -2108,9 +2110,9 @@ void GLPipelineStateViewer::on_viBuffers_itemActivated(RDTreeWidgetItem *item, i
 {
   QVariant tag = item->tag();
 
-  if(tag.canConvert<VBIBTag>())
+  if(tag.canConvert<GLVBIBTag>())
   {
-    VBIBTag buf = tag.value<VBIBTag>();
+    GLVBIBTag buf = tag.value<GLVBIBTag>();
 
     if(buf.id != ResourceId())
     {

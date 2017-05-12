@@ -34,7 +34,7 @@ class D3D11PipelineStateViewer;
 
 class RDTreeWidget;
 class RDTreeWidgetItem;
-struct ViewTag;
+struct D3D11ViewTag;
 class PipelineStateViewer;
 
 class D3D11PipelineStateViewer : public QFrame, public ILogViewer
@@ -84,7 +84,7 @@ private:
   void setShaderState(const D3D11Pipe::Shader &stage, QLabel *shader, RDTreeWidget *tex,
                       RDTreeWidget *samp, RDTreeWidget *cbuffer, RDTreeWidget *classes);
 
-  void addResourceRow(const ViewTag &view, const ShaderResource *shaderInput,
+  void addResourceRow(const D3D11ViewTag &view, const ShaderResource *shaderInput,
                       RDTreeWidget *resources);
 
   void clearShaderState(QLabel *shader, RDTreeWidget *tex, RDTreeWidget *samp,
@@ -103,8 +103,8 @@ private:
   bool HasImportantViewParams(const D3D11Pipe::View &view, TextureDescription *tex);
   bool HasImportantViewParams(const D3D11Pipe::View &view, BufferDescription *buf);
 
-  void setViewDetails(RDTreeWidgetItem *node, const ViewTag &view, TextureDescription *tex);
-  void setViewDetails(RDTreeWidgetItem *node, const ViewTag &view, BufferDescription *buf);
+  void setViewDetails(RDTreeWidgetItem *node, const D3D11ViewTag &view, TextureDescription *tex);
+  void setViewDetails(RDTreeWidgetItem *node, const D3D11ViewTag &view, BufferDescription *buf);
 
   bool showNode(bool usedSlot, bool filledSlot);
 

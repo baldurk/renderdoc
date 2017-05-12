@@ -34,10 +34,10 @@
 Q_DECLARE_METATYPE(ResourceId);
 Q_DECLARE_METATYPE(SamplerData);
 
-struct VBIBTag
+struct VulkanVBIBTag
 {
-  VBIBTag() { offset = 0; }
-  VBIBTag(ResourceId i, uint64_t offs)
+  VulkanVBIBTag() { offset = 0; }
+  VulkanVBIBTag(ResourceId i, uint64_t offs)
   {
     id = i;
     offset = offs;
@@ -47,12 +47,12 @@ struct VBIBTag
   uint64_t offset;
 };
 
-Q_DECLARE_METATYPE(VBIBTag);
+Q_DECLARE_METATYPE(VulkanVBIBTag);
 
-struct CBufferTag
+struct VulkanCBufferTag
 {
-  CBufferTag() { slotIdx = arrayIdx = 0; }
-  CBufferTag(uint32_t s, uint32_t i)
+  VulkanCBufferTag() { slotIdx = arrayIdx = 0; }
+  VulkanCBufferTag(uint32_t s, uint32_t i)
   {
     slotIdx = s;
     arrayIdx = i;
@@ -61,17 +61,17 @@ struct CBufferTag
   uint32_t arrayIdx;
 };
 
-Q_DECLARE_METATYPE(CBufferTag);
+Q_DECLARE_METATYPE(VulkanCBufferTag);
 
-struct BufferTag
+struct VulkanBufferTag
 {
-  BufferTag()
+  VulkanBufferTag()
   {
     rwRes = false;
     bindPoint = 0;
     offset = size = 0;
   }
-  BufferTag(bool rw, uint32_t b, ResourceId id, uint64_t offs, uint64_t sz)
+  VulkanBufferTag(bool rw, uint32_t b, ResourceId id, uint64_t offs, uint64_t sz)
   {
     rwRes = rw;
     bindPoint = b;
@@ -86,7 +86,7 @@ struct BufferTag
   uint64_t size;
 };
 
-Q_DECLARE_METATYPE(BufferTag);
+Q_DECLARE_METATYPE(VulkanBufferTag);
 
 VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
                                                      PipelineStateViewer &common, QWidget *parent)
@@ -866,7 +866,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
             descriptorLen = len - descriptorBind->offset;
 
           tag = QVariant::fromValue(
-              BufferTag(isrw, bindPoint, buf->ID, descriptorBind->offset, descriptorLen));
+              VulkanBufferTag(isrw, bindPoint, buf->ID, descriptorBind->offset, descriptorLen));
 
           isbuf = true;
         }
@@ -1207,7 +1207,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({QString(), setname, slotname, name, vecrange, sizestr});
 
-      node->setTag(QVariant::fromValue(CBufferTag(slot, (uint)idx)));
+      node->setTag(QVariant::fromValue(VulkanCBufferTag(slot, (uint)idx)));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -1404,7 +1404,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
             new RDTreeWidgetItem({QString(), QString(), ToQStr(cblock.name), tr("Push constants"),
                                   QString(), tr("%1 Variable(s)", "", cblock.variables.count)});
 
-        node->setTag(QVariant::fromValue(CBufferTag(cb, 0)));
+        node->setTag(QVariant::fromValue(VulkanCBufferTag(cb, 0)));
 
         ubos->addTopLevelItem(node);
       }
@@ -1552,8 +1552,8 @@ void VulkanPipelineStateViewer::setState()
           {tr("Index"), name, tr("Index"), (qulonglong)state.IA.ibuffer.offs,
            draw != NULL ? draw->indexByteWidth : 0, (qulonglong)length, QString()});
 
-      node->setTag(
-          QVariant::fromValue(VBIBTag(state.IA.ibuffer.buf, draw != NULL ? draw->indexOffset : 0)));
+      node->setTag(QVariant::fromValue(
+          VulkanVBIBTag(state.IA.ibuffer.buf, draw != NULL ? draw->indexOffset : 0)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1571,8 +1571,8 @@ void VulkanPipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Index"), tr("No Buffer Set"), tr("Index"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(
-          QVariant::fromValue(VBIBTag(state.IA.ibuffer.buf, draw != NULL ? draw->indexOffset : 0)));
+      node->setTag(QVariant::fromValue(
+          VulkanVBIBTag(state.IA.ibuffer.buf, draw != NULL ? draw->indexOffset : 0)));
 
       setEmptyRow(node);
 
@@ -1641,8 +1641,8 @@ void VulkanPipelineStateViewer::setState()
           node = new RDTreeWidgetItem(
               {i, tr("No Binding"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
 
-        node->setTag(QVariant::fromValue(VBIBTag(vbuff != NULL ? vbuff->buffer : ResourceId(),
-                                                 vbuff != NULL ? vbuff->offset : 0)));
+        node->setTag(QVariant::fromValue(VulkanVBIBTag(vbuff != NULL ? vbuff->buffer : ResourceId(),
+                                                       vbuff != NULL ? vbuff->offset : 0)));
 
         if(!filledSlot || bind == NULL || vbuff == NULL)
           setEmptyRow(node);
@@ -1663,7 +1663,7 @@ void VulkanPipelineStateViewer::setState()
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {i, tr("No Binding"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
 
-        node->setTag(QVariant::fromValue(VBIBTag(ResourceId(), 0)));
+        node->setTag(QVariant::fromValue(VulkanVBIBTag(ResourceId(), 0)));
 
         setEmptyRow(node);
 
@@ -2041,9 +2041,9 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
       return;
     }
   }
-  else if(tag.canConvert<BufferTag>())
+  else if(tag.canConvert<VulkanBufferTag>())
   {
-    BufferTag buf = tag.value<BufferTag>();
+    VulkanBufferTag buf = tag.value<VulkanBufferTag>();
 
     const ShaderResource &shaderRes = buf.rwRes
                                           ? stage->ShaderDetails->ReadWriteResources[buf.bindPoint]
@@ -2105,10 +2105,10 @@ void VulkanPipelineStateViewer::ubo_itemActivated(RDTreeWidgetItem *item, int co
 
   QVariant tag = item->tag();
 
-  if(!tag.canConvert<CBufferTag>())
+  if(!tag.canConvert<VulkanCBufferTag>())
     return;
 
-  CBufferTag cb = tag.value<CBufferTag>();
+  VulkanCBufferTag cb = tag.value<VulkanCBufferTag>();
 
   IConstantBufferPreviewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb.slotIdx, cb.arrayIdx);
 
@@ -2124,9 +2124,9 @@ void VulkanPipelineStateViewer::on_viBuffers_itemActivated(RDTreeWidgetItem *ite
 {
   QVariant tag = item->tag();
 
-  if(tag.canConvert<VBIBTag>())
+  if(tag.canConvert<VulkanVBIBTag>())
   {
-    VBIBTag buf = tag.value<VBIBTag>();
+    VulkanVBIBTag buf = tag.value<VulkanVBIBTag>();
 
     if(buf.id != ResourceId())
     {

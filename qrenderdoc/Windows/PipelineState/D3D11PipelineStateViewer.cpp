@@ -33,10 +33,10 @@
 
 Q_DECLARE_METATYPE(ResourceId);
 
-struct VBIBTag
+struct D3D11VBIBTag
 {
-  VBIBTag() { offset = 0; }
-  VBIBTag(ResourceId i, uint64_t offs)
+  D3D11VBIBTag() { offset = 0; }
+  D3D11VBIBTag(ResourceId i, uint64_t offs)
   {
     id = i;
     offset = offs;
@@ -46,9 +46,9 @@ struct VBIBTag
   uint64_t offset;
 };
 
-Q_DECLARE_METATYPE(VBIBTag);
+Q_DECLARE_METATYPE(D3D11VBIBTag);
 
-struct ViewTag
+struct D3D11ViewTag
 {
   enum ResType
   {
@@ -58,14 +58,14 @@ struct ViewTag
     OMDepth,
   };
 
-  ViewTag() {}
-  ViewTag(ResType t, int i, const D3D11Pipe::View &r) : type(t), index(i), res(r) {}
+  D3D11ViewTag() {}
+  D3D11ViewTag(ResType t, int i, const D3D11Pipe::View &r) : type(t), index(i), res(r) {}
   ResType type;
   int index;
   D3D11Pipe::View res;
 };
 
-Q_DECLARE_METATYPE(ViewTag);
+Q_DECLARE_METATYPE(D3D11ViewTag);
 
 D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
                                                    PipelineStateViewer &common, QWidget *parent)
@@ -480,7 +480,7 @@ bool D3D11PipelineStateViewer::HasImportantViewParams(const D3D11Pipe::View &vie
   return false;
 }
 
-void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const ViewTag &view,
+void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D11ViewTag &view,
                                               TextureDescription *tex)
 {
   if(tex == NULL)
@@ -501,7 +501,7 @@ void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const View
     viewdetails = true;
   }
 
-  if(view.type == ViewTag::OMDepth)
+  if(view.type == D3D11ViewTag::OMDepth)
   {
     if(m_Ctx.CurD3D11PipelineState().m_OM.DepthReadOnly)
       text += tr("Depth component is read-only\n");
@@ -549,7 +549,7 @@ void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const View
   }
 }
 
-void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const ViewTag &view,
+void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D11ViewTag &view,
                                               BufferDescription *buf)
 {
   if(buf == NULL)
@@ -579,14 +579,15 @@ void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const View
   node->setForegroundColor(QColor(0, 0, 0));
 }
 
-void D3D11PipelineStateViewer::addResourceRow(const ViewTag &view, const ShaderResource *shaderInput,
+void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
+                                              const ShaderResource *shaderInput,
                                               RDTreeWidget *resources)
 {
   const D3D11Pipe::View &r = view.res;
 
   bool viewDetails = false;
 
-  if(view.type == ViewTag::OMDepth)
+  if(view.type == D3D11ViewTag::OMDepth)
     viewDetails = m_Ctx.CurD3D11PipelineState().m_OM.DepthReadOnly ||
                   m_Ctx.CurD3D11PipelineState().m_OM.StencilReadOnly;
 
@@ -595,11 +596,11 @@ void D3D11PipelineStateViewer::addResourceRow(const ViewTag &view, const ShaderR
 
   // if a target is set to RTVs or DSV, it is implicitly used
   if(filledSlot)
-    usedSlot = usedSlot || view.type == ViewTag::OMTarget || view.type == ViewTag::OMDepth;
+    usedSlot = usedSlot || view.type == D3D11ViewTag::OMTarget || view.type == D3D11ViewTag::OMDepth;
 
   if(showNode(usedSlot, filledSlot))
   {
-    QString slotname = view.type == ViewTag::OMDepth ? tr("Depth") : QString::number(view.index);
+    QString slotname = view.type == D3D11ViewTag::OMDepth ? tr("Depth") : QString::number(view.index);
 
     if(shaderInput && !shaderInput->name.empty())
       slotname += lit(": ") + ToQStr(shaderInput->name);
@@ -656,14 +657,14 @@ void D3D11PipelineStateViewer::addResourceRow(const ViewTag &view, const ShaderR
 
       if(r.Flags & D3DBufferViewFlags::Raw)
       {
-        typeName =
-            QFormatStr("%1ByteAddressBuffer").arg(view.type == ViewTag::UAV ? lit("RW") : QString());
+        typeName = QFormatStr("%1ByteAddressBuffer")
+                       .arg(view.type == D3D11ViewTag::UAV ? lit("RW") : QString());
       }
       else if(r.ElementSize > 0)
       {
         // for structured buffers, display how many 'elements' there are in the buffer
         typeName = QFormatStr("%1StructuredBuffer[%2]")
-                       .arg(view.type == ViewTag::UAV ? lit("RW") : QString())
+                       .arg(view.type == D3D11ViewTag::UAV ? lit("RW") : QString())
                        .arg(buf->length / r.ElementSize);
       }
 
@@ -887,7 +888,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
       }
     }
 
-    addResourceRow(ViewTag(ViewTag::SRV, i, stage.SRVs[i]), shaderInput, resources);
+    addResourceRow(D3D11ViewTag(D3D11ViewTag::SRV, i, stage.SRVs[i]), shaderInput, resources);
   }
   resources->clearSelection();
   resources->setUpdatesEnabled(true);
@@ -1336,8 +1337,8 @@ void D3D11PipelineStateViewer::setState()
           new RDTreeWidgetItem({tr("Index"), name, draw ? draw->indexByteWidth : 0,
                                 state.m_IA.ibuffer.Offset, (qulonglong)length, QString()});
 
-      node->setTag(
-          QVariant::fromValue(VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
+      node->setTag(QVariant::fromValue(
+          D3D11VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1355,8 +1356,8 @@ void D3D11PipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Index"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(
-          QVariant::fromValue(VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
+      node->setTag(QVariant::fromValue(
+          D3D11VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
 
       setEmptyRow(node);
 
@@ -1402,7 +1403,7 @@ void D3D11PipelineStateViewer::setState()
         node =
             new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(QVariant::fromValue(VBIBTag(v.Buffer, v.Offset)));
+      node->setTag(QVariant::fromValue(D3D11VBIBTag(v.Buffer, v.Offset)));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -1451,7 +1452,7 @@ void D3D11PipelineStateViewer::setState()
       }
     }
 
-    addResourceRow(ViewTag(ViewTag::UAV, i, state.m_CS.UAVs[i]), shaderInput, ui->csUAVs);
+    addResourceRow(D3D11ViewTag(D3D11ViewTag::UAV, i, state.m_CS.UAVs[i]), shaderInput, ui->csUAVs);
   }
   ui->csUAVs->clearSelection();
   ui->csUAVs->setUpdatesEnabled(true);
@@ -1586,7 +1587,7 @@ void D3D11PipelineStateViewer::setState()
   {
     for(int i = 0; i < state.m_OM.RenderTargets.count; i++)
     {
-      addResourceRow(ViewTag(ViewTag::OMTarget, i, state.m_OM.RenderTargets[i]), NULL,
+      addResourceRow(D3D11ViewTag(D3D11ViewTag::OMTarget, i, state.m_OM.RenderTargets[i]), NULL,
                      ui->targetOutputs);
 
       if(state.m_OM.RenderTargets[i].Resource != ResourceId())
@@ -1618,10 +1619,12 @@ void D3D11PipelineStateViewer::setState()
         }
       }
 
-      addResourceRow(ViewTag(ViewTag::UAV, i, state.m_OM.UAVs[i]), shaderInput, ui->targetOutputs);
+      addResourceRow(D3D11ViewTag(D3D11ViewTag::UAV, i, state.m_OM.UAVs[i]), shaderInput,
+                     ui->targetOutputs);
     }
 
-    addResourceRow(ViewTag(ViewTag::OMDepth, 0, state.m_OM.DepthTarget), NULL, ui->targetOutputs);
+    addResourceRow(D3D11ViewTag(D3D11ViewTag::OMDepth, 0, state.m_OM.DepthTarget), NULL,
+                   ui->targetOutputs);
   }
   ui->targetOutputs->clearSelection();
   ui->targetOutputs->setUpdatesEnabled(true);
@@ -1828,9 +1831,9 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
     tex = m_Ctx.GetTexture(id);
     buf = m_Ctx.GetBuffer(id);
   }
-  else if(tag.canConvert<ViewTag>())
+  else if(tag.canConvert<D3D11ViewTag>())
   {
-    ViewTag view = tag.value<ViewTag>();
+    D3D11ViewTag view = tag.value<D3D11ViewTag>();
     tex = m_Ctx.GetTexture(view.res.Resource);
     buf = m_Ctx.GetBuffer(view.res.Resource);
   }
@@ -1855,9 +1858,9 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
   }
   else if(buf)
   {
-    ViewTag view;
-    if(tag.canConvert<ViewTag>())
-      view = tag.value<ViewTag>();
+    D3D11ViewTag view;
+    if(tag.canConvert<D3D11ViewTag>())
+      view = tag.value<D3D11ViewTag>();
 
     uint64_t offs = 0;
     uint64_t size = buf->length;
@@ -1898,7 +1901,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
     // in multiple places. Most likely the bindings are equivalent anyway.
     // The main point is that it allows us to pick up the binding if it's not
     // bound in the PS but only in an earlier stage.
-    if(view.type == ViewTag::UAV && stage->stage != ShaderStage::Compute)
+    if(view.type == D3D11ViewTag::UAV && stage->stage != ShaderStage::Compute)
     {
       const D3D11Pipe::State &state = m_Ctx.CurD3D11PipelineState();
       const D3D11Pipe::Shader *nonCS[] = {&state.m_VS, &state.m_DS, &state.m_HS, &state.m_GS,
@@ -1925,8 +1928,8 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
     if(stage->ShaderDetails)
     {
       const rdctype::array<ShaderResource> &resArray =
-          view.type == ViewTag::SRV ? stage->ShaderDetails->ReadOnlyResources
-                                    : stage->ShaderDetails->ReadWriteResources;
+          view.type == D3D11ViewTag::SRV ? stage->ShaderDetails->ReadOnlyResources
+                                         : stage->ShaderDetails->ReadWriteResources;
 
       for(const ShaderResource &res : resArray)
       {
@@ -2076,9 +2079,9 @@ void D3D11PipelineStateViewer::on_iaBuffers_itemActivated(RDTreeWidgetItem *item
 {
   QVariant tag = item->tag();
 
-  if(tag.canConvert<VBIBTag>())
+  if(tag.canConvert<D3D11VBIBTag>())
   {
-    VBIBTag buf = tag.value<VBIBTag>();
+    D3D11VBIBTag buf = tag.value<D3D11VBIBTag>();
 
     if(buf.id != ResourceId())
     {

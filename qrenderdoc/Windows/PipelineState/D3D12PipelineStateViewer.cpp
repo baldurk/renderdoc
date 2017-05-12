@@ -33,10 +33,10 @@
 
 Q_DECLARE_METATYPE(ResourceId);
 
-struct VBIBTag
+struct D3D12VBIBTag
 {
-  VBIBTag() { offset = 0; }
-  VBIBTag(ResourceId i, uint64_t offs)
+  D3D12VBIBTag() { offset = 0; }
+  D3D12VBIBTag(ResourceId i, uint64_t offs)
   {
     id = i;
     offset = offs;
@@ -46,22 +46,22 @@ struct VBIBTag
   uint64_t offset;
 };
 
-Q_DECLARE_METATYPE(VBIBTag);
+Q_DECLARE_METATYPE(D3D12VBIBTag);
 
-struct CBufTag
+struct D3D12CBufTag
 {
-  CBufTag()
+  D3D12CBufTag()
   {
     idx = ~0U;
     space = reg = 0;
   }
-  CBufTag(uint32_t s, uint32_t r)
+  D3D12CBufTag(uint32_t s, uint32_t r)
   {
     idx = ~0U;
     space = s;
     reg = r;
   }
-  CBufTag(uint32_t i)
+  D3D12CBufTag(uint32_t i)
   {
     idx = i;
     space = reg = 0;
@@ -70,9 +70,9 @@ struct CBufTag
   uint32_t idx, space, reg;
 };
 
-Q_DECLARE_METATYPE(CBufTag);
+Q_DECLARE_METATYPE(D3D12CBufTag);
 
-struct ViewTag
+struct D3D12ViewTag
 {
   enum ResType
   {
@@ -82,8 +82,9 @@ struct ViewTag
     OMDepth,
   };
 
-  ViewTag() {}
-  ViewTag(ResType t, int s, int r, const D3D12Pipe::View &rs) : type(t), space(s), reg(r), res(rs)
+  D3D12ViewTag() {}
+  D3D12ViewTag(ResType t, int s, int r, const D3D12Pipe::View &rs)
+      : type(t), space(s), reg(r), res(rs)
   {
   }
 
@@ -92,7 +93,7 @@ struct ViewTag
   D3D12Pipe::View res;
 };
 
-Q_DECLARE_METATYPE(ViewTag);
+Q_DECLARE_METATYPE(D3D12ViewTag);
 
 D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
                                                    PipelineStateViewer &common, QWidget *parent)
@@ -511,7 +512,7 @@ bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12Pipe::View &vie
   return false;
 }
 
-void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const ViewTag &view,
+void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D12ViewTag &view,
                                               TextureDescription *tex)
 {
   if(tex == NULL)
@@ -541,7 +542,7 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const View
     viewdetails = true;
   }
 
-  if(view.space == ViewTag::OMDepth)
+  if(view.space == D3D12ViewTag::OMDepth)
   {
     if(m_Ctx.CurD3D12PipelineState().m_OM.DepthReadOnly)
       text += tr("Depth component is read-only\n");
@@ -589,7 +590,7 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const View
   }
 }
 
-void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const ViewTag &view,
+void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D12ViewTag &view,
                                               BufferDescription *buf)
 {
   if(buf == NULL)
@@ -634,11 +635,11 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const View
   }
 }
 
-void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view, const D3D12Pipe::Shader *stage,
-                                              RDTreeWidget *resources)
+void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
+                                              const D3D12Pipe::Shader *stage, RDTreeWidget *resources)
 {
   const D3D12Pipe::View &r = view.res;
-  bool uav = view.type == ViewTag::UAV;
+  bool uav = view.type == D3D12ViewTag::UAV;
 
   // consider this register to not exist - it's in a gap defined by sparse root signature elements
   if(r.RootElement == ~0U)
@@ -675,7 +676,7 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view, const D3D12Pi
 
   bool viewDetails = false;
 
-  if(view.space == ViewTag::OMDepth)
+  if(view.space == D3D12ViewTag::OMDepth)
     viewDetails = m_Ctx.CurD3D12PipelineState().m_OM.DepthReadOnly ||
                   m_Ctx.CurD3D12PipelineState().m_OM.StencilReadOnly;
 
@@ -687,7 +688,8 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view, const D3D12Pi
 
   // if a target is set to RTVs or DSV, it is implicitly used
   if(filledSlot)
-    usedSlot = usedSlot || view.space == ViewTag::OMTarget || view.space == ViewTag::OMDepth;
+    usedSlot =
+        usedSlot || view.space == D3D12ViewTag::OMTarget || view.space == D3D12ViewTag::OMDepth;
 
   if(showNode(usedSlot, filledSlot))
   {
@@ -696,7 +698,7 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view, const D3D12Pi
     if(shaderInput && !shaderInput->name.empty())
       regname += lit(": ") + ToQStr(shaderInput->name);
 
-    if(view.space == ViewTag::OMDepth)
+    if(view.space == D3D12ViewTag::OMDepth)
       regname = tr("Depth");
 
     uint32_t w = 1, h = 1, d = 1;
@@ -965,8 +967,8 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
   {
     for(int reg = 0; reg < stage.Spaces[space].SRVs.count; reg++)
     {
-      addResourceRow(ViewTag(ViewTag::SRV, space, reg, stage.Spaces[space].SRVs[reg]), &stage,
-                     resources);
+      addResourceRow(D3D12ViewTag(D3D12ViewTag::SRV, space, reg, stage.Spaces[space].SRVs[reg]),
+                     &stage, resources);
     }
   }
   resources->clearSelection();
@@ -980,7 +982,8 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
   {
     for(int reg = 0; reg < stage.Spaces[space].UAVs.count; reg++)
     {
-      addResourceRow(ViewTag(ViewTag::UAV, space, reg, stage.Spaces[space].UAVs[reg]), &stage, uavs);
+      addResourceRow(D3D12ViewTag(D3D12ViewTag::UAV, space, reg, stage.Spaces[space].UAVs[reg]),
+                     &stage, uavs);
     }
   }
   uavs->clearSelection();
@@ -1140,14 +1143,14 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
           {
             bind = &bm;
             shaderCBuf = &res;
-            tag = QVariant::fromValue(CBufTag(i));
+            tag = QVariant::fromValue(D3D12CBufTag(i));
             break;
           }
         }
       }
 
       if(!tag.isValid())
-        tag = QVariant::fromValue(CBufTag(space, reg));
+        tag = QVariant::fromValue(D3D12CBufTag(space, reg));
 
       QString rootel;
 
@@ -1365,8 +1368,8 @@ void D3D12PipelineStateViewer::setState()
           {tr("Index"), name, draw ? draw->indexByteWidth : 0,
            (qulonglong)state.m_IA.ibuffer.Offset, (qulonglong)length, QString()});
 
-      node->setTag(
-          QVariant::fromValue(VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
+      node->setTag(QVariant::fromValue(
+          D3D12VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1384,8 +1387,8 @@ void D3D12PipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Index"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(
-          QVariant::fromValue(VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
+      node->setTag(QVariant::fromValue(
+          D3D12VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
 
       setEmptyRow(node);
 
@@ -1431,7 +1434,7 @@ void D3D12PipelineStateViewer::setState()
         node =
             new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(QVariant::fromValue(VBIBTag(v.Buffer, v.Offset)));
+      node->setTag(QVariant::fromValue(D3D12VBIBTag(v.Buffer, v.Offset)));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -1578,14 +1581,15 @@ void D3D12PipelineStateViewer::setState()
   {
     for(int i = 0; i < state.m_OM.RenderTargets.count; i++)
     {
-      addResourceRow(ViewTag(ViewTag::OMTarget, 0, i, state.m_OM.RenderTargets[i]), NULL,
+      addResourceRow(D3D12ViewTag(D3D12ViewTag::OMTarget, 0, i, state.m_OM.RenderTargets[i]), NULL,
                      ui->targetOutputs);
 
       if(state.m_OM.RenderTargets[i].Resource != ResourceId())
         targets[i] = true;
     }
 
-    addResourceRow(ViewTag(ViewTag::OMDepth, 0, 0, state.m_OM.DepthTarget), NULL, ui->targetOutputs);
+    addResourceRow(D3D12ViewTag(D3D12ViewTag::OMDepth, 0, 0, state.m_OM.DepthTarget), NULL,
+                   ui->targetOutputs);
   }
   ui->targetOutputs->clearSelection();
   ui->targetOutputs->setUpdatesEnabled(true);
@@ -1747,9 +1751,9 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
     tex = m_Ctx.GetTexture(id);
     buf = m_Ctx.GetBuffer(id);
   }
-  else if(tag.canConvert<ViewTag>())
+  else if(tag.canConvert<D3D12ViewTag>())
   {
-    ViewTag view = tag.value<ViewTag>();
+    D3D12ViewTag view = tag.value<D3D12ViewTag>();
     tex = m_Ctx.GetTexture(view.res.Resource);
     buf = m_Ctx.GetBuffer(view.res.Resource);
   }
@@ -1774,9 +1778,9 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
   }
   else if(buf)
   {
-    ViewTag view;
-    if(tag.canConvert<ViewTag>())
-      view = tag.value<ViewTag>();
+    D3D12ViewTag view;
+    if(tag.canConvert<D3D12ViewTag>())
+      view = tag.value<D3D12ViewTag>();
 
     uint64_t offs = 0;
     uint64_t size = buf->length;
@@ -1811,12 +1815,12 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
     if(stage->ShaderDetails)
     {
       const rdctype::array<ShaderResource> &resArray =
-          view.space == ViewTag::SRV ? stage->ShaderDetails->ReadOnlyResources
-                                     : stage->ShaderDetails->ReadWriteResources;
+          view.space == D3D12ViewTag::SRV ? stage->ShaderDetails->ReadOnlyResources
+                                          : stage->ShaderDetails->ReadWriteResources;
 
       const rdctype::array<BindpointMap> &bindArray =
-          view.space == ViewTag::SRV ? stage->BindpointMapping.ReadOnlyResources
-                                     : stage->BindpointMapping.ReadOnlyResources;
+          view.space == D3D12ViewTag::SRV ? stage->BindpointMapping.ReadOnlyResources
+                                          : stage->BindpointMapping.ReadOnlyResources;
 
       for(int i = 0; i < bindArray.count; i++)
       {
@@ -1948,10 +1952,10 @@ void D3D12PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
 
   QVariant tag = item->tag();
 
-  if(!tag.canConvert<CBufTag>())
+  if(!tag.canConvert<D3D12CBufTag>())
     return;
 
-  CBufTag cb = tag.value<CBufTag>();
+  D3D12CBufTag cb = tag.value<D3D12CBufTag>();
 
   if(cb.idx == ~0U)
   {
@@ -1979,9 +1983,9 @@ void D3D12PipelineStateViewer::on_iaBuffers_itemActivated(RDTreeWidgetItem *item
 {
   QVariant tag = item->tag();
 
-  if(tag.canConvert<VBIBTag>())
+  if(tag.canConvert<D3D12VBIBTag>())
   {
-    VBIBTag buf = tag.value<VBIBTag>();
+    D3D12VBIBTag buf = tag.value<D3D12VBIBTag>();
 
     if(buf.id != ResourceId())
     {

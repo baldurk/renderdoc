@@ -36,6 +36,8 @@
 #include "Widgets/FindReplace.h"
 #include "ui_ShaderViewer.h"
 
+namespace
+{
 struct CBufferTag
 {
   CBufferTag() {}
@@ -49,6 +51,7 @@ struct ResourceTag
   ResourceTag() {}
   ResourceTag(uint32_t r) : reg(r) {}
   uint32_t reg = 0;
+};
 };
 
 Q_DECLARE_METATYPE(CBufferTag);
