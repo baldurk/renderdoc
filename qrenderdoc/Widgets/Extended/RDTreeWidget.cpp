@@ -228,6 +228,14 @@ private:
   RDTreeWidget *widget;
 };
 
+RDTreeWidgetItem::RDTreeWidgetItem(const QVariantList &values)
+{
+  m_text.reserve(values.size());
+  for(const QVariant &v : values)
+    m_text.push_back(v);
+  m_icons.resize(m_text.size());
+}
+
 RDTreeWidgetItem::RDTreeWidgetItem(const std::initializer_list<QVariant> &values)
 {
   m_text = values;

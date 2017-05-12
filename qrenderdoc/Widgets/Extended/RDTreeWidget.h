@@ -33,6 +33,7 @@ class RDTreeWidgetItem
 {
 public:
   RDTreeWidgetItem() = default;
+  RDTreeWidgetItem(const QVariantList &values);
   RDTreeWidgetItem(const std::initializer_list<QVariant> &values);
   ~RDTreeWidgetItem();
 
