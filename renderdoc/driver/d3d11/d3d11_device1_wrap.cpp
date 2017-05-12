@@ -251,7 +251,7 @@ HRESULT WrappedID3D11Device::CreateDeviceContextState(UINT Flags,
 
     WrappedID3DDeviceContextState *wrapped = new WrappedID3DDeviceContextState(real, this);
 
-    *wrapped->state = *m_pImmediateContext->GetCurrentPipelineState();
+    wrapped->state->CopyState(*m_pImmediateContext->GetCurrentPipelineState());
 
     *ppContextState = wrapped;
   }

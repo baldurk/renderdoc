@@ -1698,7 +1698,7 @@ void D3D11DebugManager::BindOutputWindow(uint64_t id, bool depth)
     RDCERR("Trashing RealState! Mismatched use of BindOutputWindow / FlipOutputWindow");
 
   m_RealState.active = true;
-  m_RealState.state = *m_WrappedContext->GetCurrentPipelineState();
+  m_RealState.state.CopyState(*m_WrappedContext->GetCurrentPipelineState());
 
   m_WrappedContext->OMSetRenderTargets(
       1, &m_OutputWindows[id].rtv, depth && m_OutputWindows[id].dsv ? m_OutputWindows[id].dsv : NULL);

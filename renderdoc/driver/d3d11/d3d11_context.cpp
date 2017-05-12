@@ -230,7 +230,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(bool applyInitialSt
 
   if(m_State >= WRITING)
   {
-    state = *m_CurrentPipelineState;
+    state.CopyState(*m_CurrentPipelineState);
 
     state.SetSerialiser(m_pSerialiser);
 
@@ -243,7 +243,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(bool applyInitialSt
   {
     m_DoStateVerify = false;
     {
-      *m_CurrentPipelineState = state;
+      m_CurrentPipelineState->CopyState(state);
       m_CurrentPipelineState->SetDevice(m_pDevice);
       state.ApplyState(this);
     }

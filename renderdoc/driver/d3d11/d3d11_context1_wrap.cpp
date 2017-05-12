@@ -2012,7 +2012,8 @@ bool WrappedID3D11DeviceContext::Serialise_SwapDeviceContextState(
 
   if(m_State >= WRITING)
   {
-    state = *((WrappedID3DDeviceContextState *)pState)->state;
+    WrappedID3DDeviceContextState *wrapped = (WrappedID3DDeviceContextState *)pState;
+    state.CopyState(*wrapped->state);
 
     state.SetSerialiser(m_pSerialiser);
 
@@ -2025,7 +2026,7 @@ bool WrappedID3D11DeviceContext::Serialise_SwapDeviceContextState(
   {
     m_DoStateVerify = false;
     {
-      *m_CurrentPipelineState = state;
+      m_CurrentPipelineState->CopyState(state);
       m_CurrentPipelineState->SetDevice(m_pDevice);
       state.ApplyState(this);
     }
@@ -2046,20 +2047,26 @@ void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *
 
   m_pRealContext1->SwapDeviceContextState(UNWRAP(WrappedID3DDeviceContextState, pState), &prev);
 
-  WrappedID3DDeviceContextState *wrapped = NULL;
+  {
+    WrappedID3DDeviceContextState *wrapped = NULL;
 
-  if(m_pDevice->GetResourceManager()->HasWrapper(prev))
-    wrapped = (WrappedID3DDeviceContextState *)m_pDevice->GetResourceManager()->GetWrapper(prev);
-  else if(prev)
-    wrapped = new WrappedID3DDeviceContextState(prev, m_pDevice);
+    if(m_pDevice->GetResourceManager()->HasWrapper(prev))
+      wrapped = (WrappedID3DDeviceContextState *)m_pDevice->GetResourceManager()->GetWrapper(prev);
+    else if(prev)
+      wrapped = new WrappedID3DDeviceContextState(prev, m_pDevice);
 
-  if(wrapped)
-    *wrapped->state = *m_CurrentPipelineState;
+    if(wrapped)
+      wrapped->state->CopyState(*m_CurrentPipelineState);
 
-  if(ppPreviousState)
-    *ppPreviousState = wrapped;
+    if(ppPreviousState)
+      *ppPreviousState = wrapped;
+  }
 
-  *m_CurrentPipelineState = *((WrappedID3DDeviceContextState *)pState)->state;
+  {
+    WrappedID3DDeviceContextState *wrapped = (WrappedID3DDeviceContextState *)pState;
+
+    m_CurrentPipelineState->CopyState(*wrapped->state);
+  }
 
   DrainAnnotationQueue();
 

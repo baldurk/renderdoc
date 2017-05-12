@@ -61,13 +61,14 @@ D3D11RenderState::D3D11RenderState(const D3D11RenderState &other)
   RDCEraseEl(OM);
   RDCEraseEl(CS);
   RDCEraseEl(CSUAVs);
-  *this = other;
 
   m_ImmediatePipeline = false;
   m_pDevice = NULL;
+
+  CopyState(other);
 }
 
-D3D11RenderState &D3D11RenderState::operator=(const D3D11RenderState &other)
+void D3D11RenderState::CopyState(const D3D11RenderState &other)
 {
   ReleaseRefs();
 
@@ -83,12 +84,7 @@ D3D11RenderState &D3D11RenderState::operator=(const D3D11RenderState &other)
   memcpy(&CS, &other.CS, sizeof(CS));
   memcpy(&CSUAVs, &other.CSUAVs, sizeof(CSUAVs));
 
-  m_ImmediatePipeline = false;
-  m_pDevice = NULL;
-
   AddRefs();
-
-  return *this;
 }
 
 D3D11RenderState::~D3D11RenderState()

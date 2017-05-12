@@ -41,7 +41,12 @@ struct D3D11RenderState
   D3D11RenderState(const D3D11RenderState &other);
   ~D3D11RenderState();
 
-  D3D11RenderState &operator=(const D3D11RenderState &other);
+  // we don't allow operator = since we want to preserve some properties.
+  // Instead use CopyState() which copies all of the state contained without
+  // modifying the device pointer or immediate pipeline flag.
+  D3D11RenderState &operator=(const D3D11RenderState &other) = delete;
+
+  void CopyState(const D3D11RenderState &other);
 
   void ApplyState(WrappedID3D11DeviceContext *context);
   void Clear();
