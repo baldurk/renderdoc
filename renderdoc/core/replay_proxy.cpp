@@ -856,7 +856,7 @@ void Serialiser::Serialise(const char *name, GLPipe::StencilState &el)
   Serialise("", el.m_BackFace.ValueMask);
   Serialise("", el.m_BackFace.WriteMask);
 
-  SIZE_CHECK(60);
+  SIZE_CHECK(44);
 }
 
 template <>
@@ -953,7 +953,7 @@ void Serialiser::Serialise(const char *name, GLPipe::State &el)
 
   Serialise("", el.m_Hints);
 
-  SIZE_CHECK(1896);
+  SIZE_CHECK(1880);
 }
 
 #pragma endregion OpenGL pipeline state

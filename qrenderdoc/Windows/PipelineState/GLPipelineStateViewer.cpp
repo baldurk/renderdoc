@@ -1201,7 +1201,7 @@ void GLPipelineStateViewer::setState()
     ui->primRestart->setVisible(true);
     if(state.m_VtxIn.primitiveRestart)
       ui->primRestart->setText(
-          tr("Restart Idx: 0x%1").arg(state.m_VtxIn.restartIndex, 8, 16, QLatin1Char('0')).toUpper());
+          tr("Restart Idx: 0x%1").arg(Formatter::Format(state.m_VtxIn.restartIndex, true)));
     else
       ui->primRestart->setText(tr("Restart Idx: Disabled"));
   }
@@ -1634,10 +1634,7 @@ void GLPipelineStateViewer::setState()
 
   if(state.m_Rasterizer.m_State.SampleMask)
   {
-    ui->sampleMask->setText(
-        QFormatStr("%1")
-            .arg(state.m_Rasterizer.m_State.SampleMaskValue, 8, 16, QLatin1Char('0'))
-            .toUpper());
+    ui->sampleMask->setText(Formatter::Format(state.m_Rasterizer.m_State.SampleMaskValue, true));
     ui->sampleMask->setPixmap(QPixmap());
   }
   else
@@ -1912,23 +1909,23 @@ void GLPipelineStateViewer::setState()
   ui->stencils->clear();
   if(state.m_StencilState.StencilEnable)
   {
-    ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
-        {tr("Front"), ToQStr(state.m_StencilState.m_FrontFace.Func),
-         ToQStr(state.m_StencilState.m_FrontFace.FailOp),
-         ToQStr(state.m_StencilState.m_FrontFace.DepthFailOp),
-         ToQStr(state.m_StencilState.m_FrontFace.PassOp),
-         QFormatStr("%1").arg(state.m_StencilState.m_FrontFace.WriteMask, 2, 16, QLatin1Char('0')).toUpper(),
-         QFormatStr("%1").arg(state.m_StencilState.m_FrontFace.ValueMask, 2, 16, QLatin1Char('0')).toUpper(),
-         QFormatStr("%1").arg(state.m_StencilState.m_FrontFace.Ref, 2, 16, QLatin1Char('0')).toUpper()}));
+    ui->stencils->addTopLevelItem(
+        new RDTreeWidgetItem({tr("Front"), ToQStr(state.m_StencilState.m_FrontFace.Func),
+                              ToQStr(state.m_StencilState.m_FrontFace.FailOp),
+                              ToQStr(state.m_StencilState.m_FrontFace.DepthFailOp),
+                              ToQStr(state.m_StencilState.m_FrontFace.PassOp),
+                              Formatter::Format(state.m_StencilState.m_FrontFace.WriteMask, true),
+                              Formatter::Format(state.m_StencilState.m_FrontFace.ValueMask, true),
+                              Formatter::Format(state.m_StencilState.m_FrontFace.Ref, true)}));
 
-    ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
-        {tr("Back"), ToQStr(state.m_StencilState.m_BackFace.Func),
-         ToQStr(state.m_StencilState.m_BackFace.FailOp),
-         ToQStr(state.m_StencilState.m_BackFace.DepthFailOp),
-         ToQStr(state.m_StencilState.m_BackFace.PassOp),
-         QFormatStr("%1").arg(state.m_StencilState.m_BackFace.WriteMask, 2, 16, QLatin1Char('0')).toUpper(),
-         QFormatStr("%1").arg(state.m_StencilState.m_BackFace.ValueMask, 2, 16, QLatin1Char('0')).toUpper(),
-         QFormatStr("%1").arg(state.m_StencilState.m_BackFace.Ref, 2, 16, QLatin1Char('0')).toUpper()}));
+    ui->stencils->addTopLevelItem(
+        new RDTreeWidgetItem({tr("Back"), ToQStr(state.m_StencilState.m_BackFace.Func),
+                              ToQStr(state.m_StencilState.m_BackFace.FailOp),
+                              ToQStr(state.m_StencilState.m_BackFace.DepthFailOp),
+                              ToQStr(state.m_StencilState.m_BackFace.PassOp),
+                              Formatter::Format(state.m_StencilState.m_BackFace.WriteMask, true),
+                              Formatter::Format(state.m_StencilState.m_BackFace.ValueMask, true),
+                              Formatter::Format(state.m_StencilState.m_BackFace.Ref, true)}));
   }
   else
   {

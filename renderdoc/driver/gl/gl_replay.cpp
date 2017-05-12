@@ -1686,14 +1686,14 @@ void GLReplay::SavePipelineState()
   pipe.m_StencilState.StencilEnable = rs.Enabled[GLRenderState::eEnabled_StencilTest];
   pipe.m_StencilState.m_FrontFace.ValueMask = rs.StencilFront.valuemask;
   pipe.m_StencilState.m_FrontFace.WriteMask = rs.StencilFront.writemask;
-  pipe.m_StencilState.m_FrontFace.Ref = rs.StencilFront.ref;
+  pipe.m_StencilState.m_FrontFace.Ref = uint8_t(rs.StencilFront.ref & 0xff);
   pipe.m_StencilState.m_FrontFace.Func = MakeCompareFunc(rs.StencilFront.func);
   pipe.m_StencilState.m_FrontFace.PassOp = MakeStencilOp(rs.StencilFront.pass);
   pipe.m_StencilState.m_FrontFace.FailOp = MakeStencilOp(rs.StencilFront.stencilFail);
   pipe.m_StencilState.m_FrontFace.DepthFailOp = MakeStencilOp(rs.StencilFront.depthFail);
   pipe.m_StencilState.m_BackFace.ValueMask = rs.StencilBack.valuemask;
   pipe.m_StencilState.m_BackFace.WriteMask = rs.StencilBack.writemask;
-  pipe.m_StencilState.m_BackFace.Ref = rs.StencilBack.ref;
+  pipe.m_StencilState.m_BackFace.Ref = uint8_t(rs.StencilBack.ref & 0xff);
   pipe.m_StencilState.m_BackFace.Func = MakeCompareFunc(rs.StencilBack.func);
   pipe.m_StencilState.m_BackFace.PassOp = MakeStencilOp(rs.StencilBack.pass);
   pipe.m_StencilState.m_BackFace.FailOp = MakeStencilOp(rs.StencilBack.stencilFail);

@@ -1748,8 +1748,7 @@ void VulkanPipelineStateViewer::setState()
   ui->sampleCount->setText(QString::number(state.MSAA.rasterSamples));
   ui->sampleShading->setPixmap(state.MSAA.sampleShadingEnable ? tick : cross);
   ui->minSampleShading->setText(Formatter::Format(state.MSAA.minSampleShading));
-  ui->sampleMask->setText(
-      QFormatStr("%1").arg(state.MSAA.sampleMask, 8, 16, QLatin1Char('0')).toUpper());
+  ui->sampleMask->setText(Formatter::Format(state.MSAA.sampleMask, true));
 
   ////////////////////////////////////////////////
   // Output Merger
@@ -1932,15 +1931,15 @@ void VulkanPipelineStateViewer::setState()
     ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
         {tr("Front"), ToQStr(state.DS.front.Func), ToQStr(state.DS.front.FailOp),
          ToQStr(state.DS.front.DepthFailOp), ToQStr(state.DS.front.PassOp),
-         QFormatStr("%1").arg(state.DS.front.writeMask, 2, 16, QLatin1Char('0')).toUpper(),
-         QFormatStr("%1").arg(state.DS.front.compareMask, 2, 16, QLatin1Char('0')).toUpper(),
-         QFormatStr("%1").arg(state.DS.front.ref, 2, 16, QLatin1Char('0')).toUpper()}));
-    ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
-        {tr("Back"), ToQStr(state.DS.back.Func), ToQStr(state.DS.back.FailOp),
-         ToQStr(state.DS.back.DepthFailOp), ToQStr(state.DS.back.PassOp),
-         QFormatStr("%1").arg(state.DS.back.writeMask, 2, 16, QLatin1Char('0')).toUpper(),
-         QFormatStr("%1").arg(state.DS.back.compareMask, 2, 16, QLatin1Char('0')).toUpper(),
-         QFormatStr("%1").arg(state.DS.back.ref, 2, 16, QLatin1Char('0')).toUpper()}));
+         Formatter::Format(state.DS.front.writeMask, true),
+         Formatter::Format(state.DS.front.compareMask, true),
+         Formatter::Format(state.DS.front.ref, true)}));
+    ui->stencils->addTopLevelItem(
+        new RDTreeWidgetItem({tr("Back"), ToQStr(state.DS.back.Func), ToQStr(state.DS.back.FailOp),
+                              ToQStr(state.DS.back.DepthFailOp), ToQStr(state.DS.back.PassOp),
+                              Formatter::Format(state.DS.back.writeMask, true),
+                              Formatter::Format(state.DS.back.compareMask, true),
+                              Formatter::Format(state.DS.back.ref, true)}));
   }
   else
   {

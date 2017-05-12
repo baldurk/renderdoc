@@ -875,7 +875,8 @@ void TextureViewer::UI_UpdateStatusText()
 
       int stencil = (int)(255.0f * val.value_f[1]);
 
-      statusText += tr(", Stencil %1 / 0x%2").arg(stencil).arg(stencil, 0, 16);
+      statusText +=
+          tr(", Stencil %1 / 0x%2").arg(stencil).arg(Formatter::Format(uint8_t(stencil & 0xff), true));
     }
     else
     {

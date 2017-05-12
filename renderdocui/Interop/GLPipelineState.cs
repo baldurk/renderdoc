@@ -310,9 +310,9 @@ namespace renderdoc
                 public StencilOp DepthFailOp;
                 public StencilOp PassOp;
                 public CompareFunc Func;
-                public UInt32 Ref;
-                public UInt32 ValueMask;
-                public UInt32 WriteMask;
+                public byte Ref;
+                public byte ValueMask;
+                public byte WriteMask;
             };
             [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
             public StencilFace m_FrontFace, m_BackFace;

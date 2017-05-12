@@ -414,11 +414,11 @@ struct StencilFace
   DOCUMENT("The :class:`CompareFunc` to use for testing stencil values.");
   CompareFunc Func = CompareFunc::AlwaysTrue;
   DOCUMENT("The current stencil reference value.");
-  uint32_t Ref = 0;
+  uint8_t Ref = 0;
   DOCUMENT("The mask for testing stencil values.");
-  uint32_t ValueMask = 0;
+  uint8_t ValueMask = 0;
   DOCUMENT("The mask for writing stencil values.");
-  uint32_t WriteMask = 0;
+  uint8_t WriteMask = 0;
 };
 
 DOCUMENT("Describes the stencil state.");

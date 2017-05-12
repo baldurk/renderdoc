@@ -521,7 +521,7 @@ private:
       s += lit("\nD: -");
 
     if(val.stencil >= 0)
-      s += lit("\nS: 0x") + QFormatStr("%1").arg(val.stencil, 2, 16, QLatin1Char('0')).toUpper();
+      s += lit("\nS: 0x") + Formatter::Format(uint8_t(val.stencil & 0xff), true);
     else if(val.stencil == -2)
       s += lit("\nS: ?");
     else

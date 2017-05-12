@@ -1653,12 +1653,9 @@ void D3D12PipelineStateViewer::setState()
   ui->depthWrite->setPixmap(state.m_OM.m_State.DepthWrites ? tick : cross);
 
   ui->stencilEnabled->setPixmap(state.m_OM.m_State.StencilEnable ? tick : cross);
-  ui->stencilReadMask->setText(
-      QFormatStr("%1").arg(state.m_OM.m_State.StencilReadMask, 2, 16, QLatin1Char('0')).toUpper());
-  ui->stencilWriteMask->setText(
-      QFormatStr("%1").arg(state.m_OM.m_State.StencilWriteMask, 2, 16, QLatin1Char('0')).toUpper());
-  ui->stencilRef->setText(
-      QFormatStr("%1").arg(state.m_OM.m_State.StencilRef, 2, 16, QLatin1Char('0')).toUpper());
+  ui->stencilReadMask->setText(Formatter::Format(state.m_OM.m_State.StencilReadMask, true));
+  ui->stencilWriteMask->setText(Formatter::Format(state.m_OM.m_State.StencilWriteMask, true));
+  ui->stencilRef->setText(Formatter::Format(state.m_OM.m_State.StencilRef, true));
 
   ui->stencils->setUpdatesEnabled(false);
   ui->stencils->clear();
