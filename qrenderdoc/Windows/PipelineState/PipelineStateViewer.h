@@ -32,6 +32,8 @@ namespace Ui
 class PipelineStateViewer;
 }
 
+class QXmlStreamWriter;
+
 class D3D11PipelineStateViewer;
 class D3D12PipelineStateViewer;
 class GLPipelineStateViewer;
@@ -58,12 +60,18 @@ public:
   void OnEventChanged(uint32_t eventID) override;
 
   QVariant persistData();
+
   void setPersistData(const QVariant &persistData);
 
   bool PrepareShaderEditing(const ShaderReflection *shaderDetails, QString &entryFunc,
                             QStringMap &files, QString &mainfile);
   void EditShader(ShaderStage shaderType, ResourceId id, const ShaderReflection *shaderDetails,
                   const QString &entryFunc, const QStringMap &files, const QString &mainfile);
+  QXmlStreamWriter *beginHTMLExport();
+  void exportHTMLTable(QXmlStreamWriter &xml, const QStringList &cols,
+                       const QList<QVariantList> &rows);
+  void exportHTMLTable(QXmlStreamWriter &xml, const QStringList &cols, const QVariantList &row);
+  void endHTMLExport(QXmlStreamWriter *xml);
 
 private:
   Ui::PipelineStateViewer *ui;
@@ -74,6 +82,8 @@ private:
   void setToGL();
   void setToVulkan();
   void reset();
+
+  QString GetCurrentAPI();
 
   D3D11PipelineStateViewer *m_D3D11;
   D3D12PipelineStateViewer *m_D3D12;

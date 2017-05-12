@@ -26,6 +26,7 @@
 #include <float.h>
 #include <QMouseEvent>
 #include <QScrollBar>
+#include <QXmlStreamWriter>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/Resources.h"
 #include "PipelineStateViewer.h"
@@ -679,7 +680,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
 
         if(!filledSlot)
         {
-          name = lit("Empty");
+          name = tr("Empty");
           format = lit("-");
           typeName = lit("-");
           w = h = d = a = 0;
@@ -2304,8 +2305,1050 @@ void GLPipelineStateViewer::shaderSave_clicked()
   m_Common.SaveShaderFile(shaderDetails);
 }
 
+void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::VertexInput &vtx)
+{
+  const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Vertex Attributes"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const GLPipe::VertexAttribute &a : vtx.attributes)
+    {
+      QString generic;
+      if(!a.Enabled)
+        generic = MakeGenericValueString(a.Format.compCount, a.Format.compType, a);
+      rows.push_back(
+          {i, (bool)a.Enabled, a.BufferSlot, ToQStr(a.Format.strname), a.RelativeOffset, generic});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("Enabled"), tr("Vertex Buffer Slot"),
+                                   tr("Format"), tr("Relative Offset"), tr("Generic Value")},
+                             rows);
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Vertex Buffers"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const GLPipe::VB &vb : vtx.vbuffers)
+    {
+      QString name = tr("Buffer %1").arg(ToQStr(vb.Buffer));
+      uint64_t length = 0;
+
+      if(vb.Buffer == ResourceId())
+      {
+        continue;
+      }
+      else
+      {
+        BufferDescription *buf = m_Ctx.GetBuffer(vb.Buffer);
+        if(buf)
+        {
+          name = ToQStr(buf->name);
+          length = buf->length;
+        }
+      }
+
+      rows.push_back({i, name, vb.Stride, vb.Offset, vb.Divisor, length});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("Buffer"), tr("Stride"), tr("Offset"),
+                                   tr("Instance Divisor"), tr("Byte Length")},
+                             rows);
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Index Buffer"));
+    xml.writeEndElement();
+
+    QString name = tr("Buffer %1").arg(ToQStr(vtx.ibuffer));
+    uint64_t length = 0;
+
+    if(vtx.ibuffer == ResourceId())
+    {
+      name = tr("Empty");
+    }
+    else
+    {
+      BufferDescription *buf = m_Ctx.GetBuffer(vtx.ibuffer);
+      if(buf)
+      {
+        name = ToQStr(buf->name);
+        length = buf->length;
+      }
+    }
+
+    QString ifmt = lit("UNKNOWN");
+    if(m_Ctx.CurDrawcall()->indexByteWidth == 2)
+      ifmt = lit("R16_UINT");
+    if(m_Ctx.CurDrawcall()->indexByteWidth == 4)
+      ifmt = lit("R32_UINT");
+
+    m_Common.exportHTMLTable(xml, {tr("Buffer"), tr("Format"), tr("Byte Length")},
+                             {name, ifmt, length});
+  }
+
+  xml.writeStartElement(tr("p"));
+  xml.writeEndElement();
+
+  m_Common.exportHTMLTable(xml, {tr("Primitive Topology")}, {ToQStr(m_Ctx.CurDrawcall()->topology)});
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("States"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Primitive Restart"), tr("Restart Index"), tr("Provoking Vertex Last")},
+        {(bool)vtx.primitiveRestart, vtx.restartIndex,
+         vtx.provokingVertexLast ? tr("Yes") : tr("No")});
+
+    xml.writeStartElement(tr("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Rasterizer Discard"), tr("Clip Origin Lower Left"), tr("Clip Space Z")},
+        {pipe.m_VtxProcess.discard ? tr("Yes") : tr("No"),
+         pipe.m_VtxProcess.clipOriginLowerLeft ? tr("Yes") : tr("No"),
+         pipe.m_VtxProcess.clipNegativeOneToOne ? tr("-1 to 1") : tr("0 to 1")});
+
+    xml.writeStartElement(tr("p"));
+    xml.writeEndElement();
+
+    QList<QVariantList> clipPlaneRows;
+
+    for(int i = 0; i < 8; i++)
+      clipPlaneRows.push_back({i, pipe.m_VtxProcess.clipPlanes[i] ? tr("Yes") : tr("No")});
+
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("User Clip Plane"), tr("Enabled"),
+                             },
+                             clipPlaneRows);
+
+    xml.writeStartElement(tr("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml,
+        {
+            tr("Default Inner Tessellation Level"), tr("Default Outer Tessellation level"),
+        },
+        {
+            QFormatStr("%1, %2")
+                .arg(pipe.m_VtxProcess.defaultInnerLevel[0])
+                .arg(pipe.m_VtxProcess.defaultInnerLevel[1]),
+
+            QFormatStr("%1, %2, %3, %4")
+                .arg(pipe.m_VtxProcess.defaultOuterLevel[0])
+                .arg(pipe.m_VtxProcess.defaultOuterLevel[1])
+                .arg(pipe.m_VtxProcess.defaultOuterLevel[2])
+                .arg(pipe.m_VtxProcess.defaultOuterLevel[3]),
+        });
+  }
+}
+
+void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh)
+{
+  const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
+  ShaderReflection *shaderDetails = sh.ShaderDetails;
+  const ShaderBindpointMapping &mapping = sh.BindpointMapping;
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Shader"));
+    xml.writeEndElement();
+
+    QString shadername = tr("Unknown");
+
+    if(sh.Object == ResourceId())
+      shadername = tr("Unbound");
+    else
+      shadername = ToQStr(sh.ShaderName);
+
+    if(sh.Object == ResourceId())
+    {
+      shadername = tr("Unbound");
+    }
+    else
+    {
+      QString shname = tr("%1 Shader").arg(ToQStr(sh.stage, GraphicsAPI::OpenGL));
+
+      if(!sh.customShaderName && !sh.customProgramName && !sh.customPipelineName)
+      {
+        shadername = QFormatStr("%1 %2").arg(shname).arg(ToQStr(sh.Object));
+      }
+      else
+      {
+        if(sh.customShaderName)
+          shname = ToQStr(sh.ShaderName);
+
+        if(sh.customProgramName)
+          shname = QFormatStr("%1 - %2").arg(ToQStr(sh.ProgramName)).arg(shname);
+
+        if(sh.customPipelineName && sh.PipelineActive)
+          shname = QFormatStr("%1 - %2").arg(ToQStr(sh.PipelineName)).arg(shname);
+
+        shadername = shname;
+      }
+    }
+
+    xml.writeStartElement(tr("p"));
+    xml.writeCharacters(shadername);
+    xml.writeEndElement();
+
+    if(sh.Object == ResourceId())
+      return;
+  }
+
+  QList<QVariantList> textureRows;
+  QList<QVariantList> samplerRows;
+  QList<QVariantList> cbufferRows;
+  QList<QVariantList> readwriteRows;
+  QList<QVariantList> subRows;
+
+  for(int i = 0; i < pipe.Textures.count; i++)
+  {
+    const GLPipe::Texture &r = pipe.Textures[i];
+    const GLPipe::Sampler &s = pipe.Samplers[i];
+
+    const ShaderResource *shaderInput = NULL;
+    const BindpointMap *map = NULL;
+
+    if(shaderDetails)
+    {
+      for(const ShaderResource &bind : shaderDetails->ReadOnlyResources)
+      {
+        if(bind.IsReadOnly && mapping.ReadOnlyResources[bind.bindPoint].bind == i)
+        {
+          shaderInput = &bind;
+          map = &mapping.ReadOnlyResources[bind.bindPoint];
+        }
+      }
+    }
+
+    bool filledSlot = (r.Resource != ResourceId());
+    bool usedSlot = (shaderInput && map->used);
+
+    if(shaderInput)
+    {
+      // do texture
+      {
+        QString slotname = QString::number(i);
+
+        if(shaderInput && shaderInput->name.count > 0)
+          slotname += QFormatStr(": %1").arg(ToQStr(shaderInput->name));
+
+        uint32_t w = 1, h = 1, d = 1;
+        uint32_t a = 1;
+        QString format = tr("Unknown");
+        QString name = tr("Shader Resource %1").arg(ToQStr(r.Resource));
+        QString typeName = tr("Unknown");
+
+        if(!filledSlot)
+        {
+          name = tr("Empty");
+          format = lit("-");
+          typeName = lit("-");
+          w = h = d = a = 0;
+        }
+
+        TextureDescription *tex = m_Ctx.GetTexture(r.Resource);
+        if(tex)
+        {
+          w = tex->width;
+          h = tex->height;
+          d = tex->depth;
+          a = tex->arraysize;
+          format = ToQStr(tex->format.strname);
+          name = ToQStr(tex->name);
+          typeName = ToQStr(tex->resType);
+
+          if(tex->format.special && (tex->format.specialFormat == SpecialFormat::D16S8 ||
+                                     tex->format.specialFormat == SpecialFormat::D24S8 ||
+                                     tex->format.specialFormat == SpecialFormat::D32S8))
+          {
+            if(r.DepthReadChannel == 0)
+              format += tr(" Depth-Repipead");
+            else if(r.DepthReadChannel == 1)
+              format += tr(" Stencil-Read");
+          }
+          else if(r.Swizzle[0] != TextureSwizzle::Red || r.Swizzle[1] != TextureSwizzle::Green ||
+                  r.Swizzle[2] != TextureSwizzle::Blue || r.Swizzle[3] != TextureSwizzle::Alpha)
+          {
+            format += QFormatStr(" swizzle[%1%2%3%4]")
+                          .arg(ToQStr(r.Swizzle[0]))
+                          .arg(ToQStr(r.Swizzle[1]))
+                          .arg(ToQStr(r.Swizzle[2]))
+                          .arg(ToQStr(r.Swizzle[3]));
+          }
+        }
+
+        textureRows.push_back({slotname, name, typeName, w, h, d, a, format});
+      }
+
+      // do sampler
+      {
+        QString slotname = QString::number(i);
+
+        if(shaderInput && shaderInput->name.count > 0)
+          slotname += QFormatStr(": %1").arg(ToQStr(shaderInput->name));
+
+        QString borderColor = QFormatStr("%1, %2, %3, %4")
+                                  .arg(s.BorderColor[0])
+                                  .arg(s.BorderColor[1])
+                                  .arg(s.BorderColor[2])
+                                  .arg(s.BorderColor[3]);
+
+        QString addressing;
+
+        QString addPrefix;
+        QString addVal;
+
+        QString addr[] = {ToQStr(s.AddressS), ToQStr(s.AddressT), ToQStr(s.AddressR)};
+
+        // arrange like either STR: WRAP or ST: WRAP, R: CLAMP
+        for(int a = 0; a < 3; a++)
+        {
+          const QString str[] = {lit("S"), lit("T"), lit("R")};
+          QString prefix = str[a];
+
+          if(a == 0 || addr[a] == addr[a - 1])
+          {
+            addPrefix += prefix;
+          }
+          else
+          {
+            addressing += QFormatStr("%1: %2, ").arg(addPrefix).arg(addVal);
+
+            addPrefix = prefix;
+          }
+          addVal = addr[a];
+        }
+
+        addressing += addPrefix + lit(": ") + addVal;
+
+        if(s.UseBorder())
+          addressing += QFormatStr("<%1>").arg(borderColor);
+
+        if(r.ResType == TextureDim::TextureCube || r.ResType == TextureDim::TextureCubeArray)
+        {
+          addressing += s.SeamlessCube ? tr(" Seamless") : tr(" Non-Seamless");
+        }
+
+        QString filter = ToQStr(s.Filter);
+
+        if(s.MaxAniso > 1)
+          filter += tr(" Aniso%1x").arg(s.MaxAniso);
+
+        if(s.Filter.func == FilterFunc::Comparison)
+          filter += QFormatStr(" %1").arg(ToQStr(s.Comparison));
+        else if(s.Filter.func != FilterFunc::Normal)
+          filter += QFormatStr(" (%1)").arg(ToQStr(s.Filter.func));
+
+        samplerRows.push_back(
+            {slotname, addressing, filter,
+             QFormatStr("%1 - %2")
+                 .arg(s.MinLOD == -FLT_MAX ? lit("0") : QString::number(s.MinLOD))
+                 .arg(s.MaxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.MaxLOD)),
+             s.MipLODBias});
+      }
+    }
+  }
+
+  if(shaderDetails)
+  {
+    uint32_t i = 0;
+    for(const ConstantBlock &shaderCBuf : shaderDetails->ConstantBlocks)
+    {
+      int bindPoint = mapping.ConstantBlocks[i].bind;
+
+      const GLPipe::Buffer *b = NULL;
+
+      if(bindPoint >= 0 && bindPoint < pipe.UniformBuffers.count)
+        b = &pipe.UniformBuffers[bindPoint];
+
+      bool filledSlot = !shaderCBuf.bufferBacked || (b && b->Resource != ResourceId());
+      bool usedSlot = mapping.ConstantBlocks[i].used;
+
+      // show if
+      {
+        uint64_t offset = 0;
+        uint64_t length = 0;
+        int numvars = shaderCBuf.variables.count;
+        uint64_t byteSize = shaderCBuf.byteSize;
+
+        QString slotname = tr("Uniforms");
+        QString name;
+        QString sizestr = tr("%1 Variables").arg(numvars);
+        QString byterange;
+
+        if(!filledSlot)
+        {
+          name = tr("Empty");
+          length = 0;
+        }
+
+        if(b)
+        {
+          slotname = QFormatStr("%1: %2").arg(bindPoint).arg(ToQStr(shaderCBuf.name));
+          name = tr("UBO %1").arg(ToQStr(b->Resource));
+          offset = b->Offset;
+          length = b->Size;
+
+          BufferDescription *buf = m_Ctx.GetBuffer(b->Resource);
+          if(buf)
+          {
+            name = ToQStr(buf->name);
+            if(length == 0)
+              length = buf->length;
+          }
+
+          if(length == byteSize)
+            sizestr = tr("%1 Variables, %2 bytes").arg(numvars).arg(length);
+          else
+            sizestr =
+                tr("%1 Variables, %2 bytes needed, %3 provided").arg(numvars).arg(byteSize).arg(length);
+
+          byterange = QFormatStr("%1 - %2").arg(offset).arg(offset + length);
+        }
+
+        cbufferRows.push_back({slotname, name, byterange, sizestr});
+      }
+      i++;
+    }
+  }
+
+  {
+    uint32_t i = 0;
+    for(uint32_t subval : sh.Subroutines)
+    {
+      subRows.push_back({i, subval});
+
+      i++;
+    }
+  }
+
+  if(shaderDetails)
+  {
+    uint32_t i = 0;
+    for(const ShaderResource &res : shaderDetails->ReadWriteResources)
+    {
+      int bindPoint = mapping.ReadWriteResources[i].bind;
+
+      GLReadWriteType readWriteType = GetGLReadWriteType(res);
+
+      const GLPipe::Buffer *bf = NULL;
+      const GLPipe::ImageLoadStore *im = NULL;
+      ResourceId id;
+
+      if(readWriteType == GLReadWriteType::Image && bindPoint >= 0 && bindPoint < pipe.Images.count)
+      {
+        im = &pipe.Images[bindPoint];
+        id = pipe.Images[bindPoint].Resource;
+      }
+
+      if(readWriteType == GLReadWriteType::Atomic && bindPoint >= 0 &&
+         bindPoint < pipe.AtomicBuffers.count)
+      {
+        bf = &pipe.AtomicBuffers[bindPoint];
+        id = pipe.AtomicBuffers[bindPoint].Resource;
+      }
+
+      if(readWriteType == GLReadWriteType::SSBO && bindPoint >= 0 &&
+         bindPoint < pipe.ShaderStorageBuffers.count)
+      {
+        bf = &pipe.ShaderStorageBuffers[bindPoint];
+        id = pipe.ShaderStorageBuffers[bindPoint].Resource;
+      }
+
+      bool filledSlot = id != ResourceId();
+      bool usedSlot = mapping.ReadWriteResources[i].used;
+
+      // show if
+      {
+        QString binding =
+            readWriteType == GLReadWriteType::Image
+                ? tr("Image")
+                : readWriteType == GLReadWriteType::Atomic
+                      ? tr("Atomic")
+                      : readWriteType == GLReadWriteType::SSBO ? tr("SSBO") : tr("Unknown");
+
+        QString slotname = QFormatStr("%1: %2").arg(bindPoint).arg(ToQStr(res.name));
+        QString name;
+        QString dimensions;
+        QString format = lit("-");
+        QString access = tr("Read/Write");
+        if(im)
+        {
+          if(im->readAllowed && !im->writeAllowed)
+            access = tr("Read-Only");
+          if(!im->readAllowed && im->writeAllowed)
+            access = tr("Write-Only");
+          format = ToQStr(im->Format.strname);
+        }
+
+        // check to see if it's a texture
+        TextureDescription *tex = m_Ctx.GetTexture(id);
+        if(tex)
+        {
+          if(tex->dimension == 1)
+          {
+            if(tex->arraysize > 1)
+              dimensions = QFormatStr("%1[%2]").arg(tex->width).arg(tex->arraysize);
+            else
+              dimensions = QFormatStr("%1").arg(tex->width);
+          }
+          else if(tex->dimension == 2)
+          {
+            if(tex->arraysize > 1)
+              dimensions =
+                  QFormatStr("%1x%2[%3]").arg(tex->width).arg(tex->height).arg(tex->arraysize);
+            else
+              dimensions = QFormatStr("%1x%2").arg(tex->width).arg(tex->height);
+          }
+          else if(tex->dimension == 3)
+          {
+            dimensions = QFormatStr("%1x%2x%3").arg(tex->width).arg(tex->height).arg(tex->depth);
+          }
+
+          name = ToQStr(tex->name);
+        }
+
+        // if not a texture, it must be a buffer
+        BufferDescription *buf = m_Ctx.GetBuffer(id);
+        if(buf)
+        {
+          uint64_t offset = 0;
+          uint64_t length = buf->length;
+          if(bf && bf->Size > 0)
+          {
+            offset = bf->Offset;
+            length = bf->Size;
+          }
+
+          if(offset > 0)
+            dimensions = tr("%1 bytes at offset %2 bytes").arg(length).arg(offset);
+          else
+            dimensions = tr("%1 bytes").arg(length);
+
+          name = ToQStr(buf->name);
+        }
+
+        if(!filledSlot)
+        {
+          name = tr("Empty");
+          dimensions = tr("-");
+          access = tr("-");
+        }
+
+        readwriteRows.push_back({binding, slotname, name, dimensions, format, access});
+      }
+      i++;
+    }
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Textures"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("Name"), tr("Type"), tr("Width"), tr("Height"),
+                                   tr("Depth"), tr("Array Size"), tr("Format")},
+                             textureRows);
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Samplers"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Slot"), tr("Addressing"), tr("Filtering"), tr("LOD Clamping"), tr("LOD Bias")},
+        samplerRows);
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Uniform Buffers"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("Name"), tr("Byte Range"), tr("Size")},
+                             cbufferRows);
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Subroutines"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(xml, {tr("Index"), tr("Value")}, subRows);
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Read-write resources"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml,
+        {
+            tr("Binding"), tr("Resource"), tr("Name"), tr("Dimensions"), tr("Format"), tr("Access"),
+        },
+        readwriteRows);
+  }
+}
+
+void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Feedback &xfb)
+{
+  const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("States"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Active"), tr("Paused")},
+        {xfb.Active ? tr("Yes") : tr("No"), xfb.Paused ? tr("Yes") : tr("No")});
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Transform Feedback Targets"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    for(size_t i = 0; i < ARRAY_COUNT(xfb.BufferBinding); i++)
+    {
+      QString name = tr("Buffer %1").arg(ToQStr(xfb.BufferBinding[i]));
+      uint64_t length = 0;
+
+      if(xfb.BufferBinding[i] == ResourceId())
+      {
+        name = tr("Empty");
+      }
+      else
+      {
+        BufferDescription *buf = m_Ctx.GetBuffer(xfb.BufferBinding[i]);
+        if(buf)
+        {
+          name = ToQStr(buf->name);
+          length = buf->length;
+        }
+      }
+
+      rows.push_back({i, name, xfb.Offset[i], xfb.Size[i], length});
+    }
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Slot"), tr("Buffer"), tr("Offset"), tr("Binding size"), tr("Buffer byte Length")},
+        rows);
+  }
+}
+
+void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Rasterizer &rs)
+{
+  const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
+  xml.writeStartElement(tr("h3"));
+  xml.writeCharacters(tr("Rasterizer"));
+  xml.writeEndElement();
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("States"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(xml, {tr("Fill Mode"), tr("Cull Mode"), tr("Front CCW")},
+                             {ToQStr(rs.m_State.fillMode), ToQStr(rs.m_State.cullMode),
+                              rs.m_State.FrontCCW ? tr("Yes") : tr("No")});
+
+    xml.writeStartElement(tr("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Multisample Enable"), tr("Sample Shading"), tr("Sample Mask"),
+              tr("Sample Coverage"), tr("Sample Coverage Invert"), tr("Alpha to Coverage"),
+              tr("Alpha to One"), tr("Min Sample Shading Rate")},
+        {
+            rs.m_State.MultisampleEnable ? tr("Yes") : tr("No"),
+            rs.m_State.SampleShading ? tr("Yes") : tr("No"),
+            rs.m_State.SampleMask ? Formatter::Format(rs.m_State.SampleMaskValue, true) : tr("No"),
+            rs.m_State.SampleCoverage ? QString::number(rs.m_State.SampleCoverageValue) : tr("No"),
+            rs.m_State.SampleCoverageInvert ? tr("Yes") : tr("No"),
+            rs.m_State.SampleAlphaToCoverage ? tr("Yes") : tr("No"),
+            rs.m_State.SampleAlphaToOne ? tr("Yes") : tr("No"),
+            Formatter::Format(rs.m_State.MinSampleShadingRate),
+        });
+
+    xml.writeStartElement(tr("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml,
+        {
+            tr("Programmable Point Size"), tr("Fixed Point Size"), tr("Line Width"),
+            tr("Point Fade Threshold"), tr("Point Origin Upper Left"),
+        },
+        {
+            rs.m_State.ProgrammablePointSize ? tr("Yes") : tr("No"),
+            Formatter::Format(rs.m_State.PointSize), Formatter::Format(rs.m_State.LineWidth),
+            Formatter::Format(rs.m_State.PointFadeThreshold),
+            rs.m_State.PointOriginUpperLeft ? tr("Yes") : tr("No"),
+        });
+
+    xml.writeStartElement(tr("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Depth Clamp"), tr("Depth Bias"), tr("Offset Clamp"), tr("Slope Scaled Bias")},
+        {rs.m_State.DepthClamp ? tr("Yes") : tr("No"), rs.m_State.DepthBias,
+         Formatter::Format(rs.m_State.OffsetClamp),
+         Formatter::Format(rs.m_State.SlopeScaledDepthBias)});
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Hints"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml,
+        {
+            tr("Derivatives"), tr("Line Smooth"), tr("Poly Smooth"), tr("Tex Compression"),
+        },
+        {
+            ToQStr(pipe.m_Hints.Derivatives),
+            pipe.m_Hints.LineSmoothEnabled ? ToQStr(pipe.m_Hints.LineSmooth) : tr("Disabled"),
+            pipe.m_Hints.PolySmoothEnabled ? ToQStr(pipe.m_Hints.PolySmooth) : tr("Disabled"),
+            ToQStr(pipe.m_Hints.TexCompression),
+        });
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Viewports"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const GLPipe::Viewport &v : rs.Viewports)
+    {
+      rows.push_back({i, v.Left, v.Bottom, v.Width, v.Height, v.MinDepth, v.MaxDepth});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("Left"), tr("Bottom"), tr("Width"), tr("Height"),
+                                   tr("Min Depth"), tr("Max Depth")},
+                             rows);
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Scissors"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const GLPipe::Scissor &s : rs.Scissors)
+    {
+      rows.push_back({i, (bool)s.Enabled, s.Left, s.Bottom, s.Width, s.Height});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Slot"), tr("Enabled"), tr("Left"), tr("Bottom"), tr("Width"), tr("Height")}, rows);
+  }
+}
+
+void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::FrameBuffer &fb)
+{
+  const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Blend State"));
+    xml.writeEndElement();
+
+    QString blendFactor = QFormatStr("%1, %2, %3, %4")
+                              .arg(fb.m_Blending.BlendFactor[0], 0, 'f', 2)
+                              .arg(fb.m_Blending.BlendFactor[1], 0, 'f', 2)
+                              .arg(fb.m_Blending.BlendFactor[2], 0, 'f', 2)
+                              .arg(fb.m_Blending.BlendFactor[3], 0, 'f', 2);
+
+    m_Common.exportHTMLTable(xml, {tr("Framebuffer SRGB"), tr("Blend Factor")},
+                             {
+                                 fb.FramebufferSRGB ? tr("Yes") : tr("No"), blendFactor,
+                             });
+
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Target Blends"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const GLPipe::Blend &b : fb.m_Blending.Blends)
+    {
+      if(i >= fb.m_DrawFBO.Color.count)
+        continue;
+
+      rows.push_back({i, b.Enabled ? tr("Yes") : tr("No"), ToQStr(b.m_Blend.Source),
+                      ToQStr(b.m_Blend.Destination), ToQStr(b.m_Blend.Operation),
+                      ToQStr(b.m_AlphaBlend.Source), ToQStr(b.m_AlphaBlend.Destination),
+                      ToQStr(b.m_AlphaBlend.Operation), ToQStr(b.Logic),
+                      ((b.WriteMask & 0x1) == 0 ? tr("_") : tr("R")) +
+                          ((b.WriteMask & 0x2) == 0 ? tr("_") : tr("G")) +
+                          ((b.WriteMask & 0x4) == 0 ? tr("_") : tr("B")) +
+                          ((b.WriteMask & 0x8) == 0 ? tr("_") : tr("A"))});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(
+        xml,
+        {
+            tr("Slot"), tr("Blend Enable"), tr("Blend Source"), tr("Blend Destination"),
+            tr("Blend Operation"), tr("Alpha Blend Source"), tr("Alpha Blend Destination"),
+            tr("Alpha Blend Operation"), tr("Logic Operation"), tr("Write Mask"),
+        },
+        rows);
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Depth State"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(xml, {tr("Depth Test Enable"), tr("Depth Writes Enable"),
+                                   tr("Depth Function"), tr("Depth Bounds")},
+                             {
+                                 pipe.m_DepthState.DepthEnable ? tr("Yes") : tr("No"),
+                                 pipe.m_DepthState.DepthWrites ? tr("Yes") : tr("No"),
+                                 ToQStr(pipe.m_DepthState.DepthFunc),
+                                 pipe.m_DepthState.DepthEnable
+                                     ? QFormatStr("%1 - %2")
+                                           .arg(Formatter::Format(pipe.m_DepthState.NearBound))
+                                           .arg(Formatter::Format(pipe.m_DepthState.FarBound))
+                                     : tr("Disabled"),
+                             });
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Stencil State"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(xml, {tr("Stencil Test Enable")},
+                             {pipe.m_StencilState.StencilEnable ? tr("Yes") : tr("No")});
+
+    xml.writeStartElement(tr("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Face"), tr("Reference"), tr("Value Mask"), tr("Write Mask"), tr("Function"),
+              tr("Pass Operation"), tr("Fail Operation"), tr("Depth Fail Operation")},
+        {
+            {tr("Front"), Formatter::Format(pipe.m_StencilState.m_FrontFace.Ref, true),
+             Formatter::Format(pipe.m_StencilState.m_FrontFace.ValueMask, true),
+             Formatter::Format(pipe.m_StencilState.m_FrontFace.WriteMask, true),
+             ToQStr(pipe.m_StencilState.m_FrontFace.Func),
+             ToQStr(pipe.m_StencilState.m_FrontFace.PassOp),
+             ToQStr(pipe.m_StencilState.m_FrontFace.FailOp),
+             ToQStr(pipe.m_StencilState.m_FrontFace.DepthFailOp)},
+
+            {tr("Back"), Formatter::Format(pipe.m_StencilState.m_BackFace.Ref, true),
+             Formatter::Format(pipe.m_StencilState.m_BackFace.ValueMask, true),
+             Formatter::Format(pipe.m_StencilState.m_BackFace.WriteMask, true),
+             ToQStr(pipe.m_StencilState.m_BackFace.Func),
+             ToQStr(pipe.m_StencilState.m_BackFace.PassOp),
+             ToQStr(pipe.m_StencilState.m_BackFace.FailOp),
+             ToQStr(pipe.m_StencilState.m_BackFace.DepthFailOp)},
+        });
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Draw FBO Attachments"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    QList<const GLPipe::Attachment *> atts;
+    for(const GLPipe::Attachment &att : fb.m_DrawFBO.Color)
+      atts.push_back(&att);
+    atts.push_back(&fb.m_DrawFBO.Depth);
+    atts.push_back(&fb.m_DrawFBO.Stencil);
+
+    int i = 0;
+    for(const GLPipe::Attachment *att : atts)
+    {
+      const GLPipe::Attachment &a = *att;
+
+      TextureDescription *tex = m_Ctx.GetTexture(a.Obj);
+
+      QString name = tr("Image %1").arg(ToQStr(a.Obj));
+
+      if(tex)
+        name = ToQStr(tex->name);
+      if(a.Obj == ResourceId())
+        name = tr("Empty");
+
+      QString slotname = QString::number(i);
+
+      if(i == atts.count() - 2)
+        slotname = tr("Depth");
+      else if(i == atts.count() - 1)
+        slotname = tr("Stencil");
+
+      rows.push_back({slotname, name, a.Mip, a.Layer});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Slot"), tr("Image"), tr("First mip"), tr("First array slice"),
+                             },
+                             rows);
+
+    QList<QVariantList> drawbuffers;
+
+    for(i = 0; i < fb.m_DrawFBO.DrawBuffers.count; i++)
+      drawbuffers.push_back({fb.m_DrawFBO.DrawBuffers[i]});
+
+    xml.writeStartElement(tr("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Draw Buffers"),
+                             },
+                             drawbuffers);
+  }
+
+  {
+    xml.writeStartElement(tr("h3"));
+    xml.writeCharacters(tr("Read FBO Attachments"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    QList<const GLPipe::Attachment *> atts;
+    for(const GLPipe::Attachment &att : fb.m_ReadFBO.Color)
+      atts.push_back(&att);
+    atts.push_back(&fb.m_ReadFBO.Depth);
+    atts.push_back(&fb.m_ReadFBO.Stencil);
+
+    int i = 0;
+    for(const GLPipe::Attachment *att : atts)
+    {
+      const GLPipe::Attachment &a = *att;
+
+      TextureDescription *tex = m_Ctx.GetTexture(a.Obj);
+
+      QString name = tr("Image %1").arg(ToQStr(a.Obj));
+
+      if(tex)
+        name = ToQStr(tex->name);
+      if(a.Obj == ResourceId())
+        name = tr("Empty");
+
+      QString slotname = QString::number(i);
+
+      if(i == atts.count() - 2)
+        slotname = tr("Depth");
+      else if(i == atts.count() - 1)
+        slotname = tr("Stencil");
+
+      rows.push_back({slotname, name, a.Mip, a.Layer});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Slot"), tr("Image"), tr("First mip"), tr("First array slice"),
+                             },
+                             rows);
+
+    xml.writeStartElement(tr("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Read Buffer"),
+                             },
+                             {fb.m_ReadFBO.ReadBuffer});
+  }
+}
+
 void GLPipelineStateViewer::on_exportHTML_clicked()
 {
+  QXmlStreamWriter *xmlptr = m_Common.beginHTMLExport();
+
+  if(xmlptr)
+  {
+    QXmlStreamWriter &xml = *xmlptr;
+
+    const QStringList &stageNames = ui->pipeFlow->stageNames();
+    const QStringList &stageAbbrevs = ui->pipeFlow->stageAbbreviations();
+
+    int stage = 0;
+    for(const QString &sn : stageNames)
+    {
+      xml.writeStartElement(lit("div"));
+      xml.writeStartElement(lit("a"));
+      xml.writeAttribute(lit("name"), stageAbbrevs[stage]);
+      xml.writeEndElement();
+      xml.writeEndElement();
+
+      xml.writeStartElement(lit("div"));
+      xml.writeAttribute(lit("class"), lit("stage"));
+
+      xml.writeStartElement(lit("h1"));
+      xml.writeCharacters(sn);
+      xml.writeEndElement();
+
+      switch(stage)
+      {
+        case 0: exportHTML(xml, m_Ctx.CurGLPipelineState().m_VtxIn); break;
+        case 1: exportHTML(xml, m_Ctx.CurGLPipelineState().m_VS); break;
+        case 2: exportHTML(xml, m_Ctx.CurGLPipelineState().m_TCS); break;
+        case 3: exportHTML(xml, m_Ctx.CurGLPipelineState().m_TES); break;
+        case 4:
+          exportHTML(xml, m_Ctx.CurGLPipelineState().m_GS);
+          exportHTML(xml, m_Ctx.CurGLPipelineState().m_Feedback);
+          break;
+        case 5: exportHTML(xml, m_Ctx.CurGLPipelineState().m_Rasterizer); break;
+        case 6: exportHTML(xml, m_Ctx.CurGLPipelineState().m_FS); break;
+        case 7: exportHTML(xml, m_Ctx.CurGLPipelineState().m_FB); break;
+        case 8: exportHTML(xml, m_Ctx.CurGLPipelineState().m_CS); break;
+      }
+
+      xml.writeEndElement();
+
+      stage++;
+    }
+
+    m_Common.endHTMLExport(xmlptr);
+  }
 }
 
 void GLPipelineStateViewer::on_meshView_clicked()

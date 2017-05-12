@@ -32,6 +32,8 @@ namespace Ui
 class GLPipelineStateViewer;
 }
 
+class QXmlStreamWriter;
+
 class RDTreeWidget;
 class RDTreeWidgetItem;
 class PipelineStateViewer;
@@ -104,6 +106,12 @@ private:
   const GLPipe::Shader *stageForSender(QWidget *widget);
 
   bool showNode(bool usedSlot, bool filledSlot);
+
+  void exportHTML(QXmlStreamWriter &xml, GLPipe::VertexInput &vtx);
+  void exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh);
+  void exportHTML(QXmlStreamWriter &xml, GLPipe::Feedback &xfb);
+  void exportHTML(QXmlStreamWriter &xml, GLPipe::Rasterizer &rs);
+  void exportHTML(QXmlStreamWriter &xml, GLPipe::FrameBuffer &fb);
 
   // keep track of the VB nodes (we want to be able to highlight them easily on hover)
   QList<RDTreeWidgetItem *> m_VBNodes;

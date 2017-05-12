@@ -34,6 +34,8 @@ public:
   explicit PipelineFlowChart(QWidget *parent = 0);
   ~PipelineFlowChart();
 
+  const QStringList &stageAbbreviations() { return m_StageAbbrevs; }
+  const QStringList &stageNames() { return m_StageNames; }
   void setStages(const QStringList &abbrevs, const QStringList &names);
   void setStageName(int index, const QString &abbrev, const QString &name);
   void setIsolatedStage(int index);

@@ -370,6 +370,17 @@ struct ToStr
     return "Unknown";
   }
 
+  static std::string Get(const QualityHint &el)
+  {
+    switch(el)
+    {
+      case QualityHint::DontCare: return "Don't Care";
+      case QualityHint::Nicest: return "Nicest";
+      case QualityHint::Fastest: return "Fastest";
+    }
+    return "Unknown";
+  }
+
   static std::string Get(const TextureFilter &el)
   {
     std::string filter = "";
@@ -399,6 +410,26 @@ struct ToStr
     filter += filtPrefix + ": " + filtVal;
 
     return filter;
+  }
+
+  static std::string Get(const D3DBufferViewFlags &el)
+  {
+    std::string ret;
+
+    if(el == D3DBufferViewFlags::NoFlags)
+      return "";
+
+    if(el & D3DBufferViewFlags::Raw)
+      ret += " | Raw";
+    if(el & D3DBufferViewFlags::Append)
+      ret += " | Append";
+    if(el & D3DBufferViewFlags::Counter)
+      ret += " | Counter";
+
+    if(!ret.empty())
+      ret = ret.substr(3);
+
+    return ret;
   }
 
   static std::string Get(const TextureDim &el)

@@ -32,6 +32,8 @@ namespace Ui
 class VulkanPipelineStateViewer;
 }
 
+class QXmlStreamWriter;
+
 class RDTreeWidget;
 class RDTreeWidgetItem;
 class PipelineStateViewer;
@@ -84,8 +86,8 @@ private:
   ICaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
 
-  RDTreeWidgetItem *makeSampler(const QString &bindset, const QString &slotname,
-                                const VKPipe::BindingElement &descriptor);
+  QVariantList makeSampler(const QString &bindset, const QString &slotname,
+                           const VKPipe::BindingElement &descriptor);
   void addResourceRow(ShaderReflection *shaderDetails, const VKPipe::Shader &stage, int bindset,
                       int bind, const VKPipe::Pipeline &pipe, RDTreeWidget *resources,
                       QMap<ResourceId, SamplerData> &samplers);
@@ -115,6 +117,14 @@ private:
   void setViewDetails(RDTreeWidgetItem *node, const viewType &view, BufferDescription *buf);
 
   bool showNode(bool usedSlot, bool filledSlot);
+
+  void exportHTML(QXmlStreamWriter &xml, VKPipe::VertexInput &vi);
+  void exportHTML(QXmlStreamWriter &xml, VKPipe::InputAssembly &ia);
+  void exportHTML(QXmlStreamWriter &xml, VKPipe::Shader &sh);
+  void exportHTML(QXmlStreamWriter &xml, VKPipe::Raster &rs);
+  void exportHTML(QXmlStreamWriter &xml, VKPipe::ColorBlend &cb);
+  void exportHTML(QXmlStreamWriter &xml, VKPipe::DepthStencil &ds);
+  void exportHTML(QXmlStreamWriter &xml, VKPipe::CurrentPass &pass);
 
   // keep track of the VB nodes (we want to be able to highlight them easily on hover)
   QList<RDTreeWidgetItem *> m_VBNodes;

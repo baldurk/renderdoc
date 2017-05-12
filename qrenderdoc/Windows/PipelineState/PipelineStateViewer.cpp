@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "PipelineStateViewer.h"
+#include <QXmlStreamWriter>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "D3D11PipelineStateViewer.h"
 #include "D3D12PipelineStateViewer.h"
@@ -87,20 +88,25 @@ void PipelineStateViewer::OnEventChanged(uint32_t eventID)
     m_Current->OnEventChanged(eventID);
 }
 
+QString PipelineStateViewer::GetCurrentAPI()
+{
+  if(m_Current == m_D3D11)
+    return lit("D3D11");
+  else if(m_Current == m_D3D12)
+    return lit("D3D12");
+  else if(m_Current == m_GL)
+    return lit("OpenGL");
+  else if(m_Current == m_Vulkan)
+    return lit("Vulkan");
+
+  return lit("");
+}
+
 QVariant PipelineStateViewer::persistData()
 {
   QVariantMap state;
 
-  if(m_Current == m_D3D11)
-    state[lit("type")] = lit("D3D11");
-  else if(m_Current == m_D3D12)
-    state[lit("type")] = lit("D3D12");
-  else if(m_Current == m_GL)
-    state[lit("type")] = lit("GL");
-  else if(m_Current == m_Vulkan)
-    state[lit("type")] = lit("Vulkan");
-  else
-    state[lit("type")] = lit("");
+  state[lit("type")] = GetCurrentAPI();
 
   return state;
 }
@@ -184,6 +190,234 @@ void PipelineStateViewer::setToVulkan()
   ui->layout->addWidget(m_Vulkan);
   m_Current = m_Vulkan;
   m_Ctx.CurPipelineState().DefaultType = GraphicsAPI::Vulkan;
+}
+
+QXmlStreamWriter *PipelineStateViewer::beginHTMLExport()
+{
+  QString filename = RDDialog::getSaveFileName(this, tr("Export pipeline state as HTML"), QString(),
+                                               tr("HTML files (*.html)"));
+
+  if(!filename.isEmpty())
+  {
+    QDir dirinfo = QFileInfo(filename).dir();
+    if(dirinfo.exists())
+    {
+      QFile *f = new QFile(filename, this);
+      if(f->open(QIODevice::WriteOnly | QIODevice::Truncate))
+      {
+        QXmlStreamWriter *xmlptr = new QXmlStreamWriter(f);
+
+        QXmlStreamWriter &xml = *xmlptr;
+
+        xml.setAutoFormatting(true);
+        xml.setAutoFormattingIndent(4);
+        xml.writeStartDocument();
+        xml.writeDTD(lit("<!DOCTYPE html>"));
+
+        xml.writeStartElement(lit("html"));
+        xml.writeAttribute(lit("lang"), lit("en"));
+
+        QString title = tr("%1 EID %2 - %3 Pipeline export")
+                            .arg(QFileInfo(m_Ctx.LogFilename()).fileName())
+                            .arg(m_Ctx.CurEvent())
+                            .arg(GetCurrentAPI());
+
+        {
+          xml.writeStartElement(lit("head"));
+
+          xml.writeStartElement(lit("meta"));
+          xml.writeAttribute(lit("charset"), lit("utf-8"));
+          xml.writeEndElement();
+
+          xml.writeStartElement(lit("meta"));
+          xml.writeAttribute(lit("http-equiv"), lit("X-UA-Compatible"));
+          xml.writeAttribute(lit("content"), lit("IE=edge"));
+          xml.writeEndElement();
+
+          xml.writeStartElement(lit("meta"));
+          xml.writeAttribute(lit("name"), lit("viewport"));
+          xml.writeAttribute(lit("content"), lit("width=device-width, initial-scale=1"));
+          xml.writeEndElement();
+
+          xml.writeStartElement(lit("meta"));
+          xml.writeAttribute(lit("name"), lit("description"));
+          xml.writeAttribute(lit("content"), lit(""));
+          xml.writeEndElement();
+
+          xml.writeStartElement(lit("meta"));
+          xml.writeAttribute(lit("name"), lit("author"));
+          xml.writeAttribute(lit("content"), lit(""));
+          xml.writeEndElement();
+
+          xml.writeStartElement(lit("meta"));
+          xml.writeAttribute(lit("http-equiv"), lit("Content-Type"));
+          xml.writeAttribute(lit("content"), lit("text/html;charset=utf-8"));
+          xml.writeEndElement();
+
+          xml.writeStartElement(lit("title"));
+          xml.writeCharacters(title);
+          xml.writeEndElement();
+
+          xml.writeStartElement(lit("style"));
+          xml.writeComment(lit(R"(
+
+/* If you think this css is ugly/bad, open a pull request! */
+body { margin: 20px; }
+div.stage { border: 1px solid #BBBBBB; border-radius: 5px; padding: 16px; margin-bottom: 32px; }
+div.stage h1 { text-decoration: underline; margin-top: 0px; }
+div.stage table { border: 1px solid #AAAAAA; border-collapse: collapse; }
+div.stage table thead tr { border-bottom: 1px solid #AAAAAA; background-color: #EEEEFF; }
+div.stage table tr th { border-right: 1px solid #AAAAAA; padding: 6px; }
+div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEEEE; padding: 3px; }
+
+)"));
+          xml.writeEndElement();    // </style>
+
+          xml.writeEndElement();    // </head>
+        }
+
+        {
+          xml.writeStartElement(lit("body"));
+
+          xml.writeStartElement(lit("h1"));
+          xml.writeCharacters(title);
+          xml.writeEndElement();
+
+          xml.writeStartElement(lit("h3"));
+          {
+            QString context = tr("Frame %1").arg(m_Ctx.FrameInfo().frameNumber);
+
+            const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+
+            QList<const DrawcallDescription *> drawstack;
+            const DrawcallDescription *parent = m_Ctx.GetDrawcall(draw->parent);
+            while(parent)
+            {
+              drawstack.push_front(parent);
+              parent = m_Ctx.GetDrawcall(parent->parent);
+            }
+
+            for(const DrawcallDescription *d : drawstack)
+            {
+              context += QFormatStr(" > %1").arg(ToQStr(d->name));
+            }
+
+            context += QFormatStr(" => %1").arg(ToQStr(draw->name));
+
+            xml.writeCharacters(context);
+          }
+          xml.writeEndElement();    // </h3>
+        }
+
+        // body is open
+
+        return xmlptr;
+      }
+
+      RDDialog::critical(
+          this, tr("Error exporting pipeline state"),
+          tr("Couldn't open path %1 for write.\n%2").arg(filename).arg(f->errorString()));
+
+      delete f;
+
+      return NULL;
+    }
+    else
+    {
+      RDDialog::critical(this, tr("Invalid directory"),
+                         tr("Cannot find target directory to save to"));
+      return NULL;
+    }
+  }
+
+  return NULL;
+}
+
+void PipelineStateViewer::exportHTMLTable(QXmlStreamWriter &xml, const QStringList &cols,
+                                          const QList<QVariantList> &rows)
+{
+  xml.writeStartElement(lit("table"));
+
+  {
+    xml.writeStartElement(lit("thead"));
+    xml.writeStartElement(lit("tr"));
+
+    for(const QString &col : cols)
+    {
+      xml.writeStartElement(lit("th"));
+      xml.writeCharacters(col);
+      xml.writeEndElement();
+    }
+
+    xml.writeEndElement();
+    xml.writeEndElement();
+  }
+
+  {
+    xml.writeStartElement(lit("tbody"));
+
+    if(rows.isEmpty())
+    {
+      xml.writeStartElement(lit("tr"));
+
+      for(int i = 0; i < cols.count(); i++)
+      {
+        xml.writeStartElement(lit("td"));
+        xml.writeCharacters(lit("-"));
+        xml.writeEndElement();
+      }
+
+      xml.writeEndElement();
+    }
+    else
+    {
+      for(const QVariantList &row : rows)
+      {
+        xml.writeStartElement(lit("tr"));
+
+        for(const QVariant &el : row)
+        {
+          xml.writeStartElement(lit("td"));
+
+          QMetaType::Type type = (QMetaType::Type)el.type();
+
+          if(el.type() == QMetaType::Bool)
+            xml.writeCharacters(el.toBool() ? tr("True") : tr("False"));
+          else
+            xml.writeCharacters(el.toString());
+
+          xml.writeEndElement();
+        }
+
+        xml.writeEndElement();
+      }
+    }
+
+    xml.writeEndElement();
+  }
+
+  xml.writeEndElement();
+}
+
+void PipelineStateViewer::exportHTMLTable(QXmlStreamWriter &xml, const QStringList &cols,
+                                          const QVariantList &row)
+{
+  exportHTMLTable(xml, cols, QList<QVariantList>({row}));
+}
+
+void PipelineStateViewer::endHTMLExport(QXmlStreamWriter *xml)
+{
+  xml->writeEndElement();    // </body>
+
+  xml->writeEndElement();    // </html>
+
+  xml->writeEndDocument();
+
+  // delete the file the writer was writing to
+  QFile *f = qobject_cast<QFile *>(xml->device());
+  delete f;
+
+  delete xml;
 }
 
 bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDetails,

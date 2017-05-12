@@ -26,6 +26,7 @@
 #include <float.h>
 #include <QMouseEvent>
 #include <QScrollBar>
+#include <QXmlStreamWriter>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/Resources.h"
 #include "PipelineStateViewer.h"
@@ -609,9 +610,8 @@ void VulkanPipelineStateViewer::clearState()
   ui->stencils->clear();
 }
 
-RDTreeWidgetItem *VulkanPipelineStateViewer::makeSampler(const QString &bindset,
-                                                         const QString &slotname,
-                                                         const VKPipe::BindingElement &descriptor)
+QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, const QString &slotname,
+                                                    const VKPipe::BindingElement &descriptor)
 {
   QString addressing;
   QString addPrefix;
@@ -670,10 +670,13 @@ RDTreeWidgetItem *VulkanPipelineStateViewer::makeSampler(const QString &bindset,
   if(descriptor.mipBias != 0.0f)
     lod += lit(" Bias %1").arg(descriptor.mipBias);
 
-  return new RDTreeWidgetItem(
-      {QString(), bindset, slotname,
-       descriptor.immutableSampler ? tr("Immutable Sampler") : tr("Sampler"),
-       ToQStr(descriptor.name), addressing, filter + lit(", ") + lod});
+  return {QString(),
+          bindset,
+          slotname,
+          descriptor.immutableSampler ? tr("Immutable Sampler") : tr("Sampler"),
+          ToQStr(descriptor.name),
+          addressing,
+          filter + lit(", ") + lod};
 }
 
 void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
@@ -862,7 +865,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           name = ToQStr(buf->name);
           restype = TextureDim::Buffer;
 
-          if(descriptorLen == 0xFFFFFFFFFFFFFFFFULL)
+          if(descriptorLen == UINT64_MAX)
             descriptorLen = len - descriptorBind->offset;
 
           tag = QVariant::fromValue(
@@ -923,7 +926,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         }
         else
         {
-          node = makeSampler(QString::number(bindset), slotname, *descriptorBind);
+          node =
+              new RDTreeWidgetItem(makeSampler(QString::number(bindset), slotname, *descriptorBind));
 
           if(!filledSlot)
             setEmptyRow(node);
@@ -1010,7 +1014,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           {
             if(!samplers.contains(descriptorBind->sampler))
             {
-              samplerNode = makeSampler(QString(), QString(), *descriptorBind);
+              samplerNode = new RDTreeWidgetItem(makeSampler(QString(), QString(), *descriptorBind));
 
               if(!filledSlot)
                 setEmptyRow(samplerNode);
@@ -1167,7 +1171,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
         if(buf)
         {
           name = ToQStr(buf->name);
-          if(length == 0xFFFFFFFFFFFFFFFFULL)
+          if(length == UINT64_MAX)
             length = buf->length - descriptorBind->offset;
         }
 
@@ -2414,8 +2418,833 @@ void VulkanPipelineStateViewer::shaderSave_clicked()
   m_Common.SaveShaderFile(shaderDetails);
 }
 
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::VertexInput &vi)
+{
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Attributes"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    for(const VKPipe::VertexAttribute &attr : vi.attrs)
+      rows.push_back({attr.location, attr.binding, ToQStr(attr.format.strname), attr.byteoffset});
+
+    m_Common.exportHTMLTable(xml, {tr("Location"), tr("Binding"), tr("Format"), tr("Offset")}, rows);
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Bindings"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    for(const VKPipe::VertexBinding &attr : vi.binds)
+      rows.push_back({attr.vbufferBinding, attr.bytestride,
+                      attr.perInstance ? tr("PER_INSTANCE") : tr("PER_VERTEX")});
+
+    m_Common.exportHTMLTable(xml, {tr("Binding"), tr("Byte Stride"), tr("Step Rate")}, rows);
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Vertex Buffers"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const VKPipe::VB &vb : vi.vbuffers)
+    {
+      QString name = tr("Buffer %1").arg(ToQStr(vb.buffer));
+      uint64_t length = 0;
+
+      if(vb.buffer == ResourceId())
+      {
+        continue;
+      }
+      else
+      {
+        BufferDescription *buf = m_Ctx.GetBuffer(vb.buffer);
+        if(buf)
+        {
+          name = ToQStr(buf->name);
+          length = buf->length;
+        }
+      }
+
+      rows.push_back({i, name, vb.offset, length});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(xml, {tr("Binding"), tr("Buffer"), tr("Offset"), tr("Byte Length")},
+                             rows);
+  }
+}
+
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::InputAssembly &ia)
+{
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Index Buffer"));
+    xml.writeEndElement();
+
+    BufferDescription *ib = m_Ctx.GetBuffer(ia.ibuffer.buf);
+
+    QString name = tr("Empty");
+    uint64_t length = 0;
+
+    if(ib)
+    {
+      name = ToQStr(ib->name);
+      length = ib->length;
+    }
+
+    QString ifmt = lit("UNKNOWN");
+    if(m_Ctx.CurDrawcall()->indexByteWidth == 2)
+      ifmt = lit("UINT16");
+    if(m_Ctx.CurDrawcall()->indexByteWidth == 4)
+      ifmt = lit("UINT32");
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Buffer"), tr("Format"), tr("Offset"), tr("Byte Length"), tr("Primitive Restart")},
+        {name, ifmt, ia.ibuffer.offs, length, ia.primitiveRestartEnable ? tr("Yes") : tr("No")});
+  }
+
+  xml.writeStartElement(lit("p"));
+  xml.writeEndElement();
+
+  m_Common.exportHTMLTable(
+      xml, {tr("Primitive Topology"), tr("Tessellation Control Points")},
+      {ToQStr(m_Ctx.CurDrawcall()->topology), m_Ctx.CurVulkanPipelineState().Tess.numControlPoints});
+}
+
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader &sh)
+{
+  ShaderReflection *shaderDetails = sh.ShaderDetails;
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Shader"));
+    xml.writeEndElement();
+
+    QString shadername = tr("Unknown");
+
+    if(sh.Object == ResourceId())
+      shadername = tr("Unbound");
+    else
+      shadername = ToQStr(sh.name);
+
+    if(shaderDetails && shaderDetails->DebugInfo.entryFunc.count > 0)
+    {
+      QString entryFunc = ToQStr(shaderDetails->DebugInfo.entryFunc);
+      if(shaderDetails->DebugInfo.files.count > 0 || entryFunc != lit("main"))
+        shadername = QFormatStr("%1()").arg(entryFunc);
+
+      if(shaderDetails->DebugInfo.files.count > 0)
+      {
+        QString shaderfn = QString();
+
+        int entryFile = shaderDetails->DebugInfo.entryFile;
+        if(entryFile < 0 || entryFile >= shaderDetails->DebugInfo.files.count)
+          entryFile = 0;
+
+        shaderfn = QFileInfo(ToQStr(shaderDetails->DebugInfo.files[entryFile].first)).fileName();
+
+        shadername = QFormatStr("%1() - %2").arg(entryFunc).arg(shaderfn);
+      }
+    }
+
+    xml.writeStartElement(lit("p"));
+    xml.writeCharacters(shadername);
+    xml.writeEndElement();
+
+    if(sh.Object == ResourceId())
+      return;
+  }
+
+  const VKPipe::Pipeline &pipeline =
+      (sh.stage == ShaderStage::Compute ? m_Ctx.CurVulkanPipelineState().compute
+                                        : m_Ctx.CurVulkanPipelineState().graphics);
+
+  if(shaderDetails && shaderDetails->ConstantBlocks.count > 0)
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("UBOs"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    for(int i = 0; i < shaderDetails->ConstantBlocks.count; i++)
+    {
+      const ConstantBlock &b = shaderDetails->ConstantBlocks[i];
+      const BindpointMap &bindMap = sh.BindpointMapping.ConstantBlocks[i];
+
+      if(!bindMap.used)
+        continue;
+
+      const VKPipe::DescriptorSet &set =
+          pipeline.DescSets[sh.BindpointMapping.ConstantBlocks[i].bindset];
+      const VKPipe::DescriptorBinding &bind =
+          set.bindings[sh.BindpointMapping.ConstantBlocks[i].bind];
+
+      QString setname = QString::number(bindMap.bindset);
+
+      QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(ToQStr(b.name));
+
+      for(uint32_t a = 0; a < bind.descriptorCount; a++)
+      {
+        const VKPipe::BindingElement &descriptorBind = bind.binds[a];
+
+        ResourceId id = bind.binds[a].res;
+
+        if(bindMap.arraySize > 1)
+          slotname = QFormatStr("%1: %2[%3]").arg(bindMap.bind).arg(ToQStr(b.name)).arg(a);
+
+        QString name;
+        uint64_t byteOffset = descriptorBind.offset;
+        uint64_t length = descriptorBind.size;
+        int numvars = b.variables.count;
+
+        if(descriptorBind.res == ResourceId())
+        {
+          name = tr("Empty");
+          length = 0;
+        }
+
+        BufferDescription *buf = m_Ctx.GetBuffer(id);
+        if(buf)
+        {
+          name = ToQStr(buf->name);
+
+          if(length == UINT64_MAX)
+            length = buf->length - byteOffset;
+        }
+
+        if(name.isEmpty())
+          name = tr("UBO %1").arg(ToQStr(descriptorBind.res));
+
+        // push constants
+        if(!b.bufferBacked)
+        {
+          setname = QString();
+          slotname = ToQStr(b.name);
+          name = tr("Push constants");
+          byteOffset = 0;
+          length = 0;
+
+          // could maybe get range/size from ShaderVariable.reg if it's filled out
+          // from SPIR-V side.
+        }
+
+        rows.push_back({setname, slotname, name, byteOffset, length, numvars, b.byteSize});
+      }
+    }
+
+    m_Common.exportHTMLTable(xml, {tr("Set"), tr("Bind"), tr("Buffer"), tr("Byte Offset"),
+                                   tr("Byte Size"), tr("Number of Variables"), tr("Bytes Needed")},
+                             rows);
+  }
+
+  if(shaderDetails->ReadOnlyResources.count > 0)
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Read-only Resources"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    for(int i = 0; i < shaderDetails->ReadOnlyResources.count; i++)
+    {
+      const ShaderResource &b = shaderDetails->ReadOnlyResources[i];
+      const BindpointMap &bindMap = sh.BindpointMapping.ReadOnlyResources[i];
+
+      if(!bindMap.used)
+        continue;
+
+      const VKPipe::DescriptorSet &set =
+          pipeline.DescSets[sh.BindpointMapping.ReadOnlyResources[i].bindset];
+      const VKPipe::DescriptorBinding &bind =
+          set.bindings[sh.BindpointMapping.ReadOnlyResources[i].bind];
+
+      QString setname = QString::number(bindMap.bindset);
+
+      QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(ToQStr(b.name));
+
+      for(uint32_t a = 0; a < bind.descriptorCount; a++)
+      {
+        const VKPipe::BindingElement &descriptorBind = bind.binds[a];
+
+        ResourceId id = bind.binds[a].res;
+
+        if(bindMap.arraySize > 1)
+          slotname = QFormatStr("%1: %2[%3]").arg(bindMap.bind).arg(ToQStr(b.name)).arg(a);
+
+        QString name;
+
+        if(descriptorBind.res == ResourceId())
+          name = tr("Empty");
+
+        BufferDescription *buf = m_Ctx.GetBuffer(id);
+        if(buf)
+          name = ToQStr(buf->name);
+
+        TextureDescription *tex = m_Ctx.GetTexture(id);
+        if(tex)
+          name = ToQStr(tex->name);
+
+        if(name.isEmpty())
+          name = tr("Resource %1").arg(ToQStr(descriptorBind.res));
+
+        uint64_t w = 1;
+        uint32_t h = 1, d = 1;
+        uint32_t arr = 0;
+        QString format = tr("Unknown");
+        QString viewParams;
+
+        if(tex)
+        {
+          w = tex->width;
+          h = tex->height;
+          d = tex->depth;
+          arr = tex->arraysize;
+          format = ToQStr(tex->format.strname);
+          name = ToQStr(tex->name);
+
+          if(tex->mips > 1)
+          {
+            viewParams = tr("Mips: %1-%2")
+                             .arg(descriptorBind.baseMip)
+                             .arg(descriptorBind.baseMip + descriptorBind.numMip - 1);
+          }
+
+          if(tex->arraysize > 1)
+          {
+            if(!viewParams.isEmpty())
+              viewParams += lit(", ");
+            viewParams += tr("Layers: %1-%2")
+                              .arg(descriptorBind.baseLayer)
+                              .arg(descriptorBind.baseLayer + descriptorBind.numLayer - 1);
+          }
+        }
+
+        if(buf)
+        {
+          w = buf->length;
+          h = 0;
+          d = 0;
+          a = 0;
+          format = lit("-");
+          name = ToQStr(buf->name);
+
+          uint64_t length = descriptorBind.size;
+
+          if(length == UINT64_MAX)
+            length = buf->length - descriptorBind.offset;
+
+          viewParams =
+              tr("Byte Range: %1 - %2").arg(descriptorBind.offset).arg(descriptorBind.offset + length);
+        }
+
+        if(bind.type != BindType::Sampler)
+          rows.push_back(
+              {setname, slotname, name, ToQStr(bind.type), w, h, d, arr, format, viewParams});
+
+        if(bind.type == BindType::ImageSampler || bind.type == BindType::Sampler)
+        {
+          name = tr("Sampler %1").arg(ToQStr(descriptorBind.sampler));
+
+          if(bind.type == BindType::ImageSampler)
+            setname = slotname = QString();
+
+          QVariantList sampDetails = makeSampler(QString(), QString(), descriptorBind);
+          rows.push_back({setname, slotname, name, ToQStr(bind.type), QString(), QString(),
+                          QString(), QString(), sampDetails[5], sampDetails[6]});
+        }
+      }
+    }
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Set"), tr("Bind"), tr("Buffer"), tr("Resource Type"), tr("Width"), tr("Height"),
+              tr("Depth"), tr("Array Size"), tr("Resource Format"), tr("View Parameters")},
+        rows);
+  }
+
+  if(shaderDetails->ReadWriteResources.count > 0)
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Read-write Resources"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    for(int i = 0; i < shaderDetails->ReadWriteResources.count; i++)
+    {
+      const ShaderResource &b = shaderDetails->ReadWriteResources[i];
+      const BindpointMap &bindMap = sh.BindpointMapping.ReadWriteResources[i];
+
+      if(!bindMap.used)
+        continue;
+
+      const VKPipe::DescriptorSet &set =
+          pipeline.DescSets[sh.BindpointMapping.ReadWriteResources[i].bindset];
+      const VKPipe::DescriptorBinding &bind =
+          set.bindings[sh.BindpointMapping.ReadWriteResources[i].bind];
+
+      QString setname = bindMap.bindset;
+
+      QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(ToQStr(b.name));
+
+      for(uint32_t a = 0; a < bind.descriptorCount; a++)
+      {
+        const VKPipe::BindingElement &descriptorBind = bind.binds[a];
+
+        ResourceId id = bind.binds[a].res;
+
+        if(bindMap.arraySize > 1)
+          slotname = QFormatStr("%1: %2[%3]").arg(bindMap.bind).arg(ToQStr(b.name)).arg(a);
+
+        QString name;
+
+        if(descriptorBind.res == ResourceId())
+          name = tr("Empty");
+
+        BufferDescription *buf = m_Ctx.GetBuffer(id);
+        if(buf)
+          name = ToQStr(buf->name);
+
+        TextureDescription *tex = m_Ctx.GetTexture(id);
+        if(tex)
+          name = ToQStr(tex->name);
+
+        if(name.isEmpty())
+          name = tr("Resource %1").arg(ToQStr(descriptorBind.res));
+
+        uint64_t w = 1;
+        uint32_t h = 1, d = 1;
+        uint32_t arr = 0;
+        QString format = tr("Unknown");
+        QString viewParams;
+
+        if(tex)
+        {
+          w = tex->width;
+          h = tex->height;
+          d = tex->depth;
+          arr = tex->arraysize;
+          format = ToQStr(tex->format.strname);
+          name = ToQStr(tex->name);
+
+          if(tex->mips > 1)
+          {
+            viewParams = tr("Mips: %1-%2")
+                             .arg(descriptorBind.baseMip)
+                             .arg(descriptorBind.baseMip + descriptorBind.numMip - 1);
+          }
+
+          if(tex->arraysize > 1)
+          {
+            if(!viewParams.isEmpty())
+              viewParams += lit(", ");
+            viewParams += tr("Layers: %1-%2")
+                              .arg(descriptorBind.baseLayer)
+                              .arg(descriptorBind.baseLayer + descriptorBind.numLayer - 1);
+          }
+        }
+
+        if(buf)
+        {
+          w = buf->length;
+          h = 0;
+          d = 0;
+          a = 0;
+          format = lit("-");
+          name = ToQStr(buf->name);
+
+          uint64_t length = descriptorBind.size;
+
+          if(length == UINT64_MAX)
+            length = buf->length - descriptorBind.offset;
+
+          viewParams =
+              tr("Byte Range: %1 - %2").arg(descriptorBind.offset).arg(descriptorBind.offset + length);
+        }
+
+        rows.push_back({setname, slotname, name, ToQStr(bind.type), w, h, d, arr, format, viewParams});
+      }
+    }
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Set"), tr("Bind"), tr("Buffer"), tr("Resource Type"), tr("Width"), tr("Height"),
+              tr("Depth"), tr("Array Size"), tr("Resource Format"), tr("View Parameters")},
+        rows);
+  }
+}
+
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Raster &rs)
+{
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Raster State"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Fill Mode"), tr("Cull Mode"), tr("Front CCW")},
+        {ToQStr(rs.fillMode), ToQStr(rs.cullMode), rs.FrontCCW ? tr("Yes") : tr("No")});
+
+    xml.writeStartElement(lit("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(xml, {tr("Depth Clip Enable"), tr("Rasterizer Discard Enable")},
+                             {rs.depthClampEnable ? tr("Yes") : tr("No"),
+                              rs.rasterizerDiscardEnable ? tr("Yes") : tr("No")});
+
+    xml.writeStartElement(lit("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Depth Bias"), tr("Depth Bias Clamp"), tr("Slope Scaled Bias"), tr("Line Width")},
+        {Formatter::Format(rs.depthBias), Formatter::Format(rs.depthBiasClamp),
+         Formatter::Format(rs.slopeScaledDepthBias), Formatter::Format(rs.lineWidth)});
+  }
+
+  VKPipe::MultiSample &msaa = m_Ctx.CurVulkanPipelineState().MSAA;
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Multisampling State"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Raster Samples"), tr("Sample-rate shading"), tr("Min Sample Shading Rate"),
+              tr("Sample Mask")},
+        {msaa.rasterSamples, msaa.sampleShadingEnable ? tr("Yes") : tr("No"),
+         Formatter::Format(msaa.minSampleShading), Formatter::Format(msaa.sampleMask, true)});
+  }
+
+  VKPipe::ViewState &vp = m_Ctx.CurVulkanPipelineState().VP;
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Viewports"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const VKPipe::ViewportScissor &vs : vp.viewportScissors)
+    {
+      const VKPipe::Viewport &v = vs.vp;
+
+      rows.push_back({i, v.x, v.y, v.width, v.height, v.minDepth, v.maxDepth});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"),
+                                   tr("Min Depth"), tr("Max Depth")},
+                             rows);
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Scissors"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const VKPipe::ViewportScissor &vs : vp.viewportScissors)
+    {
+      const VKPipe::Scissor &s = vs.scissor;
+
+      rows.push_back({i, s.x, s.y, s.width, s.height});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height")}, rows);
+  }
+}
+
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::ColorBlend &cb)
+{
+  xml.writeStartElement(lit("h3"));
+  xml.writeCharacters(tr("Color Blend State"));
+  xml.writeEndElement();
+
+  QString blendConst = QFormatStr("%1, %2, %3, %4")
+                           .arg(cb.blendConst[0], 0, 'f', 2)
+                           .arg(cb.blendConst[1], 0, 'f', 2)
+                           .arg(cb.blendConst[2], 0, 'f', 2)
+                           .arg(cb.blendConst[3], 0, 'f', 2);
+
+  m_Common.exportHTMLTable(
+      xml, {tr("Alpha to Coverage"), tr("Alpha to One"), tr("Logic Op"), tr("Blend Constant")},
+      {
+          cb.alphaToCoverageEnable ? tr("Yes") : tr("No"),
+          cb.alphaToOneEnable ? tr("Yes") : tr("No"),
+          cb.logicOpEnable ? ToQStr(cb.logic) : tr("Disabled"), blendConst,
+      });
+
+  xml.writeStartElement(lit("h3"));
+  xml.writeCharacters(tr("Attachment Blends"));
+  xml.writeEndElement();
+
+  QList<QVariantList> rows;
+
+  int i = 0;
+  for(const VKPipe::Blend &b : cb.attachments)
+  {
+    rows.push_back(
+        {i, b.blendEnable ? tr("Yes") : tr("No"), ToQStr(b.blend.Source), ToQStr(b.blend.Destination),
+         ToQStr(b.blend.Operation), ToQStr(b.alphaBlend.Source), ToQStr(b.alphaBlend.Destination),
+         ToQStr(b.alphaBlend.Operation), ((b.writeMask & 0x1) == 0 ? lit("_") : lit("R")) +
+                                             ((b.writeMask & 0x2) == 0 ? lit("_") : lit("G")) +
+                                             ((b.writeMask & 0x4) == 0 ? lit("_") : lit("B")) +
+                                             ((b.writeMask & 0x8) == 0 ? lit("_") : lit("A"))});
+
+    i++;
+  }
+
+  m_Common.exportHTMLTable(
+      xml,
+      {
+          tr("Slot"), tr("Blend Enable"), tr("Blend Source"), tr("Blend Destination"),
+          tr("Blend Operation"), tr("Alpha Blend Source"), tr("Alpha Blend Destination"),
+          tr("Alpha Blend Operation"), tr("Write Mask"),
+      },
+      rows);
+}
+
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::DepthStencil &ds)
+{
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Depth State"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Depth Test Enable"), tr("Depth Writes Enable"), tr("Depth Function"),
+              tr("Depth Bounds")},
+        {
+            ds.depthTestEnable ? tr("Yes") : tr("No"), ds.depthWriteEnable ? tr("Yes") : tr("No"),
+            ToQStr(ds.depthCompareOp), ds.depthBoundsEnable
+                                           ? QFormatStr("%1 - %2")
+                                                 .arg(Formatter::Format(ds.minDepthBounds))
+                                                 .arg(Formatter::Format(ds.maxDepthBounds))
+                                           : tr("Disabled"),
+        });
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Stencil State"));
+    xml.writeEndElement();
+
+    if(ds.stencilTestEnable)
+    {
+      QList<QVariantList> rows;
+
+      rows.push_back({
+          tr("Front"), Formatter::Format(ds.front.ref, true),
+          Formatter::Format(ds.front.compareMask, true),
+          Formatter::Format(ds.front.writeMask, true), ToQStr(ds.front.Func),
+          ToQStr(ds.front.PassOp), ToQStr(ds.front.FailOp), ToQStr(ds.front.DepthFailOp),
+      });
+
+      rows.push_back({
+          tr("back"), Formatter::Format(ds.back.ref, true),
+          Formatter::Format(ds.back.compareMask, true), Formatter::Format(ds.back.writeMask, true),
+          ToQStr(ds.back.Func), ToQStr(ds.back.PassOp), ToQStr(ds.back.FailOp),
+          ToQStr(ds.back.DepthFailOp),
+      });
+
+      m_Common.exportHTMLTable(xml,
+                               {tr("Face"), tr("Ref"), tr("Compare Mask"), tr("Write Mask"),
+                                tr("Function"), tr("Pass Op"), tr("Fail Op"), tr("Depth Fail Op")},
+                               rows);
+    }
+    else
+    {
+      xml.writeStartElement(lit("p"));
+      xml.writeCharacters(tr("Disabled"));
+      xml.writeEndElement();
+    }
+  }
+}
+
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::CurrentPass &pass)
+{
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Framebuffer"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Width"), tr("Height"), tr("Layers")},
+        {pass.framebuffer.width, pass.framebuffer.height, pass.framebuffer.layers});
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const VKPipe::Attachment &a : pass.framebuffer.attachments)
+    {
+      TextureDescription *tex = m_Ctx.GetTexture(a.img);
+
+      QString name = tr("Image %1").arg(ToQStr(a.img));
+
+      if(tex)
+        name = ToQStr(tex->name);
+
+      rows.push_back({i, name, a.baseMip, a.numMip, a.baseLayer, a.numLayer});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Slot"), tr("Image"), tr("First mip"), tr("Number of mips"),
+                                 tr("First array layer"), tr("Number of layers"),
+                             },
+                             rows);
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Render Pass"));
+    xml.writeEndElement();
+
+    if(pass.renderpass.inputAttachments.count > 0)
+    {
+      QList<QVariantList> inputs;
+
+      for(int i = 0; i < pass.renderpass.inputAttachments.count; i++)
+        inputs.push_back({pass.renderpass.inputAttachments[i]});
+
+      m_Common.exportHTMLTable(xml,
+                               {
+                                   tr("Input Attachment"),
+                               },
+                               inputs);
+
+      xml.writeStartElement(lit("p"));
+      xml.writeEndElement();
+    }
+
+    if(pass.renderpass.colorAttachments.count > 0)
+    {
+      QList<QVariantList> colors;
+
+      for(int i = 0; i < pass.renderpass.colorAttachments.count; i++)
+        colors.push_back({pass.renderpass.colorAttachments[i]});
+
+      m_Common.exportHTMLTable(xml,
+                               {
+                                   tr("Color Attachment"),
+                               },
+                               colors);
+
+      xml.writeStartElement(lit("p"));
+      xml.writeEndElement();
+    }
+
+    if(pass.renderpass.depthstencilAttachment >= 0)
+    {
+      xml.writeStartElement(lit("p"));
+      xml.writeCharacters(
+          tr("Depth-stencil Attachment: %1").arg(pass.renderpass.depthstencilAttachment));
+      xml.writeEndElement();
+    }
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Render Area"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("X"), tr("Y"), tr("Width"), tr("Height")},
+        {pass.renderArea.x, pass.renderArea.y, pass.renderArea.width, pass.renderArea.height});
+  }
+}
+
 void VulkanPipelineStateViewer::on_exportHTML_clicked()
 {
+  QXmlStreamWriter *xmlptr = m_Common.beginHTMLExport();
+
+  if(xmlptr)
+  {
+    QXmlStreamWriter &xml = *xmlptr;
+
+    const QStringList &stageNames = ui->pipeFlow->stageNames();
+    const QStringList &stageAbbrevs = ui->pipeFlow->stageAbbreviations();
+
+    int stage = 0;
+    for(const QString &sn : stageNames)
+    {
+      xml.writeStartElement(lit("div"));
+      xml.writeStartElement(lit("a"));
+      xml.writeAttribute(lit("name"), stageAbbrevs[stage]);
+      xml.writeEndElement();
+      xml.writeEndElement();
+
+      xml.writeStartElement(lit("div"));
+      xml.writeAttribute(lit("class"), lit("stage"));
+
+      xml.writeStartElement(lit("h1"));
+      xml.writeCharacters(sn);
+      xml.writeEndElement();
+
+      switch(stage)
+      {
+        case 0:
+          // VTX
+          xml.writeStartElement(lit("h2"));
+          xml.writeCharacters(tr("Input Assembly"));
+          xml.writeEndElement();
+          exportHTML(xml, m_Ctx.CurVulkanPipelineState().IA);
+
+          xml.writeStartElement(lit("h2"));
+          xml.writeCharacters(tr("Vertex Input"));
+          xml.writeEndElement();
+          exportHTML(xml, m_Ctx.CurVulkanPipelineState().VI);
+          break;
+        case 1: exportHTML(xml, m_Ctx.CurVulkanPipelineState().m_VS); break;
+        case 2: exportHTML(xml, m_Ctx.CurVulkanPipelineState().m_TCS); break;
+        case 3: exportHTML(xml, m_Ctx.CurVulkanPipelineState().m_TES); break;
+        case 4: exportHTML(xml, m_Ctx.CurVulkanPipelineState().m_GS); break;
+        case 5: exportHTML(xml, m_Ctx.CurVulkanPipelineState().RS); break;
+        case 6: exportHTML(xml, m_Ctx.CurVulkanPipelineState().m_FS); break;
+        case 7:
+          // FB
+          xml.writeStartElement(lit("h2"));
+          xml.writeCharacters(tr("Color Blend"));
+          xml.writeEndElement();
+          exportHTML(xml, m_Ctx.CurVulkanPipelineState().CB);
+
+          xml.writeStartElement(lit("h2"));
+          xml.writeCharacters(tr("Depth Stencil"));
+          xml.writeEndElement();
+          exportHTML(xml, m_Ctx.CurVulkanPipelineState().DS);
+
+          xml.writeStartElement(lit("h2"));
+          xml.writeCharacters(tr("Current Pass"));
+          xml.writeEndElement();
+          exportHTML(xml, m_Ctx.CurVulkanPipelineState().Pass);
+          break;
+        case 8: exportHTML(xml, m_Ctx.CurVulkanPipelineState().m_CS); break;
+      }
+
+      xml.writeEndElement();
+
+      stage++;
+    }
+
+    m_Common.endHTMLExport(xmlptr);
+  }
 }
 
 void VulkanPipelineStateViewer::on_meshView_clicked()

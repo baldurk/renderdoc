@@ -26,6 +26,7 @@
 #include <float.h>
 #include <QMouseEvent>
 #include <QScrollBar>
+#include <QXmlStreamWriter>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/Resources.h"
 #include "PipelineStateViewer.h"
@@ -939,9 +940,8 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
     shader->setText(
         QFormatStr("%1 - %2").arg(ToQStr(state.name)).arg(m_Ctx.CurPipelineState().Abbrev(stage.stage)));
   else
-    shader->setText(QFormatStr("%1 - %2 Shader")
-                        .arg(ToQStr(state.name))
-                        .arg(ToQStr(stage.stage, GraphicsAPI::D3D12)));
+    shader->setText(
+        tr("%1 - %2 Shader").arg(ToQStr(state.name)).arg(ToQStr(stage.stage, GraphicsAPI::D3D12)));
 
   if(shaderDetails && !shaderDetails->DebugInfo.entryFunc.empty() &&
      !shaderDetails->DebugInfo.files.empty())
@@ -1184,7 +1184,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
           bytesize = uint32_t(b.RootValues.count * 4);
 
         if(!filledSlot)
-          name = lit("Empty");
+          name = tr("Empty");
 
         BufferDescription *buf = m_Ctx.GetBuffer(b.Buffer);
 
@@ -2181,8 +2181,930 @@ void D3D12PipelineStateViewer::shaderSave_clicked()
   m_Common.SaveShaderFile(shaderDetails);
 }
 
+QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &view, bool rw,
+                                                      const ShaderResource *shaderInput,
+                                                      const QString &extraParams)
+{
+  QString name = tr("Empty");
+  QString typeName = tr("Unknown");
+  QString format = tr("Unknown");
+  uint64_t w = 1;
+  uint32_t h = 1, d = 1;
+  uint32_t a = 0;
+
+  QString viewFormat = ToQStr(view.Format.strname);
+
+  TextureDescription *tex = m_Ctx.GetTexture(view.Resource);
+  BufferDescription *buf = m_Ctx.GetBuffer(view.Resource);
+
+  QString viewParams;
+
+  // check to see if it's a texture
+  if(tex)
+  {
+    w = tex->width;
+    h = tex->height;
+    d = tex->depth;
+    a = tex->arraysize;
+    format = ToQStr(tex->format.strname);
+    name = ToQStr(tex->name);
+    typeName = ToQStr(tex->resType);
+
+    if(view.swizzle[0] != TextureSwizzle::Red || view.swizzle[1] != TextureSwizzle::Green ||
+       view.swizzle[2] != TextureSwizzle::Blue || view.swizzle[3] != TextureSwizzle::Alpha)
+    {
+      format += tr(" swizzle[%1%2%3%4]")
+                    .arg(ToQStr(view.swizzle[0]))
+                    .arg(ToQStr(view.swizzle[1]))
+                    .arg(ToQStr(view.swizzle[2]))
+                    .arg(ToQStr(view.swizzle[3]));
+    }
+
+    if(tex->mips > 1)
+      viewParams = tr("Highest Mip: %1, Num Mips: %2").arg(view.HighestMip).arg(view.NumMipLevels);
+
+    if(tex->arraysize > 1)
+    {
+      if(!viewParams.isEmpty())
+        viewParams += lit(", ");
+      viewParams +=
+          tr("First Slice: %1, Array Size: %2").arg(view.FirstArraySlice).arg(view.ArraySize);
+    }
+
+    if(view.MinLODClamp > 0.0f)
+    {
+      if(!viewParams.isEmpty())
+        viewParams += lit(", ");
+      viewParams += tr("MinLODClamp: %1").arg(view.MinLODClamp);
+    }
+  }
+
+  // if not a texture, it must be a buffer
+  if(buf)
+  {
+    w = buf->length;
+    h = 0;
+    d = 0;
+    a = 0;
+    format = ToQStr(view.Format.strname);
+    name = ToQStr(buf->name);
+    typeName = lit("Buffer");
+
+    if(view.BufferFlags & D3DBufferViewFlags::Raw)
+    {
+      typeName = rw ? lit("RWByteAddressBuffer") : lit("ByteAddressBuffer");
+    }
+    else if(view.ElementSize > 0)
+    {
+      // for structured buffers, display how many 'elements' there are in the buffer
+      typeName = QFormatStr("%1[%2]")
+                     .arg(rw ? lit("RWStructuredBuffer") : lit("StructuredBuffer"))
+                     .arg(buf->length / view.ElementSize);
+    }
+
+    if(view.BufferFlags & D3DBufferViewFlags::Append || view.BufferFlags & D3DBufferViewFlags::Counter)
+    {
+      typeName += tr(" (Count: %1)").arg(view.BufferStructCount);
+    }
+
+    if(shaderInput && !shaderInput->IsTexture)
+    {
+      if(view.Format.compType == CompType::Typeless)
+      {
+        if(shaderInput->variableType.members.count > 0)
+          viewFormat = format = lit("struct ") + ToQStr(shaderInput->variableType.descriptor.name);
+        else
+          viewFormat = format = ToQStr(shaderInput->variableType.descriptor.name);
+      }
+      else
+      {
+        format = ToQStr(view.Format.strname);
+      }
+    }
+
+    viewParams = tr("First Element: %1, Num Elements %2, Flags %3")
+                     .arg(view.FirstElement)
+                     .arg(view.NumElements)
+                     .arg(ToQStr(view.BufferFlags));
+
+    if(view.CounterResource != ResourceId())
+    {
+      QString counterName = tr("Buffer %1").arg(ToQStr(view.CounterResource));
+      BufferDescription *counterBuf = m_Ctx.GetBuffer(view.CounterResource);
+      if(counterBuf)
+        counterName = ToQStr(counterBuf->name);
+      viewParams += tr(", Counter in %1 at %2 bytes").arg(counterName).arg(view.CounterByteOffset);
+    }
+  }
+
+  if(viewParams.isEmpty())
+    viewParams = extraParams;
+  else
+    viewParams += lit(", ") + extraParams;
+
+  return {name, ToQStr(view.Type), typeName, w, h, d, a, viewFormat, format, viewParams};
+}
+
+void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::IA &ia)
+{
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Input Layouts"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const D3D12Pipe::Layout &l : ia.layouts)
+    {
+      rows.push_back({i, ToQStr(l.SemanticName), l.SemanticIndex, ToQStr(l.Format.strname),
+                      l.InputSlot, l.ByteOffset, (bool)l.PerInstance, l.InstanceDataStepRate});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Slot"), tr("Semantic Name"), tr("Semantic Index"), tr("Format"), tr("Input Slot"),
+              tr("Byte Offset"), tr("Per Instance"), tr("Instance Data Step Rate")},
+        rows);
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Vertex Buffers"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const D3D12Pipe::VB &vb : ia.vbuffers)
+    {
+      QString name = tr("Buffer %1").arg(ToQStr(vb.Buffer));
+      uint64_t length = 0;
+
+      if(vb.Buffer == ResourceId())
+      {
+        continue;
+      }
+      else
+      {
+        BufferDescription *buf = m_Ctx.GetBuffer(vb.Buffer);
+        if(buf)
+        {
+          name = ToQStr(buf->name);
+          length = buf->length;
+        }
+      }
+
+      length = qMin(length, (uint64_t)vb.Size);
+
+      rows.push_back({i, name, vb.Stride, vb.Offset, length});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Slot"), tr("Buffer"), tr("Stride"), tr("Offset"), tr("Byte Length")}, rows);
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Index Buffer"));
+    xml.writeEndElement();
+
+    QString name = tr("Buffer %1").arg(ToQStr(ia.ibuffer.Buffer));
+    uint64_t length = 0;
+
+    if(ia.ibuffer.Buffer == ResourceId())
+    {
+      name = tr("Empty");
+    }
+    else
+    {
+      BufferDescription *buf = m_Ctx.GetBuffer(ia.ibuffer.Buffer);
+      if(buf)
+      {
+        name = ToQStr(buf->name);
+        length = buf->length;
+      }
+    }
+
+    length = qMin(length, (uint64_t)ia.ibuffer.Size);
+
+    QString ifmt = lit("UNKNOWN");
+    if(m_Ctx.CurDrawcall()->indexByteWidth == 2)
+      ifmt = lit("R16_UINT");
+    if(m_Ctx.CurDrawcall()->indexByteWidth == 4)
+      ifmt = lit("R32_UINT");
+
+    m_Common.exportHTMLTable(xml, {tr("Buffer"), tr("Format"), tr("Offset"), tr("Byte Length")},
+                             {name, ifmt, ia.ibuffer.Offset, length});
+  }
+
+  xml.writeStartElement(lit("p"));
+  xml.writeEndElement();
+
+  m_Common.exportHTMLTable(xml, {tr("Primitive Topology")}, {ToQStr(m_Ctx.CurDrawcall()->topology)});
+}
+
+void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Shader &sh)
+{
+  ShaderReflection *shaderDetails = sh.ShaderDetails;
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Shader"));
+    xml.writeEndElement();
+
+    QString shadername = tr("Unknown");
+
+    const D3D12Pipe::State &state = m_Ctx.CurD3D12PipelineState();
+
+    if(sh.Object == ResourceId())
+      shadername = tr("Unbound");
+    else if(state.customName)
+      shadername =
+          QFormatStr("%1 - %2").arg(ToQStr(state.name)).arg(m_Ctx.CurPipelineState().Abbrev(sh.stage));
+    else
+      shadername =
+          tr("%1 - %2 Shader").arg(ToQStr(state.name)).arg(ToQStr(sh.stage, GraphicsAPI::D3D12));
+
+    if(shaderDetails && !shaderDetails->DebugInfo.entryFunc.empty() &&
+       !shaderDetails->DebugInfo.files.empty())
+    {
+      QString shaderfn;
+
+      int entryFile = shaderDetails->DebugInfo.entryFile;
+      if(entryFile < 0 || entryFile >= shaderDetails->DebugInfo.files.count)
+        entryFile = 0;
+
+      shaderfn = QFileInfo(ToQStr(shaderDetails->DebugInfo.files[entryFile].first)).fileName();
+
+      shadername =
+          QFormatStr("%1() - %2").arg(ToQStr(shaderDetails->DebugInfo.entryFunc)).arg(shaderfn);
+    }
+
+    xml.writeStartElement(lit("p"));
+    xml.writeCharacters(shadername);
+    xml.writeEndElement();
+
+    if(sh.Object == ResourceId())
+      return;
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Shader Resource Views"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    for(int space = 0; space < sh.Spaces.count; space++)
+    {
+      for(int reg = 0; reg < sh.Spaces[space].SRVs.count; reg++)
+      {
+        const D3D12Pipe::View &v = sh.Spaces[space].SRVs[reg];
+
+        // consider this register to not exist - it's in a gap defined by sparse root signature
+        // elements
+        if(v.RootElement == ~0U)
+          continue;
+
+        const ShaderResource *shaderInput = NULL;
+
+        if(sh.ShaderDetails)
+        {
+          for(int i = 0; i < sh.BindpointMapping.ReadOnlyResources.count; i++)
+          {
+            const BindpointMap &b = sh.BindpointMapping.ReadOnlyResources[i];
+            const ShaderResource &res = sh.ShaderDetails->ReadOnlyResources[i];
+
+            bool regMatch = b.bind == reg;
+
+            // handle unbounded arrays specially. It's illegal to have an unbounded array with
+            // anything after it
+            if(b.bind <= reg)
+              regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
+
+            if(b.bindset == space && regMatch && !res.IsReadOnly && !res.IsSampler)
+            {
+              shaderInput = &res;
+              break;
+            }
+          }
+        }
+
+        QString rootel = v.Immediate ? tr("#%1 Direct").arg(v.RootElement)
+                                     : tr("#%1 Table[%2]").arg(v.RootElement).arg(v.TableIndex);
+
+        QVariantList row = exportViewHTML(v, false, shaderInput, QString());
+
+        row.push_front(reg);
+        row.push_front(space);
+        row.push_front(rootel);
+
+        rows.push_back(row);
+      }
+    }
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("View Type"),
+              tr("Resource Type"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
+              tr("View Format"), tr("Resource Format"), tr("View Parameters")},
+        rows);
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Unordered Access Views"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    for(int space = 0; space < sh.Spaces.count; space++)
+    {
+      for(int reg = 0; reg < sh.Spaces[space].UAVs.count; reg++)
+      {
+        const D3D12Pipe::View &v = sh.Spaces[space].UAVs[reg];
+
+        // consider this register to not exist - it's in a gap defined by sparse root signature
+        // elements
+        if(v.RootElement == ~0U)
+          continue;
+
+        const ShaderResource *shaderInput = NULL;
+
+        if(sh.ShaderDetails)
+        {
+          for(int i = 0; i < sh.BindpointMapping.ReadOnlyResources.count; i++)
+          {
+            const BindpointMap &b = sh.BindpointMapping.ReadOnlyResources[i];
+            const ShaderResource &res = sh.ShaderDetails->ReadOnlyResources[i];
+
+            bool regMatch = b.bind == reg;
+
+            // handle unbounded arrays specially. It's illegal to have an unbounded array with
+            // anything after it
+            if(b.bind <= reg)
+              regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
+
+            if(b.bindset == space && regMatch && !res.IsReadOnly && !res.IsSampler)
+            {
+              shaderInput = &res;
+              break;
+            }
+          }
+        }
+
+        QString rootel = v.Immediate ? tr("#%1 Direct").arg(v.RootElement)
+                                     : tr("#%1 Table[%2]").arg(v.RootElement).arg(v.TableIndex);
+
+        QVariantList row = exportViewHTML(v, true, shaderInput, QString());
+
+        row.push_front(reg);
+        row.push_front(space);
+        row.push_front(rootel);
+
+        rows.push_back(row);
+      }
+    }
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("View Type"),
+              tr("Resource Type"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
+              tr("View Format"), tr("Resource Format"), tr("View Parameters")},
+        rows);
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Samplers"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    for(int space = 0; space < sh.Spaces.count; space++)
+    {
+      for(int reg = 0; reg < sh.Spaces[space].Samplers.count; reg++)
+      {
+        const D3D12Pipe::Sampler &s = sh.Spaces[space].Samplers[reg];
+
+        // consider this register to not exist - it's in a gap defined by sparse root signature
+        // elements
+        if(s.RootElement == ~0U)
+          continue;
+
+        const ShaderResource *shaderInput = NULL;
+
+        if(sh.ShaderDetails)
+        {
+          for(int i = 0; i < sh.BindpointMapping.ReadOnlyResources.count; i++)
+          {
+            const BindpointMap &b = sh.BindpointMapping.ReadOnlyResources[i];
+            const ShaderResource &res = sh.ShaderDetails->ReadOnlyResources[i];
+
+            bool regMatch = b.bind == reg;
+
+            // handle unbounded arrays specially. It's illegal to have an unbounded array with
+            // anything after it
+            if(b.bind <= reg)
+              regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
+
+            if(b.bindset == space && regMatch && res.IsSampler)
+            {
+              shaderInput = &res;
+              break;
+            }
+          }
+        }
+
+        QString rootel = s.Immediate ? tr("#%1 Static").arg(s.RootElement)
+                                     : tr("#%1 Table[%2]").arg(s.RootElement).arg(s.TableIndex);
+
+        {
+          QString regname = QString::number(reg);
+
+          if(shaderInput && !shaderInput->name.empty())
+            regname += lit(": ") + ToQStr(shaderInput->name);
+
+          QString borderColor = QFormatStr("%1, %2, %3, %4")
+                                    .arg(s.BorderColor[0])
+                                    .arg(s.BorderColor[1])
+                                    .arg(s.BorderColor[2])
+                                    .arg(s.BorderColor[3]);
+
+          QString addressing;
+
+          QString addPrefix;
+          QString addVal;
+
+          QString addr[] = {ToQStr(s.AddressU), ToQStr(s.AddressV), ToQStr(s.AddressW)};
+
+          // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
+          for(int a = 0; a < 3; a++)
+          {
+            const QString str[] = {lit("U"), lit("V"), lit("W")};
+            QString prefix = str[a];
+
+            if(a == 0 || addr[a] == addr[a - 1])
+            {
+              addPrefix += prefix;
+            }
+            else
+            {
+              addressing += QFormatStr("%1: %2, ").arg(addPrefix).arg(addVal);
+
+              addPrefix = prefix;
+            }
+            addVal = addr[a];
+          }
+
+          addressing += addPrefix + lit(": ") + addVal;
+
+          if(s.UseBorder())
+            addressing += QFormatStr("<%1>").arg(borderColor);
+
+          QString filter = ToQStr(s.Filter);
+
+          if(s.MaxAniso > 1)
+            filter += QFormatStr(" %1x").arg(s.MaxAniso);
+
+          if(s.Filter.func == FilterFunc::Comparison)
+            filter += QFormatStr(" (%1)").arg(ToQStr(s.Comparison));
+          else if(s.Filter.func != FilterFunc::Normal)
+            filter += QFormatStr(" (%1)").arg(ToQStr(s.Filter.func));
+
+          rows.push_back({rootel, space, regname, addressing, filter,
+                          QFormatStr("%1 - %2")
+                              .arg(s.MinLOD == -FLT_MAX ? lit("0") : QString::number(s.MinLOD))
+                              .arg(s.MaxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.MaxLOD)),
+                          s.MipLODBias});
+        }
+      }
+    }
+
+    m_Common.exportHTMLTable(xml, {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Addressing"),
+                                   tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")},
+                             rows);
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Constant Buffers"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    for(int space = 0; space < sh.Spaces.count; space++)
+    {
+      for(int reg = 0; reg < sh.Spaces[space].ConstantBuffers.count; reg++)
+      {
+        const D3D12Pipe::CBuffer &b = sh.Spaces[space].ConstantBuffers[reg];
+
+        const ConstantBlock *shaderCBuf = NULL;
+
+        if(sh.ShaderDetails)
+        {
+          for(int i = 0; i < sh.BindpointMapping.ConstantBlocks.count; i++)
+          {
+            const BindpointMap &bm = sh.BindpointMapping.ConstantBlocks[i];
+            const ConstantBlock &res = sh.ShaderDetails->ConstantBlocks[i];
+
+            bool regMatch = bm.bind == reg;
+
+            // handle unbounded arrays specially. It's illegal to have an unbounded array with
+            // anything after it
+            if(bm.bind <= reg)
+              regMatch = (bm.arraySize == ~0U) || (bm.bind + (int)bm.arraySize > reg);
+
+            if(bm.bindset == space && regMatch)
+            {
+              shaderCBuf = &res;
+              break;
+            }
+          }
+        }
+
+        QString rootel;
+
+        if(b.Immediate)
+        {
+          if(!b.RootValues.empty())
+            rootel = tr("#%1 Consts").arg(b.RootElement);
+          else
+            rootel = tr("#%1 Direct").arg(b.RootElement);
+        }
+        else
+        {
+          rootel = tr("#%1 Table[%2]").arg(b.RootElement).arg(b.TableIndex);
+        }
+
+        {
+          QString name = tr("Constant Buffer %1").arg(ToQStr(b.Buffer));
+          uint64_t length = b.ByteSize;
+          uint64_t offset = b.Offset;
+          int numvars = shaderCBuf ? shaderCBuf->variables.count : 0;
+          uint32_t bytesize = shaderCBuf ? shaderCBuf->byteSize : 0;
+
+          if(b.Immediate && !b.RootValues.empty())
+            bytesize = uint32_t(b.RootValues.count * 4);
+
+          BufferDescription *buf = m_Ctx.GetBuffer(b.Buffer);
+
+          if(buf)
+            name = ToQStr(buf->name);
+          else
+            name = tr("Empty");
+
+          QString regname = QString::number(reg);
+
+          if(shaderCBuf && !shaderCBuf->name.empty())
+            regname += lit(": ") + ToQStr(shaderCBuf->name);
+
+          length = qMin(length, (uint64_t)bytesize);
+
+          rows.push_back({rootel, space, regname, name, offset, length, numvars});
+        }
+      }
+    }
+
+    m_Common.exportHTMLTable(xml,
+                             {tr("Root Signature Index"), tr("Space"), tr("Register"), tr("Buffer"),
+                              tr("Byte Offset"), tr("Byte Size"), tr("Number of Variables")},
+                             rows);
+  }
+}
+
+void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Streamout &so)
+{
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Stream Out Targets"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const D3D12Pipe::SOBind &o : so.Outputs)
+    {
+      QString name = tr("Buffer %1").arg(ToQStr(o.Buffer));
+      uint64_t length = 0;
+      QString counterName = tr("Buffer %1").arg(ToQStr(o.WrittenCountBuffer));
+      uint64_t counterLength = 0;
+
+      if(o.Buffer == ResourceId())
+      {
+        name = tr("Empty");
+      }
+      else
+      {
+        BufferDescription *buf = m_Ctx.GetBuffer(o.Buffer);
+        if(buf)
+        {
+          name = ToQStr(buf->name);
+          length = buf->length;
+        }
+      }
+
+      if(o.WrittenCountBuffer == ResourceId())
+      {
+        counterName = tr("Empty");
+      }
+      else
+      {
+        BufferDescription *buf = m_Ctx.GetBuffer(o.WrittenCountBuffer);
+        if(buf)
+        {
+          counterName = ToQStr(buf->name);
+          counterLength = buf->length;
+        }
+      }
+
+      length = qMin(length, o.Size);
+
+      rows.push_back({i, name, o.Offset, length, counterName, o.WrittenCountOffset, counterLength});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Slot"), tr("Buffer"), tr("Offset"), tr("Byte Length"), tr("Counter Buffer"),
+              tr("Counter Offset"), tr("Counter Byte Length")},
+        rows);
+  }
+}
+
+void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Rasterizer &rs)
+{
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("States"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(xml, {tr("Fill Mode"), tr("Cull Mode"), tr("Front CCW")},
+                             {ToQStr(rs.m_State.fillMode), ToQStr(rs.m_State.cullMode),
+                              rs.m_State.FrontCCW ? tr("Yes") : tr("No")});
+
+    xml.writeStartElement(lit("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Line AA Enable"), tr("Multisample Enable"), tr("Forced Sample Count"),
+              tr("Conservative Raster"), tr("Sample Mask")},
+        {rs.m_State.AntialiasedLineEnable ? tr("Yes") : tr("No"),
+         rs.m_State.MultisampleEnable ? tr("Yes") : tr("No"), rs.m_State.ForcedSampleCount,
+         rs.m_State.ConservativeRasterization ? tr("Yes") : tr("No"),
+         Formatter::Format(rs.SampleMask, true)});
+
+    xml.writeStartElement(lit("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Depth Clip"), tr("Depth Bias"), tr("Depth Bias Clamp"), tr("Slope Scaled Bias")},
+        {rs.m_State.DepthClip ? tr("Yes") : tr("No"), rs.m_State.DepthBias,
+         Formatter::Format(rs.m_State.DepthBiasClamp),
+         Formatter::Format(rs.m_State.SlopeScaledDepthBias)});
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Viewports"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const D3D12Pipe::Viewport &v : rs.Viewports)
+    {
+      if(v.Width == v.Height && v.Width == 0 && v.Height == 0)
+        continue;
+
+      rows.push_back({i, v.X, v.Y, v.Width, v.Height, v.MinDepth, v.MaxDepth});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"),
+                                   tr("Min Depth"), tr("Max Depth")},
+                             rows);
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Scissors"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const D3D12Pipe::Scissor &s : rs.Scissors)
+    {
+      if(s.right == 0 && s.bottom == 0)
+        continue;
+
+      rows.push_back({i, s.left, s.top, s.right - s.left, s.bottom - s.top});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(xml, {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height")}, rows);
+  }
+}
+
+void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::OM &om)
+{
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Blend State"));
+    xml.writeEndElement();
+
+    QString blendFactor = QFormatStr("%1, %2, %3, %4")
+                              .arg(om.m_BlendState.BlendFactor[0], 0, 'f', 2)
+                              .arg(om.m_BlendState.BlendFactor[1], 0, 'f', 2)
+                              .arg(om.m_BlendState.BlendFactor[2], 0, 'f', 2)
+                              .arg(om.m_BlendState.BlendFactor[3], 0, 'f', 2);
+
+    m_Common.exportHTMLTable(xml, {tr("Independent Blend Enable"), tr("Alpha to Coverage"),
+                                   tr("Blend Factor"), tr("Multisampling Rate")},
+                             {om.m_BlendState.IndependentBlend ? tr("Yes") : tr("No"),
+                              om.m_BlendState.AlphaToCoverage ? tr("Yes") : tr("No"), blendFactor,
+                              tr("%1x %2 qual").arg(om.multiSampleCount).arg(om.multiSampleQuality)});
+
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Target Blends"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    int i = 0;
+    for(const D3D12Pipe::Blend &b : om.m_BlendState.Blends)
+    {
+      if(i >= om.RenderTargets.count)
+        continue;
+
+      QString mask = QFormatStr("%1%2%3%4")
+                         .arg((b.WriteMask & 0x1) == 0 ? lit("_") : lit("R"))
+                         .arg((b.WriteMask & 0x2) == 0 ? lit("_") : lit("G"))
+                         .arg((b.WriteMask & 0x4) == 0 ? lit("_") : lit("B"))
+                         .arg((b.WriteMask & 0x8) == 0 ? lit("_") : lit("A"));
+
+      rows.push_back({i, b.Enabled ? tr("Yes") : tr("No"), b.LogicEnabled ? tr("Yes") : tr("No"),
+                      ToQStr(b.m_Blend.Source), ToQStr(b.m_Blend.Destination),
+                      ToQStr(b.m_Blend.Operation), ToQStr(b.m_AlphaBlend.Source),
+                      ToQStr(b.m_AlphaBlend.Destination), ToQStr(b.m_AlphaBlend.Operation),
+                      ToQStr(b.Logic), mask});
+
+      i++;
+    }
+
+    m_Common.exportHTMLTable(
+        xml,
+        {
+            tr("Slot"), tr("Blend Enable"), tr("Logic Enable"), tr("Blend Source"),
+            tr("Blend Destination"), tr("Blend Operation"), tr("Alpha Blend Source"),
+            tr("Alpha Blend Destination"), tr("Alpha Blend Operation"), tr("Logic Operation"),
+            tr("Write Mask"),
+        },
+        rows);
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Depth State"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Depth Test Enable"), tr("Depth Writes Enable"), tr("Depth Function")},
+        {om.m_State.DepthEnable ? tr("Yes") : tr("No"),
+         om.m_State.DepthWrites ? tr("Yes") : tr("No"), ToQStr(om.m_State.DepthFunc)});
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Stencil State"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Stencil Test Enable"), tr("Stencil Read Mask"), tr("Stencil Write Mask")},
+        {om.m_State.StencilEnable ? tr("Yes") : tr("No"),
+         Formatter::Format(om.m_State.StencilReadMask, true),
+         Formatter::Format(om.m_State.StencilWriteMask, true)});
+
+    xml.writeStartElement(lit("p"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Face"), tr("Function"), tr("Pass Operation"), tr("Fail Operation"),
+              tr("Depth Fail Operation")},
+        {
+            {tr("Front"), ToQStr(om.m_State.m_FrontFace.Func), ToQStr(om.m_State.m_FrontFace.PassOp),
+             ToQStr(om.m_State.m_FrontFace.FailOp), ToQStr(om.m_State.m_FrontFace.DepthFailOp)},
+            {tr("Back"), ToQStr(om.m_State.m_BackFace.Func), ToQStr(om.m_State.m_BackFace.PassOp),
+             ToQStr(om.m_State.m_BackFace.FailOp), ToQStr(om.m_State.m_BackFace.DepthFailOp)},
+        });
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Render targets"));
+    xml.writeEndElement();
+
+    QList<QVariantList> rows;
+
+    for(int i = 0; i < om.RenderTargets.count; i++)
+    {
+      if(om.RenderTargets[i].Resource == ResourceId())
+        continue;
+
+      QVariantList row = exportViewHTML(om.RenderTargets[i], false, NULL, QString());
+      row.push_front(i);
+
+      rows.push_back(row);
+    }
+
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Slot"), tr("Name"), tr("View Type"), tr("Resource Type"),
+                                 tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
+                                 tr("View Format"), tr("Resource Format"), tr("View Parameters"),
+                             },
+                             rows);
+  }
+
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Depth target"));
+    xml.writeEndElement();
+
+    QString extra;
+
+    if(om.DepthReadOnly && om.StencilReadOnly)
+      extra = tr("Depth & Stencil Read-Only");
+    else if(om.DepthReadOnly)
+      extra = tr("Depth Read-Only");
+    else if(om.StencilReadOnly)
+      extra = tr("Stencil Read-Only");
+
+    m_Common.exportHTMLTable(xml,
+                             {
+                                 tr("Name"), tr("View Type"), tr("Resource Type"), tr("Width"),
+                                 tr("Height"), tr("Depth"), tr("Array Size"), tr("View Format"),
+                                 tr("Resource Format"), tr("View Parameters"),
+                             },
+                             {exportViewHTML(om.DepthTarget, false, NULL, extra)});
+  }
+}
+
 void D3D12PipelineStateViewer::on_exportHTML_clicked()
 {
+  QXmlStreamWriter *xmlptr = m_Common.beginHTMLExport();
+
+  if(xmlptr)
+  {
+    QXmlStreamWriter &xml = *xmlptr;
+
+    const QStringList &stageNames = ui->pipeFlow->stageNames();
+    const QStringList &stageAbbrevs = ui->pipeFlow->stageAbbreviations();
+
+    int stage = 0;
+    for(const QString &sn : stageNames)
+    {
+      xml.writeStartElement(lit("div"));
+      xml.writeStartElement(lit("a"));
+      xml.writeAttribute(lit("name"), stageAbbrevs[stage]);
+      xml.writeEndElement();
+      xml.writeEndElement();
+
+      xml.writeStartElement(lit("div"));
+      xml.writeAttribute(lit("class"), lit("stage"));
+
+      xml.writeStartElement(lit("h1"));
+      xml.writeCharacters(sn);
+      xml.writeEndElement();
+
+      switch(stage)
+      {
+        case 0: exportHTML(xml, m_Ctx.CurD3D12PipelineState().m_IA); break;
+        case 1: exportHTML(xml, m_Ctx.CurD3D12PipelineState().m_VS); break;
+        case 2: exportHTML(xml, m_Ctx.CurD3D12PipelineState().m_HS); break;
+        case 3: exportHTML(xml, m_Ctx.CurD3D12PipelineState().m_DS); break;
+        case 4:
+          exportHTML(xml, m_Ctx.CurD3D12PipelineState().m_GS);
+          exportHTML(xml, m_Ctx.CurD3D12PipelineState().m_SO);
+          break;
+        case 5: exportHTML(xml, m_Ctx.CurD3D12PipelineState().m_RS); break;
+        case 6: exportHTML(xml, m_Ctx.CurD3D12PipelineState().m_PS); break;
+        case 7: exportHTML(xml, m_Ctx.CurD3D12PipelineState().m_OM); break;
+        case 8: exportHTML(xml, m_Ctx.CurD3D12PipelineState().m_CS); break;
+      }
+
+      xml.writeEndElement();
+
+      stage++;
+    }
+
+    m_Common.endHTMLExport(xmlptr);
+  }
 }
 
 void D3D12PipelineStateViewer::on_meshView_clicked()

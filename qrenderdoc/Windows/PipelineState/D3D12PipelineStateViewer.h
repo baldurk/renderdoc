@@ -32,6 +32,8 @@ namespace Ui
 class D3D12PipelineStateViewer;
 }
 
+class QXmlStreamWriter;
+
 class RDTreeWidget;
 class RDTreeWidgetItem;
 struct D3D12ViewTag;
@@ -104,6 +106,14 @@ private:
   void setViewDetails(RDTreeWidgetItem *node, const D3D12ViewTag &view, BufferDescription *buf);
 
   bool showNode(bool usedSlot, bool filledSlot);
+
+  QVariantList exportViewHTML(const D3D12Pipe::View &view, bool rw,
+                              const ShaderResource *shaderInput, const QString &extraParams);
+  void exportHTML(QXmlStreamWriter &xml, D3D12Pipe::IA &ia);
+  void exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Shader &sh);
+  void exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Streamout &so);
+  void exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Rasterizer &rs);
+  void exportHTML(QXmlStreamWriter &xml, D3D12Pipe::OM &om);
 
   // keep track of the VB nodes (we want to be able to highlight them easily on hover)
   QList<RDTreeWidgetItem *> m_VBNodes;
