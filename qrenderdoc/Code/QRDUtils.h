@@ -629,19 +629,19 @@ struct Formatter
   static QString Format(double f, bool hex = false);
   static QString Format(uint64_t u, bool hex = false)
   {
-    return QFormatStr("%1").arg(u, hex ? 16 : 0, hex ? 16 : 10, QLatin1Char('0'));
+    return QFormatStr("%1").arg(u, hex ? 16 : 0, hex ? 16 : 10, QLatin1Char('0')).toUpper();
   }
   static QString Format(uint32_t u, bool hex = false)
   {
-    return QFormatStr("%1").arg(u, hex ? 8 : 0, hex ? 16 : 10, QLatin1Char('0'));
+    return QFormatStr("%1").arg(u, hex ? 8 : 0, hex ? 16 : 10, QLatin1Char('0')).toUpper();
   }
   static QString Format(uint16_t u, bool hex = false)
   {
-    return QFormatStr("%1").arg(u, hex ? 4 : 0, hex ? 16 : 10, QLatin1Char('0'));
+    return QFormatStr("%1").arg(u, hex ? 4 : 0, hex ? 16 : 10, QLatin1Char('0')).toUpper();
   }
   static QString Format(uint8_t u, bool hex = false)
   {
-    return QFormatStr("%1").arg(u, hex ? 2 : 0, hex ? 16 : 10, QLatin1Char('0'));
+    return QFormatStr("%1").arg(u, hex ? 2 : 0, hex ? 16 : 10, QLatin1Char('0')).toUpper();
   }
   static QString HexFormat(uint32_t u, uint32_t byteSize)
   {
