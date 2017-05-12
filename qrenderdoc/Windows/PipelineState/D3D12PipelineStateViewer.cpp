@@ -1643,10 +1643,10 @@ void D3D12PipelineStateViewer::setState()
   ui->independentBlend->setPixmap(state.m_OM.m_BlendState.IndependentBlend ? tick : cross);
 
   ui->blendFactor->setText(QFormatStr("%1, %2, %3, %4")
-                               .arg(state.m_OM.m_BlendState.BlendFactor[0], 2)
-                               .arg(state.m_OM.m_BlendState.BlendFactor[1], 2)
-                               .arg(state.m_OM.m_BlendState.BlendFactor[2], 2)
-                               .arg(state.m_OM.m_BlendState.BlendFactor[3], 2));
+                               .arg(state.m_OM.m_BlendState.BlendFactor[0], 0, 'f', 2)
+                               .arg(state.m_OM.m_BlendState.BlendFactor[1], 0, 'f', 2)
+                               .arg(state.m_OM.m_BlendState.BlendFactor[2], 0, 'f', 2)
+                               .arg(state.m_OM.m_BlendState.BlendFactor[3], 0, 'f', 2));
 
   ui->depthEnabled->setPixmap(state.m_OM.m_State.DepthEnable ? tick : cross);
   ui->depthFunc->setText(ToQStr(state.m_OM.m_State.DepthFunc));

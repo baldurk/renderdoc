@@ -1902,10 +1902,10 @@ void VulkanPipelineStateViewer::setState()
   ui->blends->verticalScrollBar()->setValue(vs);
 
   ui->blendFactor->setText(QFormatStr("%1, %2, %3, %4")
-                               .arg(state.CB.blendConst[0], 2)
-                               .arg(state.CB.blendConst[1], 2)
-                               .arg(state.CB.blendConst[2], 2)
-                               .arg(state.CB.blendConst[3], 2));
+                               .arg(state.CB.blendConst[0], 0, 'f', 2)
+                               .arg(state.CB.blendConst[1], 0, 'f', 2)
+                               .arg(state.CB.blendConst[2], 0, 'f', 2)
+                               .arg(state.CB.blendConst[3], 0, 'f', 2));
   ui->logicOp->setText(state.CB.logicOpEnable ? ToQStr(state.CB.logic) : lit("-"));
   ui->alphaToOne->setPixmap(state.CB.alphaToOneEnable ? tick : cross);
 

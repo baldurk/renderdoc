@@ -1887,10 +1887,10 @@ void GLPipelineStateViewer::setState()
   ui->blends->verticalScrollBar()->setValue(vs);
 
   ui->blendFactor->setText(QFormatStr("%1, %2, %3, %4")
-                               .arg(state.m_FB.m_Blending.BlendFactor[0], 2)
-                               .arg(state.m_FB.m_Blending.BlendFactor[1], 2)
-                               .arg(state.m_FB.m_Blending.BlendFactor[2], 2)
-                               .arg(state.m_FB.m_Blending.BlendFactor[3], 2));
+                               .arg(state.m_FB.m_Blending.BlendFactor[0], 0, 'f', 2)
+                               .arg(state.m_FB.m_Blending.BlendFactor[1], 0, 'f', 2)
+                               .arg(state.m_FB.m_Blending.BlendFactor[2], 0, 'f', 2)
+                               .arg(state.m_FB.m_Blending.BlendFactor[3], 0, 'f', 2));
 
   ui->depthEnabled->setPixmap(state.m_DepthState.DepthEnable ? tick : cross);
   ui->depthFunc->setText(ToQStr(state.m_DepthState.DepthFunc));
