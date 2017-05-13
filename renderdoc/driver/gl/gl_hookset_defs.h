@@ -769,6 +769,8 @@
   HookExtension(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
   HookExtension(PFNGLDISPATCHCOMPUTEINDIRECTPROC, glDispatchComputeIndirect); \
   HookExtension(PFNGLCOPYIMAGESUBDATAPROC, glCopyImageSubData); \
+  HookExtensionAlias(PFNGLCOPYIMAGESUBDATAPROC, glCopyImageSubData, glCopyImageSubDataEXT); \
+  HookExtensionAlias(PFNGLCOPYIMAGESUBDATAPROC, glCopyImageSubData, glCopyImageSubDataOES); \
   HookExtension(PFNGLFRAMEBUFFERPARAMETERIPROC, glFramebufferParameteri); \
   HookExtension(PFNGLGETFRAMEBUFFERPARAMETERIVPROC, glGetFramebufferParameteriv); \
   HookExtension(PFNGLGETINTERNALFORMATI64VPROC, glGetInternalformati64v); \
