@@ -731,6 +731,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_ldr");
   m_GLESExtensions.push_back("GL_KHR_blend_equation_advanced_coherent");
 
+  m_GLESExtensions.push_back("GL_OES_copy_image");
   m_GLESExtensions.push_back("GL_OES_gpu_shader5");
   m_GLESExtensions.push_back("GL_OES_rgb8_rgba8");
   m_GLESExtensions.push_back("GL_OES_mapbuffer");
@@ -742,6 +743,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_texture_half_float");
   m_GLESExtensions.push_back("GL_OES_texture_half_float_linear");
 
+  m_GLESExtensions.push_back("GL_EXT_copy_image");
   m_GLESExtensions.push_back("GL_EXT_geometry_point_size");
   m_GLESExtensions.push_back("GL_EXT_geometry_shader");
   m_GLESExtensions.push_back("GL_EXT_sRGB");

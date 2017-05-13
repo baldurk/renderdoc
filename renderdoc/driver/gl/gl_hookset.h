@@ -129,7 +129,7 @@ struct GLHookSet
   PFNGLTEXPARAMETERIIVPROC glTexParameterIiv;      // aliases glTexParameterIivEXT
   PFNGLTEXPARAMETERIUIVPROC glTexParameterIuiv;    // aliases glTexParameterIuivEXT
   PFNGLGENERATEMIPMAPPROC glGenerateMipmap;        // aliases glGenerateMipmapEXT
-  PFNGLCOPYIMAGESUBDATAPROC glCopyImageSubData;
+  PFNGLCOPYIMAGESUBDATAPROC glCopyImageSubData;    // aliases glCopyImageSubDataEXT, glCopyImageSubDataOES
   PFNGLCOPYTEXSUBIMAGE3DPROC glCopyTexSubImage3D;
   PFNGLGETINTERNALFORMATIVPROC glGetInternalformativ;
   PFNGLGETINTERNALFORMATI64VPROC glGetInternalformati64v;
