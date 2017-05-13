@@ -744,6 +744,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_texture_half_float_linear");
 
   m_GLESExtensions.push_back("GL_EXT_copy_image");
+  m_GLESExtensions.push_back("GL_EXT_draw_buffers_indexed");
   m_GLESExtensions.push_back("GL_EXT_geometry_point_size");
   m_GLESExtensions.push_back("GL_EXT_geometry_shader");
   m_GLESExtensions.push_back("GL_EXT_sRGB");
