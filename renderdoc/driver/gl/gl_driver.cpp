@@ -735,15 +735,16 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_gpu_shader5");
   m_GLESExtensions.push_back("GL_OES_rgb8_rgba8");
   m_GLESExtensions.push_back("GL_OES_mapbuffer");
+  m_GLESExtensions.push_back("GL_OES_sample_shading");
   m_GLESExtensions.push_back("GL_OES_standard_derivatives");
+  m_GLESExtensions.push_back("GL_OES_tessellation_shader");
   m_GLESExtensions.push_back("GL_OES_texture_compression_astc");
   m_GLESExtensions.push_back("GL_OES_texture_stencil8");
   m_GLESExtensions.push_back("GL_OES_texture_float");
   m_GLESExtensions.push_back("GL_OES_texture_float_linear");
   m_GLESExtensions.push_back("GL_OES_texture_half_float");
   m_GLESExtensions.push_back("GL_OES_texture_half_float_linear");
-  m_GLESExtensions.push_back("GL_OES_sample_shading");
-
+  
   m_GLESExtensions.push_back("GL_EXT_copy_image");
   m_GLESExtensions.push_back("GL_EXT_draw_buffers_indexed");
   m_GLESExtensions.push_back("GL_EXT_geometry_point_size");
@@ -751,6 +752,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_EXT_sRGB");
   m_GLESExtensions.push_back("GL_EXT_sRGB_write_control");
   m_GLESExtensions.push_back("GL_EXT_pvrtc_sRGB");
+  m_GLESExtensions.push_back("GL_EXT_tessellation_shader");
   m_GLESExtensions.push_back("GL_EXT_texture_format_BGRA8888");
   m_GLESExtensions.push_back("GL_EXT_texture_norm16");
   m_GLESExtensions.push_back("GL_EXT_texture_rg");

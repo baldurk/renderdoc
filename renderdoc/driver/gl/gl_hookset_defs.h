@@ -596,6 +596,8 @@
   HookExtension(PFNGLGETUNIFORMSUBROUTINEUIVPROC, glGetUniformSubroutineuiv); \
   HookExtension(PFNGLGETPROGRAMSTAGEIVPROC, glGetProgramStageiv); \
   HookExtension(PFNGLPATCHPARAMETERIPROC, glPatchParameteri); \
+  HookExtensionAlias(PFNGLPATCHPARAMETERIPROC, glPatchParameteri, glPatchParameteriEXT); \
+  HookExtensionAlias(PFNGLPATCHPARAMETERIPROC, glPatchParameteri, glPatchParameteriOES); \
   HookExtension(PFNGLPATCHPARAMETERFVPROC, glPatchParameterfv); \
   HookExtension(PFNGLBINDTRANSFORMFEEDBACKPROC, glBindTransformFeedback); \
   HookExtension(PFNGLDELETETRANSFORMFEEDBACKSPROC, glDeleteTransformFeedbacks); \

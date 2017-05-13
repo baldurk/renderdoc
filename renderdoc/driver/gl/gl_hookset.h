@@ -450,7 +450,7 @@ struct GLHookSet
   PFNGLSAMPLERPARAMETERFVPROC glSamplerParameterfv;
   PFNGLSAMPLERPARAMETERIIVPROC glSamplerParameterIiv;
   PFNGLSAMPLERPARAMETERIUIVPROC glSamplerParameterIuiv;
-  PFNGLPATCHPARAMETERIPROC glPatchParameteri;
+  PFNGLPATCHPARAMETERIPROC glPatchParameteri;    // aliases glPatchParameteriEXT, glPatchParameteriOES
   PFNGLPATCHPARAMETERFVPROC glPatchParameterfv;
   PFNGLPOINTPARAMETERFPROC glPointParameterf;    // aliases glPointParameterfARB, glPointParameterfEXT
   PFNGLPOINTPARAMETERFVPROC glPointParameterfv;    // aliases glPointParameterfvARB, glPointParameterfvEXT
