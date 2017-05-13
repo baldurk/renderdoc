@@ -239,7 +239,7 @@ struct GLHookSet
   PFNGLCOLORMASKIPROC glColorMaski;    // aliases glColorMaskIndexedEXT
   PFNGLSAMPLEMASKIPROC glSampleMaski;
   PFNGLSAMPLECOVERAGEPROC glSampleCoverage;        // aliases glSampleCoverageARB
-  PFNGLMINSAMPLESHADINGPROC glMinSampleShading;    // aliases glMinSampleShadingARB
+  PFNGLMINSAMPLESHADINGPROC glMinSampleShading;    // aliases glMinSampleShadingARB, glMinSampleShadingOES
   PFNGLDEPTHRANGEFPROC glDepthRangef;
   PFNGLDEPTHRANGEINDEXEDPROC glDepthRangeIndexed;
   PFNGLDEPTHRANGEARRAYVPROC glDepthRangeArrayv;

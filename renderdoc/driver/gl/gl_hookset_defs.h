@@ -554,6 +554,7 @@
   HookExtension(PFNGLVERTEXATTRIBP4UIVPROC, glVertexAttribP4uiv); \
   HookExtension(PFNGLMINSAMPLESHADINGPROC, glMinSampleShading); \
   HookExtensionAlias(PFNGLMINSAMPLESHADINGPROC, glMinSampleShading, glMinSampleShadingARB); \
+  HookExtensionAlias(PFNGLMINSAMPLESHADINGPROC, glMinSampleShading, glMinSampleShadingOES); \
   HookExtension(PFNGLBLENDEQUATIONIPROC, glBlendEquationi); \
   HookExtensionAlias(PFNGLBLENDEQUATIONIPROC, glBlendEquationi, glBlendEquationiARB); \
   HookExtensionAlias(PFNGLBLENDEQUATIONIPROC, glBlendEquationi, glBlendEquationiEXT); \
