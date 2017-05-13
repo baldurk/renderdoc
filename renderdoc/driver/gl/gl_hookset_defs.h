@@ -325,14 +325,18 @@
   HookExtension(PFNGLUNIFORMMATRIX3X4FVPROC, glUniformMatrix3x4fv); \
   HookExtension(PFNGLUNIFORMMATRIX4X3FVPROC, glUniformMatrix4x3fv); \
   HookExtension(PFNGLCOLORMASKIPROC, glColorMaski); \
+  HookExtensionAlias(PFNGLCOLORMASKIPROC, glColorMaski, glColorMaskiEXT); \
   HookExtensionAlias(PFNGLCOLORMASKIPROC, glColorMaski, glColorMaskIndexedEXT); \
   HookExtension(PFNGLGETBOOLEANI_VPROC, glGetBooleani_v); \
   HookExtension(PFNGLGETINTEGERI_VPROC, glGetIntegeri_v); \
   HookExtension(PFNGLENABLEIPROC, glEnablei); \
+  HookExtensionAlias(PFNGLENABLEIPROC, glEnablei, glEnableiEXT); \
   HookExtensionAlias(PFNGLENABLEIPROC, glEnablei, glEnableIndexedEXT); \
   HookExtension(PFNGLDISABLEIPROC, glDisablei); \
+  HookExtensionAlias(PFNGLDISABLEIPROC, glDisablei, glDisableiEXT); \
   HookExtensionAlias(PFNGLDISABLEIPROC, glDisablei, glDisableIndexedEXT); \
   HookExtension(PFNGLISENABLEDIPROC, glIsEnabledi); \
+  HookExtensionAlias(PFNGLISENABLEDIPROC, glIsEnabledi, glIsEnablediEXT); \
   HookExtensionAlias(PFNGLISENABLEDIPROC, glIsEnabledi, glIsEnabledIndexedEXT); \
   HookExtension(PFNGLBEGINTRANSFORMFEEDBACKPROC, glBeginTransformFeedback); \
   HookExtensionAlias(PFNGLBEGINTRANSFORMFEEDBACKPROC, glBeginTransformFeedback, glBeginTransformFeedbackEXT); \
@@ -552,12 +556,16 @@
   HookExtensionAlias(PFNGLMINSAMPLESHADINGPROC, glMinSampleShading, glMinSampleShadingARB); \
   HookExtension(PFNGLBLENDEQUATIONIPROC, glBlendEquationi); \
   HookExtensionAlias(PFNGLBLENDEQUATIONIPROC, glBlendEquationi, glBlendEquationiARB); \
+  HookExtensionAlias(PFNGLBLENDEQUATIONIPROC, glBlendEquationi, glBlendEquationiEXT); \
   HookExtension(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei); \
   HookExtensionAlias(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei, glBlendEquationSeparateiARB); \
+  HookExtensionAlias(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei, glBlendEquationSeparateiEXT); \
   HookExtension(PFNGLBLENDFUNCIPROC, glBlendFunci); \
   HookExtensionAlias(PFNGLBLENDFUNCIPROC, glBlendFunci, glBlendFunciARB); \
+  HookExtensionAlias(PFNGLBLENDFUNCIPROC, glBlendFunci, glBlendFunciEXT); \
   HookExtension(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei); \
   HookExtensionAlias(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei, glBlendFuncSeparateiARB); \
+  HookExtensionAlias(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei, glBlendFuncSeparateiEXT); \
   HookExtension(PFNGLDRAWARRAYSINDIRECTPROC, glDrawArraysIndirect); \
   HookExtension(PFNGLDRAWELEMENTSINDIRECTPROC, glDrawElementsIndirect); \
   HookExtension(PFNGLUNIFORM1DPROC, glUniform1d); \

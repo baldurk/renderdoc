@@ -225,13 +225,13 @@ struct GLHookSet
   PFNGLGETVERTEXATTRIBFVPROC glGetVertexAttribfv;
   PFNGLCHECKFRAMEBUFFERSTATUSPROC glCheckFramebufferStatus;                            // aliases glCheckFramebufferStatusEXT
   PFNGLBLENDCOLORPROC glBlendColor;                    // aliases glBlendColorEXT
-  PFNGLBLENDFUNCIPROC glBlendFunci;                    // aliases glBlendFunciARB
+  PFNGLBLENDFUNCIPROC glBlendFunci;                    // aliases glBlendFunciARB, glBlendFunciEXT
   PFNGLBLENDFUNCSEPARATEPROC glBlendFuncSeparate;      // aliases glBlendFuncSeparateARB
-  PFNGLBLENDFUNCSEPARATEIPROC glBlendFuncSeparatei;    // aliases glBlendFuncSeparateiARB
+  PFNGLBLENDFUNCSEPARATEIPROC glBlendFuncSeparatei;    // aliases glBlendFuncSeparateiARB, glBlendFuncSeparateiEXT
   PFNGLBLENDEQUATIONPROC glBlendEquation;              // aliases glBlendEquationEXT
-  PFNGLBLENDEQUATIONIPROC glBlendEquationi;            // aliases glBlendEquationiARB
+  PFNGLBLENDEQUATIONIPROC glBlendEquationi;            // aliases glBlendEquationiARB, glBlendEquationiEXT
   PFNGLBLENDEQUATIONSEPARATEPROC glBlendEquationSeparate;    // aliases glBlendEquationSeparateARB, glBlendEquationSeparateEXT
-  PFNGLBLENDEQUATIONSEPARATEIPROC glBlendEquationSeparatei;    // aliases glBlendEquationSeparateiARB
+  PFNGLBLENDEQUATIONSEPARATEIPROC glBlendEquationSeparatei;    // aliases glBlendEquationSeparateiARB, glBlendEquationSeparateiEXT
   PFNGLBLENDBARRIERKHRPROC glBlendBarrierKHR;
   PFNGLSTENCILFUNCSEPARATEPROC glStencilFuncSeparate;
   PFNGLSTENCILMASKSEPARATEPROC glStencilMaskSeparate;
@@ -276,9 +276,9 @@ struct GLHookSet
   PFNGLOBJECTLABELPROC glObjectLabel;                      // aliases glObjectLabelKHR
   PFNGLLABELOBJECTEXTPROC glLabelObjectEXT;
   PFNGLOBJECTPTRLABELPROC glObjectPtrLabel;                // aliases glObjectPtrLabelKHR
-  PFNGLENABLEIPROC glEnablei;                // aliases glEnableIndexedEXT
-  PFNGLDISABLEIPROC glDisablei;              // aliases glDisableIndexedEXT
-  PFNGLISENABLEDIPROC glIsEnabledi;          // aliases glIsEnabledIndexedEXT
+  PFNGLENABLEIPROC glEnablei;                // aliases glEnableiEXT, glEnableIndexedEXT
+  PFNGLDISABLEIPROC glDisablei;              // aliases glDisableiEXT, glDisableIndexedEXT
+  PFNGLISENABLEDIPROC glIsEnabledi;          // aliases glIsEnablediEXT, glIsEnabledIndexedEXT
   PFNGLISBUFFERPROC glIsBuffer;              // aliases glIsBufferARB
   PFNGLISFRAMEBUFFERPROC glIsFramebuffer;    // aliases glIsFramebufferEXT
   PFNGLISPROGRAMPROC glIsProgram;
