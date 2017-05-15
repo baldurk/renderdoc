@@ -2391,6 +2391,9 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
     if(refl->OutputSig[i].systemValue != ShaderBuiltin::ColorOutput)
       continue;
 
+    if(!strncmp("gl_", refl->OutputSig[i].varName.elems, 3))
+      continue;    // GL_INVALID_OPERATION if name starts with reserved gl_ prefix
+
     GLint idx = gl.glGetFragDataLocation(progsrc, refl->OutputSig[i].varName.elems);
     if(idx >= 0)
     {

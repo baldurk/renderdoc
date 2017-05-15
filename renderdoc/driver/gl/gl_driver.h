@@ -533,6 +533,7 @@ public:
   void SetDriverType(RDCDriver type) { m_DriverType = type; }
   bool isGLESMode() { return m_DriverType == RDC_OpenGLES; }
   RDCDriver GetDriverType() { return m_DriverType; }
+  GLInitParams &GetInitParams() { return m_InitParams; }
   void *GetCtx();
 
   void SetFetchCounters(bool in) { m_FetchCounters = in; };

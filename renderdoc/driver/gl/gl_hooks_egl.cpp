@@ -435,12 +435,8 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
   init.depthBits = value;
   eglhooks.eglGetConfigAttrib_real(display, config, EGL_STENCIL_SIZE, &value);
   init.stencilBits = value;
-// TODO: how to detect this?
-#if ENABLED(RDOC_ANDROID)
+  // We will set isSRGB when we see the surface.
   init.isSRGB = 0;
-#else
-  init.isSRGB = 1;
-#endif
 
   GLWindowingData data;
   data.egl_dpy = display;
@@ -508,6 +504,12 @@ __attribute__((visibility("default"))) EGLBoolean eglSwapBuffers(EGLDisplay dpy,
   int height, width;
   eglhooks.eglQuerySurface_real(dpy, surface, EGL_HEIGHT, &height);
   eglhooks.eglQuerySurface_real(dpy, surface, EGL_WIDTH, &width);
+
+  GLInitParams &init = eglhooks.GetDriver()->GetInitParams();
+  int colorspace = 0;
+  eglhooks.eglQuerySurface_real(dpy, surface, EGL_GL_COLORSPACE, &colorspace);
+  // GL_SRGB8_ALPHA8 is specified as color-renderable, unlike GL_SRGB8.
+  init.isSRGB = init.colorBits == 32 && colorspace == EGL_GL_COLORSPACE_SRGB;
 
   eglhooks.GetDriver()->SetDriverType(RDC_OpenGLES);
   eglhooks.GetDriver()->WindowSize(surface, width, height);

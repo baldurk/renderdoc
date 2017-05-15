@@ -637,6 +637,7 @@ bool GLRenderState::CheckEnableDisableParam(GLenum pname)
       case eGL_PROGRAM_POINT_SIZE:
       case eGL_PRIMITIVE_RESTART:
       case eGL_TEXTURE_CUBE_MAP_SEAMLESS:
+      case eGL_FRAMEBUFFER_SRGB:
         // these are not supported by OpenGL ES
         return false;
 
