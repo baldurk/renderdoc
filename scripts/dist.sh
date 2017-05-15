@@ -71,7 +71,7 @@ if [ -f bin-android64/RenderDocCmd.apk ]; then
 fi
 
 # try to copy adb.exe in as well, with its dll dependencies
-if [ -f $ANDROID_SDK/platform-tools/adb.exe ]; then
+if [ -f $ANDROID_SDK/platform-tools/adb.exe ] && [ -d dist/Release64/android ]; then
 	cp $ANDROID_SDK/platform-tools/{adb.exe,AdbWinApi.dll,AdbWinUsbApi.dll} dist/Release64/android/
 fi
 
