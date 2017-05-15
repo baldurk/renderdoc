@@ -98,6 +98,19 @@ function ThemeNav () {
             try {
                 var link = $('.wy-menu-vertical')
                     .find('[href="' + anchor + '"]');
+                // If we didn't find a link, it may be because we clicked on
+                // something that is not in the sidebar (eg: when using
+                // sphinxcontrib.httpdomain it generates headerlinks but those
+                // aren't picked up and placed in the toctree). So let's find
+                // the closest header in the document and try with that one.
+                if (link.length === 0) {
+                  var doc_link = $('.document a[href="' + anchor + '"]');
+                  var closest_section = doc_link.closest('div.section');
+                  // Try again with the closest section entry.
+                  link = $('.wy-menu-vertical')
+                    .find('[href="#' + closest_section.attr("id") + '"]');
+
+                }
                 $('.wy-menu-vertical li.toctree-l1 li.current')
                     .removeClass('current');
                 link.closest('li.toctree-l2').addClass('current');
