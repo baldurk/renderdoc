@@ -1063,7 +1063,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
       }
       else
       {
-        if(el->InstanceDataStepRate >= draw->numInstances)
+        if(el->InstanceDataStepRate == 0 || el->InstanceDataStepRate >= draw->numInstances)
         {
           srcData = &staticData[el->InputSlot][el->AlignedByteOffset];
           dataSize = staticData[el->InputSlot].size() - el->AlignedByteOffset;
