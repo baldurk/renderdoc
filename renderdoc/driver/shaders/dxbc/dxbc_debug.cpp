@@ -3492,7 +3492,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       {
         const DXBC::ASMDecl &decl = dxbc->GetDeclaration(i);
 
-        if(decl.declaration == OPCODE_DCL_SAMPLER && decl.operand.indices == op.operands[3].indices)
+        if(decl.declaration == OPCODE_DCL_SAMPLER && op.operands.size() > 3 &&
+           decl.operand.indices == op.operands[3].indices)
         {
           if(decl.samplerMode == SAMPLER_MODE_DEFAULT)
             sampler = "SamplerState s";
