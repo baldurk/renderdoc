@@ -155,7 +155,7 @@ float ConvertComponent(const ResourceFormat &fmt, byte *data)
     }
   }
 
-  RDCERR("Unexpected format to convert from");
+  RDCERR("Unexpected format to convert from %u %u", fmt.compByteWidth, fmt.compType);
 
   return 0.0f;
 }
