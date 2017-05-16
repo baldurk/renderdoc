@@ -739,6 +739,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_sample_shading");
   m_GLESExtensions.push_back("GL_OES_standard_derivatives");
   m_GLESExtensions.push_back("GL_OES_tessellation_shader");
+  m_GLESExtensions.push_back("GL_OES_texture_buffer");
   m_GLESExtensions.push_back("GL_OES_texture_compression_astc");
   m_GLESExtensions.push_back("GL_OES_texture_stencil8");
   m_GLESExtensions.push_back("GL_OES_texture_float");
@@ -754,6 +755,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_EXT_sRGB_write_control");
   m_GLESExtensions.push_back("GL_EXT_pvrtc_sRGB");
   m_GLESExtensions.push_back("GL_EXT_tessellation_shader");
+  m_GLESExtensions.push_back("GL_EXT_texture_buffer");
   m_GLESExtensions.push_back("GL_EXT_texture_format_BGRA8888");
   m_GLESExtensions.push_back("GL_EXT_texture_norm16");
   m_GLESExtensions.push_back("GL_EXT_texture_rg");

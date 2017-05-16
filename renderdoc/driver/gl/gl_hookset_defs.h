@@ -491,6 +491,7 @@
   HookExtension(PFNGLTEXBUFFERPROC, glTexBuffer); \
   HookExtensionAlias(PFNGLTEXBUFFERPROC, glTexBuffer, glTexBufferARB); \
   HookExtensionAlias(PFNGLTEXBUFFERPROC, glTexBuffer, glTexBufferEXT); \
+  HookExtensionAlias(PFNGLTEXBUFFERPROC, glTexBuffer, glTexBufferOES); \
   HookExtension(PFNGLPRIMITIVERESTARTINDEXPROC, glPrimitiveRestartIndex); \
   HookExtension(PFNGLCOPYBUFFERSUBDATAPROC, glCopyBufferSubData); \
   HookExtension(PFNGLGETUNIFORMINDICESPROC, glGetUniformIndices); \
@@ -803,6 +804,8 @@
   HookExtension(PFNGLGETPROGRAMRESOURCELOCATIONINDEXPROC, glGetProgramResourceLocationIndex); \
   HookExtension(PFNGLSHADERSTORAGEBLOCKBINDINGPROC, glShaderStorageBlockBinding); \
   HookExtension(PFNGLTEXBUFFERRANGEPROC, glTexBufferRange); \
+  HookExtensionAlias(PFNGLTEXBUFFERRANGEPROC, glTexBufferRange, glTexBufferRangeEXT); \
+  HookExtensionAlias(PFNGLTEXBUFFERRANGEPROC, glTexBufferRange, glTexBufferRangeOES); \
   HookExtension(PFNGLTEXSTORAGE2DMULTISAMPLEPROC, glTexStorage2DMultisample); \
   HookExtension(PFNGLTEXSTORAGE3DMULTISAMPLEPROC, glTexStorage3DMultisample); \
   HookExtension(PFNGLTEXTUREVIEWPROC, glTextureView); \
