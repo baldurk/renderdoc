@@ -63,7 +63,7 @@ float ConvertComponent(const ResourceFormat &fmt, byte *data)
     uint32_t *u32 = (uint32_t *)data;
     int32_t *i32 = (int32_t *)data;
 
-    if(fmt.compType == CompType::Float)
+    if(fmt.compType == CompType::Float || fmt.compType == CompType::Depth)
     {
       return *(float *)u32;
     }
