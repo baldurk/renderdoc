@@ -236,7 +236,7 @@ struct GLHookSet
   PFNGLSTENCILFUNCSEPARATEPROC glStencilFuncSeparate;
   PFNGLSTENCILMASKSEPARATEPROC glStencilMaskSeparate;
   PFNGLSTENCILOPSEPARATEPROC glStencilOpSeparate;
-  PFNGLCOLORMASKIPROC glColorMaski;    // aliases glColorMaskIndexedEXT
+  PFNGLCOLORMASKIPROC glColorMaski;    // aliases glColorMaskiEXT, glColorMaskIndexedEXT
   PFNGLSAMPLEMASKIPROC glSampleMaski;
   PFNGLSAMPLECOVERAGEPROC glSampleCoverage;        // aliases glSampleCoverageARB
   PFNGLMINSAMPLESHADINGPROC glMinSampleShading;    // aliases glMinSampleShadingARB, glMinSampleShadingOES
@@ -295,7 +295,7 @@ struct GLHookSet
   PFNGLDRAWBUFFERSPROC glDrawBuffers;                      // aliases glDrawBuffersARB
   PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;              // aliases glGenFramebuffersEXT
   PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;              // aliases glBindFramebufferEXT
-  PFNGLFRAMEBUFFERTEXTUREPROC glFramebufferTexture;        // aliases glFramebufferTextureARB
+  PFNGLFRAMEBUFFERTEXTUREPROC glFramebufferTexture;        // aliases glFramebufferTextureARB, glFramebufferTextureOES, glFramebufferTextureEXT
   PFNGLFRAMEBUFFERTEXTURE1DPROC glFramebufferTexture1D;    // aliases glFramebufferTexture1DEXT
   PFNGLFRAMEBUFFERTEXTURE2DPROC glFramebufferTexture2D;    // aliases glFramebufferTexture2DEXT
   PFNGLFRAMEBUFFERTEXTURE3DPROC glFramebufferTexture3D;    // aliases glFramebufferTexture3DEXT

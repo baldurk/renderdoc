@@ -517,6 +517,8 @@
   HookExtension(PFNGLGETBUFFERPARAMETERI64VPROC, glGetBufferParameteri64v); \
   HookExtension(PFNGLFRAMEBUFFERTEXTUREPROC, glFramebufferTexture); \
   HookExtensionAlias(PFNGLFRAMEBUFFERTEXTUREPROC, glFramebufferTexture, glFramebufferTextureARB); \
+  HookExtensionAlias(PFNGLFRAMEBUFFERTEXTUREPROC, glFramebufferTexture, glFramebufferTextureOES); \
+  HookExtensionAlias(PFNGLFRAMEBUFFERTEXTUREPROC, glFramebufferTexture, glFramebufferTextureEXT); \
   HookExtension(PFNGLTEXIMAGE2DMULTISAMPLEPROC, glTexImage2DMultisample); \
   HookExtension(PFNGLTEXIMAGE3DMULTISAMPLEPROC, glTexImage3DMultisample); \
   HookExtension(PFNGLGETMULTISAMPLEFVPROC, glGetMultisamplefv); \
