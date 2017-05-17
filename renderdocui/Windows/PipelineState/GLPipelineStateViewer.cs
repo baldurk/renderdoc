@@ -1263,6 +1263,8 @@ namespace renderdocui.Windows.PipelineState
                                 indexstring = String.Format("{0}-{1}", prev, i - 1);
                             var node = scissors.Nodes.Add(new object[] { indexstring, s1.Left, s1.Bottom, s1.Width, s1.Height, s1.Enabled });
 
+                            anyScissorEnable = anyScissorEnable || s1.Enabled;
+
                             if (s1.Width == 0 || s1.Height == 0)
                                 EmptyRow(node);
 
@@ -1285,6 +1287,8 @@ namespace renderdocui.Windows.PipelineState
                         if (prev < state.m_RS.Scissors.Length - 1)
                             indexstring = String.Format("{0}-{1}", prev, state.m_RS.Scissors.Length - 1);
                         var node = scissors.Nodes.Add(new object[] { indexstring, s1.Left, s1.Bottom, s1.Width, s1.Height, s1.Enabled });
+
+                        anyScissorEnable = anyScissorEnable || s1.Enabled;
 
                         if (s1.Width == 0 || s1.Height == 0)
                             EmptyRow(node);
@@ -1341,7 +1345,7 @@ namespace renderdocui.Windows.PipelineState
             else
                 clipDistances.Text += " enabled";
 
-            depthClamp.Image = state.m_RS.m_State.DepthClamp ? cross : tick;
+            depthClamp.Image = state.m_RS.m_State.DepthClamp ? tick : cross;
             depthBias.Text = Formatter.Format(state.m_RS.m_State.DepthBias);
             slopeScaledBias.Text = Formatter.Format(state.m_RS.m_State.SlopeScaledDepthBias);
             if (state.m_RS.m_State.OffsetClamp == 0.0f || float.IsNaN(state.m_RS.m_State.OffsetClamp))
@@ -1355,11 +1359,11 @@ namespace renderdocui.Windows.PipelineState
                 offsetClamp.Image = null;
             }
 
-            multisampleEnable.Image = state.m_RS.m_State.MultisampleEnable ? cross : tick;
-            sampleShading.Image = state.m_RS.m_State.SampleShading ? cross : tick;
+            multisampleEnable.Image = state.m_RS.m_State.MultisampleEnable ? tick : cross;
+            sampleShading.Image = state.m_RS.m_State.SampleShading ? tick : cross;
             minSampleShadingRate.Text = Formatter.Format(state.m_RS.m_State.MinSampleShadingRate);
-            alphaToCoverage.Image = state.m_RS.m_State.SampleAlphaToCoverage ? cross : tick;
-            alphaToOne.Image = state.m_RS.m_State.SampleAlphaToOne ? cross : tick;
+            alphaToCoverage.Image = state.m_RS.m_State.SampleAlphaToCoverage ? tick : cross;
+            alphaToOne.Image = state.m_RS.m_State.SampleAlphaToOne ? tick : cross;
             if (state.m_RS.m_State.SampleCoverage)
             {
                 sampleCoverage.Text = Formatter.Format(state.m_RS.m_State.SampleCoverageValue);
