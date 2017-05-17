@@ -471,6 +471,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
       {
         params = *((VkDrawIndirectCommand *)&argbuf[cmdOffs]);
         valid = true;
+        cmdOffs += sizeof(VkDrawIndirectCommand);
       }
 
       offs += strd;
@@ -765,6 +766,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
       {
         params = *((VkDrawIndexedIndirectCommand *)&argbuf[cmdOffs]);
         valid = true;
+        cmdOffs += sizeof(VkDrawIndexedIndirectCommand);
       }
 
       offs += strd;
