@@ -219,6 +219,11 @@ void Process::ApplyEnvironmentModification()
   modifications.clear();
 }
 
+namespace FileIO
+{
+void ReleaseFDAfterFork();
+};
+
 static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char **envp,
                         int stdoutPipe[2] = NULL, int stderrPipe[2] = NULL)
 {
@@ -355,6 +360,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   pid_t childPid = fork();
   if(childPid == 0)
   {
+    FileIO::ReleaseFDAfterFork();
     if(stdoutPipe)
     {
       // Redirect stdout & stderr write ends.

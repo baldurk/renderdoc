@@ -364,9 +364,7 @@ RenderDoc::~RenderDoc()
     }
   }
 
-  RDCSTOPLOGGING();
-
-  FileIO::Delete(m_LoggingFilename.c_str());
+  RDCSTOPLOGGING(m_LoggingFilename.c_str());
 
   if(m_RemoteThread)
   {
@@ -383,8 +381,6 @@ RenderDoc::~RenderDoc()
   Network::Shutdown();
 
   Threading::Shutdown();
-
-  FileIO::Delete(m_LoggingFilename.c_str());
 }
 
 void RenderDoc::Shutdown()

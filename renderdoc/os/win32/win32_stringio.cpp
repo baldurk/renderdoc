@@ -524,25 +524,39 @@ int fclose(FILE *f)
   return ::fclose(f);
 }
 
-void *logfile_open(const char *filename)
+static HANDLE logHandle = NULL;
+
+bool logfile_open(const char *filename)
 {
   wstring wfn = StringFormat::UTF82Wide(string(filename));
-  return (void *)CreateFileW(wfn.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                             NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+  logHandle = CreateFileW(wfn.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                          OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+  return logHandle != NULL;
 }
 
-void logfile_append(void *handle, const char *msg, size_t length)
+void logfile_append(const char *msg, size_t length)
 {
-  if(handle)
+  if(logHandle)
   {
     DWORD bytesWritten = 0;
-    WriteFile((HANDLE)handle, msg, (DWORD)length, &bytesWritten, NULL);
+    WriteFile(logHandle, msg, (DWORD)length, &bytesWritten, NULL);
   }
 }
 
-void logfile_close(void *handle)
+void logfile_close(const char *filename)
 {
-  CloseHandle((HANDLE)handle);
+  CloseHandle(logHandle);
+  logHandle = NULL;
+
+  if(filename)
+  {
+    // we can just try to delete the file. If it's open elsewhere in another process, the delete
+    // will
+    // fail.
+    wstring wpath = StringFormat::UTF82Wide(string(filename));
+    ::DeleteFileW(wpath.c_str());
+  }
 }
 };
 
