@@ -250,6 +250,21 @@ ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
     return ReplayStatus::APIHardwareUnsupported;
   }
 
+  if(getStr)
+  {
+    const char *vendor = (const char *)getStr(eGL_VENDOR);
+    const char *version = (const char *)getStr(eGL_VERSION);
+
+    if(strstr(vendor, "NVIDIA") && strstr(version, "378."))
+    {
+      RDCLOG("There is a known crash issue on NVIDIA 378.x series drivers.");
+      RDCLOG(
+          "If you hit a crash after this message, try setting __GL_THREADED_OPTIMIZATIONS=0 or "
+          "upgrade to 381.x or newer.");
+      RDCLOG("See https://github.com/baldurk/renderdoc/issues/609 for more information.");
+    }
+  }
+
   WrappedOpenGL *gl = new WrappedOpenGL(logfile, real, GetGLPlatform());
   gl->Initialise(initParams);
 
