@@ -36,14 +36,20 @@ RDLabel::~RDLabel()
 void RDLabel::mousePressEvent(QMouseEvent *event)
 {
   emit(clicked(event));
+
+  QLabel::mousePressEvent(event);
 }
 
 void RDLabel::mouseMoveEvent(QMouseEvent *event)
 {
   emit(mouseMoved(event));
+
+  QLabel::mouseMoveEvent(event);
 }
 
 void RDLabel::mouseDoubleClickEvent(QMouseEvent *event)
 {
   emit(doubleClicked(event));
+
+  QLabel::mouseDoubleClickEvent(event);
 }

@@ -36,14 +36,20 @@ RDToolButton::~RDToolButton()
 void RDToolButton::mousePressEvent(QMouseEvent *event)
 {
   emit(mouseClicked(event));
+
+  QToolButton::mousePressEvent(event);
 }
 
 void RDToolButton::mouseMoveEvent(QMouseEvent *event)
 {
   emit(mouseMoved(event));
+
+  QToolButton::mouseMoveEvent(event);
 }
 
 void RDToolButton::mouseDoubleClickEvent(QMouseEvent *event)
 {
   emit(doubleClicked(event));
+
+  QToolButton::mouseDoubleClickEvent(event);
 }
