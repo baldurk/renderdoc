@@ -2359,7 +2359,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::VertexInpu
         }
       }
 
-      rows.push_back({i, name, vb.Stride, vb.Offset, vb.Divisor, length});
+      rows.push_back({i, name, vb.Stride, vb.Offset, vb.Divisor, (qulonglong)length});
 
       i++;
     }
@@ -2398,7 +2398,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::VertexInpu
       ifmt = lit("R32_UINT");
 
     m_Common.exportHTMLTable(xml, {tr("Buffer"), tr("Format"), tr("Byte Length")},
-                             {name, ifmt, length});
+                             {name, ifmt, (qulonglong)length});
   }
 
   xml.writeStartElement(tr("p"));
@@ -2951,7 +2951,8 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Feedback &
         }
       }
 
-      rows.push_back({i, name, xfb.Offset[i], xfb.Size[i], length});
+      rows.push_back(
+          {(int)i, name, (qulonglong)xfb.Offset[i], (qulonglong)xfb.Size[i], (qulonglong)length});
     }
 
     m_Common.exportHTMLTable(

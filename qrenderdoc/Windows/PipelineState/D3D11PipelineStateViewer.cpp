@@ -2415,7 +2415,8 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(D3D11Pipe::View &view, int
   else
     viewParams += lit(", ") + extraParams;
 
-  return {i, name, ToQStr(view.Type), typeName, w, h, d, a, viewFormat, format, viewParams};
+  return {i, name, ToQStr(view.Type), typeName, (qulonglong)w, h,
+          d, a,    viewFormat,        format,   viewParams};
 }
 
 void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::IA &ia)
@@ -2469,7 +2470,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::IA &
         }
       }
 
-      rows.push_back({i, name, vb.Stride, vb.Offset, length});
+      rows.push_back({i, name, vb.Stride, vb.Offset, (qulonglong)length});
 
       i++;
     }
@@ -2507,7 +2508,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::IA &
       ifmt = lit("R32_UINT");
 
     m_Common.exportHTMLTable(xml, {tr("Buffer"), tr("Format"), tr("Offset"), tr("Byte Length")},
-                             {name, ifmt, ia.ibuffer.Offset, length});
+                             {name, ifmt, ia.ibuffer.Offset, (qulonglong)length});
   }
 
   xml.writeStartElement(lit("p"));
@@ -2703,7 +2704,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::Shad
       }
 
       rows.push_back({i, name, sh.ConstantBuffers[i].VecOffset, sh.ConstantBuffers[i].VecCount,
-                      numvars, byteSize, length});
+                      numvars, byteSize, (qulonglong)length});
     }
 
     m_Common.exportHTMLTable(xml,
@@ -2767,7 +2768,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::SO &
         }
       }
 
-      rows.push_back({i, name, o.Offset, length});
+      rows.push_back({i, name, o.Offset, (qulonglong)length});
 
       i++;
     }

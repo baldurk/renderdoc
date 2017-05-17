@@ -2474,7 +2474,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Vertex
         }
       }
 
-      rows.push_back({i, name, vb.offset, length});
+      rows.push_back({i, name, (qulonglong)vb.offset, (qulonglong)length});
 
       i++;
     }
@@ -2510,7 +2510,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::InputA
 
     m_Common.exportHTMLTable(
         xml, {tr("Buffer"), tr("Format"), tr("Offset"), tr("Byte Length"), tr("Primitive Restart")},
-        {name, ifmt, ia.ibuffer.offs, length, ia.primitiveRestartEnable ? tr("Yes") : tr("No")});
+        {name, ifmt, (qulonglong)ia.ibuffer.offs, (qulonglong)length,
+         ia.primitiveRestartEnable ? tr("Yes") : tr("No")});
   }
 
   xml.writeStartElement(lit("p"));
@@ -2639,7 +2640,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
           // from SPIR-V side.
         }
 
-        rows.push_back({setname, slotname, name, byteOffset, length, numvars, b.byteSize});
+        rows.push_back({setname, slotname, name, (qulonglong)byteOffset, (qulonglong)length,
+                        numvars, b.byteSize});
       }
     }
 
@@ -2749,8 +2751,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
         }
 
         if(bind.type != BindType::Sampler)
-          rows.push_back(
-              {setname, slotname, name, ToQStr(bind.type), w, h, d, arr, format, viewParams});
+          rows.push_back({setname, slotname, name, ToQStr(bind.type), (qulonglong)w, h, d, arr,
+                          format, viewParams});
 
         if(bind.type == BindType::ImageSampler || bind.type == BindType::Sampler)
         {
@@ -2793,7 +2795,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
       const VKPipe::DescriptorBinding &bind =
           set.bindings[sh.BindpointMapping.ReadWriteResources[i].bind];
 
-      QString setname = bindMap.bindset;
+      QString setname = QString::number(bindMap.bindset);
 
       QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(ToQStr(b.name));
 
@@ -2872,7 +2874,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
               tr("Byte Range: %1 - %2").arg(descriptorBind.offset).arg(descriptorBind.offset + length);
         }
 
-        rows.push_back({setname, slotname, name, ToQStr(bind.type), w, h, d, arr, format, viewParams});
+        rows.push_back({setname, slotname, name, ToQStr(bind.type), (qulonglong)w, h, d, arr,
+                        format, viewParams});
       }
     }
 

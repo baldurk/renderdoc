@@ -2302,7 +2302,8 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
   else
     viewParams += lit(", ") + extraParams;
 
-  return {name, ToQStr(view.Type), typeName, w, h, d, a, viewFormat, format, viewParams};
+  return {name, ToQStr(view.Type), typeName, (qulonglong)w, h, d,
+          a,    viewFormat,        format,   viewParams};
 }
 
 void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::IA &ia)
@@ -2358,7 +2359,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::IA &
 
       length = qMin(length, (uint64_t)vb.Size);
 
-      rows.push_back({i, name, vb.Stride, vb.Offset, length});
+      rows.push_back({i, name, vb.Stride, (qulonglong)vb.Offset, (qulonglong)length});
 
       i++;
     }
@@ -2398,7 +2399,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::IA &
       ifmt = lit("R32_UINT");
 
     m_Common.exportHTMLTable(xml, {tr("Buffer"), tr("Format"), tr("Offset"), tr("Byte Length")},
-                             {name, ifmt, ia.ibuffer.Offset, length});
+                             {name, ifmt, (qulonglong)ia.ibuffer.Offset, (qulonglong)length});
   }
 
   xml.writeStartElement(lit("p"));
@@ -2763,7 +2764,8 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Shad
 
           length = qMin(length, (uint64_t)bytesize);
 
-          rows.push_back({rootel, space, regname, name, offset, length, numvars});
+          rows.push_back(
+              {rootel, space, regname, name, (qulonglong)offset, (qulonglong)length, numvars});
         }
       }
     }
@@ -2822,7 +2824,8 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Stre
 
       length = qMin(length, o.Size);
 
-      rows.push_back({i, name, o.Offset, length, counterName, o.WrittenCountOffset, counterLength});
+      rows.push_back({i, name, (qulonglong)o.Offset, (qulonglong)length, counterName,
+                      (qulonglong)o.WrittenCountOffset, (qulonglong)counterLength});
 
       i++;
     }
