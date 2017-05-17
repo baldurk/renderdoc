@@ -44,14 +44,15 @@
 #define HookExtension(funcPtrType, function)         \
   if(!strcmp(func, STRINGIZE(function)))             \
   {                                                  \
-    glhooks.GL.function = (funcPtrType)realFunc;     \
+    if(glhooks.GL.function == NULL)                  \
+      glhooks.GL.function = (funcPtrType)realFunc;   \
     return (PROC)&glhooks.CONCAT(function, _hooked); \
   }
 
 #define HookExtensionAlias(funcPtrType, function, alias) \
   if(!strcmp(func, STRINGIZE(alias)))                    \
   {                                                      \
-    if(OpenGLHook::glhooks.GL.function == NULL)          \
+    if(glhooks.GL.function == NULL)                      \
       glhooks.GL.function = (funcPtrType)realFunc;       \
     return (PROC)&glhooks.CONCAT(function, _hooked);     \
   }

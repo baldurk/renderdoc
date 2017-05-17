@@ -43,17 +43,19 @@ Threading::CriticalSection &GetGLLock()
   return glLock;
 }
 
-#define HookInit(function)                               \
-  if(!strcmp(func, STRINGIZE(function)))                 \
-  {                                                      \
-    GL.function = (CONCAT(function, _hooktype))realFunc; \
-    return (void *)&CONCAT(function, _renderdoc_hooked); \
+#define HookInit(function)                                 \
+  if(!strcmp(func, STRINGIZE(function)))                   \
+  {                                                        \
+    if(GL.function == NULL)                                \
+      GL.function = (CONCAT(function, _hooktype))realFunc; \
+    return (void *)&CONCAT(function, _renderdoc_hooked);   \
   }
 
 #define HookExtension(funcPtrType, function)             \
   if(!strcmp(func, STRINGIZE(function)))                 \
   {                                                      \
-    GL.function = (funcPtrType)realFunc;                 \
+    if(GL.function == NULL)                              \
+      GL.function = (funcPtrType)realFunc;               \
     return (void *)&CONCAT(function, _renderdoc_hooked); \
   }
 
