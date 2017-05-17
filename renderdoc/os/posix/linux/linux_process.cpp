@@ -28,7 +28,7 @@
 extern char **environ;
 
 #define INITIAL_WAIT_TIME 1000
-#define MAX_WAIT_TIME 63000
+#define MAX_WAIT_TIME 64000
 
 char **GetCurrentEnvironment()
 {
@@ -45,7 +45,7 @@ int GetIdentPort(pid_t childPid)
   int totalWaitTime = 0;
 
   // try for a little while for the /proc entry to appear
-  while(totalWaitTime < MAX_WAIT_TIME)
+  while(totalWaitTime <= MAX_WAIT_TIME)
   {
     // back-off for each retry
     usleep(waitTime);
@@ -82,6 +82,13 @@ int GetIdentPort(pid_t childPid)
     }
 
     FileIO::fclose(f);
+  }
+
+  if(ret == 0)
+  {
+    RDCWARN("Couldn't locate renderdoc target control listening port between %u and %u in %s",
+            (uint32_t)RenderDoc_FirstTargetControlPort, (uint32_t)RenderDoc_LastTargetControlPort,
+            procfile.c_str());
   }
 
   return ret;
