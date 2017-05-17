@@ -365,7 +365,7 @@ namespace renderdocui.Windows.Dialogs
         
         private void SetLineNumber(int lineNum)
         {
-            if (recurse || me == null || me.scriptEditor == null)
+            if (recurse || me == null || me.IsDisposed || me.scriptEditor == null)
                 return;
 
             recurse = true;
