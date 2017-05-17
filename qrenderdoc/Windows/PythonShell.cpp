@@ -45,7 +45,8 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
 
   scriptEditor = new ScintillaEdit(this);
 
-  scriptEditor->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  scriptEditor->styleSetFont(
+      STYLE_DEFAULT, QFontDatabase::systemFont(QFontDatabase::FixedFont).family().toUtf8().data());
 
   scriptEditor->setMarginLeft(4);
   scriptEditor->setMarginWidthN(0, 32);

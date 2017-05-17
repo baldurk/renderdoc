@@ -242,7 +242,6 @@ void ConfigureSyntax(ScintillaEdit *scintilla, int language)
   }
 
   scintilla->setLexer(language);
-  scintilla->styleSetFont(STYLE_DEFAULT, "Consolas");
   scintilla->styleSetSize(STYLE_DEFAULT, 10);
 
   if(language == SCLEX_CPP)

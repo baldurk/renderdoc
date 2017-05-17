@@ -569,7 +569,8 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
   ret->setMarginWidthN(2, 16);
   ret->setObjectName(name);
 
-  ret->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ret->styleSetFont(STYLE_DEFAULT,
+                    QFontDatabase::systemFont(QFontDatabase::FixedFont).family().toUtf8().data());
 
   // C# DarkGreen
   ret->indicSetFore(INDICATOR_REGHIGHLIGHT, SCINTILLA_COLOUR(0, 100, 0));
