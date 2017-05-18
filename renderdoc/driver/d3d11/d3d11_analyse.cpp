@@ -2625,7 +2625,15 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
       vbData[i] = HighlightCache::InterpretVertex(data, idx, cfg, dataEnd, valid);
     }
 
-    m_pImmediateContext->UpdateSubresource(m_DebugRender.PickVBBuf, 0, NULL, vbData, sizeof(Vec4f),
+    D3D11_BOX box;
+    box.top = 0;
+    box.bottom = 1;
+    box.front = 0;
+    box.back = 1;
+    box.left = 0;
+    box.right = cfg.position.numVerts * sizeof(Vec4f);
+
+    m_pImmediateContext->UpdateSubresource(m_DebugRender.PickVBBuf, 0, &box, vbData, sizeof(Vec4f),
                                            sizeof(Vec4f));
 
     delete[] vbData;
