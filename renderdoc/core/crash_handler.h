@@ -23,7 +23,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#if ENABLED(RDOC_RELEASE) && RENDERDOC_OFFICIAL_BUILD
+// currently breakpad crash-handler is only available on windows
+#if ENABLED(RDOC_RELEASE) && RENDERDOC_OFFICIAL_BUILD && ENABLED(RDOC_WIN32)
 
 #define RDOC_CRASH_HANDLER OPTION_ON
 
