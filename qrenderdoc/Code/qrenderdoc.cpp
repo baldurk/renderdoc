@@ -230,6 +230,8 @@ int main(int argc, char *argv[])
       config.Save();
     }
     PythonContext::GlobalShutdown();
+
+    Formatter::shutdown();
   }
 
   delete[] argv_mod;

@@ -546,7 +546,7 @@ int Formatter::m_minFigures = 2, Formatter::m_maxFigures = 5, Formatter::m_expNe
     Formatter::m_expPosCutoff = 7;
 double Formatter::m_expNegValue = 0.00001;       // 10^(-5)
 double Formatter::m_expPosValue = 10000000.0;    // 10^7
-QFont Formatter::m_Font;
+QFont *Formatter::m_Font = NULL;
 
 void Formatter::setParams(const PersistantConfig &config)
 {
@@ -558,8 +558,15 @@ void Formatter::setParams(const PersistantConfig &config)
   m_expNegValue = qPow(10.0, -config.Formatter_NegExp);
   m_expPosValue = qPow(10.0, config.Formatter_PosExp);
 
-  m_Font =
+  if(!m_Font)
+    m_Font = new QFont();
+  *m_Font =
       config.Font_PreferMonospaced ? QFontDatabase::systemFont(QFontDatabase::FixedFont) : QFont();
+}
+
+void Formatter::shutdown()
+{
+  delete m_Font;
 }
 
 QString Formatter::Format(double f, bool)
