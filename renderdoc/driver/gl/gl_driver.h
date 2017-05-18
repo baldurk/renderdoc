@@ -279,6 +279,11 @@ private:
     // bound to the second.
     GLuint renderbufferReadTex;
     GLuint renderbufferFBOs[2];
+
+    // since compressed textures cannot be read back on GLES we have to store them during the
+    // uploading
+    // level -> data
+    map<int, vector<byte> > compressedData;
   };
 
   map<ResourceId, TextureData> m_Textures;
@@ -516,6 +521,10 @@ private:
 
   vector<string> m_GLExtensions;
   vector<string> m_GLESExtensions;
+
+  void StoreCompressedTexData(ResourceId texId, GLenum target, GLint level, GLint xoffset,
+                              GLint yoffset, GLint zoffset, GLsizei width, GLsizei height,
+                              GLsizei depth, GLenum format, GLsizei imageSize, const void *pixels);
 
   // no copy semantics
   WrappedOpenGL(const WrappedOpenGL &);

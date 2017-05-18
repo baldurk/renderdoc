@@ -1138,7 +1138,15 @@ void APIENTRY _glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLev
         for(int trg = 0; trg < count; trg++)
         {
           // read to CPU
-          hookset->glGetCompressedTextureImageEXT(srcName, targets[trg], srcLevel, buf);
+          if(IsGLES)
+          {
+            RDCERR("Can't emulate glCopyImageSubData without glGetCompressedTexImage on GLES");
+            memset(buf, 0, size);
+          }
+          else
+          {
+            hookset->glGetCompressedTextureImageEXT(srcName, targets[trg], srcLevel, buf);
+          }
 
           // write to GPU
           if(srcTarget == eGL_TEXTURE_1D || srcTarget == eGL_TEXTURE_1D_ARRAY)
