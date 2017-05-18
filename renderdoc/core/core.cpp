@@ -337,8 +337,11 @@ void RenderDoc::Initialise()
   }
 
   // begin printing to stdout/stderr after this point, earlier logging is debugging
-  // cruft that we don't want cluttering output
-  RDCLOGOUTPUT();
+  // cruft that we don't want cluttering output.
+  // However we don't want to print in captured applications, since they may be outputting important
+  // information to stdout/stderr and being piped around and processed!
+  if(IsReplayApp())
+    RDCLOGOUTPUT();
 }
 
 RenderDoc::~RenderDoc()
