@@ -302,7 +302,9 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_R16:
     case eGL_R16_SNORM:
     case eGL_R16F:
-    case eGL_R32F: return eGL_RED;
+    case eGL_R32F:
+    case eGL_RED: return eGL_RED;
+    case eGL_ALPHA:
     case eGL_ALPHA8_EXT: return eGL_ALPHA;
     case eGL_LUMINANCE: return eGL_LUMINANCE;
     case eGL_LUMINANCE_ALPHA: return eGL_LUMINANCE_ALPHA;
@@ -318,7 +320,8 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_RG16:
     case eGL_RG16_SNORM:
     case eGL_RG16F:
-    case eGL_RG32F: return eGL_RG;
+    case eGL_RG32F:
+    case eGL_RG: return eGL_RG;
     case eGL_RG8I:
     case eGL_RG8UI:
     case eGL_RG16I:
@@ -339,7 +342,8 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_RGB16F:
     case eGL_RGB32F:
     case eGL_R11F_G11F_B10F:
-    case eGL_RGB9_E5: return eGL_RGB;
+    case eGL_RGB9_E5:
+    case eGL_RGB: return eGL_RGB;
     case eGL_RGB8I:
     case eGL_RGB8UI:
     case eGL_RGB16I:
@@ -357,7 +361,8 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_RGBA16_SNORM:
     case eGL_SRGB8_ALPHA8:
     case eGL_RGBA16F:
-    case eGL_RGBA32F: return eGL_RGBA;
+    case eGL_RGBA32F:
+    case eGL_RGBA: return eGL_RGBA;
     case eGL_RGB10_A2UI:
     case eGL_RGBA8I:
     case eGL_RGBA8UI:
@@ -400,7 +405,11 @@ GLenum GetDataType(GLenum internalFormat)
     case eGL_BGRA:
     case eGL_BGRA8_EXT:
     case eGL_SRGB8_ALPHA8:
-    case eGL_SRGB8: return eGL_UNSIGNED_BYTE;
+    case eGL_SRGB8:
+    case eGL_RED:
+    case eGL_RG:
+    case eGL_RGB:
+    case eGL_RGBA: return eGL_UNSIGNED_BYTE;
     case eGL_RGBA8I:
     case eGL_RG8I:
     case eGL_R8I:
@@ -459,6 +468,7 @@ GLenum GetDataType(GLenum internalFormat)
     case eGL_DEPTH24_STENCIL8: return eGL_UNSIGNED_INT_24_8;
     case eGL_DEPTH32F_STENCIL8: return eGL_FLOAT_32_UNSIGNED_INT_24_8_REV;
     case eGL_STENCIL_INDEX8: return eGL_UNSIGNED_BYTE;
+    case eGL_ALPHA:
     case eGL_ALPHA8_EXT:
     case eGL_LUMINANCE_ALPHA:
     case eGL_LUMINANCE:

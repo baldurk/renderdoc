@@ -379,17 +379,36 @@ void GLReplay::InitDebugData()
 
   DebugData.fixedcolFSProg = CreateShaderProgram(empty, fs);
 
-  GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
-  GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_mesh_frag), glslBaseVer);
-  GenerateGLSLShader(gs, shaderType, "", GetEmbeddedResource(glsl_mesh_geom), glslBaseVer);
+  if(HasExt[ARB_geometry_shader4])
+  {
+    GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_mesh_frag), glslBaseVer);
+    GenerateGLSLShader(gs, shaderType, "", GetEmbeddedResource(glsl_mesh_geom), glslBaseVer);
 
-  DebugData.meshProg = CreateShaderProgram(vs, fs);
-  DebugData.meshgsProg = CreateShaderProgram(vs, fs, gs);
+    DebugData.meshProg = CreateShaderProgram(vs, fs);
+    DebugData.meshgsProg = CreateShaderProgram(vs, fs, gs);
 
-  GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_trisize_frag), glslBaseVer);
-  GenerateGLSLShader(gs, shaderType, "", GetEmbeddedResource(glsl_trisize_geom), glslBaseVer);
+    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_trisize_frag), glslBaseVer);
+    GenerateGLSLShader(gs, shaderType, "", GetEmbeddedResource(glsl_trisize_geom), glslBaseVer);
 
-  DebugData.trisizeProg = CreateShaderProgram(vs, fs, gs);
+    DebugData.trisizeProg = CreateShaderProgram(vs, fs, gs);
+  }
+  else
+  {
+    GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_mesh_vert), glslBaseVer);
+    GenerateGLSLShader(fs, shaderType, "", GetEmbeddedResource(glsl_mesh_frag), glslBaseVer);
+
+    DebugData.meshProg = CreateShaderProgram(vs, fs);
+    DebugData.meshgsProg = 0;
+    DebugData.trisizeProg = 0;
+
+    const char *warning_msg =
+        "GL_ARB_geometry_shader4/GL_EXT_geometry_shader not supported, disabling triangle size and "
+        "lit solid shading feature.";
+    RDCWARN(warning_msg);
+    m_pDriver->AddDebugMessage(MessageCategory::Portability, MessageSeverity::Medium,
+                               MessageSource::RuntimeWarning, warning_msg);
+  }
 
   gl.glGenProgramPipelines(1, &DebugData.texDisplayPipe);
 
@@ -2283,7 +2302,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
   gl.glDisable(eGL_SCISSOR_TEST);
   gl.glDepthMask(GL_FALSE);
   gl.glDisable(eGL_CULL_FACE);
-  gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+  if(!IsGLES)
+    gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
   gl.glDisable(eGL_DEPTH_TEST);
   gl.glDisable(eGL_STENCIL_TEST);
   gl.glStencilMask(0);
@@ -2314,7 +2334,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     wireCol[3] = 1.0f;
     gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, wireCol);
 
-    gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
+    if(!IsGLES)
+      gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
     ReplayLog(eventID, eReplay_OnlyDraw);
   }
@@ -2706,7 +2727,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
     events.push_back(eventID);
 
-    if(!events.empty())
+    if(!events.empty() && DebugData.trisizeProg)
     {
       if(overlay == DebugOverlay::TriangleSizePass)
         ReplayLog(events[0], eReplay_WithoutDraw);
@@ -3246,7 +3267,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
           gl.glDisable(eGL_SCISSOR_TEST);
           gl.glDepthMask(GL_FALSE);
           gl.glDisable(eGL_CULL_FACE);
-          gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+          if(!IsGLES)
+            gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
           gl.glDisable(eGL_DEPTH_TEST);
           gl.glDisable(eGL_STENCIL_TEST);
           gl.glStencilMask(0);
@@ -4760,7 +4782,8 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
   {
     uboParams.displayFormat = MESHDISPLAY_SOLID;
 
-    gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
+    if(!IsGLES)
+      gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
     // secondary draws have to come from gl_Position which is float4
     gl.glVertexAttribFormat(0, 4, eGL_FLOAT, GL_FALSE, 0);
@@ -4914,7 +4937,7 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
 
     GLuint solidProg = prog;
 
-    if(cfg.solidShadeMode == SolidShade::Lit)
+    if(cfg.solidShadeMode == SolidShade::Lit && DebugData.meshgsProg)
     {
       // pick program with GS for per-face lighting
       solidProg = DebugData.meshgsProg;
@@ -4948,7 +4971,8 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
     if(cfg.second.buf != ResourceId())
       gl.glEnableVertexAttribArray(1);
 
-    gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+    if(!IsGLES)
+      gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
     if(cfg.position.idxByteWidth)
     {
@@ -4987,7 +5011,8 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
 
     uboParams.displayFormat = MESHDISPLAY_SOLID;
 
-    gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
+    if(!IsGLES)
+      gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
     uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -5110,7 +5135,8 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
     gl.glDrawArrays(eGL_LINES, 0, 24);
   }
 
-  gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+  if(!IsGLES)
+    gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
   // show highlighted vertex
   if(cfg.highlightVert != ~0U)

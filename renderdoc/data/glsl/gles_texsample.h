@@ -25,6 +25,7 @@
 // enable these extensions if possible
 //#extension GL_OES_texture_cube_map_array : enable
 //#extension GL_EXT_texture_cube_map_array : enable
+//#extension GL_EXT_texture_buffer : enable
 
 #if __VERSION__ >= 310
 #define GLES_texture_multisample 1
@@ -32,6 +33,10 @@
 
 #if defined(GL_OES_texture_cube_map_array) || defined(GL_EXT_texture_cube_map_array)
 #define GLES_texture_cube_map_array 1
+#endif
+
+#if defined(GL_EXT_texture_buffer)
+#define GLES_texture_buffer 1
 #endif
 
 #if UINT_TEX
@@ -46,7 +51,9 @@ layout(binding = 3) uniform PRECISION usampler3D texUInt3D;
 layout(binding = 6) uniform PRECISION usampler2DArray texUInt2DArray;
 // cube array = 7
 // 2d rect = 8
+#ifdef GLES_texture_buffer
 layout(binding = 9) uniform PRECISION usamplerBuffer texUIntBuffer;
+#endif
 #ifdef GLES_texture_multisample
 layout(binding = 10) uniform PRECISION usampler2DMS texUInt2DMS;
 #endif
@@ -65,7 +72,11 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEXBUFFER)
   {
+#ifdef GLES_texture_buffer
     col = texelFetch(texUIntBuffer, int(pos.x * texRes.x));
+#else
+    col = uvec4(0u, 0u, 0u, 0u);
+#endif
   }
   else if(type == RESTYPE_TEX2DMS)
   {
@@ -107,7 +118,9 @@ layout(binding = 3) uniform PRECISION isampler3D texSInt3D;
 layout(binding = 6) uniform PRECISION isampler2DArray texSInt2DArray;
 // cube array = 7
 // 2d rect = 8
+#ifdef GLES_texture_buffer
 layout(binding = 9) uniform PRECISION isamplerBuffer texSIntBuffer;
+#endif
 #ifdef GLES_texture_multisample
 layout(binding = 10) uniform PRECISION isampler2DMS texSInt2DMS;
 #endif
@@ -131,7 +144,11 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEXBUFFER)
   {
+#ifdef GLES_texture_buffer
     col = texelFetch(texSIntBuffer, int(pos.x * texRes.x));
+#else
+    col = ivec4(0, 0, 0, 0);
+#endif
   }
   else if(type == RESTYPE_TEX2DMS)
   {
@@ -170,7 +187,9 @@ layout(binding = 6) uniform PRECISION sampler2DArray tex2DArray;
 layout(binding = 7) uniform PRECISION samplerCubeArray texCubeArray;
 #endif
 // 2d rect = 8
+#ifdef GLES_texture_buffer
 layout(binding = 9) uniform PRECISION samplerBuffer texBuffer;
+#endif
 #ifdef GLES_texture_multisample
 layout(binding = 10) uniform PRECISION sampler2DMS tex2DMS;
 #endif
@@ -184,7 +203,12 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEXBUFFER)
   {
+#ifdef GLES_texture_buffer
     col = texelFetch(texBuffer, int(pos.x * texRes.x));
+#else
+    col = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+#endif
+
 #ifdef OPENGL_ES
     // This hack is needed for an Android device to let the compiler optimize out the texBuffer,
     // because otherwise due to some compiler bug the RESTYPE_TEX2D case won't work normally.

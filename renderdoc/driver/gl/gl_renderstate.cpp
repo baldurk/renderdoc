@@ -740,7 +740,8 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
       m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_RECTANGLE, (GLint *)&TexRect[i]);
     else
       TexRect[i] = 0;
-    m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_BUFFER, (GLint *)&TexBuffer[i]);
+    if(HasExt[ARB_texture_buffer_object])
+      m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_BUFFER, (GLint *)&TexBuffer[i]);
     m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE, (GLint *)&Tex2DMS[i]);
     m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY, (GLint *)&Tex2DMSArray[i]);
 
@@ -870,7 +871,8 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
   m_Real->glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Pixel_Pack]);
   m_Real->glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING,
                         (GLint *)&BufferBindings[eBufIdx_Pixel_Unpack]);
-  m_Real->glGetIntegerv(eGL_TEXTURE_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Texture]);
+  if(HasExt[ARB_texture_buffer_object])
+    m_Real->glGetIntegerv(eGL_TEXTURE_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Texture]);
 
   if(HasExt[ARB_draw_indirect])
     m_Real->glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING,
@@ -1194,7 +1196,8 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
     m_Real->glBindTexture(eGL_TEXTURE_2D_ARRAY, Tex2DArray[i]);
     if(!IsGLES)
       m_Real->glBindTexture(eGL_TEXTURE_RECTANGLE, TexRect[i]);
-    m_Real->glBindTexture(eGL_TEXTURE_BUFFER, TexBuffer[i]);
+    if(HasExt[ARB_texture_buffer_object])
+      m_Real->glBindTexture(eGL_TEXTURE_BUFFER, TexBuffer[i]);
     m_Real->glBindTexture(eGL_TEXTURE_CUBE_MAP, TexCube[i]);
     m_Real->glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, Tex2DMS[i]);
     m_Real->glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, Tex2DMSArray[i]);
@@ -1277,7 +1280,8 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
   m_Real->glBindBuffer(eGL_COPY_WRITE_BUFFER, BufferBindings[eBufIdx_Copy_Write]);
   m_Real->glBindBuffer(eGL_PIXEL_PACK_BUFFER, BufferBindings[eBufIdx_Pixel_Pack]);
   m_Real->glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, BufferBindings[eBufIdx_Pixel_Unpack]);
-  m_Real->glBindBuffer(eGL_TEXTURE_BUFFER, BufferBindings[eBufIdx_Texture]);
+  if(HasExt[ARB_texture_buffer_object])
+    m_Real->glBindBuffer(eGL_TEXTURE_BUFFER, BufferBindings[eBufIdx_Texture]);
   if(HasExt[ARB_draw_indirect])
     m_Real->glBindBuffer(eGL_DRAW_INDIRECT_BUFFER, BufferBindings[eBufIdx_Draw_Indirect]);
   if(HasExt[ARB_compute_shader])
