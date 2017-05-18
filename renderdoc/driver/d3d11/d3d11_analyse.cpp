@@ -360,6 +360,12 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
             rowDataOffset = AlignUp(rowDataOffset, sizeof(Vec4f));
           }
 
+          // arrays are also aligned to the nearest Vec4f for each element
+          if(!flatten && isArray)
+          {
+            rowDataOffset = AlignUp(rowDataOffset, sizeof(Vec4f));
+          }
+
           if(rowDataOffset < data.size())
           {
             const byte *d = &data[rowDataOffset];
