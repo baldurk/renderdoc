@@ -189,6 +189,7 @@
   HookExtensionAlias(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate, glBlendEquationSeparateEXT); \
   HookExtension(PFNGLDRAWBUFFERSPROC, glDrawBuffers); \
   HookExtensionAlias(PFNGLDRAWBUFFERSPROC, glDrawBuffers, glDrawBuffersARB); \
+  HookExtensionAlias(PFNGLDRAWBUFFERSPROC, glDrawBuffers, glDrawBuffersEXT); \
   HookExtension(PFNGLSTENCILOPSEPARATEPROC, glStencilOpSeparate); \
   HookExtension(PFNGLSTENCILFUNCSEPARATEPROC, glStencilFuncSeparate); \
   HookExtension(PFNGLSTENCILMASKSEPARATEPROC, glStencilMaskSeparate); \

@@ -292,7 +292,7 @@ struct GLHookSet
   PFNGLISVERTEXARRAYPROC glIsVertexArray;
   PFNGLGENBUFFERSPROC glGenBuffers;                        // aliases glGenBuffersARB
   PFNGLBINDBUFFERPROC glBindBuffer;                        // aliases glBindBufferARB
-  PFNGLDRAWBUFFERSPROC glDrawBuffers;                      // aliases glDrawBuffersARB
+  PFNGLDRAWBUFFERSPROC glDrawBuffers;                      // aliases glDrawBuffersARB, glDrawBuffersEXT
   PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;              // aliases glGenFramebuffersEXT
   PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;              // aliases glBindFramebufferEXT
   PFNGLFRAMEBUFFERTEXTUREPROC glFramebufferTexture;        // aliases glFramebufferTextureARB, glFramebufferTextureOES, glFramebufferTextureEXT
