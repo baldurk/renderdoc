@@ -1215,6 +1215,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       case eGL_COMPRESSED_RG11_EAC:
       case eGL_COMPRESSED_SIGNED_RG11_EAC: ret.compCount = 2; break;
 
+      case eGL_ETC1_RGB8_OES:
       case eGL_COMPRESSED_RGB8_ETC2:
       case eGL_COMPRESSED_SRGB8_ETC2: ret.compCount = 3; break;
       case eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
@@ -1287,6 +1288,8 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB:
         ret.specialFormat = SpecialFormat::BC7;
         break;
+      // ETC1
+      case eGL_ETC1_RGB8_OES:    // handle it as ETC2
       // ETC2
       case eGL_COMPRESSED_RGB8_ETC2:
       case eGL_COMPRESSED_SRGB8_ETC2:
