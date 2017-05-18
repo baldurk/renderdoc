@@ -72,6 +72,8 @@ size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalfor
     case eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
     case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB:
       return (AlignUp4(w) * AlignUp4(h) * d);
+    // ETC1
+    case eGL_ETC1_RGB8_OES:
     // ETC2
     case eGL_COMPRESSED_RGB8_ETC2:
     case eGL_COMPRESSED_SRGB8_ETC2:
@@ -807,6 +809,8 @@ bool IsCompressedFormat(GLenum internalFormat)
     // BC7
     case eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
     case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB:
+    // ETC1
+    case eGL_ETC1_RGB8_OES:
     // ETC2
     case eGL_COMPRESSED_RGB8_ETC2:
     case eGL_COMPRESSED_SRGB8_ETC2:

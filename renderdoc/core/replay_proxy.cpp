@@ -2024,7 +2024,8 @@ void ReplayProxy::RemapProxyTextureIfNeeded(ResourceFormat &format, GetTextureDa
       case SpecialFormat::R5G6B5:
       case SpecialFormat::ETC2: params.remap = eRemap_RGBA8; break;
       default:
-        RDCERR("Don't know how to remap special format %u, falling back to RGBA32");
+        RDCERR("Don't know how to remap special format %u, falling back to RGBA32",
+               format.specialFormat);
         params.remap = eRemap_RGBA32;
         break;
     }
