@@ -949,6 +949,13 @@ static const format_data formats[] = {
 
     {eGL_BGRA8_EXT, eGL_UNSIGNED_BYTE, 4, 8, 0, 0},
 
+    // unsized formats
+    {eGL_RED, eGL_UNSIGNED_BYTE, 1, 8, 0, 0},
+    {eGL_RG, eGL_UNSIGNED_BYTE, 2, 8, 0, 0},
+    {eGL_RGB, eGL_UNSIGNED_BYTE, 3, 8, 0, 0},
+    {eGL_RGBA, eGL_UNSIGNED_BYTE, 4, 8, 0, 0},
+    {eGL_BGRA_EXT, eGL_UNSIGNED_BYTE, 4, 8, 0, 0},
+
     // depth and stencil formats
     {eGL_DEPTH_COMPONENT16, eGL_NONE, 0, 0, 16, 0},
     {eGL_DEPTH_COMPONENT24, eGL_NONE, 0, 0, 24, 0},
@@ -1188,11 +1195,21 @@ void APIENTRY _glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLev
         // simple case, non-layered. If we have a layered copy we need to loop and rebind
         if(!layered)
         {
-          hookset->glFramebufferTexture(eGL_READ_FRAMEBUFFER, attach, srcName, srcLevel);
           // we assume the destination texture is the same format, and we asserted that it's the
           // same
           // target.
-          hookset->glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, attach, dstName, dstLevel);
+          if(srcTarget == eGL_TEXTURE_2D || srcTarget == eGL_TEXTURE_2D_MULTISAMPLE)
+          {
+            hookset->glFramebufferTexture2D(eGL_READ_FRAMEBUFFER, attach, srcTarget, srcName,
+                                            srcLevel);
+            hookset->glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, attach, dstTarget, dstName,
+                                            dstLevel);
+          }
+          else
+          {
+            hookset->glFramebufferTexture(eGL_READ_FRAMEBUFFER, attach, srcName, srcLevel);
+            hookset->glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, attach, dstName, dstLevel);
+          }
         }
       }
     }

@@ -2269,6 +2269,8 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     if(newtarget == eGL_TEXTURE_3D)
       gl.glFramebufferTexture3D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_3D, tempTex, 0,
                                 0);
+    else if(newtarget == eGL_TEXTURE_2D || newtarget == eGL_TEXTURE_2D_MULTISAMPLE)
+      gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, newtarget, tempTex, 0);
     else
       gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, tempTex, 0);
 

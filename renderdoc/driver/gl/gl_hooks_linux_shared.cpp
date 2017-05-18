@@ -708,7 +708,7 @@ bool SharedPopulateHooks(void *(*lookupFunc)(const char *))
 #undef HookExtension
 #define HookExtension(funcPtrType, function) lookupFunc((const char *)STRINGIZE(function))
 #undef HookExtensionAlias
-#define HookExtensionAlias(funcPtrType, function, alias)
+#define HookExtensionAlias(funcPtrType, function, alias) lookupFunc((const char *)STRINGIZE(alias))
 
   DLLExportHooks();
   HookCheckGLExtensions();

@@ -976,7 +976,7 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
     gl.glTexParameteri(target, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
     gl.glTexParameteri(target, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
   }
-  gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, m_FakeBB_Color, 0);
+  gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, m_FakeBB_Color, 0);
 
   gl.glViewport(0, 0, params.width, params.height);
 
@@ -2026,7 +2026,8 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     // set viewport & scissor
     gl.glViewport(0, 0, (GLsizei)m_InitParams.width, (GLsizei)m_InitParams.height);
     gl.glDisable(eGL_SCISSOR_TEST);
-    gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+    if(!IsGLES)
+      gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
     // bind textures
     gl.glActiveTexture(eGL_TEXTURE0);

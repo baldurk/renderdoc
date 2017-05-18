@@ -297,6 +297,7 @@ extern bool IsGLES;
 // 99 means the extension never became core, so you can easily just do a check of CoreVersion >= NN
 // and they will always fail.
 #define EXTENSION_CHECKS()                                       \
+  EXT_TO_CHECK(31, 99, ARB_texture_buffer_object)                \
   EXT_TO_CHECK(33, 30, ARB_explicit_attrib_location)             \
   EXT_TO_CHECK(33, 30, ARB_sampler_objects)                      \
   EXT_TO_CHECK(33, 30, ARB_texture_swizzle)                      \
@@ -308,6 +309,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(40, 32, ARB_tessellation_shader)                  \
   EXT_TO_CHECK(40, 32, ARB_texture_cube_map_array)               \
   EXT_TO_CHECK(40, 30, ARB_transform_feedback2)                  \
+  EXT_TO_CHECK(41, 99, ARB_geometry_shader4)                     \
   EXT_TO_CHECK(41, 31, ARB_separate_shader_objects)              \
   EXT_TO_CHECK(41, 99, ARB_viewport_array)                       \
   EXT_TO_CHECK(42, 99, ARB_base_instance)                        \
@@ -349,7 +351,8 @@ extern bool IsGLES;
   EXT_TO_CHECK(99, 99, NV_polygon_mode)                          \
   EXT_TO_CHECK(99, 99, NV_read_depth)                            \
   EXT_TO_CHECK(99, 99, NV_read_stencil)                          \
-  EXT_TO_CHECK(99, 99, NV_read_depth_stencil)
+  EXT_TO_CHECK(99, 99, NV_read_depth_stencil)                    \
+  EXT_TO_CHECK(99, 99, EXT_disjoint_timer_query)
 
 // GL extensions and their roughly equivalent GLES alternatives
 #define EXTENSION_COMPATIBILITY_CHECKS()                                                    \
@@ -358,6 +361,8 @@ extern bool IsGLES;
   EXT_COMP_CHECK(ARB_copy_image, OES_copy_image)                                            \
   EXT_COMP_CHECK(ARB_draw_buffers_blend, EXT_draw_buffers_indexed)                          \
   EXT_COMP_CHECK(ARB_draw_buffers_blend, OES_draw_buffers_indexed)                          \
+  EXT_COMP_CHECK(ARB_geometry_shader4, EXT_geometry_shader)                                 \
+  EXT_COMP_CHECK(ARB_geometry_shader4, OES_geometry_shader)                                 \
   EXT_COMP_CHECK(ARB_gpu_shader5, EXT_gpu_shader5)                                          \
   EXT_COMP_CHECK(ARB_gpu_shader5, OES_gpu_shader5)                                          \
   EXT_COMP_CHECK(ARB_sample_shading, OES_sample_shading)                                    \
@@ -371,7 +376,9 @@ extern bool IsGLES;
   EXT_COMP_CHECK(ARB_texture_view, EXT_texture_view)                                        \
   EXT_COMP_CHECK(ARB_texture_view, OES_texture_view)                                        \
   EXT_COMP_CHECK(ARB_viewport_array, NV_viewport_array)                                     \
-  EXT_COMP_CHECK(ARB_viewport_array, OES_viewport_array)
+  EXT_COMP_CHECK(ARB_viewport_array, OES_viewport_array)                                    \
+  EXT_COMP_CHECK(ARB_texture_buffer_object, EXT_texture_buffer)                             \
+  EXT_COMP_CHECK(ARB_texture_buffer_object, OES_texture_buffer)
 
 // extensions we know we want to check for are precached, indexd by this enum
 enum ExtensionCheckEnum
