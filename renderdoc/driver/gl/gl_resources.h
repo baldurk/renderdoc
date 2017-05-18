@@ -58,6 +58,7 @@ bool IsUIntFormat(GLenum internalFormat);
 bool IsSIntFormat(GLenum internalFormat);
 bool IsSRGBFormat(GLenum internalFormat);
 
+bool IsCubeFace(GLenum target);
 GLint CubeTargetIndex(GLenum face);
 GLenum TextureBinding(GLenum target);
 GLenum TextureTarget(GLenum target);

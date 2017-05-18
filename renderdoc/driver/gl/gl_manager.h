@@ -220,6 +220,8 @@ private:
   bool Need_InitialStateChunk(GLResource res);
   bool Prepare_InitialState(GLResource res);
 
+  void CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum textype, GLint dim, GLint width,
+                          GLint height, GLint depth, GLint samples, int mips);
   void PrepareTextureInitialContents(ResourceId liveid, ResourceId origid, GLResource res);
 
   void Create_InitialState(ResourceId id, GLResource live, bool hasData);

@@ -562,6 +562,102 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   return true;
 }
 
+void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum textype,
+                                           GLint dim, GLint width, GLint height, GLint depth,
+                                           GLint samples, int mips)
+{
+  const GLHookSet &gl = m_GL->GetHookset();
+
+  if(textype == eGL_TEXTURE_BUFFER)
+  {
+    return;
+  }
+  else if(textype == eGL_TEXTURE_2D_MULTISAMPLE)
+  {
+    gl.glTextureStorage2DMultisampleEXT(tex, textype, samples, internalFormat, width, height,
+                                        GL_TRUE);
+  }
+  else if(textype == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+  {
+    gl.glTextureStorage3DMultisampleEXT(tex, textype, samples, internalFormat, width, height, depth,
+                                        GL_TRUE);
+  }
+  else
+  {
+    gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips - 1);
+
+    bool isCompressed = IsCompressedFormat(internalFormat);
+
+    GLenum baseFormat = eGL_RGBA;
+    GLenum dataType = eGL_UNSIGNED_BYTE;
+    if(!isCompressed)
+    {
+      baseFormat = GetBaseFormat(internalFormat);
+      dataType = GetDataType(internalFormat);
+    }
+
+    GLenum targets[] = {
+        eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+        eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+        eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+    };
+
+    int count = ARRAY_COUNT(targets);
+
+    if(textype != eGL_TEXTURE_CUBE_MAP)
+    {
+      targets[0] = textype;
+      count = 1;
+    }
+
+    GLsizei w = (GLsizei)width;
+    GLsizei h = (GLsizei)height;
+    GLsizei d = (GLsizei)depth;
+
+    for(int m = 0; m < mips; m++)
+    {
+      for(int t = 0; t < count; t++)
+      {
+        if(isCompressed)
+        {
+          GLsizei compSize = (GLsizei)GetCompressedByteSize(w, h, d, internalFormat);
+
+          vector<byte> dummy;
+          dummy.resize(compSize);
+
+          if(dim == 1)
+            gl.glCompressedTextureImage1DEXT(tex, targets[t], m, internalFormat, w, 0, compSize,
+                                             &dummy[0]);
+          else if(dim == 2)
+            gl.glCompressedTextureImage2DEXT(tex, targets[t], m, internalFormat, w, h, 0, compSize,
+                                             &dummy[0]);
+          else if(dim == 3)
+            gl.glCompressedTextureImage3DEXT(tex, targets[t], m, internalFormat, w, h, d, 0,
+                                             compSize, &dummy[0]);
+        }
+        else
+        {
+          if(dim == 1)
+            gl.glTextureImage1DEXT(tex, targets[t], m, internalFormat, w, 0, baseFormat, dataType,
+                                   NULL);
+          else if(dim == 2)
+            gl.glTextureImage2DEXT(tex, targets[t], m, internalFormat, w, h, 0, baseFormat,
+                                   dataType, NULL);
+          else if(dim == 3)
+            gl.glTextureImage3DEXT(tex, targets[t], m, internalFormat, w, h, d, 0, baseFormat,
+                                   dataType, NULL);
+        }
+      }
+
+      w = RDCMAX(1, w >> 1);
+      if(textype != eGL_TEXTURE_1D_ARRAY)
+        h = RDCMAX(1, h >> 1);
+      if(textype != eGL_TEXTURE_2D_ARRAY && textype != eGL_TEXTURE_CUBE_MAP_ARRAY)
+        d = RDCMAX(1, d >> 1);
+    }
+  }
+}
+
 void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, ResourceId origid,
                                                       GLResource res)
 {
@@ -671,95 +767,16 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         gl.glBindTexture(details.curType, oldtex);
       }
 
-      int depth = details.depth;
-      if(details.curType != eGL_TEXTURE_3D)
-        depth = 1;
-
       int mips =
           GetNumMips(gl, details.curType, res.name, details.width, details.height, details.depth);
 
-      GLenum baseFormat = eGL_RGBA;
-      GLenum dataType = eGL_UNSIGNED_BYTE;
-      if(!IsCompressedFormat(details.internalFormat))
-      {
-        baseFormat = GetBaseFormat(details.internalFormat);
-        dataType = GetDataType(details.internalFormat);
-      }
+      if(details.curType == eGL_TEXTURE_2D_MULTISAMPLE ||
+         details.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+        mips = 1;
 
       // create texture of identical format/size to store initial contents
-      if(details.curType == eGL_TEXTURE_2D_MULTISAMPLE)
-      {
-        gl.glTextureStorage2DMultisampleEXT(tex, details.curType, details.samples,
-                                            details.internalFormat, details.width, details.height,
-                                            GL_TRUE);
-        mips = 1;
-      }
-      else if(details.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
-      {
-        gl.glTextureStorage3DMultisampleEXT(tex, details.curType, details.samples,
-                                            details.internalFormat, details.width, details.height,
-                                            details.depth, GL_TRUE);
-        mips = 1;
-      }
-      else if(details.dimension == 1)
-      {
-        gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips - 1);
-
-        int w = details.width;
-        for(int i = 0; i < mips; i++)
-        {
-          gl.glTextureImage1DEXT(tex, details.curType, i, details.internalFormat, w, 0, baseFormat,
-                                 dataType, NULL);
-          w = RDCMAX(1, w >> 1);
-        }
-      }
-      else if(details.dimension == 2)
-      {
-        GLenum targets[] = {
-            eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-            eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-            eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-        };
-
-        gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips - 1);
-
-        int w = details.width;
-        int h = details.height;
-        for(int i = 0; i < mips; i++)
-        {
-          if(details.curType != eGL_TEXTURE_CUBE_MAP)
-          {
-            gl.glTextureImage2DEXT(tex, details.curType, i, details.internalFormat, w, h, 0,
-                                   baseFormat, dataType, NULL);
-          }
-          else
-          {
-            for(size_t t = 0; t < ARRAY_COUNT(targets); t++)
-              gl.glTextureImage2DEXT(tex, targets[t], i, details.internalFormat, w, h, 0,
-                                     baseFormat, dataType, NULL);
-          }
-          w = RDCMAX(1, w >> 1);
-          if(details.curType != eGL_TEXTURE_1D_ARRAY)
-            h = RDCMAX(1, h >> 1);
-        }
-      }
-      else if(details.dimension == 3)
-      {
-        gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips - 1);
-
-        int w = details.width;
-        int h = details.height;
-        int d = details.depth;
-        for(int i = 0; i < mips; i++)
-        {
-          gl.glTextureImage3DEXT(tex, details.curType, i, details.internalFormat, w, h, d, 0,
-                                 baseFormat, dataType, NULL);
-          w = RDCMAX(1, w >> 1);
-          h = RDCMAX(1, h >> 1);
-          if(details.curType == eGL_TEXTURE_3D)
-            d = RDCMAX(1, d >> 1);
-        }
-      }
+      CreateTextureImage(tex, details.internalFormat, details.curType, details.dimension,
+                         details.width, details.height, details.depth, details.samples, mips);
 
       // we need to set maxlevel appropriately for number of mips to force the texture to be
       // complete.
@@ -1164,7 +1181,21 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
               byte *buf = new byte[size];
 
-              gl.glGetCompressedTextureImageEXT(tex, targets[trg], i, buf);
+              if(IsGLES)
+              {
+                const vector<byte> &data = details.compressedData[i];
+                const byte *src =
+                    (count == 1) ? data.data() : data.data() + CubeTargetIndex(targets[trg]) * size;
+                size_t storedSize = data.size() / count;
+                if(storedSize == size)
+                  memcpy(buf, src, size);
+                else
+                  RDCERR("Different expected and stored compressed texture sizes!");
+              }
+              else
+              {
+                gl.glGetCompressedTextureImageEXT(tex, targets[trg], i, buf);
+              }
 
               m_pSerialiser->SerialiseBuffer("image", buf, size);
 
@@ -1378,90 +1409,18 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         GLenum dummy;
         EmulateLuminanceFormat(gl, tex, textype, internalformat, dummy);
 
-        GLenum baseFormat = eGL_RGBA;
-        GLenum dataType = eGL_UNSIGNED_BYTE;
-        if(!IsCompressedFormat(internalformat))
-        {
-          baseFormat = GetBaseFormat(internalformat);
-          dataType = GetDataType(internalformat);
-        }
-
         // create texture of identical format/size to store initial contents
         if(textype == eGL_TEXTURE_BUFFER || details.view)
         {
           // no 'contents' texture to create
         }
-        else if(textype == eGL_TEXTURE_2D_MULTISAMPLE)
+        else
         {
-          gl.glTextureStorage2DMultisampleEXT(tex, textype, samples, internalformat, width, height,
-                                              GL_TRUE);
+          CreateTextureImage(tex, internalformat, textype, dim, width, height, depth, samples, mips);
+        }
+
+        if(textype == eGL_TEXTURE_2D_MULTISAMPLE || textype == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
           mips = 1;
-        }
-        else if(textype == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
-        {
-          gl.glTextureStorage3DMultisampleEXT(tex, textype, samples, internalformat, width, height,
-                                              depth, GL_TRUE);
-          mips = 1;
-        }
-        else if(dim == 1)
-        {
-          gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips - 1);
-
-          int w = width;
-          for(int i = 0; i < mips; i++)
-          {
-            gl.glTextureImage1DEXT(tex, textype, i, internalformat, w, 0, baseFormat, dataType, NULL);
-            w = RDCMAX(1, w >> 1);
-          }
-        }
-        else if(dim == 2)
-        {
-          GLenum targets[] = {
-              eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-              eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-              eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-          };
-
-          gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips - 1);
-
-          int w = width;
-          int h = height;
-          for(int i = 0; i < mips; i++)
-          {
-            if(textype != eGL_TEXTURE_CUBE_MAP)
-            {
-              gl.glTextureImage2DEXT(tex, textype, i, internalformat, w, h, 0, baseFormat, dataType,
-                                     NULL);
-            }
-            else
-            {
-              for(size_t t = 0; t < ARRAY_COUNT(targets); t++)
-                gl.glTextureImage2DEXT(tex, targets[t], i, internalformat, w, h, 0, baseFormat,
-                                       dataType, NULL);
-            }
-
-            w = RDCMAX(1, w >> 1);
-            if(textype != eGL_TEXTURE_1D_ARRAY)
-              h = RDCMAX(1, h >> 1);
-          }
-        }
-        else if(dim == 3)
-        {
-          gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips - 1);
-
-          int w = width;
-          int h = height;
-          int d = depth;
-          for(int i = 0; i < mips; i++)
-          {
-            gl.glTextureImage3DEXT(tex, textype, i, internalformat, w, h, d, 0, baseFormat,
-                                   dataType, NULL);
-            w = RDCMAX(1, w >> 1);
-            h = RDCMAX(1, h >> 1);
-            if(textype == eGL_TEXTURE_3D)
-              d = RDCMAX(1, d >> 1);
-          }
-        }
 
         if(textype == eGL_TEXTURE_BUFFER || details.view)
         {

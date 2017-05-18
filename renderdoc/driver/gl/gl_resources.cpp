@@ -996,6 +996,22 @@ GLenum FramebufferBinding(GLenum target)
   return eGL_NONE;
 }
 
+bool IsCubeFace(GLenum target)
+{
+  switch(target)
+  {
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_X:
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z: return true;
+    default: break;
+  }
+
+  return false;
+}
+
 GLint CubeTargetIndex(GLenum face)
 {
   switch(face)
