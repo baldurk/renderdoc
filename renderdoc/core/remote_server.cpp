@@ -869,12 +869,11 @@ public:
 
     if(ser)
     {
-      uint32_t count = 0;
-      ser->Serialise("", count);
+      std::vector<PathEntry> paths;
 
-      create_array_uninit(ret, count);
-      for(uint32_t i = 0; i < count; i++)
-        ser->Serialise("", ret[i]);
+      ser->Serialise("", paths);
+
+      ret = paths;
 
       delete ser;
     }
