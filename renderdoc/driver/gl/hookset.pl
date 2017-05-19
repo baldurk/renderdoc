@@ -96,10 +96,10 @@ my @dllexportfuncs = ();
 my @glextfuncs = ();
 my @processed = ();
 
-my $typedefs = `grep -Eh PFN[0-9A-Z_-]+PROC official/glcorearb.h official/glext.h official/wglext.h official/legacygl.h`;
+my $typedefs = `grep -Eh PFN[0-9A-Z_-]+PROC official/glcorearb.h official/glext.h official/glesext.h official/wglext.h official/legacygl.h`;
 foreach my $typedef (split(/\n/, $typedefs))
 {
-	if($typedef =~ /^typedef (.*)\([A-Z *]* (.*)\) \((.*)\);/)
+	if($typedef =~ /^typedef (.*)\([A-Z_ *]* (.*)\) \((.*)\);/)
 	{
 		my $returnType = trim($1);
 		my $def = $2;
