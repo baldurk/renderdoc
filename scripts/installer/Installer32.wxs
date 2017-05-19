@@ -5,7 +5,7 @@
 
     <Package Id='*' Keywords='Installer' Description="Installer for RenderDoc"
       Comments='RenderDoc Homepage is http://renderdoc.org/' Manufacturer='Baldur Karlsson'
-      InstallerVersion='300' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
+      InstallerVersion='301' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
 
     <UI> 
        <Error Id="25000">Please use the 64-bit installer</Error> 

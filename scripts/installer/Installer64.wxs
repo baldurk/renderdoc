@@ -5,7 +5,7 @@
 
     <Package Id='*' Keywords='Installer' Description="Installer for RenderDoc"
       Comments='RenderDoc Homepage is http://renderdoc.org/' Platform="x64" Manufacturer='Baldur Karlsson'
-      InstallerVersion='300' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
+      InstallerVersion='301' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
 
     <InstallExecuteSequence>
       <RemoveExistingProducts After="InstallInitialize"/>
