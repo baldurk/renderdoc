@@ -1457,7 +1457,7 @@ constexpr inline uint32_t PatchList_Count(Topology topology)
 {
   return uint32_t(topology) < uint32_t(Topology::PatchList_1CPs)
              ? 0
-             : uint32_t(topology) - uint32_t(Topology::PatchList_1CPs);
+             : uint32_t(topology) - uint32_t(Topology::PatchList_1CPs) + 1;
 }
 
 DOCUMENT(R"(Check whether or not this is a strip-type topology.
