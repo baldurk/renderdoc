@@ -34,8 +34,15 @@ extern "C" {
 **   https://github.com/KhronosGroup/OpenGL-Registry
 */
 
+#ifndef GL_APIENTRY
+#define GL_APIENTRY
+#endif
+
+// TODO we use this hack, otherwise some typedefs may collide with the ones in glext.h
+// glext.h must be included before glesext.h
 #ifndef GL_APIENTRYP
-#define GL_APIENTRYP GL_APIENTRY*
+//#define GL_APIENTRYP GL_APIENTRY*
+#define GL_APIENTRYP APIENTRYP
 #endif
 
 /* Generated on date 20170425 */

@@ -19,6 +19,7 @@ set(sources
     gl_shader_refl.cpp
     gl_shader_refl.h
     official/glcorearb.h
+    official/glesext.h
     official/glext.h
     wrappers/gl_buffer_funcs.cpp
     wrappers/gl_debug_funcs.cpp
