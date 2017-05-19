@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <WixLocalization Culture="en-us" xmlns="http://schemas.microsoft.com/wix/2006/localization">
 
-	<String Id="WelcomeDlgDescription">[ProductName] [ProductVersion] is a frame capture graphics debugger for Vulkan, D3D11 and OpenGL (https://github.com/baldurk/renderdoc).&#xa;&#xa;Click Next to continue or Cancel to exit Setup.</String>
+	<String Id="WelcomeDlgDescription">[ProductName] [ProductVersion] is a frame capture graphics debugger for Vulkan, D3D11, D3D12, and OpenGL (https://github.com/baldurk/renderdoc).&#xa;&#xa;Click Next to continue or Cancel to exit Setup.</String>
 	<String Id="MaintenanceWelcomeDlgDescription">[ProductName] [ProductVersion] is already installed.&#xa;&#xa;Click Next for options of to repair or remove it, or Cancel to exit the Setup Wizard.</String>
 
 	<String Id="AdvancedWelcomeEulaDlg_Title" Overridable="yes">[ProductName] [ProductVersion] Setup</String>
