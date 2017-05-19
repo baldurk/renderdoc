@@ -603,6 +603,9 @@ struct GLHookSet
   PFNGLDRAWELEMENTSINDIRECTPROC glDrawElementsIndirect;
   PFNGLBLITFRAMEBUFFERPROC glBlitFramebuffer;    // aliases glBlitFramebufferEXT
 
+  // GLES core
+  PFNGLPRIMITIVEBOUNDINGBOXEXTPROC glPrimitiveBoundingBox;    // aliases glPrimitiveBoundingBoxEXT, glPrimitiveBoundingBoxOES
+
   // ARB_shading_language_include
   PFNGLNAMEDSTRINGARBPROC glNamedStringARB;
   PFNGLDELETENAMEDSTRINGARBPROC glDeleteNamedStringARB;

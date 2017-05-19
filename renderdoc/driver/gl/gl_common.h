@@ -339,14 +339,16 @@ extern bool IsGLES;
   EXT_TO_CHECK(99, 30, EXT_texture_swizzle)                      \
   EXT_TO_CHECK(99, 99, KHR_blend_equation_advanced_coherent)     \
   /* OpenGL ES extensions */                                     \
+  EXT_TO_CHECK(99, 32, EXT_color_buffer_float)                   \
+  EXT_TO_CHECK(99, 32, EXT_primitive_bounding_box)               \
+  EXT_TO_CHECK(99, 32, OES_primitive_bounding_box)               \
+  EXT_TO_CHECK(99, 32, OES_texture_storage_multisample_2d_array) \
   EXT_TO_CHECK(99, 99, EXT_clip_cull_distance)                   \
   EXT_TO_CHECK(99, 99, EXT_multisample_compatibility)            \
   EXT_TO_CHECK(99, 99, NV_polygon_mode)                          \
   EXT_TO_CHECK(99, 99, NV_read_depth)                            \
   EXT_TO_CHECK(99, 99, NV_read_stencil)                          \
-  EXT_TO_CHECK(99, 99, NV_read_depth_stencil)                    \
-  EXT_TO_CHECK(99, 32, OES_texture_storage_multisample_2d_array) \
-  EXT_TO_CHECK(99, 32, EXT_color_buffer_float)
+  EXT_TO_CHECK(99, 99, NV_read_depth_stencil)
 
 // GL extensions and their roughly equivalent GLES alternatives
 #define EXTENSION_COMPATIBILITY_CHECKS()                                                    \
@@ -721,6 +723,8 @@ enum GLChunkType
 
   INTEROP_INIT,
   INTEROP_DATA,
+
+  PRIMITIVE_BOUNDING_BOX,
 
   NUM_OPENGL_CHUNKS,
 };

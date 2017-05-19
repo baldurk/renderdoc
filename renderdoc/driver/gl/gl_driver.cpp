@@ -320,6 +320,8 @@ const char *GLChunkNames[] = {
 
     "wglDXRegisterObjectNV",
     "wglDXLockObjectsNV",
+
+    "glPrimitiveBoundingBox",
 };
 
 GLInitParams::GLInitParams()
@@ -346,6 +348,7 @@ const uint32_t GLInitParams::GL_OLD_VERSIONS[GLInitParams::GL_NUM_SUPPORTED_OLD_
     0x000012,    // Added support for GL-DX interop
     0x000013,    // Serialised vertex attribute and fragdata bindings for programs as initial
                  // contents data
+    0x000014,    // Added support for primitive bounding boxes on GLES
 };
 
 ReplayStatus GLInitParams::Serialise()
@@ -746,6 +749,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_texture_float_linear");
   m_GLESExtensions.push_back("GL_OES_texture_half_float");
   m_GLESExtensions.push_back("GL_OES_texture_half_float_linear");
+  m_GLESExtensions.push_back("GL_OES_primitive_bounding_box");
 
   m_GLESExtensions.push_back("GL_EXT_copy_image");
   m_GLESExtensions.push_back("GL_EXT_draw_buffers_indexed");
@@ -782,6 +786,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_EXT_shader_non_constant_global_initializers");
   m_GLESExtensions.push_back("GL_EXT_shader_texture_lod");
   m_GLESExtensions.push_back("GL_EXT_shadow_samplers");
+  m_GLESExtensions.push_back("GL_EXT_primitive_bounding_box");
 
   // we'll be sorting the implementation extension array, so make sure the
   // sorts are identical so we can do the intersection easily
@@ -3835,6 +3840,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
       Serialise_wglDXRegisterObjectNV(GLResource(MakeNullResource), eGL_NONE, NULL);
       break;
     case INTEROP_DATA: Serialise_wglDXLockObjectsNV(GLResource(MakeNullResource)); break;
+    case PRIMITIVE_BOUNDING_BOX: Serialise_glPrimitiveBoundingBox(0, 0, 0, 0, 0, 0, 0, 0); break;
     default:
       // ignore system chunks
       if((int)context == (int)INITIAL_CONTENTS)

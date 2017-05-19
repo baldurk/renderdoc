@@ -1155,6 +1155,9 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
   m_Real->glGetIntegerv(eGL_FRONT_FACE, (GLint *)&FrontFace);
   m_Real->glGetIntegerv(eGL_CULL_FACE_MODE, (GLint *)&CullFace);
 
+  if(IsGLES && (HasExt[EXT_primitive_bounding_box] || HasExt[OES_primitive_bounding_box]))
+    m_Real->glGetFloatv(eGL_PRIMITIVE_BOUNDING_BOX_EXT, (GLfloat *)&PrimitiveBoundingBox);
+
   Unpack.Fetch(m_Real, true);
 
   ClearGLErrors(*m_Real);
@@ -1516,6 +1519,12 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
   m_Real->glFrontFace(FrontFace);
   m_Real->glCullFace(CullFace);
 
+  if(IsGLES && (HasExt[EXT_primitive_bounding_box] || HasExt[OES_primitive_bounding_box]))
+    m_Real->glPrimitiveBoundingBox(PrimitiveBoundingBox.minX, PrimitiveBoundingBox.minY,
+                                   PrimitiveBoundingBox.minZ, PrimitiveBoundingBox.minW,
+                                   PrimitiveBoundingBox.maxX, PrimitiveBoundingBox.maxY,
+                                   PrimitiveBoundingBox.maxZ, PrimitiveBoundingBox.maxW);
+
   Unpack.Apply(m_Real, true);
 
   ClearGLErrors(*m_Real);
@@ -1564,6 +1573,7 @@ void GLRenderState::Clear()
   RDCEraseEl(PointSize);
 
   RDCEraseEl(PrimitiveRestartIndex);
+  RDCEraseEl(PrimitiveBoundingBox);
   RDCEraseEl(ClipOrigin);
   RDCEraseEl(ClipDepth);
   RDCEraseEl(ProvokingVertex);
@@ -1938,4 +1948,16 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
   m_pSerialiser->Serialise("GL_UNPACK_COMPRESSED_BLOCK_HEIGHT", Unpack.compressedBlockHeight);
   m_pSerialiser->Serialise("GL_UNPACK_COMPRESSED_BLOCK_DEPTH", Unpack.compressedBlockDepth);
   m_pSerialiser->Serialise("GL_UNPACK_COMPRESSED_BLOCK_SIZE", Unpack.compressedBlockSize);
+
+  if(IsGLES && gl->GetLogVersion() >= 0x000015)
+  {
+    m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINX", PrimitiveBoundingBox.minX);
+    m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINY", PrimitiveBoundingBox.minY);
+    m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINZ", PrimitiveBoundingBox.minZ);
+    m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINW", PrimitiveBoundingBox.minW);
+    m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXX", PrimitiveBoundingBox.maxX);
+    m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXY", PrimitiveBoundingBox.maxY);
+    m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXZ", PrimitiveBoundingBox.maxZ);
+    m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXW", PrimitiveBoundingBox.maxW);
+  }
 }

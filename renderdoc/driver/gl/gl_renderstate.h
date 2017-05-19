@@ -185,6 +185,13 @@ struct GLRenderState
   float PointSize;
 
   uint32_t PrimitiveRestartIndex;
+
+  struct BoundingBox
+  {
+    float minX, minY, minZ, minW;
+    float maxX, maxY, maxZ, maxW;
+  } PrimitiveBoundingBox;
+
   GLenum ClipOrigin, ClipDepth;
   GLenum ProvokingVertex;
 

@@ -1112,6 +1112,9 @@
   HookExtension(PFNGLRASTERSAMPLESEXTPROC, glRasterSamplesEXT); \
   HookExtension(PFNGLFRAMETERMINATORGREMEDYPROC, glFrameTerminatorGREMEDY); \
   HookExtension(PFNGLSTRINGMARKERGREMEDYPROC, glStringMarkerGREMEDY); \
+  HookExtension(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glPrimitiveBoundingBox); \
+  HookExtensionAlias(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glPrimitiveBoundingBox, glPrimitiveBoundingBoxEXT); \
+  HookExtensionAlias(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glPrimitiveBoundingBox, glPrimitiveBoundingBoxOES); \
   HookExtension(PFNWGLDXSETRESOURCESHAREHANDLENVPROC, wglDXSetResourceShareHandleNV); \
   HookExtension(PFNWGLDXOPENDEVICENVPROC, wglDXOpenDeviceNV); \
   HookExtension(PFNWGLDXCLOSEDEVICENVPROC, wglDXCloseDeviceNV); \
@@ -1964,6 +1967,7 @@
     HookWrapper2(void, glRasterSamplesEXT, GLuint, samples, GLboolean, fixedsamplelocations); \
     HookWrapper0(void, glFrameTerminatorGREMEDY); \
     HookWrapper2(void, glStringMarkerGREMEDY, GLsizei, len, const void *, string); \
+    HookWrapper8(void, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
     HookWrapper2(BOOL, wglDXSetResourceShareHandleNV, void *, dxObject, HANDLE, shareHandle); \
     HookWrapper1(HANDLE, wglDXOpenDeviceNV, void *, dxDevice); \
     HookWrapper1(BOOL, wglDXCloseDeviceNV, HANDLE, hDevice); \
@@ -3536,7 +3540,6 @@
     HookWrapper4(void, glframebuffertextureoes, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level); \
     HookWrapper5(void, glgetprogrambinaryoes, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLenum *, binaryFormat, void *, binary); \
     HookWrapper4(void, glprogrambinaryoes, GLuint, program, GLenum, binaryFormat, const void *, binary, GLint, length); \
-    HookWrapper8(void, glprimitiveboundingboxoes, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
     HookWrapper1(void, glminsampleshadingoes, GLfloat, value); \
     HookWrapper2(void, glpatchparameterioes, GLenum, pname, GLint, value); \
     HookWrapper10(void, glteximage3does, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
@@ -3630,7 +3633,6 @@
     HookWrapper2(void, glreadbufferindexedext, GLenum, src, GLint, index); \
     HookWrapper3(void, gldrawbuffersindexedext, GLint, n, const GLenum *, location, const GLint *, indices); \
     HookWrapper3(void, glgetintegeri_vext, GLenum, target, GLuint, index, GLint *, data); \
-    HookWrapper8(void, glprimitiveboundingboxext, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
     HookWrapper0(GLenum, glgetgraphicsresetstatusext); \
     HookWrapper8(void, glreadnpixelsext, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper4(void, glgetnuniformfvext, GLuint, program, GLint, location, GLsizei, bufSize, GLfloat *, params); \
@@ -5566,7 +5568,6 @@
     HandleUnsupported(PFNGLFRAMEBUFFERTEXTUREOESPROC, glframebuffertextureoes); \
     HandleUnsupported(PFNGLGETPROGRAMBINARYOESPROC, glgetprogrambinaryoes); \
     HandleUnsupported(PFNGLPROGRAMBINARYOESPROC, glprogrambinaryoes); \
-    HandleUnsupported(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glprimitiveboundingboxoes); \
     HandleUnsupported(PFNGLMINSAMPLESHADINGOESPROC, glminsampleshadingoes); \
     HandleUnsupported(PFNGLPATCHPARAMETERIOESPROC, glpatchparameterioes); \
     HandleUnsupported(PFNGLTEXIMAGE3DOESPROC, glteximage3does); \
@@ -5660,7 +5661,6 @@
     HandleUnsupported(PFNGLREADBUFFERINDEXEDEXTPROC, glreadbufferindexedext); \
     HandleUnsupported(PFNGLDRAWBUFFERSINDEXEDEXTPROC, gldrawbuffersindexedext); \
     HandleUnsupported(PFNGLGETINTEGERI_VEXTPROC, glgetintegeri_vext); \
-    HandleUnsupported(PFNGLPRIMITIVEBOUNDINGBOXEXTPROC, glprimitiveboundingboxext); \
     HandleUnsupported(PFNGLGETGRAPHICSRESETSTATUSEXTPROC, glgetgraphicsresetstatusext); \
     HandleUnsupported(PFNGLREADNPIXELSEXTPROC, glreadnpixelsext); \
     HandleUnsupported(PFNGLGETNUNIFORMFVEXTPROC, glgetnuniformfvext); \
