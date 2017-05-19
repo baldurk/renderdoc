@@ -355,13 +355,37 @@
           </property>
           <layout class="QGridLayout" name="gridLayout_2">
            <item row="6" column="1">
-            <widget class="QDoubleSpinBox" name="farGuess"/>
+            <widget class="QDoubleSpinBox" name="farGuess">
+             <property name="maximum">
+              <double>1000000.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>10.000000000000000</double>
+             </property>
+            </widget>
            </item>
            <item row="5" column="1">
-            <widget class="QDoubleSpinBox" name="nearGuess"/>
+            <widget class="QDoubleSpinBox" name="nearGuess">
+             <property name="maximum">
+              <double>100.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
+             </property>
+            </widget>
            </item>
            <item row="4" column="1">
-            <widget class="QDoubleSpinBox" name="aspectGuess"/>
+            <widget class="QDoubleSpinBox" name="aspectGuess">
+             <property name="minimum">
+              <double>0.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>10.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
+             </property>
+            </widget>
            </item>
            <item row="6" column="0">
             <widget class="QLabel" name="farGuessLabel">
