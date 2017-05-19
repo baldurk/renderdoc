@@ -129,6 +129,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
         ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
   }
 
+  ui->docking->setAllowFloatingWindow(false);
   ui->docking->setRubberBandLineWidth(50);
 
   {
