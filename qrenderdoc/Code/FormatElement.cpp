@@ -835,7 +835,7 @@ QString TypeString(const ShaderVariable &v)
     if(v.isStruct)
       return lit("struct");
     else
-      return QFormatStr("%1[%2]").arg(TypeString(v.members[0]), v.members.count);
+      return QFormatStr("%1[%2]").arg(TypeString(v.members[0])).arg(v.members.count);
   }
 
   QString typeStr = ToQStr(v.type);
