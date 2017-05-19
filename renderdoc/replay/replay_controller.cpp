@@ -315,7 +315,11 @@ rdctype::array<rdctype::str> ReplayController::GetResolve(const rdctype::array<u
   Callstack::StackResolver *resolv = m_pDevice->GetCallstackResolver();
 
   if(resolv == NULL)
+  {
+    create_array_uninit(ret, 1);
+    ret[0] = "";
     return ret;
+  }
 
   create_array_uninit(ret, (size_t)callstack.count);
   for(int32_t i = 0; i < callstack.count; i++)
