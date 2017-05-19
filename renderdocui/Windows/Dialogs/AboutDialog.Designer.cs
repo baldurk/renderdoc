@@ -77,7 +77,7 @@
             this.label2.Size = new System.Drawing.Size(439, 122);
             this.label2.TabIndex = 2;
             this.label2.Text = "Baldur Karlsson\r\nbaldurk@baldurk.org\r\nhttps://renderdoc.org/\r\nCopy" +
-    "right Baldur Karlsson 2016";
+    "right Baldur Karlsson 2017";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // ok
