@@ -53,10 +53,10 @@ struct GLInitParams : public RDCInitParams
   uint32_t width;
   uint32_t height;
 
-  static const uint32_t GL_SERIALISE_VERSION = 0x0000014;
+  static const uint32_t GL_SERIALISE_VERSION = 0x0000015;
 
   // backwards compatibility for old logs described at the declaration of this array
-  static const uint32_t GL_NUM_SUPPORTED_OLD_VERSIONS = 4;
+  static const uint32_t GL_NUM_SUPPORTED_OLD_VERSIONS = 5;
   static const uint32_t GL_OLD_VERSIONS[GL_NUM_SUPPORTED_OLD_VERSIONS];
 
   // version number internal to opengl stream
@@ -352,7 +352,6 @@ private:
 
   ResourceId m_FakeVAOID;
 
-  uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
   void ProcessChunk(uint64_t offset, GLChunkType context);
   void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
   void ContextProcessChunk(uint64_t offset, GLChunkType chunk);
@@ -534,6 +533,7 @@ public:
   WrappedOpenGL(const char *logfile, const GLHookSet &funcs, GLPlatform &platform);
   virtual ~WrappedOpenGL();
 
+  uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
   static const char *GetChunkName(uint32_t idx);
   GLResourceManager *GetResourceManager() { return m_ResourceManager; }
   ResourceId GetDeviceResourceID() { return m_DeviceResourceID; }
@@ -2444,6 +2444,11 @@ public:
   BOOL wglDXObjectAccessNV(HANDLE hObject, GLenum access);
   BOOL wglDXLockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObjects);
   BOOL wglDXUnlockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObjects);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void,
+                                glPrimitiveBoundingBox(GLfloat minX, GLfloat minY, GLfloat minZ,
+                                                       GLfloat minW, GLfloat maxX, GLfloat maxY,
+                                                       GLfloat maxZ, GLfloat maxW));
 };
 
 class ScopedDebugContext

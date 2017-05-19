@@ -4078,3 +4078,37 @@ void WrappedOpenGL::glClearTexSubImage(GLuint texture, GLint level, GLint xoffse
     GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
   }
 }
+
+bool WrappedOpenGL::Serialise_glPrimitiveBoundingBox(GLfloat minX, GLfloat minY, GLfloat minZ,
+                                                     GLfloat minW, GLfloat maxX, GLfloat maxY,
+                                                     GLfloat maxZ, GLfloat maxW)
+{
+  SERIALISE_ELEMENT(float, MinX, minX);
+  SERIALISE_ELEMENT(float, MinY, minY);
+  SERIALISE_ELEMENT(float, MinZ, minZ);
+  SERIALISE_ELEMENT(float, MinW, minW);
+  SERIALISE_ELEMENT(float, MaxX, maxX);
+  SERIALISE_ELEMENT(float, MaxY, maxY);
+  SERIALISE_ELEMENT(float, MaxZ, maxZ);
+  SERIALISE_ELEMENT(float, MaxW, maxW);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glPrimitiveBoundingBox(MinX, MinY, MinZ, MinW, MaxX, MaxY, MaxZ, MaxW);
+  }
+
+  return true;
+}
+
+void WrappedOpenGL::glPrimitiveBoundingBox(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW,
+                                           GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW)
+{
+  m_Real.glPrimitiveBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(PRIMITIVE_BOUNDING_BOX);
+    Serialise_glPrimitiveBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
