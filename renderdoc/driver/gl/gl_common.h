@@ -37,6 +37,9 @@
 // official headers
 #include "official/glcorearb.h"
 #include "official/glext.h"
+// TODO there are some extensions which are in both headers but with different content
+// however it does not seem to be a problem at this time
+#include "official/glesext.h"
 
 #if ENABLED(RDOC_WIN32)
 #include "official/wglext.h"
