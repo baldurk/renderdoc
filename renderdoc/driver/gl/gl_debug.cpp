@@ -1125,7 +1125,8 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.histogramBuf);
 
   GLuint zero = 0;
-  gl.glClearBufferData(eGL_SHADER_STORAGE_BUFFER, eGL_R32UI, eGL_RED, eGL_UNSIGNED_INT, &zero);
+  gl.glClearBufferData(eGL_SHADER_STORAGE_BUFFER, eGL_R32UI, eGL_RED_INTEGER, eGL_UNSIGNED_INT,
+                       &zero);
 
   gl.glUseProgram(DebugData.histogramProgram[progIdx]);
   gl.glDispatchCompute(blocksX, blocksY, 1);
