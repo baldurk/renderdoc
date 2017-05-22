@@ -866,11 +866,15 @@ private:
     return ret;
   }
 
+  // Make sure that even if internally SwapBuffers calls wglSwapBuffers we don't process both of
+  // them separately
+  bool m_InSwap = false;
+
   static void ProcessSwapBuffers(HDC dc)
   {
     HWND w = WindowFromDC(dc);
 
-    if(w != NULL && glhooks.m_HaveContextCreation)
+    if(w != NULL && glhooks.m_HaveContextCreation && !glhooks.m_InSwap)
     {
       SCOPED_LOCK(glLock);
 
@@ -887,23 +891,41 @@ private:
 
   static BOOL WINAPI SwapBuffers_hooked(HDC dc)
   {
+    SCOPED_LOCK(glLock);
+
     ProcessSwapBuffers(dc);
 
-    return glhooks.SwapBuffers_hook()(dc);
+    glhooks.m_InSwap = true;
+    BOOL ret = glhooks.SwapBuffers_hook()(dc);
+    glhooks.m_InSwap = false;
+
+    return ret;
   }
 
   static BOOL WINAPI wglSwapBuffers_hooked(HDC dc)
   {
+    SCOPED_LOCK(glLock);
+
     ProcessSwapBuffers(dc);
 
-    return glhooks.wglSwapBuffers_hook()(dc);
+    glhooks.m_InSwap = true;
+    BOOL ret = glhooks.wglSwapBuffers_hook()(dc);
+    glhooks.m_InSwap = false;
+
+    return ret;
   }
 
   static BOOL WINAPI wglSwapLayerBuffers_hooked(HDC dc, UINT planes)
   {
+    SCOPED_LOCK(glLock);
+
     ProcessSwapBuffers(dc);
 
-    return glhooks.wglSwapLayerBuffers_hook()(dc, planes);
+    glhooks.m_InSwap = true;
+    BOOL ret = glhooks.wglSwapLayerBuffers_hook()(dc, planes);
+    glhooks.m_InSwap = false;
+
+    return ret;
   }
 
   static BOOL WINAPI wglSwapMultipleBuffers_hooked(UINT numSwaps, CONST WGLSWAP *pSwaps)
@@ -911,7 +933,11 @@ private:
     for(UINT i = 0; pSwaps && i < numSwaps; i++)
       ProcessSwapBuffers(pSwaps[i].hdc);
 
-    return glhooks.wglSwapMultipleBuffers_hook()(numSwaps, pSwaps);
+    glhooks.m_InSwap = true;
+    BOOL ret = glhooks.wglSwapMultipleBuffers_hook()(numSwaps, pSwaps);
+    glhooks.m_InSwap = false;
+
+    return ret;
   }
 
   static LONG WINAPI ChangeDisplaySettingsA_hooked(DEVMODEA *mode, DWORD flags)
