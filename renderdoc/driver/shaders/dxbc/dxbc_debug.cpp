@@ -1386,11 +1386,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           op.operands[0], op,
           ShaderVariable(
               "",
-              floor(srcOpers[0].value.f.x < 0 ? srcOpers[0].value.f.x + 0.5f : srcOpers[0].value.f.x),
-              floor(srcOpers[0].value.f.y < 0 ? srcOpers[0].value.f.y + 0.5f : srcOpers[0].value.f.y),
-              floor(srcOpers[0].value.f.z < 0 ? srcOpers[0].value.f.z + 0.5f : srcOpers[0].value.f.z),
-              floor(srcOpers[0].value.f.w < 0 ? srcOpers[0].value.f.w + 0.5f
-                                              : srcOpers[0].value.f.w)));
+              srcOpers[0].value.f.x < 0 ? ceil(srcOpers[0].value.f.x) : floor(srcOpers[0].value.f.x),
+              srcOpers[0].value.f.y < 0 ? ceil(srcOpers[0].value.f.y) : floor(srcOpers[0].value.f.y),
+              srcOpers[0].value.f.z < 0 ? ceil(srcOpers[0].value.f.z) : floor(srcOpers[0].value.f.z),
+              srcOpers[0].value.f.w < 0 ? ceil(srcOpers[0].value.f.w) : floor(srcOpers[0].value.f.w)));
       break;
     // to nearest even int (banker's rounding)
     case OPCODE_ROUND_NE:
