@@ -61,7 +61,7 @@ uint4 SampleTextureUInt4(uint type, float2 uv, float slice, float mip, int sampl
 	if(type == RESTYPE_TEX1D)
 		col = texDisplayUIntTex1DArray.Load(int3(uv.x*texRes.x, slice, mip));
 	else if(type == RESTYPE_TEX3D)
-		col = texDisplayUIntTex3D.Load(int4(uv.xy*texRes.xy, slice*texRes.z, mip));
+		col = texDisplayUIntTex3D.Load(int4(uv.xy*texRes.xy, slice + 0.001f, mip));
 	else if(type == RESTYPE_TEX2D)
 		col = texDisplayUIntTex2DArray.Load(int4(uv.xy*texRes.xy, slice, mip));
 	else if(type == RESTYPE_TEX2D_MS)
@@ -81,7 +81,7 @@ int4 SampleTextureInt4(uint type, float2 uv, float slice, float mip, int sample,
 	if(type == RESTYPE_TEX1D)
 		col = texDisplayIntTex1DArray.Load(int3(uv.x*texRes.x, slice, mip));
 	else if(type == RESTYPE_TEX3D)
-		col = texDisplayIntTex3D.Load(int4(uv.xy*texRes.xy, slice*texRes.z, mip));
+		col = texDisplayIntTex3D.Load(int4(uv.xy*texRes.xy, slice + 0.001f, mip));
 	else if(type == RESTYPE_TEX2D)
 		col = texDisplayIntTex2DArray.Load(int4(uv.xy*texRes.xy, slice, mip));
 	else if(type == RESTYPE_TEX2D_MS)
@@ -108,9 +108,9 @@ float4 SampleTextureFloat4(uint type, bool linearSample, float2 uv, float slice,
 	else if(type == RESTYPE_TEX3D)
 	{
 		if(linearSample)
-			col = texDisplayTex3D.SampleLevel(linearSampler, float3(uv.xy, slice), mip);
+			col = texDisplayTex3D.SampleLevel(linearSampler, float3(uv.xy, (slice + 0.001f) / texRes.z), mip);
 		else
-			col = texDisplayTex3D.Load(int4(uv.xy*texRes.xy, slice*texRes.z, mip));
+			col = texDisplayTex3D.Load(int4(uv.xy*texRes.xy, slice + 0.001f, mip));
 	}
 	else if(type == RESTYPE_DEPTH)
 	{

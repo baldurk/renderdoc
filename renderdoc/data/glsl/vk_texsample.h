@@ -44,7 +44,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX3D)
   {
-    col = textureLod(tex3D, vec3(pos, slice / texRes.z), float(mipLevel));
+    col = textureLod(tex3D, vec3(pos, (slice + 0.001f) / texRes.z), float(mipLevel));
   }
   else if(type == RESTYPE_TEX2DMS)
   {
@@ -96,7 +96,7 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX3D)
   {
-    col = texelFetch(texUInt3D, ivec3(pos * texRes.xy, slice), mipLevel);
+    col = texelFetch(texUInt3D, ivec3(pos * texRes.xy, slice + 0.001f), mipLevel);
   }
   else if(type == RESTYPE_TEX2DMS)
   {
@@ -133,7 +133,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX3D)
   {
-    col = texelFetch(texSInt3D, ivec3(pos * texRes.xy, slice), mipLevel);
+    col = texelFetch(texSInt3D, ivec3(pos * texRes.xy, slice + 0.001f), mipLevel);
   }
   else if(type == RESTYPE_TEX2DMS)
   {

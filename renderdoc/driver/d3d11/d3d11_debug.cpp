@@ -1817,7 +1817,7 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
   }
 
   if(details.texType == eTexType_3D)
-    cdata.HistogramSlice = float(sliceFace) / float(details.texDepth) + 0.001f;
+    cdata.HistogramSlice = float(sliceFace);
 
   ID3D11Buffer *cbuf = MakeCBuffer(&cdata, sizeof(cdata));
 
@@ -1918,7 +1918,7 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
   }
 
   if(details.texType == eTexType_3D)
-    cdata.HistogramSlice = float(sliceFace) / float(details.texDepth) + 0.001f;
+    cdata.HistogramSlice = float(sliceFace);
 
   ID3D11Buffer *cbuf = MakeCBuffer(&cdata, sizeof(cdata));
 
@@ -3414,7 +3414,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   if(details.texType == eTexType_3D)
   {
     pixelData.OutputDisplayFormat = RESTYPE_TEX3D;
-    pixelData.Slice = (float(cfg.sliceFace) / float(details.texDepth)) + 0.001f;
+    pixelData.Slice = float(cfg.sliceFace);
   }
   else if(details.texType == eTexType_1D)
   {
