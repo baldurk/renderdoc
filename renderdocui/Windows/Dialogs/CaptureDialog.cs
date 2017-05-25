@@ -330,7 +330,7 @@ namespace renderdocui.Windows.Dialogs
                     bool match = false;
 
                     foreach(var v in values)
-                        if (v.Contains(processFilter.Text))
+                        if (v.IndexOf(processFilter.Text, StringComparison.InvariantCultureIgnoreCase) >= 0)
                             match = true;
 
                     if(!match)
