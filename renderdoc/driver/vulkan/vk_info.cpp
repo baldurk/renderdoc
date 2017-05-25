@@ -55,7 +55,7 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
 
     if(pCreateInfo->pBindings[i].pImmutableSamplers)
     {
-      bindings[b].immutableSampler = new ResourceId[bindings[i].descriptorCount];
+      bindings[b].immutableSampler = new ResourceId[bindings[b].descriptorCount];
 
       for(uint32_t s = 0; s < bindings[b].descriptorCount; s++)
       {
