@@ -752,6 +752,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_primitive_bounding_box");
 
   m_GLESExtensions.push_back("GL_EXT_copy_image");
+  m_GLESExtensions.push_back("GL_EXT_disjoint_timer_query");
   m_GLESExtensions.push_back("GL_EXT_draw_buffers");
   m_GLESExtensions.push_back("GL_EXT_draw_buffers_indexed");
   m_GLESExtensions.push_back("GL_EXT_geometry_point_size");
