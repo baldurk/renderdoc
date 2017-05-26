@@ -145,20 +145,28 @@
   HookExtensionAlias(PFNGLBLENDEQUATIONPROC, glBlendEquation, glBlendEquationEXT); \
   HookExtension(PFNGLGENQUERIESPROC, glGenQueries); \
   HookExtensionAlias(PFNGLGENQUERIESPROC, glGenQueries, glGenQueriesARB); \
+  HookExtensionAlias(PFNGLGENQUERIESPROC, glGenQueries, glGenQueriesEXT); \
   HookExtension(PFNGLDELETEQUERIESPROC, glDeleteQueries); \
   HookExtensionAlias(PFNGLDELETEQUERIESPROC, glDeleteQueries, glDeleteQueriesARB); \
+  HookExtensionAlias(PFNGLDELETEQUERIESPROC, glDeleteQueries, glDeleteQueriesEXT); \
   HookExtension(PFNGLISQUERYPROC, glIsQuery); \
   HookExtensionAlias(PFNGLISQUERYPROC, glIsQuery, glIsQueryARB); \
+  HookExtensionAlias(PFNGLISQUERYPROC, glIsQuery, glIsQueryEXT); \
   HookExtension(PFNGLBEGINQUERYPROC, glBeginQuery); \
   HookExtensionAlias(PFNGLBEGINQUERYPROC, glBeginQuery, glBeginQueryARB); \
+  HookExtensionAlias(PFNGLBEGINQUERYPROC, glBeginQuery, glBeginQueryEXT); \
   HookExtension(PFNGLENDQUERYPROC, glEndQuery); \
   HookExtensionAlias(PFNGLENDQUERYPROC, glEndQuery, glEndQueryARB); \
+  HookExtensionAlias(PFNGLENDQUERYPROC, glEndQuery, glEndQueryEXT); \
   HookExtension(PFNGLGETQUERYIVPROC, glGetQueryiv); \
   HookExtensionAlias(PFNGLGETQUERYIVPROC, glGetQueryiv, glGetQueryivARB); \
+  HookExtensionAlias(PFNGLGETQUERYIVPROC, glGetQueryiv, glGetQueryivEXT); \
   HookExtension(PFNGLGETQUERYOBJECTIVPROC, glGetQueryObjectiv); \
   HookExtensionAlias(PFNGLGETQUERYOBJECTIVPROC, glGetQueryObjectiv, glGetQueryObjectivARB); \
+  HookExtensionAlias(PFNGLGETQUERYOBJECTIVPROC, glGetQueryObjectiv, glGetQueryObjectivEXT); \
   HookExtension(PFNGLGETQUERYOBJECTUIVPROC, glGetQueryObjectuiv); \
   HookExtensionAlias(PFNGLGETQUERYOBJECTUIVPROC, glGetQueryObjectuiv, glGetQueryObjectuivARB); \
+  HookExtensionAlias(PFNGLGETQUERYOBJECTUIVPROC, glGetQueryObjectuiv, glGetQueryObjectuivEXT); \
   HookExtension(PFNGLBINDBUFFERPROC, glBindBuffer); \
   HookExtensionAlias(PFNGLBINDBUFFERPROC, glBindBuffer, glBindBufferARB); \
   HookExtension(PFNGLDELETEBUFFERSPROC, glDeleteBuffers); \
@@ -542,6 +550,7 @@
   HookExtension(PFNGLGETSAMPLERPARAMETERFVPROC, glGetSamplerParameterfv); \
   HookExtension(PFNGLGETSAMPLERPARAMETERIUIVPROC, glGetSamplerParameterIuiv); \
   HookExtension(PFNGLQUERYCOUNTERPROC, glQueryCounter); \
+  HookExtensionAlias(PFNGLQUERYCOUNTERPROC, glQueryCounter, glQueryCounterEXT); \
   HookExtension(PFNGLGETQUERYOBJECTI64VPROC, glGetQueryObjecti64v); \
   HookExtensionAlias(PFNGLGETQUERYOBJECTI64VPROC, glGetQueryObjecti64v, glGetQueryObjecti64vEXT); \
   HookExtension(PFNGLGETQUERYOBJECTUI64VPROC, glGetQueryObjectui64v); \

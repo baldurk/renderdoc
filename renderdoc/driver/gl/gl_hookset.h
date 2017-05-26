@@ -173,10 +173,10 @@ struct GLHookSet
   PFNGLGETMULTISAMPLEFVPROC glGetMultisamplefv;
   PFNGLGETQUERYINDEXEDIVPROC glGetQueryIndexediv;
   PFNGLGETQUERYOBJECTUI64VPROC glGetQueryObjectui64v;    // aliases glGetQueryObjectui64vEXT
-  PFNGLGETQUERYOBJECTUIVPROC glGetQueryObjectuiv;        // aliases glGetQueryObjectuivARB
-  PFNGLGETQUERYOBJECTI64VPROC glGetQueryObjecti64v;      // aliases glGetQueryObjecti64vEXT
-  PFNGLGETQUERYOBJECTIVPROC glGetQueryObjectiv;          // aliases glGetQueryObjectivARB
-  PFNGLGETQUERYIVPROC glGetQueryiv;                      // aliases glGetQueryivARB
+  PFNGLGETQUERYOBJECTUIVPROC glGetQueryObjectuiv;        // aliases glGetQueryObjectuivARB, glGetQueryObjectuivEXT
+  PFNGLGETQUERYOBJECTI64VPROC glGetQueryObjecti64v;      // aliases glGetQueryObjecti64vEXT, glGetQueryObjecti64vEXT
+  PFNGLGETQUERYOBJECTIVPROC glGetQueryObjectiv;          // aliases glGetQueryObjectivARB, glGetQueryObjectivEXT
+  PFNGLGETQUERYIVPROC glGetQueryiv;                      // aliases glGetQueryivARB, glGetQueryivEXT
   PFNGLGETSYNCIVPROC glGetSynciv;
   PFNGLGETBUFFERSUBDATAPROC glGetBufferSubData;    // aliases glGetBufferSubDataARB
   PFNGLGETVERTEXATTRIBIVPROC glGetVertexAttribiv;
@@ -312,15 +312,15 @@ struct GLHookSet
   PFNGLCLIENTWAITSYNCPROC glClientWaitSync;
   PFNGLWAITSYNCPROC glWaitSync;
   PFNGLDELETESYNCPROC glDeleteSync;
-  PFNGLGENQUERIESPROC glGenQueries;    // aliases glGenQueriesARB
-  PFNGLBEGINQUERYPROC glBeginQuery;    // aliases glBeginQueryARB
+  PFNGLGENQUERIESPROC glGenQueries;    // aliases glGenQueriesARB, glGenQueriesEXT
+  PFNGLBEGINQUERYPROC glBeginQuery;    // aliases glBeginQueryARB, glBeginQueryEXT
   PFNGLBEGINQUERYINDEXEDPROC glBeginQueryIndexed;
-  PFNGLENDQUERYPROC glEndQuery;    // aliases glEndQueryARB
+  PFNGLENDQUERYPROC glEndQuery;    // aliases glEndQueryARB, glEndQueryEXT
   PFNGLENDQUERYINDEXEDPROC glEndQueryIndexed;
   PFNGLBEGINCONDITIONALRENDERPROC glBeginConditionalRender;
   PFNGLENDCONDITIONALRENDERPROC glEndConditionalRender;
-  PFNGLQUERYCOUNTERPROC glQueryCounter;
-  PFNGLDELETEQUERIESPROC glDeleteQueries;    // aliases glDeleteQueriesARB
+  PFNGLQUERYCOUNTERPROC glQueryCounter;      // aliases glQueryCounterEXT
+  PFNGLDELETEQUERIESPROC glDeleteQueries;    // aliases glDeleteQueriesARB, glDeleteQueriesEXT
   PFNGLBUFFERDATAPROC glBufferData;          // aliases glBufferDataARB
   PFNGLBUFFERSTORAGEPROC glBufferStorage;
   PFNGLBUFFERSUBDATAPROC glBufferSubData;    // aliases glBufferSubDataARB
