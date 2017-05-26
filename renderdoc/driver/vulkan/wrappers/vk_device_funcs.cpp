@@ -568,6 +568,9 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerial
              capturedVersion.Major(), capturedVersion.Minor(), capturedVersion.Patch(),
              physProps.vendorID, physProps.deviceID);
 
+      if(physIndex >= m_OriginalPhysicalDevices.size())
+        m_OriginalPhysicalDevices.resize(physIndex + 1);
+
       m_OriginalPhysicalDevices[physIndex].props = physProps;
       m_OriginalPhysicalDevices[physIndex].memProps = memProps;
       m_OriginalPhysicalDevices[physIndex].features = physFeatures;
