@@ -65,8 +65,9 @@ bool RDSplitterHandle::collapsed() const
 void RDSplitterHandle::paintEvent(QPaintEvent *event)
 {
   QPainter painter(this);
-  painter.setPen(Qt::black);
-  painter.setBrush(Qt::SolidPattern);
+  QColor col = palette().color(QPalette::WindowText);
+  painter.setPen(col);
+  painter.setBrush(QBrush(col));
 
   int w = width();
   int h = height();
