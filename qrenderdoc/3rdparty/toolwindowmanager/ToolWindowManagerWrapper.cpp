@@ -151,7 +151,9 @@ void ToolWindowManagerWrapper::updateTitle() {
 void ToolWindowManagerWrapper::closeEvent(QCloseEvent *) {
   QList<QWidget*> toolWindows;
   foreach(ToolWindowManagerArea* tabWidget, findChildren<ToolWindowManagerArea*>()) {
-    toolWindows << tabWidget->toolWindows();
+    if (ToolWindowManager::managerOf(tabWidget) == m_manager) {
+      toolWindows << tabWidget->toolWindows();
+    }
   }
   m_manager->moveToolWindows(toolWindows, ToolWindowManager::NoArea);
 }
@@ -192,7 +194,9 @@ bool ToolWindowManagerWrapper::eventFilter(QObject *object, QEvent *event) {
           m_dragReady = false;
           QList<QWidget*> toolWindows;
           foreach(ToolWindowManagerArea* tabWidget, findChildren<ToolWindowManagerArea*>()) {
-            toolWindows << tabWidget->toolWindows();
+            if (ToolWindowManager::managerOf(tabWidget) == m_manager) {
+              toolWindows << tabWidget->toolWindows();
+            }
           }
           m_manager->startDrag(toolWindows, this);
         }
@@ -280,7 +284,9 @@ bool ToolWindowManagerWrapper::eventFilter(QObject *object, QEvent *event) {
       m_dragStartGeometry = geometry();
       QList<QWidget*> toolWindows;
       foreach(ToolWindowManagerArea* tabWidget, findChildren<ToolWindowManagerArea*>()) {
-        toolWindows << tabWidget->toolWindows();
+        if (ToolWindowManager::managerOf(tabWidget) == m_manager) {
+          toolWindows << tabWidget->toolWindows();
+        }
       }
       m_manager->startDrag(toolWindows, this);
     } else if (event->type() == QEvent::Move && m_dragActive) {

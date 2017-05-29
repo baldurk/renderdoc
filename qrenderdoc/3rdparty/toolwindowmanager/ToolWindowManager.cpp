@@ -334,10 +334,18 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
       newArea->setGeometry(newGeometry);
 
       // Convert area percentage desired to relative sizes.
-      const int totalStretch = 100;
+      const int totalStretch =
+        (area.type() == TopOf || area.type() == BottomOf)
+        ? areaGeometry.height() : areaGeometry.width();
       int pct = int(totalStretch*area.percentage());
 
-      splitter->setSizes({pct, totalStretch-pct});
+      int a = pct;
+      int b = totalStretch-pct;
+
+      if (area.type() == BottomOf || area.type() == RightOf)
+        std::swap(a, b);
+
+      splitter->setSizes({a, b});
     }
   } else if (area.type() == EmptySpace) {
     ToolWindowManagerArea* newArea = createArea();
