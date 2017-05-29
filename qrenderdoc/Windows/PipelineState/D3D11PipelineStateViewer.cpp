@@ -121,7 +121,12 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     QObject::connect(b, &QToolButton::clicked, this, &D3D11PipelineStateViewer::shaderView_clicked);
 
   for(RDLabel *b : shaderLabels)
+  {
     QObject::connect(b, &RDLabel::clicked, this, &D3D11PipelineStateViewer::shaderLabel_clicked);
+    b->setAutoFillBackground(true);
+    b->setBackgroundRole(QPalette::ToolTipBase);
+    b->setForegroundRole(QPalette::ToolTipText);
+  }
 
   for(QToolButton *b : editButtons)
     QObject::connect(b, &QToolButton::clicked, this, &D3D11PipelineStateViewer::shaderEdit_clicked);

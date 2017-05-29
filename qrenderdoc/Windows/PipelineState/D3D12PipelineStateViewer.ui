@@ -500,10 +500,8 @@
             <property name="toolTip">
              <string>Open Shader Source</string>
             </property>
-            <property name="styleSheet">
-             <string notr="true">border: 1px solid black;
-background-color: rgb(255, 255, 191);
-padding: 0px;</string>
+            <property name="frameShape">
+             <enum>QFrame::Box</enum>
             </property>
             <property name="text">
              <string/>
@@ -863,10 +861,8 @@ padding: 0px;</string>
             <property name="toolTip">
              <string>Open Shader Source</string>
             </property>
-            <property name="styleSheet">
-             <string notr="true">border: 1px solid black;
-background-color: rgb(255, 255, 191);
-padding: 0px;</string>
+            <property name="frameShape">
+             <enum>QFrame::Box</enum>
             </property>
             <property name="text">
              <string/>
@@ -1226,10 +1222,8 @@ padding: 0px;</string>
             <property name="toolTip">
              <string>Open Shader Source</string>
             </property>
-            <property name="styleSheet">
-             <string notr="true">border: 1px solid black;
-background-color: rgb(255, 255, 191);
-padding: 0px;</string>
+            <property name="frameShape">
+             <enum>QFrame::Box</enum>
             </property>
             <property name="text">
              <string/>
@@ -1589,10 +1583,8 @@ padding: 0px;</string>
             <property name="toolTip">
              <string>Open Shader Source</string>
             </property>
-            <property name="styleSheet">
-             <string notr="true">border: 1px solid black;
-background-color: rgb(255, 255, 191);
-padding: 0px;</string>
+            <property name="frameShape">
+             <enum>QFrame::Box</enum>
             </property>
             <property name="text">
              <string/>
@@ -2528,10 +2520,8 @@ padding: 0px;</string>
             <property name="toolTip">
              <string>Open Shader Source</string>
             </property>
-            <property name="styleSheet">
-             <string notr="true">border: 1px solid black;
-background-color: rgb(255, 255, 191);
-padding: 0px;</string>
+            <property name="frameShape">
+             <enum>QFrame::Box</enum>
             </property>
             <property name="text">
              <string/>
@@ -3479,10 +3469,8 @@ padding: 0px;</string>
             <property name="toolTip">
              <string>Open Shader Source</string>
             </property>
-            <property name="styleSheet">
-             <string notr="true">border: 1px solid black;
-background-color: rgb(255, 255, 191);
-padding: 0px;</string>
+            <property name="frameShape">
+             <enum>QFrame::Box</enum>
             </property>
             <property name="text">
              <string/>

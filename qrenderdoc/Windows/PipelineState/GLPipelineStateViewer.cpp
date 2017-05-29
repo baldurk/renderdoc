@@ -127,7 +127,12 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     QObject::connect(b, &QToolButton::clicked, this, &GLPipelineStateViewer::shaderView_clicked);
 
   for(RDLabel *b : shaderLabels)
+  {
     QObject::connect(b, &RDLabel::clicked, this, &GLPipelineStateViewer::shaderLabel_clicked);
+    b->setAutoFillBackground(true);
+    b->setBackgroundRole(QPalette::ToolTipBase);
+    b->setForegroundRole(QPalette::ToolTipText);
+  }
 
   for(QToolButton *b : editButtons)
     QObject::connect(b, &QToolButton::clicked, this, &GLPipelineStateViewer::shaderEdit_clicked);
