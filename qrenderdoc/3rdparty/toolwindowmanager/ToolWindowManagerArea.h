@@ -71,10 +71,6 @@ public:
   void updateToolWindow(QWidget* toolWindow);
 
 protected:
-  //! Reimplemented from QTabWidget::mousePressEvent.
-  virtual void mousePressEvent(QMouseEvent *);
-  //! Reimplemented from QTabWidget::mouseReleaseEvent.
-  virtual void mouseReleaseEvent(QMouseEvent *);
   //! Reimplemented from QTabWidget::mouseMoveEvent.
   virtual void mouseMoveEvent(QMouseEvent *);
   //! Reimplemented from QTabWidget::eventFilter.
