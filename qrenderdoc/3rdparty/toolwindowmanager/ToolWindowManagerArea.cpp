@@ -23,10 +23,12 @@
  *
  */
 #include "ToolWindowManagerArea.h"
+#include "ToolWindowManagerTabBar.h"
+#include "ToolWindowManagerWrapper.h"
 #include "ToolWindowManager.h"
 #include <QApplication>
 #include <QMouseEvent>
-#include <QDebug>
+#include <algorithm>
 
 static void showCloseButton(QTabBar *bar, int index, bool show) {
   QWidget *button = bar->tabButton(index, QTabBar::RightSide);
@@ -41,31 +43,39 @@ ToolWindowManagerArea::ToolWindowManagerArea(ToolWindowManager *manager, QWidget
   QTabWidget(parent)
 , m_manager(manager)
 {
+  m_tabBar = new ToolWindowManagerTabBar(this);
+  setTabBar(m_tabBar);
+
+  m_tabBar->setTabsClosable(true);
+
   m_dragCanStart = false;
   m_tabDragCanStart = false;
   m_inTabMoved = false;
   m_userCanDrop = true;
   setMovable(true);
-  setTabsClosable(true);
   setDocumentMode(true);
   tabBar()->installEventFilter(this);
   m_manager->m_areas << this;
 
   QObject::connect(tabBar(), &QTabBar::tabMoved, this, &ToolWindowManagerArea::tabMoved);
+  QObject::connect(tabBar(), &QTabBar::tabCloseRequested, this, &ToolWindowManagerArea::tabClosing);
+  QObject::connect(tabBar(), &QTabBar::tabCloseRequested, this, &QTabWidget::tabCloseRequested);
+  QObject::connect(this, &QTabWidget::currentChanged, this, &ToolWindowManagerArea::tabSelected);
 }
 
 ToolWindowManagerArea::~ToolWindowManagerArea() {
   m_manager->m_areas.removeOne(this);
 }
 
-void ToolWindowManagerArea::addToolWindow(QWidget *toolWindow) {
-  addToolWindows(QList<QWidget*>() << toolWindow);
+void ToolWindowManagerArea::addToolWindow(QWidget *toolWindow, int insertIndex) {
+  addToolWindows(QList<QWidget*>() << toolWindow, insertIndex);
 }
 
-void ToolWindowManagerArea::addToolWindows(const QList<QWidget *> &toolWindows) {
+void ToolWindowManagerArea::addToolWindows(const QList<QWidget *> &toolWindows, int insertIndex) {
   int index = 0;
   foreach(QWidget* toolWindow, toolWindows) {
-    index = addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+    index = insertTab(insertIndex, toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+    insertIndex = index+1;
     if(m_manager->toolWindowProperties(toolWindow) & ToolWindowManager::HideCloseButton) {
       showCloseButton(tabBar(), index, false);
     }
@@ -97,6 +107,7 @@ void ToolWindowManagerArea::updateToolWindow(QWidget* toolWindow) {
 void ToolWindowManagerArea::mousePressEvent(QMouseEvent *) {
   if (qApp->mouseButtons() == Qt::LeftButton) {
     m_dragCanStart = true;
+    m_dragCanStartPos = QCursor::pos();
   }
 }
 
@@ -114,7 +125,9 @@ bool ToolWindowManagerArea::eventFilter(QObject *object, QEvent *event) {
     if (event->type() == QEvent::MouseButtonPress &&
         qApp->mouseButtons() == Qt::LeftButton) {
 
-      int tabIndex = tabBar()->tabAt(static_cast<QMouseEvent*>(event)->pos());
+      QPoint pos = static_cast<QMouseEvent*>(event)->pos();
+
+      int tabIndex = tabBar()->tabAt(pos);
 
       // can start tab drag only if mouse is at some tab, not at empty tabbar space
       if (tabIndex >= 0) {
@@ -125,8 +138,9 @@ bool ToolWindowManagerArea::eventFilter(QObject *object, QEvent *event) {
         } else {
           setMovable(true);
         }
-      } else {
+      } else if (m_tabBar == NULL || !m_tabBar->inButton(pos)) {
         m_dragCanStart = true;
+        m_dragCanStartPos = QCursor::pos();
       }
     } else if (event->type() == QEvent::MouseButtonPress &&
         qApp->mouseButtons() == Qt::MiddleButton) {
@@ -163,13 +177,73 @@ bool ToolWindowManagerArea::eventFilter(QObject *object, QEvent *event) {
                                                     static_cast<QMouseEvent*>(event)->pos(),
                                                     Qt::LeftButton, Qt::LeftButton, 0);
         qApp->sendEvent(tabBar(), releaseEvent);
-        m_manager->startDrag(QList<QWidget*>() << toolWindow);
+        m_manager->startDrag(QList<QWidget*>() << toolWindow, NULL);
       } else if (m_dragCanStart) {
         check_mouse_move();
       }
     }
   }
   return QTabWidget::eventFilter(object, event);
+}
+
+void ToolWindowManagerArea::tabInserted(int index) {
+  // update the select order. Increment any existing index after the insertion point to keep the
+  // indices in the list up to date.
+  for (int &idx : m_tabSelectOrder) {
+    if (idx >= index)
+      idx++;
+  }
+
+  // if the tab inserted is the current index (most likely) then add it at the end, otherwise
+  // add it next-to-end (to keep the most recent tab the same).
+  if (currentIndex() == index || m_tabSelectOrder.isEmpty())
+    m_tabSelectOrder.append(index);
+  else
+    m_tabSelectOrder.insert(m_tabSelectOrder.count()-1, index);
+
+  QTabWidget::tabInserted(index);
+}
+
+void ToolWindowManagerArea::tabRemoved(int index) {
+  // update the select order. Remove the index that just got deleted, and decrement any index
+  // greater than it to remap to their new indices
+  m_tabSelectOrder.removeOne(index);
+
+  for (int &idx : m_tabSelectOrder) {
+    if (idx > index)
+      idx--;
+  }
+
+  QTabWidget::tabRemoved(index);
+}
+
+void ToolWindowManagerArea::tabSelected(int index) {
+  // move this tab to the end of the select order, as long as we have it - if it's a new index then
+  // ignore and leave it to be handled in tabInserted()
+  if (m_tabSelectOrder.contains(index)) {
+    m_tabSelectOrder.removeOne(index);
+    m_tabSelectOrder.append(index);
+  }
+
+  ToolWindowManagerWrapper* wrapper = m_manager->wrapperOf(this);
+  if (wrapper)
+    wrapper->updateTitle();
+}
+
+void ToolWindowManagerArea::tabClosing(int index) {
+  // before closing this index, switch the current index to the next tab in succession.
+
+  // should never get here but let's check this
+  if (m_tabSelectOrder.isEmpty())
+    return;
+
+  // when closing the last tab there's nothing to do
+  if (m_tabSelectOrder.count() == 1)
+    return;
+
+  // if the last in the select order is being closed, switch to the next most selected tab
+  if (m_tabSelectOrder.last() == index)
+    setCurrentIndex(m_tabSelectOrder.at(m_tabSelectOrder.count()-2));
 }
 
 QVariantMap ToolWindowManagerArea::saveState() {
@@ -220,9 +294,8 @@ void ToolWindowManagerArea::restoreState(const QVariantMap &savedData) {
 
 void ToolWindowManagerArea::check_mouse_move() {
   m_manager->updateDragPosition();
-  if (qApp->mouseButtons() == Qt::LeftButton &&
-      !rect().contains(mapFromGlobal(QCursor::pos())) &&
-      m_dragCanStart) {
+  if (m_dragCanStart &&
+      (QCursor::pos() - m_dragCanStartPos).manhattanLength() > 10) {
     m_dragCanStart = false;
     QList<QWidget*> toolWindows;
     for(int i = 0; i < count(); i++) {
@@ -233,12 +306,23 @@ void ToolWindowManagerArea::check_mouse_move() {
         toolWindows << toolWindow;
       }
     }
-    m_manager->startDrag(toolWindows);
+    m_manager->startDrag(toolWindows, NULL);
   }
 }
 
 void ToolWindowManagerArea::tabMoved(int from, int to) {
   if(m_inTabMoved) return;
+
+  // update the select order.
+  // This amounts to just a swap - any indices other than the pair in question are unaffected since
+  // one tab is removed (above/below) and added (below/above) so the indices themselves remain the
+  // same.
+  for (int &idx : m_tabSelectOrder) {
+    if (idx == from)
+      idx = to;
+    else if (idx == to)
+      idx = from;
+  }
 
   QWidget *a = widget(from);
   QWidget *b = widget(to);

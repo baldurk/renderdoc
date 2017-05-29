@@ -26,11 +26,6 @@
 #define TOOLWINDOWMANAGER_H
 
 #include <QWidget>
-#include <QSplitter>
-#include <QTabWidget>
-#include <QTabBar>
-#include <QTimer>
-#include <QRubberBand>
 #include <QHash>
 #include <QVariant>
 #include <QLabel>
@@ -40,6 +35,8 @@
 class ToolWindowManagerArea;
 class ToolWindowManagerWrapper;
 
+class QLabel;
+class QSplitter;
 
 /*!
  * \brief The ToolWindowManager class provides docking tool behavior.
@@ -54,37 +51,6 @@ class ToolWindowManagerWrapper;
 class ToolWindowManager : public QWidget {
   Q_OBJECT
   /*!
-   * \brief The delay between showing the next suggestion of drop location in milliseconds.
-   *
-   * When user starts a tool window drag and moves mouse pointer to a position, there can be
-   * an ambiguity in new position of the tool window. If user holds the left mouse button and
-   * stops mouse movements, all possible suggestions will be indicated periodically, one at a time.
-   *
-   * Default value is 1000 (i.e. 1 second).
-   *
-   * Access functions: suggestionSwitchInterval, setSuggestionSwitchInterval.
-   *
-   */
-  Q_PROPERTY(int suggestionSwitchInterval READ suggestionSwitchInterval WRITE setSuggestionSwitchInterval)
-  /*!
-   * \brief Maximal distance in pixels between mouse position and area border that allows
-   * to display a suggestion.
-   *
-   * Default value is 12.
-   *
-   * Access functions: borderSensitivity, setBorderSensitivity.
-   */
-  Q_PROPERTY(int borderSensitivity READ borderSensitivity WRITE setBorderSensitivity)
-  /*!
-   * \brief Visible width of rubber band line that is used to display drop suggestions.
-   *
-   * Default value is the same as QSplitter::handleWidth default value on current platform.
-   *
-   * Access functions: rubberBandLineWidth, setRubberBandLineWidth.
-   *
-   */
-  Q_PROPERTY(int rubberBandLineWidth READ rubberBandLineWidth WRITE setRubberBandLineWidth)
-  /*!
    * \brief Whether or not to allow floating windows to be created.
    *
    * Default value is to allow it.
@@ -93,6 +59,26 @@ class ToolWindowManager : public QWidget {
    *
    */
   Q_PROPERTY(int allowFloatingWindow READ allowFloatingWindow WRITE setAllowFloatingWindow)
+
+  /*!
+   * \brief How much of a margin should be placed between drop hotspots.
+   *
+   * Default value is 4.
+   *
+   * Access functions: dropHotspotMargin, setDropHotspotMargin.
+   *
+   */
+  Q_PROPERTY(int dropHotspotMargin READ dropHotspotMargin WRITE setDropHotspotMargin)
+
+  /*!
+   * \brief How wide and heigh each drop hotspot icon should be drawn at, in pixels.
+   *
+   * Default value is 32.
+   *
+   * Access functions: dropHotspotDimension, setDropHotspotDimension.
+   *
+   */
+  Q_PROPERTY(int dropHotspotDimension READ dropHotspotDimension WRITE setDropHotspotDimension)
 
 public:
   /*!
@@ -138,7 +124,17 @@ public:
     //! New area to the top of the area specified in AreaReference argument.
     TopOf,
     //! New area to the bottom of the area specified in AreaReference argument.
-    BottomOf
+    BottomOf,
+    //! New area to the left of the window containing the specified in AreaReference argument.
+    LeftWindowSide,
+    //! New area to the right of the window containing the specified in AreaReference argument.
+    RightWindowSide,
+    //! New area to the top of the window containing the specified in AreaReference argument.
+    TopWindowSide,
+    //! New area to the bottom of the window containing the specified in AreaReference argument.
+    BottomWindowSide,
+    //! Invalid value, just indicates the number of types available
+    NumReferenceTypes
   };
 
   /*!
@@ -160,6 +156,7 @@ public:
     AreaReferenceType m_type;
     QWidget* m_widget;
     float m_percentage;
+    bool dragResult;
     QWidget* widget() const { return m_widget; }
     float percentage() const { return m_percentage; }
     AreaReference(AreaReferenceType type, QWidget* widget);
@@ -255,28 +252,18 @@ public:
   void setToolWindowCreateCallback(const CreateCallback &cb) { m_createCallback = cb; }
   QWidget *createToolWindow(const QString& objectName);
 
-  bool checkValidSplitter(QWidget *w);
+  void setHotspotPixmap(AreaReferenceType ref, const QPixmap &pix) { m_pixmaps[ref] = pix; }
+
+  void setDropHotspotMargin(int pixels);
+  bool dropHotspotMargin() { return m_dropHotspotMargin; }
+
+  void setDropHotspotDimension(int pixels);
+  bool dropHotspotDimension() { return m_dropHotspotDimension; }
 
   /*! \cond PRIVATE */
-  void setSuggestionSwitchInterval(int msec);
-  int suggestionSwitchInterval();
-  int borderSensitivity() { return m_borderSensitivity; }
-  void setBorderSensitivity(int pixels);
-  void setRubberBandLineWidth(int pixels);
-  int rubberBandLineWidth() { return m_rubberBandLineWidth; }
   void setAllowFloatingWindow(bool pixels);
   bool allowFloatingWindow() { return m_allowFloatingWindow; }
   /*! \endcond */
-
-  /*!
-   * Returns the widget that is used to display rectangular drop suggestions.
-   */
-  QRubberBand* rectRubberBand() { return m_rectRubberBand; }
-
-  /*!
-   * Returns the widget that is used to display line drop suggestions.
-   */
-  QRubberBand* lineRubberBand() { return m_lineRubberBand; }
 
 
 signals:
@@ -291,38 +278,42 @@ private:
   QHash<QWidget*, ToolWindowProperty> m_toolWindowProperties; // all tool window properties
   QList<ToolWindowManagerArea*> m_areas; // all areas for this manager
   QList<ToolWindowManagerWrapper*> m_wrappers; // all wrappers for this manager
-  int m_borderSensitivity;
-  int m_rubberBandLineWidth;
   // list of tool windows that are currently dragged, or empty list if there is no current drag
   QList<QWidget*> m_draggedToolWindows;
-  QLabel* m_dragIndicator; // label used to display dragged content
+  ToolWindowManagerWrapper* m_draggedWrapper; // the wrapper if a whole float window is being dragged
+  ToolWindowManagerArea* m_hoverArea; // the area currently being hovered over in a drag
+  // a semi-transparent preview of where the dragged toolwindow(s) will be docked
+  QWidget* m_previewOverlay;
+  QWidget* m_previewTabOverlay;
+  QWidget* m_dropHotspotsOverlay; // an overlay parent where we add drop hotspots.
+  QLabel* m_dropHotspots[NumReferenceTypes];
+  QPixmap m_pixmaps[NumReferenceTypes];
 
-  QRubberBand* m_rectRubberBand; // placeholder objects used for displaying drop suggestions
-  QRubberBand* m_lineRubberBand;
   bool m_allowFloatingWindow; // Allow floating windows from this docking area
-  QList<AreaReference> m_suggestions; //full list of suggestions for current cursor position
-  int m_dropCurrentSuggestionIndex; // index of currently displayed drop suggestion
-                                    // (e.g. always 0 if there is only one possible drop location)
-  QTimer m_dropSuggestionSwitchTimer; // used for switching drop suggestions
+  int m_dropHotspotMargin; // The pixels between drop hotspot icons
+  int m_dropHotspotDimension; // The pixel dimension of the hotspot icons
 
   CreateCallback m_createCallback;
+
+  ToolWindowManagerWrapper* wrapperOf(QWidget* toolWindow);
+
+  void drawHotspotPixmaps();
 
   // last widget used for adding tool windows, or 0 if there isn't one
   // (warning: may contain pointer to deleted object)
   ToolWindowManagerArea* m_lastUsedArea;
-  void handleNoSuggestions();
   //remove tool window from its area (if any) and set parent to 0
   void releaseToolWindow(QWidget* toolWindow);
   void simplifyLayout(); //remove constructions that became useless
-  void startDrag(const QList<QWidget*>& toolWindows);
+  void startDrag(const QList<QWidget*>& toolWindows, ToolWindowManagerWrapper *wrapper);
 
   QVariantMap saveSplitterState(QSplitter* splitter);
   QSplitter* restoreSplitterState(const QVariantMap& data);
-  void findSuggestions(ToolWindowManagerWrapper *wrapper);
-  QRect sideSensitiveArea(QWidget* widget, AreaReferenceType side);
-  QRect sidePlaceHolderRect(QWidget* widget, AreaReferenceType side);
+
+  AreaReferenceType currentHotspot();
 
   void updateDragPosition();
+  void abortDrag();
   void finishDrag();
   bool dragInProgress() { return !m_draggedToolWindows.isEmpty(); }
 
@@ -330,6 +321,9 @@ private:
   friend class ToolWindowManagerWrapper;
 
 protected:
+  //! Event filter for grabbing and processing drag aborts.
+  virtual bool eventFilter(QObject *object, QEvent *event);
+
   /*!
    * \brief Creates new splitter and sets its default properties. You may reimplement
    * this function to change properties of all splitters used by this class.
@@ -340,15 +334,8 @@ protected:
    * this function to change properties of all tab widgets used by this class.
    */
   virtual ToolWindowManagerArea *createArea();
-  /*!
-   * \brief Generates a pixmap that is used to represent the data in a drag and drop operation
-   * near the mouse cursor.
-   * You may reimplement this function to use different pixmaps.
-   */
-  virtual QPixmap generateDragPixmap(const QList<QWidget *> &toolWindows);
 
 private slots:
-  void showNextDropSuggestion();
   void tabCloseRequested(int index);
   void windowTitleChanged(const QString &title);
 
