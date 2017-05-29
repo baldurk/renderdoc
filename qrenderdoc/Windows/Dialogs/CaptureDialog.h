@@ -90,9 +90,10 @@ private slots:
 
   void on_toggleGlobal_clicked();
 
-  void on_vulkanLayerWarn_clicked();
-
   void on_CaptureCallstacks_toggled(bool checked);
+
+  // manual slots
+  void vulkanLayerWarn_mouseClick();
 
 private:
   Ui::CaptureDialog *ui;

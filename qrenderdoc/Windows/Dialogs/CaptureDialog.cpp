@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "CaptureDialog.h"
+#include <QMouseEvent>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
 #include "3rdparty/flowlayout/FlowLayout.h"
@@ -112,6 +113,31 @@ CaptureDialog::CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallba
   ui->processList->sortByColumn(1, Qt::AscendingOrder);
 
   ui->vulkanLayerWarn->setVisible(RENDERDOC_NeedVulkanLayerRegistration(NULL, NULL, NULL));
+
+  QObject::connect(ui->vulkanLayerWarn, &RDLabel::clicked, this,
+                   &CaptureDialog::vulkanLayerWarn_mouseClick);
+
+  QPalette pal = ui->vulkanLayerWarn->palette();
+
+  QColor base = pal.color(QPalette::ToolTipBase);
+
+  pal.setColor(QPalette::Foreground, pal.color(QPalette::ToolTipText));
+
+  pal.setColor(QPalette::Window, base);
+  pal.setColor(QPalette::Base, base.darker(120));
+
+  ui->vulkanLayerWarn->setBackgroundRole(QPalette::Window);
+
+  QObject::connect(ui->vulkanLayerWarn, &RDLabel::mouseMoved, [this](QMouseEvent *) {
+    ui->vulkanLayerWarn->setBackgroundRole(QPalette::Base);
+  });
+  QObject::connect(ui->vulkanLayerWarn, &RDLabel::leave,
+                   [this]() { ui->vulkanLayerWarn->setBackgroundRole(QPalette::Window); });
+
+  ui->vulkanLayerWarn->setPalette(pal);
+  ui->vulkanLayerWarn->setAutoFillBackground(true);
+
+  ui->vulkanLayerWarn->setMouseTracking(true);
 
   m_CaptureCallback = captureCallback;
   m_InjectCallback = injectCallback;
@@ -231,7 +257,7 @@ void CaptureDialog::on_exePath_textChanged(const QString &text)
   UpdateGlobalHook();
 }
 
-void CaptureDialog::on_vulkanLayerWarn_clicked()
+void CaptureDialog::vulkanLayerWarn_mouseClick()
 {
   QString caption = tr("Configure Vulkan layer settings in registry?");
 

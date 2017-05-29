@@ -53,3 +53,10 @@ void RDLabel::mouseDoubleClickEvent(QMouseEvent *event)
 
   QLabel::mouseDoubleClickEvent(event);
 }
+
+void RDLabel::leaveEvent(QEvent *event)
+{
+  emit(leave());
+
+  QLabel::leaveEvent(event);
+}

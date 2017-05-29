@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>578</width>
-    <height>939</height>
+    <height>943</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -294,50 +294,24 @@
     </widget>
    </item>
    <item>
-    <widget class="QToolButton" name="vulkanLayerWarn">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>40</height>
-      </size>
-     </property>
+    <widget class="RDLabel" name="vulkanLayerWarn">
      <property name="cursor">
       <cursorShape>PointingHandCursor</cursorShape>
      </property>
-     <property name="styleSheet">
-      <string notr="true">QToolButton {
-background-color: #ffffdc;
-border: 1px solid black;
-}
-QToolButton:hover {
-background-color: #ddddbe;
-}</string>
+     <property name="frameShape">
+      <enum>QFrame::Box</enum>
      </property>
      <property name="text">
-      <string>Warning: Vulkan capture is not configured.
-Click here to set up Vulkan capture.</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;table&gt;&lt;tr&gt;&lt;td valign=&quot;middle&quot;&gt;&lt;img src=&quot;:/information.png&quot;/&gt;&lt;/td&gt;&lt;td&gt;&lt;p&gt;Warning: Vulkan capture is not configured.&lt;br/&gt;Click here to set up Vulkan capture.&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
-     <property name="icon">
-      <iconset resource="../../Resources/resources.qrc">
-       <normaloff>:/information.png</normaloff>:/information.png</iconset>
+     <property name="textFormat">
+      <enum>Qt::RichText</enum>
      </property>
-     <property name="popupMode">
-      <enum>QToolButton::DelayedPopup</enum>
+     <property name="pixmap">
+      <pixmap resource="../../Resources/resources.qrc">:/information.png</pixmap>
      </property>
-     <property name="toolButtonStyle">
-      <enum>Qt::ToolButtonTextBesideIcon</enum>
-     </property>
-     <property name="autoRaise">
-      <bool>true</bool>
-     </property>
-     <property name="arrowType">
-      <enum>Qt::NoArrow</enum>
+     <property name="margin">
+      <number>3</number>
      </property>
     </widget>
    </item>
@@ -774,6 +748,13 @@ Click here to set up Vulkan capture.</string>
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>RDLabel</class>
+   <extends>QLabel</extends>
+   <header>Widgets/Extended/RDLabel.h</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="../../Resources/resources.qrc"/>
  </resources>

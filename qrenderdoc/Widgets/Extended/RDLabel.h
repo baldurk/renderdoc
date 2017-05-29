@@ -37,6 +37,7 @@ signals:
   void clicked(QMouseEvent *event);
   void doubleClicked(QMouseEvent *event);
   void mouseMoved(QMouseEvent *event);
+  void leave();
 
 public slots:
 
@@ -44,4 +45,5 @@ protected:
   void mousePressEvent(QMouseEvent *event) override;
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseDoubleClickEvent(QMouseEvent *event) override;
+  void leaveEvent(QEvent *event) override;
 };
