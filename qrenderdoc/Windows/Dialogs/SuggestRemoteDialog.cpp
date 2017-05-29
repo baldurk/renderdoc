@@ -44,6 +44,9 @@ SuggestRemoteDialog::SuggestRemoteDialog(const QString &driver, const QString &m
                        tr("to replay on. Would you like to load the capture locally or\n") +
                        tr("back out to configure one in Tools > Manage Remote Servers?"));
 
+  ui->topFrame->setBackgroundRole(QPalette::Base);
+  ui->topFrame->setAutoFillBackground(true);
+
   m_Remotes = new QMenu(this);
 
   ui->remote->setEnabled(false);
