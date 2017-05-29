@@ -694,6 +694,22 @@ a new dock window or moving an existing dock window.
 
   The new dock window is placed below the existing dock window, at a specified proportion.
 
+.. data:: LeftWindowSide
+
+  The new dock window is placed left of *all* docks in the window, at a specified proportion.
+
+.. data:: RightWindowSide
+
+  The new dock window is placed right of *all* docks in the window, at a specified proportion.
+
+.. data:: TopWindowSide
+
+  The new dock window is placed above *all* docks in the window, at a specified proportion.
+
+.. data:: BottomWindowSide
+
+  The new dock window is placed below *all* docks in the window, at a specified proportion.
+
 .. data:: MainToolArea
 
   The new dock window is placed in the 'main' tool area as defined by finding an existing known
@@ -722,6 +738,10 @@ enum class DockReference : int
   RightOf,
   TopOf,
   BottomOf,
+  LeftWindowSide,
+  RightWindowSide,
+  TopWindowSide,
+  BottomWindowSide,
 
   // extra values here
   MainToolArea,

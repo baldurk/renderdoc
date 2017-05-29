@@ -130,7 +130,6 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   }
 
   ui->docking->setAllowFloatingWindow(false);
-  ui->docking->setRubberBandLineWidth(50);
 
   {
     QMenu *snippetsMenu = new QMenu(this);

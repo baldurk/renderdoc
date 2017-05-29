@@ -1005,7 +1005,6 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
       [this, menu](const QPoint &pos) { stageRowMenu(MeshDataStage::GSOut, menu, pos); });
 
   ui->dockarea->setAllowFloatingWindow(false);
-  ui->dockarea->setRubberBandLineWidth(50);
 
   ui->controlType->addItems({tr("Arcball"), tr("WASD")});
   ui->controlType->adjustSize();

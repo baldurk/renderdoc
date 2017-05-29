@@ -600,6 +600,12 @@
     <ClCompile Include="$(IntDir)generated\moc_RDToolButton.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ToolWindowManagerTabBar.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManagerTabBar.cpp">
+      <Filter>3rdparty\ToolWindowManager</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1369,6 +1375,9 @@
     </CustomBuild>
     <CustomBuild Include="Widgets\Extended\RDToolButton.h">
       <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\toolwindowmanager\ToolWindowManagerTabBar.h">
+      <Filter>3rdparty\ToolWindowManager</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

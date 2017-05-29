@@ -631,6 +631,7 @@
     <ClCompile Include="$(IntDir)generated\moc_ThumbnailStrip.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_ToolWindowManager.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_ToolWindowManagerArea.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_ToolWindowManagerTabBar.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_ToolWindowManagerWrapper.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_VirtualFileDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_VulkanPipelineStateViewer.cpp" />
@@ -701,6 +702,11 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManagerArea.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManagerTabBar.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>
@@ -803,6 +809,12 @@
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <CustomBuild Include="3rdparty\toolwindowmanager\ToolWindowManagerArea.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(IntDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\toolwindowmanager\ToolWindowManagerTabBar.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(IntDir)generated\moc_%(Filename).cpp</Command>
       <Message>MOC %(Filename).h</Message>

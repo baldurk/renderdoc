@@ -560,7 +560,6 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
   ui->dockarea->setToolWindowProperties(ui->textureListFrame, ToolWindowManager::HideOnClose);
 
   ui->dockarea->setAllowFloatingWindow(false);
-  ui->dockarea->setRubberBandLineWidth(50);
 
   renderContainer->setWindowTitle(tr("Unbound"));
   ui->pixelContextLayout->setWindowTitle(tr("Pixel Context"));

@@ -159,7 +159,6 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   PopulateRecentFiles();
   PopulateRecentCaptures();
 
-  ui->toolWindowManager->setRubberBandLineWidth(50);
   ui->toolWindowManager->setToolWindowCreateCallback([this](const QString &objectName) -> QWidget * {
     return m_Ctx.CreateBuiltinWindow(objectName);
   });
