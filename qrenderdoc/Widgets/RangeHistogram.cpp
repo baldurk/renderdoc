@@ -226,6 +226,9 @@ void RangeHistogram::leaveEvent(QEvent *e)
 void RangeHistogram::paintEvent(QPaintEvent *e)
 {
   QPainter p(this);
+
+  p.setRenderHint(QPainter::Antialiasing);
+
   const QBrush blackBrush(QColor(0, 0, 0));
   const QBrush grayBrush(QColor(180, 180, 180));
   const QBrush redBrush(QColor(60, 0, 0));
