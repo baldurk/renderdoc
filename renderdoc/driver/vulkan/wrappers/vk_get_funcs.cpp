@@ -137,8 +137,8 @@ void WrappedVulkan::vkGetBufferMemoryRequirements(VkDevice device, VkBuffer buff
   // for each of our fake memory indices, check if the real
   // memory type it points to is set - if so, set our fake bit
   for(uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
-    if(bits & (1 << memIdxMap[i]))
-      pMemoryRequirements->memoryTypeBits |= (1 << i);
+    if(memIdxMap[i] < 32U && (bits & (1U << memIdxMap[i])))
+      pMemoryRequirements->memoryTypeBits |= (1U << i);
 }
 
 void WrappedVulkan::vkGetImageMemoryRequirements(VkDevice device, VkImage image,
@@ -158,8 +158,8 @@ void WrappedVulkan::vkGetImageMemoryRequirements(VkDevice device, VkImage image,
   // for each of our fake memory indices, check if the real
   // memory type it points to is set - if so, set our fake bit
   for(uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
-    if(bits & (1 << memIdxMap[i]))
-      pMemoryRequirements->memoryTypeBits |= (1 << i);
+    if(memIdxMap[i] < 32U && (bits & (1U << memIdxMap[i])))
+      pMemoryRequirements->memoryTypeBits |= (1U << i);
 }
 
 void WrappedVulkan::vkGetImageSparseMemoryRequirements(
