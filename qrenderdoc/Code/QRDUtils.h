@@ -628,8 +628,6 @@ public:
   QVariantList GetVariants(const byte *&data, const byte *end) const;
   ShaderVariable GetShaderVar(const byte *&data, const byte *end) const;
 
-  QString ElementString(const QVariant &var);
-
   uint32_t byteSize() const;
 
   QString name;
