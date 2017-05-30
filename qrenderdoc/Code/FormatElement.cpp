@@ -859,7 +859,7 @@ static QString RowValuesToString(int cols, el x, el y, el z, el w)
   else if(cols == 2)
     return QFormatStr("%1, %2").arg(Formatter::Format(x)).arg(Formatter::Format(y));
   else if(cols == 3)
-    return QFormatStr("%1, %2, %3, %4")
+    return QFormatStr("%1, %2, %3")
         .arg(Formatter::Format(x))
         .arg(Formatter::Format(y))
         .arg(Formatter::Format(z));
