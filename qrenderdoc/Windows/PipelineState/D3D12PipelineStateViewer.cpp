@@ -201,6 +201,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     ui->iaLayouts->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
 
     ui->iaLayouts->setClearSelectionOnFocusLoss(true);
+    ui->iaLayouts->setInstantTooltips(true);
     ui->iaLayouts->setHoverIconColumn(8, action, action_hover);
   }
 
@@ -216,6 +217,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     ui->iaBuffers->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
 
     ui->iaBuffers->setClearSelectionOnFocusLoss(true);
+    ui->iaBuffers->setInstantTooltips(true);
     ui->iaBuffers->setHoverIconColumn(5, action, action_hover);
   }
 
@@ -241,6 +243,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
     res->setHoverIconColumn(10, action, action_hover);
     res->setClearSelectionOnFocusLoss(true);
+    res->setInstantTooltips(true);
   }
 
   for(RDTreeWidget *uav : uavs)
@@ -265,6 +268,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
     uav->setHoverIconColumn(10, action, action_hover);
     uav->setClearSelectionOnFocusLoss(true);
+    uav->setInstantTooltips(true);
   }
 
   for(RDTreeWidget *samp : samplers)
@@ -283,6 +287,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     samp->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
 
     samp->setClearSelectionOnFocusLoss(true);
+    samp->setInstantTooltips(true);
   }
 
   for(RDTreeWidget *cbuffer : cbuffers)
@@ -302,6 +307,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
     cbuffer->setHoverIconColumn(6, action, action_hover);
     cbuffer->setClearSelectionOnFocusLoss(true);
+    cbuffer->setInstantTooltips(true);
   }
 
   {
@@ -317,6 +323,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     ui->viewports->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
 
     ui->viewports->setClearSelectionOnFocusLoss(true);
+    ui->viewports->setInstantTooltips(true);
   }
 
   {
@@ -329,6 +336,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     ui->scissors->header()->setSectionResizeMode(4, QHeaderView::Stretch);
 
     ui->scissors->setClearSelectionOnFocusLoss(true);
+    ui->scissors->setInstantTooltips(true);
   }
 
   {
@@ -347,6 +355,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
     ui->targetOutputs->setHoverIconColumn(8, action, action_hover);
     ui->targetOutputs->setClearSelectionOnFocusLoss(true);
+    ui->targetOutputs->setInstantTooltips(true);
   }
 
   {
@@ -364,6 +373,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     ui->blends->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
 
     ui->blends->setClearSelectionOnFocusLoss(true);
+    ui->blends->setInstantTooltips(true);
   }
 
   {
@@ -377,6 +387,7 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     ui->stencils->header()->setSectionResizeMode(4, QHeaderView::Stretch);
 
     ui->stencils->setClearSelectionOnFocusLoss(true);
+    ui->stencils->setInstantTooltips(true);
   }
 
   // this is often changed just because we're changing some tab in the designer.

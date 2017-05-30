@@ -176,6 +176,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->viAttrs->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
 
     ui->viAttrs->setClearSelectionOnFocusLoss(true);
+    ui->viAttrs->setInstantTooltips(true);
     ui->viAttrs->setHoverIconColumn(6, action, action_hover);
   }
 
@@ -192,6 +193,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->viBuffers->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
 
     ui->viBuffers->setClearSelectionOnFocusLoss(true);
+    ui->viBuffers->setInstantTooltips(true);
     ui->viBuffers->setHoverIconColumn(6, action, action_hover);
   }
 
@@ -212,6 +214,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 
     tex->setHoverIconColumn(8, action, action_hover);
     tex->setClearSelectionOnFocusLoss(true);
+    tex->setInstantTooltips(true);
   }
 
   for(RDTreeWidget *samp : samplers)
@@ -225,6 +228,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     samp->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
 
     samp->setClearSelectionOnFocusLoss(true);
+    samp->setInstantTooltips(true);
   }
 
   for(RDTreeWidget *ubo : ubos)
@@ -239,6 +243,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 
     ubo->setHoverIconColumn(4, action, action_hover);
     ubo->setClearSelectionOnFocusLoss(true);
+    ubo->setInstantTooltips(true);
   }
 
   for(RDTreeWidget *sub : subroutines)
@@ -249,6 +254,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     sub->header()->setSectionResizeMode(1, QHeaderView::Stretch);
 
     sub->setClearSelectionOnFocusLoss(true);
+    sub->setInstantTooltips(true);
   }
 
   for(RDTreeWidget *ubo : readwrites)
@@ -266,6 +272,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 
     ubo->setHoverIconColumn(6, action, action_hover);
     ubo->setClearSelectionOnFocusLoss(true);
+    ubo->setInstantTooltips(true);
   }
 
   {
@@ -281,6 +288,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->viewports->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
 
     ui->viewports->setClearSelectionOnFocusLoss(true);
+    ui->viewports->setInstantTooltips(true);
   }
 
   {
@@ -295,6 +303,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->scissors->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
 
     ui->scissors->setClearSelectionOnFocusLoss(true);
+    ui->scissors->setInstantTooltips(true);
   }
 
   {
@@ -312,6 +321,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 
     ui->framebuffer->setHoverIconColumn(8, action, action_hover);
     ui->framebuffer->setClearSelectionOnFocusLoss(true);
+    ui->framebuffer->setInstantTooltips(true);
   }
 
   {
@@ -329,6 +339,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->blends->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
 
     ui->blends->setClearSelectionOnFocusLoss(true);
+    ui->blends->setInstantTooltips(true);
   }
 
   {
@@ -345,6 +356,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->stencils->header()->setSectionResizeMode(7, QHeaderView::Stretch);
 
     ui->stencils->setClearSelectionOnFocusLoss(true);
+    ui->stencils->setInstantTooltips(true);
   }
 
   // this is often changed just because we're changing some tab in the designer.

@@ -29,6 +29,7 @@
 #include <QPainter>
 #include <QPen>
 #include <QStack>
+#include <QToolTip>
 
 class RDTreeWidgetModel : public QAbstractItemModel
 {
@@ -205,7 +206,7 @@ public:
 
       return QVariant();
     }
-    else if(role == Qt::ToolTipRole)
+    else if(role == Qt::ToolTipRole && !widget->m_instantTooltips)
     {
       return item->m_tooltip;
     }
@@ -573,6 +574,26 @@ void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
     m_model->itemChanged(old, roles);
   m_model->itemChanged(item, roles);
 
+  if(m_instantTooltips)
+  {
+    QToolTip::hideText();
+
+    if(m_currentHoverItem != NULL && !m_currentHoverItem->m_tooltip.isEmpty())
+    {
+      // the documentation says:
+      //
+      // "If text is empty the tool tip is hidden. If the text is the same as the currently shown
+      // tooltip, the tip will not move. You can force moving by first hiding the tip with an empty
+      // text, and then showing the new tip at the new position."
+      //
+      // However the actual implementation has some kind of 'fading' check, so if you hide then
+      // immediately show, it will try to reuse the tooltip and end up not moving it at all if the
+      // text hasn't changed.
+      QToolTip::showText(QCursor::pos(), lit(" "), this);
+      QToolTip::showText(QCursor::pos(), m_currentHoverItem->m_tooltip, this);
+    }
+  }
+
   emit mouseMove(e);
 
   QTreeView::mouseMoveEvent(e);
@@ -597,6 +618,8 @@ void RDTreeWidget::leaveEvent(QEvent *e)
   if(m_currentHoverItem)
   {
     RDTreeWidgetItem *item = m_currentHoverItem;
+    if(!item->m_tooltip.isEmpty() && m_instantTooltips)
+      QToolTip::hideText();
     m_currentHoverItem = NULL;
     m_model->itemChanged(item, {Qt::DecorationRole, Qt::BackgroundRole, Qt::ForegroundRole});
   }

@@ -177,6 +177,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
     ui->viAttrs->setHoverIconColumn(6, action, action_hover);
     ui->viAttrs->setClearSelectionOnFocusLoss(true);
+    ui->viAttrs->setInstantTooltips(true);
   }
 
   {
@@ -193,6 +194,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
     ui->viBuffers->setHoverIconColumn(6, action, action_hover);
     ui->viBuffers->setClearSelectionOnFocusLoss(true);
+    ui->viBuffers->setInstantTooltips(true);
   }
 
   for(RDTreeWidget *res : resources)
@@ -211,6 +213,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
     res->setHoverIconColumn(7, action, action_hover);
     res->setClearSelectionOnFocusLoss(true);
+    res->setInstantTooltips(true);
   }
 
   for(RDTreeWidget *ubo : ubos)
@@ -228,6 +231,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
     ubo->setHoverIconColumn(6, action, action_hover);
     ubo->setClearSelectionOnFocusLoss(true);
+    ubo->setInstantTooltips(true);
   }
 
   {
@@ -243,6 +247,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->viewports->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
 
     ui->viewports->setClearSelectionOnFocusLoss(true);
+    ui->viewports->setInstantTooltips(true);
   }
 
   {
@@ -255,6 +260,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->scissors->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
 
     ui->scissors->setClearSelectionOnFocusLoss(true);
+    ui->scissors->setInstantTooltips(true);
   }
 
   {
@@ -272,6 +278,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
     ui->framebuffer->setHoverIconColumn(8, action, action_hover);
     ui->framebuffer->setClearSelectionOnFocusLoss(true);
+    ui->framebuffer->setInstantTooltips(true);
   }
 
   {
@@ -289,6 +296,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->blends->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
 
     ui->blends->setClearSelectionOnFocusLoss(true);
+    ui->blends->setInstantTooltips(true);
   }
 
   {
@@ -305,6 +313,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->stencils->header()->setSectionResizeMode(7, QHeaderView::Stretch);
 
     ui->stencils->setClearSelectionOnFocusLoss(true);
+    ui->stencils->setInstantTooltips(true);
   }
 
   // this is often changed just because we're changing some tab in the designer.
