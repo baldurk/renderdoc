@@ -301,6 +301,14 @@ void ToolWindowManagerArea::check_mouse_move() {
   }
 }
 
+bool ToolWindowManagerArea::useMinimalTabBar() {
+  QWidget *w = widget(0);
+  if (w == NULL)
+    return false;
+
+  return (m_manager->toolWindowProperties(w) & ToolWindowManager::AlwaysDisplayFullTabs) == 0;
+}
+
 void ToolWindowManagerArea::tabMoved(int from, int to) {
   if(m_inTabMoved) return;
 

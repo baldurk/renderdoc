@@ -108,7 +108,10 @@ private:
   //check if mouse left tab widget area so that dragging should start
   void check_mouse_move();
 
+  bool useMinimalTabBar();
+
   friend class ToolWindowManager;
+  friend class ToolWindowManagerTabBar;
   friend class ToolWindowManagerWrapper;
 
 private slots:

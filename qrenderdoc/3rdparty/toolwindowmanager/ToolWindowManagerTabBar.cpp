@@ -37,6 +37,8 @@ ToolWindowManagerTabBar::ToolWindowManagerTabBar(QWidget *parent) :
 
   setMouseTracking(true);
 
+  m_area = qobject_cast<ToolWindowManagerArea *>(parent);
+
   // Workaround for extremely dodgy KDE behaviour - by default the KDE theme will install event
   // filters on various widgets such as QTabBar and any descendents, and if a click is detected on
   // them that isn't on a tab it will immediately start moving the window, interfering with our own
@@ -67,7 +69,7 @@ ToolWindowManagerTabBar::~ToolWindowManagerTabBar() {
 }
 
 QSize ToolWindowManagerTabBar::sizeHint() const {
-  if (count() == 1) {
+  if(useMinimalBar()) {
     if (floatingWindowChild())
       return QSize(0, 0);
 
@@ -84,8 +86,19 @@ QSize ToolWindowManagerTabBar::sizeHint() const {
   return QTabBar::sizeHint();
 }
 
+bool ToolWindowManagerTabBar::useMinimalBar() const
+{
+  if (count() > 1)
+    return false;
+
+  if (m_area) {
+    return m_area->useMinimalTabBar();
+  }
+  return true;
+}
+
 QSize ToolWindowManagerTabBar::minimumSizeHint() const {
-  if (count() == 1) {
+  if (useMinimalBar()) {
     return sizeHint();
   }
 
@@ -97,7 +110,7 @@ bool ToolWindowManagerTabBar::inButton(QPoint pos) {
 }
 
 void ToolWindowManagerTabBar::paintEvent(QPaintEvent *event) {
-  if (count() == 1) {
+  if (useMinimalBar()) {
     if (floatingWindowChild())
       return;
 
@@ -268,9 +281,8 @@ void ToolWindowManagerTabBar::mouseReleaseEvent(QMouseEvent *event) {
   }
 
   if (m_close.rect.contains(mapFromGlobal(QCursor::pos()))) {
-    ToolWindowManagerArea *area = qobject_cast<ToolWindowManagerArea *>(parentWidget());
-    if (area)
-      area->tabCloseRequested(0);
+    if (m_area)
+      m_area->tabCloseRequested(0);
 
     m_close.clicked = false;
 

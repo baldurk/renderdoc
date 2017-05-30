@@ -29,10 +29,11 @@
 #include <QIcon>
 
 class ToolWindowManager;
+class ToolWindowManagerArea;
 
 /*!
- * \brief The ToolWindowManagerArea class is a tab widget used to store tool windows.
- * It implements dragging of its tab or the whole tab widget.
+ * \brief The ToolWindowManagerTabBar class is a tab bar used to customise the painting
+ * in the case that there's only only one child widget.
  */
 class ToolWindowManagerTabBar : public QTabBar {
   Q_OBJECT
@@ -47,6 +48,9 @@ public:
   
   //! Reimplemented from QTabWidget::QTabBar to custom size for the single tab case.
   QSize sizeHint() const Q_DECL_OVERRIDE;
+
+  bool useMinimalBar() const;
+
   QSize minimumSizeHint() const Q_DECL_OVERRIDE;
   
   //! is this point in a custom titlebar button
@@ -66,6 +70,8 @@ protected:
   //! Reimplemented from QTabWidget::QTabBar to enable/disable 'real' closable tabs.
   virtual void tabInserted(int index) Q_DECL_OVERRIDE;
   virtual void tabRemoved(int index) Q_DECL_OVERRIDE;
+
+  ToolWindowManagerArea* m_area;
 
   bool m_tabsClosable;
 

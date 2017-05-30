@@ -103,6 +103,8 @@ public:
     HideOnClose = 0x8,
     //! Don't allow this tool window to be floated
     DisallowFloatWindow = 0x10,
+    //! When displaying this tool window in tabs, always display the tabs even if there's only one
+    AlwaysDisplayFullTabs = 0x20,
   };
 
   //! Type of AreaReference.
@@ -285,7 +287,6 @@ private:
   // a semi-transparent preview of where the dragged toolwindow(s) will be docked
   QWidget* m_previewOverlay;
   QWidget* m_previewTabOverlay;
-  QWidget* m_dropHotspotsOverlay; // an overlay parent where we add drop hotspots.
   QLabel* m_dropHotspots[NumReferenceTypes];
   QPixmap m_pixmaps[NumReferenceTypes];
 
