@@ -33,6 +33,8 @@ public:
   explicit RDLabel(QWidget *parent = 0);
   ~RDLabel();
 
+  void setPreserveAspectRatio(bool preserve) { m_preserveRatio = preserve; }
+  bool preserveAspectRatio() { return m_preserveRatio; }
 signals:
   void clicked(QMouseEvent *event);
   void doubleClicked(QMouseEvent *event);
@@ -46,4 +48,7 @@ protected:
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseDoubleClickEvent(QMouseEvent *event) override;
   void leaveEvent(QEvent *event) override;
+  void resizeEvent(QResizeEvent *event) override;
+
+  bool m_preserveRatio = false;
 };

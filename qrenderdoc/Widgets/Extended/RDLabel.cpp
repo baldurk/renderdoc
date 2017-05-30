@@ -60,3 +60,32 @@ void RDLabel::leaveEvent(QEvent *event)
 
   QLabel::leaveEvent(event);
 }
+
+void RDLabel::resizeEvent(QResizeEvent *event)
+{
+  const QPixmap *p = pixmap();
+  if(m_preserveRatio && p)
+  {
+    QRect r = rect();
+
+    float pratio = float(p->width()) / float(p->height());
+    float rratio = float(r.width()) / float(r.height());
+
+    if(pratio > rratio)
+    {
+      int correctHeight = int(r.width() / pratio);
+
+      int margin = (r.height() - correctHeight) / 2;
+
+      setContentsMargins(0, margin, 0, margin);
+    }
+    else
+    {
+      int correctWidth = int(r.height() * pratio);
+
+      int margin = (r.width() - correctWidth) / 2;
+
+      setContentsMargins(margin, 0, margin, 0);
+    }
+  }
+}
