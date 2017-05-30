@@ -536,9 +536,10 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
   QWidget *renderContainer = ui->renderContainer;
 
   ui->dockarea->addToolWindow(ui->renderContainer, ToolWindowManager::EmptySpace);
-  ui->dockarea->setToolWindowProperties(renderContainer, ToolWindowManager::DisallowUserDocking |
-                                                             ToolWindowManager::HideCloseButton |
-                                                             ToolWindowManager::DisableDraggableTab);
+  ui->dockarea->setToolWindowProperties(
+      renderContainer, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton |
+                           ToolWindowManager::DisableDraggableTab |
+                           ToolWindowManager::AlwaysDisplayFullTabs);
 
   ui->dockarea->addToolWindow(ui->inputThumbs, ToolWindowManager::AreaReference(
                                                    ToolWindowManager::RightOf,
@@ -1699,7 +1700,9 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
     ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, textureTabs);
 
     ui->dockarea->addToolWindow(lockedContainer, ref);
-    ui->dockarea->setToolWindowProperties(lockedContainer, ToolWindowManager::DisallowUserDocking);
+    ui->dockarea->setToolWindowProperties(
+        lockedContainer,
+        ToolWindowManager::DisallowUserDocking | ToolWindowManager::AlwaysDisplayFullTabs);
 
     lockedContainer->setLayout(ui->renderLayout);
 
