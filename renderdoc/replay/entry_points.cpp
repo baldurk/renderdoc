@@ -300,6 +300,17 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetLogFile()
   return RDCGETLOGFILE();
 }
 
+extern "C" RENDERDOC_API void RENDERDOC_CC
+RENDERDOC_InitGlobalEnv(GlobalEnvironment env, const rdctype::array<rdctype::str> &args)
+{
+  std::vector<std::string> argsVec;
+  argsVec.reserve(args.size());
+  for(const rdctype::str &a : args)
+    argsVec.push_back(a.c_str());
+
+  RenderDoc::Inst().ProcessGlobalEnvironment(env, argsVec);
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs,
                                                                              bool32 crashed)
 {

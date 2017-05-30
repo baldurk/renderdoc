@@ -117,16 +117,6 @@ ReplayStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver
   initParams.isSRGB = 0;
 #endif
 
-#if DISABLED(RDOC_ANDROID)
-  Display *dpy = XOpenDisplay(NULL);
-
-  if(dpy == NULL)
-  {
-    RDCERR("Couldn't open default X display");
-    return ReplayStatus::APIInitFailed;
-  }
-#endif
-
   eglBindAPIProc(EGL_OPENGL_ES_API);
 
   EGLDisplay eglDisplay = eglGetDisplayProc(EGL_DEFAULT_DISPLAY);
@@ -167,9 +157,6 @@ ReplayStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver
   EGLContext ctx = eglCreateContextProc(eglDisplay, config, EGL_NO_CONTEXT, ctxAttribs);
   if(ctx == NULL)
   {
-#if DISABLED(RDOC_ANDROID)
-    XCloseDisplay(dpy);
-#endif
     GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't create GL ES 3.x context - RenderDoc requires OpenGL ES 3.x availability");
     return ReplayStatus::APIHardwareUnsupported;
@@ -182,9 +169,6 @@ ReplayStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver
   {
     RDCERR("Couldn't create a suitable PBuffer");
     eglDestroySurfaceProc(eglDisplay, pbuffer);
-#if DISABLED(RDOC_ANDROID)
-    XCloseDisplay(dpy);
-#endif
     GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
@@ -195,9 +179,6 @@ ReplayStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver
     RDCERR("Couldn't active the created GL ES context");
     eglDestroySurfaceProc(eglDisplay, pbuffer);
     eglDestroyContextProc(eglDisplay, ctx);
-#if DISABLED(RDOC_ANDROID)
-    XCloseDisplay(dpy);
-#endif
     GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
@@ -210,9 +191,6 @@ ReplayStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver
   {
     eglDestroySurfaceProc(eglDisplay, pbuffer);
     eglDestroyContextProc(eglDisplay, ctx);
-#if DISABLED(RDOC_ANDROID)
-    XCloseDisplay(dpy);
-#endif
     GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIHardwareUnsupported;
   }

@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 template <typename T>
@@ -115,6 +116,10 @@ struct XlibWindowData
   Drawable window;
 };
 
+#else
+
+typedef void *Display;
+
 #endif
 
 #if defined(RENDERDOC_WINDOWING_XCB)
@@ -165,6 +170,13 @@ enum class WindowingSystem : uint32_t
   Xlib,
   XCB,
   Android,
+};
+
+DOCUMENT(R"(Internal structure used for initialising environment in a replay application.)");
+struct GlobalEnvironment
+{
+  DOCUMENT("The handle to the X display to use internally. If left ``NULL``, one will be opened.");
+  Display *xlibDisplay = NULL;
 };
 
 // needs to be declared up here for reference in basic_types
@@ -1366,6 +1378,10 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistrati
 //////////////////////////////////////////////////////////////////////////
 // Miscellaneous!
 //////////////////////////////////////////////////////////////////////////
+
+DOCUMENT("Internal function for initialising global process environment in a replay program.");
+extern "C" RENDERDOC_API void RENDERDOC_CC
+RENDERDOC_InitGlobalEnv(GlobalEnvironment env, const rdctype::array<rdctype::str> &args);
 
 DOCUMENT("Internal function for triggering exception handler.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs,

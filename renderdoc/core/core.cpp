@@ -36,6 +36,10 @@
 #include "stb/stb_image.h"
 #include "crash_handler.h"
 
+#if ENABLED(RDOC_LINUX) && ENABLED(RDOC_XLIB)
+#include <X11/Xlib.h>
+#endif
+
 // from image_viewer.cpp
 ReplayStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
 
@@ -401,6 +405,23 @@ void RenderDoc::Shutdown()
     Threading::JoinThread(m_RemoteThread);
     Threading::CloseThread(m_RemoteThread);
     m_RemoteThread = 0;
+  }
+}
+
+void RenderDoc::ProcessGlobalEnvironment(GlobalEnvironment env, const std::vector<std::string> &args)
+{
+  m_GlobalEnv = env;
+
+#if ENABLED(RDOC_LINUX) && ENABLED(RDOC_XLIB)
+  if(!m_GlobalEnv.xlibDisplay)
+    m_GlobalEnv.xlibDisplay = XOpenDisplay(NULL);
+#endif
+
+  if(!args.empty())
+  {
+    RDCDEBUG("Replay application launched with parameters:");
+    for(size_t i = 0; i < args.size(); i++)
+      RDCDEBUG("[%u]: %s", (uint32_t)i, args[i].c_str());
   }
 }
 

@@ -241,8 +241,8 @@ public:
     }
     else if(system == WindowingSystem::Unknown)
     {
-      // allow undefined so that internally we can create a window-less context
-      dpy = XOpenDisplay(NULL);
+      // allow WindowingSystem::Unknown so that internally we can create a window-less context
+      dpy = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;
 
       if(dpy == NULL)
         return ret;
@@ -276,7 +276,6 @@ public:
 
     if(fbcfg == NULL)
     {
-      XCloseDisplay(dpy);
       RDCERR("Couldn't choose default framebuffer config");
       return ret;
     }
@@ -317,7 +316,6 @@ public:
 
     if(ctx == NULL)
     {
-      XCloseDisplay(dpy);
       RDCERR("Couldn't create %d.%d context - something changed since creation", GLCoreVersion / 10,
              GLCoreVersion % 10);
       return ret;

@@ -24,7 +24,6 @@
 
 #include "renderdoccmd.h"
 #include <locale.h>
-#include <replay/renderdoc_replay.h>
 #include <string.h>
 #include <unistd.h>
 #include <string>
@@ -116,7 +115,7 @@ void handle_cmd(android_app *app, int32_t cmd)
       vector<string> args = getRenderdoccmdArgs();
       if(!args.size())
         break;    // Nothing for APK to do.
-      renderdoccmd(args);
+      renderdoccmd(GlobalEnvironment(), args);
       break;
     }
     case APP_CMD_TERM_WINDOW: break;

@@ -215,15 +215,9 @@ public:
         break;
       }
 #endif
-      case WindowingSystem::Unknown: {
-#if ENABLED(RDOC_LINUX)
-        // allow undefined so that internally we can create a window-less context
-        Display *dpy = XOpenDisplay(NULL);
-        if(dpy == NULL)
-          return ret;
-#endif
+      case WindowingSystem::Unknown:
+        // allow WindowingSystem::Unknown so that internally we can create a window-less context
         break;
-      }
       default: RDCERR("Unexpected window system %u", system); break;
     }
 

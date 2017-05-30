@@ -205,6 +205,9 @@ public:
   void Initialise();
   void Shutdown();
 
+  const GlobalEnvironment GetGlobalEnvironment() { return m_GlobalEnv; }
+  void ProcessGlobalEnvironment(GlobalEnvironment env, const std::vector<std::string> &args);
+
   void RegisterShutdownFunction(ShutdownFunction func) { m_ShutdownFunctions.insert(func); }
   void SetReplayApp(bool replay) { m_Replay = replay; }
   bool IsReplayApp() const { return m_Replay; }
@@ -349,6 +352,8 @@ private:
 
   vector<RENDERDOC_InputButton> m_FocusKeys;
   vector<RENDERDOC_InputButton> m_CaptureKeys;
+
+  GlobalEnvironment m_GlobalEnv;
 
   FrameTimer m_FrameTimer;
 

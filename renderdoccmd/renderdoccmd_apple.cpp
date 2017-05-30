@@ -24,7 +24,6 @@
 
 #include "renderdoccmd.h"
 #include <locale.h>
-#include <replay/renderdoc_replay.h>
 #include <string.h>
 #include <unistd.h>
 #include <string>
@@ -48,5 +47,5 @@ int main(int argc, char *argv[])
 
   // process any apple-specific arguments here
 
-  return renderdoccmd(argc, argv);
+  return renderdoccmd(GlobalEnvironment(), argc, argv);
 }

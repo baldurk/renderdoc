@@ -53,7 +53,7 @@ void Daemonise()
 
 struct VulkanRegisterCommand : public Command
 {
-  VulkanRegisterCommand() {}
+  VulkanRegisterCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add("ignore", 'i', "Do nothing and don't warn about Vulkan layer issues.");
@@ -105,7 +105,7 @@ struct VulkanRegisterCommand : public Command
   }
 };
 
-void VerifyVulkanLayer(int argc, char *argv[])
+void VerifyVulkanLayer(const GlobalEnvironment &env, int argc, char *argv[])
 {
   VulkanLayerFlags flags = VulkanLayerFlags::NoFlags;
   rdctype::array<rdctype::str> myJSONs;
@@ -116,7 +116,7 @@ void VerifyVulkanLayer(int argc, char *argv[])
   if(!needUpdate)
   {
     if(!(flags & VulkanLayerFlags::Unfixable))
-      add_command("vulkanregister", new VulkanRegisterCommand());
+      add_command("vulkanregister", new VulkanRegisterCommand(env));
     return;
   }
 
@@ -197,8 +197,10 @@ void VerifyVulkanLayer(int argc, char *argv[])
             << std::endl;
   std::cerr << std::endl;
 
-  add_command("vulkanregister", new VulkanRegisterCommand());
+  add_command("vulkanregister", new VulkanRegisterCommand(env));
 }
+
+static Display *display = NULL;
 
 void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
@@ -209,11 +211,6 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
 #if defined(RENDERDOC_WINDOWING_XLIB) && defined(RENDERDOC_WINDOWING_XCB)
   // need to create a hybrid setup xlib and xcb in case only one or the other is supported.
   // We'll prefer xcb
-
-  // call XInitThreads - although we don't use xlib concurrently the driver might need to.
-  XInitThreads();
-
-  Display *display = XOpenDisplay(NULL);
 
   if(display == NULL)
   {
@@ -373,8 +370,16 @@ int main(int argc, char *argv[])
   signal(SIGINT, sig_handler);
   signal(SIGTERM, sig_handler);
 
+  GlobalEnvironment env;
+
+  // call XInitThreads - although we don't use xlib concurrently the driver might need to.
+  XInitThreads();
+
+  // we don't check if display successfully opened, it's only a problem if it's needed later.
+  display = env.xlibDisplay = XOpenDisplay(NULL);
+
 #if defined(RENDERDOC_SUPPORT_VULKAN)
-  VerifyVulkanLayer(argc, argv);
+  VerifyVulkanLayer(env, argc, argv);
 #endif
 
   // add compiled-in support to version line
@@ -444,5 +449,5 @@ int main(int argc, char *argv[])
     add_version_line(support);
   }
 
-  return renderdoccmd(argc, argv);
+  return renderdoccmd(env, argc, argv);
 }

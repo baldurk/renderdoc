@@ -182,6 +182,15 @@ int main(int argc, char *argv[])
     GUIInvoke::init();
 
     PythonContext::GlobalInit();
+
+    {
+      GlobalEnvironment env;
+#if defined(RENDERDOC_PLATFORM_LINUX)
+      env.xlibDisplay = QX11Info::display();
+#endif
+      RENDERDOC_InitGlobalEnv(env, rdctype::array<rdctype::str>());
+    }
+
     {
       CaptureContext ctx(filename, remoteHost, remoteIdent, temp, config);
 

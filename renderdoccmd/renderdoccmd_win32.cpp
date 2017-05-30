@@ -26,7 +26,6 @@
 #include "renderdoccmd.h"
 #include <app/renderdoc_app.h>
 #include <renderdocshim.h>
-#include <replay/renderdoc_replay.h>
 #include <windows.h>
 #include <string>
 #include <vector>
@@ -281,6 +280,7 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
 
 struct UpgradeCommand : public Command
 {
+  UpgradeCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser) { parser.add<string>("path", 0, ""); }
   virtual const char *Description() { return "Internal use only!"; }
   virtual bool IsInternalOnly() { return true; }
@@ -488,6 +488,7 @@ struct UpgradeCommand : public Command
 #if defined(RELEASE)
 struct CrashHandlerCommand : public Command
 {
+  CrashHandlerCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser) {}
   virtual const char *Description() { return "Internal use only!"; }
   virtual bool IsInternalOnly() { return true; }
@@ -673,6 +674,7 @@ struct CrashHandlerCommand : public Command
 
 struct GlobalHookCommand : public Command
 {
+  GlobalHookCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add<string>("match", 0, "");
@@ -900,18 +902,20 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
     return 1;
   }
 
+  GlobalEnvironment env;
+
   // perform an upgrade of the UI
-  add_command("upgrade", new UpgradeCommand());
+  add_command("upgrade", new UpgradeCommand(env));
 
 #if defined(RELEASE)
   // special WIN32 option for launching the crash handler
-  add_command("crashhandle", new CrashHandlerCommand());
+  add_command("crashhandle", new CrashHandlerCommand(env));
 #endif
 
   // this installs a global windows hook pointing at renderdocshim*.dll that filters all running
   // processes and loads renderdoc.dll in the target one. In any other process it unloads as soon as
   // possible
-  add_command("globalhook", new GlobalHookCommand());
+  add_command("globalhook", new GlobalHookCommand(env));
 
-  return renderdoccmd(argv);
+  return renderdoccmd(env, argv);
 }

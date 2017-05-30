@@ -25,7 +25,6 @@
 
 #include "renderdoccmd.h"
 #include <app/renderdoc_app.h>
-#include <replay/renderdoc_replay.h>
 #include <replay/version.h>
 #include <string>
 
@@ -34,6 +33,15 @@ using std::wstring;
 
 bool usingKillSignal = false;
 volatile uint32_t killSignal = false;
+
+rdctype::array<rdctype::str> convertArgs(const std::vector<std::string> &args)
+{
+  rdctype::array<rdctype::str> ret;
+  ret.create((int)args.size());
+  for(size_t i = 0; i < args.size(); i++)
+    ret[i] = args[i];
+  return ret;
+}
 
 void readCapOpts(const std::string &str, CaptureOptions *opts)
 {
@@ -157,6 +165,7 @@ static std::vector<std::string> version_lines;
 
 struct VersionCommand : public Command
 {
+  VersionCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser) {}
   virtual const char *Description() { return "Print version information"; }
   virtual bool IsInternalOnly() { return false; }
@@ -187,6 +196,7 @@ void add_version_line(const std::string &str)
 
 struct HelpCommand : public Command
 {
+  HelpCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser) {}
   virtual const char *Description() { return "Print this help message"; }
   virtual bool IsInternalOnly() { return false; }
@@ -200,6 +210,7 @@ struct HelpCommand : public Command
 
 struct ThumbCommand : public Command
 {
+  ThumbCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.set_footer("<filename.rdc>");
@@ -216,7 +227,8 @@ struct ThumbCommand : public Command
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
-    if(parser.rest().empty())
+    std::vector<std::string> rest = parser.rest();
+    if(rest.empty())
     {
       std::cerr << "Error: thumb command requires a capture filename." << std::endl
                 << std::endl
@@ -224,7 +236,11 @@ struct ThumbCommand : public Command
       return 0;
     }
 
-    string filename = parser.rest()[0];
+    string filename = rest[0];
+
+    rest.erase(rest.begin());
+
+    RENDERDOC_InitGlobalEnv(m_Env, convertArgs(rest));
 
     string outfile = parser.get<string>("out");
 
@@ -299,6 +315,7 @@ struct ThumbCommand : public Command
 
 struct CaptureCommand : public Command
 {
+  CaptureCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.set_footer("<executable> [program arguments]");
@@ -329,6 +346,8 @@ struct CaptureCommand : public Command
 
       cmdLine += EscapeArgument(parser.rest()[i]);
     }
+
+    RENDERDOC_InitGlobalEnv(m_Env, rdctype::array<rdctype::str>());
 
     std::cout << "Launching '" << executable << "'";
 
@@ -386,6 +405,7 @@ struct CaptureCommand : public Command
 
 struct InjectCommand : public Command
 {
+  InjectCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add<uint32_t>("PID", 0, "The process ID of the process to inject.", true);
@@ -402,6 +422,8 @@ struct InjectCommand : public Command
     std::cout << "Injecting into PID " << PID << std::endl;
 
     rdctype::array<EnvironmentModification> env;
+
+    RENDERDOC_InitGlobalEnv(m_Env, convertArgs(parser.rest()));
 
     uint32_t ident = RENDERDOC_InjectIntoProcess(PID, env, logFile.empty() ? "" : logFile.c_str(),
                                                  opts, parser.exist("wait-for-exit"));
@@ -428,6 +450,7 @@ struct InjectCommand : public Command
 
 struct RemoteServerCommand : public Command
 {
+  RemoteServerCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add("daemon", 'd', "Go into the background.");
@@ -446,6 +469,8 @@ struct RemoteServerCommand : public Command
   {
     string host = parser.get<string>("host");
     uint32_t port = parser.get<uint32_t>("port");
+
+    RENDERDOC_InitGlobalEnv(m_Env, convertArgs(parser.rest()));
 
     std::cerr << "Spawning a replay host listening on " << (host.empty() ? "*" : host) << ":"
               << port << "..." << std::endl;
@@ -468,6 +493,7 @@ struct RemoteServerCommand : public Command
 
 struct ReplayCommand : public Command
 {
+  ReplayCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.set_footer("<capture.rdc>");
@@ -486,7 +512,8 @@ struct ReplayCommand : public Command
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
-    if(parser.rest().empty())
+    std::vector<std::string> rest = parser.rest();
+    if(rest.empty())
     {
       std::cerr << "Error: capture command requires a filename to load." << std::endl
                 << std::endl
@@ -494,7 +521,11 @@ struct ReplayCommand : public Command
       return 0;
     }
 
-    string filename = parser.rest()[0];
+    string filename = rest[0];
+
+    rest.erase(rest.begin());
+
+    RENDERDOC_InitGlobalEnv(m_Env, convertArgs(rest));
 
     if(parser.exist("remote-host"))
     {
@@ -572,6 +603,7 @@ struct ReplayCommand : public Command
 
 struct CapAltBitCommand : public Command
 {
+  CapAltBitCommand(const GlobalEnvironment &env) : Command(env) {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add<uint32_t>("pid", 0, "");
@@ -587,6 +619,8 @@ struct CapAltBitCommand : public Command
   {
     CaptureOptions cmdopts;
     readCapOpts(parser.get<string>("capopts").c_str(), &cmdopts);
+
+    RENDERDOC_InitGlobalEnv(m_Env, rdctype::array<rdctype::str>());
 
     std::vector<std::string> rest = parser.rest();
 
@@ -673,12 +707,12 @@ struct CapAltBitCommand : public Command
   }
 };
 
-int renderdoccmd(std::vector<std::string> &argv)
+int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
 {
   try
   {
     // add basic commands, and common aliases
-    add_command("version", new VersionCommand());
+    add_command("version", new VersionCommand(env));
 
     add_alias("--version", "version");
     add_alias("-v", "version");
@@ -686,7 +720,7 @@ int renderdoccmd(std::vector<std::string> &argv)
     add_alias("/version", "version");
     add_alias("/v", "version");
 
-    add_command("help", new HelpCommand());
+    add_command("help", new HelpCommand(env));
 
     add_alias("--help", "help");
     add_alias("-h", "help");
@@ -698,12 +732,12 @@ int renderdoccmd(std::vector<std::string> &argv)
     add_alias("/?", "help");
 
     // add platform agnostic commands
-    add_command("thumb", new ThumbCommand());
-    add_command("capture", new CaptureCommand());
-    add_command("inject", new InjectCommand());
-    add_command("remoteserver", new RemoteServerCommand());
-    add_command("replay", new ReplayCommand());
-    add_command("capaltbit", new CapAltBitCommand());
+    add_command("thumb", new ThumbCommand(env));
+    add_command("capture", new CaptureCommand(env));
+    add_command("inject", new InjectCommand(env));
+    add_command("remoteserver", new RemoteServerCommand(env));
+    add_command("replay", new ReplayCommand(env));
+    add_command("capaltbit", new CapAltBitCommand(env));
 
     if(argv.size() <= 1)
     {
@@ -833,12 +867,12 @@ int renderdoccmd(std::vector<std::string> &argv)
   }
 }
 
-int renderdoccmd(int argc, char **c_argv)
+int renderdoccmd(const GlobalEnvironment &env, int argc, char **c_argv)
 {
   std::vector<std::string> argv;
   argv.resize(argc);
   for(int i = 0; i < argc; i++)
     argv[i] = c_argv[i];
 
-  return renderdoccmd(argv);
+  return renderdoccmd(env, argv);
 }

@@ -122,7 +122,7 @@ ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
   attribs[i++] = GLX_CONTEXT_PROFILE_MASK_ARB;
   attribs[i++] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
 
-  Display *dpy = XOpenDisplay(NULL);
+  Display *dpy = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;
 
   if(dpy == NULL)
   {
@@ -138,7 +138,6 @@ ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 
   if(fbcfg == NULL)
   {
-    XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't choose default framebuffer config");
     return ReplayStatus::APIInitFailed;
@@ -177,7 +176,6 @@ ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
   if(ctx == NULL || X11ErrorSeen)
   {
     XFree(fbcfg);
-    XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't create 3.2 context - RenderDoc requires OpenGL 3.2 availability");
     return ReplayStatus::APIHardwareUnsupported;
@@ -199,7 +197,6 @@ ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
     glXDestroyPbufferProc(dpy, pbuffer);
     glXDestroyCtxProc(dpy, ctx);
     XFree(fbcfg);
-    XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't make pbuffer & context current");
     return ReplayStatus::APIInitFailed;
@@ -218,7 +215,6 @@ ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
     glXDestroyPbufferProc(dpy, pbuffer);
     glXDestroyCtxProc(dpy, ctx);
     XFree(fbcfg);
-    XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
@@ -233,7 +229,6 @@ ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
     glXDestroyPbufferProc(dpy, pbuffer);
     glXDestroyCtxProc(dpy, ctx);
     XFree(fbcfg);
-    XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIHardwareUnsupported;
   }
@@ -245,7 +240,6 @@ ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
     glXDestroyPbufferProc(dpy, pbuffer);
     glXDestroyCtxProc(dpy, ctx);
     XFree(fbcfg);
-    XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIHardwareUnsupported;
   }
