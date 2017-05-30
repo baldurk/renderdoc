@@ -30,8 +30,6 @@
 #include <uuid/uuid.h>
 #include "os/os_specific.h"
 
-typedef int Display;
-
 namespace Keyboard
 {
 void Init()
