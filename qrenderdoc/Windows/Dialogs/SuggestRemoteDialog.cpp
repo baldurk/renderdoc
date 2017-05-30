@@ -50,10 +50,11 @@ SuggestRemoteDialog::SuggestRemoteDialog(const QString &driver, const QString &m
   m_Remotes = new QMenu(this);
 
   ui->remote->setEnabled(false);
-  ui->remote->setIcon(QIcon());
   ui->remote->setText(tr("No Remote"));
 
   ui->remote->setMenu(m_Remotes);
+
+  QObject::connect(m_Remotes, &QMenu::triggered, this, &SuggestRemoteDialog::remoteItem_clicked);
 }
 
 SuggestRemoteDialog::~SuggestRemoteDialog()
@@ -73,7 +74,6 @@ void SuggestRemoteDialog::remotesAdded()
                        tr("the capture locally?"));
 
   ui->remote->setEnabled(true);
-  ui->remote->setIcon(Icons::down_arrow());
   ui->remote->setText(tr("Remote"));
 }
 
@@ -87,8 +87,10 @@ void SuggestRemoteDialog::on_alwaysLocal_toggled(bool checked)
   ui->remote->setEnabled(!m_Remotes->isEmpty() && !checked);
 }
 
-void SuggestRemoteDialog::on_remote_clicked()
+void SuggestRemoteDialog::remoteItem_clicked(QAction *action)
 {
+  m_Choice = Remote;
+  accept();
 }
 
 void SuggestRemoteDialog::on_local_clicked()

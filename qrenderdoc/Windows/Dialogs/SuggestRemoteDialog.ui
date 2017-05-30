@@ -122,10 +122,6 @@ always replay locally.</string>
         <property name="text">
          <string>Remote</string>
         </property>
-        <property name="icon">
-         <iconset resource="../../Resources/resources.qrc">
-          <normaloff>:/down_arrow.png</normaloff>:/down_arrow.png</iconset>
-        </property>
        </widget>
       </item>
       <item>
@@ -147,8 +143,6 @@ always replay locally.</string>
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../../Resources/resources.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

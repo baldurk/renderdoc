@@ -57,9 +57,11 @@ public:
 private slots:
   // automatic slots
   void on_alwaysLocal_toggled(bool checked);
-  void on_remote_clicked();
   void on_local_clicked();
   void on_cancel_clicked();
+
+  // manual slots
+  void remoteItem_clicked(QAction *action);
 
 private:
   Ui::SuggestRemoteDialog *ui;
