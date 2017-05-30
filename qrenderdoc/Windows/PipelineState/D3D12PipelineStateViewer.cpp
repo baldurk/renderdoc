@@ -410,6 +410,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
   ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
 
+  m_Common.setMeshViewPixmap(ui->meshView);
+
   ui->iaLayouts->setFont(Formatter::PreferredFont());
   ui->iaBuffers->setFont(Formatter::PreferredFont());
   ui->gsStreamOut->setFont(Formatter::PreferredFont());

@@ -379,6 +379,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 
   ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
 
+  m_Common.setMeshViewPixmap(ui->meshView);
+
   ui->viAttrs->setFont(Formatter::PreferredFont());
   ui->viBuffers->setFont(Formatter::PreferredFont());
   ui->gsFeedback->setFont(Formatter::PreferredFont());

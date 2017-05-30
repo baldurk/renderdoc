@@ -406,24 +406,29 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <item>
-           <widget class="QToolButton" name="meshView">
+           <widget class="RDLabel" name="meshView">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Ignored">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>75</width>
+              <height>75</height>
+             </size>
+            </property>
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
             <property name="toolTip">
              <string>View the mesh input data</string>
             </property>
-            <property name="text">
-             <string/>
+            <property name="pixmap">
+             <pixmap resource="../../Resources/resources.qrc">:/wireframe_mesh.png</pixmap>
             </property>
-            <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
-              <normaloff>:/wireframe_mesh.png</normaloff>:/wireframe_mesh.png</iconset>
-            </property>
-            <property name="iconSize">
-             <size>
-              <width>158</width>
-              <height>191</height>
-             </size>
-            </property>
-            <property name="autoRaise">
+            <property name="scaledContents">
              <bool>true</bool>
             </property>
            </widget>

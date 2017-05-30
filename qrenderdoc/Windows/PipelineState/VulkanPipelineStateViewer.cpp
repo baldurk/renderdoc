@@ -336,6 +336,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
   ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
 
+  m_Common.setMeshViewPixmap(ui->meshView);
+
   ui->viAttrs->setFont(Formatter::PreferredFont());
   ui->viBuffers->setFont(Formatter::PreferredFont());
   ui->vsShader->setFont(Formatter::PreferredFont());

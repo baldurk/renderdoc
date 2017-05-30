@@ -23,8 +23,11 @@
  ******************************************************************************/
 
 #include "PipelineStateViewer.h"
+#include <QMouseEvent>
 #include <QXmlStreamWriter>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
+#include "Code/Resources.h"
+#include "Widgets/Extended/RDLabel.h"
 #include "D3D11PipelineStateViewer.h"
 #include "D3D12PipelineStateViewer.h"
 #include "GLPipelineStateViewer.h"
@@ -418,6 +421,45 @@ void PipelineStateViewer::endHTMLExport(QXmlStreamWriter *xml)
   delete f;
 
   delete xml;
+}
+
+void PipelineStateViewer::setMeshViewPixmap(RDLabel *meshView)
+{
+  QImage meshIcon = Pixmaps::wireframe_mesh().toImage();
+  QImage colSwapped(meshIcon.size(), QImage::Format_ARGB32);
+  colSwapped.fill(palette().color(QPalette::WindowText));
+
+  for(int y = 0; y < meshIcon.height(); y++)
+  {
+    const QRgb *in = (const QRgb *)meshIcon.constScanLine(y);
+    QRgb *out = (QRgb *)colSwapped.scanLine(y);
+
+    for(int x = 0; x < meshIcon.width(); x++)
+    {
+      *out = qRgba(qRed(*out), qGreen(*out), qBlue(*out), qAlpha(*in));
+
+      in++;
+      out++;
+    }
+  }
+
+  meshView->setPixmap(QPixmap::fromImage(colSwapped));
+  meshView->setPreserveAspectRatio(true);
+
+  QPalette pal = meshView->palette();
+  pal.setColor(QPalette::Shadow, pal.color(QPalette::Window).darker(120));
+  meshView->setPalette(pal);
+  meshView->setBackgroundRole(QPalette::Window);
+  meshView->setMouseTracking(true);
+
+  QObject::connect(meshView, &RDLabel::mouseMoved, [meshView](QMouseEvent *) {
+    meshView->setBackgroundRole(QPalette::Shadow);
+    meshView->setAutoFillBackground(true);
+  });
+  QObject::connect(meshView, &RDLabel::leave, [meshView]() {
+    meshView->setBackgroundRole(QPalette::Window);
+    meshView->setAutoFillBackground(false);
+  });
 }
 
 bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDetails,

@@ -34,6 +34,8 @@ class PipelineStateViewer;
 
 class QXmlStreamWriter;
 
+class RDLabel;
+
 class D3D11PipelineStateViewer;
 class D3D12PipelineStateViewer;
 class GLPipelineStateViewer;
@@ -67,6 +69,9 @@ public:
                             QStringMap &files, QString &mainfile);
   void EditShader(ShaderStage shaderType, ResourceId id, const ShaderReflection *shaderDetails,
                   const QString &entryFunc, const QStringMap &files, const QString &mainfile);
+
+  void setMeshViewPixmap(RDLabel *meshView);
+
   QXmlStreamWriter *beginHTMLExport();
   void exportHTMLTable(QXmlStreamWriter &xml, const QStringList &cols,
                        const QList<QVariantList> &rows);
