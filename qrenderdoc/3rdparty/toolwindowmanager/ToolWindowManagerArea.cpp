@@ -281,7 +281,7 @@ void ToolWindowManagerArea::restoreState(const QVariantMap &savedData) {
 }
 
 void ToolWindowManagerArea::check_mouse_move() {
-  if (qApp->mouseButtons() == Qt::LeftButton && m_dragCanStart) {
+  if (qApp->mouseButtons() != Qt::LeftButton && m_dragCanStart) {
     m_dragCanStart = false;
   }
   m_manager->updateDragPosition();
