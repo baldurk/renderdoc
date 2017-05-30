@@ -23,7 +23,10 @@
  ******************************************************************************/
 
 #include "RDListWidget.h"
+#include <QApplication>
+#include <QClipboard>
 #include <QMouseEvent>
+#include "Code/Interface/QRDInterface.h"
 
 RDListWidget::RDListWidget(QWidget *parent) : QListWidget(parent)
 {
@@ -43,4 +46,30 @@ void RDListWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
   emit(mouseDoubleClicked(event));
   QListWidget::mouseDoubleClickEvent(event);
+}
+
+void RDListWidget::keyPressEvent(QKeyEvent *event)
+{
+  if(!m_customCopyPaste && event->matches(QKeySequence::Copy))
+  {
+    QList<QListWidgetItem *> items = selectedItems();
+
+    std::sort(items.begin(), items.end(),
+              [this](QListWidgetItem *a, QListWidgetItem *b) { return row(a) < row(b); });
+
+    QString clipboardText;
+    for(QListWidgetItem *i : items)
+    {
+      clipboardText += i->text() + lit("\n");
+    }
+
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setText(clipboardText.trimmed());
+  }
+  else
+  {
+    QListWidget::keyPressEvent(event);
+  }
+
+  emit(keyPress(event));
 }

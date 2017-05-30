@@ -150,6 +150,7 @@ class RDTreeWidget : public QTreeView
   Q_OBJECT
 
   Q_PROPERTY(bool instantTooltips READ instantTooltips WRITE setInstantTooltips)
+  Q_PROPERTY(bool customCopyPasteHandler READ customCopyPasteHandler WRITE setCustomCopyPasteHandler)
 public:
   explicit RDTreeWidget(QWidget *parent = 0);
   ~RDTreeWidget();
@@ -167,6 +168,8 @@ public:
   void setClearSelectionOnFocusLoss(bool clear) { m_clearSelectionOnFocusLoss = clear; }
   bool instantTooltips() { return m_instantTooltips; }
   void setInstantTooltips(bool instant) { m_instantTooltips = instant; }
+  bool customCopyPasteHandler() { return m_customCopyPaste; }
+  void setCustomCopyPasteHandler(bool custom) { m_customCopyPaste = custom; }
   RDTreeWidgetItem *invisibleRootItem() { return m_root; }
   void addTopLevelItem(RDTreeWidgetItem *item) { m_root->addChild(item); }
   RDTreeWidgetItem *topLevelItem(int index) const { return m_root->child(index); }
@@ -241,6 +244,7 @@ private:
   RDTreeWidgetItem *m_currentHoverItem = NULL;
 
   bool m_instantTooltips = false;
+  bool m_customCopyPaste = false;
   int m_hoverColumn = -1;
   QIcon m_normalHoverIcon;
   QIcon m_activeHoverIcon;

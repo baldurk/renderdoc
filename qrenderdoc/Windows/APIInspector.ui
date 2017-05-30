@@ -47,6 +47,9 @@
       <property name="alternatingRowColors">
        <bool>false</bool>
       </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::ContiguousSelection</enum>
+      </property>
       <property name="indentation">
        <number>20</number>
       </property>
@@ -60,12 +63,15 @@
        <bool>true</bool>
       </property>
      </widget>
-     <widget class="QListWidget" name="callstack">
+     <widget class="RDListWidget" name="callstack">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
         <verstretch>1</verstretch>
        </sizepolicy>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::ContiguousSelection</enum>
       </property>
      </widget>
     </widget>
@@ -83,6 +89,11 @@
    <extends>QSplitter</extends>
    <header>Widgets/Extended/RDSplitter.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>RDListWidget</class>
+   <extends>QListWidget</extends>
+   <header>Widgets/Extended/RDListWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

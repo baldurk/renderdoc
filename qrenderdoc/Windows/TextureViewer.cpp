@@ -2253,7 +2253,7 @@ void TextureViewer::render_keyPress(QKeyEvent *e)
   if(texptr == NULL)
     return;
 
-  if((e->modifiers() & Qt::ControlModifier) && e->key() == Qt::Key_C)
+  if(e->matches(QKeySequence::Copy))
   {
     QClipboard *clipboard = QApplication::clipboard();
     clipboard->setText(ui->texStatusDim->text() + lit(" | ") + ui->statusText->text());
