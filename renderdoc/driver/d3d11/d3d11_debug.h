@@ -131,8 +131,7 @@ public:
 
   uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
-  void GetBufferData(ID3D11Buffer *buff, uint64_t offset, uint64_t length, vector<byte> &retData,
-                     bool unwrap);
+  void GetBufferData(ID3D11Buffer *buff, uint64_t offset, uint64_t length, vector<byte> &retData);
 
   byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                        const GetTextureDataParams &params, size_t &dataSize);

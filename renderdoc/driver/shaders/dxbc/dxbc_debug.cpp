@@ -1722,7 +1722,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       ID3D11DeviceContext *context = NULL;
 
-      device->GetReal()->GetImmediateContext(&context);
+      device->GetImmediateContext(&context);
 
       // back up CB/UAV on CS slot 0
 
@@ -1753,7 +1753,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       HRESULT hr = S_OK;
 
-      hr = device->GetReal()->CreateBuffer(&cdesc, &operData, &constBuf);
+      hr = device->CreateBuffer(&cdesc, &operData, &constBuf);
 
       if(FAILED(hr))
       {
@@ -1779,7 +1779,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       bdesc.ByteWidth = sizeof(Vec4f) * 2;
       bdesc.Usage = D3D11_USAGE_DEFAULT;
 
-      hr = device->GetReal()->CreateBuffer(&bdesc, NULL, &uavBuf);
+      hr = device->CreateBuffer(&bdesc, NULL, &uavBuf);
 
       if(FAILED(hr))
       {
@@ -1791,7 +1791,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       bdesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
       bdesc.Usage = D3D11_USAGE_STAGING;
 
-      hr = device->GetReal()->CreateBuffer(&bdesc, NULL, &copyBuf);
+      hr = device->CreateBuffer(&bdesc, NULL, &copyBuf);
 
       if(FAILED(hr))
       {
@@ -1807,7 +1807,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       uavDesc.Buffer.NumElements = 2;
       uavDesc.Buffer.Flags = 0;
 
-      hr = device->GetReal()->CreateUnorderedAccessView(uavBuf, &uavDesc, &uav);
+      hr = device->CreateUnorderedAccessView(uavBuf, &uavDesc, &uav);
 
       if(FAILED(hr))
       {
@@ -2637,7 +2637,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
     case OPCODE_SAMPLE_POS:
     {
       ID3D11DeviceContext *context = NULL;
-      device->GetReal()->GetImmediateContext(&context);
+      device->GetImmediateContext(&context);
 
       ShaderVariable result("", 0U, 0U, 0U, 0U);
 
@@ -2886,7 +2886,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
     case OPCODE_BUFINFO:
     {
       ID3D11DeviceContext *context = NULL;
-      device->GetReal()->GetImmediateContext(&context);
+      device->GetImmediateContext(&context);
 
       if(op.operands[1].indices.size() == 1 && op.operands[1].indices[0].absolute &&
          !op.operands[1].indices[0].relative)
@@ -3031,7 +3031,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       uint32_t mipLevel = srcOpers[0].value.u.x;
 
       ID3D11DeviceContext *context = NULL;
-      device->GetReal()->GetImmediateContext(&context);
+      device->GetImmediateContext(&context);
 
       if(op.operands[2].indices.size() == 1 && op.operands[2].indices[0].absolute &&
          !op.operands[2].indices[0].relative)
@@ -4171,7 +4171,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       ID3D11DeviceContext *context = NULL;
 
-      device->GetReal()->GetImmediateContext(&context);
+      device->GetImmediateContext(&context);
 
       // back up SRV/sampler on PS slot 0
 
@@ -4242,7 +4242,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
         ID3D11SamplerState *replacementSamp = NULL;
 
-        HRESULT hr = device->GetReal()->CreateSamplerState(&desc, &replacementSamp);
+        HRESULT hr = device->CreateSamplerState(&desc, &replacementSamp);
 
         if(FAILED(hr))
         {
@@ -4293,7 +4293,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       HRESULT hr = S_OK;
 
-      hr = device->GetReal()->CreateTexture2D(&tdesc, NULL, &rtTex);
+      hr = device->CreateTexture2D(&tdesc, NULL, &rtTex);
 
       if(FAILED(hr))
       {
@@ -4305,7 +4305,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       tdesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
       tdesc.Usage = D3D11_USAGE_STAGING;
 
-      hr = device->GetReal()->CreateTexture2D(&tdesc, NULL, &copyTex);
+      hr = device->CreateTexture2D(&tdesc, NULL, &copyTex);
 
       if(FAILED(hr))
       {
@@ -4319,7 +4319,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       rtDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
       rtDesc.Texture2D.MipSlice = 0;
 
-      hr = device->GetReal()->CreateRenderTargetView(rtTex, &rtDesc, &rtv);
+      hr = device->CreateRenderTargetView(rtTex, &rtDesc, &rtv);
 
       if(FAILED(hr))
       {

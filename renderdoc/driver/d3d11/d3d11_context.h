@@ -303,6 +303,7 @@ public:
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   ResourceId GetResourceID() { return m_ResourceID; }
   ID3D11DeviceContext *GetReal() { return m_pRealContext; }
+  ID3D11DeviceContext1 *GetReal1() { return m_pRealContext1; }
   bool IsFL11_1();
 
   void ProcessChunk(uint64_t offset, D3D11ChunkType chunk, bool forceExecute);

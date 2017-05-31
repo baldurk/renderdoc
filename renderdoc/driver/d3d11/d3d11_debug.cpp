@@ -84,9 +84,12 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(D3D11DebugManager));
 
-  m_pDevice = wrapper->GetReal();
+  m_WrappedDevice = wrapper;
+  m_pDevice = wrapper;
   m_pDevice->GetImmediateContext(&m_pImmediateContext);
   m_ResourceManager = wrapper->GetResourceManager();
+
+  m_WrappedContext = wrapper->GetImmediateContext();
 
   m_HighlightCache.driver = wrapper->GetReplay();
 
@@ -97,11 +100,7 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 
   m_width = m_height = 1;
 
-  m_WrappedDevice = wrapper;
-  ID3D11DeviceContext *ctx = NULL;
-  m_WrappedDevice->GetImmediateContext(&ctx);
-  m_WrappedDevice->InternalRef();
-  m_WrappedContext = (WrappedID3D11DeviceContext *)ctx;
+  wrapper->InternalRef();
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.0f);
 
@@ -110,7 +109,7 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
   HRESULT hr = S_OK;
 
   IDXGIDevice *pDXGIDevice;
-  hr = m_WrappedDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
+  hr = m_pDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
 
   if(FAILED(hr))
   {
@@ -204,9 +203,8 @@ D3D11DebugManager::~D3D11DebugManager()
 
   m_PostVSData.clear();
 
-  SAFE_RELEASE(m_WrappedContext);
-  m_WrappedDevice->InternalRelease();
   SAFE_RELEASE(m_pImmediateContext);
+  m_WrappedDevice->InternalRelease();
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
@@ -463,7 +461,7 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
     case ShaderStage::Vertex:
     {
       ID3D11VertexShader *sh = NULL;
-      m_WrappedDevice->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
+      m_pDevice->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
 
       SAFE_RELEASE(blob);
 
@@ -476,7 +474,7 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
     case ShaderStage::Hull:
     {
       ID3D11HullShader *sh = NULL;
-      m_WrappedDevice->CreateHullShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
+      m_pDevice->CreateHullShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
 
       SAFE_RELEASE(blob);
 
@@ -489,7 +487,7 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
     case ShaderStage::Domain:
     {
       ID3D11DomainShader *sh = NULL;
-      m_WrappedDevice->CreateDomainShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
+      m_pDevice->CreateDomainShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
 
       SAFE_RELEASE(blob);
 
@@ -502,8 +500,7 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
     case ShaderStage::Geometry:
     {
       ID3D11GeometryShader *sh = NULL;
-      m_WrappedDevice->CreateGeometryShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL,
-                                            &sh);
+      m_pDevice->CreateGeometryShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
 
       SAFE_RELEASE(blob);
 
@@ -516,7 +513,7 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
     case ShaderStage::Pixel:
     {
       ID3D11PixelShader *sh = NULL;
-      m_WrappedDevice->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
+      m_pDevice->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
 
       SAFE_RELEASE(blob);
 
@@ -529,8 +526,7 @@ void D3D11DebugManager::BuildShader(string source, string entry, const uint32_t 
     case ShaderStage::Compute:
     {
       ID3D11ComputeShader *sh = NULL;
-      m_WrappedDevice->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL,
-                                           &sh);
+      m_pDevice->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), NULL, &sh);
 
       SAFE_RELEASE(blob);
 
@@ -1577,7 +1573,7 @@ uint64_t D3D11DebugManager::MakeOutputWindow(WindowingSystem system, void *data,
 
   HRESULT hr = S_OK;
 
-  hr = m_pFactory->CreateSwapChain(m_WrappedDevice, &swapDesc, &outw.swap);
+  hr = m_pFactory->CreateSwapChain(m_pDevice, &swapDesc, &outw.swap);
 
   if(FAILED(hr))
   {
@@ -1633,7 +1629,7 @@ bool D3D11DebugManager::CheckResizeOutputWindow(uint64_t id)
 
     D3D11RenderStateTracker tracker(m_WrappedContext);
 
-    m_WrappedContext->OMSetRenderTargets(0, 0, 0);
+    m_pImmediateContext->OMSetRenderTargets(0, 0, 0);
 
     if(outw.width > 0 && outw.height > 0)
     {
@@ -1676,7 +1672,7 @@ void D3D11DebugManager::ClearOutputWindowColor(uint64_t id, float col[4])
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
 
-  m_WrappedContext->ClearRenderTargetView(m_OutputWindows[id].rtv, col);
+  m_pImmediateContext->ClearRenderTargetView(m_OutputWindows[id].rtv, col);
 }
 
 void D3D11DebugManager::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
@@ -1685,7 +1681,7 @@ void D3D11DebugManager::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t
     return;
 
   if(m_OutputWindows[id].dsv)
-    m_WrappedContext->ClearDepthStencilView(
+    m_pImmediateContext->ClearDepthStencilView(
         m_OutputWindows[id].dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, depth, stencil);
 }
 
@@ -1700,12 +1696,12 @@ void D3D11DebugManager::BindOutputWindow(uint64_t id, bool depth)
   m_RealState.active = true;
   m_RealState.state.CopyState(*m_WrappedContext->GetCurrentPipelineState());
 
-  m_WrappedContext->OMSetRenderTargets(
+  m_pImmediateContext->OMSetRenderTargets(
       1, &m_OutputWindows[id].rtv, depth && m_OutputWindows[id].dsv ? m_OutputWindows[id].dsv : NULL);
 
   D3D11_VIEWPORT viewport = {
       0, 0, (float)m_OutputWindows[id].width, (float)m_OutputWindows[id].height, 0.0f, 1.0f};
-  m_WrappedContext->RSSetViewports(1, &viewport);
+  m_pImmediateContext->RSSetViewports(1, &viewport);
 
   SetOutputDimensions(m_OutputWindows[id].width, m_OutputWindows[id].height);
 }
@@ -1740,8 +1736,7 @@ void D3D11DebugManager::FlipOutputWindow(uint64_t id)
 
 uint32_t D3D11DebugManager::GetStructCount(ID3D11UnorderedAccessView *uav)
 {
-  m_pImmediateContext->CopyStructureCount(m_DebugRender.StageBuffer, 0,
-                                          UNWRAP(WrappedID3D11UnorderedAccessView1, uav));
+  m_pImmediateContext->CopyStructureCount(m_DebugRender.StageBuffer, 0, uav);
 
   D3D11_MAPPED_SUBRESOURCE mapped;
   HRESULT hr = m_pImmediateContext->Map(m_DebugRender.StageBuffer, 0, D3D11_MAP_READ, 0, &mapped);
@@ -1998,11 +1993,11 @@ void D3D11DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t
 
   RDCASSERT(buffer);
 
-  GetBufferData(buffer, offset, length, retData, true);
+  GetBufferData(buffer, offset, length, retData);
 }
 
 void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uint64_t length,
-                                      vector<byte> &ret, bool unwrap)
+                                      vector<byte> &ret)
 {
   D3D11_MAPPED_SUBRESOURCE mapped;
 
@@ -2046,8 +2041,6 @@ void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uin
   box.front = 0;
   box.back = 1;
 
-  ID3D11Buffer *src = unwrap ? UNWRAP(WrappedID3D11Buffer, buffer) : buffer;
-
   while(len > 0)
   {
     uint32_t chunkSize = RDCMIN(len, STAGE_BUFFER_BYTE_SIZE);
@@ -2061,7 +2054,8 @@ void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uin
     if(box.right - box.left == 0)
       break;
 
-    m_pImmediateContext->CopySubresourceRegion(m_DebugRender.StageBuffer, 0, 0, 0, 0, src, 0, &box);
+    m_pImmediateContext->CopySubresourceRegion(m_DebugRender.StageBuffer, 0, 0, 0, 0, buffer, 0,
+                                               &box);
 
     HRESULT hr = m_pImmediateContext->Map(m_DebugRender.StageBuffer, 0, D3D11_MAP_READ, 0, &mapped);
 
@@ -2084,6 +2078,9 @@ void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uin
 
 void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Texture2D *srcArray)
 {
+  // unlike CopyTex2DMSToArray we can use the wrapped context here, but for consistency
+  // we accept unwrapped parameters.
+
   D3D11RenderStateTracker tracker(m_WrappedContext);
 
   // copy to textures with right bind flags for operation
@@ -2132,7 +2129,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
     return;
   }
 
-  m_pImmediateContext->CopyResource(srvResource, srcArray);
+  m_WrappedContext->GetReal()->CopyResource(UNWRAP(WrappedID3D11Texture2D1, srvResource), srcArray);
 
   ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = {NULL};
   const UINT numUAVs =
@@ -2374,15 +2371,166 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
     SAFE_RELEASE(dsState);
   }
 
-  m_pImmediateContext->CopyResource(destMS, rtvResource);
+  m_WrappedContext->GetReal()->CopyResource(destMS, UNWRAP(WrappedID3D11Texture2D1, rtvResource));
 
   SAFE_RELEASE(rtvResource);
   SAFE_RELEASE(srvResource);
 }
 
+struct Tex2DMSToArrayStateTracker
+{
+  Tex2DMSToArrayStateTracker(WrappedID3D11DeviceContext *wrappedContext)
+  {
+    m_WrappedContext = wrappedContext;
+    D3D11RenderState *rs = wrappedContext->GetCurrentPipelineState();
+
+    // first copy the properties. We don't need to keep refs as the objects won't be deleted by
+    // being unbound and we won't do anything with them
+    Layout = rs->IA.Layout;
+    memcpy(&VS, &rs->VS, sizeof(VS));
+    memcpy(&PS, &rs->PS, sizeof(PS));
+
+    memcpy(CSUAVs, rs->CSUAVs, sizeof(CSUAVs));
+
+    memcpy(&RS, &rs->RS, sizeof(RS));
+    memcpy(&OM, &rs->OM, sizeof(OM));
+
+    RDCCOMPILE_ASSERT(sizeof(VS) == sizeof(rs->VS), "Struct sizes have changed, ensure full copy");
+    RDCCOMPILE_ASSERT(sizeof(RS) == sizeof(rs->RS), "Struct sizes have changed, ensure full copy");
+    RDCCOMPILE_ASSERT(sizeof(OM) == sizeof(rs->OM), "Struct sizes have changed, ensure full copy");
+
+    // now unwrap everything in place.
+    Layout = UNWRAP(WrappedID3D11InputLayout, Layout);
+    VS.Shader = UNWRAP(WrappedID3D11Shader<ID3D11VertexShader>, VS.Shader);
+    PS.Shader = UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, PS.Shader);
+
+    // only need to save/restore constant buffer 0
+    PS.ConstantBuffers[0] = UNWRAP(WrappedID3D11Buffer, PS.ConstantBuffers[0]);
+
+    // same for the first 8 SRVs
+    for(int i = 0; i < 8; i++)
+      PS.SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, PS.SRVs[i]);
+
+    for(int i = 0; i < D3D11_SHADER_MAX_INTERFACES; i++)
+    {
+      VS.Instances[i] = UNWRAP(WrappedID3D11ClassInstance, VS.Instances[i]);
+      PS.Instances[i] = UNWRAP(WrappedID3D11ClassInstance, PS.Instances[i]);
+    }
+
+    for(int i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
+      CSUAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView1, CSUAVs[i]);
+
+    RS.State = UNWRAP(WrappedID3D11RasterizerState2, RS.State);
+    OM.DepthStencilState = UNWRAP(WrappedID3D11DepthStencilState, OM.DepthStencilState);
+    OM.BlendState = UNWRAP(WrappedID3D11BlendState1, OM.BlendState);
+    OM.DepthView = UNWRAP(WrappedID3D11DepthStencilView, OM.DepthView);
+
+    for(int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+      OM.RenderTargets[i] = UNWRAP(WrappedID3D11RenderTargetView1, OM.RenderTargets[i]);
+
+    for(int i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
+      OM.UAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView1, OM.UAVs[i]);
+  }
+  ~Tex2DMSToArrayStateTracker()
+  {
+    ID3D11DeviceContext *context = m_WrappedContext->GetReal();
+    ID3D11DeviceContext1 *context1 = m_WrappedContext->GetReal1();
+
+    context->IASetInputLayout(Layout);
+    context->VSSetShader((ID3D11VertexShader *)VS.Shader, VS.Instances, VS.NumInstances);
+
+    context->PSSetShaderResources(0, 8, PS.SRVs);
+    context->PSSetShader((ID3D11PixelShader *)PS.Shader, PS.Instances, PS.NumInstances);
+
+    if(m_WrappedContext->IsFL11_1())
+      context1->PSSetConstantBuffers1(0, 1, PS.ConstantBuffers, PS.CBOffsets, PS.CBCounts);
+    else
+      context->PSSetConstantBuffers(0, 1, PS.ConstantBuffers);
+
+    UINT UAV_keepcounts[D3D11_1_UAV_SLOT_COUNT] = {(UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1,
+                                                   (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1};
+
+    if(m_WrappedContext->IsFL11_1())
+      context->CSSetUnorderedAccessViews(0, D3D11_1_UAV_SLOT_COUNT, CSUAVs, UAV_keepcounts);
+    else
+      context->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, CSUAVs, UAV_keepcounts);
+
+    context->RSSetState(RS.State);
+    context->RSSetViewports(RS.NumViews, RS.Viewports);
+
+    context->OMSetBlendState(OM.BlendState, OM.BlendFactor, OM.SampleMask);
+    context->OMSetDepthStencilState(OM.DepthStencilState, OM.StencRef);
+
+    if(m_WrappedContext->IsFL11_1())
+      context->OMSetRenderTargetsAndUnorderedAccessViews(
+          OM.UAVStartSlot, OM.RenderTargets, OM.DepthView, OM.UAVStartSlot,
+          D3D11_1_UAV_SLOT_COUNT - OM.UAVStartSlot, OM.UAVs, UAV_keepcounts);
+    else
+      context->OMSetRenderTargetsAndUnorderedAccessViews(
+          OM.UAVStartSlot, OM.RenderTargets, OM.DepthView, OM.UAVStartSlot,
+          D3D11_PS_CS_UAV_REGISTER_COUNT - OM.UAVStartSlot, OM.UAVs, UAV_keepcounts);
+  }
+
+  WrappedID3D11DeviceContext *m_WrappedContext;
+
+  ID3D11InputLayout *Layout;
+
+  struct shader
+  {
+    ID3D11DeviceChild *Shader;
+    ID3D11Buffer *ConstantBuffers[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
+    UINT CBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
+    UINT CBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
+    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
+    ID3D11SamplerState *Samplers[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
+    ID3D11ClassInstance *Instances[D3D11_SHADER_MAX_INTERFACES];
+    UINT NumInstances;
+
+    bool Used_CB(uint32_t slot) const;
+    bool Used_SRV(uint32_t slot) const;
+    bool Used_UAV(uint32_t slot) const;
+  } VS, PS;
+
+  ID3D11UnorderedAccessView *CSUAVs[D3D11_1_UAV_SLOT_COUNT];
+
+  struct rasterizer
+  {
+    UINT NumViews, NumScissors;
+    D3D11_VIEWPORT Viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+    D3D11_RECT Scissors[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+    ID3D11RasterizerState *State;
+  } RS;
+
+  struct outmerger
+  {
+    ID3D11DepthStencilState *DepthStencilState;
+    UINT StencRef;
+
+    ID3D11BlendState *BlendState;
+    FLOAT BlendFactor[4];
+    UINT SampleMask;
+
+    ID3D11DepthStencilView *DepthView;
+
+    ID3D11RenderTargetView *RenderTargets[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
+
+    UINT UAVStartSlot;
+    ID3D11UnorderedAccessView *UAVs[D3D11_1_UAV_SLOT_COUNT];
+  } OM;
+};
+
 void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Texture2D *srcMS)
 {
-  D3D11RenderStateTracker tracker(m_WrappedContext);
+  // we have to use exclusively the unwrapped context here as this might be happening during
+  // capture and we don't want to serialise any of this work, and the parameters might not exist
+  // as wrapped objects for that reason
+
+  // use the wrapped context's state tracked to avoid needing our own tracking, just restore it to
+  // the unwrapped context
+  Tex2DMSToArrayStateTracker tracker(m_WrappedContext);
+
+  ID3D11Device *dev = m_WrappedDevice->GetReal();
+  ID3D11DeviceContext *ctx = m_WrappedContext->GetReal();
 
   // copy to textures with right bind flags for operation
   D3D11_TEXTURE2D_DESC descMS;
@@ -2416,21 +2564,21 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 
   HRESULT hr = S_OK;
 
-  hr = m_pDevice->CreateTexture2D(&rtvResDesc, NULL, &rtvResource);
+  hr = dev->CreateTexture2D(&rtvResDesc, NULL, &rtvResource);
   if(FAILED(hr))
   {
     RDCERR("0x%08x", hr);
     return;
   }
 
-  hr = m_pDevice->CreateTexture2D(&srvResDesc, NULL, &srvResource);
+  hr = dev->CreateTexture2D(&srvResDesc, NULL, &srvResource);
   if(FAILED(hr))
   {
     RDCERR("0x%08x", hr);
     return;
   }
 
-  m_pImmediateContext->CopyResource(srvResource, srcMS);
+  ctx->CopyResource(srvResource, srcMS);
 
   ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = {NULL};
   UINT uavCounts[D3D11_1_UAV_SLOT_COUNT];
@@ -2438,20 +2586,23 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   const UINT numUAVs =
       m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 
-  m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, uavCounts);
+  ctx->CSSetUnorderedAccessViews(0, numUAVs, uavs, uavCounts);
 
-  m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
-  m_pImmediateContext->PSSetShader(
-      depth ? m_DebugRender.DepthCopyMSToArrayPS : m_DebugRender.CopyMSToArrayPS, NULL, 0);
+  ctx->VSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11VertexShader>, m_DebugRender.FullscreenVS),
+                   NULL, 0);
+  ctx->PSSetShader(
+      depth ? UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, m_DebugRender.DepthCopyMSToArrayPS)
+            : UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, m_DebugRender.CopyMSToArrayPS),
+      NULL, 0);
 
   D3D11_VIEWPORT view = {0.0f, 0.0f, (float)descArr.Width, (float)descArr.Height, 0.0f, 1.0f};
 
-  m_pImmediateContext->RSSetState(m_DebugRender.RastState);
-  m_pImmediateContext->RSSetViewports(1, &view);
+  ctx->RSSetState(UNWRAP(WrappedID3D11RasterizerState2, m_DebugRender.RastState));
+  ctx->RSSetViewports(1, &view);
 
-  m_pImmediateContext->IASetInputLayout(NULL);
+  ctx->IASetInputLayout(NULL);
   float blendFactor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-  m_pImmediateContext->OMSetBlendState(NULL, blendFactor, ~0U);
+  ctx->OMSetBlendState(NULL, blendFactor, ~0U);
 
   if(depth)
   {
@@ -2472,13 +2623,14 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
     dsDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
     dsDesc.StencilReadMask = dsDesc.StencilWriteMask = 0xff;
 
-    m_pDevice->CreateDepthStencilState(&dsDesc, &dsState);
-    m_pImmediateContext->OMSetDepthStencilState(dsState, 0);
+    dev->CreateDepthStencilState(&dsDesc, &dsState);
+    ctx->OMSetDepthStencilState(dsState, 0);
     SAFE_RELEASE(dsState);
   }
   else
   {
-    m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, 0);
+    ctx->OMSetDepthStencilState(
+        UNWRAP(WrappedID3D11DepthStencilState, m_DebugRender.AllPassDepthState), 0);
   }
 
   ID3D11RenderTargetView *rtvArray = NULL;
@@ -2542,7 +2694,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
     }
   }
 
-  hr = m_pDevice->CreateShaderResourceView(srvResource, &srvDesc, &srvMS);
+  hr = dev->CreateShaderResourceView(srvResource, &srvDesc, &srvMS);
   if(FAILED(hr))
   {
     RDCERR("0x%08x", hr);
@@ -2559,7 +2711,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 
   srvs[srvIndex] = srvMS;
 
-  m_pImmediateContext->PSSetShaderResources(0, 8, srvs);
+  ctx->PSSetShaderResources(0, 8, srvs);
 
   // loop over every array slice in MS texture
   for(UINT slice = 0; slice < descMS.ArraySize; slice++)
@@ -2569,17 +2721,17 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
     {
       uint32_t cdata[4] = {descMS.SampleDesc.Count, 1000, sample, slice};
 
-      ID3D11Buffer *cbuf = MakeCBuffer(cdata, sizeof(cdata));
+      ID3D11Buffer *cbuf = UNWRAP(WrappedID3D11Buffer, MakeCBuffer(cdata, sizeof(cdata)));
 
-      m_pImmediateContext->PSSetConstantBuffers(0, 1, &cbuf);
+      ctx->PSSetConstantBuffers(0, 1, &cbuf);
 
       rtvDesc.Texture2DArray.FirstArraySlice = slice * descMS.SampleDesc.Count + sample;
       dsvDesc.Texture2DArray.FirstArraySlice = slice * descMS.SampleDesc.Count + sample;
 
       if(depth)
-        hr = m_pDevice->CreateDepthStencilView(rtvResource, &dsvDesc, &dsvArray);
+        hr = dev->CreateDepthStencilView(rtvResource, &dsvDesc, &dsvArray);
       else
-        hr = m_pDevice->CreateRenderTargetView(rtvResource, &rtvDesc, &rtvArray);
+        hr = dev->CreateRenderTargetView(rtvResource, &rtvDesc, &rtvArray);
 
       if(FAILED(hr))
       {
@@ -2590,13 +2742,11 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
       }
 
       if(depth)
-        m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, dsvArray, 0, 0,
-                                                                       NULL, NULL);
+        ctx->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, dsvArray, 0, 0, NULL, NULL);
       else
-        m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(1, &rtvArray, NULL, 0, 0,
-                                                                       NULL, NULL);
+        ctx->OMSetRenderTargetsAndUnorderedAccessViews(1, &rtvArray, NULL, 0, 0, NULL, NULL);
 
-      m_pImmediateContext->Draw(3, 0);
+      ctx->Draw(3, 0);
 
       SAFE_RELEASE(rtvArray);
       SAFE_RELEASE(dsvArray);
@@ -2609,14 +2759,14 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   {
     srvDesc.Format = stencilFormat;
 
-    hr = m_pDevice->CreateShaderResourceView(srvResource, &srvDesc, &srvMS);
+    hr = dev->CreateShaderResourceView(srvResource, &srvDesc, &srvMS);
     if(FAILED(hr))
     {
       RDCERR("0x%08x", hr);
       return;
     }
 
-    m_pImmediateContext->PSSetShaderResources(10 + srvIndex, 1, &srvMS);
+    ctx->PSSetShaderResources(10 + srvIndex, 1, &srvMS);
 
     D3D11_DEPTH_STENCIL_DESC dsDesc;
     ID3D11DepthStencilState *dsState = NULL;
@@ -2638,7 +2788,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
     dsvDesc.Flags = D3D11_DSV_READ_ONLY_DEPTH;
     dsvDesc.Texture2DArray.ArraySize = 1;
 
-    m_pDevice->CreateDepthStencilState(&dsDesc, &dsState);
+    dev->CreateDepthStencilState(&dsDesc, &dsState);
 
     // loop over every array slice in MS texture
     for(UINT slice = 0; slice < descMS.ArraySize; slice++)
@@ -2648,7 +2798,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
       {
         dsvDesc.Texture2DArray.FirstArraySlice = slice * descMS.SampleDesc.Count + sample;
 
-        hr = m_pDevice->CreateDepthStencilView(rtvResource, &dsvDesc, &dsvArray);
+        hr = dev->CreateDepthStencilView(rtvResource, &dsvDesc, &dsvArray);
         if(FAILED(hr))
         {
           SAFE_RELEASE(dsState);
@@ -2657,21 +2807,20 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
           return;
         }
 
-        m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, dsvArray, 0, 0,
-                                                                       NULL, NULL);
+        ctx->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, dsvArray, 0, 0, NULL, NULL);
 
         // loop over every stencil value (zzzzzz, no shader stencil read/write)
         for(UINT stencilval = 0; stencilval < 256; stencilval++)
         {
           uint32_t cdata[4] = {descMS.SampleDesc.Count, stencilval, sample, slice};
 
-          ID3D11Buffer *cbuf = MakeCBuffer(cdata, sizeof(cdata));
+          ID3D11Buffer *cbuf = UNWRAP(WrappedID3D11Buffer, MakeCBuffer(cdata, sizeof(cdata)));
 
-          m_pImmediateContext->PSSetConstantBuffers(0, 1, &cbuf);
+          ctx->PSSetConstantBuffers(0, 1, &cbuf);
 
-          m_pImmediateContext->OMSetDepthStencilState(dsState, stencilval);
+          ctx->OMSetDepthStencilState(dsState, stencilval);
 
-          m_pImmediateContext->Draw(3, 0);
+          ctx->Draw(3, 0);
         }
 
         SAFE_RELEASE(dsvArray);
@@ -2682,7 +2831,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
     SAFE_RELEASE(srvMS);
   }
 
-  m_pImmediateContext->CopyResource(destArray, rtvResource);
+  ctx->CopyResource(destArray, rtvResource);
 
   SAFE_RELEASE(rtvResource);
   SAFE_RELEASE(srvResource);
@@ -2748,7 +2897,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 
     srvFormat = GetTypedFormat(details.texFmt, typeHint);
 
-    details.srvResource = wrapTex1D->GetReal();
+    details.srvResource = wrapTex1D;
 
     if(mode == TEXDISPLAY_INDIRECT_VIEW || mode == TEXDISPLAY_DEPTH_TARGET)
     {
@@ -2837,7 +2986,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 
     srvFormat = GetTypedFormat(details.texFmt, typeHint);
 
-    details.srvResource = wrapTex2D->GetReal();
+    details.srvResource = wrapTex2D;
 
     if(mode == TEXDISPLAY_INDIRECT_VIEW || mode == TEXDISPLAY_DEPTH_TARGET ||
        desc2d.SampleDesc.Count > 1 || desc2d.SampleDesc.Quality > 0)
@@ -2904,7 +3053,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 
     srvFormat = GetTypedFormat(details.texFmt, typeHint);
 
-    details.srvResource = wrapTex3D->GetReal();
+    details.srvResource = wrapTex3D;
 
     if(mode == TEXDISPLAY_INDIRECT_VIEW)
     {
@@ -3297,7 +3446,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
             (WrappedID3D11Shader<ID3D11PixelShader> *)m_WrappedDevice->GetResourceManager()
                 ->GetLiveResource(cfg.CustomShader);
 
-        customPS = wrapped->GetReal();
+        customPS = wrapped;
 
         for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
         {
@@ -3727,8 +3876,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
   D3D11_PRIMITIVE_TOPOLOGY topo;
   m_pImmediateContext->IAGetPrimitiveTopology(&topo);
 
-  WrappedID3D11Shader<ID3D11VertexShader> *wrappedVS =
-      (WrappedID3D11Shader<ID3D11VertexShader> *)m_WrappedDevice->GetResourceManager()->GetWrapper(vs);
+  WrappedID3D11Shader<ID3D11VertexShader> *wrappedVS = (WrappedID3D11Shader<ID3D11VertexShader> *)vs;
 
   if(!wrappedVS)
   {
@@ -3750,8 +3898,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
   if(gs)
   {
     WrappedID3D11Shader<ID3D11GeometryShader> *wrappedGS =
-        (WrappedID3D11Shader<ID3D11GeometryShader> *)m_WrappedDevice->GetResourceManager()->GetWrapper(
-            gs);
+        (WrappedID3D11Shader<ID3D11GeometryShader> *)gs;
 
     if(!wrappedGS)
     {
@@ -3769,8 +3916,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
   if(ds)
   {
     WrappedID3D11Shader<ID3D11DomainShader> *wrappedDS =
-        (WrappedID3D11Shader<ID3D11DomainShader> *)m_WrappedDevice->GetResourceManager()->GetWrapper(
-            ds);
+        (WrappedID3D11Shader<ID3D11DomainShader> *)ds;
 
     if(!wrappedDS)
     {
@@ -3847,7 +3993,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
     DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
     UINT idxOffs = 0;
 
-    m_WrappedContext->IAGetIndexBuffer(&idxBuf, &idxFmt, &idxOffs);
+    m_pImmediateContext->IAGetIndexBuffer(&idxBuf, &idxFmt, &idxOffs);
 
     ID3D11Buffer *origBuf = idxBuf;
 
@@ -3889,7 +4035,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
       vector<byte> idxdata;
       GetBufferData(idxBuf, idxOffs + drawcall->indexOffset * bytesize,
-                    drawcall->numIndices * bytesize, idxdata, true);
+                    drawcall->numIndices * bytesize, idxdata);
 
       SAFE_RELEASE(idxBuf);
 
@@ -4023,13 +4169,13 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
       initData.SysMemPitch = initData.SysMemSlicePitch = desc.ByteWidth;
 
       if(desc.ByteWidth > 0)
-        m_WrappedDevice->CreateBuffer(&desc, &initData, &idxBuf);
+        m_pDevice->CreateBuffer(&desc, &initData, &idxBuf);
       else
         idxBuf = NULL;
     }
 
     m_pImmediateContext->IASetPrimitiveTopology(topo);
-    m_pImmediateContext->IASetIndexBuffer(UNWRAP(WrappedID3D11Buffer, origBuf), idxFmt, idxOffs);
+    m_pImmediateContext->IASetIndexBuffer(origBuf, idxFmt, idxOffs);
 
     m_pImmediateContext->GSSetShader(NULL, NULL, 0);
     m_pImmediateContext->SOSetTargets(0, NULL, NULL);
@@ -4077,7 +4223,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
     initialData.SysMemPitch = bufferDesc.ByteWidth;
     initialData.SysMemSlicePitch = bufferDesc.ByteWidth;
 
-    hr = m_WrappedDevice->CreateBuffer(&bufferDesc, &initialData, &vsoutBuffer);
+    hr = m_pDevice->CreateBuffer(&bufferDesc, &initialData, &vsoutBuffer);
 
     if(FAILED(hr))
     {
@@ -4445,7 +4591,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
     initialData.SysMemPitch = bufferDesc.ByteWidth;
     initialData.SysMemSlicePitch = bufferDesc.ByteWidth;
 
-    hr = m_WrappedDevice->CreateBuffer(&bufferDesc, &initialData, &gsoutBuffer);
+    hr = m_pDevice->CreateBuffer(&bufferDesc, &initialData, &gsoutBuffer);
 
     if(FAILED(hr))
     {
@@ -4766,7 +4912,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
           auto it = WrappedID3D11Buffer::m_BufferList.find(fmt.buf);
 
-          ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+          ID3D11Buffer *buf = it->second.m_Buffer;
           m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&fmt.stride,
                                                   (UINT *)&fmt.offset);
           if(fmt.idxbuf != ResourceId())
@@ -4774,7 +4920,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
             RDCASSERT(fmt.idxoffs < 0xffffffff);
 
             it = WrappedID3D11Buffer::m_BufferList.find(fmt.idxbuf);
-            buf = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+            buf = it->second.m_Buffer;
             m_pImmediateContext->IASetIndexBuffer(
                 buf, fmt.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT,
                 (UINT)fmt.idxoffs);
@@ -4809,17 +4955,17 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       auto it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.buf);
 
       if(it != WrappedID3D11Buffer::m_BufferList.end())
-        vbs[0] = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+        vbs[0] = it->second.m_Buffer;
 
       it = WrappedID3D11Buffer::m_BufferList.find(cfg.second.buf);
 
       if(it != WrappedID3D11Buffer::m_BufferList.end())
-        vbs[1] = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+        vbs[1] = it->second.m_Buffer;
 
       it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.idxbuf);
 
       if(it != WrappedID3D11Buffer::m_BufferList.end())
-        ibuf = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+        ibuf = it->second.m_Buffer;
 
       if(cfg.position.idxByteWidth == 4)
         ifmt = DXGI_FORMAT_R32_UINT;

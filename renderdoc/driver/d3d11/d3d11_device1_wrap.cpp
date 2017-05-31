@@ -89,9 +89,19 @@ bool WrappedID3D11Device::Serialise_CreateBlendState1(const D3D11_BLEND_DESC1 *p
     }
     else
     {
-      ret = new WrappedID3D11BlendState1(ret, this);
+      if(GetResourceManager()->HasWrapper(ret))
+      {
+        ret = (ID3D11BlendState1 *)GetResourceManager()->GetWrapper(ret);
+        ret->AddRef();
 
-      GetResourceManager()->AddLiveResource(State, ret);
+        GetResourceManager()->AddLiveResource(State, ret);
+      }
+      else
+      {
+        ret = new WrappedID3D11BlendState1(ret, this);
+
+        GetResourceManager()->AddLiveResource(State, ret);
+      }
     }
   }
 
@@ -169,9 +179,19 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState1(
     }
     else
     {
-      ret = new WrappedID3D11RasterizerState2(ret, this);
+      if(GetResourceManager()->HasWrapper(ret))
+      {
+        ret = (ID3D11RasterizerState1 *)GetResourceManager()->GetWrapper(ret);
+        ret->AddRef();
 
-      GetResourceManager()->AddLiveResource(State, ret);
+        GetResourceManager()->AddLiveResource(State, ret);
+      }
+      else
+      {
+        ret = new WrappedID3D11RasterizerState2(ret, this);
+
+        GetResourceManager()->AddLiveResource(State, ret);
+      }
     }
   }
 

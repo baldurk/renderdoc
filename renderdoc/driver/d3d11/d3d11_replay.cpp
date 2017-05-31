@@ -369,7 +369,13 @@ vector<ResourceId> D3D11Replay::GetBuffers()
 
   for(auto it = WrappedID3D11Buffer::m_BufferList.begin();
       it != WrappedID3D11Buffer::m_BufferList.end(); ++it)
+  {
+    // skip buffers that aren't from the log
+    if(m_pDevice->GetResourceManager()->GetOriginalID(it->first) == it->first)
+      continue;
+
     ret.push_back(it->first);
+  }
 
   return ret;
 }
@@ -426,15 +432,33 @@ vector<ResourceId> D3D11Replay::GetTextures()
 
   for(auto it = WrappedID3D11Texture1D::m_TextureList.begin();
       it != WrappedID3D11Texture1D::m_TextureList.end(); ++it)
+  {
+    // skip textures that aren't from the log
+    if(m_pDevice->GetResourceManager()->GetOriginalID(it->first) == it->first)
+      continue;
+
     ret.push_back(it->first);
+  }
 
   for(auto it = WrappedID3D11Texture2D1::m_TextureList.begin();
       it != WrappedID3D11Texture2D1::m_TextureList.end(); ++it)
+  {
+    // skip textures that aren't from the log
+    if(m_pDevice->GetResourceManager()->GetOriginalID(it->first) == it->first)
+      continue;
+
     ret.push_back(it->first);
+  }
 
   for(auto it = WrappedID3D11Texture3D1::m_TextureList.begin();
       it != WrappedID3D11Texture3D1::m_TextureList.end(); ++it)
+  {
+    // skip textures that aren't from the log
+    if(m_pDevice->GetResourceManager()->GetOriginalID(it->first) == it->first)
+      continue;
+
     ret.push_back(it->first);
+  }
 
   return ret;
 }

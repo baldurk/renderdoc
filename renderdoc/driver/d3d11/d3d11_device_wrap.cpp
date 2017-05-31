@@ -2077,9 +2077,19 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilState(
     }
     else
     {
-      ret = new WrappedID3D11DepthStencilState(ret, this);
+      if(GetResourceManager()->HasWrapper(ret))
+      {
+        ret = (ID3D11DepthStencilState *)GetResourceManager()->GetWrapper(ret);
+        ret->AddRef();
 
-      GetResourceManager()->AddLiveResource(State, ret);
+        GetResourceManager()->AddLiveResource(State, ret);
+      }
+      else
+      {
+        ret = new WrappedID3D11DepthStencilState(ret, this);
+
+        GetResourceManager()->AddLiveResource(State, ret);
+      }
     }
   }
 
@@ -2151,9 +2161,19 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState(const D3D11_RASTERIZER
     }
     else
     {
-      ret = new WrappedID3D11RasterizerState2(ret, this);
+      if(GetResourceManager()->HasWrapper(ret))
+      {
+        ret = (ID3D11RasterizerState *)GetResourceManager()->GetWrapper(ret);
+        ret->AddRef();
 
-      GetResourceManager()->AddLiveResource(State, ret);
+        GetResourceManager()->AddLiveResource(State, ret);
+      }
+      else
+      {
+        ret = new WrappedID3D11RasterizerState2(ret, this);
+
+        GetResourceManager()->AddLiveResource(State, ret);
+      }
     }
   }
 
@@ -2225,9 +2245,19 @@ bool WrappedID3D11Device::Serialise_CreateSamplerState(const D3D11_SAMPLER_DESC 
     }
     else
     {
-      ret = new WrappedID3D11SamplerState(ret, this);
+      if(GetResourceManager()->HasWrapper(ret))
+      {
+        ret = (ID3D11SamplerState *)GetResourceManager()->GetWrapper(ret);
+        ret->AddRef();
 
-      GetResourceManager()->AddLiveResource(State, ret);
+        GetResourceManager()->AddLiveResource(State, ret);
+      }
+      else
+      {
+        ret = new WrappedID3D11SamplerState(ret, this);
+
+        GetResourceManager()->AddLiveResource(State, ret);
+      }
     }
   }
 
