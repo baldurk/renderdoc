@@ -433,7 +433,7 @@ public:
 
         // pad these columns to allow for sufficiently wide data
         if(index.column() < reservedColumnCount())
-          opt.text = lit("999999");
+          opt.text = lit("9999999");
         else
           opt.text = data(index).toString();
 
