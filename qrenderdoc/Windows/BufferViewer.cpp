@@ -3165,6 +3165,8 @@ void BufferViewer::on_controlType_currentIndexChanged(int index)
   if(index == 0)
   {
     m_CurrentCamera = m_Arcball;
+
+    resetArcball();
   }
   else
   {
