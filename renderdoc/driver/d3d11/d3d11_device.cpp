@@ -525,6 +525,11 @@ WrappedID3D11Device::~WrappedID3D11Device()
 
   SAFE_DELETE(m_pSerialiser);
 
+  RDCASSERT(WrappedID3D11Buffer::m_BufferList.empty());
+  RDCASSERT(WrappedID3D11Texture1D::m_TextureList.empty());
+  RDCASSERT(WrappedID3D11Texture2D1::m_TextureList.empty());
+  RDCASSERT(WrappedID3D11Texture3D1::m_TextureList.empty());
+
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
 }
