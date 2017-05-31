@@ -3855,6 +3855,8 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
     {
       m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
+      SAFE_RELEASE(idxBuf);
+
       uint32_t outputSize = stride * drawcall->numIndices;
       if(drawcall->flags & DrawFlags::Instanced)
         outputSize *= drawcall->numInstances;
