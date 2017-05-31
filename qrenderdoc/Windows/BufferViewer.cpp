@@ -1829,7 +1829,8 @@ void BufferViewer::resetArcball()
 
   {
     QMutexLocker autolock(&m_BBoxLock);
-    bbox = m_BBoxes[m_Ctx.CurEvent()];
+    if(m_BBoxes.contains(m_Ctx.CurEvent()))
+      bbox = m_BBoxes[m_Ctx.CurEvent()];
   }
 
   BufferItemModel *model = currentBufferModel();
@@ -3221,7 +3222,8 @@ void BufferViewer::on_autofitCamera_clicked()
 
   {
     QMutexLocker autolock(&m_BBoxLock);
-    bbox = m_BBoxes[m_Ctx.CurEvent()];
+    if(m_BBoxes.contains(m_Ctx.CurEvent()))
+      bbox = m_BBoxes[m_Ctx.CurEvent()];
   }
 
   BufferItemModel *model = NULL;
