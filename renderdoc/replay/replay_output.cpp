@@ -794,7 +794,7 @@ void ReplayOutput::DisplayMesh()
 
       if(d)
       {
-        for(uint32_t inst = 0; inst < RDCMAX(1U, draw->numInstances); inst++)
+        for(uint32_t inst = 0; inst < RDCMAX(1U, d->numInstances); inst++)
         {
           // get the 'most final' stage
           MeshFormat fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, MeshDataStage::GSOut);
