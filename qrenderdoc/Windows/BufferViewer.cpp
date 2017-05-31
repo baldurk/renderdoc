@@ -2329,7 +2329,14 @@ void BufferViewer::UpdateMeshConfig()
 
   m_Config.showBBox = false;
 
-  if(model)
+  bool nonRasterizedOutput = false;
+
+  if(stage == 0)
+    nonRasterizedOutput = true;
+  else if(stage == 1 && m_Ctx.CurPipelineState().IsTessellationEnabled())
+    nonRasterizedOutput = true;
+
+  if(model && nonRasterizedOutput)
   {
     int posEl = model->posColumn();
     if(posEl >= 0 && posEl < model->columns.count() && posEl < bbox.bounds[stage].Min.count())
