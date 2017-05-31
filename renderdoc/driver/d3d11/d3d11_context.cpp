@@ -206,6 +206,8 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
   SAFE_RELEASE(m_pRealContext2);
   SAFE_RELEASE(m_pRealContext3);
 
+  SAFE_DELETE(m_DeferredSavedState);
+
   SAFE_DELETE(m_CurrentPipelineState);
   SAFE_RELEASE(m_pRealContext);
 
