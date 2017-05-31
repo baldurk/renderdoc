@@ -720,6 +720,10 @@ __attribute__((visibility("default"))) __GLXextFuncPtr glXGetProcAddress(const G
     return (__GLXextFuncPtr)&glXSwapBuffers;
   if(!strcmp(func, "glXQueryExtension"))
     return (__GLXextFuncPtr)&glXQueryExtension;
+  if(!strcmp(func, "glXGetProcAddress"))
+    return (__GLXextFuncPtr)&glXGetProcAddress;
+  if(!strcmp(func, "glXGetProcAddressARB"))
+    return (__GLXextFuncPtr)&glXGetProcAddressARB;
   if(!strncmp(func, "glX", 3))
     return realFunc;
 
