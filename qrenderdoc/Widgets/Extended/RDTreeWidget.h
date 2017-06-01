@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <QTreeView>
+#include "RDTreeView.h"
 
 class RDTreeWidget;
 class RDTreeWidgetModel;
@@ -145,7 +145,7 @@ private:
   QVariant m_tag;
 };
 
-class RDTreeWidget : public QTreeView
+class RDTreeWidget : public RDTreeView
 {
   Q_OBJECT
 

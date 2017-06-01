@@ -409,7 +409,7 @@ void RDTreeWidgetItem::clear()
   if(m_widget)
     m_widget->m_model->endRemoveChildren();
 }
-RDTreeWidget::RDTreeWidget(QWidget *parent) : QTreeView(parent)
+RDTreeWidget::RDTreeWidget(QWidget *parent) : RDTreeView(parent)
 {
   setMouseTracking(true);
 
@@ -417,7 +417,7 @@ RDTreeWidget::RDTreeWidget(QWidget *parent) : QTreeView(parent)
   m_root->m_widget = this;
 
   m_model = new RDTreeWidgetModel(this);
-  QTreeView::setModel(m_model);
+  RDTreeView::setModel(m_model);
 
   QObject::connect(this, &RDTreeWidget::activated, [this](const QModelIndex &idx) {
     emit itemActivated(m_model->itemForIndex(idx), idx.column());
@@ -599,7 +599,7 @@ void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
 
   emit mouseMove(e);
 
-  QTreeView::mouseMoveEvent(e);
+  RDTreeView::mouseMoveEvent(e);
 }
 
 void RDTreeWidget::mouseReleaseEvent(QMouseEvent *e)
@@ -611,7 +611,7 @@ void RDTreeWidget::mouseReleaseEvent(QMouseEvent *e)
     emit itemActivated(itemAt(e->pos()), idx.column());
   }
 
-  QTreeView::mouseReleaseEvent(e);
+  RDTreeView::mouseReleaseEvent(e);
 }
 
 void RDTreeWidget::leaveEvent(QEvent *e)
@@ -629,7 +629,7 @@ void RDTreeWidget::leaveEvent(QEvent *e)
 
   emit leave(e);
 
-  QTreeView::leaveEvent(e);
+  RDTreeView::leaveEvent(e);
 }
 
 void RDTreeWidget::focusOutEvent(QFocusEvent *event)
@@ -637,7 +637,7 @@ void RDTreeWidget::focusOutEvent(QFocusEvent *event)
   if(m_clearSelectionOnFocusLoss)
     clearSelection();
 
-  QTreeView::focusOutEvent(event);
+  RDTreeView::focusOutEvent(event);
 }
 
 void RDTreeWidget::keyPressEvent(QKeyEvent *e)
@@ -693,7 +693,7 @@ void RDTreeWidget::keyPressEvent(QKeyEvent *e)
   }
   else
   {
-    QTreeView::keyPressEvent(e);
+    RDTreeView::keyPressEvent(e);
   }
 
   emit(keyPress(e));
@@ -796,21 +796,21 @@ void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QMod
 
   painter->restore();
 
-  QTreeView::drawBranches(painter, rect, index);
+  RDTreeView::drawBranches(painter, rect, index);
 }
 
 void RDTreeWidget::selectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
 {
   emit itemSelectionChanged();
 
-  QTreeView::selectionChanged(selected, deselected);
+  RDTreeView::selectionChanged(selected, deselected);
 }
 
 void RDTreeWidget::currentChanged(const QModelIndex &current, const QModelIndex &previous)
 {
   emit currentItemChanged(m_model->itemForIndex(current), m_model->itemForIndex(previous));
 
-  QTreeView::currentChanged(current, previous);
+  RDTreeView::currentChanged(current, previous);
 }
 
 void RDTreeWidget::itemDataChanged(RDTreeWidgetItem *item, int role)
