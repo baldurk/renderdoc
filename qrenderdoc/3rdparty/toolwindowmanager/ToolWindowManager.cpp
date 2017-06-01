@@ -277,8 +277,10 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
       parentSplitter->insertWidget(insertIndex, newArea);
 
       if(parentSplitterSizes.count() > indexInParentSplitter && parentSplitterSizes[0] != 0) {
-        parentSplitterSizes[indexInParentSplitter] /= 2;
-        parentSplitterSizes.insert(indexInParentSplitter, parentSplitterSizes[indexInParentSplitter]);
+        int availSize = parentSplitterSizes[indexInParentSplitter];
+
+        parentSplitterSizes[indexInParentSplitter] = int(availSize * (1.0f - area.percentage()));
+        parentSplitterSizes.insert(indexInParentSplitter, int(availSize * area.percentage()));
 
         parentSplitter->setSizes(parentSplitterSizes);
       }
