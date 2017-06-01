@@ -158,10 +158,10 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     QObject::connect(ubo, &RDTreeWidget::itemActivated, this,
                      &VulkanPipelineStateViewer::ubo_itemActivated);
 
-  addGridLines(ui->rasterizerGridLayout);
-  addGridLines(ui->MSAAGridLayout);
-  addGridLines(ui->blendStateGridLayout);
-  addGridLines(ui->depthStateGridLayout);
+  addGridLines(ui->rasterizerGridLayout, palette().color(QPalette::WindowText));
+  addGridLines(ui->MSAAGridLayout, palette().color(QPalette::WindowText));
+  addGridLines(ui->blendStateGridLayout, palette().color(QPalette::WindowText));
+  addGridLines(ui->depthStateGridLayout, palette().color(QPalette::WindowText));
 
   {
     ui->viAttrs->setColumns({tr("Index"), tr("Name"), tr("Location"), tr("Binding"), tr("Format"),

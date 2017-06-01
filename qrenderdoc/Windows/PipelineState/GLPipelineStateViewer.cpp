@@ -158,10 +158,10 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     QObject::connect(res, &RDTreeWidget::itemActivated, this,
                      &GLPipelineStateViewer::resource_itemActivated);
 
-  addGridLines(ui->rasterizerGridLayout);
-  addGridLines(ui->MSAAGridLayout);
-  addGridLines(ui->blendStateGridLayout);
-  addGridLines(ui->depthStateGridLayout);
+  addGridLines(ui->rasterizerGridLayout, palette().color(QPalette::WindowText));
+  addGridLines(ui->MSAAGridLayout, palette().color(QPalette::WindowText));
+  addGridLines(ui->blendStateGridLayout, palette().color(QPalette::WindowText));
+  addGridLines(ui->depthStateGridLayout, palette().color(QPalette::WindowText));
 
   {
     ui->viAttrs->setColumns({tr("Index"), tr("Enabled"), tr("Name"), tr("Format/Generic Value"),

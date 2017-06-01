@@ -872,7 +872,7 @@ struct RDDialog
 
 class QGridLayout;
 
-void addGridLines(QGridLayout *grid);
+void addGridLines(QGridLayout *grid, QColor gridColor);
 
 class QProgressDialog;
 

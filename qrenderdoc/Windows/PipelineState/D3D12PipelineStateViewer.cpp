@@ -181,9 +181,9 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     QObject::connect(cbuffer, &RDTreeWidget::itemActivated, this,
                      &D3D12PipelineStateViewer::cbuffer_itemActivated);
 
-  addGridLines(ui->rasterizerGridLayout);
-  addGridLines(ui->blendStateGridLayout);
-  addGridLines(ui->depthStateGridLayout);
+  addGridLines(ui->rasterizerGridLayout, palette().color(QPalette::WindowText));
+  addGridLines(ui->blendStateGridLayout, palette().color(QPalette::WindowText));
+  addGridLines(ui->depthStateGridLayout, palette().color(QPalette::WindowText));
 
   {
     ui->iaLayouts->setColumns({tr("Slot"), tr("Semantic"), tr("Index"), tr("Format"),

@@ -513,8 +513,14 @@ bool QFileFilterModel::filterAcceptsRow(int source_row, const QModelIndex &sourc
   return true;
 }
 
-void addGridLines(QGridLayout *grid)
+void addGridLines(QGridLayout *grid, QColor gridColor)
 {
+  QString style =
+      QFormatStr("border: solid #%1%2%3; border-bottom-width: 1px; border-right-width: 1px;")
+          .arg(gridColor.red(), 2, 16, QLatin1Char('0'))
+          .arg(gridColor.green(), 2, 16, QLatin1Char('0'))
+          .arg(gridColor.blue(), 2, 16, QLatin1Char('0'));
+
   for(int y = 0; y < grid->rowCount(); y++)
   {
     for(int x = 0; x < grid->columnCount(); x++)
@@ -529,15 +535,14 @@ void addGridLines(QGridLayout *grid)
       if(w == NULL)
         continue;
 
-      QString style =
-          lit("border: solid black; border-bottom-width: 1px; border-right-width: 1px;");
+      QString cellStyle = style;
 
       if(x == 0)
-        style += lit("border-left-width: 1px;");
+        cellStyle += lit("border-left-width: 1px;");
       if(y == 0)
-        style += lit("border-top-width: 1px;");
+        cellStyle += lit("border-top-width: 1px;");
 
-      w->setStyleSheet(style);
+      w->setStyleSheet(cellStyle);
     }
   }
 }
