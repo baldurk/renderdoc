@@ -322,6 +322,8 @@ const char *GLChunkNames[] = {
     "wglDXLockObjectsNV",
 
     "glPrimitiveBoundingBox",
+
+    "glFramebufferTexture2DMultisample",
 };
 
 GLInitParams::GLInitParams()
@@ -3709,6 +3711,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
       break;
     case FRAMEBUFFER_TEX2D:
       Serialise_glNamedFramebufferTexture2DEXT(0, eGL_NONE, eGL_NONE, 0, 0);
+      break;
+    case FRAMEBUFFER_TEX2DMS:
+      Serialise_glFramebufferTexture2DMultisampleEXT(0, eGL_NONE, eGL_NONE, eGL_NONE, 0, 0, 0);
       break;
     case FRAMEBUFFER_TEX3D:
       Serialise_glNamedFramebufferTexture3DEXT(0, eGL_NONE, eGL_NONE, 0, 0, 0);
