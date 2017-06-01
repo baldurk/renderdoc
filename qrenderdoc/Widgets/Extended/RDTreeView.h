@@ -51,12 +51,7 @@ public:
   void hideBranches() { m_VisibleBranches = false; }
   void showGridLines() { m_VisibleGridLines = true; }
   void hideGridLines() { m_VisibleGridLines = false; }
-  void setItemMargins(int horizontal, int vertical)
-  {
-    m_HorizMargin = horizontal;
-    m_VertMargin = vertical;
-  }
-  int horizontalItemMargin() { return m_HorizMargin; }
+  void setItemVerticalMargin(int vertical) { m_VertMargin = vertical; }
   int verticalItemMargin() { return m_VertMargin; }
 protected:
   void drawRow(QPainter *painter, const QStyleOptionViewItem &options,
@@ -67,7 +62,7 @@ private:
   bool m_VisibleBranches = true;
   bool m_VisibleGridLines = true;
 
-  int m_HorizMargin = 3, m_VertMargin = 3;
+  int m_VertMargin = 6;
 
   friend class RDTreeViewDelegate;
 };

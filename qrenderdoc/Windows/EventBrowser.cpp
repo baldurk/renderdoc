@@ -85,6 +85,8 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   // becomes quickly infuriating to rearrange, just disable until that can be fixed.
   ui->events->header()->setSectionsMovable(false);
 
+  ui->events->setItemVerticalMargin(3);
+
   UpdateDurationColumn();
 
   m_FindHighlight = new QTimer(this);

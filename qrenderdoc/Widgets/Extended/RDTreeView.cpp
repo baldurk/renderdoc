@@ -53,9 +53,9 @@ QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QMo
     ret.setHeight(ret.height() + 1);
   }
 
-  // expand by the margins
-  ret.setWidth(ret.width() + m_View->m_HorizMargin);
-  ret.setHeight(ret.height() + m_View->m_VertMargin);
+  // ensure we have at least the margin on top of font size. If the style applied more, don't add to
+  // it.
+  ret.setHeight(qMax(ret.height(), option.fontMetrics.height() + m_View->m_VertMargin));
 
   return ret;
 }
