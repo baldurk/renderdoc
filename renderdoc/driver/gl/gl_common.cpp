@@ -2346,7 +2346,17 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
     {
       GLuint idx = gl.glGetProgramResourceIndex(progDst, eGL_SHADER_STORAGE_BLOCK, name.c_str());
       if(idx != GL_INVALID_INDEX)
-        gl.glShaderStorageBlockBinding(progDst, i, bind);
+      {
+        if(gl.glShaderStorageBlockBinding)
+        {
+          gl.glShaderStorageBlockBinding(progDst, i, bind);
+        }
+        else
+        {
+          // TODO glShaderStorageBlockBinding is not core GLES
+          RDCERR("glShaderStorageBlockBinding is not supported!");
+        }
+      }
     }
   }
 }
