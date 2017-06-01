@@ -191,9 +191,13 @@ public:
       if(item->m_back != QBrush())
         return item->m_back;
 
-      // otherwise if we're hover-highlighting, use the window color
+      // otherwise if we're hover-highlighting, use the highlight color at 20% opacity
       if(widget->m_currentHoverItem == item)
-        return widget->palette().brush(QPalette::Window);
+      {
+        QColor col = widget->palette().color(QPalette::Highlight);
+        col.setAlphaF(0.2f);
+        return QBrush(col);
+      }
 
       // otherwise, no special background
       return QVariant();
@@ -203,9 +207,6 @@ public:
       // same priority order as background role above
       if(item->m_fore != QBrush())
         return item->m_fore;
-
-      if(widget->m_currentHoverItem == item)
-        return widget->palette().brush(QPalette::WindowText);
 
       return QVariant();
     }
