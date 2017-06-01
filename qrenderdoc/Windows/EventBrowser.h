@@ -39,7 +39,6 @@ class RDTreeWidgetItem;
 class QTimer;
 class QTextStream;
 class FlowLayout;
-class SizeDelegate;
 struct EventItemTag;
 
 class EventBrowser : public QFrame, public IEventBrowser, public ILogViewer
@@ -123,7 +122,6 @@ private:
 
   rdctype::array<CounterResult> m_Times;
 
-  SizeDelegate *m_SizeDelegate;
   QTimer *m_FindHighlight;
 
   FlowLayout *m_BookmarkStripLayout;

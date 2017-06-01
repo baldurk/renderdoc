@@ -24,7 +24,22 @@
 
 #pragma once
 
+#include <QStyledItemDelegate>
 #include <QTreeView>
+
+class RDTreeView;
+
+class RDTreeViewDelegate : public QStyledItemDelegate
+{
+private:
+  Q_OBJECT
+
+  RDTreeView *m_View;
+
+public:
+  RDTreeViewDelegate(RDTreeView *view);
+  QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+};
 
 class RDTreeView : public QTreeView
 {
@@ -33,8 +48,20 @@ public:
   explicit RDTreeView(QWidget *parent = 0);
 
   void setDrawBranches(bool draw) { m_DrawBranches = draw; }
-private:
+  void setItemMargins(int horizontal, int vertical)
+  {
+    m_HorizMargin = horizontal;
+    m_VertMargin = vertical;
+  }
+  int horizontalItemMargin() { return m_HorizMargin; }
+  int verticalItemMargin() { return m_VertMargin; }
+protected:
   void drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const override;
 
+private:
   bool m_DrawBranches = true;
+
+  int m_HorizMargin = 3, m_VertMargin = 3;
+
+  friend class RDTreeViewDelegate;
 };

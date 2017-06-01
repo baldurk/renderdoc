@@ -85,9 +85,6 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   // becomes quickly infuriating to rearrange, just disable until that can be fixed.
   ui->events->header()->setSectionsMovable(false);
 
-  m_SizeDelegate = new SizeDelegate(QSize(0, 16));
-  ui->events->setItemDelegate(m_SizeDelegate);
-
   UpdateDurationColumn();
 
   m_FindHighlight = new QTimer(this);
@@ -141,7 +138,6 @@ EventBrowser::~EventBrowser()
   m_Ctx.BuiltinWindowClosed(this);
   m_Ctx.RemoveLogViewer(this);
   delete ui;
-  delete m_SizeDelegate;
 }
 
 void EventBrowser::OnLogfileLoaded()

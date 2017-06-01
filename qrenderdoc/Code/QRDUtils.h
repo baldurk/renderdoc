@@ -870,24 +870,6 @@ struct RDDialog
                                  QFileDialog::Options options = QFileDialog::Options());
 };
 
-// useful delegate for enforcing a given size
-#include <QItemDelegate>
-
-class SizeDelegate : public QItemDelegate
-{
-private:
-  Q_OBJECT
-
-  QSize m_Size;
-
-public:
-  SizeDelegate(QSize size) : m_Size(size) {}
-  QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
-  {
-    return m_Size;
-  }
-};
-
 class QGridLayout;
 
 void addGridLines(QGridLayout *grid);

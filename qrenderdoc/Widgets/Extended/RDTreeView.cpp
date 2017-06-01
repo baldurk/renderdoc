@@ -25,8 +25,26 @@
 #include "RDTreeView.h"
 #include <QPainter>
 
+RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : QStyledItemDelegate(view), m_View(view)
+{
+}
+
+QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+  QSize ret = QStyledItemDelegate::sizeHint(option, index);
+
+  // expand by the margins
+  ret.setWidth(ret.width() + m_View->m_HorizMargin);
+  ret.setHeight(ret.height() + m_View->m_VertMargin);
+
+  return ret;
+}
+
 RDTreeView::RDTreeView(QWidget *parent) : QTreeView(NULL)
 {
+  setItemDelegate(new RDTreeViewDelegate(this));
+}
+
 }
 
 void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const
