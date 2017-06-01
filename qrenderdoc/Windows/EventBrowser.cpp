@@ -60,6 +60,8 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
+  OnLogfileClosed();
+
   m_Ctx.AddLogViewer(this);
 
   clearBookmarks();
@@ -131,8 +133,6 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->events->setContextMenuPolicy(Qt::CustomContextMenu);
   QObject::connect(ui->events, &RDTreeWidget::customContextMenuRequested, this,
                    &EventBrowser::events_contextMenu);
-
-  OnLogfileClosed();
 }
 
 EventBrowser::~EventBrowser()
