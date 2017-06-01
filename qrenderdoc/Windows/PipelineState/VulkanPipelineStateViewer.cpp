@@ -2163,7 +2163,8 @@ void VulkanPipelineStateViewer::highlightIABind(int slot)
 
   const VKPipe::VertexInput &VI = m_Ctx.CurVulkanPipelineState().VI;
 
-  QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
+  QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f,
+                                qBound(0.05, palette().color(QPalette::Base).lightnessF(), 0.95));
 
   ui->viAttrs->beginUpdate();
   ui->viBuffers->beginUpdate();
@@ -2171,13 +2172,13 @@ void VulkanPipelineStateViewer::highlightIABind(int slot)
   if(slot < m_VBNodes.count())
   {
     m_VBNodes[slot]->setBackgroundColor(col);
-    m_VBNodes[slot]->setForegroundColor(QColor(0, 0, 0));
+    m_VBNodes[slot]->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
   }
 
   if(slot < m_BindNodes.count())
   {
     m_BindNodes[slot]->setBackgroundColor(col);
-    m_BindNodes[slot]->setForegroundColor(QColor(0, 0, 0));
+    m_BindNodes[slot]->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
   }
 
   for(int i = 0; i < ui->viAttrs->topLevelItemCount(); i++)
@@ -2192,7 +2193,7 @@ void VulkanPipelineStateViewer::highlightIABind(int slot)
     else
     {
       item->setBackgroundColor(col);
-      item->setForegroundColor(QColor(0, 0, 0));
+      item->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
     }
   }
 

@@ -2149,7 +2149,8 @@ void GLPipelineStateViewer::highlightIABind(int slot)
 
   const GLPipe::VertexInput &VI = m_Ctx.CurGLPipelineState().m_VtxIn;
 
-  QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
+  QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f,
+                                qBound(0.05, palette().color(QPalette::Base).lightnessF(), 0.95));
 
   ui->viAttrs->beginUpdate();
   ui->viBuffers->beginUpdate();
@@ -2157,7 +2158,7 @@ void GLPipelineStateViewer::highlightIABind(int slot)
   if(slot < m_VBNodes.count())
   {
     m_VBNodes[slot]->setBackgroundColor(col);
-    m_VBNodes[slot]->setForegroundColor(QColor(0, 0, 0));
+    m_VBNodes[slot]->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
   }
 
   for(int i = 0; i < ui->viAttrs->topLevelItemCount(); i++)
@@ -2172,7 +2173,7 @@ void GLPipelineStateViewer::highlightIABind(int slot)
     else
     {
       item->setBackgroundColor(col);
-      item->setForegroundColor(QColor(0, 0, 0));
+      item->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
     }
   }
 

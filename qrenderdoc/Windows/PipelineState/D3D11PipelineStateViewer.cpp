@@ -2118,7 +2118,8 @@ void D3D11PipelineStateViewer::highlightIABind(int slot)
 
   const D3D11Pipe::IA &IA = m_Ctx.CurD3D11PipelineState().m_IA;
 
-  QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
+  QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f,
+                                qBound(0.05, palette().color(QPalette::Base).lightnessF(), 0.95));
 
   ui->iaLayouts->beginUpdate();
   ui->iaBuffers->beginUpdate();
@@ -2128,7 +2129,7 @@ void D3D11PipelineStateViewer::highlightIABind(int slot)
     RDTreeWidgetItem *item = m_VBNodes[(int)slot];
 
     item->setBackgroundColor(col);
-    item->setForegroundColor(QColor(0, 0, 0));
+    item->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
   }
 
   for(int i = 0; i < ui->iaLayouts->topLevelItemCount(); i++)
@@ -2143,7 +2144,7 @@ void D3D11PipelineStateViewer::highlightIABind(int slot)
     else
     {
       item->setBackgroundColor(col);
-      item->setForegroundColor(QColor(0, 0, 0));
+      item->setForegroundColor(contrastingColor(col, QColor(0, 0, 0)));
     }
   }
 
