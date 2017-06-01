@@ -35,6 +35,10 @@
 #include "os/os_specific.h"
 #include "serialise/string_utils.h"
 
+#if defined(__APPLE__)
+extern char **environ;
+#endif
+
 // defined in foo/foo_process.cpp
 char **GetCurrentEnvironment();
 int GetIdentPort(pid_t childPid);
