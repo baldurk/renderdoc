@@ -725,27 +725,10 @@ void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QMod
   }
 
   // fill in the background behind the lines for the whole row, since by default it doesn't show up
-  // behind the tree lines. There's SH_ItemView_ShowDecorationSelected which controls that for the
-  // selection highlight but that requires a proxy style and there's no equivalent for the
-  // background colour.
-  //
-  // Instead we just manually fill the background colour, and handle the highlight colour when
-  // appropriate.
+  // behind the tree lines.
 
-  QRect allLinesRect(rect.left(), rect.top(), rect.left() + parents.count() * indentation() + 1,
-                     rect.height());
-  if(selectionModel()->isSelected(index))
-  {
-    QPalette::ColorGroup group = QPalette::Normal;
-
-    if(!isEnabled())
-      group = QPalette::Disabled;
-    else if(!hasFocus())
-      group = QPalette::Inactive;
-
-    painter->fillRect(allLinesRect, palette().brush(group, QPalette::Highlight));
-  }
-  else if(item->m_back != QBrush())
+  QRect allLinesRect(rect.left(), rect.top(), (parents.count() + 1) * indentation(), rect.height());
+  if(!selectionModel()->isSelected(index) && item->m_back != QBrush())
   {
     painter->fillRect(allLinesRect, item->m_back);
   }

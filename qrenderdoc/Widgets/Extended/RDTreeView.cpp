@@ -24,6 +24,19 @@
 
 #include "RDTreeView.h"
 #include <QPainter>
+#include <QProxyStyle>
+
+class RDTreeViewtyleProxy : public QProxyStyle
+{
+public:
+  int styleHint(StyleHint hint, const QStyleOption *option = 0, const QWidget *widget = 0,
+                QStyleHintReturn *returnData = 0) const
+  {
+    if(hint == QStyle::SH_ItemView_ShowDecorationSelected)
+      return 1;
+    return QProxyStyle::styleHint(hint, option, widget, returnData);
+  }
+};
 
 RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : QStyledItemDelegate(view), m_View(view)
 {
@@ -50,6 +63,10 @@ QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QMo
 RDTreeView::RDTreeView(QWidget *parent) : QTreeView(NULL)
 {
   setItemDelegate(new RDTreeViewDelegate(this));
+
+  // set a proxy style that does nothing but return true for
+  // QStyle::SH_ItemView_ShowDecorationSelected styleHint.
+  setStyle(new RDTreeViewtyleProxy);
 }
 
 void RDTreeView::drawRow(QPainter *painter, const QStyleOptionViewItem &options,
