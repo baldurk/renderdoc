@@ -33,6 +33,13 @@ QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QMo
 {
   QSize ret = QStyledItemDelegate::sizeHint(option, index);
 
+  // expand a pixel for the grid lines
+  if(m_View->m_VisibleGridLines)
+  {
+    ret.setWidth(ret.width() + 1);
+    ret.setHeight(ret.height() + 1);
+  }
+
   // expand by the margins
   ret.setWidth(ret.width() + m_View->m_HorizMargin);
   ret.setHeight(ret.height() + m_View->m_VertMargin);
@@ -45,11 +52,55 @@ RDTreeView::RDTreeView(QWidget *parent) : QTreeView(NULL)
   setItemDelegate(new RDTreeViewDelegate(this));
 }
 
+void RDTreeView::drawRow(QPainter *painter, const QStyleOptionViewItem &options,
+                         const QModelIndex &index) const
+{
+  QTreeView::drawRow(painter, options, index);
+
+  if(m_VisibleGridLines)
+  {
+    QPen p = painter->pen();
+
+    QColor back = options.palette.color(QPalette::Active, QPalette::Background);
+    QColor fore = options.palette.color(QPalette::Active, QPalette::Foreground);
+
+    // draw the grid lines with a colour half way between background and foreground
+    painter->setPen(QPen(QColor::fromRgbF(back.redF() * 0.8 + fore.redF() * 0.2,
+                                          back.greenF() * 0.8 + fore.greenF() * 0.2,
+                                          back.blueF() * 0.8 + fore.blueF() * 0.2)));
+
+    for(int i = 0, count = model()->columnCount(); i < count; i++)
+    {
+      QRect r = visualRect(model()->index(index.row(), i, index.parent()));
+      r = r.intersected(options.rect);
+
+      // draw bottom and right of the rect
+      if(r.width() > 0 && r.height() > 0)
+      {
+        if(treePosition() == i)
+        {
+          int depth = 1;
+          QModelIndex idx = index;
+          while(idx.parent().isValid())
+          {
+            depth++;
+            idx = idx.parent();
+          }
+          r.setLeft(r.left() - indentation() * depth);
+        }
+
+        painter->drawLine(r.bottomLeft(), r.bottomRight());
+        painter->drawLine(r.topRight(), r.bottomRight());
+      }
+    }
+
+    painter->setPen(p);
+  }
 }
 
 void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const
 {
-  if(m_DrawBranches)
+  if(m_VisibleBranches)
   {
     QTreeView::drawBranches(painter, rect, index);
   }

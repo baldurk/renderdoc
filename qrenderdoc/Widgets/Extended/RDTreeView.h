@@ -47,7 +47,10 @@ class RDTreeView : public QTreeView
 public:
   explicit RDTreeView(QWidget *parent = 0);
 
-  void setDrawBranches(bool draw) { m_DrawBranches = draw; }
+  void showBranches() { m_VisibleBranches = true; }
+  void hideBranches() { m_VisibleBranches = false; }
+  void showGridLines() { m_VisibleGridLines = true; }
+  void hideGridLines() { m_VisibleGridLines = false; }
   void setItemMargins(int horizontal, int vertical)
   {
     m_HorizMargin = horizontal;
@@ -56,10 +59,13 @@ public:
   int horizontalItemMargin() { return m_HorizMargin; }
   int verticalItemMargin() { return m_VertMargin; }
 protected:
+  void drawRow(QPainter *painter, const QStyleOptionViewItem &options,
+               const QModelIndex &index) const override;
   void drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const override;
 
 private:
-  bool m_DrawBranches = true;
+  bool m_VisibleBranches = true;
+  bool m_VisibleGridLines = true;
 
   int m_HorizMargin = 3, m_VertMargin = 3;
 

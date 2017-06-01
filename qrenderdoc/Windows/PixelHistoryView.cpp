@@ -604,7 +604,7 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
   m_Model = new PixelHistoryItemModel(ctx, id, display, this);
   ui->events->setModel(m_Model);
 
-  ui->events->setDrawBranches(false);
+  ui->events->hideBranches();
 
   ui->events->header()->setSectionResizeMode(0, QHeaderView::Stretch);
   ui->events->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
