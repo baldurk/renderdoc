@@ -124,9 +124,10 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
     m_Scintillas.push_back(m_DisassemblyView);
 
     ui->docking->addToolWindow(m_DisassemblyView, ToolWindowManager::EmptySpace);
-    ui->docking->setToolWindowProperties(
-        m_DisassemblyView,
-        ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+    ui->docking->setToolWindowProperties(m_DisassemblyView,
+                                         ToolWindowManager::HideCloseButton |
+                                             ToolWindowManager::DisallowFloatWindow |
+                                             ToolWindowManager::AlwaysDisplayFullTabs);
   }
 
   ui->docking->setAllowFloatingWindow(false);
@@ -541,8 +542,9 @@ ScintillaEdit *ShaderViewer::AddFileScintilla(const QString &name, const QString
                                            ui->docking->areaOf(m_Scintillas[0]));
 
   ui->docking->addToolWindow(scintilla, ref);
-  ui->docking->setToolWindowProperties(
-      scintilla, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+  ui->docking->setToolWindowProperties(scintilla, ToolWindowManager::HideCloseButton |
+                                                      ToolWindowManager::DisallowFloatWindow |
+                                                      ToolWindowManager::AlwaysDisplayFullTabs);
 
   m_Scintillas.push_back(scintilla);
 
