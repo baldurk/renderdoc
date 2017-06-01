@@ -2449,6 +2449,12 @@ public:
                                 glPrimitiveBoundingBox(GLfloat minX, GLfloat minY, GLfloat minZ,
                                                        GLfloat minW, GLfloat maxX, GLfloat maxY,
                                                        GLfloat maxZ, GLfloat maxW));
+
+  bool Serialise_glFramebufferTexture2DMultisampleEXT(GLuint framebuffer, GLenum target,
+                                                      GLenum attachment, GLenum textarget,
+                                                      GLuint texture, GLint level, GLsizei samples);
+  void glFramebufferTexture2DMultisampleEXT(GLenum target, GLenum attachment, GLenum textarget,
+                                            GLuint texture, GLint level, GLsizei samples);
 };
 
 class ScopedDebugContext

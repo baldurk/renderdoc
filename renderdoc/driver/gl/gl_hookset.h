@@ -606,6 +606,9 @@ struct GLHookSet
   // GLES core
   PFNGLPRIMITIVEBOUNDINGBOXEXTPROC glPrimitiveBoundingBox;    // aliases glPrimitiveBoundingBoxEXT, glPrimitiveBoundingBoxOES
 
+  // GLES: EXT_multisampled_render_to_texture
+  PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC glFramebufferTexture2DMultisampleEXT;
+
   // ARB_shading_language_include
   PFNGLNAMEDSTRINGARBPROC glNamedStringARB;
   PFNGLDELETENAMEDSTRINGARBPROC glDeleteNamedStringARB;

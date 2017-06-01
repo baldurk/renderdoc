@@ -1125,6 +1125,7 @@
   HookExtension(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glPrimitiveBoundingBox); \
   HookExtensionAlias(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glPrimitiveBoundingBox, glPrimitiveBoundingBoxEXT); \
   HookExtensionAlias(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glPrimitiveBoundingBox, glPrimitiveBoundingBoxOES); \
+  HookExtension(PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC, glFramebufferTexture2DMultisampleEXT); \
   HookExtension(PFNWGLDXSETRESOURCESHAREHANDLENVPROC, wglDXSetResourceShareHandleNV); \
   HookExtension(PFNWGLDXOPENDEVICENVPROC, wglDXOpenDeviceNV); \
   HookExtension(PFNWGLDXCLOSEDEVICENVPROC, wglDXCloseDeviceNV); \
@@ -1978,6 +1979,7 @@
     HookWrapper0(void, glFrameTerminatorGREMEDY); \
     HookWrapper2(void, glStringMarkerGREMEDY, GLsizei, len, const void *, string); \
     HookWrapper8(void, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
+    HookWrapper6(void, glFramebufferTexture2DMultisampleEXT, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \
     HookWrapper2(BOOL, wglDXSetResourceShareHandleNV, void *, dxObject, HANDLE, shareHandle); \
     HookWrapper1(HANDLE, wglDXOpenDeviceNV, void *, dxDevice); \
     HookWrapper1(BOOL, wglDXCloseDeviceNV, HANDLE, hDevice); \
@@ -3639,7 +3641,6 @@
     HookWrapper3(void, glflushmappedbufferrangeext, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
     HookWrapper4(void, glmultidrawarraysindirectext, GLenum, mode, const void *, indirect, GLsizei, drawcount, GLsizei, stride); \
     HookWrapper5(void, glmultidrawelementsindirectext, GLenum, mode, GLenum, type, const void *, indirect, GLsizei, drawcount, GLsizei, stride); \
-    HookWrapper6(void, glframebuffertexture2dmultisampleext, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \
     HookWrapper2(void, glreadbufferindexedext, GLenum, src, GLint, index); \
     HookWrapper3(void, gldrawbuffersindexedext, GLint, n, const GLenum *, location, const GLint *, indices); \
     HookWrapper3(void, glgetintegeri_vext, GLenum, target, GLuint, index, GLint *, data); \
@@ -5667,7 +5668,6 @@
     HandleUnsupported(PFNGLFLUSHMAPPEDBUFFERRANGEEXTPROC, glflushmappedbufferrangeext); \
     HandleUnsupported(PFNGLMULTIDRAWARRAYSINDIRECTEXTPROC, glmultidrawarraysindirectext); \
     HandleUnsupported(PFNGLMULTIDRAWELEMENTSINDIRECTEXTPROC, glmultidrawelementsindirectext); \
-    HandleUnsupported(PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC, glframebuffertexture2dmultisampleext); \
     HandleUnsupported(PFNGLREADBUFFERINDEXEDEXTPROC, glreadbufferindexedext); \
     HandleUnsupported(PFNGLDRAWBUFFERSINDEXEDEXTPROC, gldrawbuffersindexedext); \
     HandleUnsupported(PFNGLGETINTEGERI_VEXTPROC, glgetintegeri_vext); \
