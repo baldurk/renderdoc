@@ -423,11 +423,73 @@ void PipelineStateViewer::endHTMLExport(QXmlStreamWriter *xml)
   delete xml;
 }
 
+void PipelineStateViewer::setTopologyDiagram(QLabel *diagram, Topology topo)
+{
+  int idx = qMin((int)topo, (int)Topology::PatchList);
+
+  if(m_TopoPixmaps[idx].isNull())
+  {
+    QImage im;
+    switch(topo)
+    {
+      case Topology::PointList: im = Pixmaps::topo_pointlist().toImage(); break;
+      case Topology::LineList: im = Pixmaps::topo_linelist().toImage(); break;
+      case Topology::LineStrip: im = Pixmaps::topo_linestrip().toImage(); break;
+      case Topology::TriangleList: im = Pixmaps::topo_trilist().toImage(); break;
+      case Topology::TriangleStrip: im = Pixmaps::topo_tristrip().toImage(); break;
+      case Topology::LineList_Adj: im = Pixmaps::topo_linelist_adj().toImage(); break;
+      case Topology::LineStrip_Adj: im = Pixmaps::topo_linestrip_adj().toImage(); break;
+      case Topology::TriangleList_Adj: im = Pixmaps::topo_trilist_adj().toImage(); break;
+      case Topology::TriangleStrip_Adj: im = Pixmaps::topo_tristrip_adj().toImage(); break;
+      default: im = Pixmaps::topo_patch().toImage(); break;
+    }
+
+    im = im.convertToFormat(QImage::Format_ARGB32);
+
+    // convert the colors - black maps to Text (foreground) and white maps to Base (background)
+    QColor white = diagram->palette().color(QPalette::Active, QPalette::Base);
+    QColor black = diagram->palette().color(QPalette::Active, QPalette::Text);
+
+    const float br = black.redF();
+    const float bg = black.greenF();
+    const float bb = black.blueF();
+
+    const float wr = white.redF();
+    const float wg = white.greenF();
+    const float wb = white.blueF();
+
+    for(int y = 0; y < im.height(); y++)
+    {
+      QRgb *line = (QRgb *)im.scanLine(y);
+
+      for(int x = 0; x < im.width(); x++)
+      {
+        // delta of 0 is black, delta of 255 is white
+        const float delta = float(qRed(*line));
+        const float bd = 255.0f - delta;
+        const float wd = delta;
+
+        const int r = int(br * bd + wr * wd);
+        const int g = int(bg * bd + wg * wd);
+        const int b = int(bb * bd + wb * wd);
+
+        *line = qRgba(r, g, b, qAlpha(*line));
+
+        line++;
+      }
+    }
+
+    m_TopoPixmaps[idx] = QPixmap::fromImage(im);
+  }
+
+  diagram->setPixmap(m_TopoPixmaps[idx]);
+}
+
 void PipelineStateViewer::setMeshViewPixmap(RDLabel *meshView)
 {
   QImage meshIcon = Pixmaps::wireframe_mesh().toImage();
   QImage colSwapped(meshIcon.size(), QImage::Format_ARGB32);
-  colSwapped.fill(palette().color(QPalette::WindowText));
+  colSwapped.fill(meshView->palette().color(QPalette::WindowText));
 
   for(int y = 0; y < meshIcon.height(); y++)
   {

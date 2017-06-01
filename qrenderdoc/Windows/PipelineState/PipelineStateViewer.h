@@ -70,6 +70,7 @@ public:
   void EditShader(ShaderStage shaderType, ResourceId id, const ShaderReflection *shaderDetails,
                   const QString &entryFunc, const QStringMap &files, const QString &mainfile);
 
+  void setTopologyDiagram(QLabel *diagram, Topology topo);
   void setMeshViewPixmap(RDLabel *meshView);
 
   QXmlStreamWriter *beginHTMLExport();
@@ -81,6 +82,8 @@ public:
 private:
   Ui::PipelineStateViewer *ui;
   ICaptureContext &m_Ctx;
+
+  QPixmap m_TopoPixmaps[(int)Topology::PatchList + 1];
 
   void setToD3D11();
   void setToD3D12();

@@ -1520,29 +1520,9 @@ void VulkanPipelineStateViewer::setState()
     ui->topology->setText(ToQStr(topo));
   }
 
-  ui->primRestart->setVisible(state.IA.primitiveRestartEnable);
+  m_Common.setTopologyDiagram(ui->topologyDiagram, topo);
 
-  switch(topo)
-  {
-    case Topology::PointList: ui->topologyDiagram->setPixmap(Pixmaps::topo_pointlist()); break;
-    case Topology::LineList: ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist()); break;
-    case Topology::LineStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip()); break;
-    case Topology::TriangleList: ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist()); break;
-    case Topology::TriangleStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip()); break;
-    case Topology::LineList_Adj:
-      ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist_adj());
-      break;
-    case Topology::LineStrip_Adj:
-      ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip_adj());
-      break;
-    case Topology::TriangleList_Adj:
-      ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist_adj());
-      break;
-    case Topology::TriangleStrip_Adj:
-      ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip_adj());
-      break;
-    default: ui->topologyDiagram->setPixmap(Pixmaps::topo_patch()); break;
-  }
+  ui->primRestart->setVisible(state.IA.primitiveRestartEnable);
 
   vs = ui->viBuffers->verticalScrollBar()->value();
   ui->viBuffers->setUpdatesEnabled(false);
