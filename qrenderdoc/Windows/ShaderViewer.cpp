@@ -526,9 +526,8 @@ void ShaderViewer::OnEventChanged(uint32_t eventID)
 
 ScintillaEdit *ShaderViewer::AddFileScintilla(const QString &name, const QString &text)
 {
-  ScintillaEdit *scintilla =
-      MakeEditor(lit("scintilla") + name, text,
-                 m_Ctx.APIProps().localRenderer == GraphicsAPI::OpenGL ? SCLEX_GLSL : SCLEX_HLSL);
+  ScintillaEdit *scintilla = MakeEditor(
+      lit("scintilla") + name, text, IsD3D(m_Ctx.APIProps().localRenderer) ? SCLEX_HLSL : SCLEX_GLSL);
   scintilla->setReadOnly(true);
   scintilla->setWindowTitle(name);
   ((QWidget *)scintilla)->setProperty("name", name);
