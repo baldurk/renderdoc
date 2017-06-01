@@ -34,6 +34,8 @@ static const char *hlsl_keywords[2] = {
     // keyword set 0:
     // Secondary keywords and identifiers
     R"EOKEYWORDS(
+defined
+
 register packoffset static const
 
 break continue discard do for if else switch while case default return true false
@@ -124,6 +126,8 @@ static const char *glsl_keywords[2] = {
     // keyword set 0:
     // Secondary keywords and identifiers
     R"EOKEYWORDS(
+defined
+
 in out inout static const
 
 break continue do for while switch case default if else true false discard return
@@ -247,12 +251,15 @@ void ConfigureSyntax(ScintillaEdit *scintilla, int language)
   if(language == SCLEX_CPP)
   {
     scintilla->setProperty("lexer.cpp.track.preprocessor", "0");
+    scintilla->setProperty("styling.within.preprocessor", "1");
 
     scintilla->styleSetFore(SCE_C_COMMENT, SCINTILLA_COLOUR(0, 150, 0));
     scintilla->styleSetFore(SCE_C_COMMENTDOC, SCINTILLA_COLOUR(0, 150, 0));
     scintilla->styleSetFore(SCE_C_COMMENTLINE, SCINTILLA_COLOUR(0, 150, 0));
     scintilla->styleSetFore(SCE_C_WORD, SCINTILLA_COLOUR(0, 0, 150));
     scintilla->styleSetFore(SCE_C_WORD2, SCINTILLA_COLOUR(0, 0, 150));
+    scintilla->styleSetFore(SCE_C_PREPROCESSOR, SCINTILLA_COLOUR(0, 0, 150));
+    scintilla->styleSetBold(SCE_C_PREPROCESSOR, true);
 
     if(hlsl)
     {
