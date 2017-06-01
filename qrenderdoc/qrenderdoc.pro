@@ -306,11 +306,13 @@ RESOURCES += Resources/resources.qrc
 
 SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
+    3rdparty/toolwindowmanager/ToolWindowManagerSplitter.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerTabBar.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp
 
 HEADERS += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
+    3rdparty/toolwindowmanager/ToolWindowManagerSplitter.h \
     3rdparty/toolwindowmanager/ToolWindowManagerTabBar.h \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h
 
