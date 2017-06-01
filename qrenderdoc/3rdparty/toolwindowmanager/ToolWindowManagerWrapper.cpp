@@ -155,7 +155,13 @@ void ToolWindowManagerWrapper::closeEvent(QCloseEvent *) {
       toolWindows << tabWidget->toolWindows();
     }
   }
-  m_manager->moveToolWindows(toolWindows, ToolWindowManager::NoArea);
+
+  foreach(QWidget* toolWindow, toolWindows) {
+    if(m_manager->toolWindowProperties(toolWindow) & ToolWindowManager::HideOnClose)
+      m_manager->hideToolWindow(toolWindow);
+    else
+      m_manager->removeToolWindow(toolWindow);
+  }
 }
 
 bool ToolWindowManagerWrapper::eventFilter(QObject *object, QEvent *event) {

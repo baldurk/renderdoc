@@ -22,6 +22,7 @@
  * SOFTWARE.
  *
  */
+#include "ToolWindowManager.h"
 #include "ToolWindowManagerTabBar.h"
 #include "ToolWindowManagerArea.h"
 #include "ToolWindowManagerWrapper.h"
@@ -147,6 +148,14 @@ void ToolWindowManagerTabBar::paintEvent(QPaintEvent *event) {
     buttonOpt.rect = m_pin.rect;
     buttonOpt.icon = m_pin.icon;
 
+    ToolWindowManager::ToolWindowProperty props =
+      m_area->m_manager->toolWindowProperties(m_area->widget(0));
+
+    bool tabClosable = (props & ToolWindowManager::HideCloseButton) == 0;
+
+    if (!tabClosable)
+      buttonOpt.rect = m_close.rect;
+
     QStyle::State prevState = buttonOpt.state;
 
     if(m_pin.clicked)
@@ -160,7 +169,7 @@ void ToolWindowManagerTabBar::paintEvent(QPaintEvent *event) {
 
     style()->drawComplexControl(QStyle::CC_ToolButton, &buttonOpt, &p, this);
 
-    if (m_tabsClosable) {
+    if (m_tabsClosable && tabClosable) {
       buttonOpt.rect = m_close.rect;
       buttonOpt.icon = m_close.icon;
 
@@ -213,14 +222,27 @@ void ToolWindowManagerTabBar::mousePressEvent(QMouseEvent *event) {
   ButtonData prevPin = m_pin;
   ButtonData prevClose = m_close;
 
-  if (m_pin.rect.contains(mapFromGlobal(QCursor::pos())) &&
+  ToolWindowManager::ToolWindowProperty props =
+    m_area->m_manager->toolWindowProperties(m_area->widget(0));
+
+  bool tabClosable = (props & ToolWindowManager::HideCloseButton) == 0;
+
+  QRect pinRect = m_pin.rect;
+  QRect closeRect = m_close.rect;
+
+  if (!tabClosable) {
+    pinRect = closeRect;
+    closeRect = QRect();
+  }
+
+  if (pinRect.contains(mapFromGlobal(QCursor::pos())) &&
      event->buttons() & Qt::LeftButton) {
     m_pin.clicked = true;
   } else {
     m_pin.clicked = false;
   }
 
-  if (m_close.rect.contains(mapFromGlobal(QCursor::pos())) &&
+  if (closeRect.contains(mapFromGlobal(QCursor::pos())) &&
      event->buttons() & Qt::LeftButton) {
     m_close.clicked = true;
   } else {
@@ -242,7 +264,20 @@ void ToolWindowManagerTabBar::mouseMoveEvent(QMouseEvent *event) {
   ButtonData prevPin = m_pin;
   ButtonData prevClose = m_close;
 
-  if (m_pin.rect.contains(mapFromGlobal(QCursor::pos()))) {
+  ToolWindowManager::ToolWindowProperty props =
+    m_area->m_manager->toolWindowProperties(m_area->widget(0));
+
+  bool tabClosable = (props & ToolWindowManager::HideCloseButton) == 0;
+
+  QRect pinRect = m_pin.rect;
+  QRect closeRect = m_close.rect;
+
+  if (!tabClosable) {
+    pinRect = closeRect;
+    closeRect = QRect();
+  }
+
+  if (pinRect.contains(mapFromGlobal(QCursor::pos()))) {
     m_pin.hover = true;
     if (event->buttons() & Qt::LeftButton)
       m_pin.clicked = true;
@@ -251,7 +286,7 @@ void ToolWindowManagerTabBar::mouseMoveEvent(QMouseEvent *event) {
     m_pin.clicked = false;
   }
 
-  if (m_close.rect.contains(mapFromGlobal(QCursor::pos()))) {
+  if (closeRect.contains(mapFromGlobal(QCursor::pos()))) {
     m_close.hover = true;
     if (event->buttons() & Qt::LeftButton)
       m_close.clicked = true;
@@ -270,7 +305,20 @@ void ToolWindowManagerTabBar::mouseReleaseEvent(QMouseEvent *event) {
   if (count() > 1 || floatingWindowChild())
     return;
 
-  if (m_pin.rect.contains(mapFromGlobal(QCursor::pos()))) {
+  ToolWindowManager::ToolWindowProperty props =
+    m_area->m_manager->toolWindowProperties(m_area->widget(0));
+
+  bool tabClosable = (props & ToolWindowManager::HideCloseButton) == 0;
+
+  QRect pinRect = m_pin.rect;
+  QRect closeRect = m_close.rect;
+
+  if (!tabClosable) {
+    pinRect = closeRect;
+    closeRect = QRect();
+  }
+
+  if (pinRect.contains(mapFromGlobal(QCursor::pos()))) {
     // process a pin of these tabs
 
     m_pin.clicked = false;
@@ -280,7 +328,7 @@ void ToolWindowManagerTabBar::mouseReleaseEvent(QMouseEvent *event) {
     event->accept();
   }
 
-  if (m_close.rect.contains(mapFromGlobal(QCursor::pos()))) {
+  if (closeRect.contains(mapFromGlobal(QCursor::pos()))) {
     if (m_area)
       m_area->tabCloseRequested(0);
 

@@ -76,11 +76,11 @@ void ToolWindowManagerArea::addToolWindows(const QList<QWidget *> &toolWindows, 
   foreach(QWidget* toolWindow, toolWindows) {
     index = insertTab(insertIndex, toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
     insertIndex = index+1;
-    if(m_manager->toolWindowProperties(toolWindow) & ToolWindowManager::HideCloseButton) {
-      showCloseButton(tabBar(), index, false);
-    }
   }
   setCurrentIndex(index);
+  for (int i=0; i < count(); i++) {
+    updateToolWindow(widget(i));
+  }
   m_manager->m_lastUsedArea = this;
 }
 
