@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <utility>
 #include <vector>
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 
@@ -67,6 +68,8 @@ struct SPVModule
 
   spv::SourceLanguage sourceLang;
   uint32_t sourceVer;
+
+  vector<std::pair<string, string>> sourceFiles;
 
   vector<string> extensions;
 

@@ -3862,6 +3862,17 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   reflection->DebugInfo.entryFile = 0;
   reflection->DebugInfo.entryFunc = entryPoint;
 
+  if(!sourceFiles.empty())
+  {
+    create_array_uninit(reflection->DebugInfo.files, sourceFiles.size());
+
+    for(size_t i = 0; i < sourceFiles.size(); i++)
+    {
+      reflection->DebugInfo.files[i].first = sourceFiles[i].first;
+      reflection->DebugInfo.files[i].second = sourceFiles[i].second;
+    }
+  }
+
   // TODO need to fetch these
   reflection->DispatchThreadsDimension[0] = 0;
   reflection->DispatchThreadsDimension[1] = 0;
@@ -4456,24 +4467,37 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
         module.sourceLang = spv::SourceLanguage(spirv[it + 1]);
         module.sourceVer = spirv[it + 2];
 
-        if(WordCount > 3)
-        {
-          RDCDEBUG("Filename provided");
-          // VKTODOLOW spirv[it+3] is an id of an OpString with a filename
-        }
-
         if(WordCount > 4)
         {
-          RDCDEBUG("File source provided");
-          // VKTODOLOW spirv[it+4] is a literal string with source of the file
+          std::pair<string, string> sourceFile;
+
+          SPVInstruction *filenameInst = module.GetByID(spirv[it + 3]);
+          RDCASSERT(filenameInst);
+
+          sourceFile.first = filenameInst->str;
+          sourceFile.second = (const char *)&spirv[it + 4];
+
+          module.sourceFiles.push_back(sourceFile);
+        }
+        else if(WordCount > 3)
+        {
+          RDCWARN("Only filename provided in OpSource, being discarded without source code");
         }
 
         break;
       }
       case spv::OpSourceContinued:
       {
-        RDCDEBUG("File source continued");
-        // VKTODOLOW spirv[it+1] is a literal string to append to the last OpSource
+        if(!module.sourceFiles.empty())
+        {
+          std::pair<string, string> &sourceFile = module.sourceFiles.back();
+
+          sourceFile.second += (const char *)&spirv[it + 1];
+        }
+        else
+        {
+          RDCERR("OpSourceContinued without matching OpSource");
+        }
         break;
       }
       case spv::OpSourceExtension:
