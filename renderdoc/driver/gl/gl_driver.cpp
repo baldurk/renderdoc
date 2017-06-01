@@ -774,11 +774,9 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_EXT_texture_compression_astc_decode_mode");
   m_GLESExtensions.push_back("GL_EXT_texture_compression_dxt1");
   m_GLESExtensions.push_back("GL_EXT_texture_compression_s3tc");
-
   m_GLESExtensions.push_back("GL_EXT_texture_cube_map_array");
   m_GLESExtensions.push_back("GL_EXT_texture_filter_anisotropic");
   m_GLESExtensions.push_back("GL_EXT_texture_filter_minmax");
-
   m_GLESExtensions.push_back("GL_EXT_robustness");
   m_GLESExtensions.push_back("GL_EXT_gpu_shader5");
   m_GLESExtensions.push_back("GL_EXT_separate_shader_objects");
@@ -791,6 +789,9 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_EXT_shader_texture_lod");
   m_GLESExtensions.push_back("GL_EXT_shadow_samplers");
   m_GLESExtensions.push_back("GL_EXT_primitive_bounding_box");
+  m_GLESExtensions.push_back("GL_EXT_multisampled_render_to_texture");
+  m_GLESExtensions.push_back("GL_EXT_color_buffer_half_float");
+  m_GLESExtensions.push_back("GL_EXT_color_buffer_float");
 
   // we'll be sorting the implementation extension array, so make sure the
   // sorts are identical so we can do the intersection easily
