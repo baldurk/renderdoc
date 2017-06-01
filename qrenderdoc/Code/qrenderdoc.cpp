@@ -234,6 +234,7 @@ int main(int argc, char *argv[])
       {
         application.processEvents(QEventLoop::WaitForMoreEvents);
         QCoreApplication::sendPostedEvents();
+        QCoreApplication::sendPostedEvents(NULL, QEvent::DeferredDelete);
       }
 
       config.Save();
