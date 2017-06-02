@@ -241,8 +241,6 @@ private:
   QPair<int, int> m_highestIndex;
   uint64_t m_queuedRoles;
 
-  RDTreeWidgetItem *m_currentHoverItem = NULL;
-
   bool m_instantTooltips = false;
   bool m_customCopyPaste = false;
   int m_hoverColumn = -1;

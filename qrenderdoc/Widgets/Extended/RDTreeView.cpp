@@ -23,20 +23,9 @@
  ******************************************************************************/
 
 #include "RDTreeView.h"
+#include <QMouseEvent>
 #include <QPainter>
 #include <QProxyStyle>
-
-class RDTreeViewtyleProxy : public QProxyStyle
-{
-public:
-  int styleHint(StyleHint hint, const QStyleOption *option = 0, const QWidget *widget = 0,
-                QStyleHintReturn *returnData = 0) const
-  {
-    if(hint == QStyle::SH_ItemView_ShowDecorationSelected)
-      return 1;
-    return QProxyStyle::styleHint(hint, option, widget, returnData);
-  }
-};
 
 RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : QStyledItemDelegate(view), m_View(view)
 {
@@ -62,11 +51,24 @@ QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QMo
 
 RDTreeView::RDTreeView(QWidget *parent) : QTreeView(NULL)
 {
-  setItemDelegate(new RDTreeViewDelegate(this));
+  setMouseTracking(true);
 
-  // set a proxy style that does nothing but return true for
-  // QStyle::SH_ItemView_ShowDecorationSelected styleHint.
-  setStyle(new RDTreeViewtyleProxy);
+  setItemDelegate(new RDTreeViewDelegate(this));
+}
+
+void RDTreeView::mouseMoveEvent(QMouseEvent *e)
+{
+  m_currentHoverIndex = indexAt(e->pos());
+}
+
+void RDTreeView::leaveEvent(QEvent *e)
+{
+  m_currentHoverIndex = QModelIndex();
+}
+
+void RDTreeView::rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end)
+{
+  m_currentHoverIndex = QModelIndex();
 }
 
 void RDTreeView::drawRow(QPainter *painter, const QStyleOptionViewItem &options,
@@ -115,8 +117,41 @@ void RDTreeView::drawRow(QPainter *painter, const QStyleOptionViewItem &options,
   }
 }
 
+void RDTreeView::fillBranchesRect(QPainter *painter, const QRect &rect, const QModelIndex &index) const
+{
+  QStyleOptionViewItem opt;
+  opt.initFrom(this);
+  if(selectionModel()->isSelected(index))
+    opt.state |= QStyle::State_Selected;
+  if(m_currentHoverIndex.row() == index.row() && m_currentHoverIndex.parent() == index.parent())
+    opt.state |= QStyle::State_MouseOver;
+  else
+    opt.state &= ~QStyle::State_MouseOver;
+
+  if(hasFocus())
+    opt.state |= (QStyle::State_Active | QStyle::State_HasFocus);
+  else
+    opt.state &= ~(QStyle::State_Active | QStyle::State_HasFocus);
+
+  int depth = 1;
+  QModelIndex idx = index.parent();
+  while(idx.isValid())
+  {
+    depth++;
+    idx = idx.parent();
+  }
+
+  opt.rect = rect;
+  opt.rect.setWidth(depth * indentation());
+  opt.showDecorationSelected = true;
+  style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter, this);
+}
+
 void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const
 {
+  if(m_fillBranchRect)
+    fillBranchesRect(painter, rect, index);
+
   if(m_VisibleBranches)
   {
     QTreeView::drawBranches(painter, rect, index);

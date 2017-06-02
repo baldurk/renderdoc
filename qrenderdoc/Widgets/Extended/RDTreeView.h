@@ -54,15 +54,25 @@ public:
   void setItemVerticalMargin(int vertical) { m_VertMargin = vertical; }
   int verticalItemMargin() { return m_VertMargin; }
 protected:
+  void rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end) override;
+  void mouseMoveEvent(QMouseEvent *e) override;
+  void leaveEvent(QEvent *e) override;
+
   void drawRow(QPainter *painter, const QStyleOptionViewItem &options,
                const QModelIndex &index) const override;
   void drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const override;
+
+  void fillBranchesRect(QPainter *painter, const QRect &rect, const QModelIndex &index) const;
+  void enableBranchRectFill(bool fill) { m_fillBranchRect = fill; }
+  QModelIndex m_currentHoverIndex;
 
 private:
   bool m_VisibleBranches = true;
   bool m_VisibleGridLines = true;
 
   int m_VertMargin = 6;
+
+  bool m_fillBranchRect = true;
 
   friend class RDTreeViewDelegate;
 };

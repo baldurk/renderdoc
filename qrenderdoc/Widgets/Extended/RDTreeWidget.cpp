@@ -176,7 +176,7 @@ public:
     {
       if(widget->m_hoverColumn == index.column())
       {
-        if(widget->m_currentHoverItem == item)
+        if(itemForIndex(widget->m_currentHoverIndex) == item)
           return widget->m_activeHoverIcon;
         else
           return widget->m_normalHoverIcon;
@@ -187,12 +187,12 @@ public:
     }
     else if(role == Qt::BackgroundRole)
     {
-      // item's background color takes priority
-      if(item->m_back != QBrush())
+      // item's background color takes priority but only if not selected
+      if(item->m_back != QBrush() && !widget->selectionModel()->isSelected(index))
         return item->m_back;
 
       // otherwise if we're hover-highlighting, use the highlight color at 20% opacity
-      if(widget->m_currentHoverItem == item)
+      if(itemForIndex(widget->m_currentHoverIndex) == item && widget->m_hoverColumn >= 0)
       {
         QColor col = widget->palette().color(QPalette::Highlight);
         col.setAlphaF(0.2f);
@@ -410,9 +410,11 @@ void RDTreeWidgetItem::clear()
   if(m_widget)
     m_widget->m_model->endRemoveChildren();
 }
+
 RDTreeWidget::RDTreeWidget(QWidget *parent) : RDTreeView(parent)
 {
-  setMouseTracking(true);
+  // we'll call this ourselves in drawBranches()
+  RDTreeView::enableBranchRectFill(false);
 
   m_root = new RDTreeWidgetItem;
   m_root->m_widget = this;
@@ -558,31 +560,31 @@ void RDTreeWidget::clear()
 
 void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
 {
-  QModelIndex idx = indexAt(e->pos());
-  RDTreeWidgetItem *item = m_model->itemForIndex(idx);
+  RDTreeWidgetItem *oldHover = m_model->itemForIndex(m_currentHoverIndex);
 
-  if(idx.column() == m_hoverColumn && m_hoverHandCursor)
+  RDTreeView::mouseMoveEvent(e);
+
+  RDTreeWidgetItem *newHover = m_model->itemForIndex(m_currentHoverIndex);
+
+  if(m_currentHoverIndex.column() == m_hoverColumn && m_hoverHandCursor)
     setCursor(QCursor(Qt::PointingHandCursor));
   else
     unsetCursor();
 
-  if(m_currentHoverItem == item || m_hoverColumn < 0)
+  if(oldHover == newHover)
     return;
-
-  RDTreeWidgetItem *old = m_currentHoverItem;
-  m_currentHoverItem = item;
 
   // it's only two items, don't try and make a range but just change them both
   QVector<int> roles = {Qt::DecorationRole, Qt::BackgroundRole, Qt::ForegroundRole};
-  if(old)
-    m_model->itemChanged(old, roles);
-  m_model->itemChanged(item, roles);
+  if(oldHover)
+    m_model->itemChanged(oldHover, roles);
+  m_model->itemChanged(newHover, roles);
 
   if(m_instantTooltips)
   {
     QToolTip::hideText();
 
-    if(m_currentHoverItem != NULL && !m_currentHoverItem->m_tooltip.isEmpty())
+    if(newHover && !newHover->m_tooltip.isEmpty())
     {
       // the documentation says:
       //
@@ -594,7 +596,7 @@ void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
       // immediately show, it will try to reuse the tooltip and end up not moving it at all if the
       // text hasn't changed.
       QToolTip::showText(QCursor::pos(), lit(" "), this);
-      QToolTip::showText(QCursor::pos(), m_currentHoverItem->m_tooltip, this);
+      QToolTip::showText(QCursor::pos(), newHover->m_tooltip, this);
     }
   }
 
@@ -619,12 +621,11 @@ void RDTreeWidget::leaveEvent(QEvent *e)
 {
   unsetCursor();
 
-  if(m_currentHoverItem)
+  if(m_currentHoverIndex.isValid())
   {
-    RDTreeWidgetItem *item = m_currentHoverItem;
+    RDTreeWidgetItem *item = m_model->itemForIndex(m_currentHoverIndex);
     if(!item->m_tooltip.isEmpty() && m_instantTooltips)
       QToolTip::hideText();
-    m_currentHoverItem = NULL;
     m_model->itemChanged(item, {Qt::DecorationRole, Qt::BackgroundRole, Qt::ForegroundRole});
   }
 
@@ -729,6 +730,11 @@ void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QMod
   // behind the tree lines.
 
   QRect allLinesRect(rect.left(), rect.top(), (parents.count() + 1) * indentation(), rect.height());
+
+  // calling this manually here means it won't be called later in RDTreeView::drawBranches, and
+  // allows us to overwrite it with our background filling if we want to.
+  RDTreeWidget::fillBranchesRect(painter, rect, index);
+
   if(!selectionModel()->isSelected(index) && item->m_back != QBrush())
   {
     painter->fillRect(allLinesRect, item->m_back);
