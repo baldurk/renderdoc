@@ -3700,7 +3700,7 @@ namespace renderdocui.Windows
                 });
 
                 if(!ret)
-                    MessageBox.Show(string.Format("Error saving texture {0}.\n\nCheck diagnostic log in Help menu for more details.", saveTextureDialog.FileName),
+                    MessageBox.Show(string.Format("Error saving texture {0}.\n\nCheck diagnostic log in Help menu for more details.", m_SaveDialog.Filename),
                                        "Error saving texture", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

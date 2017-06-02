@@ -49,7 +49,6 @@
             WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient6 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
             WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient7 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(TextureViewer));
-            this.saveTextureDialog = new System.Windows.Forms.SaveFileDialog();
             this.rightclickMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.showDisabled = new System.Windows.Forms.ToolStripMenuItem();
             this.showEmpty = new System.Windows.Forms.ToolStripMenuItem();
@@ -202,12 +201,6 @@
             toolStripLabel1.Name = "toolStripLabel1";
             toolStripLabel1.Size = new System.Drawing.Size(42, 22);
             toolStripLabel1.Text = "Actions";
-            // 
-            // saveTextureDialog
-            // 
-            this.saveTextureDialog.DefaultExt = "dds";
-            this.saveTextureDialog.Filter = "DDS Files (*.dds)|*.dds";
-            this.saveTextureDialog.Title = "Save Texture As";
             // 
             // rightclickMenu
             // 
@@ -1399,7 +1392,6 @@
 
         #endregion
 
-        private System.Windows.Forms.SaveFileDialog saveTextureDialog;
         private System.Windows.Forms.ContextMenuStrip rightclickMenu;
         private System.Windows.Forms.ToolStripMenuItem showDisabled;
         private System.Windows.Forms.ToolStripMenuItem showEmpty;
