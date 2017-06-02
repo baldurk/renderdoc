@@ -946,6 +946,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
   if(!f)
   {
     success = false;
+    RDCERR("Couldn't write to path %s, error: %s", path, FileIO::ErrorString().c_str());
   }
   else
   {
@@ -969,6 +970,9 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       int ret = stbi_write_bmp_to_func(fileWriteFunc, (void *)f, td.width, td.height, numComps,
                                        subdata[0]);
       success = (ret != 0);
+
+      if(!success)
+        RDCERR("stbi_write_bmp_to_func failed: %d", ret);
     }
     else if(sd.destType == FileType::PNG)
     {
@@ -979,6 +983,9 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       int ret = stbi_write_png_to_func(fileWriteFunc, (void *)f, td.width, td.height, numComps,
                                        subdata[0], rowPitch);
       success = (ret != 0);
+
+      if(!success)
+        RDCERR("stbi_write_png_to_func failed: %d", ret);
     }
     else if(sd.destType == FileType::TGA)
     {
@@ -989,6 +996,9 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       int ret = stbi_write_tga_to_func(fileWriteFunc, (void *)f, td.width, td.height, numComps,
                                        subdata[0]);
       success = (ret != 0);
+
+      if(!success)
+        RDCERR("stbi_write_tga_to_func failed: %d", ret);
     }
     else if(sd.destType == FileType::JPG)
     {
@@ -1004,6 +1014,9 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
       success = jpge::compress_image_to_jpeg_file_in_memory(jpgdst, len, td.width, td.height,
                                                             numComps, subdata[0], p);
+
+      if(!success)
+        RDCERR("jpge::compress_image_to_jpeg_file_in_memory failed");
 
       if(success)
         fwrite(jpgdst, 1, len, f);
@@ -1144,6 +1157,9 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       {
         int ret = stbi_write_hdr_to_func(fileWriteFunc, (void *)f, td.width, td.height, 4, fldata);
         success = (ret != 0);
+
+        if(!success)
+          RDCERR("stbi_write_hdr_to_func failed: %d", ret);
       }
       else if(sd.destType == FileType::EXR)
       {

@@ -326,6 +326,17 @@ FILE *fopen(const char *filename, const char *mode)
   return ::fopen(filename, mode);
 }
 
+std::string ErrorString()
+{
+  int err = errno;
+
+  char buf[256] = {0};
+
+  strerror_r(err, buf, 256);
+
+  return buf;
+}
+
 string getline(FILE *f)
 {
   string ret;

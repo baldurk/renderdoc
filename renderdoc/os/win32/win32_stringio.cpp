@@ -476,6 +476,17 @@ bool exists(const char *filename)
   return (res == 0);
 }
 
+std::string ErrorString()
+{
+  int err = errno;
+
+  char buf[256] = {0};
+
+  strerror_s(buf, err);
+
+  return buf;
+}
+
 string getline(FILE *f)
 {
   string ret;

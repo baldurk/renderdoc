@@ -694,7 +694,10 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
   headerDXT10.arraySize = data.slices;
 
   if(headerDXT10.dxgiFormat == DXGI_FORMAT_UNKNOWN)
+  {
+    RDCERR("Couldn't convert resource format to DXGI format");
     return false;
+  }
 
   if(data.cubemap)
   {

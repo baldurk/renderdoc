@@ -254,6 +254,8 @@ size_t fwrite(const void *buf, size_t elementSize, size_t count, FILE *f);
 
 bool exists(const char *filename);
 
+std::string ErrorString();
+
 std::string getline(FILE *f);
 
 uint64_t ftell64(FILE *f);
