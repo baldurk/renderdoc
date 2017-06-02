@@ -347,7 +347,6 @@ private:
   GLuint m_FakeBB_Color;
   GLuint m_FakeBB_DepthStencil;
   GLuint m_FakeVAO;
-  GLuint m_FakeIdxBuf;
   GLsizeiptr m_FakeIdxSize;
 
   ResourceId m_FakeVAOID;
@@ -395,6 +394,7 @@ private:
       m_TextureUnit = 0;
       m_ProgramPipeline = m_Program = 0;
       RDCEraseEl(m_ClientMemoryVBOs);
+      m_ClientMemoryIBO = 0;
     }
 
     void *ctx;
@@ -453,6 +453,7 @@ private:
     // GLES allows drawing from client memory, in which case we will copy to
     // temporary VBOs so that input mesh data is recorded. See struct ClientMemoryData
     GLuint m_ClientMemoryVBOs[16];
+    GLuint m_ClientMemoryIBO;
   };
 
   struct ClientMemoryData
@@ -469,8 +470,9 @@ private:
     std::vector<VertexAttrib> attribs;
     GLuint prevArrayBufferBinding;
   };
-  ClientMemoryData *CopyClientMemoryArrays(GLint first, GLsizei count);
-  void RestoreClientMemoryArrays(ClientMemoryData *clientMemoryArrays);
+  ClientMemoryData *CopyClientMemoryArrays(GLint first, GLsizei count, GLenum indexType,
+                                           const void *&indices);
+  void RestoreClientMemoryArrays(ClientMemoryData *clientMemoryArrays, GLenum indexType);
 
   map<void *, ContextData> m_ContextData;
 
@@ -1740,12 +1742,6 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4x3dv(GLuint program, GLint location,
                                                                   GLsizei count, GLboolean transpose,
                                                                   const GLdouble *value));
-
-  // utility handling functions for glDraw*Elements* to handle pointers to indices being
-  // passed directly, with no index buffer bound. It's not allowed in core profile but
-  // it's fairly common and not too hard to support
-  byte *Common_preElements(GLsizei Count, GLenum Type, uint64_t &IdxOffset);
-  void Common_postElements(byte *idxDelete);
 
   // final check function to ensure we don't try and render with no index buffer bound
   bool Check_preElements();

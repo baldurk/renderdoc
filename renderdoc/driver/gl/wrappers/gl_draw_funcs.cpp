@@ -718,11 +718,37 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
   return true;
 }
 
-WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint first, GLsizei count)
+WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint first, GLsizei count,
+                                                                       GLenum indexType,
+                                                                       const void *&indices)
 {
+  RDCASSERT(m_State == WRITING_CAPFRAME);
   ContextData &cd = GetCtxData();
+
+  GLint idxbuf = 0;
+  GLsizeiptr idxlen = 0;
+  const void *mmIndices = indices;
+  if(indexType != eGL_NONE)
+  {
+    uint32_t IdxSize = indexType == eGL_UNSIGNED_BYTE ? 1 : indexType == eGL_UNSIGNED_SHORT
+                                                                ? 2
+                                                                : /*Type == eGL_UNSIGNED_INT*/ 4;
+    idxlen = GLsizeiptr(IdxSize * count);
+
+    m_Real.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
+    if(idxbuf == 0)
+    {
+      // Bind and update fake index buffer, to draw from the 'immediate' index data
+      glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, cd.m_ClientMemoryIBO);
+      glBufferData(eGL_ELEMENT_ARRAY_BUFFER, idxlen, indices, eGL_STATIC_DRAW);
+
+      // Set offset to 0 - means we read data from start of our fake index buffer
+      indices = 0;
+    }
+  }
+
   GLResourceRecord *varecord = cd.m_VertexArrayRecord;
-  if(m_State != WRITING_CAPFRAME || varecord)    // Early out if VAO bound, as VAOs are VBO-only.
+  if(varecord)    // Early out if VAO bound, as VAOs are VBO-only.
     return NULL;
 
   ClientMemoryData *clientMemory = new ClientMemoryData;
@@ -740,6 +766,52 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
     m_Real.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, (GLint *)&buffer);
     if(buffer != 0)
       continue;
+
+    if(indexType != eGL_NONE && first == -1)
+    {
+      // First time we know we are using client-memory along with indices.
+      // Iterate over the indices to find the range of client memory to copy.
+      if(idxbuf != 0)
+      {
+        // If we were using a real index buffer, read it back to check its range.
+        mmIndices = m_Real.glMapBufferRange(eGL_ELEMENT_ARRAY_BUFFER, (size_t)indices,
+                                            idxlen - (size_t)indices, eGL_MAP_READ_BIT);
+      }
+
+      size_t min = ~0u, max = 0;
+      GLsizei j;
+      switch(indexType)
+      {
+        case eGL_UNSIGNED_BYTE:
+          for(j = 0; j < count; j++)
+          {
+            min = RDCMIN(min, (size_t)((GLubyte *)mmIndices)[j]);
+            max = RDCMAX(max, (size_t)((GLubyte *)mmIndices)[j]);
+          }
+          break;
+        case eGL_UNSIGNED_SHORT:
+          for(j = 0; j < count; j++)
+          {
+            min = RDCMIN(min, (size_t)((GLushort *)mmIndices)[j]);
+            max = RDCMAX(max, (size_t)((GLushort *)mmIndices)[j]);
+          }
+          break;
+        case eGL_UNSIGNED_INT:
+          for(j = 0; j < count; j++)
+          {
+            min = RDCMIN(min, (size_t)((GLuint *)mmIndices)[j]);
+            max = RDCMAX(max, (size_t)((GLuint *)mmIndices)[j]);
+          }
+          break;
+        default:;
+      }
+
+      first = (GLint)min;
+      count = (GLint)(max - min + 1);
+
+      if(idxbuf != 0)
+        m_Real.glUnmapBuffer(eGL_ELEMENT_ARRAY_BUFFER_BINDING);
+    }
 
     // App initially used client memory, so copy it into the temporary buffer.
     ClientMemoryData::VertexAttrib attrib;
@@ -764,8 +836,18 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
   return clientMemory;
 }
 
-void WrappedOpenGL::RestoreClientMemoryArrays(ClientMemoryData *clientMemoryArrays)
+void WrappedOpenGL::RestoreClientMemoryArrays(ClientMemoryData *clientMemoryArrays, GLenum indexType)
 {
+  if(indexType != eGL_NONE)
+  {
+    ContextData &cd = GetCtxData();
+    GLuint idxbuf = 0;
+    m_Real.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&idxbuf);
+    if(idxbuf == cd.m_ClientMemoryIBO)
+      // Restore the zero buffer binding if we were using the fake index buffer.
+      glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
+  }
+
   if(!clientMemoryArrays)
     return;
 
@@ -785,12 +867,13 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
   CoherentMapImplicitBarrier();
 
-  ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count);
-
   m_Real.glDrawArrays(mode, first, count);
 
   if(m_State == WRITING_CAPFRAME)
   {
+    const void *indices = NULL;
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count, eGL_NONE, indices);
+
     SCOPED_SERIALISE_CONTEXT(DRAWARRAYS);
     Serialise_glDrawArrays(mode, first, count);
 
@@ -799,14 +882,14 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.FetchState(GetCtx(), this);
     state.MarkReferenced(this, false);
+
+    RestoreClientMemoryArrays(clientMemory, eGL_NONE);
   }
   else if(m_State == WRITING_IDLE)
   {
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.MarkDirty(this);
   }
-
-  RestoreClientMemoryArrays(clientMemory);
 }
 
 bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indirect)
@@ -925,12 +1008,13 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
 {
   CoherentMapImplicitBarrier();
 
-  ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count);
-
   m_Real.glDrawArraysInstanced(mode, first, count, instancecount);
 
   if(m_State == WRITING_CAPFRAME)
   {
+    const void *indices = NULL;
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count, eGL_NONE, indices);
+
     SCOPED_SERIALISE_CONTEXT(DRAWARRAYS_INSTANCED);
     Serialise_glDrawArraysInstanced(mode, first, count, instancecount);
 
@@ -939,14 +1023,14 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.FetchState(GetCtx(), this);
     state.MarkReferenced(this, false);
+
+    RestoreClientMemoryArrays(clientMemory, eGL_NONE);
   }
   else if(m_State == WRITING_IDLE)
   {
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.MarkDirty(this);
   }
-
-  RestoreClientMemoryArrays(clientMemory);
 }
 
 bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLint first,
@@ -1032,77 +1116,6 @@ bool WrappedOpenGL::Check_preElements()
   return true;
 }
 
-byte *WrappedOpenGL::Common_preElements(GLsizei Count, GLenum Type, uint64_t &IdxOffset)
-{
-  GLint idxbuf = 0;
-  // while writing, check to see if an index buffer is bound
-  if(m_State >= WRITING)
-    m_Real.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
-
-  // serialise whether we're reading indices as memory
-  SERIALISE_ELEMENT(bool, IndicesFromMemory, idxbuf == 0);
-
-  if(IndicesFromMemory)
-  {
-    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
-                                                           ? 2
-                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
-
-    // serialise the actual data (IdxOffset is a pointer not an offset in this case)
-    SERIALISE_ELEMENT_BUF(byte *, idxdata, (void *)IdxOffset, size_t(IdxSize * Count));
-
-    if(m_State <= EXECUTING)
-    {
-      GLsizeiptr idxlen = GLsizeiptr(IdxSize * Count);
-
-      // resize fake index buffer if necessary
-      if(idxlen > m_FakeIdxSize)
-      {
-        m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
-        m_Real.glDeleteBuffers(1, &m_FakeIdxBuf);
-
-        m_FakeIdxSize = idxlen;
-
-        m_Real.glGenBuffers(1, &m_FakeIdxBuf);
-        m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
-        m_Real.glNamedBufferStorageEXT(m_FakeIdxBuf, m_FakeIdxSize, NULL, GL_DYNAMIC_STORAGE_BIT);
-      }
-
-      // bind and update fake index buffer, to draw from the 'immediate' index data
-      m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
-
-      m_Real.glNamedBufferSubDataEXT(m_FakeIdxBuf, 0, idxlen, idxdata);
-
-      // Set offset to 0 - means we read data from start of our fake index buffer
-      IdxOffset = 0;
-
-      // we'll delete this later (only when replaying)
-      return idxdata;
-    }
-
-    // can just return NULL, since we don't need to do any cleanup or deletion
-  }
-
-  return NULL;
-}
-
-void WrappedOpenGL::Common_postElements(byte *idxDelete)
-{
-  // unbind temporary fake index buffer we used to pass 'immediate' index data
-  if(idxDelete)
-  {
-    m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
-
-    AddDebugMessage(MessageCategory::Deprecated, MessageSeverity::High,
-                    MessageSource::IncorrectAPIUse,
-                    "Assuming GL core profile is used then specifying indices as a raw array, "
-                    "not as offset into element array buffer, is illegal.");
-
-    // delete serialised data
-    SAFE_DELETE_ARRAY(idxDelete);
-  }
-}
-
 bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum type,
                                              const void *indices)
 {
@@ -1111,14 +1124,10 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
   SERIALISE_ELEMENT(GLenum, Type, type);
   SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
 
-  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-
   if(m_State <= EXECUTING)
   {
     if(Check_preElements())
       m_Real.glDrawElements(Mode, Count, Type, (const void *)IdxOffset);
-
-    Common_postElements(idxDelete);
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -1161,6 +1170,8 @@ void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, cons
 
   if(m_State == WRITING_CAPFRAME)
   {
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+
     SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS);
     Serialise_glDrawElements(mode, count, type, indices);
 
@@ -1169,6 +1180,8 @@ void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, cons
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.FetchState(GetCtx(), this);
     state.MarkReferenced(this, false);
+
+    RestoreClientMemoryArrays(clientMemory, type);
   }
   else if(m_State == WRITING_IDLE)
   {
@@ -1265,14 +1278,10 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
   SERIALISE_ELEMENT(GLenum, Type, type);
   SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
 
-  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-
   if(m_State <= EXECUTING)
   {
     if(Check_preElements())
       m_Real.glDrawRangeElements(Mode, Start, End, Count, Type, (const void *)IdxOffset);
-
-    Common_postElements(idxDelete);
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -1316,6 +1325,8 @@ void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, G
 
   if(m_State == WRITING_CAPFRAME)
   {
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+
     SCOPED_SERIALISE_CONTEXT(DRAWRANGEELEMENTS);
     Serialise_glDrawRangeElements(mode, start, end, count, type, indices);
 
@@ -1324,6 +1335,8 @@ void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, G
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.FetchState(GetCtx(), this);
     state.MarkReferenced(this, false);
+
+    RestoreClientMemoryArrays(clientMemory, type);
   }
   else if(m_State == WRITING_IDLE)
   {
@@ -1344,15 +1357,11 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
   SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
   SERIALISE_ELEMENT(uint32_t, BaseVtx, basevertex);
 
-  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-
   if(m_State <= EXECUTING)
   {
     if(Check_preElements())
       m_Real.glDrawRangeElementsBaseVertex(Mode, Start, End, Count, Type, (const void *)IdxOffset,
                                            BaseVtx);
-
-    Common_postElements(idxDelete);
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -1397,6 +1406,8 @@ void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLu
 
   if(m_State == WRITING_CAPFRAME)
   {
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+
     SCOPED_SERIALISE_CONTEXT(DRAWRANGEELEMENTSBASEVERTEX);
     Serialise_glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex);
 
@@ -1405,6 +1416,8 @@ void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLu
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.FetchState(GetCtx(), this);
     state.MarkReferenced(this, false);
+
+    RestoreClientMemoryArrays(clientMemory, type);
   }
   else if(m_State == WRITING_IDLE)
   {
@@ -1422,14 +1435,10 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
   SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
   SERIALISE_ELEMENT(int32_t, BaseVtx, basevertex);
 
-  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-
   if(m_State <= EXECUTING)
   {
     if(Check_preElements())
       m_Real.glDrawElementsBaseVertex(Mode, Count, Type, (const void *)IdxOffset, BaseVtx);
-
-    Common_postElements(idxDelete);
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -1473,6 +1482,8 @@ void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum 
 
   if(m_State == WRITING_CAPFRAME)
   {
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+
     SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_BASEVERTEX);
     Serialise_glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
 
@@ -1481,6 +1492,8 @@ void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum 
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.FetchState(GetCtx(), this);
     state.MarkReferenced(this, false);
+
+    RestoreClientMemoryArrays(clientMemory, type);
   }
   else if(m_State == WRITING_IDLE)
   {
@@ -1498,14 +1511,10 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
   SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
   SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
 
-  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-
   if(m_State <= EXECUTING)
   {
     if(Check_preElements())
       m_Real.glDrawElementsInstanced(Mode, Count, Type, (const void *)IdxOffset, InstCount);
-
-    Common_postElements(idxDelete);
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -1549,6 +1558,8 @@ void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum t
 
   if(m_State == WRITING_CAPFRAME)
   {
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+
     SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCED);
     Serialise_glDrawElementsInstanced(mode, count, type, indices, instancecount);
 
@@ -1557,6 +1568,8 @@ void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum t
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.FetchState(GetCtx(), this);
     state.MarkReferenced(this, false);
+
+    RestoreClientMemoryArrays(clientMemory, type);
   }
   else if(m_State == WRITING_IDLE)
   {
@@ -1577,15 +1590,11 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
   SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
   SERIALISE_ELEMENT(uint32_t, BaseInstance, baseinstance);
 
-  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-
   if(m_State <= EXECUTING)
   {
     if(Check_preElements())
       m_Real.glDrawElementsInstancedBaseInstance(Mode, Count, Type, (const void *)IdxOffset,
                                                  InstCount, BaseInstance);
-
-    Common_postElements(idxDelete);
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -1630,6 +1639,8 @@ void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei cou
 
   if(m_State == WRITING_CAPFRAME)
   {
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+
     SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCEDBASEINSTANCE);
     Serialise_glDrawElementsInstancedBaseInstance(mode, count, type, indices, instancecount,
                                                   baseinstance);
@@ -1639,6 +1650,8 @@ void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei cou
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.FetchState(GetCtx(), this);
     state.MarkReferenced(this, false);
+
+    RestoreClientMemoryArrays(clientMemory, type);
   }
   else if(m_State == WRITING_IDLE)
   {
@@ -1659,15 +1672,11 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
   SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
   SERIALISE_ELEMENT(int32_t, BaseVertex, basevertex);
 
-  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-
   if(m_State <= EXECUTING)
   {
     if(Check_preElements())
       m_Real.glDrawElementsInstancedBaseVertex(Mode, Count, Type, (const void *)IdxOffset,
                                                InstCount, BaseVertex);
-
-    Common_postElements(idxDelete);
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -1713,6 +1722,8 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count
 
   if(m_State == WRITING_CAPFRAME)
   {
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+
     SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCEDBASEVERTEX);
     Serialise_glDrawElementsInstancedBaseVertex(mode, count, type, indices, instancecount,
                                                 basevertex);
@@ -1722,6 +1733,8 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.FetchState(GetCtx(), this);
     state.MarkReferenced(this, false);
+
+    RestoreClientMemoryArrays(clientMemory, type);
   }
   else if(m_State == WRITING_IDLE)
   {
@@ -1742,15 +1755,11 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
   SERIALISE_ELEMENT(int32_t, BaseVertex, basevertex);
   SERIALISE_ELEMENT(uint32_t, BaseInstance, baseinstance);
 
-  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-
   if(m_State <= EXECUTING)
   {
     if(Check_preElements())
       m_Real.glDrawElementsInstancedBaseVertexBaseInstance(
           Mode, Count, Type, (const void *)IdxOffset, InstCount, BaseVertex, BaseInstance);
-
-    Common_postElements(idxDelete);
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -1799,6 +1808,8 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, G
 
   if(m_State == WRITING_CAPFRAME)
   {
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+
     SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE);
     Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
         mode, count, type, indices, instancecount, basevertex, baseinstance);
@@ -1808,6 +1819,8 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, G
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.FetchState(GetCtx(), this);
     state.MarkReferenced(this, false);
+
+    RestoreClientMemoryArrays(clientMemory, type);
   }
   else if(m_State == WRITING_IDLE)
   {
