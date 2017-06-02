@@ -4164,18 +4164,46 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(ID3D11Bu
         uint32_t StartInstanceLocation;
       };
 
-      DrawArgs *args = (DrawArgs *)&argarray[0];
+      if(argarray.size() >= sizeof(DrawArgs))
+      {
+        DrawArgs *args = (DrawArgs *)&argarray[0];
 
-      draw.numIndices = args->IndexCountPerInstance;
-      draw.numInstances = args->InstanceCount;
-      draw.indexOffset = args->StartIndexLocation;
-      draw.baseVertex = args->BaseVertexLocation;
-      draw.instanceOffset = args->StartInstanceLocation;
+        draw.numIndices = args->IndexCountPerInstance;
+        draw.numInstances = args->InstanceCount;
+        draw.indexOffset = args->StartIndexLocation;
+        draw.baseVertex = args->BaseVertexLocation;
+        draw.instanceOffset = args->StartInstanceLocation;
 
-      RecordDrawStats(true, true, draw.numInstances);
+        RecordDrawStats(true, true, draw.numInstances);
 
-      name = "DrawIndexedInstancedIndirect(<" + ToStr::Get(draw.numIndices) + ", " +
-             ToStr::Get(draw.numInstances) + ">)";
+        name = "DrawIndexedInstancedIndirect(<" + ToStr::Get(draw.numIndices) + ", " +
+               ToStr::Get(draw.numInstances) + ">)";
+      }
+      else
+      {
+        name = "DrawIndexedInstancedIndirect(<error>)";
+        D3D11_BUFFER_DESC bufDesc;
+
+        argBuffer->GetDesc(&bufDesc);
+
+        if(AlignedByteOffsetForArgs >= bufDesc.ByteWidth)
+        {
+          m_pDevice->AddDebugMessage(
+              MessageCategory::Execution, MessageSeverity::High, MessageSource::IncorrectAPIUse,
+              StringFormat::Fmt("Call to DrawIndexedInstancedIndirect with buffer of %u "
+                                "bytes, but byte offset specified is %u bytes.",
+                                bufDesc.ByteWidth, AlignedByteOffsetForArgs));
+        }
+        else if(AlignedByteOffsetForArgs + sizeof(DrawArgs) >= bufDesc.ByteWidth)
+        {
+          m_pDevice->AddDebugMessage(
+              MessageCategory::Execution, MessageSeverity::High, MessageSource::IncorrectAPIUse,
+              StringFormat::Fmt(
+                  "Call to DrawIndexedInstancedIndirect with buffer of %u "
+                  "bytes at offset of %u bytes, which leaves less than %u bytes for the arguments.",
+                  bufDesc.ByteWidth, AlignedByteOffsetForArgs, sizeof(DrawArgs)));
+        }
+      }
 
       m_ResourceUses[GetIDForResource(argBuffer)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Indirect));
@@ -4255,14 +4283,43 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(ID3D11Buffer *p
                                                   4 * sizeof(uint32_t), args);
       uint32_t *uargs = (uint32_t *)&args[0];
 
-      name = "DrawInstancedIndirect(<" + ToStr::Get(uargs[0]) + ", " + ToStr::Get(uargs[1]) + ">)";
+      if(args.size() >= sizeof(uint32_t) * 4)
+      {
+        draw.numIndices = uargs[0];
+        draw.numInstances = uargs[1];
+        draw.vertexOffset = uargs[2];
+        draw.instanceOffset = uargs[3];
 
-      draw.numIndices = uargs[0];
-      draw.numInstances = uargs[1];
-      draw.vertexOffset = uargs[2];
-      draw.instanceOffset = uargs[3];
+        name =
+            "DrawInstancedIndirect(<" + ToStr::Get(uargs[0]) + ", " + ToStr::Get(uargs[1]) + ">)";
 
-      RecordDrawStats(true, true, draw.numInstances);
+        RecordDrawStats(true, true, draw.numInstances);
+      }
+      else
+      {
+        name = "DrawInstancedIndirect(<error>)";
+        D3D11_BUFFER_DESC bufDesc;
+
+        argBuffer->GetDesc(&bufDesc);
+
+        if(AlignedByteOffsetForArgs >= bufDesc.ByteWidth)
+        {
+          m_pDevice->AddDebugMessage(
+              MessageCategory::Execution, MessageSeverity::High, MessageSource::IncorrectAPIUse,
+              StringFormat::Fmt("Call to DrawInstancedIndirect with buffer of %u "
+                                "bytes, but byte offset specified is %u bytes.",
+                                bufDesc.ByteWidth, AlignedByteOffsetForArgs));
+        }
+        else if(AlignedByteOffsetForArgs + sizeof(uint32_t) * 4 >= bufDesc.ByteWidth)
+        {
+          m_pDevice->AddDebugMessage(
+              MessageCategory::Execution, MessageSeverity::High, MessageSource::IncorrectAPIUse,
+              StringFormat::Fmt(
+                  "Call to DrawInstancedIndirect with buffer of %u "
+                  "bytes at offset of %u bytes, which leaves less than %u bytes for the arguments.",
+                  bufDesc.ByteWidth, AlignedByteOffsetForArgs, sizeof(uint32_t) * 4));
+        }
+      }
 
       m_ResourceUses[GetIDForResource(argBuffer)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Indirect));
@@ -5032,15 +5089,43 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(ID3D11Buffer *pBuffe
 
       vector<byte> args;
       m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs,
-                                                  5 * sizeof(uint32_t), args);
+                                                  3 * sizeof(uint32_t), args);
       uint32_t *uargs = (uint32_t *)&args[0];
 
-      name = "DispatchIndirect(<" + ToStr::Get(uargs[0]) + ", " + ToStr::Get(uargs[1]) + +", " +
-             ToStr::Get(uargs[2]) + ">)";
+      if(args.size() >= sizeof(uint32_t) * 3)
+      {
+        draw.dispatchDimension[0] = uargs[0];
+        draw.dispatchDimension[1] = uargs[1];
+        draw.dispatchDimension[2] = uargs[2];
 
-      draw.dispatchDimension[0] = uargs[0];
-      draw.dispatchDimension[1] = uargs[1];
-      draw.dispatchDimension[2] = uargs[2];
+        name = "DispatchIndirect(<" + ToStr::Get(uargs[0]) + ", " + ToStr::Get(uargs[1]) + +", " +
+               ToStr::Get(uargs[2]) + ">)";
+      }
+      else
+      {
+        name = "DispatchIndirect(<error>)";
+        D3D11_BUFFER_DESC bufDesc;
+
+        argBuffer->GetDesc(&bufDesc);
+
+        if(AlignedByteOffsetForArgs >= bufDesc.ByteWidth)
+        {
+          m_pDevice->AddDebugMessage(
+              MessageCategory::Execution, MessageSeverity::High, MessageSource::IncorrectAPIUse,
+              StringFormat::Fmt("Call to DispatchIndirect with buffer of %u "
+                                "bytes, but byte offset specified is %u bytes.",
+                                bufDesc.ByteWidth, AlignedByteOffsetForArgs));
+        }
+        else if(AlignedByteOffsetForArgs + sizeof(uint32_t) * 3 >= bufDesc.ByteWidth)
+        {
+          m_pDevice->AddDebugMessage(
+              MessageCategory::Execution, MessageSeverity::High, MessageSource::IncorrectAPIUse,
+              StringFormat::Fmt(
+                  "Call to DispatchIndirect with buffer of %u "
+                  "bytes at offset of %u bytes, which leaves less than %u bytes for the arguments.",
+                  bufDesc.ByteWidth, AlignedByteOffsetForArgs, sizeof(uint32_t) * 3));
+        }
+      }
 
       m_ResourceUses[GetIDForResource(argBuffer)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Indirect));
@@ -7461,12 +7546,8 @@ bool WrappedID3D11DeviceContext::Serialise_Map(ID3D11Resource *pResource, UINT S
           }
           else
           {
-            RDCUNIMPLEMENTED("Not getting initial contents for non-buffer GPU dirty map");    // need
-                                                                                              // to
-                                                                                              // get
-            // initial
-            // contents
-            // out
+            // need to get initial contents out
+            RDCUNIMPLEMENTED("Not getting initial contents for non-buffer GPU dirty map");
             RDCERR(
                 "CORRUPTION - Invalid/inaccurate initial data for Map() - non-buffer GPU dirty "
                 "data mapped");
