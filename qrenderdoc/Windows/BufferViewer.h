@@ -56,6 +56,8 @@ class BufferViewer : public QFrame, public IBufferViewer, public ILogViewer
 {
   Q_OBJECT
 
+  Q_PROPERTY(QVariant persistData READ persistData WRITE setPersistData DESIGNABLE false SCRIPTABLE false)
+
 public:
   explicit BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent = 0);
   ~BufferViewer();
@@ -81,6 +83,9 @@ public:
   void OnLogfileClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
+
+  QVariant persistData();
+  void setPersistData(const QVariant &persistData);
 
 private slots:
   // automatic slots

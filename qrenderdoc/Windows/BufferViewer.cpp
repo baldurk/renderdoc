@@ -1438,6 +1438,20 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   });
 }
 
+QVariant BufferViewer::persistData()
+{
+  QVariantMap state = ui->dockarea->saveState();
+
+  return state;
+}
+
+void BufferViewer::setPersistData(const QVariant &persistData)
+{
+  QVariantMap state = persistData.toMap();
+
+  ui->dockarea->restoreState(state);
+}
+
 void BufferViewer::RT_FetchMeshData(IReplayController *r)
 {
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
