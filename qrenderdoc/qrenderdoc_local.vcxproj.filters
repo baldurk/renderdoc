@@ -606,6 +606,18 @@
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManagerTabBar.cpp">
       <Filter>3rdparty\ToolWindowManager</Filter>
     </ClCompile>
+    <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManagerSplitter.cpp">
+      <Filter>3rdparty\ToolWindowManager</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ToolWindowManagerSplitter.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDHeaderView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Extended\RDHeaderView.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1378,6 +1390,12 @@
     </CustomBuild>
     <CustomBuild Include="3rdparty\toolwindowmanager\ToolWindowManagerTabBar.h">
       <Filter>3rdparty\ToolWindowManager</Filter>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\toolwindowmanager\ToolWindowManagerSplitter.h">
+      <Filter>3rdparty\ToolWindowManager</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDHeaderView.h">
+      <Filter>Widgets\Extended</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

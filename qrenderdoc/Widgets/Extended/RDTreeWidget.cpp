@@ -27,6 +27,7 @@
 #include <QClipboard>
 #include <QColor>
 #include <QDebug>
+#include <QHeaderView>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPen>
@@ -415,6 +416,8 @@ RDTreeWidget::RDTreeWidget(QWidget *parent) : RDTreeView(parent)
 {
   // we'll call this ourselves in drawBranches()
   RDTreeView::enableBranchRectFill(false);
+
+  header()->setSectionsMovable(false);
 
   m_root = new RDTreeWidgetItem;
   m_root->m_widget = this;

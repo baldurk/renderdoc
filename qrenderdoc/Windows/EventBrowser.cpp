@@ -31,6 +31,7 @@
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
+#include "Widgets/Extended/RDHeaderView.h"
 #include "ui_EventBrowser.h"
 
 struct EventItemTag
@@ -73,9 +74,15 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->events->setColumns(
       {tr("Name"), lit("EID"), lit("Duration - replaced in UpdateDurationColumn")});
 
+  ui->events->setHeader(new RDHeaderView(Qt::Horizontal, this));
+  ui->events->header()->setStretchLastSection(true);
+  ui->events->header()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+
   ui->events->header()->resizeSection(COL_EID, 80);
 
-  ui->events->header()->setSectionResizeMode(COL_NAME, QHeaderView::Stretch);
+  ui->events->header()->setMinimumSectionSize(40);
+
+  ui->events->header()->setSectionResizeMode(COL_NAME, QHeaderView::Interactive);
   ui->events->header()->setSectionResizeMode(COL_EID, QHeaderView::Interactive);
   ui->events->header()->setSectionResizeMode(COL_DURATION, QHeaderView::Interactive);
 
@@ -83,9 +90,9 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   // expand/collapse widgets. Then we need to put them back in order
   ui->events->header()->moveSection(COL_NAME, COL_EID);
 
-  // Qt doesn't allow moving the column with the expand/collapse widgets, so this
-  // becomes quickly infuriating to rearrange, just disable until that can be fixed.
-  ui->events->header()->setSectionsMovable(false);
+  ui->events->header()->setSectionsMovable(true);
+
+  ui->events->header()->setCascadingSectionResizes(false);
 
   ui->events->setItemVerticalMargin(3);
 
