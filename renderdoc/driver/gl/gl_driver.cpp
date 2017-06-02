@@ -909,7 +909,6 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs, GLPlat
   m_FakeBB_Color = 0;
   m_FakeBB_DepthStencil = 0;
   m_FakeVAO = 0;
-  m_FakeIdxBuf = 0;
   m_FakeIdxSize = 0;
 
   m_CurChunkOffset = 0;
@@ -939,14 +938,6 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
   gl.glGenVertexArrays(1, &m_FakeVAO);
   gl.glBindVertexArray(m_FakeVAO);
   gl.glBindVertexArray(0);
-
-  // we use this to draw from index data that was 'immediate' passed to the
-  // draw function, as i na real memory pointer
-  gl.glGenBuffers(1, &m_FakeIdxBuf);
-  gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
-  m_FakeIdxSize = 1024 * 1024;    // this buffer is resized up as needed
-  gl.glNamedBufferDataEXT(m_FakeIdxBuf, m_FakeIdxSize, NULL, eGL_DYNAMIC_DRAW);
-  gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
 
   gl.glGenFramebuffers(1, &m_FakeBB_FBO);
   gl.glBindFramebuffer(eGL_FRAMEBUFFER, m_FakeBB_FBO);
@@ -1087,8 +1078,6 @@ string ToStrHelper<false, GLChunkType>::Get(const GLChunkType &el)
 
 WrappedOpenGL::~WrappedOpenGL()
 {
-  if(m_FakeIdxBuf)
-    m_Real.glDeleteBuffers(1, &m_FakeIdxBuf);
   if(m_FakeVAO)
     m_Real.glDeleteVertexArrays(1, &m_FakeVAO);
   if(m_FakeBB_FBO)
@@ -1162,6 +1151,8 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 
   if(ctxdata.m_ClientMemoryVBOs[0])
     glDeleteBuffers(ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs), ctxdata.m_ClientMemoryVBOs);
+  if(ctxdata.m_ClientMemoryIBO)
+    glDeleteBuffers(1, &ctxdata.m_ClientMemoryIBO);
 
   for(auto it = m_LastContexts.begin(); it != m_LastContexts.end(); ++it)
   {
@@ -1558,6 +1549,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
           glBufferData(eGL_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
         }
         glBindBuffer(eGL_ARRAY_BUFFER, prevArrayBuffer);
+        glGenBuffers(1, &ctxdata.m_ClientMemoryIBO);
       }
     }
   }
