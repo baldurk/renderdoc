@@ -234,7 +234,7 @@ private:
 
   QStringList m_headers;
 
-  bool m_queueUpdates;
+  bool m_queueUpdates = false;
 
   RDTreeWidgetItem *m_queuedItem;
   QPair<int, int> m_lowestIndex;
