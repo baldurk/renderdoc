@@ -7087,9 +7087,10 @@ inline uint32_t MakeSPIRVOp(spv::Op op, uint32_t WordCount)
   return (uint32_t(op) & spv::OpCodeMask) | (WordCount << spv::WordCountShift);
 }
 
-static void AddOutputDumping(const ShaderReflection &refl, const char *entryName, uint32_t descSet,
-                             uint32_t vertexIndexOffset, uint32_t instanceIndexOffset,
-                             uint32_t numVerts, vector<uint32_t> &modSpirv, uint32_t &bufStride)
+static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData &patchData,
+                             const char *entryName, uint32_t descSet, uint32_t vertexIndexOffset,
+                             uint32_t instanceIndexOffset, uint32_t numVerts,
+                             vector<uint32_t> &modSpirv, uint32_t &bufStride)
 {
   uint32_t *spirv = &modSpirv[0];
   size_t spirvLength = modSpirv.size();
@@ -7138,10 +7139,7 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
     uint32_t constID;         // constant ID for the index of this output
     uint32_t basetypeID;      // the type ID for this output. Must be present already by definition!
     uint32_t uniformPtrID;    // Uniform Pointer ID for this output. Used to write the output data
-
-    uint32_t varID;    // we get this from the output signature, ID of actual variable
-    uint32_t
-        childIdx;    // if the output variable is a struct, this is the member idx of this output
+    uint32_t outputPtrID;     // Output Pointer ID for this output. Used to read the output data
   };
   outputIDs outs[100] = {};
 
@@ -7196,30 +7194,54 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
         outs[i].constID = spirv[it + 2];
       }
 
-      if(refl.OutputSig[i].compCount > 1 && opcode == spv::OpTypeVector)
+      if(outs[i].basetypeID == 0)
       {
-        uint32_t baseID = 0;
+        if(refl.OutputSig[i].compCount > 1 && opcode == spv::OpTypeVector)
+        {
+          uint32_t baseID = 0;
 
-        if(refl.OutputSig[i].compType == CompType::UInt)
-          baseID = uint32ID;
-        else if(refl.OutputSig[i].compType == CompType::SInt)
-          baseID = sint32ID;
-        else if(refl.OutputSig[i].compType == CompType::Float)
-          baseID = floatID;
-        else if(refl.OutputSig[i].compType == CompType::Double)
-          baseID = doubleID;
-        else
-          RDCERR("Unexpected component type for output signature element");
+          if(refl.OutputSig[i].compType == CompType::UInt)
+            baseID = uint32ID;
+          else if(refl.OutputSig[i].compType == CompType::SInt)
+            baseID = sint32ID;
+          else if(refl.OutputSig[i].compType == CompType::Float)
+            baseID = floatID;
+          else if(refl.OutputSig[i].compType == CompType::Double)
+            baseID = doubleID;
+          else
+            RDCERR("Unexpected component type for output signature element");
 
-        // if we have the base type, see if this is the right sized vector of that type
-        if(baseID != 0 && spirv[it + 2] == baseID && spirv[it + 3] == refl.OutputSig[i].compCount)
-          outs[i].basetypeID = spirv[it + 1];
+          // if we have the base type, see if this is the right sized vector of that type
+          if(baseID != 0 && spirv[it + 2] == baseID && spirv[it + 3] == refl.OutputSig[i].compCount)
+            outs[i].basetypeID = spirv[it + 1];
+        }
+
+        // handle non-vectors
+        if(refl.OutputSig[i].compCount == 1)
+        {
+          if(refl.OutputSig[i].compType == CompType::UInt)
+            outs[i].basetypeID = uint32ID;
+          else if(refl.OutputSig[i].compType == CompType::SInt)
+            outs[i].basetypeID = sint32ID;
+          else if(refl.OutputSig[i].compType == CompType::Float)
+            outs[i].basetypeID = floatID;
+          else if(refl.OutputSig[i].compType == CompType::Double)
+            outs[i].basetypeID = doubleID;
+        }
       }
 
-      // if we've found the base type, try and identify uniform pointers to that type
+      // if we've found the base type, try and identify pointers to that type
       if(outs[i].basetypeID != 0 && opcode == spv::OpTypePointer &&
          spirv[it + 2] == spv::StorageClassUniform && spirv[it + 3] == outs[i].basetypeID)
+      {
         outs[i].uniformPtrID = spirv[it + 1];
+      }
+
+      if(outs[i].basetypeID != 0 && opcode == spv::OpTypePointer &&
+         spirv[it + 2] == spv::StorageClassOutput && spirv[it + 3] == outs[i].basetypeID)
+      {
+        outs[i].outputPtrID = spirv[it + 1];
+      }
     }
 
     if(opcode == spv::OpEntryPoint)
@@ -7259,27 +7281,8 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
 
   for(int i = 0; i < numOutputs; i++)
   {
-    // handle non-vectors once here
-    if(refl.OutputSig[i].compCount == 1)
-    {
-      if(refl.OutputSig[i].compType == CompType::UInt)
-        outs[i].basetypeID = uint32ID;
-      else if(refl.OutputSig[i].compType == CompType::SInt)
-        outs[i].basetypeID = sint32ID;
-      else if(refl.OutputSig[i].compType == CompType::Float)
-        outs[i].basetypeID = floatID;
-      else if(refl.OutputSig[i].compType == CompType::Double)
-        outs[i].basetypeID = doubleID;
-      else
-        RDCERR("Unexpected component type for output signature element");
-    }
-
     // must have at least found the base type, or something has gone seriously wrong
     RDCASSERT(outs[i].basetypeID != 0);
-
-    // bit of a hack, these were stored from SPIR-V disassembly
-    outs[i].varID = atoi(refl.OutputSig[i].semanticIdxName.elems);
-    outs[i].childIdx = refl.OutputSig[i].semanticIndex;
   }
 
   // if needed add new ID for sint32 type
@@ -7471,6 +7474,39 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
         {
           RDCASSERT(outs[j].uniformPtrID == 0);
           outs[j].uniformPtrID = outs[i].uniformPtrID;
+        }
+      }
+    }
+
+    // it would be very strange to have no output pointer ID, since the original SPIR-V would have
+    // had to use some other mechanism to write to the output variable. But just to be safe we
+    // ensure that we have it here too.
+    if(outs[i].outputPtrID == 0)
+    {
+      RDCERR("No output pointer ID found for output %d: %s (%u %u)", i,
+             refl.OutputSig[i].varName.c_str(), refl.OutputSig[i].compType,
+             refl.OutputSig[i].compCount);
+
+      outs[i].outputPtrID = idBound++;
+
+      uint32_t typeOp[] = {
+          MakeSPIRVOp(spv::OpTypePointer, 4), outs[i].outputPtrID, spv::StorageClassOutput,
+          outs[i].basetypeID,
+      };
+
+      // insert at the end of the types/variables/constants section
+      modSpirv.insert(modSpirv.begin() + typeVarOffset, typeOp, typeOp + ARRAY_COUNT(typeOp));
+
+      // update offsets to account for inserted op
+      typeVarOffset += ARRAY_COUNT(typeOp);
+
+      // update subsequent outputs of identical type
+      for(int j = i + 1; j < numOutputs; j++)
+      {
+        if(outs[i].basetypeID == outs[j].basetypeID)
+        {
+          RDCASSERT(outs[j].outputPtrID == 0);
+          outs[j].outputPtrID = outs[i].outputPtrID;
         }
       }
     }
@@ -7735,42 +7771,29 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
       uint32_t loaded = 0;
 
       // not a structure member or array child, can load directly
-      if(outs[o].childIdx == ~0U && refl.OutputSig[o].arrayIndex == ~0U)
+      if(patchData.outputs[o].accessChain.empty())
       {
         loaded = idBound++;
 
         dumpCode.push_back(MakeSPIRVOp(spv::OpLoad, 4));
         dumpCode.push_back(outs[o].basetypeID);
         dumpCode.push_back(loaded);
-        dumpCode.push_back(outs[o].varID);
+        dumpCode.push_back(patchData.outputs[o].ID);
       }
       else
       {
         uint32_t readPtr = idBound++;
         loaded = idBound++;
 
-        uint32_t chainLength = 1;
-
-        if(outs[o].childIdx != ~0U && refl.OutputSig[o].arrayIndex != ~0U)
-          chainLength = 2;
-
         // structure member, need to access chain first
-        dumpCode.push_back(MakeSPIRVOp(spv::OpAccessChain, 4 + chainLength));
-        dumpCode.push_back(outs[o].uniformPtrID);
-        dumpCode.push_back(readPtr);          // readPtr =
-        dumpCode.push_back(outs[o].varID);    // outStructWhatever
+        dumpCode.push_back(
+            MakeSPIRVOp(spv::OpAccessChain, 4 + (uint32_t)patchData.outputs[o].accessChain.size()));
+        dumpCode.push_back(outs[o].outputPtrID);
+        dumpCode.push_back(readPtr);                    // readPtr =
+        dumpCode.push_back(patchData.outputs[o].ID);    // outStructWhatever
 
-        if(outs[o].childIdx != ~0U)
-        {
-          RDCASSERT(outs[o].childIdx < (uint32_t)numOutputs);
-          dumpCode.push_back(outs[outs[o].childIdx].constID);    // .actualOut
-        }
-
-        if(refl.OutputSig[o].arrayIndex != ~0U)
-        {
-          RDCASSERT(refl.OutputSig[o].arrayIndex < (uint32_t)numOutputs);
-          dumpCode.push_back(outs[refl.OutputSig[o].arrayIndex].constID);    // [element]
-        }
+        for(uint32_t idx : patchData.outputs[o].accessChain)
+          dumpCode.push_back(outs[idx].constID);
 
         dumpCode.push_back(MakeSPIRVOp(spv::OpLoad, 4));
         dumpCode.push_back(outs[o].basetypeID);
@@ -8130,8 +8153,9 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
   uint32_t bufStride = 0;
   vector<uint32_t> modSpirv = moduleInfo.spirv.spirv;
 
-  AddOutputDumping(*refl, pipeInfo.shaders[0].entryPoint.c_str(), descSet, vertexIndexOffset,
-                   drawcall->instanceOffset, numVerts, modSpirv, bufStride);
+  AddOutputDumping(*refl, *pipeInfo.shaders[0].patchData, pipeInfo.shaders[0].entryPoint.c_str(),
+                   descSet, vertexIndexOffset, drawcall->instanceOffset, numVerts, modSpirv,
+                   bufStride);
 
   // create vertex shader with modified code
   VkShaderModuleCreateInfo moduleCreateInfo = {

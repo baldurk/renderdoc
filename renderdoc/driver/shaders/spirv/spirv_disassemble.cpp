@@ -3695,19 +3695,18 @@ struct bindpair
 typedef bindpair<ConstantBlock> cblockpair;
 typedef bindpair<ShaderResource> shaderrespair;
 
-void AddSignatureParameter(ShaderStage stage, uint32_t id, uint32_t childIdx, string varName,
-                           SPVTypeData *type, const vector<SPVDecoration> &decorations,
-                           vector<SigParameter> &sigarray)
+void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id,
+                           std::vector<uint32_t> accessChain, string varName, SPVTypeData *type,
+                           const vector<SPVDecoration> &decorations, vector<SigParameter> &sigarray,
+                           SPIRVPatchData &patchData)
 {
   SigParameter sig;
 
   sig.needSemanticIndex = false;
 
-  // this is super cheeky, but useful to pick up when doing output dumping and
-  // these properties won't be used elsewhere. We should really share the data
-  // in a better way though.
-  sig.semanticIdxName = StringFormat::Fmt("%u", id);
-  sig.semanticIndex = childIdx;
+  SPIRVPatchData::OutputAccess patch;
+  patch.accessChain = accessChain;
+  patch.ID = id;
 
   bool rowmajor = true;
 
@@ -3742,9 +3741,6 @@ void AddSignatureParameter(ShaderStage stage, uint32_t id, uint32_t childIdx, st
 
   if(type->type == SPVTypeData::eStruct)
   {
-    // we don't support nested structs yet
-    RDCASSERT(childIdx == ~0U);
-
     // it's invalid to include built-in and 'normal' outputs in the same struct. One
     // way this can happen is if a SPIR-V generator incorrectly puts in legacy elements
     // into an implicit gl_PerVertex struct, but they don't have a builtin to associate
@@ -3766,6 +3762,8 @@ void AddSignatureParameter(ShaderStage stage, uint32_t id, uint32_t childIdx, st
 
     for(uint32_t a = 0; a < arraySize; a++)
     {
+      patch.accessChain.push_back(0U);
+
       for(size_t c = 0; c < type->children.size(); c++)
       {
         // if this struct has builtins, see if this child is a builtin
@@ -3789,8 +3787,11 @@ void AddSignatureParameter(ShaderStage stage, uint32_t id, uint32_t childIdx, st
 
         string baseName = isArray ? StringFormat::Fmt("%s[%u]", varName.c_str(), a) : varName;
 
-        AddSignatureParameter(stage, id, (uint32_t)c, baseName + "." + type->children[c].second,
-                              type->children[c].first, type->childDecorations[c], sigarray);
+        AddSignatureParameter(isInput, stage, id, patch.accessChain,
+                              baseName + "." + type->children[c].second, type->children[c].first,
+                              type->childDecorations[c], sigarray, patchData);
+
+        patch.accessChain.back()++;
       }
     }
 
@@ -3818,6 +3819,10 @@ void AddSignatureParameter(ShaderStage stage, uint32_t id, uint32_t childIdx, st
   {
     string n = varName;
 
+    // arrays will need an extra access chain index
+    if(arraySize > 1)
+      patch.accessChain.push_back(0U);
+
     if(isArray)
     {
       n = StringFormat::Fmt("%s[%u]", varName.c_str(), a);
@@ -3829,6 +3834,9 @@ void AddSignatureParameter(ShaderStage stage, uint32_t id, uint32_t childIdx, st
     if(type->matrixSize == 1)
     {
       sigarray.push_back(sig);
+
+      if(!isInput)
+        patchData.outputs.push_back(patch);
     }
     else
     {
@@ -3841,15 +3849,21 @@ void AddSignatureParameter(ShaderStage stage, uint32_t id, uint32_t childIdx, st
         RDCASSERT(s.regIndex < 16);
 
         sigarray.push_back(s);
+
+        if(!isInput)
+          patchData.outputs.push_back(patch);
       }
     }
 
     sig.regIndex += RDCMAX(1U, type->matrixSize);
+    if(arraySize > 1)
+      patch.accessChain.back()++;
   }
 }
 
 void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
-                               ShaderReflection *reflection, ShaderBindpointMapping *mapping)
+                               ShaderReflection &reflection, ShaderBindpointMapping &mapping,
+                               SPIRVPatchData &patchData)
 {
   vector<SigParameter> inputs;
   vector<SigParameter> outputs;
@@ -3859,24 +3873,24 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   // VKTODOLOW filter to only functions/resources used by entryPoint
 
   // VKTODOLOW set this properly
-  reflection->DebugInfo.entryFile = 0;
-  reflection->DebugInfo.entryFunc = entryPoint;
+  reflection.DebugInfo.entryFile = 0;
+  reflection.DebugInfo.entryFunc = entryPoint;
 
   if(!sourceFiles.empty())
   {
-    create_array_uninit(reflection->DebugInfo.files, sourceFiles.size());
+    create_array_uninit(reflection.DebugInfo.files, sourceFiles.size());
 
     for(size_t i = 0; i < sourceFiles.size(); i++)
     {
-      reflection->DebugInfo.files[i].first = sourceFiles[i].first;
-      reflection->DebugInfo.files[i].second = sourceFiles[i].second;
+      reflection.DebugInfo.files[i].first = sourceFiles[i].first;
+      reflection.DebugInfo.files[i].second = sourceFiles[i].second;
     }
   }
 
   // TODO need to fetch these
-  reflection->DispatchThreadsDimension[0] = 0;
-  reflection->DispatchThreadsDimension[1] = 0;
-  reflection->DispatchThreadsDimension[2] = 0;
+  reflection.DispatchThreadsDimension[0] = 0;
+  reflection.DispatchThreadsDimension[1] = 0;
+  reflection.DispatchThreadsDimension[2] = 0;
 
   for(size_t i = 0; i < globals.size(); i++)
   {
@@ -3898,7 +3912,8 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
       else
         nm = StringFormat::Fmt("sig%u", inst->id);
 
-      AddSignatureParameter(stage, inst->id, ~0U, nm, inst->var->type, inst->decorations, *sigarray);
+      AddSignatureParameter(isInput, stage, inst->id, std::vector<uint32_t>(), nm, inst->var->type,
+                            inst->decorations, *sigarray, patchData);
 
       // eliminate any members of gl_PerVertex that are actually unused and just came along
       // for the ride (usually with gl_Position, but maybe declared globally and still unused)
@@ -3942,8 +3957,10 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
           if(eliminate)
           {
-            // variable must be the last one added, just remove it
             sigarray->pop_back();
+
+            if(patchData.outputs.size() > sigarray->size())
+              patchData.outputs.pop_back();
           }
         }
 
@@ -4009,12 +4026,15 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
               if(eliminate)
               {
                 ShaderBuiltin attr = BuiltInToSystemAttribute(stage, checkBuiltin);
+
                 // find this builtin in the array, and remove
-                for(auto it = sigarray->begin(); it != sigarray->end(); ++it)
+                for(size_t s = 0; s < sigarray->size(); s++)
                 {
-                  if(it->systemValue == attr)
+                  if((*sigarray)[s].systemValue == attr)
                   {
-                    sigarray->erase(it);
+                    sigarray->erase(sigarray->begin() + s);
+                    if(!isInput)
+                      patchData.outputs.erase(patchData.outputs.begin() + s);
                     break;
                   }
                 }
@@ -4326,8 +4346,14 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   // sort system value semantics to the start of the list
   struct sig_param_sort
   {
-    bool operator()(const SigParameter &a, const SigParameter &b)
+    sig_param_sort(const vector<SigParameter> &arr) : sigArray(arr) {}
+    const vector<SigParameter> &sigArray;
+
+    bool operator()(const size_t idxA, const size_t idxB)
     {
+      const SigParameter &a = sigArray[idxA];
+      const SigParameter &b = sigArray[idxB];
+
       if(a.systemValue == b.systemValue)
       {
         if(a.regIndex != b.regIndex)
@@ -4344,73 +4370,96 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
     }
   };
 
-  std::sort(inputs.begin(), inputs.end(), sig_param_sort());
-  std::sort(outputs.begin(), outputs.end(), sig_param_sort());
+  std::vector<size_t> indices;
+  {
+    indices.resize(inputs.size());
+    for(size_t i = 0; i < inputs.size(); i++)
+      indices[i] = i;
+
+    std::sort(indices.begin(), indices.end(), sig_param_sort(inputs));
+
+    create_array_uninit(reflection.InputSig, inputs.size());
+    for(size_t i = 0; i < inputs.size(); i++)
+      reflection.InputSig[i] = inputs[indices[i]];
+  }
+
+  {
+    indices.resize(outputs.size());
+    for(size_t i = 0; i < outputs.size(); i++)
+      indices[i] = i;
+
+    std::sort(indices.begin(), indices.end(), sig_param_sort(outputs));
+
+    create_array_uninit(reflection.OutputSig, outputs.size());
+    for(size_t i = 0; i < outputs.size(); i++)
+      reflection.OutputSig[i] = outputs[indices[i]];
+
+    std::vector<SPIRVPatchData::OutputAccess> outPatch = patchData.outputs;
+    for(size_t i = 0; i < outputs.size(); i++)
+      patchData.outputs[i] = outPatch[indices[i]];
+  }
 
   size_t numInputs = 16;
 
-  for(size_t i = 0; i < inputs.size(); i++)
-    if(inputs[i].systemValue == ShaderBuiltin::Undefined)
-      numInputs = RDCMAX(numInputs, (size_t)inputs[i].regIndex + 1);
+  for(size_t i = 0; i < reflection.InputSig.size(); i++)
+    if(reflection.InputSig[i].systemValue == ShaderBuiltin::Undefined)
+      numInputs = RDCMAX(numInputs, (size_t)reflection.InputSig[i].regIndex + 1);
 
-  create_array_uninit(mapping->InputAttributes, numInputs);
+  create_array_uninit(mapping.InputAttributes, numInputs);
   for(size_t i = 0; i < numInputs; i++)
-    mapping->InputAttributes[i] = -1;
+    mapping.InputAttributes[i] = -1;
 
-  for(size_t i = 0; i < inputs.size(); i++)
-    if(inputs[i].systemValue == ShaderBuiltin::Undefined)
-      mapping->InputAttributes[inputs[i].regIndex] = (int32_t)i;
-
-  reflection->InputSig = inputs;
-  reflection->OutputSig = outputs;
+  for(size_t i = 0; i < reflection.InputSig.size(); i++)
+    if(reflection.InputSig[i].systemValue == ShaderBuiltin::Undefined)
+      mapping.InputAttributes[reflection.InputSig[i].regIndex] = (int32_t)i;
 
   std::sort(cblocks.begin(), cblocks.end());
   std::sort(roresources.begin(), roresources.end());
   std::sort(rwresources.begin(), rwresources.end());
 
-  create_array_uninit(mapping->ConstantBlocks, cblocks.size());
-  create_array_uninit(reflection->ConstantBlocks, cblocks.size());
+  create_array_uninit(mapping.ConstantBlocks, cblocks.size());
+  create_array_uninit(reflection.ConstantBlocks, cblocks.size());
 
-  create_array_uninit(mapping->ReadOnlyResources, roresources.size());
-  create_array_uninit(reflection->ReadOnlyResources, roresources.size());
+  create_array_uninit(mapping.ReadOnlyResources, roresources.size());
+  create_array_uninit(reflection.ReadOnlyResources, roresources.size());
 
-  create_array_uninit(mapping->ReadWriteResources, rwresources.size());
-  create_array_uninit(reflection->ReadWriteResources, rwresources.size());
+  create_array_uninit(mapping.ReadWriteResources, rwresources.size());
+  create_array_uninit(reflection.ReadWriteResources, rwresources.size());
 
   for(size_t i = 0; i < cblocks.size(); i++)
   {
-    mapping->ConstantBlocks[i] = cblocks[i].map;
+    mapping.ConstantBlocks[i] = cblocks[i].map;
     // fix up any bind points marked with -1. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
-    if(mapping->ConstantBlocks[i].bind == -1)
-      mapping->ConstantBlocks[i].bind = 0;
-    reflection->ConstantBlocks[i] = cblocks[i].bindres;
-    reflection->ConstantBlocks[i].bindPoint = (int32_t)i;
+    if(mapping.ConstantBlocks[i].bind == -1)
+      mapping.ConstantBlocks[i].bind = 0;
+    reflection.ConstantBlocks[i] = cblocks[i].bindres;
+    reflection.ConstantBlocks[i].bindPoint = (int32_t)i;
   }
 
   for(size_t i = 0; i < roresources.size(); i++)
   {
-    mapping->ReadOnlyResources[i] = roresources[i].map;
+    mapping.ReadOnlyResources[i] = roresources[i].map;
     // fix up any bind points marked with -1. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
-    if(mapping->ReadOnlyResources[i].bind == -1)
-      mapping->ReadOnlyResources[i].bind = 0;
-    reflection->ReadOnlyResources[i] = roresources[i].bindres;
-    reflection->ReadOnlyResources[i].bindPoint = (int32_t)i;
+    if(mapping.ReadOnlyResources[i].bind == -1)
+      mapping.ReadOnlyResources[i].bind = 0;
+    reflection.ReadOnlyResources[i] = roresources[i].bindres;
+    reflection.ReadOnlyResources[i].bindPoint = (int32_t)i;
   }
 
   for(size_t i = 0; i < rwresources.size(); i++)
   {
-    mapping->ReadWriteResources[i] = rwresources[i].map;
+    mapping.ReadWriteResources[i] = rwresources[i].map;
     // fix up any bind points marked with -1. They were sorted to the end
     // but from here on we want to just be able to index with the bind point
     // without any special casing.
-    if(mapping->ReadWriteResources[i].bind == -1)
-      mapping->ReadWriteResources[i].bind = 0;
-    reflection->ReadWriteResources[i] = rwresources[i].bindres;
-    reflection->ReadWriteResources[i].bindPoint = (int32_t)i;
+    if(mapping.ReadWriteResources[i].bind == -1)
+      mapping.ReadWriteResources[i].bind = 0;
+    reflection.ReadWriteResources[i] = rwresources[i].bindres;
+    reflection.ReadWriteResources[i].bindPoint = (int32_t)i;
   }
 }
 

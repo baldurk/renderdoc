@@ -53,6 +53,24 @@ enum class ShaderStage : uint32_t;
 struct ShaderReflection;
 struct ShaderBindpointMapping;
 
+// extra information that goes along with a ShaderReflection that has extra information for SPIR-V
+// patching
+struct SPIRVPatchData
+{
+  struct OutputAccess
+  {
+    // ID of the base output variable
+    uint32_t ID;
+
+    // the access chain of indices
+    std::vector<uint32_t> accessChain;
+  };
+
+  // matches the output signature array, with details of where to fetch the output from in the
+  // SPIR-V.
+  std::vector<OutputAccess> outputs;
+};
+
 struct SPVModule
 {
   SPVModule();
@@ -90,8 +108,8 @@ struct SPVModule
   SPVInstruction *GetByID(uint32_t id);
   string Disassemble(const string &entryPoint);
 
-  void MakeReflection(ShaderStage stage, const string &entryPoint, ShaderReflection *reflection,
-                      ShaderBindpointMapping *mapping);
+  void MakeReflection(ShaderStage stage, const string &entryPoint, ShaderReflection &reflection,
+                      ShaderBindpointMapping &mapping, SPIRVPatchData &patchData);
 };
 
 string CompileSPIRV(SPIRVShaderStage shadType, const vector<string> &sources,

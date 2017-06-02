@@ -92,11 +92,12 @@ struct VulkanCreationInfo
     // VkPipelineShaderStageCreateInfo
     struct Shader
     {
-      Shader() : refl(NULL), mapping(NULL) {}
+      Shader() : refl(NULL), mapping(NULL), patchData(NULL) {}
       ResourceId module;
       string entryPoint;
       ShaderReflection *refl;
       ShaderBindpointMapping *mapping;
+      SPIRVPatchData *patchData;
 
       vector<byte> specdata;
       struct SpecInfo
@@ -346,6 +347,7 @@ struct VulkanCreationInfo
       string entryPoint;
       ShaderReflection refl;
       ShaderBindpointMapping mapping;
+      SPIRVPatchData patchData;
     };
     map<string, Reflection> m_Reflections;
   };

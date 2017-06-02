@@ -112,7 +112,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
       reflData.entryPoint = shad.entryPoint;
       reflData.stage = stageIndex;
       info.m_ShaderModule[id].spirv.MakeReflection(ShaderStage(reflData.stage), reflData.entryPoint,
-                                                   &reflData.refl, &reflData.mapping);
+                                                   reflData.refl, reflData.mapping,
+                                                   reflData.patchData);
     }
 
     if(pCreateInfo->pStages[i].pSpecializationInfo)
@@ -135,6 +136,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
     shad.refl = &reflData.refl;
     shad.mapping = &reflData.mapping;
+    shad.patchData = &reflData.patchData;
   }
 
   if(pCreateInfo->pVertexInputState)
@@ -326,7 +328,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     {
       reflData.entryPoint = shad.entryPoint;
       info.m_ShaderModule[id].spirv.MakeReflection(ShaderStage::Compute, reflData.entryPoint,
-                                                   &reflData.refl, &reflData.mapping);
+                                                   reflData.refl, reflData.mapping,
+                                                   reflData.patchData);
     }
 
     if(pCreateInfo->stage.pSpecializationInfo)
@@ -347,6 +350,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
     shad.refl = &reflData.refl;
     shad.mapping = &reflData.mapping;
+    shad.patchData = &reflData.patchData;
   }
 
   topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
