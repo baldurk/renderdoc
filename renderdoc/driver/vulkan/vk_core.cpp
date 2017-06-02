@@ -2784,13 +2784,15 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
           continue;
 
         RDCASSERT(colAtt[i] < atts.size());
-        draw.outputs[i] = atts[colAtt[i]].view;
+        draw.outputs[i] = GetResourceManager()->GetOriginalID(
+            m_CreationInfo.m_ImageView[atts[colAtt[i]].view].image);
       }
 
       if(dsAtt != -1)
       {
         RDCASSERT(dsAtt < (int32_t)atts.size());
-        draw.depthOut = atts[dsAtt].view;
+        draw.depthOut =
+            GetResourceManager()->GetOriginalID(m_CreationInfo.m_ImageView[atts[dsAtt].view].image);
       }
     }
   }

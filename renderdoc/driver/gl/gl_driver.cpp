@@ -4303,6 +4303,7 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
   draw.eventID = m_CurEventID;
   draw.drawcallID = m_CurDrawcallID;
 
+  GLenum type;
   GLuint curCol[8] = {0};
   GLuint curDepth = 0;
 
@@ -4314,16 +4315,37 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
 
     for(GLint i = 0; i < RDCMIN(numCols, 8); i++)
     {
+      type = eGL_TEXTURE;
+
       m_Real.glGetFramebufferAttachmentParameteriv(
           eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
           eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&curCol[i]);
-      draw.outputs[i] = GetResourceManager()->GetID(TextureRes(GetCtx(), curCol[i]));
+      m_Real.glGetFramebufferAttachmentParameteriv(
+          eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
+          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+
+      if(type == eGL_TEXTURE)
+        draw.outputs[i] = GetResourceManager()->GetOriginalID(
+            GetResourceManager()->GetID(TextureRes(GetCtx(), curCol[i])));
+      else
+        draw.outputs[i] = GetResourceManager()->GetOriginalID(
+            GetResourceManager()->GetID(RenderbufferRes(GetCtx(), curCol[i])));
     }
+
+    type = eGL_TEXTURE;
 
     m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
                                                  eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                  (GLint *)&curDepth);
-    draw.depthOut = GetResourceManager()->GetID(TextureRes(GetCtx(), curDepth));
+    m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                 (GLint *)&type);
+    if(type == eGL_TEXTURE)
+      draw.depthOut = GetResourceManager()->GetOriginalID(
+          GetResourceManager()->GetID(TextureRes(GetCtx(), curDepth)));
+    else
+      draw.depthOut = GetResourceManager()->GetOriginalID(
+          GetResourceManager()->GetID(RenderbufferRes(GetCtx(), curDepth)));
   }
 
   // markers don't increment drawcall ID

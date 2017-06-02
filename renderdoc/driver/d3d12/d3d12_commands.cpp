@@ -1194,12 +1194,13 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
     for(size_t i = 0; i < ARRAY_COUNT(draw.outputs); i++)
     {
       if(i < rts.size())
-        draw.outputs[i] = rts[i];
+        draw.outputs[i] = m_pDevice->GetResourceManager()->GetOriginalID(rts[i]);
       else
         draw.outputs[i] = ResourceId();
     }
 
-    draw.depthOut = m_BakedCmdListInfo[m_LastCmdListID].state.GetDSVID();
+    draw.depthOut = m_pDevice->GetResourceManager()->GetOriginalID(
+        m_BakedCmdListInfo[m_LastCmdListID].state.GetDSVID());
   }
 
   if(m_LastCmdListID != ResourceId())

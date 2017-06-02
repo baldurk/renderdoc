@@ -970,16 +970,16 @@ void WrappedID3D11DeviceContext::AddDrawcall(const DrawcallDescription &d, bool 
   {
     draw.outputs[i] = ResourceId();
     if(m_CurrentPipelineState->OM.RenderTargets[i])
-      draw.outputs[i] =
+      draw.outputs[i] = m_pDevice->GetResourceManager()->GetOriginalID(
           ((WrappedID3D11RenderTargetView1 *)m_CurrentPipelineState->OM.RenderTargets[i])
-              ->GetResourceResID();
+              ->GetResourceResID());
   }
 
   {
     draw.depthOut = ResourceId();
     if(m_CurrentPipelineState->OM.DepthView)
-      draw.depthOut =
-          ((WrappedID3D11DepthStencilView *)m_CurrentPipelineState->OM.DepthView)->GetResourceResID();
+      draw.depthOut = m_pDevice->GetResourceManager()->GetOriginalID(
+          ((WrappedID3D11DepthStencilView *)m_CurrentPipelineState->OM.DepthView)->GetResourceResID());
   }
 
   // markers don't increment drawcall ID
