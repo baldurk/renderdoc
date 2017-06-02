@@ -153,6 +153,20 @@
       </widget>
      </item>
      <item>
+      <widget class="QToolButton" name="colSelect">
+       <property name="toolTip">
+        <string>Select visible columns</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/timeline_marker.png</normaloff>:/timeline_marker.png</iconset>
+       </property>
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QToolButton" name="bookmark">
        <property name="toolTip">
         <string>Toggle Bookmark</string>

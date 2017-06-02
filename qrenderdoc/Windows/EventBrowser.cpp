@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "EventBrowser.h"
+#include <QDialogButtonBox>
 #include <QKeyEvent>
 #include <QMenu>
 #include <QShortcut>
@@ -32,6 +33,7 @@
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDHeaderView.h"
+#include "Widgets/Extended/RDListWidget.h"
 #include "ui_EventBrowser.h"
 
 struct EventItemTag
@@ -51,9 +53,11 @@ Q_DECLARE_METATYPE(EventItemTag);
 
 enum
 {
-  COL_NAME = 0,
-  COL_EID = 1,
-  COL_DURATION = 2,
+  COL_NAME,
+  COL_EID,
+  COL_DRAW,
+  COL_DURATION,
+  COL_COUNT,
 };
 
 EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
@@ -72,29 +76,36 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->events->setFont(Formatter::PreferredFont());
 
   ui->events->setColumns(
-      {tr("Name"), lit("EID"), lit("Duration - replaced in UpdateDurationColumn")});
+      {tr("Name"), lit("EID"), lit("Draw #"), lit("Duration - replaced in UpdateDurationColumn")});
 
   ui->events->setHeader(new RDHeaderView(Qt::Horizontal, this));
   ui->events->header()->setStretchLastSection(true);
   ui->events->header()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-  ui->events->header()->resizeSection(COL_EID, 80);
-
-  ui->events->header()->setMinimumSectionSize(40);
-
+  // we set up the name column as column 0 so that it gets the tree controls.
   ui->events->header()->setSectionResizeMode(COL_NAME, QHeaderView::Interactive);
   ui->events->header()->setSectionResizeMode(COL_EID, QHeaderView::Interactive);
+  ui->events->header()->setSectionResizeMode(COL_DRAW, QHeaderView::Interactive);
   ui->events->header()->setSectionResizeMode(COL_DURATION, QHeaderView::Interactive);
 
-  // we set up the name column first, EID second, so that the name column gets the
-  // expand/collapse widgets. Then we need to put them back in order
-  ui->events->header()->moveSection(COL_NAME, COL_EID);
+  ui->events->header()->setMinimumSectionSize(40);
 
   ui->events->header()->setSectionsMovable(true);
 
   ui->events->header()->setCascadingSectionResizes(false);
 
   ui->events->setItemVerticalMargin(3);
+
+  // set up default section layout. This will be overridden in restoreState()
+  ui->events->header()->resizeSection(COL_EID, 80);
+  ui->events->header()->resizeSection(COL_DRAW, 60);
+  ui->events->header()->resizeSection(COL_NAME, 200);
+  ui->events->header()->resizeSection(COL_DURATION, 80);
+
+  ui->events->header()->hideSection(COL_DRAW);
+  ui->events->header()->hideSection(COL_DURATION);
+
+  ui->events->header()->moveSection(COL_NAME, 2);
 
   UpdateDurationColumn();
 
@@ -140,6 +151,10 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->events->setContextMenuPolicy(Qt::CustomContextMenu);
   QObject::connect(ui->events, &RDTreeWidget::customContextMenuRequested, this,
                    &EventBrowser::events_contextMenu);
+
+  ui->events->header()->setContextMenuPolicy(Qt::CustomContextMenu);
+  QObject::connect(ui->events->header(), &QHeaderView::customContextMenuRequested, this,
+                   &EventBrowser::events_contextMenu);
 }
 
 EventBrowser::~EventBrowser()
@@ -152,17 +167,18 @@ EventBrowser::~EventBrowser()
 void EventBrowser::OnLogfileLoaded()
 {
   RDTreeWidgetItem *frame = new RDTreeWidgetItem(
-      {QFormatStr("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), QString(), QString()});
+      {QFormatStr("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), QString(), QString(), QString()});
 
   clearBookmarks();
 
-  RDTreeWidgetItem *framestart = new RDTreeWidgetItem({tr("Frame Start"), lit("0"), QString()});
+  RDTreeWidgetItem *framestart =
+      new RDTreeWidgetItem({tr("Frame Start"), lit("0"), lit("0"), QString()});
   framestart->setTag(QVariant::fromValue(EventItemTag()));
 
   frame->addChild(framestart);
 
-  uint lastEID = AddDrawcalls(frame, m_Ctx.CurDrawcalls());
-  frame->setTag(QVariant::fromValue(EventItemTag(0, lastEID)));
+  QPair<uint32_t, uint32_t> lastEIDDraw = AddDrawcalls(frame, m_Ctx.CurDrawcalls());
+  frame->setTag(QVariant::fromValue(EventItemTag(0, lastEIDDraw.first)));
 
   ui->events->addTopLevelItem(frame);
 
@@ -176,7 +192,7 @@ void EventBrowser::OnLogfileLoaded()
   ui->stepPrev->setEnabled(true);
   ui->stepNext->setEnabled(true);
 
-  m_Ctx.SetEventID({this}, lastEID, lastEID);
+  m_Ctx.SetEventID({this}, lastEIDDraw.first, lastEIDDraw.first);
 }
 
 void EventBrowser::OnLogfileClosed()
@@ -200,26 +216,32 @@ void EventBrowser::OnEventChanged(uint32_t eventID)
   highlightBookmarks();
 }
 
-uint EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
-                                const rdctype::array<DrawcallDescription> &draws)
+QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
+                                                     const rdctype::array<DrawcallDescription> &draws)
 {
-  uint lastEID = 0;
+  uint lastEID = 0, lastDraw = 0;
 
   for(int32_t i = 0; i < draws.count; i++)
   {
     const DrawcallDescription &d = draws[i];
 
-    RDTreeWidgetItem *child =
-        new RDTreeWidgetItem({ToQStr(d.name), QFormatStr("%1").arg(d.eventID), lit("0.0")});
+    RDTreeWidgetItem *child = new RDTreeWidgetItem(
+        {ToQStr(d.name), QString::number(d.eventID), QString::number(d.drawcallID), lit("0.0")});
 
-    lastEID = AddDrawcalls(child, d.children);
+    QPair<uint32_t, uint32_t> last = AddDrawcalls(child, d.children);
+    lastEID = last.first;
+    lastDraw = last.second;
 
     if(lastEID > d.eventID)
+    {
       child->setText(COL_EID, QFormatStr("%1-%2").arg(d.eventID).arg(lastEID));
+      child->setText(COL_DRAW, QFormatStr("%1-%2").arg(d.drawcallID).arg(lastDraw));
+    }
 
     if(lastEID == 0)
     {
       lastEID = d.eventID;
+      lastDraw = d.drawcallID;
 
       if((draws[i].flags & DrawFlags::SetMarker) && i + 1 < draws.count)
         lastEID = draws[i + 1].eventID;
@@ -250,7 +272,7 @@ uint EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
     parent->addChild(child);
   }
 
-  return lastEID;
+  return qMakePair(lastEID, lastDraw);
 }
 
 void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node,
@@ -341,11 +363,16 @@ void EventBrowser::on_bookmark_clicked()
 
 void EventBrowser::on_timeDraws_clicked()
 {
+  ui->events->header()->showSection(COL_DURATION);
+
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
 
     m_Times = r->FetchCounters({GPUCounter::EventGPUDuration});
 
-    GUIInvoke::call([this]() { SetDrawcallTimes(ui->events->topLevelItem(0), m_Times); });
+    GUIInvoke::call([this]() {
+      SetDrawcallTimes(ui->events->topLevelItem(0), m_Times);
+      ui->events->update();
+    });
   });
 }
 
@@ -546,6 +573,66 @@ void EventBrowser::on_exportDraws_clicked()
   }
 }
 
+void EventBrowser::on_colSelect_clicked()
+{
+  QDialog dialog;
+  RDListWidget list;
+  QDialogButtonBox buttons;
+
+  dialog.setWindowTitle(tr("Select Event Browser Columns"));
+  dialog.setWindowFlags(dialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+  for(int visIdx = 0; visIdx < COL_COUNT; visIdx++)
+  {
+    int logIdx = ui->events->header()->logicalIndex(visIdx);
+
+    QListWidgetItem *item = new QListWidgetItem(ui->events->headerText(logIdx), &list);
+
+    item->setData(Qt::UserRole, logIdx);
+
+    item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+
+    // this must stay enabled
+    if(logIdx == COL_NAME)
+      item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
+
+    item->setCheckState(ui->events->header()->isSectionHidden(logIdx) ? Qt::Unchecked : Qt::Checked);
+  }
+
+  list.setSelectionMode(QAbstractItemView::SingleSelection);
+  list.setDragDropMode(QAbstractItemView::DragDrop);
+  list.setDefaultDropAction(Qt::MoveAction);
+
+  buttons.setOrientation(Qt::Horizontal);
+  buttons.setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+  buttons.setCenterButtons(true);
+
+  QObject::connect(&buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+  QObject::connect(&buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+  QVBoxLayout *layout = new QVBoxLayout(&dialog);
+  layout->addWidget(new QLabel(tr("Select the columns to enable."), &dialog));
+  layout->addWidget(&list);
+  layout->addWidget(&buttons);
+
+  int res = RDDialog::show(&dialog);
+
+  if(res)
+  {
+    for(int i = 0; i < COL_COUNT; i++)
+    {
+      int logicalIdx = list.item(i)->data(Qt::UserRole).toInt();
+
+      if(list.item(i)->checkState() == Qt::Unchecked)
+        ui->events->header()->hideSection(logicalIdx);
+      else
+        ui->events->header()->showSection(logicalIdx);
+
+      ui->events->header()->moveSection(ui->events->header()->visualIndex(logicalIdx), i);
+    }
+  }
+}
+
 QString EventBrowser::GetExportDrawcallString(int indent, bool firstchild,
                                               const DrawcallDescription &drawcall)
 {
@@ -641,6 +728,66 @@ void EventBrowser::ExportDrawcall(QTextStream &writer, int maxNameLength, int in
   }
 }
 
+QVariant EventBrowser::persistData()
+{
+  QVariantMap state;
+
+  // temporarily turn off stretching the last section so we can get the real sizes.
+  ui->events->header()->setStretchLastSection(false);
+
+  QVariantList columns;
+  for(int i = 0; i < COL_COUNT; i++)
+  {
+    QVariantMap col;
+
+    bool hidden = ui->events->header()->isSectionHidden(i);
+
+    // we temporarily make the section visible to get its size, since otherwise it returns 0.
+    // There's no other way to access the 'hidden section sizes' which are transient and will be
+    // lost otherwise.
+    ui->events->header()->showSection(i);
+    int size = ui->events->header()->sectionSize(i);
+    if(hidden)
+      ui->events->header()->hideSection(i);
+
+    // name is just informative
+    col[lit("name")] = ui->events->headerText(i);
+    col[lit("index")] = ui->events->header()->visualIndex(i);
+    col[lit("hidden")] = hidden;
+    col[lit("size")] = size;
+    columns.push_back(col);
+  }
+
+  ui->events->header()->setStretchLastSection(true);
+
+  state[lit("columns")] = columns;
+
+  return state;
+}
+
+void EventBrowser::setPersistData(const QVariant &persistData)
+{
+  QVariantMap state = persistData.toMap();
+
+  QVariantList columns = state[lit("columns")].toList();
+  for(int i = 0; i < columns.count() && i < COL_COUNT; i++)
+  {
+    QVariantMap col = columns[i].toMap();
+
+    int oldVisIdx = ui->events->header()->visualIndex(i);
+    int visIdx = col[lit("index")].toInt();
+    int size = col[lit("size")].toInt();
+    bool hidden = col[lit("hidden")].toBool();
+
+    ui->events->header()->moveSection(oldVisIdx, visIdx);
+    ui->events->header()->resizeSection(i, size);
+    if(hidden)
+      ui->events->header()->hideSection(i);
+    else
+      ui->events->header()->showSection(i);
+  }
+}
+
 void EventBrowser::events_keyPress(QKeyEvent *event)
 {
   if(!m_Ctx.LogLoaded())
@@ -681,35 +828,34 @@ void EventBrowser::events_keyPress(QKeyEvent *event)
 
 void EventBrowser::events_contextMenu(const QPoint &pos)
 {
-  if(!m_Ctx.LogLoaded())
-    return;
-
   RDTreeWidgetItem *item = ui->events->itemAt(pos);
 
-  if(item)
-  {
-    QMenu contextMenu(this);
+  QMenu contextMenu(this);
 
-    QAction expandAll(tr("Expand All"), this);
-    QAction collapseAll(tr("Collapse All"), this);
+  QAction expandAll(tr("&Expand All"), this);
+  QAction collapseAll(tr("&Collapse All"), this);
+  QAction selectCols(tr("&Select Columns..."), this);
 
-    contextMenu.addAction(&expandAll);
-    contextMenu.addAction(&collapseAll);
+  contextMenu.addAction(&expandAll);
+  contextMenu.addAction(&collapseAll);
+  contextMenu.addAction(&selectCols);
 
-    expandAll.setIcon(Icons::fit_window());
-    collapseAll.setIcon(Icons::arrow_in());
+  expandAll.setIcon(Icons::fit_window());
+  collapseAll.setIcon(Icons::arrow_in());
+  selectCols.setIcon(Icons::timeline_marker());
 
-    expandAll.setEnabled(item->childCount() > 0);
-    collapseAll.setEnabled(item->childCount() > 0);
+  expandAll.setEnabled(item && item->childCount() > 0);
+  collapseAll.setEnabled(item && item->childCount() > 0);
 
-    QObject::connect(&expandAll, &QAction::triggered,
-                     [this, item]() { ui->events->expandAllItems(item); });
+  QObject::connect(&expandAll, &QAction::triggered,
+                   [this, item]() { ui->events->expandAllItems(item); });
 
-    QObject::connect(&collapseAll, &QAction::triggered,
-                     [this, item]() { ui->events->collapseAllItems(item); });
+  QObject::connect(&collapseAll, &QAction::triggered,
+                   [this, item]() { ui->events->collapseAllItems(item); });
 
-    RDDialog::show(&contextMenu, ui->events->viewport()->mapToGlobal(pos));
-  }
+  QObject::connect(&selectCols, &QAction::triggered, this, &EventBrowser::on_colSelect_clicked);
+
+  RDDialog::show(&contextMenu, ui->events->viewport()->mapToGlobal(pos));
 }
 
 void EventBrowser::clearBookmarks()

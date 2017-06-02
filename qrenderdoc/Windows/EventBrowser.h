@@ -46,6 +46,8 @@ class EventBrowser : public QFrame, public IEventBrowser, public ILogViewer
 private:
   Q_OBJECT
 
+  Q_PROPERTY(QVariant persistData READ persistData WRITE setPersistData DESIGNABLE false SCRIPTABLE false)
+
 public:
   explicit EventBrowser(ICaptureContext &ctx, QWidget *parent = 0);
   ~EventBrowser();
@@ -58,6 +60,9 @@ public:
   void OnLogfileClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
+
+  QVariant persistData();
+  void setPersistData(const QVariant &persistData);
 
 private slots:
   // automatic slots
@@ -76,6 +81,7 @@ private slots:
   void on_stepNext_clicked();
   void on_stepPrev_clicked();
   void on_exportDraws_clicked();
+  void on_colSelect_clicked();
 
   // manual slots
   void findHighlight_timeout();
@@ -89,7 +95,8 @@ public slots:
   void jumpToBookmark(int idx);
 
 private:
-  uint AddDrawcalls(RDTreeWidgetItem *parent, const rdctype::array<DrawcallDescription> &draws);
+  QPair<uint32_t, uint32_t> AddDrawcalls(RDTreeWidgetItem *parent,
+                                         const rdctype::array<DrawcallDescription> &draws);
   void SetDrawcallTimes(RDTreeWidgetItem *node, const rdctype::array<CounterResult> &results);
 
   void ExpandNode(RDTreeWidgetItem *node);
