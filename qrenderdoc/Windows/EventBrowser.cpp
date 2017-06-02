@@ -296,7 +296,7 @@ void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node,
   {
     SetDrawcallTimes(node->child(i), results);
 
-    double nd = node->tag().value<EventItemTag>().duration;
+    double nd = node->child(i)->tag().value<EventItemTag>().duration;
 
     if(nd > 0.0)
       duration += nd;
