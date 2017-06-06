@@ -204,7 +204,7 @@ HRESULT RefCountDXGIObject::WrapQueryInterface(IUnknown *real, REFIID riid, void
 }
 
 WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND wnd, ID3DDevice *device)
-    : RefCountDXGIObject(real), m_pReal(real), m_pDevice(device), m_iRefcount(1), m_Wnd(wnd)
+    : RefCountDXGIObject(real), m_pReal(real), m_pDevice(device), m_Wnd(wnd)
 {
   DXGI_SWAP_CHAIN_DESC desc;
   real->GetDesc(&desc);
@@ -532,8 +532,118 @@ HRESULT WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UINT Flags,
   return m_pReal1->Present1(SyncInterval, Flags, pPresentParameters);
 }
 
+WrappedIDXGIOutput5::WrappedIDXGIOutput5(RefCountDXGIObject *owner, IDXGIOutput *real)
+    : RefCountDXGIObject(real), m_Owner(owner), m_pReal(real)
+{
+  SAFE_ADDREF(m_Owner);
+
+  m_pReal1 = NULL;
+  real->QueryInterface(__uuidof(IDXGIOutput1), (void **)&m_pReal1);
+  m_pReal2 = NULL;
+  real->QueryInterface(__uuidof(IDXGIOutput2), (void **)&m_pReal2);
+  m_pReal3 = NULL;
+  real->QueryInterface(__uuidof(IDXGIOutput3), (void **)&m_pReal3);
+  m_pReal4 = NULL;
+  real->QueryInterface(__uuidof(IDXGIOutput4), (void **)&m_pReal4);
+  m_pReal5 = NULL;
+  real->QueryInterface(__uuidof(IDXGIOutput5), (void **)&m_pReal5);
+}
+
+WrappedIDXGIOutput5::~WrappedIDXGIOutput5()
+{
+  SAFE_RELEASE(m_pReal1);
+  SAFE_RELEASE(m_pReal2);
+  SAFE_RELEASE(m_pReal3);
+  SAFE_RELEASE(m_pReal4);
+  SAFE_RELEASE(m_pReal5);
+  SAFE_RELEASE(m_pReal);
+  SAFE_RELEASE(m_Owner);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput5::QueryInterface(REFIID riid, void **ppvObject)
+{
+  if(riid == __uuidof(IDXGIOutput))
+  {
+    AddRef();
+    *ppvObject = (IDXGIOutput *)this;
+    return S_OK;
+  }
+  else if(riid == __uuidof(IDXGIOutput1))
+  {
+    if(m_pReal1)
+    {
+      AddRef();
+      *ppvObject = (IDXGIOutput1 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(IDXGIOutput2))
+  {
+    if(m_pReal2)
+    {
+      AddRef();
+      *ppvObject = (IDXGIOutput2 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(IDXGIOutput3))
+  {
+    if(m_pReal3)
+    {
+      AddRef();
+      *ppvObject = (IDXGIOutput3 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(IDXGIOutput4))
+  {
+    if(m_pReal3)
+    {
+      AddRef();
+      *ppvObject = (IDXGIOutput4 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(IDXGIOutput5))
+  {
+    if(m_pReal3)
+    {
+      AddRef();
+      *ppvObject = (IDXGIOutput5 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else
+  {
+    string guid = ToStr::Get(riid);
+    RDCWARN("Querying IDXGIOutput for interface: %s", guid.c_str());
+  }
+
+  return RefCountDXGIObject::QueryInterface(riid, ppvObject);
+}
+
 WrappedIDXGIAdapter3::WrappedIDXGIAdapter3(IDXGIAdapter *real)
-    : RefCountDXGIObject(real), m_pReal(real), m_iRefcount(1)
+    : RefCountDXGIObject(real), m_pReal(real)
 {
   m_pReal1 = NULL;
   real->QueryInterface(__uuidof(IDXGIAdapter1), (void **)&m_pReal1);
@@ -708,7 +818,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice4::QueryInterface(REFIID riid, void 
 }
 
 WrappedIDXGIFactory5::WrappedIDXGIFactory5(IDXGIFactory *real)
-    : RefCountDXGIObject(real), m_pReal(real), m_iRefcount(1)
+    : RefCountDXGIObject(real), m_pReal(real)
 {
   m_pReal1 = NULL;
   real->QueryInterface(__uuidof(IDXGIFactory1), (void **)&m_pReal1);
