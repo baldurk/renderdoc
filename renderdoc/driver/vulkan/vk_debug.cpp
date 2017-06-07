@@ -1161,10 +1161,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
         VkMemoryRequirements mrq = {0};
         m_pDriver->vkGetImageMemoryRequirements(dev, m_TextAtlas, &mrq);
 
-        VkImageSubresource subr = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0};
-        VkSubresourceLayout layout = {0};
-        m_pDriver->vkGetImageSubresourceLayout(dev, m_TextAtlas, &subr, &layout);
-
         // allocate readback memory
         VkMemoryAllocateInfo allocInfo = {
             VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
