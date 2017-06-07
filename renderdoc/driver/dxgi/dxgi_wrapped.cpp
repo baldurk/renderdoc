@@ -355,6 +355,16 @@ HRESULT WrappedIDXGISwapChain4::ResizeBuffers(
   return ret;
 }
 
+HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetContainingOutput(IDXGIOutput **ppOutput)
+{
+  HRESULT ret = m_pReal->GetContainingOutput(ppOutput);
+
+  if(SUCCEEDED(ret))
+    *ppOutput = (IDXGIOutput *)(new WrappedIDXGIOutput5(this, *ppOutput));
+
+  return ret;
+}
+
 HRESULT WrappedIDXGISwapChain4::ResizeBuffers1(_In_ UINT BufferCount, _In_ UINT Width,
                                                _In_ UINT Height, _In_ DXGI_FORMAT Format,
                                                _In_ UINT SwapChainFlags,
@@ -383,8 +393,11 @@ HRESULT WrappedIDXGISwapChain4::SetFullscreenState(
     /* [in] */ BOOL Fullscreen,
     /* [in] */ IDXGIOutput *pTarget)
 {
+  WrappedIDXGIOutput5 *wrappedOutput = (WrappedIDXGIOutput5 *)pTarget;
+  IDXGIOutput *unwrappedOutput = wrappedOutput ? wrappedOutput->GetReal() : NULL;
+
   if(RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
-    return m_pReal->SetFullscreenState(Fullscreen, pTarget);
+    return m_pReal->SetFullscreenState(Fullscreen, unwrappedOutput);
 
   return S_OK;
 }
@@ -393,7 +406,12 @@ HRESULT WrappedIDXGISwapChain4::GetFullscreenState(
     /* [out] */ BOOL *pFullscreen,
     /* [out] */ IDXGIOutput **ppTarget)
 {
-  return m_pReal->GetFullscreenState(pFullscreen, ppTarget);
+  HRESULT ret = m_pReal->GetFullscreenState(pFullscreen, ppTarget);
+
+  if(SUCCEEDED(ret))
+    *ppTarget = (IDXGIOutput *)(new WrappedIDXGIOutput5(this, *ppTarget));
+
+  return ret;
 }
 
 HRESULT WrappedIDXGISwapChain4::GetBuffer(
@@ -530,6 +548,16 @@ HRESULT WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UINT Flags,
   m_pDevice->Present(this, SyncInterval, Flags);
 
   return m_pReal1->Present1(SyncInterval, Flags, pPresentParameters);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetRestrictToOutput(IDXGIOutput **ppRestrictToOutput)
+{
+  HRESULT ret = m_pReal2->GetRestrictToOutput(ppRestrictToOutput);
+
+  if(SUCCEEDED(ret))
+    *ppRestrictToOutput = (IDXGIOutput *)(new WrappedIDXGIOutput5(this, *ppRestrictToOutput));
+
+  return ret;
 }
 
 WrappedIDXGIOutput5::WrappedIDXGIOutput5(RefCountDXGIObject *owner, IDXGIOutput *real)
@@ -959,6 +987,9 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForHwnd(
 {
   ID3DDevice *wrapDevice = GetD3DDevice(pDevice);
 
+  WrappedIDXGIOutput5 *wrappedOutput = (WrappedIDXGIOutput5 *)pRestrictToOutput;
+  IDXGIOutput *unwrappedOutput = wrappedOutput ? wrappedOutput->GetReal() : NULL;
+
   if(wrapDevice)
   {
     if(!RenderDoc::Inst().GetCaptureOptions().AllowFullscreen && pFullscreenDesc)
@@ -967,7 +998,7 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForHwnd(
     }
 
     HRESULT ret = m_pReal2->CreateSwapChainForHwnd(wrapDevice->GetRealIUnknown(), hWnd, pDesc,
-                                                   pFullscreenDesc, pRestrictToOutput, ppSwapChain);
+                                                   pFullscreenDesc, unwrappedOutput, ppSwapChain);
 
     if(SUCCEEDED(ret))
     {
@@ -981,7 +1012,7 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForHwnd(
     RDCERR("Creating swap chain with non-hooked device!");
   }
 
-  return m_pReal2->CreateSwapChainForHwnd(pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput,
+  return m_pReal2->CreateSwapChainForHwnd(pDevice, hWnd, pDesc, pFullscreenDesc, unwrappedOutput,
                                           ppSwapChain);
 }
 
@@ -992,6 +1023,9 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForCoreWindow(IUnknown *pDevice, IU
 {
   ID3DDevice *wrapDevice = GetD3DDevice(pDevice);
 
+  WrappedIDXGIOutput5 *wrappedOutput = (WrappedIDXGIOutput5 *)pRestrictToOutput;
+  IDXGIOutput *unwrappedOutput = wrappedOutput ? wrappedOutput->GetReal() : NULL;
+
   if(!RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
   {
     RDCWARN("Impossible to disallow fullscreen on call to CreateSwapChainForCoreWindow");
@@ -1000,7 +1034,7 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForCoreWindow(IUnknown *pDevice, IU
   if(wrapDevice)
   {
     HRESULT ret = m_pReal2->CreateSwapChainForCoreWindow(wrapDevice->GetRealIUnknown(), pWindow,
-                                                         pDesc, pRestrictToOutput, ppSwapChain);
+                                                         pDesc, unwrappedOutput, ppSwapChain);
 
     if(SUCCEEDED(ret))
     {
@@ -1018,7 +1052,7 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForCoreWindow(IUnknown *pDevice, IU
     RDCERR("Creating swap chain with non-hooked device!");
   }
 
-  return m_pReal2->CreateSwapChainForCoreWindow(pDevice, pWindow, pDesc, pRestrictToOutput,
+  return m_pReal2->CreateSwapChainForCoreWindow(pDevice, pWindow, pDesc, unwrappedOutput,
                                                 ppSwapChain);
 }
 
@@ -1029,6 +1063,9 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForComposition(IUnknown *pDevice,
 {
   ID3DDevice *wrapDevice = GetD3DDevice(pDevice);
 
+  WrappedIDXGIOutput5 *wrappedOutput = (WrappedIDXGIOutput5 *)pRestrictToOutput;
+  IDXGIOutput *unwrappedOutput = wrappedOutput ? wrappedOutput->GetReal() : NULL;
+
   if(!RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
   {
     RDCWARN("Impossible to disallow fullscreen on call to CreateSwapChainForComposition");
@@ -1037,7 +1074,7 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForComposition(IUnknown *pDevice,
   if(wrapDevice)
   {
     HRESULT ret = m_pReal2->CreateSwapChainForComposition(wrapDevice->GetRealIUnknown(), pDesc,
-                                                          pRestrictToOutput, ppSwapChain);
+                                                          unwrappedOutput, ppSwapChain);
 
     if(SUCCEEDED(ret))
     {
@@ -1055,5 +1092,5 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForComposition(IUnknown *pDevice,
     RDCERR("Creating swap chain with non-hooked device!");
   }
 
-  return m_pReal2->CreateSwapChainForComposition(pDevice, pDesc, pRestrictToOutput, ppSwapChain);
+  return m_pReal2->CreateSwapChainForComposition(pDevice, pDesc, unwrappedOutput, ppSwapChain);
 }

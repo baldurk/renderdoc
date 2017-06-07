@@ -646,10 +646,7 @@ public:
     return m_pReal->ResizeTarget(pNewTargetParameters);
   }
 
-  virtual HRESULT STDMETHODCALLTYPE GetContainingOutput(IDXGIOutput **ppOutput)
-  {
-    return m_pReal->GetContainingOutput(ppOutput);
-  }
+  virtual HRESULT STDMETHODCALLTYPE GetContainingOutput(IDXGIOutput **ppOutput);
 
   virtual HRESULT STDMETHODCALLTYPE GetFrameStatistics(
       /* [out] */ DXGI_FRAME_STATISTICS *pStats)
@@ -709,10 +706,7 @@ public:
 
   virtual HRESULT STDMETHODCALLTYPE GetRestrictToOutput(
       /* [annotation][out] */
-      _Out_ IDXGIOutput **ppRestrictToOutput)
-  {
-    return m_pReal2->GetRestrictToOutput(ppRestrictToOutput);
-  }
+      _Out_ IDXGIOutput **ppRestrictToOutput);
 
   virtual HRESULT STDMETHODCALLTYPE SetBackgroundColor(
       /* [annotation][in] */
@@ -860,6 +854,7 @@ public:
   WrappedIDXGIOutput5(RefCountDXGIObject *owner, IDXGIOutput *real);
   ~WrappedIDXGIOutput5();
 
+  IDXGIOutput *GetReal() { return m_pReal; }
   //////////////////////////////
   // implement IDXGIOutput
 
