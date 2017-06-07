@@ -303,6 +303,15 @@ ResourceId GetIDForResource(ID3D11DeviceChild *ptr)
   if(ptr == NULL)
     return ResourceId();
 
+  if(WrappedID3D11Buffer::IsAlloc(ptr))
+    return ((WrappedID3D11Buffer *)ptr)->GetResourceID();
+  if(WrappedID3D11Texture2D1::IsAlloc(ptr))
+    return ((WrappedID3D11Texture2D1 *)ptr)->GetResourceID();
+  if(WrappedID3D11Texture3D1::IsAlloc(ptr))
+    return ((WrappedID3D11Texture3D1 *)ptr)->GetResourceID();
+  if(WrappedID3D11Texture1D::IsAlloc(ptr))
+    return ((WrappedID3D11Texture1D *)ptr)->GetResourceID();
+
   if(WrappedID3D11InputLayout::IsAlloc(ptr))
     return ((WrappedID3D11InputLayout *)ptr)->GetResourceID();
 
@@ -318,16 +327,6 @@ ResourceId GetIDForResource(ID3D11DeviceChild *ptr)
     return ((WrappedID3D11Shader<ID3D11DomainShader> *)ptr)->GetResourceID();
   if(WrappedID3D11Shader<ID3D11ComputeShader>::IsAlloc(ptr))
     return ((WrappedID3D11Shader<ID3D11ComputeShader> *)ptr)->GetResourceID();
-
-  if(WrappedID3D11Buffer::IsAlloc(ptr))
-    return ((WrappedID3D11Buffer *)ptr)->GetResourceID();
-
-  if(WrappedID3D11Texture1D::IsAlloc(ptr))
-    return ((WrappedID3D11Texture1D *)ptr)->GetResourceID();
-  if(WrappedID3D11Texture2D1::IsAlloc(ptr))
-    return ((WrappedID3D11Texture2D1 *)ptr)->GetResourceID();
-  if(WrappedID3D11Texture3D1::IsAlloc(ptr))
-    return ((WrappedID3D11Texture3D1 *)ptr)->GetResourceID();
 
   if(WrappedID3D11RasterizerState2::IsAlloc(ptr))
     return ((WrappedID3D11RasterizerState2 *)ptr)->GetResourceID();
