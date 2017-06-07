@@ -961,6 +961,22 @@ GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint i)
   return buffer;
 }
 
+BufferCategory MakeBufferCategory(GLenum bufferTarget)
+{
+  switch(bufferTarget)
+  {
+    case eGL_ARRAY_BUFFER: return BufferCategory::Vertex; break;
+    case eGL_ELEMENT_ARRAY_BUFFER: return BufferCategory::Index; break;
+    case eGL_UNIFORM_BUFFER: return BufferCategory::Constants; break;
+    case eGL_SHADER_STORAGE_BUFFER: return BufferCategory::ReadWrite; break;
+    case eGL_DRAW_INDIRECT_BUFFER:
+    case eGL_DISPATCH_INDIRECT_BUFFER:
+    case eGL_PARAMETER_BUFFER_ARB: return BufferCategory::Indirect; break;
+    default: break;
+  }
+  return BufferCategory::NoFlags;
+}
+
 AddressMode MakeAddressMode(GLenum addr)
 {
   switch(addr)

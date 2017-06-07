@@ -774,29 +774,7 @@ BufferDescription GLReplay::GetBuffer(ResourceId id)
     gl.glBindBuffer(res.curType, res.resource.name);
   }
 
-  ret.creationFlags = BufferCategory::NoFlags;
-  switch(res.curType)
-  {
-    case eGL_ARRAY_BUFFER: ret.creationFlags = BufferCategory::Vertex; break;
-    case eGL_ELEMENT_ARRAY_BUFFER: ret.creationFlags = BufferCategory::Index; break;
-    case eGL_UNIFORM_BUFFER: ret.creationFlags = BufferCategory::Constants; break;
-    case eGL_SHADER_STORAGE_BUFFER: ret.creationFlags = BufferCategory::ReadWrite; break;
-    case eGL_DRAW_INDIRECT_BUFFER:
-    case eGL_DISPATCH_INDIRECT_BUFFER:
-    case eGL_PARAMETER_BUFFER_ARB: ret.creationFlags = BufferCategory::Indirect; break;
-    case eGL_PIXEL_PACK_BUFFER:
-    case eGL_PIXEL_UNPACK_BUFFER:
-    case eGL_COPY_WRITE_BUFFER:
-    case eGL_COPY_READ_BUFFER:
-    case eGL_QUERY_BUFFER:
-    case eGL_TEXTURE_BUFFER:
-    case eGL_TRANSFORM_FEEDBACK_BUFFER:
-    case eGL_ATOMIC_COUNTER_BUFFER: break;
-    case eGL_NONE:
-      break;    // could be from a 'create' DSA call which didn't ever bind the buffer to an
-                // explicit type
-    default: RDCERR("Unexpected buffer type %s", ToStr::Get(res.curType).c_str()); break;
-  }
+  ret.creationFlags = res.creationFlags;
 
   GLint size = 0;
   // if the type is NONE it's probably a DSA created buffer

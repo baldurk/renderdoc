@@ -46,6 +46,7 @@ bool WrappedOpenGL::Serialise_glGenBuffers(GLsizei n, GLuint *buffers)
 
     m_Buffers[live].resource = res;
     m_Buffers[live].curType = eGL_NONE;
+    m_Buffers[live].creationFlags = BufferCategory::NoFlags;
   }
 
   return true;
@@ -81,6 +82,7 @@ void WrappedOpenGL::glGenBuffers(GLsizei n, GLuint *buffers)
       GetResourceManager()->AddLiveResource(id, res);
       m_Buffers[id].resource = res;
       m_Buffers[id].curType = eGL_NONE;
+      m_Buffers[id].creationFlags = BufferCategory::NoFlags;
     }
   }
 }
@@ -101,6 +103,7 @@ bool WrappedOpenGL::Serialise_glCreateBuffers(GLsizei n, GLuint *buffers)
 
     m_Buffers[live].resource = res;
     m_Buffers[live].curType = eGL_NONE;
+    m_Buffers[live].creationFlags = BufferCategory::NoFlags;
   }
 
   return true;
@@ -136,6 +139,7 @@ void WrappedOpenGL::glCreateBuffers(GLsizei n, GLuint *buffers)
       GetResourceManager()->AddLiveResource(id, res);
       m_Buffers[id].resource = res;
       m_Buffers[id].curType = eGL_NONE;
+      m_Buffers[id].creationFlags = BufferCategory::NoFlags;
     }
   }
 }
@@ -173,6 +177,7 @@ bool WrappedOpenGL::Serialise_glBindBuffer(GLenum target, GLuint buffer)
       m_Real.glBindBuffer(Target, res.name);
 
       m_Buffers[GetResourceManager()->GetLiveID(Id)].curType = Target;
+      m_Buffers[GetResourceManager()->GetLiveID(Id)].creationFlags |= MakeBufferCategory(Target);
 
       if(m_State == READING && m_CurEventID == 0 && Target != eGL_NONE)
         m_Real.glBindBuffer(Target, prevbuf);
@@ -316,6 +321,8 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
   else
   {
     m_Buffers[GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))].curType = target;
+    m_Buffers[GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))].creationFlags |=
+        MakeBufferCategory(target);
   }
 }
 
@@ -4002,6 +4009,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayElementBuffer(GLuint vaobj, GLuint bu
       buffer = GetResourceManager()->GetLiveResource(bid).name;
 
       m_Buffers[GetResourceManager()->GetLiveID(bid)].curType = eGL_ELEMENT_ARRAY_BUFFER;
+      m_Buffers[GetResourceManager()->GetLiveID(bid)].creationFlags |= BufferCategory::Index;
     }
 
     // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
@@ -4070,6 +4078,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayBindVertexBufferEXT(GLuint vaobj, GLu
     {
       live = GetResourceManager()->GetLiveResource(id).name;
       m_Buffers[GetResourceManager()->GetLiveID(id)].curType = eGL_ARRAY_BUFFER;
+      m_Buffers[GetResourceManager()->GetLiveID(id)].creationFlags |= BufferCategory::Vertex;
     }
 
     m_Real.glVertexArrayBindVertexBufferEXT(vaobj, idx, live, (GLintptr)offs, (GLsizei)str);
@@ -4181,6 +4190,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(GLuint vaobj, GLuint fi
       {
         bufs[i] = GetResourceManager()->GetLiveResource(id).name;
         m_Buffers[GetResourceManager()->GetLiveID(id)].curType = eGL_ARRAY_BUFFER;
+        m_Buffers[GetResourceManager()->GetLiveID(id)].creationFlags |= BufferCategory::Vertex;
       }
       else
       {

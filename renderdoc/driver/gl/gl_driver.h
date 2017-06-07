@@ -242,6 +242,7 @@ private:
   {
     GLResource resource;
     GLenum curType;
+    BufferCategory creationFlags;
     uint64_t size;
   };
 
