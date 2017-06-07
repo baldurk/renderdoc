@@ -148,6 +148,7 @@ GLX_PASSTHRU_3(Bool, glXQueryExtension, Display *, dpy, int *, errorBase, int *,
 GLX_PASSTHRU_3(Bool, glXQueryVersion, Display *, dpy, int *, maj, int *, min);
 GLX_PASSTHRU_2(Bool, glXIsDirect, Display *, dpy, GLXContext, ctx);
 GLX_PASSTHRU_0(void, glXWaitGL);
+GLX_PASSTHRU_0(void, glXWaitX);
 GLX_PASSTHRU_4(void, glXUseXFont, Font, font, int, first, int, count, int, list_base);
 GLX_PASSTHRU_3(GLXPixmap, glXCreateGLXPixmap, Display *, dpy, XVisualInfo *, visual, Pixmap, pixmap);
 GLX_PASSTHRU_2(void, glXDestroyGLXPixmap, Display *, dpy, GLXPixmap, pixmap);
