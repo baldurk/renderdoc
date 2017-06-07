@@ -144,7 +144,13 @@ vector<ResourceId> GLReplay::GetBuffers()
   vector<ResourceId> ret;
 
   for(auto it = m_pDriver->m_Buffers.begin(); it != m_pDriver->m_Buffers.end(); ++it)
+  {
+    // skip buffers that aren't from the log
+    if(m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
+      continue;
+
     ret.push_back(it->first);
+  }
 
   return ret;
 }
