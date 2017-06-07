@@ -88,11 +88,24 @@ HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLui
   }
 
   WrappedHANDLE *wrapped = new WrappedHANDLE();
-  wrapped->res =
-      type == eGL_RENDERBUFFER ? RenderbufferRes(GetCtx(), name) : TextureRes(GetCtx(), name);
-  wrapped->real = m_Real.wglDXRegisterObjectNV(hDevice, real, name, type, access);
+
+  if(type == eGL_RENDERBUFFER)
+    wrapped->res = RenderbufferRes(GetCtx(), name);
+  else if(type == eGL_NONE)
+    wrapped->res = BufferRes(GetCtx(), name);
+  else
+    wrapped->res = TextureRes(GetCtx(), name);
 
   GLResourceRecord *record = GetResourceManager()->GetResourceRecord(wrapped->res);
+
+  if(!record)
+  {
+    RDCERR("Unrecognised object with type %x and name %u", type, name);
+    delete wrapped;
+    return NULL;
+  }
+
+  wrapped->real = m_Real.wglDXRegisterObjectNV(hDevice, real, name, type, access);
 
   {
     RDCASSERT(record);
@@ -103,6 +116,7 @@ HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLui
     record->AddChunk(scope.Get());
   }
 
+  if(type != eGL_NONE)
   {
     ResourceFormat fmt;
     uint32_t width = 0, height = 0, depth = 0, mips = 0, layers = 0, samples = 0;
@@ -126,12 +140,6 @@ HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLui
       m_Textures[texId].dimension = 1;
     else if(type == eGL_TEXTURE_3D)
       m_Textures[texId].dimension = 3;
-
-    if(type == eGL_NONE)
-    {
-      m_Textures[texId].curType = eGL_TEXTURE_BUFFER;
-      m_Textures[texId].dimension = 1;
-    }
 
     m_Textures[texId].internalFormat = MakeGLFormat(*this, fmt);
   }
@@ -248,7 +256,8 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(GLResource res, GLenum type,
     ResourceFormat format;
 #if ENABLED(RDOC_WIN32) && ENABLED(RENDERDOC_DX_GL_INTEROP)
     GetDXTextureProperties(dxObject, format, width, height, depth, mips, layers, samples);
-    internalFormat = MakeGLFormat(*this, format);
+    if(type != eGL_NONE)
+      internalFormat = MakeGLFormat(*this, format);
 #else
     RDCERR("Should never happen - cannot serialise wglDXRegisterObjectNV, interop is disabled");
 #endif
@@ -272,11 +281,7 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(GLResource res, GLenum type,
       case eGL_NONE:
       case eGL_TEXTURE_BUFFER:
       {
-        GLuint buf = 0;
-        m_Real.glGenBuffers(1, &buf);
-        m_Real.glBindBuffer(eGL_TEXTURE_BUFFER, buf);
-        m_Real.glNamedBufferStorageEXT(name, width, NULL, GL_DYNAMIC_STORAGE_BIT);
-        m_Real.glTextureBufferEXT(name, type, internalFormat, buf);
+        m_Real.glNamedBufferDataEXT(name, width, NULL, eGL_STATIC_DRAW);
         break;
       }
       case eGL_TEXTURE_1D:
@@ -310,25 +315,22 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(GLResource res, GLenum type,
       default: RDCERR("Unexpected type of interop texture: %s", ToStr::Get(type).c_str()); break;
     }
 
-    ResourceId liveId = GetResourceManager()->GetLiveID(id);
-    m_Textures[liveId].curType = type;
-    m_Textures[liveId].width = width;
-    m_Textures[liveId].height = height;
-    m_Textures[liveId].depth = RDCMAX(depth, samples);
-    m_Textures[liveId].samples = samples;
-    m_Textures[liveId].dimension = 2;
-    if(type == eGL_TEXTURE_1D || type == eGL_TEXTURE_1D_ARRAY)
-      m_Textures[liveId].dimension = 1;
-    else if(type == eGL_TEXTURE_3D)
-      m_Textures[liveId].dimension = 3;
-
-    if(type == eGL_NONE)
+    if(type != eGL_NONE)
     {
-      m_Textures[liveId].curType = eGL_TEXTURE_BUFFER;
-      m_Textures[liveId].dimension = 1;
-    }
+      ResourceId liveId = GetResourceManager()->GetLiveID(id);
+      m_Textures[liveId].curType = type;
+      m_Textures[liveId].width = width;
+      m_Textures[liveId].height = height;
+      m_Textures[liveId].depth = RDCMAX(depth, samples);
+      m_Textures[liveId].samples = samples;
+      m_Textures[liveId].dimension = 2;
+      if(type == eGL_TEXTURE_1D || type == eGL_TEXTURE_1D_ARRAY)
+        m_Textures[liveId].dimension = 1;
+      else if(type == eGL_TEXTURE_3D)
+        m_Textures[liveId].dimension = 3;
 
-    m_Textures[liveId].internalFormat = internalFormat;
+      m_Textures[liveId].internalFormat = internalFormat;
+    }
   }
 
   return true;
