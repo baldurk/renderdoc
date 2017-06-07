@@ -1052,6 +1052,15 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectTagEXT(VkDevice device,
     {
       VkDebugMarkerObjectTagInfoEXT unwrapped = *pTagInfo;
 
+      // special case for VkSurfaceKHR - the record pointer is actually just the underlying native
+      // window handle, so instead we unwrap and call through.
+      if(unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT)
+      {
+        unwrapped.object = GetWrapped((VkSurfaceKHR)unwrapped.object)->real.handle;
+
+        return ObjDisp(device)->DebugMarkerSetObjectTagEXT(device, &unwrapped);
+      }
+
       if(unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT ||
          unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT ||
          unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT ||
@@ -1117,6 +1126,18 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectNameEXT(VkDevice device,
     }
 
     VkDebugMarkerObjectNameInfoEXT unwrapped = *pNameInfo;
+
+    // special case for VkSurfaceKHR - the record pointer is actually just the underlying native
+    // window handle, so instead we unwrap and call through.
+    if(unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT)
+    {
+      unwrapped.object = GetWrapped((VkSurfaceKHR)unwrapped.object)->real.handle;
+
+      if(ObjDisp(device)->DebugMarkerSetObjectNameEXT)
+        return ObjDisp(device)->DebugMarkerSetObjectNameEXT(device, &unwrapped);
+
+      return VK_SUCCESS;
+    }
 
     if(unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT ||
        unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT ||
