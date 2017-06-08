@@ -183,15 +183,12 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
     {
-      ID3D11Resource *res = NULL;
       if(sh->SRVs[i])
       {
-        sh->SRVs[i]->GetResource(&res);
         ctx->MarkResourceReferenced(GetIDForResource(sh->SRVs[i]),
                                     initial ? eFrameRef_Unknown : eFrameRef_Read);
-        ctx->MarkResourceReferenced(GetIDForResource(res),
+        ctx->MarkResourceReferenced(GetViewResourceResID(sh->SRVs[i]),
                                     initial ? eFrameRef_Unknown : eFrameRef_Read);
-        SAFE_RELEASE(res);
       }
     }
 
@@ -200,20 +197,17 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
 
   for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
   {
-    ID3D11Resource *res = NULL;
     if(CSUAVs[i])
     {
-      CSUAVs[i]->GetResource(&res);
       // UAVs we always assume to be partial updates
       ctx->MarkResourceReferenced(GetIDForResource(CSUAVs[i]),
                                   initial ? eFrameRef_Unknown : eFrameRef_Read);
       ctx->MarkResourceReferenced(GetIDForResource(CSUAVs[i]),
                                   initial ? eFrameRef_Unknown : eFrameRef_Write);
-      ctx->MarkResourceReferenced(GetIDForResource(res),
+      ctx->MarkResourceReferenced(GetViewResourceResID(CSUAVs[i]),
                                   initial ? eFrameRef_Unknown : eFrameRef_Read);
-      ctx->MarkResourceReferenced(GetIDForResource(res),
+      ctx->MarkResourceReferenced(GetViewResourceResID(CSUAVs[i]),
                                   initial ? eFrameRef_Unknown : eFrameRef_Write);
-      SAFE_RELEASE(res);
     }
   }
 
