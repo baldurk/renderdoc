@@ -866,6 +866,10 @@ struct varfunc
 
     currentarg = 0;
 
+    // avoid unused parameter errors when calling a parameter-less function
+    (void)self;
+    (void)funcname;
+
     using expand_type = int[];
     (void)expand_type{0, (push_arg(self, funcname, params), 0)...};
   }
