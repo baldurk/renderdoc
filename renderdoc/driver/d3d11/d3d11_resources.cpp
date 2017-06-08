@@ -298,7 +298,7 @@ string ToStrHelper<false, ResourceType>::Get(const ResourceType &el)
   return tostrBuf;
 }
 
-ResourceId GetIDForResource(ID3D11DeviceChild *ptr)
+ResourceId GetIDForDeviceChild(ID3D11DeviceChild *ptr)
 {
   if(ptr == NULL)
     return ResourceId();

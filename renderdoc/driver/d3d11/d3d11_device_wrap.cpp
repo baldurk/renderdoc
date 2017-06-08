@@ -2469,7 +2469,8 @@ bool WrappedID3D11Device::Serialise_CreateDeferredContext(const UINT ContextFlag
                                                           ID3D11DeviceContext **ppDeferredContext)
 {
   SERIALISE_ELEMENT(uint32_t, Flags, ContextFlags);
-  SERIALISE_ELEMENT(ResourceId, Context, GetIDForResource(*ppDeferredContext));
+  SERIALISE_ELEMENT(ResourceId, Context,
+                    ((WrappedID3D11DeviceContext *)(*ppDeferredContext))->GetResourceID());
 
   if(m_State == READING)
   {

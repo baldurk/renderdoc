@@ -2560,7 +2560,7 @@ bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain4 *
 
   SERIALISE_ELEMENT(DXGI_FORMAT, swapFormat, swapDesc->BufferDesc.Format);
   SERIALISE_ELEMENT(uint32_t, BuffNum, buffer);
-  SERIALISE_ELEMENT(ResourceId, pTexture, GetIDForResource(pTex));
+  SERIALISE_ELEMENT(ResourceId, pTexture, pTex->GetResourceID());
 
   m_BBID = pTexture;
 
@@ -2631,7 +2631,7 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
   D3D11_TEXTURE2D_DESC desc;
   pTex->GetDesc(&desc);
 
-  ResourceId id = GetIDForResource(pTex);
+  ResourceId id = pTex->GetResourceID();
 
   LazyInit();
 
