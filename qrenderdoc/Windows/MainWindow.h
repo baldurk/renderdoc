@@ -53,6 +53,7 @@ public:
 
   // IMainWindow
   QWidget *Widget() override { return this; }
+  void RegisterShortcut(const QString &shortcut, QWidget *widget, ShortcutCallback callback);
   // ILogViewerForm
   void OnLogfileLoaded() override;
   void OnLogfileClosed() override;
@@ -62,6 +63,8 @@ public:
   ToolWindowManager *mainToolManager();
   ToolWindowManager::AreaReference mainToolArea();
   ToolWindowManager::AreaReference leftToolArea();
+
+  void show();
 
   void setProgress(float val);
   void takeLogOwnership() { m_OwnTempLog = true; }
@@ -133,12 +136,17 @@ private:
   void dragEnterEvent(QDragEnterEvent *event) override;
   void dropEvent(QDropEvent *event) override;
 
+  bool eventFilter(QObject *watched, QEvent *event) override;
+
   QString dragFilename(const QMimeData *mimeData);
 
   Ui::MainWindow *ui;
   ICaptureContext &m_Ctx;
 
   QList<LiveCapture *> m_LiveCaptures;
+
+  QMap<QKeySequence, ShortcutCallback> m_GlobalShortcutCallbacks;
+  QMap<QKeySequence, QMap<QWidget *, ShortcutCallback>> m_WidgetShortcutCallbacks;
 
   RDLabel *statusIcon;
   RDLabel *statusText;

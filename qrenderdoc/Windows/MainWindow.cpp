@@ -57,6 +57,8 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 {
   ui->setupUi(this);
 
+  installEventFilter(this);
+
   setAcceptDrops(true);
 
   QObject::connect(ui->action_Load_Default_Layout, &QAction::triggered, this,
@@ -166,8 +168,6 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   ui->action_Resolve_Symbols->setEnabled(false);
   ui->action_Resolve_Symbols->setText(tr("Resolve Symbols"));
 
-  bool loaded = LoadLayout(0);
-
   LambdaThread *th = new LambdaThread([this]() {
     m_Ctx.Config().AddAndroidHosts();
     for(RemoteHost *host : m_Ctx.Config().RemoteHosts)
@@ -175,46 +175,6 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   });
   th->selfDelete(true);
   th->start();
-
-  // create default layout if layout failed to load
-  if(!loaded)
-  {
-    QWidget *eventBrowser = m_Ctx.GetEventBrowser()->Widget();
-
-    ui->toolWindowManager->addToolWindow(eventBrowser, ToolWindowManager::EmptySpace);
-
-    QWidget *textureViewer = m_Ctx.GetTextureViewer()->Widget();
-
-    ui->toolWindowManager->addToolWindow(
-        textureViewer,
-        ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
-                                         ui->toolWindowManager->areaOf(eventBrowser), 0.75f));
-
-    QWidget *pipe = m_Ctx.GetPipelineViewer()->Widget();
-
-    ui->toolWindowManager->addToolWindow(
-        pipe, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
-                                               ui->toolWindowManager->areaOf(textureViewer)));
-
-    QWidget *mesh = m_Ctx.GetMeshPreview()->Widget();
-
-    ui->toolWindowManager->addToolWindow(
-        mesh, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
-                                               ui->toolWindowManager->areaOf(textureViewer)));
-
-    QWidget *capDialog = m_Ctx.GetCaptureDialog()->Widget();
-
-    ui->toolWindowManager->addToolWindow(
-        capDialog, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
-                                                    ui->toolWindowManager->areaOf(textureViewer)));
-
-    QWidget *apiInspector = m_Ctx.GetAPIInspector()->Widget();
-
-    ui->toolWindowManager->addToolWindow(
-        apiInspector,
-        ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
-                                         ui->toolWindowManager->areaOf(eventBrowser), 0.3f));
-  }
 
 #if defined(Q_OS_WIN32)
   if(GetModuleHandleA("rdocself.dll"))
@@ -244,6 +204,27 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 #endif
 
   m_Ctx.AddLogViewer(this);
+
+  QList<QAction *> actions = ui->menuBar->actions();
+
+  // register all the UI-designer created shortcut keys
+  for(int i = 0; i < actions.count(); i++)
+  {
+    QAction *a = actions[i];
+
+    QKeySequence ks = a->shortcut();
+    if(!ks.isEmpty())
+    {
+      m_GlobalShortcutCallbacks[ks] = [a]() {
+        if(a->isEnabled())
+          a->trigger();
+      };
+    }
+
+    // recurse into submenus by appending to the end of the list.
+    if(a->menu())
+      actions.append(a->menu()->actions());
+  }
 }
 
 MainWindow::~MainWindow()
@@ -845,6 +826,53 @@ ToolWindowManager::AreaReference MainWindow::leftToolArea()
   return ToolWindowManager::AreaReference(ToolWindowManager::LastUsedArea);
 }
 
+void MainWindow::show()
+{
+  bool loaded = LoadLayout(0);
+
+  // create default layout if layout failed to load
+  if(!loaded)
+  {
+    QWidget *eventBrowser = m_Ctx.GetEventBrowser()->Widget();
+
+    ui->toolWindowManager->addToolWindow(eventBrowser, ToolWindowManager::EmptySpace);
+
+    QWidget *textureViewer = m_Ctx.GetTextureViewer()->Widget();
+
+    ui->toolWindowManager->addToolWindow(
+        textureViewer,
+        ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
+                                         ui->toolWindowManager->areaOf(eventBrowser), 0.75f));
+
+    QWidget *pipe = m_Ctx.GetPipelineViewer()->Widget();
+
+    ui->toolWindowManager->addToolWindow(
+        pipe, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                               ui->toolWindowManager->areaOf(textureViewer)));
+
+    QWidget *mesh = m_Ctx.GetMeshPreview()->Widget();
+
+    ui->toolWindowManager->addToolWindow(
+        mesh, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                               ui->toolWindowManager->areaOf(textureViewer)));
+
+    QWidget *capDialog = m_Ctx.GetCaptureDialog()->Widget();
+
+    ui->toolWindowManager->addToolWindow(
+        capDialog, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                                    ui->toolWindowManager->areaOf(textureViewer)));
+
+    QWidget *apiInspector = m_Ctx.GetAPIInspector()->Widget();
+
+    ui->toolWindowManager->addToolWindow(
+        apiInspector,
+        ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
+                                         ui->toolWindowManager->areaOf(eventBrowser), 0.3f));
+  }
+
+  QMainWindow::show();
+}
+
 void MainWindow::recentLog(const QString &filename)
 {
   if(QFileInfo::exists(filename))
@@ -1256,6 +1284,71 @@ void MainWindow::OnLogfileClosed()
 
 void MainWindow::OnEventChanged(uint32_t eventID)
 {
+}
+
+void MainWindow::RegisterShortcut(const QString &shortcut, QWidget *widget, ShortcutCallback callback)
+{
+  QKeySequence ks = QKeySequence::fromString(shortcut);
+
+  if(widget)
+  {
+    m_WidgetShortcutCallbacks[ks][widget] = callback;
+  }
+  else
+  {
+    if(m_GlobalShortcutCallbacks[ks])
+    {
+      qCritical() << "Assigning duplicate global shortcut for" << ks;
+      return;
+    }
+
+    m_GlobalShortcutCallbacks[ks] = callback;
+  }
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+  if(event->type() == QEvent::ShortcutOverride)
+  {
+    QKeyEvent *ke = (QKeyEvent *)event;
+
+    QKeySequence pressed(ke->modifiers() | ke->key());
+
+    // first see if there's a widget shortcut registered for this key. If so, check the focus
+    // hierarchy to see if we have any matches
+    QWidget *focus = QApplication::focusWidget();
+
+    if(focus && m_WidgetShortcutCallbacks.contains(pressed))
+    {
+      const QMap<QWidget *, ShortcutCallback> callbacks = m_WidgetShortcutCallbacks[pressed];
+      QList<QWidget *> widgets = callbacks.keys();
+
+      while(focus)
+      {
+        // if we find a direct ancestor to the focus widget which is registered for this shortcut,
+        // then use that callback
+        if(widgets.contains(focus))
+        {
+          callbacks[focus]();
+          event->accept();
+          return true;
+        }
+
+        // keep searching up the hierarchy
+        focus = focus->parentWidget();
+      }
+    }
+
+    // if we didn't find matches or no such shortcut is registered, try global shortcuts
+    if(m_GlobalShortcutCallbacks.contains(pressed))
+    {
+      m_GlobalShortcutCallbacks[pressed]();
+      event->accept();
+      return true;
+    }
+  }
+
+  return QMainWindow::eventFilter(watched, event);
 }
 
 void MainWindow::on_action_Close_Log_triggered()

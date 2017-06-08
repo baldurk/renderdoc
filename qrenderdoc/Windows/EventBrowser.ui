@@ -323,9 +323,6 @@
          <iconset resource="../Resources/resources.qrc">
           <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
         </property>
-        <property name="shortcut">
-         <string>Esc</string>
-        </property>
         <property name="autoRaise">
          <bool>true</bool>
         </property>
@@ -435,9 +432,6 @@
         <property name="icon">
          <iconset resource="../Resources/resources.qrc">
           <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
-        </property>
-        <property name="shortcut">
-         <string>Esc</string>
         </property>
         <property name="autoRaise">
          <bool>true</bool>

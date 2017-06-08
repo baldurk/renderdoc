@@ -93,12 +93,39 @@ struct CaptureSettings
 
 DECLARE_REFLECTION_STRUCT(CaptureSettings);
 
-DOCUMENT("The main parent window of the application.");
+DOCUMENT(R"(The main parent window of the application.
+
+.. function:: ShortcutCallback()
+
+  Not a member function - the signature for any ``ShortcutCallback`` callbacks.
+)");
 struct IMainWindow
 {
+  typedef std::function<void()> ShortcutCallback;
+
   DOCUMENT(
       "Retrieves the QWidget for this :class:`MainWindow` if PySide2 is available, or ``None``.");
   virtual QWidget *Widget() = 0;
+
+  DOCUMENT(R"(Register a callback for a particular key shortcut.
+
+This creates a managed shortcut. Qt's shortcut system doesn't allow specialisation/duplication, so
+you can't use ``Ctrl+S`` for a shortcut in a window to update some changes if there's also a global
+``Ctrl+S`` shortcut on the window. In the end, neither shortcut will be called.
+
+Instead this function allows the main window to manage shortcuts internally, and it will pick the
+closest shortcut to a given action. The search goes from the widget with the focus currently up the
+chain of parents, with the first match being used. If no matches are found, then a 'global' default
+will be invoked, if it exists.
+
+:param str shortcut: The text string representing the shortcut, e.g. 'Ctrl+S'.
+:param QWidget widget: A handle to the widget to use as the context for this shortcut, or ``None``
+  for a global shortcut. Note that if an existing global shortcut exists the new one will not be
+  registered.
+:rtype: ``str``
+)");
+  virtual void RegisterShortcut(const QString &shortcut, QWidget *widget,
+                                ShortcutCallback callback) = 0;
 
 protected:
   IMainWindow() = default;

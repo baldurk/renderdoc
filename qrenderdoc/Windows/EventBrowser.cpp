@@ -134,19 +134,20 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   };
   for(int i = 0; i < 10; i++)
   {
-    QShortcut *sc = new QShortcut(QKeySequence(keys[i] | Qt::ControlModifier), this);
-    QObject::connect(sc, &QShortcut::activated, [this, i]() { jumpToBookmark(i); });
+    ctx.GetMainWindow()->RegisterShortcut(QKeySequence(keys[i] | Qt::ControlModifier).toString(),
+                                          NULL, [this, i]() { jumpToBookmark(i); });
   }
 
-  {
-    QShortcut *sc = new QShortcut(QKeySequence(Qt::Key_Left | Qt::ControlModifier), this);
-    QObject::connect(sc, &QShortcut::activated, this, &EventBrowser::on_stepPrev_clicked);
-  }
+  ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Left | Qt::ControlModifier).toString(),
+                                        NULL, [this]() { on_stepPrev_clicked(); });
 
-  {
-    QShortcut *sc = new QShortcut(QKeySequence(Qt::Key_Right | Qt::ControlModifier), this);
-    QObject::connect(sc, &QShortcut::activated, this, &EventBrowser::on_stepNext_clicked);
-  }
+  ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Right | Qt::ControlModifier).toString(),
+                                        NULL, [this]() { on_stepNext_clicked(); });
+
+  ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Escape).toString(), ui->findStrip,
+                                        [this]() { on_HideFindJump(); });
+  ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Escape).toString(), ui->jumpStrip,
+                                        [this]() { on_HideFindJump(); });
 
   ui->events->setContextMenuPolicy(Qt::CustomContextMenu);
   QObject::connect(ui->events, &RDTreeWidget::customContextMenuRequested, this,

@@ -217,9 +217,8 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
         m_FindState = FindState();
     });
 
-    // TODO - shortcuts
-    QObject::connect(new QShortcut(QKeySequence(Qt::Key_S | Qt::ControlModifier), scintilla),
-                     &QShortcut::activated, this, &ShaderViewer::on_save_clicked);
+    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(QKeySequence::Save).toString(), this,
+                                            [this]() { on_save_clicked(); });
 
     QWidget *w = (QWidget *)scintilla;
     w->setProperty("filename", f);

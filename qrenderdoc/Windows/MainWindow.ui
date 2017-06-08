@@ -199,9 +199,6 @@
    <property name="text">
     <string>E&amp;xit</string>
    </property>
-   <property name="shortcut">
-    <string>Alt+F4</string>
-   </property>
   </action>
   <action name="action_Python_Shell">
    <property name="text">
