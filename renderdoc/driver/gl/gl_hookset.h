@@ -174,7 +174,7 @@ struct GLHookSet
   PFNGLGETQUERYINDEXEDIVPROC glGetQueryIndexediv;
   PFNGLGETQUERYOBJECTUI64VPROC glGetQueryObjectui64v;    // aliases glGetQueryObjectui64vEXT
   PFNGLGETQUERYOBJECTUIVPROC glGetQueryObjectuiv;        // aliases glGetQueryObjectuivARB, glGetQueryObjectuivEXT
-  PFNGLGETQUERYOBJECTI64VPROC glGetQueryObjecti64v;      // aliases glGetQueryObjecti64vEXT, glGetQueryObjecti64vEXT
+  PFNGLGETQUERYOBJECTI64VPROC glGetQueryObjecti64v;      // aliases glGetQueryObjecti64vEXT
   PFNGLGETQUERYOBJECTIVPROC glGetQueryObjectiv;          // aliases glGetQueryObjectivARB, glGetQueryObjectivEXT
   PFNGLGETQUERYIVPROC glGetQueryiv;                      // aliases glGetQueryivARB, glGetQueryivEXT
   PFNGLGETSYNCIVPROC glGetSynciv;
@@ -283,7 +283,7 @@ struct GLHookSet
   PFNGLISFRAMEBUFFERPROC glIsFramebuffer;    // aliases glIsFramebufferEXT
   PFNGLISPROGRAMPROC glIsProgram;
   PFNGLISPROGRAMPIPELINEPROC glIsProgramPipeline;
-  PFNGLISQUERYPROC glIsQuery;                  // aliases glIsQueryARB
+  PFNGLISQUERYPROC glIsQuery;                  // aliases glIsQueryARB, glIsQueryEXT
   PFNGLISRENDERBUFFERPROC glIsRenderbuffer;    // aliases glIsRenderbufferEXT
   PFNGLISSAMPLERPROC glIsSampler;
   PFNGLISSHADERPROC glIsShader;
