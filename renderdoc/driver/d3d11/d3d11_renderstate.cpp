@@ -974,12 +974,11 @@ void D3D11RenderState::ReleaseRef(ID3D11DeviceChild *p)
   }
 }
 
-bool D3D11RenderState::IsBoundIUnknownForWrite(const ResourceRange &range, bool readDepthOnly,
-                                               bool readStencilOnly)
+bool D3D11RenderState::IsRangeBoundForWrite(const ResourceRange &range)
 {
   for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
   {
-    if(range.Intersects(ResourceRange(CSUAVs[i])))
+    if(CSUAVs[i] && range.Intersects(GetResourceRange(CSUAVs[i])))
     {
       // RDCDEBUG("Resource was bound on CS UAV %u", i);
       return true;
@@ -988,7 +987,7 @@ bool D3D11RenderState::IsBoundIUnknownForWrite(const ResourceRange &range, bool 
 
   for(UINT i = 0; i < D3D11_SO_BUFFER_SLOT_COUNT; i++)
   {
-    if(range.Intersects(ResourceRange(SO.Buffers[i])))
+    if(SO.Buffers[i] && range.Intersects(ResourceRange(SO.Buffers[i])))
     {
       // RDCDEBUG("Resource was bound on SO buffer %u", i);
       return true;
@@ -997,7 +996,7 @@ bool D3D11RenderState::IsBoundIUnknownForWrite(const ResourceRange &range, bool 
 
   for(UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
   {
-    if(range.Intersects(ResourceRange(OM.RenderTargets[i])))
+    if(OM.RenderTargets[i] && range.Intersects(GetResourceRange(OM.RenderTargets[i])))
     {
       // RDCDEBUG("Resource was bound on RTV %u", i);
       return true;
@@ -1006,39 +1005,32 @@ bool D3D11RenderState::IsBoundIUnknownForWrite(const ResourceRange &range, bool 
 
   for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
   {
-    if(range.Intersects(ResourceRange(OM.UAVs[i])))
+    if(OM.UAVs[i] && range.Intersects(GetResourceRange(OM.UAVs[i])))
     {
       // RDCDEBUG("Resource was bound on OM UAV %d", i);
       return true;
     }
   }
 
+  if(OM.DepthView)
   {
-    UINT depthFlags = 0;
+    const ResourceRange &depthRange = GetResourceRange(OM.DepthView);
 
-    if(OM.DepthView)
-    {
-      D3D11_DEPTH_STENCIL_VIEW_DESC d;
-      OM.DepthView->GetDesc(&d);
-
-      depthFlags = d.Flags;
-    }
-
-    if(range.Intersects(ResourceRange(OM.DepthView)))
+    if(range.Intersects(depthRange))
     {
       // RDCDEBUG("Resource was bound on OM DSV");
 
-      if(depthFlags == (D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL))
+      if(depthRange.IsDepthReadOnly() && depthRange.IsStencilReadOnly())
       {
         // RDCDEBUG("but it's a readonly DSV, so that's fine");
       }
-      else if(depthFlags == D3D11_DSV_READ_ONLY_DEPTH && readDepthOnly)
+      else if(depthRange.IsDepthReadOnly() && range.IsDepthReadOnly())
       {
         // RDCDEBUG("but it's a depth readonly DSV and we're only reading depth, so that's fine");
       }
-      else if(depthFlags == D3D11_DSV_READ_ONLY_STENCIL && readStencilOnly)
+      else if(depthRange.IsStencilReadOnly() && range.IsStencilReadOnly())
       {
-        // RDCDEBUG("but it's a depth readonly DSV and we're only reading depth, so that's fine");
+        // RDCDEBUG("but it's a stencil readonly DSV and we're only reading stencil, so that's OK");
       }
       else
       {
@@ -1050,11 +1042,11 @@ bool D3D11RenderState::IsBoundIUnknownForWrite(const ResourceRange &range, bool 
   return false;
 }
 
-void D3D11RenderState::UnbindIUnknownForWrite(const ResourceRange &range)
+void D3D11RenderState::UnbindRangeForWrite(const ResourceRange &range)
 {
   for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
   {
-    if(range.Intersects(ResourceRange(CSUAVs[i])))
+    if(CSUAVs[i] && range.Intersects(GetResourceRange(CSUAVs[i])))
     {
       ReleaseRef(CSUAVs[i]);
       CSUAVs[i] = NULL;
@@ -1063,7 +1055,7 @@ void D3D11RenderState::UnbindIUnknownForWrite(const ResourceRange &range)
 
   for(UINT i = 0; i < D3D11_SO_BUFFER_SLOT_COUNT; i++)
   {
-    if(range.Intersects(ResourceRange(SO.Buffers[i])))
+    if(SO.Buffers[i] && range.Intersects(ResourceRange(SO.Buffers[i])))
     {
       ReleaseRef(SO.Buffers[i]);
       SO.Buffers[i] = NULL;
@@ -1072,7 +1064,7 @@ void D3D11RenderState::UnbindIUnknownForWrite(const ResourceRange &range)
 
   for(UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
   {
-    if(range.Intersects(ResourceRange(OM.RenderTargets[i])))
+    if(OM.RenderTargets[i] && range.Intersects(GetResourceRange(OM.RenderTargets[i])))
     {
       ReleaseRef(OM.RenderTargets[i]);
       OM.RenderTargets[i] = NULL;
@@ -1081,26 +1073,25 @@ void D3D11RenderState::UnbindIUnknownForWrite(const ResourceRange &range)
 
   for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
   {
-    if(range.Intersects(ResourceRange(OM.UAVs[i])))
+    if(OM.UAVs[i] && range.Intersects(GetResourceRange(OM.UAVs[i])))
     {
       ReleaseRef(OM.UAVs[i]);
       OM.UAVs[i] = NULL;
     }
   }
 
-  if(range.Intersects(ResourceRange(OM.DepthView)))
+  if(OM.DepthView && range.Intersects(GetResourceRange(OM.DepthView)))
   {
     ReleaseRef(OM.DepthView);
     OM.DepthView = NULL;
   }
 }
 
-void D3D11RenderState::UnbindIUnknownForRead(const ResourceRange &range, bool allowDepthOnly,
-                                             bool allowStencilOnly)
+void D3D11RenderState::UnbindRangeForRead(const ResourceRange &range)
 {
   for(int i = 0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
   {
-    if(range.Intersects(ResourceRange(IA.VBs[i])))
+    if(IA.VBs[i] && range.Intersects(ResourceRange(IA.VBs[i])))
     {
       // RDCDEBUG("Resource was bound on IA VB %u", i);
       ReleaseRef(IA.VBs[i]);
@@ -1108,7 +1099,7 @@ void D3D11RenderState::UnbindIUnknownForRead(const ResourceRange &range, bool al
     }
   }
 
-  if(range.Intersects(ResourceRange(IA.IndexBuffer)))
+  if(IA.IndexBuffer && range.Intersects(ResourceRange(IA.IndexBuffer)))
   {
     // RDCDEBUG("Resource was bound on IA IB");
     ReleaseRef(IA.IndexBuffer);
@@ -1123,7 +1114,7 @@ void D3D11RenderState::UnbindIUnknownForRead(const ResourceRange &range, bool al
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
     {
-      if(range.Intersects(ResourceRange(sh->ConstantBuffers[i])))
+      if(sh->ConstantBuffers[i] && range.Intersects(ResourceRange(sh->ConstantBuffers[i])))
       {
         // RDCDEBUG("Resource was bound on %s CB %u", names[s], i);
         ReleaseRef(sh->ConstantBuffers[i]);
@@ -1133,79 +1124,22 @@ void D3D11RenderState::UnbindIUnknownForRead(const ResourceRange &range, bool al
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
     {
-      bool readDepthOnly = false;
-      bool readStencilOnly = false;
+      if(!sh->SRVs[i])
+        continue;
 
-      D3D11_RESOURCE_DIMENSION dim;
-      DXGI_FORMAT fmt = DXGI_FORMAT_UNKNOWN;
+      const ResourceRange &srvRange = GetResourceRange(sh->SRVs[i]);
 
-      ID3D11Resource *res = NULL;
-      // we only need to fetch the information about depth/stencil
-      // read-only status if we're actually going to care about it.
-      if(sh->SRVs[i] && (allowDepthOnly || allowStencilOnly))
-      {
-        sh->SRVs[i]->GetResource(&res);
-
-        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-        sh->SRVs[i]->GetDesc(&srvDesc);
-
-        fmt = srvDesc.Format;
-
-        res->GetType(&dim);
-
-        if(fmt == DXGI_FORMAT_UNKNOWN)
-        {
-          if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
-          {
-            D3D11_TEXTURE1D_DESC d;
-            ((ID3D11Texture1D *)res)->GetDesc(&d);
-
-            fmt = d.Format;
-          }
-          else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
-          {
-            D3D11_TEXTURE2D_DESC d;
-            ((ID3D11Texture2D *)res)->GetDesc(&d);
-
-            fmt = d.Format;
-          }
-        }
-
-        if(fmt == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT || fmt == DXGI_FORMAT_X24_TYPELESS_G8_UINT)
-        {
-          readStencilOnly = true;
-        }
-        else if(fmt == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
-                fmt == DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
-        {
-          readDepthOnly = true;
-        }
-        else
-        {
-          fmt = GetTypelessFormat(fmt);
-
-          // any format that could be depth-only, treat it as reading depth only.
-          // this only applies for conflicts detected with the depth target.
-          if(fmt == DXGI_FORMAT_R32_TYPELESS || fmt == DXGI_FORMAT_R16_TYPELESS)
-          {
-            readDepthOnly = true;
-          }
-        }
-
-        SAFE_RELEASE(res);
-      }
-
-      if(range.Intersects(ResourceRange(sh->SRVs[i])))
+      if(range.Intersects(srvRange))
       {
         // RDCDEBUG("Resource was bound on %s SRV %u", names[s], i);
 
-        if(allowDepthOnly && readDepthOnly)
+        if(range.IsDepthReadOnly() && srvRange.IsDepthReadOnly())
         {
           // RDCDEBUG("but it's a depth readonly DSV and we're only reading depth, so that's fine");
         }
-        else if(allowStencilOnly && readStencilOnly)
+        else if(range.IsStencilReadOnly() && srvRange.IsStencilReadOnly())
         {
-          // RDCDEBUG("but it's a depth readonly DSV and we're only reading depth, so that's fine");
+          // RDCDEBUG("but it's a stencil readonly DSV and we're only reading stenc, so that's OK");
         }
         else
         {
@@ -1284,13 +1218,13 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
     for(int i = 0; RTs && i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
     {
       if(RTs[i])
-        rtvRanges[i] = ResourceRange(RTs[i]);
+        rtvRanges[i] = GetResourceRange(RTs[i]);
       else
         break;
     }
 
     if(depth)
-      depthRange = ResourceRange(depth);
+      depthRange = GetResourceRange(depth);
 
     int numUAVs = 0;
 
@@ -1298,7 +1232,7 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
     {
       if(uavs[i])
       {
-        uavRanges[i] = ResourceRange(uavs[i]);
+        uavRanges[i] = GetResourceRange(uavs[i]);
         numUAVs = i + 1;
       }
     }
@@ -1694,6 +1628,145 @@ bool D3D11RenderState::shader::Used_UAV(uint32_t slot) const
   return false;
 }
 
+template <>
+bool D3D11RenderState::IsBoundForWrite(ID3D11InputLayout *resource)
+{
+  return false;
+}
+
+template <>
+bool D3D11RenderState::IsBoundForWrite(ID3D11ClassInstance *resource)
+{
+  return false;
+}
+
+template <>
+bool D3D11RenderState::IsBoundForWrite(ID3D11DeviceChild *shader)
+{
+  return false;
+}
+
+template <>
+bool D3D11RenderState::IsBoundForWrite(ID3D11SamplerState *resource)
+{
+  return false;
+}
+
+template <>
+bool D3D11RenderState::IsBoundForWrite(ID3D11BlendState *state)
+{
+  return false;
+}
+
+template <>
+bool D3D11RenderState::IsBoundForWrite(ID3D11RasterizerState *state)
+{
+  return false;
+}
+
+template <>
+bool D3D11RenderState::IsBoundForWrite(ID3D11DepthStencilState *state)
+{
+  return false;
+}
+
+template <>
+bool D3D11RenderState::IsBoundForWrite(ID3D11Buffer *buffer)
+{
+  if(buffer == NULL)
+    return false;
+
+  return IsRangeBoundForWrite(ResourceRange(buffer));
+}
+
+template <>
+bool D3D11RenderState::IsBoundForWrite(ID3D11ShaderResourceView *srv)
+{
+  if(srv == NULL)
+    return false;
+
+  return IsRangeBoundForWrite(GetResourceRange(srv));
+}
+
+template <>
+void D3D11RenderState::UnbindForRead(ID3D11Buffer *buffer)
+{
+  if(buffer == NULL)
+    return;
+  UnbindRangeForRead(ResourceRange(buffer));
+}
+
+template <>
+void D3D11RenderState::UnbindForRead(ID3D11RenderTargetView *rtv)
+{
+  if(rtv == NULL)
+    return;
+
+  UnbindRangeForRead(GetResourceRange(rtv));
+}
+
+template <>
+void D3D11RenderState::UnbindForRead(ID3D11DepthStencilView *dsv)
+{
+  if(dsv == NULL)
+    return;
+
+  const ResourceRange &dsvRange = GetResourceRange(dsv);
+
+  if(dsvRange.IsDepthReadOnly() && dsvRange.IsStencilReadOnly())
+  {
+    // don't need to.
+  }
+  else
+  {
+    UnbindRangeForRead(dsvRange);
+  }
+}
+
+template <>
+void D3D11RenderState::UnbindForRead(ID3D11UnorderedAccessView *uav)
+{
+  if(uav == NULL)
+    return;
+
+  UnbindRangeForRead(GetResourceRange(uav));
+}
+
+template <>
+void D3D11RenderState::UnbindForWrite(ID3D11Buffer *buffer)
+{
+  if(buffer == NULL)
+    return;
+  UnbindRangeForWrite(ResourceRange(buffer));
+}
+
+template <>
+void D3D11RenderState::UnbindForWrite(ID3D11RenderTargetView *rtv)
+{
+  if(rtv == NULL)
+    return;
+
+  UnbindRangeForWrite(GetResourceRange(rtv));
+}
+
+template <>
+void D3D11RenderState::UnbindForWrite(ID3D11DepthStencilView *dsv)
+{
+  if(dsv == NULL)
+    return;
+
+  UnbindRangeForWrite(GetResourceRange(dsv));
+}
+
+template <>
+void D3D11RenderState::UnbindForWrite(ID3D11UnorderedAccessView *uav)
+{
+  if(uav == NULL)
+    return;
+
+  UnbindRangeForWrite(GetResourceRange(uav));
+}
+
 D3D11RenderStateTracker::D3D11RenderStateTracker(WrappedID3D11DeviceContext *ctx)
     : m_RS(*ctx->GetCurrentPipelineState())
 {
@@ -1703,252 +1776,4 @@ D3D11RenderStateTracker::D3D11RenderStateTracker(WrappedID3D11DeviceContext *ctx
 D3D11RenderStateTracker::~D3D11RenderStateTracker()
 {
   m_RS.ApplyState(m_pContext);
-}
-
-D3D11RenderState::ResourceRange D3D11RenderState::ResourceRange::Null =
-    D3D11RenderState::ResourceRange(NULL, 0, 0);
-
-D3D11RenderState::ResourceRange::ResourceRange(ID3D11ShaderResourceView *srv)
-{
-  minMip = minSlice = 0;
-
-  if(srv == NULL)
-  {
-    resource = NULL;
-    maxMip = maxSlice = ~0U;
-    fullRange = true;
-    return;
-  }
-
-  ID3D11Resource *res = NULL;
-  srv->GetResource(&res);
-  res->Release();
-  resource = (IUnknown *)res;
-
-  UINT numMips = ~0U, numSlices = ~0U;
-
-  D3D11_SHADER_RESOURCE_VIEW_DESC srvd;
-  srv->GetDesc(&srvd);
-
-  switch(srvd.ViewDimension)
-  {
-    case D3D11_SRV_DIMENSION_TEXTURE1D:
-      minMip = srvd.Texture1D.MostDetailedMip;
-      numMips = srvd.Texture1D.MipLevels;
-      break;
-    case D3D11_SRV_DIMENSION_TEXTURE1DARRAY:
-      minMip = srvd.Texture1DArray.MostDetailedMip;
-      numMips = srvd.Texture1DArray.MipLevels;
-      minSlice = srvd.Texture1DArray.FirstArraySlice;
-      numSlices = srvd.Texture1DArray.ArraySize;
-      break;
-    case D3D11_SRV_DIMENSION_TEXTURE2D:
-      minMip = srvd.Texture2D.MostDetailedMip;
-      numMips = srvd.Texture2D.MipLevels;
-      break;
-    case D3D11_SRV_DIMENSION_TEXTURE2DARRAY:
-      minMip = srvd.Texture2DArray.MostDetailedMip;
-      numMips = srvd.Texture2DArray.MipLevels;
-      minSlice = srvd.Texture2DArray.FirstArraySlice;
-      numSlices = srvd.Texture2DArray.ArraySize;
-      break;
-    case D3D11_SRV_DIMENSION_TEXTURE2DMS: break;
-    case D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY:
-      minSlice = srvd.Texture2DMSArray.FirstArraySlice;
-      numSlices = srvd.Texture2DMSArray.ArraySize;
-      break;
-    case D3D11_SRV_DIMENSION_TEXTURE3D:
-      minMip = srvd.Texture3D.MostDetailedMip;
-      numMips = srvd.Texture3D.MipLevels;
-      break;
-    case D3D11_SRV_DIMENSION_TEXTURECUBE:
-      minMip = srvd.TextureCube.MostDetailedMip;
-      numMips = srvd.TextureCube.MipLevels;
-      break;
-    case D3D11_SRV_DIMENSION_TEXTURECUBEARRAY:
-      minMip = srvd.TextureCubeArray.MostDetailedMip;
-      numMips = srvd.TextureCubeArray.MipLevels;
-      minSlice = srvd.TextureCubeArray.First2DArrayFace;
-      numSlices = srvd.TextureCubeArray.NumCubes * 6;
-      break;
-    case D3D11_SRV_DIMENSION_UNKNOWN:
-    case D3D11_SRV_DIMENSION_BUFFER:
-    case D3D11_SRV_DIMENSION_BUFFEREX: break;
-  }
-
-  SetMaxes(numMips, numSlices);
-}
-
-D3D11RenderState::ResourceRange::ResourceRange(ID3D11UnorderedAccessView *uav)
-{
-  minMip = minSlice = 0;
-
-  if(uav == NULL)
-  {
-    resource = NULL;
-    maxMip = maxSlice = ~0U;
-    fullRange = true;
-    return;
-  }
-
-  ID3D11Resource *res = NULL;
-  uav->GetResource(&res);
-  res->Release();
-  resource = (IUnknown *)res;
-
-  UINT numMips = ~0U, numSlices = ~0U;
-
-  D3D11_UNORDERED_ACCESS_VIEW_DESC desc;
-  uav->GetDesc(&desc);
-
-  switch(desc.ViewDimension)
-  {
-    case D3D11_UAV_DIMENSION_TEXTURE1D:
-      minMip = desc.Texture1D.MipSlice;
-      numMips = 1;
-      break;
-    case D3D11_UAV_DIMENSION_TEXTURE1DARRAY:
-      minMip = desc.Texture1DArray.MipSlice;
-      numMips = 1;
-      minSlice = desc.Texture1DArray.FirstArraySlice;
-      numSlices = desc.Texture1DArray.ArraySize;
-      break;
-    case D3D11_UAV_DIMENSION_TEXTURE2D:
-      minMip = desc.Texture2D.MipSlice;
-      numMips = 1;
-      break;
-    case D3D11_UAV_DIMENSION_TEXTURE2DARRAY:
-      minMip = desc.Texture2DArray.MipSlice;
-      numMips = 1;
-      minSlice = desc.Texture2DArray.FirstArraySlice;
-      numSlices = desc.Texture2DArray.ArraySize;
-      break;
-    case D3D11_UAV_DIMENSION_TEXTURE3D:
-      minMip = desc.Texture3D.MipSlice;
-      numMips = 1;
-      minSlice = desc.Texture3D.FirstWSlice;
-      numSlices = desc.Texture3D.WSize;
-      break;
-    case D3D11_UAV_DIMENSION_UNKNOWN:
-    case D3D11_UAV_DIMENSION_BUFFER: break;
-  }
-
-  SetMaxes(numMips, numSlices);
-}
-
-D3D11RenderState::ResourceRange::ResourceRange(ID3D11RenderTargetView *rtv)
-{
-  minMip = minSlice = 0;
-
-  if(rtv == NULL)
-  {
-    resource = NULL;
-    maxMip = maxSlice = ~0U;
-    fullRange = true;
-    return;
-  }
-
-  ID3D11Resource *res = NULL;
-  rtv->GetResource(&res);
-  res->Release();
-  resource = (IUnknown *)res;
-
-  UINT numMips = ~0U, numSlices = ~0U;
-
-  D3D11_RENDER_TARGET_VIEW_DESC desc;
-  rtv->GetDesc(&desc);
-
-  switch(desc.ViewDimension)
-  {
-    case D3D11_RTV_DIMENSION_TEXTURE1D:
-      minMip = desc.Texture1D.MipSlice;
-      numMips = 1;
-      break;
-    case D3D11_RTV_DIMENSION_TEXTURE1DARRAY:
-      minMip = desc.Texture1DArray.MipSlice;
-      numMips = 1;
-      minSlice = desc.Texture1DArray.FirstArraySlice;
-      numSlices = desc.Texture1DArray.ArraySize;
-      break;
-    case D3D11_RTV_DIMENSION_TEXTURE2D:
-      minMip = desc.Texture2D.MipSlice;
-      numMips = 1;
-      break;
-    case D3D11_RTV_DIMENSION_TEXTURE2DARRAY:
-      minMip = desc.Texture2DArray.MipSlice;
-      numMips = 1;
-      minSlice = desc.Texture2DArray.FirstArraySlice;
-      numSlices = desc.Texture2DArray.ArraySize;
-      break;
-    case D3D11_RTV_DIMENSION_TEXTURE2DMS: break;
-    case D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY:
-      minSlice = desc.Texture2DMSArray.FirstArraySlice;
-      numSlices = desc.Texture2DMSArray.ArraySize;
-      break;
-    case D3D11_RTV_DIMENSION_TEXTURE3D:
-      minMip = desc.Texture3D.MipSlice;
-      numMips = 1;
-      minSlice = desc.Texture3D.FirstWSlice;
-      numSlices = desc.Texture3D.WSize;
-      break;
-    case D3D11_RTV_DIMENSION_UNKNOWN:
-    case D3D11_RTV_DIMENSION_BUFFER: break;
-  }
-
-  SetMaxes(numMips, numSlices);
-}
-
-D3D11RenderState::ResourceRange::ResourceRange(ID3D11DepthStencilView *dsv)
-{
-  minMip = minSlice = 0;
-
-  if(dsv == NULL)
-  {
-    resource = NULL;
-    maxMip = maxSlice = ~0U;
-    fullRange = true;
-    return;
-  }
-
-  ID3D11Resource *res = NULL;
-  dsv->GetResource(&res);
-  res->Release();
-  resource = (IUnknown *)res;
-
-  UINT numMips = ~0U, numSlices = ~0U;
-
-  D3D11_DEPTH_STENCIL_VIEW_DESC desc;
-  dsv->GetDesc(&desc);
-
-  switch(desc.ViewDimension)
-  {
-    case D3D11_DSV_DIMENSION_TEXTURE1D:
-      minMip = desc.Texture1D.MipSlice;
-      numMips = 1;
-      break;
-    case D3D11_DSV_DIMENSION_TEXTURE1DARRAY:
-      minMip = desc.Texture1DArray.MipSlice;
-      numMips = 1;
-      minSlice = desc.Texture1DArray.FirstArraySlice;
-      numSlices = desc.Texture1DArray.ArraySize;
-      break;
-    case D3D11_DSV_DIMENSION_TEXTURE2D:
-      minMip = desc.Texture2D.MipSlice;
-      numMips = 1;
-      break;
-    case D3D11_DSV_DIMENSION_TEXTURE2DARRAY:
-      minMip = desc.Texture2DArray.MipSlice;
-      numMips = 1;
-      minSlice = desc.Texture2DArray.FirstArraySlice;
-      numSlices = desc.Texture2DArray.ArraySize;
-      break;
-    case D3D11_DSV_DIMENSION_TEXTURE2DMS: break;
-    case D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY:
-      minSlice = desc.Texture2DMSArray.FirstArraySlice;
-      numSlices = desc.Texture2DMSArray.ArraySize;
-      break;
-    case D3D11_DSV_DIMENSION_UNKNOWN: break;
-  }
-
-  SetMaxes(numMips, numSlices);
 }

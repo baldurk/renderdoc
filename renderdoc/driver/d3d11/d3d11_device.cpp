@@ -2517,15 +2517,15 @@ void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap
     {
       ResourceRange range(wrapped11);
 
-      GetImmediateContext()->GetCurrentPipelineState()->UnbindIUnknownForWrite(range);
-      GetImmediateContext()->GetCurrentPipelineState()->UnbindIUnknownForRead(range, false, false);
+      GetImmediateContext()->GetCurrentPipelineState()->UnbindRangeForWrite(range);
+      GetImmediateContext()->GetCurrentPipelineState()->UnbindRangeForRead(range);
 
       {
         SCOPED_LOCK(WrappedID3DDeviceContextState::m_Lock);
         for(size_t s = 0; s < WrappedID3DDeviceContextState::m_List.size(); s++)
         {
-          WrappedID3DDeviceContextState::m_List[s]->state->UnbindIUnknownForWrite(range);
-          WrappedID3DDeviceContextState::m_List[s]->state->UnbindIUnknownForRead(range, false, false);
+          WrappedID3DDeviceContextState::m_List[s]->state->UnbindRangeForWrite(range);
+          WrappedID3DDeviceContextState::m_List[s]->state->UnbindRangeForRead(range);
         }
       }
 
