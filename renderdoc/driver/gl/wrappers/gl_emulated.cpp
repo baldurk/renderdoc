@@ -33,6 +33,7 @@
 namespace glEmulate
 {
 const GLHookSet *hookset = NULL;
+PFNGLGETINTERNALFORMATIVPROC glGetInternalformativ_real = NULL;
 
 typedef GLenum (*BindingLookupFunc)(GLenum target);
 
@@ -994,6 +995,20 @@ void APIENTRY _glGetInternalformativ(GLenum target, GLenum internalformat, GLenu
   // We only implement the subset of the queries that we care about ourselves.
   // We also skip special formats, and only return values for
 
+  if(glGetInternalformativ_real)
+  {
+    switch(pname)
+    {
+      // these params are available for both GLES and GL
+      case eGL_NUM_SAMPLE_COUNTS:
+      case eGL_SAMPLES:
+        glGetInternalformativ_real(target, internalformat, pname, bufSize, params);
+        return;
+
+      default: break;
+    }
+  }
+
   if(IsCompressedFormat(internalformat))
   {
     RDCERR("Compressed formats not supported by internal glGetInternalformativ");
@@ -1510,6 +1525,10 @@ void EmulateRequiredExtensions(GLHookSet *hooks)
   if(!HasExt[ARB_internalformat_query2])
   {
     RDCLOG("Emulating ARB_internalformat_query2");
+    // GLES supports glGetInternalformativ from core 3.0 but it only accepts GL_NUM_SAMPLE_COUNTS
+    // and GL_SAMPLES params
+    if(!glGetInternalformativ_real && hooks->glGetInternalformativ != _glGetInternalformativ)
+      glGetInternalformativ_real = hooks->glGetInternalformativ;
     EMULATE_FUNC(glGetInternalformativ);
   }
 
