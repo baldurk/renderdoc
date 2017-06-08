@@ -3604,15 +3604,6 @@
     HookWrapper5(void, glclearteximageext, GLuint, texture, GLint, level, GLenum, format, GLenum, type, const void *, data); \
     HookWrapper11(void, glcleartexsubimageext, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, data); \
     HookWrapper3(void, gldiscardframebufferext, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
-    HookWrapper2(void, glgenqueriesext, GLsizei, n, GLuint *, ids); \
-    HookWrapper2(void, gldeletequeriesext, GLsizei, n, const GLuint *, ids); \
-    HookWrapper1(GLboolean, glisqueryext, GLuint, id); \
-    HookWrapper2(void, glbeginqueryext, GLenum, target, GLuint, id); \
-    HookWrapper1(void, glendqueryext, GLenum, target); \
-    HookWrapper2(void, glquerycounterext, GLuint, id, GLenum, target); \
-    HookWrapper3(void, glgetqueryivext, GLenum, target, GLenum, pname, GLint *, params); \
-    HookWrapper3(void, glgetqueryobjectivext, GLuint, id, GLenum, pname, GLint *, params); \
-    HookWrapper3(void, glgetqueryobjectuivext, GLuint, id, GLenum, pname, GLuint *, params); \
     HookWrapper5(void, gldrawelementsbasevertexext, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
     HookWrapper7(void, gldrawrangeelementsbasevertexext, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
     HookWrapper6(void, gldrawelementsinstancedbasevertexext, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex); \
@@ -5608,15 +5599,6 @@
     HandleUnsupported(PFNGLCLEARTEXIMAGEEXTPROC, glclearteximageext); \
     HandleUnsupported(PFNGLCLEARTEXSUBIMAGEEXTPROC, glcleartexsubimageext); \
     HandleUnsupported(PFNGLDISCARDFRAMEBUFFEREXTPROC, gldiscardframebufferext); \
-    HandleUnsupported(PFNGLGENQUERIESEXTPROC, glgenqueriesext); \
-    HandleUnsupported(PFNGLDELETEQUERIESEXTPROC, gldeletequeriesext); \
-    HandleUnsupported(PFNGLISQUERYEXTPROC, glisqueryext); \
-    HandleUnsupported(PFNGLBEGINQUERYEXTPROC, glbeginqueryext); \
-    HandleUnsupported(PFNGLENDQUERYEXTPROC, glendqueryext); \
-    HandleUnsupported(PFNGLQUERYCOUNTEREXTPROC, glquerycounterext); \
-    HandleUnsupported(PFNGLGETQUERYIVEXTPROC, glgetqueryivext); \
-    HandleUnsupported(PFNGLGETQUERYOBJECTIVEXTPROC, glgetqueryobjectivext); \
-    HandleUnsupported(PFNGLGETQUERYOBJECTUIVEXTPROC, glgetqueryobjectuivext); \
     HandleUnsupported(PFNGLDRAWELEMENTSBASEVERTEXEXTPROC, gldrawelementsbasevertexext); \
     HandleUnsupported(PFNGLDRAWRANGEELEMENTSBASEVERTEXEXTPROC, gldrawrangeelementsbasevertexext); \
     HandleUnsupported(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXEXTPROC, gldrawelementsinstancedbasevertexext); \
