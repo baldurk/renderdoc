@@ -35,6 +35,9 @@ set(CMAKE_SKIP_BUILD_RPATH TRUE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH "$ORIGIN/:$ORIGIN/../lib/")
 
+# Add python library
+set (CMAKE_SHARED_LINKER_FLAGS "${PYTHON_LIBRARY} ${CMAKE_SHARED_LINKER_FLAGS}")
+
 add_library(_renderdoc SHARED
     ${CMAKE_BINARY_DIR}/qrenderdoc/renderdoc_python.cxx
     pyrenderdoc_stub.cpp)
