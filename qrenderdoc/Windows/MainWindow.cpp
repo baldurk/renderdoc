@@ -205,6 +205,9 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
   m_Ctx.AddLogViewer(this);
 
+  ui->action_Save_Log->setEnabled(false);
+  ui->action_Close_Log->setEnabled(false);
+
   QList<QAction *> actions = ui->menuBar->actions();
 
   // register all the UI-designer created shortcut keys
@@ -1233,6 +1236,9 @@ void MainWindow::statusDoubleClicked(QMouseEvent *event)
 
 void MainWindow::OnLogfileLoaded()
 {
+  ui->action_Save_Log->setEnabled(true);
+  ui->action_Close_Log->setEnabled(true);
+
   // don't allow changing context while log is open
   contextChooser->setEnabled(false);
 
@@ -1261,6 +1267,9 @@ void MainWindow::OnLogfileLoaded()
 
 void MainWindow::OnLogfileClosed()
 {
+  ui->action_Save_Log->setEnabled(false);
+  ui->action_Close_Log->setEnabled(false);
+
   contextChooser->setEnabled(true);
 
   statusText->setText(QString());
