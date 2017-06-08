@@ -488,9 +488,13 @@
   HookExtension(PFNGLMAPBUFFERRANGEPROC, glMapBufferRange); \
   HookExtension(PFNGLFLUSHMAPPEDBUFFERRANGEPROC, glFlushMappedBufferRange); \
   HookExtension(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray); \
+  HookExtensionAlias(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray, glBindVertexArrayOES); \
   HookExtension(PFNGLDELETEVERTEXARRAYSPROC, glDeleteVertexArrays); \
+  HookExtensionAlias(PFNGLDELETEVERTEXARRAYSPROC, glDeleteVertexArrays, glDeleteVertexArraysOES); \
   HookExtension(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays); \
+  HookExtensionAlias(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays, glGenVertexArraysOES); \
   HookExtension(PFNGLISVERTEXARRAYPROC, glIsVertexArray); \
+  HookExtensionAlias(PFNGLISVERTEXARRAYPROC, glIsVertexArray, glIsVertexArrayOES); \
   HookExtension(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced); \
   HookExtensionAlias(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced, glDrawArraysInstancedARB); \
   HookExtensionAlias(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced, glDrawArraysInstancedEXT); \
@@ -3565,10 +3569,6 @@
     HookWrapper3(void, glgetsamplerparameteriuivoes, GLuint, sampler, GLenum, pname, GLuint *, params); \
     HookWrapper7(void, gltexstorage3dmultisampleoes, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedsamplelocations); \
     HookWrapper8(void, gltextureviewoes, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
-    HookWrapper1(void, glbindvertexarrayoes, GLuint, array); \
-    HookWrapper2(void, gldeletevertexarraysoes, GLsizei, n, const GLuint *, arrays); \
-    HookWrapper2(void, glgenvertexarraysoes, GLsizei, n, GLuint *, arrays); \
-    HookWrapper1(GLboolean, glisvertexarrayoes, GLuint, array); \
     HookWrapper3(void, glviewportarrayvoes, GLuint, first, GLsizei, count, const GLfloat *, v); \
     HookWrapper5(void, glviewportindexedfoes, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, w, GLfloat, h); \
     HookWrapper2(void, glviewportindexedfvoes, GLuint, index, const GLfloat *, v); \
@@ -5573,10 +5573,6 @@
     HandleUnsupported(PFNGLGETSAMPLERPARAMETERIUIVOESPROC, glgetsamplerparameteriuivoes); \
     HandleUnsupported(PFNGLTEXSTORAGE3DMULTISAMPLEOESPROC, gltexstorage3dmultisampleoes); \
     HandleUnsupported(PFNGLTEXTUREVIEWOESPROC, gltextureviewoes); \
-    HandleUnsupported(PFNGLBINDVERTEXARRAYOESPROC, glbindvertexarrayoes); \
-    HandleUnsupported(PFNGLDELETEVERTEXARRAYSOESPROC, gldeletevertexarraysoes); \
-    HandleUnsupported(PFNGLGENVERTEXARRAYSOESPROC, glgenvertexarraysoes); \
-    HandleUnsupported(PFNGLISVERTEXARRAYOESPROC, glisvertexarrayoes); \
     HandleUnsupported(PFNGLVIEWPORTARRAYVOESPROC, glviewportarrayvoes); \
     HandleUnsupported(PFNGLVIEWPORTINDEXEDFOESPROC, glviewportindexedfoes); \
     HandleUnsupported(PFNGLVIEWPORTINDEXEDFVOESPROC, glviewportindexedfvoes); \

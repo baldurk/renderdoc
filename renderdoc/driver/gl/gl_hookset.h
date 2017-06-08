@@ -289,7 +289,7 @@ struct GLHookSet
   PFNGLISSHADERPROC glIsShader;
   PFNGLISSYNCPROC glIsSync;
   PFNGLISTRANSFORMFEEDBACKPROC glIsTransformFeedback;
-  PFNGLISVERTEXARRAYPROC glIsVertexArray;
+  PFNGLISVERTEXARRAYPROC glIsVertexArray;                  // aliases glIsVertexArrayOES
   PFNGLGENBUFFERSPROC glGenBuffers;                        // aliases glGenBuffersARB
   PFNGLBINDBUFFERPROC glBindBuffer;                        // aliases glBindBufferARB
   PFNGLDRAWBUFFERSPROC glDrawBuffers;                      // aliases glDrawBuffersARB, glDrawBuffersEXT
@@ -346,9 +346,9 @@ struct GLHookSet
   PFNGLDRAWTRANSFORMFEEDBACKSTREAMPROC glDrawTransformFeedbackStream;
   PFNGLDRAWTRANSFORMFEEDBACKSTREAMINSTANCEDPROC glDrawTransformFeedbackStreamInstanced;
   PFNGLDELETEBUFFERSPROC glDeleteBuffers;    // aliases glDeleteBuffersARB
-  PFNGLGENVERTEXARRAYSPROC glGenVertexArrays;
-  PFNGLBINDVERTEXARRAYPROC glBindVertexArray;
-  PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays;
+  PFNGLGENVERTEXARRAYSPROC glGenVertexArrays;           // aliases glGenVertexArraysOES
+  PFNGLBINDVERTEXARRAYPROC glBindVertexArray;           // aliases glBindVertexArrayOES
+  PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays;     // aliases glDeleteVertexArraysOES
   PFNGLVERTEXATTRIB1DPROC glVertexAttrib1d;        // aliases glVertexAttrib1dARB
   PFNGLVERTEXATTRIB1DVPROC glVertexAttrib1dv;      // aliases glVertexAttrib1dvARB
   PFNGLVERTEXATTRIB1FPROC glVertexAttrib1f;        // aliases glVertexAttrib1fARB
