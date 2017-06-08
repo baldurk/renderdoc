@@ -274,10 +274,10 @@ void MainWindow::on_action_Open_Log_triggered()
   if(!PromptCloseLog())
     return;
 
-  QString filename =
-      RDDialog::getOpenFileName(this, tr("Select Logfile to open"), m_Ctx.Config().LastLogPath,
-                                tr("Log Files (*.rdc);;Image Files (*.dds *.hdr *.exr *.bmp *.jpg "
-                                   "*.jpeg *.png *.tga *.gif *.psd;;All Files (*.*)"));
+  QString filename = RDDialog::getOpenFileName(
+      this, tr("Select Logfile to open"), m_Ctx.Config().LastLogPath,
+      tr("Capture Files (*.rdc);;Image Files (*.dds *.hdr *.exr *.bmp *.jpg "
+         "*.jpeg *.png *.tga *.gif *.psd;;All Files (*.*)"));
 
   if(!filename.isEmpty())
     LoadFromFilename(filename);
@@ -580,7 +580,7 @@ QString MainWindow::GetSavePath()
   }
 
   QString filename =
-      RDDialog::getSaveFileName(this, tr("Save Capture As"), dir, tr("Log Files (*.rdc)"));
+      RDDialog::getSaveFileName(this, tr("Save Capture As"), dir, tr("Capture Files (*.rdc)"));
 
   if(!filename.isEmpty())
   {
@@ -910,8 +910,8 @@ void MainWindow::setLogHasErrors(bool errors)
     statusIcon->setPixmap(m_messageAlternate ? empty : Pixmaps::del());
 
     QString text;
-    text = tr("%1 loaded. Log has %2 errors, warnings or performance notes. "
-              "See the 'Log Errors and Warnings' window.")
+    text = tr("%1 loaded. Capture has %2 errors, warnings or performance notes. "
+              "See the 'Errors and Warnings' window.")
                .arg(filename)
                .arg(m_Ctx.DebugMessages().size());
     if(m_Ctx.UnreadMessageCount() > 0)

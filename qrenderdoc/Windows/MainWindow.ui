@@ -62,7 +62,7 @@
     </property>
     <widget class="QMenu" name="menu_Recent_Logs">
      <property name="title">
-      <string>&amp;Recent Logs</string>
+      <string>&amp;Recent Captures</string>
      </property>
      <addaction name="separator"/>
      <addaction name="action_Clear_Log_History"/>
@@ -173,7 +173,7 @@
   </action>
   <action name="action_Open_Log">
    <property name="text">
-    <string>&amp;Open Log</string>
+    <string>&amp;Open Capture</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
@@ -181,7 +181,7 @@
   </action>
   <action name="action_Save_Log">
    <property name="text">
-    <string>&amp;Save Log</string>
+    <string>&amp;Save Capture</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
@@ -189,7 +189,7 @@
   </action>
   <action name="action_Close_Log">
    <property name="text">
-    <string>&amp;Close Log</string>
+    <string>&amp;Close Capture</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+W</string>
@@ -235,7 +235,7 @@
   </action>
   <action name="action_Errors_and_Warnings">
    <property name="text">
-    <string>Log Errors and &amp;Warnings</string>
+    <string>Errors and &amp;Warnings</string>
    </property>
   </action>
   <action name="action_Timeline">
@@ -330,7 +330,7 @@
   </action>
   <action name="action_Log_Statistics">
    <property name="text">
-    <string>&amp;Log Statistics</string>
+    <string>&amp;Statistics</string>
    </property>
   </action>
   <action name="action_Settings">

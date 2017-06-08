@@ -125,7 +125,7 @@ void CaptureContext::LoadLogfile(const QString &logFile, const QString &origFile
   thread->selfDelete(true);
   thread->start();
 
-  ShowProgressDialog(m_MainWindow, tr("Loading Log: %1").arg(origFilename),
+  ShowProgressDialog(m_MainWindow, tr("Loading Capture: %1").arg(origFilename),
                      [this]() { return !m_LoadInProgress; },
                      [this]() { return UpdateLoadProgress(); });
 
