@@ -70,7 +70,7 @@ public:
     if(e->key() == Qt::Key_W || e->key() == Qt::Key_S)
       setMove(Direction::Fwd, 0);
 
-    if(e->modifiers() && Qt::ShiftModifier)
+    if(e->modifiers() & Qt::ShiftModifier)
       m_CurrentSpeed = 3.0f;
     else
       m_CurrentSpeed = 1.0f;
@@ -91,7 +91,7 @@ public:
     if(e->key() == Qt::Key_A)
       setMove(Direction::Horiz, -1);
 
-    if(e->modifiers() && Qt::ShiftModifier)
+    if(e->modifiers() & Qt::ShiftModifier)
       m_CurrentSpeed = 3.0f;
     else
       m_CurrentSpeed = 1.0f;
