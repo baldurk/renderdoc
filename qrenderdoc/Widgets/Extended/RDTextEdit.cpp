@@ -49,11 +49,11 @@ void RDTextEdit::focusOutEvent(QFocusEvent *e)
 void RDTextEdit::keyPressEvent(QKeyEvent *e)
 {
   // add ctrl-end and ctrl-home shortcuts, which aren't implemented for read-only edits
-  if(e->key() == Qt::Key_End && e->modifiers() && Qt::ControlModifier)
+  if(e->key() == Qt::Key_End && (e->modifiers() & Qt::ControlModifier))
   {
     verticalScrollBar()->setValue(verticalScrollBar()->maximum());
   }
-  else if(e->key() == Qt::Key_Home && e->modifiers() && Qt::ControlModifier)
+  else if(e->key() == Qt::Key_Home && (e->modifiers() & Qt::ControlModifier))
   {
     verticalScrollBar()->setValue(verticalScrollBar()->minimum());
   }
