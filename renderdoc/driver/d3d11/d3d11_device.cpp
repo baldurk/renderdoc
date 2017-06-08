@@ -2515,7 +2515,7 @@ void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap
     WrappedID3D11Texture2D1 *wrapped11 = (WrappedID3D11Texture2D1 *)swap->GetBackbuffers()[i];
     if(wrapped11)
     {
-      D3D11RenderState::ResourceRange range(wrapped11);
+      ResourceRange range(wrapped11);
 
       GetImmediateContext()->GetCurrentPipelineState()->UnbindIUnknownForWrite(range);
       GetImmediateContext()->GetCurrentPipelineState()->UnbindIUnknownForRead(range, false, false);

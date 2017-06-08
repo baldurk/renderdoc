@@ -744,9 +744,10 @@ class WrappedView1 : public WrappedDeviceChild11<NestedType, NestedType1>
 protected:
   ID3D11Resource *m_pResource;
   ResourceId m_ResourceResID;
+  ResourceRange m_ResourceRange;
 
   WrappedView1(NestedType *real, WrappedID3D11Device *device, ID3D11Resource *res)
-      : WrappedDeviceChild11(real, device), m_pResource(res)
+      : WrappedDeviceChild11(real, device), m_pResource(res), m_ResourceRange(real)
   {
     m_ResourceResID = GetIDForResource(m_pResource);
     // cast is potentially invalid but functions in WrappedResource will be identical across each
@@ -764,6 +765,7 @@ protected:
   virtual ~WrappedView1() {}
 public:
   ResourceId GetResourceResID() { return m_ResourceResID; }
+  const ResourceRange &GetResourceRange() { return m_ResourceRange; }
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
     if(riid == __uuidof(ID3D11View))
@@ -1329,6 +1331,20 @@ public:
   WrappedID3DDeviceContextState(ID3DDeviceContextState *real, WrappedID3D11Device *device);
   virtual ~WrappedID3DDeviceContextState();
 };
+
+#define GET_RANGE(wrapped, unwrapped)                                    \
+  template <>                                                            \
+  inline const ResourceRange &GetResourceRange(unwrapped *v)             \
+  {                                                                      \
+    return v ? ((wrapped *)v)->GetResourceRange() : ResourceRange::Null; \
+  }
+GET_RANGE(WrappedID3D11RenderTargetView1, ID3D11RenderTargetView);
+GET_RANGE(WrappedID3D11RenderTargetView1, ID3D11RenderTargetView1);
+GET_RANGE(WrappedID3D11UnorderedAccessView1, ID3D11UnorderedAccessView);
+GET_RANGE(WrappedID3D11UnorderedAccessView1, ID3D11UnorderedAccessView1);
+GET_RANGE(WrappedID3D11ShaderResourceView1, ID3D11ShaderResourceView);
+GET_RANGE(WrappedID3D11ShaderResourceView1, ID3D11ShaderResourceView1);
+GET_RANGE(WrappedID3D11DepthStencilView, ID3D11DepthStencilView);
 
 #define GET_VIEW_RESOURCE_RES_ID(wrapped, unwrapped)              \
   template <>                                                     \

@@ -49,6 +49,116 @@ struct D3D11MarkerRegion
   static WrappedID3D11Device *device;
 };
 
+struct ResourceRange
+{
+  static ResourceRange Null;
+
+  ResourceRange(ID3D11Buffer *res)
+  {
+    resource = res;
+    minMip = minSlice = 0;
+    maxMip = allMip;
+    maxSlice = allSlice;
+    fullRange = true;
+    depthReadOnly = false;
+    stencilReadOnly = false;
+  }
+
+  ResourceRange(ID3D11Texture2D *res)
+  {
+    resource = res;
+    minMip = minSlice = 0;
+    maxMip = allMip;
+    maxSlice = allSlice;
+    fullRange = true;
+    depthReadOnly = false;
+    stencilReadOnly = false;
+  }
+
+  // construct a range for a specific mip/slice. Used for easily checking if
+  // a view includes this mip/slice
+  ResourceRange(ID3D11Resource *res, UINT mip, UINT slice)
+  {
+    resource = res;
+    minMip = mip;
+    maxMip = mip;
+    minSlice = slice;
+    maxSlice = slice;
+    fullRange = false;
+    depthReadOnly = false;
+    stencilReadOnly = false;
+  }
+
+  // initialises the range with the contents of the view
+  ResourceRange(ID3D11ShaderResourceView *srv);
+  ResourceRange(ID3D11UnorderedAccessView *uav);
+  ResourceRange(ID3D11RenderTargetView *rtv);
+  ResourceRange(ID3D11DepthStencilView *dsv);
+
+  bool Intersects(const ResourceRange &range) const
+  {
+    if(resource != range.resource)
+      return false;
+
+    // we are the same resource, but maybe we refer to disjoint
+    // ranges of the subresources. Do an early-out check though
+    // if either of the ranges refers to the whole resource
+    if(fullRange || range.fullRange)
+      return true;
+
+    // do we refer to the same mip anywhere
+    if(minMip <= range.maxMip && range.minMip <= maxMip)
+    {
+      // and the same slice? (for resources without slices, this will just be
+      // 0 - ~0U so definitely true
+      if(minSlice <= range.maxSlice && range.minSlice <= maxSlice)
+        return true;
+    }
+
+    // if not, then we don't intersect
+    return false;
+  }
+
+  bool IsDepthReadOnly() const { return depthReadOnly; }
+  bool IsStencilReadOnly() const { return stencilReadOnly; }
+  bool IsNull() const { return resource == NULL; }
+private:
+  ResourceRange();
+
+  void SetMaxes(UINT numMips, UINT numSlices)
+  {
+    if(numMips == allMip)
+      maxMip = allMip;
+    else
+      maxMip = minMip + numMips - 1;
+
+    if(numSlices == allSlice)
+      maxSlice = allSlice;
+    else
+      maxSlice = minSlice + numSlices - 1;
+
+    // save this bool for faster intersection tests. Note that full range could also
+    // be true if maxMip == 12 or something, but since this is just a conservative
+    // early out we are only concerned with a common case.
+    fullRange = (minMip == 0 && minSlice == 0 && maxMip == allMip && maxSlice == allSlice);
+  }
+
+  static const UINT allMip = 0xf;
+  static const UINT allSlice = 0x7ff;
+
+  IUnknown *resource;
+  UINT minMip : 4;
+  UINT minSlice : 12;
+  UINT maxMip : 4;
+  UINT maxSlice : 12;
+  UINT fullRange : 1;
+  UINT depthReadOnly : 1;
+  UINT stencilReadOnly : 1;
+};
+
+template <typename T>
+inline const ResourceRange &GetResourceRange(T *);
+
 TextureDim MakeTextureDim(D3D11_SRV_DIMENSION dim);
 TextureDim MakeTextureDim(D3D11_RTV_DIMENSION dim);
 TextureDim MakeTextureDim(D3D11_DSV_DIMENSION dim);

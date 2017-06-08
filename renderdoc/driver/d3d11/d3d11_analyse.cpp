@@ -5803,7 +5803,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     } while(hr == S_FALSE);
     RDCASSERTEQUAL(hr, S_OK);
 
-    D3D11RenderState::ResourceRange resourceRange(targetres, mip, slice);
+    ResourceRange resourceRange(targetres, mip, slice);
 
     const DrawcallDescription *draw = m_WrappedDevice->GetDrawcall(events[i].eventID);
 
@@ -5827,7 +5827,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
       {
         WrappedID3D11RenderTargetView1 *rtv = (WrappedID3D11RenderTargetView1 *)view;
 
-        D3D11RenderState::ResourceRange viewRange(rtv);
+        ResourceRange viewRange(rtv);
 
         if(viewRange.Intersects(resourceRange))
           used = true;
@@ -5836,7 +5836,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
       {
         WrappedID3D11DepthStencilView *dsv = (WrappedID3D11DepthStencilView *)view;
 
-        D3D11RenderState::ResourceRange viewRange(dsv);
+        ResourceRange viewRange(dsv);
 
         if(viewRange.Intersects(resourceRange))
           used = true;
@@ -5845,7 +5845,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
       {
         WrappedID3D11ShaderResourceView1 *srv = (WrappedID3D11ShaderResourceView1 *)view;
 
-        D3D11RenderState::ResourceRange viewRange(srv);
+        ResourceRange viewRange(srv);
 
         if(viewRange.Intersects(resourceRange))
           used = true;
@@ -5854,7 +5854,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
       {
         WrappedID3D11UnorderedAccessView1 *uav = (WrappedID3D11UnorderedAccessView1 *)view;
 
-        D3D11RenderState::ResourceRange viewRange(uav);
+        ResourceRange viewRange(uav);
 
         if(viewRange.Intersects(resourceRange))
           used = true;

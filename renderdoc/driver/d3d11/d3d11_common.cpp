@@ -75,6 +75,318 @@ void D3D11MarkerRegion::End()
     annot->EndEvent();
 }
 
+ResourceRange ResourceRange::Null = ResourceRange(NULL, 0, 0);
+
+ResourceRange::ResourceRange(ID3D11ShaderResourceView *srv)
+{
+  minMip = minSlice = 0;
+  depthReadOnly = false;
+  stencilReadOnly = false;
+
+  if(srv == NULL)
+  {
+    resource = NULL;
+    maxMip = allMip;
+    maxSlice = allSlice;
+    fullRange = true;
+    return;
+  }
+
+  ID3D11Resource *res = NULL;
+  srv->GetResource(&res);
+  res->Release();
+  resource = (IUnknown *)res;
+
+  UINT numMips = allMip, numSlices = allSlice;
+
+  D3D11_SHADER_RESOURCE_VIEW_DESC srvd;
+  srv->GetDesc(&srvd);
+
+  // extract depth/stencil read only flags if appropriate
+  {
+    D3D11_RESOURCE_DIMENSION dim;
+    DXGI_FORMAT fmt = DXGI_FORMAT_UNKNOWN;
+
+    fmt = srvd.Format;
+
+    res->GetType(&dim);
+
+    if(fmt == DXGI_FORMAT_UNKNOWN)
+    {
+      if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
+      {
+        D3D11_TEXTURE1D_DESC d;
+        ((ID3D11Texture1D *)res)->GetDesc(&d);
+
+        fmt = d.Format;
+      }
+      else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+      {
+        D3D11_TEXTURE2D_DESC d;
+        ((ID3D11Texture2D *)res)->GetDesc(&d);
+
+        fmt = d.Format;
+      }
+    }
+
+    if(fmt == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT || fmt == DXGI_FORMAT_X24_TYPELESS_G8_UINT)
+    {
+      stencilReadOnly = true;
+    }
+    else if(fmt == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS || fmt == DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
+    {
+      depthReadOnly = true;
+    }
+    else
+    {
+      fmt = GetTypelessFormat(fmt);
+
+      // any format that could be depth-only, treat it as reading depth only.
+      // this only applies for conflicts detected with the depth target.
+      if(fmt == DXGI_FORMAT_R32_TYPELESS || fmt == DXGI_FORMAT_R16_TYPELESS)
+      {
+        depthReadOnly = true;
+      }
+    }
+  }
+
+  switch(srvd.ViewDimension)
+  {
+    case D3D11_SRV_DIMENSION_TEXTURE1D:
+      minMip = srvd.Texture1D.MostDetailedMip;
+      numMips = srvd.Texture1D.MipLevels;
+      break;
+    case D3D11_SRV_DIMENSION_TEXTURE1DARRAY:
+      minMip = srvd.Texture1DArray.MostDetailedMip;
+      numMips = srvd.Texture1DArray.MipLevels;
+      minSlice = srvd.Texture1DArray.FirstArraySlice;
+      numSlices = srvd.Texture1DArray.ArraySize;
+      break;
+    case D3D11_SRV_DIMENSION_TEXTURE2D:
+      minMip = srvd.Texture2D.MostDetailedMip;
+      numMips = srvd.Texture2D.MipLevels;
+      break;
+    case D3D11_SRV_DIMENSION_TEXTURE2DARRAY:
+      minMip = srvd.Texture2DArray.MostDetailedMip;
+      numMips = srvd.Texture2DArray.MipLevels;
+      minSlice = srvd.Texture2DArray.FirstArraySlice;
+      numSlices = srvd.Texture2DArray.ArraySize;
+      break;
+    case D3D11_SRV_DIMENSION_TEXTURE2DMS: break;
+    case D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY:
+      minSlice = srvd.Texture2DMSArray.FirstArraySlice;
+      numSlices = srvd.Texture2DMSArray.ArraySize;
+      break;
+    case D3D11_SRV_DIMENSION_TEXTURE3D:
+      minMip = srvd.Texture3D.MostDetailedMip;
+      numMips = srvd.Texture3D.MipLevels;
+      break;
+    case D3D11_SRV_DIMENSION_TEXTURECUBE:
+      minMip = srvd.TextureCube.MostDetailedMip;
+      numMips = srvd.TextureCube.MipLevels;
+      break;
+    case D3D11_SRV_DIMENSION_TEXTURECUBEARRAY:
+      minMip = srvd.TextureCubeArray.MostDetailedMip;
+      numMips = srvd.TextureCubeArray.MipLevels;
+      minSlice = srvd.TextureCubeArray.First2DArrayFace;
+      numSlices = srvd.TextureCubeArray.NumCubes * 6;
+      break;
+    case D3D11_SRV_DIMENSION_UNKNOWN:
+    case D3D11_SRV_DIMENSION_BUFFER:
+    case D3D11_SRV_DIMENSION_BUFFEREX: break;
+  }
+
+  SetMaxes(numMips, numSlices);
+}
+
+ResourceRange::ResourceRange(ID3D11UnorderedAccessView *uav)
+{
+  minMip = minSlice = 0;
+  depthReadOnly = false;
+  stencilReadOnly = false;
+
+  if(uav == NULL)
+  {
+    resource = NULL;
+    maxMip = allMip;
+    maxSlice = allSlice;
+    fullRange = true;
+    return;
+  }
+
+  ID3D11Resource *res = NULL;
+  uav->GetResource(&res);
+  res->Release();
+  resource = (IUnknown *)res;
+
+  UINT numMips = allMip, numSlices = allSlice;
+
+  D3D11_UNORDERED_ACCESS_VIEW_DESC desc;
+  uav->GetDesc(&desc);
+
+  switch(desc.ViewDimension)
+  {
+    case D3D11_UAV_DIMENSION_TEXTURE1D:
+      minMip = desc.Texture1D.MipSlice;
+      numMips = 1;
+      break;
+    case D3D11_UAV_DIMENSION_TEXTURE1DARRAY:
+      minMip = desc.Texture1DArray.MipSlice;
+      numMips = 1;
+      minSlice = desc.Texture1DArray.FirstArraySlice;
+      numSlices = desc.Texture1DArray.ArraySize;
+      break;
+    case D3D11_UAV_DIMENSION_TEXTURE2D:
+      minMip = desc.Texture2D.MipSlice;
+      numMips = 1;
+      break;
+    case D3D11_UAV_DIMENSION_TEXTURE2DARRAY:
+      minMip = desc.Texture2DArray.MipSlice;
+      numMips = 1;
+      minSlice = desc.Texture2DArray.FirstArraySlice;
+      numSlices = desc.Texture2DArray.ArraySize;
+      break;
+    case D3D11_UAV_DIMENSION_TEXTURE3D:
+      minMip = desc.Texture3D.MipSlice;
+      numMips = 1;
+      minSlice = desc.Texture3D.FirstWSlice;
+      numSlices = desc.Texture3D.WSize;
+      break;
+    case D3D11_UAV_DIMENSION_UNKNOWN:
+    case D3D11_UAV_DIMENSION_BUFFER: break;
+  }
+
+  SetMaxes(numMips, numSlices);
+}
+
+ResourceRange::ResourceRange(ID3D11RenderTargetView *rtv)
+{
+  minMip = minSlice = 0;
+  depthReadOnly = false;
+  stencilReadOnly = false;
+
+  if(rtv == NULL)
+  {
+    resource = NULL;
+    maxMip = allMip;
+    maxSlice = allSlice;
+    fullRange = true;
+    return;
+  }
+
+  ID3D11Resource *res = NULL;
+  rtv->GetResource(&res);
+  res->Release();
+  resource = (IUnknown *)res;
+
+  UINT numMips = allMip, numSlices = allSlice;
+
+  D3D11_RENDER_TARGET_VIEW_DESC desc;
+  rtv->GetDesc(&desc);
+
+  switch(desc.ViewDimension)
+  {
+    case D3D11_RTV_DIMENSION_TEXTURE1D:
+      minMip = desc.Texture1D.MipSlice;
+      numMips = 1;
+      break;
+    case D3D11_RTV_DIMENSION_TEXTURE1DARRAY:
+      minMip = desc.Texture1DArray.MipSlice;
+      numMips = 1;
+      minSlice = desc.Texture1DArray.FirstArraySlice;
+      numSlices = desc.Texture1DArray.ArraySize;
+      break;
+    case D3D11_RTV_DIMENSION_TEXTURE2D:
+      minMip = desc.Texture2D.MipSlice;
+      numMips = 1;
+      break;
+    case D3D11_RTV_DIMENSION_TEXTURE2DARRAY:
+      minMip = desc.Texture2DArray.MipSlice;
+      numMips = 1;
+      minSlice = desc.Texture2DArray.FirstArraySlice;
+      numSlices = desc.Texture2DArray.ArraySize;
+      break;
+    case D3D11_RTV_DIMENSION_TEXTURE2DMS: break;
+    case D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY:
+      minSlice = desc.Texture2DMSArray.FirstArraySlice;
+      numSlices = desc.Texture2DMSArray.ArraySize;
+      break;
+    case D3D11_RTV_DIMENSION_TEXTURE3D:
+      minMip = desc.Texture3D.MipSlice;
+      numMips = 1;
+      minSlice = desc.Texture3D.FirstWSlice;
+      numSlices = desc.Texture3D.WSize;
+      break;
+    case D3D11_RTV_DIMENSION_UNKNOWN:
+    case D3D11_RTV_DIMENSION_BUFFER: break;
+  }
+
+  SetMaxes(numMips, numSlices);
+}
+
+ResourceRange::ResourceRange(ID3D11DepthStencilView *dsv)
+{
+  minMip = minSlice = 0;
+  depthReadOnly = false;
+  stencilReadOnly = false;
+
+  if(dsv == NULL)
+  {
+    resource = NULL;
+    maxMip = allMip;
+    maxSlice = allSlice;
+    fullRange = true;
+    return;
+  }
+
+  ID3D11Resource *res = NULL;
+  dsv->GetResource(&res);
+  res->Release();
+  resource = (IUnknown *)res;
+
+  UINT numMips = allMip, numSlices = allSlice;
+
+  D3D11_DEPTH_STENCIL_VIEW_DESC desc;
+  dsv->GetDesc(&desc);
+
+  if(desc.Flags & D3D11_DSV_READ_ONLY_DEPTH)
+    depthReadOnly = true;
+  if(desc.Flags & D3D11_DSV_READ_ONLY_STENCIL)
+    stencilReadOnly = true;
+
+  switch(desc.ViewDimension)
+  {
+    case D3D11_DSV_DIMENSION_TEXTURE1D:
+      minMip = desc.Texture1D.MipSlice;
+      numMips = 1;
+      break;
+    case D3D11_DSV_DIMENSION_TEXTURE1DARRAY:
+      minMip = desc.Texture1DArray.MipSlice;
+      numMips = 1;
+      minSlice = desc.Texture1DArray.FirstArraySlice;
+      numSlices = desc.Texture1DArray.ArraySize;
+      break;
+    case D3D11_DSV_DIMENSION_TEXTURE2D:
+      minMip = desc.Texture2D.MipSlice;
+      numMips = 1;
+      break;
+    case D3D11_DSV_DIMENSION_TEXTURE2DARRAY:
+      minMip = desc.Texture2DArray.MipSlice;
+      numMips = 1;
+      minSlice = desc.Texture2DArray.FirstArraySlice;
+      numSlices = desc.Texture2DArray.ArraySize;
+      break;
+    case D3D11_DSV_DIMENSION_TEXTURE2DMS: break;
+    case D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY:
+      minSlice = desc.Texture2DMSArray.FirstArraySlice;
+      numSlices = desc.Texture2DMSArray.ArraySize;
+      break;
+    case D3D11_DSV_DIMENSION_UNKNOWN: break;
+  }
+
+  SetMaxes(numMips, numSlices);
+}
+
 TextureDim MakeTextureDim(D3D11_SRV_DIMENSION dim)
 {
   switch(dim)
