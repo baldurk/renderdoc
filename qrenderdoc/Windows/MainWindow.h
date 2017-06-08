@@ -53,7 +53,7 @@ public:
 
   // IMainWindow
   QWidget *Widget() override { return this; }
-  void RegisterShortcut(const QString &shortcut, QWidget *widget, ShortcutCallback callback);
+  void RegisterShortcut(const QString &shortcut, QWidget *widget, ShortcutCallback callback) override;
   // ILogViewerForm
   void OnLogfileLoaded() override;
   void OnLogfileClosed() override;
