@@ -2362,14 +2362,15 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
       // technically this isn't dirty until the draw call, but let's be conservative
       // to avoid having to track "possibly" dirty resources.
       // Besides, it's unlikely an application will set an output then not draw to it
-      if(m_State >= WRITING_CAPFRAME)
+      if(m_State == WRITING_CAPFRAME)
       {
         MarkResourceReferenced(GetIDForResource(ppSOTargets[i]), eFrameRef_Write);
 
-        if(m_State == WRITING_CAPFRAME)
-          m_MissingTracks.insert(GetIDForResource(ppSOTargets[i]));
-        if(m_State == WRITING_IDLE)
-          MarkDirtyResource(GetIDForResource(ppSOTargets[i]));
+        m_MissingTracks.insert(GetIDForResource(ppSOTargets[i]));
+      }
+      else if(m_State == WRITING_IDLE)
+      {
+        MarkDirtyResource(GetIDForResource(ppSOTargets[i]));
       }
       bufs[i] = UNWRAP(WrappedID3D11Buffer, ppSOTargets[i]);
     }
@@ -3249,6 +3250,8 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
         // Besides, it's unlikely an application will set an output then not draw to it
         if(m_State == WRITING_IDLE)
           MarkDirtyResource(GetIDForResource(res));
+        else if(m_State == WRITING_CAPFRAME)
+          m_MissingTracks.insert(GetIDForResource(res));
         SAFE_RELEASE(res);
       }
 
@@ -3263,6 +3266,8 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
 
     if(m_State == WRITING_IDLE)
       MarkDirtyResource(GetIDForResource(res));
+    else if(m_State == WRITING_CAPFRAME)
+      m_MissingTracks.insert(GetIDForResource(res));
     SAFE_RELEASE(res);
   }
 
@@ -3513,6 +3518,8 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
       // Besides, it's unlikely an application will set an output then not draw to it
       if(m_State == WRITING_IDLE)
         MarkDirtyResource(GetIDForResource(res));
+      else if(m_State == WRITING_CAPFRAME)
+        m_MissingTracks.insert(GetIDForResource(res));
       SAFE_RELEASE(res);
     }
 
@@ -3527,6 +3534,8 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
       ppUnorderedAccessViews[i]->GetResource(&res);
       if(m_State == WRITING_IDLE)
         MarkDirtyResource(GetIDForResource(res));
+      else if(m_State == WRITING_CAPFRAME)
+        m_MissingTracks.insert(GetIDForResource(res));
       SAFE_RELEASE(res);
     }
 
@@ -3540,6 +3549,8 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
 
     if(m_State == WRITING_IDLE)
       MarkDirtyResource(GetIDForResource(res));
+    else if(m_State == WRITING_CAPFRAME)
+      m_MissingTracks.insert(GetIDForResource(res));
     SAFE_RELEASE(res);
   }
 
@@ -3829,10 +3840,6 @@ void WrappedID3D11DeviceContext::DrawIndexedInstanced(UINT IndexCountPerInstance
 
     m_CurrentPipelineState->MarkReferenced(this, false);
   }
-  else if(m_State == WRITING_IDLE)
-  {
-    m_CurrentPipelineState->MarkDirty(this);
-  }
 }
 
 bool WrappedID3D11DeviceContext::Serialise_DrawInstanced(UINT VertexCountPerInstance_,
@@ -3900,10 +3907,6 @@ void WrappedID3D11DeviceContext::DrawInstanced(UINT VertexCountPerInstance, UINT
 
     m_CurrentPipelineState->MarkReferenced(this, false);
   }
-  else if(m_State == WRITING_IDLE)
-  {
-    m_CurrentPipelineState->MarkDirty(this);
-  }
 }
 
 bool WrappedID3D11DeviceContext::Serialise_DrawIndexed(UINT IndexCount_, UINT StartIndexLocation_,
@@ -3963,10 +3966,6 @@ void WrappedID3D11DeviceContext::DrawIndexed(UINT IndexCount, UINT StartIndexLoc
 
     m_CurrentPipelineState->MarkReferenced(this, false);
   }
-  else if(m_State == WRITING_IDLE)
-  {
-    m_CurrentPipelineState->MarkDirty(this);
-  }
 }
 
 bool WrappedID3D11DeviceContext::Serialise_Draw(UINT VertexCount_, UINT StartVertexLocation_)
@@ -4021,10 +4020,6 @@ void WrappedID3D11DeviceContext::Draw(UINT VertexCount, UINT StartVertexLocation
     m_ContextRecord->AddChunk(scope.Get());
 
     m_CurrentPipelineState->MarkReferenced(this, false);
-  }
-  else if(m_State == WRITING_IDLE)
-  {
-    m_CurrentPipelineState->MarkDirty(this);
   }
 }
 
@@ -4129,10 +4124,6 @@ void WrappedID3D11DeviceContext::DrawAuto()
     m_ContextRecord->AddChunk(scope.Get());
 
     m_CurrentPipelineState->MarkReferenced(this, false);
-  }
-  else if(m_State == WRITING_IDLE)
-  {
-    m_CurrentPipelineState->MarkDirty(this);
   }
 }
 
@@ -4255,10 +4246,6 @@ void WrappedID3D11DeviceContext::DrawIndexedInstancedIndirect(ID3D11Buffer *pBuf
 
     m_CurrentPipelineState->MarkReferenced(this, false);
   }
-  else if(m_State == WRITING_IDLE)
-  {
-    m_CurrentPipelineState->MarkDirty(this);
-  }
 
   if(pBufferForArgs && m_State >= WRITING_CAPFRAME)
     MarkResourceReferenced(GetIDForResource(pBufferForArgs), eFrameRef_Read);
@@ -4369,10 +4356,6 @@ void WrappedID3D11DeviceContext::DrawInstancedIndirect(ID3D11Buffer *pBufferForA
     m_ContextRecord->AddChunk(scope.Get());
 
     m_CurrentPipelineState->MarkReferenced(this, false);
-  }
-  else if(m_State == WRITING_IDLE)
-  {
-    m_CurrentPipelineState->MarkDirty(this);
   }
 
   if(pBufferForArgs && m_State >= WRITING_CAPFRAME)
@@ -4730,6 +4713,8 @@ void WrappedID3D11DeviceContext::CSSetUnorderedAccessViews(
 
       if(m_State == WRITING_IDLE)
         MarkDirtyResource(GetIDForResource(res));
+      else if(m_State == WRITING_CAPFRAME)
+        m_MissingTracks.insert(GetIDForResource(res));
       SAFE_RELEASE(res);
     }
 
@@ -4977,8 +4962,6 @@ void WrappedID3D11DeviceContext::ExecuteCommandList(ID3D11CommandList *pCommandL
   }
   else if(m_State == WRITING_IDLE)
   {
-    m_CurrentPipelineState->MarkDirty(this);
-
     WrappedID3D11CommandList *wrapped = (WrappedID3D11CommandList *)pCommandList;
 
     wrapped->MarkDirtyResources(m_pDevice->GetResourceManager());
@@ -5063,10 +5046,6 @@ void WrappedID3D11DeviceContext::Dispatch(UINT ThreadGroupCountX, UINT ThreadGro
     m_ContextRecord->AddChunk(scope.Get());
 
     m_CurrentPipelineState->MarkReferenced(this, false);
-  }
-  else if(m_State == WRITING_IDLE)
-  {
-    m_CurrentPipelineState->MarkDirty(this);
   }
 }
 
@@ -5174,10 +5153,6 @@ void WrappedID3D11DeviceContext::DispatchIndirect(ID3D11Buffer *pBufferForArgs,
     m_ContextRecord->AddChunk(scope.Get());
 
     m_CurrentPipelineState->MarkReferenced(this, false);
-  }
-  else if(m_State == WRITING_IDLE)
-  {
-    m_CurrentPipelineState->MarkDirty(this);
   }
 
   if(pBufferForArgs && m_State >= WRITING_CAPFRAME)
@@ -5351,10 +5326,6 @@ void WrappedID3D11DeviceContext::Flush()
     m_ContextRecord->AddChunk(scope.Get());
 
     m_CurrentPipelineState->MarkReferenced(this, false);
-  }
-  else if(m_State == WRITING_IDLE)
-  {
-    m_CurrentPipelineState->MarkDirty(this);
   }
 
   m_pRealContext->Flush();
@@ -6520,8 +6491,6 @@ void WrappedID3D11DeviceContext::ClearRenderTargetView(ID3D11RenderTargetView *p
       MarkResourceReferenced(GetIDForResource(pRenderTargetView), eFrameRef_Read);
     }
 
-    if(m_State == WRITING_IDLE)
-      m_pDevice->GetResourceManager()->MarkCleanResource(GetIDForResource(res));
     SAFE_RELEASE(res);
   }
 }
@@ -6692,8 +6661,6 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewUint(
       MarkResourceReferenced(GetIDForResource(pUnorderedAccessView), eFrameRef_Read);
     }
 
-    if(m_State == WRITING_IDLE)
-      m_pDevice->GetResourceManager()->MarkCleanResource(GetIDForResource(res));
     SAFE_RELEASE(res);
   }
 
@@ -6866,8 +6833,6 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewFloat(
       MarkResourceReferenced(GetIDForResource(pUnorderedAccessView), eFrameRef_Read);
     }
 
-    if(m_State == WRITING_IDLE)
-      m_pDevice->GetResourceManager()->MarkCleanResource(GetIDForResource(res));
     SAFE_RELEASE(res);
   }
 
@@ -7034,8 +6999,6 @@ void WrappedID3D11DeviceContext::ClearDepthStencilView(ID3D11DepthStencilView *p
       MarkResourceReferenced(GetIDForResource(pDepthStencilView), eFrameRef_Read);
     }
 
-    if(m_State == WRITING_IDLE)
-      m_pDevice->GetResourceManager()->MarkCleanResource(GetIDForResource(res));
     SAFE_RELEASE(res);
   }
 }

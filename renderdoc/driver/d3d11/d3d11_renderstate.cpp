@@ -154,55 +154,6 @@ void D3D11RenderState::ReleaseRefs()
   RDCEraseEl(CSUAVs);
 }
 
-void D3D11RenderState::MarkDirty(WrappedID3D11DeviceContext *ctx) const
-{
-  for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
-  {
-    ID3D11Resource *res = NULL;
-    if(CSUAVs[i])
-    {
-      CSUAVs[i]->GetResource(&res);
-      ctx->MarkDirtyResource(GetIDForResource(res));
-      SAFE_RELEASE(res);
-    }
-  }
-
-  for(UINT i = 0; i < D3D11_SO_BUFFER_SLOT_COUNT; i++)
-    ctx->MarkDirtyResource(GetIDForResource(SO.Buffers[i]));
-
-  for(UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-  {
-    ID3D11Resource *res = NULL;
-    if(OM.RenderTargets[i])
-    {
-      OM.RenderTargets[i]->GetResource(&res);
-      ctx->MarkDirtyResource(GetIDForResource(res));
-      SAFE_RELEASE(res);
-    }
-  }
-
-  for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
-  {
-    ID3D11Resource *res = NULL;
-    if(OM.UAVs[i])
-    {
-      OM.UAVs[i]->GetResource(&res);
-      ctx->MarkDirtyResource(GetIDForResource(res));
-      SAFE_RELEASE(res);
-    }
-  }
-
-  {
-    ID3D11Resource *res = NULL;
-    if(OM.DepthView)
-    {
-      OM.DepthView->GetResource(&res);
-      ctx->MarkDirtyResource(GetIDForResource(res));
-      SAFE_RELEASE(res);
-    }
-  }
-}
-
 void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool initial) const
 {
   ctx->MarkResourceReferenced(GetIDForResource(IA.Layout),
@@ -250,7 +201,6 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
     if(CSUAVs[i])
     {
       CSUAVs[i]->GetResource(&res);
-      ctx->m_MissingTracks.insert(GetIDForResource(res));
       // UAVs we always assume to be partial updates
       ctx->MarkResourceReferenced(GetIDForResource(CSUAVs[i]),
                                   initial ? eFrameRef_Unknown : eFrameRef_Read);
@@ -361,7 +311,6 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
     if(OM.RenderTargets[i])
     {
       OM.RenderTargets[i]->GetResource(&res);
-      ctx->m_MissingTracks.insert(GetIDForResource(res));
       ctx->MarkResourceReferenced(GetIDForResource(OM.RenderTargets[i]),
                                   initial ? eFrameRef_Unknown : eFrameRef_Read);
       if(viewportScissorPartial)
@@ -379,7 +328,6 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
     if(OM.UAVs[i])
     {
       OM.UAVs[i]->GetResource(&res);
-      ctx->m_MissingTracks.insert(GetIDForResource(res));
       // UAVs we always assume to be partial updates
       ctx->MarkResourceReferenced(GetIDForResource(OM.UAVs[i]),
                                   initial ? eFrameRef_Unknown : eFrameRef_Read);
@@ -398,7 +346,6 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
     if(OM.DepthView)
     {
       OM.DepthView->GetResource(&res);
-      ctx->m_MissingTracks.insert(GetIDForResource(res));
       ctx->MarkResourceReferenced(GetIDForResource(OM.DepthView),
                                   initial ? eFrameRef_Unknown : eFrameRef_Read);
       if(viewportScissorPartial)

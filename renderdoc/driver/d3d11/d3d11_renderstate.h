@@ -274,7 +274,6 @@ struct D3D11RenderState
   }
   void SetDevice(WrappedID3D11Device *device) { m_pDevice = device; }
   void MarkReferenced(WrappedID3D11DeviceContext *ctx, bool initial) const;
-  void MarkDirty(WrappedID3D11DeviceContext *ctx) const;
 
 private:
   void AddRefs();
