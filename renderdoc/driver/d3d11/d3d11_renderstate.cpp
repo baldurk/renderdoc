@@ -45,6 +45,7 @@ D3D11RenderState::D3D11RenderState(Serialiser *ser)
   m_pSerialiser = ser;
 
   m_ImmediatePipeline = false;
+  m_ViewportScissorPartial = true;
   m_pDevice = NULL;
 }
 
@@ -83,6 +84,8 @@ void D3D11RenderState::CopyState(const D3D11RenderState &other)
   memcpy(&OM, &other.OM, sizeof(OM));
   memcpy(&CS, &other.CS, sizeof(CS));
   memcpy(&CSUAVs, &other.CSUAVs, sizeof(CSUAVs));
+
+  m_ViewportScissorPartial = other.m_ViewportScissorPartial;
 
   AddRefs();
 }
@@ -218,6 +221,50 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
     ctx->MarkResourceReferenced(GetIDForResource(SO.Buffers[i]),
                                 initial ? eFrameRef_Unknown : eFrameRef_Write);
 
+  for(UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+  {
+    if(OM.RenderTargets[i])
+    {
+      ctx->MarkResourceReferenced(GetIDForResource(OM.RenderTargets[i]),
+                                  initial ? eFrameRef_Unknown : eFrameRef_Read);
+      if(m_ViewportScissorPartial)
+        ctx->MarkResourceReferenced(GetViewResourceResID(OM.RenderTargets[i]),
+                                    initial ? eFrameRef_Unknown : eFrameRef_Read);
+      ctx->MarkResourceReferenced(GetViewResourceResID(OM.RenderTargets[i]),
+                                  initial ? eFrameRef_Unknown : eFrameRef_Write);
+    }
+  }
+
+  for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
+  {
+    if(OM.UAVs[i])
+    {
+      // UAVs we always assume to be partial updates
+      ctx->MarkResourceReferenced(GetIDForResource(OM.UAVs[i]),
+                                  initial ? eFrameRef_Unknown : eFrameRef_Read);
+      ctx->MarkResourceReferenced(GetIDForResource(OM.UAVs[i]),
+                                  initial ? eFrameRef_Unknown : eFrameRef_Write);
+      ctx->MarkResourceReferenced(GetViewResourceResID(OM.UAVs[i]),
+                                  initial ? eFrameRef_Unknown : eFrameRef_Read);
+      ctx->MarkResourceReferenced(GetViewResourceResID(OM.UAVs[i]),
+                                  initial ? eFrameRef_Unknown : eFrameRef_Write);
+    }
+  }
+
+  if(OM.DepthView)
+  {
+    ctx->MarkResourceReferenced(GetIDForResource(OM.DepthView),
+                                initial ? eFrameRef_Unknown : eFrameRef_Read);
+    if(m_ViewportScissorPartial)
+      ctx->MarkResourceReferenced(GetViewResourceResID(OM.DepthView),
+                                  initial ? eFrameRef_Unknown : eFrameRef_Read);
+    ctx->MarkResourceReferenced(GetViewResourceResID(OM.DepthView),
+                                initial ? eFrameRef_Unknown : eFrameRef_Write);
+  }
+}
+
+void D3D11RenderState::CacheViewportPartial()
+{
   // tracks the min region of the enabled viewports plus scissors, to see if we could potentially
   // partially-update a render target (ie. we know for sure that we are only
   // writing to a region in one of the viewports). In this case we mark the
@@ -250,11 +297,11 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
     viewportScissorMin.bottom = RDCMIN(viewportScissorMin.bottom, scissor.bottom);
   }
 
-  bool viewportScissorPartial = false;
+  m_ViewportScissorPartial = false;
 
   if(viewportScissorMin.left > 0 || viewportScissorMin.top > 0)
   {
-    viewportScissorPartial = true;
+    m_ViewportScissorPartial = true;
   }
   else
   {
@@ -272,7 +319,7 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
       if(dim == D3D11_RESOURCE_DIMENSION_BUFFER)
       {
         // assume partial
-        viewportScissorPartial = true;
+        m_ViewportScissorPartial = true;
       }
       else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
       {
@@ -280,7 +327,7 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
         ((ID3D11Texture1D *)res)->GetDesc(&desc);
 
         if(viewportScissorMin.right < (LONG)desc.Width)
-          viewportScissorPartial = true;
+          m_ViewportScissorPartial = true;
       }
       else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
       {
@@ -289,7 +336,7 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
 
         if(viewportScissorMin.right < (LONG)desc.Width ||
            viewportScissorMin.bottom < (LONG)desc.Height)
-          viewportScissorPartial = true;
+          m_ViewportScissorPartial = true;
       }
       else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE3D)
       {
@@ -298,63 +345,11 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
 
         if(viewportScissorMin.right < (LONG)desc.Width ||
            viewportScissorMin.bottom < (LONG)desc.Height)
-          viewportScissorPartial = true;
+          m_ViewportScissorPartial = true;
       }
     }
 
     SAFE_RELEASE(res);
-  }
-
-  for(UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-  {
-    ID3D11Resource *res = NULL;
-    if(OM.RenderTargets[i])
-    {
-      OM.RenderTargets[i]->GetResource(&res);
-      ctx->MarkResourceReferenced(GetIDForResource(OM.RenderTargets[i]),
-                                  initial ? eFrameRef_Unknown : eFrameRef_Read);
-      if(viewportScissorPartial)
-        ctx->MarkResourceReferenced(GetIDForResource(res),
-                                    initial ? eFrameRef_Unknown : eFrameRef_Read);
-      ctx->MarkResourceReferenced(GetIDForResource(res),
-                                  initial ? eFrameRef_Unknown : eFrameRef_Write);
-      SAFE_RELEASE(res);
-    }
-  }
-
-  for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
-  {
-    ID3D11Resource *res = NULL;
-    if(OM.UAVs[i])
-    {
-      OM.UAVs[i]->GetResource(&res);
-      // UAVs we always assume to be partial updates
-      ctx->MarkResourceReferenced(GetIDForResource(OM.UAVs[i]),
-                                  initial ? eFrameRef_Unknown : eFrameRef_Read);
-      ctx->MarkResourceReferenced(GetIDForResource(OM.UAVs[i]),
-                                  initial ? eFrameRef_Unknown : eFrameRef_Write);
-      ctx->MarkResourceReferenced(GetIDForResource(res),
-                                  initial ? eFrameRef_Unknown : eFrameRef_Read);
-      ctx->MarkResourceReferenced(GetIDForResource(res),
-                                  initial ? eFrameRef_Unknown : eFrameRef_Write);
-      SAFE_RELEASE(res);
-    }
-  }
-
-  {
-    ID3D11Resource *res = NULL;
-    if(OM.DepthView)
-    {
-      OM.DepthView->GetResource(&res);
-      ctx->MarkResourceReferenced(GetIDForResource(OM.DepthView),
-                                  initial ? eFrameRef_Unknown : eFrameRef_Read);
-      if(viewportScissorPartial)
-        ctx->MarkResourceReferenced(GetIDForResource(res),
-                                    initial ? eFrameRef_Unknown : eFrameRef_Read);
-      ctx->MarkResourceReferenced(GetIDForResource(res),
-                                  initial ? eFrameRef_Unknown : eFrameRef_Write);
-      SAFE_RELEASE(res);
-    }
   }
 }
 

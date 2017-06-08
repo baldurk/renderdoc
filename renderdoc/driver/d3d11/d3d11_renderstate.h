@@ -274,6 +274,7 @@ struct D3D11RenderState
   }
   void SetDevice(WrappedID3D11Device *device) { m_pDevice = device; }
   void MarkReferenced(WrappedID3D11DeviceContext *ctx, bool initial) const;
+  void CacheViewportPartial();
 
 private:
   void AddRefs();
@@ -282,6 +283,7 @@ private:
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   Serialiser *m_pSerialiser;
   bool m_ImmediatePipeline;
+  bool m_ViewportScissorPartial;
   WrappedID3D11Device *m_pDevice;
 };
 
