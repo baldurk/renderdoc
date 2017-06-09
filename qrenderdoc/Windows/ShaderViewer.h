@@ -25,7 +25,6 @@
 #pragma once
 
 #include <QFrame>
-#include <QKeyEvent>
 #include "Code/CaptureContext.h"
 
 namespace Ui
@@ -39,9 +38,21 @@ struct ShaderReflection;
 class ScintillaEdit;
 class FindReplace;
 class QTableWidgetItem;
+class QKeyEvent;
+class QMouseEvent;
 
 // from Scintilla
 typedef intptr_t sptr_t;
+
+enum class VariableCategory
+{
+  Unknown,
+  Inputs,
+  Constants,
+  IndexTemporaries,
+  Temporaries,
+  Outputs,
+};
 
 class ShaderViewer : public QFrame, public IShaderViewer, public ILogViewer
 {
@@ -119,6 +130,9 @@ private slots:
   void snippet_samplers();
   void snippet_resources();
 
+  void disasm_tooltipShow(int x, int y);
+  void disasm_tooltipHide(int x, int y);
+
 public slots:
   bool stepBack();
   bool stepNext();
@@ -133,6 +147,19 @@ private:
   void editShader(bool customShader, const QString &entryPoint, const QStringMap &files);
   void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
                    ShaderStage stage, ShaderDebugTrace *trace, const QString &debugContext);
+
+  bool eventFilter(QObject *watched, QEvent *event) override;
+
+  const rdctype::array<ShaderVariable> *GetVariableList(VariableCategory varCat, int arrayIdx);
+
+  void showVariableTooltip(VariableCategory varCat, int varIdx, int arrayIdx);
+  void updateVariableTooltip();
+  void hideVariableTooltip();
+
+  VariableCategory m_TooltipVarCat = VariableCategory::Temporaries;
+  int m_TooltipVarIdx = -1;
+  int m_TooltipArrayIdx = -1;
+  QPoint m_TooltipPos;
 
   Ui::ShaderViewer *ui;
   ICaptureContext &m_Ctx;
