@@ -215,12 +215,15 @@ int main(int argc, char *argv[])
 
                            exString += QFormatStr("%1: %2\n").arg(type).arg(value);
 
-                           fprintf(stderr, "%s", exString.toUtf8().data());
+                           qCritical("%s", exString.toUtf8().data());
                          });
 
         QObject::connect(&py.ctx(), &PythonContext::textOutput,
                          [](bool isStdError, const QString &output) {
-                           fprintf(isStdError ? stderr : stdout, "%s", output.toUtf8().data());
+                           if(isStdError)
+                             qCritical("%s", output.toUtf8().data());
+                           else
+                             qInfo("%s", output.toUtf8().data());
                          });
 
         for(const QString &f : pyscripts)
