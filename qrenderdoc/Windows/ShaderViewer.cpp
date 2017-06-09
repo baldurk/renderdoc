@@ -405,6 +405,20 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                      &QShortcut::activated, [this]() { ToggleBreakpoint(); });
 
     SetCurrentStep(0);
+
+    QObject::connect(ui->watch, &RDTableWidget::keyPress, this, &ShaderViewer::watch_keyPress);
+
+    ui->watch->insertRow(0);
+
+    for(int i = 0; i < ui->watch->columnCount(); i++)
+    {
+      QTableWidgetItem *item = new QTableWidgetItem();
+      if(i > 0)
+        item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+      ui->watch->setItem(0, i, item);
+    }
+
+    ui->watch->resizeRowsToContents();
   }
   else
   {
@@ -673,6 +687,58 @@ void ShaderViewer::disassembly_contextMenu(const QPoint &pos)
   contextMenu.addSeparator();
 
   RDDialog::show(&contextMenu, m_DisassemblyView->viewport()->mapToGlobal(pos));
+}
+
+void ShaderViewer::watch_keyPress(QKeyEvent *event)
+{
+  if(event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace)
+  {
+    QList<QTableWidgetItem *> items = ui->watch->selectedItems();
+    if(!items.isEmpty() && items.back()->row() < ui->watch->rowCount() - 1)
+      ui->watch->removeRow(items.back()->row());
+  }
+}
+
+void ShaderViewer::on_watch_itemChanged(QTableWidgetItem *item)
+{
+  // ignore changes to the type/value columns. Only look at name changes, which must be by the user
+  if(item->column() != 0)
+    return;
+
+  static bool recurse = false;
+
+  if(recurse)
+    return;
+
+  recurse = true;
+
+  // if the item is now empty, remove it
+  if(item->text().isEmpty())
+    ui->watch->removeRow(item->row());
+
+  // ensure we have a trailing row for adding new watch items.
+
+  if(ui->watch->rowCount() == 0 || ui->watch->item(ui->watch->rowCount() - 1, 0) == NULL ||
+     !ui->watch->item(ui->watch->rowCount() - 1, 0)->text().isEmpty())
+  {
+    // add a new row if needed
+    if(ui->watch->rowCount() == 0 || ui->watch->item(ui->watch->rowCount() - 1, 0) != NULL)
+      ui->watch->insertRow(ui->watch->rowCount());
+
+    for(int i = 0; i < ui->watch->columnCount(); i++)
+    {
+      QTableWidgetItem *newItem = new QTableWidgetItem();
+      if(i > 0)
+        newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable);
+      ui->watch->setItem(ui->watch->rowCount() - 1, i, newItem);
+    }
+  }
+
+  ui->watch->resizeRowsToContents();
+
+  recurse = false;
+
+  updateDebugging();
 }
 
 bool ShaderViewer::stepBack()
@@ -1082,7 +1148,145 @@ void ShaderViewer::updateDebugging()
 
   ui->variables->setUpdatesEnabled(true);
 
-  // TODO watch registers
+  ui->watch->setUpdatesEnabled(false);
+
+  for(int i = 0; i < ui->watch->rowCount() - 1; i++)
+  {
+    QTableWidgetItem *item = ui->watch->item(i, 0);
+    ui->watch->setItem(i, 1, new QTableWidgetItem(tr("register", "watch type")));
+
+    QString reg = item->text().trimmed();
+
+    QRegularExpression regexp(lit("^([rvo])([0-9]+)(\\.[xyzwrgba]+)?(,[xfiudb])?$"));
+
+    QRegularExpressionMatch match = regexp.match(reg);
+
+    // try indexable temps
+    if(!match.hasMatch())
+    {
+      regexp = QRegularExpression(lit("^(x[0-9]+)\\[([0-9]+)\\](\\.[xyzwrgba]+)?(,[xfiudb])?$"));
+
+      match = regexp.match(reg);
+    }
+
+    if(match.hasMatch())
+    {
+      QString regtype = match.captured(1);
+      QString regidx = match.captured(2);
+      QString swizzle = match.captured(3).replace(QLatin1Char('.'), QString());
+      QString regcast = match.captured(4).replace(QLatin1Char(','), QString());
+
+      if(regcast.isEmpty())
+      {
+        if(ui->intView->isChecked())
+          regcast = lit("i");
+        else
+          regcast = lit("f");
+      }
+
+      const rdctype::array<ShaderVariable> *vars = NULL;
+
+      bool ok = false;
+
+      if(regtype == lit("r"))
+      {
+        vars = &state.registers;
+      }
+      else if(regtype == lit("v"))
+      {
+        vars = &m_Trace->inputs;
+      }
+      else if(regtype == lit("o"))
+      {
+        vars = &state.outputs;
+      }
+      else if(regtype[0] == QLatin1Char('x'))
+      {
+        QString tempArrayIndexStr = regtype.mid(1);
+        int tempArrayIndex = tempArrayIndexStr.toInt(&ok);
+
+        if(ok && tempArrayIndex >= 0 && tempArrayIndex < state.indexableTemps.count)
+        {
+          vars = &state.indexableTemps[tempArrayIndex];
+        }
+      }
+
+      ok = false;
+      int regindex = regidx.toInt(&ok);
+
+      if(vars && ok && regindex >= 0 && regindex < vars->count)
+      {
+        const ShaderVariable &vr = vars->elems[regindex];
+
+        if(swizzle.isEmpty())
+        {
+          swizzle = lit("xyzw").left((int)vr.columns);
+
+          if(regcast == lit("d") && swizzle.count() > 2)
+            swizzle = lit("xy");
+        }
+
+        QString val;
+
+        for(int s = 0; s < swizzle.count(); s++)
+        {
+          QChar swiz = swizzle[s];
+
+          int elindex = 0;
+          if(swiz == QLatin1Char('x') || swiz == QLatin1Char('r'))
+            elindex = 0;
+          if(swiz == QLatin1Char('y') || swiz == QLatin1Char('g'))
+            elindex = 1;
+          if(swiz == QLatin1Char('z') || swiz == QLatin1Char('b'))
+            elindex = 2;
+          if(swiz == QLatin1Char('w') || swiz == QLatin1Char('a'))
+            elindex = 3;
+
+          if(regcast == lit("i"))
+          {
+            val += Formatter::Format(vr.value.iv[elindex]);
+          }
+          else if(regcast == lit("f"))
+          {
+            val += Formatter::Format(vr.value.fv[elindex]);
+          }
+          else if(regcast == lit("u"))
+          {
+            val += Formatter::Format(vr.value.uv[elindex]);
+          }
+          else if(regcast == lit("x"))
+          {
+            val += Formatter::Format(vr.value.uv[elindex], true);
+          }
+          else if(regcast == lit("b"))
+          {
+            val += QFormatStr("%1").arg(vr.value.uv[elindex], 32, 2, QLatin1Char('0'));
+          }
+          else if(regcast == lit("d"))
+          {
+            if(elindex < 2)
+              val += Formatter::Format(vr.value.dv[elindex]);
+            else
+              val += lit("-");
+          }
+
+          if(s < swizzle.count() - 1)
+            val += lit(", ");
+        }
+
+        item = new QTableWidgetItem(val);
+        item->setData(Qt::UserRole, QVariant::fromValue(vr));
+
+        ui->watch->setItem(i, 2, item);
+
+        continue;
+      }
+    }
+
+    ui->watch->setItem(i, 2, new QTableWidgetItem(tr("Error evaluating expression")));
+  }
+
+  ui->watch->setUpdatesEnabled(true);
 }
 
 void ShaderViewer::ensureLineScrolled(ScintillaEdit *s, int line)

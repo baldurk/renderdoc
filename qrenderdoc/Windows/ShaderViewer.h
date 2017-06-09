@@ -38,6 +38,7 @@ struct ShaderDebugTrace;
 struct ShaderReflection;
 class ScintillaEdit;
 class FindReplace;
+class QTableWidgetItem;
 
 // from Scintilla
 typedef intptr_t sptr_t;
@@ -98,10 +99,13 @@ private slots:
   void on_intView_clicked();
   void on_floatView_clicked();
 
+  void on_watch_itemChanged(QTableWidgetItem *item);
+
   // manual slots
   void readonly_keyPressed(QKeyEvent *event);
   void editable_keyPressed(QKeyEvent *event);
   void disassembly_contextMenu(const QPoint &pos);
+  void watch_keyPress(QKeyEvent *event);
   void performFind();
   void performFindAll();
   void performReplace();
