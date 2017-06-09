@@ -72,7 +72,7 @@ public:
     const char *typeName = typeid(*const_cast<QtObjectType *>(object)).name();
 
     // forward non-template part on
-    PyObject *obj = QtObjectToPython(typeName, object);
+    PyObject *obj = QtObjectToPython(NULL, typeName, object);
 
     if(obj)
       setPyGlobal(varName, obj);
@@ -83,7 +83,10 @@ public:
                      {});
   }
 
-  static PyObject *QWidgetToPy(QWidget *widget) { return QtObjectToPython("QWidget", widget); }
+  static PyObject *QWidgetToPy(PyObject *self, QWidget *widget)
+  {
+    return QtObjectToPython(self, "QWidget", widget);
+  }
   static QWidget *QWidgetFromPy(PyObject *widget);
 
   void abort() { m_Abort = true; }
@@ -125,7 +128,7 @@ private:
 
   bool m_Abort = false;
 
-  static PyObject *QtObjectToPython(const char *typeName, QObject *object);
+  static PyObject *QtObjectToPython(PyObject *self, const char *typeName, QObject *object);
 
   QTimer *outputTicker;
   QMutex outputMutex;

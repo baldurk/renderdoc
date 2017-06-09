@@ -28,7 +28,7 @@ CONTAINER_TYPEMAPS(QMap)
 }
 
 %typemap(out) QWidget * {
-  $result = PythonContext::QWidgetToPy($1);
+  $result = PythonContext::QWidgetToPy(self, $1);
 }
 
 // need to ignore the original function and add a helper that releases the python GIL while calling
@@ -100,4 +100,28 @@ CONTAINER_TYPEMAPS(QMap)
     check_docstrings(swig_type_initial, sizeof(swig_type_initial)/sizeof(swig_type_initial[0]));
   }
   #endif
+%}
+
+// declare functions for using swig opaque wrap/unwrap of QWidget, for when pyside isn't available.
+%wrapper %{
+
+PyObject *WrapBareQWidget(PyObject *self, QWidget *widget)
+{
+  return SWIG_NewPointerObj(SWIG_as_voidptr(widget), SWIGTYPE_p_QWidget, SWIG_BUILTIN_INIT);
+}
+
+QWidget *UnwrapBareQWidget(PyObject *obj)
+{
+  QWidget *ret = NULL;
+  int res = 0;
+
+  res = SWIG_ConvertPtr(obj, (void **)&ret,SWIGTYPE_p_QWidget, 0);
+  if(!SWIG_IsOK(res))
+  {
+    SWIG_exception_fail(SWIG_ArgError(res), "in method 'UnwrapBareQWidget'");
+  }
+fail:
+  return NULL;
+}
+
 %}

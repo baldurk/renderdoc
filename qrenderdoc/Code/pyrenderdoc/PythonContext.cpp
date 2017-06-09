@@ -64,6 +64,8 @@ extern "C" PyObject *PyInit__renderdoc(void);
 extern "C" PyObject *PassObjectToPython(const char *type, void *obj);
 // this one is in qrenderdoc_python.cpp
 extern "C" PyObject *PyInit__qrenderdoc(void);
+extern "C" PyObject *WrapBareQWidget(PyObject *, QWidget *);
+extern "C" QWidget *UnwrapBareQWidget(PyObject *);
 
 #ifdef WIN32
 
@@ -617,25 +619,31 @@ QWidget *PythonContext::QWidgetFromPy(PyObject *widget)
     return NULL;
 
   if(!SbkPySide2_QtCoreTypes || !SbkPySide2_QtGuiTypes || !SbkPySide2_QtWidgetsTypes)
-    return NULL;
+    return UnwrapBareQWidget(widget);
 
   if(!Shiboken::Object::checkType(widget))
-    return NULL;
+    return UnwrapBareQWidget(widget);
 
   return (QWidget *)Shiboken::Object::cppPointer((SbkObject *)widget, Shiboken::SbkType<QWidget>());
 #else
-  return NULL;
+  return UnwrapBareQWidget(widget);
 #endif
 }
 
-PyObject *PythonContext::QtObjectToPython(const char *typeName, QObject *object)
+PyObject *PythonContext::QtObjectToPython(PyObject *self, const char *typeName, QObject *object)
 {
 #if PYSIDE2_ENABLED
   if(!initialised())
-    return NULL;
+    Py_RETURN_NONE;
 
   if(!SbkPySide2_QtCoreTypes || !SbkPySide2_QtGuiTypes || !SbkPySide2_QtWidgetsTypes)
-    return NULL;
+  {
+    QWidget *w = qobject_cast<QWidget *>(object);
+    if(self && w)
+      return WrapBareQWidget(self, w);
+
+    Py_RETURN_NONE;
+  }
 
   PyObject *obj =
       Shiboken::Object::newObject(reinterpret_cast<SbkObjectType *>(Shiboken::SbkType<QObject>()),
@@ -643,7 +651,11 @@ PyObject *PythonContext::QtObjectToPython(const char *typeName, QObject *object)
 
   return obj;
 #else
-  return NULL;
+  QWidget *w = qobject_cast<QWidget *>(object);
+  if(self && w)
+    return WrapBareQWidget(self, w);
+
+  Py_RETURN_NONE;
 #endif
 }
 
