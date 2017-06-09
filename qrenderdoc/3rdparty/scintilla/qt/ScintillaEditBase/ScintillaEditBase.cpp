@@ -132,6 +132,9 @@ bool ScintillaEditBase::event(QEvent *event)
 		// Circumvent the tab focus convention.
 		keyPressEvent(static_cast<QKeyEvent *>(event));
 		result = event->isAccepted();
+	} else if (event->type() == QEvent::Show) {
+		setMouseTracking(true);
+		result = QAbstractScrollArea::event(event);
 	} else if (event->type() == QEvent::Hide) {
 		setMouseTracking(false);
 		result = QAbstractScrollArea::event(event);
