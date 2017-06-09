@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <QLabel>
 #include <QStyledItemDelegate>
 #include <QTreeView>
 
@@ -41,22 +42,42 @@ public:
   QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 };
 
+class RDTipLabel : public QLabel
+{
+private:
+  Q_OBJECT
+
+  int m_TooltipMargin = 0;
+
+public:
+  explicit RDTipLabel();
+
+  int tipMargin() { return m_TooltipMargin; }
+protected:
+  void paintEvent(QPaintEvent *);
+  void resizeEvent(QResizeEvent *);
+};
+
 class RDTreeView : public QTreeView
 {
   Q_OBJECT
 public:
   explicit RDTreeView(QWidget *parent = 0);
+  virtual ~RDTreeView();
 
   void showBranches() { m_VisibleBranches = true; }
   void hideBranches() { m_VisibleBranches = false; }
   void showGridLines() { m_VisibleGridLines = true; }
   void hideGridLines() { m_VisibleGridLines = false; }
+  void setTooltipElidedItems(bool tool) { m_TooltipElidedItems = tool; }
+  bool tooltipElidedItems() { return m_TooltipElidedItems; }
   void setItemVerticalMargin(int vertical) { m_VertMargin = vertical; }
   int verticalItemMargin() { return m_VertMargin; }
 protected:
   void rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end) override;
   void mouseMoveEvent(QMouseEvent *e) override;
   void leaveEvent(QEvent *e) override;
+  bool viewportEvent(QEvent *event) override;
 
   void drawRow(QPainter *painter, const QStyleOptionViewItem &options,
                const QModelIndex &index) const override;
@@ -69,6 +90,9 @@ protected:
 private:
   bool m_VisibleBranches = true;
   bool m_VisibleGridLines = true;
+  bool m_TooltipElidedItems = true;
+
+  RDTipLabel *m_ElidedTooltip;
 
   int m_VertMargin = 6;
 

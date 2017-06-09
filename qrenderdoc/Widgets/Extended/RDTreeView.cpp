@@ -23,9 +23,12 @@
  ******************************************************************************/
 
 #include "RDTreeView.h"
+#include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QProxyStyle>
+#include <QStylePainter>
+#include <QToolTip>
 
 RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : QStyledItemDelegate(view), m_View(view)
 {
@@ -49,21 +52,115 @@ QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QMo
   return ret;
 }
 
+RDTipLabel::RDTipLabel() : QLabel(NULL)
+{
+  int margin = style()->pixelMetric(QStyle::PM_ToolTipLabelFrameWidth, NULL, this);
+  int opacity = style()->styleHint(QStyle::SH_ToolTipLabel_Opacity, NULL, this);
+
+  setWindowFlags(Qt::ToolTip);
+  setAttribute(Qt::WA_TransparentForMouseEvents);
+  setForegroundRole(QPalette::ToolTipText);
+  setBackgroundRole(QPalette::ToolTipBase);
+  setMargin(margin + 1);
+  setFrameStyle(QFrame::NoFrame);
+  setAlignment(Qt::AlignLeft);
+  setIndent(1);
+  setWindowOpacity(opacity / 255.0);
+}
+
+void RDTipLabel::paintEvent(QPaintEvent *ev)
+{
+  QStylePainter p(this);
+  QStyleOptionFrame opt;
+  opt.init(this);
+  p.drawPrimitive(QStyle::PE_PanelTipLabel, opt);
+  p.end();
+
+  QLabel::paintEvent(ev);
+}
+
+void RDTipLabel::resizeEvent(QResizeEvent *e)
+{
+  QStyleHintReturnMask frameMask;
+  QStyleOption option;
+  option.init(this);
+  if(style()->styleHint(QStyle::SH_ToolTip_Mask, &option, this, &frameMask))
+    setMask(frameMask.region);
+
+  QLabel::resizeEvent(e);
+}
+
 RDTreeView::RDTreeView(QWidget *parent) : QTreeView(NULL)
 {
   setMouseTracking(true);
 
   setItemDelegate(new RDTreeViewDelegate(this));
+
+  m_ElidedTooltip = new RDTipLabel();
+  m_ElidedTooltip->hide();
+}
+
+RDTreeView::~RDTreeView()
+{
+  delete m_ElidedTooltip;
 }
 
 void RDTreeView::mouseMoveEvent(QMouseEvent *e)
 {
+  if(m_ElidedTooltip->isVisible() && !m_ElidedTooltip->geometry().contains(QCursor::pos()))
+    m_ElidedTooltip->hide();
+
   m_currentHoverIndex = indexAt(e->pos());
+  QTreeView::mouseMoveEvent(e);
 }
 
 void RDTreeView::leaveEvent(QEvent *e)
 {
+  if(m_ElidedTooltip->isVisible() && !m_ElidedTooltip->geometry().contains(QCursor::pos()))
+    m_ElidedTooltip->hide();
+
   m_currentHoverIndex = QModelIndex();
+  QTreeView::leaveEvent(e);
+}
+
+bool RDTreeView::viewportEvent(QEvent *event)
+{
+  if(m_TooltipElidedItems && event->type() == QEvent::ToolTip)
+  {
+    QHelpEvent *he = (QHelpEvent *)event;
+    QModelIndex index = indexAt(he->pos());
+
+    QAbstractItemDelegate *delegate = itemDelegate(index);
+    if(delegate)
+    {
+      QStyleOptionViewItem option;
+      option.initFrom(this);
+      option.rect = visualRect(index);
+
+      // delegates get first dibs at processing the event
+      bool ret = delegate->helpEvent(he, this, option, index);
+
+      if(ret)
+        return true;
+
+      QSize desiredSize = delegate->sizeHint(option, index);
+
+      if(desiredSize.width() > option.rect.width())
+      {
+        const QString fullText = index.data(Qt::DisplayRole).toString();
+        if(!fullText.isEmpty())
+        {
+          // need to use a custom label tooltip since the QToolTip freaks out as we're placing it
+          // underneath the cursor instead of next to it (so that the tooltip lines up over the row)
+          m_ElidedTooltip->move(viewport()->mapToGlobal(option.rect.topLeft()));
+          m_ElidedTooltip->setText(fullText);
+          m_ElidedTooltip->show();
+        }
+      }
+    }
+  }
+
+  return QTreeView::viewportEvent(event);
 }
 
 void RDTreeView::rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end)
