@@ -46,6 +46,11 @@ struct VariableTag
   VariableCategory cat = VariableCategory::Unknown;
   int idx = 0;
   int arrayIdx = 0;
+
+  bool operator==(const VariableTag &o)
+  {
+    return cat == o.cat && idx == o.idx && arrayIdx == o.arrayIdx;
+  }
 };
 };
 
@@ -278,6 +283,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     m_DisassemblyView->setText(shader->Disassembly.c_str());
     m_DisassemblyView->setReadOnly(true);
   }
+
+  // we always want to highlight words/registers
+  QObject::connect(m_DisassemblyView, &ScintillaEdit::buttonReleased, this,
+                   &ShaderViewer::disassembly_buttonReleased);
 
   // suppress the built-in context menu and hook up our own
   if(trace)
@@ -692,6 +701,80 @@ void ShaderViewer::disassembly_contextMenu(const QPoint &pos)
   contextMenu.addSeparator();
 
   RDDialog::show(&contextMenu, m_DisassemblyView->viewport()->mapToGlobal(pos));
+}
+
+void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
+{
+  if(event->button() == Qt::LeftButton)
+  {
+    sptr_t scintillaPos = m_DisassemblyView->positionFromPoint(event->x(), event->y());
+
+    sptr_t start = m_DisassemblyView->wordStartPosition(scintillaPos, true);
+    sptr_t end = m_DisassemblyView->wordEndPosition(scintillaPos, true);
+
+    QString text = QString::fromUtf8(m_DisassemblyView->textRange(start, end));
+
+    if(!text.isEmpty())
+    {
+      qInfo() << text;
+
+      VariableTag tag;
+      getRegisterFromWord(text, tag.cat, tag.idx, tag.arrayIdx);
+
+      // for now since we don't have friendly naming, only highlight registers
+      if(tag.cat != VariableCategory::Unknown)
+      {
+        start = 0;
+        end = m_DisassemblyView->length();
+
+        for(int i = 0; i < ui->variables->topLevelItemCount(); i++)
+        {
+          RDTreeWidgetItem *item = ui->variables->topLevelItem(i);
+          if(item->tag().value<VariableTag>() == tag)
+            item->setBackgroundColor(QColor::fromHslF(
+                0.333f, 1.0f, qBound(0.25, palette().color(QPalette::Base).lightnessF(), 0.85)));
+          else
+            item->setBackground(QBrush());
+        }
+
+        for(int i = 0; i < ui->constants->topLevelItemCount(); i++)
+        {
+          RDTreeWidgetItem *item = ui->constants->topLevelItem(i);
+          if(item->tag().value<VariableTag>() == tag)
+            item->setBackgroundColor(QColor::fromHslF(
+                0.333f, 1.0f, qBound(0.25, palette().color(QPalette::Base).lightnessF(), 0.85)));
+          else
+            item->setBackground(QBrush());
+        }
+
+        m_DisassemblyView->setIndicatorCurrent(INDICATOR_REGHIGHLIGHT);
+        m_DisassemblyView->indicatorClearRange(start, end);
+
+        sptr_t flags = SCFIND_MATCHCASE | SCFIND_WHOLEWORD;
+
+        if(tag.cat != VariableCategory::Unknown)
+        {
+          flags |= SCFIND_REGEXP | SCFIND_POSIX;
+          text += lit("\\.[xyzwrgba]+");
+        }
+
+        QByteArray findUtf8 = text.toUtf8();
+
+        QPair<int, int> result;
+
+        do
+        {
+          result = m_DisassemblyView->findText(flags, findUtf8.data(), start, end);
+
+          if(result.first >= 0)
+            m_DisassemblyView->indicatorFillRange(result.first, result.second - result.first);
+
+          start = result.second;
+
+        } while(result.first >= 0);
+      }
+    }
+  }
 }
 
 void ShaderViewer::watch_keyPress(QKeyEvent *event)
@@ -1736,42 +1819,11 @@ void ShaderViewer::disasm_tooltipShow(int x, int y)
 
     if(!text.isEmpty())
     {
-      const ShaderDebugState &state = m_Trace->states[m_CurrentStep];
+      VariableTag tag;
+      getRegisterFromWord(text, tag.cat, tag.idx, tag.arrayIdx);
 
-      QChar regtype = text[0];
-      QString regidx = text.mid(1);
-
-      VariableCategory varCat = VariableCategory::Unknown;
-
-      if(regtype == QLatin1Char('r'))
-      {
-        varCat = VariableCategory::Temporaries;
-      }
-      else if(regtype == QLatin1Char('v'))
-      {
-        varCat = VariableCategory::Inputs;
-      }
-      else if(regtype == QLatin1Char('o'))
-      {
-        varCat = VariableCategory::Outputs;
-      }
-      else
-      {
-        return;
-      }
-
-      bool ok = false;
-      int regindex = regidx.toInt(&ok);
-
-      const rdctype::array<ShaderVariable> *vars = GetVariableList(varCat, 0);
-
-      // if we have a list of registers and the index is in range, and we matched the whole word
-      // (i.e. v0foo is not the same as v0), then show the tooltip
-      if(vars && ok && regindex >= 0 && regindex < vars->count &&
-         QFormatStr("%1%2").arg(regtype).arg(regindex) == text)
-      {
-        showVariableTooltip(varCat, regindex, 0);
-      }
+      if(tag.cat != VariableCategory::Unknown && tag.idx >= 0 && tag.arrayIdx >= 0)
+        showVariableTooltip(tag.cat, tag.idx, tag.arrayIdx);
     }
   }
 }
@@ -1826,6 +1878,37 @@ const rdctype::array<ShaderVariable> *ShaderViewer::GetVariableList(VariableCate
   }
 
   return vars;
+}
+
+void ShaderViewer::getRegisterFromWord(const QString &text, VariableCategory &varCat, int &varIdx,
+                                       int &arrayIdx)
+{
+  QChar regtype = text[0];
+  QString regidx = text.mid(1);
+
+  varCat = VariableCategory::Unknown;
+  varIdx = -1;
+  arrayIdx = 0;
+
+  if(regtype == QLatin1Char('r'))
+    varCat = VariableCategory::Temporaries;
+  else if(regtype == QLatin1Char('v'))
+    varCat = VariableCategory::Inputs;
+  else if(regtype == QLatin1Char('o'))
+    varCat = VariableCategory::Outputs;
+  else
+    return;
+
+  bool ok = false;
+  varIdx = regidx.toInt(&ok);
+
+  // if we have a list of registers and the index is in range, and we matched the whole word
+  // (i.e. v0foo is not the same as v0), then show the tooltip
+  if(QFormatStr("%1%2").arg(regtype).arg(varIdx) != text)
+  {
+    varCat = VariableCategory::Unknown;
+    varIdx = -1;
+  }
 }
 
 void ShaderViewer::updateVariableTooltip()

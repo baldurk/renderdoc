@@ -116,6 +116,7 @@ private slots:
   void readonly_keyPressed(QKeyEvent *event);
   void editable_keyPressed(QKeyEvent *event);
   void disassembly_contextMenu(const QPoint &pos);
+  void disassembly_buttonReleased(QMouseEvent *event);
   void watch_keyPress(QKeyEvent *event);
   void performFind();
   void performFindAll();
@@ -151,6 +152,7 @@ private:
   bool eventFilter(QObject *watched, QEvent *event) override;
 
   const rdctype::array<ShaderVariable> *GetVariableList(VariableCategory varCat, int arrayIdx);
+  void getRegisterFromWord(const QString &text, VariableCategory &varCat, int &varIdx, int &arrayIdx);
 
   void showVariableTooltip(VariableCategory varCat, int varIdx, int arrayIdx);
   void updateVariableTooltip();
