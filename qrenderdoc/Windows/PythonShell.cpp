@@ -147,7 +147,7 @@ struct CaptureContextInvoker : ICaptureContext
   }
   virtual void CloseLogfile() override { InvokeVoidFunction(&ICaptureContext::CloseLogfile); }
   virtual void SetEventID(const QVector<ILogViewer *> &exclude, uint32_t selectedEventID,
-                          uint32_t eventID, bool force = false)
+                          uint32_t eventID, bool force = false) override
   {
     InvokeVoidFunction(&ICaptureContext::SetEventID, exclude, selectedEventID, eventID, force);
   }
