@@ -359,7 +359,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetContainingOutput(IDXGIOutpu
 {
   HRESULT ret = m_pReal->GetContainingOutput(ppOutput);
 
-  if(SUCCEEDED(ret))
+  if(SUCCEEDED(ret) && *ppOutput)
     *ppOutput = (IDXGIOutput *)(new WrappedIDXGIOutput5(this, *ppOutput));
 
   return ret;
@@ -408,7 +408,7 @@ HRESULT WrappedIDXGISwapChain4::GetFullscreenState(
 {
   HRESULT ret = m_pReal->GetFullscreenState(pFullscreen, ppTarget);
 
-  if(SUCCEEDED(ret))
+  if(SUCCEEDED(ret) && *ppTarget)
     *ppTarget = (IDXGIOutput *)(new WrappedIDXGIOutput5(this, *ppTarget));
 
   return ret;
@@ -554,7 +554,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetRestrictToOutput(IDXGIOutpu
 {
   HRESULT ret = m_pReal2->GetRestrictToOutput(ppRestrictToOutput);
 
-  if(SUCCEEDED(ret))
+  if(SUCCEEDED(ret) && *ppRestrictToOutput)
     *ppRestrictToOutput = (IDXGIOutput *)(new WrappedIDXGIOutput5(this, *ppRestrictToOutput));
 
   return ret;
