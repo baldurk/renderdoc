@@ -313,7 +313,7 @@ void GUIInvoke::init()
 
 void GUIInvoke::call(const std::function<void()> &f)
 {
-  if(qApp->thread() == QThread::currentThread())
+  if(onUIThread())
   {
     f();
     return;
@@ -326,7 +326,7 @@ void GUIInvoke::call(const std::function<void()> &f)
 
 void GUIInvoke::blockcall(const std::function<void()> &f)
 {
-  if(qApp->thread() == QThread::currentThread())
+  if(onUIThread())
   {
     f();
     return;
@@ -335,6 +335,11 @@ void GUIInvoke::blockcall(const std::function<void()> &f)
   GUIInvoke *invoke = new GUIInvoke(f);
   invoke->moveToThread(qApp->thread());
   invoke->metaObject()->method(methodIndex).invoke(invoke, Qt::BlockingQueuedConnection);
+}
+
+bool GUIInvoke::onUIThread()
+{
+  return qApp->thread() == QThread::currentThread();
 }
 
 const QMessageBox::StandardButtons RDDialog::YesNoCancel =

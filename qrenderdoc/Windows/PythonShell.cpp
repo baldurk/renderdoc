@@ -32,10 +32,323 @@
 #include "Code/pyrenderdoc/PythonContext.h"
 #include "ui_PythonShell.h"
 
+// a forwarder that invokes onto the UI thread wherever necessary.
+// Note this does NOT make CaptureContext thread safe. We just invoke for any potentially UI
+// operations. All invokes are blocking, so there can't be any times when the UI thread waits
+// on the python thread.
+struct CaptureContextInvoker : ICaptureContext
+{
+  ICaptureContext &m_Ctx;
+  CaptureContextInvoker(ICaptureContext &ctx) : m_Ctx(ctx) {}
+  //
+  ///////////////////////////////////////////////////////////////////////
+  // pass-through functions that don't need the UI thread
+  ///////////////////////////////////////////////////////////////////////
+  //
+  virtual QString ConfigFilePath(const QString &filename) override
+  {
+    return m_Ctx.ConfigFilePath(filename);
+  }
+  virtual QString TempLogFilename(QString appname) override
+  {
+    return m_Ctx.TempLogFilename(appname);
+  }
+  virtual IReplayManager &Replay() override { return m_Ctx.Replay(); }
+  virtual bool LogLoaded() override { return m_Ctx.LogLoaded(); }
+  virtual bool IsLogLocal() override { return m_Ctx.IsLogLocal(); }
+  virtual bool LogLoading() override { return m_Ctx.LogLoading(); }
+  virtual QString LogFilename() override { return m_Ctx.LogFilename(); }
+  virtual const FrameDescription &FrameInfo() override { return m_Ctx.FrameInfo(); }
+  virtual const APIProperties &APIProps() override { return m_Ctx.APIProps(); }
+  virtual uint32_t CurSelectedEvent() override { return m_Ctx.CurSelectedEvent(); }
+  virtual uint32_t CurEvent() override { return m_Ctx.CurEvent(); }
+  virtual const DrawcallDescription *CurSelectedDrawcall() override
+  {
+    return m_Ctx.CurSelectedDrawcall();
+  }
+  virtual const DrawcallDescription *CurDrawcall() override { return m_Ctx.CurDrawcall(); }
+  virtual const rdctype::array<DrawcallDescription> &CurDrawcalls() override
+  {
+    return m_Ctx.CurDrawcalls();
+  }
+  virtual TextureDescription *GetTexture(ResourceId id) override { return m_Ctx.GetTexture(id); }
+  virtual const rdctype::array<TextureDescription> &GetTextures() override
+  {
+    return m_Ctx.GetTextures();
+  }
+  virtual BufferDescription *GetBuffer(ResourceId id) override { return m_Ctx.GetBuffer(id); }
+  virtual const rdctype::array<BufferDescription> &GetBuffers() override
+  {
+    return m_Ctx.GetBuffers();
+  }
+  virtual const DrawcallDescription *GetDrawcall(uint32_t eventID) override
+  {
+    return m_Ctx.GetDrawcall(eventID);
+  }
+  virtual WindowingSystem CurWindowingSystem() override { return m_Ctx.CurWindowingSystem(); }
+  virtual void *FillWindowingData(uintptr_t winId) override
+  {
+    return m_Ctx.FillWindowingData(winId);
+  }
+  virtual const QVector<DebugMessage> &DebugMessages() override { return m_Ctx.DebugMessages(); }
+  virtual int UnreadMessageCount() override { return m_Ctx.UnreadMessageCount(); }
+  virtual void MarkMessagesRead() override { return m_Ctx.MarkMessagesRead(); }
+  virtual D3D11Pipe::State &CurD3D11PipelineState() override
+  {
+    return m_Ctx.CurD3D11PipelineState();
+  }
+  virtual D3D12Pipe::State &CurD3D12PipelineState() override
+  {
+    return m_Ctx.CurD3D12PipelineState();
+  }
+  virtual GLPipe::State &CurGLPipelineState() override { return m_Ctx.CurGLPipelineState(); }
+  virtual VKPipe::State &CurVulkanPipelineState() override
+  {
+    return m_Ctx.CurVulkanPipelineState();
+  }
+  virtual CommonPipelineState &CurPipelineState() override { return m_Ctx.CurPipelineState(); }
+  virtual PersistantConfig &Config() override { return m_Ctx.Config(); }
+  //
+  ///////////////////////////////////////////////////////////////////////
+  // functions that invoke onto the UI thread
+  ///////////////////////////////////////////////////////////////////////
+  //
+  template <typename F, typename... paramTypes>
+  void InvokeVoidFunction(F ptr, paramTypes... params)
+  {
+    if(!GUIInvoke::onUIThread())
+    {
+      GUIInvoke::blockcall([this, ptr, params...]() { (m_Ctx.*ptr)(params...); });
+
+      return;
+    }
+
+    (m_Ctx.*ptr)(params...);
+  }
+
+  template <typename R, typename F, typename... paramTypes>
+  R InvokeRetFunction(F ptr, paramTypes... params)
+  {
+    if(!GUIInvoke::onUIThread())
+    {
+      R ret;
+      GUIInvoke::blockcall([this, &ret, ptr, params...]() { ret = (m_Ctx.*ptr)(params...); });
+
+      return ret;
+    }
+
+    return (m_Ctx.*ptr)(params...);
+  }
+
+  virtual void LoadLogfile(const QString &logFile, const QString &origFilename, bool temporary,
+                           bool local) override
+  {
+    InvokeVoidFunction(&ICaptureContext::LoadLogfile, logFile, origFilename, temporary, local);
+  }
+  virtual void CloseLogfile() override { InvokeVoidFunction(&ICaptureContext::CloseLogfile); }
+  virtual void SetEventID(const QVector<ILogViewer *> &exclude, uint32_t selectedEventID,
+                          uint32_t eventID, bool force = false)
+  {
+    InvokeVoidFunction(&ICaptureContext::SetEventID, exclude, selectedEventID, eventID, force);
+  }
+  virtual void RefreshStatus() override { InvokeVoidFunction(&ICaptureContext::RefreshStatus); }
+  virtual void AddLogViewer(ILogViewer *viewer) override
+  {
+    InvokeVoidFunction(&ICaptureContext::AddLogViewer, viewer);
+  }
+  virtual void RemoveLogViewer(ILogViewer *viewer) override
+  {
+    InvokeVoidFunction(&ICaptureContext::RemoveLogViewer, viewer);
+  }
+  virtual void AddMessages(const rdctype::array<DebugMessage> &msgs) override
+  {
+    InvokeVoidFunction(&ICaptureContext::AddMessages, msgs);
+  }
+  virtual IMainWindow *GetMainWindow() override
+  {
+    return InvokeRetFunction<IMainWindow *>(&ICaptureContext::GetMainWindow);
+  }
+  virtual IEventBrowser *GetEventBrowser() override
+  {
+    return InvokeRetFunction<IEventBrowser *>(&ICaptureContext::GetEventBrowser);
+  }
+  virtual IAPIInspector *GetAPIInspector() override
+  {
+    return InvokeRetFunction<IAPIInspector *>(&ICaptureContext::GetAPIInspector);
+  }
+  virtual ITextureViewer *GetTextureViewer() override
+  {
+    return InvokeRetFunction<ITextureViewer *>(&ICaptureContext::GetTextureViewer);
+  }
+  virtual IBufferViewer *GetMeshPreview() override
+  {
+    return InvokeRetFunction<IBufferViewer *>(&ICaptureContext::GetMeshPreview);
+  }
+  virtual IPipelineStateViewer *GetPipelineViewer() override
+  {
+    return InvokeRetFunction<IPipelineStateViewer *>(&ICaptureContext::GetPipelineViewer);
+  }
+  virtual ICaptureDialog *GetCaptureDialog() override
+  {
+    return InvokeRetFunction<ICaptureDialog *>(&ICaptureContext::GetCaptureDialog);
+  }
+  virtual IDebugMessageView *GetDebugMessageView() override
+  {
+    return InvokeRetFunction<IDebugMessageView *>(&ICaptureContext::GetDebugMessageView);
+  }
+  virtual IStatisticsViewer *GetStatisticsViewer() override
+  {
+    return InvokeRetFunction<IStatisticsViewer *>(&ICaptureContext::GetStatisticsViewer);
+  }
+  virtual IPythonShell *GetPythonShell() override
+  {
+    return InvokeRetFunction<IPythonShell *>(&ICaptureContext::GetPythonShell);
+  }
+  virtual bool HasEventBrowser() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasEventBrowser);
+  }
+  virtual bool HasAPIInspector() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasAPIInspector);
+  }
+  virtual bool HasTextureViewer() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasTextureViewer);
+  }
+  virtual bool HasPipelineViewer() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasPipelineViewer);
+  }
+  virtual bool HasMeshPreview() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasMeshPreview);
+  }
+  virtual bool HasCaptureDialog() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasCaptureDialog);
+  }
+  virtual bool HasDebugMessageView() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasDebugMessageView);
+  }
+  virtual bool HasStatisticsViewer() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasStatisticsViewer);
+  }
+  virtual bool HasPythonShell() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasPythonShell);
+  }
+
+  virtual void ShowEventBrowser() override
+  {
+    InvokeVoidFunction(&ICaptureContext::ShowEventBrowser);
+  }
+  virtual void ShowAPIInspector() override
+  {
+    InvokeVoidFunction(&ICaptureContext::ShowAPIInspector);
+  }
+  virtual void ShowTextureViewer() override
+  {
+    InvokeVoidFunction(&ICaptureContext::ShowTextureViewer);
+  }
+  virtual void ShowMeshPreview() override { InvokeVoidFunction(&ICaptureContext::ShowMeshPreview); }
+  virtual void ShowPipelineViewer() override
+  {
+    InvokeVoidFunction(&ICaptureContext::ShowPipelineViewer);
+  }
+  virtual void ShowCaptureDialog() override
+  {
+    InvokeVoidFunction(&ICaptureContext::ShowCaptureDialog);
+  }
+  virtual void ShowDebugMessageView() override
+  {
+    InvokeVoidFunction(&ICaptureContext::ShowDebugMessageView);
+  }
+  virtual void ShowStatisticsViewer() override
+  {
+    InvokeVoidFunction(&ICaptureContext::ShowStatisticsViewer);
+  }
+  virtual void ShowPythonShell() override { InvokeVoidFunction(&ICaptureContext::ShowPythonShell); }
+  virtual IShaderViewer *EditShader(bool customShader, const QString &entryPoint,
+                                    const QStringMap &files, IShaderViewer::SaveCallback saveCallback,
+                                    IShaderViewer::CloseCallback closeCallback) override
+  {
+    return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::EditShader, customShader,
+                                              entryPoint, files, saveCallback, closeCallback);
+  }
+
+  virtual IShaderViewer *DebugShader(const ShaderBindpointMapping *bind,
+                                     const ShaderReflection *shader, ShaderStage stage,
+                                     ShaderDebugTrace *trace, const QString &debugContext) override
+  {
+    return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::DebugShader, bind, shader, stage,
+                                              trace, debugContext);
+  }
+
+  virtual IShaderViewer *ViewShader(const ShaderBindpointMapping *bind,
+                                    const ShaderReflection *shader, ShaderStage stage) override
+  {
+    return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::ViewShader, bind, shader, stage);
+  }
+
+  virtual IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
+                                    const QString &format = QString()) override
+  {
+    return InvokeRetFunction<IBufferViewer *>(&ICaptureContext::ViewBuffer, byteOffset, byteSize,
+                                              id, format);
+  }
+
+  virtual IBufferViewer *ViewTextureAsBuffer(uint32_t arrayIdx, uint32_t mip, ResourceId id,
+                                             const QString &format = QString()) override
+  {
+    return InvokeRetFunction<IBufferViewer *>(&ICaptureContext::ViewTextureAsBuffer, arrayIdx, mip,
+                                              id, format);
+  }
+
+  virtual IConstantBufferPreviewer *ViewConstantBuffer(ShaderStage stage, uint32_t slot,
+                                                       uint32_t idx) override
+  {
+    return InvokeRetFunction<IConstantBufferPreviewer *>(&ICaptureContext::ViewConstantBuffer,
+                                                         stage, slot, idx);
+  }
+
+  virtual IPixelHistoryView *ViewPixelHistory(ResourceId texID, int x, int y,
+                                              const TextureDisplay &display) override
+  {
+    return InvokeRetFunction<IPixelHistoryView *>(&ICaptureContext::ViewPixelHistory, texID, x, y,
+                                                  display);
+  }
+
+  virtual QWidget *CreateBuiltinWindow(const QString &objectName) override
+  {
+    return InvokeRetFunction<QWidget *>(&ICaptureContext::CreateBuiltinWindow, objectName);
+  }
+
+  virtual void BuiltinWindowClosed(QWidget *window) override
+  {
+    InvokeVoidFunction(&ICaptureContext::BuiltinWindowClosed, window);
+  }
+
+  virtual void RaiseDockWindow(QWidget *dockWindow) override
+  {
+    InvokeVoidFunction(&ICaptureContext::RaiseDockWindow, dockWindow);
+  }
+
+  virtual void AddDockWindow(QWidget *newWindow, DockReference ref, QWidget *refWindow,
+                             float percentage = 0.5f) override
+  {
+    InvokeVoidFunction(&ICaptureContext::AddDockWindow, newWindow, ref, refWindow, percentage);
+  }
+};
+
 PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::PythonShell), m_Ctx(ctx)
 {
   ui->setupUi(this);
+
+  m_ThreadCtx = new CaptureContextInvoker(m_Ctx);
 
   QObject::connect(ui->lineInput, &RDLineEdit::keyPress, this, &PythonShell::interactive_keypress);
 
@@ -97,6 +410,8 @@ PythonShell::~PythonShell()
   m_Ctx.BuiltinWindowClosed(this);
 
   interactiveContext->Finish();
+
+  delete m_ThreadCtx;
 
   delete ui;
 }
@@ -211,9 +526,10 @@ void PythonShell::on_runScript_clicked()
     context->executeString(lit("script.py"), script);
     scriptContext = NULL;
 
-    context->Finish();
-
-    GUIInvoke::call([this]() { enableButtons(true); });
+    GUIInvoke::call([this, context]() {
+      context->Finish();
+      enableButtons(true);
+    });
   });
 
   thread->selfDelete(true);
@@ -341,7 +657,7 @@ PythonContext *PythonShell::newContext()
   QObject::connect(ret, &PythonContext::exception, this, &PythonShell::exception);
   QObject::connect(ret, &PythonContext::textOutput, this, &PythonShell::textOutput);
 
-  ret->setGlobal("pyrenderdoc", &m_Ctx);
+  ret->setGlobal("pyrenderdoc", (ICaptureContext *)m_ThreadCtx);
 
   return ret;
 }

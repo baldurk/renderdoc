@@ -36,6 +36,8 @@ namespace Ui
 class PythonShell;
 }
 
+struct CaptureContextInvoker;
+
 class PythonShell : public QFrame, public IPythonShell
 {
   Q_OBJECT
@@ -66,6 +68,7 @@ private slots:
 private:
   Ui::PythonShell *ui;
   ICaptureContext &m_Ctx;
+  CaptureContextInvoker *m_ThreadCtx = NULL;
 
   ScintillaEdit *scriptEditor;
 

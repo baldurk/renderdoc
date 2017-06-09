@@ -725,6 +725,7 @@ public:
   static void init();
   static void call(const std::function<void()> &f);
   static void blockcall(const std::function<void()> &f);
+  static bool onUIThread();
 
 protected slots:
   void doInvoke()
