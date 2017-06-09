@@ -1874,7 +1874,7 @@ const rdctype::array<ShaderVariable> *ShaderViewer::GetVariableList(VariableCate
       break;
     case VariableCategory::Inputs: vars = &m_Trace->inputs; break;
     case VariableCategory::Constants:
-      vars = vars = arrayIdx < m_Trace->cbuffers.count ? &m_Trace->cbuffers[arrayIdx] : NULL;
+      vars = arrayIdx < m_Trace->cbuffers.count ? &m_Trace->cbuffers[arrayIdx] : NULL;
       break;
     case VariableCategory::Outputs: vars = &state.outputs; break;
   }
