@@ -40,6 +40,7 @@ struct CaptureContextInvoker : ICaptureContext
 {
   ICaptureContext &m_Ctx;
   CaptureContextInvoker(ICaptureContext &ctx) : m_Ctx(ctx) {}
+  virtual ~CaptureContextInvoker() {}
   //
   ///////////////////////////////////////////////////////////////////////
   // pass-through functions that don't need the UI thread
