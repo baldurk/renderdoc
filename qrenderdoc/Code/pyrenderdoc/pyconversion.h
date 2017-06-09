@@ -978,7 +978,11 @@ struct pointer_unwrap<T, true>
 
   static void tempset(U *&ptr, U *tempobj) { ptr = tempobj; }
   static void tempalloc(U *&ptr, unsigned char *tempmem) { ptr = new(tempmem) U; }
-  static void tempdealloc(U *ptr) { ptr->~U(); }
+  static void tempdealloc(U *ptr)
+  {
+    if(ptr)
+      ptr->~U();
+  }
   static U &indirect(U *ptr) { return *ptr; }
 };
 };
