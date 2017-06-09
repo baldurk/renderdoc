@@ -594,7 +594,6 @@ void ToolWindowManager::startDrag(const QList<QWidget *> &toolWindows,
 
   m_draggedWrapper = wrapper;
   m_draggedToolWindows = toolWindows;
-  updateDragPosition();
   qApp->installEventFilter(this);
 }
 
