@@ -225,8 +225,6 @@ DebugMessageView::DebugMessageView(ICaptureContext &ctx, QWidget *parent)
 
   ui->messages->setFont(Formatter::PreferredFont());
 
-  m_Ctx.AddLogViewer(this);
-
   m_ContextMenu = new QMenu(this);
 
   m_ShowHidden = new QAction(tr("Show hidden rows"), this);
@@ -252,6 +250,8 @@ DebugMessageView::DebugMessageView(ICaptureContext &ctx, QWidget *parent)
                    &DebugMessageView::messages_toggled);
 
   RefreshMessageList();
+
+  m_Ctx.AddLogViewer(this);
 }
 
 DebugMessageView::~DebugMessageView()

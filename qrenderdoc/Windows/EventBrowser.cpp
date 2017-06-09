@@ -65,10 +65,6 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
-  OnLogfileClosed();
-
-  m_Ctx.AddLogViewer(this);
-
   clearBookmarks();
 
   ui->jumpToEID->setFont(Formatter::PreferredFont());
@@ -156,6 +152,10 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->events->header()->setContextMenuPolicy(Qt::CustomContextMenu);
   QObject::connect(ui->events->header(), &QHeaderView::customContextMenuRequested, this,
                    &EventBrowser::events_contextMenu);
+
+  OnLogfileClosed();
+
+  m_Ctx.AddLogViewer(this);
 }
 
 EventBrowser::~EventBrowser()

@@ -490,8 +490,6 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
   ui->sliceFace->setFont(Formatter::PreferredFont());
   ui->zoomOption->setFont(Formatter::PreferredFont());
 
-  m_Ctx.AddLogViewer(this);
-
   Reset();
 
   on_checkerBack_clicked();
@@ -643,6 +641,8 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
 
   ui->zoomOption->setCurrentText(QString());
   ui->fitToWindow->toggle();
+
+  m_Ctx.AddLogViewer(this);
 
   SetupTextureTabs();
 }

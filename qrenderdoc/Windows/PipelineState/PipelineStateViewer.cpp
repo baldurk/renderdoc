@@ -46,9 +46,9 @@ PipelineStateViewer::PipelineStateViewer(ICaptureContext &ctx, QWidget *parent)
 
   m_Current = NULL;
 
-  m_Ctx.AddLogViewer(this);
-
   setToD3D11();
+
+  m_Ctx.AddLogViewer(this);
 }
 
 PipelineStateViewer::~PipelineStateViewer()
