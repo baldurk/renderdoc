@@ -921,6 +921,11 @@ void CaptureContext::RaiseDockWindow(QWidget *dockWindow)
 void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidget *refWindow,
                                    float percentage)
 {
+  if(!newWindow)
+  {
+    qCritical() << "Unexpected NULL newWindow in AddDockWindow";
+    return;
+  }
   setupDockWindow(newWindow);
 
   if(ref == DockReference::MainToolArea)
@@ -933,6 +938,13 @@ void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidge
     m_MainWindow->mainToolManager()->addToolWindow(newWindow, m_MainWindow->leftToolArea());
     return;
   }
+
+  if(!refWindow)
+  {
+    qCritical() << "Unexpected NULL refWindow in AddDockWindow";
+    return;
+  }
+
   if(ref == DockReference::ConstantBufferArea)
   {
     if(ConstantBufferPreviewer::getOne())
