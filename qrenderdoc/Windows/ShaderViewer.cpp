@@ -25,8 +25,10 @@
 #include "ShaderViewer.h"
 #include <QFontDatabase>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QListWidget>
 #include <QMenu>
+#include <QMouseEvent>
 #include <QShortcut>
 #include <QToolTip>
 #include "3rdparty/scintilla/include/SciLexer.h"
