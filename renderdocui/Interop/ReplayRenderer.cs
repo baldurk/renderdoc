@@ -80,6 +80,8 @@ namespace renderdoc
             public UInt64 timestamp;
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public byte[] thumbnail;
+            public Int32 thumbWidth;
+            public Int32 thumbHeight;
             [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string path;
             public bool local;

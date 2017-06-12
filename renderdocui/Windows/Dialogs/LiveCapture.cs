@@ -41,6 +41,7 @@ using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
 
 using Process = System.Diagnostics.Process;
+using System.Runtime.InteropServices;
 
 namespace renderdocui.Windows
 {
@@ -254,12 +255,14 @@ namespace renderdocui.Windows
                         DateTime timestamp = new DateTime(1970, 1, 1, 0, 0, 0);
                         timestamp = timestamp.AddSeconds(m_Connection.CaptureFile.timestamp).ToLocalTime();
                         byte[] thumb = m_Connection.CaptureFile.thumbnail;
+                        int thumbWidth = m_Connection.CaptureFile.thumbWidth;
+                        int thumbHeight = m_Connection.CaptureFile.thumbHeight;
                         string path = m_Connection.CaptureFile.path;
                         bool local = m_Connection.CaptureFile.local;
 
                         this.BeginInvoke((MethodInvoker)delegate
                         {
-                            CaptureAdded(capID, m_Connection.Target, m_Connection.API, thumb, timestamp, path, local);
+                            CaptureAdded(capID, m_Connection.Target, m_Connection.API, thumb, thumbWidth, thumbHeight, timestamp, path, local);
                         });
                         m_Connection.CaptureExists = false;
                     }
@@ -327,7 +330,7 @@ namespace renderdocui.Windows
             }
         }
 
-        Image MakeThumb(Size s, Stream st)
+        Image MakeThumb(Size s, byte[] data, int thumbWidth, int thumbHeight)
         {
             Bitmap thumb = new Bitmap(s.Width, s.Height, PixelFormat.Format32bppArgb);
 
@@ -336,12 +339,30 @@ namespace renderdocui.Windows
             g.Clear(Color.Transparent);
             g.InterpolationMode = InterpolationMode.HighQualityBicubic;
 
-            if (st != null)
+            if (data != null && thumbWidth > 0 && thumbHeight > 0)
             {
                 try
                 {
-                    using (var im = Image.FromStream(st))
+                    using (var im = new Bitmap(thumbWidth, thumbHeight, PixelFormat.Format24bppRgb))
                     {
+                        BitmapData bits = im.LockBits(new Rectangle(0, 0, thumbWidth, thumbHeight), ImageLockMode.WriteOnly, im.PixelFormat);
+
+                        // need to endian-swap for .NET
+                        for (int dy = 0; dy < bits.Height; dy++)
+                        {
+                            for (int dx = 0; dx < bits.Width; dx++)
+                            {
+                                int offs = dy * bits.Width * 3 + dx * 3;
+                                byte r = data[offs + 0];
+                                data[offs + 0] = data[offs + 2];
+                                data[offs + 2] = r;
+                            }
+                        }
+
+                        Marshal.Copy(data, 0, bits.Scan0, data.Length);
+
+                        im.UnlockBits(bits);
+
                         float x = 0, y = 0;
                         float width = 0, height = 0;
 
@@ -790,19 +811,18 @@ namespace renderdocui.Windows
             }
         }
 
-        private void CaptureAdded(uint ID, string executable, string api, byte[] thumbnail, DateTime timestamp, string path, bool local)
+        private void CaptureAdded(uint ID, string executable, string api, byte[] thumbnail, int thumbWidth, int thumbHeight, DateTime timestamp, string path, bool local)
         {
             if (thumbnail == null || thumbnail.Length == 0)
             {
-                using (Image t = MakeThumb(thumbs.ImageSize, null))
+                using (Image t = MakeThumb(thumbs.ImageSize, null, 0, 0))
                 {
                     thumbs.Images.Add(t);
                 }
             }
             else
             {
-                using (var ms = new MemoryStream(thumbnail))
-                using (Image t = MakeThumb(thumbs.ImageSize, ms))
+                using (Image t = MakeThumb(thumbs.ImageSize, thumbnail, thumbWidth, thumbHeight))
                 {
                     thumbs.Images.Add(t);
                 }

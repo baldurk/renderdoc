@@ -841,15 +841,17 @@ void LiveCapture::captureCopied(uint32_t ID, const QString &localPath)
 }
 
 void LiveCapture::captureAdded(uint32_t ID, const QString &executable, const QString &api,
-                               const rdctype::array<byte> &thumbnail, QDateTime timestamp,
-                               const QString &path, bool local)
+                               const rdctype::array<byte> &thumbnail, int32_t thumbWidth,
+                               int32_t thumbHeight, QDateTime timestamp, const QString &path,
+                               bool local)
 {
   CaptureLog *log = new CaptureLog();
   log->remoteID = ID;
   log->exe = executable;
   log->api = api;
   log->timestamp = timestamp;
-  log->thumb = QImage::fromData(thumbnail.elems, thumbnail.count, "JPG");
+  log->thumb = QImage(thumbnail.elems, thumbWidth, thumbHeight, QImage::Format_RGB888)
+                   .copy(0, 0, thumbWidth, thumbHeight);
   log->saved = false;
   log->path = path;
   log->local = local;
@@ -1030,14 +1032,16 @@ void LiveCapture::connectionThreadEntry()
       QDateTime timestamp = QDateTime(QDate(1970, 1, 1), QTime(0, 0, 0));
       timestamp = timestamp.addSecs(msg.NewCapture.timestamp).toLocalTime();
       rdctype::array<byte> thumb = msg.NewCapture.thumbnail;
+      int32_t thumbWidth = msg.NewCapture.thumbWidth;
+      int32_t thumbHeight = msg.NewCapture.thumbHeight;
       QString path = ToQStr(msg.NewCapture.path);
       bool local = msg.NewCapture.local;
 
-      GUIInvoke::call([this, capID, timestamp, thumb, path, local]() {
+      GUIInvoke::call([this, capID, timestamp, thumb, thumbWidth, thumbHeight, path, local]() {
         QString target = QString::fromUtf8(m_Connection->GetTarget());
         QString api = QString::fromUtf8(m_Connection->GetAPI());
 
-        captureAdded(capID, target, api, thumb, timestamp, path, local);
+        captureAdded(capID, target, api, thumb, thumbWidth, thumbHeight, timestamp, path, local);
       });
     }
 

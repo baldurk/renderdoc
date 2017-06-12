@@ -25,6 +25,7 @@
 
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
+#include "jpeg-compressor/jpgd.h"
 #include "os/os_specific.h"
 #include "replay/type_helpers.h"
 #include "serialise/serialiser.h"
@@ -603,14 +604,33 @@ public:
         int32_t thumblen = 0;
         ser->Serialise("", thumblen);
 
-        create_array_uninit(msg.NewCapture.thumbnail, thumblen);
+        byte *buf = new byte[thumblen];
 
         size_t l = 0;
-        byte *buf = &msg.NewCapture.thumbnail[0];
         ser->SerialiseBuffer("", buf, l);
 
         RDCLOG("Got a new capture: %d (time %llu) %d byte thumbnail", msg.NewCapture.ID,
                msg.NewCapture.timestamp, thumblen);
+
+        int w = 0;
+        int h = 0;
+        int comp = 3;
+        byte *thumbpixels =
+            jpgd::decompress_jpeg_image_from_memory(buf, (int)thumblen, &w, &h, &comp, 3);
+
+        if(w > 0 && h > 0 && thumbpixels)
+        {
+          msg.NewCapture.thumbWidth = w;
+          msg.NewCapture.thumbHeight = h;
+          create_array_init(msg.NewCapture.thumbnail, w * h * 3, thumbpixels);
+        }
+        else
+        {
+          msg.NewCapture.thumbWidth = 0;
+          msg.NewCapture.thumbHeight = 0;
+        }
+
+        free(thumbpixels);
 
         SAFE_DELETE(ser);
 

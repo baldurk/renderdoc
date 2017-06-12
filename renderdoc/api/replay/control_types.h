@@ -430,8 +430,12 @@ struct NewCaptureData
   uint32_t ID;
   DOCUMENT("The time the capture was created, as a unix timestamp in UTC.");
   uint64_t timestamp;
-  DOCUMENT("The raw bytes that contain the capture thumbnail, as a JPG.");
+  DOCUMENT("The raw bytes that contain the capture thumbnail, as RGB8 data.");
   rdctype::array<byte> thumbnail;
+  DOCUMENT("The width of the image contained in :data:`thumbnail`.");
+  int32_t thumbWidth;
+  DOCUMENT("The height of the image contained in :data:`thumbnail`.");
+  int32_t thumbHeight;
   DOCUMENT("The local path on the target system where the capture is saved.");
   rdctype::str path;
   DOCUMENT("``True`` if the target is running on the local system.");
