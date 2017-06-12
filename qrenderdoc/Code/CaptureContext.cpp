@@ -62,7 +62,7 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
   qApp->setApplicationVersion(QString::fromLatin1(RENDERDOC_GetVersionString()));
 
   m_Icon = new QIcon();
-  m_Icon->addFile(QStringLiteral(":/icon.ico"), QSize(), QIcon::Normal, QIcon::Off);
+  m_Icon->addFile(QStringLiteral(":/logo.svg"), QSize(), QIcon::Normal, QIcon::Off);
 
   m_MainWindow = new MainWindow(*this);
   m_MainWindow->show();
