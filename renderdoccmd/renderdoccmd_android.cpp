@@ -103,6 +103,8 @@ vector<string> getRenderdoccmdArgs()
     iss >> sub;
     ret.push_back(sub);
   }
+  android_state->activity->vm->DetachCurrentThread();
+
   return ret;
 }
 
@@ -116,10 +118,10 @@ void handle_cmd(android_app *app, int32_t cmd)
       if(!args.size())
         break;    // Nothing for APK to do.
       renderdoccmd(GlobalEnvironment(), args);
+      // activity is done and should be closed
+      ANativeActivity_finish(android_state->activity);
       break;
     }
-    case APP_CMD_TERM_WINDOW: break;
-    default: __android_log_print(ANDROID_LOG_INFO, LOGCAT_TAG, "event not handled: %d", cmd);
   }
 }
 

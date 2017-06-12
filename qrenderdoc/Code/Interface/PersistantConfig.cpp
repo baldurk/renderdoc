@@ -172,7 +172,7 @@ void PersistantConfig::AddAndroidHosts()
 {
   for(int i = RemoteHosts.count() - 1; i >= 0; i--)
   {
-    if(RemoteHosts[i]->Hostname.startsWith(lit("adb:")))
+    if(RemoteHosts[i]->IsHostADB())
       delete RemoteHosts.takeAt(i);
   }
 
@@ -193,6 +193,8 @@ void PersistantConfig::AddAndroidHosts()
   {
     RemoteHost *host = new RemoteHost();
     host->Hostname = lit("adb:") + hostName;
+    // Just a command to display in the GUI and allow Launch() to be called.
+    host->RunCommand = lit("org.renderdoc.renderdoccmd");
     RemoteHosts.push_back(host);
   }
 }

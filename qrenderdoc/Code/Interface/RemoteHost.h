@@ -56,6 +56,8 @@ public:
   QString Hostname;
   DOCUMENT("The command to run locally to try to launch the server remotely.");
   QString RunCommand;
+
+  bool IsHostADB() const { return Hostname.startsWith(lit("adb:")); }
 };
 
 DECLARE_REFLECTION_STRUCT(RemoteHost);
