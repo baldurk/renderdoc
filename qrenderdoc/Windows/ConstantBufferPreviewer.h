@@ -73,6 +73,8 @@ private:
   uint32_t m_slot = 0;
   uint32_t m_arrayIdx = 0;
 
+  void exportCSV(QTextStream &ts, const QString &prefix, RDTreeWidgetItem *item);
+
   rdctype::array<ShaderVariable> applyFormatOverride(const rdctype::array<byte> &data);
 
   void addVariables(RDTreeWidgetItem *root, const rdctype::array<ShaderVariable> &vars);

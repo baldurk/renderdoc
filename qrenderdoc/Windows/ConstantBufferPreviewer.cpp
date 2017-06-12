@@ -160,6 +160,51 @@ void ConstantBufferPreviewer::on_setFormat_toggled(bool checked)
 
 void ConstantBufferPreviewer::on_saveCSV_clicked()
 {
+  QString filename = RDDialog::getSaveFileName(this, tr("Export buffer data as CSV"), QString(),
+                                               tr("CSV Files (*.csv)"));
+
+  if(!filename.isEmpty())
+  {
+    QDir dirinfo = QFileInfo(filename).dir();
+    if(dirinfo.exists())
+    {
+      QFile f(filename, this);
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate))
+      {
+        QTextStream ts(&f);
+
+        ts << tr("Name,Value,Type\n");
+
+        for(int i = 0; i < ui->variables->topLevelItemCount(); i++)
+          exportCSV(ts, QString(), ui->variables->topLevelItem(i));
+
+        return;
+      }
+
+      RDDialog::critical(
+          this, tr("Error exporting buffer data"),
+          tr("Couldn't open path %1 for write.\n%2").arg(filename).arg(f.errorString()));
+    }
+    else
+    {
+      RDDialog::critical(this, tr("Invalid directory"),
+                         tr("Cannot find target directory to save to"));
+    }
+  }
+}
+
+void ConstantBufferPreviewer::exportCSV(QTextStream &ts, const QString &prefix, RDTreeWidgetItem *item)
+{
+  if(item->childCount() == 0)
+  {
+    ts << QFormatStr("%1,\"%2\",%3\n").arg(item->text(0)).arg(item->text(1)).arg(item->text(2));
+  }
+  else
+  {
+    ts << QFormatStr("%1,,%2\n").arg(item->text(0)).arg(item->text(2));
+    for(int i = 0; i < item->childCount(); i++)
+      exportCSV(ts, item->text(0) + lit("."), item->child(i));
+  }
 }
 
 void ConstantBufferPreviewer::processFormat(const QString &format)
