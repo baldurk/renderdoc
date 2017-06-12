@@ -31,12 +31,14 @@ fi
 rm -rf dist
 mkdir -p dist/Release{32,64}
 
-# Copy files from release build in
-cp -R x64/Release/* dist/Release64/
-cp -R Win32/Release/* dist/Release32/
+# Copy files from release build in, without copying obj/
+pushd x64/Release
+find * -not -path 'obj*' -exec cp -r --parents '{}' ../../dist/Release64/ \;
+popd
 
-rm -rf dist/Release64/obj/
-rm -rf dist/Release32/obj/
+pushd Win32/Release
+find * -not -path 'obj*' -exec cp -r --parents '{}' ../../dist/Release32/ \;
+popd
 
 cp renderdocui/3rdparty/ironpython/pythonlibs.zip dist/Release64/
 cp renderdocui/3rdparty/ironpython/pythonlibs.zip dist/Release32/
