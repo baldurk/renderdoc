@@ -89,9 +89,6 @@
           <string>General</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_5">
-          <property name="topMargin">
-           <number>0</number>
-          </property>
           <item row="3" column="0">
            <widget class="QLabel" name="label_4">
             <property name="toolTip">
@@ -386,9 +383,6 @@ This option overrides that and will always replay locally if the local context i
           <string>Core</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_2">
-          <property name="topMargin">
-           <number>0</number>
-          </property>
           <item row="0" column="0">
            <widget class="QLabel" name="label_11">
             <property name="sizePolicy">
@@ -450,9 +444,6 @@ This option overrides that and will always replay locally if the local context i
           <string>Texture Viewer</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
-          <property name="topMargin">
-           <number>0</number>
-          </property>
           <item row="0" column="0">
            <widget class="QLabel" name="label_12">
             <property name="sizePolicy">
