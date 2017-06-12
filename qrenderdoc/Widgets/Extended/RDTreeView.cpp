@@ -90,7 +90,7 @@ void RDTipLabel::resizeEvent(QResizeEvent *e)
   QLabel::resizeEvent(e);
 }
 
-RDTreeView::RDTreeView(QWidget *parent) : QTreeView(NULL)
+RDTreeView::RDTreeView(QWidget *parent) : QTreeView(parent)
 {
   setMouseTracking(true);
 
