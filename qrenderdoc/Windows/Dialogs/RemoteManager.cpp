@@ -325,7 +325,11 @@ void RemoteManager::updateConnectButton()
 
     if(host)
     {
-      if(host->Hostname == lit("localhost"))
+      bool isLocalhost = host->Hostname == lit("localhost");
+      if(isLocalhost || host->IsHostADB())
+        ui->runCommand->setEnabled(false);
+
+      if(isLocalhost)
       {
         ui->connect->setEnabled(false);
       }

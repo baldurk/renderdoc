@@ -102,8 +102,17 @@ void RemoteHost::CheckStatus()
 
 void RemoteHost::Launch()
 {
+  int WAIT_TIME = 2000;
+
+  if(IsHostADB())
+  {
+    RENDERDOC_StartAndroidRemoteServer();
+    QThread::msleep(WAIT_TIME);
+    return;
+  }
+
   RDProcess process;
   process.start(RunCommand);
-  process.waitForFinished(2000);
+  process.waitForFinished(WAIT_TIME);
   process.detach();
 }
