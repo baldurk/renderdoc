@@ -1512,7 +1512,12 @@
       <Visible>false</Visible>
     </Content>
     <Content Include="3rdparty\qt\$(Platform)\plugins\platforms\qwindows.dll">
-      <Link>qwindows.dll</Link>
+      <Link>qtplugins\platforms\qwindows.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="3rdparty\qt\$(Platform)\plugins\imageformats\qsvg.dll">
+      <Link>qtplugins\imageformats\qsvg.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
@@ -1540,6 +1545,21 @@
       <Link>Qt5Network.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
+    </Content>
+    <Content Include="3rdparty\qt\$(Platform)\plugins\platforms\qwindowsd.dll" Condition="$(Configuration)==QTDebug">
+      <Link>qtplugins\platforms\qwindowsd.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="3rdparty\qt\$(Platform)\plugins\imageformats\qsvgd.dll" Condition="$(Configuration)==QTDebug">
+      <Link>qtplugins\imageformats\qsvgd.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="3rdparty\qt\$(Platform)\bin\Qt5Cored.dll" Condition="$(Configuration)==QTDebug">
+      <Link>Qt5Cored.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>False</Visible>
     </Content>
     <Content Include="3rdparty\qt\$(Platform)\bin\Qt5Cored.dll" Condition="$(Configuration)==QTDebug">
       <Link>Qt5Cored.dll</Link>
