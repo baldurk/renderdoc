@@ -215,14 +215,6 @@ void RangeHistogram::mouseMoveEvent(QMouseEvent *e)
   }
 }
 
-void RangeHistogram::enterEvent(QEvent *e)
-{
-}
-
-void RangeHistogram::leaveEvent(QEvent *e)
-{
-}
-
 void RangeHistogram::paintEvent(QPaintEvent *e)
 {
   QPainter p(this);
