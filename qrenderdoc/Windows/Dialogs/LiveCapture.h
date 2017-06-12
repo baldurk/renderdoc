@@ -41,6 +41,8 @@ class QToolButton;
 class QListWidgetItem;
 class RDLabel;
 class MainWindow;
+class QKeyEvent;
+class NameEditOnlyDelegate;
 
 class LiveCapture : public QFrame
 {
@@ -56,6 +58,9 @@ public:
   const QString &hostname() { return m_Hostname; }
   void cleanItems();
 
+public slots:
+  bool checkAllowClose();
+
 private slots:
   void on_captures_itemSelectionChanged();
   void on_captures_mouseClicked(QMouseEvent *e);
@@ -66,10 +71,8 @@ private slots:
   void on_previewSplit_splitterMoved(int pos, int index);
 
   // manual slots
-public slots:
-  bool checkAllowClose();
+  void captures_keyPress(QKeyEvent *e);
 
-private slots:
   void childUpdate();
   void captureCountdownTick();
 
@@ -85,10 +88,12 @@ private slots:
 private:
   void showEvent(QShowEvent *event) override;
 
+  friend class NameEditOnlyDelegate;
+
   struct CaptureLog
   {
     uint32_t remoteID;
-    QString exe;
+    QString name;
     QString api;
     QDateTime timestamp;
 

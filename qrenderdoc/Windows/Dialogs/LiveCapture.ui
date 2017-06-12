@@ -321,7 +321,7 @@
           <item>
            <widget class="RDListWidget" name="captures">
             <property name="editTriggers">
-             <set>QAbstractItemView::NoEditTriggers</set>
+             <set>QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>

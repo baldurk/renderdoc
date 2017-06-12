@@ -24,10 +24,12 @@
 
 #include "LiveCapture.h"
 #include <QMenu>
+#include <QMetaProperty>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QProcess>
 #include <QScrollBar>
+#include <QStyledItemDelegate>
 #include <QToolBar>
 #include <QToolButton>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
@@ -40,6 +42,41 @@
 static const int PIDRole = Qt::UserRole + 1;
 static const int IdentRole = Qt::UserRole + 2;
 static const int LogPtrRole = Qt::UserRole + 3;
+
+class NameEditOnlyDelegate : public QStyledItemDelegate
+{
+public:
+  LiveCapture *live;
+  NameEditOnlyDelegate(LiveCapture *l) : live(l) {}
+  void setEditorData(QWidget *editor, const QModelIndex &index) const override
+  {
+    QByteArray n = editor->metaObject()->userProperty().name();
+    QListWidgetItem *item = live->ui->captures->item(index.row());
+
+    if(!n.isEmpty() && item)
+    {
+      LiveCapture::CaptureLog *log = live->GetLog(item);
+      if(log)
+        editor->setProperty(n, log->name);
+    }
+  }
+
+  void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override
+  {
+    QByteArray n = editor->metaObject()->userProperty().name();
+    QListWidgetItem *item = live->ui->captures->item(index.row());
+
+    if(!n.isEmpty() && item)
+    {
+      LiveCapture::CaptureLog *log = live->GetLog(item);
+      if(log)
+      {
+        log->name = editor->property(n).toString();
+        item->setText(live->MakeText(log));
+      }
+    }
+  }
+};
 
 LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, uint32_t ident,
                          MainWindow *main, QWidget *parent)
@@ -76,6 +113,8 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, uint32_t
   setTitle(tr("Connecting.."));
   ui->connectionStatus->setText(tr("Connecting.."));
   ui->connectionIcon->setPixmap(Pixmaps::hourglass());
+
+  ui->captures->setItemDelegate(new NameEditOnlyDelegate(this));
 
   {
     QToolBar *bottomTools = new QToolBar(this);
@@ -115,6 +154,8 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, uint32_t
                      &LiveCapture::openNewWindow_triggered);
     QObject::connect(saveAction, &QAction::triggered, this, &LiveCapture::saveCapture_triggered);
     QObject::connect(deleteAction, &QAction::triggered, this, &LiveCapture::deleteCapture_triggered);
+
+    QObject::connect(ui->captures, &RDListWidget::keyPress, this, &LiveCapture::captures_keyPress);
 
     ui->mainLayout->addWidget(bottomTools);
 
@@ -253,7 +294,7 @@ void LiveCapture::openNewWindow_triggered()
   {
     CaptureLog *log = GetLog(ui->captures->selectedItems()[0]);
 
-    QString temppath = m_Ctx.TempLogFilename(log->exe);
+    QString temppath = m_Ctx.TempLogFilename(lit("newwindow"));
 
     if(!log->local)
     {
@@ -523,7 +564,7 @@ bool LiveCapture::checkAllowDelete()
 
 QString LiveCapture::MakeText(CaptureLog *log)
 {
-  QString text = log->exe;
+  QString text = log->name;
   if(!log->local)
     text += tr(" (Remote)");
 
@@ -557,8 +598,8 @@ bool LiveCapture::checkAllowClose()
     if(!suppressRemoteWarning)
     {
       res = RDDialog::question(this, tr("Unsaved log"),
-                               tr("Save this logfile from %1 at %2?")
-                                   .arg(log->exe)
+                               tr("Save this logfile '%1' at %2?")
+                                   .arg(log->name)
                                    .arg(log->timestamp.toString(lit("HH:mm:ss"))),
                                RDDialog::YesNoCancel);
     }
@@ -762,6 +803,14 @@ void LiveCapture::on_previewSplit_splitterMoved(int pos, int index)
   m_IgnorePreviewToggle = false;
 }
 
+void LiveCapture::captures_keyPress(QKeyEvent *e)
+{
+  if(e->key() == Qt::Key_Delete)
+  {
+    deleteCapture_triggered();
+  }
+}
+
 void LiveCapture::preview_mouseClick(QMouseEvent *e)
 {
   QPoint mouse = QCursor::pos();
@@ -847,7 +896,7 @@ void LiveCapture::captureAdded(uint32_t ID, const QString &executable, const QSt
 {
   CaptureLog *log = new CaptureLog();
   log->remoteID = ID;
-  log->exe = executable;
+  log->name = executable;
   log->api = api;
   log->timestamp = timestamp;
   log->thumb = QImage(thumbnail.elems, thumbWidth, thumbHeight, QImage::Format_RGB888)
@@ -857,6 +906,7 @@ void LiveCapture::captureAdded(uint32_t ID, const QString &executable, const QSt
   log->local = local;
 
   QListWidgetItem *item = new QListWidgetItem();
+  item->setFlags(item->flags() | Qt::ItemIsEditable);
   item->setText(MakeText(log));
   item->setIcon(QIcon(QPixmap::fromImage(MakeThumb(log->thumb))));
   if(!local)
