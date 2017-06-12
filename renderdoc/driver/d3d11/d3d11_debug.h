@@ -43,6 +43,8 @@ class Vec3f;
 class WrappedID3D11Device;
 class WrappedID3D11DeviceContext;
 
+class AMDCounters;
+
 struct DrawcallTreeNode;
 
 struct D3D11CounterContext;
@@ -158,6 +160,7 @@ public:
   vector<GPUCounter> EnumerateCounters();
   void DescribeCounter(GPUCounter counterID, CounterDescription &desc);
   vector<CounterResult> FetchCounters(const vector<GPUCounter> &counters);
+  vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
 
   void RenderText(float x, float y, const char *textfmt, ...);
   void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
@@ -259,6 +262,8 @@ public:
   };
 
   TextureShaderDetails GetShaderDetails(ResourceId id, CompType typeHint, bool rawOutput);
+
+  AMDCounters *m_pAMDCounters;
 
 private:
   struct CacheElem
@@ -580,6 +585,9 @@ private:
   void PreDeviceShutdownCounters();
 
   void FillTimers(D3D11CounterContext &ctx, const DrawcallTreeNode &drawnode);
+
+  void FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex, vector<uint32_t> &eventIDs,
+                     const DrawcallTreeNode &drawnode);
 
   void FillCBuffer(ID3D11Buffer *buf, const void *data, size_t size);
 };

@@ -28,6 +28,7 @@
 #include "data/resource.h"
 #include "driver/d3d11/d3d11_resources.h"
 #include "driver/dx/official/d3dcompiler.h"
+#include "driver/ihv/amd/amd_counters.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
@@ -156,10 +157,23 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
   PostDeviceInitCounters();
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 1.0f);
+
+  AMDCounters *counters = new AMDCounters();
+  if(counters->Init((void *)m_pDevice))
+  {
+    m_pAMDCounters = counters;
+  }
+  else
+  {
+    delete counters;
+    m_pAMDCounters = NULL;
+  }
 }
 
 D3D11DebugManager::~D3D11DebugManager()
 {
+  SAFE_DELETE(m_pAMDCounters);
+
   PreDeviceShutdownCounters();
 
   if(m_ShaderCacheDirty)
