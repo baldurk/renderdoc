@@ -2918,12 +2918,27 @@ DOCUMENT(R"(The unit that GPU counter data is returned in.
 .. data:: Percentage
 
   The value is a floating point percentage value between 0.0 and 1.0.
+
+.. data:: Ratio
+
+  The value describes a ratio between two separate GPU units or counters.
+
+.. data:: Bytes
+
+  The value is in bytes.
+
+.. data:: Cycles
+
+  The value is a duration in clock cycles.
 )");
 enum class CounterUnit : uint32_t
 {
   Absolute,
   Seconds,
   Percentage,
+  Ratio,
+  Bytes,
+  Cycles,
 };
 
 DOCUMENT(R"(How supported a given API is on a particular replay instance.

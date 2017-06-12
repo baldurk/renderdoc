@@ -22,7 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <algorithm>
+#include <iterator>
 #include "common/common.h"
+#include "driver/ihv/amd/amd_counters.h"
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
 #include "d3d11_device.h"
@@ -61,12 +64,31 @@ vector<GPUCounter> D3D11DebugManager::EnumerateCounters()
   ret.push_back(GPUCounter::PSInvocations);
   ret.push_back(GPUCounter::CSInvocations);
 
+  if(m_pAMDCounters)
+  {
+    for(uint32_t i = 0; i < m_pAMDCounters->GetNumCounters(); i++)
+    {
+      ret.push_back(static_cast<GPUCounter>(static_cast<uint32_t>(GPUCounter::FirstAMD) + i));
+    }
+  }
+
   return ret;
 }
 
 void D3D11DebugManager::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
 {
   desc.counterID = counterID;
+
+  /////AMD//////
+  if(counterID >= GPUCounter::FirstAMD && counterID < GPUCounter::FirstIntel)
+  {
+    if(m_pAMDCounters)
+    {
+      desc = m_pAMDCounters->GetCounterDescription(counterID);
+
+      return;
+    }
+  }
 
   switch(counterID)
   {
@@ -257,6 +279,157 @@ void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallTreeN
   }
 }
 
+void D3D11DebugManager::FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex,
+                                      vector<uint32_t> &eventIDs, const DrawcallTreeNode &drawnode)
+{
+  if(drawnode.children.empty())
+    return;
+
+  for(size_t i = 0; i < drawnode.children.size(); i++)
+  {
+    const DrawcallDescription &d = drawnode.children[i].draw;
+
+    FillTimersAMD(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
+
+    if(d.events.count == 0)
+      continue;
+
+    eventIDs.push_back(d.eventID);
+
+    m_WrappedDevice->ReplayLog(eventStartID, d.eventID, eReplay_WithoutDraw);
+
+    m_pImmediateContext->Flush();
+
+    m_pAMDCounters->BeginSample(sampleIndex);
+
+    m_WrappedDevice->ReplayLog(eventStartID, d.eventID, eReplay_OnlyDraw);
+
+    m_pAMDCounters->EndSample();
+
+    eventStartID = d.eventID + 1;
+    sampleIndex++;
+  }
+}
+
+vector<CounterResult> D3D11DebugManager::FetchCountersAMD(const vector<GPUCounter> &counters)
+{
+  vector<CounterResult> ret;
+
+  m_pAMDCounters->DisableAllCounters();
+
+  // enable counters it needs
+  for(size_t i = 0; i < counters.size(); i++)
+  {
+    // This function is only called internally, and violating this assertion means our
+    // caller has invoked this method incorrectly
+    RDCASSERT((counters[i] >= (GPUCounter::FirstAMD)) && (counters[i] < (GPUCounter::FirstIntel)));
+    m_pAMDCounters->EnableCounter(counters[i]);
+  }
+
+  uint32_t sessionID = m_pAMDCounters->BeginSession();
+
+  uint32_t passCount = m_pAMDCounters->GetPassCount();
+
+  uint32_t sampleIndex = 0;
+
+  vector<uint32_t> eventIDs;
+
+  for(uint32_t p = 0; p < passCount; p++)
+  {
+    m_pAMDCounters->BeginPass();
+
+    uint32_t eventStartID = 0;
+
+    sampleIndex = 0;
+
+    eventIDs.clear();
+
+    FillTimersAMD(eventStartID, sampleIndex, eventIDs, m_WrappedContext->GetRootDraw());
+
+    m_pAMDCounters->EndPass();
+  }
+
+  m_pAMDCounters->EndSesssion();
+
+  bool isReady = false;
+
+  do
+  {
+    isReady = m_pAMDCounters->IsSessionReady(sessionID);
+  } while(!isReady);
+
+  for(uint32_t s = 0; s < sampleIndex; s++)
+  {
+    for(size_t c = 0; c < counters.size(); c++)
+    {
+      const CounterDescription desc = m_pAMDCounters->GetCounterDescription(counters[c]);
+
+      switch(desc.resultType)
+      {
+        case CompType::UInt:
+        {
+          if(desc.resultByteWidth == sizeof(uint32_t))
+          {
+            uint32_t value = m_pAMDCounters->GetSampleUint32(sessionID, s, counters[c]);
+
+            if(desc.unit == CounterUnit::Percentage)
+            {
+              value = RDCCLAMP(value, 0U, 100U);
+            }
+
+            ret.push_back(CounterResult(eventIDs[s], counters[c], value));
+          }
+          else if(desc.resultByteWidth == sizeof(uint64_t))
+          {
+            uint64_t value = m_pAMDCounters->GetSampleUint64(sessionID, s, counters[c]);
+
+            if(desc.unit == CounterUnit::Percentage)
+            {
+              value = RDCCLAMP(value, 0ULL, 100ULL);
+            }
+
+            ret.push_back(
+
+                CounterResult(eventIDs[s], counters[c], value));
+          }
+          else
+          {
+            RDCERR("Unexpected byte width %u", desc.resultByteWidth);
+          }
+        }
+        break;
+        case CompType::Float:
+        {
+          float value = m_pAMDCounters->GetSampleFloat32(sessionID, s, counters[c]);
+
+          if(desc.unit == CounterUnit::Percentage)
+          {
+            value = RDCCLAMP(value, 0.0f, 100.0f);
+          }
+
+          ret.push_back(CounterResult(eventIDs[s], counters[c], value));
+        }
+        break;
+        case CompType::Double:
+        {
+          double value = m_pAMDCounters->GetSampleFloat64(sessionID, s, counters[c]);
+
+          if(desc.unit == CounterUnit::Percentage)
+          {
+            value = RDCCLAMP(value, 0.0, 100.0);
+          }
+
+          ret.push_back(CounterResult(eventIDs[s], counters[c], value));
+        }
+        break;
+        default: RDCASSERT(0); break;
+      };
+    }
+  }
+
+  return ret;
+}
+
 vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> &counters)
 {
   vector<CounterResult> ret;
@@ -268,6 +441,21 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
   }
 
   SCOPED_TIMER("Fetch Counters, counters to fetch %u", counters.size());
+
+  vector<GPUCounter> d3dCounters;
+  std::copy_if(counters.begin(), counters.end(), std::back_inserter(d3dCounters),
+               [](const GPUCounter &c) { return c <= GPUCounter::FirstAMD; });
+
+  if(m_pAMDCounters)
+  {
+    // Filter out the AMD counters
+    vector<GPUCounter> amdCounters;
+    std::copy_if(
+        counters.begin(), counters.end(), std::back_inserter(amdCounters),
+        [](const GPUCounter &c) { return c >= GPUCounter::FirstAMD && c < GPUCounter::FirstIntel; });
+
+    ret = FetchCountersAMD(amdCounters);
+  }
 
   D3D11_QUERY_DESC disjointdesc = {D3D11_QUERY_TIMESTAMP_DISJOINT, 0};
   ID3D11Query *disjoint = NULL;
@@ -349,9 +537,9 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
           hr = m_pImmediateContext->GetData(ctx.timers[i].occlusion, &occlusion, sizeof(UINT64), 0);
           RDCASSERTEQUAL(hr, S_OK);
 
-          for(size_t c = 0; c < counters.size(); c++)
+          for(size_t c = 0; c < d3dCounters.size(); c++)
           {
-            switch(counters[c])
+            switch(d3dCounters[c])
             {
               case GPUCounter::EventGPUDuration:
                 ret.push_back(
@@ -410,9 +598,9 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
         }
         else
         {
-          for(size_t c = 0; c < counters.size(); c++)
+          for(size_t c = 0; c < d3dCounters.size(); c++)
           {
-            switch(counters[c])
+            switch(d3dCounters[c])
             {
               case GPUCounter::EventGPUDuration:
                 ret.push_back(
@@ -430,7 +618,8 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
               case GPUCounter::PSInvocations:
               case GPUCounter::CSInvocations:
               case GPUCounter::SamplesWritten:
-                ret.push_back(CounterResult(ctx.timers[i].eventID, counters[c], 0xFFFFFFFFFFFFFFFF));
+                ret.push_back(
+                    CounterResult(ctx.timers[i].eventID, d3dCounters[c], 0xFFFFFFFFFFFFFFFF));
                 break;
             }
           }
