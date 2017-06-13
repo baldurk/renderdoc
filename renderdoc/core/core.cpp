@@ -726,6 +726,18 @@ Serialiser *RenderDoc::OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *par
 
   m_CurrentLogFile = StringFormat::Fmt("%s_frame%u.rdc", m_LogFile.c_str(), frameNum);
 
+  // make sure we don't stomp another capture if we make multiple captures in the same frame.
+  {
+    SCOPED_LOCK(m_CaptureLock);
+    int altnum = 2;
+    while(std::find_if(m_Captures.begin(), m_Captures.end(), [this](const CaptureData &o) {
+            return o.path == m_CurrentLogFile;
+          }) != m_Captures.end())
+    {
+      m_CurrentLogFile = StringFormat::Fmt("%s_frame%u_%d.rdc", m_LogFile.c_str(), frameNum, altnum);
+    }
+  }
+
   Serialiser *fileSerialiser =
       new Serialiser(m_CurrentLogFile.c_str(), Serialiser::WRITING, debugSerialiser);
 
