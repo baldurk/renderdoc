@@ -374,8 +374,7 @@ void RenderDoc::TargetControlServerThread(void *s)
 struct TargetControl : public ITargetControl
 {
 public:
-  TargetControl(Network::Socket *sock, string clientName, bool forceConnection, bool localhost)
-      : m_Socket(sock), m_Local(localhost)
+  TargetControl(Network::Socket *sock, string clientName, bool forceConnection) : m_Socket(sock)
   {
     PacketType type;
     vector<byte> payload;
@@ -599,7 +598,7 @@ public:
         string path;
         ser->Serialise("", path);
         msg.NewCapture.path = path;
-        msg.NewCapture.local = m_Local;
+        msg.NewCapture.local = FileIO::exists(path.c_str());
 
         int32_t thumblen = 0;
         ser->Serialise("", thumblen);
@@ -659,7 +658,6 @@ public:
 
 private:
   Network::Socket *m_Socket;
-  bool m_Local;
   string m_Target, m_API, m_BusyClient;
   uint32_t m_PID;
 
@@ -745,9 +743,7 @@ extern "C" RENDERDOC_API ITargetControl *RENDERDOC_CC RENDERDOC_CreateTargetCont
   if(sock == NULL)
     return NULL;
 
-  bool localhost = !android && (Network::GetIPOctet(sock->GetRemoteIP(), 0) == 127);
-
-  TargetControl *remote = new TargetControl(sock, clientName, forceConnection != 0, localhost);
+  TargetControl *remote = new TargetControl(sock, clientName, forceConnection != 0);
 
   if(remote->Connected())
     return remote;
