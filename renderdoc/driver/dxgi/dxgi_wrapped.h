@@ -1056,7 +1056,7 @@ public:
   {
     HRESULT ret = m_pReal->EnumOutputs(Output, ppOutput);
 
-    if(SUCCEEDED(ret))
+    if(SUCCEEDED(ret) && ppOutput && *ppOutput)
       *ppOutput = (IDXGIOutput *)(new WrappedIDXGIOutput5(this, *ppOutput));
 
     return ret;
