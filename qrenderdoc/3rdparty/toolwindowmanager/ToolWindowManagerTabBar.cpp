@@ -211,6 +211,9 @@ void ToolWindowManagerTabBar::resizeEvent(QResizeEvent *event) {
 
   m_pin.rect = style()->subElementRect(QStyle::SE_DockWidgetFloatButton, &option, this);
   m_close.rect = style()->subElementRect(QStyle::SE_DockWidgetCloseButton, &option, this);
+
+  // TODO - temporarily until this is implemented, hide the pin button.
+  m_pin.rect = QRect();
 }
 
 void ToolWindowManagerTabBar::mousePressEvent(QMouseEvent *event) {
