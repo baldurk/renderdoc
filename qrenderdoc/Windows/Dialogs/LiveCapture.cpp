@@ -149,6 +149,7 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, uint32_t
     bottomTools->addAction(deleteAction);
 
     QObject::connect(previewToggle, &QAction::toggled, this, &LiveCapture::previewToggle_toggled);
+    QObject::connect(openButton, &QToolButton::clicked, this, &LiveCapture::openCapture_triggered);
     QObject::connect(thisAction, &QAction::triggered, this, &LiveCapture::openCapture_triggered);
     QObject::connect(newWindowAction, &QAction::triggered, this,
                      &LiveCapture::openNewWindow_triggered);
