@@ -618,6 +618,9 @@
     <ClCompile Include="Widgets\Extended\RDHeaderView.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\qrc_qtconf.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1396,6 +1399,9 @@
     </CustomBuild>
     <CustomBuild Include="Widgets\Extended\RDHeaderView.h">
       <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Resources\qtconf.qrc">
+      <Filter>Resources</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

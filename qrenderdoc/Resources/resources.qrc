@@ -68,7 +68,4 @@
         <file>action.png</file>
         <file>action_hover.png</file>
     </qresource>
-    <qresource prefix="/qt/etc">
-        <file>qt.conf</file>
-    </qresource>
 </RCC>

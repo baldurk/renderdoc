@@ -61,6 +61,9 @@ win32 {
 	silent:swig.commands = @echo SWIG ${QMAKE_FILE_IN} && $$swig.commands
 	QMAKE_EXTRA_COMPILERS += swig
 
+	# windows only qrc file with qt.conf
+	RESOURCES += Resources/qtconf.qrc
+
 	SWIGSOURCES += Code/pyrenderdoc/renderdoc.i
 	SWIGSOURCES += Code/pyrenderdoc/qrenderdoc.i
 

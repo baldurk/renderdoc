@@ -638,6 +638,7 @@
     <ClCompile Include="$(IntDir)generated\moc_VirtualFileDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_VulkanPipelineStateViewer.cpp" />
     <ClCompile Include="$(IntDir)generated\qrc_resources.cpp" />
+    <ClCompile Include="$(IntDir)generated\qrc_qtconf.cpp" />
     <ClCompile Include="$(IntDir)generated\renderdoc_python.cxx">
       <DisableSpecificWarnings>4101;4456;4459;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
@@ -1433,6 +1434,12 @@
       <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\rcc.exe -name resources Resources\resources.qrc -o $(IntDir)generated\qrc_resources.cpp</Command>
       <Message>RCC resources.qrc</Message>
       <Outputs>$(IntDir)generated\qrc_resources.cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Resources\qtconf.qrc">
+      <AdditionalInputs>Resources\qtconf.qrc;$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\rcc.exe -name qtconf Resources\qtconf.qrc -o $(IntDir)generated\qrc_qtconf.cpp</Command>
+      <Message>RCC qtconf.qrc</Message>
+      <Outputs>$(IntDir)generated\qrc_qtconf.cpp</Outputs>
     </CustomBuild>
     <None Include="Resources\runback.png" />
     <None Include="Resources\runcursor.png" />
