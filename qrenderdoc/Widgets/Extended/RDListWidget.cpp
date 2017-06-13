@@ -38,14 +38,14 @@ RDListWidget::~RDListWidget()
 
 void RDListWidget::mousePressEvent(QMouseEvent *event)
 {
-  emit(mouseClicked(event));
   QListWidget::mousePressEvent(event);
+  emit(mouseClicked(event));
 }
 
 void RDListWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
-  emit(mouseDoubleClicked(event));
   QListWidget::mouseDoubleClickEvent(event);
+  emit(mouseDoubleClicked(event));
 }
 
 void RDListWidget::keyPressEvent(QKeyEvent *event)
