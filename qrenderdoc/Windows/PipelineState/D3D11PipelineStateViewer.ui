@@ -248,9 +248,6 @@
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="indentation">
              <number>0</number>
             </property>
@@ -311,9 +308,6 @@
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="indentation">
              <number>0</number>
@@ -711,9 +705,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
@@ -765,9 +756,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
@@ -821,9 +809,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
@@ -875,9 +860,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
@@ -1072,9 +1054,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
@@ -1126,9 +1105,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
@@ -1182,9 +1158,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
@@ -1236,9 +1209,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
@@ -1433,9 +1403,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
@@ -1487,9 +1454,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
@@ -1543,9 +1507,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
@@ -1597,9 +1558,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
@@ -1794,9 +1752,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
@@ -1848,9 +1803,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
@@ -1906,9 +1858,6 @@ border: 1px solid black;</string>
               <property name="showDropIndicator" stdset="0">
                <bool>false</bool>
               </property>
-              <property name="alternatingRowColors">
-               <bool>true</bool>
-              </property>
               <property name="rootIsDecorated">
                <bool>false</bool>
               </property>
@@ -1960,9 +1909,6 @@ border: 1px solid black;</string>
               </property>
               <property name="showDropIndicator" stdset="0">
                <bool>false</bool>
-              </property>
-              <property name="alternatingRowColors">
-               <bool>true</bool>
               </property>
               <property name="rootIsDecorated">
                <bool>false</bool>
@@ -2017,9 +1963,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
@@ -2091,9 +2034,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="indentation">
              <number>0</number>
@@ -2530,9 +2470,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="indentation">
              <number>0</number>
             </property>
@@ -2729,9 +2666,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
@@ -2783,9 +2717,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
@@ -2839,9 +2770,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
@@ -2893,9 +2821,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
@@ -3077,9 +3002,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="indentation">
              <number>0</number>
@@ -3289,9 +3211,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="indentation">
              <number>0</number>
             </property>
@@ -3497,9 +3416,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="selectionMode">
              <enum>QAbstractItemView::NoSelection</enum>
@@ -3758,9 +3674,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
@@ -3812,9 +3725,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
@@ -3868,9 +3778,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
@@ -3923,9 +3830,6 @@ border: 1px solid black;</string>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
             <property name="rootIsDecorated">
              <bool>false</bool>
             </property>
@@ -3977,9 +3881,6 @@ border: 1px solid black;</string>
             </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
             </property>
             <property name="rootIsDecorated">
              <bool>false</bool>

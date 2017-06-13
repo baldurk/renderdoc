@@ -47,9 +47,6 @@
    <property name="dragDropOverwriteMode">
     <bool>false</bool>
    </property>
-   <property name="alternatingRowColors">
-    <bool>true</bool>
-   </property>
    <property name="indentation">
     <number>0</number>
    </property>
@@ -90,9 +87,6 @@
    <property name="dragDropOverwriteMode">
     <bool>false</bool>
    </property>
-   <property name="alternatingRowColors">
-    <bool>true</bool>
-   </property>
    <property name="indentation">
     <number>0</number>
    </property>
@@ -121,9 +115,6 @@
    <property name="contextMenuPolicy">
     <enum>Qt::PreventContextMenu</enum>
    </property>
-   <property name="alternatingRowColors">
-    <bool>true</bool>
-   </property>
    <property name="indentation">
     <number>0</number>
    </property>
@@ -145,9 +136,6 @@
      <width>256</width>
      <height>192</height>
     </rect>
-   </property>
-   <property name="alternatingRowColors">
-    <bool>true</bool>
    </property>
    <property name="indentation">
     <number>0</number>

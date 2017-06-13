@@ -273,9 +273,6 @@
         <property name="editTriggers">
          <set>QAbstractItemView::NoEditTriggers</set>
         </property>
-        <property name="alternatingRowColors">
-         <bool>true</bool>
-        </property>
         <property name="indentation">
          <number>0</number>
         </property>
