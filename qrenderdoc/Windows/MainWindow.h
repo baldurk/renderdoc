@@ -68,7 +68,7 @@ public:
 
   void setProgress(float val);
   void takeLogOwnership() { m_OwnTempLog = true; }
-  void LoadFromFilename(const QString &filename);
+  void LoadFromFilename(const QString &filename, bool temporary);
   void LoadLogfile(const QString &filename, bool temporary, bool local);
   void CloseLogfile();
   QString GetSavePath();

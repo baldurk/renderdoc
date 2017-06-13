@@ -264,17 +264,17 @@ void MainWindow::on_action_Open_Log_triggered()
          "*.jpeg *.png *.tga *.gif *.psd;;All Files (*.*)"));
 
   if(!filename.isEmpty())
-    LoadFromFilename(filename);
+    LoadFromFilename(filename, false);
 }
 
-void MainWindow::LoadFromFilename(const QString &filename)
+void MainWindow::LoadFromFilename(const QString &filename, bool temporary)
 {
   QFileInfo path(filename);
   QString ext = path.suffix().toLower();
 
   if(ext == lit("rdc"))
   {
-    LoadLogfile(filename, false, true);
+    LoadLogfile(filename, temporary, true);
   }
   else if(ext == lit("cap"))
   {
@@ -287,7 +287,7 @@ void MainWindow::LoadFromFilename(const QString &filename)
   else
   {
     // not a recognised filetype, see if we can load it anyway
-    LoadLogfile(filename, false, true);
+    LoadLogfile(filename, temporary, true);
   }
 }
 
@@ -1631,7 +1631,7 @@ void MainWindow::dropEvent(QDropEvent *event)
 {
   QString fn = dragFilename(event->mimeData());
   if(!fn.isEmpty())
-    LoadFromFilename(fn);
+    LoadFromFilename(fn, false);
 }
 
 void MainWindow::LoadSaveLayout(QAction *action, bool save)

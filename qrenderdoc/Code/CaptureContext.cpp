@@ -77,7 +77,9 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
   {
     QFileInfo fi(paramFilename);
 
-    m_MainWindow->LoadFromFilename(paramFilename);
+    m_MainWindow->LoadFromFilename(paramFilename, temp);
+    if(temp)
+      m_MainWindow->takeLogOwnership();
   }
 }
 
