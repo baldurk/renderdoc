@@ -339,22 +339,45 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(GLResource res, GLenum type,
 bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(GLResource res)
 {
   SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(res));
-  SERIALISE_ELEMENT(GLenum, textype, m_Textures[id].curType);
+  SERIALISE_ELEMENT(GLenum, textype, res.Namespace == eResBuffer ? eGL_NONE : m_Textures[id].curType);
 
   const GLHookSet &gl = m_Real;
 
+  // while writing, save off the current resource contents here.
   if(m_State >= WRITING)
   {
-    GLuint ppb = 0;
-    gl.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&ppb);
-    gl.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
-
-    PixelPackState pack;
-    pack.Fetch(&gl, false);
-
-    ResetPixelPackState(gl, false, 1);
-
+    if(textype == eGL_NONE)
     {
+      uint32_t length = 1;
+      gl.glGetNamedBufferParameterivEXT(res.name, eGL_BUFFER_SIZE, (GLint *)&length);
+
+      size_t size = length;
+
+      GLuint oldbuf = 0;
+      gl.glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING, (GLint *)&oldbuf);
+      gl.glBindBuffer(eGL_COPY_READ_BUFFER, res.name);
+
+      byte *buf = new byte[size];
+
+      gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, 0, (GLsizeiptr)size, buf);
+
+      m_pSerialiser->SerialiseBuffer("buffer", buf, size);
+
+      SAFE_DELETE_ARRAY(buf);
+
+      gl.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf);
+    }
+    else
+    {
+      GLuint ppb = 0;
+      gl.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&ppb);
+      gl.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
+
+      PixelPackState pack;
+      pack.Fetch(&gl, false);
+
+      ResetPixelPackState(gl, false, 1);
+
       TextureData &details = m_Textures[id];
       GLuint tex = res.name;
 
@@ -412,24 +435,41 @@ bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(GLResource res)
       gl.glBindTexture(textype, prevtex);
 
       SAFE_DELETE_ARRAY(buf);
+
+      gl.glBindBuffer(eGL_PIXEL_PACK_BUFFER, ppb);
+
+      pack.Apply(&gl, false);
     }
-
-    gl.glBindBuffer(eGL_PIXEL_PACK_BUFFER, ppb);
-
-    pack.Apply(&gl, false);
   }
   else
   {
-    GLuint pub = 0;
-    gl.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&pub);
-    gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-
-    PixelUnpackState unpack;
-    unpack.Fetch(&gl, false);
-
-    ResetPixelUnpackState(gl, false, 1);
-
+    // while reading, restore the contents saved above.
+    if(textype == eGL_NONE)
     {
+      size_t size = 0;
+      byte *data = NULL;
+      m_pSerialiser->SerialiseBuffer("buffer", data, size);
+
+      GLuint buffer = GetResourceManager()->GetLiveResource(id).name;
+
+      uint32_t length = 1;
+      gl.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&length);
+
+      gl.glNamedBufferSubData(buffer, 0, (GLsizeiptr)RDCMIN(length, (uint32_t)size), data);
+
+      delete[] data;
+    }
+    else
+    {
+      GLuint pub = 0;
+      gl.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&pub);
+      gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+
+      PixelUnpackState unpack;
+      unpack.Fetch(&gl, false);
+
+      ResetPixelUnpackState(gl, false, 1);
+
       TextureData &details = m_Textures[GetResourceManager()->GetLiveID(id)];
       GLuint tex = GetResourceManager()->GetLiveResource(id).name;
 
@@ -480,11 +520,11 @@ bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(GLResource res)
           delete[] buf;
         }
       }
+
+      gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pub);
+
+      unpack.Apply(&gl, false);
     }
-
-    gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pub);
-
-    unpack.Apply(&gl, false);
   }
 
   return true;
