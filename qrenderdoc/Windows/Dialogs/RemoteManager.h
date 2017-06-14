@@ -50,7 +50,7 @@ public:
 
 private slots:
   // automatic slots
-  void on_hosts_itemClicked(RDTreeWidgetItem *item, int column);
+  void on_hosts_itemSelectionChanged();
   void on_hosts_itemActivated(RDTreeWidgetItem *item, int column);
   void on_hostname_textEdited(const QString &text);
   void on_hosts_keyPress(QKeyEvent *event);
