@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QDialog>
+#include <QList>
 #include <QSemaphore>
 
 namespace Ui
@@ -73,6 +74,10 @@ private:
   // handle that the external owner holds while the dialog is open. Once it's closed, we can
   // delete ourselves once all lookups complete
   QSemaphore m_ExternalRef;
+
+  QList<RDTreeWidgetItem *> m_QueuedDeletes;
+
+  void queueDelete(RDTreeWidgetItem *item);
 
   bool isRemoteServerLive(RDTreeWidgetItem *node);
   void setRemoteServerLive(RDTreeWidgetItem *node, bool live, bool busy);
