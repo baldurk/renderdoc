@@ -11,8 +11,8 @@
   <!-- Use GL ES 3.2 version -->
   <uses-feature android:glEsVersion="0x00030002" android:required="true" />
 
-  <application android:label="RenderDocCmd" android:hasCode="true">
-    <activity android:name=".Loader" android:label="RenderDocCmdLoader" android:exported="true" android:configChanges="orientation|keyboardHidden">
+  <application android:label="RenderDocCmd" android:icon="@drawable/icon" android:hasCode="true">
+    <activity android:name=".Loader" android:label="RenderDoc" android:exported="true" android:configChanges="orientation|keyboardHidden">
       <meta-data android:name="android.app.lib_name" android:value="renderdoccmd"/>
     </activity>
 
