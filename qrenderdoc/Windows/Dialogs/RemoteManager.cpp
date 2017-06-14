@@ -117,6 +117,8 @@ RemoteManager::RemoteManager(ICaptureContext &ctx, MainWindow *main)
 
 RemoteManager::~RemoteManager()
 {
+  for(RDTreeWidgetItem *item : m_QueuedDeletes)
+    delete item;
   delete ui;
 }
 
@@ -285,6 +287,10 @@ void RemoteManager::updateStatus()
     ui->refreshOne->setEnabled(true);
     ui->refreshAll->setEnabled(true);
 
+    for(RDTreeWidgetItem *item : m_QueuedDeletes)
+      delete item;
+    m_QueuedDeletes.clear();
+
     // if the external ref is gone now, we can delete ourselves
     if(m_ExternalRef.available() == 0)
     {
@@ -403,6 +409,15 @@ void RemoteManager::setRunCommand()
   }
 }
 
+void RemoteManager::queueDelete(RDTreeWidgetItem *item)
+{
+  // if there are refreshes pending, queue it for deletion when they complete.
+  if(m_Lookups.available() > 0)
+    m_QueuedDeletes.push_back(item);
+  else
+    delete item;
+}
+
 void RemoteManager::on_hosts_itemActivated(RDTreeWidgetItem *item, int column)
 {
   RemoteConnect connect = getRemoteConnect(item);
@@ -505,7 +520,7 @@ void RemoteManager::on_hosts_keyPress(QKeyEvent *event)
       on_connect_clicked();
   }
 
-  if(event->key() == Qt::Key_Delete)
+  if(event->key() == Qt::Key_Delete && ui->deleteHost->isEnabled())
     on_deleteHost_clicked();
 }
 
@@ -654,7 +669,7 @@ void RemoteManager::on_deleteHost_clicked()
   RemoteHost *host = getRemoteHost(item);
 
   // don't delete running instances on a host
-  if(item->parent() != NULL || !host)
+  if(item->parent() != ui->hosts->invisibleRootItem() || !host)
     return;
 
   QString hostname = item->text(0);
@@ -677,7 +692,7 @@ void RemoteManager::on_deleteHost_clicked()
 
     item->clear();
 
-    delete ui->hosts->takeTopLevelItem(ui->hosts->indexOfTopLevelItem(item));
+    queueDelete(ui->hosts->takeTopLevelItem(ui->hosts->indexOfTopLevelItem(item)));
 
     ui->hosts->clearSelection();
 
