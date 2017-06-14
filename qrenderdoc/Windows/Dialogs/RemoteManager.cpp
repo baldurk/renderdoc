@@ -112,7 +112,7 @@ RemoteManager::RemoteManager(ICaptureContext &ctx, MainWindow *main)
   for(RemoteHost *h : m_Ctx.Config().RemoteHosts)
     addHost(h);
 
-  on_hosts_itemClicked(ui->hosts->topLevelItem(0), 0);
+  on_hosts_itemSelectionChanged();
 }
 
 RemoteManager::~RemoteManager()
@@ -331,12 +331,9 @@ void RemoteManager::updateConnectButton()
 
     if(host)
     {
-      bool isLocalhost = host->Hostname == lit("localhost");
-      if(isLocalhost || host->IsHostADB())
-        ui->runCommand->setEnabled(false);
-
-      if(isLocalhost)
+      if(host->Hostname == lit("localhost"))
       {
+        ui->connect->setText(tr("Run Server"));
         ui->connect->setEnabled(false);
       }
       else if(host->ServerRunning)
@@ -425,38 +422,41 @@ void RemoteManager::on_hosts_itemActivated(RDTreeWidgetItem *item, int column)
     connectToApp(item);
 }
 
-void RemoteManager::on_hosts_itemClicked(RDTreeWidgetItem *item, int column)
+void RemoteManager::on_hosts_itemSelectionChanged()
 {
   ui->addUpdateHost->setText(tr("Add"));
   ui->addUpdateHost->setEnabled(true);
   ui->deleteHost->setEnabled(false);
   ui->refreshOne->setEnabled(false);
   ui->hostname->setEnabled(true);
-  ui->addUpdateHost->setEnabled(true);
   ui->runCommand->setEnabled(true);
 
-  ui->runCommand->setText(QString());
-  ui->hostname->setText(QString());
+  RDTreeWidgetItem *item = ui->hosts->selectedItem();
 
-  RemoteHost *host = getRemoteHost(item);
+  RemoteHost *host = item ? getRemoteHost(item) : NULL;
+
+  ui->runCommand->setText(QString());
 
   if(host)
   {
     if(ui->refreshAll->isEnabled())
       ui->refreshOne->setEnabled(true);
 
-    if(host->Hostname == lit("localhost"))
+    ui->runCommand->setText(host->RunCommand);
+    ui->hostname->setText(host->Hostname);
+
+    ui->addUpdateHost->setText(tr("Update"));
+
+    if(host->Hostname == lit("localhost") || host->IsHostADB())
     {
-      ui->runCommand->setText(QString());
-      ui->hostname->setText(QString());
+      // localhost and android hosts cannot be updated or have their run command changed
+      ui->addUpdateHost->setEnabled(false);
+      ui->runCommand->setEnabled(false);
     }
     else
     {
+      // any other host can be deleted
       ui->deleteHost->setEnabled(true);
-      ui->runCommand->setText(host->RunCommand);
-      ui->hostname->setText(host->Hostname);
-
-      ui->addUpdateHost->setText(tr("Update"));
     }
   }
 
@@ -465,51 +465,23 @@ void RemoteManager::on_hosts_itemClicked(RDTreeWidgetItem *item, int column)
 
 void RemoteManager::on_hostname_textEdited(const QString &text)
 {
-  ui->addUpdateHost->setText(tr("Add"));
-  ui->addUpdateHost->setEnabled(true);
-  ui->deleteHost->setEnabled(false);
-  ui->refreshOne->setEnabled(false);
-  ui->hostname->setEnabled(true);
-  ui->addUpdateHost->setEnabled(true);
-  ui->runCommand->setEnabled(true);
-
   RDTreeWidgetItem *node = NULL;
 
   for(int i = 0; i < ui->hosts->topLevelItemCount(); i++)
   {
     RDTreeWidgetItem *n = ui->hosts->topLevelItem(i);
 
-    RemoteHost *host = getRemoteHost(n);
-
     if(n->text(0) == text)
     {
-      if(ui->refreshAll->isEnabled())
-        ui->refreshOne->setEnabled(true);
-
-      ui->addUpdateHost->setText(tr("Update"));
-
-      if(text == lit("localhost"))
-      {
-        ui->hostname->setEnabled(false);
-        ui->addUpdateHost->setEnabled(false);
-        ui->runCommand->setEnabled(false);
-      }
-      else
-      {
-        ui->deleteHost->setEnabled(true);
-        ui->runCommand->setText(host->RunCommand);
-      }
-
       node = n;
       break;
     }
   }
 
-  ui->hosts->clearSelection();
   if(node)
     ui->hosts->setSelectedItem(node);
-
-  updateConnectButton();
+  else
+    ui->hosts->clearSelection();
 }
 
 void RemoteManager::on_hosts_keyPress(QKeyEvent *event)
