@@ -57,6 +57,7 @@ public:
   DOCUMENT("The command to run locally to try to launch the server remotely.");
   QString RunCommand;
 
+  DOCUMENT("Returns ``True`` if this host represents a connected ADB (Android) device.");
   bool IsHostADB() const { return Hostname.startsWith(lit("adb:")); }
 };
 
