@@ -170,10 +170,14 @@ void PersistantConfig::applyValues(const QVariantMap &values)
 
 void PersistantConfig::AddAndroidHosts()
 {
+  QMap<QString, RemoteHost *> oldHosts;
   for(int i = RemoteHosts.count() - 1; i >= 0; i--)
   {
     if(RemoteHosts[i]->IsHostADB())
-      delete RemoteHosts.takeAt(i);
+    {
+      RemoteHost *host = RemoteHosts.takeAt(i);
+      oldHosts[host->Hostname] = host;
+    }
   }
 
   QString adbExePath =
@@ -191,14 +195,30 @@ void PersistantConfig::AddAndroidHosts()
   RENDERDOC_EnumerateAndroidDevices(&androidHosts);
   for(const QString &hostName : ToQStr(androidHosts).split(QLatin1Char(','), QString::SkipEmptyParts))
   {
-    RemoteHost *host = new RemoteHost();
-    host->Hostname = lit("adb:") + hostName;
+    RemoteHost *host = NULL;
+
+    QString fullHostname = lit("adb:") + hostName;
+
+    if(oldHosts.contains(fullHostname))
+      host = oldHosts.take(fullHostname);
+    else
+      host = new RemoteHost();
+
+    host->Hostname = fullHostname;
     rdctype::str friendly;
     RENDERDOC_GetAndroidFriendlyName(hostName.toUtf8().data(), friendly);
     host->FriendlyName = ToQStr(friendly);
     // Just a command to display in the GUI and allow Launch() to be called.
     host->RunCommand = lit("org.renderdoc.renderdoccmd");
     RemoteHosts.push_back(host);
+  }
+
+  // delete any leftovers
+  QMapIterator<QString, RemoteHost *> i(oldHosts);
+  while(i.hasNext())
+  {
+    i.next();
+    delete i.value();
   }
 }
 
