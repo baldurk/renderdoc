@@ -168,7 +168,7 @@ bool RemoteManager::isRemoteServerLive(RDTreeWidgetItem *node)
 
 void RemoteManager::addHost(RemoteHost *host)
 {
-  RDTreeWidgetItem *node = new RDTreeWidgetItem({host->Hostname, lit("...")});
+  RDTreeWidgetItem *node = new RDTreeWidgetItem({host->Name(), lit("...")});
 
   node->setItalic(true);
   node->setIcon(0, Icons::hourglass());
@@ -443,7 +443,7 @@ void RemoteManager::on_hosts_itemSelectionChanged()
       ui->refreshOne->setEnabled(true);
 
     ui->runCommand->setText(host->RunCommand);
-    ui->hostname->setText(host->Hostname);
+    ui->hostname->setText(host->Name());
 
     ui->addUpdateHost->setText(tr("Update"));
 
@@ -586,7 +586,7 @@ void RemoteManager::on_connect_clicked()
     {
       QMessageBox::StandardButton res = RDDialog::question(
           this, tr("Remote server shutdown"),
-          tr("Are you sure you wish to shut down running remote server on %1?").arg(host->Hostname),
+          tr("Are you sure you wish to shut down running remote server on %1?").arg(host->Name()),
           RDDialog::YesNoCancel);
 
       if(res == QMessageBox::Cancel || res == QMessageBox::No)
