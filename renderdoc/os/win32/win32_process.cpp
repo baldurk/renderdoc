@@ -452,6 +452,7 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
     si.dwFlags |= STARTF_USESHOWWINDOW    // Hide the command prompt window from showing.
                   | STARTF_USESTDHANDLES;
     si.hStdOutput = hChildStdOutput_Wr;
+    si.hStdError = hChildStdError_Wr;
   }
 
   RDCLOG("Running process %s", app);
