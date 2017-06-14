@@ -193,6 +193,9 @@ void PersistantConfig::AddAndroidHosts()
   {
     RemoteHost *host = new RemoteHost();
     host->Hostname = lit("adb:") + hostName;
+    rdctype::str friendly;
+    RENDERDOC_GetAndroidFriendlyName(hostName.toUtf8().data(), friendly);
+    host->FriendlyName = ToQStr(friendly);
     // Just a command to display in the GUI and allow Launch() to be called.
     host->RunCommand = lit("org.renderdoc.renderdoccmd");
     RemoteHosts.push_back(host);

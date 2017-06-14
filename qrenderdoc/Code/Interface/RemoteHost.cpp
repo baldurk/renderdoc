@@ -38,6 +38,8 @@ RemoteHost::RemoteHost(const QVariant &var)
   QVariantMap map = var.toMap();
   if(map.contains(lit("Hostname")))
     Hostname = map[lit("Hostname")].toString();
+  if(map.contains(lit("FriendlyName")))
+    FriendlyName = map[lit("FriendlyName")].toString();
   if(map.contains(lit("RunCommand")))
     RunCommand = map[lit("RunCommand")].toString();
 
@@ -48,6 +50,7 @@ RemoteHost::operator QVariant() const
 {
   QVariantMap map;
   map[lit("Hostname")] = Hostname;
+  map[lit("FriendlyName")] = FriendlyName;
   map[lit("RunCommand")] = RunCommand;
   return map;
 }

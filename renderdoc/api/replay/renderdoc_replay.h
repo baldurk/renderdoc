@@ -1426,6 +1426,10 @@ DOCUMENT("Internal function for setting a config setting.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetConfigSetting(const char *name,
                                                                       const char *value);
 
+DOCUMENT("Internal function for fetching friendly android names.");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(const rdctype::str &device,
+                                                                            rdctype::str &friendly);
+
 DOCUMENT("Internal function for enumerating android devices.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdctype::str *deviceList);
 

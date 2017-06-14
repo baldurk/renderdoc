@@ -616,6 +616,34 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
 }
 
 using namespace Android;
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(const rdctype::str &device,
+                                                                            rdctype::str &friendly)
+{
+  string manuf = adbExecCommand(
+      StringFormat::Fmt("-s %s shell getprop ro.product.manufacturer", device.c_str()));
+  string model =
+      adbExecCommand(StringFormat::Fmt("-s %s shell getprop ro.product.model", device.c_str()));
+
+  manuf = trim(manuf);
+  model = trim(model);
+
+  std::string combined;
+
+  if(manuf.empty() && model.empty())
+    combined = "";
+  else if(manuf.empty() && !model.empty())
+    combined = model;
+  else if(!manuf.empty() && model.empty())
+    combined = manuf + " device";
+  else if(!manuf.empty() && !model.empty())
+    combined = manuf + " " + model;
+
+  if(combined.empty())
+    friendly = "";
+  else
+    friendly = combined;
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdctype::str *deviceList)
 {
   string adbStdout = adbExecCommand("devices");

@@ -489,7 +489,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
         QString remoteMessage =
             tr("This log was captured with %1 and cannot be replayed on %2.\n\n")
                 .arg(driver)
-                .arg(m_Ctx.Replay().CurrentRemote()->Hostname);
+                .arg(m_Ctx.Replay().CurrentRemote()->Name());
 
         remoteMessage += tr("Try selecting a different remote context in the status bar.");
 
@@ -704,7 +704,7 @@ void MainWindow::SetTitle(const QString &filename)
   }
 
   if(m_Ctx.Replay().CurrentRemote())
-    prefix += tr("Remote: %1 - ").arg(m_Ctx.Replay().CurrentRemote()->Hostname);
+    prefix += tr("Remote: %1 - ").arg(m_Ctx.Replay().CurrentRemote()->Name());
 
   QString text = prefix + lit("RenderDoc ");
 
@@ -1057,15 +1057,15 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
 
     action->setIcon(host->ServerRunning && !host->VersionMismatch ? Icons::tick() : Icons::cross());
     if(host->Connected)
-      action->setText(tr("%1 (Connected)").arg(host->Hostname));
+      action->setText(tr("%1 (Connected)").arg(host->Name()));
     else if(host->ServerRunning && host->VersionMismatch)
-      action->setText(tr("%1 (Bad Version)").arg(host->Hostname));
+      action->setText(tr("%1 (Bad Version)").arg(host->Name()));
     else if(host->ServerRunning && host->Busy)
-      action->setText(tr("%1 (Busy)").arg(host->Hostname));
+      action->setText(tr("%1 (Busy)").arg(host->Name()));
     else if(host->ServerRunning)
-      action->setText(tr("%1 (Online)").arg(host->Hostname));
+      action->setText(tr("%1 (Online)").arg(host->Name()));
     else
-      action->setText(tr("%1 (Offline)").arg(host->Hostname));
+      action->setText(tr("%1 (Offline)").arg(host->Name()));
     QObject::connect(action, &QAction::triggered, this, &MainWindow::switchContext);
     action->setData(i);
 
@@ -1152,7 +1152,7 @@ void MainWindow::switchContext()
   }
   else
   {
-    contextChooser->setText(tr("Replay Context: %1").arg(host->Hostname));
+    contextChooser->setText(tr("Replay Context: %1").arg(host->Name()));
     contextChooser->setIcon(host->ServerRunning ? Icons::connect() : Icons::disconnect());
 
     // disable until checking is done

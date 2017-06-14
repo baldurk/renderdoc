@@ -49,8 +49,8 @@ class LiveCapture : public QFrame
   Q_OBJECT
 
 public:
-  explicit LiveCapture(ICaptureContext &ctx, const QString &runCommand, uint32_t ident,
-                       MainWindow *main, QWidget *parent = 0);
+  explicit LiveCapture(ICaptureContext &ctx, const QString &host, uint32_t ident, MainWindow *main,
+                       QWidget *parent = 0);
 
   ~LiveCapture();
 
