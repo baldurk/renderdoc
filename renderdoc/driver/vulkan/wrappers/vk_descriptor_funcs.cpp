@@ -339,6 +339,8 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
     else
     {
       GetResourceManager()->AddLiveResource(id, pDescriptorSets[i]);
+
+      m_DescriptorSetState[id].layout = GetResID(pAllocateInfo->pSetLayouts[i]);
     }
   }
 

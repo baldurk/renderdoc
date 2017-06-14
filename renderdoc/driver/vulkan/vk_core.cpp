@@ -256,7 +256,7 @@ void VkInitParams::Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst)
   InstanceID = inst;
 }
 
-WrappedVulkan::WrappedVulkan(const char *logFilename) : m_RenderState(&m_CreationInfo)
+WrappedVulkan::WrappedVulkan(const char *logFilename) : m_RenderState(this, &m_CreationInfo)
 {
 #if ENABLED(RDOC_RELEASE)
   const bool debugSerialiser = false;
@@ -317,7 +317,6 @@ WrappedVulkan::WrappedVulkan(const char *logFilename) : m_RenderState(&m_Creatio
   m_DebugManager = NULL;
 
   m_pSerialiser->SetUserData(m_ResourceManager);
-  m_RenderState.m_ResourceManager = GetResourceManager();
 
   m_Instance = VK_NULL_HANDLE;
   m_PhysicalDevice = VK_NULL_HANDLE;
@@ -2361,8 +2360,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       RDCASSERT(m_Partial[Secondary].resultPartialCmdBuffer == VK_NULL_HANDLE);
       m_Partial[Primary].Reset();
       m_Partial[Secondary].Reset();
-      m_RenderState = VulkanRenderState(&m_CreationInfo);
-      m_RenderState.m_ResourceManager = GetResourceManager();
+      m_RenderState = VulkanRenderState(this, &m_CreationInfo);
     }
 
     VkResult vkr = VK_SUCCESS;
@@ -2414,13 +2412,32 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
                                          VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 0, NULL, 0, NULL,
                                          (uint32_t)imgBarriers.size(), &imgBarriers[0]);
 
+        const DrawcallDescription *draw = GetDrawcall(endEventID);
+
+        bool rpUnneeded = false;
+
+        // if we're only replaying a draw, and it's not a drawcall or dispatch, don't try and bind
+        // all the replay state as we don't know if it will be valid.
+        if(replayType == eReplay_OnlyDraw)
+        {
+          if(!draw)
+          {
+            rpUnneeded = true;
+          }
+          else if(!(draw->flags & (DrawFlags::Drawcall | DrawFlags::Dispatch)))
+          {
+            rpUnneeded = true;
+          }
+        }
+
         // if a render pass was active, begin it and set up the partial replay state
-        m_RenderState.BeginRenderPassAndApplyState(cmd);
+        m_RenderState.BeginRenderPassAndApplyState(
+            cmd, rpUnneeded ? VulkanRenderState::BindNone : VulkanRenderState::BindGraphics);
       }
       else if(m_RenderState.compute.pipeline != ResourceId())
       {
         // if we had a compute pipeline, need to bind that
-        m_RenderState.BindPipeline(cmd);
+        m_RenderState.BindPipeline(cmd, VulkanRenderState::BindCompute);
       }
     }
 

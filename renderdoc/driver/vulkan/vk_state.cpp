@@ -23,10 +23,12 @@
  ******************************************************************************/
 
 #include "vk_state.h"
+#include "vk_core.h"
 #include "vk_info.h"
 #include "vk_resources.h"
 
-VulkanRenderState::VulkanRenderState(VulkanCreationInfo *createInfo) : m_CreationInfo(createInfo)
+VulkanRenderState::VulkanRenderState(WrappedVulkan *driver, VulkanCreationInfo *createInfo)
+    : m_CreationInfo(createInfo), m_pDriver(driver)
 {
   compute.pipeline = graphics.pipeline = renderPass = framebuffer = ResourceId();
   compute.descSets.clear();
@@ -42,8 +44,6 @@ VulkanRenderState::VulkanRenderState(VulkanCreationInfo *createInfo) : m_Creatio
   RDCEraseEl(front);
   RDCEraseEl(back);
   RDCEraseEl(pushconsts);
-
-  m_ResourceManager = NULL;
 
   renderPass = ResourceId();
   subpass = 0;
@@ -83,7 +83,7 @@ VulkanRenderState &VulkanRenderState::operator=(const VulkanRenderState &o)
   return *this;
 }
 
-void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
+void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, PipelineBinding binding)
 {
   RDCASSERT(renderPass != ResourceId());
 
@@ -106,7 +106,7 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
   };
   ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-  BindPipeline(cmd);
+  BindPipeline(cmd, binding);
 
   if(ibuffer.buf != ResourceId())
     ObjDisp(cmd)->CmdBindIndexBuffer(
@@ -120,9 +120,9 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
         &vbuffers[i].offs);
 }
 
-void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
+void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding binding)
 {
-  if(graphics.pipeline != ResourceId())
+  if(graphics.pipeline != ResourceId() && binding == BindGraphics)
   {
     ObjDisp(cmd)->CmdBindPipeline(
         Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -193,6 +193,26 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
 
       if(i < graphics.descSets.size() && graphics.descSets[i].descSet != ResourceId())
       {
+        // if we come to a descriptor set that isn't compatible, stop setting descriptor sets from
+        // here on.
+        // We can get into this situation if for example we have many sets bound at some point, then
+        // there's a pipeline change that causes most or all of them to be invalidated as
+        // incompatible, then the program only re-binds some subset that it knows is statically used
+        // by the next drawcall. The remaining sets are invalid, but also unused and this is
+        // explicitly allowed by the spec. We just have to make sure we don't try to actively bind
+        // an incompatible descriptor set.
+        ResourceId createdDescSetLayoutId =
+            m_pDriver->GetDescLayoutForDescSet(graphics.descSets[i].descSet);
+
+        if(descSetLayouts[i] != createdDescSetLayoutId)
+        {
+          const DescSetLayout &createdDescLayout =
+              m_CreationInfo->m_DescSetLayout[createdDescSetLayoutId];
+
+          if(descLayout != createdDescLayout)
+            break;
+        }
+
         // if there are dynamic buffers, pass along the offsets
 
         uint32_t *dynamicOffsets = NULL;
@@ -235,7 +255,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
     }
   }
 
-  if(compute.pipeline != ResourceId())
+  if(compute.pipeline != ResourceId() && binding == BindCompute)
   {
     ObjDisp(cmd)->CmdBindPipeline(
         Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -304,4 +324,9 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
 void VulkanRenderState::EndRenderPass(VkCommandBuffer cmd)
 {
   ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+}
+
+VulkanResourceManager *VulkanRenderState::GetResourceManager()
+{
+  return m_pDriver->GetResourceManager();
 }

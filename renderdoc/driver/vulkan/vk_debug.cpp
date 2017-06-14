@@ -4771,7 +4771,7 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
 struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 {
   VulkanQuadOverdrawCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
-      : m_pDriver(vk), m_pDebug(vk->GetDebugManager()), m_Events(events), m_PrevState(NULL)
+      : m_pDriver(vk), m_pDebug(vk->GetDebugManager()), m_Events(events), m_PrevState(vk, NULL)
   {
     m_pDriver->SetDrawcallCB(this);
   }
@@ -4951,7 +4951,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
     pipestate.graphics.descSets[pipe.first].descSet = GetResID(m_pDebug->m_QuadDescSet);
 
     if(cmd)
-      pipestate.BindPipeline(cmd);
+      pipestate.BindPipeline(cmd, VulkanRenderState::BindGraphics);
   }
 
   bool PostDraw(uint32_t eid, VkCommandBuffer cmd)
@@ -4963,7 +4963,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
     m_pDriver->GetRenderState() = m_PrevState;
 
     RDCASSERT(cmd);
-    m_pDriver->GetRenderState().BindPipeline(cmd);
+    m_pDriver->GetRenderState().BindPipeline(cmd, VulkanRenderState::BindGraphics);
 
     return true;
   }
@@ -6057,7 +6057,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      m_pDriver->m_RenderState.BeginRenderPassAndApplyState(cmd);
+      m_pDriver->m_RenderState.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
 
       VkClearAttachment blackclear = {VK_IMAGE_ASPECT_COLOR_BIT, 0, {}};
       vector<VkClearAttachment> atts;
@@ -7084,7 +7084,7 @@ inline uint32_t MakeSPIRVOp(spv::Op op, uint32_t WordCount)
 }
 
 static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData &patchData,
-                             const char *entryName, uint32_t descSet, uint32_t vertexIndexOffset,
+                             const char *entryName, uint32_t &descSet, uint32_t vertexIndexOffset,
                              uint32_t instanceIndexOffset, uint32_t numVerts,
                              vector<uint32_t> &modSpirv, uint32_t &bufStride)
 {
@@ -7147,11 +7147,19 @@ static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData 
   size_t decorateOffset = 0;
   size_t typeVarOffset = 0;
 
+  descSet = 0;
+
   size_t it = 5;
   while(it < spirvLength)
   {
     uint16_t WordCount = spirv[it] >> spv::WordCountShift;
     spv::Op opcode = spv::Op(spirv[it] & spv::OpCodeMask);
+
+    // we will use the descriptor set immediately after the last set statically used by the shader.
+    // This means we don't have to worry about if the descriptor set layout declares more sets which
+    // might be invalid and un-bindable, we just trample over the next set that's unused
+    if(opcode == spv::OpDecorate && spirv[it + 2] == spv::DecorationDescriptorSet)
+      descSet = RDCMAX(descSet, spirv[it + 3] + 1);
 
     if(opcode == spv::OpDecorate && spirv[it + 2] == spv::DecorationBuiltIn &&
        spirv[it + 3] == spv::BuiltInVertexIndex)
@@ -7907,51 +7915,25 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
   if(drawcall == NULL || drawcall->numIndices == 0 || drawcall->numInstances == 0)
     return;
 
-  uint32_t descSet = (uint32_t)creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts.size();
+  // the SPIR-V patching will determine the next descriptor set to use, after all sets statically
+  // used by the shader. This gets around the problem where the shader only uses 0 and 1, but the
+  // layout declares 0-4, and 2,3,4 are invalid at bind time and we are unable to bind our new set
+  // 5. Instead we'll notice that only 0 and 1 are used and just use 2 ourselves (although it was in
+  // the original set layout, we know it's statically unused by the shader so we can safely steal
+  // it).
+  uint32_t descSet = 0;
 
   // we go through the driver for all these creations since they need to be properly
   // registered in order to be put in the partial replay state
   VkResult vkr = VK_SUCCESS;
   VkDevice dev = m_Device;
 
-  VkDescriptorSetLayout *descSetLayouts;
-
-  // descSet will be the index of our new descriptor set
-  descSetLayouts = new VkDescriptorSetLayout[descSet + 1];
-
-  for(uint32_t i = 0; i < descSet; i++)
-    descSetLayouts[i] = GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(
-        creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts[i]);
-
-  // this layout just says it has one storage buffer
-  descSetLayouts[descSet] = m_MeshFetchDescSetLayout;
-
-  const vector<VkPushConstantRange> &push = creationInfo.m_PipelineLayout[pipeInfo.layout].pushRanges;
-
-  VkPipelineLayoutCreateInfo pipeLayoutInfo = {
-      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      NULL,
-      0,
-      descSet + 1,
-      descSetLayouts,
-      (uint32_t)push.size(),
-      push.empty() ? NULL : &push[0],
-  };
-
-  // create pipeline layout with same descriptor set layouts, plus our mesh output set
   VkPipelineLayout pipeLayout;
-  vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  SAFE_DELETE_ARRAY(descSetLayouts);
 
   VkGraphicsPipelineCreateInfo pipeCreateInfo;
 
   // get pipeline create info
   MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
-
-  // repoint pipeline layout
-  pipeCreateInfo.layout = pipeLayout;
 
   // set primitive topology to point list
   VkPipelineInputAssemblyStateCreateInfo *ia =
@@ -8153,6 +8135,42 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
                    descSet, vertexIndexOffset, drawcall->instanceOffset, numVerts, modSpirv,
                    bufStride);
 
+  {
+    VkDescriptorSetLayout *descSetLayouts;
+
+    // descSet will be the index of our new descriptor set
+    descSetLayouts = new VkDescriptorSetLayout[descSet + 1];
+
+    for(uint32_t i = 0; i < descSet; i++)
+      descSetLayouts[i] = GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(
+          creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts[i]);
+
+    // this layout just says it has one storage buffer
+    descSetLayouts[descSet] = m_MeshFetchDescSetLayout;
+
+    const vector<VkPushConstantRange> &push =
+        creationInfo.m_PipelineLayout[pipeInfo.layout].pushRanges;
+
+    VkPipelineLayoutCreateInfo pipeLayoutInfo = {
+        VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        NULL,
+        0,
+        descSet + 1,
+        descSetLayouts,
+        (uint32_t)push.size(),
+        push.empty() ? NULL : &push[0],
+    };
+
+    // create pipeline layout with same descriptor set layouts, plus our mesh output set
+    vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    SAFE_DELETE_ARRAY(descSetLayouts);
+
+    // repoint pipeline layout
+    pipeCreateInfo.layout = pipeLayout;
+  }
+
   // create vertex shader with modified code
   VkShaderModuleCreateInfo moduleCreateInfo = {
       VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL,         0,
@@ -8265,7 +8283,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // do single draw
-    modifiedstate.BeginRenderPassAndApplyState(cmd);
+    modifiedstate.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
     ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
                           drawcall->vertexOffset, drawcall->instanceOffset);
     modifiedstate.EndRenderPass(cmd);
@@ -8406,7 +8424,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
     m_pDriver->vkUpdateDescriptorSets(dev, 1, &write, 0, NULL);
 
     // do single draw
-    modifiedstate.BeginRenderPassAndApplyState(cmd);
+    modifiedstate.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
     ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), (uint32_t)indices.size(), drawcall->numInstances, 0,
                                  drawcall->baseVertex, drawcall->instanceOffset);
     modifiedstate.EndRenderPass(cmd);

@@ -714,6 +714,11 @@ public:
   uint32_t GetMaxEID() { return m_Events.back().eventID; }
   const DrawcallDescription *GetDrawcall(uint32_t eventID);
 
+  ResourceId GetDescLayoutForDescSet(ResourceId descSet)
+  {
+    return m_DescriptorSetState[descSet].layout;
+  }
+
   vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
   // return the pre-selected device and queue
   VkDevice GetDev()

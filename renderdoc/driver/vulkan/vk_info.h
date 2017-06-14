@@ -71,6 +71,9 @@ struct DescSetLayout
   vector<Binding> bindings;
 
   uint32_t dynamicCount;
+
+  bool operator==(const DescSetLayout &other) const;
+  bool operator!=(const DescSetLayout &other) const { return !(*this == other); }
 };
 
 struct VulkanCreationInfo

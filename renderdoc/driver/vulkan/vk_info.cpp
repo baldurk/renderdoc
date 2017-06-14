@@ -81,6 +81,45 @@ void DescSetLayout::CreateBindingsArray(vector<DescriptorSetSlot *> &descBinding
   }
 }
 
+bool DescSetLayout::operator==(const DescSetLayout &other) const
+{
+  // shortcut for equality to ourselves
+  if(this == &other)
+    return true;
+
+  // descriptor set layouts are different if they have different set of bindings.
+  if(bindings.size() != other.bindings.size())
+    return false;
+
+  // iterate over each binding (we know this loop indexes validly in both arrays
+  for(size_t i = 0; i < bindings.size(); i++)
+  {
+    const Binding &a = bindings[i];
+    const Binding &b = other.bindings[i];
+
+    // if the type/stages/count are different, the layout is different
+    if(a.descriptorCount != b.descriptorCount || a.descriptorType != b.descriptorType ||
+       a.stageFlags != b.stageFlags)
+      return false;
+
+    // if one has immutable samplers but the other doesn't, they're different
+    if((a.immutableSampler && !b.immutableSampler) || (!a.immutableSampler && b.immutableSampler))
+      return false;
+
+    // if we DO have immutable samplers, they must all point to the same sampler objects.
+    if(a.immutableSampler)
+    {
+      for(uint32_t s = 0; s < a.descriptorCount; s++)
+      {
+        if(a.immutableSampler[s] != b.immutableSampler[s])
+          return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
                                         const VkGraphicsPipelineCreateInfo *pCreateInfo)
 {
