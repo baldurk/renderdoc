@@ -41,6 +41,8 @@ int GetIdentPort(pid_t childPid);
 
 static const string GetAbsoluteAppPathFromName(const string &appName)
 {
+  string appPath;
+
   // If the application name contains a slash character convert it to an absolute path and return it
   if(appName.find("/") != string::npos)
   {
@@ -48,7 +50,7 @@ static const string GetAbsoluteAppPathFromName(const string &appName)
     string appDir = dirname(appName);
     string appBasename = basename(appName);
     realpath(appDir.c_str(), realpathBuffer);
-    string appPath(realpathBuffer);
+    appPath = realpathBuffer;
     appPath += "/" + appBasename;
     return appPath;
   }
@@ -57,19 +59,28 @@ static const string GetAbsoluteAppPathFromName(const string &appName)
   // Return "" if no exectuable found in the PATH list
   char *pathEnvVar = getenv("PATH");
   if(!pathEnvVar)
-    return string();
+    return appPath;
+
+  // Make a copy of our PATH so strtok can insert NULL without actually changing env
+  char *localPath = new char[strlen(pathEnvVar) + 1];
+  strcpy(localPath, pathEnvVar);
 
   const char *pathSeparator = ":";
-  const char *path = strtok(pathEnvVar, pathSeparator);
+  const char *path = strtok(localPath, pathSeparator);
   while(path)
   {
     string testPath(path);
     testPath += "/" + appName;
     if(!access(testPath.c_str(), X_OK))
-      return testPath;
+    {
+      appPath = testPath;
+      break;
+    }
     path = strtok(NULL, pathSeparator);
   }
-  return string();
+
+  delete[] localPath;
+  return appPath;
 }
 
 static vector<EnvironmentModification> &GetEnvModifications()
