@@ -1449,6 +1449,8 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
   {
     if(fmt.compByteWidth == 4)
       ret = DXGI_FORMAT_R32_TYPELESS;
+    else if(fmt.compByteWidth == 3)
+      ret = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
     else if(fmt.compByteWidth == 2)
       ret = DXGI_FORMAT_R16_TYPELESS;
     else if(fmt.compByteWidth == 1)

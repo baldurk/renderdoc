@@ -783,6 +783,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_ldr");
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_sliced_3d");
   m_GLESExtensions.push_back("GL_OES_copy_image");
+  m_GLESExtensions.push_back("GL_OES_depth_texture");
   m_GLESExtensions.push_back("GL_OES_draw_elements_base_vertex");
   m_GLESExtensions.push_back("GL_OES_geometry_shader");
   m_GLESExtensions.push_back("GL_OES_gpu_shader5");

@@ -27,12 +27,15 @@
 // present elsewhere and using them unconditionally.
 
 #include "driver/gl/gl_common.h"
+#include "driver/gl/gl_driver.h"
 #include "driver/gl/gl_hookset.h"
+#include "driver/gl/gl_replay.h"
 #include "driver/gl/gl_resources.h"
 
 namespace glEmulate
 {
 const GLHookSet *hookset = NULL;
+GLReplay *replay = NULL;
 PFNGLGETINTERNALFORMATIVPROC glGetInternalformativ_real = NULL;
 
 typedef GLenum (*BindingLookupFunc)(GLenum target);
@@ -956,6 +959,8 @@ static const format_data formats[] = {
     {eGL_RGB, eGL_UNSIGNED_BYTE, 3, 8, 0, 0},
     {eGL_RGBA, eGL_UNSIGNED_BYTE, 4, 8, 0, 0},
     {eGL_BGRA_EXT, eGL_UNSIGNED_BYTE, 4, 8, 0, 0},
+    {eGL_DEPTH_COMPONENT, eGL_NONE, 0, 0, 16, 0},
+    {eGL_DEPTH_STENCIL, eGL_NONE, 0, 0, 24, 8},
 
     // depth and stencil formats
     {eGL_DEPTH_COMPONENT16, eGL_NONE, 0, 0, 16, 0},
@@ -1079,6 +1084,9 @@ void APIENTRY _glGetInternalformativ(GLenum target, GLenum internalformat, GLenu
       *params = GLint(data->numColComp > 3 ? data->type : eGL_NONE);
       break;
     case eGL_INTERNALFORMAT_DEPTH_SIZE: *params = data->depthBits; break;
+    case eGL_INTERNALFORMAT_DEPTH_TYPE:
+      *params = data->depthBits > 0 ? data->type : eGL_NONE;
+      break;
     case eGL_INTERNALFORMAT_STENCIL_SIZE: *params = data->stencilBits; break;
     default:
       RDCERR("pname %s not supported by internal glGetInternalformativ", ToStr::Get(pname).c_str());
@@ -1389,9 +1397,7 @@ void APIENTRY _glClearBufferData(GLenum target, GLenum internalformat, GLenum fo
 
 void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
 {
-  if((format == eGL_DEPTH_COMPONENT && !HasExt[NV_read_depth]) ||
-     (format == eGL_STENCIL && !HasExt[NV_read_stencil]) ||
-     (format == eGL_DEPTH_STENCIL && !HasExt[NV_read_depth_stencil]))
+  if(format == eGL_STENCIL && !HasExt[NV_read_stencil])
   {
     // TODO create a workaround for this
     // return silently, check was made during startup
@@ -1428,6 +1434,150 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     attachment = eGL_STENCIL_ATTACHMENT;
   else if(format == eGL_DEPTH_STENCIL)
     attachment = eGL_DEPTH_STENCIL_ATTACHMENT;
+
+  GLuint origTex = texture, remapDepth = 0, remapStencil = 0;
+
+  // deal with the lack of depth stencil reading extensions by remapping
+  if(replay && !HasExt[NV_read_depth] && !HasExt[NV_read_depth_stencil])
+  {
+    GLenum remapped_depth_format = eGL_NONE;
+    GLenum remapped_stencil_format = eGL_NONE;
+
+    if(format == eGL_DEPTH_STENCIL || format == eGL_DEPTH_COMPONENT)
+    {
+      hookset->glGenTextures(1, &remapDepth);
+
+      remapped_depth_format = replay->RemapDepthStencilToTexture(texture, remapDepth, false);
+    }
+
+    if(format == eGL_DEPTH_STENCIL || format == eGL_STENCIL)
+    {
+      hookset->glGenTextures(1, &remapStencil);
+
+      remapped_stencil_format = replay->RemapDepthStencilToTexture(texture, remapStencil, true);
+    }
+
+    // do buffer stitching for packed depth stencil formats
+    if(remapped_depth_format != eGL_NONE && remapped_stencil_format != eGL_NONE)
+    {
+      GLenum internalFormat;
+      hookset->glBindTexture(target, texture);
+      hookset->glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_INTERNAL_FORMAT,
+                                        (GLint *)&internalFormat);
+
+      GLuint fbo = 0;
+      hookset->glGenFramebuffers(1, &fbo);
+
+      PushPopFramebuffer(eGL_FRAMEBUFFER, fbo);
+
+      GLenum depth_base_format = GetBaseFormat(remapped_depth_format);
+      GLenum depth_data_type = GetDataType(remapped_depth_format);
+      GLenum stencil_base_format = GetBaseFormat(remapped_stencil_format);
+      GLenum stencil_data_type = GetDataType(remapped_stencil_format);
+
+      size_t depthSliceSize = GetByteSize(width, height, 1, depth_base_format, depth_data_type);
+      size_t stencilSliceSize = GetByteSize(width, height, 1, stencil_base_format, stencil_data_type);
+      size_t dstSliceSize = GetByteSize(width, height, 1, format, type);
+
+      byte *temp_depth = new byte[depthSliceSize];
+      byte *temp_stencil = new byte[stencilSliceSize];
+
+      size_t depthRowSize = GetByteSize(width, 1, 1, depth_base_format, depth_data_type);
+      size_t stencilRowSize = GetByteSize(width, 1, 1, stencil_base_format, stencil_data_type);
+      size_t dstRowSize = GetByteSize(width, 1, 1, format, type);
+
+      for(GLint d = 0; d < depth; ++d)
+      {
+        // depth
+        hookset->glBindTexture(target, remapDepth);
+        hookset->glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, remapDepth,
+                                        level);
+
+        hookset->glReadPixels(0, 0, width, height, depth_base_format, depth_data_type,
+                              (void *)temp_depth);
+
+        // stencil
+        hookset->glBindTexture(target, remapStencil);
+        hookset->glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target,
+                                        remapStencil, level);
+
+        hookset->glReadPixels(0, 0, width, height, stencil_base_format, stencil_data_type,
+                              (void *)temp_stencil);
+
+        // then combine them
+        byte *combined_dst = (byte *)pixels + d * dstSliceSize;
+
+        if(internalFormat == eGL_DEPTH32F_STENCIL8)
+        {
+          // each pixel consists of two 32bit value, first one contains depth32f, second one
+          // contains stencil8 with 24bit unused
+          typedef struct
+          {
+            GLuint depth;
+            GLuint stencil;
+          } DstPixel;
+
+          for(GLint y = 0; y < height; ++y)
+            for(GLint x = 0; x < width; ++x)
+            {
+              GLuint *depth_part = (GLuint *)(temp_depth + y * depthRowSize) + x;
+              byte *stencil_part = (byte *)(temp_stencil + y * stencilRowSize) + x;
+              DstPixel *combined_pixel = (DstPixel *)(combined_dst + y * dstRowSize) + x;
+
+              combined_pixel->depth = *depth_part;
+              combined_pixel->stencil = *stencil_part;
+            }
+        }
+        else if(internalFormat == eGL_DEPTH24_STENCIL8)
+        {
+          // each pixel consists of one single 32bit value
+          typedef GLuint DstPixel;
+
+          for(GLint y = 0; y < height; ++y)
+            for(GLint x = 0; x < width; ++x)
+            {
+              GLuint *depth_part = (GLuint *)(temp_depth + y * depthRowSize) + x;
+              byte *stencil_part = (byte *)(temp_stencil + y * stencilRowSize) + x;
+              DstPixel *combined_pixel = (DstPixel *)(combined_dst + y * dstRowSize) + x;
+
+              (*combined_pixel) = (*stencil_part << 24) | (*depth_part & 0x00FFFFFF);
+            }
+        }
+      }
+
+      hookset->glDeleteFramebuffers(1, &fbo);
+
+      delete[] temp_depth;
+      delete[] temp_stencil;
+
+      hookset->glBindTexture(target, origTex);
+
+      if(remapDepth)
+        hookset->glDeleteTextures(1, &remapDepth);
+      if(remapStencil)
+        hookset->glDeleteTextures(1, &remapStencil);
+
+      return;
+    }
+    else if(remapDepth != eGL_NONE)
+    {
+      texture = remapDepth;
+      format = GetBaseFormat(remapped_depth_format);
+      type = GetDataType(remapped_depth_format);
+      attachment = eGL_COLOR_ATTACHMENT0;
+
+      hookset->glBindTexture(target, remapDepth);
+    }
+    else if(remapStencil != eGL_NONE)
+    {
+      texture = remapStencil;
+      format = GetBaseFormat(remapped_stencil_format);
+      type = GetDataType(remapped_stencil_format);
+      attachment = eGL_COLOR_ATTACHMENT0;
+
+      hookset->glBindTexture(target, remapStencil);
+    }
+  }
 
   GLuint fbo = 0;
   hookset->glGenFramebuffers(1, &fbo);
@@ -1466,6 +1616,15 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
   }
 
   hookset->glDeleteFramebuffers(1, &fbo);
+
+  if(remapDepth || remapStencil)
+  {
+    hookset->glBindTexture(target, origTex);
+    if(remapDepth)
+      hookset->glDeleteTextures(1, &remapDepth);
+    if(remapStencil)
+      hookset->glDeleteTextures(1, &remapStencil);
+  }
 }
 
 void APIENTRY _glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
@@ -1647,6 +1806,11 @@ void EmulateRequiredExtensions(GLHookSet *hooks)
     EMULATE_FUNC(glVertexArrayVertexAttribOffsetEXT);
     EMULATE_FUNC(glVertexArrayVertexBindingDivisorEXT);
   }
+}
+
+void BorrowGLReplay(GLReplay *_replay)
+{
+  replay = _replay;
 }
 
 };    // namespace glEmulate

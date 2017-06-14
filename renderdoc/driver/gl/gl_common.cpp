@@ -699,8 +699,8 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
     gl.glDeleteVertexArrays(1, &vao);
   }
 
-  // don't have a test for this, just have to enable it all the time, for now.
-  VendorCheck[VendorCheck_NV_avoid_D32S8_copy] = true;
+  // assuming this is only necessary for nvidia gpu
+  VendorCheck[VendorCheck_NV_avoid_D32S8_copy] = strstr(strlower(vendor).c_str(), "nvidia") != NULL;
 
   // On 32-bit calling this function could actually lead to crashes (issues with
   // esp being saved across the call), so since the work-around is low-cost of just

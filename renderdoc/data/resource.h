@@ -14,32 +14,33 @@
 
 #define RESOURCE_sourcecodepro_ttf  301
 
-#define RESOURCE_glsl_blit_vert         401
-#define RESOURCE_glsl_checkerboard_frag 402
-#define RESOURCE_glsl_texdisplay_frag   403
-#define RESOURCE_glsl_text_vert         404
-#define RESOURCE_glsl_text_frag         405
-#define RESOURCE_glsl_fixedcol_frag     408
-#define RESOURCE_glsl_mesh_vert         409
-#define RESOURCE_glsl_mesh_geom         410
-#define RESOURCE_glsl_mesh_frag         411
-#define RESOURCE_glsl_minmaxtile_comp   412
-#define RESOURCE_glsl_minmaxresult_comp 413
-#define RESOURCE_glsl_histogram_comp    414
-#define RESOURCE_glsl_outline_frag      415
-#define RESOURCE_glsl_debuguniforms_h   416
-#define RESOURCE_glsl_gl_texsample_h    417
-#define RESOURCE_glsl_vk_texsample_h    418
-#define RESOURCE_glsl_quadresolve_frag  419
-#define RESOURCE_glsl_quadwrite_frag    420
-#define RESOURCE_glsl_mesh_comp         421
-#define RESOURCE_glsl_array2ms_comp     422
-#define RESOURCE_glsl_ms2array_comp     423
-#define RESOURCE_glsl_trisize_geom      424
-#define RESOURCE_glsl_trisize_frag      425
-#define RESOURCE_glsl_deptharr2ms_frag  426
-#define RESOURCE_glsl_depthms2arr_frag  427
-#define RESOURCE_glsl_gles_texsample_h  428
+#define RESOURCE_glsl_blit_vert               401
+#define RESOURCE_glsl_checkerboard_frag       402
+#define RESOURCE_glsl_texdisplay_frag         403
+#define RESOURCE_glsl_text_vert               404
+#define RESOURCE_glsl_text_frag               405
+#define RESOURCE_glsl_fixedcol_frag           408
+#define RESOURCE_glsl_mesh_vert               409
+#define RESOURCE_glsl_mesh_geom               410
+#define RESOURCE_glsl_mesh_frag               411
+#define RESOURCE_glsl_minmaxtile_comp         412
+#define RESOURCE_glsl_minmaxresult_comp       413
+#define RESOURCE_glsl_histogram_comp          414
+#define RESOURCE_glsl_outline_frag            415
+#define RESOURCE_glsl_debuguniforms_h         416
+#define RESOURCE_glsl_gl_texsample_h          417
+#define RESOURCE_glsl_vk_texsample_h          418
+#define RESOURCE_glsl_quadresolve_frag        419
+#define RESOURCE_glsl_quadwrite_frag          420
+#define RESOURCE_glsl_mesh_comp               421
+#define RESOURCE_glsl_array2ms_comp           422
+#define RESOURCE_glsl_ms2array_comp           423
+#define RESOURCE_glsl_trisize_geom            424
+#define RESOURCE_glsl_trisize_frag            425
+#define RESOURCE_glsl_deptharr2ms_frag        426
+#define RESOURCE_glsl_depthms2arr_frag        427
+#define RESOURCE_glsl_gles_texsample_h        428
+#define RESOURCE_glsl_depthstencilremap_frag  429
 
 // Next default values for new objects
 // 

@@ -306,6 +306,18 @@ void GLReplay::InitDebugData()
     DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
   }
 
+  for(int i = 0; i < 3; ++i)
+  {
+    string defines = string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+    defines += string("#define SINT_TEX 0 \n");
+    defines += string("#define READ_FLOAT_WRITE_UINT ") + (i == 2 ? "1" : "0") + "\n";
+
+    GenerateGLSLShader(fs, shaderType, defines, GetEmbeddedResource(glsl_depthstencilremap_frag),
+                       glslBaseVer);
+
+    DebugData.depthstencilRemapProg[i] = CreateShaderProgram(empty, fs);
+  }
+
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
 
   if(GLCoreVersion >= 43 && !IsGLES)
@@ -2130,6 +2142,184 @@ void GLReplay::RenderHighlightBox(float w, float h, float scale)
   }
 
   gl.glDisable(eGL_SCISSOR_TEST);
+}
+
+GLenum GLReplay::RemapDepthStencilToTexture(GLuint src_depth, GLuint dst_tex, bool stencil)
+{
+  MakeCurrentReplayContext(m_DebugCtx);
+
+  WrappedOpenGL &gl = *m_pDriver;
+
+  ResourceId src_res =
+      m_pDriver->GetResourceManager()->GetID(TextureRes(m_pDriver->GetCtx(), src_depth));
+  WrappedOpenGL::TextureData texDetails = m_pDriver->m_Textures[src_res];
+
+  int resType = RESTYPE_TEX2D;
+
+  GLuint texname = src_depth;
+  GLenum target = texDetails.curType;
+
+  int remap_mode = 0;    // default is read float, write float
+  float remap_range = 1.0;
+
+  GLenum dst_internal_format = eGL_NONE;
+
+  gl.glBindTexture(target, texname);
+
+  if(!stencil)
+  {
+    GLint depth_size = 0;
+    gl.glGetInternalformativ(target, texDetails.internalFormat, eGL_INTERNALFORMAT_DEPTH_SIZE,
+                             sizeof(depth_size), &depth_size);
+
+    if(depth_size == 16)
+    {
+      dst_internal_format = eGL_R16;
+    }
+    else if(depth_size == 24)
+    {
+      // this includes depth24
+      dst_internal_format = eGL_R32UI;
+
+      remap_mode = 2;    // read float but write out uint
+
+      remap_range = 16777215.0f;    // max 24bit value
+    }
+    else if(depth_size == 32)
+    {
+      // depth32f
+      dst_internal_format = eGL_R32F;
+    }
+    else
+    {
+      RDCERR("unsupported depth size detected at GLReplay::RemapDepthToTexture: depth_size = %i",
+             depth_size);
+      return eGL_NONE;
+    }
+  }
+  else
+  {
+    GLint stencil_size = 0;
+    gl.glGetInternalformativ(target, texDetails.internalFormat, eGL_INTERNALFORMAT_STENCIL_SIZE,
+                             sizeof(stencil_size), &stencil_size);
+
+    if(stencil_size == 8)
+    {
+      dst_internal_format = eGL_R8UI;
+
+      remap_mode = 1;    // read uint, write uint
+    }
+    else
+    {
+      RDCERR(
+          "unsupported stencil size detected at GLReplay::RemapDepthToTexture: stencil_size = %i",
+          stencil_size);
+      return eGL_NONE;
+    }
+  }
+
+  gl.glTextureStorage2DEXT(dst_tex, target, 1, dst_internal_format, texDetails.width,
+                           texDetails.height);
+
+  GLuint orig_read_fbo = 0, orig_draw_fbo = 0;
+  gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&orig_read_fbo);
+  gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&orig_draw_fbo);
+
+  GLuint fbo = 0;
+  gl.glGenFramebuffers(1, &fbo);
+  gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
+  gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, dst_tex, 0);
+
+  gl.glViewport(0, 0, texDetails.width, texDetails.height);
+
+  // render depth to color buffer
+  gl.glUseProgram(0);
+  gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_VERTEX_SHADER_BIT, DebugData.texDisplayVSProg);
+  gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_FRAGMENT_SHADER_BIT,
+                        DebugData.depthstencilRemapProg[remap_mode]);
+
+  gl.glBindProgramPipeline(DebugData.texDisplayPipe);
+
+  gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + resType));
+  gl.glBindTexture(target, texname);
+
+  GLint origTexCompMode;
+  gl.glGetTexParameteriv(target, eGL_TEXTURE_COMPARE_MODE, &origTexCompMode);
+  gl.glTexParameteri(target, eGL_TEXTURE_COMPARE_MODE, eGL_NONE);
+
+  GLint origDepthTexMode;
+  gl.glGetTexParameteriv(target, eGL_DEPTH_TEXTURE_MODE, &origDepthTexMode);
+  gl.glTexParameteri(target, eGL_DEPTH_TEXTURE_MODE, eGL_LUMINANCE);
+
+  GLint origDSTexMode;
+  gl.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
+  gl.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE,
+                     stencil ? eGL_STENCIL_INDEX : eGL_DEPTH_COMPONENT);
+
+  int numMips =
+      GetNumMips(gl.m_Real, target, texname, texDetails.width, texDetails.height, texDetails.depth);
+
+  // defined as arrays mostly for Coverity code analysis to stay calm about passing
+  // them to the *TexParameter* functions
+  GLint maxlevel[4] = {-1};
+  gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
+  gl.glTextureParameteriEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, numMips - 1);
+
+  gl.glBindSampler(resType, DebugData.pointNoMipSampler);
+
+  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+
+  TexDisplayUBOData *ubo =
+      (TexDisplayUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(TexDisplayUBOData),
+                                               GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+  ubo->Position.x = 0.0f;
+  ubo->Position.y = 0.0f;
+  ubo->Scale = 1.0f;
+  ubo->FlipY = 0;
+
+  ubo->MipLevel = 0;
+  ubo->Slice = 0.001f;
+
+  ubo->OutputDisplayFormat = resType;
+
+  ubo->TextureResolutionPS.x = float(texDetails.width);
+  ubo->TextureResolutionPS.y = float(texDetails.height);
+  ubo->TextureResolutionPS.z = float(texDetails.depth);
+
+  ubo->OutputRes.x = float(texDetails.width);
+  ubo->OutputRes.y = float(texDetails.height);
+
+  // this is a little bit hacky, using InverseRangeSize to convert float [0..1] to the proper uint
+  // value
+  ubo->RangeMinimum = 0.0f;
+  ubo->InverseRangeSize = remap_range;
+
+  ubo->SampleIdx = 1;
+  ubo->RawOutput = 0;
+
+  gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
+  gl.glDisable(eGL_BLEND);
+  gl.glDisable(eGL_DEPTH_TEST);
+  gl.glDisable(eGL_STENCIL_TEST);
+
+  gl.glBindVertexArray(DebugData.emptyVAO);
+  gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+
+  gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
+
+  gl.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
+  gl.glTexParameteri(target, eGL_DEPTH_TEXTURE_MODE, origDepthTexMode);
+  gl.glTexParameteri(target, eGL_TEXTURE_COMPARE_MODE, origTexCompMode);
+
+  gl.glBindSampler(0, 0);
+
+  gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, orig_read_fbo);
+  gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, orig_draw_fbo);
+  gl.glDeleteFramebuffers(1, &fbo);
+
+  return dst_internal_format;
 }
 
 void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint fragProgram)
