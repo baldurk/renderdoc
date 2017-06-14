@@ -53,8 +53,6 @@
     <addaction name="separator"/>
     <addaction name="action_Settings"/>
     <addaction name="action_Manage_Remote_Servers"/>
-    <addaction name="separator"/>
-    <addaction name="action_Start_Android_Remote_Server"/>
    </widget>
    <widget class="QMenu" name="menu_File">
     <property name="title">
@@ -388,11 +386,6 @@
   <action name="action_Statistics_Viewer">
    <property name="text">
     <string>Statisti&amp;cs Viewer</string>
-   </property>
-  </action>
-  <action name="action_Start_Android_Remote_Server">
-   <property name="text">
-    <string>Start &amp;Android Remote Server</string>
    </property>
   </action>
   <action name="actionShow_Tips">

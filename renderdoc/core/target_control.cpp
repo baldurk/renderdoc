@@ -735,7 +735,8 @@ extern "C" RENDERDOC_API ITargetControl *RENDERDOC_CC RENDERDOC_CreateTargetCont
     android = true;
     s = "127.0.0.1";
 
-    // could parse out an (optional) device name from host+4 here.
+    // we don't need the index or device ID here, because the port is already the right one
+    // forwarded to the right device.
   }
 
   Network::Socket *sock = Network::CreateClientSocket(s.c_str(), ident & 0xffff, 750);

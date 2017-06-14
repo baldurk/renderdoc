@@ -109,7 +109,7 @@ void RemoteHost::Launch()
 
   if(IsHostADB())
   {
-    RENDERDOC_StartAndroidRemoteServer();
+    RENDERDOC_StartAndroidRemoteServer(Hostname.toUtf8().data());
     QThread::msleep(WAIT_TIME);
     return;
   }

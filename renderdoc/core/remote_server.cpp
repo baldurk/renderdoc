@@ -829,7 +829,11 @@ public:
 
     if(Android::IsHostADB(m_hostname.c_str()))
     {
-      string adbStdout = Android::adbExecCommand("shell pm list packages -3");
+      int index = 0;
+      std::string deviceID;
+      Android::extractDeviceIDAndIndex(m_hostname, index, deviceID);
+
+      string adbStdout = Android::adbExecCommand(deviceID, "shell pm list packages -3");
       using namespace std;
       istringstream stdoutStream(adbStdout);
       string line;
@@ -1223,10 +1227,14 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, IRemoteS
   {
     s = "127.0.0.1";
 
-    if(port == RENDERDOC_GetDefaultRemoteServerPort())
-      port += RenderDoc_AndroidPortOffset;
+    int index = 0;
+    std::string deviceID;
+    Android::extractDeviceIDAndIndex(host, index, deviceID);
 
-    // could parse out an (optional) device name from host+4 here.
+    // each subsequent device gets a new range of ports. The deviceID isn't needed since we already
+    // forwarded the ports to the right devices.
+    if(port == RENDERDOC_GetDefaultRemoteServerPort())
+      port += RenderDoc_AndroidPortOffset * (index + 1);
   }
 
   Network::Socket *sock = NULL;

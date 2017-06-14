@@ -1523,11 +1523,6 @@ void MainWindow::on_action_Manage_Remote_Servers_triggered()
   rm->closeWhenFinished();
 }
 
-void MainWindow::on_action_Start_Android_Remote_Server_triggered()
-{
-  RENDERDOC_StartAndroidRemoteServer();
-}
-
 void MainWindow::on_action_Settings_triggered()
 {
   SettingsDialog about(m_Ctx, this);

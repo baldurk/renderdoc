@@ -74,6 +74,8 @@ namespace renderdocui.Windows
 
         private List<LiveCapture> m_LiveCaptures = new List<LiveCapture>();
 
+        private RemoteHost m_SelectedHost = null;
+
         private string InformationalVersion
         {
             get
@@ -1203,7 +1205,9 @@ namespace renderdocui.Windows
         {
             ToolStripItem item = sender as ToolStripItem;
 
-            if(item == null)
+            m_SelectedHost = null;
+
+            if (item == null)
                 return;
 
             RemoteHost host = item.Tag as RemoteHost;
@@ -1263,6 +1267,8 @@ namespace renderdocui.Windows
                 SetTitle();
 
                 statusText.Text = "Checking remote server status...";
+
+                m_SelectedHost = host;
 
                 Thread th = Helpers.NewThread(new ThreadStart(() =>
                 {
@@ -2022,7 +2028,10 @@ namespace renderdocui.Windows
 
         private void startAndroidRemoteServerToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            StaticExports.StartAndroidRemoteServer();
+            string device = "";
+            if (m_SelectedHost != null)
+                device = m_SelectedHost.Hostname;
+            StaticExports.StartAndroidRemoteServer(device);
         }
     }
 }

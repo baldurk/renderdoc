@@ -197,14 +197,12 @@ void PersistantConfig::AddAndroidHosts()
   {
     RemoteHost *host = NULL;
 
-    QString fullHostname = lit("adb:") + hostName;
-
-    if(oldHosts.contains(fullHostname))
-      host = oldHosts.take(fullHostname);
+    if(oldHosts.contains(hostName))
+      host = oldHosts.take(hostName);
     else
       host = new RemoteHost();
 
-    host->Hostname = fullHostname;
+    host->Hostname = hostName;
     rdctype::str friendly;
     RENDERDOC_GetAndroidFriendlyName(hostName.toUtf8().data(), friendly);
     host->FriendlyName = ToQStr(friendly);
