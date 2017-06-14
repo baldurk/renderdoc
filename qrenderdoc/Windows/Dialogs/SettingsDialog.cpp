@@ -347,7 +347,10 @@ void SettingsDialog::on_browseAdbPath_clicked()
       QFileInfo(m_Ctx.Config().Android_AdbExecutablePath).absoluteDir().path());
 
   if(!adb.isEmpty())
+  {
+    ui->Android_AdbExecutablePath->setText(adb);
     m_Ctx.Config().Android_AdbExecutablePath = adb;
+  }
 
   m_Ctx.Config().Save();
 }
@@ -361,7 +364,7 @@ void SettingsDialog::on_Android_MaxConnectTimeout_valueChanged(double timeout)
 
 void SettingsDialog::on_Android_AdbExecutablePath_textEdited(const QString &adb)
 {
-  if(QFileInfo::exists(adb))
+  if(QFileInfo::exists(adb) || adb.isEmpty())
     m_Ctx.Config().Android_AdbExecutablePath = adb;
 
   m_Ctx.Config().Save();

@@ -578,13 +578,24 @@ string adbExecCommand(const string &device, const string &args)
   string adbExePath = RenderDoc::Inst().GetConfigSetting("adbExePath");
   if(adbExePath.empty())
   {
-    static bool warnPath = true;
-    if(warnPath)
+    string exepath;
+    FileIO::GetExecutableFilename(exepath);
+    string exedir = dirname(FileIO::GetFullPathname(exepath));
+
+    string adbpath = exedir + "/android/adb.exe";
+    if(FileIO::exists(adbpath.c_str()))
+      adbExePath = adbpath;
+
+    if(adbExePath.empty())
     {
-      RDCWARN("adbExePath not set, attempting to call 'adb' in working env");
-      warnPath = false;
+      static bool warnPath = true;
+      if(warnPath)
+      {
+        RDCWARN("adbExePath not set, attempting to call 'adb' in working env");
+        warnPath = false;
+      }
+      adbExePath = "adb";
     }
-    adbExePath.append("adb");
   }
   Process::ProcessResult result;
   string deviceArgs;

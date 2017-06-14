@@ -472,7 +472,7 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
 
   if(!retValue)
   {
-    RDCERR("Process %s could not be loaded.", app);
+    RDCWARN("Process %s could not be loaded.", app);
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
     RDCEraseEl(pi);
@@ -913,7 +913,7 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
 
   if(pi.dwProcessId == 0)
   {
-    RDCERR("Couldn't launch process '%s'", app);
+    RDCWARN("Couldn't launch process '%s'", app);
     return 0;
   }
 

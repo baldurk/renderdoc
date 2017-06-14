@@ -186,9 +186,6 @@ void PersistantConfig::AddAndroidHosts()
   // Set the config setting as it will be reused when we start the remoteserver etc.
   SetConfigSetting(lit("adbExePath"), adbExePath);
 
-  if(adbExePath.isEmpty())
-    return;    // adb path must be non-empty in the Options dialog.
-
   SetConfigSetting(lit("MaxConnectTimeout"), QString::number(Android_MaxConnectTimeout));
 
   rdctype::str androidHosts;

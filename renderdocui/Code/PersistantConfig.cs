@@ -418,9 +418,6 @@ namespace renderdocui.Code
             // Set the config setting as it will be reused when we start the remoteserver etc.
             StaticExports.SetConfigSetting("adbExePath", adbExePath);
 
-            if (adbExePath.Length == 0)
-                return;// adb path must be non-empty in the Options dialog.
-
             string[] androidHosts = StaticExports.EnumerateAndroidDevices();
             foreach(string hostName in androidHosts)
             {
