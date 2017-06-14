@@ -425,7 +425,7 @@ namespace renderdocui.Code
             foreach(string hostName in androidHosts)
             {
                 RemoteHost host = new RemoteHost();
-                host.Hostname = "adb:" + hostName;
+                host.Hostname = hostName;
                 RemoteHosts.Add(host);
             }
         }

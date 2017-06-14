@@ -114,7 +114,7 @@ namespace renderdoc
         private static extern ReplaySupport RENDERDOC_EnumerateAndroidDevices(IntPtr driverName);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern ReplaySupport RENDERDOC_StartAndroidRemoteServer();
+        private static extern ReplaySupport RENDERDOC_StartAndroidRemoteServer(IntPtr device);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RENDERDOC_StartSelfHostCapture(IntPtr dllname);
@@ -410,9 +410,13 @@ namespace renderdoc
           return driverList.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries);
         }
 
-        public static void StartAndroidRemoteServer()
+        public static void StartAndroidRemoteServer(string device)
         {
-            RENDERDOC_StartAndroidRemoteServer();
+            IntPtr device_mem = CustomMarshal.MakeUTF8String(device);
+
+            RENDERDOC_StartAndroidRemoteServer(device_mem);
+
+            CustomMarshal.Free(device_mem);
         }
     }
 }

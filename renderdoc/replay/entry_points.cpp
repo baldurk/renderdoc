@@ -448,13 +448,17 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
   uint32_t lastIdent = RenderDoc_LastTargetControlPort;
   if(host != NULL && Android::IsHostADB(host))
   {
+    int index = 0;
+    std::string deviceID;
+    Android::extractDeviceIDAndIndex(host, index, deviceID);
+
+    // each subsequent device gets a new range of ports. The deviceID isn't needed since we already
+    // forwarded the ports to the right devices.
     if(nextIdent == RenderDoc_FirstTargetControlPort)
-      nextIdent += RenderDoc_AndroidPortOffset;
-    lastIdent += RenderDoc_AndroidPortOffset;
+      nextIdent += RenderDoc_AndroidPortOffset * (index + 1);
+    lastIdent += RenderDoc_AndroidPortOffset * (index + 1);
 
     s = "127.0.0.1";
-
-    // could parse out an (optional) device name from host+4 here.
   }
 
   for(; nextIdent <= lastIdent; nextIdent++)
@@ -547,7 +551,29 @@ bool IsHostADB(const char *hostname)
 {
   return !strncmp(hostname, "adb:", 4);
 }
-string adbExecCommand(const string &args)
+void extractDeviceIDAndIndex(const string &hostname, int &index, string &deviceID)
+{
+  if(!IsHostADB(hostname.c_str()))
+    return;
+
+  const char *c = hostname.c_str();
+  c += 4;
+
+  index = atoi(c);
+
+  c = strchr(c, ':');
+
+  if(!c)
+  {
+    index = 0;
+    return;
+  }
+
+  c++;
+
+  deviceID = c;
+}
+string adbExecCommand(const string &device, const string &args)
 {
   string adbExePath = RenderDoc::Inst().GetConfigSetting("adbExePath");
   if(adbExePath.empty())
@@ -561,36 +587,53 @@ string adbExecCommand(const string &args)
     adbExePath.append("adb");
   }
   Process::ProcessResult result;
-  Process::LaunchProcess(adbExePath.c_str(), "", args.c_str(), &result);
+  string deviceArgs;
+  if(device.empty())
+    deviceArgs = args;
+  else
+    deviceArgs = StringFormat::Fmt("-s %s %s", device.c_str(), args.c_str());
+  Process::LaunchProcess(adbExePath.c_str(), "", deviceArgs.c_str(), &result);
   RDCLOG("COMMAND: adb %s", args.c_str());
   if(result.strStdout.length())
     // This could be an error (i.e. no package), or just regular output from adb devices.
     RDCLOG("STDOUT:\n%s", result.strStdout.c_str());
   return result.strStdout;
 }
-void adbForwardPorts()
+string adbGetDeviceList()
 {
-  adbExecCommand(StringFormat::Fmt("forward tcp:%i tcp:%i",
-                                   RenderDoc_RemoteServerPort + RenderDoc_AndroidPortOffset,
+  return adbExecCommand("", "devices");
+}
+void adbForwardPorts(int index, const std::string &deviceID)
+{
+  int offs = RenderDoc_AndroidPortOffset * (index + 1);
+  adbExecCommand(deviceID,
+                 StringFormat::Fmt("forward tcp:%i tcp:%i", RenderDoc_RemoteServerPort + offs,
                                    RenderDoc_RemoteServerPort));
-  adbExecCommand(StringFormat::Fmt("forward tcp:%i tcp:%i",
-                                   RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset,
+  adbExecCommand(deviceID,
+                 StringFormat::Fmt("forward tcp:%i tcp:%i", RenderDoc_FirstTargetControlPort + offs,
                                    RenderDoc_FirstTargetControlPort));
 }
 uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
 {
+  int index = 0;
+  std::string deviceID;
+  Android::extractDeviceIDAndIndex(host, index, deviceID);
+
   string packageName = basename(string(package));    // Remove leading '/' if any
 
-  adbExecCommand("shell am force-stop " + packageName);
-  adbForwardPorts();
-  adbExecCommand("shell setprop debug.vulkan.layers VK_LAYER_RENDERDOC_Capture");
-  adbExecCommand("shell pm grant " + packageName +
-                 " android.permission.WRITE_EXTERNAL_STORAGE");    // Creating the capture file
-  adbExecCommand("shell pm grant " + packageName +
-                 " android.permission.READ_EXTERNAL_STORAGE");    // Reading the capture thumbnail
-  adbExecCommand("shell monkey -p " + packageName + " -c android.intent.category.LAUNCHER 1");
+  adbExecCommand(deviceID, "shell am force-stop " + packageName);
+  adbForwardPorts(index, deviceID);
+  adbExecCommand(deviceID, "shell setprop debug.vulkan.layers VK_LAYER_RENDERDOC_Capture");
+  // Creating the capture file
+  adbExecCommand(deviceID,
+                 "shell pm grant " + packageName + " android.permission.WRITE_EXTERNAL_STORAGE");
+  // Reading the capture thumbnail
+  adbExecCommand(deviceID,
+                 "shell pm grant " + packageName + " android.permission.READ_EXTERNAL_STORAGE");
+  adbExecCommand(deviceID,
+                 "shell monkey -p " + packageName + " -c android.intent.category.LAUNCHER 1");
 
-  uint32_t ret = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset;
+  uint32_t ret = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset * (index + 1);
   uint32_t elapsed = 0,
            timeout = 1000 *
                      RDCMAX(5, atoi(RenderDoc::Inst().GetConfigSetting("MaxConnectTimeout").c_str()));
@@ -609,7 +652,7 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
   }
 
   // Let the app pickup the setprop before we turn it back off for replaying.
-  adbExecCommand("shell setprop debug.vulkan.layers :");
+  adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :");
 
   return ret;
 }
@@ -619,13 +662,24 @@ using namespace Android;
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(const rdctype::str &device,
                                                                             rdctype::str &friendly)
 {
-  string manuf = adbExecCommand(
-      StringFormat::Fmt("-s %s shell getprop ro.product.manufacturer", device.c_str()));
-  string model =
-      adbExecCommand(StringFormat::Fmt("-s %s shell getprop ro.product.model", device.c_str()));
+  if(!IsHostADB(device.c_str()))
+  {
+    RDCERR("Calling RENDERDOC_GetAndroidFriendlyName with non-android device: %s", device.c_str());
+    return;
+  }
 
-  manuf = trim(manuf);
-  model = trim(model);
+  int index = 0;
+  std::string deviceID;
+  Android::extractDeviceIDAndIndex(device.c_str(), index, deviceID);
+
+  if(deviceID.empty())
+  {
+    RDCERR("Failed to get android device and index from: %s", device.c_str());
+    return;
+  }
+
+  string manuf = trim(adbExecCommand(deviceID, "shell getprop ro.product.manufacturer"));
+  string model = trim(adbExecCommand(deviceID, "shell getprop ro.product.model"));
 
   std::string combined;
 
@@ -646,7 +700,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(cons
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdctype::str *deviceList)
 {
-  string adbStdout = adbExecCommand("devices");
+  string adbStdout = adbGetDeviceList();
+
+  int idx = 0;
 
   using namespace std;
   istringstream stdoutStream(adbStdout);
@@ -660,23 +716,33 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdc
     {
       if(ret.length())
         ret += ",";
-      ret += tokens[0];
+
+      ret += StringFormat::Fmt("adb:%d:%s", idx, tokens[0].c_str());
+
+      // Forward the ports so we can see if a remoteserver/captured app is already running.
+      adbForwardPorts(idx, tokens[0]);
+
+      idx++;
     }
   }
-
-  if(ret.size())
-    adbForwardPorts();    // Forward the ports so we can see if a remoteserver/captured app is
-                          // already running.
 
   *deviceList = ret;
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer()
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(const char *device)
 {
-  adbExecCommand("shell am force-stop org.renderdoc.renderdoccmd");
-  adbForwardPorts();
-  adbExecCommand("shell setprop debug.vulkan.layers :");
+  int index = 0;
+  std::string deviceID;
+
+  // legacy code - delete when C# UI is gone. Handle a NULL or empty device string
+  if(device || device[0] == '\0')
+    Android::extractDeviceIDAndIndex(device, index, deviceID);
+
+  adbExecCommand(deviceID, "shell am force-stop org.renderdoc.renderdoccmd");
+  adbForwardPorts(index, deviceID);
+  adbExecCommand(deviceID, "shell setprop debug.vulkan.layers :");
   adbExecCommand(
+      deviceID,
       "shell am start -n org.renderdoc.renderdoccmd/.Loader -e renderdoccmd remoteserver");
 }
 

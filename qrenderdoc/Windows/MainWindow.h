@@ -113,7 +113,6 @@ private slots:
   void on_action_Resolve_Symbols_triggered();
   void on_action_Attach_to_Running_Instance_triggered();
   void on_action_Manage_Remote_Servers_triggered();
-  void on_action_Start_Android_Remote_Server_triggered();
   void on_action_Settings_triggered();
   void on_action_View_Documentation_triggered();
   void on_action_View_Diagnostic_Log_File_triggered();
