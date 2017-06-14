@@ -65,7 +65,8 @@ if(ANDROID)
     add_custom_command(OUTPUT ${APK_FILE}
                        DEPENDS renderdoc
                        DEPENDS renderdoccmd
-                       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/renderdoccmd/android
+                       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+                       COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/android ${CMAKE_CURRENT_BINARY_DIR}
                        COMMAND ${CMAKE_COMMAND} -E make_directory libs/${ANDROID_ABI}
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoc> libs/${ANDROID_ABI}/$<TARGET_FILE_NAME:renderdoc>
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoccmd> libs/${ANDROID_ABI}/$<TARGET_FILE_NAME:renderdoccmd>
