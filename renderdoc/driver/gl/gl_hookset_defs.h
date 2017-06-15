@@ -433,12 +433,16 @@
   HookExtensionAlias(PFNGLUNIFORM4UIVPROC, glUniform4uiv, glUniform4uivEXT); \
   HookExtension(PFNGLTEXPARAMETERIIVPROC, glTexParameterIiv); \
   HookExtensionAlias(PFNGLTEXPARAMETERIIVPROC, glTexParameterIiv, glTexParameterIivEXT); \
+  HookExtensionAlias(PFNGLTEXPARAMETERIIVPROC, glTexParameterIiv, glTexParameterIivOES); \
   HookExtension(PFNGLTEXPARAMETERIUIVPROC, glTexParameterIuiv); \
   HookExtensionAlias(PFNGLTEXPARAMETERIUIVPROC, glTexParameterIuiv, glTexParameterIuivEXT); \
+  HookExtensionAlias(PFNGLTEXPARAMETERIUIVPROC, glTexParameterIuiv, glTexParameterIuivOES); \
   HookExtension(PFNGLGETTEXPARAMETERIIVPROC, glGetTexParameterIiv); \
   HookExtensionAlias(PFNGLGETTEXPARAMETERIIVPROC, glGetTexParameterIiv, glGetTexParameterIivEXT); \
+  HookExtensionAlias(PFNGLGETTEXPARAMETERIIVPROC, glGetTexParameterIiv, glGetTexParameterIivOES); \
   HookExtension(PFNGLGETTEXPARAMETERIUIVPROC, glGetTexParameterIuiv); \
   HookExtensionAlias(PFNGLGETTEXPARAMETERIUIVPROC, glGetTexParameterIuiv, glGetTexParameterIuivEXT); \
+  HookExtensionAlias(PFNGLGETTEXPARAMETERIUIVPROC, glGetTexParameterIuiv, glGetTexParameterIuivOES); \
   HookExtension(PFNGLCLEARBUFFERIVPROC, glClearBufferiv); \
   HookExtension(PFNGLCLEARBUFFERUIVPROC, glClearBufferuiv); \
   HookExtension(PFNGLCLEARBUFFERFVPROC, glClearBufferfv); \
@@ -548,11 +552,19 @@
   HookExtension(PFNGLSAMPLERPARAMETERFPROC, glSamplerParameterf); \
   HookExtension(PFNGLSAMPLERPARAMETERFVPROC, glSamplerParameterfv); \
   HookExtension(PFNGLSAMPLERPARAMETERIIVPROC, glSamplerParameterIiv); \
+  HookExtensionAlias(PFNGLSAMPLERPARAMETERIIVPROC, glSamplerParameterIiv, glSamplerParameterIivEXT); \
+  HookExtensionAlias(PFNGLSAMPLERPARAMETERIIVPROC, glSamplerParameterIiv, glSamplerParameterIivOES); \
   HookExtension(PFNGLSAMPLERPARAMETERIUIVPROC, glSamplerParameterIuiv); \
+  HookExtensionAlias(PFNGLSAMPLERPARAMETERIUIVPROC, glSamplerParameterIuiv, glSamplerParameterIuivEXT); \
+  HookExtensionAlias(PFNGLSAMPLERPARAMETERIUIVPROC, glSamplerParameterIuiv, glSamplerParameterIuivOES); \
   HookExtension(PFNGLGETSAMPLERPARAMETERIVPROC, glGetSamplerParameteriv); \
   HookExtension(PFNGLGETSAMPLERPARAMETERIIVPROC, glGetSamplerParameterIiv); \
+  HookExtensionAlias(PFNGLGETSAMPLERPARAMETERIIVPROC, glGetSamplerParameterIiv, glGetSamplerParameterIivEXT); \
+  HookExtensionAlias(PFNGLGETSAMPLERPARAMETERIIVPROC, glGetSamplerParameterIiv, glGetSamplerParameterIivOES); \
   HookExtension(PFNGLGETSAMPLERPARAMETERFVPROC, glGetSamplerParameterfv); \
   HookExtension(PFNGLGETSAMPLERPARAMETERIUIVPROC, glGetSamplerParameterIuiv); \
+  HookExtensionAlias(PFNGLGETSAMPLERPARAMETERIUIVPROC, glGetSamplerParameterIuiv, glGetSamplerParameterIuivEXT); \
+  HookExtensionAlias(PFNGLGETSAMPLERPARAMETERIUIVPROC, glGetSamplerParameterIuiv, glGetSamplerParameterIuivOES); \
   HookExtension(PFNGLQUERYCOUNTERPROC, glQueryCounter); \
   HookExtensionAlias(PFNGLQUERYCOUNTERPROC, glQueryCounter, glQueryCounterEXT); \
   HookExtension(PFNGLGETQUERYOBJECTI64VPROC, glGetQueryObjecti64v); \
@@ -3559,14 +3571,6 @@
     HookWrapper9(void, glcompressedteximage3does, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLsizei, imageSize, const void *, data); \
     HookWrapper11(void, glcompressedtexsubimage3does, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLsizei, imageSize, const void *, data); \
     HookWrapper6(void, glframebuffertexture3does, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLint, zoffset); \
-    HookWrapper3(void, gltexparameteriivoes, GLenum, target, GLenum, pname, const GLint *, params); \
-    HookWrapper3(void, gltexparameteriuivoes, GLenum, target, GLenum, pname, const GLuint *, params); \
-    HookWrapper3(void, glgettexparameteriivoes, GLenum, target, GLenum, pname, GLint *, params); \
-    HookWrapper3(void, glgettexparameteriuivoes, GLenum, target, GLenum, pname, GLuint *, params); \
-    HookWrapper3(void, glsamplerparameteriivoes, GLuint, sampler, GLenum, pname, const GLint *, param); \
-    HookWrapper3(void, glsamplerparameteriuivoes, GLuint, sampler, GLenum, pname, const GLuint *, param); \
-    HookWrapper3(void, glgetsamplerparameteriivoes, GLuint, sampler, GLenum, pname, GLint *, params); \
-    HookWrapper3(void, glgetsamplerparameteriuivoes, GLuint, sampler, GLenum, pname, GLuint *, params); \
     HookWrapper7(void, gltexstorage3dmultisampleoes, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedsamplelocations); \
     HookWrapper8(void, gltextureviewoes, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
     HookWrapper3(void, glviewportarrayvoes, GLuint, first, GLsizei, count, const GLfloat *, v); \
@@ -3636,10 +3640,6 @@
     HookWrapper1(GLsizei, glgetframebufferpixellocalstoragesizeext, GLuint, target); \
     HookWrapper3(void, glclearpixellocalstorageuiext, GLsizei, offset, GLsizei, n, const GLuint *, values); \
     HookWrapper9(void, gltexpagecommitmentext, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, commit); \
-    HookWrapper3(void, glsamplerparameteriivext, GLuint, sampler, GLenum, pname, const GLint *, param); \
-    HookWrapper3(void, glsamplerparameteriuivext, GLuint, sampler, GLenum, pname, const GLuint *, param); \
-    HookWrapper3(void, glgetsamplerparameteriivext, GLuint, sampler, GLenum, pname, GLint *, params); \
-    HookWrapper3(void, glgetsamplerparameteriuivext, GLuint, sampler, GLenum, pname, GLuint *, params); \
     HookWrapper4(void, gltexstorage1dext, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width); \
     HookWrapper5(void, gltexstorage2dext, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper6(void, gltexstorage3dext, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth); \
@@ -5554,14 +5554,6 @@
     HandleUnsupported(PFNGLCOMPRESSEDTEXIMAGE3DOESPROC, glcompressedteximage3does); \
     HandleUnsupported(PFNGLCOMPRESSEDTEXSUBIMAGE3DOESPROC, glcompressedtexsubimage3does); \
     HandleUnsupported(PFNGLFRAMEBUFFERTEXTURE3DOESPROC, glframebuffertexture3does); \
-    HandleUnsupported(PFNGLTEXPARAMETERIIVOESPROC, gltexparameteriivoes); \
-    HandleUnsupported(PFNGLTEXPARAMETERIUIVOESPROC, gltexparameteriuivoes); \
-    HandleUnsupported(PFNGLGETTEXPARAMETERIIVOESPROC, glgettexparameteriivoes); \
-    HandleUnsupported(PFNGLGETTEXPARAMETERIUIVOESPROC, glgettexparameteriuivoes); \
-    HandleUnsupported(PFNGLSAMPLERPARAMETERIIVOESPROC, glsamplerparameteriivoes); \
-    HandleUnsupported(PFNGLSAMPLERPARAMETERIUIVOESPROC, glsamplerparameteriuivoes); \
-    HandleUnsupported(PFNGLGETSAMPLERPARAMETERIIVOESPROC, glgetsamplerparameteriivoes); \
-    HandleUnsupported(PFNGLGETSAMPLERPARAMETERIUIVOESPROC, glgetsamplerparameteriuivoes); \
     HandleUnsupported(PFNGLTEXSTORAGE3DMULTISAMPLEOESPROC, gltexstorage3dmultisampleoes); \
     HandleUnsupported(PFNGLTEXTUREVIEWOESPROC, gltextureviewoes); \
     HandleUnsupported(PFNGLVIEWPORTARRAYVOESPROC, glviewportarrayvoes); \
@@ -5631,10 +5623,6 @@
     HandleUnsupported(PFNGLGETFRAMEBUFFERPIXELLOCALSTORAGESIZEEXTPROC, glgetframebufferpixellocalstoragesizeext); \
     HandleUnsupported(PFNGLCLEARPIXELLOCALSTORAGEUIEXTPROC, glclearpixellocalstorageuiext); \
     HandleUnsupported(PFNGLTEXPAGECOMMITMENTEXTPROC, gltexpagecommitmentext); \
-    HandleUnsupported(PFNGLSAMPLERPARAMETERIIVEXTPROC, glsamplerparameteriivext); \
-    HandleUnsupported(PFNGLSAMPLERPARAMETERIUIVEXTPROC, glsamplerparameteriuivext); \
-    HandleUnsupported(PFNGLGETSAMPLERPARAMETERIIVEXTPROC, glgetsamplerparameteriivext); \
-    HandleUnsupported(PFNGLGETSAMPLERPARAMETERIUIVEXTPROC, glgetsamplerparameteriuivext); \
     HandleUnsupported(PFNGLTEXSTORAGE1DEXTPROC, gltexstorage1dext); \
     HandleUnsupported(PFNGLTEXSTORAGE2DEXTPROC, gltexstorage2dext); \
     HandleUnsupported(PFNGLTEXSTORAGE3DEXTPROC, gltexstorage3dext); \

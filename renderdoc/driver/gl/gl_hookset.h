@@ -126,8 +126,8 @@ struct GLHookSet
   PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC glCompressedTexSubImage3D;    // aliases glCompressedTexSubImage3DARB
   PFNGLTEXBUFFERRANGEPROC glTexBufferRange;        // aliases glTexBufferRangeEXT, glTexBufferRangeOES
   PFNGLTEXTUREVIEWPROC glTextureView;
-  PFNGLTEXPARAMETERIIVPROC glTexParameterIiv;      // aliases glTexParameterIivEXT
-  PFNGLTEXPARAMETERIUIVPROC glTexParameterIuiv;    // aliases glTexParameterIuivEXT
+  PFNGLTEXPARAMETERIIVPROC glTexParameterIiv;      // aliases glTexParameterIivEXT, glTexParameterIivOES
+  PFNGLTEXPARAMETERIUIVPROC glTexParameterIuiv;    // aliases glTexParameterIuivEXT, glTexParameterIuivOES
   PFNGLGENERATEMIPMAPPROC glGenerateMipmap;        // aliases glGenerateMipmapEXT
   PFNGLCOPYIMAGESUBDATAPROC glCopyImageSubData;    // aliases glCopyImageSubDataEXT, glCopyImageSubDataOES
   PFNGLCOPYTEXSUBIMAGE3DPROC glCopyTexSubImage3D;
@@ -184,12 +184,12 @@ struct GLHookSet
   PFNGLGETCOMPRESSEDTEXIMAGEPROC glGetCompressedTexImage;    // aliases glGetCompressedTexImageARB
   PFNGLGETNCOMPRESSEDTEXIMAGEPROC glGetnCompressedTexImage;                              // aliases glGetnCompressedTexImageARB
   PFNGLGETNTEXIMAGEPROC glGetnTexImage;                  // aliases glGetnTexImageARB
-  PFNGLGETTEXPARAMETERIIVPROC glGetTexParameterIiv;      // aliases glGetTexParameterIivEXT
-  PFNGLGETTEXPARAMETERIUIVPROC glGetTexParameterIuiv;    // aliases glGetTexParameterIuivEXT
+  PFNGLGETTEXPARAMETERIIVPROC glGetTexParameterIiv;      // aliases glGetTexParameterIivEXT, glGetTexParameterIivOES
+  PFNGLGETTEXPARAMETERIUIVPROC glGetTexParameterIuiv;    // aliases glGetTexParameterIuivEXT, glGetTexParameterIuivOES
   PFNGLCLAMPCOLORPROC glClampColor;                      // aliases glClampColorARB
   PFNGLREADNPIXELSPROC glReadnPixels;                    // aliases glReadnPixelsARB
-  PFNGLGETSAMPLERPARAMETERIIVPROC glGetSamplerParameterIiv;
-  PFNGLGETSAMPLERPARAMETERIUIVPROC glGetSamplerParameterIuiv;
+  PFNGLGETSAMPLERPARAMETERIIVPROC glGetSamplerParameterIiv;      // aliases glGetSamplerParameterIivEXT, glGetSamplerParameterIivOES
+  PFNGLGETSAMPLERPARAMETERIUIVPROC glGetSamplerParameterIuiv;    // aliases glGetSamplerParameterIuivEXT, glGetSamplerParameterIuivOES
   PFNGLGETSAMPLERPARAMETERFVPROC glGetSamplerParameterfv;
   PFNGLGETSAMPLERPARAMETERIVPROC glGetSamplerParameteriv;
   PFNGLGETTRANSFORMFEEDBACKVARYINGPROC glGetTransformFeedbackVarying;    // aliases glGetTransformFeedbackVaryingEXT
@@ -448,8 +448,8 @@ struct GLHookSet
   PFNGLSAMPLERPARAMETERFPROC glSamplerParameterf;
   PFNGLSAMPLERPARAMETERIVPROC glSamplerParameteriv;
   PFNGLSAMPLERPARAMETERFVPROC glSamplerParameterfv;
-  PFNGLSAMPLERPARAMETERIIVPROC glSamplerParameterIiv;
-  PFNGLSAMPLERPARAMETERIUIVPROC glSamplerParameterIuiv;
+  PFNGLSAMPLERPARAMETERIIVPROC glSamplerParameterIiv;      // aliases glSamplerParameterIivEXT, glSamplerParameterIivOES
+  PFNGLSAMPLERPARAMETERIUIVPROC glSamplerParameterIuiv;    // aliases glSamplerParameterIuivEXT, glSamplerParameterIuivOES
   PFNGLPATCHPARAMETERIPROC glPatchParameteri;    // aliases glPatchParameteriEXT, glPatchParameteriOES
   PFNGLPATCHPARAMETERFVPROC glPatchParameterfv;
   PFNGLPOINTPARAMETERFPROC glPointParameterf;    // aliases glPointParameterfARB, glPointParameterfEXT
