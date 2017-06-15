@@ -47,7 +47,7 @@
   <PropertyGroup>
     <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\obj\$(ProjectName)\</IntDir>
   </PropertyGroup>
-<ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
     <ClCompile>
       <PreprocessorDefinitions>WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -97,6 +97,21 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="amd_counters.h" />
+    <ClInclude Include="official\DXExt\AmdDxExt.h" />
+    <ClInclude Include="official\DXExt\AmdDxExtApi.h" />
+    <ClInclude Include="official\DXExt\AmdDxExtIface.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPACounterGenerator.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPAFunctions.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPAICounterAccessor.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPAICounterScheduler.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI-HSA.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI-Private.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPICounters.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPIFunctionTypes-Private.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPIFunctionTypes.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPITypes-Private.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPITypes.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

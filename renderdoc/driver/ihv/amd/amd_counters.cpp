@@ -105,11 +105,18 @@ AMDCounters::AMDCounters() : m_pGPUPerfAPI(NULL)
 
 bool AMDCounters::Init(void *pContext)
 {
-  HMODULE module = LoadLibraryA("GPUPerfAPIDX11-x64.dll");
+  // first try in the location it will be in distributed builds
+  HMODULE module = LoadLibraryA("plugins/amd/counters/GPUPerfAPIDX11-x64.dll");
 
-  if(module == 0)
+  // if that failed then try checking for it just in the default search path
+  if(module == NULL)
   {
-    RDCERR(
+    module = LoadLibraryA("GPUPerfAPIDX11-x64.dll");
+  }
+
+  if(module == NULL)
+  {
+    RDCWARN(
         "AMD GPU performance counters could not be initialized successfully. "
         "Are you missing the DLLs?");
 
@@ -218,6 +225,7 @@ vector<AMDCounters::InternalCounterDescription> AMDCounters::EnumerateCounters()
     }
 
     internalDesc.internalIndex = i;
+    internalDesc.desc.counterID = MakeAMDCounter(i);
     counters.push_back(internalDesc);
   }
 

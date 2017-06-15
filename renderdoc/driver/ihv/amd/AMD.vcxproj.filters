@@ -1,27 +1,72 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    <Filter Include="Counters">
+      <UniqueIdentifier>{db3f483b-32db-4d57-bf48-4f0ef2322be0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    <Filter Include="official">
+      <UniqueIdentifier>{345b73a2-79ed-4c89-8f45-b8aa2d211a7f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    <Filter Include="official\GPUPerfAPI">
+      <UniqueIdentifier>{ef917fc9-3eef-4565-9fbe-e1d3e02460e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\DXExt">
+      <UniqueIdentifier>{310145c9-318c-4c14-ac19-1bb04a050349}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="amd_counters.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Counters</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="amd_counters.h">
-      <Filter>Header Files</Filter>
+      <Filter>Counters</Filter>
+    </ClInclude>
+    <ClInclude Include="official\DXExt\AmdDxExt.h">
+      <Filter>official\DXExt</Filter>
+    </ClInclude>
+    <ClInclude Include="official\DXExt\AmdDxExtApi.h">
+      <Filter>official\DXExt</Filter>
+    </ClInclude>
+    <ClInclude Include="official\DXExt\AmdDxExtIface.h">
+      <Filter>official\DXExt</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\GPACounterGenerator.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\GPAFunctions.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\GPAICounterAccessor.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\GPAICounterScheduler.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPICounters.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPIFunctionTypes.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPIFunctionTypes-Private.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI-HSA.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI-Private.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPITypes.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPITypes-Private.h">
+      <Filter>official\GPUPerfAPI</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

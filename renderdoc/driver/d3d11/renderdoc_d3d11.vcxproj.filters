@@ -19,9 +19,6 @@
     <Filter Include="official">
       <UniqueIdentifier>{069c5202-e850-427b-9353-250795a60436}</UniqueIdentifier>
     </Filter>
-    <Filter Include="official\amd">
-      <UniqueIdentifier>{b92bf274-f255-4c2f-bc1f-dbd1807643a5}</UniqueIdentifier>
-    </Filter>
     <Filter Include="PCH">
       <UniqueIdentifier>{7b0b6261-46cb-4feb-8958-8252d6349ae4}</UniqueIdentifier>
     </Filter>
@@ -136,15 +133,6 @@
     </ClInclude>
     <ClInclude Include="..\dx\official\d3dcompiler.h">
       <Filter>official</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dx\official\amd\AmdDxExtIface.h">
-      <Filter>official\amd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dx\official\amd\AmdDxExt.h">
-      <Filter>official\amd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dx\official\amd\AmdDxExtApi.h">
-      <Filter>official\amd</Filter>
     </ClInclude>
     <ClInclude Include="precompiled.h">
       <Filter>PCH</Filter>

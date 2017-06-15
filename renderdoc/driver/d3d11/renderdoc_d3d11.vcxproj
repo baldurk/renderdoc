@@ -122,9 +122,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\dx\official\amd\AmdDxExt.h" />
-    <ClInclude Include="..\dx\official\amd\AmdDxExtApi.h" />
-    <ClInclude Include="..\dx\official\amd\AmdDxExtIface.h" />
     <ClInclude Include="d3d11_common.h" />
     <ClInclude Include="d3d11_context.h" />
     <ClInclude Include="d3d11_debug.h" />

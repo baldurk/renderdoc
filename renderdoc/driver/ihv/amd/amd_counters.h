@@ -29,6 +29,11 @@
 
 class GPUPerfAPI;
 
+inline constexpr GPUCounter MakeAMDCounter(int index)
+{
+  return GPUCounter((int)GPUCounter::FirstAMD + index);
+}
+
 class AMDCounters
 {
 public:

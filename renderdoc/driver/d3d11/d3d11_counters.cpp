@@ -68,7 +68,7 @@ vector<GPUCounter> D3D11DebugManager::EnumerateCounters()
   {
     for(uint32_t i = 0; i < m_pAMDCounters->GetNumCounters(); i++)
     {
-      ret.push_back(static_cast<GPUCounter>(static_cast<uint32_t>(GPUCounter::FirstAMD) + i));
+      ret.push_back(MakeAMDCounter(i));
     }
   }
 
