@@ -734,6 +734,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_sliced_3d");
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_hdr");
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_ldr");
+  m_GLESExtensions.push_back("GL_KHR_blend_equation_advanced");
   m_GLESExtensions.push_back("GL_KHR_blend_equation_advanced_coherent");
 
   m_GLESExtensions.push_back("GL_OES_copy_image");
