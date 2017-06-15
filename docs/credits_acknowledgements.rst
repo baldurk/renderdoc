@@ -84,6 +84,8 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to display message boxes cross-platform from the non-UI core code.
 
+* `AMD GPUPerfAPI <https://github.com/GPUOpen-Tools/GPA>`_ - Copyright (c) 2016 Advanced Micro Devices, Inc., distributed under the MIT license.
+
 Thanks
 ------
 
