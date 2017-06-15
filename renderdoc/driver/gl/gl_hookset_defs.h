@@ -834,6 +834,7 @@
   HookExtensionAlias(PFNGLTEXBUFFERRANGEPROC, glTexBufferRange, glTexBufferRangeOES); \
   HookExtension(PFNGLTEXSTORAGE2DMULTISAMPLEPROC, glTexStorage2DMultisample); \
   HookExtension(PFNGLTEXSTORAGE3DMULTISAMPLEPROC, glTexStorage3DMultisample); \
+  HookExtensionAlias(PFNGLTEXSTORAGE3DMULTISAMPLEPROC, glTexStorage3DMultisample, glTexStorage3DMultisampleOES); \
   HookExtension(PFNGLTEXTUREVIEWPROC, glTextureView); \
   HookExtension(PFNGLBINDVERTEXBUFFERPROC, glBindVertexBuffer); \
   HookExtension(PFNGLVERTEXATTRIBFORMATPROC, glVertexAttribFormat); \
@@ -3571,7 +3572,6 @@
     HookWrapper9(void, glcompressedteximage3does, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLsizei, imageSize, const void *, data); \
     HookWrapper11(void, glcompressedtexsubimage3does, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLsizei, imageSize, const void *, data); \
     HookWrapper6(void, glframebuffertexture3does, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLint, zoffset); \
-    HookWrapper7(void, gltexstorage3dmultisampleoes, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedsamplelocations); \
     HookWrapper8(void, gltextureviewoes, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
     HookWrapper3(void, glviewportarrayvoes, GLuint, first, GLsizei, count, const GLfloat *, v); \
     HookWrapper5(void, glviewportindexedfoes, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, w, GLfloat, h); \
@@ -5554,7 +5554,6 @@
     HandleUnsupported(PFNGLCOMPRESSEDTEXIMAGE3DOESPROC, glcompressedteximage3does); \
     HandleUnsupported(PFNGLCOMPRESSEDTEXSUBIMAGE3DOESPROC, glcompressedtexsubimage3does); \
     HandleUnsupported(PFNGLFRAMEBUFFERTEXTURE3DOESPROC, glframebuffertexture3does); \
-    HandleUnsupported(PFNGLTEXSTORAGE3DMULTISAMPLEOESPROC, gltexstorage3dmultisampleoes); \
     HandleUnsupported(PFNGLTEXTUREVIEWOESPROC, gltextureviewoes); \
     HandleUnsupported(PFNGLVIEWPORTARRAYVOESPROC, glviewportarrayvoes); \
     HandleUnsupported(PFNGLVIEWPORTINDEXEDFOESPROC, glviewportindexedfoes); \

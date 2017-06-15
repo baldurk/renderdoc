@@ -112,7 +112,7 @@ struct GLHookSet
   PFNGLTEXSTORAGE2DPROC glTexStorage2D;
   PFNGLTEXSTORAGE3DPROC glTexStorage3D;
   PFNGLTEXSTORAGE2DMULTISAMPLEPROC glTexStorage2DMultisample;
-  PFNGLTEXSTORAGE3DMULTISAMPLEPROC glTexStorage3DMultisample;
+  PFNGLTEXSTORAGE3DMULTISAMPLEPROC glTexStorage3DMultisample;    // aliases glTexStorage3DMultisampleOES
   PFNGLTEXIMAGE3DPROC glTexImage3D;    // aliases glTexImage3DEXT
   PFNGLTEXSUBIMAGE3DPROC glTexSubImage3D;
   PFNGLTEXBUFFERPROC glTexBuffer;    // aliases glTexBufferARB, glTexBufferEXT, glTexBufferOES
