@@ -757,6 +757,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_vertex_array_object");
   m_GLESExtensions.push_back("GL_OES_texture_storage_multisample_2d_array");
 
+  m_GLESExtensions.push_back("GL_EXT_base_instance");
   m_GLESExtensions.push_back("GL_EXT_copy_image");
   m_GLESExtensions.push_back("GL_EXT_disjoint_timer_query");
   m_GLESExtensions.push_back("GL_EXT_draw_buffers");
