@@ -1085,6 +1085,9 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
 
   if(m_State == WRITING_CAPFRAME)
   {
+    const void *indices = NULL;
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count, eGL_NONE, indices);
+
     SCOPED_SERIALISE_CONTEXT(DRAWARRAYS_INSTANCEDBASEINSTANCE);
     Serialise_glDrawArraysInstancedBaseInstance(mode, first, count, instancecount, baseinstance);
 
@@ -1093,6 +1096,8 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.FetchState(GetCtx(), this);
     state.MarkReferenced(this, false);
+
+    RestoreClientMemoryArrays(clientMemory, eGL_NONE);
   }
   else if(m_State == WRITING_IDLE)
   {
