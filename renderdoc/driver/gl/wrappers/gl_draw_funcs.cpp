@@ -810,7 +810,7 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
       count = (GLint)(max - min + 1);
 
       if(idxbuf != 0)
-        m_Real.glUnmapBuffer(eGL_ELEMENT_ARRAY_BUFFER_BINDING);
+        m_Real.glUnmapBuffer(eGL_ELEMENT_ARRAY_BUFFER);
     }
 
     // App initially used client memory, so copy it into the temporary buffer.
