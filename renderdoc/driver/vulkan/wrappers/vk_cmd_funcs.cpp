@@ -202,9 +202,10 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
   {
     bool colsame = true;
 
+    uint32_t subpass = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
+
     // find which attachment is the depth-stencil one
-    int32_t dsAttach =
-        info.subpasses[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass].depthstencilAttachment;
+    int32_t dsAttach = info.subpasses[subpass].depthstencilAttachment;
     bool hasStencil = false;
     bool depthonly = false;
 
@@ -213,33 +214,28 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
     if(dsAttach >= 0)
     {
       hasStencil = !IsDepthOnlyFormat(fbinfo.attachments[dsAttach].format);
-      depthonly = info.subpasses[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass]
-                      .colorAttachments.size() == 0;
+      depthonly = info.subpasses[subpass].colorAttachments.size() == 0;
     }
 
+    const std::vector<uint32_t> &cols = info.subpasses[subpass].colorAttachments;
+
     // first colour attachment, if there is one
-    int32_t colAttach = 0;
-    if(!depthonly && dsAttach == 0)
-      colAttach = 1;
+    const uint32_t col0 = cols.empty() ? (uint32_t)atts.size() : cols[0];
 
     // look through all other non-depth attachments to see if they're
     // identical
-    for(size_t i = 0; i < atts.size(); i++)
+    for(size_t i = 1; i < cols.size(); i++)
     {
-      if((int32_t)i == dsAttach)
-        continue;
-
-      if((int32_t)i == colAttach)
-        continue;
+      const uint32_t col = cols[i];
 
       if(store)
       {
-        if(atts[i].storeOp != atts[colAttach].storeOp)
+        if(atts[col].storeOp != atts[col0].storeOp)
           colsame = false;
       }
       else
       {
-        if(atts[i].loadOp != atts[colAttach].loadOp)
+        if(atts[col].loadOp != atts[col0].loadOp)
           colsame = false;
       }
     }
@@ -259,7 +255,7 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
     else
     {
       // all colour ops are the same, print it
-      opDesc = store ? ToStr::Get(atts[colAttach].storeOp) : ToStr::Get(atts[colAttach].loadOp);
+      opDesc = store ? ToStr::Get(atts[col0].storeOp) : ToStr::Get(atts[col0].loadOp);
     }
 
     // do we have depth?
