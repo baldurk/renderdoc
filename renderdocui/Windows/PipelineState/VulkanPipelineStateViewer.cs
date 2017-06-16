@@ -1536,9 +1536,10 @@ namespace renderdocui.Windows.PipelineState
                 foreach (var p in state.Pass.framebuffer.attachments)
                 {
                     int colIdx = Array.IndexOf(state.Pass.renderpass.colorAttachments, (uint)i);
+                    int resIdx = Array.IndexOf(state.Pass.renderpass.resolveAttachments, (uint)i);
 
                     bool filledSlot = (p.img != ResourceId.Null);
-                    bool usedSlot = (colIdx >= 0 || state.Pass.renderpass.depthstencilAttachment == i);
+                    bool usedSlot = (colIdx >= 0 || resIdx >= 0 || state.Pass.renderpass.depthstencilAttachment == i);
 
                     // show if
                     if (usedSlot || // it's referenced by the shader - regardless of empty or not
@@ -1605,7 +1606,13 @@ namespace renderdocui.Windows.PipelineState
                                 p.swizzle[3].Str());
                         }
 
-                        var node = targetOutputs.Nodes.Add(new object[] { i, name, typename, w, h, d, a, format });
+                        string slotname = String.Format("Color {0}", i);
+                        if (resIdx >= 0)
+                            slotname = String.Format("Resolve {0}", i);
+                        else if (colIdx < 0)
+                            slotname = "Depth";
+
+                        var node = targetOutputs.Nodes.Add(new object[] { slotname, name, typename, w, h, d, a, format });
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;

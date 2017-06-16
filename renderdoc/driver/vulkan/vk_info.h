@@ -222,6 +222,7 @@ struct VulkanCreationInfo
       // rarely used but the indices are often used
       vector<uint32_t> inputAttachments;
       vector<uint32_t> colorAttachments;
+      vector<uint32_t> resolveAttachments;
       int32_t depthstencilAttachment;
 
       vector<VkImageLayout> inputLayouts;

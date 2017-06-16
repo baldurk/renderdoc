@@ -350,6 +350,8 @@ namespace renderdoc
                 public UInt32[] inputAttachments;
                 [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
                 public UInt32[] colorAttachments;
+                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                public UInt32[] resolveAttachments;
                 public Int32 depthstencilAttachment;
             };
             [CustomMarshalAs(CustomUnmanagedType.CustomClass)]

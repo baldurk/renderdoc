@@ -1461,18 +1461,36 @@ namespace renderdocui.Code
                     var rp = m_Vulkan.Pass.renderpass;
                     var fb = m_Vulkan.Pass.framebuffer;
 
-                    BoundResource[] ret = new BoundResource[rp.colorAttachments.Length];
+                    int idx = 0;
+
+                    BoundResource[] ret = new BoundResource[rp.colorAttachments.Length*2];
                     for (int i = 0; i < rp.colorAttachments.Length; i++)
                     {
-                        ret[i] = new BoundResource();
+                        ret[idx] = new BoundResource();
 
                         if(rp.colorAttachments[i] < fb.attachments.Length)
                         {
-                            ret[i].Id = fb.attachments[rp.colorAttachments[i]].img;
-                            ret[i].HighestMip = (int)fb.attachments[rp.colorAttachments[i]].baseMip;
-                            ret[i].FirstSlice = (int)fb.attachments[rp.colorAttachments[i]].baseLayer;
-                            ret[i].typeHint = fb.attachments[rp.colorAttachments[i]].viewfmt.compType;
+                            ret[idx].Id = fb.attachments[rp.colorAttachments[i]].img;
+                            ret[idx].HighestMip = (int)fb.attachments[rp.colorAttachments[i]].baseMip;
+                            ret[idx].FirstSlice = (int)fb.attachments[rp.colorAttachments[i]].baseLayer;
+                            ret[idx].typeHint = fb.attachments[rp.colorAttachments[i]].viewfmt.compType;
                         }
+
+                        idx++;
+                    }
+                    for (int i = 0; i < rp.resolveAttachments.Length; i++)
+                    {
+                        ret[idx] = new BoundResource();
+
+                        if (rp.resolveAttachments[i] < fb.attachments.Length)
+                        {
+                            ret[idx].Id = fb.attachments[rp.resolveAttachments[i]].img;
+                            ret[idx].HighestMip = (int)fb.attachments[rp.resolveAttachments[i]].baseMip;
+                            ret[idx].FirstSlice = (int)fb.attachments[rp.resolveAttachments[i]].baseLayer;
+                            ret[idx].typeHint = fb.attachments[rp.resolveAttachments[i]].viewfmt.compType;
+                        }
+
+                        idx++;
                     }
 
                     return ret;

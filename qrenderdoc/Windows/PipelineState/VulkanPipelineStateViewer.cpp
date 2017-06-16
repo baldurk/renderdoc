@@ -1771,9 +1771,19 @@ void VulkanPipelineStateViewer::setState()
           break;
         }
       }
+      int resIdx = -1;
+      for(int c = 0; c < state.Pass.renderpass.resolveAttachments.count; c++)
+      {
+        if(state.Pass.renderpass.resolveAttachments[c] == (uint)i)
+        {
+          resIdx = c;
+          break;
+        }
+      }
 
       bool filledSlot = (p.img != ResourceId());
-      bool usedSlot = (colIdx >= 0 || state.Pass.renderpass.depthstencilAttachment == i);
+      bool usedSlot =
+          (colIdx >= 0 || resIdx >= 0 || state.Pass.renderpass.depthstencilAttachment == i);
 
       if(showNode(usedSlot, filledSlot))
       {
@@ -1825,8 +1835,17 @@ void VulkanPipelineStateViewer::setState()
                         .arg(ToQStr(p.swizzle[3]));
         }
 
+        QString slotname;
+
+        if(colIdx >= 0)
+          slotname = QFormatStr("Color %1").arg(i);
+        else if(resIdx >= 0)
+          slotname = QFormatStr("Resolve %1").arg(i);
+        else
+          slotname = lit("Depth");
+
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({i, name, typeName, w, h, d, a, format, QString()});
+            new RDTreeWidgetItem({slotname, name, typeName, w, h, d, a, format, QString()});
 
         if(tex)
           node->setTag(QVariant::fromValue(p.img));

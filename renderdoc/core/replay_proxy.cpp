@@ -1175,6 +1175,7 @@ void Serialiser::Serialise(const char *name, VKPipe::CurrentPass &el)
   Serialise("", el.renderpass.obj);
   Serialise("", el.renderpass.inputAttachments);
   Serialise("", el.renderpass.colorAttachments);
+  Serialise("", el.renderpass.resolveAttachments);
   Serialise("", el.renderpass.depthstencilAttachment);
 
   Serialise("", el.framebuffer.obj);
@@ -1185,7 +1186,7 @@ void Serialiser::Serialise(const char *name, VKPipe::CurrentPass &el)
 
   Serialise("", el.renderArea);
 
-  SIZE_CHECK(104);
+  SIZE_CHECK(120);
 }
 
 template <>
@@ -1236,7 +1237,7 @@ void Serialiser::Serialise(const char *name, VKPipe::State &el)
 
   Serialise("", el.images);
 
-  SIZE_CHECK(1336);
+  SIZE_CHECK(1352);
 }
 
 #pragma endregion Vulkan pipeline state

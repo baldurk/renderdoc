@@ -2918,7 +2918,7 @@
             // targetOutputs
             // 
             treeListColumn103.AutoSizeMinSize = 0;
-            treeListColumn103.Width = 50;
+            treeListColumn103.Width = 70;
             treeListColumn104.AutoSize = true;
             treeListColumn104.AutoSizeMinSize = 150;
             treeListColumn104.Width = 50;

@@ -447,6 +447,8 @@ struct RenderPass
   rdctype::array<uint32_t> inputAttachments;
   DOCUMENT("A list of indices into the framebuffer attachments for color attachments.");
   rdctype::array<uint32_t> colorAttachments;
+  DOCUMENT("A list of indices into the framebuffer attachments for resolve attachments.");
+  rdctype::array<uint32_t> resolveAttachments;
   DOCUMENT(R"(An index into the framebuffer attachments for the depth-stencil attachment.
 
 If there is no depth-stencil attachment, this index is ``-1``.

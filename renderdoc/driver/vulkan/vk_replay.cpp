@@ -3059,6 +3059,8 @@ void VulkanReplay::SavePipelineState()
             c.m_RenderPass[state.renderPass].subpasses[state.subpass].inputAttachments;
         m_VulkanPipelineState.Pass.renderpass.colorAttachments =
             c.m_RenderPass[state.renderPass].subpasses[state.subpass].colorAttachments;
+        m_VulkanPipelineState.Pass.renderpass.resolveAttachments =
+            c.m_RenderPass[state.renderPass].subpasses[state.subpass].resolveAttachments;
         m_VulkanPipelineState.Pass.renderpass.depthstencilAttachment =
             c.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
       }

@@ -1306,16 +1306,33 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
       const auto &rp = m_Vulkan->Pass.renderpass;
       const auto &fb = m_Vulkan->Pass.framebuffer;
 
+      int idx = 0;
+
       ret.resize(rp.colorAttachments.count);
       for(int i = 0; i < rp.colorAttachments.count; i++)
       {
         if(rp.colorAttachments[i] < (uint32_t)fb.attachments.count)
         {
-          ret[i].Id = fb.attachments[rp.colorAttachments[i]].img;
-          ret[i].HighestMip = (int)fb.attachments[rp.colorAttachments[i]].baseMip;
-          ret[i].FirstSlice = (int)fb.attachments[rp.colorAttachments[i]].baseLayer;
-          ret[i].typeHint = fb.attachments[rp.colorAttachments[i]].viewfmt.compType;
+          ret[idx].Id = fb.attachments[rp.colorAttachments[i]].img;
+          ret[idx].HighestMip = (int)fb.attachments[rp.colorAttachments[i]].baseMip;
+          ret[idx].FirstSlice = (int)fb.attachments[rp.colorAttachments[i]].baseLayer;
+          ret[idx].typeHint = fb.attachments[rp.colorAttachments[i]].viewfmt.compType;
         }
+
+        idx++;
+      }
+
+      for(int i = 0; i < rp.resolveAttachments.count; i++)
+      {
+        if(rp.resolveAttachments[i] < (uint32_t)fb.attachments.count)
+        {
+          ret[idx].Id = fb.attachments[rp.resolveAttachments[i]].img;
+          ret[idx].HighestMip = (int)fb.attachments[rp.resolveAttachments[i]].baseMip;
+          ret[idx].FirstSlice = (int)fb.attachments[rp.resolveAttachments[i]].baseLayer;
+          ret[idx].typeHint = fb.attachments[rp.resolveAttachments[i]].viewfmt.compType;
+        }
+
+        idx++;
       }
     }
   }
