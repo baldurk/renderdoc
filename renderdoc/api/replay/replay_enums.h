@@ -2865,13 +2865,25 @@ enumerated with IDs in the appropriate ranges.
 
   The AMD-specific counter IDs start from this value.
 
+.. data:: LastAMD
+
+  The AMD-specific counter IDs end with this value.
+
 .. data:: FirstIntel
 
   The Intel-specific counter IDs start from this value.
 
+.. data:: LastIntel
+
+  The Intel-specific counter IDs end with this value.
+
 .. data:: FirstNvidia
 
   The nVidia-specific counter IDs start from this value.
+
+.. data:: LastNvidia
+
+  The nVidia-specific counter IDs end with this value.
 )");
 enum class GPUCounter : uint32_t
 {
