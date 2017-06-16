@@ -1071,9 +1071,6 @@ void ShaderViewer::updateDebugging()
     }
   }
 
-  // TODO tooltips
-  // hoverTimer_Tick(hoverTimer, new EventArgs());
-
   if(ui->constants->topLevelItemCount() == 0)
   {
     for(int i = 0; i < m_Trace->cbuffers.count; i++)
