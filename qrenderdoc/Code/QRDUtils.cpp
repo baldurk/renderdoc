@@ -24,6 +24,7 @@
 
 #include "QRDUtils.h"
 #include <QApplication>
+#include <QElapsedTimer>
 #include <QFileSystemModel>
 #include <QFontDatabase>
 #include <QGridLayout>
@@ -347,14 +348,35 @@ const QMessageBox::StandardButtons RDDialog::YesNoCancel =
 
 void RDDialog::show(QMenu *menu, QPoint pos)
 {
+  // menus aren't always visible immediately, so we need to listen for aboutToHide to exit the event
+  // loop. As a safety precaution because I don't trust the damn signals, if we loop for over a
+  // second then we'll quit as soon as the menu is not visible
+  volatile bool menuHiding = false;
+  auto connection =
+      QObject::connect(menu, &QMenu::aboutToHide, [&menuHiding]() { menuHiding = true; });
+
   menu->setWindowModality(Qt::ApplicationModal);
   menu->popup(pos);
+
+  QElapsedTimer elapsed;
+  elapsed.start();
+
   QEventLoop loop;
-  while(menu->isVisible())
+  for(;;)
   {
+    // stop processing once aboutToHide has been signalled
+    if(menuHiding)
+      break;
+
+    // stop processing if 1s has passed and the menu isn't visible anymore.
+    if(elapsed.hasExpired(1000) && !menu->isVisible())
+      break;
+
     loop.processEvents(QEventLoop::WaitForMoreEvents);
     QCoreApplication::sendPostedEvents();
   }
+
+  QObject::disconnect(connection);
 }
 
 int RDDialog::show(QDialog *dialog)
