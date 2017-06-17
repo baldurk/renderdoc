@@ -467,7 +467,8 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
     dst.colorLayouts.resize(src.colorAttachmentCount);
     for(uint32_t i = 0; i < src.colorAttachmentCount; i++)
     {
-      dst.resolveAttachments[i] = src.pResolveAttachments ? src.pResolveAttachments[i].attachment : ~0U;
+      dst.resolveAttachments[i] =
+          src.pResolveAttachments ? src.pResolveAttachments[i].attachment : ~0U;
       dst.colorAttachments[i] = src.pColorAttachments[i].attachment;
       dst.colorLayouts[i] = src.pColorAttachments[i].layout;
     }
