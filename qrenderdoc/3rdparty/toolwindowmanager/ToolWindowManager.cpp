@@ -1010,7 +1010,8 @@ void ToolWindowManager::finishDrag() {
 
 void ToolWindowManager::drawHotspotPixmaps() {
   for (AreaReferenceType ref : { AddTo, LeftOf, TopOf, RightOf, BottomOf }) {
-    m_pixmaps[ref] = QPixmap(m_dropHotspotDimension, m_dropHotspotDimension);
+    m_pixmaps[ref] = QPixmap(m_dropHotspotDimension*devicePixelRatio(), m_dropHotspotDimension*devicePixelRatio());
+    m_pixmaps[ref].setDevicePixelRatio(devicePixelRatioF());
 
     QPainter p(&m_pixmaps[ref]);
     p.setCompositionMode(QPainter::CompositionMode_Source);
