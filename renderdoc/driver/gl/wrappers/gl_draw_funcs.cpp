@@ -774,8 +774,8 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
       if(idxbuf != 0)
       {
         // If we were using a real index buffer, read it back to check its range.
-        mmIndices = m_Real.glMapBufferRange(eGL_ELEMENT_ARRAY_BUFFER, (size_t)indices,
-                                            idxlen - (size_t)indices, eGL_MAP_READ_BIT);
+        mmIndices = m_Real.glMapBufferRange(eGL_ELEMENT_ARRAY_BUFFER, (size_t)indices, idxlen,
+                                            eGL_MAP_READ_BIT);
       }
 
       size_t min = ~0u, max = 0;
