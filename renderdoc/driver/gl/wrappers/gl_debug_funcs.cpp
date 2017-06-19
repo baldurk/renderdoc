@@ -45,21 +45,27 @@ bool WrappedOpenGL::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsi
     switch(identifier)
     {
       case eGL_TEXTURE: liveid = GetResourceManager()->GetID(TextureRes(GetCtx(), name)); break;
-      case eGL_BUFFER_OBJECT_EXT: extvariant = true;
+      case eGL_BUFFER_OBJECT_EXT:
+        extvariant = true;    // intentional fallthrough
       case eGL_BUFFER: liveid = GetResourceManager()->GetID(BufferRes(GetCtx(), name)); break;
-      case eGL_PROGRAM_OBJECT_EXT: extvariant = true;
+      case eGL_PROGRAM_OBJECT_EXT:
+        extvariant = true;    // intentional fallthrough
       case eGL_PROGRAM: liveid = GetResourceManager()->GetID(ProgramRes(GetCtx(), name)); break;
-      case eGL_PROGRAM_PIPELINE_OBJECT_EXT: extvariant = true;
+      case eGL_PROGRAM_PIPELINE_OBJECT_EXT:
+        extvariant = true;    // intentional fallthrough
       case eGL_PROGRAM_PIPELINE:
         liveid = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), name));
         break;
-      case eGL_VERTEX_ARRAY_OBJECT_EXT: extvariant = true;
+      case eGL_VERTEX_ARRAY_OBJECT_EXT:
+        extvariant = true;    // intentional fallthrough
       case eGL_VERTEX_ARRAY:
         liveid = GetResourceManager()->GetID(VertexArrayRes(GetCtx(), name));
         break;
-      case eGL_SHADER_OBJECT_EXT: extvariant = true;
+      case eGL_SHADER_OBJECT_EXT:
+        extvariant = true;    // intentional fallthrough
       case eGL_SHADER: liveid = GetResourceManager()->GetID(ShaderRes(GetCtx(), name)); break;
-      case eGL_QUERY_OBJECT_EXT: extvariant = true;
+      case eGL_QUERY_OBJECT_EXT:
+        extvariant = true;    // intentional fallthrough
       case eGL_QUERY: liveid = GetResourceManager()->GetID(QueryRes(GetCtx(), name)); break;
       case eGL_TRANSFORM_FEEDBACK:
         liveid = GetResourceManager()->GetID(FeedbackRes(GetCtx(), name));

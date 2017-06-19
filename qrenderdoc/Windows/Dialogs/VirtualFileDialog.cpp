@@ -341,6 +341,7 @@ public:
             else
               return fileIcon[hideIndex];
           }
+          break;
         case Qt::TextAlignmentRole:
           if(index.column() == 1)
             return Qt::AlignRight;
