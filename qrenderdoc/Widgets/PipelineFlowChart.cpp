@@ -83,6 +83,11 @@ int PipelineFlowChart::selectedStage()
   return m_SelectedStage;
 }
 
+QSize PipelineFlowChart::sizeHint() const
+{
+  return QSize(0, 60);
+}
+
 void PipelineFlowChart::setStagesEnabled(const QList<bool> &enabled)
 {
   for(int i = 0; i < enabled.count() && i < m_StagesEnabled.count(); i++)

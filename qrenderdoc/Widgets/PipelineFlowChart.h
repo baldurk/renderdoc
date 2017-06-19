@@ -45,6 +45,8 @@ public:
   void setSelectedStage(int idx);
   int selectedStage();
 
+  QSize sizeHint() const override;
+
 signals:
   void stageSelected(int idx);
 
