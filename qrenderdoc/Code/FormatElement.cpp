@@ -228,7 +228,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
     uint32_t width = 0;
 
     // check for square matrix declarations like 'mat4' and 'mat3'
-    if(basetype == lit("mat") && !match.captured(5).isEmpty())
+    if(basetype == lit("mat") && match.captured(5).isEmpty())
       matrixDim = vectorDim;
 
     // calculate format
