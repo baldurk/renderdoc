@@ -587,7 +587,7 @@ void VulkanPipelineStateViewer::clearState()
   clearShaderState(ui->fsShader, ui->fsResources, ui->fsUBOs);
   clearShaderState(ui->csShader, ui->csResources, ui->csUBOs);
 
-  const QPixmap &tick = Pixmaps::tick();
+  const QPixmap &tick = Pixmaps::tick(this);
 
   ui->fillMode->setText(tr("Solid", "Fill Mode"));
   ui->cullMode->setText(tr("Front", "Cull Mode"));
@@ -1451,8 +1451,8 @@ void VulkanPipelineStateViewer::setState()
   bool showDisabled = ui->showDisabled->isChecked();
   bool showEmpty = ui->showEmpty->isChecked();
 
-  const QPixmap &tick = Pixmaps::tick();
-  const QPixmap &cross = Pixmaps::cross();
+  const QPixmap &tick = Pixmaps::tick(this);
+  const QPixmap &cross = Pixmaps::cross(this);
 
   bool usedBindings[128] = {};
 

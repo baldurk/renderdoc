@@ -397,6 +397,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     QObject::connect(ui->stepBack, &QToolButton::clicked, this, &ShaderViewer::stepBack);
     QObject::connect(ui->stepNext, &QToolButton::clicked, this, &ShaderViewer::stepNext);
+    QObject::connect(ui->runBack, &QToolButton::clicked, this, &ShaderViewer::runBack);
+    QObject::connect(ui->run, &QToolButton::clicked, this, &ShaderViewer::run);
     QObject::connect(ui->runToCursor, &QToolButton::clicked, this, &ShaderViewer::runToCursor);
     QObject::connect(ui->runToSample, &QToolButton::clicked, this, &ShaderViewer::runToSample);
     QObject::connect(ui->runToNaNOrInf, &QToolButton::clicked, this, &ShaderViewer::runToNanOrInf);

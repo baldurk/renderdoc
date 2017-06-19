@@ -23,7 +23,7 @@
        </property>
        <property name="icon">
         <iconset resource="../../Resources/resources.qrc">
-         <normaloff>:/back.png</normaloff>:/back.png</iconset>
+         <normaloff>:/arrow_left.png</normaloff>:/arrow_left.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -43,7 +43,7 @@
        </property>
        <property name="icon">
         <iconset resource="../../Resources/resources.qrc">
-         <normaloff>:/forward.png</normaloff>:/forward.png</iconset>
+         <normaloff>:/arrow_right.png</normaloff>:/arrow_right.png</iconset>
        </property>
        <property name="iconSize">
         <size>

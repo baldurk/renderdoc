@@ -819,8 +819,8 @@ void D3D11PipelineStateViewer::clearState()
 
   ui->csUAVs->clear();
 
-  const QPixmap &tick = Pixmaps::tick();
-  const QPixmap &cross = Pixmaps::cross();
+  const QPixmap &tick = Pixmaps::tick(this);
+  const QPixmap &cross = Pixmaps::cross(this);
 
   ui->fillMode->setText(tr("Solid", "Fill Mode"));
   ui->cullMode->setText(tr("Front", "Cull Mode"));
@@ -1131,8 +1131,8 @@ void D3D11PipelineStateViewer::setState()
   const D3D11Pipe::State &state = m_Ctx.CurD3D11PipelineState();
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
-  const QPixmap &tick = Pixmaps::tick();
-  const QPixmap &cross = Pixmaps::cross();
+  const QPixmap &tick = Pixmaps::tick(this);
+  const QPixmap &cross = Pixmaps::cross(this);
 
   ////////////////////////////////////////////////
   // Vertex Input

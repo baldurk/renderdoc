@@ -48,12 +48,12 @@ public:
     FileNameRole,
   };
 
-  RemoteFileModel(IReplayManager &r, QObject *parent = NULL)
+  RemoteFileModel(IReplayManager &r, QWidget *parent = NULL)
       : Renderer(r), QAbstractItemModel(parent)
   {
-    makeIconStates(fileIcon, Pixmaps::page_white_database());
-    makeIconStates(exeIcon, Pixmaps::page_white_code());
-    makeIconStates(dirIcon, Pixmaps::folder_page());
+    makeIconStates(fileIcon, Pixmaps::page_white_database(parent));
+    makeIconStates(exeIcon, Pixmaps::page_white_code(parent));
+    makeIconStates(dirIcon, Pixmaps::folder(parent));
 
     Renderer.GetHomeFolder(true, [this](const char *path, const rdctype::array<PathEntry> &files) {
       QString homeDir = QString::fromUtf8(path);

@@ -76,7 +76,7 @@
        </property>
        <property name="icon">
         <iconset resource="../Resources/resources.qrc">
-         <normaloff>:/back.png</normaloff>:/back.png</iconset>
+         <normaloff>:/arrow_left.png</normaloff>:/arrow_left.png</iconset>
        </property>
        <property name="autoRaise">
         <bool>true</bool>
@@ -90,7 +90,7 @@
        </property>
        <property name="icon">
         <iconset resource="../Resources/resources.qrc">
-         <normaloff>:/forward.png</normaloff>:/forward.png</iconset>
+         <normaloff>:/arrow_right.png</normaloff>:/arrow_right.png</iconset>
        </property>
        <property name="autoRaise">
         <bool>true</bool>
@@ -445,7 +445,7 @@
         </property>
         <property name="icon">
          <iconset resource="../Resources/resources.qrc">
-          <normaloff>:/stepnext.png</normaloff>:/stepnext.png</iconset>
+          <normaloff>:/arrow_right.png</normaloff>:/arrow_right.png</iconset>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -459,7 +459,7 @@
         </property>
         <property name="icon">
          <iconset resource="../Resources/resources.qrc">
-          <normaloff>:/stepprev.png</normaloff>:/stepprev.png</iconset>
+          <normaloff>:/arrow_left.png</normaloff>:/arrow_left.png</iconset>
         </property>
         <property name="autoRaise">
          <bool>true</bool>

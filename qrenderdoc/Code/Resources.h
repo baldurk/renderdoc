@@ -26,55 +26,51 @@
 
 #include <QIcon>
 #include <QPixmap>
+#include <QWidget>
 
 #define RESOURCE_LIST()                                                 \
-  RESOURCE_DEF(logo128, "logo128.png")                                  \
-  RESOURCE_DEF(accept, "accept.png")                                    \
   RESOURCE_DEF(add, "add.png")                                          \
   RESOURCE_DEF(arrow_in, "arrow_in.png")                                \
   RESOURCE_DEF(arrow_join, "arrow_join.png")                            \
+  RESOURCE_DEF(arrow_left, "arrow_left.png")                            \
+  RESOURCE_DEF(arrow_right, "arrow_right.png")                          \
   RESOURCE_DEF(arrow_undo, "arrow_undo.png")                            \
   RESOURCE_DEF(asterisk_orange, "asterisk_orange.png")                  \
-  RESOURCE_DEF(back, "back.png")                                        \
   RESOURCE_DEF(chart_curve, "chart_curve.png")                          \
   RESOURCE_DEF(cog, "cog.png")                                          \
-  RESOURCE_DEF(cog_go, "cog_go.png")                                    \
   RESOURCE_DEF(color_wheel, "color_wheel.png")                          \
   RESOURCE_DEF(connect, "connect.png")                                  \
+  RESOURCE_DEF(control_base_blue, "control_base_blue.png")              \
+  RESOURCE_DEF(control_cursor_blue, "control_cursor_blue.png")          \
+  RESOURCE_DEF(control_end_blue, "control_end_blue.png")                \
+  RESOURCE_DEF(control_play_blue, "control_play_blue.png")              \
+  RESOURCE_DEF(control_nan_blue, "control_nan_blue.png")                \
+  RESOURCE_DEF(control_reverse_blue, "control_reverse_blue.png")        \
+  RESOURCE_DEF(control_sample_blue, "control_sample_blue.png")          \
+  RESOURCE_DEF(control_start_blue, "control_start_blue.png")            \
   RESOURCE_DEF(cross, "cross.png")                                      \
-  RESOURCE_DEF(crosshatch, "crosshatch.png")                            \
+  RESOURCE_DEF(checkerboard, "checkerboard.png")                        \
   RESOURCE_DEF(del, "del.png")                                          \
   RESOURCE_DEF(disconnect, "disconnect.png")                            \
-  RESOURCE_DEF(down_arrow, "down_arrow.png")                            \
   RESOURCE_DEF(find, "find.png")                                        \
-  RESOURCE_DEF(fit_window, "fit_window.png")                            \
+  RESOURCE_DEF(arrow_out, "arrow_out.png")                              \
   RESOURCE_DEF(flag_green, "flag_green.png")                            \
   RESOURCE_DEF(flip_y, "flip_y.png")                                    \
-  RESOURCE_DEF(folder_page, "folder_page.png")                          \
-  RESOURCE_DEF(forward, "forward.png")                                  \
+  RESOURCE_DEF(folder, "folder.png")                                    \
+  RESOURCE_DEF(folder_page_white, "folder_page_white.png")              \
   RESOURCE_DEF(hourglass, "hourglass.png")                              \
   RESOURCE_DEF(house, "house.png")                                      \
   RESOURCE_DEF(information, "information.png")                          \
-  RESOURCE_DEF(new_window, "new_window.png")                            \
   RESOURCE_DEF(page_white_code, "page_white_code.png")                  \
   RESOURCE_DEF(page_white_database, "page_white_database.png")          \
   RESOURCE_DEF(page_white_delete, "page_white_delete.png")              \
   RESOURCE_DEF(page_white_edit, "page_white_edit.png")                  \
   RESOURCE_DEF(page_white_link, "page_white_link.png")                  \
   RESOURCE_DEF(plugin_add, "plugin_add.png")                            \
-  RESOURCE_DEF(red_x_16, "red_x_16.png")                                \
-  RESOURCE_DEF(runback, "runback.png")                                  \
-  RESOURCE_DEF(runcursor, "runcursor.png")                              \
-  RESOURCE_DEF(runfwd, "runfwd.png")                                    \
-  RESOURCE_DEF(runnaninf, "runnaninf.png")                              \
-  RESOURCE_DEF(runsample, "runsample.png")                              \
   RESOURCE_DEF(save, "save.png")                                        \
-  RESOURCE_DEF(stepnext, "stepnext.png")                                \
-  RESOURCE_DEF(stepprev, "stepprev.png")                                \
   RESOURCE_DEF(tick, "tick.png")                                        \
   RESOURCE_DEF(time, "time.png")                                        \
   RESOURCE_DEF(timeline_marker, "timeline_marker.png")                  \
-  RESOURCE_DEF(up_arrow, "up_arrow.png")                                \
   RESOURCE_DEF(upfolder, "upfolder.png")                                \
   RESOURCE_DEF(wand, "wand.png")                                        \
   RESOURCE_DEF(wireframe_mesh, "wireframe_mesh.png")                    \
@@ -106,13 +102,14 @@ public:
   ~Resources();
 
 #undef RESOURCE_DEF
-#define RESOURCE_DEF(name, filename) \
-  static const Resource &name() { return resources->name##_data; }
+#define RESOURCE_DEF(name, filename)                               \
+  static const Resource &name() { return resources->name##_data; } \
+  static const Resource &name##_2x() { return resources->name##_2x_data; }
   RESOURCE_LIST()
 
 private:
 #undef RESOURCE_DEF
-#define RESOURCE_DEF(name, filename) Resource name##_data;
+#define RESOURCE_DEF(name, filename) Resource name##_data, name##_2x_data;
 
   struct ResourceSet
   {
@@ -127,8 +124,15 @@ private:
 struct Pixmaps
 {
 #undef RESOURCE_DEF
-#define RESOURCE_DEF(name, filename) \
-  static const QPixmap &name() { return Resources::name().pixmap; }
+#define RESOURCE_DEF(name, filename)               \
+  static const QPixmap &name(int devicePixelRatio) \
+  {                                                \
+    if(devicePixelRatio == 1)                      \
+      return Resources::name().pixmap;             \
+    else                                           \
+      return Resources::name##_2x().pixmap;        \
+  }                                                \
+  static const QPixmap &name(QWidget *widget) { return name(widget->devicePixelRatio()); }
   RESOURCE_LIST()
 };
 

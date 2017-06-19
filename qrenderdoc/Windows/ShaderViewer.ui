@@ -155,7 +155,7 @@
     <rect>
      <x>40</x>
      <y>10</y>
-     <width>291</width>
+     <width>388</width>
      <height>28</height>
     </rect>
    </property>
@@ -262,6 +262,23 @@
      </widget>
     </item>
     <item>
+     <widget class="QToolButton" name="runBack">
+      <property name="toolTip">
+       <string>Run backwards (Shift-F5)</string>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/control_start_blue.png</normaloff>:/control_start_blue.png</iconset>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QToolButton" name="stepBack">
       <property name="toolTip">
        <string>Step Back (Shift-F10)</string>
@@ -271,7 +288,7 @@
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/stepprev.png</normaloff>:/stepprev.png</iconset>
+        <normaloff>:/control_reverse_blue.png</normaloff>:/control_reverse_blue.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -288,10 +305,34 @@
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/stepnext.png</normaloff>:/stepnext.png</iconset>
+        <normaloff>:/control_play_blue.png</normaloff>:/control_play_blue.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="run">
+      <property name="toolTip">
+       <string>Run forwards (F5)</string>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/control_end_blue.png</normaloff>:/control_end_blue.png</iconset>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="Line" name="regFormatSep">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
       </property>
      </widget>
     </item>
@@ -308,7 +349,7 @@
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/runcursor.png</normaloff>:/runcursor.png</iconset>
+        <normaloff>:/control_cursor_blue.png</normaloff>:/control_cursor_blue.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -328,7 +369,7 @@
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/runsample.png</normaloff>:/runsample.png</iconset>
+        <normaloff>:/control_sample_blue.png</normaloff>:/control_sample_blue.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -348,7 +389,7 @@
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/runnaninf.png</normaloff>:/runnaninf.png</iconset>
+        <normaloff>:/control_nan_blue.png</normaloff>:/control_nan_blue.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -356,7 +397,7 @@
      </widget>
     </item>
     <item>
-     <widget class="Line" name="regFormatSep">
+     <widget class="Line" name="line">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>

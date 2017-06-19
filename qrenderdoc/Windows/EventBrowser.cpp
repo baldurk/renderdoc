@@ -841,7 +841,7 @@ void EventBrowser::events_contextMenu(const QPoint &pos)
   contextMenu.addAction(&collapseAll);
   contextMenu.addAction(&selectCols);
 
-  expandAll.setIcon(Icons::fit_window());
+  expandAll.setIcon(Icons::arrow_out());
   collapseAll.setIcon(Icons::arrow_in());
   selectCols.setIcon(Icons::timeline_marker());
 

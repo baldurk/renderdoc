@@ -137,6 +137,9 @@ int main(int argc, char *argv[])
       filename = QString();
   }
 
+  QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+  QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+
   QApplication application(argc, argv);
 
   {

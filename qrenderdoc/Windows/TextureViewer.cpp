@@ -330,7 +330,11 @@ public:
     String
   };
 
-  TextureListItemModel(QObject *parent) : QAbstractItemModel(parent) {}
+  TextureListItemModel(QWidget *parent) : QAbstractItemModel(parent)
+  {
+    goArrow.addPixmap(Pixmaps::action(parent), QIcon::Normal, QIcon::Off);
+    goArrow.addPixmap(Pixmaps::action_hover(parent), QIcon::Normal, QIcon::Off);
+  }
   void reset(FilterType type, const QString &filter, ICaptureContext &ctx)
   {
     const rdctype::array<TextureDescription> src = ctx.GetTextures();
@@ -402,9 +406,6 @@ public:
 
       if(role == Qt::DecorationRole)
       {
-        QIcon goArrow;
-        goArrow.addPixmap(Pixmaps::action(), QIcon::Normal, QIcon::Off);
-        goArrow.addPixmap(Pixmaps::action_hover(), QIcon::Normal, QIcon::Off);
         return QVariant(goArrow);
       }
     }
@@ -414,6 +415,7 @@ public:
 
 private:
   QVector<TextureDescription> texs;
+  QIcon goArrow;
 };
 
 class TextureListItemDelegate : public QItemDelegate

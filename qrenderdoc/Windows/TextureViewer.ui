@@ -362,7 +362,7 @@
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/fit_window.png</normaloff>:/fit_window.png</iconset>
+        <normaloff>:/arrow_out.png</normaloff>:/arrow_out.png</iconset>
       </property>
       <property name="checkable">
        <bool>true</bool>
@@ -919,7 +919,7 @@
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/crosshatch.png</normaloff>:/crosshatch.png</iconset>
+        <normaloff>:/checkerboard.png</normaloff>:/checkerboard.png</iconset>
       </property>
       <property name="checkable">
        <bool>true</bool>

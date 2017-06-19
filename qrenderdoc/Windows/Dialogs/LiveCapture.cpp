@@ -112,7 +112,7 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, uint32_t
 
   setTitle(tr("Connecting.."));
   ui->connectionStatus->setText(tr("Connecting.."));
-  ui->connectionIcon->setPixmap(Pixmaps::hourglass());
+  ui->connectionIcon->setPixmap(Pixmaps::hourglass(ui->connectionIcon));
 
   ui->captures->setItemDelegate(new NameEditOnlyDelegate(this));
 
@@ -985,7 +985,7 @@ void LiveCapture::connectionThreadEntry()
     GUIInvoke::call([this]() {
       setTitle(tr("Connection failed"));
       ui->connectionStatus->setText(tr("Connection failed"));
-      ui->connectionIcon->setPixmap(Pixmaps::del());
+      ui->connectionIcon->setPixmap(Pixmaps::del(ui->connectionIcon));
 
       connectionClosed();
     });
@@ -1012,7 +1012,7 @@ void LiveCapture::connectionThreadEntry()
           tr("Connection established to %1 [PID %2] (%3)").arg(target).arg(pid).arg(api));
       setTitle(QFormatStr("%1 [PID %2]").arg(target).arg(pid));
     }
-    ui->connectionIcon->setPixmap(Pixmaps::connect());
+    ui->connectionIcon->setPixmap(Pixmaps::connect(ui->connectionIcon));
   });
 
   while(m_Connection && m_Connection->Connected())
@@ -1073,7 +1073,7 @@ void LiveCapture::connectionThreadEntry()
               tr("Connection established to %1 [PID %2] (%3)").arg(target).arg(pid).arg(api));
           setTitle(QFormatStr("%1 [PID %2]").arg(target).arg(pid));
         }
-        ui->connectionIcon->setPixmap(Pixmaps::connect());
+        ui->connectionIcon->setPixmap(Pixmaps::connect(ui->connectionIcon));
       });
     }
 
@@ -1122,7 +1122,7 @@ void LiveCapture::connectionThreadEntry()
 
   GUIInvoke::call([this]() {
     ui->connectionStatus->setText(tr("Connection closed"));
-    ui->connectionIcon->setPixmap(Pixmaps::disconnect());
+    ui->connectionIcon->setPixmap(Pixmaps::disconnect(ui->connectionIcon));
 
     ui->numFrames->setEnabled(false);
     ui->captureDelay->setEnabled(false);

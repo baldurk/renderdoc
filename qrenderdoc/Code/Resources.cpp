@@ -36,10 +36,27 @@ void Resources::Initialise()
   resources = new Resources::ResourceSet();
 
 #undef RESOURCE_DEF
-#define RESOURCE_DEF(name, filename)                           \
-  filenames.push_back(lit(":/" filename));                     \
-  resources->name##_data.pixmap = QPixmap(lit(":/" filename)); \
-  resources->name##_data.icon = QIcon(resources->name##_data.pixmap);
+#define RESOURCE_DEF(name, filename)                                      \
+  {                                                                       \
+    QString fn = lit(":/" filename);                                      \
+    filenames.push_back(fn);                                              \
+    resources->name##_data.pixmap = QPixmap(fn);                          \
+    resources->name##_data.icon = QIcon();                                \
+    resources->name##_data.icon.addFile(fn);                              \
+    if(fn.contains(lit(".png")))                                          \
+    {                                                                     \
+      fn = fn.replace(lit(".png"), lit("@2x.png"));                       \
+      if(QFile::exists(fn))                                               \
+      {                                                                   \
+        resources->name##_2x_data.pixmap = QPixmap(fn);                   \
+      }                                                                   \
+      else                                                                \
+      {                                                                   \
+        qWarning() << "Missing high-DPI @2x for " filename;               \
+        resources->name##_2x_data.pixmap = resources->name##_data.pixmap; \
+      }                                                                   \
+    }                                                                     \
+  }
 
   RESOURCE_LIST();
 
@@ -50,6 +67,9 @@ void Resources::Initialise()
     if(filenames.contains(filename))
       continue;
     if(!filename.contains(lit(".png")))
+      continue;
+    if(filename.contains(lit("@2x.png")) || filename.contains(lit("@3x.png")) ||
+       filename.contains(lit("@4x.png")))
       continue;
 
     qCritical() << "Resource not configured for" << filename;

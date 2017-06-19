@@ -176,7 +176,7 @@
             </property>
             <property name="icon">
              <iconset resource="../Resources/resources.qrc">
-              <normaloff>:/folder_page.png</normaloff>:/folder_page.png</iconset>
+              <normaloff>:/folder_page_white.png</normaloff>:/folder_page_white.png</iconset>
             </property>
             <property name="popupMode">
              <enum>QToolButton::InstantPopup</enum>
@@ -226,7 +226,7 @@
             </property>
             <property name="icon">
              <iconset resource="../Resources/resources.qrc">
-              <normaloff>:/runfwd.png</normaloff>:/runfwd.png</iconset>
+              <normaloff>:/arrow_right.png</normaloff>:/arrow_right.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>

@@ -936,9 +936,10 @@ void MainWindow::setLogHasErrors(bool errors)
   QString filename = QFileInfo(m_Ctx.LogFilename()).fileName();
   if(errors)
   {
-    QPixmap empty(Pixmaps::del().width(), Pixmaps::del().height());
+    const QPixmap &del = Pixmaps::del(this);
+    QPixmap empty(del.width(), del.height());
     empty.fill(Qt::transparent);
-    statusIcon->setPixmap(m_messageAlternate ? empty : Pixmaps::del());
+    statusIcon->setPixmap(m_messageAlternate ? empty : del);
 
     QString text;
     text = tr("%1 loaded. Capture has %2 errors, warnings or performance notes. "
@@ -951,7 +952,7 @@ void MainWindow::setLogHasErrors(bool errors)
   }
   else
   {
-    statusIcon->setPixmap(Pixmaps::tick());
+    statusIcon->setPixmap(Pixmaps::tick(this));
     statusText->setText(tr("%1 loaded. No problems detected.").arg(filename));
   }
 }

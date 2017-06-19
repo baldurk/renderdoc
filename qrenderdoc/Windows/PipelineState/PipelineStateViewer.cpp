@@ -432,16 +432,16 @@ void PipelineStateViewer::setTopologyDiagram(QLabel *diagram, Topology topo)
     QImage im;
     switch(topo)
     {
-      case Topology::PointList: im = Pixmaps::topo_pointlist().toImage(); break;
-      case Topology::LineList: im = Pixmaps::topo_linelist().toImage(); break;
-      case Topology::LineStrip: im = Pixmaps::topo_linestrip().toImage(); break;
-      case Topology::TriangleList: im = Pixmaps::topo_trilist().toImage(); break;
-      case Topology::TriangleStrip: im = Pixmaps::topo_tristrip().toImage(); break;
-      case Topology::LineList_Adj: im = Pixmaps::topo_linelist_adj().toImage(); break;
-      case Topology::LineStrip_Adj: im = Pixmaps::topo_linestrip_adj().toImage(); break;
-      case Topology::TriangleList_Adj: im = Pixmaps::topo_trilist_adj().toImage(); break;
-      case Topology::TriangleStrip_Adj: im = Pixmaps::topo_tristrip_adj().toImage(); break;
-      default: im = Pixmaps::topo_patch().toImage(); break;
+      case Topology::PointList: im = Pixmaps::topo_pointlist(diagram).toImage(); break;
+      case Topology::LineList: im = Pixmaps::topo_linelist(diagram).toImage(); break;
+      case Topology::LineStrip: im = Pixmaps::topo_linestrip(diagram).toImage(); break;
+      case Topology::TriangleList: im = Pixmaps::topo_trilist(diagram).toImage(); break;
+      case Topology::TriangleStrip: im = Pixmaps::topo_tristrip(diagram).toImage(); break;
+      case Topology::LineList_Adj: im = Pixmaps::topo_linelist_adj(diagram).toImage(); break;
+      case Topology::LineStrip_Adj: im = Pixmaps::topo_linestrip_adj(diagram).toImage(); break;
+      case Topology::TriangleList_Adj: im = Pixmaps::topo_trilist_adj(diagram).toImage(); break;
+      case Topology::TriangleStrip_Adj: im = Pixmaps::topo_tristrip_adj(diagram).toImage(); break;
+      default: im = Pixmaps::topo_patch(diagram).toImage(); break;
     }
 
     im = im.convertToFormat(QImage::Format_ARGB32);
@@ -487,7 +487,7 @@ void PipelineStateViewer::setTopologyDiagram(QLabel *diagram, Topology topo)
 
 void PipelineStateViewer::setMeshViewPixmap(RDLabel *meshView)
 {
-  QImage meshIcon = Pixmaps::wireframe_mesh().toImage();
+  QImage meshIcon = Pixmaps::wireframe_mesh(meshView->devicePixelRatio()).toImage();
   QImage colSwapped(meshIcon.size(), QImage::Format_ARGB32);
   colSwapped.fill(meshView->palette().color(QPalette::WindowText));
 
@@ -505,7 +505,10 @@ void PipelineStateViewer::setMeshViewPixmap(RDLabel *meshView)
     }
   }
 
-  meshView->setPixmap(QPixmap::fromImage(colSwapped));
+  QPixmap p = QPixmap::fromImage(colSwapped);
+  p.setDevicePixelRatio(meshView->devicePixelRatioF());
+
+  meshView->setPixmap(p);
   meshView->setPreserveAspectRatio(true);
 
   QPalette pal = meshView->palette();

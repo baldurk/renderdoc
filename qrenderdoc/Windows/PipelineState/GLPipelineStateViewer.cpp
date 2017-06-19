@@ -560,8 +560,8 @@ void GLPipelineStateViewer::clearState()
   clearShaderState(ui->csShader, ui->csTextures, ui->csSamplers, ui->csUBOs, ui->csSubroutines,
                    ui->csReadWrite);
 
-  const QPixmap &tick = Pixmaps::tick();
-  const QPixmap &cross = Pixmaps::cross();
+  const QPixmap &tick = Pixmaps::tick(this);
+  const QPixmap &cross = Pixmaps::cross(this);
 
   ui->fillMode->setText(tr("Solid", "Fill Mode"));
   ui->cullMode->setText(tr("Front", "Cull Mode"));
@@ -1138,8 +1138,8 @@ void GLPipelineStateViewer::setState()
   bool showDisabled = ui->showDisabled->isChecked();
   bool showEmpty = ui->showEmpty->isChecked();
 
-  const QPixmap &tick = Pixmaps::tick();
-  const QPixmap &cross = Pixmaps::cross();
+  const QPixmap &tick = Pixmaps::tick(this);
+  const QPixmap &cross = Pixmaps::cross(this);
 
   bool usedBindings[128] = {};
 

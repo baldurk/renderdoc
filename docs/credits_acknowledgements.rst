@@ -86,6 +86,12 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
 * `AMD GPUPerfAPI <https://github.com/GPUOpen-Tools/GPA>`_ - Copyright (c) 2016 Advanced Micro Devices, Inc., distributed under the MIT license.
 
+  Provides hardware-specific counters over and above what individual hardware-agnostic graphics APIs are able to provide.
+
+* `Farm-Fresh Web Icons <http://www.fatcow.com/free-icons>`_ - Copyright (c) 2009-2014 FatCow Web Hosting, distributed under Creative Commons Attribution 3.0 License.
+
+  Providing higher-resolution icons than the famfamfam Silk set, these icons allow scaling to those using high-DPI displays.
+
 Thanks
 ------
 
