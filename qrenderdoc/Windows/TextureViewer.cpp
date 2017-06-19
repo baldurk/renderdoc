@@ -2171,8 +2171,10 @@ void TextureViewer::render_mouseMove(QMouseEvent *e)
   if(m_Output == NULL)
     return;
 
-  m_CurHoverPixel.setX(int(((float)e->x() - m_TexDisplay.offx) / m_TexDisplay.scale));
-  m_CurHoverPixel.setY(int(((float)e->y() - m_TexDisplay.offy) / m_TexDisplay.scale));
+  m_CurHoverPixel.setX(int((float(e->x() * ui->render->devicePixelRatio()) - m_TexDisplay.offx) /
+                           m_TexDisplay.scale));
+  m_CurHoverPixel.setY(int((float(e->y() * ui->render->devicePixelRatio()) - m_TexDisplay.offy) /
+                           m_TexDisplay.scale));
 
   if(m_TexDisplay.texid != ResourceId())
   {
@@ -2316,7 +2318,7 @@ float TextureViewer::CurMaxScrollX()
   if(texptr != NULL)
     size = QSizeF(texptr->width, texptr->height);
 
-  return ui->render->width() - size.width() * m_TexDisplay.scale;
+  return realRenderWidth() - size.width() * m_TexDisplay.scale;
 }
 
 float TextureViewer::CurMaxScrollY()
@@ -2328,7 +2330,7 @@ float TextureViewer::CurMaxScrollY()
   if(texptr != NULL)
     size = QSizeF(texptr->width, texptr->height);
 
-  return ui->render->height() - size.height() * m_TexDisplay.scale;
+  return realRenderHeight() - size.height() * m_TexDisplay.scale;
 }
 
 QPoint TextureViewer::getScrollPosition()
@@ -2371,7 +2373,7 @@ void TextureViewer::UI_CalcScrollbars()
     size = QSizeF(texptr->width, texptr->height);
   }
 
-  if((int)floor(size.width() * m_TexDisplay.scale) <= ui->render->width())
+  if((int)floor(size.width() * m_TexDisplay.scale) <= realRenderWidth())
   {
     ui->renderHScroll->setEnabled(false);
   }
@@ -2379,13 +2381,12 @@ void TextureViewer::UI_CalcScrollbars()
   {
     ui->renderHScroll->setEnabled(true);
 
-    ui->renderHScroll->setMaximum(
-        (int)ceil(size.width() * m_TexDisplay.scale - (float)ui->render->width()));
+    ui->renderHScroll->setMaximum((int)ceil(size.width() * m_TexDisplay.scale - realRenderWidth()));
     ui->renderHScroll->setPageStep(qMax(1, ui->renderHScroll->maximum() / 6));
     ui->renderHScroll->setSingleStep(int(m_TexDisplay.scale));
   }
 
-  if((int)floor(size.height() * m_TexDisplay.scale) <= ui->render->height())
+  if((int)floor(size.height() * m_TexDisplay.scale) <= realRenderHeight())
   {
     ui->renderVScroll->setEnabled(false);
   }
@@ -2393,8 +2394,7 @@ void TextureViewer::UI_CalcScrollbars()
   {
     ui->renderVScroll->setEnabled(true);
 
-    ui->renderVScroll->setMaximum(
-        (int)ceil(size.height() * m_TexDisplay.scale - (float)ui->render->height()));
+    ui->renderVScroll->setMaximum((int)ceil(size.height() * m_TexDisplay.scale - realRenderHeight()));
     ui->renderVScroll->setPageStep(qMax(1, ui->renderVScroll->maximum() / 6));
     ui->renderVScroll->setSingleStep(int(m_TexDisplay.scale));
   }
@@ -2755,9 +2755,20 @@ float TextureViewer::GetFitScale()
   if(texptr == NULL)
     return 1.0f;
 
-  float xscale = (float)ui->render->width() / (float)texptr->width;
-  float yscale = (float)ui->render->height() / (float)texptr->height;
+  float xscale = (float)realRenderWidth() / (float)texptr->width;
+  float yscale = (float)realRenderHeight() / (float)texptr->height;
+
   return qMin(xscale, yscale);
+}
+
+int TextureViewer::realRenderWidth() const
+{
+  return ui->render->width() * ui->render->devicePixelRatio();
+}
+
+int TextureViewer::realRenderHeight() const
+{
+  return ui->render->height() * ui->render->devicePixelRatio();
 }
 
 void TextureViewer::UI_UpdateFittedScale()

@@ -2384,6 +2384,8 @@ void BufferViewer::render_clicked(QMouseEvent *e)
 
   QPoint curpos = e->pos();
 
+  curpos *= ui->render->devicePixelRatioF();
+
   if((e->buttons() & Qt::RightButton) && m_Output)
   {
     m_Ctx.Replay().AsyncInvoke(lit("PickVertex"), [this, curpos](IReplayController *r) {

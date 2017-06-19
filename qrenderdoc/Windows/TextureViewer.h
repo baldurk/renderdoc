@@ -254,6 +254,9 @@ private:
 
   float GetFitScale();
 
+  int realRenderWidth() const;
+  int realRenderHeight() const;
+
   QPoint getScrollPosition();
   void setScrollPosition(const QPoint &pos);
 
