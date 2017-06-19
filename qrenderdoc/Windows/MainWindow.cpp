@@ -316,7 +316,8 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
       LiveCapture *live = new LiveCapture(
           m_Ctx,
           m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Hostname : QString(),
-          ret, this, this);
+          m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Name() : QString(), ret,
+          this, this);
       ShowLiveCapture(live);
       callback(live);
     });
@@ -357,7 +358,7 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModificati
         return;
       }
 
-      LiveCapture *live = new LiveCapture(m_Ctx, QString(), ret, this, this);
+      LiveCapture *live = new LiveCapture(m_Ctx, QString(), QString(), ret, this, this);
       ShowLiveCapture(live);
     });
   });

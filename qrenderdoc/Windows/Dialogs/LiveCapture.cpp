@@ -78,12 +78,13 @@ public:
   }
 };
 
-LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, uint32_t ident,
-                         MainWindow *main, QWidget *parent)
+LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, const QString &friendlyname,
+                         uint32_t ident, MainWindow *main, QWidget *parent)
     : QFrame(parent),
       ui(new Ui::LiveCapture),
       m_Ctx(ctx),
       m_Hostname(hostname),
+      m_HostFriendlyname(friendlyname),
       m_RemoteIdent(ident),
       m_Main(main)
 {
@@ -255,7 +256,8 @@ void LiveCapture::on_childProcesses_itemActivated(QListWidgetItem *item)
     uint32_t ident = sel[0]->data(IdentRole).toUInt();
     if(ident > 0)
     {
-      LiveCapture *live = new LiveCapture(m_Ctx, m_Hostname, ident, m_Main, m_Main);
+      LiveCapture *live =
+          new LiveCapture(m_Ctx, m_Hostname, m_HostFriendlyname, ident, m_Main, m_Main);
       m_Main->ShowLiveCapture(live);
     }
   }
@@ -492,7 +494,8 @@ void LiveCapture::killThread()
 
 void LiveCapture::setTitle(const QString &title)
 {
-  setWindowTitle((!m_Hostname.isEmpty() ? (m_Hostname + lit(" - ")) : QString()) + title);
+  setWindowTitle((!m_HostFriendlyname.isEmpty() ? (m_HostFriendlyname + lit(" - ")) : QString()) +
+                 title);
 }
 
 LiveCapture::CaptureLog *LiveCapture::GetLog(QListWidgetItem *item)
@@ -622,7 +625,7 @@ bool LiveCapture::checkAllowClose()
           this, tr("No active replay context"),
           tr("This capture is on remote host %1 and there is no active replay context on that "
              "host.\n")
-                  .arg(m_Hostname) +
+                  .arg(m_HostFriendlyname) +
               tr("Without an active replay context the capture cannot be %1.\n\n")
                   .arg(tr(res == QMessageBox::Yes ? "saved" : "deleted")) +
               tr("Would you like to continue and discard this capture and any others, to be left "
@@ -967,7 +970,8 @@ void LiveCapture::connectionClosed()
     // only one capture
     if(ui->captures->count() == 0 && m_Children.count() == 1)
     {
-      LiveCapture *live = new LiveCapture(m_Ctx, m_Hostname, m_Children[0].ident, m_Main);
+      LiveCapture *live =
+          new LiveCapture(m_Ctx, m_Hostname, m_HostFriendlyname, m_Children[0].ident, m_Main);
       m_Main->ShowLiveCapture(live);
       ToolWindowManager::closeToolWindow(this);
       return;

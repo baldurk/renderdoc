@@ -70,7 +70,7 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
   if(remoteIdent != 0)
   {
     m_MainWindow->ShowLiveCapture(
-        new LiveCapture(*this, remoteHost, remoteIdent, m_MainWindow, m_MainWindow));
+        new LiveCapture(*this, remoteHost, remoteHost, remoteIdent, m_MainWindow, m_MainWindow));
   }
 
   if(!paramFilename.isEmpty())

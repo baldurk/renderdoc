@@ -49,8 +49,8 @@ class LiveCapture : public QFrame
   Q_OBJECT
 
 public:
-  explicit LiveCapture(ICaptureContext &ctx, const QString &host, uint32_t ident, MainWindow *main,
-                       QWidget *parent = 0);
+  explicit LiveCapture(ICaptureContext &ctx, const QString &hostname, const QString &friendlyname,
+                       uint32_t ident, MainWindow *main, QWidget *parent = 0);
 
   ~LiveCapture();
 
@@ -136,6 +136,7 @@ private:
   Ui::LiveCapture *ui;
   ICaptureContext &m_Ctx;
   QString m_Hostname;
+  QString m_HostFriendlyname;
   uint32_t m_RemoteIdent;
   MainWindow *m_Main;
 

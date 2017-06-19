@@ -34,8 +34,9 @@
 struct RemoteConnect
 {
   RemoteConnect() {}
-  RemoteConnect(const QString &h, uint32_t i) : host(h), ident(i) {}
+  RemoteConnect(const QString &h, const QString &f, uint32_t i) : host(h), friendly(f), ident(i) {}
   QString host;
+  QString friendly;
   uint32_t ident = 0;
 };
 
@@ -216,8 +217,6 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
   // this function looks up the remote connections and for each one open
   // queries it for the API, target (usually executable name) and if any user is already connected
   LambdaThread *th = new LambdaThread([this, node, host]() {
-    QString hostname = node->text(0);
-
     QByteArray username = GetSystemUsername().toUtf8();
 
     host->CheckStatus();
@@ -225,7 +224,7 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
     GUIInvoke::call(
         [this, node, host]() { setRemoteServerLive(node, host->ServerRunning, host->Busy); });
 
-    QByteArray hostnameBytes = hostname.toUtf8();
+    QByteArray hostnameBytes = host->Hostname.toUtf8();
 
     uint32_t nextIdent = 0;
 
@@ -255,7 +254,7 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
         else
           running = tr("Running %1").arg(api);
 
-        RemoteConnect tag(hostname, nextIdent);
+        RemoteConnect tag(host->Hostname, host->Name(), nextIdent);
 
         GUIInvoke::call([this, node, target, running, tag]() {
           RDTreeWidgetItem *child = new RDTreeWidgetItem({target, running});
@@ -311,7 +310,8 @@ void RemoteManager::connectToApp(RDTreeWidgetItem *node)
 
     if(connect.ident > 0)
     {
-      LiveCapture *live = new LiveCapture(m_Ctx, connect.host, connect.ident, m_Main, m_Main);
+      LiveCapture *live =
+          new LiveCapture(m_Ctx, connect.host, connect.friendly, connect.ident, m_Main, m_Main);
       m_Main->ShowLiveCapture(live);
       accept();
     }
