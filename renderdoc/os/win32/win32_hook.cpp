@@ -563,7 +563,7 @@ HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DW
 
   DWORD err = GetLastError();
 
-  if(dohook)
+  if(dohook && mod)
     HookAllModules();
 
   SetLastError(err);
@@ -589,7 +589,7 @@ HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, D
 
   DWORD err = GetLastError();
 
-  if(dohook)
+  if(dohook && mod)
     HookAllModules();
 
   SetLastError(err);
