@@ -239,7 +239,9 @@ void LiveCapture::on_captures_mouseClicked(QMouseEvent *e)
     QObject::connect(&contextDeleteAction, &QAction::triggered, this,
                      &LiveCapture::deleteCapture_triggered);
 
+    m_ContextMenu = &contextMenu;
     RDDialog::show(&contextMenu, QCursor::pos());
+    m_ContextMenu = NULL;
   }
 }
 
@@ -961,7 +963,7 @@ void LiveCapture::connectionClosed()
     // then don't close just yet.
     if(ui->captures->count() == 1 || m_Children.count() == 0)
     {
-      ToolWindowManager::closeToolWindow(this);
+      selfClose();
       return;
     }
 
@@ -973,9 +975,27 @@ void LiveCapture::connectionClosed()
       LiveCapture *live =
           new LiveCapture(m_Ctx, m_Hostname, m_HostFriendlyname, m_Children[0].ident, m_Main);
       m_Main->ShowLiveCapture(live);
-      ToolWindowManager::closeToolWindow(this);
+      selfClose();
       return;
     }
+  }
+}
+
+void LiveCapture::selfClose()
+{
+  if(m_ContextMenu)
+  {
+    qInfo() << "preventing race";
+    // hide the menu and close our window shortly after
+    m_ContextMenu->close();
+    QTimer *timer = new QTimer(this);
+    QObject::connect(timer, &QTimer::timeout, [this]() { ToolWindowManager::closeToolWindow(this); });
+    timer->setSingleShot(true);
+    timer->start(250);
+  }
+  else
+  {
+    ToolWindowManager::closeToolWindow(this);
   }
 }
 

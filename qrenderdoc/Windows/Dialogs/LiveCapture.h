@@ -125,6 +125,9 @@ private:
                     const rdctype::array<byte> &thumbnail, int32_t thumbWidth, int32_t thumbHeight,
                     QDateTime timestamp, const QString &path, bool local);
   void connectionClosed();
+
+  void selfClose();
+
   void killThread();
 
   void setTitle(const QString &title);
@@ -156,6 +159,8 @@ private:
 
   bool m_IgnoreThreadClosed = false;
   bool m_IgnorePreviewToggle = false;
+
+  QMenu *m_ContextMenu = NULL;
 
   QAction *previewToggle;
   QToolButton *openButton;
