@@ -513,6 +513,7 @@ namespace renderdoc
         NoFilter,
         Point,
         Linear,
+        Cubic,
         Anisotropic,
     };
 
@@ -554,6 +555,8 @@ namespace renderdoc
         One,
         SrcCol,
         InvSrcCol,
+        DstCol,
+        InvDstCol,
         SrcAlpha,
         InvSrcAlpha,
         DstAlpha,
@@ -590,6 +593,7 @@ namespace renderdoc
         Nand,
         Or,
         Xor,
+        Nor,
         Equivalent,
         AndReverse,
         AndInverted,
