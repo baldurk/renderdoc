@@ -173,7 +173,7 @@ private:
 
     m_InsideCreate = true;
 
-    if(riid != __uuidof(ID3D12Device))
+    if(riid != __uuidof(ID3D12Device) && riid != __uuidof(ID3D12Device1))
     {
       RDCERR("Unsupported UUID %s for D3D12CreateDevice", ToStr::Get(riid).c_str());
       return E_NOINTERFACE;
@@ -279,11 +279,23 @@ private:
 
         ID3D12Device *dev = (ID3D12Device *)*ppDevice;
 
+        if(riid == __uuidof(ID3D12Device1))
+        {
+          ID3D12Device1 *dev1 = (ID3D12Device1 *)*ppDevice;
+
+          dev = (ID3D12Device *)dev1;
+        }
+
         WrappedID3D12Device *wrap = new WrappedID3D12Device(dev, &params);
 
         RDCDEBUG("created wrapped device.");
 
         *ppDevice = (ID3D12Device *)wrap;
+
+        if(riid == __uuidof(ID3D12Device1))
+        {
+          *ppDevice = (ID3D12Device1 *)wrap;
+        }
       }
     }
     else if(SUCCEEDED(ret))
