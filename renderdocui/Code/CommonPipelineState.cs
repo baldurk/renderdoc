@@ -1129,6 +1129,10 @@ namespace renderdocui.Code
                             var key = new BindpointMap(space, reg);
                             var val = new BoundResource();
 
+                            // consider this register to not exist - it's in a gap defined by sparse root signature elements
+                            if (bind.RootElement == uint.MaxValue)
+                                continue;
+
                             val = new BoundResource();
                             val.Id = bind.Resource;
                             val.HighestMip = (int)bind.HighestMip;
@@ -1277,6 +1281,10 @@ namespace renderdocui.Code
                             var bind = s.Spaces[space].UAVs[reg];
                             var key = new BindpointMap(space, reg);
                             var val = new BoundResource();
+
+                            // consider this register to not exist - it's in a gap defined by sparse root signature elements
+                            if (bind.RootElement == uint.MaxValue)
+                                continue;
 
                             val = new BoundResource();
                             val.Id = bind.Resource;

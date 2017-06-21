@@ -1012,6 +1012,11 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
           BindpointMap key(space, reg);
           BoundResource val;
 
+          // consider this register to not exist - it's in a gap defined by sparse root signature
+          // elements
+          if(bind.RootElement == ~0U)
+            continue;
+
           val.Id = bind.Resource;
           val.HighestMip = (int)bind.HighestMip;
           val.FirstSlice = (int)bind.FirstArraySlice;
@@ -1141,6 +1146,11 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
           const D3D12Pipe::View &bind = s.Spaces[space].UAVs[reg];
           BindpointMap key(space, reg);
           BoundResource val;
+
+          // consider this register to not exist - it's in a gap defined by sparse root signature
+          // elements
+          if(bind.RootElement == ~0U)
+            continue;
 
           val.Id = bind.Resource;
           val.HighestMip = (int)bind.HighestMip;
