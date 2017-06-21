@@ -742,6 +742,119 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdc
   *deviceList = ret;
 }
 
+bool installRenderDocServer(const string &deviceID)
+{
+  string targetApk = "RenderDocCmd.apk";
+  string serverApk;
+
+  // Check known paths for RenderDoc server
+  string exePath;
+  FileIO::GetExecutableFilename(exePath);
+  string exeDir = dirname(FileIO::GetFullPathname(exePath));
+
+  std::vector<std::string> paths;
+
+#if defined(RENDERDOC_APK_PATH)
+  string customPath(RENDERDOC_APK_PATH);
+  RDCLOG("Custom APK path: %s", customPath.c_str());
+
+  if(FileIO::IsRelativePath(customPath))
+    customPath = exeDir + "/" + customPath;
+
+  // Check to see if APK name was included in custom path
+  if(!endswith(customPath, targetApk))
+  {
+    if(customPath.back() != '/')
+      customPath += "/";
+    customPath += targetApk;
+  }
+
+  paths.push_back(customPath);
+#endif
+
+  paths.push_back(exeDir + "/android/apk/" + targetApk);                         // Windows install
+  paths.push_back(exeDir + "/../share/renderdoc/android/apk/" + targetApk);      // Linux install
+  paths.push_back(exeDir + "/../../build-android/bin/" + targetApk);             // Local build
+  paths.push_back(exeDir + "/../../../../../build-android/bin/" + targetApk);    // macOS build
+
+  for(uint32_t i = 0; i < paths.size(); i++)
+  {
+    RDCLOG("Checking for server APK in %s", paths[i].c_str());
+    if(FileIO::exists(paths[i].c_str()))
+    {
+      serverApk = paths[i];
+      RDCLOG("APK found!: %s", serverApk.c_str());
+      break;
+    }
+  }
+
+  if(serverApk.empty())
+  {
+    RDCERR(
+        "%s missing! RenderDoc for Android will not work without it. "
+        "Build your Android ABI in build-android in the root to have it "
+        "automatically found and installed.",
+        targetApk.c_str());
+    return false;
+  }
+
+  // Build a map so we can switch on the string that returns from adb calls
+  enum AndroidAbis
+  {
+    Android_armeabi,
+    Android_armeabi_v7a,
+    Android_arm64_v8a,
+    Android_x86,
+    Android_x86_64,
+    Android_mips,
+    Android_mips64,
+    Android_numAbis
+  };
+
+  // clang-format off
+  static std::map<std::string, AndroidAbis> abi_string_map;
+  abi_string_map["armeabi"]     = Android_armeabi;
+  abi_string_map["armeabi-v7a"] = Android_armeabi_v7a;
+  abi_string_map["arm64-v8a"]   = Android_arm64_v8a;
+  abi_string_map["x86"]         = Android_x86;
+  abi_string_map["x86_64"]      = Android_x86_64;
+  abi_string_map["mips"]        = Android_mips;
+  abi_string_map["mips64"]      = Android_mips64;
+  // clang-format on
+
+  // 32-bit server works for 32 and 64 bit apps, so install 32-bit matching ABI
+  string adbAbi = trim(adbExecCommand(deviceID, "shell getprop ro.product.cpu.abi"));
+
+  string adbInstall;
+  switch(abi_string_map[adbAbi])
+  {
+    case Android_armeabi_v7a:
+    case Android_arm64_v8a:
+      adbInstall = adbExecCommand(deviceID, "install -r --abi armeabi-v7a " + serverApk);
+      break;
+    case Android_armeabi:
+    case Android_x86:
+    case Android_x86_64:
+    case Android_mips:
+    case Android_mips64:
+    default:
+    {
+      RDCERR("Unsupported target ABI: %s", adbAbi.c_str());
+      return false;
+    }
+  }
+
+  // Ensure installation succeeded
+  string adbCheck = adbExecCommand(deviceID, "shell pm list packages org.renderdoc.renderdoccmd");
+  if(adbCheck.empty())
+  {
+    RDCERR("Installation of RenderDocCmd.apk failed!");
+    return false;
+  }
+
+  return true;
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(const char *device)
 {
   int index = 0;
@@ -750,6 +863,15 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
   // legacy code - delete when C# UI is gone. Handle a NULL or empty device string
   if(device || device[0] == '\0')
     Android::extractDeviceIDAndIndex(device, index, deviceID);
+
+  // We should hook up versioning of the server, then re-install if the version is old or mismatched
+  // But for now, just install it, if not already present
+  string adbPackage = adbExecCommand(deviceID, "shell pm list packages org.renderdoc.renderdoccmd");
+  if(adbPackage.empty())
+  {
+    if(!installRenderDocServer(deviceID))
+      return;
+  }
 
   adbExecCommand(deviceID, "shell am force-stop org.renderdoc.renderdoccmd");
   adbForwardPorts(index, deviceID);
