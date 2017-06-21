@@ -1018,6 +1018,8 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   ui->solidShading->adjustSize();
   ui->solidShading->setCurrentIndex(0);
 
+  ui->matrixType->addItems({tr("Perspective"), tr("Orthographic")});
+
   // wireframe only available on solid shaded options
   ui->wireframeRender->setEnabled(false);
 
