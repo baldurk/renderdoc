@@ -3009,7 +3009,7 @@ string ToStrHelper<false, VkPresentModeKHR>::Get(const VkPresentModeKHR &el)
 }
 
 // we know the object will be a non-dispatchable object type
-#define SerialiseObject(type, name, obj)                                      \
+#define SerialiseObjectInternal(type, name, obj, opt)                         \
   {                                                                           \
     VulkanResourceManager *rm = (VulkanResourceManager *)GetUserData();       \
     ResourceId id;                                                            \
@@ -3023,13 +3023,16 @@ string ToStrHelper<false, VkPresentModeKHR>::Get(const VkPresentModeKHR &el)
       {                                                                       \
         if(rm->HasLiveResource(id))                                           \
           obj = Unwrap(rm->GetLiveHandle<type>(id));                          \
-        else                                                                  \
+        else if(!opt)                                                         \
           /* It can be OK for a resource to have no live equivalent if the    \
           capture decided its not needed, which some APIs do fairly often. */ \
           RDCWARN("Capture may be missing reference to " #type " resource."); \
       }                                                                       \
     }                                                                         \
   }
+
+#define SerialiseObject(type, name, obj) SerialiseObjectInternal(type, name, obj, false)
+#define SerialiseObjectOptional(type, name, obj) SerialiseObjectInternal(type, name, obj, true)
 
 static void SerialiseNext(Serialiser *ser, VkStructureType &sType, const void *&pNext)
 {
@@ -4668,8 +4671,8 @@ void Serialiser::Serialise(const char *name, VkDescriptorImageInfo &el)
 {
   ScopedContext scope(this, name, "VkDescriptorImageInfo", 0, true);
 
-  SerialiseObject(VkSampler, "sampler", el.sampler);
-  SerialiseObject(VkImageView, "imageView", el.imageView);
+  SerialiseObjectOptional(VkSampler, "sampler", el.sampler);
+  SerialiseObjectOptional(VkImageView, "imageView", el.imageView);
   Serialise("imageLayout", el.imageLayout);
 }
 
@@ -4678,7 +4681,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorBufferInfo &el)
 {
   ScopedContext scope(this, name, "VkDescriptorBufferInfo", 0, true);
 
-  SerialiseObject(VkBuffer, "buffer", el.buffer);
+  SerialiseObjectOptional(VkBuffer, "buffer", el.buffer);
   Serialise("offset", el.offset);
   Serialise("range", el.range);
 }
@@ -4691,7 +4694,7 @@ void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el)
   RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
   SerialiseNext(this, el.sType, el.pNext);
 
-  SerialiseObject(VkDescriptorSet, "dstSet", el.dstSet);
+  SerialiseObjectOptional(VkDescriptorSet, "dstSet", el.dstSet);
   Serialise("dstBinding", el.dstBinding);
   Serialise("dstArrayElement", el.dstArrayElement);
   Serialise("descriptorType", el.descriptorType);
@@ -4733,7 +4736,7 @@ void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el)
     // cast away const on array so we can assign to it on reading
     VkBufferView *views = (VkBufferView *)el.pTexelBufferView;
     for(uint32_t i = 0; i < el.descriptorCount; i++)
-      SerialiseObject(VkBufferView, "pTexelBufferView", views[i]);
+      SerialiseObjectOptional(VkBufferView, "pTexelBufferView", views[i]);
   }
 }
 
@@ -4760,10 +4763,10 @@ void Serialiser::Serialise(const char *name, VkCopyDescriptorSet &el)
   RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET);
   SerialiseNext(this, el.sType, el.pNext);
 
-  SerialiseObject(VkDescriptorSet, "srcSet", el.srcSet);
+  SerialiseObjectOptional(VkDescriptorSet, "srcSet", el.srcSet);
   Serialise("srcBinding", el.srcBinding);
   Serialise("srcArrayElement", el.srcArrayElement);
-  SerialiseObject(VkDescriptorSet, "destSet", el.dstSet);
+  SerialiseObjectOptional(VkDescriptorSet, "destSet", el.dstSet);
   Serialise("destBinding", el.dstBinding);
   Serialise("destArrayElement", el.dstArrayElement);
 
