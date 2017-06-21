@@ -897,7 +897,8 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(Serialiser *localSerialiser,
   SERIALISE_ELEMENT(uint64_t, begin, (uint64_t)range.Begin);
   SERIALISE_ELEMENT(uint64_t, end, (uint64_t)range.End);
 
-  if(m_State < WRITING && GetResourceManager()->HasLiveResource(res))
+  // don't do anything if end <= begin because the range is empty.
+  if(m_State < WRITING && GetResourceManager()->HasLiveResource(res) && end > begin)
   {
     ID3D12Resource *r = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
 
