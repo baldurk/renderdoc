@@ -608,6 +608,8 @@ string adbExecCommand(const string &device, const string &args)
   if(result.strStdout.length())
     // This could be an error (i.e. no package), or just regular output from adb devices.
     RDCLOG("STDOUT:\n%s", result.strStdout.c_str());
+  if(result.strStderror.length())
+    RDCLOG("STDERR:\n%s", result.strStderror.c_str());
   return result.strStdout;
 }
 string adbGetDeviceList()
