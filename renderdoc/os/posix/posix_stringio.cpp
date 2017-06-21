@@ -83,6 +83,14 @@ void CreateParentDirectory(const string &filename)
   }
 }
 
+bool IsRelativePath(const string &path)
+{
+  if(path.empty())
+    return false;
+
+  return path.front() != '/';
+}
+
 string GetFullPathname(const string &filename)
 {
   char path[PATH_MAX + 1] = {0};
