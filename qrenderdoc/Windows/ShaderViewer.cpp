@@ -720,8 +720,6 @@ void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
 
     if(!text.isEmpty())
     {
-      qInfo() << text;
-
       VariableTag tag;
       getRegisterFromWord(text, tag.cat, tag.idx, tag.arrayIdx);
 
