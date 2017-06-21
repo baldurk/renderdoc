@@ -1223,6 +1223,7 @@ struct SPVInstruction
 
         return ret;
       }
+      case spv::OpVectorExtractDynamic:
       case spv::OpCompositeExtract:
       case spv::OpCompositeInsert:
       case spv::OpAccessChain:
@@ -1255,7 +1256,7 @@ struct SPVInstruction
         if(arg0type->type == SPVTypeData::ePointer)
           arg0type = arg0type->baseType;
 
-        bool accessChain = (opcode == spv::OpAccessChain || opcode == spv::OpInBoundsAccessChain);
+        bool accessChain = (opcode == spv::OpAccessChain || opcode == spv::OpInBoundsAccessChain || opcode == spv::OpVectorExtractDynamic);
 
         size_t start = (accessChain ? 1 : 0);
         size_t count = (accessChain ? op->arguments.size() : op->literals.size());
@@ -1362,6 +1363,13 @@ struct SPVInstruction
           }
 
           // vector (or matrix + extra)
+          if(opcode == spv::OpVectorExtractDynamic)
+          {
+            string arg;
+            op->GetArg(ids, 1, arg);
+            accessString += StringFormat::Fmt("[%s]", arg.c_str());
+          }
+          else
           {
             char swizzle[] = "xyzw";
             if(idx < 4)
@@ -2426,7 +2434,7 @@ string SPVModule::Disassemble(const string &entryPoint)
           instr->op->complexity = maxcomplex;
 
           if(instr->opcode != spv::OpStore && instr->opcode != spv::OpLoad &&
-             instr->opcode != spv::OpCompositeExtract && instr->op->inlineArgs)
+             instr->opcode != spv::OpCompositeExtract && instr->opcode != spv::OpVectorExtractDynamic && instr->op->inlineArgs)
             instr->op->complexity++;
 
           // we try to merge away temp variables that are only used for a single store then a single
@@ -2820,6 +2828,7 @@ string SPVModule::Disassemble(const string &entryPoint)
     for(size_t o = 0; o < funcops.size();)
     {
       if(funcops[o]->opcode == spv::OpCompositeExtract &&
+         funcops[o]->op->arguments[0]->op &&
          funcops[o]->op->arguments[0]->op->type->type == SPVTypeData::eVector)
       {
         // count how many times this extract is used in constructing a vector
@@ -5755,6 +5764,7 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
         curBlock->instructions.push_back(&op);
         break;
       }
+      case spv::OpVectorExtractDynamic:
       case spv::OpArrayLength:
       case spv::OpCompositeExtract:
       case spv::OpCompositeInsert:
@@ -5794,8 +5804,19 @@ void ParseSPIRV(uint32_t *spirv, size_t spirvLength, SPVModule &module)
         if(objInst)
           op.op->arguments.push_back(objInst);
 
-        for(; word < WordCount; word++)
-          op.op->literals.push_back(spirv[it + word]);
+        if(op.opcode == spv::OpVectorExtractDynamic)
+        {
+          SPVInstruction *idxInst = module.GetByID(spirv[it + word]);
+          RDCASSERT(idxInst);
+
+          op.op->arguments.push_back(idxInst);
+          word++;
+        }
+        else
+        {
+          for(; word < WordCount; word++)
+            op.op->literals.push_back(spirv[it + word]);
+        }
 
         curBlock->instructions.push_back(&op);
         break;
