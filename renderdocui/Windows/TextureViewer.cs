@@ -1338,7 +1338,7 @@ namespace renderdocui.Windows
 
                     foreach (var bind in resourceDetails)
                     {
-                        if (bind.bindPoint == idx && bind.IsSRV)
+                        if (bind.bindPoint == idx && bind.IsSRV && !bind.IsSampler)
                         {
                             bindName = bind.name;
                             otherBind = true;
@@ -1347,7 +1347,7 @@ namespace renderdocui.Windows
 
                         if (bind.bindPoint == idx)
                         {
-                            if(bind.IsSampler && !bind.IsSRV)
+                            if(bind.IsSampler)
                                 samplerBind = true;
                             else
                                 otherBind = true;
