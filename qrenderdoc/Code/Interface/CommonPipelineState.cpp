@@ -1318,7 +1318,7 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
 
       int idx = 0;
 
-      ret.resize(rp.colorAttachments.count+rp.resolveAttachments.count);
+      ret.resize(rp.colorAttachments.count + rp.resolveAttachments.count);
       for(int i = 0; i < rp.colorAttachments.count; i++)
       {
         if(rp.colorAttachments[i] < (uint32_t)fb.attachments.count)

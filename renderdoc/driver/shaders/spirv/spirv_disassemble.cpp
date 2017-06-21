@@ -1256,7 +1256,8 @@ struct SPVInstruction
         if(arg0type->type == SPVTypeData::ePointer)
           arg0type = arg0type->baseType;
 
-        bool accessChain = (opcode == spv::OpAccessChain || opcode == spv::OpInBoundsAccessChain || opcode == spv::OpVectorExtractDynamic);
+        bool accessChain = (opcode == spv::OpAccessChain || opcode == spv::OpInBoundsAccessChain ||
+                            opcode == spv::OpVectorExtractDynamic);
 
         size_t start = (accessChain ? 1 : 0);
         size_t count = (accessChain ? op->arguments.size() : op->literals.size());
@@ -2434,7 +2435,8 @@ string SPVModule::Disassemble(const string &entryPoint)
           instr->op->complexity = maxcomplex;
 
           if(instr->opcode != spv::OpStore && instr->opcode != spv::OpLoad &&
-             instr->opcode != spv::OpCompositeExtract && instr->opcode != spv::OpVectorExtractDynamic && instr->op->inlineArgs)
+             instr->opcode != spv::OpCompositeExtract &&
+             instr->opcode != spv::OpVectorExtractDynamic && instr->op->inlineArgs)
             instr->op->complexity++;
 
           // we try to merge away temp variables that are only used for a single store then a single
@@ -2827,8 +2829,7 @@ string SPVModule::Disassemble(const string &entryPoint)
     // the extract elsewhere
     for(size_t o = 0; o < funcops.size();)
     {
-      if(funcops[o]->opcode == spv::OpCompositeExtract &&
-         funcops[o]->op->arguments[0]->op &&
+      if(funcops[o]->opcode == spv::OpCompositeExtract && funcops[o]->op->arguments[0]->op &&
          funcops[o]->op->arguments[0]->op->type->type == SPVTypeData::eVector)
       {
         // count how many times this extract is used in constructing a vector
