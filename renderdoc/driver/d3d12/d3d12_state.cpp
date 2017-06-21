@@ -131,54 +131,75 @@ ResourceId D3D12RenderState::GetDSVID() const
 
 void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd) const
 {
-  if(pipe != ResourceId())
-    cmd->SetPipelineState(GetResourceManager()->GetCurrentAs<ID3D12PipelineState>(pipe));
+  D3D12_COMMAND_LIST_TYPE type = cmd->GetType();
 
-  if(!views.empty())
-    cmd->RSSetViewports((UINT)views.size(), &views[0]);
-
-  if(!scissors.empty())
-    cmd->RSSetScissorRects((UINT)scissors.size(), &scissors[0]);
-
-  if(topo != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
-    cmd->IASetPrimitiveTopology(topo);
-
-  cmd->OMSetStencilRef(stencilRef);
-  cmd->OMSetBlendFactor(blendFactor);
-
-  if(ibuffer.buf != ResourceId())
+  if(type == D3D12_COMMAND_LIST_TYPE_DIRECT || type == D3D12_COMMAND_LIST_TYPE_BUNDLE)
   {
-    D3D12_INDEX_BUFFER_VIEW ib;
+    if(pipe != ResourceId())
+      cmd->SetPipelineState(GetResourceManager()->GetCurrentAs<ID3D12PipelineState>(pipe));
 
-    ID3D12Resource *res = GetResourceManager()->GetCurrentAs<ID3D12Resource>(ibuffer.buf);
-    if(res)
-      ib.BufferLocation = res->GetGPUVirtualAddress() + ibuffer.offs;
-    else
-      ib.BufferLocation = 0;
+    if(!views.empty())
+      cmd->RSSetViewports((UINT)views.size(), &views[0]);
 
-    ib.Format = (ibuffer.bytewidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
-    ib.SizeInBytes = ibuffer.size;
+    if(!scissors.empty())
+      cmd->RSSetScissorRects((UINT)scissors.size(), &scissors[0]);
 
-    cmd->IASetIndexBuffer(&ib);
-  }
+    if(topo != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
+      cmd->IASetPrimitiveTopology(topo);
 
-  for(size_t i = 0; i < vbuffers.size(); i++)
-  {
-    D3D12_VERTEX_BUFFER_VIEW vb;
-    vb.BufferLocation = 0;
+    cmd->OMSetStencilRef(stencilRef);
+    cmd->OMSetBlendFactor(blendFactor);
 
-    if(vbuffers[i].buf != ResourceId())
+    if(ibuffer.buf != ResourceId())
     {
-      ID3D12Resource *res = GetResourceManager()->GetCurrentAs<ID3D12Resource>(vbuffers[i].buf);
+      D3D12_INDEX_BUFFER_VIEW ib;
+
+      ID3D12Resource *res = GetResourceManager()->GetCurrentAs<ID3D12Resource>(ibuffer.buf);
       if(res)
-        vb.BufferLocation = res->GetGPUVirtualAddress() + vbuffers[i].offs;
+        ib.BufferLocation = res->GetGPUVirtualAddress() + ibuffer.offs;
       else
-        vb.BufferLocation = 0;
+        ib.BufferLocation = 0;
 
-      vb.StrideInBytes = vbuffers[i].stride;
-      vb.SizeInBytes = vbuffers[i].size;
+      ib.Format = (ibuffer.bytewidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
+      ib.SizeInBytes = ibuffer.size;
 
-      cmd->IASetVertexBuffers((UINT)i, 1, &vb);
+      cmd->IASetIndexBuffer(&ib);
+    }
+
+    for(size_t i = 0; i < vbuffers.size(); i++)
+    {
+      D3D12_VERTEX_BUFFER_VIEW vb;
+      vb.BufferLocation = 0;
+
+      if(vbuffers[i].buf != ResourceId())
+      {
+        ID3D12Resource *res = GetResourceManager()->GetCurrentAs<ID3D12Resource>(vbuffers[i].buf);
+        if(res)
+          vb.BufferLocation = res->GetGPUVirtualAddress() + vbuffers[i].offs;
+        else
+          vb.BufferLocation = 0;
+
+        vb.StrideInBytes = vbuffers[i].stride;
+        vb.SizeInBytes = vbuffers[i].size;
+
+        cmd->IASetVertexBuffers((UINT)i, 1, &vb);
+      }
+    }
+
+    if(!rts.empty() || dsv.heap != ResourceId())
+    {
+      D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
+      D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = CPUHandleFromPortableHandle(GetResourceManager(), dsv);
+
+      UINT rtCount = (UINT)rts.size();
+      UINT numActualHandles = rtSingle ? RDCMIN(1U, rtCount) : rtCount;
+
+      for(UINT i = 0; i < numActualHandles; i++)
+        rtHandles[i] = CPUHandleFromPortableHandle(GetResourceManager(), rts[i]);
+
+      // need to unwrap here, as FromPortableHandle unwraps too.
+      Unwrap(cmd)->OMSetRenderTargets((UINT)rts.size(), rtHandles, rtSingle ? TRUE : FALSE,
+                                      dsv.heap != ResourceId() ? &dsvHandle : NULL);
     }
   }
 
@@ -190,22 +211,6 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd) const
 
   if(!descHeaps.empty())
     cmd->SetDescriptorHeaps((UINT)descHeaps.size(), &descHeaps[0]);
-
-  if(!rts.empty() || dsv.heap != ResourceId())
-  {
-    D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
-    D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = CPUHandleFromPortableHandle(GetResourceManager(), dsv);
-
-    UINT rtCount = (UINT)rts.size();
-    UINT numActualHandles = rtSingle ? RDCMIN(1U, rtCount) : rtCount;
-
-    for(UINT i = 0; i < numActualHandles; i++)
-      rtHandles[i] = CPUHandleFromPortableHandle(GetResourceManager(), rts[i]);
-
-    // need to unwrap here, as FromPortableHandle unwraps too.
-    Unwrap(cmd)->OMSetRenderTargets((UINT)rts.size(), rtHandles, rtSingle ? TRUE : FALSE,
-                                    dsv.heap != ResourceId() ? &dsvHandle : NULL);
-  }
 
   if(graphics.rootsig != ResourceId())
   {
