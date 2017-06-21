@@ -215,9 +215,9 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 {
   VkMemoryAllocateInfo info = *pAllocateInfo;
   if(m_State >= WRITING)
-  {
     info.memoryTypeIndex = GetRecord(device)->memIdxMap[info.memoryTypeIndex];
 
+  {
     // we need to be able to allocate a buffer that covers the whole memory range. However
     // if the memory is e.g. 100 bytes (arbitrary example) and buffers have memory requirements
     // such that it must be bound to a multiple of 128 bytes, then we can't create a buffer
