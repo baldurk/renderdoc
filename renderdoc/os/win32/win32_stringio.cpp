@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include <shlobj.h>
+#include <shlwapi.h>
 #include <stdio.h>
 #include <string.h>
 #include <tchar.h>
@@ -164,6 +165,15 @@ void GetExecutableFilename(string &selfName)
   GetModuleFileNameW(NULL, curFile, 511);
 
   selfName = StringFormat::Wide2UTF8(wstring(curFile));
+}
+
+bool IsRelativePath(const string &path)
+{
+  if(path.empty())
+    return false;
+
+  wstring wpath = StringFormat::UTF82Wide(path.c_str());
+  return PathIsRelativeW(wpath.c_str()) != 0;
 }
 
 string GetFullPathname(const string &filename)

@@ -237,6 +237,7 @@ string GetReplayAppFilename();
 
 void CreateParentDirectory(const string &filename);
 
+bool IsRelativePath(const string &path);
 string GetFullPathname(const string &filename);
 
 void GetExecutableFilename(string &selfName);
