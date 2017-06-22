@@ -1,6 +1,8 @@
 option(STATIC_QRENDERDOC "Compile qrenderdoc as static" OFF)
 option(QRENDERDOC_NO_CXX11_REGEX "Disable C++11 regex in scintilla" OFF)
 
+set(QMAKE_QT5_COMMAND qmake CACHE STRING "Command to run to invoke Qt5's qmake. Normally this is qmake, possibly with qtchooser, but might be qmake-qt5")
+
 set(QMAKE_CONFIG "debug")
 set(QMAKE_LDFLAGS "")
 set(QMAKE_CXXFLAGS "")
@@ -199,7 +201,7 @@ endforeach()
 # which causes CMake to rerun this target every time so that Qt
 # can do dependency checking and rebuild anything necessary.
 add_custom_command(OUTPUT QRenderDoc
-	COMMAND qmake "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
+	COMMAND ${QMAKE_QT5_COMMAND} "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
 	COMMAND $(MAKE)
 	DEPENDS RenderDoc.icns
 	DEPENDS ${swig_output})
