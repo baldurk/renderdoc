@@ -2,6 +2,7 @@ option(STATIC_QRENDERDOC "Compile qrenderdoc as static" OFF)
 option(QRENDERDOC_NO_CXX11_REGEX "Disable C++11 regex in scintilla" OFF)
 
 set(QMAKE_QT5_COMMAND qmake CACHE STRING "Command to run to invoke Qt5's qmake. Normally this is qmake, possibly with qtchooser, but might be qmake-qt5")
+set(RENDERDOC_SWIG_PACKAGE https://github.com/baldurk/swig/archive/renderdoc-3.0.12.zip CACHE STRING "The location where RenderDoc's swig fork source can be found. By default points to the URL on github but can be pointed to a local file.")
 
 set(QMAKE_CONFIG "debug")
 set(QMAKE_LDFLAGS "")
@@ -67,7 +68,7 @@ find_package(BISON)
 # Compile our custom SWIG that will do scoped/strong enum classes
 ExternalProject_Add(custom_swig
     # using an URL to a zip directly so we don't clone the history etc
-    URL https://github.com/baldurk/swig/archive/renderdoc-3.0.12.zip
+    URL ${RENDERDOC_SWIG_PACKAGE}
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ./autogen.sh > /dev/null 2>&1
     COMMAND CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} ./configure --with-pcre=yes --prefix=${CMAKE_BINARY_DIR} > /dev/null
