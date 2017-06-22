@@ -41,6 +41,8 @@ std::string trim(const std::string &str);
 
 uint32_t strhash(const char *str, uint32_t existingHash = 5381);
 
+bool endswith(const std::string &value, const std::string &ending);
+
 template <class strType>
 strType basename(const strType &path)
 {
