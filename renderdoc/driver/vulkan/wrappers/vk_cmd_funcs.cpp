@@ -219,15 +219,27 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
 
     const std::vector<uint32_t> &cols = info.subpasses[subpass].colorAttachments;
 
-    // first colour attachment, if there is one
-    const uint32_t col0 = cols.empty() ? (uint32_t)atts.size() : cols[0];
+    // we check all non-UNUSED attachments to see if they're all the same.
+    // To begin with we point to an invalid attachment index
+    uint32_t col0 = VK_ATTACHMENT_UNUSED;
 
-    // look through all other non-depth attachments to see if they're
-    // identical
-    for(size_t i = 1; i < cols.size(); i++)
+    // look through all other color attachments to see if they're identical
+    for(size_t i = 0; i < cols.size(); i++)
     {
       const uint32_t col = cols[i];
 
+      // skip unused attachments
+      if(col == VK_ATTACHMENT_UNUSED)
+        continue;
+
+      // the first valid attachment we find, use that as our reference point
+      if(col0 == VK_ATTACHMENT_UNUSED)
+      {
+        col0 = col;
+        continue;
+      }
+
+      // for any other attachments, compare them to the reference
       if(store)
       {
         if(atts[col].storeOp != atts[col0].storeOp)
@@ -251,6 +263,11 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
       // the full details
 
       opDesc = store ? "Different store ops" : "Different load ops";
+    }
+    else if(col0 == VK_ATTACHMENT_UNUSED)
+    {
+      // we're here if we didn't find any non-UNUSED color attachments at all
+      opDesc = "Unused";
     }
     else
     {
