@@ -455,36 +455,45 @@ public:
           int elIdx = columnLookup[col - reservedColumnCount()];
           int compIdx = componentForIndex(col);
 
+          float lightnessOn = qBound(0.25, view->palette().color(QPalette::Base).lightnessF(), 0.75);
+          float lightnessOff = lightnessOn > 0.5f ? lightnessOn + 0.2f : lightnessOn - 0.2f;
+
+          static float a = 0.55f;
+          static float b = 0.8f;
+
           if(elIdx == positionEl)
           {
-            if(role == Qt::ForegroundRole)
-              return QBrush(Qt::black);
-
+            QColor backCol;
             if(compIdx != 3 || !meshInput)
             {
-              // C# SkyBlue
-              return QBrush(QColor::fromRgb(135, 206, 235));
+              backCol = QColor::fromHslF(0.55f, 0.75f, lightnessOn);
             }
             else
             {
-              // C# LightCyan
-              return QBrush(QColor::fromRgb(224, 255, 255));
+              backCol = QColor::fromHslF(0.55f, 0.75f, lightnessOff);
             }
+
+            if(role == Qt::ForegroundRole)
+              return QBrush(contrastingColor(backCol, view->palette().color(QPalette::Text)));
+
+            return backCol;
           }
           else if(secondaryEnabled && elIdx == secondaryEl)
           {
-            if(role == Qt::ForegroundRole)
-              return QBrush(Qt::black);
-
+            QColor backCol;
             if((secondaryElAlpha && compIdx == 3) || (!secondaryElAlpha && compIdx != 3))
             {
-              // C# LightGreen
-              return QBrush(QColor::fromRgb(144, 238, 144));
+              backCol = QColor::fromHslF(0.33f, 0.75f, lightnessOn);
             }
             else
             {
-              return QBrush(QColor::fromRgb(200, 238, 200));
+              backCol = QColor::fromHslF(0.33f, 0.75f, lightnessOff);
             }
+
+            if(role == Qt::ForegroundRole)
+              return QBrush(contrastingColor(backCol, view->palette().color(QPalette::Text)));
+
+            return backCol;
           }
         }
         else
