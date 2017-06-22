@@ -25,6 +25,10 @@ CONTAINER_TYPEMAPS(QMap)
 // pass QWidget objects to PySide
 %typemap(in) QWidget * {
   $1 = PythonContext::QWidgetFromPy($input);
+  if($input && !$1)
+  {
+    SWIG_exception_fail(SWIG_TypeError, "in method '$symname' QWidget expected for argument $argnum of type '$1_basetype'");
+  }
 }
 
 %typemap(out) QWidget * {
@@ -118,10 +122,10 @@ QWidget *UnwrapBareQWidget(PyObject *obj)
   res = SWIG_ConvertPtr(obj, (void **)&ret,SWIGTYPE_p_QWidget, 0);
   if(!SWIG_IsOK(res))
   {
-    SWIG_exception_fail(SWIG_ArgError(res), "in method 'UnwrapBareQWidget'");
+    return NULL;
   }
-fail:
-  return NULL;
+
+  return ret;
 }
 
 %}
