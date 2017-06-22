@@ -64,6 +64,8 @@ Merge commits should not be included in pull requests as they just muddy the his
 
 To make things easier for everyone, I've adopted clang-format for keeping code consistently formatted. Since clang-format can change its output depending on version number even with the same configuration options, I have fixed the version used for RenderDoc at [clang-format-3.8](http://llvm.org/releases/3.8.0/tools/clang/docs/ClangFormatStyleOptions.html). This formatting is enforced by CI checks that run on PRs, so if you aren't running the same version locally it will show up there.
 
+There are instructions on how to set up git hooks or IDE integration [on the wiki](https://github.com/baldurk/renderdoc/wiki/Code-formatting-(using-clang-format)).
+
 Do not make any intermediate commits which don't follow the formatting conventions. Having several intermediate commits with mismatched formatting then a single 'reformatted code' commit at the end makes history and blames harder to read, which is an important tool for others to understand your code. It is much easier to enforce proper formatting on each commit as you go along, than to try and rebase and merge formatting changes in after the fact.
 
 Since it's not covered by a pure formatting check, don't use overly modern C++ unnecessarily. Although the minimum compiler spec is now higher than it was in the past (as of March 2017) and modern features may be supported, some modern C++ constructs do not fit with the style of the rest of the code.
