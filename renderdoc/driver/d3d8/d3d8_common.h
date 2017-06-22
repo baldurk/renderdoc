@@ -77,3 +77,7 @@ public:
   unsigned int SoftRef(WrappedD3DDevice8 *device);
   unsigned int SoftRelease(WrappedD3DDevice8 *device);
 };
+
+#define IMPLEMENT_FUNCTION_SERIALISED(ret, func) \
+  ret func;                                      \
+  bool CONCAT(Serialise_, func);

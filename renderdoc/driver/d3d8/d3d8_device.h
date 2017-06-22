@@ -25,6 +25,7 @@
 #pragma once
 #include "common/timing.h"
 #include "d3d8_common.h"
+#include "d3d8_manager.h"
 
 class D3D8DebugManager;
 
@@ -50,6 +51,10 @@ public:
   }
 
   D3D8DebugManager *GetDebugManager() { return m_DebugManager; }
+  D3D8ResourceManager *GetResourceManager() { return m_ResourceManager; }
+  Threading::CriticalSection &D3DLock() { return m_D3DLock; }
+  IMPLEMENT_FUNCTION_SERIALISED(void, ReleaseResource(IDirect3DResource8 *res));
+
   /*** IUnknown methods ***/
   ULONG STDMETHODCALLTYPE AddRef() { return m_RefCounter.AddRef(); }
   ULONG STDMETHODCALLTYPE Release()
@@ -205,10 +210,18 @@ private:
 
   IDirect3DDevice8 *m_device;
   D3D8DebugManager *m_DebugManager;
+  D3D8ResourceManager *m_ResourceManager;
 
   D3DPRESENT_PARAMETERS m_PresentParameters;
 
   HWND m_Wnd;
+
+  // ensure all calls in via the D3D wrapped interface are thread safe
+  // protects wrapped resource creation and serialiser access
+  Threading::CriticalSection m_D3DLock;
+
+  Serialiser *m_pSerialiser;
+  LogState m_State;
 
   unsigned int m_InternalRefcount;
   RefCounter8 m_RefCounter;

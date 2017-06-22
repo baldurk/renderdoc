@@ -162,7 +162,7 @@ IDirect3D8 * WINAPI Direct3DCreate8(UINT SDKVersion);
 #undef INTERFACE
 #define INTERFACE IDirect3D8
 
-DECLARE_INTERFACE_(IDirect3D8, IUnknown)
+DECLARE_INTERFACE_IID_(IDirect3D8, IUnknown, "1DD9E8DA-1C77-4d40-B0CF-98FEFDFF9512")
 {
     /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) PURE;
@@ -244,7 +244,7 @@ typedef struct IDirect3D8 *LPDIRECT3D8, *PDIRECT3D8;
 #undef INTERFACE
 #define INTERFACE IDirect3DDevice8
 
-DECLARE_INTERFACE_(IDirect3DDevice8, IUnknown)
+DECLARE_INTERFACE_IID_(IDirect3DDevice8, IUnknown, "7385E5DF-8FE8-41D5-86B6-D7B48547B6CF")
 {
     /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) PURE;
@@ -553,7 +553,7 @@ typedef struct IDirect3DDevice8 *LPDIRECT3DDEVICE8, *PDIRECT3DDEVICE8;
 #undef INTERFACE
 #define INTERFACE IDirect3DSwapChain8
 
-DECLARE_INTERFACE_(IDirect3DSwapChain8, IUnknown)
+DECLARE_INTERFACE_IID_(IDirect3DSwapChain8, IUnknown, "928C088B-76B9-4C6B-A536-A590853876CD")
 {
     /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) PURE;
@@ -586,7 +586,7 @@ typedef struct IDirect3DSwapChain8 *LPDIRECT3DSWAPCHAIN8, *PDIRECT3DSWAPCHAIN8;
 #undef INTERFACE
 #define INTERFACE IDirect3DResource8
 
-DECLARE_INTERFACE_(IDirect3DResource8, IUnknown)
+DECLARE_INTERFACE_IID_(IDirect3DResource8, IUnknown, "1B36BB7B-09B7-410a-B445-7D1430D7B33F")
 {
     /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) PURE;
@@ -638,7 +638,7 @@ typedef struct IDirect3DResource8 *LPDIRECT3DRESOURCE8, *PDIRECT3DRESOURCE8;
 #undef INTERFACE
 #define INTERFACE IDirect3DBaseTexture8
 
-DECLARE_INTERFACE_(IDirect3DBaseTexture8, IDirect3DResource8)
+DECLARE_INTERFACE_IID_(IDirect3DBaseTexture8, IDirect3DResource8, "B4211CFA-51B9-4a9f-AB78-DB99B2BB678E")
 {
     /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) PURE;
@@ -700,7 +700,7 @@ typedef struct IDirect3DBaseTexture8 *LPDIRECT3DBASETEXTURE8, *PDIRECT3DBASETEXT
 #undef INTERFACE
 #define INTERFACE IDirect3DTexture8
 
-DECLARE_INTERFACE_(IDirect3DTexture8, IDirect3DBaseTexture8)
+DECLARE_INTERFACE_IID_(IDirect3DTexture8, IDirect3DBaseTexture8, "E4CDD575-2866-4f01-B12E-7EECE1EC9358")
 {
     /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) PURE;
@@ -777,7 +777,7 @@ typedef struct IDirect3DTexture8 *LPDIRECT3DTEXTURE8, *PDIRECT3DTEXTURE8;
 #undef INTERFACE
 #define INTERFACE IDirect3DVolumeTexture8
 
-DECLARE_INTERFACE_(IDirect3DVolumeTexture8, IDirect3DBaseTexture8)
+DECLARE_INTERFACE_IID_(IDirect3DVolumeTexture8, IDirect3DBaseTexture8, "4B8AAAFA-140F-42ba-9131-597EAFAA2EAD")
 {
     /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) PURE;
@@ -854,7 +854,7 @@ typedef struct IDirect3DVolumeTexture8 *LPDIRECT3DVOLUMETEXTURE8, *PDIRECT3DVOLU
 #undef INTERFACE
 #define INTERFACE IDirect3DCubeTexture8
 
-DECLARE_INTERFACE_(IDirect3DCubeTexture8, IDirect3DBaseTexture8)
+DECLARE_INTERFACE_IID_(IDirect3DCubeTexture8, IDirect3DBaseTexture8, "3EE5B968-2ACA-4c34-8BB5-7E0C3D19B750")
 {
     /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) PURE;
@@ -930,7 +930,7 @@ typedef struct IDirect3DCubeTexture8 *LPDIRECT3DCUBETEXTURE8, *PDIRECT3DCUBETEXT
 #undef INTERFACE
 #define INTERFACE IDirect3DVertexBuffer8
 
-DECLARE_INTERFACE_(IDirect3DVertexBuffer8, IDirect3DResource8)
+DECLARE_INTERFACE_IID_(IDirect3DVertexBuffer8, IDirect3DResource8, "8AEEEAC7-05F9-44d4-B591-000B0DF1CB95")
 {
     /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) PURE;
@@ -991,7 +991,7 @@ typedef struct IDirect3DVertexBuffer8 *LPDIRECT3DVERTEXBUFFER8, *PDIRECT3DVERTEX
 #undef INTERFACE
 #define INTERFACE IDirect3DIndexBuffer8
 
-DECLARE_INTERFACE_(IDirect3DIndexBuffer8, IDirect3DResource8)
+DECLARE_INTERFACE_IID_(IDirect3DIndexBuffer8, IDirect3DResource8, "0E689C9A-053D-44a0-9D92-DB0E3D750F86")
 {
     /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) PURE;
@@ -1052,7 +1052,7 @@ typedef struct IDirect3DIndexBuffer8 *LPDIRECT3DINDEXBUFFER8, *PDIRECT3DINDEXBUF
 #undef INTERFACE
 #define INTERFACE IDirect3DSurface8
 
-DECLARE_INTERFACE_(IDirect3DSurface8, IUnknown)
+DECLARE_INTERFACE_IID_(IDirect3DSurface8, IUnknown, "B96EEBCA-B326-4ea5-882F-2FF5BAE021DD")
 {
     /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) PURE;
@@ -1104,7 +1104,7 @@ typedef struct IDirect3DSurface8 *LPDIRECT3DSURFACE8, *PDIRECT3DSURFACE8;
 #undef INTERFACE
 #define INTERFACE IDirect3DVolume8
 
-DECLARE_INTERFACE_(IDirect3DVolume8, IUnknown)
+DECLARE_INTERFACE_IID_(IDirect3DVolume8, IUnknown, "BD7349F5-14F1-42e4-9C79-972380DB40C0")
 {
     /*** IUnknown methods ***/
     STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) PURE;

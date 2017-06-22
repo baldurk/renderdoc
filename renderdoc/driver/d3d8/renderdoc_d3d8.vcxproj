@@ -102,7 +102,9 @@
     <ClCompile Include="d3d8_debug.cpp" />
     <ClCompile Include="d3d8_device.cpp" />
     <ClCompile Include="d3d8_hooks.cpp" />
+    <ClCompile Include="d3d8_manager.cpp" />
     <ClCompile Include="d3d8_replay.cpp" />
+    <ClCompile Include="d3d8_resources.cpp" />
     <ClCompile Include="precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -116,6 +118,8 @@
     <ClInclude Include="d3d8_common.h" />
     <ClInclude Include="d3d8_debug.h" />
     <ClInclude Include="d3d8_device.h" />
+    <ClInclude Include="d3d8_manager.h" />
+    <ClInclude Include="d3d8_resources.h" />
     <ClInclude Include="precompiled.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
