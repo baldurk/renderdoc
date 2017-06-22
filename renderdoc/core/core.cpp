@@ -71,6 +71,7 @@ string ToStrHelper<false, RDCDriver>::Get(const RDCDriver &el)
     case RDC_D3D11: return "D3D11";
     case RDC_D3D10: return "D3D10";
     case RDC_D3D9: return "D3D9";
+    case RDC_D3D8: return "D3D8";
     case RDC_Image: return "Image";
     case RDC_Vulkan: return "Vulkan";
     default: break;
