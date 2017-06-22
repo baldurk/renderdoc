@@ -201,6 +201,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
     # -Wno-shift-negative-value available
     set_source_files_properties(3rdparty/jpeg-compressor/jpgd.cpp
         PROPERTIES COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-shift-negative-value")
+
+    if(CMAKE_COMPILER_IS_GNUCXX)
+        set_property(SOURCE 3rdparty/jpeg-compressor/jpgd.cpp
+            APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unknown-warning -Wno-implicit-fallthrough")
+    endif()
 endif()
 
 add_library(rdoc OBJECT ${sources})

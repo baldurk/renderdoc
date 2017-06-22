@@ -114,6 +114,11 @@ file(WRITE
      "OSX_ICONFILE=${CMAKE_CURRENT_BINARY_DIR}/RenderDoc.icns\n")
 
 # propagate build version info. Lots of escaping needed here to pass ""s into the define value
+if(CMAKE_COMPILER_IS_GNUCXX)
+    file(APPEND
+        ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+        "QMAKE_CXXFLAGS+=-Wno-unknown-warning -Wno-implicit-fallthrough\n")
+endif()
 
 file(APPEND
     ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
