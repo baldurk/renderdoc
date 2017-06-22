@@ -368,6 +368,18 @@ void ToolWindowManager::removeToolWindow(QWidget *toolWindow) {
     qWarning("unknown tool window");
     return;
   }
+
+  // search up to find the first parent manager
+  ToolWindowManager *manager = findClosestParent<ToolWindowManager*>(toolWindow);
+
+  if (!manager) {
+    qWarning("unknown tool window");
+    return;
+  }
+
+  if (!manager->allowClose(toolWindow))
+    return;
+
   moveToolWindow(toolWindow, NoArea);
   m_toolWindows.removeOne(toolWindow);
   m_toolWindowProperties.remove(toolWindow);
@@ -1128,6 +1140,23 @@ bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
   return QWidget::eventFilter(object, event);
 }
 
+bool ToolWindowManager::allowClose(QWidget *toolWindow) {
+  if (!m_toolWindows.contains(toolWindow)) {
+    qWarning("unknown tool window");
+    return true;
+  }
+  int methodIndex = toolWindow->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("checkAllowClose()"));
+
+  if(methodIndex >= 0) {
+    bool ret = true;
+    toolWindow->metaObject()->method(methodIndex).invoke(toolWindow, Qt::DirectConnection, Q_RETURN_ARG(bool, ret));
+
+    return ret;
+  }
+
+  return true;
+}
+
 void ToolWindowManager::tabCloseRequested(int index) {
   ToolWindowManagerArea* tabWidget = qobject_cast<ToolWindowManagerArea*>(sender());
   if (!tabWidget) {
@@ -1140,15 +1169,8 @@ void ToolWindowManager::tabCloseRequested(int index) {
     return;
   }
 
-  int methodIndex = toolWindow->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("checkAllowClose()"));
-
-  if(methodIndex >= 0) {
-    bool ret = true;
-    toolWindow->metaObject()->method(methodIndex).invoke(toolWindow, Qt::DirectConnection, Q_RETURN_ARG(bool, ret));
-
-    if(!ret)
-      return;
-  }
+  if (!allowClose(toolWindow))
+    return;
 
   if(toolWindowProperties(toolWindow) & ToolWindowManager::HideOnClose)
     hideToolWindow(toolWindow);

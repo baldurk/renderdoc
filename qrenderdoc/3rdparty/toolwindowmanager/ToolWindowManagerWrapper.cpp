@@ -148,11 +148,18 @@ void ToolWindowManagerWrapper::updateTitle() {
   setWindowTitle(QStringLiteral("Tool Window"));
 }
 
-void ToolWindowManagerWrapper::closeEvent(QCloseEvent *) {
+void ToolWindowManagerWrapper::closeEvent(QCloseEvent *event) {
   QList<QWidget*> toolWindows;
   foreach(ToolWindowManagerArea* tabWidget, findChildren<ToolWindowManagerArea*>()) {
     if (ToolWindowManager::managerOf(tabWidget) == m_manager) {
       toolWindows << tabWidget->toolWindows();
+    }
+  }
+
+  foreach(QWidget* toolWindow, toolWindows) {
+    if (!m_manager->allowClose(toolWindow)) {
+      event->ignore();
+      return;
     }
   }
 

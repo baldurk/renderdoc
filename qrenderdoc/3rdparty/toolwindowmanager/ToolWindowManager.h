@@ -300,6 +300,8 @@ private:
 
   void drawHotspotPixmaps();
 
+  bool allowClose(QWidget *toolWindow);
+
   // last widget used for adding tool windows, or 0 if there isn't one
   // (warning: may contain pointer to deleted object)
   ToolWindowManagerArea* m_lastUsedArea;
