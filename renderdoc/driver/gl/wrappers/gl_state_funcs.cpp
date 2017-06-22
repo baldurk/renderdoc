@@ -542,7 +542,10 @@ bool WrappedOpenGL::Serialise_glClearDepth(GLdouble depth)
 
   if(m_State <= EXECUTING)
   {
-    m_Real.glClearDepth(d);
+    if(IsGLES)
+      m_Real.glClearDepthf((float)d);
+    else
+      m_Real.glClearDepth(d);
   }
 
   return true;
