@@ -26,6 +26,7 @@
 #include "core/core.h"
 #include "serialise/serialiser.h"
 #include "d3d8_debug.h"
+#include "d3d8_resources.h"
 
 WrappedD3DDevice8::WrappedD3DDevice8(IDirect3DDevice8 *device, HWND wnd,
                                      D3DPRESENT_PARAMETERS *pPresentationParameters)
@@ -43,8 +44,17 @@ WrappedD3DDevice8::WrappedD3DDevice8(IDirect3DDevice8 *device, HWND wnd,
   m_InternalRefcount = 0;
   m_Alive = true;
 
+#if ENABLED(RDOC_RELEASE)
+  const bool debugSerialiser = false;
+#else
+  const bool debugSerialiser = true;
+#endif
+
   if(!RenderDoc::Inst().IsReplayApp())
   {
+    m_State = READING;
+    m_pSerialiser = NULL;
+
     RenderDoc::Inst().AddDeviceFrameCapturer((IDirect3DDevice8 *)this, this);
 
     m_Wnd = wnd;
@@ -52,6 +62,15 @@ WrappedD3DDevice8::WrappedD3DDevice8(IDirect3DDevice8 *device, HWND wnd,
     if(wnd != NULL)
       RenderDoc::Inst().AddFrameCapturer((IDirect3DDevice8 *)this, wnd, this);
   }
+  else
+  {
+    m_State = WRITING_IDLE;
+    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
+
+    m_pSerialiser->SetDebugText(true);
+  }
+
+  m_ResourceManager = new D3D8ResourceManager(m_State, m_pSerialiser, this);
 }
 
 void WrappedD3DDevice8::CheckForDeath()
@@ -80,7 +99,40 @@ WrappedD3DDevice8::~WrappedD3DDevice8()
 
   SAFE_DELETE(m_DebugManager);
 
+  m_ResourceManager->Shutdown();
+
+  SAFE_DELETE(m_ResourceManager);
+
   SAFE_RELEASE(m_device);
+
+  SAFE_DELETE(m_pSerialiser);
+
+  RDCASSERT(WrappedIDirect3DVertexBuffer8::m_BufferList.empty());
+  RDCASSERT(WrappedIDirect3DIndexBuffer8::m_BufferList.empty());
+}
+
+bool WrappedD3DDevice8::Serialise_ReleaseResource(IDirect3DResource8 *res)
+{
+  return true;
+}
+
+void WrappedD3DDevice8::ReleaseResource(IDirect3DResource8 *res)
+{
+  ResourceId id = GetResID((IUnknown *)res);
+
+  D3D8ResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+
+  if(record)
+    record->Delete(GetResourceManager());
+
+  // wrapped resources get released all the time, we don't want to
+  // try and slerp in a resource release. Just the explicit ones
+  if(m_State < WRITING)
+  {
+    if(GetResourceManager()->HasLiveResource(id))
+      GetResourceManager()->EraseLiveResource(id);
+    return;
+  }
 }
 
 HRESULT WrappedD3DDevice8::QueryInterface(REFIID riid, void **ppvObject)
@@ -295,14 +347,62 @@ HRESULT __stdcall WrappedD3DDevice8::CreateVertexBuffer(UINT Length, DWORD Usage
                                                         D3DPOOL Pool,
                                                         IDirect3DVertexBuffer8 **ppVertexBuffer)
 {
-  return m_device->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer);
+  IDirect3DVertexBuffer8 *real = NULL;
+  IDirect3DVertexBuffer8 *wrapped = NULL;
+  HRESULT ret = m_device->CreateVertexBuffer(Length, Usage, FVF, Pool, &real);
+
+  if(SUCCEEDED(ret))
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    wrapped = new WrappedIDirect3DVertexBuffer8(real, Length, this);
+
+    if(m_State >= WRITING)
+    {
+      // TODO: Serialise
+    }
+    else
+    {
+      WrappedIDirect3DVertexBuffer8 *w = (WrappedIDirect3DVertexBuffer8 *)wrapped;
+
+      m_ResourceManager->AddLiveResource(w->GetResourceID(), wrapped);
+    }
+
+    *ppVertexBuffer = wrapped;
+  }
+
+  return ret;
 }
 
 HRESULT __stdcall WrappedD3DDevice8::CreateIndexBuffer(UINT Length, DWORD Usage, D3DFORMAT Format,
                                                        D3DPOOL Pool,
                                                        IDirect3DIndexBuffer8 **ppIndexBuffer)
 {
-  return m_device->CreateIndexBuffer(Length, Usage, Format, Pool, ppIndexBuffer);
+  IDirect3DIndexBuffer8 *real = NULL;
+  IDirect3DIndexBuffer8 *wrapped = NULL;
+  HRESULT ret = m_device->CreateIndexBuffer(Length, Usage, Format, Pool, &real);
+
+  if(SUCCEEDED(ret))
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    wrapped = new WrappedIDirect3DIndexBuffer8(real, Length, this);
+
+    if(m_State >= WRITING)
+    {
+      // TODO: Serialise
+    }
+    else
+    {
+      WrappedIDirect3DIndexBuffer8 *w = (WrappedIDirect3DIndexBuffer8 *)wrapped;
+
+      m_ResourceManager->AddLiveResource(w->GetResourceID(), wrapped);
+    }
+
+    *ppIndexBuffer = wrapped;
+  }
+
+  return ret;
 }
 
 HRESULT __stdcall WrappedD3DDevice8::CreateRenderTarget(UINT Width, UINT Height, D3DFORMAT Format,
@@ -638,26 +738,46 @@ HRESULT __stdcall WrappedD3DDevice8::GetVertexShaderFunction(DWORD Handle, void 
 HRESULT __stdcall WrappedD3DDevice8::SetStreamSource(UINT StreamNumber,
                                                      IDirect3DVertexBuffer8 *pStreamData, UINT Stride)
 {
-  return m_device->SetStreamSource(StreamNumber, pStreamData, Stride);
+  return m_device->SetStreamSource(StreamNumber, Unwrap(pStreamData), Stride);
 }
 
 HRESULT __stdcall WrappedD3DDevice8::GetStreamSource(UINT StreamNumber,
                                                      IDirect3DVertexBuffer8 **ppStreamData,
                                                      UINT *pStride)
 {
-  return m_device->GetStreamSource(StreamNumber, ppStreamData, pStride);
+  IDirect3DVertexBuffer8 *real;
+  HRESULT ret = m_device->GetStreamSource(StreamNumber, &real, pStride);
+
+  if(SUCCEEDED(ret))
+  {
+    SAFE_RELEASE_NOCLEAR(real);
+    *ppStreamData = (IDirect3DVertexBuffer8 *)GetResourceManager()->GetWrapper(real);
+    SAFE_ADDREF(*ppStreamData);
+  }
+
+  return ret;
 }
 
 HRESULT __stdcall WrappedD3DDevice8::SetIndices(IDirect3DIndexBuffer8 *pIndexData,
                                                 UINT BaseVertexIndex)
 {
-  return m_device->SetIndices(pIndexData, BaseVertexIndex);
+  return m_device->SetIndices(Unwrap(pIndexData), BaseVertexIndex);
 }
 
 HRESULT __stdcall WrappedD3DDevice8::GetIndices(IDirect3DIndexBuffer8 **ppIndexData,
                                                 UINT *pBaseVertexIndex)
 {
-  return m_device->GetIndices(ppIndexData, pBaseVertexIndex);
+  IDirect3DIndexBuffer8 *real;
+  HRESULT ret = m_device->GetIndices(&real, pBaseVertexIndex);
+
+  if(SUCCEEDED(ret))
+  {
+    SAFE_RELEASE_NOCLEAR(real);
+    *ppIndexData = (IDirect3DIndexBuffer8 *)GetResourceManager()->GetWrapper(real);
+    SAFE_ADDREF(*ppIndexData);
+  }
+
+  return ret;
 }
 
 HRESULT __stdcall WrappedD3DDevice8::CreatePixelShader(CONST DWORD *pFunction, DWORD *pHandle)

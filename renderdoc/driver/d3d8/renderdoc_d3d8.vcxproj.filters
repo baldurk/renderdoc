@@ -19,6 +19,9 @@
     <Filter Include="PCH">
       <UniqueIdentifier>{74FA3D85-A524-442D-9682-BB832AB5E136}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Util">
+      <UniqueIdentifier>{025d23be-15d8-4d7d-bcbb-5899d5984f30}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3d8_hooks.cpp">
@@ -38,6 +41,12 @@
     </ClCompile>
     <ClCompile Include="precompiled.cpp">
       <Filter>PCH</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d8_manager.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d8_resources.cpp">
+      <Filter>Util</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -67,6 +76,12 @@
     </ClInclude>
     <ClInclude Include="precompiled.h">
       <Filter>PCH</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d8_resources.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d8_manager.h">
+      <Filter>Util</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
