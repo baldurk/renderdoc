@@ -777,7 +777,7 @@ namespace renderdocui.Windows
             lastEdit = DateTime.Now;
         }
 
-        private void captures_KeyUp(object sender, KeyEventArgs e)
+        private void captures_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Delete)
             {

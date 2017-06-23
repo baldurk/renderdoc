@@ -399,7 +399,7 @@
             this.captures.View = System.Windows.Forms.View.Tile;
             this.captures.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.captures_AfterLabelEdit);
             this.captures.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.captures_ItemSelectionChanged);
-            this.captures.KeyUp += new System.Windows.Forms.KeyEventHandler(this.captures_KeyUp);
+            this.captures.KeyDown += new System.Windows.Forms.KeyEventHandler(this.captures_KeyDown);
             this.captures.MouseClick += new System.Windows.Forms.MouseEventHandler(this.captures_MouseClick);
             this.captures.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.captures_MouseDoubleClick);
             // 
