@@ -833,7 +833,7 @@ public:
       std::string deviceID;
       Android::extractDeviceIDAndIndex(m_hostname, index, deviceID);
 
-      string adbStdout = Android::adbExecCommand(deviceID, "shell pm list packages -3");
+      string adbStdout = Android::adbExecCommand(deviceID, "shell pm list packages -3").strStdout;
       using namespace std;
       istringstream stdoutStream(adbStdout);
       string line;

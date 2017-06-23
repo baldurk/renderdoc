@@ -577,7 +577,19 @@ void extractDeviceIDAndIndex(const string &hostname, int &index, string &deviceI
 
   deviceID = c;
 }
-string adbExecCommand(const string &device, const string &args)
+Process::ProcessResult execCommand(const string &cmd, const string &workDir = ".")
+{
+  RDCLOG("COMMAND: %s", cmd.c_str());
+
+  size_t firstSpace = cmd.find(" ");
+  string exe = cmd.substr(0, firstSpace);
+  string args = cmd.substr(firstSpace + 1, cmd.length());
+
+  Process::ProcessResult result;
+  Process::LaunchProcess(exe.c_str(), workDir.c_str(), args.c_str(), &result);
+  return result;
+}
+Process::ProcessResult adbExecCommand(const string &device, const string &args)
 {
   string adbExePath = RenderDoc::Inst().GetConfigSetting("adbExePath");
   if(adbExePath.empty())
@@ -607,18 +619,11 @@ string adbExecCommand(const string &device, const string &args)
     deviceArgs = args;
   else
     deviceArgs = StringFormat::Fmt("-s %s %s", device.c_str(), args.c_str());
-  Process::LaunchProcess(adbExePath.c_str(), "", deviceArgs.c_str(), &result);
-  RDCLOG("COMMAND: adb %s", args.c_str());
-  if(result.strStdout.length())
-    // This could be an error (i.e. no package), or just regular output from adb devices.
-    RDCLOG("STDOUT:\n%s", result.strStdout.c_str());
-  if(result.strStderror.length())
-    RDCLOG("STDERR:\n%s", result.strStderror.c_str());
-  return result.strStdout;
+  return execCommand(string(adbExePath + " " + deviceArgs).c_str());
 }
 string adbGetDeviceList()
 {
-  return adbExecCommand("", "devices");
+  return adbExecCommand("", "devices").strStdout;
 }
 void adbForwardPorts(int index, const std::string &deviceID)
 {
@@ -695,8 +700,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(cons
     return;
   }
 
-  string manuf = trim(adbExecCommand(deviceID, "shell getprop ro.product.manufacturer"));
-  string model = trim(adbExecCommand(deviceID, "shell getprop ro.product.model"));
+  string manuf = trim(adbExecCommand(deviceID, "shell getprop ro.product.manufacturer").strStdout);
+  string model = trim(adbExecCommand(deviceID, "shell getprop ro.product.model").strStdout);
 
   std::string combined;
 
@@ -827,14 +832,14 @@ bool installRenderDocServer(const string &deviceID)
   // clang-format on
 
   // 32-bit server works for 32 and 64 bit apps, so install 32-bit matching ABI
-  string adbAbi = trim(adbExecCommand(deviceID, "shell getprop ro.product.cpu.abi"));
+  string adbAbi = trim(adbExecCommand(deviceID, "shell getprop ro.product.cpu.abi").strStdout);
 
   string adbInstall;
   switch(abi_string_map[adbAbi])
   {
     case Android_armeabi_v7a:
     case Android_arm64_v8a:
-      adbInstall = adbExecCommand(deviceID, "install -r --abi armeabi-v7a " + serverApk);
+      adbInstall = adbExecCommand(deviceID, "install -r --abi armeabi-v7a " + serverApk).strStdout;
       break;
     case Android_armeabi:
     case Android_x86:
@@ -849,7 +854,7 @@ bool installRenderDocServer(const string &deviceID)
   }
 
   // Ensure installation succeeded
-  string adbCheck = adbExecCommand(deviceID, "shell pm list packages org.renderdoc.renderdoccmd");
+  string adbCheck = adbExecCommand(deviceID, "shell pm list packages org.renderdoc.renderdoccmd").strStdout;
   if(adbCheck.empty())
   {
     RDCERR("Installation of RenderDocCmd.apk failed!");
@@ -870,7 +875,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
 
   // We should hook up versioning of the server, then re-install if the version is old or mismatched
   // But for now, just install it, if not already present
-  string adbPackage = adbExecCommand(deviceID, "shell pm list packages org.renderdoc.renderdoccmd");
+  string adbPackage = adbExecCommand(deviceID, "shell pm list packages org.renderdoc.renderdoccmd").strStdout;
   if(adbPackage.empty())
   {
     if(!installRenderDocServer(deviceID))
