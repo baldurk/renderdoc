@@ -153,7 +153,7 @@ void ToolWindowManagerTabBar::paintEvent(QPaintEvent *event) {
 
     bool tabClosable = (props & ToolWindowManager::HideCloseButton) == 0;
 
-    if (!tabClosable)
+    if (!tabClosable && !m_pin.rect.isEmpty())
       buttonOpt.rect = m_close.rect;
 
     QStyle::State prevState = buttonOpt.state;
@@ -234,7 +234,8 @@ void ToolWindowManagerTabBar::mousePressEvent(QMouseEvent *event) {
   QRect closeRect = m_close.rect;
 
   if (!tabClosable) {
-    pinRect = closeRect;
+    if (!pinRect.isEmpty())
+      pinRect = closeRect;
     closeRect = QRect();
   }
 
@@ -276,7 +277,8 @@ void ToolWindowManagerTabBar::mouseMoveEvent(QMouseEvent *event) {
   QRect closeRect = m_close.rect;
 
   if (!tabClosable) {
-    pinRect = closeRect;
+    if (!pinRect.isEmpty())
+      pinRect = closeRect;
     closeRect = QRect();
   }
 
@@ -317,7 +319,8 @@ void ToolWindowManagerTabBar::mouseReleaseEvent(QMouseEvent *event) {
   QRect closeRect = m_close.rect;
 
   if (!tabClosable) {
-    pinRect = closeRect;
+    if (!pinRect.isEmpty())
+      pinRect = closeRect;
     closeRect = QRect();
   }
 
