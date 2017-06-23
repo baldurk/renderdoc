@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QTableView>
+#include "RDHeaderView.h"
 
 class RDTableView : public QTableView
 {
@@ -32,5 +33,38 @@ class RDTableView : public QTableView
 public:
   explicit RDTableView(QWidget *parent = 0);
 
+  // these aren't virtual so we can't override them properly, but it's convenient for internal use
+  // and any external calls that go to this type directly to use the correct version
+  RDHeaderView *horizontalHeader() const { return m_horizontalHeader; }
+  int columnViewportPosition(int column) const;
+  int columnAt(int x) const;
+  int columnWidth(int column) const;
+  void setColumnWidth(int column, int width);
+  void setColumnWidths(const QList<int> &widths);
+  void resizeColumnsToContents();
+
+  // these ones we CAN override, so even though the implementation is identical to QTableView we
+  // reimplement so it can pick up the above functions
+  QRect visualRect(const QModelIndex &index) const override;
+  QRegion visualRegionForSelection(const QItemSelection &selection) const override;
+  QModelIndex indexAt(const QPoint &p) const override;
+  void scrollTo(const QModelIndex &index, ScrollHint hint = QAbstractItemView::EnsureVisible) override;
+
+  void setColumnGroupRole(int role);
+  int columnGroupRole() const { return m_columnGroupRole; }
   QStyleOptionViewItem viewOptions() const override { return QTableView::viewOptions(); }
+  void setPinnedColumns(int numColumns);
+  int pinnedColumns() const { return m_pinnedColumns; }
+protected:
+  void paintEvent(QPaintEvent *e) override;
+  void updateGeometries() override;
+  void scrollContentsBy(int dx, int dy) override;
+
+  void paintCell(QPainter *painter, const QModelIndex &index, const QStyleOptionViewItem &opt);
+
+private:
+  int m_pinnedColumns = 0;
+  int m_columnGroupRole = 0;
+
+  RDHeaderView *m_horizontalHeader;
 };

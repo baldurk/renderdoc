@@ -357,6 +357,8 @@ uint32_t CalcIndex(BufferData *data, uint32_t vertID, int32_t baseVertex)
   return idx;
 }
 
+static int columnGroupRole = Qt::UserRole + 10000;
+
 class BufferItemModel : public QAbstractItemModel
 {
 public:
@@ -396,26 +398,29 @@ public:
 
   QVariant headerData(int section, Qt::Orientation orientation, int role) const override
   {
-    if(section < m_ColumnCount && orientation == Qt::Horizontal && role == Qt::DisplayRole)
+    if(section < m_ColumnCount && orientation == Qt::Horizontal)
     {
-      if(section == 0)
+      if(role == Qt::DisplayRole || role == columnGroupRole)
       {
-        return meshView ? lit("VTX") : lit("Element");
-      }
-      else if(section == 1 && meshView)
-      {
-        return lit("IDX");
-      }
-      else
-      {
-        const FormatElement &el = elementForColumn(section);
+        if(section == 0)
+        {
+          return meshView ? lit("VTX") : lit("Element");
+        }
+        else if(section == 1 && meshView)
+        {
+          return lit("IDX");
+        }
+        else
+        {
+          const FormatElement &el = elementForColumn(section);
 
-        if(el.format.compCount == 1)
-          return el.name;
+          if(el.format.compCount == 1 || role == columnGroupRole)
+            return el.name;
 
-        QChar comps[] = {QLatin1Char('x'), QLatin1Char('y'), QLatin1Char('z'), QLatin1Char('w')};
+          QChar comps[] = {QLatin1Char('x'), QLatin1Char('y'), QLatin1Char('z'), QLatin1Char('w')};
 
-        return QFormatStr("%1.%2").arg(el.name).arg(comps[componentForIndex(section)]);
+          return QFormatStr("%1.%2").arg(el.name).arg(comps[componentForIndex(section)]);
+        }
       }
     }
 
@@ -447,6 +452,14 @@ public:
 
       uint32_t row = index.row();
       int col = index.column();
+
+      if(role == columnGroupRole)
+      {
+        if(col < reservedColumnCount())
+          return -1 - col;
+        else
+          return columnLookup[col - reservedColumnCount()];
+      }
 
       if((role == Qt::BackgroundRole || role == Qt::ForegroundRole) && col >= reservedColumnCount())
       {
@@ -1088,6 +1101,9 @@ void BufferViewer::SetupRawView()
   ui->dockarea->addToolWindow(ui->vsinData, ToolWindowManager::EmptySpace);
   ui->dockarea->setToolWindowProperties(ui->vsinData, ToolWindowManager::HideCloseButton);
 
+  ui->vsinData->setPinnedColumns(1);
+  ui->vsinData->setColumnGroupRole(columnGroupRole);
+
   ui->formatSpecifier->setWindowTitle(tr("Buffer Format"));
   ui->dockarea->addToolWindow(ui->formatSpecifier, ToolWindowManager::AreaReference(
                                                        ToolWindowManager::BottomOf,
@@ -1190,6 +1206,14 @@ void BufferViewer::SetupMeshView()
   ui->vsinData->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
   ui->vsoutData->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
   ui->gsoutData->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
+
+  ui->vsinData->setPinnedColumns(2);
+  ui->vsoutData->setPinnedColumns(2);
+  ui->gsoutData->setPinnedColumns(2);
+
+  ui->vsinData->setColumnGroupRole(columnGroupRole);
+  ui->vsoutData->setColumnGroupRole(columnGroupRole);
+  ui->gsoutData->setColumnGroupRole(columnGroupRole);
 
   QObject::connect(ui->vsinData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
                    [this](const QPoint &pos) { meshHeaderMenu(MeshDataStage::VSIn, pos); });
@@ -2307,17 +2331,21 @@ void BufferViewer::ApplyRowAndColumnDims(int numColumns, RDTableView *view)
 {
   int start = 0;
 
+  QList<int> widths;
+
   // vertex/element
-  view->setColumnWidth(start++, m_IdxColWidth);
+  widths << m_IdxColWidth;
 
   // mesh view only - index
   if(m_MeshView)
-    view->setColumnWidth(start++, m_IdxColWidth);
+    widths << m_IdxColWidth;
 
   for(int i = start; i < numColumns; i++)
-    view->setColumnWidth(i, m_DataColWidth);
+    widths << m_DataColWidth;
 
   view->verticalHeader()->setDefaultSectionSize(m_DataRowHeight);
+
+  view->setColumnWidths(widths);
 }
 
 void BufferViewer::UpdateMeshConfig()

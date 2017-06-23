@@ -36,12 +36,88 @@ public:
   explicit RDHeaderView(Qt::Orientation orient, QWidget *parent = 0);
   ~RDHeaderView();
 
+  int groupGapSize() const { return 6; }
+  QSize sizeHint() const override;
+  void setModel(QAbstractItemModel *model) override;
+  void reset() override;
+
+  // these aren't virtual so we can't override them properly, but it's convenient for internal use
+  // and any external calls that go to this type directly to use the correct version
+  int sectionSize(int logicalIndex) const;
+  int sectionViewportPosition(int logicalIndex) const;
+  int visualIndexAt(int position) const;
+  int logicalIndexAt(int position) const;
+  int count() const;
+  void resizeSection(int logicalIndex, int size);
+  void resizeSections(const QList<int> &sizes);
+  void resizeSections(QHeaderView::ResizeMode mode);
+
+  inline int logicalIndexAt(int x, int y) const;
+  inline int logicalIndexAt(const QPoint &pos) const;
+
+  bool hasGroupGap(int columnIndex) const;
+  bool hasGroupTitle(int columnIndex) const;
+
+  void setColumnGroupRole(int role) { m_columnGroupRole = role; }
+  int columnGroupRole() const { return m_columnGroupRole; }
+  void setPinnedColumns(int numColumns) { m_pinnedColumns = numColumns; }
+  int pinnedColumns() const { return m_pinnedColumns; }
+  void setCustomSizing(bool sizing) { m_customSizing = sizing; }
+  int pinnedWidth() { return m_pinnedWidth; }
+public slots:
+  void headerDataChanged(Qt::Orientation orientation, int logicalFirst, int logicalLast);
+  void columnsInserted(const QModelIndex &parent, int first, int last);
+
 protected:
   void mousePressEvent(QMouseEvent *event) override;
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
+  void paintEvent(QPaintEvent *e) override;
+
+  void paintSection(QPainter *painter, const QRect &rect, int section) const override;
+  void currentChanged(const QModelIndex &current, const QModelIndex &old) override;
+
+  enum ResizeType
+  {
+    NoResize,
+    LeftResize,
+    RightResize
+  };
+
+  QPair<ResizeType, int> checkResizing(QMouseEvent *event);
+  QPair<ResizeType, int> m_resizeState;
+  int m_cursorPos;
+
+  void cacheSections();
+
+  struct SectionData
+  {
+    int offset = 0;
+    int size = 0;
+    int group = 0;
+    bool groupGap = false;
+  };
+
+  QSize m_sizeHint;
+  QVector<SectionData> m_sections;
+  int m_pinnedWidth = 0;
+
+  bool m_suppressSectionCache = false;
+  bool m_customSizing = false;
+
+  int m_columnGroupRole = 0;
+  int m_pinnedColumns = 0;
 
   int m_movingSection = -1;
   QLabel *m_sectionPreview;
   int m_sectionPreviewOffset = 0;
 };
+
+inline int RDHeaderView::logicalIndexAt(int ax, int ay) const
+{
+  return orientation() == Qt::Horizontal ? logicalIndexAt(ax) : logicalIndexAt(ay);
+}
+inline int RDHeaderView::logicalIndexAt(const QPoint &apos) const
+{
+  return logicalIndexAt(apos.x(), apos.y());
+}
