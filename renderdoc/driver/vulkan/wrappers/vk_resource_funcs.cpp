@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "../vk_core.h"
+#include "../vk_debug.h"
 
 /************************************************************************
  *
@@ -1143,9 +1144,18 @@ bool WrappedVulkan::Serialise_vkCreateImage(Serialiser *localSerialiser, VkDevic
       // colour targets we do a simple compute copy, for depth-stencil we need
       // to take a slower path that uses drawing
       if(!IsDepthOrStencilFormat(info.format))
-        info.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+      {
+        // only add STORAGE_BIT if we have an MS2Array pipeline. If it failed to create due to lack
+        // of capability or because we disabled it as a workaround then we don't need this
+        // capability (and it might be the bug we're trying to work around by disabling the
+        // pipeline)
+        if(GetDebugManager()->m_MS2ArrayPipe)
+          info.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+      }
       else
+      {
         info.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      }
     }
 
     VkResult ret = ObjDisp(device)->CreateImage(Unwrap(device), &info, NULL, &img);
@@ -1216,9 +1226,14 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     if(m_State >= WRITING)
     {
       if(!IsDepthOrStencilFormat(createInfo_adjusted.format))
-        createInfo_adjusted.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+      {
+        if(GetDebugManager()->m_MS2ArrayPipe)
+          createInfo_adjusted.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+      }
       else
+      {
         createInfo_adjusted.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      }
     }
   }
 

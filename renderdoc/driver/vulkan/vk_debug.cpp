@@ -731,6 +731,22 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
         "version");
   }
 
+  // another workaround, on some AMD driver versions creating an MSAA image with STORAGE_BIT
+  // causes graphical corruption trying to sample from it. We workaround it by preventing the
+  // MSAA <-> Array pipelines from creating, which removes the STORAGE_BIT and skips the copies.
+  // It means initial contents of MSAA images are missing but that's less important than being
+  // able to inspect MSAA images properly.
+  bool amdStorageMSAABrokenDriver = false;
+
+// same as above, only affects the AMD official driver
+#if ENABLED(RDOC_WIN32)
+  if(driverVersion.IsAMD())
+  {
+    // not fixed yet
+    amdStorageMSAABrokenDriver = true;
+  }
+#endif
+
   // needed in both replay and capture, create depth MS->array pipelines
   {
     {
@@ -1054,7 +1070,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
     }
 
-    if(!texelFetchBrokenDriver && m_pDriver->GetDeviceFeatures().shaderStorageImageMultisample &&
+    if(!texelFetchBrokenDriver && !amdStorageMSAABrokenDriver &&
+       m_pDriver->GetDeviceFeatures().shaderStorageImageMultisample &&
        m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
     {
       compPipeInfo.stage.module = ms2arrayModule;
@@ -1979,7 +1996,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
-  if(!texelFetchBrokenDriver && m_pDriver->GetDeviceFeatures().shaderStorageImageMultisample &&
+  if(!texelFetchBrokenDriver && !amdStorageMSAABrokenDriver &&
+     m_pDriver->GetDeviceFeatures().shaderStorageImageMultisample &&
      m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
   {
     compPipeInfo.stage.module = module[MS2ARRAYCS];
