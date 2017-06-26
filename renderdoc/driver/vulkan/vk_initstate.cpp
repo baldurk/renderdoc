@@ -1849,14 +1849,14 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
           }
         }
 
+        ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), Unwrap(arrayIm),
+                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                           (uint32_t)mainCopies.size(), &mainCopies[0]);
+
         if(!stencilCopies.empty())
           ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), Unwrap(arrayIm),
                                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                              (uint32_t)stencilCopies.size(), &stencilCopies[0]);
-
-        ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), Unwrap(arrayIm),
-                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                           (uint32_t)mainCopies.size(), &mainCopies[0]);
 
         // once transfers complete, get ready for copy array->ms
         dstimBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
