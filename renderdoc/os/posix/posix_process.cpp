@@ -455,18 +455,21 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
     result->strStderror = "";
 
     ssize_t stdoutRead, stderrRead;
+    char chBuf[4096];
     do
     {
-      char chBuf[1000];
       stdoutRead = read(stdoutPipe[0], chBuf, sizeof(chBuf));
       if(stdoutRead > 0)
         result->strStdout += string(chBuf, stdoutRead);
+    } while(stdoutRead > 0);
 
+    do
+    {
       stderrRead = read(stderrPipe[0], chBuf, sizeof(chBuf));
       if(stderrRead > 0)
         result->strStderror += string(chBuf, stderrRead);
 
-    } while(stdoutRead > 0 || stderrRead > 0);
+    } while(stderrRead > 0);
 
     // Close read ends.
     close(stdoutPipe[0]);
