@@ -328,6 +328,15 @@ string GetAppFolderFilename(const string &filename)
   return ret;
 }
 
+string GetTempFolderFilename()
+{
+  wchar_t temp_filename[MAX_PATH];
+
+  GetTempPathW(MAX_PATH, temp_filename);
+
+  return StringFormat::Wide2UTF8(wstring(temp_filename));
+}
+
 uint64_t GetModifiedTimestamp(const string &filename)
 {
   wstring wfn = StringFormat::UTF82Wide(filename);

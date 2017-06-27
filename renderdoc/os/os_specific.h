@@ -233,6 +233,7 @@ void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &
                      string &target);
 string GetHomeFolderFilename();
 string GetAppFolderFilename(const string &filename);
+string GetTempFolderFilename();
 string GetReplayAppFilename();
 
 void CreateParentDirectory(const string &filename);
