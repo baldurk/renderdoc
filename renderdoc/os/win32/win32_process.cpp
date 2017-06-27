@@ -925,20 +925,28 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
   {
     result->strStdout = "";
     result->strStderror = "";
+
+    char chBuf[4096];
+    DWORD dwOutputRead, dwErrorRead;
+    BOOL success = FALSE;
+    string s;
     for(;;)
     {
-      char chBuf[1000];
-      DWORD dwOutputRead, dwErrorRead;
-
-      BOOL success = ReadFile(hChildStdOutput_Rd, chBuf, sizeof(chBuf), &dwOutputRead, NULL);
-      string s(chBuf, dwOutputRead);
+      success = ReadFile(hChildStdOutput_Rd, chBuf, sizeof(chBuf), &dwOutputRead, NULL);
+      s = string(chBuf, dwOutputRead);
       result->strStdout += s;
 
+      if(!success && !dwOutputRead)
+        break;
+    }
+
+    for(;;)
+    {
       success = ReadFile(hChildStdError_Rd, chBuf, sizeof(chBuf), &dwErrorRead, NULL);
       s = string(chBuf, dwErrorRead);
       result->strStderror += s;
 
-      if(!success && !dwOutputRead && !dwErrorRead)
+      if(!success && !dwErrorRead)
         break;
     }
 
