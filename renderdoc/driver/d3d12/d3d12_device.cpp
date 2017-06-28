@@ -935,10 +935,12 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(Serialiser *localSerialiser,
       }
 
       // then afterwards just execute a list to copy the result
-      ID3D12GraphicsCommandList *list = GetNewList();
-      list->CopyBufferRegion(r, begin, uploadBuf, 0, end - begin);
-      list->Close();
-      ExecuteList(list);
+      m_DataUploadList->Reset(m_DataUploadAlloc, NULL);
+      m_DataUploadList->CopyBufferRegion(r, begin, uploadBuf, 0, end - begin);
+      m_DataUploadList->Close();
+      ID3D12CommandList *l = m_DataUploadList;
+      GetQueue()->ExecuteCommandLists(1, &l);
+      GPUSync();
     }
     else
     {
@@ -1050,13 +1052,15 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(Serialiser *localSerialis
       }
 
       // then afterwards just execute a list to copy the result
-      ID3D12GraphicsCommandList *list = GetNewList();
+      m_DataUploadList->Reset(m_DataUploadAlloc, NULL);
       UINT64 copySize = dataSize;
       if(HasBox)
         copySize = RDCMIN(copySize, UINT64(box.right - box.left));
-      list->CopyBufferRegion(r, HasBox ? box.left : 0, uploadBuf, 0, copySize);
-      list->Close();
-      ExecuteList(list);
+      m_DataUploadList->CopyBufferRegion(r, HasBox ? box.left : 0, uploadBuf, 0, copySize);
+      m_DataUploadList->Close();
+      ID3D12CommandList *l = m_DataUploadList;
+      GetQueue()->ExecuteCommandLists(1, &l);
+      GPUSync();
     }
     else
     {
@@ -2055,6 +2059,14 @@ void WrappedID3D12Device::CreateInternalResources()
   CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
   m_GPUSyncHandle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
+  CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator),
+                         (void **)&m_DataUploadAlloc);
+
+  CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_DataUploadAlloc, NULL,
+                    __uuidof(ID3D12GraphicsCommandList), (void **)&m_DataUploadList);
+
+  m_DataUploadList->Close();
+
   m_GPUSyncCounter = 0;
 
   RDCASSERT(m_DebugManager == NULL);
@@ -2076,6 +2088,9 @@ void WrappedID3D12Device::DestroyInternalResources()
 
   delete m_DebugManager;
   m_DebugManager = NULL;
+
+  SAFE_RELEASE(m_DataUploadList);
+  SAFE_RELEASE(m_DataUploadAlloc);
 
   SAFE_RELEASE(m_Alloc);
   SAFE_RELEASE(m_GPUSyncFence);

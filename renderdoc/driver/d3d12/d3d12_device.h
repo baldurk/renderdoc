@@ -232,8 +232,8 @@ private:
   // the queue we use for all internal work, the first DIRECT queue
   WrappedID3D12CommandQueue *m_Queue;
 
-  ID3D12CommandAllocator *m_Alloc;
-  ID3D12GraphicsCommandList *m_List;
+  ID3D12CommandAllocator *m_Alloc, *m_DataUploadAlloc;
+  ID3D12GraphicsCommandList *m_List, *m_DataUploadList;
   ID3D12Fence *m_GPUSyncFence;
   HANDLE m_GPUSyncHandle;
   UINT64 m_GPUSyncCounter;
