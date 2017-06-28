@@ -1038,9 +1038,13 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   wstring wlogfile = logfile == NULL ? L"" : StringFormat::UTF82Wide(string(logfile));
   wstring wpathmatch = StringFormat::UTF82Wide(string(pathmatch));
 
-  _snwprintf_s(paramsAlloc, 2047, 2047,
-               L"\"%ls\" globalhook --match \"%ls\" --log \"%ls\" --capopts \"%hs\"", renderdocPath,
-               wpathmatch.c_str(), wlogfile.c_str(), optstr.c_str());
+  std::string debugLogfile = RDCGETLOGFILE();
+  wstring wdebugLogfile = StringFormat::UTF82Wide(debugLogfile);
+
+  _snwprintf_s(
+      paramsAlloc, 2047, 2047,
+      L"\"%ls\" globalhook --match \"%ls\" --logfile \"%ls\" --debuglog \"%ls\" --capopts \"%hs\"",
+      renderdocPath, wpathmatch.c_str(), wlogfile.c_str(), wdebugLogfile.c_str(), optstr.c_str());
 
   paramsAlloc[2047] = 0;
 

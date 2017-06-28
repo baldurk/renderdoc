@@ -35,8 +35,9 @@
 #include <windows.h>
 
 struct CaptureOptions;
-typedef void(__cdecl *pRENDERDOC_SetCaptureOptions)(const CaptureOptions *opts);
-typedef void(__cdecl *pRENDERDOC_SetLogFile)(const char *logfile);
+typedef void(__cdecl *pINTERNAL_SetCaptureOptions)(const CaptureOptions *opts);
+typedef void(__cdecl *pINTERNAL_SetLogFile)(const char *logfile);
+typedef void(__cdecl *pRENDERDOC_SetDebugLogFile)(const char *logfile);
 
 #if defined(RELEASE)
 #define LOGPRINT(txt) \
@@ -113,16 +114,21 @@ void CheckHook()
 
       if(mod)
       {
-        pRENDERDOC_SetCaptureOptions setopts =
-            (pRENDERDOC_SetCaptureOptions)GetProcAddress(mod, "RENDERDOC_SetCaptureOptions");
-        pRENDERDOC_SetLogFile setlog =
-            (pRENDERDOC_SetLogFile)GetProcAddress(mod, "RENDERDOC_SetLogFile");
+        pINTERNAL_SetCaptureOptions setopts =
+            (pINTERNAL_SetCaptureOptions)GetProcAddress(mod, "INTERNAL_SetCaptureOptions");
+        pINTERNAL_SetLogFile setlogfile =
+            (pINTERNAL_SetLogFile)GetProcAddress(mod, "INTERNAL_SetLogFile");
+        pRENDERDOC_SetDebugLogFile setdebuglog =
+            (pRENDERDOC_SetDebugLogFile)GetProcAddress(mod, "RENDERDOC_SetDebugLogFile");
 
         if(setopts)
           setopts((const CaptureOptions *)data->opts);
 
-        if(setlog && data->log[0])
-          setlog(data->log);
+        if(setlogfile && data->logfile[0])
+          setlogfile(data->logfile);
+
+        if(setdebuglog && data->debuglog[0])
+          setdebuglog(data->debuglog);
       }
     }
     else

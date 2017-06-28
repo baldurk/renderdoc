@@ -678,7 +678,8 @@ struct GlobalHookCommand : public Command
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add<string>("match", 0, "");
-    parser.add<string>("log", 0, "");
+    parser.add<string>("logfile", 0, "");
+    parser.add<string>("debuglog", 0, "");
     parser.add<string>("capopts", 0, "");
   }
   virtual const char *Description() { return "Internal use only!"; }
@@ -687,7 +688,8 @@ struct GlobalHookCommand : public Command
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
     string pathmatch = parser.get<string>("match");
-    string log = parser.get<string>("log");
+    string logfile = parser.get<string>("logfile");
+    string debuglog = parser.get<string>("debuglog");
 
     CaptureOptions cmdopts;
     readCapOpts(parser.get<string>("capopts").c_str(), &cmdopts);
@@ -764,7 +766,8 @@ struct GlobalHookCommand : public Command
 
         wcsncpy_s(shimdata->pathmatchstring, wpathmatch.c_str(), _TRUNCATE);
         wcsncpy_s(shimdata->rdocpath, rdocpath, _TRUNCATE);
-        strncpy_s(shimdata->log, log.c_str(), _TRUNCATE);
+        strncpy_s(shimdata->logfile, logfile.c_str(), _TRUNCATE);
+        strncpy_s(shimdata->debuglog, debuglog.c_str(), _TRUNCATE);
         memcpy(shimdata->opts, &cmdopts, sizeof(CaptureOptions));
 
         static_assert(sizeof(CaptureOptions) <= sizeof(shimdata->opts),
