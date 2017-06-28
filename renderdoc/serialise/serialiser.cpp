@@ -67,8 +67,8 @@ struct CompressedFileIO
   }
 
   ~CompressedFileIO() { SAFE_DELETE_ARRAY(m_CompressBuf); }
-  uint32_t GetCompressedSize() { return m_CompressedSize; }
-  uint32_t GetUncompressedSize() { return m_UncompressedSize; }
+  uint64_t GetCompressedSize() { return m_CompressedSize; }
+  uint64_t GetUncompressedSize() { return m_UncompressedSize; }
   // write out some data - accumulate into the input pages, then
   // when a page is full call Flush() to flush it out to disk
   void Write(const void *data, size_t len)
@@ -76,7 +76,7 @@ struct CompressedFileIO
     if(data == NULL || len == 0)
       return;
 
-    m_UncompressedSize += (uint32_t)len;
+    m_UncompressedSize += (uint64_t)len;
 
     const byte *src = (const byte *)data;
 
@@ -125,7 +125,7 @@ struct CompressedFileIO
     FileIO::fwrite(&compSize, sizeof(compSize), 1, m_F);
     FileIO::fwrite(m_CompressBuf, 1, compSize, m_F);
 
-    m_CompressedSize += compSize + sizeof(int32_t);
+    m_CompressedSize += uint64_t(compSize) + sizeof(int32_t);
 
     m_PageOffset = 0;
     m_PageIdx = 1 - m_PageIdx;
@@ -147,7 +147,7 @@ struct CompressedFileIO
     if(data == NULL || len == 0)
       return;
 
-    m_UncompressedSize += (uint32_t)len;
+    m_UncompressedSize += (uint64_t)len;
 
     // loop continually, writing up to BlockSize out of what remains of data
     do
@@ -182,7 +182,7 @@ struct CompressedFileIO
     FileIO::fread(&compSize, sizeof(compSize), 1, m_F);
     size_t numRead = FileIO::fread(m_CompressBuf, 1, compSize, m_F);
 
-    m_CompressedSize += compSize;
+    m_CompressedSize += uint64_t(compSize);
 
     m_PageIdx = 1 - m_PageIdx;
 
@@ -228,7 +228,7 @@ struct CompressedFileIO
   LZ4_stream_t m_LZ4Comp;
   LZ4_streamDecode_t m_LZ4Decomp;
   FILE *m_F;
-  uint32_t m_CompressedSize, m_UncompressedSize;
+  uint64_t m_CompressedSize, m_UncompressedSize;
 
   byte m_InPages[2][BlockSize];
   size_t m_PageIdx, m_PageOffset, m_PageData;
@@ -881,7 +881,17 @@ Serialiser::Serialiser(const char *path, Mode mode, bool debugMode, uint64_t siz
           }
           else
           {
-            FileIO::fseek64(m_ReadFileHandle, sectionHeader.sectionLength, SEEK_CUR);
+            if(sectionHeader.sectionLength == 0xffffffff)
+            {
+              RDCWARN(
+                  "Section length 0xFFFFFFFF - assuming truncated value! Seeking to end of file, "
+                  "discarding any remaining sections.");
+              FileIO::fseek64(m_ReadFileHandle, 0, SEEK_END);
+            }
+            else
+            {
+              FileIO::fseek64(m_ReadFileHandle, sectionHeader.sectionLength, SEEK_CUR);
+            }
           }
         }
         else
@@ -1457,7 +1467,16 @@ void Serialiser::FlushToDisk()
 
       FileIO::fseek64(binFile, compressedSizeOffset, SEEK_SET);
 
-      compsize = fwriter.GetCompressedSize();
+      uint64_t realCompSize = fwriter.GetCompressedSize();
+
+      if(realCompSize > 0xffffffff)
+      {
+        RDCERR("Compressed file size %llu exceeds representable capture size! May cause corruption",
+               realCompSize);
+        realCompSize = 0xffffffffULL;
+      }
+
+      compsize = uint32_t(realCompSize);
       FileIO::fwrite(&compsize, 1, sizeof(compsize), binFile);
 
       FileIO::fseek64(binFile, uncompressedSizeOffset, SEEK_SET);
@@ -1467,7 +1486,7 @@ void Serialiser::FlushToDisk()
 
       FileIO::fseek64(binFile, curoffs, SEEK_SET);
 
-      RDCLOG("Compressed frame capture data from %u to %u", fwriter.GetUncompressedSize(),
+      RDCLOG("Compressed frame capture data from %llu to %llu", fwriter.GetUncompressedSize(),
              fwriter.GetCompressedSize());
     }
 
