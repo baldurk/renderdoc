@@ -1377,10 +1377,13 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
         num = base->samp.heap->GetNumDescriptors() - offset;
       }
 
-      std::vector<D3D12Descriptor *> &descs = m_ListRecord->cmdInfo->boundDescs;
+      if(!RenderDoc::Inst().GetCaptureOptions().RefAllResources)
+      {
+        std::vector<D3D12Descriptor *> &descs = m_ListRecord->cmdInfo->boundDescs;
 
-      for(UINT d = 0; d < num; d++)
-        descs.push_back(rangeStart + d);
+        for(UINT d = 0; d < num; d++)
+          descs.push_back(rangeStart + d);
+      }
 
       prevTableOffset = offset + num;
     }
@@ -1892,10 +1895,13 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
         num = base->samp.heap->GetNumDescriptors() - offset;
       }
 
-      std::vector<D3D12Descriptor *> &descs = m_ListRecord->cmdInfo->boundDescs;
+      if(!RenderDoc::Inst().GetCaptureOptions().RefAllResources)
+      {
+        std::vector<D3D12Descriptor *> &descs = m_ListRecord->cmdInfo->boundDescs;
 
-      for(UINT d = 0; d < num; d++)
-        descs.push_back(rangeStart + d);
+        for(UINT d = 0; d < num; d++)
+          descs.push_back(rangeStart + d);
+      }
 
       prevTableOffset = offset + num;
     }
