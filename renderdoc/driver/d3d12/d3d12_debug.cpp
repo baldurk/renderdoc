@@ -200,6 +200,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
         &heapProps, D3D12_HEAP_FLAG_NONE, &pickPixelDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
         __uuidof(ID3D12Resource), (void **)&m_PickPixelTex);
 
+    m_PickPixelTex->SetName(L"m_PickPixelTex");
+
     if(FAILED(hr))
     {
       RDCERR("Failed to create rendering texture for pixel picking, HRESULT: 0x%08x", hr);
@@ -242,6 +244,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     hr = m_WrappedDevice->CreateCommittedResource(
         &heapProps, D3D12_HEAP_FLAG_NONE, &readbackDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
         __uuidof(ID3D12Resource), (void **)&m_ReadbackBuffer);
+
+    m_ReadbackBuffer->SetName(L"m_ReadbackBuffer");
 
     if(FAILED(hr))
     {
@@ -826,6 +830,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
         &heapProps, D3D12_HEAP_FLAG_NONE, &pickResultDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
         NULL, __uuidof(ID3D12Resource), (void **)&m_PickResultBuf);
 
+    m_PickResultBuf->SetName(L"m_PickResultBuf");
+
     if(FAILED(hr))
     {
       RDCERR("Failed to create tile buffer for min/max, HRESULT: 0x%08x", hr);
@@ -888,6 +894,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
         &heapProps, D3D12_HEAP_FLAG_NONE, &minmaxDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, NULL,
         __uuidof(ID3D12Resource), (void **)&m_MinMaxTileBuffer);
 
+    m_MinMaxTileBuffer->SetName(L"m_MinMaxTileBuffer");
+
     if(FAILED(hr))
     {
       RDCERR("Failed to create tile buffer for min/max, HRESULT: 0x%08x", hr);
@@ -947,6 +955,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     hr = m_WrappedDevice->CreateCommittedResource(
         &heapProps, D3D12_HEAP_FLAG_NONE, &minmaxDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, NULL,
         __uuidof(ID3D12Resource), (void **)&m_MinMaxResultBuffer);
+
+    m_MinMaxResultBuffer->SetName(L"m_MinMaxResultBuffer");
 
     if(FAILED(hr))
     {
@@ -1025,6 +1035,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     hr = m_WrappedDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &texDesc,
                                                   D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                                   __uuidof(ID3D12Resource), (void **)&m_Font.Tex);
+
+    m_Font.Tex->SetName(L"m_Font.Tex");
 
     if(FAILED(hr))
       RDCERR("Failed to create m_Font.Tex %08x", hr);
@@ -1383,6 +1395,8 @@ void D3D12DebugManager::CreateSOBuffers()
                                                 D3D12_RESOURCE_STATE_STREAM_OUT, NULL,
                                                 __uuidof(ID3D12Resource), (void **)&m_SOBuffer);
 
+  m_SOBuffer->SetName(L"m_SOBuffer");
+
   if(FAILED(hr))
   {
     RDCERR("Failed to create SO output buffer, HRESULT: 0x%08x", hr);
@@ -1395,6 +1409,8 @@ void D3D12DebugManager::CreateSOBuffers()
   hr = m_WrappedDevice->CreateCommittedResource(
       &heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
       __uuidof(ID3D12Resource), (void **)&m_SOStagingBuffer);
+
+  m_SOStagingBuffer->SetName(L"m_SOStagingBuffer");
 
   if(FAILED(hr))
   {
@@ -1410,6 +1426,8 @@ void D3D12DebugManager::CreateSOBuffers()
   hr = m_WrappedDevice->CreateCommittedResource(
       &heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
       __uuidof(ID3D12Resource), (void **)&m_SOPatchedIndexBuffer);
+
+  m_SOPatchedIndexBuffer->SetName(L"m_SOPatchedIndexBuffer");
 
   if(FAILED(hr))
   {
@@ -1871,6 +1889,8 @@ void D3D12DebugManager::OutputWindow::MakeRTV(bool multisampled)
                                     D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
                                     __uuidof(ID3D12Resource), (void **)&col);
 
+  col->SetName(L"Output Window RTV");
+
   if(FAILED(hr))
   {
     RDCERR("Failed to create colour texture for window, HRESULT: 0x%08x", hr);
@@ -1886,6 +1906,8 @@ void D3D12DebugManager::OutputWindow::MakeRTV(bool multisampled)
     hr = dev->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
                                       D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
                                       __uuidof(ID3D12Resource), (void **)&colResolve);
+
+    col->SetName(L"Output Window Resolve");
 
     if(FAILED(hr))
     {
@@ -1930,6 +1952,8 @@ void D3D12DebugManager::OutputWindow::MakeDSV()
   HRESULT hr = dev->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
                                             D3D12_RESOURCE_STATE_DEPTH_WRITE, NULL,
                                             __uuidof(ID3D12Resource), (void **)&depth);
+
+  col->SetName(L"Output Window Depth");
 
   if(FAILED(hr))
   {
@@ -2636,6 +2660,8 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
       hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vbDesc,
                                                     D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
                                                     __uuidof(ID3D12Resource), (void **)&m_PickVB);
+
+      m_PickVB->SetName(L"m_PickVB");
 
       if(FAILED(hr))
       {
@@ -4164,6 +4190,8 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
                                                       __uuidof(ID3D12Resource), (void **)&idxBuf);
         RDCASSERTEQUAL(hr, S_OK);
 
+        SetObjName(idxBuf, StringFormat::Fmt("PostVS idxBuf for %u", eventID));
+
         FillBuffer(idxBuf, 0, &idxdata[0], idxdata.size());
       }
     }
@@ -4254,7 +4282,10 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       RDCASSERTEQUAL(hr, S_OK);
 
       if(vsoutBuffer)
+      {
+        SetObjName(vsoutBuffer, StringFormat::Fmt("PostVS vsoutBuffer for %u", eventID));
         FillBuffer(vsoutBuffer, 0, byteData, (size_t)numBytesWritten);
+      }
     }
 
     float nearp = 0.1f;
@@ -4783,7 +4814,10 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       RDCASSERTEQUAL(hr, S_OK);
 
       if(gsoutBuffer)
+      {
+        SetObjName(gsoutBuffer, StringFormat::Fmt("PostVS gsoutBuffer for %u", eventID));
         FillBuffer(gsoutBuffer, 0, byteData, (size_t)numBytesWritten);
+      }
     }
 
     float nearp = 0.1f;
@@ -6161,6 +6195,8 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
           D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
           NULL, __uuidof(ID3D12Resource), (void **)&m_TexResource);
       RDCASSERTEQUAL(hr, S_OK);
+
+      m_TexResource->SetName(L"m_TexResource");
     }
 
     ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
@@ -6816,9 +6852,14 @@ ResourceId D3D12DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
     RDCASSERTEQUAL(hr, S_OK);
 
     if(m_CustomShaderTex)
+    {
+      m_CustomShaderTex->SetName(L"m_CustomShaderTex");
       m_CustomShaderResourceId = GetResID(m_CustomShaderTex);
+    }
     else
+    {
       m_CustomShaderResourceId = ResourceId();
+    }
   }
 
   if(m_CustomShaderResourceId == ResourceId())
@@ -6928,6 +6969,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     }
     wrappedCustomRenderTex = (WrappedID3D12Resource *)customRenderTex;
 
+    customRenderTex->SetName(L"customRenderTex");
+
     m_OverlayRenderTex = wrappedCustomRenderTex;
     m_OverlayResourceId = wrappedCustomRenderTex->GetResourceID();
   }
@@ -6961,6 +7004,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       RDCERR("Failed to create renderDepth %08x", hr);
       return m_OverlayResourceId;
     }
+
+    renderDepth->SetName(L"Overlay renderDepth");
 
     ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 

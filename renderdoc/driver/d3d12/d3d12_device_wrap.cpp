@@ -55,6 +55,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue(Serialiser *localSerialis
     }
     else
     {
+      SetObjName(ret, StringFormat::Fmt("Command Queue ID %llu", Queue));
+
       ret = new WrappedID3D12CommandQueue(ret, this, m_pSerialiser, m_State);
 
       GetResourceManager()->AddLiveResource(Queue, ret);
@@ -977,6 +979,9 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
     }
     else
     {
+      SetObjName(ret, StringFormat::Fmt("Committed Resource %s ID %llu",
+                                        ToStr::Get(desc.Dimension).c_str(), Res));
+
       ret = new WrappedID3D12Resource(ret, this);
 
       GetResourceManager()->AddLiveResource(Res, ret);
@@ -1166,6 +1171,9 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
     }
     else
     {
+      SetObjName(ret, StringFormat::Fmt("Placed Resource %s ID %llu",
+                                        ToStr::Get(desc.Dimension).c_str(), Res));
+
       ret = new WrappedID3D12Resource(ret, this);
 
       GetResourceManager()->AddLiveResource(Res, ret);

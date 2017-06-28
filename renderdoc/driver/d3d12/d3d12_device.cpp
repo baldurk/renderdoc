@@ -912,6 +912,9 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(Serialiser *localSerialiser,
 
       ID3D12Resource *uploadBuf = GetUploadBuffer(cmd.m_CurChunkOffset, end - begin);
 
+      SetObjName(uploadBuf, StringFormat::Fmt("Map data write, %llu bytes for %llu/%u @ %llu",
+                                              (begin - end), res, sub, cmd.m_CurChunkOffset));
+
       // during reading, fill out the buffer itself
       if(m_State == READING)
       {

@@ -841,6 +841,8 @@ void D3D12CommandData::GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint
                                                     D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, NULL,
                                                     __uuidof(ID3D12Resource), (void **)&argbuf);
 
+    SetObjName(argbuf, StringFormat::Fmt("Indirect Arg Buf (%llu bytes)", (uint64_t)size));
+
     if(FAILED(hr))
       RDCERR("Failed to create indirect buffer, HRESULT: 0x%08x", hr);
 

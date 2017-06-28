@@ -43,6 +43,11 @@ struct D3D12MarkerRegion
   ID3D12GraphicsCommandList *list;
 };
 
+inline void SetObjName(ID3D12Object *obj, const std::string &utf8name)
+{
+  obj->SetName(StringFormat::UTF82Wide(utf8name).c_str());
+}
+
 TextureDim MakeTextureDim(D3D12_SRV_DIMENSION dim);
 TextureDim MakeTextureDim(D3D12_RTV_DIMENSION dim);
 TextureDim MakeTextureDim(D3D12_DSV_DIMENSION dim);
