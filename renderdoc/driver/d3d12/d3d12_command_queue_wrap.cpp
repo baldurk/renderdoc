@@ -143,7 +143,19 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
   ID3D12CommandQueue *real = NULL;
 
   if(m_State <= EXECUTING)
+  {
     real = Unwrap(GetResourceManager()->GetLiveAs<ID3D12CommandQueue>(queueId));
+
+    if(m_PrevQueueId != queueId)
+    {
+      RDCDEBUG("Previous queue execution was on queue %llu, now executing %llu, syncing GPU",
+               m_PrevQueueId, queueId);
+      if(m_PrevQueueId != ResourceId())
+        m_pDevice->GPUSync(GetResourceManager()->GetLiveAs<ID3D12CommandQueue>(m_PrevQueueId));
+
+      m_PrevQueueId = queueId;
+    }
+  }
 
   if(m_State == READING)
   {

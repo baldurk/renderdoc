@@ -96,6 +96,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   // command recording/replay data shared between queues and lists
   D3D12CommandData m_Cmd;
 
+  ResourceId m_PrevQueueId;
   ResourceId m_BackbufferID;
 
   void ProcessChunk(uint64_t offset, D3D12ChunkType context);
