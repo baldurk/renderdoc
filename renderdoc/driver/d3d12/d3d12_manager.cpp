@@ -618,7 +618,10 @@ void D3D12ResourceManager::SerialiseResourceStates(vector<D3D12_RESOURCE_BARRIER
 
 bool D3D12ResourceManager::SerialisableResource(ResourceId id, D3D12ResourceRecord *record)
 {
-  if(record->SpecialResource)
+  if(record->type == Resource_GraphicsCommandList || record->type == Resource_CommandQueue)
+    return false;
+
+  if(m_Device->GetFrameCaptureResourceId() == id)
     return false;
 
   return true;
