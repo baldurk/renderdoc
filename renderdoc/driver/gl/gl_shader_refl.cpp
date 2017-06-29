@@ -2104,22 +2104,38 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
           }
           else
           {
-            const GLenum atomicRefEnum[] = {
-                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_VERTEX_SHADER,
-                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_CONTROL_SHADER,
-                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_EVALUATION_SHADER,
-                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_GEOMETRY_SHADER,
-                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER,
-                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER,
-            };
-            mapping.ReadWriteResources[i].bindset = 0;
-            gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex,
-                                                eGL_ATOMIC_COUNTER_BUFFER_BINDING,
-                                                &mapping.ReadWriteResources[i].bind);
-            GLint used = 0;
-            gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx], &used);
-            mapping.ReadWriteResources[i].used = (used != 0);
-            mapping.ReadWriteResources[i].arraySize = 1;
+            if(IsGLES)
+            {
+              prop = eGL_BUFFER_BINDING;
+              mapping.ReadWriteResources[i].bindset = 0;
+              gl.glGetProgramResourceiv(curProg, eGL_ATOMIC_COUNTER_BUFFER, atomicIndex, 1, &prop,
+                                        1, NULL, &mapping.ReadWriteResources[i].bind);
+              GLint used = 0;
+              gl.glGetProgramResourceiv(curProg, eGL_ATOMIC_COUNTER_BUFFER, atomicIndex, 1,
+                                        &refEnum[shadIdx], 1, NULL, &used);
+              mapping.ReadWriteResources[i].used = (used != 0);
+              mapping.ReadWriteResources[i].arraySize = 1;
+            }
+            else
+            {
+              const GLenum atomicRefEnum[] = {
+                  eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_VERTEX_SHADER,
+                  eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_CONTROL_SHADER,
+                  eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_EVALUATION_SHADER,
+                  eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_GEOMETRY_SHADER,
+                  eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER,
+                  eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER,
+              };
+              mapping.ReadWriteResources[i].bindset = 0;
+              gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex,
+                                                  eGL_ATOMIC_COUNTER_BUFFER_BINDING,
+                                                  &mapping.ReadWriteResources[i].bind);
+              GLint used = 0;
+              gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx],
+                                                  &used);
+              mapping.ReadWriteResources[i].used = (used != 0);
+              mapping.ReadWriteResources[i].arraySize = 1;
+            }
           }
         }
       }
