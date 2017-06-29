@@ -58,18 +58,20 @@ find dist/Release{32,64}/ -iname '*.iobj' -exec rm '{}' \;
 
 if [ -f bin-android32/RenderDocCmd.apk ]; then
 	# Building for android, copy the apk and vulkan layer into folders
-	mkdir -p dist/Release64/android/apk/32 dist/Release64/android/libs/armeabi-v7a
+	mkdir -p dist/Release64/android/apk dist/Release64/android/lib/armeabi-v7a
 
-	cp bin-android32/RenderDocCmd.apk dist/Release64/android/apk/32
-	cp bin-android32/librenderdoc.so dist/Release64/android/libs/armeabi-v7a/libVkLayer_RenderDoc.so
+	cp bin-android32/RenderDocCmd.apk dist/Release64/android/apk
+	cp bin-android32/librenderdoc.so dist/Release64/android/lib/armeabi-v7a/libVkLayer_RenderDoc.so
 fi
 
 if [ -f bin-android64/RenderDocCmd.apk ]; then
-	# Building for android, copy the apk and vulkan layer into folders
-	mkdir -p dist/Release64/android/apk/64 dist/Release64/android/libs/arm64-v8a
+	# We don't distribute the 64-bit apk, we use armeabi-v7a for both 32-bit and 64-bit
 
-	cp bin-android64/RenderDocCmd.apk dist/Release64/android/apk/64
-	cp bin-android64/librenderdoc.so dist/Release64/android/libs/arm64-v8a/libVkLayer_RenderDoc.so
+	# Building for android, copy the vulkan layer into folder
+	mkdir -p dist/Release64/android/lib/arm64-v8a
+
+	#cp bin-android64/RenderDocCmd.apk dist/Release64/android/apk/64
+	cp bin-android64/librenderdoc.so dist/Release64/android/lib/arm64-v8a/libVkLayer_RenderDoc.so
 fi
 
 # try to copy adb.exe in as well, with its dll dependencies
