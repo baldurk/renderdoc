@@ -91,6 +91,7 @@ bool WrappedID3D11Device::Serialise_CreateBlendState1(const D3D11_BLEND_DESC1 *p
     {
       if(GetResourceManager()->HasWrapper(ret))
       {
+        ret->Release();
         ret = (ID3D11BlendState1 *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
@@ -181,6 +182,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState1(
     {
       if(GetResourceManager()->HasWrapper(ret))
       {
+        ret->Release();
         ret = (ID3D11RasterizerState1 *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 

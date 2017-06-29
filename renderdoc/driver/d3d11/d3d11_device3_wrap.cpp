@@ -663,6 +663,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState2(
     {
       if(GetResourceManager()->HasWrapper(ret))
       {
+        ret->Release();
         ret = (ID3D11RasterizerState2 *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 

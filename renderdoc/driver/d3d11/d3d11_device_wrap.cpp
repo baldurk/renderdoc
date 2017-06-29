@@ -1995,6 +1995,7 @@ bool WrappedID3D11Device::Serialise_CreateBlendState(const D3D11_BLEND_DESC *pBl
     {
       if(GetResourceManager()->HasWrapper(ret))
       {
+        ret->Release();
         ret = (ID3D11BlendState *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
@@ -2079,6 +2080,7 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilState(
     {
       if(GetResourceManager()->HasWrapper(ret))
       {
+        ret->Release();
         ret = (ID3D11DepthStencilState *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
@@ -2163,6 +2165,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState(const D3D11_RASTERIZER
     {
       if(GetResourceManager()->HasWrapper(ret))
       {
+        ret->Release();
         ret = (ID3D11RasterizerState *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
@@ -2247,6 +2250,7 @@ bool WrappedID3D11Device::Serialise_CreateSamplerState(const D3D11_SAMPLER_DESC 
     {
       if(GetResourceManager()->HasWrapper(ret))
       {
+        ret->Release();
         ret = (ID3D11SamplerState *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
