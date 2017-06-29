@@ -519,9 +519,17 @@
   HookExtension(PFNGLGETACTIVEUNIFORMBLOCKNAMEPROC, glGetActiveUniformBlockName); \
   HookExtension(PFNGLUNIFORMBLOCKBINDINGPROC, glUniformBlockBinding); \
   HookExtension(PFNGLDRAWELEMENTSBASEVERTEXPROC, glDrawElementsBaseVertex); \
+  HookExtensionAlias(PFNGLDRAWELEMENTSBASEVERTEXPROC, glDrawElementsBaseVertex, glDrawElementsBaseVertexEXT); \
+  HookExtensionAlias(PFNGLDRAWELEMENTSBASEVERTEXPROC, glDrawElementsBaseVertex, glDrawElementsBaseVertexOES); \
   HookExtension(PFNGLDRAWRANGEELEMENTSBASEVERTEXPROC, glDrawRangeElementsBaseVertex); \
+  HookExtensionAlias(PFNGLDRAWRANGEELEMENTSBASEVERTEXPROC, glDrawRangeElementsBaseVertex, glDrawRangeElementsBaseVertexEXT); \
+  HookExtensionAlias(PFNGLDRAWRANGEELEMENTSBASEVERTEXPROC, glDrawRangeElementsBaseVertex, glDrawRangeElementsBaseVertexOES); \
   HookExtension(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC, glDrawElementsInstancedBaseVertex); \
+  HookExtensionAlias(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC, glDrawElementsInstancedBaseVertex, glDrawElementsInstancedBaseVertexEXT); \
+  HookExtensionAlias(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC, glDrawElementsInstancedBaseVertex, DrawElementsInstancedBaseVertexOES); \
   HookExtension(PFNGLMULTIDRAWELEMENTSBASEVERTEXPROC, glMultiDrawElementsBaseVertex); \
+  HookExtensionAlias(PFNGLMULTIDRAWELEMENTSBASEVERTEXPROC, glMultiDrawElementsBaseVertex, glMultiDrawElementsBaseVertexEXT); \
+  HookExtensionAlias(PFNGLMULTIDRAWELEMENTSBASEVERTEXPROC, glMultiDrawElementsBaseVertex, glMultiDrawElementsBaseVertexOES); \
   HookExtension(PFNGLPROVOKINGVERTEXPROC, glProvokingVertex); \
   HookExtensionAlias(PFNGLPROVOKINGVERTEXPROC, glProvokingVertex, glProvokingVertexEXT); \
   HookExtension(PFNGLFENCESYNCPROC, glFenceSync); \
@@ -3563,10 +3571,7 @@
     HookWrapper5(void, glblendfuncseparateioes, GLuint, buf, GLenum, srcRGB, GLenum, dstRGB, GLenum, srcAlpha, GLenum, dstAlpha); \
     HookWrapper5(void, glcolormaskioes, GLuint, index, GLboolean, r, GLboolean, g, GLboolean, b, GLboolean, a); \
     HookWrapper2(GLboolean, glisenabledioes, GLenum, target, GLuint, index); \
-    HookWrapper5(void, gldrawelementsbasevertexoes, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
-    HookWrapper7(void, gldrawrangeelementsbasevertexoes, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
     HookWrapper6(void, gldrawelementsinstancedbasevertexoes, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex); \
-    HookWrapper6(void, glmultidrawelementsbasevertexoes, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, primcount, const GLint *, basevertex); \
     HookWrapper5(void, glgetprogrambinaryoes, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLenum *, binaryFormat, void *, binary); \
     HookWrapper4(void, glprogrambinaryoes, GLuint, program, GLenum, binaryFormat, const void *, binary, GLint, length); \
     HookWrapper10(void, glteximage3does, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
@@ -3608,10 +3613,6 @@
     HookWrapper5(void, glclearteximageext, GLuint, texture, GLint, level, GLenum, format, GLenum, type, const void *, data); \
     HookWrapper11(void, glcleartexsubimageext, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, data); \
     HookWrapper3(void, gldiscardframebufferext, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
-    HookWrapper5(void, gldrawelementsbasevertexext, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
-    HookWrapper7(void, gldrawrangeelementsbasevertexext, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
-    HookWrapper6(void, gldrawelementsinstancedbasevertexext, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex); \
-    HookWrapper6(void, glmultidrawelementsbasevertexext, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, primcount, const GLint *, basevertex); \
     HookWrapper2(void, gldrawtransformfeedbackext, GLenum, mode, GLuint, id); \
     HookWrapper3(void, gldrawtransformfeedbackinstancedext, GLenum, mode, GLuint, id, GLsizei, instancecount); \
     HookWrapper2(void, glvertexattribdivisorext, GLuint, index, GLuint, divisor); \
@@ -5542,10 +5543,7 @@
     HandleUnsupported(PFNGLBLENDFUNCSEPARATEIOESPROC, glblendfuncseparateioes); \
     HandleUnsupported(PFNGLCOLORMASKIOESPROC, glcolormaskioes); \
     HandleUnsupported(PFNGLISENABLEDIOESPROC, glisenabledioes); \
-    HandleUnsupported(PFNGLDRAWELEMENTSBASEVERTEXOESPROC, gldrawelementsbasevertexoes); \
-    HandleUnsupported(PFNGLDRAWRANGEELEMENTSBASEVERTEXOESPROC, gldrawrangeelementsbasevertexoes); \
     HandleUnsupported(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXOESPROC, gldrawelementsinstancedbasevertexoes); \
-    HandleUnsupported(PFNGLMULTIDRAWELEMENTSBASEVERTEXOESPROC, glmultidrawelementsbasevertexoes); \
     HandleUnsupported(PFNGLGETPROGRAMBINARYOESPROC, glgetprogrambinaryoes); \
     HandleUnsupported(PFNGLPROGRAMBINARYOESPROC, glprogrambinaryoes); \
     HandleUnsupported(PFNGLTEXIMAGE3DOESPROC, glteximage3does); \
@@ -5587,10 +5585,6 @@
     HandleUnsupported(PFNGLCLEARTEXIMAGEEXTPROC, glclearteximageext); \
     HandleUnsupported(PFNGLCLEARTEXSUBIMAGEEXTPROC, glcleartexsubimageext); \
     HandleUnsupported(PFNGLDISCARDFRAMEBUFFEREXTPROC, gldiscardframebufferext); \
-    HandleUnsupported(PFNGLDRAWELEMENTSBASEVERTEXEXTPROC, gldrawelementsbasevertexext); \
-    HandleUnsupported(PFNGLDRAWRANGEELEMENTSBASEVERTEXEXTPROC, gldrawrangeelementsbasevertexext); \
-    HandleUnsupported(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXEXTPROC, gldrawelementsinstancedbasevertexext); \
-    HandleUnsupported(PFNGLMULTIDRAWELEMENTSBASEVERTEXEXTPROC, glmultidrawelementsbasevertexext); \
     HandleUnsupported(PFNGLDRAWTRANSFORMFEEDBACKEXTPROC, gldrawtransformfeedbackext); \
     HandleUnsupported(PFNGLDRAWTRANSFORMFEEDBACKINSTANCEDEXTPROC, gldrawtransformfeedbackinstancedext); \
     HandleUnsupported(PFNGLVERTEXATTRIBDIVISOREXTPROC, glvertexattribdivisorext); \
