@@ -1394,8 +1394,6 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       }
 
       InitDeviceExtensionTables(*pDevice);
-
-      GetRecord(m_Instance)->AddParent(record);
     }
     else
     {
