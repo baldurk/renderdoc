@@ -586,17 +586,17 @@ struct GLHookSet
   PFNGLPROGRAMUNIFORMMATRIX4X2DVPROC glProgramUniformMatrix4x2dv;    // aliases glProgramUniformMatrix4x2dvEXT
   PFNGLPROGRAMUNIFORMMATRIX4X3DVPROC glProgramUniformMatrix4x3dv;                       // aliases glProgramUniformMatrix4x3dvEXT
   PFNGLDRAWRANGEELEMENTSPROC glDrawRangeElements;    // aliases glDrawRangeElementsEXT
-  PFNGLDRAWRANGEELEMENTSBASEVERTEXPROC glDrawRangeElementsBaseVertex;
+  PFNGLDRAWRANGEELEMENTSBASEVERTEXPROC glDrawRangeElementsBaseVertex;   // aliases glDrawRangeElementsBaseVertexEXT, glDrawRangeElementsBaseVertexOES
   PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC glDrawArraysInstancedBaseInstance;    // aliases glDrawArraysInstancedBaseInstanceEXT
   PFNGLDRAWARRAYSINSTANCEDPROC glDrawArraysInstanced;    // aliases glDrawArraysInstancedARB, glDrawArraysInstancedEXT
   PFNGLDRAWELEMENTSINSTANCEDPROC glDrawElementsInstanced;    // aliases glDrawElementsInstancedARB, glDrawElementsInstancedEXT
   PFNGLDRAWELEMENTSINSTANCEDBASEINSTANCEPROC glDrawElementsInstancedBaseInstance;    // aliases glDrawElementsInstancedBaseInstanceEXT
-  PFNGLDRAWELEMENTSBASEVERTEXPROC glDrawElementsBaseVertex;
-  PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC glDrawElementsInstancedBaseVertex;
+  PFNGLDRAWELEMENTSBASEVERTEXPROC glDrawElementsBaseVertex;     // aliases glDrawElementsBaseVertexEXT, glDrawElementsBaseVertexOES
+  PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC glDrawElementsInstancedBaseVertex;   // aliases glDrawElementsInstancedBaseVertexEXT, DrawElementsInstancedBaseVertexOES
   PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEPROC glDrawElementsInstancedBaseVertexBaseInstance;    // aliases glDrawElementsInstancedBaseVertexBaseInstanceEXT
   PFNGLMULTIDRAWARRAYSPROC glMultiDrawArrays;    // aliases glMultiDrawArraysEXT
   PFNGLMULTIDRAWELEMENTSPROC glMultiDrawElements;
-  PFNGLMULTIDRAWELEMENTSBASEVERTEXPROC glMultiDrawElementsBaseVertex;
+  PFNGLMULTIDRAWELEMENTSBASEVERTEXPROC glMultiDrawElementsBaseVertex;   // aliases glMultiDrawElementsBaseVertexEXT, glMultiDrawElementsBaseVertexOES
   PFNGLMULTIDRAWARRAYSINDIRECTPROC glMultiDrawArraysIndirect;
   PFNGLMULTIDRAWELEMENTSINDIRECTPROC glMultiDrawElementsIndirect;
   PFNGLDRAWARRAYSINDIRECTPROC glDrawArraysIndirect;
