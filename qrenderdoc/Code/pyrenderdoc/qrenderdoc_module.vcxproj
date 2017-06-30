@@ -122,6 +122,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/wd4100 /wd4512 /wd4127</AdditionalOptions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\;..\..\3rdparty\python\include;$(SolutionDir)\renderdoc\api\replay;..\..\3rdparty\qt\$(Platform)\include;..\..\3rdparty\qt\$(Platform)\include\QtWidgets;..\..\3rdparty\qt\$(Platform)\include\QtGui;..\..\3rdparty\qt\$(Platform)\include\QtCore</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4714;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -149,6 +150,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/wd4100 /wd4512 /wd4127</AdditionalOptions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\;..\..\3rdparty\python\include;$(SolutionDir)\renderdoc\api\replay;..\..\3rdparty\qt\$(Platform)\include;..\..\3rdparty\qt\$(Platform)\include\QtWidgets;..\..\3rdparty\qt\$(Platform)\include\QtGui;..\..\3rdparty\qt\$(Platform)\include\QtCore</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4714;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -178,6 +180,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/wd4100 /wd4512 /wd4127</AdditionalOptions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\;..\..\3rdparty\python\include;$(SolutionDir)\renderdoc\api\replay;..\..\3rdparty\qt\$(Platform)\include;..\..\3rdparty\qt\$(Platform)\include\QtWidgets;..\..\3rdparty\qt\$(Platform)\include\QtGui;..\..\3rdparty\qt\$(Platform)\include\QtCore</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4714;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -207,6 +210,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/wd4100 /wd4512 /wd4127</AdditionalOptions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\;..\..\3rdparty\python\include;$(SolutionDir)\renderdoc\api\replay;..\..\3rdparty\qt\$(Platform)\include;..\..\3rdparty\qt\$(Platform)\include\QtWidgets;..\..\3rdparty\qt\$(Platform)\include\QtGui;..\..\3rdparty\qt\$(Platform)\include\QtCore</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4714;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
