@@ -70,13 +70,22 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint locat
 
   size_t totalSize = elemSize * elemsPerVec * Count;
   if(m_State >= WRITING)
-  {
     m_pSerialiser->RawWriteBytes(value, totalSize);
-  }
   else if(m_State <= EXECUTING)
-  {
     value = m_pSerialiser->RawReadBytes(totalSize);
 
+  union
+  {
+    float f[4];
+    int32_t i[4];
+    uint32_t u[4];
+    double d[4];
+  } v;
+  // Copy the pointer first to guarantee alignment, which is needed on ARM.
+  memcpy(v.d, value, RDCMIN(totalSize, sizeof(v.d)));
+
+  if(m_State <= EXECUTING)
+  {
     if(GetResourceManager()->HasLiveResource(id))
     {
       ResourceId liveProgId = GetResourceManager()->GetLiveID(id);
@@ -92,22 +101,22 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint locat
       {
         switch(Type)
         {
-          case VEC1iv: m_Real.glProgramUniform1iv(live, Loc, Count, (const GLint *)value); break;
-          case VEC1uiv: m_Real.glProgramUniform1uiv(live, Loc, Count, (const GLuint *)value); break;
-          case VEC1fv: m_Real.glProgramUniform1fv(live, Loc, Count, (const GLfloat *)value); break;
-          case VEC1dv: m_Real.glProgramUniform1dv(live, Loc, Count, (const GLdouble *)value); break;
-          case VEC2iv: m_Real.glProgramUniform2iv(live, Loc, Count, (const GLint *)value); break;
-          case VEC2uiv: m_Real.glProgramUniform2uiv(live, Loc, Count, (const GLuint *)value); break;
-          case VEC2fv: m_Real.glProgramUniform2fv(live, Loc, Count, (const GLfloat *)value); break;
-          case VEC2dv: m_Real.glProgramUniform2dv(live, Loc, Count, (const GLdouble *)value); break;
-          case VEC3iv: m_Real.glProgramUniform3iv(live, Loc, Count, (const GLint *)value); break;
-          case VEC3uiv: m_Real.glProgramUniform3uiv(live, Loc, Count, (const GLuint *)value); break;
-          case VEC3fv: m_Real.glProgramUniform3fv(live, Loc, Count, (const GLfloat *)value); break;
-          case VEC3dv: m_Real.glProgramUniform3dv(live, Loc, Count, (const GLdouble *)value); break;
-          case VEC4iv: m_Real.glProgramUniform4iv(live, Loc, Count, (const GLint *)value); break;
-          case VEC4uiv: m_Real.glProgramUniform4uiv(live, Loc, Count, (const GLuint *)value); break;
-          case VEC4fv: m_Real.glProgramUniform4fv(live, Loc, Count, (const GLfloat *)value); break;
-          case VEC4dv: m_Real.glProgramUniform4dv(live, Loc, Count, (const GLdouble *)value); break;
+          case VEC1iv: m_Real.glProgramUniform1iv(live, Loc, Count, v.i); break;
+          case VEC1uiv: m_Real.glProgramUniform1uiv(live, Loc, Count, v.u); break;
+          case VEC1fv: m_Real.glProgramUniform1fv(live, Loc, Count, v.f); break;
+          case VEC1dv: m_Real.glProgramUniform1dv(live, Loc, Count, v.d); break;
+          case VEC2iv: m_Real.glProgramUniform2iv(live, Loc, Count, v.i); break;
+          case VEC2uiv: m_Real.glProgramUniform2uiv(live, Loc, Count, v.u); break;
+          case VEC2fv: m_Real.glProgramUniform2fv(live, Loc, Count, v.f); break;
+          case VEC2dv: m_Real.glProgramUniform2dv(live, Loc, Count, v.d); break;
+          case VEC3iv: m_Real.glProgramUniform3iv(live, Loc, Count, v.i); break;
+          case VEC3uiv: m_Real.glProgramUniform3uiv(live, Loc, Count, v.u); break;
+          case VEC3fv: m_Real.glProgramUniform3fv(live, Loc, Count, v.f); break;
+          case VEC3dv: m_Real.glProgramUniform3dv(live, Loc, Count, v.d); break;
+          case VEC4iv: m_Real.glProgramUniform4iv(live, Loc, Count, v.i); break;
+          case VEC4uiv: m_Real.glProgramUniform4uiv(live, Loc, Count, v.u); break;
+          case VEC4fv: m_Real.glProgramUniform4fv(live, Loc, Count, v.f); break;
+          case VEC4dv: m_Real.glProgramUniform4dv(live, Loc, Count, v.d); break;
           default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformVector: %d", Type);
         }
       }
@@ -116,17 +125,6 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint locat
 
   if(m_pSerialiser->GetDebugText())
   {
-    union
-    {
-      float f[4];
-      int32_t i[4];
-      uint32_t u[4];
-      double d[4];
-    } v;
-
-    // Copy the pointer first to guarantee alignment, which is needed on ARM.
-    memcpy(v.d, value, RDCMIN(totalSize, sizeof(v.d)));
-
     switch(Type)
     {
       case VEC1fv: m_pSerialiser->DebugPrint("value: {%f}\n", v.f[0]); break;
@@ -233,13 +231,19 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
 
   size_t totalSize = elemSize * elemsPerMat * Count;
   if(m_State >= WRITING)
-  {
     m_pSerialiser->RawWriteBytes(value, totalSize);
-  }
   else if(m_State <= EXECUTING)
-  {
     value = m_pSerialiser->RawReadBytes(totalSize);
 
+  union
+  {
+    float f[4 * 4];
+    double d[4 * 4];
+  } v;
+  memcpy(v.d, value, RDCMIN(totalSize, sizeof(v.d)));
+
+  if(m_State <= EXECUTING)
+  {
     if(GetResourceManager()->HasLiveResource(id))
     {
       ResourceId liveProgId = GetResourceManager()->GetLiveID(id);
@@ -255,59 +259,47 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
       {
         switch(Type)
         {
-          case MAT2fv:
-            m_Real.glProgramUniformMatrix2fv(live, Loc, Count, Transpose, (const GLfloat *)value);
-            break;
+          case MAT2fv: m_Real.glProgramUniformMatrix2fv(live, Loc, Count, Transpose, v.f); break;
           case MAT2x3fv:
-            m_Real.glProgramUniformMatrix2x3fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            m_Real.glProgramUniformMatrix2x3fv(live, Loc, Count, Transpose, v.f);
             break;
           case MAT2x4fv:
-            m_Real.glProgramUniformMatrix2x4fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            m_Real.glProgramUniformMatrix2x4fv(live, Loc, Count, Transpose, v.f);
             break;
-          case MAT3fv:
-            m_Real.glProgramUniformMatrix3fv(live, Loc, Count, Transpose, (const GLfloat *)value);
-            break;
+          case MAT3fv: m_Real.glProgramUniformMatrix3fv(live, Loc, Count, Transpose, v.f); break;
           case MAT3x2fv:
-            m_Real.glProgramUniformMatrix3x2fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            m_Real.glProgramUniformMatrix3x2fv(live, Loc, Count, Transpose, v.f);
             break;
           case MAT3x4fv:
-            m_Real.glProgramUniformMatrix3x4fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            m_Real.glProgramUniformMatrix3x4fv(live, Loc, Count, Transpose, v.f);
             break;
-          case MAT4fv:
-            m_Real.glProgramUniformMatrix4fv(live, Loc, Count, Transpose, (const GLfloat *)value);
-            break;
+          case MAT4fv: m_Real.glProgramUniformMatrix4fv(live, Loc, Count, Transpose, v.f); break;
           case MAT4x2fv:
-            m_Real.glProgramUniformMatrix4x2fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            m_Real.glProgramUniformMatrix4x2fv(live, Loc, Count, Transpose, v.f);
             break;
           case MAT4x3fv:
-            m_Real.glProgramUniformMatrix4x3fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            m_Real.glProgramUniformMatrix4x3fv(live, Loc, Count, Transpose, v.f);
             break;
-          case MAT2dv:
-            m_Real.glProgramUniformMatrix2dv(live, Loc, Count, Transpose, (const GLdouble *)value);
-            break;
+          case MAT2dv: m_Real.glProgramUniformMatrix2dv(live, Loc, Count, Transpose, v.d); break;
           case MAT2x3dv:
-            m_Real.glProgramUniformMatrix2x3dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            m_Real.glProgramUniformMatrix2x3dv(live, Loc, Count, Transpose, v.d);
             break;
           case MAT2x4dv:
-            m_Real.glProgramUniformMatrix2x4dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            m_Real.glProgramUniformMatrix2x4dv(live, Loc, Count, Transpose, v.d);
             break;
-          case MAT3dv:
-            m_Real.glProgramUniformMatrix3dv(live, Loc, Count, Transpose, (const GLdouble *)value);
-            break;
+          case MAT3dv: m_Real.glProgramUniformMatrix3dv(live, Loc, Count, Transpose, v.d); break;
           case MAT3x2dv:
-            m_Real.glProgramUniformMatrix3x2dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            m_Real.glProgramUniformMatrix3x2dv(live, Loc, Count, Transpose, v.d);
             break;
           case MAT3x4dv:
-            m_Real.glProgramUniformMatrix3x4dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            m_Real.glProgramUniformMatrix3x4dv(live, Loc, Count, Transpose, v.d);
             break;
-          case MAT4dv:
-            m_Real.glProgramUniformMatrix4dv(live, Loc, Count, Transpose, (const GLdouble *)value);
-            break;
+          case MAT4dv: m_Real.glProgramUniformMatrix4dv(live, Loc, Count, Transpose, v.d); break;
           case MAT4x2dv:
-            m_Real.glProgramUniformMatrix4x2dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            m_Real.glProgramUniformMatrix4x2dv(live, Loc, Count, Transpose, v.d);
             break;
           case MAT4x3dv:
-            m_Real.glProgramUniformMatrix4x3dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            m_Real.glProgramUniformMatrix4x3dv(live, Loc, Count, Transpose, v.d);
             break;
           default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformMatrix: %d", Type);
         }
@@ -317,14 +309,6 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
 
   if(m_pSerialiser->GetDebugText())
   {
-    union
-    {
-      float f[4 * 4];
-      double d[4 * 4];
-    } v;
-
-    memcpy(v.d, value, RDCMIN(totalSize, sizeof(v.d)));
-
     m_pSerialiser->DebugPrint("value: {");
     for(size_t i = 0; i < elemsPerMat; i++)
     {
