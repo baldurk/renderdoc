@@ -129,6 +129,18 @@
 						</File>
 					</Component>
 
+					<Directory Id='plugins' Name='plugins'>
+						<Directory Id='plugins_amd' Name='amd'>
+							<Directory Id='plugins_amd_isa' Name='isa'>
+								<Component Id='gcn_plugin' Win64="yes" Guid='02B13D5B-DA43-4AFF-B35B-CF4A241C2CEE'>
+									<File Id='amdspvEXE' Name='amdspv.exe' DiskId='1' Source='dist/Release64/plugins/amd/isa/amdspv.exe' KeyPath='yes' />
+									<File Id='spvgenDLL' Name='spvgen.dll' DiskId='1' Source='dist/Release64/plugins/amd/isa/spvgen.dll' />
+									<File Id='virtualcontextEXE' Name='VirtualContext.exe' DiskId='1' Source='dist/Release64/plugins/amd/isa/VirtualContext.exe' />
+								</Component>
+							</Directory>
+						</Directory>
+					</Directory>
+
 					<Directory Id='renderdocX86' Name='x86'>
 						<Component Id='renderdocX86Bins' Win64="yes" Guid='EB58A048-899A-4239-B229-DA9781C431F8'>
 							<File Id='renderdocX86DLL' Name='renderdoc.dll' DiskId='1' Source='dist/Release64/x86/renderdoc.dll' KeyPath='yes' />
@@ -263,6 +275,8 @@
         <ComponentRef Id='IronPython' />
 
         <ComponentRef Id='LICENSE' />
+
+        <ComponentRef Id='gcn_plugin' />
 
         <ComponentRef Id='renderdocX86Bins' />
 

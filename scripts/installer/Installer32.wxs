@@ -140,6 +140,18 @@
             </File>
           </Component>
 
+          <Directory Id='plugins' Name='plugins'>
+            <Directory Id='plugins_amd' Name='amd'>
+              <Directory Id='plugins_amd_isa' Name='isa'>
+                <Component Id='gcn_plugin' Guid='B7DBB513-E971-43F9-A0D5-B3AF279DA07B'>
+                  <File Id='amdspvEXE' Name='amdspv.exe' DiskId='1' Source='dist/Release32/plugins/amd/isa/amdspv.exe' KeyPath='yes' />
+                  <File Id='spvgenDLL' Name='spvgen.dll' DiskId='1' Source='dist/Release32/plugins/amd/isa/spvgen.dll' />
+                  <File Id='virtualcontextEXE' Name='VirtualContext.exe' DiskId='1' Source='dist/Release32/plugins/amd/isa/VirtualContext.exe' />
+                </Component>
+              </Directory>
+            </Directory>
+          </Directory>
+
         </Directory>
       </Directory>
 
@@ -245,6 +257,8 @@
         <ComponentRef Id='IronPython' />
 
         <ComponentRef Id='LICENSE' />
+
+        <ComponentRef Id='gcn_plugin' />
 
         <ComponentRef Id='Scintilla' />
         <ComponentRef Id='DockingUI' />
