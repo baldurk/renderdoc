@@ -130,10 +130,10 @@ TBuiltInResource DefaultResources = {
     },
 };
 
-string CompileSPIRV(SPIRVShaderStage shadType, const std::vector<std::string> &sources,
-                    vector<uint32_t> &spirv)
+string CompileSPIRV(const SPIRVCompilationSettings &settings,
+                    const std::vector<std::string> &sources, vector<uint32_t> &spirv)
 {
-  if(shadType >= eSPIRVInvalid)
+  if(settings.stage == SPIRVShaderStage::Invalid)
     return "Invalid shader stage specified";
 
   string errors = "";
@@ -143,22 +143,32 @@ string CompileSPIRV(SPIRVShaderStage shadType, const std::vector<std::string> &s
   for(size_t i = 0; i < sources.size(); i++)
     strs[i] = sources[i].c_str();
 
-  RDCCOMPILE_ASSERT(
-      (int)EShLangVertex == (int)eSPIRVVertex && (int)EShLangTessControl == (int)eSPIRVTessControl &&
-          (int)EShLangTessEvaluation == (int)eSPIRVTessEvaluation &&
-          (int)EShLangGeometry == (int)eSPIRVGeometry && (int)EShLangCompute == (int)eSPIRVCompute,
-      "Shader language enums don't match");
+  RDCCOMPILE_ASSERT((int)EShLangVertex == (int)SPIRVShaderStage::Vertex &&
+                        (int)EShLangTessControl == (int)SPIRVShaderStage::TessControl &&
+                        (int)EShLangTessEvaluation == (int)SPIRVShaderStage::TessEvaluation &&
+                        (int)EShLangGeometry == (int)SPIRVShaderStage::Geometry &&
+                        (int)EShLangCompute == (int)SPIRVShaderStage::Compute,
+                    "Shader language enums don't match");
 
   {
     // these enums are matched
-    EShLanguage lang = EShLanguage((int)shadType);
+    EShLanguage lang = EShLanguage(settings.stage);
 
     glslang::TShader *shader = new glslang::TShader(lang);
 
     shader->setStrings(strs, (int)sources.size());
 
-    bool success = shader->parse(&DefaultResources, 110, false,
-                                 EShMessages(EShMsgSpvRules | EShMsgVulkanRules));
+    if(!settings.entryPoint.empty())
+      shader->setEntryPoint(settings.entryPoint.c_str());
+
+    EShMessages flags = EShMsgSpvRules;
+
+    if(settings.lang == SPIRVSourceLanguage::VulkanGLSL)
+      flags = EShMessages(flags | EShMsgVulkanRules);
+    if(settings.lang == SPIRVSourceLanguage::VulkanHLSL)
+      flags = EShMessages(flags | EShMsgVulkanRules | EShMsgReadHlsl);
+
+    bool success = shader->parse(&DefaultResources, 110, false, flags);
 
     if(!success)
     {

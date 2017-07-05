@@ -170,7 +170,7 @@ struct VulkanBlobShaderCallbacks
   byte *GetData(vector<uint32_t> *blob) const { return (byte *)&(*blob)[0]; }
 } ShaderCacheCallbacks;
 
-string VulkanDebugManager::GetSPIRVBlob(SPIRVShaderStage shadType,
+string VulkanDebugManager::GetSPIRVBlob(const SPIRVCompilationSettings &settings,
                                         const std::vector<std::string> &sources,
                                         vector<uint32_t> **outBlob)
 {
@@ -180,8 +180,9 @@ string VulkanDebugManager::GetSPIRVBlob(SPIRVShaderStage shadType,
   for(size_t i = 1; i < sources.size(); i++)
     hash = strhash(sources[i].c_str(), hash);
 
-  char typestr[2] = {'a', 0};
-  typestr[0] += (char)shadType;
+  char typestr[3] = {'a', 'a', 0};
+  typestr[0] += (char)settings.stage;
+  typestr[1] += (char)settings.lang;
   hash = strhash(typestr, hash);
 
   if(m_ShaderCache.find(hash) != m_ShaderCache.end())
@@ -191,7 +192,7 @@ string VulkanDebugManager::GetSPIRVBlob(SPIRVShaderStage shadType,
   }
 
   vector<uint32_t> *spirv = new vector<uint32_t>();
-  string errors = CompileSPIRV(shadType, sources, *spirv);
+  string errors = CompileSPIRV(settings, sources, *spirv);
 
   if(!errors.empty())
   {
@@ -747,6 +748,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   }
 #endif
 
+  SPIRVCompilationSettings compileSettings;
+  compileSettings.lang = SPIRVSourceLanguage::VulkanGLSL;
+
   // needed in both replay and capture, create depth MS->array pipelines
   {
     {
@@ -812,7 +816,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
       vector<uint32_t> *spirv;
 
-      string err = GetSPIRVBlob(i == 0 ? eSPIRVVertex : eSPIRVFragment, sources, &spirv);
+      compileSettings.stage = i == 0 ? SPIRVShaderStage::Vertex : SPIRVShaderStage::Fragment;
+      string err = GetSPIRVBlob(compileSettings, sources, &spirv);
       RDCASSERT(err.empty() && spirv);
 
       VkShaderModuleCreateInfo modinfo = {
@@ -1031,7 +1036,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
       vector<uint32_t> *spirv;
 
-      string err = GetSPIRVBlob(i == 0 ? eSPIRVVertex : eSPIRVFragment, sources, &spirv);
+      compileSettings.stage = i == 0 ? SPIRVShaderStage::Vertex : SPIRVShaderStage::Fragment;
+      string err = GetSPIRVBlob(compileSettings, sources, &spirv);
       RDCASSERT(err.empty() && spirv);
 
       VkShaderModuleCreateInfo modinfo = {
@@ -1054,7 +1060,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
       vector<uint32_t> *spirv;
 
-      string err = GetSPIRVBlob(eSPIRVCompute, sources, &spirv);
+      compileSettings.stage = SPIRVShaderStage::Compute;
+      string err = GetSPIRVBlob(compileSettings, sources, &spirv);
       RDCASSERT(err.empty() && spirv);
 
       VkShaderModuleCreateInfo modinfo = {
@@ -1731,9 +1738,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   };
 
   SPIRVShaderStage shaderStages[] = {
-      eSPIRVVertex,  eSPIRVFragment, eSPIRVFragment, eSPIRVVertex,   eSPIRVGeometry, eSPIRVFragment,
-      eSPIRVCompute, eSPIRVCompute,  eSPIRVCompute,  eSPIRVFragment, eSPIRVFragment, eSPIRVFragment,
-      eSPIRVCompute, eSPIRVCompute,  eSPIRVCompute,  eSPIRVGeometry, eSPIRVFragment,
+      SPIRVShaderStage::Vertex,   SPIRVShaderStage::Fragment, SPIRVShaderStage::Fragment,
+      SPIRVShaderStage::Vertex,   SPIRVShaderStage::Geometry, SPIRVShaderStage::Fragment,
+      SPIRVShaderStage::Compute,  SPIRVShaderStage::Compute,  SPIRVShaderStage::Compute,
+      SPIRVShaderStage::Fragment, SPIRVShaderStage::Fragment, SPIRVShaderStage::Fragment,
+      SPIRVShaderStage::Compute,  SPIRVShaderStage::Compute,  SPIRVShaderStage::Compute,
+      SPIRVShaderStage::Geometry, SPIRVShaderStage::Fragment,
   };
 
   enum shaderIdx
@@ -1770,7 +1780,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     GenerateGLSLShader(sources, eShaderVulkan, "", GetEmbeddedResource(glsl_fixedcol_frag), 430,
                        false);
 
-    string err = GetSPIRVBlob(eSPIRVFragment, sources, &m_FixedColSPIRV);
+    compileSettings.stage = SPIRVShaderStage::Fragment;
+    string err = GetSPIRVBlob(compileSettings, sources, &m_FixedColSPIRV);
     RDCASSERT(err.empty() && m_FixedColSPIRV);
   }
 
@@ -1786,7 +1797,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
     GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[i], 430, i != QUADWRITEFS);
 
-    string err = GetSPIRVBlob(shaderStages[i], sources, &shaderSPIRV[i]);
+    compileSettings.stage = shaderStages[i];
+    string err = GetSPIRVBlob(compileSettings, sources, &shaderSPIRV[i]);
     RDCASSERT(err.empty() && shaderSPIRV[i]);
 
     VkShaderModuleCreateInfo modinfo = {
@@ -1925,7 +1937,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
       GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[HISTOGRAMCS], 430);
 
-      err = GetSPIRVBlob(eSPIRVCompute, sources, &blob);
+      compileSettings.stage = SPIRVShaderStage::Compute;
+      err = GetSPIRVBlob(compileSettings, sources, &blob);
       RDCASSERT(err.empty() && blob);
 
       modinfo.codeSize = blob->size() * sizeof(uint32_t);
@@ -1936,7 +1949,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
       GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[MINMAXTILECS], 430);
 
-      err = GetSPIRVBlob(eSPIRVCompute, sources, &blob);
+      err = GetSPIRVBlob(compileSettings, sources, &blob);
       RDCASSERT(err.empty() && blob);
 
       modinfo.codeSize = blob->size() * sizeof(uint32_t);
@@ -1949,7 +1962,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       {
         GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[MINMAXRESULTCS], 430);
 
-        err = GetSPIRVBlob(eSPIRVCompute, sources, &blob);
+        err = GetSPIRVBlob(compileSettings, sources, &blob);
         RDCASSERT(err.empty() && blob);
 
         modinfo.codeSize = blob->size() * sizeof(uint32_t);

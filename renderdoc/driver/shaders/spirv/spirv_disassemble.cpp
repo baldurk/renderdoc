@@ -3871,6 +3871,29 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id,
   }
 }
 
+ShaderStage SPVModule::StageForEntry(const string &entryPoint) const
+{
+  for(SPVInstruction *inst : entries)
+  {
+    if(inst->entry && inst->entry->name == entryPoint)
+    {
+      switch(inst->entry->model)
+      {
+        case spv::ExecutionModelVertex: return ShaderStage::Vertex;
+        case spv::ExecutionModelTessellationControl: return ShaderStage::Tess_Control;
+        case spv::ExecutionModelTessellationEvaluation: return ShaderStage::Tess_Eval;
+        case spv::ExecutionModelGeometry: return ShaderStage::Geometry;
+        case spv::ExecutionModelFragment: return ShaderStage::Fragment;
+        case spv::ExecutionModelGLCompute: return ShaderStage::Compute;
+        case spv::ExecutionModelKernel:
+        case spv::ExecutionModelMax: return ShaderStage::Count;
+      }
+    }
+  }
+
+  return ShaderStage::Count;
+}
+
 void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
                                ShaderReflection &reflection, ShaderBindpointMapping &mapping,
                                SPIRVPatchData &patchData)
@@ -3882,10 +3905,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
   // VKTODOLOW filter to only functions/resources used by entryPoint
 
-  // VKTODOLOW set this properly
-  reflection.DebugInfo.entryFile = 0;
-  reflection.DebugInfo.entryFunc = entryPoint;
-
+  // TODO sort these so that the entry point is in the first file
   if(!sourceFiles.empty())
   {
     create_array_uninit(reflection.DebugInfo.files, sourceFiles.size());

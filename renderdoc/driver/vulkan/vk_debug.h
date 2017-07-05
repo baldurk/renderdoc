@@ -98,6 +98,8 @@ struct VulkanPostVSData
   }
 };
 
+struct SPIRVCompilationSettings;
+
 class VulkanResourceManager;
 
 class VulkanDebugManager
@@ -344,8 +346,8 @@ private:
   bool m_ShaderCacheDirty, m_CacheShaders;
   map<uint32_t, vector<uint32_t> *> m_ShaderCache;
 
-  string GetSPIRVBlob(SPIRVShaderStage shadType, const std::vector<std::string> &sources,
-                      vector<uint32_t> **outBlob);
+  string GetSPIRVBlob(const SPIRVCompilationSettings &settings,
+                      const std::vector<std::string> &sources, vector<uint32_t> **outBlob);
 
   void CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent, uint32_t layers,
                                uint32_t samples, VkFormat fmt);

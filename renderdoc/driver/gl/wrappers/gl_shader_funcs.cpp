@@ -73,7 +73,10 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl)
 
     vector<uint32_t> spirvwords;
 
-    string s = CompileSPIRV(SPIRVShaderStage(ShaderIdx(type)), sources, spirvwords);
+    SPIRVCompilationSettings settings(SPIRVSourceLanguage::OpenGLGLSL,
+                                      SPIRVShaderStage(ShaderIdx(type)));
+
+    string s = CompileSPIRV(settings, sources, spirvwords);
     if(!spirvwords.empty())
       ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
 
