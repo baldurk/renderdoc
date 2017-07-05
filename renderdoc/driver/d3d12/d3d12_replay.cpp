@@ -260,15 +260,7 @@ vector<string> D3D12Replay::GetDisassemblyTargets()
 {
   vector<string> ret;
 
-  std::string err;
-  if(GCNISA::IsSupported(GraphicsAPI::D3D12, err))
-  {
-    GCNISA::GetTargets(GraphicsAPI::D3D12, ret);
-  }
-  else
-  {
-    RDCLOG("AMD ISA Not available:\n%s", err.c_str());
-  }
+  GCNISA::GetTargets(GraphicsAPI::D3D12, ret);
 
   // DXBC is always first
   ret.insert(ret.begin(), "DXBC");

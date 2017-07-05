@@ -837,15 +837,7 @@ vector<string> GLReplay::GetDisassemblyTargets()
 {
   vector<string> ret;
 
-  std::string err;
-  if(GCNISA::IsSupported(GraphicsAPI::OpenGL, err))
-  {
-    GCNISA::GetTargets(GraphicsAPI::OpenGL, ret);
-  }
-  else
-  {
-    RDCLOG("AMD ISA Not available:\n%s", err.c_str());
-  }
+  GCNISA::GetTargets(GraphicsAPI::OpenGL, ret);
 
   // default is always first
   ret.insert(ret.begin(), "SPIR-V (RenderDoc)");

@@ -36,7 +36,6 @@ struct SPVModule;
 
 namespace GCNISA
 {
-bool IsSupported(GraphicsAPI api, std::string &userMessage);
 void GetTargets(GraphicsAPI api, std::vector<std::string> &targets);
 
 std::string Disassemble(const DXBC::DXBCFile *dxbc, const std::string &target);

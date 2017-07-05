@@ -86,7 +86,7 @@ std::string LocatePlugin(const std::string &fileName)
   return ret;
 }
 
-bool IsSupported(GraphicsAPI api, std::string &userMessage)
+static bool IsSupported(GraphicsAPI api)
 {
   if(api == GraphicsAPI::Vulkan)
   {
@@ -121,9 +121,9 @@ bool IsSupported(GraphicsAPI api, std::string &userMessage)
   if(api == GraphicsAPI::D3D11 || api == GraphicsAPI::D3D12)
   {
     DXBC::DXBCFile *dummy = NULL;
-    userMessage = Disassemble(dummy, "");
+    std::string test = Disassemble(dummy, "");
 
-    return userMessage.empty();
+    return test.empty();
   }
 
   return false;
@@ -133,16 +133,36 @@ void GetTargets(GraphicsAPI api, std::vector<std::string> &targets)
 {
   targets.reserve(ARRAY_COUNT(asicInfo) + 1);
 
-  // OpenGL doesn't support AMDIL
-  if(api != GraphicsAPI::OpenGL)
-    targets.push_back("AMDIL");
+  if(IsSupported(api))
+  {
+    // OpenGL doesn't support AMDIL
+    if(api != GraphicsAPI::OpenGL)
+      targets.push_back("AMDIL");
 
-  for(const asic &a : asicInfo)
-    targets.push_back(a.name);
+    for(const asic &a : asicInfo)
+      targets.push_back(a.name);
+  }
+  else
+  {
+    // if unsupported, push a 'dummy' target, so that when the user selects it they'll see the error
+    // message
+    targets.push_back("AMD GCN ISA");
+  }
 }
 
 std::string Disassemble(const SPVModule *spv, const std::string &entry, const std::string &target)
 {
+  if(!IsSupported(GraphicsAPI::Vulkan))
+  {
+    return R"(; SPIR-V disassembly not supported, couldn't locate amdspv.exe.
+; Normally it's in plugins/amd/isa/ in your build - if you are building locally you'll need to
+; download the plugins package.
+;
+; To see instructions on how to download and configure the plugins on your system, go to:
+; https://github.com/baldurk/renderdoc/wiki/GCN_ISA
+)";
+  }
+
   std::string cmdLine = "-set spirvDasmLegacyFormat=1 -Dall -l";
 
   bool found = false;
@@ -254,6 +274,16 @@ std::string Disassemble(const SPVModule *spv, const std::string &entry, const st
 std::string Disassemble(ShaderStage stage, const std::vector<std::string> &glsl,
                         const std::string &target)
 {
+  if(!IsSupported(GraphicsAPI::OpenGL))
+  {
+    return R"(; GLSL disassembly not supported, couldn't locate VirtualContext.exe or it failed to run.
+; It only works when the AMD driver is currently being used for graphics.
+;
+; To see instructions on how to download and configure the plugins on your system, go to:
+; https://github.com/baldurk/renderdoc/wiki/GCN_ISA
+)";
+  }
+
   const char *stageName = "unk";
   int stageIndex = 0;
 

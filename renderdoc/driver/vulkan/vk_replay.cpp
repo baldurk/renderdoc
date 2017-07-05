@@ -922,15 +922,7 @@ vector<string> VulkanReplay::GetDisassemblyTargets()
 {
   vector<string> ret;
 
-  std::string err;
-  if(GCNISA::IsSupported(GraphicsAPI::Vulkan, err))
-  {
-    GCNISA::GetTargets(GraphicsAPI::Vulkan, ret);
-  }
-  else
-  {
-    RDCLOG("AMD ISA Not available:\n%s", err.c_str());
-  }
+  GCNISA::GetTargets(GraphicsAPI::Vulkan, ret);
 
   // default is always first
   ret.insert(ret.begin(), "SPIR-V (RenderDoc)");
