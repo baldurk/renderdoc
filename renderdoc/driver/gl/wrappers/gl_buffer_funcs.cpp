@@ -733,7 +733,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
     // the frame record so we can 'update' the buffer as it goes in the frame.
     // if we haven't created the buffer at all, it could be a mid-frame create and we
     // should place it in the resource record, to happen before the frame.
-    if(m_State == WRITING_CAPFRAME && record->GetDataPtr())
+    if(m_State == WRITING_CAPFRAME && record->HasDataPtr())
     {
       // we could perhaps substitute this for a 'fake' glBufferSubData chunk?
       m_ContextRecord->AddChunk(chunk);
