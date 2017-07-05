@@ -894,10 +894,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
 void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
                           ShaderReflection &refl, bool pointSizeUsed, bool clipDistanceUsed)
 {
-  refl.DebugInfo.entryFunc = "main";
   refl.DebugInfo.compileFlags = 0;
-
-  refl.DebugInfo.entryFile = 0;
 
   refl.Disassembly = "";
 

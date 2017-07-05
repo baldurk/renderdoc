@@ -414,21 +414,65 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 
   if(dxbc->m_DebugInfo)
   {
-    ret->DebugInfo.entryFunc = dxbc->m_DebugInfo->GetEntryFunction();
     ret->DebugInfo.compileFlags = dxbc->m_DebugInfo->GetShaderCompileFlags();
-
-    ret->DebugInfo.entryFile = -1;
 
     create_array_uninit(ret->DebugInfo.files, dxbc->m_DebugInfo->Files.size());
     for(size_t i = 0; i < dxbc->m_DebugInfo->Files.size(); i++)
     {
       ret->DebugInfo.files[i].first = dxbc->m_DebugInfo->Files[i].first;
       ret->DebugInfo.files[i].second = dxbc->m_DebugInfo->Files[i].second;
+    }
 
-      if(ret->DebugInfo.entryFile == -1 &&
-         strstr(ret->DebugInfo.files[i].second.elems, ret->DebugInfo.entryFunc.elems))
+    string entry = dxbc->m_DebugInfo->GetEntryFunction();
+    if(entry.empty())
+      entry = "main";
+
+    // sort the file with the entry point to the start. We don't have to do anything if there's only
+    // one file.
+    // This isn't a perfect search - it will match entry_point() anywhere in the file, even if it's
+    // in a comment or disabled preprocessor definition. This is just best-effort
+    if(ret->DebugInfo.files.count > 1)
+    {
+      // search from 0 up. If we find a match, we swap it into [0]. If we don't find a match then
+      // we can't rearrange anything. This is a no-op for 0 since it's already in first place, but
+      // since our search isn't perfect we might have multiple matches with some being false
+      // positives, and so we want to bias towards leaving [0] in place.
+      for(int32_t i = 0; i < ret->DebugInfo.files.count; i++)
       {
-        ret->DebugInfo.entryFile = (int32_t)i;
+        char *c = strstr(ret->DebugInfo.files[i].first.elems, entry.c_str());
+        char *end = ret->DebugInfo.files[i].first.elems + ret->DebugInfo.files[i].first.count;
+
+        // no substring match? continue
+        if(c == NULL)
+          continue;
+
+        // if we did get a substring match, ensure there's whitespace preceeding it.
+        if(c == entry.c_str() || !isspace((int)*(c - 1)))
+          continue;
+
+        // skip past the entry point. Then skip any whitespace
+        c += entry.size();
+
+        // check for EOF.
+        if(c >= end)
+          continue;
+
+        while(c < end && isspace(*c))
+          c++;
+
+        if(c >= end)
+          continue;
+
+        // if there's an open bracket next, we found a entry_point( which we count as the
+        // declaration.
+        if(*c == '(')
+        {
+          // only do anything if we're looking at a later file
+          if(i > 0)
+            std::swap(ret->DebugInfo.files[0], ret->DebugInfo.files[i]);
+
+          break;
+        }
       }
     }
   }

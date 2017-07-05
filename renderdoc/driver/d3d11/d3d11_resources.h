@@ -896,8 +896,9 @@ public:
   {
   public:
     ShaderEntry() : m_DebugInfoSearchPaths(NULL), m_DXBCFile(NULL), m_Details(NULL) {}
-    ShaderEntry(WrappedID3D11Device *device, const byte *code, size_t codeLen)
+    ShaderEntry(WrappedID3D11Device *device, ResourceId id, const byte *code, size_t codeLen)
     {
+      m_ID = id;
       m_Bytecode.assign(code, code + codeLen);
       m_DebugInfoSearchPaths = device->GetShaderDebugInfoSearchPaths();
       m_DXBCFile = NULL;
@@ -923,7 +924,14 @@ public:
     ShaderReflection *GetDetails()
     {
       if(m_Details == NULL && GetDXBC() != NULL)
+      {
         m_Details = MakeShaderReflection(m_DXBCFile);
+        m_Details->ID = m_ID;
+        m_Details->EntryPoint =
+            m_DXBCFile->m_DebugInfo ? m_DXBCFile->m_DebugInfo->GetEntryFunction() : "";
+        if(m_Details->EntryPoint.empty())
+          m_Details->EntryPoint = "main";
+      }
       return m_Details;
     }
 
@@ -931,6 +939,8 @@ public:
     ShaderEntry(const ShaderEntry &e);
     void TryReplaceOriginalByteCode();
     ShaderEntry &operator=(const ShaderEntry &e);
+
+    ResourceId m_ID;
 
     std::string m_DebugInfoPath;
     vector<std::string> *m_DebugInfoSearchPaths;
@@ -944,13 +954,15 @@ public:
   static map<ResourceId, ShaderEntry *> m_ShaderList;
   static Threading::CriticalSection m_ShaderListLock;
 
-  WrappedShader(WrappedID3D11Device *device, ResourceId id, const byte *code, size_t codeLen)
-      : m_ID(id)
+  WrappedShader(WrappedID3D11Device *device, ResourceId origId, ResourceId liveId, const byte *code,
+                size_t codeLen)
+      : m_ID(liveId)
   {
     SCOPED_LOCK(m_ShaderListLock);
 
     RDCASSERT(m_ShaderList.find(m_ID) == m_ShaderList.end());
-    m_ShaderList[m_ID] = new ShaderEntry(device, code, codeLen);
+    m_ShaderList[m_ID] =
+        new ShaderEntry(device, origId != ResourceId() ? origId : liveId, code, codeLen);
   }
   virtual ~WrappedShader()
   {
@@ -988,10 +1000,10 @@ public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Shader<RealShaderType>, AllocPoolCount,
                              AllocPoolMaxByteSize);
 
-  WrappedID3D11Shader(RealShaderType *real, const byte *code, size_t codeLen,
+  WrappedID3D11Shader(RealShaderType *real, ResourceId origId, const byte *code, size_t codeLen,
                       WrappedID3D11Device *device)
       : WrappedDeviceChild11<RealShaderType>(real, device),
-        WrappedShader(device, GetResourceID(), code, codeLen)
+        WrappedShader(device, origId, GetResourceID(), code, codeLen)
   {
   }
   virtual ~WrappedID3D11Shader() { Shutdown(); }

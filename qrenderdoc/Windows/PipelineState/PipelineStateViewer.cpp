@@ -531,9 +531,9 @@ bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDet
                                                QString &entryFunc, QStringMap &files,
                                                QString &mainfile)
 {
-  if(!shaderDetails->DebugInfo.entryFunc.empty() && !shaderDetails->DebugInfo.files.empty())
+  if(!shaderDetails->DebugInfo.files.empty())
   {
-    entryFunc = ToQStr(shaderDetails->DebugInfo.entryFunc);
+    entryFunc = ToQStr(shaderDetails->EntryPoint);
 
     QStringList uniqueFiles;
 
@@ -550,11 +550,7 @@ bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDet
       files[filename] = ToQStr(s.second);
     }
 
-    int entryFile = shaderDetails->DebugInfo.entryFile;
-    if(entryFile < 0 || entryFile >= shaderDetails->DebugInfo.files.count)
-      entryFile = 0;
-
-    mainfile = ToQStr(shaderDetails->DebugInfo.files[entryFile].first);
+    mainfile = ToQStr(shaderDetails->DebugInfo.files[0].first);
 
     return true;
   }

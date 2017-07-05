@@ -307,17 +307,16 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                      &ShaderViewer::disasm_tooltipHide);
   }
 
-  if(shader && shader->DebugInfo.entryFunc.count > 0 && shader->DebugInfo.files.count > 0)
+  if(shader && shader->DebugInfo.files.count > 0)
   {
     if(trace)
-      setWindowTitle(
-          QFormatStr("Debug %1() - %2").arg(ToQStr(shader->DebugInfo.entryFunc)).arg(debugContext));
+      setWindowTitle(QFormatStr("Debug %1() - %2").arg(ToQStr(shader->EntryPoint)).arg(debugContext));
     else
-      setWindowTitle(ToQStr(shader->DebugInfo.entryFunc));
+      setWindowTitle(ToQStr(shader->EntryPoint));
 
     int fileIdx = 0;
 
-    QWidget *sel = m_DisassemblyView;
+    QWidget *sel = NULL;
     for(auto &f : shader->DebugInfo.files)
     {
       QString name = QFileInfo(ToQStr(f.first)).fileName();
@@ -325,21 +324,13 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
       ScintillaEdit *scintilla = AddFileScintilla(name, text);
 
-      if(shader->DebugInfo.entryFile >= 0 &&
-         shader->DebugInfo.entryFile < shader->DebugInfo.files.count)
-      {
-        if(fileIdx == shader->DebugInfo.entryFile)
-          sel = scintilla;
-      }
-      else if(text.contains(ToQStr(shader->DebugInfo.entryFunc)))
-      {
+      if(sel == NULL)
         sel = scintilla;
-      }
 
       fileIdx++;
     }
 
-    if(trace)
+    if(trace || sel == NULL)
       sel = m_DisassemblyView;
 
     if(shader->DebugInfo.files.count > 2)

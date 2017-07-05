@@ -919,14 +919,6 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId shader, string entryPoint)
     shad->second.m_Reflections[entryPoint].refl.Disassembly =
         shad->second.spirv.Disassemble(entryPoint);
 
-  if(shad->second.m_Reflections[entryPoint].refl.RawBytes.count == 0 &&
-     !shad->second.spirv.spirv.empty())
-  {
-    rdctype::array<byte> &bytes = shad->second.m_Reflections[entryPoint].refl.RawBytes;
-    const vector<uint32_t> &spirv = shad->second.spirv.spirv;
-    create_array_init(bytes, spirv.size() * sizeof(uint32_t), (byte *)&spirv[0]);
-  }
-
   return &shad->second.m_Reflections[entryPoint].refl;
 }
 

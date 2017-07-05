@@ -590,14 +590,15 @@ public:
     ShaderReflection &GetDetails()
     {
       if(!m_Built && GetDXBC() != NULL)
-        MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
+        BuildReflection();
       m_Built = true;
       return m_Details;
     }
+
     const ShaderBindpointMapping &GetMapping()
     {
       if(!m_Built && GetDXBC() != NULL)
-        MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
+        BuildReflection();
       m_Built = true;
       return m_Mapping;
     }
@@ -608,6 +609,16 @@ public:
     ShaderEntry(const ShaderEntry &e);
     void TryReplaceOriginalByteCode();
     ShaderEntry &operator=(const ShaderEntry &e);
+
+    void BuildReflection()
+    {
+      MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
+      m_Details.ID = GetResourceID();
+      m_Details.EntryPoint =
+          m_DXBCFile->m_DebugInfo ? m_DXBCFile->m_DebugInfo->GetEntryFunction() : "";
+      if(m_Details.EntryPoint.empty())
+        m_Details.EntryPoint = "main";
+    }
 
     DXBCKey m_Key;
 

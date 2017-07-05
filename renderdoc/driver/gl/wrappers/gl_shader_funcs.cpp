@@ -29,7 +29,7 @@
 #include "driver/shaders/spirv/spirv_common.h"
 #include "serialise/string_utils.h"
 
-void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl)
+void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id)
 {
   bool pointSizeUsed = false, clipDistanceUsed = false;
   if(type == eGL_VERTEX_SHADER)
@@ -80,9 +80,12 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl)
     if(!spirvwords.empty())
       ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
 
+    reflection.ID = id;
+    reflection.EntryPoint = "main";
     // for classic GL, entry point is always main
     reflection.Disassembly = spirv.Disassemble("main");
 
+    // TODO sort these so that the first file contains the entry point
     create_array_uninit(reflection.DebugInfo.files, sources.size());
     for(size_t i = 0; i < sources.size(); i++)
     {
@@ -244,7 +247,7 @@ bool WrappedOpenGL::Serialise_glCompileShader(GLuint shader)
   {
     ResourceId liveId = GetResourceManager()->GetLiveID(id);
 
-    m_Shaders[liveId].Compile(*this);
+    m_Shaders[liveId].Compile(*this, id);
 
     m_Real.glCompileShader(GetResourceManager()->GetLiveResource(id).name);
   }
@@ -271,7 +274,8 @@ void WrappedOpenGL::glCompileShader(GLuint shader)
   }
   else
   {
-    m_Shaders[GetResourceManager()->GetID(ShaderRes(GetCtx(), shader))].Compile(*this);
+    ResourceId id = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
+    m_Shaders[id].Compile(*this, id);
   }
 }
 
@@ -467,7 +471,7 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
     shadDetails.sources.swap(src);
     shadDetails.prog = sepprog;
 
-    shadDetails.Compile(*this);
+    shadDetails.Compile(*this, id);
 
     GetResourceManager()->AddLiveResource(id, res);
   }
@@ -527,7 +531,7 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
     shadDetails.sources.swap(src);
     shadDetails.prog = sepprog;
 
-    shadDetails.Compile(*this);
+    shadDetails.Compile(*this, id);
   }
 
   return real;
@@ -1470,7 +1474,7 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(GLuint shader, GLsizei c
     for(int32_t i = 0; i < Count; i++)
       shadDetails.includepaths.push_back(pathstrings[i]);
 
-    shadDetails.Compile(*this);
+    shadDetails.Compile(*this, id);
 
     m_Real.glCompileShaderIncludeARB(GetResourceManager()->GetLiveResource(id).name, Count,
                                      pathstrings, NULL);
@@ -1511,7 +1515,7 @@ void WrappedOpenGL::glCompileShaderIncludeARB(GLuint shader, GLsizei count,
     for(int32_t i = 0; i < count; i++)
       shadDetails.includepaths.push_back(path[i]);
 
-    shadDetails.Compile(*this);
+    shadDetails.Compile(*this, id);
   }
 }
 

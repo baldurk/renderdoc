@@ -37,9 +37,14 @@ namespace renderdoc
             private void PostMarshal()
             {
                 if (_ptr_Bytecode != IntPtr.Zero)
+                {
                     Bytecode = (ShaderReflection)CustomMarshal.PtrToStructure(_ptr_Bytecode, typeof(ShaderReflection), false);
+                    Bytecode.origPtr = _ptr_Bytecode;
+                }
                 else
+                {
                     Bytecode = null;
+                }
 
                 _ptr_Bytecode = IntPtr.Zero;
             }
@@ -95,9 +100,14 @@ namespace renderdoc
             private void PostMarshal()
             {
                 if (_ptr_ShaderDetails != IntPtr.Zero)
+                {
                     ShaderDetails = (ShaderReflection)CustomMarshal.PtrToStructure(_ptr_ShaderDetails, typeof(ShaderReflection), false);
+                    ShaderDetails.origPtr = _ptr_ShaderDetails;
+                }
                 else
+                {
                     ShaderDetails = null;
+                }
 
                 _ptr_ShaderDetails = IntPtr.Zero;
             }

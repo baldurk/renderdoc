@@ -1251,24 +1251,15 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   else
     shader->setText(ToQStr(stage.name));
 
-  if(shaderDetails != NULL && shaderDetails->DebugInfo.entryFunc.count > 0)
+  if(shaderDetails != NULL)
   {
-    QString entryFunc = ToQStr(shaderDetails->DebugInfo.entryFunc);
+    QString entryFunc = ToQStr(shaderDetails->EntryPoint);
     if(shaderDetails->DebugInfo.files.count > 0 || entryFunc != lit("main"))
       shader->setText(entryFunc + lit("()"));
 
     if(shaderDetails->DebugInfo.files.count > 0)
-    {
-      QString shaderfn = QString();
-
-      int entryFile = shaderDetails->DebugInfo.entryFile;
-      if(entryFile < 0 || entryFile >= shaderDetails->DebugInfo.files.count)
-        entryFile = 0;
-
-      shaderfn = QFileInfo(ToQStr(shaderDetails->DebugInfo.files[entryFile].first)).fileName();
-
-      shader->setText(entryFunc + lit("() - ") + shaderfn);
-    }
+      shader->setText(entryFunc + lit("() - ") +
+                      QFileInfo(ToQStr(shaderDetails->DebugInfo.files[0].first)).fileName());
   }
 
   int vs = 0;
@@ -2554,24 +2545,15 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
     else
       shadername = ToQStr(sh.name);
 
-    if(shaderDetails && shaderDetails->DebugInfo.entryFunc.count > 0)
+    if(shaderDetails)
     {
-      QString entryFunc = ToQStr(shaderDetails->DebugInfo.entryFunc);
-      if(shaderDetails->DebugInfo.files.count > 0 || entryFunc != lit("main"))
+      QString entryFunc = ToQStr(shaderDetails->EntryPoint);
+      if(entryFunc != lit("main"))
         shadername = QFormatStr("%1()").arg(entryFunc);
-
-      if(shaderDetails->DebugInfo.files.count > 0)
-      {
-        QString shaderfn = QString();
-
-        int entryFile = shaderDetails->DebugInfo.entryFile;
-        if(entryFile < 0 || entryFile >= shaderDetails->DebugInfo.files.count)
-          entryFile = 0;
-
-        shaderfn = QFileInfo(ToQStr(shaderDetails->DebugInfo.files[entryFile].first)).fileName();
-
-        shadername = QFormatStr("%1() - %2").arg(entryFunc).arg(shaderfn);
-      }
+      else if(shaderDetails->DebugInfo.files.count > 0)
+        shadername = QFormatStr("%1() - %2")
+                         .arg(entryFunc)
+                         .arg(QFileInfo(ToQStr(shaderDetails->DebugInfo.files[0].first)).fileName());
     }
 
     xml.writeStartElement(lit("p"));

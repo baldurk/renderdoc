@@ -953,23 +953,13 @@ namespace renderdocui.Windows.PipelineState
             else
                 shader.Text = stage.ShaderName;
 
-            if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc.Length > 0)
+            if (shaderDetails != null)
             {
-                if (shaderDetails.DebugInfo.files.Length > 0 || shaderDetails.DebugInfo.entryFunc != "main")
-                    shader.Text = shaderDetails.DebugInfo.entryFunc + "()";
+                if (shaderDetails.DebugInfo.files.Length > 0 || shaderDetails.EntryPoint != "main")
+                    shader.Text = shaderDetails.EntryPoint + "()";
 
                 if (shaderDetails.DebugInfo.files.Length > 0)
-                {
-                    string shaderfn = "";
-
-                    int entryFile = shaderDetails.DebugInfo.entryFile;
-                    if (entryFile < 0 || entryFile >= shaderDetails.DebugInfo.files.Length)
-                        entryFile = 0;
-
-                    shaderfn = shaderDetails.DebugInfo.files[entryFile].BaseFilename;
-
-                    shader.Text += " - " + shaderfn;
-                }
+                    shader.Text += " - " + shaderDetails.DebugInfo.files[0].BaseFilename;
             }
 
             int vs = 0;
@@ -2844,8 +2834,8 @@ namespace renderdocui.Windows.PipelineState
                 else
                     shadername = sh.ShaderName;
 
-                if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc.Length > 0 && shaderDetails.DebugInfo.files.Length > 0)
-                    shadername = shaderDetails.DebugInfo.entryFunc + "()" + " - " +
+                if (shaderDetails != null && shaderDetails.DebugInfo.files.Length > 0)
+                    shadername = shaderDetails.EntryPoint + "()" + " - " +
                                     shaderDetails.DebugInfo.files[0].BaseFilename;
 
                 writer.WriteStartElement("p");

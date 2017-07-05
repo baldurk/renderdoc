@@ -578,12 +578,12 @@ namespace renderdocui.Windows
                 w.CloseButtonVisible = false;
             }
 
-            if (shader != null && shader.DebugInfo.entryFunc.Length > 0 && shader.DebugInfo.files.Length > 0)
+            if (shader != null && shader.DebugInfo.files.Length > 0)
             {
                 if(trace != null)
-                    Text = String.Format("Debug {0}() - {1}", shader.DebugInfo.entryFunc, debugContext);
+                    Text = String.Format("Debug {0}() - {1}", shader.EntryPoint, debugContext);
                 else
-                    Text = String.Format("{0}()", shader.DebugInfo.entryFunc);
+                    Text = String.Format("{0}()", shader.EntryPoint);
 
                 int fileIdx = 0;
 
@@ -606,15 +606,8 @@ namespace renderdocui.Windows
 
                     m_Scintillas.Add(scintilla1);
 
-                    if (shader.DebugInfo.entryFile >= 0 && shader.DebugInfo.entryFile < shader.DebugInfo.files.Length)
-                    {
-                        if (fileIdx == shader.DebugInfo.entryFile)
-                            sel = w;
-                    }
-                    else if (f.filetext.Contains(shader.DebugInfo.entryFunc))
-                    {
+                    if (sel == null)
                         sel = w;
-                    }
 
                     fileIdx++;
                 }

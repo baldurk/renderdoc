@@ -212,8 +212,10 @@ void Serialiser::Serialise(const char *name, ShaderResource &el)
 template <>
 void Serialiser::Serialise(const char *name, ShaderReflection &el)
 {
+  Serialise("", el.ID);
+  Serialise("", el.EntryPoint);
+
   Serialise("", el.DebugInfo.compileFlags);
-  Serialise("", el.DebugInfo.entryFunc);
   Serialise("", el.DebugInfo.files);
 
   SerialisePODArray<3>("", el.DispatchThreadsDimension);

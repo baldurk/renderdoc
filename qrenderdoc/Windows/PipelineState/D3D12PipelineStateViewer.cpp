@@ -961,19 +961,11 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
     shader->setText(
         tr("%1 - %2 Shader").arg(ToQStr(state.name)).arg(ToQStr(stage.stage, GraphicsAPI::D3D12)));
 
-  if(shaderDetails && !shaderDetails->DebugInfo.entryFunc.empty() &&
-     !shaderDetails->DebugInfo.files.empty())
+  if(shaderDetails && !shaderDetails->DebugInfo.files.empty())
   {
-    QString shaderfn;
-
-    int entryFile = shaderDetails->DebugInfo.entryFile;
-    if(entryFile < 0 || entryFile >= shaderDetails->DebugInfo.files.count)
-      entryFile = 0;
-
-    shaderfn = QFileInfo(ToQStr(shaderDetails->DebugInfo.files[entryFile].first)).fileName();
-
-    shader->setText(
-        QFormatStr("%1() - %2").arg(ToQStr(shaderDetails->DebugInfo.entryFunc)).arg(shaderfn));
+    shader->setText(QFormatStr("%1() - %2")
+                        .arg(ToQStr(shaderDetails->EntryPoint))
+                        .arg(QFileInfo(ToQStr(shaderDetails->DebugInfo.files[0].first)).fileName()));
   }
 
   int vs = 0;
@@ -2429,19 +2421,11 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Shad
       shadername =
           tr("%1 - %2 Shader").arg(ToQStr(state.name)).arg(ToQStr(sh.stage, GraphicsAPI::D3D12));
 
-    if(shaderDetails && !shaderDetails->DebugInfo.entryFunc.empty() &&
-       !shaderDetails->DebugInfo.files.empty())
+    if(shaderDetails && !shaderDetails->DebugInfo.files.empty())
     {
-      QString shaderfn;
-
-      int entryFile = shaderDetails->DebugInfo.entryFile;
-      if(entryFile < 0 || entryFile >= shaderDetails->DebugInfo.files.count)
-        entryFile = 0;
-
-      shaderfn = QFileInfo(ToQStr(shaderDetails->DebugInfo.files[entryFile].first)).fileName();
-
-      shadername =
-          QFormatStr("%1() - %2").arg(ToQStr(shaderDetails->DebugInfo.entryFunc)).arg(shaderfn);
+      shadername = QFormatStr("%1() - %2")
+                       .arg(ToQStr(shaderDetails->EntryPoint))
+                       .arg(QFileInfo(ToQStr(shaderDetails->DebugInfo.files[0].first)).fileName());
     }
 
     xml.writeStartElement(lit("p"));

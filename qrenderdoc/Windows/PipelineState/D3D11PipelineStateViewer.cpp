@@ -872,19 +872,11 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
   else
     shader->setText(ToQStr(stage.name));
 
-  if(shaderDetails && !shaderDetails->DebugInfo.entryFunc.empty() &&
-     !shaderDetails->DebugInfo.files.empty())
+  if(shaderDetails && !shaderDetails->DebugInfo.files.empty())
   {
-    QString shaderfn;
-
-    int entryFile = shaderDetails->DebugInfo.entryFile;
-    if(entryFile < 0 || entryFile >= shaderDetails->DebugInfo.files.count)
-      entryFile = 0;
-
-    shaderfn = QFileInfo(ToQStr(shaderDetails->DebugInfo.files[entryFile].first)).fileName();
-
-    shader->setText(
-        QFormatStr("%1() - %2").arg(ToQStr(shaderDetails->DebugInfo.entryFunc)).arg(shaderfn));
+    shader->setText(QFormatStr("%1() - %2")
+                        .arg(ToQStr(shaderDetails->EntryPoint))
+                        .arg(QFileInfo(ToQStr(shaderDetails->DebugInfo.files[0].first)).fileName()));
   }
 
   int vs = 0;
@@ -1141,8 +1133,8 @@ void D3D11PipelineStateViewer::setState()
   {
     QString layout = ToQStr(state.m_IA.name);
 
-    if(state.m_IA.Bytecode && !state.m_IA.Bytecode->DebugInfo.entryFunc.empty())
-      layout += QFormatStr(" (%1)").arg(ToQStr(state.m_IA.Bytecode->DebugInfo.entryFunc));
+    if(state.m_IA.Bytecode && !state.m_IA.Bytecode->DebugInfo.files.empty())
+      layout += QFormatStr(" (%1)").arg(ToQStr(state.m_IA.Bytecode->EntryPoint));
 
     ui->iaBytecode->setText(layout);
   }
@@ -2533,19 +2525,11 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::Shad
     else
       shadername = ToQStr(sh.name);
 
-    if(shaderDetails && shaderDetails->DebugInfo.entryFunc.count > 0 &&
-       shaderDetails->DebugInfo.files.count > 0)
+    if(shaderDetails && shaderDetails->DebugInfo.files.count > 0)
     {
-      QString shaderfn;
-
-      int entryFile = shaderDetails->DebugInfo.entryFile;
-      if(entryFile < 0 || entryFile >= shaderDetails->DebugInfo.files.count)
-        entryFile = 0;
-
-      shaderfn = QFileInfo(ToQStr(shaderDetails->DebugInfo.files[entryFile].first)).fileName();
-
-      shadername =
-          QFormatStr("%1() - %2").arg(ToQStr(shaderDetails->DebugInfo.entryFunc)).arg(shaderfn);
+      shadername = QFormatStr("%1() - %2")
+                       .arg(ToQStr(shaderDetails->EntryPoint))
+                       .arg(QFileInfo(ToQStr(shaderDetails->DebugInfo.files[0].first)).fileName());
     }
 
     xml.writeStartElement(lit("p"));

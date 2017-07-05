@@ -310,18 +310,8 @@ namespace renderdocui.Windows.PipelineState
             else
                 shader.Text = stage.ShaderName;
 
-            if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc.Length > 0 && shaderDetails.DebugInfo.files.Length > 0)
-            {
-                string shaderfn = "";
-
-                int entryFile = shaderDetails.DebugInfo.entryFile;
-                if (entryFile < 0 || entryFile >= shaderDetails.DebugInfo.files.Length)
-                    entryFile = 0;
-
-                shaderfn = shaderDetails.DebugInfo.files[entryFile].BaseFilename;
-
-                shader.Text = shaderDetails.DebugInfo.entryFunc + "()" + " - " + shaderfn;
-            }
+            if (shaderDetails != null && shaderDetails.DebugInfo.files.Length > 0)
+                shader.Text = shaderDetails.EntryPoint + "()" + " - " + shaderDetails.DebugInfo.files[0].BaseFilename;
 
             int vs = 0;
             
@@ -768,8 +758,8 @@ namespace renderdocui.Windows.PipelineState
             else
                 iaBytecode.Text = state.m_IA.LayoutName;
 
-            if (state.m_IA.Bytecode != null && state.m_IA.Bytecode.DebugInfo != null && state.m_IA.Bytecode.DebugInfo.entryFunc.Length > 0)
-                iaBytecode.Text += " (" + state.m_IA.Bytecode.DebugInfo.entryFunc + ")";
+            if (state.m_IA.Bytecode != null && state.m_IA.Bytecode.DebugInfo != null)
+                iaBytecode.Text += " (" + state.m_IA.Bytecode.EntryPoint + ")";
 
             iaBytecodeMismatch.Text = "";
             iaBytecodeMismatch.Visible = false;
@@ -2420,9 +2410,9 @@ namespace renderdocui.Windows.PipelineState
             string mainfile = "";
 
             var files = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
-            if (shaderDetails.DebugInfo.entryFunc.Length > 0 && shaderDetails.DebugInfo.files.Length > 0)
+            if (shaderDetails.DebugInfo.files.Length > 0)
             {
-                entryFunc = shaderDetails.DebugInfo.entryFunc;
+                entryFunc = shaderDetails.EntryPoint;
 
                 foreach (var s in shaderDetails.DebugInfo.files)
                 {
@@ -2432,11 +2422,7 @@ namespace renderdocui.Windows.PipelineState
                         files.Add(s.FullFilename, s.filetext);
                 }
 
-                int entryFile = shaderDetails.DebugInfo.entryFile;
-                if (entryFile < 0 || entryFile >= shaderDetails.DebugInfo.files.Length)
-                    entryFile = 0;
-
-                mainfile = shaderDetails.DebugInfo.files[entryFile].FullFilename;
+                mainfile = shaderDetails.DebugInfo.files[0].FullFilename;
             }
             else
             {
@@ -3334,8 +3320,8 @@ namespace renderdocui.Windows.PipelineState
                 else
                     shadername = sh.ShaderName;
 
-                if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc.Length > 0 && shaderDetails.DebugInfo.files.Length > 0)
-                    shadername = shaderDetails.DebugInfo.entryFunc + "()" + " - " +
+                if (shaderDetails != null && shaderDetails.DebugInfo.files.Length > 0)
+                    shadername = shaderDetails.EntryPoint + "()" + " - " +
                                     shaderDetails.DebugInfo.files[0].BaseFilename;
 
                 writer.WriteStartElement("p");

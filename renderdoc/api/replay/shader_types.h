@@ -449,18 +449,15 @@ Primarily this means the embedded original source files.
 )");
 struct ShaderDebugChunk
 {
-  ShaderDebugChunk() : compileFlags(0), entryFile(0) {}
-  DOCUMENT("The name of the entry point function for this shader.");
-  rdctype::str entryFunc;
-
+  ShaderDebugChunk() : compileFlags(0) {}
   DOCUMENT("An API or compiler specific set of flags used to compile this shader originally.");
   uint32_t compileFlags;
 
-  DOCUMENT("A list of tuples, where each tuple is a pair of filename, source code.");
-  rdctype::array<rdctype::pair<rdctype::str, rdctype::str> > files;
+  DOCUMENT(R"(A list of tuples, where each tuple is a pair of filename, source code.
 
-  DOCUMENT("The index in :data:`files` where the entry point exists, or ``-1`` if it's not found.");
-  int32_t entryFile;
+The first entry in the list is always the file where the entry point is.
+)");
+  rdctype::array<rdctype::pair<rdctype::str, rdctype::str> > files;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderDebugChunk);
@@ -473,6 +470,12 @@ and resource binding scheme.
 )");
 struct ShaderReflection
 {
+  DOCUMENT("The :class:`ResourceId` of this shader.");
+  ResourceId ID;
+
+  DOCUMENT("The entry point in the shader for this reflection, if multiple entry points exist.");
+  rdctype::str EntryPoint;
+
   DOCUMENT(
       "A :class:`ShaderDebugChunk` containing any embedded debugging information in this shader.");
   ShaderDebugChunk DebugInfo;

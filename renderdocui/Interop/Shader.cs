@@ -377,9 +377,6 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class ShaderDebugChunk
     {
-        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
-        public string entryFunc;
-
         public UInt32 compileFlags;
 
         public struct DebugFile
@@ -413,13 +410,19 @@ namespace renderdoc
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public DebugFile[] files;
-
-        public Int32 entryFile;
     };
     
     [StructLayout(LayoutKind.Sequential)]
     public class ShaderReflection
     {
+        public ResourceId ID;
+
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+        public string EntryPoint;
+
+        [CustomMarshalAs(CustomUnmanagedType.Skip)]
+        public IntPtr origPtr;
+
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderDebugChunk DebugInfo;
 

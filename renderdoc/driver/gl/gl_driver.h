@@ -299,7 +299,7 @@ private:
     ShaderReflection reflection;
     GLuint prog;
 
-    void Compile(WrappedOpenGL &gl);
+    void Compile(WrappedOpenGL &gl, ResourceId id);
   };
 
   struct ProgramData
