@@ -668,6 +668,9 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
   SERIALISE_ELEMENT(VkPipelineStageFlagBits, srcStages, (VkPipelineStageFlagBits)srcStageMask);
   SERIALISE_ELEMENT(VkPipelineStageFlagBits, destStages, (VkPipelineStageFlagBits)dstStageMask);
 
+  if(m_State < WRITING)
+    m_LastCmdBufferID = cmdid;
+
   // we don't serialise the original events as we are going to replace this
   // with our own
 
