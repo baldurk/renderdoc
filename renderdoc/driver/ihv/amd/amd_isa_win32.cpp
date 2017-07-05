@@ -40,7 +40,7 @@ Currently atidxx64.dll from AMD's driver package is required for GCN disassembly
 distributed with RenderDoc.
 
 To see instructions on how to download and configure it on your system, go to:
-https://github.com/baldurk/renderdoc/wiki/GCN_ISA)";
+https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
 
 namespace GCNISA
 {
@@ -70,7 +70,7 @@ std::string GCNISA::Disassemble(const DXBC::DXBCFile *dxbc, const std::string &t
 ; distributed with RenderDoc.
 
 ; To see instructions on how to download and configure it on your system, go to:
-; https://github.com/baldurk/renderdoc/wiki/GCN_ISA)";
+; https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
 
   // if DXBC is NULL we're testing support, so return empty string - indicating no error
   // initialising

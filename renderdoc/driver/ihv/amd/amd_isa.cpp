@@ -172,8 +172,7 @@ std::string Disassemble(const SPVModule *spv, const std::string &entry, const st
 ; download the plugins package.
 ;
 ; To see instructions on how to download and configure the plugins on your system, go to:
-; https://github.com/baldurk/renderdoc/wiki/GCN_ISA
-)";
+; https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
   }
 
   std::string cmdLine = "-set spirvDasmLegacyFormat=1 -Dall -l";
@@ -293,8 +292,7 @@ std::string Disassemble(ShaderStage stage, const std::vector<std::string> &glsl,
 ; It only works when the AMD driver is currently being used for graphics.
 ;
 ; To see instructions on how to download and configure the plugins on your system, go to:
-; https://github.com/baldurk/renderdoc/wiki/GCN_ISA
-)";
+; https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
   }
 
   const char *stageName = "unk";
