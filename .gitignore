@@ -44,3 +44,4 @@ qrenderdoc/3rdparty/swig
 qrenderdoc/3rdparty/python
 qrenderdoc/3rdparty/pyside
 .DS_Store
+plugins-*/
