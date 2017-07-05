@@ -28,6 +28,12 @@
 #include "official/RGA/elf/elf32.h"
 #include "amd_isa_devices.h"
 
+#if ENABLED(RDOC_X64)
+#define DLL_NAME "atidxx64.dll"
+#else
+#define DLL_NAME "atidxx32.dll"
+#endif
+
 static const char *driverDllErrorMessage = R"(Error loading atidxx64.dll.
 
 Currently atidxx64.dll from AMD's driver package is required for GCN disassembly and it cannot be
@@ -44,11 +50,11 @@ std::string LocatePlugin(const std::string &fileName);
 static HMODULE GetAMDModule()
 {
   // first try in the plugin locations
-  HMODULE module = LoadLibraryA(GCNISA::LocatePlugin("atidxx64.dll").c_str());
+  HMODULE module = LoadLibraryA(GCNISA::LocatePlugin(DLL_NAME).c_str());
 
   // if that failed then try checking for it just in the default search path
   if(module == NULL)
-    module = LoadLibraryA("atidxx64.dll");
+    module = LoadLibraryA(DLL_NAME);
 
   return module;
 }
@@ -58,7 +64,13 @@ std::string GCNISA::Disassemble(const DXBC::DXBCFile *dxbc, const std::string &t
   HMODULE mod = GetAMDModule();
 
   if(mod == NULL)
-    return driverDllErrorMessage;
+    return "; Error loading " DLL_NAME R"(.
+
+; Currently atidxx64.dll from AMD's driver package is required for GCN disassembly and it cannot be
+; distributed with RenderDoc.
+
+; To see instructions on how to download and configure it on your system, go to:
+; https://github.com/baldurk/renderdoc/wiki/GCN_ISA)";
 
   // if DXBC is NULL we're testing support, so return empty string - indicating no error
   // initialising
