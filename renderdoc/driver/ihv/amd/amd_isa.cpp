@@ -61,6 +61,19 @@ std::string LocatePlugin(const std::string &fileName)
   paths.push_back(exepath + "/plugins");
   // linux installation
   paths.push_back(exepath + "/../share/renderdoc/plugins");
+// also search the appropriate OS-specific location in the root
+#if ENABLED(RDOC_WIN32) && ENABLED(RDOC_X64)
+  paths.push_back(exepath + "/../../plugins-win64");
+#endif
+
+#if ENABLED(RDOC_WIN32) && DISABLED(RDOC_X64)
+  paths.push_back(exepath + "/../../plugins-win32");
+#endif
+
+#if ENABLED(RDOC_LINUX)
+  paths.push_back(exepath + "/../../plugins-linux64");
+#endif
+
   // there is no standard path for local builds as we don't provide these plugins in the repository
   // directly. As a courtesy we search the root of the build, from the executable. The user can
   // always put the plugins folder relative to the exe where it would be in an installation too.
