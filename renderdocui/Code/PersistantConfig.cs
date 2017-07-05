@@ -334,6 +334,9 @@ namespace renderdocui.Code
         {
             if (ReadOnly) return;
 
+            StaticExports.SetConfigSetting("Disassembly_FriendlyNaming",
+                                           ShaderViewer_FriendlyNaming ? "1" : "0");
+
             try
             {
                 ConfigSettingsValues.Clear();
@@ -364,6 +367,9 @@ namespace renderdocui.Code
             StreamReader reader = File.OpenText(file);
             PersistantConfig c = (PersistantConfig)xs.Deserialize(reader);
             reader.Close();
+
+            StaticExports.SetConfigSetting("Disassembly_FriendlyNaming",
+                                           c.ShaderViewer_FriendlyNaming ? "1" : "0");
 
             foreach (var kv in c.ConfigSettingsValues)
             {

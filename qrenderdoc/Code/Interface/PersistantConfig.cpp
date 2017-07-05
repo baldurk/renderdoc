@@ -234,6 +234,8 @@ bool PersistantConfig::Load(const QString &filename)
     SetConfigSetting(key, ConfigSettings[key]);
   }
 
+  RENDERDOC_SetConfigSetting("Disassembly_FriendlyNaming", ShaderViewer_FriendlyNaming ? "1" : "0");
+
   // localhost should always be available as a remote host
   bool foundLocalhost = false;
 
@@ -261,6 +263,8 @@ bool PersistantConfig::Save()
   RemoteHostList.clear();
   for(RemoteHost *host : RemoteHosts)
     RemoteHostList.push_back(*host);
+
+  RENDERDOC_SetConfigSetting("Disassembly_FriendlyNaming", ShaderViewer_FriendlyNaming ? "1" : "0");
 
   return Serialize(m_Filename);
 }

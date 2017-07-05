@@ -809,6 +809,8 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
   // get type/version that's used regularly and cheap to fetch
   FetchTypeVersion();
 
+  m_GuessedResources = false;
+
   // didn't find an rdef means reflection information was stripped.
   // Attempt to reverse engineer basic info from declarations
   if(!rdefFound)
@@ -817,6 +819,8 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
     DisassembleHexDump();
 
     GuessResources();
+
+    m_GuessedResources = true;
   }
 
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)

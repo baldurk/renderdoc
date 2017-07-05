@@ -680,7 +680,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
     {
       RDCERR("Currently unsupported destination operand type %d!", dstoper.type);
 
-      string name = dstoper.toString();
+      string name = dstoper.toString(dxbc, ToString::ShowSwizzle);
       for(int32_t i = 0; i < outputs.count; i++)
       {
         if(outputs[i].name.elems && !strcmp(name.c_str(), outputs[i].name.elems))

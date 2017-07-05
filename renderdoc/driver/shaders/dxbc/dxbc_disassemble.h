@@ -696,8 +696,28 @@ enum ComponentType
 // Main structures
 /////////////////////////////////////////////////////////////////////////
 
+class DXBCFile;
+
 struct ASMIndex;
 struct ASMDecl;
+
+enum class ToString
+{
+  None = 0x0,
+  IsDecl = 0x1,
+  ShowSwizzle = 0x2,
+  FriendlyNameRegisters = 0x4,
+};
+
+constexpr inline ToString operator|(ToString a, ToString b)
+{
+  return ToString(int(a) | int(b));
+}
+
+constexpr inline bool operator&(ToString a, ToString b)
+{
+  return (int(a) & int(b)) != 0;
+}
 
 struct ASMOperand
 {
@@ -715,7 +735,7 @@ struct ASMOperand
 
   bool operator==(const ASMOperand &o) const;
 
-  string toString(bool swizzle = true) const;
+  string toString(DXBCFile *dxbc, ToString flags) const;
 
   ///////////////////////////////////////
 

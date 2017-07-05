@@ -60,7 +60,6 @@ namespace renderdocui.Windows
         private D3D11PipelineState.ShaderStage m_Stage = null;
         private ShaderDebugTrace m_Trace = null;
         private ScintillaNET.Scintilla m_DisassemblyView = null;
-        private string m_DefaultDisasm = "";
 
         private DockContent m_ErrorsDock = null;
         private DockContent m_ConstantsDock = null;
@@ -152,70 +151,6 @@ namespace renderdocui.Windows
 
                 return null;
             }
-        }
-
-        private string FriendlyName(string disasm, string stem, string prefix, ShaderConstant[] vars)
-        {
-            foreach (var v in vars)
-            {
-                if (v.type.descriptor.rows == 0 && v.type.descriptor.cols == 0 && v.type.members.Length > 0)
-                {
-                    string subPrefix = prefix + v.name + ".";
-
-                    disasm = FriendlyName(disasm, stem, subPrefix, v.type.members);
-                }
-                else if (v.type.descriptor.rows > 0 && v.type.descriptor.cols > 0)
-                {
-                    uint numRegs = v.type.descriptor.rows * Math.Max(1, v.type.descriptor.elements);
-                    int regSize = (int)v.type.descriptor.cols;
-
-                    if (!v.type.descriptor.rowMajorStorage && v.type.descriptor.rows > 1 && v.type.descriptor.cols > 1)
-                    {
-                        numRegs = v.type.descriptor.cols;
-                        regSize = (int)v.type.descriptor.rows;
-                    }
-
-                    for (uint r = 0; r < numRegs; r++)
-                    {
-                        var reg = string.Format("{0}[{1}]", stem, v.reg.vec + r);
-
-                        int compStart = r == 0 ? (int)v.reg.comp : 0;
-                        int compEnd = compStart + regSize;
-
-                        var comps = "xyzw".Substring(compStart, compEnd - compStart);
-
-                        var regexp = string.Format(", (-|abs\\()?{0}\\.([{1}]*)([^xyzw])", Regex.Escape(reg), comps);
-
-                        var match = Regex.Match(disasm, regexp);
-
-                        while (match.Success)
-                        {
-                            var swizzle = match.Groups[2].Value.ToCharArray();
-
-                            for (int c = 0; c < swizzle.Length; c++)
-                            {
-                                int val = "xyzw".IndexOf(swizzle[c]);
-                                swizzle[c] = "xyzw"[val - compStart];
-                            }
-
-                            var name = numRegs == 1 ? v.name : string.Format("{0}[{1}]", v.name, r);
-
-                            name = prefix + name;
-
-                            var replacement = string.Format(", {0}{1}.{2}{3}",
-                                                    match.Groups[1].Value, name, new string(swizzle), match.Groups[3].Value);
-
-                            disasm = disasm.Remove(match.Index, match.Length);
-
-                            disasm = disasm.Insert(match.Index, replacement);
-
-                            match = Regex.Match(disasm, regexp);
-                        }
-                    }
-                }
-            }
-
-            return disasm;
         }
 
         private List<ScintillaNET.Scintilla> m_Scintillas = new List<ScintillaNET.Scintilla>();
@@ -578,56 +513,10 @@ namespace renderdocui.Windows
                 {
                     var disasm = replay.DisassembleShader(m_ShaderDetails, "");
 
-                    if (m_Core.Config.ShaderViewer_FriendlyNaming && m_ShaderDetails != null &&
-                        m_Core.APIProps.pipelineType.IsD3D())
-                    {
-                        for (int i = 0; i < m_ShaderDetails.ConstantBlocks.Length; i++)
-                        {
-                            var cbuf = m_ShaderDetails.ConstantBlocks[i];
-
-                            var stem = string.Format("cb{0}", cbuf.bindPoint);
-
-                            if (cbuf.variables.Length == 0)
-                                continue;
-
-                            disasm = FriendlyName(disasm, stem, "", cbuf.variables);
-                        }
-
-                        foreach (var r in m_ShaderDetails.ReadOnlyResources)
-                        {
-                            if (r.IsSRV)
-                            {
-                                var needle = string.Format(", t{0}([^0-9])", r.bindPoint);
-                                var replacement = string.Format(", {0}$1", r.name);
-
-                                Regex rgx = new Regex(needle);
-                                disasm = rgx.Replace(disasm, replacement);
-                            }
-                            if (r.IsSampler)
-                            {
-                                var needle = string.Format(", s{0}([^0-9])", r.bindPoint);
-                                var replacement = string.Format(", {0}$1", r.name);
-
-                                Regex rgx = new Regex(needle);
-                                disasm = rgx.Replace(disasm, replacement);
-                            }
-                        }
-                        foreach (var r in m_ShaderDetails.ReadWriteResources)
-                        {
-                            var needle = string.Format(", u{0}([^0-9])", r.bindPoint);
-                            var replacement = string.Format(", {0}$1", r.name);
-
-                            Regex rgx = new Regex(needle);
-                            disasm = rgx.Replace(disasm, replacement);
-                        }
-                    }
-
-                    m_DefaultDisasm = disasm;
-
                     this.BeginInvoke((MethodInvoker)delegate
                     {
                         m_DisassemblyView.IsReadOnly = false;
-                        m_DisassemblyView.Text = m_DefaultDisasm;
+                        m_DisassemblyView.Text = disasm;
                         m_DisassemblyView.UndoRedo.EmptyUndoBuffer();
                         m_DisassemblyView.IsReadOnly = true;
                     });
@@ -775,29 +664,19 @@ namespace renderdocui.Windows
             if (disasmType == null)
                 return;
 
-            if (disasmType.SelectedIndex == 0 || m_ShaderDetails == null)
+            string target = disasmType.Items[disasmType.SelectedIndex].ToString();
+            m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
-                m_DisassemblyView.IsReadOnly = false;
-                m_DisassemblyView.Text = m_DefaultDisasm;
-                m_DisassemblyView.UndoRedo.EmptyUndoBuffer();
-                m_DisassemblyView.IsReadOnly = true;
-            }
-            else
-            {
-                string target = disasmType.Items[disasmType.SelectedIndex].ToString();
-                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
-                {
-                    string disasm = r.DisassembleShader(m_ShaderDetails, target);
+                string disasm = r.DisassembleShader(m_ShaderDetails, target);
 
-                    this.BeginInvoke((MethodInvoker)delegate
-                    {
-                        m_DisassemblyView.IsReadOnly = false;
-                        m_DisassemblyView.Text = disasm;
-                        m_DisassemblyView.UndoRedo.EmptyUndoBuffer();
-                        m_DisassemblyView.IsReadOnly = true;
-                    });
+                this.BeginInvoke((MethodInvoker)delegate
+                {
+                    m_DisassemblyView.IsReadOnly = false;
+                    m_DisassemblyView.Text = disasm;
+                    m_DisassemblyView.UndoRedo.EmptyUndoBuffer();
+                    m_DisassemblyView.IsReadOnly = true;
                 });
-            }
+            });
         }
 
         private ListBox m_FileList = null;
