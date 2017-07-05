@@ -506,9 +506,10 @@ public:
     }
     else
     {
-      create_array_uninit(el, sz);
+      create_array_uninit(el, sz + 1);
       for(int32_t i = 0; i < sz; i++)
         Serialise("", el.elems[i]);
+      el.elems[sz] = 0;
     }
   }
 
