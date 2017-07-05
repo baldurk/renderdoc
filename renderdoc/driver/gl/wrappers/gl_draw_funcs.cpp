@@ -1121,6 +1121,36 @@ bool WrappedOpenGL::Check_preElements()
   return true;
 }
 
+void WrappedOpenGL::Legacy_preElements(GLenum Type, uint32_t Count)
+{
+  if(m_State <= EXECUTING && GetLogVersion() <= 0x000015)
+  {
+    // in older logs there used to be a different way of manually saving client-side memory
+    // indices.
+    // We don't support replaying this anymore, but we need to match serialisation to be able to
+    // open older captures - in 99% of cases the bool will be false. When it's true, we just add
+    // an error message about it.
+    SERIALISE_ELEMENT(bool, IndicesFromMemory, false);
+
+    if(IndicesFromMemory)
+    {
+      uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
+                                                             ? 2
+                                                             : /*Type == eGL_UNSIGNED_INT*/ 4;
+
+      // serialise the data, even unused
+      SERIALISE_ELEMENT_BUF(byte *, idxdata, NULL, size_t(IdxSize * Count));
+
+      AddDebugMessage(MessageCategory::Deprecated, MessageSeverity::High,
+                      MessageSource::UnsupportedConfiguration,
+                      "Client-side index data used at drawcall, re-capture with a new version to "
+                      "replay this draw.");
+
+      SAFE_DELETE_ARRAY(idxdata);
+    }
+  }
+}
+
 bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum type,
                                              const void *indices)
 {
@@ -1131,6 +1161,8 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
 
   if(m_State <= EXECUTING)
   {
+    Legacy_preElements(Type, Count);
+
     if(Check_preElements())
       m_Real.glDrawElements(Mode, Count, Type, (const void *)IdxOffset);
   }
@@ -1285,6 +1317,8 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 
   if(m_State <= EXECUTING)
   {
+    Legacy_preElements(Type, Count);
+
     if(Check_preElements())
       m_Real.glDrawRangeElements(Mode, Start, End, Count, Type, (const void *)IdxOffset);
   }
@@ -1364,6 +1398,8 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
 
   if(m_State <= EXECUTING)
   {
+    Legacy_preElements(Type, Count);
+
     if(Check_preElements())
       m_Real.glDrawRangeElementsBaseVertex(Mode, Start, End, Count, Type, (const void *)IdxOffset,
                                            BaseVtx);
@@ -1442,6 +1478,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 
   if(m_State <= EXECUTING)
   {
+    Legacy_preElements(Type, Count);
+
     if(Check_preElements())
       m_Real.glDrawElementsBaseVertex(Mode, Count, Type, (const void *)IdxOffset, BaseVtx);
   }
@@ -1518,6 +1556,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 
   if(m_State <= EXECUTING)
   {
+    Legacy_preElements(Type, Count);
+
     if(Check_preElements())
       m_Real.glDrawElementsInstanced(Mode, Count, Type, (const void *)IdxOffset, InstCount);
   }
@@ -1597,6 +1637,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 
   if(m_State <= EXECUTING)
   {
+    Legacy_preElements(Type, Count);
+
     if(Check_preElements())
       m_Real.glDrawElementsInstancedBaseInstance(Mode, Count, Type, (const void *)IdxOffset,
                                                  InstCount, BaseInstance);
@@ -1679,6 +1721,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 
   if(m_State <= EXECUTING)
   {
+    Legacy_preElements(Type, Count);
+
     if(Check_preElements())
       m_Real.glDrawElementsInstancedBaseVertex(Mode, Count, Type, (const void *)IdxOffset,
                                                InstCount, BaseVertex);
@@ -1762,6 +1806,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
 
   if(m_State <= EXECUTING)
   {
+    Legacy_preElements(Type, Count);
+
     if(Check_preElements())
       m_Real.glDrawElementsInstancedBaseVertexBaseInstance(
           Mode, Count, Type, (const void *)IdxOffset, InstCount, BaseVertex, BaseInstance);

@@ -351,6 +351,8 @@ const uint32_t GLInitParams::GL_OLD_VERSIONS[GLInitParams::GL_NUM_SUPPORTED_OLD_
     0x000013,    // Serialised vertex attribute and fragdata bindings for programs as initial
                  // contents data
     0x000014,    // Added support for primitive bounding boxes on GLES
+    0x000015,    // Changed serialisation of client-side index buffers which removed a bool even
+                 // when they aren't used.
 };
 
 ReplayStatus GLInitParams::Serialise()
