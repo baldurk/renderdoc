@@ -24,6 +24,7 @@
 
 #include "vk_replay.h"
 #include <float.h>
+#include "driver/ihv/amd/amd_isa.h"
 #include "maths/camera.h"
 #include "maths/matrix.h"
 #include "serialise/string_utils.h"
@@ -921,6 +922,17 @@ vector<string> VulkanReplay::GetDisassemblyTargets()
 {
   vector<string> ret;
 
+  std::string err;
+  if(GCNISA::IsSupported(GraphicsAPI::Vulkan, err))
+  {
+    GCNISA::GetTargets(GraphicsAPI::Vulkan, ret);
+  }
+  else
+  {
+    RDCLOG("AMD ISA Not available:\n%s", err.c_str());
+  }
+
+  // default is always first
   ret.insert(ret.begin(), "SPIR-V (RenderDoc)");
 
   // could add canonical disassembly here if spirv-dis is available
@@ -936,6 +948,7 @@ string VulkanReplay::DisassembleShader(const ShaderReflection *refl, const strin
   if(it == m_pDriver->m_CreationInfo.m_ShaderModule.end())
     return "Invalid Shader Specified";
 
+  if(target == "SPIR-V (RenderDoc)" || target.empty())
   {
     std::string &disasm = it->second.m_Reflections[refl->EntryPoint.c_str()].disassembly;
 
@@ -944,6 +957,8 @@ string VulkanReplay::DisassembleShader(const ShaderReflection *refl, const strin
 
     return disasm;
   }
+
+  return GCNISA::Disassemble(&it->second.spirv, refl->EntryPoint.c_str(), target);
 }
 
 void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,

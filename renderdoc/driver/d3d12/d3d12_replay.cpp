@@ -25,6 +25,7 @@
 #include "d3d12_replay.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
+#include "driver/ihv/amd/amd_isa.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
@@ -259,6 +260,17 @@ vector<string> D3D12Replay::GetDisassemblyTargets()
 {
   vector<string> ret;
 
+  std::string err;
+  if(GCNISA::IsSupported(GraphicsAPI::D3D12, err))
+  {
+    GCNISA::GetTargets(GraphicsAPI::D3D12, ret);
+  }
+  else
+  {
+    RDCLOG("AMD ISA Not available:\n%s", err.c_str());
+  }
+
+  // DXBC is always first
   ret.insert(ret.begin(), "DXBC");
 
   return ret;
@@ -273,7 +285,10 @@ string D3D12Replay::DisassembleShader(const ShaderReflection *refl, const string
 
   DXBC::DXBCFile *dxbc = sh->GetDXBC();
 
-  return dxbc->GetDisassembly();
+  if(target == "DXBC" || target.empty())
+    return dxbc->GetDisassembly();
+
+  return GCNISA::Disassemble(dxbc, target);
 }
 
 void D3D12Replay::FreeTargetResource(ResourceId id)

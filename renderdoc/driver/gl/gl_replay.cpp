@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "gl_replay.h"
+#include "driver/ihv/amd/amd_isa.h"
 #include "maths/matrix.h"
 #include "serialise/string_utils.h"
 #include "gl_driver.h"
@@ -836,6 +837,17 @@ vector<string> GLReplay::GetDisassemblyTargets()
 {
   vector<string> ret;
 
+  std::string err;
+  if(GCNISA::IsSupported(GraphicsAPI::OpenGL, err))
+  {
+    GCNISA::GetTargets(GraphicsAPI::OpenGL, ret);
+  }
+  else
+  {
+    RDCLOG("AMD ISA Not available:\n%s", err.c_str());
+  }
+
+  // default is always first
   ret.insert(ret.begin(), "SPIR-V (RenderDoc)");
 
   return ret;
@@ -848,6 +860,7 @@ string GLReplay::DisassembleShader(const ShaderReflection *refl, const string &t
   if(shaderDetails.sources.empty())
     return "Invalid Shader Specified";
 
+  if(target == "SPIR-V (RenderDoc)" || target.empty())
   {
     std::string &disasm = shaderDetails.disassembly;
 
@@ -856,6 +869,13 @@ string GLReplay::DisassembleShader(const ShaderReflection *refl, const string &t
 
     return disasm;
   }
+
+  ShaderStage stages[] = {
+      ShaderStage::Vertex,   ShaderStage::Tess_Control, ShaderStage::Tess_Eval,
+      ShaderStage::Geometry, ShaderStage::Fragment,     ShaderStage::Compute,
+  };
+
+  return GCNISA::Disassemble(stages[ShaderIdx(shaderDetails.type)], shaderDetails.sources, target);
 }
 
 void GLReplay::SavePipelineState()

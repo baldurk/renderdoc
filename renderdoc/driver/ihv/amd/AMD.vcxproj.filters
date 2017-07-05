@@ -13,10 +13,34 @@
     <Filter Include="official\DXExt">
       <UniqueIdentifier>{310145c9-318c-4c14-ac19-1bb04a050349}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ISA">
+      <UniqueIdentifier>{54c2d261-eb6a-48cc-a741-2857a8148559}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\RGA">
+      <UniqueIdentifier>{b6dd5672-5467-4d86-8d48-685a9751f1b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\RGA\elf">
+      <UniqueIdentifier>{2d5a0ef9-0cd2-4354-88e2-f7ab466308bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\RGA\Common">
+      <UniqueIdentifier>{47a6fd91-f76e-4faa-9e5c-4bb899be9796}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="amd_counters.cpp">
       <Filter>Counters</Filter>
+    </ClCompile>
+    <ClCompile Include="amd_isa.cpp">
+      <Filter>ISA</Filter>
+    </ClCompile>
+    <ClCompile Include="amd_isa_win32.cpp">
+      <Filter>ISA</Filter>
+    </ClCompile>
+    <ClCompile Include="amd_isa_posix.cpp">
+      <Filter>ISA</Filter>
+    </ClCompile>
+    <ClCompile Include="amd_isa_devices.cpp">
+      <Filter>ISA</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -67,6 +91,24 @@
     </ClInclude>
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPITypes-Private.h">
       <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="amd_isa.h">
+      <Filter>ISA</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGA\elf\elf_common.h">
+      <Filter>official\RGA\elf</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGA\elf\elf32.h">
+      <Filter>official\RGA\elf</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGA\Common\AmdDxGsaCompile.h">
+      <Filter>official\RGA\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="official\RGA\Common\asic_reg\devices.h">
+      <Filter>official\RGA\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="amd_isa_devices.h">
+      <Filter>ISA</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

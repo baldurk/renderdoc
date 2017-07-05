@@ -36,6 +36,7 @@ option(BUILD_VERSION_STABLE "If this is a stable build. See RENDERDOC_STABLE_BUI
 set(BUILD_VERSION_DIST_NAME "" CACHE STRING "The name of the distribution. See DISTRIBUTION_NAME in renderdoc/api/replay/version.h")
 set(BUILD_VERSION_DIST_VER "" CACHE STRING "The distribution-specific version number. See DISTRIBUTION_VERSION in renderdoc/api/replay/version.h")
 set(BUILD_VERSION_DIST_CONTACT "" CACHE STRING "The URL or email to contact with issues. See DISTRIBUTION_CONTACT in renderdoc/api/replay/version.h")
+set(RENDERDOC_PLUGINS_PATH "" CACHE STRING "Path to RenderDoc plugins folder after installation of RenderDoc (either absolute or relative to binary)")
 set(RENDERDOC_APK_PATH "" CACHE STRING "Path to RenderDocCmd.apk after installation of RenderDoc on host (either absolute or relative to binary)")
 
 if(BUILD_VERSION_STABLE)
@@ -52,6 +53,11 @@ endif()
 
 if(NOT BUILD_VERSION_DIST_CONTACT STREQUAL "")
     add_definitions(-DDISTRIBUTION_CONTACT="${BUILD_VERSION_DIST_CONTACT}")
+endif()
+
+if(NOT RENDERDOC_PLUGINS_PATH STREQUAL "")
+    message(STATUS "Detected custom path to RenderDoc plugins: ${RENDERDOC_PLUGINS_PATH}")
+    add_definitions(-DRENDERDOC_PLUGINS_PATH="${RENDERDOC_PLUGINS_PATH}")
 endif()
 
 if(NOT RENDERDOC_APK_PATH STREQUAL "")

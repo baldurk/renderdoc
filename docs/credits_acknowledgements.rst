@@ -92,6 +92,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Providing higher-resolution icons than the famfamfam Silk set, these icons allow scaling to those using high-DPI displays.
 
+* `AMD Radeon GPU Analyzer <https://github.com/GPUOpen-Tools/RGA>`_ - Copyright (c) 2015 Advanced Micro Devices, Inc., distributed under the MIT license.
+
+  Provides the ability to disassemble shaders from any API representation into compiled GCN ISA for lower level analysis.
+
 Thanks
 ------
 

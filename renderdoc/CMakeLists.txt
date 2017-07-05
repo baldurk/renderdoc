@@ -292,6 +292,9 @@ endif()
 if(ENABLE_GL OR ENABLE_GLES OR ENABLE_VULKAN)
     add_subdirectory(driver/shaders/spirv)
     list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_spirv>)
+
+    add_subdirectory(driver/ihv/amd)
+    list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_amd>)
 endif()
 
 # rdoc must be after its drivers because of linux_libentry.cpp
