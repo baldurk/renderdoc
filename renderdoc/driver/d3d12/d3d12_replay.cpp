@@ -255,6 +255,27 @@ ShaderReflection *D3D12Replay::GetShader(ResourceId shader, string entryPoint)
   return NULL;
 }
 
+vector<string> D3D12Replay::GetDisassemblyTargets()
+{
+  vector<string> ret;
+
+  ret.insert(ret.begin(), "DXBC");
+
+  return ret;
+}
+
+string D3D12Replay::DisassembleShader(const ShaderReflection *refl, const string &target)
+{
+  WrappedID3D12Shader *sh = m_pDevice->GetResourceManager()->GetLiveAs<WrappedID3D12Shader>(refl->ID);
+
+  if(!sh)
+    return "Invalid Shader Specified";
+
+  DXBC::DXBCFile *dxbc = sh->GetDXBC();
+
+  return dxbc->GetDisassembly();
+}
+
 void D3D12Replay::FreeTargetResource(ResourceId id)
 {
   if(m_pDevice->GetResourceManager()->HasLiveResource(id))

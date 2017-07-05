@@ -60,6 +60,7 @@ namespace renderdocui.Windows
         private D3D11PipelineState.ShaderStage m_Stage = null;
         private ShaderDebugTrace m_Trace = null;
         private ScintillaNET.Scintilla m_DisassemblyView = null;
+        private string m_DefaultDisasm = "";
 
         private DockContent m_ErrorsDock = null;
         private DockContent m_ConstantsDock = null;
@@ -484,54 +485,8 @@ namespace renderdocui.Windows
             else
                 Text = m_Core.CurPipelineState.GetShaderName(stage);
 
-            var disasm = shader != null ? shader.Disassembly : "";
-
-            if (m_Core.Config.ShaderViewer_FriendlyNaming && m_ShaderDetails != null &&
-                m_Core.APIProps.pipelineType.IsD3D())
             {
-                for (int i = 0; i < m_ShaderDetails.ConstantBlocks.Length; i++)
-                {
-                    var cbuf = m_ShaderDetails.ConstantBlocks[i];
-
-                    var stem = string.Format("cb{0}", cbuf.bindPoint);
-
-                    if (cbuf.variables.Length == 0)
-                        continue;
-
-                    disasm = FriendlyName(disasm, stem, "", cbuf.variables);
-                }
-
-                foreach (var r in m_ShaderDetails.ReadOnlyResources)
-                {
-                    if (r.IsSRV)
-                    {
-                        var needle = string.Format(", t{0}([^0-9])", r.bindPoint);
-                        var replacement = string.Format(", {0}$1", r.name);
-
-                        Regex rgx = new Regex(needle);
-                        disasm = rgx.Replace(disasm, replacement);
-                    }
-                    if (r.IsSampler)
-                    {
-                        var needle = string.Format(", s{0}([^0-9])", r.bindPoint);
-                        var replacement = string.Format(", {0}$1", r.name);
-
-                        Regex rgx = new Regex(needle);
-                        disasm = rgx.Replace(disasm, replacement);
-                    }
-                }
-                foreach (var r in m_ShaderDetails.ReadWriteResources)
-                {
-                    var needle = string.Format(", u{0}([^0-9])", r.bindPoint);
-                    var replacement = string.Format(", {0}$1", r.name);
-
-                    Regex rgx = new Regex(needle);
-                    disasm = rgx.Replace(disasm, replacement);
-                }
-            }
-
-            {
-                m_DisassemblyView = MakeEditor("scintillaDisassem", disasm, m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan);
+                m_DisassemblyView = MakeEditor("scintillaDisassem", "", m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan);
                 m_DisassemblyView.IsReadOnly = true;
                 m_DisassemblyView.TabIndex = 0;
 
@@ -568,14 +523,115 @@ namespace renderdocui.Windows
                     m_DisassemblyView.MouseDown += new MouseEventHandler(contextMouseDown);
                 }
 
+                TableLayoutPanel disasmLayoutPanel = new TableLayoutPanel();
+
+                ToolStrip disasmToolStrip = new ToolStrip();
+
+                ToolStripLabel disasmTypeLabel = new ToolStripLabel();
+                disasmTypeLabel.Text = "Disassembly type: ";
+
+                ToolStripComboBox disasmType = new ToolStripComboBox();
+
+                disasmType.DropDownStyle = ComboBoxStyle.DropDownList;
+
+                // force creation of the handle so we can use BeginInvoke.
+                if (!IsHandleCreated)
+                    CreateHandle();
+
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    string[] targets = r.GetDisassemblyTargets();
+
+                    this.BeginInvoke((MethodInvoker)delegate
+                    {
+                        disasmType.Items.AddRange(targets);
+                        disasmType.SelectedIndex = 0;
+                        disasmType.SelectedIndexChanged += new System.EventHandler(disasmType_SelectedIndexChanged);
+                    });
+                });
+
+                disasmToolStrip.Dock = DockStyle.None;
+                disasmToolStrip.GripStyle = ToolStripGripStyle.Hidden;
+                disasmToolStrip.Items.AddRange(new ToolStripItem[] { disasmTypeLabel, disasmType });
+                disasmToolStrip.Margin = new Padding(0, 0, 12, 0);
+
+                disasmLayoutPanel.ColumnCount = 1;
+                disasmLayoutPanel.Controls.Add(disasmToolStrip, 0, 0);
+                disasmLayoutPanel.Controls.Add(m_DisassemblyView, 0, 1);
+                disasmLayoutPanel.RowCount = 2;
+                disasmLayoutPanel.RowStyles.Add(new RowStyle());
+                disasmLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
                 m_Scintillas.Add(m_DisassemblyView);
 
-                var w = Helpers.WrapDockContent(dockPanel, m_DisassemblyView, "Disassembly");
+                var w = Helpers.WrapDockContent(dockPanel, disasmLayoutPanel, "Disassembly");
                 w.DockState = DockState.Document;
                 w.Show();
 
                 w.CloseButton = false;
                 w.CloseButtonVisible = false;
+            }
+
+            if (shader != null)
+            {
+                m_Core.Renderer.BeginInvoke((ReplayRenderer replay) =>
+                {
+                    var disasm = replay.DisassembleShader(m_ShaderDetails, "");
+
+                    if (m_Core.Config.ShaderViewer_FriendlyNaming && m_ShaderDetails != null &&
+                        m_Core.APIProps.pipelineType.IsD3D())
+                    {
+                        for (int i = 0; i < m_ShaderDetails.ConstantBlocks.Length; i++)
+                        {
+                            var cbuf = m_ShaderDetails.ConstantBlocks[i];
+
+                            var stem = string.Format("cb{0}", cbuf.bindPoint);
+
+                            if (cbuf.variables.Length == 0)
+                                continue;
+
+                            disasm = FriendlyName(disasm, stem, "", cbuf.variables);
+                        }
+
+                        foreach (var r in m_ShaderDetails.ReadOnlyResources)
+                        {
+                            if (r.IsSRV)
+                            {
+                                var needle = string.Format(", t{0}([^0-9])", r.bindPoint);
+                                var replacement = string.Format(", {0}$1", r.name);
+
+                                Regex rgx = new Regex(needle);
+                                disasm = rgx.Replace(disasm, replacement);
+                            }
+                            if (r.IsSampler)
+                            {
+                                var needle = string.Format(", s{0}([^0-9])", r.bindPoint);
+                                var replacement = string.Format(", {0}$1", r.name);
+
+                                Regex rgx = new Regex(needle);
+                                disasm = rgx.Replace(disasm, replacement);
+                            }
+                        }
+                        foreach (var r in m_ShaderDetails.ReadWriteResources)
+                        {
+                            var needle = string.Format(", u{0}([^0-9])", r.bindPoint);
+                            var replacement = string.Format(", {0}$1", r.name);
+
+                            Regex rgx = new Regex(needle);
+                            disasm = rgx.Replace(disasm, replacement);
+                        }
+                    }
+
+                    m_DefaultDisasm = disasm;
+
+                    this.BeginInvoke((MethodInvoker)delegate
+                    {
+                        m_DisassemblyView.IsReadOnly = false;
+                        m_DisassemblyView.Text = m_DefaultDisasm;
+                        m_DisassemblyView.UndoRedo.EmptyUndoBuffer();
+                        m_DisassemblyView.IsReadOnly = true;
+                    });
+                });
             }
 
             if (shader != null && shader.DebugInfo.files.Length > 0)
@@ -711,6 +767,37 @@ namespace renderdocui.Windows
             CurrentStep = 0;
 
             this.ResumeLayout(false);
+        }
+
+        private void disasmType_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            ToolStripComboBox disasmType = sender as ToolStripComboBox;
+            if (disasmType == null)
+                return;
+
+            if (disasmType.SelectedIndex == 0 || m_ShaderDetails == null)
+            {
+                m_DisassemblyView.IsReadOnly = false;
+                m_DisassemblyView.Text = m_DefaultDisasm;
+                m_DisassemblyView.UndoRedo.EmptyUndoBuffer();
+                m_DisassemblyView.IsReadOnly = true;
+            }
+            else
+            {
+                string target = disasmType.Items[disasmType.SelectedIndex].ToString();
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    string disasm = r.DisassembleShader(m_ShaderDetails, target);
+
+                    this.BeginInvoke((MethodInvoker)delegate
+                    {
+                        m_DisassemblyView.IsReadOnly = false;
+                        m_DisassemblyView.Text = disasm;
+                        m_DisassemblyView.UndoRedo.EmptyUndoBuffer();
+                        m_DisassemblyView.IsReadOnly = true;
+                    });
+                });
+            }
         }
 
         private ListBox m_FileList = null;

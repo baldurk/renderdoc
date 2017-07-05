@@ -349,6 +349,7 @@ struct VulkanCreationInfo
     {
       uint32_t stage;
       string entryPoint;
+      string disassembly;
       ShaderReflection refl;
       ShaderBindpointMapping mapping;
       SPIRVPatchData patchData;

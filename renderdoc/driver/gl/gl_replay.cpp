@@ -832,6 +832,32 @@ ShaderReflection *GLReplay::GetShader(ResourceId shader, string entryPoint)
   return &shaderDetails.reflection;
 }
 
+vector<string> GLReplay::GetDisassemblyTargets()
+{
+  vector<string> ret;
+
+  ret.insert(ret.begin(), "SPIR-V (RenderDoc)");
+
+  return ret;
+}
+
+string GLReplay::DisassembleShader(const ShaderReflection *refl, const string &target)
+{
+  auto &shaderDetails = m_pDriver->m_Shaders[m_pDriver->GetResourceManager()->GetLiveID(refl->ID)];
+
+  if(shaderDetails.sources.empty())
+    return "Invalid Shader Specified";
+
+  {
+    std::string &disasm = shaderDetails.disassembly;
+
+    if(disasm.empty())
+      disasm = shaderDetails.spirv.Disassemble(refl->EntryPoint.c_str());
+
+    return disasm;
+  }
+}
+
 void GLReplay::SavePipelineState()
 {
   GLPipe::State &pipe = m_CurPipelineState;

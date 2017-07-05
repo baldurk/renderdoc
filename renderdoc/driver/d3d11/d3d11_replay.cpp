@@ -315,6 +315,27 @@ ShaderReflection *D3D11Replay::GetShader(ResourceId shader, string entryPoint)
   return ret;
 }
 
+vector<string> D3D11Replay::GetDisassemblyTargets()
+{
+  vector<string> ret;
+
+  ret.insert(ret.begin(), "DXBC");
+
+  return ret;
+}
+
+string D3D11Replay::DisassembleShader(const ShaderReflection *refl, const string &target)
+{
+  auto it = WrappedShader::m_ShaderList.find(m_pDevice->GetResourceManager()->GetLiveID(refl->ID));
+
+  if(it == WrappedShader::m_ShaderList.end())
+    return "Invalid Shader Specified";
+
+  DXBC::DXBCFile *dxbc = it->second->GetDXBC();
+
+  return dxbc->GetDisassembly();
+}
+
 void D3D11Replay::FreeTargetResource(ResourceId id)
 {
   if(m_pDevice->GetResourceManager()->HasLiveResource(id))

@@ -480,9 +480,6 @@ struct ShaderReflection
       "A :class:`ShaderDebugChunk` containing any embedded debugging information in this shader.");
   ShaderDebugChunk DebugInfo;
 
-  DOCUMENT("The disassembly for this shader, in an API specific representation.");
-  rdctype::str Disassembly;
-
   DOCUMENT("A raw ``bytes`` dump of the original shader, encoded in API specific binary form.");
   rdctype::array<byte> RawBytes;
 

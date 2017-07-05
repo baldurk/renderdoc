@@ -296,6 +296,7 @@ private:
     vector<string> sources;
     vector<string> includepaths;
     SPVModule spirv;
+    std::string disassembly;
     ShaderReflection reflection;
     GLuint prog;
 

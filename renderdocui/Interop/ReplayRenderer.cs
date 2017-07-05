@@ -305,6 +305,11 @@ namespace renderdoc
         private static extern void ReplayRenderer_GetVulkanPipelineState(IntPtr real, IntPtr mem);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void ReplayRenderer_GetDisassemblyTargets(IntPtr real, IntPtr targets);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void ReplayRenderer_DisassembleShader(IntPtr real, IntPtr refl, IntPtr target, IntPtr isa);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void ReplayRenderer_BuildCustomShader(IntPtr real, IntPtr entry, IntPtr source, UInt32 compileFlags, ShaderStageType type, ref ResourceId shaderID, IntPtr errorMem);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void ReplayRenderer_FreeCustomShader(IntPtr real, ResourceId id);
@@ -465,6 +470,35 @@ namespace renderdoc
             CustomMarshal.Free(mem);
 
             return ret;
+        }
+
+        public string[] GetDisassemblyTargets()
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            ReplayRenderer_GetDisassemblyTargets(m_Real, mem);
+
+            string[] ret = CustomMarshal.TemplatedArrayToStringArray(mem, true);
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public string DisassembleShader(ShaderReflection refl, string target)
+        {
+            IntPtr disasmMem = CustomMarshal.Alloc(typeof(templated_array));
+            IntPtr target_mem = CustomMarshal.MakeUTF8String(target);
+
+            ReplayRenderer_DisassembleShader(m_Real, refl.origPtr, target_mem, disasmMem);
+
+            string disasm = CustomMarshal.TemplatedArrayToString(disasmMem, true);
+
+            CustomMarshal.Free(target_mem);
+
+            CustomMarshal.Free(disasmMem);
+
+            return disasm;
         }
 
         public ResourceId BuildCustomShader(string entry, string source, UInt32 compileFlags, ShaderStageType type, out string errors)

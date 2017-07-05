@@ -101,6 +101,9 @@ public:
   TextureDescription GetTexture(ResourceId id);
   ShaderReflection *GetShader(ResourceId shader, string entryPoint);
 
+  vector<string> GetDisassemblyTargets();
+  string DisassembleShader(const ShaderReflection *refl, const string &target);
+
   vector<DebugMessage> GetDebugMessages();
 
   vector<EventUsage> GetUsage(ResourceId id);

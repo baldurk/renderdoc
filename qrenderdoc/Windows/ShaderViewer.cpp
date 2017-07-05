@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "ShaderViewer.h"
+#include <QComboBox>
 #include <QFontDatabase>
 #include <QHBoxLayout>
 #include <QKeyEvent>
@@ -98,7 +99,6 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
         MakeEditor(lit("scintillaDisassem"), QString(),
                    m_Ctx.APIProps().pipelineType == GraphicsAPI::Vulkan ? SCLEX_GLSL : SCLEX_HLSL);
     m_DisassemblyView->setReadOnly(true);
-    m_DisassemblyView->setWindowTitle(tr("Disassembly"));
 
     QObject::connect(m_DisassemblyView, &ScintillaEdit::keyPressed, this,
                      &ShaderViewer::readonly_keyPressed);
@@ -123,8 +123,33 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
 
     m_Scintillas.push_back(m_DisassemblyView);
 
-    ui->docking->addToolWindow(m_DisassemblyView, ToolWindowManager::EmptySpace);
-    ui->docking->setToolWindowProperties(m_DisassemblyView,
+    m_DisassemblyFrame = new QWidget(this);
+    m_DisassemblyFrame->setWindowTitle(tr("Disassembly"));
+
+    QFrame *disasmToolbar = new QFrame(this);
+    disasmToolbar->setFrameShape(QFrame::Panel);
+    disasmToolbar->setFrameShadow(QFrame::Raised);
+
+    QHBoxLayout *toolbarlayout = new QHBoxLayout(disasmToolbar);
+    toolbarlayout->setSpacing(2);
+    toolbarlayout->setContentsMargins(2, 2, 2, 2);
+
+    m_DisassemblyType = new QComboBox(disasmToolbar);
+    m_DisassemblyType->setMaxVisibleItems(12);
+    m_DisassemblyType->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+
+    toolbarlayout->addWidget(new QLabel(tr("Disassembly type:"), disasmToolbar));
+    toolbarlayout->addWidget(m_DisassemblyType);
+    toolbarlayout->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum));
+
+    QVBoxLayout *framelayout = new QVBoxLayout(m_DisassemblyFrame);
+    framelayout->setSpacing(0);
+    framelayout->setMargin(0);
+    framelayout->addWidget(disasmToolbar);
+    framelayout->addWidget(m_DisassemblyView);
+
+    ui->docking->addToolWindow(m_DisassemblyFrame, ToolWindowManager::EmptySpace);
+    ui->docking->setToolWindowProperties(m_DisassemblyFrame,
                                          ToolWindowManager::HideCloseButton |
                                              ToolWindowManager::DisallowFloatWindow |
                                              ToolWindowManager::AlwaysDisplayFullTabs);
@@ -175,7 +200,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
 void ShaderViewer::editShader(bool customShader, const QString &entryPoint, const QStringMap &files)
 {
   m_Scintillas.removeOne(m_DisassemblyView);
-  ui->docking->removeToolWindow(m_DisassemblyView);
+  ui->docking->removeToolWindow(m_DisassemblyFrame);
 
   // hide watch, constants, variables
   ui->watch->hide();
@@ -280,10 +305,27 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
   if(shader)
   {
-    // read-only applies to us too!
-    m_DisassemblyView->setReadOnly(false);
-    m_DisassemblyView->setText(shader->Disassembly.c_str());
-    m_DisassemblyView->setReadOnly(true);
+    m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
+      rdctype::array<rdctype::str> targets = r->GetDisassemblyTargets();
+
+      rdctype::str disasm = r->DisassembleShader(m_ShaderDetails, "");
+
+      GUIInvoke::call([this, targets, disasm]() {
+        QStringList targetNames;
+        for(const rdctype::str &t : targets)
+          targetNames << ToQStr(t);
+
+        m_DisassemblyType->addItems(targetNames);
+        m_DisassemblyType->setCurrentIndex(0);
+        QObject::connect(m_DisassemblyType, OverloadedSlot<int>::of(&QComboBox::currentIndexChanged),
+                         this, &ShaderViewer::disassemble_typeChanged);
+
+        // read-only applies to us too!
+        m_DisassemblyView->setReadOnly(false);
+        m_DisassemblyView->setText(disasm.c_str());
+        m_DisassemblyView->setReadOnly(true);
+      });
+    });
   }
 
   // we always want to highlight words/registers
@@ -360,7 +402,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->watch->setWindowTitle(tr("Watch"));
     ui->docking->addToolWindow(
         ui->watch, ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
-                                                    ui->docking->areaOf(m_DisassemblyView), 0.25f));
+                                                    ui->docking->areaOf(m_DisassemblyFrame), 0.25f));
     ui->docking->setToolWindowProperties(
         ui->watch, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
@@ -506,7 +548,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->inputSig->setWindowTitle(tr("Input Signature"));
     ui->docking->addToolWindow(ui->inputSig, ToolWindowManager::AreaReference(
                                                  ToolWindowManager::BottomOf,
-                                                 ui->docking->areaOf(m_DisassemblyView), 0.2f));
+                                                 ui->docking->areaOf(m_DisassemblyFrame), 0.2f));
     ui->docking->setToolWindowProperties(
         ui->inputSig, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
@@ -768,6 +810,25 @@ void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
       }
     }
   }
+}
+
+void ShaderViewer::disassemble_typeChanged(int index)
+{
+  if(m_ShaderDetails == NULL)
+    return;
+
+  QByteArray target = m_DisassemblyType->currentText().toUtf8();
+
+  m_Ctx.Replay().AsyncInvoke([this, target](IReplayController *r) {
+    rdctype::str disasm = r->DisassembleShader(m_ShaderDetails, target.data());
+
+    GUIInvoke::call([this, disasm]() {
+      m_DisassemblyView->setReadOnly(false);
+      m_DisassemblyView->setText(disasm.c_str());
+      m_DisassemblyView->setReadOnly(true);
+      m_DisassemblyView->emptyUndoBuffer();
+    });
+  });
 }
 
 void ShaderViewer::watch_keyPress(QKeyEvent *event)

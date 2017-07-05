@@ -92,6 +92,9 @@ public:
 
   virtual ShaderReflection *GetShader(ResourceId shader, string entryPoint) = 0;
 
+  virtual vector<string> GetDisassemblyTargets() = 0;
+  virtual string DisassembleShader(const ShaderReflection *refl, const string &target) = 0;
+
   virtual vector<EventUsage> GetUsage(ResourceId id) = 0;
 
   virtual void SavePipelineState() = 0;

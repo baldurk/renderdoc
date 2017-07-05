@@ -85,6 +85,9 @@ enum ReplayProxyPacket
   eReplayProxy_GetAPIProperties,
 
   eReplayProxy_PixelHistory,
+
+  eReplayProxy_DisassembleShader,
+  eReplayProxy_GetISATargets,
 };
 
 // This class implements IReplayDriver and StackResolver. On the local machine where the UI
@@ -431,6 +434,9 @@ public:
                            uint32_t eventID, const vector<uint32_t> &passEvents);
 
   ShaderReflection *GetShader(ResourceId shader, string entryPoint);
+
+  vector<string> GetDisassemblyTargets();
+  string DisassembleShader(const ShaderReflection *refl, const string &target);
 
   bool HasCallstacks();
   void InitCallstackResolver();

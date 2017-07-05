@@ -515,6 +515,26 @@ You should use :meth:`GetAPIProperties` to determine the API of the capture.
 )");
   virtual VKPipe::State GetVulkanPipelineState() = 0;
 
+  DOCUMENT(R"(Retrieve the list of possible disassembly targets for :meth:`DisassembleShader`. The
+values are implementation dependent but will always include a default target first which is the
+native disassembly of the shader. Further options may be available for additional diassembly views
+or hardware-specific ISA formats.
+
+:return: The list of disassembly targets available.
+:rtype: ``list`` of ``str``
+)");
+  virtual rdctype::array<rdctype::str> GetDisassemblyTargets() = 0;
+
+  DOCUMENT(R"(Retrieve the disassembly for a given shader, for the given disassembly target.
+
+:param ShaderReflection refl: The shader reflection details of the shader to disassemble
+:param str target: The name of the disassembly target to generate for. Must be one of the values
+  returned by :meth:`GetDisassemblyTargets`, or empty to use the default generation.
+:return: The disassembly text, or an error message if something went wrong.
+:rtype: str
+)");
+  virtual rdctype::str DisassembleShader(const ShaderReflection *refl, const char *target) = 0;
+
   DOCUMENT(R"(Builds a shader suitable for running on the local replay instance as a custom shader.
 
 The language used is native to the local renderer - HLSL for D3D based renderers, GLSL otherwise.

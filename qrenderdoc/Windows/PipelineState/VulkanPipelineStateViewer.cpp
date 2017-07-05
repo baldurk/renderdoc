@@ -2305,23 +2305,38 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
 
   bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files, mainfile);
 
-  if(!hasOrigSource)
+  if(hasOrigSource)
+  {
+    if(files.empty())
+      return;
+  }
+  else
   {
     QString glsl;
 
     if(!m_Ctx.Config().SPIRVDisassemblers.isEmpty())
       glsl = disassembleSPIRV(shaderDetails);
 
-    if(glsl.isEmpty())
-      glsl = ToQStr(shaderDetails->Disassembly);
-
     mainfile = lit("generated.glsl");
 
     files[mainfile] = glsl;
-  }
 
-  if(files.empty())
-    return;
+    if(glsl.isEmpty())
+    {
+      m_Ctx.Replay().AsyncInvoke(
+          [this, stage, shaderDetails, entryFunc, mainfile](IReplayController *r) {
+            rdctype::str disasm = r->DisassembleShader(shaderDetails, "");
+
+            GUIInvoke::call([this, stage, shaderDetails, entryFunc, mainfile, disasm]() {
+              QStringMap fileMap;
+              fileMap[mainfile] = ToQStr(disasm);
+              m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, fileMap,
+                                  mainfile);
+            });
+          });
+      return;
+    }
+  }
 
   m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, files, mainfile);
 }

@@ -914,12 +914,36 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId shader, string entryPoint)
     return NULL;
   }
 
-  // disassemble lazily on demand
-  if(shad->second.m_Reflections[entryPoint].refl.Disassembly.count == 0)
-    shad->second.m_Reflections[entryPoint].refl.Disassembly =
-        shad->second.spirv.Disassemble(entryPoint);
-
   return &shad->second.m_Reflections[entryPoint].refl;
+}
+
+vector<string> VulkanReplay::GetDisassemblyTargets()
+{
+  vector<string> ret;
+
+  ret.insert(ret.begin(), "SPIR-V (RenderDoc)");
+
+  // could add canonical disassembly here if spirv-dis is available
+  // Ditto for SPIRV-cross (to glsl/hlsl)
+
+  return ret;
+}
+
+string VulkanReplay::DisassembleShader(const ShaderReflection *refl, const string &target)
+{
+  auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(GetResourceManager()->GetLiveID(refl->ID));
+
+  if(it == m_pDriver->m_CreationInfo.m_ShaderModule.end())
+    return "Invalid Shader Specified";
+
+  {
+    std::string &disasm = it->second.m_Reflections[refl->EntryPoint.c_str()].disassembly;
+
+    if(disasm.empty())
+      disasm = it->second.spirv.Disassemble(refl->EntryPoint.c_str());
+
+    return disasm;
+  }
 }
 
 void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,

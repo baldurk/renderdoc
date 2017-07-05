@@ -142,6 +142,9 @@ public:
   GLPipe::State GetGLPipelineState();
   VKPipe::State GetVulkanPipelineState();
 
+  rdctype::array<rdctype::str> GetDisassemblyTargets();
+  rdctype::str DisassembleShader(const ShaderReflection *refl, const char *target);
+
   rdctype::pair<ResourceId, rdctype::str> BuildCustomShader(const char *entry, const char *source,
                                                             const uint32_t compileFlags,
                                                             ShaderStage type);

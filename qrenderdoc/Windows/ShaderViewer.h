@@ -40,6 +40,7 @@ class FindReplace;
 class QTableWidgetItem;
 class QKeyEvent;
 class QMouseEvent;
+class QComboBox;
 
 // from Scintilla
 typedef intptr_t sptr_t;
@@ -117,6 +118,7 @@ private slots:
   void editable_keyPressed(QKeyEvent *event);
   void disassembly_contextMenu(const QPoint &pos);
   void disassembly_buttonReleased(QMouseEvent *event);
+  void disassemble_typeChanged(int index);
   void watch_keyPress(QKeyEvent *event);
   void performFind();
   void performFindAll();
@@ -169,6 +171,8 @@ private:
   const ShaderReflection *m_ShaderDetails = NULL;
   ShaderStage m_Stage;
   ScintillaEdit *m_DisassemblyView = NULL;
+  QWidget *m_DisassemblyFrame = NULL;
+  QComboBox *m_DisassemblyType = NULL;
   ScintillaEdit *m_Errors = NULL;
   ScintillaEdit *m_FindResults = NULL;
   QList<ScintillaEdit *> m_Scintillas;

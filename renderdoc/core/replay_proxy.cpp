@@ -220,8 +220,6 @@ void Serialiser::Serialise(const char *name, ShaderReflection &el)
 
   SerialisePODArray<3>("", el.DispatchThreadsDimension);
 
-  Serialise("", el.Disassembly);
-
   Serialise("", el.RawBytes);
 
   Serialise("", el.InputSig);
@@ -234,7 +232,7 @@ void Serialiser::Serialise(const char *name, ShaderReflection &el)
 
   Serialise("", el.Interfaces);
 
-  SIZE_CHECK(192);
+  SIZE_CHECK(176);
 }
 
 template <>
@@ -2223,6 +2221,8 @@ bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
       DebugThread(0, dummy1, dummy2);
       break;
     }
+    case eReplayProxy_DisassembleShader: DisassembleShader(NULL, ""); break;
+    case eReplayProxy_GetISATargets: GetDisassemblyTargets(); break;
     default: RDCERR("Unexpected command"); return false;
   }
 
@@ -2844,6 +2844,61 @@ ShaderReflection *ReplayProxy::GetShader(ResourceId id, string entryPoint)
   }
 
   return m_ShaderReflectionCache[key];
+}
+
+string ReplayProxy::DisassembleShader(const ShaderReflection *refl, const string &target)
+{
+  string ret;
+
+  ResourceId id;
+  std::string entryPoint;
+  std::string isatarget = target;
+
+  if(refl)
+  {
+    id = refl->ID;
+    entryPoint = refl->EntryPoint;
+  }
+
+  m_ToReplaySerialiser->Serialise("", id);
+  m_ToReplaySerialiser->Serialise("", entryPoint);
+  m_ToReplaySerialiser->Serialise("", isatarget);
+
+  if(m_RemoteServer)
+  {
+    refl = m_Remote->GetShader(m_Remote->GetLiveID(id), entryPoint);
+    if(refl)
+      ret = m_Remote->DisassembleShader(m_Remote->GetShader(m_Remote->GetLiveID(id), entryPoint),
+                                        isatarget);
+  }
+  else
+  {
+    if(!SendReplayCommand(eReplayProxy_DisassembleShader))
+      return ret;
+  }
+
+  m_FromReplaySerialiser->Serialise("", ret);
+
+  return ret;
+}
+
+vector<string> ReplayProxy::GetDisassemblyTargets()
+{
+  vector<string> ret;
+
+  if(m_RemoteServer)
+  {
+    ret = m_Remote->GetDisassemblyTargets();
+  }
+  else
+  {
+    if(!SendReplayCommand(eReplayProxy_GetISATargets))
+      return ret;
+  }
+
+  m_FromReplaySerialiser->Serialise("", ret);
+
+  return ret;
 }
 
 void ReplayProxy::FreeTargetResource(ResourceId id)

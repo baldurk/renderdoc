@@ -233,6 +233,24 @@ VKPipe::State ReplayController::GetVulkanPipelineState()
   return m_VulkanPipelineState;
 }
 
+rdctype::array<rdctype::str> ReplayController::GetDisassemblyTargets()
+{
+  rdctype::array<rdctype::str> ret;
+
+  vector<string> targets = m_pDevice->GetDisassemblyTargets();
+
+  create_array_uninit(ret, targets.size());
+  for(int32_t i = 0; i < ret.count; i++)
+    ret[i] = targets[i];
+
+  return ret;
+}
+
+rdctype::str ReplayController::DisassembleShader(const ShaderReflection *refl, const char *target)
+{
+  return m_pDevice->DisassembleShader(refl, target);
+}
+
 FrameDescription ReplayController::GetFrameInfo()
 {
   return m_FrameRecord.frameInfo;
@@ -1692,6 +1710,18 @@ extern "C" RENDERDOC_API void RENDERDOC_CC
 ReplayRenderer_GetVulkanPipelineState(IReplayController *rend, VKPipe::State *state)
 {
   *state = rend->GetVulkanPipelineState();
+}
+extern "C" RENDERDOC_API void RENDERDOC_CC
+ReplayRenderer_GetDisassemblyTargets(IReplayController *rend, rdctype::array<rdctype::str> *targets)
+{
+  *targets = rend->GetDisassemblyTargets();
+}
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_DisassembleShader(IReplayController *rend,
+                                                                            ShaderReflection *refl,
+                                                                            const char *target,
+                                                                            rdctype::str *disasm)
+{
+  *disasm = rend->DisassembleShader(refl, target);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildCustomShader(

@@ -426,9 +426,6 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderDebugChunk DebugInfo;
 
-        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
-        public string Disassembly;
-
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public byte[] RawBytes;
 

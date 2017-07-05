@@ -2370,8 +2370,15 @@ namespace renderdocui.Windows.PipelineState
             {
                 // use disassembly for now. It's not compilable GLSL but it's better than
                 // starting with a blank canvas
-                files.Add("Disassembly", shaderDetails.Disassembly);
-                ShowShaderViewer(stage, files);
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    var disasm = r.DisassembleShader(shaderDetails, "");
+                    files.Add("Disassembly", disasm);
+                    this.BeginInvoke((MethodInvoker)delegate
+                    {
+                        ShowShaderViewer(stage, files);
+                    });
+                });
             }
         }
 

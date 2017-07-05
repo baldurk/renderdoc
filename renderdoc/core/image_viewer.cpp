@@ -198,6 +198,8 @@ public:
     return ResourceId();
   }
   ShaderReflection *GetShader(ResourceId shader, string entryPoint) { return NULL; }
+  vector<string> GetDisassemblyTargets() { return {"N/A"}; }
+  string DisassembleShader(const ShaderReflection *refl, const string &target) { return ""; }
   bool HasCallstacks() { return false; }
   void InitCallstackResolver() {}
   Callstack::StackResolver *GetCallstackResolver() { return NULL; }

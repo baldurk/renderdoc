@@ -477,8 +477,6 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
     }
   }
 
-  ret->Disassembly = dxbc->GetDisassembly();
-
   if(dxbc->m_ShaderBlob.empty())
     create_array_uninit(ret->RawBytes, 0);
   else

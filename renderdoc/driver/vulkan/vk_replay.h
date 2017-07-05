@@ -144,6 +144,9 @@ public:
 
   ShaderReflection *GetShader(ResourceId shader, string entryPoint);
 
+  vector<string> GetDisassemblyTargets();
+  string DisassembleShader(const ShaderReflection *refl, const string &target);
+
   vector<EventUsage> GetUsage(ResourceId id);
 
   FrameRecord GetFrameRecord();

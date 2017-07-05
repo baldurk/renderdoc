@@ -82,8 +82,6 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id)
 
     reflection.ID = id;
     reflection.EntryPoint = "main";
-    // for classic GL, entry point is always main
-    reflection.Disassembly = spirv.Disassemble("main");
 
     // TODO sort these so that the first file contains the entry point
     create_array_uninit(reflection.DebugInfo.files, sources.size());
