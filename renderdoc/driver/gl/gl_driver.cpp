@@ -1569,7 +1569,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
     // consider an attribs created context, to avoid starting capturing when the user is creating
     // dummy contexts to be able to create the real one.
     if(ctxdata.attribsCreate)
-      FirstFrame(ctxdata.ctx, winData.wnd);
+      FirstFrame(ctxdata.ctx, (void *)winData.wnd);
   }
 }
 
