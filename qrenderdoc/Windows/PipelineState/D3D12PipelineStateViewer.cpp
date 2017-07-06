@@ -2144,11 +2144,8 @@ void D3D12PipelineStateViewer::shaderEdit_clicked()
 
   if(!hasOrigSource)
   {
-    QString hlsl = lit("// TODO - generate stub HLSL");
-
     mainfile = lit("generated.hlsl");
-
-    files[mainfile] = hlsl;
+    files[mainfile] = m_Common.GenerateHLSLStub(shaderDetails, entryFunc);
   }
 
   if(files.empty())

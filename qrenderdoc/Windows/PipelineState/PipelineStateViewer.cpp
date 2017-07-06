@@ -558,6 +558,154 @@ bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDet
   return false;
 }
 
+void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
+                                                  const rdctype::array<ShaderConstant> &vars,
+                                                  QString &struct_contents, QString &struct_defs)
+{
+  for(const ShaderConstant &v : vars)
+  {
+    if(v.type.members.count > 0)
+    {
+      QString def = lit("struct %1 {\n").arg(ToQStr(v.type.descriptor.name));
+
+      if(!struct_defs.contains(def))
+      {
+        QString contents;
+        MakeShaderVariablesHLSL(false, v.type.members, contents, struct_defs);
+
+        struct_defs += def + contents + lit("};\n\n");
+      }
+    }
+
+    struct_contents += lit("\t%1 %2").arg(ToQStr(v.type.descriptor.name)).arg(ToQStr(v.name));
+
+    char comp = 'x';
+    if(v.reg.comp == 1)
+      comp = 'y';
+    if(v.reg.comp == 2)
+      comp = 'z';
+    if(v.reg.comp == 3)
+      comp = 'w';
+
+    if(cbufferContents)
+      struct_contents += lit(" : packoffset(c%1.%2);").arg(v.reg.vec).arg(QLatin1Char(comp));
+    else
+      struct_contents += lit(";");
+
+    struct_contents += lit("\n");
+  }
+}
+
+QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDetails,
+                                              const QString &entryFunc)
+{
+  QString hlsl = lit("// No HLSL available - function stub generated\n\n");
+
+  const QString textureDim[ENUM_ARRAY_SIZE(TextureDim)] = {
+      lit("Unknown"),          lit("Buffer"),      lit("Texture1D"),      lit("Texture1DArray"),
+      lit("Texture2D"),        lit("TextureRect"), lit("Texture2DArray"), lit("Texture2DMS"),
+      lit("Texture2DMSArray"), lit("Texture3D"),   lit("TextureCube"),    lit("TextureCubeArray"),
+  };
+
+  for(int i = 0; i < 2; i++)
+  {
+    const rdctype::array<ShaderResource> &resources =
+        (i == 0 ? shaderDetails->ReadOnlyResources : shaderDetails->ReadWriteResources);
+    for(const ShaderResource &res : resources)
+    {
+      if(res.IsSampler)
+      {
+        hlsl += lit("//SamplerComparisonState %1 : register(s%2); // can't disambiguate\n"
+                    "SamplerState %1 : register(s%2); // can't disambiguate\n")
+                    .arg(ToQStr(res.name))
+                    .arg(res.bindPoint);
+      }
+      else
+      {
+        char regChar = 't';
+
+        if(i == 1)
+        {
+          hlsl += lit("RW");
+          regChar = 'u';
+        }
+
+        if(res.IsTexture)
+        {
+          hlsl += lit("%1<%2> %3 : register(%4%5);\n")
+                      .arg(textureDim[(size_t)res.resType])
+                      .arg(ToQStr(res.variableType.descriptor.name))
+                      .arg(ToQStr(res.name))
+                      .arg(QLatin1Char(regChar))
+                      .arg(res.bindPoint);
+        }
+        else
+        {
+          if(res.variableType.descriptor.rows > 1)
+            hlsl += lit("Structured");
+
+          hlsl += lit("Buffer<%1> %2 : register(%3%4);\n")
+                      .arg(ToQStr(res.variableType.descriptor.name))
+                      .arg(ToQStr(res.name))
+                      .arg(QLatin1Char(regChar))
+                      .arg(res.bindPoint);
+        }
+      }
+    }
+  }
+
+  hlsl += lit("\n\n");
+
+  QString cbuffers;
+
+  int cbufIdx = 0;
+  for(const ConstantBlock &cbuf : shaderDetails->ConstantBlocks)
+  {
+    if(cbuf.name.count > 0 && cbuf.variables.count > 0)
+    {
+      QString cbufName = ToQStr(cbuf.name);
+      if(cbufName == lit("$Globals"))
+        cbufName = lit("_Globals");
+      cbuffers += lit("cbuffer %1 : register(b%2) {\n").arg(cbufName).arg(cbuf.bindPoint);
+      MakeShaderVariablesHLSL(true, cbuf.variables, cbuffers, hlsl);
+      cbuffers += lit("};\n\n");
+    }
+    cbufIdx++;
+  }
+
+  hlsl += cbuffers;
+
+  hlsl += lit("\n\n");
+
+  hlsl += lit("struct InputStruct {\n");
+  for(const SigParameter &sig : shaderDetails->InputSig)
+    hlsl += lit("\t%1 %2 : %3;\n")
+                .arg(TypeString(sig))
+                .arg(sig.varName.count > 0 ? ToQStr(sig.varName) : lit("param%1").arg(sig.regIndex))
+                .arg(D3DSemanticString(sig));
+  hlsl += lit("};\n\n");
+
+  hlsl += lit("struct OutputStruct {\n");
+  for(const SigParameter &sig : shaderDetails->OutputSig)
+    hlsl += lit("\t%1 %2 : %3;\n")
+                .arg(TypeString(sig))
+                .arg(sig.varName.count > 0 ? ToQStr(sig.varName) : lit("param%1").arg(sig.regIndex))
+                .arg(D3DSemanticString(sig));
+  hlsl += lit("};\n\n");
+
+  hlsl += lit("OutputStruct %1(in InputStruct IN)\n"
+              "{\n"
+              "\tOutputStruct OUT = (OutputStruct)0;\n"
+              "\n"
+              "\t// ...\n"
+              "\n"
+              "\treturn OUT;\n"
+              "}\n")
+              .arg(entryFunc);
+
+  return hlsl;
+}
+
 void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
                                      const ShaderReflection *shaderDetails, const QString &entryFunc,
                                      const QStringMap &files, const QString &mainfile)

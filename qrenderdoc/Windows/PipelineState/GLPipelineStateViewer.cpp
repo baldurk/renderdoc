@@ -2277,6 +2277,7 @@ void GLPipelineStateViewer::shaderEdit_clicked()
 
   if(!hasOrigSource)
   {
+    // this would only happen if the GL program is uploading SPIR-V instead of GLSL.
     QString glsl = lit("// TODO - disassemble SPIR-V");
 
     mainfile = lit("generated.glsl");

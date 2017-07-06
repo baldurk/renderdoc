@@ -67,6 +67,7 @@ public:
 
   bool PrepareShaderEditing(const ShaderReflection *shaderDetails, QString &entryFunc,
                             QStringMap &files, QString &mainfile);
+  QString GenerateHLSLStub(const ShaderReflection *shaderDetails, const QString &entryFunc);
   void EditShader(ShaderStage shaderType, ResourceId id, const ShaderReflection *shaderDetails,
                   const QString &entryFunc, const QStringMap &files, const QString &mainfile);
 
@@ -82,6 +83,9 @@ public:
 private:
   Ui::PipelineStateViewer *ui;
   ICaptureContext &m_Ctx;
+
+  void MakeShaderVariablesHLSL(bool cbufferContents, const rdctype::array<ShaderConstant> &vars,
+                               QString &struct_contents, QString &struct_defs);
 
   QPixmap m_TopoPixmaps[(int)Topology::PatchList + 1];
 

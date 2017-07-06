@@ -693,6 +693,7 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 enum class ShaderBuiltin : uint32_t
 {
   Undefined = 0,
+  First = Undefined,
   Position,
   PointSize,
   ClipDistance,
@@ -721,7 +722,10 @@ enum class ShaderBuiltin : uint32_t
   DepthOutput,
   DepthOutputGreaterEqual,
   DepthOutputLessEqual,
+  Count,
 };
+
+ITERABLE_OPERATORS(ShaderBuiltin);
 
 // replay_render.h
 

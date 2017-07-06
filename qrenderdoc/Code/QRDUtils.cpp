@@ -215,7 +215,39 @@ QString D3DSemanticString(const SigParameter &sig)
   if(sig.systemValue == ShaderBuiltin::Undefined)
     return ToQStr(sig.semanticIdxName);
 
-  QString ret = ToQStr(sig.systemValue);
+  QString sysValues[ENUM_ARRAY_SIZE(ShaderBuiltin)] = {
+      lit("SV_Undefined"),
+      lit("SV_Position"),
+      lit("Unsupported (PointSize)"),
+      lit("SV_ClipDistance"),
+      lit("SV_CullDistance"),
+      lit("SV_RenderTargetIndex"),
+      lit("SV_ViewportIndex"),
+      lit("SV_VertexID"),
+      lit("SV_PrimitiveID"),
+      lit("SV_InstanceID"),
+      lit("Unsupported (DispatchSize)"),
+      lit("SV_DispatchThreadID"),
+      lit("SV_GroupID"),
+      lit("SV_GroupIndex"),
+      lit("SV_GroupThreadID"),
+      lit("SV_GSInstanceID"),
+      lit("SV_OutputControlPointID"),
+      lit("SV_DomainLocation"),
+      lit("SV_IsFrontFace"),
+      lit("SV_Coverage"),
+      lit("Unsupported (SamplePosition)"),
+      lit("SV_SampleIndex"),
+      lit("Unsupported (PatchNumVertices)"),
+      lit("SV_TessFactor"),
+      lit("SV_InsideTessFactor"),
+      lit("SV_Target"),
+      lit("SV_Depth"),
+      lit("SV_DepthGreaterEqual"),
+      lit("SV_DepthLessEqual"),
+  };
+
+  QString ret = sysValues[size_t(sig.systemValue)];
 
   // need to include the index if it's a system value semantic that's numbered
   if(sig.systemValue == ShaderBuiltin::ColorOutput ||
