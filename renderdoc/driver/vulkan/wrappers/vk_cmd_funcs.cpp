@@ -975,7 +975,9 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(Serialiser *localSerialiser,
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
+    // don't do anything if we're executing a single draw, NextSubpass is meaningless (and invalid
+    // on a partial render pass)
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid) && m_FirstEventID != m_LastEventID)
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
