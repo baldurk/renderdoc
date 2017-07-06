@@ -656,7 +656,8 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(Serialiser *localSerialiser, Vk
         {
           MakeSubpassLoadRP(loadInfo, &info, s);
 
-          ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rpinfo.loadRPs[s]);
+          ret =
+              ObjDisp(device)->CreateRenderPass(Unwrap(device), &loadInfo, NULL, &rpinfo.loadRPs[s]);
           RDCASSERTEQUAL(ret, VK_SUCCESS);
 
           // handle the loadRP being a duplicate

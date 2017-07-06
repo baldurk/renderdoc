@@ -2437,7 +2437,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       else if(m_RenderState.compute.pipeline != ResourceId())
       {
         // if we had a compute pipeline, need to bind that
-        m_RenderState.BindPipeline(cmd, VulkanRenderState::BindCompute);
+        m_RenderState.BindPipeline(cmd, VulkanRenderState::BindCompute, false);
       }
     }
 

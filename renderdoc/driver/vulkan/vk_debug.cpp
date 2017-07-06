@@ -4982,7 +4982,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
     pipestate.graphics.descSets[pipe.first].descSet = GetResID(m_pDebug->m_QuadDescSet);
 
     if(cmd)
-      pipestate.BindPipeline(cmd, VulkanRenderState::BindGraphics);
+      pipestate.BindPipeline(cmd, VulkanRenderState::BindGraphics, false);
   }
 
   bool PostDraw(uint32_t eid, VkCommandBuffer cmd)
@@ -4994,7 +4994,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
     m_pDriver->GetRenderState() = m_PrevState;
 
     RDCASSERT(cmd);
-    m_pDriver->GetRenderState().BindPipeline(cmd, VulkanRenderState::BindGraphics);
+    m_pDriver->GetRenderState().BindPipeline(cmd, VulkanRenderState::BindGraphics, false);
 
     return true;
   }

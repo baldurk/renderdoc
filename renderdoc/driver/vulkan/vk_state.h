@@ -44,7 +44,7 @@ struct VulkanRenderState
   VulkanRenderState &operator=(const VulkanRenderState &o);
   void BeginRenderPassAndApplyState(VkCommandBuffer cmd, PipelineBinding binding);
   void EndRenderPass(VkCommandBuffer cmd);
-  void BindPipeline(VkCommandBuffer cmd, PipelineBinding binding);
+  void BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0);
 
   // dynamic state
   vector<VkViewport> views;

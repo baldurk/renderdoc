@@ -106,7 +106,7 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
   };
   ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-  BindPipeline(cmd, binding);
+  BindPipeline(cmd, binding, true);
 
   if(ibuffer.buf != ResourceId())
     ObjDisp(cmd)->CmdBindIndexBuffer(
@@ -120,13 +120,16 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
         &vbuffers[i].offs);
 }
 
-void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding binding)
+void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0)
 {
   if(graphics.pipeline != ResourceId() && binding == BindGraphics)
   {
-    ObjDisp(cmd)->CmdBindPipeline(
-        Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-        Unwrap(GetResourceManager()->GetCurrentHandle<VkPipeline>(graphics.pipeline)));
+    VkPipeline pipe = GetResourceManager()->GetCurrentHandle<VkPipeline>(graphics.pipeline);
+
+    if(subpass0 && m_CreationInfo->m_Pipeline[graphics.pipeline].subpass0pipe != VK_NULL_HANDLE)
+      pipe = m_CreationInfo->m_Pipeline[graphics.pipeline].subpass0pipe;
+
+    ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
 
     ResourceId pipeLayoutId = m_CreationInfo->m_Pipeline[graphics.pipeline].layout;
     VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
