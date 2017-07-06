@@ -135,7 +135,7 @@ public:
   {
     return m_Proxy->ApplyCustomShader(shader, m_TextureID, mip, arrayIdx, sampleIdx, typeHint);
   }
-  vector<ResourceId> GetTextures() { return m_Proxy->GetTextures(); }
+  vector<ResourceId> GetTextures() { return {m_TextureID}; }
   TextureDescription GetTexture(ResourceId id) { return m_Proxy->GetTexture(m_TextureID); }
   byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                        const GetTextureDataParams &params, size_t &dataSize)
