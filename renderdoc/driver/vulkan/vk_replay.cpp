@@ -2482,6 +2482,20 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
   vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), UINT64_MAX, sem, VK_NULL_HANDLE,
                                 &outw.curidx);
+
+  if(vkr == VK_ERROR_OUT_OF_DATE_KHR)
+  {
+    // force a swapchain recreate.
+    outw.width = 0;
+    outw.height = 0;
+
+    CheckResizeOutputWindow(id);
+
+    // then try again to acquire.
+    vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), UINT64_MAX, sem, VK_NULL_HANDLE,
+                                  &outw.curidx);
+  }
+
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   VkSubmitInfo submitInfo = {
@@ -2750,6 +2764,19 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
                                   &vkr};
 
   VkResult retvkr = vt->QueuePresentKHR(Unwrap(m_pDriver->GetQ()), &presentInfo);
+
+  if(retvkr == VK_ERROR_OUT_OF_DATE_KHR)
+  {
+    // force a swapchain recreate.
+    outw.width = 0;
+    outw.height = 0;
+
+    CheckResizeOutputWindow(id);
+
+    // skip this present
+    retvkr = vkr = VK_SUCCESS;
+  }
+
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
   RDCASSERTEQUAL(retvkr, VK_SUCCESS);
 
