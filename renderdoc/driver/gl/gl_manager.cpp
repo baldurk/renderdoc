@@ -1035,72 +1035,80 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
   }
   else if(res.Namespace == eResProgram)
   {
-    // Prepare_InitialState sets the serialise chunk directly on write,
-    // so we should never come in here except for when reading
-    RDCASSERT(m_State < WRITING);
-
-    WrappedOpenGL::ProgramData &details = m_GL->m_Programs[GetLiveID(Id)];
-
-    GLuint initProg = gl.glCreateProgram();
-
-    for(size_t i = 0; i < details.shaders.size(); i++)
+    // most of the time Prepare_InitialState sets the serialise chunk directly on write, but if a
+    // program is newly created within a frame we won't have prepared its initial contents, so we
+    // need to be ready to write it out here.
+    if(m_State >= WRITING)
     {
-      const auto &shadDetails = m_GL->m_Shaders[details.shaders[i]];
+      SerialiseProgramBindings(gl, m_pSerialiser, res.name, true);
 
-      GLuint shad = gl.glCreateShader(shadDetails.type);
-
-      char **srcs = new char *[shadDetails.sources.size()];
-      for(size_t s = 0; s < shadDetails.sources.size(); s++)
-        srcs[s] = (char *)shadDetails.sources[s].c_str();
-      gl.glShaderSource(shad, (GLsizei)shadDetails.sources.size(), srcs, NULL);
-
-      SAFE_DELETE_ARRAY(srcs);
-      gl.glCompileShader(shad);
-      gl.glAttachShader(initProg, shad);
-      gl.glDeleteShader(shad);
+      SerialiseProgramUniforms(gl, m_pSerialiser, res.name, NULL, true);
     }
-
-    gl.glLinkProgram(initProg);
-
-    GLint status = 0;
-    gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
-
-    // if it failed to link, try again as a separable program.
-    // we can't do this by default because of the silly rules meaning
-    // shaders need fixup to be separable-compatible.
-    if(status == 0)
+    else
     {
-      gl.glProgramParameteri(initProg, eGL_PROGRAM_SEPARABLE, 1);
+      WrappedOpenGL::ProgramData &details = m_GL->m_Programs[GetLiveID(Id)];
+
+      GLuint initProg = gl.glCreateProgram();
+
+      for(size_t i = 0; i < details.shaders.size(); i++)
+      {
+        const auto &shadDetails = m_GL->m_Shaders[details.shaders[i]];
+
+        GLuint shad = gl.glCreateShader(shadDetails.type);
+
+        char **srcs = new char *[shadDetails.sources.size()];
+        for(size_t s = 0; s < shadDetails.sources.size(); s++)
+          srcs[s] = (char *)shadDetails.sources[s].c_str();
+        gl.glShaderSource(shad, (GLsizei)shadDetails.sources.size(), srcs, NULL);
+
+        SAFE_DELETE_ARRAY(srcs);
+        gl.glCompileShader(shad);
+        gl.glAttachShader(initProg, shad);
+        gl.glDeleteShader(shad);
+      }
+
       gl.glLinkProgram(initProg);
 
+      GLint status = 0;
       gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
-    }
 
-    if(status == 0)
-    {
-      if(details.shaders.size() == 0)
+      // if it failed to link, try again as a separable program.
+      // we can't do this by default because of the silly rules meaning
+      // shaders need fixup to be separable-compatible.
+      if(status == 0)
       {
-        RDCWARN("No shaders attached to program");
+        gl.glProgramParameteri(initProg, eGL_PROGRAM_SEPARABLE, 1);
+        gl.glLinkProgram(initProg);
+
+        gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
       }
-      else
+
+      if(status == 0)
       {
-        char buffer[1025] = {0};
-        gl.glGetProgramInfoLog(initProg, 1024, NULL, buffer);
-        RDCERR("Link error: %s", buffer);
+        if(details.shaders.size() == 0)
+        {
+          RDCWARN("No shaders attached to program");
+        }
+        else
+        {
+          char buffer[1025] = {0};
+          gl.glGetProgramInfoLog(initProg, 1024, NULL, buffer);
+          RDCERR("Link error: %s", buffer);
+        }
       }
+
+      if(m_GL->GetLogVersion() >= 0x0000014)
+      {
+        SerialiseProgramBindings(gl, m_pSerialiser, initProg, false);
+
+        // re-link the program to set the new attrib bindings
+        gl.glLinkProgram(initProg);
+      }
+
+      SerialiseProgramUniforms(gl, m_pSerialiser, initProg, &details.locationTranslate, false);
+
+      SetInitialContents(Id, InitialContentData(ProgramRes(m_GL->GetCtx(), initProg), 0, NULL));
     }
-
-    if(m_GL->GetLogVersion() >= 0x0000014)
-    {
-      SerialiseProgramBindings(gl, m_pSerialiser, initProg, false);
-
-      // re-link the program to set the new attrib bindings
-      gl.glLinkProgram(initProg);
-    }
-
-    SerialiseProgramUniforms(gl, m_pSerialiser, initProg, &details.locationTranslate, false);
-
-    SetInitialContents(Id, InitialContentData(ProgramRes(m_GL->GetCtx(), initProg), 0, NULL));
   }
   else if(res.Namespace == eResTexture)
   {
