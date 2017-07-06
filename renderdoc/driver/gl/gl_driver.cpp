@@ -1564,6 +1564,12 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         glGenBuffers(1, &ctxdata.m_ClientMemoryIBO);
       }
     }
+
+    // this is hack but GL context creation is an *utter mess*. For first-frame captures, only
+    // consider an attribs created context, to avoid starting capturing when the user is creating
+    // dummy contexts to be able to create the real one.
+    if(ctxdata.attribsCreate)
+      FirstFrame(ctxdata.ctx, winData.wnd);
   }
 }
 
@@ -2835,6 +2841,19 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     }
 
     return false;
+  }
+}
+
+void WrappedOpenGL::FirstFrame(void *ctx, void *wndHandle)
+{
+  // if we have to capture the first frame, begin capturing immediately
+  if(m_FrameCounter == 0 && m_State == WRITING_IDLE && RenderDoc::Inst().ShouldTriggerCapture(0))
+  {
+    // since we haven't associated the window we can't capture by window, so we have to capture just
+    // on the device - the very next present to any window on this context will end the capture.
+    RenderDoc::Inst().StartFrameCapture(ctx, NULL);
+
+    m_AppControlledCapture = false;
   }
 }
 

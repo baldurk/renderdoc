@@ -589,6 +589,8 @@ public:
   void CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType, GLenum internalformat,
                                    GLsizei width, GLsizei height);
 
+  void FirstFrame(void *ctx, void *wndHandle);
+
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
 
