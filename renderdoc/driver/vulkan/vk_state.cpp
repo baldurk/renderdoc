@@ -213,7 +213,11 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
               m_CreationInfo->m_DescSetLayout[createdDescSetLayoutId];
 
           if(descLayout != createdDescLayout)
-            break;
+          {
+            // this set is incompatible, don't rebind it. Assume the application knows the shader
+            // doesn't need this set, and the binding is just stale
+            continue;
+          }
         }
 
         // if there are dynamic buffers, pass along the offsets
