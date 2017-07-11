@@ -804,14 +804,6 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf,
   vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  VkBufferCreateInfo bufInfo = {
-      VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      NULL,
-      0,
-      0,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-  };
-
   for(uint32_t i = 0; i < info->numUniqueMems; i++)
   {
     VkDeviceMemory dstMem =
@@ -819,10 +811,10 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf,
 
     VkBuffer dstBuf = m_CreationInfo.m_Memory[GetResID(dstMem)].wholeMemBuf;
 
-    bufInfo.size = m_CreationInfo.m_Memory[GetResID(dstMem)].size;
+    VkDeviceSize size = m_CreationInfo.m_Memory[GetResID(dstMem)].size;
 
     // fill the whole memory from the given offset
-    VkBufferCopy region = {info->memDataOffs[i].memOffs, 0, bufInfo.size};
+    VkBufferCopy region = {info->memDataOffs[i].memOffs, 0, size};
 
     ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
   }
@@ -944,14 +936,6 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im,
   vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  VkBufferCreateInfo bufInfo = {
-      VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      NULL,
-      0,
-      0,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-  };
-
   for(uint32_t i = 0; i < info->numUniqueMems; i++)
   {
     VkDeviceMemory dstMem =
@@ -960,10 +944,10 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im,
     // since this is short lived it isn't wrapped. Note that we want
     // to cache this up front, so it will then be wrapped
     VkBuffer dstBuf = m_CreationInfo.m_Memory[GetResID(dstMem)].wholeMemBuf;
-    bufInfo.size = m_CreationInfo.m_Memory[GetResID(dstMem)].size;
+    VkDeviceSize size = m_CreationInfo.m_Memory[GetResID(dstMem)].size;
 
     // fill the whole memory from the given offset
-    VkBufferCopy region = {info->memDataOffs[i].memOffs, 0, bufInfo.size};
+    VkBufferCopy region = {info->memDataOffs[i].memOffs, 0, size};
 
     ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
   }
