@@ -377,6 +377,7 @@ private:
 
   vector<VkDeviceMemory> m_CleanupMems;
   vector<VkEvent> m_CleanupEvents;
+  vector<VkEvent> m_PersistentEvents;
 
   const VkPhysicalDeviceProperties &GetDeviceProps() { return m_PhysicalDeviceData.props; }
   VkDriverInfo GetDriverVersion() { return VkDriverInfo(m_PhysicalDeviceData.props); }

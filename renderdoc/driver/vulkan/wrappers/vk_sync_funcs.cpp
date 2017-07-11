@@ -765,8 +765,9 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
                                       (uint32_t)bufBarriers.size(), &bufBarriers[0],
                                       (uint32_t)imgBarriers.size(), &imgBarriers[0]);
 
-    // register to clean this event up once we're done replaying this section of the log
-    m_CleanupEvents.push_back(ev);
+    // since we cache and replay this command buffer we can't clean up this event just when we're
+    // done replaying this section. We have to keep this event until shutdown
+    m_PersistentEvents.push_back(ev);
 
     ResourceId cmd = GetResID(cmdBuffer);
     GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,

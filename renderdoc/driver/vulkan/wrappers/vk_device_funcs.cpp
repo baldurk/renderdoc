@@ -418,6 +418,12 @@ void WrappedVulkan::Shutdown()
   SubmitSemaphores();
   FlushQ();
 
+  // destroy any events we created for waiting on
+  for(size_t i = 0; i < m_PersistentEvents.size(); i++)
+    ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_PersistentEvents[i], NULL);
+
+  m_PersistentEvents.clear();
+
   // since we didn't create proper registered resources for our command buffers,
   // they won't be taken down properly with the pool. So we release them (just our
   // data) here.
