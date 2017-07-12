@@ -29,6 +29,7 @@
 #include <QXmlStreamWriter>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/Resources.h"
+#include "Widgets/Extended/RDHeaderView.h"
 #include "PipelineStateViewer.h"
 #include "ui_VulkanPipelineStateViewer.h"
 
@@ -164,16 +165,12 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   addGridLines(ui->depthStateGridLayout, palette().color(QPalette::WindowText));
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->viAttrs->setHeader(header);
+
     ui->viAttrs->setColumns({tr("Index"), tr("Name"), tr("Location"), tr("Binding"), tr("Format"),
                              tr("Offset"), tr("Go")});
-    ui->viAttrs->header()->resizeSection(0, 75);
-    ui->viAttrs->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->viAttrs->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->viAttrs->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->viAttrs->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->viAttrs->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    ui->viAttrs->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    ui->viAttrs->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({1, 4, 1, 2, 3, 2, -1});
 
     ui->viAttrs->setHoverIconColumn(6, action, action_hover);
     ui->viAttrs->setClearSelectionOnFocusLoss(true);
@@ -181,16 +178,12 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   }
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->viBuffers->setHeader(header);
+
     ui->viBuffers->setColumns({tr("Slot"), tr("Buffer"), tr("Rate"), tr("Offset"), tr("Stride"),
                                tr("Byte Length"), tr("Go")});
-    ui->viBuffers->header()->resizeSection(0, 75);
-    ui->viBuffers->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->viBuffers->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->viBuffers->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->viBuffers->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->viBuffers->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    ui->viBuffers->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    ui->viBuffers->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({1, 4, 2, 2, 2, 3, -1});
 
     ui->viBuffers->setHoverIconColumn(6, action, action_hover);
     ui->viBuffers->setClearSelectionOnFocusLoss(true);
@@ -199,17 +192,12 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
   for(RDTreeWidget *res : resources)
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    res->setHeader(header);
+
     res->setColumns({QString(), tr("Set"), tr("Binding"), tr("Type"), tr("Resource"),
                      tr("Contents"), tr("cont.d"), tr("Go")});
-    res->header()->resizeSection(0, 30);
-    res->header()->setSectionResizeMode(0, QHeaderView::Fixed);
-    res->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    res->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    res->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    res->header()->setSectionResizeMode(4, QHeaderView::Stretch);
-    res->header()->setSectionResizeMode(5, QHeaderView::Stretch);
-    res->header()->setSectionResizeMode(6, QHeaderView::Stretch);
-    res->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({-1, -1, 2, 2, 2, 4, 4, -1});
 
     res->setHoverIconColumn(7, action, action_hover);
     res->setClearSelectionOnFocusLoss(true);
@@ -218,16 +206,12 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
   for(RDTreeWidget *ubo : ubos)
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ubo->setHeader(header);
+
     ubo->setColumns({QString(), tr("Set"), tr("Binding"), tr("Buffer"), tr("Byte Range"),
                      tr("Size"), tr("Go")});
-    ubo->header()->resizeSection(0, 30);
-    ubo->header()->setSectionResizeMode(0, QHeaderView::Fixed);
-    ubo->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    ubo->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ubo->header()->setSectionResizeMode(3, QHeaderView::Stretch);
-    ubo->header()->setSectionResizeMode(4, QHeaderView::Stretch);
-    ubo->header()->setSectionResizeMode(5, QHeaderView::Stretch);
-    ubo->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({-1, -1, 2, 4, 3, 3, -1});
 
     ubo->setHoverIconColumn(6, action, action_hover);
     ubo->setClearSelectionOnFocusLoss(true);
@@ -235,46 +219,37 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   }
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->viewports->setHeader(header);
+
     ui->viewports->setColumns(
         {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"), tr("MinDepth"), tr("MaxDepth")});
-    ui->viewports->header()->resizeSection(0, 75);
-    ui->viewports->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->viewports->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    ui->viewports->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->viewports->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->viewports->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    ui->viewports->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    ui->viewports->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({-1, -1, -1, -1, -1, -1, 1});
+    header->setMinimumSectionSize(40);
 
     ui->viewports->setClearSelectionOnFocusLoss(true);
     ui->viewports->setInstantTooltips(true);
   }
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->scissors->setHeader(header);
+
     ui->scissors->setColumns({tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height")});
-    ui->scissors->header()->resizeSection(0, 100);
-    ui->scissors->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->scissors->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    ui->scissors->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->scissors->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->scissors->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({-1, -1, -1, -1, 1});
+    header->setMinimumSectionSize(40);
 
     ui->scissors->setClearSelectionOnFocusLoss(true);
     ui->scissors->setInstantTooltips(true);
   }
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->framebuffer->setHeader(header);
+
     ui->framebuffer->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
                                  tr("Depth"), tr("Array Size"), tr("Format"), tr("Go")});
-    ui->framebuffer->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    ui->framebuffer->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->framebuffer->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->framebuffer->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->framebuffer->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    ui->framebuffer->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    ui->framebuffer->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
-    ui->framebuffer->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
-    ui->framebuffer->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({2, 4, 2, 1, 1, 1, 1, 3, -1});
 
     ui->framebuffer->setHoverIconColumn(8, action, action_hover);
     ui->framebuffer->setClearSelectionOnFocusLoss(true);
@@ -282,35 +257,24 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   }
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->blends->setHeader(header);
+
     ui->blends->setColumns({tr("Slot"), tr("Enabled"), tr("Col Src"), tr("Col Dst"), tr("Col Op"),
                             tr("Alpha Src"), tr("Alpha Dst"), tr("Alpha Op"), tr("Write Mask")});
-    ui->blends->header()->resizeSection(0, 75);
-    ui->blends->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->blends->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({-1, 1, 2, 2, 2, 2, 2, 2, 1});
 
     ui->blends->setClearSelectionOnFocusLoss(true);
     ui->blends->setInstantTooltips(true);
   }
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->stencils->setHeader(header);
+
     ui->stencils->setColumns({tr("Face"), tr("Func"), tr("Fail Op"), tr("Depth Fail Op"),
                               tr("Pass Op"), tr("Write Mask"), tr("Comp Mask"), tr("Ref")});
-    ui->stencils->header()->resizeSection(0, 50);
-    ui->stencils->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->stencils->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    ui->stencils->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->stencils->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->stencils->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    ui->stencils->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    ui->stencils->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
-    ui->stencils->header()->setSectionResizeMode(7, QHeaderView::Stretch);
+    header->setColumnStretchHints({1, 2, 2, 2, 2, 1, 1, 1});
 
     ui->stencils->setClearSelectionOnFocusLoss(true);
     ui->stencils->setInstantTooltips(true);

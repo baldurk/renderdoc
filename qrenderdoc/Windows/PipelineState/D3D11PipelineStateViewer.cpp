@@ -176,19 +176,13 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
   addGridLines(ui->depthStateGridLayout, palette().color(QPalette::WindowText));
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->iaLayouts->setHeader(header);
+
     ui->iaLayouts->setColumns({tr("Slot"), tr("Semantic"), tr("Index"), tr("Format"),
                                tr("Input Slot"), tr("Offset"), tr("Class"), tr("Step Rate"),
                                tr("Go")});
-    ui->iaLayouts->header()->resizeSection(0, 75);
-    ui->iaLayouts->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->iaLayouts->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->iaLayouts->header()->setSectionResizeMode(2, QHeaderView::Stretch);
-    ui->iaLayouts->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->iaLayouts->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    ui->iaLayouts->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    ui->iaLayouts->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
-    ui->iaLayouts->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
-    ui->iaLayouts->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({1, 4, 2, 3, 2, 2, 1, 1, -1});
 
     ui->iaLayouts->setClearSelectionOnFocusLoss(true);
     ui->iaLayouts->setInstantTooltips(true);
@@ -196,15 +190,12 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
   }
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->iaBuffers->setHeader(header);
+
     ui->iaBuffers->setColumns(
         {tr("Slot"), tr("Buffer"), tr("Stride"), tr("Offset"), tr("Byte Length"), tr("Go")});
-    ui->iaBuffers->header()->resizeSection(0, 75);
-    ui->iaBuffers->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->iaBuffers->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->iaBuffers->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->iaBuffers->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->iaBuffers->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    ui->iaBuffers->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({1, 4, 2, 2, 3, -1});
 
     ui->iaBuffers->setClearSelectionOnFocusLoss(true);
     ui->iaBuffers->setInstantTooltips(true);
@@ -213,18 +204,12 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
 
   for(RDTreeWidget *tex : resources)
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    tex->setHeader(header);
+
     tex->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"), tr("Depth"),
                      tr("Array Size"), tr("Format"), tr("Go")});
-    tex->header()->resizeSection(0, 120);
-    tex->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    tex->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-    tex->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    tex->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    tex->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    tex->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    tex->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
-    tex->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
-    tex->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({2, 4, 2, 1, 1, 1, 1, 3, -1});
 
     tex->setHoverIconColumn(8, action, action_hover);
     tex->setClearSelectionOnFocusLoss(true);
@@ -233,13 +218,11 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
 
   for(RDTreeWidget *samp : samplers)
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    samp->setHeader(header);
+
     samp->setColumns({tr("Slot"), tr("Addressing"), tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")});
-    samp->header()->resizeSection(0, 120);
-    samp->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    samp->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-    samp->header()->setSectionResizeMode(2, QHeaderView::Stretch);
-    samp->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    samp->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({1, 2, 2, 2, 2});
 
     samp->setClearSelectionOnFocusLoss(true);
     samp->setInstantTooltips(true);
@@ -247,13 +230,11 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
 
   for(RDTreeWidget *cbuffer : cbuffers)
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    cbuffer->setHeader(header);
+
     cbuffer->setColumns({tr("Slot"), tr("Buffer"), tr("Byte Range"), tr("Size"), tr("Go")});
-    cbuffer->header()->resizeSection(0, 120);
-    cbuffer->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    cbuffer->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-    cbuffer->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    cbuffer->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    cbuffer->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({1, 2, 3, 3, -1});
 
     cbuffer->setHoverIconColumn(4, action, action_hover);
     cbuffer->setClearSelectionOnFocusLoss(true);
@@ -262,58 +243,49 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
 
   for(RDTreeWidget *cl : classes)
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    cl->setHeader(header);
+
     cl->setColumns({tr("Slot"), tr("Interface"), tr("Instance")});
-    cl->header()->resizeSection(0, 120);
-    cl->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    cl->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    cl->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({1, 1, 1});
 
     cl->setClearSelectionOnFocusLoss(true);
     cl->setInstantTooltips(true);
   }
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->viewports->setHeader(header);
+
     ui->viewports->setColumns(
         {tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height"), tr("MinDepth"), tr("MaxDepth")});
-    ui->viewports->header()->resizeSection(0, 75);
-    ui->viewports->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->viewports->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    ui->viewports->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->viewports->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->viewports->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    ui->viewports->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    ui->viewports->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({-1, -1, -1, -1, -1, -1, 1});
+    header->setMinimumSectionSize(40);
 
     ui->viewports->setClearSelectionOnFocusLoss(true);
     ui->viewports->setInstantTooltips(true);
   }
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->scissors->setHeader(header);
+
     ui->scissors->setColumns({tr("Slot"), tr("X"), tr("Y"), tr("Width"), tr("Height")});
-    ui->scissors->header()->resizeSection(0, 100);
-    ui->scissors->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->scissors->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    ui->scissors->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->scissors->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->scissors->header()->setSectionResizeMode(4, QHeaderView::Stretch);
+    header->setColumnStretchHints({-1, -1, -1, -1, 1});
+    header->setMinimumSectionSize(40);
 
     ui->scissors->setClearSelectionOnFocusLoss(true);
     ui->scissors->setInstantTooltips(true);
   }
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->targetOutputs->setHeader(header);
+
     ui->targetOutputs->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"),
                                    tr("Height"), tr("Depth"), tr("Array Size"), tr("Format"),
                                    tr("Go")});
-    ui->targetOutputs->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    ui->targetOutputs->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->targetOutputs->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->targetOutputs->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->targetOutputs->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    ui->targetOutputs->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    ui->targetOutputs->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
-    ui->targetOutputs->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
-    ui->targetOutputs->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({2, 4, 2, 1, 1, 1, 1, 3, -1});
 
     ui->targetOutputs->setHoverIconColumn(8, action, action_hover);
     ui->targetOutputs->setClearSelectionOnFocusLoss(true);
@@ -321,49 +293,37 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
   }
 
   {
-    ui->blends->setColumns({tr("Slot"), tr("Enabled"), tr("Col Src"), tr("Col Dst"), tr("Col Op"),
-                            tr("Alpha Src"), tr("Alpha Dst"), tr("Alpha Op"), tr("Write Mask")});
-    ui->blends->header()->resizeSection(0, 75);
-    ui->blends->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->blends->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
-    ui->blends->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->blends->setHeader(header);
+
+    ui->blends->setColumns({tr("Slot"), tr("Logic"), tr("Enabled"), tr("Col Src"), tr("Col Dst"),
+                            tr("Col Op"), tr("Alpha Src"), tr("Alpha Dst"), tr("Alpha Op"),
+                            tr("Logic Op"), tr("Write Mask")});
+    header->setColumnStretchHints({-1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1});
 
     ui->blends->setClearSelectionOnFocusLoss(true);
     ui->blends->setInstantTooltips(true);
   }
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->stencils->setHeader(header);
+
     ui->stencils->setColumns(
         {tr("Face"), tr("Func"), tr("Fail Op"), tr("Depth Fail Op"), tr("Pass Op")});
-    ui->stencils->header()->resizeSection(0, 50);
-    ui->stencils->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->stencils->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    ui->stencils->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->stencils->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->stencils->header()->setSectionResizeMode(4, QHeaderView::Stretch);
+    header->setColumnStretchHints({1, 2, 2, 2, 2});
 
     ui->stencils->setClearSelectionOnFocusLoss(true);
     ui->stencils->setInstantTooltips(true);
   }
 
   {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->csUAVs->setHeader(header);
+
     ui->csUAVs->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
                             tr("Depth"), tr("Array Size"), tr("Format"), tr("Go")});
-    ui->csUAVs->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    ui->csUAVs->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->csUAVs->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    ui->csUAVs->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    ui->csUAVs->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    ui->csUAVs->header()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    ui->csUAVs->header()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
-    ui->csUAVs->header()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
-    ui->csUAVs->header()->setSectionResizeMode(8, QHeaderView::ResizeToContents);
+    header->setColumnStretchHints({2, 4, 2, 1, 1, 1, 1, 3, -1});
 
     ui->csUAVs->setHoverIconColumn(8, action, action_hover);
     ui->csUAVs->setClearSelectionOnFocusLoss(true);
