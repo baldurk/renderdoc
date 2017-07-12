@@ -83,6 +83,11 @@ int PipelineFlowChart::selectedStage()
   return m_SelectedStage;
 }
 
+QSize PipelineFlowChart::minimumSizeHint() const
+{
+  return QSize(0, 30);
+}
+
 QSize PipelineFlowChart::sizeHint() const
 {
   return QSize(0, 60);
