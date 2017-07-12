@@ -32,7 +32,6 @@
     <Keyword>Qt4VSv1.0</Keyword>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
     <ProjectName>qrenderdoc</ProjectName>
-    <LocalDebuggerWorkingDirectory>$(TargetDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup>
@@ -62,6 +61,9 @@
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" />
   </ImportGroup>
+  <PropertyGroup>
+    <LocalDebuggerWorkingDirectory>$(OutputDirectory)</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
     <ClCompile>
       <PreprocessorDefinitions>WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
