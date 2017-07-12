@@ -27,6 +27,7 @@
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QXmlStreamWriter>
+#include "3rdparty/flowlayout/FlowLayout.h"
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/Resources.h"
 #include "PipelineStateViewer.h"
@@ -143,6 +144,23 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
       ui->vsCBuffers, ui->hsCBuffers, ui->dsCBuffers,
       ui->gsCBuffers, ui->psCBuffers, ui->csCBuffers,
   };
+
+  // setup FlowLayout for CS shader group, with debugging controls
+  {
+    QLayout *oldLayout = ui->csShaderGroup->layout();
+
+    QObjectList childs = ui->csShaderGroup->children();
+    childs.removeOne((QObject *)oldLayout);
+
+    delete oldLayout;
+
+    FlowLayout *csShaderFlow = new FlowLayout(ui->csShaderGroup, -1, 3, 3);
+
+    for(QObject *o : childs)
+      csShaderFlow->addWidget(qobject_cast<QWidget *>(o));
+
+    ui->csShaderGroup->setLayout(csShaderFlow);
+  }
 
   for(QToolButton *b : viewButtons)
     QObject::connect(b, &QToolButton::clicked, this, &D3D12PipelineStateViewer::shaderView_clicked);
