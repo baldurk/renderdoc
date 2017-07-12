@@ -521,6 +521,15 @@ int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint 
 
 GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat, GLenum type)
 {
+  switch(type)
+  {
+    // some types imply a sized internalFormat
+    case eGL_UNSIGNED_SHORT_5_6_5: return eGL_RGB565;
+    case eGL_UNSIGNED_SHORT_4_4_4_4: return eGL_RGBA4;
+    case eGL_UNSIGNED_SHORT_5_5_5_1: return eGL_RGB5_A1;
+    default: break;
+  }
+
   switch(internalFormat)
   {
     // pick sized format ourselves for generic formats
