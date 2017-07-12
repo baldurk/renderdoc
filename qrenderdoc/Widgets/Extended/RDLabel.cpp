@@ -33,6 +33,26 @@ RDLabel::~RDLabel()
 {
 }
 
+QSize RDLabel::sizeHint() const
+{
+  QSize sz = QLabel::sizeHint();
+
+  if(m_preserveRatio)
+    sz.setWidth(sz.width() - contentsMargins().left() - contentsMargins().right());
+
+  return sz;
+}
+
+QSize RDLabel::minimumSizeHint() const
+{
+  QSize sz = QLabel::minimumSizeHint();
+
+  if(m_preserveRatio)
+    sz.setWidth(sz.width() - contentsMargins().left() - contentsMargins().right());
+
+  return sz;
+}
+
 void RDLabel::mousePressEvent(QMouseEvent *event)
 {
   emit(clicked(event));

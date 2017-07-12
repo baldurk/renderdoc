@@ -33,6 +33,9 @@ public:
   explicit RDLabel(QWidget *parent = 0);
   ~RDLabel();
 
+  QSize sizeHint() const override;
+  QSize minimumSizeHint() const override;
+
   void setPreserveAspectRatio(bool preserve) { m_preserveRatio = preserve; }
   bool preserveAspectRatio() { return m_preserveRatio; }
 signals:
