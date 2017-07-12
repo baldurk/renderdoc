@@ -58,6 +58,8 @@ public:
   bool hasGroupGap(int columnIndex) const;
   bool hasGroupTitle(int columnIndex) const;
 
+  void setColumnStretchHints(const QList<int> &hints);
+
   void setColumnGroupRole(int role) { m_columnGroupRole = role; }
   int columnGroupRole() const { return m_columnGroupRole; }
   void setPinnedColumns(int numColumns) { m_pinnedColumns = numColumns; }
@@ -67,6 +69,7 @@ public:
 public slots:
   void headerDataChanged(Qt::Orientation orientation, int logicalFirst, int logicalLast);
   void columnsInserted(const QModelIndex &parent, int first, int last);
+  void rowsChanged(const QModelIndex &parent, int first, int last);
 
 protected:
   void mousePressEvent(QMouseEvent *event) override;
@@ -76,6 +79,8 @@ protected:
 
   void paintSection(QPainter *painter, const QRect &rect, int section) const override;
   void currentChanged(const QModelIndex &current, const QModelIndex &old) override;
+
+  void updateGeometries() override;
 
   enum ResizeType
   {
@@ -89,6 +94,8 @@ protected:
   int m_cursorPos;
 
   void cacheSections();
+  void resizeSectionsWithHints();
+  void cacheSectionMinSizes();
 
   struct SectionData
   {
@@ -104,6 +111,11 @@ protected:
 
   bool m_suppressSectionCache = false;
   bool m_customSizing = false;
+
+  QList<int> m_sectionStretchHints;
+  int m_sectionStretchHintTotal = 0;
+  QVector<int> m_sectionMinSizes;
+  int m_sectionMinSizesTotal = 0;
 
   int m_columnGroupRole = 0;
   int m_pinnedColumns = 0;

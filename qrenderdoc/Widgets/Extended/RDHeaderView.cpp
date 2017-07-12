@@ -45,6 +45,8 @@
 RDHeaderView::RDHeaderView(Qt::Orientation orient, QWidget *parent) : QHeaderView(orient, parent)
 {
   m_sectionPreview = new QLabel(this);
+
+  setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 }
 
 RDHeaderView::~RDHeaderView()
@@ -68,6 +70,8 @@ void RDHeaderView::setModel(QAbstractItemModel *model)
                         &RDHeaderView::headerDataChanged);
     QObject::disconnect(m, &QAbstractItemModel::columnsInserted, this,
                         &RDHeaderView::columnsInserted);
+    QObject::disconnect(m, &QAbstractItemModel::rowsInserted, this, &RDHeaderView::rowsChanged);
+    QObject::disconnect(m, &QAbstractItemModel::rowsRemoved, this, &RDHeaderView::rowsChanged);
   }
 
   QHeaderView::setModel(model);
@@ -75,6 +79,8 @@ void RDHeaderView::setModel(QAbstractItemModel *model)
   QObject::connect(model, &QAbstractItemModel::headerDataChanged, this,
                    &RDHeaderView::headerDataChanged);
   QObject::connect(model, &QAbstractItemModel::columnsInserted, this, &RDHeaderView::columnsInserted);
+  QObject::connect(model, &QAbstractItemModel::rowsInserted, this, &RDHeaderView::rowsChanged);
+  QObject::connect(model, &QAbstractItemModel::rowsRemoved, this, &RDHeaderView::rowsChanged);
 }
 
 void RDHeaderView::reset()
@@ -242,6 +248,12 @@ void RDHeaderView::resizeSection(int logicalIndex, int size)
 
 void RDHeaderView::resizeSections(QHeaderView::ResizeMode mode)
 {
+  if(!m_sectionStretchHints.isEmpty())
+  {
+    resizeSectionsWithHints();
+    return;
+  }
+
   if(!m_customSizing)
     return resizeSections(mode);
 
@@ -279,6 +291,7 @@ void RDHeaderView::resizeSections(const QList<int> &sizes)
     {
       QHeaderView::resizeSection(i, sizes[i]);
     }
+    return;
   }
 
   for(int i = 0; i < qMin(sizes.count(), m_sections.count()); i++)
@@ -312,6 +325,161 @@ bool RDHeaderView::hasGroupTitle(int columnIndex) const
   return false;
 }
 
+void RDHeaderView::cacheSectionMinSizes()
+{
+  m_sectionMinSizes.resize(count());
+  m_sectionMinSizesTotal = 0;
+
+  for(int i = 0; i < m_sectionMinSizes.count(); i++)
+  {
+    int sz = 0;
+
+    // see if we can fetch the column/row size hint from the item view
+    QAbstractItemView *view = qobject_cast<QAbstractItemView *>(parent());
+    if(view)
+    {
+      if(orientation() == Qt::Horizontal)
+        sz = view->sizeHintForColumn(i);
+      else
+        sz = view->sizeHintForRow(i);
+    }
+
+    // also include the size for the header as another minimum
+    if(orientation() == Qt::Horizontal)
+      sz = qMax(sz, sectionSizeFromContents(i).width());
+    else
+      sz = qMax(sz, sectionSizeFromContents(i).height());
+
+    // finally respect the minimum section size specified
+    sz = qMax(sz, minimumSectionSize());
+
+    // update the minimum size for this section and count the total which we'll need
+    m_sectionMinSizes[i] = sz;
+    m_sectionMinSizesTotal += m_sectionMinSizes[i];
+  }
+}
+
+void RDHeaderView::resizeSectionsWithHints()
+{
+  if(m_sectionMinSizes.count() == 0)
+    return;
+
+  QVector<int> sizes = m_sectionMinSizes;
+
+  int available = 0;
+
+  if(orientation() == Qt::Horizontal)
+    available = rect().width();
+  else
+    available = rect().height();
+
+  // see if we even have any extra space to allocate
+  if(available > m_sectionMinSizesTotal)
+  {
+    // this is how much space we can allocate to stretch sections
+    available -= m_sectionMinSizesTotal;
+
+    // distribute the available space between the sections. Dividing by the total stretch tells us
+    // how many 'whole' multiples we can allocate:
+    int wholeMultiples = available / m_sectionStretchHintTotal;
+
+    if(wholeMultiples > 0)
+    {
+      for(int i = 0; i < sizes.count() && i < m_sectionStretchHints.count(); i++)
+      {
+        int hint = m_sectionStretchHints[i];
+        if(hint > 0)
+          sizes[i] += wholeMultiples * hint;
+      }
+    }
+
+    available -= wholeMultiples * m_sectionStretchHintTotal;
+
+    // we now have a small amount (less than m_sectionStretchHintTotal) of extra space to allocate.
+    // we still want to assign this leftover proportional to the hints, otherwise we'd end up with a
+    // stair-stepping effect.
+    // To do this we calculate hint/total for each section then loop around adding on fractional
+    // components to the sizes until one is above 1, then it gets a pixel, and we keep going until
+    // all the remainder is allocated
+    QVector<float> fractions, increment;
+    fractions.resize(sizes.count());
+    increment.resize(sizes.count());
+
+    // set up increments
+    for(int i = 0; i < sizes.count(); i++)
+    {
+      // don't assign any space to sections with negative hints, or sections without hints
+      if(i >= m_sectionStretchHints.count() || m_sectionStretchHints[i] <= 0)
+      {
+        increment[i] = 0.0f;
+        continue;
+      }
+
+      increment[i] = float(m_sectionStretchHints[i]) / float(m_sectionStretchHintTotal);
+    }
+
+    while(available > 0)
+    {
+      // loop along each section incrementing it.
+      for(int i = 0; i < fractions.count(); i++)
+      {
+        fractions[i] += increment[i];
+
+        // if we have a whole pixel now, assign it
+        if(fractions[i] > 1.0f)
+        {
+          fractions[i] -= 1.0f;
+          sizes[i]++;
+          available--;
+
+          // if we've assigned all pixels, stop
+          if(available == 0)
+            break;
+        }
+      }
+    }
+
+    for(int pix = 0; pix < available; pix++)
+    {
+      int minSection = 0;
+      for(int i = 1; i < sizes.count(); i++)
+      {
+        // don't assign any space to sections with negative hints
+        if(i < m_sectionStretchHints.count() && m_sectionStretchHints[i] <= 0)
+          continue;
+
+        if(sizes[i] < sizes[minSection])
+          minSection = i;
+      }
+
+      sizes[minSection]++;
+    }
+  }
+
+  resizeSections(sizes.toList());
+}
+
+void RDHeaderView::setColumnStretchHints(const QList<int> &hints)
+{
+  if(hints.count() != count())
+    qCritical() << "Got" << hints.count() << "hints, but have" << count() << "columns";
+  m_sectionStretchHints = hints;
+
+  m_sectionStretchHintTotal = 0;
+  for(int h : m_sectionStretchHints)
+  {
+    if(h > 0)
+      m_sectionStretchHintTotal += h;
+  }
+
+  // we take control of the sizing, we don't currently support custom resizing AND stretchy size
+  // hints.
+  QHeaderView::setSectionResizeMode(QHeaderView::Fixed);
+
+  cacheSectionMinSizes();
+  resizeSectionsWithHints();
+}
+
 void RDHeaderView::headerDataChanged(Qt::Orientation orientation, int logicalFirst, int logicalLast)
 {
   if(m_customSizing)
@@ -322,6 +490,15 @@ void RDHeaderView::columnsInserted(const QModelIndex &parent, int first, int las
 {
   if(m_customSizing)
     cacheSections();
+}
+
+void RDHeaderView::rowsChanged(const QModelIndex &parent, int first, int last)
+{
+  if(!m_sectionStretchHints.isEmpty())
+  {
+    cacheSectionMinSizes();
+    resizeSectionsWithHints();
+  }
 }
 
 void RDHeaderView::mousePressEvent(QMouseEvent *event)
@@ -658,7 +835,7 @@ void RDHeaderView::paintSection(QPainter *painter, const QRect &rect, int sectio
   QVariant textAlignment = m->headerData(section, orientation(), Qt::TextAlignmentRole);
   opt.rect = rect;
   opt.section = section;
-  opt.textAlignment = Qt::AlignLeft | Qt::AlignVCenter;
+  opt.textAlignment = defaultAlignment();
   opt.iconAlignment = Qt::AlignVCenter;
 
   QVariant variant;
@@ -751,4 +928,12 @@ void RDHeaderView::currentChanged(const QModelIndex &current, const QModelIndex 
       viewport()->update(rect);
     }
   }
+}
+
+void RDHeaderView::updateGeometries()
+{
+  if(!m_sectionStretchHints.isEmpty())
+    resizeSectionsWithHints();
+
+  QHeaderView::updateGeometries();
 }
