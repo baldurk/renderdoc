@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "RDHeaderView.h"
+#include <QDebug>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
