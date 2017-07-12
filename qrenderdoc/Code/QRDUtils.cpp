@@ -723,12 +723,9 @@ protected:
 };
 
 #if defined(Q_OS_WIN32)
-#include <windows.h>
 
 #include <shellapi.h>
-#else
-#include <unistd.h>
-#endif
+#include <windows.h>
 
 typedef LSTATUS(APIENTRY *PFN_RegCreateKeyExA)(HKEY hKey, LPCSTR lpSubKey, DWORD Reserved,
                                                LPSTR lpClass, DWORD dwOptions, REGSAM samDesired,
@@ -736,6 +733,12 @@ typedef LSTATUS(APIENTRY *PFN_RegCreateKeyExA)(HKEY hKey, LPCSTR lpSubKey, DWORD
                                                PHKEY phkResult, LPDWORD lpdwDisposition);
 
 typedef LSTATUS(APIENTRY *PFN_RegCloseKey)(HKEY hKey);
+
+#else
+
+#include <unistd.h>
+
+#endif
 
 bool IsRunningAsAdmin()
 {
