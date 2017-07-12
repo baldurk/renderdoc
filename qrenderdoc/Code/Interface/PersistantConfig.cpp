@@ -259,6 +259,9 @@ bool PersistantConfig::Load(const QString &filename)
 
 bool PersistantConfig::Save()
 {
+  if(m_Filename.isEmpty())
+    return true;
+
   // update serialize list
   RemoteHostList.clear();
   for(RemoteHost *host : RemoteHosts)
@@ -267,6 +270,11 @@ bool PersistantConfig::Save()
   RENDERDOC_SetConfigSetting("Disassembly_FriendlyNaming", ShaderViewer_FriendlyNaming ? "1" : "0");
 
   return Serialize(m_Filename);
+}
+
+void PersistantConfig::Close()
+{
+  m_Filename = QString();
 }
 
 void PersistantConfig::SetupFormatting()

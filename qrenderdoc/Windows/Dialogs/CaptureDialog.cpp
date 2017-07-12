@@ -402,6 +402,18 @@ void CaptureDialog::on_processRefesh_clicked()
   fillProcessList();
 }
 
+bool CaptureDialog::checkAllowClose()
+{
+  if(RENDERDOC_IsGlobalHookActive())
+  {
+    RDDialog::critical(this, tr("Global hook active"),
+                       tr("Cannot close this window while global hook is active."));
+    return false;
+  }
+
+  return true;
+}
+
 void CaptureDialog::on_exePathBrowse_clicked()
 {
   QString initDir;
@@ -487,12 +499,115 @@ void CaptureDialog::on_envVarEdit_clicked()
 
 void CaptureDialog::on_toggleGlobal_clicked()
 {
-  if(ui->toggleGlobal->isEnabled())
-  {
-    ui->toggleGlobal->setChecked(!ui->toggleGlobal->isChecked());
+  if(!ui->toggleGlobal->isEnabled())
+    return;
 
-    UpdateGlobalHook();
+  ui->toggleGlobal->setEnabled(false);
+
+  QList<QWidget *> enableDisableWidgets = {ui->exePath,       ui->exePathBrowse, ui->workDirPath,
+                                           ui->workDirBrowse, ui->cmdline,       ui->launch,
+                                           ui->saveSettings,  ui->loadSettings};
+
+  for(QWidget *o : ui->optionsGroup->findChildren<QWidget *>(QString(), Qt::FindDirectChildrenOnly))
+    if(o)
+      enableDisableWidgets << o;
+
+  for(QWidget *o : ui->actionGroup->findChildren<QWidget *>(QString(), Qt::FindDirectChildrenOnly))
+    if(o)
+      enableDisableWidgets << o;
+
+  if(ui->toggleGlobal->isChecked())
+  {
+    if(!IsRunningAsAdmin())
+    {
+      QMessageBox::StandardButton res = RDDialog::question(
+          this, tr("Restart as admin?"),
+          tr("RenderDoc needs to restart with administrator privileges. Restart?"),
+          RDDialog::YesNoCancel);
+
+      if(res == QMessageBox::Yes)
+      {
+        QString capfile = QDir::temp().absoluteFilePath(lit("global.cap"));
+
+        bool wasChecked = ui->AutoStart->isChecked();
+        ui->AutoStart->setChecked(false);
+
+        SaveSettings(capfile);
+
+        ui->AutoStart->setChecked(wasChecked);
+
+        // save the config here explicitly
+        m_Ctx.Config().Save();
+
+        bool success = RunProcessAsAdmin(qApp->applicationFilePath(), QStringList() << capfile);
+
+        if(success)
+        {
+          // close the config so that when we're shutting down we don't conflict with new process
+          // loading
+          m_Ctx.Config().Close();
+          m_Ctx.GetMainWindow()->Widget()->close();
+          return;
+        }
+
+        // don't restart if it failed for some reason (e.g. user clicked no to the elevation prompt)
+        ui->toggleGlobal->setChecked(false);
+        ui->toggleGlobal->setEnabled(true);
+        return;
+      }
+      else
+      {
+        ui->toggleGlobal->setChecked(false);
+        ui->toggleGlobal->setEnabled(true);
+        return;
+      }
+    }
+
+    setEnabledMultiple(enableDisableWidgets, false);
+
+    ui->toggleGlobal->setText(tr("Disable Global Hook"));
+
+    if(RENDERDOC_IsGlobalHookActive())
+      RENDERDOC_StopGlobalHook();
+
+    QString exe = ui->exePath->text();
+
+    QString logfile = m_Ctx.TempLogFilename(QFileInfo(exe).baseName());
+
+    bool success =
+        RENDERDOC_StartGlobalHook(exe.toUtf8().data(), logfile.toUtf8().data(), Settings().Options);
+
+    if(!success)
+    {
+      // tidy up and exit
+      RDDialog::critical(
+          this, tr("Couldn't start global hook"),
+          tr("Aborting. Couldn't start global hook. Check diagnostic log in help menu for more "
+             "information"));
+
+      setEnabledMultiple(enableDisableWidgets, true);
+
+      // won't recurse because it's not enabled yet
+      ui->toggleGlobal->setChecked(false);
+      ui->toggleGlobal->setText(tr("Enable Global Hook"));
+      ui->toggleGlobal->setEnabled(true);
+      return;
+    }
   }
+  else
+  {
+    // not checked
+    if(RENDERDOC_IsGlobalHookActive())
+      RENDERDOC_StopGlobalHook();
+
+    setEnabledMultiple(enableDisableWidgets, true);
+
+    ui->toggleGlobal->setText(tr("Enable Global Hook"));
+  }
+
+  ui->toggleGlobal->setEnabled(true);
+
+  UpdateGlobalHook();
 }
 
 void CaptureDialog::on_saveSettings_clicked()
@@ -679,7 +794,8 @@ void CaptureDialog::LoadSettings(QString filename)
 
 void CaptureDialog::UpdateGlobalHook()
 {
-  ui->globalGroup->setVisible(!IsInjectMode() && m_Ctx.Config().AllowGlobalHook);
+  ui->globalGroup->setVisible(!IsInjectMode() && m_Ctx.Config().AllowGlobalHook &&
+                              RENDERDOC_CanGlobalHook());
 
   if(ui->exePath->text().length() >= 4)
   {

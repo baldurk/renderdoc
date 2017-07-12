@@ -72,6 +72,9 @@ public:
   void SaveSettings(QString filename) override;
   void UpdateGlobalHook() override;
 
+public slots:
+  bool checkAllowClose();
+
 private slots:
   // automatic slots
   void on_exePathBrowse_clicked();

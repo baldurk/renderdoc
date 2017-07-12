@@ -1587,6 +1587,14 @@ void MainWindow::closeEvent(QCloseEvent *event)
     }
   }
 
+  if(RENDERDOC_IsGlobalHookActive())
+  {
+    RDDialog::critical(this, tr("Global hook active"),
+                       tr("Cannot close RenderDoc while global hook is active."));
+    event->ignore();
+    return;
+  }
+
   if(!PromptCloseLog())
   {
     event->ignore();

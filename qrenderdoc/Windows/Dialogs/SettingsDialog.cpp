@@ -89,6 +89,15 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   ui->Formatter_NegExp->setValue(m_Ctx.Config().Formatter_NegExp);
   ui->Formatter_PosExp->setValue(m_Ctx.Config().Formatter_PosExp);
 
+  if(!RENDERDOC_CanGlobalHook())
+  {
+    ui->AllowGlobalHook->setEnabled(false);
+
+    QString disabledTooltip = tr("Global hooking is not supported on this platform");
+    ui->AllowGlobalHook->setToolTip(disabledTooltip);
+    ui->globalHookLabel->setToolTip(disabledTooltip);
+  }
+
   m_Init = false;
 
   QObject::connect(ui->Formatter_MinFigures, OverloadedSlot<int>::of(&QSpinBox::valueChanged), this,

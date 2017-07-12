@@ -726,7 +726,54 @@ protected:
 #include <windows.h>
 
 #include <shellapi.h>
+#else
+#include <unistd.h>
 #endif
+
+typedef LSTATUS(APIENTRY *PFN_RegCreateKeyExA)(HKEY hKey, LPCSTR lpSubKey, DWORD Reserved,
+                                               LPSTR lpClass, DWORD dwOptions, REGSAM samDesired,
+                                               CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+                                               PHKEY phkResult, LPDWORD lpdwDisposition);
+
+typedef LSTATUS(APIENTRY *PFN_RegCloseKey)(HKEY hKey);
+
+bool IsRunningAsAdmin()
+{
+#if defined(Q_OS_WIN32)
+  // try to open HKLM\Software for write.
+  HKEY key = NULL;
+
+  // access dynamically to get around the pain of trying to link to extra window libs in qt
+  HMODULE mod = LoadLibraryA("advapi32.dll");
+
+  if(mod == NULL)
+    return false;
+
+  PFN_RegCreateKeyExA create = (PFN_RegCreateKeyExA)GetProcAddress(mod, "RegCreateKeyExA");
+  PFN_RegCloseKey close = (PFN_RegCloseKey)GetProcAddress(mod, "RegCloseKey");
+
+  LSTATUS ret = ERROR_PROC_NOT_FOUND;
+
+  if(create && close)
+  {
+    ret = create(HKEY_LOCAL_MACHINE, "SOFTWARE", 0, NULL, 0, KEY_READ | KEY_WRITE, NULL, &key, NULL);
+
+    if(key)
+      close(key);
+  }
+
+  FreeLibrary(mod);
+
+  return (ret == ERROR_SUCCESS);
+
+#else
+
+  // this isn't ideal, we should check something else since a user may have permissions to do what
+  // we want to do
+  return geteuid() == 0;
+
+#endif
+}
 
 bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &params,
                        std::function<void()> finishedCallback)
@@ -989,6 +1036,12 @@ void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinis
   // to clean itself up
   tickerSemaphore.tryAcquire();
   progressTickerThread.wait();
+}
+
+void setEnabledMultiple(const QList<QWidget *> &widgets, bool enabled)
+{
+  for(QWidget *w : widgets)
+    w->setEnabled(enabled);
 }
 
 QString GetSystemUsername()
