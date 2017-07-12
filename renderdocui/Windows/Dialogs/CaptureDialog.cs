@@ -801,136 +801,6 @@ namespace renderdocui.Windows.Dialogs
             m_Core.Config.LastCapturePath = Path.GetDirectoryName(filename);
             m_Core.Config.LastCaptureExe = Path.GetFileName(filename);
         }
-
-        private string prevAppInit = "";
-        private string prevAppInitWoW64 = "";
-        private int prevAppInitEnabled = 0;
-        private int prevAppInitWoW64Enabled = 0;
-
-        private AutoResetEvent wakeupEvent = new AutoResetEvent(false);
-        private bool pipeExit = false;
-        private Thread pipeThread = null;
-        private NamedPipeServerStream pipe32 = null;
-        private NamedPipeServerStream pipe64 = null;
-
-        private void EnableAppInit(RegistryKey parent, string path, string dllname, out int prevEnabled, out string prevStr)
-        {
-            RegistryKey key = parent.OpenSubKey("Microsoft", true);
-            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
-
-            key = key.OpenSubKey("Windows NT", true);
-            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
-
-            key = key.OpenSubKey("CurrentVersion", true);
-            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
-
-            key = key.OpenSubKey("Windows", true);
-            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
-
-            object o = key.GetValue("LoadAppInit_DLLs");
-            if (o == null || !(o is int)) { prevEnabled = 0; prevStr = ""; return; }
-            prevEnabled = (int)o;
-
-            o = key.GetValue("AppInit_DLLs");
-            if (o == null || !(o is string)) { prevEnabled = 0; prevStr = ""; return; }
-            prevStr = (string)o;
-
-            key.SetValue("AppInit_DLLs", Win32PInvoke.ShortPath(Path.Combine(path, dllname)));
-            key.SetValue("LoadAppInit_DLLs", (int)1);
-        }
-
-        private void RestoreAppInit(RegistryKey parent, int prevEnabled, string prevStr)
-        {
-            RegistryKey key = parent.OpenSubKey("Microsoft", true);
-            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
-
-            key = key.OpenSubKey("Windows NT", true);
-            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
-
-            key = key.OpenSubKey("CurrentVersion", true);
-            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
-
-            key = key.OpenSubKey("Windows", true);
-            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
-
-            key.SetValue("AppInit_DLLs", prevStr);
-            key.SetValue("LoadAppInit_DLLs", prevEnabled);
-        }
-
-        private void PipeTick()
-        {
-            while (!pipeExit)
-            {
-                wakeupEvent.WaitOne(250);
-            }
-
-            if (pipe32 != null)
-            {
-                if (pipe32.IsConnected)
-                {
-                    using (StreamWriter writer = new StreamWriter(pipe32))
-                    {
-                        writer.Write("exit");
-                        writer.Flush();
-                    }
-                }
-
-                pipe32.Dispose();
-                pipe32 = null;
-            }
-
-            if (pipe64 != null)
-            {
-                if (pipe64.IsConnected)
-                {
-                    using (StreamWriter writer = new StreamWriter(pipe64))
-                    {
-                        writer.Write("exit");
-                        writer.Flush();
-                    }
-                }
-
-                pipe64.Dispose();
-                pipe64 = null;
-            }
-        }
-
-        private void ExitPipeThread()
-        {
-            pipeExit = true;
-            wakeupEvent.Set();
-
-            if (pipeThread != null)
-            {
-                if (pipeThread.ThreadState != ThreadState.Aborted &&
-                    pipeThread.ThreadState != ThreadState.Stopped)
-                {
-                    // try to shut down gracefully
-                    pipeThread.Join(1000);
-
-                    if (pipeThread.ThreadState != ThreadState.Aborted &&
-                        pipeThread.ThreadState != ThreadState.Stopped)
-                    {
-                        pipeThread.Abort();
-                        pipeThread.Join();
-                    }
-                }
-            }
-
-            pipeThread = null;
-
-            if (pipe32 != null)
-            {
-                pipe32.Dispose();
-                pipe32 = null;
-            }
-
-            if (pipe64 != null)
-            {
-                pipe64.Dispose();
-                pipe64 = null;
-            }
-        }
         
         private void toggleGlobalHook_CheckedChanged(object sender, EventArgs e)
         {
@@ -938,8 +808,6 @@ namespace renderdocui.Windows.Dialogs
                 return;
 
             toggleGlobalHook.Enabled = false;
-
-            m_Core.GlobalHookEnabled = false;
 
             if (toggleGlobalHook.Checked)
             {
@@ -996,98 +864,24 @@ namespace renderdocui.Windows.Dialogs
 
                 toggleGlobalHook.Text = "Disable Global Hook";
 
-                var path = Path.GetDirectoryName(Path.GetFullPath(Application.ExecutablePath));
+                if (StaticExports.IsGlobalHookActive())
+                    StaticExports.StopGlobalHook();
 
-                var regfile = Path.Combine(Path.GetTempPath(), "RenderDoc_RestoreGlobalHook.reg");
+                string exe = exePath.Text;
 
-                try
-                {
-                    if (Environment.Is64BitProcess)
-                    {
-                        EnableAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE").CreateSubKey("Wow6432Node"),
-                                      path, "x86\\renderdocshim32.dll",
-                                      out prevAppInitWoW64Enabled, out prevAppInitWoW64);
+                string logfile = exe;
+                if (logfile.Contains("/")) logfile = logfile.Substring(logfile.LastIndexOf('/') + 1);
+                if (logfile.Contains("\\")) logfile = logfile.Substring(logfile.LastIndexOf('\\') + 1);
+                if (logfile.Contains(".")) logfile = logfile.Substring(0, logfile.IndexOf('.'));
+                logfile = m_Core.TempLogFilename(logfile);
 
-                        EnableAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"),
-                                      path, "renderdocshim64.dll",
-                                      out prevAppInitEnabled, out prevAppInit);
+                bool success = StaticExports.StartGlobalHook(exe, logfile, GetSettings().Options);
 
-                        using (FileStream s = File.OpenWrite(regfile))
-                        {
-                            using (StreamWriter sw = new StreamWriter(s))
-                            {
-                                sw.WriteLine("Windows Registry Editor Version 5.00");
-                                sw.WriteLine("");
-                                sw.WriteLine("[HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows]");
-                                sw.WriteLine(String.Format("\"LoadAppInit_DLLs\"=dword:{0:X8}", prevAppInitWoW64Enabled));
-                                sw.WriteLine(String.Format("\"AppInit_DLLs\"=\"{0}\"", prevAppInitWoW64));
-                                sw.WriteLine("");
-                                sw.WriteLine("[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows]");
-                                sw.WriteLine(String.Format("\"LoadAppInit_DLLs\"=dword:{0:X8}", prevAppInitEnabled));
-                                sw.WriteLine(String.Format("\"AppInit_DLLs\"=\"{0}\"", prevAppInit));
-                                sw.Flush();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // if this is a 64-bit OS, it will re-direct our request to Wow6432Node anyway, so we
-                        // don't need to handle that manually
-                        EnableAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"), path, "renderdocshim32.dll",
-                                        out prevAppInitEnabled, out prevAppInit);
-
-                        using (FileStream s = File.OpenWrite(regfile))
-                        {
-                            using (StreamWriter sw = new StreamWriter(s))
-                            {
-                                sw.WriteLine("Windows Registry Editor Version 5.00");
-                                sw.WriteLine("");
-                                sw.WriteLine("[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows]");
-                                sw.WriteLine(String.Format("\"LoadAppInit_DLLs\"=dword:{0:X8}", prevAppInitEnabled));
-                                sw.WriteLine(String.Format("\"AppInit_DLLs\"=\"{0}\"", prevAppInit));
-                                sw.Flush();
-                            }
-                        }
-                    }
-                }
-                catch (System.Exception ex)
-                {
-                    MessageBox.Show("Aborting. Couldn't save backup .reg file to " + regfile + Environment.NewLine + ex.ToString(), "Cannot save registry backup",
-                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-                    exePath.Enabled = exeBrowse.Enabled =
-                        workDirPath.Enabled = workDirBrowse.Enabled =
-                        cmdline.Enabled =
-                        launch.Enabled = save.Enabled = load.Enabled = true;
-
-                    foreach (Control c in capOptsFlow.Controls)
-                        c.Enabled = true;
-
-                    foreach (Control c in actionsFlow.Controls)
-                        c.Enabled = true;
-
-                    // won't recurse because it's not enabled yet
-                    toggleGlobalHook.Checked = false;
-                    toggleGlobalHook.Text = "Enable Global Hook";
-
-                    toggleGlobalHook.Enabled = true;
-                    return;
-                }
-
-                ExitPipeThread();
-
-                pipeExit = false;
-
-                try
-                {
-                    pipe32 = new NamedPipeServerStream("RenderDoc.GlobalHookControl32");
-                    pipe64 = new NamedPipeServerStream("RenderDoc.GlobalHookControl64");
-                }
-                catch (System.IO.IOException ex)
+                if(!success)
                 {
                     // tidy up and exit
-                    MessageBox.Show("Aborting. Couldn't create named pipe:" + Environment.NewLine + ex.Message,
-                                    "Cannot create named pipe",
+                    MessageBox.Show("Aborting. Couldn't start global hook. Check diagnostic log in help menu for more information",
+                                    "Couldn't start global hook",
                                     MessageBoxButtons.OK, MessageBoxIcon.Error);
 
                     exePath.Enabled = exeBrowse.Enabled =
@@ -1101,21 +895,6 @@ namespace renderdocui.Windows.Dialogs
                     foreach (Control c in actionsFlow.Controls)
                         c.Enabled = true;
 
-                    // need to revert registry entries too
-                    if (Environment.Is64BitProcess)
-                    {
-                        RestoreAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE").CreateSubKey("Wow6432Node"), prevAppInitWoW64Enabled, prevAppInitWoW64);
-                        RestoreAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"), prevAppInitEnabled, prevAppInit);
-                    }
-                    else
-                    {
-                        // if this is a 64-bit OS, it will re-direct our request to Wow6432Node anyway, so we
-                        // don't need to handle that manually
-                        RestoreAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"), prevAppInitEnabled, prevAppInit);
-                    }
-
-                    if (File.Exists(regfile)) File.Delete(regfile);
-
                     // won't recurse because it's not enabled yet
                     toggleGlobalHook.Checked = false;
                     toggleGlobalHook.Text = "Enable Global Hook";
@@ -1123,26 +902,11 @@ namespace renderdocui.Windows.Dialogs
                     toggleGlobalHook.Enabled = true;
                     return;
                 }
-
-                pipeThread = Helpers.NewThread(new ThreadStart(PipeTick));
-
-                pipeThread.Start();
-
-                string exe = exePath.Text;
-
-                string logfile = exe;
-                if (logfile.Contains("/")) logfile = logfile.Substring(logfile.LastIndexOf('/') + 1);
-                if (logfile.Contains("\\")) logfile = logfile.Substring(logfile.LastIndexOf('\\') + 1);
-                if (logfile.Contains(".")) logfile = logfile.Substring(0, logfile.IndexOf('.'));
-                logfile = m_Core.TempLogFilename(logfile);
-
-                StaticExports.StartGlobalHook(exe, logfile, GetSettings().Options);
-
-                m_Core.GlobalHookEnabled = true;
             }
             else
             {
-                ExitPipeThread();
+                if (StaticExports.IsGlobalHookActive())
+                    StaticExports.StopGlobalHook();
 
                 exePath.Enabled = exeBrowse.Enabled =
                     workDirPath.Enabled = workDirBrowse.Enabled =
@@ -1156,22 +920,6 @@ namespace renderdocui.Windows.Dialogs
                     c.Enabled = true;
 
                 toggleGlobalHook.Text = "Enable Global Hook";
-
-                if (Environment.Is64BitProcess)
-                {
-                    RestoreAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE").CreateSubKey("Wow6432Node"), prevAppInitWoW64Enabled, prevAppInitWoW64);
-                    RestoreAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"), prevAppInitEnabled, prevAppInit);
-                }
-                else
-                {
-                    // if this is a 64-bit OS, it will re-direct our request to Wow6432Node anyway, so we
-                    // don't need to handle that manually
-                    RestoreAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"), prevAppInitEnabled, prevAppInit);
-                }
-
-                var regfile = Path.Combine(Path.GetTempPath(), "RenderDoc_RestoreGlobalHook.reg");
-
-                if (File.Exists(regfile)) File.Delete(regfile);
             }
 
             toggleGlobalHook.Enabled = true;

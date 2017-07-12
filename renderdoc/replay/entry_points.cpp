@@ -389,11 +389,26 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetDefaultCaptureOptions(Ca
   *opts = CaptureOptions();
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch,
-                                                                     const char *logfile,
-                                                                     const CaptureOptions &opts)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch,
+                                                                       const char *logfile,
+                                                                       const CaptureOptions &opts)
 {
-  Process::StartGlobalHook(pathmatch, logfile, opts);
+  return Process::StartGlobalHook(pathmatch, logfile, opts);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StopGlobalHook()
+{
+  Process::StopGlobalHook();
+}
+
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_IsGlobalHookActive()
+{
+  return Process::IsGlobalHookActive();
+}
+
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_CanGlobalHook()
+{
+  return Process::CanGlobalHook();
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC

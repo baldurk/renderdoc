@@ -52,7 +52,11 @@ void RegisterEnvironmentModification(EnvironmentModification modif);
 
 void ApplyEnvironmentModification();
 
-void StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions &opts);
+bool CanGlobalHook();
+bool StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions &opts);
+bool IsGlobalHookActive();
+void StopGlobalHook();
+
 uint32_t InjectIntoProcess(uint32_t pid, const rdctype::array<EnvironmentModification> &env,
                            const char *logfile, const CaptureOptions &opts, bool waitForExit);
 struct ProcessResult

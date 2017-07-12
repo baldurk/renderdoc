@@ -55,7 +55,13 @@ namespace renderdoc
         private static extern ReplayCreateStatus RENDERDOC_CreateReplayRenderer(IntPtr logfile, ref float progress, ref IntPtr rendPtr);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RENDERDOC_StartGlobalHook(IntPtr pathmatch, IntPtr logfile, CaptureOptions opts);
+        private static extern bool RENDERDOC_StartGlobalHook(IntPtr pathmatch, IntPtr logfile, CaptureOptions opts);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool RENDERDOC_IsGlobalHookActive();
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RENDERDOC_StopGlobalHook();
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern UInt32 RENDERDOC_ExecuteAndInject(IntPtr app, IntPtr workingDir, IntPtr cmdLine, IntPtr env,
@@ -178,15 +184,27 @@ namespace renderdoc
             return new ReplayRenderer(rendPtr);
         }
 
-        public static void StartGlobalHook(string pathmatch, string logfile, CaptureOptions opts)
+        public static bool StartGlobalHook(string pathmatch, string logfile, CaptureOptions opts)
         {
             IntPtr pathmatch_mem = CustomMarshal.MakeUTF8String(pathmatch);
             IntPtr logfile_mem = CustomMarshal.MakeUTF8String(logfile);
 
-            RENDERDOC_StartGlobalHook(pathmatch_mem, logfile_mem, opts);
+            bool ret = RENDERDOC_StartGlobalHook(pathmatch_mem, logfile_mem, opts);
 
             CustomMarshal.Free(logfile_mem);
             CustomMarshal.Free(pathmatch_mem);
+
+            return ret;
+        }
+
+        public static bool IsGlobalHookActive()
+        {
+            return RENDERDOC_IsGlobalHookActive();
+        }
+
+        public static void StopGlobalHook()
+        {
+            RENDERDOC_StopGlobalHook();
         }
 
         public static UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, EnvironmentModification[] env, string logfile, CaptureOptions opts)

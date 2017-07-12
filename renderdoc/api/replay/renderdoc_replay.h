@@ -1324,17 +1324,49 @@ DOCUMENT(R"(Retrieve the default and recommended set of capture options.
 )");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetDefaultCaptureOptions(CaptureOptions *opts);
 
-DOCUMENT(R"(Where supported by platform, configuration and setup, begin injecting speculatively into
-all new processes started on the system.
+DOCUMENT(R"(Begin injecting speculatively into all new processes started on the system. Where
+supported by platform, configuration, and setup begin injecting speculatively into all new processes
+started on the system.
+
+This function can only be called if global hooking is supported (see :ref:`CanGlobalHook`) and if
+global hooking is not active (see :ref:`IsGlobalHookActive`).
+
+This function must be called when the process is running with administrator/superuser permissions.
 
 :param str pathmatch: A string to match against each new process's executable path to determine
   which corresponds to the program we actually want to capture.
 :param str logfile: Where to store any captures.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
+:return: ``True`` if the hook is active, ``False`` if something went wrong. The hook must be closed
+  with :ref:`StopGlobalHook` before the application is closed.
+:rtype: ``bool``
 )");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch,
-                                                                     const char *logfile,
-                                                                     const CaptureOptions &opts);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch,
+                                                                       const char *logfile,
+                                                                       const CaptureOptions &opts);
+
+DOCUMENT(R"(Stop the global hook that was activated by :ref:`StartGlobalHook`.
+
+This function can only be called if global hooking is supported (see :ref:`CanGlobalHook`) and if
+global hooking is active (see :ref:`IsGlobalHookActive`).
+)");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StopGlobalHook();
+
+DOCUMENT(R"(Determines if the global hook is active or not.
+
+This function can only be called if global hooking is supported (see :ref:`CanGlobalHook`).
+
+:return: ``True`` if the hook is active, or ``False`` if the hook is inactive.
+:rtype: ``bool``
+)");
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_IsGlobalHookActive();
+
+DOCUMENT(R"(Determines if the global hook is supported on the current platform and configuration.
+
+:return: ``True`` if global hooking can be used on the platform, ``False`` if not.
+:rtype: ``bool``
+)");
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_CanGlobalHook();
 
 DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 

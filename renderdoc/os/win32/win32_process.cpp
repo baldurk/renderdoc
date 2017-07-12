@@ -996,10 +996,276 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   return ret;
 }
 
-void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions &opts)
+bool Process::CanGlobalHook()
+{
+  // all we need is admin rights and it's the caller's responsibility to ensure that.
+  return true;
+}
+
+// to simplify the below code, rather than splitting by 32-bit/64-bit we split by native and Wow32.
+// This means that for 32-bit code (whether it's on 32-bit OS or not) we just have native, and the
+// Wow32 stuff is empty/unused. For 64-bit we use both. Thus the native registry key is always the
+// same path regardless of the bitness we're running as and we don't have to move things around or
+// have conditionals all over
+
+struct GlobalHookData
+{
+  struct
+  {
+    HANDLE pipe = NULL;
+    DWORD appinitEnabled = 0;
+    wstring appinitDLLs;
+  } dataNative, dataWow32;
+
+  volatile int32_t finished = 0;
+  Threading::ThreadHandle pipeThread = 0;
+};
+
+// utility function to close the registry keys, print an error, and quit
+static bool HandleRegError(HKEY keyNative, HKEY keyWow32, LSTATUS ret, const char *msg)
+{
+  if(keyNative)
+    RegCloseKey(keyNative);
+
+  if(keyWow32)
+    RegCloseKey(keyWow32);
+
+  RDCERR("Error with AppInit registry keys - %s (%d)", msg, ret);
+  return false;
+}
+
+#define REG_CHECK(msg)                                    \
+  if(ret != ERROR_SUCCESS)                                \
+  {                                                       \
+    return HandleRegError(keyNative, keyWow32, ret, msg); \
+  }
+
+// function to backup the previous settings for AppInit, then enable it and write our own paths.
+bool BackupAndChangeRegistry(GlobalHookData &hookdata, const wstring &shimpathWow32,
+                             const wstring &shimpathNative)
+{
+  HKEY keyNative = NULL;
+  HKEY keyWow32 = NULL;
+
+  // open the native key
+  LSTATUS ret = RegCreateKeyExA(HKEY_LOCAL_MACHINE,
+                                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows", 0, NULL,
+                                0, KEY_READ | KEY_WRITE, NULL, &keyNative, NULL);
+
+  REG_CHECK("Could not open AppInit key");
+
+  // if we are doing Wow32, open that key as well
+  if(!shimpathWow32.empty())
+  {
+    ret = RegCreateKeyExA(HKEY_LOCAL_MACHINE,
+                          "SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+                          0, NULL, 0, KEY_READ | KEY_WRITE, NULL, &keyWow32, NULL);
+
+    REG_CHECK("Could not open AppInit key");
+  }
+
+  const DWORD one = 1;
+
+  // fetch the previous data for LoadAppInit_DLLs and AppInit_DLLs
+  DWORD sz = 4;
+  ret = RegGetValueA(keyNative, NULL, "LoadAppInit_DLLs", RRF_RT_REG_DWORD, NULL,
+                     (void *)&hookdata.dataNative.appinitEnabled, &sz);
+  REG_CHECK("Could not fetch LoadAppInit_DLLs");
+
+  sz = 0;
+  ret = RegGetValueW(keyNative, NULL, L"AppInit_DLLs", RRF_RT_ANY, NULL, NULL, &sz);
+  if(ret == ERROR_MORE_DATA || ret == ERROR_SUCCESS)
+  {
+    hookdata.dataNative.appinitDLLs.resize(sz / sizeof(wchar_t));
+    ret = RegGetValueW(keyNative, NULL, L"AppInit_DLLs", RRF_RT_ANY, NULL,
+                       (void *)&hookdata.dataNative.appinitDLLs[0], &sz);
+  }
+  REG_CHECK("Could not fetch AppInit_DLLs");
+
+  // set DWORD:1 for LoadAppInit_DLLs and convert our path to a short path then set it
+  ret = RegSetValueExA(keyNative, "LoadAppInit_DLLs", 0, REG_DWORD, (const BYTE *)&one, sizeof(one));
+  REG_CHECK("Could not set LoadAppInit_DLLs");
+
+  wstring shortpath;
+  shortpath = shimpathNative;
+  GetShortPathNameW(shimpathNative.c_str(), (wchar_t *)&shortpath[0], (DWORD)shortpath.size());
+
+  ret = RegSetValueExW(keyNative, L"AppInit_DLLs", 0, REG_SZ, (const BYTE *)shortpath.data(),
+                       DWORD(shortpath.size() * sizeof(wchar_t)));
+  REG_CHECK("Could not set AppInit_DLLs");
+
+  // if we're doing Wow32, repeat the process for those keys
+  if(keyWow32)
+  {
+    sz = 4;
+    ret = RegGetValueA(keyWow32, NULL, "LoadAppInit_DLLs", RRF_RT_REG_DWORD, NULL,
+                       (void *)&hookdata.dataWow32.appinitEnabled, &sz);
+    REG_CHECK("Could not fetch LoadAppInit_DLLs");
+
+    sz = 0;
+    ret = RegGetValueW(keyWow32, NULL, L"AppInit_DLLs", RRF_RT_ANY, NULL, NULL, &sz);
+    if(ret == ERROR_MORE_DATA || ret == ERROR_SUCCESS)
+    {
+      hookdata.dataWow32.appinitDLLs.resize(sz / sizeof(wchar_t));
+      ret = RegGetValueW(keyWow32, NULL, L"AppInit_DLLs", RRF_RT_ANY, NULL,
+                         (void *)&hookdata.dataWow32.appinitDLLs[0], &sz);
+    }
+    REG_CHECK("Could not fetch AppInit_DLLs");
+
+    ret = RegSetValueExA(keyWow32, "LoadAppInit_DLLs", 0, REG_DWORD, (const BYTE *)&one, sizeof(one));
+    REG_CHECK("Could not set LoadAppInit_DLLs");
+
+    shortpath = shimpathWow32;
+    GetShortPathNameW(shimpathWow32.c_str(), &shortpath[0], (DWORD)shortpath.size());
+
+    ret = RegSetValueExW(keyWow32, L"AppInit_DLLs", 0, REG_SZ, (const BYTE *)shortpath.data(),
+                         DWORD(shortpath.size() * sizeof(wchar_t)));
+    REG_CHECK("Could not set AppInit_DLLs");
+  }
+
+  wstring backup;
+
+  // write a .reg file that contains the previous settings, so that if all else fails the user can
+  // manually insert it back into the registry to restore everything.
+  backup += L"Windows Registry Editor Version 5.00\n";
+  backup += L"\n";
+  backup += L"[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows]\n";
+  backup += L"\"LoadAppInit_DLLs\"=dword:0000000";
+  backup += (hookdata.dataNative.appinitEnabled ? L"1\n" : L"0\n");
+  backup += L"\"AppInit_DLLs\"=\"";
+  // we append with the C string so we don't add trailing NULLs into the text.
+  backup += hookdata.dataNative.appinitDLLs.c_str();
+  backup += L"\"\n";
+  if(keyWow32)
+  {
+    backup += L"\n";
+    backup +=
+        L"[HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\"
+        L"Windows NT\\CurrentVersion\\Windows]\n";
+    backup += L"\"LoadAppInit_DLLs\"=dword:0000000";
+    backup += (hookdata.dataWow32.appinitEnabled ? L"1\n" : L"0\n");
+    backup += L"\"AppInit_DLLs\"=\"";
+    backup += hookdata.dataWow32.appinitDLLs.c_str();
+    backup += L"\"\n";
+  }
+
+  if(keyNative)
+    RegCloseKey(keyNative);
+
+  if(keyWow32)
+    RegCloseKey(keyWow32);
+
+  keyNative = keyWow32 = NULL;
+
+  // write it to disk but don't fail if we can't, just print it to the log and keep going.
+  wchar_t reg_backup[MAX_PATH];
+  GetTempPathW(MAX_PATH, reg_backup);
+  wcscat_s(reg_backup, L"RenderDoc_RestoreGlobalHook.reg");
+
+  FILE *f = NULL;
+  _wfopen_s(&f, reg_backup, L"w");
+  if(f)
+  {
+    fputws(backup.c_str(), f);
+    fclose(f);
+  }
+  else
+  {
+    RDCERR("Error opening registry backup file %ls", reg_backup);
+    RDCERR("Backup registry data is:\n\n%ls\n\n", backup.c_str());
+  }
+
+  return true;
+}
+
+// switch error-handling to print-and-continue, as we can't really do anything about it at this
+// point and we want to continue restoring in case only one thing failed.
+#undef REG_CHECK
+#define REG_CHECK(msg)                                                      \
+  if(ret != ERROR_SUCCESS)                                                  \
+  {                                                                         \
+    HandleRegError(keyNative, keyWow32, ret, "Could not open AppInit key"); \
+  }
+
+void RestoreRegistry(const GlobalHookData &hookdata)
+{
+  HKEY keyNative = NULL;
+  HKEY keyWow32 = NULL;
+  LSTATUS ret = RegCreateKeyExA(HKEY_LOCAL_MACHINE,
+                                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows", 0, NULL,
+                                0, KEY_READ | KEY_WRITE, NULL, &keyNative, NULL);
+
+  REG_CHECK("Could not open AppInit key");
+
+#if ENABLED(RDOC_X64)
+  ret = RegCreateKeyExA(HKEY_LOCAL_MACHINE,
+                        "SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows", 0,
+                        NULL, 0, KEY_READ | KEY_WRITE, NULL, &keyWow32, NULL);
+
+  REG_CHECK("Could not open AppInit key");
+#endif
+
+  // set the native values back to where they were
+  ret = RegSetValueExA(keyNative, "LoadAppInit_DLLs", 0, REG_DWORD,
+                       (const BYTE *)&hookdata.dataNative.appinitEnabled,
+                       sizeof(hookdata.dataNative.appinitEnabled));
+  REG_CHECK("Could not set LoadAppInit_DLLs");
+
+  ret = RegSetValueExW(keyNative, L"AppInit_DLLs", 0, REG_SZ,
+                       (const BYTE *)hookdata.dataNative.appinitDLLs.data(),
+                       DWORD(hookdata.dataNative.appinitDLLs.size() * sizeof(wchar_t)));
+  REG_CHECK("Could not set AppInit_DLLs");
+
+  // if we opened it, restore the Wow32 values as well
+  if(keyWow32)
+  {
+    ret = RegSetValueExA(keyWow32, "LoadAppInit_DLLs", 0, REG_DWORD,
+                         (const BYTE *)&hookdata.dataWow32.appinitEnabled,
+                         sizeof(hookdata.dataWow32.appinitEnabled));
+    REG_CHECK("Could not set LoadAppInit_DLLs");
+
+    ret = RegSetValueExW(keyWow32, L"AppInit_DLLs", 0, REG_SZ,
+                         (const BYTE *)hookdata.dataWow32.appinitDLLs.data(),
+                         DWORD(hookdata.dataWow32.appinitDLLs.size() * sizeof(wchar_t)));
+    REG_CHECK("Could not set AppInit_DLLs");
+  }
+}
+
+static GlobalHookData *globalHook = NULL;
+
+// a thread we run in the background just to keep the pipes open and wait until we're ready to stop
+// the global hook.
+static void GlobalHookThread(void *)
+{
+  // keep looping doing an atomic compare-exchange to check that finished is still 0
+  while(Atomic::CmpExch32(&globalHook->finished, 0, 0) == 0)
+  {
+    // wake every quarter of a second to test again
+    Threading::Sleep(250);
+  }
+
+  char exitData[32] = "exit";
+
+  // write some data into the pipe and close it. The data is (currently) unimportant, just that it
+  // causes the blocking read on the other end to succeed and close the program.
+  DWORD dummy = 0;
+  if(globalHook->dataNative.pipe)
+  {
+    WriteFile(globalHook->dataNative.pipe, exitData, (DWORD)sizeof(exitData), &dummy, NULL);
+    CloseHandle(globalHook->dataNative.pipe);
+  }
+
+  if(globalHook->dataWow32.pipe)
+  {
+    WriteFile(globalHook->dataWow32.pipe, exitData, (DWORD)sizeof(exitData), &dummy, NULL);
+    CloseHandle(globalHook->dataWow32.pipe);
+  }
+}
+
+bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions &opts)
 {
   if(pathmatch == NULL)
-    return;
+    return false;
 
   wchar_t renderdocPath[MAX_PATH] = {0};
   GetModuleFileNameW(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), &renderdocPath[0],
@@ -1012,7 +1278,82 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   else
     slash = renderdocPath + wcslen(renderdocPath);
 
-  wcscat_s(renderdocPath, L"\\renderdoccmd.exe");
+  // the native renderdoccmd.exe is always next to the dll. Wow32 will be somewhere else
+  wstring cmdpathNative = renderdocPath;
+  cmdpathNative += L"\\renderdoccmd.exe";
+  wstring cmdpathWow32;
+
+  wstring shimpathNative = renderdocPath;
+  wstring shimpathWow32;
+
+#if ENABLED(RDOC_X64)
+
+  // native shim is just renderdocshim64.dll
+  *slash = 0;
+  wcscat_s(renderdocPath, L"\\renderdocshim64.dll");
+  shimpathNative = renderdocPath;
+
+  // if it looks like we're in the development environment, look for the alternate bitness in the
+  // corresponding folder
+  const wchar_t *devLocation = wcsstr(renderdocPath, L"\\x64\\Development\\");
+  if(devLocation)
+  {
+    size_t idx = devLocation - renderdocPath;
+
+    renderdocPath[idx] = 0;
+
+    shimpathWow32 = renderdocPath;
+    shimpathWow32 += L"\\Win32\\Development\\renderdocshim32.dll";
+
+    cmdpathWow32 = renderdocPath;
+    cmdpathWow32 += L"\\Win32\\Development\\renderdoccmd.exe";
+  }
+
+  if(!devLocation)
+  {
+    devLocation = wcsstr(renderdocPath, L"\\x64\\Release\\");
+
+    if(devLocation)
+    {
+      size_t idx = devLocation - renderdocPath;
+
+      renderdocPath[idx] = 0;
+
+      shimpathWow32 = renderdocPath;
+      shimpathWow32 += L"\\Win32\\Release\\renderdocshim32.dll";
+
+      cmdpathWow32 = renderdocPath;
+      cmdpathWow32 += L"\\Win32\\Release\\renderdoccmd.exe";
+    }
+  }
+
+  // if we're not in the dev environment, assume it's under a x86\ subfolder
+  if(!devLocation)
+  {
+    *slash = 0;
+    shimpathWow32 = renderdocPath;
+    shimpathWow32 += L"\\x86\\renderdocshim32.dll";
+
+    cmdpathWow32 = renderdocPath;
+    cmdpathWow32 += L"\\x86\\renderdoccmd.exe";
+  }
+
+#else
+
+  // nothing fancy to do here for 32-bit, just point the shim next to our dll.
+  *slash = 0;
+  wcscat_s(renderdocPath, L"\\renderdocshim32.dll");
+  shimpathNative = renderdocPath;
+
+#endif
+
+  GlobalHookData hookdata;
+
+  // try to backup and change the registry settings to start loading our shim dlls. If that fails,
+  // we bail out immediately
+  bool success = BackupAndChangeRegistry(hookdata, shimpathWow32, shimpathNative);
+  if(!success)
+    return false;
 
   PROCESS_INFORMATION pi = {0};
   STARTUPINFO si = {0};
@@ -1041,40 +1382,151 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   std::string debugLogfile = RDCGETLOGFILE();
   wstring wdebugLogfile = StringFormat::UTF82Wide(debugLogfile);
 
-  _snwprintf_s(
-      paramsAlloc, 2047, 2047,
-      L"\"%ls\" globalhook --match \"%ls\" --logfile \"%ls\" --debuglog \"%ls\" --capopts \"%hs\"",
-      renderdocPath, wpathmatch.c_str(), wlogfile.c_str(), wdebugLogfile.c_str(), optstr.c_str());
+  _snwprintf_s(paramsAlloc, 2047, 2047,
+               L"\"%ls\" globalhook --match \"%ls\" --logfile \"%ls\" --debuglog \"%ls\" "
+               L"--capopts \"%hs\"",
+               cmdpathNative.c_str(), wpathmatch.c_str(), wlogfile.c_str(), wdebugLogfile.c_str(),
+               optstr.c_str());
 
   paramsAlloc[2047] = 0;
 
-  BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, false, 0, NULL, NULL, &si, &pi);
+  // we'll be setting stdin
+  si.dwFlags |= STARTF_USESTDHANDLES;
+
+  // this is the end of the pipe that the child will inherit and use as stdin
+  HANDLE childEnd = NULL;
+
+  // create a pipe with the writing end for us, and the reading end as the child process's stdin
+  {
+    SECURITY_ATTRIBUTES pipeSec;
+    pipeSec.nLength = sizeof(SECURITY_ATTRIBUTES);
+    pipeSec.bInheritHandle = TRUE;
+    pipeSec.lpSecurityDescriptor = NULL;
+
+    BOOL res;
+    res = CreatePipe(&childEnd, &hookdata.dataNative.pipe, &pipeSec, 0);
+
+    if(!res)
+    {
+      RDCERR("Could not create 32-bit stdin pipe");
+      RestoreRegistry(hookdata);
+      return false;
+    }
+
+    // we don't want the child process to inherit our end
+    res = SetHandleInformation(hookdata.dataNative.pipe, HANDLE_FLAG_INHERIT, 0);
+
+    if(!res)
+    {
+      RDCERR("Could not make 32-bit stdin pipe inheritable");
+      RestoreRegistry(hookdata);
+      return false;
+    }
+
+    si.hStdInput = childEnd;
+  }
+
+  // launch the process
+  BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, true, 0, NULL, NULL, &si, &pi);
+
+  // we don't need this end anymore, the child has it
+  CloseHandle(childEnd);
 
   if(retValue == FALSE)
-    return;
+  {
+    RDCERR("Can't launch 64-bit renderdoccmd from '%ls'", cmdpathNative.c_str());
+    CloseHandle(hookdata.dataNative.pipe);
+    RestoreRegistry(hookdata);
+    return false;
+  }
 
   CloseHandle(pi.hThread);
   CloseHandle(pi.hProcess);
 
+// repeat the process for the Wow32 renderdoccmd
 #if ENABLED(RDOC_X64)
-  *slash = 0;
-
-  wcscat_s(renderdocPath, L"\\x86\\renderdoccmd.exe");
-
   _snwprintf_s(paramsAlloc, 2047, 2047,
-               L"\"%ls\" globalhook --match \"%ls\" --log \"%ls\" --capopts \"%hs\"", renderdocPath,
-               wpathmatch.c_str(), wlogfile.c_str(), optstr.c_str());
+               L"\"%ls\" globalhook --match \"%ls\" --log \"%ls\" --capopts \"%hs\"",
+               cmdpathWow32.c_str(), wpathmatch.c_str(), wlogfile.c_str(), optstr.c_str());
 
   paramsAlloc[2047] = 0;
 
-  retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, false, 0, NULL, NULL, &si, &pi);
+  {
+    SECURITY_ATTRIBUTES pipeSec;
+    pipeSec.nLength = sizeof(SECURITY_ATTRIBUTES);
+    pipeSec.bInheritHandle = TRUE;
+    pipeSec.lpSecurityDescriptor = NULL;
+
+    BOOL res;
+    res = CreatePipe(&childEnd, &hookdata.dataWow32.pipe, &pipeSec, 0);
+
+    if(!res)
+    {
+      RDCERR("Could not create 64-bit stdin pipe");
+      RestoreRegistry(hookdata);
+      return false;
+    }
+
+    res = SetHandleInformation(hookdata.dataWow32.pipe, HANDLE_FLAG_INHERIT, 0);
+
+    if(!res)
+    {
+      RDCERR("Could not make 64-bit stdin pipe inheritable");
+      RestoreRegistry(hookdata);
+      return false;
+    }
+
+    si.hStdInput = childEnd;
+  }
+
+  retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, true, 0, NULL, NULL, &si, &pi);
+
+  // we don't need this end anymore
+  CloseHandle(childEnd);
 
   if(retValue == FALSE)
-    return;
+  {
+    RDCERR("Can't launch 32-bit renderdoccmd from '%ls'", cmdpathWow32.c_str());
+    CloseHandle(hookdata.dataNative.pipe);
+    CloseHandle(hookdata.dataWow32.pipe);
+    RestoreRegistry(hookdata);
+    return false;
+  }
 
   CloseHandle(pi.hThread);
   CloseHandle(pi.hProcess);
 #endif
+
+  // set static global pointer with our data, and launch the thread
+  globalHook = new GlobalHookData;
+  *globalHook = hookdata;
+
+  globalHook->pipeThread = Threading::CreateThread(&GlobalHookThread, NULL);
+
+  return true;
+}
+
+bool Process::IsGlobalHookActive()
+{
+  return globalHook != NULL;
+}
+void Process::StopGlobalHook()
+{
+  if(!globalHook)
+    return;
+
+  // set the finished flag and join to the thread so it closes the pipes (and so the child
+  // processes)
+  Atomic::Inc32(&globalHook->finished);
+
+  Threading::JoinThread(globalHook->pipeThread);
+  Threading::CloseThread(globalHook->pipeThread);
+
+  // restore the registry settings from before we started
+  RestoreRegistry(*globalHook);
+
+  delete globalHook;
+  globalHook = NULL;
 }
 
 void *Process::LoadModule(const char *module)

@@ -59,7 +59,6 @@ namespace renderdocui.Code
 
         private bool m_LogLocal = false;
         private bool m_LogLoaded = false;
-        private bool m_GlobalHookEnabled = false;
 
         private FileSystemWatcher m_LogWatcher = null;
 
@@ -119,8 +118,6 @@ namespace renderdocui.Code
         public bool LogLoading { get { return m_LogLoadingInProgress; } }
         public string LogFileName { get { return m_LogFile; } set { if (LogLoaded) m_LogFile = value; } }
         public bool IsLogLocal { get { return m_LogLocal; } set { m_LogLocal = value; } }
-
-        public bool GlobalHookEnabled { get { return m_GlobalHookEnabled; } set { m_GlobalHookEnabled = value; } }
 
         public FetchFrameInfo FrameInfo { get { return m_FrameInfo; } }
 

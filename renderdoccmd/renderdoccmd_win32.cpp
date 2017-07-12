@@ -724,20 +724,12 @@ struct GlobalHookCommand : public Command
     GetModuleFileNameW(rdoc, rdocpath, _countof(rdocpath) - 1);
     FreeLibrary(rdoc);
 
-    // Create pipe from control program, to stay open until requested to close
-    HANDLE pipe = CreateFileW(
-        L"\\\\.\\pipe\\"
-#ifdef WIN64
-        L"RenderDoc.GlobalHookControl64"
-#else
-        L"RenderDoc.GlobalHookControl32"
-#endif
-        ,
-        GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    // Create stdin pipe from parent program, to stay open until requested to close
+    HANDLE pipe = GetStdHandle(STD_INPUT_HANDLE);
 
     if(pipe == INVALID_HANDLE_VALUE)
     {
-      std::cerr << "globalhook couldn't open control pipe.\n" << std::endl;
+      std::cerr << "globalhook couldn't open stdin pipe.\n" << std::endl;
       return 1;
     }
 
@@ -774,7 +766,7 @@ struct GlobalHookCommand : public Command
                       "ShimData options is too small");
 
         // wait until a write comes in over the pipe
-        char buf[16];
+        char buf[16] = {0};
         DWORD read = 0;
         ReadFile(pipe, buf, 16, &read, NULL);
 

@@ -601,9 +601,24 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   return ret;
 }
 
-void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions &opts)
+bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions &opts)
 {
   RDCUNIMPLEMENTED("Global hooking of all processes on linux");
+  return false;
+}
+
+bool Process::CanGlobalHook()
+{
+  return false;
+}
+
+bool Process::IsGlobalHookActive()
+{
+  return false;
+}
+
+void Process::StopGlobalHook()
+{
 }
 
 void *Process::LoadModule(const char *module)
