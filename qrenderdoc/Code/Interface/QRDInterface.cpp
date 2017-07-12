@@ -57,6 +57,7 @@ CaptureSettings::operator QVariant() const
 {
   QVariantMap ret;
 
+  ret[lit("Inject")] = Inject;
   ret[lit("AutoStart")] = AutoStart;
 
   ret[lit("Executable")] = Executable;
@@ -90,6 +91,7 @@ CaptureSettings::CaptureSettings(const QVariant &v)
 {
   QVariantMap data = v.toMap();
 
+  Inject = data[lit("Inject")].toBool();
   AutoStart = data[lit("AutoStart")].toBool();
 
   Executable = data[lit("Executable")].toString();
