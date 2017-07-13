@@ -92,6 +92,7 @@ public:
   void showCaptureDialog() { on_action_Launch_Application_triggered(); }
   void showDebugMessageView() { on_action_Errors_and_Warnings_triggered(); }
   void showStatisticsViewer() { on_action_Statistics_Viewer_triggered(); }
+  void showTimelineBar() { on_action_Timeline_triggered(); }
   void showPythonShell() { on_action_Python_Shell_triggered(); }
 private slots:
   // automatic slots
@@ -108,6 +109,7 @@ private slots:
   void on_action_Launch_Application_triggered();
   void on_action_Errors_and_Warnings_triggered();
   void on_action_Statistics_Viewer_triggered();
+  void on_action_Timeline_triggered();
   void on_action_Python_Shell_triggered();
   void on_action_Inject_into_Process_triggered();
   void on_action_Resolve_Symbols_triggered();

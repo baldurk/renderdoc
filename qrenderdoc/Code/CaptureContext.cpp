@@ -46,6 +46,7 @@
 #include "Windows/ShaderViewer.h"
 #include "Windows/StatisticsViewer.h"
 #include "Windows/TextureViewer.h"
+#include "Windows/TimelineBar.h"
 #include "QRDUtils.h"
 
 CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent,
@@ -728,6 +729,18 @@ IStatisticsViewer *CaptureContext::GetStatisticsViewer()
   return m_StatisticsViewer;
 }
 
+ITimelineBar *CaptureContext::GetTimelineBar()
+{
+  if(m_TimelineBar)
+    return m_TimelineBar;
+
+  m_TimelineBar = new TimelineBar(*this, m_MainWindow);
+  m_TimelineBar->setObjectName(lit("timelineBar"));
+  setupDockWindow(m_TimelineBar);
+
+  return m_TimelineBar;
+}
+
 IPythonShell *CaptureContext::GetPythonShell()
 {
   if(m_PythonShell)
@@ -778,6 +791,11 @@ void CaptureContext::ShowDebugMessageView()
 void CaptureContext::ShowStatisticsViewer()
 {
   m_MainWindow->showStatisticsViewer();
+}
+
+void CaptureContext::ShowTimelineBar()
+{
+  m_MainWindow->showTimelineBar();
 }
 
 void CaptureContext::ShowPythonShell()
@@ -878,6 +896,10 @@ QWidget *CaptureContext::CreateBuiltinWindow(const QString &objectName)
   {
     return GetStatisticsViewer()->Widget();
   }
+  else if(objectName == lit("timelineBar"))
+  {
+    return GetTimelineBar()->Widget();
+  }
   else if(objectName == lit("pythonShell"))
   {
     return GetPythonShell()->Widget();
@@ -904,6 +926,8 @@ void CaptureContext::BuiltinWindowClosed(QWidget *window)
     m_DebugMessageView = NULL;
   else if(m_StatisticsViewer && m_StatisticsViewer->Widget() == window)
     m_StatisticsViewer = NULL;
+  else if(m_TimelineBar && m_TimelineBar->Widget() == window)
+    m_TimelineBar = NULL;
   else if(m_PythonShell && m_PythonShell->Widget() == window)
     m_PythonShell = NULL;
   else

@@ -46,6 +46,7 @@ class TextureViewer;
 class CaptureDialog;
 class DebugMessageView;
 class StatisticsViewer;
+class TimelineBar;
 class PythonShell;
 
 QString ConfigFilePath(const QString &filename);
@@ -131,6 +132,7 @@ public:
   ICaptureDialog *GetCaptureDialog() override;
   IDebugMessageView *GetDebugMessageView() override;
   IStatisticsViewer *GetStatisticsViewer() override;
+  ITimelineBar *GetTimelineBar() override;
   IPythonShell *GetPythonShell() override;
 
   bool HasEventBrowser() override { return m_EventBrowser != NULL; }
@@ -141,6 +143,7 @@ public:
   bool HasCaptureDialog() override { return m_CaptureDialog != NULL; }
   bool HasDebugMessageView() override { return m_DebugMessageView != NULL; }
   bool HasStatisticsViewer() override { return m_StatisticsViewer != NULL; }
+  bool HasTimelineBar() override { return m_TimelineBar != NULL; }
   bool HasPythonShell() override { return m_PythonShell != NULL; }
   void ShowEventBrowser() override;
   void ShowAPIInspector() override;
@@ -150,6 +153,7 @@ public:
   void ShowCaptureDialog() override;
   void ShowDebugMessageView() override;
   void ShowStatisticsViewer() override;
+  void ShowTimelineBar() override;
   void ShowPythonShell() override;
 
   IShaderViewer *EditShader(bool customShader, const QString &entryPoint, const QStringMap &files,
@@ -271,5 +275,6 @@ private:
   CaptureDialog *m_CaptureDialog = NULL;
   DebugMessageView *m_DebugMessageView = NULL;
   StatisticsViewer *m_StatisticsViewer = NULL;
+  TimelineBar *m_TimelineBar = NULL;
   PythonShell *m_PythonShell = NULL;
 };

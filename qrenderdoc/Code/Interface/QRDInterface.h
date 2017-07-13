@@ -104,7 +104,8 @@ struct IMainWindow
   typedef std::function<void()> ShortcutCallback;
 
   DOCUMENT(
-      "Retrieves the QWidget for this :class:`MainWindow` if PySide2 is available, or ``None``.");
+      "Retrieves the QWidget for this :class:`MainWindow` if PySide2 is available, or otherwise a "
+      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Register a callback for a particular key shortcut.
@@ -138,7 +139,8 @@ DOCUMENT("The event browser window.");
 struct IEventBrowser
 {
   DOCUMENT(
-      "Retrieves the QWidget for this :class:`EventBrowser` if PySide2 is available, or ``None``.");
+      "Retrieves the QWidget for this :class:`EventBrowser` if PySide2 is available, or otherwise "
+      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT("Updates the duration column if the selected time unit changes.");
@@ -155,7 +157,8 @@ DOCUMENT("The API inspector window.");
 struct IAPIInspector
 {
   DOCUMENT(
-      "Retrieves the QWidget for this :class:`APIInspector` if PySide2 is available, or ``None``.");
+      "Retrieves the QWidget for this :class:`APIInspector` if PySide2 is available, or otherwise "
+      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT("Refresh the current API view - useful if callstacks are now available.");
@@ -173,7 +176,8 @@ struct IPipelineStateViewer
 {
   DOCUMENT(
       "Retrieves the QWidget for this :class:`PipelineStateViewer` if PySide2 is available, or "
-      "``None``.");
+      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
+      "QWidget.");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Prompt the user to save the binary form of the given shader to disk.
@@ -194,7 +198,8 @@ struct ITextureViewer
 {
   DOCUMENT(
       "Retrieves the QWidget for this :class:`TextureViewer` if PySide2 is available, or "
-      "``None``.");
+      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
+      "QWidget.");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Open a texture view, optionally raising this window to the foreground.
@@ -221,7 +226,8 @@ DOCUMENT("The buffer viewer window, either a raw buffer or the geometry pipeline
 struct IBufferViewer
 {
   DOCUMENT(
-      "Retrieves the QWidget for this :class:`BufferViewer` if PySide2 is available, or ``None``.");
+      "Retrieves the QWidget for this :class:`BufferViewer` if PySide2 is available, or otherwise "
+      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Scroll to the given row in the given stage's data.
@@ -262,7 +268,8 @@ struct ICaptureDialog
 {
   DOCUMENT(
       "Retrieves the QWidget for this :class:`CaptureDialog` if PySide2 is available, or "
-      "``None``.");
+      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
+      "QWidget.");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Determines if the window is in inject or launch mode.
@@ -344,7 +351,8 @@ struct IDebugMessageView
 {
   DOCUMENT(
       "Retrieves the QWidget for this :class:`DebugMessageView` if PySide2 is available, or "
-      "``None``.");
+      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
+      "QWidget.");
   virtual QWidget *Widget() = 0;
 
 protected:
@@ -359,12 +367,39 @@ struct IStatisticsViewer
 {
   DOCUMENT(
       "Retrieves the QWidget for this :class:`StatisticsViewer` if PySide2 is available, or "
-      "``None``.");
+      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
+      "QWidget.");
   virtual QWidget *Widget() = 0;
 
 protected:
   IStatisticsViewer() = default;
   ~IStatisticsViewer() = default;
+};
+
+DOCUMENT("The timeline bar.");
+struct ITimelineBar
+{
+  DOCUMENT(
+      "Retrieves the QWidget for this :class:`TimelineBar` if PySide2 is available, or otherwise "
+      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
+  virtual QWidget *Widget() = 0;
+
+  DOCUMENT(R"(Highlights the frame usage of the specified resource.
+
+:param ~renderdoc.ResourceId id: The ID of the resource to highlight.
+)");
+  virtual void HighlightResourceUsage(ResourceId id) = 0;
+
+  DOCUMENT(R"(Highlights the modifications in a frame of a given resource.
+
+:param ~renderdoc.ResourceId id: The ID of the resource that is being modified.
+:param list history: A list of :class:`~renderdoc.PixelModification` events to display.
+)");
+  virtual void HighlightHistory(ResourceId id, const QList<PixelModification> &history) = 0;
+
+protected:
+  ITimelineBar() = default;
+  ~ITimelineBar() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IStatisticsViewer);
@@ -373,8 +408,8 @@ DOCUMENT("The interactive python shell.");
 struct IPythonShell
 {
   DOCUMENT(
-      "Retrieves the QWidget for this :class:`PythonShell` if PySide2 is available, or "
-      "``None``.");
+      "Retrieves the QWidget for this :class:`PythonShell` if PySide2 is available, or otherwise "
+      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
   virtual QWidget *Widget() = 0;
 
 protected:
@@ -410,7 +445,8 @@ struct IShaderViewer
   typedef std::function<void(ICaptureContext *ctx)> CloseCallback;
 
   DOCUMENT(
-      "Retrieves the QWidget for this :class:`ShaderViewer` if PySide2 is available, or ``None``.");
+      "Retrieves the QWidget for this :class:`ShaderViewer` if PySide2 is available, or otherwise "
+      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Retrieves the current step in the debugging.
@@ -451,7 +487,8 @@ struct IConstantBufferPreviewer
 {
   DOCUMENT(
       "Retrieves the QWidget for this :class:`ConstantBufferPreviewer` if PySide2 is available, or "
-      "``None``.");
+      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
+      "QWidget.");
   virtual QWidget *Widget() = 0;
 
 protected:
@@ -466,7 +503,8 @@ struct IPixelHistoryView
 {
   DOCUMENT(
       "Retrieves the QWidget for this :class:`PixelHistoryView` if PySide2 is available, or "
-      "``None``.");
+      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
+      "QWidget.");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Set the history displayed in this window.
@@ -1082,6 +1120,13 @@ as well as messages generated during replay and analysis.
 )");
   virtual IStatisticsViewer *GetStatisticsViewer() = 0;
 
+  DOCUMENT(R"(Retrieve the current singleton :class:`TimelineBar`.
+
+:return: The current window, which is created (but not shown) it there wasn't one open.
+:rtype: TimelineBar
+)");
+  virtual ITimelineBar *GetTimelineBar() = 0;
+
   DOCUMENT(R"(Retrieve the current singleton :class:`PythonShell`.
 
 :return: The current window, which is created (but not shown) it there wasn't one open.
@@ -1145,6 +1190,13 @@ as well as messages generated during replay and analysis.
 )");
   virtual bool HasStatisticsViewer() = 0;
 
+  DOCUMENT(R"(Check if there is a current :class:`TimelineBar` open.
+
+:return: ``True`` if there is a window open.
+:rtype: ``bool``
+)");
+  virtual bool HasTimelineBar() = 0;
+
   DOCUMENT(R"(Check if there is a current :class:`PythonShell` open.
 
 :return: ``True`` if there is a window open.
@@ -1170,6 +1222,8 @@ as well as messages generated during replay and analysis.
   DOCUMENT(
       "Raise the current :class:`StatisticsViewer`, showing it in the default place if needed.");
   virtual void ShowStatisticsViewer() = 0;
+  DOCUMENT("Raise the current :class:`TimelineBar`, showing it in the default place if needed.");
+  virtual void ShowTimelineBar() = 0;
   DOCUMENT("Raise the current :class:`PythonShell`, showing it in the default place if needed.");
   virtual void ShowPythonShell() = 0;
 

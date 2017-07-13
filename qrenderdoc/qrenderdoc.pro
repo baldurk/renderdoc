@@ -200,6 +200,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Widgets/Extended/RDTableView.cpp \
     Windows/DebugMessageView.cpp \
     Windows/StatisticsViewer.cpp \
+    Windows/TimelineBar.cpp \
     Windows/Dialogs/SettingsDialog.cpp \
     Windows/Dialogs/OrderedListEditor.cpp \
     Widgets/Extended/RDTableWidget.cpp \
@@ -260,6 +261,7 @@ HEADERS += Code/CaptureContext.h \
     Widgets/Extended/RDTableView.h \
     Windows/DebugMessageView.h \
     Windows/StatisticsViewer.h \
+    Windows/TimelineBar.h \
     Windows/Dialogs/SettingsDialog.h \
     Windows/Dialogs/OrderedListEditor.h \
     Widgets/Extended/RDTableWidget.h \

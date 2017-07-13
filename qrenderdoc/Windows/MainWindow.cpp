@@ -1486,6 +1486,18 @@ void MainWindow::on_action_Statistics_Viewer_triggered()
     ui->toolWindowManager->addToolWindow(stats, mainToolArea());
 }
 
+void MainWindow::on_action_Timeline_triggered()
+{
+  QWidget *stats = m_Ctx.GetTimelineBar()->Widget();
+
+  if(ui->toolWindowManager->toolWindows().contains(stats))
+    ToolWindowManager::raiseToolWindow(stats);
+  else
+    ui->toolWindowManager->addToolWindow(
+        stats,
+        ToolWindowManager::AreaReference(ToolWindowManager::TopWindowSide, mainToolArea().area()));
+}
+
 void MainWindow::on_action_Python_Shell_triggered()
 {
   QWidget *py = m_Ctx.GetPythonShell()->Widget();

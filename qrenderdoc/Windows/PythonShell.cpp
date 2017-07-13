@@ -201,6 +201,10 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return InvokeRetFunction<IStatisticsViewer *>(&ICaptureContext::GetStatisticsViewer);
   }
+  virtual ITimelineBar *GetTimelineBar() override
+  {
+    return InvokeRetFunction<ITimelineBar *>(&ICaptureContext::GetTimelineBar);
+  }
   virtual IPythonShell *GetPythonShell() override
   {
     return InvokeRetFunction<IPythonShell *>(&ICaptureContext::GetPythonShell);
@@ -237,6 +241,10 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return InvokeRetFunction<bool>(&ICaptureContext::HasStatisticsViewer);
   }
+  virtual bool HasTimelineBar() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasTimelineBar);
+  }
   virtual bool HasPythonShell() override
   {
     return InvokeRetFunction<bool>(&ICaptureContext::HasPythonShell);
@@ -271,6 +279,7 @@ struct CaptureContextInvoker : ICaptureContext
   {
     InvokeVoidFunction(&ICaptureContext::ShowStatisticsViewer);
   }
+  virtual void ShowTimelineBar() override { InvokeVoidFunction(&ICaptureContext::ShowTimelineBar); }
   virtual void ShowPythonShell() override { InvokeVoidFunction(&ICaptureContext::ShowPythonShell); }
   virtual IShaderViewer *EditShader(bool customShader, const QString &entryPoint,
                                     const QStringMap &files, IShaderViewer::SaveCallback saveCallback,
