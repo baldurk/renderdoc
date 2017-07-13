@@ -1683,7 +1683,7 @@ void D3D11PipelineStateViewer::setState()
   ui->stencils->setUpdatesEnabled(true);
 
   // set up thread debugging inputs
-  if(state.m_CS.ShaderDetails && (draw->flags & DrawFlags::Dispatch))
+  if(state.m_CS.ShaderDetails && draw && (draw->flags & DrawFlags::Dispatch))
   {
     ui->groupX->setEnabled(true);
     ui->groupY->setEnabled(true);
