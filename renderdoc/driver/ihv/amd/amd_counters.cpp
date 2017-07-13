@@ -219,7 +219,7 @@ vector<AMDCounters::InternalCounterDescription> AMDCounters::EnumerateCounters()
     internalDesc.desc = InternalGetCounterDescription(i);
 
     // We ignore any D3D11 counters, as those are handled elsewhere
-    if(strncmp(internalDesc.desc.description.c_str(), "#D3D11#", 7) == 0)
+    if(strncmp(internalDesc.desc.category.c_str(), "D3D11", 5) == 0)
     {
       continue;
     }
@@ -249,7 +249,35 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
   m_pGPUPerfAPI->getCounterName(internalIndex, &tmp);
   desc.name = tmp;
   m_pGPUPerfAPI->getCounterDescription(internalIndex, &tmp);
-  desc.description = tmp;
+
+  std::vector<char> descCopy;
+  int separator = -1;
+  int sharpFound = 0;
+  const char *c = tmp;
+  while(*c)
+  {
+    if(*c == '#')
+    {
+      ++sharpFound;
+      descCopy.push_back('\0');
+
+      if(sharpFound == 2)
+      {
+        separator = (int32_t)(c - tmp);
+      }
+    }
+    else
+    {
+      descCopy.push_back(*c);
+    }
+
+    ++c;
+  }
+
+  descCopy.push_back('\0');
+
+  desc.category = descCopy.data() + 1;
+  desc.description = descCopy.data() + separator + 1;
 
   GPA_Usage_Type usageType;
 

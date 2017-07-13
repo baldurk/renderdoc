@@ -90,6 +90,8 @@ void D3D11DebugManager::DescribeCounter(GPUCounter counterID, CounterDescription
     }
   }
 
+  desc.category = "D3D11";
+
   switch(counterID)
   {
     case GPUCounter::EventGPUDuration:

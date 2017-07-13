@@ -1593,8 +1593,9 @@ void Serialiser::Serialise(const char *name, CounterDescription &el)
   Serialise("", el.resultType);
   Serialise("", el.resultByteWidth);
   Serialise("", el.unit);
+  Serialise("", el.category);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(72);
 }
 
 template <>
