@@ -1159,6 +1159,7 @@
   HookExtension(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glPrimitiveBoundingBox); \
   HookExtensionAlias(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glPrimitiveBoundingBox, glPrimitiveBoundingBoxEXT); \
   HookExtensionAlias(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glPrimitiveBoundingBox, glPrimitiveBoundingBoxOES); \
+  HookExtension(PFNGLDISCARDFRAMEBUFFEREXTPROC, glDiscardFramebufferEXT); \
   HookExtension(PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC, glFramebufferTexture2DMultisampleEXT); \
   HookExtension(PFNWGLDXSETRESOURCESHAREHANDLENVPROC, wglDXSetResourceShareHandleNV); \
   HookExtension(PFNWGLDXOPENDEVICENVPROC, wglDXOpenDeviceNV); \
@@ -2013,6 +2014,7 @@
     HookWrapper0(void, glFrameTerminatorGREMEDY); \
     HookWrapper2(void, glStringMarkerGREMEDY, GLsizei, len, const void *, string); \
     HookWrapper8(void, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
+    HookWrapper3(void, glDiscardFramebufferEXT, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
     HookWrapper6(void, glFramebufferTexture2DMultisampleEXT, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \
     HookWrapper2(BOOL, wglDXSetResourceShareHandleNV, void *, dxObject, HANDLE, shareHandle); \
     HookWrapper1(HANDLE, wglDXOpenDeviceNV, void *, dxDevice); \
@@ -3612,7 +3614,6 @@
     HookWrapper4(void, glbufferstorageext, GLenum, target, GLsizeiptr, size, const void *, data, GLbitfield, flags); \
     HookWrapper5(void, glclearteximageext, GLuint, texture, GLint, level, GLenum, format, GLenum, type, const void *, data); \
     HookWrapper11(void, glcleartexsubimageext, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, data); \
-    HookWrapper3(void, gldiscardframebufferext, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
     HookWrapper2(void, gldrawtransformfeedbackext, GLenum, mode, GLuint, id); \
     HookWrapper3(void, gldrawtransformfeedbackinstancedext, GLenum, mode, GLuint, id, GLsizei, instancecount); \
     HookWrapper2(void, glvertexattribdivisorext, GLuint, index, GLuint, divisor); \
@@ -5578,7 +5579,6 @@
     HandleUnsupported(PFNGLBUFFERSTORAGEEXTPROC, glbufferstorageext); \
     HandleUnsupported(PFNGLCLEARTEXIMAGEEXTPROC, glclearteximageext); \
     HandleUnsupported(PFNGLCLEARTEXSUBIMAGEEXTPROC, glcleartexsubimageext); \
-    HandleUnsupported(PFNGLDISCARDFRAMEBUFFEREXTPROC, gldiscardframebufferext); \
     HandleUnsupported(PFNGLDRAWTRANSFORMFEEDBACKEXTPROC, gldrawtransformfeedbackext); \
     HandleUnsupported(PFNGLDRAWTRANSFORMFEEDBACKINSTANCEDEXTPROC, gldrawtransformfeedbackinstancedext); \
     HandleUnsupported(PFNGLVERTEXATTRIBDIVISOREXTPROC, glvertexattribdivisorext); \

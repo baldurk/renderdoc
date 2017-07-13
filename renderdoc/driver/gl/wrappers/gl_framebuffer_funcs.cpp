@@ -1473,6 +1473,35 @@ void WrappedOpenGL::glInvalidateFramebuffer(GLenum target, GLsizei numAttachment
   }
 }
 
+// note: glDiscardFramebufferEXT looks the same as glInvalidateFramebuffer. Could this be a plain
+// alias?
+void WrappedOpenGL::glDiscardFramebufferEXT(GLenum target, GLsizei numAttachments,
+                                            const GLenum *attachments)
+{
+  m_Real.glDiscardFramebufferEXT(target, numAttachments, attachments);
+
+  if(m_State == WRITING_IDLE)
+  {
+    GLResourceRecord *record = NULL;
+
+    if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
+    {
+      if(GetCtxData().m_DrawFramebufferRecord)
+        record = GetCtxData().m_DrawFramebufferRecord;
+    }
+    else
+    {
+      if(GetCtxData().m_ReadFramebufferRecord)
+        record = GetCtxData().m_ReadFramebufferRecord;
+    }
+
+    if(record)
+    {
+      record->MarkParentsDirty(GetResourceManager());
+    }
+  }
+}
+
 void WrappedOpenGL::glInvalidateNamedFramebufferData(GLuint framebuffer, GLsizei numAttachments,
                                                      const GLenum *attachments)
 {
