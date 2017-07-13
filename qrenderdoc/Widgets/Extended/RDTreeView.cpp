@@ -36,10 +36,30 @@ RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : QStyledItemDelegate(v
 
 QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-  QSize ret = QStyledItemDelegate::sizeHint(option, index);
+  QSize ret;
+
+  QVariant var = index.data(Qt::SizeHintRole);
+  if(var.canConvert<QSize>())
+  {
+    ret = var.value<QSize>();
+  }
+  else
+  {
+    QStyleOptionViewItem opt = option;
+    initStyleOption(&opt, index);
+
+    if(m_View->ignoreIconSize())
+    {
+      opt.icon = QIcon();
+      opt.features &= ~QStyleOptionViewItem::HasDecoration;
+      opt.decorationSize = QSize();
+    }
+
+    ret = m_View->style()->sizeFromContents(QStyle::CT_ItemViewItem, &opt, QSize(), m_View);
+  }
 
   // expand a pixel for the grid lines
-  if(m_View->m_VisibleGridLines)
+  if(m_View->visibleGridLines())
   {
     ret.setWidth(ret.width() + 1);
     ret.setHeight(ret.height() + 1);
@@ -47,7 +67,7 @@ QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QMo
 
   // ensure we have at least the margin on top of font size. If the style applied more, don't add to
   // it.
-  ret.setHeight(qMax(ret.height(), option.fontMetrics.height() + m_View->m_VertMargin));
+  ret.setHeight(qMax(ret.height(), option.fontMetrics.height() + m_View->verticalItemMargin()));
 
   return ret;
 }

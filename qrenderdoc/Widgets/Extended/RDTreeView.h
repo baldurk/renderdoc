@@ -69,10 +69,13 @@ public:
   void hideBranches() { m_VisibleBranches = false; }
   void showGridLines() { m_VisibleGridLines = true; }
   void hideGridLines() { m_VisibleGridLines = false; }
+  bool visibleGridLines() { return m_VisibleGridLines; }
   void setTooltipElidedItems(bool tool) { m_TooltipElidedItems = tool; }
   bool tooltipElidedItems() { return m_TooltipElidedItems; }
   void setItemVerticalMargin(int vertical) { m_VertMargin = vertical; }
   int verticalItemMargin() { return m_VertMargin; }
+  void setIgnoreIconSize(bool ignore) { m_IgnoreIconSize = ignore; }
+  bool ignoreIconSize() { return m_IgnoreIconSize; }
 protected:
   void rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end) override;
   void mouseMoveEvent(QMouseEvent *e) override;
@@ -95,8 +98,7 @@ private:
   RDTipLabel *m_ElidedTooltip;
 
   int m_VertMargin = 6;
+  bool m_IgnoreIconSize = false;
 
   bool m_fillBranchRect = true;
-
-  friend class RDTreeViewDelegate;
 };
