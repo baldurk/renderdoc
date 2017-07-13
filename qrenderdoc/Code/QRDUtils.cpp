@@ -724,8 +724,9 @@ protected:
 
 #if defined(Q_OS_WIN32)
 
-#include <shellapi.h>
 #include <windows.h>
+
+#include <shellapi.h>
 
 typedef LSTATUS(APIENTRY *PFN_RegCreateKeyExA)(HKEY hKey, LPCSTR lpSubKey, DWORD Reserved,
                                                LPSTR lpClass, DWORD dwOptions, REGSAM samDesired,
