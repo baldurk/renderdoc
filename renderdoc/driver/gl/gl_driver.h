@@ -1056,6 +1056,9 @@ public:
                                                         GLint yoffset, GLint zoffset, GLsizei width,
                                                         GLsizei height, GLsizei depth));
 
+  IMPLEMENT_FUNCTION_SERIALISED(void, glDiscardFramebufferEXT(GLenum target, GLsizei numAttachments,
+                                                              const GLenum *attachments));
+
   enum AttribType
   {
     Attrib_GLdouble = 0x01,

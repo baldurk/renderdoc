@@ -736,6 +736,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_EXT_copy_image");
   m_GLESExtensions.push_back("GL_EXT_debug_label");
   m_GLESExtensions.push_back("GL_EXT_debug_marker");
+  m_GLESExtensions.push_back("GL_EXT_discard_framebuffer");
   m_GLESExtensions.push_back("GL_EXT_disjoint_timer_query");
   m_GLESExtensions.push_back("GL_EXT_draw_buffers");
   m_GLESExtensions.push_back("GL_EXT_draw_buffers_indexed");
