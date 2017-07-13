@@ -113,24 +113,24 @@ struct GLHookSet
   PFNGLTEXSTORAGE3DPROC glTexStorage3D;
   PFNGLTEXSTORAGE2DMULTISAMPLEPROC glTexStorage2DMultisample;
   PFNGLTEXSTORAGE3DMULTISAMPLEPROC glTexStorage3DMultisample;    // aliases glTexStorage3DMultisampleOES
-  PFNGLTEXIMAGE3DPROC glTexImage3D;    // aliases glTexImage3DEXT
-  PFNGLTEXSUBIMAGE3DPROC glTexSubImage3D;
+  PFNGLTEXIMAGE3DPROC glTexImage3D;    // aliases glTexImage3DEXT, glTexImage3DOES
+  PFNGLTEXSUBIMAGE3DPROC glTexSubImage3D;    // aliases glTexSubImage3DOES
   PFNGLTEXBUFFERPROC glTexBuffer;    // aliases glTexBufferARB, glTexBufferEXT, glTexBufferOES
   PFNGLTEXIMAGE2DMULTISAMPLEPROC glTexImage2DMultisample;
   PFNGLTEXIMAGE3DMULTISAMPLEPROC glTexImage3DMultisample;
   PFNGLCOMPRESSEDTEXIMAGE1DPROC glCompressedTexImage1D;    // aliases glCompressedTexImage1DARB
   PFNGLCOMPRESSEDTEXIMAGE2DPROC glCompressedTexImage2D;    // aliases glCompressedTexImage2DARB
-  PFNGLCOMPRESSEDTEXIMAGE3DPROC glCompressedTexImage3D;    // aliases glCompressedTexImage3DARB
+  PFNGLCOMPRESSEDTEXIMAGE3DPROC glCompressedTexImage3D;    // aliases glCompressedTexImage3DARB, glCompressedTexImage3DOES
   PFNGLCOMPRESSEDTEXSUBIMAGE1DPROC glCompressedTexSubImage1D;    // aliases glCompressedTexSubImage1DARB
   PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC glCompressedTexSubImage2D;    // aliases glCompressedTexSubImage2DARB
-  PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC glCompressedTexSubImage3D;    // aliases glCompressedTexSubImage3DARB
+  PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC glCompressedTexSubImage3D;    // aliases glCompressedTexSubImage3DARB, glCompressedTexSubImage3DOES
   PFNGLTEXBUFFERRANGEPROC glTexBufferRange;        // aliases glTexBufferRangeEXT, glTexBufferRangeOES
   PFNGLTEXTUREVIEWPROC glTextureView;
   PFNGLTEXPARAMETERIIVPROC glTexParameterIiv;      // aliases glTexParameterIivEXT, glTexParameterIivOES
   PFNGLTEXPARAMETERIUIVPROC glTexParameterIuiv;    // aliases glTexParameterIuivEXT, glTexParameterIuivOES
   PFNGLGENERATEMIPMAPPROC glGenerateMipmap;        // aliases glGenerateMipmapEXT
   PFNGLCOPYIMAGESUBDATAPROC glCopyImageSubData;    // aliases glCopyImageSubDataEXT, glCopyImageSubDataOES
-  PFNGLCOPYTEXSUBIMAGE3DPROC glCopyTexSubImage3D;
+  PFNGLCOPYTEXSUBIMAGE3DPROC glCopyTexSubImage3D;    // aliases glCopyTexSubImage3DOES
   PFNGLGETINTERNALFORMATIVPROC glGetInternalformativ;
   PFNGLGETINTERNALFORMATI64VPROC glGetInternalformati64v;
   PFNGLGETBUFFERPARAMETERIVPROC glGetBufferParameteriv;    // aliases glGetBufferParameterivARB
@@ -298,7 +298,7 @@ struct GLHookSet
   PFNGLFRAMEBUFFERTEXTUREPROC glFramebufferTexture;        // aliases glFramebufferTextureARB, glFramebufferTextureOES, glFramebufferTextureEXT
   PFNGLFRAMEBUFFERTEXTURE1DPROC glFramebufferTexture1D;    // aliases glFramebufferTexture1DEXT
   PFNGLFRAMEBUFFERTEXTURE2DPROC glFramebufferTexture2D;    // aliases glFramebufferTexture2DEXT
-  PFNGLFRAMEBUFFERTEXTURE3DPROC glFramebufferTexture3D;    // aliases glFramebufferTexture3DEXT
+  PFNGLFRAMEBUFFERTEXTURE3DPROC glFramebufferTexture3D;    // aliases glFramebufferTexture3DEXT, glFramebufferTexture3DOES
   PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;    // aliases glFramebufferRenderbufferEXT
   PFNGLFRAMEBUFFERTEXTURELAYERPROC glFramebufferTextureLayer;    // aliases glFramebufferTextureLayerARB, glFramebufferTextureLayerEXT
   PFNGLFRAMEBUFFERPARAMETERIPROC glFramebufferParameteri;

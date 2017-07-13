@@ -729,6 +729,7 @@ void WrappedOpenGL::BuildGLESExtensions()
 {
   m_GLESExtensions.push_back("GL_ARM_rgba8");
   m_GLESExtensions.push_back("GL_EXT_base_instance");
+  m_GLESExtensions.push_back("GL_EXT_blend_minmax");
   m_GLESExtensions.push_back("GL_EXT_clip_cull_distance");
   m_GLESExtensions.push_back("GL_EXT_color_buffer_float");
   m_GLESExtensions.push_back("GL_EXT_color_buffer_half_float");
@@ -736,10 +737,9 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_EXT_debug_label");
   m_GLESExtensions.push_back("GL_EXT_debug_marker");
   m_GLESExtensions.push_back("GL_EXT_disjoint_timer_query");
-  m_GLESExtensions.push_back("GL_EXT_blend_minmax");
   m_GLESExtensions.push_back("GL_EXT_draw_buffers");
-  m_GLESExtensions.push_back("GL_EXT_draw_elements_base_vertex");
   m_GLESExtensions.push_back("GL_EXT_draw_buffers_indexed");
+  m_GLESExtensions.push_back("GL_EXT_draw_elements_base_vertex");
   m_GLESExtensions.push_back("GL_EXT_geometry_point_size");
   m_GLESExtensions.push_back("GL_EXT_geometry_shader");
   m_GLESExtensions.push_back("GL_EXT_gpu_shader5");
@@ -786,15 +786,22 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_sliced_3d");
   m_GLESExtensions.push_back("GL_OES_compressed_ETC1_RGB8_texture");
   m_GLESExtensions.push_back("GL_OES_copy_image");
+  m_GLESExtensions.push_back("GL_OES_depth24");
+  m_GLESExtensions.push_back("GL_OES_depth32");
+  m_GLESExtensions.push_back("GL_OES_depth_texture");
+  m_GLESExtensions.push_back("GL_OES_depth_texture_cube_map");
   m_GLESExtensions.push_back("GL_OES_draw_elements_base_vertex");
+  m_GLESExtensions.push_back("GL_OES_fbo_render_mipmap");
   m_GLESExtensions.push_back("GL_OES_geometry_shader");
   m_GLESExtensions.push_back("GL_OES_gpu_shader5");
   m_GLESExtensions.push_back("GL_OES_mapbuffer");
+  m_GLESExtensions.push_back("GL_OES_packed_depth_stencil");
   m_GLESExtensions.push_back("GL_OES_primitive_bounding_box");
   m_GLESExtensions.push_back("GL_OES_rgb8_rgba8");
   m_GLESExtensions.push_back("GL_OES_sample_shading");
   m_GLESExtensions.push_back("GL_OES_standard_derivatives");
   m_GLESExtensions.push_back("GL_OES_tessellation_shader");
+  m_GLESExtensions.push_back("GL_OES_texture_3D");
   m_GLESExtensions.push_back("GL_OES_texture_border_clamp");
   m_GLESExtensions.push_back("GL_OES_texture_buffer");
   m_GLESExtensions.push_back("GL_OES_texture_compression_astc");
@@ -802,9 +809,11 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_texture_float_linear");
   m_GLESExtensions.push_back("GL_OES_texture_half_float");
   m_GLESExtensions.push_back("GL_OES_texture_half_float_linear");
+  m_GLESExtensions.push_back("GL_OES_texture_npot");
   m_GLESExtensions.push_back("GL_OES_texture_stencil8");
   m_GLESExtensions.push_back("GL_OES_texture_storage_multisample_2d_array");
   m_GLESExtensions.push_back("GL_OES_vertex_array_object");
+  m_GLESExtensions.push_back("GL_OES_vertex_half_float");
 
   // we'll be sorting the implementation extension array, so make sure the
   // sorts are identical so we can do the intersection easily

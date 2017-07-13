@@ -106,20 +106,25 @@
   HookExtensionAlias(PFNGLDRAWRANGEELEMENTSPROC, glDrawRangeElements, glDrawRangeElementsEXT); \
   HookExtension(PFNGLTEXIMAGE3DPROC, glTexImage3D); \
   HookExtensionAlias(PFNGLTEXIMAGE3DPROC, glTexImage3D, glTexImage3DEXT); \
+  HookExtensionAlias(PFNGLTEXIMAGE3DPROC, glTexImage3D, glTexImage3DOES); \
   HookExtension(PFNGLTEXSUBIMAGE3DPROC, glTexSubImage3D); \
+  HookExtensionAlias(PFNGLTEXSUBIMAGE3DPROC, glTexSubImage3D, glTexSubImage3DOES); \
   HookExtension(PFNGLCOPYTEXSUBIMAGE3DPROC, glCopyTexSubImage3D); \
+  HookExtensionAlias(PFNGLCOPYTEXSUBIMAGE3DPROC, glCopyTexSubImage3D, glCopyTexSubImage3DOES); \
   HookExtension(PFNGLACTIVETEXTUREPROC, glActiveTexture); \
   HookExtensionAlias(PFNGLACTIVETEXTUREPROC, glActiveTexture, glActiveTextureARB); \
   HookExtension(PFNGLSAMPLECOVERAGEPROC, glSampleCoverage); \
   HookExtensionAlias(PFNGLSAMPLECOVERAGEPROC, glSampleCoverage, glSampleCoverageARB); \
   HookExtension(PFNGLCOMPRESSEDTEXIMAGE3DPROC, glCompressedTexImage3D); \
   HookExtensionAlias(PFNGLCOMPRESSEDTEXIMAGE3DPROC, glCompressedTexImage3D, glCompressedTexImage3DARB); \
+  HookExtensionAlias(PFNGLCOMPRESSEDTEXIMAGE3DPROC, glCompressedTexImage3D, glCompressedTexImage3DOES); \
   HookExtension(PFNGLCOMPRESSEDTEXIMAGE2DPROC, glCompressedTexImage2D); \
   HookExtensionAlias(PFNGLCOMPRESSEDTEXIMAGE2DPROC, glCompressedTexImage2D, glCompressedTexImage2DARB); \
   HookExtension(PFNGLCOMPRESSEDTEXIMAGE1DPROC, glCompressedTexImage1D); \
   HookExtensionAlias(PFNGLCOMPRESSEDTEXIMAGE1DPROC, glCompressedTexImage1D, glCompressedTexImage1DARB); \
   HookExtension(PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC, glCompressedTexSubImage3D); \
   HookExtensionAlias(PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC, glCompressedTexSubImage3D, glCompressedTexSubImage3DARB); \
+  HookExtensionAlias(PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC, glCompressedTexSubImage3D, glCompressedTexSubImage3DOES); \
   HookExtension(PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC, glCompressedTexSubImage2D); \
   HookExtensionAlias(PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC, glCompressedTexSubImage2D, glCompressedTexSubImage2DARB); \
   HookExtension(PFNGLCOMPRESSEDTEXSUBIMAGE1DPROC, glCompressedTexSubImage1D); \
@@ -476,6 +481,7 @@
   HookExtensionAlias(PFNGLFRAMEBUFFERTEXTURE2DPROC, glFramebufferTexture2D, glFramebufferTexture2DEXT); \
   HookExtension(PFNGLFRAMEBUFFERTEXTURE3DPROC, glFramebufferTexture3D); \
   HookExtensionAlias(PFNGLFRAMEBUFFERTEXTURE3DPROC, glFramebufferTexture3D, glFramebufferTexture3DEXT); \
+  HookExtensionAlias(PFNGLFRAMEBUFFERTEXTURE3DPROC, glFramebufferTexture3D, glFramebufferTexture3DOES); \
   HookExtension(PFNGLFRAMEBUFFERRENDERBUFFERPROC, glFramebufferRenderbuffer); \
   HookExtensionAlias(PFNGLFRAMEBUFFERRENDERBUFFERPROC, glFramebufferRenderbuffer, glFramebufferRenderbufferEXT); \
   HookExtension(PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC, glGetFramebufferAttachmentParameteriv); \
@@ -3574,12 +3580,6 @@
     HookWrapper6(void, gldrawelementsinstancedbasevertexoes, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex); \
     HookWrapper5(void, glgetprogrambinaryoes, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLenum *, binaryFormat, void *, binary); \
     HookWrapper4(void, glprogrambinaryoes, GLuint, program, GLenum, binaryFormat, const void *, binary, GLint, length); \
-    HookWrapper10(void, glteximage3does, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
-    HookWrapper11(void, gltexsubimage3does, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, pixels); \
-    HookWrapper9(void, glcopytexsubimage3does, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
-    HookWrapper9(void, glcompressedteximage3does, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLsizei, imageSize, const void *, data); \
-    HookWrapper11(void, glcompressedtexsubimage3does, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLsizei, imageSize, const void *, data); \
-    HookWrapper6(void, glframebuffertexture3does, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLint, zoffset); \
     HookWrapper8(void, gltextureviewoes, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
     HookWrapper3(void, glviewportarrayvoes, GLuint, first, GLsizei, count, const GLfloat *, v); \
     HookWrapper5(void, glviewportindexedfoes, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, w, GLfloat, h); \
@@ -5546,12 +5546,6 @@
     HandleUnsupported(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXOESPROC, gldrawelementsinstancedbasevertexoes); \
     HandleUnsupported(PFNGLGETPROGRAMBINARYOESPROC, glgetprogrambinaryoes); \
     HandleUnsupported(PFNGLPROGRAMBINARYOESPROC, glprogrambinaryoes); \
-    HandleUnsupported(PFNGLTEXIMAGE3DOESPROC, glteximage3does); \
-    HandleUnsupported(PFNGLTEXSUBIMAGE3DOESPROC, gltexsubimage3does); \
-    HandleUnsupported(PFNGLCOPYTEXSUBIMAGE3DOESPROC, glcopytexsubimage3does); \
-    HandleUnsupported(PFNGLCOMPRESSEDTEXIMAGE3DOESPROC, glcompressedteximage3does); \
-    HandleUnsupported(PFNGLCOMPRESSEDTEXSUBIMAGE3DOESPROC, glcompressedtexsubimage3does); \
-    HandleUnsupported(PFNGLFRAMEBUFFERTEXTURE3DOESPROC, glframebuffertexture3does); \
     HandleUnsupported(PFNGLTEXTUREVIEWOESPROC, gltextureviewoes); \
     HandleUnsupported(PFNGLVIEWPORTARRAYVOESPROC, glviewportarrayvoes); \
     HandleUnsupported(PFNGLVIEWPORTINDEXEDFOESPROC, glviewportindexedfoes); \
