@@ -892,6 +892,9 @@ struct CounterDescription
   DOCUMENT("A short human-readable name for the counter.");
   rdctype::str name;
 
+  DOCUMENT("The counter category. Can be empty for uncategorized counters.");
+  rdctype::str category;
+
   DOCUMENT("If available, a longer human-readable description of the value this counter measures.");
   rdctype::str description;
 

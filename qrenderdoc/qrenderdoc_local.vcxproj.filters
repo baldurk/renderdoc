@@ -651,6 +651,9 @@
     <ClCompile Include="Styles\StyleData.cpp">
       <Filter>Styles</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\Dialogs\PerformanceCounterSelection.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -965,6 +968,9 @@
     <ClInclude Include="Styles\StyleData.h">
       <Filter>Styles</Filter>
     </ClInclude>
+    <ClInclude Include="Windows\Dialogs\PerformanceCounterSelection.h">
+      <Filter>Windows\Dialogs</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\128.png">
@@ -1146,6 +1152,9 @@
     </None>
     <None Include="Code\pyrenderdoc\pyconversion.i">
       <Filter>Code\pyrenderdoc</Filter>
+    </None>
+    <None Include="Windows\Dialogs\PerformanceCounterSelection.ui">
+      <Filter>Windows\Dialogs</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

@@ -41,6 +41,7 @@
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
+#include "Windows/Dialogs/PerformanceCounterSelection.h"
 #include "Windows/Dialogs/RemoteManager.h"
 #include "Windows/Dialogs/SettingsDialog.h"
 #include "Windows/Dialogs/SuggestRemoteDialog.h"
@@ -1643,6 +1644,12 @@ void MainWindow::on_actionShow_Tips_triggered()
 {
   TipsDialog tipsDialog(m_Ctx, this);
   RDDialog::show(&tipsDialog);
+}
+
+void MainWindow::on_action_Counter_selection_triggered()
+{
+  PerformanceCounterSelection pcs(m_Ctx, this);
+  RDDialog::show(&pcs);
 }
 
 void MainWindow::saveLayout_triggered()
