@@ -59,19 +59,37 @@ protected:
 private:
   ICaptureContext &m_Ctx;
 
-  QVector<uint32_t> m_Events;
+  struct Marker
+  {
+    uint32_t eidStart = 0, eidEnd = 0;
+
+    QString name;
+    QColor color;
+    bool expanded = false;
+
+    QVector<Marker> children;
+    QVector<uint32_t> draws;
+  };
+
+  QVector<Marker> m_RootMarkers;
+  QVector<uint32_t> m_RootDraws;
+  QVector<uint32_t> m_Draws;
 
   const qreal margin = 2.0;
   const qreal borderWidth = 1.0;
   const QString eidAxisTitle = lit("EID:");
   const int eidAxisHeight = 18;
 
-  qreal m_leftCoord = 0;
-  qreal m_totalSize = 0;
-
   int m_eidAxisLabelStep = 0;
   qreal m_eidAxisLabelTextWidth = 0;
   qreal m_eidAxisLabelWidth = 0;
+  qreal m_eidWidth = 0;
+
+  QRectF m_area;
+  QRectF m_dataArea;
+  QRectF m_eidAxisRect;
+  QRectF m_markerRect;
+  qreal m_titleWidth = 0;
 
   qreal m_zoom = 1.0;
   qreal m_pan = 0.0;
@@ -81,5 +99,9 @@ private:
 
   uint32_t eventAt(qreal x);
   qreal offsetOf(uint32_t eid);
-  void addEvents(const rdctype::array<DrawcallDescription> &curDraws);
+  uint32_t processDraws(QVector<Marker> &markers, QVector<uint32_t> &draws,
+                        const rdctype::array<DrawcallDescription> &curDraws);
+  void paintMarkers(QPainter &p, const QVector<Marker> &markers, const QVector<uint32_t> &draws,
+                    QRectF markerRect);
+  Marker *findMarker(QVector<Marker> &markers, QRectF markerRect, QPointF pos);
 };
