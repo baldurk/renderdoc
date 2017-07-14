@@ -29,6 +29,13 @@
 #include <QWheelEvent>
 #include "Code/Resources.h"
 
+QPointF aliasAlign(QPointF pt)
+{
+  pt.setX(int(pt.x()) + 0.5);
+  pt.setY(int(pt.y()) + 0.5);
+  return pt;
+}
+
 QMarginsF uniformMargins(qreal m)
 {
   return QMarginsF(m, m, m, m);
@@ -66,10 +73,53 @@ TimelineBar::~TimelineBar()
 
 void TimelineBar::HighlightResourceUsage(ResourceId id)
 {
+  m_UsageEvents.clear();
+
+  TextureDescription *tex = m_Ctx.GetTexture(id);
+
+  if(tex)
+    m_UsageTarget = ToQStr(tex->name);
+
+  BufferDescription *buf = m_Ctx.GetBuffer(id);
+
+  if(buf)
+    m_UsageTarget = ToQStr(buf->name);
+
+  m_Ctx.Replay().AsyncInvoke([this, id](IReplayController *r) {
+    rdctype::array<EventUsage> usage = r->GetUsage(id);
+
+    GUIInvoke::call([this, usage]() {
+      for(const EventUsage &u : usage)
+        m_UsageEvents << u;
+      viewport()->update();
+    });
+  });
+
+  viewport()->update();
 }
 
 void TimelineBar::HighlightHistory(ResourceId id, const QList<PixelModification> &history)
 {
+  m_HistoryTarget = QString();
+  m_HistoryEvents.clear();
+
+  if(id != ResourceId())
+  {
+    TextureDescription *tex = m_Ctx.GetTexture(id);
+
+    if(tex)
+      m_HistoryTarget = ToQStr(tex->name);
+
+    BufferDescription *buf = m_Ctx.GetBuffer(id);
+
+    if(buf)
+      m_HistoryTarget = ToQStr(buf->name);
+
+    for(const PixelModification &mod : history)
+      m_HistoryEvents << mod;
+  }
+
+  viewport()->update();
 }
 
 void TimelineBar::OnLogfileClosed()
@@ -103,7 +153,9 @@ void TimelineBar::OnEventChanged(uint32_t eventID)
 
 QSize TimelineBar::minimumSizeHint() const
 {
-  return QSize(margin * 4 + borderWidth * 2 + 100, margin * 4 + borderWidth * 2 + 40);
+  return QSize(margin * 4 + borderWidth * 2 + 100,
+               margin * 4 + borderWidth * 2 + m_eidAxisRect.height() * 2 +
+                   m_highlightingRect.height() + horizontalScrollBar()->sizeHint().height());
 }
 
 void TimelineBar::resizeEvent(QResizeEvent *e)
@@ -124,10 +176,16 @@ void TimelineBar::layout()
   m_dataArea.setLeft(m_dataArea.left() + m_titleWidth);
 
   m_eidAxisRect = m_dataArea.marginsRemoved(uniformMargins(margin));
-  m_eidAxisRect.setHeight(qBound(fm.height(), eidAxisHeight, (int)m_eidAxisRect.height()));
+  m_eidAxisRect.setHeight(qMax(fm.height(), dataBarHeight));
 
   m_markerRect = m_dataArea.marginsRemoved(uniformMargins(margin));
   m_markerRect.setTop(m_eidAxisRect.bottom() + margin);
+
+  m_highlightingRect = m_area;
+  m_highlightingRect.setHeight(qMax(fm.height(), dataBarHeight) + highlightingExtra);
+  m_highlightingRect.moveTop(m_markerRect.bottom() - m_highlightingRect.height());
+
+  m_markerRect.setBottom(m_highlightingRect.top());
 
   uint32_t maxEID = m_Draws.isEmpty() ? 0 : m_Draws.back();
 
@@ -186,7 +244,48 @@ void TimelineBar::mousePressEvent(QMouseEvent *e)
     if(marker)
     {
       marker->expanded = !marker->expanded;
+      m_lastPos = QPointF();
       viewport()->update();
+      return;
+    }
+
+    if(m_highlightingRect.contains(m_lastPos))
+    {
+      uint32_t eid = eventAt(x);
+
+      m_lastPos = QPointF();
+
+      // history events get first crack at any selection, if they exist
+      if(!m_HistoryEvents.isEmpty())
+      {
+        auto it = std::find_if(m_HistoryEvents.begin(), m_HistoryEvents.end(),
+                               [this, eid](const PixelModification &mod) {
+                                 if(mod.eventID == eid)
+                                   return true;
+
+                                 return false;
+                               });
+
+        if(it != m_HistoryEvents.end())
+          m_Ctx.SetEventID({}, eid, eid);
+
+        return;
+      }
+
+      if(!m_UsageEvents.isEmpty())
+      {
+        auto it = std::find_if(m_UsageEvents.begin(), m_UsageEvents.end(),
+                               [this, eid](const EventUsage &use) {
+                                 if(use.eventID == eid)
+                                   return true;
+
+                                 return false;
+                               });
+
+        if(it != m_UsageEvents.end())
+          m_Ctx.SetEventID({}, eid, eid);
+      }
+
       return;
     }
 
@@ -214,7 +313,7 @@ void TimelineBar::mouseReleaseEvent(QMouseEvent *e)
 
 void TimelineBar::mouseMoveEvent(QMouseEvent *e)
 {
-  if(e->buttons() == Qt::LeftButton)
+  if(e->buttons() == Qt::LeftButton && m_lastPos != QPointF())
   {
     qreal x = e->localPos().x();
 
@@ -325,6 +424,8 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
   p.drawLine(eidAxisRect.bottomLeft(), eidAxisRect.bottomRight() + QPointF(margin, 0));
 
+  p.drawLine(m_highlightingRect.topLeft(), m_highlightingRect.topRight());
+
   if(m_Draws.isEmpty())
     return;
 
@@ -429,7 +530,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
     currentRect.setLeft(offsetOf(curEID));
     currentRect.setWidth(
-        qMax(m_eidAxisLabelWidth, m_eidAxisLabelTextWidth + eidAxisHeight + margin * 2));
+        qMax(m_eidAxisLabelWidth, m_eidAxisLabelTextWidth + dataBarHeight + margin * 2));
 
     // recentre
     currentRect.moveLeft(currentRect.left() - currentRect.width() / 2 + m_eidWidth / 2);
@@ -454,7 +555,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
     p.drawPixmap(currentRect.topLeft() + QPointF(margin, 1), px, px.rect());
 
     // move to where the text should be and draw it
-    currentRect.setLeft(currentRect.left() + margin * 2 + eidAxisHeight);
+    currentRect.setLeft(currentRect.left() + margin * 2 + dataBarHeight);
     p.drawText(currentRect, QString::number(curEID), to);
 
     // draw a line from the bottom of the shadow downwards
@@ -466,6 +567,204 @@ void TimelineBar::paintEvent(QPaintEvent *e)
     currentBottom.setY(m_markerRect.bottom());
 
     p.drawLine(currentTop, currentBottom);
+  }
+
+  to.setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+  if(!m_UsageTarget.isEmpty() || !m_HistoryTarget.isEmpty())
+  {
+    p.setRenderHint(QPainter::Antialiasing);
+
+    QRectF highlightLabel = m_highlightingRect.marginsRemoved(uniformMargins(margin));
+
+    highlightLabel.setX(highlightLabel.x() + margin);
+
+    QString text;
+
+    if(!m_HistoryTarget.isEmpty())
+      text = tr("Pixel history for %1").arg(m_HistoryTarget);
+    else
+      text = tr("Usage for %1:").arg(m_UsageTarget);
+
+    p.drawText(highlightLabel, text, to);
+
+    const int triRadius = fm.averageCharWidth();
+    const int triHeight = fm.ascent();
+
+    QPainterPath triangle;
+    triangle.addPolygon(
+        QPolygonF({QPoint(0, triHeight), QPoint(triRadius * 2, triHeight), QPoint(triRadius, 0)}));
+    triangle.closeSubpath();
+
+    enum
+    {
+      ReadUsage,
+      WriteUsage,
+      ReadWriteUsage,
+      ClearUsage,
+      BarrierUsage,
+
+      HistoryPassed,
+      HistoryFailed,
+
+      UsageCount,
+    };
+
+    const QColor colors[UsageCount] = {
+        // read
+        QColor(Qt::red),
+        // write
+        QColor(Qt::green),
+        // read/write
+        QColor(Qt::yellow),
+        // clear
+        QColor(Qt::blue),
+        // barrier
+        QColor(Qt::magenta),
+
+        // pass
+        QColor(Qt::green),
+        // fail
+        QColor(Qt::red),
+    };
+
+    // draw the key
+    if(m_HistoryTarget.isEmpty())
+    {
+      // advance past the first text to draw the key
+      highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
+
+      text = lit(" Reads, ");
+      p.drawText(highlightLabel, text, to);
+      highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
+
+      QPainterPath path = triangle.translated(aliasAlign(highlightLabel.topLeft()));
+      p.fillPath(path, colors[ReadUsage]);
+      p.drawPath(path);
+      highlightLabel.setLeft(highlightLabel.left() + triRadius * 2);
+
+      text = lit(" Writes, ");
+      p.drawText(highlightLabel, text, to);
+      highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
+
+      path = triangle.translated(aliasAlign(highlightLabel.topLeft()));
+      p.fillPath(path, colors[WriteUsage]);
+      p.drawPath(path);
+      highlightLabel.setLeft(highlightLabel.left() + triRadius * 2);
+
+      text = lit(" Read/Write, ");
+      p.drawText(highlightLabel, text, to);
+      highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
+
+      path = triangle.translated(aliasAlign(highlightLabel.topLeft()));
+      p.fillPath(path, colors[ReadWriteUsage]);
+      p.drawPath(path);
+      highlightLabel.setLeft(highlightLabel.left() + triRadius * 2);
+
+      if(m_Ctx.CurPipelineState().SupportsBarriers())
+      {
+        text = lit(" Barriers, ");
+        p.drawText(highlightLabel, text, to);
+        highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
+
+        path = triangle.translated(aliasAlign(highlightLabel.topLeft()));
+        p.fillPath(path, colors[BarrierUsage]);
+        p.drawPath(path);
+        highlightLabel.setLeft(highlightLabel.left() + triRadius * 2);
+      }
+
+      text = lit(" and Clears ");
+      p.drawText(highlightLabel, text, to);
+      highlightLabel.setLeft(highlightLabel.left() + fm.width(text));
+
+      path = triangle.translated(aliasAlign(highlightLabel.topLeft()));
+      p.fillPath(path, colors[ClearUsage]);
+      p.drawPath(path);
+      highlightLabel.setLeft(highlightLabel.left() + triRadius * 2);
+    }
+
+    QPainterPath paths[UsageCount];
+
+    QRectF pipsRect = m_highlightingRect.marginsRemoved(uniformMargins(margin));
+
+    pipsRect.setX(pipsRect.x() + margin + m_titleWidth);
+    pipsRect.setHeight(triHeight + margin);
+    pipsRect.moveBottom(m_highlightingRect.bottom());
+
+    p.setClipRect(pipsRect);
+
+    if(!m_HistoryEvents.isEmpty())
+    {
+      for(const PixelModification &mod : m_HistoryEvents)
+      {
+        QPointF pos;
+
+        pos.setX(offsetOf(mod.eventID) + m_eidWidth / 2 - triRadius);
+        pos.setY(pipsRect.y());
+
+        QPainterPath path = triangle.translated(aliasAlign(pos));
+
+        if(mod.passed())
+          paths[HistoryPassed] = paths[HistoryPassed].united(path);
+        else
+          paths[HistoryFailed] = paths[HistoryFailed].united(path);
+      }
+    }
+    else
+    {
+      for(const EventUsage &use : m_UsageEvents)
+      {
+        QPointF pos;
+
+        pos.setX(offsetOf(use.eventID) + m_eidWidth / 2 - triRadius);
+        pos.setY(pipsRect.y());
+
+        QPainterPath path = triangle.translated(aliasAlign(pos));
+
+        if(((int)use.usage >= (int)ResourceUsage::VS_RWResource &&
+            (int)use.usage <= (int)ResourceUsage::All_RWResource) ||
+           use.usage == ResourceUsage::GenMips || use.usage == ResourceUsage::Copy ||
+           use.usage == ResourceUsage::Resolve)
+        {
+          paths[ReadWriteUsage] = paths[ReadWriteUsage].united(path);
+        }
+        else if(use.usage == ResourceUsage::StreamOut || use.usage == ResourceUsage::ResolveDst ||
+                use.usage == ResourceUsage::ColorTarget || use.usage == ResourceUsage::CopyDst)
+        {
+          paths[WriteUsage] = paths[WriteUsage].united(path);
+        }
+        else if(use.usage == ResourceUsage::Clear)
+        {
+          paths[ClearUsage] = paths[ClearUsage].united(path);
+        }
+        else if(use.usage == ResourceUsage::Barrier)
+        {
+          paths[BarrierUsage] = paths[BarrierUsage].united(path);
+        }
+        else
+        {
+          paths[ReadUsage] = paths[ReadUsage].united(path);
+        }
+      }
+    }
+
+    for(int i = 0; i < UsageCount; i++)
+    {
+      if(!paths[i].isEmpty())
+      {
+        p.drawPath(paths[i]);
+        p.fillPath(paths[i], colors[i]);
+      }
+    }
+  }
+  else
+  {
+    QRectF highlightLabel = m_highlightingRect;
+    highlightLabel = highlightLabel.marginsRemoved(uniformMargins(margin));
+
+    highlightLabel.setX(highlightLabel.x() + margin);
+
+    p.drawText(highlightLabel, tr("No resource selected for highlighting."), to);
   }
 }
 
@@ -641,6 +940,8 @@ uint32_t TimelineBar::processDraws(QVector<Marker> &markers, QVector<uint32_t> &
       m.name = ToQStr(d.name);
       m.eidStart = d.eventID;
       m.eidEnd = processDraws(m.children, m.draws, d.children);
+
+      maxEID = qMax(maxEID, m.eidEnd);
 
       if(d.markerColor[3] > 0.0f)
       {

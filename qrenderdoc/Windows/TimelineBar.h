@@ -75,10 +75,17 @@ private:
   QVector<uint32_t> m_RootDraws;
   QVector<uint32_t> m_Draws;
 
+  QString m_HistoryTarget;
+  QList<PixelModification> m_HistoryEvents;
+
+  QString m_UsageTarget;
+  QList<EventUsage> m_UsageEvents;
+
   const qreal margin = 2.0;
   const qreal borderWidth = 1.0;
   const QString eidAxisTitle = lit("EID:");
-  const int eidAxisHeight = 18;
+  const int dataBarHeight = 18;
+  const int highlightingExtra = 12;
 
   int m_eidAxisLabelStep = 0;
   qreal m_eidAxisLabelTextWidth = 0;
@@ -89,6 +96,7 @@ private:
   QRectF m_dataArea;
   QRectF m_eidAxisRect;
   QRectF m_markerRect;
+  QRectF m_highlightingRect;
   qreal m_titleWidth = 0;
 
   qreal m_zoom = 1.0;
