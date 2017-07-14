@@ -1061,7 +1061,7 @@ QString GetSystemUsername()
   return username;
 }
 
-static float getLuminance(const QColor &col)
+float getLuminance(const QColor &col)
 {
   return (float)(0.2126 * qPow(col.redF(), 2.2) + 0.7152 * qPow(col.greenF(), 2.2) +
                  0.0722 * qPow(col.blueF(), 2.2));

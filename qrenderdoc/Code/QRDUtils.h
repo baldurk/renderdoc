@@ -892,4 +892,5 @@ void setEnabledMultiple(const QList<QWidget *> &widgets, bool enabled);
 
 QString GetSystemUsername();
 
+float getLuminance(const QColor &col);
 QColor contrastingColor(const QColor &col, const QColor &defaultCol);
