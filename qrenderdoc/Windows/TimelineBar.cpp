@@ -27,6 +27,7 @@
 #include <QPainter>
 #include <QScrollBar>
 #include <QWheelEvent>
+#include "Code/Resources.h"
 
 TimelineBar::TimelineBar(ICaptureContext &ctx, QWidget *parent)
     : QAbstractScrollArea(parent), m_Ctx(ctx)
@@ -83,6 +84,7 @@ void TimelineBar::OnLogfileLoaded()
 
 void TimelineBar::OnEventChanged(uint32_t eventID)
 {
+  viewport()->update();
 }
 
 QSize TimelineBar::minimumSizeHint() const
@@ -99,8 +101,8 @@ void TimelineBar::layout()
 {
   QFontMetrics fm(Formatter::PreferredFont());
 
-  // outer margin + border + inner margin + width of title + scale bar text advance
-  m_leftCoord = margin + borderWidth + margin + fm.width(scaleTitle) + fm.height();
+  // outer margin + border + inner margin + width of title + text margin
+  m_leftCoord = margin + borderWidth + margin + fm.width(eidAxisTitle) + fm.height();
 
   m_totalSize = viewport()->width() - m_leftCoord - margin - borderWidth - margin;
 
@@ -109,12 +111,13 @@ void TimelineBar::layout()
   int stepSize = 1;
   int stepMagnitude = 1;
 
-  m_scaleLabelWidth = fm.width(QString::number(maxEID)) + fm.height();
-  m_scaleLabelStep = stepSize * stepMagnitude;
+  m_eidAxisLabelTextWidth = fm.width(QString::number(maxEID));
+  m_eidAxisLabelWidth = m_eidAxisLabelTextWidth + fm.height();
+  m_eidAxisLabelStep = stepSize * stepMagnitude;
 
   qreal virtualSize = m_totalSize * m_zoom;
 
-  while(virtualSize > 0 && (maxEID / m_scaleLabelStep) * m_scaleLabelWidth > virtualSize)
+  while(virtualSize > 0 && (maxEID / m_eidAxisLabelStep) * m_eidAxisLabelWidth > virtualSize)
   {
     // increment 1, 2, 5, 10, 20, 50, 100, ...
     if(stepSize == 1)
@@ -131,15 +134,15 @@ void TimelineBar::layout()
       stepMagnitude *= 10;
     }
 
-    m_scaleLabelStep = stepSize * stepMagnitude;
+    m_eidAxisLabelStep = stepSize * stepMagnitude;
   }
 
-  int numLabels = maxEID / m_scaleLabelStep + 1;
+  int numLabels = maxEID / m_eidAxisLabelStep + 1;
 
-  m_scaleLabelWidth = virtualSize / numLabels;
+  m_eidAxisLabelWidth = virtualSize / numLabels;
 
   horizontalScrollBar()->setRange(0, virtualSize - m_totalSize);
-  horizontalScrollBar()->setSingleStep(m_scaleLabelWidth);
+  horizontalScrollBar()->setSingleStep(m_eidAxisLabelWidth);
   horizontalScrollBar()->setPageStep(m_totalSize);
   horizontalScrollBar()->setValue(-m_pan);
 
@@ -149,6 +152,25 @@ void TimelineBar::layout()
 void TimelineBar::mousePressEvent(QMouseEvent *e)
 {
   m_lastPos = e->localPos();
+
+  qreal x = e->localPos().x();
+
+  if((e->modifiers() & Qt::AltModifier) == 0 && !m_Events.isEmpty() && x >= m_leftCoord &&
+     x <= m_leftCoord + m_totalSize)
+  {
+    uint32_t eid = eventAt(x);
+    auto it = std::find_if(m_Events.begin(), m_Events.end(), [this, eid](uint32_t d) {
+      if(d >= eid)
+        return true;
+
+      return false;
+    });
+
+    if(it == m_Events.end())
+      m_Ctx.SetEventID({}, m_Events.back(), m_Events.back());
+    else
+      m_Ctx.SetEventID({}, *it, *it);
+  }
 }
 
 void TimelineBar::mouseReleaseEvent(QMouseEvent *e)
@@ -159,14 +181,29 @@ void TimelineBar::mouseMoveEvent(QMouseEvent *e)
 {
   if(e->buttons() == Qt::LeftButton)
   {
-    qreal delta = e->localPos().x() - m_lastPos.x();
-    m_pan += delta;
+    qreal x = e->localPos().x();
 
-    m_pan = qBound(-m_totalSize * (m_zoom - 1.0), m_pan, 0.0);
+    if(e->modifiers() & Qt::AltModifier)
+    {
+      qreal delta = x - m_lastPos.x();
+      m_pan += delta;
 
-    m_lastPos = e->localPos();
+      m_pan = qBound(-m_totalSize * (m_zoom - 1.0), m_pan, 0.0);
 
-    layout();
+      m_lastPos = e->localPos();
+
+      layout();
+    }
+    else if(!m_Events.isEmpty() && x >= m_leftCoord && x <= m_leftCoord + m_totalSize)
+    {
+      uint32_t eid = eventAt(x);
+      if(m_Events.contains(eid) && eid != m_Ctx.CurEvent())
+        m_Ctx.SetEventID({}, eid, eid);
+    }
+  }
+  else
+  {
+    viewport()->update();
   }
 }
 
@@ -199,8 +236,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
   QPainter p(viewport());
 
   p.setFont(font());
-  p.setRenderHint(QPainter::Antialiasing);
-  p.setRenderHint(QPainter::HighQualityAntialiasing);
+  p.setRenderHint(QPainter::TextAntialiasing);
 
   QRectF r = viewport()->rect();
 
@@ -217,55 +253,154 @@ void TimelineBar::paintEvent(QPaintEvent *e)
   QTextOption to;
 
   to.setWrapMode(QTextOption::NoWrap);
-  to.setAlignment(Qt::AlignLeft | Qt::AlignTop);
+  to.setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-  QRectF scaleRect = r;
-  scaleRect.setHeight(qMin(scaleRect.height(), p.fontMetrics().height() + margin * 2));
+  QFontMetrics fm = p.fontMetrics();
 
-  p.setPen(QPen(palette().brush(QPalette::Text), 0.0));
-  p.drawLine(scaleRect.bottomLeft() + QPointF(0, 0.5), scaleRect.bottomRight() + QPointF(0, 0.5));
+  QRectF eidAxisRect = r;
+  eidAxisRect.setHeight(qMin(eidAxisRect.height(), qMax(fm.height(), eidAxisHeight) + margin * 2));
 
-  scaleRect = scaleRect.marginsRemoved(QMargins(margin, margin, margin, margin));
-  QString text = scaleTitle;
-  p.drawText(scaleRect, text, to);
+  p.setPen(QPen(palette().brush(QPalette::Text), 1.0));
+  p.drawLine(eidAxisRect.bottomLeft(), eidAxisRect.bottomRight());
 
-  scaleRect.setLeft(scaleRect.left() + p.fontMetrics().width(text) + scaleRect.height());
+  eidAxisRect = eidAxisRect.marginsRemoved(QMargins(margin, margin, margin, margin));
+  QString text = eidAxisTitle;
+  p.drawText(eidAxisRect, text, to);
+
+  eidAxisRect.setLeft(eidAxisRect.left() + p.fontMetrics().width(text) + fm.height());
 
   if(!m_Ctx.LogLoaded())
     return;
 
-  p.setClipRect(scaleRect);
+  QRectF clipRect = eidAxisRect;
 
-  scaleRect.setLeft(scaleRect.left() + m_pan);
+  eidAxisRect.setLeft(eidAxisRect.left() + m_pan);
 
   uint32_t maxEID = m_Events.isEmpty() ? 0 : m_Events.back();
 
-  to.setAlignment(Qt::AlignCenter | Qt::AlignTop);
+  to.setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
 
   p.setFont(Formatter::PreferredFont());
 
-  for(uint32_t i = 0; i <= maxEID; i += m_scaleLabelStep)
+  QRectF hoverRect = eidAxisRect;
+
+  // draw where we're hovering
   {
-    if(scaleRect.left() + m_scaleLabelWidth >= 0)
+    QPoint pos = viewport()->mapFromGlobal(QCursor::pos());
+
+    if(r.contains(pos) && pos.x() >= m_leftCoord)
     {
-      QRectF labelRect = scaleRect;
-      labelRect.setWidth(m_scaleLabelWidth);
-      p.drawText(labelRect, QString::number(i), to);
+      uint32_t hoverEID = eventAt(pos.x());
+
+      hoverRect.setLeft(offsetOf(hoverEID));
+      hoverRect.setWidth(m_eidAxisLabelWidth);
+
+      p.drawText(hoverRect, QString::number(hoverEID), to);
+
+      // re-add the vertical margins so the lines match up with the border around the EID axis
+      hoverRect = hoverRect.marginsAdded(QMargins(0, margin, 0, margin));
+
+      p.drawLine(hoverRect.topLeft(), hoverRect.bottomLeft());
+      p.drawLine(hoverRect.topRight(), hoverRect.bottomRight());
+
+      // round down the width for clipping against labels below
+      hoverRect.setWidth(int(hoverRect.width()));
+    }
+    else
+    {
+      hoverRect = QRectF();
+    }
+  }
+
+  // clip labels to the visible section
+  p.setClipRect(clipRect);
+
+  QRectF labelRect = eidAxisRect;
+
+  // iterate through the EIDs from 0, starting from possible a negative offset if the user has
+  // panned to the right.
+  for(uint32_t i = 0; i <= maxEID; i += m_eidAxisLabelStep)
+  {
+    // check if this label is visible at all
+    if(labelRect.left() + m_eidAxisLabelWidth >= 0)
+    {
+      QRectF textRect = labelRect;
+      textRect.setWidth(m_eidAxisLabelWidth);
+
+      // don't draw labels that intersect with the hovered number
+      if(!textRect.intersects(hoverRect))
+        p.drawText(textRect, QString::number(i), to);
     }
 
-    scaleRect.setLeft(scaleRect.left() + m_scaleLabelWidth);
+    labelRect.setLeft(labelRect.left() + m_eidAxisLabelWidth);
 
-    if(scaleRect.width() <= 0)
+    // labelRect's right-hand side is the edge of the screen, so when width collapses to 0 no more
+    // labels will be visible
+    if(labelRect.width() <= 0)
       break;
   }
 
+  // stop clipping
   p.setClipRect(viewport()->rect());
+
+  QRectF currentRect = eidAxisRect;
+
+  // draw the current label
+  {
+    uint32_t curEID = m_Ctx.CurEvent();
+
+    // this is the centre of the label we want
+    currentRect.setLeft(qRound(offsetOf(curEID)) + m_eidAxisLabelWidth / 2);
+
+    // set the left based on the new width we want
+    currentRect.setWidth(m_eidAxisLabelTextWidth + eidAxisHeight + margin * 2);
+    currentRect.moveLeft(currentRect.left() - currentRect.width() / 2);
+
+    // set the height a little lower to allow for the shadow
+    currentRect.setHeight(currentRect.height() - 1);
+
+    // remember where the middle would have been, without clamping
+    qreal realMiddle = currentRect.center().x();
+
+    // clamp the position from the left or right side
+    if(currentRect.left() < m_leftCoord)
+      currentRect.moveLeft(m_leftCoord);
+    else if(currentRect.right() > eidAxisRect.right())
+      currentRect.moveRight(eidAxisRect.right());
+
+    // draw a shadow that's slightly offsetted, then the label itself.
+    QRectF shadowRect = currentRect;
+    shadowRect.adjust(1, 2, 1, 2);
+    p.fillRect(shadowRect, palette().brush(QPalette::Shadow));
+    p.fillRect(currentRect, palette().brush(QPalette::Base));
+    p.drawRect(currentRect);
+
+    // draw the 'current marker' pixmap
+    const QPixmap &px = Pixmaps::flag_green(devicePixelRatio());
+    p.drawPixmap(currentRect.topLeft() + QPointF(margin, 1), px, px.rect());
+
+    // move to where the text should be and draw it
+    currentRect.setLeft(currentRect.left() + margin * 2 + eidAxisHeight);
+    p.drawText(currentRect, QString::number(curEID), to);
+
+    // draw a line from the bottom of the shadow downwards
+    QPointF currentTop = shadowRect.center();
+    currentTop.setX(int(qBound(m_leftCoord, realMiddle, eidAxisRect.right() - 2.0)) + 0.5);
+    currentTop.setY(shadowRect.bottom());
+
+    QPointF currentBottom = currentTop;
+    currentBottom.setY(r.bottom());
+
+    p.drawLine(currentTop, currentBottom);
+  }
 }
 
 uint32_t TimelineBar::eventAt(qreal x)
 {
   if(m_Events.isEmpty())
     return 0;
+
+  x = qBound(m_leftCoord, x, m_leftCoord + m_totalSize);
 
   // pan x
   x -= m_pan;
@@ -278,7 +413,17 @@ uint32_t TimelineBar::eventAt(qreal x)
   x /= m_zoom;
 
   // x = 0 is the left side of EID 0, x = 1 is the right side of the last EID
-  return uint32_t(x * (m_Events.back() + 1));
+  uint32_t maxEID = m_Events.back();
+  return qMin(maxEID, uint32_t(x * (maxEID + 1)));
+}
+
+qreal TimelineBar::offsetOf(uint32_t eid)
+{
+  int steps = eid / m_eidAxisLabelStep;
+
+  qreal fractionalPart = qreal(eid % m_eidAxisLabelStep) / qreal(m_eidAxisLabelStep);
+
+  return m_leftCoord + m_pan + steps * m_eidAxisLabelWidth + fractionalPart * m_eidAxisLabelWidth;
 }
 
 void TimelineBar::addEvents(const rdctype::array<DrawcallDescription> &curDraws)

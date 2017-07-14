@@ -62,13 +62,15 @@ private:
 
   const qreal margin = 2.0;
   const qreal borderWidth = 1.0;
-  const QString scaleTitle = lit("EID:");
+  const QString eidAxisTitle = lit("EID:");
+  const int eidAxisHeight = 18;
 
   qreal m_leftCoord = 0;
   qreal m_totalSize = 0;
 
-  int m_scaleLabelStep = 0;
-  qreal m_scaleLabelWidth = 0;
+  int m_eidAxisLabelStep = 0;
+  qreal m_eidAxisLabelTextWidth = 0;
+  qreal m_eidAxisLabelWidth = 0;
 
   qreal m_zoom = 1.0;
   qreal m_pan = 0.0;
@@ -77,5 +79,6 @@ private:
   void layout();
 
   uint32_t eventAt(qreal x);
+  qreal offsetOf(uint32_t eid);
   void addEvents(const rdctype::array<DrawcallDescription> &curDraws);
 };
