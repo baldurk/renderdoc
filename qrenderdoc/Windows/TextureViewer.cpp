@@ -1315,9 +1315,10 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
     if(m_Output != NULL)
       RT_PickPixelsAndUpdate(r);
-
-    // TODO TimelineBar
   });
+
+  if(m_Ctx.HasTimelineBar())
+    m_Ctx.GetTimelineBar()->HighlightResourceUsage(texptr->ID);
 }
 
 void TextureViewer::UI_SetHistogramRange(const TextureDescription *tex, CompType typeHint)

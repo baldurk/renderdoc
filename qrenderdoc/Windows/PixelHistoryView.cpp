@@ -387,6 +387,8 @@ public:
     return QVariant();
   }
 
+  const QVector<PixelModification> &modifications() { return m_ModList; }
+  ResourceId texID() { return m_Tex->ID; }
 private:
   ICaptureContext &m_Ctx;
 
@@ -617,9 +619,33 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
 
 PixelHistoryView::~PixelHistoryView()
 {
+  disableTimelineHighlight();
+
   ui->events->setModel(NULL);
   m_Ctx.RemoveLogViewer(this);
   delete ui;
+}
+
+void PixelHistoryView::enableTimelineHighlight()
+{
+  if(m_Ctx.HasTimelineBar())
+    m_Ctx.GetTimelineBar()->HighlightHistory(m_Model->texID(), m_Model->modifications().toList());
+}
+
+void PixelHistoryView::disableTimelineHighlight()
+{
+  if(m_Ctx.HasTimelineBar())
+    m_Ctx.GetTimelineBar()->HighlightHistory(ResourceId(), {});
+}
+
+void PixelHistoryView::enterEvent(QEvent *event)
+{
+  enableTimelineHighlight();
+}
+
+void PixelHistoryView::leaveEvent(QEvent *event)
+{
+  disableTimelineHighlight();
 }
 
 void PixelHistoryView::OnLogfileLoaded()
@@ -634,6 +660,8 @@ void PixelHistoryView::OnLogfileClosed()
 void PixelHistoryView::SetHistory(const rdctype::array<PixelModification> &history)
 {
   m_Model->setHistory(history);
+
+  enableTimelineHighlight();
 }
 
 void PixelHistoryView::startDebug(EventTag tag)

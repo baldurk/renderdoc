@@ -58,7 +58,14 @@ private slots:
   void on_events_customContextMenuRequested(const QPoint &pos);
   void on_events_doubleClicked(const QModelIndex &index);
 
+protected:
+  void enterEvent(QEvent *event) override;
+  void leaveEvent(QEvent *event) override;
+
 private:
+  void enableTimelineHighlight();
+  void disableTimelineHighlight();
+
   Ui::PixelHistoryView *ui;
   ICaptureContext &m_Ctx;
 
