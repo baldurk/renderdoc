@@ -231,6 +231,11 @@ void TimelineBar::wheelEvent(QWheelEvent *e)
   layout();
 }
 
+void TimelineBar::leaveEvent(QEvent *e)
+{
+  viewport()->update();
+}
+
 void TimelineBar::paintEvent(QPaintEvent *e)
 {
   QPainter p(viewport());
@@ -303,7 +308,8 @@ void TimelineBar::paintEvent(QPaintEvent *e)
       p.drawLine(hoverRect.topLeft(), hoverRect.bottomLeft());
       p.drawLine(hoverRect.topRight(), hoverRect.bottomRight());
 
-      // round down the width for clipping against labels below
+      // shrink the rect a bit for clipping against labels below
+      hoverRect.setX(qRound(hoverRect.x() + 0.5));
       hoverRect.setWidth(int(hoverRect.width()));
     }
     else
