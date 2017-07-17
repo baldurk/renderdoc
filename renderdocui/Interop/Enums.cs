@@ -691,11 +691,11 @@ namespace renderdoc
     public static class EnumString
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt32 Topology_VertexOffset(PrimitiveTopology topology, UInt32 prim);
+        private static extern UInt32 RENDERDOC_VertexOffset(PrimitiveTopology topology, UInt32 prim);
 
         public static UInt32 GetVertexOffset(this PrimitiveTopology topology, UInt32 primitiveIndex)
         {
-            return Topology_VertexOffset(topology, primitiveIndex);
+            return RENDERDOC_VertexOffset(topology, primitiveIndex);
         }
 
         public static bool IsD3D(this GraphicsAPI apitype)

@@ -1185,7 +1185,7 @@ float.
 :return: The floating point equivalent.
 :rtype: ``float``
 )");
-extern "C" RENDERDOC_API float RENDERDOC_CC Maths_HalfToFloat(uint16_t half);
+extern "C" RENDERDOC_API float RENDERDOC_CC RENDERDOC_HalfToFloat(uint16_t half);
 
 DOCUMENT(R"(A utility function that converts a float to a half (stored in a 16-bit unsigned
 integer).
@@ -1194,7 +1194,7 @@ integer).
 :return: The nearest half-float equivalent stored as an int.
 :rtype: ``int``
 )");
-extern "C" RENDERDOC_API uint16_t RENDERDOC_CC Maths_FloatToHalf(float flt);
+extern "C" RENDERDOC_API uint16_t RENDERDOC_CC RENDERDOC_FloatToHalf(float flt);
 
 DOCUMENT(R"(A utility function that returns the number of vertices in a primitive of a given
 topology.
@@ -1205,7 +1205,7 @@ topology.
 :return: The number of vertices in a single primitive.
 :rtype: ``int``
 )");
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_NumVerticesPerPrimitive(Topology topology);
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_NumVerticesPerPrimitive(Topology topology);
 
 DOCUMENT(R"(A utility function that returns the offset in the list of vertices of the first vertex
 in a particular primitive of a given topology. This calculation is simple but not trivial for the
@@ -1216,8 +1216,8 @@ case of strip topologies.
 :return: The vertex offset where the primitive starts.
 :rtype: ``int``
 )");
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_VertexOffset(Topology topology,
-                                                                     uint32_t primitive);
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_VertexOffset(Topology topology,
+                                                                      uint32_t primitive);
 
 //////////////////////////////////////////////////////////////////////////
 // Create a capture handle.

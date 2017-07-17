@@ -6986,15 +6986,15 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
           // TODO once pixel history distinguishes between instances, draw only the instance for
           // this fragment
           m_pImmediateContext->DrawIndexedInstanced(
-              Topology_NumVerticesPerPrimitive(draw->topology), RDCMAX(1U, draw->numInstances),
-              draw->indexOffset + Topology_VertexOffset(draw->topology, history[h].primitiveID),
+              RENDERDOC_NumVerticesPerPrimitive(draw->topology), RDCMAX(1U, draw->numInstances),
+              draw->indexOffset + RENDERDOC_VertexOffset(draw->topology, history[h].primitiveID),
               draw->baseVertex, draw->instanceOffset);
         }
         else
         {
           m_pImmediateContext->DrawInstanced(
-              Topology_NumVerticesPerPrimitive(draw->topology), RDCMAX(1U, draw->numInstances),
-              draw->vertexOffset + Topology_VertexOffset(draw->topology, history[h].primitiveID),
+              RENDERDOC_NumVerticesPerPrimitive(draw->topology), RDCMAX(1U, draw->numInstances),
+              draw->vertexOffset + RENDERDOC_VertexOffset(draw->topology, history[h].primitiveID),
               draw->instanceOffset);
         }
 

@@ -108,7 +108,7 @@ namespace renderdoc
     public class ResourceFormat
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern float Maths_HalfToFloat(UInt16 half);
+        private static extern float RENDERDOC_HalfToFloat(UInt16 half);
 
         public ResourceFormat()
         {
@@ -193,7 +193,7 @@ namespace renderdoc
 
         public float ConvertFromHalf(UInt16 comp)
         {
-            return Maths_HalfToFloat(comp);
+            return RENDERDOC_HalfToFloat(comp);
         }
 
         public object Interpret(UInt16 comp)

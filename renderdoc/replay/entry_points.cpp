@@ -35,7 +35,7 @@
 
 // these entry points are for the replay/analysis side - not for the application.
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_NumVerticesPerPrimitive(Topology topology)
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_NumVerticesPerPrimitive(Topology topology)
 {
   // strips/loops/fans have the same number of indices for a single primitive
   // as their list friends
@@ -91,8 +91,8 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_NumVerticesPerPrimitive(
   return 0;
 }
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_VertexOffset(Topology topology,
-                                                                     uint32_t primitive)
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_VertexOffset(Topology topology,
+                                                                      uint32_t primitive)
 {
   // strips/loops/fans have the same number of indices for a single primitive
   // as their list friends
@@ -152,15 +152,15 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_VertexOffset(Topology to
     case Topology::TriangleFan: RDCERR("Cannot get VertexOffset for triangle fan!"); break;
   }
 
-  return primitive * Topology_NumVerticesPerPrimitive(topology);
+  return primitive * RENDERDOC_NumVerticesPerPrimitive(topology);
 }
 
-extern "C" RENDERDOC_API float RENDERDOC_CC Maths_HalfToFloat(uint16_t half)
+extern "C" RENDERDOC_API float RENDERDOC_CC RENDERDOC_HalfToFloat(uint16_t half)
 {
   return ConvertFromHalf(half);
 }
 
-extern "C" RENDERDOC_API uint16_t RENDERDOC_CC Maths_FloatToHalf(float f)
+extern "C" RENDERDOC_API uint16_t RENDERDOC_CC RENDERDOC_FloatToHalf(float f)
 {
   return ConvertToHalf(f);
 }

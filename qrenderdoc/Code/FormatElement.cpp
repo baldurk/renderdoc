@@ -659,7 +659,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
         else if(format.compByteWidth == 4)
           ret.push_back(readObj<float>(data, end, ok));
         else if(format.compByteWidth == 2)
-          ret.push_back(Maths_HalfToFloat(readObj<uint16_t>(data, end, ok)));
+          ret.push_back(RENDERDOC_HalfToFloat(readObj<uint16_t>(data, end, ok)));
       }
       else if(format.compType == CompType::SInt)
       {
