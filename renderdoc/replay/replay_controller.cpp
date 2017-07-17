@@ -1562,7 +1562,8 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device)
 
   m_FrameRecord = m_pDevice->GetFrameRecord();
 
-  SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.drawcallList, NULL, NULL);
+  DrawcallDescription *previous = NULL;
+  SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.drawcallList, NULL, previous);
 
   return ReplayStatus::Succeeded;
 }

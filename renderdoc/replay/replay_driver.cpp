@@ -27,7 +27,8 @@
 
 DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawcallTable,
                                            rdctype::array<DrawcallDescription> &draws,
-                                           DrawcallDescription *parent, DrawcallDescription *previous)
+                                           DrawcallDescription *parent,
+                                           DrawcallDescription *&previous)
 {
   DrawcallDescription *ret = NULL;
 
@@ -46,12 +47,13 @@ DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawca
         (*drawcallTable)[draw->eventID] = draw;
       }
 
-      ret = previous = SetupDrawcallPointers(drawcallTable, draw->children, draw, previous);
+      ret = SetupDrawcallPointers(drawcallTable, draw->children, draw, previous);
     }
-    else if(draw->flags & (DrawFlags::PushMarker | DrawFlags::SetMarker | DrawFlags::Present |
-                           DrawFlags::MultiDraw))
+    else if((draw->flags & (DrawFlags::PushMarker | DrawFlags::SetMarker | DrawFlags::MultiDraw)) &&
+            !(draw->flags & DrawFlags::APICalls))
     {
       // don't want to set up previous/next links for markers, but still add them to the table
+      // Some markers like Present or API Calls should have previous/next
 
       if(drawcallTable)
       {

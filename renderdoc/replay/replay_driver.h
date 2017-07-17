@@ -211,7 +211,7 @@ public:
 DrawcallDescription *SetupDrawcallPointers(std::vector<DrawcallDescription *> *drawcallTable,
                                            rdctype::array<DrawcallDescription> &draws,
                                            DrawcallDescription *parent,
-                                           DrawcallDescription *previous);
+                                           DrawcallDescription *&previous);
 
 // simple cache for when we need buffer data for highlighting
 // vertices, typical use will be lots of vertices in the same

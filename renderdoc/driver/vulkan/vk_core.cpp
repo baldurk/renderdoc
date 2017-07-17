@@ -1840,7 +1840,8 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
   {
     GetFrameRecord().drawcallList = m_ParentDrawcall.Bake();
 
-    SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().drawcallList, NULL, NULL);
+    DrawcallDescription *previous = NULL;
+    SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().drawcallList, NULL, previous);
 
     struct SortEID
     {

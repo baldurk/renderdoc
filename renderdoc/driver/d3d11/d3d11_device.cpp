@@ -1211,7 +1211,8 @@ void WrappedID3D11Device::ReadLogInitialisation()
       break;
   }
 
-  SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.drawcallList, NULL, NULL);
+  DrawcallDescription *previous = NULL;
+  SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().drawcallList, NULL, previous);
 
 #if ENABLED(RDOC_DEVEL)
   for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)

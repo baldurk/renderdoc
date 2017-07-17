@@ -3985,7 +3985,8 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
     GetFrameRecord().drawcallList = m_ParentDrawcall.Bake();
     GetFrameRecord().frameInfo.debugMessages = GetDebugMessages();
 
-    SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().drawcallList, NULL, NULL);
+    DrawcallDescription *previous = NULL;
+    SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().drawcallList, NULL, previous);
 
     // it's easier to remove duplicate usages here than check it as we go.
     // this means if textures are bound in multiple places in the same draw

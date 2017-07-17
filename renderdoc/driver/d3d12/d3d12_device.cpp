@@ -2393,7 +2393,8 @@ void WrappedID3D12Device::ReadLogInitialisation()
 
     m_Queue->GetParentDrawcall().children.clear();
 
-    SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.drawcallList, NULL, NULL);
+    DrawcallDescription *previous = NULL;
+    SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().drawcallList, NULL, previous);
 
     D3D12CommandData &cmd = *m_Queue->GetCommandData();
 
