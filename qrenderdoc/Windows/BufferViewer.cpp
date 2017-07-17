@@ -39,7 +39,7 @@ class CameraWrapper
 public:
   virtual ~CameraWrapper() {}
   virtual bool Update(QRect winSize) = 0;
-  virtual Camera *camera() = 0;
+  virtual ICamera *camera() = 0;
 
   virtual void MouseWheel(QWheelEvent *e) = 0;
 
@@ -122,12 +122,12 @@ private:
 class ArcballWrapper : public CameraWrapper
 {
 public:
-  ArcballWrapper() { m_Cam = Camera_InitArcball(); }
-  virtual ~ArcballWrapper() { Camera_Shutdown(m_Cam); }
-  Camera *camera() override { return m_Cam; }
+  ArcballWrapper() { m_Cam = RENDERDOC_InitCamera(CameraType::Arcball); }
+  virtual ~ArcballWrapper() { m_Cam->Shutdown(); }
+  ICamera *camera() override { return m_Cam; }
   void Reset(FloatVector pos, float dist)
   {
-    Camera_ResetArcball(m_Cam);
+    m_Cam->ResetArcball();
 
     setLookAtPos(pos);
     SetDistance(dist);
@@ -136,7 +136,7 @@ public:
   void SetDistance(float dist)
   {
     m_Distance = qAbs(dist);
-    Camera_SetArcballDistance(m_Cam, m_Distance);
+    m_Cam->SetArcballDistance(m_Distance);
   }
 
   bool Update(QRect size) override
@@ -165,8 +165,8 @@ public:
         xdelta *= qMax(1.0f, m_Distance);
         ydelta *= qMax(1.0f, m_Distance);
 
-        FloatVector pos, fwd, right, up;
-        Camera_GetBasis(m_Cam, &pos, &fwd, &right, &up);
+        FloatVector right = m_Cam->GetRight();
+        FloatVector up = m_Cam->GetUp();
 
         m_LookAt.x -= right.x * xdelta;
         m_LookAt.y -= right.y * xdelta;
@@ -176,7 +176,7 @@ public:
         m_LookAt.y += up.y * ydelta;
         m_LookAt.z += up.z * ydelta;
 
-        Camera_SetPosition(m_Cam, m_LookAt.x, m_LookAt.y, m_LookAt.z);
+        m_Cam->SetPosition(m_LookAt.x, m_LookAt.y, m_LookAt.z);
       }
       else if(e->buttons() == Qt::LeftButton)
       {
@@ -191,11 +191,11 @@ public:
   void setLookAtPos(const FloatVector &v)
   {
     m_LookAt = v;
-    Camera_SetPosition(m_Cam, v.x, v.y, v.z);
+    m_Cam->SetPosition(v.x, v.y, v.z);
   }
 
 private:
-  Camera *m_Cam;
+  ICamera *m_Cam;
 
   QRect m_WinSize;
 
@@ -222,29 +222,29 @@ private:
     ay = -ay;
     by = -by;
 
-    Camera_RotateArcball(m_Cam, ax, ay, bx, by);
+    m_Cam->RotateArcball(ax, ay, bx, by);
   }
 };
 
 class FlycamWrapper : public CameraWrapper
 {
 public:
-  FlycamWrapper() { m_Cam = Camera_InitFPSLook(); }
-  virtual ~FlycamWrapper() { Camera_Shutdown(m_Cam); }
-  Camera *camera() override { return m_Cam; }
+  FlycamWrapper() { m_Cam = RENDERDOC_InitCamera(CameraType::FPSLook); }
+  virtual ~FlycamWrapper() { m_Cam->Shutdown(); }
+  ICamera *camera() override { return m_Cam; }
   void Reset(FloatVector pos)
   {
     m_Position = pos;
     m_Rotation = FloatVector();
 
-    Camera_SetPosition(m_Cam, m_Position.x, m_Position.y, m_Position.z);
-    Camera_SetFPSRotation(m_Cam, m_Rotation.x, m_Rotation.y, m_Rotation.z);
+    m_Cam->SetPosition(m_Position.x, m_Position.y, m_Position.z);
+    m_Cam->SetFPSRotation(m_Rotation.x, m_Rotation.y, m_Rotation.z);
   }
 
   bool Update(QRect size) override
   {
-    FloatVector pos, fwd, right, up;
-    Camera_GetBasis(m_Cam, &pos, &fwd, &right, &up);
+    FloatVector fwd = m_Cam->GetForward();
+    FloatVector right = m_Cam->GetRight();
 
     float speed = currentSpeed();
 
@@ -277,7 +277,7 @@ public:
 
     if(horizMove || vertMove || fwdMove)
     {
-      Camera_SetPosition(m_Cam, m_Position.x, m_Position.y, m_Position.z);
+      m_Cam->SetPosition(m_Position.x, m_Position.y, m_Position.z);
       return true;
     }
 
@@ -292,14 +292,14 @@ public:
       m_Rotation.y -= (float)(e->pos().x() - dragStartPos().x()) / 300.0f;
       m_Rotation.x -= (float)(e->pos().y() - dragStartPos().y()) / 300.0f;
 
-      Camera_SetFPSRotation(m_Cam, m_Rotation.x, m_Rotation.y, m_Rotation.z);
+      m_Cam->SetFPSRotation(m_Rotation.x, m_Rotation.y, m_Rotation.z);
     }
 
     CameraWrapper::MouseMove(e);
   }
 
 private:
-  Camera *m_Cam;
+  ICamera *m_Cam;
 
   FloatVector m_Position, m_Rotation;
 };

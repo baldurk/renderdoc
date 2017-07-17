@@ -1075,7 +1075,7 @@ without opening the capture for analysis.
 )")
 struct ICaptureFile
 {
-  DOCUMENT("Closes the handle.");
+  DOCUMENT("Closes the file handle.");
   virtual void Shutdown() = 0;
 
   DOCUMENT(R"(Retrieves the status of the handle.
@@ -1152,27 +1152,97 @@ protected:
 // camera
 //////////////////////////////////////////////////////////////////////////
 
-class Camera;
+DOCUMENT(R"(A handle to a camera controller, used for user interaction and controlling a view of a
+3D scene.
+)")
+struct ICamera
+{
+  DOCUMENT("Closes the camera handle.");
+  virtual void Shutdown() = 0;
 
-// TODO expose the actual Camera class.
-DOCUMENT("");
-extern "C" RENDERDOC_API Camera *RENDERDOC_CC Camera_InitArcball();
-extern "C" RENDERDOC_API Camera *RENDERDOC_CC Camera_InitFPSLook();
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_Shutdown(Camera *c);
+  DOCUMENT(R"(Sets the position for the camera, either arcball or FPS.
 
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetPosition(Camera *c, float x, float y, float z);
+For arcball cameras, this sets the lookat position at the centre of the arcball.
 
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetFPSRotation(Camera *c, float x, float y,
-                                                                 float z);
+For FPS look cameras, this sets the position of the camera in space.
 
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetArcballDistance(Camera *c, float dist);
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_ResetArcball(Camera *c);
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_RotateArcball(Camera *c, float ax, float ay,
-                                                                float bx, float by);
+:param float x: The X co-ordinate of the position.
+:param float y: The Y co-ordinate of the position.
+:param float z: The Z co-ordinate of the position.
+)");
+  virtual void SetPosition(float x, float y, float z) = 0;
 
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_GetBasis(Camera *c, FloatVector *pos,
-                                                           FloatVector *fwd, FloatVector *right,
-                                                           FloatVector *up);
+  DOCUMENT(R"(Sets the rotation for an FPS camera.
+
+It is invalid to call this function for arcball cameras.
+
+:param float x: The rotation around the X axis (pitch).
+:param float y: The rotation around the Y axis (yaw).
+:param float z: The rotation around the Z axis (roll).
+)");
+  virtual void SetFPSRotation(float x, float y, float z) = 0;
+
+  DOCUMENT(R"(Sets the distance in units the arcball camera sits away from the lookat position.
+
+:param float dist: The distance of the camera from the lookat position.
+)");
+  virtual void SetArcballDistance(float dist) = 0;
+
+  DOCUMENT("Reset the arcball to defaults.");
+  virtual void ResetArcball() = 0;
+
+  DOCUMENT(R"(Rotates the arcball based on relative window co-ordinates.
+
+The co-ordinates are in pixels and represent the old/new co-ordinates of the mouse cursor over the
+drag.
+
+:param float ax: The X co-ordinate of the previous mouse position.
+:param float ay: The Y co-ordinate of the previous mouse position.
+:param float bx: The X co-ordinate of the new mouse position.
+:param float by: The Y co-ordinate of the new mouse position.
+)");
+  virtual void RotateArcball(float ax, float ay, float bx, float by) = 0;
+
+  DOCUMENT(R"(Retrieves the position of the camera
+
+:return: The position vector of the camera. W is set to 1
+:rtype: FloatVector
+)");
+  virtual FloatVector GetPosition() = 0;
+
+  DOCUMENT(R"(Retrieves the forward vector of the camera, in the positive Z direction.
+
+:return: The forward vector of the camera. W is set to 1
+:rtype: FloatVector
+)");
+  virtual FloatVector GetForward() = 0;
+
+  DOCUMENT(R"(Retrieves the right vector of the camera, in the positive X direction.
+
+:return: The right vector of the camera. W is set to 1
+:rtype: FloatVector
+)");
+  virtual FloatVector GetRight() = 0;
+
+  DOCUMENT(R"(Retrieves the up vector of the camera, in the positive Y direction.
+
+:return: The up vector of the camera. W is set to 1
+:rtype: FloatVector
+)");
+  virtual FloatVector GetUp() = 0;
+
+protected:
+  ICamera() = default;
+  ~ICamera() = default;
+};
+
+DOCUMENT(R"(Create a new camera of a given type.
+
+:param CameraType type: The type of controls to use
+:return: The handle to the new camera.
+:rtype: Camera
+)");
+extern "C" RENDERDOC_API ICamera *RENDERDOC_CC RENDERDOC_InitCamera(CameraType type);
 
 //////////////////////////////////////////////////////////////////////////
 // Maths/format/misc related exports

@@ -167,27 +167,27 @@ extern "C" RENDERDOC_API uint16_t RENDERDOC_CC RENDERDOC_FloatToHalf(float f)
 
 extern "C" RENDERDOC_API Camera *RENDERDOC_CC Camera_InitArcball()
 {
-  return new Camera(Camera::eType_Arcball);
+  return new Camera(CameraType::Arcball);
 }
 
 extern "C" RENDERDOC_API Camera *RENDERDOC_CC Camera_InitFPSLook()
 {
-  return new Camera(Camera::eType_FPSLook);
+  return new Camera(CameraType::FPSLook);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC Camera_Shutdown(Camera *c)
 {
-  delete c;
+  c->Shutdown();
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetPosition(Camera *c, float x, float y, float z)
 {
-  c->SetPosition(Vec3f(x, y, z));
+  c->SetPosition(x, y, z);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetFPSRotation(Camera *c, float x, float y, float z)
 {
-  c->SetFPSRotation(Vec3f(x, y, z));
+  c->SetFPSRotation(x, y, z);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetArcballDistance(Camera *c, float dist)
@@ -203,33 +203,22 @@ extern "C" RENDERDOC_API void RENDERDOC_CC Camera_ResetArcball(Camera *c)
 extern "C" RENDERDOC_API void RENDERDOC_CC Camera_RotateArcball(Camera *c, float ax, float ay,
                                                                 float bx, float by)
 {
-  c->RotateArcball(Vec2f(ax, ay), Vec2f(bx, by));
+  c->RotateArcball(ax, ay, bx, by);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC Camera_GetBasis(Camera *c, FloatVector *pos,
                                                            FloatVector *fwd, FloatVector *right,
                                                            FloatVector *up)
 {
-  Vec3f p = c->GetPosition();
-  Vec3f f = c->GetForward();
-  Vec3f r = c->GetRight();
-  Vec3f u = c->GetUp();
+  *pos = c->GetPosition();
+  *fwd = c->GetForward();
+  *right = c->GetRight();
+  *up = c->GetUp();
+}
 
-  pos->x = p.x;
-  pos->y = p.y;
-  pos->z = p.z;
-
-  fwd->x = f.x;
-  fwd->y = f.y;
-  fwd->z = f.z;
-
-  right->x = r.x;
-  right->y = r.y;
-  right->z = r.z;
-
-  up->x = u.x;
-  up->y = u.y;
-  up->z = u.z;
+extern "C" RENDERDOC_API ICamera *RENDERDOC_CC RENDERDOC_InitCamera(CameraType type)
+{
+  return new Camera(type);
 }
 
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetVersionString()

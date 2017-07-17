@@ -37,9 +37,12 @@ void Camera::ResetArcball()
 }
 
 // https://en.wikibooks.org/wiki/OpenGL_Programming/Modern_OpenGL_Tutorial_Arcball
-void Camera::RotateArcball(const Vec2f &from, const Vec2f &to)
+void Camera::RotateArcball(float ax, float ay, float bx, float by)
 {
   Vec3f a, b;
+
+  Vec2f from(ax, ay);
+  Vec2f to(bx, by);
 
   float az = from.x * from.x + from.y * from.y;
   float bz = to.x * to.x + to.y * to.y;
@@ -84,7 +87,7 @@ void Camera::Update()
   if(!dirty)
     return;
 
-  if(type == eType_FPSLook)
+  if(type == CameraType::FPSLook)
   {
     Matrix4f p = Matrix4f::Translation(-pos);
     Matrix4f r = Matrix4f::RotationXYZ(-angles);
@@ -108,22 +111,25 @@ const Matrix4f Camera::GetMatrix()
   return mat;
 }
 
-const Vec3f Camera::GetPosition()
+FloatVector Camera::GetPosition()
 {
-  return pos;
+  return FloatVector(pos.x, pos.y, pos.z, 1.0f);
 }
 
-const Vec3f Camera::GetForward()
+FloatVector Camera::GetForward()
 {
-  return basis.GetForward();
+  Vec3f fwd = basis.GetForward();
+  return FloatVector(fwd.x, fwd.y, fwd.z, 1.0f);
 }
 
-const Vec3f Camera::GetRight()
+FloatVector Camera::GetRight()
 {
-  return basis.GetRight();
+  Vec3f right = basis.GetRight();
+  return FloatVector(right.x, right.y, right.z, 1.0f);
 }
 
-const Vec3f Camera::GetUp()
+FloatVector Camera::GetUp()
 {
-  return basis.GetUp();
+  Vec3f up = basis.GetUp();
+  return FloatVector(up.x, up.y, up.z, 1.0f);
 }

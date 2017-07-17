@@ -25,25 +25,22 @@
 
 #pragma once
 
+#include "api/replay/renderdoc_replay.h"
 #include "quat.h"
 #include "vec.h"
 
 class Matrix4f;
 
-class Camera
+class Camera : public ICamera
 {
 public:
-  enum CameraType
-  {
-    eType_Arcball = 0,
-    eType_FPSLook,
-  };
-
   Camera(CameraType t) : type(t), dirty(true), pos(), dist(0.0f), angles() { ResetArcball(); }
-  void SetPosition(const Vec3f &p)
+  virtual ~Camera() {}
+  void Shutdown() { delete this; }
+  void SetPosition(float x, float y, float z)
   {
     dirty = true;
-    pos = p;
+    pos = Vec3f(x, y, z);
   }
 
   // Arcball functions
@@ -53,19 +50,19 @@ public:
     dirty = true;
     dist = d;
   }
-  void RotateArcball(const Vec2f &from, const Vec2f &to);
+  void RotateArcball(float ax, float ay, float bx, float by);
 
   // FPS look functions
-  void SetFPSRotation(const Vec3f &rot)
+  void SetFPSRotation(float x, float y, float z)
   {
     dirty = true;
-    angles = rot;
+    angles = Vec3f(x, y, z);
   }
 
-  const Vec3f GetPosition();
-  const Vec3f GetForward();
-  const Vec3f GetRight();
-  const Vec3f GetUp();
+  FloatVector GetPosition();
+  FloatVector GetForward();
+  FloatVector GetRight();
+  FloatVector GetUp();
   const Matrix4f GetMatrix();
 
 private:

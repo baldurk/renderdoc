@@ -104,7 +104,7 @@ struct MeshFormat
 
 DECLARE_REFLECTION_STRUCT(MeshFormat);
 
-class Camera;
+struct ICamera;
 
 DOCUMENT(R"(
 Describes how to render a mesh preview of one or more meshes. Describes the camera configuration as
@@ -119,8 +119,8 @@ struct MeshDisplay
   DOCUMENT("The :class:`MeshDataStage` where this mesh data comes from.");
   MeshDataStage type;
 
-  DOCUMENT("The ``Camera`` to use when rendering all of the meshes.");
-  Camera *cam;
+  DOCUMENT("The :class:`Camera` to use when rendering all of the meshes.");
+  ICamera *cam;
 
   DOCUMENT(
       "``True`` if the projection matrix to use when unprojecting vertex positions is "

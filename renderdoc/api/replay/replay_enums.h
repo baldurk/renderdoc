@@ -2994,6 +2994,22 @@ enum class CounterUnit : uint32_t
   Cycles,
 };
 
+DOCUMENT(R"(The type of camera controls for an :class:`Camera`.
+
+.. data:: Arcball
+
+  Arcball controls that rotate and zoom around the origin point.
+
+.. data:: FPSLook
+
+  Traditional FPS style controls with movement in each axis relative to the current look direction.
+)");
+enum class CameraType : uint32_t
+{
+  Arcball = 0,
+  FPSLook,
+};
+
 DOCUMENT(R"(How supported a given API is on a particular replay instance.
 
 .. data:: Unsupported
