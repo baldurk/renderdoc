@@ -722,7 +722,8 @@ void PythonContext::outstream_del(PyObject *self)
   {
     PythonContext *context = redirector->context;
 
-    delete context;
+    // delete the context on the UI thread.
+    GUIInvoke::call([context]() { delete context; });
   }
 }
 
