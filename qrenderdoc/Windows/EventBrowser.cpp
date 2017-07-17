@@ -398,6 +398,11 @@ void EventBrowser::on_events_currentItemChanged(RDTreeWidgetItem *current, RDTre
 
   m_Ctx.SetEventID({this}, tag.EID, tag.lastEID);
 
+  const DrawcallDescription *draw = m_Ctx.GetDrawcall(tag.lastEID);
+
+  ui->stepPrev->setEnabled(draw && draw->previous);
+  ui->stepNext->setEnabled(draw && draw->next);
+
   highlightBookmarks();
 }
 
@@ -490,7 +495,7 @@ void EventBrowser::on_findPrev_clicked()
 
 void EventBrowser::on_stepNext_clicked()
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.LogLoaded() || !ui->stepNext->isEnabled())
     return;
 
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
@@ -501,7 +506,7 @@ void EventBrowser::on_stepNext_clicked()
 
 void EventBrowser::on_stepPrev_clicked()
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.LogLoaded() || !ui->stepPrev->isEnabled())
     return;
 
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
