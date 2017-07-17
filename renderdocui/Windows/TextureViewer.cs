@@ -95,38 +95,27 @@ namespace renderdocui.Windows
                 return !(s1 == s2);
             }
 
-            public static void GetDrawContext(Core core, out bool copy, out bool compute)
+            public static void GetDrawContext(Core core, out bool copy, out bool clear, out bool compute)
             {
                 var curDraw = core.CurDrawcall;
                 copy = curDraw != null && (curDraw.flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve | DrawcallFlags.Present)) != 0;
+                clear = curDraw != null && (curDraw.flags & DrawcallFlags.Clear) != 0;
                 compute = curDraw != null && (curDraw.flags & DrawcallFlags.Dispatch) != 0 &&
                           core.CurPipelineState.GetShader(ShaderStageType.Compute) != ResourceId.Null;
             }
 
             public int GetHighestMip(Core core)
             {
-                var curDraw = core.CurDrawcall;
-                bool copy, compute;
-                GetDrawContext(core, out copy, out compute);
-
                 return GetBoundResource(core, arrayEl).HighestMip;
             }
 
             public int GetFirstArraySlice(Core core)
             {
-                var curDraw = core.CurDrawcall;
-                bool copy, compute;
-                GetDrawContext(core, out copy, out compute);
-
                 return GetBoundResource(core, arrayEl).FirstSlice;
             }
 
             public FormatComponentType GetTypeHint(Core core)
             {
-                var curDraw = core.CurDrawcall;
-                bool copy, compute;
-                GetDrawContext(core, out copy, out compute);
-
                 return GetBoundResource(core, arrayEl).typeHint;
             }
 
@@ -185,13 +174,17 @@ namespace renderdocui.Windows
             public static BoundResource[] GetOutputTargets(Core core)
             {
                 var curDraw = core.CurDrawcall;
-                bool copy, compute;
-                GetDrawContext(core, out copy, out compute);
+                bool copy, clear, compute;
+                GetDrawContext(core, out copy, out clear, out compute);
 
-                if (copy)
+                if (copy || clear)
+                {
                     return new BoundResource[] { new BoundResource(curDraw.copyDestination) };
-                else if(compute)
+                }
+                else if (compute)
+                {
                     return new BoundResource[0];
+                }
                 else
                 {
                     var ret = core.CurPipelineState.GetOutputTargets();
@@ -213,10 +206,10 @@ namespace renderdocui.Windows
             public static BoundResource GetDepthTarget(Core core)
             {
                 var curDraw = core.CurDrawcall;
-                bool copy, compute;
-                GetDrawContext(core, out copy, out compute);
+                bool copy, clear, compute;
+                GetDrawContext(core, out copy, out clear, out compute);
 
-                if (copy || compute)
+                if (copy || clear || compute)
                     return new BoundResource(ResourceId.Null);
                 else
                     return core.CurPipelineState.GetDepthTarget();
@@ -230,10 +223,10 @@ namespace renderdocui.Windows
             public static Dictionary<BindpointMap, BoundResource[]> GetReadWriteResources(Core core, ShaderStageType stage)
             {
                 var curDraw = core.CurDrawcall;
-                bool copy, compute;
-                GetDrawContext(core, out copy, out compute);
+                bool copy, clear, compute;
+                GetDrawContext(core, out copy, out clear, out compute);
 
-                if (copy)
+                if (copy || clear)
                 {
                     return new Dictionary<BindpointMap, BoundResource[]>();
                 }
@@ -259,10 +252,15 @@ namespace renderdocui.Windows
             public static Dictionary<BindpointMap, BoundResource[]> GetReadOnlyResources(Core core, ShaderStageType stage)
             {
                 var curDraw = core.CurDrawcall;
-                bool copy, compute;
-                GetDrawContext(core, out copy, out compute);
+                bool copy, clear, compute;
+                GetDrawContext(core, out copy, out clear, out compute);
 
-                if (copy)
+                if (clear)
+                {
+                    // no inputs for a clear
+                    return new Dictionary<BindpointMap, BoundResource[]>();
+                }
+                else if (copy)
                 {
                     var ret = new Dictionary<BindpointMap, BoundResource[]>();
 
@@ -294,10 +292,10 @@ namespace renderdocui.Windows
             public static ShaderReflection GetReflection(Core core, ShaderStageType stage)
             {
                 var curDraw = core.CurDrawcall;
-                bool copy, compute;
-                GetDrawContext(core, out copy, out compute);
+                bool copy, clear, compute;
+                GetDrawContext(core, out copy, out clear, out compute);
 
-                if (copy)
+                if (copy || clear)
                     return null;
                 else if (compute)
                     return core.CurPipelineState.GetShaderReflection(ShaderStageType.Compute);
@@ -313,18 +311,18 @@ namespace renderdocui.Windows
             public static ShaderBindpointMapping GetMapping(Core core, ShaderStageType stage)
             {
                 var curDraw = core.CurDrawcall;
-                bool copy, compute;
-                GetDrawContext(core, out copy, out compute);
+                bool copy, clear, compute;
+                GetDrawContext(core, out copy, out clear, out compute);
 
-                if (copy)
+                if (copy || clear)
                 {
                     ShaderBindpointMapping mapping = new ShaderBindpointMapping();
                     mapping.ConstantBlocks = new BindpointMap[0];
                     mapping.ReadWriteResources = new BindpointMap[0];
                     mapping.InputAttributes = new int[0];
 
-                    // for PS only add a single mapping to get the copy source
-                    if (stage == ShaderStageType.Pixel)
+                    // for copy, in PS only, add a single mapping to get the copy source
+                    if (copy && stage == ShaderStageType.Pixel)
                         mapping.ReadOnlyResources = new BindpointMap[] { new BindpointMap(0, 0) };
                     else
                         mapping.ReadOnlyResources = new BindpointMap[0];

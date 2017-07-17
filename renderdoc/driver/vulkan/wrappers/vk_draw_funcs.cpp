@@ -1822,6 +1822,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(Serialiser *localSerialiser,
       DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
+      draw.copyDestination = imgid;
 
       AddDrawcall(draw, true);
 
@@ -1926,6 +1927,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
       DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
+      draw.copyDestination = imgid;
 
       AddDrawcall(draw, true);
 

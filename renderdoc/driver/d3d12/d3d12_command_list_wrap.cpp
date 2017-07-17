@@ -4136,13 +4136,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
       m_Cmd->AddEvent(desc);
       string name = "ClearDepthStencilView(" + ToStr::Get(d) + "," + ToStr::Get(s) + ")";
 
+      D3D12Descriptor *descriptor = DescriptorFromPortableHandle(GetResourceManager(), dsv);
+
       DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
+      draw.copyDestination =
+          GetResourceManager()->GetOriginalID(GetResID(descriptor->nonsamp.resource));
 
       m_Cmd->AddDrawcall(draw, true);
-
-      D3D12Descriptor *descriptor = DescriptorFromPortableHandle(GetResourceManager(), dsv);
 
       D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -4223,13 +4225,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
       string name = "ClearRenderTargetView(" + ToStr::Get(Color[0]) + "," + ToStr::Get(Color[1]) +
                     "," + ToStr::Get(Color[2]) + "," + ToStr::Get(Color[3]) + ")";
 
+      D3D12Descriptor *descriptor = DescriptorFromPortableHandle(GetResourceManager(), rtv);
+
       DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
+      draw.copyDestination =
+          GetResourceManager()->GetOriginalID(GetResID(descriptor->nonsamp.resource));
 
       m_Cmd->AddDrawcall(draw, true);
-
-      D3D12Descriptor *descriptor = DescriptorFromPortableHandle(GetResourceManager(), rtv);
 
       D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -4324,6 +4328,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
       DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Clear;
+      draw.copyDestination = res;
 
       m_Cmd->AddDrawcall(draw, true);
 
@@ -4427,6 +4432,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
       DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Clear;
+      draw.copyDestination = res;
 
       m_Cmd->AddDrawcall(draw, true);
 

@@ -85,10 +85,11 @@ bool Following::operator==(const Following &o)
   return Type == o.Type && Stage == o.Stage && index == o.index;
 }
 
-void Following::GetDrawContext(ICaptureContext &ctx, bool &copy, bool &compute)
+void Following::GetDrawContext(ICaptureContext &ctx, bool &copy, bool &clear, bool &compute)
 {
   const DrawcallDescription *curDraw = ctx.CurDrawcall();
   copy = curDraw != NULL && (curDraw->flags & (DrawFlags::Copy | DrawFlags::Resolve));
+  clear = curDraw != NULL && (curDraw->flags & DrawFlags::Clear);
   compute = curDraw != NULL && (curDraw->flags & DrawFlags::Dispatch) &&
             ctx.CurPipelineState().GetShader(ShaderStage::Compute) != ResourceId();
 }
@@ -163,10 +164,10 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
 QVector<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
 {
   const DrawcallDescription *curDraw = ctx.CurDrawcall();
-  bool copy = false, compute = false;
-  GetDrawContext(ctx, copy, compute);
+  bool copy = false, clear = false, compute = false;
+  GetDrawContext(ctx, copy, clear, compute);
 
-  if(copy)
+  if(copy || clear)
   {
     return {BoundResource(curDraw->copyDestination)};
   }
@@ -196,10 +197,10 @@ QVector<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
 
 BoundResource Following::GetDepthTarget(ICaptureContext &ctx)
 {
-  bool copy = false, compute = false;
-  GetDrawContext(ctx, copy, compute);
+  bool copy = false, clear = false, compute = false;
+  GetDrawContext(ctx, copy, clear, compute);
 
-  if(copy || compute)
+  if(copy || clear || compute)
     return BoundResource(ResourceId());
   else
     return ctx.CurPipelineState().GetDepthTarget();
@@ -208,10 +209,10 @@ BoundResource Following::GetDepthTarget(ICaptureContext &ctx)
 QMap<BindpointMap, QVector<BoundResource>> Following::GetReadWriteResources(ICaptureContext &ctx,
                                                                             ShaderStage stage)
 {
-  bool copy = false, compute = false;
-  GetDrawContext(ctx, copy, compute);
+  bool copy = false, clear = false, compute = false;
+  GetDrawContext(ctx, copy, clear, compute);
 
-  if(copy)
+  if(copy || clear)
   {
     return QMap<BindpointMap, QVector<BoundResource>>();
   }
@@ -238,15 +239,15 @@ QMap<BindpointMap, QVector<BoundResource>> Following::GetReadOnlyResources(ICapt
                                                                            ShaderStage stage)
 {
   const DrawcallDescription *curDraw = ctx.CurDrawcall();
-  bool copy = false, compute = false;
-  GetDrawContext(ctx, copy, compute);
+  bool copy = false, clear = false, compute = false;
+  GetDrawContext(ctx, copy, clear, compute);
 
-  if(copy)
+  if(copy || clear)
   {
     QMap<BindpointMap, QVector<BoundResource>> ret;
 
     // only return copy source for one stage
-    if(stage == ShaderStage::Pixel)
+    if(copy && stage == ShaderStage::Pixel)
       ret[BindpointMap(0, 0)] = {BoundResource(curDraw->copySource)};
 
     return ret;
@@ -272,10 +273,10 @@ QMap<BindpointMap, QVector<BoundResource>> Following::GetReadOnlyResources(ICapt
 
 const ShaderReflection *Following::GetReflection(ICaptureContext &ctx, ShaderStage stage)
 {
-  bool copy = false, compute = false;
-  GetDrawContext(ctx, copy, compute);
+  bool copy = false, clear = false, compute = false;
+  GetDrawContext(ctx, copy, clear, compute);
 
-  if(copy)
+  if(copy || clear)
     return NULL;
   else if(compute)
     return ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
@@ -290,15 +291,15 @@ const ShaderReflection *Following::GetReflection(ICaptureContext &ctx)
 
 const ShaderBindpointMapping &Following::GetMapping(ICaptureContext &ctx, ShaderStage stage)
 {
-  bool copy = false, compute = false;
-  GetDrawContext(ctx, copy, compute);
+  bool copy = false, clear = false, compute = false;
+  GetDrawContext(ctx, copy, clear, compute);
 
-  if(copy)
+  if(copy || clear)
   {
     static ShaderBindpointMapping mapping;
 
     // for PS only add a single mapping to get the copy source
-    if(stage == ShaderStage::Pixel)
+    if(copy && stage == ShaderStage::Pixel)
       mapping.ReadOnlyResources = {BindpointMap(0, 0)};
     else
       mapping.ReadOnlyResources.clear();
@@ -2609,8 +2610,8 @@ void TextureViewer::OnEventChanged(uint32_t eventID)
   int outIndex = 0;
   int inIndex = 0;
 
-  bool copy = false, compute = false;
-  Following::GetDrawContext(m_Ctx, copy, compute);
+  bool copy = false, clear = false, compute = false;
+  Following::GetDrawContext(m_Ctx, copy, clear, compute);
 
   for(int rt = 0; rt < RTs.size(); rt++)
   {
@@ -2624,9 +2625,10 @@ void TextureViewer::OnEventChanged(uint32_t eventID)
     outIndex++;
 
     Following follow(FollowType::OutputColour, ShaderStage::Pixel, rt, 0);
-    QString bindName = copy ? tr("Destination") : QString();
-    QString slotName =
-        copy ? tr("DST") : (m_Ctx.CurPipelineState().OutputAbbrev() + QString::number(rt));
+    QString bindName = (copy || clear) ? tr("Destination") : QString();
+    QString slotName = (copy || clear)
+                           ? tr("DST")
+                           : (m_Ctx.CurPipelineState().OutputAbbrev() + QString::number(rt));
 
     InitResourcePreview(prev, RTs[rt].Id, RTs[rt].typeHint, false, follow, bindName, slotName);
   }

@@ -6408,7 +6408,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
     draw.name = name;
     draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
 
-    AddDrawcall(draw, true);
+    draw.copyDestination = resID;
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
     {
@@ -6416,7 +6416,10 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
           (WrappedID3D11RenderTargetView1 *)m_pDevice->GetResourceManager()->GetLiveResource(View);
       m_ResourceUses[view->GetResourceResID()].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+      draw.copyDestination = m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
     }
+
+    AddDrawcall(draw, true);
   }
 
   return true;
@@ -6589,8 +6592,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
     draw.name = name;
 
     draw.flags |= DrawFlags::Clear;
-
-    AddDrawcall(draw, true);
+    draw.copyDestination = resID;
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
     {
@@ -6598,7 +6600,10 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
           (WrappedID3D11UnorderedAccessView1 *)m_pDevice->GetResourceManager()->GetLiveResource(View);
       m_ResourceUses[view->GetResourceResID()].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+      draw.copyDestination = m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
     }
+
+    AddDrawcall(draw, true);
   }
 
   return true;
@@ -6761,8 +6766,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
     DrawcallDescription draw;
     draw.name = (name);
     draw.flags |= DrawFlags::Clear;
-
-    AddDrawcall(draw, true);
+    draw.copyDestination = resID;
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
     {
@@ -6770,7 +6774,10 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
           (WrappedID3D11UnorderedAccessView1 *)m_pDevice->GetResourceManager()->GetLiveResource(View);
       m_ResourceUses[view->GetResourceResID()].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+      draw.copyDestination = m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
     }
+
+    AddDrawcall(draw, true);
   }
 
   return true;
@@ -6919,8 +6926,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(
     DrawcallDescription draw;
     draw.name = name;
     draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
-
-    AddDrawcall(draw, true);
+    draw.copyDestination = resID;
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
     {
@@ -6928,7 +6934,10 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(
           (WrappedID3D11DepthStencilView *)m_pDevice->GetResourceManager()->GetLiveResource(View);
       m_ResourceUses[view->GetResourceResID()].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+      draw.copyDestination = m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
     }
+
+    AddDrawcall(draw, true);
   }
 
   return true;

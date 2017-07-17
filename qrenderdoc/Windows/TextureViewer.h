@@ -62,7 +62,7 @@ struct Following
 
   bool operator==(const Following &o);
   bool operator!=(const Following &o);
-  static void GetDrawContext(ICaptureContext &ctx, bool &copy, bool &compute);
+  static void GetDrawContext(ICaptureContext &ctx, bool &copy, bool &clear, bool &compute);
 
   int GetHighestMip(ICaptureContext &ctx);
   int GetFirstArraySlice(ICaptureContext &ctx);

@@ -480,6 +480,26 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(ID3D11View *pView, const FL
 
     draw.flags |= DrawFlags::Clear;
 
+    if(m_pDevice->GetResourceManager()->HasLiveResource(View))
+    {
+      ID3D11View *wrapped = (ID3D11View *)m_pDevice->GetResourceManager()->GetLiveResource(View);
+
+      ResourceId resid;
+
+      if(WrappedID3D11RenderTargetView1::IsAlloc(wrapped))
+        resid = ((WrappedID3D11RenderTargetView1 *)wrapped)->GetResourceID();
+      else if(WrappedID3D11DepthStencilView::IsAlloc(wrapped))
+        resid = ((WrappedID3D11DepthStencilView *)wrapped)->GetResourceID();
+      else if(WrappedID3D11ShaderResourceView1::IsAlloc(wrapped))
+        resid = ((WrappedID3D11ShaderResourceView1 *)wrapped)->GetResourceID();
+      else if(WrappedID3D11UnorderedAccessView1::IsAlloc(wrapped))
+        resid = ((WrappedID3D11UnorderedAccessView1 *)wrapped)->GetResourceID();
+
+      m_ResourceUses[resid].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::Clear, GetIDForResource(wrapped)));
+      draw.copyDestination = m_pDevice->GetResourceManager()->GetOriginalID(resid);
+    }
+
     AddDrawcall(draw, true);
   }
 
@@ -1710,8 +1730,8 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardResource(ID3D11Resource *pReso
     DrawcallDescription draw;
 
     draw.name = "DiscardResource()";
-
     draw.flags |= DrawFlags::Clear;
+    draw.copyDestination = res;
 
     AddDrawcall(draw, true);
 
@@ -1796,8 +1816,6 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(ID3D11View *pResourceView
 
     draw.flags |= DrawFlags::Clear;
 
-    AddDrawcall(draw, true);
-
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
     {
       ID3D11DeviceChild *pLiveView = m_pDevice->GetResourceManager()->GetLiveResource(View);
@@ -1807,26 +1825,36 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(ID3D11View *pResourceView
         WrappedID3D11RenderTargetView1 *view = (WrappedID3D11RenderTargetView1 *)pLiveView;
         m_ResourceUses[view->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+        draw.copyDestination =
+            m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
       }
       else if(WrappedID3D11DepthStencilView::IsAlloc(pLiveView))
       {
         WrappedID3D11DepthStencilView *view = (WrappedID3D11DepthStencilView *)pLiveView;
         m_ResourceUses[view->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+        draw.copyDestination =
+            m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
       }
       else if(WrappedID3D11ShaderResourceView1::IsAlloc(pLiveView))
       {
         WrappedID3D11ShaderResourceView1 *view = (WrappedID3D11ShaderResourceView1 *)pLiveView;
         m_ResourceUses[view->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+        draw.copyDestination =
+            m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
       }
       else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pLiveView))
       {
         WrappedID3D11UnorderedAccessView1 *view = (WrappedID3D11UnorderedAccessView1 *)pLiveView;
         m_ResourceUses[view->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+        draw.copyDestination =
+            m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
       }
     }
+
+    AddDrawcall(draw, true);
   }
 
   return true;
@@ -1921,25 +1949,45 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(ID3D11View *pResourceVie
 
     draw.flags |= DrawFlags::Clear;
 
-    AddDrawcall(draw, true);
-
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
     {
       ID3D11DeviceChild *pLiveView = m_pDevice->GetResourceManager()->GetLiveResource(View);
 
       if(WrappedID3D11RenderTargetView1::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11RenderTargetView1 *)pLiveView)->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, ResourceUsage::Clear));
+      {
+        WrappedID3D11RenderTargetView1 *view = (WrappedID3D11RenderTargetView1 *)pLiveView;
+        m_ResourceUses[view->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+        draw.copyDestination =
+            m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+      }
       else if(WrappedID3D11DepthStencilView::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11DepthStencilView *)pLiveView)->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, ResourceUsage::Clear));
+      {
+        WrappedID3D11DepthStencilView *view = (WrappedID3D11DepthStencilView *)pLiveView;
+        m_ResourceUses[view->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+        draw.copyDestination =
+            m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+      }
       else if(WrappedID3D11ShaderResourceView1::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11ShaderResourceView1 *)pLiveView)->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, ResourceUsage::Clear));
+      {
+        WrappedID3D11ShaderResourceView1 *view = (WrappedID3D11ShaderResourceView1 *)pLiveView;
+        m_ResourceUses[view->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+        draw.copyDestination =
+            m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+      }
       else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)pLiveView)->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, ResourceUsage::Clear));
+      {
+        WrappedID3D11UnorderedAccessView1 *view = (WrappedID3D11UnorderedAccessView1 *)pLiveView;
+        m_ResourceUses[view->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+        draw.copyDestination =
+            m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+      }
     }
+
+    AddDrawcall(draw, true);
   }
 
   SAFE_DELETE_ARRAY(rects);
