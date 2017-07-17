@@ -139,11 +139,10 @@ void CaptureContext::LoadLogfile(const QString &logFile, const QString &origFile
     QVector<ILogViewer *> logviewers(m_LogViewers);
 
     // make sure we're on a consistent event before invoking log viewer forms
-    const DrawcallDescription *draw = &m_Drawcalls.back();
-    while(!draw->children.empty())
-      draw = &draw->children.back();
-
-    SetEventID(logviewers, draw->eventID, true);
+    if(m_LastDrawcall)
+      SetEventID(logviewers, m_LastDrawcall->eventID, true);
+    else if(!m_Drawcalls.empty())
+      SetEventID(logviewers, m_Drawcalls.back().eventID, true);
 
     GUIInvoke::blockcall([&logviewers]() {
       // notify all the registers log viewers that a log has been loaded
@@ -205,6 +204,8 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
 
   m_EventID = 0;
 
+  m_FirstDrawcall = m_LastDrawcall = NULL;
+
   // fetch initial data like drawcalls, textures and buffers
   m_Renderer.BlockInvoke([this](IReplayController *r) {
     m_FrameInfo = r->GetFrameInfo();
@@ -216,6 +217,14 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
     m_Drawcalls = r->GetDrawcalls();
 
     AddFakeProfileMarkers();
+
+    m_FirstDrawcall = &m_Drawcalls[0];
+    while(!m_FirstDrawcall->children.empty())
+      m_FirstDrawcall = &m_FirstDrawcall->children[0];
+
+    m_LastDrawcall = &m_Drawcalls.back();
+    while(!m_LastDrawcall->children.empty())
+      m_LastDrawcall = &m_LastDrawcall->children.back();
 
     m_PostloadProgress = 0.4f;
 
@@ -521,6 +530,9 @@ void CaptureContext::CloseLogfile()
   m_BufferList.clear();
   m_Textures.clear();
   m_TextureList.clear();
+
+  m_Drawcalls.clear();
+  m_FirstDrawcall = m_LastDrawcall = NULL;
 
   m_CurD3D11PipelineState = D3D11Pipe::State();
   m_CurD3D12PipelineState = D3D12Pipe::State();

@@ -68,6 +68,11 @@ struct CaptureContextInvoker : ICaptureContext
     return m_Ctx.CurSelectedDrawcall();
   }
   virtual const DrawcallDescription *CurDrawcall() override { return m_Ctx.CurDrawcall(); }
+  virtual const DrawcallDescription *GetFirstDrawcall() override
+  {
+    return m_Ctx.GetFirstDrawcall();
+  }
+  virtual const DrawcallDescription *GetLastDrawcall() override { return m_Ctx.GetLastDrawcall(); }
   virtual const rdctype::array<DrawcallDescription> &CurDrawcalls() override
   {
     return m_Ctx.CurDrawcalls();

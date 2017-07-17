@@ -105,6 +105,8 @@ public:
     return GetDrawcall(CurSelectedEvent());
   }
   const DrawcallDescription *CurDrawcall() override { return GetDrawcall(CurEvent()); }
+  const DrawcallDescription *GetFirstDrawcall() override { return m_FirstDrawcall; };
+  const DrawcallDescription *GetLastDrawcall() override { return m_LastDrawcall; };
   const rdctype::array<DrawcallDescription> &CurDrawcalls() override { return m_Drawcalls; }
   TextureDescription *GetTexture(ResourceId id) override { return m_Textures[id]; }
   const rdctype::array<TextureDescription> &GetTextures() override { return m_TextureList; }
@@ -248,6 +250,8 @@ private:
 
   APIProperties m_APIProps;
   FrameDescription m_FrameInfo;
+  DrawcallDescription *m_FirstDrawcall = NULL;
+  DrawcallDescription *m_LastDrawcall = NULL;
 
   QMap<ResourceId, TextureDescription *> m_Textures;
   rdctype::array<TextureDescription> m_TextureList;

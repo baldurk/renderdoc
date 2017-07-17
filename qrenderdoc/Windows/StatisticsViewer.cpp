@@ -686,17 +686,14 @@ void StatisticsViewer::GenerateReport()
 {
   const rdctype::array<DrawcallDescription> &curDraws = m_Ctx.CurDrawcalls();
 
-  const DrawcallDescription *lastDraw = &curDraws.back();
-  while(!lastDraw->children.empty())
-    lastDraw = &lastDraw->children.back();
-
   uint32_t drawCount = 0;
   uint32_t dispatchCount = 0;
   uint32_t diagnosticCount = 0;
   for(const DrawcallDescription &d : curDraws)
     CountContributingEvents(d, drawCount, dispatchCount, diagnosticCount);
 
-  uint32_t numAPIcalls = lastDraw->eventID - (drawCount + dispatchCount + diagnosticCount);
+  uint32_t numAPIcalls =
+      m_Ctx.GetLastDrawcall()->eventID - (drawCount + dispatchCount + diagnosticCount);
 
   int numTextures = m_Ctx.GetTextures().count;
   int numBuffers = m_Ctx.GetBuffers().count;

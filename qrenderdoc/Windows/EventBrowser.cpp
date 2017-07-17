@@ -175,7 +175,7 @@ void EventBrowser::OnLogfileLoaded()
 
   RDTreeWidgetItem *framestart =
       new RDTreeWidgetItem({tr("Frame Start"), lit("0"), lit("0"), QString()});
-  framestart->setTag(QVariant::fromValue(EventItemTag()));
+  framestart->setTag(QVariant::fromValue(EventItemTag(0, 0)));
 
   frame->addChild(framestart);
 
@@ -403,6 +403,14 @@ void EventBrowser::on_events_currentItemChanged(RDTreeWidgetItem *current, RDTre
   ui->stepPrev->setEnabled(draw && draw->previous);
   ui->stepNext->setEnabled(draw && draw->next);
 
+  // special case for the first draw in the frame
+  if(tag.lastEID == 0)
+    ui->stepNext->setEnabled(true);
+
+  // special case for the first 'virtual' draw at EID 0
+  if(tag.lastEID == m_Ctx.GetFirstDrawcall()->eventID)
+    ui->stepPrev->setEnabled(true);
+
   highlightBookmarks();
 }
 
@@ -502,6 +510,10 @@ void EventBrowser::on_stepNext_clicked()
 
   if(draw && draw->next > 0)
     SelectEvent(draw->next);
+
+  // special case for the first 'virtual' draw at EID 0
+  if(m_Ctx.CurEvent() == 0)
+    SelectEvent(m_Ctx.GetFirstDrawcall()->eventID);
 }
 
 void EventBrowser::on_stepPrev_clicked()
@@ -513,6 +525,10 @@ void EventBrowser::on_stepPrev_clicked()
 
   if(draw && draw->previous > 0)
     SelectEvent(draw->previous);
+
+  // special case for the first 'virtual' draw at EID 0
+  if(m_Ctx.CurEvent() == m_Ctx.GetFirstDrawcall()->eventID)
+    SelectEvent(0);
 }
 
 void EventBrowser::on_exportDraws_clicked()

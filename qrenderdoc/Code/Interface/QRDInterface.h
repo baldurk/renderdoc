@@ -960,10 +960,24 @@ more information for how this differs.
 
   DOCUMENT(R"(Retrieve the current drawcall.
 
-:return: The current drawcall.
+:return: The current drawcall, or ``None`` if no drawcall is selected.
 :rtype: ~renderdoc.DrawcallDescription
 )");
   virtual const DrawcallDescription *CurDrawcall() = 0;
+
+  DOCUMENT(R"(Retrieve the first drawcall in the capture.
+
+:return: The first drawcall.
+:rtype: ~renderdoc.DrawcallDescription
+)");
+  virtual const DrawcallDescription *GetFirstDrawcall() = 0;
+
+  DOCUMENT(R"(Retrieve the last drawcall in the capture.
+
+:return: The last drawcall.
+:rtype: ~renderdoc.DrawcallDescription
+)");
+  virtual const DrawcallDescription *GetLastDrawcall() = 0;
 
   DOCUMENT(R"(Retrieve the root list of drawcalls in the current capture.
 
