@@ -577,6 +577,15 @@ void extractDeviceIDAndIndex(const string &hostname, int &index, string &deviceI
 
   deviceID = c;
 }
+Process::ProcessResult execScript(const string &script, const string &args,
+                                  const string &workDir = ".")
+{
+  RDCLOG("SCRIPT: %s", script.c_str());
+
+  Process::ProcessResult result;
+  Process::LaunchScript(script.c_str(), workDir.c_str(), args.c_str(), &result);
+  return result;
+}
 Process::ProcessResult execCommand(const string &cmd, const string &workDir = ".")
 {
   RDCLOG("COMMAND: %s", cmd.c_str());

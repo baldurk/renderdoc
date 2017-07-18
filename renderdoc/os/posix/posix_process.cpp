@@ -456,6 +456,15 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
   return ret;
 }
 
+uint32_t Process::LaunchScript(const char *script, const char *workingDir, const char *argList,
+                               ProcessResult *result)
+{
+  // Change parameters to invoke command interpreter
+  string args = "-lc \"" + string(script) + " " + string(argList) + "\"";
+
+  return LaunchProcess("bash", workingDir, args.c_str(), result);
+}
+
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
                                              const char *cmdLine,
                                              const rdctype::array<EnvironmentModification> &envList,
