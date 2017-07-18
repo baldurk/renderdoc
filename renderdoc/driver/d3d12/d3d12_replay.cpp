@@ -1338,6 +1338,11 @@ bool D3D12Replay::IsTextureSupported(const ResourceFormat &format)
   return MakeDXGIFormat(format) != DXGI_FORMAT_UNKNOWN;
 }
 
+bool D3D12Replay::NeedRemapForFetch(const ResourceFormat &format)
+{
+  return false;
+}
+
 void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData)
 {
   m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);

@@ -1807,7 +1807,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
       // Stencil texture sampling is not normalized in OpenGL
       intIdx = 1;
-      float rangeScale;
+      float rangeScale = 1.0f;
       switch(texDetails.internalFormat)
       {
         case eGL_STENCIL_INDEX1: rangeScale = 1.0f; break;
@@ -1817,8 +1817,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
         // fall through
         case eGL_DEPTH24_STENCIL8:
         case eGL_DEPTH32F_STENCIL8:
-        case eGL_STENCIL_INDEX8: rangeScale = 256.0f; break;
-        case eGL_STENCIL_INDEX16: rangeScale = 65536.0f; break;
+        case eGL_STENCIL_INDEX8: rangeScale = 255.0f; break;
+        case eGL_STENCIL_INDEX16: rangeScale = 65535.0f; break;
       }
       cfg.rangemin *= rangeScale;
       cfg.rangemax *= rangeScale;
@@ -1975,7 +1975,10 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
     ubo->Channels.x = 1.0f;
     ubo->Channels.y = 0.0f;
     ubo->Channels.z = 0.0f;
-    ubo->Channels.w = 0.0f;
+    // to prevent depth only format from having non-zero values in other channels, we have to
+    // prevent splatting (the shader will splat the red channel when only the red channel contains
+    // a value of 1).
+    ubo->Channels.w = dsTexMode == eGL_DEPTH_COMPONENT ? 1.0f : 0.0f;
   }
 
   ubo->RangeMinimum = cfg.rangemin;

@@ -55,6 +55,7 @@ enum ReplayProxyPacket
   eReplayProxy_GetLiveID,
   eReplayProxy_GetFrameRecord,
   eReplayProxy_IsRenderOutput,
+  eReplayProxy_NeedRemapForFetch,
 
   eReplayProxy_FreeResource,
   eReplayProxy_HasResolver,
@@ -491,8 +492,9 @@ private:
   bool SendReplayCommand(ReplayProxyPacket type);
 
   void EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip);
-  void RemapProxyTextureIfNeeded(ResourceFormat &format, GetTextureDataParams &params);
+  void RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureDataParams &params);
   void EnsureBufCached(ResourceId bufid);
+  bool NeedRemapForFetch(const ResourceFormat &format);
 
   struct TextureCacheEntry
   {

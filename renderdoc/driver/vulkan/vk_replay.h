@@ -239,6 +239,7 @@ public:
   void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
                            size_t dataSize);
   bool IsTextureSupported(const ResourceFormat &format);
+  bool NeedRemapForFetch(const ResourceFormat &format);
 
   ResourceId CreateProxyBuffer(const BufferDescription &templateBuf);
   void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize);
