@@ -107,3 +107,16 @@ bool endswith(const std::string &value, const std::string &ending)
 
   return (0 == value.compare(value.length() - ending.length(), ending.length(), ending));
 }
+
+std::string removeFromEnd(const std::string &value, const std::string &ending)
+{
+  string::size_type pos;
+  pos = value.rfind(ending);
+
+  // Create new string from beginning to pattern
+  if(string::npos != pos)
+    return value.substr(0, pos);
+
+  // If pattern not found, just return original string
+  return value;
+}
