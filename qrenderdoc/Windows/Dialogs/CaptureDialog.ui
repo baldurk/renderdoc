@@ -313,6 +313,50 @@
     </widget>
    </item>
    <item>
+    <widget class="RDLabel" name="androidScan">
+     <property name="cursor">
+      <cursorShape>PointingHandCursor</cursorShape>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::Box</enum>
+     </property>
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;table&gt;&lt;tr&gt;&lt;td valign=&quot;middle&quot;&gt;&lt;img src=&quot;:/information.png&quot;/&gt;&lt;/td&gt;&lt;td valign=&quot;middle&quot;&gt;&lt;p&gt;Scanning Android application for RenderDoc support...&lt;br/&gt;&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::RichText</enum>
+     </property>
+     <property name="pixmap">
+      <pixmap resource="../../Resources/resources.qrc">:/information.png</pixmap>
+     </property>
+     <property name="margin">
+      <number>3</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="RDLabel" name="androidWarn">
+     <property name="cursor">
+      <cursorShape>PointingHandCursor</cursorShape>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::Box</enum>
+     </property>
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;table&gt;&lt;tr&gt;&lt;td valign=&quot;middle&quot;&gt;&lt;img src=&quot;:/information.png&quot;/&gt;&lt;/td&gt;&lt;td&gt;&lt;p&gt;Warning: Android application not set up for RenderDoc capture.&lt;br/&gt;Click here for ways to fix this.&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::RichText</enum>
+     </property>
+     <property name="pixmap">
+      <pixmap resource="../../Resources/resources.qrc">:/information.png</pixmap>
+     </property>
+     <property name="margin">
+      <number>3</number>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="optionsGroup">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Minimum">

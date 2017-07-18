@@ -72,5 +72,8 @@ if(ANDROID)
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoccmd> libs/${ANDROID_ABI}/$<TARGET_FILE_NAME:renderdoccmd>
                        COMMAND android update project --path . --name RenderDocCmd --target ${APK_TARGET_ID}
                        COMMAND ant debug
-                       COMMAND ${CMAKE_COMMAND} -E copy bin/RenderDocCmd-debug.apk ${APK_FILE})
+                       COMMAND ${CMAKE_COMMAND} -E copy bin/RenderDocCmd-debug.apk ${APK_FILE}
+                       COMMAND ${CMAKE_COMMAND} -E make_directory libs/lib
+                       COMMAND ${CMAKE_COMMAND} -E copy_directory libs/${ANDROID_ABI} libs/lib/${ANDROID_ABI}
+                       COMMAND ${CMAKE_COMMAND} -E remove_directory libs/${ANDROID_ABI})
 endif()

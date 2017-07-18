@@ -60,6 +60,32 @@ static QString GetDescription(const EnvironmentModification &env)
 
 Q_DECLARE_METATYPE(CaptureSettings);
 
+void CaptureDialog::initWarning(RDLabel *warning)
+{
+  if(!warning)
+    return;
+
+  QPalette pal = warning->palette();
+
+  QColor base = pal.color(QPalette::ToolTipBase);
+
+  pal.setColor(QPalette::Foreground, pal.color(QPalette::ToolTipText));
+  pal.setColor(QPalette::Window, base);
+  pal.setColor(QPalette::Base, base.darker(120));
+
+  warning->setBackgroundRole(QPalette::Window);
+
+  QObject::connect(warning, &RDLabel::mouseMoved,
+                   [this, warning](QMouseEvent *) { warning->setBackgroundRole(QPalette::Base); });
+  QObject::connect(warning, &RDLabel::leave,
+                   [this, warning]() { warning->setBackgroundRole(QPalette::Window); });
+
+  warning->setPalette(pal);
+  warning->setAutoFillBackground(true);
+  warning->setMouseTracking(true);
+  warning->setVisible(false);
+}
+
 CaptureDialog::CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallback,
                              OnInjectMethod injectCallback, QWidget *parent)
     : QFrame(parent), ui(new Ui::CaptureDialog), m_Ctx(ctx)
@@ -112,32 +138,20 @@ CaptureDialog::CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallba
   // sort by PID by default
   ui->processList->sortByColumn(1, Qt::AscendingOrder);
 
+  // Set up warning for host layer config
+  initWarning(ui->vulkanLayerWarn);
   ui->vulkanLayerWarn->setVisible(RENDERDOC_NeedVulkanLayerRegistration(NULL, NULL, NULL));
-
   QObject::connect(ui->vulkanLayerWarn, &RDLabel::clicked, this,
                    &CaptureDialog::vulkanLayerWarn_mouseClick);
 
-  QPalette pal = ui->vulkanLayerWarn->palette();
+  // Set up scanning for Android apps
+  initWarning(ui->androidScan);
 
-  QColor base = pal.color(QPalette::ToolTipBase);
+  // Set up warning for Android apps
+  initWarning(ui->androidWarn);
+  QObject::connect(ui->androidWarn, &RDLabel::clicked, this, &CaptureDialog::androidWarn_mouseClick);
 
-  pal.setColor(QPalette::Foreground, pal.color(QPalette::ToolTipText));
-
-  pal.setColor(QPalette::Window, base);
-  pal.setColor(QPalette::Base, base.darker(120));
-
-  ui->vulkanLayerWarn->setBackgroundRole(QPalette::Window);
-
-  QObject::connect(ui->vulkanLayerWarn, &RDLabel::mouseMoved, [this](QMouseEvent *) {
-    ui->vulkanLayerWarn->setBackgroundRole(QPalette::Base);
-  });
-  QObject::connect(ui->vulkanLayerWarn, &RDLabel::leave,
-                   [this]() { ui->vulkanLayerWarn->setBackgroundRole(QPalette::Window); });
-
-  ui->vulkanLayerWarn->setPalette(pal);
-  ui->vulkanLayerWarn->setAutoFillBackground(true);
-
-  ui->vulkanLayerWarn->setMouseTracking(true);
+  m_AndroidFlags = AndroidFlags::NoFlags;
 
   m_CaptureCallback = captureCallback;
   m_InjectCallback = injectCallback;
@@ -397,6 +411,137 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
   }
 }
 
+void CaptureDialog::CheckAndroidSetup(QString &filename)
+{
+  ui->androidWarn->setVisible(false);
+  ui->androidScan->setVisible(true);
+
+  LambdaThread *scan = new LambdaThread([this, filename]() {
+
+    QByteArray hostnameBytes = m_Ctx.Replay().CurrentRemote()->Hostname.toUtf8();
+    RENDERDOC_CheckAndroidPackage(hostnameBytes.data(), filename.toUtf8().data(), &m_AndroidFlags);
+
+    const bool missingLibrary = bool(m_AndroidFlags & AndroidFlags::MissingLibrary);
+    const bool missingPermissions = bool(m_AndroidFlags & AndroidFlags::MissingPermissions);
+
+    if(missingLibrary || missingPermissions)
+    {
+      // Check failed - set the warning visible
+      GUIInvoke::call([this]() {
+        ui->androidScan->setVisible(false);
+        ui->androidWarn->setVisible(true);
+      });
+    }
+    else
+    {
+      // Check passed - no warnings needed
+      GUIInvoke::call([this]() {
+        ui->androidScan->setVisible(false);
+        ui->androidWarn->setVisible(false);
+      });
+    }
+  });
+
+  scan->start();
+  scan->deleteLater();
+}
+
+void CaptureDialog::androidWarn_mouseClick()
+{
+  QString exe = ui->exePath->text();
+
+  QString caption = tr("Missing RenderDoc requirements");
+
+  QString msg = tr("In order to debug on Android, the following problems must be fixed:<br><br>");
+
+  bool missingPermissions = bool(m_AndroidFlags & AndroidFlags::MissingPermissions);
+  bool missingLibrary = bool(m_AndroidFlags & AndroidFlags::MissingLibrary);
+
+  if(missingPermissions)
+  {
+    msg +=
+        tr("<b>Missing permissions</b><br>"
+           "The target APK must have the following permissions:<br>"
+           "android.permission.WRITE_EXTERNAL_STORAGE<br>"
+           "android.permission.INTERNET<br><br>");
+  }
+
+  if(missingLibrary)
+  {
+    msg +=
+        tr("<b>Missing library</b><br>"
+           "The RenderDoc library must be present in the "
+           "installed application.<br><br>"
+           "To fix this, you should repackage the APK following guidelines on the "
+           "<a href='http://github.com/baldurk/renderdoc/wiki/Android-Support'>"
+           "RenderDoc Wiki</a><br><br>");
+  }
+
+  if(missingPermissions)
+  {
+    // Don't prompt for patching if anything other than library is missing
+    RDDialog::critical(this, caption, msg);
+  }
+  else
+  {
+    msg +=
+        tr("If you are only targeting Vulkan, RenderDoc can try to add the layer for you, "
+           "which requires pulling the APK, patching it, uninstalling the original, and "
+           "installing the modified version with a debug key. "
+           "This works for many debuggable applications, but not all, especially those that "
+           "check their integrity before launching.<br><br>"
+           "Your system will need several tools installed and available to RenderDoc. "
+           "Any missing tools will be noted in the log. Follow the steps "
+           "<a href='http://github.com/baldurk/renderdoc/wiki/Android-Support'>here"
+           "</a> to get them.<br><br>"
+           "Would you like RenderDoc to try patching your APK?");
+
+    QMessageBox::StandardButton prompt = RDDialog::question(this, caption, msg);
+
+    if(prompt == QMessageBox::Yes)
+    {
+      float progress = 0.0f;
+      bool patchSucceeded = false;
+
+      // call into APK pull, patch, install routine, then continue
+      LambdaThread *patch = new LambdaThread([this, exe, &patchSucceeded, &progress]() {
+        QByteArray hostnameBytes = m_Ctx.Replay().CurrentRemote()->Hostname.toUtf8();
+        if(RENDERDOC_AddLayerToAndroidPackage(hostnameBytes.data(), exe.toUtf8().data(), &progress))
+        {
+          // Sucess!
+          patchSucceeded = true;
+
+          RDDialog::information(
+              this, tr("Patch succeeded!"),
+              tr("The patch process succeeded and %1 now contains the RenderDoc layer").arg(exe));
+        }
+        else
+        {
+          RDDialog::critical(this, tr("Failed to patch APK"),
+                             tr("Something has gone wrong and APK patching failed "
+                                "for:<br>%1<br>Check diagnostic log in Help "
+                                "menu for more details.")
+                                 .arg(exe));
+        }
+      });
+
+      patch->start();
+      // wait a few ms before popping up a progress bar
+      patch->wait(500);
+      if(patch->isRunning())
+      {
+        ShowProgressDialog(this, tr("Patching %1, please wait...").arg(exe),
+                           [patch]() { return !patch->isRunning(); },
+                           [&progress]() { return progress; });
+      }
+      patch->deleteLater();
+
+      if(patchSucceeded)
+        ui->androidWarn->setVisible(false);
+    }
+  }
+}
+
 void CaptureDialog::on_processRefesh_clicked()
 {
   fillProcessList();
@@ -446,7 +591,14 @@ void CaptureDialog::on_exePathBrowse_clicked()
   }
 
   if(!filename.isEmpty())
+  {
     SetExecutableFilename(filename);
+
+    if(m_Ctx.Replay().CurrentRemote() && m_Ctx.Replay().CurrentRemote()->IsHostADB())
+    {
+      CheckAndroidSetup(filename);
+    }
+  }
 }
 
 void CaptureDialog::on_workDirBrowse_clicked()

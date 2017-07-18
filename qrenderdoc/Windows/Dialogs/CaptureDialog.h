@@ -35,6 +35,7 @@ class CaptureDialog;
 
 class QStandardItemModel;
 class LiveCapture;
+class RDLabel;
 
 class CaptureDialog : public QFrame, public ICaptureDialog
 {
@@ -97,6 +98,7 @@ private slots:
 
   // manual slots
   void vulkanLayerWarn_mouseClick();
+  void androidWarn_mouseClick();
 
 private:
   Ui::CaptureDialog *ui;
@@ -110,4 +112,8 @@ private:
   QList<EnvironmentModification> m_EnvModifications;
   bool m_Inject;
   void fillProcessList();
+  void initWarning(RDLabel *label);
+
+  void CheckAndroidSetup(QString &filename);
+  AndroidFlags m_AndroidFlags;
 };
