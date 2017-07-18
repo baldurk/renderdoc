@@ -2009,14 +2009,28 @@ string ToStrHelper<false, RemapTextureEnum>::Get(const RemapTextureEnum &el)
 
 // If a remap is required, modify the params that are used when getting the proxy texture data
 // for replay on the current driver.
-void ReplayProxy::RemapProxyTextureIfNeeded(ResourceFormat &format, GetTextureDataParams &params)
+void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureDataParams &params)
 {
-  if(m_Proxy->IsTextureSupported(format))
+  if(NeedRemapForFetch(tex.format))
+  {
+    // currently only OpenGL ES need to remap all the depth formats for fetch
+    // when depth read is not supported
+    params.remap = eRemap_RGBA32;
+    tex.format.compCount = 4;
+    tex.format.compByteWidth = 4;
+    tex.format.compType = CompType::Float;
+    tex.format.special = false;
+    tex.format.specialFormat = SpecialFormat::Unknown;
+    tex.creationFlags &= ~TextureCategory::DepthTarget;
+    return;
+  }
+
+  if(m_Proxy->IsTextureSupported(tex.format))
     return;
 
-  if(format.special)
+  if(tex.format.special)
   {
-    switch(format.specialFormat)
+    switch(tex.format.specialFormat)
     {
       case SpecialFormat::S8:
       case SpecialFormat::D16S8: params.remap = eRemap_D32S8; break;
@@ -2026,19 +2040,19 @@ void ReplayProxy::RemapProxyTextureIfNeeded(ResourceFormat &format, GetTextureDa
       case SpecialFormat::ETC2: params.remap = eRemap_RGBA8; break;
       default:
         RDCERR("Don't know how to remap special format %u, falling back to RGBA32",
-               format.specialFormat);
+               tex.format.specialFormat);
         params.remap = eRemap_RGBA32;
         break;
     }
-    format.special = false;
+    tex.format.special = false;
   }
   else
   {
-    if(format.compByteWidth == 4)
+    if(tex.format.compByteWidth == 4)
       params.remap = eRemap_RGBA32;
-    else if(format.compByteWidth == 2)
+    else if(tex.format.compByteWidth == 2)
       params.remap = eRemap_RGBA16;
-    else if(format.compByteWidth == 1)
+    else if(tex.format.compByteWidth == 1)
       params.remap = eRemap_RGBA8;
   }
 
@@ -2046,21 +2060,21 @@ void ReplayProxy::RemapProxyTextureIfNeeded(ResourceFormat &format, GetTextureDa
   {
     case eRemap_None: RDCERR("IsTextureSupported == false, but we have no remap"); break;
     case eRemap_RGBA8:
-      format.compCount = 4;
-      format.compByteWidth = 1;
-      format.compType = CompType::UNorm;
+      tex.format.compCount = 4;
+      tex.format.compByteWidth = 1;
+      tex.format.compType = CompType::UNorm;
       // Range adaptation is only needed when remapping a higher precision format down to RGBA8.
       params.whitePoint = 1.0f;
       break;
     case eRemap_RGBA16:
-      format.compCount = 4;
-      format.compByteWidth = 2;
-      format.compType = CompType::UNorm;
+      tex.format.compCount = 4;
+      tex.format.compByteWidth = 2;
+      tex.format.compType = CompType::UNorm;
       break;
     case eRemap_RGBA32:
-      format.compCount = 4;
-      format.compByteWidth = 4;
-      format.compType = CompType::Float;
+      tex.format.compCount = 4;
+      tex.format.compByteWidth = 4;
+      tex.format.compType = CompType::Float;
       break;
     case eRemap_D32S8: RDCERR("Remapping depth/stencil formats not implemented."); break;
   }
@@ -2083,7 +2097,7 @@ void ReplayProxy::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t 
       TextureDescription tex = GetTexture(texid);
 
       ProxyTextureProperties proxy;
-      RemapProxyTextureIfNeeded(tex.format, proxy.params);
+      RemapProxyTextureIfNeeded(tex, proxy.params);
 
       proxy.id = m_Proxy->CreateProxyTexture(tex);
       m_ProxyTextures[texid] = proxy;
@@ -2128,6 +2142,33 @@ void ReplayProxy::EnsureBufCached(ResourceId bufid)
   }
 }
 
+bool ReplayProxy::NeedRemapForFetch(const ResourceFormat &_format)
+{
+  ResourceFormat format = _format;
+
+  m_ToReplaySerialiser->Serialise("", format);
+
+  bool bNeedRemap;
+
+  if(m_RemoteServer)
+  {
+    bNeedRemap = m_Remote->NeedRemapForFetch(format);
+
+    m_FromReplaySerialiser->Serialise("", bNeedRemap);
+  }
+  else
+  {
+    if(!SendReplayCommand(eReplayProxy_NeedRemapForFetch))
+    {
+      return false;
+    }
+
+    m_FromReplaySerialiser->Serialise("", bNeedRemap);
+  }
+
+  return bNeedRemap;
+}
+
 bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
 {
   if(!m_RemoteServer)
@@ -2156,6 +2197,7 @@ bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
     case eReplayProxy_GetLiveID: GetLiveID(ResourceId()); break;
     case eReplayProxy_GetFrameRecord: GetFrameRecord(); break;
     case eReplayProxy_IsRenderOutput: IsRenderOutput(ResourceId()); break;
+    case eReplayProxy_NeedRemapForFetch: NeedRemapForFetch(ResourceFormat()); break;
     case eReplayProxy_HasResolver: HasCallstacks(); break;
     case eReplayProxy_InitStackResolver: InitCallstackResolver(); break;
     case eReplayProxy_HasStackResolver: GetCallstackResolver(); break;

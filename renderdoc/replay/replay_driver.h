@@ -60,7 +60,7 @@ struct GetTextureDataParams
         resolve(false),
         remap(eRemap_None),
         blackPoint(0.0f),
-        whitePoint(0.0f)
+        whitePoint(1.0f)
   {
   }
 };
@@ -155,6 +155,8 @@ public:
   virtual void InitCallstackResolver() = 0;
   virtual bool HasCallstacks() = 0;
   virtual Callstack::StackResolver *GetCallstackResolver() = 0;
+
+  virtual bool NeedRemapForFetch(const ResourceFormat &format) = 0;
 };
 
 class IReplayDriver : public IRemoteDriver

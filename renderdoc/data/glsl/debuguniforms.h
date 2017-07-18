@@ -89,7 +89,7 @@ struct Vec4u
 #ifndef OPENGL_ES
 #define PRECISION
 #else
-#define PRECISION mediump
+#define PRECISION highp
 precision PRECISION float;
 precision PRECISION int;
 #endif

@@ -5254,6 +5254,11 @@ bool VulkanReplay::IsTextureSupported(const ResourceFormat &format)
   return true;
 }
 
+bool VulkanReplay::NeedRemapForFetch(const ResourceFormat &format)
+{
+  return false;
+}
+
 ResourceId VulkanReplay::CreateProxyBuffer(const BufferDescription &templateBuf)
 {
   VULKANNOTIMP("CreateProxyBuffer");

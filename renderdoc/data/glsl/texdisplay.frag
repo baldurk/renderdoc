@@ -223,6 +223,7 @@ void main(void)
 			if(texdisplay.Channels.a == 1.0f)
 				col = vec4(col.aaa, 1);
 			else
+				//this is a splat because col has already gone through the if(texdisplay.Channels.x < 0.5f) statements
 				col = vec4(vec3(dot(col.rgb, vec3(1.0f))), 1.0f);
 		}
 	}

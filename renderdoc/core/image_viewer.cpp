@@ -250,6 +250,7 @@ public:
     RDCERR("Calling proxy-render functions on an image viewer");
   }
   bool IsTextureSupported(const ResourceFormat &format) { return true; }
+  bool NeedRemapForFetch(const ResourceFormat &format) { return false; }
   ResourceId CreateProxyBuffer(const BufferDescription &templateBuf)
   {
     RDCERR("Calling proxy-render functions on an image viewer");

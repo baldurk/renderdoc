@@ -1886,6 +1886,11 @@ bool D3D11Replay::IsTextureSupported(const ResourceFormat &format)
   return MakeDXGIFormat(format) != DXGI_FORMAT_UNKNOWN;
 }
 
+bool D3D11Replay::NeedRemapForFetch(const ResourceFormat &format)
+{
+  return false;
+}
+
 ResourceId D3D11Replay::CreateProxyBuffer(const BufferDescription &templateBuf)
 {
   ResourceId ret;
