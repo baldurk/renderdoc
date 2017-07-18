@@ -3302,3 +3302,40 @@ enum class VulkanLayerFlags : uint32_t
 };
 
 BITMASK_OPERATORS(VulkanLayerFlags);
+
+DOCUMENT(R"(A set of flags giving details of the current status of Android tracability.
+
+.. data:: NoFlags
+
+  There are no problems with the Android application setup.
+
+.. data:: MissingLibrary
+
+  The RenderDoc library (whether Vulkan layer or OpenGLES library) could not be found in the
+  application or system locations.
+
+.. data:: MissingPermissions
+
+  The application being checked does not have the requesite permission:
+
+  android.permission.WRITE_EXTERNAL_STORAGE
+  android.permission.INTERNET
+
+.. data:: NotDebuggable
+
+  The application is not debuggable.
+
+.. data:: Unfixable
+
+  The current situation is not fixable automatically and requires user intervention/disambiguation.
+)");
+enum class AndroidFlags : uint32_t
+{
+  NoFlags = 0x0,
+  MissingLibrary = 0x1,
+  MissingPermissions = 0x2,
+  NotDebuggable = 0x4,
+  Unfixable = 0x8,
+};
+
+BITMASK_OPERATORS(AndroidFlags);
