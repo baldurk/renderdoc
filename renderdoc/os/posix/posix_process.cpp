@@ -39,6 +39,12 @@
 char **GetCurrentEnvironment();
 int GetIdentPort(pid_t childPid);
 
+namespace FileIO
+{
+void ReleaseFDAfterFork();
+string FindFileInPath(const string &fileName);
+};
+
 static const string GetAbsoluteAppPathFromName(const string &appName)
 {
   string appPath;
@@ -55,32 +61,8 @@ static const string GetAbsoluteAppPathFromName(const string &appName)
     return appPath;
   }
 
-  // Search the PATH directory list for the application (like shell which) to get the absolute path
-  // Return "" if no exectuable found in the PATH list
-  char *pathEnvVar = getenv("PATH");
-  if(!pathEnvVar)
-    return appPath;
-
-  // Make a copy of our PATH so strtok can insert NULL without actually changing env
-  char *localPath = new char[strlen(pathEnvVar) + 1];
-  strcpy(localPath, pathEnvVar);
-
-  const char *pathSeparator = ":";
-  const char *path = strtok(localPath, pathSeparator);
-  while(path)
-  {
-    string testPath(path);
-    testPath += "/" + appName;
-    if(!access(testPath.c_str(), X_OK))
-    {
-      appPath = testPath;
-      break;
-    }
-    path = strtok(NULL, pathSeparator);
-  }
-
-  delete[] localPath;
-  return appPath;
+  // Otherwise, go search PATH for it
+  return FileIO::FindFileInPath(appName);
 }
 
 static vector<EnvironmentModification> &GetEnvModifications()
@@ -229,11 +211,6 @@ void Process::ApplyEnvironmentModification()
   // these have been applied to the current process
   modifications.clear();
 }
-
-namespace FileIO
-{
-void ReleaseFDAfterFork();
-};
 
 static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char **envp,
                         int stdoutPipe[2] = NULL, int stderrPipe[2] = NULL)

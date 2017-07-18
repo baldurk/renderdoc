@@ -186,6 +186,48 @@ string GetFullPathname(const string &filename)
   return StringFormat::Wide2UTF8(wstring(path));
 }
 
+string FindFileInPath(const string &file)
+{
+  string filePath;
+
+  // Search the PATH directory list for the application (like shell where) to get the absolute path
+  // Return "" if no exectuable found in the PATH list
+  const DWORD size = 65535;
+  char envPath[size];
+  if(GetEnvironmentVariableA("PATH", envPath, size) == 0)
+    return filePath;
+
+  char *next = NULL;
+  const char *pathSeparator = ";";
+  const char *path = strtok_s(envPath, pathSeparator, &next);
+  wstring fileName = StringFormat::UTF82Wide(file);
+
+  while(path)
+  {
+    wstring testPath = StringFormat::UTF82Wide(path);
+
+    // Check for the following extensions. If fileName already has one, they will be ignored.
+    std::vector<wstring> extensions;
+    extensions.push_back(L".exe");
+    extensions.push_back(L".bat");
+
+    for(uint32_t i = 0; i < extensions.size(); i++)
+    {
+      wchar_t foundPath[512] = {0};
+      if(SearchPathW(testPath.c_str(), fileName.c_str(), extensions[i].c_str(),
+                     ARRAY_COUNT(foundPath) - 1, foundPath, NULL) != 0)
+      {
+        filePath = StringFormat::Wide2UTF8(wstring(foundPath));
+        break;
+      }
+    }
+
+    path = strtok_s(NULL, pathSeparator, &next);
+  }
+
+  return filePath;
+}
+
 void CreateParentDirectory(const string &filename)
 {
   wstring wfn = StringFormat::UTF82Wide(filename);
