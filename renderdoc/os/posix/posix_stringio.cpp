@@ -104,6 +104,38 @@ string GetFullPathname(const string &filename)
   return string(path);
 }
 
+string FindFileInPath(const string &fileName)
+{
+  string filePath;
+
+  // Search the PATH directory list for the application (like shell which) to get the absolute path
+  // Return "" if no exectuable found in the PATH list
+  char *pathEnvVar = getenv("PATH");
+  if(!pathEnvVar)
+    return filePath;
+
+  // Make a copy of our PATH so strtok can insert NULL without actually changing env
+  char *localPath = new char[strlen(pathEnvVar) + 1];
+  strcpy(localPath, pathEnvVar);
+
+  const char *pathSeparator = ":";
+  const char *path = strtok(localPath, pathSeparator);
+  while(path)
+  {
+    string testPath(path);
+    testPath += "/" + fileName;
+    if(!access(testPath.c_str(), X_OK))
+    {
+      filePath = testPath;
+      break;
+    }
+    path = strtok(NULL, pathSeparator);
+  }
+
+  delete[] localPath;
+  return filePath;
+}
+
 string GetReplayAppFilename()
 {
   // look up the shared object's path via dladdr

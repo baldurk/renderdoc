@@ -244,6 +244,7 @@ void CreateParentDirectory(const string &filename);
 
 bool IsRelativePath(const string &path);
 string GetFullPathname(const string &filename);
+string FindFileInPath(const string &fileName);
 
 void GetExecutableFilename(string &selfName);
 
