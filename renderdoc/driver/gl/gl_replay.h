@@ -189,6 +189,8 @@ public:
 
   void RenderHighlightBox(float w, float h, float scale);
 
+  GLenum RemapDepthStencilToTexture(GLuint src_depth, GLuint dst_tex, bool stencil);
+
   void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
                             vector<ShaderVariable> &outvars, const vector<byte> &data);
 
@@ -305,6 +307,8 @@ private:
     GLuint texDisplayPipe;
     GLuint texDisplayVSProg;
     GLuint texDisplayProg[3];    // float/uint/sint
+
+    GLuint depthstencilRemapProg[3];    // read float/read uint/read depth24
 
     GLuint customFBO;
     GLuint customTex;

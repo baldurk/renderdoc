@@ -24,6 +24,7 @@
 
 #include "gl_replay.h"
 #include <dlfcn.h>
+#include "gl_common.h"
 #include "gl_driver.h"
 #include "gl_resources.h"
 
@@ -215,5 +216,8 @@ ReplayStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver
   replay->SetReplayData(data);
 
   *driver = (IReplayDriver *)replay;
+
+  glEmulate::BorrowGLReplay(replay);
+
   return ReplayStatus::Succeeded;
 }

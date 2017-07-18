@@ -56,5 +56,6 @@ DECLARE_EMBED(glsl_ms2array_comp);
 DECLARE_EMBED(glsl_deptharr2ms_frag);
 DECLARE_EMBED(glsl_depthms2arr_frag);
 DECLARE_EMBED(glsl_gles_texsample_h);
+DECLARE_EMBED(glsl_depthstencilremap_frag);
 
 #undef DECLARE_EMBED

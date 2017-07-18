@@ -242,6 +242,7 @@ const GLenum eGL_ONE = (GLenum)1;
 
 class WrappedOpenGL;
 struct GLHookSet;
+class GLReplay;
 
 // replay only class for handling marker regions
 struct GLMarkerRegion
@@ -422,6 +423,7 @@ namespace glEmulate
 {
 void EmulateUnsupportedFunctions(GLHookSet *hooks);
 void EmulateRequiredExtensions(GLHookSet *hooks);
+void BorrowGLReplay(GLReplay *_replay);
 };
 
 #include "core/core.h"

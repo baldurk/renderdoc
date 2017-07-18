@@ -2274,103 +2274,112 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     arraysize = texDetails.depth;
   }
 
-  if(params.remap && intFormat != eGL_RGBA8 && intFormat != eGL_SRGB8_ALPHA8)
+  if(params.remap)
   {
-    RDCASSERT(params.remap == eRemap_RGBA8);
+    GLenum remapFormat = eGL_RGBA8;
+    if(params.remap == eRemap_RGBA8)
+      remapFormat = eGL_RGBA8;
+    else if(params.remap == eRemap_RGBA16)
+      remapFormat = eGL_RGBA16;
+    else if(params.remap == eRemap_RGBA32)
+      remapFormat = eGL_RGBA32F;
 
-    MakeCurrentReplayContext(m_DebugCtx);
-
-    GLenum finalFormat = IsSRGBFormat(intFormat) ? eGL_SRGB8_ALPHA8 : eGL_RGBA8;
-    GLenum newtarget = (texType == eGL_TEXTURE_3D ? eGL_TEXTURE_3D : eGL_TEXTURE_2D);
-
-    // create temporary texture of width/height in RGBA8 format to render to
-    gl.glGenTextures(1, &tempTex);
-    gl.glBindTexture(newtarget, tempTex);
-    if(newtarget == eGL_TEXTURE_3D)
-      gl.glTextureImage3DEXT(tempTex, newtarget, 0, finalFormat, width, height, depth, 0,
-                             GetBaseFormat(finalFormat), GetDataType(finalFormat), NULL);
-    else
-      gl.glTextureImage2DEXT(tempTex, newtarget, 0, finalFormat, width, height, 0,
-                             GetBaseFormat(finalFormat), GetDataType(finalFormat), NULL);
-    gl.glTexParameteri(newtarget, eGL_TEXTURE_MAX_LEVEL, 0);
-
-    // create temp framebuffer
-    GLuint fbo = 0;
-    gl.glGenFramebuffers(1, &fbo);
-    gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
-
-    gl.glTexParameteri(newtarget, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-    gl.glTexParameteri(newtarget, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-    gl.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-    gl.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-    gl.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_R, eGL_CLAMP_TO_EDGE);
-    if(newtarget == eGL_TEXTURE_3D)
-      gl.glFramebufferTexture3D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_3D, tempTex, 0,
-                                0);
-    else if(newtarget == eGL_TEXTURE_2D || newtarget == eGL_TEXTURE_2D_MULTISAMPLE)
-      gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, newtarget, tempTex, 0);
-    else
-      gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, tempTex, 0);
-
-    float col[] = {0.3f, 0.6f, 0.9f, 1.0f};
-    gl.glClearBufferfv(eGL_COLOR, 0, col);
-
-    // render to the temp texture to do the downcast
-    float oldW = DebugData.outWidth;
-    float oldH = DebugData.outHeight;
-
-    DebugData.outWidth = float(width);
-    DebugData.outHeight = float(height);
-
-    for(GLsizei d = 0; d < (newtarget == eGL_TEXTURE_3D ? depth : 1); d++)
+    if(intFormat != remapFormat)
     {
-      TextureDisplay texDisplay;
+      MakeCurrentReplayContext(m_DebugCtx);
 
-      texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
-      texDisplay.HDRMul = -1.0f;
-      texDisplay.linearDisplayAsGamma = false;
-      texDisplay.overlay = DebugOverlay::NoOverlay;
-      texDisplay.FlipY = false;
-      texDisplay.mip = mip;
-      texDisplay.sampleIdx = ~0U;
-      texDisplay.CustomShader = ResourceId();
-      texDisplay.sliceFace = arrayIdx;
-      texDisplay.rangemin = params.blackPoint;
-      texDisplay.rangemax = params.whitePoint;
-      texDisplay.scale = 1.0f;
-      texDisplay.texid = tex;
-      texDisplay.typeHint = CompType::Typeless;
-      texDisplay.rawoutput = false;
-      texDisplay.offx = 0;
-      texDisplay.offy = 0;
+      GLenum finalFormat = IsSRGBFormat(intFormat) ? eGL_SRGB8_ALPHA8 : remapFormat;
+      GLenum newtarget = (texType == eGL_TEXTURE_3D ? eGL_TEXTURE_3D : eGL_TEXTURE_2D);
 
+      // create temporary texture of width/height in the new format to render to
+      gl.glGenTextures(1, &tempTex);
+      gl.glBindTexture(newtarget, tempTex);
       if(newtarget == eGL_TEXTURE_3D)
-      {
+        gl.glTextureImage3DEXT(tempTex, newtarget, 0, finalFormat, width, height, depth, 0,
+                               GetBaseFormat(finalFormat), GetDataType(finalFormat), NULL);
+      else
+        gl.glTextureImage2DEXT(tempTex, newtarget, 0, finalFormat, width, height, 0,
+                               GetBaseFormat(finalFormat), GetDataType(finalFormat), NULL);
+      gl.glTexParameteri(newtarget, eGL_TEXTURE_MAX_LEVEL, 0);
+
+      // create temp framebuffer
+      GLuint fbo = 0;
+      gl.glGenFramebuffers(1, &fbo);
+      gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
+
+      gl.glTexParameteri(newtarget, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+      gl.glTexParameteri(newtarget, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+      gl.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+      gl.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+      gl.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_R, eGL_CLAMP_TO_EDGE);
+      if(newtarget == eGL_TEXTURE_3D)
         gl.glFramebufferTexture3D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_3D, tempTex,
-                                  0, (GLint)d);
-        texDisplay.sliceFace = (uint32_t)d;
+                                  0, 0);
+      else if(newtarget == eGL_TEXTURE_2D || newtarget == eGL_TEXTURE_2D_MULTISAMPLE)
+        gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, newtarget, tempTex, 0);
+      else
+        gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, tempTex, 0);
+
+      float col[] = {0.3f, 0.6f, 0.9f, 1.0f};
+      gl.glClearBufferfv(eGL_COLOR, 0, col);
+
+      // render to the temp texture to do the downcast
+      float oldW = DebugData.outWidth;
+      float oldH = DebugData.outHeight;
+
+      DebugData.outWidth = float(width);
+      DebugData.outHeight = float(height);
+
+      for(GLsizei d = 0; d < (newtarget == eGL_TEXTURE_3D ? depth : 1); d++)
+      {
+        TextureDisplay texDisplay;
+
+        texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+        texDisplay.HDRMul = -1.0f;
+        texDisplay.linearDisplayAsGamma = false;
+        texDisplay.overlay = DebugOverlay::NoOverlay;
+        texDisplay.FlipY = false;
+        texDisplay.mip = mip;
+        texDisplay.sampleIdx = ~0U;
+        texDisplay.CustomShader = ResourceId();
+        texDisplay.sliceFace = arrayIdx;
+        texDisplay.rangemin = params.blackPoint;
+        texDisplay.rangemax = params.whitePoint;
+        texDisplay.scale = 1.0f;
+        texDisplay.texid = tex;
+        texDisplay.typeHint = CompType::Typeless;
+        texDisplay.rawoutput = false;
+        texDisplay.offx = 0;
+        texDisplay.offy = 0;
+
+        if(newtarget == eGL_TEXTURE_3D)
+        {
+          gl.glFramebufferTexture3D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_3D, tempTex,
+                                    0, (GLint)d);
+          texDisplay.sliceFace = (uint32_t)d;
+        }
+
+        gl.glViewport(0, 0, width, height);
+
+        RenderTextureInternal(texDisplay, 0);
       }
 
-      gl.glViewport(0, 0, width, height);
+      DebugData.outWidth = oldW;
+      DebugData.outHeight = oldH;
 
-      RenderTextureInternal(texDisplay, 0);
+      // rewrite the variables to temporary texture
+      texType = newtarget;
+      texname = tempTex;
+      intFormat = finalFormat;
+      if(newtarget != eGL_TEXTURE_3D)
+        depth = 1;
+      arraysize = 1;
+      samples = 1;
+      mip = 0;
+      arrayIdx = 0;
+
+      gl.glDeleteFramebuffers(1, &fbo);
     }
-
-    DebugData.outWidth = oldW;
-    DebugData.outHeight = oldH;
-
-    // rewrite the variables to temporary texture
-    texType = newtarget;
-    texname = tempTex;
-    intFormat = finalFormat;
-    if(newtarget != eGL_TEXTURE_3D)
-      depth = 1;
-    arraysize = 1;
-    samples = 1;
-    mip = 0;
-    arrayIdx = 0;
-
-    gl.glDeleteFramebuffers(1, &fbo);
   }
   else if(params.resolve && samples > 1)
   {
