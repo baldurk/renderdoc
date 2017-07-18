@@ -66,6 +66,8 @@ struct ProcessResult
 };
 uint32_t LaunchProcess(const char *app, const char *workingDir, const char *cmdLine,
                        ProcessResult *result = NULL);
+uint32_t LaunchScript(const char *script, const char *workingDir, const char *args,
+                      ProcessResult *result = NULL);
 uint32_t LaunchAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
                                     const rdctype::array<EnvironmentModification> &env,
                                     const char *logfile, const CaptureOptions &opts,
