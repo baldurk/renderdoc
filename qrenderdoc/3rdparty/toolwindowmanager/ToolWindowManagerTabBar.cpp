@@ -180,11 +180,7 @@ void ToolWindowManagerTabBar::paintEvent(QPaintEvent *event) {
       else if(m_close.hover)
         buttonOpt.state |= QStyle::State_Raised | QStyle::State_MouseOver;
 
-      if (style()->styleHint(QStyle::SH_DockWidget_ButtonsHaveFrame, 0, this)) {
-        style()->drawPrimitive(QStyle::PE_PanelButtonTool, &buttonOpt, &p, this);
-      }
-
-      style()->drawComplexControl(QStyle::CC_ToolButton, &buttonOpt, &p, this);
+      style()->drawPrimitive(QStyle::PE_IndicatorTabClose, &buttonOpt, &p, this);
     }
     return;
   }
@@ -302,6 +298,16 @@ void ToolWindowManagerTabBar::mouseMoveEvent(QMouseEvent *event) {
 
   if (prevPin != m_pin || prevClose != m_close)
     update();
+}
+
+void ToolWindowManagerTabBar::leaveEvent(QEvent *) {
+  m_pin.hover = false;
+  m_pin.clicked = false;
+
+  m_close.hover = false;
+  m_close.clicked = false;
+
+  update();
 }
 
 void ToolWindowManagerTabBar::mouseReleaseEvent(QMouseEvent *event) {

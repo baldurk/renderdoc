@@ -66,6 +66,7 @@ protected:
   void mousePressEvent(QMouseEvent *) Q_DECL_OVERRIDE;
   void mouseMoveEvent(QMouseEvent *) Q_DECL_OVERRIDE;
   void mouseReleaseEvent(QMouseEvent *) Q_DECL_OVERRIDE;
+  void leaveEvent(QEvent *) Q_DECL_OVERRIDE;
   
   //! Reimplemented from QTabWidget::QTabBar to enable/disable 'real' closable tabs.
   virtual void tabInserted(int index) Q_DECL_OVERRIDE;
