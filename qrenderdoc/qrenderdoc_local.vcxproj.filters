@@ -621,6 +621,12 @@
     <ClCompile Include="$(IntDir)generated\qrc_qtconf.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\TimelineBar.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_TimelineBar.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1402,6 +1408,9 @@
     </CustomBuild>
     <CustomBuild Include="Resources\qtconf.qrc">
       <Filter>Resources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\TimelineBar.h">
+      <Filter>Windows</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>
