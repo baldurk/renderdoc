@@ -36,6 +36,23 @@ RDStyle::~RDStyle()
 {
 }
 
+QRect RDStyle::subElementRect(SubElement element, const QStyleOption *opt, const QWidget *widget) const
+{
+  QRect ret = QProxyStyle::subElementRect(element, opt, widget);
+
+  if(element == QStyle::SE_DockWidgetCloseButton || element == QStyle::SE_DockWidgetFloatButton)
+  {
+    int width = pixelMetric(QStyle::PM_TabCloseIndicatorWidth, opt, widget);
+    int height = pixelMetric(QStyle::PM_TabCloseIndicatorHeight, opt, widget);
+
+    QPoint c = ret.center();
+    ret.setSize(QSize(width, height));
+    ret.moveCenter(c);
+  }
+
+  return ret;
+}
+
 QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, const QSize &size,
                                 const QWidget *widget) const
 {
@@ -62,6 +79,19 @@ int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWid
   }
 
   return QProxyStyle::pixelMetric(metric, opt, widget);
+}
+
+QIcon RDStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *opt,
+                            const QWidget *widget) const
+{
+  if(standardIcon == QStyle::SP_TitleBarCloseButton)
+  {
+    int sz = pixelMetric(QStyle::PM_SmallIconSize);
+
+    return QIcon(QPixmap(QSize(sz, sz)));
+  }
+
+  return QProxyStyle::standardIcon(standardIcon, opt, widget);
 }
 
 void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionComplex *opt,
@@ -212,6 +242,50 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
         p->drawLine(opt->rect.center(), QPoint(opt->rect.right(), opt->rect.center().y()));
     }
     p->setPen(oldPen);
+    return;
+  }
+  else if(element == PE_IndicatorTabClose)
+  {
+    QPen oldPen = p->pen();
+    bool aa = p->testRenderHint(QPainter::Antialiasing);
+    p->setRenderHint(QPainter::Antialiasing);
+
+    QColor col = opt->palette.color(QPalette::Text);
+
+    QRectF rect = opt->rect.adjusted(1, 1, -1, -1);
+
+    if(opt->state & (QStyle::State_Raised | QStyle::State_Sunken | QStyle::State_MouseOver))
+    {
+      QPointF c = rect.center();
+      qreal radius = rect.width() / 2.0;
+
+      col = opt->palette.color(QPalette::Base);
+
+      QPainterPath path;
+
+      path.addEllipse(c, radius, radius);
+
+      QColor fillCol = QColor(Qt::red).darker(120);
+
+      if(opt->state & QStyle::State_Sunken)
+        fillCol = fillCol.darker(120);
+
+      p->fillPath(path, fillCol);
+    }
+
+    p->setPen(QPen(col, 1.5));
+
+    QPointF c = rect.center();
+
+    qreal crossrad = rect.width() / 4.0;
+
+    p->drawLine(c + QPointF(-crossrad, -crossrad), c + QPointF(crossrad, crossrad));
+    p->drawLine(c + QPointF(-crossrad, crossrad), c + QPointF(crossrad, -crossrad));
+
+    p->setPen(oldPen);
+    if(!aa)
+      p->setRenderHint(QPainter::Antialiasing, false);
+
     return;
   }
 
