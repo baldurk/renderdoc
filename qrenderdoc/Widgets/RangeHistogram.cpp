@@ -222,7 +222,6 @@ void RangeHistogram::paintEvent(QPaintEvent *e)
   p.setRenderHint(QPainter::Antialiasing);
 
   const QBrush blackBrush(QColor(0, 0, 0));
-  const QBrush grayBrush(QColor(180, 180, 180));
   const QBrush redBrush(QColor(60, 0, 0));
   const QBrush greenBrush(QColor(0, 128, 0));
   const QBrush whiteBrush(QColor(255, 255, 255));
@@ -233,20 +232,27 @@ void RangeHistogram::paintEvent(QPaintEvent *e)
 
   r = r.marginsRemoved(QMarginsF(m_Margin, m_Margin, m_Margin, m_Margin));
 
-  p.fillRect(r, blackBrush);
+  p.fillRect(r, palette().brush(QPalette::Shadow));
 
   QMarginsF border(m_Border, m_Border, m_Border, m_Border);
   border /= devicePixelRatioF();
 
   r = r.marginsRemoved(border);
 
-  p.fillRect(r, ValidRange() ? grayBrush : redBrush);
+  p.fillRect(r, ValidRange() ? palette().brush(QPalette::Inactive, QPalette::Highlight) : redBrush);
 
   int whiteX = (int)(whiteDelta() * r.width());
-  int blackX = (int)(blackDelta() * r.width());
+  int blackX = (int)(blackDelta() * r.width() + 0.5);
 
   QRectF blackPoint(r.topLeft(), QSize(blackX, r.height()));
   QRectF whitePoint(r.left() + whiteX, r.top(), r.width() - whiteX, r.height());
+
+  if(ValidRange())
+  {
+    p.setPen(QPen(palette().color(QPalette::Dark)));
+    p.drawLine(blackPoint.topRight(), blackPoint.bottomRight());
+    p.drawLine(whitePoint.topLeft(), whitePoint.bottomLeft());
+  }
 
   p.fillRect(whitePoint, whiteBrush);
   p.fillRect(blackPoint, blackBrush);
@@ -295,14 +301,13 @@ void RangeHistogram::paintEvent(QPaintEvent *e)
     }
   }
 
-  QVector<QPointF> blackTriangle = {QPoint(blackPoint.right() + 1, m_MarkerSize * 2),
-                                    QPoint(blackPoint.right() + m_MarkerSize + 1, 0),
-                                    QPoint(blackPoint.right() - m_MarkerSize + 1, 0)};
+  QVector<QPointF> blackTriangle = {QPoint(blackPoint.right(), m_MarkerSize * 2),
+                                    QPoint(blackPoint.right() + m_MarkerSize, 0),
+                                    QPoint(blackPoint.right() - m_MarkerSize, 0)};
 
   QPainterPath blackPath;
   blackPath.addPolygon(QPolygonF(blackTriangle));
-
-  p.fillPath(blackPath, grayBrush);
+  p.fillPath(blackPath, palette().brush(QPalette::Dark));
 
   QVector<QPointF> whiteTriangle = {
       QPoint(whitePoint.left(), whitePoint.bottom() - m_MarkerSize * 2 + m_Margin),
@@ -311,7 +316,7 @@ void RangeHistogram::paintEvent(QPaintEvent *e)
 
   QPainterPath whitePath;
   whitePath.addPolygon(QPolygonF(whiteTriangle));
-  p.fillPath(whitePath, grayBrush);
+  p.fillPath(whitePath, palette().brush(QPalette::Dark));
 
   blackTriangle[0] -= QPointF(0.0, 2.0) / devicePixelRatioF();
   blackTriangle[1] += QPointF(-2.0, 1.0) / devicePixelRatioF();
