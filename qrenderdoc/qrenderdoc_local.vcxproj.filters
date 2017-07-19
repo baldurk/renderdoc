@@ -73,6 +73,12 @@
     <Filter Include="PCH">
       <UniqueIdentifier>{4869e303-055c-4458-91d6-89ecc827f338}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Styles">
+      <UniqueIdentifier>{f74a424c-ce15-4da6-9af4-c6bcf62aa581}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Styles\RDStyle">
+      <UniqueIdentifier>{1e176174-0c57-44df-82b1-638ced184b72}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManager.cpp">
@@ -625,6 +631,12 @@
       <Filter>Windows</Filter>
     </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_TimelineBar.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Styles\RDStyle\RDStyle.cpp">
+      <Filter>Styles\RDStyle</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDStyle.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1411,6 +1423,9 @@
     </CustomBuild>
     <CustomBuild Include="Windows\TimelineBar.h">
       <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Styles\RDStyle\RDStyle.h">
+      <Filter>Styles\RDStyle</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>
