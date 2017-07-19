@@ -138,7 +138,7 @@ public:
       const QList<PixelModification> &mods = getMods(parent);
       const DrawcallDescription *draw = m_Ctx.GetDrawcall(mods.front().eventID);
 
-      if(draw->flags & DrawFlags::Clear)
+      if(draw && draw->flags & DrawFlags::Clear)
         return 0;
 
       return mods.count();

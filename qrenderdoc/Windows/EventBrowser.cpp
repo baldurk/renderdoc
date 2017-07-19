@@ -408,7 +408,7 @@ void EventBrowser::on_events_currentItemChanged(RDTreeWidgetItem *current, RDTre
     ui->stepNext->setEnabled(true);
 
   // special case for the first 'virtual' draw at EID 0
-  if(tag.lastEID == m_Ctx.GetFirstDrawcall()->eventID)
+  if(m_Ctx.GetFirstDrawcall() && tag.lastEID == m_Ctx.GetFirstDrawcall()->eventID)
     ui->stepPrev->setEnabled(true);
 
   highlightBookmarks();
