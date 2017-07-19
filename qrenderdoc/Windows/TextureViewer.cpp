@@ -3104,7 +3104,7 @@ void TextureViewer::on_backcolorPick_clicked()
   QColor col = QColorDialog::getColor(Qt::black, this, tr("Choose background colour"));
 
   if(!col.isValid())
-    col = QColor(0, 0, 0);
+    return;
 
   col = col.toRgb();
   m_TexDisplay.darkBackgroundColor = m_TexDisplay.lightBackgroundColor =
