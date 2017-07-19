@@ -710,8 +710,6 @@ void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QMod
   // (as otherwise they don't show up well over selection or background fills) as well as to draw
   // any vertical branch colors.
 
-  painter->save();
-
   // start at the left-most side of the rect
   QRect branchRect(rect.left(), rect.top(), indentation(), rect.height());
 
@@ -743,7 +741,10 @@ void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QMod
     painter->fillRect(allLinesRect, item->m_back);
   }
 
+  RDTreeView::drawBranches(painter, rect, index);
+
   // we now iterate from the top-most parent down, moving in from the left
+  // we draw this after calling into drawBranches() so we paint on top of the built-in lines
   QPen oldPen = painter->pen();
   while(!parents.isEmpty())
   {
@@ -755,8 +756,8 @@ void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QMod
 
       painter->setPen(QPen(QBrush(parent->m_treeCol), parent->m_treeColWidth));
 
-      QPointF topCentre = QRectF(branchRect).center();
-      QPointF bottomCentre = topCentre;
+      QPoint topCentre = QRect(branchRect).center();
+      QPoint bottomCentre = topCentre;
 
       topCentre.setY(branchRect.top());
       bottomCentre.setY(branchRect.bottom());
@@ -767,29 +768,6 @@ void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QMod
     branchRect.moveLeft(branchRect.left() + indentation());
   }
   painter->setPen(oldPen);
-
-  // branchRect is now over the box/lines for the current item.
-
-  // draw a rect of QPalette Base color behind the branch indicator if we have children, since by
-  // default there might not be one and the indicator won't always show up well over the background
-  // color
-  /*
-  if(item->childCount() > 0)
-  {
-    // TODO find a portable rect
-    const int radius = 9 / 2;
-    QPoint topleft = branchRect.center();
-    topleft.setX(topleft.x() - radius + 1);
-    topleft.setY(topleft.y() - radius + 1);
-
-    painter->fillRect(QRect(topleft, QSize(radius * 2, radius * 2)),
-  palette().brush(QPalette::Base));
-  }
-  */
-
-  painter->restore();
-
-  RDTreeView::drawBranches(painter, rect, index);
 }
 
 void RDTreeWidget::selectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
