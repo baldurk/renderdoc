@@ -118,6 +118,103 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
 void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, QPainter *p,
                             const QWidget *widget) const
 {
+  if(element == QStyle::PE_IndicatorBranch)
+  {
+    QPen oldPen = p->pen();
+
+    if(opt->state & State_Children)
+    {
+      bool aa = p->testRenderHint(QPainter::Antialiasing);
+      p->setRenderHint(QPainter::Antialiasing);
+
+      QColor col = opt->palette.color(QPalette::Dark);
+
+      if(opt->state & State_MouseOver)
+      {
+        QColor highlightCol = opt->palette.color(QPalette::Highlight);
+
+        col.setRedF(col.redF() * 0.6 + highlightCol.redF() * 0.4);
+        col.setGreenF(col.greenF() * 0.6 + highlightCol.greenF() * 0.4);
+        col.setBlueF(col.blueF() * 0.6 + highlightCol.blueF() * 0.4);
+      }
+
+      p->setPen(QPen(col, 2.0));
+
+      QPainterPath path;
+
+      QPolygonF poly;
+
+      QRectF rect = opt->rect;
+
+      {
+        qreal newdim = qMin(14.0, qMin(rect.height(), rect.width()));
+        QPointF c = rect.center();
+        rect.setTop(c.y() - newdim / 2);
+        rect.setLeft(c.x() - newdim / 2);
+        rect.setWidth(newdim);
+        rect.setHeight(newdim);
+      }
+
+      rect = rect.adjusted(2, 2, -2, -2);
+
+      if(opt->state & State_Open)
+      {
+        QPointF pt = rect.center();
+        pt.setX(rect.left());
+        poly << pt;
+
+        pt = rect.center();
+        pt.setY(rect.bottom());
+        poly << pt;
+
+        pt = rect.center();
+        pt.setX(rect.right());
+        poly << pt;
+
+        path.addPolygon(poly);
+
+        p->drawPath(path);
+      }
+      else
+      {
+        QPointF pt = rect.center();
+        pt.setY(rect.top());
+        poly << pt;
+
+        pt = rect.center();
+        pt.setX(rect.right());
+        poly << pt;
+
+        pt = rect.center();
+        pt.setY(rect.bottom());
+        poly << pt;
+
+        path.addPolygon(poly);
+
+        p->drawPath(path);
+      }
+
+      if(!aa)
+        p->setRenderHint(QPainter::Antialiasing, false);
+    }
+    else if(opt->state & (State_Sibling | State_Item))
+    {
+      p->setPen(QPen(opt->palette.color(QPalette::Midlight), 1.0));
+
+      int bottomY = opt->rect.center().y();
+
+      if(opt->state & State_Sibling)
+        bottomY = opt->rect.bottom();
+
+      p->drawLine(QLine(opt->rect.center().x(), opt->rect.top(), opt->rect.center().x(), bottomY));
+
+      if(opt->state & State_Item)
+        p->drawLine(opt->rect.center(), QPoint(opt->rect.right(), opt->rect.center().y()));
+    }
+    p->setPen(oldPen);
+    return;
+  }
+
   QProxyStyle::drawPrimitive(element, opt, p, widget);
 }
 
