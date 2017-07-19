@@ -79,6 +79,7 @@ public:
 protected:
   void rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end) override;
   void mouseMoveEvent(QMouseEvent *e) override;
+  void wheelEvent(QWheelEvent *e) override;
   void leaveEvent(QEvent *e) override;
   bool viewportEvent(QEvent *event) override;
 

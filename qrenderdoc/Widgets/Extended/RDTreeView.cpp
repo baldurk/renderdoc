@@ -29,6 +29,7 @@
 #include <QProxyStyle>
 #include <QStylePainter>
 #include <QToolTip>
+#include <QWheelEvent>
 
 RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : QStyledItemDelegate(view), m_View(view)
 {
@@ -132,6 +133,12 @@ void RDTreeView::mouseMoveEvent(QMouseEvent *e)
 
   m_currentHoverIndex = indexAt(e->pos());
   QTreeView::mouseMoveEvent(e);
+}
+
+void RDTreeView::wheelEvent(QWheelEvent *e)
+{
+  QTreeView::wheelEvent(e);
+  m_currentHoverIndex = indexAt(e->pos());
 }
 
 void RDTreeView::leaveEvent(QEvent *e)
