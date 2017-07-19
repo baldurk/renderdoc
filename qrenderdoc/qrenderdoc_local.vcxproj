@@ -574,6 +574,7 @@
     <ClCompile Include="Code\Resources.cpp" />
     <ClCompile Include="Code\ScintillaSyntax.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_RDStyle.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_RDTweakedNativeStyle.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_AboutDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_APIInspector.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_BufferFormatSpecifier.cpp" />
@@ -670,6 +671,7 @@
     <ClCompile Include="Widgets\ThumbnailStrip.cpp" />
     <ClCompile Include="Code\CaptureContext.cpp" />
     <ClCompile Include="Styles\RDStyle\RDStyle.cpp" />
+    <ClCompile Include="Styles\RDTweakedNativeStyle\RDTweakedNativeStyle.cpp" />
     <ClCompile Include="Widgets\CustomPaintWidget.cpp" />
     <ClCompile Include="Windows\APIInspector.cpp" />
     <ClCompile Include="Windows\BufferViewer.cpp" />
@@ -903,6 +905,12 @@
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <CustomBuild Include="Styles\RDStyle\RDStyle.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Styles\RDTweakedNativeStyle\RDTweakedNativeStyle.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
       <Message>MOC %(Filename).h</Message>

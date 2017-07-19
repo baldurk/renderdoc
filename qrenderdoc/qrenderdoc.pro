@@ -167,6 +167,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/Interface/PersistantConfig.cpp \
     Code/Interface/RemoteHost.cpp \
     Styles/RDStyle/RDStyle.cpp \
+    Styles/RDTweakedNativeStyle/RDTweakedNativeStyle.cpp \
     Windows/Dialogs/AboutDialog.cpp \
     Windows/MainWindow.cpp \
     Windows/EventBrowser.cpp \
@@ -229,6 +230,7 @@ HEADERS += Code/CaptureContext.h \
     Code/Interface/PersistantConfig.h \
     Code/Interface/RemoteHost.h \
     Styles/RDStyle/RDStyle.h \
+    Styles/RDTweakedNativeStyle/RDTweakedNativeStyle.h \
     Windows/Dialogs/AboutDialog.h \
     Windows/MainWindow.h \
     Windows/EventBrowser.h \

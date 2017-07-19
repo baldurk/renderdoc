@@ -79,6 +79,9 @@
     <Filter Include="Styles\RDStyle">
       <UniqueIdentifier>{1e176174-0c57-44df-82b1-638ced184b72}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Styles\RDTweakedNativeStyle">
+      <UniqueIdentifier>{c0be5204-4ee0-4948-87b4-cc957b6f8953}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManager.cpp">
@@ -638,6 +641,12 @@
     </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_RDStyle.cpp">
       <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDTweakedNativeStyle.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Styles\RDTweakedNativeStyle\RDTweakedNativeStyle.cpp">
+      <Filter>Styles\RDTweakedNativeStyle</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1426,6 +1435,9 @@
     </CustomBuild>
     <CustomBuild Include="Styles\RDStyle\RDStyle.h">
       <Filter>Styles\RDStyle</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Styles\RDTweakedNativeStyle\RDTweakedNativeStyle.h">
+      <Filter>Styles\RDTweakedNativeStyle</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

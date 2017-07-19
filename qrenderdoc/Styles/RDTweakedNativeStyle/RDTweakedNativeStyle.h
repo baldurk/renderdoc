@@ -26,35 +26,29 @@
 
 #include <QPalette>
 #include <QProxyStyle>
-#include "Styles/RDTweakedNativeStyle/RDTweakedNativeStyle.h"
 
-class RDStyle : public RDTweakedNativeStyle
+class RDTweakedNativeStyle : public QProxyStyle
 {
 private:
   Q_OBJECT
 public:
-  enum ColorScheme
-  {
-    Light,
-    Dark
-  };
-  RDStyle(ColorScheme scheme);
-  ~RDStyle();
+  RDTweakedNativeStyle();
+  ~RDTweakedNativeStyle();
 
-  QRect subElementRect(SubElement element, const QStyleOption *option,
-                       const QWidget *widget) const override;
-  QSize sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &size,
-                         const QWidget *widget) const override;
-  int pixelMetric(PixelMetric metric, const QStyleOption *option = NULL,
-                  const QWidget *widget = NULL) const override;
-  QIcon standardIcon(StandardPixmap standardIcon, const QStyleOption *option = NULL,
-                     const QWidget *widget = NULL) const override;
-  void drawComplexControl(ComplexControl control, const QStyleOptionComplex *option,
-                          QPainter *painter, const QWidget *widget = NULL) const override;
-  void drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
-                     const QWidget *widget = NULL) const override;
-  void drawControl(ControlElement control, const QStyleOption *option, QPainter *painter,
-                   const QWidget *widget = NULL) const override;
+  virtual QRect subElementRect(SubElement element, const QStyleOption *option,
+                               const QWidget *widget) const override;
+  virtual QSize sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &size,
+                                 const QWidget *widget) const override;
+  virtual int pixelMetric(PixelMetric metric, const QStyleOption *option = NULL,
+                          const QWidget *widget = NULL) const override;
+  virtual QIcon standardIcon(StandardPixmap standardIcon, const QStyleOption *option = NULL,
+                             const QWidget *widget = NULL) const override;
+  virtual void drawComplexControl(ComplexControl control, const QStyleOptionComplex *option,
+                                  QPainter *painter, const QWidget *widget = NULL) const override;
+  virtual void drawPrimitive(PrimitiveElement element, const QStyleOption *option,
+                             QPainter *painter, const QWidget *widget = NULL) const override;
+  virtual void drawControl(ControlElement control, const QStyleOption *option, QPainter *painter,
+                           const QWidget *widget = NULL) const override;
 
 protected:
 };

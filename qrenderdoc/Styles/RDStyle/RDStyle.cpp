@@ -28,7 +28,7 @@
 #include <QPen>
 #include <QStyleOption>
 
-RDStyle::RDStyle(ColorScheme scheme) : QProxyStyle()
+RDStyle::RDStyle(ColorScheme scheme) : RDTweakedNativeStyle()
 {
 }
 
@@ -38,262 +38,40 @@ RDStyle::~RDStyle()
 
 QRect RDStyle::subElementRect(SubElement element, const QStyleOption *opt, const QWidget *widget) const
 {
-  QRect ret = QProxyStyle::subElementRect(element, opt, widget);
-
-  if(element == QStyle::SE_DockWidgetCloseButton || element == QStyle::SE_DockWidgetFloatButton)
-  {
-    int width = pixelMetric(QStyle::PM_TabCloseIndicatorWidth, opt, widget);
-    int height = pixelMetric(QStyle::PM_TabCloseIndicatorHeight, opt, widget);
-
-    QPoint c = ret.center();
-    ret.setSize(QSize(width, height));
-    ret.moveCenter(c);
-  }
-
-  return ret;
+  return RDTweakedNativeStyle::subElementRect(element, opt, widget);
 }
 
 QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, const QSize &size,
                                 const QWidget *widget) const
 {
-  QSize sz = size;
-
-  // Toolbuttons are always at least icon sized, for consistency.
-  if(type == QStyle::CT_ToolButton)
-  {
-    const QStyleOptionToolButton *toolbutton = qstyleoption_cast<const QStyleOptionToolButton *>(opt);
-    if(toolbutton)
-      sz = sz.expandedTo(toolbutton->iconSize);
-  }
-
-  return QProxyStyle::sizeFromContents(type, opt, sz, widget);
+  return RDTweakedNativeStyle::sizeFromContents(type, opt, size, widget);
 }
 
 int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWidget *widget) const
 {
-  // toolbuttons don't shift their text when clicked.
-  if(metric == QStyle::PM_ButtonShiftHorizontal || metric == QStyle::PM_ButtonShiftVertical)
-  {
-    if(opt && (opt->state & State_AutoRaise))
-      return 0;
-  }
-
-  return QProxyStyle::pixelMetric(metric, opt, widget);
+  return RDTweakedNativeStyle::pixelMetric(metric, opt, widget);
 }
 
 QIcon RDStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *opt,
                             const QWidget *widget) const
 {
-  if(standardIcon == QStyle::SP_TitleBarCloseButton)
-  {
-    int sz = pixelMetric(QStyle::PM_SmallIconSize);
-
-    return QIcon(QPixmap(QSize(sz, sz)));
-  }
-
-  return QProxyStyle::standardIcon(standardIcon, opt, widget);
+  return RDTweakedNativeStyle::standardIcon(standardIcon, opt, widget);
 }
 
 void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionComplex *opt,
                                  QPainter *p, const QWidget *widget) const
 {
-  // autoraise toolbuttons are rendered flat with a semi-transparent highlight to show their state.
-  if(control == QStyle::CC_ToolButton && (opt->state & State_AutoRaise))
-  {
-    QRect dropdown = subControlRect(control, opt, SC_ToolButtonMenu, widget);
-
-    QPen oldPen = p->pen();
-    QColor backCol = opt->palette.color(QPalette::Normal, QPalette::Highlight);
-
-    backCol.setAlphaF(0.2);
-    QStyle::State masked = opt->state & (State_On | State_MouseOver);
-
-    // when the mouse is over, make it a little stronger
-    if(masked && (masked & State_MouseOver))
-      backCol.setAlphaF(0.4);
-
-    if(masked)
-    {
-      QRect rect = opt->rect.adjusted(0, 0, -1, -1);
-      p->setPen(opt->palette.color(QPalette::Shadow));
-      p->drawRect(rect);
-      p->fillRect(rect, QBrush(backCol));
-    }
-
-    p->setPen(oldPen);
-
-    const QStyleOptionToolButton *toolbutton = qstyleoption_cast<const QStyleOptionToolButton *>(opt);
-
-    QStyleOptionToolButton labelTextIcon = *toolbutton;
-    labelTextIcon.rect = subControlRect(control, opt, SC_ToolButton, widget);
-
-    // draw the label text/icon
-    drawControl(CE_ToolButtonLabel, &labelTextIcon, p, widget);
-
-    // draw the menu arrow, if there is one
-    if((toolbutton->subControls & SC_ToolButtonMenu) ||
-       (toolbutton->features & QStyleOptionToolButton::HasMenu))
-    {
-      QStyleOptionToolButton menu = *toolbutton;
-      menu.rect = subControlRect(control, opt, SC_ToolButtonMenu, widget);
-      drawPrimitive(PE_IndicatorArrowDown, &menu, p, widget);
-    }
-
-    return;
-  }
-
-  return QProxyStyle::drawComplexControl(control, opt, p, widget);
+  return RDTweakedNativeStyle::drawComplexControl(control, opt, p, widget);
 }
 
 void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, QPainter *p,
                             const QWidget *widget) const
 {
-  if(element == QStyle::PE_IndicatorBranch)
-  {
-    QPen oldPen = p->pen();
-
-    if(opt->state & State_Children)
-    {
-      bool aa = p->testRenderHint(QPainter::Antialiasing);
-      p->setRenderHint(QPainter::Antialiasing);
-
-      QColor col = opt->palette.color(QPalette::Dark);
-
-      if(opt->state & State_MouseOver)
-      {
-        QColor highlightCol = opt->palette.color(QPalette::Highlight);
-
-        col.setRedF(col.redF() * 0.6 + highlightCol.redF() * 0.4);
-        col.setGreenF(col.greenF() * 0.6 + highlightCol.greenF() * 0.4);
-        col.setBlueF(col.blueF() * 0.6 + highlightCol.blueF() * 0.4);
-      }
-
-      p->setPen(QPen(col, 2.0));
-
-      QPainterPath path;
-
-      QPolygonF poly;
-
-      QRectF rect = opt->rect;
-
-      {
-        qreal newdim = qMin(14.0, qMin(rect.height(), rect.width()));
-        QPointF c = rect.center();
-        rect.setTop(c.y() - newdim / 2);
-        rect.setLeft(c.x() - newdim / 2);
-        rect.setWidth(newdim);
-        rect.setHeight(newdim);
-      }
-
-      rect = rect.adjusted(2, 2, -2, -2);
-
-      if(opt->state & State_Open)
-      {
-        QPointF pt = rect.center();
-        pt.setX(rect.left());
-        poly << pt;
-
-        pt = rect.center();
-        pt.setY(rect.bottom());
-        poly << pt;
-
-        pt = rect.center();
-        pt.setX(rect.right());
-        poly << pt;
-
-        path.addPolygon(poly);
-
-        p->drawPath(path);
-      }
-      else
-      {
-        QPointF pt = rect.center();
-        pt.setY(rect.top());
-        poly << pt;
-
-        pt = rect.center();
-        pt.setX(rect.right());
-        poly << pt;
-
-        pt = rect.center();
-        pt.setY(rect.bottom());
-        poly << pt;
-
-        path.addPolygon(poly);
-
-        p->drawPath(path);
-      }
-
-      if(!aa)
-        p->setRenderHint(QPainter::Antialiasing, false);
-    }
-    else if(opt->state & (State_Sibling | State_Item))
-    {
-      p->setPen(QPen(opt->palette.color(QPalette::Midlight), 1.0));
-
-      int bottomY = opt->rect.center().y();
-
-      if(opt->state & State_Sibling)
-        bottomY = opt->rect.bottom();
-
-      p->drawLine(QLine(opt->rect.center().x(), opt->rect.top(), opt->rect.center().x(), bottomY));
-
-      if(opt->state & State_Item)
-        p->drawLine(opt->rect.center(), QPoint(opt->rect.right(), opt->rect.center().y()));
-    }
-    p->setPen(oldPen);
-    return;
-  }
-  else if(element == PE_IndicatorTabClose)
-  {
-    QPen oldPen = p->pen();
-    bool aa = p->testRenderHint(QPainter::Antialiasing);
-    p->setRenderHint(QPainter::Antialiasing);
-
-    QColor col = opt->palette.color(QPalette::Text);
-
-    QRectF rect = opt->rect.adjusted(1, 1, -1, -1);
-
-    if(opt->state & (QStyle::State_Raised | QStyle::State_Sunken | QStyle::State_MouseOver))
-    {
-      QPointF c = rect.center();
-      qreal radius = rect.width() / 2.0;
-
-      col = opt->palette.color(QPalette::Base);
-
-      QPainterPath path;
-
-      path.addEllipse(c, radius, radius);
-
-      QColor fillCol = QColor(Qt::red).darker(120);
-
-      if(opt->state & QStyle::State_Sunken)
-        fillCol = fillCol.darker(120);
-
-      p->fillPath(path, fillCol);
-    }
-
-    p->setPen(QPen(col, 1.5));
-
-    QPointF c = rect.center();
-
-    qreal crossrad = rect.width() / 4.0;
-
-    p->drawLine(c + QPointF(-crossrad, -crossrad), c + QPointF(crossrad, crossrad));
-    p->drawLine(c + QPointF(-crossrad, crossrad), c + QPointF(crossrad, -crossrad));
-
-    p->setPen(oldPen);
-    if(!aa)
-      p->setRenderHint(QPainter::Antialiasing, false);
-
-    return;
-  }
-
-  QProxyStyle::drawPrimitive(element, opt, p, widget);
+  RDTweakedNativeStyle::drawPrimitive(element, opt, p, widget);
 }
 
 void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPainter *p,
                           const QWidget *widget) const
 {
-  QProxyStyle::drawControl(control, opt, p, widget);
+  RDTweakedNativeStyle::drawControl(control, opt, p, widget);
 }
