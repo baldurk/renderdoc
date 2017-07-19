@@ -2606,6 +2606,10 @@ void BufferViewer::Reset()
 
   ClearModels();
 
+  ui->vsinData->setColumnWidths({40, 40});
+  ui->vsoutData->setColumnWidths({40, 40});
+  ui->gsoutData->setColumnWidths({40, 40});
+
   m_BBoxes.clear();
 
   ICaptureContext *ctx = &m_Ctx;

@@ -111,6 +111,8 @@ void RDHeaderView::cacheSections()
       QVariant v = m->data(m->index(0, col), m_columnGroupRole);
       if(v.isValid())
         m_sections[col].group = v.toInt();
+      else
+        m_sections[col].group = -m_columnGroupRole - col;
 
       if(col > 0)
       {
