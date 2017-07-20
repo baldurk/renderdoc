@@ -3,6 +3,7 @@
                 _init;
                 _fini;
                 gl[A-Z]*;
+                egl[A-Z]*;
                 dlopen;
                 _exit;
                 RENDERDOC_*;
