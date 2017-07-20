@@ -161,6 +161,15 @@ int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWid
   return RDTweakedNativeStyle::pixelMetric(metric, opt, widget);
 }
 
+int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidget *widget,
+                       QStyleHintReturn *returnData) const
+{
+  if(stylehint == QStyle::SH_EtchDisabledText || stylehint == QStyle::SH_DitherDisabledText)
+    return 0;
+
+  return RDTweakedNativeStyle::styleHint(stylehint, opt, widget, returnData);
+}
+
 QIcon RDStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *opt,
                             const QWidget *widget) const
 {
@@ -267,6 +276,101 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
     }
 
     p->restore();
+
+    return;
+  }
+  else if(control == CE_RadioButton)
+  {
+    const QStyleOptionButton *radiobutton = qstyleoption_cast<const QStyleOptionButton *>(opt);
+    if(radiobutton)
+    {
+      QRectF rect = subElementRect(SE_CheckBoxIndicator, opt, widget);
+
+      rect = rect.adjusted(1.5, 1.5, -1, -1);
+
+      p->save();
+      p->setRenderHint(QPainter::Antialiasing);
+
+      if(opt->state & State_HasFocus)
+      {
+        QPainterPath highlight;
+        highlight.addEllipse(rect.center(), rect.width() / 2.0 + 0.75, rect.height() / 2.0 + 0.75);
+
+        p->fillPath(highlight, opt->palette.brush(QPalette::Highlight));
+      }
+
+      QPainterPath path;
+      path.addEllipse(rect.center(), rect.width() / 2.0, rect.height() / 2.0);
+
+      p->fillPath(path, outlineBrush(opt->palette));
+
+      rect = rect.adjusted(1, 1, -1, -1);
+
+      path = QPainterPath();
+      path.addEllipse(rect.center(), rect.width() / 2.0, rect.height() / 2.0);
+
+      if(opt->state & State_Sunken)
+        p->fillPath(path, opt->palette.brush(QPalette::Midlight));
+      else
+        p->fillPath(path, opt->palette.brush(QPalette::Button));
+
+      if(opt->state & State_On)
+      {
+        rect = rect.adjusted(1.5, 1.5, -1.5, -1.5);
+
+        path = QPainterPath();
+        path.addEllipse(rect.center(), rect.width() / 2.0, rect.height() / 2.0);
+
+        p->fillPath(path, opt->palette.brush(QPalette::ButtonText));
+      }
+
+      p->restore();
+
+      QStyleOptionButton labelText = *radiobutton;
+      labelText.rect = subElementRect(SE_RadioButtonContents, &labelText, widget);
+      drawControl(CE_RadioButtonLabel, &labelText, p, widget);
+    }
+
+    return;
+  }
+  else if(control == CE_CheckBox)
+  {
+    const QStyleOptionButton *checkbox = qstyleoption_cast<const QStyleOptionButton *>(opt);
+    if(checkbox)
+    {
+      QRectF rect = subElementRect(SE_CheckBoxIndicator, opt, widget).adjusted(1, 1, -1, -1);
+
+      QPen outlinePen(outlineBrush(opt->palette), 1.0);
+
+      p->save();
+      p->setRenderHint(QPainter::Antialiasing);
+
+      if(opt->state & State_HasFocus)
+      {
+        QPainterPath highlight;
+        highlight.addRoundedRect(rect.adjusted(-0.5, -0.5, 0.5, 0.5), 1.0, 1.0);
+
+        p->strokePath(highlight.translated(QPointF(0.5, 0.5)),
+                      QPen(opt->palette.brush(QPalette::Highlight), 1.0));
+      }
+
+      QPainterPath path;
+      path.addRoundedRect(rect, 1.0, 1.0);
+
+      p->setPen(outlinePen);
+      p->drawPath(path.translated(QPointF(0.5, 0.5)));
+
+      rect = rect.adjusted(2, 2, -1, -1);
+
+      if(opt->state & State_On)
+        p->fillRect(rect, opt->palette.brush(QPalette::ButtonText));
+
+      p->restore();
+
+      QStyleOptionButton labelText = *checkbox;
+      labelText.rect = subElementRect(SE_CheckBoxContents, &labelText, widget);
+      drawControl(CE_CheckBoxLabel, &labelText, p, widget);
+    }
 
     return;
   }

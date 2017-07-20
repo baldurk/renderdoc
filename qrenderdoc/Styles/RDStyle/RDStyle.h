@@ -49,6 +49,8 @@ public:
                          const QWidget *widget) const override;
   int pixelMetric(PixelMetric metric, const QStyleOption *option = NULL,
                   const QWidget *widget = NULL) const override;
+  int styleHint(StyleHint stylehint, const QStyleOption *opt = NULL, const QWidget *widget = NULL,
+                QStyleHintReturn *returnData = NULL) const override;
   QIcon standardIcon(StandardPixmap standardIcon, const QStyleOption *option = NULL,
                      const QWidget *widget = NULL) const override;
   void drawComplexControl(ComplexControl control, const QStyleOptionComplex *option,
