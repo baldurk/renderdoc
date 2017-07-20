@@ -37,6 +37,8 @@
 // official headers
 #include "official/glcorearb.h"
 #include "official/glext.h"
+
+#include "official/gl32.h"
 // TODO there are some extensions which are in both headers but with different content
 // however it does not seem to be a problem at this time
 #include "official/glesext.h"

@@ -99,6 +99,15 @@
     <ClInclude Include="official\glesext.h">
       <Filter>ARB Headers</Filter>
     </ClInclude>
+    <ClInclude Include="official\gl3platform.h">
+      <Filter>ARB Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="official\gl32.h">
+      <Filter>ARB Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="official\khrplatform.h">
+      <Filter>ARB Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="wrappers\gl_buffer_funcs.cpp">

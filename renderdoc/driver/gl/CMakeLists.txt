@@ -18,9 +18,12 @@ set(sources
     gl_resources.h
     gl_shader_refl.cpp
     gl_shader_refl.h
+    official/gl32.h
+    official/gl3platform.h
     official/glcorearb.h
     official/glesext.h
     official/glext.h
+    official/khrplatform.h
     wrappers/gl_buffer_funcs.cpp
     wrappers/gl_debug_funcs.cpp
     wrappers/gl_draw_funcs.cpp

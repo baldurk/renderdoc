@@ -112,9 +112,12 @@
     <ClInclude Include="official\egl.h" />
     <ClInclude Include="official\eglext.h" />
     <ClInclude Include="official\eglplatform.h" />
+    <ClInclude Include="official\gl32.h" />
+    <ClInclude Include="official\gl3platform.h" />
     <ClInclude Include="official\glcorearb.h" />
     <ClInclude Include="official\glesext.h" />
     <ClInclude Include="official\glext.h" />
+    <ClInclude Include="official\khrplatform.h" />
     <ClInclude Include="official\wglext.h" />
     <ClInclude Include="precompiled.h" />
   </ItemGroup>
