@@ -816,6 +816,11 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_vertex_array_object");
   m_GLESExtensions.push_back("GL_OES_vertex_half_float");
 
+  // advertise EGL extensions in the gl ext string, just in case anyone is checking it for
+  // this way.
+  m_GLESExtensions.push_back("EGL_KHR_create_context");
+  m_GLESExtensions.push_back("EGL_KHR_surfaceless_context");
+
   // we'll be sorting the implementation extension array, so make sure the
   // sorts are identical so we can do the intersection easily
   std::sort(m_GLESExtensions.begin(), m_GLESExtensions.end());
