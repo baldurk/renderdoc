@@ -41,6 +41,8 @@ public:
   RDStyle(ColorScheme scheme);
   ~RDStyle();
 
+  void polish(QPalette &pal) override;
+
   QRect subElementRect(SubElement element, const QStyleOption *option,
                        const QWidget *widget) const override;
   QSize sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &size,
@@ -57,4 +59,5 @@ public:
                    const QWidget *widget = NULL) const override;
 
 protected:
+  ColorScheme m_Scheme = Light;
 };
