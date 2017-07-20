@@ -780,6 +780,16 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferTextureLayer(GLenum target, GLenum attachment,
                                                                 GLuint texture, GLint level,
                                                                 GLint layer));
+
+  IMPLEMENT_FUNCTION_SERIALISED(
+      void, glFramebufferTextureMultiviewOVR(GLenum target, GLenum attachment, GLuint texture,
+                                             GLint level, GLint baseViewIndex, GLsizei numViews));
+
+  IMPLEMENT_FUNCTION_SERIALISED(
+      void, glFramebufferTextureMultisampleMultiviewOVR(GLenum target, GLenum attachment,
+                                                        GLuint texture, GLint level, GLsizei samples,
+                                                        GLint baseViewIndex, GLsizei numViews));
+
   IMPLEMENT_FUNCTION_SERIALISED(void,
                                 glFramebufferParameteri(GLenum target, GLenum pname, GLint param));
   IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers));
