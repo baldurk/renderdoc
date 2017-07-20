@@ -604,7 +604,8 @@ struct GLHookSet
   PFNGLBLITFRAMEBUFFERPROC glBlitFramebuffer;    // aliases glBlitFramebufferEXT
 
   // GLES core
-  PFNGLPRIMITIVEBOUNDINGBOXEXTPROC glPrimitiveBoundingBox;    // aliases glPrimitiveBoundingBoxEXT, glPrimitiveBoundingBoxOES
+  PFNGLPRIMITIVEBOUNDINGBOXPROC glPrimitiveBoundingBox;    // aliases glPrimitiveBoundingBoxEXT, glPrimitiveBoundingBoxOES
+  PFNGLBLENDBARRIERPROC glBlendBarrier;
 
   // GLES: EXT_multisampled_render_to_texture
   PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC glFramebufferTexture2DMultisampleEXT;
