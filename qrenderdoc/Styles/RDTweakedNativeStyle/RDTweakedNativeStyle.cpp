@@ -102,8 +102,6 @@ void RDTweakedNativeStyle::drawComplexControl(ComplexControl control, const QSty
   // autoraise toolbuttons are rendered flat with a semi-transparent highlight to show their state.
   if(control == QStyle::CC_ToolButton && (opt->state & State_AutoRaise))
   {
-    QRect dropdown = subControlRect(control, opt, SC_ToolButtonMenu, widget);
-
     QPen oldPen = p->pen();
     QColor backCol = opt->palette.color(QPalette::Normal, QPalette::Highlight);
 

@@ -23,8 +23,10 @@
  ******************************************************************************/
 
 #include "RDStyle.h"
+#include <QCommonStyle>
 #include <QDebug>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPen>
 #include <QStyleOption>
 #include "Code/QRDUtils.h"
@@ -139,6 +141,11 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
 
 int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWidget *widget) const
 {
+  if(metric == QStyle::PM_ButtonShiftHorizontal || metric == QStyle::PM_ButtonShiftVertical)
+  {
+    if(opt && (opt->state & State_AutoRaise) == 0)
+      return 1;
+  }
   return RDTweakedNativeStyle::pixelMetric(metric, opt, widget);
 }
 
@@ -151,6 +158,31 @@ QIcon RDStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *opt
 void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionComplex *opt,
                                  QPainter *p, const QWidget *widget) const
 {
+  // let the tweaked native style render autoraise tool buttons
+  if(control == QStyle::CC_ToolButton && (opt->state & State_AutoRaise) == 0)
+  {
+    drawControl(CE_PushButtonBevel, opt, p, widget);
+
+    const QStyleOptionToolButton *toolbutton = qstyleoption_cast<const QStyleOptionToolButton *>(opt);
+
+    QStyleOptionToolButton labelTextIcon = *toolbutton;
+    labelTextIcon.rect = subControlRect(control, opt, SC_ToolButton, widget);
+
+    // draw the label text/icon
+    drawControl(CE_ToolButtonLabel, &labelTextIcon, p, widget);
+
+    // draw the menu arrow, if there is one
+    if((toolbutton->subControls & SC_ToolButtonMenu) ||
+       (toolbutton->features & QStyleOptionToolButton::HasMenu))
+    {
+      QStyleOptionToolButton menu = *toolbutton;
+      menu.rect = subControlRect(control, opt, SC_ToolButtonMenu, widget);
+      drawPrimitive(PE_IndicatorArrowDown, &menu, p, widget);
+    }
+
+    return;
+  }
+
   return RDTweakedNativeStyle::drawComplexControl(control, opt, p, widget);
 }
 
@@ -160,8 +192,72 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
   RDTweakedNativeStyle::drawPrimitive(element, opt, p, widget);
 }
 
+QPalette::ColorRole RDStyle::outlineRole() const
+{
+  return m_Scheme == Light ? QPalette::Dark : QPalette::Light;
+}
+
 void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPainter *p,
                           const QWidget *widget) const
 {
+  if(control == CE_PushButton)
+  {
+    drawControl(CE_PushButtonBevel, opt, p, widget);
+
+    QCommonStyle::drawControl(CE_PushButtonLabel, opt, p, widget);
+
+    return;
+  }
+  else if(control == CE_PushButtonBevel)
+  {
+    QPen outlinePen(opt->palette.brush(outlineRole()), 1.0);
+
+    if(opt->state & State_HasFocus)
+      outlinePen = QPen(opt->palette.brush(QPalette::Highlight), 2.0);
+
+    p->save();
+
+    p->setRenderHint(QPainter::Antialiasing);
+
+    int xshift = pixelMetric(PM_ButtonShiftHorizontal, opt, widget);
+    int yshift = pixelMetric(PM_ButtonShiftVertical, opt, widget);
+
+    QRect rect = opt->rect.adjusted(1, 1, -1, -1);
+
+    if(opt->state & State_Sunken)
+    {
+      rect.setLeft(rect.left() + xshift);
+      rect.setTop(rect.top() + yshift);
+
+      QPainterPath path;
+      path.addRoundedRect(rect, 1.0, 1.0);
+
+      p->fillPath(path, opt->palette.brush(QPalette::Midlight));
+
+      p->setPen(outlinePen);
+      p->drawPath(path.translated(QPointF(0.5, 0.5)));
+    }
+    else
+    {
+      rect.setRight(rect.right() - xshift);
+      rect.setBottom(rect.bottom() - yshift);
+
+      QPainterPath path;
+      path.addRoundedRect(rect, 1.0, 1.0);
+
+      p->setPen(QPen(opt->palette.brush(QPalette::Shadow), 1.0));
+      p->drawPath(path.translated(QPointF(1.0, 1.0)));
+
+      p->fillPath(path, opt->palette.brush(QPalette::Button));
+
+      p->setPen(outlinePen);
+      p->drawPath(path.translated(QPointF(0.5, 0.5)));
+    }
+
+    p->restore();
+
+    return;
+  }
+
   RDTweakedNativeStyle::drawControl(control, opt, p, widget);
 }
