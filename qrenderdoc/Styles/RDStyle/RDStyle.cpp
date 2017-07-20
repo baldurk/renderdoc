@@ -182,7 +182,7 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
   // let the tweaked native style render autoraise tool buttons
   if(control == QStyle::CC_ToolButton && (opt->state & State_AutoRaise) == 0)
   {
-    drawControl(CE_PushButtonBevel, opt, p, widget);
+    drawRoundedRectBorder(opt, p, widget, QPalette::Button, true);
 
     const QStyleOptionToolButton *toolbutton = qstyleoption_cast<const QStyleOptionToolButton *>(opt);
 
@@ -210,6 +210,20 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
 void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, QPainter *p,
                             const QWidget *widget) const
 {
+  if(element == QStyle::PE_PanelLineEdit)
+  {
+    const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(opt);
+
+    if(frame && frame->lineWidth > 0)
+    {
+      QStyleOption o = *opt;
+      o.state &= ~State_Sunken;
+      drawRoundedRectBorder(&o, p, widget, QPalette::Base, false);
+    }
+
+    return;
+  }
+
   RDTweakedNativeStyle::drawPrimitive(element, opt, p, widget);
 }
 
@@ -223,60 +237,14 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 {
   if(control == CE_PushButton)
   {
-    drawControl(CE_PushButtonBevel, opt, p, widget);
+    drawRoundedRectBorder(opt, p, widget, QPalette::Button, true);
 
     QCommonStyle::drawControl(CE_PushButtonLabel, opt, p, widget);
-
     return;
   }
   else if(control == CE_PushButtonBevel)
   {
-    QPen outlinePen(outlineBrush(opt->palette), 1.0);
-
-    if(opt->state & State_HasFocus)
-      outlinePen = QPen(opt->palette.brush(QPalette::Highlight), 1.5);
-
-    p->save();
-
-    p->setRenderHint(QPainter::Antialiasing);
-
-    int xshift = pixelMetric(PM_ButtonShiftHorizontal, opt, widget);
-    int yshift = pixelMetric(PM_ButtonShiftVertical, opt, widget);
-
-    QRect rect = opt->rect.adjusted(1, 1, -1, -1);
-
-    if(opt->state & State_Sunken)
-    {
-      rect.setLeft(rect.left() + xshift);
-      rect.setTop(rect.top() + yshift);
-
-      QPainterPath path;
-      path.addRoundedRect(rect, 1.0, 1.0);
-
-      p->fillPath(path, opt->palette.brush(QPalette::Midlight));
-
-      p->setPen(outlinePen);
-      p->drawPath(path.translated(QPointF(0.5, 0.5)));
-    }
-    else
-    {
-      rect.setRight(rect.right() - xshift);
-      rect.setBottom(rect.bottom() - yshift);
-
-      QPainterPath path;
-      path.addRoundedRect(rect, 1.0, 1.0);
-
-      p->setPen(QPen(opt->palette.brush(QPalette::Shadow), 1.0));
-      p->drawPath(path.translated(QPointF(1.0, 1.0)));
-
-      p->fillPath(path, opt->palette.brush(QPalette::Button));
-
-      p->setPen(outlinePen);
-      p->drawPath(path.translated(QPointF(0.5, 0.5)));
-    }
-
-    p->restore();
-
+    drawRoundedRectBorder(opt, p, widget, QPalette::Button, true);
     return;
   }
   else if(control == CE_RadioButton)
@@ -376,4 +344,60 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
   }
 
   RDTweakedNativeStyle::drawControl(control, opt, p, widget);
+}
+
+void RDStyle::drawRoundedRectBorder(const QStyleOption *opt, QPainter *p, const QWidget *widget,
+                                    QPalette::ColorRole fillRole, bool shadow) const
+{
+  QPen outlinePen(outlineBrush(opt->palette), 1.0);
+
+  if(opt->state & State_HasFocus)
+    outlinePen = QPen(opt->palette.brush(QPalette::Highlight), 1.5);
+
+  p->save();
+
+  p->setRenderHint(QPainter::Antialiasing);
+
+  int xshift = pixelMetric(PM_ButtonShiftHorizontal, opt, widget);
+  int yshift = pixelMetric(PM_ButtonShiftVertical, opt, widget);
+
+  QRect rect = opt->rect.adjusted(0, 0, -1, -1);
+
+  if(opt->state & State_Sunken)
+  {
+    rect.setLeft(rect.left() + xshift);
+    rect.setTop(rect.top() + yshift);
+
+    QPainterPath path;
+    path.addRoundedRect(rect, 1.0, 1.0);
+
+    p->fillPath(path, opt->palette.brush(QPalette::Midlight));
+
+    p->setPen(outlinePen);
+    p->drawPath(path.translated(QPointF(0.5, 0.5)));
+  }
+  else
+  {
+    if(shadow)
+    {
+      rect.setRight(rect.right() - xshift);
+      rect.setBottom(rect.bottom() - yshift);
+    }
+
+    QPainterPath path;
+    path.addRoundedRect(rect, 1.0, 1.0);
+
+    if(shadow)
+    {
+      p->setPen(QPen(opt->palette.brush(QPalette::Shadow), 1.0));
+      p->drawPath(path.translated(QPointF(1.0, 1.0)));
+    }
+
+    p->fillPath(path, opt->palette.brush(fillRole));
+
+    p->setPen(outlinePen);
+    p->drawPath(path.translated(QPointF(0.5, 0.5)));
+  }
+
+  p->restore();
 }

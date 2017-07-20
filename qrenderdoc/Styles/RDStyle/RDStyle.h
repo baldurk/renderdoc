@@ -64,4 +64,7 @@ protected:
   ColorScheme m_Scheme = Light;
 
   const QBrush &outlineBrush(const QPalette &pal) const;
+
+  void drawRoundedRectBorder(const QStyleOption *opt, QPainter *p, const QWidget *widget,
+                             QPalette::ColorRole fillRole, bool shadow) const;
 };
