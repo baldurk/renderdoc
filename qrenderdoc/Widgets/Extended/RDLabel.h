@@ -43,6 +43,7 @@ signals:
   void doubleClicked(QMouseEvent *event);
   void mouseMoved(QMouseEvent *event);
   void leave();
+  void styleChanged(QEvent *event);
 
 public slots:
 
@@ -52,6 +53,7 @@ protected:
   void mouseDoubleClickEvent(QMouseEvent *event) override;
   void leaveEvent(QEvent *event) override;
   void resizeEvent(QResizeEvent *event) override;
+  void changeEvent(QEvent *event) override;
 
   bool m_preserveRatio = false;
 };

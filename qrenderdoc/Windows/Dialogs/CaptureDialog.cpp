@@ -68,22 +68,29 @@ void CaptureDialog::initWarning(RDLabel *warning)
   if(warning->devicePixelRatio() >= 2)
     warning->setText(warning->text().replace(lit(".png"), lit("@2x.png")));
 
-  QPalette pal = warning->palette();
+  auto calcPaletteFromStyle = [warning](QEvent *) {
+    QPalette pal = warning->palette();
 
-  QColor base = pal.color(QPalette::ToolTipBase);
+    QColor base = pal.color(QPalette::ToolTipBase);
 
-  pal.setColor(QPalette::Foreground, pal.color(QPalette::ToolTipText));
-  pal.setColor(QPalette::Window, base);
-  pal.setColor(QPalette::Base, base.darker(120));
+    pal.setColor(QPalette::Foreground, pal.color(QPalette::ToolTipText));
+    pal.setColor(QPalette::Window, base);
+    pal.setColor(QPalette::Base, base.darker(120));
+
+    warning->setPalette(pal);
+  };
+
+  calcPaletteFromStyle(NULL);
 
   warning->setBackgroundRole(QPalette::Window);
+  warning->setForegroundRole(QPalette::Foreground);
 
   QObject::connect(warning, &RDLabel::mouseMoved,
-                   [this, warning](QMouseEvent *) { warning->setBackgroundRole(QPalette::Base); });
+                   [warning](QMouseEvent *) { warning->setBackgroundRole(QPalette::Base); });
   QObject::connect(warning, &RDLabel::leave,
-                   [this, warning]() { warning->setBackgroundRole(QPalette::Window); });
+                   [warning]() { warning->setBackgroundRole(QPalette::Window); });
+  QObject::connect(warning, &RDLabel::styleChanged, calcPaletteFromStyle);
 
-  warning->setPalette(pal);
   warning->setAutoFillBackground(true);
   warning->setMouseTracking(true);
   warning->setVisible(false);

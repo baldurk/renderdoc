@@ -42,18 +42,20 @@ ResourcePreview::ResourcePreview(ICaptureContext &c, IReplayOutput *output, QWid
   ui->thumbnail = thumb;
   ui->gridLayout->addWidget(ui->thumbnail, 0, 0, 1, 2);
 
-  QPalette Pal(ui->slotLabel->palette());
+  setBackgroundRole(QPalette::Background);
+  setForegroundRole(QPalette::Highlight);
 
-  QWidget tmp;
+  setSelected(false);
 
-  Pal.setColor(ui->slotLabel->foregroundRole(), tmp.palette().color(QPalette::Foreground));
-  Pal.setColor(ui->slotLabel->backgroundRole(), tmp.palette().color(QPalette::Dark));
-
+  ui->slotLabel->setPalette(palette());
+  ui->slotLabel->setBackgroundRole(QPalette::Dark);
+  ui->slotLabel->setForegroundRole(QPalette::Foreground);
   ui->slotLabel->setAutoFillBackground(true);
-  ui->slotLabel->setPalette(Pal);
   ui->slotLabel->setFont(Formatter::PreferredFont());
+  ui->descriptionLabel->setPalette(palette());
   ui->descriptionLabel->setAutoFillBackground(true);
-  ui->descriptionLabel->setPalette(Pal);
+  ui->descriptionLabel->setBackgroundRole(QPalette::Dark);
+  ui->descriptionLabel->setForegroundRole(QPalette::Foreground);
   ui->descriptionLabel->setFont(Formatter::PreferredFont());
 
   QObject::connect(ui->thumbnail, &CustomPaintWidget::clicked, this, &ResourcePreview::clickEvent);
@@ -102,11 +104,19 @@ void ResourcePreview::setSize(QSize s)
 
 void ResourcePreview::setSelected(bool sel)
 {
+  m_Selected = sel;
+
   QPalette Pal(palette());
 
-  Pal.setColor(QPalette::Foreground, sel ? Qt::red : Qt::black);
+  Pal.setColor(QPalette::Highlight, sel ? QColor(Qt::red) : Pal.color(QPalette::Foreground));
 
   setPalette(Pal);
+}
+
+void ResourcePreview::changeEvent(QEvent *event)
+{
+  if(event->type() == QEvent::PaletteChange || event->type() == QEvent::StyleChange)
+    setSelected(m_Selected);
 }
 
 WId ResourcePreview::thumbWinId()

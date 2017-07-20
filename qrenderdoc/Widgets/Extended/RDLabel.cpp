@@ -108,4 +108,14 @@ void RDLabel::resizeEvent(QResizeEvent *event)
       setContentsMargins(margin, 0, margin, 0);
     }
   }
+
+  QLabel::resizeEvent(event);
+}
+
+void RDLabel::changeEvent(QEvent *event)
+{
+  if(event->type() == QEvent::PaletteChange || event->type() == QEvent::StyleChange)
+    emit styleChanged(event);
+
+  QLabel::changeEvent(event);
 }
