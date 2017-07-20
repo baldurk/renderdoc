@@ -1100,6 +1100,201 @@ void WrappedOpenGL::glFramebufferTextureLayer(GLenum target, GLenum attachment, 
   }
 }
 
+bool WrappedOpenGL::Serialise_glFramebufferTextureMultiviewOVR(GLenum target, GLenum attachment,
+                                                               GLuint texture, GLint level,
+                                                               GLint baseViewIndex, GLsizei numViews)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(GLenum, Attach, attachment);
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+  SERIALISE_ELEMENT(int32_t, Level, level);
+  SERIALISE_ELEMENT(int32_t, BaseViewIndex, baseViewIndex);
+  SERIALISE_ELEMENT(uint32_t, NumViews, numViews);
+
+  if(m_State < WRITING)
+  {
+    GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
+                     ? 0
+                     : GetResourceManager()->GetLiveResource(id).name;
+
+    m_Real.glFramebufferTextureMultiviewOVR(Target, Attach, tex, Level, BaseViewIndex, NumViews);
+
+    if(m_State == READING && tex)
+    {
+      if(Attach == eGL_DEPTH_ATTACHMENT || Attach == eGL_DEPTH_STENCIL_ATTACHMENT)
+        m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::DepthTarget;
+      else
+        m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
+    }
+  }
+
+  return true;
+}
+
+void WrappedOpenGL::glFramebufferTextureMultiviewOVR(GLenum target, GLenum attachment,
+                                                     GLuint texture, GLint level,
+                                                     GLint baseViewIndex, GLsizei numViews)
+{
+  m_Real.glFramebufferTextureMultiviewOVR(target, attachment, texture, level, baseViewIndex,
+                                          numViews);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = m_DeviceRecord;
+
+    if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
+    {
+      if(GetCtxData().m_DrawFramebufferRecord)
+        record = GetCtxData().m_DrawFramebufferRecord;
+    }
+    else
+    {
+      if(GetCtxData().m_ReadFramebufferRecord)
+        record = GetCtxData().m_ReadFramebufferRecord;
+    }
+
+    if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
+    {
+      ResourceRecord *texrecord =
+          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+      if(m_State == WRITING_IDLE)
+        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
+      else
+        m_MissingTracks.insert(texrecord->GetResourceID());
+    }
+
+    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+       m_State != WRITING_CAPFRAME)
+      return;
+
+    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_MULTIVIEW);
+    Serialise_glFramebufferTextureMultiviewOVR(target, attachment, texture, level, baseViewIndex,
+                                               numViews);
+
+    if(m_State == WRITING_IDLE)
+    {
+      record->AddChunk(scope.Get());
+
+      if(record != m_DeviceRecord)
+      {
+        record->UpdateCount++;
+
+        if(record->UpdateCount > 10)
+        {
+          m_HighTrafficResources.insert(record->GetResourceID());
+          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+        }
+      }
+    }
+    else
+    {
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+      GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
+                                                        eFrameRef_Read);
+    }
+  }
+}
+
+bool WrappedOpenGL::Serialise_glFramebufferTextureMultisampleMultiviewOVR(
+    GLenum target, GLenum attachment, GLuint texture, GLint level, GLsizei samples,
+    GLint baseViewIndex, GLsizei numViews)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(GLenum, Attach, attachment);
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+  SERIALISE_ELEMENT(int32_t, Level, level);
+  SERIALISE_ELEMENT(uint32_t, Samples, samples);
+  SERIALISE_ELEMENT(int32_t, BaseViewIndex, baseViewIndex);
+  SERIALISE_ELEMENT(uint32_t, NumViews, numViews);
+
+  if(m_State < WRITING)
+  {
+    GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
+                     ? 0
+                     : GetResourceManager()->GetLiveResource(id).name;
+
+    m_Real.glFramebufferTextureMultisampleMultiviewOVR(Target, Attach, tex, Level, Samples,
+                                                       BaseViewIndex, NumViews);
+
+    if(m_State == READING && tex)
+    {
+      if(Attach == eGL_DEPTH_ATTACHMENT || Attach == eGL_DEPTH_STENCIL_ATTACHMENT)
+        m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::DepthTarget;
+      else
+        m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
+    }
+  }
+
+  return true;
+}
+
+void WrappedOpenGL::glFramebufferTextureMultisampleMultiviewOVR(GLenum target, GLenum attachment,
+                                                                GLuint texture, GLint level,
+                                                                GLsizei samples, GLint baseViewIndex,
+                                                                GLsizei numViews)
+{
+  m_Real.glFramebufferTextureMultisampleMultiviewOVR(target, attachment, texture, level, samples,
+                                                     baseViewIndex, numViews);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = m_DeviceRecord;
+
+    if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
+    {
+      if(GetCtxData().m_DrawFramebufferRecord)
+        record = GetCtxData().m_DrawFramebufferRecord;
+    }
+    else
+    {
+      if(GetCtxData().m_ReadFramebufferRecord)
+        record = GetCtxData().m_ReadFramebufferRecord;
+    }
+
+    if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
+    {
+      ResourceRecord *texrecord =
+          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+      if(m_State == WRITING_IDLE)
+        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
+      else
+        m_MissingTracks.insert(texrecord->GetResourceID());
+    }
+
+    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+       m_State != WRITING_CAPFRAME)
+      return;
+
+    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_MULTIVIEWMS);
+    Serialise_glFramebufferTextureMultisampleMultiviewOVR(target, attachment, texture, level,
+                                                          samples, baseViewIndex, numViews);
+
+    if(m_State == WRITING_IDLE)
+    {
+      record->AddChunk(scope.Get());
+
+      if(record != m_DeviceRecord)
+      {
+        record->UpdateCount++;
+
+        if(record->UpdateCount > 10)
+        {
+          m_HighTrafficResources.insert(record->GetResourceID());
+          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+        }
+      }
+    }
+    else
+    {
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+      GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
+                                                        eFrameRef_Read);
+    }
+  }
+}
+
 bool WrappedOpenGL::Serialise_glNamedFramebufferParameteriEXT(GLuint framebuffer, GLenum pname,
                                                               GLint param)
 {

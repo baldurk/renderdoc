@@ -1156,12 +1156,14 @@
   HookExtension(PFNGLRASTERSAMPLESEXTPROC, glRasterSamplesEXT); \
   HookExtension(PFNGLFRAMETERMINATORGREMEDYPROC, glFrameTerminatorGREMEDY); \
   HookExtension(PFNGLSTRINGMARKERGREMEDYPROC, glStringMarkerGREMEDY); \
+  HookExtension(PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC, glFramebufferTextureMultiviewOVR); \
   HookExtension(PFNGLBLENDBARRIERPROC, glBlendBarrier); \
   HookExtension(PFNGLPRIMITIVEBOUNDINGBOXPROC, glPrimitiveBoundingBox); \
   HookExtensionAlias(PFNGLPRIMITIVEBOUNDINGBOXPROC, glPrimitiveBoundingBox, glPrimitiveBoundingBoxEXT); \
   HookExtensionAlias(PFNGLPRIMITIVEBOUNDINGBOXPROC, glPrimitiveBoundingBox, glPrimitiveBoundingBoxOES); \
   HookExtension(PFNGLDISCARDFRAMEBUFFEREXTPROC, glDiscardFramebufferEXT); \
   HookExtension(PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC, glFramebufferTexture2DMultisampleEXT); \
+  HookExtension(PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC, glFramebufferTextureMultisampleMultiviewOVR); \
   HookExtension(PFNWGLDXSETRESOURCESHAREHANDLENVPROC, wglDXSetResourceShareHandleNV); \
   HookExtension(PFNWGLDXOPENDEVICENVPROC, wglDXOpenDeviceNV); \
   HookExtension(PFNWGLDXCLOSEDEVICENVPROC, wglDXCloseDeviceNV); \
@@ -2014,10 +2016,12 @@
     HookWrapper2(void, glRasterSamplesEXT, GLuint, samples, GLboolean, fixedsamplelocations); \
     HookWrapper0(void, glFrameTerminatorGREMEDY); \
     HookWrapper2(void, glStringMarkerGREMEDY, GLsizei, len, const void *, string); \
+    HookWrapper6(void, glFramebufferTextureMultiviewOVR, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, baseViewIndex, GLsizei, numViews); \
     HookWrapper0(void, glBlendBarrier); \
     HookWrapper8(void, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
     HookWrapper3(void, glDiscardFramebufferEXT, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
     HookWrapper6(void, glFramebufferTexture2DMultisampleEXT, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \
+    HookWrapper7(void, glFramebufferTextureMultisampleMultiviewOVR, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLsizei, samples, GLint, baseViewIndex, GLsizei, numViews); \
     HookWrapper2(BOOL, wglDXSetResourceShareHandleNV, void *, dxObject, HANDLE, shareHandle); \
     HookWrapper1(HANDLE, wglDXOpenDeviceNV, void *, dxDevice); \
     HookWrapper1(BOOL, wglDXCloseDeviceNV, HANDLE, hDevice); \
@@ -3428,7 +3432,6 @@
     HookWrapper4(void, glvideocapturestreamparameterivnv, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, const GLint *, params); \
     HookWrapper4(void, glvideocapturestreamparameterfvnv, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, const GLfloat *, params); \
     HookWrapper4(void, glvideocapturestreamparameterdvnv, GLuint, video_capture_slot, GLuint, stream, GLenum, pname, const GLdouble *, params); \
-    HookWrapper6(void, glframebuffertexturemultiviewovr, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, baseViewIndex, GLsizei, numViews); \
     HookWrapper2(void, glhintpgi, GLenum, target, GLint, mode); \
     HookWrapper3(void, gldetailtexfuncsgis, GLenum, target, GLsizei, n, const GLfloat *, points); \
     HookWrapper2(void, glgetdetailtexfuncsgis, GLenum, target, GLfloat *, points); \
@@ -3695,7 +3698,6 @@
     HookWrapper2(void, gldisableinv, GLenum, target, GLuint, index); \
     HookWrapper2(GLboolean, glisenabledinv, GLenum, target, GLuint, index); \
     HookWrapper5(void, glviewportswizzlenv, GLuint, index, GLenum, swizzlex, GLenum, swizzley, GLenum, swizzlez, GLenum, swizzlew); \
-    HookWrapper7(void, glframebuffertexturemultisamplemultiviewovr, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLsizei, samples, GLint, baseViewIndex, GLsizei, numViews); \
     HookWrapper2(void, glalphafuncqcom, GLenum, func, GLclampf, ref); \
     HookWrapper3(void, glgetdrivercontrolsqcom, GLint *, num, GLsizei, size, GLuint *, driverControls); \
     HookWrapper4(void, glgetdrivercontrolstringqcom, GLuint, driverControl, GLsizei, bufSize, GLsizei *, length, GLchar *, driverControlString); \
@@ -5393,7 +5395,6 @@
     HandleUnsupported(PFNGLVIDEOCAPTURESTREAMPARAMETERIVNVPROC, glvideocapturestreamparameterivnv); \
     HandleUnsupported(PFNGLVIDEOCAPTURESTREAMPARAMETERFVNVPROC, glvideocapturestreamparameterfvnv); \
     HandleUnsupported(PFNGLVIDEOCAPTURESTREAMPARAMETERDVNVPROC, glvideocapturestreamparameterdvnv); \
-    HandleUnsupported(PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC, glframebuffertexturemultiviewovr); \
     HandleUnsupported(PFNGLHINTPGIPROC, glhintpgi); \
     HandleUnsupported(PFNGLDETAILTEXFUNCSGISPROC, gldetailtexfuncsgis); \
     HandleUnsupported(PFNGLGETDETAILTEXFUNCSGISPROC, glgetdetailtexfuncsgis); \
@@ -5660,7 +5661,6 @@
     HandleUnsupported(PFNGLDISABLEINVPROC, gldisableinv); \
     HandleUnsupported(PFNGLISENABLEDINVPROC, glisenabledinv); \
     HandleUnsupported(PFNGLVIEWPORTSWIZZLENVPROC, glviewportswizzlenv); \
-    HandleUnsupported(PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC, glframebuffertexturemultisamplemultiviewovr); \
     HandleUnsupported(PFNGLALPHAFUNCQCOMPROC, glalphafuncqcom); \
     HandleUnsupported(PFNGLGETDRIVERCONTROLSQCOMPROC, glgetdrivercontrolsqcom); \
     HandleUnsupported(PFNGLGETDRIVERCONTROLSTRINGQCOMPROC, glgetdrivercontrolstringqcom); \

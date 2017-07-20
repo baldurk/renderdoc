@@ -648,6 +648,12 @@ struct GLHookSet
   // GREMEDY_string_marker
   PFNGLSTRINGMARKERGREMEDYPROC glStringMarkerGREMEDY;
 
+  // OVR_multiview
+  PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC glFramebufferTextureMultiviewOVR;
+
+  // OVR_multiview_multisampled_render_to_texture
+  PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC glFramebufferTextureMultisampleMultiviewOVR;
+
   // EXT_direct_state_access below here. We only include the functions relevant for core 3.2+ GL,
   // not any
   // functions for legacy functionality.

@@ -252,6 +252,8 @@ const char *GLChunkNames[] = {
     "glFramebufferTexture3D",
     "glFramebufferRenderbuffer",
     "glFramebufferTextureLayer",
+    "glFramebufferTextureMultiviewOVR",
+    "glFramebufferTextureMultisampleMultiviewOVR",
     "glFramebufferParameteri",
     "glReadBuffer",
     "glBindFramebuffer",
@@ -815,6 +817,9 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_texture_storage_multisample_2d_array");
   m_GLESExtensions.push_back("GL_OES_vertex_array_object");
   m_GLESExtensions.push_back("GL_OES_vertex_half_float");
+  m_GLESExtensions.push_back("GL_OVR_multiview");
+  m_GLESExtensions.push_back("GL_OVR_multiview2");
+  m_GLESExtensions.push_back("GL_OVR_multiview_multisampled_render_to_texture");
 
   // advertise EGL extensions in the gl ext string, just in case anyone is checking it for
   // this way.
@@ -2562,7 +2567,7 @@ void WrappedOpenGL::CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType,
 
   if(textureType == eGL_TEXTURE_2D_ARRAY)
   {
-    Common_glTextureImage3DEXT(id, eGL_TEXTURE_2D, 0, internalformat, width, height, 2, 0, eGL_RGBA,
+    Common_glTextureImage3DEXT(id, eGL_TEXTURE_2D_ARRAY, 0, internalformat, width, height, 2, 0, eGL_RGBA,
                                eGL_UNSIGNED_BYTE, NULL);
   }
   else
@@ -3764,6 +3769,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
       break;
     case FRAMEBUFFER_TEXLAYER:
       Serialise_glNamedFramebufferTextureLayerEXT(0, eGL_NONE, 0, 0, 0);
+      break;
+    case FRAMEBUFFER_MULTIVIEW:
+      Serialise_glFramebufferTextureMultiviewOVR(eGL_NONE, eGL_NONE, 0, 0, 0, 0);
+      break;
+    case FRAMEBUFFER_MULTIVIEWMS:
+      Serialise_glFramebufferTextureMultisampleMultiviewOVR(eGL_NONE, eGL_NONE, 0, 0, 0, 0, 0);
       break;
     case FRAMEBUFFER_PARAM: Serialise_glNamedFramebufferParameteriEXT(0, eGL_NONE, 0); break;
     case READ_BUFFER: Serialise_glFramebufferReadBufferEXT(0, eGL_NONE); break;
