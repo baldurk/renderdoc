@@ -825,6 +825,9 @@ void CaptureDialog::SetSettings(CaptureSettings settings)
   ui->VerifyMapWrites->setChecked(settings.Options.VerifyMapWrites);
   ui->AutoStart->setChecked(settings.AutoStart);
 
+  // force flush this state
+  on_CaptureCallstacks_toggled(ui->CaptureCallstacks->isChecked());
+
   if(settings.AutoStart)
   {
     TriggerCapture();
