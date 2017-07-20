@@ -31,6 +31,7 @@
 #include <QProgressBar>
 #include <QProgressDialog>
 #include <QToolButton>
+#include <QToolTip>
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
@@ -56,6 +57,8 @@ extern "C" void *__stdcall GetModuleHandleA(const char *);
 MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Ctx(ctx)
 {
   ui->setupUi(this);
+
+  QToolTip::setPalette(palette());
 
   installEventFilter(this);
 
