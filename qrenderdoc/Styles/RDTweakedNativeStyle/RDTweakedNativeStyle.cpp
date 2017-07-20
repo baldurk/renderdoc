@@ -159,7 +159,7 @@ void RDTweakedNativeStyle::drawPrimitive(PrimitiveElement element, const QStyleO
       bool aa = p->testRenderHint(QPainter::Antialiasing);
       p->setRenderHint(QPainter::Antialiasing);
 
-      QColor col = opt->palette.color(QPalette::Dark);
+      QColor col = opt->palette.color(QPalette::Text);
 
       if(opt->state & State_MouseOver)
       {
