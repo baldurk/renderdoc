@@ -798,6 +798,8 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       if(iscomp && details.curType == eGL_TEXTURE_CUBE_MAP &&
          VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps])
         avoidCopySubImage = true;
+      if(iscomp && IsGLES)
+        avoidCopySubImage = true;
 
       PixelPackState pack;
       PixelUnpackState unpack;
@@ -836,9 +838,12 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         // different GPU-side image copy routine that works on these dimensions. Hopefully there'll
         // only be a couple of such mips).
         // AMD also has issues copying cubemaps
+        // glCopyImageSubData does not seem to work at all for compressed textures on GLES (at least
+        // with some tested drivers and texture types)
         if((iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips] && (w < 4 || h < 4)) ||
            (iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] &&
-            details.curType == eGL_TEXTURE_CUBE_MAP))
+            details.curType == eGL_TEXTURE_CUBE_MAP) ||
+           (iscomp && IsGLES))
         {
           GLenum targets[] = {
               eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -860,8 +865,22 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 
             byte *buf = new byte[size];
 
-            // read to CPU
-            gl.glGetCompressedTextureImageEXT(res.name, targets[trg], i, buf);
+            if(IsGLES)
+            {
+              const vector<byte> &data = details.compressedData[i];
+              const byte *src =
+                  (count == 1) ? data.data() : data.data() + CubeTargetIndex(targets[trg]) * size;
+              size_t storedSize = data.size() / count;
+              if(storedSize == size)
+                memcpy(buf, src, size);
+              else
+                RDCERR("Different expected and stored compressed texture sizes!");
+            }
+            else
+            {
+              // read to CPU
+              gl.glGetCompressedTextureImageEXT(res.name, targets[trg], i, buf);
+            }
 
             // write to GPU
             if(details.dimension == 1)
@@ -1467,6 +1486,12 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
               m_pSerialiser->SerialiseBuffer("image", buf, size);
 
+              if(IsGLES)
+              {
+                details.compressedData[i].resize(size);
+                memcpy(details.compressedData[i].data(), buf, size);
+              }
+
               if(dim == 1)
                 gl.glCompressedTextureSubImage1DEXT(tex, targets[trg], i, 0, w, internalformat,
                                                     (GLsizei)size, buf);
@@ -1712,6 +1737,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
         if(iscomp && details.curType == eGL_TEXTURE_CUBE_MAP &&
            VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps])
           avoidCopySubImage = true;
+        if(iscomp && IsGLES)
+          avoidCopySubImage = true;
 
         PixelPackState pack;
         PixelUnpackState unpack;
@@ -1745,7 +1772,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
           // AMD also has issues copying cubemaps
           if((iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips] && (w < 4 || h < 4)) ||
              (iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] &&
-              details.curType == eGL_TEXTURE_CUBE_MAP))
+              details.curType == eGL_TEXTURE_CUBE_MAP) ||
+             (iscomp && IsGLES))
           {
             GLenum targets[] = {
                 eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -1770,8 +1798,22 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
               byte *buf = new byte[size];
 
-              // read to CPU
-              gl.glGetCompressedTextureImageEXT(tex, targets[trg], i, buf);
+              if(IsGLES)
+              {
+                const vector<byte> &data = details.compressedData[i];
+                const byte *src =
+                    (count == 1) ? data.data() : data.data() + CubeTargetIndex(targets[trg]) * size;
+                size_t storedSize = data.size() / count;
+                if(storedSize == size)
+                  memcpy(buf, src, size);
+                else
+                  RDCERR("Different expected and stored compressed texture sizes!");
+              }
+              else
+              {
+                // read to CPU
+                gl.glGetCompressedTextureImageEXT(tex, targets[trg], i, buf);
+              }
 
               // write to GPU
               if(details.dimension == 1)
