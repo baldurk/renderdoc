@@ -1156,9 +1156,10 @@
   HookExtension(PFNGLRASTERSAMPLESEXTPROC, glRasterSamplesEXT); \
   HookExtension(PFNGLFRAMETERMINATORGREMEDYPROC, glFrameTerminatorGREMEDY); \
   HookExtension(PFNGLSTRINGMARKERGREMEDYPROC, glStringMarkerGREMEDY); \
-  HookExtension(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glPrimitiveBoundingBox); \
-  HookExtensionAlias(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glPrimitiveBoundingBox, glPrimitiveBoundingBoxEXT); \
-  HookExtensionAlias(PFNGLPRIMITIVEBOUNDINGBOXOESPROC, glPrimitiveBoundingBox, glPrimitiveBoundingBoxOES); \
+  HookExtension(PFNGLBLENDBARRIERPROC, glBlendBarrier); \
+  HookExtension(PFNGLPRIMITIVEBOUNDINGBOXPROC, glPrimitiveBoundingBox); \
+  HookExtensionAlias(PFNGLPRIMITIVEBOUNDINGBOXPROC, glPrimitiveBoundingBox, glPrimitiveBoundingBoxEXT); \
+  HookExtensionAlias(PFNGLPRIMITIVEBOUNDINGBOXPROC, glPrimitiveBoundingBox, glPrimitiveBoundingBoxOES); \
   HookExtension(PFNGLDISCARDFRAMEBUFFEREXTPROC, glDiscardFramebufferEXT); \
   HookExtension(PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC, glFramebufferTexture2DMultisampleEXT); \
   HookExtension(PFNWGLDXSETRESOURCESHAREHANDLENVPROC, wglDXSetResourceShareHandleNV); \
@@ -2013,6 +2014,7 @@
     HookWrapper2(void, glRasterSamplesEXT, GLuint, samples, GLboolean, fixedsamplelocations); \
     HookWrapper0(void, glFrameTerminatorGREMEDY); \
     HookWrapper2(void, glStringMarkerGREMEDY, GLsizei, len, const void *, string); \
+    HookWrapper0(void, glBlendBarrier); \
     HookWrapper8(void, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
     HookWrapper3(void, glDiscardFramebufferEXT, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
     HookWrapper6(void, glFramebufferTexture2DMultisampleEXT, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \

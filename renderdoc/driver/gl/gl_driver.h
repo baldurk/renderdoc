@@ -617,6 +617,7 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, glBlendEquationSeparatei(GLuint buf, GLenum modeRGB,
                                                                GLenum modeAlpha));
   IMPLEMENT_FUNCTION_SERIALISED(void, glBlendBarrierKHR());
+  IMPLEMENT_FUNCTION_SERIALISED(void, glBlendBarrier());
   IMPLEMENT_FUNCTION_SERIALISED(void, glLogicOp(GLenum opcode));
   IMPLEMENT_FUNCTION_SERIALISED(void, glStencilFunc(GLenum func, GLint ref, GLuint mask));
   IMPLEMENT_FUNCTION_SERIALISED(void, glStencilMask(GLuint mask));
