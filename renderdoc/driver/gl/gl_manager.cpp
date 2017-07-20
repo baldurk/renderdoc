@@ -1345,7 +1345,12 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         GLint immut = 0;
 
         if(textype != eGL_TEXTURE_BUFFER)
+        {
           gl.glGetTextureParameterivEXT(live, textype, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
+
+          GLenum dummy;
+          EmulateLuminanceFormat(gl, live, textype, internalformat, dummy);
+        }
 
         if(textype != eGL_TEXTURE_BUFFER && immut == 0)
         {
@@ -1432,9 +1437,6 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
           gl.glBindTexture(textype, prevtex);
         }
-
-        GLenum dummy;
-        EmulateLuminanceFormat(gl, tex, textype, internalformat, dummy);
 
         // create texture of identical format/size to store initial contents
         if(textype == eGL_TEXTURE_BUFFER || details.view)
