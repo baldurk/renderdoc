@@ -61,5 +61,5 @@ public:
 protected:
   ColorScheme m_Scheme = Light;
 
-  QPalette::ColorRole outlineRole() const;
+  const QBrush &outlineBrush(const QPalette &pal) const;
 };

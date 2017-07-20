@@ -29,6 +29,7 @@
 #include <QPainterPath>
 #include <QPen>
 #include <QStyleOption>
+#include <QtMath>
 #include "Code/QRDUtils.h"
 
 RDStyle::RDStyle(ColorScheme scheme) : RDTweakedNativeStyle()
@@ -103,28 +104,39 @@ void RDStyle::polish(QPalette &pal)
   linkVisited.setHsv(h, 0, v);
   pal.setColor(QPalette::LinkVisited, linkVisited);
 
-  for(int i = 0; i < QPalette::NColorRoles; i++)
+  // for the 'text' type roles, make the disabled colour half as bright
+  for(QPalette::ColorRole role :
+      {QPalette::WindowText, QPalette::Text, QPalette::ButtonText, QPalette::Highlight,
+       QPalette::HighlightedText, QPalette::Link, QPalette::LinkVisited})
   {
-    QPalette::ColorRole role = (QPalette::ColorRole)i;
-
-    // skip tooltip roles entirely
-    if(role == QPalette::ToolTipBase || role == QPalette::ToolTipText)
-      continue;
-
-    // with the exception of link text, the disabled version is desaturated
     QColor col = pal.color(QPalette::Inactive, role);
 
-    if(role != QPalette::Link)
-    {
-      col.getHsv(&h, &s, &v);
-      col.setHsv(h, 0, v);
-    }
+    col.getHsv(&h, &s, &v);
 
-    // the disabled version is closer to mid grey than inactive
-    if(getLuminance(col) > 0.5)
-      pal.setColor(QPalette::Disabled, role, col.darker(125));
+    // with the exception of link text, the disabled version is desaturated
+    if(role != QPalette::Link)
+      s = 0;
+
+    // black is the only colour that gets brighter, any other colour gets darker
+    if(s == 0 && v == 0)
+    {
+      pal.setColor(QPalette::Disabled, role, QColor(160, 160, 160));
+    }
     else
-      pal.setColor(QPalette::Disabled, role, col.lighter(125));
+    {
+      col.setHsv(h, s, v / 2);
+      pal.setColor(QPalette::Disabled, role, col);
+    }
+  }
+
+  // the 'base' roles get every so slightly darker, but not as much as text
+  for(QPalette::ColorRole role : {QPalette::Base, QPalette::Window, QPalette::Button})
+  {
+    QColor col = pal.color(QPalette::Inactive, role);
+
+    col.getHsv(&h, &s, &v);
+    col.setHsv(h, s, v * 0.9);
+    pal.setColor(QPalette::Disabled, role, col);
   }
 }
 
@@ -192,9 +204,9 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
   RDTweakedNativeStyle::drawPrimitive(element, opt, p, widget);
 }
 
-QPalette::ColorRole RDStyle::outlineRole() const
+const QBrush &RDStyle::outlineBrush(const QPalette &pal) const
 {
-  return m_Scheme == Light ? QPalette::Dark : QPalette::Light;
+  return m_Scheme == Light ? pal.brush(QPalette::WindowText) : pal.brush(QPalette::Light);
 }
 
 void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPainter *p,
@@ -210,10 +222,10 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
   }
   else if(control == CE_PushButtonBevel)
   {
-    QPen outlinePen(opt->palette.brush(outlineRole()), 1.0);
+    QPen outlinePen(outlineBrush(opt->palette), 1.0);
 
     if(opt->state & State_HasFocus)
-      outlinePen = QPen(opt->palette.brush(QPalette::Highlight), 2.0);
+      outlinePen = QPen(opt->palette.brush(QPalette::Highlight), 1.5);
 
     p->save();
 
