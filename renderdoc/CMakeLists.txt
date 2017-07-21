@@ -311,6 +311,10 @@ if(UNIX AND NOT ANDROID AND NOT APPLE)
     set_target_properties(renderdoc PROPERTIES LINK_FLAGS "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.version")
 endif()
 
+if(ANDROID)
+    set_target_properties(renderdoc PROPERTIES LINK_FLAGS "-Wl,--build-id")
+endif()
+
 install (TARGETS renderdoc DESTINATION lib${LIB_SUFFIX})
 
 # Copy in application API header to include
