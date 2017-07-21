@@ -2320,7 +2320,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
       else
         gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, tempTex, 0);
 
-      float col[] = {0.3f, 0.6f, 0.9f, 1.0f};
+      float col[] = {0.0f, 0.0f, 0.0f, 1.0f};
       gl.glClearBufferfv(eGL_COLOR, 0, col);
 
       // render to the temp texture to do the downcast
@@ -2361,7 +2361,20 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
 
         gl.glViewport(0, 0, width, height);
 
+        GLboolean color_mask[4];
+        gl.glGetBooleanv(eGL_COLOR_WRITEMASK, color_mask);
+
+        // for depth, ensure we only write to the red channel, don't write into 'stencil' in green
+        // with depth data
+        if(GetBaseFormat(intFormat) == eGL_DEPTH_COMPONENT ||
+           GetBaseFormat(intFormat) == eGL_DEPTH_STENCIL)
+        {
+          gl.glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE);
+        }
+
         RenderTextureInternal(texDisplay, 0);
+
+        gl.glColorMask(color_mask[0], color_mask[1], color_mask[2], color_mask[3]);
       }
 
       // do one more time for the stencil

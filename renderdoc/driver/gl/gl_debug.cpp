@@ -1975,10 +1975,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
     ubo->Channels.x = 1.0f;
     ubo->Channels.y = 0.0f;
     ubo->Channels.z = 0.0f;
-    // to prevent depth only format from having non-zero values in other channels, we have to
-    // prevent splatting (the shader will splat the red channel when only the red channel contains
-    // a value of 1).
-    ubo->Channels.w = dsTexMode == eGL_DEPTH_COMPONENT ? 1.0f : 0.0f;
+    ubo->Channels.w = 0.0f;
   }
 
   ubo->RangeMinimum = cfg.rangemin;
