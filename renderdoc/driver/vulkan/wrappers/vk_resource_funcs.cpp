@@ -276,10 +276,10 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       // the rest we don't need to unwrap, but we need to copy locally for chaining
       else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_NV)
         memSize += sizeof(VkExportMemoryAllocateInfoNV);
-      else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHX)
-        memSize += sizeof(VkExportMemoryAllocateInfoKHX);
-      else if(next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHX)
-        memSize += sizeof(VkImportMemoryFdInfoKHX);
+      else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR)
+        memSize += sizeof(VkExportMemoryAllocateInfoKHR);
+      else if(next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR)
+        memSize += sizeof(VkImportMemoryFdInfoKHR);
 
 #ifdef VK_NV_external_memory_win32
       else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV)
@@ -293,16 +293,16 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
         RDCERR("Support for VK_NV_external_memory_win32 not compiled in");
 #endif
 
-#ifdef VK_KHX_external_memory_win32
-      else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHX)
-        memSize += sizeof(VkExportMemoryWin32HandleInfoKHX);
-      else if(next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHX)
-        memSize += sizeof(VkImportMemoryWin32HandleInfoKHX);
+#ifdef VK_KHR_external_memory_win32
+      else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR)
+        memSize += sizeof(VkExportMemoryWin32HandleInfoKHR);
+      else if(next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR)
+        memSize += sizeof(VkImportMemoryWin32HandleInfoKHR);
 #else
-      else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHX)
-        RDCERR("Support for VK_KHX_external_memory_win32 not compiled in");
-      else if(next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHX)
-        RDCERR("Support for VK_KHX_external_memory_win32 not compiled in");
+      else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR)
+        RDCERR("Support for VK_KHR_external_memory_win32 not compiled in");
+      else if(next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR)
+        RDCERR("Support for VK_KHR_external_memory_win32 not compiled in");
 #endif
 
       next = next->pNext;
@@ -335,28 +335,28 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       {
         CopyNextChainedStruct<VkExportMemoryAllocateInfoNV>(tempMem, nextInput, nextChainTail);
       }
-      else if(nextInput->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHX)
+      else if(nextInput->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR)
       {
-        CopyNextChainedStruct<VkExportMemoryAllocateInfoKHX>(tempMem, nextInput, nextChainTail);
+        CopyNextChainedStruct<VkExportMemoryAllocateInfoKHR>(tempMem, nextInput, nextChainTail);
       }
-      else if(nextInput->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHX)
+      else if(nextInput->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR)
       {
-        CopyNextChainedStruct<VkImportMemoryFdInfoKHX>(tempMem, nextInput, nextChainTail);
+        CopyNextChainedStruct<VkImportMemoryFdInfoKHR>(tempMem, nextInput, nextChainTail);
       }
-      else if(nextInput->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHX)
+      else if(nextInput->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR)
       {
-#ifdef VK_KHX_external_memory_win32
-        CopyNextChainedStruct<VkExportMemoryWin32HandleInfoKHX>(tempMem, nextInput, nextChainTail);
+#ifdef VK_KHR_external_memory_win32
+        CopyNextChainedStruct<VkExportMemoryWin32HandleInfoKHR>(tempMem, nextInput, nextChainTail);
 #else
-        RDCERR("Support for VK_KHX_external_memory_win32 not compiled in");
+        RDCERR("Support for VK_KHR_external_memory_win32 not compiled in");
 #endif
       }
-      else if(nextInput->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHX)
+      else if(nextInput->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR)
       {
-#ifdef VK_KHX_external_memory_win32
-        CopyNextChainedStruct<VkImportMemoryWin32HandleInfoKHX>(tempMem, nextInput, nextChainTail);
+#ifdef VK_KHR_external_memory_win32
+        CopyNextChainedStruct<VkImportMemoryWin32HandleInfoKHR>(tempMem, nextInput, nextChainTail);
 #else
-        RDCERR("Support for VK_KHX_external_memory_win32 not compiled in");
+        RDCERR("Support for VK_KHR_external_memory_win32 not compiled in");
 #endif
       }
       else if(nextInput->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV)

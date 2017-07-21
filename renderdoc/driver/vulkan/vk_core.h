@@ -616,7 +616,7 @@ private:
   bool EndFrameCapture(void *dev, void *wnd);
 
   bool Serialise_SetShaderDebugPath(Serialiser *localSerialiser, VkDevice device,
-                                    VkDebugMarkerObjectTagInfoEXT *pTagInfo);
+                                    const VkDebugMarkerObjectTagInfoEXT *pTagInfo);
 
   // replay
 
@@ -1299,18 +1299,18 @@ public:
   // VK_EXT_debug_marker functions
 
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDebugMarkerSetObjectTagEXT, VkDevice device,
-                                VkDebugMarkerObjectTagInfoEXT *pTagInfo);
+                                const VkDebugMarkerObjectTagInfoEXT *pTagInfo);
 
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDebugMarkerSetObjectNameEXT, VkDevice device,
-                                VkDebugMarkerObjectNameInfoEXT *pNameInfo);
+                                const VkDebugMarkerObjectNameInfoEXT *pNameInfo);
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDebugMarkerBeginEXT, VkCommandBuffer commandBuffer,
-                                VkDebugMarkerMarkerInfoEXT *pMarker);
+                                const VkDebugMarkerMarkerInfoEXT *pMarker);
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDebugMarkerEndEXT, VkCommandBuffer commandBuffer);
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDebugMarkerInsertEXT, VkCommandBuffer commandBuffer,
-                                VkDebugMarkerMarkerInfoEXT *pMarker);
+                                const VkDebugMarkerMarkerInfoEXT *pMarker);
 
   // Windowing extension functions
 
@@ -1367,19 +1367,19 @@ public:
   VkResult vkGetMemoryWin32HandleNV(VkDevice device, VkDeviceMemory memory,
                                     VkExternalMemoryHandleTypeFlagsNV handleType, HANDLE *pHandle);
 
-  // VK_KHX_external_memory_win32
-  VkResult vkGetMemoryWin32HandleKHX(VkDevice device, VkDeviceMemory memory,
-                                     VkExternalMemoryHandleTypeFlagBitsKHX handleType,
+  // VK_KHR_external_memory_win32
+  VkResult vkGetMemoryWin32HandleKHR(VkDevice device,
+                                     const VkMemoryGetWin32HandleInfoKHR *pGetWin32HandleInfo,
                                      HANDLE *pHandle);
-  VkResult vkGetMemoryWin32HandlePropertiesKHX(
-      VkDevice device, VkExternalMemoryHandleTypeFlagBitsKHX handleType, HANDLE handle,
-      VkMemoryWin32HandlePropertiesKHX *pMemoryWin32HandleProperties);
+  VkResult vkGetMemoryWin32HandlePropertiesKHR(
+      VkDevice device, VkExternalMemoryHandleTypeFlagBitsKHR handleType, HANDLE handle,
+      VkMemoryWin32HandlePropertiesKHR *pMemoryWin32HandleProperties);
 
-  // VK_KHX_external_semaphore_win32
-  VkResult vkImportSemaphoreWin32HandleKHX(
-      VkDevice device, const VkImportSemaphoreWin32HandleInfoKHX *pImportSemaphoreWin32HandleInfo);
-  VkResult vkGetSemaphoreWin32HandleKHX(VkDevice device, VkSemaphore semaphore,
-                                        VkExternalSemaphoreHandleTypeFlagBitsKHX handleType,
+  // VK_KHR_external_semaphore_win32
+  VkResult vkImportSemaphoreWin32HandleKHR(
+      VkDevice device, const VkImportSemaphoreWin32HandleInfoKHR *pImportSemaphoreWin32HandleInfo);
+  VkResult vkGetSemaphoreWin32HandleKHR(VkDevice device,
+                                        const VkSemaphoreGetWin32HandleInfoKHR *pGetWin32HandleInfo,
                                         HANDLE *pHandle);
 #endif
 
@@ -1502,28 +1502,26 @@ public:
   // VK_EXT_direct_mode_display
   VkResult vkReleaseDisplayEXT(VkPhysicalDevice physicalDevice, VkDisplayKHR display);
 
-  // VK_KHX_external_memory_capabilities
-  void vkGetPhysicalDeviceExternalBufferPropertiesKHX(
+  // VK_KHR_external_memory_capabilities
+  void vkGetPhysicalDeviceExternalBufferPropertiesKHR(
       VkPhysicalDevice physicalDevice,
-      const VkPhysicalDeviceExternalBufferInfoKHX *pExternalBufferInfo,
-      VkExternalBufferPropertiesKHX *pExternalBufferProperties);
+      const VkPhysicalDeviceExternalBufferInfoKHR *pExternalBufferInfo,
+      VkExternalBufferPropertiesKHR *pExternalBufferProperties);
 
-  // VK_KHX_external_memory_fd
-  VkResult vkGetMemoryFdKHX(VkDevice device, VkDeviceMemory memory,
-                            VkExternalMemoryHandleTypeFlagBitsKHX handleType, int *pFd);
-  VkResult vkGetMemoryFdPropertiesKHX(VkDevice device,
-                                      VkExternalMemoryHandleTypeFlagBitsKHX handleType, int fd,
-                                      VkMemoryFdPropertiesKHX *pMemoryFdProperties);
+  // VK_KHR_external_memory_fd
+  VkResult vkGetMemoryFdKHR(VkDevice device, const VkMemoryGetFdInfoKHR *pGetFdInfo, int *pFd);
+  VkResult vkGetMemoryFdPropertiesKHR(VkDevice device,
+                                      VkExternalMemoryHandleTypeFlagBitsKHR handleType, int fd,
+                                      VkMemoryFdPropertiesKHR *pMemoryFdProperties);
 
-  // VK_KHX_external_semaphore_capabilities
-  void vkGetPhysicalDeviceExternalSemaphorePropertiesKHX(
+  // VK_KHR_external_semaphore_capabilities
+  void vkGetPhysicalDeviceExternalSemaphorePropertiesKHR(
       VkPhysicalDevice physicalDevice,
-      const VkPhysicalDeviceExternalSemaphoreInfoKHX *pExternalSemaphoreInfo,
-      VkExternalSemaphorePropertiesKHX *pExternalSemaphoreProperties);
+      const VkPhysicalDeviceExternalSemaphoreInfoKHR *pExternalSemaphoreInfo,
+      VkExternalSemaphorePropertiesKHR *pExternalSemaphoreProperties);
 
-  // VK_KHX_external_semaphore_fd
-  VkResult vkImportSemaphoreFdKHX(VkDevice device,
-                                  const VkImportSemaphoreFdInfoKHX *pImportSemaphoreFdInfo);
-  VkResult vkGetSemaphoreFdKHX(VkDevice device, VkSemaphore semaphore,
-                               VkExternalSemaphoreHandleTypeFlagBitsKHX handleType, int *pFd);
+  // VK_KHR_external_semaphore_fd
+  VkResult vkImportSemaphoreFdKHR(VkDevice device,
+                                  const VkImportSemaphoreFdInfoKHR *pImportSemaphoreFdInfo);
+  VkResult vkGetSemaphoreFdKHR(VkDevice device, const VkSemaphoreGetFdInfoKHR *pGetFdInfo, int *pFd);
 };

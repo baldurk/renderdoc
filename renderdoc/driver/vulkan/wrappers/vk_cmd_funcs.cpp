@@ -2639,7 +2639,7 @@ void WrappedVulkan::vkCmdExecuteCommands(VkCommandBuffer commandBuffer, uint32_t
 
 bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(Serialiser *localSerialiser,
                                                        VkCommandBuffer commandBuffer,
-                                                       VkDebugMarkerMarkerInfoEXT *pMarker)
+                                                       const VkDebugMarkerMarkerInfoEXT *pMarker)
 {
   SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
   SERIALISE_ELEMENT(string, name,
@@ -2672,7 +2672,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(Serialiser *localSerialis
 }
 
 void WrappedVulkan::vkCmdDebugMarkerBeginEXT(VkCommandBuffer commandBuffer,
-                                             VkDebugMarkerMarkerInfoEXT *pMarker)
+                                             const VkDebugMarkerMarkerInfoEXT *pMarker)
 {
   if(ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT)
     ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT(Unwrap(commandBuffer), pMarker);
@@ -2741,7 +2741,7 @@ void WrappedVulkan::vkCmdDebugMarkerEndEXT(VkCommandBuffer commandBuffer)
 
 bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(Serialiser *localSerialiser,
                                                         VkCommandBuffer commandBuffer,
-                                                        VkDebugMarkerMarkerInfoEXT *pMarker)
+                                                        const VkDebugMarkerMarkerInfoEXT *pMarker)
 {
   SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(commandBuffer));
   SERIALISE_ELEMENT(string, name,
@@ -2774,7 +2774,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(Serialiser *localSeriali
 }
 
 void WrappedVulkan::vkCmdDebugMarkerInsertEXT(VkCommandBuffer commandBuffer,
-                                              VkDebugMarkerMarkerInfoEXT *pMarker)
+                                              const VkDebugMarkerMarkerInfoEXT *pMarker)
 {
   if(ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT)
     ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT(Unwrap(commandBuffer), pMarker);

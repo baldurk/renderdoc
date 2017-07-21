@@ -999,13 +999,14 @@ static VkResourceRecord *GetObjRecord(VkDebugReportObjectTypeEXT objType, uint64
     case VK_DEBUG_REPORT_OBJECT_TYPE_RANGE_SIZE_EXT:
     case VK_DEBUG_REPORT_OBJECT_TYPE_OBJECT_TABLE_NVX_EXT:
     case VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT:
+    case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_KHR_EXT:
     case VK_DEBUG_REPORT_OBJECT_TYPE_MAX_ENUM_EXT: break;
   }
   return NULL;
 }
 
 bool WrappedVulkan::Serialise_SetShaderDebugPath(Serialiser *localSerialiser, VkDevice device,
-                                                 VkDebugMarkerObjectTagInfoEXT *pTagInfo)
+                                                 const VkDebugMarkerObjectTagInfoEXT *pTagInfo)
 {
   SERIALISE_ELEMENT(ResourceId, id,
                     GetObjRecord(pTagInfo->objectType, pTagInfo->object)->GetResourceID());
@@ -1028,7 +1029,7 @@ bool WrappedVulkan::Serialise_SetShaderDebugPath(Serialiser *localSerialiser, Vk
 }
 
 VkResult WrappedVulkan::vkDebugMarkerSetObjectTagEXT(VkDevice device,
-                                                     VkDebugMarkerObjectTagInfoEXT *pTagInfo)
+                                                     const VkDebugMarkerObjectTagInfoEXT *pTagInfo)
 {
   if(m_State >= WRITING && pTagInfo)
   {
@@ -1084,9 +1085,8 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectTagEXT(VkDevice device,
   return VK_SUCCESS;
 }
 
-bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(Serialiser *localSerialiser,
-                                                            VkDevice device,
-                                                            VkDebugMarkerObjectNameInfoEXT *pNameInfo)
+bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
+    Serialiser *localSerialiser, VkDevice device, const VkDebugMarkerObjectNameInfoEXT *pNameInfo)
 {
   SERIALISE_ELEMENT(ResourceId, id,
                     GetObjRecord(pNameInfo->objectType, pNameInfo->object)->GetResourceID());
@@ -1112,7 +1112,7 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(Serialiser *localSer
 }
 
 VkResult WrappedVulkan::vkDebugMarkerSetObjectNameEXT(VkDevice device,
-                                                      VkDebugMarkerObjectNameInfoEXT *pNameInfo)
+                                                      const VkDebugMarkerObjectNameInfoEXT *pNameInfo)
 {
   if(m_State >= WRITING && pNameInfo)
   {

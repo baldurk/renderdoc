@@ -842,39 +842,40 @@ void WrappedVulkan::vkCmdWaitEvents(VkCommandBuffer cmdBuffer, uint32_t eventCou
   }
 }
 
-VkResult WrappedVulkan::vkImportSemaphoreFdKHX(VkDevice device,
-                                               const VkImportSemaphoreFdInfoKHX *pImportSemaphoreFdInfo)
+VkResult WrappedVulkan::vkImportSemaphoreFdKHR(VkDevice device,
+                                               const VkImportSemaphoreFdInfoKHR *pImportSemaphoreFdInfo)
 {
-  VkImportSemaphoreFdInfoKHX unwrappedInfo = *pImportSemaphoreFdInfo;
+  VkImportSemaphoreFdInfoKHR unwrappedInfo = *pImportSemaphoreFdInfo;
   unwrappedInfo.semaphore = Unwrap(unwrappedInfo.semaphore);
 
-  return ObjDisp(device)->ImportSemaphoreFdKHX(Unwrap(device), &unwrappedInfo);
+  return ObjDisp(device)->ImportSemaphoreFdKHR(Unwrap(device), &unwrappedInfo);
 }
 
-VkResult WrappedVulkan::vkGetSemaphoreFdKHX(VkDevice device, VkSemaphore semaphore,
-                                            VkExternalSemaphoreHandleTypeFlagBitsKHX handleType,
-                                            int *pFd)
+VkResult WrappedVulkan::vkGetSemaphoreFdKHR(VkDevice device,
+                                            const VkSemaphoreGetFdInfoKHR *pGetFdInfo, int *pFd)
 {
-  return ObjDisp(device)->GetSemaphoreFdKHX(Unwrap(device), Unwrap(semaphore), handleType, pFd);
+  VkSemaphoreGetFdInfoKHR unwrappedInfo = *pGetFdInfo;
+  unwrappedInfo.semaphore = Unwrap(unwrappedInfo.semaphore);
+  return ObjDisp(device)->GetSemaphoreFdKHR(Unwrap(device), &unwrappedInfo, pFd);
 }
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
-VkResult WrappedVulkan::vkImportSemaphoreWin32HandleKHX(
-    VkDevice device, const VkImportSemaphoreWin32HandleInfoKHX *pImportSemaphoreWin32HandleInfo)
+VkResult WrappedVulkan::vkImportSemaphoreWin32HandleKHR(
+    VkDevice device, const VkImportSemaphoreWin32HandleInfoKHR *pImportSemaphoreWin32HandleInfo)
 {
-  VkImportSemaphoreWin32HandleInfoKHX unwrappedInfo = *pImportSemaphoreWin32HandleInfo;
+  VkImportSemaphoreWin32HandleInfoKHR unwrappedInfo = *pImportSemaphoreWin32HandleInfo;
   unwrappedInfo.semaphore = Unwrap(unwrappedInfo.semaphore);
 
-  return ObjDisp(device)->ImportSemaphoreWin32HandleKHX(Unwrap(device), &unwrappedInfo);
+  return ObjDisp(device)->ImportSemaphoreWin32HandleKHR(Unwrap(device), &unwrappedInfo);
 }
 
-VkResult WrappedVulkan::vkGetSemaphoreWin32HandleKHX(VkDevice device, VkSemaphore semaphore,
-                                                     VkExternalSemaphoreHandleTypeFlagBitsKHX handleType,
-                                                     HANDLE *pHandle)
+VkResult WrappedVulkan::vkGetSemaphoreWin32HandleKHR(
+    VkDevice device, const VkSemaphoreGetWin32HandleInfoKHR *pGetWin32HandleInfo, HANDLE *pHandle)
 {
-  return ObjDisp(device)->GetSemaphoreWin32HandleKHX(Unwrap(device), Unwrap(semaphore), handleType,
-                                                     pHandle);
+  VkSemaphoreGetWin32HandleInfoKHR unwrappedInfo = *pGetWin32HandleInfo;
+  unwrappedInfo.semaphore = Unwrap(unwrappedInfo.semaphore);
+  return ObjDisp(device)->GetSemaphoreWin32HandleKHR(Unwrap(device), &unwrappedInfo, pHandle);
 }
 
 #endif
