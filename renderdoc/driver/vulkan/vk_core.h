@@ -1524,4 +1524,16 @@ public:
   VkResult vkImportSemaphoreFdKHR(VkDevice device,
                                   const VkImportSemaphoreFdInfoKHR *pImportSemaphoreFdInfo);
   VkResult vkGetSemaphoreFdKHR(VkDevice device, const VkSemaphoreGetFdInfoKHR *pGetFdInfo, int *pFd);
+
+  // VK_KHR_get_memory_requirements2
+  void vkGetImageMemoryRequirements2KHR(VkDevice device,
+                                        const VkImageMemoryRequirementsInfo2KHR *pInfo,
+                                        VkMemoryRequirements2KHR *pMemoryRequirements);
+  void vkGetBufferMemoryRequirements2KHR(VkDevice device,
+                                         const VkBufferMemoryRequirementsInfo2KHR *pInfo,
+                                         VkMemoryRequirements2KHR *pMemoryRequirements);
+  void vkGetImageSparseMemoryRequirements2KHR(
+      VkDevice device, const VkImageSparseMemoryRequirementsInfo2KHR *pInfo,
+      uint32_t *pSparseMemoryRequirementCount,
+      VkSparseImageMemoryRequirements2KHR *pSparseMemoryRequirements);
 };

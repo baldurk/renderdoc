@@ -170,6 +170,67 @@ void WrappedVulkan::vkGetImageSparseMemoryRequirements(
                                                     pSparseMemoryRequirements);
 }
 
+void WrappedVulkan::vkGetBufferMemoryRequirements2KHR(VkDevice device,
+                                                      const VkBufferMemoryRequirementsInfo2KHR *pInfo,
+                                                      VkMemoryRequirements2KHR *pMemoryRequirements)
+{
+  VkBufferMemoryRequirementsInfo2KHR unwrappedInfo = *pInfo;
+  unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
+  ObjDisp(device)->GetBufferMemoryRequirements2KHR(Unwrap(device), &unwrappedInfo,
+                                                   pMemoryRequirements);
+
+  // don't do remapping here on replay.
+  if(m_State < WRITING)
+    return;
+
+  uint32_t bits = pMemoryRequirements->memoryRequirements.memoryTypeBits;
+  uint32_t *memIdxMap = GetRecord(device)->memIdxMap;
+
+  pMemoryRequirements->memoryRequirements.memoryTypeBits = 0;
+
+  // for each of our fake memory indices, check if the real
+  // memory type it points to is set - if so, set our fake bit
+  for(uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
+    if(memIdxMap[i] < 32U && (bits & (1U << memIdxMap[i])))
+      pMemoryRequirements->memoryRequirements.memoryTypeBits |= (1U << i);
+}
+
+void WrappedVulkan::vkGetImageMemoryRequirements2KHR(VkDevice device,
+                                                     const VkImageMemoryRequirementsInfo2KHR *pInfo,
+                                                     VkMemoryRequirements2KHR *pMemoryRequirements)
+{
+  VkImageMemoryRequirementsInfo2KHR unwrappedInfo = *pInfo;
+  unwrappedInfo.image = Unwrap(unwrappedInfo.image);
+  ObjDisp(device)->GetImageMemoryRequirements2KHR(Unwrap(device), &unwrappedInfo,
+                                                  pMemoryRequirements);
+
+  // don't do remapping here on replay.
+  if(m_State < WRITING)
+    return;
+
+  uint32_t bits = pMemoryRequirements->memoryRequirements.memoryTypeBits;
+  uint32_t *memIdxMap = GetRecord(device)->memIdxMap;
+
+  pMemoryRequirements->memoryRequirements.memoryTypeBits = 0;
+
+  // for each of our fake memory indices, check if the real
+  // memory type it points to is set - if so, set our fake bit
+  for(uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
+    if(memIdxMap[i] < 32U && (bits & (1U << memIdxMap[i])))
+      pMemoryRequirements->memoryRequirements.memoryTypeBits |= (1U << i);
+}
+
+void WrappedVulkan::vkGetImageSparseMemoryRequirements2KHR(
+    VkDevice device, const VkImageSparseMemoryRequirementsInfo2KHR *pInfo,
+    uint32_t *pSparseMemoryRequirementCount,
+    VkSparseImageMemoryRequirements2KHR *pSparseMemoryRequirements)
+{
+  VkImageSparseMemoryRequirementsInfo2KHR unwrappedInfo = *pInfo;
+  unwrappedInfo.image = Unwrap(unwrappedInfo.image);
+  ObjDisp(device)->GetImageSparseMemoryRequirements2KHR(
+      Unwrap(device), &unwrappedInfo, pSparseMemoryRequirementCount, pSparseMemoryRequirements);
+}
+
 void WrappedVulkan::vkGetDeviceMemoryCommitment(VkDevice device, VkDeviceMemory memory,
                                                 VkDeviceSize *pCommittedMemoryInBytes)
 {

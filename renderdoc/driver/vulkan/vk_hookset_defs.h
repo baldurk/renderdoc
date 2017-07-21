@@ -282,7 +282,8 @@
   CheckExt(VK_EXT_direct_mode_display);             \
   CheckExt(VK_EXT_acquire_xlib_display);            \
   CheckExt(VK_KHR_external_memory_capabilities);    \
-  CheckExt(VK_KHR_external_semaphore_capabilities);
+  CheckExt(VK_KHR_external_semaphore_capabilities); \
+  CheckExt(VK_KHR_get_memory_requirements2);
 
 #define CheckDeviceExts()                    \
   CheckExt(VK_EXT_debug_marker);             \
@@ -336,27 +337,30 @@
                     GetPhysicalDeviceExternalSemaphorePropertiesKHR);                               \
   HookInitInstance_PlatformSpecific()
 
-#define HookInitVulkanDeviceExts()                                        \
-  HookInitExtension(VK_EXT_debug_marker, DebugMarkerSetObjectTagEXT);     \
-  HookInitExtension(VK_EXT_debug_marker, DebugMarkerSetObjectNameEXT);    \
-  HookInitExtension(VK_EXT_debug_marker, CmdDebugMarkerBeginEXT);         \
-  HookInitExtension(VK_EXT_debug_marker, CmdDebugMarkerEndEXT);           \
-  HookInitExtension(VK_EXT_debug_marker, CmdDebugMarkerInsertEXT);        \
-  HookInitExtension(VK_KHR_swapchain, CreateSwapchainKHR);                \
-  HookInitExtension(VK_KHR_swapchain, DestroySwapchainKHR);               \
-  HookInitExtension(VK_KHR_swapchain, GetSwapchainImagesKHR);             \
-  HookInitExtension(VK_KHR_swapchain, AcquireNextImageKHR);               \
-  HookInitExtension(VK_KHR_swapchain, QueuePresentKHR);                   \
-  HookInitExtension(VK_KHR_display_swapchain, CreateSharedSwapchainsKHR); \
-  HookInitExtension(VK_KHR_maintenance1, TrimCommandPoolKHR);             \
-  HookInitExtension(VK_EXT_display_control, DisplayPowerControlEXT);      \
-  HookInitExtension(VK_EXT_display_control, RegisterDeviceEventEXT);      \
-  HookInitExtension(VK_EXT_display_control, RegisterDisplayEventEXT);     \
-  HookInitExtension(VK_EXT_display_control, GetSwapchainCounterEXT);      \
-  HookInitExtension(VK_KHR_external_memory_fd, GetMemoryFdKHR);           \
-  HookInitExtension(VK_KHR_external_memory_fd, GetMemoryFdPropertiesKHR); \
-  HookInitExtension(VK_KHR_external_semaphore_fd, ImportSemaphoreFdKHR);  \
-  HookInitExtension(VK_KHR_external_semaphore_fd, GetSemaphoreFdKHR);     \
+#define HookInitVulkanDeviceExts()                                                          \
+  HookInitExtension(VK_EXT_debug_marker, DebugMarkerSetObjectTagEXT);                       \
+  HookInitExtension(VK_EXT_debug_marker, DebugMarkerSetObjectNameEXT);                      \
+  HookInitExtension(VK_EXT_debug_marker, CmdDebugMarkerBeginEXT);                           \
+  HookInitExtension(VK_EXT_debug_marker, CmdDebugMarkerEndEXT);                             \
+  HookInitExtension(VK_EXT_debug_marker, CmdDebugMarkerInsertEXT);                          \
+  HookInitExtension(VK_KHR_swapchain, CreateSwapchainKHR);                                  \
+  HookInitExtension(VK_KHR_swapchain, DestroySwapchainKHR);                                 \
+  HookInitExtension(VK_KHR_swapchain, GetSwapchainImagesKHR);                               \
+  HookInitExtension(VK_KHR_swapchain, AcquireNextImageKHR);                                 \
+  HookInitExtension(VK_KHR_swapchain, QueuePresentKHR);                                     \
+  HookInitExtension(VK_KHR_display_swapchain, CreateSharedSwapchainsKHR);                   \
+  HookInitExtension(VK_KHR_maintenance1, TrimCommandPoolKHR);                               \
+  HookInitExtension(VK_EXT_display_control, DisplayPowerControlEXT);                        \
+  HookInitExtension(VK_EXT_display_control, RegisterDeviceEventEXT);                        \
+  HookInitExtension(VK_EXT_display_control, RegisterDisplayEventEXT);                       \
+  HookInitExtension(VK_EXT_display_control, GetSwapchainCounterEXT);                        \
+  HookInitExtension(VK_KHR_external_memory_fd, GetMemoryFdKHR);                             \
+  HookInitExtension(VK_KHR_external_memory_fd, GetMemoryFdPropertiesKHR);                   \
+  HookInitExtension(VK_KHR_external_semaphore_fd, ImportSemaphoreFdKHR);                    \
+  HookInitExtension(VK_KHR_external_semaphore_fd, GetSemaphoreFdKHR);                       \
+  HookInitExtension(VK_KHR_get_memory_requirements2, GetBufferMemoryRequirements2KHR);      \
+  HookInitExtension(VK_KHR_get_memory_requirements2, GetImageMemoryRequirements2KHR);       \
+  HookInitExtension(VK_KHR_get_memory_requirements2, GetImageSparseMemoryRequirements2KHR); \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -757,6 +761,16 @@
               const VkImportSemaphoreFdInfoKHR *, pImportSemaphoreFdInfo);                           \
   HookDefine3(VkResult, vkGetSemaphoreFdKHR, VkDevice, device, const VkSemaphoreGetFdInfoKHR *,      \
               pGetFdInfo, int *, pFd);                                                               \
+  HookDefine3(void, vkGetImageMemoryRequirements2KHR, VkDevice, device,                              \
+              const VkImageMemoryRequirementsInfo2KHR *, pInfo, VkMemoryRequirements2KHR *,          \
+              pMemoryRequirements);                                                                  \
+  HookDefine3(void, vkGetBufferMemoryRequirements2KHR, VkDevice, device,                             \
+              const VkBufferMemoryRequirementsInfo2KHR *, pInfo, VkMemoryRequirements2KHR *,         \
+              pMemoryRequirements);                                                                  \
+  HookDefine4(void, vkGetImageSparseMemoryRequirements2KHR, VkDevice, device,                        \
+              const VkImageSparseMemoryRequirementsInfo2KHR *, pInfo, uint32_t *,                    \
+              pSparseMemoryRequirementCount, VkSparseImageMemoryRequirements2KHR *,                  \
+              pSparseMemoryRequirements);                                                            \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

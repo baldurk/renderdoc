@@ -270,9 +270,11 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
     const VkGenericStruct *next = (const VkGenericStruct *)info.pNext;
     while(next)
     {
-      // we need to unwrap this struct
+      // we need to unwrap these structs
       if(next->sType == VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV)
         memSize += sizeof(VkDedicatedAllocationMemoryAllocateInfoNV);
+      else if(next->sType == VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR)
+        memSize += sizeof(VkMemoryDedicatedAllocateInfoKHR);
       // the rest we don't need to unwrap, but we need to copy locally for chaining
       else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_NV)
         memSize += sizeof(VkExportMemoryAllocateInfoNV);
@@ -323,6 +325,19 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
             (const VkDedicatedAllocationMemoryAllocateInfoNV *)nextInput;
         VkDedicatedAllocationMemoryAllocateInfoNV *dedicatedOut =
             (VkDedicatedAllocationMemoryAllocateInfoNV *)tempMem;
+
+        // copy and unwrap the struct
+        dedicatedOut->sType = dedicatedIn->sType;
+        dedicatedOut->buffer = Unwrap(dedicatedIn->buffer);
+        dedicatedOut->image = Unwrap(dedicatedIn->image);
+
+        AppendModifiedChainedStruct(tempMem, dedicatedOut, nextChainTail);
+      }
+      else if(nextInput->sType == VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR)
+      {
+        const VkMemoryDedicatedAllocateInfoKHR *dedicatedIn =
+            (const VkMemoryDedicatedAllocateInfoKHR *)nextInput;
+        VkMemoryDedicatedAllocateInfoKHR *dedicatedOut = (VkMemoryDedicatedAllocateInfoKHR *)tempMem;
 
         // copy and unwrap the struct
         dedicatedOut->sType = dedicatedIn->sType;
