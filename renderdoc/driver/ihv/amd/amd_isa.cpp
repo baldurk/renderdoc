@@ -101,7 +101,7 @@ std::string LocatePlugin(const std::string &fileName)
 
 static bool IsSupported(GraphicsAPI api)
 {
-  if(api == GraphicsAPI::Vulkan)
+  if(api == GraphicsAPI::OpenGL)
   {
     std::string vc = LocatePlugin(virtualcontext_name);
 
@@ -115,7 +115,7 @@ static bool IsSupported(GraphicsAPI api)
     return true;
   }
 
-  if(api == GraphicsAPI::OpenGL)
+  if(api == GraphicsAPI::Vulkan)
   {
     // TODO need to check if an AMD context is running
     std::string amdspv = LocatePlugin(amdspv_name);
