@@ -28,6 +28,7 @@
 #include <QFileInfo>
 #include <QMimeData>
 #include <QMouseEvent>
+#include <QPixmapCache>
 #include <QProgressBar>
 #include <QProgressDialog>
 #include <QToolButton>
@@ -1688,6 +1689,12 @@ void MainWindow::closeEvent(QCloseEvent *event)
   }
 
   SaveLayout(0);
+}
+
+void MainWindow::changeEvent(QEvent *event)
+{
+  if(event->type() == QEvent::PaletteChange || event->type() == QEvent::StyleChange)
+    QPixmapCache::clear();
 }
 
 QString MainWindow::dragFilename(const QMimeData *mimeData)
