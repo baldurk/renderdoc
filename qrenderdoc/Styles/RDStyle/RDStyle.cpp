@@ -32,6 +32,18 @@
 #include <QtMath>
 #include "Code/QRDUtils.h"
 
+namespace Constants
+{
+static const int ButtonMargin = 6;
+static const int ButtonBorder = 1;
+
+static const int HighlightBorder = 2;
+
+static const int CheckWidth = 14;
+static const int CheckHeight = 14;
+static const int CheckMargin = 3;
+};
+
 RDStyle::RDStyle(ColorScheme scheme) : RDTweakedNativeStyle()
 {
   m_Scheme = scheme;
@@ -140,14 +152,120 @@ void RDStyle::polish(QPalette &pal)
   }
 }
 
+QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt, SubControl sc,
+                              const QWidget *widget) const
+{
+  if(cc == QStyle::CC_ToolButton)
+  {
+    int indicatorWidth = proxy()->pixelMetric(PM_MenuButtonIndicator, opt, widget);
+
+    QRect ret = opt->rect;
+
+    const QStyleOptionToolButton *toolbutton = qstyleoption_cast<const QStyleOptionToolButton *>(opt);
+
+    // return the normal rect if there's no menu
+    if(!(toolbutton->subControls & SC_ToolButtonMenu) &&
+       !(toolbutton->features & QStyleOptionToolButton::HasMenu))
+    {
+      return ret;
+    }
+
+    if(sc == QStyle::SC_ToolButton)
+    {
+      ret.setRight(ret.right() - indicatorWidth);
+    }
+    else if(sc == QStyle::SC_ToolButtonMenu)
+    {
+      ret.setLeft(ret.right() - indicatorWidth);
+    }
+
+    return ret;
+  }
+  return RDTweakedNativeStyle::subControlRect(cc, opt, sc, widget);
+}
+
 QRect RDStyle::subElementRect(SubElement element, const QStyleOption *opt, const QWidget *widget) const
 {
+  if(element == QStyle::SE_PushButtonContents || element == QStyle::SE_PushButtonFocusRect)
+  {
+    const int border = Constants::ButtonBorder;
+    return opt->rect.adjusted(border, border, -2 * border, -2 * border);
+  }
+  else if(element == QStyle::SE_RadioButtonFocusRect || element == QStyle::SE_CheckBoxFocusRect)
+  {
+    return opt->rect;
+  }
+  else if(element == QStyle::SE_RadioButtonIndicator || element == QStyle::SE_CheckBoxIndicator)
+  {
+    QRect ret = opt->rect;
+
+    ret.setWidth(Constants::CheckWidth);
+
+    int extra = ret.height() - Constants::CheckHeight;
+
+    ret.setTop((ret.height() - Constants::CheckHeight) / 2);
+    ret.setHeight(Constants::CheckHeight);
+
+    return ret;
+  }
+  else if(element == QStyle::SE_RadioButtonContents || element == QStyle::SE_CheckBoxContents)
+  {
+    QRect ret = opt->rect;
+
+    ret.setLeft(ret.left() + Constants::CheckWidth + Constants::CheckMargin);
+
+    return ret;
+  }
+
   return RDTweakedNativeStyle::subElementRect(element, opt, widget);
 }
 
 QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, const QSize &size,
                                 const QWidget *widget) const
 {
+  if(type == CT_PushButton || type == CT_ToolButton)
+  {
+    const QStyleOptionButton *button = qstyleoption_cast<const QStyleOptionButton *>(opt);
+
+    QSize ret = size;
+
+    // only for pushbuttons with text, ensure a minimum size
+    if(type == CT_PushButton && button && !button->text.isEmpty())
+    {
+      ret.setWidth(qMax(50, ret.width()));
+      ret.setHeight(qMax(15, ret.height()));
+    }
+
+    // add margin and border
+    ret.setHeight(ret.height() + Constants::ButtonMargin + Constants::ButtonBorder * 2);
+    ret.setWidth(ret.width() + Constants::ButtonMargin + Constants::ButtonBorder * 2);
+
+    return ret;
+  }
+  else if(type == CT_CheckBox || type == CT_RadioButton)
+  {
+    const QStyleOptionButton *button = qstyleoption_cast<const QStyleOptionButton *>(opt);
+
+    QSize ret = size;
+
+    // set minimum height for check/radio
+    ret.setHeight(qMax(ret.height(), Constants::CheckHeight) + Constants::HighlightBorder);
+
+    // add width for the check/radio and a gap before the text/icon
+    ret.setWidth(Constants::CheckWidth + Constants::CheckMargin + ret.width());
+
+    return ret;
+  }
+  else if(type == CT_LineEdit)
+  {
+    QSize ret = size;
+
+    ret.setWidth(Constants::ButtonBorder * 2 + ret.width());
+    ret.setHeight(Constants::ButtonBorder * 2 + ret.height());
+
+    return ret;
+  }
+
   return RDTweakedNativeStyle::sizeFromContents(type, opt, size, widget);
 }
 

@@ -43,6 +43,8 @@ public:
 
   void polish(QPalette &pal) override;
 
+  QRect subControlRect(ComplexControl cc, const QStyleOptionComplex *opt, SubControl sc,
+                       const QWidget *widget = Q_NULLPTR) const override;
   QRect subElementRect(SubElement element, const QStyleOption *option,
                        const QWidget *widget) const override;
   QSize sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &size,
