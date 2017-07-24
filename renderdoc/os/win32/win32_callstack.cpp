@@ -180,6 +180,15 @@ uint32_t GetModule(const wchar_t *pdbName, GUID guid, DWORD age)
   return 0;
 }
 
+void Release(uint32_t module)
+{
+  if(module > 0 && module <= modules.size())
+  {
+    SAFE_RELEASE(modules[module - 1].pSession);
+    SAFE_RELEASE(modules[module - 1].pSource);
+  }
+}
+
 void SetBaseAddress(uint32_t module, uint64_t addr)
 {
   if(module > 0 && module <= modules.size())
@@ -868,6 +877,8 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
 
 Win32CallstackResolver::~Win32CallstackResolver()
 {
+  for(size_t i = 0; i < modules.size(); i++)
+    DIA2::Release(modules[i].moduleId);
 }
 
 Callstack::AddressDetails Win32CallstackResolver::GetAddr(DWORD64 addr)
