@@ -42,6 +42,8 @@ static const int HighlightBorder = 2;
 static const int CheckWidth = 14;
 static const int CheckHeight = 14;
 static const int CheckMargin = 3;
+
+static const int GroupMargin = 4;
 };
 
 RDStyle::RDStyle(ColorScheme scheme) : RDTweakedNativeStyle()
@@ -181,6 +183,40 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
 
     return ret;
   }
+  else if(cc == QStyle::CC_GroupBox)
+  {
+    QRect ret = opt->rect;
+
+    if(sc == SC_GroupBoxFrame)
+      return ret;
+
+    const QStyleOptionGroupBox *group = qstyleoption_cast<const QStyleOptionGroupBox *>(opt);
+
+    const int border = Constants::ButtonBorder;
+    const int lineHeight = group->fontMetrics.height();
+
+    ret.adjust(border, border, -2 * border, -2 * border);
+
+    const int labelHeight = lineHeight + border * 2;
+
+    if(sc == SC_GroupBoxLabel)
+    {
+      ret.setHeight(labelHeight);
+      return ret;
+    }
+
+    if(sc == SC_GroupBoxCheckBox)
+    {
+      return QRect();
+    }
+
+    if(sc == QStyle::SC_GroupBoxContents)
+    {
+      ret.setTop(ret.top() + labelHeight + Constants::GroupMargin);
+
+      return ret;
+    }
+  }
   return RDTweakedNativeStyle::subControlRect(cc, opt, sc, widget);
 }
 
@@ -265,6 +301,10 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
 
     return ret;
   }
+  else if(type == CT_GroupBox)
+  {
+    return size;
+  }
 
   return RDTweakedNativeStyle::sizeFromContents(type, opt, size, widget);
 }
@@ -276,6 +316,17 @@ int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWid
     if(opt && (opt->state & State_AutoRaise) == 0)
       return 1;
   }
+
+  // use the common style for these
+  if(metric == PM_LayoutLeftMargin || metric == PM_LayoutLeftMargin ||
+     metric == PM_LayoutTopMargin || metric == PM_LayoutRightMargin ||
+     metric == PM_LayoutBottomMargin || metric == PM_LayoutHorizontalSpacing ||
+     metric == PM_LayoutVerticalSpacing || metric == PM_DefaultTopLevelMargin ||
+     metric == PM_DefaultChildMargin || metric == PM_DefaultLayoutSpacing)
+  {
+    return QCommonStyle::pixelMetric(metric, opt, widget);
+  }
+
   return RDTweakedNativeStyle::pixelMetric(metric, opt, widget);
 }
 
@@ -318,6 +369,36 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
       menu.rect = subControlRect(control, opt, SC_ToolButtonMenu, widget);
       drawPrimitive(PE_IndicatorArrowDown, &menu, p, widget);
     }
+
+    return;
+  }
+  else if(control == CC_GroupBox)
+  {
+    drawRoundedRectBorder(opt, p, widget, QPalette::Window, false);
+
+    const QStyleOptionGroupBox *group = qstyleoption_cast<const QStyleOptionGroupBox *>(opt);
+
+    QRect labelRect = subControlRect(CC_GroupBox, opt, QStyle::SC_GroupBoxLabel, widget);
+
+    labelRect.adjust(Constants::ButtonMargin + Constants::GroupMargin, Constants::ButtonBorder,
+                     -Constants::ButtonMargin, 0);
+
+    QColor textColor = group->textColor;
+    QPalette::ColorRole penRole = QPalette::WindowText;
+
+    if(textColor.isValid())
+    {
+      p->setPen(textColor);
+      penRole = QPalette::NoRole;
+    }
+
+    drawItemText(p, labelRect, Qt::AlignLeft | Qt::AlignTop, group->palette,
+                 group->state & State_Enabled, group->text, penRole);
+
+    labelRect.adjust(-Constants::GroupMargin, 0, 0, Constants::GroupMargin / 2);
+
+    p->setPen(QPen(opt->palette.brush(m_Scheme == Light ? QPalette::Mid : QPalette::Midlight), 1.0));
+    p->drawLine(labelRect.bottomLeft(), labelRect.bottomRight());
 
     return;
   }
