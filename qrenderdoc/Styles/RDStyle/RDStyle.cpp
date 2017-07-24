@@ -262,7 +262,7 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
       if(opt->state & State_HasFocus)
       {
         QPainterPath highlight;
-        highlight.addEllipse(rect.center(), rect.width() / 2.0 + 0.75, rect.height() / 2.0 + 0.75);
+        highlight.addEllipse(rect.center(), rect.width() / 2.0 + 1.25, rect.height() / 2.0 + 1.25);
 
         p->fillPath(highlight, opt->palette.brush(QPalette::Highlight));
       }
@@ -319,7 +319,7 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
         highlight.addRoundedRect(rect.adjusted(-0.5, -0.5, 0.5, 0.5), 1.0, 1.0);
 
         p->strokePath(highlight.translated(QPointF(0.5, 0.5)),
-                      QPen(opt->palette.brush(QPalette::Highlight), 1.0));
+                      QPen(opt->palette.brush(QPalette::Highlight), 1.5));
       }
 
       QPainterPath path;
