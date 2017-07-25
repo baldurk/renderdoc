@@ -342,36 +342,38 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
     }
   }
 
-  // don't care about child processes, just ignore them
-  // signal(SIGCHLD, SIG_IGN);
+  const string appPath(GetAbsoluteAppPathFromName(appName));
 
-  pid_t childPid = fork();
-  if(childPid == 0)
+  pid_t childPid = 0;
+
+  // don't fork if we didn't find anything to execute.
+  if(!appPath.empty())
   {
-    FileIO::ReleaseFDAfterFork();
-    if(stdoutPipe)
-    {
-      // Redirect stdout & stderr write ends.
-      dup2(stdoutPipe[1], STDOUT_FILENO);
-      dup2(stderrPipe[1], STDERR_FILENO);
+    // don't care about child processes, just ignore them
+    // signal(SIGCHLD, SIG_IGN);
 
-      // Close read ends, as the child will write.
-      close(stdoutPipe[0]);
-      close(stderrPipe[0]);
-    }
-    const string appPath(GetAbsoluteAppPathFromName(appName));
-    if(!appPath.empty())
+    childPid = fork();
+    if(childPid == 0)
     {
+      FileIO::ReleaseFDAfterFork();
+      if(stdoutPipe)
+      {
+        // Redirect stdout & stderr write ends.
+        dup2(stdoutPipe[1], STDOUT_FILENO);
+        dup2(stderrPipe[1], STDERR_FILENO);
+
+        // Close read ends, as the child will write.
+        close(stdoutPipe[0]);
+        close(stderrPipe[0]);
+      }
+
       chdir(workDir.c_str());
       execve(appPath.c_str(), argv, envp);
       RDCERR("Failed to execute '%s' %s", appName.c_str(), strerror(errno));
       RDCERR("Full Path: '%s'", appPath.c_str());
+
+      exit(0);
     }
-    else
-    {
-      RDCERR("Failed to execute '%s' Executable not found", appName.c_str());
-    }
-    exit(0);
   }
 
   if(stdoutPipe)
@@ -426,7 +428,7 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
   uint32_t ret = (uint32_t)RunProcess(app, workingDir, cmdLine, currentEnvironment,
                                       result ? stdoutPipe : NULL, result ? stderrPipe : NULL);
 
-  if(result)
+  if(ret && result)
   {
     result->strStdout = "";
     result->strStderror = "";
