@@ -28,7 +28,7 @@
 #include <QPen>
 #include <QStyleOption>
 
-RDTweakedNativeStyle::RDTweakedNativeStyle() : QProxyStyle()
+RDTweakedNativeStyle::RDTweakedNativeStyle(QStyle *parent) : QProxyStyle(parent)
 {
 }
 

@@ -58,7 +58,7 @@ static const int ComboMargin = 2;
 static const int ComboArrowDim = 12;
 };
 
-RDStyle::RDStyle(ColorScheme scheme) : RDTweakedNativeStyle()
+RDStyle::RDStyle(ColorScheme scheme) : RDTweakedNativeStyle(new QCommonStyle())
 {
   m_Scheme = scheme;
 }
@@ -456,16 +456,6 @@ int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWid
       return 1;
   }
 
-  // use the common style for these
-  if(metric == PM_LayoutLeftMargin || metric == PM_LayoutLeftMargin ||
-     metric == PM_LayoutTopMargin || metric == PM_LayoutRightMargin ||
-     metric == PM_LayoutBottomMargin || metric == PM_LayoutHorizontalSpacing ||
-     metric == PM_LayoutVerticalSpacing || metric == PM_DefaultTopLevelMargin ||
-     metric == PM_DefaultChildMargin || metric == PM_DefaultLayoutSpacing)
-  {
-    return QCommonStyle::pixelMetric(metric, opt, widget);
-  }
-
   if(metric == PM_ScrollBarExtent)
     return Constants::ScrollButtonDim + 2;
 
@@ -483,6 +473,9 @@ int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
 
   if(stylehint == QStyle::SH_ComboBox_Popup)
     return false;
+
+  if(stylehint == SH_ToolTipLabel_Opacity)
+    return 255;
 
   return RDTweakedNativeStyle::styleHint(stylehint, opt, widget, returnData);
 }
@@ -780,11 +773,6 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
     // don't draw focus rects
     return;
   }
-  else if(element == QStyle::PE_PanelItemViewRow || element == QStyle::PE_PanelItemViewItem)
-  {
-    // common style rendering is fine here
-    return QCommonStyle::drawPrimitive(element, opt, p, widget);
-  }
 
   RDTweakedNativeStyle::drawPrimitive(element, opt, p, widget);
 }
@@ -935,11 +923,6 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
   {
     // don't draw size grips
     return;
-  }
-  else if(control == CE_ItemViewItem || control == CE_ComboBoxLabel)
-  {
-    // common style rendering is fine for these
-    return QCommonStyle::drawControl(control, opt, p, widget);
   }
   else if(control == CE_ShapedFrame)
   {

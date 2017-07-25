@@ -32,7 +32,7 @@ class RDTweakedNativeStyle : public QProxyStyle
 private:
   Q_OBJECT
 public:
-  RDTweakedNativeStyle();
+  RDTweakedNativeStyle(QStyle *parent);
   ~RDTweakedNativeStyle();
 
   virtual QRect subElementRect(SubElement element, const QStyleOption *option,
