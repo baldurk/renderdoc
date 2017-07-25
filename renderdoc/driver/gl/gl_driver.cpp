@@ -2538,8 +2538,8 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
   }
 }
 
-void WrappedOpenGL::CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType,
-                                                GLenum internalformat, GLsizei width, GLsizei height)
+void WrappedOpenGL::CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType, GLenum internalformat,
+                                                GLsizei width, GLsizei height, GLint levels)
 {
   GLResource res = TextureRes(GetCtx(), tex);
   ResourceId id = GetResourceManager()->RegisterResource(res);
@@ -2559,21 +2559,33 @@ void WrappedOpenGL::CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType,
     RDCASSERT(record);
 
     record->AddChunk(chunk);
+
+    Common_glTextureParameteriEXT(record, textureType, eGL_TEXTURE_MAX_LEVEL, levels);
   }
   else
   {
     GetResourceManager()->AddLiveResource(id, res);
   }
 
-  if(textureType == eGL_TEXTURE_2D_ARRAY)
+  for(GLint i = 0; i < levels; ++i)
   {
-    Common_glTextureImage3DEXT(id, eGL_TEXTURE_2D_ARRAY, 0, internalformat, width, height, 2, 0, eGL_RGBA,
-                               eGL_UNSIGNED_BYTE, NULL);
-  }
-  else
-  {
-    Common_glTextureImage2DEXT(id, eGL_TEXTURE_2D, 0, internalformat, width, height, 0, eGL_RGBA,
-                               eGL_UNSIGNED_BYTE, NULL);
+    if(textureType == eGL_TEXTURE_2D_ARRAY)
+    {
+      Common_glTextureImage3DEXT(id, eGL_TEXTURE_2D_ARRAY, i, internalformat, width, height, 2, 0,
+                                 eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
+    }
+    else if(textureType == eGL_TEXTURE_2D)
+    {
+      Common_glTextureImage2DEXT(id, eGL_TEXTURE_2D, i, internalformat, width, height, 0, eGL_RGBA,
+                                 eGL_UNSIGNED_BYTE, NULL);
+    }
+    else
+    {
+      RDCERR("Unexpected textureType (%u) in CreateVRAPITextureSwapChain", textureType);
+    }
+
+    width = RDCMAX(1, (width / 2));
+    height = RDCMAX(1, (height / 2));
   }
 }
 

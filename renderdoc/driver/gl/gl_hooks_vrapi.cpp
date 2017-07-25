@@ -204,7 +204,8 @@ __attribute__((visibility("default"))) ovrTextureSwapChain *vrapi_CreateTextureS
       GLenum internalformat = GetInternalFormat(format);
       GLenum textureType = GetTextureType(type);
 
-      m_GLDriver->CreateVRAPITextureSwapChain(tex, textureType, internalformat, width, height);
+      m_GLDriver->CreateVRAPITextureSwapChain(tex, textureType, internalformat, width, height,
+                                              levels);
     }
   }
 
@@ -236,7 +237,8 @@ __attribute__((visibility("default"))) ovrTextureSwapChain *vrapi_CreateTextureS
       GLenum internalformat = GetInternalFormat(format);
       GLenum textureType = GetTextureType(type);
 
-      m_GLDriver->CreateVRAPITextureSwapChain(tex, textureType, internalformat, width, height);
+      m_GLDriver->CreateVRAPITextureSwapChain(tex, textureType, internalformat, width, height,
+                                              levels);
     }
   }
 
