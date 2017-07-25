@@ -65,6 +65,9 @@ void CaptureDialog::initWarning(RDLabel *warning)
   if(!warning)
     return;
 
+  if(warning->devicePixelRatio() >= 2)
+    warning->setText(warning->text().replace(lit(".png"), lit("@2x.png")));
+
   QPalette pal = warning->palette();
 
   QColor base = pal.color(QPalette::ToolTipBase);
