@@ -42,6 +42,7 @@ public:
   ~RDStyle();
 
   void polish(QPalette &pal) override;
+  void polish(QWidget *widget) override;
 
   QRect subControlRect(ComplexControl cc, const QStyleOptionComplex *opt, SubControl sc,
                        const QWidget *widget = Q_NULLPTR) const override;

@@ -44,6 +44,11 @@ static const int CheckHeight = 14;
 static const int CheckMargin = 3;
 
 static const int GroupMargin = 4;
+
+static const int ScrollButtonDim = 12;
+static const int ScrollBarMargin = 2;
+static const int ScrollBarMin = ScrollButtonDim;
+static const qreal ScrollBarRadius = 4.0;
 };
 
 RDStyle::RDStyle(ColorScheme scheme) : RDTweakedNativeStyle()
@@ -154,6 +159,12 @@ void RDStyle::polish(QPalette &pal)
   }
 }
 
+void RDStyle::polish(QWidget *widget)
+{
+  if(qobject_cast<QAbstractSlider *>(widget))
+    widget->setAttribute(Qt::WA_Hover);
+}
+
 QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt, SubControl sc,
                               const QWidget *widget) const
 {
@@ -216,7 +227,101 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
 
       return ret;
     }
+
+    return opt->rect;
   }
+  else if(cc == QStyle::CC_ScrollBar)
+  {
+    QRect ret = opt->rect;
+
+    // shrink by the border
+    ret.adjust(1, 1, -1, -1);
+
+    // don't have first/last buttons
+    if(sc == QStyle::SC_ScrollBarFirst || sc == QStyle::SC_ScrollBarLast)
+      return QRect();
+
+    const QStyleOptionSlider *scroll = qstyleoption_cast<const QStyleOptionSlider *>(opt);
+    const int range = scroll->maximum - scroll->minimum;
+
+    if(scroll->orientation == Qt::Horizontal)
+    {
+      if(sc == QStyle::SC_ScrollBarSubLine)
+        return ret.adjusted(0, 0, -ret.width() + Constants::ScrollButtonDim, 0);
+      if(sc == QStyle::SC_ScrollBarAddLine)
+        return ret.adjusted(ret.width() - Constants::ScrollButtonDim, 0, 0, 0);
+
+      const int buttonAdjust = Constants::ScrollButtonDim + Constants::ScrollBarMargin;
+      ret.adjust(buttonAdjust, 0, -buttonAdjust, 0);
+
+      if(sc == QStyle::SC_ScrollBarGroove)
+        return ret;
+
+      QRect slider = ret;
+
+      if(scroll->maximum > scroll->minimum)
+      {
+        int sliderSize = qMax(Constants::ScrollBarMin,
+                              (scroll->pageStep * ret.width()) / (range + scroll->pageStep));
+
+        slider.setWidth(qMin(slider.width(), sliderSize));
+        slider.moveLeft(ret.left() +
+                        (scroll->sliderPosition * (ret.width() - slider.width())) / range);
+      }
+      else
+      {
+        return QRect();
+      }
+
+      if(sc == QStyle::SC_ScrollBarSlider)
+        return slider;
+
+      if(sc == QStyle::SC_ScrollBarSubPage)
+        return ret.adjusted(0, 0, slider.left() - ret.right(), 0);
+      if(sc == QStyle::SC_ScrollBarAddPage)
+        return ret.adjusted(slider.right() - ret.left(), 0, 0, 0);
+    }
+    else
+    {
+      if(sc == QStyle::SC_ScrollBarSubLine)
+        return ret.adjusted(0, 0, 0, -ret.height() + Constants::ScrollButtonDim);
+      if(sc == QStyle::SC_ScrollBarAddLine)
+        return ret.adjusted(0, ret.height() - Constants::ScrollButtonDim, 0, 0);
+
+      const int buttonAdjust = Constants::ScrollButtonDim + Constants::ScrollBarMargin;
+      ret.adjust(0, buttonAdjust, 0, -buttonAdjust);
+
+      if(sc == QStyle::SC_ScrollBarGroove)
+        return ret;
+
+      QRect slider = ret;
+
+      if(scroll->maximum > scroll->minimum)
+      {
+        int sliderSize = qMax(Constants::ScrollBarMin,
+                              (scroll->pageStep * ret.height()) / (range + scroll->pageStep));
+
+        slider.setHeight(qMin(slider.height(), sliderSize));
+        slider.moveTop(ret.top() +
+                       (scroll->sliderPosition * (ret.height() - slider.height())) / range);
+      }
+      else
+      {
+        return QRect();
+      }
+
+      if(sc == QStyle::SC_ScrollBarSlider)
+        return slider;
+
+      if(sc == QStyle::SC_ScrollBarSubPage)
+        return ret.adjusted(0, 0, 0, slider.top() - ret.bottom());
+      if(sc == QStyle::SC_ScrollBarAddPage)
+        return ret.adjusted(0, slider.bottom() - ret.top(), 0, 0);
+    }
+
+    return opt->rect;
+  }
+
   return RDTweakedNativeStyle::subControlRect(cc, opt, sc, widget);
 }
 
@@ -301,7 +406,7 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
 
     return ret;
   }
-  else if(type == CT_GroupBox)
+  else if(type == CT_GroupBox || type == CT_ScrollBar)
   {
     return size;
   }
@@ -326,6 +431,9 @@ int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWid
   {
     return QCommonStyle::pixelMetric(metric, opt, widget);
   }
+
+  if(metric == PM_ScrollBarExtent)
+    return Constants::ScrollButtonDim + 2;
 
   return RDTweakedNativeStyle::pixelMetric(metric, opt, widget);
 }
@@ -399,6 +507,162 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
 
     p->setPen(QPen(opt->palette.brush(m_Scheme == Light ? QPalette::Mid : QPalette::Midlight), 1.0));
     p->drawLine(labelRect.bottomLeft(), labelRect.bottomRight());
+
+    return;
+  }
+  else if(control == QStyle::CC_ScrollBar)
+  {
+    p->save();
+    p->setRenderHint(QPainter::Antialiasing);
+
+    p->fillRect(opt->rect, opt->palette.brush(QPalette::Window));
+
+    QBrush hoverBrush;
+    QBrush sliderBrush;
+
+    if(m_Scheme == Light)
+    {
+      sliderBrush = opt->palette.brush(QPalette::Dark);
+      hoverBrush = opt->palette.brush(QPalette::Midlight);
+    }
+    else
+    {
+      sliderBrush = opt->palette.brush(QPalette::Text);
+      hoverBrush = opt->palette.brush(QPalette::Light);
+    }
+
+    const QStyleOptionSlider *scroll = qstyleoption_cast<const QStyleOptionSlider *>(opt);
+
+    if(scroll)
+    {
+      const int margin = Constants::ScrollBarMargin;
+
+      {
+        p->setPen(QPen(sliderBrush, 2.5));
+
+        QRectF rect = subControlRect(CC_ScrollBar, opt, QStyle::SC_ScrollBarSubLine, widget);
+
+        rect = rect.adjusted(margin, margin, -margin, -margin);
+
+        if(scroll->orientation == Qt::Vertical)
+          rect.moveTop(rect.top() + rect.height() / 4);
+        else
+          rect.moveLeft(rect.left() + rect.width() / 4);
+
+        QPainterPath path;
+        QPolygonF poly;
+
+        if(scroll->orientation == Qt::Vertical)
+        {
+          QPointF pt = rect.center();
+          pt.setX(rect.left());
+          poly << pt;
+
+          pt = rect.center();
+          pt.setY(rect.top());
+          poly << pt;
+
+          pt = rect.center();
+          pt.setX(rect.right());
+          poly << pt;
+        }
+        else
+        {
+          QPointF pt = rect.center();
+          pt.setY(rect.top());
+          poly << pt;
+
+          pt = rect.center();
+          pt.setX(rect.left());
+          poly << pt;
+
+          pt = rect.center();
+          pt.setY(rect.bottom());
+          poly << pt;
+        }
+
+        path.addPolygon(poly);
+
+        p->drawPath(path);
+      }
+
+      {
+        p->setPen(QPen(sliderBrush, 2.5));
+
+        QRectF rect = subControlRect(CC_ScrollBar, opt, QStyle::SC_ScrollBarAddLine, widget);
+
+        rect = rect.adjusted(margin, margin, -margin, -margin);
+
+        if(scroll->orientation == Qt::Vertical)
+          rect.moveBottom(rect.bottom() - rect.height() / 4);
+        else
+          rect.moveRight(rect.right() - rect.width() / 4);
+
+        QPainterPath path;
+        QPolygonF poly;
+
+        if(scroll->orientation == Qt::Vertical)
+        {
+          QPointF pt = rect.center();
+          pt.setX(rect.left());
+          poly << pt;
+
+          pt = rect.center();
+          pt.setY(rect.bottom());
+          poly << pt;
+
+          pt = rect.center();
+          pt.setX(rect.right());
+          poly << pt;
+        }
+        else
+        {
+          QPointF pt = rect.center();
+          pt.setY(rect.top());
+          poly << pt;
+
+          pt = rect.center();
+          pt.setX(rect.right());
+          poly << pt;
+
+          pt = rect.center();
+          pt.setY(rect.bottom());
+          poly << pt;
+        }
+
+        path.addPolygon(poly);
+
+        p->drawPath(path);
+      }
+    }
+
+    int activeHover = State_MouseOver | State_Active;
+    if((opt->state & activeHover) == activeHover)
+    {
+      QRect hoverRect =
+          subControlRect(CC_ScrollBar, opt, QStyle::SC_ScrollBarAddPage, widget)
+              .united(subControlRect(CC_ScrollBar, opt, QStyle::SC_ScrollBarSubPage, widget));
+
+      QPainterPath path;
+      path.addRoundedRect(hoverRect, Constants::ScrollBarRadius, Constants::ScrollBarRadius);
+
+      p->fillPath(path, hoverBrush);
+    }
+
+    QRect slider = subControlRect(CC_ScrollBar, opt, QStyle::SC_ScrollBarSlider, widget);
+
+    if(slider.isValid())
+    {
+      QPainterPath path;
+      path.addRoundedRect(slider, Constants::ScrollBarRadius, Constants::ScrollBarRadius);
+
+      if(opt->state & State_Sunken)
+        p->fillPath(path, opt->palette.brush(QPalette::Highlight));
+      else
+        p->fillPath(path, sliderBrush);
+    }
+
+    p->restore();
 
     return;
   }
@@ -565,6 +829,11 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
       }
     }
 
+    return;
+  }
+  else if(control == CE_SizeGrip)
+  {
+    // don't draw size grips
     return;
   }
 
