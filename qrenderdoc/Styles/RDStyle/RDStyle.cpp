@@ -541,6 +541,32 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 
     return;
   }
+  else if(control == CE_CheckBoxLabel || control == QStyle::CE_RadioButtonLabel)
+  {
+    const QStyleOptionButton *checkbox = qstyleoption_cast<const QStyleOptionButton *>(opt);
+    if(checkbox)
+    {
+      QRect rect = checkbox->rect;
+
+      if(!checkbox->icon.isNull())
+      {
+        drawItemPixmap(p, rect, Qt::AlignLeft | Qt::AlignVCenter,
+                       checkbox->icon.pixmap(
+                           checkbox->iconSize.width(), checkbox->iconSize.height(),
+                           checkbox->state & State_Enabled ? QIcon::Normal : QIcon::Disabled));
+
+        rect.setLeft(rect.left() + checkbox->iconSize.width() + Constants::CheckMargin);
+      }
+
+      if(!checkbox->text.isEmpty())
+      {
+        drawItemText(p, rect, Qt::AlignLeft | Qt::AlignVCenter, checkbox->palette,
+                     checkbox->state & State_Enabled, checkbox->text, QPalette::WindowText);
+      }
+    }
+
+    return;
+  }
 
   RDTweakedNativeStyle::drawControl(control, opt, p, widget);
 }
