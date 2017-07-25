@@ -587,7 +587,7 @@ public:
   void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
   void SwapBuffers(void *windowHandle);
   void CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType, GLenum internalformat,
-                                   GLsizei width, GLsizei height);
+                                   GLsizei width, GLsizei height, GLint levels);
 
   void FirstFrame(void *ctx, void *wndHandle);
 
