@@ -773,6 +773,19 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
     // don't draw focus rects
     return;
   }
+  else if(element == QStyle::PE_PanelTipLabel)
+  {
+    QPen oldPen = p->pen();
+
+    p->fillRect(opt->rect, opt->palette.brush(QPalette::ToolTipBase));
+
+    p->setPen(QPen(outlineBrush(opt->palette), 0));
+    p->drawRect(opt->rect.adjusted(0, 0, -1, -1));
+
+    p->setPen(oldPen);
+
+    return;
+  }
 
   RDTweakedNativeStyle::drawPrimitive(element, opt, p, widget);
 }
