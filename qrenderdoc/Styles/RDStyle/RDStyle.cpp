@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include "RDStyle.h"
+#include <QAbstractItemView>
+#include <QComboBox>
 #include <QCommonStyle>
 #include <QDebug>
 #include <QPainter>
@@ -49,6 +51,11 @@ static const int ScrollButtonDim = 12;
 static const int ScrollBarMargin = 2;
 static const int ScrollBarMin = ScrollButtonDim;
 static const qreal ScrollBarRadius = 4.0;
+
+static const int SeparatorMargin = 2;
+
+static const int ComboMargin = 2;
+static const int ComboArrowDim = 12;
 };
 
 RDStyle::RDStyle(ColorScheme scheme) : RDTweakedNativeStyle()
@@ -321,6 +328,22 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
 
     return opt->rect;
   }
+  else if(cc == QStyle::CC_ComboBox)
+  {
+    QRect rect = opt->rect;
+
+    if(sc == QStyle::SC_ComboBoxFrame || sc == QStyle::SC_ComboBoxListBoxPopup)
+      return rect;
+
+    rect.adjust(Constants::ComboMargin, Constants::ComboMargin, -Constants::ComboMargin,
+                -Constants::ComboMargin);
+
+    if(sc == QStyle::SC_ComboBoxEditField)
+      return rect.adjusted(0, 0, -Constants::ComboArrowDim, 0);
+
+    if(sc == QStyle::SC_ComboBoxArrow)
+      return rect.adjusted(rect.width() - Constants::ComboArrowDim, 0, 0, 0);
+  }
 
   return RDTweakedNativeStyle::subControlRect(cc, opt, sc, widget);
 }
@@ -410,6 +433,17 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
   {
     return size;
   }
+  else if(type == CT_ComboBox)
+  {
+    QSize ret = size;
+
+    // make room for both the down arrow button and a potential scrollbar
+    ret.setWidth(Constants::ComboMargin * 2 + Constants::ComboArrowDim +
+                 Constants::ScrollButtonDim + ret.width());
+    ret.setHeight(Constants::ComboMargin * 2 + ret.height());
+
+    return ret;
+  }
 
   return RDTweakedNativeStyle::sizeFromContents(type, opt, size, widget);
 }
@@ -443,6 +477,12 @@ int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
 {
   if(stylehint == QStyle::SH_EtchDisabledText || stylehint == QStyle::SH_DitherDisabledText)
     return 0;
+
+  if(stylehint == QStyle::SH_ComboBox_PopupFrameStyle)
+    return QFrame::StyledPanel | QFrame::Plain;
+
+  if(stylehint == QStyle::SH_ComboBox_Popup)
+    return false;
 
   return RDTweakedNativeStyle::styleHint(stylehint, opt, widget, returnData);
 }
@@ -636,7 +676,7 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
       }
     }
 
-    int activeHover = State_MouseOver | State_Active;
+    int activeHover = State_MouseOver | State_Active | State_Enabled;
     if((opt->state & activeHover) == activeHover)
     {
       QRect hoverRect =
@@ -651,7 +691,7 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
 
     QRect slider = subControlRect(CC_ScrollBar, opt, QStyle::SC_ScrollBarSlider, widget);
 
-    if(slider.isValid())
+    if(slider.isValid() && (opt->state & State_Enabled))
     {
       QPainterPath path;
       path.addRoundedRect(slider, Constants::ScrollBarRadius, Constants::ScrollBarRadius);
@@ -660,6 +700,46 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
         p->fillPath(path, opt->palette.brush(QPalette::Highlight));
       else
         p->fillPath(path, sliderBrush);
+    }
+
+    p->restore();
+
+    return;
+  }
+  else if(control == QStyle::CC_ComboBox)
+  {
+    drawRoundedRectBorder(opt, p, widget, QPalette::Base, false);
+
+    QRectF rect = subControlRect(control, opt, QStyle::SC_ComboBoxArrow, widget);
+
+    p->save();
+    p->setRenderHint(QPainter::Antialiasing);
+
+    rect.setTop(rect.top() + rect.height() / 2.0 - rect.width() / 2.0);
+    rect.setHeight(rect.width());
+
+    {
+      qreal penWidth = 1.5;
+      p->setPen(QPen(outlineBrush(opt->palette), penWidth));
+
+      QPainterPath path;
+      QPolygonF poly;
+
+      QPointF pt = rect.center();
+      pt.setX(rect.left() + penWidth);
+      poly << pt;
+
+      pt = rect.center();
+      pt.setY(rect.bottom() - penWidth);
+      poly << pt;
+
+      pt = rect.center();
+      pt.setX(rect.right() - penWidth);
+      poly << pt;
+
+      path.addPolygon(poly);
+
+      p->drawPath(path);
     }
 
     p->restore();
@@ -685,6 +765,25 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
     }
 
     return;
+  }
+  else if(element == QStyle::PE_Frame)
+  {
+    const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(opt);
+
+    QStyleOptionFrame frameOpt = *frame;
+    frameOpt.frameShape = QFrame::Panel;
+    drawControl(CE_ShapedFrame, &frameOpt, p, widget);
+    return;
+  }
+  else if(element == QStyle::PE_FrameFocusRect)
+  {
+    // don't draw focus rects
+    return;
+  }
+  else if(element == QStyle::PE_PanelItemViewRow || element == QStyle::PE_PanelItemViewItem)
+  {
+    // common style rendering is fine here
+    return QCommonStyle::drawPrimitive(element, opt, p, widget);
   }
 
   RDTweakedNativeStyle::drawPrimitive(element, opt, p, widget);
@@ -834,6 +933,54 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
   else if(control == CE_SizeGrip)
   {
     // don't draw size grips
+    return;
+  }
+  else if(control == CE_ItemViewItem || control == CE_ComboBoxLabel)
+  {
+    // common style rendering is fine for these
+    return QCommonStyle::drawControl(control, opt, p, widget);
+  }
+  else if(control == CE_ShapedFrame)
+  {
+    const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(opt);
+
+    p->save();
+    p->setPen(QPen(outlineBrush(opt->palette), 1.0));
+
+    QRectF rect = QRectF(opt->rect).adjusted(0.5, 0.5, -0.5, -0.5);
+
+    QPainterPath path;
+    path.addRoundedRect(rect, 1.0, 1.0);
+
+    if(frame->frameShape == QFrame::NoFrame)
+    {
+      // draw nothing
+    }
+    else if(frame->frameShape == QFrame::Box)
+    {
+      p->drawRect(rect);
+    }
+    else if(frame->frameShape == QFrame::Panel || frame->frameShape == QFrame::WinPanel ||
+            frame->frameShape == QFrame::StyledPanel)
+    {
+      p->setRenderHint(QPainter::Antialiasing);
+      p->drawPath(path);
+    }
+    else if(frame->frameShape == QFrame::HLine)
+    {
+      rect.adjust(Constants::SeparatorMargin, 0, -Constants::SeparatorMargin, 0);
+      QPoint offs(0, opt->rect.height() / 2);
+      p->drawLine(opt->rect.topLeft() + offs, opt->rect.topRight() + offs);
+    }
+    else if(frame->frameShape == QFrame::VLine)
+    {
+      rect.adjust(0, Constants::SeparatorMargin, 0, -Constants::SeparatorMargin);
+      QPoint offs(opt->rect.width() / 2, 0);
+      p->drawLine(opt->rect.topLeft() + offs, opt->rect.bottomLeft() + offs);
+    }
+
+    p->restore();
+
     return;
   }
 
