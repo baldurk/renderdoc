@@ -23,6 +23,7 @@ mv android-7.1.1/* build-tools/25.0.2/
 export ANDROID_HOME=`pwd`/tools
 export JAVA_HOME="/usr/lib/jvm/java-8-oracle"
 export ANDROID_NDK=`pwd`/android-ndk-r13b
+export ANDROID_SDK=`pwd`
 export PATH=`pwd`/android-ndk-r13b:$PATH
 export PATH=`pwd`/tools:$PATH
 export PATH=`pwd`/platform-tools:$PATH
