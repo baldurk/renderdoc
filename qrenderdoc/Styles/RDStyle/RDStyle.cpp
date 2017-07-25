@@ -540,7 +540,7 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
       penRole = QPalette::NoRole;
     }
 
-    drawItemText(p, labelRect, Qt::AlignLeft | Qt::AlignTop, group->palette,
+    drawItemText(p, labelRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextHideMnemonic, group->palette,
                  group->state & State_Enabled, group->text, penRole);
 
     labelRect.adjust(-Constants::GroupMargin, 0, 0, Constants::GroupMargin / 2);
@@ -923,8 +923,9 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 
       if(!checkbox->text.isEmpty())
       {
-        drawItemText(p, rect, Qt::AlignLeft | Qt::AlignVCenter, checkbox->palette,
-                     checkbox->state & State_Enabled, checkbox->text, QPalette::WindowText);
+        drawItemText(p, rect, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextHideMnemonic,
+                     checkbox->palette, checkbox->state & State_Enabled, checkbox->text,
+                     QPalette::WindowText);
       }
     }
 
