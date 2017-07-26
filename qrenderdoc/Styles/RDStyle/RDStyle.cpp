@@ -995,6 +995,10 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
       o.state &= ~State_Sunken;
       drawRoundedRectBorder(&o, p, widget, QPalette::Base, false);
     }
+    else
+    {
+      p->fillRect(opt->rect.adjusted(0, 0, -1, -1), opt->palette.brush(QPalette::Base));
+    }
 
     return;
   }
