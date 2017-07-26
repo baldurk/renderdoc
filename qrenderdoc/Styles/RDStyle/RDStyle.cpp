@@ -56,6 +56,9 @@ static const int SeparatorMargin = 2;
 
 static const int ComboMargin = 2;
 static const int ComboArrowDim = 12;
+
+static const int SpinButtonDim = 12;
+static const int SpinMargin = 1;
 };
 
 RDStyle::RDStyle(ColorScheme scheme) : RDTweakedNativeStyle(new QCommonStyle())
@@ -344,6 +347,32 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
     if(sc == QStyle::SC_ComboBoxArrow)
       return rect.adjusted(rect.width() - Constants::ComboArrowDim, 0, 0, 0);
   }
+  else if(cc == QStyle::CC_SpinBox)
+  {
+    QRect rect = opt->rect;
+
+    if(sc == QStyle::SC_SpinBoxFrame)
+      return rect;
+
+    rect.adjust(Constants::ButtonBorder, Constants::ButtonBorder, -Constants::ButtonBorder,
+                -Constants::ButtonBorder);
+
+    if(sc == QStyle::SC_SpinBoxEditField)
+      return rect.adjusted(Constants::SpinMargin, Constants::SpinMargin,
+                           -Constants::SpinButtonDim - Constants::SpinMargin, -Constants::SpinMargin);
+
+    rect.adjust(rect.width() - Constants::SpinButtonDim, 0, 0, 0);
+
+    int buttonHeight = rect.height() / 2;
+
+    if(sc == QStyle::SC_SpinBoxUp)
+      return rect.adjusted(0, 0, 0, -(rect.height() - buttonHeight));
+
+    if(sc == QStyle::SC_SpinBoxDown)
+      return rect.adjusted(0, rect.height() - buttonHeight, 0, 0);
+
+    return opt->rect;
+  }
 
   return RDTweakedNativeStyle::subControlRect(cc, opt, sc, widget);
 }
@@ -438,9 +467,19 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
     QSize ret = size;
 
     // make room for both the down arrow button and a potential scrollbar
-    ret.setWidth(Constants::ComboMargin * 2 + Constants::ComboArrowDim +
-                 Constants::ScrollButtonDim + ret.width());
-    ret.setHeight(Constants::ComboMargin * 2 + ret.height());
+    ret.setWidth(Constants::ButtonBorder * 2 + Constants::ComboMargin * 2 +
+                 Constants::ComboArrowDim + Constants::ScrollButtonDim + ret.width());
+    ret.setHeight(Constants::ButtonBorder * 2 + Constants::ComboMargin * 2 + ret.height());
+
+    return ret;
+  }
+  else if(type == CT_SpinBox)
+  {
+    QSize ret = size;
+
+    const int margin = Constants::SpinMargin + Constants::ButtonBorder;
+    ret.setWidth(margin * 2 + Constants::SpinButtonDim + ret.width());
+    ret.setHeight(margin * 2 + ret.height());
 
     return ret;
   }
@@ -728,6 +767,125 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
 
       pt = rect.center();
       pt.setX(rect.right() - penWidth);
+      poly << pt;
+
+      path.addPolygon(poly);
+
+      p->drawPath(path);
+    }
+
+    p->restore();
+
+    return;
+  }
+  else if(control == QStyle::CC_SpinBox)
+  {
+    {
+      QStyleOption o = *opt;
+      o.state &= ~State_Sunken;
+      drawRoundedRectBorder(&o, p, widget, QPalette::Base, false);
+    }
+
+    QRect rect = opt->rect;
+    rect.adjust(Constants::ButtonBorder, Constants::ButtonBorder, -Constants::ButtonBorder,
+                -Constants::ButtonBorder);
+
+    rect.adjust(0, 0, -Constants::SpinButtonDim, 0);
+
+    p->save();
+
+    p->setPen(QPen(outlineBrush(opt->palette), 1.0));
+
+    p->drawLine(rect.topRight(), rect.bottomRight());
+
+    rect = subControlRect(control, opt, QStyle::SC_SpinBoxUp, widget);
+
+    p->setClipRect(rect);
+
+    const QStyleOptionSpinBox *spinbox = qstyleoption_cast<const QStyleOptionSpinBox *>(opt);
+
+    {
+      QPainterPath path;
+      path.addRoundedRect(rect, 1.0, 1.0);
+
+      if((opt->state & State_Sunken) && (spinbox->activeSubControls & QStyle::SC_SpinBoxUp))
+        p->fillPath(path, opt->palette.brush(QPalette::Midlight));
+      else
+        p->fillPath(path, opt->palette.brush(QPalette::Button));
+    }
+
+    p->drawLine(rect.bottomLeft(), rect.bottomRight());
+
+    p->setRenderHint(QPainter::Antialiasing);
+
+    QPalette::ColorGroup group = QPalette::Disabled;
+    if(spinbox->stepEnabled & QAbstractSpinBox::StepUpEnabled)
+      group = QPalette::Normal;
+
+    qreal penWidth = 1.5;
+    p->setPen(QPen(opt->palette.brush(group, QPalette::WindowText), penWidth));
+
+    {
+      QRectF arrowRect = QRectF(rect);
+      arrowRect.adjust(0.5, 0.5, -0.5, 0.5);
+
+      QPainterPath path;
+      QPolygonF poly;
+
+      QPointF pt = arrowRect.center();
+      pt.setX(arrowRect.left() + penWidth);
+      poly << pt;
+
+      pt = arrowRect.center();
+      pt.setY(arrowRect.top() + penWidth);
+      poly << pt;
+
+      pt = arrowRect.center();
+      pt.setX(arrowRect.right() - penWidth);
+      poly << pt;
+
+      path.addPolygon(poly);
+
+      p->drawPath(path);
+    }
+
+    rect = subControlRect(control, opt, QStyle::SC_SpinBoxDown, widget);
+
+    p->setClipRect(rect);
+
+    {
+      QPainterPath path;
+      path.addRoundedRect(rect, 1.0, 1.0);
+
+      if((opt->state & State_Sunken) && (spinbox->activeSubControls & QStyle::SC_SpinBoxDown))
+        p->fillPath(path, opt->palette.brush(QPalette::Midlight));
+      else
+        p->fillPath(path, opt->palette.brush(QPalette::Button));
+    }
+
+    group = QPalette::Disabled;
+    if(spinbox->stepEnabled & QAbstractSpinBox::StepDownEnabled)
+      group = QPalette::Normal;
+
+    p->setPen(QPen(opt->palette.brush(group, QPalette::WindowText), penWidth));
+
+    {
+      QRectF arrowRect = QRectF(rect);
+      arrowRect.adjust(0.5, -0.5, -0.5, -0.5);
+
+      QPainterPath path;
+      QPolygonF poly;
+
+      QPointF pt = arrowRect.center();
+      pt.setX(arrowRect.left() + penWidth);
+      poly << pt;
+
+      pt = arrowRect.center();
+      pt.setY(arrowRect.bottom() - penWidth);
+      poly << pt;
+
+      pt = arrowRect.center();
+      pt.setX(arrowRect.right() - penWidth);
       poly << pt;
 
       path.addPolygon(poly);
