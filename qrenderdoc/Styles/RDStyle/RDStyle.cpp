@@ -517,8 +517,13 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
   {
     QSize ret = size;
 
-    ret.setWidth(Constants::ButtonBorder * 2 + ret.width());
-    ret.setHeight(Constants::ButtonBorder * 2 + ret.height());
+    const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(opt);
+
+    if(frame && frame->lineWidth > 0)
+    {
+      ret.setWidth(Constants::ButtonBorder * 2 + ret.width());
+      ret.setHeight(Constants::ButtonBorder * 2 + ret.height());
+    }
 
     return ret;
   }
