@@ -527,7 +527,7 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
 
     return ret;
   }
-  else if(type == CT_GroupBox || type == CT_ScrollBar || type == CT_ProgressBar)
+  else if(type == CT_GroupBox || type == CT_ScrollBar || type == CT_ProgressBar || type == CT_Splitter)
   {
     return size;
   }
@@ -570,6 +570,9 @@ int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWid
   if(metric == PM_ProgressBarChunkWidth)
     return 10;
 
+  if(metric == PM_SplitterWidth)
+    return 5;
+
   return RDTweakedNativeStyle::pixelMetric(metric, opt, widget);
 }
 
@@ -596,6 +599,9 @@ int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
 
   if(stylehint == SH_ProgressDialog_TextLabelAlignment)
     return Qt::AlignCenter;
+
+  if(stylehint == SH_Splitter_OpaqueResize)
+    return 1;
 
   return RDTweakedNativeStyle::styleHint(stylehint, opt, widget, returnData);
 }
@@ -1288,6 +1294,11 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
   }
   else if(control == QStyle::CE_ProgressBarGroove)
   {
+    return;
+  }
+  else if(control == QStyle::CE_Splitter)
+  {
+    p->eraseRect(opt->rect);
     return;
   }
 
