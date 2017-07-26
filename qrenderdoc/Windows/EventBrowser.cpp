@@ -156,6 +156,9 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   OnLogfileClosed();
 
+  m_redPalette = palette();
+  m_redPalette.setColor(QPalette::Base, Qt::red);
+
   m_Ctx.AddLogViewer(this);
 }
 
@@ -422,7 +425,7 @@ void EventBrowser::on_HideFindJump()
   ui->jumpToEID->setText(QString());
 
   ClearFindIcons();
-  ui->findEvent->setStyleSheet(QString());
+  ui->findEvent->setPalette(palette());
 }
 
 void EventBrowser::on_jumpToEID_returnPressed()
@@ -442,9 +445,9 @@ void EventBrowser::findHighlight_timeout()
   int results = SetFindIcons(ui->findEvent->text());
 
   if(results > 0)
-    ui->findEvent->setStyleSheet(QString());
+    ui->findEvent->setPalette(palette());
   else
-    ui->findEvent->setStyleSheet(lit("QLineEdit{background-color:#ff0000;}"));
+    ui->findEvent->setPalette(m_redPalette);
 }
 
 void EventBrowser::on_findEvent_textEdited(const QString &arg1)
@@ -453,7 +456,7 @@ void EventBrowser::on_findEvent_textEdited(const QString &arg1)
   {
     m_FindHighlight->stop();
 
-    ui->findEvent->setStyleSheet(QString());
+    ui->findEvent->setPalette(palette());
     ClearFindIcons();
   }
   else
@@ -1187,7 +1190,7 @@ void EventBrowser::Find(bool forward)
   if(eid >= 0)
   {
     SelectEvent((uint32_t)eid);
-    ui->findEvent->setStyleSheet(QString());
+    ui->findEvent->setPalette(palette());
   }
   else    // if(WrapSearch)
   {
@@ -1195,11 +1198,11 @@ void EventBrowser::Find(bool forward)
     if(eid >= 0)
     {
       SelectEvent((uint32_t)eid);
-      ui->findEvent->setStyleSheet(QString());
+      ui->findEvent->setPalette(palette());
     }
     else
     {
-      ui->findEvent->setStyleSheet(lit("QLineEdit{background-color:#ff0000;}"));
+      ui->findEvent->setPalette(m_redPalette);
     }
   }
 }

@@ -109,7 +109,6 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   contextChooser->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
   contextChooser->setPopupMode(QToolButton::InstantPopup);
   contextChooser->setMenu(contextChooserMenu);
-  contextChooser->setStyleSheet(lit("QToolButton::menu-indicator { image: none; }"));
   contextChooser->setContextMenuPolicy(Qt::DefaultContextMenu);
   QObject::connect(contextChooserMenu, &QMenu::aboutToShow, this,
                    &MainWindow::contextChooser_menuShowing);
@@ -157,8 +156,6 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
     }
   });
   m_RemoteProbe->start();
-
-  ui->statusBar->setStyleSheet(lit("QStatusBar::item { border: 0px }"));
 
   SetTitle();
 

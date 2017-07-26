@@ -132,7 +132,7 @@ void RDTweakedNativeStyle::drawComplexControl(ComplexControl control, const QSty
 
     // draw the menu arrow, if there is one
     if((toolbutton->subControls & SC_ToolButtonMenu) ||
-       (toolbutton->features & QStyleOptionToolButton::HasMenu))
+       (toolbutton->features & QStyleOptionToolButton::MenuButtonPopup))
     {
       QStyleOptionToolButton menu = *toolbutton;
       menu.rect = subControlRect(control, opt, SC_ToolButtonMenu, widget);

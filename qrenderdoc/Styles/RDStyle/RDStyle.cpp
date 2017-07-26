@@ -188,7 +188,7 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
 
     // return the normal rect if there's no menu
     if(!(toolbutton->subControls & SC_ToolButtonMenu) &&
-       !(toolbutton->features & QStyleOptionToolButton::HasMenu))
+       !(toolbutton->features & QStyleOptionToolButton::MenuButtonPopup))
     {
       return ret;
     }

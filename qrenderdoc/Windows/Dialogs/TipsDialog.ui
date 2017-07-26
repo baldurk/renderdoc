@@ -63,9 +63,6 @@
        <pointsize>9</pointsize>
       </font>
      </property>
-     <property name="styleSheet">
-      <string notr="true"/>
-     </property>
      <property name="title">
       <string>Tip #X</string>
      </property>
@@ -90,9 +87,6 @@
            <font>
             <pointsize>16</pointsize>
            </font>
-          </property>
-          <property name="styleSheet">
-           <string notr="true"/>
           </property>
           <property name="text">
            <string>Tip #X: Tip Title</string>
@@ -122,9 +116,6 @@
          <font>
           <pointsize>12</pointsize>
          </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true"/>
         </property>
         <property name="text">
          <string>TextLabel</string>
@@ -157,9 +148,6 @@
            <font>
             <pointsize>10</pointsize>
            </font>
-          </property>
-          <property name="styleSheet">
-           <string notr="true"/>
           </property>
           <property name="text">
            <string>https://renderdoc.org/tips/1</string>

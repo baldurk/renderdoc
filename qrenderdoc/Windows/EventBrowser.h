@@ -125,6 +125,8 @@ private:
   void ExportDrawcall(QTextStream &writer, int maxNameLength, int indent, bool firstchild,
                       const DrawcallDescription &drawcall);
 
+  QPalette m_redPalette;
+
   TimeUnit m_TimeUnit = TimeUnit::Count;
 
   rdctype::array<CounterResult> m_Times;

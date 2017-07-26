@@ -160,10 +160,6 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, const QS
     QObject::connect(ui->captures, &RDListWidget::keyPress, this, &LiveCapture::captures_keyPress);
 
     ui->mainLayout->addWidget(bottomTools);
-
-    bottomTools->setStyleSheet(
-        lit("background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,"
-            "stop: 0 #E1E1E1, stop: 1.0 #D3D3D3);"));
   }
 }
 
