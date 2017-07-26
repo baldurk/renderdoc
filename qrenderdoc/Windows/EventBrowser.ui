@@ -257,61 +257,19 @@
        </widget>
       </item>
       <item>
-       <widget class="QFrame" name="frame">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
+       <widget class="RDLineEdit" name="jumpToEID">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>20</height>
+         </size>
         </property>
-        <property name="frameShape">
-         <enum>QFrame::Box</enum>
+        <property name="placeholderText">
+         <string>Event ID</string>
         </property>
-        <property name="frameShadow">
-         <enum>QFrame::Plain</enum>
+        <property name="clearButtonEnabled">
+         <bool>true</bool>
         </property>
-        <property name="lineWidth">
-         <number>1</number>
-        </property>
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
-         <property name="spacing">
-          <number>0</number>
-         </property>
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <widget class="RDLineEdit" name="jumpToEID">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>20</height>
-            </size>
-           </property>
-           <property name="autoFillBackground">
-            <bool>false</bool>
-           </property>
-           <property name="frame">
-            <bool>false</bool>
-           </property>
-           <property name="placeholderText">
-            <string>Event ID</string>
-           </property>
-           <property name="clearButtonEnabled">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
        </widget>
       </item>
       <item>
@@ -376,52 +334,19 @@
        </widget>
       </item>
       <item>
-       <widget class="QFrame" name="frame_2">
-        <property name="frameShape">
-         <enum>QFrame::Box</enum>
+       <widget class="RDLineEdit" name="findEvent">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>20</height>
+         </size>
         </property>
-        <property name="frameShadow">
-         <enum>QFrame::Plain</enum>
+        <property name="placeholderText">
+         <string>Search String</string>
         </property>
-        <layout class="QHBoxLayout" name="horizontalLayout_4">
-         <property name="spacing">
-          <number>0</number>
-         </property>
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <widget class="RDLineEdit" name="findEvent">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>20</height>
-            </size>
-           </property>
-           <property name="autoFillBackground">
-            <bool>false</bool>
-           </property>
-           <property name="frame">
-            <bool>false</bool>
-           </property>
-           <property name="placeholderText">
-            <string>Search String</string>
-           </property>
-           <property name="clearButtonEnabled">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
+        <property name="clearButtonEnabled">
+         <bool>true</bool>
+        </property>
        </widget>
       </item>
       <item>
@@ -580,14 +505,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>Widgets/Extended/RDLineEdit.h</header>
-  </customwidget>
-  <customwidget>
    <class>RDTreeWidget</class>
    <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RDLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>Widgets/Extended/RDLineEdit.h</header>
   </customwidget>
  </customwidgets>
  <resources>
