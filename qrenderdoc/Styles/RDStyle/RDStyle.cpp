@@ -516,6 +516,9 @@ int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
   if(stylehint == SH_ToolTipLabel_Opacity)
     return 255;
 
+  if(stylehint == SH_UnderlineShortcut)
+    return 0;
+
   return RDTweakedNativeStyle::styleHint(stylehint, opt, widget, returnData);
 }
 
