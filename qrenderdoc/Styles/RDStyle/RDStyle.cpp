@@ -1016,6 +1016,11 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
     // don't draw focus rects
     return;
   }
+  else if(element == QStyle::PE_FrameStatusBarItem)
+  {
+    // don't draw any panel around status bar items
+    return;
+  }
   else if(element == QStyle::PE_PanelTipLabel)
   {
     QPen oldPen = p->pen();
