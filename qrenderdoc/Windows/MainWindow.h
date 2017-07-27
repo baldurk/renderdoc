@@ -113,6 +113,7 @@ private slots:
   void on_action_Python_Shell_triggered();
   void on_action_Inject_into_Process_triggered();
   void on_action_Resolve_Symbols_triggered();
+  void on_action_Start_Replay_Loop_triggered();
   void on_action_Attach_to_Running_Instance_triggered();
   void on_action_Manage_Remote_Servers_triggered();
   void on_action_Settings_triggered();

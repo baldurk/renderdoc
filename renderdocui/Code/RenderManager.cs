@@ -410,6 +410,14 @@ namespace renderdocui.Code
             }
         }
 
+        public void CancelReplayLoop()
+        {
+            if (m_Thread == null || !Running)
+                return;
+
+            m_Renderer.CancelReplayLoop();
+        }
+
         public ReplayCreateException InitException = null;
 
         public void CloseThreadSync()
@@ -608,12 +616,14 @@ namespace renderdocui.Code
                 renderer.Shutdown();
         }
 
+        private ReplayRenderer m_Renderer;
+
         private void RunThread()
         {
             try
             {
-                ReplayRenderer renderer = CreateReplayRenderer();
-                if(renderer != null)
+                m_Renderer = CreateReplayRenderer();
+                if(m_Renderer != null)
                 {
                     System.Diagnostics.Debug.WriteLine("Renderer created");
                     
@@ -644,7 +654,7 @@ namespace renderdocui.Code
                             {
                                 try
                                 {
-                                    m_current.method(renderer);
+                                    m_current.method(m_Renderer);
                                 }
                                 catch (Exception ex)
                                 {
@@ -653,7 +663,7 @@ namespace renderdocui.Code
                             }
                             else
                             {
-                                m_current.method(renderer);
+                                m_current.method(m_Renderer);
                             }
                         }
 
@@ -669,7 +679,7 @@ namespace renderdocui.Code
                         m_renderQueue.Clear();
                     }
 
-                    DestroyReplayRenderer(renderer);
+                    DestroyReplayRenderer(m_Renderer);
                 }
             }
             catch (ReplayCreateException ex)

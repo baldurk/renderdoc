@@ -148,6 +148,7 @@ namespace renderdocui.Windows
             m_InitRemoteIdent = remoteIdent;
             OwnTemporaryLog = temp;
 
+            startReplayLoopToolStripMenuItem.Enabled = false;
             resolveSymbolsToolStripMenuItem.Enabled = false;
             resolveSymbolsToolStripMenuItem.Text = "Resolve Symbols";
 
@@ -277,6 +278,7 @@ namespace renderdocui.Windows
             statusIcon.Image = null;
             statusProgress.Visible = false;
 
+            startReplayLoopToolStripMenuItem.Enabled = false;
             resolveSymbolsToolStripMenuItem.Enabled = false;
             resolveSymbolsToolStripMenuItem.Text = "Resolve Symbols";
 
@@ -438,6 +440,8 @@ namespace renderdocui.Windows
             LogHasErrors = (m_Core.DebugMessages.Count > 0);
 
             statusProgress.Visible = false;
+
+            startReplayLoopToolStripMenuItem.Enabled = true;
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) => {
                 bool hasResolver = r.HasCallstacks();
@@ -2032,6 +2036,70 @@ namespace renderdocui.Windows
             if (m_SelectedHost != null)
                 device = m_SelectedHost.Hostname;
             StaticExports.StartAndroidRemoteServer(device);
+        }
+
+        private void startReplayLoopToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!m_Core.LogLoaded)
+                return;
+
+            Form popup = new Form();
+            popup.Icon = this.Icon;
+            popup.StartPosition = FormStartPosition.CenterScreen;
+            popup.FormBorderStyle = FormBorderStyle.SizableToolWindow;
+            popup.SizeGripStyle = SizeGripStyle.Hide;
+
+            FetchTexture displayTex = null;
+
+            // display the texture bound at the last drawcall - typically the present
+            var lastDraw = m_Core.CurDrawcalls[m_Core.CurDrawcalls.Length - 1];
+            while (lastDraw.children != null && lastDraw.children.Length > 0)
+                lastDraw = lastDraw.children[lastDraw.children.Length - 1];
+
+            displayTex = m_Core.GetTexture(lastDraw.copyDestination);
+            if (displayTex == null)
+                displayTex = m_Core.GetTexture(lastDraw.outputs[0]);
+
+            if (displayTex == null)
+            {
+                // if no texture was bound, then use the first colour swapbuffer
+                foreach (FetchTexture tex in m_Core.CurTextures)
+                {
+                    if (tex.creationFlags.HasFlag(TextureCreationFlags.SwapBuffer) &&
+                        tex.format.compType != FormatComponentType.Depth &&
+                        tex.format.specialFormat != SpecialFormat.D16S8 &&
+                        tex.format.specialFormat != SpecialFormat.D24S8 &&
+                        tex.format.specialFormat != SpecialFormat.D32S8)
+                    {
+                        displayTex = tex;
+                        break;
+                    }
+                }
+            }
+
+            ResourceId id = ResourceId.Null;
+
+            if (displayTex != null)
+            {
+                id = displayTex.ID;
+                popup.ClientSize = new Size((int)displayTex.width, (int)displayTex.height);
+                popup.Text = "Looping replay of " + m_Core.LogFileName + " Displaying " + displayTex.name;
+            }
+            else
+            {
+                popup.ClientSize = new Size(100, 100);
+                popup.Text = "Looping replay of " + m_Core.LogFileName + " Displaying nothing";
+            }
+
+            popup.CreateControl();
+
+            IntPtr handle = popup.Handle;
+
+            m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { r.ReplayLoop(handle, id); });
+
+            popup.ShowDialog();
+
+            m_Core.Renderer.CancelReplayLoop();
         }
     }
 }

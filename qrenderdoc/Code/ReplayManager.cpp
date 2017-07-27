@@ -274,6 +274,11 @@ void ReplayManager::BlockInvoke(ReplayManager::InvokeCallback m)
   delete cmd;
 }
 
+void ReplayManager::CancelReplayLoop()
+{
+  m_Renderer->CancelReplayLoop();
+}
+
 void ReplayManager::CloseThread()
 {
   m_Running = false;
@@ -393,11 +398,11 @@ void ReplayManager::PushInvoke(ReplayManager::InvokeHandle *cmd)
 
 void ReplayManager::run()
 {
-  IReplayController *renderer = NULL;
+  m_Renderer = NULL;
 
   if(m_Remote)
   {
-    std::tie(m_CreateStatus, renderer) =
+    std::tie(m_CreateStatus, m_Renderer) =
         m_Remote->OpenCapture(~0U, m_Logfile.toUtf8().data(), m_Progress);
   }
   else
@@ -407,12 +412,12 @@ void ReplayManager::run()
     m_CreateStatus = file->OpenStatus();
 
     if(m_CreateStatus == ReplayStatus::Succeeded)
-      std::tie(m_CreateStatus, renderer) = file->OpenCapture(m_Progress);
+      std::tie(m_CreateStatus, m_Renderer) = file->OpenCapture(m_Progress);
 
     file->Shutdown();
   }
 
-  if(renderer == NULL)
+  if(m_Renderer == NULL)
     return;
 
   qInfo() << "QRenderDoc - renderer created for" << m_Logfile;
@@ -439,7 +444,7 @@ void ReplayManager::run()
       continue;
 
     if(cmd->method != NULL)
-      cmd->method(renderer);
+      cmd->method(m_Renderer);
 
     // if it's a throwaway command, delete it
     if(cmd->selfdelete)
@@ -471,7 +476,7 @@ void ReplayManager::run()
 
   // close the core renderer
   if(m_Remote)
-    m_Remote->CloseCapture(renderer);
+    m_Remote->CloseCapture(m_Renderer);
   else
-    renderer->Shutdown();
+    m_Renderer->Shutdown();
 }

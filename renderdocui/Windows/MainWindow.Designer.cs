@@ -95,6 +95,7 @@
             this.toolStripSeparator11 = new System.Windows.Forms.ToolStripSeparator();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.manageRemote = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator13 = new System.Windows.Forms.ToolStripSeparator();
             this.startAndroidRemoteServerToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewDocsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -119,7 +120,7 @@
             this.statusProgress = new System.Windows.Forms.ToolStripProgressBar();
             this.dockPanel = new WeifenLuo.WinFormsUI.Docking.DockPanel();
             this.saveDialog = new System.Windows.Forms.SaveFileDialog();
-            this.toolStripSeparator13 = new System.Windows.Forms.ToolStripSeparator();
+            this.startReplayLoopToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.toolStripContainer1.BottomToolStripPanel.SuspendLayout();
             this.toolStripContainer1.ContentPanel.SuspendLayout();
@@ -516,6 +517,7 @@
             // 
             this.toolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.resolveSymbolsToolStripMenuItem,
+            this.startReplayLoopToolStripMenuItem,
             this.toolStripSeparator11,
             this.optionsToolStripMenuItem,
             this.manageRemote,
@@ -528,28 +530,40 @@
             // resolveSymbolsToolStripMenuItem
             // 
             this.resolveSymbolsToolStripMenuItem.Name = "resolveSymbolsToolStripMenuItem";
-            this.resolveSymbolsToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
+            this.resolveSymbolsToolStripMenuItem.Size = new System.Drawing.Size(213, 22);
             this.resolveSymbolsToolStripMenuItem.Text = "&Resolve Symbols";
             this.resolveSymbolsToolStripMenuItem.Click += new System.EventHandler(this.resolveSymbolsToolStripMenuItem_Click);
             // 
             // toolStripSeparator11
             // 
             this.toolStripSeparator11.Name = "toolStripSeparator11";
-            this.toolStripSeparator11.Size = new System.Drawing.Size(189, 6);
+            this.toolStripSeparator11.Size = new System.Drawing.Size(210, 6);
             // 
             // optionsToolStripMenuItem
             // 
             this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
-            this.optionsToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
+            this.optionsToolStripMenuItem.Size = new System.Drawing.Size(213, 22);
             this.optionsToolStripMenuItem.Text = "&Options";
             this.optionsToolStripMenuItem.Click += new System.EventHandler(this.optionsToolStripMenuItem_Click);
             // 
             // manageRemote
             // 
             this.manageRemote.Name = "manageRemote";
-            this.manageRemote.Size = new System.Drawing.Size(192, 22);
+            this.manageRemote.Size = new System.Drawing.Size(213, 22);
             this.manageRemote.Text = "&Manage Remote Servers";
             this.manageRemote.Click += new System.EventHandler(this.manageRemote_Click);
+            // 
+            // toolStripSeparator13
+            // 
+            this.toolStripSeparator13.Name = "toolStripSeparator13";
+            this.toolStripSeparator13.Size = new System.Drawing.Size(210, 6);
+            // 
+            // startAndroidRemoteServerToolStripMenuItem
+            // 
+            this.startAndroidRemoteServerToolStripMenuItem.Name = "startAndroidRemoteServerToolStripMenuItem";
+            this.startAndroidRemoteServerToolStripMenuItem.Size = new System.Drawing.Size(213, 22);
+            this.startAndroidRemoteServerToolStripMenuItem.Text = "Start Android Remote Server";
+            this.startAndroidRemoteServerToolStripMenuItem.Click += new System.EventHandler(this.startAndroidRemoteServerToolStripMenuItem_Click);
             // 
             // helpToolStripMenuItem
             // 
@@ -808,17 +822,12 @@
             this.saveDialog.Filter = "Log Files (*.rdc)|*.rdc";
             this.saveDialog.Title = "Save Log As";
             // 
-            // toolStripSeparator13
+            // startReplayLoopToolStripMenuItem
             // 
-            this.toolStripSeparator13.Name = "toolStripSeparator13";
-            this.toolStripSeparator13.Size = new System.Drawing.Size(271, 6);
-            //
-            // startAndroidRemoteServerToolStripMenuItem
-            //
-            this.startAndroidRemoteServerToolStripMenuItem.Name = "startAndroidRemoteServerToolStripMenuItem";
-            this.startAndroidRemoteServerToolStripMenuItem.Size = new System.Drawing.Size(274, 26);
-            this.startAndroidRemoteServerToolStripMenuItem.Text = "Start Android Remote Server";
-            this.startAndroidRemoteServerToolStripMenuItem.Click += new System.EventHandler(this.startAndroidRemoteServerToolStripMenuItem_Click);
+            this.startReplayLoopToolStripMenuItem.Name = "startReplayLoopToolStripMenuItem";
+            this.startReplayLoopToolStripMenuItem.Size = new System.Drawing.Size(213, 22);
+            this.startReplayLoopToolStripMenuItem.Text = "Start Replay Loop";
+            this.startReplayLoopToolStripMenuItem.Click += new System.EventHandler(this.startReplayLoopToolStripMenuItem_Click);
             // 
             // MainWindow
             // 
@@ -931,5 +940,6 @@
         private System.Windows.Forms.ToolStripDropDownButton contextChooser;
         private System.Windows.Forms.ToolStripMenuItem localContext;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator13;
+        private System.Windows.Forms.ToolStripMenuItem startReplayLoopToolStripMenuItem;
     }
 }

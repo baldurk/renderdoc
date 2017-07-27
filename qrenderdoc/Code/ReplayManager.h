@@ -67,6 +67,8 @@ public:
   void AsyncInvoke(InvokeCallback m);
   void BlockInvoke(InvokeCallback m);
 
+  void CancelReplayLoop();
+
   void CloseThread();
 
   ReplayStatus ConnectToRemoteServer(RemoteHost *host);
@@ -106,6 +108,8 @@ private:
   QMutex m_RenderLock;
   QQueue<InvokeHandle *> m_RenderQueue;
   QWaitCondition m_RenderCondition;
+
+  IReplayController *m_Renderer = NULL;
 
   void PushInvoke(InvokeHandle *cmd);
 

@@ -191,6 +191,9 @@ public:
 
   rdctype::array<WindowingSystem> GetSupportedWindowSystems();
 
+  void ReplayLoop(WindowingSystem system, void *data, ResourceId texid);
+  void CancelReplayLoop();
+
   ReplayOutput *CreateOutput(WindowingSystem, void *data, ReplayOutputType type);
 
   void ShutdownOutput(IReplayOutput *output);
@@ -204,6 +207,9 @@ private:
   IReplayDriver *GetDevice() { return m_pDevice; }
   FrameRecord m_FrameRecord;
   vector<DrawcallDescription *> m_Drawcalls;
+
+  volatile int32_t m_ReplayLoopCancel = 0;
+  volatile int32_t m_ReplayLoopFinished = 0;
 
   uint32_t m_EventID;
 

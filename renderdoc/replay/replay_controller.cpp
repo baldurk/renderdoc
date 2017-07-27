@@ -1398,6 +1398,58 @@ rdctype::array<WindowingSystem> ReplayController::GetSupportedWindowSystems()
   return m_pDevice->GetSupportedWindowSystems();
 }
 
+void ReplayController::ReplayLoop(WindowingSystem system, void *data, ResourceId texid)
+{
+  ReplayOutput *output = CreateOutput(system, data, ReplayOutputType::Texture);
+
+  TextureDisplay d;
+  d.texid = texid;
+  d.mip = 0;
+  d.sampleIdx = ~0U;
+  d.overlay = DebugOverlay::NoOverlay;
+  d.typeHint = CompType::Typeless;
+  d.HDRMul = -1.0f;
+  d.linearDisplayAsGamma = true;
+  d.FlipY = false;
+  d.rangemin = 0.0f;
+  d.rangemax = 1.0f;
+  d.scale = 1.0f;
+  d.offx = 0.0f;
+  d.offy = 0.0f;
+  d.sliceFace = 0;
+  d.rawoutput = false;
+  d.Red = d.Green = d.Blue = true;
+  d.Alpha = false;
+  output->SetTextureDisplay(d);
+
+  m_ReplayLoopCancel = 0;
+  m_ReplayLoopFinished = 0;
+
+  while(Atomic::CmpExch32(&m_ReplayLoopCancel, 0, 0) == 0)
+  {
+    m_pDevice->ReplayLog(10000000, eReplay_Full);
+
+    output->Display();
+  }
+
+  // restore back to where we were
+  m_pDevice->ReplayLog(m_EventID, eReplay_Full);
+
+  ShutdownOutput(output);
+
+  // mark that the loop is finished
+  Atomic::Inc32(&m_ReplayLoopFinished);
+}
+
+void ReplayController::CancelReplayLoop()
+{
+  Atomic::Inc32(&m_ReplayLoopCancel);
+
+  // wait for it to actually finish before returning
+  while(Atomic::CmpExch32(&m_ReplayLoopFinished, 0, 0) == 0)
+    Threading::Sleep(1);
+}
+
 ReplayOutput *ReplayController::CreateOutput(WindowingSystem system, void *data, ReplayOutputType type)
 {
   ReplayOutput *out = new ReplayOutput(this, system, data, type);
@@ -1670,6 +1722,18 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_ShutdownOutput(IReplay
                                                                          IReplayOutput *output)
 {
   rend->ShutdownOutput(output);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_ReplayLoop(IReplayController *rend,
+                                                                     WindowingSystem system,
+                                                                     void *data, ResourceId texid)
+{
+  rend->ReplayLoop(system, data, texid);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_CancelReplayLoop(IReplayController *rend)
+{
+  rend->CancelReplayLoop();
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_FileChanged(IReplayController *rend)

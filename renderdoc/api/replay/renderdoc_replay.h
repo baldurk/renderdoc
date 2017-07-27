@@ -444,6 +444,22 @@ struct IReplayController
 )");
   virtual void ShutdownOutput(IReplayOutput *output) = 0;
 
+  DOCUMENT(R"(Goes into a blocking loop, repeatedly replaying the open capture as fast as possible,
+displaying the selected texture in a default unscaled manner to the given output window.
+
+The function won't return until :meth:`CancelLoop` is called. Since this function is blocking, that
+function must be called from another thread.
+
+:param WindowingSystem system: The type of native window handle data being provided
+:param data: The native window data, in a format defined by the system
+:type data: opaque void * pointer
+:param ResourceId texid: The id of the texture to display.
+)");
+  virtual void ReplayLoop(WindowingSystem system, void *data, ResourceId texid) = 0;
+
+  DOCUMENT("Cancels a replay loop begun in :meth:`ReplayLoop`. Does nothing if no loop is active.");
+  virtual void CancelReplayLoop() = 0;
+
   DOCUMENT("Notify the interface that the file it has open has been changed on disk.");
   virtual void FileChanged() = 0;
 

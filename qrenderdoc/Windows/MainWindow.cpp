@@ -165,6 +165,7 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
     return m_Ctx.CreateBuiltinWindow(objectName);
   });
 
+  ui->action_Start_Replay_Loop->setEnabled(false);
   ui->action_Resolve_Symbols->setEnabled(false);
   ui->action_Resolve_Symbols->setText(tr("Resolve Symbols"));
 
@@ -1246,6 +1247,8 @@ void MainWindow::OnLogfileLoaded()
 
   statusProgress->setVisible(false);
 
+  ui->action_Start_Replay_Loop->setEnabled(true);
+
   setLogHasErrors(!m_Ctx.DebugMessages().empty());
 
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
@@ -1271,6 +1274,8 @@ void MainWindow::OnLogfileClosed()
 {
   ui->action_Save_Log->setEnabled(false);
   ui->action_Close_Log->setEnabled(false);
+
+  ui->action_Start_Replay_Loop->setEnabled(false);
 
   contextChooser->setEnabled(true);
 
@@ -1521,6 +1526,66 @@ void MainWindow::on_action_Resolve_Symbols_triggered()
 
   if(m_Ctx.HasAPIInspector())
     m_Ctx.GetAPIInspector()->Refresh();
+}
+
+void MainWindow::on_action_Start_Replay_Loop_triggered()
+{
+  if(!m_Ctx.LogLoaded())
+    return;
+
+  QDialog popup;
+  popup.setWindowFlags(popup.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+  popup.setWindowIcon(windowIcon());
+
+  const TextureDescription *displayTex = NULL;
+
+  const DrawcallDescription *lastDraw = m_Ctx.GetLastDrawcall();
+
+  displayTex = m_Ctx.GetTexture(lastDraw->copyDestination);
+  if(!displayTex)
+    displayTex = m_Ctx.GetTexture(lastDraw->outputs[0]);
+
+  if(!displayTex)
+  {
+    // if no texture was bound, then use the first colour swapbuffer
+    for(const TextureDescription &tex : m_Ctx.GetTextures())
+    {
+      if((tex.creationFlags & TextureCategory::SwapBuffer) &&
+         tex.format.compType != CompType::Depth && tex.format.specialFormat != SpecialFormat::D16S8 &&
+         tex.format.specialFormat != SpecialFormat::D24S8 &&
+         tex.format.specialFormat != SpecialFormat::D32S8)
+      {
+        displayTex = &tex;
+        break;
+      }
+    }
+  }
+
+  ResourceId id;
+
+  if(displayTex)
+  {
+    id = displayTex->ID;
+    popup.resize((int)displayTex->width, (int)displayTex->height);
+    popup.setWindowTitle(
+        tr("Looping replay of %1 Displaying %2").arg(m_Ctx.LogFilename()).arg(ToQStr(displayTex->name)));
+  }
+  else
+  {
+    popup.resize(100, 100);
+    popup.setWindowTitle(
+        tr("Looping replay of %1 Displaying %2").arg(m_Ctx.LogFilename()).arg(tr("nothing")));
+  }
+
+  WindowingSystem winSys = m_Ctx.CurWindowingSystem();
+  void *winData = m_Ctx.FillWindowingData(popup.winId());
+
+  m_Ctx.Replay().AsyncInvoke(
+      [winSys, winData, id](IReplayController *r) { r->ReplayLoop(winSys, winData, id); });
+
+  RDDialog::show(&popup);
+
+  m_Ctx.Replay().CancelReplayLoop();
 }
 
 void MainWindow::on_action_Attach_to_Running_Instance_triggered()

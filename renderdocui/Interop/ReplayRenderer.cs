@@ -286,6 +286,11 @@ namespace renderdoc
         private static extern void ReplayRenderer_ShutdownOutput(IntPtr real, IntPtr replayOutput);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr ReplayRenderer_ReplayLoop(IntPtr real, UInt32 windowSystem, IntPtr WindowHandle, ResourceId texid);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr ReplayRenderer_CancelReplayLoop(IntPtr real);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void ReplayRenderer_FileChanged(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -394,6 +399,20 @@ namespace renderdoc
             CustomMarshal.Free(mem);
 
             return ret;
+        }
+
+        public void ReplayLoop(IntPtr WindowHandle, ResourceId texid)
+        {
+            if (WindowHandle == IntPtr.Zero)
+                return;
+
+            // 1 == eWindowingSystem_Win32
+            ReplayRenderer_ReplayLoop(m_Real, 1u, WindowHandle, texid);
+        }
+
+        public void CancelReplayLoop()
+        {
+            ReplayRenderer_CancelReplayLoop(m_Real);
         }
 
         public ReplayOutput CreateOutput(IntPtr WindowHandle, OutputType type)

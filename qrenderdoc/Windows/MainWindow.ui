@@ -42,7 +42,7 @@
      <x>0</x>
      <y>0</y>
      <width>1200</width>
-     <height>26</height>
+     <height>18</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_Tools">
@@ -50,9 +50,11 @@
      <string>&amp;Tools</string>
     </property>
     <addaction name="action_Resolve_Symbols"/>
+    <addaction name="action_Start_Replay_Loop"/>
     <addaction name="separator"/>
     <addaction name="action_Settings"/>
     <addaction name="action_Manage_Remote_Servers"/>
+    <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menu_File">
     <property name="title">
@@ -396,6 +398,11 @@
   <action name="action_Launch_Application_Window">
    <property name="text">
     <string>&amp;Launch Application</string>
+   </property>
+  </action>
+  <action name="action_Start_Replay_Loop">
+   <property name="text">
+    <string>Start Replay &amp;Loop</string>
    </property>
   </action>
  </widget>

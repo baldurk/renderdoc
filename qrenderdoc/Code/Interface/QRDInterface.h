@@ -606,6 +606,9 @@ struct IReplayManager
   DOCUMENT("Ping the remote server to ensure the connection is still alive.");
   virtual void PingRemote() = 0;
 
+  DOCUMENT("Cancels the active replay loop. See :meth:`~renderdoc.ReplayController.ReplayLoop`.");
+  virtual void CancelReplayLoop() = 0;
+
   DOCUMENT(R"(Retrieves the host that the manager is currently connected to.
 
 :return: The host connected to, or ``None`` if no connection is active.
