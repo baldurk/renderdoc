@@ -224,10 +224,12 @@ void TimelineBar::layout()
 
   m_eidWidth = virtualSize / (maxEID + 1);
 
+  int savedPan = m_pan;
+
   horizontalScrollBar()->setRange(0, virtualSize - m_dataArea.width());
   horizontalScrollBar()->setSingleStep(m_eidAxisLabelWidth);
   horizontalScrollBar()->setPageStep(m_dataArea.width());
-  horizontalScrollBar()->setValue(-m_pan);
+  horizontalScrollBar()->setValue(-savedPan);
 
   viewport()->update();
 }
