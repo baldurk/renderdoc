@@ -30,6 +30,7 @@
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
 
+struct IAmdExtD3DCommandListMarker;
 class WrappedID3D12GraphicsCommandList;
 
 struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList
@@ -89,6 +90,8 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
   // command recording/replay data shared between queues and lists
   D3D12CommandData *m_Cmd;
 
+  IAmdExtD3DCommandListMarker *m_AMDMarkers;
+
   WrappedID3D12RootSignature *m_CurGfxRootSig, *m_CurCompRootSig;
 
   ResourceId m_ResourceID;
@@ -127,6 +130,7 @@ public:
   ID3D12GraphicsCommandList *GetCrackedList(ResourceId id);
   ID3D12GraphicsCommandList *GetWrappedCrackedList(ResourceId id);
 
+  void SetAMDMarkerInterface(IAmdExtD3DCommandListMarker *marker) { m_AMDMarkers = marker; }
   void SetCommandData(D3D12CommandData *cmd) { m_Cmd = cmd; }
   void SetInitParams(REFIID riid, UINT nodeMask, D3D12_COMMAND_LIST_TYPE type)
   {

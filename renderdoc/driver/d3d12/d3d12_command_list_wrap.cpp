@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d12_command_list.h"
+#include "driver/ihv/amd/official/DXExt/AmdExtD3DCommandListMarkerApi.h"
 #include "d3d12_command_queue.h"
 
 ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetList(ResourceId id)
@@ -2697,6 +2698,9 @@ void WrappedID3D12GraphicsCommandList::SetMarker(UINT Metadata, const void *pDat
 {
   m_pReal->SetMarker(Metadata, pData, Size);
 
+  if(m_AMDMarkers && Metadata == PIX_EVENT_UNICODE_VERSION)
+    m_AMDMarkers->SetMarker(StringFormat::Wide2UTF8((const wchar_t *)pData).c_str());
+
   if(m_State >= WRITING)
   {
     SCOPED_SERIALISE_CONTEXT(SET_MARKER);
@@ -2769,6 +2773,9 @@ void WrappedID3D12GraphicsCommandList::BeginEvent(UINT Metadata, const void *pDa
 {
   m_pReal->BeginEvent(Metadata, pData, Size);
 
+  if(m_AMDMarkers && Metadata == PIX_EVENT_UNICODE_VERSION)
+    m_AMDMarkers->PushMarker(StringFormat::Wide2UTF8((const wchar_t *)pData).c_str());
+
   if(m_State >= WRITING)
   {
     SCOPED_SERIALISE_CONTEXT(BEGIN_EVENT);
@@ -2826,6 +2833,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent()
 void WrappedID3D12GraphicsCommandList::EndEvent()
 {
   m_pReal->EndEvent();
+
+  if(m_AMDMarkers)
+    m_AMDMarkers->PopMarker();
 
   if(m_State >= WRITING)
   {

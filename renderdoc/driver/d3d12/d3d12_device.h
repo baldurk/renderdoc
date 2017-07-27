@@ -38,6 +38,8 @@
 #include "d3d12_manager.h"
 #include "d3d12_replay.h"
 
+struct IAmdExtD3DFactory;
+
 struct D3D12InitParams : public RDCInitParams
 {
   D3D12InitParams();
@@ -240,6 +242,8 @@ private:
 
   void CreateInternalResources();
   void DestroyInternalResources();
+
+  IAmdExtD3DFactory *m_pAMDExtObject = NULL;
 
   D3D12ResourceManager *m_ResourceManager;
   DummyID3D12InfoQueue m_DummyInfoQueue;

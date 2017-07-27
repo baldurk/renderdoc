@@ -24,6 +24,8 @@
 
 #include "d3d12_device.h"
 #include "driver/dxgi/dxgi_common.h"
+#include "driver/ihv/amd/official/DXExt/AmdExtD3D.h"
+#include "driver/ihv/amd/official/DXExt/AmdExtD3DCommandListMarkerApi.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_resources.h"
@@ -219,6 +221,14 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
   {
     WrappedID3D12GraphicsCommandList *wrapped =
         new WrappedID3D12GraphicsCommandList(real, this, m_pSerialiser, m_State);
+
+    if(m_pAMDExtObject)
+    {
+      IAmdExtD3DCommandListMarker *markers = NULL;
+      m_pAMDExtObject->CreateInterface(real, __uuidof(IAmdExtD3DCommandListMarker),
+                                       (void **)&markers);
+      wrapped->SetAMDMarkerInterface(markers);
+    }
 
     if(m_State >= WRITING)
     {

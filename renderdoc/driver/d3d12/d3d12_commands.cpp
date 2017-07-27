@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include "driver/dxgi/dxgi_common.h"
+#include "driver/ihv/amd/official/DXExt/AmdExtD3DCommandListMarkerApi.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 
@@ -658,6 +659,8 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
 
 WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
 {
+  SAFE_RELEASE(m_AMDMarkers);
+
   if(m_pReal)
     m_pDevice->GetResourceManager()->RemoveWrapper(m_pReal);
 

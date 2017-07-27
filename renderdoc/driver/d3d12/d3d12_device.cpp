@@ -26,6 +26,7 @@
 #include "core/core.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/dxgi/dxgi_wrapped.h"
+#include "driver/ihv/amd/official/DXExt/AmdExtD3D.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
 #include "serialise/string_utils.h"
@@ -2060,6 +2061,23 @@ Serialiser *WrappedID3D12Device::GetThreadSerialiser()
 
 void WrappedID3D12Device::CreateInternalResources()
 {
+  // Initialise AMD extension, if possible
+  HMODULE mod = GetModuleHandleA("amdxc64.dll");
+
+  m_pAMDExtObject = NULL;
+
+  if(mod)
+  {
+    PFNAmdExtD3DCreateInterface pAmdExtD3dCreateFunc =
+        (PFNAmdExtD3DCreateInterface)GetProcAddress(mod, "AmdExtD3DCreateInterface");
+
+    if(pAmdExtD3dCreateFunc != NULL)
+    {
+      // Initialize extension object
+      pAmdExtD3dCreateFunc(m_pDevice, __uuidof(IAmdExtD3DFactory), (void **)&m_pAMDExtObject);
+    }
+  }
+
   CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator),
                          (void **)&m_Alloc);
   CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
@@ -2085,6 +2103,8 @@ void WrappedID3D12Device::DestroyInternalResources()
 {
   if(m_GPUSyncHandle == NULL)
     return;
+
+  SAFE_RELEASE(m_pAMDExtObject);
 
   ExecuteLists();
   FlushLists(true);

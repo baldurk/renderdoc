@@ -110,5 +110,11 @@
     <ClInclude Include="amd_isa_devices.h">
       <Filter>ISA</Filter>
     </ClInclude>
+    <ClInclude Include="official\DXExt\AmdExtD3D.h">
+      <Filter>official\DXExt</Filter>
+    </ClInclude>
+    <ClInclude Include="official\DXExt\AmdExtD3DCommandListMarkerApi.h">
+      <Filter>official\DXExt</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

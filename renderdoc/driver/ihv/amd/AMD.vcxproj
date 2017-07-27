@@ -108,6 +108,8 @@
     <ClInclude Include="official\DXExt\AmdDxExt.h" />
     <ClInclude Include="official\DXExt\AmdDxExtApi.h" />
     <ClInclude Include="official\DXExt\AmdDxExtIface.h" />
+    <ClInclude Include="official\DXExt\AmdExtD3D.h" />
+    <ClInclude Include="official\DXExt\AmdExtD3DCommandListMarkerApi.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPACounterGenerator.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPAFunctions.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPAICounterAccessor.h" />
