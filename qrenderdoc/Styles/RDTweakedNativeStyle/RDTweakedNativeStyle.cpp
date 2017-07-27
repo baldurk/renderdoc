@@ -108,6 +108,9 @@ void RDTweakedNativeStyle::drawComplexControl(ComplexControl control, const QSty
     backCol.setAlphaF(0.2);
     QStyle::State masked = opt->state & (State_On | State_MouseOver);
 
+    if(!(opt->state & State_Enabled))
+      masked &= ~State_MouseOver;
+
     // when the mouse is over, make it a little stronger
     if(masked && (masked & State_MouseOver))
       backCol.setAlphaF(0.4);
