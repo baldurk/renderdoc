@@ -228,7 +228,7 @@ QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
     const DrawcallDescription &d = draws[i];
 
     RDTreeWidgetItem *child = new RDTreeWidgetItem(
-        {ToQStr(d.name), QString::number(d.eventID), QString::number(d.drawcallID), lit("0.0")});
+        {ToQStr(d.name), QString::number(d.eventID), QString::number(d.drawcallID), lit("---")});
 
     QPair<uint32_t, uint32_t> last = AddDrawcalls(child, d.children);
     lastEID = last.first;
