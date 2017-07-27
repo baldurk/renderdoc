@@ -192,6 +192,10 @@ struct BakedCmdListInfo
 
   ResourceId parentList;
 
+  // modified during recording to ensure we end any markers that should be ended but weren't due to
+  // a partial replay
+  int markerCount;
+
   D3D12DrawcallTreeNode *draw;    // the root draw to copy from when submitting
   uint32_t eventCount;            // how many events are in this cmd list, for quick skipping
   uint32_t curEventID;            // current event ID while reading or executing

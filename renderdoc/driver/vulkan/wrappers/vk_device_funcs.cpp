@@ -934,6 +934,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
 
     AddRequiredExtensions(false, Extensions, supportedExtensions);
 
+    // enable VK_EXT_debug_marker if it's available, to replay markers to the driver/any other
+    // layers that might be listening
+    if(supportedExtensions.find(VK_EXT_DEBUG_MARKER_EXTENSION_NAME) != supportedExtensions.end())
+    {
+      Extensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
+      RDCLOG("Enabling VK_EXT_debug_marker");
+    }
+
 #if ENABLED(FORCE_VALIDATION_LAYERS)
     Layers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif

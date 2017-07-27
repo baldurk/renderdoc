@@ -739,6 +739,16 @@ const GLHookSet *GLMarkerRegion::gl;
 
 GLMarkerRegion::GLMarkerRegion(const std::string &marker)
 {
+  Begin(marker);
+}
+
+GLMarkerRegion::~GLMarkerRegion()
+{
+  End();
+}
+
+void GLMarkerRegion::Begin(const std::string &marker)
+{
   if(gl == NULL || !HasExt[KHR_debug] || !gl->glPushDebugGroup)
     return;
 
@@ -754,7 +764,7 @@ void GLMarkerRegion::Set(const std::string &marker)
                            eGL_DEBUG_SEVERITY_NOTIFICATION, -1, marker.c_str());
 }
 
-GLMarkerRegion::~GLMarkerRegion()
+void GLMarkerRegion::End()
 {
   if(gl == NULL || !HasExt[KHR_debug] || !gl->glPopDebugGroup)
     return;

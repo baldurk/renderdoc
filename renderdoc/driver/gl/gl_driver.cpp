@@ -3312,7 +3312,8 @@ bool WrappedOpenGL::RecordUpdateCheck(GLResourceRecord *record)
 void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum severity,
                                GLsizei length, const GLchar *message)
 {
-  if(type != eGL_DEBUG_TYPE_PUSH_GROUP && type != eGL_DEBUG_TYPE_POP_GROUP)
+  if(type != eGL_DEBUG_TYPE_PUSH_GROUP && type != eGL_DEBUG_TYPE_POP_GROUP &&
+     type != eGL_DEBUG_TYPE_MARKER)
   {
     if(type != eGL_DEBUG_TYPE_PERFORMANCE && type != eGL_DEBUG_TYPE_OTHER)
     {
@@ -4503,31 +4504,28 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
   if(!partial)
   {
-    GLMarkerRegion apply("ApplyInitialContents");
+    GLMarkerRegion apply("!!!!RenderDoc Internal: ApplyInitialContents");
     GetResourceManager()->ApplyInitialContents();
     GetResourceManager()->ReleaseInFrameResources();
   }
 
+  GLMarkerRegion::Set(StringFormat::Fmt("!!!!RenderDoc Internal:  Replay %d (%d): %u->%u",
+                                        (int)replayType, (int)partial, startEventID, endEventID));
+
+  m_ReplayEventCount = 0;
+
   if(replayType == eReplay_Full)
-  {
-    GLMarkerRegion exec(
-        StringFormat::Fmt("Replay: Full %u->%u (partial %u)", startEventID, endEventID, partial));
     ContextReplayLog(EXECUTING, startEventID, endEventID, partial);
-  }
   else if(replayType == eReplay_WithoutDraw)
-  {
-    GLMarkerRegion exec(StringFormat::Fmt("Replay: W/O Draw %u->%u (partial %u)", startEventID,
-                                          endEventID, partial));
     ContextReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
-  }
   else if(replayType == eReplay_OnlyDraw)
-  {
-    GLMarkerRegion exec(StringFormat::Fmt("Replay: Draw Only %u->%u (partial %u)", endEventID,
-                                          endEventID, partial));
     ContextReplayLog(EXECUTING, endEventID, endEventID, partial);
-  }
   else
-  {
     RDCFATAL("Unexpected replay type");
-  }
+
+  // make sure to end any unbalanced replay events if we stopped in the middle of a frame
+  for(int i = 0; i < m_ReplayEventCount; i++)
+    GLMarkerRegion::End();
+
+  GLMarkerRegion::Set("!!!!RenderDoc Internal: Done replay");
 }

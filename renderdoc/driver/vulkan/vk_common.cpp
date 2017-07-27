@@ -23,11 +23,107 @@
  ******************************************************************************/
 
 #include "vk_common.h"
+#include "vk_core.h"
 #include "vk_manager.h"
 #include "vk_resources.h"
 
 const uint32_t AMD_PCI_ID = 0x1002;
 const uint32_t NV_PCI_ID = 0x10DE;
+
+// utility struct for firing one-shot command buffers to begin/end markers
+struct ScopedCommandBuffer
+{
+  ScopedCommandBuffer(VkCommandBuffer cmdbuf, WrappedVulkan *vk)
+  {
+    core = vk;
+    cmd = cmdbuf;
+    local = (cmd == VK_NULL_HANDLE);
+
+    if(local)
+    {
+      VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+      cmd = vk->GetNextCmd();
+
+      VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+  }
+  ~ScopedCommandBuffer()
+  {
+    VkResult vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    core->SubmitCmds();
+  }
+
+  WrappedVulkan *core;
+  VkCommandBuffer cmd;
+  bool local;
+};
+
+WrappedVulkan *VkMarkerRegion::vk = NULL;
+
+VkMarkerRegion::VkMarkerRegion(const std::string &marker, VkCommandBuffer cmd)
+{
+  if(cmd == VK_NULL_HANDLE)
+  {
+    RDCERR("Cannot auto-allocate a command buffer for a scoped VkMarkerRegion");
+    return;
+  }
+
+  cmdbuf = cmd;
+  Begin(marker, cmd);
+}
+
+VkMarkerRegion::~VkMarkerRegion()
+{
+  if(cmdbuf)
+    End(cmdbuf);
+}
+
+void VkMarkerRegion::Begin(const std::string &marker, VkCommandBuffer cmd)
+{
+  if(!vk)
+    return;
+
+  // check for presence of the marker extension
+  if(!ObjDisp(vk->GetDev())->CmdDebugMarkerBeginEXT)
+    return;
+
+  ScopedCommandBuffer scope(cmd, vk);
+
+  VkDebugMarkerMarkerInfoEXT markerInfo = {};
+  markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+  markerInfo.pMarkerName = marker.c_str();
+  ObjDisp(scope.cmd)->CmdDebugMarkerBeginEXT(Unwrap(scope.cmd), &markerInfo);
+}
+
+void VkMarkerRegion::Set(const std::string &marker, VkCommandBuffer cmd)
+{
+  // check for presence of the marker extension
+  if(!ObjDisp(vk->GetDev())->CmdDebugMarkerBeginEXT)
+    return;
+
+  ScopedCommandBuffer scope(cmd, vk);
+
+  VkDebugMarkerMarkerInfoEXT markerInfo = {};
+  markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+  markerInfo.pMarkerName = marker.c_str();
+  ObjDisp(scope.cmd)->CmdDebugMarkerInsertEXT(Unwrap(scope.cmd), &markerInfo);
+}
+
+void VkMarkerRegion::End(VkCommandBuffer cmd)
+{
+  // check for presence of the marker extension
+  if(!ObjDisp(vk->GetDev())->CmdDebugMarkerBeginEXT)
+    return;
+
+  ScopedCommandBuffer scope(cmd, vk);
+
+  ObjDisp(scope.cmd)->CmdDebugMarkerEndEXT(Unwrap(scope.cmd));
+}
 
 VkAccessFlags MakeAccessMask(VkImageLayout layout)
 {

@@ -43,6 +43,8 @@ struct D3D11MarkerRegion
   D3D11MarkerRegion(const std::string &marker);
   ~D3D11MarkerRegion();
   static void Set(const std::string &marker);
+  static void Begin(const std::string &marker);
+  static void End();
 
   static WrappedID3D11Device *device;
 };

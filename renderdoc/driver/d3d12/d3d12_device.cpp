@@ -589,7 +589,10 @@ void WrappedID3D12Device::ApplyInitialContents()
 
   // close the final list
   if(initStateCurList)
+  {
+    D3D12MarkerRegion::End(initStateCurList);
     initStateCurList->Close();
+  }
 
   initStateCurBatch = 0;
   initStateCurList = NULL;
@@ -2159,13 +2162,22 @@ ID3D12GraphicsCommandList *WrappedID3D12Device::GetInitialStateList()
   }
 
   if(initStateCurList == NULL)
+  {
     initStateCurList = GetNewList();
+
+    if(m_State < WRITING)
+    {
+      D3D12MarkerRegion::Begin(initStateCurList,
+                               "!!!!RenderDoc Internal: ApplyInitialContents batched list");
+    }
+  }
 
   return initStateCurList;
 }
 
 void WrappedID3D12Device::CloseInitialStateList()
 {
+  D3D12MarkerRegion::End(initStateCurList);
   initStateCurList->Close();
   initStateCurList = NULL;
   initStateCurBatch = 0;
@@ -2467,14 +2479,21 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   if(!partial)
   {
-    ApplyInitialContents();
-    GetResourceManager()->ReleaseInFrameResources();
+    {
+      D3D12MarkerRegion apply(GetQueue(), "!!!!RenderDoc Internal: ApplyInitialContents");
+      ApplyInitialContents();
+      GetResourceManager()->ReleaseInFrameResources();
+    }
 
     ExecuteLists();
     FlushLists(true);
   }
 
   m_State = EXECUTING;
+
+  D3D12MarkerRegion::Set(
+      GetQueue(), StringFormat::Fmt("!!!!RenderDoc Internal: RenderDoc Replay %d (%d): %u->%u",
+                                    (int)replayType, (int)partial, startEventID, endEventID));
 
   {
     D3D12CommandData &cmd = *m_Queue->GetCommandData();
@@ -2525,6 +2544,8 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     FlushLists(true);
 #endif
   }
+
+  D3D12MarkerRegion::Set(GetQueue(), "!!!!RenderDoc Internal: Done replay");
 
   // ensure all UAV writes have finished before subsequent work
   ID3D12GraphicsCommandList *list = GetNewList();

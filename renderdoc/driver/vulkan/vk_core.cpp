@@ -266,6 +266,8 @@ WrappedVulkan::WrappedVulkan(const char *logFilename) : m_RenderState(this, &m_C
 
   if(RenderDoc::Inst().IsReplayApp())
   {
+    VkMarkerRegion::vk = this;
+
     m_State = READING;
     if(logFilename)
     {
@@ -2352,13 +2354,18 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
   if(!partial)
   {
+    VkMarkerRegion::Begin("!!!!RenderDoc Internal: ApplyInitialContents");
     ApplyInitialContents();
+    VkMarkerRegion::End();
 
     SubmitCmds();
     FlushQ();
 
     GetResourceManager()->ReleaseInFrameResources();
   }
+
+  VkMarkerRegion::Set(StringFormat::Fmt("!!!!RenderDoc Internal: RenderDoc Replay %d (%d): %u->%u",
+                                        (int)replayType, (int)partial, startEventID, endEventID));
 
   {
     if(!partial)
@@ -2488,6 +2495,8 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     SubmitCmds();
 #endif
   }
+
+  VkMarkerRegion::Set("!!!!RenderDoc Internal: Done replay");
 }
 
 void WrappedVulkan::Serialise_DebugMessages(Serialiser *localSerialiser, bool isDrawcall)

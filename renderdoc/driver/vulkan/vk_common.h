@@ -104,6 +104,29 @@ int SampleCount(VkSampleCountFlagBits countFlag);
 int SampleIndex(VkSampleCountFlagBits countFlag);
 int StageIndex(VkShaderStageFlagBits stageFlag);
 
+class WrappedVulkan;
+
+// replay only class for handling marker regions.
+//
+// The cmd allows you to pass in an existing command buffer to insert/add the marker to.
+// If cmd is NULL, then a new command buffer is fetched, begun, the marker is applied to, then
+// closed again. Note that when constructing a scoped marker, cmd cannot be NULL
+//
+// If VK_EXT_debug_marker isn't supported, will silently do nothing
+struct VkMarkerRegion
+{
+  VkMarkerRegion(const std::string &marker, VkCommandBuffer cmd);
+  ~VkMarkerRegion();
+
+  static void Begin(const std::string &marker, VkCommandBuffer cmd = VK_NULL_HANDLE);
+  static void Set(const std::string &marker, VkCommandBuffer cmd = VK_NULL_HANDLE);
+  static void End(VkCommandBuffer cmd = VK_NULL_HANDLE);
+
+  VkCommandBuffer cmdbuf = VK_NULL_HANDLE;
+
+  static WrappedVulkan *vk;
+};
+
 // in vk_<platform>.cpp
 extern const char *VulkanLibraryName;
 

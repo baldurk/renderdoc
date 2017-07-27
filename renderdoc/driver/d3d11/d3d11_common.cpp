@@ -34,13 +34,12 @@ WrappedID3D11Device *D3D11MarkerRegion::device;
 
 D3D11MarkerRegion::D3D11MarkerRegion(const std::string &marker)
 {
-  if(device == NULL)
-    return;
+  D3D11MarkerRegion::Begin(marker);
+}
 
-  ID3DUserDefinedAnnotation *annot = device->GetAnnotations();
-
-  if(annot)
-    annot->BeginEvent(StringFormat::UTF82Wide(marker).c_str());
+D3D11MarkerRegion::~D3D11MarkerRegion()
+{
+  D3D11MarkerRegion::End();
 }
 
 void D3D11MarkerRegion::Set(const std::string &marker)
@@ -54,7 +53,18 @@ void D3D11MarkerRegion::Set(const std::string &marker)
     annot->SetMarker(StringFormat::UTF82Wide(marker).c_str());
 }
 
-D3D11MarkerRegion::~D3D11MarkerRegion()
+void D3D11MarkerRegion::Begin(const std::string &marker)
+{
+  if(device == NULL)
+    return;
+
+  ID3DUserDefinedAnnotation *annot = device->GetAnnotations();
+
+  if(annot)
+    annot->BeginEvent(StringFormat::UTF82Wide(marker).c_str());
+}
+
+void D3D11MarkerRegion::End()
 {
   if(device == NULL)
     return;

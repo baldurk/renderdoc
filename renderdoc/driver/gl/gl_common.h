@@ -250,7 +250,10 @@ struct GLMarkerRegion
 {
   GLMarkerRegion(const std::string &marker);
   ~GLMarkerRegion();
+
+  static void Begin(const std::string &marker);
   static void Set(const std::string &marker);
+  static void End();
 
   static const GLHookSet *gl;
 };

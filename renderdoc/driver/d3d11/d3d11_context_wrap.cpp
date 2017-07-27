@@ -53,6 +53,9 @@ bool WrappedID3D11DeviceContext::Serialise_SetMarker(uint32_t col, const wchar_t
 
   m_pSerialiser->Serialise("Name", name);
 
+  if(m_State <= EXECUTING)
+    D3D11MarkerRegion::Set(name);
+
   if(m_State == READING)
   {
     DrawcallDescription draw;
@@ -89,6 +92,12 @@ bool WrappedID3D11DeviceContext::Serialise_PushEvent(uint32_t col, const wchar_t
 
   m_pSerialiser->Serialise("Name", name);
 
+  if(m_State <= EXECUTING)
+  {
+    D3D11MarkerRegion::Begin(name);
+    m_pDevice->ReplayPushEvent();
+  }
+
   if(m_State == READING)
   {
     DrawcallDescription draw;
@@ -113,6 +122,12 @@ bool WrappedID3D11DeviceContext::Serialise_PushEvent(uint32_t col, const wchar_t
 
 bool WrappedID3D11DeviceContext::Serialise_PopEvent()
 {
+  if(m_State <= EXECUTING)
+  {
+    D3D11MarkerRegion::End();
+    m_pDevice->ReplayPopEvent();
+  }
+
   if(m_State == READING && !m_CurEvents.empty())
   {
     DrawcallDescription draw;

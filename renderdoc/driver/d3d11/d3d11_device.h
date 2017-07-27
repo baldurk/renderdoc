@@ -327,6 +327,7 @@ private:
   WrappedID3D11Debug m_WrappedDebug;
 
   ID3DUserDefinedAnnotation *m_RealAnnotations;
+  int m_ReplayEventCount;
 
   unsigned int m_InternalRefcount;
   RefCounter m_RefCounter;
@@ -434,6 +435,8 @@ public:
   FrameStatistics &GetFrameStats() { return m_FrameRecord.frameInfo.stats; }
   const DrawcallDescription *GetDrawcall(uint32_t eventID);
 
+  void ReplayPushEvent() { m_ReplayEventCount++; }
+  void ReplayPopEvent() { m_ReplayEventCount = RDCMAX(0, m_ReplayEventCount - 1); }
   void LockForChunkFlushing();
   void UnlockForChunkFlushing();
   void LockForChunkRemoval();

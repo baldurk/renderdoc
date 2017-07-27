@@ -2469,35 +2469,32 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   if(!partial)
   {
-    D3D11MarkerRegion apply("ApplyInitialContents");
+    D3D11MarkerRegion apply("!!!!RenderDoc Internal: ApplyInitialContents");
     GetResourceManager()->ApplyInitialContents();
     GetResourceManager()->ReleaseInFrameResources();
   }
 
   m_State = EXECUTING;
 
+  D3D11MarkerRegion::Set(StringFormat::Fmt("!!!!RenderDoc Internal: Replay %d (%d): %u->%u",
+                                           (int)replayType, (int)partial, startEventID, endEventID));
+
+  m_ReplayEventCount = 0;
+
   if(replayType == eReplay_Full)
-  {
-    D3D11MarkerRegion exec(
-        StringFormat::Fmt("Replay: Full %u->%u (partial %u)", startEventID, endEventID, partial));
     m_pImmediateContext->ReplayLog(EXECUTING, startEventID, endEventID, partial);
-  }
   else if(replayType == eReplay_WithoutDraw)
-  {
-    D3D11MarkerRegion exec(StringFormat::Fmt("Replay: W/O Draw %u->%u (partial %u)", startEventID,
-                                             endEventID, partial));
     m_pImmediateContext->ReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
-  }
   else if(replayType == eReplay_OnlyDraw)
-  {
-    D3D11MarkerRegion exec(StringFormat::Fmt("Replay: Draw Only %u->%u (partial %u)", endEventID,
-                                             endEventID, partial));
     m_pImmediateContext->ReplayLog(EXECUTING, endEventID, endEventID, partial);
-  }
   else
-  {
     RDCFATAL("Unexpected replay type");
-  }
+
+  // make sure to end any unbalanced replay events if we stopped in the middle of a frame
+  for(int i = 0; i < m_ReplayEventCount; i++)
+    D3D11MarkerRegion::End();
+
+  D3D11MarkerRegion::Set("!!!!RenderDoc Internal: Done replay");
 }
 
 void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap, UINT QueueCount,

@@ -31,11 +31,42 @@
 D3D12MarkerRegion::D3D12MarkerRegion(ID3D12GraphicsCommandList *l, const std::string &marker)
 {
   list = l;
+  queue = NULL;
 
+  D3D12MarkerRegion::Begin(list, marker);
+}
+
+D3D12MarkerRegion::D3D12MarkerRegion(ID3D12CommandQueue *q, const std::string &marker)
+{
+  list = NULL;
+  queue = q;
+
+  D3D12MarkerRegion::Begin(queue, marker);
+}
+
+D3D12MarkerRegion::~D3D12MarkerRegion()
+{
+  if(list)
+    D3D12MarkerRegion::End(list);
+  if(queue)
+    D3D12MarkerRegion::End(queue);
+}
+
+void D3D12MarkerRegion::Begin(ID3D12GraphicsCommandList *list, const std::string &marker)
+{
   if(list)
   {
     std::wstring text = StringFormat::UTF82Wide(marker);
     list->BeginEvent(0, text.c_str(), (UINT)text.size());
+  }
+}
+
+void D3D12MarkerRegion::Begin(ID3D12CommandQueue *queue, const std::string &marker)
+{
+  if(queue)
+  {
+    std::wstring text = StringFormat::UTF82Wide(marker);
+    queue->BeginEvent(0, text.c_str(), (UINT)text.size());
   }
 }
 
@@ -48,10 +79,23 @@ void D3D12MarkerRegion::Set(ID3D12GraphicsCommandList *list, const std::string &
   }
 }
 
-D3D12MarkerRegion::~D3D12MarkerRegion()
+void D3D12MarkerRegion::Set(ID3D12CommandQueue *queue, const std::string &marker)
 {
-  if(list)
-    list->EndEvent();
+  if(queue)
+  {
+    std::wstring text = StringFormat::UTF82Wide(marker);
+    queue->SetMarker(0, text.c_str(), (UINT)text.size());
+  }
+}
+
+void D3D12MarkerRegion::End(ID3D12GraphicsCommandList *list)
+{
+  list->EndEvent();
+}
+
+void D3D12MarkerRegion::End(ID3D12CommandQueue *queue)
+{
+  queue->EndEvent();
 }
 
 TextureDim MakeTextureDim(D3D12_SRV_DIMENSION dim)

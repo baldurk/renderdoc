@@ -409,6 +409,8 @@ private:
     VkCommandBufferLevel level;
     VkCommandBufferUsageFlags beginFlags;
 
+    int markerCount;
+
     vector<pair<ResourceId, EventUsage> > resourceUsage;
 
     struct CmdBufferState

@@ -30,9 +30,19 @@ ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetList(ResourceId 
   return GetResourceManager()->GetLiveAs<WrappedID3D12GraphicsCommandList>(id)->GetReal();
 }
 
+ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetWrappedList(ResourceId id)
+{
+  return GetResourceManager()->GetLiveAs<WrappedID3D12GraphicsCommandList>(id);
+}
+
 ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetCrackedList(ResourceId id)
 {
   return Unwrap(m_Cmd->m_BakedCmdListInfo[id].crackedLists.back());
+}
+
+ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetWrappedCrackedList(ResourceId id)
+{
+  return m_Cmd->m_BakedCmdListInfo[id].crackedLists.back();
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_Close()
@@ -62,6 +72,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close()
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
       RDCDEBUG("Ending partial command list for %llu baked to %llu", CommandList, bakeId);
 #endif
+
+      int &markerCount = m_Cmd->m_BakedCmdListInfo[CommandList].markerCount;
+
+      for(int i = 0; i < markerCount; i++)
+        D3D12MarkerRegion::End(list);
 
       list->Close();
 
@@ -219,6 +234,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
       m_Cmd->m_RenderState.pipe = GetResID(pInitialState);
     }
 
+    m_Cmd->m_BakedCmdListInfo[CommandList].markerCount = 0;
     m_Cmd->m_BakedCmdListInfo[CommandList].curEventID = 0;
     m_Cmd->m_BakedCmdListInfo[CommandList].executeEvents =
         m_Cmd->m_BakedCmdListInfo[bakeId].executeEvents;
@@ -2653,8 +2669,20 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(UINT Metadata, const 
   if(m_State < WRITING)
     m_Cmd->m_LastCmdListID = CommandList;
 
-  if(m_State == READING)
+  if(m_State == EXECUTING)
   {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+
+      D3D12MarkerRegion::Set(list, markerText);
+    }
+  }
+  else if(m_State == READING)
+  {
+    D3D12MarkerRegion::Set(GetWrappedList(CommandList), markerText);
+    D3D12MarkerRegion::Set(GetWrappedCrackedList(CommandList), markerText);
+
     DrawcallDescription draw;
     draw.name = markerText;
     draw.flags |= DrawFlags::SetMarker;
@@ -2711,8 +2739,22 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(UINT Metadata, const
   if(m_State < WRITING)
     m_Cmd->m_LastCmdListID = CommandList;
 
-  if(m_State == READING)
+  if(m_State == EXECUTING)
   {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+
+      m_Cmd->m_BakedCmdListInfo[CommandList].markerCount++;
+
+      D3D12MarkerRegion::Begin(list, markerText);
+    }
+  }
+  else if(m_State == READING)
+  {
+    D3D12MarkerRegion::Begin(GetWrappedList(CommandList), markerText);
+    D3D12MarkerRegion::Begin(GetWrappedCrackedList(CommandList), markerText);
+
     DrawcallDescription draw;
     draw.name = markerText;
     draw.flags |= DrawFlags::PushMarker;
@@ -2752,8 +2794,23 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent()
     m_Cmd->AddDrawcall(draw, true);
   }
 
-  if(m_State == READING)
+  if(m_State == EXECUTING)
   {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+
+      int &markerCount = m_Cmd->m_BakedCmdListInfo[CommandList].markerCount;
+      markerCount = RDCMAX(0, markerCount - 1);
+
+      D3D12MarkerRegion::End(list);
+    }
+  }
+  else if(m_State == READING)
+  {
+    D3D12MarkerRegion::End(GetWrappedList(CommandList));
+    D3D12MarkerRegion::End(GetWrappedCrackedList(CommandList));
+
     // dummy draw that is consumed when this command buffer
     // is being in-lined into the call stream
     DrawcallDescription draw;

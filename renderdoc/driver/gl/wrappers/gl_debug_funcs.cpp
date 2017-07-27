@@ -158,7 +158,11 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(GLenum source, GLenum type, G
 
   m_pSerialiser->Serialise("Name", name);
 
-  if(m_State == READING)
+  if(m_State == EXECUTING)
+  {
+    GLMarkerRegion::Set(name);
+  }
+  else if(m_State == READING)
   {
     DrawcallDescription draw;
     draw.name = name;
@@ -240,7 +244,12 @@ bool WrappedOpenGL::Serialise_glPushDebugGroup(GLenum source, GLuint id, GLsizei
 
   m_pSerialiser->Serialise("Name", name);
 
-  if(m_State == READING)
+  if(m_State == EXECUTING)
+  {
+    GLMarkerRegion::Begin(name);
+    m_ReplayEventCount++;
+  }
+  else if(m_State == READING)
   {
     DrawcallDescription draw;
     draw.name = name;
@@ -267,7 +276,12 @@ void WrappedOpenGL::glPushDebugGroup(GLenum source, GLuint id, GLsizei length, c
 
 bool WrappedOpenGL::Serialise_glPopDebugGroup()
 {
-  if(m_State == READING && !m_CurEvents.empty())
+  if(m_State == EXECUTING)
+  {
+    GLMarkerRegion::End();
+    m_ReplayEventCount = RDCMAX(0, m_ReplayEventCount - 1);
+  }
+  else if(m_State == READING && !m_CurEvents.empty())
   {
     DrawcallDescription draw;
     draw.name = "API Calls";

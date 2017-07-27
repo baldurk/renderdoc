@@ -123,7 +123,9 @@ public:
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   D3D12ResourceRecord *GetResourceRecord() { return m_ListRecord; }
   ID3D12GraphicsCommandList *GetList(ResourceId id);
+  ID3D12GraphicsCommandList *GetWrappedList(ResourceId id);
   ID3D12GraphicsCommandList *GetCrackedList(ResourceId id);
+  ID3D12GraphicsCommandList *GetWrappedCrackedList(ResourceId id);
 
   void SetCommandData(D3D12CommandData *cmd) { m_Cmd = cmd; }
   void SetInitParams(REFIID riid, UINT nodeMask, D3D12_COMMAND_LIST_TYPE type)

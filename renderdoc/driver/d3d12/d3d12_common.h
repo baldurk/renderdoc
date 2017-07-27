@@ -37,10 +37,19 @@
 struct D3D12MarkerRegion
 {
   D3D12MarkerRegion(ID3D12GraphicsCommandList *list, const std::string &marker);
+  D3D12MarkerRegion(ID3D12CommandQueue *queue, const std::string &marker);
   ~D3D12MarkerRegion();
-  static void Set(ID3D12GraphicsCommandList *list, const std::string &marker);
 
-  ID3D12GraphicsCommandList *list;
+  static void Set(ID3D12GraphicsCommandList *list, const std::string &marker);
+  static void Set(ID3D12CommandQueue *queue, const std::string &marker);
+
+  static void Begin(ID3D12GraphicsCommandList *list, const std::string &marker);
+  static void End(ID3D12GraphicsCommandList *list);
+  static void Begin(ID3D12CommandQueue *queue, const std::string &marker);
+  static void End(ID3D12CommandQueue *queue);
+
+  ID3D12GraphicsCommandList *list = NULL;
+  ID3D12CommandQueue *queue = NULL;
 };
 
 inline void SetObjName(ID3D12Object *obj, const std::string &utf8name)

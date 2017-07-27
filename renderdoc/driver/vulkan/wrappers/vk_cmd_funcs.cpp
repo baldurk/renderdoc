@@ -500,6 +500,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(Serialiser *localSerialiser,
 
     m_BakedCmdBufferInfo[cmdId].level = m_BakedCmdBufferInfo[bakeId].level = allocInfo.level;
     m_BakedCmdBufferInfo[cmdId].beginFlags = m_BakedCmdBufferInfo[bakeId].beginFlags = info.flags;
+    m_BakedCmdBufferInfo[cmdId].markerCount = 0;
   }
 
   if(m_State == EXECUTING)
@@ -736,6 +737,10 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser *localSerialiser,
 
         ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
       }
+
+      if(ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT)
+        for(int i = 0; i < m_BakedCmdBufferInfo[cmdid].markerCount; i++)
+          ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer));
 
       ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
 
@@ -2654,8 +2659,37 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(Serialiser *localSerialis
   if(m_State < WRITING)
     m_LastCmdBufferID = cmdid;
 
-  if(m_State == READING)
+  if(m_State == EXECUTING)
   {
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
+    {
+      commandBuffer = RerecordCmdBuf(cmdid);
+
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].markerCount++;
+
+      if(ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT)
+      {
+        VkDebugMarkerMarkerInfoEXT marker = {};
+        marker.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+        memcpy(marker.color, color, sizeof(color));
+        marker.pMarkerName = name.c_str();
+        ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT(Unwrap(commandBuffer), &marker);
+      }
+    }
+  }
+  else if(m_State == READING)
+  {
+    commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
+
+    if(ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT)
+    {
+      VkDebugMarkerMarkerInfoEXT marker = {};
+      marker.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+      memcpy(marker.color, color, sizeof(color));
+      marker.pMarkerName = name.c_str();
+      ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT(Unwrap(commandBuffer), &marker);
+    }
+
     DrawcallDescription draw;
     draw.name = name;
     draw.flags |= DrawFlags::PushMarker;
@@ -2707,8 +2741,26 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(Serialiser *localSerialiser
     AddDrawcall(draw, true);
   }
 
-  if(m_State == READING)
+  if(m_State == EXECUTING)
   {
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
+    {
+      commandBuffer = RerecordCmdBuf(cmdid);
+
+      int &markerCount = m_BakedCmdBufferInfo[m_LastCmdBufferID].markerCount;
+      markerCount = RDCMAX(0, markerCount - 1);
+
+      if(ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT)
+        ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer));
+    }
+  }
+  else if(m_State == READING)
+  {
+    commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
+
+    if(ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT)
+      ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer));
+
     // dummy draw that is consumed when this command buffer
     // is being in-lined into the call stream
     DrawcallDescription draw;
@@ -2756,8 +2808,35 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(Serialiser *localSeriali
   if(m_State < WRITING)
     m_LastCmdBufferID = cmdid;
 
-  if(m_State == READING)
+  if(m_State == EXECUTING)
   {
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
+    {
+      commandBuffer = RerecordCmdBuf(cmdid);
+
+      if(ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT)
+      {
+        VkDebugMarkerMarkerInfoEXT marker = {};
+        marker.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+        memcpy(marker.color, color, sizeof(color));
+        marker.pMarkerName = name.c_str();
+        ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT(Unwrap(commandBuffer), &marker);
+      }
+    }
+  }
+  else if(m_State == READING)
+  {
+    commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
+
+    if(ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT)
+    {
+      VkDebugMarkerMarkerInfoEXT marker = {};
+      marker.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+      memcpy(marker.color, color, sizeof(color));
+      marker.pMarkerName = name.c_str();
+      ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT(Unwrap(commandBuffer), &marker);
+    }
+
     DrawcallDescription draw;
     draw.name = name;
     draw.flags |= DrawFlags::SetMarker;
