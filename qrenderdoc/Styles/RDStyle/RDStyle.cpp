@@ -594,6 +594,16 @@ int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
   if(stylehint == SH_UnderlineShortcut)
     return 0;
 
+  if(stylehint == SH_MenuBar_MouseTracking || stylehint == SH_Menu_MouseTracking ||
+     stylehint == SH_MenuBar_AltKeyNavigation)
+    return 1;
+
+  if(stylehint == SH_Menu_FlashTriggeredItem || stylehint == SH_Menu_KeyboardSearch ||
+     stylehint == SH_Menu_FadeOutOnHide)
+    return 0;
+
+  if(stylehint == SH_MessageBox_CenterButtons)
+    return 0;
   if(stylehint == SH_ProgressDialog_CenterCancelButton)
     return 1;
 
