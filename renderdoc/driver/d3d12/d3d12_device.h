@@ -443,6 +443,7 @@ public:
   void FlushLists(bool forceSync = false, ID3D12CommandQueue *queue = NULL);
 
   void GPUSync(ID3D12CommandQueue *queue = NULL, ID3D12Fence *fence = NULL);
+  void GPUSyncAllQueues();
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);

@@ -180,7 +180,8 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
 
         for(size_t c = 1; c < info.crackedLists.size(); c++)
         {
-          m_pDevice->GPUSync();
+          // ensure all work on all queues has finished
+          m_pDevice->GPUSyncAllQueues();
 
           // readback the patch buffer and perform patching
           m_ReplayList->PatchExecuteIndirect(info, uint32_t(c - 1));

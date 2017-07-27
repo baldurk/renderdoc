@@ -2142,6 +2142,12 @@ void WrappedID3D12Device::GPUSync(ID3D12CommandQueue *queue, ID3D12Fence *fence)
   RDCASSERTEQUAL(hr, S_OK);
 }
 
+void WrappedID3D12Device::GPUSyncAllQueues()
+{
+  for(size_t i = 0; i < m_QueueFences.size(); i++)
+    GPUSync(m_Queues[i], m_QueueFences[i]);
+}
+
 ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
 {
   ID3D12GraphicsCommandList *ret = NULL;
