@@ -838,23 +838,6 @@ struct SwapchainInfo
   uint32_t lastPresent;
 };
 
-struct InstanceDeviceInfo
-{
-#undef CheckExt
-#define CheckExt(name) ext_##name = false;
-  InstanceDeviceInfo()
-  {
-    CheckDeviceExts();
-    CheckInstanceExts();
-  }
-
-#undef CheckExt
-#define CheckExt(name) bool ext_##name;
-
-  CheckDeviceExts();
-  CheckInstanceExts();
-};
-
 struct SparseMapping
 {
   SparseMapping()

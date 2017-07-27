@@ -36,11 +36,25 @@
 
 void InitReplayTables(void *vulkanModule);
 
-void InitInstanceReplayTables(VkInstance instance);
-void InitDeviceReplayTables(VkDevice device);
+struct InstanceDeviceInfo
+{
+#undef CheckExt
+#define CheckExt(name) ext_##name = false;
+  InstanceDeviceInfo()
+  {
+    CheckDeviceExts();
+    CheckInstanceExts();
+  }
 
-void InitInstanceExtensionTables(VkInstance instance);
-void InitDeviceExtensionTables(VkDevice device);
+#undef CheckExt
+#define CheckExt(name) bool ext_##name;
+
+  CheckDeviceExts();
+  CheckInstanceExts();
+};
+
+void InitInstanceExtensionTables(VkInstance instance, InstanceDeviceInfo *info);
+void InitDeviceExtensionTables(VkDevice device, InstanceDeviceInfo *info);
 
 VkLayerDispatchTableExtended *GetDeviceDispatchTable(void *device);
 VkLayerInstanceDispatchTableExtended *GetInstanceDispatchTable(void *instance);

@@ -220,6 +220,20 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params)
 
   VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, NULL, &m_Instance);
 
+  InstanceDeviceInfo extInfo;
+
+#undef CheckExt
+#define CheckExt(name)                                    \
+  if(!strcmp(instinfo.ppEnabledExtensionNames[i], #name)) \
+  {                                                       \
+    extInfo.ext_##name = true;                            \
+  }
+
+  for(uint32_t i = 0; i < instinfo.enabledExtensionCount; i++)
+  {
+    CheckInstanceExts();
+  }
+
   SAFE_DELETE_ARRAY(layerscstr);
   SAFE_DELETE_ARRAY(extscstr);
 
@@ -228,10 +242,10 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params)
 
   RDCASSERTEQUAL(ret, VK_SUCCESS);
 
-  InitInstanceReplayTables(m_Instance);
-
   GetResourceManager()->WrapResource(m_Instance, m_Instance);
   GetResourceManager()->AddLiveResource(params.InstanceID, m_Instance);
+
+  InitInstanceExtensionTables(m_Instance, &extInfo);
 
   m_DbgMsgCallback = VK_NULL_HANDLE;
   m_PhysicalDevice = VK_NULL_HANDLE;
@@ -377,7 +391,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   delete[] addedExts;
 
-  InitInstanceExtensionTables(m_Instance);
+  InitInstanceExtensionTables(m_Instance, record->instDevInfo);
 
   RenderDoc::Inst().AddDeviceFrameCapturer(LayerDisp(m_Instance), this);
 
@@ -1102,7 +1116,21 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
     GetResourceManager()->WrapResource(device, device);
     GetResourceManager()->AddLiveResource(devId, device);
 
-    InitDeviceReplayTables(Unwrap(device));
+    InstanceDeviceInfo extInfo;
+
+#undef CheckExt
+#define CheckExt(name)                                      \
+  if(!strcmp(createInfo.ppEnabledExtensionNames[i], #name)) \
+  {                                                         \
+    extInfo.ext_##name = true;                              \
+  }
+
+    for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
+    {
+      CheckDeviceExts();
+    }
+
+    InitDeviceExtensionTables(device, &extInfo);
 
     RDCASSERT(m_Device == VK_NULL_HANDLE);    // MULTIDEVICE
 
@@ -1399,7 +1427,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
         CheckDeviceExts();
       }
 
-      InitDeviceExtensionTables(*pDevice);
+      InitDeviceExtensionTables(*pDevice, record->instDevInfo);
     }
     else
     {
