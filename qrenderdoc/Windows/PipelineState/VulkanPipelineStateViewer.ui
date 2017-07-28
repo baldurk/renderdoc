@@ -432,7 +432,7 @@
                  <string/>
                 </property>
                 <property name="pixmap">
-                 <pixmap resource="../../Resources/resources.qrc">:/topologies/topo_trilist.png</pixmap>
+                 <pixmap resource="../../Resources/resources.qrc">:/topologies/topo_trilist.svg</pixmap>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>

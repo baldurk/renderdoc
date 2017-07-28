@@ -3,16 +3,16 @@
         <file>glsl.xml</file>
         <file>hlsl.xml</file>
         <file>logo.svg</file>
-        <file>topologies/topo_linelist.png</file>
-        <file>topologies/topo_linelist_adj.png</file>
-        <file>topologies/topo_linestrip.png</file>
-        <file>topologies/topo_linestrip_adj.png</file>
-        <file>topologies/topo_patch.png</file>
-        <file>topologies/topo_pointlist.png</file>
-        <file>topologies/topo_trilist.png</file>
-        <file>topologies/topo_trilist_adj.png</file>
-        <file>topologies/topo_tristrip.png</file>
-        <file>topologies/topo_tristrip_adj.png</file>
+        <file>topologies/topo_linelist.svg</file>
+        <file>topologies/topo_linelist_adj.svg</file>
+        <file>topologies/topo_linestrip.svg</file>
+        <file>topologies/topo_linestrip_adj.svg</file>
+        <file>topologies/topo_patch.svg</file>
+        <file>topologies/topo_pointlist.svg</file>
+        <file>topologies/topo_trilist.svg</file>
+        <file>topologies/topo_trilist_adj.svg</file>
+        <file>topologies/topo_tristrip.svg</file>
+        <file>topologies/topo_tristrip_adj.svg</file>
         <file>action.png</file>
         <file>action@2x.png</file>
         <file>action_hover.png</file>

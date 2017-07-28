@@ -24,6 +24,8 @@
 
 #include "PipelineStateViewer.h"
 #include <QMouseEvent>
+#include <QPainter>
+#include <QSvgRenderer>
 #include <QXmlStreamWriter>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/Resources.h"
@@ -429,22 +431,30 @@ void PipelineStateViewer::setTopologyDiagram(QLabel *diagram, Topology topo)
 
   if(m_TopoPixmaps[idx].isNull())
   {
-    QImage im;
+    QSvgRenderer svg;
     switch(topo)
     {
-      case Topology::PointList: im = Pixmaps::topo_pointlist(diagram).toImage(); break;
-      case Topology::LineList: im = Pixmaps::topo_linelist(diagram).toImage(); break;
-      case Topology::LineStrip: im = Pixmaps::topo_linestrip(diagram).toImage(); break;
-      case Topology::TriangleList: im = Pixmaps::topo_trilist(diagram).toImage(); break;
-      case Topology::TriangleStrip: im = Pixmaps::topo_tristrip(diagram).toImage(); break;
-      case Topology::LineList_Adj: im = Pixmaps::topo_linelist_adj(diagram).toImage(); break;
-      case Topology::LineStrip_Adj: im = Pixmaps::topo_linestrip_adj(diagram).toImage(); break;
-      case Topology::TriangleList_Adj: im = Pixmaps::topo_trilist_adj(diagram).toImage(); break;
-      case Topology::TriangleStrip_Adj: im = Pixmaps::topo_tristrip_adj(diagram).toImage(); break;
-      default: im = Pixmaps::topo_patch(diagram).toImage(); break;
+      case Topology::PointList: svg.load(lit(":/topologies/topo_pointlist.svg")); break;
+      case Topology::LineList: svg.load(lit(":/topologies/topo_linelist.svg")); break;
+      case Topology::LineStrip: svg.load(lit(":/topologies/topo_linestrip.svg")); break;
+      case Topology::TriangleList: svg.load(lit(":/topologies/topo_trilist.svg")); break;
+      case Topology::TriangleStrip: svg.load(lit(":/topologies/topo_tristrip.svg")); break;
+      case Topology::LineList_Adj: svg.load(lit(":/topologies/topo_linelist_adj.svg")); break;
+      case Topology::LineStrip_Adj: svg.load(lit(":/topologies/topo_linestrip_adj.svg")); break;
+      case Topology::TriangleList_Adj: svg.load(lit(":/topologies/topo_trilist_adj.svg")); break;
+      case Topology::TriangleStrip_Adj: svg.load(lit(":/topologies/topo_tristrip_adj.svg")); break;
+      default: svg.load(lit(":/topologies/topo_patch.svg")); break;
     }
 
-    im = im.convertToFormat(QImage::Format_ARGB32);
+    QRect rect = svg.viewBox();
+
+    QImage im(rect.size() * diagram->devicePixelRatio(), QImage::Format_ARGB32);
+
+    im.fill(QColor(0, 0, 0, 0));
+
+    QPainter p(&im);
+
+    svg.render(&p);
 
     // convert the colors - black maps to Text (foreground) and white maps to Base (background)
     QColor white = diagram->palette().color(QPalette::Active, QPalette::Base);
@@ -480,6 +490,7 @@ void PipelineStateViewer::setTopologyDiagram(QLabel *diagram, Topology topo)
     }
 
     m_TopoPixmaps[idx] = QPixmap::fromImage(im);
+    m_TopoPixmaps[idx].setDevicePixelRatio(diagram->devicePixelRatioF());
   }
 
   diagram->setPixmap(m_TopoPixmaps[idx]);

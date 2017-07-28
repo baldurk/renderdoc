@@ -76,16 +76,16 @@
   RESOURCE_DEF(wireframe_mesh, "wireframe_mesh.png")                    \
   RESOURCE_DEF(wrench, "wrench.png")                                    \
   RESOURCE_DEF(zoom, "zoom.png")                                        \
-  RESOURCE_DEF(topo_linelist, "topologies/topo_linelist.png")           \
-  RESOURCE_DEF(topo_linelist_adj, "topologies/topo_linelist_adj.png")   \
-  RESOURCE_DEF(topo_linestrip, "topologies/topo_linestrip.png")         \
-  RESOURCE_DEF(topo_linestrip_adj, "topologies/topo_linestrip_adj.png") \
-  RESOURCE_DEF(topo_patch, "topologies/topo_patch.png")                 \
-  RESOURCE_DEF(topo_pointlist, "topologies/topo_pointlist.png")         \
-  RESOURCE_DEF(topo_trilist, "topologies/topo_trilist.png")             \
-  RESOURCE_DEF(topo_trilist_adj, "topologies/topo_trilist_adj.png")     \
-  RESOURCE_DEF(topo_tristrip, "topologies/topo_tristrip.png")           \
-  RESOURCE_DEF(topo_tristrip_adj, "topologies/topo_tristrip_adj.png")   \
+  RESOURCE_DEF(topo_linelist, "topologies/topo_linelist.svg")           \
+  RESOURCE_DEF(topo_linelist_adj, "topologies/topo_linelist_adj.svg")   \
+  RESOURCE_DEF(topo_linestrip, "topologies/topo_linestrip.svg")         \
+  RESOURCE_DEF(topo_linestrip_adj, "topologies/topo_linestrip_adj.svg") \
+  RESOURCE_DEF(topo_patch, "topologies/topo_patch.svg")                 \
+  RESOURCE_DEF(topo_pointlist, "topologies/topo_pointlist.svg")         \
+  RESOURCE_DEF(topo_trilist, "topologies/topo_trilist.svg")             \
+  RESOURCE_DEF(topo_trilist_adj, "topologies/topo_trilist_adj.svg")     \
+  RESOURCE_DEF(topo_tristrip, "topologies/topo_tristrip.svg")           \
+  RESOURCE_DEF(topo_tristrip_adj, "topologies/topo_tristrip_adj.svg")   \
   RESOURCE_DEF(action, "action.png")                                    \
   RESOURCE_DEF(action_hover, "action_hover.png")
 
