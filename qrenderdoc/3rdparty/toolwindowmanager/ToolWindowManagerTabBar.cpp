@@ -69,6 +69,17 @@ ToolWindowManagerTabBar::ToolWindowManagerTabBar(QWidget *parent) :
 ToolWindowManagerTabBar::~ToolWindowManagerTabBar() {
 }
 
+bool ToolWindowManagerTabBar::useMinimalBar() const
+{
+  if (count() > 1)
+    return false;
+
+  if (m_area) {
+    return m_area->useMinimalTabBar();
+  }
+  return true;
+}
+
 QSize ToolWindowManagerTabBar::sizeHint() const {
   if(useMinimalBar()) {
     if (floatingWindowChild())
@@ -81,26 +92,25 @@ QSize ToolWindowManagerTabBar::sizeHint() const {
 
     int h = qMax(fm.height(), iconSize) + 2*mw;
 
-    return QSize(h, h);
+    return QSize(m_area->width(), h);
   }
 
   return QTabBar::sizeHint();
 }
 
-bool ToolWindowManagerTabBar::useMinimalBar() const
-{
-  if (count() > 1)
-    return false;
-
-  if (m_area) {
-    return m_area->useMinimalTabBar();
-  }
-  return true;
-}
-
 QSize ToolWindowManagerTabBar::minimumSizeHint() const {
   if (useMinimalBar()) {
-    return sizeHint();
+    if (floatingWindowChild())
+      return QSize(0, 0);
+
+    QFontMetrics fm = fontMetrics();
+
+    int iconSize = style()->pixelMetric(QStyle::PM_SmallIconSize, 0, this);
+    int mw = style()->pixelMetric(QStyle::PM_DockWidgetTitleMargin, 0, this);
+
+    int h = qMax(fm.height(), iconSize) + 2*mw;
+
+    return QSize(h, h);
   }
 
   return QTabBar::minimumSizeHint();
