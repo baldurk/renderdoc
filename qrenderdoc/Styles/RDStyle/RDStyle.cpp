@@ -948,7 +948,7 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
       }
     }
 
-    int activeHover = State_MouseOver | State_Active | State_Enabled;
+    QStyle::State activeHover = State_MouseOver | State_Active | State_Enabled;
     if((opt->state & activeHover) == activeHover)
     {
       QRect hoverRect =
@@ -1534,7 +1534,7 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 
     p->setPen(QPen(outlineBrush(opt->palette), 1.0));
 
-    int mask = State_Enabled | State_Selected;
+    QStyle::State mask = State_Enabled | State_Selected;
     if((opt->state & mask) == mask)
     {
       qreal radius = 2.0;
@@ -1577,7 +1577,7 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 
     p->setPen(QPen(outlineBrush(opt->palette), 1.0));
 
-    int mask = State_Enabled | State_Selected;
+    QStyle::State mask = State_Enabled | State_Selected;
     if((opt->state & mask) == mask)
     {
       qreal radius = 2.0;
