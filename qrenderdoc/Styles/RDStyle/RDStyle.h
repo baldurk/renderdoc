@@ -89,6 +89,8 @@ public:
 protected:
   ColorScheme m_Scheme = Light;
 
+  bool eventFilter(QObject *watched, QEvent *event) override;
+
   const QBrush &outlineBrush(const QPalette &pal) const;
 
   void drawRoundedRectBorder(const QStyleOption *opt, QPainter *p, const QWidget *widget,

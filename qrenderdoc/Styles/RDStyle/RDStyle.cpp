@@ -66,6 +66,9 @@ static const qreal ProgressRadius = 4.0;
 static const int MenuBarMargin = 6;
 static const int MenuSubmenuWidth = 8;
 static const int MenuBarIconSize = 16;
+
+static const int TabWidgetBorder = 1;
+static const int TabMargin = 4;
 };
 
 namespace Animation
@@ -234,13 +237,39 @@ void RDStyle::polish(QPalette &pal)
 
 void RDStyle::polish(QWidget *widget)
 {
-  if(qobject_cast<QAbstractSlider *>(widget))
+  if(qobject_cast<QAbstractSlider *>(widget) || qobject_cast<QTabBar *>(widget))
     widget->setAttribute(Qt::WA_Hover);
+
+  QTabWidget *tabwidget = qobject_cast<QTabWidget *>(widget);
+  if(tabwidget && tabwidget->inherits("ToolWindowManagerArea"))
+  {
+    tabwidget->installEventFilter(this);
+    tabwidget->setDocumentMode(false);
+    tabwidget->tabBar()->setDrawBase(true);
+  }
 }
 
 void RDStyle::unpolish(QWidget *widget)
 {
   Animation::stop(widget);
+
+  QTabWidget *tabwidget = qobject_cast<QTabWidget *>(widget);
+  if(tabwidget && tabwidget->inherits("ToolWindowManagerArea"))
+    tabwidget->removeEventFilter(this);
+}
+
+bool RDStyle::eventFilter(QObject *watched, QEvent *event)
+{
+  QTabWidget *tabwidget = qobject_cast<QTabWidget *>(watched);
+  if(tabwidget && tabwidget->inherits("ToolWindowManagerArea"))
+  {
+    if(tabwidget->documentMode())
+      tabwidget->setDocumentMode(false);
+    if(!tabwidget->tabBar()->drawBase())
+      tabwidget->tabBar()->setDrawBase(true);
+  }
+
+  return QObject::eventFilter(watched, event);
 }
 
 QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt, SubControl sc,
@@ -477,6 +506,57 @@ QRect RDStyle::subElementRect(SubElement element, const QStyleOption *opt, const
 
     return ret;
   }
+  else if(element == QStyle::SE_TabWidgetTabPane || element == QStyle::SE_TabWidgetTabContents ||
+          element == QStyle::SE_TabWidgetTabBar)
+  {
+    const QStyleOptionTabWidgetFrame *tabwidget =
+        qstyleoption_cast<const QStyleOptionTabWidgetFrame *>(opt);
+
+    QRect rect = tabwidget->rect;
+
+    QRect barRect = rect;
+    barRect.setSize(tabwidget->tabBarSize);
+
+    barRect.setWidth(qMin(barRect.width(), tabwidget->rect.width() -
+                                               tabwidget->leftCornerWidgetSize.width() -
+                                               tabwidget->rightCornerWidgetSize.width()));
+
+    if(element == QStyle::SE_TabWidgetTabBar)
+      return barRect;
+
+    rect.setTop(rect.top() + barRect.height());
+
+    if(element == QStyle::SE_TabWidgetTabPane)
+      return rect;
+
+    const int border = Constants::TabWidgetBorder;
+    rect.adjust(border, 0, -border, -border);
+
+    return rect;
+  }
+  else if(element == QStyle::SE_TabBarTabLeftButton || element == QStyle::SE_TabBarTabRightButton)
+  {
+    const QStyleOptionTab *tab = qstyleoption_cast<const QStyleOptionTab *>(opt);
+
+    QRect ret = tab->rect;
+
+    if(element == SE_TabBarTabLeftButton)
+    {
+      ret.setSize(tab->leftButtonSize);
+      ret.moveLeft(Constants::TabMargin);
+    }
+    else if(element == SE_TabBarTabRightButton)
+    {
+      ret.setSize(tab->rightButtonSize);
+      ret.moveRight(tab->rect.right() - Constants::TabMargin);
+    }
+
+    // centre it vertically
+
+    ret.moveTop((tab->rect.height() - ret.height()) / 2);
+
+    return ret;
+  }
 
   return RDTweakedNativeStyle::subElementRect(element, opt, widget);
 }
@@ -618,6 +698,9 @@ int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWid
 
   if(metric == PM_MenuButtonIndicator)
     return Constants::ComboArrowDim;
+
+  if(metric == PM_TabBarTabOverlap)
+    return 0;
 
   return RDTweakedNativeStyle::pixelMetric(metric, opt, widget);
 }
@@ -1123,6 +1206,53 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
   {
     return;
   }
+  else if(element == QStyle::PE_FrameTabBarBase)
+  {
+    QPen oldPen = p->pen();
+    p->setPen(QPen(outlineBrush(opt->palette), 0));
+    p->drawLine(opt->rect.bottomLeft(), opt->rect.bottomRight());
+    p->setPen(oldPen);
+    return;
+  }
+  else if(element == QStyle::PE_FrameTabWidget)
+  {
+    const QStyleOptionTabWidgetFrame *tabwidget =
+        qstyleoption_cast<const QStyleOptionTabWidgetFrame *>(opt);
+
+    QRegion region;
+
+    // include the whole rect, *except* the part just under the tabs. The border under them is drawn
+    // as part of the tab itself so the selected tab can avoid it
+    region += opt->rect;
+
+    QRect topRect = opt->rect;
+    topRect.adjust(1, 0, -1, 0);
+    topRect.setHeight(2);
+
+    region -= topRect;
+
+    p->save();
+
+    p->setClipRegion(region);
+
+    QStyleOptionTabWidgetFrame border = *tabwidget;
+    border.state &= ~State_HasFocus;
+    drawRoundedRectBorder(&border, p, widget, QPalette::NoRole, false);
+
+    p->restore();
+
+    p->setPen(QPen(outlineBrush(opt->palette), 1.0));
+
+    // draw vertical lines down from top left/right corners to straighten it.
+    p->drawLine(opt->rect.topLeft(), opt->rect.topLeft() + QPoint(0, 1));
+    p->drawLine(opt->rect.topRight(), opt->rect.topRight() + QPoint(0, 1));
+
+    // draw a vertical line to complete the tab bottoms
+    QRect tabBottomLine = opt->rect.adjusted(0, -1, 0, -opt->rect.height());
+    p->drawLine(tabBottomLine.topLeft(), tabBottomLine.topRight());
+
+    return;
+  }
 
   RDTweakedNativeStyle::drawPrimitive(element, opt, p, widget);
 }
@@ -1522,6 +1652,107 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
         drawPrimitive(PE_IndicatorArrowRight, &submenu, p, widget);
       }
     }
+
+    return;
+  }
+  else if(control == QStyle::CE_TabBarTabLabel)
+  {
+    const QStyleOptionTab *tab = qstyleoption_cast<const QStyleOptionTab *>(opt);
+
+    QRect rect = tab->rect;
+
+    rect.adjust(Constants::TabMargin, 0, 0, 0);
+
+    if(!tab->icon.isNull())
+    {
+      drawItemPixmap(p, rect, Qt::AlignLeft | Qt::AlignVCenter,
+                     tab->icon.pixmap(tab->iconSize.width(), tab->iconSize.height(),
+                                      tab->state & State_Enabled ? QIcon::Normal : QIcon::Disabled));
+
+      rect.setLeft(rect.left() + tab->iconSize.width() + Constants::TabMargin);
+    }
+
+    drawItemText(p, rect, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextHideMnemonic, tab->palette,
+                 tab->state & State_Enabled, tab->text, QPalette::WindowText);
+    return;
+  }
+  else if(control == QStyle::CE_TabBarTabShape)
+  {
+    const QStyleOptionTab *tab = qstyleoption_cast<const QStyleOptionTab *>(opt);
+
+    QRect rect = opt->rect;
+
+    rect.adjust(0, 0, 0, 100);
+
+    if(tab->position == QStyleOptionTab::OnlyOneTab || tab->position == QStyleOptionTab::End ||
+       (opt->state & State_Selected))
+      rect.setRight(rect.right() - 1);
+
+    if(tab->selectedPosition == QStyleOptionTab::PreviousIsSelected)
+      rect.setLeft(rect.left() - 1);
+
+    p->save();
+    p->setRenderHint(QPainter::Antialiasing);
+
+    p->setPen(QPen(outlineBrush(opt->palette), 0.0));
+
+    QPainterPath path;
+    path.addRoundedRect(rect, 3.0, 3.0);
+
+    if(opt->state & State_Selected)
+      p->fillPath(path, opt->palette.brush(QPalette::Window));
+    else if(opt->state & State_MouseOver)
+      p->fillPath(path, opt->palette.brush(QPalette::Midlight));
+    else
+      p->fillPath(path, opt->palette.brush(QPalette::Disabled, QPalette::Window));
+
+    p->drawPath(path.translated(QPointF(0.5, 0.5)));
+
+    if(!(opt->state & State_Selected))
+    {
+      QRectF bottomLine = opt->rect.adjusted(0, 0.5, 0, 0);
+      p->drawLine(bottomLine.bottomLeft(), bottomLine.bottomRight());
+    }
+
+    p->restore();
+    return;
+  }
+  else if(control == QStyle::CE_TabBarTab)
+  {
+    drawControl(CE_TabBarTabShape, opt, p, widget);
+    drawControl(CE_TabBarTabLabel, opt, p, widget);
+    return;
+  }
+  else if(control == QStyle::CE_DockWidgetTitle)
+  {
+    QColor mid = opt->palette.color(QPalette::Mid);
+    QColor window = opt->palette.color(QPalette::Window);
+
+    QColor backGround = QColor::fromRgbF(0.5f * mid.redF() + 0.5f * window.redF(),
+                                         0.5f * mid.greenF() + 0.5f * window.greenF(),
+                                         0.5f * mid.blueF() + 0.5f * window.blueF());
+
+    QRectF rect = QRectF(opt->rect).adjusted(0.5, 0.5, 0.0, 0.0);
+
+    p->fillRect(rect, backGround);
+
+    p->save();
+    p->setRenderHint(QPainter::Antialiasing);
+
+    p->setPen(QPen(outlineBrush(opt->palette), 1.0));
+
+    QPainterPath path;
+    path.addRoundedRect(rect, 1.0, 1.0);
+
+    p->drawPath(path);
+
+    p->restore();
+
+    const QStyleOptionDockWidget *dockwidget = qstyleoption_cast<const QStyleOptionDockWidget *>(opt);
+
+    drawItemText(p, rect.toRect().adjusted(Constants::TabMargin, 0, 0, 0),
+                 Qt::AlignLeft | Qt::AlignTop | Qt::TextHideMnemonic, dockwidget->palette,
+                 dockwidget->state & State_Enabled, dockwidget->title, QPalette::WindowText);
 
     return;
   }
