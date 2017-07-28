@@ -99,6 +99,9 @@
    <property name="currentIndex">
     <number>0</number>
    </property>
+   <property name="documentMode">
+    <bool>true</bool>
+   </property>
    <widget class="QWidget" name="vsinTab">
     <attribute name="title">
      <string>VS In</string>

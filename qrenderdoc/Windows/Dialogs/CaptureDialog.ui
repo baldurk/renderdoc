@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>578</width>
-    <height>943</height>
+    <height>1025</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,16 +18,16 @@
     <number>4</number>
    </property>
    <property name="leftMargin">
-    <number>6</number>
+    <number>3</number>
    </property>
    <property name="topMargin">
-    <number>6</number>
+    <number>3</number>
    </property>
    <property name="rightMargin">
-    <number>6</number>
+    <number>3</number>
    </property>
    <property name="bottomMargin">
-    <number>6</number>
+    <number>3</number>
    </property>
    <item>
     <widget class="QGroupBox" name="exeGroup">
@@ -787,8 +787,6 @@
    <header>Widgets/Extended/RDLabel.h</header>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="../../Resources/resources.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

@@ -13,12 +13,6 @@
   <property name="windowTitle">
    <string>Texture Viewer</string>
   </property>
-  <property name="frameShape">
-   <enum>QFrame::StyledPanel</enum>
-  </property>
-  <property name="frameShadow">
-   <enum>QFrame::Raised</enum>
-  </property>
   <widget class="ToolWindowManager" name="dockarea" native="true">
    <property name="geometry">
     <rect>
@@ -1267,6 +1261,11 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
  </widget>
  <customwidgets>
   <customwidget>
+   <class>RDLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>Widgets/Extended/RDLineEdit.h</header>
+  </customwidget>
+  <customwidget>
    <class>ToolWindowManager</class>
    <extends>QWidget</extends>
    <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
@@ -1275,11 +1274,6 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
    <class>CustomPaintWidget</class>
    <extends>QWidget</extends>
    <header>Widgets/CustomPaintWidget.h</header>
-  </customwidget>
-  <customwidget>
-   <class>RDLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>Widgets/Extended/RDLineEdit.h</header>
   </customwidget>
   <customwidget>
    <class>ThumbnailStrip</class>

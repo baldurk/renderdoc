@@ -576,7 +576,7 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
   QVBoxLayout *vertical = new QVBoxLayout(this);
 
   vertical->setSpacing(3);
-  vertical->setContentsMargins(0, 0, 0, 0);
+  vertical->setContentsMargins(3, 3, 3, 3);
 
   QWidget *flow1widget = new QWidget(this);
   QWidget *flow2widget = new QWidget(this);

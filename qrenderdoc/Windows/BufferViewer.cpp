@@ -1098,6 +1098,7 @@ void BufferViewer::SetupRawView()
   ui->instance->setVisible(false);
 
   ui->vsinData->setWindowTitle(tr("Buffer Contents"));
+  ui->vsinData->setFrameShape(QFrame::NoFrame);
   ui->dockarea->addToolWindow(ui->vsinData, ToolWindowManager::EmptySpace);
   ui->dockarea->setToolWindowProperties(ui->vsinData, ToolWindowManager::HideCloseButton);
 
@@ -1116,7 +1117,7 @@ void BufferViewer::SetupRawView()
   QVBoxLayout *vertical = new QVBoxLayout(this);
 
   vertical->setSpacing(3);
-  vertical->setContentsMargins(0, 0, 0, 0);
+  vertical->setContentsMargins(3, 3, 3, 3);
 
   vertical->addWidget(ui->meshToolbar);
   vertical->addWidget(ui->dockarea);
@@ -1141,18 +1142,21 @@ void BufferViewer::SetupMeshView()
   ui->dockarea->setToolWindowProperties(ui->outputTabs, ToolWindowManager::HideCloseButton);
 
   ui->vsinData->setWindowTitle(tr("VS Input"));
+  ui->vsinData->setFrameShape(QFrame::NoFrame);
   ui->dockarea->addToolWindow(
       ui->vsinData, ToolWindowManager::AreaReference(ToolWindowManager::TopOf,
                                                      ui->dockarea->areaOf(ui->outputTabs), 0.5f));
   ui->dockarea->setToolWindowProperties(ui->vsinData, ToolWindowManager::HideCloseButton);
 
   ui->vsoutData->setWindowTitle(tr("VS Output"));
+  ui->vsoutData->setFrameShape(QFrame::NoFrame);
   ui->dockarea->addToolWindow(
       ui->vsoutData, ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
                                                       ui->dockarea->areaOf(ui->vsinData), 0.5f));
   ui->dockarea->setToolWindowProperties(ui->vsoutData, ToolWindowManager::HideCloseButton);
 
   ui->gsoutData->setWindowTitle(tr("GS/DS Output"));
+  ui->gsoutData->setFrameShape(QFrame::NoFrame);
   ui->dockarea->addToolWindow(
       ui->gsoutData, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
                                                       ui->dockarea->areaOf(ui->vsoutData), 0.5f));
@@ -1225,7 +1229,7 @@ void BufferViewer::SetupMeshView()
   QVBoxLayout *vertical = new QVBoxLayout(this);
 
   vertical->setSpacing(3);
-  vertical->setContentsMargins(0, 0, 0, 0);
+  vertical->setContentsMargins(3, 3, 3, 3);
 
   vertical->addWidget(ui->meshToolbar);
   vertical->addWidget(ui->dockarea);

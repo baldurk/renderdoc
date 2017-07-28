@@ -132,7 +132,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
 
     QHBoxLayout *toolbarlayout = new QHBoxLayout(disasmToolbar);
     toolbarlayout->setSpacing(2);
-    toolbarlayout->setContentsMargins(2, 2, 2, 2);
+    toolbarlayout->setContentsMargins(3, 3, 3, 3);
 
     m_DisassemblyType = new QComboBox(disasmToolbar);
     m_DisassemblyType->setMaxVisibleItems(12);

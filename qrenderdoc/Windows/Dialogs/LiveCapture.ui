@@ -15,16 +15,16 @@
   </property>
   <layout class="QVBoxLayout" name="mainLayout">
    <property name="leftMargin">
-    <number>2</number>
+    <number>3</number>
    </property>
    <property name="topMargin">
-    <number>2</number>
+    <number>3</number>
    </property>
    <property name="rightMargin">
-    <number>2</number>
+    <number>3</number>
    </property>
    <property name="bottomMargin">
-    <number>2</number>
+    <number>3</number>
    </property>
    <item>
     <widget class="QFrame" name="connectionFrame">
@@ -402,14 +402,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDListWidget</class>
-   <extends>QListWidget</extends>
-   <header>Widgets/Extended/RDListWidget.h</header>
-  </customwidget>
-  <customwidget>
    <class>RDLabel</class>
    <extends>QLabel</extends>
    <header>Widgets/Extended/RDLabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RDListWidget</class>
+   <extends>QListWidget</extends>
+   <header>Widgets/Extended/RDListWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources>

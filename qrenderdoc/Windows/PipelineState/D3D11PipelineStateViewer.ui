@@ -29,10 +29,10 @@
    <item>
     <widget class="QFrame" name="toolbar">
      <property name="frameShape">
-      <enum>QFrame::NoFrame</enum>
+      <enum>QFrame::Panel</enum>
      </property>
      <property name="frameShadow">
-      <enum>QFrame::Plain</enum>
+      <enum>QFrame::Raised</enum>
      </property>
      <layout class="QHBoxLayout" name="toolbarLayout">
       <property name="spacing">
@@ -48,7 +48,7 @@
        <number>0</number>
       </property>
       <property name="bottomMargin">
-       <number>2</number>
+       <number>0</number>
       </property>
       <item>
        <widget class="QLabel" name="controlsLabel">
@@ -202,22 +202,22 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>857</width>
-            <height>478</height>
+            <width>855</width>
+            <height>476</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
            <property name="leftMargin">
-            <number>2</number>
+            <number>0</number>
            </property>
            <property name="topMargin">
-            <number>2</number>
+            <number>0</number>
            </property>
            <property name="rightMargin">
-            <number>2</number>
+            <number>0</number>
            </property>
            <property name="bottomMargin">
-            <number>2</number>
+            <number>0</number>
            </property>
            <item row="0" column="0" colspan="3">
             <widget class="QGroupBox" name="attribGroup">
@@ -586,16 +586,16 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_4">
        <property name="leftMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="topMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="rightMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="bottomMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <item>
         <widget class="QGroupBox" name="vsShaderGroup">
@@ -735,8 +735,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>853</width>
-            <height>425</height>
+            <width>855</width>
+            <height>427</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -972,16 +972,16 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <property name="leftMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="topMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="rightMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="bottomMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <item>
         <widget class="QGroupBox" name="hsShaderGroup">
@@ -1118,8 +1118,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>853</width>
-            <height>425</height>
+            <width>855</width>
+            <height>427</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -1355,16 +1355,16 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_6">
        <property name="leftMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="topMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="rightMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="bottomMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <item>
         <widget class="QGroupBox" name="dsShaderGroup">
@@ -1501,8 +1501,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>853</width>
-            <height>425</height>
+            <width>855</width>
+            <height>427</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_12">
@@ -1738,16 +1738,16 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_7">
        <property name="leftMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="topMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="rightMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="bottomMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <item>
         <widget class="QGroupBox" name="gsShaderGroup">
@@ -1884,8 +1884,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>853</width>
-            <height>425</height>
+            <width>855</width>
+            <height>427</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_13">
@@ -2177,16 +2177,16 @@
       </attribute>
       <layout class="QGridLayout" name="gridLayout_2">
        <property name="leftMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="topMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="rightMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="bottomMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <item row="1" column="1">
         <widget class="QGroupBox" name="scissorGroup">
@@ -2722,16 +2722,16 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_8">
        <property name="leftMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="topMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="rightMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="bottomMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <item>
         <widget class="QGroupBox" name="psShaderGroup">
@@ -2868,8 +2868,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>853</width>
-            <height>425</height>
+            <width>855</width>
+            <height>427</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_14">
@@ -3105,16 +3105,16 @@
       </attribute>
       <layout class="QGridLayout" name="gridLayout_5">
        <property name="leftMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="topMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="rightMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="bottomMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <item row="0" column="0">
         <widget class="QScrollArea" name="omScroll">
@@ -3129,8 +3129,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>853</width>
-            <height>474</height>
+            <width>855</width>
+            <height>476</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_6">
@@ -3755,16 +3755,16 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_9">
        <property name="leftMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="topMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="rightMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <property name="bottomMargin">
-        <number>2</number>
+        <number>0</number>
        </property>
        <item>
         <widget class="QGroupBox" name="csShaderGroup">
@@ -4000,7 +4000,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>837</width>
+            <width>839</width>
             <height>424</height>
            </rect>
           </property>
