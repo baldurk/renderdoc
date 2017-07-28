@@ -1710,7 +1710,7 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 
     if(!(opt->state & State_Selected))
     {
-      QRectF bottomLine = opt->rect.adjusted(0, 0.5, 0, 0);
+      QRectF bottomLine = QRectF(opt->rect).adjusted(0, -0.5, 0, 0);
       p->drawLine(bottomLine.bottomLeft(), bottomLine.bottomRight());
     }
 
