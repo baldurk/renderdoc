@@ -1345,7 +1345,7 @@ namespace renderdocui.Windows
 
                         if (bind.bindPoint == idx)
                         {
-                            if(bind.IsSampler)
+                            if(bind.IsSampler && !bind.IsSRV)
                                 samplerBind = true;
                             else
                                 otherBind = true;
