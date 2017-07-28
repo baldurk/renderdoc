@@ -376,11 +376,18 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     if(reflData.entryPoint.empty())
     {
       reflData.entryPoint = shad.entryPoint;
-      info.m_ShaderModule[id].spirv.MakeReflection(ShaderStage::Compute, reflData.entryPoint,
-                                                   reflData.refl, reflData.mapping,
-                                                   reflData.patchData);
+      SPVModule &spv = info.m_ShaderModule[id].spirv;
+      spv.MakeReflection(ShaderStage::Compute, reflData.entryPoint, reflData.refl, reflData.mapping,
+                         reflData.patchData);
       reflData.refl.ID = resourceMan->GetOriginalID(id);
       reflData.refl.EntryPoint = shad.entryPoint;
+
+      if(!spv.spirv.empty())
+      {
+        rdctype::array<byte> &bytes = reflData.refl.RawBytes;
+        const vector<uint32_t> &spirv = spv.spirv;
+        create_array_init(bytes, spirv.size() * sizeof(uint32_t), (byte *)&spirv[0]);
+      }
     }
 
     if(pCreateInfo->stage.pSpecializationInfo)
