@@ -59,6 +59,65 @@ static const int ComboArrowDim = 12;
 
 static const int SpinButtonDim = 12;
 static const int SpinMargin = 1;
+
+static const int ProgressMargin = 2;
+static const qreal ProgressRadius = 4.0;
+};
+
+namespace Animation
+{
+QHash<QObject *, QAbstractAnimation *> animations;
+
+bool has(QObject *target)
+{
+  return animations.contains(target);
+}
+
+QAbstractAnimation *get(QObject *target)
+{
+  return animations.value(target);
+}
+
+template <typename AnimationType>
+AnimationType *get(QObject *target)
+{
+  return (AnimationType *)get(target);
+}
+
+void stop(QObject *target)
+{
+  if(has(target))
+  {
+    QAbstractAnimation *existing = get(target);
+    existing->stop();
+    delete existing;
+    animations.remove(target);
+  }
+}
+
+void removeOnDelete(QObject *target)
+{
+  if(has(target))
+    animations.remove(target);
+}
+
+void start(QAbstractAnimation *anim)
+{
+  QObject *target = anim->parent();
+
+  stop(target);
+  if(has(target))
+  {
+    QAbstractAnimation *existing = get(target);
+    existing->stop();
+    delete existing;
+    animations.remove(target);
+  }
+
+  animations.insert(target, anim);
+  QObject::connect(target, &QObject::destroyed, &removeOnDelete);
+  anim->start();
+}
 };
 
 RDStyle::RDStyle(ColorScheme scheme) : RDTweakedNativeStyle(new QCommonStyle())
@@ -173,6 +232,11 @@ void RDStyle::polish(QWidget *widget)
 {
   if(qobject_cast<QAbstractSlider *>(widget))
     widget->setAttribute(Qt::WA_Hover);
+}
+
+void RDStyle::unpolish(QWidget *widget)
+{
+  Animation::stop(widget);
 }
 
 QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt, SubControl sc,
@@ -458,7 +522,7 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
 
     return ret;
   }
-  else if(type == CT_GroupBox || type == CT_ScrollBar)
+  else if(type == CT_GroupBox || type == CT_ScrollBar || type == CT_ProgressBar)
   {
     return size;
   }
@@ -497,6 +561,9 @@ int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWid
 
   if(metric == PM_ScrollBarExtent)
     return Constants::ScrollButtonDim + 2;
+  // not used for rendering but just as an estimate of how small a progress bar can get
+  if(metric == PM_ProgressBarChunkWidth)
+    return 10;
 
   return RDTweakedNativeStyle::pixelMetric(metric, opt, widget);
 }
@@ -518,6 +585,12 @@ int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
 
   if(stylehint == SH_UnderlineShortcut)
     return 0;
+
+  if(stylehint == SH_ProgressDialog_CenterCancelButton)
+    return 1;
+
+  if(stylehint == SH_ProgressDialog_TextLabelAlignment)
+    return Qt::AlignCenter;
 
   return RDTweakedNativeStyle::styleHint(stylehint, opt, widget, returnData);
 }
@@ -1141,6 +1214,68 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
 
     return;
   }
+  else if(control == QStyle::CE_ProgressBar)
+  {
+    QRect rect = opt->rect;
+
+    rect.adjust(Constants::ProgressMargin, Constants::ProgressMargin, -Constants::ProgressMargin,
+                -Constants::ProgressMargin);
+
+    QPainterPath path;
+    path.addRoundedRect(rect, Constants::ProgressRadius, Constants::ProgressRadius);
+
+    const QStyleOptionProgressBar *progress = qstyleoption_cast<const QStyleOptionProgressBar *>(opt);
+
+    p->save();
+    p->setRenderHint(QPainter::Antialiasing);
+
+    p->setPen(QPen(outlineBrush(opt->palette), 1.0));
+    p->drawPath(path);
+
+    if(progress->minimum >= progress->maximum && opt->styleObject)
+    {
+      // animate an 'infinite' progress bar by adding animated clip regions
+      if(!Animation::has(opt->styleObject))
+        Animation::start(new RDProgressAnimation(2, 30, opt->styleObject));
+
+      RDProgressAnimation *anim = Animation::get<RDProgressAnimation>(opt->styleObject);
+
+      QRegion region;
+
+      rect.setWidth(anim->chunkSize());
+
+      rect.moveLeft(rect.left() + anim->offset());
+
+      while(rect.intersects(opt->rect))
+      {
+        region += rect;
+
+        // step two chunks, to skip over the chunk we're excluding from the region
+        rect.moveLeft(rect.left() + anim->chunkSize() * 2);
+      }
+
+      p->setClipRegion(region);
+    }
+
+    // if we're rendering a normal progress bar, set the clip rect
+    if(progress->minimum < progress->maximum)
+    {
+      qreal delta = qreal(progress->progress) / qreal(progress->maximum - progress->minimum);
+      rect.setRight(rect.left() + rect.width() * delta);
+
+      p->setClipRect(rect);
+    }
+
+    p->fillPath(path, opt->palette.brush(QPalette::Highlight));
+
+    p->restore();
+
+    return;
+  }
+  else if(control == QStyle::CE_ProgressBarGroove)
+  {
+    return;
+  }
 
   RDTweakedNativeStyle::drawControl(control, opt, p, widget);
 }
@@ -1199,4 +1334,49 @@ void RDStyle::drawRoundedRectBorder(const QStyleOption *opt, QPainter *p, const 
   }
 
   p->restore();
+}
+
+RDProgressAnimation::RDProgressAnimation(int stepSize, int chunkSize, QObject *parent)
+    : QAbstractAnimation(parent)
+{
+  m_stepSize = stepSize;
+  m_offset = 0;
+  m_chunkSize = chunkSize;
+  m_prevTime = 0;
+}
+
+void RDProgressAnimation::updateCurrentTime(int currentTime)
+{
+  // update every 33ms, for a 30Hz animation
+  const int rate = 33;
+
+  // how many steps to take
+  int steps = 0;
+
+  int delta = currentTime - m_prevTime;
+
+  // depending on how fast we're updated, we might have to process multiple frames together.
+  while(delta > rate)
+  {
+    m_prevTime += rate;
+    delta = currentTime - m_prevTime;
+
+    steps++;
+  }
+
+  if(steps > 0)
+  {
+    m_offset += steps * m_stepSize;
+
+    // the animation loops after two chunks, but to visualise a smooth animation with a new chunk
+    // coming in from the left, we wrap to negative.
+    // Consider the graph y = (x+1) % 2 - 1
+
+    if(m_offset > m_chunkSize)
+      m_offset -= m_chunkSize * 2;
+
+    QEvent event(QEvent::StyleAnimationUpdate);
+    event.setAccepted(false);
+    QCoreApplication::sendEvent(parent(), &event);
+  }
 }

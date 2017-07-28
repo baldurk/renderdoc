@@ -24,9 +24,31 @@
 
 #pragma once
 
+#include <QAbstractAnimation>
 #include <QPalette>
 #include <QProxyStyle>
 #include "Styles/RDTweakedNativeStyle/RDTweakedNativeStyle.h"
+
+class RDProgressAnimation : public QAbstractAnimation
+{
+private:
+  Q_OBJECT
+
+public:
+  RDProgressAnimation(int stepSize, int chunkSize, QObject *parent);
+
+  int duration() const override { return -1; }
+  int offset() const { return m_offset; }
+  int chunkSize() const { return m_chunkSize; }
+  int stepSize() const { return m_stepSize; }
+protected:
+  void updateCurrentTime(int currentTime) override;
+
+  int m_prevTime;
+  int m_offset;
+  int m_chunkSize;
+  int m_stepSize;
+};
 
 class RDStyle : public RDTweakedNativeStyle
 {
@@ -43,6 +65,7 @@ public:
 
   void polish(QPalette &pal) override;
   void polish(QWidget *widget) override;
+  void unpolish(QWidget *widget) override;
 
   QRect subControlRect(ComplexControl cc, const QStyleOptionComplex *opt, SubControl sc,
                        const QWidget *widget = Q_NULLPTR) const override;
