@@ -209,7 +209,7 @@ private:
   QString m_LogFile;
 
   QVector<DebugMessage> m_DebugMessages;
-  int m_UnreadMessageCount;
+  int m_UnreadMessageCount = 0;
 
   bool PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b);
   bool ContainsMarker(const rdctype::array<DrawcallDescription> &m_Drawcalls);
