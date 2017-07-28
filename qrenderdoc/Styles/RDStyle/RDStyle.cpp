@@ -62,6 +62,10 @@ static const int SpinMargin = 1;
 
 static const int ProgressMargin = 2;
 static const qreal ProgressRadius = 4.0;
+
+static const int MenuBarMargin = 6;
+static const int MenuSubmenuWidth = 8;
+static const int MenuBarIconSize = 16;
 };
 
 namespace Animation
@@ -552,6 +556,27 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
 
     return ret;
   }
+  else if(type == CT_MenuBarItem || type == CT_MenuItem)
+  {
+    QSize ret = size;
+
+    ret.setWidth(ret.width() + 2 * Constants::MenuBarMargin);
+    ret.setHeight(ret.height() + Constants::MenuBarMargin);
+
+    const QStyleOptionMenuItem *menuitem = qstyleoption_cast<const QStyleOptionMenuItem *>(opt);
+
+    if(type == CT_MenuItem && menuitem->maxIconWidth)
+    {
+      // add room for an icon
+      ret.setWidth(ret.width() + Constants::MenuBarMargin + menuitem->maxIconWidth);
+    }
+
+    return ret;
+  }
+  else if(type == CT_MenuBar || type == CT_Menu)
+  {
+    return size;
+  }
 
   return RDTweakedNativeStyle::sizeFromContents(type, opt, size, widget);
 }
@@ -572,6 +597,27 @@ int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWid
 
   if(metric == PM_SplitterWidth)
     return 5;
+
+  if(metric == PM_MenuBarHMargin || metric == PM_MenuBarVMargin)
+    return 1;
+
+  if(metric == PM_MenuBarPanelWidth || metric == PM_MenuPanelWidth)
+    return 1;
+
+  if(metric == PM_MenuHMargin || metric == PM_MenuVMargin)
+    return 0;
+
+  if(metric == PM_MenuBarItemSpacing)
+    return 0;
+
+  if(metric == PM_MenuDesktopFrameWidth)
+    return 0;
+
+  if(metric == PM_SubMenuOverlap)
+    return 0;
+
+  if(metric == PM_MenuButtonIndicator)
+    return Constants::ComboArrowDim;
 
   return RDTweakedNativeStyle::pixelMetric(metric, opt, widget);
 }
@@ -594,14 +640,6 @@ int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
   if(stylehint == SH_UnderlineShortcut)
     return 0;
 
-  if(stylehint == SH_MenuBar_MouseTracking || stylehint == SH_Menu_MouseTracking ||
-     stylehint == SH_MenuBar_AltKeyNavigation)
-    return 1;
-
-  if(stylehint == SH_Menu_FlashTriggeredItem || stylehint == SH_Menu_KeyboardSearch ||
-     stylehint == SH_Menu_FadeOutOnHide)
-    return 0;
-
   if(stylehint == SH_MessageBox_CenterButtons)
     return 0;
   if(stylehint == SH_ProgressDialog_CenterCancelButton)
@@ -611,6 +649,28 @@ int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
     return Qt::AlignCenter;
 
   if(stylehint == SH_Splitter_OpaqueResize)
+    return 1;
+
+  if(stylehint == SH_MenuBar_MouseTracking || stylehint == SH_Menu_MouseTracking ||
+     stylehint == SH_MenuBar_AltKeyNavigation || stylehint == SH_MainWindow_SpaceBelowMenuBar)
+    return 1;
+
+  if(stylehint == SH_Menu_FlashTriggeredItem || stylehint == SH_Menu_KeyboardSearch ||
+     stylehint == SH_Menu_FadeOutOnHide || stylehint == SH_Menu_AllowActiveAndDisabled ||
+     stylehint == SH_Menu_Scrollable)
+    return 0;
+
+  if(stylehint == SH_Menu_SubMenuPopupDelay || stylehint == SH_Menu_SubMenuSloppyCloseTimeout)
+    return 500;
+
+  if(stylehint == SH_Menu_SubMenuResetWhenReenteringParent ||
+     stylehint == SH_Menu_SubMenuDontStartSloppyOnLeave)
+    return 0;
+
+  if(stylehint == SH_Menu_SubMenuUniDirection || stylehint == SH_Menu_SubMenuUniDirectionFailCount)
+    return 0;
+
+  if(stylehint == SH_Menu_SubMenuSloppySelectOtherActions)
     return 1;
 
   return RDTweakedNativeStyle::styleHint(stylehint, opt, widget, returnData);
@@ -1050,6 +1110,19 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
 
     return;
   }
+  else if(element == QStyle::PE_FrameMenu)
+  {
+    drawRoundedRectBorder(opt, p, widget, QPalette::NoRole, false);
+    return;
+  }
+  else if(element == QStyle::PE_PanelMenu)
+  {
+    return;
+  }
+  else if(element == QStyle::PE_PanelMenuBar)
+  {
+    return;
+  }
 
   RDTweakedNativeStyle::drawPrimitive(element, opt, p, widget);
 }
@@ -1309,6 +1382,147 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
   else if(control == QStyle::CE_Splitter)
   {
     p->eraseRect(opt->rect);
+    return;
+  }
+  else if(control == QStyle::CE_MenuBarEmptyArea)
+  {
+    QRect rect = opt->rect;
+    p->eraseRect(opt->rect);
+    rect.adjust(0, -2, 0, -2);
+    p->setPen(QPen(outlineBrush(opt->palette), 1.0));
+    p->drawLine(rect.bottomLeft(), rect.bottomRight());
+    return;
+  }
+  else if(control == QStyle::CE_MenuBarItem)
+  {
+    p->save();
+    p->setRenderHint(QPainter::Antialiasing);
+
+    QRectF rect = QRectF(opt->rect).adjusted(0.5, 0.5, 0.5, 0.5);
+
+    const QStyleOptionMenuItem *menuitem = qstyleoption_cast<const QStyleOptionMenuItem *>(opt);
+
+    p->setPen(QPen(outlineBrush(opt->palette), 1.0));
+
+    int mask = State_Enabled | State_Selected;
+    if((opt->state & mask) == mask)
+    {
+      qreal radius = 2.0;
+
+      if(opt->state & State_Sunken)
+        radius = 1.0;
+
+      QPainterPath path;
+      path.addRoundedRect(rect.adjusted(1, 1, -1, -1), radius, radius);
+      p->fillPath(path, opt->palette.brush(QPalette::Midlight));
+
+      if(opt->state & State_Sunken)
+        p->drawPath(path);
+    }
+
+    rect.adjust(Constants::MenuBarMargin, 0, -Constants::MenuBarMargin, 0);
+
+    if(menuitem->menuItemType == QStyleOptionMenuItem::Normal)
+    {
+      p->setFont(menuitem->font);
+      drawItemText(p, rect.toRect(), Qt::AlignCenter | Qt::AlignTop | Qt::TextHideMnemonic,
+                   menuitem->palette, menuitem->state & State_Enabled, menuitem->text,
+                   QPalette::WindowText);
+    }
+
+    p->restore();
+
+    return;
+  }
+  else if(control == QStyle::CE_MenuEmptyArea)
+  {
+    p->eraseRect(opt->rect);
+    return;
+  }
+  else if(control == QStyle::CE_MenuItem)
+  {
+    const QStyleOptionMenuItem *menuitem = qstyleoption_cast<const QStyleOptionMenuItem *>(opt);
+
+    QRectF rect = QRectF(opt->rect).adjusted(0.5, 0.5, 0.5, 0.5);
+
+    p->setPen(QPen(outlineBrush(opt->palette), 1.0));
+
+    int mask = State_Enabled | State_Selected;
+    if((opt->state & mask) == mask)
+    {
+      qreal radius = 2.0;
+
+      if(opt->state & State_Sunken)
+        radius = 1.0;
+
+      QPainterPath path;
+      path.addRoundedRect(rect.adjusted(1, 1, -1, -1), radius, radius);
+      p->fillPath(path, opt->palette.brush(QPalette::Midlight));
+
+      if(opt->state & State_Sunken)
+        p->drawPath(path);
+    }
+
+    rect.adjust(Constants::MenuBarMargin, 0, -Constants::MenuBarMargin, 0);
+
+    if(menuitem->menuItemType == QStyleOptionMenuItem::Separator)
+    {
+      QPointF left = rect.center();
+      QPointF right = rect.center();
+
+      left.setX(rect.left());
+      right.setX(rect.right());
+
+      p->drawLine(left, right);
+    }
+
+    // draw the icon, if it exists
+    if(!menuitem->icon.isNull())
+    {
+      drawItemPixmap(
+          p, rect.toRect(), Qt::AlignLeft | Qt::AlignVCenter,
+          menuitem->icon.pixmap(Constants::MenuBarIconSize, Constants::MenuBarIconSize,
+                                menuitem->state & State_Enabled ? QIcon::Normal : QIcon::Disabled));
+    }
+
+    if(menuitem->maxIconWidth)
+      rect.adjust(Constants::MenuBarMargin + menuitem->maxIconWidth, 0, 0, 0);
+
+    if(menuitem->menuItemType == QStyleOptionMenuItem::Normal ||
+       menuitem->menuItemType == QStyleOptionMenuItem::SubMenu)
+    {
+      p->setFont(menuitem->font);
+
+      QString text = menuitem->text;
+
+      int tabIndex = text.indexOf(QLatin1Char('\t'));
+
+      if(tabIndex < 0)
+      {
+        drawItemText(p, rect.toRect(), Qt::AlignLeft | Qt::AlignVCenter | Qt::TextHideMnemonic,
+                     menuitem->palette, menuitem->state & State_Enabled, menuitem->text,
+                     QPalette::WindowText);
+      }
+      else
+      {
+        QString title = text.left(tabIndex);
+        QString shortcut = text.mid(tabIndex + 1, -1);
+
+        drawItemText(p, rect.toRect(), Qt::AlignLeft | Qt::AlignVCenter | Qt::TextHideMnemonic,
+                     menuitem->palette, menuitem->state & State_Enabled, title, QPalette::WindowText);
+        drawItemText(p, rect.toRect(), Qt::AlignRight | Qt::AlignVCenter | Qt::TextHideMnemonic,
+                     menuitem->palette, menuitem->state & State_Enabled, shortcut,
+                     QPalette::WindowText);
+      }
+
+      if(menuitem->menuItemType == QStyleOptionMenuItem::SubMenu)
+      {
+        QStyleOptionMenuItem submenu = *menuitem;
+        submenu.rect.setLeft(submenu.rect.right() - Constants::MenuSubmenuWidth);
+        drawPrimitive(PE_IndicatorArrowRight, &submenu, p, widget);
+      }
+    }
+
     return;
   }
 
