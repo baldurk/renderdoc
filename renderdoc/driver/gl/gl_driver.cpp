@@ -252,8 +252,6 @@ const char *GLChunkNames[] = {
     "glFramebufferTexture3D",
     "glFramebufferRenderbuffer",
     "glFramebufferTextureLayer",
-    "glFramebufferTextureMultiviewOVR",
-    "glFramebufferTextureMultisampleMultiviewOVR",
     "glFramebufferParameteri",
     "glReadBuffer",
     "glBindFramebuffer",
@@ -326,6 +324,9 @@ const char *GLChunkNames[] = {
     "glPrimitiveBoundingBox",
 
     "glFramebufferTexture2DMultisample",
+
+    "glFramebufferTextureMultiviewOVR",
+    "glFramebufferTextureMultisampleMultiviewOVR",
 };
 
 GLInitParams::GLInitParams()
