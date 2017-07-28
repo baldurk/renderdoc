@@ -20,4 +20,4 @@ if [[ "$RELEASE_BUILD" == "1" ]]; then
 else
 	cmake -DCMAKE_BUILD_TYPE=Debug ..
 fi
-make
+make -j2
