@@ -76,13 +76,17 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint locat
 
   union
   {
-    float f[4];
-    int32_t i[4];
-    uint32_t u[4];
-    double d[4];
+    byte *alloc;
+    float *f;
+    int32_t *i;
+    uint32_t *u;
+    double *d;
   } v;
+
+  v.alloc = new byte[totalSize];
+
   // Copy the pointer first to guarantee alignment, which is needed on ARM.
-  memcpy(v.d, value, RDCMIN(totalSize, sizeof(v.d)));
+  memcpy(v.d, value, totalSize);
 
   if(m_State <= EXECUTING)
   {
@@ -171,6 +175,8 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint locat
     }
   }
 
+  delete[] v.alloc;
+
   return true;
 }
 
@@ -237,10 +243,14 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
 
   union
   {
-    float f[4 * 4];
-    double d[4 * 4];
+    byte *alloc;
+    float *f;
+    double *d;
   } v;
-  memcpy(v.d, value, RDCMIN(totalSize, sizeof(v.d)));
+
+  v.alloc = new byte[totalSize];
+
+  memcpy(v.d, value, totalSize);
 
   if(m_State <= EXECUTING)
   {
@@ -319,6 +329,8 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
     }
     m_pSerialiser->DebugPrint("}\n");
   }
+
+  delete[] v.alloc;
 
   return true;
 }
