@@ -90,7 +90,7 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
   // command recording/replay data shared between queues and lists
   D3D12CommandData *m_Cmd;
 
-  IAmdExtD3DCommandListMarker *m_AMDMarkers;
+  IAmdExtD3DCommandListMarker *m_AMDMarkers = NULL;
 
   WrappedID3D12RootSignature *m_CurGfxRootSig, *m_CurCompRootSig;
 
