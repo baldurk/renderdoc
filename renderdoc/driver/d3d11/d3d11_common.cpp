@@ -2225,5 +2225,26 @@ string ToStrHelper<false, D3D11_LOGIC_OP>::Get(const D3D11_LOGIC_OP &el)
 template <>
 string ToStrHelper<false, long>::Get(const long &el)
 {
-  return ToStr::Get((uint64_t)el);
+  HRESULT hr = (HRESULT)el;
+
+  switch(hr)
+  {
+    case DXGI_ERROR_INVALID_CALL: return "HRESULT(DXGI_ERROR_INVALID_CALL)";
+    case DXGI_ERROR_NOT_FOUND: return "HRESULT(DXGI_ERROR_NOT_FOUND)";
+    case DXGI_ERROR_DEVICE_REMOVED: return "HRESULT(DXGI_ERROR_DEVICE_REMOVED)";
+    case DXGI_ERROR_DEVICE_HUNG: return "HRESULT(DXGI_ERROR_DEVICE_HUNG)";
+    case DXGI_ERROR_DEVICE_RESET: return "HRESULT(DXGI_ERROR_DEVICE_RESET)";
+    case DXGI_ERROR_WAS_STILL_DRAWING: return "HRESULT(DXGI_ERROR_WAS_STILL_DRAWING)";
+    case E_OUTOFMEMORY: return "HRESULT(E_OUTOFMEMORY)";
+    case E_INVALIDARG: return "HRESULT(E_INVALIDARG)";
+    case E_NOINTERFACE: return "HRESULT(E_NOINTERFACE)";
+    case E_ABORT: return "HRESULT(E_ABORT)";
+    case E_FAIL: return "HRESULT(E_FAIL)";
+  }
+
+  char tostrBuf[64] = {0};
+
+  StringFormat::snprintf(tostrBuf, 63, "HRESULT(0x%x)", el);
+
+  return tostrBuf;
 }
