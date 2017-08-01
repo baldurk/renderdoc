@@ -1132,7 +1132,7 @@ namespace renderdocui.Windows
 
         void CustomShaderModified(object sender, FileSystemEventArgs e)
         {
-            if (!Visible || IsDisposed) return;
+            if (IsDisposed) return;
 
             Thread.Sleep(5);
             BeginInvoke((MethodInvoker)delegate
