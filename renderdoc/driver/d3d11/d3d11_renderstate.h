@@ -293,6 +293,7 @@ public:
   D3D11RenderStateTracker(WrappedID3D11DeviceContext *ctx);
   ~D3D11RenderStateTracker();
 
+  const D3D11RenderState &State() { return m_RS; }
 private:
   D3D11RenderState m_RS;
   WrappedID3D11DeviceContext *m_pContext;

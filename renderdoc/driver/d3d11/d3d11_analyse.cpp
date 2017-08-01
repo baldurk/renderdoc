@@ -3952,11 +3952,11 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       if(overlay == DebugOverlay::ClearBeforePass)
         m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
-      D3D11RenderState *state = m_WrappedContext->GetCurrentPipelineState();
+      const D3D11RenderState &state = tracker.State();
 
-      for(size_t i = 0; i < ARRAY_COUNT(state->OM.RenderTargets); i++)
-        if(state->OM.RenderTargets[i])
-          m_pImmediateContext->ClearRenderTargetView(state->OM.RenderTargets[i], black);
+      for(size_t i = 0; i < ARRAY_COUNT(state.OM.RenderTargets); i++)
+        if(state.OM.RenderTargets[i])
+          m_pImmediateContext->ClearRenderTargetView(state.OM.RenderTargets[i], black);
 
       for(size_t i = 0; i < events.size(); i++)
       {
