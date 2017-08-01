@@ -79,6 +79,8 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id)
     string s = CompileSPIRV(settings, sources, spirvwords);
     if(!spirvwords.empty())
       ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
+    else
+      disassembly = s;
 
     reflection.ID = id;
     reflection.EntryPoint = "main";
