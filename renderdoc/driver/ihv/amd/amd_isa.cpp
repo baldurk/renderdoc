@@ -144,7 +144,7 @@ static bool IsSupported(GraphicsAPI api)
 
 void GetTargets(GraphicsAPI api, std::vector<std::string> &targets)
 {
-  targets.reserve(ARRAY_COUNT(asicInfo) + 1);
+  targets.reserve(asicCount + 1);
 
   if(IsSupported(api))
   {
@@ -152,8 +152,8 @@ void GetTargets(GraphicsAPI api, std::vector<std::string> &targets)
     if(api != GraphicsAPI::OpenGL)
       targets.push_back("AMDIL");
 
-    for(const asic &a : asicInfo)
-      targets.push_back(a.name);
+    for(int i = 0; i < asicCount; i++)
+      targets.push_back(asicInfo[i].name);
   }
   else
   {
@@ -179,8 +179,9 @@ std::string Disassemble(const SPVModule *spv, const std::string &entry, const st
 
   bool found = false;
 
-  for(const asic &a : asicInfo)
+  for(int i = 0; i < asicCount; i++)
   {
+    const asic &a = asicInfo[i];
     if(target == a.name)
     {
       cmdLine += " -gfxip ";
@@ -357,8 +358,9 @@ std::string Disassemble(ShaderStage stage, const std::vector<std::string> &glsl,
   }
 
   bool found = false;
-  for(const asic &a : asicInfo)
+  for(int i = 0; i < asicCount; i++)
   {
+    const asic &a = asicInfo[i];
     if(target == a.name)
     {
       cmdLine += StringFormat::Fmt("%d;%d;", a.chipFamily, a.chipRevision);

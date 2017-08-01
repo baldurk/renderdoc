@@ -34,6 +34,7 @@ struct asic
   int chipRevision;
 };
 
-extern asic asicInfo[22];
+const int asicCount = 21;
+extern const asic asicInfo[];
 
 };    // namespace GCNISA

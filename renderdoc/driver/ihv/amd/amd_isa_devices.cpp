@@ -23,13 +23,13 @@
  ******************************************************************************/
 
 #include "amd_isa_devices.h"
+#include "common/common.h"
 #include "official/RGA/Common/asic_reg/devices.h"
 
-GCNISA::asic GCNISA::asicInfo[22] = {
+const GCNISA::asic GCNISA::asicInfo[] = {
     // Southern Islands
     {"GCN (Tahiti)", "6", FAMILY_SI, SI_TAHITI_P_B1},
     {"GCN (Pitcairn)", "6", FAMILY_SI, SI_PITCAIRN_PM_A1},
-    {"GCN (Capeverde)", "6", FAMILY_SI, SI_CAPEVERDE_M_A1},
     {"GCN (Capeverde)", "6", FAMILY_SI, SI_CAPEVERDE_M_A1},
     {"GCN (Oland)", "6", FAMILY_SI, SI_OLAND_M_A0},
     {"GCN (Hainan)", "6", FAMILY_SI, SI_HAINAN_V_A0},
@@ -53,3 +53,5 @@ GCNISA::asic GCNISA::asicInfo[22] = {
     {"GCN (gfx804)", "8", FAMILY_VI, VI_LEXA_V_A0},
     // GDT_HW_GENERATION_GFX9 goes here, when it's supported by amdspv.
 };
+
+RDCCOMPILE_ASSERT(ARRAY_COUNT(GCNISA::asicInfo) == GCNISA::asicCount, "Mismatched array count");

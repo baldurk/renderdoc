@@ -91,8 +91,9 @@ std::string GCNISA::Disassemble(const DXBC::DXBCFile *dxbc, const std::string &t
   in.numCompileOptions = 0;
   in.pCompileOptions = opts;
 
-  for(const asic &a : asicInfo)
+  for(int i = 0; i < asicCount; i++)
   {
+    const asic &a = asicInfo[i];
     if(target == a.name)
     {
       in.chipFamily = a.chipFamily;
