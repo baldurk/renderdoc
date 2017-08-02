@@ -969,6 +969,9 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
       }
     }
 
+    // always allow SRVs on replay so we can inspect resources
+    desc.Flags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+
     if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
       GPUAddressRange range;
@@ -1170,6 +1173,9 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
 
       m_GPUAddresses.AddTo(range);
     }
+
+    // always allow SRVs on replay so we can inspect resources
+    desc.Flags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
 
     ID3D12Resource *ret = NULL;
     HRESULT hr = m_pDevice->CreatePlacedResource(Unwrap(pHeap), Offset, &desc, state,
