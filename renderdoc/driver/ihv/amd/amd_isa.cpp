@@ -167,7 +167,7 @@ std::string Disassemble(const SPVModule *spv, const std::string &entry, const st
 {
   if(!IsSupported(GraphicsAPI::Vulkan))
   {
-    return R"(; SPIR-V disassembly not supported, couldn't locate amdspv.exe.
+    return "; SPIR-V disassembly not supported, couldn't locate " + amdspv_name + R"(
 ; Normally it's in plugins/amd/isa/ in your build - if you are building locally you'll need to
 ; download the plugins package.
 ;
