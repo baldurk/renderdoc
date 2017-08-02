@@ -400,9 +400,10 @@ std::string Disassemble(ShaderStage stage, const std::vector<std::string> &glsl,
   Process::ProcessResult result = {};
   Process::LaunchProcess(vc.c_str(), dirname(vc).c_str(), cmdLine.c_str(), &result);
 
-  if(result.retCode != 0 || result.strStdout.find("Error") != string::npos)
+  if(result.retCode != 0 || result.strStdout.find("Error") != string::npos ||
+     result.strStdout.empty() || !FileIO::exists(outPath.c_str()))
   {
-    return "; Failed to Disassemble\n\n; " + result.strStdout;
+    return "; Failed to Disassemble - check AMD driver is currently running\n\n; " + result.strStdout;
   }
 
   // remove artifacts we don't need
