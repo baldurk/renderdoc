@@ -369,10 +369,8 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
 
       chdir(workDir.c_str());
       execve(appPath.c_str(), argv, envp);
-      RDCERR("Failed to execute '%s' %s", appName.c_str(), strerror(errno));
-      RDCERR("Full Path: '%s'", appPath.c_str());
-
-      exit(0);
+      fprintf(stderr, "exec failed\n");
+      _exit(1);
     }
   }
 
