@@ -954,6 +954,8 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
   if(!dxbc)
     return empty;
 
+  dxbc->GetDisassembly();
+
   D3D11RenderState *rs = m_WrappedContext->GetCurrentPipelineState();
 
   vector<D3D11_INPUT_ELEMENT_DESC> inputlayout = m_WrappedDevice->GetLayoutDesc(rs->IA.Layout);
@@ -1347,6 +1349,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 
   if(!dxbc)
     return empty;
+
+  dxbc->GetDisassembly();
 
   DXBCFile *prevdxbc = NULL;
 
@@ -2273,6 +2277,8 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t eventID, const uint32_t
 
   if(!dxbc)
     return empty;
+
+  dxbc->GetDisassembly();
 
   D3D11RenderState *rs = m_WrappedContext->GetCurrentPipelineState();
 
