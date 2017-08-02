@@ -2661,13 +2661,13 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
                                                     D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
                                                     __uuidof(ID3D12Resource), (void **)&m_PickVB);
 
-      m_PickVB->SetName(L"m_PickVB");
-
       if(FAILED(hr))
       {
         RDCERR("Couldn't create pick vertex buffer: %08x", hr);
         return ~0U;
       }
+
+      m_PickVB->SetName(L"m_PickVB");
 
       sdesc.Buffer.NumElements = cfg.position.numVerts;
       m_WrappedDevice->CreateShaderResourceView(m_PickVB, &sdesc, GetCPUHandle(PICK_VB_SRV));
