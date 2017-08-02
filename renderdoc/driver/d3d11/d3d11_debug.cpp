@@ -158,14 +158,21 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 1.0f);
 
-  AMDCounters *counters = new AMDCounters();
-  if(counters->Init((void *)m_pDevice))
+  if(RenderDoc::Inst().IsReplayApp())
   {
-    m_pAMDCounters = counters;
+    AMDCounters *counters = new AMDCounters();
+    if(counters->Init((void *)m_pDevice))
+    {
+      m_pAMDCounters = counters;
+    }
+    else
+    {
+      delete counters;
+      m_pAMDCounters = NULL;
+    }
   }
   else
   {
-    delete counters;
     m_pAMDCounters = NULL;
   }
 }
