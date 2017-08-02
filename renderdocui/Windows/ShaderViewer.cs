@@ -497,6 +497,23 @@ namespace renderdocui.Windows
                 disasmLayoutPanel.RowStyles.Add(new RowStyle());
                 disasmLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
+                if (m_Trace == null)
+                {
+                    disasmLayoutPanel.ColumnCount = 1;
+                    disasmLayoutPanel.Controls.Add(disasmToolStrip, 0, 0);
+                    disasmLayoutPanel.Controls.Add(m_DisassemblyView, 0, 1);
+                    disasmLayoutPanel.RowCount = 2;
+                    disasmLayoutPanel.RowStyles.Add(new RowStyle());
+                    disasmLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+                }
+                else
+                {
+                    disasmLayoutPanel.ColumnCount = 1;
+                    disasmLayoutPanel.RowCount = 1;
+                    disasmLayoutPanel.Controls.Add(m_DisassemblyView, 0, 0);
+                    disasmLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+                }
+
                 m_Scintillas.Add(m_DisassemblyView);
 
                 var w = Helpers.WrapDockContent(dockPanel, disasmLayoutPanel, "Disassembly");
@@ -519,6 +536,8 @@ namespace renderdocui.Windows
                         m_DisassemblyView.Text = disasm;
                         m_DisassemblyView.UndoRedo.EmptyUndoBuffer();
                         m_DisassemblyView.IsReadOnly = true;
+
+                        UpdateDebugging();
                     });
                 });
             }

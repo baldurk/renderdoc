@@ -171,6 +171,7 @@ private:
   const ShaderReflection *m_ShaderDetails = NULL;
   ShaderStage m_Stage;
   ScintillaEdit *m_DisassemblyView = NULL;
+  QFrame *m_DisassemblyToolbar = NULL;
   QWidget *m_DisassemblyFrame = NULL;
   QComboBox *m_DisassemblyType = NULL;
   ScintillaEdit *m_Errors = NULL;

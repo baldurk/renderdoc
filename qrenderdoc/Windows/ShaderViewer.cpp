@@ -126,26 +126,26 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
     m_DisassemblyFrame = new QWidget(this);
     m_DisassemblyFrame->setWindowTitle(tr("Disassembly"));
 
-    QFrame *disasmToolbar = new QFrame(this);
-    disasmToolbar->setFrameShape(QFrame::Panel);
-    disasmToolbar->setFrameShadow(QFrame::Raised);
+    m_DisassemblyToolbar = new QFrame(this);
+    m_DisassemblyToolbar->setFrameShape(QFrame::Panel);
+    m_DisassemblyToolbar->setFrameShadow(QFrame::Raised);
 
-    QHBoxLayout *toolbarlayout = new QHBoxLayout(disasmToolbar);
+    QHBoxLayout *toolbarlayout = new QHBoxLayout(m_DisassemblyToolbar);
     toolbarlayout->setSpacing(2);
     toolbarlayout->setContentsMargins(3, 3, 3, 3);
 
-    m_DisassemblyType = new QComboBox(disasmToolbar);
+    m_DisassemblyType = new QComboBox(m_DisassemblyToolbar);
     m_DisassemblyType->setMaxVisibleItems(12);
     m_DisassemblyType->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 
-    toolbarlayout->addWidget(new QLabel(tr("Disassembly type:"), disasmToolbar));
+    toolbarlayout->addWidget(new QLabel(tr("Disassembly type:"), m_DisassemblyToolbar));
     toolbarlayout->addWidget(m_DisassemblyType);
     toolbarlayout->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum));
 
     QVBoxLayout *framelayout = new QVBoxLayout(m_DisassemblyFrame);
     framelayout->setSpacing(0);
     framelayout->setMargin(0);
-    framelayout->addWidget(disasmToolbar);
+    framelayout->addWidget(m_DisassemblyToolbar);
     framelayout->addWidget(m_DisassemblyView);
 
     ui->docking->addToolWindow(m_DisassemblyFrame, ToolWindowManager::EmptySpace);
@@ -290,6 +290,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   m_Trace = trace;
   m_Stage = stage;
 
+  m_DisassemblyFrame->layout()->removeWidget(m_DisassemblyToolbar);
+
   // no replacing allowed, stay in find mode
   m_FindReplace->allowUserModeChange(false);
 
@@ -324,6 +326,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
         m_DisassemblyView->setReadOnly(false);
         m_DisassemblyView->setText(disasm.c_str());
         m_DisassemblyView->setReadOnly(true);
+
+        updateDebugging();
       });
     });
   }
