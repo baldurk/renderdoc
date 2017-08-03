@@ -918,9 +918,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       stages[1].module = modules[MS2ARR];
 
       // initialise to NULL
-      m_DepthMS2ArrayPipe[f] = NULL;
+      m_DepthMS2ArrayPipe[f] = VK_NULL_HANDLE;
       for(size_t s = 0; s < ARRAY_COUNT(sampleCounts); s++)
-        m_DepthArray2MSPipe[f][s] = NULL;
+        m_DepthArray2MSPipe[f][s] = VK_NULL_HANDLE;
 
       // if the format isn't supported at all, bail out and don't try to create anything
       if(!(m_pDriver->GetFormatProperties(attDesc.format).optimalTilingFeatures &
