@@ -108,9 +108,9 @@ struct GLHookSet
   // rather than here in the core section where you'd expect
   // ++ glext
   PFNGLACTIVETEXTUREPROC glActiveTexture;    // aliases glActiveTextureARB
-  PFNGLTEXSTORAGE1DPROC glTexStorage1D;
-  PFNGLTEXSTORAGE2DPROC glTexStorage2D;
-  PFNGLTEXSTORAGE3DPROC glTexStorage3D;
+  PFNGLTEXSTORAGE1DPROC glTexStorage1D;    // aliases glTexStorage1DEXT
+  PFNGLTEXSTORAGE2DPROC glTexStorage2D;    // aliases glTexStorage2DEXT
+  PFNGLTEXSTORAGE3DPROC glTexStorage3D;    // aliases glTexStorage3DEXT
   PFNGLTEXSTORAGE2DMULTISAMPLEPROC glTexStorage2DMultisample;
   PFNGLTEXSTORAGE3DMULTISAMPLEPROC glTexStorage3DMultisample;    // aliases glTexStorage3DMultisampleOES
   PFNGLTEXIMAGE3DPROC glTexImage3D;    // aliases glTexImage3DEXT, glTexImage3DOES
@@ -125,7 +125,7 @@ struct GLHookSet
   PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC glCompressedTexSubImage2D;    // aliases glCompressedTexSubImage2DARB
   PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC glCompressedTexSubImage3D;    // aliases glCompressedTexSubImage3DARB, glCompressedTexSubImage3DOES
   PFNGLTEXBUFFERRANGEPROC glTexBufferRange;        // aliases glTexBufferRangeEXT, glTexBufferRangeOES
-  PFNGLTEXTUREVIEWPROC glTextureView;
+  PFNGLTEXTUREVIEWPROC glTextureView;              // aliases glTextureViewEXT, glTextureViewOES
   PFNGLTEXPARAMETERIIVPROC glTexParameterIiv;      // aliases glTexParameterIivEXT, glTexParameterIivOES
   PFNGLTEXPARAMETERIUIVPROC glTexParameterIuiv;    // aliases glTexParameterIuivEXT, glTexParameterIuivOES
   PFNGLGENERATEMIPMAPPROC glGenerateMipmap;        // aliases glGenerateMipmapEXT
@@ -225,18 +225,18 @@ struct GLHookSet
   PFNGLGETVERTEXATTRIBFVPROC glGetVertexAttribfv;
   PFNGLCHECKFRAMEBUFFERSTATUSPROC glCheckFramebufferStatus;                            // aliases glCheckFramebufferStatusEXT
   PFNGLBLENDCOLORPROC glBlendColor;                    // aliases glBlendColorEXT
-  PFNGLBLENDFUNCIPROC glBlendFunci;                    // aliases glBlendFunciARB, glBlendFunciEXT
+  PFNGLBLENDFUNCIPROC glBlendFunci;                    // aliases glBlendFunciARB, glBlendFunciEXT, glBlendFunciOES
   PFNGLBLENDFUNCSEPARATEPROC glBlendFuncSeparate;      // aliases glBlendFuncSeparateARB
-  PFNGLBLENDFUNCSEPARATEIPROC glBlendFuncSeparatei;    // aliases glBlendFuncSeparateiARB, glBlendFuncSeparateiEXT
+  PFNGLBLENDFUNCSEPARATEIPROC glBlendFuncSeparatei;    // aliases glBlendFuncSeparateiARB, glBlendFuncSeparateiEXT, glBlendFuncSeparateiOES
   PFNGLBLENDEQUATIONPROC glBlendEquation;              // aliases glBlendEquationEXT
-  PFNGLBLENDEQUATIONIPROC glBlendEquationi;            // aliases glBlendEquationiARB, glBlendEquationiEXT
+  PFNGLBLENDEQUATIONIPROC glBlendEquationi;            // aliases glBlendEquationiARB, glBlendEquationiEXT, glBlendEquationiOES
   PFNGLBLENDEQUATIONSEPARATEPROC glBlendEquationSeparate;    // aliases glBlendEquationSeparateARB, glBlendEquationSeparateEXT
-  PFNGLBLENDEQUATIONSEPARATEIPROC glBlendEquationSeparatei;    // aliases glBlendEquationSeparateiARB, glBlendEquationSeparateiEXT
+  PFNGLBLENDEQUATIONSEPARATEIPROC glBlendEquationSeparatei;    // aliases glBlendEquationSeparateiARB, glBlendEquationSeparateiEXT, glBlendEquationSeparateiOES
   PFNGLBLENDBARRIERKHRPROC glBlendBarrierKHR;
   PFNGLSTENCILFUNCSEPARATEPROC glStencilFuncSeparate;
   PFNGLSTENCILMASKSEPARATEPROC glStencilMaskSeparate;
   PFNGLSTENCILOPSEPARATEPROC glStencilOpSeparate;
-  PFNGLCOLORMASKIPROC glColorMaski;    // aliases glColorMaskiEXT, glColorMaskIndexedEXT
+  PFNGLCOLORMASKIPROC glColorMaski;    // aliases glColorMaskiEXT, glColorMaskIndexedEXT, glColorMaskiOES
   PFNGLSAMPLEMASKIPROC glSampleMaski;
   PFNGLSAMPLECOVERAGEPROC glSampleCoverage;        // aliases glSampleCoverageARB
   PFNGLMINSAMPLESHADINGPROC glMinSampleShading;    // aliases glMinSampleShadingARB, glMinSampleShadingOES
