@@ -290,8 +290,6 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   m_Trace = trace;
   m_Stage = stage;
 
-  m_DisassemblyFrame->layout()->removeWidget(m_DisassemblyToolbar);
-
   // no replacing allowed, stay in find mode
   m_FindReplace->allowUserModeChange(false);
 
@@ -340,6 +338,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   if(trace)
   {
     m_DisassemblyView->usePopUp(SC_POPUP_NEVER);
+
+    m_DisassemblyFrame->layout()->removeWidget(m_DisassemblyToolbar);
 
     m_DisassemblyView->setContextMenuPolicy(Qt::CustomContextMenu);
     QObject::connect(m_DisassemblyView, &ScintillaEdit::customContextMenuRequested, this,
