@@ -64,12 +64,18 @@ if(ANDROID)
         message(FATAL_ERROR "ANDROID_SDK environment variable must be defined for Android build")
     endif()
 
-    set(BUILD_TOOLS "$ENV{ANDROID_SDK}/build-tools/26.0.1")
-    set(ANDROID_JAR "$ENV{ANDROID_SDK}/platforms/android-23/android.jar")
+    set(ANDROID_BUILD_TOOLS_VERSION "" CACHE STRING "Version of Android build-tools to use instead of the default")
+    if(ANDROID_BUILD_TOOLS_VERSION STREQUAL "")
+        set(ANDROID_BUILD_TOOLS_VERSION "26.0.1")
+    endif()
+    message(STATUS "Using Android build-tools version ${ANDROID_BUILD_TOOLS_VERSION}")
+
+    set(BUILD_TOOLS "$ENV{ANDROID_SDK}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}")
     set(RT_JAR "$ENV{JAVA_HOME}/jre/lib/rt.jar")
     set(JAVA_BIN "$ENV{JAVA_HOME}/bin")
 
     set(APK_TARGET_ID "android-23" CACHE STRING "The Target ID to build the APK for, use <android list targets> to choose another one.")
+    set(ANDROID_JAR "$ENV{ANDROID_SDK}/platforms/${APK_TARGET_ID}/android.jar")
     set(KEYSTORE ${CMAKE_CURRENT_BINARY_DIR}/debug.keystore)
     add_custom_command(OUTPUT ${KEYSTORE}
                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
