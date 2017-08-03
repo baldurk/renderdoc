@@ -591,7 +591,9 @@ void CaptureContext::AddMessages(const rdctype::array<DebugMessage> &msgs)
     m_DebugMessages.push_back(msg);
 
   if(m_DebugMessageView)
-    m_DebugMessageView->RefreshMessageList();
+  {
+    GUIInvoke::call([this]() { m_DebugMessageView->RefreshMessageList(); });
+  }
 }
 
 void *CaptureContext::FillWindowingData(uintptr_t widget)
