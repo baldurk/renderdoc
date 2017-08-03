@@ -734,6 +734,9 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
   if(!PyArg_ParseTuple(args, "z:write", &text))
     return NULL;
 
+  if(PyErr_Occurred())
+    return NULL;
+
   OutputRedirector *redirector = (OutputRedirector *)self;
 
   if(redirector)
@@ -774,6 +777,9 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
 
 PyObject *PythonContext::outstream_flush(PyObject *self, PyObject *args)
 {
+  if(PyErr_Occurred())
+    return NULL;
+
   Py_RETURN_NONE;
 }
 
