@@ -993,7 +993,18 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
     }
 
     for(GLuint i = 0; i < RDCMIN(maxViews, (GLuint)ARRAY_COUNT(DepthRanges)); i++)
-      m_Real->glGetDoublei_v(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
+    {
+      if(IsGLES)
+      {
+        float v[2];
+        m_Real->glGetFloati_v(eGL_DEPTH_RANGE, i, v);
+        DepthRanges[i] = {(double)v[0], (double)v[1]};
+      }
+      else
+      {
+        m_Real->glGetDoublei_v(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
+      }
+    }
   }
   else
   {
@@ -1004,8 +1015,16 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
     m_Real->glGetFloatv(eGL_VIEWPORT, &Viewports[0].x);
     m_Real->glGetIntegerv(eGL_SCISSOR_BOX, &Scissors[0].x);
     Scissors[0].enabled = (m_Real->glIsEnabled(eGL_SCISSOR_TEST) == GL_TRUE);
-    if(!IsGLES)
+    if(IsGLES)
+    {
+      float v[2];
+      m_Real->glGetFloatv(eGL_DEPTH_RANGE, v);
+      DepthRanges[0] = {(double)v[0], (double)v[1]};
+    }
+    else
+    {
       m_Real->glGetDoublev(eGL_DEPTH_RANGE, &DepthRanges[0].nearZ);
+    }
 
     for(GLuint i = 1; i < (GLuint)ARRAY_COUNT(Viewports); i++)
       memcpy(&Viewports[i], &Viewports[0], sizeof(Viewports[i]));
@@ -1013,11 +1032,8 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
     for(GLuint i = 1; i < (GLuint)ARRAY_COUNT(Scissors); i++)
       memcpy(&Scissors[i], &Scissors[0], sizeof(Scissors[i]));
 
-    if(!IsGLES)
-    {
-      for(GLuint i = 1; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
-        memcpy(&DepthRanges[i], &DepthRanges[0], sizeof(DepthRanges[i]));
-    }
+    for(GLuint i = 1; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
+      memcpy(&DepthRanges[i], &DepthRanges[0], sizeof(DepthRanges[i]));
   }
 
   m_Real->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&DrawFBO);
@@ -1388,8 +1404,15 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 
     for(GLuint i = 0; i < RDCMIN(maxViews, (GLuint)ARRAY_COUNT(DepthRanges)); i++)
     {
-      double v[2] = {DepthRanges[i].nearZ, DepthRanges[i].farZ};
-      m_Real->glDepthRangeArrayv(i, 1, v);
+      if(IsGLES)
+      {
+        float v[2] = {(float)DepthRanges[i].nearZ, (float)DepthRanges[i].farZ};
+        m_Real->glDepthRangeArrayfvOES(i, 1, v);
+      }
+      else
+      {
+        m_Real->glDepthRangeArrayv(i, 1, &DepthRanges[i].nearZ);
+      }
     }
   }
   else
@@ -1404,7 +1427,9 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
     else
       m_Real->glDisable(eGL_SCISSOR_TEST);
 
-    if(!IsGLES)
+    if(IsGLES)
+      m_Real->glDepthRangef((float)DepthRanges[0].nearZ, (float)DepthRanges[0].farZ);
+    else
       m_Real->glDepthRange(DepthRanges[0].nearZ, DepthRanges[0].farZ);
   }
 

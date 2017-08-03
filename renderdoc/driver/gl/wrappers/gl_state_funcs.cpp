@@ -702,7 +702,12 @@ bool WrappedOpenGL::Serialise_glDepthRangeIndexed(GLuint index, GLdouble nearVal
   SERIALISE_ELEMENT(GLdouble, f, farVal);
 
   if(m_State <= EXECUTING)
-    m_Real.glDepthRangeIndexed(i, n, f);
+  {
+    if(IsGLES)
+      m_Real.glDepthRangeIndexedfOES(i, (GLfloat)n, (GLfloat)f);
+    else
+      m_Real.glDepthRangeIndexed(i, n, f);
+  }
 
   return true;
 }
@@ -720,6 +725,19 @@ void WrappedOpenGL::glDepthRangeIndexed(GLuint index, GLdouble nearVal, GLdouble
   }
 }
 
+void WrappedOpenGL::glDepthRangeIndexedfOES(GLuint index, GLfloat nearVal, GLfloat farVal)
+{
+  m_Real.glDepthRangeIndexedfOES(index, nearVal, farVal);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DEPTH_RANGE_IDX);
+    Serialise_glDepthRangeIndexed(index, (GLdouble)nearVal, (GLdouble)farVal);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
 bool WrappedOpenGL::Serialise_glDepthRangeArrayv(GLuint first, GLsizei count, const GLdouble *v)
 {
   SERIALISE_ELEMENT(uint32_t, idx, first);
@@ -728,7 +746,20 @@ bool WrappedOpenGL::Serialise_glDepthRangeArrayv(GLuint first, GLsizei count, co
 
   if(m_State <= EXECUTING)
   {
-    m_Real.glDepthRangeArrayv(idx, cnt, ranges);
+    if(IsGLES)
+    {
+      GLfloat *fv = new GLfloat[cnt * 2];
+      for(uint32_t i = 0; i < cnt * 2; ++i)
+        fv[i] = (GLfloat)ranges[i];
+
+      m_Real.glDepthRangeArrayfvOES(idx, cnt, fv);
+
+      delete[] fv;
+    }
+    else
+    {
+      m_Real.glDepthRangeArrayv(idx, cnt, ranges);
+    }
   }
 
   delete[] ranges;
@@ -744,6 +775,25 @@ void WrappedOpenGL::glDepthRangeArrayv(GLuint first, GLsizei count, const GLdoub
   {
     SCOPED_SERIALISE_CONTEXT(DEPTH_RANGEARRAY);
     Serialise_glDepthRangeArrayv(first, count, v);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+void WrappedOpenGL::glDepthRangeArrayfvOES(GLuint first, GLsizei count, const GLfloat *v)
+{
+  m_Real.glDepthRangeArrayfvOES(first, count, v);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    GLdouble *dv = new GLdouble[count * 2];
+    for(GLsizei i = 0; i < count * 2; ++i)
+      dv[i] = v[i];
+
+    SCOPED_SERIALISE_CONTEXT(DEPTH_RANGEARRAY);
+    Serialise_glDepthRangeArrayv(first, count, dv);
+
+    delete[] dv;
 
     m_ContextRecord->AddChunk(scope.Get());
   }

@@ -141,7 +141,7 @@ struct GLHookSet
   PFNGLGETSTRINGIPROC glGetStringi;
   PFNGLGETBOOLEANI_VPROC glGetBooleani_v;
   PFNGLGETINTEGERI_VPROC glGetIntegeri_v;
-  PFNGLGETFLOATI_VPROC glGetFloati_v;      // aliases glGetFloati_vEXT
+  PFNGLGETFLOATI_VPROC glGetFloati_v;      // aliases glGetFloati_vEXT, glGetFloati_vOES, glGetFloati_vNV
   PFNGLGETDOUBLEI_VPROC glGetDoublei_v;    // aliases glGetDoublei_vEXT
   PFNGLGETINTEGER64I_VPROC glGetInteger64i_v;
   PFNGLGETINTEGER64VPROC glGetInteger64v;
@@ -276,9 +276,9 @@ struct GLHookSet
   PFNGLOBJECTLABELPROC glObjectLabel;                      // aliases glObjectLabelKHR
   PFNGLLABELOBJECTEXTPROC glLabelObjectEXT;
   PFNGLOBJECTPTRLABELPROC glObjectPtrLabel;                // aliases glObjectPtrLabelKHR
-  PFNGLENABLEIPROC glEnablei;                // aliases glEnableiEXT, glEnableIndexedEXT
-  PFNGLDISABLEIPROC glDisablei;              // aliases glDisableiEXT, glDisableIndexedEXT
-  PFNGLISENABLEDIPROC glIsEnabledi;          // aliases glIsEnablediEXT, glIsEnabledIndexedEXT
+  PFNGLENABLEIPROC glEnablei;                // aliases glEnableiEXT, glEnableIndexedEXT, glEnableiOES, glEnableiNV
+  PFNGLDISABLEIPROC glDisablei;              // aliases glDisableiEXT, glDisableIndexedEXT, glDisableiOES, glDisableiNV
+  PFNGLISENABLEDIPROC glIsEnabledi;          // aliases glIsEnablediEXT, glIsEnabledIndexedEXT, glIsEnablediOES, glIsEnablediNV
   PFNGLISBUFFERPROC glIsBuffer;              // aliases glIsBufferARB
   PFNGLISFRAMEBUFFERPROC glIsFramebuffer;    // aliases glIsFramebufferEXT
   PFNGLISPROGRAMPROC glIsProgram;
@@ -476,12 +476,12 @@ struct GLHookSet
   PFNGLINVALIDATESUBFRAMEBUFFERPROC glInvalidateSubFramebuffer;
   PFNGLINVALIDATETEXIMAGEPROC glInvalidateTexImage;
   PFNGLINVALIDATETEXSUBIMAGEPROC glInvalidateTexSubImage;
-  PFNGLSCISSORARRAYVPROC glScissorArrayv;
-  PFNGLSCISSORINDEXEDPROC glScissorIndexed;
-  PFNGLSCISSORINDEXEDVPROC glScissorIndexedv;
-  PFNGLVIEWPORTINDEXEDFPROC glViewportIndexedf;
-  PFNGLVIEWPORTINDEXEDFVPROC glViewportIndexedfv;
-  PFNGLVIEWPORTARRAYVPROC glViewportArrayv;
+  PFNGLSCISSORARRAYVPROC glScissorArrayv;             // aliases glScissorArrayvOES, glScissorArrayvNV
+  PFNGLSCISSORINDEXEDPROC glScissorIndexed;           // aliases glScissorIndexedOES, glScissorIndexedNV
+  PFNGLSCISSORINDEXEDVPROC glScissorIndexedv;         // aliases glScissorIndexedvOES, glScissorIndexedvNV
+  PFNGLVIEWPORTINDEXEDFPROC glViewportIndexedf;       // aliases glViewportIndexedfOES, glViewportIndexedfNV
+  PFNGLVIEWPORTINDEXEDFVPROC glViewportIndexedfv;     // aliases glViewportIndexedfvOES, glViewportIndexedfvNV
+  PFNGLVIEWPORTARRAYVPROC glViewportArrayv;           // aliases glViewportArrayvOES, glViewportArrayvNV
   PFNGLUNIFORMBLOCKBINDINGPROC glUniformBlockBinding;
   PFNGLSHADERSTORAGEBLOCKBINDINGPROC glShaderStorageBlockBinding;
   PFNGLUNIFORMSUBROUTINESUIVPROC glUniformSubroutinesuiv;
@@ -612,6 +612,11 @@ struct GLHookSet
 
   // GLES: EXT_discard_framebuffer
   PFNGLDISCARDFRAMEBUFFEREXTPROC glDiscardFramebufferEXT;
+
+  // GLES: OES_viewport_array, NV_viewport_array
+  // only 2 functions which have different parameter types, so they can't be aliases of the ARB functions
+  PFNGLDEPTHRANGEARRAYFVOESPROC glDepthRangeArrayfvOES;      // aliases glDepthRangeArrayfvNV
+  PFNGLDEPTHRANGEINDEXEDFOESPROC glDepthRangeIndexedfOES;    // aliases glDepthRangeIndexedfNV
 
   // ARB_shading_language_include
   PFNGLNAMEDSTRINGARBPROC glNamedStringARB;
