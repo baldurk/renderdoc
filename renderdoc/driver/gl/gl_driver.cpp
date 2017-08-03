@@ -788,6 +788,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_hdr");
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_ldr");
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_sliced_3d");
+  m_GLESExtensions.push_back("GL_NV_viewport_array");
   m_GLESExtensions.push_back("GL_OES_compressed_ETC1_RGB8_texture");
   m_GLESExtensions.push_back("GL_OES_copy_image");
   m_GLESExtensions.push_back("GL_OES_depth24");
@@ -818,6 +819,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_texture_storage_multisample_2d_array");
   m_GLESExtensions.push_back("GL_OES_vertex_array_object");
   m_GLESExtensions.push_back("GL_OES_vertex_half_float");
+  m_GLESExtensions.push_back("GL_OES_viewport_array");
   m_GLESExtensions.push_back("GL_OVR_multiview");
   m_GLESExtensions.push_back("GL_OVR_multiview2");
   m_GLESExtensions.push_back("GL_OVR_multiview_multisampled_render_to_texture");

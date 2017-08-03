@@ -651,8 +651,12 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, glDepthRangef(GLfloat nearVal, GLfloat farVal));
   IMPLEMENT_FUNCTION_SERIALISED(void, glDepthRangeIndexed(GLuint index, GLdouble nearVal,
                                                           GLdouble farVal));
+  IMPLEMENT_FUNCTION_SERIALISED(void, glDepthRangeIndexedfOES(GLuint index, GLfloat nearVal,
+                                                              GLfloat farVal));
   IMPLEMENT_FUNCTION_SERIALISED(void,
                                 glDepthRangeArrayv(GLuint first, GLsizei count, const GLdouble *v));
+  IMPLEMENT_FUNCTION_SERIALISED(void, glDepthRangeArrayfvOES(GLuint first, GLsizei count,
+                                                             const GLfloat *v));
   IMPLEMENT_FUNCTION_SERIALISED(void, glDepthBoundsEXT(GLclampd nearVal, GLclampd farVal));
   IMPLEMENT_FUNCTION_SERIALISED(void, glClipControl(GLenum origin, GLenum depth));
   IMPLEMENT_FUNCTION_SERIALISED(void, glProvokingVertex(GLenum mode));
