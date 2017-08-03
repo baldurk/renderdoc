@@ -226,6 +226,24 @@ struct str : public rdctype::array<char>
     return *this;
   }
 
+  void assign(const char *const in, int32_t inCount)
+  {
+    Delete();
+    count = inCount;
+    if(inCount == 0)
+    {
+      elems = (char *)allocate(sizeof(char));
+      elems[0] = 0;
+    }
+    else
+    {
+      elems = (char *)allocate(sizeof(char) * (inCount + 1));
+      if(in)
+        memcpy(elems, in, sizeof(char) * inCount);
+      elems[count] = 0;
+    }
+  }
+
   operator const char *() const { return elems ? elems : ""; }
   const char *c_str() const { return elems ? elems : ""; }
 };
