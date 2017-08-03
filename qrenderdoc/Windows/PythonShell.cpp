@@ -569,13 +569,17 @@ void PythonShell::traceLine(const QString &file, int line)
   scriptEditor->markerAdd(line > 0 ? line - 1 : 0, CURRENT_MARKER + 1);
 }
 
-void PythonShell::exception(const QString &type, const QString &value, QList<QString> frames)
+void PythonShell::exception(const QString &type, const QString &value, int finalLine,
+                            QList<QString> frames)
 {
   QTextEdit *out = ui->scriptOutput;
   if(QObject::sender() == (QObject *)interactiveContext)
     out = ui->interactiveOutput;
 
   QString exString;
+
+  if(finalLine >= 0)
+    traceLine(QString(), finalLine);
 
   if(!out->toPlainText().endsWith(QLatin1Char('\n')))
     exString = lit("\n");

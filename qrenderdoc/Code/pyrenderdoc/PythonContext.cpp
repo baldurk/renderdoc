@@ -149,7 +149,7 @@ static PyMethodDef OutputRedirector_methods[] = {
 
 PyObject *PythonContext::main_dict = NULL;
 
-void FetchException(QString &typeStr, QString &valueStr, QList<QString> &frames)
+void FetchException(QString &typeStr, QString &valueStr, int &finalLine, QList<QString> &frames)
 {
   PyObject *exObj = NULL, *valueObj = NULL, *tracebackObj = NULL;
 
@@ -184,6 +184,13 @@ void FetchException(QString &typeStr, QString &valueStr, QList<QString> &frames)
         PyObject *args = Py_BuildValue("(N)", tracebackObj);
         PyObject *formattedTB = PyObject_CallObject(func, args);
 
+        PyTracebackObject *tb = (PyTracebackObject *)tracebackObj;
+
+        while(tb->tb_next)
+          tb = tb->tb_next;
+
+        finalLine = tb->tb_lineno;
+
         if(formattedTB)
         {
           Py_ssize_t size = PyList_Size(formattedTB);
@@ -191,7 +198,7 @@ void FetchException(QString &typeStr, QString &valueStr, QList<QString> &frames)
           {
             PyObject *el = PyList_GetItem(formattedTB, i);
 
-            frames << ToQStr(el);
+            frames << ToQStr(el).trimmed();
           }
 
           Py_DecRef(formattedTB);
@@ -473,7 +480,8 @@ void PythonContext::executeString(const QString &filename, const QString &source
   {
     emit exception(
         lit("SystemError"),
-        tr("Python integration failed to initialise, see diagnostic log for more information."), {});
+        tr("Python integration failed to initialise, see diagnostic log for more information."), -1,
+        {});
     return;
   }
 
@@ -519,18 +527,19 @@ void PythonContext::executeString(const QString &filename, const QString &source
 
   QString typeStr;
   QString valueStr;
+  int finalLine = -1;
   QList<QString> frames;
   bool caughtException = (ret == NULL);
 
   if(caughtException)
-    FetchException(typeStr, valueStr, frames);
+    FetchException(typeStr, valueStr, finalLine, frames);
 
   Py_XDECREF(ret);
 
   PyGILState_Release(gil);
 
   if(caughtException)
-    emit exception(typeStr, valueStr, frames);
+    emit exception(typeStr, valueStr, finalLine, frames);
 }
 
 void PythonContext::executeString(const QString &source, bool interactive)
@@ -544,7 +553,8 @@ void PythonContext::executeFile(const QString &filename)
 
   if(!f.exists())
   {
-    emit exception(lit("FileNotFoundError"), tr("No such file or directory: %1").arg(filename), {});
+    emit exception(lit("FileNotFoundError"), tr("No such file or directory: %1").arg(filename), -1,
+                   {});
     return;
   }
 
@@ -556,7 +566,7 @@ void PythonContext::executeFile(const QString &filename)
   }
   else
   {
-    emit exception(lit("IOError"), QFormatStr("%1: %2").arg(f.errorString()).arg(filename), {});
+    emit exception(lit("IOError"), QFormatStr("%1: %2").arg(f.errorString()).arg(filename), -1, {});
   }
 }
 
@@ -566,7 +576,8 @@ void PythonContext::setGlobal(const char *varName, const char *typeName, void *o
   {
     emit exception(
         lit("SystemError"),
-        tr("Python integration failed to initialise, see diagnostic log for more information."), {});
+        tr("Python integration failed to initialise, see diagnostic log for more information."), -1,
+        {});
     return;
   }
 
@@ -587,7 +598,7 @@ void PythonContext::setGlobal(const char *varName, const char *typeName, void *o
     emit exception(lit("RuntimeError"), tr("Failed to set variable '%1' of type '%2'")
                                             .arg(QString::fromUtf8(varName))
                                             .arg(QString::fromUtf8(typeName)),
-                   {});
+                   -1, {});
     return;
   }
 
@@ -694,7 +705,8 @@ void PythonContext::setPyGlobal(const char *varName, PyObject *obj)
   {
     emit exception(
         lit("SystemError"),
-        tr("Python integration failed to initialise, see diagnostic log for more information."), {});
+        tr("Python integration failed to initialise, see diagnostic log for more information."), -1,
+        {});
     return;
   }
 
@@ -711,7 +723,7 @@ void PythonContext::setPyGlobal(const char *varName, PyObject *obj)
     return;
 
   emit exception(lit("RuntimeError"),
-                 tr("Failed to set variable '%1'").arg(QString::fromUtf8(varName)), {});
+                 tr("Failed to set variable '%1'").arg(QString::fromUtf8(varName)), -1, {});
 }
 
 void PythonContext::outstream_del(PyObject *self)
@@ -821,13 +833,14 @@ extern "C" void HandleException(PyObject *global_handle)
 {
   QString typeStr;
   QString valueStr;
+  int finalLine = -1;
   QList<QString> frames;
 
-  FetchException(typeStr, valueStr, frames);
+  FetchException(typeStr, valueStr, finalLine, frames);
 
   OutputRedirector *redirector = (OutputRedirector *)global_handle;
-  if(redirector->context)
-    emit redirector->context->exception(typeStr, valueStr, frames);
+  if(redirector && redirector->context)
+    emit redirector->context->exception(typeStr, valueStr, finalLine, frames);
 }
 
 extern "C" bool IsThreadBlocking(PyObject *global_handle)

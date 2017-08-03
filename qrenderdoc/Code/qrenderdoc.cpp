@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
         py.ctx().setGlobal("pyrenderdoc", (ICaptureContext *)&ctx);
 
         QObject::connect(&py.ctx(), &PythonContext::exception,
-                         [](const QString &type, const QString &value, QList<QString> frames) {
+                         [](const QString &type, const QString &value, int, QList<QString> frames) {
 
                            QString exString;
 

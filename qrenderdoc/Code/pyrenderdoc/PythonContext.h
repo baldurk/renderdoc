@@ -80,7 +80,7 @@ public:
       emit exception(lit("RuntimeError"), tr("Failed to set variable '%1' of type '%2'")
                                               .arg(QString::fromUtf8(varName))
                                               .arg(QString::fromUtf8(typeName)),
-                     {});
+                     -1, {});
   }
 
   static PyObject *QWidgetToPy(PyObject *self, QWidget *widget)
@@ -97,7 +97,7 @@ public:
   int currentLine() { return location.line; }
 signals:
   void traceLine(const QString &file, int line);
-  void exception(const QString &type, const QString &value, QList<QString> frames);
+  void exception(const QString &type, const QString &value, int finalLine, QList<QString> frames);
   void textOutput(bool isStdError, const QString &output);
 
 public slots:

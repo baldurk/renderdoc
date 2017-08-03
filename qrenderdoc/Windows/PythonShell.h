@@ -62,7 +62,7 @@ private slots:
   // manual slots
   void interactive_keypress(QKeyEvent *e);
   void traceLine(const QString &file, int line);
-  void exception(const QString &type, const QString &value, QList<QString> frames);
+  void exception(const QString &type, const QString &value, int finalLine, QList<QString> frames);
   void textOutput(bool isStdError, const QString &output);
 
 private:
