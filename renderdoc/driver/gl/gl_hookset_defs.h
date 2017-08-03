@@ -341,6 +341,7 @@
   HookExtension(PFNGLCOLORMASKIPROC, glColorMaski); \
   HookExtensionAlias(PFNGLCOLORMASKIPROC, glColorMaski, glColorMaskiEXT); \
   HookExtensionAlias(PFNGLCOLORMASKIPROC, glColorMaski, glColorMaskIndexedEXT); \
+  HookExtensionAlias(PFNGLCOLORMASKIPROC, glColorMaski, glColorMaskiOES); \
   HookExtension(PFNGLGETBOOLEANI_VPROC, glGetBooleani_v); \
   HookExtension(PFNGLGETINTEGERI_VPROC, glGetIntegeri_v); \
   HookExtension(PFNGLENABLEIPROC, glEnablei); \
@@ -607,15 +608,19 @@
   HookExtension(PFNGLBLENDEQUATIONIPROC, glBlendEquationi); \
   HookExtensionAlias(PFNGLBLENDEQUATIONIPROC, glBlendEquationi, glBlendEquationiARB); \
   HookExtensionAlias(PFNGLBLENDEQUATIONIPROC, glBlendEquationi, glBlendEquationiEXT); \
+  HookExtensionAlias(PFNGLBLENDEQUATIONIPROC, glBlendEquationi, glBlendEquationiOES); \
   HookExtension(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei); \
   HookExtensionAlias(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei, glBlendEquationSeparateiARB); \
   HookExtensionAlias(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei, glBlendEquationSeparateiEXT); \
+  HookExtensionAlias(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei, glBlendEquationSeparateiOES); \
   HookExtension(PFNGLBLENDFUNCIPROC, glBlendFunci); \
   HookExtensionAlias(PFNGLBLENDFUNCIPROC, glBlendFunci, glBlendFunciARB); \
   HookExtensionAlias(PFNGLBLENDFUNCIPROC, glBlendFunci, glBlendFunciEXT); \
+  HookExtensionAlias(PFNGLBLENDFUNCIPROC, glBlendFunci, glBlendFunciOES); \
   HookExtension(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei); \
   HookExtensionAlias(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei, glBlendFuncSeparateiARB); \
   HookExtensionAlias(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei, glBlendFuncSeparateiEXT); \
+  HookExtensionAlias(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei, glBlendFuncSeparateiOES); \
   HookExtension(PFNGLDRAWARRAYSINDIRECTPROC, glDrawArraysIndirect); \
   HookExtension(PFNGLDRAWELEMENTSINDIRECTPROC, glDrawElementsIndirect); \
   HookExtension(PFNGLUNIFORM1DPROC, glUniform1d); \
@@ -837,8 +842,11 @@
   HookExtension(PFNGLMEMORYBARRIERPROC, glMemoryBarrier); \
   HookExtensionAlias(PFNGLMEMORYBARRIERPROC, glMemoryBarrier, glMemoryBarrierEXT); \
   HookExtension(PFNGLTEXSTORAGE1DPROC, glTexStorage1D); \
+  HookExtensionAlias(PFNGLTEXSTORAGE1DPROC, glTexStorage1D, glTexStorage1DEXT); \
   HookExtension(PFNGLTEXSTORAGE2DPROC, glTexStorage2D); \
+  HookExtensionAlias(PFNGLTEXSTORAGE2DPROC, glTexStorage2D, glTexStorage2DEXT); \
   HookExtension(PFNGLTEXSTORAGE3DPROC, glTexStorage3D); \
+  HookExtensionAlias(PFNGLTEXSTORAGE3DPROC, glTexStorage3D, glTexStorage3DEXT); \
   HookExtension(PFNGLDRAWTRANSFORMFEEDBACKINSTANCEDPROC, glDrawTransformFeedbackInstanced); \
   HookExtension(PFNGLDRAWTRANSFORMFEEDBACKSTREAMINSTANCEDPROC, glDrawTransformFeedbackStreamInstanced); \
   HookExtension(PFNGLCLEARBUFFERDATAPROC, glClearBufferData); \
@@ -873,6 +881,8 @@
   HookExtension(PFNGLTEXSTORAGE3DMULTISAMPLEPROC, glTexStorage3DMultisample); \
   HookExtensionAlias(PFNGLTEXSTORAGE3DMULTISAMPLEPROC, glTexStorage3DMultisample, glTexStorage3DMultisampleOES); \
   HookExtension(PFNGLTEXTUREVIEWPROC, glTextureView); \
+  HookExtensionAlias(PFNGLTEXTUREVIEWPROC, glTextureView, glTextureViewEXT); \
+  HookExtensionAlias(PFNGLTEXTUREVIEWPROC, glTextureView, glTextureViewOES); \
   HookExtension(PFNGLBINDVERTEXBUFFERPROC, glBindVertexBuffer); \
   HookExtension(PFNGLVERTEXATTRIBFORMATPROC, glVertexAttribFormat); \
   HookExtension(PFNGLVERTEXATTRIBIFORMATPROC, glVertexAttribIFormat); \
@@ -3602,15 +3612,9 @@
     HookWrapper4(void, glgetnuniformuivkhr, GLuint, program, GLint, location, GLsizei, bufSize, GLuint *, params); \
     HookWrapper2(void, gleglimagetargettexture2does, GLenum, target, GLeglImageOES, image); \
     HookWrapper2(void, gleglimagetargetrenderbufferstorageoes, GLenum, target, GLeglImageOES, image); \
-    HookWrapper2(void, glblendequationioes, GLuint, buf, GLenum, mode); \
-    HookWrapper3(void, glblendequationseparateioes, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
-    HookWrapper3(void, glblendfuncioes, GLuint, buf, GLenum, src, GLenum, dst); \
-    HookWrapper5(void, glblendfuncseparateioes, GLuint, buf, GLenum, srcRGB, GLenum, dstRGB, GLenum, srcAlpha, GLenum, dstAlpha); \
-    HookWrapper5(void, glcolormaskioes, GLuint, index, GLboolean, r, GLboolean, g, GLboolean, b, GLboolean, a); \
     HookWrapper6(void, gldrawelementsinstancedbasevertexoes, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex); \
     HookWrapper5(void, glgetprogrambinaryoes, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLenum *, binaryFormat, void *, binary); \
     HookWrapper4(void, glprogrambinaryoes, GLuint, program, GLenum, binaryFormat, const void *, binary, GLint, length); \
-    HookWrapper8(void, gltextureviewoes, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
     HookWrapper10(void, glblitframebufferangle, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
     HookWrapper5(void, glrenderbufferstoragemultisampleangle, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper4(void, gldrawarraysinstancedangle, GLenum, mode, GLint, first, GLsizei, count, GLsizei, primcount); \
@@ -3661,10 +3665,6 @@
     HookWrapper1(GLsizei, glgetframebufferpixellocalstoragesizeext, GLuint, target); \
     HookWrapper3(void, glclearpixellocalstorageuiext, GLsizei, offset, GLsizei, n, const GLuint *, values); \
     HookWrapper9(void, gltexpagecommitmentext, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, commit); \
-    HookWrapper4(void, gltexstorage1dext, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width); \
-    HookWrapper5(void, gltexstorage2dext, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
-    HookWrapper6(void, gltexstorage3dext, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth); \
-    HookWrapper8(void, gltextureviewext, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
     HookWrapper3(void, glwindowrectanglesext, GLenum, mode, GLsizei, count, const GLint *, box); \
     HookWrapper1(GLuint64, glgettexturehandleimg, GLuint, texture); \
     HookWrapper2(GLuint64, glgettexturesamplerhandleimg, GLuint, texture, GLuint, sampler); \
@@ -5541,15 +5541,9 @@
     HandleUnsupported(PFNGLGETNUNIFORMUIVKHRPROC, glgetnuniformuivkhr); \
     HandleUnsupported(PFNGLEGLIMAGETARGETTEXTURE2DOESPROC, gleglimagetargettexture2does); \
     HandleUnsupported(PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC, gleglimagetargetrenderbufferstorageoes); \
-    HandleUnsupported(PFNGLBLENDEQUATIONIOESPROC, glblendequationioes); \
-    HandleUnsupported(PFNGLBLENDEQUATIONSEPARATEIOESPROC, glblendequationseparateioes); \
-    HandleUnsupported(PFNGLBLENDFUNCIOESPROC, glblendfuncioes); \
-    HandleUnsupported(PFNGLBLENDFUNCSEPARATEIOESPROC, glblendfuncseparateioes); \
-    HandleUnsupported(PFNGLCOLORMASKIOESPROC, glcolormaskioes); \
     HandleUnsupported(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXOESPROC, gldrawelementsinstancedbasevertexoes); \
     HandleUnsupported(PFNGLGETPROGRAMBINARYOESPROC, glgetprogrambinaryoes); \
     HandleUnsupported(PFNGLPROGRAMBINARYOESPROC, glprogrambinaryoes); \
-    HandleUnsupported(PFNGLTEXTUREVIEWOESPROC, gltextureviewoes); \
     HandleUnsupported(PFNGLBLITFRAMEBUFFERANGLEPROC, glblitframebufferangle); \
     HandleUnsupported(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEANGLEPROC, glrenderbufferstoragemultisampleangle); \
     HandleUnsupported(PFNGLDRAWARRAYSINSTANCEDANGLEPROC, gldrawarraysinstancedangle); \
@@ -5600,10 +5594,6 @@
     HandleUnsupported(PFNGLGETFRAMEBUFFERPIXELLOCALSTORAGESIZEEXTPROC, glgetframebufferpixellocalstoragesizeext); \
     HandleUnsupported(PFNGLCLEARPIXELLOCALSTORAGEUIEXTPROC, glclearpixellocalstorageuiext); \
     HandleUnsupported(PFNGLTEXPAGECOMMITMENTEXTPROC, gltexpagecommitmentext); \
-    HandleUnsupported(PFNGLTEXSTORAGE1DEXTPROC, gltexstorage1dext); \
-    HandleUnsupported(PFNGLTEXSTORAGE2DEXTPROC, gltexstorage2dext); \
-    HandleUnsupported(PFNGLTEXSTORAGE3DEXTPROC, gltexstorage3dext); \
-    HandleUnsupported(PFNGLTEXTUREVIEWEXTPROC, gltextureviewext); \
     HandleUnsupported(PFNGLWINDOWRECTANGLESEXTPROC, glwindowrectanglesext); \
     HandleUnsupported(PFNGLGETTEXTUREHANDLEIMGPROC, glgettexturehandleimg); \
     HandleUnsupported(PFNGLGETTEXTURESAMPLERHANDLEIMGPROC, glgettexturesamplerhandleimg); \
