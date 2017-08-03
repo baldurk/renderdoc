@@ -412,12 +412,12 @@ It is an :class:`AlphaMapping` that controls what behaviour to use. :data:`alpha
 )");
   AlphaMapping alpha;
   DOCUMENT("The primary color to use in conjunction with :data:`alpha`.");
-  FloatVector alphaCol;
+  FloatVector alphaCol = FloatVector(0.81f, 0.81f, 0.81f, 1.0f);
   DOCUMENT("The secondary color to use in conjunction with :data:`alpha`.");
-  FloatVector alphaColSecondary;
+  FloatVector alphaColSecondary = FloatVector(0.57f, 0.57f, 0.57f, 1.0f);
 
   DOCUMENT("The quality to use when saving to a ``JPG`` file. Valid values are between 1 and 100.");
-  int jpegQuality;
+  int jpegQuality = 90;
 };
 
 DECLARE_REFLECTION_STRUCT(TextureSave);
