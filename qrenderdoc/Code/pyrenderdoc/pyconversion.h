@@ -800,19 +800,29 @@ PyObject *ConvertToPy(PyObject *self, const T &in)
 // this is defined elsewhere for managing the opaque global_handle object
 extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle);
 extern "C" void HandleException(PyObject *global_handle);
+extern "C" bool IsThreadBlocking(PyObject *global_handle);
+extern "C" void SetThreadBlocking(PyObject *global_handle, bool block);
+
+struct ExceptionHandling
+{
+  bool failFlag = false;
+  PyObject *exObj = NULL;
+  PyObject *valueObj = NULL;
+  PyObject *tracebackObj = NULL;
+};
 
 // this function handles failures in callback functions. If we're synchronously calling the callback
 // from within an execute scope, then we can assign to failflag and let the error propagate upwards.
 // If we're not, then the callback is being executed on another thread with no knowledge of python,
 // so we need to use the global handle to try and emit the exception through the context. None of
 // this is multi-threaded because we're inside the GIL at all times
-inline void HandleCallbackFailure(PyObject *global_handle, bool &fail_flag)
+inline void HandleCallbackFailure(PyObject *global_handle, ExceptionHandling &exHandle)
 {
   // if there's no global handle assume we are not running in the usual environment, so there are no
   // external-to-python threads
   if(!global_handle)
   {
-    fail_flag = true;
+    exHandle.failFlag = true;
     return;
   }
 
@@ -822,7 +832,25 @@ inline void HandleCallbackFailure(PyObject *global_handle, bool &fail_flag)
   // we are executing synchronously, set the flag and return
   if(current == executing)
   {
-    fail_flag = true;
+    exHandle.failFlag = true;
+    return;
+  }
+
+  // if we have the blocking flag set, then we may be on another thread but we can still propagate
+  // up the error
+  if(IsThreadBlocking(global_handle))
+  {
+    exHandle.failFlag = true;
+
+    // we need to rethrow the exception to that thread, so fetch (and clear it) on this thread.
+    //
+    // Note that the exception can only propagate up to one place. However since we know that python
+    // is inherently single threaded, so if we're doing this blocking funciton call on another
+    // thread then we *know* there isn't python further up the stack. Therefore we're safe to
+    // swallow the exception here (since there's nowhere for it to bubble up to anyway) and rethrow
+    // on the python thread.
+    PyErr_Fetch(&exHandle.exObj, &exHandle.valueObj, &exHandle.tracebackObj);
+
     return;
   }
 
@@ -832,7 +860,8 @@ inline void HandleCallbackFailure(PyObject *global_handle, bool &fail_flag)
 }
 
 template <typename T>
-inline T get_return(const char *funcname, PyObject *result, PyObject *global_handle, bool &failflag)
+inline T get_return(const char *funcname, PyObject *result, PyObject *global_handle,
+                    ExceptionHandling &exHandle)
 {
   T val = T();
 
@@ -840,7 +869,7 @@ inline T get_return(const char *funcname, PyObject *result, PyObject *global_han
 
   if(!SWIG_IsOK(res))
   {
-    HandleCallbackFailure(global_handle, failflag);
+    HandleCallbackFailure(global_handle, exHandle);
 
     PyErr_Format(PyExc_TypeError, "Expected a '%s' for return value of callback in %s",
                  TypeName<T>(), funcname);
@@ -852,7 +881,8 @@ inline T get_return(const char *funcname, PyObject *result, PyObject *global_han
 }
 
 template <>
-inline void get_return(const char *funcname, PyObject *result, PyObject *global_handle, bool &failflag)
+inline void get_return(const char *funcname, PyObject *result, PyObject *global_handle,
+                       ExceptionHandling &exHandle)
 {
   Py_XDECREF(result);
 }
@@ -897,22 +927,23 @@ struct varfunc
   }
 
   ~varfunc() { Py_XDECREF(args); }
-  rettype call(const char *funcname, PyObject *func, PyObject *global_handle, bool &failflag)
+  rettype call(const char *funcname, PyObject *func, PyObject *global_handle,
+               ExceptionHandling &exHandle)
   {
     if(!func || func == Py_None || !PyCallable_Check(func) || !args)
     {
-      HandleCallbackFailure(global_handle, failflag);
+      HandleCallbackFailure(global_handle, exHandle);
       return rettype();
     }
 
     PyObject *result = PyObject_Call(func, args, 0);
 
     if(result == NULL)
-      HandleCallbackFailure(global_handle, failflag);
+      HandleCallbackFailure(global_handle, exHandle);
 
     Py_DECREF(args);
 
-    return get_return<rettype>(funcname, result, global_handle, failflag);
+    return get_return<rettype>(funcname, result, global_handle, exHandle);
   }
 
   int currentarg = 0;
@@ -939,7 +970,7 @@ struct ScopedFuncCall
 };
 
 template <typename funcType>
-funcType ConvertFunc(PyObject *self, const char *funcname, PyObject *func, bool &failflag)
+funcType ConvertFunc(PyObject *self, const char *funcname, PyObject *func, ExceptionHandling &exHandle)
 {
   // add a reference to the global object so it stays alive while we execute, in case this is an
   // async call
@@ -949,11 +980,11 @@ funcType ConvertFunc(PyObject *self, const char *funcname, PyObject *func, bool 
   if(globals)
     global_internal_handle = PyDict_GetItemString(globals, "_renderdoc_internal");
 
-  return [global_internal_handle, self, funcname, func, &failflag](auto... param) {
+  return [global_internal_handle, self, funcname, func, &exHandle](auto... param) {
     ScopedFuncCall gil(global_internal_handle);
 
     varfunc<typename funcType::result_type, decltype(param)...> f(self, funcname, param...);
-    return f.call(funcname, func, global_internal_handle, failflag);
+    return f.call(funcname, func, global_internal_handle, exHandle);
   };
 }
 

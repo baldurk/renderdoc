@@ -32,3 +32,12 @@ extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle)
 extern "C" void HandleException(PyObject *global_handle)
 {
 }
+
+extern "C" bool IsThreadBlocking(PyObject *global_handle)
+{
+  return false;
+}
+
+extern "C" void SetThreadBlocking(PyObject *global_handle, bool block)
+{
+}

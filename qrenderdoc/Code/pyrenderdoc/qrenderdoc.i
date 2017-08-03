@@ -77,9 +77,19 @@ CONTAINER_TYPEMAPS(QMap)
 
 %extend IReplayManager {
   void BlockInvoke(InvokeCallback m) {
+    PyObject *global_internal_handle = NULL;
+
+    PyObject *globals = PyEval_GetGlobals();
+    if(globals)
+      global_internal_handle = PyDict_GetItemString(globals, "_renderdoc_internal");
+
+    SetThreadBlocking(global_internal_handle, true);
+
     Py_BEGIN_ALLOW_THREADS
     $self->BlockInvoke(m);
     Py_END_ALLOW_THREADS
+
+    SetThreadBlocking(global_internal_handle, false);
   }
 };
 

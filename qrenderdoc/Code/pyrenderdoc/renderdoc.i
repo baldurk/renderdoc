@@ -53,12 +53,14 @@ CONTAINER_TYPEMAPS(rdctype::array)
 
 %typemap(in, fragment="pyconvert") std::function {
   PyObject *func = $input;
-  failed$argnum = false;
-  $1 = ConvertFunc<$1_ltype>(self, "$symname", func, failed$argnum);
+  $1 = ConvertFunc<$1_ltype>(self, "$symname", func, exHandle$argnum);
 }
 
-%typemap(argout) std::function (bool failed) {
-  if(failed) SWIG_fail;
+%typemap(argout) std::function (ExceptionHandling exHandle) {
+  if(exHandle.failFlag) {
+    PyErr_Restore(exHandle.exObj, exHandle.valueObj, exHandle.tracebackObj);
+    SWIG_fail;
+  }
 }
 
 // ignore some operators SWIG doesn't have to worry about

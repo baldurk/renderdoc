@@ -829,3 +829,18 @@ extern "C" void HandleException(PyObject *global_handle)
   if(redirector->context)
     emit redirector->context->exception(typeStr, valueStr, frames);
 }
+
+extern "C" bool IsThreadBlocking(PyObject *global_handle)
+{
+  OutputRedirector *redirector = (OutputRedirector *)global_handle;
+  if(redirector && redirector->context)
+    return redirector->context->threadBlocking();
+  return false;
+}
+
+extern "C" void SetThreadBlocking(PyObject *global_handle, bool block)
+{
+  OutputRedirector *redirector = (OutputRedirector *)global_handle;
+  if(redirector && redirector->context)
+    return redirector->context->setThreadBlocking(block);
+}
