@@ -1472,6 +1472,11 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     ObjDisp(physicalDevice)
         ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.features);
 
+    for(int i = VK_FORMAT_BEGIN_RANGE + 1; i < VK_FORMAT_END_RANGE; i++)
+      ObjDisp(physicalDevice)
+          ->GetPhysicalDeviceFormatProperties(Unwrap(physicalDevice), VkFormat(i),
+                                              &m_PhysicalDeviceData.fmtprops[i]);
+
     m_PhysicalDeviceData.readbackMemIndex =
         m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
     m_PhysicalDeviceData.uploadMemIndex =

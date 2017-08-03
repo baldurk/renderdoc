@@ -917,6 +917,20 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       attDesc.format = formats[f];
       stages[1].module = modules[MS2ARR];
 
+      // initialise to NULL
+      m_DepthMS2ArrayPipe[f] = NULL;
+      for(size_t s = 0; s < ARRAY_COUNT(sampleCounts); s++)
+        m_DepthArray2MSPipe[f][s] = NULL;
+
+      // if the format isn't supported at all, bail out and don't try to create anything
+      if(!(m_pDriver->GetFormatProperties(attDesc.format).optimalTilingFeatures &
+           VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT))
+      {
+        RDCDEBUG("Depth copies MSAA -> Array not supported for format %s",
+                 ToStr::Get(attDesc.format).c_str());
+        continue;
+      }
+
       VkRenderPass rp;
 
       vkr = m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &rp);
@@ -931,13 +945,22 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       m_pDriver->vkDestroyRenderPass(dev, rp, NULL);
 
       stages[1].module = modules[ARR2MS];
+      msaa.sampleShadingEnable = true;
+      msaa.minSampleShading = 1.0f;
 
       for(size_t s = 0; s < ARRAY_COUNT(sampleCounts); s++)
       {
         attDesc.samples = sampleCounts[s];
         msaa.rasterizationSamples = sampleCounts[s];
-        msaa.sampleShadingEnable = true;
-        msaa.minSampleShading = 1.0f;
+
+        // if this sample count isn't supported, don't create it
+        if(!(m_pDriver->GetDeviceProps().limits.framebufferDepthSampleCounts &
+             (uint32_t)attDesc.samples))
+        {
+          RDCDEBUG("Depth copies Array -> MSAA not supported for sample count %u on format %s",
+                   attDesc.samples, ToStr::Get(attDesc.format).c_str());
+          continue;
+        }
 
         vkr = m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &rp);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -949,12 +972,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
         m_pDriver->vkDestroyRenderPass(dev, rp, NULL);
-
-        attDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-        msaa.sampleShadingEnable = false;
-        msaa.minSampleShading = 0.0f;
-        msaa.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
       }
+
+      attDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+      msaa.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+      msaa.sampleShadingEnable = false;
+      msaa.minSampleShading = 0.0f;
     }
 
     // restore pipeline state to normal
