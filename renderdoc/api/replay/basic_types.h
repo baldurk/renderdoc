@@ -32,6 +32,10 @@
 #include <tuple>
 #include <vector>
 
+#ifndef DOCUMENT
+#define DOCUMENT(text)
+#endif
+
 // we provide a basic templated type that is a fixed array that just contains a pointer to the
 // element
 // array and a size. This could easily map to C as just void* and size but in C++ at least we can be
@@ -194,6 +198,7 @@ struct array
   const T &back() const { return *(elems + count - 1); }
 };
 
+DOCUMENT("");
 struct str : public rdctype::array<char>
 {
   str &operator=(const std::string &in);
@@ -226,6 +231,7 @@ struct str : public rdctype::array<char>
     return *this;
   }
 
+  DOCUMENT("");
   void assign(const char *const in, int32_t inCount)
   {
     Delete();
@@ -245,6 +251,7 @@ struct str : public rdctype::array<char>
   }
 
   operator const char *() const { return elems ? elems : ""; }
+  DOCUMENT("");
   const char *c_str() const { return elems ? elems : ""; }
 };
 
