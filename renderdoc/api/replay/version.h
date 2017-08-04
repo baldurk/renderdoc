@@ -93,8 +93,8 @@
 // The major and minor version that describe this build. These numbers are modified linearly
 // upstream and should not be modified downstream. You can set DISTRIBUTION_VERSION to include any
 // arbitrary release marker or package version you wish.
-#define RENDERDOC_VERSION_MAJOR 0
-#define RENDERDOC_VERSION_MINOR 35
+#define RENDERDOC_VERSION_MAJOR 1
+#define RENDERDOC_VERSION_MINOR 0
 
 #define RDOC_INTERNAL_VERSION_STRINGIZE2(a) #a
 #define RDOC_INTERNAL_VERSION_STRINGIZE(a) RDOC_INTERNAL_VERSION_STRINGIZE2(a)
