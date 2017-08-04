@@ -779,6 +779,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_EXT_texture_sRGB_RG8");
   m_GLESExtensions.push_back("GL_EXT_texture_storage");
   m_GLESExtensions.push_back("GL_EXT_texture_type_2_10_10_10_REV");
+  m_GLESExtensions.push_back("GL_EXT_texture_view");
   m_GLESExtensions.push_back("GL_KHR_blend_equation_advanced");
   m_GLESExtensions.push_back("GL_KHR_blend_equation_advanced_coherent");
   m_GLESExtensions.push_back("GL_KHR_context_flush_control");
@@ -788,12 +789,14 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_hdr");
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_ldr");
   m_GLESExtensions.push_back("GL_KHR_texture_compression_astc_sliced_3d");
+  m_GLESExtensions.push_back("GL_NV_viewport_array");
   m_GLESExtensions.push_back("GL_OES_compressed_ETC1_RGB8_texture");
   m_GLESExtensions.push_back("GL_OES_copy_image");
   m_GLESExtensions.push_back("GL_OES_depth24");
   m_GLESExtensions.push_back("GL_OES_depth32");
   m_GLESExtensions.push_back("GL_OES_depth_texture");
   m_GLESExtensions.push_back("GL_OES_depth_texture_cube_map");
+  m_GLESExtensions.push_back("GL_OES_draw_buffers_indexed");
   m_GLESExtensions.push_back("GL_OES_draw_elements_base_vertex");
   m_GLESExtensions.push_back("GL_OES_fbo_render_mipmap");
   m_GLESExtensions.push_back("GL_OES_geometry_shader");
@@ -809,6 +812,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_texture_border_clamp");
   m_GLESExtensions.push_back("GL_OES_texture_buffer");
   m_GLESExtensions.push_back("GL_OES_texture_compression_astc");
+  m_GLESExtensions.push_back("GL_OES_texture_cube_map_array");
   m_GLESExtensions.push_back("GL_OES_texture_float");
   m_GLESExtensions.push_back("GL_OES_texture_float_linear");
   m_GLESExtensions.push_back("GL_OES_texture_half_float");
@@ -816,8 +820,10 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_texture_npot");
   m_GLESExtensions.push_back("GL_OES_texture_stencil8");
   m_GLESExtensions.push_back("GL_OES_texture_storage_multisample_2d_array");
+  m_GLESExtensions.push_back("GL_OES_texture_view");
   m_GLESExtensions.push_back("GL_OES_vertex_array_object");
   m_GLESExtensions.push_back("GL_OES_vertex_half_float");
+  m_GLESExtensions.push_back("GL_OES_viewport_array");
   m_GLESExtensions.push_back("GL_OVR_multiview");
   m_GLESExtensions.push_back("GL_OVR_multiview2");
   m_GLESExtensions.push_back("GL_OVR_multiview_multisampled_render_to_texture");
