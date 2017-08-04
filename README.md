@@ -16,6 +16,10 @@ If you have any questions, suggestions or problems or you can [create an issue](
 * **Information for developing/contributing**: [CONTRIBUTING.md](CONTRIBUTING.md), [Compilation instructions](CONTRIBUTING.md#compiling), [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
 * **Code of Conduct**: [Contributor Covenant](CODE_OF_CONDUCT.md)
 
+### v1.x branch
+
+You are currently viewing the work-in-progress v1.x branch. This branch is seeing active feature development preparing for v1.0. You can switch to the v0.x branch to get a more stable and reliable but older build, or choose a v0.x nightly build above.
+
 Screenshots
 --------------
 
