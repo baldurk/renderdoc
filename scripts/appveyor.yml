@@ -2,7 +2,8 @@ version: '{build}'
 
 branches:
   only:
-  - master
+  - v0.x
+  - v1.x
 
 image: Visual Studio 2015
 
