@@ -580,7 +580,19 @@ namespace renderdocui.Windows
                     AddFileList();
 
                 if (trace != null || sel == null)
-                    sel = (DockContent)m_DisassemblyView.Parent;
+                {
+                    Control p = m_DisassemblyView.Parent;
+                    while (p != null)
+                    {
+                        if (p is DockContent)
+                        {
+                            sel = (DockContent)p;
+                            break;
+                        }
+
+                        p = p.Parent;
+                    }
+                }
 
                 sel.Show();
             }
