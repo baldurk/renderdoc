@@ -1579,6 +1579,10 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const c
                                                                          const char *exe,
                                                                          AndroidFlags *flags);
 
+DOCUMENT("Internal function that attempts to push Vulkan layer to Android application.");
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_PushLayerToAndroidApp(const char *host,
+                                                                           const char *exe);
+
 DOCUMENT("Internal function that attempts to modify APK contents, adding Vulkan layer.");
 extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(const char *host,
                                                                               const char *exe,

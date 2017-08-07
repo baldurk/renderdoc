@@ -1395,6 +1395,35 @@ string FindAndroidLayer(const string &abi, const string &layerName)
   return layer;
 }
 
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_PushLayerToAndroidApp(const char *host,
+                                                                           const char *exe)
+{
+  Process::ProcessResult result = {};
+  string packageName(basename(string(exe)));
+
+  RDCLOG("Attempting to push RenderDoc layer to %s", packageName.c_str());
+
+  int index = 0;
+  std::string deviceID;
+  Android::extractDeviceIDAndIndex(host, index, deviceID);
+
+  // Detect which ABI was installed on the device
+  string abi = DetermineInstalledABI(deviceID, packageName);
+
+  // Find the layer on host
+  string layerName("libVkLayer_GLES_RenderDoc.so");
+  string layerPath = FindAndroidLayer(abi, layerName);
+  if(layerPath.empty())
+    return false;
+
+  string layerDst = "/data/data/" + packageName + "/lib/";
+
+  result = adbExecCommand(deviceID, "push " + layerPath + " " + layerDst);
+
+  // Ensure the push succeeded
+  return SearchForAndroidLayer(deviceID, layerDst, layerName);
+}
+
 extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(const char *host,
                                                                               const char *exe,
                                                                               float *progress)
