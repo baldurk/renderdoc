@@ -1228,6 +1228,30 @@ bool CheckInstalledPermissions(const string &deviceID, const string &packageName
   return CheckPermissions(dump);
 }
 
+bool CheckRootAccess(const string &deviceID)
+{
+  RDCLOG("Checking for root access on %s", deviceID.c_str());
+
+  Process::ProcessResult result = {};
+
+  // Try switching adb to root and check a few indicators for success
+  // Nothing will fall over if we get a false positive here, it just enables
+  // additional methods of getting things set up.
+
+  result = adbExecCommand(deviceID, "root");
+
+  string whoami = trim(adbExecCommand(deviceID, "shell whoami").strStdout);
+  if(whoami == "root")
+    return true;
+
+  string checksu =
+      trim(adbExecCommand(deviceID, "shell test -e /system/xbin/su && echo found").strStdout);
+  if(checksu == "found")
+    return true;
+
+  return false;
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const char *host,
                                                                          const char *exe,
                                                                          AndroidFlags *flags)
