@@ -1298,6 +1298,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const c
     *flags |= AndroidFlags::MissingPermissions;
   }
 
+  if(CheckRootAccess(deviceID))
+  {
+    RDCLOG("Root access detected");
+    *flags |= AndroidFlags::RootAccess;
+  }
+
   return;
 }
 
