@@ -3325,6 +3325,10 @@ DOCUMENT(R"(A set of flags giving details of the current status of Android traca
 
   The application is not debuggable.
 
+.. data:: RootAccess
+
+   The device being targeted has root access.
+
 .. data:: Unfixable
 
   The current situation is not fixable automatically and requires user intervention/disambiguation.
@@ -3335,7 +3339,8 @@ enum class AndroidFlags : uint32_t
   MissingLibrary = 0x1,
   MissingPermissions = 0x2,
   NotDebuggable = 0x4,
-  Unfixable = 0x8,
+  RootAccess = 0x8,
+  Unfixable = 0x10,
 };
 
 BITMASK_OPERATORS(AndroidFlags);

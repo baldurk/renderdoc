@@ -86,6 +86,7 @@ private slots:
   void on_browseAdbPath_clicked();
   void on_Android_MaxConnectTimeout_valueChanged(double timeout);
   void on_Android_AdbExecutablePath_textEdited(const QString &path);
+  void on_Android_AutoPushLayerToApp_toggled(bool checked);
 
   // manual slots
   void formatter_valueChanged(int value);

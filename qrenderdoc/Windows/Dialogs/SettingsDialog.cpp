@@ -63,6 +63,7 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   }
   ui->Android_AdbExecutablePath->setText(m_Ctx.Config().Android_AdbExecutablePath);
   ui->Android_MaxConnectTimeout->setValue(m_Ctx.Config().Android_MaxConnectTimeout);
+  ui->Android_AutoPushLayerToApp->setChecked(m_Ctx.Config().Android_AutoPushLayerToApp);
 
   ui->TextureViewer_ResetRange->setChecked(m_Ctx.Config().TextureViewer_ResetRange);
   ui->TextureViewer_PerTexSettings->setChecked(m_Ctx.Config().TextureViewer_PerTexSettings);
@@ -375,6 +376,13 @@ void SettingsDialog::on_Android_AdbExecutablePath_textEdited(const QString &adb)
 {
   if(QFileInfo::exists(adb) || adb.isEmpty())
     m_Ctx.Config().Android_AdbExecutablePath = adb;
+
+  m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_Android_AutoPushLayerToApp_toggled(bool checked)
+{
+  m_Ctx.Config().Android_AutoPushLayerToApp = ui->Android_AutoPushLayerToApp->isChecked();
 
   m_Ctx.Config().Save();
 }
