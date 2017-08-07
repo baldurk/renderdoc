@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <QCheckBox>
 #include <QCoreApplication>
 #include <QDebug>
 #include <QFileDialog>
@@ -818,6 +819,10 @@ struct RDDialog
       QMessageBox::Icon, QWidget *parent, const QString &title, const QString &text,
       QMessageBox::StandardButtons buttons = QMessageBox::Ok,
       QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
+  static QMessageBox::StandardButton messageBoxChecked(
+      QMessageBox::Icon, QWidget *parent, const QString &title, const QString &text,
+      QCheckBox *checkBox, bool &checked, QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+      QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
 
   static QMessageBox::StandardButton information(
       QWidget *parent, const QString &title, const QString &text,
@@ -834,6 +839,16 @@ struct RDDialog
       QMessageBox::StandardButton defaultButton = QMessageBox::NoButton)
   {
     return messageBox(QMessageBox::Question, parent, title, text, buttons, defaultButton);
+  }
+
+  static QMessageBox::StandardButton questionChecked(
+      QWidget *parent, const QString &title, const QString &text, QCheckBox *checkBox, bool &checked,
+      QMessageBox::StandardButtons buttons = QMessageBox::StandardButtons(QMessageBox::Yes |
+                                                                          QMessageBox::No),
+      QMessageBox::StandardButton defaultButton = QMessageBox::NoButton)
+  {
+    return messageBoxChecked(QMessageBox::Question, parent, title, text, checkBox, checked, buttons,
+                             defaultButton);
   }
 
   static QMessageBox::StandardButton warning(
