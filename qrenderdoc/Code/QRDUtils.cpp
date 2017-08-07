@@ -442,6 +442,29 @@ QMessageBox::StandardButton RDDialog::messageBox(QMessageBox::Icon icon, QWidget
   return ret;
 }
 
+QMessageBox::StandardButton RDDialog::messageBoxChecked(QMessageBox::Icon icon, QWidget *parent,
+                                                        const QString &title, const QString &text,
+                                                        QCheckBox *checkBox, bool &checked,
+                                                        QMessageBox::StandardButtons buttons,
+                                                        QMessageBox::StandardButton defaultButton)
+{
+  bool isChecked = checked;
+  QMessageBox::StandardButton ret = defaultButton;
+
+  // if we're already on the right thread, this boils down to a function call
+  GUIInvoke::blockcall([&]() {
+    QMessageBox mb(icon, title, text, buttons, parent);
+    mb.setDefaultButton(defaultButton);
+    mb.setCheckBox(checkBox);
+    show(&mb);
+    isChecked = mb.checkBox()->isChecked();
+    ret = mb.standardButton(mb.clickedButton());
+  });
+
+  checked = isChecked;
+  return ret;
+}
+
 QString RDDialog::getExistingDirectory(QWidget *parent, const QString &caption, const QString &dir,
                                        QFileDialog::Options options)
 {
