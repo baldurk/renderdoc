@@ -387,9 +387,6 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
         else
           val &= ~EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR;
 
-        // remove NO_ERROR bit
-        val &= ~EGL_CONTEXT_OPENGL_NO_ERROR_KHR;
-
         flagsFound = true;
       }
 
