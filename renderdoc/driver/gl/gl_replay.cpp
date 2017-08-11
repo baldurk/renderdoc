@@ -2330,6 +2330,8 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
       DebugData.outWidth = float(width);
       DebugData.outHeight = float(height);
 
+      GLenum baseFormat = !IsCompressedFormat(intFormat) ? GetBaseFormat(intFormat) : eGL_RGBA;
+
       for(GLsizei d = 0; d < (newtarget == eGL_TEXTURE_3D ? depth : 1); d++)
       {
         TextureDisplay texDisplay;
@@ -2366,8 +2368,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
 
         // for depth, ensure we only write to the red channel, don't write into 'stencil' in green
         // with depth data
-        if(GetBaseFormat(intFormat) == eGL_DEPTH_COMPONENT ||
-           GetBaseFormat(intFormat) == eGL_DEPTH_STENCIL)
+        if(baseFormat == eGL_DEPTH_COMPONENT || baseFormat == eGL_DEPTH_STENCIL)
         {
           gl.glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE);
         }
@@ -2378,7 +2379,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
       }
 
       // do one more time for the stencil
-      if(GetBaseFormat(intFormat) == eGL_DEPTH_STENCIL)
+      if(baseFormat == eGL_DEPTH_STENCIL)
       {
         TextureDisplay texDisplay;
 
