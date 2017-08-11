@@ -2510,6 +2510,10 @@ void SerialiseProgramBindings(const GLHookSet &gl, Serialiser *ser, GLuint prog,
 
         used |= mask;
 
+        if(!strncmp("gl_", n.c_str(), 3))
+          continue;    // GL_INVALID_OPERATION if name starts with reserved gl_ prefix (for both
+                       // glBindAttribLocation and glBindFragDataLocation)
+
         if(sigType == 0)
         {
           gl.glBindAttribLocation(prog, (GLuint)idx, n.c_str());
