@@ -74,7 +74,7 @@ struct GLHookSet
   PFNGLGETFLOATVPROC glGetFloatv;
   PFNGLGETDOUBLEVPROC glGetDoublev;
   PFNGLGETINTEGERVPROC glGetIntegerv;
-  PFNGLGETPOINTERVPROC glGetPointerv;
+  PFNGLGETPOINTERVPROC glGetPointerv;    // aliases glGetPointervKHR
   PFNGLGETSTRINGPROC glGetString;
   PFNGLHINTPROC glHint;
   PFNGLLOGICOPPROC glLogicOp;
@@ -156,13 +156,13 @@ struct GLHookSet
   PFNGLGETPROGRAMRESOURCEINDEXPROC glGetProgramResourceIndex;
   PFNGLGETPROGRAMRESOURCEIVPROC glGetProgramResourceiv;
   PFNGLGETPROGRAMRESOURCENAMEPROC glGetProgramResourceName;
-  PFNGLGETPROGRAMPIPELINEIVPROC glGetProgramPipelineiv;
-  PFNGLGETPROGRAMPIPELINEINFOLOGPROC glGetProgramPipelineInfoLog;
+  PFNGLGETPROGRAMPIPELINEIVPROC glGetProgramPipelineiv;              // aliases glGetProgramPipelineivEXT
+  PFNGLGETPROGRAMPIPELINEINFOLOGPROC glGetProgramPipelineInfoLog;    // aliases glGetProgramPipelineInfoLogEXT
   PFNGLGETPROGRAMBINARYPROC glGetProgramBinary;
   PFNGLGETPROGRAMRESOURCELOCATIONPROC glGetProgramResourceLocation;
   PFNGLGETPROGRAMRESOURCELOCATIONINDEXPROC glGetProgramResourceLocationIndex;
   PFNGLGETPROGRAMSTAGEIVPROC glGetProgramStageiv;
-  PFNGLGETGRAPHICSRESETSTATUSPROC glGetGraphicsResetStatus;    // aliases glGetGraphicsResetStatusARB
+  PFNGLGETGRAPHICSRESETSTATUSPROC glGetGraphicsResetStatus;    // aliases glGetGraphicsResetStatusARB, glGetGraphicsResetStatusEXT
   PFNGLGETOBJECTLABELPROC glGetObjectLabel;            // aliases glGetObjectLabelKHR
   PFNGLGETOBJECTLABELEXTPROC glGetObjectLabelEXT;
   PFNGLGETOBJECTPTRLABELPROC glGetObjectPtrLabel;      // aliases glGetObjectPtrLabelKHR
@@ -187,7 +187,7 @@ struct GLHookSet
   PFNGLGETTEXPARAMETERIIVPROC glGetTexParameterIiv;      // aliases glGetTexParameterIivEXT, glGetTexParameterIivOES
   PFNGLGETTEXPARAMETERIUIVPROC glGetTexParameterIuiv;    // aliases glGetTexParameterIuivEXT, glGetTexParameterIuivOES
   PFNGLCLAMPCOLORPROC glClampColor;                      // aliases glClampColorARB
-  PFNGLREADNPIXELSPROC glReadnPixels;                    // aliases glReadnPixelsARB
+  PFNGLREADNPIXELSPROC glReadnPixels;                    // aliases glReadnPixelsARB, glReadnPixelsEXT
   PFNGLGETSAMPLERPARAMETERIIVPROC glGetSamplerParameterIiv;      // aliases glGetSamplerParameterIivEXT, glGetSamplerParameterIivOES
   PFNGLGETSAMPLERPARAMETERIUIVPROC glGetSamplerParameterIuiv;    // aliases glGetSamplerParameterIuivEXT, glGetSamplerParameterIuivOES
   PFNGLGETSAMPLERPARAMETERFVPROC glGetSamplerParameterfv;
@@ -215,8 +215,8 @@ struct GLHookSet
   PFNGLGETUNIFORMUIVPROC glGetUniformuiv;    // aliases glGetUniformuivEXT
   PFNGLGETUNIFORMDVPROC glGetUniformdv;
   PFNGLGETNUNIFORMDVPROC glGetnUniformdv;                // aliases glGetnUniformdvARB
-  PFNGLGETNUNIFORMFVPROC glGetnUniformfv;                // aliases glGetnUniformfvARB
-  PFNGLGETNUNIFORMIVPROC glGetnUniformiv;                // aliases glGetnUniformivARB
+  PFNGLGETNUNIFORMFVPROC glGetnUniformfv;                // aliases glGetnUniformfvARB, glGetnUniformfvEXT
+  PFNGLGETNUNIFORMIVPROC glGetnUniformiv;                // aliases glGetnUniformivARB, glGetnUniformivEXT
   PFNGLGETNUNIFORMUIVPROC glGetnUniformuiv;              // aliases glGetnUniformuivARB
   PFNGLGETVERTEXATTRIBIIVPROC glGetVertexAttribIiv;      // aliases glGetVertexAttribIivEXT
   PFNGLGETVERTEXATTRIBIUIVPROC glGetVertexAttribIuiv;    // aliases glGetVertexAttribIuivEXT
@@ -250,24 +250,24 @@ struct GLHookSet
   PFNGLDELETESHADERPROC glDeleteShader;
   PFNGLSHADERSOURCEPROC glShaderSource;
   PFNGLCOMPILESHADERPROC glCompileShader;
-  PFNGLCREATESHADERPROGRAMVPROC glCreateShaderProgramv;
+  PFNGLCREATESHADERPROGRAMVPROC glCreateShaderProgramv;    // aliases glCreateShaderProgramvEXT
   PFNGLCREATEPROGRAMPROC glCreateProgram;
   PFNGLDELETEPROGRAMPROC glDeleteProgram;
   PFNGLATTACHSHADERPROC glAttachShader;
   PFNGLDETACHSHADERPROC glDetachShader;
   PFNGLRELEASESHADERCOMPILERPROC glReleaseShaderCompiler;
   PFNGLLINKPROGRAMPROC glLinkProgram;
-  PFNGLPROGRAMPARAMETERIPROC glProgramParameteri;    // aliases glProgramParameteriARB
+  PFNGLPROGRAMPARAMETERIPROC glProgramParameteri;    // aliases glProgramParameteriARB, glProgramParameteriEXT
   PFNGLUSEPROGRAMPROC glUseProgram;
   PFNGLSHADERBINARYPROC glShaderBinary;
   PFNGLPROGRAMBINARYPROC glProgramBinary;
-  PFNGLUSEPROGRAMSTAGESPROC glUseProgramStages;
+  PFNGLUSEPROGRAMSTAGESPROC glUseProgramStages;                 // aliases glUseProgramStagesEXT
   PFNGLVALIDATEPROGRAMPROC glValidateProgram;
-  PFNGLGENPROGRAMPIPELINESPROC glGenProgramPipelines;
-  PFNGLBINDPROGRAMPIPELINEPROC glBindProgramPipeline;
-  PFNGLACTIVESHADERPROGRAMPROC glActiveShaderProgram;
-  PFNGLDELETEPROGRAMPIPELINESPROC glDeleteProgramPipelines;
-  PFNGLVALIDATEPROGRAMPIPELINEPROC glValidateProgramPipeline;
+  PFNGLGENPROGRAMPIPELINESPROC glGenProgramPipelines;           // aliases glGenProgramPipelinesEXT
+  PFNGLBINDPROGRAMPIPELINEPROC glBindProgramPipeline;           // aliases glBindProgramPipelineEXT
+  PFNGLACTIVESHADERPROGRAMPROC glActiveShaderProgram;           // aliases glActiveShaderProgramEXT
+  PFNGLDELETEPROGRAMPIPELINESPROC glDeleteProgramPipelines;     // aliases glDeleteProgramPipelinesEXT
+  PFNGLVALIDATEPROGRAMPIPELINEPROC glValidateProgramPipeline;   // aliases glValidateProgramPipelineEXT
   PFNGLDEBUGMESSAGECALLBACKPROC glDebugMessageCallback;    // aliases glDebugMessageCallbackARB, glDebugMessageCallbackKHR
   PFNGLDEBUGMESSAGECONTROLPROC glDebugMessageControl;      // aliases glDebugMessageControlARB, glDebugMessageControlKHR
   PFNGLDEBUGMESSAGEINSERTPROC glDebugMessageInsert;        // aliases glDebugMessageInsertARB, glDebugMessageInsertKHR
@@ -282,7 +282,7 @@ struct GLHookSet
   PFNGLISBUFFERPROC glIsBuffer;              // aliases glIsBufferARB
   PFNGLISFRAMEBUFFERPROC glIsFramebuffer;    // aliases glIsFramebufferEXT
   PFNGLISPROGRAMPROC glIsProgram;
-  PFNGLISPROGRAMPIPELINEPROC glIsProgramPipeline;
+  PFNGLISPROGRAMPIPELINEPROC glIsProgramPipeline;    // aliases glIsProgramPipelineEXT
   PFNGLISQUERYPROC glIsQuery;                  // aliases glIsQueryARB, glIsQueryEXT
   PFNGLISRENDERBUFFERPROC glIsRenderbuffer;    // aliases glIsRenderbufferEXT
   PFNGLISSAMPLERPROC glIsSampler;
@@ -592,7 +592,7 @@ struct GLHookSet
   PFNGLDRAWELEMENTSINSTANCEDPROC glDrawElementsInstanced;    // aliases glDrawElementsInstancedARB, glDrawElementsInstancedEXT
   PFNGLDRAWELEMENTSINSTANCEDBASEINSTANCEPROC glDrawElementsInstancedBaseInstance;    // aliases glDrawElementsInstancedBaseInstanceEXT
   PFNGLDRAWELEMENTSBASEVERTEXPROC glDrawElementsBaseVertex;     // aliases glDrawElementsBaseVertexEXT, glDrawElementsBaseVertexOES
-  PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC glDrawElementsInstancedBaseVertex;   // aliases glDrawElementsInstancedBaseVertexEXT, DrawElementsInstancedBaseVertexOES
+  PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC glDrawElementsInstancedBaseVertex;   // aliases glDrawElementsInstancedBaseVertexEXT, glDrawElementsInstancedBaseVertexOES
   PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEPROC glDrawElementsInstancedBaseVertexBaseInstance;    // aliases glDrawElementsInstancedBaseVertexBaseInstanceEXT
   PFNGLMULTIDRAWARRAYSPROC glMultiDrawArrays;    // aliases glMultiDrawArraysEXT
   PFNGLMULTIDRAWELEMENTSPROC glMultiDrawElements;
