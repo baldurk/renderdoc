@@ -5,6 +5,8 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UI", "UI", "{89059266-9C4E-4637-AB1D-BFF1DC15096B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qrenderdoc", "qrenderdoc\qrenderdoc_local.vcxproj", "{A14A6AE5-02B1-35FE-BE59-B3E7C273B40B}"
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderdoc", "renderdoc\renderdoc.vcxproj", "{E2B46D67-90E2-40B6-9597-72930E7845E5}"
 	ProjectSection(ProjectDependencies) = postProject
 		{7893E300-3ED0-7F4C-158F-67EA63934C57} = {7893E300-3ED0-7F4C-158F-67EA63934C57}
@@ -70,8 +72,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IHV", "IHV", "{4DA2F3E3-9A65-45DD-A69B-82C7757D4904}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "d3d8", "renderdoc\driver\d3d8\renderdoc_d3d8.vcxproj", "{9C4487E8-EEB0-4A7F-BD81-23F81CD24E22}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qrenderdoc", "qrenderdoc\qrenderdoc_local.vcxproj", "{A14A6AE5-02B1-35FE-BE59-B3E7C273B40B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
