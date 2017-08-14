@@ -1,3 +1,7 @@
+# Soft-locked branch
+
+This branch (v0.x) is soft-locked. Active development is continuing on the v1.x branch, and v0.x will only get cherry-picked fixes. Please open all PRs against v1.x, and changes will be manually moved across to v0.x as and when needed.
+
 # Contributing to RenderDoc
 ----
 
