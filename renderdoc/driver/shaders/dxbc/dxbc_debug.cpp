@@ -39,12 +39,12 @@ namespace ShaderDebug
 {
 static float round_ne(float x)
 {
-  // if on 0.5 boundary
-  if(int(x + 0.5f) != int(x))
-    return int(x) % 2 == 0 ? float(int(x)) : float(int(x + 1));
+  if(!_finitef(x) || _isnanf(x))
+    return x;
 
-  // normal round
-  return x < 0 ? x + 0.5f : x;
+  float rem = remainderf(x, 1.0f);
+
+  return x - rem;
 }
 
 VarType State::OperationType(const OpcodeType &op) const
