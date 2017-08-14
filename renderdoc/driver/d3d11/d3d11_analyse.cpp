@@ -1554,7 +1554,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
     {
       const SigParameter &prev = dxbc->m_InputSig[i - 1];
 
-      if(prev.compCount <= 2 && prev.regChannelMask <= 0x3)
+      if(prev.regIndex != dxbc->m_InputSig[i].regIndex && prev.compCount <= 2 &&
+         prev.regChannelMask <= 0x3)
         arrayLength = 1;
     }
 
