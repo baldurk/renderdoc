@@ -539,7 +539,7 @@ void CaptureDialog::androidWarn_mouseClick()
       // Call into layer push routine, then continue
       LambdaThread *push = new LambdaThread([this, exe, &pushSucceeded]() {
         QByteArray hostnameBytes = m_Ctx.Replay().CurrentRemote()->Hostname.toUtf8();
-        if(RENDERDOC_PushLayerToAndroidApp(hostnameBytes.data(), exe.toUtf8().data()))
+        if(RENDERDOC_PushLayerToInstalledAndroidApp(hostnameBytes.data(), exe.toUtf8().data()))
         {
           // Sucess!
           pushSucceeded = true;

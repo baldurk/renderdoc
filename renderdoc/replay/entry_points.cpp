@@ -1401,8 +1401,8 @@ string FindAndroidLayer(const string &abi, const string &layerName)
   return layer;
 }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_PushLayerToAndroidApp(const char *host,
-                                                                           const char *exe)
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_PushLayerToInstalledAndroidApp(const char *host,
+                                                                                    const char *exe)
 {
   Process::ProcessResult result = {};
   string packageName(basename(string(exe)));
