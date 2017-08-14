@@ -41,16 +41,14 @@
       <Directory Id='ProgramFilesFolder' Name='PFiles'>
         <Directory Id='INSTALLDIR' Name='RenderDoc'>
 
-          <Component Id='RenderDocUI' Guid='0DB375D5-7712-4853-AA75-536DF863C827'>
-            <File Id='renderdocuiEXE' Name='renderdocui.exe' DiskId='1' Source='dist/Release32/renderdocui.exe' KeyPath='yes'>
+          <Component Id='QRenderDoc' Guid='0DB375D5-7712-4853-AA75-536DF863C827'>
+            <File Id='qrenderdocEXE' Name='qrenderdoc.exe' DiskId='1' Source='dist/Release32/qrenderdoc.exe' KeyPath='yes'>
               <Shortcut Id="startmenuRenderDoc" Directory="ProgramMenuDir" Name="RenderDoc" WorkingDirectory='INSTALLDIR' Icon="icon.ico" IconIndex="0" Advertise="yes" />
             </File>
-            <File Id='renderdocuiPDB' Name='renderdocui.pdb' DiskId='1' Source='dist/Release32/renderdocui.pdb' />
-            <File Id='renderdocuiCFG' Name='renderdocui.exe.config' DiskId='1' Source='dist/Release32/renderdocui.exe.config' />
 
             <RegistryValue Root="HKLM" Id="VerbRDC" Action="write" 
               Key="Software\Classes\RenderDoc.RDCCapture.1\shell\open\command" 
-              Value='"[#renderdocuiEXE]" "%1"' 
+              Value='"[#qrenderdocEXE]" "%1"'
               Type="expandable" />
             <RegistryValue Root="HKLM" Id="VerbDescRDC" Action="write" 
               Key="Software\Classes\RenderDoc.RDCCapture.1" 
@@ -58,7 +56,7 @@
               Type="expandable" />
             <RegistryValue Root="HKLM" Id="VerbIconRDC" Action="write" 
               Key="Software\Classes\RenderDoc.RDCCapture.1\DefaultIcon" 
-              Value='[#renderdocuiEXE]' 
+              Value='[#qrenderdocEXE]'
               Type="expandable" />
             <RegistryValue Root="HKLM" Id="RDCProgIDCLSID" Action="write" 
               Key="Software\Classes\RenderDoc.RDCCapture.1\CLSID" 
@@ -67,7 +65,7 @@
 
             <RegistryValue Root="HKLM" Id="VerbCAP" Action="write" 
               Key="Software\Classes\RenderDoc.RDCSettings.1\shell\open\command" 
-              Value='"[#renderdocuiEXE]" "%1"' 
+              Value='"[#qrenderdocEXE]" "%1"'
               Type="expandable" />
             <RegistryValue Root="HKLM" Id="VerbDescCAP" Action="write" 
               Key="Software\Classes\RenderDoc.RDCSettings.1" 
@@ -75,7 +73,7 @@
               Type="expandable" />
             <RegistryValue Root="HKLM" Id="VerbIconCAP" Action="write" 
               Key="Software\Classes\RenderDoc.RDCSettings.1\DefaultIcon" 
-              Value='[#renderdocuiEXE]' 
+              Value='[#qrenderdocEXE]'
               Type="expandable" />
             
           </Component>
@@ -166,39 +164,39 @@
      
       <Component Id="ImageOpenWith" Guid="1F56AF06-3E83-4D7E-85A2-6A309A55FF4F">
         <RegistryValue Root="HKLM" Id="RDCOpenWithCommand" Action="write" KeyPath='yes'
-          Key="Software\Classes\Applications\renderdocui.exe\shell\open\command" 
-          Value='"[#renderdocuiEXE]" "%1"'
+          Key="Software\Classes\Applications\qrenderdoc.exe\shell\open\command"
+          Value='"[#qrenderdocEXE]" "%1"'
           Type="string" />
 
         <RegistryValue Root="HKLM" Id="RDCOpenWithDDS" Action="write"
-          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Key="Software\Classes\Applications\qrenderdoc.exe\SupportedTypes"
           Name='.dds'  Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithHDR" Action="write"
-          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Key="Software\Classes\Applications\qrenderdoc.exe\SupportedTypes"
           Name='.hdr'  Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithJPG" Action="write"
-          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Key="Software\Classes\Applications\qrenderdoc.exe\SupportedTypes"
           Name='.jpg'  Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithJPEG" Action="write"
-          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Key="Software\Classes\Applications\qrenderdoc.exe\SupportedTypes"
           Name='.jpeg'  Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithPNG" Action="write"
-          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Key="Software\Classes\Applications\qrenderdoc.exe\SupportedTypes"
           Name='.png'  Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithEXR" Action="write"
-          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Key="Software\Classes\Applications\qrenderdoc.exe\SupportedTypes"
           Name='.exr'  Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithTGA" Action="write"
-          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Key="Software\Classes\Applications\qrenderdoc.exe\SupportedTypes"
           Name='.tga'  Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithBMP" Action="write"
-          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Key="Software\Classes\Applications\qrenderdoc.exe\SupportedTypes"
           Name='.bmp'  Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithGIF" Action="write"
-          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Key="Software\Classes\Applications\qrenderdoc.exe\SupportedTypes"
           Name='.gif'  Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithPSD" Action="write"
-          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Key="Software\Classes\Applications\qrenderdoc.exe\SupportedTypes"
           Name='.psd'  Value='' Type="string" />
 
         <RegistryValue Root="HKLM" Id="RDCOpenWithProgidDDS" Action="write"
@@ -250,7 +248,7 @@
 
     <Feature Id='Complete' Title='RenderDoc' Description='Everything included.' AllowAdvertise='no' Absent='disallow' Display='expand' Level='1' ConfigurableDirectory='INSTALLDIR'>
       <Feature Id='MainProgram' Title='Program' Description='The main executable with everything needed to capture and replay.' AllowAdvertise='no' Absent='disallow' Level='1'>
-        <ComponentRef Id='RenderDocUI' />
+        <ComponentRef Id='QRenderDoc' />
         <ComponentRef Id='RenderDocCPP' />
         <ComponentRef Id='RenderDocCMD' />
 
@@ -293,7 +291,7 @@
     <WixVariable Id="WixUIDialogBmp" Value="scripts/installer/dlgbmp.bmp" />
 
     <Icon Id="chm.ico"  SourceFile="scripts/installer/chm.ico" />
-    <Icon Id="icon.ico" SourceFile="renderdocui/Resources/icon.ico" />
+    <Icon Id="icon.ico" SourceFile="qrenderdoc/Resources/icon.ico" />
     <Property Id="ARPPRODUCTICON" Value="icon.ico" />
     <Property Id="ARPHELPLINK" Value="http://renderdoc.org/" />
 

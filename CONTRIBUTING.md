@@ -168,8 +168,6 @@ There are [several pages](https://github.com/baldurk/renderdoc/wiki/Code-Dives) 
             ...                         ; everything else in here consists of the core renderdoc runtime
         renderdoccmd/                   ; A small C++ utility program that runs to do various little tasks
         renderdocshim/                  ; A tiny C DLL using only kernel32.dll that is used for global hooking
-        renderdocui/                    ; The .NET UI layer built on top of renderdoc/
-            3rdparty/                   ; third party utilities & libraries included
         qrenderdoc/                     ; The Qt UI layer built on top of renderdoc/
         docs/                           ; source documentation for the .chm file or http://docs.renderdoc.org/
                                         ; in the Sandcastle help file builder

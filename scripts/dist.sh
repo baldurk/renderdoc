@@ -15,9 +15,6 @@ if [ $# -ne 1 ] || [ $1 != "autobuild" ]; then
 	echo "Have you rebuilt the documentation? (cd docs/ && ./make.sh htmlhelp)"
 	read;
 
-	echo "Have you built the python libraries? (cd renderdocui/3rdparty/ironpython/ && ./compilelibs.sh /path/to/IronPython)"
-	read;
-
 	echo "Have you marked the git commit hash in version info? (./scripts/hash_version.sh)"
 	read;
 
@@ -39,9 +36,6 @@ popd
 pushd Win32/Release
 find * -not -path 'obj*' -exec cp -r --parents '{}' ../../dist/Release32/ \;
 popd
-
-cp renderdocui/3rdparty/ironpython/pythonlibs.zip dist/Release64/
-cp renderdocui/3rdparty/ironpython/pythonlibs.zip dist/Release32/
 
 # Copy in d3dcompiler from windows kit 8.1
 cp /c/Program\ Files\ \(x86\)/Windows\ Kits/8.1/Redist/D3D/x64/d3dcompiler_47.dll dist/Release64/
@@ -91,10 +85,8 @@ fi
 cp -R dist/Release64 dist/ReleasePDBs64
 cp -R dist/Release32 dist/ReleasePDBs32
 
-# Remove all pdbs except renderdocui.pdb (which we keep so we can get callstack crashes)
+# Remove all pdbs
 find dist/Release{32,64}/ -iname '*.pdb' -exec rm '{}' \;
-cp dist/ReleasePDBs32/renderdocui.pdb dist/Release32/
-cp dist/ReleasePDBs64/renderdocui.pdb dist/Release64/
 
 # Remove any build associated files that might have gotten dumped in the folders
 rm -f dist/Release{32,64}/*.{exp,lib,metagen,xml} dist/Release{32,64}/*.vshost.*

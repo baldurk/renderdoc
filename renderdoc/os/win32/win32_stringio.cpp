@@ -253,7 +253,7 @@ string GetReplayAppFilename()
 
   string path = StringFormat::Wide2UTF8(wstring(curFile));
   path = dirname(path);
-  string exe = path + "/renderdocui.exe";
+  string exe = path + "/qrenderdoc.exe";
 
   FILE *f = FileIO::fopen(exe.c_str(), "rb");
   if(f)
@@ -262,9 +262,9 @@ string GetReplayAppFilename()
     return exe;
   }
 
-  // if renderdocui.exe doesn't live in the same dir, we must be in x86/
+  // if qrenderdoc.exe doesn't live in the same dir, we must be in x86/
   // so look one up the tree.
-  exe = path + "/../renderdocui.exe";
+  exe = path + "/../qrenderdoc.exe";
 
   f = FileIO::fopen(exe.c_str(), "rb");
   if(f)

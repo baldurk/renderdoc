@@ -207,7 +207,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\renderdocui\Resources\icon.ico" />
+    <None Include="..\qrenderdoc\Resources\icon.ico" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\renderdoc\renderdoc.vcxproj">

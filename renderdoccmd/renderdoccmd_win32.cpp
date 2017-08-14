@@ -93,7 +93,7 @@ INT_PTR CALLBACK CrashHandlerProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
           L"states and local memory at the time of the "
           L"crash & thread stacks, etc. The diagnostic log contains diagnostic messages like "
           L"warnings and errors.\n\n"
-          L"The only other information sent is the version of RenderDoc, C# exception callstack, "
+          L"The only other information sent is the version of RenderDoc, "
           L"and any notes you include.\n\n"
           L"Any repro steps or notes would be helpful to include with the report. If you'd like to "
           L"be contacted about the bug "
@@ -454,7 +454,7 @@ struct UpgradeCommand : public Command
     // run original UI exe and tell it an update succeeded
     wstring cmdline = L"\"";
     cmdline += wide_path;
-    cmdline += L"/renderdocui.exe\" ";
+    cmdline += L"/qrenderdoc.exe\" ";
     if(successful)
       cmdline += L"--updatedone";
     else
@@ -594,36 +594,6 @@ struct CrashHandlerCommand : public Command
                 (DLGPROC)CrashHandlerProc);
 
       report += "\n\nRepro steps/Notes:\n\n" + reproSteps;
-
-      {
-        FILE *f = NULL;
-        _wfopen_s(&f, logpath.c_str(), L"r");
-        if(f)
-        {
-          fseek(f, 0, SEEK_END);
-          long filesize = ftell(f);
-          fseek(f, 0, SEEK_SET);
-
-          if(filesize > 10)
-          {
-            char *error_log = new char[filesize + 1];
-            memset(error_log, 0, filesize + 1);
-
-            fread(error_log, 1, filesize, f);
-
-            char *managed_callstack = strstr(error_log, "--- Begin C# Exception Data ---");
-            if(managed_callstack)
-            {
-              report += managed_callstack;
-              report += "\n\n";
-            }
-
-            delete[] error_log;
-          }
-
-          fclose(f);
-        }
-      }
 
       if(uploadReport)
       {

@@ -34,7 +34,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\renderdocui\Resources\icon.ico">
+    <None Include="..\qrenderdoc\Resources\icon.ico">
       <Filter>Resources</Filter>
     </None>
   </ItemGroup>

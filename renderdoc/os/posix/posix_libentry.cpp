@@ -42,8 +42,7 @@ void library_loaded()
   string curfile;
   FileIO::GetExecutableFilename(curfile);
 
-  if(curfile.find("/renderdoccmd") != string::npos ||
-     curfile.find("/renderdocui") != string::npos || curfile.find("/qrenderdoc") != string::npos ||
+  if(curfile.find("/renderdoccmd") != string::npos || curfile.find("/qrenderdoc") != string::npos ||
      curfile.find("org.renderdoc.renderdoccmd") != string::npos)
   {
     RDCDEBUG("Not creating hooks - in replay app");

@@ -296,9 +296,7 @@ private:
         string app = lpApplicationName;
         app = strlower(app);
 
-        if(app.find("renderdoccmd.exe") != string::npos ||
-           app.find("renderdocui.vshost.exe") != string::npos ||
-           app.find("qrenderdoc.exe") != string::npos || app.find("renderdocui.exe") != string::npos)
+        if(app.find("renderdoccmd.exe") != string::npos || app.find("qrenderdoc.exe") != string::npos)
         {
           inject = false;
         }
@@ -308,9 +306,7 @@ private:
         string cmd = lpCommandLine;
         cmd = strlower(cmd);
 
-        if(cmd.find("renderdoccmd.exe") != string::npos ||
-           cmd.find("renderdocui.vshost.exe") != string::npos ||
-           cmd.find("qrenderdoc.exe") != string::npos || cmd.find("renderdocui.exe") != string::npos)
+        if(cmd.find("renderdoccmd.exe") != string::npos || cmd.find("qrenderdoc.exe") != string::npos)
         {
           inject = false;
         }
@@ -385,9 +381,7 @@ private:
         app = strlower(app);
 
         if(app.find(L"renderdoccmd.exe") != wstring::npos ||
-           app.find(L"renderdocui.vshost.exe") != wstring::npos ||
-           app.find(L"qrenderdoc.exe") != string::npos ||
-           app.find(L"renderdocui.exe") != wstring::npos)
+           app.find(L"qrenderdoc.exe") != string::npos)
         {
           inject = false;
         }
@@ -398,9 +392,7 @@ private:
         cmd = strlower(cmd);
 
         if(cmd.find(L"renderdoccmd.exe") != wstring::npos ||
-           cmd.find(L"renderdocui.vshost.exe") != wstring::npos ||
-           cmd.find(L"qrenderdoc.exe") != wstring::npos ||
-           cmd.find(L"renderdocui.exe") != wstring::npos)
+           cmd.find(L"qrenderdoc.exe") != wstring::npos)
         {
           inject = false;
         }
