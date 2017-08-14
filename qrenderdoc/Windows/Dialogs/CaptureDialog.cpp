@@ -517,7 +517,7 @@ void CaptureDialog::androidWarn_mouseClick()
              "RenderDoc can try to push the layer directly to your application.<br><br>"
              "Would you like RenderDoc to push the layer?<br>");
 
-      QString checkMsg(lit("Automatically push the layer on rooted devices"));
+      QString checkMsg(tr("Automatically push the layer on rooted devices"));
       QCheckBox *cb = new QCheckBox(checkMsg, this);
       cb->setChecked(autoPushCheckBox);
       prompt = RDDialog::questionChecked(this, caption, rootmsg, cb, autoPushCheckBox,
@@ -546,7 +546,7 @@ void CaptureDialog::androidWarn_mouseClick()
 
           RDDialog::information(
               this, tr("Push succeeded!"),
-              tr("The push attempt succeeded and %1 now contains the RenderDoc layer").arg(exe));
+              tr("The push attempt succeeded and<br>%1 now contains the RenderDoc layer").arg(exe));
         }
       });
 
@@ -611,7 +611,7 @@ void CaptureDialog::androidWarn_mouseClick()
 
           RDDialog::information(
               this, tr("Patch succeeded!"),
-              tr("The patch process succeeded and %1 now contains the RenderDoc layer").arg(exe));
+              tr("The patch process succeeded and<br>%1 now contains the RenderDoc layer").arg(exe));
         }
         else
         {
