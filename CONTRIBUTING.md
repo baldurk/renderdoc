@@ -21,6 +21,8 @@ On the other hand regular contributors or if you have a larger amount of code th
 
 ### Windows
 
+:rotating_light: :rotating_light: Until v1.0 is close to stable, currently the dependencies to build the Qt UI are not committed to the repository. Until then, you need to download [this zip file](https://renderdoc.org/qrenderdoc_3rdparty.zip) and extract it in the root. :rotating_light: :rotating_light:
+
 The main [renderdoc.sln](renderdoc.sln) is a VS2015 solution, as of March 2017. It should also compile in VS2017, just select to update the compilers if you don't have the 2015 compilers available.
 
 There are no external dependencies, all libraries/headers needed to build are included in the git checkout. On windows, the `Development` configuration is recommended for day-to-day dev. It's debuggable but not too slow. The `Release` configuration is then obviously what you should compile for any builds you'll send out to people or if you want to evaluate performance.
