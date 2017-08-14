@@ -539,7 +539,7 @@
   HookExtensionAlias(PFNGLDRAWRANGEELEMENTSBASEVERTEXPROC, glDrawRangeElementsBaseVertex, glDrawRangeElementsBaseVertexOES); \
   HookExtension(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC, glDrawElementsInstancedBaseVertex); \
   HookExtensionAlias(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC, glDrawElementsInstancedBaseVertex, glDrawElementsInstancedBaseVertexEXT); \
-  HookExtensionAlias(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC, glDrawElementsInstancedBaseVertex, DrawElementsInstancedBaseVertexOES); \
+  HookExtensionAlias(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC, glDrawElementsInstancedBaseVertex, glDrawElementsInstancedBaseVertexOES); \
   HookExtension(PFNGLMULTIDRAWELEMENTSBASEVERTEXPROC, glMultiDrawElementsBaseVertex); \
   HookExtensionAlias(PFNGLMULTIDRAWELEMENTSBASEVERTEXPROC, glMultiDrawElementsBaseVertex, glMultiDrawElementsBaseVertexEXT); \
   HookExtensionAlias(PFNGLMULTIDRAWELEMENTSBASEVERTEXPROC, glMultiDrawElementsBaseVertex, glMultiDrawElementsBaseVertexOES); \
@@ -673,14 +673,23 @@
   HookExtension(PFNGLPROGRAMBINARYPROC, glProgramBinary); \
   HookExtension(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri); \
   HookExtensionAlias(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri, glProgramParameteriARB); \
+  HookExtensionAlias(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri, glProgramParameteriEXT); \
   HookExtension(PFNGLUSEPROGRAMSTAGESPROC, glUseProgramStages); \
+  HookExtensionAlias(PFNGLUSEPROGRAMSTAGESPROC, glUseProgramStages, glUseProgramStagesEXT); \
   HookExtension(PFNGLACTIVESHADERPROGRAMPROC, glActiveShaderProgram); \
+  HookExtensionAlias(PFNGLACTIVESHADERPROGRAMPROC, glActiveShaderProgram, glActiveShaderProgramEXT); \
   HookExtension(PFNGLCREATESHADERPROGRAMVPROC, glCreateShaderProgramv); \
+  HookExtensionAlias(PFNGLCREATESHADERPROGRAMVPROC, glCreateShaderProgramv, glCreateShaderProgramvEXT); \
   HookExtension(PFNGLBINDPROGRAMPIPELINEPROC, glBindProgramPipeline); \
+  HookExtensionAlias(PFNGLBINDPROGRAMPIPELINEPROC, glBindProgramPipeline, glBindProgramPipelineEXT); \
   HookExtension(PFNGLDELETEPROGRAMPIPELINESPROC, glDeleteProgramPipelines); \
+  HookExtensionAlias(PFNGLDELETEPROGRAMPIPELINESPROC, glDeleteProgramPipelines, glDeleteProgramPipelinesEXT); \
   HookExtension(PFNGLGENPROGRAMPIPELINESPROC, glGenProgramPipelines); \
+  HookExtensionAlias(PFNGLGENPROGRAMPIPELINESPROC, glGenProgramPipelines, glGenProgramPipelinesEXT); \
   HookExtension(PFNGLISPROGRAMPIPELINEPROC, glIsProgramPipeline); \
+  HookExtensionAlias(PFNGLISPROGRAMPIPELINEPROC, glIsProgramPipeline, glIsProgramPipelineEXT); \
   HookExtension(PFNGLGETPROGRAMPIPELINEIVPROC, glGetProgramPipelineiv); \
+  HookExtensionAlias(PFNGLGETPROGRAMPIPELINEIVPROC, glGetProgramPipelineiv, glGetProgramPipelineivEXT); \
   HookExtension(PFNGLPROGRAMUNIFORM1IPROC, glProgramUniform1i); \
   HookExtensionAlias(PFNGLPROGRAMUNIFORM1IPROC, glProgramUniform1i, glProgramUniform1iEXT); \
   HookExtension(PFNGLPROGRAMUNIFORM1IVPROC, glProgramUniform1iv); \
@@ -782,7 +791,9 @@
   HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X3DVPROC, glProgramUniformMatrix4x3dv); \
   HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX4X3DVPROC, glProgramUniformMatrix4x3dv, glProgramUniformMatrix4x3dvEXT); \
   HookExtension(PFNGLVALIDATEPROGRAMPIPELINEPROC, glValidateProgramPipeline); \
+  HookExtensionAlias(PFNGLVALIDATEPROGRAMPIPELINEPROC, glValidateProgramPipeline, glValidateProgramPipelineEXT); \
   HookExtension(PFNGLGETPROGRAMPIPELINEINFOLOGPROC, glGetProgramPipelineInfoLog); \
+  HookExtensionAlias(PFNGLGETPROGRAMPIPELINEINFOLOGPROC, glGetProgramPipelineInfoLog, glGetProgramPipelineInfoLogEXT); \
   HookExtension(PFNGLVERTEXATTRIBL1DPROC, glVertexAttribL1d); \
   HookExtensionAlias(PFNGLVERTEXATTRIBL1DPROC, glVertexAttribL1d, glVertexAttribL1dEXT); \
   HookExtension(PFNGLVERTEXATTRIBL2DPROC, glVertexAttribL2d); \
@@ -1052,6 +1063,7 @@
   HookExtension(PFNGLGETCOMPRESSEDTEXTURESUBIMAGEPROC, glGetCompressedTextureSubImage); \
   HookExtension(PFNGLGETGRAPHICSRESETSTATUSPROC, glGetGraphicsResetStatus); \
   HookExtensionAlias(PFNGLGETGRAPHICSRESETSTATUSPROC, glGetGraphicsResetStatus, glGetGraphicsResetStatusARB); \
+  HookExtensionAlias(PFNGLGETGRAPHICSRESETSTATUSPROC, glGetGraphicsResetStatus, glGetGraphicsResetStatusEXT); \
   HookExtension(PFNGLGETNCOMPRESSEDTEXIMAGEPROC, glGetnCompressedTexImage); \
   HookExtensionAlias(PFNGLGETNCOMPRESSEDTEXIMAGEPROC, glGetnCompressedTexImage, glGetnCompressedTexImageARB); \
   HookExtension(PFNGLGETNTEXIMAGEPROC, glGetnTexImage); \
@@ -1060,12 +1072,15 @@
   HookExtensionAlias(PFNGLGETNUNIFORMDVPROC, glGetnUniformdv, glGetnUniformdvARB); \
   HookExtension(PFNGLGETNUNIFORMFVPROC, glGetnUniformfv); \
   HookExtensionAlias(PFNGLGETNUNIFORMFVPROC, glGetnUniformfv, glGetnUniformfvARB); \
+  HookExtensionAlias(PFNGLGETNUNIFORMFVPROC, glGetnUniformfv, glGetnUniformfvEXT); \
   HookExtension(PFNGLGETNUNIFORMIVPROC, glGetnUniformiv); \
   HookExtensionAlias(PFNGLGETNUNIFORMIVPROC, glGetnUniformiv, glGetnUniformivARB); \
+  HookExtensionAlias(PFNGLGETNUNIFORMIVPROC, glGetnUniformiv, glGetnUniformivEXT); \
   HookExtension(PFNGLGETNUNIFORMUIVPROC, glGetnUniformuiv); \
   HookExtensionAlias(PFNGLGETNUNIFORMUIVPROC, glGetnUniformuiv, glGetnUniformuivARB); \
   HookExtension(PFNGLREADNPIXELSPROC, glReadnPixels); \
   HookExtensionAlias(PFNGLREADNPIXELSPROC, glReadnPixels, glReadnPixelsARB); \
+  HookExtensionAlias(PFNGLREADNPIXELSPROC, glReadnPixels, glReadnPixelsEXT); \
   HookExtension(PFNGLTEXTUREBARRIERPROC, glTextureBarrier); \
   HookExtension(PFNGLDISPATCHCOMPUTEGROUPSIZEARBPROC, glDispatchComputeGroupSizeARB); \
   HookExtension(PFNGLMULTIDRAWARRAYSINDIRECTCOUNTARBPROC, glMultiDrawArraysIndirectCountARB); \
@@ -1257,6 +1272,7 @@
   HookExtension(PFNGLDRAWARRAYSPROC, glDrawArrays); \
   HookExtension(PFNGLDRAWELEMENTSPROC, glDrawElements); \
   HookExtension(PFNGLGETPOINTERVPROC, glGetPointerv); \
+  HookExtensionAlias(PFNGLGETPOINTERVPROC, glGetPointerv, glGetPointervKHR); \
   HookExtension(PFNGLPOLYGONOFFSETPROC, glPolygonOffset); \
   HookExtension(PFNGLCOPYTEXIMAGE1DPROC, glCopyTexImage1D); \
   HookExtension(PFNGLCOPYTEXIMAGE2DPROC, glCopyTexImage2D); \
@@ -2879,7 +2895,6 @@
     HookWrapper1(void, glfogcoorddext, GLdouble, coord); \
     HookWrapper1(void, glfogcoorddvext, const GLdouble *, coord); \
     HookWrapper3(void, glfogcoordpointerext, GLenum, type, GLsizei, stride, const void *, pointer); \
-    HookWrapper3(void, glprogramparameteriext, GLuint, program, GLenum, pname, GLint, value); \
     HookWrapper4(void, glprogramenvparameters4fvext, GLenum, target, GLuint, index, GLsizei, count, const GLfloat *, params); \
     HookWrapper4(void, glprogramlocalparameters4fvext, GLenum, target, GLuint, index, GLsizei, count, const GLfloat *, params); \
     HookWrapper5(void, glgethistogramext, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, void *, values); \
@@ -3604,7 +3619,6 @@
     HookWrapper4(void, glreplacementcodeuitexcoord2fnormal3fvertex3fvsun, const GLuint *, rc, const GLfloat *, tc, const GLfloat *, n, const GLfloat *, v); \
     HookWrapper13(void, glreplacementcodeuitexcoord2fcolor4fnormal3fvertex3fsun, GLuint, rc, GLfloat, s, GLfloat, t, GLfloat, r, GLfloat, g, GLfloat, b, GLfloat, a, GLfloat, nx, GLfloat, ny, GLfloat, nz, GLfloat, x, GLfloat, y, GLfloat, z); \
     HookWrapper5(void, glreplacementcodeuitexcoord2fcolor4fnormal3fvertex3fvsun, const GLuint *, rc, const GLfloat *, tc, const GLfloat *, c, const GLfloat *, n, const GLfloat *, v); \
-    HookWrapper2(void, glgetpointervkhr, GLenum, pname, void **, params); \
     HookWrapper0(GLenum, glgetgraphicsresetstatuskhr); \
     HookWrapper8(void, glreadnpixelskhr, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper4(void, glgetnuniformfvkhr, GLuint, program, GLint, location, GLsizei, bufSize, GLfloat *, params); \
@@ -3612,7 +3626,6 @@
     HookWrapper4(void, glgetnuniformuivkhr, GLuint, program, GLint, location, GLsizei, bufSize, GLuint *, params); \
     HookWrapper2(void, gleglimagetargettexture2does, GLenum, target, GLeglImageOES, image); \
     HookWrapper2(void, gleglimagetargetrenderbufferstorageoes, GLenum, target, GLeglImageOES, image); \
-    HookWrapper6(void, gldrawelementsinstancedbasevertexoes, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex); \
     HookWrapper5(void, glgetprogrambinaryoes, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLenum *, binaryFormat, void *, binary); \
     HookWrapper4(void, glprogrambinaryoes, GLuint, program, GLenum, binaryFormat, const void *, binary, GLint, length); \
     HookWrapper10(void, glblitframebufferangle, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
@@ -3647,20 +3660,6 @@
     HookWrapper2(void, glreadbufferindexedext, GLenum, src, GLint, index); \
     HookWrapper3(void, gldrawbuffersindexedext, GLint, n, const GLenum *, location, const GLint *, indices); \
     HookWrapper3(void, glgetintegeri_vext, GLenum, target, GLuint, index, GLint *, data); \
-    HookWrapper0(GLenum, glgetgraphicsresetstatusext); \
-    HookWrapper8(void, glreadnpixelsext, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
-    HookWrapper4(void, glgetnuniformfvext, GLuint, program, GLint, location, GLsizei, bufSize, GLfloat *, params); \
-    HookWrapper4(void, glgetnuniformivext, GLuint, program, GLint, location, GLsizei, bufSize, GLint *, params); \
-    HookWrapper2(void, glactiveshaderprogramext, GLuint, pipeline, GLuint, program); \
-    HookWrapper1(void, glbindprogrampipelineext, GLuint, pipeline); \
-    HookWrapper3(GLuint, glcreateshaderprogramvext, GLenum, type, GLsizei, count, const GLchar **, strings); \
-    HookWrapper2(void, gldeleteprogrampipelinesext, GLsizei, n, const GLuint *, pipelines); \
-    HookWrapper2(void, glgenprogrampipelinesext, GLsizei, n, GLuint *, pipelines); \
-    HookWrapper4(void, glgetprogrampipelineinfologext, GLuint, pipeline, GLsizei, bufSize, GLsizei *, length, GLchar *, infoLog); \
-    HookWrapper3(void, glgetprogrampipelineivext, GLuint, pipeline, GLenum, pname, GLint *, params); \
-    HookWrapper1(GLboolean, glisprogrampipelineext, GLuint, pipeline); \
-    HookWrapper3(void, gluseprogramstagesext, GLuint, pipeline, GLbitfield, stages, GLuint, program); \
-    HookWrapper1(void, glvalidateprogrampipelineext, GLuint, pipeline); \
     HookWrapper2(void, glframebufferpixellocalstoragesizeext, GLuint, target, GLsizei, size); \
     HookWrapper1(GLsizei, glgetframebufferpixellocalstoragesizeext, GLuint, target); \
     HookWrapper3(void, glclearpixellocalstorageuiext, GLsizei, offset, GLsizei, n, const GLuint *, values); \
@@ -4808,7 +4807,6 @@
     HandleUnsupported(PFNGLFOGCOORDDEXTPROC, glfogcoorddext); \
     HandleUnsupported(PFNGLFOGCOORDDVEXTPROC, glfogcoorddvext); \
     HandleUnsupported(PFNGLFOGCOORDPOINTEREXTPROC, glfogcoordpointerext); \
-    HandleUnsupported(PFNGLPROGRAMPARAMETERIEXTPROC, glprogramparameteriext); \
     HandleUnsupported(PFNGLPROGRAMENVPARAMETERS4FVEXTPROC, glprogramenvparameters4fvext); \
     HandleUnsupported(PFNGLPROGRAMLOCALPARAMETERS4FVEXTPROC, glprogramlocalparameters4fvext); \
     HandleUnsupported(PFNGLGETHISTOGRAMEXTPROC, glgethistogramext); \
@@ -5533,7 +5531,6 @@
     HandleUnsupported(PFNGLREPLACEMENTCODEUITEXCOORD2FNORMAL3FVERTEX3FVSUNPROC, glreplacementcodeuitexcoord2fnormal3fvertex3fvsun); \
     HandleUnsupported(PFNGLREPLACEMENTCODEUITEXCOORD2FCOLOR4FNORMAL3FVERTEX3FSUNPROC, glreplacementcodeuitexcoord2fcolor4fnormal3fvertex3fsun); \
     HandleUnsupported(PFNGLREPLACEMENTCODEUITEXCOORD2FCOLOR4FNORMAL3FVERTEX3FVSUNPROC, glreplacementcodeuitexcoord2fcolor4fnormal3fvertex3fvsun); \
-    HandleUnsupported(PFNGLGETPOINTERVKHRPROC, glgetpointervkhr); \
     HandleUnsupported(PFNGLGETGRAPHICSRESETSTATUSKHRPROC, glgetgraphicsresetstatuskhr); \
     HandleUnsupported(PFNGLREADNPIXELSKHRPROC, glreadnpixelskhr); \
     HandleUnsupported(PFNGLGETNUNIFORMFVKHRPROC, glgetnuniformfvkhr); \
@@ -5541,7 +5538,6 @@
     HandleUnsupported(PFNGLGETNUNIFORMUIVKHRPROC, glgetnuniformuivkhr); \
     HandleUnsupported(PFNGLEGLIMAGETARGETTEXTURE2DOESPROC, gleglimagetargettexture2does); \
     HandleUnsupported(PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC, gleglimagetargetrenderbufferstorageoes); \
-    HandleUnsupported(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXOESPROC, gldrawelementsinstancedbasevertexoes); \
     HandleUnsupported(PFNGLGETPROGRAMBINARYOESPROC, glgetprogrambinaryoes); \
     HandleUnsupported(PFNGLPROGRAMBINARYOESPROC, glprogrambinaryoes); \
     HandleUnsupported(PFNGLBLITFRAMEBUFFERANGLEPROC, glblitframebufferangle); \
@@ -5576,20 +5572,6 @@
     HandleUnsupported(PFNGLREADBUFFERINDEXEDEXTPROC, glreadbufferindexedext); \
     HandleUnsupported(PFNGLDRAWBUFFERSINDEXEDEXTPROC, gldrawbuffersindexedext); \
     HandleUnsupported(PFNGLGETINTEGERI_VEXTPROC, glgetintegeri_vext); \
-    HandleUnsupported(PFNGLGETGRAPHICSRESETSTATUSEXTPROC, glgetgraphicsresetstatusext); \
-    HandleUnsupported(PFNGLREADNPIXELSEXTPROC, glreadnpixelsext); \
-    HandleUnsupported(PFNGLGETNUNIFORMFVEXTPROC, glgetnuniformfvext); \
-    HandleUnsupported(PFNGLGETNUNIFORMIVEXTPROC, glgetnuniformivext); \
-    HandleUnsupported(PFNGLACTIVESHADERPROGRAMEXTPROC, glactiveshaderprogramext); \
-    HandleUnsupported(PFNGLBINDPROGRAMPIPELINEEXTPROC, glbindprogrampipelineext); \
-    HandleUnsupported(PFNGLCREATESHADERPROGRAMVEXTPROC, glcreateshaderprogramvext); \
-    HandleUnsupported(PFNGLDELETEPROGRAMPIPELINESEXTPROC, gldeleteprogrampipelinesext); \
-    HandleUnsupported(PFNGLGENPROGRAMPIPELINESEXTPROC, glgenprogrampipelinesext); \
-    HandleUnsupported(PFNGLGETPROGRAMPIPELINEINFOLOGEXTPROC, glgetprogrampipelineinfologext); \
-    HandleUnsupported(PFNGLGETPROGRAMPIPELINEIVEXTPROC, glgetprogrampipelineivext); \
-    HandleUnsupported(PFNGLISPROGRAMPIPELINEEXTPROC, glisprogrampipelineext); \
-    HandleUnsupported(PFNGLUSEPROGRAMSTAGESEXTPROC, gluseprogramstagesext); \
-    HandleUnsupported(PFNGLVALIDATEPROGRAMPIPELINEEXTPROC, glvalidateprogrampipelineext); \
     HandleUnsupported(PFNGLFRAMEBUFFERPIXELLOCALSTORAGESIZEEXTPROC, glframebufferpixellocalstoragesizeext); \
     HandleUnsupported(PFNGLGETFRAMEBUFFERPIXELLOCALSTORAGESIZEEXTPROC, glgetframebufferpixellocalstoragesizeext); \
     HandleUnsupported(PFNGLCLEARPIXELLOCALSTORAGEUIEXTPROC, glclearpixellocalstorageuiext); \
