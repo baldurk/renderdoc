@@ -76,6 +76,11 @@ if(ANDROID)
 
     set(APK_TARGET_ID "android-23" CACHE STRING "The Target ID to build the APK for, use <android list targets> to choose another one.")
     set(ANDROID_JAR "$ENV{ANDROID_SDK}/platforms/${APK_TARGET_ID}/android.jar")
+    if(CMAKE_HOST_WIN32)
+        set(CLASS_PATH "${ANDROID_JAR}\;obj")
+    else()
+        set(CLASS_PATH "${ANDROID_JAR}:obj")
+    endif()
     set(KEYSTORE ${CMAKE_CURRENT_BINARY_DIR}/debug.keystore)
     add_custom_command(OUTPUT ${KEYSTORE}
                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
@@ -97,7 +102,7 @@ if(ANDROID)
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoc> libs/lib/${ANDROID_ABI}/libVkLayer_GLES_RenderDoc.so
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoccmd> libs/lib/${ANDROID_ABI}/$<TARGET_FILE_NAME:renderdoccmd>
                        COMMAND ${BUILD_TOOLS}/aapt package -f -m -S res -J src -M AndroidManifest.xml -I ${ANDROID_JAR}
-                       COMMAND ${JAVA_BIN}/javac -d ./obj -source 1.7 -target 1.7 -bootclasspath ${RT_JAR} -classpath ${ANDROID_JAR}:obj -sourcepath src src/org/renderdoc/renderdoccmd/*.java
+                       COMMAND ${JAVA_BIN}/javac -d ./obj -source 1.7 -target 1.7 -bootclasspath ${RT_JAR} -classpath "${CLASS_PATH}" -sourcepath src src/org/renderdoc/renderdoccmd/*.java
                        COMMAND ${BUILD_TOOLS}/dx --dex --output=bin/classes.dex ./obj
                        COMMAND ${BUILD_TOOLS}/aapt package -f -M AndroidManifest.xml -S res -I ${ANDROID_JAR} -F RenderDocCmd-unaligned.apk bin libs
                        COMMAND ${BUILD_TOOLS}/zipalign -f 4 RenderDocCmd-unaligned.apk RenderDocCmd.apk
