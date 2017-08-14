@@ -575,21 +575,10 @@ namespace renderdocui.Windows
                     AddFileList();
 
                 if (trace != null || sel == null)
-                {
-                    Control p = m_DisassemblyView.Parent;
-                    while (p != null)
-                    {
-                        if (p is DockContent)
-                        {
-                            sel = (DockContent)p;
-                            break;
-                        }
+                    sel = DockContentFor(m_DisassemblyView);
 
-                        p = p.Parent;
-                    }
-                }
-
-                sel.Show();
+                if(sel != null)
+                    sel.Show();
             }
 
             ShowConstants();
@@ -712,7 +701,11 @@ namespace renderdocui.Windows
             int idx = m_FileList.SelectedIndex;
 
             if (idx >= 0 && idx < m_Scintillas.Count)
-                (m_Scintillas[idx].Parent as DockContent).Show();
+            {
+                DockContent dock = DockContentFor(m_Scintillas[idx]);
+                if (dock != null)
+                    dock.Show();
+            }
         }
 
         private void AddFileList()
@@ -727,7 +720,11 @@ namespace renderdocui.Windows
             m_FileList.SelectedIndexChanged += new EventHandler(list_SelectedIndexChanged);
 
             foreach (ScintillaNET.Scintilla s in m_Scintillas)
-                m_FileList.Items.Add((s.Parent as DockContent).Text);
+            {
+                DockContent dock = DockContentFor(s);
+                if(dock != null)
+                    m_FileList.Items.Add(dock.Text);
+            }
 
             var w = Helpers.WrapDockContent(dockPanel, m_FileList, "File List");
             w.DockState = DockState.DockLeft;
@@ -839,7 +836,11 @@ namespace renderdocui.Windows
                 w.DockAreas |= DockAreas.Float;
                 w.DockState = DockState.DockBottom;
                 w.HideOnClose = true;
-                w.Show((m_Scintillas[0].Parent as DockContent).Pane, DockAlignment.Bottom, 0.5);
+                DockContent dock = DockContentFor(m_Scintillas[0]);
+                if(dock != null)
+                    w.Show(dock.Pane, DockAlignment.Bottom, 0.5);
+                else
+                    w.Show();
             }
             else
             {
@@ -886,7 +887,11 @@ namespace renderdocui.Windows
 
             foreach (var kv in findResultsByEd)
             {
-                string filename = (kv.Key.Parent as DockContent).Text;
+                DockContent dock = DockContentFor(kv.Key);
+                if (dock == null)
+                    continue;
+
+                string filename = dock.Text;
 
                 if (kv.Value.Count > 0)
                     fileCount++;
@@ -935,10 +940,13 @@ namespace renderdocui.Windows
 
                 int idx = line - 1;
 
-                DockContent dc = (m_FindResults[idx].Key.Parent as DockContent);
+                DockContent dc = DockContentFor(m_FindResults[idx].Key);
 
-                dc.Activate();
-                dc.Show();
+                if (dc != null)
+                {
+                    dc.Activate();
+                    dc.Show();
+                }
 
                 m_FindResults[idx].Key.GoTo.Line(m_FindResults[idx].Value.StartingLine.Number);
 
@@ -2391,5 +2399,20 @@ namespace renderdocui.Windows
         {
             ShowFindAll();
         }
+
+        private DockContent DockContentFor(Control c)
+        {
+            Control p = c.Parent;
+            while (p != null)
+            {
+                if (p is DockContent)
+                    return (DockContent)p;
+
+                p = p.Parent;
+            }
+
+            return null;
+        }
+
     }
 }
