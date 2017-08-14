@@ -490,12 +490,7 @@ namespace renderdocui.Windows
                 disasmToolStrip.Items.AddRange(new ToolStripItem[] { disasmTypeLabel, disasmType });
                 disasmToolStrip.Margin = new Padding(0, 0, 12, 0);
 
-                disasmLayoutPanel.ColumnCount = 1;
-                disasmLayoutPanel.Controls.Add(disasmToolStrip, 0, 0);
-                disasmLayoutPanel.Controls.Add(m_DisassemblyView, 0, 1);
-                disasmLayoutPanel.RowCount = 2;
-                disasmLayoutPanel.RowStyles.Add(new RowStyle());
-                disasmLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+                disasmLayoutPanel.Dock = DockStyle.Fill;
 
                 if (m_Trace == null)
                 {
