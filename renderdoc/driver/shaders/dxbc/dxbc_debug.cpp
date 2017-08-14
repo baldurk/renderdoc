@@ -39,7 +39,7 @@ namespace ShaderDebug
 {
 static float round_ne(float x)
 {
-  if(!_finitef(x) || _isnanf(x))
+  if(!_finite(x) || _isnan(x))
     return x;
 
   float rem = remainderf(x, 1.0f);
