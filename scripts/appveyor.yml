@@ -68,8 +68,8 @@ build_script:
 
     sh -c ./scripts/hash_version.sh
 
-    curl -fsS -o qrenderdoc_3rdparty.zip https://renderdoc.org/qrenderdoc_3rdparty.zip
+    Invoke-WebRequest https://renderdoc.org/qrenderdoc_3rdparty.zip -OutFile qrenderdoc_3rdparty.zip
 
-    7z x https://renderdoc.org/qrenderdoc_3rdparty.zip
+    7z x qrenderdoc_3rdparty.zip
 
     msbuild renderdoc.sln /v:m "/p:Configuration=$env:CONFIGURATION" "/p:Platform=$env:PLATFORM" /p:PlatformToolset=v140
