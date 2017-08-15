@@ -119,7 +119,8 @@ ReplayOutput::~ReplayOutput()
 
 void ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
 {
-  if(o.overlay != m_RenderData.texDisplay.overlay)
+  if(o.overlay != m_RenderData.texDisplay.overlay ||
+     o.typeHint != m_RenderData.texDisplay.typeHint || o.texid != m_RenderData.texDisplay.texid)
   {
     if(m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforeDraw ||
        m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforePass)
