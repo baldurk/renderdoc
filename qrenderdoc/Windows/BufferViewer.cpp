@@ -3051,13 +3051,13 @@ void BufferViewer::debugVertex()
         debugContext += tr(", Instance %1").arg(m_Config.curInstance);
 
       const ShaderReflection *shaderDetails =
-          m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
+          m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Vertex);
       const ShaderBindpointMapping &bindMapping =
-          m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Pixel);
+          m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Vertex);
 
       // viewer takes ownership of the trace
       IShaderViewer *s =
-          m_Ctx.DebugShader(&bindMapping, shaderDetails, ShaderStage::Pixel, trace, debugContext);
+          m_Ctx.DebugShader(&bindMapping, shaderDetails, ShaderStage::Vertex, trace, debugContext);
 
       m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
     });
