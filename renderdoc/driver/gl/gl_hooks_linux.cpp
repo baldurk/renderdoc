@@ -153,9 +153,10 @@ public:
       };
       bool is_direct = false;
 
-      PFNGLXISDIRECTPROC glXIsDirectProc = (PFNGLXISDIRECTPROC)dlsym(RTLD_NEXT, "glXIsDirect");
+      PFNGLXISDIRECTPROC glXIsDirectProc =
+          (PFNGLXISDIRECTPROC)dlsym(libGLdlsymHandle, "glXIsDirect");
       PFNGLXCREATEPBUFFERPROC glXCreatePbufferProc =
-          (PFNGLXCREATEPBUFFERPROC)dlsym(RTLD_NEXT, "glXCreatePbuffer");
+          (PFNGLXCREATEPBUFFERPROC)dlsym(libGLdlsymHandle, "glXCreatePbuffer");
 
       if(glXIsDirectProc)
         is_direct = glXIsDirectProc(share.dpy, share.ctx);
@@ -187,7 +188,7 @@ public:
   void DeleteContext(GLWindowingData context)
   {
     PFNGLXDESTROYPBUFFERPROC glXDestroyPbufferProc =
-        (PFNGLXDESTROYPBUFFERPROC)dlsym(RTLD_NEXT, "glXDestroyPbuffer");
+        (PFNGLXDESTROYPBUFFERPROC)dlsym(libGLdlsymHandle, "glXDestroyPbuffer");
 
     if(context.wnd && glXDestroyPbufferProc)
       glXDestroyPbufferProc(context.dpy, context.wnd);
@@ -421,7 +422,7 @@ public:
       glXChooseFBConfig_real =
           (PFNGLXCHOOSEFBCONFIGPROC)dlsym(libGLdlsymHandle, "glXChooseFBConfig");
     if(glXQueryDrawable_real == NULL)
-      glXQueryDrawable_real = (PFNGLXQUERYDRAWABLEPROC)dlsym(RTLD_NEXT, "glXQueryDrawable");
+      glXQueryDrawable_real = (PFNGLXQUERYDRAWABLEPROC)dlsym(libGLdlsymHandle, "glXQueryDrawable");
 
     // glXCreateContextAttribsARB may not be directly exported by libGL.so, so try to fetch it
     // through the glXGetProcAddress function, favouring the ARB variant.
@@ -838,34 +839,34 @@ bool OpenGLHook::DrawQuads(float width, float height, const std::vector<Vec4f> &
 {
   if(!immediateInited)
   {
-    getInt = (GLGETINTEGERVPROC)dlsym(RTLD_NEXT, "glGetIntegerv");
+    getInt = (GLGETINTEGERVPROC)dlsym(libGLdlsymHandle, "glGetIntegerv");
     if(!getInt)
       return false;
-    pushm = (GLPUSHMATRIXPROC)dlsym(RTLD_NEXT, "glPushMatrix");
+    pushm = (GLPUSHMATRIXPROC)dlsym(libGLdlsymHandle, "glPushMatrix");
     if(!pushm)
       return false;
-    loadident = (GLLOADIDENTITYPROC)dlsym(RTLD_NEXT, "glLoadIdentity");
+    loadident = (GLLOADIDENTITYPROC)dlsym(libGLdlsymHandle, "glLoadIdentity");
     if(!loadident)
       return false;
-    matMode = (GLMATRIXMODEPROC)dlsym(RTLD_NEXT, "glMatrixMode");
+    matMode = (GLMATRIXMODEPROC)dlsym(libGLdlsymHandle, "glMatrixMode");
     if(!matMode)
       return false;
-    ortho = (GLORTHOPROC)dlsym(RTLD_NEXT, "glOrtho");
+    ortho = (GLORTHOPROC)dlsym(libGLdlsymHandle, "glOrtho");
     if(!ortho)
       return false;
-    popm = (GLPOPMATRIXPROC)dlsym(RTLD_NEXT, "glPopMatrix");
+    popm = (GLPOPMATRIXPROC)dlsym(libGLdlsymHandle, "glPopMatrix");
     if(!popm)
       return false;
-    begin = (GLBEGINPROC)dlsym(RTLD_NEXT, "glBegin");
+    begin = (GLBEGINPROC)dlsym(libGLdlsymHandle, "glBegin");
     if(!begin)
       return false;
-    v2f = (GLVERTEX2FPROC)dlsym(RTLD_NEXT, "glVertex2f");
+    v2f = (GLVERTEX2FPROC)dlsym(libGLdlsymHandle, "glVertex2f");
     if(!v2f)
       return false;
-    t2f = (GLTEXCOORD2FPROC)dlsym(RTLD_NEXT, "glTexCoord2f");
+    t2f = (GLTEXCOORD2FPROC)dlsym(libGLdlsymHandle, "glTexCoord2f");
     if(!t2f)
       return false;
-    end = (GLENDPROC)dlsym(RTLD_NEXT, "glEnd");
+    end = (GLENDPROC)dlsym(libGLdlsymHandle, "glEnd");
     if(!end)
       return false;
 
