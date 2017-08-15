@@ -713,7 +713,7 @@ public:
   void ReadLogInitialisation();
 
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
-  APIEvent GetEvent(uint32_t eventID);
+  const APIEvent &GetEvent(uint32_t eventID);
   uint32_t GetMaxEID() { return m_Events.back().eventID; }
   const DrawcallDescription *GetDrawcall(uint32_t eventID);
 
