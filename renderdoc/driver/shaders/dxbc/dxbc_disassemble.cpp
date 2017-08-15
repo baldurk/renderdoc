@@ -1338,13 +1338,17 @@ string ASMOperand::toString(DXBCFile *dxbc, ToString flags) const
   {
     str += " {";
     if(precision == PRECISION_FLOAT10)
-      str += "min2_8f as def32";
+      str += "min10f";
     if(precision == PRECISION_FLOAT16)
-      str += "min16f as def32";
+      str += "min16f";
     if(precision == PRECISION_UINT16)
       str += "min16u";
     if(precision == PRECISION_SINT16)
       str += "min16i";
+    if(precision == PRECISION_ANY16)
+      str += "any16";
+    if(precision == PRECISION_ANY10)
+      str += "any10";
     str += "}";
   }
 

@@ -205,6 +205,13 @@ struct SIGNElement7
   SIGNElement elem;
 };
 
+struct SIGNElement1
+{
+  uint32_t stream;
+  SIGNElement elem;
+  MinimumPrecision precision;
+};
+
 static const uint32_t STATSizeDX10 = 29 * 4;    // either 29 uint32s
 static const uint32_t STATSizeDX11 = 37 * 4;    // or 37 uint32s
 
@@ -218,6 +225,8 @@ static const uint32_t FOURCC_SDBG = MAKE_FOURCC('S', 'D', 'B', 'G');
 static const uint32_t FOURCC_SPDB = MAKE_FOURCC('S', 'P', 'D', 'B');
 static const uint32_t FOURCC_ISGN = MAKE_FOURCC('I', 'S', 'G', 'N');
 static const uint32_t FOURCC_OSGN = MAKE_FOURCC('O', 'S', 'G', 'N');
+static const uint32_t FOURCC_ISG1 = MAKE_FOURCC('I', 'S', 'G', '1');
+static const uint32_t FOURCC_OSG1 = MAKE_FOURCC('O', 'S', 'G', '1');
 static const uint32_t FOURCC_OSG5 = MAKE_FOURCC('O', 'S', 'G', '5');
 static const uint32_t FOURCC_PCSG = MAKE_FOURCC('P', 'C', 'S', 'G');
 static const uint32_t FOURCC_Aon9 = MAKE_FOURCC('A', 'o', 'n', '9');
@@ -231,7 +240,16 @@ int TypeByteSize(VariableType t)
     case VARTYPE_BOOL:
     case VARTYPE_INT:
     case VARTYPE_FLOAT:
-    case VARTYPE_UINT: return 4;
+    case VARTYPE_UINT:
+      return 4;
+    // we pretend for our purposes that the 'min' formats round up to 4 bytes. For any external
+    // interfaces they are treated as regular types, only using lower precision internally.
+    case VARTYPE_MIN8FLOAT:
+    case VARTYPE_MIN10FLOAT:
+    case VARTYPE_MIN16FLOAT:
+    case VARTYPE_MIN12INT:
+    case VARTYPE_MIN16INT:
+    case VARTYPE_MIN16UINT: return 4;
     case VARTYPE_DOUBLE:
       return 8;
     // 'virtual' type. Just return 1
@@ -286,6 +304,12 @@ string TypeName(CBufferVariableType::Descriptor desc)
     case VARTYPE_UINT8: type = "ubyte"; break;
     case VARTYPE_VOID: type = "void"; break;
     case VARTYPE_INTERFACE_POINTER: type = "interface"; break;
+    case VARTYPE_MIN8FLOAT: type = "min8float"; break;
+    case VARTYPE_MIN10FLOAT: type = "min10float"; break;
+    case VARTYPE_MIN16FLOAT: type = "min16float"; break;
+    case VARTYPE_MIN12INT: type = "min12int"; break;
+    case VARTYPE_MIN16INT: type = "min16int"; break;
+    case VARTYPE_MIN16UINT: type = "min16uint"; break;
     default: RDCERR("Unexpected type in RDEF variable type %d", type);
   }
 
@@ -830,8 +854,8 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
     char *chunkContents = (char *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t) * 2);
 
-    if(*fourcc == FOURCC_ISGN || *fourcc == FOURCC_OSGN || *fourcc == FOURCC_OSG5 ||
-       *fourcc == FOURCC_PCSG)
+    if(*fourcc == FOURCC_ISGN || *fourcc == FOURCC_OSGN || *fourcc == FOURCC_ISG1 ||
+       *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5 || *fourcc == FOURCC_PCSG)
     {
       SIGNHeader *sign = (SIGNHeader *)fourcc;
 
@@ -841,12 +865,12 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
       bool output = false;
       bool patch = false;
 
-      if(*fourcc == FOURCC_ISGN)
+      if(*fourcc == FOURCC_ISGN || *fourcc == FOURCC_ISG1)
       {
         sig = &m_InputSig;
         input = true;
       }
-      if(*fourcc == FOURCC_OSGN || *fourcc == FOURCC_OSG5)
+      if(*fourcc == FOURCC_OSGN || *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5)
       {
         sig = &m_OutputSig;
         output = true;
@@ -861,10 +885,21 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
       SIGNElement *el = (SIGNElement *)(sign + 1);
       SIGNElement7 *el7 = (SIGNElement7 *)el;
+      SIGNElement1 *el1 = (SIGNElement1 *)el;
 
       for(uint32_t signIdx = 0; signIdx < sign->numElems; signIdx++)
       {
         SigParameter desc;
+
+        if(*fourcc == FOURCC_ISG1 || *fourcc == FOURCC_OSG1)
+        {
+          desc.stream = el1->stream;
+
+          // discard el1->precision as we don't use it and don't want to pollute the common API
+          // structures
+
+          el = &el1->elem;
+        }
 
         if(*fourcc == FOURCC_OSG5)
         {
@@ -956,6 +991,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         sig->push_back(desc);
 
         el++;
+        el1++;
         el7++;
       }
 
