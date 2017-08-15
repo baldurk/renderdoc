@@ -1087,6 +1087,10 @@ void DXBCFile::GuessResources()
         }
         desc.numSamples = dcl.sampleCount;
 
+        // can't tell, fxc seems to default to 4
+        if(desc.dimension == ShaderInputBind::DIM_BUFFER)
+          desc.numSamples = 4;
+
         RDCASSERT(desc.dimension != ShaderInputBind::DIM_UNKNOWN);
 
         if(dcl.operand.indices.size() == 3)

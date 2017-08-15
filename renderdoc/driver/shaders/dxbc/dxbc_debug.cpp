@@ -2545,6 +2545,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           fmt.byteWidth = 4;
           fmt.numComps = global.groupshared[resIndex].bytestride / 4;
           fmt.reversed = false;
+          fmt.stride = 0;
         }
         texData = false;
       }
@@ -2555,7 +2556,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(texData)
       {
-        texOffset += texCoords[0] * fmt.byteWidth * fmt.numComps;
+        texOffset += texCoords[0] * fmt.Stride();
         texOffset += texCoords[1] * rowPitch;
         texOffset += texCoords[2] * depthPitch;
       }

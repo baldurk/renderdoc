@@ -833,6 +833,45 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
            sdesc.Format == DXGI_FORMAT_R10G10B10A2_UNORM)
           global.srvs[i].format.byteWidth = 10;
       }
+      else
+      {
+        D3D11_RESOURCE_DIMENSION dim;
+        res->GetType(&dim);
+
+        if(dim == D3D11_RESOURCE_DIMENSION_BUFFER)
+        {
+          ID3D11Buffer *buf = (ID3D11Buffer *)res;
+          D3D11_BUFFER_DESC bufdesc;
+          buf->GetDesc(&bufdesc);
+
+          global.srvs[i].format.stride = bufdesc.StructureByteStride;
+
+          // if we didn't get a type from the SRV description, try to pull it from the declaration
+          for(const DXBC::ShaderInputBind &bind : dxbc->m_Resources)
+          {
+            if(bind.reg == (uint32_t)i && bind.dimension == DXBC::ShaderInputBind::DIM_BUFFER &&
+               bind.retType < DXBC::ShaderInputBind::RETTYPE_MIXED &&
+               bind.retType != DXBC::ShaderInputBind::RETTYPE_UNKNOWN)
+            {
+              global.srvs[i].format.byteWidth = 4;
+              global.srvs[i].format.numComps = bind.numSamples;
+
+              if(bind.retType == DXBC::ShaderInputBind::RETTYPE_UNORM)
+                global.srvs[i].format.fmt = CompType::UNorm;
+              else if(bind.retType == DXBC::ShaderInputBind::RETTYPE_SNORM)
+                global.srvs[i].format.fmt = CompType::SNorm;
+              else if(bind.retType == DXBC::ShaderInputBind::RETTYPE_UINT)
+                global.srvs[i].format.fmt = CompType::UInt;
+              else if(bind.retType == DXBC::ShaderInputBind::RETTYPE_SINT)
+                global.srvs[i].format.fmt = CompType::SInt;
+              else
+                global.srvs[i].format.fmt = CompType::Float;
+
+              break;
+            }
+          }
+        }
+      }
 
       if(sdesc.ViewDimension == D3D11_SRV_DIMENSION_BUFFER)
       {
