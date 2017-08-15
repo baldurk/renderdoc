@@ -2916,11 +2916,17 @@ void D3D12DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
     VarType type = VarType::Float;
     switch(invars[v].type.descriptor.type)
     {
+      case VARTYPE_MIN12INT:
+      case VARTYPE_MIN16INT:
       case VARTYPE_INT: type = VarType::Int; break;
+      case VARTYPE_MIN8FLOAT:
+      case VARTYPE_MIN10FLOAT:
+      case VARTYPE_MIN16FLOAT:
       case VARTYPE_FLOAT: type = VarType::Float; break;
       case VARTYPE_BOOL:
       case VARTYPE_UINT:
-      case VARTYPE_UINT8: type = VarType::UInt; break;
+      case VARTYPE_UINT8:
+      case VARTYPE_MIN16UINT: type = VarType::UInt; break;
       case VARTYPE_DOUBLE:
         elemByteSize = 8;
         type = VarType::Double;
