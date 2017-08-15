@@ -42,6 +42,10 @@ build:
 
 build_script:
 - ps: >-
+    Invoke-WebRequest https://renderdoc.org/qrenderdoc_3rdparty.zip -OutFile qrenderdoc_3rdparty.zip
+
+    7z x qrenderdoc_3rdparty.zip
+
     if ( ($env:APPVEYOR_SCHEDULED_BUILD -eq "True" ) -and ($env:PLATFORM -eq "x64") -and ($env:CONFIGURATION -eq "Development") )
     {
       cov-build.exe --dir cov-int msbuild renderdoc.sln /p:Configuration=Development /p:Platform=x64 /p:PlatformToolset=v140
@@ -67,9 +71,5 @@ build_script:
     }
 
     sh -c ./scripts/hash_version.sh
-
-    Invoke-WebRequest https://renderdoc.org/qrenderdoc_3rdparty.zip -OutFile qrenderdoc_3rdparty.zip
-
-    7z x qrenderdoc_3rdparty.zip
 
     msbuild renderdoc.sln /v:m "/p:Configuration=$env:CONFIGURATION" "/p:Platform=$env:PLATFORM" /p:PlatformToolset=v140
