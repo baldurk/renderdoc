@@ -40,6 +40,20 @@ Configuration is available for cmake, [documented elsewhere](https://cmake.org/d
 
 Mac support is pretty early and while it will compile, it's not usable for debugging yet. Builds happen with cmake the same way as Linux.
 
+### Android
+
+To build the components required to debug an Android target, first gather everything from [Dependencies](#dependencies) below, then run:
+```
+mkdir build-android
+cd build-android
+cmake -DBUILD_ANDROID=On -DANDROID_ABI=armeabi-v7a -DANDROID_NATIVE_API_LEVEL=23 ..
+make
+```
+On Windows, you need to specify the 'generator' type to the cmake invocation. The exact parameter will depend on your bash shell, but options are e.g. -G "MSYS Makefiles" or -G "MinGW Makefiles", i.e.:
+```
+cmake -DBUILD_ANDROID=On -DANDROID_ABI=armeabi-v7a -DANDROID_NATIVE_API_LEVEL=23 -G"MSYS Makefiles" ..
+```
+
 # Code of Conduct
 
 I want to ensure that anyone can contribute to RenderDoc with only the next bug to worry about. For that reason the project has adopted the [contributor covenent](CODE_OF_CONDUCT.md) as a code of conduct to be enforced for anyone taking part in RenderDoc development. If you have any queries in this regard you can get in touch with me [directly over email](mailto:baldurk@baldurk.org).
@@ -147,6 +161,91 @@ Mac requires a recent version of CMake, and the same Qt version as the other pla
 ```
 brew install cmake qt5
 brew link qt5 --force
+```
+
+### Android
+
+To build for Android, you must download components of the Android SDK, the Android NDK, and Java Development Kit.
+
+If you've already got the tools required, simply set the following three environment variables:
+```
+export ANDROID_SDK=<path_to_sdk_root>
+export ANDROID_NDK=<path_to_ndk_root>
+export JAVA_HOME=<path_to_jdk_root>
+```
+Otherwise, below are steps to acquire the tools for each platform.
+#### Ubuntu
+The Java Development Kit can be installed with:
+```
+sudo apt-get install openjdk-8-jdk
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+```
+
+The Android SDK and NDK can be set up with the following steps.  They are also mirrored in our Travis-CI [setup script](scripts/travis/android_setup.sh) for Android.  We are currently targeting build-tools 26.0.1 and NDK r14b.
+
+SDK links are pulled from [here](https://developer.android.com/studio/index.html).
+
+NDK links are pulled from [here](https://developer.android.com/ndk/downloads/older_releases.html).
+```
+# Set up Android SDK
+export ANDROID_SDK=<path_to_desired_setup>
+pushd $ANDROID_SDK
+wget http://dl.google.com/android/repository/sdk-tools-linux-3859397.zip
+unzip sdk-tools-linux-3859397.zip
+cd tools/bin/
+./sdkmanager --sdk_root=$ANDROID_SDK "build-tools;26.0.1" "platforms;android-23"
+# Accept the license
+
+# Set up Android NDK
+pushd $ANDROID_SDK
+wget http://dl.google.com/android/repository/android-ndk-r14b-linux-x86_64.zip
+unzip android-ndk-r14b-linux-x86_64.zip
+export ANDROID_NDK=$ANDROID_SDK/android-ndk-r14b
+```
+#### macOS
+JDK can be installed with brew:
+```
+brew cask install java
+export JAVA_HOME="$(/usr/libexec/java_home)"
+```
+Android NDK and SDK:
+```
+# Set up Android SDK
+export ANDROID_SDK=<path_to_desired_setup>
+pushd $ANDROID_SDK
+wget https://dl.google.com/android/repository/sdk-tools-darwin-3859397.zip
+unzip sdk-tools-darwin-3859397.zip
+cd tools/bin/
+./sdkmanager --sdk_root=$ANDROID_SDK "build-tools;26.0.1" "platforms;android-23"
+# Accept the license
+
+# Set up Android NDK
+pushd $ANDROID_SDK
+wget https://dl.google.com/android/repository/android-ndk-r14b-darwin-x86_64.zip
+unzip android-ndk-r14b-darwin-x86_64.zip
+export ANDROID_NDK=$ANDROID_SDK/android-ndk-r14b
+```
+#### Windows
+JDK can be installed from the following [link](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
+```
+set JAVA_HOME=<path_to_jdk_root>
+```
+Android NDK and SDK:
+```
+# Set up the Android SDK
+set ANDROID_SDK=<path_to_desired_setup>
+cd %ANDROID_SDK%
+wget https://dl.google.com/android/repository/sdk-tools-windows-3859397.zip
+unzip sdk-tools-windows-3859397.zip
+cd tools\bin
+sdkmanager --sdk_root=%ANDROID_SDK% "build-tools;26.0.1" "platforms;android-23"
+# Accept the license
+
+# Set up the Android NDK
+cd %ANDROID_SDK%
+wget http://dl.google.com/android/repository/android-ndk-r14b-windows-x86_64.zip
+unzip android-ndk-r14b-windows-x86_64.zip
+set ANDROID_NDK=%ANDROID_SDK%\android-ndk-r14b
 ```
 
 # Where to Start
