@@ -57,21 +57,17 @@ public:
 
   struct ViewFmt
   {
-    ViewFmt()
-    {
-      byteWidth = 0;
-      numComps = 0;
-      reversed = false;
-      fmt = CompType::Typeless;
-    }
-
-    int byteWidth;
-    int numComps;
-    bool reversed;
-    CompType fmt;
+    int byteWidth = 0;
+    int numComps = 0;
+    bool reversed = false;
+    CompType fmt = CompType::Typeless;
+    int stride = 0;
 
     int Stride()
     {
+      if(stride != 0)
+        return stride;
+
       if(byteWidth == 10 || byteWidth == 11)
         return 32;    // 10 10 10 2 or 11 11 10
 
