@@ -663,6 +663,11 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       VkBufferView *bufViews = (VkBufferView *)bufInfos;
       nextDescriptors += pDescriptorWrites[i].descriptorCount;
 
+      RDCCOMPILE_ASSERT(sizeof(VkDescriptorBufferInfo) >= sizeof(VkDescriptorImageInfo),
+                        "Structure sizes mean not enough space is allocated for write data");
+      RDCCOMPILE_ASSERT(sizeof(VkDescriptorBufferInfo) >= sizeof(VkBufferView),
+                        "Structure sizes mean not enough space is allocated for write data");
+
       // unwrap and assign the appropriate array
       if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
          pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
@@ -677,11 +682,22 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
               pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
               pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
       {
+        bool hasSampler =
+            (pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+             pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        bool hasImage =
+            (pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+             pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+             pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+             pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT);
+
         unwrappedWrites[i].pImageInfo = (VkDescriptorImageInfo *)bufInfos;
         for(uint32_t j = 0; j < pDescriptorWrites[i].descriptorCount; j++)
         {
-          imInfos[j].imageView = Unwrap(pDescriptorWrites[i].pImageInfo[j].imageView);
-          imInfos[j].sampler = Unwrap(pDescriptorWrites[i].pImageInfo[j].sampler);
+          if(hasImage)
+            imInfos[j].imageView = Unwrap(pDescriptorWrites[i].pImageInfo[j].imageView);
+          if(hasSampler)
+            imInfos[j].sampler = Unwrap(pDescriptorWrites[i].pImageInfo[j].sampler);
           imInfos[j].imageLayout = pDescriptorWrites[i].pImageInfo[j].imageLayout;
         }
       }
