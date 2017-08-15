@@ -358,13 +358,14 @@
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="findNext">
+       <widget class="QToolButton" name="findPrev">
         <property name="text">
          <string/>
         </property>
         <property name="icon">
          <iconset resource="../Resources/resources.qrc">
-          <normaloff>:/arrow_right.png</normaloff>:/arrow_right.png</iconset>
+          <normaloff>:/arrow_left.png</normaloff>:/arrow_left.png
+         </iconset>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -372,13 +373,13 @@
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="findPrev">
+       <widget class="QToolButton" name="findNext">
         <property name="text">
          <string/>
         </property>
         <property name="icon">
          <iconset resource="../Resources/resources.qrc">
-          <normaloff>:/arrow_left.png</normaloff>:/arrow_left.png</iconset>
+          <normaloff>:/arrow_right.png</normaloff>:/arrow_right.png</iconset>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
