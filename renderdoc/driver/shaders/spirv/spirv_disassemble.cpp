@@ -3825,13 +3825,13 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id,
 
   sig.regChannelMask = sig.channelUsedMask = (1 << type->vectorSize) - 1;
 
+  // arrays will need an extra access chain index
+  if(isArray)
+    patch.accessChain.push_back(0U);
+
   for(uint32_t a = 0; a < arraySize; a++)
   {
     string n = varName;
-
-    // arrays will need an extra access chain index
-    if(arraySize > 1)
-      patch.accessChain.push_back(0U);
 
     if(isArray)
     {
@@ -3866,7 +3866,7 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id,
     }
 
     sig.regIndex += RDCMAX(1U, type->matrixSize);
-    if(arraySize > 1)
+    if(isArray)
       patch.accessChain.back()++;
   }
 }
