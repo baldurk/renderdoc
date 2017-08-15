@@ -4462,12 +4462,12 @@ void WrappedOpenGL::AddEvent(string description)
     m_Events.push_back(apievent);
 }
 
-APIEvent WrappedOpenGL::GetEvent(uint32_t eventID)
+const APIEvent &WrappedOpenGL::GetEvent(uint32_t eventID)
 {
-  for(size_t i = m_Events.size() - 1; i > 0; i--)
+  for(const APIEvent &e : m_Events)
   {
-    if(m_Events[i].eventID <= eventID)
-      return m_Events[i];
+    if(e.eventID >= eventID)
+      return e;
   }
 
   return m_Events[0];

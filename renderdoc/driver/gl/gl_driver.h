@@ -574,7 +574,7 @@ public:
   GLuint GetFakeBBFBO() { return m_FakeBB_FBO; }
   GLuint GetFakeVAO() { return m_FakeVAO; }
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
-  APIEvent GetEvent(uint32_t eventID);
+  const APIEvent &GetEvent(uint32_t eventID);
 
   const DrawcallTreeNode &GetRootDraw() { return m_ParentDrawcall; }
   const DrawcallDescription *GetDrawcall(uint32_t eventID);

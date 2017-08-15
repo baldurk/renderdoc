@@ -118,7 +118,7 @@ public:
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   const vector<D3D12ResourceRecord *> &GetCmdLists() { return m_CmdListRecords; }
   D3D12DrawcallTreeNode &GetParentDrawcall() { return m_Cmd.m_ParentDrawcall; }
-  APIEvent GetEvent(uint32_t eventID);
+  const APIEvent &GetEvent(uint32_t eventID);
   uint32_t GetMaxEID() { return m_Cmd.m_Events.back().eventID; }
   ResourceId GetBackbufferResourceID() { return m_BackbufferID; }
   void ClearAfterCapture();

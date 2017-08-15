@@ -254,12 +254,12 @@ void WrappedID3D12CommandQueue::ClearAfterCapture()
   m_QueueRecord->DeleteChunks();
 }
 
-APIEvent WrappedID3D12CommandQueue::GetEvent(uint32_t eventID)
+const APIEvent &WrappedID3D12CommandQueue::GetEvent(uint32_t eventID)
 {
-  for(size_t i = m_Cmd.m_Events.size() - 1; i > 0; i--)
+  for(const APIEvent &e : m_Cmd.m_Events)
   {
-    if(m_Cmd.m_Events[i].eventID <= eventID)
-      return m_Cmd.m_Events[i];
+    if(e.eventID >= eventID)
+      return e;
   }
 
   return m_Cmd.m_Events[0];
