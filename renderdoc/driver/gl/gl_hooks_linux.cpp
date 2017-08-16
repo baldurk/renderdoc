@@ -253,6 +253,8 @@ public:
       RDCERR("Unexpected window system %u", system);
     }
 
+    // GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB MUST be the last attrib so that we can remove it to retry
+    // if we find no srgb fbconfigs
     static int visAttribs[] = {GLX_X_RENDERABLE,
                                True,
                                GLX_DRAWABLE_TYPE,
@@ -272,8 +274,25 @@ public:
                                GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB,
                                True,
                                0};
+
     int numCfgs = 0;
     GLXFBConfig *fbcfg = glXChooseFBConfig_real(dpy, DefaultScreen(dpy), visAttribs, &numCfgs);
+
+    if(fbcfg == NULL)
+    {
+      const size_t len = ARRAY_COUNT(visAttribs);
+      if(visAttribs[len - 3] != GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB)
+      {
+        RDCERR(
+            "GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB isn't the last attribute, and no SRGB fbconfigs were "
+            "found!");
+      }
+      else
+      {
+        visAttribs[len - 3] = 0;
+        fbcfg = glXChooseFBConfig_real(dpy, DefaultScreen(dpy), visAttribs, &numCfgs);
+      }
+    }
 
     if(fbcfg == NULL)
     {
