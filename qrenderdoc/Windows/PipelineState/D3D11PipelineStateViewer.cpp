@@ -1829,7 +1829,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
   }
   else if(buf)
   {
-    D3D11ViewTag view;
+    D3D11ViewTag view = {};
     if(tag.canConvert<D3D11ViewTag>())
       view = tag.value<D3D11ViewTag>();
 
