@@ -11,6 +11,9 @@
 
 // use documentation for docstrings
 #define DOCUMENT(text) %feature("docstring") text
+#define DOCUMENT2(text1, text2) %feature("docstring") text1 text2
+#define DOCUMENT3(text1, text2, text3) %feature("docstring") text1 text2 text3
+#define DOCUMENT4(text1, text2, text3, text4) %feature("docstring") text1 text2 text3 text4
 
 // ignore warning about base class rdctype::array<char> methods in rdctype::str
 #pragma SWIG nowarn=401

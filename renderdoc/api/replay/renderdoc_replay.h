@@ -69,6 +69,22 @@ typedef uint32_t bool32;
 #define DOCUMENT(text)
 #endif
 
+// There's a bug in visual assist that stops highlighting if a raw string is too long. It looks like
+// it happens when it reaches 128 lines long or ~5000 bytes which is quite suspicious.
+// Anyway since this doesn't come up that often, we split the following docstring in two part-way
+// through. Don't be alarmed, just move along
+#ifndef DOCUMENT2
+#define DOCUMENT2(text1, text2)
+#endif
+
+#ifndef DOCUMENT3
+#define DOCUMENT3(text1, text2, text3)
+#endif
+
+#ifndef DOCUMENT4
+#define DOCUMENT4(text1, text2, text3, text4)
+#endif
+
 #if defined(RENDERDOC_PLATFORM_WIN32)
 
 #ifdef RENDERDOC_EXPORTS

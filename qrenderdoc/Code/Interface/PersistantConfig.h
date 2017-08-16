@@ -192,7 +192,7 @@ As the name suggests, this is used for tracking a 'recent file' list.
 )");
 void AddRecentFile(QList<QString> &recentList, const QString &file, int maxItems);
 
-DOCUMENT(R"(A persistant config file that is automatically loaded and saved, which contains any
+DOCUMENT2(R"(A persistant config file that is automatically loaded and saved, which contains any
 settings and information that needs to be preserved from one run to the next.
 
 For more information about some of these settings that are user-facing see
@@ -303,7 +303,8 @@ For more information about some of these settings that are user-facing see
   coloured instead of just a side-bar.
 
   Defaults to ``True``.
-
+)",
+          R"(
 .. data:: Formatter_MinFigures
 
   The minimum number of significant figures to show in formatted floating point values.

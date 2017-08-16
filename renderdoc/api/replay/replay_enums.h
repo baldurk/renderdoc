@@ -512,11 +512,7 @@ enum class BindType : uint32_t
   InputAttachment,
 };
 
-// There's a bug in visual assist that stops highlighting if a raw string is too long. It looks like
-// it happens when it reaches 128 lines long which is quite suspicious.
-// Anyway since this doesn't come up that often, we split the following docstring in two part-way
-// through. Don't be alarmed, just move along
-DOCUMENT(R"(Annotates a particular built-in input or output from a shader with a special meaning to
+DOCUMENT2(R"(Annotates a particular built-in input or output from a shader with a special meaning to
 the hardware or API.
 
 Some of the built-in inputs or outputs can be declared multiple times in arrays or otherwise indexed
@@ -642,8 +638,8 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
   An input to the pixel shader that contains the location of the current sample relative to the
   pixel, when running the pixel shader at sample frequency.
 
-)"
-         R"(
+)",
+          R"(
 .. data:: MSAASampleIndex
 
   An input to the pixel shader that indicates which sample in the range ``0 .. N-1`` is currently

@@ -36,6 +36,18 @@
 #define DOCUMENT(text)
 #endif
 
+#ifndef DOCUMENT2
+#define DOCUMENT2(text1, text2)
+#endif
+
+#ifndef DOCUMENT3
+#define DOCUMENT3(text1, text2, text3)
+#endif
+
+#ifndef DOCUMENT4
+#define DOCUMENT4(text1, text2, text3, text4)
+#endif
+
 // we provide a basic templated type that is a fixed array that just contains a pointer to the
 // element
 // array and a size. This could easily map to C as just void* and size but in C++ at least we can be
