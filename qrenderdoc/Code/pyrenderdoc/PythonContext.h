@@ -30,7 +30,6 @@
 #include <QWidget>
 #include <typeinfo>
 #include "Code/QRDUtils.h"
-#include "renderdoc_replay.h"
 
 class QThread;
 

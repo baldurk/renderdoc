@@ -33,7 +33,6 @@
 #include <QSemaphore>
 #include <QSortFilterProxyModel>
 #include "Code/Interface/QRDInterface.h"
-#include "renderdoc_replay.h"
 
 template <typename T>
 inline T AlignUp(T x, T a)

@@ -262,8 +262,11 @@ struct str : public rdctype::array<char>
     }
   }
 
-  operator const char *() const { return elems ? elems : ""; }
-  DOCUMENT("");
+#if defined(RENDERDOC_QT_COMPAT)
+  operator QString() const { return QString::fromUtf8(elems, count); }
+#endif
+
+  operator std::string() const { return std::string(elems, elems + count); }
   const char *c_str() const { return elems ? elems : ""; }
 };
 

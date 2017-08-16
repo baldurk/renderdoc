@@ -70,7 +70,7 @@ CONTAINER_TYPEMAPS(rdctype::array)
 %ignore rdctype::array::operator=;
 %ignore rdctype::array::operator[];
 %ignore rdctype::str::operator=;
-%ignore rdctype::str::operator const char *;
+%ignore rdctype::str::operator std::string;
 
 // add __str__ functions
 %feature("python:tp_str") ResourceId "resid_str";

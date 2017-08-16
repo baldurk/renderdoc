@@ -26,7 +26,7 @@
 
 #include <QDialog>
 #include <QTimer>
-#include "renderdoc_replay.h"
+#include "Code/Interface/QRDInterface.h"
 
 namespace Ui
 {

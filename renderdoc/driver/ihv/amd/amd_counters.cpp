@@ -219,7 +219,7 @@ vector<AMDCounters::InternalCounterDescription> AMDCounters::EnumerateCounters()
     internalDesc.desc = InternalGetCounterDescription(i);
 
     // We ignore any D3D11 counters, as those are handled elsewhere
-    if(strncmp(internalDesc.desc.description, "#D3D11#", 7) == 0)
+    if(strncmp(internalDesc.desc.description.c_str(), "#D3D11#", 7) == 0)
     {
       continue;
     }

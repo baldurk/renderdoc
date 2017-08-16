@@ -34,7 +34,6 @@
 #include <functional>
 #include "Interface/QRDInterface.h"
 #include "QRDUtils.h"
-#include "renderdoc_replay.h"
 
 struct IReplayController;
 class LambdaThread;

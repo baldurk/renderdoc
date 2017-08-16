@@ -24,6 +24,7 @@
 
 #include "StyleData.h"
 #include <QApplication>
+#include "Code/QRDUtils.h"
 #include "RDStyle/RDStyle.h"
 #include "RDTweakedNativeStyle/RDTweakedNativeStyle.h"
 

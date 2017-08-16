@@ -26,7 +26,6 @@
 #include <QThread>
 #include "Code/QRDUtils.h"
 #include "QRDInterface.h"
-#include "renderdoc_replay.h"
 
 RemoteHost::RemoteHost()
 {

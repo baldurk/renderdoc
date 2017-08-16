@@ -57,7 +57,6 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 #include <QTimer>
 #include "Code/QRDUtils.h"
 #include "PythonContext.h"
-#include "renderdoc_replay.h"
 
 // defined in SWIG-generated renderdoc_python.cpp
 extern "C" PyObject *PyInit__renderdoc(void);
