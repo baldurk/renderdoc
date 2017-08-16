@@ -24,6 +24,7 @@
 
 #include "gl_shader_refl.h"
 #include <algorithm>
+#include <functional>
 #include "gl_driver.h"
 
 // declare versions of ShaderConstant/ShaderVariableType with vectors
@@ -2241,4 +2242,153 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
     if(dummyReadback[i] != 0x6c7b8a9d)
       RDCERR("Invalid uniform readback - data beyond first element modified!");
 #endif
+}
+
+// first int - the mapping index, second int - the binding
+typedef std::vector<std::pair<size_t, int> > Permutation;
+
+// copy permutation by value since we mutate it to track the algorithm
+static void ApplyPermutation(Permutation permutation, std::function<void(size_t, size_t)> DoSwap)
+{
+  // permutations can always be decomposed into a series of disjoint cycles (one or more). Think
+  // of
+  // e.g:
+  //
+  // 0  1  2  3  4  5  6  7  8  9 10 11 12
+  // 8  0  4  5  2  11 1  12 6  3 10 9  7
+  //
+  // this is multiple cycles: 0 -> 8, 8 -> 6, 6 -> 1, 1 -> 0
+  //                          2 -> 4, 4 -> 2
+  //                          3 -> 5, 5 -> 11, 11 -> 9, 9 -> 3
+  //                          7 -> 12, 12 -> 7
+  //                          10 -> 10
+  //
+  // The general case is we just iterate along the permutation, find the first element that
+  // isn't in
+  // the right place, and then follow the cycle along - swapping the first element along into
+  // place
+  // until we eventually find that the cycle closes and we've swapped the first element into the
+  // right place. As we go we set the permutation values to an invalid marker so we know that
+  // they've been processed by a previous cycle when we continue with the iteration.
+  //
+  // This boils down to nothing in the case where the cycle is 2 long, it's just one swap.
+
+  size_t processedIdx = permutation.size();
+
+  for(size_t i = 0; i < permutation.size(); i++)
+  {
+    size_t dst = permutation[i].first;
+
+    // check if i is already in place or is already processed
+    if(i == dst || dst == processedIdx)
+      continue;
+
+    size_t src = i;
+
+    do
+    {
+      // do this swap
+      DoSwap(src, dst);
+
+      // mark this permutation as processed
+      permutation[src].first = processedIdx;
+
+      // move onto the next link in the cycle
+      src = dst;
+      dst = permutation[src].first;
+
+      // stop when we reach the start again - we've already done the swap to put this into place
+    } while(dst != i);
+
+    // close the cycle marking the last one as processed
+    permutation[src].first = processedIdx;
+  }
+}
+
+void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
+{
+  // In addition to the annoyance with texture unit handling in GL below, there's also an additional
+  // problem with the way bindings are handled. Nominally we have a set of bindings reflected out
+  // from the shader - these may come in alphabetical, declaration, location, or some other
+  // implementation defined order. We want a single fixed set of bindings so that the same shader
+  // always presents the same set of bindings to the user. However we can't use this reflected order
+  // as the set, because the mapping from these binds to the actual API slots used is *mutable*. If
+  // it were fixed at shader compile/specification time then we could sort it once after reflection
+  // and then go on with our lives, however because it's mutable we have to do the sort here based
+  // on the latest uniform values.
+  //
+  // Other alternatives would be to never sort, but then we land ourselves in a quagmire where the
+  // bindings could be "diffuse, normals, shadow, depthbuffer" in reflected order, but then
+  // depthbuffer could be assigned to slot 0 - then we are listing the textures in an arbitrary
+  // unsorted order. It's not possible to sort by current binding anywhere above this level because
+  // we don't want to do this in any of the generic code. No matter how we represent the bindings,
+  // this fundamentally comes down to two competing orders: The order that actually makes sense (but
+  // is mutable), and the order that is fixed at reflection time (but is useless).
+  //
+  // In general the hope is that no-one actually makes use of this ability to remap uniform values
+  // at runtime, and in practice everyone either uses the layout qualifiers in shaders to fix the
+  // bindings are shader compile time anyway (hah), or they reflect the samplers and set them one
+  // time, then leave them fixed. In the worst case, if an application does actually remap the
+  // uniforms from draw to draw, they will end up seeing the bindings re-order themselves in the UI.
+  // This might be confusing, but it's a) technically what the application is actually doing, from a
+  // certain perspective, and b) limited to a very small niche of people that are doing something
+  // kind of ridiculous.
+  //
+  // So here we re-sort the actual reflection data and bindpoint mapping so that the 'bind' is in
+  // ascending order. It looks ugly because it is ugly.
+
+  if(!refl || !mapping)
+    return;
+
+  Permutation permutation;
+
+  // sort by the binding
+  struct permutation_sort
+  {
+    bool operator()(const std::pair<size_t, int> &a, const std::pair<size_t, int> &b) const
+    {
+      return a.second < b.second;
+    }
+  };
+
+  permutation.resize(mapping->ReadOnlyResources.count);
+  for(int i = 0; i < mapping->ReadOnlyResources.count; i++)
+    permutation[i] = std::make_pair((size_t)i, mapping->ReadOnlyResources[i].bind);
+
+  std::sort(permutation.begin(), permutation.end(), permutation_sort());
+
+  // apply the permutation to the mapping array, and update the bindPoint values in the shader
+  // reflection to match, so that the re-order is applied
+  ApplyPermutation(permutation, [mapping, refl](size_t a, size_t b) {
+    std::swap(mapping->ReadOnlyResources[a], mapping->ReadOnlyResources[b]);
+  });
+
+  for(size_t i = 0; i < permutation.size(); i++)
+    refl->ReadOnlyResources[i].bindPoint = (int)permutation[i].first;
+
+  permutation.resize(mapping->ReadWriteResources.count);
+  for(int i = 0; i < mapping->ReadWriteResources.count; i++)
+    permutation[i] = std::make_pair((size_t)i, mapping->ReadWriteResources[i].bind);
+
+  std::sort(permutation.begin(), permutation.end(), permutation_sort());
+
+  ApplyPermutation(permutation, [mapping, refl](size_t a, size_t b) {
+    std::swap(mapping->ReadWriteResources[a], mapping->ReadWriteResources[b]);
+  });
+
+  for(size_t i = 0; i < permutation.size(); i++)
+    refl->ReadWriteResources[i].bindPoint = (int)permutation[i].first;
+
+  permutation.resize(mapping->ConstantBlocks.count);
+  for(int i = 0; i < mapping->ConstantBlocks.count; i++)
+    permutation[i] = std::make_pair((size_t)i, mapping->ConstantBlocks[i].bind);
+
+  std::sort(permutation.begin(), permutation.end(), permutation_sort());
+
+  ApplyPermutation(permutation, [mapping, refl](size_t a, size_t b) {
+    std::swap(mapping->ConstantBlocks[a], mapping->ConstantBlocks[b]);
+  });
+
+  for(size_t i = 0; i < permutation.size(); i++)
+    refl->ConstantBlocks[i].bindPoint = (int)permutation[i].first;
 }

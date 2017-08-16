@@ -1181,6 +1181,11 @@ void GLReplay::SavePipelineState()
     }
   }
 
+  // !!!NOTE!!! This function will MODIFY the refls[] binding arrays.
+  // See inside this function for what it does and why.
+  for(size_t i = 0; i < ARRAY_COUNT(refls); i++)
+    ResortBindings(refls[i], mappings[i]);
+
   RDCEraseEl(pipe.m_Feedback);
 
   if(HasExt[ARB_transform_feedback2])

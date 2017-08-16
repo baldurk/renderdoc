@@ -292,6 +292,8 @@ GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint idx);
 void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, ShaderReflection *refl,
                          ShaderBindpointMapping &mapping);
 
+void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping);
+
 extern int GLCoreVersion;
 extern bool GLIsCore;
 extern bool IsGLES;
