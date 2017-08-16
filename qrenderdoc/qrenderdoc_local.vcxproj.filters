@@ -648,6 +648,9 @@
     <ClCompile Include="Styles\RDTweakedNativeStyle\RDTweakedNativeStyle.cpp">
       <Filter>Styles\RDTweakedNativeStyle</Filter>
     </ClCompile>
+    <ClCompile Include="Styles\StyleData.cpp">
+      <Filter>Styles</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -958,6 +961,9 @@
     </ClInclude>
     <ClInclude Include="Code\precompiled.h">
       <Filter>PCH</Filter>
+    </ClInclude>
+    <ClInclude Include="Styles\StyleData.h">
+      <Filter>Styles</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

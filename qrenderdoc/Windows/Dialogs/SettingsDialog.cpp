@@ -26,6 +26,7 @@
 #include "Code/CaptureContext.h"
 #include "Code/Interface/QRDInterface.h"
 #include "Code/QRDUtils.h"
+#include "Styles/StyleData.h"
 #include "Windows/Dialogs/OrderedListEditor.h"
 #include "CaptureDialog.h"
 #include "ui_SettingsDialog.h"
@@ -34,6 +35,17 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
     : QDialog(parent), ui(new Ui::SettingsDialog), m_Ctx(ctx)
 {
   ui->setupUi(this);
+
+  QString styleChooseTooltip = ui->UIStyle->toolTip();
+
+  for(int i = 0; i < StyleData::numAvailable; i++)
+    styleChooseTooltip += lit("<br>- ") + StyleData::availStyles[i].styleDescription;
+
+  ui->UIStyle->setToolTip(styleChooseTooltip);
+  ui->UIStyle_label->setToolTip(styleChooseTooltip);
+
+  for(int i = 0; i < StyleData::numAvailable; i++)
+    ui->UIStyle->addItem(StyleData::availStyles[i].styleName);
 
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
@@ -52,6 +64,15 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   ui->pages->clearSelection();
   ui->pages->setItemSelected(ui->pages->item(0), true);
   ui->tabWidget->setCurrentIndex(0);
+
+  for(int i = 0; i < StyleData::numAvailable; i++)
+  {
+    if(StyleData::availStyles[i].styleID == m_Ctx.Config().UIStyle)
+    {
+      ui->UIStyle->setCurrentIndex(i);
+      break;
+    }
+  }
 
   ui->saveDirectory->setText(m_Ctx.Config().DefaultCaptureSaveDirectory);
   ui->tempDirectory->setText(m_Ctx.Config().TemporaryCaptureDirectory);
@@ -383,6 +404,53 @@ void SettingsDialog::on_Android_AdbExecutablePath_textEdited(const QString &adb)
 void SettingsDialog::on_Android_AutoPushLayerToApp_toggled(bool checked)
 {
   m_Ctx.Config().Android_AutoPushLayerToApp = ui->Android_AutoPushLayerToApp->isChecked();
+
+  m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_UIStyle_currentIndexChanged(int index)
+{
+  if(index < 0 || index >= StyleData::numAvailable)
+    return;
+
+  // don't do anything until the dialog is initialised and visible
+  if(!isVisible())
+    return;
+
+  QString oldStyle = m_Ctx.Config().UIStyle;
+  QString newStyle = StyleData::availStyles[index].styleID;
+
+  if(oldStyle == newStyle)
+    return;
+
+  QMessageBox::StandardButton ret = RDDialog::question(
+      this, tr("Switch to new theme?"),
+      tr("Would you like to switch to the new theme now?<br><br>Some parts of a theme might "
+         "require a full application restart to properly apply."),
+      RDDialog::YesNoCancel, QMessageBox::Yes);
+
+  if(ret == QMessageBox::Cancel)
+  {
+    // change the index back. Since we haven't changed the style yet, this will early out above
+    // instead of recursing.
+
+    for(int i = 0; i < StyleData::numAvailable; i++)
+    {
+      if(StyleData::availStyles[i].styleID == oldStyle)
+      {
+        ui->UIStyle->setCurrentIndex(i);
+        break;
+      }
+    }
+
+    return;
+  }
+
+  // set the style but don't change anything unless the user selected yes.
+  m_Ctx.Config().UIStyle = newStyle;
+
+  if(ret == QMessageBox::Yes)
+    m_Ctx.Config().SetStyle();
 
   m_Ctx.Config().Save();
 }

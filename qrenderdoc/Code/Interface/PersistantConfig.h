@@ -59,6 +59,8 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
 // Note that only public properties should be documented.
 #define CONFIG_SETTINGS()                                                                  \
                                                                                            \
+  CONFIG_SETTING_VAL(public, QString, QString, UIStyle, QString())                         \
+                                                                                           \
   CONFIG_SETTING_VAL(public, QString, QString, LastLogPath, QString())                     \
                                                                                            \
   CONFIG_SETTING(public, QVariantList, QList<QString>, RecentLogFiles)                     \
@@ -197,6 +199,12 @@ settings and information that needs to be preserved from one run to the next.
 
 For more information about some of these settings that are user-facing see
 :ref:`the documentation for the settings window <settings-window>`.
+
+.. data:: UIStyle
+
+  The style to load for the UI. Possible values include 'Native', 'RDLight', 'RDDark'. If empty,
+  the closest of RDLight and RDDark will be chosen, based on the overall light-on-dark or
+  dark-on-light theme of the application native style.
 
 .. data:: LastLogPath
 
@@ -420,7 +428,6 @@ public:
 
   DOCUMENT("");
   CONFIG_SETTINGS()
-
 public:
   PersistantConfig() {}
   ~PersistantConfig();
@@ -467,6 +474,18 @@ storing custom settings to be persisted without needing to modify code.
 :rtype: ``str``
 )");
   QString GetConfigSetting(const QString &name);
+
+  DOCUMENT(R"(Sets the UI style to the value in :data:`UIStyle`.
+
+Changing the style after the application has started may not properly update everything, so to be
+sure the new style is applied, the application should be restarted.
+
+:param str name: The name of the setting.
+:return: ``True`` if the style was set successfully, ``False`` if there was a problem e.g. the value
+  of :data:`UIStyle` was unrecognised or empty.
+:rtype: ``bool``
+)");
+  bool SetStyle();
 
 private:
   bool Deserialize(const QString &filename);

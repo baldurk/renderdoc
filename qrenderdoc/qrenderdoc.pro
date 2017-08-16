@@ -166,6 +166,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/Interface/CommonPipelineState.cpp \
     Code/Interface/PersistantConfig.cpp \
     Code/Interface/RemoteHost.cpp \
+    Styles/StyleData.cpp \
     Styles/RDStyle/RDStyle.cpp \
     Styles/RDTweakedNativeStyle/RDTweakedNativeStyle.cpp \
     Windows/Dialogs/AboutDialog.cpp \
@@ -229,6 +230,7 @@ HEADERS += Code/CaptureContext.h \
     Code/Interface/CommonPipelineState.h \
     Code/Interface/PersistantConfig.h \
     Code/Interface/RemoteHost.h \
+    Styles/StyleData.h \
     Styles/RDStyle/RDStyle.h \
     Styles/RDTweakedNativeStyle/RDTweakedNativeStyle.h \
     Windows/Dialogs/AboutDialog.h \

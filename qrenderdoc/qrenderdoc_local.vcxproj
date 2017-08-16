@@ -671,6 +671,7 @@
     <ClCompile Include="Widgets\ThumbnailStrip.cpp" />
     <ClCompile Include="Code\CaptureContext.cpp" />
     <ClCompile Include="Styles\RDStyle\RDStyle.cpp" />
+    <ClCompile Include="Styles\StyleData.cpp" />
     <ClCompile Include="Styles\RDTweakedNativeStyle\RDTweakedNativeStyle.cpp" />
     <ClCompile Include="Widgets\CustomPaintWidget.cpp" />
     <ClCompile Include="Windows\APIInspector.cpp" />
@@ -891,6 +892,7 @@
     <ClInclude Include="$(IntDir)generated\ui_VulkanPipelineStateViewer.h" />
     <ClInclude Include="Resources\resource.h" />
     <ClInclude Include="Code\CaptureContext.h" />
+    <ClInclude Include="Styles\StyleData.h" />
     <ClInclude Include="Code\qprocessinfo.h" />
     <CustomBuild Include="Code\pyrenderdoc\PythonContext.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>

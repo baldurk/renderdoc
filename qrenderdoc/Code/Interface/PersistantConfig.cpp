@@ -22,9 +22,11 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <QApplication>
 #include <QDebug>
 #include <QDir>
 #include "Code/QRDUtils.h"
+#include "Styles/StyleData.h"
 #include "QRDInterface.h"
 
 #define JSON_ID "rdocConfigData"
@@ -218,6 +220,23 @@ void PersistantConfig::AddAndroidHosts()
     i.next();
     delete i.value();
   }
+}
+
+bool PersistantConfig::SetStyle()
+{
+  for(int i = 0; i < StyleData::numAvailable; i++)
+  {
+    if(UIStyle == StyleData::availStyles[i].styleID)
+    {
+      QApplication::setStyle(StyleData::availStyles[i].creator());
+      return true;
+    }
+  }
+
+  if(UIStyle != QString())
+    qCritical() << "Unrecognised UI style" << UIStyle;
+
+  return false;
 }
 
 PersistantConfig::~PersistantConfig()

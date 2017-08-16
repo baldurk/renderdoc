@@ -51,6 +51,7 @@ private slots:
   void on_okButton_accepted();
 
   // general
+  void on_UIStyle_currentIndexChanged(int index);
   void on_tempDirectory_textEdited(const QString &temp);
   void on_saveDirectory_textEdited(const QString &save);
   void on_browseSaveCaptureDirectory_clicked();
