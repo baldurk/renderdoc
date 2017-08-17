@@ -217,7 +217,8 @@ SOURCES += Code/qrenderdoc.cpp \
     Widgets/Extended/RDSplitter.cpp \
     Windows/Dialogs/TipsDialog.cpp \
     Windows/PythonShell.cpp \
-    Windows/Dialogs/PerformanceCounterSelection.cpp
+    Windows/Dialogs/PerformanceCounterSelection.cpp \
+    Windows/PerformanceCounterViewer.cpp
 HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
     Code/ReplayManager.h \
@@ -282,7 +283,8 @@ HEADERS += Code/CaptureContext.h \
     Widgets/Extended/RDSplitter.h \
     Windows/Dialogs/TipsDialog.h \
     Windows/PythonShell.h \
-    Windows/Dialogs/PerformanceCounterSelection.h
+    Windows/Dialogs/PerformanceCounterSelection.h \
+    Windows/PerformanceCounterViewer.h
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
     Windows/EventBrowser.ui \
@@ -314,7 +316,8 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Widgets/FindReplace.ui \
     Windows/Dialogs/TipsDialog.ui \
     Windows/PythonShell.ui \
-    Windows/Dialogs/PerformanceCounterSelection.ui
+    Windows/Dialogs/PerformanceCounterSelection.ui \
+    Windows/PerformanceCounterViewer.ui
 
 RESOURCES += Resources/resources.qrc
 

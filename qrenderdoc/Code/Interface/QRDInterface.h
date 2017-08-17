@@ -405,6 +405,22 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IStatisticsViewer);
 
+DOCUMENT("The performance counter view window.");
+struct IPerformanceCounterViewer
+{
+  DOCUMENT(
+      "Retrieves the QWidget for this :class:`PerformanceCounterViewer` if PySide2 is available, "
+      "or "
+      "``None``.");
+  virtual QWidget *Widget() = 0;
+
+protected:
+  IPerformanceCounterViewer() = default;
+  ~IPerformanceCounterViewer() = default;
+};
+
+DECLARE_REFLECTION_STRUCT(IPerformanceCounterViewer);
+
 DOCUMENT("The interactive python shell.");
 struct IPythonShell
 {
