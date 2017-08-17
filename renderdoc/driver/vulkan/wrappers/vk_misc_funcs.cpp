@@ -497,7 +497,46 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(Serialiser *localSerialiser, V
         live = GetResourceManager()->WrapResource(Unwrap(device), fb);
         GetResourceManager()->AddLiveResource(id, fb);
 
-        m_CreationInfo.m_Framebuffer[live].Init(GetResourceManager(), m_CreationInfo, &info);
+        VulkanCreationInfo::Framebuffer fbinfo;
+        fbinfo.Init(GetResourceManager(), m_CreationInfo, &info);
+
+        const VulkanCreationInfo::RenderPass &rpinfo =
+            m_CreationInfo.m_RenderPass[GetResourceManager()->GetNonDispWrapper(info.renderPass)->id];
+
+        fbinfo.loadFBs.resize(rpinfo.loadRPs.size());
+
+        // create a render pass for each subpass that maintains attachment layouts
+        for(size_t s = 0; s < fbinfo.loadFBs.size(); s++)
+        {
+          info.renderPass = Unwrap(rpinfo.loadRPs[s]);
+
+          ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &info, NULL, &fbinfo.loadFBs[s]);
+          RDCASSERTEQUAL(ret, VK_SUCCESS);
+
+          // handle the loadRP being a duplicate
+          if(GetResourceManager()->HasWrapper(ToTypedHandle(fbinfo.loadFBs[s])))
+          {
+            // just fetch the existing wrapped object
+            fbinfo.loadFBs[s] =
+                (VkFramebuffer)(uint64_t)GetResourceManager()->GetNonDispWrapper(fbinfo.loadFBs[s]);
+
+            // destroy this instance of the duplicate, as we must have matching create/destroy
+            // calls and there won't be a wrapped resource hanging around to destroy this one.
+            ObjDisp(device)->DestroyFramebuffer(Unwrap(device), fbinfo.loadFBs[s], NULL);
+
+            // don't need to ReplaceResource as no IDs are involved
+          }
+          else
+          {
+            ResourceId loadFBid =
+                GetResourceManager()->WrapResource(Unwrap(device), fbinfo.loadFBs[s]);
+
+            // register as a live-only resource, so it is cleaned up properly
+            GetResourceManager()->AddLiveResource(loadFBid, fbinfo.loadFBs[s]);
+          }
+        }
+
+        m_CreationInfo.m_Framebuffer[live] = fbinfo;
       }
     }
   }
@@ -567,7 +606,30 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
     {
       GetResourceManager()->AddLiveResource(id, *pFramebuffer);
 
-      m_CreationInfo.m_Framebuffer[id].Init(GetResourceManager(), m_CreationInfo, &unwrappedInfo);
+      VulkanCreationInfo::Framebuffer fbinfo;
+      fbinfo.Init(GetResourceManager(), m_CreationInfo, &unwrappedInfo);
+
+      const VulkanCreationInfo::RenderPass &rpinfo =
+          m_CreationInfo.m_RenderPass[GetResID(pCreateInfo->renderPass)];
+
+      fbinfo.loadFBs.resize(rpinfo.loadRPs.size());
+
+      // create a render pass for each subpass that maintains attachment layouts
+      for(size_t s = 0; s < fbinfo.loadFBs.size(); s++)
+      {
+        unwrappedInfo.renderPass = Unwrap(rpinfo.loadRPs[s]);
+
+        ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &unwrappedInfo, NULL,
+                                                 &fbinfo.loadFBs[s]);
+        RDCASSERTEQUAL(ret, VK_SUCCESS);
+
+        ResourceId loadFBid = GetResourceManager()->WrapResource(Unwrap(device), fbinfo.loadFBs[s]);
+
+        // register as a live-only resource, so it is cleaned up properly
+        GetResourceManager()->AddLiveResource(loadFBid, fbinfo.loadFBs[s]);
+      }
+
+      m_CreationInfo.m_Framebuffer[id] = fbinfo;
     }
   }
 

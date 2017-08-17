@@ -99,7 +99,7 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       NULL,
       Unwrap(m_CreationInfo->m_RenderPass[renderPass].loadRPs[subpass]),
-      Unwrap(GetResourceManager()->GetCurrentHandle<VkFramebuffer>(framebuffer)),
+      Unwrap(m_CreationInfo->m_Framebuffer[framebuffer].loadFBs[subpass]),
       renderArea,
       (uint32_t)m_CreationInfo->m_RenderPass[renderPass].attachments.size(),
       empty,
