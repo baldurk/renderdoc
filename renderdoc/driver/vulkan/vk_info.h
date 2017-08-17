@@ -254,6 +254,9 @@ struct VulkanCreationInfo
     vector<Attachment> attachments;
 
     uint32_t width, height, layers;
+
+    // See above in loadRPs - we need to duplicate and make framebuffer equivalents for each
+    vector<VkFramebuffer> loadFBs;
   };
   map<ResourceId, Framebuffer> m_Framebuffer;
 
