@@ -228,11 +228,17 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
 
       for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
       {
-        vector<uint32_t> &submits =
+        vector<Submission> &submits =
             m_Partial[Secondary].cmdBufferSubmits[cmdBufInfo.draw->executedCmds[e]];
 
         for(size_t s = 0; s < submits.size(); s++)
-          submits[s] += m_RootEventID;
+        {
+          if(!submits[s].rebased)
+          {
+            submits[s].baseEvent += m_RootEventID;
+            submits[s].rebased = true;
+          }
+        }
       }
 
       for(size_t i = 0; i < cmdBufInfo.debugMessages.size(); i++)
@@ -242,7 +248,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
       }
 
       // only primary command buffers can be submitted
-      m_Partial[Primary].cmdBufferSubmits[cmdIds[c]].push_back(m_RootEventID);
+      m_Partial[Primary].cmdBufferSubmits[cmdIds[c]].push_back(Submission(m_RootEventID));
 
       m_RootEventID += cmdBufInfo.eventCount;
       m_RootDrawcallID += cmdBufInfo.drawCount;

@@ -513,19 +513,19 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(Serialiser *localSerialiser,
     // check for partial execution of this command buffer
     for(int p = 0; p < ePartialNum; p++)
     {
-      const vector<uint32_t> &baseEvents = m_Partial[p].cmdBufferSubmits[bakeId];
+      const vector<Submission> &submissions = m_Partial[p].cmdBufferSubmits[bakeId];
 
-      for(auto it = baseEvents.begin(); it != baseEvents.end(); ++it)
+      for(auto it = submissions.begin(); it != submissions.end(); ++it)
       {
-        if(*it <= m_LastEventID && m_LastEventID < (*it + length))
+        if(it->baseEvent <= m_LastEventID && m_LastEventID < (it->baseEvent + length))
         {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-          RDCDEBUG("vkBegin - partial detected %u < %u < %u, %llu -> %llu", *it, m_LastEventID,
-                   *it + length, cmdId, bakeId);
+          RDCDEBUG("vkBegin - partial detected %u < %u < %u, %llu -> %llu", it->baseEvent,
+                   m_LastEventID, it->baseEvent + length, cmdId, bakeId);
 #endif
 
           m_Partial[p].partialParent = cmdId;
-          m_Partial[p].baseEvent = *it;
+          m_Partial[p].baseEvent = it->baseEvent;
           m_Partial[p].renderPassActive = false;
           m_Partial[p].partialDevice = device;
           m_Partial[p].resultPartialCmdPool =
