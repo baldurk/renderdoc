@@ -731,7 +731,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(Serialiser *localSeriali
 
     byte *serialisedData = localSerialiser->GetRawPtr(offs);
 
-    memcpy(state->refData, serialisedData + (size_t)memOffset, (size_t)memSize);
+    memcpy(state->refData, serialisedData, (size_t)memSize);
   }
 
   if(m_State < WRITING)
