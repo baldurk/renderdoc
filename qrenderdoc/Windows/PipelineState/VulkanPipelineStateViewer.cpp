@@ -1377,7 +1377,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
 
         RDTreeWidgetItem *node =
             new RDTreeWidgetItem({QString(), QString(), ToQStr(cblock.name), tr("Push constants"),
-                                  QString(), tr("%1 Variable(s)", "", cblock.variables.count)});
+                                  QString(), tr("%1 Variables").arg(cblock.variables.count)});
 
         node->setTag(QVariant::fromValue(VulkanCBufferTag(cb, 0)));
 
