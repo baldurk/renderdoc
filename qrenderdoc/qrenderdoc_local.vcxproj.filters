@@ -654,6 +654,15 @@
     <ClCompile Include="Windows\Dialogs\PerformanceCounterSelection.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\PerformanceCounterViewer.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_PerformanceCounterSelection.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_PerformanceCounterViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -971,6 +980,12 @@
     <ClInclude Include="Windows\Dialogs\PerformanceCounterSelection.h">
       <Filter>Windows\Dialogs</Filter>
     </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_PerformanceCounterSelection.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_PerformanceCounterViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\128.png">
@@ -1152,9 +1167,6 @@
     </None>
     <None Include="Code\pyrenderdoc\pyconversion.i">
       <Filter>Code\pyrenderdoc</Filter>
-    </None>
-    <None Include="Windows\Dialogs\PerformanceCounterSelection.ui">
-      <Filter>Windows\Dialogs</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -1445,6 +1457,7 @@
     <CustomBuild Include="Resources\qtconf.qrc">
       <Filter>Resources</Filter>
     </CustomBuild>
+<<<<<<< HEAD
     <CustomBuild Include="Windows\TimelineBar.h">
       <Filter>Windows</Filter>
     </CustomBuild>
@@ -1453,6 +1466,19 @@
     </CustomBuild>
     <CustomBuild Include="Styles\RDTweakedNativeStyle\RDTweakedNativeStyle.h">
       <Filter>Styles\RDTweakedNativeStyle</Filter>
+=======
+    <CustomBuild Include="Windows\Dialogs\PerformanceCounterSelection.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\PerformanceCounterSelection.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PerformanceCounterViewer.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PerformanceCounterViewer.ui">
+      <Filter>Windows</Filter>
+>>>>>>> Prepare everything for the performance counter viewer window.
     </CustomBuild>
   </ItemGroup>
 </Project>
