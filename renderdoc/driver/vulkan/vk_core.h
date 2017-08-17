@@ -472,6 +472,13 @@ private:
     ePartialNum
   };
 
+  struct Submission
+  {
+    Submission(uint32_t eid) : baseEvent(eid), rebased(false) {}
+    uint32_t baseEvent = 0;
+    bool rebased = false;
+  };
+
   struct PartialReplayData
   {
     PartialReplayData() { Reset(); }
@@ -512,8 +519,12 @@ private:
     // vkCmd chunks) is NOT unique.
     // However, a single baked command list can be submitted multiple
     // times - so we have to have a list of base events
-    // Map from bakeID -> vector<baseEventID>
-    map<ResourceId, vector<uint32_t> > cmdBufferSubmits;
+    // Note in the case of secondary command buffers we mark when these
+    // are rebased to 'absolute' event IDs, since they could be submitted
+    // multiple times in the frame and we don't want to rebase all of
+    // them each time.
+    // Map from bakeID -> vector<Submission>
+    map<ResourceId, vector<Submission> > cmdBufferSubmits;
 
     // This is just the ResourceId of the original parent command buffer
     // and it's baked id.
