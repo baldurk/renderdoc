@@ -456,7 +456,10 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
         counters.begin(), counters.end(), std::back_inserter(amdCounters),
         [](const GPUCounter &c) { return c >= GPUCounter::FirstAMD && c < GPUCounter::FirstIntel; });
 
-    ret = FetchCountersAMD(amdCounters);
+    if(!amdCounters.empty())
+    {
+      ret = FetchCountersAMD(amdCounters);
+    }
   }
 
   D3D11_QUERY_DESC disjointdesc = {D3D11_QUERY_TIMESTAMP_DISJOINT, 0};
