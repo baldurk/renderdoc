@@ -279,6 +279,9 @@
     <ClInclude Include="core\precompiled.h">
       <Filter>PCH</Filter>
     </ClInclude>
+    <ClInclude Include="core\android.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -467,6 +470,7 @@
     <ClCompile Include="core\precompiled.cpp">
       <Filter>PCH</Filter>
     </ClCompile>
+    <ClCompile Include="core\android.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

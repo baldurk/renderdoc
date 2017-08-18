@@ -83,6 +83,8 @@ set(sources
     core/remote_server.cpp
     core/replay_proxy.cpp
     core/replay_proxy.h
+    core/android.cpp
+    core/android.h
     core/resource_manager.cpp
     core/resource_manager.h
     core/socket_helpers.h

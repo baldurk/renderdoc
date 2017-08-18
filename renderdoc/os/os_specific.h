@@ -415,11 +415,3 @@ inline uint64_t CountLeadingZeroes(uint64_t value);
 #else
 #error Undefined Platform!
 #endif
-
-namespace Android
-{
-bool IsHostADB(const char *hostname);
-uint32_t StartAndroidPackageForCapture(const char *host, const char *package);
-Process::ProcessResult adbExecCommand(const string &deviceID, const string &args);
-void extractDeviceIDAndIndex(const string &hostname, int &index, string &deviceID);
-}

@@ -135,6 +135,7 @@
     <ClInclude Include="common\threading.h" />
     <ClInclude Include="common\timing.h" />
     <ClInclude Include="common\wrapped_pool.h" />
+    <ClInclude Include="core\android.h" />
     <ClInclude Include="core\core.h" />
     <ClInclude Include="core\crash_handler.h" />
     <ClInclude Include="core\precompiled.h" />
@@ -208,6 +209,7 @@
     </ClCompile>
     <ClCompile Include="common\common.cpp" />
     <ClCompile Include="common\dds_readwrite.cpp" />
+    <ClCompile Include="core\android.cpp" />
     <ClCompile Include="core\core.cpp" />
     <ClCompile Include="core\image_viewer.cpp" />
     <ClCompile Include="core\precompiled.cpp">
