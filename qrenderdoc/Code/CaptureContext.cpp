@@ -40,6 +40,7 @@
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/EventBrowser.h"
 #include "Windows/MainWindow.h"
+#include "Windows/PerformanceCounterViewer.h"
 #include "Windows/PipelineState/PipelineStateViewer.h"
 #include "Windows/PixelHistoryView.h"
 #include "Windows/PythonShell.h"
@@ -732,6 +733,18 @@ IDebugMessageView *CaptureContext::GetDebugMessageView()
   return m_DebugMessageView;
 }
 
+IPerformanceCounterViewer *CaptureContext::GetPerformanceCounterViewer()
+{
+  if(m_PerformanecCounterViewer)
+    return m_PerformanecCounterViewer;
+
+  m_PerformanecCounterViewer = new PerformanceCounterViewer(*this, m_MainWindow);
+  m_PerformanecCounterViewer->setObjectName(lit("performanceCounterViewer"));
+  setupDockWindow(m_PerformanecCounterViewer);
+
+  return m_PerformanecCounterViewer;
+}
+
 IStatisticsViewer *CaptureContext::GetStatisticsViewer()
 {
   if(m_StatisticsViewer)
@@ -801,6 +814,11 @@ void CaptureContext::ShowCaptureDialog()
 void CaptureContext::ShowDebugMessageView()
 {
   m_MainWindow->showDebugMessageView();
+}
+
+void CaptureContext::ShowPerformanceCounterViewer()
+{
+  m_MainWindow->showPerformanceCounterSelection();
 }
 
 void CaptureContext::ShowStatisticsViewer()

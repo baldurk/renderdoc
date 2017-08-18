@@ -41,7 +41,6 @@
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
-#include "Windows/Dialogs/PerformanceCounterSelection.h"
 #include "Windows/Dialogs/RemoteManager.h"
 #include "Windows/Dialogs/SettingsDialog.h"
 #include "Windows/Dialogs/SuggestRemoteDialog.h"
@@ -1300,9 +1299,7 @@ void MainWindow::OnLogfileClosed()
   }
 }
 
-void MainWindow::OnEventChanged(uint32_t eventID)
-{
-}
+void MainWindow::OnEventChanged(uint32_t eventID) {}
 
 void MainWindow::RegisterShortcut(const QString &shortcut, QWidget *widget, ShortcutCallback callback)
 {
@@ -1648,8 +1645,12 @@ void MainWindow::on_actionShow_Tips_triggered()
 
 void MainWindow::on_action_Counter_selection_triggered()
 {
-  PerformanceCounterSelection pcs(m_Ctx, this);
-  RDDialog::show(&pcs);
+  QWidget *performanceCounterViewer = m_Ctx.GetPerformanceCounterViewer()->Widget();
+
+  if(ui->toolWindowManager->toolWindows().contains(performanceCounterViewer))
+    ToolWindowManager::raiseToolWindow(performanceCounterViewer);
+  else
+    ui->toolWindowManager->addToolWindow(performanceCounterViewer, mainToolArea());
 }
 
 void MainWindow::saveLayout_triggered()
