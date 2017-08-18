@@ -143,7 +143,7 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx, Q
       if(categoryIterator == categories.end())
       {
         auto item = new QTreeWidgetItem{currentRoot};
-        item->setText(0, QLatin1String{desc.category});
+        item->setText(0, ToQStr (desc.category));
         categories[category] = item;
         categoryItem = item;
       }
@@ -153,8 +153,8 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx, Q
       }
 
       auto counterItem = new QTreeWidgetItem{categoryItem};
-      counterItem->setText(0, QLatin1String{desc.name});
-      counterItem->setData(0, Qt::UserRole + 1, QVariant{QLatin1String{desc.description}});
+      counterItem->setText(0, ToQStr (desc.name));
+      counterItem->setData(0, Qt::UserRole + 1, QVariant{ToQStr (desc.description)});
       counterItem->setData(0, Qt::UserRole + 2, QVariant{(uint32_t)desc.counterID});
       counterItem->setCheckState(0, Qt::Unchecked);
     }
