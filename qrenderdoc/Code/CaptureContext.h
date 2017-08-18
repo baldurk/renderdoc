@@ -45,6 +45,7 @@ class BufferViewer;
 class TextureViewer;
 class CaptureDialog;
 class DebugMessageView;
+class PerformanceCounterViewer;
 class StatisticsViewer;
 class TimelineBar;
 class PythonShell;
@@ -133,6 +134,7 @@ public:
   IPipelineStateViewer *GetPipelineViewer() override;
   ICaptureDialog *GetCaptureDialog() override;
   IDebugMessageView *GetDebugMessageView() override;
+  IPerformanceCounterViewer *GetPerformanceCounterViewer() override;
   IStatisticsViewer *GetStatisticsViewer() override;
   ITimelineBar *GetTimelineBar() override;
   IPythonShell *GetPythonShell() override;
@@ -144,6 +146,7 @@ public:
   bool HasMeshPreview() override { return m_MeshPreview != NULL; }
   bool HasCaptureDialog() override { return m_CaptureDialog != NULL; }
   bool HasDebugMessageView() override { return m_DebugMessageView != NULL; }
+  bool HasPerformanceCounterViewer() override { return m_PerformanecCounterViewer != NULL; }
   bool HasStatisticsViewer() override { return m_StatisticsViewer != NULL; }
   bool HasTimelineBar() override { return m_TimelineBar != NULL; }
   bool HasPythonShell() override { return m_PythonShell != NULL; }
@@ -154,6 +157,7 @@ public:
   void ShowPipelineViewer() override;
   void ShowCaptureDialog() override;
   void ShowDebugMessageView() override;
+  void ShowPerformanceCounterViewer() override;
   void ShowStatisticsViewer() override;
   void ShowTimelineBar() override;
   void ShowPythonShell() override;
@@ -278,6 +282,7 @@ private:
   PipelineStateViewer *m_PipelineViewer = NULL;
   CaptureDialog *m_CaptureDialog = NULL;
   DebugMessageView *m_DebugMessageView = NULL;
+  PerformanceCounterViewer *m_PerformanecCounterViewer = NULL;
   StatisticsViewer *m_StatisticsViewer = NULL;
   TimelineBar *m_TimelineBar = NULL;
   PythonShell *m_PythonShell = NULL;

@@ -408,7 +408,7 @@
   </action>
   <action name="action_Counter_Viewer">
    <property name="text">
-    <string>Counter selection</string>
+    <string>Performance Counter Viewer</string>
    </property>
   </action>
  </widget>

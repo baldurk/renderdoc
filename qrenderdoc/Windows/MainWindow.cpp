@@ -41,7 +41,6 @@
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
-#include "Windows/Dialogs/PerformanceCounterSelection.h"
 #include "Windows/Dialogs/RemoteManager.h"
 #include "Windows/Dialogs/SettingsDialog.h"
 #include "Windows/Dialogs/SuggestRemoteDialog.h"
@@ -1647,8 +1646,12 @@ void MainWindow::on_actionShow_Tips_triggered()
 
 void MainWindow::on_action_Counter_Viewer_triggered()
 {
-  PerformanceCounterSelection pcs(m_Ctx, this);
-  RDDialog::show(&pcs);
+  QWidget *performanceCounterViewer = m_Ctx.GetPerformanceCounterViewer()->Widget();
+
+  if(ui->toolWindowManager->toolWindows().contains(performanceCounterViewer))
+    ToolWindowManager::raiseToolWindow(performanceCounterViewer);
+  else
+    ui->toolWindowManager->addToolWindow(performanceCounterViewer, mainToolArea());
 }
 
 void MainWindow::saveLayout_triggered()
