@@ -5879,36 +5879,28 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
       {
         WrappedID3D11RenderTargetView1 *rtv = (WrappedID3D11RenderTargetView1 *)view;
 
-        ResourceRange viewRange(rtv);
-
-        if(viewRange.Intersects(resourceRange))
+        if(rtv->GetResourceRange().Intersects(resourceRange))
           used = true;
       }
       else if(WrappedID3D11DepthStencilView::IsAlloc(view))
       {
         WrappedID3D11DepthStencilView *dsv = (WrappedID3D11DepthStencilView *)view;
 
-        ResourceRange viewRange(dsv);
-
-        if(viewRange.Intersects(resourceRange))
+        if(dsv->GetResourceRange().Intersects(resourceRange))
           used = true;
       }
       else if(WrappedID3D11ShaderResourceView1::IsAlloc(view))
       {
         WrappedID3D11ShaderResourceView1 *srv = (WrappedID3D11ShaderResourceView1 *)view;
 
-        ResourceRange viewRange(srv);
-
-        if(viewRange.Intersects(resourceRange))
+        if(srv->GetResourceRange().Intersects(resourceRange))
           used = true;
       }
       else if(WrappedID3D11UnorderedAccessView1::IsAlloc(view))
       {
         WrappedID3D11UnorderedAccessView1 *uav = (WrappedID3D11UnorderedAccessView1 *)view;
 
-        ResourceRange viewRange(uav);
-
-        if(viewRange.Intersects(resourceRange))
+        if(uav->GetResourceRange().Intersects(resourceRange))
           used = true;
       }
       else

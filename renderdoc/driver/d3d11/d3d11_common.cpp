@@ -75,7 +75,7 @@ void D3D11MarkerRegion::End()
     annot->EndEvent();
 }
 
-ResourceRange ResourceRange::Null = ResourceRange(NULL, 0, 0);
+ResourceRange ResourceRange::Null = ResourceRange(ResourceRange::empty);
 
 ResourceRange::ResourceRange(ID3D11ShaderResourceView *srv)
 {
@@ -91,6 +91,13 @@ ResourceRange::ResourceRange(ID3D11ShaderResourceView *srv)
     fullRange = true;
     return;
   }
+
+// in non-release make sure we always consistently check wrapped resources/views. Otherwise we could
+// end up in a situation where we're comparing two resource ranges that do overlap, but one was
+// constructed with the wrapped view and one wasn't - so they compare differently
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(WrappedID3D11ShaderResourceView1::IsAlloc(srv));
+#endif
 
   ID3D11Resource *res = NULL;
   srv->GetResource(&res);
@@ -214,6 +221,10 @@ ResourceRange::ResourceRange(ID3D11UnorderedAccessView *uav)
     return;
   }
 
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(WrappedID3D11UnorderedAccessView1::IsAlloc(uav));
+#endif
+
   ID3D11Resource *res = NULL;
   uav->GetResource(&res);
   res->Release();
@@ -273,6 +284,10 @@ ResourceRange::ResourceRange(ID3D11RenderTargetView *rtv)
     fullRange = true;
     return;
   }
+
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(WrappedID3D11RenderTargetView1::IsAlloc(rtv));
+#endif
 
   ID3D11Resource *res = NULL;
   rtv->GetResource(&res);
@@ -339,6 +354,10 @@ ResourceRange::ResourceRange(ID3D11DepthStencilView *dsv)
     return;
   }
 
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(WrappedID3D11DepthStencilView::IsAlloc(dsv));
+#endif
+
   ID3D11Resource *res = NULL;
   dsv->GetResource(&res);
   res->Release();
@@ -385,6 +404,53 @@ ResourceRange::ResourceRange(ID3D11DepthStencilView *dsv)
   }
 
   SetMaxes(numMips, numSlices);
+}
+
+ResourceRange::ResourceRange(ID3D11Buffer *res)
+{
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(!res || WrappedID3D11Buffer::IsAlloc(res));
+#endif
+
+  resource = res;
+  minMip = minSlice = 0;
+  maxMip = allMip;
+  maxSlice = allSlice;
+  fullRange = true;
+  depthReadOnly = false;
+  stencilReadOnly = false;
+}
+
+ResourceRange::ResourceRange(ID3D11Texture2D *res)
+{
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(!res || WrappedID3D11Texture2D1::IsAlloc(res));
+#endif
+
+  resource = res;
+  minMip = minSlice = 0;
+  maxMip = allMip;
+  maxSlice = allSlice;
+  fullRange = true;
+  depthReadOnly = false;
+  stencilReadOnly = false;
+}
+
+ResourceRange::ResourceRange(ID3D11Resource *res, UINT mip, UINT slice)
+{
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(!res || WrappedID3D11Texture1D::IsAlloc(res) || WrappedID3D11Texture2D1::IsAlloc(res) ||
+            WrappedID3D11Texture3D1::IsAlloc(res) || WrappedID3D11Buffer::IsAlloc(res));
+#endif
+
+  resource = res;
+  minMip = mip;
+  maxMip = mip;
+  minSlice = slice;
+  maxSlice = slice;
+  fullRange = false;
+  depthReadOnly = false;
+  stencilReadOnly = false;
 }
 
 TextureDim MakeTextureDim(D3D11_SRV_DIMENSION dim)

@@ -51,43 +51,34 @@ struct D3D11MarkerRegion
 
 struct ResourceRange
 {
-  static ResourceRange Null;
-
-  ResourceRange(ID3D11Buffer *res)
+private:
+  enum Empty
   {
-    resource = res;
-    minMip = minSlice = 0;
-    maxMip = allMip;
-    maxSlice = allSlice;
-    fullRange = true;
-    depthReadOnly = false;
-    stencilReadOnly = false;
-  }
+    empty
+  };
 
-  ResourceRange(ID3D11Texture2D *res)
+  // used to initialise Null below
+  ResourceRange(Empty)
   {
-    resource = res;
-    minMip = minSlice = 0;
-    maxMip = allMip;
-    maxSlice = allSlice;
-    fullRange = true;
-    depthReadOnly = false;
-    stencilReadOnly = false;
-  }
-
-  // construct a range for a specific mip/slice. Used for easily checking if
-  // a view includes this mip/slice
-  ResourceRange(ID3D11Resource *res, UINT mip, UINT slice)
-  {
-    resource = res;
-    minMip = mip;
-    maxMip = mip;
-    minSlice = slice;
-    maxSlice = slice;
+    resource = NULL;
+    minMip = 0;
+    maxMip = 0;
+    minSlice = 0;
+    maxSlice = 0;
     fullRange = false;
     depthReadOnly = false;
     stencilReadOnly = false;
   }
+
+public:
+  static ResourceRange Null;
+
+  ResourceRange(ID3D11Buffer *res);
+  ResourceRange(ID3D11Texture2D *res);
+
+  // construct a range for a specific mip/slice. Used for easily checking if
+  // a view includes this mip/slice
+  ResourceRange(ID3D11Resource *res, UINT mip, UINT slice);
 
   // initialises the range with the contents of the view
   ResourceRange(ID3D11ShaderResourceView *srv);

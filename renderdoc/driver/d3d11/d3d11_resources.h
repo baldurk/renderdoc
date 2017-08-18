@@ -747,7 +747,7 @@ protected:
   ResourceRange m_ResourceRange;
 
   WrappedView1(NestedType *real, WrappedID3D11Device *device, ID3D11Resource *res)
-      : WrappedDeviceChild11(real, device), m_pResource(res), m_ResourceRange(real)
+      : WrappedDeviceChild11(real, device), m_pResource(res), m_ResourceRange(this)
   {
     m_ResourceResID = GetIDForResource(m_pResource);
     // cast is potentially invalid but functions in WrappedResource will be identical across each
