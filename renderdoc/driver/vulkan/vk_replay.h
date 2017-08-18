@@ -153,10 +153,10 @@ public:
   vector<DebugMessage> GetDebugMessages();
 
   void SavePipelineState();
-  D3D11Pipe::State GetD3D11PipelineState() { return D3D11Pipe::State(); }
-  D3D12Pipe::State GetD3D12PipelineState() { return D3D12Pipe::State(); }
-  GLPipe::State GetGLPipelineState() { return GLPipe::State(); }
-  VKPipe::State GetVulkanPipelineState() { return m_VulkanPipelineState; }
+  const D3D11Pipe::State &GetD3D11PipelineState() { return m_D3D11State; }
+  const D3D12Pipe::State &GetD3D12PipelineState() { return m_D3D12State; }
+  const GLPipe::State &GetGLPipelineState() { return m_GLState; }
+  const VKPipe::State &GetVulkanPipelineState() { return m_VulkanPipelineState; }
   void FreeTargetResource(ResourceId id);
 
   void ReadLogInitialisation();
@@ -321,6 +321,9 @@ private:
   };
 
   VKPipe::State m_VulkanPipelineState;
+  D3D11Pipe::State m_D3D11State;
+  D3D12Pipe::State m_D3D12State;
+  GLPipe::State m_GLState;
 
   map<uint64_t, OutputWindow> m_OutputWindows;
   uint64_t m_OutputWinID;

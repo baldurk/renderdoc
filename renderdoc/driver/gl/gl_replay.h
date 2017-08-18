@@ -111,10 +111,10 @@ public:
   FrameRecord GetFrameRecord();
 
   void SavePipelineState();
-  D3D11Pipe::State GetD3D11PipelineState() { return D3D11Pipe::State(); }
-  D3D12Pipe::State GetD3D12PipelineState() { return D3D12Pipe::State(); }
-  GLPipe::State GetGLPipelineState() { return m_CurPipelineState; }
-  VKPipe::State GetVulkanPipelineState() { return VKPipe::State(); }
+  const D3D11Pipe::State &GetD3D11PipelineState() { return m_D3D11State; }
+  const D3D12Pipe::State &GetD3D12PipelineState() { return m_D3D12State; }
+  const GLPipe::State &GetGLPipelineState() { return m_CurPipelineState; }
+  const VKPipe::State &GetVulkanPipelineState() { return m_VKState; }
   void FreeTargetResource(ResourceId id);
 
   void ReadLogInitialisation();
@@ -415,6 +415,9 @@ private:
   WrappedOpenGL *m_pDriver;
 
   GLPipe::State m_CurPipelineState;
+  D3D11Pipe::State m_D3D11State;
+  D3D12Pipe::State m_D3D12State;
+  VKPipe::State m_VKState;
 };
 
 const GLHookSet &GetRealGLFunctions();

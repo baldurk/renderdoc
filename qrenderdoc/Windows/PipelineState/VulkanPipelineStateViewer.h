@@ -118,13 +118,13 @@ private:
 
   bool showNode(bool usedSlot, bool filledSlot);
 
-  void exportHTML(QXmlStreamWriter &xml, VKPipe::VertexInput &vi);
-  void exportHTML(QXmlStreamWriter &xml, VKPipe::InputAssembly &ia);
-  void exportHTML(QXmlStreamWriter &xml, VKPipe::Shader &sh);
-  void exportHTML(QXmlStreamWriter &xml, VKPipe::Raster &rs);
-  void exportHTML(QXmlStreamWriter &xml, VKPipe::ColorBlend &cb);
-  void exportHTML(QXmlStreamWriter &xml, VKPipe::DepthStencil &ds);
-  void exportHTML(QXmlStreamWriter &xml, VKPipe::CurrentPass &pass);
+  void exportHTML(QXmlStreamWriter &xml, const VKPipe::VertexInput &vi);
+  void exportHTML(QXmlStreamWriter &xml, const VKPipe::InputAssembly &ia);
+  void exportHTML(QXmlStreamWriter &xml, const VKPipe::Shader &sh);
+  void exportHTML(QXmlStreamWriter &xml, const VKPipe::Raster &rs);
+  void exportHTML(QXmlStreamWriter &xml, const VKPipe::ColorBlend &cb);
+  void exportHTML(QXmlStreamWriter &xml, const VKPipe::DepthStencil &ds);
+  void exportHTML(QXmlStreamWriter &xml, const VKPipe::CurrentPass &pass);
 
   // keep track of the VB nodes (we want to be able to highlight them easily on hover)
   QList<RDTreeWidgetItem *> m_VBNodes;

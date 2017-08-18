@@ -2870,7 +2870,6 @@ void VulkanReplay::SavePipelineState()
       {
         stage.Object = rm->GetOriginalID(p.shaders[i].module);
         stage.entryPoint = p.shaders[i].entryPoint;
-        stage.ShaderDetails = NULL;
 
         stage.customName = true;
         stage.name = m_pDriver->m_CreationInfo.m_Names[p.shaders[i].module];
@@ -2883,6 +2882,8 @@ void VulkanReplay::SavePipelineState()
         stage.stage = ShaderStage::Compute;
         if(p.shaders[i].mapping)
           stage.BindpointMapping = *p.shaders[i].mapping;
+        if(p.shaders[i].refl)
+          stage.ShaderDetails = p.shaders[i].refl;
 
         create_array_uninit(stage.specialization, p.shaders[i].specialization.size());
         for(size_t s = 0; s < p.shaders[i].specialization.size(); s++)
@@ -2940,7 +2941,6 @@ void VulkanReplay::SavePipelineState()
       {
         stages[i]->Object = rm->GetOriginalID(p.shaders[i].module);
         stages[i]->entryPoint = p.shaders[i].entryPoint;
-        stages[i]->ShaderDetails = NULL;
 
         stages[i]->customName = true;
         stages[i]->name = m_pDriver->m_CreationInfo.m_Names[p.shaders[i].module];
@@ -2953,6 +2953,8 @@ void VulkanReplay::SavePipelineState()
         stages[i]->stage = StageFromIndex(i);
         if(p.shaders[i].mapping)
           stages[i]->BindpointMapping = *p.shaders[i].mapping;
+        if(p.shaders[i].refl)
+          stages[i]->ShaderDetails = p.shaders[i].refl;
 
         create_array_uninit(stages[i]->specialization, p.shaders[i].specialization.size());
         for(size_t s = 0; s < p.shaders[i].specialization.size(); s++)

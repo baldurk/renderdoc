@@ -2443,6 +2443,51 @@ void ReplayProxy::SavePipelineState()
   m_FromReplaySerialiser->Serialise("", m_D3D12PipelineState);
   m_FromReplaySerialiser->Serialise("", m_GLPipelineState);
   m_FromReplaySerialiser->Serialise("", m_VulkanPipelineState);
+
+  {
+    D3D11Pipe::Shader *stages[] = {
+        &m_D3D11PipelineState.m_VS, &m_D3D11PipelineState.m_HS, &m_D3D11PipelineState.m_DS,
+        &m_D3D11PipelineState.m_GS, &m_D3D11PipelineState.m_PS, &m_D3D11PipelineState.m_CS,
+    };
+
+    for(int i = 0; i < 6; i++)
+      if(stages[i]->Object != ResourceId())
+        stages[i]->ShaderDetails = GetShader(GetLiveID(stages[i]->Object), "");
+  }
+
+  {
+    D3D12Pipe::Shader *stages[] = {
+        &m_D3D12PipelineState.m_VS, &m_D3D12PipelineState.m_HS, &m_D3D12PipelineState.m_DS,
+        &m_D3D12PipelineState.m_GS, &m_D3D12PipelineState.m_PS, &m_D3D12PipelineState.m_CS,
+    };
+
+    for(int i = 0; i < 6; i++)
+      if(stages[i]->Object != ResourceId())
+        stages[i]->ShaderDetails = GetShader(GetLiveID(stages[i]->Object), "");
+  }
+
+  {
+    GLPipe::Shader *stages[] = {
+        &m_GLPipelineState.m_VS, &m_GLPipelineState.m_TCS, &m_GLPipelineState.m_TES,
+        &m_GLPipelineState.m_GS, &m_GLPipelineState.m_FS,  &m_GLPipelineState.m_CS,
+    };
+
+    for(int i = 0; i < 6; i++)
+      if(stages[i]->Object != ResourceId())
+        stages[i]->ShaderDetails = GetShader(GetLiveID(stages[i]->Object), "");
+  }
+
+  {
+    VKPipe::Shader *stages[] = {
+        &m_VulkanPipelineState.m_VS, &m_VulkanPipelineState.m_TCS, &m_VulkanPipelineState.m_TES,
+        &m_VulkanPipelineState.m_GS, &m_VulkanPipelineState.m_FS,  &m_VulkanPipelineState.m_CS,
+    };
+
+    for(int i = 0; i < 6; i++)
+      if(stages[i]->Object != ResourceId())
+        stages[i]->ShaderDetails =
+            GetShader(GetLiveID(stages[i]->Object), stages[i]->entryPoint.elems);
+  }
 }
 
 void ReplayProxy::ReplayLog(uint32_t endEventID, ReplayLogType replayType)

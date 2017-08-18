@@ -263,12 +263,12 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
 
     m_PostloadProgress = 0.9f;
 
-    m_CurD3D11PipelineState = r->GetD3D11PipelineState();
-    m_CurD3D12PipelineState = r->GetD3D12PipelineState();
-    m_CurGLPipelineState = r->GetGLPipelineState();
-    m_CurVulkanPipelineState = r->GetVulkanPipelineState();
-    m_CurPipelineState.SetStates(m_APIProps, &m_CurD3D11PipelineState, &m_CurD3D12PipelineState,
-                                 &m_CurGLPipelineState, &m_CurVulkanPipelineState);
+    m_CurD3D11PipelineState = &r->GetD3D11PipelineState();
+    m_CurD3D12PipelineState = &r->GetD3D12PipelineState();
+    m_CurGLPipelineState = &r->GetGLPipelineState();
+    m_CurVulkanPipelineState = &r->GetVulkanPipelineState();
+    m_CurPipelineState.SetStates(m_APIProps, m_CurD3D11PipelineState, m_CurD3D12PipelineState,
+                                 m_CurGLPipelineState, m_CurVulkanPipelineState);
 
     m_UnreadMessageCount = 0;
     AddMessages(m_FrameInfo.debugMessages);
@@ -534,11 +534,12 @@ void CaptureContext::CloseLogfile()
   m_Drawcalls.clear();
   m_FirstDrawcall = m_LastDrawcall = NULL;
 
-  m_CurD3D11PipelineState = D3D11Pipe::State();
-  m_CurD3D12PipelineState = D3D12Pipe::State();
-  m_CurGLPipelineState = GLPipe::State();
-  m_CurVulkanPipelineState = VKPipe::State();
-  m_CurPipelineState.SetStates(m_APIProps, NULL, NULL, NULL, NULL);
+  m_CurD3D11PipelineState = NULL;
+  m_CurD3D12PipelineState = NULL;
+  m_CurGLPipelineState = NULL;
+  m_CurVulkanPipelineState = NULL;
+  m_CurPipelineState.SetStates(m_APIProps, m_CurD3D11PipelineState, m_CurD3D12PipelineState,
+                               m_CurGLPipelineState, m_CurVulkanPipelineState);
 
   m_DebugMessages.clear();
   m_UnreadMessageCount = 0;
@@ -564,12 +565,12 @@ void CaptureContext::SetEventID(const QVector<ILogViewer *> &exclude, uint32_t s
 
   m_Renderer.BlockInvoke([this, eventID, force](IReplayController *r) {
     r->SetFrameEvent(eventID, force);
-    m_CurD3D11PipelineState = r->GetD3D11PipelineState();
-    m_CurD3D12PipelineState = r->GetD3D12PipelineState();
-    m_CurGLPipelineState = r->GetGLPipelineState();
-    m_CurVulkanPipelineState = r->GetVulkanPipelineState();
-    m_CurPipelineState.SetStates(m_APIProps, &m_CurD3D11PipelineState, &m_CurD3D12PipelineState,
-                                 &m_CurGLPipelineState, &m_CurVulkanPipelineState);
+    m_CurD3D11PipelineState = &r->GetD3D11PipelineState();
+    m_CurD3D12PipelineState = &r->GetD3D12PipelineState();
+    m_CurGLPipelineState = &r->GetGLPipelineState();
+    m_CurVulkanPipelineState = &r->GetVulkanPipelineState();
+    m_CurPipelineState.SetStates(m_APIProps, m_CurD3D11PipelineState, m_CurD3D12PipelineState,
+                                 m_CurGLPipelineState, m_CurVulkanPipelineState);
   });
 
   for(ILogViewer *logviewer : m_LogViewers)

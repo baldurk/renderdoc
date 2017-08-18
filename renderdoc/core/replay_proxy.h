@@ -401,10 +401,10 @@ public:
   vector<DebugMessage> GetDebugMessages();
 
   void SavePipelineState();
-  D3D11Pipe::State GetD3D11PipelineState() { return m_D3D11PipelineState; }
-  D3D12Pipe::State GetD3D12PipelineState() { return m_D3D12PipelineState; }
-  GLPipe::State GetGLPipelineState() { return m_GLPipelineState; }
-  VKPipe::State GetVulkanPipelineState() { return m_VulkanPipelineState; }
+  const D3D11Pipe::State &GetD3D11PipelineState() { return m_D3D11PipelineState; }
+  const D3D12Pipe::State &GetD3D12PipelineState() { return m_D3D12PipelineState; }
+  const GLPipe::State &GetGLPipelineState() { return m_GLPipelineState; }
+  const VKPipe::State &GetVulkanPipelineState() { return m_VulkanPipelineState; }
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);

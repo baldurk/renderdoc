@@ -1105,7 +1105,7 @@ void GLReplay::SavePipelineState()
         {
           curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
           stages[i]->Object = rm->GetOriginalID(pipeDetails.stageShaders[i]);
-          refls[i] = GetShader(pipeDetails.stageShaders[i], "");
+          stages[i]->ShaderDetails = refls[i] = GetShader(pipeDetails.stageShaders[i], "");
           GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i],
                               stages[i]->BindpointMapping);
           mappings[i] = &stages[i]->BindpointMapping;
@@ -1138,7 +1138,7 @@ void GLReplay::SavePipelineState()
         stages[i]->customProgramName = (programName != "");
 
         stages[i]->Object = rm->GetOriginalID(progDetails.stageShaders[i]);
-        refls[i] = GetShader(progDetails.stageShaders[i], "");
+        stages[i]->ShaderDetails = refls[i] = GetShader(progDetails.stageShaders[i], "");
         GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->BindpointMapping);
         mappings[i] = &stages[i]->BindpointMapping;
 

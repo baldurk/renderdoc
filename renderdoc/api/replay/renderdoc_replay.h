@@ -515,7 +515,7 @@ You should use :meth:`GetAPIProperties` to determine the API of the capture.
 :return: The current D3D11 pipeline state.
 :rtype: D3D11_State
 )");
-  virtual D3D11Pipe::State GetD3D11PipelineState() = 0;
+  virtual const D3D11Pipe::State &GetD3D11PipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`D3D12_State` pipeline state.
 
@@ -525,7 +525,7 @@ You should use :meth:`GetAPIProperties` to determine the API of the capture.
 :return: The current D3D12 pipeline state.
 :rtype: D3D12_State
 )");
-  virtual D3D12Pipe::State GetD3D12PipelineState() = 0;
+  virtual const D3D12Pipe::State &GetD3D12PipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`GL_State` pipeline state.
 
@@ -535,7 +535,7 @@ You should use :meth:`GetAPIProperties` to determine the API of the capture.
 :return: The current OpenGL pipeline state.
 :rtype: GL_State
 )");
-  virtual GLPipe::State GetGLPipelineState() = 0;
+  virtual const GLPipe::State &GetGLPipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`VK_State` pipeline state.
 
@@ -545,7 +545,7 @@ You should use :meth:`GetAPIProperties` to determine the API of the capture.
 :return: The current Vulkan pipeline state.
 :rtype: VK_State
 )");
-  virtual VKPipe::State GetVulkanPipelineState() = 0;
+  virtual const VKPipe::State &GetVulkanPipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the list of possible disassembly targets for :meth:`DisassembleShader`. The
 values are implementation dependent but will always include a default target first which is the

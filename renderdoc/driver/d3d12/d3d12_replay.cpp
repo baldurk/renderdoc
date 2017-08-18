@@ -889,7 +889,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
   SAFE_DELETE_ARRAY(spaces);
 }
 
-void D3D12Replay::MakePipelineState()
+void D3D12Replay::SavePipelineState()
 {
   const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
@@ -979,6 +979,7 @@ void D3D12Replay::MakePipelineState()
 
     state.m_CS.Object = sh->GetResourceID();
     state.m_CS.stage = ShaderStage::Compute;
+    state.m_CS.ShaderDetails = &sh->GetDetails();
     state.m_CS.BindpointMapping = sh->GetMapping();
 
     state.rootSig = rm->GetOriginalID(rs.compute.rootsig);
@@ -1010,6 +1011,7 @@ void D3D12Replay::MakePipelineState()
       {
         dst.Object = sh->GetResourceID();
         dst.BindpointMapping = sh->GetMapping();
+        dst.ShaderDetails = &sh->GetDetails();
       }
 
       if(rs.graphics.rootsig != ResourceId())

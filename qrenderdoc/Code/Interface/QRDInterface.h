@@ -1386,28 +1386,28 @@ currently docked.
 :return: The current D3D11 pipeline state.
 :rtype: ~renderdoc.D3D11_State
 )");
-  virtual D3D11Pipe::State &CurD3D11PipelineState() = 0;
+  virtual const D3D11Pipe::State &CurD3D11PipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`~renderdoc.D3D12_State` pipeline state.
 
 :return: The current D3D12 pipeline state.
 :rtype: ~renderdoc.D3D12_State
 )");
-  virtual D3D12Pipe::State &CurD3D12PipelineState() = 0;
+  virtual const D3D12Pipe::State &CurD3D12PipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`~renderdoc.GL_State` pipeline state.
 
 :return: The current OpenGL pipeline state.
 :rtype: ~renderdoc.GL_State
 )");
-  virtual GLPipe::State &CurGLPipelineState() = 0;
+  virtual const GLPipe::State &CurGLPipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`~renderdoc.VK_State` pipeline state.
 
 :return: The current Vulkan pipeline state.
 :rtype: ~renderdoc.VK_State
 )");
-  virtual VKPipe::State &CurVulkanPipelineState() = 0;
+  virtual const VKPipe::State &CurVulkanPipelineState() = 0;
 
   DOCUMENT(R"(Retrieve the current :class:`CommonPipelineState` abstracted pipeline state.
 

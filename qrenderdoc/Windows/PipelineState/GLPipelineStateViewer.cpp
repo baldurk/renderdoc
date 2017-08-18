@@ -2264,7 +2264,7 @@ void GLPipelineStateViewer::shaderSave_clicked()
   m_Common.SaveShaderFile(shaderDetails);
 }
 
-void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::VertexInput &vtx)
+void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::VertexInput &vtx)
 {
   const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
   {
@@ -2419,7 +2419,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::VertexInpu
   }
 }
 
-void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh)
+void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shader &sh)
 {
   const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
   ShaderReflection *shaderDetails = sh.ShaderDetails;
@@ -2870,7 +2870,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
   }
 }
 
-void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Feedback &xfb)
+void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Feedback &xfb)
 {
   const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
   {
@@ -2919,7 +2919,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Feedback &
   }
 }
 
-void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Rasterizer &rs)
+void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Rasterizer &rs)
 {
   const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
   xml.writeStartElement(tr("h3"));
@@ -3037,7 +3037,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Rasterizer
   }
 }
 
-void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::FrameBuffer &fb)
+void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::FrameBuffer &fb)
 {
   const GLPipe::State &pipe = m_Ctx.CurGLPipelineState();
   {

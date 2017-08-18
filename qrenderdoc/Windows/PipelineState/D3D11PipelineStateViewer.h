@@ -93,13 +93,13 @@ private:
   void setState();
   void clearState();
 
-  QVariantList exportViewHTML(D3D11Pipe::View &view, int i, ShaderReflection *refl,
+  QVariantList exportViewHTML(const D3D11Pipe::View &view, int i, ShaderReflection *refl,
                               const QString &extraParams);
-  void exportHTML(QXmlStreamWriter &xml, D3D11Pipe::IA &ia);
-  void exportHTML(QXmlStreamWriter &xml, D3D11Pipe::Shader &sh);
-  void exportHTML(QXmlStreamWriter &xml, D3D11Pipe::SO &so);
-  void exportHTML(QXmlStreamWriter &xml, D3D11Pipe::Rasterizer &rs);
-  void exportHTML(QXmlStreamWriter &xml, D3D11Pipe::OM &om);
+  void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::IA &ia);
+  void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::Shader &sh);
+  void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::SO &so);
+  void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::Rasterizer &rs);
+  void exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::OM &om);
 
   void setInactiveRow(RDTreeWidgetItem *node);
   void setEmptyRow(RDTreeWidgetItem *node);

@@ -2403,7 +2403,7 @@ void VulkanPipelineStateViewer::shaderSave_clicked()
   m_Common.SaveShaderFile(shaderDetails);
 }
 
-void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::VertexInput &vi)
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::VertexInput &vi)
 {
   {
     xml.writeStartElement(lit("h3"));
@@ -2469,7 +2469,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Vertex
   }
 }
 
-void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::InputAssembly &ia)
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::InputAssembly &ia)
 {
   {
     xml.writeStartElement(lit("h3"));
@@ -2507,7 +2507,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::InputA
       {ToQStr(m_Ctx.CurDrawcall()->topology), m_Ctx.CurVulkanPipelineState().Tess.numControlPoints});
 }
 
-void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader &sh)
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::Shader &sh)
 {
   ShaderReflection *shaderDetails = sh.ShaderDetails;
 
@@ -2862,7 +2862,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
   }
 }
 
-void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Raster &rs)
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::Raster &rs)
 {
   {
     xml.writeStartElement(lit("h3"));
@@ -2889,7 +2889,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Raster
          Formatter::Format(rs.slopeScaledDepthBias), Formatter::Format(rs.lineWidth)});
   }
 
-  VKPipe::MultiSample &msaa = m_Ctx.CurVulkanPipelineState().MSAA;
+  const VKPipe::MultiSample &msaa = m_Ctx.CurVulkanPipelineState().MSAA;
 
   {
     xml.writeStartElement(lit("h3"));
@@ -2903,7 +2903,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Raster
          Formatter::Format(msaa.minSampleShading), Formatter::Format(msaa.sampleMask, true)});
   }
 
-  VKPipe::ViewState &vp = m_Ctx.CurVulkanPipelineState().VP;
+  const VKPipe::ViewState &vp = m_Ctx.CurVulkanPipelineState().VP;
 
   {
     xml.writeStartElement(lit("h3"));
@@ -2948,7 +2948,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Raster
   }
 }
 
-void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::ColorBlend &cb)
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::ColorBlend &cb)
 {
   xml.writeStartElement(lit("h3"));
   xml.writeCharacters(tr("Color Blend State"));
@@ -2998,7 +2998,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::ColorB
       rows);
 }
 
-void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::DepthStencil &ds)
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::DepthStencil &ds)
 {
   {
     xml.writeStartElement(lit("h3"));
@@ -3055,7 +3055,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::DepthS
   }
 }
 
-void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::CurrentPass &pass)
+void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::CurrentPass &pass)
 {
   {
     xml.writeStartElement(lit("h3"));

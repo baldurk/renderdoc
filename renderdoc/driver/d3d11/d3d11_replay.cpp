@@ -491,11 +491,11 @@ vector<ResourceId> D3D11Replay::GetTextures()
   return ret;
 }
 
-D3D11Pipe::State D3D11Replay::MakePipelineState()
+void D3D11Replay::SavePipelineState()
 {
   D3D11RenderState *rs = m_pDevice->GetImmediateContext()->GetCurrentPipelineState();
 
-  D3D11Pipe::State ret;
+  D3D11Pipe::State &ret = m_CurPipelineState;
 
   /////////////////////////////////////////////////
   // Input Assembler
@@ -584,7 +584,7 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
         refl = shad->GetDetails();
 
       dst.Object = rm->GetOriginalID(id);
-      dst.ShaderDetails = NULL;
+      dst.ShaderDetails = refl;
 
       string str = GetDebugName(src.Shader);
       dst.customName = true;
@@ -1340,8 +1340,6 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
       ret.m_OM.m_State.m_BackFace.FailOp = StencilOp::Keep;
     }
   }
-
-  return ret;
 }
 
 void D3D11Replay::ReadLogInitialisation()

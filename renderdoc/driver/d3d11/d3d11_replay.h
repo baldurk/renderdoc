@@ -65,11 +65,11 @@ public:
 
   FrameRecord GetFrameRecord();
 
-  void SavePipelineState() { m_CurPipelineState = MakePipelineState(); }
-  D3D11Pipe::State GetD3D11PipelineState() { return m_CurPipelineState; }
-  D3D12Pipe::State GetD3D12PipelineState() { return D3D12Pipe::State(); }
-  GLPipe::State GetGLPipelineState() { return GLPipe::State(); }
-  VKPipe::State GetVulkanPipelineState() { return VKPipe::State(); }
+  void SavePipelineState();
+  const D3D11Pipe::State &GetD3D11PipelineState() { return m_CurPipelineState; }
+  const D3D12Pipe::State &GetD3D12PipelineState() { return m_D3D12State; }
+  const GLPipe::State &GetGLPipelineState() { return m_GLState; }
+  const VKPipe::State &GetVulkanPipelineState() { return m_VKState; }
   void FreeTargetResource(ResourceId id);
   void FreeCustomShader(ResourceId id);
 
@@ -170,8 +170,6 @@ public:
   Callstack::StackResolver *GetCallstackResolver();
 
 private:
-  D3D11Pipe::State MakePipelineState();
-
   bool m_WARP;
   bool m_Proxy;
 
@@ -180,4 +178,7 @@ private:
   WrappedID3D11Device *m_pDevice;
 
   D3D11Pipe::State m_CurPipelineState;
+  D3D12Pipe::State m_D3D12State;
+  VKPipe::State m_VKState;
+  GLPipe::State m_GLState;
 };

@@ -145,8 +145,8 @@ public:
 :param ~renderdoc.GL_State gl: The OpenGL state.
 :param ~renderdoc.VK_State vk: The Vulkan state.
 )");
-  void SetStates(APIProperties props, D3D11Pipe::State *d3d11, D3D12Pipe::State *d3d12,
-                 GLPipe::State *gl, VKPipe::State *vk)
+  void SetStates(APIProperties props, const D3D11Pipe::State *d3d11, const D3D12Pipe::State *d3d12,
+                 const GLPipe::State *gl, const VKPipe::State *vk)
   {
     m_APIProps = props;
     m_D3D11 = d3d11;
@@ -422,10 +422,10 @@ Typically this is ``glsl`` or ``hlsl``.
   QVector<BoundResource> GetOutputTargets();
 
 private:
-  D3D11Pipe::State *m_D3D11 = NULL;
-  D3D12Pipe::State *m_D3D12 = NULL;
-  GLPipe::State *m_GL = NULL;
-  VKPipe::State *m_Vulkan = NULL;
+  const D3D11Pipe::State *m_D3D11 = NULL;
+  const D3D12Pipe::State *m_D3D12 = NULL;
+  const GLPipe::State *m_GL = NULL;
+  const VKPipe::State *m_Vulkan = NULL;
   APIProperties m_APIProps;
 
   const D3D11Pipe::Shader &GetD3D11Stage(ShaderStage stage);

@@ -2254,7 +2254,7 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
           a,    viewFormat,        format,   viewParams};
 }
 
-void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::IA &ia)
+void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::IA &ia)
 {
   {
     xml.writeStartElement(lit("h3"));
@@ -2356,7 +2356,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::IA &
   m_Common.exportHTMLTable(xml, {tr("Primitive Topology")}, {ToQStr(m_Ctx.CurDrawcall()->topology)});
 }
 
-void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Shader &sh)
+void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Shader &sh)
 {
   ShaderReflection *shaderDetails = sh.ShaderDetails;
 
@@ -2716,7 +2716,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Shad
   }
 }
 
-void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Streamout &so)
+void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Streamout &so)
 {
   {
     xml.writeStartElement(lit("h3"));
@@ -2776,7 +2776,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Stre
   }
 }
 
-void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Rasterizer &rs)
+void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Rasterizer &rs)
 {
   {
     xml.writeStartElement(lit("h3"));
@@ -2853,7 +2853,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::Rast
   }
 }
 
-void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D12Pipe::OM &om)
+void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::OM &om)
 {
   {
     xml.writeStartElement(lit("h3"));

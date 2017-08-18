@@ -2261,7 +2261,7 @@ void D3D11PipelineStateViewer::shaderSave_clicked()
   m_Common.SaveShaderFile(shaderDetails);
 }
 
-QVariantList D3D11PipelineStateViewer::exportViewHTML(D3D11Pipe::View &view, int i,
+QVariantList D3D11PipelineStateViewer::exportViewHTML(const D3D11Pipe::View &view, int i,
                                                       ShaderReflection *refl,
                                                       const QString &extraParams)
 {
@@ -2385,7 +2385,7 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(D3D11Pipe::View &view, int
           d, a,    viewFormat,        format,   viewParams};
 }
 
-void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::IA &ia)
+void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::IA &ia)
 {
   {
     xml.writeStartElement(lit("h3"));
@@ -2483,7 +2483,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::IA &
   m_Common.exportHTMLTable(xml, {tr("Primitive Topology")}, {ToQStr(m_Ctx.CurDrawcall()->topology)});
 }
 
-void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::Shader &sh)
+void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::Shader &sh)
 {
   ShaderReflection *shaderDetails = sh.ShaderDetails;
 
@@ -2697,7 +2697,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::Shad
   }
 }
 
-void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::SO &so)
+void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::SO &so)
 {
   {
     xml.writeStartElement(lit("h3"));
@@ -2735,7 +2735,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::SO &
   }
 }
 
-void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::Rasterizer &rs)
+void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::Rasterizer &rs)
 {
   {
     xml.writeStartElement(lit("h3"));
@@ -2812,7 +2812,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::Rast
   }
 }
 
-void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::OM &om)
+void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::OM &om)
 {
   {
     xml.writeStartElement(lit("h3"));

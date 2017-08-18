@@ -99,16 +99,16 @@ struct CaptureContextInvoker : ICaptureContext
   virtual const QVector<DebugMessage> &DebugMessages() override { return m_Ctx.DebugMessages(); }
   virtual int UnreadMessageCount() override { return m_Ctx.UnreadMessageCount(); }
   virtual void MarkMessagesRead() override { return m_Ctx.MarkMessagesRead(); }
-  virtual D3D11Pipe::State &CurD3D11PipelineState() override
+  virtual const D3D11Pipe::State &CurD3D11PipelineState() override
   {
     return m_Ctx.CurD3D11PipelineState();
   }
-  virtual D3D12Pipe::State &CurD3D12PipelineState() override
+  virtual const D3D12Pipe::State &CurD3D12PipelineState() override
   {
     return m_Ctx.CurD3D12PipelineState();
   }
-  virtual GLPipe::State &CurGLPipelineState() override { return m_Ctx.CurGLPipelineState(); }
-  virtual VKPipe::State &CurVulkanPipelineState() override
+  virtual const GLPipe::State &CurGLPipelineState() override { return m_Ctx.CurGLPipelineState(); }
+  virtual const VKPipe::State &CurVulkanPipelineState() override
   {
     return m_Ctx.CurVulkanPipelineState();
   }

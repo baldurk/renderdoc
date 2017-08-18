@@ -213,24 +213,24 @@ void ReplayController::SetFrameEvent(uint32_t eventID, bool force)
   }
 }
 
-D3D11Pipe::State ReplayController::GetD3D11PipelineState()
+const D3D11Pipe::State &ReplayController::GetD3D11PipelineState()
 {
-  return m_D3D11PipelineState;
+  return *m_D3D11PipelineState;
 }
 
-D3D12Pipe::State ReplayController::GetD3D12PipelineState()
+const D3D12Pipe::State &ReplayController::GetD3D12PipelineState()
 {
-  return m_D3D12PipelineState;
+  return *m_D3D12PipelineState;
 }
 
-GLPipe::State ReplayController::GetGLPipelineState()
+const GLPipe::State &ReplayController::GetGLPipelineState()
 {
-  return m_GLPipelineState;
+  return *m_GLPipelineState;
 }
 
-VKPipe::State ReplayController::GetVulkanPipelineState()
+const VKPipe::State &ReplayController::GetVulkanPipelineState()
 {
-  return m_VulkanPipelineState;
+  return *m_VulkanPipelineState;
 }
 
 rdctype::array<rdctype::str> ReplayController::GetDisassemblyTargets()
@@ -1645,53 +1645,8 @@ void ReplayController::FetchPipelineState()
 {
   m_pDevice->SavePipelineState();
 
-  m_D3D11PipelineState = m_pDevice->GetD3D11PipelineState();
-  m_D3D12PipelineState = m_pDevice->GetD3D12PipelineState();
-  m_GLPipelineState = m_pDevice->GetGLPipelineState();
-  m_VulkanPipelineState = m_pDevice->GetVulkanPipelineState();
-
-  {
-    D3D11Pipe::Shader *stages[] = {
-        &m_D3D11PipelineState.m_VS, &m_D3D11PipelineState.m_HS, &m_D3D11PipelineState.m_DS,
-        &m_D3D11PipelineState.m_GS, &m_D3D11PipelineState.m_PS, &m_D3D11PipelineState.m_CS,
-    };
-
-    for(int i = 0; i < 6; i++)
-      if(stages[i]->Object != ResourceId())
-        stages[i]->ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stages[i]->Object), "");
-  }
-
-  {
-    D3D12Pipe::Shader *stages[] = {
-        &m_D3D12PipelineState.m_VS, &m_D3D12PipelineState.m_HS, &m_D3D12PipelineState.m_DS,
-        &m_D3D12PipelineState.m_GS, &m_D3D12PipelineState.m_PS, &m_D3D12PipelineState.m_CS,
-    };
-
-    for(int i = 0; i < 6; i++)
-      if(stages[i]->Object != ResourceId())
-        stages[i]->ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stages[i]->Object), "");
-  }
-
-  {
-    GLPipe::Shader *stages[] = {
-        &m_GLPipelineState.m_VS, &m_GLPipelineState.m_TCS, &m_GLPipelineState.m_TES,
-        &m_GLPipelineState.m_GS, &m_GLPipelineState.m_FS,  &m_GLPipelineState.m_CS,
-    };
-
-    for(int i = 0; i < 6; i++)
-      if(stages[i]->Object != ResourceId())
-        stages[i]->ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stages[i]->Object), "");
-  }
-
-  {
-    VKPipe::Shader *stages[] = {
-        &m_VulkanPipelineState.m_VS, &m_VulkanPipelineState.m_TCS, &m_VulkanPipelineState.m_TES,
-        &m_VulkanPipelineState.m_GS, &m_VulkanPipelineState.m_FS,  &m_VulkanPipelineState.m_CS,
-    };
-
-    for(int i = 0; i < 6; i++)
-      if(stages[i]->Object != ResourceId())
-        stages[i]->ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stages[i]->Object),
-                                                        stages[i]->entryPoint.elems);
-  }
+  m_D3D11PipelineState = &m_pDevice->GetD3D11PipelineState();
+  m_D3D12PipelineState = &m_pDevice->GetD3D12PipelineState();
+  m_GLPipelineState = &m_pDevice->GetGLPipelineState();
+  m_VulkanPipelineState = &m_pDevice->GetVulkanPipelineState();
 }

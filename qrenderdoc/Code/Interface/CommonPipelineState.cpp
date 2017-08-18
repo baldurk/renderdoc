@@ -928,7 +928,7 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
               s.BindpointMapping.ConstantBlocks[s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint].bind;
           if(uboIdx >= 0 && uboIdx < m_GL->UniformBuffers.count)
           {
-            GLPipe::Buffer &b = m_GL->UniformBuffers[uboIdx];
+            const GLPipe::Buffer &b = m_GL->UniformBuffers[uboIdx];
 
             buf = b.Resource;
             ByteOffset = b.Offset;
@@ -939,7 +939,8 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
     }
     else if(IsLogVK())
     {
-      VKPipe::Pipeline &pipe = stage == ShaderStage::Compute ? m_Vulkan->compute : m_Vulkan->graphics;
+      const VKPipe::Pipeline &pipe =
+          stage == ShaderStage::Compute ? m_Vulkan->compute : m_Vulkan->graphics;
       const VKPipe::Shader &s = GetVulkanStage(stage);
 
       if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count)
