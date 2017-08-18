@@ -146,7 +146,7 @@ public:
   bool HasMeshPreview() override { return m_MeshPreview != NULL; }
   bool HasCaptureDialog() override { return m_CaptureDialog != NULL; }
   bool HasDebugMessageView() override { return m_DebugMessageView != NULL; }
-  bool HasPerformanceCounterViewer() override { return m_PerformanecCounterViewer != NULL; }
+  bool HasPerformanceCounterViewer() override { return m_PerformanceCounterViewer != NULL; }
   bool HasStatisticsViewer() override { return m_StatisticsViewer != NULL; }
   bool HasTimelineBar() override { return m_TimelineBar != NULL; }
   bool HasPythonShell() override { return m_PythonShell != NULL; }
@@ -283,7 +283,7 @@ private:
   PipelineStateViewer *m_PipelineViewer = NULL;
   CaptureDialog *m_CaptureDialog = NULL;
   DebugMessageView *m_DebugMessageView = NULL;
-  PerformanceCounterViewer *m_PerformanecCounterViewer = NULL;
+  PerformanceCounterViewer *m_PerformanceCounterViewer = NULL;
   StatisticsViewer *m_StatisticsViewer = NULL;
   TimelineBar *m_TimelineBar = NULL;
   PythonShell *m_PythonShell = NULL;

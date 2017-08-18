@@ -735,14 +735,14 @@ IDebugMessageView *CaptureContext::GetDebugMessageView()
 
 IPerformanceCounterViewer *CaptureContext::GetPerformanceCounterViewer()
 {
-  if(m_PerformanecCounterViewer)
-    return m_PerformanecCounterViewer;
+  if(m_PerformanceCounterViewer)
+    return m_PerformanceCounterViewer;
 
-  m_PerformanecCounterViewer = new PerformanceCounterViewer(*this, m_MainWindow);
-  m_PerformanecCounterViewer->setObjectName(lit("performanceCounterViewer"));
-  setupDockWindow(m_PerformanecCounterViewer);
+  m_PerformanceCounterViewer = new PerformanceCounterViewer(*this, m_MainWindow);
+  m_PerformanceCounterViewer->setObjectName(lit("performanceCounterViewer"));
+  setupDockWindow(m_PerformanceCounterViewer);
 
-  return m_PerformanecCounterViewer;
+  return m_PerformanceCounterViewer;
 }
 
 IStatisticsViewer *CaptureContext::GetStatisticsViewer()
@@ -963,6 +963,8 @@ void CaptureContext::BuiltinWindowClosed(QWidget *window)
     m_TimelineBar = NULL;
   else if(m_PythonShell && m_PythonShell->Widget() == window)
     m_PythonShell = NULL;
+  else if(m_PerformanceCounterViewer && m_PerformanceCounterViewer->Widget() == window)
+    m_PerformanceCounterViewer = NULL;
   else
     qCritical() << "Unrecognised window being closed: " << window;
 }
