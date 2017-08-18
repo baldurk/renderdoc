@@ -165,57 +165,6 @@ extern "C" RENDERDOC_API uint16_t RENDERDOC_CC RENDERDOC_FloatToHalf(float f)
   return ConvertToHalf(f);
 }
 
-extern "C" RENDERDOC_API Camera *RENDERDOC_CC Camera_InitArcball()
-{
-  return new Camera(CameraType::Arcball);
-}
-
-extern "C" RENDERDOC_API Camera *RENDERDOC_CC Camera_InitFPSLook()
-{
-  return new Camera(CameraType::FPSLook);
-}
-
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_Shutdown(Camera *c)
-{
-  c->Shutdown();
-}
-
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetPosition(Camera *c, float x, float y, float z)
-{
-  c->SetPosition(x, y, z);
-}
-
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetFPSRotation(Camera *c, float x, float y, float z)
-{
-  c->SetFPSRotation(x, y, z);
-}
-
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetArcballDistance(Camera *c, float dist)
-{
-  c->SetArcballDistance(dist);
-}
-
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_ResetArcball(Camera *c)
-{
-  c->ResetArcball();
-}
-
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_RotateArcball(Camera *c, float ax, float ay,
-                                                                float bx, float by)
-{
-  c->RotateArcball(ax, ay, bx, by);
-}
-
-extern "C" RENDERDOC_API void RENDERDOC_CC Camera_GetBasis(Camera *c, FloatVector *pos,
-                                                           FloatVector *fwd, FloatVector *right,
-                                                           FloatVector *up)
-{
-  *pos = c->GetPosition();
-  *fwd = c->GetForward();
-  *right = c->GetRight();
-  *up = c->GetUp();
-}
-
 extern "C" RENDERDOC_API ICamera *RENDERDOC_CC RENDERDOC_InitCamera(CameraType type)
 {
   return new Camera(type);
@@ -235,27 +184,6 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetConfigSetting(const char
                                                                       const char *value)
 {
   RenderDoc::Inst().SetConfigSetting(name, value);
-}
-
-extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_MakeEnvironmentModificationList(int numElems)
-{
-  rdctype::array<EnvironmentModification> *ret = new rdctype::array<EnvironmentModification>();
-  create_array_uninit(*ret, (size_t)numElems);
-  return ret;
-}
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetEnvironmentModification(
-    void *mem, int idx, const char *variable, const char *value, EnvMod type, EnvSep separator)
-{
-  rdctype::array<EnvironmentModification> *mods = (rdctype::array<EnvironmentModification> *)mem;
-
-  mods->elems[idx] = EnvironmentModification(type, separator, variable, value);
-}
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeEnvironmentModificationList(void *mem)
-{
-  rdctype::array<EnvironmentModification> *mods = (rdctype::array<EnvironmentModification> *)mem;
-  delete mods;
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char *log)
