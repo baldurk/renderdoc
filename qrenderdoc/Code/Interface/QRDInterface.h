@@ -34,10 +34,6 @@
 // or not it should be translated
 #define QFormatStr(fmt) QStringLiteral(fmt)
 
-// we depend on the internal RenderDoc API, but the bindings for that are imported entirely
-#define RENDERDOC_QT_COMPAT
-#include "renderdoc_replay.h"
-
 // this is pre-declared as an opaque type as we only support converting to QWidget* via PySide
 class QWidget;
 
@@ -58,6 +54,10 @@ class QWidget;
   operator QVariant() const;
 
 #endif
+
+// we depend on the internal RenderDoc API, but the bindings for that are imported entirely
+#define RENDERDOC_QT_COMPAT
+#include "renderdoc_replay.h"
 
 #include "CommonPipelineState.h"
 #include "PersistantConfig.h"
