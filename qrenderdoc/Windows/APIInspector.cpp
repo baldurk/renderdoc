@@ -85,7 +85,7 @@ void APIInspector::addCallstack(rdctype::array<rdctype::str> calls)
   else
   {
     for(rdctype::str &s : calls)
-      ui->callstack->addItem(ToQStr(s));
+      ui->callstack->addItem(s);
   }
   ui->callstack->setUpdatesEnabled(true);
 }
@@ -130,7 +130,7 @@ void APIInspector::fillAPIView()
   {
     for(const APIEvent &ev : draw->events)
     {
-      QStringList lines = ToQStr(ev.eventDesc).split(lit("\n"), QString::SkipEmptyParts);
+      QStringList lines = QString(ev.eventDesc).split(lit("\n"), QString::SkipEmptyParts);
 
       RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventID), lines[0]});
 

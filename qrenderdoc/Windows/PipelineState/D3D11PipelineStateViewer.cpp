@@ -494,8 +494,8 @@ void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
   if(res.Format != tex->format)
   {
     text += tr("The texture is format %1, the view treats it as %2.\n")
-                .arg(ToQStr(tex->format.strname))
-                .arg(ToQStr(res.Format.strname));
+                .arg(tex->format.strname)
+                .arg(res.Format.strname);
 
     viewdetails = true;
   }
@@ -602,7 +602,7 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
     QString slotname = view.type == D3D11ViewTag::OMDepth ? tr("Depth") : QString::number(view.index);
 
     if(shaderInput && !shaderInput->name.empty())
-      slotname += lit(": ") + ToQStr(shaderInput->name);
+      slotname += lit(": ") + shaderInput->name;
 
     uint32_t w = 1, h = 1, d = 1;
     uint32_t a = 1;
@@ -626,8 +626,8 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
       h = tex->height;
       d = tex->depth;
       a = tex->arraysize;
-      format = ToQStr(tex->format.strname);
-      name = ToQStr(tex->name);
+      format = tex->format.strname;
+      name = tex->name;
       typeName = ToQStr(tex->resType);
 
       if(tex->resType == TextureDim::Texture2DMS || tex->resType == TextureDim::Texture2DMSArray)
@@ -636,7 +636,7 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
       }
 
       if(tex->format != r.Format)
-        format = tr("Viewed as %1").arg(ToQStr(r.Format.strname));
+        format = tr("Viewed as %1").arg(r.Format.strname);
 
       if(HasImportantViewParams(r, tex))
         viewDetails = true;
@@ -651,7 +651,7 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
       d = 0;
       a = 0;
       format = QString();
-      name = ToQStr(buf->name);
+      name = buf->name;
       typeName = lit("Buffer");
 
       if(r.Flags & D3DBufferViewFlags::Raw)
@@ -678,13 +678,13 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
         if(r.Format.compType == CompType::Typeless)
         {
           if(!shaderInput->variableType.members.empty())
-            format = lit("struct ") + ToQStr(shaderInput->variableType.descriptor.name);
+            format = lit("struct ") + shaderInput->variableType.descriptor.name;
           else
-            format = ToQStr(shaderInput->variableType.descriptor.name);
+            format = shaderInput->variableType.descriptor.name;
         }
         else
         {
-          format = ToQStr(r.Format.strname);
+          format = r.Format.strname;
         }
       }
 
@@ -849,13 +849,13 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
   if(stage.Object == ResourceId())
     shader->setText(tr("Unbound Shader"));
   else
-    shader->setText(ToQStr(stage.name));
+    shader->setText(stage.name);
 
   if(shaderDetails && !shaderDetails->DebugInfo.files.empty())
   {
     shader->setText(QFormatStr("%1() - %2")
-                        .arg(ToQStr(shaderDetails->EntryPoint))
-                        .arg(QFileInfo(ToQStr(shaderDetails->DebugInfo.files[0].first)).fileName()));
+                        .arg(shaderDetails->EntryPoint)
+                        .arg(QFileInfo(shaderDetails->DebugInfo.files[0].first).fileName()));
   }
 
   int vs = 0;
@@ -914,10 +914,10 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
       QString slotname = QString::number(i);
 
       if(shaderInput && !shaderInput->name.empty())
-        slotname += lit(": ") + ToQStr(shaderInput->name);
+        slotname += lit(": ") + shaderInput->name;
 
       if(s.customName)
-        slotname += QFormatStr("(%1)").arg(ToQStr(s.name));
+        slotname += QFormatStr("(%1)").arg(s.name);
 
       QString borderColor = QFormatStr("%1, %2, %3, %4")
                                 .arg(s.BorderColor[0])
@@ -1033,14 +1033,14 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
 
       if(buf)
       {
-        name = ToQStr(buf->name);
+        name = buf->name;
         length = buf->length;
       }
 
       QString slotname = QString::number(i);
 
       if(shaderCBuf && !shaderCBuf->name.empty())
-        slotname += lit(": ") + ToQStr(shaderCBuf->name);
+        slotname += lit(": ") + shaderCBuf->name;
 
       QString sizestr;
       if(bytesize == (uint32_t)length)
@@ -1079,10 +1079,9 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
     QString interfaceName = lit("Interface %1").arg(i);
 
     if(shaderDetails && i < shaderDetails->Interfaces.count)
-      interfaceName = ToQStr(shaderDetails->Interfaces[i]);
+      interfaceName = shaderDetails->Interfaces[i];
 
-    classes->addTopLevelItem(
-        new RDTreeWidgetItem({i, interfaceName, ToQStr(stage.ClassInstances[i])}));
+    classes->addTopLevelItem(new RDTreeWidgetItem({i, interfaceName, stage.ClassInstances[i]}));
   }
   classes->clearSelection();
   classes->setUpdatesEnabled(true);
@@ -1110,10 +1109,10 @@ void D3D11PipelineStateViewer::setState()
 
   if(state.m_IA.Bytecode)
   {
-    QString layout = ToQStr(state.m_IA.name);
+    QString layout = state.m_IA.name;
 
     if(state.m_IA.Bytecode && !state.m_IA.Bytecode->DebugInfo.files.empty())
-      layout += QFormatStr(" (%1)").arg(ToQStr(state.m_IA.Bytecode->EntryPoint));
+      layout += QFormatStr(" (%1)").arg(state.m_IA.Bytecode->EntryPoint);
 
     ui->iaBytecode->setText(layout);
   }
@@ -1161,11 +1160,11 @@ void D3D11PipelineStateViewer::setState()
 
       for(int i = 0; i < count; i++)
       {
-        QString IAname = ToQStr(IA[i].semanticIdxName);
-        QString VSname = ToQStr(VS[i].semanticIdxName);
+        QString IAname = IA[i].semanticIdxName;
+        QString VSname = VS[i].semanticIdxName;
 
         // misorder or misnamed semantics
-        if(IAname.toUpper() != VSname.toUpper())
+        if(!IAname.compare(VSname, Qt::CaseInsensitive))
           mismatchDetails += tr("IA bytecode semantic %1: %2 != VS bytecode semantic %1: %3\n")
                                  .arg(i)
                                  .arg(IAname)
@@ -1234,8 +1233,8 @@ void D3D11PipelineStateViewer::setState()
 
       for(int ia = 0; state.m_IA.Bytecode && ia < state.m_IA.Bytecode->InputSig.count; ia++)
       {
-        if(ToQStr(state.m_IA.Bytecode->InputSig[ia].semanticName).toUpper() ==
-               ToQStr(l.SemanticName).toUpper() &&
+        if(!QString(state.m_IA.Bytecode->InputSig[ia].semanticName)
+                .compare(l.SemanticName, Qt::CaseInsensitive) &&
            state.m_IA.Bytecode->InputSig[ia].semanticIndex == l.SemanticIndex)
         {
           usedSlot = true;
@@ -1245,10 +1244,10 @@ void D3D11PipelineStateViewer::setState()
 
       if(showNode(usedSlot, filledSlot))
       {
-        RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {i, ToQStr(l.SemanticName), l.SemanticIndex, ToQStr(l.Format.strname), l.InputSlot,
-             byteOffs, l.PerInstance ? lit("PER_INSTANCE") : lit("PER_VERTEX"),
-             l.InstanceDataStepRate, QString()});
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({i, l.SemanticName, l.SemanticIndex, l.Format.strname, l.InputSlot,
+                                  byteOffs, l.PerInstance ? lit("PER_INSTANCE") : lit("PER_VERTEX"),
+                                  l.InstanceDataStepRate, QString()});
 
         if(usedSlot)
           usedVBuffers[l.InputSlot] = true;
@@ -1300,7 +1299,7 @@ void D3D11PipelineStateViewer::setState()
 
       if(buf)
       {
-        name = ToQStr(buf->name);
+        name = buf->name;
         length = buf->length;
       }
 
@@ -1362,7 +1361,7 @@ void D3D11PipelineStateViewer::setState()
       BufferDescription *buf = m_Ctx.GetBuffer(v.Buffer);
       if(buf)
       {
-        name = ToQStr(buf->name);
+        name = buf->name;
         length = buf->length;
       }
 
@@ -1454,7 +1453,7 @@ void D3D11PipelineStateViewer::setState()
 
       if(buf)
       {
-        name = ToQStr(buf->name);
+        name = buf->name;
         if(length == 0)
           length = buf->length;
       }
@@ -1758,10 +1757,9 @@ QString D3D11PipelineStateViewer::formatMembers(int indent, const QString &namep
     {
       if(i > 0)
         ret += lit("\n");
-      ret += indentstr + lit("// struct %1\n").arg(ToQStr(v.type.descriptor.name));
-      ret += indentstr + lit("{\n") +
-             formatMembers(indent + 1, ToQStr(v.name) + lit("_"), v.type.members) + indentstr +
-             lit("}\n");
+      ret += indentstr + lit("// struct %1\n").arg(v.type.descriptor.name);
+      ret += indentstr + lit("{\n") + formatMembers(indent + 1, v.name + lit("_"), v.type.members) +
+             indentstr + lit("}\n");
       if(i < vars.count - 1)
         ret += lit("\n");
     }
@@ -1772,9 +1770,9 @@ QString D3D11PipelineStateViewer::formatMembers(int indent, const QString &namep
         arr = QFormatStr("[%1]").arg(v.type.descriptor.elements);
       ret += QFormatStr("%1%2 %3%4%5;\n")
                  .arg(indentstr)
-                 .arg(ToQStr(v.type.descriptor.name))
+                 .arg(v.type.descriptor.name)
                  .arg(nameprefix)
-                 .arg(ToQStr(v.name))
+                 .arg(v.name)
                  .arg(arr);
     }
 
@@ -1919,7 +1917,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
       if(!res.variableType.members.empty())
       {
         format = lit("// struct %1\n{\n%2}")
-                     .arg(ToQStr(res.variableType.descriptor.name))
+                     .arg(res.variableType.descriptor.name)
                      .arg(formatMembers(1, QString(), res.variableType.members));
       }
       else
@@ -1939,7 +1937,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
             format += QString::number(desc.cols);
 
           if(!desc.name.empty())
-            format += lit(" ") + ToQStr(desc.name);
+            format += lit(" ") + desc.name;
 
           if(desc.elements > 1)
             format += QFormatStr("[%1]").arg(desc.elements);
@@ -2299,7 +2297,7 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(D3D11Pipe::View &view, int
   uint32_t h = 1, d = 1;
   uint32_t a = 0;
 
-  QString viewFormat = ToQStr(view.Format.strname);
+  QString viewFormat = view.Format.strname;
 
   TextureDescription *tex = m_Ctx.GetTexture(view.Resource);
   BufferDescription *buf = m_Ctx.GetBuffer(view.Resource);
@@ -2313,8 +2311,8 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(D3D11Pipe::View &view, int
     h = tex->height;
     d = tex->depth;
     a = tex->arraysize;
-    format = ToQStr(tex->format.strname);
-    name = ToQStr(tex->name);
+    format = tex->format.strname;
+    name = tex->name;
     typeName = ToQStr(tex->resType);
 
     if(tex->mips > 1)
@@ -2336,8 +2334,8 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(D3D11Pipe::View &view, int
     h = 0;
     d = 0;
     a = 0;
-    format = ToQStr(view.Format.strname);
-    name = ToQStr(buf->name);
+    format = view.Format.strname;
+    name = buf->name;
     typeName = lit("Buffer");
 
     if(view.Flags & D3DBufferViewFlags::Raw)
@@ -2362,13 +2360,13 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(D3D11Pipe::View &view, int
       if(view.Format.compType == CompType::Typeless)
       {
         if(shaderInput->variableType.members.count > 0)
-          viewFormat = format = lit("struct ") + ToQStr(shaderInput->variableType.descriptor.name);
+          viewFormat = format = lit("struct ") + shaderInput->variableType.descriptor.name;
         else
-          viewFormat = format = ToQStr(shaderInput->variableType.descriptor.name);
+          viewFormat = format = shaderInput->variableType.descriptor.name;
       }
       else
       {
-        format = ToQStr(view.Format.strname);
+        format = view.Format.strname;
       }
     }
 
@@ -2399,8 +2397,8 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::IA &
     int i = 0;
     for(const D3D11Pipe::Layout &l : ia.layouts)
     {
-      rows.push_back({i, ToQStr(l.SemanticName), l.SemanticIndex, ToQStr(l.Format.strname),
-                      l.InputSlot, l.ByteOffset, (bool)l.PerInstance, l.InstanceDataStepRate});
+      rows.push_back({i, l.SemanticName, l.SemanticIndex, l.Format.strname, l.InputSlot,
+                      l.ByteOffset, (bool)l.PerInstance, l.InstanceDataStepRate});
 
       i++;
     }
@@ -2433,7 +2431,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::IA &
         BufferDescription *buf = m_Ctx.GetBuffer(vb.Buffer);
         if(buf)
         {
-          name = ToQStr(buf->name);
+          name = buf->name;
           length = buf->length;
         }
       }
@@ -2464,7 +2462,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::IA &
       BufferDescription *buf = m_Ctx.GetBuffer(ia.ibuffer.Buffer);
       if(buf)
       {
-        name = ToQStr(buf->name);
+        name = buf->name;
         length = buf->length;
       }
     }
@@ -2499,13 +2497,13 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::Shad
     if(sh.Object == ResourceId())
       shadername = tr("Unbound");
     else
-      shadername = ToQStr(sh.name);
+      shadername = sh.name;
 
     if(shaderDetails && shaderDetails->DebugInfo.files.count > 0)
     {
       shadername = QFormatStr("%1() - %2")
-                       .arg(ToQStr(shaderDetails->EntryPoint))
-                       .arg(QFileInfo(ToQStr(shaderDetails->DebugInfo.files[0].first)).fileName());
+                       .arg(shaderDetails->EntryPoint)
+                       .arg(QFileInfo(shaderDetails->DebugInfo.files[0].first).fileName());
     }
 
     xml.writeStartElement(lit("p"));
@@ -2659,7 +2657,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::Shad
       BufferDescription *buf = m_Ctx.GetBuffer(sh.ConstantBuffers[i].Buffer);
       if(buf)
       {
-        name = ToQStr(buf->name);
+        name = buf->name;
         length = buf->length;
       }
 
@@ -2686,9 +2684,9 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::Shad
       QString interfaceName = tr("Interface %1").arg(i);
 
       if(sh.ShaderDetails && i < sh.ShaderDetails->Interfaces.count)
-        interfaceName = ToQStr(sh.ShaderDetails->Interfaces[i]);
+        interfaceName = sh.ShaderDetails->Interfaces[i];
 
-      rows.push_back({i, interfaceName, ToQStr(sh.ClassInstances[i])});
+      rows.push_back({i, interfaceName, sh.ClassInstances[i]});
     }
 
     m_Common.exportHTMLTable(xml,
@@ -2723,7 +2721,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::SO &
         BufferDescription *buf = m_Ctx.GetBuffer(o.Buffer);
         if(buf)
         {
-          name = ToQStr(buf->name);
+          name = buf->name;
           length = buf->length;
         }
       }

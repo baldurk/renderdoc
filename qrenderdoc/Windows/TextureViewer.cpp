@@ -363,7 +363,7 @@ public:
       {
         if(filter.isEmpty())
           texs.push_back(t);
-        else if(ToQStr(t.name).contains(filter, Qt::CaseInsensitive))
+        else if(QString(t.name).contains(filter, Qt::CaseInsensitive))
           texs.push_back(t);
       }
     }
@@ -397,7 +397,7 @@ public:
       if(role == Qt::DisplayRole)
       {
         if(index.row() >= 0 && index.row() < texs.count())
-          return ToQStr(texs[index.row()].name);
+          return texs[index.row()].name;
       }
 
       if(role == Qt::UserRole)
@@ -971,9 +971,9 @@ void TextureViewer::UI_UpdateTextureDetails()
       QString name;
 
       if(followtex)
-        name = ToQStr(followtex->name);
+        name = followtex->name;
       else
-        name = ToQStr(followbuf->name);
+        name = followbuf->name;
 
       switch(m_Following.Type)
       {
@@ -1009,7 +1009,7 @@ void TextureViewer::UI_UpdateTextureDetails()
     ui->renderContainer->setWindowTitle(title);
   }
 
-  status = ToQStr(current.name) + lit(" - ");
+  status = current.name + lit(" - ");
 
   if(current.dimension >= 1)
     status += QString::number(current.width);
@@ -1696,7 +1696,7 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
   if(tex)
   {
     QWidget *lockedContainer = new QWidget(this);
-    lockedContainer->setWindowTitle(ToQStr(tex->name));
+    lockedContainer->setWindowTitle(tex->name);
     lockedContainer->setProperty("id", QVariant::fromValue(ID));
 
     ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
@@ -1916,10 +1916,10 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
       {
         if(!fullname.isEmpty())
           fullname += lit(" = ");
-        fullname += ToQStr(texptr->name);
+        fullname += texptr->name;
       }
       if(fullname.isEmpty())
-        fullname = ToQStr(texptr->name);
+        fullname = texptr->name;
 
       prev->setResourceName(fullname);
       WId handle = prev->thumbWinId();
@@ -1935,10 +1935,10 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
       {
         if(!fullname.isEmpty())
           fullname += lit(" = ");
-        fullname += ToQStr(bufptr->name);
+        fullname += bufptr->name;
       }
       if(fullname.isEmpty())
-        fullname = ToQStr(bufptr->name);
+        fullname = bufptr->name;
 
       prev->setResourceName(fullname);
       WId handle = prev->thumbWinId();
@@ -2016,7 +2016,7 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
         const ShaderResource &bind = resourceDetails[b];
         if(bind.bindPoint == idx && bind.IsReadOnly)
         {
-          bindName = ToQStr(bind.name);
+          bindName = bind.name;
           otherBind = true;
           break;
         }
@@ -3611,7 +3611,7 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
           if(m_CustomShaderEditor.contains(key))
           {
             IShaderViewer *editor = m_CustomShaderEditor[key];
-            GUIInvoke::call([editor, errors]() { editor->ShowErrors(ToQStr(errors)); });
+            GUIInvoke::call([editor, errors]() { editor->ShowErrors(errors); });
           }
 
           GUIInvoke::call([this, fn, key, id]() {

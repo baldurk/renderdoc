@@ -595,13 +595,13 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
     else
     {
       if(stage.customShaderName)
-        shaderName = ToQStr(stage.ShaderName);
+        shaderName = stage.ShaderName;
 
       if(stage.customProgramName)
-        shaderName = ToQStr(stage.ProgramName) + lit(" - ") + shaderName;
+        shaderName = stage.ProgramName + lit(" - ") + shaderName;
 
       if(stage.customPipelineName && stage.PipelineActive)
-        shaderName = ToQStr(stage.PipelineName) + lit(" - ") + shaderName;
+        shaderName = stage.PipelineName + lit(" - ") + shaderName;
 
       shader->setText(shaderName);
     }
@@ -648,7 +648,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         QString slotname = QString::number(i);
 
         if(shaderInput && !shaderInput->name.empty())
-          slotname += lit(": ") + ToQStr(shaderInput->name);
+          slotname += lit(": ") + shaderInput->name;
 
         uint32_t w = 1, h = 1, d = 1;
         uint32_t a = 1;
@@ -672,8 +672,8 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
           h = tex->height;
           d = tex->depth;
           a = tex->arraysize;
-          format = ToQStr(tex->format.strname);
-          name = ToQStr(tex->name);
+          format = tex->format.strname;
+          name = tex->name;
           typeName = ToQStr(tex->resType);
 
           if(tex->format.special && (tex->format.specialFormat == SpecialFormat::D16S8 ||
@@ -715,7 +715,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         QString slotname = QString::number(i);
 
         if(shaderInput && !shaderInput->name.empty())
-          slotname += lit(": ") + ToQStr(shaderInput->name);
+          slotname += lit(": ") + shaderInput->name;
 
         QString borderColor = QFormatStr("%1, %2, %3, %4")
                                   .arg(s.BorderColor[0])
@@ -830,7 +830,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
 
       if(b)
       {
-        slotname = QFormatStr("%1: %2").arg(bindPoint).arg(ToQStr(shaderCBuf.name));
+        slotname = QFormatStr("%1: %2").arg(bindPoint).arg(shaderCBuf.name);
         name = lit("UBO ") + ToQStr(b->Resource);
         offset = b->Offset;
         length = b->Size;
@@ -838,7 +838,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         BufferDescription *buf = m_Ctx.GetBuffer(b->Resource);
         if(buf)
         {
-          name = ToQStr(buf->name);
+          name = buf->name;
           if(length == 0)
             length = buf->length;
         }
@@ -929,7 +929,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
                     ? tr("Atomic")
                     : readWriteType == GLReadWriteType::SSBO ? tr("SSBO") : tr("Unknown");
 
-      QString slotname = QFormatStr("%1: %2").arg(bindPoint).arg(ToQStr(res.name));
+      QString slotname = QFormatStr("%1: %2").arg(bindPoint).arg(res.name);
       QString name;
       QString dimensions;
       QString format = lit("-");
@@ -940,7 +940,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
           access = tr("Read-Only");
         if(!im->readAllowed && im->writeAllowed)
           access = tr("Write-Only");
-        format = ToQStr(im->Format.strname);
+        format = im->Format.strname;
       }
 
       QVariant tag;
@@ -968,7 +968,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
           dimensions = QFormatStr("%1x%2x%3").arg(tex->width).arg(tex->height).arg(tex->depth);
         }
 
-        name = ToQStr(tex->name);
+        name = tex->name;
 
         tag = QVariant::fromValue(id);
       }
@@ -990,7 +990,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         else
           dimensions = tr("%1 bytes").arg(length);
 
-        name = ToQStr(buf->name);
+        name = buf->name;
 
         tag = QVariant::fromValue(GLReadWriteTag(i, id, offset, length));
       }
@@ -1130,7 +1130,7 @@ void GLPipelineStateViewer::setState()
 
         if(attrib >= 0 && attrib < state.m_VS.ShaderDetails->InputSig.count)
         {
-          name = ToQStr(state.m_VS.ShaderDetails->InputSig[attrib].varName);
+          name = state.m_VS.ShaderDetails->InputSig[attrib].varName;
           compCount = state.m_VS.ShaderDetails->InputSig[attrib].compCount;
           compType = state.m_VS.ShaderDetails->InputSig[attrib].compType;
           usedSlot = true;
@@ -1143,7 +1143,7 @@ void GLPipelineStateViewer::setState()
 
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {i, a.Enabled ? tr("Enabled") : tr("Disabled"), name,
-             a.Enabled ? ToQStr(a.Format.strname) : genericVal, a.BufferSlot, a.RelativeOffset});
+             a.Enabled ? a.Format.strname : genericVal, a.BufferSlot, a.RelativeOffset});
 
         if(a.Enabled)
           usedBindings[a.BufferSlot] = true;
@@ -1209,7 +1209,7 @@ void GLPipelineStateViewer::setState()
 
       if(buf)
       {
-        name = ToQStr(buf->name);
+        name = buf->name;
         length = buf->length;
       }
 
@@ -1272,7 +1272,7 @@ void GLPipelineStateViewer::setState()
       BufferDescription *buf = m_Ctx.GetBuffer(v.Buffer);
       if(buf)
       {
-        name = ToQStr(buf->name);
+        name = buf->name;
         length = buf->length;
       }
 
@@ -1334,7 +1334,7 @@ void GLPipelineStateViewer::setState()
 
         if(buf)
         {
-          name = ToQStr(buf->name);
+          name = buf->name;
           if(length == 0)
             length = buf->length;
         }
@@ -1651,8 +1651,8 @@ void GLPipelineStateViewer::setState()
           h = tex->height;
           d = tex->depth;
           a = tex->arraysize;
-          format = ToQStr(tex->format.strname);
-          name = ToQStr(tex->name);
+          format = tex->format.strname;
+          name = tex->name;
           typeName = ToQStr(tex->resType);
 
           if(tex->format.srgbCorrected && !state.m_FB.FramebufferSRGB)
@@ -1666,7 +1666,7 @@ void GLPipelineStateViewer::setState()
                  (state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::Undefined ||
                   state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::ColorOutput))
               {
-                name = QFormatStr("<%1>").arg(ToQStr(state.m_FS.ShaderDetails->OutputSig[s].varName));
+                name = QFormatStr("<%1>").arg(state.m_FS.ShaderDetails->OutputSig[s].varName);
               }
             }
           }
@@ -1736,8 +1736,8 @@ void GLPipelineStateViewer::setState()
           h = tex->height;
           d = tex->depth;
           a = tex->arraysize;
-          format = ToQStr(tex->format.strname);
-          name = ToQStr(tex->name);
+          format = tex->format.strname;
+          name = tex->name;
           typeName = ToQStr(tex->resType);
         }
 
@@ -1930,10 +1930,9 @@ QString GLPipelineStateViewer::formatMembers(int indent, const QString &namepref
     {
       if(i > 0)
         ret += lit("\n");
-      ret += indentstr + QFormatStr("// struct %1\n").arg(ToQStr(v.type.descriptor.name));
-      ret += indentstr + lit("{\n") +
-             formatMembers(indent + 1, ToQStr(v.name) + lit("_"), v.type.members) + indentstr +
-             lit("}\n");
+      ret += indentstr + QFormatStr("// struct %1\n").arg(v.type.descriptor.name);
+      ret += indentstr + lit("{\n") + formatMembers(indent + 1, v.name + lit("_"), v.type.members) +
+             indentstr + lit("}\n");
       if(i < vars.count - 1)
         ret += lit("\n");
     }
@@ -1944,9 +1943,9 @@ QString GLPipelineStateViewer::formatMembers(int indent, const QString &namepref
         arr = QFormatStr("[%1]").arg(v.type.descriptor.elements);
       ret += QFormatStr("%1%2 %3%4%5;\n")
                  .arg(indentstr)
-                 .arg(ToQStr(v.type.descriptor.name))
+                 .arg(v.type.descriptor.name)
                  .arg(nameprefix)
-                 .arg(ToQStr(v.name))
+                 .arg(v.name)
                  .arg(arr);
     }
 
@@ -1994,15 +1993,15 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
 
     const ShaderResource &shaderRes = stage->ShaderDetails->ReadWriteResources[buf.bindPoint];
 
-    QString format = lit("// struct %1\n").arg(ToQStr(shaderRes.variableType.descriptor.name));
+    QString format = lit("// struct %1\n").arg(shaderRes.variableType.descriptor.name);
 
     if(shaderRes.variableType.members.count > 1)
     {
       format += tr("// members skipped as they are fixed size:\n");
       for(int i = 0; i < shaderRes.variableType.members.count - 1; i++)
         format += QFormatStr("%1 %2;\n")
-                      .arg(ToQStr(shaderRes.variableType.members[i].type.descriptor.name))
-                      .arg(ToQStr(shaderRes.variableType.members[i].name));
+                      .arg(shaderRes.variableType.members[i].type.descriptor.name)
+                      .arg(shaderRes.variableType.members[i].name);
     }
 
     if(!shaderRes.variableType.members.empty())
@@ -2026,7 +2025,7 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
         format += desc.cols;
 
       if(!desc.name.empty())
-        format += lit(" ") + ToQStr(desc.name);
+        format += lit(" ") + desc.name;
 
       if(desc.elements > 1)
         format += QFormatStr("[%1]").arg(desc.elements);
@@ -2281,8 +2280,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::VertexInpu
       QString generic;
       if(!a.Enabled)
         generic = MakeGenericValueString(a.Format.compCount, a.Format.compType, a);
-      rows.push_back(
-          {i, (bool)a.Enabled, a.BufferSlot, ToQStr(a.Format.strname), a.RelativeOffset, generic});
+      rows.push_back({i, (bool)a.Enabled, a.BufferSlot, a.Format.strname, a.RelativeOffset, generic});
 
       i++;
     }
@@ -2314,7 +2312,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::VertexInpu
         BufferDescription *buf = m_Ctx.GetBuffer(vb.Buffer);
         if(buf)
         {
-          name = ToQStr(buf->name);
+          name = buf->name;
           length = buf->length;
         }
       }
@@ -2346,7 +2344,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::VertexInpu
       BufferDescription *buf = m_Ctx.GetBuffer(vtx.ibuffer);
       if(buf)
       {
-        name = ToQStr(buf->name);
+        name = buf->name;
         length = buf->length;
       }
     }
@@ -2437,7 +2435,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
     if(sh.Object == ResourceId())
       shadername = tr("Unbound");
     else
-      shadername = ToQStr(sh.ShaderName);
+      shadername = sh.ShaderName;
 
     if(sh.Object == ResourceId())
     {
@@ -2454,13 +2452,13 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
       else
       {
         if(sh.customShaderName)
-          shname = ToQStr(sh.ShaderName);
+          shname = sh.ShaderName;
 
         if(sh.customProgramName)
-          shname = QFormatStr("%1 - %2").arg(ToQStr(sh.ProgramName)).arg(shname);
+          shname = QFormatStr("%1 - %2").arg(sh.ProgramName).arg(shname);
 
         if(sh.customPipelineName && sh.PipelineActive)
-          shname = QFormatStr("%1 - %2").arg(ToQStr(sh.PipelineName)).arg(shname);
+          shname = QFormatStr("%1 - %2").arg(sh.PipelineName).arg(shname);
 
         shadername = shname;
       }
@@ -2510,7 +2508,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
         QString slotname = QString::number(i);
 
         if(shaderInput && shaderInput->name.count > 0)
-          slotname += QFormatStr(": %1").arg(ToQStr(shaderInput->name));
+          slotname += QFormatStr(": %1").arg(shaderInput->name);
 
         uint32_t w = 1, h = 1, d = 1;
         uint32_t a = 1;
@@ -2533,8 +2531,8 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
           h = tex->height;
           d = tex->depth;
           a = tex->arraysize;
-          format = ToQStr(tex->format.strname);
-          name = ToQStr(tex->name);
+          format = tex->format.strname;
+          name = tex->name;
           typeName = ToQStr(tex->resType);
 
           if(tex->format.special && (tex->format.specialFormat == SpecialFormat::D16S8 ||
@@ -2565,7 +2563,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
         QString slotname = QString::number(i);
 
         if(shaderInput && shaderInput->name.count > 0)
-          slotname += QFormatStr(": %1").arg(ToQStr(shaderInput->name));
+          slotname += QFormatStr(": %1").arg(shaderInput->name);
 
         QString borderColor = QFormatStr("%1, %2, %3, %4")
                                   .arg(s.BorderColor[0])
@@ -2664,7 +2662,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
 
         if(b)
         {
-          slotname = QFormatStr("%1: %2").arg(bindPoint).arg(ToQStr(shaderCBuf.name));
+          slotname = QFormatStr("%1: %2").arg(bindPoint).arg(shaderCBuf.name);
           name = tr("UBO %1").arg(ToQStr(b->Resource));
           offset = b->Offset;
           length = b->Size;
@@ -2672,7 +2670,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
           BufferDescription *buf = m_Ctx.GetBuffer(b->Resource);
           if(buf)
           {
-            name = ToQStr(buf->name);
+            name = buf->name;
             if(length == 0)
               length = buf->length;
           }
@@ -2747,7 +2745,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
                       ? tr("Atomic")
                       : readWriteType == GLReadWriteType::SSBO ? tr("SSBO") : tr("Unknown");
 
-        QString slotname = QFormatStr("%1: %2").arg(bindPoint).arg(ToQStr(res.name));
+        QString slotname = QFormatStr("%1: %2").arg(bindPoint).arg(res.name);
         QString name;
         QString dimensions;
         QString format = lit("-");
@@ -2758,7 +2756,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
             access = tr("Read-Only");
           if(!im->readAllowed && im->writeAllowed)
             access = tr("Write-Only");
-          format = ToQStr(im->Format.strname);
+          format = im->Format.strname;
         }
 
         // check to see if it's a texture
@@ -2785,7 +2783,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
             dimensions = QFormatStr("%1x%2x%3").arg(tex->width).arg(tex->height).arg(tex->depth);
           }
 
-          name = ToQStr(tex->name);
+          name = tex->name;
         }
 
         // if not a texture, it must be a buffer
@@ -2805,7 +2803,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
           else
             dimensions = tr("%1 bytes").arg(length);
 
-          name = ToQStr(buf->name);
+          name = buf->name;
         }
 
         if(!filledSlot)
@@ -2906,7 +2904,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Feedback &
         BufferDescription *buf = m_Ctx.GetBuffer(xfb.BufferBinding[i]);
         if(buf)
         {
-          name = ToQStr(buf->name);
+          name = buf->name;
           length = buf->length;
         }
       }
@@ -3167,7 +3165,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::FrameBuffe
       QString name = tr("Image %1").arg(ToQStr(a.Obj));
 
       if(tex)
-        name = ToQStr(tex->name);
+        name = tex->name;
       if(a.Obj == ResourceId())
         name = tr("Empty");
 
@@ -3227,7 +3225,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::FrameBuffe
       QString name = tr("Image %1").arg(ToQStr(a.Obj));
 
       if(tex)
-        name = ToQStr(tex->name);
+        name = tex->name;
       if(a.Obj == ResourceId())
         name = tr("Empty");
 

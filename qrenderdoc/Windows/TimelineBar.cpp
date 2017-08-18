@@ -78,12 +78,12 @@ void TimelineBar::HighlightResourceUsage(ResourceId id)
   TextureDescription *tex = m_Ctx.GetTexture(id);
 
   if(tex)
-    m_UsageTarget = ToQStr(tex->name);
+    m_UsageTarget = tex->name;
 
   BufferDescription *buf = m_Ctx.GetBuffer(id);
 
   if(buf)
-    m_UsageTarget = ToQStr(buf->name);
+    m_UsageTarget = buf->name;
 
   m_Ctx.Replay().AsyncInvoke([this, id](IReplayController *r) {
     rdctype::array<EventUsage> usage = r->GetUsage(id);
@@ -108,12 +108,12 @@ void TimelineBar::HighlightHistory(ResourceId id, const QList<PixelModification>
     TextureDescription *tex = m_Ctx.GetTexture(id);
 
     if(tex)
-      m_HistoryTarget = ToQStr(tex->name);
+      m_HistoryTarget = tex->name;
 
     BufferDescription *buf = m_Ctx.GetBuffer(id);
 
     if(buf)
-      m_HistoryTarget = ToQStr(buf->name);
+      m_HistoryTarget = buf->name;
 
     for(const PixelModification &mod : history)
       m_HistoryEvents << mod;
@@ -939,7 +939,7 @@ uint32_t TimelineBar::processDraws(QVector<Marker> &markers, QVector<uint32_t> &
       markers.push_back(Marker());
       Marker &m = markers.back();
 
-      m.name = ToQStr(d.name);
+      m.name = d.name;
       m.eidStart = d.eventID;
       m.eidEnd = processDraws(m.children, m.draws, d.children);
 

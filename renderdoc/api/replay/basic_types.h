@@ -264,6 +264,7 @@ struct str : public rdctype::array<char>
 
 #if defined(RENDERDOC_QT_COMPAT)
   operator QString() const { return QString::fromUtf8(elems, count); }
+  operator QVariant() const { return QVariant(QString::fromUtf8(elems, count)); }
 #endif
 
   operator std::string() const { return std::string(elems, elems + count); }

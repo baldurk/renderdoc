@@ -230,15 +230,15 @@ void ConstantBufferPreviewer::addVariables(RDTreeWidgetItem *root,
 {
   for(const ShaderVariable &v : vars)
   {
-    RDTreeWidgetItem *n = new RDTreeWidgetItem({ToQStr(v.name), VarString(v), TypeString(v)});
+    RDTreeWidgetItem *n = new RDTreeWidgetItem({v.name, VarString(v), TypeString(v)});
 
     root->addChild(n);
 
     if(v.rows > 1)
     {
       for(uint32_t i = 0; i < v.rows; i++)
-        n->addChild(new RDTreeWidgetItem({QFormatStr("%1.row%2").arg(ToQStr(v.name)).arg(i),
-                                          RowString(v, i), RowTypeString(v)}));
+        n->addChild(new RDTreeWidgetItem(
+            {QFormatStr("%1.row%2").arg(v.name).arg(i), RowString(v, i), RowTypeString(v)}));
     }
 
     if(v.members.count > 0)
@@ -334,7 +334,7 @@ void ConstantBufferPreviewer::updateLabels()
   BufferDescription *buf = m_Ctx.GetBuffer(m_cbuffer);
   if(buf)
   {
-    bufName = ToQStr(buf->name);
+    bufName = buf->name;
     if(buf->customName)
       needName = false;
   }
@@ -345,7 +345,7 @@ void ConstantBufferPreviewer::updateLabels()
   {
     if(needName && (int)m_slot < reflection->ConstantBlocks.count &&
        reflection->ConstantBlocks[m_slot].name.count > 0)
-      bufName = QFormatStr("<%1>").arg(ToQStr(reflection->ConstantBlocks[m_slot].name));
+      bufName = QFormatStr("<%1>").arg(reflection->ConstantBlocks[m_slot].name);
   }
 
   ui->nameLabel->setText(bufName);

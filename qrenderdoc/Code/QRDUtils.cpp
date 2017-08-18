@@ -213,7 +213,7 @@ QString TypeString(const SigParameter &sig)
 QString D3DSemanticString(const SigParameter &sig)
 {
   if(sig.systemValue == ShaderBuiltin::Undefined)
-    return ToQStr(sig.semanticIdxName);
+    return sig.semanticIdxName;
 
   QString sysValues[ENUM_ARRAY_SIZE(ShaderBuiltin)] = {
       lit("SV_Undefined"),

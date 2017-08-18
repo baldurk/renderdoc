@@ -390,7 +390,7 @@ void VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
     {
       if(im.image == tex->ID)
       {
-        text += tr("Texture is in the '%1' layout\n\n").arg(ToQStr(im.layouts[0].name));
+        text += tr("Texture is in the '%1' layout\n\n").arg(im.layouts[0].name);
         break;
       }
     }
@@ -398,8 +398,8 @@ void VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
     if(view.viewfmt != tex->format)
     {
       text += tr("The texture is format %1, the view treats it as %2.\n")
-                  .arg(ToQStr(tex->format.strname))
-                  .arg(ToQStr(view.viewfmt.strname));
+                  .arg(tex->format.strname)
+                  .arg(view.viewfmt.strname);
 
       viewdetails = true;
     }
@@ -654,7 +654,7 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
           bindset,
           slotname,
           descriptor.immutableSampler ? tr("Immutable Sampler") : tr("Sampler"),
-          ToQStr(descriptor.name),
+          descriptor.name,
           addressing,
           filter + lit(", ") + lod};
 }
@@ -755,7 +755,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
     QString slotname = QString::number(bind);
     if(shaderRes != NULL && shaderRes->name.count > 0)
-      slotname += lit(": ") + ToQStr(shaderRes->name);
+      slotname += lit(": ") + shaderRes->name;
 
     int arrayLength = 0;
     if(slotBinds != NULL)
@@ -792,7 +792,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       if(arrayLength > 1)
       {
         if(shaderRes != NULL && shaderRes->name.count > 0)
-          slotname = QFormatStr("%1[%2]: %3").arg(bind).arg(idx).arg(ToQStr(shaderRes->name));
+          slotname = QFormatStr("%1[%2]: %3").arg(bind).arg(idx).arg(shaderRes->name);
         else
           slotname = QFormatStr("%1[%2]").arg(bind).arg(idx);
       }
@@ -816,7 +816,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       {
         name = tr("Object %1").arg(ToQStr(descriptorBind->res));
 
-        format = ToQStr(descriptorBind->viewfmt.strname);
+        format = descriptorBind->viewfmt.strname;
 
         // check to see if it's a texture
         tex = m_Ctx.GetTexture(descriptorBind->res);
@@ -826,7 +826,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           h = tex->height;
           d = tex->depth;
           a = tex->arraysize;
-          name = ToQStr(tex->name);
+          name = tex->name;
           restype = tex->resType;
           samples = tex->msSamp;
 
@@ -842,7 +842,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           h = 0;
           d = 0;
           a = 0;
-          name = ToQStr(buf->name);
+          name = buf->name;
           restype = TextureDim::Buffer;
 
           if(descriptorLen == UINT64_MAX)
@@ -1096,7 +1096,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 
     QString slotname = QString::number(bind);
     if(cblock != NULL && cblock->name.count > 0)
-      slotname += lit(": ") + ToQStr(cblock->name);
+      slotname += lit(": ") + cblock->name;
 
     int arrayLength = 0;
     if(slotBinds != NULL)
@@ -1130,7 +1130,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       if(arrayLength > 1)
       {
         if(cblock != NULL && cblock->name.count > 0)
-          slotname = QFormatStr("%1[%2]: %3").arg(bind).arg(idx).arg(ToQStr(cblock->name));
+          slotname = QFormatStr("%1[%2]: %3").arg(bind).arg(idx).arg(cblock->name);
         else
           slotname = QFormatStr("%1[%2]").arg(bind).arg(idx);
       }
@@ -1150,7 +1150,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
         BufferDescription *buf = m_Ctx.GetBuffer(descriptorBind->res);
         if(buf)
         {
-          name = ToQStr(buf->name);
+          name = buf->name;
           if(length == UINT64_MAX)
             length = buf->length - descriptorBind->offset;
         }
@@ -1168,7 +1168,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       if(cblock != NULL && !cblock->bufferBacked)
       {
         setname = QString();
-        slotname = ToQStr(cblock->name);
+        slotname = cblock->name;
         name = tr("Push constants");
         vecrange = QString();
         sizestr = tr("%1 Variables").arg(numvars);
@@ -1213,17 +1213,17 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   if(stage.Object == ResourceId())
     shader->setText(tr("Unbound Shader"));
   else
-    shader->setText(ToQStr(stage.name));
+    shader->setText(stage.name);
 
   if(shaderDetails != NULL)
   {
-    QString entryFunc = ToQStr(shaderDetails->EntryPoint);
+    QString entryFunc = shaderDetails->EntryPoint;
     if(shaderDetails->DebugInfo.files.count > 0 || entryFunc != lit("main"))
       shader->setText(entryFunc + lit("()"));
 
     if(shaderDetails->DebugInfo.files.count > 0)
       shader->setText(entryFunc + lit("() - ") +
-                      QFileInfo(ToQStr(shaderDetails->DebugInfo.files[0].first)).fileName());
+                      QFileInfo(shaderDetails->DebugInfo.files[0].first).fileName());
   }
 
   int vs = 0;
@@ -1376,7 +1376,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
         // from SPIR-V side.
 
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({QString(), QString(), ToQStr(cblock.name), tr("Push constants"),
+            new RDTreeWidgetItem({QString(), QString(), cblock.name, tr("Push constants"),
                                   QString(), tr("%1 Variables").arg(cblock.variables.count)});
 
         node->setTag(QVariant::fromValue(VulkanCBufferTag(cb, 0)));
@@ -1436,15 +1436,15 @@ void VulkanPipelineStateViewer::setState()
 
         if(attrib >= 0 && attrib < state.m_VS.ShaderDetails->InputSig.count)
         {
-          name = ToQStr(state.m_VS.ShaderDetails->InputSig[attrib].varName);
+          name = state.m_VS.ShaderDetails->InputSig[attrib].varName;
           usedSlot = true;
         }
       }
 
       if(showNode(usedSlot, filledSlot))
       {
-        RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {i, name, a.location, a.binding, ToQStr(a.format.strname), a.byteoffset});
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({i, name, a.location, a.binding, a.format.strname, a.byteoffset});
 
         usedBindings[a.binding] = true;
 
@@ -1499,7 +1499,7 @@ void VulkanPipelineStateViewer::setState()
 
       if(buf)
       {
-        name = ToQStr(buf->name);
+        name = buf->name;
         length = buf->length;
       }
 
@@ -1572,7 +1572,7 @@ void VulkanPipelineStateViewer::setState()
           BufferDescription *buf = m_Ctx.GetBuffer(vbuff->buffer);
           if(buf)
           {
-            name = ToQStr(buf->name);
+            name = buf->name;
             length = buf->length;
           }
         }
@@ -1744,7 +1744,7 @@ void VulkanPipelineStateViewer::setState()
       {
         uint32_t w = 1, h = 1, d = 1;
         uint32_t a = 1;
-        QString format = ToQStr(p.viewfmt.strname);
+        QString format = p.viewfmt.strname;
         QString name = tr("Texture ") + ToQStr(p.img);
         QString typeName = tr("Unknown");
 
@@ -1763,7 +1763,7 @@ void VulkanPipelineStateViewer::setState()
           h = tex->height;
           d = tex->depth;
           a = tex->arraysize;
-          name = ToQStr(tex->name);
+          name = tex->name;
           typeName = ToQStr(tex->resType);
 
           if(!tex->customName && state.m_FS.ShaderDetails != NULL)
@@ -1774,7 +1774,7 @@ void VulkanPipelineStateViewer::setState()
                  (state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::Undefined ||
                   state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::ColorOutput))
               {
-                name = QFormatStr("<%1>").arg(ToQStr(state.m_FS.ShaderDetails->OutputSig[s].varName));
+                name = QFormatStr("<%1>").arg(state.m_FS.ShaderDetails->OutputSig[s].varName);
               }
             }
           }
@@ -1957,10 +1957,9 @@ QString VulkanPipelineStateViewer::formatMembers(int indent, const QString &name
     {
       if(i > 0)
         ret += lit("\n");
-      ret += indentstr + lit("// struct %1\n").arg(ToQStr(v.type.descriptor.name));
-      ret += indentstr + lit("{\n") +
-             formatMembers(indent + 1, ToQStr(v.name) + lit("_"), v.type.members) + indentstr +
-             lit("}\n");
+      ret += indentstr + lit("// struct %1\n").arg(v.type.descriptor.name);
+      ret += indentstr + lit("{\n") + formatMembers(indent + 1, v.name + lit("_"), v.type.members) +
+             indentstr + lit("}\n");
       if(i < vars.count - 1)
         ret += lit("\n");
     }
@@ -1971,9 +1970,9 @@ QString VulkanPipelineStateViewer::formatMembers(int indent, const QString &name
         arr = QFormatStr("[%1]").arg(v.type.descriptor.elements);
       ret += QFormatStr("%1%2 %3%4%5;\n")
                  .arg(indentstr)
-                 .arg(ToQStr(v.type.descriptor.name))
+                 .arg(v.type.descriptor.name)
                  .arg(nameprefix)
-                 .arg(ToQStr(v.name))
+                 .arg(v.name)
                  .arg(arr);
     }
 
@@ -2023,15 +2022,15 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
                                           ? stage->ShaderDetails->ReadWriteResources[buf.bindPoint]
                                           : stage->ShaderDetails->ReadOnlyResources[buf.bindPoint];
 
-    QString format = lit("// struct %1\n").arg(ToQStr(shaderRes.variableType.descriptor.name));
+    QString format = lit("// struct %1\n").arg(shaderRes.variableType.descriptor.name);
 
     if(shaderRes.variableType.members.count > 1)
     {
       format += lit("// members skipped as they are fixed size:\n");
       for(int i = 0; i < shaderRes.variableType.members.count - 1; i++)
         format += QFormatStr("%1 %2;\n")
-                      .arg(ToQStr(shaderRes.variableType.members[i].type.descriptor.name))
-                      .arg(ToQStr(shaderRes.variableType.members[i].name));
+                      .arg(shaderRes.variableType.members[i].type.descriptor.name)
+                      .arg(shaderRes.variableType.members[i].name);
     }
 
     if(shaderRes.variableType.members.count > 0)
@@ -2055,7 +2054,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
         format += desc.cols;
 
       if(desc.name.count > 0)
-        format += lit(" ") + ToQStr(desc.name);
+        format += lit(" ") + desc.name;
 
       if(desc.elements > 1)
         format += QFormatStr("[%1]").arg(desc.elements);
@@ -2293,7 +2292,7 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
 
             GUIInvoke::call([this, stage, shaderDetails, entryFunc, mainfile, disasm]() {
               QStringMap fileMap;
-              fileMap[mainfile] = ToQStr(disasm);
+              fileMap[mainfile] = disasm;
               m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, fileMap,
                                   mainfile);
             });
@@ -2414,7 +2413,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Vertex
     QList<QVariantList> rows;
 
     for(const VKPipe::VertexAttribute &attr : vi.attrs)
-      rows.push_back({attr.location, attr.binding, ToQStr(attr.format.strname), attr.byteoffset});
+      rows.push_back({attr.location, attr.binding, attr.format.strname, attr.byteoffset});
 
     m_Common.exportHTMLTable(xml, {tr("Location"), tr("Binding"), tr("Format"), tr("Offset")}, rows);
   }
@@ -2455,7 +2454,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Vertex
         BufferDescription *buf = m_Ctx.GetBuffer(vb.buffer);
         if(buf)
         {
-          name = ToQStr(buf->name);
+          name = buf->name;
           length = buf->length;
         }
       }
@@ -2484,7 +2483,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::InputA
 
     if(ib)
     {
-      name = ToQStr(ib->name);
+      name = ib->name;
       length = ib->length;
     }
 
@@ -2522,17 +2521,17 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
     if(sh.Object == ResourceId())
       shadername = tr("Unbound");
     else
-      shadername = ToQStr(sh.name);
+      shadername = sh.name;
 
     if(shaderDetails)
     {
-      QString entryFunc = ToQStr(shaderDetails->EntryPoint);
+      QString entryFunc = shaderDetails->EntryPoint;
       if(entryFunc != lit("main"))
         shadername = QFormatStr("%1()").arg(entryFunc);
       else if(shaderDetails->DebugInfo.files.count > 0)
         shadername = QFormatStr("%1() - %2")
                          .arg(entryFunc)
-                         .arg(QFileInfo(ToQStr(shaderDetails->DebugInfo.files[0].first)).fileName());
+                         .arg(QFileInfo(shaderDetails->DebugInfo.files[0].first).fileName());
     }
 
     xml.writeStartElement(lit("p"));
@@ -2570,7 +2569,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
 
       QString setname = QString::number(bindMap.bindset);
 
-      QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(ToQStr(b.name));
+      QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(b.name);
 
       for(uint32_t a = 0; a < bind.descriptorCount; a++)
       {
@@ -2579,7 +2578,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
         ResourceId id = bind.binds[a].res;
 
         if(bindMap.arraySize > 1)
-          slotname = QFormatStr("%1: %2[%3]").arg(bindMap.bind).arg(ToQStr(b.name)).arg(a);
+          slotname = QFormatStr("%1: %2[%3]").arg(bindMap.bind).arg(b.name).arg(a);
 
         QString name;
         uint64_t byteOffset = descriptorBind.offset;
@@ -2595,7 +2594,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
         BufferDescription *buf = m_Ctx.GetBuffer(id);
         if(buf)
         {
-          name = ToQStr(buf->name);
+          name = buf->name;
 
           if(length == UINT64_MAX)
             length = buf->length - byteOffset;
@@ -2608,7 +2607,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
         if(!b.bufferBacked)
         {
           setname = QString();
-          slotname = ToQStr(b.name);
+          slotname = b.name;
           name = tr("Push constants");
           byteOffset = 0;
           length = 0;
@@ -2650,7 +2649,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
 
       QString setname = QString::number(bindMap.bindset);
 
-      QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(ToQStr(b.name));
+      QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(b.name);
 
       for(uint32_t a = 0; a < bind.descriptorCount; a++)
       {
@@ -2659,7 +2658,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
         ResourceId id = bind.binds[a].res;
 
         if(bindMap.arraySize > 1)
-          slotname = QFormatStr("%1: %2[%3]").arg(bindMap.bind).arg(ToQStr(b.name)).arg(a);
+          slotname = QFormatStr("%1: %2[%3]").arg(bindMap.bind).arg(b.name).arg(a);
 
         QString name;
 
@@ -2668,11 +2667,11 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
 
         BufferDescription *buf = m_Ctx.GetBuffer(id);
         if(buf)
-          name = ToQStr(buf->name);
+          name = buf->name;
 
         TextureDescription *tex = m_Ctx.GetTexture(id);
         if(tex)
-          name = ToQStr(tex->name);
+          name = tex->name;
 
         if(name.isEmpty())
           name = tr("Resource %1").arg(ToQStr(descriptorBind.res));
@@ -2689,8 +2688,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
           h = tex->height;
           d = tex->depth;
           arr = tex->arraysize;
-          format = ToQStr(tex->format.strname);
-          name = ToQStr(tex->name);
+          format = tex->format.strname;
+          name = tex->name;
 
           if(tex->mips > 1)
           {
@@ -2716,7 +2715,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
           d = 0;
           a = 0;
           format = lit("-");
-          name = ToQStr(buf->name);
+          name = buf->name;
 
           uint64_t length = descriptorBind.size;
 
@@ -2774,7 +2773,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
 
       QString setname = QString::number(bindMap.bindset);
 
-      QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(ToQStr(b.name));
+      QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(b.name);
 
       for(uint32_t a = 0; a < bind.descriptorCount; a++)
       {
@@ -2783,7 +2782,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
         ResourceId id = bind.binds[a].res;
 
         if(bindMap.arraySize > 1)
-          slotname = QFormatStr("%1: %2[%3]").arg(bindMap.bind).arg(ToQStr(b.name)).arg(a);
+          slotname = QFormatStr("%1: %2[%3]").arg(bindMap.bind).arg(b.name).arg(a);
 
         QString name;
 
@@ -2792,11 +2791,11 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
 
         BufferDescription *buf = m_Ctx.GetBuffer(id);
         if(buf)
-          name = ToQStr(buf->name);
+          name = buf->name;
 
         TextureDescription *tex = m_Ctx.GetTexture(id);
         if(tex)
-          name = ToQStr(tex->name);
+          name = tex->name;
 
         if(name.isEmpty())
           name = tr("Resource %1").arg(ToQStr(descriptorBind.res));
@@ -2813,8 +2812,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
           h = tex->height;
           d = tex->depth;
           arr = tex->arraysize;
-          format = ToQStr(tex->format.strname);
-          name = ToQStr(tex->name);
+          format = tex->format.strname;
+          name = tex->name;
 
           if(tex->mips > 1)
           {
@@ -2840,7 +2839,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
           d = 0;
           a = 0;
           format = lit("-");
-          name = ToQStr(buf->name);
+          name = buf->name;
 
           uint64_t length = descriptorBind.size;
 
@@ -3077,7 +3076,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Curren
       QString name = tr("Image %1").arg(ToQStr(a.img));
 
       if(tex)
-        name = ToQStr(tex->name);
+        name = tex->name;
 
       rows.push_back({i, name, a.baseMip, a.numMip, a.baseLayer, a.numLayer});
 

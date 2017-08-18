@@ -195,7 +195,8 @@ void PersistantConfig::AddAndroidHosts()
 
   rdctype::str androidHosts;
   RENDERDOC_EnumerateAndroidDevices(&androidHosts);
-  for(const QString &hostName : ToQStr(androidHosts).split(QLatin1Char(','), QString::SkipEmptyParts))
+  for(const QString &hostName :
+      QString(androidHosts).split(QLatin1Char(','), QString::SkipEmptyParts))
   {
     RemoteHost *host = NULL;
 
@@ -207,7 +208,7 @@ void PersistantConfig::AddAndroidHosts()
     host->Hostname = hostName;
     rdctype::str friendly;
     RENDERDOC_GetAndroidFriendlyName(hostName.toUtf8().data(), friendly);
-    host->FriendlyName = ToQStr(friendly);
+    host->FriendlyName = friendly;
     // Just a command to display in the GUI and allow Launch() to be called.
     host->RunCommand = lit("org.renderdoc.renderdoccmd");
     RemoteHosts.push_back(host);

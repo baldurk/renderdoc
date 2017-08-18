@@ -1077,7 +1077,7 @@ void LiveCapture::connectionThreadEntry()
 
     if(msg.Type == TargetControlMessageType::RegisterAPI)
     {
-      QString api = ToQStr(msg.RegisterAPI.APIName);
+      QString api = msg.RegisterAPI.APIName;
       GUIInvoke::call([this, api]() {
         QString target = QString::fromUtf8(m_Connection->GetTarget());
         uint32_t pid = m_Connection->GetPID();
@@ -1105,7 +1105,7 @@ void LiveCapture::connectionThreadEntry()
       rdctype::array<byte> thumb = msg.NewCapture.thumbnail;
       int32_t thumbWidth = msg.NewCapture.thumbWidth;
       int32_t thumbHeight = msg.NewCapture.thumbHeight;
-      QString path = ToQStr(msg.NewCapture.path);
+      QString path = msg.NewCapture.path;
       bool local = msg.NewCapture.local;
 
       GUIInvoke::call([this, capID, timestamp, thumb, thumbWidth, thumbHeight, path, local]() {
@@ -1119,7 +1119,7 @@ void LiveCapture::connectionThreadEntry()
     if(msg.Type == TargetControlMessageType::CaptureCopied)
     {
       uint32_t capID = msg.NewCapture.ID;
-      QString path = ToQStr(msg.NewCapture.path);
+      QString path = msg.NewCapture.path;
 
       GUIInvoke::call([=]() { captureCopied(capID, path); });
     }

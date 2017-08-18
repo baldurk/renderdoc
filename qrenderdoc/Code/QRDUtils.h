@@ -600,13 +600,6 @@ inline QString ToQStr(const T &el)
   return QString::fromStdString(ToStr::Get(el));
 }
 
-// overload for rdctype::str
-template <>
-inline QString ToQStr(const rdctype::str &el)
-{
-  return QString::fromUtf8(el.elems, el.count);
-}
-
 // overload for a couple of things that need to know the pipeline type when converting
 QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype);
 

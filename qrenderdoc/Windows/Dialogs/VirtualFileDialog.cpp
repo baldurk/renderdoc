@@ -160,7 +160,7 @@ public:
 
       for(int i = 0; i < node->children.count(); i++)
       {
-        if(ToQStr(node->children[i]->file.filename)
+        if(QString(node->children[i]->file.filename)
                .compare(nextDir, NTPaths ? Qt::CaseInsensitive : Qt::CaseSensitive) == 0)
         {
           ret = index(i, 0, ret);
@@ -171,7 +171,7 @@ public:
       // if we didn't move to a child, stop searching
       if(node == getNode(ret))
       {
-        qCritical() << "Couldn't find child" << nextDir << "at" << ToQStr(node->file.filename)
+        qCritical() << "Couldn't find child" << nextDir << "at" << QString(node->file.filename)
                     << "from" << path;
         return QModelIndex();
       }
@@ -303,7 +303,7 @@ public:
         {
           switch(index.column())
           {
-            case 0: { return ToQStr(node->file.filename);
+            case 0: { return node->file.filename;
             }
             case 1:
             {
@@ -354,7 +354,7 @@ public:
         case FileIsAccessDeniedRole:
           return bool(node->file.flags & PathProperty::ErrorAccessDenied);
         case FilePathRole: return makePath(node);
-        case FileNameRole: return ToQStr(node->file.filename);
+        case FileNameRole: return node->file.filename;
         default: break;
       }
     }
@@ -420,19 +420,19 @@ private:
   QString makePath(FSNode *node) const
   {
     QChar sep = NTPaths ? QLatin1Char('\\') : QLatin1Char('/');
-    QString ret = ToQStr(node->file.filename);
+    QString ret = node->file.filename;
     FSNode *parent = node->parent;
     // iterate through subdirs but stop before a root
     while(parent && parent->parent)
     {
-      ret = ToQStr(parent->file.filename) + sep + ret;
+      ret = parent->file.filename + sep + ret;
       parent = parent->parent;
     }
 
     if(parent)
     {
       // parent is now a root
-      ret = ToQStr(parent->file.filename) + ret;
+      ret = parent->file.filename + ret;
     }
     ret.replace(QLatin1Char('/'), sep);
     return ret;

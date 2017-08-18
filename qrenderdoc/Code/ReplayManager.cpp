@@ -93,7 +93,7 @@ QStringList ReplayManager::GetRemoteSupport()
 
     rdctype::array<rdctype::str> supported = m_Remote->RemoteSupportedReplays();
     for(rdctype::str &s : supported)
-      ret << ToQStr(s);
+      ret << s;
   }
 
   return ret;
@@ -172,7 +172,7 @@ QString ReplayManager::CopyCaptureToRemote(const QString &localpath, QWidget *wi
 
   auto lambda = [this, localpath, &remotepath, &progress, &copied](IReplayController *r) {
     QMutexLocker autolock(&m_RemoteLock);
-    remotepath = ToQStr(m_Remote->CopyCaptureToRemote(localpath.toUtf8().data(), &progress));
+    remotepath = m_Remote->CopyCaptureToRemote(localpath.toUtf8().data(), &progress);
     copied = true;
   };
 

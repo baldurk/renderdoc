@@ -7,8 +7,8 @@
 QVariant EnvModToVariant(const EnvironmentModification &env)
 {
   QVariantMap ret;
-  ret[lit("variable")] = ToQStr(env.name);
-  ret[lit("value")] = ToQStr(env.value);
+  ret[lit("variable")] = env.name;
+  ret[lit("value")] = env.value;
   ret[lit("type")] = ToQStr(env.mod);
   ret[lit("separator")] = ToQStr(env.sep);
   return ret;

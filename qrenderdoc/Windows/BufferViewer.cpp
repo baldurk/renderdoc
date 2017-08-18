@@ -2214,7 +2214,7 @@ void BufferViewer::configureMeshColumns()
       FormatElement f;
 
       f.buffer = 0;
-      f.name = sig.varName.count > 0 ? ToQStr(sig.varName) : ToQStr(sig.semanticIdxName);
+      f.name = sig.varName.count > 0 ? sig.varName : sig.semanticIdxName;
       f.format.compByteWidth = sizeof(float);
       f.format.compCount = sig.compCount;
       f.format.compType = sig.compType;
@@ -2281,7 +2281,7 @@ void BufferViewer::configureMeshColumns()
         FormatElement f;
 
         f.buffer = 0;
-        f.name = sig.varName.count > 0 ? ToQStr(sig.varName) : ToQStr(sig.semanticIdxName);
+        f.name = sig.varName.count > 0 ? sig.varName : sig.semanticIdxName;
         f.format.compByteWidth = sizeof(float);
         f.format.compCount = sig.compCount;
         f.format.compType = sig.compType;
@@ -2486,7 +2486,7 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
   BufferDescription *buf = m_Ctx.GetBuffer(id);
   if(buf)
   {
-    setWindowTitle(ToQStr(buf->name) + lit(" - Contents"));
+    setWindowTitle(buf->name + lit(" - Contents"));
     m_ObjectByteSize = buf->length;
   }
 
@@ -2506,7 +2506,7 @@ void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, c
   TextureDescription *tex = m_Ctx.GetTexture(id);
   if(tex)
   {
-    setWindowTitle(ToQStr(tex->name) + lit(" - Contents"));
+    setWindowTitle(tex->name + lit(" - Contents"));
     m_ObjectByteSize = tex->byteSize;
   }
 

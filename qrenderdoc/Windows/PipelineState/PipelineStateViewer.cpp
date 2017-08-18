@@ -304,10 +304,10 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
 
             for(const DrawcallDescription *d : drawstack)
             {
-              context += QFormatStr(" > %1").arg(ToQStr(d->name));
+              context += QFormatStr(" > %1").arg(d->name);
             }
 
-            context += QFormatStr(" => %1").arg(ToQStr(draw->name));
+            context += QFormatStr(" => %1").arg(draw->name);
 
             xml.writeCharacters(context);
           }
@@ -544,24 +544,24 @@ bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDet
 {
   if(!shaderDetails->DebugInfo.files.empty())
   {
-    entryFunc = ToQStr(shaderDetails->EntryPoint);
+    entryFunc = shaderDetails->EntryPoint;
 
     QStringList uniqueFiles;
 
     for(auto &s : shaderDetails->DebugInfo.files)
     {
-      QString filename = ToQStr(s.first);
+      QString filename = s.first;
       if(uniqueFiles.contains(filename.toLower()))
       {
-        qWarning() << lit("Duplicate full filename") << ToQStr(s.first);
+        qWarning() << lit("Duplicate full filename") << QString(s.first);
         continue;
       }
       uniqueFiles.push_back(filename.toLower());
 
-      files[filename] = ToQStr(s.second);
+      files[filename] = s.second;
     }
 
-    mainfile = ToQStr(shaderDetails->DebugInfo.files[0].first);
+    mainfile = shaderDetails->DebugInfo.files[0].first;
 
     return true;
   }
@@ -577,7 +577,7 @@ void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
   {
     if(v.type.members.count > 0)
     {
-      QString def = lit("struct %1 {\n").arg(ToQStr(v.type.descriptor.name));
+      QString def = lit("struct %1 {\n").arg(v.type.descriptor.name);
 
       if(!struct_defs.contains(def))
       {
@@ -588,7 +588,7 @@ void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
       }
     }
 
-    struct_contents += lit("\t%1 %2").arg(ToQStr(v.type.descriptor.name)).arg(ToQStr(v.name));
+    struct_contents += lit("\t%1 %2").arg(v.type.descriptor.name).arg(v.name);
 
     char comp = 'x';
     if(v.reg.comp == 1)
@@ -628,7 +628,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
       {
         hlsl += lit("//SamplerComparisonState %1 : register(s%2); // can't disambiguate\n"
                     "SamplerState %1 : register(s%2); // can't disambiguate\n")
-                    .arg(ToQStr(res.name))
+                    .arg(res.name)
                     .arg(res.bindPoint);
       }
       else
@@ -645,8 +645,8 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
         {
           hlsl += lit("%1<%2> %3 : register(%4%5);\n")
                       .arg(textureDim[(size_t)res.resType])
-                      .arg(ToQStr(res.variableType.descriptor.name))
-                      .arg(ToQStr(res.name))
+                      .arg(res.variableType.descriptor.name)
+                      .arg(res.name)
                       .arg(QLatin1Char(regChar))
                       .arg(res.bindPoint);
         }
@@ -656,8 +656,8 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
             hlsl += lit("Structured");
 
           hlsl += lit("Buffer<%1> %2 : register(%3%4);\n")
-                      .arg(ToQStr(res.variableType.descriptor.name))
-                      .arg(ToQStr(res.name))
+                      .arg(res.variableType.descriptor.name)
+                      .arg(res.name)
                       .arg(QLatin1Char(regChar))
                       .arg(res.bindPoint);
         }
@@ -674,7 +674,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
   {
     if(cbuf.name.count > 0 && cbuf.variables.count > 0)
     {
-      QString cbufName = ToQStr(cbuf.name);
+      QString cbufName = cbuf.name;
       if(cbufName == lit("$Globals"))
         cbufName = lit("_Globals");
       cbuffers += lit("cbuffer %1 : register(b%2) {\n").arg(cbufName).arg(cbuf.bindPoint);
@@ -692,7 +692,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
   for(const SigParameter &sig : shaderDetails->InputSig)
     hlsl += lit("\t%1 %2 : %3;\n")
                 .arg(TypeString(sig))
-                .arg(sig.varName.count > 0 ? ToQStr(sig.varName) : lit("param%1").arg(sig.regIndex))
+                .arg(sig.varName.count > 0 ? sig.varName : lit("param%1").arg(sig.regIndex))
                 .arg(D3DSemanticString(sig));
   hlsl += lit("};\n\n");
 
@@ -700,7 +700,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
   for(const SigParameter &sig : shaderDetails->OutputSig)
     hlsl += lit("\t%1 %2 : %3;\n")
                 .arg(TypeString(sig))
-                .arg(sig.varName.count > 0 ? ToQStr(sig.varName) : lit("param%1").arg(sig.regIndex))
+                .arg(sig.varName.count > 0 ? sig.varName : lit("param%1").arg(sig.regIndex))
                 .arg(D3DSemanticString(sig));
   hlsl += lit("};\n\n");
 
@@ -834,7 +834,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
           std::tie(to, errs) = r->BuildTargetShader(
               entryFunc.toUtf8().data(), compileSource.toUtf8().data(), flags, shaderType);
 
-          GUIInvoke::call([viewer, errs]() { viewer->ShowErrors(ToQStr(errs)); });
+          GUIInvoke::call([viewer, errs]() { viewer->ShowErrors(errs); });
           if(to == ResourceId())
           {
             r->RemoveReplacement(from);

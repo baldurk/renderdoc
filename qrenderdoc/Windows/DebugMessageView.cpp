@@ -102,7 +102,7 @@ public:
           case 2: return ToQStr(msg.severity);
           case 3: return ToQStr(msg.category);
           case 4: return msg.messageID;
-          case 5: return ToQStr(msg.description);
+          case 5: return msg.description;
           default: break;
         }
       }

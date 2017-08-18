@@ -131,8 +131,8 @@ void EnvironmentEditor::on_variables_currentItemChanged(RDTreeWidgetItem *curren
 
   if(!mod.value.empty())
   {
-    ui->name->setText(ToQStr(mod.name));
-    ui->value->setText(ToQStr(mod.value));
+    ui->name->setText(mod.name);
+    ui->value->setText(mod.value);
     ui->separator->setCurrentIndex((int)mod.sep);
 
     if(mod.mod == EnvMod::Set)
@@ -203,15 +203,15 @@ void EnvironmentEditor::addModification(EnvironmentModification mod, bool silent
 
   if(idx < 0)
   {
-    node = new RDTreeWidgetItem({ToQStr(mod.name), GetTypeString(mod), ToQStr(mod.value)});
+    node = new RDTreeWidgetItem({mod.name, GetTypeString(mod), mod.value});
     ui->variables->addTopLevelItem(node);
   }
   else
   {
     node = ui->variables->topLevelItem(idx);
-    node->setText(0, ToQStr(mod.name));
+    node->setText(0, mod.name);
     node->setText(1, GetTypeString(mod));
-    node->setText(2, ToQStr(mod.value));
+    node->setText(2, mod.value);
   }
 
   node->setTag(QVariant::fromValue(mod));

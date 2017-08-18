@@ -211,7 +211,7 @@ public:
 
             if(!drawstack.isEmpty())
             {
-              ret += lit("> ") + ToQStr(drawstack.back()->name);
+              ret += lit("> ") + drawstack.back()->name;
 
               if(drawstack.count() > 3)
                 ret += lit(" ...");
@@ -219,9 +219,9 @@ public:
               ret += lit("\n");
 
               if(drawstack.count() > 2)
-                ret += lit("> ") + ToQStr(drawstack[1]->name) + lit("\n");
+                ret += lit("> ") + drawstack[1]->name + lit("\n");
               if(drawstack.count() > 1)
-                ret += lit("> ") + ToQStr(drawstack[0]->name) + lit("\n");
+                ret += lit("> ") + drawstack[0]->name + lit("\n");
 
               ret += lit("\n");
             }
@@ -233,7 +233,7 @@ public:
             {
               ret += tr("EID %1\n%2\nBound as UAV or copy - potential modification")
                          .arg(mods.front().eventID)
-                         .arg(ToQStr(drawcall->name));
+                         .arg(drawcall->name);
 
               if(memcmp(mods[0].preMod.col.value_u, mods[0].postMod.col.value_u,
                         sizeof(uint32_t) * 4) == 0)
@@ -252,7 +252,7 @@ public:
 
               ret += tr("EID %1\n%2%3\n%4 Fragments touching pixel\n")
                          .arg(mods.front().eventID)
-                         .arg(ToQStr(drawcall->name))
+                         .arg(drawcall->name)
                          .arg(failure)
                          .arg(mods.count());
             }
@@ -568,8 +568,7 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
 
   TextureDescription *tex = m_Ctx.GetTexture(id);
 
-  QString title =
-      tr("Pixel History on %1 for (%2, %3)").arg(ToQStr(tex->name)).arg(point.x()).arg(point.y());
+  QString title = tr("Pixel History on %1 for (%2, %3)").arg(tex->name).arg(point.x()).arg(point.y());
   if(tex->msSamp > 1)
     title += tr(" @ Sample %1").arg(display.sampleIdx);
   setWindowTitle(title);

@@ -43,17 +43,11 @@ static QString GetDescription(const EnvironmentModification &env)
   QString ret;
 
   if(env.mod == EnvMod::Append)
-    ret = QFormatStr("Append %1 with %2 using %3")
-              .arg(ToQStr(env.name))
-              .arg(ToQStr(env.value))
-              .arg(ToQStr(env.sep));
+    ret = QFormatStr("Append %1 with %2 using %3").arg(env.name).arg(env.value).arg(ToQStr(env.sep));
   else if(env.mod == EnvMod::Prepend)
-    ret = QFormatStr("Prepend %1 with %2 using %3")
-              .arg(ToQStr(env.name))
-              .arg(ToQStr(env.value))
-              .arg(ToQStr(env.sep));
+    ret = QFormatStr("Prepend %1 with %2 using %3").arg(env.name).arg(env.value).arg(ToQStr(env.sep));
   else
-    ret = QFormatStr("Set %1 to %2").arg(ToQStr(env.name)).arg(ToQStr(env.value));
+    ret = QFormatStr("Set %1 to %2").arg(env.name).arg(env.value);
 
   return ret;
 }
@@ -305,7 +299,7 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
            "RenderDoc documentation, or package/distribution documentation on linux\n\n");
 
     for(const rdctype::str &j : otherJSONs)
-      msg += ToQStr(j) + lit("\n");
+      msg += j + lit("\n");
 
     RDDialog::critical(this, tr("Unfixable vulkan layer configuration"), msg);
     return;
@@ -342,7 +336,7 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
   if(hasOtherJSON)
   {
     for(const rdctype::str &j : otherJSONs)
-      msg += (updateAllowed ? tr("Unregister/update: %1\n") : tr("Unregister: %1\n")).arg(ToQStr(j));
+      msg += (updateAllowed ? tr("Unregister/update: %1\n") : tr("Unregister: %1\n")).arg(j);
 
     msg += lit("\n");
   }
@@ -352,13 +346,13 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
     if(registerAll)
     {
       for(const rdctype::str &j : myJSONs)
-        msg += (updateAllowed ? tr("Register/update: %1\n") : tr("Register: %1\n")).arg(ToQStr(j));
+        msg += (updateAllowed ? tr("Register/update: %1\n") : tr("Register: %1\n")).arg(j);
     }
     else
     {
       msg += updateAllowed ? tr("Register one of:\n") : tr("Register/update one of:\n");
       for(const rdctype::str &j : myJSONs)
-        msg += tr("  -- %1\n").arg(ToQStr(j));
+        msg += tr("  -- %1\n").arg(j);
     }
 
     msg += lit("\n");

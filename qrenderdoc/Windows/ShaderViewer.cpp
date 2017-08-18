@@ -313,7 +313,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       GUIInvoke::call([this, targets, disasm]() {
         QStringList targetNames;
         for(const rdctype::str &t : targets)
-          targetNames << ToQStr(t);
+          targetNames << t;
 
         m_DisassemblyType->addItems(targetNames);
         m_DisassemblyType->setCurrentIndex(0);
@@ -356,17 +356,17 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   if(shader && shader->DebugInfo.files.count > 0)
   {
     if(trace)
-      setWindowTitle(QFormatStr("Debug %1() - %2").arg(ToQStr(shader->EntryPoint)).arg(debugContext));
+      setWindowTitle(QFormatStr("Debug %1() - %2").arg(shader->EntryPoint).arg(debugContext));
     else
-      setWindowTitle(ToQStr(shader->EntryPoint));
+      setWindowTitle(shader->EntryPoint);
 
     int fileIdx = 0;
 
     QWidget *sel = NULL;
     for(auto &f : shader->DebugInfo.files)
     {
-      QString name = QFileInfo(ToQStr(f.first)).fileName();
-      QString text = ToQStr(f.second);
+      QString name = QFileInfo(f.first).fileName();
+      QString text = f.second;
 
       ScintillaEdit *scintilla = AddFileScintilla(name, text);
 
@@ -508,10 +508,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       for(const SigParameter &s : shader->InputSig)
       {
         QString name = s.varName.count == 0
-                           ? ToQStr(s.semanticName)
-                           : QFormatStr("%1 (%2)").arg(ToQStr(s.varName)).arg(ToQStr(s.semanticName));
+                           ? s.semanticName
+                           : QFormatStr("%1 (%2)").arg(s.varName).arg(s.semanticName);
         if(s.semanticName.count == 0)
-          name = ToQStr(s.varName);
+          name = s.varName;
 
         QString semIdx = s.needSemanticIndex ? QString::number(s.semanticIndex) : QString();
 
@@ -533,10 +533,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       for(const SigParameter &s : shader->OutputSig)
       {
         QString name = s.varName.count == 0
-                           ? ToQStr(s.semanticName)
-                           : QFormatStr("%1 (%2)").arg(ToQStr(s.varName)).arg(ToQStr(s.semanticName));
+                           ? s.semanticName
+                           : QFormatStr("%1 (%2)").arg(s.varName).arg(s.semanticName);
         if(s.semanticName.count == 0)
-          name = ToQStr(s.varName);
+          name = s.varName;
 
         if(multipleStreams)
           name = QFormatStr("Stream %1 : %2").arg(s.stream).arg(name);
@@ -1019,7 +1019,7 @@ RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, u
                                                      const BoundResource &bound,
                                                      const ShaderResource &res)
 {
-  QString name = QFormatStr(" (%1)").arg(ToQStr(res.name));
+  QString name = QFormatStr(" (%1)").arg(res.name);
 
   const TextureDescription *tex = m_Ctx.GetTexture(bound.Id);
   const BufferDescription *buf = m_Ctx.GetBuffer(bound.Id);
@@ -1053,14 +1053,14 @@ RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, u
                        .arg(tex->height)
                        .arg(tex->depth > 1 ? tex->depth : tex->arraysize)
                        .arg(tex->mips)
-                       .arg(ToQStr(tex->format.strname))
-                       .arg(ToQStr(tex->name));
+                       .arg(tex->format.strname)
+                       .arg(tex->name);
 
     return new RDTreeWidgetItem({regname + name, lit("Texture"), type});
   }
   else if(buf)
   {
-    QString type = QFormatStr("%1 - %2").arg(buf->length).arg(ToQStr(buf->name));
+    QString type = QFormatStr("%1 - %2").arg(buf->length).arg(buf->name);
 
     return new RDTreeWidgetItem({regname + name, lit("Buffer"), type});
   }
@@ -1136,7 +1136,7 @@ void ShaderViewer::updateDebugging()
         if(m_Trace->cbuffers[i][j].rows > 0 || m_Trace->cbuffers[i][j].columns > 0)
         {
           RDTreeWidgetItem *node =
-              new RDTreeWidgetItem({ToQStr(m_Trace->cbuffers[i][j].name), lit("cbuffer"),
+              new RDTreeWidgetItem({m_Trace->cbuffers[i][j].name, lit("cbuffer"),
                                     stringRep(m_Trace->cbuffers[i][j], false)});
           node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Constants, j, i)));
 
@@ -1152,7 +1152,7 @@ void ShaderViewer::updateDebugging()
       if(input.rows > 0 || input.columns > 0)
       {
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {ToQStr(input.name), ToQStr(input.type) + lit(" input"), stringRep(input, true)});
+            {input.name, ToQStr(input.type) + lit(" input"), stringRep(input, true)});
         node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Inputs, i)));
 
         ui->constants->addTopLevelItem(node);
@@ -1184,7 +1184,7 @@ void ShaderViewer::updateDebugging()
       else
       {
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({ToQStr(m_ShaderDetails->ReadWriteResources[i].name),
+            new RDTreeWidgetItem({m_ShaderDetails->ReadWriteResources[i].name,
                                   QFormatStr("[%1]").arg(bind.arraySize), QString()});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
@@ -1215,7 +1215,7 @@ void ShaderViewer::updateDebugging()
       else
       {
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({ToQStr(m_ShaderDetails->ReadOnlyResources[i].name),
+            new RDTreeWidgetItem({m_ShaderDetails->ReadOnlyResources[i].name,
                                   QFormatStr("[%1]").arg(bind.arraySize), QString()});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
@@ -1239,21 +1239,21 @@ void ShaderViewer::updateDebugging()
   {
     for(int i = 0; i < state.registers.count; i++)
       ui->variables->addTopLevelItem(
-          new RDTreeWidgetItem({ToQStr(state.registers[i].name), lit("temporary"), QString()}));
+          new RDTreeWidgetItem({state.registers[i].name, lit("temporary"), QString()}));
 
     for(int i = 0; i < state.indexableTemps.count; i++)
     {
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({QFormatStr("x%1").arg(i), lit("indexable"), QString()});
       for(int t = 0; t < state.indexableTemps[i].count; t++)
-        node->addChild(new RDTreeWidgetItem(
-            {ToQStr(state.indexableTemps[i][t].name), lit("indexable"), QString()}));
+        node->addChild(
+            new RDTreeWidgetItem({state.indexableTemps[i][t].name, lit("indexable"), QString()}));
       ui->variables->addTopLevelItem(node);
     }
 
     for(int i = 0; i < state.outputs.count; i++)
       ui->variables->addTopLevelItem(
-          new RDTreeWidgetItem({ToQStr(state.outputs[i].name), lit("output"), QString()}));
+          new RDTreeWidgetItem({state.outputs[i].name, lit("output"), QString()}));
   }
 
   ui->variables->setUpdatesEnabled(false);
@@ -1974,7 +1974,7 @@ void ShaderViewer::updateVariableTooltip()
   const rdctype::array<ShaderVariable> *vars = GetVariableList(m_TooltipVarCat, m_TooltipArrayIdx);
   const ShaderVariable &var = vars->elems[m_TooltipVarIdx];
 
-  QString text = QFormatStr("<pre>%1\n").arg(ToQStr(var.name));
+  QString text = QFormatStr("<pre>%1\n").arg(var.name);
   text +=
       lit("                 X          Y          Z          W \n"
           "----------------------------------------------------\n");
