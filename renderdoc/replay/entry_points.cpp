@@ -511,3 +511,90 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistrati
 {
   RenderDoc::Inst().UpdateVulkanLayerRegistration(systemLevel);
 }
+
+static std::string ResourceFormatName(const ResourceFormat &fmt)
+{
+  std::string ret;
+
+  if(fmt.special)
+  {
+    switch(fmt.specialFormat)
+    {
+      case SpecialFormat::Unknown: return "Unknown";
+      case SpecialFormat::BC1: return fmt.srgbCorrected ? "BC1_SRGB" : "BC1_UNORM";
+      case SpecialFormat::BC2: return fmt.srgbCorrected ? "BC2_SRGB" : "BC2_UNORM";
+      case SpecialFormat::BC3: return fmt.srgbCorrected ? "BC3_SRGB" : "BC3_UNORM";
+      case SpecialFormat::BC4: return fmt.compType == CompType::UNorm ? "BC4_UNORM" : "BC4_SNORM";
+      case SpecialFormat::BC5: return fmt.compType == CompType::UNorm ? "BC5_UNORM" : "BC5_SNORM";
+      case SpecialFormat::BC6: return fmt.compType == CompType::UNorm ? "BC6_UFLOAT" : "BC6_SFLOAT";
+      case SpecialFormat::BC7: return fmt.srgbCorrected ? "BC7_SRGB" : "BC7_UNORM";
+      case SpecialFormat::ETC2: return fmt.srgbCorrected ? "ETC2_SRGB" : "ETC_UNORM";
+      case SpecialFormat::EAC:
+      {
+        if(fmt.compCount == 1)
+          return fmt.compType == CompType::UNorm ? "EAC_R_UNORM" : "EAC_R_SNORM";
+        else
+          return fmt.compType == CompType::UNorm ? "EAC_RG_UNORM" : "EAC_RG_SNORM";
+      }
+      case SpecialFormat::ASTC:
+        return fmt.srgbCorrected ? "ASTC_SRGB" : "ASTC_UNORM";
+      // 10:10:10 A2 is the only format that can have all the usual format types (unorm, snorm,
+      // etc). So we break and handle it like any other format below.
+      case SpecialFormat::R10G10B10A2: ret = fmt.bgraOrder ? "B10G10R10A2" : "R10G10B10A2"; break;
+      case SpecialFormat::R11G11B10: return "R11G11B10_FLOAT";
+      case SpecialFormat::R5G6B5: return fmt.bgraOrder ? "R5G6B5_UNORM" : "B5G6R5_UNORM";
+      case SpecialFormat::R5G5B5A1: return fmt.bgraOrder ? "R5G5B5A1_UNORM" : "R5G5B5A1_UNORM";
+      case SpecialFormat::R9G9B9E5: return "R9G9B9E5_FLOAT";
+      case SpecialFormat::R4G4B4A4: return fmt.bgraOrder ? "R4G4B4A4_UNORM" : "B4G4R4A4_UNORM";
+      case SpecialFormat::R4G4: return "R4G4_UNORM";
+      case SpecialFormat::D16S8: return "D16S8";
+      case SpecialFormat::D24S8: return "D24S8";
+      case SpecialFormat::D32S8: return "D32S8";
+      case SpecialFormat::S8: return "S8";
+      case SpecialFormat::YUV: return "YUV";
+    }
+  }
+  else if(fmt.compType == CompType::Depth)
+  {
+    ret = StringFormat::Fmt("D%u", fmt.compByteWidth * 8);
+  }
+  else
+  {
+    char comps[] = "RGBA";
+
+    if(fmt.bgraOrder)
+      std::swap(comps[0], comps[2]);
+
+    for(uint32_t i = 0; i < fmt.compCount; i++)
+      ret += StringFormat::Fmt("%c%u", comps[i], fmt.compByteWidth * 8);
+  }
+
+  if(fmt.srgbCorrected)
+    return ret + "_SRGB";
+
+  switch(fmt.compType)
+  {
+    case CompType::Typeless: return ret + "_TYPELESS";
+    case CompType::Float:
+    case CompType::Double: return ret + "_FLOAT";
+    case CompType::UNorm: return ret + "_UNORM";
+    case CompType::SNorm: return ret + "_SNORM";
+    case CompType::UInt: return ret + "_UINT";
+    case CompType::SInt: return ret + "_SINT";
+    case CompType::UScaled: return ret + "_USCALED";
+    case CompType::SScaled: return ret + "_SSCALED";
+    case CompType::Depth:
+      // we already special-cased depth component type above to be Dx instead of Rx
+      return ret;
+  }
+
+  // should never get here
+  RDCERR("Unhandled format component type");
+  return ret + "_UNKNOWN";
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ResourceFormatName(const ResourceFormat &fmt,
+                                                                        rdctype::str &name)
+{
+  name = ResourceFormatName(fmt);
+}

@@ -672,7 +672,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
           h = tex->height;
           d = tex->depth;
           a = tex->arraysize;
-          format = tex->format.strname;
+          format = tex->format.Name();
           name = tex->name;
           typeName = ToQStr(tex->resType);
 
@@ -940,7 +940,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
           access = tr("Read-Only");
         if(!im->readAllowed && im->writeAllowed)
           access = tr("Write-Only");
-        format = im->Format.strname;
+        format = im->Format.Name();
       }
 
       QVariant tag;
@@ -1143,7 +1143,7 @@ void GLPipelineStateViewer::setState()
 
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {i, a.Enabled ? tr("Enabled") : tr("Disabled"), name,
-             a.Enabled ? a.Format.strname : genericVal, a.BufferSlot, a.RelativeOffset});
+             a.Enabled ? a.Format.Name() : genericVal, a.BufferSlot, a.RelativeOffset});
 
         if(a.Enabled)
           usedBindings[a.BufferSlot] = true;
@@ -1651,7 +1651,7 @@ void GLPipelineStateViewer::setState()
           h = tex->height;
           d = tex->depth;
           a = tex->arraysize;
-          format = tex->format.strname;
+          format = tex->format.Name();
           name = tex->name;
           typeName = ToQStr(tex->resType);
 
@@ -1736,7 +1736,7 @@ void GLPipelineStateViewer::setState()
           h = tex->height;
           d = tex->depth;
           a = tex->arraysize;
-          format = tex->format.strname;
+          format = tex->format.Name();
           name = tex->name;
           typeName = ToQStr(tex->resType);
         }
@@ -2280,7 +2280,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::VertexInpu
       QString generic;
       if(!a.Enabled)
         generic = MakeGenericValueString(a.Format.compCount, a.Format.compType, a);
-      rows.push_back({i, (bool)a.Enabled, a.BufferSlot, a.Format.strname, a.RelativeOffset, generic});
+      rows.push_back({i, (bool)a.Enabled, a.BufferSlot, a.Format.Name(), a.RelativeOffset, generic});
 
       i++;
     }
@@ -2531,7 +2531,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
           h = tex->height;
           d = tex->depth;
           a = tex->arraysize;
-          format = tex->format.strname;
+          format = tex->format.Name();
           name = tex->name;
           typeName = ToQStr(tex->resType);
 
@@ -2756,7 +2756,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, GLPipe::Shader &sh
             access = tr("Read-Only");
           if(!im->readAllowed && im->writeAllowed)
             access = tr("Write-Only");
-          format = im->Format.strname;
+          format = im->Format.Name();
         }
 
         // check to see if it's a texture

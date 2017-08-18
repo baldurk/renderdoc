@@ -1489,7 +1489,6 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
   ResourceFormat ret;
 
   ret.special = false;
-  ret.strname = ToStr::Get(fmt).substr(12);    // 12 == strlen("DXGI_FORMAT_")
 
   ret.compCount = ret.compByteWidth = 0;
   ret.compType = CompType::Float;

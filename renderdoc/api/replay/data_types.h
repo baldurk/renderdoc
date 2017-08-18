@@ -64,6 +64,12 @@ struct PathEntry
 
 DECLARE_REFLECTION_STRUCT(PathEntry);
 
+struct ResourceFormat;
+
+DOCUMENT("Internal function for getting the name for a resource format.");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ResourceFormatName(const ResourceFormat &fmt,
+                                                                        rdctype::str &name);
+
 DOCUMENT("Description of the format of a resource or element.");
 struct ResourceFormat
 {
@@ -89,6 +95,15 @@ struct ResourceFormat
            bgraOrder == r.bgraOrder && srgbCorrected == r.srgbCorrected;
   }
 
+  DOCUMENT(R"(:return: The name of the format.
+:rtype: str
+)");
+  rdctype::str Name() const
+  {
+    rdctype::str ret;
+    RENDERDOC_ResourceFormatName(*this, ret);
+    return ret;
+  }
   DOCUMENT("Compares two ``ResourceFormat`` objects for inequality.");
   bool operator!=(const ResourceFormat &r) const { return !(*this == r); }
   // indicates it's not a type represented with the members below
@@ -97,9 +112,6 @@ struct ResourceFormat
   bool32 special;
   DOCUMENT("The :class:`SpecialFormat` if it's a non-uniform layout like block-compressed.");
   SpecialFormat specialFormat;
-
-  DOCUMENT("The name of the format.");
-  rdctype::str strname;
 
   DOCUMENT("The number of components in each vertex.");
   uint32_t compCount;

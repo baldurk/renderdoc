@@ -398,8 +398,8 @@ void VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
     if(view.viewfmt != tex->format)
     {
       text += tr("The texture is format %1, the view treats it as %2.\n")
-                  .arg(tex->format.strname)
-                  .arg(view.viewfmt.strname);
+                  .arg(tex->format.Name())
+                  .arg(view.viewfmt.Name());
 
       viewdetails = true;
     }
@@ -816,7 +816,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       {
         name = tr("Object %1").arg(ToQStr(descriptorBind->res));
 
-        format = descriptorBind->viewfmt.strname;
+        format = descriptorBind->viewfmt.Name();
 
         // check to see if it's a texture
         tex = m_Ctx.GetTexture(descriptorBind->res);
@@ -1444,7 +1444,7 @@ void VulkanPipelineStateViewer::setState()
       if(showNode(usedSlot, filledSlot))
       {
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({i, name, a.location, a.binding, a.format.strname, a.byteoffset});
+            new RDTreeWidgetItem({i, name, a.location, a.binding, a.format.Name(), a.byteoffset});
 
         usedBindings[a.binding] = true;
 
@@ -1744,7 +1744,7 @@ void VulkanPipelineStateViewer::setState()
       {
         uint32_t w = 1, h = 1, d = 1;
         uint32_t a = 1;
-        QString format = p.viewfmt.strname;
+        QString format = p.viewfmt.Name();
         QString name = tr("Texture ") + ToQStr(p.img);
         QString typeName = tr("Unknown");
 
@@ -2413,7 +2413,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Vertex
     QList<QVariantList> rows;
 
     for(const VKPipe::VertexAttribute &attr : vi.attrs)
-      rows.push_back({attr.location, attr.binding, attr.format.strname, attr.byteoffset});
+      rows.push_back({attr.location, attr.binding, attr.format.Name(), attr.byteoffset});
 
     m_Common.exportHTMLTable(xml, {tr("Location"), tr("Binding"), tr("Format"), tr("Offset")}, rows);
   }
@@ -2688,7 +2688,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
           h = tex->height;
           d = tex->depth;
           arr = tex->arraysize;
-          format = tex->format.strname;
+          format = tex->format.Name();
           name = tex->name;
 
           if(tex->mips > 1)
@@ -2812,7 +2812,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, VKPipe::Shader
           h = tex->height;
           d = tex->depth;
           arr = tex->arraysize;
-          format = tex->format.strname;
+          format = tex->format.Name();
           name = tex->name;
 
           if(tex->mips > 1)

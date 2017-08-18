@@ -246,7 +246,6 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 
   ret.special = false;
   ret.specialFormat = SpecialFormat::Unknown;
-  ret.strname = ToStr::Get(fmt).substr(10);    // 3 == strlen("VK_FORMAT_")
   ret.compByteWidth = 0;
   ret.compCount = 0;
   ret.compType = CompType::Typeless;
@@ -414,12 +413,12 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_B8G8R8A8_UINT:
     case VK_FORMAT_B8G8R8A8_SINT:
     case VK_FORMAT_B8G8R8A8_SRGB:
-    case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
-    case VK_FORMAT_A2B10G10R10_SNORM_PACK32:
-    case VK_FORMAT_A2B10G10R10_USCALED_PACK32:
-    case VK_FORMAT_A2B10G10R10_SSCALED_PACK32:
-    case VK_FORMAT_A2B10G10R10_UINT_PACK32:
-    case VK_FORMAT_A2B10G10R10_SINT_PACK32: ret.bgraOrder = true; break;
+    case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
+    case VK_FORMAT_A2R10G10B10_SNORM_PACK32:
+    case VK_FORMAT_A2R10G10B10_USCALED_PACK32:
+    case VK_FORMAT_A2R10G10B10_SSCALED_PACK32:
+    case VK_FORMAT_A2R10G10B10_UINT_PACK32:
+    case VK_FORMAT_A2R10G10B10_SINT_PACK32: ret.bgraOrder = true; break;
     default: break;
   }
 
@@ -945,21 +944,21 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
       }
       case SpecialFormat::R10G10B10A2:
         if(fmt.compType == CompType::UNorm)
-          ret = fmt.bgraOrder ? VK_FORMAT_A2B10G10R10_UNORM_PACK32
-                              : VK_FORMAT_A2R10G10B10_UNORM_PACK32;
+          ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_UNORM_PACK32
+                              : VK_FORMAT_A2B10G10R10_UNORM_PACK32;
         else if(fmt.compType == CompType::UInt)
-          ret = fmt.bgraOrder ? VK_FORMAT_A2B10G10R10_UINT_PACK32 : VK_FORMAT_A2R10G10B10_UINT_PACK32;
+          ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_UINT_PACK32 : VK_FORMAT_A2B10G10R10_UINT_PACK32;
         else if(fmt.compType == CompType::UScaled)
-          ret = fmt.bgraOrder ? VK_FORMAT_A2B10G10R10_USCALED_PACK32
-                              : VK_FORMAT_A2R10G10B10_USCALED_PACK32;
+          ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_USCALED_PACK32
+                              : VK_FORMAT_A2B10G10R10_USCALED_PACK32;
         else if(fmt.compType == CompType::SNorm)
-          ret = fmt.bgraOrder ? VK_FORMAT_A2B10G10R10_SNORM_PACK32
-                              : VK_FORMAT_A2R10G10B10_SNORM_PACK32;
+          ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_SNORM_PACK32
+                              : VK_FORMAT_A2B10G10R10_SNORM_PACK32;
         else if(fmt.compType == CompType::SInt)
-          ret = fmt.bgraOrder ? VK_FORMAT_A2B10G10R10_SINT_PACK32 : VK_FORMAT_A2R10G10B10_SINT_PACK32;
+          ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_SINT_PACK32 : VK_FORMAT_A2B10G10R10_SINT_PACK32;
         else if(fmt.compType == CompType::SScaled)
-          ret = fmt.bgraOrder ? VK_FORMAT_A2B10G10R10_SSCALED_PACK32
-                              : VK_FORMAT_A2R10G10B10_SSCALED_PACK32;
+          ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_SSCALED_PACK32
+                              : VK_FORMAT_A2B10G10R10_SSCALED_PACK32;
         break;
       case SpecialFormat::R11G11B10: ret = VK_FORMAT_B10G11R11_UFLOAT_PACK32; break;
       case SpecialFormat::R5G6B5: ret = VK_FORMAT_B5G6R5_UNORM_PACK16; break;

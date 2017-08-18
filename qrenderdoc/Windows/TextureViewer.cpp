@@ -1026,7 +1026,7 @@ void TextureViewer::UI_UpdateTextureDetails()
 
   status += QFormatStr(" %1 mips").arg(current.mips);
 
-  status += lit(" - ") + ToQStr(current.format.strname);
+  status += lit(" - ") + current.format.Name();
 
   if(current.format.compType != m_TexDisplay.typeHint && m_TexDisplay.typeHint != CompType::Typeless)
   {

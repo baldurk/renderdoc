@@ -494,8 +494,8 @@ void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
   if(res.Format != tex->format)
   {
     text += tr("The texture is format %1, the view treats it as %2.\n")
-                .arg(tex->format.strname)
-                .arg(res.Format.strname);
+                .arg(tex->format.Name())
+                .arg(res.Format.Name());
 
     viewdetails = true;
   }
@@ -626,7 +626,7 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
       h = tex->height;
       d = tex->depth;
       a = tex->arraysize;
-      format = tex->format.strname;
+      format = tex->format.Name();
       name = tex->name;
       typeName = ToQStr(tex->resType);
 
@@ -636,7 +636,7 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
       }
 
       if(tex->format != r.Format)
-        format = tr("Viewed as %1").arg(r.Format.strname);
+        format = tr("Viewed as %1").arg(r.Format.Name());
 
       if(HasImportantViewParams(r, tex))
         viewDetails = true;
@@ -684,7 +684,7 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
         }
         else
         {
-          format = r.Format.strname;
+          format = r.Format.Name();
         }
       }
 
@@ -1245,7 +1245,7 @@ void D3D11PipelineStateViewer::setState()
       if(showNode(usedSlot, filledSlot))
       {
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({i, l.SemanticName, l.SemanticIndex, l.Format.strname, l.InputSlot,
+            new RDTreeWidgetItem({i, l.SemanticName, l.SemanticIndex, l.Format.Name(), l.InputSlot,
                                   byteOffs, l.PerInstance ? lit("PER_INSTANCE") : lit("PER_VERTEX"),
                                   l.InstanceDataStepRate, QString()});
 
@@ -1924,7 +1924,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
       {
         const auto &desc = res.variableType.descriptor;
 
-        if(view.res.Format.strname.empty())
+        if(view.res.Format.Name().empty())
         {
           format = QString();
           if(desc.rowMajorStorage)
@@ -2297,7 +2297,7 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(D3D11Pipe::View &view, int
   uint32_t h = 1, d = 1;
   uint32_t a = 0;
 
-  QString viewFormat = view.Format.strname;
+  QString viewFormat = view.Format.Name();
 
   TextureDescription *tex = m_Ctx.GetTexture(view.Resource);
   BufferDescription *buf = m_Ctx.GetBuffer(view.Resource);
@@ -2311,7 +2311,7 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(D3D11Pipe::View &view, int
     h = tex->height;
     d = tex->depth;
     a = tex->arraysize;
-    format = tex->format.strname;
+    format = tex->format.Name();
     name = tex->name;
     typeName = ToQStr(tex->resType);
 
@@ -2334,7 +2334,7 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(D3D11Pipe::View &view, int
     h = 0;
     d = 0;
     a = 0;
-    format = view.Format.strname;
+    format = view.Format.Name();
     name = buf->name;
     typeName = lit("Buffer");
 
@@ -2366,7 +2366,7 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(D3D11Pipe::View &view, int
       }
       else
       {
-        format = view.Format.strname;
+        format = view.Format.Name();
       }
     }
 
@@ -2397,7 +2397,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, D3D11Pipe::IA &
     int i = 0;
     for(const D3D11Pipe::Layout &l : ia.layouts)
     {
-      rows.push_back({i, l.SemanticName, l.SemanticIndex, l.Format.strname, l.InputSlot,
+      rows.push_back({i, l.SemanticName, l.SemanticIndex, l.Format.Name(), l.InputSlot,
                       l.ByteOffset, (bool)l.PerInstance, l.InstanceDataStepRate});
 
       i++;

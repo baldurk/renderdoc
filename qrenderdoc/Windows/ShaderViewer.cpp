@@ -1053,7 +1053,7 @@ RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, u
                        .arg(tex->height)
                        .arg(tex->depth > 1 ? tex->depth : tex->arraysize)
                        .arg(tex->mips)
-                       .arg(tex->format.strname)
+                       .arg(tex->format.Name())
                        .arg(tex->name);
 
     return new RDTreeWidgetItem({regname + name, lit("Texture"), type});

@@ -1211,7 +1211,6 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
 
   ret.special = false;
   ret.specialFormat = SpecialFormat::Unknown;
-  ret.strname = ToStr::Get(fmt).substr(3);    // 3 == strlen("GL_")
 
   // special handling for formats that don't query neatly
   if(fmt == eGL_LUMINANCE8_EXT || fmt == eGL_INTENSITY8_EXT || fmt == eGL_ALPHA8_EXT)
@@ -1333,34 +1332,34 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
         ret.specialFormat = SpecialFormat::EAC;
         break;
       // ASTC
-      case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_5x4_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_5x5_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_6x5_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_6x6_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_8x5_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_8x6_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_8x8_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_10x5_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_10x6_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_10x8_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_10x10_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_12x10_KHR:
-      case GL_COMPRESSED_RGBA_ASTC_12x12_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
-      case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_4x4_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_5x4_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_5x5_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_6x5_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_6x6_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_8x5_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_8x6_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_8x8_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_10x5_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_10x6_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_10x8_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_10x10_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_12x10_KHR:
+      case eGL_COMPRESSED_RGBA_ASTC_12x12_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
         ret.specialFormat = SpecialFormat::ASTC;
         break;
       default: RDCERR("Unexpected compressed format %#x", fmt); break;

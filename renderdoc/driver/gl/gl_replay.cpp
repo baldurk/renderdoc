@@ -951,83 +951,56 @@ void GLReplay::SavePipelineState()
       case eGL_BYTE:
         fmt.compByteWidth = 1;
         fmt.compType = intComponent ? CompType::SInt : CompType::SNorm;
-        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_BYTE%d", fmt.compCount)
-                                         : string("GL_BYTE")) +
-                      (intComponent ? "" : "_SNORM");
         break;
       case eGL_UNSIGNED_BYTE:
         fmt.compByteWidth = 1;
         fmt.compType = intComponent ? CompType::UInt : CompType::UNorm;
-        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_UNSIGNED_BYTE%d", fmt.compCount)
-                                         : string("GL_UNSIGNED_BYTE")) +
-                      (intComponent ? "" : "_UNORM");
         break;
       case eGL_SHORT:
         fmt.compByteWidth = 2;
         fmt.compType = intComponent ? CompType::SInt : CompType::SNorm;
-        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_SHORT%d", fmt.compCount)
-                                         : string("GL_SHORT")) +
-                      (intComponent ? "" : "_SNORM");
         break;
       case eGL_UNSIGNED_SHORT:
         fmt.compByteWidth = 2;
         fmt.compType = intComponent ? CompType::UInt : CompType::UNorm;
-        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_UNSIGNED_SHORT%d", fmt.compCount)
-                                         : string("GL_UNSIGNED_SHORT")) +
-                      (intComponent ? "" : "_UNORM");
         break;
       case eGL_INT:
         fmt.compByteWidth = 4;
         fmt.compType = intComponent ? CompType::SInt : CompType::SNorm;
-        fmt.strname =
-            (fmt.compCount > 1 ? StringFormat::Fmt("GL_INT%d", fmt.compCount) : string("GL_INT")) +
-            (intComponent ? "" : "_SNORM");
         break;
       case eGL_UNSIGNED_INT:
         fmt.compByteWidth = 4;
         fmt.compType = intComponent ? CompType::UInt : CompType::UNorm;
-        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_UNSIGNED_INT%d", fmt.compCount)
-                                         : string("GL_UNSIGNED_INT")) +
-                      (intComponent ? "" : "_UNORM");
         break;
       case eGL_FLOAT:
         fmt.compByteWidth = 4;
         fmt.compType = CompType::Float;
-        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_FLOAT%d", fmt.compCount)
-                                         : string("GL_FLOAT"));
         break;
       case eGL_DOUBLE:
         fmt.compByteWidth = 8;
         fmt.compType = CompType::Double;
-        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_DOUBLE%d", fmt.compCount)
-                                         : string("GL_DOUBLE"));
         break;
       case eGL_HALF_FLOAT:
         fmt.compByteWidth = 2;
         fmt.compType = CompType::Float;
-        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_HALF_FLOAT%d", fmt.compCount)
-                                         : string("GL_HALF_FLOAT"));
         break;
       case eGL_INT_2_10_10_10_REV:
         fmt.special = true;
         fmt.specialFormat = SpecialFormat::R10G10B10A2;
         fmt.compCount = 4;
         fmt.compType = CompType::UInt;
-        fmt.strname = "GL_INT_2_10_10_10_REV";
         break;
       case eGL_UNSIGNED_INT_2_10_10_10_REV:
         fmt.special = true;
         fmt.specialFormat = SpecialFormat::R10G10B10A2;
         fmt.compCount = 4;
         fmt.compType = CompType::SInt;
-        fmt.strname = "GL_UNSIGNED_INT_2_10_10_10_REV";
         break;
       case eGL_UNSIGNED_INT_10F_11F_11F_REV:
         fmt.special = true;
         fmt.specialFormat = SpecialFormat::R11G11B10;
         fmt.compCount = 3;
         fmt.compType = CompType::Float;
-        fmt.strname = "GL_UNSIGNED_INT_10F_11F_11F_REV";
         break;
     }
 
@@ -1038,16 +1011,10 @@ void GLReplay::SavePipelineState()
       fmt.bgraOrder = true;
       fmt.compType = CompType::UNorm;
 
-      if(type == eGL_UNSIGNED_BYTE)
-      {
-        fmt.strname = "GL_BGRA8";
-      }
-      else if(type == eGL_UNSIGNED_INT_2_10_10_10_REV || type == eGL_INT_2_10_10_10_REV)
+      if(type == eGL_UNSIGNED_INT_2_10_10_10_REV || type == eGL_INT_2_10_10_10_REV)
       {
         fmt.specialFormat = SpecialFormat::R10G10B10A2;
         fmt.compType = type == eGL_UNSIGNED_INT_2_10_10_10_REV ? CompType::UInt : CompType::SInt;
-        fmt.strname = type == eGL_UNSIGNED_INT_2_10_10_10_REV ? "GL_UNSIGNED_INT_2_10_10_10_REV"
-                                                              : "GL_INT_2_10_10_10_REV";
       }
       else
       {
