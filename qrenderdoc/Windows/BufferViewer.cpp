@@ -2061,12 +2061,7 @@ void BufferViewer::updatePreviewColumns()
         m_VSInPosition.offset =
             vbs[el.buffer].ByteOffset + el.offset + draw->vertexOffset * m_VSInPosition.stride;
 
-        m_VSInPosition.compCount = el.format.compCount;
-        m_VSInPosition.compByteWidth = el.format.compByteWidth;
-        m_VSInPosition.compType = el.format.compType;
-        m_VSInPosition.bgraOrder = el.format.bgraOrder;
-        m_VSInPosition.specialFormat =
-            el.format.special ? el.format.specialFormat : SpecialFormat::Unknown;
+        m_VSInPosition.fmt = el.format;
       }
 
       elIdx = m_ModelVSIn->secondaryColumn();
@@ -2080,12 +2075,7 @@ void BufferViewer::updatePreviewColumns()
         m_VSInSecondary.offset =
             vbs[el.buffer].ByteOffset + el.offset + draw->vertexOffset * m_VSInPosition.stride;
 
-        m_VSInSecondary.compCount = el.format.compCount;
-        m_VSInSecondary.compByteWidth = el.format.compByteWidth;
-        m_VSInSecondary.compType = el.format.compType;
-        m_VSInSecondary.bgraOrder = el.format.bgraOrder;
-        m_VSInSecondary.specialFormat =
-            el.format.special ? el.format.specialFormat : SpecialFormat::Unknown;
+        m_VSInSecondary.fmt = el.format;
         m_VSInSecondary.showAlpha = m_ModelVSIn->secondaryAlpha();
       }
     }

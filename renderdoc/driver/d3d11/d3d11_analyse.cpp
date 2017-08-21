@@ -2411,17 +2411,6 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
   Matrix4f pickMVP = projMat.Mul(camMat);
 
-  ResourceFormat resFmt;
-  resFmt.compByteWidth = cfg.position.compByteWidth;
-  resFmt.compCount = cfg.position.compCount;
-  resFmt.compType = cfg.position.compType;
-  resFmt.special = false;
-  if(cfg.position.specialFormat != SpecialFormat::Unknown)
-  {
-    resFmt.special = true;
-    resFmt.specialFormat = cfg.position.specialFormat;
-  }
-
   Matrix4f pickMVPProj;
   if(cfg.position.unproject)
   {

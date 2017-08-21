@@ -2483,17 +2483,6 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
   Matrix4f pickMVP = projMat.Mul(camMat);
 
-  ResourceFormat resFmt;
-  resFmt.compByteWidth = cfg.position.compByteWidth;
-  resFmt.compCount = cfg.position.compCount;
-  resFmt.compType = cfg.position.compType;
-  resFmt.special = false;
-  if(cfg.position.specialFormat != SpecialFormat::Unknown)
-  {
-    resFmt.special = true;
-    resFmt.specialFormat = cfg.position.specialFormat;
-  }
-
   Matrix4f pickMVPProj;
   if(cfg.position.unproject)
   {
@@ -4990,13 +4979,14 @@ MeshFormat D3D12DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID
   ret.offset = s.instStride * instID;
   ret.stride = s.vertStride;
 
-  ret.compCount = 4;
-  ret.compByteWidth = 4;
-  ret.compType = CompType::Float;
-  ret.specialFormat = SpecialFormat::Unknown;
+  ret.fmt.compCount = 4;
+  ret.fmt.compByteWidth = 4;
+  ret.fmt.compType = CompType::Float;
+  ret.fmt.special = false;
+  ret.fmt.specialFormat = SpecialFormat::Unknown;
+  ret.fmt.bgraOrder = false;
 
   ret.showAlpha = false;
-  ret.bgraOrder = false;
 
   ret.topo = MakePrimitiveTopology(s.topo);
   ret.numVerts = s.numVerts;
@@ -5277,23 +5267,9 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
   key |= uint64_t((uint32_t)primary.topo & 0x3f) << bit;
   bit += 6;
 
-  ResourceFormat fmt;
-  fmt.special = primary.specialFormat != SpecialFormat::Unknown;
-  fmt.specialFormat = primary.specialFormat;
-  fmt.compByteWidth = primary.compByteWidth;
-  fmt.compCount = primary.compCount;
-  fmt.compType = primary.compType;
-
-  DXGI_FORMAT primaryFmt = MakeDXGIFormat(fmt);
-
-  fmt.special = secondary.specialFormat != SpecialFormat::Unknown;
-  fmt.specialFormat = secondary.specialFormat;
-  fmt.compByteWidth = secondary.compByteWidth;
-  fmt.compCount = secondary.compCount;
-  fmt.compType = secondary.compType;
-
+  DXGI_FORMAT primaryFmt = MakeDXGIFormat(primary.fmt);
   DXGI_FORMAT secondaryFmt =
-      secondary.buf == ResourceId() ? DXGI_FORMAT_UNKNOWN : MakeDXGIFormat(fmt);
+      secondary.buf == ResourceId() ? DXGI_FORMAT_UNKNOWN : MakeDXGIFormat(secondary.fmt);
 
   key |= uint64_t((uint32_t)primaryFmt & 0xff) << bit;
   bit += 8;
@@ -5703,10 +5679,11 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   helper.idxByteWidth = 2;
   helper.topo = Topology::LineList;
 
-  helper.specialFormat = SpecialFormat::Unknown;
-  helper.compByteWidth = 4;
-  helper.compCount = 4;
-  helper.compType = CompType::Float;
+  helper.fmt.special = false;
+  helper.fmt.specialFormat = SpecialFormat::Unknown;
+  helper.fmt.compByteWidth = 4;
+  helper.fmt.compCount = 4;
+  helper.fmt.compType = CompType::Float;
 
   helper.stride = sizeof(Vec4f);
 

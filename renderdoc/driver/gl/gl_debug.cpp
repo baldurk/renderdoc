@@ -1188,17 +1188,6 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
   Matrix4f camMat = cfg.cam ? ((Camera *)cfg.cam)->GetMatrix() : Matrix4f::Identity();
   Matrix4f pickMVP = projMat.Mul(camMat);
 
-  ResourceFormat resFmt;
-  resFmt.compByteWidth = cfg.position.compByteWidth;
-  resFmt.compCount = cfg.position.compCount;
-  resFmt.compType = cfg.position.compType;
-  resFmt.special = false;
-  if(cfg.position.specialFormat != SpecialFormat::Unknown)
-  {
-    resFmt.special = true;
-    resFmt.specialFormat = cfg.position.specialFormat;
-  }
-
   Matrix4f pickMVPProj;
   if(cfg.position.unproject)
   {
@@ -1213,7 +1202,6 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
       guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
 
     pickMVPProj = projMat.Mul(camMat.Mul(guessProj.Inverse()));
-    ;
   }
 
   vec3 rayPos;
@@ -1238,10 +1226,9 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
     vec3 testDir = (cameraToWorldFarPosition - cameraToWorldNearPosition);
     testDir.Normalise();
 
-    /* Calculate the ray direction first in the regular way (above), so we can use the
-       the output for testing if the ray we are picking is negative or not. This is similar
-       to checking against the forward direction of the camera, but more robust
-    */
+    // Calculate the ray direction first in the regular way (above), so we can use the
+    // the output for testing if the ray we are picking is negative or not. This is similar
+    // to checking against the forward direction of the camera, but more robust
     if(cfg.position.unproject)
     {
       Matrix4f inversePickMVPGuess = pickMVPProj.Inverse();
@@ -1282,32 +1269,32 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
     {
       cdata->meshMode = MESH_TRIANGLE_LIST;
       break;
-    };
+    }
     case Topology::TriangleStrip:
     {
       cdata->meshMode = MESH_TRIANGLE_STRIP;
       break;
-    };
+    }
     case Topology::TriangleFan:
     {
       cdata->meshMode = MESH_TRIANGLE_FAN;
       break;
-    };
+    }
     case Topology::TriangleList_Adj:
     {
       cdata->meshMode = MESH_TRIANGLE_LIST_ADJ;
       break;
-    };
+    }
     case Topology::TriangleStrip_Adj:
     {
       cdata->meshMode = MESH_TRIANGLE_STRIP_ADJ;
       break;
-    };
+    }
     default:    // points, lines, patchlists, unknown
     {
       cdata->meshMode = MESH_OTHER;
       isTriangleMesh = false;
-    };
+    }
   }
 
   // line/point data
@@ -2894,125 +2881,127 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
         for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
         {
-          MeshFormat fmt = GetPostVSBuffers(events[i], inst, MeshDataStage::GSOut);
-          if(fmt.buf == ResourceId())
-            fmt = GetPostVSBuffers(events[i], inst, MeshDataStage::VSOut);
+          MeshFormat postvs = GetPostVSBuffers(events[i], inst, MeshDataStage::GSOut);
+          if(postvs.buf == ResourceId())
+            postvs = GetPostVSBuffers(events[i], inst, MeshDataStage::VSOut);
 
-          if(fmt.buf != ResourceId())
+          if(postvs.buf != ResourceId())
           {
-            GLenum topo = MakeGLPrimitiveTopology(fmt.topo);
+            GLenum topo = MakeGLPrimitiveTopology(postvs.topo);
 
             gl.glBindVertexArray(tempVAO);
 
             {
-              if(fmt.specialFormat != SpecialFormat::Unknown)
+              if(postvs.fmt.specialFormat != SpecialFormat::Unknown)
               {
-                if(fmt.specialFormat == SpecialFormat::R10G10B10A2)
+                if(postvs.fmt.specialFormat == SpecialFormat::R10G10B10A2)
                 {
-                  if(fmt.compType == CompType::UInt)
+                  if(postvs.fmt.compType == CompType::UInt)
                     gl.glVertexAttribIFormat(0, 4, eGL_UNSIGNED_INT_2_10_10_10_REV, 0);
-                  if(fmt.compType == CompType::SInt)
+                  if(postvs.fmt.compType == CompType::SInt)
                     gl.glVertexAttribIFormat(0, 4, eGL_INT_2_10_10_10_REV, 0);
                 }
-                else if(fmt.specialFormat == SpecialFormat::R11G11B10)
+                else if(postvs.fmt.specialFormat == SpecialFormat::R11G11B10)
                 {
                   gl.glVertexAttribFormat(0, 4, eGL_UNSIGNED_INT_10F_11F_11F_REV, GL_FALSE, 0);
                 }
                 else
                 {
-                  RDCWARN("Unsupported special vertex attribute format: %x", fmt.specialFormat);
+                  RDCWARN("Unsupported special vertex attribute format: %x",
+                          postvs.fmt.specialFormat);
                 }
               }
-              else if(fmt.compType == CompType::Float || fmt.compType == CompType::UNorm ||
-                      fmt.compType == CompType::SNorm)
+              else if(postvs.fmt.compType == CompType::Float ||
+                      postvs.fmt.compType == CompType::UNorm ||
+                      postvs.fmt.compType == CompType::SNorm)
               {
                 GLenum fmttype = eGL_UNSIGNED_INT;
 
-                if(fmt.compByteWidth == 4)
+                if(postvs.fmt.compByteWidth == 4)
                 {
-                  if(fmt.compType == CompType::Float)
+                  if(postvs.fmt.compType == CompType::Float)
                     fmttype = eGL_FLOAT;
-                  else if(fmt.compType == CompType::UNorm)
+                  else if(postvs.fmt.compType == CompType::UNorm)
                     fmttype = eGL_UNSIGNED_INT;
-                  else if(fmt.compType == CompType::SNorm)
+                  else if(postvs.fmt.compType == CompType::SNorm)
                     fmttype = eGL_INT;
                 }
-                else if(fmt.compByteWidth == 2)
+                else if(postvs.fmt.compByteWidth == 2)
                 {
-                  if(fmt.compType == CompType::Float)
+                  if(postvs.fmt.compType == CompType::Float)
                     fmttype = eGL_HALF_FLOAT;
-                  else if(fmt.compType == CompType::UNorm)
+                  else if(postvs.fmt.compType == CompType::UNorm)
                     fmttype = eGL_UNSIGNED_SHORT;
-                  else if(fmt.compType == CompType::SNorm)
+                  else if(postvs.fmt.compType == CompType::SNorm)
                     fmttype = eGL_SHORT;
                 }
-                else if(fmt.compByteWidth == 1)
+                else if(postvs.fmt.compByteWidth == 1)
                 {
-                  if(fmt.compType == CompType::UNorm)
+                  if(postvs.fmt.compType == CompType::UNorm)
                     fmttype = eGL_UNSIGNED_BYTE;
-                  else if(fmt.compType == CompType::SNorm)
+                  else if(postvs.fmt.compType == CompType::SNorm)
                     fmttype = eGL_BYTE;
                 }
 
-                gl.glVertexAttribFormat(0, fmt.compCount, fmttype, fmt.compType != CompType::Float,
-                                        0);
+                gl.glVertexAttribFormat(0, postvs.fmt.compCount, fmttype,
+                                        postvs.fmt.compType != CompType::Float, 0);
               }
-              else if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt)
+              else if(postvs.fmt.compType == CompType::UInt || postvs.fmt.compType == CompType::SInt)
               {
                 GLenum fmttype = eGL_UNSIGNED_INT;
 
-                if(fmt.compByteWidth == 4)
+                if(postvs.fmt.compByteWidth == 4)
                 {
-                  if(fmt.compType == CompType::UInt)
+                  if(postvs.fmt.compType == CompType::UInt)
                     fmttype = eGL_UNSIGNED_INT;
-                  else if(fmt.compType == CompType::SInt)
+                  else if(postvs.fmt.compType == CompType::SInt)
                     fmttype = eGL_INT;
                 }
-                else if(fmt.compByteWidth == 2)
+                else if(postvs.fmt.compByteWidth == 2)
                 {
-                  if(fmt.compType == CompType::UInt)
+                  if(postvs.fmt.compType == CompType::UInt)
                     fmttype = eGL_UNSIGNED_SHORT;
-                  else if(fmt.compType == CompType::SInt)
+                  else if(postvs.fmt.compType == CompType::SInt)
                     fmttype = eGL_SHORT;
                 }
-                else if(fmt.compByteWidth == 1)
+                else if(postvs.fmt.compByteWidth == 1)
                 {
-                  if(fmt.compType == CompType::UInt)
+                  if(postvs.fmt.compType == CompType::UInt)
                     fmttype = eGL_UNSIGNED_BYTE;
-                  else if(fmt.compType == CompType::SInt)
+                  else if(postvs.fmt.compType == CompType::SInt)
                     fmttype = eGL_BYTE;
                 }
 
-                gl.glVertexAttribIFormat(0, fmt.compCount, fmttype, 0);
+                gl.glVertexAttribIFormat(0, postvs.fmt.compCount, fmttype, 0);
               }
-              else if(fmt.compType == CompType::Double)
+              else if(postvs.fmt.compType == CompType::Double)
               {
-                gl.glVertexAttribLFormat(0, fmt.compCount, eGL_DOUBLE, 0);
+                gl.glVertexAttribLFormat(0, postvs.fmt.compCount, eGL_DOUBLE, 0);
               }
 
-              GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.buf).name;
-              gl.glBindVertexBuffer(0, vb, (GLintptr)fmt.offset, fmt.stride);
+              GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(postvs.buf).name;
+              gl.glBindVertexBuffer(0, vb, (GLintptr)postvs.offset, postvs.stride);
             }
 
             gl.glEnableVertexAttribArray(0);
             gl.glDisableVertexAttribArray(1);
 
-            if(fmt.idxbuf != ResourceId())
+            if(postvs.idxbuf != ResourceId())
             {
               GLenum idxtype = eGL_UNSIGNED_BYTE;
-              if(fmt.idxByteWidth == 2)
+              if(postvs.idxByteWidth == 2)
                 idxtype = eGL_UNSIGNED_SHORT;
-              else if(fmt.idxByteWidth == 4)
+              else if(postvs.idxByteWidth == 4)
                 idxtype = eGL_UNSIGNED_INT;
 
-              GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.idxbuf).name;
+              GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(postvs.idxbuf).name;
               gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
-              gl.glDrawElementsBaseVertex(topo, fmt.numVerts, idxtype,
-                                          (const void *)uintptr_t(fmt.idxoffs), fmt.baseVertex);
+              gl.glDrawElementsBaseVertex(topo, postvs.numVerts, idxtype,
+                                          (const void *)uintptr_t(postvs.idxoffs), postvs.baseVertex);
             }
             else
             {
-              gl.glDrawArrays(topo, 0, fmt.numVerts);
+              gl.glDrawArrays(topo, 0, postvs.numVerts);
             }
           }
         }
@@ -4694,13 +4683,14 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDat
   ret.offset = s.instStride * instID;
   ret.stride = s.vertStride;
 
-  ret.compCount = 4;
-  ret.compByteWidth = 4;
-  ret.compType = CompType::Float;
-  ret.specialFormat = SpecialFormat::Unknown;
+  ret.fmt.compCount = 4;
+  ret.fmt.compByteWidth = 4;
+  ret.fmt.compType = CompType::Float;
+  ret.fmt.special = false;
+  ret.fmt.specialFormat = SpecialFormat::Unknown;
+  ret.fmt.bgraOrder = false;
 
   ret.showAlpha = false;
-  ret.bgraOrder = false;
 
   ret.topo = s.topo;
   ret.numVerts = s.numVerts;
@@ -4740,7 +4730,7 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
 
   gl.glBindVertexArray(DebugData.meshVAO);
 
-  const MeshFormat *fmts[2] = {&cfg.position, &cfg.second};
+  const MeshFormat *meshData[2] = {&cfg.position, &cfg.second};
 
   GLenum topo = MakeGLPrimitiveTopology(cfg.position.topo);
 
@@ -4832,96 +4822,97 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
 
   for(uint32_t i = 0; i < 2; i++)
   {
-    if(fmts[i]->buf == ResourceId())
+    if(meshData[i]->buf == ResourceId())
       continue;
 
-    if(fmts[i]->specialFormat != SpecialFormat::Unknown)
+    if(meshData[i]->fmt.specialFormat != SpecialFormat::Unknown)
     {
-      if(fmts[i]->specialFormat == SpecialFormat::R10G10B10A2)
+      if(meshData[i]->fmt.specialFormat == SpecialFormat::R10G10B10A2)
       {
-        if(fmts[i]->compType == CompType::UInt)
+        if(meshData[i]->fmt.compType == CompType::UInt)
           gl.glVertexAttribIFormat(i, 4, eGL_UNSIGNED_INT_2_10_10_10_REV, 0);
-        if(fmts[i]->compType == CompType::SInt)
+        if(meshData[i]->fmt.compType == CompType::SInt)
           gl.glVertexAttribIFormat(i, 4, eGL_INT_2_10_10_10_REV, 0);
       }
-      else if(fmts[i]->specialFormat == SpecialFormat::R11G11B10)
+      else if(meshData[i]->fmt.specialFormat == SpecialFormat::R11G11B10)
       {
         gl.glVertexAttribFormat(i, 4, eGL_UNSIGNED_INT_10F_11F_11F_REV, GL_FALSE, 0);
       }
       else
       {
-        RDCWARN("Unsupported special vertex attribute format: %x", fmts[i]->specialFormat);
+        RDCWARN("Unsupported special vertex attribute format: %x", meshData[i]->fmt.specialFormat);
       }
     }
-    else if(fmts[i]->compType == CompType::Float || fmts[i]->compType == CompType::UNorm ||
-            fmts[i]->compType == CompType::SNorm)
+    else if(meshData[i]->fmt.compType == CompType::Float ||
+            meshData[i]->fmt.compType == CompType::UNorm ||
+            meshData[i]->fmt.compType == CompType::SNorm)
     {
       GLenum fmttype = eGL_UNSIGNED_INT;
 
-      if(fmts[i]->compByteWidth == 4)
+      if(meshData[i]->fmt.compByteWidth == 4)
       {
-        if(fmts[i]->compType == CompType::Float)
+        if(meshData[i]->fmt.compType == CompType::Float)
           fmttype = eGL_FLOAT;
-        else if(fmts[i]->compType == CompType::UNorm)
+        else if(meshData[i]->fmt.compType == CompType::UNorm)
           fmttype = eGL_UNSIGNED_INT;
-        else if(fmts[i]->compType == CompType::SNorm)
+        else if(meshData[i]->fmt.compType == CompType::SNorm)
           fmttype = eGL_INT;
       }
-      else if(fmts[i]->compByteWidth == 2)
+      else if(meshData[i]->fmt.compByteWidth == 2)
       {
-        if(fmts[i]->compType == CompType::Float)
+        if(meshData[i]->fmt.compType == CompType::Float)
           fmttype = eGL_HALF_FLOAT;
-        else if(fmts[i]->compType == CompType::UNorm)
+        else if(meshData[i]->fmt.compType == CompType::UNorm)
           fmttype = eGL_UNSIGNED_SHORT;
-        else if(fmts[i]->compType == CompType::SNorm)
+        else if(meshData[i]->fmt.compType == CompType::SNorm)
           fmttype = eGL_SHORT;
       }
-      else if(fmts[i]->compByteWidth == 1)
+      else if(meshData[i]->fmt.compByteWidth == 1)
       {
-        if(fmts[i]->compType == CompType::UNorm)
+        if(meshData[i]->fmt.compType == CompType::UNorm)
           fmttype = eGL_UNSIGNED_BYTE;
-        else if(fmts[i]->compType == CompType::SNorm)
+        else if(meshData[i]->fmt.compType == CompType::SNorm)
           fmttype = eGL_BYTE;
       }
 
-      gl.glVertexAttribFormat(i, fmts[i]->compCount, fmttype, fmts[i]->compType != CompType::Float,
-                              0);
+      gl.glVertexAttribFormat(i, meshData[i]->fmt.compCount, fmttype,
+                              meshData[i]->fmt.compType != CompType::Float, 0);
     }
-    else if(fmts[i]->compType == CompType::UInt || fmts[i]->compType == CompType::SInt)
+    else if(meshData[i]->fmt.compType == CompType::UInt || meshData[i]->fmt.compType == CompType::SInt)
     {
       GLenum fmttype = eGL_UNSIGNED_INT;
 
-      if(fmts[i]->compByteWidth == 4)
+      if(meshData[i]->fmt.compByteWidth == 4)
       {
-        if(fmts[i]->compType == CompType::UInt)
+        if(meshData[i]->fmt.compType == CompType::UInt)
           fmttype = eGL_UNSIGNED_INT;
-        else if(fmts[i]->compType == CompType::SInt)
+        else if(meshData[i]->fmt.compType == CompType::SInt)
           fmttype = eGL_INT;
       }
-      else if(fmts[i]->compByteWidth == 2)
+      else if(meshData[i]->fmt.compByteWidth == 2)
       {
-        if(fmts[i]->compType == CompType::UInt)
+        if(meshData[i]->fmt.compType == CompType::UInt)
           fmttype = eGL_UNSIGNED_SHORT;
-        else if(fmts[i]->compType == CompType::SInt)
+        else if(meshData[i]->fmt.compType == CompType::SInt)
           fmttype = eGL_SHORT;
       }
-      else if(fmts[i]->compByteWidth == 1)
+      else if(meshData[i]->fmt.compByteWidth == 1)
       {
-        if(fmts[i]->compType == CompType::UInt)
+        if(meshData[i]->fmt.compType == CompType::UInt)
           fmttype = eGL_UNSIGNED_BYTE;
-        else if(fmts[i]->compType == CompType::SInt)
+        else if(meshData[i]->fmt.compType == CompType::SInt)
           fmttype = eGL_BYTE;
       }
 
-      gl.glVertexAttribIFormat(i, fmts[i]->compCount, fmttype, 0);
+      gl.glVertexAttribIFormat(i, meshData[i]->fmt.compCount, fmttype, 0);
     }
-    else if(fmts[i]->compType == CompType::Double)
+    else if(meshData[i]->fmt.compType == CompType::Double)
     {
-      gl.glVertexAttribLFormat(i, fmts[i]->compCount, eGL_DOUBLE, 0);
+      gl.glVertexAttribLFormat(i, meshData[i]->fmt.compCount, eGL_DOUBLE, 0);
     }
 
-    GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(fmts[i]->buf).name;
-    gl.glBindVertexBuffer(i, vb, (GLintptr)fmts[i]->offset, fmts[i]->stride);
+    GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(meshData[i]->buf).name;
+    gl.glBindVertexBuffer(i, vb, (GLintptr)meshData[i]->offset, meshData[i]->stride);
   }
 
   // enable position attribute

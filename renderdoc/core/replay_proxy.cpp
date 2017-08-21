@@ -1573,11 +1573,7 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
   Serialise("", el.buf);
   Serialise("", el.offset);
   Serialise("", el.stride);
-  Serialise("", el.compCount);
-  Serialise("", el.compByteWidth);
-  Serialise("", el.compType);
-  Serialise("", el.bgraOrder);
-  Serialise("", el.specialFormat);
+  Serialise("", el.fmt);
   Serialise("", el.meshColor);
   Serialise("", el.showAlpha);
   Serialise("", el.topo);
@@ -1586,7 +1582,7 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
   Serialise("", el.nearPlane);
   Serialise("", el.farPlane);
 
-  SIZE_CHECK(104);
+  SIZE_CHECK(112);
 }
 
 template <>

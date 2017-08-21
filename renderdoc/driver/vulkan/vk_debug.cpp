@@ -3937,17 +3937,6 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
   Matrix4f camMat = cfg.cam ? ((Camera *)cfg.cam)->GetMatrix() : Matrix4f::Identity();
   Matrix4f pickMVP = projMat.Mul(camMat);
 
-  ResourceFormat resFmt;
-  resFmt.compByteWidth = cfg.position.compByteWidth;
-  resFmt.compCount = cfg.position.compCount;
-  resFmt.compType = cfg.position.compType;
-  resFmt.special = false;
-  if(cfg.position.specialFormat != SpecialFormat::Unknown)
-  {
-    resFmt.special = true;
-    resFmt.specialFormat = cfg.position.specialFormat;
-  }
-
   Matrix4f pickMVPProj;
   if(cfg.position.unproject)
   {
@@ -6833,22 +6822,9 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
   key |= uint64_t((uint32_t)primary.topo & 0x3f) << bit;
   bit += 6;
 
-  ResourceFormat fmt;
-  fmt.special = primary.specialFormat != SpecialFormat::Unknown;
-  fmt.specialFormat = primary.specialFormat;
-  fmt.compByteWidth = primary.compByteWidth;
-  fmt.compCount = primary.compCount;
-  fmt.compType = primary.compType;
-
-  VkFormat primaryFmt = MakeVkFormat(fmt);
-
-  fmt.special = secondary.specialFormat != SpecialFormat::Unknown;
-  fmt.specialFormat = secondary.specialFormat;
-  fmt.compByteWidth = secondary.compByteWidth;
-  fmt.compCount = secondary.compCount;
-  fmt.compType = secondary.compType;
-
-  VkFormat secondaryFmt = secondary.buf == ResourceId() ? VK_FORMAT_UNDEFINED : MakeVkFormat(fmt);
+  VkFormat primaryFmt = MakeVkFormat(primary.fmt);
+  VkFormat secondaryFmt =
+      secondary.buf == ResourceId() ? VK_FORMAT_UNDEFINED : MakeVkFormat(secondary.fmt);
 
   RDCCOMPILE_ASSERT(VK_FORMAT_RANGE_SIZE <= 255,
                     "Mesh pipeline cache key needs an extra bit for format");
@@ -8722,13 +8698,14 @@ MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instI
   ret.offset = s.instStride * instID;
   ret.stride = s.vertStride;
 
-  ret.compCount = 4;
-  ret.compByteWidth = 4;
-  ret.compType = CompType::Float;
-  ret.specialFormat = SpecialFormat::Unknown;
+  ret.fmt.compCount = 4;
+  ret.fmt.compByteWidth = 4;
+  ret.fmt.compType = CompType::Float;
+  ret.fmt.special = false;
+  ret.fmt.specialFormat = SpecialFormat::Unknown;
+  ret.fmt.bgraOrder = false;
 
   ret.showAlpha = false;
-  ret.bgraOrder = false;
 
   ret.topo = MakePrimitiveTopology(s.topo, 1);
   ret.numVerts = s.numVerts;

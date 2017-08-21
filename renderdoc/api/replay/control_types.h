@@ -40,11 +40,6 @@ struct MeshFormat
     baseVertex = 0;
     offset = 0;
     stride = 0;
-    compCount = 0;
-    compByteWidth = 0;
-    compType = CompType::Typeless;
-    bgraOrder = false;
-    specialFormat = SpecialFormat::Unknown;
     showAlpha = false;
     topo = Topology::Unknown;
     numVerts = 0;
@@ -68,18 +63,8 @@ struct MeshFormat
   DOCUMENT("The stride in bytes between the start of one vertex and the start of another.");
   uint32_t stride;
 
-  DOCUMENT("The number of components in each vertex.");
-  uint32_t compCount;
-  DOCUMENT("The width in bytes of each component.");
-  uint32_t compByteWidth;
-  DOCUMENT("The :class:`type <CompType>` of each component.");
-  CompType compType;
-  DOCUMENT("``True`` if the components are to be read in ``BGRA`` order.");
-  bool32 bgraOrder;
-  DOCUMENT(
-      "If the component is in a non-uniform format, contains the :class:`SpecialFormat` that "
-      "describes it.");
-  SpecialFormat specialFormat;
+  DOCUMENT("The :class:`ResourceFormat` describing this mesh component.");
+  ResourceFormat fmt;
 
   DOCUMENT(
       "The color to use for rendering the wireframe of this mesh element, as a "

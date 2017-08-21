@@ -3837,13 +3837,14 @@ MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID
   ret.offset = s.instStride * instID;
   ret.stride = s.vertStride;
 
-  ret.compCount = 4;
-  ret.compByteWidth = 4;
-  ret.compType = CompType::Float;
-  ret.specialFormat = SpecialFormat::Unknown;
+  ret.fmt.compCount = 4;
+  ret.fmt.compByteWidth = 4;
+  ret.fmt.compType = CompType::Float;
+  ret.fmt.special = false;
+  ret.fmt.specialFormat = SpecialFormat::Unknown;
+  ret.fmt.bgraOrder = false;
 
   ret.showAlpha = false;
-  ret.bgraOrder = false;
 
   ret.topo = MakePrimitiveTopology(s.topo);
   ret.numVerts = s.numVerts;
@@ -4805,27 +4806,8 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   // don't cull in wireframe mesh display
   m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
 
-  ResourceFormat resFmt;
-  resFmt.compByteWidth = cfg.position.compByteWidth;
-  resFmt.compCount = cfg.position.compCount;
-  resFmt.compType = cfg.position.compType;
-  resFmt.special = false;
-  if(cfg.position.specialFormat != SpecialFormat::Unknown)
-  {
-    resFmt.special = true;
-    resFmt.specialFormat = cfg.position.specialFormat;
-  }
-
-  ResourceFormat resFmt2;
-  resFmt2.compByteWidth = cfg.second.compByteWidth;
-  resFmt2.compCount = cfg.second.compCount;
-  resFmt2.compType = cfg.second.compType;
-  resFmt2.special = false;
-  if(cfg.second.specialFormat != SpecialFormat::Unknown)
-  {
-    resFmt2.special = true;
-    resFmt2.specialFormat = cfg.second.specialFormat;
-  }
+  const ResourceFormat &resFmt = cfg.position.fmt;
+  const ResourceFormat &resFmt2 = cfg.second.fmt;
 
   if(m_PrevMeshFmt != resFmt || m_PrevMeshFmt2 != resFmt2)
   {
@@ -4837,7 +4819,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     layoutdesc[0].SemanticIndex = 0;
     layoutdesc[0].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     if(cfg.position.buf != ResourceId() &&
-       (cfg.position.specialFormat != SpecialFormat::Unknown || cfg.position.compCount > 0))
+       (resFmt.specialFormat != SpecialFormat::Unknown || resFmt.compCount > 0))
       layoutdesc[0].Format = MakeDXGIFormat(resFmt);
     layoutdesc[0].AlignedByteOffset = 0;    // offset will be handled by vertex buffer offset
     layoutdesc[0].InputSlot = 0;
@@ -4848,7 +4830,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     layoutdesc[1].SemanticIndex = 0;
     layoutdesc[1].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     if(cfg.second.buf != ResourceId() &&
-       (cfg.second.specialFormat != SpecialFormat::Unknown || cfg.second.compCount > 0))
+       (resFmt2.specialFormat != SpecialFormat::Unknown || resFmt2.compCount > 0))
       layoutdesc[1].Format = MakeDXGIFormat(resFmt2);
     layoutdesc[1].AlignedByteOffset = 0;
     layoutdesc[1].InputSlot = 1;

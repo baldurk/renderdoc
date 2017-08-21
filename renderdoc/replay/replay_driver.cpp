@@ -110,12 +110,9 @@ FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const Mes
 
   float *out = &ret.x;
 
-  ResourceFormat fmt;
-  fmt.compByteWidth = cfg.position.compByteWidth;
-  fmt.compCount = cfg.position.compCount;
-  fmt.compType = cfg.position.compType;
+  const ResourceFormat &fmt = cfg.position.fmt;
 
-  if(cfg.position.specialFormat == SpecialFormat::R10G10B10A2)
+  if(fmt.specialFormat == SpecialFormat::R10G10B10A2)
   {
     if(data + 4 >= end)
     {
@@ -130,7 +127,7 @@ FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const Mes
     ret.w = v.w;
     return ret;
   }
-  else if(cfg.position.specialFormat == SpecialFormat::R11G11B10)
+  else if(fmt.specialFormat == SpecialFormat::R11G11B10)
   {
     if(data + 4 >= end)
     {
@@ -145,21 +142,21 @@ FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const Mes
     return ret;
   }
 
-  if(data + cfg.position.compCount * cfg.position.compByteWidth > end)
+  if(data + fmt.compCount * fmt.compByteWidth > end)
   {
     valid = false;
     return ret;
   }
 
-  for(uint32_t i = 0; i < cfg.position.compCount; i++)
+  for(uint32_t i = 0; i < fmt.compCount; i++)
   {
     *out = ConvertComponent(fmt, data);
 
-    data += cfg.position.compByteWidth;
+    data += fmt.compByteWidth;
     out++;
   }
 
-  if(cfg.position.bgraOrder)
+  if(fmt.bgraOrder)
   {
     FloatVector reversed;
     reversed.x = ret.z;
