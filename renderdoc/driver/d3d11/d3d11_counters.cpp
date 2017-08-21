@@ -30,13 +30,21 @@
 #include "d3d11_debug.h"
 #include "d3d11_device.h"
 
-void D3D11DebugManager::PreDeviceInitCounters() {}
+void D3D11DebugManager::PreDeviceInitCounters()
+{
+}
 
-void D3D11DebugManager::PostDeviceInitCounters() {}
+void D3D11DebugManager::PostDeviceInitCounters()
+{
+}
 
-void D3D11DebugManager::PreDeviceShutdownCounters() {}
+void D3D11DebugManager::PreDeviceShutdownCounters()
+{
+}
 
-void D3D11DebugManager::PostDeviceShutdownCounters() {}
+void D3D11DebugManager::PostDeviceShutdownCounters()
+{
+}
 
 vector<GPUCounter> D3D11DebugManager::EnumerateCounters()
 {
@@ -81,6 +89,12 @@ void D3D11DebugManager::DescribeCounter(GPUCounter counterID, CounterDescription
       return;
     }
   }
+
+  // 448A0516-B50E-4312-A6DC-CFE7222FC1AC
+  desc.uuid.bytes[0] = 0x448A0516;
+  desc.uuid.bytes[1] = 0xB50E4312;
+  desc.uuid.bytes[2] = 0xA6DCCFE7;
+  desc.uuid.bytes[3] = 0x222FC1AC ^ (uint32_t)counterID;
 
   desc.category = "D3D11";
 

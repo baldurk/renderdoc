@@ -891,7 +891,6 @@ struct Uuid
   }
 
   Uuid() { bytes[0] = bytes[1] = bytes[2] = bytes[3] = 0; }
-
   DOCUMENT("The Uuid bytes.")
   uint32_t bytes[4];
 };
@@ -923,6 +922,9 @@ struct CounterDescription
 
   DOCUMENT("The :class:`CounterUnit` for the result value.");
   CounterUnit unit;
+
+  DOCUMENT("The :class:`Uuid` of this counter, which uniquely identifies it.");
+  Uuid uuid;
 };
 
 DECLARE_REFLECTION_STRUCT(CounterDescription);

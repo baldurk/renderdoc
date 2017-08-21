@@ -1607,8 +1607,9 @@ void Serialiser::Serialise(const char *name, CounterDescription &el)
   Serialise("", el.resultByteWidth);
   Serialise("", el.unit);
   Serialise("", el.category);
+  Serialise("", el.uuid);
 
-  SIZE_CHECK(72);
+  SIZE_CHECK(88);
 }
 
 template <>
