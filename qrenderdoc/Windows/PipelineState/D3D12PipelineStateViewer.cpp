@@ -932,7 +932,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
   int vs = 0;
 
   vs = resources->verticalScrollBar()->value();
-  resources->setUpdatesEnabled(false);
+  resources->beginUpdate();
   resources->clear();
   for(int space = 0; space < stage.Spaces.count; space++)
   {
@@ -943,11 +943,11 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
     }
   }
   resources->clearSelection();
-  resources->setUpdatesEnabled(true);
+  resources->endUpdate();
   resources->verticalScrollBar()->setValue(vs);
 
   vs = uavs->verticalScrollBar()->value();
-  uavs->setUpdatesEnabled(false);
+  uavs->beginUpdate();
   uavs->clear();
   for(int space = 0; space < stage.Spaces.count; space++)
   {
@@ -958,11 +958,11 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
     }
   }
   uavs->clearSelection();
-  uavs->setUpdatesEnabled(true);
+  uavs->endUpdate();
   uavs->verticalScrollBar()->setValue(vs);
 
   vs = samplers->verticalScrollBar()->value();
-  samplers->setUpdatesEnabled(false);
+  samplers->beginUpdate();
   samplers->clear();
   for(int space = 0; space < stage.Spaces.count; space++)
   {
@@ -1079,11 +1079,11 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
     }
   }
   samplers->clearSelection();
-  samplers->setUpdatesEnabled(true);
+  samplers->endUpdate();
   samplers->verticalScrollBar()->setValue(vs);
 
   vs = cbuffers->verticalScrollBar()->value();
-  cbuffers->setUpdatesEnabled(false);
+  cbuffers->beginUpdate();
   cbuffers->clear();
   for(int space = 0; space < stage.Spaces.count; space++)
   {
@@ -1193,7 +1193,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
     }
   }
   cbuffers->clearSelection();
-  cbuffers->setUpdatesEnabled(true);
+  cbuffers->endUpdate();
   cbuffers->verticalScrollBar()->setValue(vs);
 }
 
@@ -1220,7 +1220,7 @@ void D3D12PipelineStateViewer::setState()
   uint32_t layoutOffs[128] = {};
 
   vs = ui->iaLayouts->verticalScrollBar()->value();
-  ui->iaLayouts->setUpdatesEnabled(false);
+  ui->iaLayouts->beginUpdate();
   ui->iaLayouts->clear();
   {
     int i = 0;
@@ -1274,7 +1274,7 @@ void D3D12PipelineStateViewer::setState()
     }
   }
   ui->iaLayouts->clearSelection();
-  ui->iaLayouts->setUpdatesEnabled(true);
+  ui->iaLayouts->endUpdate();
   ui->iaLayouts->verticalScrollBar()->setValue(vs);
 
   Topology topo = draw ? draw->topology : Topology::Unknown;
@@ -1294,7 +1294,7 @@ void D3D12PipelineStateViewer::setState()
   bool ibufferUsed = draw && (draw->flags & DrawFlags::UseIBuffer);
 
   vs = ui->iaBuffers->verticalScrollBar()->value();
-  ui->iaBuffers->setUpdatesEnabled(false);
+  ui->iaBuffers->beginUpdate();
   ui->iaBuffers->clear();
 
   if(state.m_IA.ibuffer.Buffer != ResourceId())
@@ -1399,7 +1399,7 @@ void D3D12PipelineStateViewer::setState()
     }
   }
   ui->iaBuffers->clearSelection();
-  ui->iaBuffers->setUpdatesEnabled(true);
+  ui->iaBuffers->endUpdate();
   ui->iaBuffers->verticalScrollBar()->setValue(vs);
 
   setShaderState(state.m_VS, ui->vsShader, ui->vsResources, ui->vsSamplers, ui->vsCBuffers,
@@ -1417,7 +1417,7 @@ void D3D12PipelineStateViewer::setState()
 
   bool streamoutSet = false;
   vs = ui->gsStreamOut->verticalScrollBar()->value();
-  ui->gsStreamOut->setUpdatesEnabled(false);
+  ui->gsStreamOut->beginUpdate();
   ui->gsStreamOut->clear();
   for(int i = 0; i < state.m_SO.Outputs.count; i++)
   {
@@ -1461,7 +1461,7 @@ void D3D12PipelineStateViewer::setState()
   }
   ui->gsStreamOut->verticalScrollBar()->setValue(vs);
   ui->gsStreamOut->clearSelection();
-  ui->gsStreamOut->setUpdatesEnabled(true);
+  ui->gsStreamOut->endUpdate();
 
   ui->gsStreamOut->setVisible(streamoutSet);
   ui->soGroup->setVisible(streamoutSet);
@@ -1470,7 +1470,7 @@ void D3D12PipelineStateViewer::setState()
   // Rasterizer
 
   vs = ui->viewports->verticalScrollBar()->value();
-  ui->viewports->setUpdatesEnabled(false);
+  ui->viewports->beginUpdate();
   ui->viewports->clear();
   for(int i = 0; i < state.m_RS.Viewports.count; i++)
   {
@@ -1486,10 +1486,10 @@ void D3D12PipelineStateViewer::setState()
   }
   ui->viewports->verticalScrollBar()->setValue(vs);
   ui->viewports->clearSelection();
-  ui->viewports->setUpdatesEnabled(true);
+  ui->viewports->endUpdate();
 
   vs = ui->scissors->verticalScrollBar()->value();
-  ui->scissors->setUpdatesEnabled(false);
+  ui->scissors->beginUpdate();
   ui->scissors->clear();
   for(int i = 0; i < state.m_RS.Scissors.count; i++)
   {
@@ -1505,7 +1505,7 @@ void D3D12PipelineStateViewer::setState()
   }
   ui->scissors->clearSelection();
   ui->scissors->verticalScrollBar()->setValue(vs);
-  ui->scissors->setUpdatesEnabled(true);
+  ui->scissors->endUpdate();
 
   ui->fillMode->setText(ToQStr(state.m_RS.m_State.fillMode));
   ui->cullMode->setText(ToQStr(state.m_RS.m_State.cullMode));
@@ -1527,7 +1527,7 @@ void D3D12PipelineStateViewer::setState()
   bool targets[32] = {};
 
   vs = ui->targetOutputs->verticalScrollBar()->value();
-  ui->targetOutputs->setUpdatesEnabled(false);
+  ui->targetOutputs->beginUpdate();
   ui->targetOutputs->clear();
   {
     for(int i = 0; i < state.m_OM.RenderTargets.count; i++)
@@ -1543,11 +1543,11 @@ void D3D12PipelineStateViewer::setState()
                    ui->targetOutputs);
   }
   ui->targetOutputs->clearSelection();
-  ui->targetOutputs->setUpdatesEnabled(true);
+  ui->targetOutputs->endUpdate();
   ui->targetOutputs->verticalScrollBar()->setValue(vs);
 
   vs = ui->blends->verticalScrollBar()->value();
-  ui->blends->setUpdatesEnabled(false);
+  ui->blends->beginUpdate();
   ui->blends->clear();
   {
     int i = 0;
@@ -1591,7 +1591,7 @@ void D3D12PipelineStateViewer::setState()
     }
   }
   ui->blends->clearSelection();
-  ui->blends->setUpdatesEnabled(true);
+  ui->blends->endUpdate();
   ui->blends->verticalScrollBar()->setValue(vs);
 
   ui->alphaToCoverage->setPixmap(state.m_OM.m_BlendState.AlphaToCoverage ? tick : cross);
@@ -1612,7 +1612,7 @@ void D3D12PipelineStateViewer::setState()
   ui->stencilWriteMask->setText(Formatter::Format(state.m_OM.m_State.StencilWriteMask, true));
   ui->stencilRef->setText(Formatter::Format(state.m_OM.m_State.StencilRef, true));
 
-  ui->stencils->setUpdatesEnabled(false);
+  ui->stencils->beginUpdate();
   ui->stencils->clear();
   ui->stencils->addTopLevelItem(
       new RDTreeWidgetItem({tr("Front"), ToQStr(state.m_OM.m_State.m_FrontFace.Func),
@@ -1624,7 +1624,7 @@ void D3D12PipelineStateViewer::setState()
        ToQStr(state.m_OM.m_State.m_BackFace.FailOp), ToQStr(state.m_OM.m_State.m_BackFace.DepthFailOp),
        ToQStr(state.m_OM.m_State.m_BackFace.PassOp)}));
   ui->stencils->clearSelection();
-  ui->stencils->setUpdatesEnabled(true);
+  ui->stencils->endUpdate();
 
   // highlight the appropriate stages in the flowchart
   if(draw == NULL)

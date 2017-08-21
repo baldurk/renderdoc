@@ -1234,7 +1234,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   ubos->hideColumn(0);
 
   vs = resources->verticalScrollBar()->value();
-  resources->setUpdatesEnabled(false);
+  resources->beginUpdate();
   resources->clear();
 
   QMap<ResourceId, SamplerData> samplers;
@@ -1312,11 +1312,11 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   }
 
   resources->clearSelection();
-  resources->setUpdatesEnabled(true);
+  resources->endUpdate();
   resources->verticalScrollBar()->setValue(vs);
 
   vs = ubos->verticalScrollBar()->value();
-  ubos->setUpdatesEnabled(false);
+  ubos->beginUpdate();
   ubos->clear();
   for(int bindset = 0; bindset < pipe.DescSets.count; bindset++)
   {
@@ -1386,7 +1386,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
     }
   }
   ubos->clearSelection();
-  ubos->setUpdatesEnabled(true);
+  ubos->endUpdate();
   ubos->verticalScrollBar()->setValue(vs);
 }
 
@@ -1417,7 +1417,7 @@ void VulkanPipelineStateViewer::setState()
   int vs = 0;
 
   vs = ui->viAttrs->verticalScrollBar()->value();
-  ui->viAttrs->setUpdatesEnabled(false);
+  ui->viAttrs->beginUpdate();
   ui->viAttrs->clear();
   {
     int i = 0;
@@ -1458,7 +1458,7 @@ void VulkanPipelineStateViewer::setState()
     }
   }
   ui->viAttrs->clearSelection();
-  ui->viAttrs->setUpdatesEnabled(true);
+  ui->viAttrs->endUpdate();
   ui->viAttrs->verticalScrollBar()->setValue(vs);
 
   m_BindNodes.clear();
@@ -1480,7 +1480,7 @@ void VulkanPipelineStateViewer::setState()
   ui->primRestart->setVisible(state.IA.primitiveRestartEnable);
 
   vs = ui->viBuffers->verticalScrollBar()->value();
-  ui->viBuffers->setUpdatesEnabled(false);
+  ui->viBuffers->beginUpdate();
   ui->viBuffers->clear();
 
   bool ibufferUsed = draw != NULL && (draw->flags & DrawFlags::UseIBuffer);
@@ -1631,7 +1631,7 @@ void VulkanPipelineStateViewer::setState()
     }
   }
   ui->viBuffers->clearSelection();
-  ui->viBuffers->setUpdatesEnabled(true);
+  ui->viBuffers->endUpdate();
   ui->viBuffers->verticalScrollBar()->setValue(vs);
 
   setShaderState(state.m_VS, state.graphics, ui->vsShader, ui->vsResources, ui->vsUBOs);
@@ -1645,11 +1645,11 @@ void VulkanPipelineStateViewer::setState()
   // Rasterizer
 
   vs = ui->viewports->verticalScrollBar()->value();
-  ui->viewports->setUpdatesEnabled(false);
+  ui->viewports->beginUpdate();
   ui->viewports->clear();
 
   int vs2 = ui->scissors->verticalScrollBar()->value();
-  ui->scissors->setUpdatesEnabled(false);
+  ui->scissors->beginUpdate();
   ui->scissors->clear();
 
   if(state.Pass.renderpass.obj != ResourceId())
@@ -1685,8 +1685,8 @@ void VulkanPipelineStateViewer::setState()
   ui->scissors->clearSelection();
   ui->scissors->verticalScrollBar()->setValue(vs2);
 
-  ui->viewports->setUpdatesEnabled(true);
-  ui->scissors->setUpdatesEnabled(true);
+  ui->viewports->endUpdate();
+  ui->scissors->endUpdate();
 
   ui->fillMode->setText(ToQStr(state.RS.fillMode));
   ui->cullMode->setText(ToQStr(state.RS.cullMode));
@@ -1711,7 +1711,7 @@ void VulkanPipelineStateViewer::setState()
   bool targets[32] = {};
 
   vs = ui->framebuffer->verticalScrollBar()->value();
-  ui->framebuffer->setUpdatesEnabled(false);
+  ui->framebuffer->beginUpdate();
   ui->framebuffer->clear();
   {
     int i = 0;
@@ -1828,11 +1828,11 @@ void VulkanPipelineStateViewer::setState()
   }
 
   ui->framebuffer->clearSelection();
-  ui->framebuffer->setUpdatesEnabled(true);
+  ui->framebuffer->endUpdate();
   ui->framebuffer->verticalScrollBar()->setValue(vs);
 
   vs = ui->blends->verticalScrollBar()->value();
-  ui->blends->setUpdatesEnabled(false);
+  ui->blends->beginUpdate();
   ui->blends->clear();
   {
     int i = 0;
@@ -1871,7 +1871,7 @@ void VulkanPipelineStateViewer::setState()
     }
   }
   ui->blends->clearSelection();
-  ui->blends->setUpdatesEnabled(true);
+  ui->blends->endUpdate();
   ui->blends->verticalScrollBar()->setValue(vs);
 
   ui->blendFactor->setText(QFormatStr("%1, %2, %3, %4")
@@ -1898,7 +1898,7 @@ void VulkanPipelineStateViewer::setState()
     ui->depthBounds->setPixmap(cross);
   }
 
-  ui->stencils->setUpdatesEnabled(false);
+  ui->stencils->beginUpdate();
   ui->stencils->clear();
   if(state.DS.stencilTestEnable)
   {
@@ -1923,7 +1923,7 @@ void VulkanPipelineStateViewer::setState()
         {tr("Back"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-")}));
   }
   ui->stencils->clearSelection();
-  ui->stencils->setUpdatesEnabled(true);
+  ui->stencils->endUpdate();
 
   // highlight the appropriate stages in the flowchart
   if(draw == NULL)

@@ -612,10 +612,10 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
 
   // simultaneous update of resources and samplers
   vs = textures->verticalScrollBar()->value();
-  textures->setUpdatesEnabled(false);
+  textures->beginUpdate();
   textures->clear();
   vs2 = samplers->verticalScrollBar()->value();
-  samplers->setUpdatesEnabled(false);
+  samplers->beginUpdate();
   samplers->clear();
 
   for(int i = 0; i < state.Textures.count; i++)
@@ -788,14 +788,14 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
   }
 
   samplers->clearSelection();
-  samplers->setUpdatesEnabled(true);
+  samplers->endUpdate();
   samplers->verticalScrollBar()->setValue(vs2);
   textures->clearSelection();
-  textures->setUpdatesEnabled(true);
+  textures->endUpdate();
   textures->verticalScrollBar()->setValue(vs);
 
   vs = ubos->verticalScrollBar()->value();
-  ubos->setUpdatesEnabled(false);
+  ubos->beginUpdate();
   ubos->clear();
   for(int i = 0; shaderDetails && i < shaderDetails->ConstantBlocks.count; i++)
   {
@@ -869,22 +869,22 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
     }
   }
   ubos->clearSelection();
-  ubos->setUpdatesEnabled(true);
+  ubos->endUpdate();
   ubos->verticalScrollBar()->setValue(vs);
 
   vs = subs->verticalScrollBar()->value();
-  subs->setUpdatesEnabled(false);
+  subs->beginUpdate();
   subs->clear();
   for(int i = 0; i < stage.Subroutines.count; i++)
     subs->addTopLevelItem(new RDTreeWidgetItem({i, stage.Subroutines[i]}));
   subs->clearSelection();
-  subs->setUpdatesEnabled(true);
+  subs->endUpdate();
   subs->verticalScrollBar()->setValue(vs);
 
   subs->parentWidget()->setVisible(!stage.Subroutines.empty());
 
   vs = readwrites->verticalScrollBar()->value();
-  readwrites->setUpdatesEnabled(false);
+  readwrites->beginUpdate();
   readwrites->clear();
   for(int i = 0; shaderDetails && i < shaderDetails->ReadWriteResources.count; i++)
   {
@@ -1017,7 +1017,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
     }
   }
   readwrites->clearSelection();
-  readwrites->setUpdatesEnabled(true);
+  readwrites->endUpdate();
   readwrites->verticalScrollBar()->setValue(vs);
 
   readwrites->parentWidget()->setVisible(readwrites->invisibleRootItem()->childCount() > 0);
@@ -1108,7 +1108,7 @@ void GLPipelineStateViewer::setState()
   int vs = 0;
 
   vs = ui->viAttrs->verticalScrollBar()->value();
-  ui->viAttrs->setUpdatesEnabled(false);
+  ui->viAttrs->beginUpdate();
   ui->viAttrs->clear();
   {
     int i = 0;
@@ -1158,7 +1158,7 @@ void GLPipelineStateViewer::setState()
     }
   }
   ui->viAttrs->clearSelection();
-  ui->viAttrs->setUpdatesEnabled(true);
+  ui->viAttrs->endUpdate();
   ui->viAttrs->verticalScrollBar()->setValue(vs);
 
   Topology topo = draw ? draw->topology : Topology::Unknown;
@@ -1192,7 +1192,7 @@ void GLPipelineStateViewer::setState()
   }
 
   vs = ui->viBuffers->verticalScrollBar()->value();
-  ui->viBuffers->setUpdatesEnabled(false);
+  ui->viBuffers->beginUpdate();
   ui->viBuffers->clear();
 
   if(state.m_VtxIn.ibuffer != ResourceId())
@@ -1293,7 +1293,7 @@ void GLPipelineStateViewer::setState()
     }
   }
   ui->viBuffers->clearSelection();
-  ui->viBuffers->setUpdatesEnabled(true);
+  ui->viBuffers->endUpdate();
   ui->viBuffers->verticalScrollBar()->setValue(vs);
 
   setShaderState(state.m_VS, ui->vsShader, ui->vsTextures, ui->vsSamplers, ui->vsUBOs,
@@ -1310,7 +1310,7 @@ void GLPipelineStateViewer::setState()
                  ui->csSubroutines, ui->csReadWrite);
 
   vs = ui->gsFeedback->verticalScrollBar()->value();
-  ui->gsFeedback->setUpdatesEnabled(false);
+  ui->gsFeedback->beginUpdate();
   ui->gsFeedback->clear();
   if(state.m_Feedback.Active)
   {
@@ -1356,7 +1356,7 @@ void GLPipelineStateViewer::setState()
   }
   ui->gsFeedback->verticalScrollBar()->setValue(vs);
   ui->gsFeedback->clearSelection();
-  ui->gsFeedback->setUpdatesEnabled(true);
+  ui->gsFeedback->endUpdate();
 
   ui->gsFeedback->setVisible(state.m_Feedback.Active);
   ui->xfbGroup->setVisible(state.m_Feedback.Active);
@@ -1365,7 +1365,7 @@ void GLPipelineStateViewer::setState()
   // Rasterizer
 
   vs = ui->viewports->verticalScrollBar()->value();
-  ui->viewports->setUpdatesEnabled(false);
+  ui->viewports->beginUpdate();
   ui->viewports->clear();
 
   {
@@ -1431,12 +1431,12 @@ void GLPipelineStateViewer::setState()
   }
   ui->viewports->verticalScrollBar()->setValue(vs);
   ui->viewports->clearSelection();
-  ui->viewports->setUpdatesEnabled(true);
+  ui->viewports->endUpdate();
 
   bool anyScissorEnable = false;
 
   vs = ui->scissors->verticalScrollBar()->value();
-  ui->scissors->setUpdatesEnabled(false);
+  ui->scissors->beginUpdate();
   ui->scissors->clear();
   {
     // accumulate identical scissors to save on visual repetition
@@ -1507,7 +1507,7 @@ void GLPipelineStateViewer::setState()
   }
   ui->scissors->clearSelection();
   ui->scissors->verticalScrollBar()->setValue(vs);
-  ui->scissors->setUpdatesEnabled(true);
+  ui->scissors->endUpdate();
 
   ui->fillMode->setText(ToQStr(state.m_Rasterizer.m_State.fillMode));
   ui->cullMode->setText(ToQStr(state.m_Rasterizer.m_State.cullMode));
@@ -1610,7 +1610,7 @@ void GLPipelineStateViewer::setState()
   bool targets[32] = {};
 
   vs = ui->framebuffer->verticalScrollBar()->value();
-  ui->framebuffer->setUpdatesEnabled(false);
+  ui->framebuffer->beginUpdate();
   ui->framebuffer->clear();
   {
     int i = 0;
@@ -1773,11 +1773,11 @@ void GLPipelineStateViewer::setState()
   }
 
   ui->framebuffer->clearSelection();
-  ui->framebuffer->setUpdatesEnabled(true);
+  ui->framebuffer->endUpdate();
   ui->framebuffer->verticalScrollBar()->setValue(vs);
 
   vs = ui->blends->verticalScrollBar()->value();
-  ui->blends->setUpdatesEnabled(false);
+  ui->blends->beginUpdate();
   ui->blends->clear();
   {
     bool logic = state.m_FB.m_Blending.Blends[0].Logic != LogicOp::NoOp;
@@ -1841,7 +1841,7 @@ void GLPipelineStateViewer::setState()
     }
   }
   ui->blends->clearSelection();
-  ui->blends->setUpdatesEnabled(true);
+  ui->blends->endUpdate();
   ui->blends->verticalScrollBar()->setValue(vs);
 
   ui->blendFactor->setText(QFormatStr("%1, %2, %3, %4")
@@ -1866,7 +1866,7 @@ void GLPipelineStateViewer::setState()
     ui->depthBounds->setPixmap(cross);
   }
 
-  ui->stencils->setUpdatesEnabled(false);
+  ui->stencils->beginUpdate();
   ui->stencils->clear();
   if(state.m_StencilState.StencilEnable)
   {
@@ -1896,7 +1896,7 @@ void GLPipelineStateViewer::setState()
         {tr("Back"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-"), lit("-")}));
   }
   ui->stencils->clearSelection();
-  ui->stencils->setUpdatesEnabled(true);
+  ui->stencils->endUpdate();
 
   // highlight the appropriate stages in the flowchart
   if(draw == NULL)

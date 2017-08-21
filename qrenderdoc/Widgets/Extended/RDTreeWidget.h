@@ -223,6 +223,8 @@ private:
 
   void setModel(QAbstractItemModel *model) override {}
   void itemDataChanged(RDTreeWidgetItem *item, int role);
+  void beginAddChild(RDTreeWidgetItem *item);
+  void endAddChild(RDTreeWidgetItem *item);
 
   friend class RDTreeWidgetModel;
   friend class RDTreeWidgetItem;
@@ -232,6 +234,8 @@ private:
 
   RDTreeWidgetModel *m_model;
 
+  bool m_clearing = false;
+
   QStringList m_headers;
 
   bool m_queueUpdates = false;
@@ -239,7 +243,8 @@ private:
   RDTreeWidgetItem *m_queuedItem;
   QPair<int, int> m_lowestIndex;
   QPair<int, int> m_highestIndex;
-  uint64_t m_queuedRoles;
+  uint64_t m_queuedRoles = 0;
+  bool m_queuedChildren = false;
 
   bool m_instantTooltips = false;
   bool m_customCopyPaste = false;

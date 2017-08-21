@@ -339,13 +339,13 @@ void RDTreeWidgetItem::addChild(RDTreeWidgetItem *item)
     item->m_data->resize(qMax(item->m_data->count(), colCount));
 
   if(m_widget)
-    m_widget->m_model->beginAddChild(this);
+    m_widget->beginAddChild(this);
 
   // add to our list of children
   m_children.push_back(item);
 
   if(m_widget)
-    m_widget->m_model->endAddChild(this);
+    m_widget->endAddChild(this);
 }
 
 void RDTreeWidgetItem::setWidget(RDTreeWidget *widget)
@@ -367,13 +367,13 @@ void RDTreeWidgetItem::dataChanged(int role)
 
 RDTreeWidgetItem *RDTreeWidgetItem::takeChild(int index)
 {
-  if(m_widget)
+  if(m_widget && !m_widget->m_clearing)
     m_widget->m_model->beginRemoveChildren(this, index, index);
 
   m_children[index]->m_parent = NULL;
   RDTreeWidgetItem *ret = m_children.takeAt(index);
 
-  if(m_widget)
+  if(m_widget && !m_widget->m_clearing)
     m_widget->m_model->endRemoveChildren();
 
   return ret;
@@ -398,7 +398,7 @@ void RDTreeWidgetItem::clear()
   if(!childCount())
     return;
 
-  if(m_widget)
+  if(m_widget && !m_widget->m_clearing)
     m_widget->m_model->beginRemoveChildren(this, 0, childCount() - 1);
 
   while(childCount() > 0)
@@ -408,7 +408,7 @@ void RDTreeWidgetItem::clear()
     delete child;
   }
 
-  if(m_widget)
+  if(m_widget && !m_widget->m_clearing)
     m_widget->m_model->endRemoveChildren();
 }
 
@@ -448,7 +448,10 @@ void RDTreeWidget::beginUpdate()
 
   m_queuedItem = NULL;
   m_lowestIndex = m_highestIndex = qMakePair<int, int>(-1, -1);
+  m_queuedChildren = false;
   m_queuedRoles = 0;
+
+  setUpdatesEnabled(false);
 }
 
 void RDTreeWidget::endUpdate()
@@ -471,9 +474,19 @@ void RDTreeWidget::endUpdate()
         if(m_queuedRoles & (1ULL << r))
           roles.push_back(r);
       }
-      m_model->itemsChanged(m_queuedItem, m_lowestIndex, m_highestIndex, roles);
+
+      if(m_queuedChildren)
+      {
+        m_model->beginAddChild(m_queuedItem);
+        m_model->endAddChild(m_queuedItem);
+      }
+
+      if(!roles.isEmpty())
+        m_model->itemsChanged(m_queuedItem, m_lowestIndex, m_highestIndex, roles);
     }
   }
+
+  setUpdatesEnabled(true);
 }
 
 void RDTreeWidget::setColumns(const QStringList &columns)
@@ -558,7 +571,11 @@ void RDTreeWidget::scrollToItem(RDTreeWidgetItem *node)
 
 void RDTreeWidget::clear()
 {
+  m_clearing = true;
   m_root->clear();
+  m_clearing = false;
+
+  m_model->refresh();
 }
 
 void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
@@ -820,4 +837,45 @@ void RDTreeWidget::itemDataChanged(RDTreeWidgetItem *item, int role)
   {
     m_model->itemChanged(item, {role});
   }
+}
+
+void RDTreeWidget::beginAddChild(RDTreeWidgetItem *item)
+{
+  if(m_queueUpdates)
+  {
+    m_queuedChildren = true;
+
+    if(m_lowestIndex.first == -1)
+    {
+      m_queuedItem = item;
+      // make an update of row 0. This will be a bit pessimistic if there are later data changes
+      // in a later row, but we're generally only changing data *or* adding children, not both, and
+      // in either case this is primarily about batching updates not providing a minimal update set
+      m_lowestIndex = qMakePair<int, int>(0, 0);
+      m_highestIndex = qMakePair<int, int>(0, m_headers.count() - 1);
+    }
+    else
+    {
+      if(m_queuedItem == item)
+      {
+        // there's already an update. don't need to expand it, the m_queuedChildren is enough
+      }
+      else
+      {
+        // can't batch updates across multiple parents, so we just fallback to full model refresh
+        m_queuedItem = NULL;
+      }
+    }
+  }
+  else
+  {
+    m_model->beginAddChild(item);
+  }
+}
+
+void RDTreeWidget::endAddChild(RDTreeWidgetItem *item)
+{
+  // work is all done in beginAddChild
+  if(!m_queueUpdates)
+    m_model->endAddChild(item);
 }

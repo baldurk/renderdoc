@@ -295,7 +295,7 @@ bool ConstantBufferPreviewer::updateVariables(RDTreeWidgetItem *root,
 
 void ConstantBufferPreviewer::setVariables(const rdctype::array<ShaderVariable> &vars)
 {
-  ui->variables->setUpdatesEnabled(false);
+  ui->variables->beginUpdate();
 
   // try to update the variables in-place by only changing their values, if the set of variables
   // matches *exactly* to what we had before.
@@ -308,7 +308,7 @@ void ConstantBufferPreviewer::setVariables(const rdctype::array<ShaderVariable> 
 
   if(updated)
   {
-    ui->variables->setUpdatesEnabled(true);
+    ui->variables->endUpdate();
     return;
   }
 
@@ -322,7 +322,7 @@ void ConstantBufferPreviewer::setVariables(const rdctype::array<ShaderVariable> 
     ui->saveCSV->setEnabled(true);
   }
 
-  ui->variables->setUpdatesEnabled(true);
+  ui->variables->endUpdate();
 }
 
 void ConstantBufferPreviewer::updateLabels()

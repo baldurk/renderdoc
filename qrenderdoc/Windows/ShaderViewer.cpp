@@ -1256,7 +1256,7 @@ void ShaderViewer::updateDebugging()
           new RDTreeWidgetItem({state.outputs[i].name, lit("output"), QString()}));
   }
 
-  ui->variables->setUpdatesEnabled(false);
+  ui->variables->beginUpdate();
 
   int v = 0;
 
@@ -1289,7 +1289,7 @@ void ShaderViewer::updateDebugging()
     node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Outputs, i)));
   }
 
-  ui->variables->setUpdatesEnabled(true);
+  ui->variables->endUpdate();
 
   ui->watch->setUpdatesEnabled(false);
 
