@@ -878,6 +878,22 @@ with software rendering, or with some functionality disabled due to lack of supp
 
 DECLARE_REFLECTION_STRUCT(APIProperties);
 
+DOCUMENT("A 128-bit Uuid.")
+struct Uuid
+{
+  Uuid(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
+  {
+    bytes[0] = a;
+    bytes[1] = b;
+    bytes[2] = c;
+    bytes[3] = d;
+  }
+
+  Uuid() { bytes[0] = bytes[1] = bytes[2] = bytes[3] = 0; }
+  DOCUMENT("The Uuid bytes.")
+  uint32_t bytes[4];
+};
+
 DOCUMENT("Describes a GPU counter's purpose and result value.");
 struct CounterDescription
 {
