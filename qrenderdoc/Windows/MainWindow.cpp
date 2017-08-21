@@ -1404,7 +1404,8 @@ void MainWindow::on_action_API_Inspector_triggered()
   }
   else
   {
-    if(m_Ctx.HasEventBrowser())
+    if(m_Ctx.HasEventBrowser() &&
+       ui->toolWindowManager->toolWindows().contains(m_Ctx.GetEventBrowser()->Widget()))
     {
       ToolWindowManager::AreaReference ref(
           ToolWindowManager::BottomOf,
