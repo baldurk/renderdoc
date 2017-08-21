@@ -66,6 +66,11 @@ vector<GPUCounter> D3D12Replay::EnumerateCounters()
 void D3D12Replay::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
 {
   desc.counterID = counterID;
+  // 0808CC9B-79DF-4549-81F7-85494E648F22
+  desc.uuid.bytes[0] = 0x0808CC9B;
+  desc.uuid.bytes[1] = 0x79DF4549;
+  desc.uuid.bytes[2] = 0x81F78549;
+  desc.uuid.bytes[3] = 0x4E648F22 ^ (uint32_t)counterID;
 
   switch(counterID)
   {

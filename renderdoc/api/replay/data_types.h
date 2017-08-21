@@ -878,7 +878,7 @@ with software rendering, or with some functionality disabled due to lack of supp
 
 DECLARE_REFLECTION_STRUCT(APIProperties);
 
-DOCUMENT("A 128-bit Uuid.")
+DOCUMENT("A 128-bit Uuid.");
 struct Uuid
 {
   Uuid(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
@@ -890,6 +890,14 @@ struct Uuid
   }
 
   Uuid() { bytes[0] = bytes[1] = bytes[2] = bytes[3] = 0; }
+  DOCUMENT("Compares two ``Uuid`` objects for less-than.");
+  bool operator<(const Uuid &rhs) const
+  {
+    return std::lexicographical_compare(bytes, bytes + 4, rhs.bytes, rhs.bytes + 4);
+  }
+
+  DOCUMENT("Compares two ``Uuid`` objects for equality.");
+  bool operator==(const Uuid &rhs) const { return ::memcmp(bytes, rhs.bytes, sizeof(bytes)) == 0; }
   DOCUMENT("The Uuid bytes.")
   uint32_t bytes[4];
 };
@@ -921,6 +929,9 @@ struct CounterDescription
 
   DOCUMENT("The :class:`CounterUnit` for the result value.");
   CounterUnit unit;
+
+  DOCUMENT("The :class:`Uuid` of this counter, which uniquely identifies it.");
+  Uuid uuid;
 };
 
 DECLARE_REFLECTION_STRUCT(CounterDescription);

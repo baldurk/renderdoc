@@ -28,6 +28,8 @@
 #include "official/GPUPerfAPI/Include/GPUPerfAPI.h"
 #include "official/GPUPerfAPI/Include/GPUPerfAPIFunctionTypes.h"
 
+#include "serialise/string_utils.h"
+
 typedef GPA_Status(__stdcall *PFN_GPA_INITIALIZE)();
 typedef GPA_Status(__stdcall *PFN_GPA_OPENCONTEXT)(void *pContext);
 typedef GPA_Status(__stdcall *PFN_GPA_GET_NUM_COUNTERS)(gpa_uint32 *pCount);
@@ -342,6 +344,12 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
       break;
     default: desc.resultType = CompType::UInt; desc.resultByteWidth = sizeof(uint32_t);
   }
+
+  // C8958C90-B706-4F22-8AF5-E0A3831B2C39
+  desc.uuid.bytes[0] = 0xC8958C90;
+  desc.uuid.bytes[1] = 0xB7064F22;
+  desc.uuid.bytes[2] = 0x8AF5E0A3 ^ strhash(desc.name.c_str());
+  desc.uuid.bytes[3] = 0x831B2C39 ^ strhash(desc.description.c_str());
 
   return desc;
 }
