@@ -27,7 +27,11 @@
 #include "Code/Interface/QRDInterface.h"
 #include "ui_PerformanceCounterSelection.h"
 
+#include <set>
 #include <unordered_map>
+
+#define JSON_ID "rdocPerformanceCounterSettings"
+#define JSON_VER 1
 
 namespace
 {
@@ -88,6 +92,107 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx, Q
     }
   });
 
+  connect(ui->save, &QPushButton::pressed, [&]() -> void {
+    QString filename = RDDialog::getSaveFileName(this, tr("Save File"), QDir::homePath(),
+                                                 tr("Performance Counter Settings (*.json)"));
+
+    if(filename.isEmpty())
+      return;
+
+    QVariantList counterIds;
+    for(auto v : m_SelectedCounters.keys())
+    {
+      const Uuid uuid = m_CounterToUuid[v];
+      QVariantList e;
+
+      for(const auto b : uuid.bytes)
+      {
+        e.append(b);
+      }
+
+      counterIds.append(QVariant{e});
+    }
+
+    QVariantMap doc;
+    doc[QLatin1String{"counters"}] = counterIds;
+
+    QFile f(filename);
+    if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+    {
+      SaveToJSON(doc, f, JSON_ID, JSON_VER);
+    }
+    else
+    {
+      RDDialog::critical(this, tr("Error saving config"),
+                         tr("Couldn't open path %1 for write.").arg(filename));
+    }
+  });
+
+  connect(ui->load, &QPushButton::pressed, [&]() -> void {
+    QString filename = RDDialog::getOpenFileName(this, tr("Load file"), QDir::homePath(),
+                                                 tr("Performance Counter Settings (*.json)"));
+
+    if(filename.isEmpty())
+      return;
+
+    QVariantMap doc;
+    QFile f(filename);
+    if(f.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+      LoadFromJSON(doc, f, JSON_ID, JSON_VER);
+
+      std::set<Uuid> selectedCounters;
+
+      QVariantList counters = doc[QLatin1String{"counters"}].toList();
+
+      for(const auto &counter : counters)
+      {
+        QVariantList bytes = counter.toList();
+        Uuid uuid;
+
+        /// TODO assert counter.size () == 4
+
+        for(int i = 0; i < 4; ++i)
+        {
+          uuid.bytes[i] = bytes[i].toUInt();
+        }
+
+        selectedCounters.insert(uuid);
+      }
+
+      // We we walk over the complete tree, and toggle everything so it
+      // matches the settings
+      QTreeWidgetItemIterator it(ui->counterTree);
+      while(*it)
+      {
+        const auto id = (*it)->data(0, Qt::UserRole + 2);
+        if(id.isValid())
+        {
+          const GPUCounter counter = (GPUCounter)id.toUInt();
+
+          if(!m_CounterToUuid.contains(counter))
+            continue;
+
+          (*it)->setCheckState(
+              0, (selectedCounters.find(m_CounterToUuid[counter]) != selectedCounters.end())
+                     ? Qt::Checked
+                     : Qt::Unchecked);
+        }
+
+        // The loop above will uncheck all unknown counters, and not crash if some counter is no
+        // longer present, or unknown
+
+        ++it;
+      }
+    }
+    else
+    {
+      RDDialog::critical(this, tr("Error loading config"),
+                         tr("Couldn't open path %1 for reading.").arg(filename));
+    }
+
+  });
+
   connect(ui->counterTree, &QTreeWidget::itemChanged, [&](QTreeWidgetItem *item, int) -> void {
     const auto d = item->data(0, Qt::UserRole + 2);
 
@@ -98,12 +203,12 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx, Q
         // Add
         auto listItem = new QListWidgetItem(ui->enabledCounters);
         listItem->setText(item->text(0));
-        m_SelectedCounters.insert(d.toUInt(), listItem);
+        m_SelectedCounters.insert((GPUCounter)d.toUInt(), listItem);
       }
       else
       {
         // Remove
-        auto listItem = m_SelectedCounters.take(d.toUInt());
+        auto listItem = m_SelectedCounters.take((GPUCounter)d.toUInt());
         delete listItem;
       }
     }
@@ -124,6 +229,9 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx, Q
 
     for(const auto desc : counters)
     {
+      m_CounterToUuid[desc.counterID] = desc.uuid;
+      m_UuidToCounter[desc.uuid] = desc.counterID;
+
       const CounterFamily family = GetCounterFamily(desc.counterID);
       if(family != currentFamily)
       {
@@ -176,7 +284,7 @@ PerformanceCounterSelection::~PerformanceCounterSelection()
   delete ui;
 }
 
-QList<uint32_t> PerformanceCounterSelection::GetSelectedCounters() const
+QList<GPUCounter> PerformanceCounterSelection::GetSelectedCounters() const
 {
   return m_SelectedCounters.keys();
 }

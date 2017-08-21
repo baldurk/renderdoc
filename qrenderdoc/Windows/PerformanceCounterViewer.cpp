@@ -79,7 +79,7 @@ PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget
     PerformanceCounterSelection pcs(m_Ctx, this);
     if(RDDialog::show(&pcs) == QDialog::Accepted)
     {
-      const QList<uint32_t> selectedCounters = pcs.GetSelectedCounters();
+      const QList<GPUCounter> selectedCounters = pcs.GetSelectedCounters();
 
       bool done = false;
       m_Ctx.Replay().AsyncInvoke([=, &done](IReplayController *controller) -> void {
