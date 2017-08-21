@@ -47,7 +47,6 @@ public:
   void OnLogfileClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override {}
-
 private:
   Ui::PerformanceCounterViewer *ui;
   ICaptureContext &m_Ctx;

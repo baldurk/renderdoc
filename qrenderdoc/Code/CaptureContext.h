@@ -196,7 +196,6 @@ public:
   const VKPipe::State &CurVulkanPipelineState() override { return *m_CurVulkanPipelineState; }
   CommonPipelineState &CurPipelineState() override { return m_CurPipelineState; }
   PersistantConfig &Config() override { return m_Config; }
-
 private:
   ReplayManager m_Renderer;
 

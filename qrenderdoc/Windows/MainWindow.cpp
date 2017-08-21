@@ -1299,7 +1299,9 @@ void MainWindow::OnLogfileClosed()
   }
 }
 
-void MainWindow::OnEventChanged(uint32_t eventID) {}
+void MainWindow::OnEventChanged(uint32_t eventID)
+{
+}
 
 void MainWindow::RegisterShortcut(const QString &shortcut, QWidget *widget, ShortcutCallback callback)
 {

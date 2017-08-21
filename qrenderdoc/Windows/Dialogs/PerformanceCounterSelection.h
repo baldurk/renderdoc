@@ -41,11 +41,13 @@ public:
   explicit PerformanceCounterSelection(ICaptureContext &ctx, QWidget *parent = 0);
   ~PerformanceCounterSelection();
 
-  QList<uint32_t> GetSelectedCounters() const;
+  QList<GPUCounter> GetSelectedCounters() const;
 
 private:
   Ui::PerformanceCounterSelection *ui;
 
   ICaptureContext &m_Ctx;
-  QMap<uint32_t, QListWidgetItem *> m_SelectedCounters;
+  QMap<GPUCounter, QListWidgetItem *> m_SelectedCounters;
+  QMap<GPUCounter, Uuid> m_CounterToUuid;
+  QMap<Uuid, GPUCounter> m_UuidToCounter;
 };
