@@ -228,18 +228,37 @@ static std::string GetSOFromJSON(const std::string &json)
   return ret;
 }
 
-enum
+enum class LayerPath : int
 {
-  USR,
-  ETC,
-  HOME,
-  COUNT
+  usr,
+  First = usr,
+  etc,
+  home,
+  Count,
 };
 
-string layerRegistrationPath[COUNT] = {
-    "/usr/share/vulkan/implicit_layer.d/renderdoc_capture.json",
-    "/etc/vulkan/implicit_layer.d/renderdoc_capture.json",
-    string(getenv("HOME")) + "/.local/share/vulkan/implicit_layer.d/renderdoc_capture.json"};
+ITERABLE_OPERATORS(LayerPath);
+
+string LayerRegistrationPath(LayerPath path)
+{
+  switch(path)
+  {
+    case LayerPath::usr: return "/usr/share/vulkan/implicit_layer.d/renderdoc_capture.json";
+    case LayerPath::etc: return "/etc/vulkan/implicit_layer.d/renderdoc_capture.json";
+    case LayerPath::home:
+    {
+      const char *xdg = getenv("XDG_DATA_HOME");
+      if(xdg && FileIO::exists(xdg))
+        return string(xdg) + "/vulkan/implicit_layer.d/renderdoc_capture.json";
+
+      return string(getenv("HOME")) +
+             "/.local/share/vulkan/implicit_layer.d/renderdoc_capture.json";
+    }
+    default: break;
+  }
+
+  return "";
+}
 
 string GetThisLibPath()
 {
@@ -374,21 +393,21 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
   // we can't do that and have to just prompt the user. /etc we can mess with since that's for
   // non-distribution packages, but it will need root permissions.
 
-  bool exist[COUNT];
-  bool match[COUNT];
+  bool exist[arraydim<LayerPath>()];
+  bool match[arraydim<LayerPath>()];
 
   int numExist = 0;
   int numMatch = 0;
 
-  for(int i = 0; i < COUNT; i++)
+  for(LayerPath i : values<LayerPath>())
   {
-    exist[i] = FileExists(layerRegistrationPath[i]);
-    match[i] = (GetSOFromJSON(layerRegistrationPath[i]) == librenderdoc_path);
+    exist[(int)i] = FileExists(LayerRegistrationPath(i));
+    match[(int)i] = (GetSOFromJSON(LayerRegistrationPath(i)) == librenderdoc_path);
 
-    if(exist[i])
+    if(exist[(int)i])
       numExist++;
 
-    if(match[i])
+    if(match[(int)i])
       numMatch++;
   }
 
@@ -401,33 +420,33 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
   if(numExist == 1 && numMatch == 1)
     return false;
 
-  if(exist[USR] && !match[USR])
-    otherJSONs.push_back(layerRegistrationPath[USR]);
+  if(exist[(int)LayerPath::usr] && !match[(int)LayerPath::usr])
+    otherJSONs.push_back(LayerRegistrationPath(LayerPath::usr));
 
-  if(exist[ETC] && !match[ETC])
-    otherJSONs.push_back(layerRegistrationPath[ETC]);
+  if(exist[(int)LayerPath::etc] && !match[(int)LayerPath::etc])
+    otherJSONs.push_back(LayerRegistrationPath(LayerPath::etc));
 
-  if(exist[HOME] && !match[HOME])
-    otherJSONs.push_back(layerRegistrationPath[HOME]);
+  if(exist[(int)LayerPath::home] && !match[(int)LayerPath::home])
+    otherJSONs.push_back(LayerRegistrationPath(LayerPath::home));
 
   if(!otherJSONs.empty())
     flags |= VulkanLayerFlags::OtherInstallsRegistered;
 
-  if(exist[USR] && match[USR])
+  if(exist[(int)LayerPath::usr] && match[(int)LayerPath::usr])
   {
     // just need to unregister others
   }
   else
   {
-    myJSONs.push_back(layerRegistrationPath[ETC]);
-    myJSONs.push_back(layerRegistrationPath[HOME]);
+    myJSONs.push_back(LayerRegistrationPath(LayerPath::etc));
+    myJSONs.push_back(LayerRegistrationPath(LayerPath::home));
   }
 
-  if(exist[USR] && !match[USR])
+  if(exist[(int)LayerPath::usr] && !match[(int)LayerPath::usr])
   {
     flags = VulkanLayerFlags::Unfixable | VulkanLayerFlags::OtherInstallsRegistered;
     otherJSONs.clear();
-    otherJSONs.push_back(layerRegistrationPath[USR]);
+    otherJSONs.push_back(LayerRegistrationPath(LayerPath::usr));
   }
 
   return true;
@@ -435,36 +454,41 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, std::vector<std::st
 
 void VulkanReplay::InstallVulkanLayer(bool systemLevel)
 {
+  std::string homePath = LayerRegistrationPath(LayerPath::home);
+
   // if we want to install to the system and there's a registration in $HOME, delete it
-  if(systemLevel && FileExists(layerRegistrationPath[HOME]))
+  if(systemLevel && FileExists(homePath))
   {
-    if(unlink(layerRegistrationPath[HOME].c_str()) < 0)
+    if(unlink(homePath.c_str()) < 0)
     {
       const char *const errtext = strerror(errno);
-      RDCERR("Error removing %s: %s", layerRegistrationPath[HOME].c_str(), errtext);
+      RDCERR("Error removing %s: %s", homePath.c_str(), errtext);
     }
   }
+
+  std::string etcPath = LayerRegistrationPath(LayerPath::etc);
 
   // and vice-versa
-  if(!systemLevel && FileExists(layerRegistrationPath[ETC]))
+  if(!systemLevel && FileExists(etcPath))
   {
-    if(unlink(layerRegistrationPath[ETC].c_str()) < 0)
+    if(unlink(etcPath.c_str()) < 0)
     {
       const char *const errtext = strerror(errno);
-      RDCERR("Error removing %s: %s", layerRegistrationPath[ETC].c_str(), errtext);
+      RDCERR("Error removing %s: %s", etcPath.c_str(), errtext);
     }
   }
 
-  int idx = systemLevel ? ETC : HOME;
+  LayerPath idx = systemLevel ? LayerPath::etc : LayerPath::home;
 
-  string path = GetSOFromJSON(layerRegistrationPath[idx]);
+  string jsonPath = LayerRegistrationPath(idx);
+  string path = GetSOFromJSON(jsonPath);
   string libPath = GetThisLibPath();
 
   if(path != libPath)
   {
-    MakeParentDirs(layerRegistrationPath[idx]);
+    MakeParentDirs(jsonPath);
 
-    FILE *f = fopen(layerRegistrationPath[idx].c_str(), "w");
+    FILE *f = fopen(jsonPath.c_str(), "w");
 
     if(f)
     {
@@ -475,7 +499,7 @@ void VulkanReplay::InstallVulkanLayer(bool systemLevel)
     else
     {
       const char *const errtext = strerror(errno);
-      RDCERR("Error writing %s: %s", layerRegistrationPath[idx].c_str(), errtext);
+      RDCERR("Error writing %s: %s", jsonPath.c_str(), errtext);
     }
   }
 }
