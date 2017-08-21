@@ -1457,7 +1457,6 @@
     <CustomBuild Include="Resources\qtconf.qrc">
       <Filter>Resources</Filter>
     </CustomBuild>
-<<<<<<< HEAD
     <CustomBuild Include="Windows\TimelineBar.h">
       <Filter>Windows</Filter>
     </CustomBuild>
@@ -1466,7 +1465,7 @@
     </CustomBuild>
     <CustomBuild Include="Styles\RDTweakedNativeStyle\RDTweakedNativeStyle.h">
       <Filter>Styles\RDTweakedNativeStyle</Filter>
-=======
+    </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\PerformanceCounterSelection.h">
       <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
@@ -1478,7 +1477,6 @@
     </CustomBuild>
     <CustomBuild Include="Windows\PerformanceCounterViewer.ui">
       <Filter>Windows</Filter>
->>>>>>> Prepare everything for the performance counter viewer window.
     </CustomBuild>
   </ItemGroup>
 </Project>

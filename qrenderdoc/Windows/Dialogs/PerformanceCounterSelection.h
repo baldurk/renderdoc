@@ -25,6 +25,8 @@
 #include <QDialog>
 #include <QMap>
 
+#include "Code/Interface/QRDInterface.h"
+
 namespace Ui
 {
 class PerformanceCounterSelection;

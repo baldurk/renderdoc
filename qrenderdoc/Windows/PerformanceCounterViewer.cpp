@@ -109,7 +109,7 @@ PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget
           headers << QLatin1String{"EID"};
           for(const auto &cd : counterDescriptions)
           {
-            headers << ToQStr(cd.name);
+            headers << cd.name;
           }
 
           QMap<uint32_t, int> eventIdToRow;
