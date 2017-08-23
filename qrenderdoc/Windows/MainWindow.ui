@@ -130,6 +130,7 @@
     <addaction name="action_Errors_and_Warnings"/>
     <addaction name="action_Timeline"/>
     <addaction name="action_Statistics_Viewer"/>
+    <addaction name="action_Counter_selection"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
@@ -403,6 +404,11 @@
   <action name="action_Start_Replay_Loop">
    <property name="text">
     <string>Start Replay &amp;Loop</string>
+    </property>
+  </action>
+  <action name="action_Counter_selection">
+   <property name="text">
+    <string>Performance Counter Viewer</string>
    </property>
   </action>
  </widget>

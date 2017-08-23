@@ -28,6 +28,8 @@
 #include "official/GPUPerfAPI/Include/GPUPerfAPI.h"
 #include "official/GPUPerfAPI/Include/GPUPerfAPIFunctionTypes.h"
 
+#include "serialise/string_utils.h"
+
 typedef GPA_Status(__stdcall *PFN_GPA_INITIALIZE)();
 typedef GPA_Status(__stdcall *PFN_GPA_OPENCONTEXT)(void *pContext);
 typedef GPA_Status(__stdcall *PFN_GPA_GET_NUM_COUNTERS)(gpa_uint32 *pCount);
@@ -219,7 +221,7 @@ vector<AMDCounters::InternalCounterDescription> AMDCounters::EnumerateCounters()
     internalDesc.desc = InternalGetCounterDescription(i);
 
     // We ignore any D3D11 counters, as those are handled elsewhere
-    if(strncmp(internalDesc.desc.description.c_str(), "#D3D11#", 7) == 0)
+    if(strncmp(internalDesc.desc.category.c_str(), "D3D11", 5) == 0)
     {
       continue;
     }
@@ -249,7 +251,35 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
   m_pGPUPerfAPI->getCounterName(internalIndex, &tmp);
   desc.name = tmp;
   m_pGPUPerfAPI->getCounterDescription(internalIndex, &tmp);
-  desc.description = tmp;
+
+  std::vector<char> descCopy;
+  int separator = -1;
+  int sharpFound = 0;
+  const char *c = tmp;
+  while(*c)
+  {
+    if(*c == '#')
+    {
+      ++sharpFound;
+      descCopy.push_back('\0');
+
+      if(sharpFound == 2)
+      {
+        separator = (int32_t)(c - tmp);
+      }
+    }
+    else
+    {
+      descCopy.push_back(*c);
+    }
+
+    ++c;
+  }
+
+  descCopy.push_back('\0');
+
+  desc.category = descCopy.data() + 1;
+  desc.description = descCopy.data() + separator + 1;
 
   GPA_Usage_Type usageType;
 
@@ -314,6 +344,12 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
       break;
     default: desc.resultType = CompType::UInt; desc.resultByteWidth = sizeof(uint32_t);
   }
+
+  // C8958C90-B706-4F22-8AF5-E0A3831B2C39
+  desc.uuid.bytes[0] = 0xC8958C90;
+  desc.uuid.bytes[1] = 0xB7064F22;
+  desc.uuid.bytes[2] = 0x8AF5E0A3 ^ strhash(desc.name.c_str());
+  desc.uuid.bytes[3] = 0x831B2C39 ^ strhash(desc.description.c_str());
 
   return desc;
 }

@@ -1645,6 +1645,16 @@ void MainWindow::on_actionShow_Tips_triggered()
   RDDialog::show(&tipsDialog);
 }
 
+void MainWindow::on_action_Counter_selection_triggered()
+{
+  QWidget *performanceCounterViewer = m_Ctx.GetPerformanceCounterViewer()->Widget();
+
+  if(ui->toolWindowManager->toolWindows().contains(performanceCounterViewer))
+    ToolWindowManager::raiseToolWindow(performanceCounterViewer);
+  else
+    ui->toolWindowManager->addToolWindow(performanceCounterViewer, mainToolArea());
+}
+
 void MainWindow::saveLayout_triggered()
 {
   LoadSaveLayout(qobject_cast<QAction *>(QObject::sender()), true);

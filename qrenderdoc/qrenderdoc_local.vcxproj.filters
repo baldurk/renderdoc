@@ -651,6 +651,18 @@
     <ClCompile Include="Styles\StyleData.cpp">
       <Filter>Styles</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\Dialogs\PerformanceCounterSelection.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\PerformanceCounterViewer.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_PerformanceCounterSelection.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_PerformanceCounterViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -964,6 +976,15 @@
     </ClInclude>
     <ClInclude Include="Styles\StyleData.h">
       <Filter>Styles</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\Dialogs\PerformanceCounterSelection.h">
+      <Filter>Windows\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_PerformanceCounterSelection.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_PerformanceCounterViewer.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1444,6 +1465,18 @@
     </CustomBuild>
     <CustomBuild Include="Styles\RDTweakedNativeStyle\RDTweakedNativeStyle.h">
       <Filter>Styles\RDTweakedNativeStyle</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\PerformanceCounterSelection.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\PerformanceCounterSelection.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PerformanceCounterViewer.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PerformanceCounterViewer.ui">
+      <Filter>Windows</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

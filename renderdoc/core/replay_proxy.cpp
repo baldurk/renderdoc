@@ -1590,6 +1590,14 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
 }
 
 template <>
+void Serialiser::Serialise(const char *name, Uuid &el)
+{
+  SerialisePODArray<4>("", el.bytes);
+
+  SIZE_CHECK(16);
+}
+
+template <>
 void Serialiser::Serialise(const char *name, CounterDescription &el)
 {
   Serialise("", el.counterID);
@@ -1598,8 +1606,10 @@ void Serialiser::Serialise(const char *name, CounterDescription &el)
   Serialise("", el.resultType);
   Serialise("", el.resultByteWidth);
   Serialise("", el.unit);
+  Serialise("", el.category);
+  Serialise("", el.uuid);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(88);
 }
 
 template <>

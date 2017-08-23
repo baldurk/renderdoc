@@ -592,6 +592,8 @@
     <ClCompile Include="$(IntDir)generated\moc_EnvironmentEditor.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_OrderedListEditor.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_RemoteManager.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_PerformanceCounterSelection.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_PerformanceCounterViewer.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_PipelineStateViewer.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_PythonContext.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_QRDUtils.cpp" />
@@ -683,6 +685,7 @@
     <ClCompile Include="Windows\Dialogs\LiveCapture.cpp" />
     <ClCompile Include="Windows\Dialogs\EnvironmentEditor.cpp" />
     <ClCompile Include="Windows\Dialogs\OrderedListEditor.cpp" />
+    <ClCompile Include="Windows\Dialogs\PerformanceCounterSelection.cpp" />
     <ClCompile Include="Windows\Dialogs\RemoteManager.cpp" />
     <ClCompile Include="Windows\Dialogs\SettingsDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\SuggestRemoteDialog.cpp" />
@@ -707,6 +710,7 @@
     <ClCompile Include="Windows\ShaderViewer.cpp" />
     <ClCompile Include="Windows\PythonShell.cpp" />
     <ClCompile Include="Windows\PixelHistoryView.cpp" />
+    <ClCompile Include="Windows\PerformanceCounterViewer.cpp" />
     <ClCompile Include="Windows\StatisticsViewer.cpp" />
     <ClCompile Include="Windows\TimelineBar.cpp" />
     <ClCompile Include="Windows\TextureViewer.cpp" />
@@ -763,6 +767,12 @@
     <ClInclude Include="3rdparty\scintilla\lexlib\SubStyles.h" />
     <ClInclude Include="3rdparty\scintilla\lexlib\WordList.h" />
     <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\PlatQt.h" />
+    <CustomBuild Include="Windows\Dialogs\PerformanceCounterSelection.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(IntDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
     <CustomBuild Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaEditBase.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
@@ -876,12 +886,14 @@
     <ClInclude Include="$(IntDir)generated\ui_EnvironmentEditor.h" />
     <ClInclude Include="$(IntDir)generated\ui_OrderedListEditor.h" />
     <ClInclude Include="$(IntDir)generated\ui_RemoteManager.h" />
+    <ClInclude Include="$(IntDir)generated\ui_PerformanceCounterSelection.h" />
     <ClInclude Include="$(IntDir)generated\ui_PipelineStateViewer.h" />
     <ClInclude Include="$(IntDir)generated\ui_ResourcePreview.h" />
     <ClInclude Include="$(IntDir)generated\ui_SettingsDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_ShaderViewer.h" />
     <ClInclude Include="$(IntDir)generated\ui_PythonShell.h" />
     <ClInclude Include="$(IntDir)generated\ui_PixelHistoryView.h" />
+    <ClInclude Include="$(IntDir)generated\ui_PerformanceCounterViewer.h" />
     <ClInclude Include="$(IntDir)generated\ui_StatisticsViewer.h" />
     <ClInclude Include="$(IntDir)generated\ui_SuggestRemoteDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_TextureSaveDialog.h" />
@@ -1202,6 +1214,12 @@
       <Message>MOC %(Filename).h</Message>
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
+    <CustomBuild Include="Windows\PerformanceCounterViewer.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(IntDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
     <CustomBuild Include="Windows\StatisticsViewer.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
@@ -1408,6 +1426,12 @@
       <Message>UIC %(Filename).ui</Message>
       <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
     </CustomBuild>
+    <CustomBuild Include="Windows\PerformanceCounterViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(IntDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
     <CustomBuild Include="Windows\StatisticsViewer.ui">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
@@ -1501,6 +1525,13 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <None Include="Resources\zoom.png" />
     <None Include="Resources\action.png" />
     <None Include="Resources\action_hover.png" />
+    <CustomBuild Include="Windows\Dialogs\PerformanceCounterSelection.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(IntDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
+      <SubType>Designer</SubType>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <Content Include="3rdparty\python\python36.zip">

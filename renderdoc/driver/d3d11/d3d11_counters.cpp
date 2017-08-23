@@ -90,6 +90,14 @@ void D3D11DebugManager::DescribeCounter(GPUCounter counterID, CounterDescription
     }
   }
 
+  // 448A0516-B50E-4312-A6DC-CFE7222FC1AC
+  desc.uuid.bytes[0] = 0x448A0516;
+  desc.uuid.bytes[1] = 0xB50E4312;
+  desc.uuid.bytes[2] = 0xA6DCCFE7;
+  desc.uuid.bytes[3] = 0x222FC1AC ^ (uint32_t)counterID;
+
+  desc.category = "D3D11";
+
   switch(counterID)
   {
     case GPUCounter::EventGPUDuration:
@@ -454,7 +462,10 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
         counters.begin(), counters.end(), std::back_inserter(amdCounters),
         [](const GPUCounter &c) { return c >= GPUCounter::FirstAMD && c < GPUCounter::FirstIntel; });
 
-    ret = FetchCountersAMD(amdCounters);
+    if(!amdCounters.empty())
+    {
+      ret = FetchCountersAMD(amdCounters);
+    }
   }
 
   D3D11_QUERY_DESC disjointdesc = {D3D11_QUERY_TIMESTAMP_DISJOINT, 0};

@@ -405,6 +405,22 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IStatisticsViewer);
 
+DOCUMENT("The performance counter view window.");
+struct IPerformanceCounterViewer
+{
+  DOCUMENT(
+      "Retrieves the QWidget for this :class:`PerformanceCounterViewer` if PySide2 is available, "
+      "or "
+      "``None``.");
+  virtual QWidget *Widget() = 0;
+
+protected:
+  IPerformanceCounterViewer() = default;
+  ~IPerformanceCounterViewer() = default;
+};
+
+DECLARE_REFLECTION_STRUCT(IPerformanceCounterViewer);
+
 DOCUMENT("The interactive python shell.");
 struct IPythonShell
 {
@@ -1131,6 +1147,13 @@ as well as messages generated during replay and analysis.
 )");
   virtual IDebugMessageView *GetDebugMessageView() = 0;
 
+  DOCUMENT(R"(Retrieve the current singleton :class:`PerformanceCounterViewer`.
+
+:return: The current window, which is created (but not shown) it there wasn't one open.
+:rtype: PerformanceCounterViewer
+)");
+  virtual IPerformanceCounterViewer *GetPerformanceCounterViewer() = 0;
+
   DOCUMENT(R"(Retrieve the current singleton :class:`StatisticsViewer`.
 
 :return: The current window, which is created (but not shown) it there wasn't one open.
@@ -1201,6 +1224,13 @@ as well as messages generated during replay and analysis.
 )");
   virtual bool HasDebugMessageView() = 0;
 
+  DOCUMENT(R"(Check if there is a current :class:`PerformanceCounterViewer` open.
+
+:return: ``True`` if there is a window open.
+:rtype: ``bool``
+)");
+  virtual bool HasPerformanceCounterViewer() = 0;
+
   DOCUMENT(R"(Check if there is a current :class:`StatisticsViewer` open.
 
 :return: ``True`` if there is a window open.
@@ -1237,6 +1267,10 @@ as well as messages generated during replay and analysis.
   DOCUMENT(
       "Raise the current :class:`DebugMessageView`, showing it in the default place if needed.");
   virtual void ShowDebugMessageView() = 0;
+  DOCUMENT(
+      "Raise the current :class:`PerformanceCounterViewer`, showing it in the default place if "
+      "needed.");
+  virtual void ShowPerformanceCounterViewer() = 0;
   DOCUMENT(
       "Raise the current :class:`StatisticsViewer`, showing it in the default place if needed.");
   virtual void ShowStatisticsViewer() = 0;

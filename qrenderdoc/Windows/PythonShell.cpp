@@ -202,6 +202,11 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return InvokeRetFunction<IDebugMessageView *>(&ICaptureContext::GetDebugMessageView);
   }
+  virtual IPerformanceCounterViewer *GetPerformanceCounterViewer() override
+  {
+    return InvokeRetFunction<IPerformanceCounterViewer *>(
+        &ICaptureContext::GetPerformanceCounterViewer);
+  }
   virtual IStatisticsViewer *GetStatisticsViewer() override
   {
     return InvokeRetFunction<IStatisticsViewer *>(&ICaptureContext::GetStatisticsViewer);
@@ -242,6 +247,10 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return InvokeRetFunction<bool>(&ICaptureContext::HasDebugMessageView);
   }
+  virtual bool HasPerformanceCounterViewer() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasPerformanceCounterViewer);
+  }
   virtual bool HasStatisticsViewer() override
   {
     return InvokeRetFunction<bool>(&ICaptureContext::HasStatisticsViewer);
@@ -279,6 +288,10 @@ struct CaptureContextInvoker : ICaptureContext
   virtual void ShowDebugMessageView() override
   {
     InvokeVoidFunction(&ICaptureContext::ShowDebugMessageView);
+  }
+  virtual void ShowPerformanceCounterViewer() override
+  {
+    InvokeVoidFunction(&ICaptureContext::ShowPerformanceCounterViewer);
   }
   virtual void ShowStatisticsViewer() override
   {

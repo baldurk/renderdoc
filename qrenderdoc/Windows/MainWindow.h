@@ -94,6 +94,7 @@ public:
   void showStatisticsViewer() { on_action_Statistics_Viewer_triggered(); }
   void showTimelineBar() { on_action_Timeline_triggered(); }
   void showPythonShell() { on_action_Python_Shell_triggered(); }
+  void showPerformanceCounterSelection() { on_action_Counter_selection_triggered(); }
 private slots:
   // automatic slots
   void on_action_Exit_triggered();
@@ -122,6 +123,7 @@ private slots:
   void on_action_Source_on_github_triggered();
   void on_action_Build_Release_downloads_triggered();
   void on_actionShow_Tips_triggered();
+  void on_action_Counter_selection_triggered();
 
   // manual slots
   void saveLayout_triggered();
