@@ -44,11 +44,20 @@ public:
 
   QList<GPUCounter> GetSelectedCounters() const;
 
+public slots:
+  void Save();
+  void Load();
+
 private:
+  void SetCounters(const QVector<CounterDescription> &descriptions);
+
   Ui::PerformanceCounterSelection *ui;
 
   ICaptureContext &m_Ctx;
   QMap<GPUCounter, QListWidgetItem *> m_SelectedCounters;
   QMap<GPUCounter, Uuid> m_CounterToUuid;
   QMap<Uuid, GPUCounter> m_UuidToCounter;
+
+  static const int CounterDescriptionRole;
+  static const int CounterIdRole;
 };
