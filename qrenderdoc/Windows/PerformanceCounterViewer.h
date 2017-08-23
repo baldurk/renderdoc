@@ -50,4 +50,5 @@ public:
 private:
   Ui::PerformanceCounterViewer *ui;
   ICaptureContext &m_Ctx;
+  void CaptureCounters();
 };
