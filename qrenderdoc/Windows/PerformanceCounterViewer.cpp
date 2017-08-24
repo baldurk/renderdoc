@@ -143,6 +143,8 @@ void PerformanceCounterViewer::CaptureCounters()
                                     new QTableWidgetItem(FormatCounterResult(
                                         results[i], counterDescriptions[results[i].counterID])));
       }
+
+      ui->counterResults->resizeColumnsToContents();
     });
 
     done = true;
