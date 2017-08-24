@@ -89,6 +89,8 @@ public:
 protected:
   ColorScheme m_Scheme = Light;
 
+  QBitmap m_PartialCheckPattern;
+
   bool eventFilter(QObject *watched, QEvent *event) override;
 
   const QBrush &outlineBrush(const QPalette &pal) const;

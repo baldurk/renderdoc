@@ -24,6 +24,7 @@
 
 #include "RDStyle.h"
 #include <QAbstractItemView>
+#include <QBitmap>
 #include <QComboBox>
 #include <QCommonStyle>
 #include <QDebug>
@@ -130,6 +131,16 @@ void start(QAbstractAnimation *anim)
 RDStyle::RDStyle(ColorScheme scheme) : RDTweakedNativeStyle(new QCommonStyle())
 {
   m_Scheme = scheme;
+
+  const uchar bits[] = {
+      0x19,    // X..XX
+      0x1C,    // ..XXX
+      0x0E,    // .XXX.
+      0x07,    // XXX..
+      0x13,    // XX..X
+  };
+
+  m_PartialCheckPattern = QBitmap::fromData(QSize(5, 5), bits);
 }
 
 RDStyle::~RDStyle()
@@ -1271,7 +1282,15 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
     rect = rect.adjusted(2, 2, -1, -1);
 
     if(opt->state & State_On)
+    {
       p->fillRect(rect, opt->palette.brush(QPalette::ButtonText));
+    }
+    else if(opt->state & State_NoChange)
+    {
+      QBrush brush = opt->palette.brush(QPalette::ButtonText);
+      brush.setTexture(m_PartialCheckPattern);
+      p->fillRect(rect, brush);
+    }
 
     p->restore();
 
@@ -1385,7 +1404,15 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
       rect = rect.adjusted(2, 2, -1, -1);
 
       if(opt->state & State_On)
+      {
         p->fillRect(rect, opt->palette.brush(QPalette::ButtonText));
+      }
+      else if(opt->state & State_NoChange)
+      {
+        QBrush brush = opt->palette.brush(QPalette::ButtonText);
+        brush.setTexture(m_PartialCheckPattern);
+        p->fillRect(rect, brush);
+      }
 
       p->restore();
 
