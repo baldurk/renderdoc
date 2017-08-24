@@ -98,6 +98,7 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx, Q
   connect(ui->save, &QPushButton::pressed, this, &PerformanceCounterSelection::Save);
   connect(ui->load, &QPushButton::pressed, this, &PerformanceCounterSelection::Load);
   connect(ui->sampleCounters, &QPushButton::pressed, this, &PerformanceCounterSelection::accept);
+  connect(ui->cancel, &QPushButton::pressed, this, &PerformanceCounterSelection::reject);
 
   connect(ui->counterTree, &QTreeWidget::itemChanged, [this](QTreeWidgetItem *item, int) -> void {
     const QVariant d = item->data(0, CounterIdRole);
