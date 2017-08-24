@@ -109,28 +109,28 @@ void PerformanceCounterViewer::CaptureCounters()
   if(!m_Ctx.LogLoaded())
     return;
 
-  PerformanceCounterSelection pcs(m_Ctx, this);
+  PerformanceCounterSelection pcs(m_Ctx, m_SelectedCounters, this);
   if(RDDialog::show(&pcs) != QDialog::Accepted)
     return;
-  const QList<GPUCounter> selectedCounters = pcs.GetSelectedCounters();
+  m_SelectedCounters = pcs.GetSelectedCounters();
 
   bool done = false;
-  m_Ctx.Replay().AsyncInvoke([this, selectedCounters, &done](IReplayController *controller) -> void {
+  m_Ctx.Replay().AsyncInvoke([this, &done](IReplayController *controller) -> void {
     rdctype::array<GPUCounter> counters;
-    counters.create(selectedCounters.size());
+    counters.create(m_SelectedCounters.size());
 
     QMap<GPUCounter, CounterDescription> counterDescriptions;
 
-    for(int i = 0; i < selectedCounters.size(); ++i)
+    for(int i = 0; i < m_SelectedCounters.size(); ++i)
     {
-      counters[i] = (GPUCounter)selectedCounters[i];
+      counters[i] = (GPUCounter)m_SelectedCounters[i];
       counterDescriptions.insert(counters[i], controller->DescribeCounter(counters[i]));
     }
 
     QMap<GPUCounter, int> counterIndex;
-    for(int i = 0; i < selectedCounters.size(); ++i)
+    for(int i = 0; i < m_SelectedCounters.size(); ++i)
     {
-      counterIndex.insert((GPUCounter)selectedCounters[i], i);
+      counterIndex.insert((GPUCounter)m_SelectedCounters[i], i);
     }
 
     const rdctype::array<CounterResult> results = controller->FetchCounters(counters);

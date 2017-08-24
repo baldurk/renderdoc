@@ -39,9 +39,12 @@ class PerformanceCounterSelection : public QDialog
   Q_OBJECT
 
 public:
-  explicit PerformanceCounterSelection(ICaptureContext &ctx, QWidget *parent = 0);
+  explicit PerformanceCounterSelection(ICaptureContext &ctx,
+                                       const QList<GPUCounter> &selectedCounters,
+                                       QWidget *parent = 0);
   ~PerformanceCounterSelection();
 
+  void SetSelectedCounters(const QList<GPUCounter> &counters);
   QList<GPUCounter> GetSelectedCounters() const;
 
 public slots:

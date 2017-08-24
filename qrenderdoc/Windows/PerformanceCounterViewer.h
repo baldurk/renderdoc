@@ -54,6 +54,8 @@ private slots:
 private:
   QString FormatCounterResult(const CounterResult &result, const CounterDescription &description);
 
+  QList<GPUCounter> m_SelectedCounters;
+
   Ui::PerformanceCounterViewer *ui;
   ICaptureContext &m_Ctx;
   void CaptureCounters();

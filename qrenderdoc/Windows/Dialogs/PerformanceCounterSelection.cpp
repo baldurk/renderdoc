@@ -23,15 +23,22 @@
  ******************************************************************************/
 
 #include "PerformanceCounterSelection.h"
+#include <QSet>
 #include "Code/CaptureContext.h"
 #include "Code/Interface/QRDInterface.h"
 #include "ui_PerformanceCounterSelection.h"
 
-#include <set>
 #include <unordered_map>
 
 #define JSON_ID "rdocPerformanceCounterSettings"
 #define JSON_VER 1
+
+// specialise this template so we can use QSet<GPUCounter>
+template <>
+inline uint qHash(const GPUCounter &t, uint seed)
+{
+  return qHash(uint32_t(t), seed);
+}
 
 namespace
 {
@@ -80,7 +87,9 @@ QString ToString(CounterFamily family)
 const int PerformanceCounterSelection::CounterDescriptionRole = Qt::UserRole + 1;
 const int PerformanceCounterSelection::CounterIdRole = Qt::UserRole + 2;
 
-PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx, QWidget *parent)
+PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx,
+                                                         const QList<GPUCounter> &selectedCounters,
+                                                         QWidget *parent)
     : QDialog(parent), ui(new Ui::PerformanceCounterSelection), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -123,15 +132,23 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx, Q
 
   ui->counterTree->setMouseTracking(true);
 
-  ctx.Replay().AsyncInvoke([this](IReplayController *controller) -> void {
+  ctx.Replay().AsyncInvoke([this, selectedCounters](IReplayController *controller) -> void {
     QVector<CounterDescription> counterDescriptions;
     for(const GPUCounter counter : controller->EnumerateCounters())
     {
       counterDescriptions.append(controller->DescribeCounter(counter));
     }
 
-    GUIInvoke::call([counterDescriptions, this]() -> void { SetCounters(counterDescriptions); });
+    GUIInvoke::call([counterDescriptions, selectedCounters, this]() -> void {
+      SetCounters(counterDescriptions);
+      SetSelectedCounters(selectedCounters);
+    });
   });
+}
+
+PerformanceCounterSelection::~PerformanceCounterSelection()
+{
+  delete ui;
 }
 
 void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> &descriptions)
@@ -185,14 +202,31 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
   }
 }
 
-PerformanceCounterSelection::~PerformanceCounterSelection()
-{
-  delete ui;
-}
-
 QList<GPUCounter> PerformanceCounterSelection::GetSelectedCounters() const
 {
   return m_SelectedCounters.keys();
+}
+
+void PerformanceCounterSelection::SetSelectedCounters(const QList<GPUCounter> &counters)
+{
+  // We we walk over the complete tree, and toggle everything so it
+  // matches the settings
+  QTreeWidgetItemIterator it(ui->counterTree);
+  while(*it)
+  {
+    const QVariant id = (*it)->data(0, Qt::UserRole + 2);
+    if(id.isValid())
+    {
+      const GPUCounter counter = (GPUCounter)id.toUInt();
+
+      (*it)->setCheckState(0, counters.contains(counter) ? Qt::Checked : Qt::Unchecked);
+    }
+
+    // The loop above will uncheck all unknown counters, and not crash if some counter is no
+    // longer present, or unknown
+
+    ++it;
+  }
 }
 
 void PerformanceCounterSelection::Save()
@@ -246,7 +280,7 @@ void PerformanceCounterSelection::Load()
   {
     LoadFromJSON(doc, f, JSON_ID, JSON_VER);
 
-    std::set<Uuid> selectedCounters;
+    QSet<GPUCounter> selectedCounters;
 
     QVariantList counters = doc[lit("counters")].toList();
 
@@ -262,33 +296,13 @@ void PerformanceCounterSelection::Load()
         uuid.bytes[i] = bytes[i].toUInt();
       }
 
-      selectedCounters.insert(uuid);
+      if(!m_UuidToCounter.contains(uuid))
+        continue;
+
+      selectedCounters.insert(m_UuidToCounter[uuid]);
     }
 
-    // We we walk over the complete tree, and toggle everything so it
-    // matches the settings
-    QTreeWidgetItemIterator it(ui->counterTree);
-    while(*it)
-    {
-      const QVariant id = (*it)->data(0, Qt::UserRole + 2);
-      if(id.isValid())
-      {
-        const GPUCounter counter = (GPUCounter)id.toUInt();
-
-        if(!m_CounterToUuid.contains(counter))
-          continue;
-
-        (*it)->setCheckState(
-            0, (selectedCounters.find(m_CounterToUuid[counter]) != selectedCounters.end())
-                   ? Qt::Checked
-                   : Qt::Unchecked);
-      }
-
-      // The loop above will uncheck all unknown counters, and not crash if some counter is no
-      // longer present, or unknown
-
-      ++it;
-    }
+    SetSelectedCounters(selectedCounters.toList());
   }
   else
   {
