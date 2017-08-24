@@ -937,6 +937,10 @@ QWidget *CaptureContext::CreateBuiltinWindow(const QString &objectName)
   {
     return GetPythonShell()->Widget();
   }
+  else if(objectName == lit("performanceCounterViewer"))
+  {
+    return GetPerformanceCounterViewer()->Widget();
+  }
 
   return NULL;
 }
