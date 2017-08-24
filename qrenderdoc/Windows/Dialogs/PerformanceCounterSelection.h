@@ -63,6 +63,7 @@ private slots:
 private:
   void SetCounters(const QVector<CounterDescription> &descriptions);
   void expandToNode(RDTreeWidgetItem *node);
+  void updateParentCheckState(RDTreeWidgetItem *item);
 
   Ui::PerformanceCounterSelection *ui;
 
@@ -74,4 +75,7 @@ private:
 
   static const int CounterDescriptionRole;
   static const int CounterIdRole;
+  static const int PreviousCheckStateRole;
+  void uncheckAllChildren(RDTreeWidgetItem *item);
+  void checkAllChildren(RDTreeWidgetItem *item);
 };

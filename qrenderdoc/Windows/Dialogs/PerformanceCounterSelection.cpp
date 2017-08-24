@@ -88,6 +88,58 @@ QString ToString(CounterFamily family)
 
 const int PerformanceCounterSelection::CounterDescriptionRole = Qt::UserRole + 1;
 const int PerformanceCounterSelection::CounterIdRole = Qt::UserRole + 2;
+const int PerformanceCounterSelection::PreviousCheckStateRole = Qt::UserRole + 3;
+
+void PerformanceCounterSelection::uncheckAllChildren(RDTreeWidgetItem *item)
+{
+  for(int i = 0; i < item->childCount(); i++)
+  {
+    uncheckAllChildren(item->child(i));
+
+    item->child(i)->setCheckState(0, Qt::Unchecked);
+    item->child(i)->setData(0, PreviousCheckStateRole, Qt::Unchecked);
+  }
+}
+
+void PerformanceCounterSelection::checkAllChildren(RDTreeWidgetItem *item)
+{
+  for(int i = 0; i < item->childCount(); i++)
+  {
+    checkAllChildren(item->child(i));
+
+    item->child(i)->setCheckState(0, Qt::Checked);
+    item->child(i)->setData(0, PreviousCheckStateRole, Qt::Checked);
+  }
+}
+
+void PerformanceCounterSelection::updateParentCheckState(RDTreeWidgetItem *item)
+{
+  if(!item)
+    return;
+
+  int numChecked = 0;
+  int numPartial = 0;
+
+  for(int i = 0; i < item->childCount(); i++)
+  {
+    Qt::CheckState state = item->child(i)->checkState(0);
+    if(state == Qt::PartiallyChecked)
+      numPartial++;
+    else if(state == Qt::Checked)
+      numChecked++;
+  }
+
+  if(numChecked == item->childCount())
+    item->setCheckState(0, Qt::Checked);
+  else if(numChecked > 0 || numPartial > 0)
+    item->setCheckState(0, Qt::PartiallyChecked);
+  else
+    item->setCheckState(0, Qt::Unchecked);
+
+  item->setData(0, PreviousCheckStateRole, item->checkState(0));
+
+  updateParentCheckState(item->parent());
+}
 
 void PerformanceCounterSelection::expandToNode(RDTreeWidgetItem *node)
 {
@@ -133,6 +185,8 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx,
   connect(ui->counterTree, &RDTreeWidget::itemChanged, [this](RDTreeWidgetItem *item, int) -> void {
     const QVariant d = item->data(0, CounterIdRole);
 
+    static bool recurse = false;
+
     if(d.isValid())
     {
       if(item->checkState(0) == Qt::Checked)
@@ -148,6 +202,37 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx,
         // Remove
         QListWidgetItem *listItem = m_SelectedCounters.take((GPUCounter)d.toUInt());
         delete listItem;
+      }
+
+      if(!recurse)
+      {
+        recurse = true;
+        updateParentCheckState(item->parent());
+        recurse = false;
+      }
+    }
+    else if(!recurse)
+    {
+      Qt::CheckState prev = item->data(0, PreviousCheckStateRole).value<Qt::CheckState>();
+
+      if(item->checkState(0) != prev)
+      {
+        recurse = true;
+
+        if(item->checkState(0) == Qt::Checked)
+        {
+          checkAllChildren(item);
+        }
+        else
+        {
+          uncheckAllChildren(item);
+        }
+
+        item->setData(0, PreviousCheckStateRole, item->checkState(0));
+
+        updateParentCheckState(item);
+
+        recurse = false;
       }
     }
   });
@@ -198,6 +283,8 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
       currentRoot = new RDTreeWidgetItem();
       ui->counterTree->addTopLevelItem(currentRoot);
       currentRoot->setText(0, ToString(family));
+      currentRoot->setCheckState(0, Qt::Unchecked);
+      currentRoot->setData(0, PreviousCheckStateRole, Qt::Unchecked);
 
       categories.clear();
 
@@ -214,6 +301,8 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
       RDTreeWidgetItem *item = new RDTreeWidgetItem();
       currentRoot->addChild(item);
       item->setText(0, desc.category);
+      item->setCheckState(0, Qt::Unchecked);
+      item->setData(0, PreviousCheckStateRole, Qt::Unchecked);
 
       categories[category] = item;
       categoryItem = item;
@@ -229,6 +318,7 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
     counterItem->setData(0, CounterDescriptionRole, desc.description);
     counterItem->setData(0, CounterIdRole, (uint32_t)desc.counterID);
     counterItem->setCheckState(0, Qt::Unchecked);
+    counterItem->setData(0, PreviousCheckStateRole, Qt::Unchecked);
 
     m_CounterToTreeItem[desc.counterID] = counterItem;
   }
