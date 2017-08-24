@@ -149,7 +149,7 @@ public:
     if(!index.isValid())
       return 0;
 
-    return QAbstractItemModel::flags(index);
+    return QAbstractItemModel::flags(index) | Qt::ItemIsUserCheckable;
   }
 
   QVariant headerData(int section, Qt::Orientation orientation, int role) const override
@@ -228,6 +228,63 @@ public:
     }
 
     return QVariant();
+  }
+
+  bool setData(const QModelIndex &index, const QVariant &value, int role)
+  {
+    RDTreeWidgetItem *item = itemForIndex(index);
+
+    // invisible root element has no data
+    if(!item->m_parent)
+      return false;
+
+    bool ret = false;
+
+    if(role == Qt::DisplayRole)
+    {
+      if(index.column() < item->m_text.count())
+      {
+        item->m_text[index.column()] = value;
+        ret = true;
+      }
+    }
+    else if(role == Qt::DecorationRole)
+    {
+      if(index.column() < item->m_icons.count())
+      {
+        item->m_icons[index.column()] = value.value<QIcon>();
+        ret = true;
+      }
+    }
+    else if(role == Qt::BackgroundRole)
+    {
+      item->m_back = value.value<QBrush>();
+      ret = true;
+    }
+    else if(role == Qt::ForegroundRole)
+    {
+      item->m_fore = value.value<QBrush>();
+      ret = true;
+    }
+    else if(role == Qt::ToolTipRole && !widget->m_instantTooltips)
+    {
+      item->m_tooltip = value.toString();
+      ret = true;
+    }
+    else if(role == Qt::FontRole)
+    {
+      ret = false;
+    }
+    else
+    {
+      item->setData(index.column(), role, value);
+      ret = true;
+    }
+
+    if(ret)
+      widget->itemDataChanged(item, index.column(), role);
+
+    return ret;
   }
 
 private:

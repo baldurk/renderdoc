@@ -111,6 +111,16 @@ public:
     dataChanged(0, Qt::ToolTipRole);
   }
 
+  inline Qt::CheckState checkState(int column) const
+  {
+    return static_cast<Qt::CheckState>(data(column, Qt::CheckStateRole).toInt());
+  }
+  inline void setCheckState(int column, Qt::CheckState state)
+  {
+    setData(column, Qt::CheckStateRole, static_cast<int>(state));
+    dataChanged(column, Qt::CheckStateRole);
+  }
+
 private:
   friend class RDTreeWidget;
   friend class RDTreeWidgetModel;
