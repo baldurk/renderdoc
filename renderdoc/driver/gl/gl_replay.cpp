@@ -941,7 +941,10 @@ void GLReplay::SavePipelineState()
 
     fmt.type = ResourceFormatType::Regular;
     fmt.compCount = 4;
-    gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&fmt.compCount);
+    GLint compCount;
+    gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&compCount);
+
+    fmt.compCount = (uint8_t)compCount;
 
     bool intComponent = !normalized || integer;
 
@@ -1001,7 +1004,7 @@ void GLReplay::SavePipelineState()
         break;
     }
 
-    if(fmt.compCount == eGL_BGRA)
+    if(compCount == eGL_BGRA)
     {
       fmt.compByteWidth = 1;
       fmt.compCount = 4;
