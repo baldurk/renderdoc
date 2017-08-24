@@ -109,7 +109,7 @@ void Serialiser::Serialise(const char *name, ResourceFormat &el)
   Serialise("", el.bgraOrder);
   Serialise("", el.srgbCorrected);
 
-  SIZE_CHECK(24);
+  SIZE_CHECK(6);
 }
 
 template <>
@@ -151,7 +151,7 @@ void Serialiser::Serialise(const char *name, SigParameter &el)
   Serialise("", el.stream);
   Serialise("", el.arrayIndex);
 
-  SIZE_CHECK(88);
+  SIZE_CHECK(80);
 }
 
 template <>
@@ -166,7 +166,7 @@ void Serialiser::Serialise(const char *name, ShaderVariableType &el)
   Serialise("", el.descriptor.arrayStride);
   Serialise("", el.members);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(48);
 }
 
 template <>
@@ -178,7 +178,7 @@ void Serialiser::Serialise(const char *name, ShaderConstant &el)
   Serialise("", el.defaultValue);
   Serialise("", el.type);
 
-  SIZE_CHECK(88);
+  SIZE_CHECK(80);
 }
 
 template <>
@@ -204,7 +204,7 @@ void Serialiser::Serialise(const char *name, ShaderResource &el)
   Serialise("", el.variableType);
   Serialise("", el.bindPoint);
 
-  SIZE_CHECK(96);
+  SIZE_CHECK(80);
 }
 
 template <>
@@ -306,7 +306,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::Layout &el)
   Serialise("", el.PerInstance);
   Serialise("", el.InstanceDataStepRate);
 
-  SIZE_CHECK(64);
+  SIZE_CHECK(48);
 }
 
 template <>
@@ -343,7 +343,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::View &el)
   Serialise("", el.ArraySize);
   Serialise("", el.FirstArraySlice);
 
-  SIZE_CHECK(88);
+  SIZE_CHECK(64);
 }
 
 template <>
@@ -395,7 +395,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::Rasterizer &el)
   Serialise("", el.Scissors);
   Serialise("", el.Viewports);
 
-  SIZE_CHECK(88);
+  SIZE_CHECK(80);
 }
 
 template <>
@@ -415,7 +415,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::Blend &el)
   Serialise("", el.LogicEnabled);
   Serialise("", el.WriteMask);
 
-  SIZE_CHECK(40);
+  SIZE_CHECK(32);
 }
 
 template <>
@@ -460,7 +460,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::OM &el)
   Serialise("", el.DepthReadOnly);
   Serialise("", el.StencilReadOnly);
 
-  SIZE_CHECK(256);
+  SIZE_CHECK(224);
 }
 
 template <>
@@ -480,7 +480,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::State &el)
   Serialise("", el.m_RS);
   Serialise("", el.m_OM);
 
-  SIZE_CHECK(1600);
+  SIZE_CHECK(1560);
 }
 
 #pragma endregion D3D11 pipeline state
@@ -498,7 +498,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::Layout &el)
   Serialise("", el.PerInstance);
   Serialise("", el.InstanceDataStepRate);
 
-  SIZE_CHECK(64);
+  SIZE_CHECK(48);
 }
 
 template <>
@@ -578,7 +578,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::View &el)
 
   Serialise("", el.MinLODClamp);
 
-  SIZE_CHECK(136);
+  SIZE_CHECK(120);
 }
 
 template <>
@@ -611,7 +611,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::Rasterizer &el)
   Serialise("", el.Viewports);
   Serialise("", el.m_State);
 
-  SIZE_CHECK(88);
+  SIZE_CHECK(80);
 }
 
 template <>
@@ -631,7 +631,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::Blend &el)
   Serialise("", el.LogicEnabled);
   Serialise("", el.WriteMask);
 
-  SIZE_CHECK(40);
+  SIZE_CHECK(32);
 }
 
 template <>
@@ -673,7 +673,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::OM &el)
   Serialise("", el.multiSampleCount);
   Serialise("", el.multiSampleQuality);
 
-  SIZE_CHECK(264);
+  SIZE_CHECK(240);
 }
 
 template <>
@@ -719,7 +719,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::State &el)
 
   Serialise("", el.Resources);
 
-  SIZE_CHECK(1112);
+  SIZE_CHECK(1080);
 }
 
 #pragma endregion D3D12 pipeline state
@@ -735,7 +735,7 @@ void Serialiser::Serialise(const char *name, GLPipe::VertexAttribute &el)
   Serialise("", el.BufferSlot);
   Serialise("", el.RelativeOffset);
 
-  SIZE_CHECK(52);
+  SIZE_CHECK(32);
 }
 
 template <>
@@ -807,7 +807,7 @@ void Serialiser::Serialise(const char *name, GLPipe::ImageLoadStore &el)
   Serialise("", el.writeAllowed);
   Serialise("", el.Format);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(32);
 }
 
 template <>
@@ -817,7 +817,7 @@ void Serialiser::Serialise(const char *name, GLPipe::Rasterizer &el)
   Serialise("", el.Scissors);
   Serialise("", el.m_State);
 
-  SIZE_CHECK(120);
+  SIZE_CHECK(104);
 }
 
 template <>
@@ -872,7 +872,7 @@ void Serialiser::Serialise(const char *name, GLPipe::Blend &el)
   Serialise("", el.m_AlphaBlend.Destination);
   Serialise("", el.m_AlphaBlend.Operation);
 
-  SIZE_CHECK(36);
+  SIZE_CHECK(32);
 }
 
 template <>
@@ -951,7 +951,7 @@ void Serialiser::Serialise(const char *name, GLPipe::State &el)
 
   Serialise("", el.m_Hints);
 
-  SIZE_CHECK(1880);
+  SIZE_CHECK(1832);
 }
 
 #pragma endregion OpenGL pipeline state
@@ -991,7 +991,7 @@ void Serialiser::Serialise(const char *name, VKPipe::BindingElement &el)
   SerialisePODArray<4>("", el.BorderColor);
   Serialise("", el.unnormalized);
 
-  SIZE_CHECK(200);
+  SIZE_CHECK(176);
 };
 
 template <>
@@ -1036,7 +1036,7 @@ void Serialiser::Serialise(const char *name, VKPipe::VertexAttribute &el)
   Serialise("", el.format);
   Serialise("", el.byteoffset);
 
-  SIZE_CHECK(36);
+  SIZE_CHECK(20);
 }
 
 template <>
@@ -1115,7 +1115,7 @@ void Serialiser::Serialise(const char *name, VKPipe::ColorBlend &el)
 
   SerialisePODArray<4>("", el.blendConst);
 
-  SIZE_CHECK(48);
+  SIZE_CHECK(40);
 }
 
 template <>
@@ -1132,7 +1132,7 @@ void Serialiser::Serialise(const char *name, VKPipe::Attachment &el)
   Serialise("", el.numMip);
   Serialise("", el.numLayer);
 
-  SIZE_CHECK(72);
+  SIZE_CHECK(56);
 }
 
 template <>
@@ -1164,7 +1164,7 @@ void Serialiser::Serialise(const char *name, VKPipe::DepthStencil &el)
   Serialise("", el.minDepthBounds);
   Serialise("", el.maxDepthBounds);
 
-  SIZE_CHECK(84);
+  SIZE_CHECK(76);
 }
 
 template <>
@@ -1235,7 +1235,7 @@ void Serialiser::Serialise(const char *name, VKPipe::State &el)
 
   Serialise("", el.images);
 
-  SIZE_CHECK(1352);
+  SIZE_CHECK(1328);
 }
 
 #pragma endregion Vulkan pipeline state
@@ -1262,7 +1262,7 @@ void Serialiser::Serialise(const char *name, TextureDescription &el)
   Serialise("", el.msSamp);
   Serialise("", el.byteSize);
 
-  SIZE_CHECK(104);
+  SIZE_CHECK(88);
 }
 
 template <>
@@ -1581,7 +1581,7 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
   Serialise("", el.nearPlane);
   Serialise("", el.farPlane);
 
-  SIZE_CHECK(112);
+  SIZE_CHECK(88);
 }
 
 template <>
@@ -1627,7 +1627,7 @@ void Serialiser::Serialise(const char *name, PixelModification &el)
   Serialise("", el.depthTestFailed);
   Serialise("", el.stencilTestFailed);
 
-  SIZE_CHECK(124);
+  SIZE_CHECK(96);
 }
 
 #pragma endregion Data descriptors

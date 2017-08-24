@@ -32,7 +32,7 @@ using std::string;
 using std::wstring;
 
 bool usingKillSignal = false;
-volatile uint32_t killSignal = false;
+volatile bool killSignal = false;
 
 rdctype::array<rdctype::str> convertArgs(const std::vector<std::string> &args)
 {

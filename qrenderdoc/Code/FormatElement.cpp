@@ -770,7 +770,7 @@ ShaderVariable FormatElement::GetShaderVar(const byte *&data, const byte *end) c
   if(format.compType == CompType::Double)
     ret.type = VarType::Double;
 
-  ret.columns = qMin(format.compCount, 4U);
+  ret.columns = qMin(format.compCount, uint8_t(4));
   ret.rows = qMin(matrixdim, 4U);
 
   ret.displayAsHex = hex;

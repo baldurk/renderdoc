@@ -3528,13 +3528,13 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
 
     if(type->type == SPVTypeData::eMatrix)
     {
-      outConst.type.descriptor.rows = type->vectorSize;
-      outConst.type.descriptor.cols = type->matrixSize;
+      outConst.type.descriptor.rows = (uint8_t)type->vectorSize;
+      outConst.type.descriptor.cols = (uint8_t)type->matrixSize;
     }
     else
     {
       outConst.type.descriptor.rows = 1;
-      outConst.type.descriptor.cols = type->vectorSize;
+      outConst.type.descriptor.cols = (uint8_t)type->vectorSize;
     }
 
     outConst.type.descriptor.name = type->GetName();

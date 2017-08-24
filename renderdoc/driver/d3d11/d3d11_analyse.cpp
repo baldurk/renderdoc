@@ -7072,7 +7072,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
       {
         RDCASSERT(fmt.compByteWidth == 1);
 
-        for(uint32_t c = 0; c < RDCMIN(fmt.compCount, 3U); c++)
+        for(uint32_t c = 0; c < RDCMIN(fmt.compCount, uint8_t(3)); c++)
         {
           mod.preMod.col.value_f[c] = ConvertFromSRGB8(mod.preMod.col.value_u[c] & 0xff);
           mod.postMod.col.value_f[c] = ConvertFromSRGB8(mod.postMod.col.value_u[c] & 0xff);

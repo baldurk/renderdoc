@@ -966,7 +966,7 @@ dds_data load_dds_from_file(FILE *f)
     }
 
     ret.format.compByteWidth = 1;
-    ret.format.compCount = header.ddspf.dwRGBBitCount / 8;
+    ret.format.compCount = uint8_t(header.ddspf.dwRGBBitCount / 8);
     ret.format.compType = CompType::UNorm;
     ret.format.type = ResourceFormatType::Regular;
 

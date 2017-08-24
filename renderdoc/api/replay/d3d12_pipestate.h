@@ -57,7 +57,7 @@ if this is the first element.
   uint32_t ByteOffset = 0;
 
   DOCUMENT("``True`` if the vertex data is instance-rate.");
-  bool32 PerInstance = false;
+  bool PerInstance = false;
 
   DOCUMENT(R"(If :data:`PerInstance` is ``True`` then this is how many times each instance data is
 used before advancing to the next instance.
@@ -125,7 +125,7 @@ DOCUMENT("Describes the details of a D3D12 resource view - any one of UAV, SRV, 
 struct View
 {
   DOCUMENT("``True`` if this view is a root parameter (i.e. not in a table).");
-  bool32 Immediate = false;
+  bool Immediate = false;
   DOCUMENT("The index in the original root signature that this descriptor came from.");
   uint32_t RootElement = ~0U;
   DOCUMENT("The index in the the parent descriptor table where this descriptor came from.");
@@ -177,7 +177,7 @@ DOCUMENT("Describes the details of a sampler descriptor.");
 struct Sampler
 {
   DOCUMENT("``True`` if this view is a static sampler (i.e. not in a table).");
-  bool32 Immediate = 0;
+  bool Immediate = 0;
   DOCUMENT("The index in the original root signature that this descriptor came from.");
   uint32_t RootElement = ~0U;
   DOCUMENT("The index in the the parent descriptor table where this descriptor came from.");
@@ -220,7 +220,7 @@ DOCUMENT("Describes the details of a constant buffer view descriptor.");
 struct CBuffer
 {
   DOCUMENT("``True`` if this view is a root constant (i.e. not in a table).");
-  bool32 Immediate = false;
+  bool Immediate = false;
   DOCUMENT("The index in the original root signature that this descriptor came from.");
   uint32_t RootElement = ~0U;
   DOCUMENT("The index in the the parent descriptor table where this descriptor came from.");
@@ -345,7 +345,7 @@ struct RasterizerState
   DOCUMENT(R"(``True`` if counter-clockwise polygons are front-facing.
 ``False`` if clockwise polygons are front-facing.
 )");
-  bool32 FrontCCW = false;
+  bool FrontCCW = false;
   DOCUMENT("The fixed depth bias value to apply to z-values.");
   int32_t DepthBias = 0;
   DOCUMENT(R"(The clamp value for calculated depth bias from :data:`DepthBias` and
@@ -355,19 +355,19 @@ struct RasterizerState
   DOCUMENT("The slope-scaled depth bias value to apply to z-values.");
   float SlopeScaledDepthBias = 0.0f;
   DOCUMENT("``True`` if pixels outside of the near and far depth planes should be clipped.");
-  bool32 DepthClip = false;
+  bool DepthClip = false;
   DOCUMENT("``True`` if the quadrilateral MSAA algorithm should be used on MSAA targets.");
-  bool32 MultisampleEnable = false;
+  bool MultisampleEnable = false;
   DOCUMENT(
       "``True`` if lines should be anti-aliased. Ignored if :data:`MultisampleEnable` is "
       "``False``.");
-  bool32 AntialiasedLineEnable = false;
+  bool AntialiasedLineEnable = false;
   DOCUMENT(R"(A sample count to force rasterization to when UAV rendering or rasterizing, or 0 to
 not force any sample count.
 )");
   uint32_t ForcedSampleCount = 0;
   DOCUMENT("``True`` if a conservative rasterization algorithm should be used.");
-  bool32 ConservativeRasterization = false;
+  bool ConservativeRasterization = false;
 };
 
 DOCUMENT("Describes the rasterization state of the D3D12 pipeline.");
@@ -403,13 +403,13 @@ DOCUMENT("Describes the state of the depth-stencil state in the PSO.");
 struct DepthStencilState
 {
   DOCUMENT("``True`` if depth testing should be performed.");
-  bool32 DepthEnable = false;
+  bool DepthEnable = false;
   DOCUMENT("``True`` if depth values should be written to the depth target.");
-  bool32 DepthWrites = false;
+  bool DepthWrites = false;
   DOCUMENT("The :class:`CompareFunc` to use for testing depth values.");
   CompareFunc DepthFunc = CompareFunc::AlwaysTrue;
   DOCUMENT("``True`` if stencil operations should be performed.");
-  bool32 StencilEnable = false;
+  bool StencilEnable = false;
   DOCUMENT("The mask for reading stencil values.");
   byte StencilReadMask = 0;
   DOCUMENT("The mask for writing stencil values.");
@@ -448,9 +448,9 @@ struct Blend
   LogicOp Logic = LogicOp::NoOp;
 
   DOCUMENT("``True`` if blending is enabled for this target.");
-  bool32 Enabled = false;
+  bool Enabled = false;
   DOCUMENT("``True`` if the logic operation in :data:`Logic` should be used.");
-  bool32 LogicEnabled = false;
+  bool LogicEnabled = false;
   DOCUMENT("The mask for writes to the render target.");
   byte WriteMask = 0;
 };
@@ -459,12 +459,12 @@ DOCUMENT("Describes the blend state in the PSO.");
 struct BlendState
 {
   DOCUMENT("``True`` if alpha-to-coverage should be used when blending to an MSAA target.");
-  bool32 AlphaToCoverage = false;
+  bool AlphaToCoverage = false;
   DOCUMENT(R"(``True`` if independent blending for each target should be used.
 
 ``False`` if the first blend should be applied to all targets.
 )");
-  bool32 IndependentBlend = false;
+  bool IndependentBlend = false;
 
   DOCUMENT("A list of :class:`D3D12_Blend` describing the blend operations for each target.");
   rdctype::array<Blend> Blends;
@@ -487,9 +487,9 @@ struct OM
   DOCUMENT("A :class:`D3D12_View` with details of the bound depth-stencil target.");
   View DepthTarget;
   DOCUMENT("``True`` if depth access to the depth-stencil target is read-only.");
-  bool32 DepthReadOnly = false;
+  bool DepthReadOnly = false;
   DOCUMENT("``True`` if stenncil access to the depth-stencil target is read-only.");
-  bool32 StencilReadOnly = false;
+  bool StencilReadOnly = false;
 
   DOCUMENT("The sample count used for rendering.");
   uint32_t multiSampleCount = 1;
@@ -523,7 +523,7 @@ struct State
   DOCUMENT(R"(``True`` if :data:`name` was assigned by the application, otherwise it's autogenerated
 based on the ID.
 )");
-  bool32 customName = false;
+  bool customName = false;
 
   DOCUMENT("The name of the pipeline state object.");
   rdctype::str name;

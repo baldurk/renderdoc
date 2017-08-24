@@ -42,7 +42,7 @@ struct Command
 };
 
 extern bool usingKillSignal;
-extern volatile uint32_t killSignal;
+extern volatile bool killSignal;
 
 void add_version_line(const std::string &str);
 

@@ -30,7 +30,6 @@
 #include "replay_enums.h"
 
 typedef uint8_t byte;
-typedef uint32_t bool32;
 
 DOCUMENT("A ``float`` 4 component vector.")
 struct FloatVecVal
@@ -180,13 +179,13 @@ struct ShaderVariable
   VarType type;
 
   DOCUMENT("``True`` if the contents of this variable should be displayed as hex.");
-  bool32 displayAsHex;
+  bool displayAsHex;
 
   DOCUMENT("The :class:`contents <ShaderValue>` of this variable if it has no members.");
   ShaderValue value;
 
   DOCUMENT("``True`` if this variable is a structure and not an array or basic type.");
-  bool32 isStruct;
+  bool isStruct;
 
   DOCUMENT("The members of this variable as a list of :class:`ShaderValue`.");
   rdctype::array<ShaderVariable> members;
@@ -268,13 +267,10 @@ struct SigParameter
   rdctype::str varName;
   DOCUMENT("The semantic name of this variable, if the API uses semantic matching for bindings.");
   rdctype::str semanticName;
-  DOCUMENT("The semantic index of this variable - see :data:`semanticName`.");
-  uint32_t semanticIndex;
   DOCUMENT("The combined semantic name and index.");
   rdctype::str semanticIdxName;
-
-  DOCUMENT("A convenience flag - ``True`` if the semantic name is unique and no index is needed.");
-  bool32 needSemanticIndex;
+  DOCUMENT("The semantic index of this variable - see :data:`semanticName`.");
+  uint32_t semanticIndex;
 
   DOCUMENT(R"(The index of the shader register/binding used to store this signature element.
 
@@ -296,6 +292,9 @@ pack signatures together.
 shader itself, for APIs that pack signatures together.
 )");
   uint8_t channelUsedMask;
+
+  DOCUMENT("A convenience flag - ``True`` if the semantic name is unique and no index is needed.");
+  bool needSemanticIndex;
 
   DOCUMENT("The number of components used to store this element. See :data:`compType`.");
   uint32_t compCount;
@@ -319,13 +318,13 @@ struct ShaderVariableDescriptor
   DOCUMENT("The :class:`VarType` that this basic constant stores.");
   VarType type;
   DOCUMENT("The number of rows in this matrix.");
-  uint32_t rows;
+  uint8_t rows;
   DOCUMENT("The number of columns in this matrix.");
-  uint32_t cols;
+  uint8_t cols;
+  DOCUMENT("``True`` if the matrix is stored as row major instead of column major.");
+  bool rowMajorStorage;
   DOCUMENT("The number of elements in the array, or 1 if it's not an array.");
   uint32_t elements;
-  DOCUMENT("``True`` if the matrix is stored as row major instead of column major.");
-  bool32 rowMajorStorage;
   DOCUMENT("The number of bytes between the start of one element in the array and the next.");
   uint32_t arrayStride;
   DOCUMENT("The name of the type of this constant, e.g. a ``struct`` name.");
@@ -385,17 +384,17 @@ struct ConstantBlock
   rdctype::str name;
   DOCUMENT("The constants contained within this block as a list of :class:`ShaderConstant`.");
   rdctype::array<ShaderConstant> variables;
-  DOCUMENT(R"(``True`` if the contents are stored in a buffer of memory. If not then they are set by
-some other API-specific method, such as direct function calls or they may be compile-time
-specialisation constants.
-)");
-  bool32 bufferBacked;
   DOCUMENT(R"(The bindpoint for this block. This is an index in the
 :data:`ShaderBindpointMapping.ConstantBlocks` list.
 )");
   int32_t bindPoint;
   DOCUMENT("The total number of bytes consumed by all of the constants contained in this block.");
   uint32_t byteSize;
+  DOCUMENT(R"(``True`` if the contents are stored in a buffer of memory. If not then they are set by
+some other API-specific method, such as direct function calls or they may be compile-time
+specialisation constants.
+)");
+  bool bufferBacked;
 };
 
 DECLARE_REFLECTION_STRUCT(ConstantBlock);
@@ -407,23 +406,6 @@ directly by means of the API resource binding system.
 )");
 struct ShaderResource
 {
-  DOCUMENT(R"(``True`` if this resource is a sampler.
-
-If the API has no concept of separate samplers, this will always be ``False``.
-
-.. note:: this is not exclusive with the other flags in the case of e.g. combined sampler/texture
-  objects.
-)");
-  bool32 IsSampler;
-  DOCUMENT(R"(``True`` if this resource is a texture, otherwise it is a buffer or sampler (see
-:data:`IsSampler`).
-)");
-  bool32 IsTexture;
-  DOCUMENT(R"(``True`` if this resource is available to the shader for reading only, otherwise it is
-able to be read from and written to arbitrarily.
-)");
-  bool32 IsReadOnly;
-
   DOCUMENT("The :class:`TextureDim` that describes the type of this resource.");
   TextureDim resType;
 
@@ -438,6 +420,23 @@ able to be read from and written to arbitrarily.
 :data:`ShaderBindpointMapping.ReadWriteResources` list as appropriate (see :data:`IsReadOnly`).
 )");
   int32_t bindPoint;
+
+  DOCUMENT(R"(``True`` if this resource is a sampler.
+
+If the API has no concept of separate samplers, this will always be ``False``.
+
+.. note:: this is not exclusive with the other flags in the case of e.g. combined sampler/texture
+  objects.
+)");
+  bool IsSampler;
+  DOCUMENT(R"(``True`` if this resource is a texture, otherwise it is a buffer or sampler (see
+:data:`IsSampler`).
+)");
+  bool IsTexture;
+  DOCUMENT(R"(``True`` if this resource is available to the shader for reading only, otherwise it is
+able to be read from and written to arbitrarily.
+)");
+  bool IsReadOnly;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderResource);
@@ -539,11 +538,11 @@ struct BindpointMap
   int32_t bindset;
   DOCUMENT("The binding index.");
   int32_t bind;
-  DOCUMENT(
-      "``True`` if the shader actually uses this resource, otherwise it's declared but unused.");
-  bool32 used;
   DOCUMENT("If this is an arrayed binding, the number of elements in the array.");
   uint32_t arraySize;
+  DOCUMENT(
+      "``True`` if the shader actually uses this resource, otherwise it's declared but unused.");
+  bool used;
 };
 
 DECLARE_REFLECTION_STRUCT(BindpointMap);

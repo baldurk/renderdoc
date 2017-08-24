@@ -1378,6 +1378,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       ret.type = ResourceFormatType::R10G10B10A2;
       ret.compType = fmt == eGL_RGB10_A2 ? CompType::UNorm : CompType::UInt;
       break;
+    default: break;
   }
 
   if(ret.Special())
@@ -1414,10 +1415,10 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
 
     if(data[0] == data[1] && data[1] == data[2] && data[2] == data[3])
     {
-      ret.compByteWidth = (uint32_t)(data[0] / 8);
+      ret.compByteWidth = (uint8_t)(data[0] / 8);
 
       // wasn't a byte format (8, 16, 32)
-      if(ret.compByteWidth * 8 != (uint32_t)data[0])
+      if(int32_t(ret.compByteWidth) * 8 != data[0])
       {
         ret.type = ResourceFormatType::Undefined;
         RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr::Get(fmt).c_str());

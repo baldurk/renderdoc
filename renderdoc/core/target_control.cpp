@@ -672,7 +672,7 @@ private:
 };
 
 extern "C" RENDERDOC_API ITargetControl *RENDERDOC_CC RENDERDOC_CreateTargetControl(
-    const char *host, uint32_t ident, const char *clientName, bool32 forceConnection)
+    const char *host, uint32_t ident, const char *clientName, bool forceConnection)
 {
   string s = "localhost";
   if(host != NULL && host[0] != '\0')

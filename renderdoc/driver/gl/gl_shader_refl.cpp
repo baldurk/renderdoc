@@ -39,7 +39,7 @@ struct DynShaderVariableType
     uint32_t rows;
     uint32_t cols;
     uint32_t elements;
-    bool32 rowMajorStorage;
+    bool rowMajorStorage;
     uint32_t arrayStride;
     string name;
   } descriptor;
@@ -96,8 +96,8 @@ void copy(rdctype::array<ShaderConstant> &outvars, const vector<DynShaderConstan
     outvars[i].reg.comp = invars[i].reg.comp;
     outvars[i].defaultValue = 0;
     outvars[i].type.descriptor.type = invars[i].type.descriptor.type;
-    outvars[i].type.descriptor.rows = invars[i].type.descriptor.rows;
-    outvars[i].type.descriptor.cols = invars[i].type.descriptor.cols;
+    outvars[i].type.descriptor.rows = (uint8_t)invars[i].type.descriptor.rows;
+    outvars[i].type.descriptor.cols = (uint8_t)invars[i].type.descriptor.cols;
     outvars[i].type.descriptor.elements = invars[i].type.descriptor.elements;
     outvars[i].type.descriptor.rowMajorStorage = invars[i].type.descriptor.rowMajorStorage;
     outvars[i].type.descriptor.arrayStride = invars[i].type.descriptor.arrayStride;

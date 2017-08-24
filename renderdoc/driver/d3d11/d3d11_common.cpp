@@ -740,8 +740,8 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type,
     case DXBC::VARTYPE_MIN16FLOAT:
     default: ret.descriptor.type = VarType::Float; break;
   }
-  ret.descriptor.rows = type.descriptor.rows;
-  ret.descriptor.cols = type.descriptor.cols;
+  ret.descriptor.rows = (uint8_t)type.descriptor.rows;
+  ret.descriptor.cols = (uint8_t)type.descriptor.cols;
   ret.descriptor.elements = type.descriptor.elements;
   ret.descriptor.name = type.descriptor.name;
   ret.descriptor.rowMajorStorage = (type.descriptor.varClass == DXBC::CLASS_MATRIX_ROWS);
@@ -978,7 +978,7 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
        r.retType != DXBC::ShaderInputBind::RETTYPE_CONTINUED)
     {
       res.variableType.descriptor.rows = 1;
-      res.variableType.descriptor.cols = r.numSamples;
+      res.variableType.descriptor.cols = (uint8_t)r.numSamples;
       res.variableType.descriptor.elements = 1;
 
       string name;

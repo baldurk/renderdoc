@@ -2022,7 +2022,7 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
       if(desc.rows > 1 && desc.cols > 1)
         format += QFormatStr("%1x%2").arg(desc.rows).arg(desc.cols);
       else if(desc.cols > 1)
-        format += desc.cols;
+        format += QString::number(desc.cols);
 
       if(!desc.name.empty())
         format += lit(" ") + desc.name;

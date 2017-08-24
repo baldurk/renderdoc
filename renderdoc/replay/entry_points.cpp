@@ -229,7 +229,7 @@ RENDERDOC_InitGlobalEnv(GlobalEnvironment env, const rdctype::array<rdctype::str
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs,
-                                                                             bool32 crashed)
+                                                                             bool crashed)
 {
   if(RenderDoc::Inst().GetCrashHandler() == NULL)
     return;
@@ -295,7 +295,7 @@ RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, IReplayCont
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
                            const rdctype::array<EnvironmentModification> &env, const char *logfile,
-                           const CaptureOptions &opts, bool32 waitForExit)
+                           const CaptureOptions &opts, bool waitForExit)
 {
   return Process::LaunchAndInjectIntoProcess(app, workingDir, cmdLine, env, logfile, opts,
                                              waitForExit != 0);
@@ -306,9 +306,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetDefaultCaptureOptions(Ca
   *opts = CaptureOptions();
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch,
-                                                                       const char *logfile,
-                                                                       const CaptureOptions &opts)
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch,
+                                                                     const char *logfile,
+                                                                     const CaptureOptions &opts)
 {
   return Process::StartGlobalHook(pathmatch, logfile, opts);
 }
@@ -318,26 +318,26 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StopGlobalHook()
   Process::StopGlobalHook();
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_IsGlobalHookActive()
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_IsGlobalHookActive()
 {
   return Process::IsGlobalHookActive();
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_CanGlobalHook()
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_CanGlobalHook()
 {
   return Process::CanGlobalHook();
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RENDERDOC_InjectIntoProcess(uint32_t pid, const rdctype::array<EnvironmentModification> &env,
-                            const char *logfile, const CaptureOptions &opts, bool32 waitForExit)
+                            const char *logfile, const CaptureOptions &opts, bool waitForExit)
 {
   return Process::InjectIntoProcess(pid, env, logfile, opts, waitForExit != 0);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename,
-                                                                    FileType type, uint32_t maxsize,
-                                                                    rdctype::array<byte> *buf)
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename,
+                                                                  FileType type, uint32_t maxsize,
+                                                                  rdctype::array<byte> *buf)
 {
   ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename);
 
@@ -415,9 +415,9 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetDefaultRemoteServerP
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(const char *listenhost,
                                                                         uint32_t port,
-                                                                        volatile bool32 *killReplay)
+                                                                        volatile bool *killReplay)
 {
-  bool32 dummy = false;
+  bool dummy = false;
 
   if(killReplay == NULL)
     killReplay = &dummy;
@@ -520,6 +520,7 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
   {
     switch(fmt.type)
     {
+      case ResourceFormatType::Regular: break;
       case ResourceFormatType::Undefined: return "Undefined";
       case ResourceFormatType::BC1: return fmt.srgbCorrected ? "BC1_SRGB" : "BC1_UNORM";
       case ResourceFormatType::BC2: return fmt.srgbCorrected ? "BC2_SRGB" : "BC2_UNORM";

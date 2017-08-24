@@ -298,7 +298,7 @@ DOCUMENT(R"(Represents the component type of a channel in a texture or element i
 
   A double-precision (64-bit) floating point value.
 )");
-enum class CompType : uint32_t
+enum class CompType : uint8_t
 {
   Typeless = 0,
   Float,
@@ -1116,7 +1116,7 @@ or formats that don't have equal byte-multiple sizes for each channel.
 
   The pixel data is in an opaque YUV format.
 )");
-enum class ResourceFormatType : uint32_t
+enum class ResourceFormatType : uint8_t
 {
   Regular = 0,
   Undefined,

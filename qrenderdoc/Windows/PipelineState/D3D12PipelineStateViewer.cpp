@@ -1807,7 +1807,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
           if(desc.rows > 1 && desc.cols > 1)
             format += QFormatStr("%1x%2").arg(desc.rows).arg(desc.cols);
           else if(desc.cols > 1)
-            format += desc.cols;
+            format += QString::number(desc.cols);
 
           if(!desc.name.empty())
             format += lit(" ") + desc.name;
@@ -1878,7 +1878,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
             if(view.res.BufferFlags & D3DBufferViewFlags::Raw)
               format = lit("xint");
 
-            format += fmt.compCount;
+            format += QString::number(fmt.compCount);
           }
         }
       }

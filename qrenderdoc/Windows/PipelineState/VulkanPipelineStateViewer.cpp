@@ -2051,7 +2051,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
       if(desc.rows > 1 && desc.cols > 1)
         format += QFormatStr("%1x%2").arg(desc.rows).arg(desc.cols);
       else if(desc.cols > 1)
-        format += desc.cols;
+        format += QString::number(desc.cols);
 
       if(desc.name.count > 0)
         format += lit(" ") + desc.name;

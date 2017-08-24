@@ -71,20 +71,20 @@ struct MeshFormat
       ":class:`FloatVector`.");
   FloatVector meshColor;
 
-  DOCUMENT("``True`` if the alpha component of this element should be used.");
-  bool showAlpha;
-
   DOCUMENT("The :class:`Topology` that describes the primitives in this mesh.");
   Topology topo;
   DOCUMENT("The number of vertices in the mesh.");
   uint32_t numVerts;
 
-  DOCUMENT("``True`` if this mesh element contains post-projection positional data.");
-  bool32 unproject;
   DOCUMENT("The near plane for the projection matrix.");
   float nearPlane;
   DOCUMENT("The far plane for the projection matrix.");
   float farPlane;
+  DOCUMENT("``True`` if this mesh element contains post-projection positional data.");
+  bool unproject;
+
+  DOCUMENT("``True`` if the alpha component of this element should be used.");
+  bool showAlpha;
 };
 
 DECLARE_REFLECTION_STRUCT(MeshFormat);
@@ -110,7 +110,7 @@ struct MeshDisplay
   DOCUMENT(
       "``True`` if the projection matrix to use when unprojecting vertex positions is "
       "orthographic.");
-  bool32 ortho;
+  bool ortho;
   DOCUMENT("The field of view to use when calculating a perspective projection matrix.");
   float fov;
   DOCUMENT("The aspect ratio to use when calculating a perspective projection matrix.");
@@ -118,13 +118,13 @@ struct MeshDisplay
 
   DOCUMENT(
       "``True`` if all previous instances in the drawcall should be drawn as secondary meshes.");
-  bool32 showPrevInstances;
+  bool showPrevInstances;
   DOCUMENT("``True`` if all instances in the drawcall should be drawn as secondary meshes.");
-  bool32 showAllInstances;
+  bool showAllInstances;
   DOCUMENT(
       "``True`` if all draws in the current pass up to the current draw should be drawn as "
       "secondary meshes.");
-  bool32 showWholePass;
+  bool showWholePass;
   DOCUMENT("The index of the currently selected instance in the drawcall.");
   uint32_t curInstance;
 
@@ -141,12 +141,12 @@ struct MeshDisplay
   DOCUMENT("The maximum co-ordinates in each axis of the mesh bounding box.");
   FloatVector maxBounds;
   DOCUMENT("``True`` if the bounding box around the mesh should be rendered.");
-  bool32 showBBox;
+  bool showBBox;
 
   DOCUMENT("The :class:`solid shading mode <SolidShade>` to use when rendering the current mesh.");
   SolidShade solidShadeMode;
   DOCUMENT("``True`` if the wireframe of the mesh should be rendered as well as solid shading.");
-  bool32 wireframeDraw;
+  bool wireframeDraw;
 
   static const uint32_t NoHighlight = ~0U;
 };
@@ -186,19 +186,19 @@ struct TextureDisplay
 
 If only one channel is selected, it will be rendered in grayscale
 )");
-  bool32 Red;
+  bool Red;
 
   DOCUMENT(R"(``True`` if the green channel should be visible.
 
 If only one channel is selected, it will be rendered in grayscale
 )");
-  bool32 Green;
+  bool Green;
 
   DOCUMENT(R"(``True`` if the blue channel should be visible.
 
 If only one channel is selected, it will be rendered in grayscale
 )");
-  bool32 Blue;
+  bool Blue;
 
   DOCUMENT(R"(``True`` if the alpha channel should be visible. If enabled with any of RGB, the
 texture will be blended to a checkerboard of :data:`lightBackgroundColor` and
@@ -206,10 +206,10 @@ texture will be blended to a checkerboard of :data:`lightBackgroundColor` and
 
 If only one channel is selected, it will be rendered in grayscale
 )");
-  bool32 Alpha;
+  bool Alpha;
 
   DOCUMENT("``True`` if the texture should be flipped vertically when rendering.");
-  bool32 FlipY;
+  bool FlipY;
 
   DOCUMENT("If ``>= 0.0`` the RGBA values will be viewed as HDRM with this as the multiplier.");
   float HDRMul;
@@ -218,7 +218,7 @@ If only one channel is selected, it will be rendered in grayscale
 
 See :ref:`the FAQ entry <gamma-linear-display>`.
 )");
-  bool32 linearDisplayAsGamma;
+  bool linearDisplayAsGamma;
 
   DOCUMENT(R"(The :class:`ResourceId` of a custom shader to use when rendering.
 
@@ -244,7 +244,7 @@ samples.
 This is primarily useful when rendering to a floating point target for retrieving pixel data from
 the input texture in cases where it isn't easy to directly fetch the input texture data.
 )");
-  bool32 rawoutput;
+  bool rawoutput;
 
   DOCUMENT("The offset to pan in the X axis.");
   float offx;
@@ -292,7 +292,7 @@ in-place, so it would be slice 0: sample 0, slice 0: sample 1, slice 1: sample 0
 This then follows the mapping for array slices as with any other array texture. :data:`sampleIndex`
 is ignored.
 )");
-  bool32 mapToArray;
+  bool mapToArray;
 
   DOCUMENT(R"(
 If :data:`mapToArray` is ``False`` this selects which sample should be extracted to treat as a
@@ -326,7 +326,7 @@ that don't support slices natively, and will be done in RGBA8.
 If ``True``, write out the slices as a 2D grid with the width given in :data:`sliceGridWidth`. Any
 empty slices in the grid are written as transparent black.
 )");
-  bool32 slicesAsGrid;
+  bool slicesAsGrid;
 
   DOCUMENT("The width of a grid if :data:`slicesAsGrid` is ``True``.");
   int32_t sliceGridWidth;
@@ -346,7 +346,7 @@ empty slices in the grid are written as transparent black.
 
 With the gaps filled in with transparent black.
 )");
-  bool32 cubeCruciform;
+  bool cubeCruciform;
 };
 
 DECLARE_REFLECTION_STRUCT(TextureSliceMapping);
@@ -424,7 +424,7 @@ struct NewCaptureData
   DOCUMENT("The local path on the target system where the capture is saved.");
   rdctype::str path;
   DOCUMENT("``True`` if the target is running on the local system.");
-  bool32 local;
+  bool local;
 };
 
 DECLARE_REFLECTION_STRUCT(NewCaptureData);

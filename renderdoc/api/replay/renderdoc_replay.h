@@ -39,7 +39,6 @@ inline const char *TypeName();
   }
 
 typedef uint8_t byte;
-typedef uint32_t bool32;
 
 // Guidelines for documentation:
 //
@@ -1356,7 +1355,7 @@ This function will block until the control connection is ready, or an error occu
 :rtype: TargetControl
 )");
 extern "C" RENDERDOC_API ITargetControl *RENDERDOC_CC RENDERDOC_CreateTargetControl(
-    const char *host, uint32_t ident, const char *clientName, bool32 forceConnection);
+    const char *host, uint32_t ident, const char *clientName, bool forceConnection);
 
 DOCUMENT(R"(Repeatedly query to enumerate which targets are active on a given machine and their
 idents.
@@ -1413,7 +1412,7 @@ This function will block until a remote connection tells the server to shut down
 )");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(const char *listenhost,
                                                                         uint32_t port,
-                                                                        volatile bool32 *killReplay);
+                                                                        volatile bool *killReplay);
 
 //////////////////////////////////////////////////////////////////////////
 // Injection/execution capture functions.
@@ -1443,9 +1442,9 @@ This function must be called when the process is running with administrator/supe
   with :ref:`StopGlobalHook` before the application is closed.
 :rtype: ``bool``
 )");
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch,
-                                                                       const char *logfile,
-                                                                       const CaptureOptions &opts);
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch,
+                                                                     const char *logfile,
+                                                                     const CaptureOptions &opts);
 
 DOCUMENT(R"(Stop the global hook that was activated by :ref:`StartGlobalHook`.
 
@@ -1461,14 +1460,14 @@ This function can only be called if global hooking is supported (see :ref:`CanGl
 :return: ``True`` if the hook is active, or ``False`` if the hook is inactive.
 :rtype: ``bool``
 )");
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_IsGlobalHookActive();
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_IsGlobalHookActive();
 
 DOCUMENT(R"(Determines if the global hook is supported on the current platform and configuration.
 
 :return: ``True`` if global hooking can be used on the platform, ``False`` if not.
 :rtype: ``bool``
 )");
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_CanGlobalHook();
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_CanGlobalHook();
 
 DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 
@@ -1487,7 +1486,7 @@ DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
                            const rdctype::array<EnvironmentModification> &env, const char *logfile,
-                           const CaptureOptions &opts, bool32 waitForExit);
+                           const CaptureOptions &opts, bool waitForExit);
 
 DOCUMENT(R"(Where supported by operating system and permissions, inject into a running process.
 
@@ -1501,7 +1500,7 @@ DOCUMENT(R"(Where supported by operating system and permissions, inject into a r
 )");
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RENDERDOC_InjectIntoProcess(uint32_t pid, const rdctype::array<EnvironmentModification> &env,
-                            const char *logfile, const CaptureOptions &opts, bool32 waitForExit);
+                            const char *logfile, const CaptureOptions &opts, bool waitForExit);
 
 DOCUMENT(R"(When debugging RenderDoc it can be useful to capture itself by doing a side-build with a
 temporary name. This function wraps up the use of the in-application API to start a capture.
@@ -1539,7 +1538,7 @@ RENDERDOC_InitGlobalEnv(GlobalEnvironment env, const rdctype::array<rdctype::str
 
 DOCUMENT("Internal function for triggering exception handler.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs,
-                                                                             bool32 crashed);
+                                                                             bool crashed);
 
 DOCUMENT(R"(Sets the location for the diagnostic log output, shared by captured programs and the
 analysis program.
