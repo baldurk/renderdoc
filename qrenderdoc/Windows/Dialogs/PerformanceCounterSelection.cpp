@@ -87,6 +87,19 @@ QString ToString(CounterFamily family)
 const int PerformanceCounterSelection::CounterDescriptionRole = Qt::UserRole + 1;
 const int PerformanceCounterSelection::CounterIdRole = Qt::UserRole + 2;
 
+void PerformanceCounterSelection::expandToNode(QTreeWidgetItem *node)
+{
+  QTreeWidgetItem *n = node;
+  while(node != NULL)
+  {
+    ui->counterTree->expandItem(node);
+    node = node->parent();
+  }
+
+  if(n)
+    ui->counterTree->scrollToItem(n);
+}
+
 PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx,
                                                          const QList<GPUCounter> &selectedCounters,
                                                          QWidget *parent)
@@ -120,6 +133,7 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx,
         // Add
         QListWidgetItem *listItem = new QListWidgetItem(ui->enabledCounters);
         listItem->setText(item->text(0));
+        listItem->setData(CounterIdRole, d);
         m_SelectedCounters.insert((GPUCounter)d.toUInt(), listItem);
       }
       else
@@ -200,6 +214,8 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
     counterItem->setData(0, CounterDescriptionRole, desc.description);
     counterItem->setData(0, CounterIdRole, (uint32_t)desc.counterID);
     counterItem->setCheckState(0, Qt::Unchecked);
+
+    m_CounterToTreeItem[desc.counterID] = counterItem;
   }
 }
 
@@ -309,5 +325,26 @@ void PerformanceCounterSelection::Load()
   {
     RDDialog::critical(this, tr("Error loading config"),
                        tr("Couldn't open path %1 for reading.").arg(filename));
+  }
+}
+
+void PerformanceCounterSelection::on_enabledCounters_activated(const QModelIndex &index)
+{
+  QListWidgetItem *item = ui->enabledCounters->item(index.row());
+
+  if(!item)
+    return;
+
+  QVariant counterID = item->data(CounterIdRole);
+
+  // locate the item in the description tree
+  auto it = m_CounterToTreeItem.find((GPUCounter)counterID.toUInt());
+
+  if(it != m_CounterToTreeItem.end())
+  {
+    ui->counterTree->setCurrentItem(it.value());
+    it.value()->setSelected(true);
+
+    expandToNode(it.value());
   }
 }
