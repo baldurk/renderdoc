@@ -230,7 +230,7 @@ public:
     return QVariant();
   }
 
-  bool setData(const QModelIndex &index, const QVariant &value, int role)
+  bool setData(const QModelIndex &index, const QVariant &value, int role) override
   {
     RDTreeWidgetItem *item = itemForIndex(index);
 
