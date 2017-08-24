@@ -73,6 +73,9 @@
    </item>
    <item>
     <widget class="QTableWidget" name="counterResults">
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
      <attribute name="verticalHeaderVisible">
       <bool>false</bool>
      </attribute>

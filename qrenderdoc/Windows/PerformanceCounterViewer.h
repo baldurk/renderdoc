@@ -47,6 +47,10 @@ public:
   void OnLogfileClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override {}
+private slots:
+  // automatic slots
+  void on_counterResults_doubleClicked(const QModelIndex &index);
+
 private:
   Ui::PerformanceCounterViewer *ui;
   ICaptureContext &m_Ctx;

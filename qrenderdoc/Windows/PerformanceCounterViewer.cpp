@@ -142,6 +142,8 @@ void PerformanceCounterViewer::CaptureCounters()
         ui->counterResults->setItem(row, counterIndex[results[i].counterID] + 1,
                                     new QTableWidgetItem(FormatCounterResult(
                                         results[i], counterDescriptions[results[i].counterID])));
+
+        ui->counterResults->item(row, 0)->setData(Qt::UserRole, results[i].eventID);
       }
 
       ui->counterResults->resizeColumnsToContents();
@@ -169,4 +171,18 @@ void PerformanceCounterViewer::OnLogfileClosed()
 void PerformanceCounterViewer::OnLogfileLoaded()
 {
   ui->captureCounters->setEnabled(true);
+}
+
+void PerformanceCounterViewer::on_counterResults_doubleClicked(const QModelIndex &index)
+{
+  QTableWidgetItem *item = ui->counterResults->item(index.row(), 0);
+
+  if(item)
+  {
+    bool ok = false;
+    uint32_t eid = item->data(Qt::UserRole).toUInt(&ok);
+
+    if(ok)
+      m_Ctx.SetEventID({}, eid, eid);
+  }
 }
