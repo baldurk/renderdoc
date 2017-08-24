@@ -32,6 +32,8 @@ class RDTableWidget : public QTableWidget
 public:
   explicit RDTableWidget(QWidget *parent = 0);
 
+  bool customCopyPasteHandler() { return m_customCopyPaste; }
+  void setCustomCopyPasteHandler(bool custom) { m_customCopyPaste = custom; }
 signals:
   void keyPress(QKeyEvent *e);
 
@@ -39,4 +41,6 @@ private:
   // implement reordering row drag-drop behaviour
   void dropEvent(QDropEvent *event) override;
   void keyPressEvent(QKeyEvent *e) override;
+
+  bool m_customCopyPaste = false;
 };

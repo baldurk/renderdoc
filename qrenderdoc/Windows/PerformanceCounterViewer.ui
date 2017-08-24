@@ -72,9 +72,12 @@
     </layout>
    </item>
    <item>
-    <widget class="QTableWidget" name="counterResults">
+    <widget class="RDTableWidget" name="counterResults">
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectRows</enum>
      </property>
      <attribute name="verticalHeaderVisible">
       <bool>false</bool>
@@ -83,6 +86,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>RDTableWidget</class>
+   <extends>QTableWidget</extends>
+   <header>Widgets/Extended/RDTableWidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

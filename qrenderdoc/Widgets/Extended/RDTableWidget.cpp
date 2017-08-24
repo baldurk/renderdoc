@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include "RDTableWidget.h"
+#include <QApplication>
+#include <QClipboard>
 #include <QDropEvent>
 
 RDTableWidget::RDTableWidget(QWidget *parent) : QTableWidget(parent)
@@ -81,6 +83,36 @@ void RDTableWidget::dropEvent(QDropEvent *event)
 
 void RDTableWidget::keyPressEvent(QKeyEvent *e)
 {
-  QTableView::keyPressEvent(e);
+  if(!m_customCopyPaste && e->matches(QKeySequence::Copy))
+  {
+    QList<QTableWidgetItem *> items = selectedItems();
+
+    std::sort(items.begin(), items.end(), [this](QTableWidgetItem *a, QTableWidgetItem *b) {
+      if(row(a) != row(b))
+        return row(a) < row(b);
+      return column(a) < column(b);
+    });
+
+    int prevRow = row(items[0]);
+
+    QString clipboardText;
+    for(QTableWidgetItem *i : items)
+    {
+      clipboardText += i->text();
+
+      if(prevRow != row(i))
+        clipboardText += lit("\n");
+      else
+        clipboardText += lit(" | ");
+    }
+
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setText(clipboardText.trimmed());
+  }
+  else
+  {
+    QTableView::keyPressEvent(e);
+  }
+
   emit(keyPress(e));
 }
