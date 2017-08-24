@@ -1253,6 +1253,30 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
 
     return;
   }
+  else if(element == QStyle::PE_IndicatorViewItemCheck)
+  {
+    QRect rect = opt->rect;
+
+    QPen outlinePen(outlineBrush(opt->palette), 1.0);
+
+    p->save();
+    p->setRenderHint(QPainter::Antialiasing);
+
+    QPainterPath path;
+    path.addRoundedRect(rect, 1.0, 1.0);
+
+    p->setPen(outlinePen);
+    p->drawPath(path.translated(QPointF(0.5, 0.5)));
+
+    rect = rect.adjusted(2, 2, -1, -1);
+
+    if(opt->state & State_On)
+      p->fillRect(rect, opt->palette.brush(QPalette::ButtonText));
+
+    p->restore();
+
+    return;
+  }
 
   RDTweakedNativeStyle::drawPrimitive(element, opt, p, widget);
 }
