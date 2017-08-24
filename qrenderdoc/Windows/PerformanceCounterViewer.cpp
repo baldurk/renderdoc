@@ -77,10 +77,15 @@ PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget
 
   connect(ui->captureCounters, &QToolButton::pressed, this,
           &PerformanceCounterViewer::CaptureCounters);
+
+  ui->captureCounters->setEnabled(m_Ctx.LogLoaded());
 }
 
 void PerformanceCounterViewer::CaptureCounters()
 {
+  if(!m_Ctx.LogLoaded())
+    return;
+
   PerformanceCounterSelection pcs(m_Ctx, this);
   if(RDDialog::show(&pcs) != QDialog::Accepted)
     return;
@@ -156,8 +161,10 @@ PerformanceCounterViewer::~PerformanceCounterViewer()
 
 void PerformanceCounterViewer::OnLogfileClosed()
 {
+  ui->captureCounters->setEnabled(false);
 }
 
 void PerformanceCounterViewer::OnLogfileLoaded()
 {
+  ui->captureCounters->setEnabled(true);
 }
