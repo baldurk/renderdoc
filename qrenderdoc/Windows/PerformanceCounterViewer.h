@@ -52,6 +52,8 @@ private slots:
   void on_counterResults_doubleClicked(const QModelIndex &index);
 
 private:
+  QString FormatCounterResult(const CounterResult &result, const CounterDescription &description);
+
   Ui::PerformanceCounterViewer *ui;
   ICaptureContext &m_Ctx;
   void CaptureCounters();

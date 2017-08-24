@@ -26,15 +26,51 @@
 #include "Windows/Dialogs/PerformanceCounterSelection.h"
 #include "ui_PerformanceCounterViewer.h"
 
-static QString FormatCounterResult(const CounterResult &result, const CounterDescription &description)
+PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget *parent)
+    : QFrame(parent), ui(new Ui::PerformanceCounterViewer), m_Ctx(ctx)
+{
+  ui->setupUi(this);
+
+  m_Ctx.AddLogViewer(this);
+
+  connect(ui->captureCounters, &QToolButton::pressed, this,
+          &PerformanceCounterViewer::CaptureCounters);
+
+  ui->captureCounters->setEnabled(m_Ctx.LogLoaded());
+}
+
+PerformanceCounterViewer::~PerformanceCounterViewer()
+{
+  m_Ctx.BuiltinWindowClosed(this);
+
+  m_Ctx.RemoveLogViewer(this);
+  delete ui;
+}
+
+QString PerformanceCounterViewer::FormatCounterResult(const CounterResult &result,
+                                                      const CounterDescription &description)
 {
   QString returnValue;
 
+  double mul = 1.0;
+
+  TimeUnit timeunit = m_Ctx.Config().EventBrowser_TimeUnit;
+
+  if(description.unit == CounterUnit::Seconds)
+  {
+    if(timeunit == TimeUnit::Milliseconds)
+      mul *= 1000.0;
+    else if(timeunit == TimeUnit::Microseconds)
+      mul *= 1000000.0;
+    else if(timeunit == TimeUnit::Nanoseconds)
+      mul *= 1000000000.0;
+  }
+
   switch(description.resultType)
   {
-    case CompType::Float: returnValue += QString::number(result.value.f); break;
+    case CompType::Float: returnValue += QString::number(mul * result.value.f); break;
 
-    case CompType::Double: returnValue += QString::number(result.value.d); break;
+    case CompType::Double: returnValue += QString::number(mul * result.value.d); break;
 
     case CompType::UInt:
       if(description.resultByteWidth == 8)
@@ -59,26 +95,13 @@ static QString FormatCounterResult(const CounterResult &result, const CounterDes
 
     case CounterUnit::Percentage: returnValue += lit(" %"); break;
 
-    case CounterUnit::Seconds: returnValue += lit(" s"); break;
+    case CounterUnit::Seconds: returnValue += lit(" ") + UnitSuffix(timeunit); break;
 
     case CounterUnit::Absolute:
     case CounterUnit::Ratio: break;
   }
 
   return returnValue;
-}
-
-PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget *parent)
-    : QFrame(parent), ui(new Ui::PerformanceCounterViewer), m_Ctx(ctx)
-{
-  ui->setupUi(this);
-
-  m_Ctx.AddLogViewer(this);
-
-  connect(ui->captureCounters, &QToolButton::pressed, this,
-          &PerformanceCounterViewer::CaptureCounters);
-
-  ui->captureCounters->setEnabled(m_Ctx.LogLoaded());
 }
 
 void PerformanceCounterViewer::CaptureCounters()
@@ -153,14 +176,6 @@ void PerformanceCounterViewer::CaptureCounters()
   });
 
   ShowProgressDialog(this, tr("Capturing counters"), [&done]() -> bool { return done; });
-}
-
-PerformanceCounterViewer::~PerformanceCounterViewer()
-{
-  m_Ctx.BuiltinWindowClosed(this);
-
-  m_Ctx.RemoveLogViewer(this);
-  delete ui;
 }
 
 void PerformanceCounterViewer::OnLogfileClosed()
