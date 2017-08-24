@@ -8701,8 +8701,7 @@ MeshFormat VulkanDebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instI
   ret.fmt.compCount = 4;
   ret.fmt.compByteWidth = 4;
   ret.fmt.compType = CompType::Float;
-  ret.fmt.special = false;
-  ret.fmt.specialFormat = SpecialFormat::Unknown;
+  ret.fmt.type = ResourceFormatType::Regular;
   ret.fmt.bgraOrder = false;
 
   ret.showAlpha = false;

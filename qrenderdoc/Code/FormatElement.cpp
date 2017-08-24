@@ -334,24 +334,21 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
         fmt.compType = CompType::UInt;
         fmt.compCount = 4 * count;
         fmt.compByteWidth = 1;
-        fmt.special = true;
-        fmt.specialFormat = SpecialFormat::R10G10B10A2;
+        fmt.type = ResourceFormatType::R10G10B10A2;
       }
       else if(basetype == lit("unormten"))
       {
         fmt.compType = CompType::UInt;
         fmt.compCount = 4 * count;
         fmt.compByteWidth = 1;
-        fmt.special = true;
-        fmt.specialFormat = SpecialFormat::R10G10B10A2;
+        fmt.type = ResourceFormatType::R10G10B10A2;
       }
       else if(basetype == lit("floateleven"))
       {
         fmt.compType = CompType::Float;
         fmt.compCount = 3 * count;
         fmt.compByteWidth = 1;
-        fmt.special = true;
-        fmt.specialFormat = SpecialFormat::R11G11B10;
+        fmt.type = ResourceFormatType::R11G11B10;
       }
       else
       {
@@ -467,7 +464,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
 
   bool ok = true;
 
-  if(format.special && format.specialFormat == SpecialFormat::R5G5B5A1)
+  if(format.type == ResourceFormatType::R5G5B5A1)
   {
     uint16_t packed = readObj<uint16_t>(data, end, ok);
 
@@ -483,7 +480,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
       ret[0] = tmp;
     }
   }
-  else if(format.special && format.specialFormat == SpecialFormat::R5G6B5)
+  else if(format.type == ResourceFormatType::R5G6B5)
   {
     uint16_t packed = readObj<uint16_t>(data, end, ok);
 
@@ -498,7 +495,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
       ret[0] = tmp;
     }
   }
-  else if(format.special && format.specialFormat == SpecialFormat::R4G4B4A4)
+  else if(format.type == ResourceFormatType::R4G4B4A4)
   {
     uint16_t packed = readObj<uint16_t>(data, end, ok);
 
@@ -514,7 +511,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
       ret[0] = tmp;
     }
   }
-  else if(format.special && format.specialFormat == SpecialFormat::R10G10B10A2)
+  else if(format.type == ResourceFormatType::R10G10B10A2)
   {
     // allow for vectors of this format - for raw buffer viewer
     for(int i = 0; i < int(format.compCount / 4); i++)
@@ -597,7 +594,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
       }
     }
   }
-  else if(format.special && format.specialFormat == SpecialFormat::R11G11B10)
+  else if(format.type == ResourceFormatType::R11G11B10)
   {
     uint32_t packed = readObj<uint32_t>(data, end, ok);
 
@@ -813,17 +810,12 @@ uint32_t FormatElement::byteSize() const
 {
   uint32_t vecSize = format.compByteWidth * format.compCount;
 
-  if(format.special)
-  {
-    if(format.specialFormat == SpecialFormat::R5G5B5A1 ||
-       format.specialFormat == SpecialFormat::R5G6B5 ||
-       format.specialFormat == SpecialFormat::R4G4B4A4)
-      vecSize = 2;
+  if(format.type == ResourceFormatType::R5G5B5A1 || format.type == ResourceFormatType::R5G6B5 ||
+     format.type == ResourceFormatType::R4G4B4A4)
+    vecSize = 2;
 
-    if(format.specialFormat == SpecialFormat::R10G10B10A2 ||
-       format.specialFormat == SpecialFormat::R11G11B10)
-      vecSize = 4;
-  }
+  if(format.type == ResourceFormatType::R10G10B10A2 || format.type == ResourceFormatType::R11G11B10)
+    vecSize = 4;
 
   return vecSize * matrixdim;
 }

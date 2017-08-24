@@ -235,84 +235,78 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
   fmt32.compByteWidth = 4;
   fmt32.compCount = 1;
   fmt32.compType = CompType::Float;
-  fmt32.special = false;
+  fmt32.type = ResourceFormatType::Regular;
 
   fmt16.compByteWidth = 2;
   fmt16.compCount = 1;
   fmt16.compType = CompType::Float;
-  fmt16.special = false;
+  fmt16.type = ResourceFormatType::Regular;
 
   fmt8.compByteWidth = 1;
   fmt8.compCount = 1;
   fmt8.compType = CompType::UNorm;
-  fmt8.special = false;
+  fmt8.type = ResourceFormatType::Regular;
 
   switch(format)
   {
     case DXGI_FORMAT_BC1_UNORM:
     case DXGI_FORMAT_BC1_UNORM_SRGB:
-      special.specialFormat = SpecialFormat::BC1;
+      special.type = ResourceFormatType::BC1;
       special.srgbCorrected = (format == DXGI_FORMAT_BC1_UNORM_SRGB ? true : false);
       return special;
     case DXGI_FORMAT_BC2_UNORM:
     case DXGI_FORMAT_BC2_UNORM_SRGB:
-      special.specialFormat = SpecialFormat::BC2;
+      special.type = ResourceFormatType::BC2;
       special.srgbCorrected = (format == DXGI_FORMAT_BC2_UNORM_SRGB ? true : false);
       return special;
     case DXGI_FORMAT_BC3_UNORM:
     case DXGI_FORMAT_BC3_UNORM_SRGB:
-      special.specialFormat = SpecialFormat::BC3;
+      special.type = ResourceFormatType::BC3;
       special.srgbCorrected = (format == DXGI_FORMAT_BC3_UNORM_SRGB ? true : false);
       return special;
     case DXGI_FORMAT_BC4_UNORM:
     case DXGI_FORMAT_BC4_SNORM:
-      special.specialFormat = SpecialFormat::BC4;
+      special.type = ResourceFormatType::BC4;
       special.compType = (format == DXGI_FORMAT_BC4_UNORM ? CompType::UNorm : CompType::SNorm);
       return special;
     case DXGI_FORMAT_BC5_UNORM:
     case DXGI_FORMAT_BC5_SNORM:
-      special.specialFormat = SpecialFormat::BC5;
+      special.type = ResourceFormatType::BC5;
       special.compType = (format == DXGI_FORMAT_BC5_UNORM ? CompType::UNorm : CompType::SNorm);
       return special;
     case DXGI_FORMAT_BC6H_UF16:
     case DXGI_FORMAT_BC6H_SF16:
-      special.specialFormat = SpecialFormat::BC6;
+      special.type = ResourceFormatType::BC6;
       special.compType = (format == DXGI_FORMAT_BC6H_UF16 ? CompType::UNorm : CompType::SNorm);
       return special;
     case DXGI_FORMAT_BC7_UNORM:
     case DXGI_FORMAT_BC7_UNORM_SRGB:
-      special.specialFormat = SpecialFormat::BC7;
+      special.type = ResourceFormatType::BC7;
       special.srgbCorrected = (format == DXGI_FORMAT_BC7_UNORM_SRGB ? true : false);
       return special;
     case DXGI_FORMAT_R10G10B10A2_UNORM:
     case DXGI_FORMAT_R10G10B10A2_UINT:
-      special.specialFormat = SpecialFormat::R10G10B10A2;
+      special.type = ResourceFormatType::R10G10B10A2;
       special.compType = (format == DXGI_FORMAT_R10G10B10A2_UNORM ? CompType::UNorm : CompType::UInt);
       return special;
-    case DXGI_FORMAT_R11G11B10_FLOAT:
-      special.specialFormat = SpecialFormat::R11G11B10;
-      return special;
+    case DXGI_FORMAT_R11G11B10_FLOAT: special.type = ResourceFormatType::R11G11B10; return special;
     case DXGI_FORMAT_B5G6R5_UNORM:
       fmt8.bgraOrder = true;
-      special.specialFormat = SpecialFormat::R5G6B5;
+      special.type = ResourceFormatType::R5G6B5;
       return special;
     case DXGI_FORMAT_B5G5R5A1_UNORM:
       fmt8.bgraOrder = true;
-      special.specialFormat = SpecialFormat::R5G5B5A1;
+      special.type = ResourceFormatType::R5G5B5A1;
       return special;
     case DXGI_FORMAT_R9G9B9E5_SHAREDEXP:
-      special.specialFormat = SpecialFormat::R9G9B9E5;
+      special.type = ResourceFormatType::R9G9B9E5;
       return special;
     case DXGI_FORMAT_B4G4R4A4_UNORM:
       fmt8.bgraOrder = true;
-      special.specialFormat = SpecialFormat::R4G4B4A4;
+      special.type = ResourceFormatType::R4G4B4A4;
       return special;
-    case DXGI_FORMAT_D24_UNORM_S8_UINT:
-      special.specialFormat = SpecialFormat::D24S8;
-      return special;
-    case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
-      special.specialFormat = SpecialFormat::D32S8;
-      return special;
+    case DXGI_FORMAT_D24_UNORM_S8_UINT: special.type = ResourceFormatType::D24S8; return special;
+    case DXGI_FORMAT_D32_FLOAT_S8X24_UINT: special.type = ResourceFormatType::D32S8; return special;
 
     case DXGI_FORMAT_R32G32B32A32_UINT:
       fmt32.compType = CompType::UInt;
@@ -443,43 +437,47 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
 
 DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
 {
-  if(format.special)
+  if(format.Special())
   {
-    switch(format.specialFormat)
+    switch(format.type)
     {
-      case SpecialFormat::BC1:
+      case ResourceFormatType::BC1:
         return format.srgbCorrected ? DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT_BC1_UNORM;
-      case SpecialFormat::BC2:
+      case ResourceFormatType::BC2:
         return format.srgbCorrected ? DXGI_FORMAT_BC2_UNORM_SRGB : DXGI_FORMAT_BC2_UNORM;
-      case SpecialFormat::BC3:
+      case ResourceFormatType::BC3:
         return format.srgbCorrected ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC3_UNORM;
-      case SpecialFormat::BC4:
+      case ResourceFormatType::BC4:
         return format.compType == CompType::UNorm ? DXGI_FORMAT_BC4_UNORM : DXGI_FORMAT_BC4_SNORM;
-      case SpecialFormat::BC5:
+      case ResourceFormatType::BC5:
         return format.compType == CompType::UNorm ? DXGI_FORMAT_BC5_UNORM : DXGI_FORMAT_BC5_SNORM;
-      case SpecialFormat::BC6:
+      case ResourceFormatType::BC6:
         return format.compType == CompType::UNorm ? DXGI_FORMAT_BC6H_UF16 : DXGI_FORMAT_BC6H_SF16;
-      case SpecialFormat::BC7:
+      case ResourceFormatType::BC7:
         return format.srgbCorrected ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
-      case SpecialFormat::R10G10B10A2:
+      case ResourceFormatType::R10G10B10A2:
         return format.compType == CompType::UNorm ? DXGI_FORMAT_R10G10B10A2_UNORM
                                                   : DXGI_FORMAT_R10G10B10A2_UINT;
-      case SpecialFormat::R11G11B10: return DXGI_FORMAT_R11G11B10_FLOAT;
-      case SpecialFormat::R5G6B5: RDCASSERT(format.bgraOrder); return DXGI_FORMAT_B5G6R5_UNORM;
-      case SpecialFormat::R5G5B5A1: RDCASSERT(format.bgraOrder); return DXGI_FORMAT_B5G5R5A1_UNORM;
-      case SpecialFormat::R9G9B9E5: return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
-      case SpecialFormat::R4G4B4A4: RDCASSERT(format.bgraOrder); return DXGI_FORMAT_B4G4R4A4_UNORM;
-      case SpecialFormat::D24S8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
-      case SpecialFormat::D32S8: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-      case SpecialFormat::S8: return DXGI_FORMAT_R8_UINT;
+      case ResourceFormatType::R11G11B10: return DXGI_FORMAT_R11G11B10_FLOAT;
+      case ResourceFormatType::R5G6B5: RDCASSERT(format.bgraOrder); return DXGI_FORMAT_B5G6R5_UNORM;
+      case ResourceFormatType::R5G5B5A1:
+        RDCASSERT(format.bgraOrder);
+        return DXGI_FORMAT_B5G5R5A1_UNORM;
+      case ResourceFormatType::R9G9B9E5: return DXGI_FORMAT_R9G9B9E5_SHAREDEXP;
+      case ResourceFormatType::R4G4B4A4:
+        RDCASSERT(format.bgraOrder);
+        return DXGI_FORMAT_B4G4R4A4_UNORM;
+      case ResourceFormatType::D24S8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
+      case ResourceFormatType::D32S8: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+      case ResourceFormatType::S8: return DXGI_FORMAT_R8_UINT;
       default:
-      case SpecialFormat::R4G4:
-      case SpecialFormat::D16S8:
-      case SpecialFormat::ETC2:
-      case SpecialFormat::EAC:
-      case SpecialFormat::ASTC:
-      case SpecialFormat::YUV:
-        RDCERR("Unsupported writing format %u", format.specialFormat);
+      case ResourceFormatType::R4G4:
+      case ResourceFormatType::D16S8:
+      case ResourceFormatType::ETC2:
+      case ResourceFormatType::EAC:
+      case ResourceFormatType::ASTC:
+      case ResourceFormatType::YUV:
+        RDCERR("Unsupported writing format %u", format.type);
         return DXGI_FORMAT_UNKNOWN;
     }
   }
@@ -651,22 +649,22 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 
   bool blockFormat = false;
 
-  if(data.format.special)
+  if(data.format.Special())
   {
-    switch(data.format.specialFormat)
+    switch(data.format.type)
     {
-      case SpecialFormat::BC1:
-      case SpecialFormat::BC2:
-      case SpecialFormat::BC3:
-      case SpecialFormat::BC4:
-      case SpecialFormat::BC5:
-      case SpecialFormat::BC6:
-      case SpecialFormat::BC7: blockFormat = true; break;
-      case SpecialFormat::ETC2:
-      case SpecialFormat::EAC:
-      case SpecialFormat::ASTC:
-      case SpecialFormat::YUV:
-        RDCERR("Unsupported file format, %u", data.format.specialFormat);
+      case ResourceFormatType::BC1:
+      case ResourceFormatType::BC2:
+      case ResourceFormatType::BC3:
+      case ResourceFormatType::BC4:
+      case ResourceFormatType::BC5:
+      case ResourceFormatType::BC6:
+      case ResourceFormatType::BC7: blockFormat = true; break;
+      case ResourceFormatType::ETC2:
+      case ResourceFormatType::EAC:
+      case ResourceFormatType::ASTC:
+      case ResourceFormatType::YUV:
+        RDCERR("Unsupported file format, %u", data.format.type);
         return false;
       default: break;
     }
@@ -713,29 +711,29 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 
   if(blockFormat)
   {
-    int blockSize = (data.format.specialFormat == SpecialFormat::BC1 ||
-                     data.format.specialFormat == SpecialFormat::BC4)
-                        ? 8
-                        : 16;
+    int blockSize =
+        (data.format.type == ResourceFormatType::BC1 || data.format.type == ResourceFormatType::BC4)
+            ? 8
+            : 16;
     header.dwPitchOrLinearSize = RDCMAX(1U, ((header.dwWidth + 3) / 4)) * blockSize;
   }
   else
   {
-    switch(data.format.specialFormat)
+    switch(data.format.type)
     {
-      case SpecialFormat::S8: bytesPerPixel = 1; break;
-      case SpecialFormat::R10G10B10A2:
-      case SpecialFormat::R9G9B9E5:
-      case SpecialFormat::R11G11B10:
-      case SpecialFormat::D24S8: bytesPerPixel = 4; break;
-      case SpecialFormat::R5G6B5:
-      case SpecialFormat::R5G5B5A1:
-      case SpecialFormat::R4G4B4A4: bytesPerPixel = 2; break;
-      case SpecialFormat::D32S8: bytesPerPixel = 8; break;
-      case SpecialFormat::D16S8:
-      case SpecialFormat::YUV:
-      case SpecialFormat::R4G4:
-        RDCERR("Unsupported file format %u", data.format.specialFormat);
+      case ResourceFormatType::S8: bytesPerPixel = 1; break;
+      case ResourceFormatType::R10G10B10A2:
+      case ResourceFormatType::R9G9B9E5:
+      case ResourceFormatType::R11G11B10:
+      case ResourceFormatType::D24S8: bytesPerPixel = 4; break;
+      case ResourceFormatType::R5G6B5:
+      case ResourceFormatType::R5G5B5A1:
+      case ResourceFormatType::R4G4B4A4: bytesPerPixel = 2; break;
+      case ResourceFormatType::D32S8: bytesPerPixel = 8; break;
+      case ResourceFormatType::D16S8:
+      case ResourceFormatType::YUV:
+      case ResourceFormatType::R4G4:
+        RDCERR("Unsupported file format %u", data.format.type);
         return false;
       default: bytesPerPixel = data.format.compCount * data.format.compByteWidth;
     }
@@ -758,37 +756,37 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
     if(data.format.bgraOrder)
       std::swap(header.ddspf.dwRBitMask, header.ddspf.dwBBitMask);
   }
-  else if(data.format.specialFormat == SpecialFormat::BC1)
+  else if(data.format.type == ResourceFormatType::BC1)
   {
     header.ddspf.dwFlags = DDPF_FOURCC;
     header.ddspf.dwFourCC = MAKE_FOURCC('D', 'X', 'T', '1');
   }
-  else if(data.format.specialFormat == SpecialFormat::BC2)
+  else if(data.format.type == ResourceFormatType::BC2)
   {
     header.ddspf.dwFlags = DDPF_FOURCC;
     header.ddspf.dwFourCC = MAKE_FOURCC('D', 'X', 'T', '3');
   }
-  else if(data.format.specialFormat == SpecialFormat::BC3)
+  else if(data.format.type == ResourceFormatType::BC3)
   {
     header.ddspf.dwFlags = DDPF_FOURCC;
     header.ddspf.dwFourCC = MAKE_FOURCC('D', 'X', 'T', '5');
   }
-  else if(data.format.specialFormat == SpecialFormat::BC4 && data.format.compType == CompType::UNorm)
+  else if(data.format.type == ResourceFormatType::BC4 && data.format.compType == CompType::UNorm)
   {
     header.ddspf.dwFlags = DDPF_FOURCC;
     header.ddspf.dwFourCC = MAKE_FOURCC('B', 'C', '4', 'U');
   }
-  else if(data.format.specialFormat == SpecialFormat::BC4 && data.format.compType == CompType::SNorm)
+  else if(data.format.type == ResourceFormatType::BC4 && data.format.compType == CompType::SNorm)
   {
     header.ddspf.dwFlags = DDPF_FOURCC;
     header.ddspf.dwFourCC = MAKE_FOURCC('B', 'C', '4', 'S');
   }
-  else if(data.format.specialFormat == SpecialFormat::BC5 && data.format.compType == CompType::UNorm)
+  else if(data.format.type == ResourceFormatType::BC5 && data.format.compType == CompType::UNorm)
   {
     header.ddspf.dwFlags = DDPF_FOURCC;
     header.ddspf.dwFourCC = MAKE_FOURCC('A', 'T', 'I', '2');
   }
-  else if(data.format.specialFormat == SpecialFormat::BC5 && data.format.compType == CompType::SNorm)
+  else if(data.format.type == ResourceFormatType::BC5 && data.format.compType == CompType::SNorm)
   {
     header.ddspf.dwFlags = DDPF_FOURCC;
     header.ddspf.dwFourCC = MAKE_FOURCC('B', 'C', '5', 'S');
@@ -830,8 +828,8 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
           {
             numRows = RDCMAX(1, numRows / 4);
 
-            int blockSize = (data.format.specialFormat == SpecialFormat::BC1 ||
-                             data.format.specialFormat == SpecialFormat::BC4)
+            int blockSize = (data.format.type == ResourceFormatType::BC1 ||
+                             data.format.type == ResourceFormatType::BC4)
                                 ? 8
                                 : 16;
 
@@ -908,7 +906,7 @@ dds_data load_dds_from_file(FILE *f)
   if(dx10Header)
   {
     ret.format = DXGIFormat2ResourceFormat(headerDXT10.dxgiFormat);
-    if(ret.format.special && ret.format.specialFormat == SpecialFormat::Unknown)
+    if(ret.format.type == ResourceFormatType::Undefined)
     {
       RDCWARN("Unsupported DXGI_FORMAT: %u", (uint32_t)headerDXT10.dxgiFormat);
       return error;
@@ -970,50 +968,50 @@ dds_data load_dds_from_file(FILE *f)
     ret.format.compByteWidth = 1;
     ret.format.compCount = header.ddspf.dwRGBBitCount / 8;
     ret.format.compType = CompType::UNorm;
-    ret.format.special = false;
+    ret.format.type = ResourceFormatType::Regular;
 
     if(header.ddspf.dwBBitMask < header.ddspf.dwRBitMask)
       ret.format.bgraOrder = true;
   }
 
   uint32_t bytesPerPixel = 1;
-  switch(ret.format.specialFormat)
+  switch(ret.format.type)
   {
-    case SpecialFormat::S8: bytesPerPixel = 1; break;
-    case SpecialFormat::R10G10B10A2:
-    case SpecialFormat::R9G9B9E5:
-    case SpecialFormat::R11G11B10:
-    case SpecialFormat::D24S8: bytesPerPixel = 4; break;
-    case SpecialFormat::R5G6B5:
-    case SpecialFormat::R5G5B5A1:
-    case SpecialFormat::R4G4B4A4: bytesPerPixel = 2; break;
-    case SpecialFormat::D32S8: bytesPerPixel = 8; break;
-    case SpecialFormat::D16S8:
-    case SpecialFormat::YUV:
-    case SpecialFormat::R4G4:
-      RDCERR("Unsupported file format %u", ret.format.specialFormat);
+    case ResourceFormatType::S8: bytesPerPixel = 1; break;
+    case ResourceFormatType::R10G10B10A2:
+    case ResourceFormatType::R9G9B9E5:
+    case ResourceFormatType::R11G11B10:
+    case ResourceFormatType::D24S8: bytesPerPixel = 4; break;
+    case ResourceFormatType::R5G6B5:
+    case ResourceFormatType::R5G5B5A1:
+    case ResourceFormatType::R4G4B4A4: bytesPerPixel = 2; break;
+    case ResourceFormatType::D32S8: bytesPerPixel = 8; break;
+    case ResourceFormatType::D16S8:
+    case ResourceFormatType::YUV:
+    case ResourceFormatType::R4G4:
+      RDCERR("Unsupported file format %u", ret.format.type);
       return error;
     default: bytesPerPixel = ret.format.compCount * ret.format.compByteWidth;
   }
 
   bool blockFormat = false;
 
-  if(ret.format.special)
+  if(ret.format.Special())
   {
-    switch(ret.format.specialFormat)
+    switch(ret.format.type)
     {
-      case SpecialFormat::BC1:
-      case SpecialFormat::BC2:
-      case SpecialFormat::BC3:
-      case SpecialFormat::BC4:
-      case SpecialFormat::BC5:
-      case SpecialFormat::BC6:
-      case SpecialFormat::BC7: blockFormat = true; break;
-      case SpecialFormat::ETC2:
-      case SpecialFormat::EAC:
-      case SpecialFormat::ASTC:
-      case SpecialFormat::YUV:
-        RDCERR("Unsupported file format, %u", ret.format.specialFormat);
+      case ResourceFormatType::BC1:
+      case ResourceFormatType::BC2:
+      case ResourceFormatType::BC3:
+      case ResourceFormatType::BC4:
+      case ResourceFormatType::BC5:
+      case ResourceFormatType::BC6:
+      case ResourceFormatType::BC7: blockFormat = true; break;
+      case ResourceFormatType::ETC2:
+      case ResourceFormatType::EAC:
+      case ResourceFormatType::ASTC:
+      case ResourceFormatType::YUV:
+        RDCERR("Unsupported file format, %u", ret.format.type);
         return error;
       default: break;
     }
@@ -1037,8 +1035,8 @@ dds_data load_dds_from_file(FILE *f)
       {
         numRows = RDCMAX(1, numRows / 4);
 
-        int blockSize = (ret.format.specialFormat == SpecialFormat::BC1 ||
-                         ret.format.specialFormat == SpecialFormat::BC4)
+        int blockSize = (ret.format.type == ResourceFormatType::BC1 ||
+                         ret.format.type == ResourceFormatType::BC4)
                             ? 8
                             : 16;
 

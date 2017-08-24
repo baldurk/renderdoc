@@ -60,16 +60,13 @@ public:
     if(compType == CompType::Depth)
       m_IsDepth = true;
 
-    if(m_Tex->format.special)
+    switch(m_Tex->format.type)
     {
-      switch(m_Tex->format.specialFormat)
-      {
-        case SpecialFormat::D16S8:
-        case SpecialFormat::D24S8:
-        case SpecialFormat::D32S8:
-        case SpecialFormat::S8: m_IsDepth = true; break;
-        default: break;
-      }
+      case ResourceFormatType::D16S8:
+      case ResourceFormatType::D24S8:
+      case ResourceFormatType::D32S8:
+      case ResourceFormatType::S8: m_IsDepth = true; break;
+      default: break;
     }
   }
 

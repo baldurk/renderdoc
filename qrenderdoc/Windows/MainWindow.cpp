@@ -1553,9 +1553,8 @@ void MainWindow::on_action_Start_Replay_Loop_triggered()
     for(const TextureDescription &tex : m_Ctx.GetTextures())
     {
       if((tex.creationFlags & TextureCategory::SwapBuffer) &&
-         tex.format.compType != CompType::Depth && tex.format.specialFormat != SpecialFormat::D16S8 &&
-         tex.format.specialFormat != SpecialFormat::D24S8 &&
-         tex.format.specialFormat != SpecialFormat::D32S8)
+         tex.format.compType != CompType::Depth && tex.format.type != ResourceFormatType::D16S8 &&
+         tex.format.type != ResourceFormatType::D24S8 && tex.format.type != ResourceFormatType::D32S8)
       {
         displayTex = &tex;
         break;

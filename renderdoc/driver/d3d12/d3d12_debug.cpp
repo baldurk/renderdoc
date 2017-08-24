@@ -4982,8 +4982,7 @@ MeshFormat D3D12DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID
   ret.fmt.compCount = 4;
   ret.fmt.compByteWidth = 4;
   ret.fmt.compType = CompType::Float;
-  ret.fmt.special = false;
-  ret.fmt.specialFormat = SpecialFormat::Unknown;
+  ret.fmt.type = ResourceFormatType::Regular;
   ret.fmt.bgraOrder = false;
 
   ret.showAlpha = false;
@@ -5679,8 +5678,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   helper.idxByteWidth = 2;
   helper.topo = Topology::LineList;
 
-  helper.fmt.special = false;
-  helper.fmt.specialFormat = SpecialFormat::Unknown;
+  helper.fmt.type = ResourceFormatType::Regular;
   helper.fmt.compByteWidth = 4;
   helper.fmt.compCount = 4;
   helper.fmt.compType = CompType::Float;

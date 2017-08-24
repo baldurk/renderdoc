@@ -1145,18 +1145,18 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
           ret.inputs[i].value.f.w = 1.0f;
       }
 
-      // interpret special formats
-      if(fmt.special)
+      // interpret resource format types
+      if(fmt.Special())
       {
         Vec3f *v3 = (Vec3f *)ret.inputs[i].value.fv;
         Vec4f *v4 = (Vec4f *)ret.inputs[i].value.fv;
 
         // only pull in all or nothing from these,
         // if there's only e.g. 3 bytes remaining don't read and unpack some of
-        // a 4-byte special format
+        // a 4-byte resource format type
         size_t packedsize = 4;
-        if(fmt.specialFormat == SpecialFormat::R5G5B5A1 ||
-           fmt.specialFormat == SpecialFormat::R5G6B5 || fmt.specialFormat == SpecialFormat::R4G4B4A4)
+        if(fmt.type == ResourceFormatType::R5G5B5A1 || fmt.type == ResourceFormatType::R5G6B5 ||
+           fmt.type == ResourceFormatType::R4G4B4A4)
           packedsize = 2;
 
         if(srcData == NULL || packedsize > dataSize)
@@ -1164,25 +1164,25 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
           ret.inputs[i].value.u.x = ret.inputs[i].value.u.y = ret.inputs[i].value.u.z =
               ret.inputs[i].value.u.w = 0;
         }
-        else if(fmt.specialFormat == SpecialFormat::R5G5B5A1)
+        else if(fmt.type == ResourceFormatType::R5G5B5A1)
         {
           RDCASSERT(fmt.bgraOrder);
           uint16_t packed = ((uint16_t *)srcData)[0];
           *v4 = ConvertFromB5G5R5A1(packed);
         }
-        else if(fmt.specialFormat == SpecialFormat::R5G6B5)
+        else if(fmt.type == ResourceFormatType::R5G6B5)
         {
           RDCASSERT(fmt.bgraOrder);
           uint16_t packed = ((uint16_t *)srcData)[0];
           *v3 = ConvertFromB5G6R5(packed);
         }
-        else if(fmt.specialFormat == SpecialFormat::R4G4B4A4)
+        else if(fmt.type == ResourceFormatType::R4G4B4A4)
         {
           RDCASSERT(fmt.bgraOrder);
           uint16_t packed = ((uint16_t *)srcData)[0];
           *v4 = ConvertFromB4G4R4A4(packed);
         }
-        else if(fmt.specialFormat == SpecialFormat::R10G10B10A2)
+        else if(fmt.type == ResourceFormatType::R10G10B10A2)
         {
           uint32_t packed = ((uint32_t *)srcData)[0];
 
@@ -1198,7 +1198,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
             *v4 = ConvertFromR10G10B10A2(packed);
           }
         }
-        else if(fmt.special && fmt.specialFormat == SpecialFormat::R11G11B10)
+        else if(fmt.type == ResourceFormatType::R11G11B10)
         {
           uint32_t packed = ((uint32_t *)srcData)[0];
           *v3 = ConvertFromR11G11B10(packed);
@@ -6387,7 +6387,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     uint32_t storex = uint32_t(pre % (2048 / pixstoreStride));
     uint32_t storey = uint32_t(pre / (2048 / pixstoreStride));
 
-    if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
+    if(fmt.type == ResourceFormatType::Regular && fmt.compCount > 0 && fmt.compByteWidth > 0)
     {
       byte *rowdata = pixstoreData + mapped.RowPitch * storey;
 
@@ -6429,8 +6429,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     }
     else
     {
-      if(fmt.special && (fmt.specialFormat == SpecialFormat::R10G10B10A2 ||
-                         fmt.specialFormat == SpecialFormat::R11G11B10))
+      if(fmt.type == ResourceFormatType::R10G10B10A2 || fmt.type == ResourceFormatType::R11G11B10)
       {
         byte *rowdata = pixstoreData + mapped.RowPitch * storey;
 
@@ -6443,9 +6442,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
           ModificationValue *val = (p == 0 ? &mod.preMod : &mod.postMod);
 
           Vec4f v;
-          if(fmt.specialFormat == SpecialFormat::R10G10B10A2)
+          if(fmt.type == ResourceFormatType::R10G10B10A2)
             v = ConvertFromR10G10B10A2(*u);
-          if(fmt.specialFormat == SpecialFormat::R11G11B10)
+          if(fmt.type == ResourceFormatType::R11G11B10)
           {
             Vec3f v3 = ConvertFromR11G11B10(*u);
             v = Vec4f(v3.x, v3.y, v3.z);
@@ -6456,7 +6455,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
       }
       else
       {
-        RDCWARN("need to fetch pixel values from special formats");
+        RDCWARN("need to fetch pixel values from packed resource format types");
       }
     }
 
@@ -6800,7 +6799,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     {
       // colour
       {
-        if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
+        if(fmt.type == ResourceFormatType::Regular && fmt.compCount > 0 && fmt.compByteWidth > 0)
         {
           byte *rowdata = pixstoreData + mapped.RowPitch * (postColSlot / 2048);
           byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (postColSlot % 2048);
@@ -6837,8 +6836,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
         }
         else
         {
-          if(fmt.special && (fmt.specialFormat == SpecialFormat::R10G10B10A2 ||
-                             fmt.specialFormat == SpecialFormat::R11G11B10))
+          if(fmt.type == ResourceFormatType::R10G10B10A2 || fmt.type == ResourceFormatType::R11G11B10)
           {
             byte *rowdata = pixstoreData + mapped.RowPitch * (postColSlot / 2048);
             byte *data = rowdata + sizeof(uint32_t) * (postColSlot % 2048);
@@ -6846,9 +6844,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
             uint32_t *u = (uint32_t *)data;
 
             Vec4f v;
-            if(fmt.specialFormat == SpecialFormat::R10G10B10A2)
+            if(fmt.type == ResourceFormatType::R10G10B10A2)
               v = ConvertFromR10G10B10A2(*u);
-            if(fmt.specialFormat == SpecialFormat::R11G11B10)
+            if(fmt.type == ResourceFormatType::R11G11B10)
             {
               Vec3f v3 = ConvertFromR11G11B10(*u);
               v = Vec4f(v3.x, v3.y, v3.z);
@@ -6858,7 +6856,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
           }
           else
           {
-            RDCWARN("need to fetch pixel values from special formats");
+            RDCWARN("need to fetch pixel values from packed resource format types");
           }
         }
       }
@@ -7056,7 +7054,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
   m_pImmediateContext->Unmap(pixstoreDepthReadback, 0);
 
   // interpret float/unorm values
-  if(!fmt.special && fmt.compType != CompType::UInt && fmt.compType != CompType::SInt)
+  if(fmt.type == ResourceFormatType::Regular && fmt.compType != CompType::UInt &&
+     fmt.compType != CompType::SInt)
   {
     for(size_t h = 0; h < history.size(); h++)
     {

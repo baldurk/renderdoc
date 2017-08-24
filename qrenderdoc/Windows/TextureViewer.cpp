@@ -1344,7 +1344,7 @@ void TextureViewer::UI_UpdateChannels()
     // swapbuffer is always srgb for 8-bit types, linear for 16-bit types
     DISABLE(ui->gammaDisplay);
 
-    if(tex->format.compByteWidth == 2 && !tex->format.special)
+    if(tex->format.compByteWidth == 2 && tex->format.type == ResourceFormatType::Regular)
       m_TexDisplay.linearDisplayAsGamma = false;
     else
       m_TexDisplay.linearDisplayAsGamma = true;
@@ -3264,27 +3264,27 @@ void TextureViewer::on_viewTexBuffer_clicked()
 
     uint32_t w = texptr->width;
 
-    switch(texptr->format.specialFormat)
+    switch(texptr->format.type)
     {
-      case SpecialFormat::BC1:
-      case SpecialFormat::BC2:
-      case SpecialFormat::BC3:
-      case SpecialFormat::BC4:
-      case SpecialFormat::BC5:
-      case SpecialFormat::BC6:
-      case SpecialFormat::BC7:
-      case SpecialFormat::ETC2:
-      case SpecialFormat::EAC:
-      case SpecialFormat::ASTC:
+      case ResourceFormatType::BC1:
+      case ResourceFormatType::BC2:
+      case ResourceFormatType::BC3:
+      case ResourceFormatType::BC4:
+      case ResourceFormatType::BC5:
+      case ResourceFormatType::BC6:
+      case ResourceFormatType::BC7:
+      case ResourceFormatType::ETC2:
+      case ResourceFormatType::EAC:
+      case ResourceFormatType::ASTC:
         varName = lit("block");
         // display a 4x4 block at a time
         w /= 4;
       default: break;
     }
 
-    switch(texptr->format.specialFormat)
+    switch(texptr->format.type)
     {
-      case SpecialFormat::Unknown:
+      case ResourceFormatType::Regular:
       {
         if(texptr->format.compByteWidth == 1)
           baseType = lit("byte");
@@ -3298,31 +3298,32 @@ void TextureViewer::on_viewTexBuffer_clicked()
         break;
       }
       // 2x4 byte block, for 64-bit block formats
-      case SpecialFormat::BC1:
-      case SpecialFormat::BC4:
-      case SpecialFormat::ETC2:
-      case SpecialFormat::EAC:
+      case ResourceFormatType::BC1:
+      case ResourceFormatType::BC4:
+      case ResourceFormatType::ETC2:
+      case ResourceFormatType::EAC:
         baseType = lit("row_major xint2x1");
         break;
       // 4x4 byte block, for 128-bit block formats
-      case SpecialFormat::BC2:
-      case SpecialFormat::BC3:
-      case SpecialFormat::BC5:
-      case SpecialFormat::BC6:
-      case SpecialFormat::BC7:
-      case SpecialFormat::ASTC: baseType = lit("row_major xint4x1"); break;
-      case SpecialFormat::R10G10B10A2: baseType = lit("uintten"); break;
-      case SpecialFormat::R11G11B10: baseType = lit("rgb floateleven"); break;
-      case SpecialFormat::R5G6B5:
-      case SpecialFormat::R5G5B5A1: baseType = lit("xshort"); break;
-      case SpecialFormat::R9G9B9E5: baseType = lit("xint"); break;
-      case SpecialFormat::R4G4B4A4: baseType = lit("xbyte2"); break;
-      case SpecialFormat::R4G4: baseType = lit("xbyte"); break;
-      case SpecialFormat::D16S8:
-      case SpecialFormat::D24S8:
-      case SpecialFormat::D32S8:
-      case SpecialFormat::YUV: baseType = lit("xint4"); break;
-      case SpecialFormat::S8: baseType = lit("xbyte"); break;
+      case ResourceFormatType::BC2:
+      case ResourceFormatType::BC3:
+      case ResourceFormatType::BC5:
+      case ResourceFormatType::BC6:
+      case ResourceFormatType::BC7:
+      case ResourceFormatType::ASTC: baseType = lit("row_major xint4x1"); break;
+      case ResourceFormatType::R10G10B10A2: baseType = lit("uintten"); break;
+      case ResourceFormatType::R11G11B10: baseType = lit("rgb floateleven"); break;
+      case ResourceFormatType::R5G6B5:
+      case ResourceFormatType::R5G5B5A1: baseType = lit("xshort"); break;
+      case ResourceFormatType::R9G9B9E5: baseType = lit("xint"); break;
+      case ResourceFormatType::R4G4B4A4: baseType = lit("xbyte2"); break;
+      case ResourceFormatType::R4G4: baseType = lit("xbyte"); break;
+      case ResourceFormatType::D16S8:
+      case ResourceFormatType::D24S8:
+      case ResourceFormatType::D32S8:
+      case ResourceFormatType::YUV: baseType = lit("xint4"); break;
+      case ResourceFormatType::S8:
+      case ResourceFormatType::Undefined: baseType = lit("xbyte"); break;
     }
 
     QString format = QFormatStr("%1 %2[%3];").arg(baseType).arg(varName).arg(w);

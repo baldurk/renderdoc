@@ -75,11 +75,10 @@ struct ResourceFormat
 {
   ResourceFormat()
   {
-    special = true;
-    specialFormat = SpecialFormat::Unknown;
+    type = ResourceFormatType::Undefined;
 
     compCount = compByteWidth = 0;
-    compType = CompType::Float;
+    compType = CompType::Typeless;
 
     bgraOrder = false;
     srgbCorrected = false;
@@ -88,13 +87,12 @@ struct ResourceFormat
   DOCUMENT("Compares two ``ResourceFormat`` objects for equality.");
   bool operator==(const ResourceFormat &r) const
   {
-    if(special || r.special)
-      return special == r.special && specialFormat == r.specialFormat && compType == r.compType;
-
-    return compCount == r.compCount && compByteWidth == r.compByteWidth && compType == r.compType &&
-           bgraOrder == r.bgraOrder && srgbCorrected == r.srgbCorrected;
+    return type == r.type && compCount == r.compCount && compByteWidth == r.compByteWidth &&
+           compType == r.compType && bgraOrder == r.bgraOrder && srgbCorrected == r.srgbCorrected;
   }
 
+  DOCUMENT("Compares two ``ResourceFormat`` objects for inequality.");
+  bool operator!=(const ResourceFormat &r) const { return !(*this == r); }
   DOCUMENT(R"(:return: The name of the format.
 :rtype: str
 )");
@@ -104,16 +102,17 @@ struct ResourceFormat
     RENDERDOC_ResourceFormatName(*this, ret);
     return ret;
   }
-  DOCUMENT("Compares two ``ResourceFormat`` objects for inequality.");
-  bool operator!=(const ResourceFormat &r) const { return !(*this == r); }
-  // indicates it's not a type represented with the members below
-  // usually this means non-uniform across components or block compressed
-  DOCUMENT("``True`` if :data:`specialFormat` is valid.");
-  bool32 special;
-  DOCUMENT("The :class:`SpecialFormat` if it's a non-uniform layout like block-compressed.");
-  SpecialFormat specialFormat;
 
-  DOCUMENT("The number of components in each vertex.");
+  DOCUMENT(R"(:return: ``True`` if the ``ResourceFormat`` is a 'special' non-regular type.
+:type: bool
+)");
+  bool Special() const { return type != ResourceFormatType::Regular; }
+  DOCUMENT(R"(The :class:`ResourceFormatType` of this format. If the value is not
+:data:`ResourceFormatType.Regular` then it's a non-uniform layout like block-compressed.
+)");
+  ResourceFormatType type;
+
+  DOCUMENT("The number of components in each element.");
   uint32_t compCount;
   DOCUMENT("The width in bytes of each component.");
   uint32_t compByteWidth;

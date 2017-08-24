@@ -978,13 +978,17 @@ enum class AlphaMapping : uint32_t
 
 ITERABLE_OPERATORS(AlphaMapping);
 
-DOCUMENT(R"(A particular special texture format. This accounts for either block-compressed formats
+DOCUMENT(R"(A resource format's particular type. This accounts for either block-compressed textures
 or formats that don't have equal byte-multiple sizes for each channel.
 
-.. data:: Unknown
+.. data:: Regular
 
-  This texture has no special layout, so its format is described by a number of components, a
+  This format has no special layout, so its format is described by a number of components, a
   :class:`CompType` and a byte width per component.
+
+.. data:: Undefined
+
+  This format is undefined or unknown, or does not map to any known regular format.
 
 .. data:: BC1
 
@@ -1112,9 +1116,10 @@ or formats that don't have equal byte-multiple sizes for each channel.
 
   The pixel data is in an opaque YUV format.
 )");
-enum class SpecialFormat : uint32_t
+enum class ResourceFormatType : uint32_t
 {
-  Unknown = 0,
+  Regular = 0,
+  Undefined,
   BC1,
   BC2,
   BC3,

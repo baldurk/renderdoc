@@ -794,30 +794,30 @@ private:
 
       uint32_t compCount;
 
-      switch(fmt.format.specialFormat)
+      switch(fmt.format.type)
       {
-        case SpecialFormat::BC6:
-        case SpecialFormat::ETC2:
-        case SpecialFormat::R11G11B10:
-        case SpecialFormat::R5G6B5:
-        case SpecialFormat::R9G9B9E5: compCount = 3; break;
-        case SpecialFormat::BC1:
-        case SpecialFormat::BC7:
-        case SpecialFormat::BC3:
-        case SpecialFormat::BC2:
-        case SpecialFormat::R10G10B10A2:
-        case SpecialFormat::R5G5B5A1:
-        case SpecialFormat::R4G4B4A4:
-        case SpecialFormat::ASTC: compCount = 4; break;
-        case SpecialFormat::BC5:
-        case SpecialFormat::R4G4:
-        case SpecialFormat::D16S8:
-        case SpecialFormat::D24S8:
-        case SpecialFormat::D32S8: compCount = 2; break;
-        case SpecialFormat::BC4:
-        case SpecialFormat::S8: compCount = 1; break;
-        case SpecialFormat::YUV:
-        case SpecialFormat::EAC:
+        case ResourceFormatType::BC6:
+        case ResourceFormatType::ETC2:
+        case ResourceFormatType::R11G11B10:
+        case ResourceFormatType::R5G6B5:
+        case ResourceFormatType::R9G9B9E5: compCount = 3; break;
+        case ResourceFormatType::BC1:
+        case ResourceFormatType::BC7:
+        case ResourceFormatType::BC3:
+        case ResourceFormatType::BC2:
+        case ResourceFormatType::R10G10B10A2:
+        case ResourceFormatType::R5G5B5A1:
+        case ResourceFormatType::R4G4B4A4:
+        case ResourceFormatType::ASTC: compCount = 4; break;
+        case ResourceFormatType::BC5:
+        case ResourceFormatType::R4G4:
+        case ResourceFormatType::D16S8:
+        case ResourceFormatType::D24S8:
+        case ResourceFormatType::D32S8: compCount = 2; break;
+        case ResourceFormatType::BC4:
+        case ResourceFormatType::S8: compCount = 1; break;
+        case ResourceFormatType::YUV:
+        case ResourceFormatType::EAC:
         default: compCount = fmt.format.compCount;
       }
 
@@ -866,7 +866,7 @@ private:
     else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
     {
       uint u = v.toUInt();
-      if(el.hex && el.format.specialFormat == SpecialFormat::Unknown)
+      if(el.hex && el.format.type == ResourceFormatType::Regular)
         ret = Formatter::HexFormat(u, el.format.compByteWidth);
       else
         ret = Formatter::Format(u, el.hex);
@@ -2208,7 +2208,7 @@ void BufferViewer::configureMeshColumns()
       f.format.compByteWidth = sizeof(float);
       f.format.compCount = sig.compCount;
       f.format.compType = sig.compType;
-      f.format.special = false;
+      f.format.type = ResourceFormatType::Regular;
       f.perinstance = false;
       f.instancerate = 1;
       f.rowmajor = false;
@@ -2275,7 +2275,7 @@ void BufferViewer::configureMeshColumns()
         f.format.compByteWidth = sizeof(float);
         f.format.compCount = sig.compCount;
         f.format.compType = sig.compType;
-        f.format.special = false;
+        f.format.type = ResourceFormatType::Regular;
         f.perinstance = false;
         f.instancerate = 1;
         f.rowmajor = false;

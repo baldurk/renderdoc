@@ -2892,23 +2892,22 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
             gl.glBindVertexArray(tempVAO);
 
             {
-              if(postvs.fmt.specialFormat != SpecialFormat::Unknown)
+              if(postvs.fmt.Special())
               {
-                if(postvs.fmt.specialFormat == SpecialFormat::R10G10B10A2)
+                if(postvs.fmt.type == ResourceFormatType::R10G10B10A2)
                 {
                   if(postvs.fmt.compType == CompType::UInt)
                     gl.glVertexAttribIFormat(0, 4, eGL_UNSIGNED_INT_2_10_10_10_REV, 0);
                   if(postvs.fmt.compType == CompType::SInt)
                     gl.glVertexAttribIFormat(0, 4, eGL_INT_2_10_10_10_REV, 0);
                 }
-                else if(postvs.fmt.specialFormat == SpecialFormat::R11G11B10)
+                else if(postvs.fmt.type == ResourceFormatType::R11G11B10)
                 {
                   gl.glVertexAttribFormat(0, 4, eGL_UNSIGNED_INT_10F_11F_11F_REV, GL_FALSE, 0);
                 }
                 else
                 {
-                  RDCWARN("Unsupported special vertex attribute format: %x",
-                          postvs.fmt.specialFormat);
+                  RDCWARN("Unsupported vertex attribute format: %x", postvs.fmt.type);
                 }
               }
               else if(postvs.fmt.compType == CompType::Float ||
@@ -4686,8 +4685,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDat
   ret.fmt.compCount = 4;
   ret.fmt.compByteWidth = 4;
   ret.fmt.compType = CompType::Float;
-  ret.fmt.special = false;
-  ret.fmt.specialFormat = SpecialFormat::Unknown;
+  ret.fmt.type = ResourceFormatType::Regular;
   ret.fmt.bgraOrder = false;
 
   ret.showAlpha = false;
@@ -4825,22 +4823,22 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
     if(meshData[i]->buf == ResourceId())
       continue;
 
-    if(meshData[i]->fmt.specialFormat != SpecialFormat::Unknown)
+    if(meshData[i]->fmt.Special())
     {
-      if(meshData[i]->fmt.specialFormat == SpecialFormat::R10G10B10A2)
+      if(meshData[i]->fmt.type == ResourceFormatType::R10G10B10A2)
       {
         if(meshData[i]->fmt.compType == CompType::UInt)
           gl.glVertexAttribIFormat(i, 4, eGL_UNSIGNED_INT_2_10_10_10_REV, 0);
         if(meshData[i]->fmt.compType == CompType::SInt)
           gl.glVertexAttribIFormat(i, 4, eGL_INT_2_10_10_10_REV, 0);
       }
-      else if(meshData[i]->fmt.specialFormat == SpecialFormat::R11G11B10)
+      else if(meshData[i]->fmt.type == ResourceFormatType::R11G11B10)
       {
         gl.glVertexAttribFormat(i, 4, eGL_UNSIGNED_INT_10F_11F_11F_REV, GL_FALSE, 0);
       }
       else
       {
-        RDCWARN("Unsupported special vertex attribute format: %x", meshData[i]->fmt.specialFormat);
+        RDCWARN("Unsupported vertex attribute format: %x", meshData[i]->fmt.type);
       }
     }
     else if(meshData[i]->fmt.compType == CompType::Float ||

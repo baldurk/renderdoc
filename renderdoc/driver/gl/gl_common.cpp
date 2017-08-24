@@ -1209,8 +1209,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
 {
   ResourceFormat ret;
 
-  ret.special = false;
-  ret.specialFormat = SpecialFormat::Unknown;
+  ret.type = ResourceFormatType::Regular;
 
   // special handling for formats that don't query neatly
   if(fmt == eGL_LUMINANCE8_EXT || fmt == eGL_INTENSITY8_EXT || fmt == eGL_ALPHA8_EXT)
@@ -1224,8 +1223,6 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
 
   if(IsCompressedFormat(fmt))
   {
-    ret.special = true;
-
     switch(fmt)
     {
       case eGL_COMPRESSED_RGB_S3TC_DXT1_EXT:
@@ -1274,6 +1271,8 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       default: break;
     }
 
+    ret.type = ResourceFormatType::Undefined;
+
     switch(fmt)
     {
       // BC1
@@ -1281,37 +1280,37 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       case eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
       case eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
       case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
-        ret.specialFormat = SpecialFormat::BC1;
+        ret.type = ResourceFormatType::BC1;
         break;
       // BC2
       case eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
       case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
-        ret.specialFormat = SpecialFormat::BC2;
+        ret.type = ResourceFormatType::BC2;
         break;
       // BC3
       case eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
       case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
-        ret.specialFormat = SpecialFormat::BC3;
+        ret.type = ResourceFormatType::BC3;
         break;
       // BC4
       case eGL_COMPRESSED_RED_RGTC1:
       case eGL_COMPRESSED_SIGNED_RED_RGTC1:
-        ret.specialFormat = SpecialFormat::BC4;
+        ret.type = ResourceFormatType::BC4;
         break;
       // BC5
       case eGL_COMPRESSED_RG_RGTC2:
       case eGL_COMPRESSED_SIGNED_RG_RGTC2:
-        ret.specialFormat = SpecialFormat::BC5;
+        ret.type = ResourceFormatType::BC5;
         break;
       // BC6
       case eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB:
       case eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB:
-        ret.specialFormat = SpecialFormat::BC6;
+        ret.type = ResourceFormatType::BC6;
         break;
       // BC7
       case eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
       case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB:
-        ret.specialFormat = SpecialFormat::BC7;
+        ret.type = ResourceFormatType::BC7;
         break;
       // ETC1
       case eGL_ETC1_RGB8_OES:    // handle it as ETC2
@@ -1320,7 +1319,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       case eGL_COMPRESSED_SRGB8_ETC2:
       case eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
       case eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-        ret.specialFormat = SpecialFormat::ETC2;
+        ret.type = ResourceFormatType::ETC2;
         break;
       // EAC
       case eGL_COMPRESSED_RGBA8_ETC2_EAC:
@@ -1329,7 +1328,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       case eGL_COMPRESSED_SIGNED_R11_EAC:
       case eGL_COMPRESSED_RG11_EAC:
       case eGL_COMPRESSED_SIGNED_RG11_EAC:
-        ret.specialFormat = SpecialFormat::EAC;
+        ret.type = ResourceFormatType::EAC;
         break;
       // ASTC
       case eGL_COMPRESSED_RGBA_ASTC_4x4_KHR:
@@ -1359,57 +1358,30 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
       case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
       case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
-      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
-        ret.specialFormat = SpecialFormat::ASTC;
-        break;
+      case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR: ret.type = ResourceFormatType::ASTC; break;
       default: RDCERR("Unexpected compressed format %#x", fmt); break;
     }
+
     return ret;
   }
 
   // handle certain non compressed but special formats
-  if(fmt == eGL_R11F_G11F_B10F)
+  switch(fmt)
   {
-    ret.special = true;
-    ret.specialFormat = SpecialFormat::R11G11B10;
-    return ret;
+    case eGL_R11F_G11F_B10F: ret.type = ResourceFormatType::R11G11B10; break;
+    case eGL_RGB565: ret.type = ResourceFormatType::R5G6B5; break;
+    case eGL_RGB5_A1: ret.type = ResourceFormatType::R5G5B5A1; break;
+    case eGL_RGB9_E5: ret.type = ResourceFormatType::R9G9B9E5; break;
+    case eGL_RGBA4: ret.type = ResourceFormatType::R4G4B4A4; break;
+    case eGL_RGB10_A2:
+    case eGL_RGB10_A2UI:
+      ret.type = ResourceFormatType::R10G10B10A2;
+      ret.compType = fmt == eGL_RGB10_A2 ? CompType::UNorm : CompType::UInt;
+      break;
   }
 
-  if(fmt == eGL_RGB565)
-  {
-    ret.special = true;
-    ret.specialFormat = SpecialFormat::R5G6B5;
+  if(ret.Special())
     return ret;
-  }
-
-  if(fmt == eGL_RGB5_A1)
-  {
-    ret.special = true;
-    ret.specialFormat = SpecialFormat::R5G5B5A1;
-    return ret;
-  }
-
-  if(fmt == eGL_RGB9_E5)
-  {
-    ret.special = true;
-    ret.specialFormat = SpecialFormat::R9G9B9E5;
-    return ret;
-  }
-
-  if(fmt == eGL_RGBA4)
-  {
-    ret.special = true;
-    ret.specialFormat = SpecialFormat::R4G4B4A4;
-    return ret;
-  }
-
-  if(fmt == eGL_RGB10_A2 || fmt == eGL_RGB10_A2UI)
-  {
-    ret.special = true;
-    ret.specialFormat = SpecialFormat::R10G10B10A2;
-    ret.compType = fmt == eGL_RGB10_A2 ? CompType::UNorm : CompType::UInt;
-    return ret;
-  }
 
   ret.compByteWidth = 1;
   ret.compCount = 4;
@@ -1446,11 +1418,15 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
 
       // wasn't a byte format (8, 16, 32)
       if(ret.compByteWidth * 8 != (uint32_t)data[0])
-        ret.special = true;
+      {
+        ret.type = ResourceFormatType::Undefined;
+        RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr::Get(fmt).c_str());
+      }
     }
     else
     {
-      ret.special = true;
+      ret.type = ResourceFormatType::Undefined;
+      RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr::Get(fmt).c_str());
     }
 
     gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_TYPE, sizeof(GLint), &data[0]);
@@ -1476,7 +1452,8 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
     }
     else
     {
-      ret.special = true;
+      ret.type = ResourceFormatType::Undefined;
+      RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr::Get(fmt).c_str());
     }
 
     gl.glGetInternalformativ(target, fmt, eGL_COLOR_ENCODING, sizeof(GLint), &data[0]);
@@ -1502,25 +1479,16 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
         ret.compByteWidth = 4;
         ret.compCount = 1;
         break;
-      case eGL_DEPTH24_STENCIL8:
-        ret.specialFormat = SpecialFormat::D24S8;
-        ret.special = true;
-        break;
-      case eGL_DEPTH32F_STENCIL8:
-        ret.specialFormat = SpecialFormat::D32S8;
-        ret.special = true;
-        break;
-      case eGL_STENCIL_INDEX8:
-        ret.specialFormat = SpecialFormat::S8;
-        ret.special = true;
-        break;
-      default: RDCERR("Unexpected depth or stencil format %x", fmt);
+      case eGL_DEPTH24_STENCIL8: ret.type = ResourceFormatType::D24S8; break;
+      case eGL_DEPTH32F_STENCIL8: ret.type = ResourceFormatType::D32S8; break;
+      case eGL_STENCIL_INDEX8: ret.type = ResourceFormatType::S8; break;
+      default: RDCERR("Unexpected depth or stencil format '%s'", ToStr::Get(fmt).c_str());
     }
   }
   else
   {
     // not colour or depth!
-    RDCERR("Unexpected texture type, not colour or depth");
+    RDCERR("Unexpected texture type, not colour or depth: '%s'", ToStr::Get(fmt).c_str());
   }
 
   return ret;
@@ -1530,11 +1498,11 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
 {
   GLenum ret = eGL_NONE;
 
-  if(fmt.special)
+  if(fmt.Special())
   {
-    switch(fmt.specialFormat)
+    switch(fmt.type)
     {
-      case SpecialFormat::BC1:
+      case ResourceFormatType::BC1:
       {
         if(fmt.compCount == 3)
           ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT
@@ -1544,31 +1512,31 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
                                   : eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
         break;
       }
-      case SpecialFormat::BC2:
+      case ResourceFormatType::BC2:
         ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT
                                 : eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
         break;
-      case SpecialFormat::BC3:
+      case ResourceFormatType::BC3:
         ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT
                                 : eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
         break;
-      case SpecialFormat::BC4:
+      case ResourceFormatType::BC4:
         ret = fmt.compType == CompType::SNorm ? eGL_COMPRESSED_SIGNED_RED_RGTC1
                                               : eGL_COMPRESSED_RED_RGTC1;
         break;
-      case SpecialFormat::BC5:
+      case ResourceFormatType::BC5:
         ret = fmt.compType == CompType::SNorm ? eGL_COMPRESSED_SIGNED_RG_RGTC2
                                               : eGL_COMPRESSED_RG_RGTC2;
         break;
-      case SpecialFormat::BC6:
+      case ResourceFormatType::BC6:
         ret = fmt.compType == CompType::SNorm ? eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB
                                               : eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
         break;
-      case SpecialFormat::BC7:
+      case ResourceFormatType::BC7:
         ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB
                                 : eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
         break;
-      case SpecialFormat::ETC2:
+      case ResourceFormatType::ETC2:
       {
         if(fmt.compCount == 3)
           ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB8_ETC2 : eGL_COMPRESSED_RGB8_ETC2;
@@ -1577,7 +1545,7 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
                                   : eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
         break;
       }
-      case SpecialFormat::EAC:
+      case ResourceFormatType::EAC:
       {
         if(fmt.compCount == 1)
           ret = fmt.compType == CompType::SNorm ? eGL_COMPRESSED_SIGNED_R11_EAC
@@ -1590,22 +1558,22 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
                                   : eGL_COMPRESSED_RGBA8_ETC2_EAC;
         break;
       }
-      case SpecialFormat::R10G10B10A2:
+      case ResourceFormatType::R10G10B10A2:
         if(fmt.compType == CompType::UNorm)
           ret = eGL_RGB10_A2;
         else
           ret = eGL_RGB10_A2UI;
         break;
-      case SpecialFormat::R11G11B10: ret = eGL_R11F_G11F_B10F; break;
-      case SpecialFormat::R5G6B5: ret = eGL_RGB565; break;
-      case SpecialFormat::R5G5B5A1: ret = eGL_RGB5_A1; break;
-      case SpecialFormat::R9G9B9E5: ret = eGL_RGB9_E5; break;
-      case SpecialFormat::R4G4B4A4: ret = eGL_RGBA4; break;
-      case SpecialFormat::D24S8: ret = eGL_DEPTH24_STENCIL8; break;
-      case SpecialFormat::D32S8: ret = eGL_DEPTH32F_STENCIL8; break;
-      case SpecialFormat::ASTC: RDCERR("ASTC can't be decoded unambiguously"); break;
-      case SpecialFormat::S8: ret = eGL_STENCIL_INDEX8; break;
-      default: RDCERR("Unsupported special format %u", fmt.specialFormat); break;
+      case ResourceFormatType::R11G11B10: ret = eGL_R11F_G11F_B10F; break;
+      case ResourceFormatType::R5G6B5: ret = eGL_RGB565; break;
+      case ResourceFormatType::R5G5B5A1: ret = eGL_RGB5_A1; break;
+      case ResourceFormatType::R9G9B9E5: ret = eGL_RGB9_E5; break;
+      case ResourceFormatType::R4G4B4A4: ret = eGL_RGBA4; break;
+      case ResourceFormatType::D24S8: ret = eGL_DEPTH24_STENCIL8; break;
+      case ResourceFormatType::D32S8: ret = eGL_DEPTH32F_STENCIL8; break;
+      case ResourceFormatType::ASTC: RDCERR("ASTC can't be decoded unambiguously"); break;
+      case ResourceFormatType::S8: ret = eGL_STENCIL_INDEX8; break;
+      default: RDCERR("Unsupported resource format type %u", fmt.type); break;
     }
   }
   else if(fmt.compCount == 4)

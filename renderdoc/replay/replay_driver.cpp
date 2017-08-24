@@ -112,7 +112,7 @@ FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const Mes
 
   const ResourceFormat &fmt = cfg.position.fmt;
 
-  if(fmt.specialFormat == SpecialFormat::R10G10B10A2)
+  if(fmt.type == ResourceFormatType::R10G10B10A2)
   {
     if(data + 4 >= end)
     {
@@ -127,7 +127,7 @@ FloatVector HighlightCache::InterpretVertex(byte *data, uint32_t vert, const Mes
     ret.w = v.w;
     return ret;
   }
-  else if(fmt.specialFormat == SpecialFormat::R11G11B10)
+  else if(fmt.type == ResourceFormatType::R11G11B10)
   {
     if(data + 4 >= end)
     {

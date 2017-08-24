@@ -1410,24 +1410,21 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
       bool buf565 = false, buf5551 = false;
       bool bufBGRA = (fmt.bgraOrder != false);
 
-      if(fmt.special)
+      switch(fmt.type)
       {
-        switch(fmt.specialFormat)
-        {
-          case SpecialFormat::R10G10B10A2:
-            stride = 4;
-            buf1010102 = true;
-            break;
-          case SpecialFormat::R5G6B5:
-            stride = 2;
-            buf565 = true;
-            break;
-          case SpecialFormat::R5G5B5A1:
-            stride = 2;
-            buf5551 = true;
-            break;
-          default: break;
-        }
+        case ResourceFormatType::R10G10B10A2:
+          stride = 4;
+          buf1010102 = true;
+          break;
+        case ResourceFormatType::R5G6B5:
+          stride = 2;
+          buf565 = true;
+          break;
+        case ResourceFormatType::R5G5B5A1:
+          stride = 2;
+          buf5551 = true;
+          break;
+        default: break;
       }
 
       byte *dst = thpixels;

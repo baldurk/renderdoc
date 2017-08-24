@@ -418,7 +418,7 @@ void ImageViewer::RefreshFile()
   rgba8_unorm.compByteWidth = 1;
   rgba8_unorm.compCount = 4;
   rgba8_unorm.compType = CompType::UNorm;
-  rgba8_unorm.special = false;
+  rgba8_unorm.type = ResourceFormatType::Regular;
 
   ResourceFormat rgba32_float = rgba8_unorm;
   rgba32_float.compByteWidth = 4;

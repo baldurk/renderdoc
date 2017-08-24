@@ -592,8 +592,8 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
     downcast = true;
 
   // we don't support any file formats that handle these block compression formats
-  if(td.format.specialFormat == SpecialFormat::ETC2 ||
-     td.format.specialFormat == SpecialFormat::EAC || td.format.specialFormat == SpecialFormat::ASTC)
+  if(td.format.type == ResourceFormatType::ETC2 || td.format.type == ResourceFormatType::EAC ||
+     td.format.type == ResourceFormatType::ASTC)
     downcast = true;
 
   // for DDS don't downcast, for non-HDR always downcast if we're not already RGBA8 unorm
@@ -601,16 +601,15 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
   if((sd.destType != FileType::DDS && sd.destType != FileType::HDR && sd.destType != FileType::EXR &&
       (td.format.compByteWidth != 1 || td.format.compCount != 4 ||
        td.format.compType != CompType::UNorm || td.format.bgraOrder)) ||
-     downcast || (sd.destType != FileType::DDS && td.format.special &&
-                  td.format.specialFormat != SpecialFormat::R10G10B10A2 &&
-                  td.format.specialFormat != SpecialFormat::R11G11B10))
+     downcast || (sd.destType != FileType::DDS && td.format.Special() &&
+                  td.format.type != ResourceFormatType::R10G10B10A2 &&
+                  td.format.type != ResourceFormatType::R11G11B10))
   {
     downcast = true;
     td.format.compByteWidth = 1;
     td.format.compCount = 4;
     td.format.compType = CompType::UNorm;
-    td.format.special = false;
-    td.format.specialFormat = SpecialFormat::Unknown;
+    td.format.type = ResourceFormatType::Regular;
   }
 
   uint32_t rowPitch = 0;
@@ -624,36 +623,36 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
   td.height = RDCMAX(1U, td.height >> mipOffset);
   td.depth = RDCMAX(1U, td.depth >> mipOffset);
 
-  if(td.format.specialFormat == SpecialFormat::BC1 ||
-     td.format.specialFormat == SpecialFormat::BC2 || td.format.specialFormat == SpecialFormat::BC3 ||
-     td.format.specialFormat == SpecialFormat::BC4 || td.format.specialFormat == SpecialFormat::BC5 ||
-     td.format.specialFormat == SpecialFormat::BC6 || td.format.specialFormat == SpecialFormat::BC7)
+  if(td.format.type == ResourceFormatType::BC1 || td.format.type == ResourceFormatType::BC2 ||
+     td.format.type == ResourceFormatType::BC3 || td.format.type == ResourceFormatType::BC4 ||
+     td.format.type == ResourceFormatType::BC5 || td.format.type == ResourceFormatType::BC6 ||
+     td.format.type == ResourceFormatType::BC7)
   {
-    blockSize = (td.format.specialFormat == SpecialFormat::BC1 ||
-                 td.format.specialFormat == SpecialFormat::BC4)
-                    ? 8
-                    : 16;
+    blockSize =
+        (td.format.type == ResourceFormatType::BC1 || td.format.type == ResourceFormatType::BC4)
+            ? 8
+            : 16;
     rowPitch = RDCMAX(1U, ((td.width + 3) / 4)) * blockSize;
     slicePitch = rowPitch * RDCMAX(1U, td.height / 4);
     blockformat = true;
   }
   else
   {
-    switch(td.format.specialFormat)
+    switch(td.format.type)
     {
-      case SpecialFormat::S8: bytesPerPixel = 1; break;
-      case SpecialFormat::R10G10B10A2:
-      case SpecialFormat::R9G9B9E5:
-      case SpecialFormat::R11G11B10:
-      case SpecialFormat::D24S8: bytesPerPixel = 4; break;
-      case SpecialFormat::R5G6B5:
-      case SpecialFormat::R5G5B5A1:
-      case SpecialFormat::R4G4B4A4: bytesPerPixel = 2; break;
-      case SpecialFormat::D32S8: bytesPerPixel = 8; break;
-      case SpecialFormat::D16S8:
-      case SpecialFormat::YUV:
-      case SpecialFormat::R4G4:
-        RDCERR("Unsupported file format %u", td.format.specialFormat);
+      case ResourceFormatType::S8: bytesPerPixel = 1; break;
+      case ResourceFormatType::R10G10B10A2:
+      case ResourceFormatType::R9G9B9E5:
+      case ResourceFormatType::R11G11B10:
+      case ResourceFormatType::D24S8: bytesPerPixel = 4; break;
+      case ResourceFormatType::R5G6B5:
+      case ResourceFormatType::R5G5B5A1:
+      case ResourceFormatType::R4G4B4A4: bytesPerPixel = 2; break;
+      case ResourceFormatType::D32S8: bytesPerPixel = 8; break;
+      case ResourceFormatType::D16S8:
+      case ResourceFormatType::YUV:
+      case ResourceFormatType::R4G4:
+        RDCERR("Unsupported file format %u", td.format.type);
         return false;
       default: bytesPerPixel = td.format.compCount * td.format.compByteWidth;
     }
@@ -1081,7 +1080,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
           float b = 0.0f;
           float a = 1.0f;
 
-          if(saveFmt.special && saveFmt.specialFormat == SpecialFormat::R10G10B10A2)
+          if(saveFmt.type == ResourceFormatType::R10G10B10A2)
           {
             uint32_t *u32 = (uint32_t *)srcData;
 
@@ -1094,7 +1093,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
             srcData += 4;
           }
-          else if(saveFmt.special && saveFmt.specialFormat == SpecialFormat::R11G11B10)
+          else if(saveFmt.type == ResourceFormatType::R11G11B10)
           {
             uint32_t *u32 = (uint32_t *)srcData;
 

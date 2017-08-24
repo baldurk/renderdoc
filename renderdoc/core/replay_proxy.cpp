@@ -102,15 +102,14 @@ string ToStrHelper<false, ShaderBuiltin>::Get(const ShaderBuiltin &el)
 template <>
 void Serialiser::Serialise(const char *name, ResourceFormat &el)
 {
-  Serialise("", el.special);
-  Serialise("", el.specialFormat);
+  Serialise("", el.type);
   Serialise("", el.compCount);
   Serialise("", el.compByteWidth);
   Serialise("", el.compType);
   Serialise("", el.bgraOrder);
   Serialise("", el.srgbCorrected);
 
-  SIZE_CHECK(28);
+  SIZE_CHECK(24);
 }
 
 template <>
@@ -579,7 +578,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::View &el)
 
   Serialise("", el.MinLODClamp);
 
-  SIZE_CHECK(144);
+  SIZE_CHECK(136);
 }
 
 template <>
@@ -674,7 +673,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::OM &el)
   Serialise("", el.multiSampleCount);
   Serialise("", el.multiSampleQuality);
 
-  SIZE_CHECK(272);
+  SIZE_CHECK(264);
 }
 
 template <>
@@ -720,7 +719,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::State &el)
 
   Serialise("", el.Resources);
 
-  SIZE_CHECK(1120);
+  SIZE_CHECK(1112);
 }
 
 #pragma endregion D3D12 pipeline state
@@ -736,7 +735,7 @@ void Serialiser::Serialise(const char *name, GLPipe::VertexAttribute &el)
   Serialise("", el.BufferSlot);
   Serialise("", el.RelativeOffset);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(52);
 }
 
 template <>
@@ -808,7 +807,7 @@ void Serialiser::Serialise(const char *name, GLPipe::ImageLoadStore &el)
   Serialise("", el.writeAllowed);
   Serialise("", el.Format);
 
-  SIZE_CHECK(64);
+  SIZE_CHECK(56);
 }
 
 template <>
@@ -1037,7 +1036,7 @@ void Serialiser::Serialise(const char *name, VKPipe::VertexAttribute &el)
   Serialise("", el.format);
   Serialise("", el.byteoffset);
 
-  SIZE_CHECK(40);
+  SIZE_CHECK(36);
 }
 
 template <>
@@ -1133,7 +1132,7 @@ void Serialiser::Serialise(const char *name, VKPipe::Attachment &el)
   Serialise("", el.numMip);
   Serialise("", el.numLayer);
 
-  SIZE_CHECK(80);
+  SIZE_CHECK(72);
 }
 
 template <>
@@ -1263,7 +1262,7 @@ void Serialiser::Serialise(const char *name, TextureDescription &el)
   Serialise("", el.msSamp);
   Serialise("", el.byteSize);
 
-  SIZE_CHECK(112);
+  SIZE_CHECK(104);
 }
 
 template <>
@@ -1637,7 +1636,7 @@ void Serialiser::Serialise(const char *name, PixelModification &el)
 
 // don't need string representation of these enums
 template <>
-string ToStrHelper<false, SpecialFormat>::Get(const SpecialFormat &el)
+string ToStrHelper<false, ResourceFormatType>::Get(const ResourceFormatType &el)
 {
   return "<...>";
 }
@@ -2014,8 +2013,7 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
     tex.format.compCount = 4;
     tex.format.compByteWidth = 4;
     tex.format.compType = CompType::Float;
-    tex.format.special = false;
-    tex.format.specialFormat = SpecialFormat::Unknown;
+    tex.format.type = ResourceFormatType::Regular;
     tex.creationFlags &= ~TextureCategory::DepthTarget;
     return;
   }
@@ -2023,23 +2021,23 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
   if(m_Proxy->IsTextureSupported(tex.format))
     return;
 
-  if(tex.format.special)
+  if(tex.format.Special())
   {
-    switch(tex.format.specialFormat)
+    switch(tex.format.type)
     {
-      case SpecialFormat::S8:
-      case SpecialFormat::D16S8: params.remap = eRemap_D32S8; break;
-      case SpecialFormat::ASTC:
-      case SpecialFormat::EAC:
-      case SpecialFormat::R5G6B5:
-      case SpecialFormat::ETC2: params.remap = eRemap_RGBA8; break;
+      case ResourceFormatType::S8:
+      case ResourceFormatType::D16S8: params.remap = eRemap_D32S8; break;
+      case ResourceFormatType::ASTC:
+      case ResourceFormatType::EAC:
+      case ResourceFormatType::R5G6B5:
+      case ResourceFormatType::ETC2: params.remap = eRemap_RGBA8; break;
       default:
-        RDCERR("Don't know how to remap special format %u, falling back to RGBA32",
-               tex.format.specialFormat);
+        RDCERR("Don't know how to remap resource format type %u, falling back to RGBA32",
+               tex.format.type);
         params.remap = eRemap_RGBA32;
         break;
     }
-    tex.format.special = false;
+    tex.format.type = ResourceFormatType::Regular;
   }
   else
   {

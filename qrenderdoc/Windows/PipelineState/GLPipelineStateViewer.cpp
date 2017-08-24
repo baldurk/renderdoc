@@ -676,9 +676,9 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
           name = tex->name;
           typeName = ToQStr(tex->resType);
 
-          if(tex->format.special && (tex->format.specialFormat == SpecialFormat::D16S8 ||
-                                     tex->format.specialFormat == SpecialFormat::D24S8 ||
-                                     tex->format.specialFormat == SpecialFormat::D32S8))
+          if(tex->format.type == ResourceFormatType::D16S8 ||
+             tex->format.type == ResourceFormatType::D24S8 ||
+             tex->format.type == ResourceFormatType::D32S8)
           {
             if(r.DepthReadChannel == 0)
               format += tr(" Depth-Read");
@@ -2535,9 +2535,9 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
           name = tex->name;
           typeName = ToQStr(tex->resType);
 
-          if(tex->format.special && (tex->format.specialFormat == SpecialFormat::D16S8 ||
-                                     tex->format.specialFormat == SpecialFormat::D24S8 ||
-                                     tex->format.specialFormat == SpecialFormat::D32S8))
+          if(tex->format.type == ResourceFormatType::D16S8 ||
+             tex->format.type == ResourceFormatType::D24S8 ||
+             tex->format.type == ResourceFormatType::D32S8)
           {
             if(r.DepthReadChannel == 0)
               format += tr(" Depth-Repipead");

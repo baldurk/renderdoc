@@ -1945,19 +1945,16 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
         else
         {
           const ResourceFormat &fmt = view.res.Format;
-          if(fmt.special)
+          if(fmt.type == ResourceFormatType::R10G10B10A2)
           {
-            if(fmt.specialFormat == SpecialFormat::R10G10B10A2)
-            {
-              if(fmt.compType == CompType::UInt)
-                format = lit("uintten");
-              if(fmt.compType == CompType::UNorm)
-                format = lit("unormten");
-            }
-            else if(fmt.specialFormat == SpecialFormat::R11G11B10)
-            {
-              format = lit("floateleven");
-            }
+            if(fmt.compType == CompType::UInt)
+              format = lit("uintten");
+            if(fmt.compType == CompType::UNorm)
+              format = lit("unormten");
+          }
+          else if(fmt.type == ResourceFormatType::R11G11B10)
+          {
+            format = lit("floateleven");
           }
           else
           {

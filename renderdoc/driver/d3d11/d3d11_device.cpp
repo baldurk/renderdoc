@@ -2917,7 +2917,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
             bool buf1010102 = false;
             bool bufBGRA = (fmt.bgraOrder != false);
 
-            if(fmt.special && fmt.specialFormat == SpecialFormat::R10G10B10A2)
+            if(fmt.type == ResourceFormatType::R10G10B10A2)
             {
               stride = 4;
               buf1010102 = true;

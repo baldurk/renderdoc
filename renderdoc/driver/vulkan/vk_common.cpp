@@ -244,8 +244,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 {
   ResourceFormat ret;
 
-  ret.special = false;
-  ret.specialFormat = SpecialFormat::Unknown;
+  ret.type = ResourceFormatType::Regular;
   ret.compByteWidth = 0;
   ret.compCount = 0;
   ret.compType = CompType::Typeless;
@@ -253,20 +252,15 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 
   if(fmt == VK_FORMAT_UNDEFINED)
   {
+    ret.type = ResourceFormatType::Undefined;
     return ret;
   }
 
   switch(fmt)
   {
-    case VK_FORMAT_R4G4_UNORM_PACK8:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::R4G4;
-      break;
+    case VK_FORMAT_R4G4_UNORM_PACK8: ret.type = ResourceFormatType::R4G4; break;
     case VK_FORMAT_R4G4B4A4_UNORM_PACK16:
-    case VK_FORMAT_B4G4R4A4_UNORM_PACK16:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::R4G4B4A4;
-      break;
+    case VK_FORMAT_B4G4R4A4_UNORM_PACK16: ret.type = ResourceFormatType::R4G4B4A4; break;
     case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
     case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
     case VK_FORMAT_A2B10G10R10_SNORM_PACK32:
@@ -278,94 +272,43 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_A2B10G10R10_UINT_PACK32:
     case VK_FORMAT_A2R10G10B10_UINT_PACK32:
     case VK_FORMAT_A2B10G10R10_SINT_PACK32:
-    case VK_FORMAT_A2R10G10B10_SINT_PACK32:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::R10G10B10A2;
-      break;
-    case VK_FORMAT_B10G11R11_UFLOAT_PACK32:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::R11G11B10;
-      break;
-    case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::R9G9B9E5;
-      break;
+    case VK_FORMAT_A2R10G10B10_SINT_PACK32: ret.type = ResourceFormatType::R10G10B10A2; break;
+    case VK_FORMAT_B10G11R11_UFLOAT_PACK32: ret.type = ResourceFormatType::R11G11B10; break;
+    case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32: ret.type = ResourceFormatType::R9G9B9E5; break;
     case VK_FORMAT_R5G6B5_UNORM_PACK16:
-    case VK_FORMAT_B5G6R5_UNORM_PACK16:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::R5G6B5;
-      break;
+    case VK_FORMAT_B5G6R5_UNORM_PACK16: ret.type = ResourceFormatType::R5G6B5; break;
     case VK_FORMAT_R5G5B5A1_UNORM_PACK16:
     case VK_FORMAT_B5G5R5A1_UNORM_PACK16:
-    case VK_FORMAT_A1R5G5B5_UNORM_PACK16:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::R5G5B5A1;
-      break;
-    case VK_FORMAT_D16_UNORM_S8_UINT:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::D16S8;
-      break;
-    case VK_FORMAT_D24_UNORM_S8_UINT:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::D24S8;
-      break;
-    case VK_FORMAT_D32_SFLOAT_S8_UINT:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::D32S8;
-      break;
+    case VK_FORMAT_A1R5G5B5_UNORM_PACK16: ret.type = ResourceFormatType::R5G5B5A1; break;
+    case VK_FORMAT_D16_UNORM_S8_UINT: ret.type = ResourceFormatType::D16S8; break;
+    case VK_FORMAT_D24_UNORM_S8_UINT: ret.type = ResourceFormatType::D24S8; break;
+    case VK_FORMAT_D32_SFLOAT_S8_UINT: ret.type = ResourceFormatType::D32S8; break;
     case VK_FORMAT_BC1_RGB_UNORM_BLOCK:
     case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
     case VK_FORMAT_BC1_RGBA_UNORM_BLOCK:
-    case VK_FORMAT_BC1_RGBA_SRGB_BLOCK:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::BC1;
-      break;
+    case VK_FORMAT_BC1_RGBA_SRGB_BLOCK: ret.type = ResourceFormatType::BC1; break;
     case VK_FORMAT_BC2_UNORM_BLOCK:
-    case VK_FORMAT_BC2_SRGB_BLOCK:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::BC2;
-      break;
+    case VK_FORMAT_BC2_SRGB_BLOCK: ret.type = ResourceFormatType::BC2; break;
     case VK_FORMAT_BC3_UNORM_BLOCK:
-    case VK_FORMAT_BC3_SRGB_BLOCK:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::BC3;
-      break;
+    case VK_FORMAT_BC3_SRGB_BLOCK: ret.type = ResourceFormatType::BC3; break;
     case VK_FORMAT_BC4_UNORM_BLOCK:
-    case VK_FORMAT_BC4_SNORM_BLOCK:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::BC4;
-      break;
+    case VK_FORMAT_BC4_SNORM_BLOCK: ret.type = ResourceFormatType::BC4; break;
     case VK_FORMAT_BC5_UNORM_BLOCK:
-    case VK_FORMAT_BC5_SNORM_BLOCK:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::BC5;
-      break;
+    case VK_FORMAT_BC5_SNORM_BLOCK: ret.type = ResourceFormatType::BC5; break;
     case VK_FORMAT_BC6H_UFLOAT_BLOCK:
-    case VK_FORMAT_BC6H_SFLOAT_BLOCK:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::BC6;
-      break;
+    case VK_FORMAT_BC6H_SFLOAT_BLOCK: ret.type = ResourceFormatType::BC6; break;
     case VK_FORMAT_BC7_UNORM_BLOCK:
-    case VK_FORMAT_BC7_SRGB_BLOCK:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::BC7;
-      break;
+    case VK_FORMAT_BC7_SRGB_BLOCK: ret.type = ResourceFormatType::BC7; break;
     case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK:
     case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
     case VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK:
     case VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK:
     case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
-    case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::ETC2;
-      break;
+    case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK: ret.type = ResourceFormatType::ETC2; break;
     case VK_FORMAT_EAC_R11_UNORM_BLOCK:
     case VK_FORMAT_EAC_R11_SNORM_BLOCK:
     case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
-    case VK_FORMAT_EAC_R11G11_SNORM_BLOCK:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::EAC;
-      break;
+    case VK_FORMAT_EAC_R11G11_SNORM_BLOCK: ret.type = ResourceFormatType::EAC; break;
     case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
     case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
     case VK_FORMAT_ASTC_5x4_UNORM_BLOCK:
@@ -393,10 +336,7 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_ASTC_12x10_UNORM_BLOCK:
     case VK_FORMAT_ASTC_12x10_SRGB_BLOCK:
     case VK_FORMAT_ASTC_12x12_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_12x12_SRGB_BLOCK:
-      ret.special = true;
-      ret.specialFormat = SpecialFormat::ASTC;
-      break;
+    case VK_FORMAT_ASTC_12x12_SRGB_BLOCK: ret.type = ResourceFormatType::ASTC; break;
     default: break;
   }
 
@@ -891,11 +831,11 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
 {
   VkFormat ret = VK_FORMAT_UNDEFINED;
 
-  if(fmt.special)
+  if(fmt.Special())
   {
-    switch(fmt.specialFormat)
+    switch(fmt.type)
     {
-      case SpecialFormat::BC1:
+      case ResourceFormatType::BC1:
       {
         if(fmt.compCount == 3)
           ret = fmt.srgbCorrected ? VK_FORMAT_BC1_RGB_SRGB_BLOCK : VK_FORMAT_BC1_RGB_UNORM_BLOCK;
@@ -903,26 +843,26 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
           ret = fmt.srgbCorrected ? VK_FORMAT_BC1_RGBA_SRGB_BLOCK : VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
         break;
       }
-      case SpecialFormat::BC2:
+      case ResourceFormatType::BC2:
         ret = fmt.srgbCorrected ? VK_FORMAT_BC2_SRGB_BLOCK : VK_FORMAT_BC2_UNORM_BLOCK;
         break;
-      case SpecialFormat::BC3:
+      case ResourceFormatType::BC3:
         ret = fmt.srgbCorrected ? VK_FORMAT_BC3_SRGB_BLOCK : VK_FORMAT_BC3_UNORM_BLOCK;
         break;
-      case SpecialFormat::BC4:
+      case ResourceFormatType::BC4:
         ret = fmt.compType == CompType::SNorm ? VK_FORMAT_BC4_SNORM_BLOCK : VK_FORMAT_BC4_UNORM_BLOCK;
         break;
-      case SpecialFormat::BC5:
+      case ResourceFormatType::BC5:
         ret = fmt.compType == CompType::SNorm ? VK_FORMAT_BC5_SNORM_BLOCK : VK_FORMAT_BC5_UNORM_BLOCK;
         break;
-      case SpecialFormat::BC6:
+      case ResourceFormatType::BC6:
         ret = fmt.compType == CompType::SNorm ? VK_FORMAT_BC6H_SFLOAT_BLOCK
                                               : VK_FORMAT_BC6H_UFLOAT_BLOCK;
         break;
-      case SpecialFormat::BC7:
+      case ResourceFormatType::BC7:
         ret = fmt.srgbCorrected ? VK_FORMAT_BC7_SRGB_BLOCK : VK_FORMAT_BC7_UNORM_BLOCK;
         break;
-      case SpecialFormat::ETC2:
+      case ResourceFormatType::ETC2:
       {
         if(fmt.compCount == 3)
           ret = fmt.srgbCorrected ? VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK
@@ -932,7 +872,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
                                   : VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
         break;
       }
-      case SpecialFormat::EAC:
+      case ResourceFormatType::EAC:
       {
         if(fmt.compCount == 1)
           ret = fmt.compType == CompType::SNorm ? VK_FORMAT_EAC_R11_SNORM_BLOCK
@@ -942,7 +882,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
                                                 : VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
         break;
       }
-      case SpecialFormat::R10G10B10A2:
+      case ResourceFormatType::R10G10B10A2:
         if(fmt.compType == CompType::UNorm)
           ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_UNORM_PACK32
                               : VK_FORMAT_A2B10G10R10_UNORM_PACK32;
@@ -960,19 +900,19 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
           ret = fmt.bgraOrder ? VK_FORMAT_A2R10G10B10_SSCALED_PACK32
                               : VK_FORMAT_A2B10G10R10_SSCALED_PACK32;
         break;
-      case SpecialFormat::R11G11B10: ret = VK_FORMAT_B10G11R11_UFLOAT_PACK32; break;
-      case SpecialFormat::R5G6B5: ret = VK_FORMAT_B5G6R5_UNORM_PACK16; break;
-      case SpecialFormat::R5G5B5A1:
+      case ResourceFormatType::R11G11B10: ret = VK_FORMAT_B10G11R11_UFLOAT_PACK32; break;
+      case ResourceFormatType::R5G6B5: ret = VK_FORMAT_B5G6R5_UNORM_PACK16; break;
+      case ResourceFormatType::R5G5B5A1:
         ret = fmt.bgraOrder ? VK_FORMAT_B5G5R5A1_UNORM_PACK16 : VK_FORMAT_R5G5B5A1_UNORM_PACK16;
         break;
-      case SpecialFormat::R9G9B9E5: ret = VK_FORMAT_E5B9G9R9_UFLOAT_PACK32; break;
-      case SpecialFormat::R4G4B4A4:
+      case ResourceFormatType::R9G9B9E5: ret = VK_FORMAT_E5B9G9R9_UFLOAT_PACK32; break;
+      case ResourceFormatType::R4G4B4A4:
         ret = fmt.bgraOrder ? VK_FORMAT_R4G4B4A4_UNORM_PACK16 : VK_FORMAT_B4G4R4A4_UNORM_PACK16;
         break;
-      case SpecialFormat::R4G4: ret = VK_FORMAT_R4G4_UNORM_PACK8; break;
-      case SpecialFormat::D24S8: ret = VK_FORMAT_D24_UNORM_S8_UINT; break;
-      case SpecialFormat::D32S8: ret = VK_FORMAT_D32_SFLOAT_S8_UINT; break;
-      default: RDCERR("Unsupported special format %u", fmt.specialFormat); break;
+      case ResourceFormatType::R4G4: ret = VK_FORMAT_R4G4_UNORM_PACK8; break;
+      case ResourceFormatType::D24S8: ret = VK_FORMAT_D24_UNORM_S8_UINT; break;
+      case ResourceFormatType::D32S8: ret = VK_FORMAT_D32_SFLOAT_S8_UINT; break;
+      default: RDCERR("Unsupported resource format type %u", fmt.type); break;
     }
   }
   else if(fmt.compCount == 4)

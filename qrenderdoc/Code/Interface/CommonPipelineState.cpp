@@ -808,7 +808,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
             ret[a].Format.compByteWidth = 4;
             ret[a].Format.compCount = compCount;
             ret[a].Format.compType = compType;
-            ret[a].Format.special = false;
+            ret[a].Format.type = ResourceFormatType::Regular;
             ret[a].Format.srgbCorrected = false;
           }
         }

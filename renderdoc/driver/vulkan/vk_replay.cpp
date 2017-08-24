@@ -2009,8 +2009,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
   helper.idxByteWidth = 2;
   helper.topo = Topology::LineList;
 
-  helper.fmt.special = false;
-  helper.fmt.specialFormat = SpecialFormat::Unknown;
+  helper.fmt.type = ResourceFormatType::Regular;
   helper.fmt.compByteWidth = 4;
   helper.fmt.compCount = 4;
   helper.fmt.compType = CompType::Float;

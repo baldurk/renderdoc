@@ -731,7 +731,7 @@ void GLReplay::CacheTexture(ResourceId id)
         tex.byteSize += (uint64_t)GetCompressedByteSize(
             RDCMAX(1U, tex.width >> m), RDCMAX(1U, tex.height >> m), 1, (GLenum)fmt);
       }
-      else if(tex.format.special)
+      else if(tex.format.Special())
       {
         tex.byteSize += GetByteSize(RDCMAX(1U, tex.width >> m), RDCMAX(1U, tex.height >> m),
                                     RDCMAX(1U, tex.depth >> m), GetBaseFormat((GLenum)fmt),
@@ -939,7 +939,7 @@ void GLReplay::SavePipelineState()
 
     ResourceFormat fmt;
 
-    fmt.special = false;
+    fmt.type = ResourceFormatType::Regular;
     fmt.compCount = 4;
     gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&fmt.compCount);
 
@@ -985,20 +985,17 @@ void GLReplay::SavePipelineState()
         fmt.compType = CompType::Float;
         break;
       case eGL_INT_2_10_10_10_REV:
-        fmt.special = true;
-        fmt.specialFormat = SpecialFormat::R10G10B10A2;
+        fmt.type = ResourceFormatType::R10G10B10A2;
         fmt.compCount = 4;
         fmt.compType = CompType::UInt;
         break;
       case eGL_UNSIGNED_INT_2_10_10_10_REV:
-        fmt.special = true;
-        fmt.specialFormat = SpecialFormat::R10G10B10A2;
+        fmt.type = ResourceFormatType::R10G10B10A2;
         fmt.compCount = 4;
         fmt.compType = CompType::SInt;
         break;
       case eGL_UNSIGNED_INT_10F_11F_11F_REV:
-        fmt.special = true;
-        fmt.specialFormat = SpecialFormat::R11G11B10;
+        fmt.type = ResourceFormatType::R11G11B10;
         fmt.compCount = 3;
         fmt.compType = CompType::Float;
         break;
@@ -1013,7 +1010,7 @@ void GLReplay::SavePipelineState()
 
       if(type == eGL_UNSIGNED_INT_2_10_10_10_REV || type == eGL_INT_2_10_10_10_REV)
       {
-        fmt.specialFormat = SpecialFormat::R10G10B10A2;
+        fmt.type = ResourceFormatType::R10G10B10A2;
         fmt.compType = type == eGL_UNSIGNED_INT_2_10_10_10_REV ? CompType::UInt : CompType::SInt;
       }
       else
@@ -3264,10 +3261,8 @@ bool GLReplay::IsTextureSupported(const ResourceFormat &format)
 
 bool GLReplay::NeedRemapForFetch(const ResourceFormat &format)
 {
-  if(format.compType == CompType::Depth ||
-     (format.special && (format.specialFormat == SpecialFormat::D16S8 ||
-                         format.specialFormat == SpecialFormat::D24S8 ||
-                         format.specialFormat == SpecialFormat::D32S8)))
+  if(format.compType == CompType::Depth || format.type == ResourceFormatType::D16S8 ||
+     format.type == ResourceFormatType::D24S8 || format.type == ResourceFormatType::D32S8)
     return IsGLES && !HasExt[NV_read_depth];
   return false;
 }
