@@ -26,6 +26,66 @@
 #include "Windows/Dialogs/PerformanceCounterSelection.h"
 #include "ui_PerformanceCounterViewer.h"
 
+struct SortValue
+{
+  enum
+  {
+    Integer,
+    Float
+  } type;
+  union
+  {
+    uint64_t u;
+    double d;
+  } val;
+
+  SortValue(uint32_t eventID)
+  {
+    type = Integer;
+    val.u = eventID;
+  }
+
+  SortValue(const CounterResult &result, const CounterDescription &description)
+  {
+    switch(description.resultType)
+    {
+      case CompType::Float:
+        type = Float;
+        val.d = result.value.f;
+        break;
+      case CompType::Double:
+        type = Float;
+        val.d = result.value.d;
+        break;
+
+      case CompType::UInt:
+        type = Integer;
+        if(description.resultByteWidth == 8)
+          val.u = result.value.u64;
+        else
+          val.u = result.value.u32;
+    }
+  }
+};
+
+struct CustomSortedTableItem : public QTableWidgetItem
+{
+  explicit CustomSortedTableItem(const QString &text, SortValue v)
+      : QTableWidgetItem(text), sortVal(v)
+  {
+  }
+  bool operator<(const QTableWidgetItem &other) const
+  {
+    const CustomSortedTableItem &customother = (const CustomSortedTableItem &)other;
+
+    if(sortVal.type == SortValue::Integer)
+      return sortVal.val.u < customother.sortVal.val.u;
+    return sortVal.val.d < customother.sortVal.val.d;
+  }
+
+  SortValue sortVal;
+};
+
 PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::PerformanceCounterViewer), m_Ctx(ctx)
 {
@@ -38,6 +98,8 @@ PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget
 
   ui->captureCounters->setEnabled(m_Ctx.LogLoaded());
   ui->saveCSV->setEnabled(m_Ctx.LogLoaded());
+
+  ui->counterResults->horizontalHeader()->setSectionsMovable(true);
 }
 
 PerformanceCounterViewer::~PerformanceCounterViewer()
@@ -48,8 +110,8 @@ PerformanceCounterViewer::~PerformanceCounterViewer()
   delete ui;
 }
 
-QString PerformanceCounterViewer::FormatCounterResult(const CounterResult &result,
-                                                      const CounterDescription &description)
+QTableWidgetItem *PerformanceCounterViewer::MakeCounterResultItem(const CounterResult &result,
+                                                                  const CounterDescription &description)
 {
   QString returnValue;
 
@@ -102,7 +164,7 @@ QString PerformanceCounterViewer::FormatCounterResult(const CounterResult &resul
     case CounterUnit::Ratio: break;
   }
 
-  return returnValue;
+  return new CustomSortedTableItem(returnValue, SortValue(result, description));
 }
 
 void PerformanceCounterViewer::CaptureCounters()
@@ -161,11 +223,14 @@ void PerformanceCounterViewer::CaptureCounters()
       for(int i = 0; i < (int)results.size(); ++i)
       {
         int row = eventIdToRow[results[i].eventID];
+
         ui->counterResults->setItem(row, 0,
-                                    new QTableWidgetItem(QString::number(results[i].eventID)));
-        ui->counterResults->setItem(row, counterIndex[results[i].counterID] + 1,
-                                    new QTableWidgetItem(FormatCounterResult(
-                                        results[i], counterDescriptions[results[i].counterID])));
+                                    new CustomSortedTableItem(QString::number(results[i].eventID),
+                                                              SortValue(results[i].eventID)));
+
+        ui->counterResults->setItem(
+            row, counterIndex[results[i].counterID] + 1,
+            MakeCounterResultItem(results[i], counterDescriptions[results[i].counterID]));
 
         ui->counterResults->item(row, 0)->setData(Qt::UserRole, results[i].eventID);
       }

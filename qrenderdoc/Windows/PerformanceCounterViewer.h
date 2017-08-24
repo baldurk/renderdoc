@@ -32,6 +32,8 @@ namespace Ui
 class PerformanceCounterViewer;
 }
 
+class QTableWidgetItem;
+
 class PerformanceCounterViewer : public QFrame, public IPerformanceCounterViewer, public ILogViewer
 {
   Q_OBJECT
@@ -53,7 +55,8 @@ private slots:
   void on_saveCSV_clicked();
 
 private:
-  QString FormatCounterResult(const CounterResult &result, const CounterDescription &description);
+  QTableWidgetItem *MakeCounterResultItem(const CounterResult &result,
+                                          const CounterDescription &description);
 
   QList<GPUCounter> m_SelectedCounters;
 
