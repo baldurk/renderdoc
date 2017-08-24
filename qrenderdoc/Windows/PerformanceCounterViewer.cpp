@@ -68,18 +68,18 @@ QString PerformanceCounterViewer::FormatCounterResult(const CounterResult &resul
 
   switch(description.resultType)
   {
-    case CompType::Float: returnValue += QString::number(mul * result.value.f); break;
+    case CompType::Float: returnValue += Formatter::Format(mul * result.value.f); break;
 
-    case CompType::Double: returnValue += QString::number(mul * result.value.d); break;
+    case CompType::Double: returnValue += Formatter::Format(mul * result.value.d); break;
 
     case CompType::UInt:
       if(description.resultByteWidth == 8)
       {
-        returnValue += QString::number(result.value.u64);
+        returnValue += Formatter::Format(result.value.u64);
       }
       else
       {
-        returnValue += QString::number(result.value.u32);
+        returnValue += Formatter::Format(result.value.u32);
       }
 
     default:
