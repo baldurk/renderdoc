@@ -33,7 +33,7 @@ PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget
 
   m_Ctx.AddLogViewer(this);
 
-  connect(ui->captureCounters, &QToolButton::pressed, this,
+  connect(ui->captureCounters, &QToolButton::clicked, this,
           &PerformanceCounterViewer::CaptureCounters);
 
   ui->captureCounters->setEnabled(m_Ctx.LogLoaded());
