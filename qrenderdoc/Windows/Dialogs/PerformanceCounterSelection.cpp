@@ -94,15 +94,16 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx,
 {
   ui->setupUi(this);
 
-  connect(ui->counterTree, &QTreeWidget::itemEntered, [this](QTreeWidgetItem *item, int) -> void {
-    const QVariant d = item->data(0, CounterDescriptionRole);
+  connect(ui->counterTree, &QTreeWidget::currentItemChanged,
+          [this](QTreeWidgetItem *item, QTreeWidgetItem *) -> void {
+            const QVariant d = item->data(0, CounterDescriptionRole);
 
-    if(d.isValid())
-    {
-      ui->counterDescription->setText(
-          QString(lit("<b>%1</b><hr>%2")).arg(item->text(0)).arg(d.toString()));
-    }
-  });
+            if(d.isValid())
+            {
+              ui->counterDescription->setText(
+                  QString(lit("<b>%1</b><hr>%2")).arg(item->text(0)).arg(d.toString()));
+            }
+          });
 
   connect(ui->save, &QPushButton::pressed, this, &PerformanceCounterSelection::Save);
   connect(ui->load, &QPushButton::pressed, this, &PerformanceCounterSelection::Load);
