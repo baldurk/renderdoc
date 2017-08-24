@@ -24,7 +24,6 @@
 
 #include "RDStyle.h"
 #include <QAbstractItemView>
-#include <QBitmap>
 #include <QComboBox>
 #include <QCommonStyle>
 #include <QDebug>

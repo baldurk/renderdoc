@@ -26,6 +26,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QDropEvent>
+#include "Code/Interface/QRDInterface.h"
 
 RDTableWidget::RDTableWidget(QWidget *parent) : QTableWidget(parent)
 {

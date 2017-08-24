@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QAbstractAnimation>
+#include <QBitmap>
 #include <QPalette>
 #include <QProxyStyle>
 #include "Styles/RDTweakedNativeStyle/RDTweakedNativeStyle.h"

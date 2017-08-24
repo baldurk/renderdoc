@@ -22,4 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <string>
+
 std::string LocatePluginFile(const std::string &path, const std::string &fileName);

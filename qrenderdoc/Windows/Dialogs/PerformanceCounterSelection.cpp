@@ -35,11 +35,11 @@
 #define JSON_ID "rdocPerformanceCounterSettings"
 #define JSON_VER 1
 
-// specialise this template so we can use QSet<GPUCounter>
-template <>
-inline uint qHash(const GPUCounter &t, uint seed)
+// we can't specialise the template, but creating an overload works. This lets us use
+// QSet<GPUCounter>
+inline uint qHash(const GPUCounter &t)
 {
-  return qHash(uint32_t(t), seed);
+  return qHash(uint32_t(t));
 }
 
 namespace

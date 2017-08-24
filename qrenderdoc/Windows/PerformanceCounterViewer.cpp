@@ -64,6 +64,8 @@ struct SortValue
           val.u = result.value.u64;
         else
           val.u = result.value.u32;
+
+      default: break;
     }
   }
 };
