@@ -359,10 +359,10 @@ void RDTreeWidgetItem::setWidget(RDTreeWidget *widget)
     item->setWidget(widget);
 }
 
-void RDTreeWidgetItem::dataChanged(int role)
+void RDTreeWidgetItem::dataChanged(int column, int role)
 {
   if(m_widget)
-    m_widget->itemDataChanged(this, role);
+    m_widget->itemDataChanged(this, column, role);
 }
 
 RDTreeWidgetItem *RDTreeWidgetItem::takeChild(int index)
@@ -843,7 +843,7 @@ void RDTreeWidget::currentChanged(const QModelIndex &current, const QModelIndex 
   RDTreeView::currentChanged(current, previous);
 }
 
-void RDTreeWidget::itemDataChanged(RDTreeWidgetItem *item, int role)
+void RDTreeWidget::itemDataChanged(RDTreeWidgetItem *item, int column, int role)
 {
   if(m_queueUpdates)
   {
@@ -879,6 +879,8 @@ void RDTreeWidget::itemDataChanged(RDTreeWidgetItem *item, int role)
   {
     m_model->itemChanged(item, {role});
   }
+
+  emit itemChanged(item, column);
 }
 
 void RDTreeWidget::beginAddChild(RDTreeWidgetItem *item)

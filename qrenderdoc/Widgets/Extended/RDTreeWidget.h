@@ -53,7 +53,7 @@ public:
       return;
 
     m_icons[column] = icon;
-    dataChanged(Qt::DecorationRole);
+    dataChanged(column, Qt::DecorationRole);
   }
   inline RDTreeWidgetItem *child(int index) const { return m_children[index]; }
   inline int indexOfChild(RDTreeWidgetItem *child) const { return m_children.indexOf(child); }
@@ -66,12 +66,12 @@ public:
   inline void setBold(bool bold)
   {
     m_bold = bold;
-    dataChanged(Qt::FontRole);
+    dataChanged(0, Qt::FontRole);
   }
   inline void setItalic(bool italic)
   {
     m_italic = italic;
-    dataChanged(Qt::FontRole);
+    dataChanged(0, Qt::FontRole);
   }
   inline void setTreeColor(QColor col, float pixels)
   {
@@ -83,12 +83,12 @@ public:
   inline void setBackground(QBrush background)
   {
     m_back = background;
-    dataChanged(Qt::BackgroundRole);
+    dataChanged(0, Qt::BackgroundRole);
   }
   inline void setForeground(QBrush foreground)
   {
     m_fore = foreground;
-    dataChanged(Qt::ForegroundRole);
+    dataChanged(0, Qt::ForegroundRole);
   }
   inline QString text(int column) const { return m_text[column].toString(); }
   inline void setText(int column, const QVariant &value)
@@ -97,12 +97,12 @@ public:
       return;
 
     m_text[column] = value;
-    dataChanged(Qt::DisplayRole);
+    dataChanged(column, Qt::DisplayRole);
   }
   inline void setToolTip(const QString &value)
   {
     m_tooltip = value;
-    dataChanged(Qt::ToolTipRole);
+    dataChanged(0, Qt::ToolTipRole);
   }
 
 private:
@@ -123,7 +123,7 @@ private:
     QVariant data;
   };
 
-  void dataChanged(int role);
+  void dataChanged(int column, int role);
 
   // per-column properties
   QVector<QVariant> m_text;
@@ -231,6 +231,7 @@ signals:
   void leave(QEvent *e);
   void keyPress(QKeyEvent *e);
   void itemClicked(RDTreeWidgetItem *item, int column);
+  void itemChanged(RDTreeWidgetItem *item, int column);
   void itemDoubleClicked(RDTreeWidgetItem *item, int column);
   void itemActivated(RDTreeWidgetItem *item, int column);
   void currentItemChanged(RDTreeWidgetItem *current, RDTreeWidgetItem *previous);
@@ -251,7 +252,7 @@ private:
   void currentChanged(const QModelIndex &current, const QModelIndex &previous) override;
 
   void setModel(QAbstractItemModel *model) override {}
-  void itemDataChanged(RDTreeWidgetItem *item, int role);
+  void itemDataChanged(RDTreeWidgetItem *item, int column, int role);
   void beginAddChild(RDTreeWidgetItem *item);
   void endAddChild(RDTreeWidgetItem *item);
 
