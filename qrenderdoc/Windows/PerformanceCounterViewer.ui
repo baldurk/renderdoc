@@ -13,12 +13,6 @@
   <property name="windowTitle">
    <string>Performance Counter Viewer</string>
   </property>
-  <property name="frameShape">
-   <enum>QFrame::StyledPanel</enum>
-  </property>
-  <property name="frameShadow">
-   <enum>QFrame::Raised</enum>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
     <number>0</number>
