@@ -429,6 +429,13 @@ uint32_t AMDCounters::GetSampleUint32(uint32_t session, uint32_t sample, GPUCoun
 
   m_pGPUPerfAPI->getSampleUInt32(session, sample, internalIndex, &value);
 
+  // normalise units as expected
+  GPA_Usage_Type usageType;
+  m_pGPUPerfAPI->getCounterUsageType(internalIndex, &usageType);
+
+  if(usageType == GPA_USAGE_TYPE_KILOBYTES)
+    value *= 1000;
+
   return value;
 }
 
@@ -438,6 +445,13 @@ uint64_t AMDCounters::GetSampleUint64(uint32_t session, uint32_t sample, GPUCoun
   gpa_uint64 value;
 
   m_pGPUPerfAPI->getSampleUInt64(session, sample, internalIndex, &value);
+
+  // normalise units as expected
+  GPA_Usage_Type usageType;
+  m_pGPUPerfAPI->getCounterUsageType(internalIndex, &usageType);
+
+  if(usageType == GPA_USAGE_TYPE_KILOBYTES)
+    value *= 1000;
 
   return value;
 }
@@ -449,6 +463,15 @@ float AMDCounters::GetSampleFloat32(uint32_t session, uint32_t sample, GPUCounte
 
   m_pGPUPerfAPI->getSampleFloat32(session, sample, internalIndex, &value);
 
+  // normalise units as expected
+  GPA_Usage_Type usageType;
+  m_pGPUPerfAPI->getCounterUsageType(internalIndex, &usageType);
+
+  if(usageType == GPA_USAGE_TYPE_KILOBYTES)
+    value *= 1000.0f;
+  else if(usageType == GPA_USAGE_TYPE_MILLISECONDS)
+    value /= 1000.0f;
+
   return value;
 }
 
@@ -458,6 +481,15 @@ double AMDCounters::GetSampleFloat64(uint32_t session, uint32_t sample, GPUCount
   double value;
 
   m_pGPUPerfAPI->getSampleFloat64(session, sample, internalIndex, &value);
+
+  // normalise units as expected
+  GPA_Usage_Type usageType;
+  m_pGPUPerfAPI->getCounterUsageType(internalIndex, &usageType);
+
+  if(usageType == GPA_USAGE_TYPE_KILOBYTES)
+    value *= 1000.0;
+  else if(usageType == GPA_USAGE_TYPE_MILLISECONDS)
+    value /= 1000.0;
 
   return value;
 }
