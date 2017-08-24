@@ -50,6 +50,7 @@ public:
 private slots:
   // automatic slots
   void on_counterResults_doubleClicked(const QModelIndex &index);
+  void on_saveCSV_clicked();
 
 private:
   QString FormatCounterResult(const CounterResult &result, const CounterDescription &description);

@@ -37,6 +37,7 @@ PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget
           &PerformanceCounterViewer::CaptureCounters);
 
   ui->captureCounters->setEnabled(m_Ctx.LogLoaded());
+  ui->saveCSV->setEnabled(m_Ctx.LogLoaded());
 }
 
 PerformanceCounterViewer::~PerformanceCounterViewer()
@@ -181,11 +182,13 @@ void PerformanceCounterViewer::CaptureCounters()
 void PerformanceCounterViewer::OnLogfileClosed()
 {
   ui->captureCounters->setEnabled(false);
+  ui->saveCSV->setEnabled(false);
 }
 
 void PerformanceCounterViewer::OnLogfileLoaded()
 {
   ui->captureCounters->setEnabled(true);
+  ui->saveCSV->setEnabled(true);
 }
 
 void PerformanceCounterViewer::on_counterResults_doubleClicked(const QModelIndex &index)
@@ -199,5 +202,63 @@ void PerformanceCounterViewer::on_counterResults_doubleClicked(const QModelIndex
 
     if(ok)
       m_Ctx.SetEventID({}, eid, eid);
+  }
+}
+
+void PerformanceCounterViewer::on_saveCSV_clicked()
+{
+  QString filename = RDDialog::getSaveFileName(this, tr("Export counter results as CSV"), QString(),
+                                               tr("CSV Files (*.csv)"));
+
+  if(!filename.isEmpty())
+  {
+    QDir dirinfo = QFileInfo(filename).dir();
+    if(dirinfo.exists())
+    {
+      QFile f(filename, this);
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate))
+      {
+        QTextStream ts(&f);
+
+        for(int col = 0; col < ui->counterResults->columnCount(); col++)
+        {
+          ts << ui->counterResults->horizontalHeaderItem(col)->text();
+
+          if(col == ui->counterResults->columnCount() - 1)
+            ts << lit("\n");
+          else
+            ts << lit(",");
+        }
+
+        for(int row = 0; row < ui->counterResults->rowCount(); row++)
+        {
+          for(int col = 0; col < ui->counterResults->columnCount(); col++)
+          {
+            QTableWidgetItem *item = ui->counterResults->item(row, col);
+
+            if(item)
+              ts << item->text();
+            else
+              ts << lit("-");
+
+            if(col == ui->counterResults->columnCount() - 1)
+              ts << lit("\n");
+            else
+              ts << lit(",");
+          }
+        }
+
+        return;
+      }
+
+      RDDialog::critical(
+          this, tr("Error exporting counter results"),
+          tr("Couldn't open path %1 for write.\n%2").arg(filename).arg(f.errorString()));
+    }
+    else
+    {
+      RDDialog::critical(this, tr("Invalid directory"),
+                         tr("Cannot find target directory to save to"));
+    }
   }
 }

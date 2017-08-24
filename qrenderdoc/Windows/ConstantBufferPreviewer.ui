@@ -149,6 +149,9 @@
           </item>
           <item>
            <widget class="QToolButton" name="saveCSV">
+            <property name="toolTip">
+             <string>Export to CSV</string>
+            </property>
             <property name="text">
              <string/>
             </property>

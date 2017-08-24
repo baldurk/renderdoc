@@ -44,10 +44,58 @@
       <number>6</number>
      </property>
      <item>
-      <widget class="QToolButton" name="captureCounters">
-       <property name="text">
-        <string>Capture counters</string>
+      <widget class="QFrame" name="frame">
+       <property name="frameShape">
+        <enum>QFrame::Panel</enum>
        </property>
+       <property name="frameShadow">
+        <enum>QFrame::Raised</enum>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <property name="spacing">
+         <number>2</number>
+        </property>
+        <property name="leftMargin">
+         <number>6</number>
+        </property>
+        <property name="topMargin">
+         <number>2</number>
+        </property>
+        <property name="rightMargin">
+         <number>6</number>
+        </property>
+        <property name="bottomMargin">
+         <number>2</number>
+        </property>
+        <item>
+         <widget class="QToolButton" name="captureCounters">
+          <property name="text">
+           <string>Capture counters</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="Line" name="line">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QToolButton" name="saveCSV">
+          <property name="toolTip">
+           <string>Export to CSV</string>
+          </property>
+          <property name="icon">
+           <iconset resource="../Resources/resources.qrc">
+            <normaloff>:/save.png</normaloff>:/save.png</iconset>
+          </property>
+          <property name="autoRaise">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </widget>
      </item>
      <item>
@@ -90,6 +138,8 @@
    <header>Widgets/Extended/RDTableWidget.h</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../Resources/resources.qrc"/>
+ </resources>
  <connections/>
 </ui>
