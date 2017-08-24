@@ -33,7 +33,7 @@ class PerformanceCounterSelection;
 
 struct ICaptureContext;
 class QListWidgetItem;
-class QTreeWidgetItem;
+class RDTreeWidgetItem;
 
 class PerformanceCounterSelection : public QDialog
 {
@@ -57,9 +57,12 @@ private slots:
   // automatic slots
   void on_enabledCounters_activated(const QModelIndex &index);
 
+  // manual slots
+  void counterTree_contextMenu(const QPoint &pos);
+
 private:
   void SetCounters(const QVector<CounterDescription> &descriptions);
-  void expandToNode(QTreeWidgetItem *node);
+  void expandToNode(RDTreeWidgetItem *node);
 
   Ui::PerformanceCounterSelection *ui;
 
@@ -67,7 +70,7 @@ private:
   QMap<GPUCounter, QListWidgetItem *> m_SelectedCounters;
   QMap<GPUCounter, Uuid> m_CounterToUuid;
   QMap<Uuid, GPUCounter> m_UuidToCounter;
-  QMap<GPUCounter, QTreeWidgetItem *> m_CounterToTreeItem;
+  QMap<GPUCounter, RDTreeWidgetItem *> m_CounterToTreeItem;
 
   static const int CounterDescriptionRole;
   static const int CounterIdRole;

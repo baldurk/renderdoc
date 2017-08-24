@@ -23,9 +23,11 @@
  ******************************************************************************/
 
 #include "PerformanceCounterSelection.h"
+#include <QMenu>
 #include <QSet>
 #include "Code/CaptureContext.h"
 #include "Code/Interface/QRDInterface.h"
+#include "Code/Resources.h"
 #include "ui_PerformanceCounterSelection.h"
 
 #include <unordered_map>
@@ -87,9 +89,9 @@ QString ToString(CounterFamily family)
 const int PerformanceCounterSelection::CounterDescriptionRole = Qt::UserRole + 1;
 const int PerformanceCounterSelection::CounterIdRole = Qt::UserRole + 2;
 
-void PerformanceCounterSelection::expandToNode(QTreeWidgetItem *node)
+void PerformanceCounterSelection::expandToNode(RDTreeWidgetItem *node)
 {
-  QTreeWidgetItem *n = node;
+  RDTreeWidgetItem *n = node;
   while(node != NULL)
   {
     ui->counterTree->expandItem(node);
@@ -107,8 +109,13 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx,
 {
   ui->setupUi(this);
 
-  connect(ui->counterTree, &QTreeWidget::currentItemChanged,
-          [this](QTreeWidgetItem *item, QTreeWidgetItem *) -> void {
+  setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+  ui->counterTree->setColumns({QString()});
+  ui->counterTree->setHeaderHidden(true);
+
+  connect(ui->counterTree, &RDTreeWidget::currentItemChanged,
+          [this](RDTreeWidgetItem *item, RDTreeWidgetItem *) -> void {
             const QVariant d = item->data(0, CounterDescriptionRole);
 
             if(d.isValid())
@@ -123,7 +130,7 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx,
   connect(ui->sampleCounters, &QPushButton::pressed, this, &PerformanceCounterSelection::accept);
   connect(ui->cancel, &QPushButton::pressed, this, &PerformanceCounterSelection::reject);
 
-  connect(ui->counterTree, &QTreeWidget::itemChanged, [this](QTreeWidgetItem *item, int) -> void {
+  connect(ui->counterTree, &RDTreeWidget::itemChanged, [this](RDTreeWidgetItem *item, int) -> void {
     const QVariant d = item->data(0, CounterIdRole);
 
     if(d.isValid())
@@ -159,6 +166,10 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx,
       SetSelectedCounters(selectedCounters);
     });
   });
+
+  ui->counterTree->setContextMenuPolicy(Qt::CustomContextMenu);
+  QObject::connect(ui->counterTree, &RDTreeWidget::customContextMenuRequested, this,
+                   &PerformanceCounterSelection::counterTree_contextMenu);
 }
 
 PerformanceCounterSelection::~PerformanceCounterSelection()
@@ -171,10 +182,10 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
   ui->counterTree->clear();
   ui->enabledCounters->clear();
 
-  QTreeWidgetItem *currentRoot = NULL;
+  RDTreeWidgetItem *currentRoot = NULL;
   CounterFamily currentFamily = CounterFamily::Unknown;
 
-  std::unordered_map<std::string, QTreeWidgetItem *> categories;
+  std::unordered_map<std::string, RDTreeWidgetItem *> categories;
 
   for(const CounterDescription &desc : descriptions)
   {
@@ -184,7 +195,8 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
     const CounterFamily family = GetCounterFamily(desc.counterID);
     if(family != currentFamily)
     {
-      currentRoot = new QTreeWidgetItem(ui->counterTree);
+      currentRoot = new RDTreeWidgetItem();
+      ui->counterTree->addTopLevelItem(currentRoot);
       currentRoot->setText(0, ToString(family));
 
       categories.clear();
@@ -192,15 +204,17 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
       currentFamily = family;
     }
 
-    QTreeWidgetItem *categoryItem = NULL;
+    RDTreeWidgetItem *categoryItem = NULL;
 
     const std::string category = desc.category;
     auto categoryIterator = categories.find(category);
 
     if(categoryIterator == categories.end())
     {
-      QTreeWidgetItem *item = new QTreeWidgetItem(currentRoot);
+      RDTreeWidgetItem *item = new RDTreeWidgetItem();
+      currentRoot->addChild(item);
       item->setText(0, desc.category);
+
       categories[category] = item;
       categoryItem = item;
     }
@@ -209,7 +223,8 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
       categoryItem = categoryIterator->second;
     }
 
-    QTreeWidgetItem *counterItem = new QTreeWidgetItem(categoryItem);
+    RDTreeWidgetItem *counterItem = new RDTreeWidgetItem();
+    categoryItem->addChild(counterItem);
     counterItem->setText(0, desc.name);
     counterItem->setData(0, CounterDescriptionRole, desc.description);
     counterItem->setData(0, CounterIdRole, (uint32_t)desc.counterID);
@@ -228,7 +243,7 @@ void PerformanceCounterSelection::SetSelectedCounters(const QList<GPUCounter> &c
 {
   // We we walk over the complete tree, and toggle everything so it
   // matches the settings
-  QTreeWidgetItemIterator it(ui->counterTree);
+  RDTreeWidgetItemIterator it(ui->counterTree);
   while(*it)
   {
     const QVariant id = (*it)->data(0, Qt::UserRole + 2);
@@ -327,6 +342,32 @@ void PerformanceCounterSelection::Load()
                        tr("Couldn't open path %1 for reading.").arg(filename));
   }
 }
+void PerformanceCounterSelection::counterTree_contextMenu(const QPoint &pos)
+{
+  RDTreeWidgetItem *item = ui->counterTree->itemAt(pos);
+
+  QMenu contextMenu(this);
+
+  QAction expandAll(tr("&Expand All"), this);
+  QAction collapseAll(tr("&Collapse All"), this);
+
+  contextMenu.addAction(&expandAll);
+  contextMenu.addAction(&collapseAll);
+
+  expandAll.setIcon(Icons::arrow_out());
+  collapseAll.setIcon(Icons::arrow_in());
+
+  expandAll.setEnabled(item && item->childCount() > 0);
+  collapseAll.setEnabled(item && item->childCount() > 0);
+
+  QObject::connect(&expandAll, &QAction::triggered,
+                   [this, item]() { ui->counterTree->expandAllItems(item); });
+
+  QObject::connect(&collapseAll, &QAction::triggered,
+                   [this, item]() { ui->counterTree->collapseAllItems(item); });
+
+  RDDialog::show(&contextMenu, ui->counterTree->viewport()->mapToGlobal(pos));
+}
 
 void PerformanceCounterSelection::on_enabledCounters_activated(const QModelIndex &index)
 {
@@ -343,7 +384,7 @@ void PerformanceCounterSelection::on_enabledCounters_activated(const QModelIndex
   if(it != m_CounterToTreeItem.end())
   {
     ui->counterTree->setCurrentItem(it.value());
-    it.value()->setSelected(true);
+    ui->counterTree->setSelectedItem(it.value());
 
     expandToNode(it.value());
   }

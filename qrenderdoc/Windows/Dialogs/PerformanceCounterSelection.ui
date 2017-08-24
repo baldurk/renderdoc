@@ -24,15 +24,10 @@
       </widget>
      </item>
      <item>
-      <widget class="QTreeWidget" name="counterTree">
-       <attribute name="headerVisible">
-        <bool>false</bool>
+      <widget class="RDTreeWidget" name="counterTree">
+       <attribute name="headerDefaultSectionSize">
+        <number>0</number>
        </attribute>
-       <column>
-        <property name="text">
-         <string>1</string>
-        </property>
-       </column>
       </widget>
      </item>
     </layout>
@@ -115,6 +110,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>RDTreeWidget</class>
+   <extends>QTreeView</extends>
+   <header>Widgets/Extended/RDTreeWidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
