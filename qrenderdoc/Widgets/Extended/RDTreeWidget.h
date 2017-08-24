@@ -50,7 +50,10 @@ public:
   inline void setIcon(int column, const QIcon &icon)
   {
     if(column >= m_icons.size())
-      return;
+    {
+      m_text.resize(column + 1);
+      m_icons.resize(m_text.size());
+    }
 
     m_icons[column] = icon;
     dataChanged(column, Qt::DecorationRole);
@@ -94,7 +97,10 @@ public:
   inline void setText(int column, const QVariant &value)
   {
     if(column >= m_text.size())
-      return;
+    {
+      m_text.resize(column + 1);
+      m_icons.resize(m_text.size());
+    }
 
     m_text[column] = value;
     dataChanged(column, Qt::DisplayRole);

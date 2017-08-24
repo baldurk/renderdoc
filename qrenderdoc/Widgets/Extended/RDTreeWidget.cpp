@@ -260,7 +260,7 @@ RDTreeWidgetItem::~RDTreeWidgetItem()
 
 QVariant RDTreeWidgetItem::data(int column, int role) const
 {
-  if(column >= m_data->count())
+  if(m_data == NULL || column >= m_data->count())
     return QVariant();
 
   const QVector<RoleData> &dataVec = (*m_data)[column];
