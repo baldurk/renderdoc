@@ -25,6 +25,7 @@
 #include "amd_counters.h"
 #include <Windows.h>
 #include "common/common.h"
+#include "core/plugins.h"
 #include "official/GPUPerfAPI/Include/GPUPerfAPI.h"
 #include "official/GPUPerfAPI/Include/GPUPerfAPIFunctionTypes.h"
 
@@ -107,13 +108,15 @@ AMDCounters::AMDCounters() : m_pGPUPerfAPI(NULL)
 
 bool AMDCounters::Init(void *pContext)
 {
-  // first try in the location it will be in distributed builds
-  HMODULE module = LoadLibraryA("plugins/amd/counters/GPUPerfAPIDX11-x64.dll");
+  const char *dllName = "GPUPerfAPIDX11-x64.dll";
+
+  // first try in the plugin location it will be in distributed builds
+  HMODULE module = LoadLibraryA(LocatePluginFile("amd/counters", dllName).c_str());
 
   // if that failed then try checking for it just in the default search path
   if(module == NULL)
   {
-    module = LoadLibraryA("GPUPerfAPIDX11-x64.dll");
+    module = LoadLibraryA(dllName);
   }
 
   if(module == NULL)

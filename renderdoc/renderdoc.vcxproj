@@ -138,6 +138,7 @@
     <ClInclude Include="core\android.h" />
     <ClInclude Include="core\core.h" />
     <ClInclude Include="core\crash_handler.h" />
+    <ClInclude Include="core\plugins.h" />
     <ClInclude Include="core\precompiled.h" />
     <ClInclude Include="core\replay_proxy.h" />
     <ClInclude Include="core\resource_manager.h" />
@@ -212,6 +213,7 @@
     <ClCompile Include="core\android.cpp" />
     <ClCompile Include="core\core.cpp" />
     <ClCompile Include="core\image_viewer.cpp" />
+    <ClCompile Include="core\plugins.cpp" />
     <ClCompile Include="core\precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>

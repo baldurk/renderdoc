@@ -282,6 +282,9 @@
     <ClInclude Include="core\android.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="core\plugins.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -471,6 +474,9 @@
       <Filter>PCH</Filter>
     </ClCompile>
     <ClCompile Include="core\android.cpp" />
+    <ClCompile Include="core\plugins.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

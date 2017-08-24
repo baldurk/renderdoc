@@ -24,6 +24,7 @@
 
 #include "amd_isa.h"
 #include "common/common.h"
+#include "core/plugins.h"
 #include "driver/shaders/spirv/spirv_common.h"
 #include "serialise/string_utils.h"
 #include "amd_isa_devices.h"
@@ -38,72 +39,13 @@ static const std::string amdspv_name = "amdspv.sh";
 static const std::string virtualcontext_name = "VirtualContext";
 #endif
 
-std::string LocatePlugin(const std::string &fileName)
-{
-  std::string ret;
-
-  std::string exepath;
-  FileIO::GetExecutableFilename(exepath);
-  exepath = dirname(exepath);
-
-  std::vector<std::string> paths;
-
-#if defined(RENDERDOC_PLUGINS_PATH)
-  string customPath(RENDERDOC_PLUGINS_PATH);
-
-  if(FileIO::IsRelativePath(customPath))
-    customPath = exepath + "/" + customPath;
-
-  paths.push_back(customPath);
-#endif
-
-  // windows installation
-  paths.push_back(exepath + "/plugins");
-  // linux installation
-  paths.push_back(exepath + "/../share/renderdoc/plugins");
-// also search the appropriate OS-specific location in the root
-#if ENABLED(RDOC_WIN32) && ENABLED(RDOC_X64)
-  paths.push_back(exepath + "/../../plugins-win64");
-#endif
-
-#if ENABLED(RDOC_WIN32) && DISABLED(RDOC_X64)
-  paths.push_back(exepath + "/../../plugins-win32");
-#endif
-
-#if ENABLED(RDOC_LINUX)
-  paths.push_back(exepath + "/../../plugins-linux64");
-#endif
-
-  // there is no standard path for local builds as we don't provide these plugins in the repository
-  // directly. As a courtesy we search the root of the build, from the executable. The user can
-  // always put the plugins folder relative to the exe where it would be in an installation too.
-  paths.push_back(exepath + "/../../plugins");
-
-  // in future maybe we want to search a user-specific plugins folder? Like ~/.renderdoc/ on linux
-  // or %APPDATA%/renderdoc on windows?
-
-  for(uint32_t i = 0; i < paths.size(); i++)
-  {
-    std::string check = paths[i] + "/amd/isa/" + fileName;
-    if(FileIO::exists(check.c_str()))
-    {
-      ret = check;
-      break;
-    }
-  }
-
-  // if we didn't find it anywhere, just try running it directly in case it's in the PATH
-  if(ret.empty())
-    ret = fileName;
-
-  return ret;
-}
+std::string pluginPath = "amd/isa";
 
 static bool IsSupported(GraphicsAPI api)
 {
   if(api == GraphicsAPI::OpenGL)
   {
-    std::string vc = LocatePlugin(virtualcontext_name);
+    std::string vc = LocatePluginFile(pluginPath, virtualcontext_name);
 
     Process::ProcessResult result = {};
     Process::LaunchProcess(vc.c_str(), dirname(vc).c_str(), "", &result);
@@ -118,7 +60,7 @@ static bool IsSupported(GraphicsAPI api)
   if(api == GraphicsAPI::Vulkan)
   {
     // TODO need to check if an AMD context is running
-    std::string amdspv = LocatePlugin(amdspv_name);
+    std::string amdspv = LocatePluginFile(pluginPath, amdspv_name);
 
     Process::ProcessResult result = {};
     Process::LaunchProcess(amdspv.c_str(), dirname(amdspv).c_str(), "", &result);
@@ -232,7 +174,7 @@ std::string Disassemble(const SPVModule *spv, const std::string &entry, const st
   FileIO::dump(inPath.c_str(), spv->spirv.data(), spv->spirv.size() * sizeof(uint32_t));
 
   // try to locate the amdspv relative to our running program
-  std::string amdspv = LocatePlugin(amdspv_name);
+  std::string amdspv = LocatePluginFile(pluginPath, amdspv_name);
 
   Process::ProcessResult result = {};
   Process::LaunchProcess(amdspv.c_str(), dirname(amdspv).c_str(), cmdLine.c_str(), &result);
@@ -395,7 +337,7 @@ std::string Disassemble(ShaderStage stage, const std::vector<std::string> &glsl,
   FileIO::dump(inPath.c_str(), source.data(), source.size());
 
   // try to locate the amdspv relative to our running program
-  std::string vc = LocatePlugin(virtualcontext_name);
+  std::string vc = LocatePluginFile(pluginPath, virtualcontext_name);
 
   Process::ProcessResult result = {};
   Process::LaunchProcess(vc.c_str(), dirname(vc).c_str(), cmdLine.c_str(), &result);

@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "amd_isa.h"
+#include "core/plugins.h"
 #include "driver/shaders/dxbc/dxbc_inspect.h"
 #include "official/RGA/Common/AmdDxGsaCompile.h"
 #include "official/RGA/elf/elf32.h"
@@ -44,13 +45,13 @@ https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
 
 namespace GCNISA
 {
-std::string LocatePlugin(const std::string &fileName);
+extern std::string pluginPath;
 };
 
 static HMODULE GetAMDModule()
 {
   // first try in the plugin locations
-  HMODULE module = LoadLibraryA(GCNISA::LocatePlugin(DLL_NAME).c_str());
+  HMODULE module = LoadLibraryA(LocatePluginFile(GCNISA::pluginPath, DLL_NAME).c_str());
 
   // if that failed then try checking for it just in the default search path
   if(module == NULL)
