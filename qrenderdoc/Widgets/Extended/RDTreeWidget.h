@@ -145,6 +145,35 @@ private:
   QVariant m_tag;
 };
 
+class RDTreeWidgetItemIterator
+{
+public:
+  RDTreeWidgetItemIterator(RDTreeWidget *widget);
+
+  RDTreeWidgetItemIterator &operator++();
+  inline const RDTreeWidgetItemIterator operator++(int)
+  {
+    RDTreeWidgetItemIterator it = *this;
+    ++(*this);
+    return it;
+  }
+
+  // TODO implement operator-- if we need it.
+  /*
+  RDTreeWidgetItemIterator &operator--();
+  inline const RDTreeWidgetItemIterator operator--(int)
+  {
+    RDTreeWidgetItemIterator it = *this;
+    --(*this);
+    return it;
+  }
+  */
+
+  inline RDTreeWidgetItem *operator*() const { return m_Current; }
+private:
+  RDTreeWidgetItem *m_Current;
+};
+
 class RDTreeWidget : public RDTreeView
 {
   Q_OBJECT

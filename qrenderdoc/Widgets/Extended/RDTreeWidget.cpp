@@ -412,6 +412,48 @@ void RDTreeWidgetItem::clear()
     m_widget->m_model->endRemoveChildren();
 }
 
+RDTreeWidgetItemIterator::RDTreeWidgetItemIterator(RDTreeWidget *widget)
+{
+  if(widget->topLevelItemCount() == 0)
+    m_Current = NULL;
+  else
+    m_Current = widget->topLevelItem(0);
+}
+
+RDTreeWidgetItemIterator &RDTreeWidgetItemIterator::operator++()
+{
+  // depth first
+  if(m_Current->childCount() > 0)
+  {
+    m_Current = m_Current->child(0);
+    return *this;
+  }
+
+  // otherwise check if we have siblings, recursively up
+  RDTreeWidgetItem *parent = m_Current->parent();
+  RDTreeWidgetItem *child = m_Current;
+  while(parent)
+  {
+    // if there's a sibling at this level, move to it
+    int idx = parent->indexOfChild(child);
+    if(idx + 1 < parent->childCount())
+    {
+      m_Current = parent->child(idx + 1);
+      return *this;
+    }
+
+    // if there are no more siblings at this level, move up
+    child = parent;
+    parent = parent->parent();
+
+    // if we just exhausted siblings at the top-level, parent will now be NULL, so we abort.
+  }
+
+  // no more siblings, stop.
+  m_Current = NULL;
+  return *this;
+}
+
 RDTreeWidget::RDTreeWidget(QWidget *parent) : RDTreeView(parent)
 {
   // we'll call this ourselves in drawBranches()
