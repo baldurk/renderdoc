@@ -153,7 +153,7 @@ public:
     if(m_Proxy)
       return m_Proxy->GetOutputWindowDimensions(id, w, h);
   }
-  void ClearOutputWindowColor(uint64_t id, float col[4])
+  void ClearOutputWindowColor(uint64_t id, FloatVector col)
   {
     if(m_Proxy)
       return m_Proxy->ClearOutputWindowColor(id, col);
@@ -180,10 +180,10 @@ public:
       return m_Proxy->FlipOutputWindow(id);
   }
 
-  void RenderCheckerboard(Vec3f light, Vec3f dark)
+  void RenderCheckerboard()
   {
     if(m_Proxy)
-      return m_Proxy->RenderCheckerboard(light, dark);
+      return m_Proxy->RenderCheckerboard();
   }
 
   void RenderHighlightBox(float w, float h, float scale)

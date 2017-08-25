@@ -4,6 +4,7 @@
 // types in the RenderDoc core interface are already wrapped, and Qt types must either be manually
 // converted directly to python, or interfaced with PySide, otherwise we get into the situation
 // where pyside and SWIG have independent incompatible wrappers of Qt types
+#include <QColor>
 #include <QDateTime>
 #include <QList>
 #include <QMap>

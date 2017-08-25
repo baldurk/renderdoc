@@ -677,10 +677,13 @@ struct Formatter
   }
   static QString Format(int32_t i, bool hex = false) { return QString::number(i); }
   static const QFont &PreferredFont() { return *m_Font; }
+  static const QColor DarkCheckerColor() { return m_DarkChecker; }
+  static const QColor LightCheckerColor() { return m_LightChecker; }
 private:
   static int m_minFigures, m_maxFigures, m_expNegCutoff, m_expPosCutoff;
   static double m_expNegValue, m_expPosValue;
   static QFont *m_Font;
+  static QColor m_DarkChecker, m_LightChecker;
 };
 
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion);
@@ -898,6 +901,8 @@ void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinis
 void setEnabledMultiple(const QList<QWidget *> &widgets, bool enabled);
 
 QString GetSystemUsername();
+
+bool IsDarkTheme();
 
 float getLuminance(const QColor &col);
 QColor contrastingColor(const QColor &col, const QColor &defaultCol);

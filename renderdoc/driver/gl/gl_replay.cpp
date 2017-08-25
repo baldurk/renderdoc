@@ -331,14 +331,14 @@ void GLReplay::BindOutputWindow(uint64_t id, bool depth)
   DebugData.outHeight = float(outw.height);
 }
 
-void GLReplay::ClearOutputWindowColor(uint64_t id, float col[4])
+void GLReplay::ClearOutputWindowColor(uint64_t id, FloatVector col)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
 
   MakeCurrentReplayContext(m_DebugCtx);
 
-  m_pDriver->glClearBufferfv(eGL_COLOR, 0, col);
+  m_pDriver->glClearBufferfv(eGL_COLOR, 0, &col.x);
 }
 
 void GLReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
@@ -2797,7 +2797,6 @@ ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint
   disp.CustomShader = shader;
   disp.texid = texid;
   disp.typeHint = typeHint;
-  disp.lightBackgroundColor = disp.darkBackgroundColor = FloatVector(0, 0, 0, 0);
   disp.HDRMul = -1.0f;
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;

@@ -201,8 +201,7 @@ If only one channel is selected, it will be rendered in grayscale
   bool Blue;
 
   DOCUMENT(R"(``True`` if the alpha channel should be visible. If enabled with any of RGB, the
-texture will be blended to a checkerboard of :data:`lightBackgroundColor` and
-:data:`darkBackgroundColor`.
+texture will be blended to the background color or checkerboard.
 
 If only one channel is selected, it will be rendered in grayscale
 )");
@@ -252,10 +251,11 @@ the input texture in cases where it isn't easy to directly fetch the input textu
   DOCUMENT("The offset to pan in the Y axis.");
   float offy;
 
-  DOCUMENT("The light background colour to use in the checkerboard behind the texture display.");
-  FloatVector lightBackgroundColor;
-  DOCUMENT("The dark background colour to use in the checkerboard behind the texture display.");
-  FloatVector darkBackgroundColor;
+  DOCUMENT(R"(The background colour to use behind the texture display.
+
+If set to (0, 0, 0, 0) the global checkerboard colors are used.
+)");
+  FloatVector backgroundColor;
 
   DOCUMENT("Selects a :class:`DebugOverlay` to draw over the top of the texture.");
   DebugOverlay overlay;
@@ -392,14 +392,12 @@ written
   DOCUMENT(R"(Controls handling of alpha channel, mostly relevant for file formats that without
 alpha.
 
-It is an :class:`AlphaMapping` that controls what behaviour to use. :data:`alphaCol` and
-:data:`alphaColSecondary` may be used depending on the behaviour that it selects.
+It is an :class:`AlphaMapping` that controls what behaviour to use.
 )");
   AlphaMapping alpha;
-  DOCUMENT("The primary color to use in conjunction with :data:`alpha`.");
-  FloatVector alphaCol = FloatVector(0.81f, 0.81f, 0.81f, 1.0f);
-  DOCUMENT("The secondary color to use in conjunction with :data:`alpha`.");
-  FloatVector alphaColSecondary = FloatVector(0.57f, 0.57f, 0.57f, 1.0f);
+
+  DOCUMENT("The background color if :data:`alpha` is set to :data:`AlphaMapping.BlendToColor`");
+  FloatVector alphaCol;
 
   DOCUMENT("The quality to use when saving to a ``JPG`` file. Valid values are between 1 and 100.");
   int jpegQuality = 90;

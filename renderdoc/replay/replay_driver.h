@@ -170,7 +170,7 @@ public:
   virtual void DestroyOutputWindow(uint64_t id) = 0;
   virtual bool CheckResizeOutputWindow(uint64_t id) = 0;
   virtual void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h) = 0;
-  virtual void ClearOutputWindowColor(uint64_t id, float col[4]) = 0;
+  virtual void ClearOutputWindowColor(uint64_t id, FloatVector col) = 0;
   virtual void ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil) = 0;
   virtual void BindOutputWindow(uint64_t id, bool depth) = 0;
   virtual bool IsOutputWindowVisible(uint64_t id) = 0;
@@ -200,7 +200,7 @@ public:
                                        uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint) = 0;
   virtual void FreeCustomShader(ResourceId id) = 0;
 
-  virtual void RenderCheckerboard(Vec3f light, Vec3f dark) = 0;
+  virtual void RenderCheckerboard() = 0;
 
   virtual void RenderHighlightBox(float w, float h, float scale) = 0;
 

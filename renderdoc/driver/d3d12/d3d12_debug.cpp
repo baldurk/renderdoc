@@ -2129,14 +2129,14 @@ void D3D12DebugManager::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32
   h = m_OutputWindows[id].height;
 }
 
-void D3D12DebugManager::ClearOutputWindowColor(uint64_t id, float col[4])
+void D3D12DebugManager::ClearOutputWindowColor(uint64_t id, FloatVector col)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
 
   ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
-  list->ClearRenderTargetView(m_OutputWindows[id].rtv, col, 0, NULL);
+  list->ClearRenderTargetView(m_OutputWindows[id].rtv, &col.x, 0, NULL);
 
   list->Close();
 }
@@ -5070,7 +5070,7 @@ void D3D12DebugManager::RenderHighlightBox(float w, float h, float scale)
   }
 }
 
-void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
+void D3D12DebugManager::RenderCheckerboard()
 {
   DebugVertexCBuffer vertexData;
 
@@ -5089,8 +5089,8 @@ void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 
   pixelData.AlwaysZero = 0.0f;
 
-  pixelData.Channels = Vec4f(light.x, light.y, light.z, 0.0f);
-  pixelData.WireframeColour = dark;
+  pixelData.Channels = RenderDoc::Inst().LightCheckerboardColor();
+  pixelData.WireframeColour = RenderDoc::Inst().DarkCheckerboardColor();
 
   D3D12_GPU_VIRTUAL_ADDRESS vs = UploadConstants(&vertexData, sizeof(DebugVertexCBuffer));
   D3D12_GPU_VIRTUAL_ADDRESS ps = UploadConstants(&pixelData, sizeof(pixelData));
@@ -6869,7 +6869,6 @@ ResourceId D3D12DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
   disp.CustomShader = shader;
   disp.texid = texid;
   disp.typeHint = typeHint;
-  disp.lightBackgroundColor = disp.darkBackgroundColor = FloatVector(0, 0, 0, 0);
   disp.HDRMul = -1.0f;
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;

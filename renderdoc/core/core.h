@@ -35,6 +35,7 @@
 #include "api/replay/renderdoc_replay.h"
 #include "common/threading.h"
 #include "common/timing.h"
+#include "maths/vec.h"
 #include "os/os_specific.h"
 
 using std::string;
@@ -272,6 +273,12 @@ public:
       m_VulkanInstall(systemLevel);
   }
 
+  Vec4f LightCheckerboardColor() { return m_LightChecker; }
+  Vec4f DarkCheckerboardColor() { return m_DarkChecker; }
+  void SetLightCheckerboardColor(const Vec4f &col) { m_LightChecker = col; }
+  void SetDarkCheckerboardColor(const Vec4f &col) { m_DarkChecker = col; }
+  bool IsDarkTheme() { return m_DarkTheme; }
+  void SetDarkTheme(bool dark) { m_DarkTheme = dark; }
   ReplayStatus CreateReplayDriver(RDCDriver driverType, const char *logfile, IReplayDriver **driver);
   ReplayStatus CreateRemoteDriver(RDCDriver driverType, const char *logfile, IRemoteDriver **driver);
 
@@ -425,6 +432,10 @@ private:
       return *this == o;
     }
   };
+
+  Vec4f m_LightChecker = Vec4f(0.81f, 0.81f, 0.81f, 1.0f);
+  Vec4f m_DarkChecker = Vec4f(0.57f, 0.57f, 0.57f, 1.0f);
+  bool m_DarkTheme = false;
 
   int m_CapturesActive;
 

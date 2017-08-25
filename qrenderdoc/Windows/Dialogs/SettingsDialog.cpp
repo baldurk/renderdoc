@@ -450,7 +450,11 @@ void SettingsDialog::on_UIStyle_currentIndexChanged(int index)
   m_Ctx.Config().UIStyle = newStyle;
 
   if(ret == QMessageBox::Yes)
+  {
     m_Ctx.Config().SetStyle();
+
+    m_Ctx.Config().SetupFormatting();
+  }
 
   m_Ctx.Config().Save();
 }

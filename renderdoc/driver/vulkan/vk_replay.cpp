@@ -1522,7 +1522,7 @@ void VulkanReplay::CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage li
     iminfo.view = view;
 }
 
-void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
+void VulkanReplay::RenderCheckerboard()
 {
   auto it = m_OutputWindows.find(m_ActiveWinID);
   if(m_ActiveWinID == 0 || it == m_OutputWindows.end())
@@ -1548,12 +1548,8 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
   uint32_t uboOffs = 0;
 
   Vec4f *data = (Vec4f *)GetDebugManager()->m_CheckerboardUBO.Map(&uboOffs);
-  data[0].x = light.x;
-  data[0].y = light.y;
-  data[0].z = light.z;
-  data[1].x = dark.x;
-  data[1].y = dark.y;
-  data[1].z = dark.z;
+  data[0] = RenderDoc::Inst().LightCheckerboardColor();
+  data[1] = RenderDoc::Inst().DarkCheckerboardColor();
   GetDebugManager()->m_CheckerboardUBO.Unmap();
 
   {
@@ -2566,7 +2562,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 #endif
 }
 
-void VulkanReplay::ClearOutputWindowColor(uint64_t id, float col[4])
+void VulkanReplay::ClearOutputWindowColor(uint64_t id, FloatVector col)
 {
   auto it = m_OutputWindows.find(id);
   if(id == 0 || it == m_OutputWindows.end())
@@ -2597,7 +2593,7 @@ void VulkanReplay::ClearOutputWindowColor(uint64_t id, float col[4])
   DoPipelineBarrier(cmd, 1, &outw.bbBarrier);
 
   vt->CmdClearColorImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                         (VkClearColorValue *)col, 1, &outw.bbBarrier.subresourceRange);
+                         (VkClearColorValue *)&col.x, 1, &outw.bbBarrier.subresourceRange);
 
   outw.bbBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
   outw.bbBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -5108,7 +5104,6 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   disp.CustomShader = shader;
   disp.texid = texid;
   disp.typeHint = typeHint;
-  disp.lightBackgroundColor = disp.darkBackgroundColor = FloatVector(0, 0, 0, 0);
   disp.HDRMul = -1.0f;
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;

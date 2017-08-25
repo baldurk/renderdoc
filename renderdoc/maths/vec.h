@@ -69,6 +69,7 @@ struct Vec4f
     z = Z;
     w = W;
   }
+  operator Vec3f() const { return Vec3f(x, y, z); }
   float x, y, z, w;
 };
 

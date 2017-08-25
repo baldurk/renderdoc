@@ -82,7 +82,7 @@ public:
   {
     m_Proxy->GetOutputWindowDimensions(id, w, h);
   }
-  void ClearOutputWindowColor(uint64_t id, float col[4])
+  void ClearOutputWindowColor(uint64_t id, FloatVector col)
   {
     m_Proxy->ClearOutputWindowColor(id, col);
   }
@@ -93,7 +93,7 @@ public:
   void BindOutputWindow(uint64_t id, bool depth) { m_Proxy->BindOutputWindow(id, depth); }
   bool IsOutputWindowVisible(uint64_t id) { return m_Proxy->IsOutputWindowVisible(id); }
   void FlipOutputWindow(uint64_t id) { m_Proxy->FlipOutputWindow(id); }
-  void RenderCheckerboard(Vec3f light, Vec3f dark) { m_Proxy->RenderCheckerboard(light, dark); }
+  void RenderCheckerboard() { m_Proxy->RenderCheckerboard(); }
   void RenderHighlightBox(float w, float h, float scale)
   {
     m_Proxy->RenderHighlightBox(w, h, scale);

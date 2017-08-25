@@ -2460,8 +2460,7 @@ void TextureViewer::UI_RecreatePanels()
     ui->pixelcontextgrid->addWidget(pixelContext, 0, 0, 1, 2);
   }
 
-  ui->render->setColours(darkBack, lightBack);
-  ui->pixelContext->setColours(darkBack, lightBack);
+  updateBackgroundColors();
 
   QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &TextureViewer::render_mouseClick);
   QObject::connect(ui->render, &CustomPaintWidget::mouseMove, this, &TextureViewer::render_mouseMove);
@@ -2472,6 +2471,20 @@ void TextureViewer::UI_RecreatePanels()
 
   QObject::connect(ui->pixelContext, &CustomPaintWidget::keyPress, this,
                    &TextureViewer::render_keyPress);
+}
+
+void TextureViewer::updateBackgroundColors()
+{
+  if(backCol.isValid())
+  {
+    ui->render->setColours(backCol, backCol);
+    ui->pixelContext->setColours(backCol, backCol);
+  }
+  else
+  {
+    ui->render->setColours(Formatter::DarkCheckerColor(), Formatter::LightCheckerColor());
+    ui->pixelContext->setColours(Formatter::DarkCheckerColor(), Formatter::LightCheckerColor());
+  }
 }
 
 void TextureViewer::OnLogfileLoaded()
@@ -2489,10 +2502,9 @@ void TextureViewer::OnLogfileLoaded()
 
   model->reset(TextureListItemModel::String, QString(), m_Ctx);
 
-  m_TexDisplay.darkBackgroundColor =
-      FloatVector(darkBack.redF(), darkBack.greenF(), darkBack.blueF(), 1.0f);
-  m_TexDisplay.lightBackgroundColor =
-      FloatVector(lightBack.redF(), lightBack.greenF(), lightBack.blueF(), 1.0f);
+  m_TexDisplay.backgroundColor =
+      backCol.isValid() ? FloatVector(backCol.redF(), backCol.greenF(), backCol.blueF(), 1.0f)
+                        : FloatVector();
 
   m_Ctx.Replay().BlockInvoke([renderID, contextID, this](IReplayController *r) {
     m_Output = r->CreateOutput(m_Ctx.CurWindowingSystem(), m_Ctx.FillWindowingData(renderID),
@@ -2522,10 +2534,9 @@ void TextureViewer::Reset()
   m_CachedTexture = NULL;
 
   memset(&m_TexDisplay, 0, sizeof(m_TexDisplay));
-  m_TexDisplay.darkBackgroundColor =
-      FloatVector(darkBack.redF(), darkBack.greenF(), darkBack.blueF(), 1.0f);
-  m_TexDisplay.lightBackgroundColor =
-      FloatVector(lightBack.redF(), lightBack.greenF(), lightBack.blueF(), 1.0f);
+  m_TexDisplay.backgroundColor =
+      backCol.isValid() ? FloatVector(backCol.redF(), backCol.greenF(), backCol.blueF(), 1.0f)
+                        : FloatVector();
 
   m_Output = NULL;
 
@@ -2716,8 +2727,8 @@ QVariant TextureViewer::persistData()
 {
   QVariantMap state = ui->dockarea->saveState();
 
-  state[lit("darkBack")] = darkBack;
-  state[lit("lightBack")] = lightBack;
+  state[lit("backCol")] = backCol;
+  state[lit("checker")] = !backCol.isValid();
 
   return state;
 }
@@ -2726,27 +2737,19 @@ void TextureViewer::setPersistData(const QVariant &persistData)
 {
   QVariantMap state = persistData.toMap();
 
-  darkBack = state[lit("darkBack")].value<QColor>();
-  lightBack = state[lit("lightBack")].value<QColor>();
+  backCol = state[lit("backCol")].value<QColor>();
+  bool checker = state[lit("checker")].value<bool>();
 
-  if(darkBack != lightBack)
-  {
-    ui->backcolorPick->setChecked(false);
-    ui->checkerBack->setChecked(true);
-  }
-  else
-  {
-    ui->backcolorPick->setChecked(true);
-    ui->checkerBack->setChecked(false);
-  }
+  if(checker)
+    backCol = QColor();
 
-  m_TexDisplay.darkBackgroundColor =
-      FloatVector(darkBack.redF(), darkBack.greenF(), darkBack.blueF(), 1.0f);
-  m_TexDisplay.lightBackgroundColor =
-      FloatVector(lightBack.redF(), lightBack.greenF(), lightBack.blueF(), 1.0f);
+  ui->backcolorPick->setChecked(!checker);
+  ui->checkerBack->setChecked(checker);
 
-  ui->render->setColours(darkBack, lightBack);
-  ui->pixelContext->setColours(darkBack, lightBack);
+  m_TexDisplay.backgroundColor =
+      checker ? FloatVector() : FloatVector(backCol.redF(), backCol.greenF(), backCol.blueF(), 1.0f);
+
+  updateBackgroundColors();
 
   ui->dockarea->restoreState(state);
 
@@ -2928,7 +2931,7 @@ void TextureViewer::range_rangeUpdated()
   if(m_Output == NULL)
   {
     ui->render->update();
-    ui->pixelcontextgrid->update();
+    ui->pixelContext->update();
   }
 }
 
@@ -3107,13 +3110,11 @@ void TextureViewer::on_backcolorPick_clicked()
     return;
 
   col = col.toRgb();
-  m_TexDisplay.darkBackgroundColor = m_TexDisplay.lightBackgroundColor =
-      FloatVector(col.redF(), col.greenF(), col.blueF(), 1.0f);
+  m_TexDisplay.backgroundColor = FloatVector(col.redF(), col.greenF(), col.blueF(), 1.0f);
 
-  darkBack = lightBack = col;
+  backCol = col;
 
-  ui->render->setColours(darkBack, lightBack);
-  ui->pixelContext->setColours(darkBack, lightBack);
+  updateBackgroundColors();
 
   ui->backcolorPick->setChecked(true);
   ui->checkerBack->setChecked(false);
@@ -3123,7 +3124,7 @@ void TextureViewer::on_backcolorPick_clicked()
   if(m_Output == NULL)
   {
     ui->render->update();
-    ui->pixelcontextgrid->update();
+    ui->pixelContext->update();
   }
 }
 
@@ -3132,26 +3133,18 @@ void TextureViewer::on_checkerBack_clicked()
   ui->checkerBack->setChecked(true);
   ui->backcolorPick->setChecked(false);
 
-  m_TexDisplay.lightBackgroundColor = FloatVector(0.81f, 0.81f, 0.81f, 1.0f);
-  m_TexDisplay.darkBackgroundColor = FloatVector(0.57f, 0.57f, 0.57f, 1.0f);
+  backCol = QColor();
 
-  darkBack = QColor::fromRgb(int(m_TexDisplay.darkBackgroundColor.x * 255.0f),
-                             int(m_TexDisplay.darkBackgroundColor.y * 255.0f),
-                             int(m_TexDisplay.darkBackgroundColor.z * 255.0f));
+  m_TexDisplay.backgroundColor = FloatVector();
 
-  lightBack = QColor::fromRgb(int(m_TexDisplay.lightBackgroundColor.x * 255.0f),
-                              int(m_TexDisplay.lightBackgroundColor.y * 255.0f),
-                              int(m_TexDisplay.lightBackgroundColor.z * 255.0f));
-
-  ui->render->setColours(darkBack, lightBack);
-  ui->pixelContext->setColours(darkBack, lightBack);
+  updateBackgroundColors();
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 
   if(m_Output == NULL)
   {
     ui->render->update();
-    ui->pixelcontextgrid->update();
+    ui->pixelContext->update();
   }
 }
 
@@ -3365,7 +3358,7 @@ void TextureViewer::on_saveTex_clicked()
 
   config.comp.blackPoint = m_TexDisplay.rangemin;
   config.comp.whitePoint = m_TexDisplay.rangemax;
-  config.alphaCol = m_TexDisplay.lightBackgroundColor;
+  config.alphaCol = m_TexDisplay.backgroundColor;
   config.alpha = m_TexDisplay.Alpha ? AlphaMapping::BlendToCheckerboard : AlphaMapping::Discard;
   if(m_TexDisplay.Alpha && !ui->checkerBack->isChecked())
     config.alpha = AlphaMapping::BlendToColor;

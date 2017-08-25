@@ -486,22 +486,30 @@ void ReplayOutput::DisablePixelContext()
   DisplayContext();
 }
 
+void ReplayOutput::ClearBackground(uint64_t outputID, const FloatVector &backgroundColor)
+{
+  if(m_RenderData.texDisplay.backgroundColor.x == 0.0f &&
+     m_RenderData.texDisplay.backgroundColor.y == 0.0f &&
+     m_RenderData.texDisplay.backgroundColor.z == 0.0f &&
+     m_RenderData.texDisplay.backgroundColor.w == 0.0f)
+    m_pDevice->RenderCheckerboard();
+  else
+    m_pDevice->ClearOutputWindowColor(outputID, m_RenderData.texDisplay.backgroundColor);
+}
+
 void ReplayOutput::DisplayContext()
 {
   if(m_PixelContext.outputID == 0)
     return;
-  float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
   m_pDevice->BindOutputWindow(m_PixelContext.outputID, false);
+  ClearBackground(m_PixelContext.outputID, m_RenderData.texDisplay.backgroundColor);
 
   if((m_Type != ReplayOutputType::Texture) || (m_ContextX < 0.0f && m_ContextY < 0.0f) ||
      (m_RenderData.texDisplay.texid == ResourceId()))
   {
-    m_pDevice->RenderCheckerboard(Vec3f(0.81f, 0.81f, 0.81f), Vec3f(0.57f, 0.57f, 0.57f));
     m_pDevice->FlipOutputWindow(m_PixelContext.outputID);
     return;
   }
-
-  m_pDevice->ClearOutputWindowColor(m_PixelContext.outputID, color);
 
   TextureDisplay disp = m_RenderData.texDisplay;
   disp.rawoutput = false;
@@ -574,16 +582,16 @@ void ReplayOutput::Display()
     if(!m_pDevice->IsOutputWindowVisible(m_Thumbnails[i].outputID))
       continue;
 
-    float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    FloatVector color;
 
     if(m_Thumbnails[i].texture == ResourceId())
     {
       m_pDevice->BindOutputWindow(m_Thumbnails[i].outputID, false);
 
-      color[0] = 0.4f;
+      color.w = 0.4f;
       m_pDevice->ClearOutputWindowColor(m_Thumbnails[i].outputID, color);
 
-      m_pDevice->RenderCheckerboard(Vec3f(0.6f, 0.6f, 0.7f), Vec3f(0.5f, 0.5f, 0.6f));
+      m_pDevice->RenderCheckerboard();
 
       m_pDevice->FlipOutputWindow(m_Thumbnails[i].outputID);
       continue;
@@ -612,8 +620,6 @@ void ReplayOutput::Display()
     disp.offy = 0.0f;
     disp.rawoutput = false;
     disp.overlay = DebugOverlay::NoOverlay;
-
-    disp.lightBackgroundColor = disp.darkBackgroundColor = FloatVector();
 
     if(m_Thumbnails[i].typeHint == CompType::SNorm)
       disp.rangemin = -1.0f;
@@ -662,7 +668,7 @@ void ReplayOutput::DisplayTex()
     return;
   if(m_RenderData.texDisplay.texid == ResourceId())
   {
-    float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    FloatVector color;
     m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
     m_pDevice->ClearOutputWindowColor(m_MainOutput.outputID, color);
     return;
@@ -701,16 +707,12 @@ void ReplayOutput::DisplayTex()
     texDisplay.sliceFace = 0;
   }
 
-  float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+  FloatVector color;
 
   m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
   m_pDevice->ClearOutputWindowColor(m_MainOutput.outputID, color);
 
-  m_pDevice->RenderCheckerboard(
-      Vec3f(texDisplay.lightBackgroundColor.x, texDisplay.lightBackgroundColor.y,
-            texDisplay.lightBackgroundColor.z),
-      Vec3f(texDisplay.darkBackgroundColor.x, texDisplay.darkBackgroundColor.y,
-            texDisplay.darkBackgroundColor.z));
+  ClearBackground(m_MainOutput.outputID, texDisplay.backgroundColor);
 
   m_pDevice->RenderTexture(texDisplay);
 
@@ -742,11 +744,11 @@ void ReplayOutput::DisplayMesh()
      (m_RenderData.meshDisplay.type == MeshDataStage::Unknown) ||
      !(draw->flags & DrawFlags::Drawcall))
   {
-    float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    FloatVector color;
     m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
     m_pDevice->ClearOutputWindowColor(m_MainOutput.outputID, color);
     m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
-    m_pDevice->RenderCheckerboard(Vec3f(0.81f, 0.81f, 0.81f), Vec3f(0.57f, 0.57f, 0.57f));
+    m_pDevice->RenderCheckerboard();
 
     return;
   }
@@ -761,7 +763,7 @@ void ReplayOutput::DisplayMesh()
   m_pDevice->BindOutputWindow(m_MainOutput.outputID, true);
   m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
 
-  m_pDevice->RenderCheckerboard(Vec3f(0.81f, 0.81f, 0.81f), Vec3f(0.57f, 0.57f, 0.57f));
+  m_pDevice->RenderCheckerboard();
 
   m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
 
@@ -779,13 +781,20 @@ void ReplayOutput::DisplayMesh()
   // in the pass
 
   // very slightly dark red
-  const FloatVector drawItself(0.06f, 0.0f, 0.0f, 1.0f);
+  FloatVector drawItself(0.06f, 0.0f, 0.0f, 1.0f);
 
   // more desaturated/lighter, but still reddish
-  const FloatVector otherInstances(0.18f, 0.1f, 0.1f, 1.0f);
+  FloatVector otherInstances(0.18f, 0.1f, 0.1f, 1.0f);
 
   // lighter grey with blue tinge to contrast from main/instance draws
-  const FloatVector passDraws(0.2f, 0.2f, 0.25f, 1.0f);
+  FloatVector passDraws(0.2f, 0.2f, 0.25f, 1.0f);
+
+  if(RenderDoc::Inst().IsDarkTheme())
+  {
+    drawItself = FloatVector(1.0f, 0.8f, 0.8f, 1.0f);
+    otherInstances = FloatVector(0.78f, 0.6f, 0.6f, 1.0f);
+    passDraws = FloatVector(0.4f, 0.4f, 0.45f, 1.0f);
+  }
 
   if(m_RenderData.meshDisplay.type != MeshDataStage::VSIn)
   {

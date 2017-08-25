@@ -890,11 +890,12 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
         if(sd.alpha != AlphaMapping::Discard)
         {
-          FloatVector col = sd.alphaCol;
+          Vec4f col = Vec4f(sd.alphaCol.x, sd.alphaCol.y, sd.alphaCol.z);
           if(sd.alpha == AlphaMapping::BlendToCheckerboard)
           {
             bool lightSquare = ((x / 64) % 2) == ((y / 64) % 2);
-            col = lightSquare ? sd.alphaCol : sd.alphaColSecondary;
+            col = lightSquare ? RenderDoc::Inst().LightCheckerboardColor()
+                              : RenderDoc::Inst().DarkCheckerboardColor();
           }
 
           col.x = powf(col.x, 1.0f / 2.2f);

@@ -2035,7 +2035,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   return true;
 }
 
-void GLReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
+void GLReplay::RenderCheckerboard()
 {
   MakeCurrentReplayContext(m_DebugCtx);
 
@@ -2052,8 +2052,8 @@ void GLReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
   Vec4f *ubo = (Vec4f *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(Vec4f) * 2,
                                             GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-  ubo[0] = Vec4f(light.x, light.y, light.z, 1.0f);
-  ubo[1] = Vec4f(dark.x, dark.y, dark.z, 1.0f);
+  ubo[0] = RenderDoc::Inst().LightCheckerboardColor();
+  ubo[1] = RenderDoc::Inst().DarkCheckerboardColor();
 
   gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 

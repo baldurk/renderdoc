@@ -68,6 +68,8 @@ private:
 
   void RefreshOverlay();
 
+  void ClearBackground(uint64_t outputID, const FloatVector &backgroundColor);
+
   void DisplayContext();
   void DisplayTex();
 

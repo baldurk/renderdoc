@@ -1197,9 +1197,9 @@ void D3D12Replay::SavePipelineState()
   m_PipelineState = state;
 }
 
-void D3D12Replay::RenderCheckerboard(Vec3f light, Vec3f dark)
+void D3D12Replay::RenderCheckerboard()
 {
-  m_pDevice->GetDebugManager()->RenderCheckerboard(light, dark);
+  m_pDevice->GetDebugManager()->RenderCheckerboard();
 }
 
 void D3D12Replay::RenderHighlightBox(float w, float h, float scale)
@@ -1529,7 +1529,7 @@ void D3D12Replay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
   m_pDevice->GetDebugManager()->GetOutputWindowDimensions(id, w, h);
 }
 
-void D3D12Replay::ClearOutputWindowColor(uint64_t id, float col[4])
+void D3D12Replay::ClearOutputWindowColor(uint64_t id, FloatVector col)
 {
   m_pDevice->GetDebugManager()->ClearOutputWindowColor(id, col);
 }

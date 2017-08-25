@@ -170,7 +170,7 @@ public:
   void DestroyOutputWindow(uint64_t id);
   bool CheckResizeOutputWindow(uint64_t id);
   void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h);
-  void ClearOutputWindowColor(uint64_t id, float col[4]);
+  void ClearOutputWindowColor(uint64_t id, FloatVector col);
   void ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil);
   void BindOutputWindow(uint64_t id, bool depth);
   bool IsOutputWindowVisible(uint64_t id);
@@ -210,7 +210,7 @@ public:
 
   bool RenderTexture(TextureDisplay cfg);
 
-  void RenderCheckerboard(Vec3f light, Vec3f dark);
+  void RenderCheckerboard();
 
   void RenderHighlightBox(float w, float h, float scale);
 

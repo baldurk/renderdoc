@@ -632,6 +632,7 @@ int Formatter::m_minFigures = 2, Formatter::m_maxFigures = 5, Formatter::m_expNe
 double Formatter::m_expNegValue = 0.00001;       // 10^(-5)
 double Formatter::m_expPosValue = 10000000.0;    // 10^7
 QFont *Formatter::m_Font = NULL;
+QColor Formatter::m_DarkChecker, Formatter::m_LightChecker;
 
 void Formatter::setParams(const PersistantConfig &config)
 {
@@ -647,6 +648,11 @@ void Formatter::setParams(const PersistantConfig &config)
     m_Font = new QFont();
   *m_Font =
       config.Font_PreferMonospaced ? QFontDatabase::systemFont(QFontDatabase::FixedFont) : QFont();
+
+  m_DarkChecker = QApplication::palette().color(QPalette::Mid);
+  m_LightChecker = m_DarkChecker.lighter(150);
+
+  RENDERDOC_SetColors(m_DarkChecker, m_LightChecker, IsDarkTheme());
 }
 
 void Formatter::shutdown()
@@ -1080,6 +1086,15 @@ QString GetSystemUsername()
     username = lit("Unknown_User");
 
   return username;
+}
+
+bool IsDarkTheme()
+{
+  float baseLum = getLuminance(QApplication::palette().color(QPalette::Base));
+  float textLum = getLuminance(QApplication::palette().color(QPalette::Text));
+
+  // if the base is dark than the text, then it's a light-on-dark theme (aka dark theme)
+  return (baseLum < textLum);
 }
 
 float getLuminance(const QColor &col)

@@ -241,6 +241,8 @@ private:
   void AutoFitRange();
   void rangePoint_Update();
 
+  void updateBackgroundColors();
+
   bool currentTextureIsLocked() { return m_LockedId != ResourceId(); }
   void setFitToWindow(bool checked);
 
@@ -282,8 +284,7 @@ private:
   PixelValue m_CurPixelValue;
   PixelValue m_CurHoverValue;
 
-  QColor darkBack;
-  QColor lightBack;
+  QColor backCol;
 
   int m_HighWaterStatusLength = 0;
   int m_PrevFirstArraySlice = -1;

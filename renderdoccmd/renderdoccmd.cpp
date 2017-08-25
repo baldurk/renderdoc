@@ -77,8 +77,6 @@ void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_
   d.offy = 0.0f;
   d.sliceFace = 0;
   d.rawoutput = false;
-  d.lightBackgroundColor = FloatVector(0.81f, 0.81f, 0.81f, 1.0f);
-  d.darkBackgroundColor = FloatVector(0.57f, 0.57f, 0.57f, 1.0f);
   d.Red = d.Green = d.Blue = true;
   d.Alpha = false;
 

@@ -186,6 +186,17 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetConfigSetting(const char
   RenderDoc::Inst().SetConfigSetting(name, value);
 }
 
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetColors(FloatVector darkChecker,
+                                                               FloatVector lightChecker,
+                                                               bool darkTheme)
+{
+  RenderDoc::Inst().SetDarkCheckerboardColor(
+      Vec4f(darkChecker.x, darkChecker.y, darkChecker.z, darkChecker.w));
+  RenderDoc::Inst().SetLightCheckerboardColor(
+      Vec4f(lightChecker.x, lightChecker.y, lightChecker.z, lightChecker.w));
+  RenderDoc::Inst().SetDarkTheme(darkTheme);
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char *log)
 {
   if(log)

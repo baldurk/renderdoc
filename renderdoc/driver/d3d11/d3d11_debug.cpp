@@ -1688,12 +1688,12 @@ void D3D11DebugManager::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32
   h = m_OutputWindows[id].height;
 }
 
-void D3D11DebugManager::ClearOutputWindowColor(uint64_t id, float col[4])
+void D3D11DebugManager::ClearOutputWindowColor(uint64_t id, FloatVector col)
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
 
-  m_pImmediateContext->ClearRenderTargetView(m_OutputWindows[id].rtv, col);
+  m_pImmediateContext->ClearRenderTargetView(m_OutputWindows[id].rtv, &col.x);
 }
 
 void D3D11DebugManager::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
@@ -3756,7 +3756,7 @@ void D3D11DebugManager::RenderHighlightBox(float w, float h, float scale)
   m_pImmediateContext->Draw(5, 0);
 }
 
-void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
+void D3D11DebugManager::RenderCheckerboard()
 {
   DebugVertexCBuffer vertexData;
 
@@ -3779,8 +3779,8 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 
   pixelData.AlwaysZero = 0.0f;
 
-  pixelData.Channels = Vec4f(light.x, light.y, light.z, 0.0f);
-  pixelData.WireframeColour = dark;
+  pixelData.Channels = RenderDoc::Inst().LightCheckerboardColor();
+  pixelData.WireframeColour = RenderDoc::Inst().DarkCheckerboardColor();
 
   FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 

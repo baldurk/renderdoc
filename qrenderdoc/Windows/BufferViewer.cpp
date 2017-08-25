@@ -2629,8 +2629,7 @@ void BufferViewer::Reset()
   QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
                    &BufferViewer::render_mouseWheel);
 
-  ui->render->setColours(QColor::fromRgbF(0.57f, 0.57f, 0.57f, 1.0f),
-                         QColor::fromRgbF(0.81f, 0.81f, 0.81f, 1.0f));
+  ui->render->setColours(Formatter::DarkCheckerColor(), Formatter::LightCheckerColor());
 }
 
 void BufferViewer::ClearModels()

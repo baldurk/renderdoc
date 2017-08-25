@@ -164,17 +164,7 @@ int main(int argc, char *argv[])
               .arg(configFilename));
     }
 
-    config.SetupFormatting();
-
-    bool isDarkTheme = false;
-
-    {
-      float baseLum = getLuminance(application.palette().color(QPalette::Base));
-      float textLum = getLuminance(application.palette().color(QPalette::Text));
-
-      // if the base is dark than the text, then it's a light-on-dark theme (aka dark theme)
-      isDarkTheme = (baseLum < textLum);
-    }
+    bool isDarkTheme = IsDarkTheme();
 
     bool styleSet = config.SetStyle();
 
@@ -185,6 +175,8 @@ int main(int argc, char *argv[])
 
       config.SetStyle();
     }
+
+    config.SetupFormatting();
 
     Resources::Initialise();
 

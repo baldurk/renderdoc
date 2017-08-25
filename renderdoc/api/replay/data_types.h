@@ -32,6 +32,11 @@ struct FloatVector
 {
   FloatVector() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
   FloatVector(float X, float Y, float Z, float W) : x(X), y(Y), z(Z), w(W) {}
+#if defined(RENDERDOC_QT_COMPAT)
+  FloatVector(const QColor &col) : x(col.redF()), y(col.greenF()), z(col.blueF()), w(col.alphaF())
+  {
+  }
+#endif
   DOCUMENT("The x component.");
   float x;
   DOCUMENT("The y component.");
