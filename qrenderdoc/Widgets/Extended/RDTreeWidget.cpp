@@ -559,6 +559,7 @@ void RDTreeWidget::scrollToItem(RDTreeWidgetItem *node)
 void RDTreeWidget::clear()
 {
   m_root->clear();
+  m_currentHoverIndex = QModelIndex();
 }
 
 void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
