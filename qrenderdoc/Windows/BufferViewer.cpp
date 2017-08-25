@@ -2687,6 +2687,7 @@ void BufferViewer::CalcColumnWidth(int maxNumRows)
       FormatElement(headerText, 0, 16, false, 1, false, 1, intFmt, false, false));
 
   m_ModelVSIn->numRows = 2;
+  m_ModelVSIn->baseVertex = 0;
 
   if(m_ModelVSIn->indices)
     m_ModelVSIn->indices->deref();
