@@ -674,6 +674,8 @@ void RDTreeWidget::clear()
   m_root->clear();
   m_clearing = false;
 
+  m_currentHoverIndex = QModelIndex();
+
   m_model->refresh();
 }
 
