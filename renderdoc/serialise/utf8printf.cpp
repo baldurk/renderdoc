@@ -971,7 +971,7 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
       // format width is longer than the string) or where to clip off a substring
       // (if the precision is shorter than the string)
       const char *si = s;
-      while(*si)
+      while(*si && (formatter.Precision == FormatterParams::NoPrecision || precision > 0))
       {
         if((*si & 0x80) == 0)    // ascii character
         {
@@ -994,22 +994,18 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
         }
 
         len++;    // one more codepoint
+        clipoffs = (si - s);
+
+        // if we've reached the desired precision we can stop counting
         if(len == precision && formatter.Precision != FormatterParams::NoPrecision)
-        {
-          // if we've reached the desired precision we can stop counting
-          clipoffs = (si - s);
           break;
-        }
       }
 
       if(formatter.Width != FormatterParams::NoWidth && len < width &&
          !(formatter.Flags & LeftJustify))
         addchars(output, actualsize, end, width - len, ' ');
 
-      if(clipoffs > 0)
-        appendstring(output, actualsize, end, s, clipoffs);
-      else
-        appendstring(output, actualsize, end, s);
+      appendstring(output, actualsize, end, s, clipoffs);
 
       if(formatter.Width != FormatterParams::NoWidth && len < width && (formatter.Flags & LeftJustify))
         addchars(output, actualsize, end, width - len, ' ');
