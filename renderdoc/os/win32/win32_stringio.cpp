@@ -723,9 +723,9 @@ void WriteOutput(int channel, const char *str)
   if(channel == OSUtility::Output_DebugMon)
     OutputDebugStringW(wstr.c_str());
   else if(channel == OSUtility::Output_StdOut)
-    fwprintf(stdout, L"%ls", wstr.c_str());
+    WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), wstr.c_str(), DWORD(wstr.size()), NULL, NULL);
   else if(channel == OSUtility::Output_StdErr)
-    fwprintf(stderr, L"%ls", wstr.c_str());
+    WriteConsoleW(GetStdHandle(STD_ERROR_HANDLE), wstr.c_str(), DWORD(wstr.size()), NULL, NULL);
 }
 
 uint64_t GetMachineIdent()

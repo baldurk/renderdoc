@@ -1607,3 +1607,7 @@ DOCUMENT("Internal function that attempts to modify APK contents, adding Vulkan 
 extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(const char *host,
                                                                               const char *exe,
                                                                               float *progress);
+
+DOCUMENT("Internal function that runs unit tests.");
+extern "C" RENDERDOC_API int RENDERDOC_CC
+RENDERDOC_RunUnitTests(const rdctype::str &command, const rdctype::array<rdctype::str> &args);

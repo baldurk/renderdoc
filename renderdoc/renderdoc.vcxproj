@@ -104,6 +104,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="3rdparty\catch\catch.hpp" />
     <ClInclude Include="3rdparty\jpeg-compressor\jpgd.h" />
     <ClInclude Include="3rdparty\jpeg-compressor\jpge.h" />
     <ClInclude Include="3rdparty\lz4\lz4.h" />
@@ -175,6 +176,7 @@
     <ClInclude Include="serialise\string_utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="3rdparty\catch\catch.cpp" />
     <ClCompile Include="3rdparty\jpeg-compressor\jpgd.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles>

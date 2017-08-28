@@ -171,3 +171,5 @@ enum
 #define FORCE_DEBUG_LOGS OPTION_OFF
 // this strips them completely
 #define STRIP_DEBUG_LOGS OPTION_OFF
+
+#define ENABLE_UNIT_TESTS RDOC_DEVEL

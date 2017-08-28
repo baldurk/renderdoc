@@ -52,6 +52,8 @@ void RegisterEnvironmentModification(EnvironmentModification modif);
 
 void ApplyEnvironmentModification();
 
+const char *GetEnvVariable(const char *name);
+
 bool CanGlobalHook();
 bool StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions &opts);
 bool IsGlobalHookActive();

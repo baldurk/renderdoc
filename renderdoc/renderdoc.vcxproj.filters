@@ -88,6 +88,9 @@
     <Filter Include="PCH">
       <UniqueIdentifier>{364a44c3-ab9f-44d1-ab3f-e9f640202224}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\catch">
+      <UniqueIdentifier>{af7852be-f538-40f0-be6a-19078ba71639}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -285,6 +288,9 @@
     <ClInclude Include="core\plugins.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="3rdparty\catch\catch.hpp">
+      <Filter>3rdparty\catch</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -476,6 +482,9 @@
     <ClCompile Include="core\android.cpp" />
     <ClCompile Include="core\plugins.cpp">
       <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\catch\catch.cpp">
+      <Filter>3rdparty\catch</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

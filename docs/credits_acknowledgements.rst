@@ -96,6 +96,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Provides the ability to disassemble shaders from any API representation into compiled GCN ISA for lower level analysis.
 
+* `Catch <https://github.com/philsquared/Catch>`_ - Copyright (c) 2012 Two Blue Cubes Ltd., distributed under the Boost Software License.
+
+  Implements unit testing during development.
+
 Thanks
 ------
 

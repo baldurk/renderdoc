@@ -599,6 +599,30 @@ struct ReplayCommand : public Command
   }
 };
 
+struct TestCommand : public Command
+{
+  TestCommand(const GlobalEnvironment &env) : Command(env) {}
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.add<string>("type", 't', "The type of test to run.", true, "",
+                       cmdline::oneof<string>("unit"));
+    parser.add("help", '\0', "print this message");
+    parser.stop_at_rest(true);
+  }
+  virtual const char *Description() { return "Run internal tests such as unit tests."; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    std::vector<std::string> rest = parser.rest();
+
+    if(parser.get<string>("type") == "unit")
+      return RENDERDOC_RunUnitTests("renderdoccmd test --type unit", convertArgs(rest));
+
+    return 1;
+  }
+};
+
 struct CapAltBitCommand : public Command
 {
   CapAltBitCommand(const GlobalEnvironment &env) : Command(env) {}
@@ -736,6 +760,7 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
     add_command("remoteserver", new RemoteServerCommand(env));
     add_command("replay", new ReplayCommand(env));
     add_command("capaltbit", new CapAltBitCommand(env));
+    add_command("test", new TestCommand(env));
 
     if(argv.size() <= 1)
     {

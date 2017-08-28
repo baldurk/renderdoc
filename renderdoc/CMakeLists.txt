@@ -130,6 +130,8 @@ set(sources
     3rdparty/jpeg-compressor/jpgd.h
     3rdparty/jpeg-compressor/jpge.cpp
     3rdparty/jpeg-compressor/jpge.h
+    3rdparty/catch/catch.cpp
+    3rdparty/catch/catch.hpp
     3rdparty/lz4/lz4.c
     3rdparty/lz4/lz4.h
     3rdparty/stb/stb_image.h

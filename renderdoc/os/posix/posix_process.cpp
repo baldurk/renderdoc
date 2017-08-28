@@ -212,6 +212,11 @@ void Process::ApplyEnvironmentModification()
   modifications.clear();
 }
 
+const char *Process::GetEnvVariable(const char *name)
+{
+  return getenv(name);
+}
+
 static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char **envp,
                         int stdoutPipe[2] = NULL, int stderrPipe[2] = NULL)
 {

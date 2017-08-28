@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include <wctype.h>
 #include <algorithm>
+#include "common/globalconfig.h"
 
 uint32_t strhash(const char *str, uint32_t seed)
 {

@@ -153,6 +153,14 @@ void Process::ApplyEnvironmentModification()
   modifications.clear();
 }
 
+const char *Process::GetEnvVariable(const char *name)
+{
+  static char buf[1024] = {};
+  size_t reqSize = 1024;
+  getenv_s(&reqSize, buf, name);
+  return buf;
+}
+
 // helpers for various shims and dlls etc, not part of the public API
 extern "C" __declspec(dllexport) void __cdecl INTERNAL_GetTargetControlIdent(uint32_t *ident)
 {
