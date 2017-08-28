@@ -482,7 +482,7 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
       if(signbit)
         appendstring(output, actualsize, end, uppercaseDigits ? "-INF" : "-inf");
       else
-        appendstring(output, actualsize, end, uppercaseDigits ? "+INF" : "-inf");
+        appendstring(output, actualsize, end, uppercaseDigits ? "+INF" : "+inf");
     }
     else
     {
