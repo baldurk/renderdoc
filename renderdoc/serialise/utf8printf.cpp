@@ -533,6 +533,12 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
           expon++;
         }
       }
+      else if(removedigs > ndigits)
+      {
+        ndigits = 1;
+        digits[0] = '0';
+        expon = 0;
+      }
       else
       {
         // remove the specified number of digits
