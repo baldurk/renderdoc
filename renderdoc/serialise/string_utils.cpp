@@ -121,3 +121,134 @@ std::string removeFromEnd(const std::string &value, const std::string &ending)
   // If pattern not found, just return original string
   return value;
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+#include "3rdparty/catch/catch.hpp"
+
+TEST_CASE("String hashing", "[string]")
+{
+  SECTION("Same value returns the same hash")
+  {
+    REQUIRE(strhash("foobar") == strhash("foobar"));
+    REQUIRE(strhash("blah") == strhash("blah"));
+    REQUIRE(strhash("test of a long string for strhash") ==
+            strhash("test of a long string for strhash"));
+  };
+
+  SECTION("Different inputs have different hashes")
+  {
+    REQUIRE(strhash("foobar") != strhash("blah"));
+    REQUIRE(strhash("test thing") != strhash("test test test"));
+    REQUIRE(strhash("test1") != strhash("test2"));
+    REQUIRE(strhash("test1") != strhash("test3"));
+  };
+
+  SECTION("Same input with different seeds have different hashes")
+  {
+    REQUIRE(strhash("foobar", 1) != strhash("foobar", 2));
+    REQUIRE(strhash("foobar", 100) != strhash("foobar", 256));
+    REQUIRE(strhash("foobar", 1024) != strhash("foobar", 2048));
+  };
+
+  SECTION("Incremental hashing")
+  {
+    int complete = strhash("test of a long string for strhash");
+
+    int partial = strhash("test of");
+    partial = strhash(" a long", partial);
+    partial = strhash(" string", partial);
+    partial = strhash(" for ", partial);
+    partial = strhash("strhash", partial);
+
+    REQUIRE(partial == complete);
+  };
+};
+
+TEST_CASE("String manipulation", "[string]")
+{
+  SECTION("strlower")
+  {
+    REQUIRE(strlower("foobar") == "foobar");
+    REQUIRE(strlower("Foobar") == "foobar");
+    REQUIRE(strlower("FOOBAR") == "foobar");
+  };
+
+  SECTION("strupper")
+  {
+    REQUIRE(strupper("foobar") == "FOOBAR");
+    REQUIRE(strupper("Foobar") == "FOOBAR");
+    REQUIRE(strupper("FOOBAR") == "FOOBAR");
+  };
+
+  SECTION("trim")
+  {
+    REQUIRE(trim("  foo bar  ") == "foo bar");
+    REQUIRE(trim("  Foo bar") == "Foo bar");
+    REQUIRE(trim("  Foo\nbar") == "Foo\nbar");
+    REQUIRE(trim("FOO BAR  ") == "FOO BAR");
+    REQUIRE(trim("FOO BAR  \t\n") == "FOO BAR");
+  };
+
+  SECTION("endswith / removeFromEnd")
+  {
+    REQUIRE(endswith("foobar", "bar"));
+    REQUIRE_FALSE(endswith("foobar", "foo"));
+    REQUIRE(endswith("foobar", ""));
+
+    REQUIRE(removeFromEnd("test/foobar", "") == "test/foobar");
+    REQUIRE(removeFromEnd("test/foobar", "foo") == "test/");
+    REQUIRE(removeFromEnd("test/foobar", "bar") == "test/foo");
+  };
+
+  SECTION("split by comma")
+  {
+    std::vector<string> vec;
+
+    split(std::string("foo,bar, blah,test"), vec, ',');
+
+    REQUIRE(vec.size() == 4);
+    REQUIRE(vec[0] == "foo");
+    REQUIRE(vec[1] == "bar");
+    REQUIRE(vec[2] == " blah");
+    REQUIRE(vec[3] == "test");
+  };
+
+  SECTION("split by space")
+  {
+    std::vector<string> vec;
+
+    split(std::string("this is a test string for   splitting! "), vec, ' ');
+
+    REQUIRE(vec.size() == 9);
+    REQUIRE(vec[0] == "this");
+    REQUIRE(vec[1] == "is");
+    REQUIRE(vec[2] == "a");
+    REQUIRE(vec[3] == "test");
+    REQUIRE(vec[4] == "string");
+    REQUIRE(vec[5] == "for");
+    REQUIRE(vec[6] == "");
+    REQUIRE(vec[7] == "");
+    REQUIRE(vec[8] == "splitting!");
+  };
+
+  SECTION("merge")
+  {
+    std::vector<string> vec;
+    std::string str;
+
+    merge(vec, str, ' ');
+    REQUIRE(str == "");
+
+    vec.push_back("Hello");
+
+    merge(vec, str, ' ');
+    REQUIRE(str == "Hello");
+
+    vec.push_back("World");
+
+    merge(vec, str, ' ');
+    REQUIRE(str == "Hello World");
+  };
+};
+
+#endif    // ENABLED(ENABLE_UNIT_TESTS)
