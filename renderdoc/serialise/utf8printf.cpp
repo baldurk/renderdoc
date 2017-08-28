@@ -1081,6 +1081,9 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
         typeUnsigned = true;
     }
 
+    if(typeUnsigned)
+      formatter.Flags &= ~(PrependPos | PrependSpace);
+
     PrintInteger(typeUnsigned, argu, base, numbits, formatter, uppercaseDigits, output, actualsize,
                  end);
   }
