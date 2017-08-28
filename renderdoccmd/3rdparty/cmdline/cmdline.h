@@ -443,7 +443,13 @@ public:
         else{
           std::string name(argv[i]+2);
           if (options.count(name)==0){
-            errors.push_back("undefined option: --"+name);
+            if (stop){
+              found_others=true;
+              others.push_back(argv[i]);
+            }
+            else{
+              errors.push_back("undefined option: --"+name);
+            }
             continue;
           }
           if (options[name]->has_value()){
@@ -467,7 +473,13 @@ public:
         for (int j=2; argv[i][j]; j++){
           last=argv[i][j];
           if (lookup.count(argv[i][j-1])==0){
-            errors.push_back(std::string("undefined short option: -")+argv[i][j-1]);
+            if (stop){
+              found_others=true;
+              others.push_back(argv[i]);
+            }
+            else{
+              errors.push_back(std::string("undefined short option: -")+argv[i][j-1]);
+            }
             continue;
           }
           if (lookup[argv[i][j-1]]==""){
@@ -478,7 +490,13 @@ public:
         }
 
         if (lookup.count(last)==0){
-          errors.push_back(std::string("undefined short option: -")+last);
+          if (stop){
+            found_others=true;
+            others.push_back(argv[i]);
+          }
+          else{
+            errors.push_back(std::string("undefined short option: -")+last);
+          }
           continue;
         }
         if (lookup[last]==""){
