@@ -207,10 +207,7 @@ void PrintInteger(bool typeUnsigned, uint64_t argu, int base, uint64_t numbits,
   {
     if(formatter.Flags & AlternateForm)
     {
-      if(uppercaseDigits)
-        appendstring(output, actualsize, end, "0X");
-      else
-        appendstring(output, actualsize, end, "0x");
+      appendstring(output, actualsize, end, "0x");
     }
 
     // pad with 0s as appropriate
