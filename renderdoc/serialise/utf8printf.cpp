@@ -137,6 +137,7 @@ void PrintInteger(bool typeUnsigned, uint64_t argu, int base, uint64_t numbits,
     case HalfHalf: argi = (int64_t)*typepun.c; break;
     case Half: argi = (int64_t)*typepun.s; break;
     case LongLong: argi = (int64_t)*typepun.i64; break;
+    case SizeT: argi = (int64_t)*typepun.i64; break;
   }
 
   bool negative = false;
@@ -1068,7 +1069,6 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
         case SizeT:
           numbits = 8 * sizeof(size_t);
           argu = (uint64_t) * (size_t *)rawarg;
-          typeUnsigned = true;
           break;
       }
       uppercaseDigits = (type < 'a');
