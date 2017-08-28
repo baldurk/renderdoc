@@ -117,6 +117,7 @@ void merge(const vector<std::basic_string<CharType> > &in, std::basic_string<Cha
   for(size_t i = 0; i < in.size(); i++)
   {
     out += in[i];
-    out += sep;
+    if(i + 1 < in.size())
+      out += sep;
   }
 }
