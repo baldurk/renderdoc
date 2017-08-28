@@ -1127,8 +1127,6 @@ int utf8printf(char *buf, size_t bufsize, const char *fmt, va_list args)
   size_t actualsize = 0;
   char *output = buf;
   char *end = buf ? buf + bufsize - 1 : NULL;
-  if(end)
-    *end = 0;
 
   const char *iter = fmt;
 
