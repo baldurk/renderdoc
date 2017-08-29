@@ -3337,6 +3337,7 @@ void TextureViewer::on_saveTex_clicked()
 
   TextureSave config;
   memset(&config, 0, sizeof(config));
+  config.jpegQuality = 90;
 
   config.id = m_TexDisplay.texid;
   config.typeHint = m_TexDisplay.typeHint;
