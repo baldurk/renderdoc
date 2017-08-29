@@ -21,3 +21,7 @@ else
 	cmake -DCMAKE_BUILD_TYPE=Debug ..
 fi
 make -j2
+
+echo "--- Running unit tests ---"
+
+./bin/renderdoccmd test -t unit

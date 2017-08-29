@@ -4,6 +4,7 @@ branches:
   only:
   - v0.x
   - v1.x
+  - ci-test
 
 image: Visual Studio 2015
 
@@ -73,3 +74,9 @@ build_script:
     sh -c ./scripts/hash_version.sh
 
     msbuild renderdoc.sln /v:m "/p:Configuration=$env:CONFIGURATION" "/p:Platform=$env:PLATFORM" /p:PlatformToolset=v140
+
+test_script:
+- ps: $env:testexe = "$env:PLATFORM\$env:CONFIGURATION\renderdoccmd.exe"
+- ps: if ( $env:PLATFORM -eq "x86" ) { $env:testexe = "Win32\$env:CONFIGURATION\renderdoccmd.exe" }
+- cmd: >-
+    "%testexe%" test -t unit

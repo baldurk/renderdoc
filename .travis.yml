@@ -5,7 +5,7 @@ branches:
     - v0.x
     - v1.x
     # having another branch lets us force-push tests here without spamming master
-    - travis-test
+    - ci-test
 
 env:
   global:
