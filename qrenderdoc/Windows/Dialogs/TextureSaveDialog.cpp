@@ -77,10 +77,16 @@ TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, const TextureS
     ui->mipSelect->addItem(
         QFormatStr("%1 - %2x%3").arg(i).arg(qMax(1U, tex.width >> i)).arg(qMax(1U, tex.height >> i)));
 
+  // reset as it might have been changed by adding items
+  saveData.mip = s.mip;
+
   ui->mipSelect->setCurrentIndex(saveData.mip >= 0 ? saveData.mip : 0);
 
   for(uint32_t i = 0; i < tex.msSamp; i++)
     ui->sampleSelect->addItem(tr("Sample %1").arg(i));
+
+  // reset as it might have been changed by adding items
+  saveData.sample = s.sample;
 
   ui->sampleSelect->setCurrentIndex(qMin(
       (int)tex.msSamp, (saveData.sample.sampleIndex == ~0U ? 0 : (int)saveData.sample.sampleIndex)));
@@ -113,6 +119,9 @@ TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, const TextureS
       ui->sliceSelect->addItem(tr("Slice %1").arg(i));
     }
   }
+
+  // reset as it might have been changed by adding items
+  saveData.slice = s.slice;
 
   ui->sliceSelect->setCurrentIndex(saveData.slice.sliceIndex >= 0 ? saveData.slice.sliceIndex : 0);
 
