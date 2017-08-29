@@ -4352,6 +4352,14 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     imCreateInfo.extent.height = RDCMAX(1U, imCreateInfo.extent.height >> mip);
     imCreateInfo.extent.depth = RDCMAX(1U, imCreateInfo.extent.depth >> mip);
 
+    // convert a 3D texture into a 2D array, so we can render to the slices without needing
+    // KHR_maintenance1
+    if(imCreateInfo.extent.depth > 1)
+    {
+      imCreateInfo.arrayLayers = imCreateInfo.extent.depth;
+      imCreateInfo.extent.depth = 1;
+    }
+
     // create render texture similar to readback texture
     vt->CreateImage(Unwrap(dev), &imCreateInfo, NULL, &tmpImage);
 
@@ -4427,7 +4435,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     };
     vt->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &tmpRP);
 
-    numFBs = (imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? (imCreateInfo.extent.depth >> mip) : 1);
+    numFBs = imCreateInfo.arrayLayers;
     tmpFB = new VkFramebuffer[numFBs];
     tmpView = new VkImageView[numFBs];
 
@@ -4439,6 +4447,12 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     // if 3d texture, render each slice separately, otherwise render once
     for(uint32_t i = 0; i < numFBs; i++)
     {
+      if(numFBs > 1 && (i % GetDebugManager()->m_TexDisplayUBO.GetRingCount()) == 0)
+      {
+        m_pDriver->SubmitCmds();
+        m_pDriver->FlushQ();
+      }
+
       TextureDisplay texDisplay;
 
       texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
@@ -4447,10 +4461,9 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       texDisplay.overlay = DebugOverlay::NoOverlay;
       texDisplay.FlipY = false;
       texDisplay.mip = mip;
-      texDisplay.sampleIdx =
-          imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? 0 : (params.resolve ? ~0U : arrayIdx);
+      texDisplay.sampleIdx = imInfo.type == VK_IMAGE_TYPE_3D ? 0 : (params.resolve ? ~0U : arrayIdx);
       texDisplay.CustomShader = ResourceId();
-      texDisplay.sliceFace = imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? i : arrayIdx;
+      texDisplay.sliceFace = imInfo.type == VK_IMAGE_TYPE_3D ? i : arrayIdx;
       texDisplay.rangemin = params.blackPoint;
       texDisplay.rangemax = params.whitePoint;
       texDisplay.scale = 1.0f;
@@ -4871,6 +4884,18 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
     vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                              readbackBuf, 2, copyregion);
+  }
+  else if(imInfo.type == VK_IMAGE_TYPE_3D && params.remap)
+  {
+    // copy in each slice from the 2D array we created to render out the 3D texture
+    for(uint32_t i = 0; i < imCreateInfo.arrayLayers; i++)
+    {
+      copyregion[0].imageSubresource.baseArrayLayer = i;
+      copyregion[0].bufferOffset =
+          i * GetByteSize(imInfo.extent.width, imInfo.extent.height, 1, imCreateInfo.format, mip);
+      vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                               readbackBuf, 1, copyregion);
+    }
   }
   else
   {
