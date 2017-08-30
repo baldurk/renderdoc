@@ -6393,6 +6393,14 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
     case spv::OpSubgroupAnyKHR: return "SubgroupAnyKHR";
     case spv::OpSubgroupAllEqualKHR: return "SubgroupAllEqualKHR";
     case spv::OpSubgroupReadInvocationKHR: return "SubgroupReadInvocationKHR";
+    case spv::OpGroupIAddNonUniformAMD: return "GroupIAddNonUniformAMD";
+    case spv::OpGroupFAddNonUniformAMD: return "GroupFAddNonUniformAMD";
+    case spv::OpGroupFMinNonUniformAMD: return "GroupFMinNonUniformAMD";
+    case spv::OpGroupUMinNonUniformAMD: return "GroupUMinNonUniformAMD";
+    case spv::OpGroupSMinNonUniformAMD: return "GroupSMinNonUniformAMD";
+    case spv::OpGroupFMaxNonUniformAMD: return "GroupFMaxNonUniformAMD";
+    case spv::OpGroupUMaxNonUniformAMD: return "GroupUMaxNonUniformAMD";
+    case spv::OpGroupSMaxNonUniformAMD: return "GroupSMaxNonUniformAMD";
     case spv::OpMax: break;
   }
 
@@ -6502,6 +6510,12 @@ string ToStrHelper<false, spv::Capability>::Get(const spv::Capability &el)
     case spv::CapabilityStorageInputOutput16: return "StorageInputOutput16";
     case spv::CapabilityDeviceGroup: return "DeviceGroup";
     case spv::CapabilityMultiView: return "MultiView";
+    case spv::CapabilityVariablePointersStorageBuffer: return "VariablePointersStorageBuffer";
+    case spv::CapabilityVariablePointers: return "VariablePointers";
+    case spv::CapabilityAtomicStorageOps: return "AtomicStorageOps";
+    case spv::CapabilitySampleMaskPostDepthCoverage: return "SampleMaskPostDepthCoverage";
+    case spv::CapabilityImageGatherBiasLodAMD: return "ImageGatherBiasLodAMD";
+    case spv::CapabilityStencilExportEXT: return "StencilExportEXT";
     case spv::CapabilitySampleMaskOverrideCoverageNV: return "SampleMaskOverrideCoverageNV";
     case spv::CapabilityGeometryShaderPassthroughNV: return "GeometryShaderPassthroughNV";
     case spv::CapabilityShaderViewportIndexLayerNV: return "ShaderViewportIndexLayerNV";
@@ -6550,6 +6564,7 @@ string ToStrHelper<false, spv::ExecutionMode>::Get(const spv::ExecutionMode &el)
     case spv::ExecutionModeOutputTriangleStrip: return "OutputTriangleStrip";
     case spv::ExecutionModeVecTypeHint: return "VecTypeHint";
     case spv::ExecutionModeContractionOff: return "ContractionOff";
+    case spv::ExecutionModePostDepthCoverage: return "PostDepthCoverage";
     case spv::ExecutionModeMax: break;
   }
 
@@ -6650,6 +6665,7 @@ string ToStrHelper<false, spv::Decoration>::Get(const spv::Decoration &el)
     case spv::DecorationNoContraction: return "NoContraction";
     case spv::DecorationInputAttachmentIndex: return "InputAttachmentIndex";
     case spv::DecorationAlignment: return "Alignment";
+    case spv::DecorationExplicitInterpAMD: return "ExplicitInterpAMD";
     case spv::DecorationOverrideCoverageNV: return "OverrideCoverageNV";
     case spv::DecorationPassthroughNV: return "PassthroughNV";
     case spv::DecorationViewportRelativeNV: return "ViewportRelativeNV";
@@ -6702,6 +6718,7 @@ string ToStrHelper<false, spv::StorageClass>::Get(const spv::StorageClass &el)
     case spv::StorageClassPushConstant: return "PushConstant";
     case spv::StorageClassAtomicCounter: return "AtomicCounter";
     case spv::StorageClassImage: return "Image";
+    case spv::StorageClassStorageBuffer: return "StorageBuffer";
     case spv::StorageClassMax: break;
   }
 
@@ -6815,6 +6832,14 @@ string ToStrHelper<false, spv::BuiltIn>::Get(const spv::BuiltIn &el)
     case spv::BuiltInDrawIndex: return "DrawIndex";
     case spv::BuiltInDeviceIndex: return "DeviceIndex";
     case spv::BuiltInViewIndex: return "ViewIndex";
+    case spv::BuiltInBaryCoordNoPerspAMD: return "BaryCoordNoPerspAMD";
+    case spv::BuiltInBaryCoordNoPerspCentroidAMD: return "BaryCoordNoPerspCentroidAMD";
+    case spv::BuiltInBaryCoordNoPerspSampleAMD: return "BaryCoordNoPerspSampleAMD";
+    case spv::BuiltInBaryCoordSmoothAMD: return "BaryCoordSmoothAMD";
+    case spv::BuiltInBaryCoordSmoothCentroidAMD: return "BaryCoordSmoothCentroidAMD";
+    case spv::BuiltInBaryCoordSmoothSampleAMD: return "BaryCoordSmoothSampleAMD";
+    case spv::BuiltInBaryCoordPullModelAMD: return "BaryCoordPullModelAMD";
+    case spv::BuiltInFragStencilRefEXT: return "FragStencilRefEXT";
     case spv::BuiltInViewportMaskNV: return "ViewportMaskNV";
     case spv::BuiltInSecondaryPositionNV: return "SecondaryPositionNV";
     case spv::BuiltInSecondaryViewportMaskNV: return "SecondaryViewportMaskNV";
