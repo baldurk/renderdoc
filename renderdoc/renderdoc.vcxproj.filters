@@ -479,12 +479,14 @@
     <ClCompile Include="core\precompiled.cpp">
       <Filter>PCH</Filter>
     </ClCompile>
-    <ClCompile Include="core\android.cpp" />
     <ClCompile Include="core\plugins.cpp">
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="3rdparty\catch\catch.cpp">
       <Filter>3rdparty\catch</Filter>
+    </ClCompile>
+    <ClCompile Include="core\android.cpp">
+      <Filter>Replay</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
