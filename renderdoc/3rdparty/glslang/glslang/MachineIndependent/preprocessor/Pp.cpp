@@ -76,7 +76,9 @@ TORT (INCLUDING NEGLIGENCE), STRICT LIABILITY OR OTHERWISE, EVEN IF
 NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 \****************************************************************************/
 
+#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
+#endif
 
 #include <sstream>
 #include <cstdlib>
@@ -391,6 +393,14 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
     TSourceLoc loc = ppToken->loc;  // because we sometimes read the newline before reporting the error
     if (token == PpAtomIdentifier) {
         if (strcmp("defined", ppToken->name) == 0) {
+            if (! parseContext.isReadingHLSL() && isMacroInput()) {
+                if (parseContext.relaxedErrors())
+                    parseContext.ppWarn(ppToken->loc, "nonportable when expanded from macros for preprocessor expression",
+                                                      "defined", "");
+                else
+                    parseContext.ppError(ppToken->loc, "cannot use in preprocessor expression when expanded from macros",
+                                                       "defined", "");
+            }
             bool needclose = 0;
             token = scanToken(ppToken);
             if (token == '(') {
@@ -611,14 +621,14 @@ int TPpContext::CPPinclude(TPpToken* ppToken)
     TShader::Includer::IncludeResult* res = nullptr;
     if (startWithLocalSearch)
         res = includer.includeLocal(filename.c_str(), currentSourceFile.c_str(), includeStack.size() + 1);
-    if (! res || res->headerName.empty()) {
+    if (res == nullptr || res->headerName.empty()) {
         includer.releaseInclude(res);
         res = includer.includeSystem(filename.c_str(), currentSourceFile.c_str(), includeStack.size() + 1);
     }
 
     // Process the results
-    if (res && !res->headerName.empty()) {
-        if (res->headerData && res->headerLength) {
+    if (res != nullptr && !res->headerName.empty()) {
+        if (res->headerData != nullptr && res->headerLength > 0) {
             // path for processing one or more tokens from an included header, hand off 'res'
             const bool forNextLine = parseContext.lineDirectiveShouldSetNextLine();
             std::ostringstream prologue;
@@ -636,8 +646,8 @@ int TPpContext::CPPinclude(TPpToken* ppToken)
     } else {
         // error path, clean up
         std::string message =
-            res ? std::string(res->headerData, res->headerLength)
-                : std::string("Could not process include directive");
+            res != nullptr ? std::string(res->headerData, res->headerLength)
+                           : std::string("Could not process include directive");
         parseContext.ppError(directiveLoc, message.c_str(), "#include", "for header name: %s", filename.c_str());
         includer.releaseInclude(res);
     }
@@ -714,6 +724,7 @@ int TPpContext::CPPerror(TPpToken* ppToken)
         if (token == PpAtomConstInt   || token == PpAtomConstUint   ||
             token == PpAtomConstInt64 || token == PpAtomConstUint64 ||
 #ifdef AMD_EXTENSIONS
+            token == PpAtomConstInt16 || token == PpAtomConstUint16 ||
             token == PpAtomConstFloat16 ||
 #endif
             token == PpAtomConstFloat || token == PpAtomConstDouble) {
@@ -748,6 +759,10 @@ int TPpContext::CPPpragma(TPpToken* ppToken)
         case PpAtomConstUint:
         case PpAtomConstInt64:
         case PpAtomConstUint64:
+#ifdef AMD_EXTENSIONS
+        case PpAtomConstInt16:
+        case PpAtomConstUint16:
+#endif
         case PpAtomConstFloat:
         case PpAtomConstDouble:
 #ifdef AMD_EXTENSIONS
@@ -776,8 +791,12 @@ int TPpContext::CPPversion(TPpToken* ppToken)
 {
     int token = scanToken(ppToken);
 
-    if (errorOnVersion || versionSeen)
-        parseContext.ppError(ppToken->loc, "must occur first in shader", "#version", "");
+    if (errorOnVersion || versionSeen) {
+        if (parseContext.isReadingHLSL())
+            parseContext.ppError(ppToken->loc, "invalid preprocessor command", "#version", "");
+        else
+            parseContext.ppError(ppToken->loc, "must occur first in shader", "#version", "");
+    }
     versionSeen = true;
 
     if (token == '\n') {
@@ -1048,6 +1067,10 @@ int TPpContext::tMacroInput::scan(TPpToken* ppToken)
         prepaste = true;
         pasting = true;
     }
+
+    // HLSL does expand macros before concatenation
+    if (pasting && pp->parseContext.isReadingHLSL())
+        pasting = false;
 
     // TODO: preprocessor:  properly handle whitespace (or lack of it) between tokens when expanding
     if (token == PpAtomIdentifier) {

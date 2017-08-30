@@ -65,9 +65,7 @@ set(glslang_sources
     ${glslang_dir}/glslang/MachineIndependent/preprocessor/PpContext.cpp
     ${glslang_dir}/glslang/MachineIndependent/preprocessor/PpContext.h
     ${glslang_dir}/glslang/MachineIndependent/preprocessor/Pp.cpp
-    ${glslang_dir}/glslang/MachineIndependent/preprocessor/PpMemory.cpp
     ${glslang_dir}/glslang/MachineIndependent/preprocessor/PpScanner.cpp
-    ${glslang_dir}/glslang/MachineIndependent/preprocessor/PpSymbols.cpp
     ${glslang_dir}/glslang/MachineIndependent/preprocessor/PpTokens.cpp
     ${glslang_dir}/glslang/MachineIndependent/preprocessor/PpTokens.h
     ${glslang_dir}/glslang/MachineIndependent/reflection.cpp
@@ -98,6 +96,8 @@ set(sources
     ${glslang_sources})
 
 add_definitions(-DAMD_EXTENSIONS)
+add_definitions(-DNV_EXTENSIONS)
+add_definitions(-DENABLE_HLSL)
 
 set_source_files_properties(${glslang_sources}
     PROPERTIES COMPILE_FLAGS "-Wno-ignored-qualifiers -Wno-unknown-warning-option -Wno-inconsistent-missing-override")

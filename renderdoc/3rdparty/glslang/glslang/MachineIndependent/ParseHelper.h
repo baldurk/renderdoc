@@ -76,8 +76,13 @@ public:
                       EProfile profile, const SpvVersion& spvVersion, EShLanguage language,
                       TInfoSink& infoSink, bool forwardCompatible, EShMessages messages)
           : TParseVersions(interm, version, profile, spvVersion, language, infoSink, forwardCompatible, messages),
+            scopeMangler("::"),
             symbolTable(symbolTable),
+            statementNestingLevel(0), loopNestingLevel(0), structNestingLevel(0), controlFlowNestingLevel(0),
+            postEntryPointReturn(false),
+            contextPragma(true, false),
             parsingBuiltins(parsingBuiltins), scanContext(nullptr), ppContext(nullptr),
+            limits(resources.limits),
             globalUniformBlock(nullptr)
     { }
     virtual ~TParseContextBase() { }
@@ -133,17 +138,30 @@ public:
             extensionCallback(line, extension, behavior);
     }
 
-    TSymbolTable& symbolTable;   // symbol table that goes with the current language, version, and profile
-
     // Manage the global uniform block (default uniforms in GLSL, $Global in HLSL)
-    // TODO: This could perhaps get its own object, but the current design doesn't work
-    // yet when new uniform variables are declared between function definitions, so
-    // this is pending getting a fully functional design.
-    virtual void growGlobalUniformBlock(TSourceLoc&, TType&, TString& memberName, TTypeList* typeList = nullptr);
-    virtual bool insertGlobalUniformBlock();
+    virtual void growGlobalUniformBlock(const TSourceLoc&, TType&, const TString& memberName, TTypeList* typeList = nullptr);
 
     virtual bool lValueErrorCheck(const TSourceLoc&, const char* op, TIntermTyped*);
     virtual void rValueErrorCheck(const TSourceLoc&, const char* op, TIntermTyped*);
+
+    const char* const scopeMangler;
+
+    // Basic parsing state, easily accessible to the grammar
+
+    TSymbolTable& symbolTable;        // symbol table that goes with the current language, version, and profile
+    int statementNestingLevel;        // 0 if outside all flow control or compound statements
+    int loopNestingLevel;             // 0 if outside all loops
+    int structNestingLevel;           // 0 if outside blocks and structures
+    int controlFlowNestingLevel;      // 0 if outside all flow control
+    const TType* currentFunctionType; // the return type of the function that's currently being parsed
+    bool functionReturnsValue;        // true if a non-void function has a return
+    // if inside a function, true if the function is the entry point and this is after a return statement
+    bool postEntryPointReturn;
+    // case, node, case, case, node, ...; ensure only one node between cases;   stack of them for nesting
+    TList<TIntermSequence*> switchSequenceStack;
+    // the statementNestingLevel the current switch statement is at, which must match the level of its case statements
+    TList<int> switchLevel;
+    struct TPragma contextPragma;
 
 protected:
     TParseContextBase(TParseContextBase&);
@@ -153,6 +171,8 @@ protected:
     TVector<TSymbol*> linkageSymbols; // these need to be transferred to 'linkage', after all editing is done
     TScanContext* scanContext;
     TPpContext* ppContext;
+    TBuiltInResource resources;
+    TLimits& limits;
 
     // These, if set, will be called when a line, pragma ... is preprocessed.
     // They will be called with any parameters to the original directive.
@@ -175,7 +195,8 @@ protected:
     TVariable* globalUniformBlock;   // the actual block, inserted into the symbol table
     int firstNewMember;              // the index of the first member not yet inserted into the symbol table
     // override this to set the language-specific name
-    virtual const char* getGlobalUniformBlockName() { return ""; }
+    virtual const char* getGlobalUniformBlockName() const { return ""; }
+    virtual void setUniformBlockDefaults(TType&) const { }
     virtual void finalizeGlobalUniformBlockLayout(TVariable&) { }
     virtual void outputMessage(const TSourceLoc&, const char* szReason, const char* szToken,
                                const char* szExtraInfoFormat, TPrefixType prefix,
@@ -297,7 +318,7 @@ public:
     bool arrayError(const TSourceLoc&, const TType&);
     void arraySizeRequiredCheck(const TSourceLoc&, const TArraySizes&);
     void structArrayCheck(const TSourceLoc&, const TType& structure);
-    void arrayUnsizedCheck(const TSourceLoc&, const TQualifier&, const TArraySizes*, bool initializer, bool lastMember);
+    void arraySizesCheck(const TSourceLoc&, const TQualifier&, const TArraySizes*, bool initializer, bool lastMember);
     void arrayOfArrayVersionCheck(const TSourceLoc&);
     void arrayDimCheck(const TSourceLoc&, const TArraySizes* sizes1, const TArraySizes* sizes2);
     void arrayDimCheck(const TSourceLoc&, const TType*, const TArraySizes*);
@@ -307,7 +328,7 @@ public:
     void boolCheck(const TSourceLoc&, const TPublicType&);
     void samplerCheck(const TSourceLoc&, const TType&, const TString& identifier, TIntermTyped* initializer);
     void atomicUintCheck(const TSourceLoc&, const TType&, const TString& identifier);
-    void transparentCheck(const TSourceLoc&, const TType&, const TString& identifier);
+    void transparentOpaqueCheck(const TSourceLoc&, const TType&, const TString& identifier);
     void globalQualifierFixCheck(const TSourceLoc&, TQualifier&);
     void globalQualifierTypeCheck(const TSourceLoc&, const TQualifier&, const TPublicType&);
     bool structQualifierErrorCheck(const TSourceLoc&, const TPublicType& pType);
@@ -339,6 +360,7 @@ public:
     void setLayoutQualifier(const TSourceLoc&, TPublicType&, TString&, const TIntermTyped*);
     void mergeObjectLayoutQualifiers(TQualifier& dest, const TQualifier& src, bool inheritOnly);
     void layoutObjectCheck(const TSourceLoc&, const TSymbol&);
+    void layoutMemberLocationArrayCheck(const TSourceLoc&, bool memberWithLocation, TArraySizes* arraySizes);
     void layoutTypeCheck(const TSourceLoc&, const TType&);
     void layoutQualifierCheck(const TSourceLoc&, const TQualifier&);
     void checkNoShaderLayouts(const TSourceLoc&, const TShaderQualifiers&);
@@ -372,8 +394,8 @@ protected:
     void nonInitConstCheck(const TSourceLoc&, TString& identifier, TType& type);
     void inheritGlobalDefaults(TQualifier& dst) const;
     TVariable* makeInternalVariable(const char* name, const TType&) const;
-    TVariable* declareNonArray(const TSourceLoc&, TString& identifier, TType&);
-    void declareArray(const TSourceLoc&, TString& identifier, const TType&, TSymbol*&);
+    TVariable* declareNonArray(const TSourceLoc&, const TString& identifier, const TType&);
+    void declareArray(const TSourceLoc&, const TString& identifier, const TType&, TSymbol*&);
     TIntermNode* executeInitializer(const TSourceLoc&, TIntermTyped* initializer, TVariable* variable);
     TIntermTyped* convertInitializerList(const TSourceLoc&, const TType&, TIntermTyped* initializer);
     void finish() override;
@@ -384,17 +406,7 @@ public:
     //
 
     // Current state of parsing
-    struct TPragma contextPragma;
-    int loopNestingLevel;        // 0 if outside all loops
-    int structNestingLevel;      // 0 if outside blocks and structures
-    int controlFlowNestingLevel; // 0 if outside all flow control
-    int statementNestingLevel;   // 0 if outside all flow control or compound statements
-    TList<TIntermSequence*> switchSequenceStack;  // case, node, case, case, node, ...; ensure only one node between cases;   stack of them for nesting
-    TList<int> switchLevel;      // the statementNestingLevel the current switch statement is at, which must match the level of its case statements
     bool inMain;                 // if inside a function, true if the function is main
-    bool postMainReturn;         // if inside a function, true if the function is main and this is after a return statement
-    const TType* currentFunctionType;  // the return type of the function that's currently being parsed
-    bool functionReturnsValue;   // true if a non-void function has a return
     const TString* blockName;
     TQualifier currentBlockQualifier;
     TPrecisionQualifier defaultPrecision[EbtNumTypes];

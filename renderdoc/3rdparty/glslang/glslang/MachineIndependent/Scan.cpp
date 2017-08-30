@@ -175,7 +175,7 @@ bool TInputScanner::scanVersion(int& version, EProfile& profile, bool& notFirstT
 
     bool versionNotFirst = false;  // means not first WRT comments and white space, nothing more
     notFirstToken = false;         // means not first WRT to real tokens
-    version = 0;  // means not found
+    version = 0;                   // means not found
     profile = ENoProfile;
 
     bool foundNonSpaceTab = false;
@@ -464,6 +464,15 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["u64vec4"] =                 U64VEC4;
 
 #ifdef AMD_EXTENSIONS
+    (*KeywordMap)["int16_t"] =                 INT16_T;
+    (*KeywordMap)["uint16_t"] =                UINT16_T;
+    (*KeywordMap)["i16vec2"] =                 I16VEC2;
+    (*KeywordMap)["i16vec3"] =                 I16VEC3;
+    (*KeywordMap)["i16vec4"] =                 I16VEC4;
+    (*KeywordMap)["u16vec2"] =                 U16VEC2;
+    (*KeywordMap)["u16vec3"] =                 U16VEC3;
+    (*KeywordMap)["u16vec4"] =                 U16VEC4;
+
     (*KeywordMap)["float16_t"] =               FLOAT16_T;
     (*KeywordMap)["f16vec2"] =                 F16VEC2;
     (*KeywordMap)["f16vec3"] =                 F16VEC3;
@@ -701,10 +710,18 @@ int TScanContext::tokenize(TPpContext* pp, TParserToken& token)
         case PpAtomDecrement:          return DEC_OP;
         case PpAtomIncrement:          return INC_OP;
 
+        case PpAtomColonColon:
+            parseContext.error(loc, "not supported", "::", "");
+            break;
+
         case PpAtomConstInt:           parserToken->sType.lex.i   = ppToken.ival;       return INTCONSTANT;
         case PpAtomConstUint:          parserToken->sType.lex.i   = ppToken.ival;       return UINTCONSTANT;
         case PpAtomConstInt64:         parserToken->sType.lex.i64 = ppToken.i64val;     return INT64CONSTANT;
         case PpAtomConstUint64:        parserToken->sType.lex.i64 = ppToken.i64val;     return UINT64CONSTANT;
+#ifdef AMD_EXTENSIONS
+        case PpAtomConstInt16:         parserToken->sType.lex.i   = ppToken.ival;       return INT16CONSTANT;
+        case PpAtomConstUint16:        parserToken->sType.lex.i   = ppToken.ival;       return UINT16CONSTANT;
+#endif
         case PpAtomConstFloat:         parserToken->sType.lex.d   = ppToken.dval;       return FLOATCONSTANT;
         case PpAtomConstDouble:        parserToken->sType.lex.d   = ppToken.dval;       return DOUBLECONSTANT;
 #ifdef AMD_EXTENSIONS
@@ -847,14 +864,17 @@ int TScanContext::tokenizeIdentifier()
 
     case PATCH:
         if (parseContext.symbolTable.atBuiltInLevel() ||
-            (parseContext.profile == EEsProfile && parseContext.extensionsTurnedOn(Num_AEP_tessellation_shader, AEP_tessellation_shader)) ||
+            (parseContext.profile == EEsProfile &&
+             (parseContext.version >= 320 || 
+              parseContext.extensionsTurnedOn(Num_AEP_tessellation_shader, AEP_tessellation_shader))) ||
             (parseContext.profile != EEsProfile && parseContext.extensionTurnedOn(E_GL_ARB_tessellation_shader)))
             return keyword;
 
         return es30ReservedFromGLSL(400);
 
     case SAMPLE:
-        if (parseContext.extensionsTurnedOn(1, &E_GL_OES_shader_multisample_interpolation))
+        if ((parseContext.profile == EEsProfile && parseContext.version >= 320) ||
+            parseContext.extensionsTurnedOn(1, &E_GL_OES_shader_multisample_interpolation))
             return keyword;
         return es30ReservedFromGLSL(400);
 
@@ -908,7 +928,8 @@ int TScanContext::tokenizeIdentifier()
     case IIMAGEBUFFER:
     case UIMAGEBUFFER:
         afterType = true;
-        if (parseContext.extensionsTurnedOn(Num_AEP_texture_buffer, AEP_texture_buffer))
+        if ((parseContext.profile == EEsProfile && parseContext.version >= 320) ||
+            parseContext.extensionsTurnedOn(Num_AEP_texture_buffer, AEP_texture_buffer))
             return keyword;
         return firstGenerationImage(false);
 
@@ -931,7 +952,8 @@ int TScanContext::tokenizeIdentifier()
     case IIMAGECUBEARRAY:
     case UIMAGECUBEARRAY:
         afterType = true;
-        if (parseContext.extensionsTurnedOn(Num_AEP_texture_cube_map_array, AEP_texture_cube_map_array))
+        if ((parseContext.profile == EEsProfile && parseContext.version >= 320) ||
+            parseContext.extensionsTurnedOn(Num_AEP_texture_cube_map_array, AEP_texture_cube_map_array))
             return keyword;
         return secondGenerationImage();
 
@@ -969,6 +991,21 @@ int TScanContext::tokenizeIdentifier()
         return identifierOrType();
 
 #ifdef AMD_EXTENSIONS
+    case INT16_T:
+    case UINT16_T:
+    case I16VEC2:
+    case I16VEC3:
+    case I16VEC4:
+    case U16VEC2:
+    case U16VEC3:
+    case U16VEC4:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            (parseContext.extensionTurnedOn(E_GL_AMD_gpu_shader_int16) &&
+             parseContext.profile != EEsProfile && parseContext.version >= 450))
+            return keyword;
+        return identifierOrType();
+
     case FLOAT16_T:
     case F16VEC2:
     case F16VEC3:
@@ -998,7 +1035,8 @@ int TScanContext::tokenizeIdentifier()
     case ISAMPLERCUBEARRAY:
     case USAMPLERCUBEARRAY:
         afterType = true;
-        if (parseContext.extensionsTurnedOn(Num_AEP_texture_cube_map_array, AEP_texture_cube_map_array))
+        if ((parseContext.profile == EEsProfile && parseContext.version >= 320) ||
+            parseContext.extensionsTurnedOn(Num_AEP_texture_cube_map_array, AEP_texture_cube_map_array))
             return keyword;
         if (parseContext.profile == EEsProfile || (parseContext.version < 400 && ! parseContext.extensionTurnedOn(E_GL_ARB_texture_cube_map_array)))
             reservedWord();
@@ -1037,14 +1075,16 @@ int TScanContext::tokenizeIdentifier()
 
     case SAMPLERBUFFER:
         afterType = true;
-        if (parseContext.extensionsTurnedOn(Num_AEP_texture_buffer, AEP_texture_buffer))
+        if ((parseContext.profile == EEsProfile && parseContext.version >= 320) ||
+            parseContext.extensionsTurnedOn(Num_AEP_texture_buffer, AEP_texture_buffer))
             return keyword;
         return es30ReservedFromGLSL(130);
 
     case ISAMPLERBUFFER:
     case USAMPLERBUFFER:
         afterType = true;
-        if (parseContext.extensionsTurnedOn(Num_AEP_texture_buffer, AEP_texture_buffer))
+        if ((parseContext.profile == EEsProfile && parseContext.version >= 320) ||
+            parseContext.extensionsTurnedOn(Num_AEP_texture_buffer, AEP_texture_buffer))
             return keyword;
         return es30ReservedFromGLSL(140);
 
@@ -1060,7 +1100,8 @@ int TScanContext::tokenizeIdentifier()
     case ISAMPLER2DMSARRAY:
     case USAMPLER2DMSARRAY:
         afterType = true;
-        if (parseContext.extensionsTurnedOn(1, &E_GL_OES_texture_storage_multisample_2d_array))
+        if ((parseContext.profile == EEsProfile && parseContext.version >= 320) ||
+            parseContext.extensionsTurnedOn(1, &E_GL_OES_texture_storage_multisample_2d_array))
             return keyword;
         return es30ReservedFromGLSL(150);
 
@@ -1081,8 +1122,10 @@ int TScanContext::tokenizeIdentifier()
 
     case SAMPLER2DSHADOW:
         afterType = true;
-        if (parseContext.profile == EEsProfile && parseContext.version < 300)
-            reservedWord();
+        if (parseContext.profile == EEsProfile && parseContext.version < 300) {
+            if (!parseContext.extensionTurnedOn(E_GL_EXT_shadow_samplers))
+                reservedWord();
+        }
         return keyword;
 
     case SAMPLER2DRECT:
@@ -1194,7 +1237,8 @@ int TScanContext::tokenizeIdentifier()
         return keyword;
 
     case PRECISE:
-        if ((parseContext.profile == EEsProfile && parseContext.extensionsTurnedOn(Num_AEP_gpu_shader5, AEP_gpu_shader5)) ||
+        if ((parseContext.profile == EEsProfile &&
+             (parseContext.version >= 320 || parseContext.extensionsTurnedOn(Num_AEP_gpu_shader5, AEP_gpu_shader5))) ||
             (parseContext.profile != EEsProfile && parseContext.version >= 400))
             return keyword;
         if (parseContext.profile == EEsProfile && parseContext.version == 310) {

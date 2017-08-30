@@ -45,11 +45,31 @@
 
 namespace {
 
-bool is_positive_infinity(double x) {
+bool IsInfinity(double x) {
 #ifdef _MSC_VER
-  return _fpclass(x) == _FPCLASS_PINF;
+    switch (_fpclass(x)) {
+    case _FPCLASS_NINF:
+    case _FPCLASS_PINF:
+        return true;
+    default:
+        return false;
+    }
 #else
-  return std::isinf(x) && (x >= 0);
+    return std::isinf(x);
+#endif
+}
+
+bool IsNan(double x) {
+#ifdef _MSC_VER
+    switch (_fpclass(x)) {
+    case _FPCLASS_SNAN:
+    case _FPCLASS_QNAN:
+        return true;
+    default:
+        return false;
+    }
+#else
+  return std::isnan(x);
 #endif
 }
 
@@ -288,6 +308,13 @@ bool TOutputTraverser::visitUnary(TVisit /* visit */, TIntermUnary* node)
     case EOpDoubleBitsToUint64: out.debug << "doubleBitsToUint64"; break;
     case EOpInt64BitsToDouble:  out.debug << "int64BitsToDouble";  break;
     case EOpUint64BitsToDouble: out.debug << "uint64BitsToDouble"; break;
+#ifdef AMD_EXTENSIONS
+    case EOpFloat16BitsToInt16:  out.debug << "float16BitsToInt16";  break;
+    case EOpFloat16BitsToUint16: out.debug << "float16BitsToUint16"; break;
+    case EOpInt16BitsToFloat16:  out.debug << "int16BitsToFloat16";  break;
+    case EOpUint16BitsToFloat16: out.debug << "uint16BitsToFloat16"; break;
+#endif
+
     case EOpPackSnorm2x16:  out.debug << "packSnorm2x16";        break;
     case EOpUnpackSnorm2x16:out.debug << "unpackSnorm2x16";      break;
     case EOpPackUnorm2x16:  out.debug << "packUnorm2x16";        break;
@@ -308,6 +335,16 @@ bool TOutputTraverser::visitUnary(TVisit /* visit */, TIntermUnary* node)
     case EOpUnpackUint2x32:   out.debug << "unpackUint2x32";     break;
 
 #ifdef AMD_EXTENSIONS
+    case EOpPackInt2x16:      out.debug << "packInt2x16";        break;
+    case EOpUnpackInt2x16:    out.debug << "unpackInt2x16";      break;
+    case EOpPackUint2x16:     out.debug << "packUint2x16";       break;
+    case EOpUnpackUint2x16:   out.debug << "unpackUint2x16";     break;
+
+    case EOpPackInt4x16:      out.debug << "packInt4x16";        break;
+    case EOpUnpackInt4x16:    out.debug << "unpackInt4x16";      break;
+    case EOpPackUint4x16:     out.debug << "packUint4x16";       break;
+    case EOpUnpackUint4x16:   out.debug << "unpackUint4x16";     break;
+
     case EOpPackFloat2x16:    out.debug << "packFloat2x16";      break;
     case EOpUnpackFloat2x16:  out.debug << "unpackFloat2x16";    break;
 #endif
@@ -370,6 +407,8 @@ bool TOutputTraverser::visitUnary(TVisit /* visit */, TIntermUnary* node)
     case EOpRcp:                    out.debug << "rcp";                   break;
     case EOpSaturate:               out.debug << "saturate";              break;
 
+    case EOpSparseTexelsResident:   out.debug << "sparseTexelsResident";  break;
+
 #ifdef AMD_EXTENSIONS
     case EOpMinInvocations:             out.debug << "minInvocations";              break;
     case EOpMaxInvocations:             out.debug << "maxInvocations";              break;
@@ -411,6 +450,42 @@ bool TOutputTraverser::visitUnary(TVisit /* visit */, TIntermUnary* node)
     case EOpConvFloat16ToDouble:    out.debug << "Convert float16 to double";   break;
     case EOpConvFloat16ToInt64:     out.debug << "Convert float16 to int64";    break;
     case EOpConvFloat16ToUint64:    out.debug << "Convert float16 to uint64";   break;
+
+    case EOpConvBoolToInt16:        out.debug << "Convert bool to int16";       break;
+    case EOpConvIntToInt16:         out.debug << "Convert int to int16";        break;
+    case EOpConvUintToInt16:        out.debug << "Convert uint to int16";       break;
+    case EOpConvFloatToInt16:       out.debug << "Convert float to int16";      break;
+    case EOpConvDoubleToInt16:      out.debug << "Convert double to int16";     break;
+    case EOpConvFloat16ToInt16:     out.debug << "Convert float16 to int16";    break;
+    case EOpConvInt64ToInt16:       out.debug << "Convert int64 to int16";      break;
+    case EOpConvUint64ToInt16:      out.debug << "Convert uint64 to int16";     break;
+    case EOpConvUint16ToInt16:      out.debug << "Convert uint16 to int16";     break;
+    case EOpConvInt16ToBool:        out.debug << "Convert int16 to bool";       break;
+    case EOpConvInt16ToInt:         out.debug << "Convert int16 to int";        break;
+    case EOpConvInt16ToUint:        out.debug << "Convert int16 to uint";       break;
+    case EOpConvInt16ToFloat:       out.debug << "Convert int16 to float";      break;
+    case EOpConvInt16ToDouble:      out.debug << "Convert int16 to double";     break;
+    case EOpConvInt16ToFloat16:     out.debug << "Convert int16 to float16";    break;
+    case EOpConvInt16ToInt64:       out.debug << "Convert int16 to int64";      break;
+    case EOpConvInt16ToUint64:      out.debug << "Convert int16 to uint64";     break;
+
+    case EOpConvBoolToUint16:       out.debug << "Convert bool to uint16";      break;
+    case EOpConvIntToUint16:        out.debug << "Convert int to uint16";       break;
+    case EOpConvUintToUint16:       out.debug << "Convert uint to uint16";      break;
+    case EOpConvFloatToUint16:      out.debug << "Convert float to uint16";     break;
+    case EOpConvDoubleToUint16:     out.debug << "Convert double to uint16";    break;
+    case EOpConvFloat16ToUint16:    out.debug << "Convert float16 to uint16";   break;
+    case EOpConvInt64ToUint16:      out.debug << "Convert int64 to uint16";     break;
+    case EOpConvUint64ToUint16:     out.debug << "Convert uint64 to uint16";    break;
+    case EOpConvInt16ToUint16:      out.debug << "Convert int16 to uint16";     break;
+    case EOpConvUint16ToBool:       out.debug << "Convert uint16 to bool";      break;
+    case EOpConvUint16ToInt:        out.debug << "Convert uint16 to int";       break;
+    case EOpConvUint16ToUint:       out.debug << "Convert uint16 to uint";      break;
+    case EOpConvUint16ToFloat:      out.debug << "Convert uint16 to float";     break;
+    case EOpConvUint16ToDouble:     out.debug << "Convert uint16 to double";    break;
+    case EOpConvUint16ToFloat16:    out.debug << "Convert uint16 to float16";   break;
+    case EOpConvUint16ToInt64:      out.debug << "Convert uint16 to int64";     break;
+    case EOpConvUint16ToUint64:     out.debug << "Convert uint16 to uint64";    break;
 #endif
 
     default: out.debug.message(EPrefixError, "Bad unary op");
@@ -444,9 +519,13 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
 
     case EOpConstructFloat: out.debug << "Construct float"; break;
     case EOpConstructDouble:out.debug << "Construct double"; break;
+
     case EOpConstructVec2:  out.debug << "Construct vec2";  break;
     case EOpConstructVec3:  out.debug << "Construct vec3";  break;
     case EOpConstructVec4:  out.debug << "Construct vec4";  break;
+    case EOpConstructDVec2: out.debug << "Construct dvec2";  break;
+    case EOpConstructDVec3: out.debug << "Construct dvec3";  break;
+    case EOpConstructDVec4: out.debug << "Construct dvec4";  break;
     case EOpConstructBool:  out.debug << "Construct bool";  break;
     case EOpConstructBVec2: out.debug << "Construct bvec2"; break;
     case EOpConstructBVec3: out.debug << "Construct bvec3"; break;
@@ -467,6 +546,16 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
     case EOpConstructU64Vec2: out.debug << "Construct u64vec2"; break;
     case EOpConstructU64Vec3: out.debug << "Construct u64vec3"; break;
     case EOpConstructU64Vec4: out.debug << "Construct u64vec4"; break;
+#ifdef AMD_EXTENSIONS
+    case EOpConstructInt16:   out.debug << "Construct int16_t"; break;
+    case EOpConstructI16Vec2: out.debug << "Construct i16vec2"; break;
+    case EOpConstructI16Vec3: out.debug << "Construct i16vec3"; break;
+    case EOpConstructI16Vec4: out.debug << "Construct i16vec4"; break;
+    case EOpConstructUint16:  out.debug << "Construct uint16_t"; break;
+    case EOpConstructU16Vec2: out.debug << "Construct u16vec2"; break;
+    case EOpConstructU16Vec3: out.debug << "Construct u16vec3"; break;
+    case EOpConstructU16Vec4: out.debug << "Construct u16vec4"; break;
+#endif
     case EOpConstructMat2x2:  out.debug << "Construct mat2";    break;
     case EOpConstructMat2x3:  out.debug << "Construct mat2x3";  break;
     case EOpConstructMat2x4:  out.debug << "Construct mat2x4";  break;
@@ -485,6 +574,33 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
     case EOpConstructDMat4x2: out.debug << "Construct dmat4x2"; break;
     case EOpConstructDMat4x3: out.debug << "Construct dmat4x3"; break;
     case EOpConstructDMat4x4: out.debug << "Construct dmat4";   break;
+    case EOpConstructIMat2x2: out.debug << "Construct imat2";   break;
+    case EOpConstructIMat2x3: out.debug << "Construct imat2x3"; break;
+    case EOpConstructIMat2x4: out.debug << "Construct imat2x4"; break;
+    case EOpConstructIMat3x2: out.debug << "Construct imat3x2"; break;
+    case EOpConstructIMat3x3: out.debug << "Construct imat3";   break;
+    case EOpConstructIMat3x4: out.debug << "Construct imat3x4"; break;
+    case EOpConstructIMat4x2: out.debug << "Construct imat4x2"; break;
+    case EOpConstructIMat4x3: out.debug << "Construct imat4x3"; break;
+    case EOpConstructIMat4x4: out.debug << "Construct imat4";   break;
+    case EOpConstructUMat2x2: out.debug << "Construct umat2";   break;
+    case EOpConstructUMat2x3: out.debug << "Construct umat2x3"; break;
+    case EOpConstructUMat2x4: out.debug << "Construct umat2x4"; break;
+    case EOpConstructUMat3x2: out.debug << "Construct umat3x2"; break;
+    case EOpConstructUMat3x3: out.debug << "Construct umat3";   break;
+    case EOpConstructUMat3x4: out.debug << "Construct umat3x4"; break;
+    case EOpConstructUMat4x2: out.debug << "Construct umat4x2"; break;
+    case EOpConstructUMat4x3: out.debug << "Construct umat4x3"; break;
+    case EOpConstructUMat4x4: out.debug << "Construct umat4";   break;
+    case EOpConstructBMat2x2: out.debug << "Construct bmat2";   break;
+    case EOpConstructBMat2x3: out.debug << "Construct bmat2x3"; break;
+    case EOpConstructBMat2x4: out.debug << "Construct bmat2x4"; break;
+    case EOpConstructBMat3x2: out.debug << "Construct bmat3x2"; break;
+    case EOpConstructBMat3x3: out.debug << "Construct bmat3";   break;
+    case EOpConstructBMat3x4: out.debug << "Construct bmat3x4"; break;
+    case EOpConstructBMat4x2: out.debug << "Construct bmat4x2"; break;
+    case EOpConstructBMat4x3: out.debug << "Construct bmat4x3"; break;
+    case EOpConstructBMat4x4: out.debug << "Construct bmat4";   break;
 #ifdef AMD_EXTENSIONS
     case EOpConstructFloat16:   out.debug << "Construct float16_t"; break;
     case EOpConstructF16Vec2:   out.debug << "Construct f16vec2";   break;
@@ -566,6 +682,16 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
     case EOpAtomicExchange:             out.debug << "AtomicExchange";        break;
     case EOpAtomicCompSwap:             out.debug << "AtomicCompSwap";        break;
 
+    case EOpAtomicCounterAdd:           out.debug << "AtomicCounterAdd";      break;
+    case EOpAtomicCounterSubtract:      out.debug << "AtomicCounterSubtract"; break;
+    case EOpAtomicCounterMin:           out.debug << "AtomicCounterMin";      break;
+    case EOpAtomicCounterMax:           out.debug << "AtomicCounterMax";      break;
+    case EOpAtomicCounterAnd:           out.debug << "AtomicCounterAnd";      break;
+    case EOpAtomicCounterOr:            out.debug << "AtomicCounterOr";       break;
+    case EOpAtomicCounterXor:           out.debug << "AtomicCounterXor";      break;
+    case EOpAtomicCounterExchange:      out.debug << "AtomicCounterExchange"; break;
+    case EOpAtomicCounterCompSwap:      out.debug << "AtomicCounterCompSwap"; break;
+
     case EOpImageQuerySize:             out.debug << "imageQuerySize";        break;
     case EOpImageQuerySamples:          out.debug << "imageQuerySamples";     break;
     case EOpImageLoad:                  out.debug << "imageLoad";             break;
@@ -578,6 +704,10 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
     case EOpImageAtomicXor:             out.debug << "imageAtomicXor";        break;
     case EOpImageAtomicExchange:        out.debug << "imageAtomicExchange";   break;
     case EOpImageAtomicCompSwap:        out.debug << "imageAtomicCompSwap";   break;
+#ifdef AMD_EXTENSIONS
+    case EOpImageLoadLod:               out.debug << "imageLoadLod";          break;
+    case EOpImageStoreLod:              out.debug << "imageStoreLod";         break;
+#endif
 
     case EOpTextureQuerySize:           out.debug << "textureSize";           break;
     case EOpTextureQueryLod:            out.debug << "textureQueryLod";       break;
@@ -600,6 +730,38 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
     case EOpTextureGather:              out.debug << "textureGather";         break;
     case EOpTextureGatherOffset:        out.debug << "textureGatherOffset";   break;
     case EOpTextureGatherOffsets:       out.debug << "textureGatherOffsets";  break;
+    case EOpTextureClamp:               out.debug << "textureClamp";          break;
+    case EOpTextureOffsetClamp:         out.debug << "textureOffsetClamp";    break;
+    case EOpTextureGradClamp:           out.debug << "textureGradClamp";      break;
+    case EOpTextureGradOffsetClamp:     out.debug << "textureGradOffsetClamp";  break;
+#ifdef AMD_EXTENSIONS
+    case EOpTextureGatherLod:           out.debug << "textureGatherLod";        break;
+    case EOpTextureGatherLodOffset:     out.debug << "textureGatherLodOffset";  break;
+    case EOpTextureGatherLodOffsets:    out.debug << "textureGatherLodOffsets"; break;
+#endif
+
+    case EOpSparseTexture:                  out.debug << "sparseTexture";                   break;
+    case EOpSparseTextureOffset:            out.debug << "sparseTextureOffset";             break;
+    case EOpSparseTextureLod:               out.debug << "sparseTextureLod";                break;
+    case EOpSparseTextureLodOffset:         out.debug << "sparseTextureLodOffset";          break;
+    case EOpSparseTextureFetch:             out.debug << "sparseTexelFetch";                break;
+    case EOpSparseTextureFetchOffset:       out.debug << "sparseTexelFetchOffset";          break;
+    case EOpSparseTextureGrad:              out.debug << "sparseTextureGrad";               break;
+    case EOpSparseTextureGradOffset:        out.debug << "sparseTextureGradOffset";         break;
+    case EOpSparseTextureGather:            out.debug << "sparseTextureGather";             break;
+    case EOpSparseTextureGatherOffset:      out.debug << "sparseTextureGatherOffset";       break;
+    case EOpSparseTextureGatherOffsets:     out.debug << "sparseTextureGatherOffsets";      break;
+    case EOpSparseImageLoad:                out.debug << "sparseImageLoad";                 break;
+    case EOpSparseTextureClamp:             out.debug << "sparseTextureClamp";              break;
+    case EOpSparseTextureOffsetClamp:       out.debug << "sparseTextureOffsetClamp";        break;
+    case EOpSparseTextureGradClamp:         out.debug << "sparseTextureGradClamp";          break;
+    case EOpSparseTextureGradOffsetClamp:   out.debug << "sparseTextureGradOffsetClam";     break;
+#ifdef AMD_EXTENSIONS
+    case EOpSparseTextureGatherLod:         out.debug << "sparseTextureGatherLod";          break;
+    case EOpSparseTextureGatherLodOffset:   out.debug << "sparseTextureGatherLodOffset";    break;
+    case EOpSparseTextureGatherLodOffsets:  out.debug << "sparseTextureGatherLodOffsets";   break;
+    case EOpSparseImageLoadLod:             out.debug << "sparseImageLoadLod";              break;
+#endif
 
     case EOpAddCarry:                   out.debug << "addCarry";              break;
     case EOpSubBorrow:                  out.debug << "subBorrow";             break;
@@ -694,11 +856,14 @@ static void OutputConstantUnion(TInfoSink& out, const TIntermTyped* node, const 
 #endif
             {
                 const double value = constUnion[i].getDConst();
-                // Print infinity in a portable way, for test stability.
-                // Other cases may be needed in the future: negative infinity,
-                // and NaNs.
-                if (is_positive_infinity(value))
-                    out.debug << "inf\n";
+                // Print infinities and NaNs in a portable way.
+                if (IsInfinity(value)) {
+                    if (value < 0)
+                        out.debug << "-1.#INF\n";
+                    else
+                        out.debug << "+1.#INF\n";
+                } else if (IsNan(value))
+                    out.debug << "1.#IND\n";
                 else {
                     const int maxSize = 300;
                     char buf[maxSize];
@@ -744,6 +909,26 @@ static void OutputConstantUnion(TInfoSink& out, const TIntermTyped* node, const 
                 out.debug << buf << "\n";
             }
             break;
+#ifdef AMD_EXTENSIONS
+        case EbtInt16:
+            {
+                const int maxSize = 300;
+                char buf[maxSize];
+                snprintf(buf, maxSize, "%d (%s)", constUnion[i].getIConst(), "const int16_t");
+
+                out.debug << buf << "\n";
+            }
+            break;
+        case EbtUint16:
+            {
+                const int maxSize = 300;
+                char buf[maxSize];
+                snprintf(buf, maxSize, "%u (%s)", constUnion[i].getUConst(), "const uint16_t");
+
+                out.debug << buf << "\n";
+            }
+            break;
+#endif
         default:
             out.info.message(EPrefixInternalError, "Unknown constant", node->getLoc());
             break;
@@ -884,6 +1069,13 @@ void TIntermediate::output(TInfoSink& infoSink, bool tree)
 
     case EShLangTessControl:
         infoSink.debug << "vertices = " << vertices << "\n";
+
+        if (inputPrimitive != ElgNone)
+            infoSink.debug << "input primitive = " << TQualifier::getGeometryString(inputPrimitive) << "\n";
+        if (vertexSpacing != EvsNone)
+            infoSink.debug << "vertex spacing = " << TQualifier::getVertexSpacingString(vertexSpacing) << "\n";
+        if (vertexOrder != EvoNone)
+            infoSink.debug << "triangle order = " << TQualifier::getVertexOrderString(vertexOrder) << "\n";
         break;
 
     case EShLangTessEvaluation:
@@ -908,6 +1100,8 @@ void TIntermediate::output(TInfoSink& infoSink, bool tree)
             infoSink.debug << "gl_FragCoord origin is upper left\n";
         if (earlyFragmentTests)
             infoSink.debug << "using early_fragment_tests\n";
+        if (postDepthCoverage)
+            infoSink.debug << "using post_depth_coverage\n";
         if (depthLayout != EldNone)
             infoSink.debug << "using " << TQualifier::getLayoutDepthString(depthLayout) << "\n";
         if (blendEquations != 0) {

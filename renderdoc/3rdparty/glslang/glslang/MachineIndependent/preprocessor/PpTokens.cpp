@@ -80,8 +80,10 @@ NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // For recording and playing back the stream of tokens in a macro definition.
 //
 
-#if (defined(_MSC_VER) && _MSC_VER < 1900 /*vs2015*/)
+#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
+#endif
+#if (defined(_MSC_VER) && _MSC_VER < 1900 /*vs2015*/)
 #define snprintf sprintf_s
 #endif
 
@@ -139,6 +141,10 @@ void TPpContext::TokenStream::putToken(int token, TPpToken* ppToken)
     case PpAtomConstUint:
     case PpAtomConstInt64:
     case PpAtomConstUint64:
+#ifdef AMD_EXTENSIONS
+    case PpAtomConstInt16:
+    case PpAtomConstUint16:
+#endif
     case PpAtomConstFloat:
     case PpAtomConstDouble:
 #ifdef AMD_EXTENSIONS
@@ -188,6 +194,10 @@ int TPpContext::TokenStream::getToken(TParseContextBase& parseContext, TPpToken 
     case PpAtomConstUint:
     case PpAtomConstInt64:
     case PpAtomConstUint64:
+#ifdef AMD_EXTENSIONS
+    case PpAtomConstInt16:
+    case PpAtomConstUint16:
+#endif
         len = 0;
         ch = getSubtoken();
         while (ch != 0 && ch != EndOfInput) {
@@ -215,6 +225,9 @@ int TPpContext::TokenStream::getToken(TParseContextBase& parseContext, TPpToken 
             ppToken->dval = atof(ppToken->name);
             break;
         case PpAtomConstInt:
+#ifdef AMD_EXTENSIONS
+        case PpAtomConstInt16:
+#endif
             if (len > 0 && ppToken->name[0] == '0') {
                 if (len > 1 && (ppToken->name[1] == 'x' || ppToken->name[1] == 'X'))
                     ppToken->ival = (int)strtol(ppToken->name, 0, 16);
@@ -224,6 +237,9 @@ int TPpContext::TokenStream::getToken(TParseContextBase& parseContext, TPpToken 
                 ppToken->ival = atoi(ppToken->name);
             break;
         case PpAtomConstUint:
+#ifdef AMD_EXTENSIONS
+        case PpAtomConstUint16:
+#endif
             if (len > 0 && ppToken->name[0] == '0') {
                 if (len > 1 && (ppToken->name[1] == 'x' || ppToken->name[1] == 'X'))
                     ppToken->ival = (int)strtoul(ppToken->name, 0, 16);

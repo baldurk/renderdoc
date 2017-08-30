@@ -93,13 +93,7 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpContext.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpMemory.cpp">
-      <Filter>3rdparty\glslang</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpScanner.cpp">
-      <Filter>3rdparty\glslang</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpSymbols.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpTokens.cpp">

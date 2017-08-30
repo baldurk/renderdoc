@@ -70,7 +70,17 @@ public:
         source = lang;
         sourceVersion = version;
     }
+    void setSourceFile(const std::string& file)
+    {
+        Instruction* fileString = new Instruction(getUniqueId(), NoType, OpString);
+        fileString->addStringOperand(file.c_str());
+        sourceFileStringId = fileString->getResultId();
+        strings.push_back(std::unique_ptr<Instruction>(fileString));
+    }
+    void setSourceText(const std::string& text) { sourceText = text; }
     void addSourceExtension(const char* ext) { sourceExtensions.push_back(ext); }
+    void addModuleProcessed(const std::string& p) { moduleProcesses.push_back(p.c_str()); }
+    void setEmitOpLines() { emitOpLines = true; }
     void addExtension(const char* ext) { extensions.insert(ext); }
     Id import(const char*);
     void setMemoryModel(spv::AddressingModel addr, spv::MemoryModel mem)
@@ -91,6 +101,12 @@ public:
         uniqueId += numIds;
         return id;
     }
+
+    // Log the current line, and if different than the last one,
+    // issue a new OpLine, using the current file name.
+    void setLine(int line);
+    // Low-level OpLine. See setLine() for a layered helper.
+    void addLine(Id fileName, int line, int column);
 
     // For creating new types (will return old type if the requested one was already made).
     Id makeVoidType();
@@ -134,6 +150,9 @@ public:
     bool isSampledImage(Id resultId) const { return isSampledImageType(getTypeId(resultId)); }
 
     bool isBoolType(Id typeId)         const { return groupedTypes[OpTypeBool].size() > 0 && typeId == groupedTypes[OpTypeBool].back()->getResultId(); }
+    bool isIntType(Id typeId)          const { return getTypeClass(typeId) == OpTypeInt && module.getInstruction(typeId)->getImmediateOperand(1) != 0; }
+    bool isUintType(Id typeId)         const { return getTypeClass(typeId) == OpTypeInt && module.getInstruction(typeId)->getImmediateOperand(1) == 0; }
+    bool isFloatType(Id typeId)        const { return getTypeClass(typeId) == OpTypeFloat; }
     bool isPointerType(Id typeId)      const { return getTypeClass(typeId) == OpTypePointer; }
     bool isScalarType(Id typeId)       const { return getTypeClass(typeId) == OpTypeFloat  || getTypeClass(typeId) == OpTypeInt || getTypeClass(typeId) == OpTypeBool; }
     bool isVectorType(Id typeId)       const { return getTypeClass(typeId) == OpTypeVector; }
@@ -152,6 +171,13 @@ public:
     bool isSpecConstant(Id resultId) const { return isSpecConstantOpCode(getOpCode(resultId)); }
     unsigned int getConstantScalar(Id resultId) const { return module.getInstruction(resultId)->getImmediateOperand(0); }
     StorageClass getStorageClass(Id resultId) const { return getTypeStorageClass(getTypeId(resultId)); }
+
+    int getScalarTypeWidth(Id typeId) const
+    {
+        Id scalarTypeId = getScalarTypeId(typeId);
+        assert(getTypeClass(scalarTypeId) == OpTypeInt || getTypeClass(scalarTypeId) == OpTypeFloat);
+        return module.getInstruction(scalarTypeId)->getImmediateOperand(0);
+    }
 
     int getTypeNumColumns(Id typeId) const
     {
@@ -189,6 +215,10 @@ public:
     Id makeUintConstant(unsigned u, bool specConstant = false)   { return makeIntConstant(makeUintType(32),           u, specConstant); }
     Id makeInt64Constant(long long i, bool specConstant = false)            { return makeInt64Constant(makeIntType(64),  (unsigned long long)i, specConstant); }
     Id makeUint64Constant(unsigned long long u, bool specConstant = false)  { return makeInt64Constant(makeUintType(64),                     u, specConstant); }
+#ifdef AMD_EXTENSIONS
+    Id makeInt16Constant(short i, bool specConstant = false)        { return makeIntConstant(makeIntType(16),      (unsigned)((unsigned short)i), specConstant); }
+    Id makeUint16Constant(unsigned short u, bool specConstant = false)  { return makeIntConstant(makeUintType(16), (unsigned)u, specConstant); }
+#endif
     Id makeFloatConstant(float f, bool specConstant = false);
     Id makeDoubleConstant(double d, bool specConstant = false);
 #ifdef AMD_EXTENSIONS
@@ -203,7 +233,6 @@ public:
     void addExecutionMode(Function*, ExecutionMode mode, int value1 = -1, int value2 = -1, int value3 = -1);
     void addName(Id, const char* name);
     void addMemberName(Id, int member, const char* name);
-    void addLine(Id target, Id fileName, int line, int column);
     void addDecoration(Id, Decoration, int num = -1);
     void addMemberDecoration(Id, unsigned int member, Decoration, int num = -1);
 
@@ -219,7 +248,7 @@ public:
     // Return the function, pass back the entry.
     // The returned pointer is only valid for the lifetime of this builder.
     Function* makeFunctionEntry(Decoration precision, Id returnType, const char* name, const std::vector<Id>& paramTypes,
-                                const std::vector<Decoration>& precisions, Block **entry = 0);
+                                const std::vector<std::vector<Decoration>>& precisions, Block **entry = 0);
 
     // Create a return. An 'implicit' return is one not appearing in the source
     // code.  In the case of an implicit return, no post-return block is inserted.
@@ -335,7 +364,7 @@ public:
 
     // Emit the OpTextureQuery* instruction that was passed in.
     // Figure out the right return value and type, and return it.
-    Id createTextureQueryCall(Op, const TextureParameters&);
+    Id createTextureQueryCall(Op, const TextureParameters&, bool isUnsignedResult);
 
     Id createSamplePositionCall(Decoration precision, Id, Id);
 
@@ -357,7 +386,7 @@ public:
     // Helper to use for building nested control flow with if-then-else.
     class If {
     public:
-        If(Id condition, Builder& builder);
+        If(Id condition, unsigned int ctrl, Builder& builder);
         ~If() {}
 
         void makeBeginElse();
@@ -369,6 +398,7 @@ public:
 
         Builder& builder;
         Id condition;
+        unsigned int control;
         Function* function;
         Block* headerBlock;
         Block* thenBlock;
@@ -388,7 +418,7 @@ public:
     // Returns the right set of basic blocks to start each code segment with, so that the caller's
     // recursion stack can hold the memory for it.
     //
-    void makeSwitch(Id condition, int numSegments, const std::vector<int>& caseValues,
+    void makeSwitch(Id condition, unsigned int control, int numSegments, const std::vector<int>& caseValues,
                     const std::vector<int>& valueToSegment, int defaultSegment, std::vector<Block*>& segmentBB); // return argument
 
     // Add a branch to the innermost switch's merge block.
@@ -551,12 +581,19 @@ public:
     void simplifyAccessChainSwizzle();
     void createAndSetNoPredecessorBlock(const char*);
     void createSelectionMerge(Block* mergeBlock, unsigned int control);
+    void dumpSourceInstructions(std::vector<unsigned int>&) const;
     void dumpInstructions(std::vector<unsigned int>&, const std::vector<std::unique_ptr<Instruction> >&) const;
+    void dumpModuleProcesses(std::vector<unsigned int>&) const;
 
     SourceLanguage source;
     int sourceVersion;
+    spv::Id sourceFileStringId;
+    std::string sourceText;
+    int currentLine;
+    bool emitOpLines;
     std::set<std::string> extensions;
     std::vector<const char*> sourceExtensions;
+    std::vector<const char*> moduleProcesses;
     AddressingModel addressModel;
     MemoryModel memoryModel;
     std::set<spv::Capability> capabilities;
@@ -569,6 +606,7 @@ public:
     AccessChain accessChain;
 
     // special blocks of instructions for output
+    std::vector<std::unique_ptr<Instruction> > strings;
     std::vector<std::unique_ptr<Instruction> > imports;
     std::vector<std::unique_ptr<Instruction> > entryPoints;
     std::vector<std::unique_ptr<Instruction> > executionModes;
@@ -589,7 +627,7 @@ public:
     // Our loop stack.
     std::stack<LoopBlocks> loops;
 
-    // The stream for outputing warnings and errors.
+    // The stream for outputting warnings and errors.
     SpvBuildLogger* logger;
 };  // end Builder class
 

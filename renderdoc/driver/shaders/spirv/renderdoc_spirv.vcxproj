@@ -67,7 +67,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AMD_EXTENSIONS;GLSLANG_OSINCLUDE_WIN32;RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>AMD_EXTENSIONS;NV_EXTENSIONS;ENABLE_HLSL;GLSLANG_OSINCLUDE_WIN32;RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <DisableSpecificWarnings>4100</DisableSpecificWarnings>
@@ -114,9 +114,7 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\Pp.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpAtom.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpContext.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpMemory.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpScanner.cpp" />
-    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpSymbols.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpTokens.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\propagateNoContraction.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\reflection.cpp" />

@@ -47,7 +47,6 @@
 #include "../glslang/MachineIndependent/ParseHelper.h"
 #include "hlslScanContext.h"
 #include "hlslTokens.h"
-//#include "Scan.h"
 
 // preprocessor includes
 #include "../glslang/MachineIndependent/preprocessor/PpContext.h"
@@ -82,6 +81,7 @@ struct str_hash
 // After a single process-level initialization, this is read only and thread safe
 std::unordered_map<const char*, glslang::EHlslTokenClass, str_hash, str_eq>* KeywordMap = nullptr;
 std::unordered_set<const char*, str_hash, str_eq>* ReservedSet = nullptr;
+std::unordered_map<const char*, glslang::TBuiltInVariable, str_hash, str_eq>* SemanticMap = nullptr;
 
 };
 
@@ -119,6 +119,7 @@ void HlslScanContext::fillInKeywordMap()
     (*KeywordMap)["inout"] =                   EHTokInOut;
     (*KeywordMap)["layout"] =                  EHTokLayout;
     (*KeywordMap)["globallycoherent"] =        EHTokGloballyCoherent;
+    (*KeywordMap)["inline"] =                  EHTokInline;
 
     (*KeywordMap)["point"] =                   EHTokPoint;
     (*KeywordMap)["line"] =                    EHTokLine;
@@ -278,6 +279,22 @@ void HlslScanContext::fillInKeywordMap()
     (*KeywordMap)["float4x2"] =                EHTokFloat4x2;
     (*KeywordMap)["float4x3"] =                EHTokFloat4x3;
     (*KeywordMap)["float4x4"] =                EHTokFloat4x4;
+    (*KeywordMap)["half1x1"] =                 EHTokHalf1x1;
+    (*KeywordMap)["half1x2"] =                 EHTokHalf1x2;
+    (*KeywordMap)["half1x3"] =                 EHTokHalf1x3;
+    (*KeywordMap)["half1x4"] =                 EHTokHalf1x4;
+    (*KeywordMap)["half2x1"] =                 EHTokHalf2x1;
+    (*KeywordMap)["half2x2"] =                 EHTokHalf2x2;
+    (*KeywordMap)["half2x3"] =                 EHTokHalf2x3;
+    (*KeywordMap)["half2x4"] =                 EHTokHalf2x4;
+    (*KeywordMap)["half3x1"] =                 EHTokHalf3x1;
+    (*KeywordMap)["half3x2"] =                 EHTokHalf3x2;
+    (*KeywordMap)["half3x3"] =                 EHTokHalf3x3;
+    (*KeywordMap)["half3x4"] =                 EHTokHalf3x4;
+    (*KeywordMap)["half4x1"] =                 EHTokHalf4x1;
+    (*KeywordMap)["half4x2"] =                 EHTokHalf4x2;
+    (*KeywordMap)["half4x3"] =                 EHTokHalf4x3;
+    (*KeywordMap)["half4x4"] =                 EHTokHalf4x4;
     (*KeywordMap)["double1x1"] =               EHTokDouble1x1;
     (*KeywordMap)["double1x2"] =               EHTokDouble1x2;
     (*KeywordMap)["double1x3"] =               EHTokDouble1x3;
@@ -330,8 +347,11 @@ void HlslScanContext::fillInKeywordMap()
     (*KeywordMap)["class"] =                   EHTokClass;
     (*KeywordMap)["struct"] =                  EHTokStruct;
     (*KeywordMap)["cbuffer"] =                 EHTokCBuffer;
+    (*KeywordMap)["ConstantBuffer"] =          EHTokConstantBuffer;
     (*KeywordMap)["tbuffer"] =                 EHTokTBuffer;
     (*KeywordMap)["typedef"] =                 EHTokTypedef;
+    (*KeywordMap)["this"] =                    EHTokThis;
+    (*KeywordMap)["namespace"] =               EHTokNamespace;
 
     (*KeywordMap)["true"] =                    EHTokBoolConstant;
     (*KeywordMap)["false"] =                   EHTokBoolConstant;
@@ -373,7 +393,6 @@ void HlslScanContext::fillInKeywordMap()
     ReservedSet->insert("sizeof");
     ReservedSet->insert("static_cast");
     ReservedSet->insert("template");
-    ReservedSet->insert("this");
     ReservedSet->insert("throw");
     ReservedSet->insert("try");
     ReservedSet->insert("typename");
@@ -381,6 +400,47 @@ void HlslScanContext::fillInKeywordMap()
     ReservedSet->insert("unsigned");
     ReservedSet->insert("using");
     ReservedSet->insert("virtual");
+
+    SemanticMap = new std::unordered_map<const char*, glslang::TBuiltInVariable, str_hash, str_eq>;
+
+    // in DX9, all outputs had to have a semantic associated with them, that was either consumed
+    // by the system or was a specific register assignment
+    // in DX10+, only semantics with the SV_ prefix have any meaning beyond decoration
+    // Fxc will only accept DX9 style semantics in compat mode
+    // Also, in DX10 if a SV value is present as the input of a stage, but isn't appropriate for that
+    // stage, it would just be ignored as it is likely there as part of an output struct from one stage
+    // to the next
+    bool bParseDX9 = false;
+    if (bParseDX9) {
+        (*SemanticMap)["PSIZE"] = EbvPointSize;
+        (*SemanticMap)["FOG"] =   EbvFogFragCoord;
+        (*SemanticMap)["DEPTH"] = EbvFragDepth;
+        (*SemanticMap)["VFACE"] = EbvFace;
+        (*SemanticMap)["VPOS"] =  EbvFragCoord;
+    }
+
+    (*SemanticMap)["SV_POSITION"] =               EbvPosition;
+    (*SemanticMap)["SV_VERTEXID"] =               EbvVertexIndex;
+    (*SemanticMap)["SV_VIEWPORTARRAYINDEX"] =     EbvViewportIndex;
+    (*SemanticMap)["SV_TESSFACTOR"] =             EbvTessLevelOuter;
+    (*SemanticMap)["SV_SAMPLEINDEX"] =            EbvSampleId;
+    (*SemanticMap)["SV_RENDERTARGETARRAYINDEX"] = EbvLayer;
+    (*SemanticMap)["SV_PRIMITIVEID"] =            EbvPrimitiveId;
+    (*SemanticMap)["SV_OUTPUTCONTROLPOINTID"] =   EbvInvocationId;
+    (*SemanticMap)["SV_ISFRONTFACE"] =            EbvFace;
+    (*SemanticMap)["SV_INSTANCEID"] =             EbvInstanceIndex;
+    (*SemanticMap)["SV_INSIDETESSFACTOR"] =       EbvTessLevelInner;
+    (*SemanticMap)["SV_GSINSTANCEID"] =           EbvInvocationId;
+    (*SemanticMap)["SV_DISPATCHTHREADID"] =       EbvGlobalInvocationId;
+    (*SemanticMap)["SV_GROUPTHREADID"] =          EbvLocalInvocationId;
+    (*SemanticMap)["SV_GROUPINDEX"] =             EbvLocalInvocationIndex;
+    (*SemanticMap)["SV_GROUPID"] =                EbvWorkGroupId;
+    (*SemanticMap)["SV_DOMAINLOCATION"] =         EbvTessCoord;
+    (*SemanticMap)["SV_DEPTH"] =                  EbvFragDepth;
+    (*SemanticMap)["SV_COVERAGE"] =               EbvSampleMask;
+    (*SemanticMap)["SV_DEPTHGREATEREQUAL"] =      EbvFragDepthGreater;
+    (*SemanticMap)["SV_DEPTHLESSEQUAL"] =         EbvFragDepthLesser;
+    (*SemanticMap)["SV_STENCILREF"] =             EbvFragStencilRef;
 }
 
 void HlslScanContext::deleteKeywordMap()
@@ -389,13 +449,24 @@ void HlslScanContext::deleteKeywordMap()
     KeywordMap = nullptr;
     delete ReservedSet;
     ReservedSet = nullptr;
+    delete SemanticMap;
+    SemanticMap = nullptr;
 }
 
-// Wrapper for tokenizeClass()"] =  to get everything inside the token.
+// Wrapper for tokenizeClass() to get everything inside the token.
 void HlslScanContext::tokenize(HlslToken& token)
 {
     EHlslTokenClass tokenClass = tokenizeClass(token);
     token.tokenClass = tokenClass;
+}
+
+glslang::TBuiltInVariable HlslScanContext::mapSemantic(const char* upperCase)
+{
+    auto it = SemanticMap->find(upperCase);
+    if (it != SemanticMap->end())
+        return it->second;
+    else
+        return glslang::EbvNone;
 }
 
 //
@@ -471,6 +542,8 @@ EHlslTokenClass HlslScanContext::tokenizeClass(HlslToken& token)
         case PpAtomDecrement:          return EHTokDecOp;
         case PpAtomIncrement:          return EHTokIncOp;
 
+        case PpAtomColonColon:         return EHTokColonColon;
+
         case PpAtomConstInt:           parserToken->i = ppToken.ival;       return EHTokIntConstant;
         case PpAtomConstUint:          parserToken->i = ppToken.ival;       return EHTokUintConstant;
         case PpAtomConstFloat:         parserToken->d = ppToken.dval;       return EHTokFloatConstant;
@@ -536,6 +609,7 @@ EHlslTokenClass HlslScanContext::tokenizeIdentifier()
     case EHTokPrecise:
     case EHTokLayout:
     case EHTokGloballyCoherent:
+    case EHTokInline:
         return keyword;
 
     // primitive types
@@ -689,6 +763,22 @@ EHlslTokenClass HlslScanContext::tokenizeIdentifier()
     case EHTokFloat4x2:
     case EHTokFloat4x3:
     case EHTokFloat4x4:
+    case EHTokHalf1x1:
+    case EHTokHalf1x2:
+    case EHTokHalf1x3:
+    case EHTokHalf1x4:
+    case EHTokHalf2x1:
+    case EHTokHalf2x2:
+    case EHTokHalf2x3:
+    case EHTokHalf2x4:
+    case EHTokHalf3x1:
+    case EHTokHalf3x2:
+    case EHTokHalf3x3:
+    case EHTokHalf3x4:
+    case EHTokHalf4x1:
+    case EHTokHalf4x2:
+    case EHTokHalf4x3:
+    case EHTokHalf4x4:
     case EHTokDouble1x1:
     case EHTokDouble1x2:
     case EHTokDouble1x3:
@@ -744,7 +834,10 @@ EHlslTokenClass HlslScanContext::tokenizeIdentifier()
     case EHTokStruct:
     case EHTokTypedef:
     case EHTokCBuffer:
+    case EHTokConstantBuffer:
     case EHTokTBuffer:
+    case EHTokThis:
+    case EHTokNamespace:
         return keyword;
 
     case EHTokBoolConstant:
@@ -791,30 +884,6 @@ EHlslTokenClass HlslScanContext::reservedWord()
         parseContext.error(loc, "Reserved word.", tokenText, "", "");
 
     return EHTokNone;
-}
-
-EHlslTokenClass HlslScanContext::identifierOrReserved(bool reserved)
-{
-    if (reserved) {
-        reservedWord();
-
-        return EHTokNone;
-    }
-
-    if (parseContext.forwardCompatible)
-        parseContext.warn(loc, "using future reserved keyword", tokenText, "");
-
-    return identifierOrType();
-}
-
-// For a keyword that was never reserved, until it suddenly
-// showed up.
-EHlslTokenClass HlslScanContext::nonreservedKeyword(int version)
-{
-    if (parseContext.version < version)
-        return identifierOrType();
-
-    return keyword;
 }
 
 } // end namespace glslang
