@@ -1070,8 +1070,13 @@ DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType typeHint)
     }
 
     case DXGI_FORMAT_R10G10B10A2_TYPELESS:
-      return typeHint == CompType::UInt ? DXGI_FORMAT_R10G10B10A2_UINT
-                                        : DXGI_FORMAT_R10G10B10A2_UNORM;
+    {
+      if(typeHint == CompType::UInt)
+        return DXGI_FORMAT_R10G10B10A2_UINT;
+      if(typeHint == CompType::Float)
+        return DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM;
+      return DXGI_FORMAT_R10G10B10A2_UNORM;
+    }
 
     case DXGI_FORMAT_BC4_TYPELESS:
       return typeHint == CompType::SNorm ? DXGI_FORMAT_BC4_SNORM : DXGI_FORMAT_BC4_UNORM;
@@ -1378,6 +1383,8 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
       case ResourceFormatType::R10G10B10A2:
         if(fmt.compType == CompType::UNorm)
           ret = DXGI_FORMAT_R10G10B10A2_UNORM;
+        else if(fmt.compType == CompType::Float)
+          ret = DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM;
         else
           ret = DXGI_FORMAT_R10G10B10A2_UINT;
         break;
@@ -1746,8 +1753,9 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_R16_SINT:
     case DXGI_FORMAT_R8_SINT: ret.compType = CompType::SInt; break;
 
-    case DXGI_FORMAT_R10G10B10A2_UINT:
-    case DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM: ret.compType = CompType::UInt; break;
+    case DXGI_FORMAT_R10G10B10A2_UINT: ret.compType = CompType::UInt; break;
+    case DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM: ret.compType = CompType::Float; break;
+    case DXGI_FORMAT_R10G10B10A2_UNORM: ret.compType = CompType::UNorm; break;
 
     case DXGI_FORMAT_R9G9B9E5_SHAREDEXP:
     case DXGI_FORMAT_R11G11B10_FLOAT: ret.compType = CompType::Float; break;
@@ -1779,7 +1787,6 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_BC7_TYPELESS: ret.compType = CompType::Typeless; break;
     case DXGI_FORMAT_R8G8_B8G8_UNORM:
     case DXGI_FORMAT_G8R8_G8B8_UNORM:
-    case DXGI_FORMAT_R10G10B10A2_UNORM:
     case DXGI_FORMAT_B4G4R4A4_UNORM:
     case DXGI_FORMAT_B5G6R5_UNORM:
     case DXGI_FORMAT_B5G5R5A1_UNORM:
