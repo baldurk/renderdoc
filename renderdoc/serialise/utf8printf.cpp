@@ -1421,8 +1421,8 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     int a = utf8printf_wrapper(NULL, 0, "%d %c", fourtytwo, x);
     int b = snprintf(NULL, 0, "%d %c", fourtytwo, x);
 
-    REQUIRE(a == 4);
-    REQUIRE(a == b);
+    CHECK(a == 4);
+    CHECK(a == b);
   };
 
   SECTION("Too small buffer")
@@ -1435,8 +1435,8 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     int b = snprintf(bufb, sizeof(bufb), "%d foo", largenum);
 
     RDCCOMPILE_ASSERT(sizeof(bufa) == 6, "bufa is mis-sized for test");
-    REQUIRE(a == 10);
-    REQUIRE(a == b);
+    CHECK(a == 10);
+    CHECK(a == b);
 
     char ref[] = {'1', '2', '3', '4', '5', 0};
 
@@ -1444,11 +1444,11 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
 
     {
       INFO("bufa is '" << std::string(bufa) << "', ref is '" << ref << "'");
-      REQUIRE(memcmp(bufa, ref, sizeof(ref)) == 0);
+      CHECK(memcmp(bufa, ref, sizeof(ref)) == 0);
     }
     {
       INFO("bufb is '" << std::string(bufb) << "', ref is '" << ref << "'");
-      REQUIRE(memcmp(bufb, ref, sizeof(ref)) == 0);
+      CHECK(memcmp(bufb, ref, sizeof(ref)) == 0);
     }
 
     SECTION("contains NULL terminator")
@@ -1456,7 +1456,7 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
       memset(bufa, 'a', sizeof(bufa));
       a = utf8printf_wrapper(bufa, sizeof(bufa), "%d foo", largenum);
       INFO("bufa is '" << std::string(bufa) << "'");
-      REQUIRE(memcmp(bufa, ref, sizeof(ref)) == 0);
+      CHECK(memcmp(bufa, ref, sizeof(ref)) == 0);
     }
   };
 
@@ -1471,8 +1471,8 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     int a = utf8printf_wrapper(bufa, sizeof(bufa), "foobar %c %d", x, fourtytwo);
     int b = snprintf(bufb, sizeof(bufb), "foobar %c %d", x, fourtytwo);
 
-    REQUIRE(a == sizeof(bufa) - 1);
-    REQUIRE(a == b);
+    CHECK(a == sizeof(bufa) - 1);
+    CHECK(a == b);
 
     char ref[] = "foobar x 42";
 
@@ -1481,11 +1481,11 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
 
     {
       INFO("bufa is '" << std::string(bufa) << "', ref is '" << ref << "'");
-      REQUIRE(memcmp(bufa, ref, sizeof(ref)) == 0);
+      CHECK(memcmp(bufa, ref, sizeof(ref)) == 0);
     }
     {
       INFO("bufb is '" << std::string(bufb) << "', ref is '" << ref << "'");
-      REQUIRE(memcmp(bufb, ref, sizeof(ref)) == 0);
+      CHECK(memcmp(bufb, ref, sizeof(ref)) == 0);
     }
   };
 
@@ -1500,8 +1500,8 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     int a = utf8printf_wrapper(bufa, sizeof(bufa), "foobar %c %d", x, fourtytwo);
     int b = snprintf(bufb, sizeof(bufb), "foobar %c %d", x, fourtytwo);
 
-    REQUIRE(a == sizeof(bufa));
-    REQUIRE(a == b);
+    CHECK(a == sizeof(bufa));
+    CHECK(a == b);
 
     char ref[] = "foobar x 4";
 
@@ -1510,11 +1510,11 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
 
     {
       INFO("bufa is '" << std::string(bufa) << "', ref is '" << ref << "'");
-      REQUIRE(memcmp(bufa, ref, sizeof(ref)) == 0);
+      CHECK(memcmp(bufa, ref, sizeof(ref)) == 0);
     }
     {
       INFO("bufb is '" << std::string(bufb) << "', ref is '" << ref << "'");
-      REQUIRE(memcmp(bufb, ref, sizeof(ref)) == 0);
+      CHECK(memcmp(bufb, ref, sizeof(ref)) == 0);
     }
   };
 
@@ -1529,8 +1529,8 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     int a = utf8printf_wrapper(bufa, sizeof(bufa), "foobar %c %d", x, fourtytwo);
     int b = snprintf(bufb, sizeof(bufb), "foobar %c %d", x, fourtytwo);
 
-    REQUIRE(a == 11);
-    REQUIRE(a == b);
+    CHECK(a == 11);
+    CHECK(a == b);
 
     char refa[20] = "foobar x 42\0aaaaaaa";
     char refb[20] = "foobar x 42\0bbbbbbb";
@@ -1542,13 +1542,13 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
       INFO("bufa is '" << std::string(bufa) << "', refa is '" << refa << "'");
       INFO("bufa+12 is '" << std::string(bufa + 12, bufa + 20) << "', refa+12 is '"
                           << std::string(refa + 12, refa + 20) << "'");
-      REQUIRE(memcmp(bufa, refa, sizeof(refa)) == 0);
+      CHECK(memcmp(bufa, refa, sizeof(refa)) == 0);
     }
     {
       INFO("bufb is '" << std::string(bufb) << "', refb is '" << refb << "'");
       INFO("bufb+12 is '" << std::string(bufb + 12, bufb + 20) << "', refb+12 is '"
                           << std::string(refb + 12, refb + 20) << "'");
-      REQUIRE(memcmp(bufb, refb, sizeof(refb)) == 0);
+      CHECK(memcmp(bufb, refb, sizeof(refb)) == 0);
     }
   };
 };
@@ -1559,9 +1559,9 @@ TEST_CASE("utf8printf standard string formatters", "[utf8printf]")
 
   SECTION("Basic characters")
   {
-    REQUIRE(StringFormat::Fmt("%c", 'a') == "a");
-    REQUIRE(StringFormat::Fmt("%c", '\0') == "");
-    REQUIRE(StringFormat::Fmt("%lc", wc) == "á");
+    CHECK(StringFormat::Fmt("%c", 'a') == "a");
+    CHECK(StringFormat::Fmt("%c", '\0') == "");
+    CHECK(StringFormat::Fmt("%lc", wc) == "á");
   };
 
   const std::string s = "ελληνικά";
@@ -1569,42 +1569,42 @@ TEST_CASE("utf8printf standard string formatters", "[utf8printf]")
 
   SECTION("Basic strings")
   {
-    REQUIRE(StringFormat::Fmt("%s", NULL) == "(null)");
-    REQUIRE(StringFormat::Fmt("%ls", NULL) == "(null)");
-    REQUIRE(StringFormat::Fmt("%s", "foobar") == "foobar");
-    REQUIRE(StringFormat::Fmt("%s", "foo\0bar") == "foo");
-    REQUIRE(StringFormat::Fmt("%s", s.c_str()) == s);
-    REQUIRE(StringFormat::Fmt("%ls", ws.c_str()) == s);
+    CHECK(StringFormat::Fmt("%s", NULL) == "(null)");
+    CHECK(StringFormat::Fmt("%ls", NULL) == "(null)");
+    CHECK(StringFormat::Fmt("%s", "foobar") == "foobar");
+    CHECK(StringFormat::Fmt("%s", "foo\0bar") == "foo");
+    CHECK(StringFormat::Fmt("%s", s.c_str()) == s);
+    CHECK(StringFormat::Fmt("%ls", ws.c_str()) == s);
   };
 
   SECTION("Character padding")
   {
-    REQUIRE(StringFormat::Fmt("%0c", 'a') == "a");
-    REQUIRE(StringFormat::Fmt("%1c", 'a') == "a");
-    REQUIRE(StringFormat::Fmt("%4c", 'a') == "   a");
-    REQUIRE(StringFormat::Fmt("%6c", 'a') == "     a");
-    REQUIRE(StringFormat::Fmt("%-4c", 'a') == "a   ");
-    REQUIRE(StringFormat::Fmt("%-6c", 'a') == "a     ");
+    CHECK(StringFormat::Fmt("%0c", 'a') == "a");
+    CHECK(StringFormat::Fmt("%1c", 'a') == "a");
+    CHECK(StringFormat::Fmt("%4c", 'a') == "   a");
+    CHECK(StringFormat::Fmt("%6c", 'a') == "     a");
+    CHECK(StringFormat::Fmt("%-4c", 'a') == "a   ");
+    CHECK(StringFormat::Fmt("%-6c", 'a') == "a     ");
   };
 
   SECTION("String padding")
   {
-    REQUIRE(StringFormat::Fmt("%0s", "foobar") == "foobar");
-    REQUIRE(StringFormat::Fmt("%1s", "foobar") == "foobar");
-    REQUIRE(StringFormat::Fmt("%10s", "foobar") == "    foobar");
-    REQUIRE(StringFormat::Fmt("%-10s", "foobar") == "foobar    ");
-    REQUIRE(StringFormat::Fmt("%10s", s.c_str()) == "  " + s);
+    CHECK(StringFormat::Fmt("%0s", "foobar") == "foobar");
+    CHECK(StringFormat::Fmt("%1s", "foobar") == "foobar");
+    CHECK(StringFormat::Fmt("%10s", "foobar") == "    foobar");
+    CHECK(StringFormat::Fmt("%-10s", "foobar") == "foobar    ");
+    CHECK(StringFormat::Fmt("%10s", s.c_str()) == "  " + s);
   };
 
   SECTION("String clipping")
   {
-    REQUIRE(StringFormat::Fmt("%.4s", "foobar") == "foob");
-    REQUIRE(StringFormat::Fmt("%.0s", "foobar") == "");
-    REQUIRE(StringFormat::Fmt("%10.4s", "foobar") == "      foob");
-    REQUIRE(StringFormat::Fmt("%-10.4s", "foobar") == "foob      ");
+    CHECK(StringFormat::Fmt("%.4s", "foobar") == "foob");
+    CHECK(StringFormat::Fmt("%.0s", "foobar") == "");
+    CHECK(StringFormat::Fmt("%10.4s", "foobar") == "      foob");
+    CHECK(StringFormat::Fmt("%-10.4s", "foobar") == "foob      ");
     // these string constants take 2 bytes for each code point in UTF-8, so it's 8 bytes for 4 chars
-    REQUIRE(StringFormat::Fmt("%.4s", s.c_str()) == s.substr(0, 8));
-    REQUIRE(StringFormat::Fmt("%.4ls", ws.c_str()) == s.substr(0, 8));
+    CHECK(StringFormat::Fmt("%.4s", s.c_str()) == s.substr(0, 8));
+    CHECK(StringFormat::Fmt("%.4ls", ws.c_str()) == s.substr(0, 8));
   };
 };
 
@@ -1612,95 +1612,95 @@ TEST_CASE("utf8printf standard integer types", "[utf8printf]")
 {
   SECTION("Unsigned integers")
   {
-    REQUIRE(StringFormat::Fmt("%hhu", uint8_t(161)) == "161");
-    REQUIRE(StringFormat::Fmt("%hu", uint16_t(45502)) == "45502");
-    REQUIRE(StringFormat::Fmt("%u", uint32_t(3147483647)) == "3147483647");
-    REQUIRE(StringFormat::Fmt("%lu", uint32_t(3147483647)) == "3147483647");
-    REQUIRE(StringFormat::Fmt("%llu", uint64_t(19813088135479LLU)) == "19813088135479");
+    CHECK(StringFormat::Fmt("%hhu", uint8_t(161)) == "161");
+    CHECK(StringFormat::Fmt("%hu", uint16_t(45502)) == "45502");
+    CHECK(StringFormat::Fmt("%u", uint32_t(3147483647)) == "3147483647");
+    CHECK(StringFormat::Fmt("%lu", uint32_t(3147483647)) == "3147483647");
+    CHECK(StringFormat::Fmt("%llu", uint64_t(19813088135479LLU)) == "19813088135479");
 
 #if ENABLED(RDOC_X64)
-    REQUIRE(StringFormat::Fmt("%zu", size_t(19813088135479LLU)) == "19813088135479");
-    REQUIRE(StringFormat::Fmt("%zu", uintptr_t(19813088135479LLU)) == "19813088135479");
+    CHECK(StringFormat::Fmt("%zu", size_t(19813088135479LLU)) == "19813088135479");
+    CHECK(StringFormat::Fmt("%zu", uintptr_t(19813088135479LLU)) == "19813088135479");
 #else
-    REQUIRE(StringFormat::Fmt("%zu", size_t(3147483647)) == "3147483647");
-    REQUIRE(StringFormat::Fmt("%zu", uintptr_t(3147483647)) == "3147483647");
+    CHECK(StringFormat::Fmt("%zu", size_t(3147483647)) == "3147483647");
+    CHECK(StringFormat::Fmt("%zu", uintptr_t(3147483647)) == "3147483647");
 #endif
   };
 
   SECTION("Signed integers (%d)")
   {
-    REQUIRE(StringFormat::Fmt("%hhd", int8_t(-61)) == "-61");
-    REQUIRE(StringFormat::Fmt("%hd", int16_t(-4502)) == "-4502");
-    REQUIRE(StringFormat::Fmt("%d", int32_t(-1147483647)) == "-1147483647");
-    REQUIRE(StringFormat::Fmt("%ld", int32_t(-1147483647)) == "-1147483647");
-    REQUIRE(StringFormat::Fmt("%lld", int64_t(-19813088135479LL)) == "-19813088135479");
+    CHECK(StringFormat::Fmt("%hhd", int8_t(-61)) == "-61");
+    CHECK(StringFormat::Fmt("%hd", int16_t(-4502)) == "-4502");
+    CHECK(StringFormat::Fmt("%d", int32_t(-1147483647)) == "-1147483647");
+    CHECK(StringFormat::Fmt("%ld", int32_t(-1147483647)) == "-1147483647");
+    CHECK(StringFormat::Fmt("%lld", int64_t(-19813088135479LL)) == "-19813088135479");
 
 #if ENABLED(RDOC_X64)
-    REQUIRE(StringFormat::Fmt("%zd", intptr_t(-19813088135479LL)) == "-19813088135479");
+    CHECK(StringFormat::Fmt("%zd", intptr_t(-19813088135479LL)) == "-19813088135479");
 #else
-    REQUIRE(StringFormat::Fmt("%zd", intptr_t(-1147483647)) == "-1147483647");
+    CHECK(StringFormat::Fmt("%zd", intptr_t(-1147483647)) == "-1147483647");
 #endif
   };
 
   SECTION("Signed integers (%i)")
   {
-    REQUIRE(StringFormat::Fmt("%hhi", int8_t(-61)) == "-61");
-    REQUIRE(StringFormat::Fmt("%hi", int16_t(-4502)) == "-4502");
-    REQUIRE(StringFormat::Fmt("%i", int32_t(-1147483647)) == "-1147483647");
-    REQUIRE(StringFormat::Fmt("%li", int32_t(-1147483647)) == "-1147483647");
-    REQUIRE(StringFormat::Fmt("%lli", int64_t(-19813088135479LL)) == "-19813088135479");
+    CHECK(StringFormat::Fmt("%hhi", int8_t(-61)) == "-61");
+    CHECK(StringFormat::Fmt("%hi", int16_t(-4502)) == "-4502");
+    CHECK(StringFormat::Fmt("%i", int32_t(-1147483647)) == "-1147483647");
+    CHECK(StringFormat::Fmt("%li", int32_t(-1147483647)) == "-1147483647");
+    CHECK(StringFormat::Fmt("%lli", int64_t(-19813088135479LL)) == "-19813088135479");
 
 #if ENABLED(RDOC_X64)
-    REQUIRE(StringFormat::Fmt("%zi", intptr_t(-19813088135479LL)) == "-19813088135479");
+    CHECK(StringFormat::Fmt("%zi", intptr_t(-19813088135479LL)) == "-19813088135479");
 #else
-    REQUIRE(StringFormat::Fmt("%zi", intptr_t(-1147483647)) == "-1147483647");
+    CHECK(StringFormat::Fmt("%zi", intptr_t(-1147483647)) == "-1147483647");
 #endif
   };
 
   SECTION("Pointers")
   {
 #if ENABLED(RDOC_X64)
-    REQUIRE(StringFormat::Fmt("%p", (void *)NULL) == "0000000000000000");
-    REQUIRE(StringFormat::Fmt("%p", (void *)(0xDEADBEEFLLU)) == "00000000DEADBEEF");
+    CHECK(StringFormat::Fmt("%p", (void *)NULL) == "0000000000000000");
+    CHECK(StringFormat::Fmt("%p", (void *)(0xDEADBEEFLLU)) == "00000000DEADBEEF");
 
-    REQUIRE(StringFormat::Fmt("%#p", (void *)NULL) == "0x0000000000000000");
-    REQUIRE(StringFormat::Fmt("%#p", (void *)(0xDEADBEEFLLU)) == "0x00000000DEADBEEF");
+    CHECK(StringFormat::Fmt("%#p", (void *)NULL) == "0x0000000000000000");
+    CHECK(StringFormat::Fmt("%#p", (void *)(0xDEADBEEFLLU)) == "0x00000000DEADBEEF");
 #else
-    REQUIRE(StringFormat::Fmt("%p", (void *)NULL) == "00000000");
-    REQUIRE(StringFormat::Fmt("%p", (void *)(0xDEADBEEFLLU)) == "DEADBEEF");
+    CHECK(StringFormat::Fmt("%p", (void *)NULL) == "00000000");
+    CHECK(StringFormat::Fmt("%p", (void *)(0xDEADBEEFLLU)) == "DEADBEEF");
 
-    REQUIRE(StringFormat::Fmt("%#p", (void *)NULL) == "0x00000000");
-    REQUIRE(StringFormat::Fmt("%#p", (void *)(0xDEADBEEFLLU)) == "0xDEADBEEF");
+    CHECK(StringFormat::Fmt("%#p", (void *)NULL) == "0x00000000");
+    CHECK(StringFormat::Fmt("%#p", (void *)(0xDEADBEEFLLU)) == "0xDEADBEEF");
 #endif
   };
 
   SECTION("Hex")
   {
-    REQUIRE(StringFormat::Fmt("%x", uint32_t(0x62a45f)) == "62a45f");
-    REQUIRE(StringFormat::Fmt("%hx", uint16_t(0xe947)) == "e947");
-    REQUIRE(StringFormat::Fmt("%llx", uint64_t(0x291f16b54ccLLU)) == "291f16b54cc");
+    CHECK(StringFormat::Fmt("%x", uint32_t(0x62a45f)) == "62a45f");
+    CHECK(StringFormat::Fmt("%hx", uint16_t(0xe947)) == "e947");
+    CHECK(StringFormat::Fmt("%llx", uint64_t(0x291f16b54ccLLU)) == "291f16b54cc");
 
-    REQUIRE(StringFormat::Fmt("%#x", uint32_t(0x62a45f)) == "0x62a45f");
-    REQUIRE(StringFormat::Fmt("%#X", uint32_t(0x62a45f)) == "0x62A45F");
+    CHECK(StringFormat::Fmt("%#x", uint32_t(0x62a45f)) == "0x62a45f");
+    CHECK(StringFormat::Fmt("%#X", uint32_t(0x62a45f)) == "0x62A45F");
   };
 
   SECTION("Binary")
   {
-    REQUIRE(StringFormat::Fmt("%b", uint32_t(0x62a45f)) == "11000101010010001011111");
-    REQUIRE(StringFormat::Fmt("%hb", uint16_t(0xe947)) == "1110100101000111");
-    REQUIRE(StringFormat::Fmt("%llb", uint64_t(0x291f16b54ccLLU)) ==
-            "101001000111110001011010110101010011001100");
+    CHECK(StringFormat::Fmt("%b", uint32_t(0x62a45f)) == "11000101010010001011111");
+    CHECK(StringFormat::Fmt("%hb", uint16_t(0xe947)) == "1110100101000111");
+    CHECK(StringFormat::Fmt("%llb", uint64_t(0x291f16b54ccLLU)) ==
+          "101001000111110001011010110101010011001100");
 
-    REQUIRE(StringFormat::Fmt("%#b", uint32_t(0x62a45f)) == "0b11000101010010001011111");
-    REQUIRE(StringFormat::Fmt("%#B", uint32_t(0x62a45f)) == "0B11000101010010001011111");
+    CHECK(StringFormat::Fmt("%#b", uint32_t(0x62a45f)) == "0b11000101010010001011111");
+    CHECK(StringFormat::Fmt("%#B", uint32_t(0x62a45f)) == "0B11000101010010001011111");
   };
 
   SECTION("Octal")
   {
-    REQUIRE(StringFormat::Fmt("%o", uint32_t(0627451)) == "627451");
-    REQUIRE(StringFormat::Fmt("%ho", uint16_t(015477)) == "15477");
-    REQUIRE(StringFormat::Fmt("%llo", uint64_t(022171675477LLU)) == "22171675477");
-    REQUIRE(StringFormat::Fmt("%#o", uint32_t(0627451)) == "0627451");
+    CHECK(StringFormat::Fmt("%o", uint32_t(0627451)) == "627451");
+    CHECK(StringFormat::Fmt("%ho", uint16_t(015477)) == "15477");
+    CHECK(StringFormat::Fmt("%llo", uint64_t(022171675477LLU)) == "22171675477");
+    CHECK(StringFormat::Fmt("%#o", uint32_t(0627451)) == "0627451");
   };
 };
 
@@ -1708,55 +1708,55 @@ TEST_CASE("utf8printf printing integer formatters", "[utf8printf]")
 {
   SECTION("Sign prepending")
   {
-    REQUIRE(StringFormat::Fmt("% u", uint32_t(123)) == "123");
-    REQUIRE(StringFormat::Fmt("%+u", uint32_t(123)) == "123");
-    REQUIRE(StringFormat::Fmt("% d", int32_t(123)) == " 123");
-    REQUIRE(StringFormat::Fmt("%+d", int32_t(123)) == "+123");
+    CHECK(StringFormat::Fmt("% u", uint32_t(123)) == "123");
+    CHECK(StringFormat::Fmt("%+u", uint32_t(123)) == "123");
+    CHECK(StringFormat::Fmt("% d", int32_t(123)) == " 123");
+    CHECK(StringFormat::Fmt("%+d", int32_t(123)) == "+123");
   };
 
   SECTION("Padding and alignment")
   {
-    REQUIRE(StringFormat::Fmt("% 7u", uint32_t(123)) == "    123");
-    REQUIRE(StringFormat::Fmt("%-7u", uint32_t(123)) == "123    ");
-    REQUIRE(StringFormat::Fmt("%-7d", int32_t(123)) == "123    ");
-    REQUIRE(StringFormat::Fmt("%+-7d", int32_t(123)) == "+123   ");
+    CHECK(StringFormat::Fmt("% 7u", uint32_t(123)) == "    123");
+    CHECK(StringFormat::Fmt("%-7u", uint32_t(123)) == "123    ");
+    CHECK(StringFormat::Fmt("%-7d", int32_t(123)) == "123    ");
+    CHECK(StringFormat::Fmt("%+-7d", int32_t(123)) == "+123   ");
 
-    REQUIRE(StringFormat::Fmt("%+7u", uint32_t(123)) == "    123");
-    REQUIRE(StringFormat::Fmt("%+7d", int32_t(123)) == "   +123");
-    REQUIRE(StringFormat::Fmt("%+ 7d", int32_t(123)) == "   +123");
-    REQUIRE(StringFormat::Fmt("% +7d", int32_t(123)) == "   +123");
+    CHECK(StringFormat::Fmt("%+7u", uint32_t(123)) == "    123");
+    CHECK(StringFormat::Fmt("%+7d", int32_t(123)) == "   +123");
+    CHECK(StringFormat::Fmt("%+ 7d", int32_t(123)) == "   +123");
+    CHECK(StringFormat::Fmt("% +7d", int32_t(123)) == "   +123");
 
-    REQUIRE(StringFormat::Fmt("%07u", uint32_t(123)) == "0000123");
-    REQUIRE(StringFormat::Fmt("%-07u", uint32_t(123)) == "123    ");
+    CHECK(StringFormat::Fmt("%07u", uint32_t(123)) == "0000123");
+    CHECK(StringFormat::Fmt("%-07u", uint32_t(123)) == "123    ");
 
-    REQUIRE(StringFormat::Fmt("%07d", int32_t(123)) == "0000123");
-    REQUIRE(StringFormat::Fmt("%-07d", int32_t(123)) == "123    ");
+    CHECK(StringFormat::Fmt("%07d", int32_t(123)) == "0000123");
+    CHECK(StringFormat::Fmt("%-07d", int32_t(123)) == "123    ");
 
-    REQUIRE(StringFormat::Fmt("%+07d", int32_t(123)) == "+000123");
-    REQUIRE(StringFormat::Fmt("%+-07d", int32_t(123)) == "+123   ");
+    CHECK(StringFormat::Fmt("%+07d", int32_t(123)) == "+000123");
+    CHECK(StringFormat::Fmt("%+-07d", int32_t(123)) == "+123   ");
 
-    REQUIRE(StringFormat::Fmt("%3d", int32_t(123456)) == "123456");
-    REQUIRE(StringFormat::Fmt("%03d", int32_t(123456)) == "123456");
-    REQUIRE(StringFormat::Fmt("%-3d", int32_t(123456)) == "123456");
+    CHECK(StringFormat::Fmt("%3d", int32_t(123456)) == "123456");
+    CHECK(StringFormat::Fmt("%03d", int32_t(123456)) == "123456");
+    CHECK(StringFormat::Fmt("%-3d", int32_t(123456)) == "123456");
 
-    REQUIRE(StringFormat::Fmt("%3d", int32_t(-123456)) == "-123456");
-    REQUIRE(StringFormat::Fmt("%03d", int32_t(-123456)) == "-123456");
-    REQUIRE(StringFormat::Fmt("%-3d", int32_t(-123456)) == "-123456");
+    CHECK(StringFormat::Fmt("%3d", int32_t(-123456)) == "-123456");
+    CHECK(StringFormat::Fmt("%03d", int32_t(-123456)) == "-123456");
+    CHECK(StringFormat::Fmt("%-3d", int32_t(-123456)) == "-123456");
 
-    REQUIRE(StringFormat::Fmt("% 7x", uint32_t(0x123)) == "    123");
-    REQUIRE(StringFormat::Fmt("%-7x", uint32_t(0x123)) == "123    ");
-    REQUIRE(StringFormat::Fmt("%07x", uint32_t(0x123)) == "0000123");
+    CHECK(StringFormat::Fmt("% 7x", uint32_t(0x123)) == "    123");
+    CHECK(StringFormat::Fmt("%-7x", uint32_t(0x123)) == "123    ");
+    CHECK(StringFormat::Fmt("%07x", uint32_t(0x123)) == "0000123");
 
-    REQUIRE(StringFormat::Fmt("%# 7x", uint32_t(0x123)) == "  0x123");
-    REQUIRE(StringFormat::Fmt("%#-7x", uint32_t(0x123)) == "0x123  ");
-    REQUIRE(StringFormat::Fmt("%#07x", uint32_t(0x123)) == "0x00123");
+    CHECK(StringFormat::Fmt("%# 7x", uint32_t(0x123)) == "  0x123");
+    CHECK(StringFormat::Fmt("%#-7x", uint32_t(0x123)) == "0x123  ");
+    CHECK(StringFormat::Fmt("%#07x", uint32_t(0x123)) == "0x00123");
   };
 
   SECTION("Precision")
   {
-    REQUIRE(StringFormat::Fmt("%.3d", int32_t(123456)) == "123456");
-    REQUIRE(StringFormat::Fmt("%3.3d", int32_t(123456)) == "123456");
-    REQUIRE(StringFormat::Fmt("%.9d", int32_t(123456)) == "000123456");
+    CHECK(StringFormat::Fmt("%.3d", int32_t(123456)) == "123456");
+    CHECK(StringFormat::Fmt("%3.3d", int32_t(123456)) == "123456");
+    CHECK(StringFormat::Fmt("%.9d", int32_t(123456)) == "000123456");
   };
 };
 
@@ -1768,118 +1768,117 @@ TEST_CASE("utf8printf printing floats", "[utf8printf]")
 
   SECTION("Specials")
   {
-    REQUIRE(StringFormat::Fmt("%f", one / zero) == "+inf");
-    REQUIRE(StringFormat::Fmt("%f", negone / zero) == "-inf");
-    REQUIRE(StringFormat::Fmt("%f", sqrt(negone)) == "nan");
-    REQUIRE(StringFormat::Fmt("%f", -sqrt(negone)) == "nan");
+    CHECK(StringFormat::Fmt("%f", one / zero) == "+inf");
+    CHECK(StringFormat::Fmt("%f", negone / zero) == "-inf");
+    CHECK(StringFormat::Fmt("%f", sqrt(negone)) == "nan");
+    CHECK(StringFormat::Fmt("%f", -sqrt(negone)) == "nan");
 
-    REQUIRE(StringFormat::Fmt("%F", one / zero) == "+INF");
-    REQUIRE(StringFormat::Fmt("%F", negone / zero) == "-INF");
-    REQUIRE(StringFormat::Fmt("%F", sqrt(negone)) == "NAN");
-    REQUIRE(StringFormat::Fmt("%F", -sqrt(negone)) == "NAN");
+    CHECK(StringFormat::Fmt("%F", one / zero) == "+INF");
+    CHECK(StringFormat::Fmt("%F", negone / zero) == "-INF");
+    CHECK(StringFormat::Fmt("%F", sqrt(negone)) == "NAN");
+    CHECK(StringFormat::Fmt("%F", -sqrt(negone)) == "NAN");
   }
 
   SECTION("Basic numbers as %f")
   {
-    REQUIRE(StringFormat::Fmt("%f", 0.0) == "0.000000");
-    REQUIRE(StringFormat::Fmt("%f", 1.0) == "1.000000");
-    REQUIRE(StringFormat::Fmt("%f", 2.0) == "2.000000");
-    REQUIRE(StringFormat::Fmt("%f", 3.0) == "3.000000");
-    REQUIRE(StringFormat::Fmt("%f", 5.0) == "5.000000");
-    REQUIRE(StringFormat::Fmt("%f", 0.1) == "0.100000");
-    REQUIRE(StringFormat::Fmt("%f", 0.2) == "0.200000");
-    REQUIRE(StringFormat::Fmt("%f", 0.3) == "0.300000");
-    REQUIRE(StringFormat::Fmt("%f", 0.5) == "0.500000");
-    REQUIRE(StringFormat::Fmt("%f", 1.234567890123456) == "1.234568");
-    REQUIRE(StringFormat::Fmt("%f", 1.234567123456) == "1.234567");
-    REQUIRE(StringFormat::Fmt("%f", 12345671234.56) == "12345671234.560000");
-    REQUIRE(StringFormat::Fmt("%f", 12345671234.56e+20) ==
-            "1234567123456000000000000000000.000000");
-    REQUIRE(StringFormat::Fmt("%f", 12345671234.56e-20) == "0.000000");
+    CHECK(StringFormat::Fmt("%f", 0.0) == "0.000000");
+    CHECK(StringFormat::Fmt("%f", 1.0) == "1.000000");
+    CHECK(StringFormat::Fmt("%f", 2.0) == "2.000000");
+    CHECK(StringFormat::Fmt("%f", 3.0) == "3.000000");
+    CHECK(StringFormat::Fmt("%f", 5.0) == "5.000000");
+    CHECK(StringFormat::Fmt("%f", 0.1) == "0.100000");
+    CHECK(StringFormat::Fmt("%f", 0.2) == "0.200000");
+    CHECK(StringFormat::Fmt("%f", 0.3) == "0.300000");
+    CHECK(StringFormat::Fmt("%f", 0.5) == "0.500000");
+    CHECK(StringFormat::Fmt("%f", 1.234567890123456) == "1.234568");
+    CHECK(StringFormat::Fmt("%f", 1.234567123456) == "1.234567");
+    CHECK(StringFormat::Fmt("%f", 12345671234.56) == "12345671234.560000");
+    CHECK(StringFormat::Fmt("%f", 12345671234.56e+20) == "1234567123456000000000000000000.000000");
+    CHECK(StringFormat::Fmt("%f", 12345671234.56e-20) == "0.000000");
   };
 
   SECTION("Basic numbers as %e")
   {
-    REQUIRE(StringFormat::Fmt("%e", 0.0) == "0.000000e+000");
-    REQUIRE(StringFormat::Fmt("%e", 1.0) == "1.000000e+000");
-    REQUIRE(StringFormat::Fmt("%e", 2.0) == "2.000000e+000");
-    REQUIRE(StringFormat::Fmt("%e", 3.0) == "3.000000e+000");
-    REQUIRE(StringFormat::Fmt("%e", 5.0) == "5.000000e+000");
-    REQUIRE(StringFormat::Fmt("%e", 0.1) == "1.000000e-001");
-    REQUIRE(StringFormat::Fmt("%e", 0.2) == "2.000000e-001");
-    REQUIRE(StringFormat::Fmt("%e", 0.3) == "3.000000e-001");
-    REQUIRE(StringFormat::Fmt("%e", 0.5) == "5.000000e-001");
-    REQUIRE(StringFormat::Fmt("%e", 1.234567890123456) == "1.234568e+000");
-    REQUIRE(StringFormat::Fmt("%e", 1.234567123456) == "1.234567e+000");
-    REQUIRE(StringFormat::Fmt("%e", 12345671234.56) == "1.234567e+010");
-    REQUIRE(StringFormat::Fmt("%e", 12345671234.56e+20) == "1.234567e+030");
-    REQUIRE(StringFormat::Fmt("%e", 12345671234.56e-20) == "1.234567e-010");
+    CHECK(StringFormat::Fmt("%e", 0.0) == "0.000000e+000");
+    CHECK(StringFormat::Fmt("%e", 1.0) == "1.000000e+000");
+    CHECK(StringFormat::Fmt("%e", 2.0) == "2.000000e+000");
+    CHECK(StringFormat::Fmt("%e", 3.0) == "3.000000e+000");
+    CHECK(StringFormat::Fmt("%e", 5.0) == "5.000000e+000");
+    CHECK(StringFormat::Fmt("%e", 0.1) == "1.000000e-001");
+    CHECK(StringFormat::Fmt("%e", 0.2) == "2.000000e-001");
+    CHECK(StringFormat::Fmt("%e", 0.3) == "3.000000e-001");
+    CHECK(StringFormat::Fmt("%e", 0.5) == "5.000000e-001");
+    CHECK(StringFormat::Fmt("%e", 1.234567890123456) == "1.234568e+000");
+    CHECK(StringFormat::Fmt("%e", 1.234567123456) == "1.234567e+000");
+    CHECK(StringFormat::Fmt("%e", 12345671234.56) == "1.234567e+010");
+    CHECK(StringFormat::Fmt("%e", 12345671234.56e+20) == "1.234567e+030");
+    CHECK(StringFormat::Fmt("%e", 12345671234.56e-20) == "1.234567e-010");
   };
 
   SECTION("Basic numbers as %g")
   {
-    REQUIRE(StringFormat::Fmt("%g", 0.0) == "0");
-    REQUIRE(StringFormat::Fmt("%g", 1.0) == "1");
-    REQUIRE(StringFormat::Fmt("%g", 2.0) == "2");
-    REQUIRE(StringFormat::Fmt("%g", 3.0) == "3");
-    REQUIRE(StringFormat::Fmt("%g", 5.0) == "5");
-    REQUIRE(StringFormat::Fmt("%g", 0.1) == "0.1");
-    REQUIRE(StringFormat::Fmt("%g", 0.2) == "0.2");
-    REQUIRE(StringFormat::Fmt("%g", 0.3) == "0.3");
-    REQUIRE(StringFormat::Fmt("%g", 0.5) == "0.5");
-    REQUIRE(StringFormat::Fmt("%g", 1.234567890123456) == "1.23457");
-    REQUIRE(StringFormat::Fmt("%g", 1.23456123456) == "1.23456");
-    REQUIRE(StringFormat::Fmt("%g", 12345671234.56) == "1.23457e+010");
-    REQUIRE(StringFormat::Fmt("%g", 12345671234.56e+20) == "1.23457e+030");
-    REQUIRE(StringFormat::Fmt("%g", 12345671234.56e-20) == "1.23457e-010");
+    CHECK(StringFormat::Fmt("%g", 0.0) == "0");
+    CHECK(StringFormat::Fmt("%g", 1.0) == "1");
+    CHECK(StringFormat::Fmt("%g", 2.0) == "2");
+    CHECK(StringFormat::Fmt("%g", 3.0) == "3");
+    CHECK(StringFormat::Fmt("%g", 5.0) == "5");
+    CHECK(StringFormat::Fmt("%g", 0.1) == "0.1");
+    CHECK(StringFormat::Fmt("%g", 0.2) == "0.2");
+    CHECK(StringFormat::Fmt("%g", 0.3) == "0.3");
+    CHECK(StringFormat::Fmt("%g", 0.5) == "0.5");
+    CHECK(StringFormat::Fmt("%g", 1.234567890123456) == "1.23457");
+    CHECK(StringFormat::Fmt("%g", 1.23456123456) == "1.23456");
+    CHECK(StringFormat::Fmt("%g", 12345671234.56) == "1.23457e+010");
+    CHECK(StringFormat::Fmt("%g", 12345671234.56e+20) == "1.23457e+030");
+    CHECK(StringFormat::Fmt("%g", 12345671234.56e-20) == "1.23457e-010");
   };
 
   SECTION("Rounding")
   {
-    REQUIRE(StringFormat::Fmt("%.4e", 0.12345222) == "1.2345e-001");
-    REQUIRE(StringFormat::Fmt("%.5f", 0.12345222) == "0.12345");
-    REQUIRE(StringFormat::Fmt("%.5g", 0.12345222) == "0.12345");
+    CHECK(StringFormat::Fmt("%.4e", 0.12345222) == "1.2345e-001");
+    CHECK(StringFormat::Fmt("%.5f", 0.12345222) == "0.12345");
+    CHECK(StringFormat::Fmt("%.5g", 0.12345222) == "0.12345");
 
-    REQUIRE(StringFormat::Fmt("%.4e", 0.12345888) == "1.2346e-001");
-    REQUIRE(StringFormat::Fmt("%.5f", 0.12345888) == "0.12346");
-    REQUIRE(StringFormat::Fmt("%.5g", 0.12345888) == "0.12346");
+    CHECK(StringFormat::Fmt("%.4e", 0.12345888) == "1.2346e-001");
+    CHECK(StringFormat::Fmt("%.5f", 0.12345888) == "0.12346");
+    CHECK(StringFormat::Fmt("%.5g", 0.12345888) == "0.12346");
 
-    REQUIRE(StringFormat::Fmt("%.5f", 0.00000222) == "0.00000");
-    REQUIRE(StringFormat::Fmt("%.5f", 0.00000888) == "0.00001");
-    REQUIRE(StringFormat::Fmt("%.5f", 0.00000000222) == "0.00000");
+    CHECK(StringFormat::Fmt("%.5f", 0.00000222) == "0.00000");
+    CHECK(StringFormat::Fmt("%.5f", 0.00000888) == "0.00001");
+    CHECK(StringFormat::Fmt("%.5f", 0.00000000222) == "0.00000");
 
-    REQUIRE(StringFormat::Fmt("%.5f", 0.000888) == "0.00089");
-    REQUIRE(StringFormat::Fmt("%.5f", 0.0000888) == "0.00009");
-    REQUIRE(StringFormat::Fmt("%.5f", 0.00000888) == "0.00001");
-    REQUIRE(StringFormat::Fmt("%.5f", 0.000000888) == "0.00000");
-    REQUIRE(StringFormat::Fmt("%.10f", 0.000000888) == "0.0000008880");
+    CHECK(StringFormat::Fmt("%.5f", 0.000888) == "0.00089");
+    CHECK(StringFormat::Fmt("%.5f", 0.0000888) == "0.00009");
+    CHECK(StringFormat::Fmt("%.5f", 0.00000888) == "0.00001");
+    CHECK(StringFormat::Fmt("%.5f", 0.000000888) == "0.00000");
+    CHECK(StringFormat::Fmt("%.10f", 0.000000888) == "0.0000008880");
   };
 
   SECTION("Always decimal flag")
   {
-    REQUIRE(StringFormat::Fmt("%@g", 0.0) == "0.0");
-    REQUIRE(StringFormat::Fmt("%@g", 1.0) == "1.0");
-    REQUIRE(StringFormat::Fmt("%@g", 2.0) == "2.0");
-    REQUIRE(StringFormat::Fmt("%@g", 3.0) == "3.0");
-    REQUIRE(StringFormat::Fmt("%@g", 5.0) == "5.0");
+    CHECK(StringFormat::Fmt("%@g", 0.0) == "0.0");
+    CHECK(StringFormat::Fmt("%@g", 1.0) == "1.0");
+    CHECK(StringFormat::Fmt("%@g", 2.0) == "2.0");
+    CHECK(StringFormat::Fmt("%@g", 3.0) == "3.0");
+    CHECK(StringFormat::Fmt("%@g", 5.0) == "5.0");
   };
 
   SECTION("Precision")
   {
-    REQUIRE(StringFormat::Fmt("%.3f", 0.0) == "0.000");
-    REQUIRE(StringFormat::Fmt("%.3f", 1.0) == "1.000");
-    REQUIRE(StringFormat::Fmt("%.3f", 2.0) == "2.000");
-    REQUIRE(StringFormat::Fmt("%.3f", 0.1) == "0.100");
-    REQUIRE(StringFormat::Fmt("%.3f", 0.2) == "0.200");
-    REQUIRE(StringFormat::Fmt("%.3f", 1.2313) == "1.231");
+    CHECK(StringFormat::Fmt("%.3f", 0.0) == "0.000");
+    CHECK(StringFormat::Fmt("%.3f", 1.0) == "1.000");
+    CHECK(StringFormat::Fmt("%.3f", 2.0) == "2.000");
+    CHECK(StringFormat::Fmt("%.3f", 0.1) == "0.100");
+    CHECK(StringFormat::Fmt("%.3f", 0.2) == "0.200");
+    CHECK(StringFormat::Fmt("%.3f", 1.2313) == "1.231");
   };
 
   SECTION("Padding")
   {
-    REQUIRE(StringFormat::Fmt("%5.3f", 1.0) == "1.000");
-    REQUIRE(StringFormat::Fmt("%10.3f", 1.0) == "     1.000");
-    REQUIRE(StringFormat::Fmt("%-10.3f", 1.0) == "1.000     ");
-    REQUIRE(StringFormat::Fmt("%010.3f", 1.0) == "000001.000");
+    CHECK(StringFormat::Fmt("%5.3f", 1.0) == "1.000");
+    CHECK(StringFormat::Fmt("%10.3f", 1.0) == "     1.000");
+    CHECK(StringFormat::Fmt("%-10.3f", 1.0) == "1.000     ");
+    CHECK(StringFormat::Fmt("%010.3f", 1.0) == "000001.000");
   };
 };
 
