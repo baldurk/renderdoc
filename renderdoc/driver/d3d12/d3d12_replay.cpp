@@ -1574,11 +1574,14 @@ vector<DebugMessage> D3D12Replay::GetDebugMessages()
   return m_pDevice->GetDebugMessages();
 }
 
-void D3D12Replay::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
-                                    ShaderStage type, ResourceId *id, string *errors)
+void D3D12Replay::BuildTargetShader(string source, string entry,
+                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
+                                    ResourceId *id, string *errors)
 {
-  m_pDevice->GetDebugManager()->BuildShader(source, entry, D3DCOMPILE_DEBUG | compileFlags, type,
-                                            id, errors);
+  ShaderCompileFlags debugCompileFlags =
+      DXBC::EncodeFlags(DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG);
+
+  m_pDevice->GetDebugManager()->BuildShader(source, entry, debugCompileFlags, type, id, errors);
 }
 
 void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
@@ -1681,8 +1684,9 @@ byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
   return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, dataSize);
 }
 
-void D3D12Replay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,
-                                    ShaderStage type, ResourceId *id, string *errors)
+void D3D12Replay::BuildCustomShader(string source, string entry,
+                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
+                                    ResourceId *id, string *errors)
 {
   m_pDevice->GetDebugManager()->BuildShader(source, entry, compileFlags, type, id, errors);
 }

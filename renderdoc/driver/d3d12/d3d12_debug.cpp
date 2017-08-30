@@ -3166,9 +3166,12 @@ void D3D12DebugManager::FillCBufferVariables(const vector<DXBC::CBufferVariable>
     outvars.push_back(v[i]);
 }
 
-void D3D12DebugManager::BuildShader(string source, string entry, const uint32_t compileFlags,
-                                    ShaderStage type, ResourceId *id, string *errors)
+void D3D12DebugManager::BuildShader(string source, string entry,
+                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
+                                    ResourceId *id, string *errors)
 {
+  uint32_t flags = DXBC::DecodeFlags(compileFlags);
+
   if(id == NULL || errors == NULL)
   {
     if(id)
@@ -3193,7 +3196,7 @@ void D3D12DebugManager::BuildShader(string source, string entry, const uint32_t 
   }
 
   ID3DBlob *blob = NULL;
-  *errors = GetShaderBlob(source.c_str(), entry.c_str(), compileFlags, profile, &blob);
+  *errors = GetShaderBlob(source.c_str(), entry.c_str(), flags, profile, &blob);
 
   if(blob == NULL)
   {

@@ -110,8 +110,8 @@ public:
   byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                        const GetTextureDataParams &params, size_t &dataSize);
 
-  void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
-                         ResourceId *id, string *errors);
+  void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
+                         ShaderStage type, ResourceId *id, string *errors);
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
 
@@ -155,8 +155,8 @@ public:
   ResourceId RenderOverlay(ResourceId texid, CompType typeHint, DebugOverlay overlay,
                            uint32_t eventID, const vector<uint32_t> &passEvents);
 
-  void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
-                         ResourceId *id, string *errors);
+  void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
+                         ShaderStage type, ResourceId *id, string *errors);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
                                uint32_t sampleIdx, CompType typeHint);
 

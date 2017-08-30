@@ -2709,7 +2709,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
   return ret;
 }
 
-void GLReplay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,
+void GLReplay::BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
                                  ShaderStage type, ResourceId *id, string *errors)
 {
   if(id == NULL || errors == NULL)
@@ -2859,7 +2859,7 @@ void GLReplay::FreeCustomShader(ResourceId id)
   m_pDriver->glDeleteProgram(m_pDriver->GetResourceManager()->GetCurrentResource(id).name);
 }
 
-void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
+void GLReplay::BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
                                  ShaderStage type, ResourceId *id, string *errors)
 {
   if(id == NULL || errors == NULL)

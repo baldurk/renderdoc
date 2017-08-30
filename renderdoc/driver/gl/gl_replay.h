@@ -170,10 +170,10 @@ public:
 
   void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
 
-  void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
-                         ResourceId *id, string *errors);
-  void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
-                         ResourceId *id, string *errors);
+  void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
+                         ShaderStage type, ResourceId *id, string *errors);
+  void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
+                         ShaderStage type, ResourceId *id, string *errors);
   void FreeCustomShader(ResourceId id);
 
   enum TexDisplayFlags

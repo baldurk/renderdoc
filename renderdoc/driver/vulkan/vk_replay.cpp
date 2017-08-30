@@ -5049,8 +5049,9 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
   return ret;
 }
 
-void VulkanReplay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,
-                                     ShaderStage type, ResourceId *id, string *errors)
+void VulkanReplay::BuildCustomShader(string source, string entry,
+                                     const ShaderCompileFlags &compileFlags, ShaderStage type,
+                                     ResourceId *id, string *errors)
 {
   SPIRVShaderStage stage = SPIRVShaderStage::Invalid;
 
@@ -5162,8 +5163,9 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   return GetResID(GetDebugManager()->m_CustomTexImg);
 }
 
-void VulkanReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
-                                     ShaderStage type, ResourceId *id, string *errors)
+void VulkanReplay::BuildTargetShader(string source, string entry,
+                                     const ShaderCompileFlags &compileFlags, ShaderStage type,
+                                     ResourceId *id, string *errors)
 {
   SPIRVShaderStage stage = SPIRVShaderStage::Invalid;
 

@@ -1524,15 +1524,19 @@ void D3D11Replay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &seconda
   return m_pDevice->GetDebugManager()->RenderMesh(eventID, secondaryDraws, cfg);
 }
 
-void D3D11Replay::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
-                                    ShaderStage type, ResourceId *id, string *errors)
+void D3D11Replay::BuildTargetShader(string source, string entry,
+                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
+                                    ResourceId *id, string *errors)
 {
-  m_pDevice->GetDebugManager()->BuildShader(source, entry, D3DCOMPILE_DEBUG | compileFlags, type,
-                                            id, errors);
+  ShaderCompileFlags debugCompileFlags =
+      DXBC::EncodeFlags(DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG);
+
+  m_pDevice->GetDebugManager()->BuildShader(source, entry, debugCompileFlags, type, id, errors);
 }
 
-void D3D11Replay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,
-                                    ShaderStage type, ResourceId *id, string *errors)
+void D3D11Replay::BuildCustomShader(string source, string entry,
+                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
+                                    ResourceId *id, string *errors)
 {
   m_pDevice->GetDebugManager()->BuildShader(source, entry, compileFlags, type, id, errors);
 }

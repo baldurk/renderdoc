@@ -346,6 +346,10 @@ public:
                            int32_t &lineNum) const = 0;
 };
 
+uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags);
+ShaderCompileFlags EncodeFlags(const DXBCDebugChunk *dbg);
+ShaderCompileFlags EncodeFlags(const uint32_t flags);
+
 // declare one of these and pass in your shader bytecode, then inspect
 // the members that are populated with the shader information.
 class DXBCFile

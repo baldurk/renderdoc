@@ -124,8 +124,8 @@ public:
   {
     return m_Proxy->PickVertex(eventID, cfg, x, y);
   }
-  void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
-                         ResourceId *id, string *errors)
+  void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
+                         ShaderStage type, ResourceId *id, string *errors)
   {
     m_Proxy->BuildCustomShader(source, entry, compileFlags, type, id, errors);
   }
@@ -231,8 +231,8 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
-                         ResourceId *id, string *errors)
+  void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
+                         ShaderStage type, ResourceId *id, string *errors)
   {
   }
   void ReplaceResource(ResourceId from, ResourceId to) {}

@@ -3600,8 +3600,8 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
           rdctype::str errors;
 
           ResourceId id;
-          std::tie(id, errors) =
-              r->BuildCustomShader("main", source.toUtf8().data(), 0, ShaderStage::Pixel);
+          std::tie(id, errors) = r->BuildCustomShader("main", source.toUtf8().data(),
+                                                      ShaderCompileFlags(), ShaderStage::Pixel);
 
           if(m_CustomShaderEditor.contains(key))
           {

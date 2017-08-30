@@ -451,7 +451,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
 
   if(dxbc->m_DebugInfo)
   {
-    refl->DebugInfo.compileFlags = dxbc->m_DebugInfo->GetShaderCompileFlags();
+    refl->DebugInfo.compileFlags = DXBC::EncodeFlags(dxbc->m_DebugInfo);
 
     create_array_uninit(refl->DebugInfo.files, dxbc->m_DebugInfo->Files.size());
     for(size_t i = 0; i < dxbc->m_DebugInfo->Files.size(); i++)

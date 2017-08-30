@@ -148,12 +148,12 @@ public:
   rdctype::str DisassembleShader(const ShaderReflection *refl, const char *target);
 
   rdctype::pair<ResourceId, rdctype::str> BuildCustomShader(const char *entry, const char *source,
-                                                            const uint32_t compileFlags,
+                                                            const ShaderCompileFlags &compileFlags,
                                                             ShaderStage type);
   void FreeCustomShader(ResourceId id);
 
   rdctype::pair<ResourceId, rdctype::str> BuildTargetShader(const char *entry, const char *source,
-                                                            const uint32_t compileFlags,
+                                                            const ShaderCompileFlags &compileFlags,
                                                             ShaderStage type);
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);

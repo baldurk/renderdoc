@@ -895,8 +895,6 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
 void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
                           ShaderReflection &refl, bool pointSizeUsed, bool clipDistanceUsed)
 {
-  refl.DebugInfo.compileFlags = 0;
-
   if(shadType == eGL_COMPUTE_SHADER)
   {
     gl.glGetProgramiv(sepProg, eGL_COMPUTE_WORK_GROUP_SIZE, (GLint *)refl.DispatchThreadsDimension);

@@ -1396,6 +1396,31 @@ void DXBCFile::GuessResources()
   }
 }
 
+uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags)
+{
+  uint32_t ret = 0;
+
+  if(compileFlags.flags.count >= 1 && compileFlags.flags[0].first == "compileFlags")
+    ret = atoi(compileFlags.flags[0].second.c_str());
+
+  return ret;
+}
+
+ShaderCompileFlags EncodeFlags(const uint32_t flags)
+{
+  ShaderCompileFlags ret;
+
+  create_array_uninit(ret.flags, 1);
+  ret.flags = {{"compileFlags", StringFormat::Fmt("%u", flags)}};
+
+  return ret;
+}
+
+ShaderCompileFlags EncodeFlags(const DXBCDebugChunk *dbg)
+{
+  return EncodeFlags(dbg ? dbg->GetShaderCompileFlags() : 0);
+}
+
 SDBGChunk::SDBGChunk(void *data)
 {
   m_HasDebugInfo = false;

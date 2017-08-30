@@ -208,13 +208,29 @@ void Serialiser::Serialise(const char *name, ShaderResource &el)
 }
 
 template <>
+void Serialiser::Serialise(const char *name, ShaderCompileFlags &el)
+{
+  Serialise("", el.flags);
+
+  SIZE_CHECK(16);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, ShaderDebugChunk &el)
+{
+  Serialise("", el.compileFlags);
+  Serialise("", el.files);
+
+  SIZE_CHECK(32);
+}
+
+template <>
 void Serialiser::Serialise(const char *name, ShaderReflection &el)
 {
   Serialise("", el.ID);
   Serialise("", el.EntryPoint);
 
-  Serialise("", el.DebugInfo.compileFlags);
-  Serialise("", el.DebugInfo.files);
+  Serialise("", el.DebugInfo);
 
   SerialisePODArray<3>("", el.DispatchThreadsDimension);
 
@@ -230,7 +246,7 @@ void Serialiser::Serialise(const char *name, ShaderReflection &el)
 
   Serialise("", el.Interfaces);
 
-  SIZE_CHECK(176);
+  SIZE_CHECK(184);
 }
 
 template <>
@@ -2247,7 +2263,7 @@ bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
     }
     case eReplayProxy_GetPostVS: GetPostVSBuffers(0, 0, MeshDataStage::Unknown); break;
     case eReplayProxy_BuildTargetShader:
-      BuildTargetShader("", "", 0, ShaderStage::Vertex, NULL, NULL);
+      BuildTargetShader("", "", ShaderCompileFlags(), ShaderStage::Vertex, NULL, NULL);
       break;
     case eReplayProxy_ReplaceResource: ReplaceResource(ResourceId(), ResourceId()); break;
     case eReplayProxy_RemoveReplacement: RemoveReplacement(ResourceId()); break;
@@ -3072,10 +3088,11 @@ Callstack::AddressDetails ReplayProxy::GetAddr(uint64_t addr)
   return ret;
 }
 
-void ReplayProxy::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
-                                    ShaderStage type, ResourceId *id, string *errors)
+void ReplayProxy::BuildTargetShader(string source, string entry,
+                                    const ShaderCompileFlags &compileFlags, ShaderStage type,
+                                    ResourceId *id, string *errors)
 {
-  uint32_t flags = compileFlags;
+  ShaderCompileFlags flags = compileFlags;
   m_ToReplaySerialiser->Serialise("", source);
   m_ToReplaySerialiser->Serialise("", entry);
   m_ToReplaySerialiser->Serialise("", flags);

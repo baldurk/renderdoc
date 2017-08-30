@@ -580,10 +580,9 @@ See :data:`TextureDisplay.CustomShader`.
   :meth:`ResourceId.Null` otherwise, and a ``str`` with any warnings/errors from compilation.
 :rtype: ``tuple`` of :class:`ResourceId` and ``str``.
 )");
-  virtual rdctype::pair<ResourceId, rdctype::str> BuildCustomShader(const char *entry,
-                                                                    const char *source,
-                                                                    const uint32_t compileFlags,
-                                                                    ShaderStage type) = 0;
+  virtual rdctype::pair<ResourceId, rdctype::str> BuildCustomShader(
+      const char *entry, const char *source, const ShaderCompileFlags &compileFlags,
+      ShaderStage type) = 0;
 
   DOCUMENT(R"(Free a previously created custom shader.
 
@@ -599,7 +598,7 @@ The language used is native to the API's renderer - HLSL for D3D based renderers
 
 :param str entry: The entry point to use when compiling.
 :param str source: The source file.
-:param int compileFlags: API-specific compilation flags.
+:param ShaderCompileFlags compileFlags: API-specific compilation flags.
 :param ShaderStage type: The stage that this shader will be executed at.
 :return: A ``tuple`` with the id of the new shader if compilation was successful,
   :meth:`ResourceId.Null` otherwise, and a ``str`` with any warnings/errors from compilation.
@@ -607,7 +606,7 @@ The language used is native to the API's renderer - HLSL for D3D based renderers
 )");
   virtual rdctype::pair<ResourceId, rdctype::str> BuildTargetShader(const char *entry,
                                                                     const char *source,
-                                                                    const uint32_t compileFlags,
+                                                                    const ShaderCompileFlags &flags,
                                                                     ShaderStage type) = 0;
 
   DOCUMENT(R"(Replace one resource with another for subsequent replay and analysis work.

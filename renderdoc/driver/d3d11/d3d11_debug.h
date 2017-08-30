@@ -176,8 +176,8 @@ public:
   ID3D11PixelShader *MakePShader(const char *source, const char *entry, const char *profile);
   ID3D11ComputeShader *MakeCShader(const char *source, const char *entry, const char *profile);
 
-  void BuildShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
-                   ResourceId *id, string *errors);
+  void BuildShader(string source, string entry, const ShaderCompileFlags &compileFlags,
+                   ShaderStage type, ResourceId *id, string *errors);
 
   ID3D11Buffer *MakeCBuffer(UINT size);
 

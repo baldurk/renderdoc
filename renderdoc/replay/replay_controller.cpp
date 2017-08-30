@@ -1476,7 +1476,7 @@ void ReplayController::Shutdown()
 }
 
 rdctype::pair<ResourceId, rdctype::str> ReplayController::BuildTargetShader(
-    const char *entry, const char *source, const uint32_t compileFlags, ShaderStage type)
+    const char *entry, const char *source, const ShaderCompileFlags &compileFlags, ShaderStage type)
 {
   ResourceId id;
   string errs;
@@ -1503,7 +1503,7 @@ rdctype::pair<ResourceId, rdctype::str> ReplayController::BuildTargetShader(
 }
 
 rdctype::pair<ResourceId, rdctype::str> ReplayController::BuildCustomShader(
-    const char *entry, const char *source, const uint32_t compileFlags, ShaderStage type)
+    const char *entry, const char *source, const ShaderCompileFlags &compileFlags, ShaderStage type)
 {
   ResourceId id;
   string errs;

@@ -826,7 +826,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
                                    viewer](IReplayController *r) {
           rdctype::str errs;
 
-          uint flags = shaderDetails->DebugInfo.compileFlags;
+          const ShaderCompileFlags &flags = shaderDetails->DebugInfo.compileFlags;
 
           ResourceId from = id;
           ResourceId to;

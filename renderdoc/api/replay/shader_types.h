@@ -441,6 +441,16 @@ able to be read from and written to arbitrarily.
 
 DECLARE_REFLECTION_STRUCT(ShaderResource);
 
+DOCUMENT("Contains the information about the compilation environment of a shader");
+struct ShaderCompileFlags
+{
+  DOCUMENT(R"(A list of tuples, where each tuple is a pair of flagName, flagValue.
+
+Each entry is an API or compiler specific flag used to compile this shader originally.
+)");
+  rdctype::array<rdctype::pair<rdctype::str, rdctype::str> > flags;
+};
+
 DOCUMENT(R"(Contains the information about a shader contained within API-specific debugging
 information attached to the shader.
 
@@ -448,9 +458,9 @@ Primarily this means the embedded original source files.
 )");
 struct ShaderDebugChunk
 {
-  ShaderDebugChunk() : compileFlags(0) {}
-  DOCUMENT("An API or compiler specific set of flags used to compile this shader originally.");
-  uint32_t compileFlags;
+  ShaderDebugChunk() {}
+  DOCUMENT("A :class:`ShaderCompileFlags` containing the flags used to compile this shader.");
+  ShaderCompileFlags compileFlags;
 
   DOCUMENT(R"(A list of tuples, where each tuple is a pair of filename, source code.
 

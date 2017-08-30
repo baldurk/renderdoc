@@ -107,8 +107,8 @@ public:
   byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                        const GetTextureDataParams &params, size_t &dataSize);
 
-  void BuildShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
-                   ResourceId *id, string *errors);
+  void BuildShader(string source, string entry, const ShaderCompileFlags &compileFlags,
+                   ShaderStage type, ResourceId *id, string *errors);
 
   D3D12_CPU_DESCRIPTOR_HANDLE AllocRTV();
   void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);

@@ -269,6 +269,17 @@ struct str : public rdctype::array<char>
 
   operator std::string() const { return std::string(elems, elems + count); }
   const char *c_str() const { return elems ? elems : ""; }
+  bool operator==(const char *const o) const
+  {
+    if(!elems)
+      return o == NULL;
+    return !strcmp(elems, o);
+  }
+  bool operator==(const std::string &o) const { return o == elems; }
+  bool operator==(const str &o) const { return *this == (const char *const)o.elems; }
+  bool operator!=(const char *const o) const { return !(*this == o); }
+  bool operator!=(const std::string &o) const { return !(*this == o); }
+  bool operator!=(const str &o) const { return !(*this == o); }
 };
 
 inline str &str::operator=(const std::string &in)

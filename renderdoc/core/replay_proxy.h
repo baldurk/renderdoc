@@ -347,8 +347,8 @@ public:
     return ~0U;
   }
 
-  void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
-                         ResourceId *id, string *errors)
+  void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
+                         ShaderStage type, ResourceId *id, string *errors)
   {
     if(m_Proxy)
     {
@@ -457,8 +457,8 @@ public:
   ShaderDebugTrace DebugThread(uint32_t eventID, const uint32_t groupid[3],
                                const uint32_t threadid[3]);
 
-  void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStage type,
-                         ResourceId *id, string *errors);
+  void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
+                         ShaderStage type, ResourceId *id, string *errors);
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
 

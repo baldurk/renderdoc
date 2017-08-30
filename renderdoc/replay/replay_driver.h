@@ -122,7 +122,7 @@ public:
   virtual byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                                const GetTextureDataParams &params, size_t &dataSize) = 0;
 
-  virtual void BuildTargetShader(string source, string entry, const uint32_t compileFlags,
+  virtual void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
                                  ShaderStage type, ResourceId *id, string *errors) = 0;
   virtual void ReplaceResource(ResourceId from, ResourceId to) = 0;
   virtual void RemoveReplacement(ResourceId id) = 0;
@@ -194,7 +194,7 @@ public:
                           const MeshDisplay &cfg) = 0;
   virtual bool RenderTexture(TextureDisplay cfg) = 0;
 
-  virtual void BuildCustomShader(string source, string entry, const uint32_t compileFlags,
+  virtual void BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
                                  ShaderStage type, ResourceId *id, string *errors) = 0;
   virtual ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
                                        uint32_t arrayIdx, uint32_t sampleIdx, CompType typeHint) = 0;
