@@ -2107,3 +2107,216 @@ string ToStrHelper<false, D3D_DRIVER_TYPE>::Get(const D3D_DRIVER_TYPE &el)
 
   return tostrBuf;
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+#include "3rdparty/catch/catch.hpp"
+
+#define CATCH_TOSTR(type)                                                       \
+  namespace Catch                                                               \
+  {                                                                             \
+  template <>                                                                   \
+  struct StringMaker<type>                                                      \
+  {                                                                             \
+    static std::string convert(type const &value) { return ToStr::Get(value); } \
+  };                                                                            \
+  }
+
+CATCH_TOSTR(DXGI_FORMAT);
+CATCH_TOSTR(CompType);
+
+TEST_CASE("DXGI formats", "[format][d3d]")
+{
+  // must be updated by hand
+  DXGI_FORMAT maxFormat = DXGI_FORMAT_V408;
+  DXGI_FORMAT firstYUVFormat = DXGI_FORMAT_AYUV;
+
+  // we want to skip formats that we deliberately don't represent or handle.
+  auto isUnsupportedFormat = [](DXGI_FORMAT f) {
+    return (f == DXGI_FORMAT_R1_UNORM || f == DXGI_FORMAT_A8_UNORM ||
+            f == DXGI_FORMAT_R8G8_B8G8_UNORM || f == DXGI_FORMAT_G8R8_G8B8_UNORM ||
+            f == DXGI_FORMAT_B8G8R8X8_TYPELESS || f == DXGI_FORMAT_B8G8R8X8_UNORM ||
+            f == DXGI_FORMAT_B8G8R8X8_UNORM_SRGB);
+  };
+
+  SECTION("Only DXGI_FORMAT_UNKNOWN returns unknown")
+  {
+    for(DXGI_FORMAT f = DXGI_FORMAT_UNKNOWN; f <= maxFormat; f = DXGI_FORMAT(f + 1))
+    {
+      if(isUnsupportedFormat(f))
+        continue;
+
+      ResourceFormat fmt = MakeResourceFormat(f);
+
+      if(f == DXGI_FORMAT_UNKNOWN)
+        CHECK(fmt.type == ResourceFormatType::Undefined);
+      else
+        CHECK(fmt.type != ResourceFormatType::Undefined);
+    }
+  };
+
+  SECTION("MakeDXGIFormat is reflexive with MakeResourceFormat")
+  {
+    // only consider non-YUV formats
+    for(DXGI_FORMAT f = DXGI_FORMAT_UNKNOWN; f < firstYUVFormat; f = DXGI_FORMAT(f + 1))
+    {
+      if(isUnsupportedFormat(f))
+        continue;
+
+      ResourceFormat fmt = MakeResourceFormat(f);
+
+      DXGI_FORMAT dxgi = MakeDXGIFormat(fmt);
+
+      // we are OK with remapping these formats to a single value instead of preserving the view
+      // type.
+      if(f == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS || f == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT)
+      {
+        CHECK(dxgi == DXGI_FORMAT_D32_FLOAT_S8X24_UINT);
+      }
+      else if(f == DXGI_FORMAT_R24_UNORM_X8_TYPELESS || f == DXGI_FORMAT_X24_TYPELESS_G8_UINT)
+      {
+        CHECK(dxgi == DXGI_FORMAT_D24_UNORM_S8_UINT);
+      }
+      else
+      {
+        CHECK(dxgi == f);
+      }
+    }
+  };
+
+  SECTION("MakeResourceFormat concurs with helpers")
+  {
+    // only consider non-YUV formats
+    for(DXGI_FORMAT f = DXGI_FORMAT_UNKNOWN; f < firstYUVFormat; f = DXGI_FORMAT(f + 1))
+    {
+      if(isUnsupportedFormat(f))
+        continue;
+
+      ResourceFormat fmt = MakeResourceFormat(f);
+
+      INFO("Format is " << ToStr::Get(f));
+
+      if(IsBlockFormat(f))
+      {
+        CHECK(fmt.type >= ResourceFormatType::BC1);
+        CHECK(fmt.type <= ResourceFormatType::BC7);
+      }
+
+      if(IsDepthAndStencilFormat(f))
+      {
+        // manually check these
+        switch(f)
+        {
+          case DXGI_FORMAT_R32G8X24_TYPELESS: CHECK(fmt.compType == CompType::Typeless); break;
+          case DXGI_FORMAT_D32_FLOAT_S8X24_UINT: CHECK(fmt.compType == CompType::Depth); break;
+          case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS: CHECK(fmt.compType == CompType::Depth); break;
+          case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT: CHECK(fmt.compType == CompType::Depth); break;
+
+          case DXGI_FORMAT_D24_UNORM_S8_UINT: CHECK(fmt.compType == CompType::Depth); break;
+          case DXGI_FORMAT_R24_UNORM_X8_TYPELESS: CHECK(fmt.compType == CompType::Depth); break;
+          case DXGI_FORMAT_X24_TYPELESS_G8_UINT: CHECK(fmt.compType == CompType::Depth); break;
+          case DXGI_FORMAT_R24G8_TYPELESS: CHECK(fmt.compType == CompType::Typeless); break;
+          default: break;
+        }
+      }
+      else if(IsTypelessFormat(f))
+      {
+        CHECK(fmt.compType == CompType::Typeless);
+      }
+      else if(IsDepthFormat(f))
+      {
+        CHECK(fmt.compType == CompType::Depth);
+      }
+      else if(IsUIntFormat(f))
+      {
+        CHECK(fmt.compType == CompType::UInt);
+      }
+      else if(IsIntFormat(f))
+      {
+        CHECK(fmt.compType == CompType::SInt);
+      }
+
+      if(IsSRGBFormat(f))
+      {
+        CHECK(fmt.srgbCorrected);
+      }
+    }
+  };
+
+  SECTION("Get*Format helpers match MakeResourceFormat")
+  {
+    // only consider non-YUV formats
+    for(DXGI_FORMAT f = DXGI_FORMAT_UNKNOWN; f < firstYUVFormat; f = DXGI_FORMAT(f + 1))
+    {
+      if(isUnsupportedFormat(f))
+        continue;
+
+      ResourceFormat fmt = MakeResourceFormat(f);
+
+      INFO("Format is " << ToStr::Get(f));
+
+      if(IsSRGBFormat(f))
+      {
+        DXGI_FORMAT conv = GetNonSRGBFormat(f);
+        INFO(ToStr::Get(conv));
+
+        ResourceFormat convfmt = MakeResourceFormat(conv);
+
+        CHECK(!convfmt.srgbCorrected);
+      }
+
+      if(fmt.type == ResourceFormatType::BC1 || fmt.type == ResourceFormatType::BC2 ||
+         fmt.type == ResourceFormatType::BC3 || fmt.type == ResourceFormatType::BC7 ||
+
+         (fmt.type == ResourceFormatType::Regular && fmt.compByteWidth == 1 && fmt.compCount == 4 &&
+          fmt.compType != CompType::UInt && fmt.compType != CompType::SInt &&
+          fmt.compType != CompType::SNorm))
+      {
+        DXGI_FORMAT conv = GetSRGBFormat(f);
+        INFO(ToStr::Get(conv));
+
+        ResourceFormat convfmt = MakeResourceFormat(conv);
+
+        CHECK(convfmt.srgbCorrected);
+      }
+
+      if(!IsTypelessFormat(f))
+      {
+        CompType typeHint = fmt.compType;
+
+        DXGI_FORMAT typeless = GetTypelessFormat(f);
+        DXGI_FORMAT typed = GetTypedFormat(typeless, typeHint);
+
+        if(fmt.srgbCorrected)
+          typed = GetSRGBFormat(typed);
+
+        CHECK(f == typed);
+      }
+    }
+  };
+
+  SECTION("GetByteSize and GetFormatBPP return expected values for regular formats")
+  {
+    // only consider non-YUV formats
+    for(DXGI_FORMAT f = DXGI_FORMAT_UNKNOWN; f < firstYUVFormat; f = DXGI_FORMAT(f + 1))
+    {
+      if(isUnsupportedFormat(f))
+        continue;
+
+      ResourceFormat fmt = MakeResourceFormat(f);
+
+      if(fmt.type != ResourceFormatType::Regular)
+        continue;
+
+      INFO("Format is " << ToStr::Get(f));
+
+      uint32_t bpp = fmt.compCount * fmt.compByteWidth * 8;
+      CHECK(bpp == GetFormatBPP(f));
+
+      uint32_t size = fmt.compCount * fmt.compByteWidth * 123 * 456;
+
+      CHECK(size == GetByteSize(123, 456, 1, f, 0));
+    }
+  };
+};
+
+#endif    // ENABLED(ENABLE_UNIT_TESTS)

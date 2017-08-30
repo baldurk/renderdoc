@@ -1669,7 +1669,21 @@ string ToStrHelper<false, ResourceFormatType>::Get(const ResourceFormatType &el)
 template <>
 string ToStrHelper<false, CompType>::Get(const CompType &el)
 {
-  return "<...>";
+  switch(el)
+  {
+    case CompType::Typeless: return "Typeless";
+    case CompType::Float: return "Float";
+    case CompType::UNorm: return "UNorm";
+    case CompType::SNorm: return "SNorm";
+    case CompType::UInt: return "UInt";
+    case CompType::SInt: return "SInt";
+    case CompType::UScaled: return "UScaled";
+    case CompType::SScaled: return "SScaled";
+    case CompType::Depth: return "Depth";
+    case CompType::Double: return "Double";
+  }
+
+  return StringFormat::Fmt("CompType<%d>", el);
 }
 template <>
 string ToStrHelper<false, ShaderEvents>::Get(const ShaderEvents &el)
