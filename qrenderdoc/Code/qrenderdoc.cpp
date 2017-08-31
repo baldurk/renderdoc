@@ -34,6 +34,14 @@
 #include "Code/pyrenderdoc/PythonContext.h"
 #include "Windows/MainWindow.h"
 
+#if defined(Q_OS_WIN32)
+extern "C" {
+_declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+}
+#endif
+
+REPLAY_PROGRAM_MARKER()
+
 void sharedLogOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
   LogType logtype = LogType::Comment;

@@ -30,6 +30,11 @@ void PosixHookInit()
 {
 }
 
+bool PosixHookDetect(const char *identifier)
+{
+  return dlsym(RTLD_DEFAULT, identifier) != NULL;
+}
+
 void PosixHookLibrary(const char *name, dlopenCallback cb)
 {
   cb(dlopen(name, RTLD_NOW));

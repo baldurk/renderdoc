@@ -31,3 +31,5 @@ void PosixHookInit();
 // if this name is dlopen'd, the real library will be passed
 // to the callback and librenderdoc.so will be returned to user code
 void PosixHookLibrary(const char *name, dlopenCallback cb);
+
+bool PosixHookDetect(const char *identifier);

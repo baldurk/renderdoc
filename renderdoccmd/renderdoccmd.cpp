@@ -729,6 +729,8 @@ struct CapAltBitCommand : public Command
   }
 };
 
+REPLAY_PROGRAM_MARKER()
+
 int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
 {
   try

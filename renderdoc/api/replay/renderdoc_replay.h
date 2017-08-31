@@ -86,21 +86,15 @@ typedef uint8_t byte;
 
 #if defined(RENDERDOC_PLATFORM_WIN32)
 
-#ifdef RENDERDOC_EXPORTS
-#define RENDERDOC_API __declspec(dllexport)
-#else
-#define RENDERDOC_API __declspec(dllimport)
-#endif
+#define RENDERDOC_EXPORT_API __declspec(dllexport)
+#define RENDERDOC_IMPORT_API __declspec(dllimport)
 #define RENDERDOC_CC __cdecl
 
 #elif defined(RENDERDOC_PLATFORM_LINUX) || defined(RENDERDOC_PLATFORM_APPLE) || \
     defined(RENDERDOC_PLATFORM_ANDROID)
 
-#ifdef RENDERDOC_EXPORTS
-#define RENDERDOC_API __attribute__((visibility("default")))
-#else
-#define RENDERDOC_API
-#endif
+#define RENDERDOC_EXPORT_API __attribute__((visibility("default")))
+#define RENDERDOC_IMPORT_API
 
 #define RENDERDOC_CC
 
@@ -108,6 +102,18 @@ typedef uint8_t byte;
 
 #error "Unknown platform"
 
+#endif
+
+// this #define can be used to mark a program as a 'replay' program which should not be captured.
+// Any program used for such purpose must define and export this symbol in the main exe or one dll
+// that will be loaded before renderdoc.dll is loaded.
+#define REPLAY_PROGRAM_MARKER() \
+  extern "C" RENDERDOC_EXPORT_API void RENDERDOC_CC renderdoc__replay__marker() {}
+// define the API visibility depending on whether we're exporting
+#ifdef RENDERDOC_EXPORTS
+#define RENDERDOC_API RENDERDOC_EXPORT_API
+#else
+#define RENDERDOC_API RENDERDOC_IMPORT_API
 #endif
 
 // windowing structures

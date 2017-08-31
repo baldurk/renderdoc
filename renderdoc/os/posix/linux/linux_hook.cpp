@@ -42,6 +42,11 @@ void PosixHookInit()
   hookInited = HOOK_MAGIC_NUMBER;
 }
 
+bool PosixHookDetect(const char *identifier)
+{
+  return dlsym(RTLD_DEFAULT, identifier) != NULL;
+}
+
 // need to lock around use of realdlopen and libraryHooks
 Threading::CriticalSection libLock;
 

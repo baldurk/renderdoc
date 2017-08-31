@@ -28,6 +28,7 @@
 
 #include <tlhelp32.h>
 #include <algorithm>
+#include <functional>
 #include <map>
 #include <vector>
 #include "common/threading.h"
@@ -484,7 +485,13 @@ struct CachedHookData
 
 static CachedHookData *s_HookData = NULL;
 
-static void HookAllModules()
+#ifdef UNICODE
+#undef MODULEENTRY32
+#undef Module32First
+#undef Module32Next
+#endif
+
+static void ForAllModules(std::function<void(const MODULEENTRY32 &me32)> callback)
 {
   HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
 
@@ -514,12 +521,6 @@ static void HookAllModules()
     return;
   }
 
-#ifdef UNICODE
-#undef MODULEENTRY32
-#undef Module32First
-#undef Module32Next
-#endif
-
   MODULEENTRY32 me32;
   RDCEraseEl(me32);
   me32.dwSize = sizeof(MODULEENTRY32);
@@ -539,10 +540,16 @@ static void HookAllModules()
 
   do
   {
-    s_HookData->ApplyHooks(me32.szModule, me32.hModule);
+    callback(me32);
   } while(ret == 0 && Module32Next(hModuleSnap, &me32));
 
   CloseHandle(hModuleSnap);
+}
+
+static void HookAllModules()
+{
+  ForAllModules(
+      [](const MODULEENTRY32 &me32) { s_HookData->ApplyHooks(me32.szModule, me32.hModule); });
 }
 
 HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DWORD flags)
@@ -824,4 +831,14 @@ bool Win32_IAT_Hook(void **orig_function_ptr, const char *module_name, const cha
   s_HookData->DllHooks[strlower(string(module_name))].FunctionHooks.push_back(
       FunctionHook(function, orig_function_ptr, destination_function_ptr));
   return true;
+}
+
+bool Win32_HookDetect(const char *identifier)
+{
+  bool ret = false;
+  ForAllModules([&ret, identifier](const MODULEENTRY32 &me32) {
+    if(GetProcAddress(me32.hModule, identifier) != NULL)
+      ret = true;
+  });
+  return ret;
 }

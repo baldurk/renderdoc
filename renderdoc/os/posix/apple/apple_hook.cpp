@@ -24,8 +24,15 @@
 
 #include "os/posix/posix_hook.h"
 
+#include <dlfcn.h>
+
 void PosixHookInit()
 {
+}
+
+bool PosixHookDetect(const char *identifier)
+{
+  return dlsym(RTLD_DEFAULT, identifier) != NULL;
 }
 
 void PosixHookLibrary(const char *name, dlopenCallback cb)

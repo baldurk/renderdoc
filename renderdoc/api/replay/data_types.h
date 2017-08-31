@@ -1021,6 +1021,8 @@ union PixelValue
   uint16_t value_u16[4];
 };
 
+DECLARE_REFLECTION_STRUCT(PixelValue);
+
 DOCUMENT("The value of pixel output at a particular event.");
 struct ModificationValue
 {

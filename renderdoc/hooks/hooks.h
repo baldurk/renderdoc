@@ -58,6 +58,7 @@ private:
 #define HOOKS_BEGIN() Win32_IAT_BeginHooks()
 #define HOOKS_END() Win32_IAT_EndHooks()
 #define HOOKS_REMOVE() Win32_IAT_RemoveHooks()
+#define HOOKS_IDENTIFY(identifier) Win32_HookDetect(identifier)
 
 #elif ENABLED(RDOC_POSIX)
 
@@ -69,6 +70,7 @@ private:
 #define HOOKS_BEGIN() PosixHookInit()
 #define HOOKS_END()
 #define HOOKS_REMOVE()
+#define HOOKS_IDENTIFY(identifier) PosixHookDetect(identifier)
 
 #else
 

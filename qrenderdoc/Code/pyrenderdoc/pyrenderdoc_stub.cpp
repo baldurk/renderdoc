@@ -24,6 +24,8 @@
 
 #include <Python.h>
 
+#include "renderdoc_replay.h"
+
 extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle)
 {
   return NULL;
@@ -41,3 +43,5 @@ extern "C" bool IsThreadBlocking(PyObject *global_handle)
 extern "C" void SetThreadBlocking(PyObject *global_handle, bool block)
 {
 }
+
+REPLAY_PROGRAM_MARKER()
