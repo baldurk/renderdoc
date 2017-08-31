@@ -1407,6 +1407,9 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
     RDCLOG("Flattened");
   }
 
+  if(readType != READING)
+    m_pSerialiser->SetDebugText(false);
+
   m_DoStateVerify = true;
 
   if(readType == EXECUTING && m_pDevice->GetNumDeferredContexts() &&
