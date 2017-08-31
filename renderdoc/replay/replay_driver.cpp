@@ -179,7 +179,7 @@ void HighlightCache::CacheHighlightingData(uint32_t eventID, const MeshDisplay &
     stage = cfg.type;
 
     uint32_t bytesize = cfg.position.idxByteWidth;
-    uint64_t maxIndex = cfg.position.numVerts;
+    uint64_t maxIndex = cfg.position.numVerts - 1;
 
     if(cfg.position.idxByteWidth == 0 || stage == MeshDataStage::GSOut)
     {
