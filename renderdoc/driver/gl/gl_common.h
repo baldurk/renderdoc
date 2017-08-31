@@ -271,7 +271,7 @@ GLenum ShaderBit(size_t idx);
 GLenum ShaderEnum(size_t idx);
 
 ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt);
-GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt);
+GLenum MakeGLFormat(ResourceFormat fmt);
 Topology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo);
 GLenum MakeGLPrimitiveTopology(Topology Topo);
 BufferCategory MakeBufferCategory(GLenum bufferTarget);

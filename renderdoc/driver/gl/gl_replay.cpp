@@ -2943,7 +2943,7 @@ ResourceId GLReplay::CreateProxyTexture(const TextureDescription &templateTex)
   GLuint tex = 0;
   gl.glGenTextures(1, &tex);
 
-  GLenum intFormat = MakeGLFormat(gl, templateTex.format);
+  GLenum intFormat = MakeGLFormat(templateTex.format);
 
   GLenum binding = eGL_NONE;
 

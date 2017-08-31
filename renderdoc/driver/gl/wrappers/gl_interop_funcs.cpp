@@ -141,7 +141,7 @@ HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLui
     else if(type == eGL_TEXTURE_3D)
       m_Textures[texId].dimension = 3;
 
-    m_Textures[texId].internalFormat = MakeGLFormat(*this, fmt);
+    m_Textures[texId].internalFormat = MakeGLFormat(fmt);
   }
 
   return wrapped;
@@ -257,7 +257,7 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(GLResource res, GLenum type,
 #if ENABLED(RDOC_WIN32) && ENABLED(RENDERDOC_DX_GL_INTEROP)
     GetDXTextureProperties(dxObject, format, width, height, depth, mips, layers, samples);
     if(type != eGL_NONE)
-      internalFormat = MakeGLFormat(*this, format);
+      internalFormat = MakeGLFormat(format);
 #else
     RDCERR("Should never happen - cannot serialise wglDXRegisterObjectNV, interop is disabled");
 #endif

@@ -1211,6 +1211,12 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
 
   ret.type = ResourceFormatType::Regular;
 
+  if(fmt == eGL_NONE)
+  {
+    ret.type = ResourceFormatType::Undefined;
+    return ret;
+  }
+
   // special handling for formats that don't query neatly
   if(fmt == eGL_LUMINANCE8_EXT || fmt == eGL_INTENSITY8_EXT || fmt == eGL_ALPHA8_EXT)
   {
@@ -1398,6 +1404,9 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
 
   if(iscol == GL_TRUE)
   {
+    if(fmt == eGL_BGRA8_EXT || fmt == eGL_BGRA)
+      ret.bgraOrder = true;
+
     // colour format
 
     gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint), &data[0]);
@@ -1495,7 +1504,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
   return ret;
 }
 
-GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
+GLenum MakeGLFormat(ResourceFormat fmt)
 {
   GLenum ret = eGL_NONE;
 
@@ -1574,6 +1583,7 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
       case ResourceFormatType::D32S8: ret = eGL_DEPTH32F_STENCIL8; break;
       case ResourceFormatType::ASTC: RDCERR("ASTC can't be decoded unambiguously"); break;
       case ResourceFormatType::S8: ret = eGL_STENCIL_INDEX8; break;
+      case ResourceFormatType::Undefined: return eGL_NONE;
       default: RDCERR("Unsupported resource format type %u", fmt.type); break;
     }
   }
@@ -1582,6 +1592,10 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
     if(fmt.srgbCorrected)
     {
       ret = eGL_SRGB8_ALPHA8;
+    }
+    else if(fmt.bgraOrder)
+    {
+      ret = eGL_BGRA8_EXT;
     }
     else if(fmt.compByteWidth == 4)
     {
@@ -6449,3 +6463,219 @@ string ToStrHelper<false, RDCGLenum>::Get(const RDCGLenum &el)
 
 #define GLenum RDCGLenum
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#undef None
+
+#include "3rdparty/catch/catch.hpp"
+
+#define CATCH_TOSTR(type)                                                       \
+  namespace Catch                                                               \
+  {                                                                             \
+  template <>                                                                   \
+  struct StringMaker<type>                                                      \
+  {                                                                             \
+    static std::string convert(type const &value) { return ToStr::Get(value); } \
+  };                                                                            \
+  }
+
+CATCH_TOSTR(CompType);
+CATCH_TOSTR(GLenum);
+
+TEST_CASE("GL formats", "[format][gl]")
+{
+  // must be updated by hand
+  GLenum supportedFormats[] = {
+      eGL_NONE,
+      eGL_R8,
+      eGL_R8_SNORM,
+      eGL_R8UI,
+      eGL_R8I,
+      eGL_RG8,
+      eGL_RG8_SNORM,
+      eGL_RG8UI,
+      eGL_RG8I,
+      eGL_RGB8,
+      eGL_RGB8_SNORM,
+      eGL_RGB8UI,
+      eGL_RGB8I,
+      eGL_SRGB8,
+      eGL_RGBA8,
+      eGL_RGBA8_SNORM,
+      eGL_RGBA8UI,
+      eGL_RGBA8I,
+      eGL_SRGB8_ALPHA8,
+      eGL_BGRA8_EXT,
+      eGL_R16,
+      eGL_R16_SNORM,
+      eGL_R16UI,
+      eGL_R16I,
+      eGL_R16F,
+      eGL_RG16,
+      eGL_RG16_SNORM,
+      eGL_RG16UI,
+      eGL_RG16I,
+      eGL_RG16F,
+      eGL_RGB16,
+      eGL_RGB16_SNORM,
+      eGL_RGB16UI,
+      eGL_RGB16I,
+      eGL_RGB16F,
+      eGL_RGBA16,
+      eGL_RGBA16_SNORM,
+      eGL_RGBA16UI,
+      eGL_RGBA16I,
+      eGL_RGBA16F,
+      eGL_R32UI,
+      eGL_R32I,
+      eGL_R32F,
+      eGL_RG32UI,
+      eGL_RG32I,
+      eGL_RG32F,
+      eGL_RGB32UI,
+      eGL_RGB32I,
+      eGL_RGB32F,
+      eGL_RGBA32UI,
+      eGL_RGBA32I,
+      eGL_RGBA32F,
+      eGL_RGBA4,
+      eGL_RGB565,
+      eGL_RGB5_A1,
+      eGL_R11F_G11F_B10F,
+      eGL_RGB9_E5,
+      eGL_RGB10_A2,
+      eGL_RGB10_A2UI,
+      eGL_DEPTH_COMPONENT16,
+      eGL_DEPTH_COMPONENT24,
+      eGL_DEPTH_COMPONENT32,
+      eGL_DEPTH_COMPONENT32F,
+      eGL_DEPTH24_STENCIL8,
+      eGL_DEPTH32F_STENCIL8,
+      eGL_COMPRESSED_RGB_S3TC_DXT1_EXT,
+      eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT,
+      eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
+      eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,
+      eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT,
+      eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,
+      eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT,
+      eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,
+      eGL_COMPRESSED_RED_RGTC1,
+      eGL_COMPRESSED_SIGNED_RED_RGTC1,
+      eGL_COMPRESSED_RG_RGTC2,
+      eGL_COMPRESSED_SIGNED_RG_RGTC2,
+      eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB,
+      eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB,
+      eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB,
+      eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB,
+      eGL_ETC1_RGB8_OES,
+      eGL_COMPRESSED_RGB8_ETC2,
+      eGL_COMPRESSED_SRGB8_ETC2,
+      eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+      eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+      eGL_COMPRESSED_RGBA8_ETC2_EAC,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC,
+      eGL_COMPRESSED_R11_EAC,
+      eGL_COMPRESSED_SIGNED_R11_EAC,
+      eGL_COMPRESSED_RG11_EAC,
+      eGL_COMPRESSED_SIGNED_RG11_EAC,
+      eGL_COMPRESSED_RGBA_ASTC_4x4_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_5x4_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_5x5_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_6x5_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_6x6_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_8x5_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_8x6_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_8x8_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_10x5_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_10x6_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_10x8_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_10x10_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_12x10_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR,
+      eGL_COMPRESSED_RGBA_ASTC_12x12_KHR,
+      eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR,
+  };
+
+  // we use our emulated queries for the format, as we don't want to init a context here, and anyway
+  // we'd rather have an isolated test-case of only our code, not be testing a GL driver
+  // implementation
+  GLHookSet gl;
+  glEmulate::EmulateRequiredExtensions(&gl);
+
+  SECTION("Only GL_NONE returns unknown")
+  {
+    for(GLenum f : supportedFormats)
+    {
+      ResourceFormat fmt = MakeResourceFormat(gl, eGL_TEXTURE_2D, f);
+
+      if(f == eGL_NONE)
+        CHECK(fmt.type == ResourceFormatType::Undefined);
+      else
+        CHECK(fmt.type != ResourceFormatType::Undefined);
+    }
+  };
+
+  SECTION("MakeGLFormat is reflexive with MakeResourceFormat")
+  {
+    for(GLenum f : supportedFormats)
+    {
+      // we don't support ETC1
+      if(f == GL_ETC1_RGB8_OES)
+        continue;
+
+      ResourceFormat fmt = MakeResourceFormat(gl, eGL_TEXTURE_2D, f);
+
+      // we don't support ASTC formats currently
+      if(fmt.type == ResourceFormatType::ASTC)
+        continue;
+
+      GLenum glf = MakeGLFormat(fmt);
+
+      // it's OK to 'lose' the non-float flag on this format
+      if(f == eGL_DEPTH_COMPONENT32)
+      {
+        CHECK(glf == eGL_DEPTH_COMPONENT32F);
+      }
+      else
+      {
+        CHECK(glf == f);
+      }
+    }
+  };
+
+  SECTION("GetByteSize and GetFormatBPP return expected values for regular formats")
+  {
+    for(GLenum f : supportedFormats)
+    {
+      ResourceFormat fmt = MakeResourceFormat(gl, eGL_TEXTURE_2D, f);
+
+      if(fmt.type != ResourceFormatType::Regular)
+        continue;
+
+      INFO("Format is " << ToStr::Get(f));
+
+      uint32_t size = fmt.compCount * fmt.compByteWidth * 123 * 456;
+
+      // this takes up a full int, even if the byte width is listed as 3.
+      if(f == eGL_DEPTH_COMPONENT24)
+        size = fmt.compCount * 4 * 123 * 456;
+
+      CHECK(size == GetByteSize(123, 456, 1, GetBaseFormat(f), GetDataType(f)));
+    }
+  };
+};
+
+#endif    // ENABLED(ENABLE_UNIT_TESTS)
