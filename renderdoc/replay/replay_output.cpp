@@ -588,10 +588,14 @@ void ReplayOutput::Display()
     {
       m_pDevice->BindOutputWindow(m_Thumbnails[i].outputID, false);
 
+      Vec4f dark = RenderDoc::Inst().DarkCheckerboardColor();
+      Vec4f light = RenderDoc::Inst().LightCheckerboardColor();
+
+      color.x = light.x;
+      color.y = dark.y;
+      color.z = dark.z;
       color.w = 0.4f;
       m_pDevice->ClearOutputWindowColor(m_Thumbnails[i].outputID, color);
-
-      m_pDevice->RenderCheckerboard();
 
       m_pDevice->FlipOutputWindow(m_Thumbnails[i].outputID);
       continue;
