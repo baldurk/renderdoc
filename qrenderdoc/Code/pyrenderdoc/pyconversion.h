@@ -267,7 +267,7 @@ struct TypeConversion<T, true>
 template <typename A, typename B>
 struct TypeConversion<rdctype::pair<A, B>, false>
 {
-  static int ConvertFromPy(PyObject *in, rdctype::pair<A, B> &out)
+  static int ConvertFromPy(PyObject *in, rdctype::pair<A, B> &out, int *failIdx)
   {
     if(!PyTuple_Check(in))
       return SWIG_TypeError;
@@ -278,21 +278,48 @@ struct TypeConversion<rdctype::pair<A, B>, false>
       return SWIG_TypeError;
 
     int ret = TypeConversion<A>::ConvertFromPy(PyTuple_GetItem(in, 0), out.first);
-    if(SWIG_IsOK(ret))
-      ret = TypeConversion<B>::ConvertFromPy(PyTuple_GetItem(in, 1), out.second);
+
+    if(!SWIG_IsOK(ret))
+    {
+      if(failIdx)
+        *failIdx = 0;
+      return ret;
+    }
+
+    ret = TypeConversion<B>::ConvertFromPy(PyTuple_GetItem(in, 1), out.second);
+
+    if(!SWIG_IsOK(ret))
+    {
+      if(failIdx)
+        *failIdx = 1;
+      return ret;
+    }
 
     return ret;
   }
 
-  static PyObject *ConvertToPy(PyObject *self, const rdctype::pair<A, B> &in)
+  static int ConvertFromPy(PyObject *in, rdctype::pair<A, B> &out)
+  {
+    return ConvertFromPy(in, out, NULL);
+  }
+
+  static PyObject *ConvertToPy(PyObject *self, const rdctype::pair<A, B> &in, int *failIdx)
   {
     PyObject *first = TypeConversion<A>::ConvertToPy(self, in.first);
     if(!first)
+    {
+      if(failIdx)
+        *failIdx = 0;
       return NULL;
+    }
 
     PyObject *second = TypeConversion<B>::ConvertToPy(self, in.second);
     if(!second)
+    {
+      if(failIdx)
+        *failIdx = 1;
       return NULL;
+    }
 
     PyObject *ret = PyTuple_New(2);
     if(!ret)
@@ -302,6 +329,11 @@ struct TypeConversion<rdctype::pair<A, B>, false>
     PyTuple_SetItem(ret, 1, second);
 
     return ret;
+  }
+
+  static PyObject *ConvertToPy(PyObject *self, const rdctype::pair<A, B> &in)
+  {
+    return ConvertToPy(self, in, NULL);
   }
 };
 

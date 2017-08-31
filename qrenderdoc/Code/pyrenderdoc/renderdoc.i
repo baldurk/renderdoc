@@ -53,6 +53,7 @@
 SIMPLE_TYPEMAPS(rdctype::str)
 
 CONTAINER_TYPEMAPS(rdctype::array)
+CONTAINER_TYPEMAPS(rdctype::pair)
 
 %typemap(in, fragment="pyconvert") std::function {
   PyObject *func = $input;
