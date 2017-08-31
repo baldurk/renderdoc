@@ -594,7 +594,9 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
       else if(h->targetShaderStage == 0x4353)    // 'CS'
         m_Type = D3D11_ShaderType_Compute;
 
-      m_Resources.reserve(h->resources.count);
+      m_SRVs.reserve(h->resources.count);
+      m_UAVs.reserve(h->resources.count);
+      m_Samplers.reserve(h->resources.count);
 
       struct CBufferBind
       {
@@ -639,7 +641,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         // for cbuffers the names can be duplicated, so handle this by assuming
         // the order will match between binding declaration and cbuffer declaration
         // and append _s onto each subsequent buffer name
-        if(desc.type == ShaderInputBind::TYPE_CBUFFER)
+        if(desc.IsCBuffer())
         {
           string cname = desc.name;
 
@@ -652,8 +654,22 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
           cb.bindCount = desc.bindCount;
           cbufferbinds[cname] = cb;
         }
-
-        m_Resources.push_back(desc);
+        else if(desc.IsSampler())
+        {
+          m_Samplers.push_back(desc);
+        }
+        else if(desc.IsSRV())
+        {
+          m_SRVs.push_back(desc);
+        }
+        else if(desc.IsUAV())
+        {
+          m_UAVs.push_back(desc);
+        }
+        else
+        {
+          RDCERR("Unexpected type of resource: %u", desc.type);
+        }
       }
 
       // Expand out any array resources. We deliberately place these at the end of the resources
@@ -666,31 +682,35 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
       // Note we preserve the arrays in SM5.1
       if(h->targetVersion < 0x501)
       {
-        for(size_t i = 0; i < m_Resources.size();)
+        for(vector<ShaderInputBind> *arr : {&m_SRVs, &m_UAVs, &m_Samplers})
         {
-          if(m_Resources[i].bindCount > 1)
+          vector<ShaderInputBind> &resArray = *arr;
+          for(size_t i = 0; i < resArray.size();)
           {
-            ShaderInputBind desc = m_Resources[i];
-            m_Resources.erase(m_Resources.begin() + i);
-
-            string rname = desc.name;
-            uint32_t arraySize = desc.bindCount;
-
-            desc.bindCount = 1;
-
-            for(uint32_t a = 0; a < arraySize; a++)
+            if(resArray[i].bindCount > 1)
             {
-              desc.name = StringFormat::Fmt("%s[%u]", rname.c_str(), a);
-              m_Resources.push_back(desc);
-              desc.reg++;
+              ShaderInputBind desc = resArray[i];
+              resArray.erase(resArray.begin() + i);
+
+              string rname = desc.name;
+              uint32_t arraySize = desc.bindCount;
+
+              desc.bindCount = 1;
+
+              for(uint32_t a = 0; a < arraySize; a++)
+              {
+                desc.name = StringFormat::Fmt("%s[%u]", rname.c_str(), a);
+                resArray.push_back(desc);
+                desc.reg++;
+              }
+
+              // continue from the i'th element again since
+              // we just removed it.
+              continue;
             }
 
-            // continue from the i'th element again since
-            // we just removed it.
-            continue;
+            i++;
           }
-
-          i++;
         }
       }
 
@@ -1071,7 +1091,7 @@ void DXBCFile::GuessResources()
             desc.bindCount = 0;
         }
 
-        m_Resources.push_back(desc);
+        m_Samplers.push_back(desc);
 
         break;
       }
@@ -1136,7 +1156,7 @@ void DXBCFile::GuessResources()
             desc.bindCount = 0;
         }
 
-        m_Resources.push_back(desc);
+        m_SRVs.push_back(desc);
 
         break;
       }
@@ -1173,7 +1193,10 @@ void DXBCFile::GuessResources()
             desc.bindCount = 0;
         }
 
-        m_Resources.push_back(desc);
+        if(dcl.operand.type == TYPE_RESOURCE)
+          m_SRVs.push_back(desc);
+        else
+          m_UAVs.push_back(desc);
 
         break;
       }
@@ -1206,7 +1229,7 @@ void DXBCFile::GuessResources()
             desc.bindCount = 0;
         }
 
-        m_Resources.push_back(desc);
+        m_SRVs.push_back(desc);
 
         break;
       }
@@ -1243,7 +1266,7 @@ void DXBCFile::GuessResources()
             desc.bindCount = 0;
         }
 
-        m_Resources.push_back(desc);
+        m_UAVs.push_back(desc);
 
         break;
       }
@@ -1302,7 +1325,7 @@ void DXBCFile::GuessResources()
             desc.bindCount = 0;
         }
 
-        m_Resources.push_back(desc);
+        m_UAVs.push_back(desc);
 
         break;
       }
@@ -1337,8 +1360,6 @@ void DXBCFile::GuessResources()
         }
 
         CBuffer cb;
-
-        m_Resources.push_back(desc);
 
         cb.name = desc.name;
 

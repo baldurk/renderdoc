@@ -853,7 +853,7 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
           global.srvs[i].format.stride = bufdesc.StructureByteStride;
 
           // if we didn't get a type from the SRV description, try to pull it from the declaration
-          for(const DXBC::ShaderInputBind &bind : dxbc->m_Resources)
+          for(const DXBC::ShaderInputBind &bind : dxbc->m_SRVs)
           {
             if(bind.reg == (uint32_t)i && bind.dimension == DXBC::ShaderInputBind::DIM_BUFFER &&
                bind.retType < DXBC::ShaderInputBind::RETTYPE_MIXED &&

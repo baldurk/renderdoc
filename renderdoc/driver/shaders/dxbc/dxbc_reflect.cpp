@@ -108,6 +108,102 @@ static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &va
   return ret;
 }
 
+static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::ShaderInputBind> &in,
+                             rdctype::array<BindpointMap> &mapping,
+                             rdctype::array<ShaderResource> &refl)
+{
+  for(size_t i = 0; i < in.size(); i++)
+  {
+    const DXBC::ShaderInputBind &r = in[i];
+
+    ShaderResource res;
+    res.name = r.name;
+
+    res.IsTexture = (r.type == DXBC::ShaderInputBind::TYPE_TEXTURE &&
+                     r.dimension != DXBC::ShaderInputBind::DIM_UNKNOWN &&
+                     r.dimension != DXBC::ShaderInputBind::DIM_BUFFER &&
+                     r.dimension != DXBC::ShaderInputBind::DIM_BUFFEREX);
+    res.IsReadOnly = srv;
+
+    switch(r.dimension)
+    {
+      default:
+      case DXBC::ShaderInputBind::DIM_UNKNOWN: res.resType = TextureDim::Unknown; break;
+      case DXBC::ShaderInputBind::DIM_BUFFER:
+      case DXBC::ShaderInputBind::DIM_BUFFEREX: res.resType = TextureDim::Buffer; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE1D: res.resType = TextureDim::Texture1D; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE1DARRAY:
+        res.resType = TextureDim::Texture1DArray;
+        break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE2D: res.resType = TextureDim::Texture2D; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE2DARRAY:
+        res.resType = TextureDim::Texture2DArray;
+        break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE2DMS: res.resType = TextureDim::Texture2DMS; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE2DMSARRAY:
+        res.resType = TextureDim::Texture2DMSArray;
+        break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE3D: res.resType = TextureDim::Texture3D; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURECUBE: res.resType = TextureDim::TextureCube; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURECUBEARRAY:
+        res.resType = TextureDim::TextureCubeArray;
+        break;
+    }
+
+    if(r.retType != DXBC::ShaderInputBind::RETTYPE_UNKNOWN &&
+       r.retType != DXBC::ShaderInputBind::RETTYPE_MIXED &&
+       r.retType != DXBC::ShaderInputBind::RETTYPE_CONTINUED)
+    {
+      res.variableType.descriptor.rows = 1;
+      res.variableType.descriptor.cols = (uint8_t)r.numSamples;
+      res.variableType.descriptor.elements = 1;
+
+      string name;
+
+      switch(r.retType)
+      {
+        case DXBC::ShaderInputBind::RETTYPE_UNORM: name = "unorm float"; break;
+        case DXBC::ShaderInputBind::RETTYPE_SNORM: name = "snorm float"; break;
+        case DXBC::ShaderInputBind::RETTYPE_SINT: name = "int"; break;
+        case DXBC::ShaderInputBind::RETTYPE_UINT: name = "uint"; break;
+        case DXBC::ShaderInputBind::RETTYPE_FLOAT: name = "float"; break;
+        case DXBC::ShaderInputBind::RETTYPE_DOUBLE: name = "double"; break;
+        default: name = "unknown"; break;
+      }
+
+      name += StringFormat::Fmt("%u", r.numSamples);
+
+      res.variableType.descriptor.name = name;
+    }
+    else
+    {
+      if(dxbc->m_ResourceBinds.find(r.name) != dxbc->m_ResourceBinds.end())
+      {
+        uint32_t vecOffset = 0;
+        res.variableType = MakeShaderVariableType(dxbc->m_ResourceBinds[r.name], vecOffset);
+      }
+      else
+      {
+        res.variableType.descriptor.rows = 0;
+        res.variableType.descriptor.cols = 0;
+        res.variableType.descriptor.elements = 0;
+        res.variableType.descriptor.name = "";
+      }
+    }
+
+    res.bindPoint = (int32_t)i;
+
+    BindpointMap map;
+    map.arraySize = r.bindCount == 0 ? ~0U : r.bindCount;
+    map.bindset = r.space;
+    map.bind = r.reg;
+    map.used = true;
+
+    mapping[i] = map;
+    refl[i] = res;
+  }
+}
+
 void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
                           ShaderBindpointMapping *mapping)
 {
@@ -204,7 +300,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     cb.name = dxbc->m_CBuffers[i].name;
     cb.bufferBacked = true;
     cb.byteSize = dxbc->m_CBuffers[i].descriptor.byteSize;
-    cb.bindPoint = (uint32_t)i;
+    cb.bindPoint = (int32_t)i;
 
     BindpointMap map;
     map.arraySize = 1;
@@ -222,142 +318,31 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     }
   }
 
-  int numRWResources = 0;
-  int numROResources = 0;
-
-  for(size_t i = 0; i < dxbc->m_Resources.size(); i++)
+  create_array_uninit(mapping->Samplers, dxbc->m_Samplers.size());
+  create_array_uninit(refl->Samplers, dxbc->m_Samplers.size());
+  for(size_t i = 0; i < dxbc->m_Samplers.size(); i++)
   {
-    const auto &r = dxbc->m_Resources[i];
+    ShaderSampler &s = refl->Samplers[i];
 
-    if(r.type != DXBC::ShaderInputBind::TYPE_CBUFFER)
-    {
-      bool IsReadWrite = (r.type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED ||
-                          r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED ||
-                          r.type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS ||
-                          r.type == DXBC::ShaderInputBind::TYPE_UAV_APPEND_STRUCTURED ||
-                          r.type == DXBC::ShaderInputBind::TYPE_UAV_CONSUME_STRUCTURED ||
-                          r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER);
-
-      if(IsReadWrite)
-        numRWResources++;
-      else
-        numROResources++;
-    }
-  }
-
-  create_array_uninit(mapping->ReadWriteResources, numRWResources);
-  create_array_uninit(refl->ReadWriteResources, numRWResources);
-
-  create_array_uninit(mapping->ReadOnlyResources, numROResources);
-  create_array_uninit(refl->ReadOnlyResources, numROResources);
-
-  int32_t rwidx = 0, roidx = 0;
-  for(size_t i = 0; i < dxbc->m_Resources.size(); i++)
-  {
-    const auto &r = dxbc->m_Resources[i];
-
-    if(r.type == DXBC::ShaderInputBind::TYPE_CBUFFER)
-      continue;
-
-    ShaderResource res;
-    res.name = r.name;
-
-    res.IsSampler = (r.type == DXBC::ShaderInputBind::TYPE_SAMPLER);
-    res.IsTexture = (r.type == DXBC::ShaderInputBind::TYPE_TEXTURE &&
-                     r.dimension != DXBC::ShaderInputBind::DIM_UNKNOWN &&
-                     r.dimension != DXBC::ShaderInputBind::DIM_BUFFER &&
-                     r.dimension != DXBC::ShaderInputBind::DIM_BUFFEREX);
-    res.IsReadOnly = (r.type == DXBC::ShaderInputBind::TYPE_TBUFFER ||
-                      r.type == DXBC::ShaderInputBind::TYPE_SAMPLER ||
-                      r.type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
-                      r.type == DXBC::ShaderInputBind::TYPE_STRUCTURED ||
-                      r.type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS);
-
-    switch(r.dimension)
-    {
-      default:
-      case DXBC::ShaderInputBind::DIM_UNKNOWN: res.resType = TextureDim::Unknown; break;
-      case DXBC::ShaderInputBind::DIM_BUFFER:
-      case DXBC::ShaderInputBind::DIM_BUFFEREX: res.resType = TextureDim::Buffer; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE1D: res.resType = TextureDim::Texture1D; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE1DARRAY:
-        res.resType = TextureDim::Texture1DArray;
-        break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE2D: res.resType = TextureDim::Texture2D; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE2DARRAY:
-        res.resType = TextureDim::Texture2DArray;
-        break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE2DMS: res.resType = TextureDim::Texture2DMS; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE2DMSARRAY:
-        res.resType = TextureDim::Texture2DMSArray;
-        break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE3D: res.resType = TextureDim::Texture3D; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURECUBE: res.resType = TextureDim::TextureCube; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURECUBEARRAY:
-        res.resType = TextureDim::TextureCubeArray;
-        break;
-    }
-
-    if(r.retType != DXBC::ShaderInputBind::RETTYPE_UNKNOWN &&
-       r.retType != DXBC::ShaderInputBind::RETTYPE_MIXED &&
-       r.retType != DXBC::ShaderInputBind::RETTYPE_CONTINUED)
-    {
-      res.variableType.descriptor.rows = 1;
-      res.variableType.descriptor.cols = (uint8_t)r.numSamples;
-      res.variableType.descriptor.elements = 1;
-
-      string name;
-
-      switch(r.retType)
-      {
-        case DXBC::ShaderInputBind::RETTYPE_UNORM: name = "unorm float"; break;
-        case DXBC::ShaderInputBind::RETTYPE_SNORM: name = "snorm float"; break;
-        case DXBC::ShaderInputBind::RETTYPE_SINT: name = "int"; break;
-        case DXBC::ShaderInputBind::RETTYPE_UINT: name = "uint"; break;
-        case DXBC::ShaderInputBind::RETTYPE_FLOAT: name = "float"; break;
-        case DXBC::ShaderInputBind::RETTYPE_DOUBLE: name = "double"; break;
-        default: name = "unknown"; break;
-      }
-
-      name += StringFormat::Fmt("%u", r.numSamples);
-
-      res.variableType.descriptor.name = name;
-    }
-    else
-    {
-      if(dxbc->m_ResourceBinds.find(r.name) != dxbc->m_ResourceBinds.end())
-      {
-        uint32_t vecOffset = 0;
-        res.variableType = MakeShaderVariableType(dxbc->m_ResourceBinds[r.name], vecOffset);
-      }
-      else
-      {
-        res.variableType.descriptor.rows = 0;
-        res.variableType.descriptor.cols = 0;
-        res.variableType.descriptor.elements = 0;
-        res.variableType.descriptor.name = "";
-      }
-    }
-
-    res.bindPoint = res.IsReadOnly ? roidx : rwidx;
+    s.name = dxbc->m_Samplers[i].name;
+    s.bindPoint = (int32_t)i;
 
     BindpointMap map;
-    map.arraySize = r.bindCount == 0 ? ~0U : r.bindCount;
-    map.bindset = r.space;
-    map.bind = r.reg;
+    map.arraySize = 1;
+    map.bindset = dxbc->m_Samplers[i].space;
+    map.bind = dxbc->m_Samplers[i].reg;
     map.used = true;
 
-    if(res.IsReadOnly)
-    {
-      mapping->ReadOnlyResources[roidx] = map;
-      refl->ReadOnlyResources[roidx++] = res;
-    }
-    else
-    {
-      mapping->ReadWriteResources[rwidx] = map;
-      refl->ReadWriteResources[rwidx++] = res;
-    }
+    mapping->Samplers[i] = map;
   }
+
+  create_array_uninit(mapping->ReadOnlyResources, dxbc->m_SRVs.size());
+  create_array_uninit(refl->ReadOnlyResources, dxbc->m_SRVs.size());
+  MakeResourceList(true, dxbc, dxbc->m_SRVs, mapping->ReadOnlyResources, refl->ReadOnlyResources);
+
+  create_array_uninit(mapping->ReadWriteResources, dxbc->m_UAVs.size());
+  create_array_uninit(refl->ReadWriteResources, dxbc->m_UAVs.size());
+  MakeResourceList(true, dxbc, dxbc->m_UAVs, mapping->ReadWriteResources, refl->ReadWriteResources);
 
   uint32_t numInterfaces = 0;
   for(size_t i = 0; i < dxbc->m_Interfaces.variables.size(); i++)

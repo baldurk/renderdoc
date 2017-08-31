@@ -876,7 +876,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
         const ShaderResource &res = shaderDetails->ReadOnlyResources[b];
         const BindpointMap &bind = mapping.ReadOnlyResources[b];
 
-        if(!res.IsSampler && res.IsReadOnly && bind.bind == i)
+        if(bind.bind == i)
         {
           shaderInput = &res;
           map = &bind;
@@ -898,17 +898,17 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
   {
     const D3D11Pipe::Sampler &s = stage.Samplers[i];
 
-    const ShaderResource *shaderInput = NULL;
+    const ShaderSampler *shaderInput = NULL;
     const BindpointMap *map = NULL;
 
     if(shaderDetails)
     {
-      for(int b = 0; b < shaderDetails->ReadOnlyResources.count; b++)
+      for(int b = 0; b < shaderDetails->Samplers.count; b++)
       {
-        const ShaderResource &res = shaderDetails->ReadOnlyResources[b];
-        const BindpointMap &bind = mapping.ReadOnlyResources[b];
+        const ShaderSampler &res = shaderDetails->Samplers[b];
+        const BindpointMap &bind = mapping.Samplers[b];
 
-        if(res.IsSampler && bind.bind == i)
+        if(bind.bind == i)
         {
           shaderInput = &res;
           map = &bind;
@@ -1907,7 +1907,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
         {
           for(const ShaderResource &res : searchstage->ShaderDetails->ReadWriteResources)
           {
-            if(!res.IsTexture && !res.IsSampler && res.bindPoint == bind)
+            if(!res.IsTexture && res.bindPoint == bind)
             {
               stage = searchstage;
               break;
@@ -1925,7 +1925,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
       for(const ShaderResource &res : resArray)
       {
-        if(!res.IsTexture && !res.IsSampler && res.bindPoint == bind)
+        if(!res.IsTexture && res.bindPoint == bind)
         {
           shaderRes = &res;
           break;
@@ -2319,7 +2319,7 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(const D3D11Pipe::View &vie
   {
     for(const ShaderResource &bind : refl->ReadOnlyResources)
     {
-      if(!bind.IsSampler && bind.bindPoint == i)
+      if(bind.bindPoint == i)
       {
         shaderInput = &bind;
         break;

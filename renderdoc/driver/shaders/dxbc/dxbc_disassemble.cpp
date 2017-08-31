@@ -982,14 +982,22 @@ string ASMOperand::toString(DXBCFile *dxbc, ToString flags) const
       {
         uint32_t idx = (uint32_t)indices[0].index;
 
-        for(const ShaderInputBind &b : dxbc->m_Resources)
-        {
-          if(b.reg != idx || b.space != 0)
-            continue;
+        vector<ShaderInputBind> *list = NULL;
 
-          if((type == TYPE_RESOURCE && b.IsROResource()) || (type == TYPE_SAMPLER && b.IsSampler()) ||
-             (type == TYPE_UNORDERED_ACCESS_VIEW && b.IsUAV()))
+        if(type == TYPE_RESOURCE)
+          list = &dxbc->m_SRVs;
+        else if(type == TYPE_UNORDERED_ACCESS_VIEW)
+          list = &dxbc->m_UAVs;
+        else if(type == TYPE_SAMPLER)
+          list = &dxbc->m_Samplers;
+
+        if(list)
+        {
+          for(const ShaderInputBind &b : *list)
           {
+            if(b.reg != idx || b.space != 0)
+              continue;
+
             if(decl)
               regstr = str;
             str = b.name;

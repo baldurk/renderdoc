@@ -139,7 +139,7 @@ struct ShaderInputBind
 
   constexpr bool IsCBuffer() const { return type == TYPE_CBUFFER; }
   constexpr bool IsSampler() const { return type == TYPE_SAMPLER; }
-  constexpr bool IsROResource() const
+  constexpr bool IsSRV() const
   {
     return type == TYPE_TBUFFER || type == TYPE_TEXTURE || type == TYPE_STRUCTURED ||
            type == TYPE_BYTEADDRESS;
@@ -369,7 +369,10 @@ public:
   vector<uint32_t> m_Immediate;
 
   bool m_GuessedResources;
-  vector<ShaderInputBind> m_Resources;
+  vector<ShaderInputBind> m_SRVs;
+  vector<ShaderInputBind> m_UAVs;
+
+  vector<ShaderInputBind> m_Samplers;
 
   vector<CBuffer> m_CBuffers;
 

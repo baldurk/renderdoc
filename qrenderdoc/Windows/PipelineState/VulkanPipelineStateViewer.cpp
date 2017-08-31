@@ -712,14 +712,10 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
   }
   else
   {
-    if(shaderRes->IsSampler)
-      bindType = BindType::Sampler;
-    else if(shaderRes->IsSampler && shaderRes->IsTexture)
-      bindType = BindType::ImageSampler;
-    else if(shaderRes->resType == TextureDim::Buffer)
-      bindType = BindType::ReadOnlyTBuffer;
+    if(shaderRes->resType == TextureDim::Buffer)
+      bindType = isrw ? BindType::ReadWriteBuffer : BindType::ReadOnlyBuffer;
     else
-      bindType = BindType::ReadOnlyImage;
+      bindType = isrw ? BindType::ReadWriteImage : BindType::ReadOnlyImage;
   }
 
   bool usedSlot = bindMap != NULL && bindMap->used;

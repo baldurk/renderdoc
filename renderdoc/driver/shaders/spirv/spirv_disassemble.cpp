@@ -3901,7 +3901,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   vector<SigParameter> inputs;
   vector<SigParameter> outputs;
   vector<cblockpair> cblocks;
-  vector<shaderrespair> roresources, rwresources;
+  vector<shaderrespair> samplers, roresources, rwresources;
 
   // VKTODOLOW filter to only functions/resources used by entryPoint
 
@@ -4134,7 +4134,6 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
         if(ssbo)
         {
-          res.IsSampler = false;
           res.IsReadOnly = false;
           res.IsTexture = false;
           res.name = cblock.name;
@@ -4208,8 +4207,8 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
         else if(type->texdim == spv::DimBuffer)
           res.resType = TextureDim::Buffer;
 
-        res.IsSampler =
-            type->type == SPVTypeData::eSampledImage || type->type == SPVTypeData::eSampler;
+        bool sepSampler = (type->type == SPVTypeData::eSampler);
+
         res.IsTexture = res.resType != TextureDim::Buffer && type->type != SPVTypeData::eSampler;
         res.IsReadOnly = true;
 
@@ -4300,7 +4299,9 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
         // are used
         RDCASSERT(!bindmap.used || bindmap.bind >= 0);
 
-        if(res.IsReadOnly)
+        if(sepSampler)
+          samplers.push_back(shaderrespair(bindmap, res));
+        else if(res.IsReadOnly)
           roresources.push_back(shaderrespair(bindmap, res));
         else
           rwresources.push_back(shaderrespair(bindmap, res));
@@ -4444,11 +4445,15 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
       mapping.InputAttributes[reflection.InputSig[i].regIndex] = (int32_t)i;
 
   std::sort(cblocks.begin(), cblocks.end());
+  std::sort(samplers.begin(), samplers.end());
   std::sort(roresources.begin(), roresources.end());
   std::sort(rwresources.begin(), rwresources.end());
 
   create_array_uninit(mapping.ConstantBlocks, cblocks.size());
   create_array_uninit(reflection.ConstantBlocks, cblocks.size());
+
+  create_array_uninit(mapping.Samplers, samplers.size());
+  create_array_uninit(reflection.Samplers, samplers.size());
 
   create_array_uninit(mapping.ReadOnlyResources, roresources.size());
   create_array_uninit(reflection.ReadOnlyResources, roresources.size());
@@ -4466,6 +4471,18 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
       mapping.ConstantBlocks[i].bind = 0;
     reflection.ConstantBlocks[i] = cblocks[i].bindres;
     reflection.ConstantBlocks[i].bindPoint = (int32_t)i;
+  }
+
+  for(size_t i = 0; i < samplers.size(); i++)
+  {
+    mapping.Samplers[i] = samplers[i].map;
+    // fix up any bind points marked with -1. They were sorted to the end
+    // but from here on we want to just be able to index with the bind point
+    // without any special casing.
+    if(mapping.Samplers[i].bind == -1)
+      mapping.Samplers[i].bind = 0;
+    reflection.Samplers[i].name = samplers[i].bindres.name;
+    reflection.Samplers[i].bindPoint = (int32_t)i;
   }
 
   for(size_t i = 0; i < roresources.size(); i++)

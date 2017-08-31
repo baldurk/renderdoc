@@ -1519,17 +1519,9 @@ bool D3D11RenderState::shader::Used_SRV(uint32_t slot) const
   if(dxbc == NULL)
     return true;
 
-  for(size_t i = 0; i < dxbc->m_Resources.size(); i++)
-  {
-    if(dxbc->m_Resources[i].reg == slot &&
-       (dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
-        dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_STRUCTURED ||
-        dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_TBUFFER ||
-        dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS))
-    {
+  for(const DXBC::ShaderInputBind &bind : dxbc->m_SRVs)
+    if(bind.reg == slot)
       return true;
-    }
-  }
 
   return false;
 }
@@ -1547,19 +1539,9 @@ bool D3D11RenderState::shader::Used_UAV(uint32_t slot) const
   if(dxbc == NULL)
     return true;
 
-  for(size_t i = 0; i < dxbc->m_Resources.size(); i++)
-  {
-    if(dxbc->m_Resources[i].reg == slot &&
-       (dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_APPEND_STRUCTURED ||
-        dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_CONSUME_STRUCTURED ||
-        dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS ||
-        dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED ||
-        dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER ||
-        dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED))
-    {
+  for(const DXBC::ShaderInputBind &bind : dxbc->m_UAVs)
+    if(bind.reg == slot)
       return true;
-    }
-  }
 
   return false;
 }

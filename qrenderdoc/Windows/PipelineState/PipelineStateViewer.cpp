@@ -618,49 +618,47 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
       lit("Texture2DMSArray"), lit("Texture3D"),   lit("TextureCube"),    lit("TextureCubeArray"),
   };
 
+  for(const ShaderSampler &samp : shaderDetails->Samplers)
+  {
+    hlsl += lit("//SamplerComparisonState %1 : register(s%2); // can't disambiguate\n"
+                "SamplerState %1 : register(s%2); // can't disambiguate\n")
+                .arg(samp.name)
+                .arg(samp.bindPoint);
+  }
+
   for(int i = 0; i < 2; i++)
   {
     const rdctype::array<ShaderResource> &resources =
         (i == 0 ? shaderDetails->ReadOnlyResources : shaderDetails->ReadWriteResources);
     for(const ShaderResource &res : resources)
     {
-      if(res.IsSampler)
+      char regChar = 't';
+
+      if(i == 1)
       {
-        hlsl += lit("//SamplerComparisonState %1 : register(s%2); // can't disambiguate\n"
-                    "SamplerState %1 : register(s%2); // can't disambiguate\n")
+        hlsl += lit("RW");
+        regChar = 'u';
+      }
+
+      if(res.IsTexture)
+      {
+        hlsl += lit("%1<%2> %3 : register(%4%5);\n")
+                    .arg(textureDim[(size_t)res.resType])
+                    .arg(res.variableType.descriptor.name)
                     .arg(res.name)
+                    .arg(QLatin1Char(regChar))
                     .arg(res.bindPoint);
       }
       else
       {
-        char regChar = 't';
+        if(res.variableType.descriptor.rows > 1)
+          hlsl += lit("Structured");
 
-        if(i == 1)
-        {
-          hlsl += lit("RW");
-          regChar = 'u';
-        }
-
-        if(res.IsTexture)
-        {
-          hlsl += lit("%1<%2> %3 : register(%4%5);\n")
-                      .arg(textureDim[(size_t)res.resType])
-                      .arg(res.variableType.descriptor.name)
-                      .arg(res.name)
-                      .arg(QLatin1Char(regChar))
-                      .arg(res.bindPoint);
-        }
-        else
-        {
-          if(res.variableType.descriptor.rows > 1)
-            hlsl += lit("Structured");
-
-          hlsl += lit("Buffer<%1> %2 : register(%3%4);\n")
-                      .arg(res.variableType.descriptor.name)
-                      .arg(res.name)
-                      .arg(QLatin1Char(regChar))
-                      .arg(res.bindPoint);
-        }
+        hlsl += lit("Buffer<%1> %2 : register(%3%4);\n")
+                    .arg(res.variableType.descriptor.name)
+                    .arg(res.name)
+                    .arg(QLatin1Char(regChar))
+                    .arg(res.bindPoint);
       }
     }
   }

@@ -646,7 +646,7 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
       if(b.bind <= view.reg)
         regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > view.reg);
 
-      if(b.bindset == view.space && regMatch && !res[i].IsSampler)
+      if(b.bindset == view.space && regMatch)
       {
         bind = &b;
         shaderInput = &res[i];
@@ -976,14 +976,14 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
         continue;
 
       const BindpointMap *bind = NULL;
-      const ShaderResource *shaderInput = NULL;
+      const ShaderSampler *shaderInput = NULL;
 
       if(stage.ShaderDetails)
       {
-        for(int i = 0; i < stage.BindpointMapping.ReadOnlyResources.count; i++)
+        for(int i = 0; i < stage.BindpointMapping.Samplers.count; i++)
         {
-          const BindpointMap &b = stage.BindpointMapping.ReadOnlyResources[i];
-          const ShaderResource &res = stage.ShaderDetails->ReadOnlyResources[i];
+          const BindpointMap &b = stage.BindpointMapping.Samplers[i];
+          const ShaderSampler &res = stage.ShaderDetails->Samplers[i];
 
           bool regMatch = b.bind == reg;
 
@@ -992,7 +992,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
           if(b.bind <= reg)
             regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
 
-          if(b.bindset == space && regMatch && res.IsSampler)
+          if(b.bindset == space && regMatch)
           {
             bind = &b;
             shaderInput = &res;
@@ -1774,8 +1774,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
       for(int i = 0; i < bindArray.count; i++)
       {
-        if(bindArray[i].bindset == view.space && bindArray[i].bind == view.reg &&
-           !resArray[i].IsSampler)
+        if(bindArray[i].bindset == view.space && bindArray[i].bind == view.reg)
         {
           shaderRes = &resArray[i];
           break;
@@ -2423,7 +2422,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
             if(b.bind <= reg)
               regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
 
-            if(b.bindset == space && regMatch && !res.IsReadOnly && !res.IsSampler)
+            if(b.bindset == space && regMatch)
             {
               shaderInput = &res;
               break;
@@ -2473,10 +2472,10 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
         if(sh.ShaderDetails)
         {
-          for(int i = 0; i < sh.BindpointMapping.ReadOnlyResources.count; i++)
+          for(int i = 0; i < sh.BindpointMapping.ReadWriteResources.count; i++)
           {
-            const BindpointMap &b = sh.BindpointMapping.ReadOnlyResources[i];
-            const ShaderResource &res = sh.ShaderDetails->ReadOnlyResources[i];
+            const BindpointMap &b = sh.BindpointMapping.ReadWriteResources[i];
+            const ShaderResource &res = sh.ShaderDetails->ReadWriteResources[i];
 
             bool regMatch = b.bind == reg;
 
@@ -2485,7 +2484,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
             if(b.bind <= reg)
               regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
 
-            if(b.bindset == space && regMatch && !res.IsReadOnly && !res.IsSampler)
+            if(b.bindset == space && regMatch)
             {
               shaderInput = &res;
               break;
@@ -2531,14 +2530,14 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
         if(s.RootElement == ~0U)
           continue;
 
-        const ShaderResource *shaderInput = NULL;
+        const ShaderSampler *shaderInput = NULL;
 
         if(sh.ShaderDetails)
         {
-          for(int i = 0; i < sh.BindpointMapping.ReadOnlyResources.count; i++)
+          for(int i = 0; i < sh.BindpointMapping.Samplers.count; i++)
           {
-            const BindpointMap &b = sh.BindpointMapping.ReadOnlyResources[i];
-            const ShaderResource &res = sh.ShaderDetails->ReadOnlyResources[i];
+            const BindpointMap &b = sh.BindpointMapping.Samplers[i];
+            const ShaderSampler &res = sh.ShaderDetails->Samplers[i];
 
             bool regMatch = b.bind == reg;
 
@@ -2547,7 +2546,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
             if(b.bind <= reg)
               regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
 
-            if(b.bindset == space && regMatch && res.IsSampler)
+            if(b.bindset == space && regMatch)
             {
               shaderInput = &res;
               break;

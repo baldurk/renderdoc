@@ -2006,32 +2006,17 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
       CompType typeHint = resArray != NULL ? resArray->at(arrayIdx).typeHint : CompType::Typeless;
 
       bool used = key.used;
-      bool samplerBind = false;
-      bool otherBind = false;
 
       QString bindName;
 
-      for(int b = 0; b < resourceDetails.count; b++)
+      for(const ShaderResource &bind : resourceDetails)
       {
-        const ShaderResource &bind = resourceDetails[b];
-        if(bind.bindPoint == idx && bind.IsReadOnly)
-        {
-          bindName = bind.name;
-          otherBind = true;
-          break;
-        }
-
         if(bind.bindPoint == idx)
         {
-          if(bind.IsSampler && !bind.IsReadOnly)
-            samplerBind = true;
-          else
-            otherBind = true;
+          bindName = bind.name;
+          break;
         }
       }
-
-      if(samplerBind && !otherBind)
-        continue;
 
       if(copy)
       {

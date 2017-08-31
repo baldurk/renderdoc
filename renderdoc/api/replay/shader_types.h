@@ -399,10 +399,30 @@ specialisation constants.
 
 DECLARE_REFLECTION_STRUCT(ConstantBlock);
 
+DOCUMENT(R"(Contains the information for a separate sampler in a shader. If the API doesn't have
+the concept of separate samplers, this struct will be unused and only :class:`ShaderResource` is
+relevant.
+
+.. note:: that constant blocks will not have a shader resource entry, see :class:`ConstantBlock`.
+)");
+struct ShaderSampler
+{
+  DOCUMENT("The name of this sampler.");
+  rdctype::str name;
+
+  DOCUMENT(R"(The bindpoint for this block. This is an index in either the
+:data:`ShaderBindpointMapping.Samplers` list.
+)");
+  int32_t bindPoint;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderSampler);
+
 DOCUMENT(R"(Contains the information for a shader resource that is made accessible to shaders
 directly by means of the API resource binding system.
 
-.. note:: that constant blocks will not have a shader resource entry, see :class:`ConstantBlock`.
+.. note:: that constant blocks and samplers will not have a shader resource entry, see
+  :class:`ConstantBlock` and :class:`ShaderSampler`.
 )");
 struct ShaderResource
 {
@@ -421,14 +441,6 @@ struct ShaderResource
 )");
   int32_t bindPoint;
 
-  DOCUMENT(R"(``True`` if this resource is a sampler.
-
-If the API has no concept of separate samplers, this will always be ``False``.
-
-.. note:: this is not exclusive with the other flags in the case of e.g. combined sampler/texture
-  objects.
-)");
-  bool IsSampler;
   DOCUMENT(R"(``True`` if this resource is a texture, otherwise it is a buffer or sampler (see
 :data:`IsSampler`).
 )");
@@ -503,6 +515,9 @@ struct ShaderReflection
   DOCUMENT("A list of :class:`ConstantBlock` with the shader's constant bindings.");
   rdctype::array<ConstantBlock> ConstantBlocks;
 
+  DOCUMENT("A list of :class:`ShaderSampler` with the shader's samplers.");
+  rdctype::array<ShaderSampler> Samplers;
+
   DOCUMENT("A list of :class:`ShaderResource` with the shader's read-only resources.");
   rdctype::array<ShaderResource> ReadOnlyResources;
   DOCUMENT("A list of :class:`ShaderResource` with the shader's read-write resources.");
@@ -571,19 +586,8 @@ API specific details:
 
   :data:`BindpointMap.arraySize` is likewise unused as D3D11 doesn't have arrayed resource bindings.
 
-  The :data:`BindpointMap.bind` value corresponds directly to the index in the appropriate resource
-  list.
-
-  One important thing to note is that samplers are included with read only resources. This means
-  consumers wanting to map to API bindpoints should know and expect that the
-  :data:`ReadOnlyResources` list contains potentially duplicate :class:`BindpointMap`, with one
-  being a SRV and one a sampler.
-
-  Note that D3D11 currently uses an identity bindpoint mapping, such that the index in the bindpoint
-  array is equal to the register, even if it's sparse. E.g. textures ``0`` and ``4`` will be in
-  bindpoint maps ``0`` and ``4`` with three empty unused maps in ``1``, ``2``, and ``3``. This is
-  not contractual and should not be relied upon, in future the bindpoint map may be only two
-  elements that list ``0`` and ``4``, with the shader bindpoints then being ``0`` and ``1``.
+  :data:`BindpointMap.bind` refers to the register/slot binding within the appropriate type (SRVs for
+  read-only resources, UAV for read-write resources, samplers/constant buffers in each type).
 
 * OpenGL - Similarly to D3D11, :data:`BindpointMap.bindset` and :data:`BindpointMap.arraySize` are
   unused as OpenGL does not have true binding sets or array resource binds.
@@ -594,9 +598,8 @@ API specific details:
   the :data:`ReadWriteResources` list. The index is the uniform value of the binding. Since no
   objects are namespaced by shader stage, the same value in two shaders refers to the same binding.
 
-* Direct3D12 - As with 11 above, samplers are included in the read only resources array. Likewise
-  since D3D12 doesn't have true resource arrays (they are linearised into sequential registers)
-  :data:`BindpointMap.arraySize` is not used.
+* Direct3D12 - Since D3D12 doesn't have true resource arrays (they are linearised into sequential
+  registers) :data:`BindpointMap.arraySize` is not used.
 
   :data:`BindpointMap.bindset` corresponds to register spaces, with :data:`BindpointMap.bind` then
   mapping to the register within that space. The root signature then maps these registers to
@@ -618,6 +621,11 @@ struct ShaderBindpointMapping
 :data:`ShaderReflection.ConstantBlocks` list.
 )");
   rdctype::array<BindpointMap> ConstantBlocks;
+
+  DOCUMENT(R"(Provides a list of :class:`BindpointMap` entries for remapping the
+:data:`ShaderReflection.Samplers` list.
+)");
+  rdctype::array<BindpointMap> Samplers;
 
   DOCUMENT(R"(Provides a list of :class:`BindpointMap` entries for remapping the
 :data:`ShaderReflection.ReadOnlyResources` list.

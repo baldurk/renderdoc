@@ -922,7 +922,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     gl.glGetProgramResourceiv(sepProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
 
     ShaderResource res;
-    res.IsSampler = false;    // no separate sampler objects in GL
     res.IsReadOnly = true;
     res.IsTexture = true;
     res.variableType.descriptor.rows = 1;
@@ -1465,7 +1464,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       gl.glGetProgramResourceName(sepProg, eGL_SHADER_STORAGE_BLOCK, u, len + 1, NULL, nm);
 
       ShaderResource res;
-      res.IsSampler = false;
       res.IsReadOnly = false;
       res.IsTexture = false;
       res.resType = TextureDim::Buffer;

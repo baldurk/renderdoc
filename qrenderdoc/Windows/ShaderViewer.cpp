@@ -1024,9 +1024,6 @@ RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, u
   const TextureDescription *tex = m_Ctx.GetTexture(bound.Id);
   const BufferDescription *buf = m_Ctx.GetBuffer(bound.Id);
 
-  if(res.IsSampler)
-    return NULL;
-
   QChar regChar(QLatin1Char('u'));
 
   if(res.IsReadOnly)
