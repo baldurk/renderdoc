@@ -25,6 +25,7 @@
 #include "os/posix/posix_hook.h"
 
 #include <dlfcn.h>
+#include <stddef.h>
 
 void PosixHookInit()
 {
