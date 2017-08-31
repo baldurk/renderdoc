@@ -162,8 +162,6 @@ BlendMultiplier MakeBlendMultiplier(D3D11_BLEND blend, bool alpha);
 BlendOp MakeBlendOp(D3D11_BLEND_OP op);
 StencilOp MakeStencilOp(D3D11_STENCIL_OP op);
 
-ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc);
-
 template <class T>
 inline void SetDebugName(T *pObj, const char *name)
 {

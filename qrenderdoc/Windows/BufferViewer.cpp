@@ -1411,13 +1411,15 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
 
   m_Ctx.Replay().AsyncInvoke([this, vsinHoriz, vsoutHoriz, gsoutHoriz](IReplayController *r) {
 
+    BufferData *buf = NULL;
+
     if(m_MeshView)
     {
       RT_FetchMeshData(r);
     }
     else
     {
-      BufferData *buf = new BufferData;
+      buf = new BufferData;
       rdctype::array<byte> data;
       if(m_IsBuffer)
       {
@@ -1435,25 +1437,31 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       buf->data = new byte[data.count];
       memcpy(buf->data, data.elems, data.count);
       buf->end = buf->data + data.count;
-
-      // calculate tight stride
-      buf->stride = 0;
-      for(const FormatElement &el : m_ModelVSIn->columns)
-        buf->stride += el.byteSize();
-
-      buf->stride = qMax((size_t)1, buf->stride);
-
-      m_ModelVSIn->numRows = uint32_t((data.count + buf->stride - 1) / buf->stride);
-
-      // ownership passes to model
-      m_ModelVSIn->buffers.push_back(buf);
     }
 
-    updatePreviewColumns();
+    GUIInvoke::call([this, buf, vsinHoriz, vsoutHoriz, gsoutHoriz] {
 
-    RT_UpdateAndDisplay(r);
+      if(buf)
+      {
+        // calculate tight stride
+        buf->stride = 0;
+        for(const FormatElement &el : m_ModelVSIn->columns)
+          buf->stride += el.byteSize();
 
-    GUIInvoke::call([this, vsinHoriz, vsoutHoriz, gsoutHoriz] {
+        buf->stride = qMax((size_t)1, buf->stride);
+
+        uint32_t bufCount = uint32_t(buf->end - buf->data);
+
+        m_ModelVSIn->numRows = uint32_t((bufCount + buf->stride - 1) / buf->stride);
+
+        // ownership passes to model
+        m_ModelVSIn->buffers.push_back(buf);
+      }
+
+      updatePreviewColumns();
+
+      INVOKE_MEMFN(RT_UpdateAndDisplay);
+
       m_ModelVSIn->endReset();
       m_ModelVSOut->endReset();
       m_ModelGSOut->endReset();

@@ -59,7 +59,7 @@
       <PreprocessorDefinitions>RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
-	<ItemDefinitionGroup>
+  <ItemDefinitionGroup>
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -102,6 +102,7 @@
     <ClCompile Include="dxbc_debug.cpp" />
     <ClCompile Include="dxbc_disassemble.cpp" />
     <ClCompile Include="dxbc_inspect.cpp" />
+    <ClCompile Include="dxbc_reflect.cpp" />
     <ClCompile Include="precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -111,6 +112,7 @@
     <ClInclude Include="dxbc_debug.h" />
     <ClInclude Include="dxbc_disassemble.h" />
     <ClInclude Include="dxbc_inspect.h" />
+    <ClInclude Include="dxbc_reflect.h" />
     <ClInclude Include="dxbc_sdbg.h" />
     <ClInclude Include="dxbc_spdb.h" />
     <ClInclude Include="precompiled.h" />

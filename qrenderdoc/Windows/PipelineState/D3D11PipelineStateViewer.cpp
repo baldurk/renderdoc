@@ -233,7 +233,7 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     cbuffer->setHeader(header);
 
-    cbuffer->setColumns({tr("Slot"), tr("Buffer"), tr("Byte Range"), tr("Size"), tr("Go")});
+    cbuffer->setColumns({tr("Slot"), tr("Buffer"), tr("Vec4 Range"), tr("Size"), tr("Go")});
     header->setColumnStretchHints({1, 2, 3, 3, -1});
 
     cbuffer->setHoverIconColumn(4, action, action_hover);
@@ -580,7 +580,7 @@ void D3D11PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
 
 void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
                                               const ShaderResource *shaderInput,
-                                              RDTreeWidget *resources)
+                                              const BindpointMap *map, RDTreeWidget *resources)
 {
   const D3D11Pipe::View &r = view.res;
 
@@ -591,7 +591,7 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
                   m_Ctx.CurD3D11PipelineState().m_OM.StencilReadOnly;
 
   bool filledSlot = (r.Resource != ResourceId());
-  bool usedSlot = (shaderInput);
+  bool usedSlot = (map && map->used);
 
   // if a target is set to RTVs or DSV, it is implicitly used
   if(filledSlot)
@@ -845,6 +845,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
                                               RDTreeWidget *cbuffers, RDTreeWidget *classes)
 {
   ShaderReflection *shaderDetails = stage.ShaderDetails;
+  const ShaderBindpointMapping &mapping = stage.BindpointMapping;
 
   if(stage.Object == ResourceId())
     shader->setText(tr("Unbound Shader"));
@@ -866,20 +867,25 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
   for(int i = 0; i < stage.SRVs.count; i++)
   {
     const ShaderResource *shaderInput = NULL;
+    const BindpointMap *map = NULL;
 
     if(shaderDetails)
     {
-      for(const ShaderResource &bind : shaderDetails->ReadOnlyResources)
+      for(int b = 0; b < shaderDetails->ReadOnlyResources.count; b++)
       {
-        if(!bind.IsSampler && bind.IsReadOnly && bind.bindPoint == i)
+        const ShaderResource &res = shaderDetails->ReadOnlyResources[b];
+        const BindpointMap &bind = mapping.ReadOnlyResources[b];
+
+        if(!res.IsSampler && res.IsReadOnly && bind.bind == i)
         {
-          shaderInput = &bind;
+          shaderInput = &res;
+          map = &bind;
           break;
         }
       }
     }
 
-    addResourceRow(D3D11ViewTag(D3D11ViewTag::SRV, i, stage.SRVs[i]), shaderInput, resources);
+    addResourceRow(D3D11ViewTag(D3D11ViewTag::SRV, i, stage.SRVs[i]), shaderInput, map, resources);
   }
   resources->clearSelection();
   resources->endUpdate();
@@ -893,21 +899,26 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
     const D3D11Pipe::Sampler &s = stage.Samplers[i];
 
     const ShaderResource *shaderInput = NULL;
+    const BindpointMap *map = NULL;
 
     if(shaderDetails)
     {
-      for(const ShaderResource &bind : shaderDetails->ReadOnlyResources)
+      for(int b = 0; b < shaderDetails->ReadOnlyResources.count; b++)
       {
-        if(bind.IsSampler && bind.bindPoint == i)
+        const ShaderResource &res = shaderDetails->ReadOnlyResources[b];
+        const BindpointMap &bind = mapping.ReadOnlyResources[b];
+
+        if(res.IsSampler && bind.bind == i)
         {
-          shaderInput = &bind;
+          shaderInput = &res;
+          map = &bind;
           break;
         }
       }
     }
 
     bool filledSlot = s.Samp != ResourceId();
-    bool usedSlot = (shaderInput);
+    bool usedSlot = (map && map->used);
 
     if(showNode(usedSlot, filledSlot))
     {
@@ -995,26 +1006,26 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
     const D3D11Pipe::CBuffer &b = stage.ConstantBuffers[i];
 
     const ConstantBlock *shaderCBuf = NULL;
-
-    int cbufIdx = -1;
+    const BindpointMap *map = NULL;
 
     if(shaderDetails)
     {
       for(int cb = 0; cb < shaderDetails->ConstantBlocks.count; cb++)
       {
-        const ConstantBlock &bind = shaderDetails->ConstantBlocks[cb];
+        const ConstantBlock &cbuf = shaderDetails->ConstantBlocks[cb];
+        const BindpointMap &bind = mapping.ConstantBlocks[cb];
 
-        if(bind.bindPoint == i)
+        if(bind.bind == i)
         {
-          shaderCBuf = &bind;
-          cbufIdx = cb;
+          shaderCBuf = &cbuf;
+          map = &bind;
           break;
         }
       }
     }
 
     bool filledSlot = b.Buffer != ResourceId();
-    bool usedSlot = shaderCBuf;
+    bool usedSlot = (map && map->used);
 
     if(showNode(usedSlot, filledSlot))
     {
@@ -1056,7 +1067,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem({slotname, name, vecrange, sizestr, QString()});
 
-      node->setTag(QVariant::fromValue(cbufIdx));
+      node->setTag(QVariant::fromValue(i));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -1409,20 +1420,28 @@ void D3D11PipelineStateViewer::setState()
   for(int i = 0; i < state.m_CS.UAVs.count; i++)
   {
     const ShaderResource *shaderInput = NULL;
+    const BindpointMap *map = NULL;
 
-    if(state.m_CS.ShaderDetails)
+    const D3D11Pipe::Shader &cs = state.m_CS;
+
+    if(cs.ShaderDetails)
     {
-      for(const ShaderResource &bind : state.m_CS.ShaderDetails->ReadWriteResources)
+      for(int b = 0; b < cs.ShaderDetails->ReadWriteResources.count; b++)
       {
-        if(bind.bindPoint == i)
+        const ShaderResource &res = cs.ShaderDetails->ReadWriteResources[b];
+        const BindpointMap &bind = cs.BindpointMapping.ReadWriteResources[b];
+
+        if(bind.bind == i)
         {
-          shaderInput = &bind;
+          shaderInput = &res;
+          map = &bind;
           break;
         }
       }
     }
 
-    addResourceRow(D3D11ViewTag(D3D11ViewTag::UAV, i, state.m_CS.UAVs[i]), shaderInput, ui->csUAVs);
+    addResourceRow(D3D11ViewTag(D3D11ViewTag::UAV, i, state.m_CS.UAVs[i]), shaderInput, map,
+                   ui->csUAVs);
   }
   ui->csUAVs->clearSelection();
   ui->csUAVs->endUpdate();
@@ -1558,7 +1577,7 @@ void D3D11PipelineStateViewer::setState()
     for(int i = 0; i < state.m_OM.RenderTargets.count; i++)
     {
       addResourceRow(D3D11ViewTag(D3D11ViewTag::OMTarget, i, state.m_OM.RenderTargets[i]), NULL,
-                     ui->targetOutputs);
+                     NULL, ui->targetOutputs);
 
       if(state.m_OM.RenderTargets[i].Resource != ResourceId())
         targets[i] = true;
@@ -1567,6 +1586,7 @@ void D3D11PipelineStateViewer::setState()
     for(int i = 0; i < state.m_OM.UAVs.count; i++)
     {
       const ShaderResource *shaderInput = NULL;
+      const BindpointMap *map = NULL;
 
       // any non-CS shader can use these. When that's not supported (Before feature level 11.1)
       // this search will just boil down to only PS.
@@ -1578,22 +1598,25 @@ void D3D11PipelineStateViewer::setState()
       {
         if(stage->ShaderDetails)
         {
-          for(const ShaderResource &bind : stage->ShaderDetails->ReadWriteResources)
+          for(int b = 0; b < stage->ShaderDetails->ReadOnlyResources.count; b++)
           {
-            if(bind.bindPoint == i + (int)state.m_OM.UAVStartSlot)
+            const ShaderResource &res = stage->ShaderDetails->ReadOnlyResources[b];
+            const BindpointMap &bind = stage->BindpointMapping.ReadOnlyResources[b];
+
+            if(bind.bind == i + (int)state.m_OM.UAVStartSlot)
             {
-              shaderInput = &bind;
+              shaderInput = &res;
+              map = &bind;
               break;
             }
           }
         }
       }
-
-      addResourceRow(D3D11ViewTag(D3D11ViewTag::UAV, i, state.m_OM.UAVs[i]), shaderInput,
+      addResourceRow(D3D11ViewTag(D3D11ViewTag::UAV, i, state.m_OM.UAVs[i]), shaderInput, map,
                      ui->targetOutputs);
     }
 
-    addResourceRow(D3D11ViewTag(D3D11ViewTag::OMDepth, 0, state.m_OM.DepthTarget), NULL,
+    addResourceRow(D3D11ViewTag(D3D11ViewTag::OMDepth, 0, state.m_OM.DepthTarget), NULL, NULL,
                    ui->targetOutputs);
   }
   ui->targetOutputs->clearSelection();
@@ -2031,7 +2054,33 @@ void D3D11PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
 
   int cb = tag.value<int>();
 
-  IConstantBufferPreviewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb, 0);
+  int cbufIdx = -1;
+
+  for(int i = 0; i < stage->BindpointMapping.ConstantBlocks.count; i++)
+  {
+    if(stage->BindpointMapping.ConstantBlocks[i].bind == cb)
+    {
+      cbufIdx = i;
+      break;
+    }
+  }
+
+  if(cbufIdx == -1)
+  {
+    // unused cbuffer, open regular buffer viewer
+    if(cb >= stage->ConstantBuffers.count)
+      return;
+
+    const D3D11Pipe::CBuffer &bind = stage->ConstantBuffers[cb];
+
+    IBufferViewer *viewer = m_Ctx.ViewBuffer(bind.VecOffset * sizeof(float) * 4,
+                                             bind.VecCount * sizeof(float) * 4, bind.Buffer);
+
+    m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
+    return;
+  }
+
+  IConstantBufferPreviewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cbufIdx, 0);
 
   m_Ctx.AddDockWindow(prev->Widget(), DockReference::ConstantBufferArea, this, 0.3f);
 }

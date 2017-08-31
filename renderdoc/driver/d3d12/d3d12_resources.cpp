@@ -24,6 +24,7 @@
 
 #include "d3d12_resources.h"
 #include "3rdparty/lz4/lz4.h"
+#include "driver/shaders/dxbc/dxbc_reflect.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 
@@ -457,4 +458,17 @@ WrappedID3D12DescriptorHeap::~WrappedID3D12DescriptorHeap()
 {
   Shutdown();
   SAFE_DELETE_ARRAY(descriptors);
+}
+
+void WrappedID3D12PipelineState::ShaderEntry::BuildReflection()
+{
+  RDCCOMPILE_ASSERT(
+      D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT == D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT,
+      "Mismatched vertex input count");
+
+  MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
+  m_Details.ID = GetResourceID();
+  m_Details.EntryPoint = m_DXBCFile->m_DebugInfo ? m_DXBCFile->m_DebugInfo->GetEntryFunction() : "";
+  if(m_Details.EntryPoint.empty())
+    m_Details.EntryPoint = "main";
 }

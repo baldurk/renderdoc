@@ -69,9 +69,6 @@ BlendMultiplier MakeBlendMultiplier(D3D12_BLEND blend, bool alpha);
 BlendOp MakeBlendOp(D3D12_BLEND_OP op);
 StencilOp MakeStencilOp(D3D12_STENCIL_OP op);
 
-void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
-                          ShaderBindpointMapping *mapping);
-
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the
 // debugbreak.
 #define D3D12NOTIMP(...)                                \

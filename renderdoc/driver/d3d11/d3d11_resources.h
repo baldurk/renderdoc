@@ -903,20 +903,18 @@ public:
   class ShaderEntry
   {
   public:
-    ShaderEntry() : m_DebugInfoSearchPaths(NULL), m_DXBCFile(NULL), m_Details(NULL) {}
+    ShaderEntry() : m_DebugInfoSearchPaths(NULL), m_DXBCFile(NULL) {}
     ShaderEntry(WrappedID3D11Device *device, ResourceId id, const byte *code, size_t codeLen)
     {
       m_ID = id;
       m_Bytecode.assign(code, code + codeLen);
       m_DebugInfoSearchPaths = device->GetShaderDebugInfoSearchPaths();
       m_DXBCFile = NULL;
-      m_Details = NULL;
     }
     ~ShaderEntry()
     {
       m_Bytecode.clear();
       SAFE_DELETE(m_DXBCFile);
-      SAFE_DELETE(m_Details);
     }
 
     void SetDebugInfoPath(const std::string &path) { m_DebugInfoPath = path; }
@@ -929,24 +927,29 @@ public:
       }
       return m_DXBCFile;
     }
-    ShaderReflection *GetDetails()
+
+    ShaderReflection &GetDetails()
     {
-      if(m_Details == NULL && GetDXBC() != NULL)
-      {
-        m_Details = MakeShaderReflection(m_DXBCFile);
-        m_Details->ID = m_ID;
-        m_Details->EntryPoint =
-            m_DXBCFile->m_DebugInfo ? m_DXBCFile->m_DebugInfo->GetEntryFunction() : "";
-        if(m_Details->EntryPoint.empty())
-          m_Details->EntryPoint = "main";
-      }
+      if(!m_Built && GetDXBC() != NULL)
+        BuildReflection();
+      m_Built = true;
       return m_Details;
+    }
+
+    const ShaderBindpointMapping &GetMapping()
+    {
+      if(!m_Built && GetDXBC() != NULL)
+        BuildReflection();
+      m_Built = true;
+      return m_Mapping;
     }
 
   private:
     ShaderEntry(const ShaderEntry &e);
     void TryReplaceOriginalByteCode();
     ShaderEntry &operator=(const ShaderEntry &e);
+
+    void BuildReflection();
 
     ResourceId m_ID;
 
@@ -955,8 +958,10 @@ public:
 
     vector<byte> m_Bytecode;
 
+    bool m_Built = false;
     DXBC::DXBCFile *m_DXBCFile;
-    ShaderReflection *m_Details;
+    ShaderReflection m_Details;
+    ShaderBindpointMapping m_Mapping;
   };
 
   static map<ResourceId, ShaderEntry *> m_ShaderList;
@@ -989,10 +994,15 @@ public:
     SCOPED_LOCK(m_ShaderListLock);
     return m_ShaderList[m_ID]->GetDXBC();
   }
-  ShaderReflection *GetDetails()
+  ShaderReflection &GetDetails()
   {
     SCOPED_LOCK(m_ShaderListLock);
     return m_ShaderList[m_ID]->GetDetails();
+  }
+  const ShaderBindpointMapping &GetMapping()
+  {
+    SCOPED_LOCK(m_ShaderListLock);
+    return m_ShaderList[m_ID]->GetMapping();
   }
 
 private:

@@ -310,10 +310,9 @@ ShaderReflection *D3D11Replay::GetShader(ResourceId shader, string entryPoint)
   if(it == WrappedShader::m_ShaderList.end())
     return NULL;
 
-  ShaderReflection *ret = it->second->GetDetails();
-  RDCASSERT(ret);
+  ShaderReflection &ret = it->second->GetDetails();
 
-  return ret;
+  return &ret;
 }
 
 vector<string> D3D11Replay::GetDisassemblyTargets()
@@ -581,7 +580,10 @@ void D3D11Replay::SavePipelineState()
       ShaderReflection *refl = NULL;
 
       if(shad != NULL)
-        refl = shad->GetDetails();
+      {
+        refl = &shad->GetDetails();
+        dst.BindpointMapping = shad->GetMapping();
+      }
 
       dst.Object = rm->GetOriginalID(id);
       dst.ShaderDetails = refl;
@@ -596,61 +598,6 @@ void D3D11Replay::SavePipelineState()
       }
 
       dst.name = str;
-
-      // create identity bindpoint mapping
-      create_array_uninit(dst.BindpointMapping.InputAttributes,
-                          D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
-      for(int s = 0; s < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; s++)
-      {
-        // TODO: this should do any semantic rematching as defined by the bytecode
-        // the input layout was built with (not necessarily the vertex shader's bytecode -
-        // in the case of a mismatch). It's commonly, but not always the identity mapping
-        dst.BindpointMapping.InputAttributes[s] = s;
-      }
-
-      create_array_uninit(dst.BindpointMapping.ConstantBlocks,
-                          D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
-      for(int s = 0; s < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; s++)
-      {
-        dst.BindpointMapping.ConstantBlocks[s].bindset = 0;
-        dst.BindpointMapping.ConstantBlocks[s].bind = s;
-        dst.BindpointMapping.ConstantBlocks[s].used = false;
-        dst.BindpointMapping.ConstantBlocks[s].arraySize = 1;
-      }
-
-      create_array_uninit(dst.BindpointMapping.ReadOnlyResources,
-                          D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
-      for(int32_t s = 0; s < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; s++)
-      {
-        dst.BindpointMapping.ReadOnlyResources[s].bindset = 0;
-        dst.BindpointMapping.ReadOnlyResources[s].bind = s;
-        dst.BindpointMapping.ReadOnlyResources[s].used = false;
-        dst.BindpointMapping.ReadOnlyResources[s].arraySize = 1;
-      }
-
-      create_array_uninit(dst.BindpointMapping.ReadWriteResources, D3D11_1_UAV_SLOT_COUNT);
-      for(int32_t s = 0; s < D3D11_1_UAV_SLOT_COUNT; s++)
-      {
-        dst.BindpointMapping.ReadWriteResources[s].bindset = 0;
-        dst.BindpointMapping.ReadWriteResources[s].bind = s;
-        dst.BindpointMapping.ReadWriteResources[s].used = false;
-        dst.BindpointMapping.ReadWriteResources[s].arraySize = 1;
-      }
-
-      // mark resources as used if they are referenced by the shader
-      if(refl)
-      {
-        for(int32_t i = 0; i < refl->ConstantBlocks.count; i++)
-          if(refl->ConstantBlocks[i].bufferBacked)
-            dst.BindpointMapping.ConstantBlocks[refl->ConstantBlocks[i].bindPoint].used = true;
-
-        for(int32_t i = 0; i < refl->ReadOnlyResources.count; i++)
-          if(!refl->ReadOnlyResources[i].IsSampler)
-            dst.BindpointMapping.ReadOnlyResources[refl->ReadOnlyResources[i].bindPoint].used = true;
-
-        for(int32_t i = 0; i < refl->ReadWriteResources.count; i++)
-          dst.BindpointMapping.ReadWriteResources[refl->ReadWriteResources[i].bindPoint].used = true;
-      }
 
       create_array_uninit(dst.ConstantBuffers, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
       for(size_t s = 0; s < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; s++)

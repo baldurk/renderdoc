@@ -610,15 +610,7 @@ public:
     void TryReplaceOriginalByteCode();
     ShaderEntry &operator=(const ShaderEntry &e);
 
-    void BuildReflection()
-    {
-      MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
-      m_Details.ID = GetResourceID();
-      m_Details.EntryPoint =
-          m_DXBCFile->m_DebugInfo ? m_DXBCFile->m_DebugInfo->GetEntryFunction() : "";
-      if(m_Details.EntryPoint.empty())
-        m_Details.EntryPoint = "main";
-    }
+    void BuildReflection();
 
     DXBCKey m_Key;
 

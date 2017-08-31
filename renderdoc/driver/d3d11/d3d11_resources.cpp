@@ -29,6 +29,7 @@
 #include "driver/d3d11/d3d11_context.h"
 #include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/dxgi/dxgi_wrapped.h"
+#include "driver/shaders/dxbc/dxbc_reflect.h"
 
 WRAPPED_POOL_INST(WrappedID3D11Buffer);
 WRAPPED_POOL_INST(WrappedID3D11Texture1D);
@@ -174,6 +175,19 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
       FileIO::fclose(originalShaderFile);
     }
   }
+}
+
+void WrappedShader::ShaderEntry::BuildReflection()
+{
+  RDCCOMPILE_ASSERT(
+      D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT == D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT,
+      "Mismatched vertex input count");
+
+  MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
+  m_Details.ID = m_ID;
+  m_Details.EntryPoint = m_DXBCFile->m_DebugInfo ? m_DXBCFile->m_DebugInfo->GetEntryFunction() : "";
+  if(m_Details.EntryPoint.empty())
+    m_Details.EntryPoint = "main";
 }
 
 UINT GetMipForSubresource(ID3D11Resource *res, int Subresource)

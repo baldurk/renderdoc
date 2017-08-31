@@ -890,11 +890,19 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
     {
       const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
 
-      if(BufIdx < (uint32_t)s.ConstantBuffers.count)
+      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count)
       {
-        buf = s.ConstantBuffers[BufIdx].Buffer;
-        ByteOffset = s.ConstantBuffers[BufIdx].VecOffset * 4 * sizeof(float);
-        ByteSize = s.ConstantBuffers[BufIdx].VecCount * 4 * sizeof(float);
+        const BindpointMap &bind =
+            s.BindpointMapping.ConstantBlocks[s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint];
+
+        if(bind.bind >= s.ConstantBuffers.count)
+          return BoundCBuffer();
+
+        const D3D11Pipe::CBuffer &descriptor = s.ConstantBuffers[bind.bind];
+
+        buf = descriptor.Buffer;
+        ByteOffset = descriptor.VecOffset * 4 * sizeof(float);
+        ByteSize = descriptor.VecCount * 4 * sizeof(float);
       }
     }
     else if(IsLogD3D12())

@@ -8,6 +8,7 @@
     <ClCompile Include="precompiled.cpp">
       <Filter>PCH</Filter>
     </ClCompile>
+    <ClCompile Include="dxbc_reflect.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxbc_debug.h" />
@@ -19,6 +20,7 @@
     <ClInclude Include="precompiled.h">
       <Filter>PCH</Filter>
     </ClInclude>
+    <ClInclude Include="dxbc_reflect.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PCH">
