@@ -303,11 +303,15 @@ public:
 
   struct InitialContentData
   {
-    InitialContentData(WrappedResourceType r, uint32_t n, byte *b) : resource(r), num(n), blob(b) {}
+    InitialContentData(uint32_t t, WrappedResourceType r, uint32_t n, byte *b)
+        : resourceType(t), resource(r), num(n), blob(b)
+    {
+    }
     InitialContentData()
         : resource((WrappedResourceType)RecordType::NullResource), num(0), blob(NULL)
     {
     }
+    uint32_t resourceType;
     WrappedResourceType resource;
     uint32_t num;
     byte *blob;

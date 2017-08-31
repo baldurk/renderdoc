@@ -211,7 +211,8 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
     ObjDisp(d)->DestroyBuffer(Unwrap(d), bufdeletes[i], NULL);
 
   GetResourceManager()->SetInitialContents(
-      id, VulkanResourceManager::InitialContentData(GetWrapped(readbackmem), 0, (byte *)info));
+      id, VulkanResourceManager::InitialContentData(eResBuffer, GetWrapped(readbackmem), 0,
+                                                    (byte *)info));
 
   return true;
 }
@@ -386,7 +387,8 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
     ObjDisp(d)->DestroyBuffer(Unwrap(d), bufdeletes[i], NULL);
 
   GetResourceManager()->SetInitialContents(
-      id, VulkanResourceManager::InitialContentData(GetWrapped(readbackmem), 0, (byte *)blob));
+      id, VulkanResourceManager::InitialContentData(eResImage, GetWrapped(readbackmem), 0,
+                                                    (byte *)blob));
 
   return true;
 }
@@ -518,7 +520,7 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(
     m_CleanupMems.push_back(mem);
 
     GetResourceManager()->SetInitialContents(
-        id, VulkanResourceManager::InitialContentData(GetWrapped(buf), 0, (byte *)info));
+        id, VulkanResourceManager::InitialContentData(eResBuffer, GetWrapped(buf), 0, (byte *)info));
   }
 
   return true;
@@ -726,8 +728,9 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(ResourceId id,
 
     m_CleanupMems.push_back(mem);
 
-    GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(
-                                                     GetWrapped(buf), eInitialContents_Sparse, blob));
+    GetResourceManager()->SetInitialContents(
+        id, VulkanResourceManager::InitialContentData(eResImage, GetWrapped(buf),
+                                                      eInitialContents_Sparse, blob));
   }
 
   return true;
@@ -984,7 +987,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
         info[e++] = record->descInfo->descBindings[i][b];
 
     GetResourceManager()->SetInitialContents(
-        id, VulkanResourceManager::InitialContentData(NULL, 0, (byte *)info));
+        id, VulkanResourceManager::InitialContentData(type, NULL, 0, (byte *)info));
     return true;
   }
   else if(type == eResBuffer)
@@ -1290,8 +1293,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     }
 
     GetResourceManager()->SetInitialContents(
-        id, VulkanResourceManager::InitialContentData(GetWrapped(readbackmem), (uint32_t)mrq.size,
-                                                      NULL));
+        id, VulkanResourceManager::InitialContentData(type, GetWrapped(readbackmem),
+                                                      (uint32_t)mrq.size, NULL));
 
     return true;
   }
@@ -1378,8 +1381,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     ObjDisp(d)->DestroyBuffer(Unwrap(d), dstBuf, NULL);
 
     GetResourceManager()->SetInitialContents(
-        id, VulkanResourceManager::InitialContentData(GetWrapped(readbackmem), (uint32_t)datasize,
-                                                      NULL));
+        id, VulkanResourceManager::InitialContentData(type, GetWrapped(readbackmem),
+                                                      (uint32_t)datasize, NULL));
 
     return true;
   }
@@ -1619,7 +1622,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
       SAFE_DELETE_ARRAY(bindings);
 
       GetResourceManager()->SetInitialContents(
-          id, VulkanResourceManager::InitialContentData(NULL, validBinds, blob));
+          id, VulkanResourceManager::InitialContentData(type, NULL, validBinds, blob));
     }
     else if(type == eResBuffer)
     {
@@ -1685,7 +1688,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 
       ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(uploadmem));
 
-      VulkanResourceManager::InitialContentData initial(GetWrapped(buf), 0, NULL);
+      VulkanResourceManager::InitialContentData initial(type, GetWrapped(buf), 0, NULL);
 
       VulkanCreationInfo::Image &c = m_CreationInfo.m_Image[liveid];
 
@@ -1928,7 +1931,8 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
       m_CleanupMems.push_back(mem);
 
       GetResourceManager()->SetInitialContents(
-          id, VulkanResourceManager::InitialContentData(GetWrapped(buf), (uint32_t)dataSize, NULL));
+          id, VulkanResourceManager::InitialContentData(type, GetWrapped(buf), (uint32_t)dataSize,
+                                                        NULL));
     }
     else
     {
@@ -1964,20 +1968,22 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
     if(m_ImageLayouts.find(liveid) == m_ImageLayouts.end())
     {
       RDCERR("Couldn't find image info for %llu", id);
-      GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(
-                                                       NULL, eInitialContents_ClearColorImage, NULL));
+      GetResourceManager()->SetInitialContents(
+          id, VulkanResourceManager::InitialContentData(type, NULL,
+                                                        eInitialContents_ClearColorImage, NULL));
       return;
     }
 
     ImageLayouts &layouts = m_ImageLayouts[liveid];
 
     if(layouts.subresourceStates[0].subresourceRange.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT)
-      GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(
-                                                       NULL, eInitialContents_ClearColorImage, NULL));
+      GetResourceManager()->SetInitialContents(
+          id, VulkanResourceManager::InitialContentData(type, NULL,
+                                                        eInitialContents_ClearColorImage, NULL));
     else
       GetResourceManager()->SetInitialContents(
           id, VulkanResourceManager::InitialContentData(
-                  NULL, eInitialContents_ClearDepthStencilImage, NULL));
+                  type, NULL, eInitialContents_ClearDepthStencilImage, NULL));
   }
   else if(type == eResDeviceMemory)
   {
@@ -1992,7 +1998,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
                                        VulkanResourceManager::InitialContentData initial)
 {
-  VkResourceType type = IdentifyTypeByPtr(live);
+  VkResourceType type = (VkResourceType)initial.resourceType;
 
   ResourceId id = GetResourceManager()->GetID(live);
 

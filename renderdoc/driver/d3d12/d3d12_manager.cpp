@@ -666,8 +666,8 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     memcpy(descs, heap->GetDescriptors(), sizeof(D3D12Descriptor) * numElems);
 
-    SetInitialContents(heap->GetResourceID(),
-                       D3D12ResourceManager::InitialContentData(NULL, numElems, (byte *)descs));
+    SetInitialContents(heap->GetResourceID(), D3D12ResourceManager::InitialContentData(
+                                                  type, NULL, numElems, (byte *)descs));
     return true;
   }
   else if(type == Resource_Resource)
@@ -685,7 +685,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
     {
       D3D12NOTIMP("Multisampled initial contents");
 
-      SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(NULL, 2, NULL));
+      SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(type, NULL, 2, NULL));
       return true;
     }
     else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
@@ -696,7 +696,8 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       if(heapProps.Type == D3D12_HEAP_TYPE_READBACK)
       {
         // already on readback heap, just mark that we can map it directly and continue
-        SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(NULL, 1, NULL));
+        SetInitialContents(GetResID(r),
+                           D3D12ResourceManager::InitialContentData(type, NULL, 1, NULL));
         return true;
       }
 
@@ -737,7 +738,8 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
         m_Device->Evict(1, &pageable);
       }
 
-      SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(copyDst, 0, NULL));
+      SetInitialContents(GetResID(r),
+                         D3D12ResourceManager::InitialContentData(type, copyDst, 0, NULL));
       return true;
     }
     else
@@ -850,7 +852,8 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
       SAFE_DELETE_ARRAY(layouts);
 
-      SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(copyDst, 0, NULL));
+      SetInitialContents(GetResID(r),
+                         D3D12ResourceManager::InitialContentData(type, copyDst, 0, NULL));
       return true;
     }
   }
@@ -982,7 +985,7 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
 
       SAFE_DELETE_ARRAY(descs);
 
-      SetInitialContents(id, D3D12ResourceManager::InitialContentData(copyheap, 0, NULL));
+      SetInitialContents(id, D3D12ResourceManager::InitialContentData(type, copyheap, 0, NULL));
     }
     else if(type == Resource_Resource)
     {
@@ -1047,7 +1050,7 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
       else
         SAFE_DELETE_ARRAY(ptr);
 
-      SetInitialContents(id, D3D12ResourceManager::InitialContentData(copySrc, 1, NULL));
+      SetInitialContents(id, D3D12ResourceManager::InitialContentData(type, copySrc, 1, NULL));
 
       return true;
     }
@@ -1069,7 +1072,7 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
   {
     // set a NULL heap, if there are no initial contents for a descriptor heap we just leave
     // it all entirely undefined.
-    SetInitialContents(id, D3D12ResourceManager::InitialContentData(NULL, 1, NULL));
+    SetInitialContents(id, D3D12ResourceManager::InitialContentData(type, NULL, 1, NULL));
   }
   else if(type == Resource_Resource)
   {
@@ -1085,7 +1088,7 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
 
 void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialContentData data)
 {
-  D3D12ResourceType type = IdentifyTypeByPtr(live);
+  D3D12ResourceType type = (D3D12ResourceType)data.resourceType;
 
   if(type == Resource_DescriptorHeap)
   {

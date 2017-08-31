@@ -464,7 +464,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     gl.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf1);
     gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, oldbuf2);
 
-    SetInitialContents(Id, InitialContentData(BufferRes(res.Context, buf), length, NULL));
+    SetInitialContents(
+        Id, InitialContentData(res.Namespace, BufferRes(res.Context, buf), length, NULL));
   }
   else if(res.Namespace == eResProgram)
   {
@@ -488,7 +489,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     byte *data = Serialiser::AllocAlignedBuffer(sizeof(FramebufferInitialData));
     RDCEraseMem(data, sizeof(FramebufferInitialData));
 
-    SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, data));
+    SetInitialContents(Id, InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, data));
 
     // if FBOs aren't shared we need to fetch the data for this FBO on the right context. It's
     // not safe for us to go changing contexts ourselves (the context could be active on another
@@ -519,7 +520,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     byte *data = Serialiser::AllocAlignedBuffer(sizeof(FeedbackInitialData));
     RDCEraseMem(data, sizeof(FeedbackInitialData));
 
-    SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, data));
+    SetInitialContents(Id, InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, data));
 
     // queue initial state fetching if we're not on the right context, see above in FBOs for more
     // explanation of this.
@@ -537,7 +538,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     byte *data = Serialiser::AllocAlignedBuffer(sizeof(VAOInitialData));
     RDCEraseMem(data, sizeof(VAOInitialData));
 
-    SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, data));
+    SetInitialContents(Id, InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, data));
 
     // queue initial state fetching if we're not on the right context, see above in FBOs for more
     // explanation of this.
@@ -674,7 +675,8 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
     // textures can get here as GL_NONE if they were created and dirtied (by setting lots of
     // texture parameters) without ever having storage allocated (via glTexStorage or glTexImage).
     // in that case, just ignore as we won't bother with the initial states.
-    SetInitialContents(origid, InitialContentData(GLResource(MakeNullResource), 0, (byte *)state));
+    SetInitialContents(
+        origid, InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, (byte *)state));
   }
   else if(details.curType != eGL_TEXTURE_BUFFER)
   {
@@ -925,7 +927,8 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
                                  (GLint *)&state->maxLevel);
     }
 
-    SetInitialContents(origid, InitialContentData(TextureRes(res.Context, tex), 0, (byte *)state));
+    SetInitialContents(
+        origid, InitialContentData(res.Namespace, TextureRes(res.Context, tex), 0, (byte *)state));
   }
   else
   {
@@ -941,7 +944,8 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
     gl.glGetTextureLevelParameterivEXT(res.name, details.curType, 0, eGL_TEXTURE_BUFFER_SIZE,
                                        (GLint *)&state->texBufSize);
 
-    SetInitialContents(origid, InitialContentData(GLResource(MakeNullResource), 0, (byte *)state));
+    SetInitialContents(
+        origid, InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, (byte *)state));
   }
 }
 
@@ -1049,7 +1053,8 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
       SAFE_DELETE_ARRAY(data);
 
-      SetInitialContents(Id, InitialContentData(BufferRes(m_GL->GetCtx(), buf), len, NULL));
+      SetInitialContents(
+          Id, InitialContentData(res.Namespace, BufferRes(m_GL->GetCtx(), buf), len, NULL));
     }
   }
   else if(res.Namespace == eResProgram)
@@ -1126,7 +1131,8 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
       SerialiseProgramUniforms(gl, m_pSerialiser, initProg, &details.locationTranslate, false);
 
-      SetInitialContents(Id, InitialContentData(ProgramRes(m_GL->GetCtx(), initProg), 0, NULL));
+      SetInitialContents(
+          Id, InitialContentData(res.Namespace, ProgramRes(m_GL->GetCtx(), initProg), 0, NULL));
     }
   }
   else if(res.Namespace == eResTexture)
@@ -1560,10 +1566,11 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         }
 
         if(textype != eGL_TEXTURE_BUFFER && !details.view)
-          SetInitialContents(Id,
-                             InitialContentData(TextureRes(m_GL->GetCtx(), tex), 0, (byte *)state));
+          SetInitialContents(Id, InitialContentData(res.Namespace, TextureRes(m_GL->GetCtx(), tex),
+                                                    0, (byte *)state));
         else
-          SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, (byte *)state));
+          SetInitialContents(
+              Id, InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, (byte *)state));
 
         gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pub);
 
@@ -1588,7 +1595,8 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
       byte *blob = Serialiser::AllocAlignedBuffer(sizeof(data));
       memcpy(blob, &data, sizeof(data));
 
-      SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, blob));
+      SetInitialContents(Id,
+                         InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, blob));
     }
   }
   else if(res.Namespace == eResFeedback)
@@ -1608,7 +1616,8 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
       byte *blob = Serialiser::AllocAlignedBuffer(sizeof(data));
       memcpy(blob, &data, sizeof(data));
 
-      SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, blob));
+      SetInitialContents(Id,
+                         InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, blob));
     }
   }
   else if(res.Namespace == eResVertexArray)
@@ -1634,7 +1643,8 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
       byte *blob = Serialiser::AllocAlignedBuffer(sizeof(data));
       memcpy(blob, &data, sizeof(data));
 
-      SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, blob));
+      SetInitialContents(Id,
+                         InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, blob));
     }
   }
   else if(res.Namespace == eResRenderbuffer)
@@ -1668,7 +1678,8 @@ void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool
     byte *data = Serialiser::AllocAlignedBuffer(sizeof(VAOInitialData));
     RDCEraseMem(data, sizeof(VAOInitialData));
 
-    SetInitialContents(id, InitialContentData(GLResource(MakeNullResource), 0, data));
+    SetInitialContents(id,
+                       InitialContentData(eResVertexArray, GLResource(MakeNullResource), 0, data));
 
     Prepare_InitialState(live, data);
   }

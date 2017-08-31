@@ -1297,7 +1297,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
             stage, 0, UNWRAP(WrappedID3D11UnorderedAccessView1, uav));
 
         m_ResourceManager->SetInitialContents(
-            Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
+            Id, D3D11ResourceManager::InitialContentData(type, stage, 0, NULL));
       }
     }
   }
@@ -1326,7 +1326,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
       m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Buffer, buf));
 
       m_ResourceManager->SetInitialContents(
-          Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
+          Id, D3D11ResourceManager::InitialContentData(type, stage, 0, NULL));
     }
   }
   else if(type == Resource_Texture1D)
@@ -1355,7 +1355,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
       m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Texture1D, tex1D));
 
       m_ResourceManager->SetInitialContents(
-          Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
+          Id, D3D11ResourceManager::InitialContentData(type, stage, 0, NULL));
     }
   }
   else if(type == Resource_Texture2D)
@@ -1432,7 +1432,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
       }
 
       m_ResourceManager->SetInitialContents(
-          Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
+          Id, D3D11ResourceManager::InitialContentData(type, stage, 0, NULL));
     }
   }
   else if(type == Resource_Texture3D)
@@ -1461,7 +1461,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
       m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Texture3D1, tex3D));
 
       m_ResourceManager->SetInitialContents(
-          Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
+          Id, D3D11ResourceManager::InitialContentData(type, stage, 0, NULL));
     }
   }
 
@@ -1571,7 +1571,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
         SERIALISE_ELEMENT(uint32_t, initCount, 0);
 
         m_ResourceManager->SetInitialContents(
-            Id, D3D11ResourceManager::InitialContentData(NULL, initCount, NULL));
+            Id, D3D11ResourceManager::InitialContentData(type, NULL, initCount, NULL));
       }
     }
     else
@@ -1737,8 +1737,8 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
         }
         else
         {
-          m_ResourceManager->SetInitialContents(
-              Id, D3D11ResourceManager::InitialContentData(contents, eInitialContents_Copy, NULL));
+          m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(
+                                                        type, contents, eInitialContents_Copy, NULL));
         }
 
         for(UINT sub = 0; sub < numSubresources; sub++)
@@ -1942,8 +1942,8 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
             contents = contentsMS;
           }
 
-          m_ResourceManager->SetInitialContents(
-              Id, D3D11ResourceManager::InitialContentData(contents, eInitialContents_Copy, NULL));
+          m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(
+                                                        type, contents, eInitialContents_Copy, NULL));
         }
 
         for(UINT sub = 0; sub < numSubresources; sub++)
@@ -2086,8 +2086,8 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
         }
         else
         {
-          m_ResourceManager->SetInitialContents(
-              Id, D3D11ResourceManager::InitialContentData(contents, eInitialContents_Copy, NULL));
+          m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(
+                                                        type, contents, eInitialContents_Copy, NULL));
         }
 
         for(UINT sub = 0; sub < numSubresources; sub++)
@@ -2175,7 +2175,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
         }
 
         m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(NULL, countData, NULL));
+            id, D3D11ResourceManager::InitialContentData(type, NULL, countData, NULL));
 
         SAFE_RELEASE(stage);
       }
@@ -2206,8 +2206,9 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(
-                                                      initContents, eInitialContents_ClearRTV, NULL));
+        m_ResourceManager->SetInitialContents(
+            id, D3D11ResourceManager::InitialContentData(type, initContents,
+                                                         eInitialContents_ClearRTV, NULL));
       }
     }
     else if(!hasData && desc.MipLevels == 1 && (desc.BindFlags & D3D11_BIND_DEPTH_STENCIL))
@@ -2229,8 +2230,9 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(
-                                                      initContents, eInitialContents_ClearDSV, NULL));
+        m_ResourceManager->SetInitialContents(
+            id, D3D11ResourceManager::InitialContentData(type, initContents,
+                                                         eInitialContents_ClearDSV, NULL));
       }
     }
     else if(desc.Usage != D3D11_USAGE_IMMUTABLE)
@@ -2256,7 +2258,8 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
                                                      UNWRAP(WrappedID3D11Texture1D, tex1D));
 
         m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_Copy, NULL));
+            id, D3D11ResourceManager::InitialContentData(type, initContents, eInitialContents_Copy,
+                                                         NULL));
       }
     }
   }
@@ -2290,8 +2293,9 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(
-                                                      initContents, eInitialContents_ClearRTV, NULL));
+        m_ResourceManager->SetInitialContents(
+            id, D3D11ResourceManager::InitialContentData(type, initContents,
+                                                         eInitialContents_ClearRTV, NULL));
       }
     }
     else if(!hasData && desc.MipLevels == 1 && (desc.BindFlags & D3D11_BIND_DEPTH_STENCIL))
@@ -2316,8 +2320,9 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(
-                                                      initContents, eInitialContents_ClearDSV, NULL));
+        m_ResourceManager->SetInitialContents(
+            id, D3D11ResourceManager::InitialContentData(type, initContents,
+                                                         eInitialContents_ClearDSV, NULL));
       }
     }
     else if(desc.Usage != D3D11_USAGE_IMMUTABLE)
@@ -2343,7 +2348,8 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
                                                      UNWRAP(WrappedID3D11Texture2D1, tex2D));
 
         m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_Copy, NULL));
+            id, D3D11ResourceManager::InitialContentData(type, initContents, eInitialContents_Copy,
+                                                         NULL));
       }
     }
   }
@@ -2374,8 +2380,9 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
       }
       else
       {
-        m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(
-                                                      initContents, eInitialContents_ClearRTV, NULL));
+        m_ResourceManager->SetInitialContents(
+            id, D3D11ResourceManager::InitialContentData(type, initContents,
+                                                         eInitialContents_ClearRTV, NULL));
       }
     }
     else if(!hasData && desc.Usage != D3D11_USAGE_IMMUTABLE)
@@ -2399,7 +2406,8 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
                                                      UNWRAP(WrappedID3D11Texture3D1, tex3D));
 
         m_ResourceManager->SetInitialContents(
-            id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_Copy, NULL));
+            id, D3D11ResourceManager::InitialContentData(type, initContents, eInitialContents_Copy,
+                                                         NULL));
       }
     }
   }
@@ -2408,9 +2416,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live,
                                              D3D11ResourceManager::InitialContentData initial)
 {
-  ResourceType type = IdentifyTypeByPtr(live);
-
-  if(type == Resource_UnorderedAccessView)
+  if(initial.resourceType == Resource_UnorderedAccessView)
   {
     ID3D11UnorderedAccessView *uav = (ID3D11UnorderedAccessView *)live;
 
