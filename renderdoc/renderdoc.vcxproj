@@ -116,6 +116,20 @@
     <ClInclude Include="3rdparty\stb\stb_truetype.h" />
     <ClInclude Include="3rdparty\tinyexr\tinyexr.h" />
     <ClInclude Include="3rdparty\tinyfiledialogs\tinyfiledialogs.h" />
+    <ClInclude Include="3rdparty\zstd\bitstream.h" />
+    <ClInclude Include="3rdparty\zstd\compiler.h" />
+    <ClInclude Include="3rdparty\zstd\error_private.h" />
+    <ClInclude Include="3rdparty\zstd\fse.h" />
+    <ClInclude Include="3rdparty\zstd\huf.h" />
+    <ClInclude Include="3rdparty\zstd\mem.h" />
+    <ClInclude Include="3rdparty\zstd\pool.h" />
+    <ClInclude Include="3rdparty\zstd\threading.h" />
+    <ClInclude Include="3rdparty\zstd\xxhash.h" />
+    <ClInclude Include="3rdparty\zstd\zstd_errors.h" />
+    <ClInclude Include="3rdparty\zstd\zstd_internal.h" />
+    <ClInclude Include="3rdparty\zstd\zstdmt_compress.h" />
+    <ClInclude Include="3rdparty\zstd\zstd_opt.h" />
+    <ClInclude Include="3rdparty\zstd\zstd.h" />
     <ClInclude Include="api\app\renderdoc_app.h" />
     <ClInclude Include="api\replay\basic_types.h" />
     <ClInclude Include="api\replay\capture_options.h" />
@@ -207,6 +221,71 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="3rdparty\tinyfiledialogs\tinyfiledialogs.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\entropy_common.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\error_private.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\fse_decompress.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\pool.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\threading.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\xxhash.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\zstd_common.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\fse_compress.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\huf_compress.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\zstdmt_compress.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\zstd_compress.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\huf_decompress.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="3rdparty\zstd\zstd_decompress.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>

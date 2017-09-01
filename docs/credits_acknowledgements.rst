@@ -100,6 +100,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Implements unit testing during development.
 
+* `zstd <https://github.com/facebook/zstd>`_ - Copyright (c) 2016-present, Facebook, Inc., distributed under the BSD License.
+
+  Compresses capture files at a higher rate of compression off-line (not at capture time).
+
 Thanks
 ------
 
