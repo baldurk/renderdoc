@@ -110,8 +110,11 @@ mz_uint mz_zip_reader_get_num_files(mz_zip_archive *pZip);
 mz_bool mz_zip_reader_file_stat(mz_zip_archive *pZip, mz_uint file_index, mz_zip_archive_file_stat *pStat);
 mz_bool mz_zip_reader_is_file_a_directory(mz_zip_archive *pZip, mz_uint file_index);
 mz_uint mz_zip_reader_get_filename(mz_zip_archive *pZip, mz_uint file_index, char *pFilename, mz_uint filename_buf_size);
+void *mz_zip_reader_extract_to_heap(mz_zip_archive *pZip, mz_uint file_index, size_t *pSize, mz_uint flags);
+void *mz_zip_reader_extract_file_to_heap(mz_zip_archive *pZip, const char *pFilename, size_t *pSize, mz_uint flags);
 mz_bool mz_zip_reader_extract_to_file(mz_zip_archive *pZip, mz_uint file_index, const char *pDst_filename, mz_uint flags);
 mz_bool mz_zip_reader_extract_to_wfile(mz_zip_archive *pZip, mz_uint file_index, const wchar_t *pDst_filename, mz_uint flags);
+mz_bool mz_zip_reader_end(mz_zip_archive *pZip);
 
 mz_bool mz_zip_writer_init_file(mz_zip_archive *pZip, const char *pFilename, mz_uint64 size_to_reserve_at_beginning);
 mz_bool mz_zip_writer_init_wfile(mz_zip_archive *pZip, const wchar_t *pFilename, mz_uint64 size_to_reserve_at_beginning);
