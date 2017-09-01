@@ -240,6 +240,24 @@
 	fun:_ZN12VulkanReplay14GetTextureDataE10ResourceIdjj19FormatComponentTypebbffRm
 }
 
+# This seems to just be an implementation detail that allocates error messages
+{
+  dlerrorLeak
+  Memcheck:Leak
+  fun:calloc
+  fun:_dlerror_run
+  ...
+}
+
+# No shutdown function for XinitThreads, so ignore it leaking
+{
+  XInitThreadsLeak
+  Memcheck:Leak
+  fun:malloc
+  fun:XInitThreads
+  ...
+}
+
 # Temporary leak - to be fixed, but has to happen upstream
 {
 	glslangLeaks
