@@ -2806,11 +2806,12 @@ byte *ReplayProxy::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
   {
     byte *data = m_Remote->GetTextureData(tex, arrayIdx, mip, params, dataSize);
 
-    byte *compressed = new byte[LZ4_COMPRESSBOUND(dataSize)];
+    size_t destSize = LZ4_COMPRESSBOUND(dataSize);
+    byte *compressed = new byte[destSize];
 
     uint32_t uncompressedSize = (uint32_t)dataSize;
-    uint32_t compressedSize =
-        (uint32_t)LZ4_compress((const char *)data, (char *)compressed, (int)uncompressedSize);
+    uint32_t compressedSize = (uint32_t)LZ4_compress_default((const char *)data, (char *)compressed,
+                                                             (int)uncompressedSize, (int)destSize);
 
     m_FromReplaySerialiser->Serialise("", uncompressedSize);
     m_FromReplaySerialiser->Serialise("", compressedSize);

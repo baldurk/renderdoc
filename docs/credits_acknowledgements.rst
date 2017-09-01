@@ -40,9 +40,9 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to compress screenshots into jpg format for thumbnail previews.
 
-* `lz4 <https://github.com/Cyan4973/lz4>`_ - Copyright 2013 Yann Collet, distributed under the New BSD License (3 Clause).
+* `lz4 <https://github.com/lz4/lz4>`_ - Copyright 2013 Yann Collet, distributed under the BSD 2-Clause license.
 
-  compresses large data transfers (textures and buffers) when going across network connections as well as in the capture files themselves.
+  Compresses large data transfers (textures and buffers) when going across network connections as well as in the capture files themselves.
 
 * `stb <https://github.com/nothings/stb>`_ - Released to the Public Domain by Sean Barrett.
 
