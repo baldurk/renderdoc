@@ -331,6 +331,8 @@ namespace StringFormat
 void sntimef(char *str, size_t bufSize, const char *format);
 
 string Wide2UTF8(const std::wstring &s);
+
+void Shutdown();
 };
 
 // utility functions, implemented in os_specific.cpp, not per-platform (assuming standard stdarg.h)

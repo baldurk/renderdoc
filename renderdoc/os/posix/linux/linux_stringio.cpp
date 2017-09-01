@@ -294,6 +294,13 @@ iconv_t iconvWide2UTF8 = (iconv_t)-1;
 // before creating a temporary iconv_t, or hold two iconv_ts, or something.
 Threading::CriticalSection lockWide2UTF8;
 
+void Shutdown()
+{
+  SCOPED_LOCK(lockWide2UTF8);
+  iconv_close(iconvWide2UTF8);
+  iconvWide2UTF8 = (iconv_t)-1;
+}
+
 string Wide2UTF8(const std::wstring &s)
 {
   // include room for null terminator, assuming unicode input (not ucs)

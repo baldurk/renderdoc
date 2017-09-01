@@ -659,6 +659,10 @@ void sntimef(char *str, size_t bufSize, const char *format)
   }
 }
 
+void Shutdown()
+{
+}
+
 string Wide2UTF8(const wstring &s)
 {
   int bytes_required = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, NULL, 0, NULL, NULL);

@@ -101,6 +101,10 @@ string Wide2UTF8(const std::wstring &s)
   RDCFATAL("Converting wide strings to UTF-8 is not supported on Android!");
   return "";
 }
+
+void Shutdown()
+{
+}
 };
 
 namespace OSUtility

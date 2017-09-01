@@ -389,6 +389,8 @@ RenderDoc::~RenderDoc()
   Network::Shutdown();
 
   Threading::Shutdown();
+
+  StringFormat::Shutdown();
 }
 
 void RenderDoc::Shutdown()
