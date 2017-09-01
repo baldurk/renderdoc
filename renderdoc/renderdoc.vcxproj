@@ -110,6 +110,8 @@
     <ClInclude Include="3rdparty\jpeg-compressor\jpge.h" />
     <ClInclude Include="3rdparty\lz4\lz4.h" />
     <ClInclude Include="3rdparty\plthook\plthook.h" />
+    <ClInclude Include="3rdparty\pugixml\pugiconfig.hpp" />
+    <ClInclude Include="3rdparty\pugixml\pugixml.hpp" />
     <ClInclude Include="3rdparty\stb\stb_image.h" />
     <ClInclude Include="3rdparty\stb\stb_image_resize.h" />
     <ClInclude Include="3rdparty\stb\stb_image_write.h" />
@@ -209,6 +211,11 @@
     </ClCompile>
     <ClCompile Include="3rdparty\plthook\plthook_elf.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="3rdparty\pugixml\pugixml.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="3rdparty\stb\stb_impl.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>

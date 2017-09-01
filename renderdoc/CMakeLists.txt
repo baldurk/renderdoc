@@ -132,6 +132,9 @@ set(sources
     3rdparty/jpeg-compressor/jpge.h
     3rdparty/catch/catch.cpp
     3rdparty/catch/catch.hpp
+    3rdparty/pugixml/pugixml.cpp
+    3rdparty/pugixml/pugixml.hpp
+    3rdparty/pugixml/pugiconfig.hpp
     3rdparty/lz4/lz4.c
     3rdparty/lz4/lz4.h
     3rdparty/zstd/bitstream.h

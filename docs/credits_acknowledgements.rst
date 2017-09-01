@@ -104,6 +104,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Compresses capture files at a higher rate of compression off-line (not at capture time).
 
+* `pugixml <https://pugixml.org/>`_ - Copyright (c) 2006-2017 Arseny Kapoulkine, distributed under the MIT License.
+
+  Used for converting capture files to and from xml.
+
 Thanks
 ------
 

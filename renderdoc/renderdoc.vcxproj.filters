@@ -94,6 +94,9 @@
     <Filter Include="3rdparty\zstd">
       <UniqueIdentifier>{184cdbbc-02cf-4839-914b-350b03745b36}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\pugixml">
+      <UniqueIdentifier>{50c142cb-d8b9-44f7-a68a-ab9015975ea5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -336,6 +339,12 @@
     <ClInclude Include="3rdparty\zstd\zstd_opt.h">
       <Filter>3rdparty\zstd</Filter>
     </ClInclude>
+    <ClInclude Include="3rdparty\pugixml\pugiconfig.hpp">
+      <Filter>3rdparty\pugixml</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\pugixml\pugixml.hpp">
+      <Filter>3rdparty\pugixml</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -571,6 +580,9 @@
     </ClCompile>
     <ClCompile Include="3rdparty\zstd\zstdmt_compress.c">
       <Filter>3rdparty\zstd</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\pugixml\pugixml.cpp">
+      <Filter>3rdparty\pugixml</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
