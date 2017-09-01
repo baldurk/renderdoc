@@ -32,8 +32,8 @@
 #include "hooks/hooks.h"
 #include "replay/replay_driver.h"
 #include "serialise/serialiser.h"
-#include "serialise/string_utils.h"
 #include "stb/stb_image.h"
+#include "strings/string_utils.h"
 #include "crash_handler.h"
 
 template <>

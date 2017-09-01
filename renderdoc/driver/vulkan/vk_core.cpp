@@ -25,7 +25,7 @@
 #include "vk_core.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "vk_debug.h"
 
 const char *VkChunkNames[] = {

@@ -32,7 +32,7 @@
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "vk_core.h"
 
 #define VULKAN 1

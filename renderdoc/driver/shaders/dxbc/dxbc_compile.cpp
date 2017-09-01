@@ -24,7 +24,7 @@
 
 #include "dxbc_compile.h"
 #include "common/common.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 // gives us an address to identify this dll with
 static int dllLocator = 0;

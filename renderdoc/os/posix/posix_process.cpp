@@ -33,7 +33,7 @@
 #include <unistd.h>
 #include "api/app/renderdoc_app.h"
 #include "os/os_specific.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 // defined in foo/foo_process.cpp
 char **GetCurrentEnvironment();

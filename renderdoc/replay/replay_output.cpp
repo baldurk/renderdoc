@@ -25,7 +25,7 @@
 
 #include "common/common.h"
 #include "maths/matrix.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "replay_controller.h"
 
 static uint64_t GetHandle(WindowingSystem system, void *data)

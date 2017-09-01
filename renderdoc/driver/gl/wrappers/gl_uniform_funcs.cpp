@@ -25,7 +25,7 @@
 
 #include "../gl_driver.h"
 #include "common/common.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint location, GLsizei count,
                                                      const void *value, UniformType type)

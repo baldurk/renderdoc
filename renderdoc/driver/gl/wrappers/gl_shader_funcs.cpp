@@ -27,7 +27,7 @@
 #include "../gl_shader_refl.h"
 #include "common/common.h"
 #include "driver/shaders/spirv/spirv_common.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id, GLuint realShader)
 {

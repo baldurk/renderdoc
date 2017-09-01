@@ -24,7 +24,7 @@
  ******************************************************************************/
 
 #include "d3d11_context.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "d3d11_renderstate.h"
 #include "d3d11_resources.h"
 

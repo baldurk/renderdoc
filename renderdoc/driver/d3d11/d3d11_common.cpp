@@ -28,7 +28,7 @@
 #include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/d3d11/d3d11_resources.h"
 #include "serialise/serialiser.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 WrappedID3D11Device *D3D11MarkerRegion::device;
 

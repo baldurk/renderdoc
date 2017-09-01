@@ -31,7 +31,7 @@
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 const char *D3D11ChunkNames[] = {
     "ID3D11Device::Initialisation",

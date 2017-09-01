@@ -25,7 +25,7 @@
 
 #include "../gl_driver.h"
 #include "common/common.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 bool WrappedOpenGL::Serialise_glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y,
                                                 GLuint num_groups_z)

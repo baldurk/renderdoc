@@ -33,7 +33,7 @@
 #include <vector>
 #include "common/threading.h"
 #include "os/os_specific.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 #define VERBOSE_DEBUG_HOOK OPTION_OFF
 

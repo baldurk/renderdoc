@@ -32,7 +32,7 @@
 #include "maths/matrix.h"
 #include "maths/vec.h"
 #include "serialise/serialiser.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
 #include "d3d11_manager.h"

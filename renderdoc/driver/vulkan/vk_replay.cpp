@@ -27,7 +27,7 @@
 #include "driver/ihv/amd/amd_isa.h"
 #include "maths/camera.h"
 #include "maths/matrix.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "vk_core.h"
 #include "vk_debug.h"
 #include "vk_resources.h"

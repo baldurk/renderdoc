@@ -189,7 +189,7 @@
     <ClInclude Include="replay\replay_driver.h" />
     <ClInclude Include="replay\replay_controller.h" />
     <ClInclude Include="serialise\serialiser.h" />
-    <ClInclude Include="serialise\string_utils.h" />
+    <ClInclude Include="strings\string_utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\catch\catch.cpp" />
@@ -391,10 +391,10 @@
     <ClCompile Include="replay\replay_driver.cpp" />
     <ClCompile Include="replay\replay_output.cpp" />
     <ClCompile Include="replay\replay_controller.cpp" />
-    <ClCompile Include="serialise\grisu2.cpp" />
     <ClCompile Include="serialise\serialiser.cpp" />
-    <ClCompile Include="serialise\string_utils.cpp" />
-    <ClCompile Include="serialise\utf8printf.cpp" />
+    <ClCompile Include="strings\grisu2.cpp" />
+    <ClCompile Include="strings\string_utils.cpp" />
+    <ClCompile Include="strings\utf8printf.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc" />

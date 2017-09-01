@@ -26,7 +26,7 @@
 #include "common/common.h"
 #include "core/plugins.h"
 #include "driver/shaders/spirv/spirv_common.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "amd_isa_devices.h"
 
 namespace GCNISA

@@ -26,7 +26,7 @@
 #include <sstream>
 #include "api/replay/version.h"
 #include "core/core.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 namespace Android
 {

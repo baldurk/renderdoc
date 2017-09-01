@@ -28,7 +28,7 @@
 #include "3rdparty/lz4/lz4.h"
 #include "common/timing.h"
 #include "core/core.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 #if ENABLED(RDOC_MSVS)
 // warning C4422: 'snprintf' : too many arguments passed for format string

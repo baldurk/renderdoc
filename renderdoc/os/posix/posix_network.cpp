@@ -35,7 +35,7 @@
 #include <unistd.h>
 #include <string>
 #include "os/os_specific.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 using std::string;
 

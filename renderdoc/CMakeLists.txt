@@ -119,12 +119,12 @@ set(sources
     replay/replay_output.cpp
     replay/replay_controller.cpp
     replay/replay_controller.h
-    serialise/grisu2.cpp
     serialise/serialiser.cpp
     serialise/serialiser.h
-    serialise/string_utils.cpp
-    serialise/string_utils.h
-    serialise/utf8printf.cpp
+    strings/grisu2.cpp
+    strings/string_utils.cpp
+    strings/string_utils.h
+    strings/utf8printf.cpp
     3rdparty/jpeg-compressor/jpgd.cpp
     3rdparty/jpeg-compressor/jpgd.h
     3rdparty/jpeg-compressor/jpge.cpp

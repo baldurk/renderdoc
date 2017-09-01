@@ -30,7 +30,7 @@
 #include "common/threading.h"
 #include "os/os_specific.h"
 #include "os/posix/posix_hook.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 // depending on symbol resolution, dlopen could get called really early.
 // until we've initialised, just skip any fancy stuff

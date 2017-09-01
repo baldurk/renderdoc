@@ -219,9 +219,6 @@
     <ClInclude Include="3rdparty\stb\stb_truetype.h">
       <Filter>3rdparty\stb</Filter>
     </ClInclude>
-    <ClInclude Include="serialise\string_utils.h">
-      <Filter>Common\Strings</Filter>
-    </ClInclude>
     <ClInclude Include="3rdparty\tinyexr\tinyexr.h">
       <Filter>3rdparty\tinyexr</Filter>
     </ClInclude>
@@ -342,6 +339,9 @@
     <ClInclude Include="3rdparty\pugixml\pugixml.hpp">
       <Filter>3rdparty\pugixml</Filter>
     </ClInclude>
+    <ClInclude Include="strings\string_utils.h">
+      <Filter>Common\Strings</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -418,15 +418,6 @@
     </ClCompile>
     <ClCompile Include="core\image_viewer.cpp">
       <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="serialise\grisu2.cpp">
-      <Filter>Common\Strings</Filter>
-    </ClCompile>
-    <ClCompile Include="serialise\utf8printf.cpp">
-      <Filter>Common\Strings</Filter>
-    </ClCompile>
-    <ClCompile Include="serialise\string_utils.cpp">
-      <Filter>Common\Strings</Filter>
     </ClCompile>
     <ClCompile Include="3rdparty\tinyexr\tinyexr.cpp">
       <Filter>3rdparty\tinyexr</Filter>
@@ -580,6 +571,15 @@
     </ClCompile>
     <ClCompile Include="3rdparty\pugixml\pugixml.cpp">
       <Filter>3rdparty\pugixml</Filter>
+    </ClCompile>
+    <ClCompile Include="strings\grisu2.cpp">
+      <Filter>Common\Strings</Filter>
+    </ClCompile>
+    <ClCompile Include="strings\string_utils.cpp">
+      <Filter>Common\Strings</Filter>
+    </ClCompile>
+    <ClCompile Include="strings\utf8printf.cpp">
+      <Filter>Common\Strings</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

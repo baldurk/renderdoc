@@ -29,7 +29,7 @@
 #include "common/common.h"
 #include "core/core.h"
 #include "hooks/hooks.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 static BOOL add_hooks()
 {

@@ -31,7 +31,7 @@
 #include "core/core.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 // these entry points are for the replay/analysis side - not for the application.
 

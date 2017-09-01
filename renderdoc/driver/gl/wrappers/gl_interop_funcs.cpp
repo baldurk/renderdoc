@@ -24,7 +24,7 @@
 
 #include "../gl_driver.h"
 #include "common/common.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 #if ENABLED(RDOC_WIN32) && ENABLED(RENDERDOC_DX_GL_INTEROP)
 

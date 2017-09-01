@@ -27,7 +27,7 @@
 #include "catch.hpp"
 #include "api/replay/renderdoc_replay.h"
 #include "serialise/serialiser.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 struct AppVeyorListener : Catch::TestEventListenerBase
 {

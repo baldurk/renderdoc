@@ -27,7 +27,7 @@
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/ihv/amd/amd_isa.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
 #include "d3d11_device.h"

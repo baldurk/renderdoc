@@ -31,8 +31,8 @@
 #include "jpeg-compressor/jpge.h"
 #include "maths/matrix.h"
 #include "maths/vec.h"
-#include "serialise/string_utils.h"
 #include "stb/stb_truetype.h"
+#include "strings/string_utils.h"
 
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"

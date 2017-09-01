@@ -28,7 +28,7 @@
 #include "common/common.h"
 #include "core/core.h"
 #include "serialise/serialiser.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "dxbc_inspect.h"
 
 namespace DXBC

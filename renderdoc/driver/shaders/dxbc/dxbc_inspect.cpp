@@ -27,7 +27,7 @@
 #include "api/app/renderdoc_app.h"
 #include "common/common.h"
 #include "serialise/serialiser.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "dxbc_sdbg.h"
 #include "dxbc_spdb.h"
 

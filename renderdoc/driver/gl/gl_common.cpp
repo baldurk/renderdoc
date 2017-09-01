@@ -25,7 +25,7 @@
 
 #include "gl_common.h"
 #include "core/core.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "gl_driver.h"
 
 bool HasExt[GLExtension_Count] = {};

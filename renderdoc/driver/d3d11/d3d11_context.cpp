@@ -28,7 +28,7 @@
 #include "driver/d3d11/d3d11_manager.h"
 #include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/d3d11/d3d11_resources.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 WRAPPED_POOL_INST(WrappedID3D11DeviceContext);
 WRAPPED_POOL_INST(WrappedID3D11CommandList);

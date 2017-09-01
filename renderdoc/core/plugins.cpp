@@ -24,7 +24,7 @@
 
 #include "core/plugins.h"
 #include "os/os_specific.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 std::string LocatePluginFile(const std::string &path, const std::string &fileName)
 {

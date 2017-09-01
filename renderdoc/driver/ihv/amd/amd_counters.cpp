@@ -29,7 +29,7 @@
 #include "official/GPUPerfAPI/Include/GPUPerfAPI.h"
 #include "official/GPUPerfAPI/Include/GPUPerfAPIFunctionTypes.h"
 
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 AMDCounters::AMDCounters() : m_pGPUPerfAPI(NULL)
 {

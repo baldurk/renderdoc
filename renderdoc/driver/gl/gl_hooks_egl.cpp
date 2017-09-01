@@ -28,7 +28,7 @@
 #include "driver/gl/gl_common.h"
 #include "driver/gl/gl_driver.h"
 #include "hooks/hooks.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "gl_hooks_linux_shared.h"
 
 typedef __eglMustCastToProperFunctionPointerType (*PFN_eglGetProcAddress)(const char *procname);

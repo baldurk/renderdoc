@@ -32,7 +32,7 @@
 #include <set>
 #include "api/app/renderdoc_app.h"
 #include "os/os_specific.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 using std::set;
 using std::wstring;

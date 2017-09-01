@@ -38,7 +38,7 @@
 #include "core/core.h"
 #include "dbghelp/dbghelp.h"
 #include "os/os_specific.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 #include "dia2_stubs.h"
 

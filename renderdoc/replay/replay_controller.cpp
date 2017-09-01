@@ -32,9 +32,9 @@
 #include "maths/formatpacking.h"
 #include "os/os_specific.h"
 #include "serialise/serialiser.h"
-#include "serialise/string_utils.h"
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
+#include "strings/string_utils.h"
 #include "tinyexr/tinyexr.h"
 
 float ConvertComponent(const ResourceFormat &fmt, byte *data)

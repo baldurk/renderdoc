@@ -31,8 +31,8 @@
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "maths/vec.h"
-#include "serialise/string_utils.h"
 #include "stb/stb_truetype.h"
+#include "strings/string_utils.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 

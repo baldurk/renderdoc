@@ -31,7 +31,7 @@
 #include "os/os_specific.h"
 #include "replay/replay_controller.h"
 #include "serialise/serialiser.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "replay_proxy.h"
 #include "socket_helpers.h"
 

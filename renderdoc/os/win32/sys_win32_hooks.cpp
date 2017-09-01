@@ -27,7 +27,7 @@
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 #include "hooks/hooks.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 #define DLL_NAME "kernel32.dll"
 

@@ -29,7 +29,7 @@
 #include "driver/ihv/amd/official/DXExt/AmdExtD3D.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_resources.h"

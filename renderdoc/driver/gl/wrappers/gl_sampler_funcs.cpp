@@ -25,7 +25,7 @@
 
 #include "../gl_driver.h"
 #include "common/common.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 bool WrappedOpenGL::Serialise_glGenSamplers(GLsizei n, GLuint *samplers)
 {

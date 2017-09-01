@@ -26,7 +26,7 @@
 #include "../gl_driver.h"
 #include "3rdparty/tinyfiledialogs/tinyfiledialogs.h"
 #include "common/common.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 #pragma region Buffers
 

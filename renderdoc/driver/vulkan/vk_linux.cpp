@@ -24,7 +24,7 @@
 
 #include "api/replay/renderdoc_replay.h"
 #include "api/replay/version.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 #include <errno.h>
 #include <sys/stat.h>

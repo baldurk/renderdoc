@@ -26,7 +26,7 @@
 #include "gl_replay.h"
 #include "driver/ihv/amd/amd_isa.h"
 #include "maths/matrix.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "gl_driver.h"
 #include "gl_resources.h"
 

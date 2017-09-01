@@ -25,7 +25,7 @@
 
 #include "os/os_specific.h"
 #include <stdarg.h>
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 using std::string;
 

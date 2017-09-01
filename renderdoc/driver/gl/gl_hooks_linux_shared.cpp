@@ -30,7 +30,7 @@
 #include "driver/gl/gl_hookset.h"
 #include "driver/gl/gl_hookset_defs.h"
 #include "hooks/hooks.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 
 GLHookSet GL;
 WrappedOpenGL *m_GLDriver;

@@ -30,7 +30,7 @@
 #include "common/threading.h"
 #include "hooks/hooks.h"
 #include "os/os_specific.h"
-#include "serialise/string_utils.h"
+#include "strings/string_utils.h"
 #include "vk_common.h"
 #include "vk_core.h"
 #include "vk_hookset_defs.h"
