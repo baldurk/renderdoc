@@ -224,7 +224,6 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
 
   if(connection == NULL)
   {
-    XCloseDisplay(display);
     std::cerr << "Couldn't get XCB connection from Xlib Display" << std::endl;
     return;
   }
@@ -451,5 +450,9 @@ int main(int argc, char *argv[])
     add_version_line(support);
   }
 
-  return renderdoccmd(env, argc, argv);
+  int ret = renderdoccmd(env, argc, argv);
+
+  XCloseDisplay(display);
+
+  return ret;
 }
