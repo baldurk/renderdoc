@@ -454,7 +454,8 @@ void ReleaseFDAfterFork()
 {
   // we do NOT release the shared lock here, since the file descriptor is shared so we'd be
   // releasing the parent process's lock. Just close our file descriptor
-  close(logfileFD);
+  if(logfileFD >= 0)
+    close(logfileFD);
 }
 
 bool logfile_open(const char *filename)
@@ -474,13 +475,13 @@ bool logfile_open(const char *filename)
 
 void logfile_append(const char *msg, size_t length)
 {
-  if(logfileFD)
+  if(logfileFD >= 0)
     write(logfileFD, msg, (unsigned int)length);
 }
 
 void logfile_close(const char *filename)
 {
-  if(logfileFD)
+  if(logfileFD >= 0)
   {
     // release our shared lock
     int err = flock(logfileFD, LOCK_UN | LOCK_NB);
