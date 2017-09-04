@@ -192,3 +192,86 @@ string OSUtility::MakeMachineIdentString(uint64_t ident)
 
   return ret;
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#include "3rdparty/catch/catch.hpp"
+
+TEST_CASE("Test Process functions", "[osspecific]")
+{
+  SECTION("Environment Variables")
+  {
+    const char *var = Process::GetEnvVariable("TMP");
+
+    if(!var)
+      var = Process::GetEnvVariable("TEMP");
+
+    if(!var)
+      var = Process::GetEnvVariable("HOME");
+
+    CHECK(var);
+    CHECK(strlen(var) > 1);
+
+    var = Process::GetEnvVariable("__renderdoc__unit_test_var");
+
+    CHECK_FALSE(var);
+
+    EnvironmentModification mod;
+    mod.name = "__renderdoc__unit_test_var";
+    mod.value = "test_value";
+    mod.sep = EnvSep::SemiColon;
+    mod.mod = EnvMod::Append;
+
+    Process::RegisterEnvironmentModification(mod);
+    Process::ApplyEnvironmentModification();
+
+    var = Process::GetEnvVariable("__renderdoc__unit_test_var");
+
+    CHECK(var);
+    CHECK(var == std::string("test_value"));
+
+    Process::RegisterEnvironmentModification(mod);
+    Process::ApplyEnvironmentModification();
+
+    var = Process::GetEnvVariable("__renderdoc__unit_test_var");
+
+    CHECK(var);
+    CHECK(var == std::string("test_value;test_value"));
+
+    mod.sep = EnvSep::Colon;
+
+    Process::RegisterEnvironmentModification(mod);
+    Process::ApplyEnvironmentModification();
+
+    var = Process::GetEnvVariable("__renderdoc__unit_test_var");
+
+    CHECK(var);
+    CHECK(var == std::string("test_value;test_value:test_value"));
+
+    mod.value = "prepend";
+    mod.sep = EnvSep::SemiColon;
+    mod.mod = EnvMod::Prepend;
+
+    Process::RegisterEnvironmentModification(mod);
+    Process::ApplyEnvironmentModification();
+
+    var = Process::GetEnvVariable("__renderdoc__unit_test_var");
+
+    CHECK(var);
+    CHECK(var == std::string("prepend;test_value;test_value:test_value"));
+
+    mod.value = "reset";
+    mod.sep = EnvSep::SemiColon;
+    mod.mod = EnvMod::Set;
+
+    Process::RegisterEnvironmentModification(mod);
+    Process::ApplyEnvironmentModification();
+
+    var = Process::GetEnvVariable("__renderdoc__unit_test_var");
+
+    CHECK(var);
+    CHECK(var == std::string("reset"));
+  };
+};
+
+#endif    // ENABLED(ENABLE_UNIT_TESTS)
