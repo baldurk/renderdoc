@@ -558,6 +558,61 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
     if(locked)
       lock.Unlock();
   };
+
+  SECTION("IP processing")
+  {
+    CHECK(Network::MakeIP(127, 0, 0, 1) == 0x7f000001);
+    CHECK(Network::MakeIP(216, 58, 211, 174) == 0xD83AD3AE);
+    CHECK(Network::GetIPOctet(Network::MakeIP(216, 58, 211, 174), 0) == 216);
+    CHECK(Network::GetIPOctet(Network::MakeIP(216, 58, 211, 174), 1) == 58);
+    CHECK(Network::GetIPOctet(Network::MakeIP(216, 58, 211, 174), 2) == 211);
+    CHECK(Network::GetIPOctet(Network::MakeIP(216, 58, 211, 174), 3) == 174);
+
+    CHECK(Network::MatchIPMask(Network::MakeIP(127, 0, 0, 1), 0x7f000001, 0xFFFFFFFF));
+    CHECK(Network::MatchIPMask(Network::MakeIP(127, 0, 0, 1), 0x7f000000, 0xFF000000));
+    CHECK(Network::MatchIPMask(Network::MakeIP(127, 8, 0, 1), 0x7f000000, 0xFF000000));
+    CHECK(Network::MatchIPMask(Network::MakeIP(127, 100, 22, 5), 0x7f000000, 0xFF000000));
+    CHECK(Network::MatchIPMask(Network::MakeIP(127, 66, 66, 66), 0x7f000000, 0xFF000000));
+    CHECK_FALSE(Network::MatchIPMask(Network::MakeIP(216, 58, 211, 174), 0x80000000, ~0U));
+
+    uint32_t ip = 0;
+    uint32_t mask = 0;
+    Network::ParseIPRangeCIDR("foobar", ip, mask);
+    CHECK(ip == 0);
+    CHECK(mask == 0);
+
+    Network::ParseIPRangeCIDR("", ip, mask);
+    CHECK(ip == 0);
+    CHECK(mask == 0);
+
+    Network::ParseIPRangeCIDR("1.23/4", ip, mask);
+    CHECK(ip == 0);
+    CHECK(mask == 0);
+
+    Network::ParseIPRangeCIDR("1.23.4.5.6.7/8", ip, mask);
+    CHECK(ip == 0);
+    CHECK(mask == 0);
+
+    Network::ParseIPRangeCIDR("999.888.777.666/555", ip, mask);
+    CHECK(ip == 0);
+    CHECK(mask == 0);
+
+    Network::ParseIPRangeCIDR("216.58,211.174/16", ip, mask);
+    CHECK(ip == 0);
+    CHECK(mask == 0);
+
+    Network::ParseIPRangeCIDR("216.58.211.174/16", ip, mask);
+    CHECK(ip == Network::MakeIP(216, 58, 211, 174));
+    CHECK(mask == 0xFFFF0000);
+
+    Network::ParseIPRangeCIDR("216.58.211.174/8", ip, mask);
+    CHECK(ip == Network::MakeIP(216, 58, 211, 174));
+    CHECK(mask == 0xFF000000);
+
+    Network::ParseIPRangeCIDR("216.58.211.174/31", ip, mask);
+    CHECK(ip == Network::MakeIP(216, 58, 211, 174));
+    CHECK(mask == 0xFFFFFFFe);
+  };
 };
 
 #endif    // ENABLED(ENABLE_UNIT_TESTS)
