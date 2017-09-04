@@ -103,8 +103,7 @@ void CriticalSection::Unlock()
 
 struct ThreadInitData
 {
-  ThreadEntry entryFunc;
-  void *userData;
+  std::function<void()> entryFunc;
 };
 
 static void *sThreadInit(void *init)
@@ -115,7 +114,7 @@ static void *sThreadInit(void *init)
   ThreadInitData local = *data;
   delete data;
 
-  local.entryFunc(local.userData);
+  local.entryFunc();
 
   return NULL;
 }
@@ -202,13 +201,12 @@ void SetTLSValue(uint64_t slot, void *value)
   slots->data[(size_t)slot - 1] = value;
 }
 
-ThreadHandle CreateThread(ThreadEntry entryFunc, void *userData)
+ThreadHandle CreateThread(std::function<void()> entryFunc)
 {
   pthread_t thread;
 
   ThreadInitData *initData = new ThreadInitData();
   initData->entryFunc = entryFunc;
-  initData->userData = userData;
 
   int res = pthread_create(&thread, NULL, sThreadInit, (void *)initData);
   if(res != 0)

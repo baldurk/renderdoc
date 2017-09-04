@@ -1269,7 +1269,7 @@ static GlobalHookData *globalHook = NULL;
 
 // a thread we run in the background just to keep the pipes open and wait until we're ready to stop
 // the global hook.
-static void GlobalHookThread(void *)
+static void GlobalHookThread()
 {
   // keep looping doing an atomic compare-exchange to check that finished is still 0
   while(Atomic::CmpExch32(&globalHook->finished, 0, 0) == 0)
@@ -1535,7 +1535,7 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   globalHook = new GlobalHookData;
   *globalHook = hookdata;
 
-  globalHook->pipeThread = Threading::CreateThread(&GlobalHookThread, NULL);
+  globalHook->pipeThread = Threading::CreateThread(&GlobalHookThread);
 
   return true;
 }

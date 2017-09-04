@@ -614,7 +614,7 @@ private:
   // no copies
   Serialiser(const Serialiser &other);
 
-  static void CreateResolver(void *ths);
+  void CreateResolver();
 
   // clean out for before constructor and after destructor (and other times probably)
   void Reset();

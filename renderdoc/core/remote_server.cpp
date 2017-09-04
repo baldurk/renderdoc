@@ -118,10 +118,8 @@ struct ProgressLoopData
   bool killsignal;
 };
 
-static void ProgressTicker(void *d)
+static void ProgressTicker(ProgressLoopData *data)
 {
-  ProgressLoopData *data = (ProgressLoopData *)d;
-
   Serialiser ser("", Serialiser::WRITING, false);
 
   while(!data->killsignal)
@@ -154,10 +152,8 @@ struct ClientThread
   Threading::ThreadHandle thread;
 };
 
-static void InactiveRemoteClientThread(void *data)
+static void InactiveRemoteClientThread(ClientThread *threadData)
 {
-  ClientThread *threadData = (ClientThread *)data;
-
   uint32_t ip = threadData->socket->GetRemoteIP();
 
   // this thread just handles receiving the handshake and sending a busy signal without blocking the
@@ -194,10 +190,8 @@ static void InactiveRemoteClientThread(void *data)
          Network::GetIPOctet(ip, 1), Network::GetIPOctet(ip, 2), Network::GetIPOctet(ip, 3));
 }
 
-static void ActiveRemoteClientThread(void *data)
+static void ActiveRemoteClientThread(ClientThread *threadData)
 {
-  ClientThread *threadData = (ClientThread *)data;
-
   Network::Socket *&client = threadData->socket;
 
   uint32_t ip = client->GetRemoteIP();
@@ -390,7 +384,8 @@ static void ActiveRemoteClientThread(void *data)
 
           RenderDoc::Inst().SetProgressPtr(&progressData.progress);
 
-          Threading::ThreadHandle ticker = Threading::CreateThread(ProgressTicker, &progressData);
+          Threading::ThreadHandle ticker =
+              Threading::CreateThread([&progressData]() { ProgressTicker(&progressData); });
 
           status = RenderDoc::Inst().CreateRemoteDriver(driverType, cap_file.c_str(), &driver);
 
@@ -665,7 +660,8 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
       activeClientData->socket = client;
       activeClientData->allowExecution = allowExecution;
 
-      activeClientData->thread = Threading::CreateThread(ActiveRemoteClientThread, activeClientData);
+      activeClientData->thread = Threading::CreateThread(
+          [activeClientData]() { ActiveRemoteClientThread(activeClientData); });
 
       RDCLOG("Making active connection");
     }
@@ -675,7 +671,8 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
       inactive->socket = client;
       inactive->allowExecution = false;
 
-      inactive->thread = Threading::CreateThread(InactiveRemoteClientThread, inactive);
+      inactive->thread =
+          Threading::CreateThread([inactive]() { InactiveRemoteClientThread(inactive); });
 
       inactives.push_back(inactive);
 

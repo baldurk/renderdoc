@@ -1297,7 +1297,7 @@ void Serialiser::InitCallstackResolver()
      m_KnownSections[eSectionType_ResolveDatabase] != NULL)
   {
     m_ResolverThreadKillSignal = false;
-    m_ResolverThread = Threading::CreateThread(&Serialiser::CreateResolver, (void *)this);
+    m_ResolverThread = Threading::CreateThread([this]() { CreateResolver(); });
   }
 }
 
@@ -1309,17 +1309,15 @@ void Serialiser::SetCallstack(uint64_t *levels, size_t numLevels)
   m_pCallstack->Set(levels, numLevels);
 }
 
-void Serialiser::CreateResolver(void *ths)
+void Serialiser::CreateResolver()
 {
-  Serialiser *ser = (Serialiser *)ths;
+  string dir = dirname(m_Filename);
 
-  string dir = dirname(ser->m_Filename);
-
-  Section *s = ser->m_KnownSections[Serialiser::eSectionType_ResolveDatabase];
+  Section *s = m_KnownSections[Serialiser::eSectionType_ResolveDatabase];
   RDCASSERT(s);
 
-  ser->m_pResolver = Callstack::MakeResolver((char *)&s->data[0], s->data.size(), dir,
-                                             &ser->m_ResolverThreadKillSignal);
+  m_pResolver =
+      Callstack::MakeResolver((char *)&s->data[0], s->data.size(), dir, &m_ResolverThreadKillSignal);
 }
 
 void Serialiser::FlushToDisk()

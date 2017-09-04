@@ -450,8 +450,8 @@ private:
   Threading::CriticalSection m_SingleClientLock;
   string m_SingleClientName;
 
-  static void TargetControlServerThread(void *s);
-  static void TargetControlClientThread(void *s);
+  static void TargetControlServerThread(Network::Socket *sock);
+  static void TargetControlClientThread(Network::Socket *client);
 
   ICrashHandler *m_ExHandler;
 };

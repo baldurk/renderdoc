@@ -34,6 +34,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -115,9 +116,8 @@ void SetTLSValue(uint64_t slot, void *value);
 
 // must typedef CriticalSectionTemplate<X> CriticalSection
 
-typedef void (*ThreadEntry)(void *);
 typedef uint64_t ThreadHandle;
-ThreadHandle CreateThread(ThreadEntry entryFunc, void *userData);
+ThreadHandle CreateThread(std::function<void()> entryFunc);
 uint64_t GetCurrentID();
 void JoinThread(ThreadHandle handle);
 void CloseThread(ThreadHandle handle);

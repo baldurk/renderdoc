@@ -46,11 +46,9 @@ enum PacketType
   ePacket_NewChild,
 };
 
-void RenderDoc::TargetControlClientThread(void *s)
+void RenderDoc::TargetControlClientThread(Network::Socket *client)
 {
   Threading::KeepModuleAlive();
-
-  Network::Socket *client = (Network::Socket *)s;
 
   Serialiser ser("", Serialiser::WRITING, false);
 
@@ -244,11 +242,9 @@ void RenderDoc::TargetControlClientThread(void *s)
   Threading::ReleaseModuleExitThread();
 }
 
-void RenderDoc::TargetControlServerThread(void *s)
+void RenderDoc::TargetControlServerThread(Network::Socket *sock)
 {
   Threading::KeepModuleAlive();
-
-  Network::Socket *sock = (Network::Socket *)s;
 
   RenderDoc::Inst().m_SingleClientName = "";
 
@@ -336,7 +332,7 @@ void RenderDoc::TargetControlServerThread(void *s)
     // if we've claimed client status, spawn a thread to communicate
     if(existingClient.empty() || kick)
     {
-      clientThread = Threading::CreateThread(TargetControlClientThread, client);
+      clientThread = Threading::CreateThread([client] { TargetControlClientThread(client); });
       continue;
     }
     else
