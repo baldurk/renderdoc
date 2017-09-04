@@ -1074,11 +1074,18 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
       GLuint initProg = gl.glCreateProgram();
 
+      std::vector<const char *> vertexOutputs;
       for(size_t i = 0; i < details.shaders.size(); i++)
       {
         const auto &shadDetails = m_GL->m_Shaders[details.shaders[i]];
 
         GLuint shad = gl.glCreateShader(shadDetails.type);
+
+        if(shadDetails.type == eGL_VERTEX_SHADER)
+        {
+          for(int s = 0; s < shadDetails.reflection.OutputSig.count; s++)
+            vertexOutputs.push_back(shadDetails.reflection.OutputSig[s].varName.c_str());
+        }
 
         char **srcs = new char *[shadDetails.sources.size()];
         for(size_t s = 0; s < shadDetails.sources.size(); s++)
@@ -1091,6 +1098,12 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         gl.glDeleteShader(shad);
       }
 
+      // Some drivers optimize out uniforms if they dont change any active vertex shader outputs.
+      // This resulted in initProg locationTranslate table being -1 for a particular shader where
+      // some uniforms were only intended to affect TF. Therefore set a TF mode for all varyings.
+      // As the initial state program is never used for TF, this wont adversely affect anything.
+      gl.glTransformFeedbackVaryings(initProg, (GLsizei)vertexOutputs.size(), &vertexOutputs[0],
+                                     eGL_INTERLEAVED_ATTRIBS);
       gl.glLinkProgram(initProg);
 
       GLint status = 0;
