@@ -272,6 +272,35 @@ TEST_CASE("Test Process functions", "[osspecific]")
     CHECK(var);
     CHECK(var == std::string("reset"));
   };
+
+  SECTION("Timing")
+  {
+    double freq = Timing::GetTickFrequency();
+    REQUIRE(freq > 0.0);
+
+    {
+      uint64_t startTick = Timing::GetTick();
+      CHECK(startTick > 0);
+
+      uint64_t firstTick = Timing::GetTick();
+
+      Threading::Sleep(500);
+
+      uint64_t lastTick = Timing::GetTick();
+
+      double milliseconds1 = double(firstTick - startTick) / freq;
+      double milliseconds2 = double(lastTick - firstTick) / freq;
+
+      CHECK(milliseconds1 > 0.0);
+      CHECK(milliseconds1 < 1.0);
+
+      CHECK(milliseconds2 > 490.0);
+      CHECK(milliseconds2 < 510.0);
+    }
+
+    // timestamp as of the creation of this test
+    CHECK(Timing::GetUnixTimestamp() > 1504519614);
+  };
 };
 
 #endif    // ENABLED(ENABLE_UNIT_TESTS)
