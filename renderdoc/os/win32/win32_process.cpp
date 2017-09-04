@@ -133,10 +133,12 @@ void Process::ApplyEnvironmentModification()
       {
         if(!value.empty())
         {
+          std::string prep = m.value;
           if(m.sep == EnvSep::Platform || m.sep == EnvSep::SemiColon)
-            value += ";";
+            prep += ";";
           else if(m.sep == EnvSep::Colon)
-            value += ":";
+            prep += ":";
+          value = prep + value;
         }
         else
         {
