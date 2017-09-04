@@ -358,6 +358,13 @@ bool ParseIPRangeCIDR(const char *str, uint32_t &ip, uint32_t &mask)
 
   int ret = sscanf_s(str, "%u.%u.%u.%u/%u", &a, &b, &c, &d, &num);
 
+  if(ret != 5 || a > 255 || b > 255 || c > 255 || d > 255 || num > 32)
+  {
+    ip = 0;
+    mask = 0;
+    return false;
+  }
+
   ip = MakeIP(a, b, c, d);
 
   if(num == 0)
@@ -370,6 +377,6 @@ bool ParseIPRangeCIDR(const char *str, uint32_t &ip, uint32_t &mask)
     mask = ((~0U) >> num) << num;
   }
 
-  return ret == 5;
+  return true;
 }
 };
