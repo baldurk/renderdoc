@@ -157,9 +157,16 @@ void Process::ApplyEnvironmentModification()
 
 const char *Process::GetEnvVariable(const char *name)
 {
+  DWORD ret = GetEnvironmentVariableA(name, NULL, 0);
+  if(ret == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND)
+    return NULL;
+
   static char buf[1024] = {};
-  size_t reqSize = 1024;
-  getenv_s(&reqSize, buf, name);
+  if(ret >= 1024)
+    RDCERR("Static buffer insufficiently sized");
+
+  RDCEraseEl(buf);
+  GetEnvironmentVariableA(name, buf, RDCMIN((DWORD)1023U, ret));
   return buf;
 }
 
