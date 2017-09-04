@@ -197,7 +197,7 @@ string OSUtility::MakeMachineIdentString(uint64_t ident)
 
 #include "3rdparty/catch/catch.hpp"
 
-TEST_CASE("Test Process functions", "[osspecific]")
+TEST_CASE("Test OS-specific functions", "[osspecific]")
 {
   SECTION("Environment Variables")
   {
@@ -444,6 +444,119 @@ TEST_CASE("Test Process functions", "[osspecific]")
       }
     };
 #endif
+  };
+
+  const int numThreads = 8;
+  const int numValues = 10;
+  const int totalCount = numThreads * numValues;
+
+  SECTION("Simple threads")
+  {
+    uint64_t value = Threading::GetCurrentID();
+
+    CHECK(value != 0);
+
+    // check that a simple thread will run
+    Threading::ThreadHandle th =
+        Threading::CreateThread([&value]() { value = Threading::GetCurrentID(); });
+
+    Threading::JoinThread(th);
+    Threading::CloseThread(th);
+
+    CHECK(value != 0);
+    CHECK(value != Threading::GetCurrentID());
+
+    int values[totalCount] = {0};
+
+    for(int i = 0; i < totalCount; i++)
+      CHECK(values[i] == 0);
+
+    // launch multiple threads, each setting a subset of the values. Ensure they don't trample or
+    // write the wrong values
+    Threading::ThreadHandle threads[numThreads];
+    for(int threadID = 0; threadID < numThreads; threadID++)
+    {
+      threads[threadID] = Threading::CreateThread([&values, numValues, threadID]() {
+        for(int i = 0; i < numValues; i++)
+          values[threadID * numValues + i] = threadID * 1000 + i;
+      });
+    }
+
+    for(int threadID = 0; threadID < numThreads; threadID++)
+    {
+      Threading::JoinThread(threads[threadID]);
+      Threading::CloseThread(threads[threadID]);
+    }
+
+    for(int i = 0; i < totalCount; i++)
+    {
+      CHECK((values[i] / 1000) == (i / numValues));
+      CHECK((values[i] % 1000) == (i % numValues));
+    }
+  };
+
+  SECTION("Atomics")
+  {
+    volatile int32_t value = 0;
+
+    // check that thread atomics work on multiple overlapping threads
+    Threading::ThreadHandle threads[numThreads];
+    for(int threadID = 0; threadID < numThreads; threadID++)
+    {
+      threads[threadID] = Threading::CreateThread([&value, numValues]() {
+        for(int i = 0; i < numValues; i++)
+          Atomic::Inc32(&value);
+      });
+    }
+
+    for(int threadID = 0; threadID < numThreads; threadID++)
+    {
+      Threading::JoinThread(threads[threadID]);
+      Threading::CloseThread(threads[threadID]);
+    }
+
+    // each thread incremented numValues times
+    CHECK(value == numValues * numThreads);
+
+    Atomic::Dec32(&value);
+
+    CHECK(value == numValues * numThreads - 1);
+  };
+
+  SECTION("Locks")
+  {
+    // check that holding the lock prevents a thread from modifying the value
+    uint64_t value = 0;
+    Threading::CriticalSection lock;
+    lock.Lock();
+
+    Threading::ThreadHandle th = Threading::CreateThread([&value, &lock]() {
+      lock.Lock();
+      value = Threading::GetCurrentID();
+      lock.Unlock();
+    });
+
+    CHECK(value == 0);
+
+    Threading::Sleep(50);
+
+    CHECK(value == 0);
+
+    // allow the thread to run
+    lock.Unlock();
+
+    Threading::JoinThread(th);
+    Threading::CloseThread(th);
+
+    CHECK(value != 0);
+
+    // check that we can acquire the lock now
+    bool locked = lock.Trylock();
+
+    CHECK(locked);
+
+    if(locked)
+      lock.Unlock();
   };
 };
 
