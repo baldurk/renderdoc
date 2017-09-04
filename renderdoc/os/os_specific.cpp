@@ -301,6 +301,150 @@ TEST_CASE("Test Process functions", "[osspecific]")
     // timestamp as of the creation of this test
     CHECK(Timing::GetUnixTimestamp() > 1504519614);
   };
+
+  SECTION("Bit counting")
+  {
+    SECTION("32-bits")
+    {
+      uint32_t val = 0;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 32);
+      }
+
+      val = 1;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 31);
+      }
+
+      val <<= 1;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 30);
+      }
+
+      val <<= 4;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 26);
+      }
+
+      val++;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 26);
+      }
+
+      val += 5;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 26);
+      }
+
+      val += 1000;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 21);
+      }
+
+      val *= 3;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 20);
+      }
+
+      val *= 200000;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 2);
+      }
+    };
+
+#if ENABLED(RDOC_X64)
+    SECTION("64-bits")
+    {
+      uint64_t val = 0;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 64);
+      }
+
+      val = 1;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 63);
+      }
+
+      val <<= 1;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 62);
+      }
+
+      val <<= 4;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 58);
+      }
+
+      val++;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 58);
+      }
+
+      val += 5;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 58);
+      }
+
+      val += 1000;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 53);
+      }
+
+      val *= 3;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 52);
+      }
+
+      val *= 200000;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 34);
+      }
+
+      val *= 1000000;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 14);
+      }
+    };
+#endif
+  };
 };
 
 #endif    // ENABLED(ENABLE_UNIT_TESTS)

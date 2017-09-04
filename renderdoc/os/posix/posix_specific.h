@@ -64,13 +64,13 @@ namespace Bits
 {
 inline uint32_t CountLeadingZeroes(uint32_t value)
 {
-  return __builtin_clz(value);
+  return value == 0 ? 32 : __builtin_clz(value);
 }
 
 #if ENABLED(RDOC_X64)
 inline uint64_t CountLeadingZeroes(uint64_t value)
 {
-  return __builtin_clzl(value);
+  return value == 0 ? 64 : __builtin_clzl(value);
 }
 #endif
 };
