@@ -26,8 +26,6 @@
 
 #include <stdint.h>
 
-typedef uint32_t bool32;
-
 // see renderdoc_app.h RENDERDOC_CaptureOption - make sure any changes here are reflected there, to
 // the options or to the documentation
 DOCUMENT(R"(Sets up configuration and options for optional features either at capture time or at API
@@ -49,7 +47,7 @@ Default - enabled
 
 ``False`` - vsync is force disabled.
 )");
-  bool32 AllowVSync;
+  bool AllowVSync;
 
   DOCUMENT(R"(Allow the application to enable fullscreen.
 
@@ -59,7 +57,7 @@ Default - enabled
 
 ``False`` - fullscreen is force disabled.
 )");
-  bool32 AllowFullscreen;
+  bool AllowFullscreen;
 
   DOCUMENT(R"(Record API debugging events and messages
 
@@ -70,7 +68,7 @@ the capture logfile, which is matched up with events on replay.
 
 ``False`` - no API debugging is forcibly enabled.
 )");
-  bool32 APIValidation;
+  bool APIValidation;
 
   DOCUMENT(R"(Capture CPU callstacks for API events
 
@@ -80,7 +78,7 @@ Default - disabled
 
 ``False`` - no callstacks are captured.
 )");
-  bool32 CaptureCallstacks;
+  bool CaptureCallstacks;
 
   DOCUMENT(R"(When capturing CPU callstacks, only capture them from drawcalls.
 This option does nothing if :data:`CaptureCallstacks` is not enabled.
@@ -91,7 +89,7 @@ Default - disabled
 
 ``False`` - Callstacks, if enabled, are captured for every event.
 )");
-  bool32 CaptureCallstacksOnlyDraws;
+  bool CaptureCallstacksOnlyDraws;
 
   DOCUMENT(R"(Specify a delay in seconds to wait for a debugger to attach, after
 creating or injecting into a process, before continuing to allow it to run.
@@ -112,7 +110,7 @@ Default - disabled
 ``False`` - No verification is performed, and overwriting bounds may cause
 crashes or corruption in RenderDoc.
 )");
-  bool32 VerifyMapWrites;
+  bool VerifyMapWrites;
 
   DOCUMENT(R"(Hooks any system API calls that create child processes, and injects
 RenderDoc into them recursively with the same options.
@@ -123,7 +121,7 @@ Default - disabled
 
 ``False`` - Child processes are not hooked by RenderDoc.
 )");
-  bool32 HookIntoChildren;
+  bool HookIntoChildren;
 
   DOCUMENT(R"(By default RenderDoc only includes resources in the final logfile necessary
 for that frame, this allows you to override that behaviour.
@@ -135,7 +133,7 @@ and available for inspection.
 
 ``False`` - only the resources referenced by the captured frame are included.
 )");
-  bool32 RefAllResources;
+  bool RefAllResources;
 
   DOCUMENT(R"(By default RenderDoc skips saving initial states for resources where the
 previous contents don't appear to be used, assuming that writes before
@@ -149,7 +147,7 @@ Default - disabled
 ``False`` - unless a read is detected, initial contents will not be saved and will
     appear as black or empty data.
 )");
-  bool32 SaveAllInitials;
+  bool SaveAllInitials;
 
   DOCUMENT(R"(In APIs that allow for the recording of command lists to be replayed later,
 RenderDoc may choose to not capture command lists before a frame capture is
@@ -167,7 +165,7 @@ capture.
 ``False`` - Command lists are only captured if their recording begins during
 the period when a frame capture is in progress.
 )");
-  bool32 CaptureAllCmdLists;
+  bool CaptureAllCmdLists;
 
   DOCUMENT(R"(Mute API debugging output when the API validation mode option is enabled.
 
@@ -177,5 +175,5 @@ Default - enabled
 
 ``False`` - API debugging is displayed as normal.
 )");
-  bool32 DebugOutputMute;
+  bool DebugOutputMute;
 };

@@ -18,7 +18,7 @@
 // ignore warning about base class rdctype::array<char> methods in rdctype::str
 #pragma SWIG nowarn=401
 
-// ignore warning about redundant declaration of typedef (byte/bool32)
+// ignore warning about redundant declaration of typedef (byte)
 #pragma SWIG nowarn=322
 
 // strip off the RENDERDOC_ namespace prefix, it's unnecessary. We list this first since we want
