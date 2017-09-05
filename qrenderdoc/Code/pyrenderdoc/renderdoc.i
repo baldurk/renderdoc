@@ -55,6 +55,15 @@ SIMPLE_TYPEMAPS(rdctype::str)
 CONTAINER_TYPEMAPS(rdctype::array)
 CONTAINER_TYPEMAPS(rdctype::pair)
 
+FIXED_ARRAY_TYPEMAPS(ResourceId)
+FIXED_ARRAY_TYPEMAPS(double)
+FIXED_ARRAY_TYPEMAPS(float)
+FIXED_ARRAY_TYPEMAPS(bool)
+FIXED_ARRAY_TYPEMAPS(uint64_t)
+FIXED_ARRAY_TYPEMAPS(uint32_t)
+FIXED_ARRAY_TYPEMAPS(int32_t)
+FIXED_ARRAY_TYPEMAPS(uint16_t)
+
 %typemap(in, fragment="pyconvert") std::function {
   PyObject *func = $input;
   $1 = ConvertFunc<$1_ltype>(self, "$symname", func, exHandle$argnum);

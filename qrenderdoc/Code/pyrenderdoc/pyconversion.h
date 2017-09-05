@@ -118,6 +118,37 @@ struct TypeConversion<Opaque *, false>
 
 // specialisations for basic types
 template <>
+struct TypeConversion<bool, false>
+{
+  static int ConvertFromPy(PyObject *in, bool &out)
+  {
+    if(!PyBool_Check(in))
+      return SWIG_TypeError;
+
+    if(in == Py_True)
+      out = true;
+    else
+      out = false;
+
+    return SWIG_OK;
+  }
+
+  static PyObject *ConvertToPy(PyObject *self, const bool &in)
+  {
+    if(in)
+    {
+      Py_IncRef(Py_True);
+      return Py_True;
+    }
+    else
+    {
+      Py_IncRef(Py_False);
+      return Py_False;
+    }
+  }
+};
+
+template <>
 struct TypeConversion<uint8_t, false>
 {
   static int ConvertFromPy(PyObject *in, uint8_t &out)
@@ -136,6 +167,30 @@ struct TypeConversion<uint8_t, false>
   }
 
   static PyObject *ConvertToPy(PyObject *self, const uint8_t &in)
+  {
+    return PyLong_FromUnsignedLong(in);
+  }
+};
+
+template <>
+struct TypeConversion<uint16_t, false>
+{
+  static int ConvertFromPy(PyObject *in, uint16_t &out)
+  {
+    if(!PyLong_Check(in))
+      return SWIG_TypeError;
+
+    uint32_t longval = PyLong_AsUnsignedLong(in);
+
+    if(PyErr_Occurred() || longval > 0xffff)
+      return SWIG_OverflowError;
+
+    out = uint16_t(longval & 0xff);
+
+    return SWIG_OK;
+  }
+
+  static PyObject *ConvertToPy(PyObject *self, const uint16_t &in)
   {
     return PyLong_FromUnsignedLong(in);
   }
