@@ -79,11 +79,6 @@ SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType &)
 %typemap(in, fragment="pyconvert") ContainerType (unsigned char tempmem[32]) {
   static_assert(sizeof(tempmem) >= sizeof(std::remove_pointer<decltype($1)>::type), "not enough temp space for $1_basetype");
   
-  if(!PyList_Check($input))
-  {
-    SWIG_exception_fail(SWIG_TypeError, "in method '$symname' list expected for argument $argnum of type '$1_basetype'"); 
-  }
-
   tempalloc($1, tempmem);
 
   int failIdx = 0;
@@ -91,8 +86,15 @@ SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType &)
 
   if(!SWIG_IsOK(res))
   {
-    snprintf(convert_error, sizeof(convert_error)-1, "in method '$symname' argument $argnum of type '$1_basetype', decoding element %d", failIdx);
-    SWIG_exception_fail(SWIG_ArgError(res), convert_error); 
+    if(res == SWIG_TypeError)
+    {
+      SWIG_exception_fail(SWIG_ArgError(res), "in method '$symname' argument $argnum of type '$1_basetype'"); 
+    }
+    else
+    {
+      snprintf(convert_error, sizeof(convert_error)-1, "in method '$symname' argument $argnum of type '$1_basetype', decoding element %d", failIdx);
+      SWIG_exception_fail(SWIG_ArgError(res), convert_error);
+    }
   }
 }
 
