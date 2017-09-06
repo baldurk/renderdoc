@@ -244,6 +244,8 @@ struct ThumbCommand : public Command
 
     string format = parser.get<string>("format");
 
+    uint32_t maxsize = parser.get<uint32_t>("max-size");
+
     FileType type = FileType::JPG;
 
     if(format == "png")
@@ -280,7 +282,7 @@ struct ThumbCommand : public Command
     ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename.c_str());
     if(file->OpenStatus() == ReplayStatus::Succeeded)
     {
-      buf = file->GetThumbnail(FileType::JPG, 0);
+      buf = file->GetThumbnail(type, maxsize);
     }
     else
     {
