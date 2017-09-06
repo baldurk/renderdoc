@@ -100,30 +100,6 @@ SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType &)
   tempdealloc($1);
 }
 
-%typemap(argout, fragment="pyconvert") ContainerType {
-  // empty the previous contents
-  if(PyDict_Check($input))
-  {
-    PyDict_Clear($input);
-  }
-  else
-  {
-    Py_ssize_t sz = PySequence_Size($input);
-    if(sz > 0)
-      PySequence_DelSlice($input, 0, sz);
-  }
-
-  // overwrite with array contents
-  int failIdx = 0;
-  PyObject *res = TypeConversion<std::remove_pointer<decltype($1)>::type>::ConvertToPyInPlace(self, $input, indirect($1), &failIdx);
-
-  if(!res)
-  {
-    snprintf(convert_error, sizeof(convert_error)-1, "in method '$symname' argument $argnum of type '$1_basetype', encoding element %d", failIdx);
-    SWIG_exception_fail(SWIG_ValueError, convert_error); 
-  }
-}
-
 %typemap(out, fragment="pyconvert") ContainerType {
   int failIdx = 0;
   $result = TypeConversion<std::remove_pointer<$1_basetype>::type>::ConvertToPy(self, indirect($1), &failIdx);
