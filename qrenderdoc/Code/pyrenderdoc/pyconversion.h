@@ -420,7 +420,7 @@ struct TypeConversion<rdctype::array<byte>, false>
                                       const rdctype::array<byte> &in, int *failIdx)
   {
     // can't modify bytes objects
-    return NULL;
+    return SWIG_Py_Void();
   }
 
   static PyObject *ConvertToPy(PyObject *self, const rdctype::array<byte> &in, int *failIdx)
