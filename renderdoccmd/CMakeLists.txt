@@ -86,6 +86,17 @@ if(ANDROID)
                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                        COMMAND ${JAVA_BIN}/keytool -genkey -keystore ${KEYSTORE} -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=, OU=, O=, L=, S=, C=")
 
+    # APK_VERSION_CODE corresponds to android:versionCode, an internal integer value that can be queried. Higher numbers indicate more recent versions.
+    # APK_VERSION_NAME corresponds to android:versionName, a string value that is displayed to the user.
+    set(APK_VERSION_CODE "${RENDERDOC_VERSION_MAJOR}${RENDERDOC_VERSION_MINOR}")
+    if(BUILD_VERSION_STABLE)
+        set(APK_VERSION_NAME "${RENDERDOC_VERSION}")
+    else()
+        set(APK_VERSION_NAME ${GIT_COMMIT_HASH})
+    endif()
+    message(STATUS "Building APK versionCode ${APK_VERSION_CODE}, versionName ${APK_VERSION_NAME}")
+
+
     set(APK_FILE ${CMAKE_BINARY_DIR}/bin/RenderDocCmd.apk)
     add_custom_target(apk ALL
                       DEPENDS ${APK_FILE}
@@ -104,7 +115,7 @@ if(ANDROID)
                        COMMAND ${BUILD_TOOLS}/aapt package -f -m -S res -J src -M AndroidManifest.xml -I ${ANDROID_JAR}
                        COMMAND ${JAVA_BIN}/javac -d ./obj -source 1.7 -target 1.7 -bootclasspath ${RT_JAR} -classpath "${CLASS_PATH}" -sourcepath src src/org/renderdoc/renderdoccmd/*.java
                        COMMAND ${BUILD_TOOLS}/dx --dex --output=bin/classes.dex ./obj
-                       COMMAND ${BUILD_TOOLS}/aapt package -f -M AndroidManifest.xml -S res -I ${ANDROID_JAR} -F RenderDocCmd-unaligned.apk bin libs
+                       COMMAND ${BUILD_TOOLS}/aapt package -f -M AndroidManifest.xml --version-code ${APK_VERSION_CODE} --version-name ${APK_VERSION_NAME} -S res -I ${ANDROID_JAR} -F RenderDocCmd-unaligned.apk bin libs
                        COMMAND ${BUILD_TOOLS}/zipalign -f 4 RenderDocCmd-unaligned.apk RenderDocCmd.apk
                        COMMAND ${BUILD_TOOLS}/apksigner sign --ks ${KEYSTORE} --ks-pass pass:android --key-pass pass:android --ks-key-alias androiddebugkey RenderDocCmd.apk
                        COMMAND ${CMAKE_COMMAND} -E copy RenderDocCmd.apk ${APK_FILE})
