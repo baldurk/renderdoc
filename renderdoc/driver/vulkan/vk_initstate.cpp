@@ -2318,6 +2318,19 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
     if(IsBlockFormat(fmt))
       bufAlignment = (VkDeviceSize)GetByteSize(1, 1, 1, fmt, 0);
 
+    // first update the live image layout into destination optimal (the initial state
+    // image is always and permanently in source optimal already).
+    dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    dstimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+    {
+      dstimBarrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
+      dstimBarrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+      dstimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(dstimBarrier.oldLayout);
+      DoPipelineBarrier(cmd, 1, &dstimBarrier);
+    }
+
     // copy each slice/mip individually
     for(int a = 0; a < m_CreationInfo.m_Image[id].arrayLayers; a++)
     {
@@ -2345,23 +2358,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
         // pass 0 for mip since we've already pre-downscaled extent
         bufOffset += GetByteSize(extent.width, extent.height, extent.depth, sizeFormat, 0);
 
-        dstimBarrier.subresourceRange.baseArrayLayer = a;
-        dstimBarrier.subresourceRange.baseMipLevel = m;
-
-        // first update the live image layout into destination optimal (the initial state
-        // image is always and permanently in source optimal already).
-        dstimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        dstimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-        for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
-        {
-          dstimBarrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
-          dstimBarrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
-          dstimBarrier.srcAccessMask =
-              VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(dstimBarrier.oldLayout);
-          DoPipelineBarrier(cmd, 1, &dstimBarrier);
-        }
-
         ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), buf->real.As<VkBuffer>(),
                                            ToHandle<VkImage>(live),
                                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
@@ -2381,26 +2377,26 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
                                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
         }
 
-        // update the live image layout back
-        dstimBarrier.oldLayout = dstimBarrier.newLayout;
-
-        // make sure the apply completes before any further work
-        dstimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        dstimBarrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
-
-        for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
-        {
-          dstimBarrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
-          dstimBarrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
-          dstimBarrier.dstAccessMask |= MakeAccessMask(dstimBarrier.newLayout);
-          DoPipelineBarrier(cmd, 1, &dstimBarrier);
-        }
-
         // update the extent for the next mip
         extent.width = RDCMAX(extent.width >> 1, 1U);
         extent.height = RDCMAX(extent.height >> 1, 1U);
         extent.depth = RDCMAX(extent.depth >> 1, 1U);
       }
+    }
+
+    // update the live image layout back
+    dstimBarrier.oldLayout = dstimBarrier.newLayout;
+
+    // make sure the apply completes before any further work
+    dstimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    dstimBarrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
+
+    for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+    {
+      dstimBarrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
+      dstimBarrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+      dstimBarrier.dstAccessMask |= MakeAccessMask(dstimBarrier.newLayout);
+      DoPipelineBarrier(cmd, 1, &dstimBarrier);
     }
 
     vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
