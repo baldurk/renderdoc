@@ -137,7 +137,13 @@ void PrintInteger(bool typeUnsigned, uint64_t argu, int base, uint64_t numbits,
     case HalfHalf: argi = (int64_t)*typepun.c; break;
     case Half: argi = (int64_t)*typepun.s; break;
     case LongLong: argi = (int64_t)*typepun.i64; break;
+#if ENABLED(RDOC_X64)
+      RDCCOMPILE_ASSERT(sizeof(size_t) == sizeof(int64_t), "64-bit macros are wrong");
     case SizeT: argi = (int64_t)*typepun.i64; break;
+#else
+      RDCCOMPILE_ASSERT(sizeof(size_t) == sizeof(int32_t), "64-bit macros are wrong");
+    case SizeT: argi = (int64_t)*typepun.i; break;
+#endif
   }
 
   bool negative = false;
