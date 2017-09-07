@@ -24,6 +24,7 @@
 
 #include "android.h"
 #include <sstream>
+#include "api/replay/version.h"
 #include "core/core.h"
 #include "serialise/string_utils.h"
 
@@ -598,6 +599,82 @@ bool installRenderDocServer(const string &deviceID)
   return true;
 }
 
+bool RemoveRenderDocAndroidServer(const string &deviceID, const string &packageName)
+{
+  adbExecCommand(deviceID, "uninstall " + packageName);
+
+  // Ensure uninstall succeeded
+  string adbCheck = adbExecCommand(deviceID, "shell pm list packages " + packageName).strStdout;
+
+  if(!adbCheck.empty())
+  {
+    RDCERR("Uninstall of %s failed!", packageName.c_str());
+    return false;
+  }
+
+  return true;
+}
+
+bool CheckAndroidServerVersion(const string &deviceID)
+{
+  string packageName = "org.renderdoc.renderdoccmd";
+  RDCLOG("Checking installed version of %s on %s", packageName.c_str(), deviceID.c_str());
+
+  string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
+  if(dump.empty())
+    RDCERR("Unable to pm dump %s", packageName.c_str());
+
+  // Walk through the output and look for versionCode and versionName
+  std::istringstream contents(dump);
+  string line;
+  string versionCode;
+  string versionName;
+  string prefix1("versionCode=");
+  string prefix2("versionName=");
+  while(std::getline(contents, line))
+  {
+    line = trim(line);
+    if(line.compare(0, prefix1.size(), prefix1) == 0)
+    {
+      // versionCode is not alone in this line, isolate it
+      std::vector<string> vec;
+      split(line, vec, ' ');
+      versionCode = vec[0].substr(vec[0].find_last_of("=") + 1);
+    }
+    if(line.compare(0, prefix2.size(), prefix2) == 0)
+    {
+      versionName = line.substr(line.find_first_of("=") + 1);
+    }
+  }
+
+  if(versionCode.empty())
+    RDCERR("Unable to determine versionCode for: %s", packageName.c_str());
+
+  if(versionName.empty())
+    RDCERR("Unable to determine versionName for: %s", packageName.c_str());
+
+  // Compare the server's versionCode and versionName with the host's for compatibility
+  string hostVersionCode =
+      string(STRINGIZE(RENDERDOC_VERSION_MAJOR)) + string(STRINGIZE(RENDERDOC_VERSION_MINOR));
+  string hostVersionName = RENDERDOC_STABLE_BUILD ? MAJOR_MINOR_VERSION_STRING : GIT_COMMIT_HASH;
+
+  // False positives will hurt us, so check for explicit matches
+  if((hostVersionCode == versionCode) && (hostVersionName == versionName))
+  {
+    RDCLOG("Installed server version (%s:%s) is compatible", versionCode.c_str(),
+           versionName.c_str());
+    return true;
+  }
+
+  RDCWARN("RenderDoc server versionCode:versionName (%s:%s) is incompatible with host (%s:%s)",
+          versionCode.c_str(), versionName.c_str(), hostVersionCode.c_str(), hostVersionName.c_str());
+
+  if(RemoveRenderDocAndroidServer(deviceID, packageName))
+    RDCLOG("Uninstall of incompatible server succeeded");
+
+  return false;
+}
+
 bool CheckInstalledPermissions(const string &deviceID, const string &packageName)
 {
   RDCLOG("Checking installed permissions for %s", packageName.c_str());
@@ -806,12 +883,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
   if(device || device[0] == '\0')
     Android::extractDeviceIDAndIndex(device, index, deviceID);
 
-  // We should hook up versioning of the server, then re-install if the version is old or mismatched
-  // But for now, just install it, if not already present
   string adbPackage =
       adbExecCommand(deviceID, "shell pm list packages org.renderdoc.renderdoccmd").strStdout;
-  if(adbPackage.empty())
+
+  if(adbPackage.empty() || !CheckAndroidServerVersion(deviceID))
   {
+    // If server is not detected or has been removed due to incompatibility, install it
     if(!installRenderDocServer(deviceID))
       return;
   }
