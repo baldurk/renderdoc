@@ -57,21 +57,6 @@
        <property name="sortingEnabled">
         <bool>true</bool>
        </property>
-       <item>
-        <property name="text">
-         <string>Counter 1</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Cache miss</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Counter 2</string>
-        </property>
-       </item>
       </widget>
      </item>
      <item>
