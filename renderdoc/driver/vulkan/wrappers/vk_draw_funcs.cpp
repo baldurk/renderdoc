@@ -82,7 +82,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(Serialiser *localSerialiser, VkCommandBu
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid) && m_RenderState.renderPass != ResourceId())
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid) && IsDrawInRenderPass())
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
