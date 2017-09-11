@@ -518,6 +518,8 @@ void PythonContext::executeString(const QString &filename, const QString &source
     // catch any output
     outputTick();
 
+    PyEval_SetTrace(NULL, NULL);
+
     Py_XDECREF(thisobj);
     Py_XDECREF(traceContext);
   }
