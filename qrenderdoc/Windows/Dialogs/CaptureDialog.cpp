@@ -467,7 +467,6 @@ void CaptureDialog::androidWarn_mouseClick()
     msg +=
         tr("<b>Missing permissions</b><br>"
            "The target APK must have the following permissions:<br>"
-           "android.permission.WRITE_EXTERNAL_STORAGE<br>"
            "android.permission.INTERNET<br><br>");
   }
 
