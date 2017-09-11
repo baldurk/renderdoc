@@ -3319,7 +3319,6 @@ DOCUMENT(R"(A set of flags giving details of the current status of Android traca
 
   The application being checked does not have the requesite permission:
 
-  android.permission.WRITE_EXTERNAL_STORAGE
   android.permission.INTERNET
 
 .. data:: NotDebuggable

@@ -57,7 +57,7 @@ bool GetKeyState(int key)
 
 namespace FileIO
 {
-const char *GetTempRootPath()
+string GetTempRootPath()
 {
   return "/tmp";
 }

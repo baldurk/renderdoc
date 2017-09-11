@@ -49,7 +49,7 @@ static int soLocator = 0;
 namespace FileIO
 {
 // in posix/.../..._stringio.cpp
-const char *GetTempRootPath();
+string GetTempRootPath();
 
 string GetHomeFolderFilename()
 {
@@ -61,7 +61,7 @@ string GetHomeFolderFilename()
 
 string GetTempFolderFilename()
 {
-  return string(GetTempRootPath()) + "/";
+  return GetTempRootPath() + "/";
 }
 
 void CreateParentDirectory(const string &filename)
@@ -202,7 +202,7 @@ void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &
 
   char temp_folder[2048] = {0};
 
-  strcpy(temp_folder, GetTempRootPath());
+  strcpy(temp_folder, GetTempRootPath().c_str());
 
   char *temp_override = getenv("RENDERDOC_TEMP");
   if(temp_override && temp_override[0] == '/')
