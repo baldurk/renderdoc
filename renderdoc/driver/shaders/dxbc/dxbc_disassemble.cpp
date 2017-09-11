@@ -294,6 +294,47 @@ void DXBCFile::FetchTypeVersion()
   m_Version.Minor = VersionToken::MinorVersion.Get(cur[0]);
 }
 
+void DXBCFile::FetchThreadDim()
+{
+  if(m_HexDump.empty())
+    return;
+
+  uint32_t *begin = &m_HexDump.front();
+  uint32_t *cur = begin;
+  uint32_t *end = &m_HexDump.back();
+
+  // skip header dword above
+  cur++;
+
+  // skip length dword
+  cur++;
+
+  while(cur < end)
+  {
+    uint32_t OpcodeToken0 = cur[0];
+
+    OpcodeType op = Opcode::Type.Get(OpcodeToken0);
+
+    if(op == OPCODE_DCL_THREAD_GROUP)
+    {
+      DispatchThreadsDimension[0] = cur[1];
+      DispatchThreadsDimension[1] = cur[2];
+      DispatchThreadsDimension[2] = cur[3];
+      break;
+    }
+
+    if(op == OPCODE_CUSTOMDATA)
+    {
+      // length in opcode token is 0, full length is in second dword
+      cur += cur[1];
+    }
+    else
+    {
+      cur += Opcode::Length.Get(OpcodeToken0);
+    }
+  }
+}
+
 void DXBCFile::DisassembleHexDump()
 {
   if(m_Disassembled)

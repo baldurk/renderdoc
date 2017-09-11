@@ -847,6 +847,12 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
     m_GuessedResources = true;
   }
 
+  // make sure to fetch the dispatch threads dimension from disassembly
+  if(!m_Disassembled && m_Type == D3D11_ShaderType_Compute)
+  {
+    FetchThreadDim();
+  }
+
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
   {
     uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
