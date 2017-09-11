@@ -1123,6 +1123,16 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
       GLint status = 0;
       gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
 
+      // if it failed to link, first remove the varyings hack above as maybe the driver is barfing
+      // on trying to make some output a varying
+      if(status == 0)
+      {
+        gl.glTransformFeedbackVaryings(initProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
+        gl.glLinkProgram(initProg);
+
+        gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
+      }
+
       // if it failed to link, try again as a separable program.
       // we can't do this by default because of the silly rules meaning
       // shaders need fixup to be separable-compatible.
