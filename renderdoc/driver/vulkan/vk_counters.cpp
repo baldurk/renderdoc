@@ -281,15 +281,38 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<GPUCounter> &coun
       ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &timeStampPoolCreateInfo, NULL, &timeStampPool);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  bool occlNeeded = false;
+  bool statsNeeded = false;
+
+  for(size_t c = 0; c < counters.size(); c++)
+  {
+    switch(counters[c])
+    {
+      case GPUCounter::InputVerticesRead:
+      case GPUCounter::IAPrimitives:
+      case GPUCounter::GSPrimitives:
+      case GPUCounter::RasterizerInvocations:
+      case GPUCounter::RasterizedPrimitives:
+      case GPUCounter::VSInvocations:
+      case GPUCounter::TCSInvocations:
+      case GPUCounter::TESInvocations:
+      case GPUCounter::GSInvocations:
+      case GPUCounter::PSInvocations:
+      case GPUCounter::CSInvocations: statsNeeded = true; break;
+      case GPUCounter::SamplesWritten: occlNeeded = true; break;
+      default: break;
+    }
+  }
+
   VkQueryPool occlusionPool = VK_NULL_HANDLE;
-  if(availableFeatures.occlusionQueryPrecise)
+  if(availableFeatures.occlusionQueryPrecise && occlNeeded)
   {
     vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &occlusionPoolCreateInfo, NULL, &occlusionPool);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
   VkQueryPool pipeStatsPool = VK_NULL_HANDLE;
-  if(availableFeatures.pipelineStatisticsQuery)
+  if(availableFeatures.pipelineStatisticsQuery && statsNeeded)
   {
     vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &pipeStatsPoolCreateInfo, NULL, &pipeStatsPool);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
