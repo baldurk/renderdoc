@@ -316,9 +316,22 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
 
       submitInfo.commandBufferCount = (uint32_t)rerecordedCmds.size();
       submitInfo.pCommandBuffers = &rerecordedCmds[0];
+
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
+      uint32_t cmdCount = submitInfo.commandBufferCount;
+      submitInfo.commandBufferCount = 1;
+      for(uint32_t i = 0; i < cmdCount; i++)
+      {
+        ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+        submitInfo.pCommandBuffers++;
+
+        FlushQ();
+      }
+#else
       // don't submit the fence, since we have nothing to wait on it being signalled, and we might
       // not have it correctly in the unsignalled state.
       ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+#endif
     }
     else if(m_LastEventID > startEID && m_LastEventID < m_RootEventID)
     {
@@ -373,9 +386,22 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
 
       submitInfo.commandBufferCount = (uint32_t)trimmedCmds.size();
       submitInfo.pCommandBuffers = &trimmedCmds[0];
+
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
+      uint32_t cmdCount = submitInfo.commandBufferCount;
+      submitInfo.commandBufferCount = 1;
+      for(uint32_t i = 0; i < cmdCount; i++)
+      {
+        ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+        submitInfo.pCommandBuffers++;
+
+        FlushQ();
+      }
+#else
       // don't submit the fence, since we have nothing to wait on it being signalled, and we might
       // not have it correctly in the unsignalled state.
       ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+#endif
 
       for(uint32_t i = 0; i < trimmedCmdIds.size(); i++)
       {
@@ -389,9 +415,21 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
       RDCDEBUG("Queue Submit full replay %u >= %u", m_LastEventID, m_RootEventID);
 #endif
 
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
+      uint32_t cmdCount = submitInfo.commandBufferCount;
+      submitInfo.commandBufferCount = 1;
+      for(uint32_t i = 0; i < cmdCount; i++)
+      {
+        ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+        submitInfo.pCommandBuffers++;
+
+        FlushQ();
+      }
+#else
       // don't submit the fence, since we have nothing to wait on it being signalled, and we might
       // not have it correctly in the unsignalled state.
       ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+#endif
 
       for(uint32_t i = 0; i < numCmds; i++)
       {
@@ -400,6 +438,10 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
       }
     }
   }
+
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
+  FlushQ();
+#endif
 
   SAFE_DELETE_ARRAY(cmds);
 
