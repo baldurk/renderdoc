@@ -282,8 +282,7 @@
   CheckExt(VK_EXT_direct_mode_display);             \
   CheckExt(VK_EXT_acquire_xlib_display);            \
   CheckExt(VK_KHR_external_memory_capabilities);    \
-  CheckExt(VK_KHR_external_semaphore_capabilities); \
-  CheckExt(VK_KHR_get_memory_requirements2);
+  CheckExt(VK_KHR_external_semaphore_capabilities);
 
 #define CheckDeviceExts()                    \
   CheckExt(VK_EXT_debug_marker);             \
@@ -299,7 +298,8 @@
   CheckExt(VK_KHR_external_memory_fd);       \
   CheckExt(VK_KHR_external_semaphore);       \
   CheckExt(VK_KHR_external_semaphore_win32); \
-  CheckExt(VK_KHR_external_semaphore_fd);
+  CheckExt(VK_KHR_external_semaphore_fd);    \
+  CheckExt(VK_KHR_get_memory_requirements2);
 
 #define HookInitVulkanInstanceExts()                                                                \
   HookInitExtension(VK_KHR_surface, DestroySurfaceKHR);                                             \
