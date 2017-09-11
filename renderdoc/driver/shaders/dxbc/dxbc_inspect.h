@@ -412,6 +412,7 @@ private:
   DXBCFile(const DXBCFile &o);
   DXBCFile &operator=(const DXBCFile &o);
 
+  void FetchThreadDim();
   void FetchTypeVersion();
   void DisassembleHexDump();
   void MakeDisassemblyString();
