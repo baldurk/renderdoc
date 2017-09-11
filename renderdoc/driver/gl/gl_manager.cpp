@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "driver/gl/gl_manager.h"
+#include <algorithm>
 #include "driver/gl/gl_driver.h"
 
 struct VertexAttribInitialData
@@ -1074,7 +1075,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
       GLuint initProg = gl.glCreateProgram();
 
-      std::vector<const char *> vertexOutputs;
+      std::vector<std::string> vertexOutputs;
       for(size_t i = 0; i < details.shaders.size(); i++)
       {
         const auto &shadDetails = m_GL->m_Shaders[details.shaders[i]];
@@ -1084,7 +1085,20 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         if(shadDetails.type == eGL_VERTEX_SHADER)
         {
           for(int s = 0; s < shadDetails.reflection.OutputSig.count; s++)
-            vertexOutputs.push_back(shadDetails.reflection.OutputSig[s].varName.c_str());
+          {
+            std::string name = shadDetails.reflection.OutputSig[s].varName.c_str();
+
+            // look for :row added to split up matrix variables
+            size_t colon = name.find(":row");
+
+            // remove it, if present
+            if(colon != std::string::npos)
+              name.resize(colon);
+
+            // only push matrix variables once
+            if(std::find(vertexOutputs.begin(), vertexOutputs.end(), name) == vertexOutputs.end())
+              vertexOutputs.push_back(name);
+          }
         }
 
         char **srcs = new char *[shadDetails.sources.size()];
@@ -1102,8 +1116,13 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
       // This resulted in initProg locationTranslate table being -1 for a particular shader where
       // some uniforms were only intended to affect TF. Therefore set a TF mode for all varyings.
       // As the initial state program is never used for TF, this wont adversely affect anything.
-      gl.glTransformFeedbackVaryings(initProg, (GLsizei)vertexOutputs.size(), &vertexOutputs[0],
-                                     eGL_INTERLEAVED_ATTRIBS);
+
+      std::vector<const char *> vertexOutputsPtr;
+      vertexOutputsPtr.resize(vertexOutputs.size());
+      for(size_t i = 0; i < vertexOutputs.size(); i++)
+        vertexOutputsPtr[i] = vertexOutputs[i].c_str();
+      gl.glTransformFeedbackVaryings(initProg, (GLsizei)vertexOutputsPtr.size(),
+                                     &vertexOutputsPtr[0], eGL_INTERLEAVED_ATTRIBS);
       gl.glLinkProgram(initProg);
 
       GLint status = 0;
