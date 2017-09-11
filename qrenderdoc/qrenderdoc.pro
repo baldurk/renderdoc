@@ -137,7 +137,7 @@ win32 {
 	} else {
 		QT += x11extras
 		DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_LINUX RENDERDOC_WINDOWING_XLIB RENDERDOC_WINDOWING_XCB
-		QMAKE_LFLAGS += '-Wl,--no-as-needed'
+		QMAKE_LFLAGS += '-Wl,--no-as-needed -rdynamic'
 
 		contains(QMAKE_CXXFLAGS, "-DRENDERDOC_SUPPORT_GL") {
 			# Link against GL
