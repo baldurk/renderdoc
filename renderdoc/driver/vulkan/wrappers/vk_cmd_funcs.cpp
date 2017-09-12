@@ -1334,6 +1334,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
         descsets[first + i].descSet = descriptorIDs[i];
         uint32_t dynCount = m_CreationInfo.m_DescSetLayout[descSetLayouts[first + i]].dynamicCount;
         descsets[first + i].offsets.assign(offsIter, offsIter + dynCount);
+        offsIter += dynCount;
         dynConsumed += dynCount;
         RDCASSERT(dynConsumed <= offsCount);
       }
