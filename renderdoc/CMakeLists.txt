@@ -92,7 +92,6 @@ set(sources
     core/plugins.h
     core/resource_manager.cpp
     core/resource_manager.h
-    core/socket_helpers.h
     data/hlsl/debugcbuffers.h
     data/glsl/debuguniforms.h
     data/glsl/vk_texsample.h

@@ -156,9 +156,6 @@
     <ClInclude Include="maths\formatpacking.h">
       <Filter>Common\Maths</Filter>
     </ClInclude>
-    <ClInclude Include="core\socket_helpers.h">
-      <Filter>Core\networking</Filter>
-    </ClInclude>
     <ClInclude Include="core\replay_proxy.h">
       <Filter>Core\networking</Filter>
     </ClInclude>

@@ -29,7 +29,6 @@
 #include "jpeg-compressor/jpgd.h"
 #include "os/os_specific.h"
 #include "serialise/serialiser.h"
-#include "socket_helpers.h"
 
 enum PacketType
 {

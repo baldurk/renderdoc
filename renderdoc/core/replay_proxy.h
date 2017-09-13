@@ -28,7 +28,6 @@
 #include "os/os_specific.h"
 #include "replay/replay_driver.h"
 #include "serialise/serialiser.h"
-#include "socket_helpers.h"
 
 enum ReplayProxyPacket
 {
