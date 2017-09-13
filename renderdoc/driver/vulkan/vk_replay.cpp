@@ -653,6 +653,7 @@ APIProperties VulkanReplay::GetAPIProperties()
   ret.pipelineType = GraphicsAPI::Vulkan;
   ret.localRenderer = GraphicsAPI::Vulkan;
   ret.degraded = false;
+  ret.shadersMutable = false;
 
   return ret;
 }
@@ -4298,16 +4299,15 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, Mes
   return GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
 }
 
-byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                                   const GetTextureDataParams &params, size_t &dataSize)
+void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                  const GetTextureDataParams &params, bytebuf &data)
 {
   bool wasms = false;
 
   if(m_pDriver->m_CreationInfo.m_Image.find(tex) == m_pDriver->m_CreationInfo.m_Image.end())
   {
     RDCERR("Trying to get texture data for unknown ID %llu!", tex);
-    dataSize = 0;
-    return new byte[0];
+    return;
   }
 
   VulkanCreationInfo::Image &imInfo = m_pDriver->m_CreationInfo.m_Image[tex];
@@ -4366,22 +4366,22 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     wasms = true;
   }
 
-  if(params.remap)
+  if(params.remap != RemapTexture::NoRemap)
   {
     int renderFlags = 0;
 
     // force readback texture to RGBA8 unorm
-    if(params.remap == eRemap_RGBA8)
+    if(params.remap == RemapTexture::RGBA8)
     {
       imCreateInfo.format =
           IsSRGBFormat(imCreateInfo.format) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
     }
-    else if(params.remap == eRemap_RGBA16)
+    else if(params.remap == RemapTexture::RGBA16)
     {
       imCreateInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
       renderFlags = eTexDisplay_F16Render;
     }
-    else if(params.remap == eRemap_RGBA32)
+    else if(params.remap == RemapTexture::RGBA32)
     {
       imCreateInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
       renderFlags = eTexDisplay_F32Render;
@@ -4884,6 +4884,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     copyregion[i].imageExtent.depth = RDCMAX(1U, copyregion[i].imageExtent.depth >> mip);
   }
 
+  uint32_t dataSize = 0;
+
   // for most combined depth-stencil images this will be large enough for both to be copied
   // separately, but for D24S8 we need to add extra space since they won't be copied packed
   dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
@@ -4891,7 +4893,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
   if(imCreateInfo.format == VK_FORMAT_D24_UNORM_S8_UINT)
   {
-    dataSize = AlignUp(dataSize, (size_t)4);
+    dataSize = AlignUp(dataSize, 4U);
     dataSize += GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
                             VK_FORMAT_S8_UINT, mip);
   }
@@ -4935,7 +4937,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                              readbackBuf, 2, copyregion);
   }
-  else if(imInfo.type == VK_IMAGE_TYPE_3D && params.remap)
+  else if(imInfo.type == VK_IMAGE_TYPE_3D && params.remap != RemapTexture::NoRemap)
   {
     // copy in each slice from the 2D array we created to render out the 3D texture
     for(uint32_t i = 0; i < imCreateInfo.arrayLayers; i++)
@@ -4997,7 +4999,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
   RDCASSERT(pData != NULL);
 
-  byte *ret = new byte[dataSize];
+  data.resize(dataSize);
 
   if(isDepth && isStencil)
   {
@@ -5009,7 +5011,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       uint16_t *dSrc = (uint16_t *)pData;
       uint8_t *sSrc = (uint8_t *)(pData + copyregion[1].bufferOffset);
 
-      uint16_t *dDst = (uint16_t *)ret;
+      uint16_t *dDst = (uint16_t *)data.data();
       uint16_t *sDst = dDst + 1;    // interleaved, next pixel
 
       for(size_t i = 0; i < pixelCount; i++)
@@ -5033,7 +5035,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       uint32_t *dSrc = (uint32_t *)pData;
       uint8_t *sSrc = (uint8_t *)(pData + copyregion[1].bufferOffset);
 
-      uint32_t *dst = (uint32_t *)ret;
+      uint32_t *dst = (uint32_t *)data.data();
 
       for(size_t i = 0; i < pixelCount; i++)
       {
@@ -5050,7 +5052,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       uint32_t *dSrc = (uint32_t *)pData;
       uint8_t *sSrc = (uint8_t *)(pData + copyregion[1].bufferOffset);
 
-      uint32_t *dDst = (uint32_t *)ret;
+      uint32_t *dDst = (uint32_t *)data.data();
       uint32_t *sDst = dDst + 1;    // interleaved, next pixel
 
       for(size_t i = 0; i < pixelCount; i++)
@@ -5071,7 +5073,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
   }
   else
   {
-    memcpy(ret, pData, dataSize);
+    memcpy(data.data(), pData, dataSize);
   }
 
   vt->UnmapMemory(Unwrap(dev), readbackMem);
@@ -5097,8 +5099,6 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     delete[] tmpView;
     vt->DestroyRenderPass(Unwrap(dev), tmpRP, NULL);
   }
-
-  return ret;
 }
 
 void VulkanReplay::BuildCustomShader(string source, string entry,

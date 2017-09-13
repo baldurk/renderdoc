@@ -285,11 +285,7 @@ rdcarray<GPUCounter> ReplayController::EnumerateCounters()
 
 CounterDescription ReplayController::DescribeCounter(GPUCounter counterID)
 {
-  CounterDescription ret;
-
-  m_pDevice->DescribeCounter(counterID, ret);
-
-  return ret;
+  return m_pDevice->DescribeCounter(counterID);
 }
 
 rdcarray<BufferDescription> ReplayController::GetBuffers()
@@ -378,13 +374,7 @@ bytebuf ReplayController::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint
     return ret;
   }
 
-  size_t sz = 0;
-  byte *bytes = m_pDevice->GetTextureData(liveId, arrayIdx, mip, GetTextureDataParams(), sz);
-
-  if(sz != 0 && bytes != NULL)
-    ret.assign(bytes, sz);
-
-  SAFE_DELETE_ARRAY(bytes);
+  m_pDevice->GetTextureData(liveId, arrayIdx, mip, GetTextureDataParams(), ret);
 
   return ret;
 }
@@ -641,14 +631,14 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       params.forDiskSave = true;
       params.typeHint = sd.typeHint;
       params.resolve = resolveSamples;
-      params.remap = downcast ? eRemap_RGBA8 : eRemap_None;
+      params.remap = downcast ? RemapTexture::RGBA8 : RemapTexture::NoRemap;
       params.blackPoint = sd.comp.blackPoint;
       params.whitePoint = sd.comp.whitePoint;
 
-      size_t datasize = 0;
-      byte *bytes = m_pDevice->GetTextureData(liveid, slice, mip, params, datasize);
+      bytebuf data;
+      m_pDevice->GetTextureData(liveid, slice, mip, params, data);
 
-      if(bytes == NULL)
+      if(data.empty())
       {
         RDCERR("Couldn't get bytes for mip %u, slice %u", mip, slice);
 
@@ -660,6 +650,8 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
       if(td.depth == 1)
       {
+        byte *bytes = new byte[data.size()];
+        memcpy(bytes, data.data(), data.size());
         subdata.push_back(bytes);
         continue;
       }
@@ -686,17 +678,16 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       if(numSlices == 1)
       {
         byte *depthslice = new byte[mipSlicePitch];
-        byte *b = bytes + mipSlicePitch * sliceOffset;
+        byte *b = data.data() + mipSlicePitch * sliceOffset;
         memcpy(depthslice, b, slicePitch);
         subdata.push_back(depthslice);
 
-        delete[] bytes;
         continue;
       }
 
       s += (d - 1);
 
-      byte *b = bytes;
+      byte *b = data.data();
 
       // add each depth slice as a separate subdata
       for(uint32_t di = 0; di < d; di++)
@@ -709,8 +700,6 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
         b += mipSlicePitch;
       }
-
-      delete[] bytes;
     }
   }
 

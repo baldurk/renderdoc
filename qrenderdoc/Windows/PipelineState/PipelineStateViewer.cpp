@@ -550,18 +550,18 @@ bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDet
 
     for(auto &s : shaderDetails->DebugInfo.files)
     {
-      QString filename = s.first;
+      QString filename = s.Filename;
       if(uniqueFiles.contains(filename.toLower()))
       {
-        qWarning() << lit("Duplicate full filename") << QString(s.first);
+        qWarning() << lit("Duplicate full filename") << filename;
         continue;
       }
       uniqueFiles.push_back(filename.toLower());
 
-      files[filename] = s.second;
+      files[filename] = s.Contents;
     }
 
-    mainfile = shaderDetails->DebugInfo.files[0].first;
+    mainfile = shaderDetails->DebugInfo.files[0].Filename;
 
     return true;
   }

@@ -1427,8 +1427,8 @@ uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags)
 {
   uint32_t ret = 0;
 
-  if(!compileFlags.flags.empty() && compileFlags.flags[0].first == "compileFlags")
-    ret = atoi(compileFlags.flags[0].second.c_str());
+  if(!compileFlags.flags.empty() && compileFlags.flags[0].Name == "compileFlags")
+    ret = atoi(compileFlags.flags[0].Value.c_str());
 
   return ret;
 }

@@ -75,8 +75,9 @@ vector<GPUCounter> D3D11DebugManager::EnumerateCounters()
   return ret;
 }
 
-void D3D11DebugManager::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
+CounterDescription D3D11DebugManager::DescribeCounter(GPUCounter counterID)
 {
+  CounterDescription desc = {};
   desc.counterID = counterID;
 
   /////AMD//////
@@ -84,9 +85,7 @@ void D3D11DebugManager::DescribeCounter(GPUCounter counterID, CounterDescription
   {
     if(m_pAMDCounters)
     {
-      desc = m_pAMDCounters->GetCounterDescription(counterID);
-
-      return;
+      return m_pAMDCounters->GetCounterDescription(counterID);
     }
   }
 
@@ -202,6 +201,8 @@ void D3D11DebugManager::DescribeCounter(GPUCounter counterID, CounterDescription
       desc.unit = CounterUnit::Absolute;
       break;
   }
+
+  return desc;
 }
 
 struct GPUTimer

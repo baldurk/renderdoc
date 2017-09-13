@@ -385,6 +385,7 @@ APIProperties D3D11Replay::GetAPIProperties()
   ret.pipelineType = GraphicsAPI::D3D11;
   ret.localRenderer = GraphicsAPI::D3D11;
   ret.degraded = m_WARP;
+  ret.shadersMutable = false;
 
   return ret;
 }
@@ -1433,10 +1434,10 @@ void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, 
   m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);
 }
 
-byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                                  const GetTextureDataParams &params, size_t &dataSize)
+void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                 const GetTextureDataParams &params, bytebuf &data)
 {
-  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, dataSize);
+  m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, data);
 }
 
 void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)
@@ -1454,9 +1455,9 @@ vector<GPUCounter> D3D11Replay::EnumerateCounters()
   return m_pDevice->GetDebugManager()->EnumerateCounters();
 }
 
-void D3D11Replay::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
+CounterDescription D3D11Replay::DescribeCounter(GPUCounter counterID)
 {
-  m_pDevice->GetDebugManager()->DescribeCounter(counterID, desc);
+  return m_pDevice->GetDebugManager()->DescribeCounter(counterID);
 }
 
 vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &counters)

@@ -882,6 +882,12 @@ different to the above, and lets the UI make decisions e.g. to flip rendering of
 with software rendering, or with some functionality disabled due to lack of support.
 )");
   bool degraded;
+
+  DOCUMENT(R"(``True`` if the driver mutates shader reflection structures from event to event.
+Currently this is only true for OpenGL where the superfluous indirect in the binding model must be
+worked around by re-sorting bindings.
+)");
+  bool shadersMutable;
 };
 
 DECLARE_REFLECTION_STRUCT(APIProperties);

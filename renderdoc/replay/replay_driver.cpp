@@ -24,6 +24,34 @@
 
 #include "replay_driver.h"
 #include "maths/formatpacking.h"
+#include "serialise/serialiser.h"
+
+template <>
+std::string DoStringise(const RemapTexture &el)
+{
+  BEGIN_ENUM_STRINGISE(RemapTexture);
+  {
+    STRINGISE_ENUM_CLASS(NoRemap)
+    STRINGISE_ENUM_CLASS(RGBA8)
+    STRINGISE_ENUM_CLASS(RGBA16)
+    STRINGISE_ENUM_CLASS(RGBA32)
+    STRINGISE_ENUM_CLASS(D32S8)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, GetTextureDataParams &el)
+{
+  SERIALISE_MEMBER(forDiskSave);
+  SERIALISE_MEMBER(typeHint);
+  SERIALISE_MEMBER(resolve);
+  SERIALISE_MEMBER(remap);
+  SERIALISE_MEMBER(blackPoint);
+  SERIALISE_MEMBER(whitePoint);
+}
+
+INSTANTIATE_SERIALISE_TYPE(GetTextureDataParams);
 
 DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawcallTable,
                                            rdcarray<DrawcallDescription> &draws,

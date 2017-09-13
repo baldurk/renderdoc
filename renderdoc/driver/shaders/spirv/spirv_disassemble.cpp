@@ -3918,8 +3918,8 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
     for(size_t i = 0; i < sourceFiles.size(); i++)
     {
-      reflection.DebugInfo.files[i].first = sourceFiles[i].first;
-      reflection.DebugInfo.files[i].second = sourceFiles[i].second;
+      reflection.DebugInfo.files[i].Filename = sourceFiles[i].first;
+      reflection.DebugInfo.files[i].Contents = sourceFiles[i].second;
     }
   }
 

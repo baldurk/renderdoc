@@ -579,11 +579,12 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
     FillCBufferVariables(dxbc->m_CBuffers[i].variables, vars, true,
                          cbufData[dxbc->m_CBuffers[i].reg]);
 
-    trace.cbuffers[i] = vars;
+    trace.cbuffers[i].members = vars;
 
-    for(size_t c = 0; c < trace.cbuffers[i].size(); c++)
-      trace.cbuffers[i][c].name = StringFormat::Fmt("cb%u[%u] (%s)", dxbc->m_CBuffers[i].reg,
-                                                    (uint32_t)c, trace.cbuffers[i][c].name.c_str());
+    for(size_t c = 0; c < trace.cbuffers[i].members.size(); c++)
+      trace.cbuffers[i].members[c].name =
+          StringFormat::Fmt("cb%u[%u] (%s)", dxbc->m_CBuffers[i].reg, (uint32_t)c,
+                            trace.cbuffers[i].members[c].name.c_str());
   }
 
   initialState.Init();
@@ -2859,8 +2860,8 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
   m_pImmediateContext->Unmap(m_DebugRender.PickPixelStageTex, 0);
 }
 
-byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                                        const GetTextureDataParams &params, size_t &dataSize)
+void D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                       const GetTextureDataParams &params, bytebuf &data)
 {
   D3D11RenderStateTracker tracker(m_WrappedContext);
 
@@ -2869,7 +2870,6 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
   uint32_t subresource = 0;
   uint32_t mips = 0;
 
-  dataSize = 0;
   size_t bytesize = 0;
 
   if(WrappedID3D11Texture1D::m_TextureList.find(tex) != WrappedID3D11Texture1D::m_TextureList.end())
@@ -2890,11 +2890,11 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
     mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, 1, 1);
 
     if(mip >= mips || arrayIdx >= desc.ArraySize)
-      return NULL;
+      return;
 
-    if(params.remap)
+    if(params.remap != RemapTexture::NoRemap)
     {
-      RDCASSERT(params.remap == eRemap_RGBA8);
+      RDCASSERT(params.remap == RemapTexture::RGBA8);
 
       desc.Format =
           IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -2910,14 +2910,14 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
     if(FAILED(hr))
     {
       RDCERR("Couldn't create staging texture to retrieve data. HRESULT: %s", ToStr(hr).c_str());
-      return NULL;
+      return;
     }
 
     bytesize = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
 
-    if(params.remap)
+    if(params.remap != RemapTexture::NoRemap)
     {
-      RDCASSERT(params.remap == eRemap_RGBA8);
+      RDCASSERT(params.remap == RemapTexture::RGBA8);
 
       subresource = mip;
 
@@ -2933,7 +2933,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
       {
         RDCERR("Couldn't create target texture to downcast texture. HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(d);
-        return NULL;
+        return;
       }
 
       D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
@@ -2948,7 +2948,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
         RDCERR("Couldn't create target rtv to downcast texture. HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(d);
         SAFE_RELEASE(rtTex);
-        return NULL;
+        return;
       }
 
       ID3D11RenderTargetView *rtv = wrappedrtv;
@@ -3029,11 +3029,11 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
     mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, 1);
 
     if(mip >= mips || arrayIdx >= desc.ArraySize)
-      return NULL;
+      return;
 
-    if(params.remap)
+    if(params.remap != RemapTexture::NoRemap)
     {
-      RDCASSERT(params.remap == eRemap_RGBA8);
+      RDCASSERT(params.remap == RemapTexture::RGBA8);
 
       desc.Format = (IsSRGBFormat(desc.Format) || wrapTex->m_RealDescriptor)
                         ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
@@ -3050,14 +3050,14 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
     if(FAILED(hr))
     {
       RDCERR("Couldn't create staging texture to retrieve data. HRESULT: %s", ToStr(hr).c_str());
-      return NULL;
+      return;
     }
 
     bytesize = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
 
-    if(params.remap)
+    if(params.remap != RemapTexture::NoRemap)
     {
-      RDCASSERT(params.remap == eRemap_RGBA8);
+      RDCASSERT(params.remap == RemapTexture::RGBA8);
 
       subresource = mip;
 
@@ -3073,7 +3073,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
       {
         RDCERR("Couldn't create target texture to downcast texture. HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(d);
-        return NULL;
+        return;
       }
 
       D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
@@ -3088,7 +3088,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
         RDCERR("Couldn't create target rtv to downcast texture. HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(d);
         SAFE_RELEASE(rtTex);
-        return NULL;
+        return;
       }
 
       ID3D11RenderTargetView *rtv = wrappedrtv;
@@ -3148,7 +3148,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
       {
         RDCERR("Couldn't create target texture to resolve texture. HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(d);
-        return NULL;
+        return;
       }
 
       m_pImmediateContext->ResolveSubresource(resolveTex, arrayIdx, wrapTex, arrayIdx, desc.Format);
@@ -3184,11 +3184,11 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
     mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, desc.Depth);
 
     if(mip >= mips)
-      return NULL;
+      return;
 
-    if(params.remap)
+    if(params.remap != RemapTexture::NoRemap)
     {
-      RDCASSERT(params.remap == eRemap_RGBA8);
+      RDCASSERT(params.remap == RemapTexture::RGBA8);
 
       desc.Format =
           IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -3203,14 +3203,14 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
     if(FAILED(hr))
     {
       RDCERR("Couldn't create staging texture to retrieve data. HRESULT: %s", ToStr(hr).c_str());
-      return NULL;
+      return;
     }
 
     bytesize = GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, mip);
 
-    if(params.remap)
+    if(params.remap != RemapTexture::NoRemap)
     {
-      RDCASSERT(params.remap == eRemap_RGBA8);
+      RDCASSERT(params.remap == RemapTexture::RGBA8);
 
       subresource = mip;
 
@@ -3226,7 +3226,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
       {
         RDCERR("Couldn't create target texture to downcast texture. HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(d);
-        return NULL;
+        return;
       }
 
       D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
@@ -3252,7 +3252,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
           RDCERR("Couldn't create target rtv to downcast texture. HRESULT: %s", ToStr(hr).c_str());
           SAFE_RELEASE(d);
           SAFE_RELEASE(rtTex);
-          return NULL;
+          return;
         }
 
         rtv = wrappedrtv;
@@ -3302,8 +3302,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
   else
   {
     RDCERR("Trying to get texture data for unknown ID %llu!", tex);
-    dataSize = 0;
-    return new byte[0];
+    return;
   }
 
   MapIntercept intercept;
@@ -3311,13 +3310,10 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
   D3D11_MAPPED_SUBRESOURCE mapped = {0};
   HRESULT hr = m_pImmediateContext->Map(dummyTex, subresource, D3D11_MAP_READ, 0, &mapped);
 
-  byte *ret = NULL;
-
   if(SUCCEEDED(hr))
   {
-    ret = new byte[bytesize];
-    dataSize = bytesize;
-    intercept.InitWrappedResource(dummyTex, subresource, ret);
+    data.resize(bytesize);
+    intercept.InitWrappedResource(dummyTex, subresource, data.data());
     intercept.SetD3D(mapped);
     intercept.CopyFromD3D();
 
@@ -3325,8 +3321,8 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
     // copy it into the beginning.
     if(intercept.numSlices > 1 && arrayIdx > 0 && (int)arrayIdx < intercept.numSlices)
     {
-      byte *dst = ret;
-      byte *src = ret + intercept.app.DepthPitch * arrayIdx;
+      byte *dst = data.data();
+      byte *src = data.data() + intercept.app.DepthPitch * arrayIdx;
 
       for(int row = 0; row < intercept.numRows; row++)
       {
@@ -3343,8 +3339,6 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
   }
 
   SAFE_RELEASE(dummyTex);
-
-  return ret;
 }
 
 ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
