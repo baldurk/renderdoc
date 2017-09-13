@@ -1736,6 +1736,8 @@ void VulkanPipelineStateViewer::setState()
   ui->sampleShading->setPixmap(state.MSAA.sampleShadingEnable ? tick : cross);
   ui->minSampleShading->setText(Formatter::Format(state.MSAA.minSampleShading));
   ui->sampleMask->setText(Formatter::Format(state.MSAA.sampleMask, true));
+  ui->alphaToOne->setPixmap(state.CB.alphaToOneEnable ? tick : cross);
+  ui->alphaToCoverage->setPixmap(state.CB.alphaToCoverageEnable ? tick : cross);
 
   ////////////////////////////////////////////////
   // Output Merger
@@ -1912,7 +1914,6 @@ void VulkanPipelineStateViewer::setState()
                                .arg(state.CB.blendConst[2], 0, 'f', 2)
                                .arg(state.CB.blendConst[3], 0, 'f', 2));
   ui->logicOp->setText(state.CB.logicOpEnable ? ToQStr(state.CB.logic) : lit("-"));
-  ui->alphaToOne->setPixmap(state.CB.alphaToOneEnable ? tick : cross);
 
   ui->depthEnabled->setPixmap(state.DS.depthTestEnable ? tick : cross);
   ui->depthFunc->setText(ToQStr(state.DS.depthCompareOp));

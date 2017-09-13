@@ -2162,22 +2162,6 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
-           <spacer name="MSAAVSpacer">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Preferred</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
           <item row="0" column="3">
            <widget class="QLabel" name="sampleShading">
             <property name="text">
@@ -2209,6 +2193,58 @@
              </size>
             </property>
            </spacer>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="alphaToOneLabel">
+            <property name="text">
+             <string>Alpha to 1:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="alphaToOne">
+            <property name="pixmap">
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+            <property name="margin">
+             <number>4</number>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QLabel" name="alphaToCoverageLabel">
+            <property name="text">
+             <string>Alpha to Coverage:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="3">
+           <widget class="QLabel" name="alphaToCoverage">
+            <property name="pixmap">
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+            <property name="margin">
+             <number>4</number>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -2746,35 +2782,6 @@
                 </property>
                 <property name="text">
                  <string>-</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-                <property name="margin">
-                 <number>4</number>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0">
-               <widget class="QLabel" name="alphaToOneLabel">
-                <property name="text">
-                 <string>Alpha to 1:</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                </property>
-                <property name="wordWrap">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
-               <widget class="QLabel" name="alphaToOne">
-                <property name="text">
-                 <string/>
-                </property>
-                <property name="pixmap">
-                 <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
