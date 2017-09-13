@@ -1,4 +1,6 @@
 language: cpp
+sudo: required
+dist: trusty
 
 branches:
   only:
@@ -28,27 +30,17 @@ matrix:
   include:
 # only build docs on linux
     - os: linux
-      dist: trusty
-      sudo: false
       env: DOCS_BUILD=1
     - os: linux
-      dist: trusty
-      sudo: required
       env: LINUX_BUILD=1
       compiler: gcc
     - os: linux
-      dist: trusty
-      sudo: required
       env: LINUX_BUILD=1
       compiler: clang
     - os: linux
-      dist: trusty
-      sudo: required
       env: LINUX_BUILD=1 RELEASE_BUILD=1
       compiler: clang
     - os: linux
-      dist: trusty
-      sudo: required
       env: ANDROID_BUILD=1
       compiler: clang
     - os: osx
