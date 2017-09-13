@@ -1682,7 +1682,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
   for(LiveCapture *live : m_LiveCaptures)
   {
     live->cleanItems();
-    live->close();
+    delete live;
   }
 
   SaveLayout(0);
