@@ -672,6 +672,26 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
   if(shaderDetails != NULL)
   {
+    // we find the matching binding for this set/binding.
+    // The spec requires that there are no overlapping definitions, or if there are they have
+    // compatible types so we can just pick the first one we come across.
+    // The spec also doesn't require variables which are statically unused to have valid bindings,
+    // so they may be overlapping or possibly just defaulted to 0.
+    // Any variables with no binding declared at all were set to 0 and sorted to the end at
+    // reflection time, so we can just use a single algorithm to select the best candidate:
+    //
+    // 1. Search for matching bindset/bind resources. It doesn't matter which 'namespace' (sampler/
+    //    read-only/read-write) we search in, because if there's a conflict the behaviour is
+    //    illegal and if there's no conflict we won't get any ambiguity.
+    // 2. If we find a match, select it for use.
+    // 3. If we find a second match, use it in preference only if the old one was !used, and the new
+    //    one is used.
+    //
+    // This will make us select the best possible option - the first declared used resource
+    // at a particular binding, ignoring any unused resources at that binding before/after. Or if
+    // there's no used resource at all, the first declared unused resource (which will prefer
+    // resources with proper bindings over those without, as with the sorting mentioned above).
+
     for(int i = 0; i < shaderDetails->ReadOnlyResources.count; i++)
     {
       const ShaderResource &ro = shaderDetails->ReadOnlyResources[i];
@@ -679,9 +699,15 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       if(stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset == bindset &&
          stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bind == bind)
       {
-        bindPoint = (uint)i;
-        shaderRes = &ro;
-        bindMap = &stage.BindpointMapping.ReadOnlyResources[ro.bindPoint];
+        // use this one either if we have no candidate, or the candidate we have is unused and this
+        // one is used
+        if(bindMap == NULL ||
+           (!bindMap->used && stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].used))
+        {
+          bindPoint = (uint)i;
+          shaderRes = &ro;
+          bindMap = &stage.BindpointMapping.ReadOnlyResources[ro.bindPoint];
+        }
       }
     }
 
@@ -692,10 +718,16 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       if(stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bindset == bindset &&
          stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bind == bind)
       {
-        bindPoint = (uint)i;
-        isrw = true;
-        shaderRes = &rw;
-        bindMap = &stage.BindpointMapping.ReadWriteResources[rw.bindPoint];
+        // use this one either if we have no candidate, or the candidate we have is unused and this
+        // one is used
+        if(bindMap == NULL ||
+           (!bindMap->used && stage.BindpointMapping.ReadWriteResources[rw.bindPoint].used))
+        {
+          bindPoint = (uint)i;
+          isrw = true;
+          shaderRes = &rw;
+          bindMap = &stage.BindpointMapping.ReadWriteResources[rw.bindPoint];
+        }
       }
     }
   }
