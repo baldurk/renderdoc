@@ -29,10 +29,11 @@
 
 #include <thumbcache.h>
 #include <windows.h>
+#include "3rdparty/stb/stb_image_resize.h"
 #include "common/common.h"
 #include "core/core.h"
 #include "jpeg-compressor/jpgd.h"
-#include "serialise/serialiser.h"
+#include "serialise/rdcfile.h"
 
 // {5D6BF029-A6BA-417A-8523-120492B1DCE3}
 static const GUID CLSID_RDCThumbnailProvider = {0x5d6bf029,
@@ -46,19 +47,10 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 {
   unsigned int m_iRefcount;
   bool m_Inited;
-  Serialiser *m_Ser;
+  RDCFile m_RDC;
 
-  RDCThumbnailProvider() : m_iRefcount(1), m_Inited(false), m_Ser(NULL)
-  {
-    InterlockedIncrement(&numProviders);
-  }
-
-  virtual ~RDCThumbnailProvider()
-  {
-    InterlockedDecrement(&numProviders);
-    SAFE_DELETE(m_Ser);
-  }
-
+  RDCThumbnailProvider() : m_iRefcount(1), m_Inited(false) { InterlockedIncrement(&numProviders); }
+  virtual ~RDCThumbnailProvider() { InterlockedDecrement(&numProviders); }
   ULONG STDMETHODCALLTYPE AddRef()
   {
     InterlockedIncrement(&m_iRefcount);
@@ -118,9 +110,9 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       return E_INVALIDARG;
     }
 
-    RDCLOG("RDCThumbnailProvider Initialize read %d bytes from file", numRead);
+    RDCDEBUG("RDCThumbnailProvider Initialize read %d bytes from file", numRead);
 
-    m_Ser = new Serialiser(numRead, buf, true);
+    m_RDC.Open(std::vector<byte>(buf, buf + numRead));
 
     delete[] buf;
 
@@ -131,56 +123,34 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
   virtual HRESULT STDMETHODCALLTYPE GetThumbnail(UINT cx, HBITMAP *phbmp, WTS_ALPHATYPE *pdwAlpha)
   {
-    RDCLOG("RDCThumbnailProvider GetThumbnail %d", cx);
+    RDCDEBUG("RDCThumbnailProvider GetThumbnail %d", cx);
 
-    if(!m_Inited || !m_Ser)
+    if(!m_Inited)
     {
       RDCERR("Not initialized");
       return E_NOTIMPL;
     }
 
-    if(m_Ser->HasError())
+    if(m_RDC.ErrorCode() != ContainerError::NoError)
     {
-      RDCERR("Problem serialising file");
+      RDCERR("Problem opening file");
       return E_NOTIMPL;
     }
 
-    int ctx = m_Ser->PushContext(NULL, NULL, 1, false);
+    const RDCThumb &thumb = m_RDC.GetThumbnail();
 
-    if(ctx != THUMBNAIL_DATA)
-    {
-      return E_NOTIMPL;
-    }
-
-    bool HasThumbnail = false;
-    m_Ser->Serialise(NULL, HasThumbnail);
-
-    if(!HasThumbnail)
-    {
-      return E_NOTIMPL;
-    }
-
-    byte *jpgbuf = NULL;
-    size_t thumblen = 0;
-    uint32_t thumbwidth = 0, thumbheight = 0;
-    {
-      m_Ser->Serialise("ThumbWidth", thumbwidth);
-      m_Ser->Serialise("ThumbHeight", thumbheight);
-      m_Ser->SerialiseBuffer("ThumbnailPixels", jpgbuf, thumblen);
-    }
+    const byte *jpgbuf = thumb.pixels;
+    size_t thumblen = thumb.len;
+    uint32_t thumbwidth = thumb.width, thumbheight = thumb.height;
 
     if(jpgbuf == NULL)
-    {
       return E_NOTIMPL;
-    }
 
     int w = thumbwidth;
     int h = thumbheight;
     int comp = 3;
     byte *thumbpixels =
         jpgd::decompress_jpeg_image_from_memory(jpgbuf, (int)thumblen, &w, &h, &comp, 3);
-
-    delete[] jpgbuf;
 
     float aspect = float(thumbwidth) / float(thumbheight);
 
@@ -197,33 +167,33 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
     bi.bV5BlueMask = 0x000000FF;
     bi.bV5AlphaMask = 0xFF000000;
 
+    if(cx != thumbwidth)
+    {
+      byte *resizedpixels = (byte *)malloc(3 * bi.bV5Width * bi.bV5Height);
+
+      stbir_resize_uint8_srgb(thumbpixels, thumbwidth, thumbheight, 0, resizedpixels, bi.bV5Width,
+                              bi.bV5Height, 0, 3, -1, 0);
+
+      free(thumbpixels);
+
+      thumbpixels = resizedpixels;
+    }
+
     HDC dc = ::CreateCompatibleDC(0);
 
     RGBQUAD *pArgb;
     *phbmp = ::CreateDIBSection(dc, (BITMAPINFO *)&bi, DIB_RGB_COLORS, (void **)&pArgb, NULL, 0);
 
-    float widthf = float(thumbwidth);
-    float heightf = float(thumbheight);
-
     if(*phbmp)
     {
       DWORD *pBits = (DWORD *)pArgb;
-      for(int y = 0; y < bi.bV5Height; y++)
+      for(int y = bi.bV5Height - 1; y >= 0; y--)
       {
         for(int x = 0; x < bi.bV5Width; x++)
         {
-          *pBits = 0xff000000;
+          byte *srcPixel = &thumbpixels[3 * (x + bi.bV5Width * y)];
 
-          byte *srcPixel = NULL;
-
-          float xf = float(x) / float(bi.bV5Width);
-          float yf = float(bi.bV5Height - y - 1) / float(bi.bV5Height);
-
-          srcPixel = &thumbpixels[3 * (uint32_t(xf * widthf) + thumbwidth * uint32_t(yf * heightf))];
-
-          *pBits |= (srcPixel[0] << 16);
-          *pBits |= (srcPixel[1] << 8);
-          *pBits |= (srcPixel[2] << 0);
+          *pBits = 0xff << 24 | (srcPixel[0] << 16) | (srcPixel[1] << 8) | (srcPixel[2] << 0);
 
           pBits++;
         }
