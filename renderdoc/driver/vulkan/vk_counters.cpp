@@ -74,8 +74,9 @@ vector<GPUCounter> VulkanReplay::EnumerateCounters()
   return ret;
 }
 
-void VulkanReplay::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
+CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
 {
+  CounterDescription desc = {};
   desc.counterID = counterID;
   // 6839CB5B-FBD2-4550-B606-8C65157C684C
   desc.uuid.bytes[0] = 0x6839CB5B;
@@ -185,6 +186,8 @@ void VulkanReplay::DescribeCounter(GPUCounter counterID, CounterDescription &des
       desc.unit = CounterUnit::Absolute;
       break;
   }
+
+  return desc;
 }
 
 struct VulkanGPUTimerCallback : public VulkanDrawcallCallback

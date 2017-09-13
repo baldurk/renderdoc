@@ -70,6 +70,7 @@ APIProperties D3D12Replay::GetAPIProperties()
   ret.pipelineType = GraphicsAPI::D3D12;
   ret.localRenderer = GraphicsAPI::D3D12;
   ret.degraded = false;
+  ret.shadersMutable = false;
 
   return ret;
 }

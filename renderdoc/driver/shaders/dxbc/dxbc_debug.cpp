@@ -567,14 +567,14 @@ void State::Init()
     {
       if(indexTempSizes[i] > 0)
       {
-        indexableTemps[i].resize(indexTempSizes[i]);
+        indexableTemps[i].members.resize(indexTempSizes[i]);
         for(uint32_t t = 0; t < indexTempSizes[i]; t++)
         {
           char buf[64] = {0};
 
           StringFormat::snprintf(buf, 63, "x%u[%u]", i, t);
 
-          indexableTemps[i][t] = ShaderVariable(buf, 0l, 0l, 0l, 0l);
+          indexableTemps[i].members[t] = ShaderVariable(buf, 0l, 0l, 0l, 0l);
         }
       }
     }
@@ -646,10 +646,10 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
         RDCASSERT(indices[0] < (uint32_t)indexableTemps.size());
         if(indices[0] < (uint32_t)indexableTemps.size())
         {
-          RDCASSERT(indices[1] < (uint32_t)indexableTemps[indices[0]].size());
-          if(indices[1] < (uint32_t)indexableTemps[indices[0]].size())
+          RDCASSERT(indices[1] < (uint32_t)indexableTemps[indices[0]].members.size());
+          if(indices[1] < (uint32_t)indexableTemps[indices[0]].members.size())
           {
-            v = &indexableTemps[indices[0]][indices[1]];
+            v = &indexableTemps[indices[0]].members[indices[1]];
           }
         }
       }
@@ -839,10 +839,10 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
         RDCASSERT(indices[0] < (uint32_t)indexableTemps.size());
         if(indices[0] < (uint32_t)indexableTemps.size())
         {
-          RDCASSERT(indices[1] < (uint32_t)indexableTemps[indices[0]].size());
-          if(indices[1] < (uint32_t)indexableTemps[indices[0]].size())
+          RDCASSERT(indices[1] < (uint32_t)indexableTemps[indices[0]].members.size());
+          if(indices[1] < (uint32_t)indexableTemps[indices[0]].members.size())
           {
-            v = s = indexableTemps[indices[0]][indices[1]];
+            v = s = indexableTemps[indices[0]].members[indices[1]];
           }
         }
       }
@@ -943,11 +943,11 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
       if(cb >= 0 && cb < trace->cbuffers.count())
       {
         RDCASSERTMSG("Out of bounds cbuffer lookup",
-                     indices[1] < (uint32_t)trace->cbuffers[cb].count(), indices[1],
-                     trace->cbuffers[cb].count());
+                     indices[1] < (uint32_t)trace->cbuffers[cb].members.count(), indices[1],
+                     trace->cbuffers[cb].members.count());
 
-        if(indices[1] < (uint32_t)trace->cbuffers[cb].size())
-          v = s = trace->cbuffers[cb][indices[1]];
+        if(indices[1] < (uint32_t)trace->cbuffers[cb].members.count())
+          v = s = trace->cbuffers[cb].members[indices[1]];
         else
           v = s = ShaderVariable("", 0U, 0U, 0U, 0U);
       }

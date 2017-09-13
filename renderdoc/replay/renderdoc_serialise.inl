@@ -212,11 +212,29 @@ void DoSerialise(SerialiserType &ser, ShaderResource &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ShaderCompileFlag &el)
+{
+  SERIALISE_MEMBER(Name);
+  SERIALISE_MEMBER(Value);
+
+  SIZE_CHECK(32);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ShaderCompileFlags &el)
 {
   SERIALISE_MEMBER(flags);
 
   SIZE_CHECK(16);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ShaderSourceFile &el)
+{
+  SERIALISE_MEMBER(Filename);
+  SERIALISE_MEMBER(Contents);
+
+  SIZE_CHECK(32);
 }
 
 template <typename SerialiserType>

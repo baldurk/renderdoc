@@ -215,8 +215,8 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     refl->DebugInfo.files.resize(dxbc->m_DebugInfo->Files.size());
     for(size_t i = 0; i < dxbc->m_DebugInfo->Files.size(); i++)
     {
-      refl->DebugInfo.files[i].first = dxbc->m_DebugInfo->Files[i].first;
-      refl->DebugInfo.files[i].second = dxbc->m_DebugInfo->Files[i].second;
+      refl->DebugInfo.files[i].Filename = dxbc->m_DebugInfo->Files[i].first;
+      refl->DebugInfo.files[i].Contents = dxbc->m_DebugInfo->Files[i].second;
     }
 
     string entry = dxbc->m_DebugInfo->GetEntryFunction();
@@ -235,8 +235,8 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
       // positives, and so we want to bias towards leaving [0] in place.
       for(size_t i = 0; i < refl->DebugInfo.files.size(); i++)
       {
-        const char *c = strstr(refl->DebugInfo.files[i].first.c_str(), entry.c_str());
-        const char *end = refl->DebugInfo.files[i].first.end();
+        const char *c = strstr(refl->DebugInfo.files[i].Filename.c_str(), entry.c_str());
+        const char *end = refl->DebugInfo.files[i].Filename.end();
 
         // no substring match? continue
         if(c == NULL)

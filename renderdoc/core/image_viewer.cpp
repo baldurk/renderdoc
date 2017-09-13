@@ -137,10 +137,10 @@ public:
   }
   vector<ResourceId> GetTextures() { return {m_TextureID}; }
   TextureDescription GetTexture(ResourceId id) { return m_Proxy->GetTexture(m_TextureID); }
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                       const GetTextureDataParams &params, size_t &dataSize)
+  void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                      const GetTextureDataParams &params, bytebuf &data)
   {
-    return m_Proxy->GetTextureData(m_TextureID, arrayIdx, mip, params, dataSize);
+    m_Proxy->GetTextureData(m_TextureID, arrayIdx, mip, params, data);
   }
 
   // handle a couple of operations ourselves to return a simple fake log
@@ -170,10 +170,11 @@ public:
   bool IsRenderOutput(ResourceId id) { return false; }
   ResourceId GetLiveID(ResourceId id) { return id; }
   vector<GPUCounter> EnumerateCounters() { return vector<GPUCounter>(); }
-  void DescribeCounter(GPUCounter counterID, CounterDescription &desc)
+  CounterDescription DescribeCounter(GPUCounter counterID)
   {
-    RDCEraseEl(desc);
+    CounterDescription desc = {};
     desc.counterID = counterID;
+    return desc;
   }
   vector<CounterResult> FetchCounters(const vector<GPUCounter> &counters)
   {
