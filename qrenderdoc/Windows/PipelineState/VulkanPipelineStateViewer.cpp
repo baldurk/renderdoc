@@ -665,6 +665,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
                                                QMap<ResourceId, SamplerData> &samplers)
 {
   const ShaderResource *shaderRes = NULL;
+  const ShaderSampler *shaderSamp = NULL;
   const BindpointMap *bindMap = NULL;
 
   bool isrw = false;
@@ -692,6 +693,24 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
     // there's no used resource at all, the first declared unused resource (which will prefer
     // resources with proper bindings over those without, as with the sorting mentioned above).
 
+    for(int i = 0; i < shaderDetails->Samplers.count; i++)
+    {
+      const ShaderSampler &s = shaderDetails->Samplers[i];
+
+      if(stage.BindpointMapping.Samplers[s.bindPoint].bindset == bindset &&
+         stage.BindpointMapping.Samplers[s.bindPoint].bind == bind)
+      {
+        // use this one either if we have no candidate, or the candidate we have is unused and this
+        // one is used
+        if(bindMap == NULL || (!bindMap->used && stage.BindpointMapping.Samplers[s.bindPoint].used))
+        {
+          bindPoint = (uint)i;
+          shaderSamp = &s;
+          bindMap = &stage.BindpointMapping.Samplers[s.bindPoint];
+        }
+      }
+    }
+
     for(int i = 0; i < shaderDetails->ReadOnlyResources.count; i++)
     {
       const ShaderResource &ro = shaderDetails->ReadOnlyResources[i];
@@ -706,6 +725,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         {
           bindPoint = (uint)i;
           shaderRes = &ro;
+          shaderSamp = NULL;
           bindMap = &stage.BindpointMapping.ReadOnlyResources[ro.bindPoint];
         }
       }
@@ -726,6 +746,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           bindPoint = (uint)i;
           isrw = true;
           shaderRes = &rw;
+          shaderSamp = NULL;
           bindMap = &stage.BindpointMapping.ReadWriteResources[rw.bindPoint];
         }
       }
@@ -744,7 +765,9 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
   }
   else
   {
-    if(shaderRes->resType == TextureDim::Buffer)
+    if(shaderSamp)
+      bindType = BindType::Sampler;
+    else if(shaderRes->resType == TextureDim::Buffer)
       bindType = isrw ? BindType::ReadWriteBuffer : BindType::ReadOnlyBuffer;
     else
       bindType = isrw ? BindType::ReadWriteImage : BindType::ReadOnlyImage;
@@ -782,8 +805,10 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
     QString setname = QString::number(bindset);
 
     QString slotname = QString::number(bind);
-    if(shaderRes != NULL && shaderRes->name.count > 0)
+    if(shaderRes && shaderRes->name.count > 0)
       slotname += lit(": ") + shaderRes->name;
+    else if(shaderSamp && shaderSamp->name.count > 0)
+      slotname += lit(": ") + shaderSamp->name;
 
     int arrayLength = 0;
     if(slotBinds != NULL)
@@ -819,8 +844,10 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
       if(arrayLength > 1)
       {
-        if(shaderRes != NULL && shaderRes->name.count > 0)
+        if(shaderRes && shaderRes->name.count > 0)
           slotname = QFormatStr("%1[%2]: %3").arg(bind).arg(idx).arg(shaderRes->name);
+        else if(shaderSamp && shaderSamp->name.count > 0)
+          slotname = QFormatStr("%1[%2]: %3").arg(bind).arg(idx).arg(shaderSamp->name);
         else
           slotname = QFormatStr("%1[%2]").arg(bind).arg(idx);
       }
