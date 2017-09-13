@@ -2558,6 +2558,17 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       if(!bindMap.used)
         continue;
 
+      // push constants
+      if(!b.bufferBacked)
+      {
+        // could maybe get range/size from ShaderVariable.reg if it's filled out
+        // from SPIR-V side.
+        rows.push_back({QString(), b.name, tr("Push constants"), (qulonglong)0, (qulonglong)0,
+                        b.variables.count, b.byteSize});
+
+        continue;
+      }
+
       const VKPipe::DescriptorSet &set =
           pipeline.DescSets[sh.BindpointMapping.ConstantBlocks[i].bindset];
       const VKPipe::DescriptorBinding &bind =
@@ -2598,19 +2609,6 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
 
         if(name.isEmpty())
           name = tr("UBO %1").arg(ToQStr(descriptorBind.res));
-
-        // push constants
-        if(!b.bufferBacked)
-        {
-          setname = QString();
-          slotname = b.name;
-          name = tr("Push constants");
-          byteOffset = 0;
-          length = 0;
-
-          // could maybe get range/size from ShaderVariable.reg if it's filled out
-          // from SPIR-V side.
-        }
 
         rows.push_back({setname, slotname, name, (qulonglong)byteOffset, (qulonglong)length,
                         numvars, b.byteSize});
