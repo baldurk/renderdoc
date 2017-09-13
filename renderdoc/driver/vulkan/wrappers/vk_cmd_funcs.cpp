@@ -1166,53 +1166,57 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(Serialiser *localSerialiser,
 
       ResourceId liveid = GetResID(pipeline);
 
-      if(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
-        m_RenderState.graphics.pipeline = liveid;
-      else
+      if(bind == VK_PIPELINE_BIND_POINT_COMPUTE)
+      {
         m_RenderState.compute.pipeline = liveid;
+      }
+      else
+      {
+        m_RenderState.graphics.pipeline = liveid;
 
-      if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_VIEWPORT])
-      {
-        m_RenderState.views = m_CreationInfo.m_Pipeline[liveid].viewports;
-      }
-      if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_SCISSOR])
-      {
-        m_RenderState.scissors = m_CreationInfo.m_Pipeline[liveid].scissors;
-      }
-      if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_LINE_WIDTH])
-      {
-        m_RenderState.lineWidth = m_CreationInfo.m_Pipeline[liveid].lineWidth;
-      }
-      if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BIAS])
-      {
-        m_RenderState.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBiasConstantFactor;
-        m_RenderState.bias.biasclamp = m_CreationInfo.m_Pipeline[liveid].depthBiasClamp;
-        m_RenderState.bias.slope = m_CreationInfo.m_Pipeline[liveid].depthBiasSlopeFactor;
-      }
-      if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_BLEND_CONSTANTS])
-      {
-        memcpy(m_RenderState.blendConst, m_CreationInfo.m_Pipeline[liveid].blendConst,
-               sizeof(float) * 4);
-      }
-      if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BOUNDS])
-      {
-        m_RenderState.mindepth = m_CreationInfo.m_Pipeline[liveid].minDepthBounds;
-        m_RenderState.maxdepth = m_CreationInfo.m_Pipeline[liveid].maxDepthBounds;
-      }
-      if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK])
-      {
-        m_RenderState.front.compare = m_CreationInfo.m_Pipeline[liveid].front.compareMask;
-        m_RenderState.back.compare = m_CreationInfo.m_Pipeline[liveid].back.compareMask;
-      }
-      if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_WRITE_MASK])
-      {
-        m_RenderState.front.write = m_CreationInfo.m_Pipeline[liveid].front.writeMask;
-        m_RenderState.back.write = m_CreationInfo.m_Pipeline[liveid].back.writeMask;
-      }
-      if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_REFERENCE])
-      {
-        m_RenderState.front.ref = m_CreationInfo.m_Pipeline[liveid].front.reference;
-        m_RenderState.back.ref = m_CreationInfo.m_Pipeline[liveid].back.reference;
+        if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_VIEWPORT])
+        {
+          m_RenderState.views = m_CreationInfo.m_Pipeline[liveid].viewports;
+        }
+        if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_SCISSOR])
+        {
+          m_RenderState.scissors = m_CreationInfo.m_Pipeline[liveid].scissors;
+        }
+        if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_LINE_WIDTH])
+        {
+          m_RenderState.lineWidth = m_CreationInfo.m_Pipeline[liveid].lineWidth;
+        }
+        if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BIAS])
+        {
+          m_RenderState.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBiasConstantFactor;
+          m_RenderState.bias.biasclamp = m_CreationInfo.m_Pipeline[liveid].depthBiasClamp;
+          m_RenderState.bias.slope = m_CreationInfo.m_Pipeline[liveid].depthBiasSlopeFactor;
+        }
+        if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_BLEND_CONSTANTS])
+        {
+          memcpy(m_RenderState.blendConst, m_CreationInfo.m_Pipeline[liveid].blendConst,
+                 sizeof(float) * 4);
+        }
+        if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BOUNDS])
+        {
+          m_RenderState.mindepth = m_CreationInfo.m_Pipeline[liveid].minDepthBounds;
+          m_RenderState.maxdepth = m_CreationInfo.m_Pipeline[liveid].maxDepthBounds;
+        }
+        if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK])
+        {
+          m_RenderState.front.compare = m_CreationInfo.m_Pipeline[liveid].front.compareMask;
+          m_RenderState.back.compare = m_CreationInfo.m_Pipeline[liveid].back.compareMask;
+        }
+        if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_WRITE_MASK])
+        {
+          m_RenderState.front.write = m_CreationInfo.m_Pipeline[liveid].front.writeMask;
+          m_RenderState.back.write = m_CreationInfo.m_Pipeline[liveid].back.writeMask;
+        }
+        if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_REFERENCE])
+        {
+          m_RenderState.front.ref = m_CreationInfo.m_Pipeline[liveid].front.reference;
+          m_RenderState.back.ref = m_CreationInfo.m_Pipeline[liveid].back.reference;
+        }
       }
     }
   }
