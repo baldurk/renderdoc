@@ -455,7 +455,7 @@ void RDTreeWidget::endUpdate()
 {
   m_queueUpdates = false;
 
-  if(m_queuedRoles || m_queuedChildren)
+  if(m_queuedRoles)
   {
     // if we updated multiple different trees we can't issue a single dataChanged for everything
     // under a parent. Refresh the whole model.
