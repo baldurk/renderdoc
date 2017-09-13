@@ -531,8 +531,8 @@ bool exists(const char *filename)
 {
   wstring wfn = StringFormat::UTF82Wide(filename);
 
-  struct _stat st;
-  int res = _wstat(wfn.c_str(), &st);
+  struct __stat64 st;
+  int res = _wstat64(wfn.c_str(), &st);
 
   return (res == 0);
 }
