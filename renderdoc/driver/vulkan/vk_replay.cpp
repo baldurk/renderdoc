@@ -3820,7 +3820,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
 
   data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width) >> mip, 1U);
   data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height) >> mip, 1U);
-  data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.arrayLayers) >> mip, 1U);
+  data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.extent.depth) >> mip, 1U);
   if(iminfo.type != VK_IMAGE_TYPE_3D)
     data->HistogramSlice = (float)sliceFace + 0.001f;
   else
@@ -4065,7 +4065,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
   data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width) >> mip, 1U);
   data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height) >> mip, 1U);
-  data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.arrayLayers) >> mip, 1U);
+  data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.extent.depth) >> mip, 1U);
   if(iminfo.type != VK_IMAGE_TYPE_3D)
     data->HistogramSlice = (float)sliceFace + 0.001f;
   else
