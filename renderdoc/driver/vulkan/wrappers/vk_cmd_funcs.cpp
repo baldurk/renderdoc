@@ -575,10 +575,10 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(Serialiser *localSerialiser,
         // there's no issue with clashes here.
         m_RerecordCmds[bakeId] = cmd;
         m_RerecordCmds[cmdId] = cmd;
-
-        m_BakedCmdBufferInfo[GetResID(cmd)].level = allocInfo.level;
-        m_BakedCmdBufferInfo[GetResID(cmd)].beginFlags = info.flags;
       }
+
+      m_BakedCmdBufferInfo[GetResID(cmd)].level = allocInfo.level;
+      m_BakedCmdBufferInfo[GetResID(cmd)].beginFlags = info.flags;
 
       // add one-time submit flag as this partial cmd buffer will only be submitted once
       info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
