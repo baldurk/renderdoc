@@ -3137,7 +3137,13 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-        gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, quadtexs[1], 0);
+
+        GLenum dsAttach = eGL_DEPTH_STENCIL_ATTACHMENT;
+
+        if(GetBaseFormat(fmt) == eGL_DEPTH_COMPONENT)
+          dsAttach = eGL_DEPTH_ATTACHMENT;
+
+        gl.glFramebufferTexture(eGL_FRAMEBUFFER, dsAttach, quadtexs[1], 0);
 
         if(overlay == DebugOverlay::QuadOverdrawPass)
           ReplayLog(events[0], eReplay_WithoutDraw);
