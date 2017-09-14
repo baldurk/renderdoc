@@ -5,7 +5,7 @@ public class Loader extends android.app.NativeActivity
 {
     /* load our native library */
     static {
-        System.loadLibrary("VkLayer_GLES_RenderDoc");
+        System.loadLibrary("renderdoccmd"); // this will load VkLayer_GLES_RenderDoc as well
     }
 
     @Override
