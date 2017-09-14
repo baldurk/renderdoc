@@ -319,6 +319,8 @@ endif()
 
 if(ANDROID)
     set_target_properties(renderdoc PROPERTIES LINK_FLAGS "-Wl,--build-id")
+    # rename output library
+    set_target_properties(renderdoc PROPERTIES OUTPUT_NAME "VkLayer_GLES_RenderDoc")
 endif()
 
 install (TARGETS renderdoc DESTINATION lib${LIB_SUFFIX})
