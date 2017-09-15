@@ -336,7 +336,7 @@ void PerformanceCounterSelection::SetSelectedCounters(const QList<GPUCounter> &c
   RDTreeWidgetItemIterator it(ui->counterTree);
   while(*it)
   {
-    const QVariant id = (*it)->data(0, Qt::UserRole + 2);
+    const QVariant id = (*it)->data(0, CounterIdRole);
     if(id.isValid())
     {
       const GPUCounter counter = (GPUCounter)id.toUInt();
