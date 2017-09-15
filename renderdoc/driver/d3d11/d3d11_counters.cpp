@@ -452,7 +452,7 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
 
   vector<GPUCounter> d3dCounters;
   std::copy_if(counters.begin(), counters.end(), std::back_inserter(d3dCounters),
-               [](const GPUCounter &c) { return c <= GPUCounter::FirstAMD; });
+               [](const GPUCounter &c) { return c < GPUCounter::FirstAMD; });
 
   if(m_pAMDCounters)
   {
@@ -466,6 +466,11 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
     {
       ret = FetchCountersAMD(amdCounters);
     }
+  }
+
+  if(d3dCounters.empty())
+  {
+    return ret;
   }
 
   D3D11_QUERY_DESC disjointdesc = {D3D11_QUERY_TIMESTAMP_DISJOINT, 0};
