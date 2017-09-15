@@ -87,6 +87,9 @@
     <ClCompile Include="d3d11_stringise.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="d3d11_initstate.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d11_replay.h">
