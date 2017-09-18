@@ -873,3 +873,10 @@ void WrappedID3D11Device::UnregisterDeviceRemoved(DWORD dwCookie)
 
   return m_pDevice4->UnregisterDeviceRemoved(dwCookie);
 }
+
+#undef IMPLEMENT_FUNCTION_SERIALISED
+#define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...)                                            \
+  template bool WrappedID3D11Device::CONCAT(Serialise_, func(ReadSerialiser &ser, __VA_ARGS__)); \
+  template bool WrappedID3D11Device::CONCAT(Serialise_, func(WriteSerialiser &ser, __VA_ARGS__));
+
+SERIALISED_ID3D11DEVICE3_FUNCTIONS();

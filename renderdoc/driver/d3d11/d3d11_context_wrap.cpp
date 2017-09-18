@@ -7986,3 +7986,13 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
 }
 
 #pragma endregion Map
+
+#undef IMPLEMENT_FUNCTION_SERIALISED
+#define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...)                                       \
+  template bool WrappedID3D11DeviceContext::CONCAT(Serialise_,                              \
+                                                   func(ReadSerialiser &ser, __VA_ARGS__)); \
+  template bool WrappedID3D11DeviceContext::CONCAT(Serialise_,                              \
+                                                   func(WriteSerialiser &ser, __VA_ARGS__));
+
+SERIALISED_ID3D11CONTEXT_FUNCTIONS();
+SERIALISED_ID3D11CONTEXT_MARKER_FUNCTIONS();

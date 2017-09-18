@@ -1283,3 +1283,8 @@ void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live,
     }
   }
 }
+
+template bool WrappedID3D11Device::Serialise_InitialState(ReadSerialiser &ser, ResourceId resid,
+                                                          ID3D11DeviceChild *res);
+template bool WrappedID3D11Device::Serialise_InitialState(WriteSerialiser &ser, ResourceId resid,
+                                                          ID3D11DeviceChild *res);
