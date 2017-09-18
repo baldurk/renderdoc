@@ -127,6 +127,11 @@
     <ClInclude Include="official\RGA\elf\elf32.h" />
     <ClInclude Include="official\RGA\elf\elf_common.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\shaders\spirv\renderdoc_spirv.vcxproj">
+      <Project>{0aae0ad1-371b-4a36-9ed1-80e10e960605}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
