@@ -3013,3 +3013,11 @@ UINT WrappedID3D11Device::GetExceptionMode()
 {
   return m_pDevice->GetExceptionMode();
 }
+
+#undef IMPLEMENT_FUNCTION_SERIALISED
+#define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...)                                            \
+  template bool WrappedID3D11Device::CONCAT(Serialise_, func(ReadSerialiser &ser, __VA_ARGS__)); \
+  template bool WrappedID3D11Device::CONCAT(Serialise_, func(WriteSerialiser &ser, __VA_ARGS__));
+
+SERIALISED_ID3D11DEVICE_FUNCTIONS();
+SERIALISED_ID3D11DEVICE_FAKE_FUNCTIONS();

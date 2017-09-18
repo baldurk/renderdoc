@@ -2129,3 +2129,12 @@ void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *
     m_ContextRecord->AddChunk(scope.Get());
   }
 }
+
+#undef IMPLEMENT_FUNCTION_SERIALISED
+#define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...)                                       \
+  template bool WrappedID3D11DeviceContext::CONCAT(Serialise_,                              \
+                                                   func(ReadSerialiser &ser, __VA_ARGS__)); \
+  template bool WrappedID3D11DeviceContext::CONCAT(Serialise_,                              \
+                                                   func(WriteSerialiser &ser, __VA_ARGS__));
+
+SERIALISED_ID3D11CONTEXT1_FUNCTIONS();
