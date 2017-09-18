@@ -67,13 +67,15 @@ HRESULT WrappedID3D11Device::CreateDeferredContext1(UINT ContextFlags,
   return ret;
 }
 
-bool WrappedID3D11Device::Serialise_CreateBlendState1(const D3D11_BLEND_DESC1 *pBlendStateDesc,
+template <typename SerialiserType>
+bool WrappedID3D11Device::Serialise_CreateBlendState1(SerialiserType &ser,
+                                                      const D3D11_BLEND_DESC1 *pBlendStateDesc,
                                                       ID3D11BlendState1 **ppBlendState)
 {
-  SERIALISE_ELEMENT_PTR(D3D11_BLEND_DESC1, Descriptor, pBlendStateDesc);
-  SERIALISE_ELEMENT(ResourceId, State, GetIDForResource(*ppBlendState));
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pBlendStateDesc);
+  SERIALISE_ELEMENT_LOCAL(pState, GetIDForResource(*ppBlendState));
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
     ID3D11BlendState1 *ret = NULL;
     HRESULT hr = E_NOINTERFACE;
@@ -95,13 +97,13 @@ bool WrappedID3D11Device::Serialise_CreateBlendState1(const D3D11_BLEND_DESC1 *p
         ret = (ID3D11BlendState1 *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
-        GetResourceManager()->AddLiveResource(State, ret);
+        GetResourceManager()->AddLiveResource(pState, ret);
       }
       else
       {
         ret = new WrappedID3D11BlendState1(ret, this);
 
-        GetResourceManager()->AddLiveResource(State, ret);
+        GetResourceManager()->AddLiveResource(pState, ret);
       }
     }
   }
@@ -144,10 +146,11 @@ HRESULT WrappedID3D11Device::CreateBlendState1(const D3D11_BLEND_DESC1 *pBlendSt
       m_CachedStateObjects.insert(wrapped);
     }
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
-      SCOPED_SERIALISE_CONTEXT(CREATE_BLEND_STATE1);
-      Serialise_CreateBlendState1(pBlendStateDesc, &wrapped);
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateBlendState1);
+      Serialise_CreateBlendState1(GET_SERIALISER, pBlendStateDesc, &wrapped);
 
       m_DeviceRecord->AddChunk(scope.Get());
     }
@@ -158,13 +161,15 @@ HRESULT WrappedID3D11Device::CreateBlendState1(const D3D11_BLEND_DESC1 *pBlendSt
   return ret;
 }
 
+template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_CreateRasterizerState1(
-    const D3D11_RASTERIZER_DESC1 *pRasterizerDesc, ID3D11RasterizerState1 **ppRasterizerState)
+    SerialiserType &ser, const D3D11_RASTERIZER_DESC1 *pRasterizerDesc,
+    ID3D11RasterizerState1 **ppRasterizerState)
 {
-  SERIALISE_ELEMENT_PTR(D3D11_RASTERIZER_DESC1, Descriptor, pRasterizerDesc);
-  SERIALISE_ELEMENT(ResourceId, State, GetIDForResource(*ppRasterizerState));
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pRasterizerDesc);
+  SERIALISE_ELEMENT_LOCAL(pState, GetIDForResource(*ppRasterizerState));
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
     ID3D11RasterizerState1 *ret = NULL;
     HRESULT hr = E_NOINTERFACE;
@@ -186,13 +191,13 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState1(
         ret = (ID3D11RasterizerState1 *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
-        GetResourceManager()->AddLiveResource(State, ret);
+        GetResourceManager()->AddLiveResource(pState, ret);
       }
       else
       {
         ret = new WrappedID3D11RasterizerState2(ret, this);
 
-        GetResourceManager()->AddLiveResource(State, ret);
+        GetResourceManager()->AddLiveResource(pState, ret);
       }
     }
   }
@@ -235,10 +240,11 @@ HRESULT WrappedID3D11Device::CreateRasterizerState1(const D3D11_RASTERIZER_DESC1
       m_CachedStateObjects.insert(wrapped);
     }
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
-      SCOPED_SERIALISE_CONTEXT(CREATE_RASTER_STATE1);
-      Serialise_CreateRasterizerState1(pRasterizerDesc, &wrapped);
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateRasterizerState1);
+      Serialise_CreateRasterizerState1(GET_SERIALISER, pRasterizerDesc, &wrapped);
 
       m_DeviceRecord->AddChunk(scope.Get());
     }
