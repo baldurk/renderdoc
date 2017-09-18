@@ -223,8 +223,8 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
   gl.glGenTextures(1, &outwin.BlitData.backbuffer);
   gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.backbuffer);
 
-  gl.glTextureImage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 0, eGL_SRGB8, outwin.width,
-                         outwin.height, 0, eGL_RGB, eGL_UNSIGNED_BYTE, NULL);
+  gl.glTextureImage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 0, eGL_SRGB8_ALPHA8,
+                         outwin.width, outwin.height, 0, eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
