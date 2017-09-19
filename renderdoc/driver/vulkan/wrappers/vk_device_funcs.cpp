@@ -884,13 +884,12 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
     {
       // don't include the debug marker extension
-      if(strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
+      if(!strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
         continue;
 
       // don't include direct-display WSI extensions
-      if(strcmp(createInfo.ppEnabledExtensionNames[i], VK_KHR_DISPLAY_SWAPCHAIN_EXTENSION_NAME) ||
-         strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DISPLAY_CONTROL_EXTENSION_NAME) ||
-         strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DISPLAY_CONTROL_EXTENSION_NAME))
+      if(!strcmp(createInfo.ppEnabledExtensionNames[i], VK_KHR_DISPLAY_SWAPCHAIN_EXTENSION_NAME) ||
+         !strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DISPLAY_CONTROL_EXTENSION_NAME))
         continue;
 
       Extensions.push_back(createInfo.ppEnabledExtensionNames[i]);
