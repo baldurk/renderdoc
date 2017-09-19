@@ -40,11 +40,17 @@ set(sources
 
 set(definitions ${RDOC_DEFINITIONS})
 
+set(VULKAN_LAYER_FOLDER_DEFAULT /etc/vulkan/implicit_layer.d)
+
+if(NOT CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND NOT DEFINED VULKAN_LAYER_FOLDER)
+    message(WARNING "*** CMAKE_INSTALL_PREFIX has been customised to ${CMAKE_INSTALL_PREFIX}, but VULKAN_LAYER_FOLDER is not customised and defaults to ${VULKAN_LAYER_FOLDER_DEFAULT}. This may not do what you expect, e.g. installing to a non-root location ***")
+endif()
+
 # This must be specified separately because it needs to go in /etc regardless of what the install
 # prefix is, since the loader only looks in a set location (and /usr/share is reserved for distribution
 # packages). For people who want to 'make install' to another folder, perhaps for preparing a package,
 # they can set this variable to make sure it stays local
-set(VULKAN_LAYER_FOLDER /etc/vulkan/implicit_layer.d CACHE PATH "Path to install the vulkan layer file")
+set(VULKAN_LAYER_FOLDER ${VULKAN_LAYER_FOLDER_DEFAULT} CACHE PATH "Path to install the vulkan layer file")
 
 if(ANDROID)
     list(APPEND sources vk_posix.cpp vk_android.cpp vk_layer_android.cpp)
