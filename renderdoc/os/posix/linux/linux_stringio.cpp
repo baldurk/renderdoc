@@ -42,6 +42,7 @@
 #endif
 
 #if ENABLED(RDOC_XCB)
+#include <X11/keysym.h>
 #include <xcb/xcb_keysyms.h>
 #endif
 
@@ -137,6 +138,10 @@ bool GetXlibKeyState(int key)
 
 // if RENDERDOC_WINDOWING_XLIB is not enabled
 
+void CloneDisplay(Display *dpy)
+{
+}
+
 bool GetXlibKeyState(int key)
 {
   return false;
@@ -160,7 +165,7 @@ bool GetXCBKeyState(int key)
   if(symbols == NULL)
     return false;
 
-  KeySym ks = 0;
+  xcb_keysym_t ks = 0;
 
   if(key >= eRENDERDOC_Key_A && key <= eRENDERDOC_Key_Z)
     ks = key;

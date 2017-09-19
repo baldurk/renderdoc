@@ -139,7 +139,7 @@ struct XlibWindowData
 
 #else
 
-typedef void *Display;
+typedef struct _XDisplay Display;
 
 #endif
 
