@@ -553,7 +553,10 @@ bool installRenderDocServer(const string &deviceID)
   abi_string_map["mips64"]      = Android_mips64;
   // clang-format on
 
-  // 32-bit server works for 32 and 64 bit apps, so install 32-bit matching ABI
+  // 32-bit server works for 32 and 64 bit apps
+  // For stable builds of the server, only 32-bit libs will be packaged into APK
+  // For local builds, whatever was specified as single ABI will be packaged into APK
+
   string adbAbi = trim(adbExecCommand(deviceID, "shell getprop ro.product.cpu.abi").strStdout);
 
   string adbInstall;
@@ -561,7 +564,7 @@ bool installRenderDocServer(const string &deviceID)
   {
     case Android_armeabi_v7a:
     case Android_arm64_v8a:
-      adbInstall = adbExecCommand(deviceID, "install -r --abi armeabi-v7a " + serverApk).strStdout;
+      adbInstall = adbExecCommand(deviceID, "install -r -g " + serverApk).strStdout;
       break;
     case Android_armeabi:
     case Android_x86:
