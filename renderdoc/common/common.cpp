@@ -372,7 +372,7 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
   char *output = rdclog_outputBuffer;
   size_t available = rdclog_outBufSize;
 
-  const char *base = output;
+  char *base = output;
 
   int numWritten = StringFormat::snprintf(output, available, "% 4s %06u: %s%s%s - ", project,
                                           Process::GetCurrentPID(), timestamp, location,
@@ -432,10 +432,44 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
     va_end(args2);
   }
 
-  *output = '\n';
-  *(output + 1) = 0;
+  *output = 0;
 
-  rdclogprint_int(type, base, noPrefixOutput);
+  const char newline[] =
+#if ENABLED(RDOC_WIN32)
+      "\r\n";
+#else
+      "\n";
+#endif
 
-  delete[] oversizedBuffer;
+  // likely path - string contains no newlines
+  char *nl = strchr(base, '\n');
+  if(nl == NULL)
+  {
+    rdclogprint_int(type, base, noPrefixOutput);
+
+    // print a newline automatically
+    rdclogprint_int(type, newline, newline);
+  }
+  else
+  {
+    // otherwise, print the string in sections to ensure newlines are in native format
+    while(nl)
+    {
+      *nl = 0;
+      rdclogprint_int(type, base, noPrefixOutput);
+      rdclogprint_int(type, newline, newline);
+
+      base = nl + 1;
+      noPrefixOutput = nl + 1;
+
+      nl = strchr(base, '\n');
+    }
+
+    // there will be the remainder up to the final non-trailing newline, print it
+
+    rdclogprint_int(type, base, noPrefixOutput);
+    rdclogprint_int(type, newline, newline);
+  }
+
+  SAFE_DELETE_ARRAY(oversizedBuffer);
 }
