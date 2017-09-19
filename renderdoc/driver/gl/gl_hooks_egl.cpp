@@ -276,9 +276,6 @@ public:
     ret.egl_dpy = eglDisplay;
     ret.egl_ctx = ctx;
     ret.egl_wnd = surface;
-#if ENABLED(RDOC_ANDROID)
-    ret.wnd = (ANativeWindow *)window;
-#endif
 
     return ret;
   }
