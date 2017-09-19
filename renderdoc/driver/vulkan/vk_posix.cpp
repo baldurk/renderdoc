@@ -157,7 +157,6 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalD
 namespace Keyboard
 {
 void UseConnection(xcb_connection_t *conn);
-void CloneDisplay(Display *dpy);
 }
 
 VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(VkInstance instance,
@@ -197,6 +196,11 @@ VkBool32 WrappedVulkan::vkGetPhysicalDeviceXlibPresentationSupportKHR(
   return ObjDisp(physicalDevice)
       ->GetPhysicalDeviceXlibPresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex, dpy,
                                                     visualID);
+}
+
+namespace Keyboard
+{
+void CloneDisplay(Display *dpy);
 }
 
 VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(VkInstance instance,

@@ -372,11 +372,13 @@ int main(int argc, char *argv[])
 
   GlobalEnvironment env;
 
+#if defined(RENDERDOC_WINDOWING_XLIB) || defined(RENDERDOC_WINDOWING_XCB)
   // call XInitThreads - although we don't use xlib concurrently the driver might need to.
   XInitThreads();
 
   // we don't check if display successfully opened, it's only a problem if it's needed later.
   display = env.xlibDisplay = XOpenDisplay(NULL);
+#endif
 
 #if defined(RENDERDOC_SUPPORT_VULKAN)
   VerifyVulkanLayer(env, argc, argv);
