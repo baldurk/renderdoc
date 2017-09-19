@@ -515,8 +515,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
         QString semIdx = s.needSemanticIndex ? QString::number(s.semanticIndex) : QString();
 
+        QString regIdx =
+            s.systemValue == ShaderBuiltin::Undefined ? QString::number(s.regIndex) : lit("-");
+
         ui->inputSig->addTopLevelItem(new RDTreeWidgetItem(
-            {name, semIdx, s.regIndex, TypeString(s), ToQStr(s.systemValue),
+            {name, semIdx, QString::number(s.regIndex), TypeString(s), ToQStr(s.systemValue),
              GetComponentString(s.regChannelMask), GetComponentString(s.channelUsedMask)}));
       }
 
@@ -543,8 +546,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
         QString semIdx = s.needSemanticIndex ? QString::number(s.semanticIndex) : QString();
 
+        QString regIdx =
+            s.systemValue == ShaderBuiltin::Undefined ? QString::number(s.regIndex) : lit("-");
+
         ui->outputSig->addTopLevelItem(new RDTreeWidgetItem(
-            {name, semIdx, s.regIndex, TypeString(s), ToQStr(s.systemValue),
+            {name, semIdx, regIdx, TypeString(s), ToQStr(s.systemValue),
              GetComponentString(s.regChannelMask), GetComponentString(s.channelUsedMask)}));
       }
     }
