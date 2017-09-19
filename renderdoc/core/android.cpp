@@ -968,8 +968,16 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_PushLayerToInstalledAndroid
   if(layerPath.empty())
     return false;
 
-  string layerDst = "/data/data/" + packageName + "/lib/";
+  // Determine where to push the layer
+  string pkgPath = trim(adbExecCommand(deviceID, "shell pm path " + packageName).strStdout);
 
+  // Isolate the app's lib dir
+  pkgPath.erase(pkgPath.begin(), pkgPath.begin() + strlen("package:"));
+  string libDir = removeFromEnd(pkgPath, "base.apk") + "lib/";
+
+  // There will only be one ABI in the lib dir
+  string libsAbi = trim(adbExecCommand(deviceID, "shell ls " + libDir).strStdout);
+  string layerDst = libDir + libsAbi + "/";
   result = adbExecCommand(deviceID, "push " + layerPath + " " + layerDst);
 
   // Ensure the push succeeded
