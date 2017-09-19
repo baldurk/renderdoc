@@ -162,11 +162,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params)
     SAFE_DELETE_ARRAY(props);
   }
 
-  bool ok = AddRequiredExtensions(true, params.Extensions, supportedExtensions);
-
-  // error message will be printed to log in above function if something went wrong
-  if(!ok)
-    return ReplayStatus::APIHardwareUnsupported;
+  AddRequiredExtensions(true, params.Extensions, supportedExtensions);
 
   // verify that extensions & layers are supported
   for(size_t i = 0; i < params.Layers.size(); i++)

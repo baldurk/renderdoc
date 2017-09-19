@@ -658,7 +658,7 @@ private:
   bool m_ExtensionsEnabled[VkCheckExt_Max];
 
   // in vk_<platform>.cpp
-  bool AddRequiredExtensions(bool instance, vector<string> &extensionList,
+  void AddRequiredExtensions(bool instance, vector<string> &extensionList,
                              const std::set<string> &supportedExtensions);
 
   void InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmdBufNodes);

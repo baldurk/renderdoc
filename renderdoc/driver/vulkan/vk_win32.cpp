@@ -72,7 +72,7 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
   return (IsWindowVisible(m_OutputWindows[id].wnd) == TRUE);
 }
 
-bool WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensionList,
+void WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensionList,
                                           const std::set<string> &supportedExtensions)
 {
   bool device = !instance;
@@ -83,39 +83,40 @@ bool WrappedVulkan::AddRequiredExtensions(bool instance, vector<string> &extensi
     if(supportedExtensions.find(VK_KHR_SURFACE_EXTENSION_NAME) == supportedExtensions.end())
     {
       RDCERR("Unsupported required instance extension '%s'", VK_KHR_SURFACE_EXTENSION_NAME);
-      return false;
+    }
+    else
+    {
+      // don't add duplicates
+      if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_SURFACE_EXTENSION_NAME) ==
+         extensionList.end())
+        extensionList.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
     }
 
     if(supportedExtensions.find(VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == supportedExtensions.end())
     {
       RDCERR("Unsupported required instance extension '%s'", VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-      return false;
     }
-
-    // don't add duplicates
-    if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_SURFACE_EXTENSION_NAME) ==
-       extensionList.end())
-      extensionList.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-
-    if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_WIN32_SURFACE_EXTENSION_NAME) ==
-       extensionList.end())
-      extensionList.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+    else
+    {
+      if(std::find(extensionList.begin(), extensionList.end(),
+                   VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == extensionList.end())
+        extensionList.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+    }
   }
   else if(device)
   {
     if(supportedExtensions.find(VK_KHR_SWAPCHAIN_EXTENSION_NAME) == supportedExtensions.end())
     {
       RDCERR("Unsupported required device extension '%s'", VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-      return false;
     }
-
-    // don't add duplicates
-    if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_SWAPCHAIN_EXTENSION_NAME) ==
-       extensionList.end())
-      extensionList.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    else
+    {
+      // don't add duplicates
+      if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_SWAPCHAIN_EXTENSION_NAME) ==
+         extensionList.end())
+        extensionList.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    }
   }
-
-  return true;
 }
 
 #if !defined(VK_USE_PLATFORM_WIN32_KHR)
