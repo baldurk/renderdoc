@@ -161,7 +161,6 @@ struct GLWindowingData
     egl_ctx = 0;
     egl_dpy = 0;
     egl_wnd = 0;
-    wnd = 0;
   }
 
   void SetCtx(void *c) { egl_ctx = (void *)c; }
@@ -172,8 +171,11 @@ struct GLWindowingData
     EGLContext egl_ctx;
   };
   EGLDisplay egl_dpy;
-  EGLSurface egl_wnd;
-  ANativeWindow *wnd;
+  union
+  {
+    EGLSurface egl_wnd;
+    void *wnd;
+  };
 };
 
 #else
