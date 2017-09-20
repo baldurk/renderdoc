@@ -430,8 +430,9 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
 
     const bool missingLibrary = bool(m_AndroidFlags & AndroidFlags::MissingLibrary);
     const bool missingPermissions = bool(m_AndroidFlags & AndroidFlags::MissingPermissions);
+    const bool wrongLayerVersion = bool(m_AndroidFlags & AndroidFlags::WrongLayerVersion);
 
-    if(missingLibrary || missingPermissions)
+    if(missingLibrary || missingPermissions || wrongLayerVersion)
     {
       // Check failed - set the warning visible
       GUIInvoke::call([this]() {
@@ -463,6 +464,7 @@ void CaptureDialog::androidWarn_mouseClick()
 
   bool missingPermissions = bool(m_AndroidFlags & AndroidFlags::MissingPermissions);
   bool missingLibrary = bool(m_AndroidFlags & AndroidFlags::MissingLibrary);
+  bool wrongLayerVersion = bool(m_AndroidFlags & AndroidFlags::WrongLayerVersion);
   bool rootAccess = bool(m_AndroidFlags & AndroidFlags::RootAccess);
 
   if(missingPermissions)
@@ -479,6 +481,14 @@ void CaptureDialog::androidWarn_mouseClick()
         tr("<b>Missing library</b><br>"
            "The RenderDoc library must be present in the "
            "installed application.<br><br>");
+  }
+
+  if(wrongLayerVersion)
+  {
+    msg +=
+        tr("<b>Wrong layer version</b><br>"
+           "The RenderDoc library was found, but its version "
+           "does not match that of the host.<br><br>");
   }
 
   if(missingPermissions)
