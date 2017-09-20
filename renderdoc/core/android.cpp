@@ -28,6 +28,9 @@
 #include "core/core.h"
 #include "strings/string_utils.h"
 
+extern "C" RENDERDOC_API const char RENDERDOC_Version_Tag_String[] =
+    "RenderDoc_build_version: " FULL_VERSION_STRING " from git commit " GIT_COMMIT_HASH;
+
 namespace Android
 {
 enum class ToolDir
@@ -376,12 +379,13 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
   return ret;
 }
 
-bool SearchForAndroidLayer(const string &deviceID, const string &location, const string &layerName)
+bool SearchForAndroidLayer(const string &deviceID, const string &location, const string &layerName,
+                           string &foundLayer)
 {
   RDCLOG("Checking for layers in: %s", location.c_str());
-  string findLayer =
-      adbExecCommand(deviceID, "shell find " + location + " -name " + layerName).strStdout;
-  if(!findLayer.empty())
+  foundLayer =
+      trim(adbExecCommand(deviceID, "shell find " + location + " -name " + layerName).strStdout);
+  if(!foundLayer.empty())
   {
     RDCLOG("Found RenderDoc layer in %s", location.c_str());
     return true;
@@ -444,6 +448,29 @@ bool AddLayerToAPK(const string &apk, const string &layerPath, const string &lay
   // Run aapt from the directory containing "lib" so the relative paths are good
   string relativeLayer("lib/" + abi + "/" + layerName);
   string workDir = removeFromEnd(layerPath, relativeLayer);
+
+  // If the layer was already present in the APK, we need to remove it first
+  Process::ProcessResult contents = execCommand(aapt, "list \"" + apk + "\"", workDir);
+  if(contents.strStdout.empty())
+  {
+    RDCERR("Failed to list contents of APK. STDERR: %s", contents.strStderror.c_str());
+    return false;
+  }
+
+  if(contents.strStdout.find(relativeLayer) != std::string::npos)
+  {
+    RDCLOG("Removing existing layer from APK before trying to add");
+    Process::ProcessResult remove =
+        execCommand(aapt, "remove \"" + apk + "\" " + relativeLayer, workDir);
+
+    if(!remove.strStdout.empty())
+    {
+      RDCERR("Failed to remove existing layer from APK. STDERR: %s", remove.strStderror.c_str());
+      return false;
+    }
+  }
+
+  // Add the RenderDoc layer
   Process::ProcessResult result = execCommand(aapt, "add \"" + apk + "\" " + relativeLayer, workDir);
 
   if(result.strStdout.empty())
@@ -706,6 +733,49 @@ bool PullAPK(const string &deviceID, const string &pkgPath, const string &apk)
 
   RDCERR("Failed to pull APK");
   return false;
+}
+
+bool CheckLayerVersion(const string &deviceID, const string &layerName, const string &remoteLayer)
+{
+  RDCDEBUG("Checking layer version of: %s", layerName.c_str());
+
+  bool match = false;
+
+  // Use 'strings' command on the device to find the layer's build version
+  // i.e. strings -n <tag length> <layer> | grep <tag marker>
+  // Subtract 5 to provide a bit of wiggle room on version length
+  Process::ProcessResult result = adbExecCommand(
+      deviceID, "shell strings -n " +
+                    StringFormat::Fmt("%u", strlen(RENDERDOC_Version_Tag_String) - 5) + " " +
+                    remoteLayer + " | grep RenderDoc_build_version");
+
+  string line = trim(result.strStdout);
+
+  if(line.empty())
+  {
+    RDCLOG("RenderDoc layer is not versioned, so cannot be checked for compatibility.");
+    return false;
+  }
+
+  std::vector<string> vec;
+  split(line, vec, ' ');
+  string version = vec[1];
+  string hash = vec[5];
+
+  if(version == FULL_VERSION_STRING && hash == GIT_COMMIT_HASH)
+  {
+    RDCLOG("RenderDoc layer version (%s) and git hash (%s) match.", version.c_str(), hash.c_str());
+    match = true;
+  }
+  else
+  {
+    RDCLOG(
+        "RenderDoc layer version (%s) and git hash (%s) do NOT match the host version (%s) or git "
+        "hash (%s).",
+        version.c_str(), hash.c_str(), FULL_VERSION_STRING, GIT_COMMIT_HASH);
+  }
+
+  return match;
 }
 
 bool CheckPermissions(const string &dump)
@@ -1188,18 +1258,30 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const c
   *flags = AndroidFlags::NoFlags;
 
   bool found = false;
+  string layerPath = "";
 
-  // First, see if the application contains the layer
-  if(SearchForAndroidLayer(deviceID, pkgPath, layerName))
+  // Check a debug location only usable by rooted devices, overriding app's layer
+  if(SearchForAndroidLayer(deviceID, "/data/local/debug/vulkan", layerName, layerPath))
     found = true;
 
-  // Next, check a debug location only usable by rooted devices
-  if(!found && SearchForAndroidLayer(deviceID, "/data/local/debug/vulkan", layerName))
+  // See if the application contains the layer
+  if(!found && SearchForAndroidLayer(deviceID, pkgPath, layerName, layerPath))
     found = true;
 
   // TODO: Add any future layer locations
 
-  if(!found)
+  if(found)
+  {
+#if ENABLED(RDOC_DEVEL)
+    // Check the version of the layer found
+    if(!CheckLayerVersion(deviceID, layerName, layerPath))
+    {
+      RDCWARN("RenderDoc layer found, but version does not match");
+      *flags |= AndroidFlags::WrongLayerVersion;
+    }
+#endif
+  }
+  else
   {
     RDCWARN("No RenderDoc layer for Vulkan or GLES was found");
     *flags |= AndroidFlags::MissingLibrary;
@@ -1255,7 +1337,8 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_PushLayerToInstalledAndroid
   result = adbExecCommand(deviceID, "push " + layerPath + " " + layerDst);
 
   // Ensure the push succeeded
-  return SearchForAndroidLayer(deviceID, layerDst, layerName);
+  string foundLayer;
+  return SearchForAndroidLayer(deviceID, layerDst, layerName, foundLayer);
 }
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(const char *host,
