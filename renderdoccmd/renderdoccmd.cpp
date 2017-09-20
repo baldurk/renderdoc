@@ -268,6 +268,8 @@ struct ThumbCommand : public Command
         type = FileType::TGA;
       else if(dot != NULL && strstr(dot, "bmp"))
         type = FileType::BMP;
+      else if(dot != NULL && strstr(dot, "jpg"))
+        type = FileType::JPG;
       else
         std::cerr << "Couldn't guess format from '" << outfile << "', defaulting to jpg."
                   << std::endl;
