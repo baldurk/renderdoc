@@ -3258,6 +3258,11 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
 
 bool GLReplay::IsTextureSupported(const ResourceFormat &format)
 {
+  // We couldn't create proxy textures for ASTC textures (see MakeGLFormat). So we give back false
+  // and let RemapProxyTextureIfNeeded to set remap type for them.
+  if(format.type == ResourceFormatType::ASTC)
+    return false;
+
   return true;
 }
 
