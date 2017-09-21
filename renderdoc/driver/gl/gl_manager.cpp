@@ -660,6 +660,23 @@ void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat, GL
   }
 }
 
+static void GetCompressedImageDataGLES(const vector<byte> &data, GLenum target, size_t size, byte *buf)
+{
+  const bool isCubeFace = IsCubeFace(target);
+  size_t startOffs = isCubeFace ? CubeTargetIndex(target) * size : 0;
+  if(data.size() >= startOffs + size)
+  {
+    memcpy(buf, data.data() + startOffs, size);
+  }
+  else
+  {
+    // we don't warn for cube maps because some cube faces can be missing
+    if(!isCubeFace)
+      RDCERR("Different expected and stored compressed texture sizes!");
+    memset(buf, 0, size);
+  }
+}
+
 void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, ResourceId origid,
                                                       GLResource res)
 {
@@ -870,14 +887,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 
             if(IsGLES)
             {
-              const vector<byte> &data = details.compressedData[i];
-              const byte *src =
-                  (count == 1) ? data.data() : data.data() + CubeTargetIndex(targets[trg]) * size;
-              size_t storedSize = data.size() / count;
-              if(storedSize == size)
-                memcpy(buf, src, size);
-              else
-                RDCERR("Different expected and stored compressed texture sizes!");
+              GetCompressedImageDataGLES(details.compressedData[i], targets[trg], size, buf);
             }
             else
             {
@@ -1258,14 +1268,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
               if(IsGLES)
               {
-                const vector<byte> &data = details.compressedData[i];
-                const byte *src =
-                    (count == 1) ? data.data() : data.data() + CubeTargetIndex(targets[trg]) * size;
-                size_t storedSize = data.size() / count;
-                if(storedSize == size)
-                  memcpy(buf, src, size);
-                else
-                  RDCERR("Different expected and stored compressed texture sizes!");
+                GetCompressedImageDataGLES(details.compressedData[i], targets[trg], size, buf);
               }
               else
               {
@@ -1855,14 +1858,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
               if(IsGLES)
               {
-                const vector<byte> &data = details.compressedData[i];
-                const byte *src =
-                    (count == 1) ? data.data() : data.data() + CubeTargetIndex(targets[trg]) * size;
-                size_t storedSize = data.size() / count;
-                if(storedSize == size)
-                  memcpy(buf, src, size);
-                else
-                  RDCERR("Different expected and stored compressed texture sizes!");
+                GetCompressedImageDataGLES(details.compressedData[i], targets[trg], size, buf);
               }
               else
               {
