@@ -41,6 +41,10 @@ public:
   {
     return double(Timing::GetTick() - m_Start) / m_CounterFrequency;
   }
+  double GetMicroseconds() const
+  {
+    return (double(Timing::GetTick() - m_Start) * 1000.0) / m_CounterFrequency;
+  }
 
   void Restart() { m_Start = Timing::GetTick(); }
 private:

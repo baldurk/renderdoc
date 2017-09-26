@@ -205,6 +205,7 @@ public:
   void Initialise();
   void Shutdown();
 
+  uint64_t GetMicrosecondTimestamp() { return uint64_t(m_Timer.GetMicroseconds()); }
   const GlobalEnvironment GetGlobalEnvironment() { return m_GlobalEnv; }
   void ProcessGlobalEnvironment(GlobalEnvironment env, const std::vector<std::string> &args);
 
@@ -449,6 +450,8 @@ private:
   volatile bool m_ControlClientThreadShutdown;
   Threading::CriticalSection m_SingleClientLock;
   string m_SingleClientName;
+
+  PerformanceTimer m_Timer;
 
   static void TargetControlServerThread(Network::Socket *sock);
   static void TargetControlClientThread(Network::Socket *client);
