@@ -326,7 +326,7 @@ uintptr_t FindRemoteDLL(DWORD pid, wstring libName)
     {
       RDCERR(
           "Error injecting into remote process with PID %u which is no longer available.\n"
-          "Possibly the process has crashed during early startup?",
+          "Possibly the process has crashed during early startup, or is missing DLLs to run?",
           pid);
     }
     else
