@@ -66,7 +66,7 @@ FIXED_ARRAY_TYPEMAPS(uint16_t)
 
 %typemap(in, fragment="pyconvert") std::function {
   PyObject *func = $input;
-  $1 = ConvertFunc<$1_ltype>(self, "$symname", func, exHandle$argnum);
+  $1 = ConvertFunc<$1_ltype>("$symname", func, exHandle$argnum);
 }
 
 %typemap(argout) std::function (ExceptionHandling exHandle) {

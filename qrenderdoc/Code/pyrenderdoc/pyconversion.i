@@ -8,7 +8,7 @@
   $result = PyList_New($1_dim0);
   for(int i = 0; i < $1_dim0; i++)
   {
-    PyObject *o = TypeConversion<BaseType>::ConvertToPy(self, $1[i]);
+    PyObject *o = TypeConversion<BaseType>::ConvertToPy( $1[i]);
     if(!o)
     {
       snprintf(convert_error, sizeof(convert_error)-1, "in method '$symname' returning type '$1_basetype', encoding element %d", i);
@@ -62,7 +62,7 @@
 }
 
 %typemap(out, fragment="pyconvert") SimpleType {
-  $result = ConvertToPy(self, indirect($1));
+  $result = ConvertToPy( indirect($1));
 }
 %enddef
 
@@ -104,7 +104,7 @@ SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType &)
 
 %typemap(out, fragment="pyconvert") ContainerType {
   int failIdx = 0;
-  $result = TypeConversion<std::remove_pointer<$1_basetype>::type>::ConvertToPy(self, indirect($1), &failIdx);
+  $result = TypeConversion<std::remove_pointer<$1_basetype>::type>::ConvertToPy( indirect($1), &failIdx);
   if(!$result)
   {
     snprintf(convert_error, sizeof(convert_error)-1, "in method '$symname' returning type '$1_basetype', encoding element %d", failIdx);

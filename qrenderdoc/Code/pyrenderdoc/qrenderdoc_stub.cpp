@@ -48,7 +48,7 @@ QWidget *PythonContext::QWidgetFromPy(PyObject *widget)
   return NULL;
 }
 
-PyObject *PythonContext::QtObjectToPython(PyObject *self, const char *typeName, QObject *object)
+PyObject *PythonContext::QtObjectToPython(const char *typeName, QObject *object)
 {
   return NULL;
 }

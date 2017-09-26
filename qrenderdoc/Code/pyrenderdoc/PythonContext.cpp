@@ -63,7 +63,7 @@ extern "C" PyObject *PyInit__renderdoc(void);
 extern "C" PyObject *PassObjectToPython(const char *type, void *obj);
 // this one is in qrenderdoc_python.cpp
 extern "C" PyObject *PyInit__qrenderdoc(void);
-extern "C" PyObject *WrapBareQWidget(PyObject *, QWidget *);
+extern "C" PyObject *WrapBareQWidget(QWidget *);
 extern "C" QWidget *UnwrapBareQWidget(PyObject *);
 
 #ifdef WIN32
@@ -642,7 +642,7 @@ QWidget *PythonContext::QWidgetFromPy(PyObject *widget)
 #endif
 }
 
-PyObject *PythonContext::QtObjectToPython(PyObject *self, const char *typeName, QObject *object)
+PyObject *PythonContext::QtObjectToPython(const char *typeName, QObject *object)
 {
 #if PYSIDE2_ENABLED
   if(!initialised())
@@ -651,8 +651,8 @@ PyObject *PythonContext::QtObjectToPython(PyObject *self, const char *typeName, 
   if(!SbkPySide2_QtCoreTypes || !SbkPySide2_QtGuiTypes || !SbkPySide2_QtWidgetsTypes)
   {
     QWidget *w = qobject_cast<QWidget *>(object);
-    if(self && w)
-      return WrapBareQWidget(self, w);
+    if(w)
+      return WrapBareQWidget(w);
 
     Py_RETURN_NONE;
   }
@@ -664,8 +664,8 @@ PyObject *PythonContext::QtObjectToPython(PyObject *self, const char *typeName, 
   return obj;
 #else
   QWidget *w = qobject_cast<QWidget *>(object);
-  if(self && w)
-    return WrapBareQWidget(self, w);
+  if(w)
+    return WrapBareQWidget(w);
 
   Py_RETURN_NONE;
 #endif
