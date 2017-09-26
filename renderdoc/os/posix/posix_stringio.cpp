@@ -153,8 +153,17 @@ string GetReplayAppFilename()
   }
 
   // if it's not in the same directory, try in a sibling /bin
-  // e.g. /foo/bar/lib/librenderdoc.so -> /foo/bar/bin/qrenderdoc
-  replay = path + "/../bin/qrenderdoc";
+  //
+  // start from our path
+  replay = path + "/";
+
+// if there's a custom lib subfolder, go up one (e.g. /usr/lib/renderdoc/librenderdoc.so)
+#if defined(RENDERDOC_LIB_SUBFOLDER)
+  replay += "../";
+#endif
+
+  // leave the lib/ folder, and go into bin/
+  replay += "../bin/qrenderdoc";
 
   f = FileIO::fopen(replay.c_str(), "r");
   if(f)

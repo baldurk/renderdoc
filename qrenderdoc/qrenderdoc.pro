@@ -115,7 +115,7 @@ win32 {
 
 	# Link against the core library
 	LIBS += -lrenderdoc
-	QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\',-rpath,\'\$$ORIGIN/../lib\''
+	QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\',-rpath,\'\$$ORIGIN/../lib'$$LIB_SUFFIX'/'$$LIB_SUBFOLDER_TRAIL_SLASH'\''
 
 	# Add the SWIG files that were generated in cmake
 	SOURCES += $$CMAKE_DIR/qrenderdoc/renderdoc_python.cxx

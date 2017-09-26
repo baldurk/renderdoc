@@ -102,6 +102,9 @@ file(WRITE
      "QMAKE_CXXFLAGS+=${QMAKE_CXXFLAGS}\n"
      "QMAKE_LFLAGS+=${QMAKE_LDFLAGS}\n"
      "\n"
+     "LIB_SUFFIX=${LIB_SUFFIX}\n"
+     "LIB_SUBFOLDER_TRAIL_SLASH=${LIB_SUBFOLDER_TRAIL_SLASH}\n"
+     "\n"
      # search for -lrenderdoc here
      "LIBS+=-L${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\n"
      "\n"

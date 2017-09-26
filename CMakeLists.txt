@@ -40,6 +40,20 @@ set(RENDERDOC_PLUGINS_PATH "" CACHE STRING "Path to RenderDoc plugins folder aft
 set(RENDERDOC_APK_PATH "" CACHE STRING "Path to RenderDocCmd.apk after installation of RenderDoc on host (either absolute or relative to binary)")
 set(RENDERDOC_LAYER_PATH "" CACHE STRING "Path to ABI directories (i.e. lib in lib/armeabi-v7a/libVkLayer_GLES_RenderDoc.so) after installation of RenderDoc on host (either absolute or relative to dir)")
 
+set(LIB_SUFFIX "" CACHE STRING "Suffix for 'lib' folder in target directory structure. E.g. set to '64' to use /usr/local/lib64 instead of /usr/local/lib.")
+set(LIB_SUBFOLDER "" CACHE STRING "Subfolder under the 'lib' folder in target directory structure. E.g. set to 'renderdoc' to use /usr/local/lib/renderdoc instead of /usr/local/lib.")
+
+if(NOT LIB_SUFFIX STREQUAL "")
+    add_definitions(-DRENDERDOC_LIB_SUFFIX=${LIB_SUFFIX})
+endif()
+
+set(LIB_SUBFOLDER_TRAIL_SLASH "")
+
+if(NOT LIB_SUBFOLDER STREQUAL "")
+    add_definitions(-DRENDERDOC_LIB_SUBFOLDER=${LIB_SUBFOLDER})
+    set(LIB_SUBFOLDER_TRAIL_SLASH "${LIB_SUBFOLDER}/")
+endif()
+
 if(BUILD_VERSION_STABLE)
     add_definitions(-DRENDERDOC_STABLE_BUILD=1)
 endif()

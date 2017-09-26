@@ -498,6 +498,15 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
     FileIO::GetExecutableFilename(binpath);
     binpath = dirname(binpath);
     libpath = binpath + "/../lib";
+
+// point to the right customiseable path
+#if defined(RENDERDOC_LIB_SUFFIX)
+    libpath += STRINGIZE(RENDERDOC_LIB_SUFFIX);
+#endif
+
+#if defined(RENDERDOC_LIB_SUBFOLDER)
+    libpath += "/" STRINGIZE(RENDERDOC_LIB_SUBFOLDER);
+#endif
   }
 
   string optstr;
