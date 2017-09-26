@@ -452,7 +452,8 @@ int main(int argc, char *argv[])
 
   int ret = renderdoccmd(env, argc, argv);
 
-  XCloseDisplay(display);
+  if(display)
+    XCloseDisplay(display);
 
   return ret;
 }
