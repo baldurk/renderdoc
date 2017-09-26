@@ -965,7 +965,13 @@ mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len)
 
 #ifndef MINIZ_NO_ZLIB_APIS
 
-static void *def_alloc_func(void *opaque, size_t items, size_t size) { (void)opaque, (void)items, (void)size; return MZ_MALLOC(items * size); }
+static void *def_alloc_func(void *opaque, size_t items, size_t size)
+{
+  (void)opaque, (void)items, (void)size;
+  void *ret = MZ_MALLOC(items * size);
+  memset(ret, 0, items * size);
+  return ret;
+}
 static void def_free_func(void *opaque, void *address) { (void)opaque, (void)address; MZ_FREE(address); }
 static void *def_realloc_func(void *opaque, void *address, size_t items, size_t size) { (void)opaque, (void)address, (void)items, (void)size; return MZ_REALLOC(address, items * size); }
 
