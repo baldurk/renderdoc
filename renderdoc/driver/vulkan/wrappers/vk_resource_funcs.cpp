@@ -1277,18 +1277,41 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pImage);
       record->AddChunk(chunk);
 
-      if(pCreateInfo->flags &
-         (VK_IMAGE_CREATE_SPARSE_BINDING_BIT | VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT))
+      bool isSparse = (pCreateInfo->flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
+                                             VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
+
+      bool isExternal = false;
+
+      const VkGenericStruct *next = (const VkGenericStruct *)pCreateInfo->pNext;
+
+      // search for external memory image create info struct in pNext chain
+      while(next)
+      {
+        if(next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV ||
+           next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR)
+        {
+          isExternal = true;
+          break;
+        }
+
+        next = next->pNext;
+      }
+
+      // sparse and external images are considered dirty from creation. For sparse images this is
+      // so that we can serialise the tracked page table, for external images this is so we can be
+      // sure to fetch their contents even if we don't see any writes.
+      if(isSparse || isExternal)
+      {
+        SCOPED_LOCK(m_CapTransitionLock);
+        if(m_State != WRITING_CAPFRAME)
+          GetResourceManager()->MarkDirtyResource(id);
+        else
+          GetResourceManager()->MarkPendingDirty(id);
+      }
+
+      if(isSparse)
       {
         record->sparseInfo = new SparseMapping();
-
-        {
-          SCOPED_LOCK(m_CapTransitionLock);
-          if(m_State != WRITING_CAPFRAME)
-            GetResourceManager()->MarkDirtyResource(id);
-          else
-            GetResourceManager()->MarkPendingDirty(id);
-        }
 
         if(pCreateInfo->flags & VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)
         {
