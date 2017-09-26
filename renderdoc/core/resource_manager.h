@@ -493,9 +493,12 @@ protected:
   map<ResourceId, ResourceId> m_Replacements;
 };
 
+// this is just a couple of convenience macros to reduce the amount of visual noise on the
+// implementations
+#define ResourceManagerType ResourceManager<WrappedResourceType, RealResourceType, RecordType>
+
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-ResourceManager<WrappedResourceType, RealResourceType, RecordType>::ResourceManager(LogState state,
-                                                                                    Serialiser *ser)
+ResourceManagerType::ResourceManager(LogState state, Serialiser *ser)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(ResourceManager));
@@ -507,7 +510,7 @@ ResourceManager<WrappedResourceType, RealResourceType, RecordType>::ResourceMana
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Shutdown()
+void ResourceManagerType::Shutdown()
 {
   while(!m_LiveResourceMap.empty())
   {
@@ -537,7 +540,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Shutdow
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-ResourceManager<WrappedResourceType, RealResourceType, RecordType>::~ResourceManager()
+ResourceManagerType::~ResourceManager()
 {
   RDCASSERT(m_LiveResourceMap.empty());
   RDCASSERT(m_InframeResourceMap.empty());
@@ -549,8 +552,8 @@ ResourceManager<WrappedResourceType, RealResourceType, RecordType>::~ResourceMan
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::MarkReferenced(
-    map<ResourceId, FrameRefType> &refs, ResourceId id, FrameRefType refType)
+bool ResourceManagerType::MarkReferenced(map<ResourceId, FrameRefType> &refs, ResourceId id,
+                                         FrameRefType refType)
 {
   if(refs.find(id) == refs.end())
   {
@@ -592,8 +595,7 @@ bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::MarkRef
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::MarkResourceFrameReferenced(
-    ResourceId id, FrameRefType refType)
+void ResourceManagerType::MarkResourceFrameReferenced(ResourceId id, FrameRefType refType)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -612,7 +614,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::MarkRes
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::ReadBeforeWrite(ResourceId id)
+bool ResourceManagerType::ReadBeforeWrite(ResourceId id)
 {
   if(m_FrameReferencedResources.find(id) != m_FrameReferencedResources.end())
     return m_FrameReferencedResources[id] == eFrameRef_ReadBeforeWrite ||
@@ -622,7 +624,7 @@ bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::ReadBef
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::MarkDirtyResource(ResourceId res)
+void ResourceManagerType::MarkDirtyResource(ResourceId res)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -633,7 +635,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::MarkDir
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::MarkPendingDirty(ResourceId res)
+void ResourceManagerType::MarkPendingDirty(ResourceId res)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -644,7 +646,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::MarkPen
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::FlushPendingDirty()
+void ResourceManagerType::FlushPendingDirty()
 {
   SCOPED_LOCK(m_Lock);
 
@@ -653,7 +655,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::FlushPe
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::IsResourceDirty(ResourceId res)
+bool ResourceManagerType::IsResourceDirty(ResourceId res)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -664,7 +666,7 @@ bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::IsResou
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::MarkCleanResource(ResourceId res)
+void ResourceManagerType::MarkCleanResource(ResourceId res)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -678,8 +680,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::MarkCle
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::SetInitialContents(
-    ResourceId id, InitialContentData contents)
+void ResourceManagerType::SetInitialContents(ResourceId id, InitialContentData contents)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -698,8 +699,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::SetInit
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::SetInitialChunk(ResourceId id,
-                                                                                         Chunk *chunk)
+void ResourceManagerType::SetInitialChunk(ResourceId id, Chunk *chunk)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -720,8 +720,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::SetInit
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-typename ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InitialContentData ResourceManager<
-    WrappedResourceType, RealResourceType, RecordType>::GetInitialContents(ResourceId id)
+typename ResourceManagerType::InitialContentData ResourceManagerType::GetInitialContents(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -735,7 +734,7 @@ typename ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Ini
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Serialise_InitialContentsNeeded()
+void ResourceManagerType::Serialise_InitialContentsNeeded()
 {
   SCOPED_LOCK(m_Lock);
 
@@ -784,7 +783,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Seriali
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::FreeInitialContents()
+void ResourceManagerType::FreeInitialContents()
 {
   while(!m_InitialContents.empty())
   {
@@ -797,7 +796,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::FreeIni
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::CreateInitialContents()
+void ResourceManagerType::CreateInitialContents()
 {
   set<ResourceId> neededInitials;
 
@@ -837,7 +836,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::CreateI
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::ApplyInitialContents()
+void ResourceManagerType::ApplyInitialContents()
 {
   RDCDEBUG("Applying initial contents");
   uint32_t numContents = 0;
@@ -858,7 +857,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::ApplyIn
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::MarkUnwrittenResources()
+void ResourceManagerType::MarkUnwrittenResources()
 {
   SCOPED_LOCK(m_Lock);
 
@@ -909,7 +908,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertR
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::PrepareInitialContents()
+void ResourceManagerType::PrepareInitialContents()
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1086,7 +1085,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::ReleaseInFrameResources()
+void ResourceManagerType::ReleaseInFrameResources()
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1101,7 +1100,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Release
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::ClearReferencedResources()
+void ResourceManagerType::ClearReferencedResources()
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1117,8 +1116,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::ClearRe
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::ReplaceResource(
-    ResourceId from, ResourceId to)
+void ResourceManagerType::ReplaceResource(ResourceId from, ResourceId to)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1127,7 +1125,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Replace
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::HasReplacement(ResourceId from)
+bool ResourceManagerType::HasReplacement(ResourceId from)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1135,7 +1133,7 @@ bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::HasRepl
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::RemoveReplacement(ResourceId id)
+void ResourceManagerType::RemoveReplacement(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1148,8 +1146,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::RemoveR
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-RecordType *ResourceManager<WrappedResourceType, RealResourceType, RecordType>::GetResourceRecord(
-    ResourceId id)
+RecordType *ResourceManagerType::GetResourceRecord(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1162,7 +1159,7 @@ RecordType *ResourceManager<WrappedResourceType, RealResourceType, RecordType>::
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::HasResourceRecord(ResourceId id)
+bool ResourceManagerType::HasResourceRecord(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1175,8 +1172,7 @@ bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::HasReso
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-RecordType *ResourceManager<WrappedResourceType, RealResourceType, RecordType>::AddResourceRecord(
-    ResourceId id)
+RecordType *ResourceManagerType::AddResourceRecord(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1186,8 +1182,7 @@ RecordType *ResourceManager<WrappedResourceType, RealResourceType, RecordType>::
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::RemoveResourceRecord(
-    ResourceId id)
+void ResourceManagerType::RemoveResourceRecord(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1197,15 +1192,13 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::RemoveR
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::DestroyResourceRecord(
-    ResourceRecord *record)
+void ResourceManagerType::DestroyResourceRecord(ResourceRecord *record)
 {
   delete(RecordType *)record;
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::AddWrapper(
-    WrappedResourceType wrap, RealResourceType real)
+bool ResourceManagerType::AddWrapper(WrappedResourceType wrap, RealResourceType real)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1230,8 +1223,7 @@ bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::AddWrap
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::RemoveWrapper(
-    RealResourceType real)
+void ResourceManagerType::RemoveWrapper(RealResourceType real)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1246,7 +1238,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::RemoveW
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::HasWrapper(RealResourceType real)
+bool ResourceManagerType::HasWrapper(RealResourceType real)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1257,8 +1249,7 @@ bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::HasWrap
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-WrappedResourceType ResourceManager<WrappedResourceType, RealResourceType, RecordType>::GetWrapper(
-    RealResourceType real)
+WrappedResourceType ResourceManagerType::GetWrapper(RealResourceType real)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1276,8 +1267,7 @@ WrappedResourceType ResourceManager<WrappedResourceType, RealResourceType, Recor
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::AddLiveResource(
-    ResourceId origid, WrappedResourceType livePtr)
+void ResourceManagerType::AddLiveResource(ResourceId origid, WrappedResourceType livePtr)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1308,7 +1298,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::AddLive
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::HasLiveResource(ResourceId origid)
+bool ResourceManagerType::HasLiveResource(ResourceId origid)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1321,8 +1311,7 @@ bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::HasLive
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-WrappedResourceType ResourceManager<WrappedResourceType, RealResourceType, RecordType>::GetLiveResource(
-    ResourceId origid)
+WrappedResourceType ResourceManagerType::GetLiveResource(ResourceId origid)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1344,8 +1333,7 @@ WrappedResourceType ResourceManager<WrappedResourceType, RealResourceType, Recor
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::EraseLiveResource(
-    ResourceId origid)
+void ResourceManagerType::EraseLiveResource(ResourceId origid)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1362,8 +1350,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::EraseLi
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::AddCurrentResource(
-    ResourceId id, WrappedResourceType res)
+void ResourceManagerType::AddCurrentResource(ResourceId id, WrappedResourceType res)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1372,7 +1359,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::AddCurr
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::HasCurrentResource(ResourceId id)
+bool ResourceManagerType::HasCurrentResource(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1380,8 +1367,7 @@ bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::HasCurr
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-WrappedResourceType ResourceManager<WrappedResourceType, RealResourceType,
-                                    RecordType>::GetCurrentResource(ResourceId id)
+WrappedResourceType ResourceManagerType::GetCurrentResource(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1393,8 +1379,7 @@ WrappedResourceType ResourceManager<WrappedResourceType, RealResourceType,
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::ReleaseCurrentResource(
-    ResourceId id)
+void ResourceManagerType::ReleaseCurrentResource(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1403,8 +1388,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Release
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-ResourceId ResourceManager<WrappedResourceType, RealResourceType, RecordType>::GetOriginalID(
-    ResourceId id)
+ResourceId ResourceManagerType::GetOriginalID(ResourceId id)
 {
   if(id == ResourceId())
     return id;
@@ -1414,7 +1398,7 @@ ResourceId ResourceManager<WrappedResourceType, RealResourceType, RecordType>::G
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-ResourceId ResourceManager<WrappedResourceType, RealResourceType, RecordType>::GetLiveID(ResourceId id)
+ResourceId ResourceManagerType::GetLiveID(ResourceId id)
 {
   if(id == ResourceId())
     return id;
@@ -1422,3 +1406,5 @@ ResourceId ResourceManager<WrappedResourceType, RealResourceType, RecordType>::G
   RDCASSERT(m_LiveIDs.find(id) != m_LiveIDs.end(), id);
   return m_LiveIDs[id];
 }
+
+#undef ResourceManagerType
