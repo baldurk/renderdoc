@@ -502,7 +502,7 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
     // there is an implicit unmap on free, so make sure to tidy up
     if(wrapped->record->memMapState && wrapped->record->memMapState->refData)
     {
-      Serialiser::FreeAlignedBuffer(wrapped->record->memMapState->refData);
+      FreeAlignedBuffer(wrapped->record->memMapState->refData);
       wrapped->record->memMapState->refData = NULL;
     }
 
@@ -670,7 +670,7 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
       state.mappedPtr = NULL;
     }
 
-    Serialiser::FreeAlignedBuffer(state.refData);
+    FreeAlignedBuffer(state.refData);
     state.refData = NULL;
 
     if(state.mapCoherent)
@@ -725,7 +725,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(Serialiser *localSeriali
       RDCASSERT(memOffset == 0 && memSize == state->mapSize);
 
       // allocate ref data so we can compare next time to minimise serialised data
-      state->refData = Serialiser::AllocAlignedBuffer((size_t)state->mapSize);
+      state->refData = AllocAlignedBuffer((size_t)state->mapSize);
     }
 
     // it's no longer safe to use state->mappedPtr, we need to save *precisely* what

@@ -238,6 +238,47 @@ uint32_t CalcNumMips(int w, int h, int d)
   return mipLevels;
 }
 
+byte *AllocAlignedBuffer(uint64_t size, uint64_t alignment)
+{
+  byte *rawAlloc = NULL;
+
+#if defined(__EXCEPTIONS) || defined(_CPPUNWIND)
+  try
+#endif
+  {
+    rawAlloc = new byte[(size_t)size + sizeof(byte *) + (size_t)alignment];
+  }
+#if defined(__EXCEPTIONS) || defined(_CPPUNWIND)
+  catch(std::bad_alloc &)
+  {
+    rawAlloc = NULL;
+  }
+#endif
+
+  if(rawAlloc == NULL)
+    RDCFATAL("Allocation for %llu bytes failed", size);
+
+  RDCASSERT(rawAlloc);
+
+  byte *alignedAlloc = (byte *)AlignUp(uint64_t(rawAlloc + sizeof(byte *)), alignment);
+
+  byte **realPointer = (byte **)alignedAlloc;
+  realPointer[-1] = rawAlloc;
+
+  return alignedAlloc;
+}
+
+void FreeAlignedBuffer(byte *buf)
+{
+  if(buf == NULL)
+    return;
+
+  byte **realPointer = (byte **)buf;
+  byte *rawAlloc = realPointer[-1];
+
+  delete[] rawAlloc;
+}
+
 uint32_t Log2Floor(uint32_t value)
 {
   RDCASSERT(value > 0);

@@ -690,7 +690,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::SetInit
   if(it != m_InitialContents.end())
   {
     ResourceTypeRelease(it->second.resource);
-    Serialiser::FreeAlignedBuffer(it->second.blob);
+    FreeAlignedBuffer(it->second.blob);
     m_InitialContents.erase(it);
   }
 
@@ -790,7 +790,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::FreeIni
   {
     auto it = m_InitialContents.begin();
     ResourceTypeRelease(it->second.resource);
-    Serialiser::FreeAlignedBuffer(it->second.blob);
+    FreeAlignedBuffer(it->second.blob);
     if(!m_InitialContents.empty())
       m_InitialContents.erase(m_InitialContents.begin());
   }
@@ -825,7 +825,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::CreateI
     if(neededInitials.find(id) == neededInitials.end())
     {
       ResourceTypeRelease(it->second.resource);
-      Serialiser::FreeAlignedBuffer(it->second.blob);
+      FreeAlignedBuffer(it->second.blob);
       ++it;
       m_InitialContents.erase(id);
     }

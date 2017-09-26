@@ -1252,7 +1252,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
       SCOPED_LOCK(m_CoherentMapsLock);
       for(auto it = m_CoherentMaps.begin(); it != m_CoherentMaps.end(); ++it)
       {
-        Serialiser::FreeAlignedBuffer((*it)->memMapState->refData);
+        FreeAlignedBuffer((*it)->memMapState->refData);
         (*it)->memMapState->refData = NULL;
         (*it)->memMapState->needRefData = false;
       }

@@ -249,7 +249,7 @@ Chunk::Chunk(Serialiser *ser, uint32_t chunkType, bool temporary)
 
   if(ser->HasAlignedData())
   {
-    m_Data = Serialiser::AllocAlignedBuffer(m_Length);
+    m_Data = AllocAlignedBuffer(m_Length);
     m_AlignedData = true;
   }
   else
@@ -289,7 +289,7 @@ Chunk *Chunk::Duplicate()
   ret->m_AlignedData = m_AlignedData;
 
   if(m_AlignedData)
-    ret->m_Data = Serialiser::AllocAlignedBuffer(m_Length);
+    ret->m_Data = AllocAlignedBuffer(m_Length);
   else
     ret->m_Data = new byte[m_Length];
 
@@ -321,7 +321,7 @@ Chunk::~Chunk()
   if(m_AlignedData)
   {
     if(m_Data)
-      Serialiser::FreeAlignedBuffer(m_Data);
+      FreeAlignedBuffer(m_Data);
 
     m_Data = NULL;
   }
@@ -1155,47 +1155,6 @@ void Serialiser::ReadFromFile(uint64_t bufferOffs, size_t length)
   {
     FileIO::fread(m_Buffer + bufferOffs, 1, length, m_ReadFileHandle);
   }
-}
-
-byte *Serialiser::AllocAlignedBuffer(size_t size, size_t alignment)
-{
-  byte *rawAlloc = NULL;
-
-#if defined(__EXCEPTIONS) || defined(_CPPUNWIND)
-  try
-#endif
-  {
-    rawAlloc = new byte[size + sizeof(byte *) + alignment];
-  }
-#if defined(__EXCEPTIONS) || defined(_CPPUNWIND)
-  catch(std::bad_alloc &)
-  {
-    rawAlloc = NULL;
-  }
-#endif
-
-  if(rawAlloc == NULL)
-    RDCFATAL("Allocation for %llu bytes failed", (uint64_t)size);
-
-  RDCASSERT(rawAlloc);
-
-  byte *alignedAlloc = (byte *)AlignUp((size_t)(rawAlloc + sizeof(byte *)), alignment);
-
-  byte **realPointer = (byte **)alignedAlloc;
-  realPointer[-1] = rawAlloc;
-
-  return alignedAlloc;
-}
-
-void Serialiser::FreeAlignedBuffer(byte *buf)
-{
-  if(buf == NULL)
-    return;
-
-  byte **realPointer = (byte **)buf;
-  byte *rawAlloc = realPointer[-1];
-
-  delete[] rawAlloc;
 }
 
 void Serialiser::SetPersistentBlock(uint64_t offs)

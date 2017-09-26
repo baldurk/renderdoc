@@ -820,7 +820,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
     UINT numElems = heap->GetDesc().NumDescriptors;
 
     D3D12Descriptor *descs =
-        (D3D12Descriptor *)Serialiser::AllocAlignedBuffer(sizeof(D3D12Descriptor) * numElems);
+        (D3D12Descriptor *)AllocAlignedBuffer(sizeof(D3D12Descriptor) * numElems);
 
     memcpy(descs, heap->GetDescriptors(), sizeof(D3D12Descriptor) * numElems);
 

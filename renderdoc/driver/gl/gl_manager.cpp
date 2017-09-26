@@ -487,7 +487,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   }
   else if(res.Namespace == eResFramebuffer)
   {
-    byte *data = Serialiser::AllocAlignedBuffer(sizeof(FramebufferInitialData));
+    byte *data = AllocAlignedBuffer(sizeof(FramebufferInitialData));
     RDCEraseMem(data, sizeof(FramebufferInitialData));
 
     SetInitialContents(Id, InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, data));
@@ -518,7 +518,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   }
   else if(res.Namespace == eResFeedback)
   {
-    byte *data = Serialiser::AllocAlignedBuffer(sizeof(FeedbackInitialData));
+    byte *data = AllocAlignedBuffer(sizeof(FeedbackInitialData));
     RDCEraseMem(data, sizeof(FeedbackInitialData));
 
     SetInitialContents(Id, InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, data));
@@ -536,7 +536,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   }
   else if(res.Namespace == eResVertexArray)
   {
-    byte *data = Serialiser::AllocAlignedBuffer(sizeof(VAOInitialData));
+    byte *data = AllocAlignedBuffer(sizeof(VAOInitialData));
     RDCEraseMem(data, sizeof(VAOInitialData));
 
     SetInitialContents(Id, InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, data));
@@ -684,7 +684,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
   WrappedOpenGL::TextureData &details = m_GL->m_Textures[liveid];
 
   TextureStateInitialData *state =
-      (TextureStateInitialData *)Serialiser::AllocAlignedBuffer(sizeof(TextureStateInitialData));
+      (TextureStateInitialData *)AllocAlignedBuffer(sizeof(TextureStateInitialData));
   RDCEraseMem(state, sizeof(TextureStateInitialData));
 
   if(details.internalFormat == eGL_NONE)
@@ -1371,8 +1371,8 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
         ResetPixelUnpackState(gl, false, 1);
 
-        TextureStateInitialData *state = (TextureStateInitialData *)Serialiser::AllocAlignedBuffer(
-            sizeof(TextureStateInitialData));
+        TextureStateInitialData *state =
+            (TextureStateInitialData *)AllocAlignedBuffer(sizeof(TextureStateInitialData));
         RDCEraseMem(state, sizeof(TextureStateInitialData));
 
         m_pSerialiser->Serialise("state", *state);
@@ -1638,7 +1638,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
     if(m_State < WRITING)
     {
-      byte *blob = Serialiser::AllocAlignedBuffer(sizeof(data));
+      byte *blob = AllocAlignedBuffer(sizeof(data));
       memcpy(blob, &data, sizeof(data));
 
       SetInitialContents(Id,
@@ -1659,7 +1659,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
     if(m_State < WRITING)
     {
-      byte *blob = Serialiser::AllocAlignedBuffer(sizeof(data));
+      byte *blob = AllocAlignedBuffer(sizeof(data));
       memcpy(blob, &data, sizeof(data));
 
       SetInitialContents(Id,
@@ -1686,7 +1686,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
     if(m_State < WRITING)
     {
-      byte *blob = Serialiser::AllocAlignedBuffer(sizeof(data));
+      byte *blob = AllocAlignedBuffer(sizeof(data));
       memcpy(blob, &data, sizeof(data));
 
       SetInitialContents(Id,
@@ -1721,7 +1721,7 @@ void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool
   }
   else if(live.Namespace == eResVertexArray)
   {
-    byte *data = Serialiser::AllocAlignedBuffer(sizeof(VAOInitialData));
+    byte *data = AllocAlignedBuffer(sizeof(VAOInitialData));
     RDCEraseMem(data, sizeof(VAOInitialData));
 
     SetInitialContents(id,

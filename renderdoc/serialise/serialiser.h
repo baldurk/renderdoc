@@ -627,9 +627,6 @@ public:
   // prints to the debug output log
   void DebugPrint(const char *fmt, ...);
 
-  static byte *AllocAlignedBuffer(size_t size, size_t align = 64);
-  static void FreeAlignedBuffer(byte *buf);
-
   void FlushToDisk();
 
   // set a function used when serialising a text representation

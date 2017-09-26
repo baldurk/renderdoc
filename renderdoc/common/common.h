@@ -158,6 +158,9 @@ inline T AlignUpPtr(T x, A a)
 bool FindDiffRange(void *a, void *b, size_t bufSize, size_t &diffStart, size_t &diffEnd);
 uint32_t CalcNumMips(int Width, int Height, int Depth);
 
+byte *AllocAlignedBuffer(uint64_t size, uint64_t alignment = 64);
+void FreeAlignedBuffer(byte *buf);
+
 uint32_t Log2Floor(uint32_t value);
 #if ENABLED(RDOC_X64)
 uint64_t Log2Floor(uint64_t value);

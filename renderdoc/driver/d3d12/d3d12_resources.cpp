@@ -270,7 +270,7 @@ WrappedID3D12Resource::~WrappedID3D12Resource()
       {
         m_pDevice->Unmap(this, (UINT)i, map[i].realPtr, NULL);
 
-        Serialiser::FreeAlignedBuffer(map[i].shadowPtr);
+        FreeAlignedBuffer(map[i].shadowPtr);
         map[i].realPtr = NULL;
         map[i].shadowPtr = NULL;
       }
@@ -317,7 +317,7 @@ void WrappedID3D12Resource::AllocShadow(UINT Subresource, size_t size)
     map.resize(Subresource + 1);
 
   if(map[Subresource].shadowPtr == NULL)
-    map[Subresource].shadowPtr = Serialiser::AllocAlignedBuffer(size);
+    map[Subresource].shadowPtr = AllocAlignedBuffer(size);
 }
 
 void WrappedID3D12Resource::FreeShadow()
@@ -326,7 +326,7 @@ void WrappedID3D12Resource::FreeShadow()
 
   for(size_t i = 0; i < map.size(); i++)
   {
-    Serialiser::FreeAlignedBuffer(map[i].shadowPtr);
+    FreeAlignedBuffer(map[i].shadowPtr);
     map[i].shadowPtr = NULL;
   }
 }
@@ -383,7 +383,7 @@ void STDMETHODCALLTYPE WrappedID3D12Resource::Unmap(UINT Subresource, const D3D1
       {
         m_pDevice->Unmap(this, Subresource, map[Subresource].realPtr, pWrittenRange);
 
-        Serialiser::FreeAlignedBuffer(map[Subresource].shadowPtr);
+        FreeAlignedBuffer(map[Subresource].shadowPtr);
         map[Subresource].realPtr = NULL;
         map[Subresource].shadowPtr = NULL;
       }

@@ -771,7 +771,7 @@ VkResourceRecord::~VkResourceRecord()
 
   if(resType == eResDeviceMemory && memMapState)
   {
-    Serialiser::FreeAlignedBuffer(memMapState->refData);
+    FreeAlignedBuffer(memMapState->refData);
 
     SAFE_DELETE(memMapState);
   }

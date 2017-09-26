@@ -100,7 +100,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
 
   uint32_t numElems = (uint32_t)buf->record->sparseInfo->opaquemappings.size();
 
-  SparseBufferInitState *info = (SparseBufferInitState *)Serialiser::AllocAlignedBuffer(
+  SparseBufferInitState *info = (SparseBufferInitState *)AllocAlignedBuffer(
       sizeof(SparseBufferInitState) + sizeof(VkSparseMemoryBind) * numElems +
       sizeof(MemIDOffset) * boundMems.size());
 
@@ -249,7 +249,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
 
   uint32_t opaqueCount = (uint32_t)sparse->opaquemappings.size();
 
-  byte *blob = Serialiser::AllocAlignedBuffer(
+  byte *blob = AllocAlignedBuffer(
       sizeof(SparseImageInitState) + sizeof(VkSparseMemoryBind) * opaqueCount +
       sizeof(MemIDOffset) * totalPageCount + sizeof(MemIDOffset) * boundMems.size());
 
@@ -430,7 +430,7 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(
     m_pSerialiser->Serialise("numBinds", numBinds);
     m_pSerialiser->Serialise("numUniqueMems", numUniqueMems);
 
-    SparseBufferInitState *info = (SparseBufferInitState *)Serialiser::AllocAlignedBuffer(
+    SparseBufferInitState *info = (SparseBufferInitState *)AllocAlignedBuffer(
         sizeof(SparseBufferInitState) + sizeof(VkSparseMemoryBind) * numBinds +
         sizeof(MemIDOffset) * numUniqueMems);
 
@@ -587,7 +587,7 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(ResourceId id,
     m_pSerialiser->Serialise("pagedim", pagedim);
     m_pSerialiser->Serialise("numUniqueMems", numUniqueMems);
 
-    byte *blob = Serialiser::AllocAlignedBuffer(
+    byte *blob = AllocAlignedBuffer(
         sizeof(SparseImageInitState) + sizeof(VkSparseMemoryBind) * opaqueCount +
         sizeof(VkSparseImageMemoryBind) * pageCount + sizeof(MemIDOffset) * numUniqueMems);
 
@@ -978,7 +978,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       numElems += layout.bindings[i].descriptorCount;
 
     DescriptorSetSlot *info =
-        (DescriptorSetSlot *)Serialiser::AllocAlignedBuffer(sizeof(DescriptorSetSlot) * numElems);
+        (DescriptorSetSlot *)AllocAlignedBuffer(sizeof(DescriptorSetSlot) * numElems);
     RDCEraseMem(info, sizeof(DescriptorSetSlot) * numElems);
 
     uint32_t e = 0;
@@ -1484,8 +1484,8 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 
       // allocate memory to keep the element structures around, as well as a WriteDescriptorSet
       // array
-      byte *blob = Serialiser::AllocAlignedBuffer(sizeof(VkDescriptorBufferInfo) * numElems +
-                                                  sizeof(VkWriteDescriptorSet) * numBinds);
+      byte *blob = AllocAlignedBuffer(sizeof(VkDescriptorBufferInfo) * numElems +
+                                      sizeof(VkWriteDescriptorSet) * numBinds);
 
       RDCCOMPILE_ASSERT(sizeof(VkDescriptorBufferInfo) >= sizeof(VkDescriptorImageInfo),
                         "Descriptor structs sizes are unexpected, ensure largest size is used");

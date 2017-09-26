@@ -279,8 +279,8 @@ struct GLResourceRecord : public ResourceRecord
   {
     if(ShadowPtr[0] == NULL)
     {
-      ShadowPtr[0] = Serialiser::AllocAlignedBuffer(size + sizeof(markerValue));
-      ShadowPtr[1] = Serialiser::AllocAlignedBuffer(size + sizeof(markerValue));
+      ShadowPtr[0] = AllocAlignedBuffer(size + sizeof(markerValue));
+      ShadowPtr[1] = AllocAlignedBuffer(size + sizeof(markerValue));
 
       memcpy(ShadowPtr[0] + size, markerValue, sizeof(markerValue));
       memcpy(ShadowPtr[1] + size, markerValue, sizeof(markerValue));
@@ -304,8 +304,8 @@ struct GLResourceRecord : public ResourceRecord
   {
     if(ShadowPtr[0] != NULL)
     {
-      Serialiser::FreeAlignedBuffer(ShadowPtr[0]);
-      Serialiser::FreeAlignedBuffer(ShadowPtr[1]);
+      FreeAlignedBuffer(ShadowPtr[0]);
+      FreeAlignedBuffer(ShadowPtr[1]);
     }
     ShadowPtr[0] = ShadowPtr[1] = NULL;
   }
