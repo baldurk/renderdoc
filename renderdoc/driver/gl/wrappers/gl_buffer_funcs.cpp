@@ -4181,8 +4181,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(GLuint vaobj, GLuint fi
                       buffers && buffers[i]
                           ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]))
                           : ResourceId());
-    SERIALISE_ELEMENT(uint64_t, offset, buffers ? 0 : (uint64_t)offsets[i]);
-    SERIALISE_ELEMENT(uint64_t, stride, buffers ? 0 : (uint64_t)strides[i]);
+    SERIALISE_ELEMENT(uint64_t, offset, buffers ? (uint64_t)offsets[i] : 0);
+    SERIALISE_ELEMENT(uint64_t, stride, buffers ? (uint64_t)strides[i] : 0);
 
     if(m_State <= EXECUTING)
     {
