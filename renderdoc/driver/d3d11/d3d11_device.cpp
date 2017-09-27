@@ -37,85 +37,6 @@ WRAPPED_POOL_INST(WrappedID3D11Device);
 
 WrappedID3D11Device *WrappedID3D11Device::m_pCurrentWrappedDevice = NULL;
 
-D3D11InitParams::D3D11InitParams()
-{
-  SerialiseVersion = D3D11_SERIALISE_VERSION;
-  DriverType = D3D_DRIVER_TYPE_UNKNOWN;
-  Flags = 0;
-  SDKVersion = D3D11_SDK_VERSION;
-  NumFeatureLevels = 0;
-  RDCEraseEl(FeatureLevels);
-}
-
-// handling for these versions is scattered throughout the code (as relevant to enable/disable bits
-// of serialisation
-// and set some defaults if necessary).
-// Here we list which non-current versions we support, and what changed
-const uint32_t D3D11InitParams::D3D11_OLD_VERSIONS[D3D11InitParams::D3D11_NUM_SUPPORTED_OLD_VERSIONS] = {
-    // from 0x4 to 0x5, we added the stream-out hidden counters in the context's
-    // Serialise_BeginCaptureFrame
-    0x000004,
-    // from 0x5 to 0x6, several new calls were made 'drawcalls', like Copy &
-    // GenerateMips, with serialised debug messages
-    0x000005,
-    // from 0x6 to 0x7, we added some more padding in some buffer & texture chunks to
-    // get larger alignment than 16-byte
-    0x000006,
-    // from 0x7 to 0x8, we changed the UAV arrays in the render state to be D3D11.1
-    // sized and separate CS array.
-    0x000007,
-    // from 0x8 to 0x9, we added the view creation details to clear calls in the device
-    // record so that we can still perform the clear even if the view wasn't referenced.
-    0x000008,
-    // from 0x9 to 0xA, we refactored deferred context handling - it's flattened on
-    // capture now. So on replay if deferred contexts are present, we go through a
-    // flattening stpe.
-    0x000009,
-    // from 0xA to 0xB, we added the SwapDeviceContextState from ID3D11DeviceContext1
-    0x00000A,
-};
-
-ReplayStatus D3D11InitParams::Serialise()
-{
-  SERIALISE_ELEMENT(uint32_t, ver, D3D11_SERIALISE_VERSION);
-  SerialiseVersion = ver;
-
-  if(ver != D3D11_SERIALISE_VERSION)
-  {
-    bool oldsupported = false;
-    for(uint32_t i = 0; i < D3D11_NUM_SUPPORTED_OLD_VERSIONS; i++)
-    {
-      if(ver == D3D11_OLD_VERSIONS[i])
-      {
-        oldsupported = true;
-        RDCWARN(
-            "Old D3D11 serialise version %d, latest is %d. Loading with possibly degraded "
-            "features/support.",
-            ver, D3D11_SERIALISE_VERSION);
-      }
-    }
-
-    if(!oldsupported)
-    {
-      RDCERR("Incompatible D3D11 serialise version, expected %d got %d", D3D11_SERIALISE_VERSION,
-             ver);
-      return ReplayStatus::APIIncompatibleVersion;
-    }
-  }
-
-  SERIALISE_ELEMENT(D3D_DRIVER_TYPE, driverType, DriverType);
-  DriverType = driverType;
-  SERIALISE_ELEMENT(uint32_t, flags, Flags);
-  Flags = flags;
-  SERIALISE_ELEMENT(uint32_t, sdk, SDKVersion);
-  SDKVersion = sdk;
-  SERIALISE_ELEMENT(uint32_t, numlevels, NumFeatureLevels);
-  NumFeatureLevels = numlevels;
-  m_pSerialiser->SerialisePODArray<ARRAY_COUNT(FeatureLevels)>("FeatureLevels", FeatureLevels);
-
-  return ReplayStatus::Succeeded;
-}
-
 void WrappedID3D11Device::NewSwapchainBuffer(IUnknown *backbuffer)
 {
   WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)backbuffer;
@@ -149,6 +70,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D11Device));
+
+  m_SectionVersion = D3D11InitParams::CurrentVersion;
 
   m_pDevice1 = NULL;
   m_pDevice->QueryInterface(__uuidof(ID3D11Device1), (void **)&m_pDevice1);
@@ -955,11 +878,9 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
   }
 }
 
-void WrappedID3D11Device::ReadLogInitialisation()
+void WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc)
 {
   uint64_t frameOffset = 0;
-
-  LazyInit();
 
   m_pSerialiser->SetDebugText(true);
 

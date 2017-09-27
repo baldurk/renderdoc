@@ -51,10 +51,9 @@ enum TextureDisplayType
   TEXDISPLAY_INDIRECT_VIEW,
 };
 
-struct D3D11InitParams : public RDCInitParams
+struct D3D11InitParams
 {
   D3D11InitParams();
-  ReplayStatus Serialise();
 
   D3D_DRIVER_TYPE DriverType;
   UINT Flags;
@@ -62,15 +61,12 @@ struct D3D11InitParams : public RDCInitParams
   UINT NumFeatureLevels;
   D3D_FEATURE_LEVEL FeatureLevels[16];
 
-  static const uint32_t D3D11_SERIALISE_VERSION = 0x000000B;
-
-  // backwards compatibility for old logs described at the declaration of this array
-  static const uint32_t D3D11_NUM_SUPPORTED_OLD_VERSIONS = 7;
-  static const uint32_t D3D11_OLD_VERSIONS[D3D11_NUM_SUPPORTED_OLD_VERSIONS];
-
-  // version number internal to d3d11 stream
-  uint32_t SerialiseVersion;
+  // check if a frame capture section version is supported
+  static const uint64_t CurrentVersion = 0xC;
+  static bool IsSupportedVersion(uint64_t ver);
 };
+
+DECLARE_REFLECTION_STRUCT(D3D11InitParams);
 
 class WrappedID3D11Device;
 class WrappedShader;
@@ -342,6 +338,7 @@ private:
   vector<string> m_ShaderSearchPaths;
 
   D3D11InitParams m_InitParams;
+  uint64_t m_SectionVersion;
 
   ResourceId m_BBID;
 
@@ -405,13 +402,13 @@ public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Device, AllocPoolCount);
 
   WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitParams *params);
-  void SetLogFile(const char *logfile);
-  void SetLogVersion(uint32_t fileversion)
+  void SetInitParams(const D3D11InitParams &params, uint64_t sectionVersion)
   {
     LazyInit();
-    m_InitParams.SerialiseVersion = fileversion;
+    m_InitParams = params;
+    m_SectionVersion = sectionVersion;
   }
-  uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
+  uint64_t GetLogVersion() { return m_SectionVersion; }
   virtual ~WrappedID3D11Device();
 
   ////////////////////////////////////////////////////////////////
@@ -496,7 +493,7 @@ public:
   void Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData);
   void Apply_InitialState(ID3D11DeviceChild *live, D3D11ResourceManager::InitialContentData initial);
 
-  void ReadLogInitialisation();
+  void ReadLogInitialisation(RDCFile *rdc);
   void ProcessChunk(uint64_t offset, D3D11Chunk context);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 
