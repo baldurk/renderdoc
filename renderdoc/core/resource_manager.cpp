@@ -49,6 +49,8 @@ void SetReplayResourceIDs()
 }
 };
 
+INSTANTIATE_SERIALISE_TYPE(ResourceManagerInternal::WrittenRecord);
+
 bool ResourceRecord::MarkResourceFrameReferenced(ResourceId id, FrameRefType refType)
 {
   if(id == ResourceId())

@@ -296,7 +296,7 @@ template <typename WrappedResourceType, typename RealResourceType, typename Reco
 class ResourceManager : public ResourceRecordHandler
 {
 public:
-  ResourceManager(LogState state, Serialiser *ser);
+  ResourceManager();
   virtual ~ResourceManager();
 
   void Shutdown();
@@ -317,8 +317,6 @@ public:
     byte *blob;
   };
 
-  bool IsWriting() { return m_State >= WRITING; }
-  bool IsReading() { return m_State < WRITING; }
   ///////////////////////////////////////////
   // Capture-side methods
 
@@ -339,7 +337,7 @@ public:
   void ReleaseInFrameResources();
 
   // insert the chunks for the resources referenced in the frame
-  void InsertReferencedChunks(Serialiser *fileSer);
+  void InsertReferencedChunks(WriteSerialiser &ser);
 
   // mark resource records as unwritten, ready to be written to a new logfile.
   void MarkUnwrittenResources();
@@ -372,12 +370,16 @@ public:
   void SetInitialChunk(ResourceId id, Chunk *chunk);
 
   // generate chunks for initial contents and insert.
-  void InsertInitialContentsChunks(Serialiser *fileSer);
+  void InsertInitialContentsChunks(WriteSerialiser &ser);
+
+  // for initial contents that don't need a chunk - apply them here. This allows any patching to
+  // creation-time chunks to happen before they're written to disk.
+  void ApplyInitialContentsNonChunks(WriteSerialiser &ser);
 
   // Serialise out which resources need initial contents, along with whether their
   // initial contents are in the serialised stream (e.g. RTs might still want to be
   // cleared on frame init).
-  void Serialise_InitialContentsNeeded();
+  void Serialise_InitialContentsNeeded(WriteSerialiser &ser);
 
   // handle marking a resource referenced for read or write and storing RAW access etc.
   static bool MarkReferenced(map<ResourceId, FrameRefType> &refs, ResourceId id,
@@ -410,7 +412,7 @@ public:
   ResourceId GetLiveID(ResourceId id);
 
   // Serialise in which resources need initial contents and set them up.
-  void CreateInitialContents();
+  void CreateInitialContents(ReadSerialiser &ser);
 
   // Free any initial contents that are prepared (for after capture is complete)
   void FreeInitialContents();
@@ -435,14 +437,12 @@ protected:
   virtual bool AllowDeletedResource_InitialState() { return false; }
   virtual bool Need_InitialStateChunk(WrappedResourceType res) = 0;
   virtual bool Prepare_InitialState(WrappedResourceType res) = 0;
-  virtual bool Serialise_InitialState(ResourceId id, WrappedResourceType res) = 0;
+  virtual uint32_t GetSize_InitialState(ResourceId id, WrappedResourceType res) = 0;
+  virtual bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id,
+                                      WrappedResourceType res) = 0;
   virtual void Create_InitialState(ResourceId id, WrappedResourceType live, bool hasData) = 0;
   virtual void Apply_InitialState(WrappedResourceType live, InitialContentData initial) = 0;
 
-  LogState m_State;
-  Serialiser *m_pSerialiser;
-
-  Serialiser *GetSerialiser() { return m_pSerialiser; }
   bool m_InFrame;
 
   // very coarse lock, protects EVERYTHING. This could certainly be improved and it may be a
@@ -498,13 +498,10 @@ protected:
 #define ResourceManagerType ResourceManager<WrappedResourceType, RealResourceType, RecordType>
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-ResourceManagerType::ResourceManager(LogState state, Serialiser *ser)
+ResourceManagerType::ResourceManager()
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(ResourceManager));
-
-  m_State = state;
-  m_pSerialiser = ser;
 
   m_InFrame = false;
 }
@@ -733,20 +730,36 @@ typename ResourceManagerType::InitialContentData ResourceManagerType::GetInitial
   return InitialContentData();
 }
 
-template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManagerType::Serialise_InitialContentsNeeded()
+// use a namespace so this doesn't pollute the global namesapce
+namespace ResourceManagerInternal
 {
+struct WrittenRecord
+{
+  ResourceId id;
+  bool written;
+};
+};
+
+DECLARE_REFLECTION_STRUCT(ResourceManagerInternal::WrittenRecord);
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, ResourceManagerInternal::WrittenRecord &el)
+{
+  SERIALISE_MEMBER(id);
+  SERIALISE_MEMBER(written);
+}
+
+template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
+void ResourceManagerType::Serialise_InitialContentsNeeded(WriteSerialiser &ser)
+{
+  using namespace ResourceManagerInternal;
+
   SCOPED_LOCK(m_Lock);
 
-  struct WrittenRecord
-  {
-    ResourceId id;
-    bool written;
-  };
-  vector<WrittenRecord> written;
+  std::vector<WrittenRecord> WrittenRecords;
 
   // reasonable estimate, and these records are small
-  written.reserve(m_FrameReferencedResources.size());
+  WrittenRecords.reserve(m_FrameReferencedResources.size());
 
   for(auto it = m_FrameReferencedResources.begin(); it != m_FrameReferencedResources.end(); ++it)
   {
@@ -756,7 +769,7 @@ void ResourceManagerType::Serialise_InitialContentsNeeded()
     {
       WrittenRecord wr = {it->first, record ? record->DataInSerialiser : true};
 
-      written.push_back(wr);
+      WrittenRecords.push_back(wr);
     }
   }
 
@@ -768,18 +781,14 @@ void ResourceManagerType::Serialise_InitialContentsNeeded()
     {
       WrittenRecord wr = {id, true};
 
-      written.push_back(wr);
+      WrittenRecords.push_back(wr);
     }
   }
 
-  uint32_t numWritten = (uint32_t)written.size();
-  m_pSerialiser->Serialise("NumWrittenResources", numWritten);
+  uint32_t chunkSize = uint32_t(WrittenRecords.size() * sizeof(WrittenRecord) + 16);
 
-  for(auto it = written.begin(); it != written.end(); ++it)
-  {
-    m_pSerialiser->Serialise("id", it->id);
-    m_pSerialiser->Serialise("WrittenData", it->written);
-  }
+  SCOPED_SERIALISE_CHUNK(INITIAL_CONTENTS_LIST, chunkSize);
+  SERIALISE_ELEMENT(WrittenRecords);
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
@@ -796,25 +805,23 @@ void ResourceManagerType::FreeInitialContents()
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManagerType::CreateInitialContents()
+void ResourceManagerType::CreateInitialContents(ReadSerialiser &ser)
 {
+  using namespace ResourceManagerInternal;
+
   set<ResourceId> neededInitials;
 
-  uint32_t NumWrittenResources = 0;
-  m_pSerialiser->Serialise("NumWrittenResources", NumWrittenResources);
+  std::vector<WrittenRecord> WrittenRecords;
+  SERIALISE_ELEMENT(WrittenRecords);
 
-  for(uint32_t i = 0; i < NumWrittenResources; i++)
+  for(const WrittenRecord &wr : WrittenRecords)
   {
-    ResourceId id = ResourceId();
-    bool WrittenData = false;
-
-    m_pSerialiser->Serialise("id", id);
-    m_pSerialiser->Serialise("WrittenData", WrittenData);
+    ResourceId id = wr.id;
 
     neededInitials.insert(id);
 
     if(HasLiveResource(id) && m_InitialContents.find(id) == m_InitialContents.end())
-      Create_InitialState(id, GetLiveResource(id), WrittenData);
+      Create_InitialState(id, GetLiveResource(id), wr.written);
   }
 
   for(auto it = m_InitialContents.begin(); it != m_InitialContents.end();)
@@ -868,8 +875,7 @@ void ResourceManagerType::MarkUnwrittenResources()
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertReferencedChunks(
-    Serialiser *fileSer)
+void ResourceManagerType::InsertReferencedChunks(WriteSerialiser &ser)
 {
   map<int32_t, Chunk *> sortedChunks;
 
@@ -900,9 +906,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertR
   RDCDEBUG("%u frame resource chunks", (uint32_t)sortedChunks.size());
 
   for(auto it = sortedChunks.begin(); it != sortedChunks.end(); it++)
-  {
-    fileSer->Insert(it->second);
-  }
+    it->second->Write(ser);
 
   RDCDEBUG("inserted to serialiser");
 }
@@ -957,8 +961,7 @@ void ResourceManagerType::PrepareInitialContents()
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertInitialContentsChunks(
-    Serialiser *fileSerialiser)
+void ResourceManagerType::InsertInitialContentsChunks(WriteSerialiser &ser)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1022,24 +1025,23 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
     if(!Need_InitialStateChunk(res))
     {
       // just need to grab data, don't create chunk
-      Serialise_InitialState(id, res);
+      Serialise_InitialState(ser, id, res);
       continue;
     }
 
     auto preparedChunk = m_InitialChunks.find(id);
     if(preparedChunk != m_InitialChunks.end())
     {
-      fileSerialiser->Insert(preparedChunk->second);
+      preparedChunk->second->Write(ser);
       m_InitialChunks.erase(preparedChunk);
     }
     else
     {
-      ScopedContext scope(m_pSerialiser, "Initial Contents", "Initial Contents", INITIAL_CONTENTS,
-                          false);
+      uint32_t size = GetSize_InitialState(id, res);
 
-      Serialise_InitialState(id, res);
+      SCOPED_SERIALISE_CHUNK(INITIAL_CONTENTS, size);
 
-      fileSerialiser->Insert(scope.Get(true));
+      Serialise_InitialState(ser, id, res);
     }
   }
 
@@ -1059,17 +1061,16 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
       auto preparedChunk = m_InitialChunks.find(it->first);
       if(preparedChunk != m_InitialChunks.end())
       {
-        fileSerialiser->Insert(preparedChunk->second);
+        preparedChunk->second->Write(ser);
         m_InitialChunks.erase(preparedChunk);
       }
       else
       {
-        ScopedContext scope(m_pSerialiser, "Initial Contents", "Initial Contents", INITIAL_CONTENTS,
-                            false);
+        uint32_t size = GetSize_InitialState(it->first, it->second);
 
-        Serialise_InitialState(it->first, it->second);
+        SCOPED_SERIALISE_CHUNK(INITIAL_CONTENTS, size);
 
-        fileSerialiser->Insert(scope.Get(true));
+        Serialise_InitialState(ser, it->first, it->second);
       }
     }
   }
@@ -1082,6 +1083,40 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
     delete it->second;
 
   m_InitialChunks.clear();
+}
+
+template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
+void ResourceManagerType::ApplyInitialContentsNonChunks(WriteSerialiser &ser)
+{
+  SCOPED_LOCK(m_Lock);
+
+  for(auto it = m_DirtyResources.begin(); it != m_DirtyResources.end(); ++it)
+  {
+    ResourceId id = *it;
+
+    if(m_FrameReferencedResources.find(id) == m_FrameReferencedResources.end() &&
+       !RenderDoc::Inst().GetCaptureOptions().RefAllResources)
+    {
+      continue;
+    }
+
+    WrappedResourceType res = (WrappedResourceType)RecordType::NullResource;
+    bool isAlive = HasCurrentResource(id);
+
+    if(!AllowDeletedResource_InitialState() && !isAlive)
+      continue;
+
+    if(isAlive)
+      res = GetCurrentResource(id);
+
+    RecordType *record = GetResourceRecord(id);
+
+    if(!record || record->SpecialResource)
+      continue;
+
+    if(!Need_InitialStateChunk(res))
+      Serialise_InitialState(ser, id, res);
+  }
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
