@@ -152,13 +152,13 @@ void WrappedID3D11DeviceContext::SetMarker(uint32_t col, const wchar_t *name)
   }
 }
 
-int WrappedID3D11DeviceContext::PushEvent(uint32_t col, const wchar_t *name)
+int WrappedID3D11DeviceContext::PushMarker(uint32_t col, const wchar_t *name)
 {
   if(m_State == WRITING_CAPFRAME)
   {
     SCOPED_SERIALISE_CONTEXT(PUSH_EVENT);
     m_pSerialiser->Serialise("context", m_ResourceID);
-    Serialise_PushEvent(col, name);
+    Serialise_PushMarker(col, name);
 
     m_ContextRecord->AddChunk(scope.Get());
   }
@@ -166,13 +166,13 @@ int WrappedID3D11DeviceContext::PushEvent(uint32_t col, const wchar_t *name)
   return m_MarkerIndentLevel++;
 }
 
-int WrappedID3D11DeviceContext::PopEvent()
+int WrappedID3D11DeviceContext::PopMarker()
 {
   if(m_State == WRITING_CAPFRAME)
   {
     SCOPED_SERIALISE_CONTEXT(POP_EVENT);
     m_pSerialiser->Serialise("context", m_ResourceID);
-    Serialise_PopEvent();
+    Serialise_PopMarker();
 
     m_ContextRecord->AddChunk(scope.Get());
   }
@@ -251,8 +251,8 @@ void WrappedID3D11DeviceContext::DrainAnnotationQueue()
     switch(a.m_Type)
     {
       case Annotation::ANNOT_SETMARKER: SetMarker(a.m_Col, a.m_Name.c_str()); break;
-      case Annotation::ANNOT_BEGINEVENT: PushEvent(a.m_Col, a.m_Name.c_str()); break;
-      case Annotation::ANNOT_ENDEVENT: PopEvent(); break;
+      case Annotation::ANNOT_BEGINEVENT: PushMarker(a.m_Col, a.m_Name.c_str()); break;
+      case Annotation::ANNOT_ENDEVENT: PopMarker(); break;
     }
   }
 }
