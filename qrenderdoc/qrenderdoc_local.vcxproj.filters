@@ -986,6 +986,15 @@
     <ClInclude Include="$(IntDir)generated\ui_PerformanceCounterViewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="Code\pyrenderdoc\container_handling.h">
+      <Filter>Code\pyrenderdoc</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\pyrenderdoc\function_conversion.h">
+      <Filter>Code\pyrenderdoc</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\pyrenderdoc\qt_conversion.h">
+      <Filter>Code\pyrenderdoc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\128.png">
@@ -1166,6 +1175,12 @@
       <Filter>Code\pyrenderdoc</Filter>
     </None>
     <None Include="Code\pyrenderdoc\pyconversion.i">
+      <Filter>Code\pyrenderdoc</Filter>
+    </None>
+    <None Include="Code\pyrenderdoc\cosmetics.i">
+      <Filter>Code\pyrenderdoc</Filter>
+    </None>
+    <None Include="Code\pyrenderdoc\container_handling.i">
       <Filter>Code\pyrenderdoc</Filter>
     </None>
   </ItemGroup>

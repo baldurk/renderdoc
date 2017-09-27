@@ -42,42 +42,13 @@
 
 %}
 
-%fragment("pyconvert", "header") {
-  static char convert_error[1024] = {};
-
-  %#include "Code/pyrenderdoc/pyconversion.h"
-}
-
 %include "pyconversion.i"
 
-SIMPLE_TYPEMAPS(rdcstr)
 
-CONTAINER_TYPEMAPS(rdcarray)
-CONTAINER_TYPEMAPS(rdcpair)
+// Add custom conversion/__str__/__repr__ functions for beautification
+%include "cosmetics.i"
 
-FIXED_ARRAY_TYPEMAPS(ResourceId)
-FIXED_ARRAY_TYPEMAPS(double)
-FIXED_ARRAY_TYPEMAPS(float)
-FIXED_ARRAY_TYPEMAPS(bool)
-FIXED_ARRAY_TYPEMAPS(uint64_t)
-FIXED_ARRAY_TYPEMAPS(uint32_t)
-FIXED_ARRAY_TYPEMAPS(int32_t)
-FIXED_ARRAY_TYPEMAPS(uint16_t)
-
-%typemap(in, fragment="pyconvert") std::function {
-  PyObject *func = $input;
-  $1 = ConvertFunc<$1_ltype>("$symname", func, exHandle$argnum);
-}
-
-%typemap(argout) std::function (ExceptionHandling exHandle) {
-  if(exHandle.failFlag) {
-    PyErr_Restore(exHandle.exObj, exHandle.valueObj, exHandle.tracebackObj);
-    SWIG_fail;
-  }
-}
-
-// ignore some operators SWIG doesn't have to worry about
-// ignore array members
+// ignore all the array member functions, only wrap the ones that are in python's list
 %ignore rdcarray::rdcarray;
 %ignore rdcarray::begin;
 %ignore rdcarray::end;
@@ -94,6 +65,7 @@ FIXED_ARRAY_TYPEMAPS(uint16_t)
 %ignore rdcarray::empty;
 %ignore rdcarray::isEmpty;
 %ignore rdcarray::resize;
+%ignore rdcarray::clear;
 %ignore rdcarray::reserve;
 %ignore rdcarray::swap;
 %ignore rdcarray::push_back;
@@ -102,52 +74,25 @@ FIXED_ARRAY_TYPEMAPS(uint16_t)
 %ignore rdcstr::operator=;
 %ignore rdcstr::operator std::string;
 
-// add __str__ functions
-%feature("python:tp_str") ResourceId "resid_str";
-%feature("python:tp_repr") ResourceId "resid_str";
-%feature("python:nb_int") ResourceId "resid_int";
+SIMPLE_TYPEMAPS(rdcstr)
+SIMPLE_TYPEMAPS(bytebuf)
 
-%wrapper %{
-static PyObject *resid_str(PyObject *resid)
-{
-  void *resptr = NULL;
-  unsigned long long *id = NULL;
-  int res = SWIG_ConvertPtr(resid, &resptr, SWIGTYPE_p_ResourceId, 0);
-  if (!SWIG_IsOK(res)) {
-    SWIG_exception_fail(SWIG_ArgError(res), "in method 'ResourceId.str', ResourceId is not correct type");
-  }
+FIXED_ARRAY_TYPEMAPS(ResourceId)
+FIXED_ARRAY_TYPEMAPS(double)
+FIXED_ARRAY_TYPEMAPS(float)
+FIXED_ARRAY_TYPEMAPS(bool)
+FIXED_ARRAY_TYPEMAPS(uint64_t)
+FIXED_ARRAY_TYPEMAPS(uint32_t)
+FIXED_ARRAY_TYPEMAPS(int32_t)
+FIXED_ARRAY_TYPEMAPS(uint16_t)
 
-  // cast as unsigned long long
-  id = (unsigned long long *)resptr;
-  static_assert(sizeof(unsigned long long) == sizeof(ResourceId), "Wrong size");
+// these types are to be treated like python lists/arrays, and will be instantiated after declaration
+// below
+TEMPLATE_ARRAY_DECLARE(rdcarray);
 
-  return PyUnicode_FromFormat("<ResourceId %llu>", *id);
-fail:
-  return NULL;
-}
-
-static PyObject *resid_int(PyObject *resid)
-{
-  void *resptr = NULL;
-  unsigned long long *id = NULL;
-  int res = SWIG_ConvertPtr(resid, &resptr, SWIGTYPE_p_ResourceId, 0);
-  if (!SWIG_IsOK(res)) {
-    SWIG_exception_fail(SWIG_ArgError(res), "in method 'ResourceId.str', ResourceId is not correct type");
-  }
-
-  // cast as unsigned long long
-  id = (unsigned long long *)resptr;
-  static_assert(sizeof(unsigned long long) == sizeof(ResourceId), "Wrong size");
-
-  return PyLong_FromUnsignedLongLong(*id);
-fail:
-  return NULL;
-}
-%}
-
-%{
-  #include "renderdoc_replay.h"
-%}
+///////////////////////////////////////////////////////////////////////////////////////////
+// Actually include header files here. Note that swig is configured not to recurse, so we
+// need to list all headers in include order that we want to process
 
 %include <stdint.i>
 
@@ -163,6 +108,25 @@ fail:
 %include "shader_types.h"
 %include "vk_pipestate.h"
 
+%feature("docstring") "";
+
+%extend rdcarray {
+  // we ignored insert and clear before, need to restore them so we can declare our own impls
+  %rename("%s") insert;
+  %rename("%s") clear;
+}
+
+// add python array members that aren't in slots
+EXTEND_ARRAY_CLASS_METHODS(rdcarray)
+
+// list of array types. These are the concrete types used in rdcarray that will be bound
+// If you get an error with add_your_use_of_rdcarray_to_swig_interface missing, add your type here
+// or in qrenderdoc.i, depending on which one is appropriate
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, int)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, rdcstr)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, float)
+
+///////////////////////////////////////////////////////////////////////////////////////////
 // declare a function for passing external objects into python
 %wrapper %{
 
@@ -176,6 +140,9 @@ PyObject *PassObjectToPython(const char *type, void *obj)
 }
 
 %}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// Check documentation for types is set up correctly
 
 %header %{
   #include <set>

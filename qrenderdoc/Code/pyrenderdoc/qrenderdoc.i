@@ -10,21 +10,32 @@
 
 %begin %{
 
-#undef slots
+  #undef slots
+%}
+
+%{
+  #define ENABLE_QT_CONVERT
+
+  #include <QDateTime>
+  #include <QTimeZone>
+  #include <QMap>
+  #include <QString>
+  #include <QList>
+  #include <QVector>
+
+  #include "datetime.h"
 
 %}
+
+%include "pyconversion.i"
 
 // import the renderdoc interface that we depend on
 %import "renderdoc.i"
 
 SIMPLE_TYPEMAPS(QString)
 SIMPLE_TYPEMAPS(QDateTime)
-SIMPLE_TYPEMAPS(QPair)
 
-CONTAINER_TYPEMAPS(QList)
-CONTAINER_TYPEMAPS(QStringList)
-CONTAINER_TYPEMAPS(QVector)
-CONTAINER_TYPEMAPS(QMap)
+TEMPLATE_ARRAY_DECLARE(rdcarray);
 
 // pass QWidget objects to PySide
 %typemap(in) QWidget * {
@@ -50,17 +61,6 @@ CONTAINER_TYPEMAPS(QMap)
 %rename("%(regex:/^I([A-Z].*)/\\1/)s", %$isclass) "";
 
 %{
-  #define ENABLE_QT_CONVERT
-
-  #include <QDateTime>
-  #include <QTimeZone>
-  #include <QMap>
-  #include <QString>
-  #include <QList>
-  #include <QVector>
-
-  #include "datetime.h"
-
 #ifndef slots
 #define slots
 #endif

@@ -1,5 +1,8 @@
 // this file is included from renderdoc.i, it's not a module in itself
 
+%define STRINGIZE(val) #val %enddef
+
+///////////////////////////////////////////////////////////////////////////////////////////////
 // typemaps for more sensible fixed-array handling, based on typemaps from SWIG documentation
 
 %define FIXED_ARRAY_TYPEMAPS(BaseType)
@@ -50,8 +53,12 @@
 
 %enddef
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// simple typemaps for an object that's converted directly by-value. This is perfect for python
+// immutable objects like strings or datetimes
+
 %define SIMPLE_TYPEMAPS_VARIANT(BaseType, SimpleType)
-%typemap(in, fragment="pyconvert") SimpleType (BaseType temp) {
+%typemap(in) SimpleType (BaseType temp) {
   tempset($1, &temp);
 
   int res = ConvertFromPy($input, indirect($1));
@@ -61,8 +68,8 @@
   }
 }
 
-%typemap(out, fragment="pyconvert") SimpleType {
-  $result = ConvertToPy( indirect($1));
+%typemap(out) SimpleType {
+  $result = ConvertToPy(indirect($1));
 }
 %enddef
 
@@ -74,50 +81,44 @@ SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType &)
 
 %enddef
 
-%define CONTAINER_TYPEMAPS_VARIANT(ContainerType)
+///////////////////////////////////////////////////////////////////////////////////////////////
+// typemaps for std::function
 
-%typemap(in, fragment="pyconvert") ContainerType (unsigned char tempmem[32]) {
-  static_assert(sizeof(tempmem) >= sizeof(std::remove_pointer<decltype($1)>::type), "not enough temp space for $1_basetype");
+%typemap(in) std::function {
+  PyObject *func = $input;
+  $1 = ConvertFunc<$1_ltype>("$symname", func, exHandle$argnum);
+}
+
+%typemap(argout) std::function (ExceptionHandling exHandle) {
+  if(exHandle.failFlag) {
+    PyErr_Restore(exHandle.exObj, exHandle.valueObj, exHandle.tracebackObj);
+    SWIG_fail;
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+// inserted code to include C++ conversion header
+
+%{
+  #include "renderdoc_replay.h"
+
+  static char convert_error[1024] = {};
   
-  tempalloc($1, tempmem);
+  #include "Code/pyrenderdoc/pyconversion.h"
 
-  int failIdx = 0;
-  int res = TypeConversion<std::remove_pointer<decltype($1)>::type>::ConvertFromPy($input, indirect($1), &failIdx);
+  // declare the basic building blocks as stringize types
+  DECLARE_REFLECTION_STRUCT(int8_t);
+  DECLARE_REFLECTION_STRUCT(uint8_t);
+  DECLARE_REFLECTION_STRUCT(int16_t);
+  DECLARE_REFLECTION_STRUCT(uint16_t);
+  DECLARE_REFLECTION_STRUCT(int32_t);
+  DECLARE_REFLECTION_STRUCT(uint32_t);
+  DECLARE_REFLECTION_STRUCT(int64_t);
+  DECLARE_REFLECTION_STRUCT(uint64_t);
+  DECLARE_REFLECTION_STRUCT(float);
+  DECLARE_REFLECTION_STRUCT(double);
+  DECLARE_REFLECTION_STRUCT(rdcstr);
 
-  if(!SWIG_IsOK(res))
-  {
-    if(res == SWIG_TypeError)
-    {
-      SWIG_exception_fail(SWIG_ArgError(res), "in method '$symname' argument $argnum of type '$1_basetype'"); 
-    }
-    else
-    {
-      snprintf(convert_error, sizeof(convert_error)-1, "in method '$symname' argument $argnum of type '$1_basetype', decoding element %d", failIdx);
-      SWIG_exception_fail(SWIG_ArgError(res), convert_error);
-    }
-  }
-}
+%}
 
-%typemap(freearg, fragment="pyconvert") ContainerType {
-  tempdealloc($1);
-}
-
-%typemap(out, fragment="pyconvert") ContainerType {
-  int failIdx = 0;
-  $result = TypeConversion<std::remove_pointer<$1_basetype>::type>::ConvertToPy( indirect($1), &failIdx);
-  if(!$result)
-  {
-    snprintf(convert_error, sizeof(convert_error)-1, "in method '$symname' returning type '$1_basetype', encoding element %d", failIdx);
-    SWIG_exception_fail(SWIG_ValueError, convert_error);
-  }
-}
-
-%enddef
-
-%define CONTAINER_TYPEMAPS(ContainerType)
-
-CONTAINER_TYPEMAPS_VARIANT(ContainerType)
-CONTAINER_TYPEMAPS_VARIANT(ContainerType *)
-CONTAINER_TYPEMAPS_VARIANT(ContainerType &)
-
-%enddef
+%include "container_handling.i"
