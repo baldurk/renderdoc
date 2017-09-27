@@ -1,5 +1,5 @@
 //==============================================================================
-// Copyright (c) 2010-2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2010-2017 Advanced Micro Devices, Inc. All rights reserved.
 /// \author AMD Developer Tools Team
 /// \file
 /// \brief  Defines the data types and enumerations used by GPUPerfAPI.
@@ -24,15 +24,11 @@
     typedef unsigned short   gpa_uint16;
     typedef unsigned int     gpa_uint32;
     typedef unsigned __int64 gpa_uint64;
-    #ifndef __cplusplus
-        typedef gpa_uint8 bool;
-    #endif
 #endif // _WIN32
 
 #ifdef __linux__
 
-    #ifdef GPALIB_DECL
-    #else
+    #ifndef GPALIB_DECL
         #ifdef __cplusplus
             #define GPALIB_DECL extern "C"
         #else
@@ -51,17 +47,14 @@
     typedef unsigned short   gpa_uint16;
     typedef unsigned int     gpa_uint32;
     typedef unsigned long long gpa_uint64;
-    #ifndef __cplusplus
-        typedef gpa_uint8 bool;
-    #endif
 
     #define UNREFERENCED_PARAMETER(x)
-    #define UNREFERECED_VAR(x)
 
     #define _strcmpi(a, b) strcasecmp(a, b)
 
     // for now, just use non secure version for Linux
     #define strcpy_s(dst, ndst, src) strcpy(dst, src)
+    #define strcat_s(dst, ndst, src) strcat(dst, src)
     #define strtok_s(a, b, c) strtok(a, b)
 
 #endif // __linux__
@@ -117,11 +110,33 @@ typedef enum
     GPA_STATUS_ERROR_FAILED,
     GPA_STATUS_ERROR_HARDWARE_NOT_SUPPORTED,
     GPA_STATUS_ERROR_DRIVER_NOT_SUPPORTED,
+    GPA_STATUS_ERROR_API_NOT_SUPPORTED,
+    GPA_STATUS_ERROR_LOAD_FAILED,
+    GPA_STATUS_ERROR_LIB_LOAD_FAILED,
+    GPA_STATUS_ERROR_LIB_LOAD_VERION_MISMATCH,
 
     // following are status codes used internally within GPUPerfAPI
     GPA_STATUS_INTERNAL = 256,
     GPA_STATUS_OK_HANDLED = GPA_STATUS_INTERNAL,
 } GPA_Status;
+
+typedef unsigned int GPA_Flags;
+
+/// Flags to pass into GPA_OpenContext()
+enum GPA_OpenContext_Bits
+{
+    GPA_OPENCONTEXT_DEFAULT_BIT                 = 0x0000,   ///< Opens context using all default options
+    GPA_OPENCONTEXT_HIDE_PUBLIC_COUNTERS_BIT    = 0x0001,   ///< Prevent the public counters from being exposed
+    GPA_OPENCONTEXT_HIDE_SOFTWARE_COUNTERS_BIT  = 0x0002,   ///< Prevent the software counters from being exposed
+    GPA_OPENCONTEXT_HIDE_HARDWARE_COUNTERS_BIT  = 0x0004,   ///< Prevent the hardware counters from being exposed
+    GPA_OPENCONTEXT_CLOCK_MODE_NONE_BIT         = 0x0008,   ///< Clocks are set to default mode
+    GPA_OPENCONTEXT_CLOCK_MODE_PEAK_BIT         = 0x0010,   ///< Clocks set to maximum when possible
+    GPA_OPENCONTEXT_CLOCK_MODE_MIN_MEMORY_BIT   = 0x0020,   ///< Memory clock is set to the lowest available level
+    GPA_OPENCONTEXT_CLOCK_MODE_MIN_ENGINE_BIT   = 0x0040    ///< Engine clock is set to the lowest available level
+};
+
+/// Allows GPA_OpenContext_Bits to be combined into a single parameter.
+typedef GPA_Flags GPA_OpenContextFlags;
 
 /// Value type definitions
 typedef enum
@@ -151,27 +166,63 @@ typedef enum
 /// Logging type definitions
 typedef enum
 {
-    GPA_LOGGING_NONE = 0,
-    GPA_LOGGING_ERROR = 1,
-    GPA_LOGGING_MESSAGE = 2,
-    GPA_LOGGING_ERROR_AND_MESSAGE = 3,
-    GPA_LOGGING_TRACE = 4,
-    GPA_LOGGING_ERROR_AND_TRACE = 5,
-    GPA_LOGGING_MESSAGE_AND_TRACE = 6,
-    GPA_LOGGING_ERROR_MESSAGE_AND_TRACE = 7,
-    GPA_LOGGING_ALL = 0xFF
+    GPA_LOGGING_NONE = 0x00,                                                                                ///< No logging
+    GPA_LOGGING_ERROR = 0x01,                                                                               ///< Log errors 
+    GPA_LOGGING_MESSAGE = 0x02,                                                                             ///< Log messages
+    GPA_LOGGING_ERROR_AND_MESSAGE = GPA_LOGGING_ERROR | GPA_LOGGING_MESSAGE,                                ///< Log errors and messages
+    GPA_LOG_ERROR_AND_MESSAGE = GPA_LOGGING_ERROR_AND_MESSAGE,                                              ///< Log errors and messages - Backward Compatibility
+    GPA_LOGGING_TRACE = 0x04,                                                                               ///< Log traces
+    GPA_LOGGING_ERROR_AND_TRACE = GPA_LOGGING_ERROR | GPA_LOGGING_TRACE,                                    ///< Log errors and traces
+    GPA_LOGGING_MESSAGE_AND_TRACE = GPA_LOGGING_MESSAGE | GPA_LOGGING_TRACE,                                ///< Log messages traces
+    GPA_LOGGING_ERROR_MESSAGE_AND_TRACE = GPA_LOGGING_ERROR | GPA_LOGGING_MESSAGE | GPA_LOGGING_TRACE,      ///< Log errors and messages and traces
+    GPA_LOGGING_ALL = 0xFF,                                                                                 ///< Log all
+    GPA_LOGGING_DEBUG_ERROR = 0x0100,                                                                       ///< Log debugging errors
+    GPA_LOGGING_DEBUG_MESSAGE = 0x0200,                                                                     ///< Log debugging messages
+    GPA_LOGGING_DEBUG_TRACE = 0x0400,                                                                       ///< Log debugging traces
+    GPA_LOGGING_DEBUG_COUNTERDEFS = 0x0800,                                                                 ///< Log debugging counter defs
+    GPA_LOGGING_DEBUG_ALL = 0xFF00                                                                          ///< Log all debugging
 } GPA_Logging_Type;
 
 /// APIs Supported (either publicly or internally) by GPUPerfAPI
 typedef enum
 {
-    GPA_API_DIRECTX_11,
-    GPA_API_DIRECTX_12,
-    GPA_API_OPENGL,
-    GPA_API_OPENGLES,
-    GPA_API_OPENCL,
-    GPA_API_HSA,
-    GPA_API__LAST
+    GPA_API__START,                         ///< Marker indicating first element
+    GPA_API_DIRECTX_11 = GPA_API__START,    ///< DirectX 11 API
+    GPA_API_DIRECTX_12,                     ///< DirectX 12 API
+    GPA_API_OPENGL,                         ///< OpenGL API
+    GPA_API_OPENGLES,                       ///< OpenGLES API
+    GPA_API_OPENCL,                         ///< OpenCL API
+    GPA_API_HSA,                            ///< HSA API
+    GPA_API_VULKAN,                         ///< Vulkan API
+    GPA_API_NO_SUPPORT,                     ///< API which are not yet supported or support have been removed
+    GPA_API__LAST                           ///< Marker indicating last element
 } GPA_API_Type;
+
+/// Counter type definitions
+typedef enum
+{
+    GPA_COUNTER_TYPE_DYNAMIC,     ///< hardware per sample counter type
+    GPA_COUNTER_TYPE_SESSION,     ///< hardware per session counter type
+    GPA_COUNTER_TYPE_API_DYNAMIC, ///< api per sample counter type
+    GPA_COUNTER_TYPE_API_SESSION, ///< api per session counter
+    GPA_COUNTER_TYPE__LAST        ///< Marker indicating last element
+} GPA_CounterType;
+
+/// this enum needs to be kept up to date with GDT_HW_GENERATION in DeviceInfo.h
+enum GPA_HW_GENERATION
+{
+    GPA_HW_GENERATION_NONE,                                    ///< undefined hw generation
+    GPA_HW_GENERATION_NVIDIA,                                  ///< Used for nvidia cards by GPA
+    GPA_HW_GENERATION_INTEL,                                   ///< Used for Intel cards by GPA
+    GPA_HW_GENERATION_GFX6,                                    ///< GFX IP 6
+    GPA_HW_GENERATION_SOUTHERNISLAND = GPA_HW_GENERATION_GFX6, ///< For backwards compatibility
+    GPA_HW_GENERATION_GFX7,                                    ///< GFX IP 7
+    GPA_HW_GENERATION_SEAISLAND = GPA_HW_GENERATION_GFX7,      ///< For backwards compatibility
+    GPA_HW_GENERATION_GFX8,                                    ///< GFX IP 8
+    GPA_HW_GENERATION_VOLCANICISLAND = GPA_HW_GENERATION_GFX8, ///< For backwards compatibility
+    GPA_HW_GENERATION_GFX9,                                    ///< GFX IP 9
+    GPA_HW_GENERATION_LAST
+};
+
 
 #endif // _GPUPERFAPI_TYPES_H_

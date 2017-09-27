@@ -12,7 +12,6 @@
 #include "GPAICounterAccessor.h"
 #include "GPAICounterScheduler.h"
 #include "GPUPerfAPITypes.h"
-#include "GPUPerfAPITypes-Private.h"
 
 // Internal function. We don't want this exposed by the internal DLLs though, so it doesn't use GPALIB_DECL
 /// Generates a counter accessor object that can be used to obtain the counters to expose

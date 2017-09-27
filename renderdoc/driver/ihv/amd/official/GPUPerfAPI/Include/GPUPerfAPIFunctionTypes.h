@@ -1,5 +1,5 @@
 //==============================================================================
-// Copyright (c) 2010-2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2010-2017 Advanced Micro Devices, Inc. All rights reserved.
 /// \author AMD Developer Tools Team
 /// \file
 /// \brief  This file defines function types to make it easier to dynamically load
@@ -22,13 +22,14 @@ typedef GPA_Status(*GPA_InitializePtrType)();  ///< Typedef for a function point
 typedef GPA_Status(*GPA_DestroyPtrType)();  ///< Typedef for a function pointer for GPA_Destroy
 
 // Context
-typedef GPA_Status(*GPA_OpenContextPtrType)(void* pContext);  ///< Typedef for a function pointer for GPA_OpenContext
+typedef GPA_Status(*GPA_OpenContextPtrType)(void* pContext, GPA_OpenContextFlags flags);  ///< Typedef for a function pointer for GPA_OpenContext
 typedef GPA_Status(*GPA_CloseContextPtrType)();  ///< Typedef for a function pointer for GPA_CloseContext
 typedef GPA_Status(*GPA_SelectContextPtrType)(void* pCcontext);  ///< Typedef for a function pointer for GPA_SelectContext
 
 // Counter Interrogation
 typedef GPA_Status(*GPA_GetNumCountersPtrType)(gpa_uint32* pCount);  ///< Typedef for a function pointer for GPA_GetNumCounters
 typedef GPA_Status(*GPA_GetCounterNamePtrType)(gpa_uint32 index, const char** ppName);  ///< Typedef for a function pointer for GPA_GetCounterName
+typedef GPA_Status(*GPA_GetCounterCategoryPtrType)(gpa_uint32 index, const char** ppCategory); ///< Typedef for a function pointer for GPA_GetCounterCategory
 typedef GPA_Status(*GPA_GetCounterDescriptionPtrType)(gpa_uint32 index, const char** ppDescription);  ///< Typedef for a function pointer for GPA_GetCounterDescription
 typedef GPA_Status(*GPA_GetCounterDataTypePtrType)(gpa_uint32 index, GPA_Type* pCounterDataType);  ///< Typedef for a function pointer for GPA_GetCounterDataType
 typedef GPA_Status(*GPA_GetCounterUsageTypePtrType)(gpa_uint32 index, GPA_Usage_Type* pCounterUsageType);  ///< Typedef for a function pointer for GPA_GetCounterUsageType
@@ -58,13 +59,17 @@ typedef GPA_Status(*GPA_EndSessionPtrType)();  ///< Typedef for a function point
 typedef GPA_Status(*GPA_BeginPassPtrType)();  ///< Typedef for a function pointer for GPA_BeginPass
 typedef GPA_Status(*GPA_EndPassPtrType)();  ///< Typedef for a function pointer for GPA_EndPass
 
+typedef GPA_Status(*GPA_BeginSampleListPtrType)(void* pSampleList);  ///< Typedef for a function pointer for GPA_BeginSampleList
+typedef GPA_Status(*GPA_EndSampleListPtrType)(void* pSampleList);  ///< Typedef for a function pointer for GPA_EndSampleList
+typedef GPA_Status(*GPA_BeginSampleInSampleListPtrType)(gpa_uint32 sampleID, void* pSampleList);  ///< Typedef for a function pointer for GPA_BeginSampleInSampleList
+typedef GPA_Status(*GPA_EndSampleInSampleListPtrType)(void* pSampleList);  ///< Typedef for a function pointer for GPA_EndSampleInSampleList
 typedef GPA_Status(*GPA_BeginSamplePtrType)(gpa_uint32 sampleID);  ///< Typedef for a function pointer for GPA_BeginSample
 typedef GPA_Status(*GPA_EndSamplePtrType)();  ///< Typedef for a function pointer for GPA_EndSample
 
 typedef GPA_Status(*GPA_GetSampleCountPtrType)(gpa_uint32 sessionID, gpa_uint32* pSamples);  ///< Typedef for a function pointer for GPA_GetSampleCount
 
-typedef GPA_Status(*GPA_IsSampleReadyPtrType)(bool* pReadyResult, gpa_uint32 sessionID, gpa_uint32 sampleID);  ///< Typedef for a function pointer for GPA_IsSampleReady
-typedef GPA_Status(*GPA_IsSessionReadyPtrType)(bool* pReadyResult, gpa_uint32 sessionID);  ///< Typedef for a function pointer for GPA_IsSessionReady
+typedef GPA_Status(*GPA_IsSampleReadyPtrType)(gpa_uint8* pReadyResult, gpa_uint32 sessionID, gpa_uint32 sampleID);  ///< Typedef for a function pointer for GPA_IsSampleReady
+typedef GPA_Status(*GPA_IsSessionReadyPtrType)(gpa_uint8* pReadyResult, gpa_uint32 sessionID);  ///< Typedef for a function pointer for GPA_IsSessionReady
 typedef GPA_Status(*GPA_GetSampleUInt64PtrType)(gpa_uint32 sessionID, gpa_uint32 sampleID, gpa_uint32 counterID, gpa_uint64* pResult);  ///< Typedef for a function pointer for GPA_GetSampleUInt64
 typedef GPA_Status(*GPA_GetSampleUInt32PtrType)(gpa_uint32 sessionID, gpa_uint32 sampleID, gpa_uint32 counterIndex, gpa_uint32* pResult);  ///< Typedef for a function pointer for GPA_GetSampleUInt32
 typedef GPA_Status(*GPA_GetSampleFloat32PtrType)(gpa_uint32 sessionID, gpa_uint32 sampleID, gpa_uint32 counterIndex, gpa_float32* pResult);  ///< Typedef for a function pointer for GPA_GetSampleFloat32
@@ -72,5 +77,9 @@ typedef GPA_Status(*GPA_GetSampleFloat64PtrType)(gpa_uint32 sessionID, gpa_uint3
 
 typedef GPA_Status(*GPA_GetDeviceIDPtrType)(gpa_uint32* pDeviceID);  ///< Typedef for a function pointer for GPA_GetDeviceID
 typedef GPA_Status(*GPA_GetDeviceDescPtrType)(const char** ppDesc);  ///< Typedef for a function pointer for GPA_GetDeviceDesc
+
+typedef GPA_Status(*GPA_InternalSetDrawCallCountsPtrType)(const int iCounts);  /// Typedef for a function pointer for a function to set the number of draw calls in a frame
+
+typedef GPA_Status(*GPA_GetFuncTablePtrType)(void** funcTable); /// Typedef for a function pointer for GPA function GPA_GetFuncTablePtrType function
 
 #endif // _GPUPERFAPI_FUNCTION_TYPES_H_

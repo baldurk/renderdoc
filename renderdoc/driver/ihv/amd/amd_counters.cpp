@@ -31,77 +31,6 @@
 
 #include "serialise/string_utils.h"
 
-typedef GPA_Status(__stdcall *PFN_GPA_INITIALIZE)();
-typedef GPA_Status(__stdcall *PFN_GPA_OPENCONTEXT)(void *pContext);
-typedef GPA_Status(__stdcall *PFN_GPA_GET_NUM_COUNTERS)(gpa_uint32 *pCount);
-typedef GPA_Status(__stdcall *PFN_GPA_GET_COUNTER_NAME)(gpa_uint32 index, const char **ppName);
-typedef GPA_Status(__stdcall *PFN_GPA_GET_COUNTER_INDEX)(const char *pCounter, gpa_uint32 *pIndex);
-typedef GPA_Status(__stdcall *PFN_GPA_GET_COUNTER_DESCRIPTION)(gpa_uint32 index,
-                                                               const char **ppDescription);
-typedef GPA_Status(__stdcall *PFN_GPA_GET_COUNTER_DATA_TYPE)(gpa_uint32 index, GPA_Type *pDataType);
-typedef GPA_Status(__stdcall *PFN_GPA_GET_COUNTER_USAGE_TYPE)(gpa_uint32 index,
-                                                              GPA_Usage_Type *usageType);
-typedef GPA_Status(__stdcall *PFN_GPA_ENABLE_COUNTER)(gpa_uint32 index);
-typedef GPA_Status(__stdcall *PFN_GPA_ENABLE_COUNTER_STR)(const char *pCounter);
-typedef GPA_Status(__stdcall *PFN_GPA_ENABLE_ALL_COUNTERS)();
-typedef GPA_Status(__stdcall *PFN_GPA_DISABLE_COUNTER)(gpa_uint32 index);
-typedef GPA_Status(__stdcall *PFN_GPA_DISABLE_COUNTER_STR)(const char *pCounter);
-typedef GPA_Status(__stdcall *PFN_GPA_DISABLE_ALL_COUNTERS)();
-typedef GPA_Status(__stdcall *PFN_GPA_GET_PASS_COUNT)(gpa_uint32 *pNumPasses);
-typedef GPA_Status(__stdcall *PFN_GPA_BEGIN_SESSION)(gpa_uint32 *pSessionID);
-typedef GPA_Status(__stdcall *PFN_GPA_END_SESSION)();
-typedef GPA_Status(__stdcall *PFN_GPA_BEGIN_PASS)();
-typedef GPA_Status(__stdcall *PFN_GPA_END_PASS)();
-typedef GPA_Status(__stdcall *PFN_GPA_BEGIN_SAMPLE)(gpa_uint32 sampleID);
-typedef GPA_Status(__stdcall *PFN_GPA_END_SAMPLE)();
-typedef GPA_Status(__stdcall *PFN_GPA_IS_SESSION_READY)(bool *pReadyResult, gpa_uint32 sessionID);
-typedef GPA_Status(__stdcall *PFN_GPA_IS_SAMPLE_READY)(bool *pReadyResult, gpa_uint32 sessionID,
-                                                       gpa_uint32 sampleID);
-typedef GPA_Status(__stdcall *PFN_GPA_GET_SAMPLE_UINT32)(gpa_uint32 sessionID, gpa_uint32 sampleID,
-                                                         gpa_uint32 counterID, gpa_uint32 *pResult);
-typedef GPA_Status(__stdcall *PFN_GPA_GET_SAMPLE_UINT64)(gpa_uint32 sessionID, gpa_uint32 sampleID,
-                                                         gpa_uint32 counterID, gpa_uint64 *pResult);
-typedef GPA_Status(__stdcall *PFN_GPA_GET_SAMPLE_FLOAT32)(gpa_uint32 sessionID, gpa_uint32 sampleID,
-                                                          gpa_uint32 counterID, gpa_float32 *pResult);
-typedef GPA_Status(__stdcall *PFN_GPA_GET_SAMPLE_FLOAT64)(gpa_uint32 sessionID, gpa_uint32 sampleID,
-                                                          gpa_uint32 counterID, gpa_float64 *pResult);
-typedef GPA_Status(__stdcall *PFN_GPA_CLOSE_CONTEXT)();
-typedef GPA_Status(__stdcall *PFN_GPA_DESTROY)();
-
-class GPUPerfAPI
-{
-public:
-  PFN_GPA_INITIALIZE init;
-  PFN_GPA_OPENCONTEXT openContext;
-  PFN_GPA_GET_NUM_COUNTERS getNumCounters;
-  PFN_GPA_GET_COUNTER_NAME getCounterName;
-  PFN_GPA_GET_COUNTER_INDEX getCounterIndex;
-  PFN_GPA_GET_COUNTER_DESCRIPTION getCounterDescription;
-  PFN_GPA_GET_COUNTER_DATA_TYPE getCounterDataType;
-  PFN_GPA_GET_COUNTER_USAGE_TYPE getCounterUsageType;
-  PFN_GPA_ENABLE_COUNTER enableCounter;
-  PFN_GPA_ENABLE_COUNTER_STR enableCounterStr;
-  PFN_GPA_ENABLE_ALL_COUNTERS enableAllCounters;
-  PFN_GPA_DISABLE_COUNTER disableCounter;
-  PFN_GPA_DISABLE_COUNTER_STR disableCounterStr;
-  PFN_GPA_DISABLE_ALL_COUNTERS disableAllCounters;
-  PFN_GPA_GET_PASS_COUNT getPassCount;
-  PFN_GPA_BEGIN_SESSION beginSession;
-  PFN_GPA_END_SESSION endSession;
-  PFN_GPA_BEGIN_PASS beginPass;
-  PFN_GPA_END_PASS endPass;
-  PFN_GPA_BEGIN_SAMPLE beginSample;
-  PFN_GPA_END_SAMPLE endSample;
-  PFN_GPA_IS_SESSION_READY isSessionReady;
-  PFN_GPA_IS_SAMPLE_READY isSampleReady;
-  PFN_GPA_GET_SAMPLE_UINT32 getSampleUInt32;
-  PFN_GPA_GET_SAMPLE_UINT64 getSampleUInt64;
-  PFN_GPA_GET_SAMPLE_FLOAT32 getSampleFloat32;
-  PFN_GPA_GET_SAMPLE_FLOAT64 getSampleFloat64;
-  PFN_GPA_CLOSE_CONTEXT closeContext;
-  PFN_GPA_DESTROY destroy;
-};
-
 AMDCounters::AMDCounters() : m_pGPUPerfAPI(NULL)
 {
 }
@@ -128,65 +57,27 @@ bool AMDCounters::Init(void *pContext)
     return false;
   }
 
-  m_pGPUPerfAPI = new GPUPerfAPI();
-  m_pGPUPerfAPI->init = (PFN_GPA_INITIALIZE)GetProcAddress(module, "GPA_Initialize");
-  m_pGPUPerfAPI->openContext = (PFN_GPA_OPENCONTEXT)GetProcAddress(module, "GPA_OpenContext");
-  m_pGPUPerfAPI->getNumCounters =
-      (PFN_GPA_GET_NUM_COUNTERS)GetProcAddress(module, "GPA_GetNumCounters");
-  m_pGPUPerfAPI->getCounterName =
-      (PFN_GPA_GET_COUNTER_NAME)GetProcAddress(module, "GPA_GetCounterName");
-  m_pGPUPerfAPI->getCounterIndex =
-      (PFN_GPA_GET_COUNTER_INDEX)GetProcAddress(module, "GPA_GetCounterIndex");
-  m_pGPUPerfAPI->getCounterDescription =
-      (PFN_GPA_GET_COUNTER_DESCRIPTION)GetProcAddress(module, "GPA_GetCounterDescription");
-  m_pGPUPerfAPI->getCounterDataType =
-      (PFN_GPA_GET_COUNTER_DATA_TYPE)GetProcAddress(module, "GPA_GetCounterDataType");
-  m_pGPUPerfAPI->getCounterUsageType =
-      (PFN_GPA_GET_COUNTER_USAGE_TYPE)GetProcAddress(module, "GPA_GetCounterUsageType");
-  m_pGPUPerfAPI->enableCounter =
-      (PFN_GPA_ENABLE_COUNTER)GetProcAddress(module, "GPA_EnableCounter");
-  m_pGPUPerfAPI->enableCounterStr =
-      (PFN_GPA_ENABLE_COUNTER_STR)GetProcAddress(module, "GPA_EnableCounterStr");
-  m_pGPUPerfAPI->enableAllCounters =
-      (PFN_GPA_ENABLE_ALL_COUNTERS)GetProcAddress(module, "GPA_EnableAllCounters");
-  m_pGPUPerfAPI->disableCounter =
-      (PFN_GPA_DISABLE_COUNTER)GetProcAddress(module, "GPA_DisableCounter");
-  m_pGPUPerfAPI->disableCounterStr =
-      (PFN_GPA_DISABLE_COUNTER_STR)GetProcAddress(module, "GPA_DisableCounterStr");
-  m_pGPUPerfAPI->disableAllCounters =
-      (PFN_GPA_DISABLE_ALL_COUNTERS)GetProcAddress(module, "GPA_DisableAllCounters");
-  m_pGPUPerfAPI->getPassCount = (PFN_GPA_GET_PASS_COUNT)GetProcAddress(module, "GPA_GetPassCount");
-  m_pGPUPerfAPI->beginSession = (PFN_GPA_BEGIN_SESSION)GetProcAddress(module, "GPA_BeginSession");
-  m_pGPUPerfAPI->endSession = (PFN_GPA_END_SESSION)GetProcAddress(module, "GPA_EndSession");
-  m_pGPUPerfAPI->beginPass = (PFN_GPA_BEGIN_PASS)GetProcAddress(module, "GPA_BeginPass");
-  m_pGPUPerfAPI->endPass = (PFN_GPA_END_PASS)GetProcAddress(module, "GPA_EndPass");
-  m_pGPUPerfAPI->beginSample = (PFN_GPA_BEGIN_SAMPLE)GetProcAddress(module, "GPA_BeginSample");
-  m_pGPUPerfAPI->endSample = (PFN_GPA_END_SAMPLE)GetProcAddress(module, "GPA_EndSample");
-  m_pGPUPerfAPI->isSessionReady =
-      (PFN_GPA_IS_SESSION_READY)GetProcAddress(module, "GPA_IsSessionReady");
-  m_pGPUPerfAPI->isSampleReady =
-      (PFN_GPA_IS_SAMPLE_READY)GetProcAddress(module, "GPA_IsSampleReady");
-  m_pGPUPerfAPI->getSampleUInt32 =
-      (PFN_GPA_GET_SAMPLE_UINT32)GetProcAddress(module, "GPA_GetSampleUInt32");
-  m_pGPUPerfAPI->getSampleUInt64 =
-      (PFN_GPA_GET_SAMPLE_UINT64)GetProcAddress(module, "GPA_GetSampleUInt64");
-  m_pGPUPerfAPI->getSampleFloat32 =
-      (PFN_GPA_GET_SAMPLE_FLOAT32)GetProcAddress(module, "GPA_GetSampleFloat32");
-  m_pGPUPerfAPI->getSampleFloat64 =
-      (PFN_GPA_GET_SAMPLE_FLOAT64)GetProcAddress(module, "GPA_GetSampleFloat64");
-  m_pGPUPerfAPI->closeContext = (PFN_GPA_CLOSE_CONTEXT)GetProcAddress(module, "GPA_CloseContext");
-  m_pGPUPerfAPI->destroy = (PFN_GPA_DESTROY)GetProcAddress(module, "GPA_Destroy");
+  m_pGPUPerfAPI = new GPAApi();
+  GPA_GetFuncTablePtrType getFuncTable =
+      (GPA_GetFuncTablePtrType)GetProcAddress(module, "GPA_GetFuncTable");
 
-  if(m_pGPUPerfAPI->init() != GPA_STATUS_OK)
+  if(getFuncTable)
+  {
+    getFuncTable((void **)&m_pGPUPerfAPI);
+  }
+
+  if(m_pGPUPerfAPI->GPA_Initialize() != GPA_STATUS_OK)
   {
     delete m_pGPUPerfAPI;
     m_pGPUPerfAPI = NULL;
     return false;
   }
 
-  if(m_pGPUPerfAPI->openContext(pContext) != GPA_STATUS_OK)
+  if(m_pGPUPerfAPI->GPA_OpenContext(pContext, GPA_OPENCONTEXT_HIDE_PUBLIC_COUNTERS_BIT |
+                                                  GPA_OPENCONTEXT_CLOCK_MODE_PEAK_BIT) !=
+     GPA_STATUS_OK)
   {
-    m_pGPUPerfAPI->destroy();
+    m_pGPUPerfAPI->GPA_Destroy();
     delete m_pGPUPerfAPI;
     m_pGPUPerfAPI = NULL;
     return false;
@@ -203,8 +94,8 @@ AMDCounters::~AMDCounters()
   {
     GPA_Status status = GPA_STATUS_OK;
 
-    status = m_pGPUPerfAPI->closeContext();
-    status = m_pGPUPerfAPI->destroy();
+    status = m_pGPUPerfAPI->GPA_CloseContext();
+    status = m_pGPUPerfAPI->GPA_Destroy();
 
     delete m_pGPUPerfAPI;
   }
@@ -214,7 +105,7 @@ vector<AMDCounters::InternalCounterDescription> AMDCounters::EnumerateCounters()
 {
   gpa_uint32 num;
 
-  m_pGPUPerfAPI->getNumCounters(&num);
+  m_pGPUPerfAPI->GPA_GetNumCounters(&num);
 
   vector<InternalCounterDescription> counters;
 
@@ -222,12 +113,6 @@ vector<AMDCounters::InternalCounterDescription> AMDCounters::EnumerateCounters()
   {
     InternalCounterDescription internalDesc;
     internalDesc.desc = InternalGetCounterDescription(i);
-
-    // We ignore any D3D11 counters, as those are handled elsewhere
-    if(strncmp(internalDesc.desc.category.c_str(), "D3D11", 5) == 0)
-    {
-      continue;
-    }
 
     internalDesc.internalIndex = i;
     internalDesc.desc.counterID = MakeAMDCounter(i);
@@ -251,42 +136,16 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
 {
   CounterDescription desc = {};
   const char *tmp = NULL;
-  m_pGPUPerfAPI->getCounterName(internalIndex, &tmp);
+  m_pGPUPerfAPI->GPA_GetCounterName(internalIndex, &tmp);
   desc.name = tmp;
-  m_pGPUPerfAPI->getCounterDescription(internalIndex, &tmp);
-
-  std::vector<char> descCopy;
-  int separator = -1;
-  int sharpFound = 0;
-  const char *c = tmp;
-  while(*c)
-  {
-    if(*c == '#')
-    {
-      ++sharpFound;
-      descCopy.push_back('\0');
-
-      if(sharpFound == 2)
-      {
-        separator = (int32_t)(c - tmp);
-      }
-    }
-    else
-    {
-      descCopy.push_back(*c);
-    }
-
-    ++c;
-  }
-
-  descCopy.push_back('\0');
-
-  desc.category = descCopy.data() + 1;
-  desc.description = descCopy.data() + separator + 1;
+  m_pGPUPerfAPI->GPA_GetCounterDescription(internalIndex, &tmp);
+  desc.description = tmp;
+  m_pGPUPerfAPI->GPA_GetCounterCategory(internalIndex, &tmp);
+  desc.category = tmp;
 
   GPA_Usage_Type usageType;
 
-  m_pGPUPerfAPI->getCounterUsageType(internalIndex, &usageType);
+  m_pGPUPerfAPI->GPA_GetCounterUsageType(internalIndex, &usageType);
 
   switch(usageType)
   {
@@ -316,7 +175,7 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
 
   GPA_Type type;
 
-  m_pGPUPerfAPI->getCounterDataType(internalIndex, &type);
+  m_pGPUPerfAPI->GPA_GetCounterDataType(internalIndex, &type);
 
   // results should either be float32/64 or uint32/64 as the GetSample functions only support those
   switch(type)
@@ -361,23 +220,23 @@ void AMDCounters::EnableCounter(GPUCounter counter)
 {
   const uint32_t internalIndex = m_Counters[GPUCounterToCounterIndex(counter)].internalIndex;
 
-  m_pGPUPerfAPI->enableCounter(internalIndex);
+  m_pGPUPerfAPI->GPA_EnableCounter(internalIndex);
 }
 
 void AMDCounters::EnableAllCounters()
 {
-  m_pGPUPerfAPI->enableAllCounters();
+  m_pGPUPerfAPI->GPA_EnableAllCounters();
 }
 
 void AMDCounters::DisableAllCounters()
 {
-  m_pGPUPerfAPI->disableAllCounters();
+  m_pGPUPerfAPI->GPA_DisableAllCounters();
 }
 
 uint32_t AMDCounters::GetPassCount()
 {
   gpa_uint32 numRequiredPasses;
-  m_pGPUPerfAPI->getPassCount(&numRequiredPasses);
+  m_pGPUPerfAPI->GPA_GetPassCount(&numRequiredPasses);
 
   return (uint32_t)numRequiredPasses;
 }
@@ -386,43 +245,43 @@ uint32_t AMDCounters::BeginSession()
 {
   gpa_uint32 sessionID;
 
-  m_pGPUPerfAPI->beginSession(&sessionID);
+  m_pGPUPerfAPI->GPA_BeginSession(&sessionID);
 
   return (uint32_t)sessionID;
 }
 
 void AMDCounters::EndSesssion()
 {
-  m_pGPUPerfAPI->endSession();
+  m_pGPUPerfAPI->GPA_EndSession();
 }
 
 bool AMDCounters::IsSessionReady(uint32_t sessionIndex)
 {
-  bool readyResult = false;
+  gpa_uint8 readyResult = 0;
 
-  GPA_Status status = m_pGPUPerfAPI->isSessionReady(&readyResult, sessionIndex);
+  GPA_Status status = m_pGPUPerfAPI->GPA_IsSessionReady(&readyResult, sessionIndex);
 
   return readyResult && status == GPA_STATUS_OK;
 }
 
 void AMDCounters::BeginPass()
 {
-  m_pGPUPerfAPI->beginPass();
+  m_pGPUPerfAPI->GPA_BeginPass();
 }
 
 void AMDCounters::EndPass()
 {
-  m_pGPUPerfAPI->endPass();
+  m_pGPUPerfAPI->GPA_EndPass();
 }
 
 void AMDCounters::BeginSample(uint32_t index)
 {
-  m_pGPUPerfAPI->beginSample(index);
+  m_pGPUPerfAPI->GPA_BeginSample(index);
 }
 
 void AMDCounters::EndSample()
 {
-  m_pGPUPerfAPI->endSample();
+  m_pGPUPerfAPI->GPA_EndSample();
 }
 
 uint32_t AMDCounters::GetSampleUint32(uint32_t session, uint32_t sample, GPUCounter counter)
@@ -430,11 +289,11 @@ uint32_t AMDCounters::GetSampleUint32(uint32_t session, uint32_t sample, GPUCoun
   const uint32_t internalIndex = m_Counters[GPUCounterToCounterIndex(counter)].internalIndex;
   uint32_t value;
 
-  m_pGPUPerfAPI->getSampleUInt32(session, sample, internalIndex, &value);
+  m_pGPUPerfAPI->GPA_GetSampleUInt32(session, sample, internalIndex, &value);
 
   // normalise units as expected
   GPA_Usage_Type usageType;
-  m_pGPUPerfAPI->getCounterUsageType(internalIndex, &usageType);
+  m_pGPUPerfAPI->GPA_GetCounterUsageType(internalIndex, &usageType);
 
   if(usageType == GPA_USAGE_TYPE_KILOBYTES)
     value *= 1000;
@@ -447,11 +306,11 @@ uint64_t AMDCounters::GetSampleUint64(uint32_t session, uint32_t sample, GPUCoun
   const uint32_t internalIndex = m_Counters[GPUCounterToCounterIndex(counter)].internalIndex;
   gpa_uint64 value;
 
-  m_pGPUPerfAPI->getSampleUInt64(session, sample, internalIndex, &value);
+  m_pGPUPerfAPI->GPA_GetSampleUInt64(session, sample, internalIndex, &value);
 
   // normalise units as expected
   GPA_Usage_Type usageType;
-  m_pGPUPerfAPI->getCounterUsageType(internalIndex, &usageType);
+  m_pGPUPerfAPI->GPA_GetCounterUsageType(internalIndex, &usageType);
 
   if(usageType == GPA_USAGE_TYPE_KILOBYTES)
     value *= 1000;
@@ -464,11 +323,11 @@ float AMDCounters::GetSampleFloat32(uint32_t session, uint32_t sample, GPUCounte
   const uint32_t internalIndex = m_Counters[GPUCounterToCounterIndex(counter)].internalIndex;
   float value;
 
-  m_pGPUPerfAPI->getSampleFloat32(session, sample, internalIndex, &value);
+  m_pGPUPerfAPI->GPA_GetSampleFloat32(session, sample, internalIndex, &value);
 
   // normalise units as expected
   GPA_Usage_Type usageType;
-  m_pGPUPerfAPI->getCounterUsageType(internalIndex, &usageType);
+  m_pGPUPerfAPI->GPA_GetCounterUsageType(internalIndex, &usageType);
 
   if(usageType == GPA_USAGE_TYPE_KILOBYTES)
     value *= 1000.0f;
@@ -483,11 +342,11 @@ double AMDCounters::GetSampleFloat64(uint32_t session, uint32_t sample, GPUCount
   const uint32_t internalIndex = m_Counters[GPUCounterToCounterIndex(counter)].internalIndex;
   double value;
 
-  m_pGPUPerfAPI->getSampleFloat64(session, sample, internalIndex, &value);
+  m_pGPUPerfAPI->GPA_GetSampleFloat64(session, sample, internalIndex, &value);
 
   // normalise units as expected
   GPA_Usage_Type usageType;
-  m_pGPUPerfAPI->getCounterUsageType(internalIndex, &usageType);
+  m_pGPUPerfAPI->GPA_GetCounterUsageType(internalIndex, &usageType);
 
   if(usageType == GPA_USAGE_TYPE_KILOBYTES)
     value *= 1000.0;

@@ -8,7 +8,7 @@
 #ifndef _GPUPERFAPI_COUNTERS_H_
 #define _GPUPERFAPI_COUNTERS_H_
 
-#include "GPUPerfAPITypes-Private.h"
+#include "GPUPerfAPITypes.h"
 #include "GPAICounterAccessor.h"
 #include "GPAICounterScheduler.h"
 

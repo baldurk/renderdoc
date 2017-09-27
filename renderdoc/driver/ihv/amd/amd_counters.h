@@ -27,7 +27,7 @@
 #include <vector>
 #include "api/replay/renderdoc_replay.h"
 
-class GPUPerfAPI;
+struct _GPAApi;
 
 inline constexpr GPUCounter MakeAMDCounter(int index)
 {
@@ -71,7 +71,8 @@ public:
   double GetSampleFloat64(uint32_t session, uint32_t sample, GPUCounter counter);
 
 private:
-  GPUPerfAPI *m_pGPUPerfAPI;
+  _GPAApi *m_pGPUPerfAPI;
+
   static uint32_t GPUCounterToCounterIndex(GPUCounter counter)
   {
     return (uint32_t)(counter) - (uint32_t)(GPUCounter::FirstAMD);
