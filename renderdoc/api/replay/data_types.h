@@ -145,6 +145,8 @@ struct TextureFilter
   FilterFunc func = FilterFunc::Normal;
 };
 
+DECLARE_REFLECTION_STRUCT(TextureFilter);
+
 DOCUMENT("A description of a buffer resource.");
 struct BufferDescription
 {
@@ -300,6 +302,7 @@ enum class BucketRecordType : int
   Linear,
   Pow2,
 };
+DECLARE_REFLECTION_ENUM(BucketRecordType);
 
 DOCUMENT(R"(Contains the statistics for constant binds in a frame.
 
@@ -907,6 +910,8 @@ struct Uuid
   uint32_t bytes[4];
 };
 
+DECLARE_REFLECTION_STRUCT(Uuid);
+
 DOCUMENT("Describes a GPU counter's purpose and result value.");
 struct CounterDescription
 {
@@ -955,6 +960,8 @@ union CounterValue
   DOCUMENT("A 64-bit unsigned integer.");
   uint64_t u64;
 };
+
+DECLARE_REFLECTION_STRUCT(CounterValue);
 
 DOCUMENT("The resulting value from a counter at an event.");
 struct CounterResult

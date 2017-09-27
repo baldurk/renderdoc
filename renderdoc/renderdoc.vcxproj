@@ -443,6 +443,7 @@
     <None Include="data\hlsl\mesh.hlsl" />
     <None Include="data\hlsl\multisample.hlsl" />
     <None Include="os\win32\comexport.def" />
+    <None Include="replay\renderdoc_serialise.inl" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="renderdoc.natvis" />

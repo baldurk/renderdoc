@@ -177,3 +177,5 @@ Default - enabled
 )");
   bool DebugOutputMute;
 };
+
+DECLARE_REFLECTION_STRUCT(CaptureOptions);

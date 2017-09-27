@@ -114,6 +114,7 @@ set(sources
     replay/app_api.cpp
     replay/basic_types_tests.cpp
     replay/capture_options.cpp
+    replay/renderdoc_serialise.inl
     replay/capture_file.cpp
     replay/entry_points.cpp
     replay/replay_driver.cpp
