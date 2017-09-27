@@ -867,12 +867,12 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
   //////////////////////////////
   // Shaders
 
-  const D3D11RenderState::shader *shArr[6] = {
+  const D3D11RenderState::Shader *shArr[6] = {
       &pipe->VS, &pipe->HS, &pipe->DS, &pipe->GS, &pipe->PS, &pipe->CS,
   };
   for(int s = 0; s < 6; s++)
   {
-    const D3D11RenderState::shader &sh = *shArr[s];
+    const D3D11RenderState::Shader &sh = *shArr[s];
 
     for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
       if(sh.Used_CB(i))
@@ -1514,7 +1514,7 @@ void WrappedID3D11DeviceContext::RecordBlendStats(ID3D11BlendState *Blend,
   blends.calls += 1;
   blends.sets += (Blend != NULL);
   blends.nulls += (Blend == NULL);
-  const D3D11RenderState::outmerger *Current = &m_CurrentPipelineState->OM;
+  const D3D11RenderState::OutputMerger *Current = &m_CurrentPipelineState->OM;
   bool same = (Current->BlendState == Blend) &&
               (memcmp(Current->BlendFactor, BlendFactor, sizeof(Current->BlendFactor)) == 0) &&
               (Current->SampleMask == SampleMask);
@@ -1530,7 +1530,7 @@ void WrappedID3D11DeviceContext::RecordDepthStencilStats(ID3D11DepthStencilState
   depths.calls += 1;
   depths.sets += (DepthStencil != NULL);
   depths.nulls += (DepthStencil == NULL);
-  const D3D11RenderState::outmerger *Current = &m_CurrentPipelineState->OM;
+  const D3D11RenderState::OutputMerger *Current = &m_CurrentPipelineState->OM;
   bool same = (Current->DepthStencilState == DepthStencil) && (Current->StencRef == StencilRef);
   depths.redundants += (uint32_t)same;
 }
@@ -1543,7 +1543,7 @@ void WrappedID3D11DeviceContext::RecordRasterizationStats(ID3D11RasterizerState 
   rasters.calls += 1;
   rasters.sets += (Rasterizer != NULL);
   rasters.nulls += (Rasterizer == NULL);
-  const D3D11RenderState::rasterizer *Current = &m_CurrentPipelineState->RS;
+  const D3D11RenderState::Rasterizer *Current = &m_CurrentPipelineState->RS;
   bool same = (Current->State == Rasterizer);
   rasters.redundants += (uint32_t)same;
 }
@@ -1557,7 +1557,7 @@ void WrappedID3D11DeviceContext::RecordViewportStats(UINT NumViewports,
   rasters.calls += 1;
   rasters.sets += 1;
   // #mivance fairly sure setting 0 viewports/null viewports is illegal?
-  const D3D11RenderState::rasterizer *Current = &m_CurrentPipelineState->RS;
+  const D3D11RenderState::Rasterizer *Current = &m_CurrentPipelineState->RS;
   bool same = (Current->NumViews == NumViewports);
   for(UINT index = 0; index < NumViewports; index++)
   {
@@ -1576,7 +1576,7 @@ void WrappedID3D11DeviceContext::RecordScissorStats(UINT NumRects, const D3D11_R
   rasters.calls += 1;
   rasters.sets += 1;
   // #mivance see above
-  const D3D11RenderState::rasterizer *Current = &m_CurrentPipelineState->RS;
+  const D3D11RenderState::Rasterizer *Current = &m_CurrentPipelineState->RS;
   bool same = (Current->NumScissors == NumRects);
   for(UINT index = 0; index < NumRects; index++)
   {

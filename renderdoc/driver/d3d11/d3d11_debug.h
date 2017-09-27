@@ -328,7 +328,7 @@ private:
   // across work done to the output windows
   struct RealState
   {
-    RealState() : state((Serialiser *)NULL) { active = false; }
+    RealState() : state(D3D11RenderState::Empty) { active = false; }
     bool active;
     D3D11RenderState state;
   } m_RealState;
