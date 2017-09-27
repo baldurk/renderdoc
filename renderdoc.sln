@@ -50,6 +50,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AMD", "renderdoc\driver\ihv
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "spirv", "renderdoc\driver\shaders\spirv\renderdoc_spirv.vcxproj", "{0AAE0AD1-371B-4A36-9ED1-80E10E960605}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dxgi", "renderdoc\driver\dxgi\renderdoc_dxgi.vcxproj", "{2A793574-BD3C-46D4-9788-C339D9550CE1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Development|x64 = Development|x64
@@ -130,6 +132,14 @@ Global
 		{0AAE0AD1-371B-4A36-9ED1-80E10E960605}.Release|x64.Build.0 = Release|x64
 		{0AAE0AD1-371B-4A36-9ED1-80E10E960605}.Release|x86.ActiveCfg = Release|Win32
 		{0AAE0AD1-371B-4A36-9ED1-80E10E960605}.Release|x86.Build.0 = Release|Win32
+		{2A793574-BD3C-46D4-9788-C339D9550CE1}.Development|x64.ActiveCfg = Development|x64
+		{2A793574-BD3C-46D4-9788-C339D9550CE1}.Development|x64.Build.0 = Development|x64
+		{2A793574-BD3C-46D4-9788-C339D9550CE1}.Development|x86.ActiveCfg = Development|Win32
+		{2A793574-BD3C-46D4-9788-C339D9550CE1}.Development|x86.Build.0 = Development|Win32
+		{2A793574-BD3C-46D4-9788-C339D9550CE1}.Release|x64.ActiveCfg = Release|x64
+		{2A793574-BD3C-46D4-9788-C339D9550CE1}.Release|x64.Build.0 = Release|x64
+		{2A793574-BD3C-46D4-9788-C339D9550CE1}.Release|x86.ActiveCfg = Release|Win32
+		{2A793574-BD3C-46D4-9788-C339D9550CE1}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -149,5 +159,6 @@ Global
 		{4DA2F3E3-9A65-45DD-A69B-82C7757D4904} = {864A44B0-5612-451A-857F-41E3EF785EF6}
 		{5DE5A561-548A-4DD7-90F0-06A2B39EAE9A} = {4DA2F3E3-9A65-45DD-A69B-82C7757D4904}
 		{0AAE0AD1-371B-4A36-9ED1-80E10E960605} = {DB2DDA74-A668-4AC7-A1D5-198C9F0BD242}
+		{2A793574-BD3C-46D4-9788-C339D9550CE1} = {864A44B0-5612-451A-857F-41E3EF785EF6}
 	EndGlobalSection
 EndGlobal
