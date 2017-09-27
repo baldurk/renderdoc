@@ -3254,6 +3254,7 @@ void TextureViewer::on_viewTexBuffer_clicked()
       case ResourceFormatType::ETC2:
       case ResourceFormatType::EAC:
       case ResourceFormatType::ASTC:
+      case ResourceFormatType::PVRTC:
         varName = lit("block");
         // display a 4x4 block at a time
         w /= 4;
@@ -3280,6 +3281,7 @@ void TextureViewer::on_viewTexBuffer_clicked()
       case ResourceFormatType::BC4:
       case ResourceFormatType::ETC2:
       case ResourceFormatType::EAC:
+      case ResourceFormatType::PVRTC:
         baseType = lit("row_major xint2x1");
         break;
       // 4x4 byte block, for 128-bit block formats
