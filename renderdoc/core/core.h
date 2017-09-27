@@ -65,24 +65,82 @@ struct IFrameCapturer
   virtual bool EndFrameCapture(void *dev, void *wnd) = 0;
 };
 
-// READING and EXECUTING are replay states.
-// WRITING_IDLE and WRITING_CAPFRAME are capture states.
-// WRITING isn't actually a state, it's just a midpoint in the enum,
-// so it takes fewer characters to check which state we're in.
-//
-// on replay, m_State < WRITING is the same as
-//(m_State == READING || m_State == EXECUTING)
-//
-// on capture, m_State >= WRITING is the same as
-//(m_State == WRITING_IDLE || m_State == WRITING_CAPFRAME)
-enum LogState
+// In most cases you don't need to check these individually, use the utility functions below
+// to determine if you're in a capture or replay state. There are utility functions for each
+// state as well.
+// See the comments on each state to understand their purpose.
+enum class CaptureState
 {
-  READING = 0,
-  EXECUTING,
-  WRITING,
-  WRITING_IDLE,
-  WRITING_CAPFRAME,
+  // This is the state while the initial load of a capture is happening and the replay is
+  // initialising available resources. This is where any heavy one-off analysis can happen like
+  // noting down the details of a drawcall, tracking statistics about resource use and drawcall
+  // types, and creating resources that will be needed later in ActiveReplaying.
+  //
+  // After leaving this state, the capture enters ActiveReplaying and remains there until the
+  // capture is closed down.
+  LoadingReplaying,
+
+  // After loading, this state is used throughout replay. Whether replaying the frame whole or in
+  // part this state indicates that replaying is happening for analysis without the heavy-weight
+  // loading process.
+  ActiveReplaying,
+
+  // This is the state when no processing is happening - either record or replay - apart from
+  // serialising the data. Used with a 'virtual' driver to be able to interpret the contents of a
+  // frame capture for structured export without needing to have the API initialised.
+  //
+  // The idea is that the existing serialisation infrastructure for a driver can be used to decode
+  // the raw bits and chunks inside a capture without actually having to be able to initialise the
+  // API, and the structured data can then be exported to another format.
+  StructuredExport,
+
+  // This is the state while injected into a program for capturing, but no frame is actively being
+  // captured at present. Immediately after injection this state is active, and only the minimum
+  // necessary work happens to prepare for a frame capture at some later point.
+  //
+  // When a frame capture is triggered, we immediately transition to the ActiveCapturing state
+  // below, where we stay until the frame has been successfully captured, then transition back into
+  // this state to continue capturing necessary work in the background for further frame captures.
+  BackgroundCapturing,
+
+  // This is the state while injected into a program for capturing and a frame capture is actively
+  // ongoing. We transition into this state from BackgroundCapturing on frame capture begin, then
+  // stay here until the frame capture is complete and transition back.
+  //
+  // Note: This state is entered into immediately when a capture is triggered, so it doesn't imply
+  // anything about where in the frame we are.
+  ActiveCapturing,
 };
+
+constexpr inline bool IsReplayMode(CaptureState state)
+{
+  return state == CaptureState::LoadingReplaying || state == CaptureState::ActiveReplaying;
+}
+
+constexpr inline bool IsCaptureMode(CaptureState state)
+{
+  return state == CaptureState::BackgroundCapturing || state == CaptureState::ActiveCapturing;
+}
+
+constexpr inline bool IsLoading(CaptureState state)
+{
+  return state == CaptureState::LoadingReplaying;
+}
+
+constexpr inline bool IsActiveReplaying(CaptureState state)
+{
+  return state == CaptureState::ActiveReplaying;
+}
+
+constexpr inline bool IsBackgroundCapturing(CaptureState state)
+{
+  return state == CaptureState::BackgroundCapturing;
+}
+
+constexpr inline bool IsActiveCapturing(CaptureState state)
+{
+  return state == CaptureState::ActiveCapturing;
+}
 
 enum class SystemChunk : uint32_t
 {
