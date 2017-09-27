@@ -201,7 +201,7 @@ private:
 
   void FlattenLog();
 
-  const char *GetChunkName(D3D11ChunkType idx);
+  const char *GetChunkName(D3D11Chunk idx);
 
   void Serialise_DebugMessages();
 
@@ -282,7 +282,7 @@ public:
   ID3D11DeviceContext1 *GetReal1() { return m_pRealContext1; }
   bool IsFL11_1();
 
-  void ProcessChunk(uint64_t offset, D3D11ChunkType chunk, bool forceExecute);
+  void ProcessChunk(uint64_t offset, D3D11Chunk chunk, bool forceExecute);
   void ReplayFakeContext(ResourceId id);
   void ReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
 

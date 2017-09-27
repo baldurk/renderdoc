@@ -57,6 +57,169 @@ std::string DoStringise(const ResourceType &el)
 }
 
 template <>
+std::string DoStringise(const D3D11Chunk &el)
+{
+  RDCCOMPILE_ASSERT((uint32_t)D3D11Chunk::Max == 1131, "Chunks changed without updating names");
+
+  BEGIN_ENUM_STRINGISE(D3D11Chunk)
+  {
+    STRINGISE_ENUM_CLASS_NAMED(DeviceInitialisation, "Device Initialisation");
+    STRINGISE_ENUM_CLASS_NAMED(SetResourceName, "ID3D11Resource::SetDebugName");
+    STRINGISE_ENUM_CLASS_NAMED(ReleaseResource, "IUnknown::Release");
+    STRINGISE_ENUM_CLASS_NAMED(CreateSwapBuffer, "IDXGISwapChain::GetBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(CreateTexture1D, "ID3D11Device::CreateTexture1D");
+    STRINGISE_ENUM_CLASS_NAMED(CreateTexture2D, "ID3D11Device::CreateTexture2D");
+    STRINGISE_ENUM_CLASS_NAMED(CreateTexture3D, "ID3D11Device::CreateTexture3D");
+    STRINGISE_ENUM_CLASS_NAMED(CreateBuffer, "ID3D11Device::CreateBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(CreateVertexShader, "ID3D11Device::CreateVertexShader");
+    STRINGISE_ENUM_CLASS_NAMED(CreateHullShader, "ID3D11Device::CreateHullShader");
+    STRINGISE_ENUM_CLASS_NAMED(CreateDomainShader, "ID3D11Device::CreateDomainShader");
+    STRINGISE_ENUM_CLASS_NAMED(CreateGeometryShader, "ID3D11Device::CreateGeometryShader");
+    STRINGISE_ENUM_CLASS_NAMED(CreateGeometryShaderWithStreamOutput,
+                               "ID3D11Device::CreateGeometryShaderWithStreamOutput");
+    STRINGISE_ENUM_CLASS_NAMED(CreatePixelShader, "ID3D11Device::CreatePixelShader");
+    STRINGISE_ENUM_CLASS_NAMED(CreateComputeShader, "ID3D11Device::CreateComputeShader");
+    STRINGISE_ENUM_CLASS_NAMED(GetClassInstance, "ID3D11ClassLinkage::GetClassInstance");
+    STRINGISE_ENUM_CLASS_NAMED(CreateClassInstance, "ID3D11ClassLinkage::CreateClassInstance");
+    STRINGISE_ENUM_CLASS_NAMED(CreateClassLinkage, "ID3D11Device::CreateClassLinkage");
+    STRINGISE_ENUM_CLASS_NAMED(CreateShaderResourceView, "ID3D11Device::CreateShaderResourceView");
+    STRINGISE_ENUM_CLASS_NAMED(CreateRenderTargetView, "ID3D11Device::CreateRenderTargetView");
+    STRINGISE_ENUM_CLASS_NAMED(CreateDepthStencilView, "ID3D11Device::CreateDepthStencilView");
+    STRINGISE_ENUM_CLASS_NAMED(CreateUnorderedAccessView,
+                               "ID3D11Device::CreateUnorderedAccessView");
+    STRINGISE_ENUM_CLASS_NAMED(CreateInputLayout, "ID3D11Device::CreateInputLayout");
+    STRINGISE_ENUM_CLASS_NAMED(CreateBlendState, "ID3D11Device::CreateBlendState");
+    STRINGISE_ENUM_CLASS_NAMED(CreateDepthStencilState, "ID3D11Device::CreateDepthStencilState");
+    STRINGISE_ENUM_CLASS_NAMED(CreateRasterizerState, "ID3D11Device::CreateRasterizerState");
+    STRINGISE_ENUM_CLASS_NAMED(CreateSamplerState, "ID3D11Device::CreateSamplerState");
+    STRINGISE_ENUM_CLASS_NAMED(CreateQuery, "ID3D11Device::CreateQuery");
+    STRINGISE_ENUM_CLASS_NAMED(CreatePredicate, "ID3D11Device::CreatePredicate");
+    STRINGISE_ENUM_CLASS_NAMED(CreateCounter, "ID3D11Device::CreateCounter");
+    STRINGISE_ENUM_CLASS_NAMED(CreateDeferredContext, "ID3D11Device::CreateDeferredContext");
+    STRINGISE_ENUM_CLASS_NAMED(SetExceptionMode, "ID3D11Device::SetExceptionMode");
+    STRINGISE_ENUM_CLASS_NAMED(OpenSharedResource, "ID3D11Device::OpenSharedResource");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureScope, "Frame Capture Metadata");
+    STRINGISE_ENUM_CLASS_NAMED(IASetInputLayout, "ID3D11DeviceContext::IASetInputLayout");
+    STRINGISE_ENUM_CLASS_NAMED(IASetVertexBuffers, "ID3D11DeviceContext::IASetVertexBuffers");
+    STRINGISE_ENUM_CLASS_NAMED(IASetIndexBuffer, "ID3D11DeviceContext::IASetIndexBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(IASetPrimitiveTopology,
+                               "ID3D11DeviceContext::IASetPrimitiveTopology");
+    STRINGISE_ENUM_CLASS_NAMED(VSSetConstantBuffers, "ID3D11DeviceContext::VSSetConstantBuffers");
+    STRINGISE_ENUM_CLASS_NAMED(VSSetShaderResources, "ID3D11DeviceContext::VSSetShaderResources");
+    STRINGISE_ENUM_CLASS_NAMED(VSSetSamplers, "ID3D11DeviceContext::VSSetSamplers");
+    STRINGISE_ENUM_CLASS_NAMED(VSSetShader, "ID3D11DeviceContext::VSSetShader");
+    STRINGISE_ENUM_CLASS_NAMED(HSSetConstantBuffers, "ID3D11DeviceContext::HSSetConstantBuffers");
+    STRINGISE_ENUM_CLASS_NAMED(HSSetShaderResources, "ID3D11DeviceContext::HSSetShaderResources");
+    STRINGISE_ENUM_CLASS_NAMED(HSSetSamplers, "ID3D11DeviceContext::HSSetSamplers");
+    STRINGISE_ENUM_CLASS_NAMED(HSSetShader, "ID3D11DeviceContext::HSSetShader");
+    STRINGISE_ENUM_CLASS_NAMED(DSSetConstantBuffers, "ID3D11DeviceContext::DSSetConstantBuffers");
+    STRINGISE_ENUM_CLASS_NAMED(DSSetShaderResources, "ID3D11DeviceContext::DSSetShaderResources");
+    STRINGISE_ENUM_CLASS_NAMED(DSSetSamplers, "ID3D11DeviceContext::DSSetSamplers");
+    STRINGISE_ENUM_CLASS_NAMED(DSSetShader, "ID3D11DeviceContext::DSSetShader");
+    STRINGISE_ENUM_CLASS_NAMED(GSSetConstantBuffers, "ID3D11DeviceContext::GSSetConstantBuffers");
+    STRINGISE_ENUM_CLASS_NAMED(GSSetShaderResources, "ID3D11DeviceContext::GSSetShaderResources");
+    STRINGISE_ENUM_CLASS_NAMED(GSSetSamplers, "ID3D11DeviceContext::GSSetSamplers");
+    STRINGISE_ENUM_CLASS_NAMED(GSSetShader, "ID3D11DeviceContext::GSSetShader");
+    STRINGISE_ENUM_CLASS_NAMED(SOSetTargets, "ID3D11DeviceContext::SOSetTargets");
+    STRINGISE_ENUM_CLASS_NAMED(PSSetConstantBuffers, "ID3D11DeviceContext::PSSetConstantBuffers");
+    STRINGISE_ENUM_CLASS_NAMED(PSSetShaderResources, "ID3D11DeviceContext::PSSetShaderResources");
+    STRINGISE_ENUM_CLASS_NAMED(PSSetSamplers, "ID3D11DeviceContext::PSSetSamplers");
+    STRINGISE_ENUM_CLASS_NAMED(PSSetShader, "ID3D11DeviceContext::PSSetShader");
+    STRINGISE_ENUM_CLASS_NAMED(CSSetConstantBuffers, "ID3D11DeviceContext::CSSetConstantBuffers");
+    STRINGISE_ENUM_CLASS_NAMED(CSSetShaderResources, "ID3D11DeviceContext::CSSetShaderResources");
+    STRINGISE_ENUM_CLASS_NAMED(CSSetUnorderedAccessViews,
+                               "ID3D11DeviceContext::CSSetUnorderedAccessViews");
+    STRINGISE_ENUM_CLASS_NAMED(CSSetSamplers, "ID3D11DeviceContext::CSSetSamplers");
+    STRINGISE_ENUM_CLASS_NAMED(CSSetShader, "ID3D11DeviceContext::CSSetShader");
+    STRINGISE_ENUM_CLASS_NAMED(RSSetViewports, "ID3D11DeviceContext::RSSetViewports");
+    STRINGISE_ENUM_CLASS_NAMED(RSSetScissorRects, "ID3D11DeviceContext::RSSetScissors");
+    STRINGISE_ENUM_CLASS_NAMED(RSSetState, "ID3D11DeviceContext::RSSetState");
+    STRINGISE_ENUM_CLASS_NAMED(OMSetRenderTargets, "ID3D11DeviceContext::OMSetRenderTargets");
+    STRINGISE_ENUM_CLASS_NAMED(OMSetRenderTargetsAndUnorderedAccessViews,
+                               "ID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews");
+    STRINGISE_ENUM_CLASS_NAMED(OMSetBlendState, "ID3D11DeviceContext::OMSetBlendState");
+    STRINGISE_ENUM_CLASS_NAMED(OMSetDepthStencilState,
+                               "ID3D11DeviceContext::OMSetDepthStencilState");
+    STRINGISE_ENUM_CLASS_NAMED(DrawIndexedInstanced, "ID3D11DeviceContext::DrawIndexedInstanced");
+    STRINGISE_ENUM_CLASS_NAMED(DrawInstanced, "ID3D11DeviceContext::DrawInstanced");
+    STRINGISE_ENUM_CLASS_NAMED(DrawIndexed, "ID3D11DeviceContext::DrawIndexed");
+    STRINGISE_ENUM_CLASS_NAMED(Draw, "ID3D11DeviceContext::Draw");
+    STRINGISE_ENUM_CLASS_NAMED(DrawAuto, "ID3D11DeviceContext::DrawAuto");
+    STRINGISE_ENUM_CLASS_NAMED(DrawIndexedInstancedIndirect,
+                               "ID3D11DeviceContext::DrawIndexedInstancedIndirect");
+    STRINGISE_ENUM_CLASS_NAMED(DrawInstancedIndirect, "ID3D11DeviceContext::DrawInstancedIndirect");
+    STRINGISE_ENUM_CLASS_NAMED(Map, "ID3D11DeviceContext::Map");
+    STRINGISE_ENUM_CLASS_NAMED(Unmap, "ID3D11DeviceContext::Unmap");
+    STRINGISE_ENUM_CLASS_NAMED(CopySubresourceRegion, "ID3D11DeviceContext::CopySubresourceRegion");
+    STRINGISE_ENUM_CLASS_NAMED(CopyResource, "ID3D11DeviceContext::CopyResource");
+    STRINGISE_ENUM_CLASS_NAMED(UpdateSubresource, "ID3D11DeviceContext::UpdateSubresource");
+    STRINGISE_ENUM_CLASS_NAMED(CopyStructureCount, "ID3D11DeviceContext::CopyStructureCount");
+    STRINGISE_ENUM_CLASS_NAMED(ResolveSubresource, "ID3D11DeviceContext::ResolveSubresource");
+    STRINGISE_ENUM_CLASS_NAMED(GenerateMips, "ID3D11DeviceContext::GenerateMips");
+    STRINGISE_ENUM_CLASS_NAMED(ClearDepthStencilView, "ID3D11DeviceContext::ClearDepthStencilView");
+    STRINGISE_ENUM_CLASS_NAMED(ClearRenderTargetView, "ID3D11DeviceContext::ClearRenderTargetView");
+    STRINGISE_ENUM_CLASS_NAMED(ClearUnorderedAccessViewUint,
+                               "ID3D11DeviceContext::ClearUnorderedAccessViewInt");
+    STRINGISE_ENUM_CLASS_NAMED(ClearUnorderedAccessViewFloat,
+                               "ID3D11DeviceContext::ClearUnorderedAccessViewFloat");
+    STRINGISE_ENUM_CLASS_NAMED(ClearState, "ID3D11DeviceContext::ClearState");
+    STRINGISE_ENUM_CLASS_NAMED(ExecuteCommandList, "ID3D11DeviceContext::ExecuteCommandList");
+    STRINGISE_ENUM_CLASS_NAMED(Dispatch, "ID3D11DeviceContext::Dispatch");
+    STRINGISE_ENUM_CLASS_NAMED(DispatchIndirect, "ID3D11DeviceContext::DispatchIndirect");
+    STRINGISE_ENUM_CLASS_NAMED(FinishCommandList, "ID3D11DeviceContext::FinishCommandlist");
+    STRINGISE_ENUM_CLASS_NAMED(Flush, "ID3D11DeviceContext::Flush");
+    STRINGISE_ENUM_CLASS_NAMED(SetPredication, "ID3D11DeviceContext::SetPredication");
+    STRINGISE_ENUM_CLASS_NAMED(SetResourceMinLOD, "ID3D11DeviceContext::SetResourceMinLOD");
+    STRINGISE_ENUM_CLASS_NAMED(Begin, "ID3D11DeviceContext::Begin");
+    STRINGISE_ENUM_CLASS_NAMED(End, "ID3D11DeviceContext::End");
+    STRINGISE_ENUM_CLASS_NAMED(CreateRasterizerState1, "ID3D11Device2::CreateRasterizerState1");
+    STRINGISE_ENUM_CLASS_NAMED(CreateBlendState1, "ID3D11Device2::CreateBlendState1");
+    STRINGISE_ENUM_CLASS_NAMED(CopySubresourceRegion1,
+                               "ID3D11DeviceContext1::CopySubresourceRegion1");
+    STRINGISE_ENUM_CLASS_NAMED(UpdateSubresource1, "ID3D11DeviceContext1::UpdateSubresource1");
+    STRINGISE_ENUM_CLASS_NAMED(ClearView, "ID3D11DeviceContext1::ClearView");
+    STRINGISE_ENUM_CLASS_NAMED(VSSetConstantBuffers1,
+                               "ID3D11DeviceContext1::VSSetConstantBuffers1");
+    STRINGISE_ENUM_CLASS_NAMED(HSSetConstantBuffers1,
+                               "ID3D11DeviceContext1::HSSetConstantBuffers1");
+    STRINGISE_ENUM_CLASS_NAMED(DSSetConstantBuffers1,
+                               "ID3D11DeviceContext1::DSSetConstantBuffers1");
+    STRINGISE_ENUM_CLASS_NAMED(GSSetConstantBuffers1,
+                               "ID3D11DeviceContext1::GSSetConstantBuffers1");
+    STRINGISE_ENUM_CLASS_NAMED(PSSetConstantBuffers1,
+                               "ID3D11DeviceContext1::PSSetConstantBuffers1");
+    STRINGISE_ENUM_CLASS_NAMED(CSSetConstantBuffers1,
+                               "ID3D11DeviceContext1::CSSetConstantBuffers1");
+    STRINGISE_ENUM_CLASS_NAMED(PushMarker, "Push Debug Region");
+    STRINGISE_ENUM_CLASS_NAMED(SetMarker, "Set Marker");
+    STRINGISE_ENUM_CLASS_NAMED(PopMarker, "Pop Debug Region");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureBegin, "Beginning of Capture");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureEnd, "End of Capture");
+    STRINGISE_ENUM_CLASS_NAMED(SetShaderDebugPath, "SetShaderDebugPath");
+    STRINGISE_ENUM_CLASS_NAMED(DiscardResource, "ID3D11DeviceContext1::DiscardResource");
+    STRINGISE_ENUM_CLASS_NAMED(DiscardView, "ID3D11DeviceContext1::DiscardView");
+    STRINGISE_ENUM_CLASS_NAMED(DiscardView1, "ID3D11DeviceContext1::DiscardView1");
+    STRINGISE_ENUM_CLASS_NAMED(CreateRasterizerState2, "ID3D11Device3::CreateRasterizerState2");
+    STRINGISE_ENUM_CLASS_NAMED(CreateQuery1, "ID3D11Device3::CreateQuery1");
+    STRINGISE_ENUM_CLASS_NAMED(CreateTexture2D1, "ID3D11Device3::CreateTexture2D1");
+    STRINGISE_ENUM_CLASS_NAMED(CreateTexture3D1, "ID3D11Device3::CreateTexture3D1");
+    STRINGISE_ENUM_CLASS_NAMED(CreateShaderResourceView1,
+                               "ID3D11Device3::CreateShaderResourceView1");
+    STRINGISE_ENUM_CLASS_NAMED(CreateRenderTargetView1, "ID3D11Device3::CreateRenderTargetView1");
+    STRINGISE_ENUM_CLASS_NAMED(CreateUnorderedAccessView1,
+                               "ID3D11Device3::CreateUnorderedAccessView1");
+    STRINGISE_ENUM_CLASS_NAMED(SwapchainPresent, "IDXGISwapChain::Present");
+    STRINGISE_ENUM_CLASS_NAMED(PostExecuteCommandListRestore,
+                               "ID3D11DeviceContext::ExecuteCommandList");
+    STRINGISE_ENUM_CLASS_NAMED(PostFinishCommandListSet, "ID3D11DeviceContext::FinishCommandList");
+    STRINGISE_ENUM_CLASS_NAMED(SwapDeviceContextState,
+                               "ID3D11DeviceContext1::SwapDeviceContextState");
+    STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
 std::string DoStringise(const D3D11_BIND_FLAG &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3D11_BIND_FLAG);
