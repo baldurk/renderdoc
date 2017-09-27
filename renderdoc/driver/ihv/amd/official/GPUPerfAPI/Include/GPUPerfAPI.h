@@ -1,5 +1,5 @@
 //==============================================================================
-// Copyright (c) 2010-2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2010-2017 Advanced Micro Devices, Inc. All rights reserved.
 /// \author AMD Developer Tools Team
 /// \file
 /// \brief  This file is the only header that must be included by an application that
@@ -29,6 +29,52 @@
 #include <assert.h>
 #include "GPUPerfAPITypes.h"
 #include "GPUPerfAPIFunctionTypes.h"
+
+/// Platform specific defintions
+#ifdef _WIN32
+    #include <windows.h>
+    typedef HMODULE LibHandle; /// typedef for HMODULE for loading the library on windows
+    typedef GUID GPA_API_UUID; /// typedef for Windows GUID definition
+#else
+    typedef void* LibHandle; /// typedef for void* for loading the library on linux
+
+    /// Structure for holding UUID
+    typedef struct GPA_API_UUID
+    {
+        unsigned long data1;
+        unsigned short data2;
+        unsigned short data3;
+        unsigned char data4[8];
+
+#ifdef __cplusplus
+        /// operator overloaded function for equality comparison
+        /// \return true if UUIDs are equal otherwise false
+        bool operator==(GPA_API_UUID otherUUID)
+        {
+            bool isEqual = true;
+            isEqual &= data1 == otherUUID.data1;
+            isEqual &= data2 == otherUUID.data2;
+            isEqual &= data3 == otherUUID.data3;
+            isEqual &= data4[0] == otherUUID.data4[0];
+            isEqual &= data4[1] == otherUUID.data4[1];
+            isEqual &= data4[2] == otherUUID.data4[2];
+            isEqual &= data4[3] == otherUUID.data4[3];
+            return isEqual;
+        }
+#endif
+    }GPA_API_UUID;
+#endif
+
+/// UUID value for the version specific GPA API
+// UUID: 2696c8b4 - fd56 - 41fc - 9742 - af3c6aa34182
+// This needs to be updated if the GPA API function table changes
+#define GPA_API_3_0_UUID  { 0x2696c8b4,\
+                          0xfd56,\
+                          0x41fc,\
+                          { 0x97, 0X42, 0Xaf, 0X3c, 0X6a, 0Xa3, 0X41, 0X82 } };
+
+/// UUID value for the current GPA API
+const GPA_API_UUID GPA_API_CURRENT_UUID = GPA_API_3_0_UUID;
 
 /// \brief Register a callback function to receive log messages.
 ///
@@ -62,8 +108,9 @@ GPALIB_DECL GPA_Status GPA_Destroy();
 ///
 /// This function must be called before any other GPA functions.
 /// \param pContext The context to open counters for. Typically a device pointer. Refer to GPA API specific documentation for further details.
+/// \param flags Flags used to initialize the context. Should be a combination of GPA_OpenContext_Bits
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
-GPALIB_DECL GPA_Status GPA_OpenContext(void* pContext);
+GPALIB_DECL GPA_Status GPA_OpenContext(void* pContext, GPA_OpenContextFlags flags);
 
 /// \brief Closes the counters in the currently active context.
 ///
@@ -91,14 +138,21 @@ GPALIB_DECL GPA_Status GPA_GetNumCounters(gpa_uint32* pCount);
 /// \brief Get the name of a specific counter.
 ///
 /// \param index The index of the counter name to query. Must lie between 0 and (GPA_GetNumCounters result - 1).
-/// \param ppName The value which will hold the name upon successful execution.
+/// \param ppName The address which will hold the name upon successful execution.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_GetCounterName(gpa_uint32 index, const char** ppName);
+
+/// \brief Get category of the specified counter.
+///
+/// \param index The index of the counter to query. Must lie between 0 and (GPA_GetNumCounters result - 1).
+/// \param ppCategory The address which will hold the category string upon successful execution.
+/// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
+GPALIB_DECL GPA_Status GPA_GetCounterCategory(gpa_uint32 index, const char** ppCategory);
 
 /// \brief Get description of the specified counter.
 ///
 /// \param index The index of the counter to query. Must lie between 0 and (GPA_GetNumCounters result - 1).
-/// \param ppDescription The value which will hold the description upon successful execution.
+/// \param ppDescription The address which will hold the description upon successful execution.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_GetCounterDescription(gpa_uint32 index, const char** ppDescription);
 
@@ -265,12 +319,53 @@ GPALIB_DECL GPA_Status GPA_BeginPass();
 GPALIB_DECL GPA_Status GPA_EndPass();
 
 
+///
+/// \brief Begin sampling for a sample list
+///
+/// For use with the explicit graphics APIs (DirectX 12 and Vulkan). Each sample must be associated with a sample list.
+/// For DirectX 12, a sample list is a ID3D12GraphicsCommandList.  For Vulkan, it is a VkCommandBuffer
+/// \param pSampleList the sample list on which to begin sampling
+/// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
+GPALIB_DECL GPA_Status GPA_BeginSampleList(void* pSampleList);
+
+/// \brief End sampling for a sample list
+///
+/// For use with the explicit graphics APIs (DirectX 12 and Vulkan). Each sample must be associated with a sample list.
+/// For DirectX 12, a sample list is a ID3D12GraphicsCommandList.  For Vulkan, it is a VkCommandBuffer
+/// \param pSampleList the sample list on which to end sampling
+/// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
+GPALIB_DECL GPA_Status GPA_EndSampleList(void* pSampleList);
+
+/// \brief Begin a sample in a sample list
+///
+/// For use with the explicit graphics APIs (DirectX 12 and Vulkan). Each sample must be associated with a sample list.
+/// For DirectX 12, a sample list is a ID3D12GraphicsCommandList.  For Vulkan, it is a VkCommandBuffer
+/// Multiple samples can be performed inside a BeginSampleList/EndSampleList sequence.
+/// Each sample computes the values of the counters between GPA_BeginSampleInSampleList and GPA_EndSampleInSampleList.
+/// To identify each sample the user must provide a unique sampleID as a parameter to this function.
+/// The number need only be unique within the same BeginSession/EndSession sequence.
+/// GPA_BeginSampleInSampleList must be followed by a call to GPA_EndSampleInSampleList before GPA_BeginSampleInSampleList is called again.
+/// \param sampleID Any integer, unique within the BeginSession/EndSession sequence, used to retrieve the sample results.
+/// \param pSampleList the sample list on which to begin a sample
+/// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
+GPALIB_DECL GPA_Status GPA_BeginSampleInSampleList(gpa_uint32 sampleID, void* pSampleList);
+
+/// \brief End a sample in a sample list.
+///
+/// For use with the explicit graphics APIs (DirectX 12 and Vulkan). Each sample must be associated with a sample list.
+/// For DirectX 12, a sample list is a ID3D12GraphicsCommandList.  For Vulkan, it is a VkCommandBuffer
+/// GPA_BeginSampleInSampleList must be followed by a call to GPA_EndSampleInSampleList before GPA_BeginSampleInSampleList is called again.
+/// \param pSampleList the sample list on which to end a sample
+/// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
+GPALIB_DECL GPA_Status GPA_EndSampleInSampleList(void* pSampleList);
+
 /// \brief Begin a sample using the enabled counters.
 ///
 /// Multiple samples can be performed inside a BeginSession/EndSession sequence.
 /// Each sample computes the values of the counters between BeginSample and EndSample.
 /// To identify each sample the user must provide a unique sampleID as a parameter to this function.
 /// The number need only be unique within the same BeginSession/EndSession sequence.
+/// Not supported when using DirectX 12 or Vulkan
 /// BeginSample must be followed by a call to EndSample before BeginSample is called again.
 /// \param sampleID Any integer, unique within the BeginSession/EndSession sequence, used to retrieve the sample results.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
@@ -280,6 +375,7 @@ GPALIB_DECL GPA_Status GPA_BeginSample(gpa_uint32 sampleID);
 /// \brief End sampling using the enabled counters.
 ///
 /// BeginSample must be followed by a call to EndSample before BeginSample is called again.
+/// Not supported when using DirectX 12 or Vulkan
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_EndSample();
 
@@ -288,9 +384,9 @@ GPALIB_DECL GPA_Status GPA_EndSample();
 ///
 /// This is useful if samples are conditionally created and a count is not kept.
 /// \param sessionID The session to get the number of samples for.
-/// \param pSamples The value that will be set to the number of samples contained within the session.
+/// \param pSampleCount The value that will be set to the number of samples contained within the session.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
-GPALIB_DECL GPA_Status GPA_GetSampleCount(gpa_uint32 sessionID, gpa_uint32* pSamples);
+GPALIB_DECL GPA_Status GPA_GetSampleCount(gpa_uint32 sessionID, gpa_uint32* pSampleCount);
 
 
 /// \brief Determine if an individual sample result is available.
@@ -300,11 +396,11 @@ GPALIB_DECL GPA_Status GPA_GetSampleCount(gpa_uint32 sessionID, gpa_uint32* pSam
 /// The function does not block, permitting periodic polling.
 /// To block until a sample is ready use a GetSample* function instead of this.
 /// It can be more efficient to determine if a whole session's worth of data is available using GPA_IsSessionReady.
-/// \param pReadyResult The value that will contain the result of the sample being ready. True if ready.
+/// \param pReadyResult The value that will contain the result of the sample being ready. Non-zero if ready.
 /// \param sessionID The session containing the sample to determine availability.
 /// \param sampleID The sample identifier of the sample to query availability for.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
-GPALIB_DECL GPA_Status GPA_IsSampleReady(bool* pReadyResult, gpa_uint32 sessionID, gpa_uint32 sampleID);
+GPALIB_DECL GPA_Status GPA_IsSampleReady(gpa_uint8* pReadyResult, gpa_uint32 sessionID, gpa_uint32 sampleID);
 
 
 /// \brief Determine if all samples within a session are available.
@@ -313,10 +409,10 @@ GPALIB_DECL GPA_Status GPA_IsSampleReady(bool* pReadyResult, gpa_uint32 sessionI
 /// This function allows you to determine when the results of a session can be read.
 /// The function does not block, permitting periodic polling.
 /// To block until a sample is ready use a GetSample* function instead of this.
-/// \param pReadyResult The value that will contain the result of the session being ready. True if ready.
+/// \param pReadyResult The value that will contain the result of the session being ready. Non-Zero if ready.
 /// \param sessionID The session to determine availability for.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
-GPALIB_DECL GPA_Status GPA_IsSessionReady(bool* pReadyResult, gpa_uint32 sessionID);
+GPALIB_DECL GPA_Status GPA_IsSessionReady(gpa_uint8* pReadyResult, gpa_uint32 sessionID);
 
 
 /// \brief Get a sample of type 64-bit unsigned integer.
@@ -376,14 +472,49 @@ GPALIB_DECL const char* GPA_GetStatusAsStr(GPA_Status status);
 
 /// \brief Get the GPU device id associated with the current context
 ///
-/// \param deviceID The value that will be set to the device id.
+/// \param pDeviceID The value that will be set to the device id.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
-GPALIB_DECL GPA_Status GPA_GetDeviceID(gpa_uint32* deviceID);
+GPALIB_DECL GPA_Status GPA_GetDeviceID(gpa_uint32* pDeviceID);
 
 /// \brief Get the GPU device description associated with the current context
 ///
 /// \param ppDesc The value that will be set to the device description.
 /// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
 GPALIB_DECL GPA_Status GPA_GetDeviceDesc(const char** ppDesc);
+
+/// \brief Internal function. Pass draw call counts to GPA for internal purposes.
+///
+/// \param iCounts[in] the draw counts for the current frame
+/// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
+GPALIB_DECL GPA_Status GPA_InternalSetDrawCallCounts(const int iCounts);
+
+
+/// \brief Get the GPA Api function table
+///
+/// \param ppGPAFuncTable[out] pointer to pointer of GPAApi - GPA Function table structure
+/// \return The GPA result status of the operation. GPA_STATUS_OK is returned if the operation is successful.
+GPALIB_DECL GPA_Status GPA_GetFuncTable(void** ppGPAFuncTable);
+
+/// Structure to hold the function table of the exported GPA APIs
+typedef struct _GPAApi
+{
+    GPA_API_UUID m_apiId;
+
+#define GPA_FUNCTION_PREFIX(func) func##PtrType func;
+    #include "GPAFunctions.h"
+#undef GPA_FUNCTION_PREFIX
+
+#ifdef __cplusplus
+    _GPAApi()
+    {
+        m_apiId = GPA_API_CURRENT_UUID;
+#define GPA_FUNCTION_PREFIX(func) func = nullptr;
+    #include "GPAFunctions.h"
+#undef GPA_FUNCTION_PREFIX
+    }
+#endif
+
+} GPAApi;
+
 
 #endif // _GPUPERFAPI_H_
