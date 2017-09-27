@@ -562,7 +562,7 @@ void D3D11Replay::SavePipelineState()
   {
     D3D11Pipe::Shader *dstArr[] = {&ret.m_VS, &ret.m_HS, &ret.m_DS,
                                    &ret.m_GS, &ret.m_PS, &ret.m_CS};
-    const D3D11RenderState::shader *srcArr[] = {&rs->VS, &rs->HS, &rs->DS,
+    const D3D11RenderState::Shader *srcArr[] = {&rs->VS, &rs->HS, &rs->DS,
                                                 &rs->GS, &rs->PS, &rs->CS};
 
     const char *stageNames[] = {"Vertex", "Hull", "Domain", "Geometry", "Pixel", "Compute"};
@@ -570,13 +570,13 @@ void D3D11Replay::SavePipelineState()
     for(size_t stage = 0; stage < 6; stage++)
     {
       D3D11Pipe::Shader &dst = *dstArr[stage];
-      const D3D11RenderState::shader &src = *srcArr[stage];
+      const D3D11RenderState::Shader &src = *srcArr[stage];
 
       dst.stage = (ShaderStage)stage;
 
-      ResourceId id = GetIDForResource(src.Shader);
+      ResourceId id = GetIDForResource(src.Object);
 
-      WrappedShader *shad = (WrappedShader *)(WrappedID3D11Shader<ID3D11VertexShader> *)src.Shader;
+      WrappedShader *shad = (WrappedShader *)(WrappedID3D11Shader<ID3D11VertexShader> *)src.Object;
 
       ShaderReflection *refl = NULL;
 
@@ -589,7 +589,7 @@ void D3D11Replay::SavePipelineState()
       dst.Object = rm->GetOriginalID(id);
       dst.ShaderDetails = refl;
 
-      string str = GetDebugName(src.Shader);
+      string str = GetDebugName(src.Object);
       dst.customName = true;
 
       if(str == "" && dst.Object != ResourceId())

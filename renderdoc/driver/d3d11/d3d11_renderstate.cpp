@@ -28,7 +28,7 @@
 #include "driver/d3d11/d3d11_device.h"
 #include "driver/d3d11/d3d11_resources.h"
 
-D3D11RenderState::D3D11RenderState(Serialiser *ser)
+D3D11RenderState::D3D11RenderState(D3D11RenderState::EmptyInit)
 {
   RDCEraseEl(IA);
   RDCEraseEl(VS);
@@ -42,7 +42,6 @@ D3D11RenderState::D3D11RenderState(Serialiser *ser)
   RDCEraseEl(CS);
   RDCEraseEl(CSUAVs);
   Clear();
-  m_pSerialiser = ser;
 
   m_ImmediatePipeline = false;
   m_ViewportScissorPartial = true;
@@ -103,12 +102,12 @@ void D3D11RenderState::ReleaseRefs()
   for(UINT i = 0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
     ReleaseRef(IA.VBs[i]);
 
-  shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
+  Shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
   for(int s = 0; s < 6; s++)
   {
-    shader *sh = stages[s];
+    Shader *sh = stages[s];
 
-    ReleaseRef(sh->Shader);
+    ReleaseRef(sh->Object);
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
       ReleaseRef(sh->ConstantBuffers[i]);
@@ -169,12 +168,12 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
     ctx->MarkResourceReferenced(GetIDForResource(IA.VBs[i]),
                                 initial ? eFrameRef_Unknown : eFrameRef_Read);
 
-  const shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
+  const Shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
   for(int s = 0; s < 6; s++)
   {
-    const shader *sh = stages[s];
+    const Shader *sh = stages[s];
 
-    ctx->MarkResourceReferenced(GetIDForResource(sh->Shader),
+    ctx->MarkResourceReferenced(GetIDForResource(sh->Object),
                                 initial ? eFrameRef_Unknown : eFrameRef_Read);
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
@@ -355,12 +354,12 @@ void D3D11RenderState::AddRefs()
   for(UINT i = 0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
     TakeRef(IA.VBs[i]);
 
-  shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
+  Shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
   for(int s = 0; s < 6; s++)
   {
-    shader *sh = stages[s];
+    Shader *sh = stages[s];
 
-    TakeRef(sh->Shader);
+    TakeRef(sh->Object);
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
       TakeRef(sh->ConstantBuffers[i]);
@@ -397,293 +396,9 @@ void D3D11RenderState::AddRefs()
   TakeRef(OM.DepthView);
 }
 
-void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
-{
-  SERIALISE_ELEMENT(ResourceId, IALayout, GetIDForResource(IA.Layout));
-  if(m_State < WRITING)
-  {
-    if(device->GetResourceManager()->HasLiveResource(IALayout))
-      IA.Layout = (ID3D11InputLayout *)device->GetResourceManager()->GetLiveResource(IALayout);
-    else
-      IA.Layout = NULL;
-  }
-
-  m_pSerialiser->Serialise("IA.Topo", IA.Topo);
-
-  SERIALISE_ELEMENT(ResourceId, IAIndexBuffer, GetIDForResource(IA.IndexBuffer));
-  if(m_State < WRITING)
-  {
-    if(device->GetResourceManager()->HasLiveResource(IAIndexBuffer))
-      IA.IndexBuffer = (ID3D11Buffer *)device->GetResourceManager()->GetLiveResource(IAIndexBuffer);
-    else
-      IA.IndexBuffer = NULL;
-  }
-
-  for(int i = 0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
-  {
-    ResourceId VB;
-    if(m_State >= WRITING)
-      VB = GetIDForResource(IA.VBs[i]);
-    m_pSerialiser->Serialise("IA.VBs", VB);
-    if(m_State < WRITING)
-    {
-      if(device->GetResourceManager()->HasLiveResource(VB))
-        IA.VBs[i] = (ID3D11Buffer *)device->GetResourceManager()->GetLiveResource(VB);
-      else
-        IA.VBs[i] = NULL;
-    }
-  }
-
-  m_pSerialiser->SerialisePODArray<D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT>("IA.Strides",
-                                                                              IA.Strides);
-  m_pSerialiser->SerialisePODArray<D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT>("IA.Offsets",
-                                                                              IA.Offsets);
-  m_pSerialiser->Serialise("IA.indexFormat", IA.IndexFormat);
-  m_pSerialiser->Serialise("IA.indexOffset", IA.IndexOffset);
-
-#define MAKE_NAMES(suffix)                                                                  \
-  const char *CONCAT(suffix, _names)[] = {"VS." STRINGIZE(suffix), "HS." STRINGIZE(suffix), \
-                                          "DS." STRINGIZE(suffix), "GS." STRINGIZE(suffix), \
-                                          "PS." STRINGIZE(suffix), "CS." STRINGIZE(suffix)};
-
-  MAKE_NAMES(ConstantBuffers);
-  MAKE_NAMES(CBOffsets);
-  MAKE_NAMES(CBCounts);
-  MAKE_NAMES(Samplers);
-  MAKE_NAMES(SRVs);
-  MAKE_NAMES(Instances);
-
-#undef MAKE_NAMES
-
-  shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
-  for(int s = 0; s < 6; s++)
-  {
-    shader *sh = stages[s];
-
-    SERIALISE_ELEMENT(ResourceId, Shader, GetIDForResource(sh->Shader));
-    if(m_State < WRITING)
-    {
-      if(device->GetResourceManager()->HasLiveResource(Shader))
-        sh->Shader = (ID3D11DeviceChild *)device->GetResourceManager()->GetLiveResource(Shader);
-      else
-        sh->Shader = NULL;
-    }
-
-    for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
-    {
-      ResourceId id;
-      if(m_State >= WRITING)
-        id = GetIDForResource(sh->ConstantBuffers[i]);
-      m_pSerialiser->Serialise(ConstantBuffers_names[s], id);
-      if(m_State < WRITING)
-      {
-        if(device->GetResourceManager()->HasLiveResource(id))
-          sh->ConstantBuffers[i] = (ID3D11Buffer *)device->GetResourceManager()->GetLiveResource(id);
-        else
-          sh->ConstantBuffers[i] = NULL;
-      }
-
-      m_pSerialiser->Serialise(CBOffsets_names[s], sh->CBOffsets[i]);
-      m_pSerialiser->Serialise(CBCounts_names[s], sh->CBCounts[i]);
-    }
-
-    for(int i = 0; i < D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT; i++)
-    {
-      ResourceId id;
-      if(m_State >= WRITING)
-        id = GetIDForResource(sh->Samplers[i]);
-      m_pSerialiser->Serialise(Samplers_names[s], id);
-      if(m_State < WRITING)
-      {
-        if(device->GetResourceManager()->HasLiveResource(id))
-          sh->Samplers[i] = (ID3D11SamplerState *)device->GetResourceManager()->GetLiveResource(id);
-        else
-          sh->Samplers[i] = NULL;
-      }
-    }
-
-    for(int i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
-    {
-      ResourceId id;
-      if(m_State >= WRITING)
-        id = GetIDForResource(sh->SRVs[i]);
-      m_pSerialiser->Serialise(SRVs_names[s], id);
-      if(m_State < WRITING)
-      {
-        if(device->GetResourceManager()->HasLiveResource(id))
-          sh->SRVs[i] = (ID3D11ShaderResourceView *)device->GetResourceManager()->GetLiveResource(id);
-        else
-          sh->SRVs[i] = NULL;
-      }
-    }
-
-    // Before 0x000008 the UAVs were serialised per-shader (even though it was only for compute)
-    // here
-    if(device->GetLogVersion() < 0x000008)
-    {
-      for(int i = 0; i < D3D11_PS_CS_UAV_REGISTER_COUNT; i++)
-      {
-        ResourceId id;
-        m_pSerialiser->Serialise("CSUAVs", id);
-
-        if(s == 5)
-        {
-          if(device->GetResourceManager()->HasLiveResource(id))
-            CSUAVs[i] =
-                (ID3D11UnorderedAccessView *)device->GetResourceManager()->GetLiveResource(id);
-          else
-            CSUAVs[i] = NULL;
-        }
-      }
-    }
-
-    for(int i = 0; i < D3D11_SHADER_MAX_INTERFACES; i++)
-    {
-      ResourceId id;
-      if(m_State >= WRITING)
-        id = GetIDForResource(sh->Instances[i]);
-      m_pSerialiser->Serialise(Instances_names[s], id);
-      if(m_State < WRITING)
-      {
-        if(device->GetResourceManager()->HasLiveResource(id))
-          sh->Instances[i] = (ID3D11ClassInstance *)device->GetResourceManager()->GetLiveResource(id);
-        else
-          sh->Instances[i] = NULL;
-      }
-    }
-
-    sh++;
-  }
-
-  if(device->GetLogVersion() >= 0x000008)
-  {
-    for(int i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
-    {
-      ResourceId id;
-      if(m_State >= WRITING)
-        id = GetIDForResource(CSUAVs[i]);
-      m_pSerialiser->Serialise("CSUAVs", id);
-      if(m_State < WRITING)
-      {
-        if(device->GetResourceManager()->HasLiveResource(id))
-          CSUAVs[i] = (ID3D11UnorderedAccessView *)device->GetResourceManager()->GetLiveResource(id);
-        else
-          CSUAVs[i] = NULL;
-      }
-    }
-  }
-
-  for(int i = 0; i < D3D11_SO_BUFFER_SLOT_COUNT; i++)
-  {
-    ResourceId id;
-    if(m_State >= WRITING)
-      id = GetIDForResource(SO.Buffers[i]);
-    m_pSerialiser->Serialise("SO.Buffers", id);
-    if(m_State < WRITING)
-    {
-      if(device->GetResourceManager()->HasLiveResource(id))
-        SO.Buffers[i] = (ID3D11Buffer *)device->GetResourceManager()->GetLiveResource(id);
-      else
-        SO.Buffers[i] = NULL;
-    }
-
-    m_pSerialiser->Serialise("SO.Offsets", SO.Offsets[i]);
-  }
-
-  SERIALISE_ELEMENT(ResourceId, RSState, GetIDForResource(RS.State));
-  if(m_State < WRITING)
-  {
-    if(device->GetResourceManager()->HasLiveResource(RSState))
-      RS.State = (ID3D11RasterizerState *)device->GetResourceManager()->GetLiveResource(RSState);
-    else
-      RS.State = NULL;
-  }
-
-  m_pSerialiser->Serialise("RS.NumViews", RS.NumViews);
-  m_pSerialiser->Serialise("RS.NumScissors", RS.NumScissors);
-  m_pSerialiser->SerialisePODArray<D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE>(
-      "RS.Viewports", RS.Viewports);
-  m_pSerialiser->SerialisePODArray<D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE>(
-      "RS.Scissors", RS.Scissors);
-
-  SERIALISE_ELEMENT(ResourceId, OMDepthStencilState, GetIDForResource(OM.DepthStencilState));
-  if(m_State < WRITING)
-  {
-    if(device->GetResourceManager()->HasLiveResource(OMDepthStencilState))
-      OM.DepthStencilState = (ID3D11DepthStencilState *)device->GetResourceManager()->GetLiveResource(
-          OMDepthStencilState);
-    else
-      OM.DepthStencilState = NULL;
-  }
-
-  m_pSerialiser->Serialise("OM.StencRef", OM.StencRef);
-
-  SERIALISE_ELEMENT(ResourceId, OMBlendState, GetIDForResource(OM.BlendState));
-  if(m_State < WRITING)
-  {
-    if(device->GetResourceManager()->HasLiveResource(OMBlendState))
-      OM.BlendState = (ID3D11BlendState *)device->GetResourceManager()->GetLiveResource(OMBlendState);
-    else
-      OM.BlendState = NULL;
-  }
-
-  m_pSerialiser->SerialisePODArray<4>("OM.BlendFactor", OM.BlendFactor);
-  m_pSerialiser->Serialise("OM.SampleMask", OM.SampleMask);
-
-  SERIALISE_ELEMENT(ResourceId, OMDepthView, GetIDForResource(OM.DepthView));
-  if(m_State < WRITING)
-  {
-    if(device->GetResourceManager()->HasLiveResource(OMDepthView))
-      OM.DepthView =
-          (ID3D11DepthStencilView *)device->GetResourceManager()->GetLiveResource(OMDepthView);
-    else
-      OM.DepthView = NULL;
-  }
-
-  m_pSerialiser->Serialise("OM.UAVStartSlot", OM.UAVStartSlot);
-
-  const int numUAVs =
-      device->GetLogVersion() >= 0x000008 ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
-
-  for(int i = 0; i < numUAVs; i++)
-  {
-    ResourceId UAV;
-    if(m_State >= WRITING)
-      UAV = GetIDForResource(OM.UAVs[i]);
-    m_pSerialiser->Serialise("OM.UAVs", UAV);
-    if(m_State < WRITING)
-    {
-      if(device->GetResourceManager()->HasLiveResource(UAV))
-        OM.UAVs[i] = (ID3D11UnorderedAccessView *)device->GetResourceManager()->GetLiveResource(UAV);
-      else
-        OM.UAVs[i] = NULL;
-    }
-  }
-
-  for(int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-  {
-    ResourceId RTV;
-    if(m_State >= WRITING)
-      RTV = GetIDForResource(OM.RenderTargets[i]);
-    m_pSerialiser->Serialise("OM.RenderTargets", RTV);
-    if(m_State < WRITING)
-    {
-      if(device->GetResourceManager()->HasLiveResource(RTV))
-        OM.RenderTargets[i] =
-            (ID3D11RenderTargetView *)device->GetResourceManager()->GetLiveResource(RTV);
-      else
-        OM.RenderTargets[i] = NULL;
-    }
-  }
-
-  if(m_State < WRITING)
-    AddRefs();
-}
-
 D3D11RenderState::D3D11RenderState(WrappedID3D11DeviceContext *context)
 {
   RDCEraseMem(this, sizeof(D3D11RenderState));
-  m_pSerialiser = context->GetSerialiser();
 
   // IA
   context->IAGetInputLayout(&IA.Layout);
@@ -695,22 +410,22 @@ D3D11RenderState::D3D11RenderState(WrappedID3D11DeviceContext *context)
   // VS
   context->VSGetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, VS.SRVs);
   context->VSGetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, VS.Samplers);
-  context->VSGetShader((ID3D11VertexShader **)&VS.Shader, VS.Instances, &VS.NumInstances);
+  context->VSGetShader((ID3D11VertexShader **)&VS.Object, VS.Instances, &VS.NumInstances);
 
   // DS
   context->DSGetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, DS.SRVs);
   context->DSGetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, DS.Samplers);
-  context->DSGetShader((ID3D11DomainShader **)&DS.Shader, DS.Instances, &DS.NumInstances);
+  context->DSGetShader((ID3D11DomainShader **)&DS.Object, DS.Instances, &DS.NumInstances);
 
   // HS
   context->HSGetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, HS.SRVs);
   context->HSGetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, HS.Samplers);
-  context->HSGetShader((ID3D11HullShader **)&HS.Shader, HS.Instances, &HS.NumInstances);
+  context->HSGetShader((ID3D11HullShader **)&HS.Object, HS.Instances, &HS.NumInstances);
 
   // GS
   context->GSGetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, GS.SRVs);
   context->GSGetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, GS.Samplers);
-  context->GSGetShader((ID3D11GeometryShader **)&GS.Shader, GS.Instances, &GS.NumInstances);
+  context->GSGetShader((ID3D11GeometryShader **)&GS.Object, GS.Instances, &GS.NumInstances);
 
   context->SOGetTargets(D3D11_SO_BUFFER_SLOT_COUNT, SO.Buffers);
 
@@ -730,12 +445,12 @@ D3D11RenderState::D3D11RenderState(WrappedID3D11DeviceContext *context)
   else
     context->CSGetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, CSUAVs);
   context->CSGetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, CS.Samplers);
-  context->CSGetShader((ID3D11ComputeShader **)&CS.Shader, CS.Instances, &CS.NumInstances);
+  context->CSGetShader((ID3D11ComputeShader **)&CS.Object, CS.Instances, &CS.NumInstances);
 
   // PS
   context->PSGetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, PS.SRVs);
   context->PSGetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, PS.Samplers);
-  context->PSGetShader((ID3D11PixelShader **)&PS.Shader, PS.Instances, &PS.NumInstances);
+  context->PSGetShader((ID3D11PixelShader **)&PS.Object, PS.Instances, &PS.NumInstances);
 
   context->VSGetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT,
                                  VS.ConstantBuffers, VS.CBOffsets, VS.CBCounts);
@@ -802,22 +517,22 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
   // VS
   context->VSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, VS.SRVs);
   context->VSSetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, VS.Samplers);
-  context->VSSetShader((ID3D11VertexShader *)VS.Shader, VS.Instances, VS.NumInstances);
+  context->VSSetShader((ID3D11VertexShader *)VS.Object, VS.Instances, VS.NumInstances);
 
   // DS
   context->DSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, DS.SRVs);
   context->DSSetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, DS.Samplers);
-  context->DSSetShader((ID3D11DomainShader *)DS.Shader, DS.Instances, DS.NumInstances);
+  context->DSSetShader((ID3D11DomainShader *)DS.Object, DS.Instances, DS.NumInstances);
 
   // HS
   context->HSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, HS.SRVs);
   context->HSSetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, HS.Samplers);
-  context->HSSetShader((ID3D11HullShader *)HS.Shader, HS.Instances, HS.NumInstances);
+  context->HSSetShader((ID3D11HullShader *)HS.Object, HS.Instances, HS.NumInstances);
 
   // GS
   context->GSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, GS.SRVs);
   context->GSSetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, GS.Samplers);
-  context->GSSetShader((ID3D11GeometryShader *)GS.Shader, GS.Instances, GS.NumInstances);
+  context->GSSetShader((ID3D11GeometryShader *)GS.Object, GS.Instances, GS.NumInstances);
 
   context->SOSetTargets(D3D11_SO_BUFFER_SLOT_COUNT, SO.Buffers, SO.Offsets);
 
@@ -836,12 +551,12 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
     context->CSSetUnorderedAccessViews(0, D3D11_1_UAV_SLOT_COUNT, CSUAVs, UAV_keepcounts);
   else
     context->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, CSUAVs, UAV_keepcounts);
-  context->CSSetShader((ID3D11ComputeShader *)CS.Shader, CS.Instances, CS.NumInstances);
+  context->CSSetShader((ID3D11ComputeShader *)CS.Object, CS.Instances, CS.NumInstances);
 
   // PS
   context->PSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, PS.SRVs);
   context->PSSetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, PS.Samplers);
-  context->PSSetShader((ID3D11PixelShader *)PS.Shader, PS.Instances, PS.NumInstances);
+  context->PSSetShader((ID3D11PixelShader *)PS.Object, PS.Instances, PS.NumInstances);
 
   context->VSSetConstantBuffers1(0, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT,
                                  VS.ConstantBuffers, VS.CBOffsets, VS.CBCounts);
@@ -1043,10 +758,10 @@ void D3D11RenderState::UnbindRangeForRead(const ResourceRange &range)
   }
 
   // const char *names[] = { "VS", "DS", "HS", "GS", "PS", "CS" };
-  shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
+  Shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
   for(int s = 0; s < 6; s++)
   {
-    shader *sh = stages[s];
+    Shader *sh = stages[s];
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
     {
@@ -1467,7 +1182,7 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView *const RTs[], UI
   return valid;
 }
 
-bool D3D11RenderState::inputassembler::Used_VB(WrappedID3D11Device *device, uint32_t slot) const
+bool D3D11RenderState::InputAssembler::Used_VB(WrappedID3D11Device *device, uint32_t slot) const
 {
   if(Layout == NULL)
     return false;
@@ -1481,12 +1196,12 @@ bool D3D11RenderState::inputassembler::Used_VB(WrappedID3D11Device *device, uint
   return false;
 }
 
-bool D3D11RenderState::shader::Used_CB(uint32_t slot) const
+bool D3D11RenderState::Shader::Used_CB(uint32_t slot) const
 {
   if(ConstantBuffers[slot] == NULL)
     return false;
 
-  WrappedShader *shad = (WrappedShader *)(WrappedID3D11Shader<ID3D11VertexShader> *)Shader;
+  WrappedShader *shad = (WrappedShader *)(WrappedID3D11Shader<ID3D11VertexShader> *)Object;
 
   if(shad == NULL)
     return false;
@@ -1504,12 +1219,12 @@ bool D3D11RenderState::shader::Used_CB(uint32_t slot) const
   return false;
 }
 
-bool D3D11RenderState::shader::Used_SRV(uint32_t slot) const
+bool D3D11RenderState::Shader::Used_SRV(uint32_t slot) const
 {
   if(SRVs[slot] == NULL)
     return false;
 
-  WrappedShader *shad = (WrappedShader *)(WrappedID3D11Shader<ID3D11VertexShader> *)Shader;
+  WrappedShader *shad = (WrappedShader *)(WrappedID3D11Shader<ID3D11VertexShader> *)Object;
 
   if(shad == NULL)
     return false;
@@ -1527,9 +1242,9 @@ bool D3D11RenderState::shader::Used_SRV(uint32_t slot) const
   return false;
 }
 
-bool D3D11RenderState::shader::Used_UAV(uint32_t slot) const
+bool D3D11RenderState::Shader::Used_UAV(uint32_t slot) const
 {
-  WrappedShader *shad = (WrappedShader *)(WrappedID3D11Shader<ID3D11VertexShader> *)Shader;
+  WrappedShader *shad = (WrappedShader *)(WrappedID3D11Shader<ID3D11VertexShader> *)Object;
 
   if(shad == NULL)
     return false;
@@ -1685,6 +1400,84 @@ void D3D11RenderState::UnbindForWrite(ID3D11UnorderedAccessView *uav)
 
   UnbindRangeForWrite(GetResourceRange(uav));
 }
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D11RenderState::InputAssembler &el)
+{
+  SERIALISE_MEMBER(Layout);
+  SERIALISE_MEMBER(Topo);
+  SERIALISE_MEMBER(VBs);
+  SERIALISE_MEMBER(Strides);
+  SERIALISE_MEMBER(Offsets);
+  SERIALISE_MEMBER(IndexBuffer);
+  SERIALISE_MEMBER(IndexFormat);
+  SERIALISE_MEMBER(IndexOffset);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D11RenderState::Shader &el)
+{
+  SERIALISE_MEMBER(Object);
+  SERIALISE_MEMBER(ConstantBuffers);
+  SERIALISE_MEMBER(CBOffsets);
+  SERIALISE_MEMBER(CBCounts);
+  SERIALISE_MEMBER(SRVs);
+  SERIALISE_MEMBER(Samplers);
+  SERIALISE_MEMBER(Instances);
+  SERIALISE_MEMBER(NumInstances);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D11RenderState::StreamOut &el)
+{
+  SERIALISE_MEMBER(Buffers);
+  SERIALISE_MEMBER(Offsets);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D11RenderState::Rasterizer &el)
+{
+  SERIALISE_MEMBER(NumViews);
+  SERIALISE_MEMBER(NumScissors);
+  SERIALISE_MEMBER(Viewports);
+  SERIALISE_MEMBER(Scissors);
+  SERIALISE_MEMBER(State);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D11RenderState::OutputMerger &el)
+{
+  SERIALISE_MEMBER(DepthStencilState);
+  SERIALISE_MEMBER(StencRef);
+  SERIALISE_MEMBER(BlendState);
+  SERIALISE_MEMBER(BlendFactor);
+  SERIALISE_MEMBER(SampleMask);
+  SERIALISE_MEMBER(DepthView);
+  SERIALISE_MEMBER(RenderTargets);
+  SERIALISE_MEMBER(UAVStartSlot);
+  SERIALISE_MEMBER(UAVs);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D11RenderState &el)
+{
+  SERIALISE_MEMBER(IA);
+  SERIALISE_MEMBER(VS);
+  SERIALISE_MEMBER(HS);
+  SERIALISE_MEMBER(DS);
+  SERIALISE_MEMBER(GS);
+  SERIALISE_MEMBER(PS);
+  SERIALISE_MEMBER(CS);
+  SERIALISE_MEMBER(CSUAVs);
+  SERIALISE_MEMBER(SO);
+  SERIALISE_MEMBER(RS);
+  SERIALISE_MEMBER(OM);
+
+  if(ser.IsReading())
+    el.AddRefs();
+}
+
+INSTANTIATE_SERIALISE_TYPE(D3D11RenderState);
 
 D3D11RenderStateTracker::D3D11RenderStateTracker(WrappedID3D11DeviceContext *ctx)
     : m_RS(*ctx->GetCurrentPipelineState())
