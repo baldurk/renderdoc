@@ -489,7 +489,12 @@ public:
   // log replaying
 
   bool Prepare_InitialState(ID3D11DeviceChild *res);
-  bool Serialise_InitialState(ResourceId resid, ID3D11DeviceChild *res);
+  uint32_t GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res);
+  template <typename SerialiserType>
+  bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, ID3D11DeviceChild *res);
+
+  bool ShouldOmitInitState(D3D11_TEXTURE2D_DESC &desc, ResourceId Id);
+
   void Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData);
   void Apply_InitialState(ID3D11DeviceChild *live, D3D11ResourceManager::InitialContentData initial);
 

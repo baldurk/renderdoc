@@ -246,6 +246,13 @@ public:
   ret func;                                      \
   bool CONCAT(Serialise_, func);
 
+// A handy macros to say "is the serialiser reading and we're doing replay-mode stuff?"
+// The reason we check both is that checking the first allows the compiler to eliminate the other
+// path at compile-time, and the second because we might be just struct-serialising in which case we
+// should be doing no work to restore states.
+// Writing is unambiguously during capture mode, so we don't have to check both in that case.
+#define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_State))
+
 enum class D3D11Chunk : uint32_t
 {
   DeviceInitialisation = (uint32_t)SystemChunk::FirstDriverChunk,

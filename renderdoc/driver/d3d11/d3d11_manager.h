@@ -170,11 +170,7 @@ class D3D11ResourceManager
     : public ResourceManager<ID3D11DeviceChild *, ID3D11DeviceChild *, D3D11ResourceRecord>
 {
 public:
-  D3D11ResourceManager(LogState state, Serialiser *ser, WrappedID3D11Device *dev)
-      : ResourceManager(state, ser), m_Device(dev)
-  {
-  }
-
+  D3D11ResourceManager(WrappedID3D11Device *dev) : m_Device(dev) {}
   ID3D11DeviceChild *UnwrapResource(ID3D11DeviceChild *res);
   ID3D11Resource *UnwrapResource(ID3D11Resource *res)
   {
@@ -190,7 +186,8 @@ private:
   bool Force_InitialState(ID3D11DeviceChild *res, bool prepare);
   bool Need_InitialStateChunk(ID3D11DeviceChild *res);
   bool Prepare_InitialState(ID3D11DeviceChild *res);
-  bool Serialise_InitialState(ResourceId resid, ID3D11DeviceChild *res);
+  uint32_t GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res);
+  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, ID3D11DeviceChild *res);
   void Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData);
   void Apply_InitialState(ID3D11DeviceChild *live, InitialContentData data);
 
