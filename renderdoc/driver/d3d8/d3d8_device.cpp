@@ -52,8 +52,7 @@ WrappedD3DDevice8::WrappedD3DDevice8(IDirect3DDevice8 *device, HWND wnd,
 
   if(!RenderDoc::Inst().IsReplayApp())
   {
-    m_State = READING;
-    m_pSerialiser = NULL;
+    m_State = CaptureState::BackgroundCapturing;
 
     RenderDoc::Inst().AddDeviceFrameCapturer((IDirect3DDevice8 *)this, this);
 
@@ -64,13 +63,10 @@ WrappedD3DDevice8::WrappedD3DDevice8(IDirect3DDevice8 *device, HWND wnd,
   }
   else
   {
-    m_State = WRITING_IDLE;
-    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
-
-    m_pSerialiser->SetDebugText(true);
+    m_State = CaptureState::LoadingReplaying;
   }
 
-  m_ResourceManager = new D3D8ResourceManager(m_State, m_pSerialiser, this);
+  m_ResourceManager = new D3D8ResourceManager(this);
 }
 
 void WrappedD3DDevice8::CheckForDeath()
@@ -105,8 +101,6 @@ WrappedD3DDevice8::~WrappedD3DDevice8()
 
   SAFE_RELEASE(m_device);
 
-  SAFE_DELETE(m_pSerialiser);
-
   RDCASSERT(WrappedIDirect3DVertexBuffer8::m_BufferList.empty());
   RDCASSERT(WrappedIDirect3DIndexBuffer8::m_BufferList.empty());
 }
@@ -127,7 +121,7 @@ void WrappedD3DDevice8::ReleaseResource(IDirect3DResource8 *res)
 
   // wrapped resources get released all the time, we don't want to
   // try and slerp in a resource release. Just the explicit ones
-  if(m_State < WRITING)
+  if(IsReplayMode(m_State))
   {
     if(GetResourceManager()->HasLiveResource(id))
       GetResourceManager()->EraseLiveResource(id);
@@ -356,7 +350,7 @@ HRESULT __stdcall WrappedD3DDevice8::CreateVertexBuffer(UINT Length, DWORD Usage
 
     wrapped = new WrappedIDirect3DVertexBuffer8(real, Length, this);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       // TODO: Serialise
     }
@@ -387,7 +381,7 @@ HRESULT __stdcall WrappedD3DDevice8::CreateIndexBuffer(UINT Length, DWORD Usage,
 
     wrapped = new WrappedIDirect3DIndexBuffer8(real, Length, this);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       // TODO: Serialise
     }

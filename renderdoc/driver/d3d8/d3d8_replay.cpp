@@ -24,7 +24,7 @@
 
 #include "d3d8_common.h"
 
-ReplayStatus D3D8_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus D3D8_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCERR("D3D8 captures are not currently supported");
   return ReplayStatus::APIUnsupported;

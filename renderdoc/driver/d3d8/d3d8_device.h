@@ -220,8 +220,7 @@ private:
   // protects wrapped resource creation and serialiser access
   Threading::CriticalSection m_D3DLock;
 
-  Serialiser *m_pSerialiser;
-  LogState m_State;
+  CaptureState m_State;
 
   unsigned int m_InternalRefcount;
   RefCounter8 m_RefCounter;

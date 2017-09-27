@@ -61,7 +61,13 @@ bool D3D8ResourceManager::Prepare_InitialState(IUnknown *res)
   return false;
 }
 
-bool D3D8ResourceManager::Serialise_InitialState(ResourceId id, IUnknown *res)
+uint32_t D3D8ResourceManager::GetSize_InitialState(ResourceId id, IUnknown *res)
+{
+  // TODO
+  return 128;
+}
+
+bool D3D8ResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId id, IUnknown *res)
 {
   // TODO
   return false;
