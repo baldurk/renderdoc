@@ -124,6 +124,14 @@ set(sources
     replay/replay_controller.h
     serialise/serialiser.cpp
     serialise/serialiser.h
+    serialise/lz4io.cpp
+    serialise/lz4io.h
+    serialise/zstdio.cpp
+    serialise/zstdio.h
+    serialise/streamio.cpp
+    serialise/streamio.h
+    serialise/comp_io_tests.cpp
+    serialise/streamio_tests.cpp
     strings/grisu2.cpp
     strings/string_utils.cpp
     strings/string_utils.h

@@ -97,6 +97,12 @@
     <Filter Include="3rdparty\pugixml">
       <UniqueIdentifier>{50c142cb-d8b9-44f7-a68a-ab9015975ea5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common\Serialise\Compressors">
+      <UniqueIdentifier>{3cb4fd0e-7cd9-45a3-99d2-1158f27ec438}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Serialise\Stream I/O">
+      <UniqueIdentifier>{3b8694d9-cb25-45e0-a1c2-8cc8cd03df3f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -342,10 +348,19 @@
     <ClInclude Include="strings\string_utils.h">
       <Filter>Common\Strings</Filter>
     </ClInclude>
-    <ClInclude Include="api\replay\structured_data.h">
-      <Filter>API\Replay</Filter>
+    <ClInclude Include="serialise\lz4io.h">
+      <Filter>Common\Serialise\Compressors</Filter>
+    </ClInclude>
+    <ClInclude Include="serialise\zstdio.h">
+      <Filter>Common\Serialise\Compressors</Filter>
+    </ClInclude>
+    <ClInclude Include="serialise\streamio.h">
+      <Filter>Common\Serialise\Stream I/O</Filter>
     </ClInclude>
     <ClInclude Include="api\replay\stringise.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\structured_data.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
   </ItemGroup>
@@ -586,6 +601,21 @@
     </ClCompile>
     <ClCompile Include="strings\utf8printf.cpp">
       <Filter>Common\Strings</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\comp_io_tests.cpp">
+      <Filter>Common\Serialise\Compressors</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\lz4io.cpp">
+      <Filter>Common\Serialise\Compressors</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\zstdio.cpp">
+      <Filter>Common\Serialise\Compressors</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\streamio.cpp">
+      <Filter>Common\Serialise\Stream I/O</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\streamio_tests.cpp">
+      <Filter>Common\Serialise\Stream I/O</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
