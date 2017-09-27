@@ -1142,6 +1142,7 @@ enum class ResourceFormatType : uint8_t
   D32S8,
   S8,
   YUV,
+  PVRTC,
 };
 
 DOCUMENT(R"(An API specific hint for a certain behaviour. A legacy concept in OpenGL that controls

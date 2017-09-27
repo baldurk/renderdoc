@@ -762,6 +762,11 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME, VK_EXT_VALIDATION_FLAGS_SPEC_VERSION,
     },
+#ifdef VK_IMG_format_pvrtc
+    {
+        VK_IMG_FORMAT_PVRTC_EXTENSION_NAME, VK_IMG_FORMAT_PVRTC_SPEC_VERSION,
+    },
+#endif
 #ifdef VK_KHR_android_surface
     {
         VK_KHR_ANDROID_SURFACE_EXTENSION_NAME, VK_KHR_ANDROID_SURFACE_SPEC_VERSION,

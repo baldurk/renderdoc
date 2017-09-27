@@ -570,6 +570,7 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
       case ResourceFormatType::D32S8: return "D32S8";
       case ResourceFormatType::S8: return "S8";
       case ResourceFormatType::YUV: return "YUV";
+      case ResourceFormatType::PVRTC: return "PVRTC";
     }
   }
   else if(fmt.compType == CompType::Depth)
