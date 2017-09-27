@@ -704,7 +704,7 @@ void ResourceManagerType::SetInitialChunk(ResourceId id, Chunk *chunk)
 
   auto it = m_InitialChunks.find(id);
 
-  RDCASSERT(chunk->GetChunkType() == INITIAL_CONTENTS);
+  RDCASSERT(chunk->GetChunkType<SystemChunk>() == SystemChunk::InitialContents);
 
   if(it != m_InitialChunks.end())
   {
@@ -787,7 +787,7 @@ void ResourceManagerType::Serialise_InitialContentsNeeded(WriteSerialiser &ser)
 
   uint32_t chunkSize = uint32_t(WrittenRecords.size() * sizeof(WrittenRecord) + 16);
 
-  SCOPED_SERIALISE_CHUNK(INITIAL_CONTENTS_LIST, chunkSize);
+  SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContentsList, chunkSize);
   SERIALISE_ELEMENT(WrittenRecords);
 }
 
@@ -1039,7 +1039,7 @@ void ResourceManagerType::InsertInitialContentsChunks(WriteSerialiser &ser)
     {
       uint32_t size = GetSize_InitialState(id, res);
 
-      SCOPED_SERIALISE_CHUNK(INITIAL_CONTENTS, size);
+      SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents, size);
 
       Serialise_InitialState(ser, id, res);
     }
@@ -1068,7 +1068,7 @@ void ResourceManagerType::InsertInitialContentsChunks(WriteSerialiser &ser)
       {
         uint32_t size = GetSize_InitialState(it->first, it->second);
 
-        SCOPED_SERIALISE_CHUNK(INITIAL_CONTENTS, size);
+        SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents, size);
 
         Serialise_InitialState(ser, it->first, it->second);
       }

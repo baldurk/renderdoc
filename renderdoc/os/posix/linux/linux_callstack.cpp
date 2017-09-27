@@ -114,31 +114,22 @@ Stackwalk *Create()
   return new LinuxCallstack(NULL, 0);
 }
 
-bool GetLoadedModules(char *&buf, size_t &size)
+bool GetLoadedModules(byte *buf, size_t &size)
 {
   // we just dump the whole file rather than pre-parsing, that way we can improve
   // parsing without needing to recapture
   FILE *f = FileIO::fopen("/proc/self/maps", "r");
 
   if(buf)
-  {
-    buf[0] = 'L';
-    buf[1] = 'N';
-    buf[2] = 'U';
-    buf[3] = 'X';
-    buf[4] = 'C';
-    buf[5] = 'A';
-    buf[6] = 'L';
-    buf[7] = 'L';
-  }
+    memcpy(buf, "LNUXCALL", 8);
 
   size += 8;
 
-  char dummy[512];
+  byte dummy[512];
 
   while(!feof(f))
   {
-    char *readbuf = buf ? buf + size : dummy;
+    byte *readbuf = buf ? buf + size : dummy;
     size += FileIO::fread(readbuf, 1, 512, f);
   }
 
@@ -230,29 +221,32 @@ private:
   std::map<uint64_t, Callstack::AddressDetails> m_Cache;
 };
 
-StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths,
-                            volatile bool *killSignal)
+StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress, volatile bool *killSignal)
 {
   // we look in the original locations for the files, we don't prompt if we can't
   // find the file, or the file doesn't have symbols (and we don't validate that
   // the file is the right version). A good option for doing this would be
   // http://github.com/mlabbe/nativefiledialog
 
-  bool valid = true;
-  if(memcmp(moduleDB, "LNUXCALL", 8))
+  if(DBSize < 8 || memcmp(moduleDB, "LNUXCALL", 8))
   {
     RDCWARN("Can't load callstack resolve for this log. Possibly from another platform?");
-    valid = false;
+    return NULL;
   }
 
-  char *search = moduleDB + 8;
+  char *start = (char *)(moduleDB + 8);
+  char *search = start;
+  char *dbend = (char *)(moduleDB + DBSize);
 
   vector<LookupModule> modules;
 
-  while(valid && search && size_t(search - moduleDB) < DBSize)
+  while(search && search < dbend)
   {
     if(killSignal && *killSignal)
       break;
+
+    if(progress)
+      *progress = float(search - start) / float(DBSize);
 
     // find .text segments
     {
@@ -273,10 +267,10 @@ StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths
         mod.end = (uint64_t)end;
 
         search += offs;
-        while(size_t(search - moduleDB) < DBSize && (*search == ' ' || *search == '\t'))
+        while(search < dbend && (*search == ' ' || *search == '\t'))
           search++;
 
-        if(size_t(search - moduleDB) < DBSize && *search != '[' && *search != 0 && *search != '\n')
+        if(search < dbend && *search != '[' && *search != 0 && *search != '\n')
         {
           size_t n = ARRAY_COUNT(mod.path) - 1;
           mod.path[n] = 0;
@@ -287,7 +281,7 @@ StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths
               mod.path[i] = 0;
               break;
             }
-            if(search + i >= moduleDB + DBSize)
+            if(search + i >= dbend)
             {
               mod.path[i] = 0;
               break;
@@ -330,7 +324,10 @@ StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths
       }
     }
 
-    if(search >= (char *)(moduleDB + DBSize))
+    if(progress)
+      *progress = RDCMIN(1.0f, float(search - start) / float(DBSize));
+
+    if(search >= dbend)
       break;
 
     search = strchr(search, '\n');

@@ -265,44 +265,6 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(voi
   }
 }
 
-extern "C" RENDERDOC_API ReplaySupport RENDERDOC_CC
-RENDERDOC_SupportLocalReplay(const char *logfile, rdcstr *driver, rdcstr *recordMachineIdent)
-{
-  ICaptureFile *file = RENDERDOC_OpenCaptureFile(logfile);
-
-  if(driver)
-    *driver = file->DriverName();
-
-  if(recordMachineIdent)
-    *recordMachineIdent = file->RecordedMachineIdent();
-
-  ReplaySupport support = file->LocalReplaySupport();
-
-  file->Shutdown();
-
-  return support;
-}
-
-extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
-RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, IReplayController **rend)
-{
-  ICaptureFile *file = RENDERDOC_OpenCaptureFile(logfile);
-
-  ReplayStatus ret = file->OpenStatus();
-
-  if(ret != ReplayStatus::Succeeded)
-  {
-    file->Shutdown();
-    return ret;
-  }
-
-  std::tie(ret, *rend) = file->OpenCapture(progress);
-
-  file->Shutdown();
-
-  return ret;
-}
-
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
                            const rdcarray<EnvironmentModification> &env, const char *logfile,
@@ -344,22 +306,6 @@ RENDERDOC_InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification
                             const char *logfile, const CaptureOptions &opts, bool waitForExit)
 {
   return Process::InjectIntoProcess(pid, env, logfile, opts, waitForExit != 0);
-}
-
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename, FileType type,
-                                                                  uint32_t maxsize, bytebuf *buf)
-{
-  ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename);
-
-  if(file->OpenStatus() != ReplayStatus::Succeeded)
-  {
-    file->Shutdown();
-    return false;
-  }
-
-  *buf = file->GetThumbnail(type, maxsize);
-  file->Shutdown();
-  return true;
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem)

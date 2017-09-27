@@ -149,8 +149,8 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
 
       bytebuf buf;
 
-      ICaptureFile *file = RENDERDOC_OpenCaptureFile(captures.back().path.c_str());
-      if(file->OpenStatus() == ReplayStatus::Succeeded)
+      ICaptureFile *file = RENDERDOC_OpenCaptureFile();
+      if(file->OpenFile(captures.back().path.c_str(), "rdc") == ReplayStatus::Succeeded)
       {
         buf = file->GetThumbnail(FileType::JPG, 0);
       }
@@ -196,7 +196,7 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
 
     if(client->IsRecvDataWaiting())
     {
-      PacketType type = (PacketType)reader.BeginChunk(0);
+      PacketType type = reader.ReadChunk<PacketType>();
 
       if(type == ePacket_TriggerCapture)
       {
@@ -309,7 +309,7 @@ void RenderDoc::TargetControlServerThread(Network::Socket *sock)
     {
       ReadSerialiser ser(new StreamReader(client, Ownership::Nothing), Ownership::Stream);
 
-      PacketType type = (PacketType)ser.BeginChunk(0);
+      PacketType type = ser.ReadChunk<PacketType>();
 
       if(type != ePacket_Handshake)
       {
@@ -423,7 +423,7 @@ public:
       }
     }
 
-    PacketType type = (PacketType)reader.BeginChunk(0);
+    PacketType type = reader.ReadChunk<PacketType>();
 
     if(reader.IsErrored())
     {
@@ -547,7 +547,7 @@ public:
       return msg;
     }
 
-    PacketType type = (PacketType)reader.BeginChunk(0);
+    PacketType type = reader.ReadChunk<PacketType>();
 
     if(reader.IsErrored())
     {

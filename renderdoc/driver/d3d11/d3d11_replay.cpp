@@ -1588,21 +1588,6 @@ bool D3D11Replay::IsRenderOutput(ResourceId id)
   return false;
 }
 
-void D3D11Replay::InitCallstackResolver()
-{
-  m_pDevice->GetSerialiser()->InitCallstackResolver();
-}
-
-bool D3D11Replay::HasCallstacks()
-{
-  return m_pDevice->GetSerialiser()->HasCallstacks();
-}
-
-Callstack::StackResolver *D3D11Replay::GetCallstackResolver()
-{
-  return m_pDevice->GetSerialiser()->GetCallstackResolver();
-}
-
 ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex)
 {
   ResourceId ret;

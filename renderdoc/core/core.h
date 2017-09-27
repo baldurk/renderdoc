@@ -44,7 +44,6 @@ using std::map;
 using std::pair;
 using std::set;
 
-class Serialiser;
 class Chunk;
 
 // not provided by tinyexr, just do by hand
@@ -85,17 +84,17 @@ enum LogState
   WRITING_CAPFRAME,
 };
 
-enum SystemChunks
+enum class SystemChunk : uint32_t
 {
   // 0 is reserved as a 'null' chunk that is only for debug
-  CREATE_PARAMS = 1,
-  THUMBNAIL_DATA,
-  DRIVER_INIT_PARAMS,
-  INITIAL_CONTENTS_LIST,
-  INITIAL_CONTENTS,
+  DriverInit = 1,
+  InitialContentsList,
+  InitialContents,
 
-  FIRST_CHUNK_ID,
+  FirstDriverChunk = 1000,
 };
+
+DECLARE_REFLECTION_ENUM(SystemChunk);
 
 enum RDCDriver
 {
@@ -110,6 +109,7 @@ enum RDCDriver
   RDC_Vulkan = 8,
   RDC_OpenGLES = 9,
   RDC_D3D8 = 10,
+  RDC_MaxBuiltin,
   RDC_Custom = 100000,
   RDC_Custom0 = RDC_Custom,
   RDC_Custom1,
@@ -141,21 +141,7 @@ enum ReplayLogType
   eReplay_OnlyDraw,
 };
 
-struct RDCInitParams
-{
-  RDCInitParams()
-  {
-    m_State = WRITING;
-    m_pSerialiser = NULL;
-  }
-  virtual ~RDCInitParams() {}
-  virtual ReplayStatus Serialise() = 0;
-
-  LogState m_State;
-  Serialiser *m_pSerialiser;
-
-  Serialiser *GetSerialiser() { return m_pSerialiser; }
-};
+DECLARE_REFLECTION_ENUM(ReplayLogType);
 
 struct CaptureData
 {
@@ -180,8 +166,18 @@ enum LoadProgressSection
 class IRemoteDriver;
 class IReplayDriver;
 
-typedef ReplayStatus (*RemoteDriverProvider)(const char *logfile, IRemoteDriver **driver);
-typedef ReplayStatus (*ReplayDriverProvider)(const char *logfile, IReplayDriver **driver);
+class StreamReader;
+class RDCFile;
+
+class RDCFile;
+
+typedef ReplayStatus (*RemoteDriverProvider)(RDCFile *rdc, IRemoteDriver **driver);
+typedef ReplayStatus (*ReplayDriverProvider)(RDCFile *rdc, IReplayDriver **driver);
+
+typedef ReplayStatus (*CaptureImporter)(const char *filename, StreamReader &reader, RDCFile *rdc,
+                                        SDFile &structData);
+typedef ReplayStatus (*CaptureExporter)(const char *filename, const RDCFile &rdc,
+                                        const SDFile &structData);
 
 typedef bool (*VulkanLayerCheck)(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
                                  std::vector<std::string> &otherJSONs);
@@ -224,9 +220,9 @@ public:
   void RecreateCrashHandler();
   void UnloadCrashHandler();
   ICrashHandler *GetCrashHandler() const { return m_ExHandler; }
-  Serialiser *OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *params, void *thpixels,
-                                  size_t thlen, uint32_t thwidth, uint32_t thheight);
-  void SuccessfullyWrittenLog(uint32_t frameNumber);
+  RDCFile *CreateRDC(uint32_t frameNum, void *thpixels, size_t thlen, uint16_t thwidth,
+                     uint16_t thheight);
+  void FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber);
 
   void AddChildProcess(uint32_t pid, uint32_t ident)
   {
@@ -254,11 +250,18 @@ public:
     }
   }
 
-  ReplayStatus FillInitParams(const char *logfile, RDCDriver &driverType, string &driverName,
-                              uint64_t &fileMachineIdent, RDCInitParams *params);
-
   void RegisterReplayProvider(RDCDriver driver, const char *name, ReplayDriverProvider provider);
   void RegisterRemoteProvider(RDCDriver driver, const char *name, RemoteDriverProvider provider);
+
+  void RegisterCaptureExporter(const char *filetype, const char *description,
+                               CaptureExporter exporter);
+  void RegisterCaptureImportExporter(const char *filetype, const char *description,
+                                     CaptureImporter importer, CaptureExporter exporter);
+
+  CaptureExporter GetCaptureExporter(const char *filetype);
+  CaptureImporter GetCaptureImporter(const char *filetype);
+
+  std::vector<CaptureFileFormat> GetCaptureFileFormats();
 
   void SetVulkanLayerCheck(VulkanLayerCheck callback) { m_VulkanCheck = callback; }
   void SetVulkanLayerInstall(VulkanLayerInstall callback) { m_VulkanInstall = callback; }
@@ -283,8 +286,11 @@ public:
   void SetDarkCheckerboardColor(const Vec4f &col) { m_DarkChecker = col; }
   bool IsDarkTheme() { return m_DarkTheme; }
   void SetDarkTheme(bool dark) { m_DarkTheme = dark; }
-  ReplayStatus CreateReplayDriver(RDCDriver driverType, const char *logfile, IReplayDriver **driver);
-  ReplayStatus CreateRemoteDriver(RDCDriver driverType, const char *logfile, IRemoteDriver **driver);
+  ReplayStatus CreateProxyReplayDriver(RDCDriver proxyDriver, IReplayDriver **driver);
+  ReplayStatus CreateReplayDriver(RDCFile *rdc, IReplayDriver **driver);
+  ReplayStatus CreateRemoteDriver(RDCFile *rdc, IRemoteDriver **driver);
+
+  bool HasReplaySupport(RDCDriver driverType);
 
   map<RDCDriver, string> GetReplayDrivers();
   map<RDCDriver, string> GetRemoteDrivers();
@@ -398,6 +404,10 @@ private:
   map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
   map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
 
+  std::map<std::string, std::string> m_ImportExportFormats;
+  std::map<std::string, CaptureImporter> m_Importers;
+  std::map<std::string, CaptureExporter> m_Exporters;
+
   VulkanLayerCheck m_VulkanCheck;
   VulkanLayerInstall m_VulkanInstall;
 
@@ -471,5 +481,18 @@ struct DriverRegistration
   DriverRegistration(RDCDriver driver, const char *name, RemoteDriverProvider provider)
   {
     RenderDoc::Inst().RegisterRemoteProvider(driver, name, provider);
+  }
+};
+
+struct ConversionRegistration
+{
+  ConversionRegistration(const char *filetype, const char *description, CaptureImporter importer,
+                         CaptureExporter exporter)
+  {
+    RenderDoc::Inst().RegisterCaptureImportExporter(filetype, description, importer, exporter);
+  }
+  ConversionRegistration(const char *filetype, const char *description, CaptureExporter exporter)
+  {
+    RenderDoc::Inst().RegisterCaptureExporter(filetype, description, exporter);
   }
 };

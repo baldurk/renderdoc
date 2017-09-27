@@ -228,10 +228,10 @@ void Init();
 Stackwalk *Collect();
 Stackwalk *Create();
 
-StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths,
+StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress,
                             volatile bool *killSignal);
 
-bool GetLoadedModules(char *&buf, size_t &size);
+bool GetLoadedModules(byte *buf, size_t &size);
 };    // namespace Callstack
 
 namespace FileIO

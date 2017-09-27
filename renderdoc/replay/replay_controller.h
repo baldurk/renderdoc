@@ -126,13 +126,10 @@ public:
 
   APIProperties GetAPIProperties();
 
-  ReplayStatus CreateDevice(const char *logfile);
+  ReplayStatus CreateDevice(RDCFile *rdc);
   ReplayStatus SetDevice(IReplayDriver *device);
 
   void FileChanged();
-
-  bool HasCallstacks();
-  bool InitResolver();
 
   void SetFrameEvent(uint32_t eventID, bool force);
 
@@ -165,7 +162,6 @@ public:
   CounterDescription DescribeCounter(GPUCounter counterID);
   rdcarray<TextureDescription> GetTextures();
   rdcarray<BufferDescription> GetBuffers();
-  rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack);
   rdcarray<DebugMessage> GetDebugMessages();
 
   rdcarray<PixelModification> PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice,
@@ -200,7 +196,7 @@ public:
   void Shutdown();
 
 private:
-  ReplayStatus PostCreateInit(IReplayDriver *device);
+  ReplayStatus PostCreateInit(IReplayDriver *device, RDCFile *rdc);
 
   DrawcallDescription *GetDrawcallByEID(uint32_t eventID);
 
