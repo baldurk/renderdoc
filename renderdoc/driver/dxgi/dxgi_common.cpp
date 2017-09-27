@@ -1926,17 +1926,37 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 }
 
 // shared between D3D11 and D3D12 as D3Dxx_RECT
-template <>
-std::string DoStringise(const RECT &el)
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, RECT &el)
 {
-  return StringFormat::Fmt("RECT<%d,%d,%d,%d>", el.left, el.right, el.top, el.bottom);
+  // avoid serialising 'long' directly as we pretend it's only used for HRESULT
+  SERIALISE_MEMBER_TYPED(int32_t, left);
+  SERIALISE_MEMBER_TYPED(int32_t, right);
+  SERIALISE_MEMBER_TYPED(int32_t, top);
+  SERIALISE_MEMBER_TYPED(int32_t, bottom);
 }
 
-template <>
-std::string DoStringise(const DXGI_SAMPLE_DESC &el)
+INSTANTIATE_SERIALISE_TYPE(RECT);
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, IID &el)
 {
-  return StringFormat::Fmt("DXGI_SAMPLE_DESC<%d,%d>", el.Count, el.Quality);
+  SERIALISE_MEMBER_TYPED(uint32_t, Data1);
+  SERIALISE_MEMBER_TYPED(uint16_t, Data2);
+  SERIALISE_MEMBER_TYPED(uint16_t, Data3);
+  SERIALISE_MEMBER(Data4);
 }
+
+INSTANTIATE_SERIALISE_TYPE(IID);
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, DXGI_SAMPLE_DESC &el)
+{
+  SERIALISE_MEMBER(Count);
+  SERIALISE_MEMBER(Quality);
+}
+
+INSTANTIATE_SERIALISE_TYPE(DXGI_SAMPLE_DESC);
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 #include "3rdparty/catch/catch.hpp"
