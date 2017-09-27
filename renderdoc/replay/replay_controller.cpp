@@ -31,6 +31,7 @@
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
 #include "os/os_specific.h"
+#include "serialise/rdcfile.h"
 #include "serialise/serialiser.h"
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
@@ -319,31 +320,6 @@ rdcarray<TextureDescription> ReplayController::GetTextures()
   }
 
   return m_Textures;
-}
-
-rdcarray<rdcstr> ReplayController::GetResolve(const rdcarray<uint64_t> &callstack)
-{
-  rdcarray<rdcstr> ret;
-
-  if(callstack.empty())
-    return ret;
-
-  Callstack::StackResolver *resolv = m_pDevice->GetCallstackResolver();
-
-  if(resolv == NULL)
-  {
-    ret = {""};
-    return ret;
-  }
-
-  ret.reserve(callstack.size());
-  for(uint64_t frame : callstack)
-  {
-    Callstack::AddressDetails info = resolv->GetAddr(frame);
-    ret.push_back(info.formattedString());
-  }
-
-  return ret;
 }
 
 rdcarray<DebugMessage> ReplayController::GetDebugMessages()
@@ -1549,29 +1525,15 @@ void ReplayController::RemoveReplacement(ResourceId id)
       m_Outputs[i]->Display();
 }
 
-ReplayStatus ReplayController::CreateDevice(const char *logfile)
+ReplayStatus ReplayController::CreateDevice(RDCFile *rdc)
 {
-  RDCLOG("Creating replay device for %s", logfile);
-
-  RDCDriver driverType = RDC_Unknown;
-  string driverName = "";
-  uint64_t fileMachineIdent = 0;
-  auto status =
-      RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, fileMachineIdent, NULL);
-
-  if(driverType == RDC_Unknown || driverName == "" || status != ReplayStatus::Succeeded)
-  {
-    RDCERR("Couldn't get device type from log");
-    return status;
-  }
-
   IReplayDriver *driver = NULL;
-  status = RenderDoc::Inst().CreateReplayDriver(driverType, logfile, &driver);
+  ReplayStatus status = RenderDoc::Inst().CreateReplayDriver(rdc, &driver);
 
   if(driver && status == ReplayStatus::Succeeded)
   {
     RDCLOG("Created replay driver.");
-    return PostCreateInit(driver);
+    return PostCreateInit(driver, rdc);
   }
 
   RDCERR("Couldn't create a replay device :(.");
@@ -1583,18 +1545,18 @@ ReplayStatus ReplayController::SetDevice(IReplayDriver *device)
   if(device)
   {
     RDCLOG("Got replay driver.");
-    return PostCreateInit(device);
+    return PostCreateInit(device, NULL);
   }
 
   RDCERR("Given invalid replay driver.");
   return ReplayStatus::InternalError;
 }
 
-ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device)
+ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rdc)
 {
   m_pDevice = device;
 
-  m_pDevice->ReadLogInitialisation();
+  m_pDevice->ReadLogInitialisation(rdc);
 
   FetchPipelineState();
 
@@ -1611,20 +1573,9 @@ void ReplayController::FileChanged()
   m_pDevice->FileChanged();
 }
 
-bool ReplayController::HasCallstacks()
-{
-  return m_pDevice->HasCallstacks();
-}
-
 APIProperties ReplayController::GetAPIProperties()
 {
   return m_pDevice->GetAPIProperties();
-}
-
-bool ReplayController::InitResolver()
-{
-  m_pDevice->InitCallstackResolver();
-  return m_pDevice->GetCallstackResolver() != NULL;
 }
 
 void ReplayController::FetchPipelineState()

@@ -165,10 +165,6 @@ public:
   bool IsRenderOutput(ResourceId id);
 
   void FileChanged() {}
-  void InitCallstackResolver();
-  bool HasCallstacks();
-  Callstack::StackResolver *GetCallstackResolver();
-
 private:
   bool m_WARP;
   bool m_Proxy;

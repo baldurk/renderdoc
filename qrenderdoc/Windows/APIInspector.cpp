@@ -101,11 +101,21 @@ void APIInspector::on_apiEvents_itemSelectionChanged()
 
   if(!ev.callstack.isEmpty())
   {
-    m_Ctx.Replay().AsyncInvoke([this, ev](IReplayController *r) {
-      rdcarray<rdcstr> trace = r->GetResolve(ev.callstack);
+    if(m_Ctx.Replay().GetResolver())
+    {
+      m_Ctx.Replay().AsyncInvoke([this, ev](IReplayController *) {
+        rdcarray<rdcstr> stack = m_Ctx.Replay().GetResolver()->GetResolve(ev.callstack);
 
-      GUIInvoke::call([this, trace]() { addCallstack(trace); });
-    });
+        GUIInvoke::call([this, stack]() { addCallstack(stack); });
+      });
+    }
+    else
+    {
+      ui->callstack->setUpdatesEnabled(false);
+      ui->callstack->clear();
+      ui->callstack->addItem(tr("Callstack resolution not available."));
+      ui->callstack->setUpdatesEnabled(true);
+    }
   }
   else
   {

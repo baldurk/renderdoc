@@ -407,14 +407,12 @@ void ReplayManager::run()
   }
   else
   {
-    ICaptureFile *file = RENDERDOC_OpenCaptureFile(m_Logfile.toUtf8().data());
+    m_CaptureFile = RENDERDOC_OpenCaptureFile();
 
-    m_CreateStatus = file->OpenStatus();
+    m_CreateStatus = m_CaptureFile->OpenFile(m_Logfile.toUtf8().data(), "rdc");
 
     if(m_CreateStatus == ReplayStatus::Succeeded)
-      std::tie(m_CreateStatus, m_Renderer) = file->OpenCapture(m_Progress);
-
-    file->Shutdown();
+      std::tie(m_CreateStatus, m_Renderer) = m_CaptureFile->OpenCapture(m_Progress);
   }
 
   if(m_Renderer == NULL)
@@ -479,4 +477,10 @@ void ReplayManager::run()
     m_Remote->CloseCapture(m_Renderer);
   else
     m_Renderer->Shutdown();
+
+  m_Renderer = NULL;
+
+  if(m_CaptureFile)
+    m_CaptureFile->Shutdown();
+  m_CaptureFile = NULL;
 }

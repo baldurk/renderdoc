@@ -612,25 +612,6 @@ function must be called from another thread.
   DOCUMENT("Notify the interface that the file it has open has been changed on disk.");
   virtual void FileChanged() = 0;
 
-  DOCUMENT(R"(Query if per-event or per-draw callstacks are available in this capture.
-
-:return: ``True`` if any callstacks are available, ``False`` otherwise.
-:rtype: ``bool``
-)");
-  virtual bool HasCallstacks() = 0;
-
-  DOCUMENT(R"(Begin initialising a callstack resolver, looking up symbol files and caching as
-necessary.
-
-This function will eventually return true if either the resolver successfully initialises, or if it
-comes to a point where a problem is encountered that the user cannot solve. That means this can be
-used to present a progress dialog and repeatedly queried to see when to allow the user to continue.
-
-:return: ``True`` if any callstacks are available, ``False`` otherwise.
-:rtype: ``bool``
-)");
-  virtual bool InitResolver() = 0;
-
   DOCUMENT(R"(Move the replay to reflect the state immediately *after* the given
 :data:`EID <APIEvent.eventID>`.
 
@@ -824,16 +805,6 @@ understanding as well as the type and unit of the resulting information.
 :rtype: ``list`` of :class:`BufferDescription`
 )");
   virtual rdcarray<BufferDescription> GetBuffers() = 0;
-
-  DOCUMENT(R"(Retrieve the list of buffers alive in the capture.
-
-Must only be called after :meth:`InitResolver` has returned ``True``.
-
-:param list callstack: The integer addresses in the original callstack.
-:return: The list of resolved callstack entries as strings.
-:rtype: ``list`` of ``str``
-)");
-  virtual rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack) = 0;
 
   DOCUMENT(R"(Retrieve a list of any newly generated diagnostic messages.
 
@@ -1077,6 +1048,48 @@ protected:
   ~ITargetControl() = default;
 };
 
+DOCUMENT(R"(An interface for resolving callstacks. This is separate since it can be either
+implemented locally by a file handle, or remotely to an open capture.
+)");
+struct IStackResolver
+{
+  DOCUMENT(R"(Query if callstacks are available.
+
+:return: ``True`` if any callstacks are available, ``False`` otherwise.
+:rtype: ``bool``
+)");
+  virtual bool HasCallstacks() = 0;
+
+  DOCUMENT(R"(Begin initialising a callstack resolver, looking up symbol files and caching as
+necessary.
+
+This function blocks while trying to initialise callstack resolving, so it should be called on a
+separate thread.
+
+:param float progress: A reference to a ``float`` value that will be updated as the init happens
+  from ``0.0`` to ``1.0``. The parameter can be ``None`` if no progress update is desired.
+:param bool killSignal: A reference to a ``bool`` that can be set to ``True`` to stop the lookup
+  process.
+:return: ``True`` if the resolver successfully initialised, ``False`` if something went wrong.
+:rtype: ``bool``
+)");
+  virtual bool InitResolver(float *progress, volatile bool *killSignal) = 0;
+
+  DOCUMENT(R"(Retrieve the details of each stackframe in the provided callstack.
+
+Must only be called after :meth:`InitResolver` has returned ``True``.
+
+:param list callstack: The integer addresses in the original callstack.
+:return: The list of resolved callstack entries as strings.
+:rtype: ``list`` of ``str``
+)");
+  virtual rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack) = 0;
+
+protected:
+  IStackResolver() = default;
+  ~IStackResolver() = default;
+};
+
 DOCUMENT(R"(A connection to a running remote RenderDoc server on another machine. This allows the
 transfer of captures to and from the local machine, as well as remotely replaying a capture with a
 local proxy renderer, so that captures that are not supported locally can still be debugged with as
@@ -1086,7 +1099,7 @@ much work as possible happening on the local machine.
 
   No preference for a particular value, see :meth:`DebugPixel`.
 )");
-struct IRemoteServer
+struct IRemoteServer : public IStackResolver
 {
   DOCUMENT("Closes the connection without affecting the running server.");
   virtual void ShutdownConnection() = 0;
@@ -1237,31 +1250,63 @@ protected:
 DOCUMENT(R"(A handle to a capture file. Used for simple cheap processing and meta-data fetching
 without opening the capture for analysis.
 )")
-struct ICaptureFile
+struct ICaptureFile : public IStackResolver
 {
   DOCUMENT("Closes the file handle.");
   virtual void Shutdown() = 0;
 
-  DOCUMENT(R"(Retrieves the status of the handle.
+  DOCUMENT(R"(Initialises the capture handle from a file.
 
-This returns an error if the capture file used to create the handle wasn't found, or was corrupted,
-or something else went wrong while processing it.
+This method supports converting from non-native representations via structured data, by specifying
+the input format in the :param:`filetype` parameter. The list of supported formats can be retrieved
+by calling :meth:`GetCaptureFileFormats`.
 
-:return: The status of the handle to the file.
+``rdc`` is guaranteed to always be a supported filetype, and will be assumed if the filetype is
+empty or unrecognised.
+
+:param str filename: The filename of the file to open.
+:param str filetype: The format of the given file.
+:return: The status of the open operation, whether it succeeded or failed (and how it failed).
 :rtype: ReplayStatus
 )");
-  virtual ReplayStatus OpenStatus() = 0;
+  virtual ReplayStatus OpenFile(const char *filename, const char *filetype) = 0;
 
-  DOCUMENT(R"(Retrieves the filename used to open this handle.
+  DOCUMENT(R"(Initialises the file handle from a raw memory buffer.
 
-This filename is exactly as specified without any modificaton to make it an absolute path.
+This may be useful if you don't want to parse the whole file or already have the file in memory.
 
-:return: The filename used to create this handle.
-:rtype: ``str``
+For the :param:`filetype` parameter, see :meth:`OpenFile`.
+
+:param bytes buffer: The buffer containing the data to process.
+:param str filetype: The format of the given file.
+:return: The status of the open operation, whether it succeeded or failed (and how it failed).
+:rtype: ReplayStatus
 )");
-  virtual const char *Filename() = 0;
+  virtual ReplayStatus OpenBuffer(const bytebuf &buffer, const char *filetype) = 0;
+
+  DOCUMENT(R"(Converts the currently loaded file to a given format and saves it to disk.
+
+This allows converting a native RDC to another representation, or vice-versa converting another
+representation back to native RDC.
+
+:param str filename: The filename to save to.
+:param str filetype: The format to convert to.
+:return: The status of the conversion operation, whether it succeeded or failed (and how it failed).
+:rtype: ReplayStatus
+)");
+  virtual ReplayStatus Convert(const char *filename, const char *filetype) = 0;
+
+  DOCUMENT(R"(Returns the list of capture file formats.
+
+:return: The list of capture file formats available.
+:rtype: ``list`` of :class:`CaptureFileFormat`
+)");
+  virtual rdcarray<CaptureFileFormat> GetCaptureFileFormats() = 0;
 
   DOCUMENT(R"(Queries for how well a particular capture is supported on the local machine.
+
+If the file was opened with a format other than native ``rdc`` this will always return no
+replay support.
 
 :return: How much support for replay exists locally.
 :rtype: ReplaySupport
@@ -1282,7 +1327,29 @@ This filename is exactly as specified without any modificaton to make it an abso
 )");
   virtual const char *RecordedMachineIdent() = 0;
 
-  DOCUMENT(R"(Opens a capture for replay locally and returns a handle to the capture.
+  DOCUMENT(R"(Sets the matadata for this capture handle.
+
+This function may only be called if the handle is 'empty' - i.e. no file has been opened with
+:meth:`OpenFile` or :meth:`OpenBuffer`.
+
+.. note:: The only supported values for :param:`thumbType` are :data:`FileType.JPG`,
+  :data:`FileType.PNG`, :data:`FileType.TGA`, and :data:`FileType.BMP`.
+
+:param str driverName: The name of the driver. Must be a recognised driver name (even if replay
+  support for that driver is not compiled in locally.
+:param int machineIdent: The encoded machine identity value. Optional value and can be left to 0, as
+  the bits to set are internally defined, so only generally useful if copying a machine ident from
+  an existing capture.
+:param FileType thumbType: The file type of the thumbnail. Ignored if :param:`thumbData` is empty.
+:param int thumbWidth: The width of the thumbnail. Ignored if :param:`thumbData` is empty.
+:param int thumbHeight: The height of the thumbnail. Ignored if :param:`thumbData` is empty.
+:param bytes thumbData: The raw data of the thumbnail. If empty, no thumbnail is set.
+)");
+  virtual void SetMetadata(const char *driverName, uint64_t machineIdent, FileType thumbType,
+                           uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData) = 0;
+
+  DOCUMENT(R"(Opens a capture for replay locally and returns a handle to the capture. Only supported
+for handles opened with a native ``rdc`` capture, otherwise this will fail.
 
 This function will block until the capture is fully loaded and ready.
 
@@ -1297,7 +1364,32 @@ by the :class:`ReplayController`.
 )");
   virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(float *progress) = 0;
 
+  DOCUMENT(R"(Returns the structured data for this capture.
+
+The lifetime of this data is scoped to the lifetime of the capture handle, so it cannot be used
+after the handle is destroyed.
+
+:return: The structured data representing the file.
+:rtype: SDFile
+)");
+  virtual const SDFile &GetStructuredData() = 0;
+
+  DOCUMENT(R"(Sets the structured data for this capture.
+
+This allows calling code to populate a capture out of generated structured data. In combination with
+:meth:`SetMetadata` this allows a purely in-memory creation of a file to be saved out with
+:meth:`Convert`.
+
+The data is copied internally so it can be destroyed after calling this function.
+
+:param SDFile file: The structured data representing the file.
+)");
+  virtual void SetStructuredData(const SDFile &file) = 0;
+
   DOCUMENT(R"(Retrieves the embedded thumbnail from the capture.
+
+.. note:: The only supported values for :param:`type` are :data:`FileType.JPG`,
+  :data:`FileType.PNG`, :data:`FileType.TGA`, and :data:`FileType.BMP`.
 
 :param FileType type: The image format to convert the thumbnail to.
 :param int maxsize: The largest width or height allowed. If the thumbnail is larger, it's resized.
@@ -1454,21 +1546,18 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_VertexOffset(Topology t
                                                                       uint32_t primitive);
 
 //////////////////////////////////////////////////////////////////////////
-// Create a capture handle.
-//
-// Takes the filename of the log. Always returns a valid handle that must be shut down.
-// If any errors happen this can be queried with :meth:`CaptureFile.Status`.
+// Create a capture file handle.
 //////////////////////////////////////////////////////////////////////////
 
-DOCUMENT(R"(Create a capture handle.
+DOCUMENT(R"(Create a handle for a capture file.
 
-Takes the filename of the log. This function *always* returns a valid handle that must be shut down.
-If any errors happen this can be queried with :meth:`CaptureFile.Status`.
+This function returns a new handle to a capture file. Once initialised by opening a file the handle
+can only be shut-down, it is not re-usable.
 
 :return: A handle to the specified path.
-:rtype: ReplaySupport
+:rtype: ICaptureFile
 )");
-extern "C" RENDERDOC_API ICaptureFile *RENDERDOC_CC RENDERDOC_OpenCaptureFile(const char *logfile);
+extern "C" RENDERDOC_API ICaptureFile *RENDERDOC_CC RENDERDOC_OpenCaptureFile();
 
 //////////////////////////////////////////////////////////////////////////
 // Target Control

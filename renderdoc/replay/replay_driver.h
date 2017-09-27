@@ -65,6 +65,8 @@ struct GetTextureDataParams
   }
 };
 
+class RDCFile;
+
 // these two interfaces define what an API driver implementation must provide
 // to the replay. At minimum it must implement IRemoteDriver which contains
 // all of the functionality that cannot be achieved elsewhere. An IReplayDriver
@@ -106,7 +108,7 @@ public:
 
   virtual FrameRecord GetFrameRecord() = 0;
 
-  virtual void ReadLogInitialisation() = 0;
+  virtual void ReadLogInitialisation(RDCFile *rdc) = 0;
   virtual void ReplayLog(uint32_t endEventID, ReplayLogType replayType) = 0;
 
   virtual vector<uint32_t> GetPassEvents(uint32_t eventID) = 0;
@@ -152,10 +154,6 @@ public:
   virtual bool IsRenderOutput(ResourceId id) = 0;
 
   virtual void FileChanged() = 0;
-
-  virtual void InitCallstackResolver() = 0;
-  virtual bool HasCallstacks() = 0;
-  virtual Callstack::StackResolver *GetCallstackResolver() = 0;
 
   virtual bool NeedRemapForFetch(const ResourceFormat &format) = 0;
 };

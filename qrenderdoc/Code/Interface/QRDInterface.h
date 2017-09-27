@@ -634,6 +634,13 @@ struct IReplayManager
 )");
   virtual const RemoteHost *CurrentRemote() = 0;
 
+  DOCUMENT(R"(Retrieves the capture file handle for the currently open file.
+
+:return: The file handle active, or ``None`` if no capture is open.
+:rtype: StackResolver
+)");
+  virtual IStackResolver *GetResolver() = 0;
+
   DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 
 This happens either locally, or on the remote server, depending on whether a connection is active.

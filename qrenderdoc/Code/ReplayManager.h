@@ -75,6 +75,14 @@ public:
   void ShutdownServer();
   void PingRemote();
 
+  IStackResolver *GetResolver()
+  {
+    if(m_CaptureFile)
+      return m_CaptureFile;
+    if(m_Remote)
+      return m_Remote;
+    return NULL;
+  }
   const RemoteHost *CurrentRemote() { return m_RemoteHost; }
   uint32_t ExecuteAndInject(const QString &exe, const QString &workingDir, const QString &cmdLine,
                             const QList<EnvironmentModification> &env, const QString &logfile,
@@ -108,6 +116,7 @@ private:
   QQueue<InvokeHandle *> m_RenderQueue;
   QWaitCondition m_RenderCondition;
 
+  ICaptureFile *m_CaptureFile = NULL;
   IReplayController *m_Renderer = NULL;
 
   void PushInvoke(InvokeHandle *cmd);

@@ -494,3 +494,23 @@ struct EnvironmentModification
 };
 
 DECLARE_REFLECTION_STRUCT(EnvironmentModification);
+
+DOCUMENT("The format for a capture file either supported to read from, or export to");
+struct CaptureFileFormat
+{
+  DOCUMENT("The name of the format as a single minimal string, e.g. ``rdc``.");
+  rdcstr name;
+
+  DOCUMENT("A human readable description of the file format, e.g. ``RenderDoc native capture``.");
+  rdcstr description;
+
+  DOCUMENT(R"(Indicates whether or not files in this format can be opened and processed as
+structured data.
+)");
+  bool openSupported = false;
+
+  DOCUMENT("Indicates whether captures or structured data can be saved out in this format.");
+  bool convertSupported = true;
+};
+
+DECLARE_REFLECTION_STRUCT(CaptureFileFormat);

@@ -402,9 +402,9 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
 
     if(local)
     {
-      ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename.toUtf8().data());
+      ICaptureFile *file = RENDERDOC_OpenCaptureFile();
 
-      if(file->OpenStatus() != ReplayStatus::Succeeded)
+      if(file->OpenFile(filename.toUtf8().data(), "rdc") != ReplayStatus::Succeeded)
       {
         RDDialog::critical(NULL, tr("Error opening capture"),
                            tr("Couldn't open file '%1'").arg(filename));
@@ -1275,17 +1275,19 @@ void MainWindow::OnLogfileLoaded()
 
   setLogHasErrors(!m_Ctx.DebugMessages().empty());
 
-  m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
-    bool hasResolver = r->HasCallstacks();
+  ui->action_Resolve_Symbols->setEnabled(false);
+
+  m_Ctx.Replay().AsyncInvoke([this](IReplayController *) {
+    bool hasResolver = m_Ctx.Replay().GetResolver()->HasCallstacks();
 
     GUIInvoke::call([this, hasResolver]() {
       ui->action_Resolve_Symbols->setEnabled(hasResolver);
       ui->action_Resolve_Symbols->setText(hasResolver ? tr("Resolve Symbols")
                                                       : tr("Resolve Symbols - None in log"));
+
+      ui->action_Save_Log->setEnabled(true);
     });
   });
-
-  ui->action_Save_Log->setEnabled(true);
 
   SetTitle();
 
@@ -1540,14 +1542,33 @@ void MainWindow::on_action_Python_Shell_triggered()
 
 void MainWindow::on_action_Resolve_Symbols_triggered()
 {
-  m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) { r->InitResolver(); });
+  if(!m_Ctx.Replay().GetResolver())
+  {
+    RDDialog::critical(
+        this, tr("Not Available"),
+        tr("Callstack resolution is not available.\n\nCheck remote server connection."));
+    return;
+  }
 
-  ShowProgressDialog(this, tr("Please Wait - Resolving Symbols"), [this]() {
-    bool running = true;
-    m_Ctx.Replay().BlockInvoke(
-        [&running](IReplayController *r) { running = r->HasCallstacks() && !r->InitResolver(); });
-    return !running;
+  float progress = 0.0f;
+  bool finished = false;
+
+  m_Ctx.Replay().AsyncInvoke([this, &progress, &finished](IReplayController *) {
+    bool success = m_Ctx.Replay().GetResolver()->InitResolver(&progress, NULL);
+
+    if(!success)
+    {
+      RDDialog::critical(
+          this, tr("Error loading symbols"),
+          tr("Couldn't load symbols for callstack resolution.\n\nCheck diagnostic log in "
+             "Help menu for more details."));
+    }
+
+    finished = true;
   });
+
+  ShowProgressDialog(this, tr("Resolving symbols, please wait..."),
+                     [&finished]() { return finished; }, [&progress]() { return progress; });
 
   if(m_Ctx.HasAPIInspector())
     m_Ctx.GetAPIInspector()->Refresh();

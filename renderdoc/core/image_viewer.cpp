@@ -25,6 +25,7 @@
 #include "common/dds_readwrite.h"
 #include "core/core.h"
 #include "replay/replay_driver.h"
+#include "serialise/rdcfile.h"
 #include "stb/stb_image.h"
 #include "tinyexr/tinyexr.h"
 
@@ -147,7 +148,7 @@ public:
   FrameRecord GetFrameRecord() { return m_FrameRecord; }
   const D3D11Pipe::State &GetD3D11PipelineState() { return m_PipelineState; }
   // other operations are dropped/ignored, to avoid confusion
-  void ReadLogInitialisation() {}
+  void ReadLogInitialisation(RDCFile *rdc) {}
   void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
   {
   }
@@ -202,9 +203,6 @@ public:
   {
     return "";
   }
-  bool HasCallstacks() { return false; }
-  void InitCallstackResolver() {}
-  Callstack::StackResolver *GetCallstackResolver() { return NULL; }
   void FreeTargetResource(ResourceId id) {}
   vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x,
                                          uint32_t y, uint32_t slice, uint32_t mip,
@@ -280,9 +278,13 @@ private:
   TextureDescription m_TexDetails;
 };
 
-ReplayStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
-  FILE *f = FileIO::fopen(logfile, "rb");
+  if(!rdc)
+    return ReplayStatus::InternalError;
+
+  std::string filename;
+  FILE *f = rdc->StealImageFileHandle(filename);
 
   if(!f)
     return ReplayStatus::FileIOFailed;
@@ -382,16 +384,18 @@ ReplayStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
   FileIO::fclose(f);
 
   IReplayDriver *proxy = NULL;
-  auto status = RenderDoc::Inst().CreateReplayDriver(RDC_Unknown, NULL, &proxy);
+  ReplayStatus status = RenderDoc::Inst().CreateProxyReplayDriver(RDC_Unknown, &proxy);
 
   if(status != ReplayStatus::Succeeded || !proxy)
   {
+    RDCERR("Couldn't create replay driver to proxy-render images");
+
     if(proxy)
       proxy->Shutdown();
     return status;
   }
 
-  *driver = new ImageViewer(proxy, logfile);
+  *driver = new ImageViewer(proxy, filename.c_str());
 
   return ReplayStatus::Succeeded;
 }

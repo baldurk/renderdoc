@@ -292,8 +292,8 @@ struct ThumbCommand : public Command
 
     bytebuf buf;
 
-    ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename.c_str());
-    ReplayStatus st = file->OpenStatus();
+    ICaptureFile *file = RENDERDOC_OpenCaptureFile();
+    ReplayStatus st = file->OpenFile(filename.c_str(), "rdc");
     if(st == ReplayStatus::Succeeded)
     {
       buf = file->GetThumbnail(type, maxsize);
@@ -587,9 +587,9 @@ struct ReplayCommand : public Command
     {
       std::cout << "Replaying '" << filename << "' locally.." << std::endl;
 
-      ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename.c_str());
+      ICaptureFile *file = RENDERDOC_OpenCaptureFile();
 
-      if(file->OpenStatus() != ReplayStatus::Succeeded)
+      if(file->OpenFile(filename.c_str(), "rdc") != ReplayStatus::Succeeded)
       {
         std::cerr << "Couldn't load '" << filename << "'." << std::endl;
         return 1;
