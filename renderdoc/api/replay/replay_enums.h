@@ -69,6 +69,7 @@ enum class PathProperty : uint32_t
 };
 
 BITMASK_OPERATORS(PathProperty);
+DECLARE_REFLECTION_ENUM(PathProperty);
 
 // replay_shader.h
 
@@ -102,6 +103,8 @@ enum class VarType : uint32_t
   Double,
   Unknown = ~0U,
 };
+
+DECLARE_REFLECTION_ENUM(VarType);
 
 DOCUMENT(R"(Represents the component type of a channel in a texture or element in a structure.
 
@@ -174,6 +177,8 @@ enum class CompType : uint8_t
   Double,
 };
 
+DECLARE_REFLECTION_ENUM(CompType);
+
 DOCUMENT(R"(A single source component for a destination texture swizzle.
 
 .. data:: Red
@@ -210,6 +215,8 @@ enum class TextureSwizzle : uint32_t
   One,
 };
 
+DECLARE_REFLECTION_ENUM(TextureSwizzle);
+
 DOCUMENT(R"(A texture addressing mode in a single direction (U,V or W).
 
 .. data:: Wrap
@@ -242,6 +249,8 @@ enum class AddressMode : uint32_t
   ClampEdge,
   ClampBorder,
 };
+
+DECLARE_REFLECTION_ENUM(AddressMode);
 
 DOCUMENT(R"(The dimensionality of a texture binding.
 
@@ -312,6 +321,7 @@ enum class TextureDim : uint32_t
 };
 
 ITERABLE_OPERATORS(TextureDim);
+DECLARE_REFLECTION_ENUM(TextureDim);
 
 DOCUMENT(R"(The type of a shader resource bind.
 
@@ -373,6 +383,8 @@ enum class BindType : uint32_t
   ReadWriteBuffer,
   InputAttachment,
 };
+
+DECLARE_REFLECTION_ENUM(BindType);
 
 DOCUMENT2(R"(Annotates a particular built-in input or output from a shader with a special meaning to
 the hardware or API.
@@ -584,6 +596,7 @@ enum class ShaderBuiltin : uint32_t
 };
 
 ITERABLE_OPERATORS(ShaderBuiltin);
+DECLARE_REFLECTION_ENUM(ShaderBuiltin);
 
 // replay_render.h
 
@@ -608,6 +621,8 @@ enum class ReplayOutputType : uint32_t
   Texture,
   Mesh,
 };
+
+DECLARE_REFLECTION_ENUM(ReplayOutputType);
 
 DOCUMENT(R"(Describes a particular stage in the geometry transformation pipeline.
 
@@ -636,6 +651,8 @@ enum class MeshDataStage : uint32_t
   VSOut,
   GSOut,
 };
+
+DECLARE_REFLECTION_ENUM(MeshDataStage);
 
 DOCUMENT(R"(The type of overlay image to render on top of an existing texture view, for debugging
 purposes.
@@ -763,6 +780,8 @@ enum class DebugOverlay : uint32_t
   TriangleSizeDraw,
 };
 
+DECLARE_REFLECTION_ENUM(DebugOverlay);
+
 DOCUMENT(R"(The format of an image file
 
 .. data:: DDS
@@ -807,6 +826,7 @@ enum class FileType : uint32_t
 };
 
 ITERABLE_OPERATORS(FileType);
+DECLARE_REFLECTION_ENUM(FileType);
 
 DOCUMENT(R"(What to do with the alpha channel from a texture while saving out to a file.
 
@@ -839,6 +859,7 @@ enum class AlphaMapping : uint32_t
 };
 
 ITERABLE_OPERATORS(AlphaMapping);
+DECLARE_REFLECTION_ENUM(AlphaMapping);
 
 DOCUMENT(R"(A resource format's particular type. This accounts for either block-compressed textures
 or formats that don't have equal byte-multiple sizes for each channel.
@@ -1011,6 +1032,8 @@ enum class ResourceFormatType : uint8_t
   PVRTC,
 };
 
+DECLARE_REFLECTION_ENUM(ResourceFormatType);
+
 DOCUMENT(R"(An API specific hint for a certain behaviour. A legacy concept in OpenGL that controls
 hints to the implementation where there is room for interpretation within the range of valid
 behaviour.
@@ -1033,6 +1056,8 @@ enum class QualityHint : uint32_t
   Nicest,
   Fastest,
 };
+
+DECLARE_REFLECTION_ENUM(QualityHint);
 
 DOCUMENT(R"(Identifies a Graphics API.
 
@@ -1060,6 +1085,8 @@ enum class GraphicsAPI : uint32_t
   OpenGL,
   Vulkan,
 };
+
+DECLARE_REFLECTION_ENUM(GraphicsAPI);
 
 DOCUMENT(R"(Check if an API is D3D or not
 
@@ -1303,6 +1330,8 @@ enum class Topology : uint32_t
   PatchList_32CPs,
 };
 
+DECLARE_REFLECTION_ENUM(Topology);
+
 DOCUMENT(R"(Return the patch list ``Topology`` with N control points
 
 ``N`` must be between 1 and 32 inclusive.
@@ -1381,6 +1410,7 @@ enum class BufferCategory : uint32_t
 };
 
 BITMASK_OPERATORS(BufferCategory);
+DECLARE_REFLECTION_ENUM(BufferCategory);
 
 DOCUMENT(R"(A set of flags for D3D buffer view properties.
 
@@ -1409,6 +1439,7 @@ enum class D3DBufferViewFlags : uint32_t
 };
 
 BITMASK_OPERATORS(D3DBufferViewFlags);
+DECLARE_REFLECTION_ENUM(D3DBufferViewFlags);
 
 DOCUMENT(R"(A set of flags describing how this texture may be used
 
@@ -1447,6 +1478,7 @@ enum class TextureCategory : uint32_t
 };
 
 BITMASK_OPERATORS(TextureCategory);
+DECLARE_REFLECTION_ENUM(TextureCategory);
 
 DOCUMENT(R"(The stage in a pipeline where a shader runs
 
@@ -1508,6 +1540,7 @@ enum class ShaderStage : uint32_t
 };
 
 ITERABLE_OPERATORS(ShaderStage);
+DECLARE_REFLECTION_ENUM(ShaderStage);
 
 template <typename integer>
 constexpr inline ShaderStage StageFromIndex(integer stage)
@@ -1577,6 +1610,7 @@ enum class ShaderStageMask : uint32_t
 };
 
 BITMASK_OPERATORS(ShaderStageMask);
+DECLARE_REFLECTION_ENUM(ShaderStageMask);
 
 DOCUMENT(R"(Calculate the corresponding flag for a shader stage
 
@@ -1611,6 +1645,7 @@ enum class ShaderEvents : uint32_t
 };
 
 BITMASK_OPERATORS(ShaderEvents);
+DECLARE_REFLECTION_ENUM(ShaderEvents);
 
 DOCUMENT(R"(The type of issue that a debug message is about.
 
@@ -1693,6 +1728,8 @@ enum class MessageCategory : uint32_t
   Performance,
 };
 
+DECLARE_REFLECTION_ENUM(MessageCategory);
+
 DOCUMENT(R"(How serious a debug message is
 
 .. data:: High
@@ -1718,6 +1755,8 @@ enum class MessageSeverity : uint32_t
   Low,
   Info,
 };
+
+DECLARE_REFLECTION_ENUM(MessageSeverity);
 
 DOCUMENT(R"(Where a debug message was reported from
 
@@ -1766,6 +1805,8 @@ enum class MessageSource : uint32_t
   RuntimeWarning,
   UnsupportedConfiguration,
 };
+
+DECLARE_REFLECTION_ENUM(MessageSource);
 
 DOCUMENT(R"(How a resource is being used in the pipeline at a particular point.
 
@@ -1992,6 +2033,8 @@ enum class ResourceUsage : uint32_t
   Barrier,
 };
 
+DECLARE_REFLECTION_ENUM(ResourceUsage);
+
 template <typename integer>
 constexpr inline ResourceUsage CBUsage(integer stage)
 {
@@ -2181,6 +2224,7 @@ enum class DrawFlags : uint32_t
 };
 
 BITMASK_OPERATORS(DrawFlags);
+DECLARE_REFLECTION_ENUM(DrawFlags);
 
 DOCUMENT(R"(What kind of solid shading to use when rendering a mesh.
 
@@ -2210,6 +2254,8 @@ enum class SolidShade : uint32_t
   Count,
 };
 
+DECLARE_REFLECTION_ENUM(SolidShade);
+
 DOCUMENT(R"(The fill mode for polygons.
 
 .. data:: Solid
@@ -2230,6 +2276,8 @@ enum class FillMode : uint32_t
   Wireframe,
   Point,
 };
+
+DECLARE_REFLECTION_ENUM(FillMode);
 
 DOCUMENT(R"(The culling mode for polygons.
 
@@ -2256,6 +2304,8 @@ enum class CullMode : uint32_t
   Back,
   FrontAndBack,
 };
+
+DECLARE_REFLECTION_ENUM(CullMode);
 
 DOCUMENT(R"(The texture filtering mode for a given direction (minification, magnification, or
 between mips).
@@ -2290,6 +2340,8 @@ enum class FilterMode : uint32_t
   Anisotropic,
 };
 
+DECLARE_REFLECTION_ENUM(FilterMode);
+
 DOCUMENT(R"(The function used to process the returned value after interpolation.
 
 .. data:: Normal
@@ -2322,6 +2374,8 @@ enum class FilterFunc : uint32_t
   Minimum,
   Maximum,
 };
+
+DECLARE_REFLECTION_ENUM(FilterFunc);
 
 DOCUMENT(R"(A comparison function to return a ``bool`` result from two inputs ``A`` and ``B``.
 
@@ -2370,6 +2424,8 @@ enum class CompareFunc : uint32_t
   NotEqual,
 };
 
+DECLARE_REFLECTION_ENUM(CompareFunc);
+
 DOCUMENT(R"(A stencil operation to apply in stencil processing.
 
 .. data:: Keep
@@ -2415,6 +2471,8 @@ enum class StencilOp : uint32_t
   DecWrap,
   Invert,
 };
+
+DECLARE_REFLECTION_ENUM(StencilOp);
 
 DOCUMENT(R"(A multiplier on one component in the blend equation.
 
@@ -2531,6 +2589,8 @@ enum class BlendMultiplier : uint32_t
   InvSrc1Alpha,
 };
 
+DECLARE_REFLECTION_ENUM(BlendMultiplier);
+
 DOCUMENT(R"(A blending operation to apply in colour blending.
 
 .. note:: The "source" value is the value written out by the shader.
@@ -2567,6 +2627,8 @@ enum class BlendOp : uint32_t
   Minimum,
   Maximum,
 };
+
+DECLARE_REFLECTION_ENUM(BlendOp);
 
 DOCUMENT(R"(A logical operation to apply when writing texture values to an output.
 
@@ -2662,6 +2724,8 @@ enum class LogicOp : uint32_t
   OrReverse,
   OrInverted,
 };
+
+DECLARE_REFLECTION_ENUM(LogicOp);
 
 DOCUMENT(R"(Pre-defined GPU counters that can be supported by a given implementation.
 
@@ -2792,6 +2856,7 @@ enum class GPUCounter : uint32_t
 };
 
 ITERABLE_OPERATORS(GPUCounter);
+DECLARE_REFLECTION_ENUM(GPUCounter);
 
 DOCUMENT(R"(Check whether or not this is an AMD private counter.
 
@@ -2862,6 +2927,8 @@ enum class CounterUnit : uint32_t
   Cycles,
 };
 
+DECLARE_REFLECTION_ENUM(CounterUnit);
+
 DOCUMENT(R"(The type of camera controls for an :class:`Camera`.
 
 .. data:: Arcball
@@ -2877,6 +2944,8 @@ enum class CameraType : uint32_t
   Arcball = 0,
   FPSLook,
 };
+
+DECLARE_REFLECTION_ENUM(CameraType);
 
 DOCUMENT(R"(How supported a given API is on a particular replay instance.
 
@@ -2899,6 +2968,8 @@ enum class ReplaySupport : uint32_t
   Supported,
   SuggestRemote,
 };
+
+DECLARE_REFLECTION_ENUM(ReplaySupport);
 
 DOCUMENT(R"(The status of a high-level replay operation such as opening a capture or connecting to
 a remote server.
@@ -2992,6 +3063,8 @@ enum class ReplayStatus : uint32_t
   APIHardwareUnsupported,
 };
 
+DECLARE_REFLECTION_ENUM(ReplayStatus);
+
 DOCUMENT(R"(The type of message received from or sent to an application target control connection.
 
 .. data:: Unknown
@@ -3038,6 +3111,8 @@ enum class TargetControlMessageType : uint32_t
   NewChild,
 };
 
+DECLARE_REFLECTION_ENUM(TargetControlMessageType);
+
 DOCUMENT(R"(How to modify an environment variable.
 
 .. data:: Set
@@ -3058,6 +3133,8 @@ enum class EnvMod : uint32_t
   Append,
   Prepend,
 };
+
+DECLARE_REFLECTION_ENUM(EnvMod);
 
 DOCUMENT(R"(The separator to use if needed when modifying an environment variable.
 
@@ -3087,6 +3164,8 @@ enum class EnvSep : uint32_t
   Colon,
   NoSep,
 };
+
+DECLARE_REFLECTION_ENUM(EnvSep);
 
 DOCUMENT(R"(The type of a log message
 
@@ -3119,6 +3198,8 @@ enum class LogType : int32_t
   Fatal,
   Count,
 };
+
+DECLARE_REFLECTION_ENUM(LogType);
 
 DOCUMENT(R"(A set of flags giving details of the current status of vulkan layer registration.
 
@@ -3170,6 +3251,7 @@ enum class VulkanLayerFlags : uint32_t
 };
 
 BITMASK_OPERATORS(VulkanLayerFlags);
+DECLARE_REFLECTION_ENUM(VulkanLayerFlags);
 
 DOCUMENT(R"(A set of flags giving details of the current status of Android tracability.
 
@@ -3211,3 +3293,4 @@ enum class AndroidFlags : uint32_t
 };
 
 BITMASK_OPERATORS(AndroidFlags);
+DECLARE_REFLECTION_ENUM(AndroidFlags);

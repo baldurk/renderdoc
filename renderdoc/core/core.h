@@ -123,6 +123,8 @@ enum RDCDriver
   RDC_Custom9,
 };
 
+DECLARE_REFLECTION_ENUM(RDCDriver);
+
 namespace DXBC
 {
 class DXBCFile;

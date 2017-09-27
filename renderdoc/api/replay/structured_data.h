@@ -98,7 +98,7 @@ enum class SDBasic : uint32_t
   Character,
 };
 
-DECLARE_STRINGISE_TYPE(SDBasic);
+DECLARE_REFLECTION_ENUM(SDBasic);
 
 DOCUMENT(R"(Bitfield flags that could be applied to a type.
 
@@ -135,6 +135,7 @@ enum class SDTypeFlags : uint32_t
 };
 
 BITMASK_OPERATORS(SDTypeFlags);
+DECLARE_REFLECTION_ENUM(SDTypeFlags);
 
 struct SDObject;
 struct SDChunk;
@@ -195,6 +196,7 @@ enum class SDChunkFlags : uint64_t
 };
 
 BITMASK_OPERATORS(SDChunkFlags);
+DECLARE_REFLECTION_ENUM(SDChunkFlags);
 
 DOCUMENT("The metadata that goes along with a :class:`SDChunk` to detail how it was recorded.");
 struct SDChunkMetaData
