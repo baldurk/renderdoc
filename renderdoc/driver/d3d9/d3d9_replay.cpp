@@ -24,7 +24,7 @@
 
 #include "d3d9_common.h"
 
-ReplayStatus D3D9_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus D3D9_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCERR("D3D9 captures are not currently supported");
   return ReplayStatus::APIUnsupported;
