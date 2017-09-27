@@ -632,6 +632,9 @@
     <ClCompile Include="serialise\codecs\xml_codec.cpp">
       <Filter>Common\Serialise\Codecs</Filter>
     </ClCompile>
+    <ClCompile Include="serialise\serialiser_tests.cpp">
+      <Filter>Common\Serialise</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

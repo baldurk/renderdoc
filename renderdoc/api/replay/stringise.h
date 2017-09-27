@@ -153,3 +153,31 @@ inline const char *TypeName();
   {                                   \
     return #type;                     \
   }
+
+// This is a little bit ugly, but not *too* much. We declare the macro for serialised types to
+// forward-declare the template used by the serialiser. This will be visible externally, but it will
+// do nothing as the template won't be invoked externally. It means we can use the correct macro in
+// the external interface headers to pre-declare them as serialisable, without having to have the
+// public interface include serialiser.h which leads to horrible circular dependencies.
+
+// main serialisation templated function that is specialised for any type
+// that needs to be serialised. Implementations will either be a struct type,
+// in which case they'll call Serialise() on each of their members, or
+// they'll be some custom leaf type (most basic types are specialised in this
+// header) which will call SerialiseValue().
+
+template <class SerialiserType, class T>
+void DoSerialise(SerialiserType &ser, T &el);
+
+#ifndef DECLARE_REFLECTION_STRUCT
+#define DECLARE_REFLECTION_STRUCT(type) \
+  DECLARE_STRINGISE_TYPE(type)          \
+  template <class SerialiserType>       \
+  void DoSerialise(SerialiserType &ser, type &el);
+#endif
+
+// enums don't have anything special to do to serialise, they're all handled automagically once they
+// have a DoStringise function
+#ifndef DECLARE_REFLECTION_ENUM
+#define DECLARE_REFLECTION_ENUM(type) DECLARE_STRINGISE_TYPE(type)
+#endif

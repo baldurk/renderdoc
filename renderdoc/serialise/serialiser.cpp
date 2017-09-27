@@ -1,8 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2017 Baldur Karlsson
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2017 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,20 +22,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+// used to avoid instantiating templates too early in the header
+#define SERIALISER_IMPL
+
 #include "serialiser.h"
-#include <errno.h>
-#include "3rdparty/lz4/lz4.h"
-#include "common/timing.h"
 #include "core/core.h"
 #include "strings/string_utils.h"
 
-#if ENABLED(RDOC_MSVS)
-// warning C4422: 'snprintf' : too many arguments passed for format string
-// false positive as VS is trying to parse renderdoc's custom format strings
-#pragma warning(disable : 4422)
-#endif
-
-#if ENABLED(RDOC_DEVEL)
+#if !defined(RELEASE)
 
 int64_t Chunk::m_LiveChunks = 0;
 int64_t Chunk::m_TotalMem = 0;
@@ -44,1892 +37,696 @@ int64_t Chunk::m_MaxChunks = 0;
 
 #endif
 
-const uint32_t Serialiser::MAGIC_HEADER = MAKE_FOURCC('R', 'D', 'O', 'C');
-const uint64_t Serialiser::BufferAlignment = 64;
+/////////////////////////////////////////////////////////////
+// Read Serialiser functions
 
-// based on blockStreaming_doubleBuffer.c in lz4 examples
-struct CompressedFileIO
+template <>
+Serialiser<SerialiserMode::Reading>::Serialiser(StreamReader *reader, Ownership own)
 {
-  // large block size
-  static const size_t BlockSize = 64 * 1024;
+  m_Read = reader;
+  m_Write = NULL;
 
-  CompressedFileIO(FILE *f)
-  {
-    m_F = f;
-    LZ4_resetStream(&m_LZ4Comp);
-    LZ4_setStreamDecode(&m_LZ4Decomp, NULL, 0);
-    m_CompressedSize = m_UncompressedSize = 0;
-    m_PageIdx = m_PageOffset = 0;
-    m_PageData = 0;
-
-    m_CompressSize = LZ4_COMPRESSBOUND(BlockSize);
-    m_CompressBuf = new byte[m_CompressSize];
-  }
-
-  ~CompressedFileIO() { SAFE_DELETE_ARRAY(m_CompressBuf); }
-  uint64_t GetCompressedSize() { return m_CompressedSize; }
-  uint64_t GetUncompressedSize() { return m_UncompressedSize; }
-  // write out some data - accumulate into the input pages, then
-  // when a page is full call Flush() to flush it out to disk
-  void Write(const void *data, size_t len)
-  {
-    if(data == NULL || len == 0)
-      return;
-
-    m_UncompressedSize += (uint64_t)len;
-
-    const byte *src = (const byte *)data;
-
-    size_t remainder = 0;
-
-    // loop continually, writing up to BlockSize out of what remains of data
-    do
-    {
-      remainder = 0;
-
-      // if we're about to copy more than the page, copy only
-      // what will fit, then copy the remainder after flushing
-      if(m_PageOffset + len > BlockSize)
-      {
-        remainder = len - (BlockSize - m_PageOffset);
-        len = BlockSize - m_PageOffset;
-      }
-
-      memcpy(m_InPages[m_PageIdx] + m_PageOffset, src, len);
-      m_PageOffset += len;
-
-      if(remainder > 0)
-      {
-        Flush();    // this will swap the input pages and reset the page offset
-
-        src += len;
-        len = remainder;
-      }
-    } while(remainder > 0);
-  }
-
-  // flush out the current page to disk
-  void Flush()
-  {
-    // m_PageOffset is the amount written, usually equal to BlockSize except the last block.
-    int32_t compSize = LZ4_compress_fast_continue(&m_LZ4Comp, (const char *)m_InPages[m_PageIdx],
-                                                  (char *)m_CompressBuf, (int)m_PageOffset,
-                                                  (int)m_CompressSize, 1);
-
-    if(compSize < 0)
-    {
-      RDCERR("Error compressing: %i", compSize);
-      return;
-    }
-
-    FileIO::fwrite(&compSize, sizeof(compSize), 1, m_F);
-    FileIO::fwrite(m_CompressBuf, 1, compSize, m_F);
-
-    m_CompressedSize += uint64_t(compSize) + sizeof(int32_t);
-
-    m_PageOffset = 0;
-    m_PageIdx = 1 - m_PageIdx;
-  }
-
-  // Reset back to 0, only makes sense when reading as writing can't be undone
-  void Reset()
-  {
-    LZ4_setStreamDecode(&m_LZ4Decomp, NULL, 0);
-    m_CompressedSize = m_UncompressedSize = 0;
-    m_PageIdx = 0;
-    m_PageOffset = 0;
-  }
-
-  // read out some data - if the input page is empty we fill
-  // the next page with data from disk
-  void Read(byte *data, size_t len)
-  {
-    if(data == NULL || len == 0)
-      return;
-
-    m_UncompressedSize += (uint64_t)len;
-
-    // loop continually, writing up to BlockSize out of what remains of data
-    do
-    {
-      size_t readamount = len;
-
-      // if we're about to copy more than the page, copy only
-      // what will fit, then copy the remainder after refilling
-      if(readamount > m_PageData)
-        readamount = m_PageData;
-
-      if(readamount > 0)
-      {
-        memcpy(data, m_InPages[m_PageIdx] + m_PageOffset, readamount);
-
-        m_PageOffset += readamount;
-        m_PageData -= readamount;
-
-        data += readamount;
-        len -= readamount;
-      }
-
-      if(len > 0)
-        FillBuffer();    // this will swap the input pages and reset the page offset
-    } while(len > 0);
-  }
-
-  void FillBuffer()
-  {
-    int32_t compSize = 0;
-
-    FileIO::fread(&compSize, sizeof(compSize), 1, m_F);
-    size_t numRead = FileIO::fread(m_CompressBuf, 1, compSize, m_F);
-
-    m_CompressedSize += uint64_t(compSize);
-
-    m_PageIdx = 1 - m_PageIdx;
-
-    int32_t decompSize = LZ4_decompress_safe_continue(
-        &m_LZ4Decomp, (const char *)m_CompressBuf, (char *)m_InPages[m_PageIdx], compSize, BlockSize);
-
-    if(decompSize < 0)
-    {
-      RDCERR("Error decompressing: %i (%i / %i)", decompSize, int(numRead), compSize);
-      return;
-    }
-
-    m_PageOffset = 0;
-    m_PageData = decompSize;
-  }
-
-  static void Decompress(byte *destBuf, const byte *srcBuf, size_t len)
-  {
-    LZ4_streamDecode_t lz4;
-    LZ4_setStreamDecode(&lz4, NULL, 0);
-
-    const byte *srcBufEnd = srcBuf + len;
-
-    while(srcBuf + 4 < srcBufEnd)
-    {
-      const int32_t *compSize = (const int32_t *)srcBuf;
-      srcBuf = (const byte *)(compSize + 1);
-
-      if(srcBuf + *compSize > srcBufEnd)
-        break;
-
-      int32_t decompSize = LZ4_decompress_safe_continue(&lz4, (const char *)srcBuf, (char *)destBuf,
-                                                        *compSize, BlockSize);
-
-      if(decompSize < 0)
-        return;
-
-      srcBuf += *compSize;
-      destBuf += decompSize;
-    }
-  }
-
-  LZ4_stream_t m_LZ4Comp;
-  LZ4_streamDecode_t m_LZ4Decomp;
-  FILE *m_F;
-  uint64_t m_CompressedSize, m_UncompressedSize;
-
-  byte m_InPages[2][BlockSize];
-  size_t m_PageIdx, m_PageOffset, m_PageData;
-
-  byte *m_CompressBuf;
-  size_t m_CompressSize;
-};
-
-Chunk::Chunk(Serialiser *ser, uint32_t chunkType, bool temporary)
-{
-  m_Length = (uint32_t)ser->GetOffset();
-
-  RDCASSERT(ser->GetOffset() < 0xffffffff);
-
-  m_ChunkType = chunkType;
-
-  m_Temporary = temporary;
-
-  if(ser->HasAlignedData())
-  {
-    m_Data = AllocAlignedBuffer(m_Length);
-    m_AlignedData = true;
-  }
-  else
-  {
-    m_Data = new byte[m_Length];
-    m_AlignedData = false;
-  }
-
-  memcpy(m_Data, ser->GetRawPtr(0), m_Length);
-
-  if(ser->GetDebugText())
-    m_DebugStr = ser->GetDebugStr();
-
-  ser->Rewind();
-
-#if ENABLED(RDOC_DEVEL)
-  int64_t newval = Atomic::Inc64(&m_LiveChunks);
-  Atomic::ExchAdd64(&m_TotalMem, m_Length);
-
-  if(newval > m_MaxChunks)
-  {
-    int breakpointme = 0;
-    (void)breakpointme;
-  }
-
-  m_MaxChunks = RDCMAX(newval, m_MaxChunks);
-#endif
+  m_Ownership = own;
 }
 
-Chunk *Chunk::Duplicate()
+template <>
+Serialiser<SerialiserMode::Reading>::~Serialiser()
 {
-  Chunk *ret = new Chunk();
-  ret->m_DebugStr = m_DebugStr;
-  ret->m_Length = m_Length;
-  ret->m_ChunkType = m_ChunkType;
-  ret->m_Temporary = m_Temporary;
-  ret->m_AlignedData = m_AlignedData;
-
-  if(m_AlignedData)
-    ret->m_Data = AllocAlignedBuffer(m_Length);
-  else
-    ret->m_Data = new byte[m_Length];
-
-  memcpy(ret->m_Data, m_Data, m_Length);
-
-#if ENABLED(RDOC_DEVEL)
-  int64_t newval = Atomic::Inc64(&m_LiveChunks);
-  Atomic::ExchAdd64(&m_TotalMem, m_Length);
-
-  if(newval > m_MaxChunks)
-  {
-    int breakpointme = 0;
-    (void)breakpointme;
-  }
-
-  m_MaxChunks = RDCMAX(newval, m_MaxChunks);
-#endif
-
-  return ret;
+  if(m_Ownership == Ownership::Stream && m_Read)
+    delete m_Read;
 }
 
-Chunk::~Chunk()
+template <>
+uint32_t Serialiser<SerialiserMode::Reading>::BeginChunk(uint32_t, uint32_t)
 {
-#if ENABLED(RDOC_DEVEL)
-  Atomic::Dec64(&m_LiveChunks);
-  Atomic::ExchAdd64(&m_TotalMem, -int64_t(m_Length));
-#endif
+  uint32_t chunkID = 0;
 
-  if(m_AlignedData)
-  {
-    if(m_Data)
-      FreeAlignedBuffer(m_Data);
+  m_ChunkMetadata = SDChunkMetaData();
 
-    m_Data = NULL;
-  }
-  else
   {
-    SAFE_DELETE_ARRAY(m_Data);
+    uint32_t c = 0;
+    bool success = m_Read->Read(c);
+
+    // Chunk index 0 is not allowed in normal situations, and allows us to indicate some control
+    // bytes. Currently this is unused
+    RDCASSERT(c != 0 || !success);
+
+    chunkID = c & ChunkIndexMask;
+
+    /////////////////
+
+    m_ChunkMetadata.chunkID = chunkID;
+
+    if(c & ChunkCallstack)
+    {
+      uint32_t numFrames = 0;
+      m_Read->Read(numFrames);
+
+      m_ChunkMetadata.callstack.resize((size_t)numFrames);
+      m_Read->Read(m_ChunkMetadata.callstack.data(), m_ChunkMetadata.callstack.byteSize());
+    }
+
+    if(c & ChunkThreadID)
+      m_Read->Read(m_ChunkMetadata.threadID);
+
+    if(c & ChunkDuration)
+      m_Read->Read(m_ChunkMetadata.durationMicro);
+
+    if(c & ChunkTimestamp)
+      m_Read->Read(m_ChunkMetadata.timestampMicro);
+
+    m_Read->Read(m_ChunkMetadata.length);
+
+    m_LastChunkOffset = m_Read->GetOffset();
   }
+
+  if(ExportStructure())
+  {
+    std::string name = m_ChunkLookup ? m_ChunkLookup(chunkID) : "";
+
+    if(name.empty())
+      name = "<Unknown Chunk>";
+
+    SDChunk *chunk = new SDChunk(name.c_str());
+    chunk->metadata = m_ChunkMetadata;
+
+    m_StructuredFile->chunks.push_back(chunk);
+    m_StructureStack.push_back(chunk);
+
+    m_InternalElement = false;
+  }
+
+  return chunkID;
 }
 
-/*
-
- -----------------------------
- File format for version 0x31:
-
- uint64_t MAGIC_HEADER;
- uint64_t version = 0x00000031;
- uint64_t filesize;
- uint64_t resolveDBSize;
-
- if(resolveDBSize > 0)
- {
-   byte resolveDB[resolveDBSize];
-   byte paddingTo16Alignment[];
- }
-
- byte captureData[]; // remainder of the file
-
- -----------------------------
- File format for version 0x32:
-
- uint64_t MAGIC_HEADER;
- uint64_t version = 0x00000032;
-
- 1 or more sections:
-
- Section
- {
-   char isASCII = '\0' or 'A'; // indicates the section is ASCII or binary. ASCII allows for easy
- appending by hand/script
-   if(isASCII == 'A')
-   {
-     // ASCII sections are discouraged for tools, but useful for hand-editing by just
-     // appending a simple text file
-     char newline = '\n';
-     char length[]; // length of just section data below, as decimal string
-     char newline = '\n';
-     char sectionType[]; // section type, see SectionType enum, as decimal string.
-     char newline = '\n';
-     char sectionName[]; // UTF-8 string name of section.
-     char newline = '\n';
-     // sectionName is an arbitrary string. If two sections exist with the
-     // exact same name, the last one to occur in the file will be taken, the
-     // others ignored.
-
-     byte sectiondata[ interpret(length) ]; // section data
-   }
-   else if(isASCII == '\0')
-   {
-     byte zero[3]; // pad out the above character with 0 bytes. Reserved for future use
-     uint32_t sectionFlags; // section flags - e.g. is compressed or not.
-     uint32_t sectionType; // section type enum, see SectionType. Could be eSectionType_Unknown
-     uint32_t sectionLength; // byte length of the actual section data
-     uint32_t sectionNameLength; // byte length of the string below (minimum 1, for null terminator)
-     char sectionName[sectionNameLength]; // UTF-8 string name of section, optional.
-
-     byte sectiondata[length]; // actual contents of the section
-
-     // note: compressed sections will contain the uncompressed length as a uint64_t
-     // before the compressed data.
-   }
- };
-
- // remainder of the file is tightly packed/unaligned section structures.
- // The first section must always be the actual frame capture data in
- // binary form
- Section sections[];
-
-*/
-
-struct FileHeader
+template <>
+void Serialiser<SerialiserMode::Reading>::SkipCurrentChunk()
 {
-  FileHeader()
+  if(ExportStructure())
   {
-    magic = Serialiser::MAGIC_HEADER;
-    version = Serialiser::SERIALISE_VERSION;
-  }
+    RDCASSERTMSG("Skipping chunk after we've begun serialising!", m_StructureStack.size() == 1,
+                 m_StructureStack.size());
 
-  uint64_t magic;
-  uint64_t version;
-};
+    SDObject &current = *m_StructureStack.back();
 
-struct BinarySectionHeader
-{
-  byte isASCII;                             // 0x0
-  byte zero[3];                             // 0x0, 0x0, 0x0
-  Serialiser::SectionFlags sectionFlags;    // section flags - e.g. is compressed or not.
-  Serialiser::SectionType
-      sectionType;           // section type enum, see SectionType. Could be eSectionType_Unknown
-  uint32_t sectionLength;    // byte length of the actual section data
-  uint32_t sectionNameLength;    // byte length of the string below (could be 0)
-  char name[1];                  // actually sectionNameLength, but at least 1 for null terminator
+    current.data.basic.numChildren++;
+    current.data.children.push_back(new SDObject("Opaque chunk", "Byte Buffer"));
 
-  // char name[sectionNameLength];
-  // byte data[sectionLength];
-};
+    SDObject &obj = *current.data.children.back();
+    obj.type.basetype = SDBasic::Buffer;
+    obj.type.byteSize = m_ChunkMetadata.length;
 
-#define RETURNCORRUPT(...)           \
-  {                                  \
-    RDCERR(__VA_ARGS__);             \
-    m_ErrorCode = eSerError_Corrupt; \
-    m_HasError = true;               \
-    return;                          \
-  }
-
-Serialiser::Serialiser(size_t length, const byte *memoryBuf, bool fileheader)
-    : m_pCallstack(NULL), m_pResolver(NULL), m_Buffer(NULL)
-{
-  m_ResolverThread = 0;
-
-  // ensure binary sizes of enums
-  RDCCOMPILE_ASSERT(sizeof(SectionFlags) == sizeof(uint32_t), "Section flags not in uint32");
-  RDCCOMPILE_ASSERT(sizeof(SectionType) == sizeof(uint32_t), "Section type not in uint32");
-
-  RDCCOMPILE_ASSERT(offsetof(BinarySectionHeader, name) == sizeof(uint32_t) * 5,
-                    "BinarySectionHeader size has changed or contains padding");
-
-  Reset();
-
-  m_Mode = READING;
-  m_DebugEnabled = false;
-
-  m_FileSize = 0;
-
-  if(!fileheader)
-  {
-    m_BufferSize = length;
-    m_CurrentBufferSize = (size_t)m_BufferSize;
-    m_BufferHead = m_Buffer = AllocAlignedBuffer(m_CurrentBufferSize);
-
-    m_SerVer = SERIALISE_VERSION;
-
-    memcpy(m_Buffer, memoryBuf, m_CurrentBufferSize);
-    return;
-  }
-
-  FileHeader *header = (FileHeader *)memoryBuf;
-
-  if(length < sizeof(FileHeader))
-  {
-    RDCERR("Can't read from in-memory buffer, truncated header");
-    m_ErrorCode = eSerError_Corrupt;
-    m_HasError = true;
-    return;
-  }
-
-  if(header->magic != MAGIC_HEADER)
-  {
-    char magicRef[5] = {0};
-    char magicFile[5] = {0};
-    memcpy(magicRef, &MAGIC_HEADER, sizeof(uint32_t));
-    memcpy(magicFile, &header->magic, sizeof(uint32_t));
-    RDCWARN("Invalid in-memory buffer. Expected magic %s, got %s", magicRef, magicFile);
-
-    m_ErrorCode = eSerError_Corrupt;
-    m_HasError = true;
-    return;
-  }
-
-  const byte *memoryBufEnd = memoryBuf + length;
-
-  m_SerVer = header->version;
-
-  if(header->version == 0x00000031)    // backwards compatibility
-  {
-    memoryBuf += sizeof(FileHeader);
-
-    if(length < sizeof(FileHeader) + sizeof(uint64_t) * 2)
+    if(m_StructureStack.size() == 1)
     {
-      RDCERR("Can't read from in-memory buffer, truncated header");
-      m_ErrorCode = eSerError_Corrupt;
-      m_HasError = true;
+      SDChunk *chunk = (SDChunk *)m_StructureStack.back();
+      chunk->metadata.flags |= SDChunkFlags::OpaqueChunk;
+    }
+  }
+
+  {
+    uint64_t readBytes = m_Read->GetOffset() - m_LastChunkOffset;
+
+    if(readBytes > m_ChunkMetadata.length)
+    {
+      RDCERR("Can't skip current chunk outside of {BeginChunk, EndChunk}");
       return;
     }
 
-    uint64_t *fileSize = (uint64_t *)memoryBuf;
-    memoryBuf += sizeof(uint64_t);
-
-    uint64_t *resolveDBSize = (uint64_t *)memoryBuf;
-    memoryBuf += sizeof(uint64_t);
-
-    if(*fileSize < length)
+    if(readBytes > 0)
     {
-      RDCERR("Overlong in-memory buffer. Expected length 0x016llx, got 0x016llx", *fileSize, length);
-
-      m_ErrorCode = eSerError_Corrupt;
-      m_HasError = true;
-      return;
+      RDCWARN("Partially consumed bytes at SkipCurrentChunk - blob data will be truncated");
     }
 
-    // for in-memory case we don't need to load up the resolve db
+    uint64_t chunkBytes = m_ChunkMetadata.length - readBytes;
 
-    Section *frameCap = new Section();
-    frameCap->type = eSectionType_FrameCapture;
-    frameCap->flags = eSectionFlag_None;
-    frameCap->fileoffset = 0;    // irrelevant
-    frameCap->name = "renderdoc/internal/framecapture";
-    frameCap->size = uint64_t(memoryBufEnd - memoryBuf);
-
-    memoryBuf = AlignUpPtr(memoryBuf + *resolveDBSize, 16);
-
-    m_Sections.push_back(frameCap);
-    m_KnownSections[eSectionType_FrameCapture] = frameCap;
-  }
-  else if(header->version == SERIALISE_VERSION)
-  {
-    memoryBuf += sizeof(FileHeader);
-
-    // when loading in-memory we only care about the first section, which should be binary
-    const BinarySectionHeader *sectionHeader = (const BinarySectionHeader *)memoryBuf;
-
-    // verify validity
-    if(memoryBuf + offsetof(BinarySectionHeader, name) >= memoryBufEnd)
+    if(ExportStructure() && m_ExportBuffers)
     {
-      RDCERR("Truncated binary section header");
+      SDObject &current = *m_StructureStack.back();
 
-      m_ErrorCode = eSerError_Corrupt;
-      m_HasError = true;
-      return;
-    }
+      SDObject &obj = *current.data.children.back();
 
-    if(sectionHeader->isASCII != 0 || sectionHeader->zero[0] != 0 || sectionHeader->zero[1] != 0 ||
-       sectionHeader->zero[2] != 0)
-    {
-      RDCERR("Unexpected non-binary section first in capture when loading in-memory");
+      obj.data.basic.u = m_StructuredFile->buffers.size();
 
-      m_ErrorCode = eSerError_Corrupt;
-      m_HasError = true;
-      return;
-    }
+      bytebuf *alloc = new bytebuf;
+      alloc->resize((size_t)chunkBytes);
+      m_Read->Read(alloc->data(), (size_t)chunkBytes);
 
-    if(sectionHeader->sectionType != eSectionType_FrameCapture)
-    {
-      RDCERR("Expected first section to be frame capture, got type %x", sectionHeader->sectionType);
-
-      m_ErrorCode = eSerError_Corrupt;
-      m_HasError = true;
-      return;
-    }
-
-    memoryBuf += offsetof(BinarySectionHeader, name);
-    memoryBuf += sectionHeader->sectionNameLength;    // skip name
-
-    if(memoryBuf >= memoryBufEnd)
-    {
-      RDCERR("Truncated binary section header");
-
-      m_ErrorCode = eSerError_Corrupt;
-      m_HasError = true;
-      return;
-    }
-
-    Section *frameCap = new Section();
-    frameCap->fileoffset = 0;    // irrelevant
-    frameCap->data.assign(memoryBuf, memoryBufEnd);
-    frameCap->name = sectionHeader->name;
-    frameCap->type = sectionHeader->sectionType;
-    frameCap->flags = sectionHeader->sectionFlags;
-
-    uint64_t *uncompLength = (uint64_t *)memoryBuf;
-
-    memoryBuf += sizeof(uint64_t);
-
-    if(memoryBuf >= memoryBufEnd)
-    {
-      RDCERR("Truncated binary section header");
-
-      m_ErrorCode = eSerError_Corrupt;
-      m_HasError = true;
-
-      SAFE_DELETE(frameCap);
-      return;
-    }
-
-    frameCap->size = *uncompLength;
-
-    m_KnownSections[eSectionType_FrameCapture] = frameCap;
-    m_Sections.push_back(frameCap);
-  }
-  else
-  {
-    RDCERR(
-        "Capture file from wrong version. This program is on logfile version %llu, file is logfile "
-        "version %llu",
-        SERIALISE_VERSION, header->version);
-
-    m_ErrorCode = eSerError_UnsupportedVersion;
-    m_HasError = true;
-    return;
-  }
-
-  m_BufferSize = m_KnownSections[eSectionType_FrameCapture]->size;
-  m_CurrentBufferSize = (size_t)m_BufferSize;
-  m_BufferHead = m_Buffer = AllocAlignedBuffer(m_CurrentBufferSize);
-
-  if(m_KnownSections[eSectionType_FrameCapture]->flags & eSectionFlag_LZ4Compressed)
-  {
-    CompressedFileIO::Decompress(m_Buffer, memoryBuf, memoryBufEnd - memoryBuf);
-  }
-  else
-  {
-    memcpy(m_Buffer, memoryBuf, m_CurrentBufferSize);
-  }
-}
-
-Serialiser::Serialiser(const char *path, Mode mode, bool debugMode, uint64_t sizeHint)
-    : m_pCallstack(NULL), m_pResolver(NULL), m_Buffer(NULL)
-{
-  m_ResolverThread = 0;
-
-  Reset();
-
-  m_Filename = path ? path : "";
-
-  m_Mode = mode;
-  m_DebugEnabled = debugMode;
-
-  m_FileSize = 0;
-
-  FileHeader header;
-
-  if(mode == READING)
-  {
-    m_ReadFileHandle = FileIO::fopen(m_Filename.c_str(), "rb");
-
-    if(!m_ReadFileHandle)
-    {
-      RDCERR("Can't open capture file '%s' for read - errno %d", m_Filename.c_str(), errno);
-      m_ErrorCode = eSerError_FileIO;
-      m_HasError = true;
-      return;
-    }
-
-    FileIO::fseek64(m_ReadFileHandle, 0, SEEK_END);
-
-    m_FileSize = FileIO::ftell64(m_ReadFileHandle);
-
-    FileIO::fseek64(m_ReadFileHandle, 0, SEEK_SET);
-
-    RDCDEBUG("Opened capture file for read");
-
-    FileIO::fread(&header, 1, sizeof(FileHeader), m_ReadFileHandle);
-
-    if(header.magic != MAGIC_HEADER)
-    {
-      RDCWARN("Invalid capture file. Expected magic %08x, got %08x", MAGIC_HEADER,
-              (uint32_t)header.magic);
-
-      m_ErrorCode = eSerError_Corrupt;
-      m_HasError = true;
-      FileIO::fclose(m_ReadFileHandle);
-      m_ReadFileHandle = 0;
-      return;
-    }
-
-    m_SerVer = header.version;
-
-    if(header.version == 0x00000031)    // backwards compatibility
-    {
-      uint64_t headerRemainder[2];
-
-      FileIO::fread(&headerRemainder, 1, sizeof(headerRemainder), m_ReadFileHandle);
-
-      FileIO::fseek64(m_ReadFileHandle, 0, SEEK_END);
-
-      uint64_t realLength = FileIO::ftell64(m_ReadFileHandle);
-      if(headerRemainder[0] != realLength)
-      {
-        RDCERR("Truncated/overlong capture file. Expected length 0x016llx, got 0x016llx",
-               headerRemainder[0], realLength);
-
-        m_ErrorCode = eSerError_Corrupt;
-        m_HasError = true;
-        FileIO::fclose(m_ReadFileHandle);
-        m_ReadFileHandle = 0;
-        return;
-      }
-
-      FileIO::fseek64(m_ReadFileHandle, sizeof(FileHeader) + sizeof(headerRemainder), SEEK_SET);
-
-      size_t resolveDBSize = (size_t)headerRemainder[1];
-
-      if(resolveDBSize > 0)
-      {
-        Section *resolveDB = new Section();
-        resolveDB->type = eSectionType_ResolveDatabase;
-        resolveDB->flags = eSectionFlag_None;
-        resolveDB->fileoffset = sizeof(FileHeader) + sizeof(headerRemainder);
-        resolveDB->name = "renderdoc/internal/resolvedb";
-        resolveDB->data.resize(resolveDBSize);
-
-        // read resolve DB entirely into memory
-        FileIO::fread(&resolveDB->data[0], 1, resolveDBSize, m_ReadFileHandle);
-
-        m_Sections.push_back(resolveDB);
-        m_KnownSections[eSectionType_ResolveDatabase] = resolveDB;
-      }
-
-      // seek to frame capture data
-      FileIO::fseek64(m_ReadFileHandle,
-                      AlignUp16(sizeof(FileHeader) + sizeof(headerRemainder) + resolveDBSize),
-                      SEEK_SET);
-
-      Section *frameCap = new Section();
-      frameCap->type = eSectionType_FrameCapture;
-      frameCap->flags = eSectionFlag_None;
-      frameCap->fileoffset = FileIO::ftell64(m_ReadFileHandle);
-      frameCap->name = "renderdoc/internal/framecapture";
-      frameCap->size = realLength - frameCap->fileoffset;
-
-      m_Sections.push_back(frameCap);
-      m_KnownSections[eSectionType_FrameCapture] = frameCap;
-    }
-    else if(header.version == SERIALISE_VERSION)
-    {
-      while(!FileIO::feof(m_ReadFileHandle))
-      {
-        BinarySectionHeader sectionHeader = {0};
-        byte *reading = (byte *)&sectionHeader;
-
-        FileIO::fread(reading, 1, 1, m_ReadFileHandle);
-        reading++;
-
-        if(FileIO::feof(m_ReadFileHandle))
-          break;
-
-        if(sectionHeader.isASCII == 'A')
-        {
-          // ASCII section
-          char c = 0;
-          FileIO::fread(&c, 1, 1, m_ReadFileHandle);
-          if(c != '\n')
-            RETURNCORRUPT("Invalid ASCII data section '%hhx'", c);
-
-          if(FileIO::feof(m_ReadFileHandle))
-            RETURNCORRUPT("Invalid truncated ASCII data section");
-
-          uint64_t length = 0;
-
-          c = '0';
-
-          while(!FileIO::feof(m_ReadFileHandle) && c != '\n')
-          {
-            c = '0';
-            FileIO::fread(&c, 1, 1, m_ReadFileHandle);
-
-            if(c == '\n')
-              break;
-
-            length *= 10;
-            length += int(c - '0');
-          }
-
-          if(FileIO::feof(m_ReadFileHandle))
-            RETURNCORRUPT("Invalid truncated ASCII data section");
-
-          union
-          {
-            uint32_t u32;
-            SectionType t;
-          } type;
-
-          type.u32 = 0;
-
-          c = '0';
-
-          while(!FileIO::feof(m_ReadFileHandle) && c != '\n')
-          {
-            c = '0';
-            FileIO::fread(&c, 1, 1, m_ReadFileHandle);
-
-            if(c == '\n')
-              break;
-
-            type.u32 *= 10;
-            type.u32 += int(c - '0');
-          }
-
-          if(FileIO::feof(m_ReadFileHandle))
-            RETURNCORRUPT("Invalid truncated ASCII data section");
-
-          string name;
-
-          c = 0;
-
-          while(!FileIO::feof(m_ReadFileHandle) && c != '\n')
-          {
-            c = 0;
-            FileIO::fread(&c, 1, 1, m_ReadFileHandle);
-
-            if(c == 0 || c == '\n')
-              break;
-
-            name.push_back(c);
-          }
-
-          if(FileIO::feof(m_ReadFileHandle))
-            RETURNCORRUPT("Invalid truncated ASCII data section");
-
-          Section *sect = new Section();
-          sect->flags = eSectionFlag_ASCIIStored;
-          sect->type = type.t;
-          sect->name = name;
-          sect->size = length;
-          sect->data.resize((size_t)length);
-          sect->fileoffset = FileIO::ftell64(m_ReadFileHandle);
-
-          FileIO::fread(&sect->data[0], 1, (size_t)length, m_ReadFileHandle);
-
-          if(sect->type != eSectionType_Unknown && sect->type < eSectionType_Num)
-            m_KnownSections[sect->type] = sect;
-          m_Sections.push_back(sect);
-        }
-        else if(sectionHeader.isASCII == 0x0)
-        {
-          FileIO::fread(reading, 1, offsetof(BinarySectionHeader, name) - 1, m_ReadFileHandle);
-
-          Section *sect = new Section();
-          sect->flags = sectionHeader.sectionFlags;
-          sect->type = sectionHeader.sectionType;
-          sect->name.resize(sectionHeader.sectionNameLength - 1);
-          sect->size = sectionHeader.sectionLength;
-
-          FileIO::fread(&sect->name[0], 1, sectionHeader.sectionNameLength - 1, m_ReadFileHandle);
-          char nullterm = 0;
-          FileIO::fread(&nullterm, 1, 1, m_ReadFileHandle);
-
-          sect->fileoffset = FileIO::ftell64(m_ReadFileHandle);
-
-          if(sect->flags & eSectionFlag_LZ4Compressed)
-          {
-            sect->compressedReader = new CompressedFileIO(m_ReadFileHandle);
-            FileIO::fread(&sect->size, 1, sizeof(uint64_t), m_ReadFileHandle);
-
-            sect->fileoffset += sizeof(uint64_t);
-          }
-
-          if(sect->type != eSectionType_Unknown && sect->type < eSectionType_Num)
-            m_KnownSections[sect->type] = sect;
-          m_Sections.push_back(sect);
-
-          // if section isn't frame capture data and is small enough, read it all into memory now,
-          // otherwise skip
-          if(sect->type != eSectionType_FrameCapture && sectionHeader.sectionLength < 4 * 1024 * 1024)
-          {
-            sect->data.resize(sectionHeader.sectionLength);
-            FileIO::fread(&sect->data[0], 1, sectionHeader.sectionLength, m_ReadFileHandle);
-          }
-          else
-          {
-            if(sectionHeader.sectionLength == 0xffffffff)
-            {
-              RDCWARN(
-                  "Section length 0xFFFFFFFF - assuming truncated value! Seeking to end of file, "
-                  "discarding any remaining sections.");
-              FileIO::fseek64(m_ReadFileHandle, 0, SEEK_END);
-            }
-            else
-            {
-              FileIO::fseek64(m_ReadFileHandle, sectionHeader.sectionLength, SEEK_CUR);
-            }
-          }
-        }
-        else
-        {
-          RETURNCORRUPT("Unrecognised section type '%hhx'", sectionHeader.isASCII);
-        }
-      }
+      m_StructuredFile->buffers.push_back(alloc);
     }
     else
+    {
+      m_Read->SkipBytes(chunkBytes);
+    }
+  }
+}
+
+template <>
+void Serialiser<SerialiserMode::Reading>::EndChunk()
+{
+  if(ExportStructure())
+  {
+    RDCASSERTMSG("Object Stack is imbalanced!", m_StructureStack.size() <= 1,
+                 m_StructureStack.size());
+
+    if(!m_StructureStack.empty())
+    {
+      m_StructureStack.back()->type.byteSize = m_ChunkMetadata.length;
+      m_StructureStack.pop_back();
+    }
+  }
+
+  // only skip remaining bytes if we have a valid length - if we have a length of 0 we wrote this
+  // chunk in 'streaming mode' (see SetStreamingMode and the Writing EndChunk() impl) so there's
+  // nothing to skip.
+  if(m_ChunkMetadata.length > 0)
+  {
+    // this will be a no-op if the last chunk length was accurate. If it was a
+    // conservative estimate of the length then we'll skip some padding bytes
+    uint64_t readBytes = m_Read->GetOffset() - m_LastChunkOffset;
+
+    if(m_ChunkMetadata.length < readBytes)
     {
       RDCERR(
-          "Capture file from wrong version. This program is logfile version %llu, file is logfile "
-          "version %llu",
-          SERIALISE_VERSION, header.version);
-
-      m_ErrorCode = eSerError_UnsupportedVersion;
-      m_HasError = true;
-      FileIO::fclose(m_ReadFileHandle);
-      m_ReadFileHandle = 0;
-      return;
-    }
-
-    if(m_KnownSections[eSectionType_FrameCapture] == NULL)
-    {
-      RDCERR("Capture file doesn't have a frame capture");
-
-      m_ErrorCode = eSerError_Corrupt;
-      m_HasError = true;
-      FileIO::fclose(m_ReadFileHandle);
-      m_ReadFileHandle = 0;
-      return;
-    }
-
-    m_BufferSize = m_KnownSections[eSectionType_FrameCapture]->size;
-    m_CurrentBufferSize = (size_t)RDCMIN(m_BufferSize, (uint64_t)64 * 1024);
-    m_BufferHead = m_Buffer = AllocAlignedBuffer(m_CurrentBufferSize);
-    m_ReadOffset = 0;
-
-    FileIO::fseek64(m_ReadFileHandle, m_KnownSections[eSectionType_FrameCapture]->fileoffset,
-                    SEEK_SET);
-
-    // read initial buffer of data
-    ReadFromFile(0, m_CurrentBufferSize);
-  }
-  else
-  {
-    m_SerVer = SERIALISE_VERSION;
-
-    if(m_Filename != "")
-    {
-      m_BufferSize = 0;
-      m_BufferHead = m_Buffer = NULL;
+          "!!! "
+          "READ %llu BYTES, OVERRUNNING CHUNK LENGTH %u. "
+          "CAPTURE IS CORRUPTED, OR REPLAY MISMATCHED CAPTURED CHUNK. "
+          "!!!",
+          readBytes, m_ChunkMetadata.length);
     }
     else
     {
-      m_BufferSize = sizeHint;
-      m_BufferHead = m_Buffer = AllocAlignedBuffer((size_t)m_BufferSize);
+      m_Read->SkipBytes(size_t(m_ChunkMetadata.length - readBytes));
     }
+  }
+
+  // align to the natural chunk alignment
+  m_Read->AlignTo<ChunkAlignment>();
+}
+
+/////////////////////////////////////////////////////////////
+// Write Serialiser functions
+
+template <>
+Serialiser<SerialiserMode::Writing>::Serialiser(StreamWriter *writer, Ownership own)
+{
+  m_Write = writer;
+  m_Read = NULL;
+
+  m_Ownership = own;
+}
+
+template <>
+Serialiser<SerialiserMode::Writing>::~Serialiser()
+{
+  if(m_Ownership == Ownership::Stream && m_Write)
+  {
+    m_Write->Finish();
+    delete m_Write;
   }
 }
 
-void Serialiser::Reset()
+template <>
+void Serialiser<SerialiserMode::Writing>::SetChunkMetadataRecording(uint32_t flags)
 {
-  if(m_ResolverThread != 0)
-  {
-    m_ResolverThreadKillSignal = true;
+  // cannot change this mid-chunk
+  RDCASSERT(m_Write->GetOffset() == 0);
 
-    Threading::JoinThread(m_ResolverThread);
-    Threading::CloseThread(m_ResolverThread);
-    m_ResolverThread = 0;
-  }
-
-  m_pUserData = NULL;
-
-  m_DebugText = "";
-  m_DebugTextWriting = false;
-
-  RDCEraseEl(m_KnownSections);
-
-  m_HasError = false;
-  m_ErrorCode = eSerError_None;
-
-  m_Mode = NONE;
-
-  m_Indent = 0;
-
-  SAFE_DELETE(m_pCallstack);
-  SAFE_DELETE(m_pResolver);
-  if(m_Buffer)
-  {
-    FreeAlignedBuffer(m_Buffer);
-    m_Buffer = NULL;
-  }
-
-  m_ChunkLookup = NULL;
-
-  m_AlignedData = false;
-
-  m_ReadFileHandle = NULL;
-
-  m_ReadOffset = 0;
-
-  m_BufferHead = m_Buffer = NULL;
-  m_CurrentBufferSize = 0;
-  m_BufferSize = 0;
+  m_ChunkFlags = flags;
 }
 
-Serialiser::~Serialiser()
+template <>
+uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint32_t byteLength)
 {
-  if(m_ResolverThread != 0)
   {
-    m_ResolverThreadKillSignal = true;
-    Threading::JoinThread(m_ResolverThread);
-    Threading::CloseThread(m_ResolverThread);
-    m_ResolverThread = 0;
-  }
+    // chunk index needs to be valid
+    RDCASSERT(chunkID > 0);
 
-  if(m_ReadFileHandle)
-  {
-    FileIO::fclose(m_ReadFileHandle);
-    m_ReadFileHandle = 0;
-  }
-
-  for(size_t i = 0; i < m_Sections.size(); i++)
-  {
-    SAFE_DELETE(m_Sections[i]->compressedReader);
-    SAFE_DELETE(m_Sections[i]);
-  }
-
-  for(size_t i = 0; i < m_Chunks.size(); i++)
-  {
-    if(m_Chunks[i]->IsTemporary())
-      SAFE_DELETE(m_Chunks[i]);
-  }
-
-  m_Chunks.clear();
-
-  SAFE_DELETE(m_pResolver);
-  SAFE_DELETE(m_pCallstack);
-  if(m_Buffer)
-  {
-    FreeAlignedBuffer(m_Buffer);
-    m_Buffer = NULL;
-  }
-  m_Buffer = NULL;
-  m_BufferHead = NULL;
-}
-
-void Serialiser::WriteBytes(const byte *buf, size_t nBytes)
-{
-  if(m_HasError)
-  {
-    RDCERR("Writing bytes with error state serialiser");
-    return;
-  }
-
-  if(m_Buffer + m_BufferSize < m_BufferHead + nBytes + 8)
-  {
-    // reallocate
-    while(m_Buffer + m_BufferSize < m_BufferHead + nBytes + 8)
     {
-      m_BufferSize += 128 * 1024;
-    }
+      uint32_t c = chunkID & ChunkIndexMask;
+      RDCASSERT(chunkID <= ChunkIndexMask);
 
-    byte *newBuf = AllocAlignedBuffer((size_t)m_BufferSize);
+      c |= m_ChunkFlags;
 
-    size_t curUsed = m_BufferHead - m_Buffer;
-
-    memcpy(newBuf, m_Buffer, curUsed);
-
-    FreeAlignedBuffer(m_Buffer);
-
-    m_Buffer = newBuf;
-    m_BufferHead = newBuf + curUsed;
-  }
-
-  memcpy(m_BufferHead, buf, nBytes);
-
-  m_BufferHead += nBytes;
-}
-
-void *Serialiser::ReadBytes(size_t nBytes)
-{
-  if(m_HasError)
-  {
-    RDCERR("Reading bytes with error state serialiser");
-    return NULL;
-  }
-
-  // if we would read off the end of our current window
-  if(m_BufferHead + nBytes > m_Buffer + m_CurrentBufferSize)
-  {
-    // store old buffer and the read data, so we can move it into the new buffer
-    byte *oldBuffer = m_Buffer;
-
-    // always keep at least a certain window behind what we read.
-    size_t backwardsWindow = RDCMIN((size_t)64, size_t(m_BufferHead - m_Buffer));
-
-    byte *currentData = m_BufferHead - backwardsWindow;
-    size_t currentDataSize = m_CurrentBufferSize - (m_BufferHead - m_Buffer) + backwardsWindow;
-
-    size_t BufferOffset = m_BufferHead - m_Buffer;
-
-    // if we are reading more than our current buffer size, expand the buffer size
-    if(nBytes + backwardsWindow > m_CurrentBufferSize)
-    {
-      // very conservative resizing - don't do "double and add" - to avoid
-      // a 1GB buffer being read and needing to allocate 2GB. The cost is we
-      // will reallocate a bit more often
-      m_CurrentBufferSize = nBytes + backwardsWindow;
-      m_Buffer = AllocAlignedBuffer(m_CurrentBufferSize);
-    }
-
-    // move the unread data into the buffer
-    memmove(m_Buffer, currentData, currentDataSize);
-
-    if(BufferOffset > backwardsWindow)
-    {
-      m_ReadOffset += BufferOffset - backwardsWindow;
-      m_BufferHead = m_Buffer + backwardsWindow;
-    }
-    else
-    {
-      m_BufferHead = m_Buffer + BufferOffset;
-    }
-
-    // if there's anything left of the file to read in, do so now
-    ReadFromFile(currentDataSize, RDCMIN(m_CurrentBufferSize - currentDataSize,
-                                         size_t(m_BufferSize - m_ReadOffset - currentDataSize)));
-
-    if(oldBuffer != m_Buffer)
-      FreeAlignedBuffer(oldBuffer);
-  }
-
-  void *ret = m_BufferHead;
-
-  m_BufferHead += nBytes;
-
-  RDCASSERT(m_BufferHead <= m_Buffer + m_CurrentBufferSize);
-
-  return ret;
-}
-
-void Serialiser::ReadFromFile(uint64_t bufferOffs, size_t length)
-{
-  RDCASSERT(m_ReadFileHandle);
-
-  if(m_ReadFileHandle == NULL)
-    return;
-
-  Section *s = m_KnownSections[eSectionType_FrameCapture];
-
-  RDCASSERT(s);
-
-  if(s->flags & eSectionFlag_LZ4Compressed)
-  {
-    RDCASSERT(s->compressedReader);
-    s->compressedReader->Read(m_Buffer + bufferOffs, length);
-  }
-  else
-  {
-    FileIO::fread(m_Buffer + bufferOffs, 1, length, m_ReadFileHandle);
-  }
-}
-
-void Serialiser::SetPersistentBlock(uint64_t offs)
-{
-  // as long as this is called immediately after pushing the chunk context at the
-  // offset, we will always have the start in memory, as we keep 64 bytes of
-  // a backwards window even if we had to shift the currently in-memory bytes
-  // while reading the chunk header
-  RDCASSERT(m_ReadOffset <= offs);
-
-  // also can't persistent block ahead of where we are
-  RDCASSERT(offs < (m_BufferHead - m_Buffer) + m_ReadOffset);
-
-  // ensure sane offset
-  RDCASSERT(offs < m_BufferSize);
-
-  size_t persistentSize = (size_t)(m_BufferSize - offs);
-
-  // allocate our persistent buffer
-  byte *newBuf = AllocAlignedBuffer(persistentSize);
-
-  // save where buffer head was as file-offset
-  uint64_t prevOffs = uint64_t(m_BufferHead - m_Buffer) + m_ReadOffset;
-
-  // find the range of the persistent block that we have in memory
-  byte *persistentBase = m_Buffer + (offs - m_ReadOffset);
-  size_t persistentInMemory =
-      RDCMIN(persistentSize, size_t(m_CurrentBufferSize - (offs - m_ReadOffset)));
-
-  memcpy(newBuf, persistentBase, persistentInMemory);
-
-  FreeAlignedBuffer(m_Buffer);
-
-  m_CurrentBufferSize = persistentSize;
-  m_Buffer = newBuf;
-  m_ReadOffset = offs;
-
-  // set the head back to where it was
-  m_BufferHead = m_Buffer + (prevOffs - offs);
-
-  // if we didn't read everything, read the rest
-  if(persistentInMemory < persistentSize)
-  {
-    ReadFromFile(persistentInMemory, persistentSize - persistentInMemory);
-  }
-
-  RDCASSERT(m_ReadFileHandle);
-
-  // close the file handle
-  FileIO::fclose(m_ReadFileHandle);
-  m_ReadFileHandle = 0;
-}
-
-void Serialiser::SetOffset(uint64_t offs)
-{
-  if(m_HasError)
-  {
-    RDCERR("Setting offset with error state serialiser");
-    return;
-  }
-
-  // if we're jumping back before our in-memory window just reset the window
-  // and load it all in from scratch.
-  if(m_Mode == READING && offs < m_ReadOffset)
-  {
-    // if we're reading from file, only support rewinding all the way to the start
-    RDCASSERT(m_ReadFileHandle == NULL || offs == 0);
-
-    if(m_ReadFileHandle)
-    {
-      Section *s = m_KnownSections[eSectionType_FrameCapture];
-      RDCASSERT(s);
-      FileIO::fseek64(m_ReadFileHandle, s->fileoffset, SEEK_SET);
-
-      if(s->flags & eSectionFlag_LZ4Compressed)
-      {
-        RDCASSERT(s->compressedReader);
-        s->compressedReader->Reset();
-      }
-    }
-
-    FreeAlignedBuffer(m_Buffer);
-
-    m_CurrentBufferSize = (size_t)RDCMIN(m_BufferSize, (uint64_t)64 * 1024);
-    m_BufferHead = m_Buffer = AllocAlignedBuffer(m_CurrentBufferSize);
-    m_ReadOffset = offs;
-
-    ReadFromFile(0, m_CurrentBufferSize);
-  }
-
-  RDCASSERT(m_BufferHead && m_Buffer && offs <= GetSize());
-  m_BufferHead = m_Buffer + offs - m_ReadOffset;
-  m_Indent = 0;
-}
-
-void Serialiser::InitCallstackResolver()
-{
-  if(m_pResolver == NULL && m_ResolverThread == 0 &&
-     m_KnownSections[eSectionType_ResolveDatabase] != NULL)
-  {
-    m_ResolverThreadKillSignal = false;
-    m_ResolverThread = Threading::CreateThread([this]() { CreateResolver(); });
-  }
-}
-
-void Serialiser::SetCallstack(uint64_t *levels, size_t numLevels)
-{
-  if(m_pCallstack == NULL)
-    m_pCallstack = Callstack::Create();
-
-  m_pCallstack->Set(levels, numLevels);
-}
-
-void Serialiser::CreateResolver()
-{
-  string dir = dirname(m_Filename);
-
-  Section *s = m_KnownSections[Serialiser::eSectionType_ResolveDatabase];
-  RDCASSERT(s);
-
-  m_pResolver =
-      Callstack::MakeResolver((char *)&s->data[0], s->data.size(), dir, &m_ResolverThreadKillSignal);
-}
-
-void Serialiser::FlushToDisk()
-{
-  SCOPED_TIMER("File writing");
-
-  if(m_Filename != "" && !m_HasError && m_Mode == WRITING)
-  {
-    RDCDEBUG("writing capture files");
-
-    if(m_DebugEnabled && !m_DebugText.empty())
-    {
-      FILE *dbgFile = FileIO::fopen((m_Filename + ".txt").c_str(), "wb");
-
-      if(!dbgFile)
-      {
-        RDCERR("Can't open debug capture file '%s'", (m_Filename + ".txt").c_str());
-      }
-      else
-      {
-        const char *str = m_DebugText.c_str();
-        size_t len = m_DebugText.length();
-        const size_t chunkSize = 10 * 1024 * 1024;
-        while(len > 0)
-        {
-          size_t writeSize = RDCMIN(len, chunkSize);
-          size_t written = FileIO::fwrite(str, 1, writeSize, dbgFile);
-
-          RDCASSERT(written == writeSize);
-
-          str += writeSize;
-          len -= writeSize;
-        }
-
-        FileIO::fclose(dbgFile);
-      }
-    }
-
-    FILE *binFile = FileIO::fopen(m_Filename.c_str(), "w+b");
-
-    if(!binFile)
-    {
-      RDCERR("Can't open capture file '%s' for write, errno %d", m_Filename.c_str(), errno);
-      m_ErrorCode = eSerError_FileIO;
-      m_HasError = true;
-      return;
-    }
-
-    RDCDEBUG("Opened capture file for write");
-
-    FileHeader header;    // automagically initialised with correct data
-
-    // write header
-    FileIO::fwrite(&header, 1, sizeof(FileHeader), binFile);
-
-    static const byte padding[BufferAlignment] = {0};
-
-    uint64_t compressedSizeOffset = 0;
-    uint64_t uncompressedSizeOffset = 0;
-
-    // write frame capture section header
-    {
-      const char sectionName[] = "renderdoc/internal/framecapture";
-
-      BinarySectionHeader section = {0};
-      section.isASCII = 0;                                // redundant but explicit
-      section.sectionNameLength = sizeof(sectionName);    // includes null terminator
-      section.sectionType = eSectionType_FrameCapture;
-      section.sectionFlags = eSectionFlag_LZ4Compressed;
-      section.sectionLength =
-          0;    // will be fixed up later, to avoid having to compress everything into memory
-
-      compressedSizeOffset = FileIO::ftell64(binFile) + offsetof(BinarySectionHeader, sectionLength);
-
-      FileIO::fwrite(&section, 1, offsetof(BinarySectionHeader, name), binFile);
-      FileIO::fwrite(sectionName, 1, sizeof(sectionName), binFile);
-
-      uint64_t len = 0;    // will be fixed up later
-      uncompressedSizeOffset = FileIO::ftell64(binFile);
-      FileIO::fwrite(&len, 1, sizeof(uint64_t), binFile);
-    }
-
-    CompressedFileIO fwriter(binFile);
-
-    // track offset so we can add padding. The padding is relative
-    // to the start of the decompressed buffer, so we start it from 0
-    uint64_t offs = 0;
-    uint64_t alignedoffs = 0;
-
-    // write frame capture contents
-    for(size_t i = 0; i < m_Chunks.size(); i++)
-    {
-      Chunk *chunk = m_Chunks[i];
-
-      alignedoffs = AlignUp(offs, BufferAlignment);
-
-      if(offs != alignedoffs && chunk->IsAligned())
-      {
-        uint16_t chunkIdx = 0;    // write a '0' chunk that indicates special behaviour
-        fwriter.Write(&chunkIdx, sizeof(chunkIdx));
-        offs += sizeof(chunkIdx);
-
-        uint8_t controlByte = 0;    // control byte 0 indicates padding
-        fwriter.Write(&controlByte, sizeof(controlByte));
-        offs += sizeof(controlByte);
-
-        offs++;    // we will have to write out a byte indicating how much padding exists, so add 1
-        alignedoffs = AlignUp(offs, BufferAlignment);
-
-        RDCCOMPILE_ASSERT(BufferAlignment < 0x100,
-                          "Buffer alignment must be less than 256");    // with a byte at most
-                                                                        // indicating how many bytes
-                                                                        // to pad,
-        // this is our maximal representable alignment
-
-        uint8_t padLength = (alignedoffs - offs) & 0xff;
-        fwriter.Write(&padLength, sizeof(padLength));
-
-        // we might have padded with the control bytes, so only write some bytes if we need to
-        if(padLength > 0)
-        {
-          fwriter.Write(padding, size_t(alignedoffs - offs));
-          offs += alignedoffs - offs;
-        }
-      }
-
-      fwriter.Write(chunk->GetData(), chunk->GetLength());
-
-      offs += chunk->GetLength();
-
-      if(chunk->IsTemporary())
-        SAFE_DELETE(chunk);
-    }
-
-    fwriter.Flush();
-
-    m_Chunks.clear();
-
-    // fixup section size
-    {
-      uint32_t compsize = 0;
-      uint64_t uncompsize = 0;
-
-      uint64_t curoffs = FileIO::ftell64(binFile);
-
-      FileIO::fseek64(binFile, compressedSizeOffset, SEEK_SET);
-
-      uint64_t realCompSize = fwriter.GetCompressedSize();
-
-      if(realCompSize > 0xffffffff)
-      {
-        RDCERR("Compressed file size %llu exceeds representable capture size! May cause corruption",
-               realCompSize);
-        realCompSize = 0xffffffffULL;
-      }
-
-      compsize = uint32_t(realCompSize);
-      FileIO::fwrite(&compsize, 1, sizeof(compsize), binFile);
-
-      FileIO::fseek64(binFile, uncompressedSizeOffset, SEEK_SET);
-
-      uncompsize = fwriter.GetUncompressedSize();
-      FileIO::fwrite(&uncompsize, 1, sizeof(uncompsize), binFile);
-
-      FileIO::fseek64(binFile, curoffs, SEEK_SET);
-
-      RDCLOG("Compressed frame capture data from %llu to %llu", fwriter.GetUncompressedSize(),
-             fwriter.GetCompressedSize());
-    }
-
-    char *symbolDB = NULL;
-    size_t symbolDBSize = 0;
-
-    if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks ||
-       RenderDoc::Inst().GetCaptureOptions().CaptureCallstacksOnlyDraws)
-    {
-      // get symbol database
-      Callstack::GetLoadedModules(symbolDB, symbolDBSize);
-
-      symbolDB = new char[symbolDBSize];
-      symbolDBSize = 0;
-
-      Callstack::GetLoadedModules(symbolDB, symbolDBSize);
-    }
-
-    // write symbol database section
-    if(symbolDB)
-    {
-      const char sectionName[] = "renderdoc/internal/resolvedb";
-
-      BinarySectionHeader section = {0};
-      section.isASCII = 0;                                // redundant but explicit
-      section.sectionNameLength = sizeof(sectionName);    // includes null terminator
-      section.sectionType = eSectionType_ResolveDatabase;
-      section.sectionLength = (uint32_t)symbolDBSize;
-
-      FileIO::fwrite(&section, 1, offsetof(BinarySectionHeader, name), binFile);
-      FileIO::fwrite(sectionName, 1, sizeof(sectionName), binFile);
-
-      // write actual data
-      FileIO::fwrite(symbolDB, 1, symbolDBSize, binFile);
-
-      SAFE_DELETE_ARRAY(symbolDB);
-    }
-
-    // write the machine identifier as an ASCII section
-    {
-      const char sectionName[] = "renderdoc/internal/machineid";
-
-      uint64_t machineID = OSUtility::GetMachineIdent();
-
-      BinarySectionHeader section = {0};
-      section.isASCII = 0;                                // redundant but explicit
-      section.sectionNameLength = sizeof(sectionName);    // includes null terminator
-      section.sectionType = eSectionType_MachineID;
-      section.sectionFlags = eSectionFlag_None;
-      section.sectionLength = sizeof(machineID);
-
-      FileIO::fwrite(&section, 1, offsetof(BinarySectionHeader, name), binFile);
-      FileIO::fwrite(sectionName, 1, sizeof(sectionName), binFile);
-      FileIO::fwrite(&machineID, 1, sizeof(machineID), binFile);
-    }
-
-    FileIO::fclose(binFile);
-  }
-}
-
-void Serialiser::DebugPrint(const char *fmt, ...)
-{
-  if(m_HasError)
-  {
-    RDCERR("Debug printing with error state serialiser");
-    return;
-  }
-
-  char tmpBuf[1024];
-
-  va_list args;
-  va_start(args, fmt);
-  StringFormat::vsnprintf(tmpBuf, 1023, fmt, args);
-  tmpBuf[1023] = '\0';
-  va_end(args);
-
-  m_DebugText += GetIndent();
-  m_DebugText += tmpBuf;
-}
-
-uint32_t Serialiser::PushContext(const char *name, const char *typeName, uint32_t chunkIdx,
-                                 bool smallChunk)
-{
-  // if writing, and chunkidx isn't 0 (debug non-scope), then either we're nested
-  // or we should be writing into the start of the serialiser. A serialiser should
-  // only ever have one chunk in it
-  RDCASSERT(m_Mode < WRITING || m_Indent > 0 || GetOffset() == 0 || chunkIdx == 0);
-
-  // we should not be pushing contexts directly into a file serialiser
-  RDCASSERT(m_Mode < WRITING || m_Filename.empty());
-
-  if(m_Mode >= WRITING)
-  {
-    if(chunkIdx > 0)
-    {
-      uint16_t c = chunkIdx & 0x3fff;
-      RDCASSERT(chunkIdx <= 0x3fff);
+      m_ChunkMetadata.chunkID = chunkID;
 
       /////////////////
 
-      Callstack::Stackwalk *call = NULL;
+      m_Write->Write(c);
 
-      if(m_Indent == 0)
+      if(c & ChunkCallstack)
       {
-        if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks &&
-           !RenderDoc::Inst().GetCaptureOptions().CaptureCallstacksOnlyDraws)
+        if(m_ChunkMetadata.callstack.empty())
         {
-          call = Callstack::Collect();
+          bool collect = RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks;
 
-          RDCASSERT(call->NumLevels() < 0xff);
-        }
-      }
+          if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacksOnlyDraws)
+            collect = collect && m_DrawChunk;
 
-      if(call)
-        c |= 0x8000;
-      if(smallChunk)
-        c |= 0x4000;
-
-      WriteFrom(c);
-
-      if(call)
-      {
-        uint8_t numLevels = call->NumLevels() & 0xff;
-        WriteFrom(numLevels);
-
-        if(call->NumLevels())
-        {
-          WriteBytes((byte *)call->GetAddrs(), sizeof(uint64_t) * numLevels);
-        }
-
-        SAFE_DELETE(call);
-      }
-
-      // will be fixed up in PopContext
-      if(smallChunk)
-      {
-        uint16_t chunkSize = 0xbeeb;
-        m_ChunkFixups.push_back(0x8000000000000000ULL | GetOffset());
-        WriteFrom(chunkSize);
-      }
-      else
-      {
-        uint32_t chunkSize = 0xbeebfeed;
-        m_ChunkFixups.push_back(GetOffset() & ~0x8000000000000000ULL);
-        WriteFrom(chunkSize);
-      }
-    }
-
-    if(m_DebugTextWriting)
-    {
-      if(typeName)
-        DebugPrint("%s = %s (%d)\n", name, typeName, chunkIdx);
-      else
-        DebugPrint("%s (%d)\n", name, chunkIdx);
-      DebugPrint("{\n");
-    }
-  }
-  else
-  {
-    if(m_Indent == 0)
-    {
-      // reset debug text
-      m_DebugText = "";
-    }
-
-    if(chunkIdx > 0)
-    {
-      uint16_t c = 0;
-      ReadInto(c);
-
-      // chunk index 0 is not allowed in normal situations.
-      // allows us to indicate some control bytes
-      while(c == 0)
-      {
-        uint8_t *controlByte = (uint8_t *)ReadBytes(1);
-
-        if(*controlByte == 0x0)
-        {
-          // padding
-          uint8_t *padLength = (uint8_t *)ReadBytes(1);
-
-          // might have padded with these 5 control bytes,
-          // so a pad length of 0 IS VALID.
-          if(*padLength > 0)
+          if(collect)
           {
-            ReadBytes((size_t)*padLength);
+            Callstack::Stackwalk *stack = Callstack::Collect();
+            if(stack && stack->NumLevels() > 0)
+            {
+              m_ChunkMetadata.callstack.assign(stack->GetAddrs(), stack->NumLevels());
+            }
+
+            SAFE_DELETE(stack);
           }
         }
-        else
-        {
-          RDCERR("Unexpected control byte: %x", (uint32_t)*controlByte);
-        }
 
-        ReadInto(c);
+        uint32_t numFrames = (uint32_t)m_ChunkMetadata.callstack.size();
+        m_Write->Write(numFrames);
+
+        m_Write->Write(m_ChunkMetadata.callstack.data(), m_ChunkMetadata.callstack.byteSize());
       }
 
-      chunkIdx = c & 0x3fff;
-      bool callstack = (c & 0x8000) > 0;
-      bool smallchunk = (c & 0x4000) > 0;
-
-      /////////////////
-
-      if(m_Indent == 0)
+      if(c & ChunkThreadID)
       {
-        if(callstack)
-        {
-          uint8_t callLen = 0;
-          ReadInto(callLen);
+        if(m_ChunkMetadata.threadID == 0)
+          m_ChunkMetadata.threadID = Threading::GetCurrentID();
 
-          uint64_t *calls = (uint64_t *)ReadBytes(callLen * sizeof(uint64_t));
-          SetCallstack(calls, callLen);
-        }
-        else
-        {
-          SetCallstack(NULL, 0);
-        }
+        m_Write->Write(m_ChunkMetadata.threadID);
       }
 
-      /////////////////
+      if(c & ChunkDuration)
+        m_Write->Write(m_ChunkMetadata.durationMicro);
 
-      if(smallchunk)
+      if(c & ChunkTimestamp)
       {
-        uint16_t miniSize = 0xbeeb;
-        ReadInto(miniSize);
+        if(m_ChunkMetadata.timestampMicro == 0)
+          m_ChunkMetadata.timestampMicro = RenderDoc::Inst().GetMicrosecondTimestamp();
 
-        m_LastChunkLen = miniSize;
+        m_Write->Write(m_ChunkMetadata.timestampMicro);
+      }
+
+      if(byteLength > 0 || m_DataStreaming)
+      {
+        // write length, assuming it is an upper bound
+        m_ChunkFixup = 0;
+        m_Write->Write(byteLength);
+        m_LastChunkOffset = m_Write->GetOffset();
+        m_ChunkMetadata.length = byteLength;
       }
       else
       {
+        // length will be fixed up in EndChunk
         uint32_t chunkSize = 0xbeebfeed;
-        ReadInto(chunkSize);
-
-        m_LastChunkLen = chunkSize;
+        m_ChunkFixup = m_Write->GetOffset();
+        m_Write->Write(chunkSize);
       }
     }
-
-    if(!name && m_ChunkLookup)
-      name = m_ChunkLookup(chunkIdx);
-
-    if(m_DebugTextWriting)
-    {
-      if(typeName)
-        DebugPrint("%s = %s\n", name ? name : "Unknown", typeName);
-      else
-        DebugPrint("%s\n", name ? name : "Unknown");
-      DebugPrint("{\n");
-    }
   }
 
-  m_Indent++;
-
-  return chunkIdx;
-}
-
-void Serialiser::PopContext(uint32_t chunkIdx)
-{
-  m_Indent = RDCMAX(m_Indent - 1, 0);
-
-  if(m_Mode >= WRITING)
-  {
-    if(chunkIdx > 0 && m_Mode == WRITING)
-    {
-      // fix up the latest PushContext (guaranteed to match this one as Pushes and Pops match)
-      RDCASSERT(!m_ChunkFixups.empty());
-
-      uint64_t chunkOffset = m_ChunkFixups.back();
-      m_ChunkFixups.pop_back();
-
-      bool smallchunk = (chunkOffset & 0x8000000000000000ULL) > 0;
-      chunkOffset &= ~0x8000000000000000ULL;
-
-      uint64_t curOffset = GetOffset();
-
-      RDCASSERT(curOffset > chunkOffset);
-
-      uint64_t chunkLength =
-          (curOffset - chunkOffset) - (smallchunk ? sizeof(uint16_t) : sizeof(uint32_t));
-
-      RDCASSERT(chunkLength < 0xffffffff);
-
-      uint32_t chunklen = (uint32_t)chunkLength;
-
-      byte *head = m_BufferHead;
-      SetOffset(chunkOffset);
-      if(smallchunk)
-      {
-        uint16_t miniSize = (chunklen & 0xffff);
-        RDCASSERT(chunklen <= 0xffff);
-        WriteFrom(miniSize);
-      }
-      else
-      {
-        WriteFrom(chunklen);
-      }
-      m_BufferHead = head;
-    }
-
-    if(m_DebugTextWriting)
-      DebugPrint("}\n");
-  }
-  else
-  {
-    if(m_DebugTextWriting)
-      DebugPrint("}\n");
-  }
-}
-
-/////////////////////////////////////////////////////////////
-// Serialise functions
-
-/////////////////////////////////////////////////////////////
-// generic
-
-void Serialiser::SerialiseString(const char *name, string &el)
-{
-  uint32_t len = (uint32_t)el.length();
-
-  Serialise(NULL, len);
-
-  if(m_Mode == READING)
-    el.resize(len);
-
-  if(m_Mode >= WRITING)
-  {
-    WriteBytes((byte *)el.c_str(), len);
-
-    if(m_DebugTextWriting)
-    {
-      string s = el;
-      if(s.length() > 64)
-        s = s.substr(0, 60) + "...";
-      DebugPrint("%s: \"%s\"\n", name, s.c_str());
-    }
-  }
-  else
-  {
-    memcpy(&el[0], ReadBytes(len), len);
-
-    if(m_DebugTextWriting)
-    {
-      string s = el;
-      if(s.length() > 64)
-        s = s.substr(0, 60) + "...";
-      DebugPrint("%s: \"%s\"\n", name, s.c_str());
-    }
-  }
-}
-
-void Serialiser::Insert(Chunk *chunk)
-{
-  m_Chunks.push_back(chunk);
-
-  m_DebugText += chunk->GetDebugString();
-}
-
-void Serialiser::AlignNextBuffer(const size_t alignment)
-{
-  // on new logs, we don't have to align. This code will be deleted once backwards-compat is dropped
-  if(m_Mode >= WRITING || m_SerVer >= 0x00000032)
-    return;
-
-  // this is a super hack but it's the easiest way to align a buffer to a larger pow2 alignment
-  // than the default 16-bytes, while still able to be backwards compatible with old logs that
-  // weren't so aligned. We know that SerialiseBuffer will align to the nearest 16-byte boundary
-  // after serialising 4 bytes of length, so we pad up to exactly 4 bytes before the desired
-  // alignment, then after the 4 byte length there's nothing for the other padding to do.
-  //
-  // Note the chunk still needs to be aligned when the memory is allocated - this just ensures
-  // the offset from the start is also aligned
-
-  uint32_t len = 0;
-
-  if(m_Mode >= WRITING)
-  {
-    // add sizeof(uint32_t) since we'll be serialising out how much padding is here,
-    // then another sizeof(uint32_t) so we're aligning the offset after the buffer's
-    // serialised length
-    uint64_t curoffs = GetOffset() + sizeof(uint32_t) * 2;
-    uint64_t alignedoffs = AlignUp(curoffs, (uint64_t)alignment);
-
-    len = uint32_t(alignedoffs - curoffs);
-  }
-
-  // avoid dynamically allocating
-  RDCASSERT(alignment <= 128);
-  byte padding[128] = {0};
-
-  if(m_Mode >= WRITING)
-  {
-    WriteFrom(len);
-    WriteBytes(&padding[0], (size_t)len);
-  }
-  else
-  {
-    ReadInto(len);
-    ReadBytes(len);
-  }
-}
-
-void Serialiser::SerialiseBuffer(const char *name, byte *&buf, size_t &len)
-{
-  uint32_t bufLen = (uint32_t)len;
-
-  if(m_Mode >= WRITING)
-  {
-    WriteFrom(bufLen);
-
-    // ensure byte alignment
-    uint64_t offs = GetOffset();
-    uint64_t alignedoffs = AlignUp(offs, BufferAlignment);
-
-    if(offs != alignedoffs)
-    {
-      static const byte padding[BufferAlignment] = {0};
-      WriteBytes(&padding[0], (size_t)(alignedoffs - offs));
-    }
-
-    RDCASSERT((GetOffset() % BufferAlignment) == 0);
-
-    WriteBytes(buf, bufLen);
-
-    m_AlignedData = true;
-  }
-  else
-  {
-    ReadInto(bufLen);
-
-    // ensure byte alignment
-    uint64_t offs = GetOffset();
-
-    // serialise version 0x00000031 had only 16-byte alignment
-    uint64_t alignedoffs = AlignUp(offs, m_SerVer == 0x00000031 ? 16 : BufferAlignment);
-
-    if(offs != alignedoffs)
-    {
-      ReadBytes((size_t)(alignedoffs - offs));
-    }
-
-    if(buf == NULL)
-      buf = new byte[bufLen];
-    memcpy(buf, ReadBytes(bufLen), bufLen);
-  }
-
-  len = (size_t)bufLen;
-
-  if(m_DebugTextWriting && name && name[0])
-  {
-    const char *ellipsis = "...";
-
-    uint32_t lbuf[4];
-
-    memcpy(lbuf, buf, RDCMIN(len, 4 * sizeof(uint32_t)));
-
-    if(bufLen <= 16)
-    {
-      ellipsis = "   ";
-    }
-
-    DebugPrint("%s: RawBuffer % 5d:< 0x%08x 0x%08x 0x%08x 0x%08x %s>\n", name, bufLen, lbuf[0],
-               lbuf[1], lbuf[2], lbuf[3], ellipsis);
-  }
+  return chunkID;
 }
 
 template <>
-void Serialiser::Serialise(const char *name, string &el)
+void Serialiser<SerialiserMode::Writing>::EndChunk()
 {
-  SerialiseString(name, el);
-}
+  m_DrawChunk = false;
 
-// floats need aligned reads
-template <>
-void Serialiser::ReadInto(float &f)
-{
-  if(m_HasError)
+  if(m_DataStreaming)
   {
-    RDCERR("Reading into with error state serialiser");
-    return;
+    // nothing to fixup, length is unused
+  }
+  else if(m_ChunkFixup != 0)
+  {
+    // fix up the chunk header
+    uint64_t chunkOffset = m_ChunkFixup;
+    m_ChunkFixup = 0;
+
+    uint64_t curOffset = m_Write->GetOffset();
+
+    RDCASSERT(curOffset > chunkOffset);
+
+    uint64_t chunkLength = (curOffset - chunkOffset) - sizeof(uint32_t);
+
+    RDCASSERT(chunkLength < 0xffffffff);
+
+    uint32_t chunklen = (uint32_t)chunkLength;
+
+    m_Write->WriteAt(chunkOffset, chunklen);
+  }
+  else
+  {
+    uint64_t writtenLength = (m_Write->GetOffset() - m_LastChunkOffset);
+
+    if(writtenLength < m_ChunkMetadata.length)
+    {
+      uint64_t numPadBytes = m_ChunkMetadata.length - writtenLength;
+
+      // need to write some padding bytes so that the length is accurate
+      for(uint64_t i = 0; i < numPadBytes; i++)
+      {
+        byte padByte = 0xbb;
+        m_Write->Write(padByte);
+      }
+
+      RDCDEBUG("Chunk estimated at %u bytes, actual length %llu. Added %llu bytes padding.",
+               m_ChunkMetadata.length, writtenLength, numPadBytes);
+    }
+    else if(writtenLength > m_ChunkMetadata.length)
+    {
+      RDCERR(
+          "!!! "
+          "ESTIMATED UPPER BOUND CHUNK LENGTH %u EXCEEDED: %llu. "
+          "CAPTURE WILL BE CORRUPTED. "
+          "!!!",
+          m_ChunkMetadata.length, writtenLength);
+    }
+    else
+    {
+      RDCDEBUG("Chunk was exactly the estimate of %u bytes.", m_ChunkMetadata.length);
+    }
   }
 
-  char *data = (char *)ReadBytes(sizeof(float));
+  // align to the natural chunk alignment
+  m_Write->AlignTo<ChunkAlignment>();
 
-  memcpy(&f, data, sizeof(float));
+  m_ChunkMetadata = SDChunkMetaData();
 }
 
-/////////////////////////////////////////////////////////////
-// String conversions for debug log.
+template <>
+void Serialiser<SerialiserMode::Writing>::WriteStructuredFile(const SDFile &file)
+{
+  Serialiser<SerialiserMode::Writing> scratchWriter(
+      new StreamWriter(StreamWriter::DefaultScratchSize), Ownership::Stream);
+
+  // slightly cheeky to cast away the const, but we don't modify it in a writing serialiser
+  scratchWriter.m_StructuredFile = m_StructuredFile = (SDFile *)&file;
+
+  for(size_t i = 0; i < file.chunks.size(); i++)
+  {
+    const SDChunk &chunk = *file.chunks[i];
+
+    m_ChunkMetadata = chunk.metadata;
+
+    m_ChunkFlags = 0;
+
+    if(!m_ChunkMetadata.callstack.empty())
+      m_ChunkFlags |= ChunkCallstack;
+
+    if(m_ChunkMetadata.threadID != 0)
+      m_ChunkFlags |= ChunkThreadID;
+
+    if(m_ChunkMetadata.durationMicro != 0)
+      m_ChunkFlags |= ChunkDuration;
+
+    if(m_ChunkMetadata.timestampMicro != 0)
+      m_ChunkFlags |= ChunkTimestamp;
+
+    Serialiser<SerialiserMode::Writing> *ser = this;
+
+    if(m_ChunkMetadata.length == 0)
+    {
+      ser = &scratchWriter;
+      scratchWriter.m_ChunkMetadata = m_ChunkMetadata;
+      scratchWriter.m_ChunkFlags = m_ChunkFlags;
+    }
+
+    ser->BeginChunk(m_ChunkMetadata.chunkID, m_ChunkMetadata.length);
+
+    if(chunk.metadata.flags & SDChunkFlags::OpaqueChunk)
+    {
+      RDCASSERT(chunk.data.children.size() == 1);
+
+      size_t bufID = (size_t)chunk.data.children[0]->data.basic.u;
+      byte *ptr = m_StructuredFile->buffers[bufID]->data();
+      size_t len = m_StructuredFile->buffers[bufID]->size();
+
+      ser->GetWriter()->Write(ptr, len);
+    }
+    else
+    {
+      for(size_t o = 0; o < chunk.data.children.size(); o++)
+      {
+        // note, we don't need names because we aren't exporting structured data
+        ser->Serialise("", chunk.data.children[o]);
+      }
+    }
+
+    ser->EndChunk();
+
+    if(m_ChunkMetadata.length == 0)
+    {
+      m_Write->Write(scratchWriter.GetWriter()->GetData(), scratchWriter.GetWriter()->GetOffset());
+      scratchWriter.GetWriter()->Rewind();
+    }
+  }
+
+  m_StructuredFile = &m_StructData;
+  scratchWriter.m_StructuredFile = &scratchWriter.m_StructData;
+}
+
+template <>
+std::string DoStringise(const SDBasic &el)
+{
+  BEGIN_ENUM_STRINGISE(SDBasic);
+  {
+    STRINGISE_ENUM_CLASS(Chunk);
+    STRINGISE_ENUM_CLASS(Struct);
+    STRINGISE_ENUM_CLASS(Array);
+    STRINGISE_ENUM_CLASS(Null);
+    STRINGISE_ENUM_CLASS(Buffer);
+    STRINGISE_ENUM_CLASS(String);
+    STRINGISE_ENUM_CLASS(Enum);
+    STRINGISE_ENUM_CLASS(UnsignedInteger);
+    STRINGISE_ENUM_CLASS(SignedInteger);
+    STRINGISE_ENUM_CLASS(Float);
+    STRINGISE_ENUM_CLASS(Boolean);
+    STRINGISE_ENUM_CLASS(Character);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const SDTypeFlags &el)
+{
+  BEGIN_BITFIELD_STRINGISE(SDTypeFlags);
+  {
+    STRINGISE_BITFIELD_CLASS_VALUE(NoFlags);
+
+    STRINGISE_BITFIELD_CLASS_BIT(HasCustomString);
+    STRINGISE_BITFIELD_CLASS_BIT(Hidden);
+    STRINGISE_BITFIELD_CLASS_BIT(Nullable);
+    STRINGISE_BITFIELD_CLASS_BIT(NullString);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const SDChunkFlags &el)
+{
+  BEGIN_BITFIELD_STRINGISE(SDChunkFlags);
+  {
+    STRINGISE_BITFIELD_CLASS_VALUE(NoFlags);
+
+    STRINGISE_BITFIELD_CLASS_BIT(OpaqueChunk);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, SDType &el)
+{
+  SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(basetype);
+  SERIALISE_MEMBER(flags);
+  SERIALISE_MEMBER(byteSize);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, SDChunkMetaData &el)
+{
+  SERIALISE_MEMBER(chunkID);
+  SERIALISE_MEMBER(flags);
+  SERIALISE_MEMBER(length);
+  SERIALISE_MEMBER(threadID);
+  SERIALISE_MEMBER(durationMicro);
+  SERIALISE_MEMBER(timestampMicro);
+  SERIALISE_MEMBER(callstack);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, SDObjectPODData &el)
+{
+  SERIALISE_MEMBER(u);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, StructuredObjectList &el)
+{
+  // since structured objects aren't intended to be exported as nice structured data, only for pure
+  // transfer purposes, we don't make a proper array here and instead just manually serialise count
+  // + elements
+  uint64_t count = el.size();
+  ser.Serialise("count", count);
+
+  if(ser.IsReading())
+    el.resize((size_t)count);
+
+  for(size_t c = 0; c < (size_t)count; c++)
+  {
+    // we also assume that the caller serialising these objects will handle lifetime management.
+    if(ser.IsReading())
+      el[c] = new SDObject("", "");
+
+    ser.Serialise("$el", *el[c]);
+  }
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, SDObjectData &el)
+{
+  SERIALISE_MEMBER(basic);
+  SERIALISE_MEMBER(str);
+  SERIALISE_MEMBER(children);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, SDObject &el)
+{
+  SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(type);
+  SERIALISE_MEMBER(data);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, SDChunk &el)
+{
+  SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(type);
+  SERIALISE_MEMBER(data);
+  SERIALISE_MEMBER(metadata);
+}
+
+INSTANTIATE_SERIALISE_TYPE(SDChunk);
+
+// serialise the pointer version - special case for writing a structured file, so can assume writing
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, SDObject *el)
+{
+  // clang barfs if we try to do ser.IsWriting() here for some reason, claiming it isn't static and
+  // const enough for static_assert. As a workaround we call IsWriting as a static member of the
+  // type itself, and that works.
+  RDCCOMPILE_ASSERT(SerialiserType::IsWriting(),
+                    "SDObject pointer only supported for writing serialisation");
+  if(el->type.flags & SDTypeFlags::Nullable)
+  {
+    bool present = el->type.basetype != SDBasic::Null;
+    ser.Serialise("", present);
+  }
+
+  const SDFile &file = ser.GetStructuredFile();
+
+  switch(el->type.basetype)
+  {
+    case SDBasic::Chunk: RDCERR("Unexpected chunk inside object!"); break;
+    case SDBasic::Struct:
+      for(size_t o = 0; o < el->data.children.size(); o++)
+        ser.Serialise("", el->data.children[o]);
+      break;
+    case SDBasic::Array: ser.Serialise("", (rdcarray<SDObject *> &)el->data.children); break;
+    case SDBasic::Null:
+      // nothing to do, we serialised present flag above
+      RDCASSERT(el->type.flags & SDTypeFlags::Nullable);
+      break;
+    case SDBasic::Buffer:
+    {
+      size_t bufID = (size_t)el->data.basic.u;
+      byte *buf = file.buffers[bufID]->data();
+      uint64_t size = file.buffers[bufID]->size();
+      ser.Serialise("", buf, size);
+      break;
+    }
+    case SDBasic::String:
+    {
+      if(el->type.flags & SDTypeFlags::NullString)
+      {
+        const char *nullstring = NULL;
+        ser.Serialise("", nullstring);
+      }
+      else
+      {
+        ser.Serialise("", el->data.str);
+      }
+      break;
+    }
+    case SDBasic::Enum:
+    {
+      uint32_t e = (uint32_t)el->data.basic.u;
+      ser.Serialise("", e);
+      break;
+    }
+    case SDBasic::Boolean: ser.Serialise("", el->data.basic.b); break;
+    case SDBasic::Character: ser.Serialise("", el->data.basic.c); break;
+    case SDBasic::UnsignedInteger:
+      if(el->type.byteSize == 1)
+      {
+        uint8_t u = uint8_t(el->data.basic.u);
+        ser.Serialise("", u);
+      }
+      else if(el->type.byteSize == 2)
+      {
+        uint16_t u = uint16_t(el->data.basic.u);
+        ser.Serialise("", u);
+      }
+      else if(el->type.byteSize == 4)
+      {
+        uint32_t u = uint32_t(el->data.basic.u);
+        ser.Serialise("", u);
+      }
+      else if(el->type.byteSize == 8)
+      {
+        ser.Serialise("", el->data.basic.u);
+      }
+      else
+      {
+        RDCERR("Unexpeted integer size %u", el->type.byteSize);
+      }
+      break;
+    case SDBasic::SignedInteger:
+      if(el->type.byteSize == 1)
+      {
+        int8_t i = int8_t(el->data.basic.i);
+        ser.Serialise("", i);
+      }
+      else if(el->type.byteSize == 2)
+      {
+        int16_t i = int16_t(el->data.basic.i);
+        ser.Serialise("", i);
+      }
+      else if(el->type.byteSize == 4)
+      {
+        int32_t i = int32_t(el->data.basic.i);
+        ser.Serialise("", i);
+      }
+      else if(el->type.byteSize == 8)
+      {
+        ser.Serialise("", el->data.basic.i);
+      }
+      else
+      {
+        RDCERR("Unexpeted integer size %u", el->type.byteSize);
+      }
+      break;
+    case SDBasic::Float:
+      if(el->type.byteSize == 4)
+      {
+        float f = float(el->data.basic.d);
+        ser.Serialise("", f);
+      }
+      else if(el->type.byteSize == 8)
+      {
+        ser.Serialise("", el->data.basic.d);
+      }
+      else
+      {
+        RDCERR("Unexpeted float size %u", el->type.byteSize);
+      }
+      break;
+  }
+}
 
 /////////////////////////////////////////////////////////////
 // Basic types
@@ -1946,11 +743,7 @@ std::string DoStringise(const int64_t &el)
   return StringFormat::Fmt("%lld", el);
 }
 
-// this is super ugly, but I don't see a way around it - on other
-// platforms size_t is typedef'd in such a way that the uint32_t or
-// uint64_t specialisation will kick in. On apple, we need a
-// specific size_t overload
-#if ENABLED(RDOC_APPLE)
+#if ENABLED(RDOC_SIZET_SEP_TYPE)
 template <>
 std::string DoStringise(const size_t &el)
 {
@@ -1985,13 +778,13 @@ std::string DoStringise(const wchar_t &el)
 template <>
 std::string DoStringise(const byte &el)
 {
-  return StringFormat::Fmt("%08hhb", el);
+  return StringFormat::Fmt("%hhu", el);
 }
 
 template <>
 std::string DoStringise(const uint16_t &el)
 {
-  return StringFormat::Fmt("%04u", el);
+  return StringFormat::Fmt("%hu", el);
 }
 
 template <>
@@ -2003,7 +796,7 @@ std::string DoStringise(const int32_t &el)
 template <>
 std::string DoStringise(const int16_t &el)
 {
-  return StringFormat::Fmt("%04d", el);
+  return StringFormat::Fmt("%hd", el);
 }
 
 template <>

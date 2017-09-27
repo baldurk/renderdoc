@@ -12,6 +12,7 @@
 // swig's pre-processor trips up on this definition, and it's only needed for template expansions
 // in the conversion code
 #define DECLARE_REFLECTION_STRUCT(t)
+#define DECLARE_REFLECTION_ENUM(t)
 
 // use documentation for docstrings
 #define DOCUMENT(text) %feature("docstring") text
