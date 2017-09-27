@@ -336,15 +336,6 @@ inline enum_name operator++(enum_name &a)                                      \
 
 #include "basic_types.h"
 #include "stringise.h"
-
-#ifndef DECLARE_REFLECTION_STRUCT
-#define DECLARE_REFLECTION_STRUCT(type) DECLARE_STRINGISE_TYPE(type)
-#endif
-
-#ifndef DECLARE_REFLECTION_ENUM
-#define DECLARE_REFLECTION_ENUM(type) DECLARE_STRINGISE_TYPE(type)
-#endif
-
 #include "structured_data.h"
 
 #ifdef RENDERDOC_EXPORTS

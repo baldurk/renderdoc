@@ -402,6 +402,7 @@
     <ClCompile Include="serialise\lz4io.cpp" />
     <ClCompile Include="serialise\rdcfile.cpp" />
     <ClCompile Include="serialise\serialiser.cpp" />
+    <ClCompile Include="serialise\serialiser_tests.cpp" />
     <ClCompile Include="serialise\streamio.cpp" />
     <ClCompile Include="serialise\streamio_tests.cpp" />
     <ClCompile Include="serialise\zstdio.cpp" />

@@ -1,8 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2017 Baldur Karlsson
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2017 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,40 +24,1620 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <string.h>
 #include <list>
 #include <set>
 #include <string>
-#include <utility>
 #include <vector>
-#include "api/replay/basic_types.h"
-#include "common/common.h"
-#include "os/os_specific.h"
+#include "api/replay/renderdoc_replay.h"
+#include "streamio.h"
 
-using std::set;
-using std::string;
+// function to deallocate anything from a serialise. Default impl
+// does no deallocation of anything.
+template <class T>
+void Deserialise(const T &el)
+{
+}
 
-typedef const char *(*ChunkLookup)(uint32_t chunkType);
+#define DECLARE_DESERIALISE_TYPE(type) \
+  template <>                          \
+  void Deserialise(const type &el);
 
-class Serialiser;
-class ScopedContext;
+// this is a bit of a hack, but necessary. We don't want to have all of our DoSerialise functions
+// defined in global cross-project headers and compiled everywhere, we just want to define them in
+// .cpp files.
+// However because they are template specializations, so they need to be explicitly instantiated in
+// one file to link elsewhere.
+#define INSTANTIATE_SERIALISE_TYPE(type)                                    \
+  template void DoSerialise(Serialiser<SerialiserMode::Writing> &, type &); \
+  template void DoSerialise(Serialiser<SerialiserMode::Reading> &, type &);
+
+typedef std::string (*ChunkLookup)(uint32_t chunkType);
+
+enum class SerialiserFlags
+{
+  NoFlags = 0x0,
+  AllocateMemory = 0x1,
+};
+
+BITMASK_OPERATORS(SerialiserFlags);
+
+// This class is used to read and write arbitrary structured data from a stream. The primary
+// mechanism is in template overloads of DoSerialise functions for each struct that can be
+// serialised, down to primitive types (ints, floats, strings, etc).
+//
+// A serialised stream is defined in terms of 'chunks', each with an ID and some metadata attached
+// like timestamp, duration, callstack, etc. Each chunk can then have objects serialised into it
+// which automatically recurse and serialise all their members. When reading from/writing to a
+// stream then the binary form is purely data - no structure encoded. When reading, the data can be
+// optionally pulled out into a structured form that can then be manipulated or exported.
+//
+// Since a stream can be an in-memory buffer, a file, or a network socket this class is used to
+// serialised complex data anywhere that we need structured I/O.
+
+enum class SerialiserMode
+{
+  Writing,
+  Reading,
+};
+
 struct CompressedFileIO;
+
+template <SerialiserMode sertype>
+class Serialiser
+{
+public:
+  static constexpr bool IsReading() { return sertype != SerialiserMode::Writing; }
+  static constexpr bool IsWriting() { return sertype == SerialiserMode::Writing; }
+  bool ExportStructure() const
+  {
+    return sertype == SerialiserMode::Reading && m_ExportStructured && !m_InternalElement;
+  }
+
+  enum ChunkFlags
+  {
+    ChunkIndexMask = 0x0000ffff,
+    ChunkCallstack = 0x00010000,
+    ChunkThreadID = 0x00020000,
+    ChunkDuration = 0x00040000,
+    ChunkTimestamp = 0x00080000,
+  };
+
+  //////////////////////////////////////////
+  // Init and error handling
+  ~Serialiser();
+
+  // no copies
+  Serialiser(const Serialiser &other) = delete;
+
+  bool IsErrored() { return IsReading() ? m_Read->IsErrored() : m_Write->IsErrored(); }
+  StreamWriter *GetWriter() { return m_Write; }
+  StreamReader *GetReader() { return m_Read; }
+  void SetChunkMetadataRecording(uint32_t flags);
+
+  SDChunkMetaData &ChunkMetadata() { return m_ChunkMetadata; }
+  //////////////////////////////////////////
+  // Utility functions
+
+  static uint64_t GetChunkAlignment() { return ChunkAlignment; }
+  void *GetUserData() { return m_pUserData; }
+  void SetUserData(void *userData) { m_pUserData = userData; }
+  void SetStringDatabase(std::set<std::string> *db) { m_ExtStringDB = db; }
+  // jumps to the byte after the current chunk, can be called any time after BeginChunk
+  void SkipCurrentChunk();
+
+  // enable 'streaming mode' for ephemeral transfers like temporary I/O over sockets, where there's
+  // no need for the chunk length - avoids needing to seek internally in a stream that might not
+  // support seeking to fixup lengths, while also not requiring conservative length estimates
+  // up-front
+  void SetStreamingMode(bool stream) { m_DataStreaming = stream; }
+  SDFile &GetStructuredFile() { return *m_StructuredFile; }
+  void WriteStructuredFile(const SDFile &file);
+  void SetDrawChunk() { m_DrawChunk = true; }
+  //////////////////////////////////////////
+  // Public serialisation interface
+
+  void ConfigureStructuredExport(ChunkLookup lookup, bool includeBuffers)
+  {
+    m_ChunkLookup = lookup;
+    m_ExportBuffers = includeBuffers;
+    m_ExportStructured = (lookup != NULL);
+  }
+
+  uint32_t BeginChunk(uint32_t chunkID, uint32_t byteLength);
+  void EndChunk();
+
+  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+  // Templated serialisation functions
+
+  // Users of the serialisation call Serialise() on the objects they want
+  // to serialise
+
+  // for structure type members or external use, main entry point
+
+  template <typename T>
+  void SerialiseStringify(const T el)
+  {
+    if(ExportStructure())
+    {
+      m_StructureStack.back()->data.str = ToStr(el);
+      m_StructureStack.back()->type.flags |= SDTypeFlags::HasCustomString;
+    }
+  }
+
+  // serialise an object (either loose, or a structure member).
+  template <class T>
+  Serialiser &Serialise(const char *name, T &el, SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &current = *m_StructureStack.back();
+
+      current.data.basic.numChildren++;
+      current.data.children.push_back(new SDObject(name, TypeName<T>()));
+      m_StructureStack.push_back(current.data.children.back());
+
+      SDObject &obj = *m_StructureStack.back();
+      obj.type.byteSize = sizeof(T);
+    }
+
+    SerialiseDispatch<Serialiser, T>::Do(*this, el);
+
+    if(ExportStructure())
+      m_StructureStack.pop_back();
+
+    return *this;
+  }
+
+  // special function for serialising buffers
+  Serialiser &Serialise(const char *name, byte *&el, uint64_t &byteSize,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    uint64_t count = byteSize;
+
+    // silently handle NULL buffers
+    if(IsWriting() && el == NULL)
+      count = 0;
+
+    {
+      m_InternalElement = true;
+      DoSerialise(*this, count);
+      m_InternalElement = false;
+    }
+
+    if(IsReading())
+      byteSize = count;
+
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &current = *m_StructureStack.back();
+
+      current.data.basic.numChildren++;
+      current.data.children.push_back(new SDObject(name, "Byte Buffer"));
+      m_StructureStack.push_back(current.data.children.back());
+
+      SDObject &obj = *m_StructureStack.back();
+      obj.type.basetype = SDBasic::Buffer;
+      obj.type.byteSize = byteSize;
+    }
+
+    {
+      if(IsWriting())
+      {
+        // ensure byte alignment
+        m_Write->AlignTo<ChunkAlignment>();
+
+        if(el)
+          m_Write->Write(el, byteSize);
+        else
+          RDCASSERT(byteSize == 0);
+      }
+      else if(IsReading())
+      {
+        // ensure byte alignment
+        m_Read->AlignTo<ChunkAlignment>();
+
+// Coverity is unable to tie this allocation together with the automatic scoped deallocation in the
+// ScopedDeseralise* classes. We can verify with e.g. valgrind that there are no leaks, so to keep
+// the analysis non-spammy we just don't allocate for coverity builds
+#if !defined(__COVERITY__)
+        if(flags & SerialiserFlags::AllocateMemory)
+        {
+          if(byteSize > 0)
+            el = AllocAlignedBuffer(byteSize);
+          else
+            el = NULL;
+        }
+#endif
+
+        m_Read->Read(el, byteSize);
+      }
+    }
+
+    if(ExportStructure())
+    {
+      if(m_ExportBuffers)
+      {
+        SDObject &obj = *m_StructureStack.back();
+
+        obj.data.basic.u = m_StructuredFile->buffers.size();
+
+        bytebuf *alloc = new bytebuf;
+        alloc->resize((size_t)byteSize);
+        if(el)
+          memcpy(alloc->data(), el, (size_t)byteSize);
+
+        m_StructuredFile->buffers.push_back(alloc);
+      }
+
+      m_StructureStack.pop_back();
+    }
+
+    return *this;
+  }
+
+  Serialiser &Serialise(const char *name, byte *&el, uint32_t &byteSize,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    uint64_t upcastSize = byteSize;
+    Serialise(name, el, upcastSize, flags);
+    if(IsReading())
+      byteSize = (uint32_t)upcastSize;
+    return *this;
+  }
+
+#if ENABLED(RDOC_SIZET_SEP_TYPE)
+  Serialiser &Serialise(const char *name, byte *&el, size_t &byteSize,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    uint64_t upcastSize = (uint64_t)byteSize;
+    Serialise(name, el, upcastSize, flags);
+    if(IsReading())
+      byteSize = (size_t)upcastSize;
+    return *this;
+  }
+#endif
+
+  Serialiser &Serialise(const char *name, bytebuf &el,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    uint64_t count = (uint64_t)el.size();
+
+    {
+      m_InternalElement = true;
+      DoSerialise(*this, count);
+      m_InternalElement = false;
+    }
+
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &current = *m_StructureStack.back();
+
+      current.data.basic.numChildren++;
+      current.data.children.push_back(new SDObject(name, "Byte Buffer"));
+      m_StructureStack.push_back(current.data.children.back());
+
+      SDObject &obj = *m_StructureStack.back();
+      obj.type.basetype = SDBasic::Buffer;
+      obj.type.byteSize = count;
+    }
+
+    {
+      if(IsWriting())
+      {
+        // ensure byte alignment
+        m_Write->AlignTo<ChunkAlignment>();
+        m_Write->Write(el.data(), count);
+      }
+      else if(IsReading())
+      {
+        // ensure byte alignment
+        m_Read->AlignTo<ChunkAlignment>();
+
+        el.resize((size_t)count);
+
+        m_Read->Read(el.data(), count);
+      }
+    }
+
+    if(ExportStructure())
+    {
+      if(m_ExportBuffers)
+      {
+        SDObject &obj = *m_StructureStack.back();
+
+        obj.data.basic.u = m_StructuredFile->buffers.size();
+
+        bytebuf *alloc = new bytebuf;
+        alloc->assign(el);
+
+        m_StructuredFile->buffers.push_back(alloc);
+      }
+
+      m_StructureStack.pop_back();
+    }
+
+    return *this;
+  }
+
+  Serialiser &Serialise(const char *name, std::vector<byte> &el,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    uint64_t count = (uint64_t)el.size();
+
+    {
+      m_InternalElement = true;
+      DoSerialise(*this, count);
+      m_InternalElement = false;
+    }
+
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &current = *m_StructureStack.back();
+
+      current.data.basic.numChildren++;
+      current.data.children.push_back(new SDObject(name, "Byte Buffer"));
+      m_StructureStack.push_back(current.data.children.back());
+
+      SDObject &obj = *m_StructureStack.back();
+      obj.type.basetype = SDBasic::Buffer;
+      obj.type.byteSize = count;
+    }
+
+    {
+      if(IsWriting())
+      {
+        // ensure byte alignment
+        m_Write->AlignTo<ChunkAlignment>();
+        m_Write->Write(el.data(), count);
+      }
+      else if(IsReading())
+      {
+        // ensure byte alignment
+        m_Read->AlignTo<ChunkAlignment>();
+
+        el.resize((size_t)count);
+
+        m_Read->Read(el.data(), count);
+      }
+    }
+
+    if(ExportStructure())
+    {
+      if(m_ExportBuffers)
+      {
+        SDObject &obj = *m_StructureStack.back();
+
+        obj.data.basic.u = m_StructuredFile->buffers.size();
+
+        bytebuf *alloc = new bytebuf;
+        alloc->resize((size_t)count);
+        memcpy(alloc->data(), el.data(), alloc->size());
+
+        m_StructuredFile->buffers.push_back(alloc);
+      }
+
+      m_StructureStack.pop_back();
+    }
+
+    return *this;
+  }
+
+  Serialiser &Serialise(const char *name, void *&el, uint64_t &byteSize,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    return Serialise(name, (byte *&)el, byteSize, flags);
+  }
+
+  Serialiser &Serialise(const char *name, const void *&el, uint64_t &byteSize,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    return Serialise(name, (byte *&)el, byteSize, flags);
+  }
+
+  Serialiser &Serialise(const char *name, void *&el, uint32_t &byteSize,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    return Serialise(name, (byte *&)el, byteSize, flags);
+  }
+
+  Serialiser &Serialise(const char *name, const void *&el, uint32_t &byteSize,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    return Serialise(name, (byte *&)el, byteSize, flags);
+  }
+
+#if ENABLED(RDOC_SIZET_SEP_TYPE)
+  Serialiser &Serialise(const char *name, void *&el, size_t &byteSize,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    return Serialise(name, (byte *&)el, byteSize, flags);
+  }
+
+  Serialiser &Serialise(const char *name, const void *&el, size_t &byteSize,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    return Serialise(name, (byte *&)el, byteSize, flags);
+  }
+#endif
+
+#if ENABLED(RDOC_WIN32)
+  // annoyingly, windows SIZE_T is unsigned long on win32 which is a different type to
+  // uint32_t/uint64_t. So we add a special overload here for its sake.
+  Serialiser &Serialise(const char *name, const void *&el, unsigned long &byteSize,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    uint64_t bs = byteSize;
+    Serialiser &ret = Serialise(name, (byte *&)el, bs, flags);
+    byteSize = (unsigned long)bs;
+    return ret;
+  }
+#endif
+
+  // serialise a fixed array like foo[4];
+  // never needs to allocate, just needs to be iterated
+  template <class T, size_t N>
+  Serialiser &Serialise(const char *name, T (&el)[N], SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    // for consistency with other arrays, even though this is redundant, we serialise out and in the
+    // size
+    uint64_t count = N;
+    {
+      m_InternalElement = true;
+      DoSerialise(*this, count);
+      m_InternalElement = false;
+
+      if(count != N)
+        RDCWARN("Fixed-size array length %zu serialised with different size %llu", N, count);
+    }
+
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &parent = *m_StructureStack.back();
+      parent.data.basic.numChildren++;
+      parent.data.children.push_back(new SDObject(name, TypeName<T>()));
+      m_StructureStack.push_back(parent.data.children.back());
+
+      SDObject &arr = *m_StructureStack.back();
+      arr.type.basetype = SDBasic::Array;
+      arr.type.byteSize = N;
+
+      arr.data.basic.numChildren = (uint64_t)N;
+      arr.data.children.resize(N);
+
+      for(size_t i = 0; i < N; i++)
+      {
+        arr.data.children[i] = new SDObject("$el", TypeName<T>());
+        m_StructureStack.push_back(arr.data.children[i]);
+
+        SDObject &obj = *m_StructureStack.back();
+
+        // default to struct. This will be overwritten if appropriate
+        obj.type.basetype = SDBasic::Struct;
+        obj.type.byteSize = sizeof(T);
+
+        // Check against the serialised count here - on read if we don't have the right size this
+        // means we won't read past the provided data.
+        if(i < count)
+        {
+          SerialiseDispatch<Serialiser, T>::Do(*this, el[i]);
+        }
+        else
+        {
+          // we should have data for these elements, but we don't. Just default initialise
+          el[i] = T();
+        }
+
+        m_StructureStack.pop_back();
+      }
+
+      // if we have more data than the fixed sized array allows, we must simply discard the excess
+      if(count > N)
+      {
+        // prevent any trashing of structured data by these
+        bool wasInternal = m_InternalElement;
+        m_InternalElement = true;
+        T dummy;
+        SerialiseDispatch<Serialiser, T>::Do(*this, dummy);
+        m_InternalElement = wasInternal;
+      }
+
+      m_StructureStack.pop_back();
+    }
+    else
+    {
+      for(size_t i = 0; i < N && i < count; i++)
+        SerialiseDispatch<Serialiser, T>::Do(*this, el[i]);
+
+      for(size_t i = N; i < count; i++)
+      {
+        T dummy;
+        SerialiseDispatch<Serialiser, T>::Do(*this, dummy);
+      }
+    }
+
+    return *this;
+  }
+
+  // specialisation for fixed character arrays, serialising as strings
+  template <size_t N>
+  Serialiser &Serialise(const char *name, char (&el)[N],
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    std::string str = el;
+    Serialise(name, str, flags);
+    if(str.length() >= N)
+    {
+      RDCWARN("Serialising string too large for fixed-size array '%s', will be truncated", name);
+      memcpy(el, str.c_str(), N - 1);
+      el[N - 1] = 0;
+    }
+    else
+    {
+      // copy the string & trailing NULL into el.
+      memcpy(el, str.c_str(), str.length() + 1);
+    }
+
+    return *this;
+  }
+
+  // special function for serialising dynamically sized arrays
+  template <class T>
+  Serialiser &Serialise(const char *name, T *&el, uint64_t &arrayCount,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    uint64_t count = arrayCount;
+
+    // silently handle NULL arrays
+    if(IsWriting() && el == NULL)
+      count = 0;
+
+    {
+      m_InternalElement = true;
+      DoSerialise(*this, count);
+      m_InternalElement = false;
+    }
+
+    if(IsReading())
+      arrayCount = count;
+
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &parent = *m_StructureStack.back();
+      parent.data.basic.numChildren++;
+      parent.data.children.push_back(new SDObject(name, TypeName<T>()));
+      m_StructureStack.push_back(parent.data.children.back());
+
+      SDObject &arr = *m_StructureStack.back();
+      arr.type.basetype = SDBasic::Array;
+      arr.type.byteSize = arrayCount;
+
+      arr.data.basic.numChildren = arrayCount;
+      arr.data.children.resize((size_t)arrayCount);
+
+// Coverity is unable to tie this allocation together with the automatic scoped deallocation in the
+// ScopedDeseralise* classes. We can verify with e.g. valgrind that there are no leaks, so to keep
+// the analysis non-spammy we just don't allocate for coverity builds
+#if !defined(__COVERITY__)
+      if(IsReading() && (flags & SerialiserFlags::AllocateMemory))
+      {
+        if(arrayCount > 0)
+          el = new T[(size_t)arrayCount];
+        else
+          el = NULL;
+      }
+#endif
+
+      for(uint64_t i = 0; el && i < arrayCount; i++)
+      {
+        arr.data.children[(size_t)i] = new SDObject("$el", TypeName<T>());
+        m_StructureStack.push_back(arr.data.children[(size_t)i]);
+
+        SDObject &obj = *m_StructureStack.back();
+
+        // default to struct. This will be overwritten if appropriate
+        obj.type.basetype = SDBasic::Struct;
+        obj.type.byteSize = sizeof(T);
+
+        SerialiseDispatch<Serialiser, T>::Do(*this, el[i]);
+
+        m_StructureStack.pop_back();
+      }
+
+      m_StructureStack.pop_back();
+    }
+    else
+    {
+// Coverity is unable to tie this allocation together with the automatic scoped deallocation in the
+// ScopedDeseralise* classes. We can verify with e.g. valgrind that there are no leaks, so to keep
+// the analysis non-spammy we just don't allocate for coverity builds
+#if !defined(__COVERITY__)
+      if(IsReading() && (flags & SerialiserFlags::AllocateMemory))
+      {
+        if(arrayCount > 0)
+          el = new T[(size_t)arrayCount];
+        else
+          el = NULL;
+      }
+#endif
+
+      for(size_t i = 0; el && i < arrayCount; i++)
+        SerialiseDispatch<Serialiser, T>::Do(*this, el[i]);
+    }
+
+    return *this;
+  }
+
+  template <class T>
+  Serialiser &Serialise(const char *name, T *&el, uint32_t &arrayCount,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    uint64_t upcastCount = arrayCount;
+    Serialise(name, el, upcastCount, flags);
+    if(IsReading())
+      arrayCount = (uint32_t)upcastCount;
+    return *this;
+  }
+
+  // specialisations for container types
+  template <class U>
+  Serialiser &Serialise(const char *name, std::vector<U> &el,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    uint64_t size = (uint64_t)el.size();
+
+    {
+      m_InternalElement = true;
+      DoSerialise(*this, size);
+      m_InternalElement = false;
+    }
+
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &parent = *m_StructureStack.back();
+      parent.data.basic.numChildren++;
+      parent.data.children.push_back(new SDObject(name, TypeName<U>()));
+      m_StructureStack.push_back(parent.data.children.back());
+
+      SDObject &arr = *m_StructureStack.back();
+      arr.type.basetype = SDBasic::Array;
+      arr.type.byteSize = size;
+
+      arr.data.basic.numChildren = size;
+      arr.data.children.resize((size_t)size);
+
+      if(IsReading())
+        el.resize((size_t)size);
+
+      for(size_t i = 0; i < (size_t)size; i++)
+      {
+        arr.data.children[i] = new SDObject("$el", TypeName<U>());
+        m_StructureStack.push_back(arr.data.children[i]);
+
+        SDObject &obj = *m_StructureStack.back();
+
+        // default to struct. This will be overwritten if appropriate
+        obj.type.basetype = SDBasic::Struct;
+        obj.type.byteSize = sizeof(U);
+
+        SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
+
+        m_StructureStack.pop_back();
+      }
+
+      m_StructureStack.pop_back();
+    }
+    else
+    {
+      if(IsReading())
+        el.resize((size_t)size);
+
+      for(size_t i = 0; i < (size_t)size; i++)
+        SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
+    }
+
+    return *this;
+  }
+
+  template <class U>
+  Serialiser &Serialise(const char *name, std::list<U> &el,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    uint64_t size = (uint64_t)el.size();
+
+    {
+      m_InternalElement = true;
+      DoSerialise(*this, size);
+      m_InternalElement = false;
+    }
+
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &parent = *m_StructureStack.back();
+      parent.data.basic.numChildren++;
+      parent.data.children.push_back(new SDObject(name, TypeName<U>()));
+      m_StructureStack.push_back(parent.data.children.back());
+
+      SDObject &arr = *m_StructureStack.back();
+      arr.type.basetype = SDBasic::Array;
+      arr.type.byteSize = size;
+
+      arr.data.basic.numChildren = size;
+      arr.data.children.resize((size_t)size);
+
+      if(IsReading())
+        el.resize((size_t)size);
+
+      auto it = el.begin();
+
+      for(size_t i = 0; i < (size_t)size; i++)
+      {
+        arr.data.children[i] = new SDObject("$el", TypeName<U>());
+        m_StructureStack.push_back(arr.data.children[i]);
+
+        SDObject &obj = *m_StructureStack.back();
+
+        // default to struct. This will be overwritten if appropriate
+        obj.type.basetype = SDBasic::Struct;
+        obj.type.byteSize = sizeof(U);
+
+        SerialiseDispatch<Serialiser, U>::Do(*this, *it);
+        it++;
+
+        m_StructureStack.pop_back();
+      }
+
+      m_StructureStack.pop_back();
+    }
+    else
+    {
+      if(IsReading())
+        el.resize((size_t)size);
+
+      for(auto it = el.begin(); it != el.end(); ++it)
+        SerialiseDispatch<Serialiser, U>::Do(*this, *it);
+    }
+
+    return *this;
+  }
+
+  template <class U, class V>
+  Serialiser &Serialise(const char *name, std::pair<U, V> &el,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &parent = *m_StructureStack.back();
+      parent.data.basic.numChildren++;
+      parent.data.children.push_back(new SDObject(name, "pair"));
+      m_StructureStack.push_back(parent.data.children.back());
+
+      SDObject &arr = *m_StructureStack.back();
+      arr.type.basetype = SDBasic::Struct;
+      arr.type.byteSize = 2;
+
+      arr.data.basic.numChildren = 2;
+      arr.data.children.resize(2);
+
+      {
+        arr.data.children[0] = new SDObject("first", TypeName<U>());
+        m_StructureStack.push_back(arr.data.children[0]);
+
+        SDObject &obj = *m_StructureStack.back();
+
+        // default to struct. This will be overwritten if appropriate
+        obj.type.basetype = SDBasic::Struct;
+        obj.type.byteSize = sizeof(U);
+
+        SerialiseDispatch<Serialiser, U>::Do(*this, el.first);
+
+        m_StructureStack.pop_back();
+      }
+
+      {
+        arr.data.children[1] = new SDObject("second", TypeName<V>());
+        m_StructureStack.push_back(arr.data.children[1]);
+
+        SDObject &obj = *m_StructureStack.back();
+
+        // default to struct. This will be overwritten if appropriate
+        obj.type.basetype = SDBasic::Struct;
+        obj.type.byteSize = sizeof(V);
+
+        SerialiseDispatch<Serialiser, V>::Do(*this, el.second);
+
+        m_StructureStack.pop_back();
+      }
+
+      m_StructureStack.pop_back();
+    }
+    else
+    {
+      SerialiseDispatch<Serialiser, U>::Do(*this, el.first);
+      SerialiseDispatch<Serialiser, V>::Do(*this, el.second);
+    }
+
+    return *this;
+  }
+
+  template <class U>
+  Serialiser &Serialise(const char *name, rdcarray<U> &el,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    uint64_t size = (uint64_t)el.size();
+
+    {
+      m_InternalElement = true;
+      DoSerialise(*this, size);
+      m_InternalElement = false;
+    }
+
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &parent = *m_StructureStack.back();
+      parent.data.basic.numChildren++;
+      parent.data.children.push_back(new SDObject(name, TypeName<U>()));
+      m_StructureStack.push_back(parent.data.children.back());
+
+      SDObject &arr = *m_StructureStack.back();
+      arr.type.basetype = SDBasic::Array;
+      arr.type.byteSize = size;
+
+      arr.data.basic.numChildren = size;
+      arr.data.children.resize((size_t)size);
+
+      if(IsReading())
+        el.resize((int)size);
+
+      for(size_t i = 0; i < (size_t)size; i++)
+      {
+        arr.data.children[i] = new SDObject("$el", TypeName<U>());
+        m_StructureStack.push_back(arr.data.children[i]);
+
+        SDObject &obj = *m_StructureStack.back();
+
+        // default to struct. This will be overwritten if appropriate
+        obj.type.basetype = SDBasic::Struct;
+        obj.type.byteSize = sizeof(U);
+
+        SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
+
+        m_StructureStack.pop_back();
+      }
+
+      m_StructureStack.pop_back();
+    }
+    else
+    {
+      if(IsReading())
+        el.resize((int)size);
+
+      for(size_t i = 0; i < (size_t)size; i++)
+        SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
+    }
+
+    return *this;
+  }
+
+  template <class U, class V>
+  Serialiser &Serialise(const char *name, rdcpair<U, V> &el,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &parent = *m_StructureStack.back();
+      parent.data.basic.numChildren++;
+      parent.data.children.push_back(new SDObject(name, "pair"));
+      m_StructureStack.push_back(parent.data.children.back());
+
+      SDObject &arr = *m_StructureStack.back();
+      arr.type.basetype = SDBasic::Struct;
+      arr.type.byteSize = 2;
+
+      arr.data.basic.numChildren = 2;
+      arr.data.children.resize(2);
+
+      {
+        arr.data.children[0] = new SDObject("first", TypeName<U>());
+        m_StructureStack.push_back(arr.data.children[0]);
+
+        SDObject &obj = *m_StructureStack.back();
+
+        // default to struct. This will be overwritten if appropriate
+        obj.type.basetype = SDBasic::Struct;
+        obj.type.byteSize = sizeof(U);
+
+        SerialiseDispatch<Serialiser, U>::Do(*this, el.first);
+
+        m_StructureStack.pop_back();
+      }
+
+      {
+        arr.data.children[1] = new SDObject("second", TypeName<V>());
+        m_StructureStack.push_back(arr.data.children[1]);
+
+        SDObject &obj = *m_StructureStack.back();
+
+        // default to struct. This will be overwritten if appropriate
+        obj.type.basetype = SDBasic::Struct;
+        obj.type.byteSize = sizeof(V);
+
+        SerialiseDispatch<Serialiser, V>::Do(*this, el.second);
+
+        m_StructureStack.pop_back();
+      }
+
+      m_StructureStack.pop_back();
+    }
+    else
+    {
+      SerialiseDispatch<Serialiser, U>::Do(*this, el.first);
+      SerialiseDispatch<Serialiser, V>::Do(*this, el.second);
+    }
+
+    return *this;
+  }
+
+  // for const types, to cast away the const!
+  // caller is responsible for ensuring that on write, it's safe to write into
+  // this pointer on the other end
+  template <class T>
+  Serialiser &Serialise(const char *name, const T &el,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    return Serialise(name, (T &)el, flags);
+  }
+
+  // dynamic array variant
+  template <class T>
+  Serialiser &Serialise(const char *name, const T *&el, uint64_t &arrayCount,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    return Serialise(name, (T *&)el, arrayCount, flags);
+  }
+
+  template <class T>
+  Serialiser &SerialiseNullable(const char *name, T *&el,
+                                SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    bool present = (el != NULL);
+
+    {
+      m_InternalElement = true;
+      DoSerialise(*this, present);
+      m_InternalElement = false;
+    }
+
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+// Coverity is unable to tie this allocation together with the automatic scoped deallocation in the
+// ScopedDeseralise* classes. We can verify with e.g. valgrind that there are no leaks, so to keep
+// the analysis non-spammy we just don't allocate for coverity builds
+#if !defined(__COVERITY__)
+      if(IsReading())
+      {
+        if(present)
+          el = new T;
+        else
+          el = NULL;
+      }
+#endif
+
+      if(el)
+      {
+        Serialise(name, *el, flags);
+
+        SDObject &parent = *m_StructureStack.back();
+
+        SDObject &nullable = *parent.data.children.back();
+
+        nullable.type.flags |= SDTypeFlags::Nullable;
+      }
+      else
+      {
+        SDObject &parent = *m_StructureStack.back();
+        parent.data.basic.numChildren++;
+        parent.data.children.push_back(new SDObject(name, TypeName<T>()));
+
+        SDObject &nullable = *parent.data.children.back();
+        nullable.type.basetype = SDBasic::Null;
+        nullable.type.byteSize = 0;
+        nullable.type.flags |= SDTypeFlags::Nullable;
+      }
+    }
+    else
+    {
+// Coverity is unable to tie this allocation together with the automatic scoped deallocation in the
+// ScopedDeseralise* classes. We can verify with e.g. valgrind that there are no leaks, so to keep
+// the analysis non-spammy we just don't allocate for coverity builds
+#if !defined(__COVERITY__)
+      if(IsReading())
+      {
+        if(present)
+          el = new T;
+        else
+          el = NULL;
+      }
+#endif
+
+      if(el)
+        Serialise(name, *el, flags);
+    }
+
+    return *this;
+  }
+
+  template <class T>
+  Serialiser &SerialiseNullable(const char *name, const T *&el,
+                                SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    return SerialiseNullable(name, (T *&)el, flags);
+  }
+
+  Serialiser &SerialiseStream(const std::string &name, StreamReader &stream, float *progress = NULL)
+  {
+    RDCCOMPILE_ASSERT(IsWriting(), "Can't read into a StreamReader");
+
+    uint64_t totalSize = stream.GetSize();
+
+    {
+      m_InternalElement = true;
+      DoSerialise(*this, totalSize);
+      m_InternalElement = false;
+    }
+
+    // ensure byte alignment
+    m_Write->AlignTo<ChunkAlignment>();
+
+    StreamTransfer(m_Write, &stream, progress);
+
+    return *this;
+  }
+
+  Serialiser &SerialiseStream(const std::string &name, StreamWriter &stream, float *progress = NULL)
+  {
+    RDCCOMPILE_ASSERT(IsReading(), "Can't write from a StreamWriter");
+
+    uint64_t totalSize = 0;
+
+    {
+      m_InternalElement = true;
+      DoSerialise(*this, totalSize);
+      m_InternalElement = false;
+    }
+
+    size_t byteSize = (size_t)totalSize;
+
+    byte *structBuf = NULL;
+
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &current = *m_StructureStack.back();
+
+      current.data.basic.numChildren++;
+      current.data.children.push_back(new SDObject(name.c_str(), "Byte Buffer"));
+      m_StructureStack.push_back(current.data.children.back());
+
+      SDObject &obj = *m_StructureStack.back();
+      obj.type.basetype = SDBasic::Buffer;
+      obj.type.byteSize = totalSize;
+
+      if(m_ExportBuffers)
+      {
+        obj.data.basic.u = m_StructuredFile->buffers.size();
+
+        m_StructuredFile->buffers.push_back(new bytebuf);
+        m_StructuredFile->buffers.back()->resize((size_t)totalSize);
+
+        // this will be filled as we read below
+        structBuf = m_StructuredFile->buffers.back()->data();
+      }
+
+      m_StructureStack.pop_back();
+    }
+
+    // ensure byte alignment
+    m_Read->AlignTo<ChunkAlignment>();
+
+    if(totalSize > 0)
+    {
+      // copy 1MB at a time
+      const uint64_t StreamIOChunkSize = 1024 * 1024;
+
+      // copy 1MB at a time
+      const uint64_t bufSize = RDCMIN(StreamIOChunkSize, totalSize);
+      uint64_t numBufs = totalSize / bufSize;
+      // last remaining partial buffer
+      if(totalSize % (uint64_t)bufSize > 0)
+        numBufs++;
+
+      byte *buf = new byte[byteSize];
+
+      if(progress)
+        *progress = 0.0001f;
+
+      for(uint64_t i = 0; i < numBufs; i++)
+      {
+        uint64_t payloadLength = RDCMIN(bufSize, totalSize);
+
+        m_Read->Read(buf, payloadLength);
+        stream.Write(buf, payloadLength);
+
+        if(structBuf)
+        {
+          memcpy(structBuf, buf, (size_t)payloadLength);
+          structBuf += payloadLength;
+        }
+
+        totalSize -= payloadLength;
+        if(progress)
+          *progress = float(i + 1) / float(numBufs);
+      }
+
+      delete[] buf;
+    }
+    else
+    {
+      if(progress)
+        *progress = 1.0f;
+    }
+
+    return *this;
+  }
+
+  // these functions can be chained onto the end of a Serialise() call or macro to
+  // set additional properties or change things
+  Serialiser &Hidden()
+  {
+    if(ExportStructure() && !m_StructureStack.empty())
+    {
+      SDObject &current = *m_StructureStack.back();
+
+      if(!current.data.children.empty())
+        current.data.children.back()->type.flags |= SDTypeFlags::Hidden;
+    }
+
+    return *this;
+  }
+
+  Serialiser &Named(const char *name)
+  {
+    if(ExportStructure() && !m_StructureStack.empty())
+    {
+      SDObject &current = *m_StructureStack.back();
+
+      if(!current.data.children.empty())
+        current.data.children.back()->name = name;
+    }
+
+    return *this;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  // for basic/leaf types. Read/written just as byte soup, MUST be plain old data
+  template <class T>
+  void SerialiseValue(SDBasic type, size_t byteSize, T &el)
+  {
+    if(IsWriting())
+    {
+      m_Write->Write(el);
+    }
+    else if(IsReading())
+    {
+      m_Read->Read(el);
+    }
+
+    if(!ExportStructure())
+      return;
+
+    SDObject &current = *m_StructureStack.back();
+
+    current.type.basetype = type;
+    current.type.byteSize = byteSize;
+
+    switch(type)
+    {
+      case SDBasic::Chunk:
+      case SDBasic::Struct:
+      case SDBasic::Array:
+      case SDBasic::Buffer:
+      case SDBasic::Null: RDCFATAL("Cannot call SerialiseValue for type %d!", type); break;
+      case SDBasic::String: RDCFATAL("eString should be specialised!"); break;
+      case SDBasic::Enum:
+      case SDBasic::UnsignedInteger:
+        if(byteSize == 1)
+          current.data.basic.u = (uint64_t)(uint8_t)el;
+        else if(byteSize == 2)
+          current.data.basic.u = (uint64_t)(uint16_t)el;
+        else if(byteSize == 4)
+          current.data.basic.u = (uint64_t)(uint32_t)el;
+        else if(byteSize == 8)
+          current.data.basic.u = (uint64_t)el;
+        else
+          RDCFATAL("Unsupported unsigned integer byte width: %u", byteSize);
+        break;
+      case SDBasic::SignedInteger:
+        if(byteSize == 1)
+          current.data.basic.i = (int64_t)(int8_t)el;
+        else if(byteSize == 2)
+          current.data.basic.i = (int64_t)(int16_t)el;
+        else if(byteSize == 4)
+          current.data.basic.i = (int64_t)(int32_t)el;
+        else if(byteSize == 8)
+          current.data.basic.i = (int64_t)el;
+        else
+          RDCFATAL("Unsupported signed integer byte width: %u", byteSize);
+        break;
+      case SDBasic::Float:
+        if(byteSize == 4)
+          current.data.basic.d = (double)(float)el;
+        else if(byteSize == 8)
+          current.data.basic.d = (double)el;
+        else
+          RDCFATAL("Unsupported floating point byte width: %u", byteSize);
+        break;
+      case SDBasic::Boolean:
+        // co-erce to boolean
+        current.data.basic.b = !!(el);
+        break;
+      case SDBasic::Character: current.data.basic.c = (char)(el); break;
+    }
+  }
+
+  // the only non POD basic type
+  void SerialiseValue(SDBasic type, size_t byteSize, std::string &el)
+  {
+    uint32_t len = 0;
+
+    if(IsReading())
+    {
+      m_Read->Read(len);
+      el.resize(len);
+      if(len > 0)
+        m_Read->Read(&el[0], len);
+    }
+    else
+    {
+      len = (uint32_t)el.length();
+      m_Write->Write(len);
+      m_Write->Write(el.c_str(), len);
+    }
+
+    if(ExportStructure())
+    {
+      SDObject &current = *m_StructureStack.back();
+
+      current.type.basetype = type;
+      current.type.byteSize = len;
+      current.data.str = el;
+    }
+  }
+
+  void SerialiseValue(SDBasic type, size_t byteSize, rdcstr &el)
+  {
+    uint32_t len = 0;
+
+    if(IsReading())
+    {
+      m_Read->Read(len);
+      el.resize((int)len);
+      if(len > 0)
+        m_Read->Read(&el[0], len);
+    }
+    else
+    {
+      len = (uint32_t)el.size();
+      m_Write->Write(len);
+      m_Write->Write(el.c_str(), len);
+    }
+
+    if(ExportStructure())
+    {
+      SDObject &current = *m_StructureStack.back();
+
+      current.type.basetype = type;
+      current.type.byteSize = len;
+      current.data.str = el;
+    }
+  }
+
+  void SerialiseValue(SDBasic type, size_t byteSize, char *&el)
+  {
+    int32_t len = 0;
+
+    if(IsReading())
+    {
+      m_Read->Read(len);
+      if(len == -1)
+      {
+        el = NULL;
+      }
+      else
+      {
+        std::string str;
+        str.resize(len);
+        if(len > 0)
+          m_Read->Read(&str[0], len);
+        el = (char *)StringDB(str);
+      }
+    }
+    else
+    {
+      len = el ? (int32_t)strlen(el) : -1;
+      m_Write->Write(len);
+      if(len > 0)
+        m_Write->Write(el, len);
+    }
+
+    if(ExportStructure())
+    {
+      SDObject &current = *m_StructureStack.back();
+
+      current.type.basetype = type;
+      current.type.byteSize = RDCMAX(len, 0);
+      current.data.str = el ? el : "";
+      if(len == -1)
+        current.type.flags |= SDTypeFlags::NullString;
+    }
+  }
+
+  void SerialiseValue(SDBasic type, size_t byteSize, const char *&el)
+  {
+    SerialiseValue(type, byteSize, (char *&)el);
+  }
+
+  // constructors only available by the derived classes for each serialiser type
+protected:
+  Serialiser(StreamWriter *writer, Ownership own);
+  Serialiser(StreamReader *reader, Ownership own);
+
+private:
+  static const uint64_t ChunkAlignment = 64;
+  template <class SerialiserMode, typename T, bool isEnum = std::is_enum<T>::value>
+  struct SerialiseDispatch
+  {
+    static void Do(SerialiserMode &ser, T &el) { DoSerialise(ser, el); }
+  };
+
+  template <class SerialiserMode, typename T>
+  struct SerialiseDispatch<SerialiserMode, T, true>
+  {
+    static void Do(SerialiserMode &ser, T &el)
+    {
+      typedef typename std::underlying_type<T>::type etype;
+      constexpr bool is_valid_type =
+          std::is_same<etype, uint64_t>::value || std::is_same<etype, uint32_t>::value ||
+          std::is_same<etype, uint16_t>::value || std::is_same<etype, uint8_t>::value ||
+          std::is_same<etype, int>::value;
+      RDCCOMPILE_ASSERT(is_valid_type, "enum isn't expected type");
+      ser.SerialiseValue(SDBasic::Enum, sizeof(T), (etype &)(el));
+      ser.SerialiseStringify(el);
+    }
+  };
+
+  void *m_pUserData = NULL;
+
+  StreamWriter *m_Write = NULL;
+  StreamReader *m_Read = NULL;
+
+  Ownership m_Ownership;
+
+  // See SetStreamingMode
+  bool m_DataStreaming = false;
+  bool m_DrawChunk = false;
+
+  uint64_t m_LastChunkOffset = 0;
+  uint64_t m_ChunkFixup = 0;
+
+  bool m_ExportStructured = false;
+  bool m_ExportBuffers = false;
+  bool m_InternalElement = false;
+  SDFile m_StructData;
+  SDFile *m_StructuredFile = &m_StructData;
+  std::vector<SDObject *> m_StructureStack;
+
+  uint32_t m_ChunkFlags = 0;
+  SDChunkMetaData m_ChunkMetadata;
+
+  // a database of strings read from the file, useful when serialised structures
+  // expect a char* to return and point to static memory
+  std::set<std::string> m_StringDB;
+
+  // external storage - so the string storage can persist after the lifetime of the serialiser
+  std::set<std::string> *m_ExtStringDB = NULL;
+
+  const char *StringDB(const std::string &s)
+  {
+    if(m_ExtStringDB)
+    {
+      auto it = m_ExtStringDB->insert(s);
+      return it.first->c_str();
+    }
+
+    auto it = m_StringDB.insert(s);
+    return it.first->c_str();
+  }
+
+  ChunkLookup m_ChunkLookup = NULL;
+};
+
+#ifndef SERIALISER_IMPL
+class WriteSerialiser : public Serialiser<SerialiserMode::Writing>
+{
+public:
+  WriteSerialiser(StreamWriter *writer, Ownership own) : Serialiser(writer, own) {}
+  void WriteChunk(uint32_t chunkID, uint32_t byteLength = 0) { BeginChunk(chunkID, byteLength); }
+};
+
+class ReadSerialiser : public Serialiser<SerialiserMode::Reading>
+{
+public:
+  ReadSerialiser(StreamReader *reader, Ownership own) : Serialiser(reader, own) {}
+  template <typename ChunkType>
+  ChunkType ReadChunk()
+  {
+    // parameters are ignored when reading
+    return (ChunkType)BeginChunk(0, 0);
+  }
+};
+#endif
+
+#define BASIC_TYPE_SERIALISE(typeName, member, type, byteSize) \
+  DECLARE_STRINGISE_TYPE(typeName)                             \
+  template <class SerialiserType>                              \
+  void DoSerialise(SerialiserType &ser, typeName &el)          \
+  {                                                            \
+    ser.SerialiseValue(type, byteSize, member);                \
+  }
+
+#define BASIC_TYPE_SERIALISE_STRINGIFY(typeName, member, type, byteSize) \
+  template <class SerialiserType>                                        \
+  void DoSerialise(SerialiserType &ser, typeName &el)                    \
+  {                                                                      \
+    ser.SerialiseValue(type, byteSize, member);                          \
+    ser.SerialiseStringify(el);                                          \
+  }
+
+BASIC_TYPE_SERIALISE(int64_t, el, SDBasic::SignedInteger, 8);
+BASIC_TYPE_SERIALISE(uint64_t, el, SDBasic::UnsignedInteger, 8);
+BASIC_TYPE_SERIALISE(int32_t, el, SDBasic::SignedInteger, 4);
+BASIC_TYPE_SERIALISE(uint32_t, el, SDBasic::UnsignedInteger, 4);
+BASIC_TYPE_SERIALISE(int16_t, el, SDBasic::SignedInteger, 2);
+BASIC_TYPE_SERIALISE(uint16_t, el, SDBasic::UnsignedInteger, 2);
+BASIC_TYPE_SERIALISE(int8_t, el, SDBasic::SignedInteger, 1);
+BASIC_TYPE_SERIALISE(uint8_t, el, SDBasic::UnsignedInteger, 1);
+
+BASIC_TYPE_SERIALISE(double, el, SDBasic::Float, 8);
+BASIC_TYPE_SERIALISE(float, el, SDBasic::Float, 4);
+
+BASIC_TYPE_SERIALISE(bool, el, SDBasic::Boolean, 1);
+
+BASIC_TYPE_SERIALISE(char, el, SDBasic::Character, 1);
+
+BASIC_TYPE_SERIALISE(char *, el, SDBasic::String, 0);
+BASIC_TYPE_SERIALISE(const char *, el, SDBasic::String, 0);
+
+// these are special because we give them a typename of 'string' for both:
+// BASIC_TYPE_SERIALISE(rdcstr, el, SDBasic::String, 0);
+// BASIC_TYPE_SERIALISE(std::string, el, SDBasic::String, 0);
+
+template <>
+inline const char *TypeName<std::string>()
+{
+  return "string";
+}
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, std::string &el)
+{
+  ser.SerialiseValue(SDBasic::String, 0, el);
+}
+template <>
+inline const char *TypeName<rdcstr>()
+{
+  return "string";
+}
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, rdcstr &el)
+{
+  ser.SerialiseValue(SDBasic::String, 0, el);
+}
+
+DECLARE_STRINGISE_TYPE(SDObject *);
+
+class ScopedChunk;
 
 // holds the memory, length and type for a given chunk, so that it can be
 // passed around and moved between owners before being serialised out
 class Chunk
 {
 public:
-  ~Chunk();
-
-  const char *GetDebugString() { return m_DebugStr.c_str(); }
-  byte *GetData() { return m_Data; }
-  uint32_t GetLength() { return m_Length; }
-  uint32_t GetChunkType() { return m_ChunkType; }
-  bool IsAligned() { return m_AlignedData; }
-  bool IsTemporary() { return m_Temporary; }
-#if ENABLED(RDOC_DEVEL)
+  ~Chunk() { FreeAlignedBuffer(m_Data); }
+  template <typename ChunkType>
+  ChunkType GetChunkType()
+  {
+    return (ChunkType)m_ChunkType;
+  }
+#if !defined(RELEASE)
   static uint64_t NumLiveChunks() { return m_LiveChunks; }
   static uint64_t TotalMem() { return m_TotalMem; }
 #else
@@ -67,786 +1646,243 @@ public:
 #endif
 
   // grab current contents of the serialiser into this chunk
-  Chunk(Serialiser *ser, uint32_t chunkType, bool temp);
+  Chunk(Serialiser<SerialiserMode::Writing> &ser, uint32_t chunkType)
+  {
+    m_Length = (uint32_t)ser.GetWriter()->GetOffset();
 
-  Chunk *Duplicate();
+    RDCASSERT(ser.GetWriter()->GetOffset() < 0xffffffff);
+
+    m_ChunkType = chunkType;
+
+    m_Data = AllocAlignedBuffer(m_Length);
+
+    memcpy(m_Data, ser.GetWriter()->GetData(), (size_t)m_Length);
+
+    ser.GetWriter()->Rewind();
+  }
+
+  byte *GetData() const { return m_Data; }
+  Chunk *Duplicate()
+  {
+    Chunk *ret = new Chunk();
+    ret->m_Length = m_Length;
+    ret->m_ChunkType = m_ChunkType;
+
+    ret->m_Data = AllocAlignedBuffer(m_Length);
+
+    memcpy(ret->m_Data, m_Data, (size_t)m_Length);
+
+    return ret;
+  }
+
+  void Write(Serialiser<SerialiserMode::Writing> &ser)
+  {
+    ser.GetWriter()->Write((const void *)m_Data, (size_t)m_Length);
+  }
 
 private:
-  Chunk() {}
-  // no copy semantics
-  Chunk(const Chunk &);
-  Chunk &operator=(const Chunk &);
+  Chunk() = default;
+  Chunk(const Chunk &) = delete;
+  Chunk &operator=(const Chunk &) = delete;
 
-  friend class ScopedContext;
-
-  bool m_AlignedData;
-  bool m_Temporary;
+  friend class ScopedChunk;
 
   uint32_t m_ChunkType;
 
   uint32_t m_Length;
   byte *m_Data;
-  string m_DebugStr;
 
-#if ENABLED(RDOC_DEVEL)
+#if !defined(RELEASE)
   static int64_t m_LiveChunks, m_MaxChunks, m_TotalMem;
 #endif
 };
 
-// this class has a few functions. It can be used to serialise chunks - on writing it enforces
-// that we only ever write a single chunk, then pull out the data into a Chunk class and erase
-// the contents of the serialiser ready to serialise the next (see the RDCASSERT at the start
-// of PushContext).
-//
-// We use this functionality for sending and receiving data across the network as well as saving
-// out to the capture logfile format.
-//
-// It's also used on reading where it will contain the stream of chunks that were written out
-// to the logfile on capture.
-//
-// When reading, the Serialiser allocates a window of memory and scans through the file by reading
-// data into that window and moving along through the file. The window will expand to accomodate
-// whichever is the biggest single element within a chunk that's read (so that you can always
-// guarantee
-// while reading that the element you're interested in is always in memory).
-class Serialiser
+#ifndef SERIALISER_IMPL
+class ScopedChunk
 {
 public:
-  enum Mode
+  template <typename ChunkType>
+  ScopedChunk(WriteSerialiser &s, ChunkType i, uint32_t byteLength = 0)
+      : m_Idx(uint32_t(i)), m_Ser(s), m_Ended(false)
   {
-    NONE = 0,
-    READING,
-    WRITING,
-  };
-
-  enum SerialiserError
-  {
-    eSerError_None = 0,
-    eSerError_FileIO,
-    eSerError_Corrupt,
-    eSerError_UnsupportedVersion,
-  };
-
-  enum SectionFlags
-  {
-    eSectionFlag_None = 0x0,
-    eSectionFlag_ASCIIStored = 0x1,
-    eSectionFlag_LZ4Compressed = 0x2,
-  };
-
-  enum SectionType
-  {
-    eSectionType_Unknown = 0,
-    eSectionType_FrameCapture,       // renderdoc/internal/framecapture
-    eSectionType_ResolveDatabase,    // renderdoc/internal/resolvedb
-    eSectionType_MachineID,          // renderdoc/internal/machineid
-    eSectionType_FrameBookmarks,     // renderdoc/ui/bookmarks
-    eSectionType_Notes,              // renderdoc/ui/notes
-    eSectionType_Num,
-  };
-
-  // version number of overall file format or chunk organisation. If the contents/meaning/order of
-  // chunks have changed this does not need to be bumped, there are version numbers within each
-  // API that interprets the stream that can be bumped.
-  static const uint64_t SERIALISE_VERSION = 0x00000032;
-  static const uint32_t MAGIC_HEADER;
-
-  //////////////////////////////////////////
-  // Init and error handling
-
-  Serialiser(size_t length, const byte *memoryBuf, bool fileheader);
-  Serialiser(const char *path, Mode mode, bool debugMode, uint64_t sizeHint = 128 * 1024);
-  ~Serialiser();
-
-  bool HasError() { return m_HasError; }
-  SerialiserError ErrorCode() { return m_ErrorCode; }
-  //////////////////////////////////////////
-  // Utility functions
-
-  void *GetUserData() { return m_pUserData; }
-  void SetUserData(void *userData) { m_pUserData = userData; }
-  bool AtEnd() { return GetOffset() >= m_BufferSize; }
-  bool HasAlignedData() { return m_AlignedData; }
-  bool IsReading() const { return m_Mode == READING; }
-  bool IsWriting() const { return !IsReading(); }
-  uint64_t GetOffset() const
-  {
-    if(m_HasError)
-    {
-      RDCERR("Getting offset with error state serialiser");
-      return 0;
-    }
-
-    RDCASSERT(m_BufferHead && m_Buffer && m_BufferHead >= m_Buffer);
-    return m_BufferHead - m_Buffer + m_ReadOffset;
+    m_Ser.WriteChunk(m_Idx, byteLength);
   }
-
-  uint64_t GetSize()
-  {
-    if(m_Mode == READING)
-      return m_BufferSize;
-
-    return m_BufferHead - m_Buffer;
-  }
-
-  uint64_t GetFileSize()
-  {
-    if(m_Mode == READING)
-      return m_FileSize;
-
-    return 0;
-  }
-
-  byte *GetRawPtr(size_t offs) const { return m_Buffer + offs; }
-  // Set up the base pointer and size. Serialiser will allocate enough for
-  // the rest of the file and keep it all in memory (useful to keep everything
-  // in actual frame data resident in memory).
-  void SetPersistentBlock(uint64_t offs);
-
-  void SetOffset(uint64_t offs);
-
-  void Rewind()
-  {
-    m_DebugText = "";
-    m_Indent = 0;
-    m_AlignedData = false;
-    SetOffset(0);
-  }
-
-  // assumes buffer head is sitting before a chunk (ie. pushcontext will be valid)
-  void SkipToChunk(uint32_t chunkIdx, uint32_t *idx = NULL)
-  {
-    do
-    {
-      size_t offs = m_BufferHead - m_Buffer + (size_t)m_ReadOffset;
-
-      uint32_t c = PushContext(NULL, NULL, 1, false);
-
-      // found
-      if(c == chunkIdx)
-      {
-        m_Indent--;
-        m_BufferHead = (m_Buffer + offs) - (size_t)m_ReadOffset;
-        return;
-      }
-      else
-      {
-        SkipCurrentChunk();
-        PopContext(1);
-      }
-
-      if(idx)
-        (*idx)++;
-
-    } while(!AtEnd());
-  }
-
-  // assumes buffer head is sitting in a chunk (ie. immediately after a pushcontext)
-  void SkipCurrentChunk() { ReadBytes(m_LastChunkLen); }
-  void InitCallstackResolver();
-  bool HasCallstacks() { return m_KnownSections[eSectionType_ResolveDatabase] != NULL; }
-  // get callstack resolver, created with the DB in the file
-  Callstack::StackResolver *GetCallstackResolver() { return m_pResolver; }
-  void SetCallstack(uint64_t *levels, size_t numLevels);
-
-  uint64_t GetSavedMachineIdent()
-  {
-    Section *id = m_KnownSections[eSectionType_MachineID];
-
-    // section might not be present on older captures (or if it was stripped out
-    // by someone over-eager to remove information)
-    if(id != NULL && id->data.size() >= sizeof(uint64_t))
-    {
-      uint64_t ident = 0;
-      memcpy(&ident, &id->data[0], sizeof(ident));
-      return ident;
-    }
-
-    return 0;
-  }
-
-  // get the callstack associated with the last scope
-  Callstack::Stackwalk *GetLastCallstack()
-  {
-    return (m_pCallstack && m_pCallstack->NumLevels() > 0) ? m_pCallstack : NULL;
-  }
-
-  //////////////////////////////////////////
-  // Public serialisation interface
-
-  int GetContextLevel() { return m_Indent; }
-  uint32_t PushContext(const char *name, const char *typeName, uint32_t chunkIdx, bool smallChunk);
-  void PopContext(uint32_t chunkIdx);
-
-  // Write a chunk to disk
-  void Insert(Chunk *el);
-
-  // serialise a fixed-size array.
-  template <int Num, class T>
-  void SerialisePODArray(const char *name, T *el)
-  {
-    uint32_t n = (uint32_t)Num;
-    SerialisePODArray(name, el, n);
-  }
-
-  // serialise a normal array. Typically this should be a small array,
-  // for large byte buffers use SerialiseBuffer which is optimised for that
-  //
-  // If serialising in, el must either be NULL in which case allocated
-  // memory will be returned, or it must be already large enough.
-  template <class T>
-  void SerialisePODArray(const char *name, T *&el, uint32_t &numElems)
-  {
-    if(m_Mode == WRITING)
-    {
-      WriteFrom(numElems);
-      WriteBytes((byte *)el, sizeof(T) * numElems);
-    }
-    else if(m_Mode == READING)
-    {
-      ReadInto(numElems);
-
-      if(numElems > 0)
-      {
-        if(el == NULL)
-          el = new T[numElems];
-
-        size_t length = numElems * sizeof(T);
-
-        memcpy(el, ReadBytes(length), length);
-      }
-    }
-
-    if(name != NULL && m_DebugTextWriting)
-    {
-      if(numElems == 0)
-        DebugPrint("%s[]\n", name);
-
-      for(size_t i = 0; i < numElems; i++)
-        DebugPrint("%s[%d] = %s\n", name, i, ToStr(el[i]).c_str());
-    }
-  }
-
-  // overload for 64-bit counts
-  template <class T>
-  void SerialisePODArray(const char *name, T *&el, uint64_t &Num)
-  {
-    uint32_t n = (uint32_t)Num;
-    SerialisePODArray(name, el, n);
-    Num = n;
-  }
-
-  // serialise a normal array. Typically this should be a small array,
-  // for large byte buffers use SerialiseBuffer which is optimised for that
-  //
-  // If serialising in, el will either be set to NULL or allocated, the
-  // existing value will be overwritten.
-  template <int Num, class T>
-  void SerialiseComplexArray(const char *name, T *&el)
-  {
-    uint32_t n = (uint32_t)Num;
-    SerialiseComplexArray(name, el, n);
-  }
-
-  template <class T>
-  void SerialiseComplexArray(const char *name, T *&el, uint32_t &Num)
-  {
-    if(m_Mode == WRITING)
-    {
-      WriteFrom(Num);
-      for(uint32_t i = 0; i < Num; i++)
-        Serialise(m_DebugTextWriting ? StringFormat::Fmt("%s[%i]", name, i).c_str() : "", el[i]);
-    }
-    else if(m_Mode == READING)
-    {
-      ReadInto(Num);
-
-      if(Num > 0)
-      {
-        el = new T[Num];
-
-        for(uint32_t i = 0; i < Num; i++)
-          Serialise(m_DebugTextWriting ? StringFormat::Fmt("%s[%i]", name, i).c_str() : "", el[i]);
-      }
-      else
-      {
-        el = NULL;
-      }
-    }
-
-    if(name != NULL && m_DebugTextWriting && Num == 0)
-      DebugPrint("%s[]\n", name);
-  }
-
-  // overload for 64-bit counts
-  template <class T>
-  void SerialiseComplexArray(const char *name, T *&el, uint64_t &Num)
-  {
-    uint32_t n = (uint32_t)Num;
-    SerialiseComplexArray(name, el, n);
-    Num = n;
-  }
-
-  // serialise a single element
-  template <class T>
-  void Serialise(const char *name, T &el)
-  {
-    if(m_Mode == WRITING)
-    {
-      WriteFrom(el);
-    }
-    else if(m_Mode == READING)
-    {
-      ReadInto(el);
-    }
-
-    if(name != NULL && m_DebugTextWriting)
-      DebugPrint("%s: %s\n", name, ToStr(el).c_str());
-  }
-
-  // function to deallocate members
-  template <class T>
-  void Deserialise(const T *const el) const
-  {
-  }
-
-  template <typename X>
-  void Serialise(const char *name, std::vector<X> &el)
-  {
-    uint64_t sz = el.size();
-    Serialise(name, sz);
-    if(m_Mode == WRITING)
-    {
-      for(size_t i = 0; i < sz; i++)
-        Serialise("[]", el[i]);
-    }
-    else
-    {
-      el.clear();
-      el.reserve((size_t)sz);
-      for(size_t i = 0; i < sz; i++)
-      {
-        X x = X();
-        Serialise("", x);
-        el.push_back(x);
-      }
-    }
-  }
-
-  template <typename X>
-  void Serialise(const char *name, rdcarray<X> &el)
-  {
-    int32_t sz = el.count();
-    Serialise(name, sz);
-    if(m_Mode == WRITING)
-    {
-      for(int32_t i = 0; i < sz; i++)
-        Serialise("[]", el[i]);
-    }
-    else
-    {
-      el.resize(sz);
-      for(int32_t i = 0; i < sz; i++)
-        Serialise("", el[i]);
-    }
-  }
-
-  void Serialise(const char *name, bytebuf &el)
-  {
-    int32_t bufLen = el.count();
-
-    if(m_Mode >= WRITING)
-    {
-      WriteFrom(bufLen);
-
-      // ensure byte alignment
-      uint64_t offs = GetOffset();
-      uint64_t alignedoffs = AlignUp(offs, BufferAlignment);
-
-      if(offs != alignedoffs)
-      {
-        static const byte padding[64] = {0};
-        WriteBytes(&padding[0], (size_t)(alignedoffs - offs));
-      }
-
-      RDCASSERT((GetOffset() % BufferAlignment) == 0);
-
-      WriteBytes(el.data(), bufLen);
-
-      m_AlignedData = true;
-    }
-    else
-    {
-      ReadInto(bufLen);
-
-      // ensure byte alignment
-      uint64_t offs = GetOffset();
-
-      // serialise version 0x00000031 had only 16-byte alignment
-      uint64_t alignedoffs = AlignUp(offs, m_SerVer == 0x00000031 ? 16 : BufferAlignment);
-
-      if(offs != alignedoffs)
-      {
-        ReadBytes((size_t)(alignedoffs - offs));
-      }
-
-      el.resize((size_t)bufLen);
-      memcpy(el.data(), ReadBytes(bufLen), bufLen);
-    }
-
-    if(m_DebugTextWriting && name && name[0])
-    {
-      const char *ellipsis = "...";
-
-      uint32_t lbuf[4];
-
-      memcpy(lbuf, el.data(), RDCMIN((size_t)bufLen, 4 * sizeof(uint32_t)));
-
-      if(bufLen <= 16)
-      {
-        ellipsis = "   ";
-      }
-
-      DebugPrint("%s: RawBuffer % 5d:< 0x%08x 0x%08x 0x%08x 0x%08x %s>\n", name, bufLen, lbuf[0],
-                 lbuf[1], lbuf[2], lbuf[3], ellipsis);
-    }
-  }
-
-  void Serialise(const char *name, rdcstr &el)
-  {
-    int32_t sz = el.count();
-    Serialise(name, sz);
-    if(m_Mode == WRITING)
-    {
-      for(int32_t i = 0; i < sz; i++)
-        Serialise("[]", el[i]);
-    }
-    else
-    {
-      el.resize((size_t)sz);
-      for(int32_t i = 0; i < sz; i++)
-        Serialise("", el[i]);
-    }
-  }
-
-  template <typename X, typename Y>
-  void Serialise(const char *name, std::pair<X, Y> &el)
-  {
-    Serialise(name, el.first);
-    Serialise(name, el.second);
-  }
-
-  template <typename X, typename Y>
-  void Serialise(const char *name, rdcpair<X, Y> &el)
-  {
-    Serialise(name, el.first);
-    Serialise(name, el.second);
-  }
-
-  template <typename X>
-  void Serialise(const char *name, std::list<X> &el)
-  {
-    uint64_t sz = el.size();
-    Serialise(name, sz);
-    if(m_Mode == WRITING)
-    {
-      for(auto it = el.begin(); it != el.end(); ++it)
-        Serialise("[]", *it);
-    }
-    else
-    {
-      el.clear();
-      for(uint64_t i = 0; i < sz; i++)
-      {
-        X x = X();
-        Serialise("", x);
-        el.push_back(x);
-      }
-    }
-  }
-
-  // not sure if I still neeed these specialisations anymore.
-  void SerialiseString(const char *name, string &el);
-
-  // serialise a buffer.
-  //
-  // If serialising in, buf must either be NULL in which case allocated
-  // memory will be returned, or it must be already large enough.
-  void SerialiseBuffer(const char *name, byte *&buf, size_t &len);
-  void AlignNextBuffer(const size_t alignment);
-
-  // NOT recommended interface. Useful for specific situations if e.g. you have
-  // a buffer of data that is not arbitrary in size and can be determined by a 'type' or
-  // similar elsewhere in the stream, so you want to skip the type-safety of the above
-  // and write directly into the stream. Must be matched by a RawReadBytes.
-  void RawWriteBytes(const void *data, size_t bytes) { WriteBytes((const byte *)data, bytes); }
-  const void *RawReadBytes(size_t bytes) { return ReadBytes(bytes); }
-  // prints to the debug output log
-  void DebugPrint(const char *fmt, ...);
-
-  void FlushToDisk();
-
-  // set a function used when serialising a text representation
-  // of the chunks
-  void SetChunkNameLookup(ChunkLookup lookup) { m_ChunkLookup = lookup; }
-  void SetDebugText(bool enabled) { m_DebugTextWriting = enabled; }
-  bool GetDebugText() { return m_DebugTextWriting; }
-  string GetDebugStr() { return m_DebugText; }
-private:
-  //////////////////////////////////////////
-  // Raw memory buffer read/write
-
-  void WriteBytes(const byte *buf, size_t nBytes);
-  void *ReadBytes(size_t nBytes);
-
-  void ReadFromFile(uint64_t bufferOffs, size_t length);
-
-  template <class T>
-  void WriteFrom(const T &f)
-  {
-    WriteBytes((byte *)&f, sizeof(T));
-  }
-
-  template <class T>
-  void ReadInto(T &f)
-  {
-    if(m_HasError)
-    {
-      RDCERR("Reading into with error state serialiser");
-      return;
-    }
-
-    char *data = (char *)ReadBytes(sizeof(T));
-#if defined(_M_ARM) || defined(__arm__)
-    // Fetches on ARM have to be aligned according to the type size.
-    memcpy(&f, data, sizeof(T));
-#else
-    f = *((T *)data);
-#endif
-  }
-
-  // no copies
-  Serialiser(const Serialiser &other);
-
-  void CreateResolver();
-
-  // clean out for before constructor and after destructor (and other times probably)
-  void Reset();
-
-  string GetIndent()
-  {
-    if(m_Mode == READING)
-      return string(m_Indent > 0 ? 4 : 0, ' ');
-
-    return string((size_t)m_Indent * 4, ' ');
-  }
-
-  //////////////////////////////////////////
-
-  static const uint64_t BufferAlignment;
-
-  //////////////////////////////////////////
-
-  uint64_t m_SerVer;
-
-  Mode m_Mode;
-
-  SerialiserError m_ErrorCode;
-  bool m_HasError;
-  bool m_DebugEnabled;
-
-  void *m_pUserData;
-
-  int m_Indent;
-
-  Callstack::Stackwalk *m_pCallstack;
-  Callstack::StackResolver *m_pResolver;
-  Threading::ThreadHandle m_ResolverThread;
-  volatile bool m_ResolverThreadKillSignal;
-
-  string m_Filename;
-
-  // raw binary buffer
-  uint64_t m_BufferSize;
-  byte *m_Buffer;
-  byte *m_BufferHead;
-  size_t m_LastChunkLen;
-  bool m_AlignedData;
-  vector<uint64_t> m_ChunkFixups;
-
-  // reading from file:
-
-  struct Section
-  {
-    Section()
-        : type(eSectionType_Unknown), flags(eSectionFlag_None), fileoffset(0), compressedReader(NULL)
-    {
-    }
-    string name;
-    SectionType type;
-    SectionFlags flags;
-
-    uint64_t fileoffset;
-    uint64_t size;
-    vector<byte> data;    // some sections can be loaded entirely into memory
-    CompressedFileIO *compressedReader;
-  };
-
-  // this lists all sections in file order
-  vector<Section *> m_Sections;
-
-  // this lists known sections, some may be NULL
-  Section *m_KnownSections[eSectionType_Num];
-
-  // where does our in-memory window point to in the data stream. ie. m_pBuffer[0] is
-  // m_ReadOffset into the frame capture section
-  uint64_t m_ReadOffset;
-
-  uint64_t m_FileSize;
-
-  // how big is the current in-memory window
-  size_t m_CurrentBufferSize;
-
-  // the file pointer to read from
-  FILE *m_ReadFileHandle;
-
-  // writing to file
-  vector<Chunk *> m_Chunks;
-
-  // a database of strings read from the file, useful when serialised structures
-  // expect a char* to return and point to static memory
-  set<string> m_StringDB;
-
-  // debug buffer
-  bool m_DebugTextWriting;
-  string m_DebugText;
-  ChunkLookup m_ChunkLookup;
-};
-
-template <>
-void Serialiser::Serialise(const char *name, string &el);
-
-// floats need aligned reads
-template <>
-void Serialiser::ReadInto(float &f);
-
-class ScopedContext
-{
-public:
-  ScopedContext(Serialiser *s, const char *n, const char *t, uint32_t i, bool smallChunk)
-      : m_Idx(i), m_Ser(s), m_Ended(false)
-  {
-    m_Ser->PushContext(n, t, m_Idx, smallChunk);
-  }
-  ScopedContext(Serialiser *s, const char *n, uint32_t i, bool smallChunk)
-      : m_Idx(i), m_Ser(s), m_Ended(false)
-  {
-    m_Ser->PushContext(n, NULL, m_Idx, smallChunk);
-  }
-  ~ScopedContext()
+  ~ScopedChunk()
   {
     if(!m_Ended)
       End();
   }
 
-  Chunk *Get(bool temporary = false)
+  Chunk *Get()
   {
     End();
-    return new Chunk(m_Ser, m_Idx, temporary);
+    return new Chunk(m_Ser, m_Idx);
   }
 
 private:
+  WriteSerialiser &m_Ser;
   uint32_t m_Idx;
-  Serialiser *m_Ser;
-
   bool m_Ended;
 
   void End()
   {
     RDCASSERT(!m_Ended);
 
-    m_Ser->PopContext(m_Idx);
+    m_Ser.EndChunk();
 
     m_Ended = true;
   }
 };
+#endif
 
-template <class T>
+template <class SerialiserType, class T>
 struct ScopedDeserialise
 {
-  ScopedDeserialise(const Serialiser *const ser, const T *const t) : m_ser(ser), m_t(t) {}
-  ~ScopedDeserialise() { m_ser->Deserialise(m_t); }
-  const Serialiser *const m_ser;
-  const T *const m_t;
+  ScopedDeserialise(const SerialiserType &ser, const T &el) : m_Ser(ser), m_El(el) {}
+  ~ScopedDeserialise()
+  {
+    if(m_Ser.IsReading())
+      Deserialise(m_El);
+  }
+  const SerialiserType &m_Ser;
+  const T &m_El;
 };
 
-// can be overridden to locally cache the serialiser pointer (e.g. for TLS lookup)
-#define GET_SERIALISER GetSerialiser()
+template <class SerialiserType, class ptrT>
+struct ScopedDeserialiseNullable
+{
+  typedef typename std::remove_pointer<ptrT>::type T;
 
-#define SCOPED_SERIALISE_CONTEXT(n) ScopedContext scope(GET_SERIALISER, GetChunkName(n), n, false);
-#define SCOPED_SERIALISE_CONTEXT(n) ScopedContext scope(GET_SERIALISER, GetChunkName(n), n, false);
-#define SCOPED_SERIALISE_SMALL_CONTEXT(n) \
-  ScopedContext scope(GET_SERIALISER, GetChunkName(n), n, true);
+  ScopedDeserialiseNullable(const SerialiserType &ser, T **el) : m_Ser(ser), m_El(el) {}
+  ~ScopedDeserialiseNullable()
+  {
+    if(m_Ser.IsReading() && *m_El != NULL)
+    {
+      Deserialise(**m_El);
+      delete *m_El;
+    }
+  }
+  const SerialiserType &m_Ser;
+  T **m_El;
+};
 
-#define SERIALISE_ELEMENT(type, name, inValue)                               \
-  type name;                                                                 \
-  ScopedDeserialise<type> CONCAT(deserialise_, name)(GET_SERIALISER, &name); \
-  if(m_State >= WRITING)                                                     \
-    name = (inValue);                                                        \
-  GET_SERIALISER->Serialise(#name, name);
-#define SERIALISE_ELEMENT_OPT(type, name, inValue, Condition) \
-  type name = type();                                         \
-  if(Condition)                                               \
-  {                                                           \
-    if(m_State >= WRITING)                                    \
-      name = (inValue);                                       \
-    GET_SERIALISER->Serialise(#name, name);                   \
+template <class SerialiserType, class ptrT>
+struct ScopedDeserialiseArray
+{
+  typedef typename std::remove_pointer<ptrT>::type T;
+
+  ScopedDeserialiseArray(const SerialiserType &ser, T **el) : m_Ser(ser), m_El(el) {}
+  ~ScopedDeserialiseArray()
+  {
+    if(m_Ser.IsReading())
+      delete[] * m_El;
   }
-#define SERIALISE_ELEMENT_ARR(type, name, inValues, count)           \
-  type *name = new type[count];                                      \
-  for(size_t serialiseIdx = 0; serialiseIdx < count; serialiseIdx++) \
-  {                                                                  \
-    if(m_State >= WRITING)                                           \
-      name[serialiseIdx] = (inValues)[serialiseIdx];                 \
-    GET_SERIALISER->Serialise(#name, name[serialiseIdx]);            \
+  const SerialiserType &m_Ser;
+  T **m_El;
+};
+
+template <class SerialiserType>
+struct ScopedDeserialiseArray<SerialiserType, void *>
+{
+  ScopedDeserialiseArray(const SerialiserType &ser, void **el) : m_Ser(ser), m_El(el) {}
+  ~ScopedDeserialiseArray()
+  {
+    if(m_Ser.IsReading())
+      FreeAlignedBuffer((byte *)*m_El);
   }
-#define SERIALISE_ELEMENT_ARR_OPT(type, name, inValues, count, Condition) \
-  type *name = NULL;                                                      \
-  if(Condition)                                                           \
-  {                                                                       \
-    name = new type[count];                                               \
-    for(size_t serialiseIdx = 0; serialiseIdx < count; serialiseIdx++)    \
-    {                                                                     \
-      if(m_State >= WRITING)                                              \
-        name[serialiseIdx] = (inValues)[serialiseIdx];                    \
-      GET_SERIALISER->Serialise(#name, name[serialiseIdx]);               \
-    }                                                                     \
+  const SerialiserType &m_Ser;
+  void **m_El;
+};
+
+template <class SerialiserType>
+struct ScopedDeserialiseArray<SerialiserType, const void *>
+{
+  ScopedDeserialiseArray(const SerialiserType &ser, const void **el) : m_Ser(ser), m_El(el) {}
+  ~ScopedDeserialiseArray()
+  {
+    if(m_Ser.IsReading())
+      FreeAlignedBuffer((byte *)*m_El);
   }
-#define SERIALISE_ELEMENT_PTR(type, name, inValue) \
-  type name;                                       \
-  if(inValue && m_State >= WRITING)                \
-    name = *(inValue);                             \
-  GET_SERIALISER->Serialise(#name, name);
-#define SERIALISE_ELEMENT_PTR_OPT(type, name, inValue, Condition) \
-  type name;                                                      \
-  if(Condition)                                                   \
-  {                                                               \
-    if(inValue && m_State >= WRITING)                             \
-      name = *(inValue);                                          \
-    GET_SERIALISER->Serialise(#name, name);                       \
+  const SerialiserType &m_Ser;
+  const void **m_El;
+};
+
+template <class SerialiserType>
+struct ScopedDeserialiseArray<SerialiserType, byte *>
+{
+  ScopedDeserialiseArray(const SerialiserType &ser, byte **el) : m_Ser(ser), m_El(el) {}
+  ~ScopedDeserialiseArray()
+  {
+    if(m_Ser.IsReading())
+      FreeAlignedBuffer(*m_El);
   }
-#define SERIALISE_ELEMENT_BUF(type, name, inBuf, Len) \
-  type name = (type)NULL;                             \
-  if(m_State >= WRITING)                              \
-    name = (type)(inBuf);                             \
-  size_t CONCAT(buflen, __LINE__) = Len;              \
-  GET_SERIALISER->SerialiseBuffer(#name, name, CONCAT(buflen, __LINE__));
-#define SERIALISE_ELEMENT_BUF_OPT(type, name, inBuf, Len, Condition)        \
-  type name = (type)NULL;                                                   \
-  if(Condition)                                                             \
-  {                                                                         \
-    if(m_State >= WRITING)                                                  \
-      name = (type)(inBuf);                                                 \
-    size_t CONCAT(buflen, __LINE__) = Len;                                  \
-    GET_SERIALISER->SerialiseBuffer(#name, name, CONCAT(buflen, __LINE__)); \
-  }
+  const SerialiserType &m_Ser;
+  byte **m_El;
+};
+
+// can be overridden to change the name in the helper macros locally
+#define GET_SERIALISER (ser)
+
+#define SCOPED_SERIALISE_CHUNK(...) ScopedChunk scope(GET_SERIALISER, __VA_ARGS__);
+
+// these helper macros are intended for use when serialising objects in chunks
+#define SERIALISE_ELEMENT(obj)                                                               \
+  ScopedDeserialise<decltype(GET_SERIALISER), decltype(obj)> CONCAT(deserialise_, __LINE__)( \
+      GET_SERIALISER, obj);                                                                  \
+  GET_SERIALISER.Serialise(#obj, obj)
+
+#define SERIALISE_ELEMENT_TYPED(type, obj) \
+  if(ser.IsReading())                      \
+    obj = decltype(obj)();                 \
+  union                                    \
+  {                                        \
+    type *t;                               \
+    decltype(obj) *o;                      \
+  } CONCAT(union, __LINE__);               \
+  CONCAT(union, __LINE__).o = &obj;        \
+  GET_SERIALISER.template Serialise<type>(#obj, *CONCAT(union, __LINE__).t)
+
+// helper macro for when an array has a constant size. Uses a dummy variable to serialise
+#define FIXED_COUNT(count) \
+  (CONCAT(dummy_array_count, __LINE__) = (count), CONCAT(dummy_array_count, __LINE__))
+
+#define SERIALISE_ELEMENT_ARRAY(obj, count)                                                       \
+  uint64_t CONCAT(dummy_array_count, __LINE__) = 0;                                               \
+  (void)CONCAT(dummy_array_count, __LINE__);                                                      \
+  ScopedDeserialiseArray<decltype(GET_SERIALISER), decltype(obj)> CONCAT(deserialise_, __LINE__)( \
+      GET_SERIALISER, &obj);                                                                      \
+  GET_SERIALISER.Serialise(#obj, obj, count, SerialiserFlags::AllocateMemory)
+
+#define SERIALISE_ELEMENT_OPT(obj)                                           \
+  ScopedDeserialiseNullable<decltype(GET_SERIALISER), decltype(obj)> CONCAT( \
+      deserialise_, __LINE__)(GET_SERIALISER, &obj);                         \
+  GET_SERIALISER.SerialiseNullable(#obj, obj)
+
+#define SERIALISE_ELEMENT_LOCAL(obj, inValue)                                                 \
+  typename std::remove_cv<typename std::remove_reference<decltype(inValue)>::type>::type obj; \
+  ScopedDeserialise<decltype(GET_SERIALISER), decltype(obj)> CONCAT(deserialise_, __LINE__)(  \
+      GET_SERIALISER, obj);                                                                   \
+  if(GET_SERIALISER.IsWriting())                                                              \
+    obj = (inValue);                                                                          \
+  GET_SERIALISER.Serialise(#obj, obj)
+
+// these macros are for use when implementing a DoSerialise function
+#define SERIALISE_MEMBER(obj) ser.Serialise(#obj, el.obj)
+
+#define SERIALISE_MEMBER_TYPED(type, obj) \
+  if(ser.IsReading())                     \
+    el.obj = decltype(el.obj)();          \
+  union                                   \
+  {                                       \
+    type *t;                              \
+    decltype(el.obj) *o;                  \
+  } CONCAT(union, __LINE__);              \
+  CONCAT(union, __LINE__).o = &el.obj;    \
+  ser.template Serialise<type>(#obj, *CONCAT(union, __LINE__).t)
+
+#define SERIALISE_MEMBER_ARRAY(arrayObj, countObj) \
+  ser.Serialise(#arrayObj, el.arrayObj, el.countObj, SerialiserFlags::AllocateMemory)
+
+// a member that is a pointer and could be NULL, so needs a hidden 'present'
+// flag serialised out
+#define SERIALISE_MEMBER_OPT(obj) ser.SerialiseNullable(#obj, el.obj)
