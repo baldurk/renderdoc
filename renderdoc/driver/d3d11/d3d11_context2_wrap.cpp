@@ -131,10 +131,10 @@ void WrappedID3D11DeviceContext::SetMarkerInt(LPCWSTR pLabel, INT Data)
 
 void WrappedID3D11DeviceContext::BeginEventInt(LPCWSTR pLabel, INT Data)
 {
-  PushEvent(0, pLabel);
+  PushMarker(0, pLabel);
 }
 
 void WrappedID3D11DeviceContext::EndEvent()
 {
-  PopEvent();
+  PopMarker();
 }

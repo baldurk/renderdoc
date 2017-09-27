@@ -148,6 +148,11 @@ private:
 
   bool m_NeedUpdateSubWorkaround;
 
+  WriteSerialiser m_ScratchSerialiser;
+  std::set<std::string> m_StringDB;
+
+  StreamReader *m_FrameReader = NULL;
+
   map<ResourceId, int> m_MapResourceRecordAllocs;
 
   set<ResourceId> m_MissingTracks;
@@ -155,9 +160,7 @@ private:
   ResourceId m_ResourceID;
   D3D11ResourceRecord *m_ContextRecord;
 
-  bool m_OwnSerialiser;
-  Serialiser *m_pSerialiser;
-  LogState m_State;
+  CaptureState m_State;
   CaptureFailReason m_FailureReason;
   bool m_SuccessfulCapture;
   bool m_EmptyCommandList;
@@ -192,6 +195,7 @@ private:
   Threading::CriticalSection m_AnnotLock;
 
   uint64_t m_CurChunkOffset;
+  SDChunkMetaData m_ChunkMetadata;
   uint32_t m_CurEventID, m_CurDrawcallID;
 
   DrawcallDescription m_ParentDrawcall;
@@ -199,11 +203,11 @@ private:
 
   list<DrawcallDescription *> m_DrawcallStack;
 
-  void FlattenLog();
+  D3D11ResourceManager *GetResourceManager();
+  static std::string GetChunkName(uint32_t idx);
 
-  const char *GetChunkName(D3D11Chunk idx);
-
-  void Serialise_DebugMessages();
+  template <typename SerialiserType>
+  void Serialise_DebugMessages(SerialiserType &ser);
 
   void DrainAnnotationQueue();
 
@@ -235,18 +239,16 @@ private:
   ////////////////////////////////////////////////////////////////
   // implement InterceptorSystem privately, since it is not thread safe (like all other context
   // functions)
-  IMPLEMENT_FUNCTION_SERIALISED(void, SetMarker(uint32_t col, const wchar_t *name));
-  IMPLEMENT_FUNCTION_SERIALISED(int, PushEvent(uint32_t col, const wchar_t *name));
-  IMPLEMENT_FUNCTION_SERIALISED(int, PopEvent());
+  IMPLEMENT_FUNCTION_SERIALISED(void, SetMarker, uint32_t col, const wchar_t *name);
+  IMPLEMENT_FUNCTION_SERIALISED(int, PushMarker, uint32_t col, const wchar_t *name);
+  IMPLEMENT_FUNCTION_SERIALISED(int, PopMarker);
 
 public:
-  static const int AllocPoolCount = 2048;
+  static const int AllocPoolCount = 1024;
   static const int AllocPoolMaxByteSize = 3 * 1024 * 1024;
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11DeviceContext, AllocPoolCount, AllocPoolMaxByteSize);
 
-  WrappedID3D11DeviceContext(WrappedID3D11Device *realDevice, ID3D11DeviceContext *context,
-                             Serialiser *ser);
-  void SetSerialiser(Serialiser *ser) { m_pSerialiser = ser; }
+  WrappedID3D11DeviceContext(WrappedID3D11Device *realDevice, ID3D11DeviceContext *context);
   virtual ~WrappedID3D11DeviceContext();
 
   void VerifyState();
@@ -254,7 +256,8 @@ public:
   void BeginFrame();
   void EndFrame();
 
-  bool Serialise_BeginCaptureFrame(bool applyInitialState);
+  template <typename SerialiserType>
+  bool Serialise_BeginCaptureFrame(SerialiserType &ser, bool applyInitialState);
   void BeginCaptureFrame();
   void EndCaptureFrame();
 
@@ -276,16 +279,15 @@ public:
   void FinishCapture();
 
   D3D11RenderState *GetCurrentPipelineState() { return m_CurrentPipelineState; }
-  Serialiser *GetSerialiser() { return m_pSerialiser; }
   ResourceId GetResourceID() { return m_ResourceID; }
   ID3D11DeviceContext *GetReal() { return m_pRealContext; }
   ID3D11DeviceContext1 *GetReal1() { return m_pRealContext1; }
   bool IsFL11_1();
 
-  void ProcessChunk(uint64_t offset, D3D11Chunk chunk, bool forceExecute);
+  void ProcessChunk(ReadSerialiser &ser, D3D11Chunk chunk);
   void ReplayFakeContext(ResourceId id);
-  void ReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
-
+  void ReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
+  void SetFrameReader(StreamReader *reader) { m_FrameReader = reader; }
   void MarkResourceReferenced(ResourceId id, FrameRefType refType);
 
   vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }

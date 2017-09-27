@@ -853,7 +853,7 @@ void WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
       }
       else
       {
-        m_pImmediateContext->ProcessChunk(ser, context, true);
+        m_pImmediateContext->ProcessChunk(ser, context);
       }
       break;
     }
