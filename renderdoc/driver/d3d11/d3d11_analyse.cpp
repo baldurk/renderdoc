@@ -1085,7 +1085,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
           el = &inputlayout[l];
           break;
         }
-        if(signame == layoutname + ToStr::Get(inputlayout[l].SemanticIndex))
+        if(signame == layoutname + ToStr(inputlayout[l].SemanticIndex))
         {
           el = &inputlayout[l];
           break;
@@ -1485,7 +1485,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 
             std::string name = prevdxbc->m_OutputSig[os].semanticIdxName;
 
-            extractHlsl += ToStr::Get((uint32_t)numCols) + " input_" + name + " : " + name + ";\n";
+            extractHlsl += ToStr((uint32_t)numCols) + " input_" + name + " : " + name + ";\n";
           }
         }
       }
@@ -1493,7 +1493,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
       if(!filled)
       {
         string dummy_reg = "dummy_register";
-        dummy_reg += ToStr::Get((uint32_t)nextreg + dummy);
+        dummy_reg += ToStr((uint32_t)nextreg + dummy);
         extractHlsl += "float4 var_" + dummy_reg + " : semantic_" + dummy_reg + ";\n";
 
         initialValues.push_back(DataOutput(-1, 0, 4, ShaderBuiltin::Undefined, true));
@@ -1621,9 +1621,9 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
       }
     }
 
-    extractHlsl += ToStr::Get((uint32_t)numCols) + " input_" + name;
+    extractHlsl += ToStr((uint32_t)numCols) + " input_" + name;
     if(arrayLength > 0)
-      extractHlsl += "[" + ToStr::Get(arrayLength) + "]";
+      extractHlsl += "[" + ToStr(arrayLength) + "]";
     extractHlsl += " : " + name;
 
     if(included && dxbc->m_InputSig[i].compType == CompType::Float)
@@ -1635,7 +1635,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
       else
       {
         for(int a = 0; a < arrayLength; a++)
-          floatInputs.push_back("input_" + name + "[" + ToStr::Get(a) + "]");
+          floatInputs.push_back("input_" + name + "[" + ToStr(a) + "]");
       }
     }
 
@@ -1687,17 +1687,17 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
       "struct PSInitialData { uint hit; float3 pos; uint prim; uint fface; uint sample; uint "
       "covge; float derivValid; PSInput IN; PSInput INddx; PSInput INddy; PSInput INddxfine; "
       "PSInput INddyfine; };\n\n";
-  extractHlsl += "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u" +
-                 ToStr::Get(uavslot) + ");\n\n";
+  extractHlsl +=
+      "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u" + ToStr(uavslot) + ");\n\n";
   extractHlsl +=
       "void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : "
       "SV_PrimitiveID, uint sample : SV_SampleIndex, uint covge : SV_Coverage, bool fface : "
       "SV_IsFrontFace)\n{\n";
-  extractHlsl += "  uint idx = " + ToStr::Get(overdrawLevels) + ";\n";
-  extractHlsl += "  if(abs(debug_pixelPos.x - " + ToStr::Get(x) +
-                 ".5) < 0.5f && abs(debug_pixelPos.y - " + ToStr::Get(y) + ".5) < 0.5f)\n";
+  extractHlsl += "  uint idx = " + ToStr(overdrawLevels) + ";\n";
+  extractHlsl += "  if(abs(debug_pixelPos.x - " + ToStr(x) +
+                 ".5) < 0.5f && abs(debug_pixelPos.y - " + ToStr(y) + ".5) < 0.5f)\n";
   extractHlsl += "    InterlockedAdd(PSInitialBuffer[0].hit, 1, idx);\n\n";
-  extractHlsl += "  idx = min(idx, " + ToStr::Get(overdrawLevels) + ");\n\n";
+  extractHlsl += "  idx = min(idx, " + ToStr(overdrawLevels) + ");\n\n";
   extractHlsl += "  PSInitialBuffer[idx].pos = debug_pixelPos.xyz;\n";
   extractHlsl += "  PSInitialBuffer[idx].prim = prim;\n";
   extractHlsl += "  PSInitialBuffer[idx].fface = fface;\n";
@@ -1747,7 +1747,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create buffer %08x", hr);
+    RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
     return empty;
   }
 
@@ -1762,7 +1762,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create buffer %08x", hr);
+    RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
     return empty;
   }
 
@@ -1778,7 +1778,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create buffer %08x", hr);
+    RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
     return empty;
   }
 
@@ -1806,7 +1806,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to map stage buff %08x", hr);
+    RDCERR("Failed to map stage buff HRESULT: %s", ToStr(hr).c_str());
     return empty;
   }
 
@@ -2546,7 +2546,7 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create PickIBBuf %08x", hr);
+        RDCERR("Failed to create PickIBBuf HRESULT: %s", ToStr(hr).c_str());
         return ~0U;
       }
 
@@ -2562,7 +2562,7 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
       if(FAILED(hr))
       {
         SAFE_RELEASE(m_DebugRender.PickIBBuf);
-        RDCERR("Failed to create PickIBSRV %08x", hr);
+        RDCERR("Failed to create PickIBSRV HRESULT: %s", ToStr(hr).c_str());
         return ~0U;
       }
     }
@@ -2606,7 +2606,7 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create PickVBBuf %08x", hr);
+      RDCERR("Failed to create PickVBBuf HRESULT: %s", ToStr(hr).c_str());
       return ~0U;
     }
 
@@ -2622,7 +2622,7 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     if(FAILED(hr))
     {
       SAFE_RELEASE(m_DebugRender.PickVBBuf);
-      RDCERR("Failed to create PickVBSRV %08x", hr);
+      RDCERR("Failed to create PickVBSRV HRESULT: %s", ToStr(hr).c_str());
       return ~0U;
     }
   }
@@ -2837,7 +2837,7 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to map stage buff %08x", hr);
+    RDCERR("Failed to map stage buff HRESULT: %s", ToStr(hr).c_str());
   }
 
   float *pix = (float *)mapped.pData;
@@ -2909,7 +2909,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
 
     if(FAILED(hr))
     {
-      RDCERR("Couldn't create staging texture to retrieve data. %08x", hr);
+      RDCERR("Couldn't create staging texture to retrieve data. HRESULT: %s", ToStr(hr).c_str());
       return NULL;
     }
 
@@ -2931,7 +2931,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
 
       if(FAILED(hr))
       {
-        RDCERR("Couldn't create target texture to downcast texture. %08x", hr);
+        RDCERR("Couldn't create target texture to downcast texture. HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(d);
         return NULL;
       }
@@ -2945,7 +2945,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
       hr = m_pDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
       if(FAILED(hr))
       {
-        RDCERR("Couldn't create target rtv to downcast texture. %08x", hr);
+        RDCERR("Couldn't create target rtv to downcast texture. HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(d);
         SAFE_RELEASE(rtTex);
         return NULL;
@@ -3049,7 +3049,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
 
     if(FAILED(hr))
     {
-      RDCERR("Couldn't create staging texture to retrieve data. %08x", hr);
+      RDCERR("Couldn't create staging texture to retrieve data. HRESULT: %s", ToStr(hr).c_str());
       return NULL;
     }
 
@@ -3071,7 +3071,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
 
       if(FAILED(hr))
       {
-        RDCERR("Couldn't create target texture to downcast texture. %08x", hr);
+        RDCERR("Couldn't create target texture to downcast texture. HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(d);
         return NULL;
       }
@@ -3085,7 +3085,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
       hr = m_pDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
       if(FAILED(hr))
       {
-        RDCERR("Couldn't create target rtv to downcast texture. %08x", hr);
+        RDCERR("Couldn't create target rtv to downcast texture. HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(d);
         SAFE_RELEASE(rtTex);
         return NULL;
@@ -3146,7 +3146,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
 
       if(FAILED(hr))
       {
-        RDCERR("Couldn't create target texture to resolve texture. %08x", hr);
+        RDCERR("Couldn't create target texture to resolve texture. HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(d);
         return NULL;
       }
@@ -3202,7 +3202,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
 
     if(FAILED(hr))
     {
-      RDCERR("Couldn't create staging texture to retrieve data. %08x", hr);
+      RDCERR("Couldn't create staging texture to retrieve data. HRESULT: %s", ToStr(hr).c_str());
       return NULL;
     }
 
@@ -3224,7 +3224,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
 
       if(FAILED(hr))
       {
-        RDCERR("Couldn't create target texture to downcast texture. %08x", hr);
+        RDCERR("Couldn't create target texture to downcast texture. HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(d);
         return NULL;
       }
@@ -3249,7 +3249,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
         hr = m_pDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
         if(FAILED(hr))
         {
-          RDCERR("Couldn't create target rtv to downcast texture. %08x", hr);
+          RDCERR("Couldn't create target rtv to downcast texture. HRESULT: %s", ToStr(hr).c_str());
           SAFE_RELEASE(d);
           SAFE_RELEASE(rtTex);
           return NULL;
@@ -3339,7 +3339,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
   }
   else
   {
-    RDCERR("Couldn't map staging texture to retrieve data. %08x", hr);
+    RDCERR("Couldn't map staging texture to retrieve data. HRESULT: %s", ToStr(hr).c_str());
   }
 
   SAFE_RELEASE(dummyTex);
@@ -3369,7 +3369,7 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create custom shader rtv %08x", hr);
+      RDCERR("Failed to create custom shader rtv HRESULT: %s", ToStr(hr).c_str());
       return m_CustomShaderResourceId;
     }
   }
@@ -3448,7 +3448,7 @@ void D3D11DebugManager::CreateCustomShaderTex(uint32_t w, uint32_t h)
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create custom shader tex %08x", hr);
+    RDCERR("Failed to create custom shader tex HRESULT: %s", ToStr(hr).c_str());
   }
   else
   {
@@ -3504,7 +3504,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     HRESULT hr = m_pDevice->CreateTexture2D(&realTexDesc, NULL, &customRenderTex);
     if(FAILED(hr))
     {
-      RDCERR("Failed to create custom render tex %08x", hr);
+      RDCERR("Failed to create custom render tex HRESULT: %s", ToStr(hr).c_str());
       return ResourceId();
     }
     wrappedCustomRenderTex = (WrappedID3D11Texture2D1 *)customRenderTex;
@@ -3541,14 +3541,14 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     hr = m_pDevice->CreateTexture2D(&desc, NULL, &preDrawDepth);
     if(FAILED(hr))
     {
-      RDCERR("Failed to create preDrawDepth %08x", hr);
+      RDCERR("Failed to create preDrawDepth HRESULT: %s", ToStr(hr).c_str());
       SAFE_RELEASE(realDepth);
       return m_OverlayResourceId;
     }
     hr = m_pDevice->CreateTexture2D(&desc, NULL, &renderDepth);
     if(FAILED(hr))
     {
-      RDCERR("Failed to create renderDepth %08x", hr);
+      RDCERR("Failed to create renderDepth HRESULT: %s", ToStr(hr).c_str());
       SAFE_RELEASE(realDepth);
       return m_OverlayResourceId;
     }
@@ -3572,7 +3572,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
   HRESULT hr = m_pDevice->CreateRenderTargetView(wrappedCustomRenderTex, &rtDesc, &rtv);
   if(FAILED(hr))
   {
-    RDCERR("Failed to create custom render tex RTV %08x", hr);
+    RDCERR("Failed to create custom render tex RTV HRESULT: %s", ToStr(hr).c_str());
     return m_OverlayResourceId;
   }
 
@@ -3586,7 +3586,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     hr = m_pDevice->CreateDepthStencilView(renderDepth, &dsViewDesc, &dsView);
     if(FAILED(hr))
     {
-      RDCERR("Failed to create renderDepth DSV %08x", hr);
+      RDCERR("Failed to create renderDepth DSV HRESULT: %s", ToStr(hr).c_str());
       return m_OverlayResourceId;
     }
   }
@@ -3624,7 +3624,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     hr = m_pDevice->CreateDepthStencilState(&dsDesc, &os);
     if(FAILED(hr))
     {
-      RDCERR("Failed to create drawcall depth stencil state %08x", hr);
+      RDCERR("Failed to create drawcall depth stencil state HRESULT: %s", ToStr(hr).c_str());
       return m_OverlayResourceId;
     }
 
@@ -3650,7 +3650,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create drawcall rast state %08x", hr);
+        RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
         return m_OverlayResourceId;
       }
     }
@@ -3681,7 +3681,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     hr = m_pDevice->CreateDepthStencilState(&dsDesc, &os);
     if(FAILED(hr))
     {
-      RDCERR("Failed to create drawcall depth stencil state %08x", hr);
+      RDCERR("Failed to create drawcall depth stencil state HRESULT: %s", ToStr(hr).c_str());
       return m_OverlayResourceId;
     }
 
@@ -3721,7 +3721,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create drawcall rast state %08x", hr);
+        RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
         return m_OverlayResourceId;
       }
 
@@ -3730,7 +3730,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       hr = m_pDevice->CreateRasterizerState(&rdesc, &rsCull);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create drawcall rast state %08x", hr);
+        RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
         return m_OverlayResourceId;
       }
     }
@@ -3794,7 +3794,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     hr = m_pDevice->CreateDepthStencilState(&dsDesc, &os);
     if(FAILED(hr))
     {
-      RDCERR("Failed to create drawcall depth stencil state %08x", hr);
+      RDCERR("Failed to create drawcall depth stencil state HRESULT: %s", ToStr(hr).c_str());
       return m_OverlayResourceId;
     }
 
@@ -3838,7 +3838,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create drawcall rast state %08x", hr);
+        RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
         return m_OverlayResourceId;
       }
     }
@@ -3911,7 +3911,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
     hr = m_pDevice->CreateDepthStencilState(&dsDesc, &os);
     if(FAILED(hr))
     {
-      RDCERR("Failed to create wireframe depth state %08x", hr);
+      RDCERR("Failed to create wireframe depth state HRESULT: %s", ToStr(hr).c_str());
       return m_OverlayResourceId;
     }
 
@@ -3951,7 +3951,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create wireframe rast state %08x", hr);
+        RDCERR("Failed to create wireframe rast state HRESULT: %s", ToStr(hr).c_str());
         return m_OverlayResourceId;
       }
     }
@@ -4029,7 +4029,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create m_MeshDisplayLayout %08x", hr);
+      RDCERR("Failed to create m_MeshDisplayLayout HRESULT: %s", ToStr(hr).c_str());
       m_MeshDisplayLayout = NULL;
     }
 
@@ -4504,7 +4504,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       hr = m_pDevice->CreateDepthStencilState(&d, &os);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create depth/stencil overlay depth state %08x", hr);
+        RDCERR("Failed to create depth/stencil overlay depth state HRESULT: %s", ToStr(hr).c_str());
         return m_OverlayResourceId;
       }
 
@@ -4541,7 +4541,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       hr = m_pDevice->CreateDepthStencilState(&d, &os);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create depth/stencil overlay depth state 2 %08x", hr);
+        RDCERR("Failed to create depth/stencil overlay depth state 2 HRESULT: %s", ToStr(hr).c_str());
         return m_OverlayResourceId;
       }
 
@@ -4574,7 +4574,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       hr = m_pDevice->CreateDepthStencilState(&dsDesc, &os);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create drawcall depth stencil state %08x", hr);
+        RDCERR("Failed to create drawcall depth stencil state HRESULT: %s", ToStr(hr).c_str());
         return m_OverlayResourceId;
       }
 
@@ -4600,7 +4600,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
         hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
         if(FAILED(hr))
         {
-          RDCERR("Failed to create drawcall rast state %08x", hr);
+          RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
           return m_OverlayResourceId;
         }
       }

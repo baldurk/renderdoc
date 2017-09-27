@@ -28,16 +28,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-template <typename T>
-inline const char *TypeName();
-
-#define DECLARE_REFLECTION_STRUCT(type) \
-  template <>                           \
-  inline const char *TypeName<type>()   \
-  {                                     \
-    return #type;                       \
-  }
-
 // Guidelines for documentation:
 //
 // * If you only need a short string, use DOCUMENT("Here is my string");
@@ -345,6 +335,16 @@ inline enum_name operator++(enum_name &a)                                      \
 #define ENUM_ARRAY_SIZE(enum_name) size_t(enum_name::Count)
 
 #include "basic_types.h"
+#include "stringise.h"
+
+#ifndef DECLARE_REFLECTION_STRUCT
+#define DECLARE_REFLECTION_STRUCT(type) DECLARE_STRINGISE_TYPE(type)
+#endif
+
+#ifndef DECLARE_REFLECTION_ENUM
+#define DECLARE_REFLECTION_ENUM(type) DECLARE_STRINGISE_TYPE(type)
+#endif
+
 #include "structured_data.h"
 
 #ifdef RENDERDOC_EXPORTS

@@ -68,7 +68,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D1(const D3D11_TEXTURE2D_DESC1
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -175,7 +175,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D1(const D3D11_TEXTURE3D_DESC1
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -309,7 +309,7 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView1(
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -449,7 +449,7 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView1(ID3D11Resource *pRes
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -561,7 +561,7 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView1(
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -657,7 +657,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState2(
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -749,7 +749,7 @@ bool WrappedID3D11Device::Serialise_CreateQuery1(const D3D11_QUERY_DESC1 *pQuery
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {

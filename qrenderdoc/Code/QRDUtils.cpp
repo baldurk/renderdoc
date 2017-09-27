@@ -41,6 +41,24 @@
 #include <QStandardPaths>
 #include <QtMath>
 
+// normally this is in the renderdoc core library, but it's needed for the 'unknown enum' path,
+// so we implement it here using QString. It's inefficient, but this is a very uncommon path -
+// either for invalid values or for when a new enum is added and the code isn't updated
+template <>
+std::string DoStringise(const uint32_t &el)
+{
+  return QString::number(el).toStdString();
+}
+
+// this one we do by hand as it requires formatting
+template <>
+std::string DoStringise(const ResourceId &el)
+{
+  return QString::number((const uint64_t &)el).toStdString();
+}
+
+#include "renderdoc_tostr.inl"
+
 QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
 {
   if(IsD3D(apitype))

@@ -484,7 +484,7 @@ public:
     else if(iid == __uuidof(ID3D11Device4))
       return (ID3D11Device4 *)this;
 
-    RDCERR("Requested unknown device interface %s", ToStr::Get(iid).c_str());
+    RDCERR("Requested unknown device interface %s", ToStr(iid).c_str());
 
     return NULL;
   }

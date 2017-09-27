@@ -236,7 +236,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid,
   }
   else
   {
-    string guid = ToStr::Get(riid);
+    string guid = ToStr(riid);
     RDCWARN("Querying ID3D12CommandQueue for interface: %s", guid.c_str());
   }
 
@@ -740,7 +740,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
   }
   else
   {
-    string guid = ToStr::Get(riid);
+    string guid = ToStr(riid);
     RDCWARN("Querying ID3D12GraphicsCommandList for interface: %s", guid.c_str());
   }
 

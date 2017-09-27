@@ -85,7 +85,7 @@ bool WrappedID3D11Device::Serialise_CreateBlendState1(const D3D11_BLEND_DESC1 *p
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -176,7 +176,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState1(
 
     if(FAILED(hr))
     {
-      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {

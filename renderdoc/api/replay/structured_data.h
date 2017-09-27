@@ -25,6 +25,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "stringise.h"
 
 DOCUMENT(R"(The basic irreducible type of an object. Every other more complex type is built on these.
 
@@ -96,6 +97,8 @@ enum class SDBasic : uint32_t
   Boolean,
   Character,
 };
+
+DECLARE_STRINGISE_TYPE(SDBasic);
 
 DOCUMENT(R"(Bitfield flags that could be applied to a type.
 

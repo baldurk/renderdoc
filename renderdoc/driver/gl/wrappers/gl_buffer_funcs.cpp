@@ -241,7 +241,7 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 
     if(!r)
     {
-      RDCERR("Invalid/unrecognised buffer passed: glBindBuffer(%s, %u)", ToStr::Get(target).c_str(),
+      RDCERR("Invalid/unrecognised buffer passed: glBindBuffer(%s, %u)", ToStr(target).c_str(),
              buffer);
       return;
     }
@@ -2082,7 +2082,7 @@ void *WrappedOpenGL::glMapBuffer(GLenum target, GLenum access)
     }
 
     RDCERR("glMapBuffer: Couldn't get resource record for target %s - no buffer bound?",
-           ToStr::Get(target).c_str());
+           ToStr(target).c_str());
   }
 
   return m_Real.glMapBuffer(target, access);
@@ -2323,7 +2323,7 @@ GLboolean WrappedOpenGL::glUnmapBuffer(GLenum target)
       return glUnmapNamedBufferEXT(record->Resource.name);
 
     RDCERR("glUnmapBuffer: Couldn't get resource record for target %s - no buffer bound?",
-           ToStr::Get(target).c_str());
+           ToStr(target).c_str());
   }
 
   return m_Real.glUnmapBuffer(target);

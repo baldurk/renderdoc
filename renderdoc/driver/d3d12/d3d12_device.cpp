@@ -89,7 +89,7 @@ const char *WrappedID3D12Device::GetChunkName(uint32_t idx)
 }
 
 template <>
-string ToStrHelper<false, D3D12ChunkType>::Get(const D3D12ChunkType &el)
+std::string DoStringise(const D3D12ChunkType &el)
 {
   return WrappedID3D12Device::GetChunkName(el);
 }
@@ -131,7 +131,7 @@ HRESULT STDMETHODCALLTYPE DummyID3D12DebugDevice::QueryInterface(REFIID riid, vo
     return S_OK;
   }
 
-  RDCWARN("Querying ID3D12DebugDevice for interface: %s", ToStr::Get(riid).c_str());
+  RDCWARN("Querying ID3D12DebugDevice for interface: %s", ToStr(riid).c_str());
 
   return E_NOINTERFACE;
 }
@@ -161,7 +161,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12DebugDevice::QueryInterface(REFIID riid, 
     return S_OK;
   }
 
-  string guid = ToStr::Get(riid);
+  string guid = ToStr(riid);
   RDCWARN("Querying ID3D12DebugDevice for interface: %s", guid.c_str());
 
   return m_pDebug->QueryInterface(riid, ppvObject);
@@ -537,7 +537,7 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
   }
   else
   {
-    string guid = ToStr::Get(riid);
+    string guid = ToStr(riid);
     RDCWARN("Querying ID3D12Device for interface: %s", guid.c_str());
   }
 

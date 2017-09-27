@@ -1811,7 +1811,7 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLu
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "glBlitFramebuffer(" + ToStr::Get(readId) + ", " + ToStr::Get(drawId) + ")";
+    string name = "glBlitFramebuffer(" + ToStr(readId) + ", " + ToStr(drawId) + ")";
 
     DrawcallDescription draw;
     draw.name = name;

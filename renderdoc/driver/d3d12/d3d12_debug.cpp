@@ -742,7 +742,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
       ID3DBlob *result = NULL;
       ID3DBlob *histogram = NULL;
 
-      string hlsl = string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+      string hlsl = string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
       hlsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
       hlsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
       hlsl += histogramhlsl;

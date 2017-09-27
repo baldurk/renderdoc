@@ -1037,7 +1037,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
         std::string semanticIdxName = a.semanticName;
         if(a.needSemanticIndex)
-          semanticIdxName += ToStr::Get(a.semanticIndex);
+          semanticIdxName += ToStr(a.semanticIndex);
 
         a.semanticIdxName = semanticIdxName;
       }

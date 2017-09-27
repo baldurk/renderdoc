@@ -277,7 +277,7 @@ void WrappedOpenGL::glBeginQuery(GLenum target, GLuint id)
 {
   m_Real.glBeginQuery(target, id);
   if(m_ActiveQueries[QueryIdx(target)][0])
-    RDCLOG("Query already active %s", ToStr::Get(target).c_str());
+    RDCLOG("Query already active %s", ToStr(target).c_str());
   m_ActiveQueries[QueryIdx(target)][0] = true;
 
   if(m_State == WRITING_CAPFRAME)

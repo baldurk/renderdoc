@@ -38,18 +38,6 @@
 using std::pair;
 
 template <>
-string ToStrHelper<false, PathProperty>::Get(const PathProperty &el)
-{
-  return "<...>";
-}
-
-template <>
-string ToStrHelper<false, CaptureOptions>::Get(const CaptureOptions &el)
-{
-  return "<...>";
-}
-
-template <>
 void Serialiser::Serialise(const char *name, PathEntry &el)
 {
   ScopedContext scope(this, name, "DirectoryFile", 0, true);
@@ -58,18 +46,6 @@ void Serialiser::Serialise(const char *name, PathEntry &el)
   Serialise("flags", el.flags);
   Serialise("lastmod", el.lastmod);
   Serialise("size", el.size);
-}
-
-template <>
-string ToStrHelper<false, EnvMod>::Get(const EnvMod &el)
-{
-  return "<...>";
-}
-
-template <>
-string ToStrHelper<false, EnvSep>::Get(const EnvSep &el)
-{
-  return "<...>";
 }
 
 template <>

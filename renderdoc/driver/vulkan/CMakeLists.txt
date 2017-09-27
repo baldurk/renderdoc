@@ -21,6 +21,7 @@ set(sources
     vk_resources.h
     vk_state.cpp
     vk_state.h
+    vk_stringise.cpp
     vk_layer.cpp
     official/vk_layer.h
     official/vk_platform.h

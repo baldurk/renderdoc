@@ -208,12 +208,12 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
     // we're adding multiple events, need to increment ourselves
     m_Cmd.m_RootEventID++;
 
-    string basename = "ExecuteCommandLists(" + ToStr::Get(numCmds) + ")";
+    string basename = "ExecuteCommandLists(" + ToStr(numCmds) + ")";
 
     for(uint32_t c = 0; c < numCmds; c++)
     {
       string name = StringFormat::Fmt("=> %s[%u]: ID3D12CommandList(%s)", basename.c_str(), c,
-                                      ToStr::Get(cmdIds[c]).c_str());
+                                      ToStr(cmdIds[c]).c_str());
 
       // add a fake marker
       DrawcallDescription draw;
@@ -252,8 +252,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       m_Cmd.m_RootEventID += cmdBufInfo.eventCount;
       m_Cmd.m_RootDrawcallID += cmdBufInfo.drawCount;
 
-      name = StringFormat::Fmt("=> %s[%u]: Close(%s)", basename.c_str(), c,
-                               ToStr::Get(cmdIds[c]).c_str());
+      name = StringFormat::Fmt("=> %s[%u]: Close(%s)", basename.c_str(), c, ToStr(cmdIds[c]).c_str());
       draw.name = name;
       draw.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
       m_Cmd.AddEvent(name);

@@ -272,7 +272,7 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
     else
     {
       // all colour ops are the same, print it
-      opDesc = store ? ToStr::Get(atts[col0].storeOp) : ToStr::Get(atts[col0].loadOp);
+      opDesc = store ? ToStr(atts[col0].storeOp) : ToStr(atts[col0].loadOp);
     }
 
     // do we have depth?
@@ -285,8 +285,7 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
       // if there's no stencil, just print depth op
       if(!hasStencil)
       {
-        opDesc +=
-            "D=" + (store ? ToStr::Get(atts[dsAttach].storeOp) : ToStr::Get(atts[dsAttach].loadOp));
+        opDesc += "D=" + (store ? ToStr(atts[dsAttach].storeOp) : ToStr(atts[dsAttach].loadOp));
       }
       else
       {
@@ -294,19 +293,19 @@ string WrappedVulkan::MakeRenderPassOpString(bool store)
         {
           // if depth and stencil have same op, print together, otherwise separately
           if(atts[dsAttach].storeOp == atts[dsAttach].stencilStoreOp)
-            opDesc += "DS=" + ToStr::Get(atts[dsAttach].storeOp);
+            opDesc += "DS=" + ToStr(atts[dsAttach].storeOp);
           else
-            opDesc += "D=" + ToStr::Get(atts[dsAttach].storeOp) + ", S=" +
-                      ToStr::Get(atts[dsAttach].stencilStoreOp);
+            opDesc +=
+                "D=" + ToStr(atts[dsAttach].storeOp) + ", S=" + ToStr(atts[dsAttach].stencilStoreOp);
         }
         else
         {
           // if depth and stencil have same op, print together, otherwise separately
           if(atts[dsAttach].loadOp == atts[dsAttach].stencilLoadOp)
-            opDesc += "DS=" + ToStr::Get(atts[dsAttach].loadOp);
+            opDesc += "DS=" + ToStr(atts[dsAttach].loadOp);
           else
-            opDesc += "D=" + ToStr::Get(atts[dsAttach].loadOp) + ", S=" +
-                      ToStr::Get(atts[dsAttach].stencilLoadOp);
+            opDesc +=
+                "D=" + ToStr(atts[dsAttach].loadOp) + ", S=" + ToStr(atts[dsAttach].stencilLoadOp);
         }
       }
     }
@@ -2388,7 +2387,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
     AddEvent(desc);
 
     DrawcallDescription draw;
-    draw.name = "vkCmdExecuteCommands(" + ToStr::Get(count) + ")";
+    draw.name = "vkCmdExecuteCommands(" + ToStr(count) + ")";
     draw.flags = DrawFlags::CmdList | DrawFlags::PushMarker;
 
     AddDrawcall(draw, true);
@@ -2400,7 +2399,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
     for(uint32_t c = 0; c < count; c++)
     {
       string name = StringFormat::Fmt("=> vkCmdExecuteCommands()[%u]: vkBeginCommandBuffer(%s)", c,
-                                      ToStr::Get(cmdids[c]).c_str());
+                                      ToStr(cmdids[c]).c_str());
 
       // add a fake marker
       DrawcallDescription marker;
@@ -2440,7 +2439,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
       parentCmdBufInfo.drawCount += cmdBufInfo.drawCount;
 
       name = StringFormat::Fmt("=> vkCmdExecuteCommands()[%u]: vkEndCommandBuffer(%s)", c,
-                               ToStr::Get(cmdids[c]).c_str());
+                               ToStr(cmdids[c]).c_str());
       marker.name = name;
       marker.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
       AddEvent(name);

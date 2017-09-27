@@ -65,7 +65,7 @@ struct D3DBlobShaderCallbacks
 
     if(FAILED(hr))
     {
-      RDCERR("Couldn't create blob of size %u from shadercache: %08x", size, hr);
+      RDCERR("Couldn't create blob of size %u from shadercache: %s", size, ToStr(ret).c_str());
       return false;
     }
 
@@ -330,7 +330,7 @@ ID3D11VertexShader *D3D11DebugManager::MakeVShader(const char *source, const cha
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create vertex shader for %s %08x", entry, hr);
+    RDCERR("Couldn't create vertex shader for %s %s", entry, ToStr(ret).c_str());
 
     SAFE_RELEASE(byteBlob);
 
@@ -343,7 +343,7 @@ ID3D11VertexShader *D3D11DebugManager::MakeVShader(const char *source, const cha
 
     if(FAILED(hr))
     {
-      RDCERR("Couldn't create input layout for %s %08x", entry, hr);
+      RDCERR("Couldn't create input layout for %s %s", entry, ToStr(ret).c_str());
     }
   }
 
@@ -379,7 +379,7 @@ ID3D11GeometryShader *D3D11DebugManager::MakeGShader(const char *source, const c
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create geometry shader for %s %08x", entry, hr);
+    RDCERR("Couldn't create geometry shader for %s %s", entry, ToStr(hr).c_str());
     return NULL;
   }
 
@@ -407,7 +407,7 @@ ID3D11PixelShader *D3D11DebugManager::MakePShader(const char *source, const char
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create pixel shader for %s %08x", entry, hr);
+    RDCERR("Couldn't create pixel shader for %s %s", entry, ToStr(hr).c_str());
     return NULL;
   }
 
@@ -435,7 +435,7 @@ ID3D11ComputeShader *D3D11DebugManager::MakeCShader(const char *source, const ch
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create compute shader for %s %08x", entry, hr);
+    RDCERR("Couldn't create compute shader for %s %s", entry, ToStr(hr).c_str());
     return NULL;
   }
 
@@ -586,7 +586,7 @@ ID3D11Buffer *D3D11DebugManager::MakeCBuffer(UINT size)
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create CBuffer %08x", hr);
+    RDCERR("Failed to create CBuffer HRESULT: %s", ToStr(hr).c_str());
     return NULL;
   }
 
@@ -601,7 +601,7 @@ void D3D11DebugManager::FillCBuffer(ID3D11Buffer *buf, const void *data, size_t 
 
   if(FAILED(hr))
   {
-    RDCERR("Can't fill cbuffer %08x", hr);
+    RDCERR("Can't fill cbuffer HRESULT: %s", ToStr(hr).c_str());
   }
   else
   {
@@ -739,9 +739,9 @@ bool D3D11DebugManager::InitDebugRendering()
       // float, uint, sint
       for(int i = 0; i < 3; i++)
       {
-        string hlsl = string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
-        hlsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-        hlsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+        string hlsl = std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+        hlsl += std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+        hlsl += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
         hlsl += histogramhlsl;
 
         m_DebugRender.TileMinMaxCS[t][i] =
@@ -793,7 +793,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create default blendstate %08x", hr);
+    RDCERR("Failed to create default blendstate HRESULT: %s", ToStr(hr).c_str());
   }
 
   blendDesc.RenderTarget[0].BlendEnable = FALSE;
@@ -803,7 +803,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create nop blendstate %08x", hr);
+    RDCERR("Failed to create nop blendstate HRESULT: %s", ToStr(hr).c_str());
   }
 
   D3D11_RASTERIZER_DESC rastDesc;
@@ -817,7 +817,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create default rasterizer state %08x", hr);
+    RDCERR("Failed to create default rasterizer state HRESULT: %s", ToStr(hr).c_str());
   }
 
   D3D11_SAMPLER_DESC sampDesc;
@@ -834,7 +834,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create linear sampler state %08x", hr);
+    RDCERR("Failed to create linear sampler state HRESULT: %s", ToStr(hr).c_str());
   }
 
   sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
@@ -843,7 +843,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create point sampler state %08x", hr);
+    RDCERR("Failed to create point sampler state HRESULT: %s", ToStr(hr).c_str());
   }
 
   {
@@ -865,7 +865,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create no-depth depthstencilstate %08x", hr);
+      RDCERR("Failed to create no-depth depthstencilstate HRESULT: %s", ToStr(hr).c_str());
     }
 
     desc.DepthEnable = TRUE;
@@ -876,7 +876,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create less-equal depthstencilstate %08x", hr);
+      RDCERR("Failed to create less-equal depthstencilstate HRESULT: %s", ToStr(hr).c_str());
     }
 
     desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
@@ -886,7 +886,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create always pass depthstencilstate %08x", hr);
+      RDCERR("Failed to create always pass depthstencilstate HRESULT: %s", ToStr(hr).c_str());
     }
 
     desc.DepthEnable = FALSE;
@@ -898,7 +898,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create nop depthstencilstate %08x", hr);
+      RDCERR("Failed to create nop depthstencilstate HRESULT: %s", ToStr(hr).c_str());
     }
 
     desc.StencilReadMask = desc.StencilWriteMask = 0xff;
@@ -914,7 +914,8 @@ bool D3D11DebugManager::InitDebugRendering()
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create always pass stencil increment depthstencilstate %08x", hr);
+      RDCERR("Failed to create always pass stencil increment depthstencilstate HRESULT: %s",
+             ToStr(hr).c_str());
     }
 
     desc.DepthEnable = TRUE;
@@ -926,7 +927,8 @@ bool D3D11DebugManager::InitDebugRendering()
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create always pass stencil increment depthstencilstate %08x", hr);
+      RDCERR("Failed to create always pass stencil increment depthstencilstate HRESULT: %s",
+             ToStr(hr).c_str());
     }
   }
 
@@ -953,7 +955,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create pick tex %08x", hr);
+      RDCERR("Failed to create pick tex HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -961,7 +963,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create pick rt %08x", hr);
+        RDCERR("Failed to create pick rt HRESULT: %s", ToStr(hr).c_str());
       }
 
       SAFE_RELEASE(pickTex);
@@ -986,7 +988,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create pick stage tex %08x", hr);
+      RDCERR("Failed to create pick stage tex HRESULT: %s", ToStr(hr).c_str());
     }
   }
 
@@ -1010,7 +1012,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create tile result buffer %08x", hr);
+      RDCERR("Failed to create tile result buffer HRESULT: %s", ToStr(hr).c_str());
     }
 
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -1023,21 +1025,21 @@ bool D3D11DebugManager::InitDebugRendering()
                                              &m_DebugRender.tileResultSRV[0]);
 
     if(FAILED(hr))
-      RDCERR("Failed to create tile result SRV 0 %08x", hr);
+      RDCERR("Failed to create tile result SRV 0 HRESULT: %s", ToStr(hr).c_str());
 
     srvDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
     hr = m_pDevice->CreateShaderResourceView(m_DebugRender.tileResultBuff, &srvDesc,
                                              &m_DebugRender.tileResultSRV[1]);
 
     if(FAILED(hr))
-      RDCERR("Failed to create tile result SRV 1 %08x", hr);
+      RDCERR("Failed to create tile result SRV 1 HRESULT: %s", ToStr(hr).c_str());
 
     srvDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
     hr = m_pDevice->CreateShaderResourceView(m_DebugRender.tileResultBuff, &srvDesc,
                                              &m_DebugRender.tileResultSRV[2]);
 
     if(FAILED(hr))
-      RDCERR("Failed to create tile result SRV 2 %08x", hr);
+      RDCERR("Failed to create tile result SRV 2 HRESULT: %s", ToStr(hr).c_str());
 
     D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
 
@@ -1051,21 +1053,21 @@ bool D3D11DebugManager::InitDebugRendering()
                                               &m_DebugRender.tileResultUAV[0]);
 
     if(FAILED(hr))
-      RDCERR("Failed to create tile result UAV 0 %08x", hr);
+      RDCERR("Failed to create tile result UAV 0 HRESULT: %s", ToStr(hr).c_str());
 
     uavDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
     hr = m_pDevice->CreateUnorderedAccessView(m_DebugRender.tileResultBuff, &uavDesc,
                                               &m_DebugRender.tileResultUAV[1]);
 
     if(FAILED(hr))
-      RDCERR("Failed to create tile result UAV 1 %08x", hr);
+      RDCERR("Failed to create tile result UAV 1 HRESULT: %s", ToStr(hr).c_str());
 
     uavDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
     hr = m_pDevice->CreateUnorderedAccessView(m_DebugRender.tileResultBuff, &uavDesc,
                                               &m_DebugRender.tileResultUAV[2]);
 
     if(FAILED(hr))
-      RDCERR("Failed to create tile result UAV 2 %08x", hr);
+      RDCERR("Failed to create tile result UAV 2 HRESULT: %s", ToStr(hr).c_str());
 
     uavDesc.Format = DXGI_FORMAT_R32_UINT;
     uavDesc.Buffer.NumElements = HGRAM_NUM_BUCKETS;
@@ -1074,13 +1076,13 @@ bool D3D11DebugManager::InitDebugRendering()
     hr = m_pDevice->CreateBuffer(&bDesc, NULL, &m_DebugRender.histogramBuff);
 
     if(FAILED(hr))
-      RDCERR("Failed to create histogram buff %08x", hr);
+      RDCERR("Failed to create histogram buff HRESULT: %s", ToStr(hr).c_str());
 
     hr = m_pDevice->CreateUnorderedAccessView(m_DebugRender.histogramBuff, &uavDesc,
                                               &m_DebugRender.histogramUAV);
 
     if(FAILED(hr))
-      RDCERR("Failed to create histogram UAV %08x", hr);
+      RDCERR("Failed to create histogram UAV HRESULT: %s", ToStr(hr).c_str());
 
     bDesc.BindFlags = 0;
     bDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
@@ -1089,7 +1091,7 @@ bool D3D11DebugManager::InitDebugRendering()
     hr = m_pDevice->CreateBuffer(&bDesc, NULL, &m_DebugRender.histogramStageBuff);
 
     if(FAILED(hr))
-      RDCERR("Failed to create histogram stage buff %08x", hr);
+      RDCERR("Failed to create histogram stage buff HRESULT: %s", ToStr(hr).c_str());
 
     bDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
     bDesc.CPUAccessFlags = 0;
@@ -1099,7 +1101,7 @@ bool D3D11DebugManager::InitDebugRendering()
     hr = m_pDevice->CreateBuffer(&bDesc, NULL, &m_DebugRender.resultBuff);
 
     if(FAILED(hr))
-      RDCERR("Failed to create result buff %08x", hr);
+      RDCERR("Failed to create result buff HRESULT: %s", ToStr(hr).c_str());
 
     uavDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
     uavDesc.Buffer.NumElements = 2;
@@ -1108,21 +1110,21 @@ bool D3D11DebugManager::InitDebugRendering()
                                               &m_DebugRender.resultUAV[0]);
 
     if(FAILED(hr))
-      RDCERR("Failed to create result UAV 0 %08x", hr);
+      RDCERR("Failed to create result UAV 0 HRESULT: %s", ToStr(hr).c_str());
 
     uavDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
     hr = m_pDevice->CreateUnorderedAccessView(m_DebugRender.resultBuff, &uavDesc,
                                               &m_DebugRender.resultUAV[1]);
 
     if(FAILED(hr))
-      RDCERR("Failed to create result UAV 1 %08x", hr);
+      RDCERR("Failed to create result UAV 1 HRESULT: %s", ToStr(hr).c_str());
 
     uavDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
     hr = m_pDevice->CreateUnorderedAccessView(m_DebugRender.resultBuff, &uavDesc,
                                               &m_DebugRender.resultUAV[2]);
 
     if(FAILED(hr))
-      RDCERR("Failed to create result UAV 2 %08x", hr);
+      RDCERR("Failed to create result UAV 2 HRESULT: %s", ToStr(hr).c_str());
 
     bDesc.BindFlags = 0;
     bDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
@@ -1131,7 +1133,7 @@ bool D3D11DebugManager::InitDebugRendering()
     hr = m_pDevice->CreateBuffer(&bDesc, NULL, &m_DebugRender.resultStageBuff);
 
     if(FAILED(hr))
-      RDCERR("Failed to create result stage buff %08x", hr);
+      RDCERR("Failed to create result stage buff HRESULT: %s", ToStr(hr).c_str());
 
     bDesc.ByteWidth = sizeof(Vec4f) * DebugRenderData::maxMeshPicks;
     bDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
@@ -1143,7 +1145,7 @@ bool D3D11DebugManager::InitDebugRendering()
     hr = m_pDevice->CreateBuffer(&bDesc, NULL, &m_DebugRender.PickResultBuf);
 
     if(FAILED(hr))
-      RDCERR("Failed to create mesh pick result buff %08x", hr);
+      RDCERR("Failed to create mesh pick result buff HRESULT: %s", ToStr(hr).c_str());
 
     uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
     uavDesc.Format = DXGI_FORMAT_UNKNOWN;
@@ -1155,7 +1157,7 @@ bool D3D11DebugManager::InitDebugRendering()
                                               &m_DebugRender.PickResultUAV);
 
     if(FAILED(hr))
-      RDCERR("Failed to create mesh pick result UAV %08x", hr);
+      RDCERR("Failed to create mesh pick result UAV HRESULT: %s", ToStr(hr).c_str());
 
     // created/sized on demand
     m_DebugRender.PickIBBuf = m_DebugRender.PickVBBuf = NULL;
@@ -1177,7 +1179,7 @@ bool D3D11DebugManager::InitDebugRendering()
     hr = m_pDevice->CreateBuffer(&desc, NULL, &m_DebugRender.StageBuffer);
 
     if(FAILED(hr))
-      RDCERR("Failed to create map staging buffer %08x", hr);
+      RDCERR("Failed to create map staging buffer HRESULT: %s", ToStr(hr).c_str());
   }
 
   return true;
@@ -1222,7 +1224,7 @@ bool D3D11DebugManager::InitStreamOut()
   m_SOStatsQueries.push_back(NULL);
   hr = m_pDevice->CreateQuery(&qdesc, &m_SOStatsQueries[0]);
   if(FAILED(hr))
-    RDCERR("Failed to create m_SOStatsQuery %08x", hr);
+    RDCERR("Failed to create m_SOStatsQuery HRESULT: %s", ToStr(hr).c_str());
 
   {
     D3D11_RASTERIZER_DESC desc;
@@ -1239,28 +1241,28 @@ bool D3D11DebugManager::InitStreamOut()
 
     hr = m_pDevice->CreateRasterizerState(&desc, &m_WireframeHelpersRS);
     if(FAILED(hr))
-      RDCERR("Failed to create m_WireframeHelpersRS %08x", hr);
+      RDCERR("Failed to create m_WireframeHelpersRS HRESULT: %s", ToStr(hr).c_str());
 
     desc.FrontCounterClockwise = TRUE;
     desc.CullMode = D3D11_CULL_FRONT;
 
     hr = m_pDevice->CreateRasterizerState(&desc, &m_WireframeHelpersCullCCWRS);
     if(FAILED(hr))
-      RDCERR("Failed to create m_WireframeHelpersCullCCWRS %08x", hr);
+      RDCERR("Failed to create m_WireframeHelpersCullCCWRS HRESULT: %s", ToStr(hr).c_str());
 
     desc.FrontCounterClockwise = FALSE;
     desc.CullMode = D3D11_CULL_FRONT;
 
     hr = m_pDevice->CreateRasterizerState(&desc, &m_WireframeHelpersCullCWRS);
     if(FAILED(hr))
-      RDCERR("Failed to create m_WireframeHelpersCullCCWRS %08x", hr);
+      RDCERR("Failed to create m_WireframeHelpersCullCCWRS HRESULT: %s", ToStr(hr).c_str());
 
     desc.FillMode = D3D11_FILL_SOLID;
     desc.CullMode = D3D11_CULL_NONE;
 
     hr = m_pDevice->CreateRasterizerState(&desc, &m_SolidHelpersRS);
     if(FAILED(hr))
-      RDCERR("Failed to create m_SolidHelpersRS %08x", hr);
+      RDCERR("Failed to create m_SolidHelpersRS HRESULT: %s", ToStr(hr).c_str());
   }
 
   {
@@ -1280,7 +1282,7 @@ bool D3D11DebugManager::InitStreamOut()
 
     hr = m_pDevice->CreateBlendState(&desc, &m_WireframeHelpersBS);
     if(FAILED(hr))
-      RDCERR("Failed to create m_WireframeHelpersRS %08x", hr);
+      RDCERR("Failed to create m_WireframeHelpersRS HRESULT: %s", ToStr(hr).c_str());
   }
 
   {
@@ -1302,7 +1304,7 @@ bool D3D11DebugManager::InitStreamOut()
 
     hr = m_pDevice->CreateBuffer(&bdesc, &data, &m_AxisHelper);
     if(FAILED(hr))
-      RDCERR("Failed to create m_AxisHelper %08x", hr);
+      RDCERR("Failed to create m_AxisHelper HRESULT: %s", ToStr(hr).c_str());
   }
 
   {
@@ -1339,7 +1341,7 @@ bool D3D11DebugManager::InitStreamOut()
     hr = m_pDevice->CreateBuffer(&bdesc, &data, &m_FrustumHelper);
 
     if(FAILED(hr))
-      RDCERR("Failed to create m_FrustumHelper %08x", hr);
+      RDCERR("Failed to create m_FrustumHelper HRESULT: %s", ToStr(hr).c_str());
   }
 
   {
@@ -1353,7 +1355,7 @@ bool D3D11DebugManager::InitStreamOut()
     hr = m_pDevice->CreateBuffer(&bdesc, NULL, &m_TriHighlightHelper);
 
     if(FAILED(hr))
-      RDCERR("Failed to create m_TriHighlightHelper %08x", hr);
+      RDCERR("Failed to create m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
   }
 
   return true;
@@ -1372,14 +1374,14 @@ void D3D11DebugManager::CreateSOBuffers()
   hr = m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_SOBuffer);
 
   if(FAILED(hr))
-    RDCERR("Failed to create m_SOBuffer %08x", hr);
+    RDCERR("Failed to create m_SOBuffer HRESULT: %s", ToStr(hr).c_str());
 
   bufferDesc.Usage = D3D11_USAGE_STAGING;
   bufferDesc.BindFlags = 0;
   bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
   hr = m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_SOStagingBuffer);
   if(FAILED(hr))
-    RDCERR("Failed to create m_SOStagingBuffer %08x", hr);
+    RDCERR("Failed to create m_SOStagingBuffer HRESULT: %s", ToStr(hr).c_str());
 }
 
 bool D3D11DebugManager::InitFontRendering()
@@ -1439,14 +1441,14 @@ bool D3D11DebugManager::InitFontRendering()
   hr = m_pDevice->CreateTexture2D(&desc, &initialData, &debugTex);
 
   if(FAILED(hr))
-    RDCERR("Failed to create debugTex %08x", hr);
+    RDCERR("Failed to create debugTex HRESULT: %s", ToStr(hr).c_str());
 
   delete[] buf;
 
   hr = m_pDevice->CreateShaderResourceView(debugTex, NULL, &m_Font.Tex);
 
   if(FAILED(hr))
-    RDCERR("Failed to create m_Font.Tex %08x", hr);
+    RDCERR("Failed to create m_Font.Tex HRESULT: %s", ToStr(hr).c_str());
 
   SAFE_RELEASE(debugTex);
 
@@ -1509,7 +1511,7 @@ void D3D11DebugManager::OutputWindow::MakeRTV()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to get swap chain buffer, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to get swap chain buffer, HRESULT: %s", ToStr(hr).c_str());
     SAFE_RELEASE(texture);
     return;
   }
@@ -1520,7 +1522,7 @@ void D3D11DebugManager::OutputWindow::MakeRTV()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create RTV for swap chain buffer, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create RTV for swap chain buffer, HRESULT: %s", ToStr(hr).c_str());
     SAFE_RELEASE(swap);
     return;
   }
@@ -1533,7 +1535,7 @@ void D3D11DebugManager::OutputWindow::MakeDSV()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to get swap chain buffer, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to get swap chain buffer, HRESULT: %s", ToStr(hr).c_str());
     SAFE_RELEASE(texture);
     return;
   }
@@ -1550,7 +1552,7 @@ void D3D11DebugManager::OutputWindow::MakeDSV()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create DSV texture for main output, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create DSV texture for main output, HRESULT: %s", ToStr(hr).c_str());
     SAFE_RELEASE(swap);
     SAFE_RELEASE(rtv);
     return;
@@ -1562,7 +1564,7 @@ void D3D11DebugManager::OutputWindow::MakeDSV()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create DSV for main output, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create DSV for main output, HRESULT: %s", ToStr(hr).c_str());
     SAFE_RELEASE(swap);
     SAFE_RELEASE(rtv);
     return;
@@ -1601,7 +1603,7 @@ uint64_t D3D11DebugManager::MakeOutputWindow(WindowingSystem system, void *data,
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create swap chain for HWND, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create swap chain for HWND, HRESULT: %s", ToStr(hr).c_str());
     return 0;
   }
 
@@ -1668,7 +1670,7 @@ bool D3D11DebugManager::CheckResizeOutputWindow(uint64_t id)
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to resize swap chain, HRESULT: 0x%08x", hr);
+        RDCERR("Failed to resize swap chain, HRESULT: %s", ToStr(hr).c_str());
         return true;
       }
 
@@ -1767,7 +1769,7 @@ uint32_t D3D11DebugManager::GetStructCount(ID3D11UnorderedAccessView *uav)
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to Map %08x", hr);
+    RDCERR("Failed to Map HRESULT: %s", ToStr(hr).c_str());
     return ~0U;
   }
 
@@ -1882,7 +1884,7 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
 
   if(FAILED(hr))
   {
-    RDCERR("Can't map histogram stage buff %08x", hr);
+    RDCERR("Can't map histogram stage buff HRESULT: %s", ToStr(hr).c_str());
   }
   else
   {
@@ -1980,7 +1982,7 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to map minmax results buffer %08x", hr);
+    RDCERR("Failed to map minmax results buffer HRESULT: %s", ToStr(hr).c_str());
   }
   else
   {
@@ -2085,7 +2087,7 @@ void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uin
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to map bufferdata buffer %08x", hr);
+      RDCERR("Failed to map bufferdata buffer HRESULT: %s", ToStr(hr).c_str());
       return;
     }
     else
@@ -2142,14 +2144,14 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   hr = m_pDevice->CreateTexture2D(&rtvResDesc, NULL, &rtvResource);
   if(FAILED(hr))
   {
-    RDCERR("0x%08x", hr);
+    RDCERR("0xHRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
   hr = m_pDevice->CreateTexture2D(&srvResDesc, NULL, &srvResource);
   if(FAILED(hr))
   {
-    RDCERR("0x%08x", hr);
+    RDCERR("0xHRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -2273,7 +2275,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
   hr = m_pDevice->CreateShaderResourceView(srvResource, &srvDesc, &srvArray);
   if(FAILED(hr))
   {
-    RDCERR("0x%08x", hr);
+    RDCERR("0xHRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -2303,7 +2305,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
     if(FAILED(hr))
     {
       SAFE_RELEASE(srvArray);
-      RDCERR("0x%08x", hr);
+      RDCERR("0xHRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -2329,7 +2331,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
     hr = m_pDevice->CreateShaderResourceView(srvResource, &srvDesc, &srvArray);
     if(FAILED(hr))
     {
-      RDCERR("0x%08x", hr);
+      RDCERR("0xHRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -2367,7 +2369,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
       {
         SAFE_RELEASE(srvArray);
         SAFE_RELEASE(dsState);
-        RDCERR("0x%08x", hr);
+        RDCERR("0xHRESULT: %s", ToStr(hr).c_str());
         return;
       }
 
@@ -2591,14 +2593,14 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   hr = dev->CreateTexture2D(&rtvResDesc, NULL, &rtvResource);
   if(FAILED(hr))
   {
-    RDCERR("0x%08x", hr);
+    RDCERR("0xHRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
   hr = dev->CreateTexture2D(&srvResDesc, NULL, &srvResource);
   if(FAILED(hr))
   {
-    RDCERR("0x%08x", hr);
+    RDCERR("0xHRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -2721,7 +2723,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
   hr = dev->CreateShaderResourceView(srvResource, &srvDesc, &srvMS);
   if(FAILED(hr))
   {
-    RDCERR("0x%08x", hr);
+    RDCERR("0xHRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -2761,7 +2763,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
       {
         SAFE_RELEASE(rtvArray);
         SAFE_RELEASE(dsvArray);
-        RDCERR("0x%08x", hr);
+        RDCERR("0xHRESULT: %s", ToStr(hr).c_str());
         return;
       }
 
@@ -2786,7 +2788,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
     hr = dev->CreateShaderResourceView(srvResource, &srvDesc, &srvMS);
     if(FAILED(hr))
     {
-      RDCERR("0x%08x", hr);
+      RDCERR("0xHRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -2827,7 +2829,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
         {
           SAFE_RELEASE(dsState);
           SAFE_RELEASE(srvMS);
-          RDCERR("0x%08x", hr);
+          RDCERR("0xHRESULT: %s", ToStr(hr).c_str());
           return;
         }
 
@@ -2940,7 +2942,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 
         if(FAILED(hr))
         {
-          RDCERR("Failed to create temporary Texture1D %08x", hr);
+          RDCERR("Failed to create temporary Texture1D HRESULT: %s", ToStr(hr).c_str());
         }
 
         cache.srvResource = tmp;
@@ -3037,7 +3039,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 
         if(FAILED(hr))
         {
-          RDCERR("Failed to create temporary Texture2D %08x", hr);
+          RDCERR("Failed to create temporary Texture2D HRESULT: %s", ToStr(hr).c_str());
         }
 
         cache.srvResource = tmp;
@@ -3096,7 +3098,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 
         if(FAILED(hr))
         {
-          RDCERR("Failed to create temporary Texture3D %08x", hr);
+          RDCERR("Failed to create temporary Texture3D HRESULT: %s", ToStr(hr).c_str());
         }
 
         cache.srvResource = tmp;
@@ -3207,7 +3209,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
                                              &cache.srv[0]);
 
     if(FAILED(hr))
-      RDCERR("Failed to create cache SRV 0, type %d %08x", details.texType, hr);
+      RDCERR("Failed to create cache SRV 0, type %d HRESULT: %s", details.texType, ToStr(hr).c_str());
   }
 
   details.srv[details.texType] = cache.srv[0];
@@ -3220,7 +3222,8 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
                                                &cache.srv[1]);
 
       if(FAILED(hr))
-        RDCERR("Failed to create cache SRV 1, type %d %08x", details.texType, hr);
+        RDCERR("Failed to create cache SRV 1, type %d HRESULT: %s", details.texType,
+               ToStr(hr).c_str());
     }
 
     details.srv[eTexType_Stencil] = cache.srv[1];
@@ -3300,7 +3303,7 @@ void D3D11DebugManager::RenderTextInternal(float x, float y, const char *text)
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to map charbuffer %08x", hr);
+    RDCERR("Failed to map charbuffer HRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -4002,7 +4005,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create Geometry Shader + SO %08x", hr);
+      RDCERR("Failed to create Geometry Shader + SO HRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -4226,7 +4229,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to map sobuffer %08x", hr);
+      RDCERR("Failed to map sobuffer HRESULT: %s", ToStr(hr).c_str());
       SAFE_RELEASE(idxBuf);
       return;
     }
@@ -4251,7 +4254,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create postvs pos buffer %08x", hr);
+      RDCERR("Failed to create postvs pos buffer HRESULT: %s", ToStr(hr).c_str());
 
       m_pImmediateContext->Unmap(m_SOStagingBuffer, 0);
       SAFE_RELEASE(idxBuf);
@@ -4417,7 +4420,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create Geometry Shader + SO %08x", hr);
+      RDCERR("Failed to create Geometry Shader + SO HRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -4509,7 +4512,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
         ID3D11Query *q = NULL;
         hr = m_pDevice->CreateQuery(&qdesc, &q);
         if(FAILED(hr))
-          RDCERR("Failed to create m_SOStatsQuery %08x", hr);
+          RDCERR("Failed to create m_SOStatsQuery HRESULT: %s", ToStr(hr).c_str());
 
         m_SOStatsQueries.push_back(q);
       }
@@ -4587,7 +4590,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to map sobuffer %08x", hr);
+      RDCERR("Failed to map sobuffer HRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -4619,7 +4622,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create postvs pos buffer %08x", hr);
+      RDCERR("Failed to create postvs pos buffer HRESULT: %s", ToStr(hr).c_str());
 
       m_pImmediateContext->Unmap(m_SOStagingBuffer, 0);
       return;
@@ -4842,7 +4845,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create m_MeshDisplayLayout %08x", hr);
+      RDCERR("Failed to create m_MeshDisplayLayout HRESULT: %s", ToStr(hr).c_str());
       m_MeshDisplayLayout = NULL;
     }
   }
@@ -5168,7 +5171,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
         if(FAILED(hr))
         {
-          RDCERR("Failde to map m_TriHighlightHelper %08x", hr);
+          RDCERR("Failde to map m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
           return;
         }
 
@@ -5188,7 +5191,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
         if(FAILED(hr))
         {
-          RDCERR("Failde to map m_TriHighlightHelper %08x", hr);
+          RDCERR("Failde to map m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
           return;
         }
 
@@ -5220,7 +5223,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
       if(FAILED(hr))
       {
-        RDCERR("Failde to map m_TriHighlightHelper %08x", hr);
+        RDCERR("Failde to map m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
         return;
       }
 
@@ -5241,7 +5244,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
         if(FAILED(hr))
         {
-          RDCERR("Failde to map m_TriHighlightHelper %08x", hr);
+          RDCERR("Failde to map m_TriHighlightHelper HRESULT: %s", ToStr(hr).c_str());
           return;
         }
 

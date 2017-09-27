@@ -1110,7 +1110,7 @@ const char *WrappedOpenGL::GetChunkName(uint32_t idx)
 }
 
 template <>
-string ToStrHelper<false, GLChunkType>::Get(const GLChunkType &el)
+std::string DoStringise(const GLChunkType &el)
 {
   return WrappedOpenGL::GetChunkName(el);
 }
@@ -3326,8 +3326,7 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
     if(type != eGL_DEBUG_TYPE_PERFORMANCE && type != eGL_DEBUG_TYPE_OTHER)
     {
       RDCLOG("Got a Debug message from %s, type %s, ID %d, severity %s:\n'%s'",
-             ToStr::Get(source).c_str(), ToStr::Get(type).c_str(), id, ToStr::Get(severity).c_str(),
-             message);
+             ToStr(source).c_str(), ToStr(type).c_str(), id, ToStr(severity).c_str(), message);
       if(m_DebugMsgContext != "")
         RDCLOG("Debug Message context: \"%s\"", m_DebugMsgContext.c_str());
     }

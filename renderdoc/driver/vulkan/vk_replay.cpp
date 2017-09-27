@@ -3447,7 +3447,7 @@ void VulkanReplay::SavePipelineState()
         img.layouts.resize(it->second.subresourceStates.size());
         for(size_t l = 0; l < it->second.subresourceStates.size(); l++)
         {
-          img.layouts[l].name = ToStr::Get(it->second.subresourceStates[l].newLayout);
+          img.layouts[l].name = ToStr(it->second.subresourceStates[l].newLayout);
           img.layouts[l].baseMip = it->second.subresourceStates[l].subresourceRange.baseMipLevel;
           img.layouts[l].baseLayer = it->second.subresourceStates[l].subresourceRange.baseArrayLayer;
           img.layouts[l].numLayer = it->second.subresourceStates[l].subresourceRange.layerCount;

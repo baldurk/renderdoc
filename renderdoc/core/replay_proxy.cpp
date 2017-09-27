@@ -57,49 +57,6 @@ class undersized
 #pragma region General Shader / State
 
 template <>
-string ToStrHelper<false, ShaderBuiltin>::Get(const ShaderBuiltin &el)
-{
-  switch(el)
-  {
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, Undefined)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, Position)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, PointSize)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, ClipDistance)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, CullDistance)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, RTIndex)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, ViewportIndex)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, VertexIndex)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, PrimitiveIndex)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, InstanceIndex)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DispatchSize)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DispatchThreadIndex)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, GroupIndex)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, GroupFlatIndex)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, GroupThreadIndex)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, GSInstanceIndex)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, OutputControlPointIndex)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DomainLocation)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, IsFrontFace)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, MSAACoverage)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, MSAASamplePosition)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, MSAASampleIndex)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, PatchNumVertices)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, OuterTessFactor)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, InsideTessFactor)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, ColorOutput)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DepthOutput)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DepthOutputGreaterEqual)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DepthOutputLessEqual)
-    default: break;
-  }
-
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "SystemAttribute<%d>", el);
-
-  return tostrBuf;
-}
-
-template <>
 void Serialiser::Serialise(const char *name, ResourceFormat &el)
 {
   Serialise("", el.type);
@@ -1669,336 +1626,176 @@ void Serialiser::Serialise(const char *name, PixelModification &el)
 
 #pragma endregion Data descriptors
 
-#pragma region Ignored Enums
-
-// don't need string representation of these enums
-template <>
-string ToStrHelper<false, ResourceFormatType>::Get(const ResourceFormatType &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, CompType>::Get(const CompType &el)
-{
-  switch(el)
-  {
-    case CompType::Typeless: return "Typeless";
-    case CompType::Float: return "Float";
-    case CompType::UNorm: return "UNorm";
-    case CompType::SNorm: return "SNorm";
-    case CompType::UInt: return "UInt";
-    case CompType::SInt: return "SInt";
-    case CompType::UScaled: return "UScaled";
-    case CompType::SScaled: return "SScaled";
-    case CompType::Depth: return "Depth";
-    case CompType::Double: return "Double";
-  }
-
-  return StringFormat::Fmt("CompType<%d>", el);
-}
-template <>
-string ToStrHelper<false, ShaderEvents>::Get(const ShaderEvents &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, TextureCategory>::Get(const TextureCategory &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, BufferCategory>::Get(const BufferCategory &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, D3DBufferViewFlags>::Get(const D3DBufferViewFlags &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, DrawFlags>::Get(const DrawFlags &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, GPUCounter>::Get(const GPUCounter &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, TextureSwizzle>::Get(const TextureSwizzle &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, AddressMode>::Get(const AddressMode &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, CompareFunc>::Get(const CompareFunc &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, BlendMultiplier>::Get(const BlendMultiplier &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, BlendOp>::Get(const BlendOp &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, LogicOp>::Get(const LogicOp &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, StencilOp>::Get(const StencilOp &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, CounterUnit>::Get(const CounterUnit &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, Topology>::Get(const Topology &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, ShaderStage>::Get(const ShaderStage &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, ShaderStageMask>::Get(const ShaderStageMask &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, BindType>::Get(const BindType &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, TextureDim>::Get(const TextureDim &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, MessageCategory>::Get(const MessageCategory &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, MessageSeverity>::Get(const MessageSeverity &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, MessageSource>::Get(const MessageSource &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, VarType>::Get(const VarType &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, MeshDataStage>::Get(const MeshDataStage &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, DebugOverlay>::Get(const DebugOverlay &el)
-{
-  return "<...>";
-}
-template <>
-string ToStrHelper<false, GraphicsAPI>::Get(const GraphicsAPI &el)
-{
-  return "<...>";
-}
-
-#pragma endregion Ignored Enums
-
 #pragma region Plain - old data structures
 
 // these structures we can just serialise as a blob, since they're POD.
 template <>
-string ToStrHelper<false, D3D11Pipe::VB>::Get(const D3D11Pipe::VB &el)
+std::string DoStringise(const CaptureOptions &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D11Pipe::RasterizerState>::Get(const D3D11Pipe::RasterizerState &el)
+std::string DoStringise(const D3D11Pipe::VB &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D11Pipe::CBuffer>::Get(const D3D11Pipe::CBuffer &el)
+std::string DoStringise(const D3D11Pipe::RasterizerState &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D11Pipe::Scissor>::Get(const D3D11Pipe::Scissor &el)
+std::string DoStringise(const D3D11Pipe::CBuffer &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D11Pipe::Viewport>::Get(const D3D11Pipe::Viewport &el)
+std::string DoStringise(const D3D11Pipe::Scissor &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D11Pipe::SOBind>::Get(const D3D11Pipe::SOBind &el)
+std::string DoStringise(const D3D11Pipe::Viewport &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D12Pipe::VB>::Get(const D3D12Pipe::VB &el)
+std::string DoStringise(const D3D11Pipe::SOBind &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D12Pipe::SOBind>::Get(const D3D12Pipe::SOBind &el)
+std::string DoStringise(const D3D12Pipe::VB &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D12Pipe::Scissor>::Get(const D3D12Pipe::Scissor &el)
+std::string DoStringise(const D3D12Pipe::SOBind &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D12Pipe::Viewport>::Get(const D3D12Pipe::Viewport &el)
+std::string DoStringise(const D3D12Pipe::Scissor &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D12Pipe::RasterizerState>::Get(const D3D12Pipe::RasterizerState &el)
+std::string DoStringise(const D3D12Pipe::Viewport &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipe::VB>::Get(const GLPipe::VB &el)
+std::string DoStringise(const D3D12Pipe::RasterizerState &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipe::FixedVertexProcessing>::Get(const GLPipe::FixedVertexProcessing &el)
+std::string DoStringise(const GLPipe::VB &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipe::Texture>::Get(const GLPipe::Texture &el)
+std::string DoStringise(const GLPipe::FixedVertexProcessing &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipe::Buffer>::Get(const GLPipe::Buffer &el)
+std::string DoStringise(const GLPipe::Texture &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipe::Feedback>::Get(const GLPipe::Feedback &el)
+std::string DoStringise(const GLPipe::Buffer &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipe::Viewport>::Get(const GLPipe::Viewport &el)
+std::string DoStringise(const GLPipe::Feedback &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipe::Scissor>::Get(const GLPipe::Scissor &el)
+std::string DoStringise(const GLPipe::Viewport &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipe::RasterizerState>::Get(const GLPipe::RasterizerState &el)
+std::string DoStringise(const GLPipe::Scissor &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipe::Hints>::Get(const GLPipe::Hints &el)
+std::string DoStringise(const GLPipe::RasterizerState &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VKPipe::RenderArea>::Get(const VKPipe::RenderArea &el)
+std::string DoStringise(const GLPipe::Hints &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VKPipe::InputAssembly>::Get(const VKPipe::InputAssembly &el)
+std::string DoStringise(const VKPipe::RenderArea &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VKPipe::Tessellation>::Get(const VKPipe::Tessellation &el)
+std::string DoStringise(const VKPipe::InputAssembly &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VKPipe::Raster>::Get(const VKPipe::Raster &el)
+std::string DoStringise(const VKPipe::Tessellation &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VKPipe::MultiSample>::Get(const VKPipe::MultiSample &el)
+std::string DoStringise(const VKPipe::Raster &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VKPipe::BindingElement>::Get(const VKPipe::BindingElement &el)
+std::string DoStringise(const VKPipe::MultiSample &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VKPipe::VertexBinding>::Get(const VKPipe::VertexBinding &el)
+std::string DoStringise(const VKPipe::BindingElement &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VKPipe::VB>::Get(const VKPipe::VB &el)
+std::string DoStringise(const VKPipe::VertexBinding &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VKPipe::ViewportScissor>::Get(const VKPipe::ViewportScissor &el)
+std::string DoStringise(const VKPipe::VB &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, EventUsage>::Get(const EventUsage &el)
+std::string DoStringise(const VKPipe::ViewportScissor &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, CounterResult>::Get(const CounterResult &el)
+std::string DoStringise(const EventUsage &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, ReplayLogType>::Get(const ReplayLogType &el)
+std::string DoStringise(const CounterResult &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, FloatVector>::Get(const FloatVector &el)
+std::string DoStringise(const ReplayLogType &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, TextureFilter>::Get(const TextureFilter &el)
+std::string DoStringise(const FloatVector &el)
 {
   return "<...>";
 }
@@ -2037,19 +1834,17 @@ bool ReplayProxy::SendReplayCommand(ReplayProxyPacket type)
 }
 
 template <>
-string ToStrHelper<false, RemapTextureEnum>::Get(const RemapTextureEnum &el)
+std::string DoStringise(const RemapTextureEnum &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(RemapTextureEnum);
   {
-    TOSTR_CASE_STRINGIZE(eRemap_None)
-    TOSTR_CASE_STRINGIZE(eRemap_RGBA8)
-    TOSTR_CASE_STRINGIZE(eRemap_RGBA16)
-    TOSTR_CASE_STRINGIZE(eRemap_RGBA32)
-    TOSTR_CASE_STRINGIZE(eRemap_D32S8)
-    default: break;
+    STRINGISE_ENUM(eRemap_None)
+    STRINGISE_ENUM(eRemap_RGBA8)
+    STRINGISE_ENUM(eRemap_RGBA16)
+    STRINGISE_ENUM(eRemap_RGBA32)
+    STRINGISE_ENUM(eRemap_D32S8)
   }
-
-  return StringFormat::Fmt("RemapTextureEnum<%d>", el);
+  END_ENUM_STRINGISE();
 }
 
 // If a remap is required, modify the params that are used when getting the proxy texture data

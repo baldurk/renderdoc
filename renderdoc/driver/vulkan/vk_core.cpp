@@ -584,7 +584,7 @@ const char *WrappedVulkan::GetChunkName(uint32_t idx)
 }
 
 template <>
-string ToStrHelper<false, VulkanChunkType>::Get(const VulkanChunkType &el)
+std::string DoStringise(const VulkanChunkType &el)
 {
   return WrappedVulkan::GetChunkName(el);
 }

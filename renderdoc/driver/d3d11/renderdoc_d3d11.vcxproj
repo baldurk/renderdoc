@@ -117,6 +117,7 @@
     <ClCompile Include="d3d11_renderstate.cpp" />
     <ClCompile Include="d3d11_replay.cpp" />
     <ClCompile Include="d3d11_resources.cpp" />
+    <ClCompile Include="d3d11_stringise.cpp" />
     <ClCompile Include="precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>

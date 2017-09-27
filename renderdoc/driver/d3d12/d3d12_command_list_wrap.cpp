@@ -2889,7 +2889,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(UINT VertexCountP
     const string desc = m_pSerialiser->GetDebugStr();
 
     m_Cmd->AddEvent(desc);
-    string name = "DrawInstanced(" + ToStr::Get(vtxCount) + ", " + ToStr::Get(instCount) + ")";
+    string name = "DrawInstanced(" + ToStr(vtxCount) + ", " + ToStr(instCount) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -2965,8 +2965,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
     const string desc = m_pSerialiser->GetDebugStr();
 
     m_Cmd->AddEvent(desc);
-    string name =
-        "DrawIndexedInstanced(" + ToStr::Get(idxCount) + ", " + ToStr::Get(instCount) + ")";
+    string name = "DrawIndexedInstanced(" + ToStr(idxCount) + ", " + ToStr(instCount) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -3040,7 +3039,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(UINT ThreadGroupCountX
     const string desc = m_pSerialiser->GetDebugStr();
 
     m_Cmd->AddEvent(desc);
-    string name = "Dispatch(" + ToStr::Get(x) + ", " + ToStr::Get(y) + ", " + ToStr::Get(z) + ")";
+    string name = "Dispatch(" + ToStr(x) + ", " + ToStr(y) + ", " + ToStr(z) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -3120,7 +3119,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(ID3D12GraphicsCom
     const string desc = m_pSerialiser->GetDebugStr();
 
     m_Cmd->AddEvent(desc);
-    string name = "ExecuteBundle(" + ToStr::Get(Bundle) + ")";
+    string name = "ExecuteBundle(" + ToStr(Bundle) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -3531,7 +3530,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           name += StringFormat::Fmt("\tView.BufferLocation: %llu\n", id);
           name += StringFormat::Fmt("\tView.BufferLocation: %llu\n", offs);
           name += StringFormat::Fmt("\tView.SizeInBytes: %u\n", ib->SizeInBytes);
-          name += StringFormat::Fmt("\tView.Format: %s\n", ToStr::Get(ib->Format).c_str());
+          name += StringFormat::Fmt("\tView.Format: %s\n", ToStr(ib->Format).c_str());
           name += "}\n";
 
           DrawcallDescription &draw = draws[idx].draw;
@@ -4200,7 +4199,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
 
     {
       m_Cmd->AddEvent(desc);
-      string name = "ClearDepthStencilView(" + ToStr::Get(d) + "," + ToStr::Get(s) + ")";
+      string name = "ClearDepthStencilView(" + ToStr(d) + "," + ToStr(s) + ")";
 
       D3D12Descriptor *descriptor = DescriptorFromPortableHandle(GetResourceManager(), dsv);
 
@@ -4288,8 +4287,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
 
     {
       m_Cmd->AddEvent(desc);
-      string name = "ClearRenderTargetView(" + ToStr::Get(Color[0]) + "," + ToStr::Get(Color[1]) +
-                    "," + ToStr::Get(Color[2]) + "," + ToStr::Get(Color[3]) + ")";
+      string name = "ClearRenderTargetView(" + ToStr(Color[0]) + "," + ToStr(Color[1]) + "," +
+                    ToStr(Color[2]) + "," + ToStr(Color[3]) + ")";
 
       D3D12Descriptor *descriptor = DescriptorFromPortableHandle(GetResourceManager(), rtv);
 
@@ -4387,9 +4386,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
 
     {
       m_Cmd->AddEvent(desc);
-      string name = "ClearUnorderedAccessViewUint(" + ToStr::Get(vals[0]) + "," +
-                    ToStr::Get(vals[1]) + "," + ToStr::Get(vals[2]) + "," + ToStr::Get(vals[3]) +
-                    ")";
+      string name = "ClearUnorderedAccessViewUint(" + ToStr(vals[0]) + "," + ToStr(vals[1]) + "," +
+                    ToStr(vals[2]) + "," + ToStr(vals[3]) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -4491,9 +4489,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
 
     {
       m_Cmd->AddEvent(desc);
-      string name = "ClearUnorderedAccessViewFloat(" + ToStr::Get(vals[0]) + "," +
-                    ToStr::Get(vals[1]) + "," + ToStr::Get(vals[2]) + "," + ToStr::Get(vals[3]) +
-                    ")";
+      string name = "ClearUnorderedAccessViewFloat(" + ToStr(vals[0]) + "," + ToStr(vals[1]) + "," +
+                    ToStr(vals[2]) + "," + ToStr(vals[3]) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -4633,7 +4630,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(ID3D12Resource
 
     {
       m_Cmd->AddEvent(desc);
-      string name = "CopyBufferRegion(" + ToStr::Get(src) + "," + ToStr::Get(dst) + ")";
+      string name = "CopyBufferRegion(" + ToStr(src) + "," + ToStr(dst) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -4721,7 +4718,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
       ResourceId origSrc = GetResourceManager()->GetOriginalID(liveSrc);
       ResourceId origDst = GetResourceManager()->GetOriginalID(liveDst);
 
-      string name = "CopyTextureRegion(" + ToStr::Get(origSrc) + "," + ToStr::Get(origDst) + ")";
+      string name = "CopyTextureRegion(" + ToStr(origSrc) + "," + ToStr(origDst) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -4810,7 +4807,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(ID3D12Resource *pD
     {
       m_Cmd->AddEvent(desc);
 
-      string name = "CopyResource(" + ToStr::Get(src) + "," + ToStr::Get(dst) + ")";
+      string name = "CopyResource(" + ToStr(src) + "," + ToStr(dst) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -4900,7 +4897,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(ID3D12Resour
     {
       m_Cmd->AddEvent(desc);
 
-      string name = "ResolveSubresource(" + ToStr::Get(src) + "," + ToStr::Get(dst) + ")";
+      string name = "ResolveSubresource(" + ToStr(src) + "," + ToStr(dst) + ")";
 
       DrawcallDescription draw;
       draw.name = name;

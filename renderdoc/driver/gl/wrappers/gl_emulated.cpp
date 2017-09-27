@@ -1041,7 +1041,7 @@ void APIENTRY _glGetInternalformativ(GLenum target, GLenum internalformat, GLenu
   if(data == NULL)
   {
     RDCERR("Format %s not supported by internal glGetInternalformativ, update database",
-           ToStr::Get(internalformat).c_str());
+           ToStr(internalformat).c_str());
     return;
   }
 
@@ -1083,7 +1083,7 @@ void APIENTRY _glGetInternalformativ(GLenum target, GLenum internalformat, GLenu
     case eGL_INTERNALFORMAT_DEPTH_SIZE: *params = data->depthBits; break;
     case eGL_INTERNALFORMAT_STENCIL_SIZE: *params = data->stencilBits; break;
     default:
-      RDCERR("pname %s not supported by internal glGetInternalformativ", ToStr::Get(pname).c_str());
+      RDCERR("pname %s not supported by internal glGetInternalformativ", ToStr(pname).c_str());
       break;
   }
 }
@@ -1311,7 +1311,7 @@ void APIENTRY _glClearBufferSubData(GLenum target, GLenum internalformat, GLintp
       case GL_RGBA_INTEGER: compCount = 4; break;
       default:
         RDCERR("Unexpected format %s, not doing conversion. Update _glClearBufferSubData emulation",
-               ToStr::Get(format).c_str());
+               ToStr(format).c_str());
     }
 
     uint32_t compByteWidth = 1;
@@ -1326,7 +1326,7 @@ void APIENTRY _glClearBufferSubData(GLenum target, GLenum internalformat, GLintp
       case eGL_FLOAT: compByteWidth = 4; break;
       default:
         RDCERR("Unexpected type %s, not doing conversion. Update _glClearBufferSubData emulation",
-               ToStr::Get(type).c_str());
+               ToStr(type).c_str());
     }
 
     CompType compType = CompType::UInt;

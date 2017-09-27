@@ -415,11 +415,10 @@ void VulkanResourceManager::ApplyBarriers(vector<pair<ResourceId, ImageRegionSta
     if(t.oldLayout == t.newLayout)
       continue;
 
-    TRDBG("Barrier of %s (%u->%u, %u->%u) from %s to %s",
-          ToStr::Get(t.subresourceRange.aspect).c_str(), t.subresourceRange.baseMipLevel,
-          t.subresourceRange.levelCount, t.subresourceRange.baseArrayLayer,
-          t.subresourceRange.layerCount, ToStr::Get(t.oldLayout).c_str(),
-          ToStr::Get(t.newLayout).c_str());
+    TRDBG("Barrier of %s (%u->%u, %u->%u) from %s to %s", ToStr(t.subresourceRange.aspect).c_str(),
+          t.subresourceRange.baseMipLevel, t.subresourceRange.levelCount,
+          t.subresourceRange.baseArrayLayer, t.subresourceRange.layerCount,
+          ToStr(t.oldLayout).c_str(), ToStr(t.newLayout).c_str());
 
     bool done = false;
 
@@ -428,10 +427,9 @@ void VulkanResourceManager::ApplyBarriers(vector<pair<ResourceId, ImageRegionSta
     auto it = stit->second.subresourceStates.begin();
     for(; it != stit->second.subresourceStates.end(); ++it)
     {
-      TRDBG(".. state %s (%u->%u, %u->%u) from %s to %s",
-            ToStr::Get(it->subresourceRange.aspect).c_str(), it->range.baseMipLevel,
-            it->range.levelCount, it->range.baseArrayLayer, it->range.layerCount,
-            ToStr::Get(it->oldLayout).c_str(), ToStr::Get(it->newLayout).c_str());
+      TRDBG(".. state %s (%u->%u, %u->%u) from %s to %s", ToStr(it->subresourceRange.aspect).c_str(),
+            it->range.baseMipLevel, it->range.levelCount, it->range.baseArrayLayer,
+            it->range.layerCount, ToStr(it->oldLayout).c_str(), ToStr(it->newLayout).c_str());
 
       // image barriers are handled by initially inserting one subresource range for the whole
       // object,

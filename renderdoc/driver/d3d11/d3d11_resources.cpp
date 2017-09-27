@@ -277,41 +277,6 @@ UINT GetByteSize(ID3D11Texture3D *tex, int SubResource)
   return GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, SubResource);
 }
 
-string ToStrHelper<false, ResourceType>::Get(const ResourceType &el)
-{
-  switch(el)
-  {
-    TOSTR_CASE_STRINGIZE(Resource_InputLayout)
-    TOSTR_CASE_STRINGIZE(Resource_Buffer)
-    TOSTR_CASE_STRINGIZE(Resource_Texture1D)
-    TOSTR_CASE_STRINGIZE(Resource_Texture2D)
-    TOSTR_CASE_STRINGIZE(Resource_Texture3D)
-    TOSTR_CASE_STRINGIZE(Resource_RasterizerState)
-    TOSTR_CASE_STRINGIZE(Resource_BlendState)
-    TOSTR_CASE_STRINGIZE(Resource_DepthStencilState)
-    TOSTR_CASE_STRINGIZE(Resource_SamplerState)
-    TOSTR_CASE_STRINGIZE(Resource_RenderTargetView)
-    TOSTR_CASE_STRINGIZE(Resource_ShaderResourceView)
-    TOSTR_CASE_STRINGIZE(Resource_DepthStencilView)
-    TOSTR_CASE_STRINGIZE(Resource_Shader)
-    TOSTR_CASE_STRINGIZE(Resource_UnorderedAccessView)
-    TOSTR_CASE_STRINGIZE(Resource_Counter)
-    TOSTR_CASE_STRINGIZE(Resource_Query)
-    TOSTR_CASE_STRINGIZE(Resource_Predicate)
-    TOSTR_CASE_STRINGIZE(Resource_ClassInstance)
-    TOSTR_CASE_STRINGIZE(Resource_ClassLinkage)
-
-    TOSTR_CASE_STRINGIZE(Resource_DeviceContext)
-    TOSTR_CASE_STRINGIZE(Resource_CommandList)
-    default: break;
-  }
-
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "ResourceType<%d>", el);
-
-  return tostrBuf;
-}
-
 ResourceId GetIDForDeviceChild(ID3D11DeviceChild *ptr)
 {
   if(ptr == NULL)

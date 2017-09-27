@@ -1189,7 +1189,7 @@ void D3D12Replay::SavePipelineState()
 
       res.states.resize(it->second.size());
       for(size_t l = 0; l < it->second.size(); l++)
-        res.states[l].name = ToStr::Get(it->second[l]);
+        res.states[l].name = ToStr(it->second[l]);
 
       i++;
     }

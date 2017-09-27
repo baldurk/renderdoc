@@ -39,49 +39,6 @@
 using std::set;
 using std::string;
 
-// template helpers
-template <class T>
-struct renderdoc_is_pointer
-{
-  enum
-  {
-    value = false
-  };
-};
-
-template <class T>
-struct renderdoc_is_pointer<T *>
-{
-  enum
-  {
-    value = true
-  };
-};
-
-template <class T>
-struct renderdoc_is_pointer<const T *>
-{
-  enum
-  {
-    value = true
-  };
-};
-
-template <bool isptr, class T>
-struct ToStrHelper
-{
-  static string Get(const T &el);
-};
-
-struct ToStr
-{
-  template <class T>
-  static string Get(const T &el)
-  {
-    return ToStrHelper<renderdoc_is_pointer<T>::value, T>::Get(el);
-  }
-};
-
 typedef const char *(*ChunkLookup)(uint32_t chunkType);
 
 class Serialiser;
@@ -366,7 +323,7 @@ public:
         DebugPrint("%s[]\n", name);
 
       for(size_t i = 0; i < numElems; i++)
-        DebugPrint("%s[%d] = %s\n", name, i, ToStr::Get<T>(el[i]).c_str());
+        DebugPrint("%s[%d] = %s\n", name, i, ToStr(el[i]).c_str());
     }
   }
 
@@ -444,7 +401,7 @@ public:
     }
 
     if(name != NULL && m_DebugTextWriting)
-      DebugPrint("%s: %s\n", name, ToStr::Get<T>(el).c_str());
+      DebugPrint("%s: %s\n", name, ToStr(el).c_str());
   }
 
   // function to deallocate members
@@ -893,22 +850,3 @@ struct ScopedDeserialise
     size_t CONCAT(buflen, __LINE__) = Len;                                  \
     GET_SERIALISER->SerialiseBuffer(#name, name, CONCAT(buflen, __LINE__)); \
   }
-
-// forward declare generic pointer version to void*
-template <class T>
-struct ToStrHelper<true, T>
-{
-  static string Get(const T &el)
-  {
-    void *ptr = (void *)el;
-    return ToStrHelper<false, void *>::Get(ptr);
-  }
-};
-
-// stringize the parameter
-#define TOSTR_CASE_STRINGIZE(a) \
-  case a: return #a;
-
-// stringize the parameter (class enum version)
-#define TOSTR_CASE_STRINGIZE_SCOPED(a, b) \
-  case a::b: return #b;

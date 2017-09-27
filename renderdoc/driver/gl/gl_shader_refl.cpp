@@ -1647,7 +1647,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
           case eGL_BOOL_VEC4: sig.compType = CompType::UInt; break;
           default:
             sig.compType = CompType::Float;
-            RDCWARN("Unhandled signature element type %s", ToStr::Get((GLenum)values[1]).c_str());
+            RDCWARN("Unhandled signature element type %s", ToStr((GLenum)values[1]).c_str());
         }
 
         switch(values[1])
@@ -1739,7 +1739,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
             sig.regChannelMask = 0x3;
             break;
           default:
-            RDCWARN("Unhandled signature element type %s", ToStr::Get((GLenum)values[1]).c_str());
+            RDCWARN("Unhandled signature element type %s", ToStr((GLenum)values[1]).c_str());
             sig.compCount = 4;
             sig.regChannelMask = 0xf;
             break;

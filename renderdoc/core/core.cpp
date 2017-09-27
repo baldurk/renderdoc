@@ -36,8 +36,10 @@
 #include "strings/string_utils.h"
 #include "crash_handler.h"
 
+#include "api/replay/renderdoc_tostr.inl"
+
 template <>
-string ToStrHelper<false, ResourceId>::Get(const ResourceId &el)
+std::string DoStringise(const ResourceId &el)
 {
   char tostrBuf[256] = {0};
 
@@ -71,81 +73,41 @@ bool is_exr_file(FILE *f)
 }
 
 template <>
-string ToStrHelper<false, RDCDriver>::Get(const RDCDriver &el)
+std::string DoStringise(const RDCDriver &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(RDCDriver);
   {
-    case RDC_Unknown: return "Unknown";
-    case RDC_OpenGL: return "OpenGL";
-    case RDC_OpenGLES: return "OpenGLES";
-    case RDC_Mantle: return "Mantle";
-    case RDC_D3D12: return "D3D12";
-    case RDC_D3D11: return "D3D11";
-    case RDC_D3D10: return "D3D10";
-    case RDC_D3D9: return "D3D9";
-    case RDC_D3D8: return "D3D8";
-    case RDC_Image: return "Image";
-    case RDC_Vulkan: return "Vulkan";
-    default: break;
+    STRINGISE_ENUM_NAMED(RDC_Unknown, "Unknown");
+    STRINGISE_ENUM_NAMED(RDC_OpenGL, "OpenGL");
+    STRINGISE_ENUM_NAMED(RDC_OpenGLES, "OpenGLES");
+    STRINGISE_ENUM_NAMED(RDC_Mantle, "Mantle");
+    STRINGISE_ENUM_NAMED(RDC_D3D12, "D3D12");
+    STRINGISE_ENUM_NAMED(RDC_D3D11, "D3D11");
+    STRINGISE_ENUM_NAMED(RDC_D3D10, "D3D10");
+    STRINGISE_ENUM_NAMED(RDC_D3D9, "D3D9");
+    STRINGISE_ENUM_NAMED(RDC_D3D8, "D3D8");
+    STRINGISE_ENUM_NAMED(RDC_Image, "Image");
+    STRINGISE_ENUM_NAMED(RDC_Vulkan, "Vulkan");
   }
-
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "RDCDriver<%d>", el);
-
-  return tostrBuf;
+  END_ENUM_STRINGISE();
 }
 
 template <>
-string ToStrHelper<false, WindowingSystem>::Get(const WindowingSystem &el)
+std::string DoStringise(const WindowingSystem &el)
 {
-  switch(el)
+  BEGIN_ENUM_STRINGISE(WindowingSystem);
   {
-    case WindowingSystem::Unknown: return "Unknown";
-    case WindowingSystem::Win32: return "Win32";
-    case WindowingSystem::Xlib: return "Xlib";
-    case WindowingSystem::XCB: return "XCB";
-    case WindowingSystem::Android: return "Android";
-    default: break;
+    STRINGISE_ENUM_CLASS(Unknown);
+    STRINGISE_ENUM_CLASS(Win32);
+    STRINGISE_ENUM_CLASS(Xlib);
+    STRINGISE_ENUM_CLASS(XCB);
+    STRINGISE_ENUM_CLASS(Android);
   }
-
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "WindowingSystem<%d>", el);
-
-  return tostrBuf;
+  END_ENUM_STRINGISE();
 }
 
 template <>
-string ToStrHelper<false, ReplayStatus>::Get(const ReplayStatus &el)
-{
-  switch(el)
-  {
-    case ReplayStatus::Succeeded: return "Succeeded";
-    case ReplayStatus::UnknownError: return "Unknown error";
-    case ReplayStatus::InternalError: return "Internal error";
-    case ReplayStatus::FileNotFound: return "File not found";
-    case ReplayStatus::InjectionFailed: return "RenderDoc injection failed";
-    case ReplayStatus::IncompatibleProcess: return "Process is incompatible";
-    case ReplayStatus::NetworkIOFailed: return "Network I/O operation failed";
-    case ReplayStatus::NetworkRemoteBusy: return "Remote side of network connection is busy";
-    case ReplayStatus::NetworkVersionMismatch: return "Version mismatch between network clients";
-    case ReplayStatus::FileIOFailed: return "File I/O failed";
-    case ReplayStatus::FileIncompatibleVersion: return "File of incompatible version";
-    case ReplayStatus::FileCorrupted: return "File corrupted";
-    case ReplayStatus::APIUnsupported: return "API unsupported";
-    case ReplayStatus::APIInitFailed: return "API initialisation failed";
-    case ReplayStatus::APIIncompatibleVersion: return "API incompatible version";
-    case ReplayStatus::APIHardwareUnsupported: return "API hardware unsupported";
-    default: break;
-  }
-
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "StatusCode<%d>", el);
-
-  return tostrBuf;
-}
-
-template <>
-string ToStrHelper<false, RENDERDOC_InputButton>::Get(const RENDERDOC_InputButton &el)
+std::string DoStringise(const RENDERDOC_InputButton &el)
 {
   char alphanumericbuf[2] = {'A', 0};
 
@@ -157,44 +119,39 @@ string ToStrHelper<false, RENDERDOC_InputButton>::Get(const RENDERDOC_InputButto
     return alphanumericbuf;
   }
 
-  switch(el)
+  BEGIN_ENUM_STRINGISE(RENDERDOC_InputButton);
   {
-    case eRENDERDOC_Key_Divide: return "/";
-    case eRENDERDOC_Key_Multiply: return "*";
-    case eRENDERDOC_Key_Subtract: return "-";
-    case eRENDERDOC_Key_Plus: return "+";
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_Divide, "/");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_Multiply, "*");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_Subtract, "-");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_Plus, "+");
 
-    case eRENDERDOC_Key_F1: return "F1";
-    case eRENDERDOC_Key_F2: return "F2";
-    case eRENDERDOC_Key_F3: return "F3";
-    case eRENDERDOC_Key_F4: return "F4";
-    case eRENDERDOC_Key_F5: return "F5";
-    case eRENDERDOC_Key_F6: return "F6";
-    case eRENDERDOC_Key_F7: return "F7";
-    case eRENDERDOC_Key_F8: return "F8";
-    case eRENDERDOC_Key_F9: return "F9";
-    case eRENDERDOC_Key_F10: return "F10";
-    case eRENDERDOC_Key_F11: return "F11";
-    case eRENDERDOC_Key_F12: return "F12";
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_F1, "F1");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_F2, "F2");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_F3, "F3");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_F4, "F4");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_F5, "F5");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_F6, "F6");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_F7, "F7");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_F8, "F8");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_F9, "F9");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_F10, "F10");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_F11, "F11");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_F12, "F12");
 
-    case eRENDERDOC_Key_Home: return "Home";
-    case eRENDERDOC_Key_End: return "End";
-    case eRENDERDOC_Key_Insert: return "Insert";
-    case eRENDERDOC_Key_Delete: return "Delete";
-    case eRENDERDOC_Key_PageUp: return "PageUp";
-    case eRENDERDOC_Key_PageDn: return "PageDn";
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_Home, "Home");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_End, "End");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_Insert, "Insert");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_Delete, "Delete");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_PageUp, "PageUp");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_PageDn, "PageDn");
 
-    case eRENDERDOC_Key_Backspace: return "Backspace";
-    case eRENDERDOC_Key_Tab: return "Tab";
-    case eRENDERDOC_Key_PrtScrn: return "PrtScrn";
-    case eRENDERDOC_Key_Pause: return "Pause";
-    default: break;
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_Backspace, "Backspace");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_Tab, "Tab");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_PrtScrn, "PrtScrn");
+    STRINGISE_ENUM_NAMED(eRENDERDOC_Key_Pause, "Pause");
   }
-
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "RENDERDOC_InputButton<%d>", el);
-
-  return tostrBuf;
+  END_ENUM_STRINGISE();
 }
 
 RenderDoc *RenderDoc::m_Inst = NULL;
@@ -609,7 +566,7 @@ string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int fla
 
   uint32_t overlay = GetOverlayBits();
 
-  string overlayText = ToStr::Get(driver) + ". ";
+  std::string overlayText = ToStr(driver) + ". ";
 
   if(activeWindow)
   {
@@ -624,7 +581,7 @@ string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int fla
           if(i > 0)
             overlayText += ", ";
 
-          overlayText += ToStr::Get(keys[i]);
+          overlayText += ToStr(keys[i]);
         }
 
         if(!keys.empty())
@@ -686,7 +643,7 @@ string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int fla
       else
         overlayText += ", ";
 
-      overlayText += ToStr::Get(keys[i]);
+      overlayText += ToStr(keys[i]);
     }
 
     if(!keys.empty())

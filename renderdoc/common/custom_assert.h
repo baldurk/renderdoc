@@ -38,27 +38,27 @@
 //
 // A few more twiddles by hand to get everything playing nicely
 
-#define RDCASSERT_FAILMSG_1(value) failmsg += (STRINGIZE(value) "=") + ToStr::Get(value) + ", ";
-#define RDCASSERT_FAILMSG_2(value, _1)                          \
-  failmsg += (STRINGIZE(value) "=") + ToStr::Get(value) + ", "; \
+#define RDCASSERT_FAILMSG_1(value) failmsg += (STRINGIZE(value) "=") + ToStr(value) + ", ";
+#define RDCASSERT_FAILMSG_2(value, _1)                     \
+  failmsg += (STRINGIZE(value) "=") + ToStr(value) + ", "; \
   RDCASSERT_FAILMSG_1(_1)
-#define RDCASSERT_FAILMSG_3(value, _1, _2)                      \
-  failmsg += (STRINGIZE(value) "=") + ToStr::Get(value) + ", "; \
+#define RDCASSERT_FAILMSG_3(value, _1, _2)                 \
+  failmsg += (STRINGIZE(value) "=") + ToStr(value) + ", "; \
   RDCASSERT_FAILMSG_2(_1, _2)
-#define RDCASSERT_FAILMSG_4(value, _1, _2, _3)                  \
-  failmsg += (STRINGIZE(value) "=") + ToStr::Get(value) + ", "; \
+#define RDCASSERT_FAILMSG_4(value, _1, _2, _3)             \
+  failmsg += (STRINGIZE(value) "=") + ToStr(value) + ", "; \
   RDCASSERT_FAILMSG_3(_1, _2, _3)
-#define RDCASSERT_FAILMSG_5(value, _1, _2, _3, _4)              \
-  failmsg += (STRINGIZE(value) "=") + ToStr::Get(value) + ", "; \
+#define RDCASSERT_FAILMSG_5(value, _1, _2, _3, _4)         \
+  failmsg += (STRINGIZE(value) "=") + ToStr(value) + ", "; \
   RDCASSERT_FAILMSG_4(_1, _2, _3, _4)
-#define RDCASSERT_FAILMSG_6(value, _1, _2, _3, _4, _5)          \
-  failmsg += (STRINGIZE(value) "=") + ToStr::Get(value) + ", "; \
+#define RDCASSERT_FAILMSG_6(value, _1, _2, _3, _4, _5)     \
+  failmsg += (STRINGIZE(value) "=") + ToStr(value) + ", "; \
   RDCASSERT_FAILMSG_5(_1, _2, _3, _4, _5)
-#define RDCASSERT_FAILMSG_7(value, _1, _2, _3, _4, _5, _6)      \
-  failmsg += (STRINGIZE(value) "=") + ToStr::Get(value) + ", "; \
+#define RDCASSERT_FAILMSG_7(value, _1, _2, _3, _4, _5, _6) \
+  failmsg += (STRINGIZE(value) "=") + ToStr(value) + ", "; \
   RDCASSERT_FAILMSG_6(_1, _2, _3, _4, _5, _6)
-#define RDCASSERT_FAILMSG_8(value, _1, _2, _3, _4, _5, _6, _7)  \
-  failmsg += (STRINGIZE(value) "=") + ToStr::Get(value) + ", "; \
+#define RDCASSERT_FAILMSG_8(value, _1, _2, _3, _4, _5, _6, _7) \
+  failmsg += (STRINGIZE(value) "=") + ToStr(value) + ", ";     \
   RDCASSERT_FAILMSG_7(_1, _2, _3, _4, _5, _6, _7)
 
 // this is the terminating clause

@@ -721,7 +721,7 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(GLuint texture, GLenum 
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "glGenerateMipmap(" + ToStr::Get(id) + ")";
+    string name = "glGenerateMipmap(" + ToStr(id) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -857,7 +857,7 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(GLuint srcName, GLenum srcTarge
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "glCopyImageSubData(" + ToStr::Get(srcid) + ", " + ToStr::Get(dstid) + ")";
+    string name = "glCopyImageSubData(" + ToStr(srcid) + ", " + ToStr(dstid) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -2919,12 +2919,12 @@ void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLin
 
     if(!error.empty())
       RDCWARN("StoreCompressedTexData: Unexpected %s (tex:%llu, target:%s)", error.c_str(), texId,
-              ToStr::Get(target).c_str());
+              ToStr(target).c_str());
   }
   else
   {
     RDCWARN("StoreCompressedTexData: No source pixels to copy from (tex:%llu, target:%s)", texId,
-            ToStr::Get(target).c_str());
+            ToStr(target).c_str());
   }
 
   SAFE_DELETE_ARRAY(unpackedPixels);

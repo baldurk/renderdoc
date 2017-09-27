@@ -59,7 +59,7 @@
       <PreprocessorDefinitions>RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
-	<ItemDefinitionGroup>
+  <ItemDefinitionGroup>
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -100,6 +100,7 @@
   <ItemGroup>
     <ClCompile Include="dxgi_common.cpp" />
     <ClCompile Include="dxgi_hooks.cpp" />
+    <ClCompile Include="dxgi_stringise.cpp" />
     <ClCompile Include="dxgi_wrapped.cpp" />
     <ClCompile Include="precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

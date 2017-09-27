@@ -55,6 +55,7 @@ endif()
 set(sources
     api/app/renderdoc_app.h
     api/replay/basic_types.h
+    api/replay/stringise.h
     api/replay/structured_data.h
     api/replay/capture_options.h
     api/replay/control_types.h
@@ -66,6 +67,7 @@ set(sources
     api/replay/shader_types.h
     api/replay/vk_pipestate.h
     api/replay/version.h
+    api/replay/renderdoc_tostr.inl
     common/common.cpp
     common/common.h
     common/custom_assert.h

@@ -498,7 +498,7 @@ void GLReplay::InitDebugData()
 
         {
           string defines = extensions;
-          defines += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+          defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
           defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
@@ -510,7 +510,7 @@ void GLReplay::InitDebugData()
 
         {
           string defines = extensions;
-          defines += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+          defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
           defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
@@ -523,7 +523,7 @@ void GLReplay::InitDebugData()
         if(t == 1)
         {
           string defines = extensions;
-          defines += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+          defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
           defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 

@@ -484,14 +484,14 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
   hr = m_pDevice->CreateQuery(&disjointdesc, &disjoint);
   if(FAILED(hr))
   {
-    RDCERR("Failed to create disjoint query %08x", hr);
+    RDCERR("Failed to create disjoint query HRESULT: %s", ToStr(hr).c_str());
     return ret;
   }
 
   hr = m_pDevice->CreateQuery(&qdesc, &start);
   if(FAILED(hr))
   {
-    RDCERR("Failed to create start query %08x", hr);
+    RDCERR("Failed to create start query HRESULT: %s", ToStr(hr).c_str());
     return ret;
   }
 

@@ -9,6 +9,10 @@
 // we don't need these for the interface, they just confuse things
 #define NO_ENUM_CLASS_OPERATORS
 
+// swig's pre-processor trips up on this definition, and it's only needed for template expansions
+// in the conversion code
+#define DECLARE_REFLECTION_STRUCT(t)
+
 // use documentation for docstrings
 #define DOCUMENT(text) %feature("docstring") text
 #define DOCUMENT2(text1, text2) %feature("docstring") text1 text2
@@ -136,6 +140,7 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 
 %include "renderdoc_replay.h"
 %include "basic_types.h"
+%include "stringise.h"
 %include "structured_data.h"
 %include "capture_options.h"
 %include "control_types.h"

@@ -29,17 +29,6 @@
 #include "core/core.h"
 #include "serialise/serialiser.h"
 
-string ToStrHelper<false, IID>::Get(const IID &el)
-{
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "GUID {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
-                         el.Data1, (unsigned int)el.Data2, (unsigned int)el.Data3, el.Data4[0],
-                         el.Data4[1], el.Data4[2], el.Data4[3], el.Data4[4], el.Data4[5],
-                         el.Data4[6], el.Data4[7]);
-
-  return tostrBuf;
-}
-
 WRAPPED_POOL_INST(WrappedIDXGIDevice4);
 
 std::vector<D3DDeviceCallback> WrappedIDXGISwapChain4::m_D3DCallbacks;
@@ -159,7 +148,7 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     if(!printed)
     {
       printed = true;
-      RDCWARN("Querying IDXGIObject for unsupported D3D10 interface: %s", ToStr::Get(riid).c_str());
+      RDCWARN("Querying IDXGIObject for unsupported D3D10 interface: %s", ToStr(riid).c_str());
     }
     return false;
   }
@@ -169,12 +158,12 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     if(!printed)
     {
       printed = true;
-      RDCWARN("Querying IDXGIObject for unknown GUID: %s", ToStr::Get(riid).c_str());
+      RDCWARN("Querying IDXGIObject for unknown GUID: %s", ToStr(riid).c_str());
     }
   }
   else
   {
-    string guid = ToStr::Get(riid);
+    string guid = ToStr(riid);
     RDCWARN("Querying IDXGIObject for interface: %s", guid.c_str());
   }
 
@@ -302,7 +291,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
   }
   else
   {
-    string guid = ToStr::Get(riid);
+    string guid = ToStr(riid);
     RDCWARN("Querying IDXGISwapChain for interface: %s", guid.c_str());
   }
 
@@ -448,7 +437,7 @@ HRESULT WrappedIDXGISwapChain4::GetBuffer(
           uuid != __uuidof(ID3D12Resource))
   {
     RDCERR("Unsupported or unrecognised UUID passed to IDXGISwapChain::GetBuffer - %s",
-           ToStr::Get(uuid).c_str());
+           ToStr(uuid).c_str());
     return E_NOINTERFACE;
   }
 
@@ -463,7 +452,7 @@ HRESULT WrappedIDXGISwapChain4::GetBuffer(
 
     if(FAILED(ret))
     {
-      RDCERR("Failed to get swapchain backbuffer %d: %08x", Buffer, ret);
+      RDCERR("Failed to get swapchain backbuffer %d: HRESULT: %s", Buffer, ToStr(ret).c_str());
       SAFE_RELEASE(realSurface);
       tex = NULL;
     }
@@ -663,7 +652,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput5::QueryInterface(REFIID riid, void 
   }
   else
   {
-    string guid = ToStr::Get(riid);
+    string guid = ToStr(riid);
     RDCWARN("Querying IDXGIOutput for interface: %s", guid.c_str());
   }
 
@@ -738,7 +727,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIAdapter3::QueryInterface(REFIID riid, void
   }
   else
   {
-    string guid = ToStr::Get(riid);
+    string guid = ToStr(riid);
     RDCWARN("Querying IDXGIAdapter for interface: %s", guid.c_str());
   }
 
@@ -838,7 +827,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice4::QueryInterface(REFIID riid, void 
   }
   else
   {
-    string guid = ToStr::Get(riid);
+    string guid = ToStr(riid);
     RDCWARN("Querying IDXGIDevice for interface: %s", guid.c_str());
   }
 
@@ -945,7 +934,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory5::QueryInterface(REFIID riid, void
   }
   else
   {
-    string guid = ToStr::Get(riid);
+    string guid = ToStr(riid);
     RDCWARN("Querying IDXGIFactory for interface: %s", guid.c_str());
   }
 

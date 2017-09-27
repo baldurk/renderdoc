@@ -149,8 +149,7 @@ HRESULT WrappedD3DDevice8::QueryInterface(REFIID riid, void **ppvObject)
   }
   else
   {
-    string guid = ToStr::Get(riid);
-    RDCWARN("Querying IDirect3DDevice8 for interface: %s", guid.c_str());
+    RDCWARN("Querying IDirect3DDevice8 for interface: %s", ToStr(riid).c_str());
   }
 
   return m_device->QueryInterface(riid, ppvObject);

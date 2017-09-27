@@ -993,7 +993,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
     else
     {
       SetObjName(ret, StringFormat::Fmt("Committed Resource %s ID %llu",
-                                        ToStr::Get(desc.Dimension).c_str(), Res));
+                                        ToStr(desc.Dimension).c_str(), Res));
 
       ret = new WrappedID3D12Resource(ret, this);
 
@@ -1187,8 +1187,8 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
     }
     else
     {
-      SetObjName(ret, StringFormat::Fmt("Placed Resource %s ID %llu",
-                                        ToStr::Get(desc.Dimension).c_str(), Res));
+      SetObjName(
+          ret, StringFormat::Fmt("Placed Resource %s ID %llu", ToStr(desc.Dimension).c_str(), Res));
 
       ret = new WrappedID3D12Resource(ret, this);
 

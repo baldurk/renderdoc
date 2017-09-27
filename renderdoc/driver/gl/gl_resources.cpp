@@ -34,7 +34,7 @@ size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalfor
 {
   if(!IsCompressedFormat(internalformat))
   {
-    RDCERR("Not compressed format %s", ToStr::Get(internalformat).c_str());
+    RDCERR("Not compressed format %s", ToStr(internalformat).c_str());
     return GetByteSize(w, h, d, GetBaseFormat(internalformat), GetDataType(internalformat));
   }
 
@@ -214,7 +214,7 @@ size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalfor
     return blocks[0] * blocks[1] * 16 * d;
   }
 
-  RDCERR("Unrecognised compressed format %s", ToStr::Get(internalformat).c_str());
+  RDCERR("Unrecognised compressed format %s", ToStr(internalformat).c_str());
   return GetByteSize(w, h, d, GetBaseFormat(internalformat), GetDataType(internalformat));
 }
 
@@ -257,7 +257,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
     case eGL_UNSIGNED_INT_24_8: return w * h * d * 4;
     case eGL_DEPTH32F_STENCIL8:
     case eGL_FLOAT_32_UNSIGNED_INT_24_8_REV: return w * h * d * 8;
-    default: RDCERR("Unhandled Byte Size type %s!", ToStr::Get(type).c_str()); break;
+    default: RDCERR("Unhandled Byte Size type %s!", ToStr(type).c_str()); break;
   }
 
   switch((int)format)
@@ -285,7 +285,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
     case eGL_RGBA_INTEGER:
     case eGL_BGRA:
     case eGL_BGRA_INTEGER: return w * h * d * elemSize * 4;
-    default: RDCERR("Unhandled Byte Size format %s!", ToStr::Get(type).c_str()); break;
+    default: RDCERR("Unhandled Byte Size format %s!", ToStr(type).c_str()); break;
   }
 
   RDCERR("Unhandled Byte Size case!");
@@ -385,7 +385,7 @@ GLenum GetBaseFormat(GLenum internalFormat)
     default: break;
   }
 
-  RDCERR("Unhandled Base Format case %s!", ToStr::Get(internalFormat).c_str());
+  RDCERR("Unhandled Base Format case %s!", ToStr(internalFormat).c_str());
 
   return eGL_NONE;
 }
@@ -476,7 +476,7 @@ GLenum GetDataType(GLenum internalFormat)
     default: break;
   }
 
-  RDCERR("Unhandled Data Type case %s!", ToStr::Get(internalFormat).c_str());
+  RDCERR("Unhandled Data Type case %s!", ToStr(internalFormat).c_str());
 
   return eGL_NONE;
 }
@@ -975,7 +975,7 @@ GLenum TextureBinding(GLenum target)
     default: break;
   }
 
-  RDCERR("Unexpected target %s", ToStr::Get(target).c_str());
+  RDCERR("Unexpected target %s", ToStr(target).c_str());
   return eGL_NONE;
 }
 
@@ -1001,7 +1001,7 @@ GLenum BufferBinding(GLenum target)
     default: break;
   }
 
-  RDCERR("Unexpected target %s", ToStr::Get(target).c_str());
+  RDCERR("Unexpected target %s", ToStr(target).c_str());
   return eGL_NONE;
 }
 
@@ -1015,7 +1015,7 @@ GLenum FramebufferBinding(GLenum target)
     default: break;
   }
 
-  RDCERR("Unexpected target %s", ToStr::Get(target).c_str());
+  RDCERR("Unexpected target %s", ToStr(target).c_str());
   return eGL_NONE;
 }
 

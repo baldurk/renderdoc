@@ -598,7 +598,7 @@ void GLReplay::CacheTexture(ResourceId id)
 
     default:
       tex.resType = TextureDim::Unknown;
-      RDCERR("Unexpected texture enum %s", ToStr::Get(target).c_str());
+      RDCERR("Unexpected texture enum %s", ToStr(target).c_str());
   }
 
   switch(target)
@@ -643,7 +643,7 @@ void GLReplay::CacheTexture(ResourceId id)
       tex.depth = (uint32_t)depth;
       break;
 
-    default: tex.dimension = 2; RDCERR("Unexpected texture enum %s", ToStr::Get(target).c_str());
+    default: tex.dimension = 2; RDCERR("Unexpected texture enum %s", ToStr(target).c_str());
   }
 
   tex.creationFlags = res.creationFlags;
@@ -1272,7 +1272,7 @@ void GLReplay::SavePipelineState()
           else if(binding != t)
           {
             RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit,
-                    ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
+                    ToStr(binding).c_str(), ToStr(t).c_str());
           }
         }
       }

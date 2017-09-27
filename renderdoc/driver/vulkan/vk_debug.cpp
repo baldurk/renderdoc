@@ -928,7 +928,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT))
       {
         RDCDEBUG("Depth copies MSAA -> Array not supported for format %s",
-                 ToStr::Get(attDesc.format).c_str());
+                 ToStr(attDesc.format).c_str());
         continue;
       }
 
@@ -959,7 +959,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
              (uint32_t)attDesc.samples))
         {
           RDCDEBUG("Depth copies Array -> MSAA not supported for sample count %u on format %s",
-                   attDesc.samples, ToStr::Get(attDesc.format).c_str());
+                   attDesc.samples, ToStr(attDesc.format).c_str());
           continue;
         }
 
@@ -1962,7 +1962,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       string defines = "";
       if(texelFetchBrokenDriver)
         defines += "#define NO_TEXEL_FETCH\n";
-      defines += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+      defines += string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
       defines += string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
       defines += string("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
 
@@ -3289,7 +3289,7 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
 
   if(viewInfo.format == VK_FORMAT_UNDEFINED)
   {
-    RDCERR("Can't copy 2D to Array with format %s", ToStr::Get(fmt).c_str());
+    RDCERR("Can't copy 2D to Array with format %s", ToStr(fmt).c_str());
     return;
   }
 
@@ -3632,7 +3632,7 @@ void VulkanDebugManager::CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, Vk
 
   if(viewInfo.format == VK_FORMAT_UNDEFINED)
   {
-    RDCERR("Can't copy Array to MS with format %s", ToStr::Get(fmt).c_str());
+    RDCERR("Can't copy Array to MS with format %s", ToStr(fmt).c_str());
     return;
   }
 

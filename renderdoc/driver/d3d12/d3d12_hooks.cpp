@@ -175,12 +175,11 @@ private:
 
     if(riid != __uuidof(ID3D12Device) && riid != __uuidof(ID3D12Device1))
     {
-      RDCERR("Unsupported UUID %s for D3D12CreateDevice", ToStr::Get(riid).c_str());
+      RDCERR("Unsupported UUID %s for D3D12CreateDevice", ToStr(riid).c_str());
       return E_NOINTERFACE;
     }
 
-    RDCDEBUG("Call to Create_Internal Feature Level %x", MinimumFeatureLevel,
-             ToStr::Get(riid).c_str());
+    RDCDEBUG("Call to Create_Internal Feature Level %x", MinimumFeatureLevel, ToStr(riid).c_str());
 
     bool reading = RenderDoc::Inst().IsReplayApp();
 
@@ -330,7 +329,7 @@ private:
         releaseme->Release();
 
       RDCWARN("Unknown UUID passed to D3D12GetDebugInterface: %s. Real call %s succeed (%x).",
-              ToStr::Get(riid).c_str(), SUCCEEDED(real) ? "did" : "did not", real);
+              ToStr(riid).c_str(), SUCCEEDED(real) ? "did" : "did not", real);
 
       return E_NOINTERFACE;
     }

@@ -276,7 +276,7 @@ private:
     }
     else
     {
-      RDCDEBUG("failed. 0x%08x", ret);
+      RDCDEBUG("failed. HRESULT: %s", ToStr(ret).c_str());
     }
 
     m_InsideCreate = false;
@@ -410,7 +410,7 @@ private:
     }
     else
     {
-      RDCDEBUG("failed. 0x%08x", ret);
+      RDCDEBUG("failed. HRESULT: %s", ToStr(ret).c_str());
     }
 
     return ret;
@@ -486,7 +486,7 @@ private:
     }
     else
     {
-      RDCDEBUG("failed. 0x%08x", ret);
+      RDCDEBUG("failed. HRESULT: %s", ToStr(ret).c_str());
     }
 
     return ret;

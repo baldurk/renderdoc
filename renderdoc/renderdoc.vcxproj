@@ -143,6 +143,7 @@
     <ClInclude Include="api\replay\renderdoc_replay.h" />
     <ClInclude Include="api\replay\replay_enums.h" />
     <ClInclude Include="api\replay\shader_types.h" />
+    <ClInclude Include="api\replay\stringise.h" />
     <ClInclude Include="api\replay\structured_data.h" />
     <ClInclude Include="api\replay\version.h" />
     <ClInclude Include="api\replay\vk_pipestate.h" />
@@ -401,6 +402,7 @@
     <ResourceCompile Include="data\renderdoc.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="api\replay\renderdoc_tostr.inl" />
     <None Include="data\glsl\array2ms.comp" />
     <None Include="data\glsl\blit.vert" />
     <None Include="data\glsl\checkerboard.frag" />

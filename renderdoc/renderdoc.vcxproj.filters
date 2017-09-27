@@ -345,6 +345,9 @@
     <ClInclude Include="api\replay\structured_data.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
+    <ClInclude Include="api\replay\stringise.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -672,6 +675,9 @@
     </None>
     <None Include="data\glsl\depthms2arr.frag">
       <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="api\replay\renderdoc_tostr.inl">
+      <Filter>API\Replay</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

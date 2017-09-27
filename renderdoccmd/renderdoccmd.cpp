@@ -28,6 +28,19 @@
 #include <replay/version.h>
 #include <string>
 
+// normally this is in the renderdoc core library, but it's needed for the 'unknown enum' path,
+// so we implement it here using ostringstream. It's not great, but this is a very uncommon path -
+// either for invalid values or for when a new enum is added and the code isn't updated
+template <>
+std::string DoStringise(const uint32_t &el)
+{
+  std::ostringstream oss;
+  oss << el;
+  return oss.str();
+}
+
+#include <replay/renderdoc_tostr.inl>
+
 using std::string;
 using std::wstring;
 
@@ -280,13 +293,14 @@ struct ThumbCommand : public Command
     bytebuf buf;
 
     ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename.c_str());
-    if(file->OpenStatus() == ReplayStatus::Succeeded)
+    ReplayStatus st = file->OpenStatus();
+    if(st == ReplayStatus::Succeeded)
     {
       buf = file->GetThumbnail(type, maxsize);
     }
     else
     {
-      std::cerr << "Couldn't open '" << filename << "'" << std::endl;
+      std::cerr << "Couldn't open '" << filename << "': " << ToStr(st) << std::endl;
     }
     file->Shutdown();
 
@@ -540,8 +554,9 @@ struct ReplayCommand : public Command
 
       if(remote == NULL || status != ReplayStatus::Succeeded)
       {
-        std::cerr << "Error: Couldn't connect to " << parser.get<string>("remote-host") << ":"
-                  << parser.get<uint32_t>("remote-port") << "." << std::endl;
+        std::cerr << "Error: " << ToStr(status) << " - Couldn't connect to "
+                  << parser.get<string>("remote-host") << ":" << parser.get<uint32_t>("remote-port")
+                  << "." << std::endl;
         std::cerr << "       Have you run renderdoccmd remoteserver on '"
                   << parser.get<string>("remote-host") << "'?" << std::endl;
         return 1;
@@ -563,7 +578,7 @@ struct ReplayCommand : public Command
       }
       else
       {
-        std::cerr << "Couldn't load and replay '" << filename << "'." << std::endl;
+        std::cerr << "Couldn't load and replay '" << filename << "': " << ToStr(status) << std::endl;
       }
 
       remote->ShutdownConnection();
@@ -595,7 +610,7 @@ struct ReplayCommand : public Command
       }
       else
       {
-        std::cerr << "Couldn't load and replay '" << filename << "'." << std::endl;
+        std::cerr << "Couldn't load and replay '" << filename << "': " << ToStr(status) << std::endl;
         return 1;
       }
     }

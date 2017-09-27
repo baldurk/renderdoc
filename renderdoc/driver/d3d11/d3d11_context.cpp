@@ -1668,7 +1668,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid
   }
   else
   {
-    string guid = ToStr::Get(riid);
+    string guid = ToStr(riid);
     RDCWARN("Querying ID3D11DeviceContext for interface: %s", guid.c_str());
   }
 

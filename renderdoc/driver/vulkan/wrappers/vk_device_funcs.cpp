@@ -1343,7 +1343,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   {
     RDCASSERT(m_SetDeviceLoaderData == layerCreateInfo->u.pfnSetDeviceLoaderData ||
                   m_SetDeviceLoaderData == NULL,
-              m_SetDeviceLoaderData, layerCreateInfo->u.pfnSetDeviceLoaderData);
+              (void *)m_SetDeviceLoaderData, (void *)layerCreateInfo->u.pfnSetDeviceLoaderData);
     m_SetDeviceLoaderData = layerCreateInfo->u.pfnSetDeviceLoaderData;
   }
 

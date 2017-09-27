@@ -602,7 +602,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11Debug::QueryInterface(REFIID riid, void *
     return S_OK;
   }
 
-  string guid = ToStr::Get(riid);
+  string guid = ToStr(riid);
   RDCWARN("Querying ID3D11Debug for interface: %s", guid.c_str());
 
   return m_pDebug->QueryInterface(riid, ppvObject);
@@ -811,7 +811,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
         "If you want direct access, enable API validation and query for %s. This will return the "
         "real ID3D11InfoQueue - be careful as it is unwrapped so you should not call "
         "QueryInterface on it.",
-        ToStr::Get(unwrappedID3D11InfoQueue__uuid).c_str());
+        ToStr(unwrappedID3D11InfoQueue__uuid).c_str());
     *ppvObject = (ID3D11InfoQueue *)&m_DummyInfoQueue;
     m_DummyInfoQueue.AddRef();
     return S_OK;
@@ -862,7 +862,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
   }
   else
   {
-    string guid = ToStr::Get(riid);
+    string guid = ToStr(riid);
     RDCWARN("Querying ID3D11Device for interface: %s", guid.c_str());
   }
 
@@ -885,7 +885,7 @@ const char *WrappedID3D11Device::GetChunkName(uint32_t idx)
 }
 
 template <>
-string ToStrHelper<false, D3D11ChunkType>::Get(const D3D11ChunkType &el)
+std::string DoStringise(const D3D11ChunkType &el)
 {
   return WrappedID3D11Device::GetChunkName(el);
 }
@@ -2593,7 +2593,7 @@ bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain4 *
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create fake back buffer, HRESULT: 0x%08x", hr);
+      RDCERR("Failed to create fake back buffer, HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -2667,7 +2667,7 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
     HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture2D1, pTex), NULL, &rtv);
 
     if(FAILED(hr))
-      RDCERR("Couldn't create RTV for swapchain tex %08x", hr);
+      RDCERR("Couldn't create RTV for swapchain tex HRESULT: %s", ToStr(hr).c_str());
 
     m_SwapChains[swap] = rtv;
   }
@@ -2859,7 +2859,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
       if(FAILED(hr))
       {
-        RDCERR("Couldn't create staging texture to create thumbnail. %08x", hr);
+        RDCERR("Couldn't create staging texture to create thumbnail. HRESULT: %s", ToStr(hr).c_str());
       }
       else
       {
@@ -2875,7 +2875,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
           if(FAILED(hr))
           {
-            RDCERR("Couldn't create resolve texture to create thumbnail. %08x", hr);
+            RDCERR("Couldn't create resolve texture to create thumbnail. HRESULT: %s",
+                   ToStr(hr).c_str());
             tex = NULL;
           }
           else
@@ -2899,7 +2900,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
           if(FAILED(hr))
           {
-            RDCERR("Couldn't map staging texture to create thumbnail. %08x", hr);
+            RDCERR("Couldn't map staging texture to create thumbnail. HRESULT: %s",
+                   ToStr(hr).c_str());
           }
           else
           {

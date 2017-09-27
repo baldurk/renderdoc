@@ -1935,22 +1935,15 @@ void Serialiser::ReadInto(float &f)
 // Basic types
 
 template <>
-string ToStrHelper<false, void *>::Get(void *const &el)
+std::string DoStringise(void *const &el)
 {
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "0x%p", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("%#p", el);
 }
 
 template <>
-string ToStrHelper<false, int64_t>::Get(const int64_t &el)
+std::string DoStringise(const int64_t &el)
 {
-  char tostrBuf[256] = {0};
-
-  StringFormat::snprintf(tostrBuf, 255, "%lld", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("%lld", el);
 }
 
 // this is super ugly, but I don't see a way around it - on other
@@ -1959,109 +1952,74 @@ string ToStrHelper<false, int64_t>::Get(const int64_t &el)
 // specific size_t overload
 #if ENABLED(RDOC_APPLE)
 template <>
-string ToStrHelper<false, size_t>::Get(const size_t &el)
+std::string DoStringise(const size_t &el)
 {
-  char tostrBuf[256] = {0};
-
-  StringFormat::snprintf(tostrBuf, 255, "%llu", (uint64_t)el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("%llu", (uint64_t)el);
 }
 #endif
 
 template <>
-string ToStrHelper<false, uint64_t>::Get(const uint64_t &el)
+std::string DoStringise(const uint64_t &el)
 {
-  char tostrBuf[256] = {0};
-
-  StringFormat::snprintf(tostrBuf, 255, "%llu", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("%llu", el);
 }
 
 template <>
-string ToStrHelper<false, uint32_t>::Get(const uint32_t &el)
+std::string DoStringise(const uint32_t &el)
 {
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "%u", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("%u", el);
 }
 
 template <>
-string ToStrHelper<false, char>::Get(const char &el)
+std::string DoStringise(const char &el)
 {
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "'%c'", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("'%c'", el);
 }
 
 template <>
-string ToStrHelper<false, wchar_t>::Get(const wchar_t &el)
+std::string DoStringise(const wchar_t &el)
 {
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "'%lc'", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("'%lc'", el);
 }
 
 template <>
-string ToStrHelper<false, byte>::Get(const byte &el)
+std::string DoStringise(const byte &el)
 {
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "%08hhb", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("%08hhb", el);
 }
 
 template <>
-string ToStrHelper<false, uint16_t>::Get(const uint16_t &el)
+std::string DoStringise(const uint16_t &el)
 {
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "%04d", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("%04u", el);
 }
 
 template <>
-string ToStrHelper<false, int32_t>::Get(const int &el)
+std::string DoStringise(const int32_t &el)
 {
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "%d", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("%d", el);
 }
 
 template <>
-string ToStrHelper<false, int16_t>::Get(const short &el)
+std::string DoStringise(const int16_t &el)
 {
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "%04d", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("%04d", el);
 }
 
 template <>
-string ToStrHelper<false, float>::Get(const float &el)
+std::string DoStringise(const float &el)
 {
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "%0.4f", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("%0.4f", el);
 }
 
 template <>
-string ToStrHelper<false, double>::Get(const double &el)
+std::string DoStringise(const double &el)
 {
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "%0.4lf", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("%0.4lf", el);
 }
 
 template <>
-string ToStrHelper<false, bool>::Get(const bool &el)
+std::string DoStringise(const bool &el)
 {
   if(el)
     return "True";

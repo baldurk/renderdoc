@@ -791,7 +791,7 @@ size_t BufferIdx(GLenum buf)
     case eGL_TRANSFORM_FEEDBACK_BUFFER: return 12;
     case eGL_UNIFORM_BUFFER: return 13;
     case eGL_PARAMETER_BUFFER_ARB: return 14;
-    default: RDCERR("Unexpected enum as buffer target: %s", ToStr::Get(buf).c_str());
+    default: RDCERR("Unexpected enum as buffer target: %s", ToStr(buf).c_str());
   }
 
   return 0;
@@ -847,11 +847,11 @@ size_t QueryIdx(GLenum query)
     case eGL_FRAGMENT_SHADER_INVOCATIONS_ARB: idx = 15; break;
     case eGL_COMPUTE_SHADER_INVOCATIONS_ARB: idx = 16; break;
 
-    default: RDCERR("Unexpected enum as query target: %s", ToStr::Get(query).c_str());
+    default: RDCERR("Unexpected enum as query target: %s", ToStr(query).c_str());
   }
 
   if(idx >= WrappedOpenGL::MAX_QUERIES)
-    RDCERR("Query index for enum %s out of range %d", ToStr::Get(query).c_str(), idx);
+    RDCERR("Query index for enum %s out of range %d", ToStr(query).c_str(), idx);
 
   return idx;
 }
@@ -896,7 +896,7 @@ size_t GLTypeSize(GLenum type)
     case eGL_INT:
     case eGL_FLOAT: return 4;
     case eGL_DOUBLE: return 8;
-    default: RDCWARN("Unhandled element type %s", ToStr::Get(type).c_str());
+    default: RDCWARN("Unhandled element type %s", ToStr(type).c_str());
   }
   return 0;
 }
@@ -911,7 +911,7 @@ size_t ShaderIdx(GLenum buf)
     case eGL_GEOMETRY_SHADER: return 3;
     case eGL_FRAGMENT_SHADER: return 4;
     case eGL_COMPUTE_SHADER: return 5;
-    default: RDCERR("Unexpected enum as shader enum: %s", ToStr::Get(buf).c_str());
+    default: RDCERR("Unexpected enum as shader enum: %s", ToStr(buf).c_str());
   }
 
   return 0;
@@ -1172,7 +1172,7 @@ const char *BlendString(GLenum blendenum)
     default: break;
   }
 
-  static string unknown = ToStr::Get(blendenum).substr(3);    // 3 = strlen("GL_");
+  static string unknown = ToStr(blendenum).substr(3);    // 3 = strlen("GL_");
 
   RDCERR("Unknown blend enum: %s", unknown.c_str());
 
@@ -1198,7 +1198,7 @@ const char *SamplerString(GLenum smpenum)
     default: break;
   }
 
-  static string unknown = ToStr::Get(smpenum).substr(3);    // 3 = strlen("GL_");
+  static string unknown = ToStr(smpenum).substr(3);    // 3 = strlen("GL_");
 
   RDCERR("Unknown blend enum: %s", unknown.c_str());
 
@@ -1430,13 +1430,13 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       if(int32_t(ret.compByteWidth) * 8 != data[0])
       {
         ret.type = ResourceFormatType::Undefined;
-        RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr::Get(fmt).c_str());
+        RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr(fmt).c_str());
       }
     }
     else
     {
       ret.type = ResourceFormatType::Undefined;
-      RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr::Get(fmt).c_str());
+      RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr(fmt).c_str());
     }
 
     gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_TYPE, sizeof(GLint), &data[0]);
@@ -1463,7 +1463,7 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
     else
     {
       ret.type = ResourceFormatType::Undefined;
-      RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr::Get(fmt).c_str());
+      RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr(fmt).c_str());
     }
 
     gl.glGetInternalformativ(target, fmt, eGL_COLOR_ENCODING, sizeof(GLint), &data[0]);
@@ -1492,13 +1492,13 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
       case eGL_DEPTH24_STENCIL8: ret.type = ResourceFormatType::D24S8; break;
       case eGL_DEPTH32F_STENCIL8: ret.type = ResourceFormatType::D32S8; break;
       case eGL_STENCIL_INDEX8: ret.type = ResourceFormatType::S8; break;
-      default: RDCERR("Unexpected depth or stencil format '%s'", ToStr::Get(fmt).c_str());
+      default: RDCERR("Unexpected depth or stencil format '%s'", ToStr(fmt).c_str());
     }
   }
   else
   {
     // not colour or depth!
-    RDCERR("Unexpected texture type, not colour or depth: '%s'", ToStr::Get(fmt).c_str());
+    RDCERR("Unexpected texture type, not colour or depth: '%s'", ToStr(fmt).c_str());
   }
 
   return ret;
@@ -2128,7 +2128,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
           case eGL_BOOL_VEC3: gl.glGetUniformuiv(progSrc, srcLocation, uiv); break;
           case eGL_UNSIGNED_INT_VEC4:
           case eGL_BOOL_VEC4: gl.glGetUniformuiv(progSrc, srcLocation, uiv); break;
-          default: RDCERR("Unhandled uniform type '%s'", ToStr::Get(type).c_str());
+          default: RDCERR("Unhandled uniform type '%s'", ToStr(type).c_str());
         }
       }
 
@@ -2277,7 +2277,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
           case eGL_BOOL_VEC3: gl.glProgramUniform3uiv(progDst, newloc, 1, uiv); break;
           case eGL_UNSIGNED_INT_VEC4:
           case eGL_BOOL_VEC4: gl.glProgramUniform4uiv(progDst, newloc, 1, uiv); break;
-          default: RDCERR("Unhandled uniform type '%s'", ToStr::Get(type).c_str());
+          default: RDCERR("Unhandled uniform type '%s'", ToStr(type).c_str());
         }
       }
     }
@@ -2519,7 +2519,7 @@ void SerialiseProgramBindings(const GLHookSet &gl, Serialiser *ser, GLuint prog,
 }
 
 template <>
-string ToStrHelper<false, WrappedOpenGL::UniformType>::Get(const WrappedOpenGL::UniformType &el)
+std::string DoStringise(const WrappedOpenGL::UniformType &el)
 {
   switch(el)
   {
@@ -2577,7 +2577,7 @@ string ToStrHelper<false, WrappedOpenGL::UniformType>::Get(const WrappedOpenGL::
 }
 
 template <>
-string ToStrHelper<false, RDCGLenum>::Get(const RDCGLenum &el)
+std::string DoStringise(const RDCGLenum &el)
 {
 #undef GLenum
 
@@ -6470,14 +6470,14 @@ string ToStrHelper<false, RDCGLenum>::Get(const RDCGLenum &el)
 
 #include "3rdparty/catch/catch.hpp"
 
-#define CATCH_TOSTR(type)                                                       \
-  namespace Catch                                                               \
-  {                                                                             \
-  template <>                                                                   \
-  struct StringMaker<type>                                                      \
-  {                                                                             \
-    static std::string convert(type const &value) { return ToStr::Get(value); } \
-  };                                                                            \
+#define CATCH_TOSTR(type)                                                  \
+  namespace Catch                                                          \
+  {                                                                        \
+  template <>                                                              \
+  struct StringMaker<type>                                                 \
+  {                                                                        \
+    static std::string convert(type const &value) { return ToStr(value); } \
+  };                                                                       \
   }
 
 CATCH_TOSTR(CompType);
@@ -6665,7 +6665,7 @@ TEST_CASE("GL formats", "[format][gl]")
       if(fmt.type != ResourceFormatType::Regular)
         continue;
 
-      INFO("Format is " << ToStr::Get(f));
+      INFO("Format is " << ToStr(f));
 
       uint32_t size = fmt.compCount * fmt.compByteWidth * 123 * 456;
 

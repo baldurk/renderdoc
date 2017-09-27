@@ -193,6 +193,13 @@ struct VkGenericStruct
   const VkGenericStruct *pNext;
 };
 
+// we cast to this type when serialising as a placeholder indicating that
+// the given flags field doesn't have any bits defined
+enum VkFlagWithNoBits
+{
+  FlagWithNoBits_Dummy_Bit = 1,
+};
+
 // utility function for when we're modifying one struct in a pNext chain, this
 // lets us just copy across a struct unmodified into some temporary memory and
 // append it onto a pNext chain we're building

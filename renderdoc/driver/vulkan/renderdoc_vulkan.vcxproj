@@ -59,7 +59,7 @@
       <PreprocessorDefinitions>RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
-	<ItemDefinitionGroup>
+  <ItemDefinitionGroup>
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -104,6 +104,7 @@
     <ClCompile Include="vk_apple.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="vk_stringise.cpp" />
     <ClCompile Include="vk_counters.cpp" />
     <ClCompile Include="vk_dispatchtables.cpp" />
     <ClCompile Include="vk_initstate.cpp" />
@@ -167,12 +168,10 @@
     <PropertyGroup>
       <VersionFile>$([System.IO.File]::ReadAllText('$(SolutionDir)renderdoc/api/replay/version.h').Trim())</VersionFile>
     </PropertyGroup>
-
     <!-- Extract the major and minor lines -->
     <PropertyGroup>
       <!-- Find the start of the line -->
       <MajorVersionStart>$(VersionFile.IndexOf('#define RENDERDOC_VERSION_MAJOR'))</MajorVersionStart>
-
       <!-- Take the rest of the file and split it by newline to get an array of lines,
            Take the first line and split it by space
            Take the third item. This is #define MAJOR foo
@@ -180,21 +179,17 @@
       -->
       <MajorVersion>$(VersionFile.Substring($(MajorVersionStart)).Split('
 ')[0].Split(' ')[2])</MajorVersion>
-
       <MinorVersionStart>$(VersionFile.IndexOf('#define RENDERDOC_VERSION_MINOR'))</MinorVersionStart>
       <MinorVersion>$(VersionFile.Substring($(MinorVersionStart)).Split('
 ')[0].Split(' ')[2])</MinorVersion>
     </PropertyGroup>
-
-    <Message Text="Processing layer JSON file for RenderDoc $(MajorVersion).$(MinorVersion)" Importance="High"/>
-
+    <Message Text="Processing layer JSON file for RenderDoc $(MajorVersion).$(MinorVersion)" Importance="High" />
     <!-- Read the template json, replace the major/minor versions -->
     <PropertyGroup>
       <JSONContents>$([System.IO.File]::ReadAllText('$(ProjectDir)renderdoc.json').Replace('[MAJOR]', '$(MajorVersion)').Replace('[MINOR]', '$(MinorVersion)'))</JSONContents>
     </PropertyGroup>
-
     <!-- Write it out to the output directory -->
-    <WriteLinesToFile File="$(OutDir)renderdoc.json" Lines="$(JSONContents)" Overwrite="true"/>
+    <WriteLinesToFile File="$(OutDir)renderdoc.json" Lines="$(JSONContents)" Overwrite="true" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\shaders\spirv\renderdoc_spirv.vcxproj">

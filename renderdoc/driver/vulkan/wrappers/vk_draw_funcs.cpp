@@ -115,7 +115,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(Serialiser *localSerialiser, VkCommandBu
 
     {
       AddEvent(desc);
-      string name = "vkCmdDraw(" + ToStr::Get(vtxCount) + "," + ToStr::Get(instCount) + ")";
+      string name = "vkCmdDraw(" + ToStr(vtxCount) + "," + ToStr(instCount) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -212,7 +212,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(Serialiser *localSerialiser,
 
     {
       AddEvent(desc);
-      string name = "vkCmdDrawIndexed(" + ToStr::Get(idxCount) + "," + ToStr::Get(instCount) + ")";
+      string name = "vkCmdDrawIndexed(" + ToStr(idxCount) + "," + ToStr(instCount) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -398,7 +398,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
     GetDebugManager()->GetBufferData(GetResID(buffer), offs,
                                      sizeof(VkDrawIndirectCommand) + (cnt - 1) * strd, argbuf);
 
-    string name = "vkCmdDrawIndirect(" + ToStr::Get(cnt) + ")";
+    string name = "vkCmdDrawIndirect(" + ToStr(cnt) + ")";
 
     if(!IsDrawInRenderPass())
     {
@@ -482,8 +482,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
       multi.vertexOffset = params.firstVertex;
       multi.instanceOffset = params.firstInstance;
 
-      multi.name = "vkCmdDrawIndirect[" + ToStr::Get(i) + "](<" + ToStr::Get(multi.numIndices) +
-                   ", " + ToStr::Get(multi.numInstances) + ">)";
+      multi.name = "vkCmdDrawIndirect[" + ToStr(i) + "](<" + ToStr(multi.numIndices) + ", " +
+                   ToStr(multi.numInstances) + ">)";
 
       multi.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
@@ -692,7 +692,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
     GetDebugManager()->GetBufferData(
         GetResID(buffer), offs, sizeof(VkDrawIndexedIndirectCommand) + (cnt - 1) * strd, argbuf);
 
-    string name = "vkCmdDrawIndexedIndirect(" + ToStr::Get(cnt) + ")";
+    string name = "vkCmdDrawIndexedIndirect(" + ToStr(cnt) + ")";
 
     if(!IsDrawInRenderPass())
     {
@@ -778,8 +778,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
       multi.indexOffset = params.firstIndex;
       multi.instanceOffset = params.firstInstance;
 
-      multi.name = "vkCmdDrawIndexedIndirect[" + ToStr::Get(i) + "](<" +
-                   ToStr::Get(multi.numIndices) + ", " + ToStr::Get(multi.numInstances) + ">)";
+      multi.name = "vkCmdDrawIndexedIndirect[" + ToStr(i) + "](<" + ToStr(multi.numIndices) + ", " +
+                   ToStr(multi.numInstances) + ">)";
 
       multi.flags |=
           DrawFlags::Drawcall | DrawFlags::UseIBuffer | DrawFlags::Instanced | DrawFlags::Indirect;
@@ -870,8 +870,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(Serialiser *localSerialiser,
 
     {
       AddEvent(desc);
-      string name =
-          "vkCmdDispatch(" + ToStr::Get(X) + "," + ToStr::Get(Y) + "," + ToStr::Get(Z) + ")";
+      string name = "vkCmdDispatch(" + ToStr(X) + "," + ToStr(Y) + "," + ToStr(Z) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -962,8 +961,8 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(Serialiser *localSerialiser,
       }
 
       AddEvent(desc);
-      string name = "vkCmdDispatchIndirect(<" + ToStr::Get(args->x) + "," + ToStr::Get(args->y) +
-                    "," + ToStr::Get(args->z) + ">)";
+      string name = "vkCmdDispatchIndirect(<" + ToStr(args->x) + "," + ToStr(args->y) + "," +
+                    ToStr(args->z) + ">)";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -1071,7 +1070,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(Serialiser *localSerialiser,
 
     {
       AddEvent(desc);
-      string name = "vkCmdBlitImage(" + ToStr::Get(srcid) + "," + ToStr::Get(dstid) + ")";
+      string name = "vkCmdBlitImage(" + ToStr(srcid) + "," + ToStr(dstid) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -1198,7 +1197,7 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(Serialiser *localSerialiser,
 
     {
       AddEvent(desc);
-      string name = "vkCmdResolveImage(" + ToStr::Get(srcid) + "," + ToStr::Get(dstid) + ")";
+      string name = "vkCmdResolveImage(" + ToStr(srcid) + "," + ToStr(dstid) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -1325,7 +1324,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(Serialiser *localSerialiser,
 
     {
       AddEvent(desc);
-      string name = "vkCmdCopyImage(" + ToStr::Get(srcid) + "," + ToStr::Get(dstid) + ")";
+      string name = "vkCmdCopyImage(" + ToStr(srcid) + "," + ToStr(dstid) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -1452,7 +1451,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(Serialiser *localSerialiser
 
     {
       AddEvent(desc);
-      string name = "vkCmdCopyBufferToImage(" + ToStr::Get(bufid) + "," + ToStr::Get(imgid) + ")";
+      string name = "vkCmdCopyBufferToImage(" + ToStr(bufid) + "," + ToStr(imgid) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -1570,7 +1569,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(Serialiser *localSerialiser
 
     {
       AddEvent(desc);
-      string name = "vkCmdCopyImageToBuffer(" + ToStr::Get(imgid) + "," + ToStr::Get(bufid) + ")";
+      string name = "vkCmdCopyImageToBuffer(" + ToStr(imgid) + "," + ToStr(bufid) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -1688,7 +1687,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(Serialiser *localSerialiser,
 
     {
       AddEvent(desc);
-      string name = "vkCmdCopyBuffer(" + ToStr::Get(srcid) + "," + ToStr::Get(dstid) + ")";
+      string name = "vkCmdCopyBuffer(" + ToStr(srcid) + "," + ToStr(dstid) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -1817,7 +1816,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(Serialiser *localSerialiser,
 
     {
       AddEvent(desc);
-      string name = "vkCmdClearColorImage(" + ToStr::Get(col) + ")";
+      string name = "vkCmdClearColorImage(" + ToStr(col) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -1921,8 +1920,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 
     {
       AddEvent(desc);
-      string name =
-          "vkCmdClearDepthStencilImage(" + ToStr::Get(ds.depth) + "," + ToStr::Get(ds.stencil) + ")";
+      string name = "vkCmdClearDepthStencilImage(" + ToStr(ds.depth) + "," + ToStr(ds.stencil) + ")";
 
       DrawcallDescription draw;
       draw.name = name;
@@ -2022,7 +2020,7 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(Serialiser *localSerialiser,
       AddEvent(desc);
       string name = "vkCmdClearAttachments(";
       for(uint32_t a = 0; a < acount; a++)
-        name += ToStr::Get(atts[a]);
+        name += ToStr(atts[a]);
       name += ")";
 
       DrawcallDescription draw;

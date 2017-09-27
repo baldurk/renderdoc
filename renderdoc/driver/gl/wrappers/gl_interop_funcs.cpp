@@ -312,7 +312,7 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(GLResource res, GLenum type,
       case eGL_TEXTURE_3D:
         m_Real.glTextureStorage3DEXT(name, type, mips, internalFormat, width, height, depth);
         break;
-      default: RDCERR("Unexpected type of interop texture: %s", ToStr::Get(type).c_str()); break;
+      default: RDCERR("Unexpected type of interop texture: %s", ToStr(type).c_str()); break;
     }
 
     if(type != eGL_NONE)

@@ -1758,7 +1758,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create constant buf %08x", hr);
+        RDCERR("Failed to create constant buf HRESULT: %s", ToStr(hr).c_str());
         return s;
       }
 
@@ -1784,7 +1784,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create UAV buf %08x", hr);
+        RDCERR("Failed to create UAV buf HRESULT: %s", ToStr(hr).c_str());
         return s;
       }
 
@@ -1796,7 +1796,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create copy buf %08x", hr);
+        RDCERR("Failed to create copy buf HRESULT: %s", ToStr(hr).c_str());
         return s;
       }
 
@@ -1812,7 +1812,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create uav %08x", hr);
+        RDCERR("Failed to create uav HRESULT: %s", ToStr(hr).c_str());
         return s;
       }
 
@@ -1826,7 +1826,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to map results %08x", hr);
+        RDCERR("Failed to map results HRESULT: %s", ToStr(hr).c_str());
         return s;
       }
 
@@ -4248,7 +4248,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
         if(FAILED(hr))
         {
-          RDCERR("Failed to create new sampler state in debugging %08x", hr);
+          RDCERR("Failed to create new sampler state in debugging HRESULT: %s", ToStr(hr).c_str());
         }
         else
         {
@@ -4299,7 +4299,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create RT tex %08x", hr);
+        RDCERR("Failed to create RT tex HRESULT: %s", ToStr(hr).c_str());
         return s;
       }
 
@@ -4311,7 +4311,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create copy tex %08x", hr);
+        RDCERR("Failed to create copy tex HRESULT: %s", ToStr(hr).c_str());
         return s;
       }
 
@@ -4325,7 +4325,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create rt rtv %08x", hr);
+        RDCERR("Failed to create rt rtv HRESULT: %s", ToStr(hr).c_str());
         return s;
       }
 
@@ -4339,7 +4339,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to map results %08x", hr);
+        RDCERR("Failed to map results HRESULT: %s", ToStr(hr).c_str());
         return s;
       }
 

@@ -469,8 +469,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(ID3D11View *pView, const FL
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "ClearView(" + ToStr::Get(Color[0]) + ", " + ToStr::Get(Color[1]) + ", " +
-                  ToStr::Get(Color[2]) + ", " + ToStr::Get(Color[3]) + ", " + ToStr::Get(numRects) +
+    string name = "ClearView(" + ToStr(Color[0]) + ", " + ToStr(Color[1]) + ", " + ToStr(Color[2]) +
+                  ", " + ToStr(Color[3]) + ", " + ToStr(numRects) +
                   " rects"
                   ")";
 
@@ -1941,7 +1941,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(ID3D11View *pResourceVie
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "DiscardView1(" + ToStr::Get(numRects) + " rects)";
+    string name = "DiscardView1(" + ToStr(numRects) + " rects)";
 
     DrawcallDescription draw;
 

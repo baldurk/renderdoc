@@ -2427,7 +2427,7 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetViewports(UINT NumViewports_,
     if(pViewports)
       view = pViewports[i];
 
-    m_pSerialiser->SerialisePODArray<6>((string("Viewport[") + ToStr::Get(i) + "]").c_str(),
+    m_pSerialiser->SerialisePODArray<6>((string("Viewport[") + ToStr(i) + "]").c_str(),
                                         (FLOAT *)&view);
 
     views[i] = view;
@@ -3773,8 +3773,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstanced(UINT IndexCountP
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "DrawIndexedInstanced(" + ToStr::Get(IndexCountPerInstance) + ", " +
-                  ToStr::Get(InstanceCount) + ")";
+    string name =
+        "DrawIndexedInstanced(" + ToStr(IndexCountPerInstance) + ", " + ToStr(InstanceCount) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -3842,8 +3842,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstanced(UINT VertexCountPerInst
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "DrawInstanced(" + ToStr::Get(VertexCountPerInstance) + ", " +
-                  ToStr::Get(InstanceCount) + ")";
+    string name =
+        "DrawInstanced(" + ToStr(VertexCountPerInstance) + ", " + ToStr(InstanceCount) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -3905,7 +3905,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexed(UINT IndexCount_, UINT St
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "DrawIndexed(" + ToStr::Get(IndexCount) + ")";
+    string name = "DrawIndexed(" + ToStr(IndexCount) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -3962,7 +3962,7 @@ bool WrappedID3D11DeviceContext::Serialise_Draw(UINT VertexCount_, UINT StartVer
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "Draw(" + ToStr::Get(VertexCount) + ")";
+    string name = "Draw(" + ToStr(VertexCount) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -4064,7 +4064,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto()
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "DrawAuto(<" + ToStr::Get(numVerts) + ">)";
+    string name = "DrawAuto(<" + ToStr(numVerts) + ">)";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -4156,8 +4156,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(ID3D11Bu
 
         RecordDrawStats(true, true, draw.numInstances);
 
-        name = "DrawIndexedInstancedIndirect(<" + ToStr::Get(draw.numIndices) + ", " +
-               ToStr::Get(draw.numInstances) + ">)";
+        name = "DrawIndexedInstancedIndirect(<" + ToStr(draw.numIndices) + ", " +
+               ToStr(draw.numInstances) + ">)";
       }
       else
       {
@@ -4266,8 +4266,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(ID3D11Buffer *p
         draw.vertexOffset = uargs[2];
         draw.instanceOffset = uargs[3];
 
-        name =
-            "DrawInstancedIndirect(<" + ToStr::Get(uargs[0]) + ", " + ToStr::Get(uargs[1]) + ">)";
+        name = "DrawInstancedIndirect(<" + ToStr(uargs[0]) + ", " + ToStr(uargs[1]) + ">)";
 
         RecordDrawStats(true, true, draw.numInstances);
       }
@@ -4863,7 +4862,7 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
 
   if(m_State == READING)
   {
-    string name = "ExecuteCommandList(" + ToStr::Get(cmdList) + ")";
+    string name = "ExecuteCommandList(" + ToStr(cmdList) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -4968,8 +4967,8 @@ bool WrappedID3D11DeviceContext::Serialise_Dispatch(UINT ThreadGroupCountX_,
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "Dispatch(" + ToStr::Get(ThreadGroupCountX) + ", " +
-                  ToStr::Get(ThreadGroupCountY) + ", " + ToStr::Get(ThreadGroupCountZ) + ")";
+    string name = "Dispatch(" + ToStr(ThreadGroupCountX) + ", " + ToStr(ThreadGroupCountY) + ", " +
+                  ToStr(ThreadGroupCountZ) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -5065,8 +5064,8 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(ID3D11Buffer *pBuffe
         draw.dispatchDimension[1] = uargs[1];
         draw.dispatchDimension[2] = uargs[2];
 
-        name = "DispatchIndirect(<" + ToStr::Get(uargs[0]) + ", " + ToStr::Get(uargs[1]) + +", " +
-               ToStr::Get(uargs[2]) + ">)";
+        name = "DispatchIndirect(<" + ToStr(uargs[0]) + ", " + ToStr(uargs[1]) + +", " +
+               ToStr(uargs[2]) + ">)";
       }
       else
       {
@@ -5145,7 +5144,7 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(BOOL RestoreDeferre
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "FinishCommandList() -> " + ToStr::Get(cmdList);
+    string name = "FinishCommandList() -> " + ToStr(cmdList);
 
     DrawcallDescription draw;
     draw.name = name;
@@ -5350,9 +5349,9 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion(
     std::string srcName = GetDebugName(m_pDevice->GetResourceManager()->GetLiveResource(Source));
 
     if(dstName == "")
-      dstName = ToStr::Get(Destination);
+      dstName = ToStr(Destination);
     if(srcName == "")
-      srcName = ToStr::Get(Source);
+      srcName = ToStr(Source);
 
     AddEvent(desc);
     string name = "CopySubresourceRegion(" + dstName + ", " + srcName + ")";
@@ -5499,9 +5498,9 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(ID3D11Resource *pDstReso
     std::string srcName = GetDebugName(m_pDevice->GetResourceManager()->GetLiveResource(Source));
 
     if(dstName == "")
-      dstName = ToStr::Get(Destination);
+      dstName = ToStr(Destination);
     if(srcName == "")
-      srcName = ToStr::Get(Source);
+      srcName = ToStr(Source);
 
     AddEvent(desc);
     string name = "CopyResource(" + dstName + ", " + srcName + ")";
@@ -6034,9 +6033,9 @@ bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(ID3D11Resource *pD
         GetDebugName(m_pDevice->GetResourceManager()->GetLiveResource(SourceResource));
 
     if(dstName == "")
-      dstName = ToStr::Get(DestResource);
+      dstName = ToStr(DestResource);
     if(srcName == "")
-      srcName = ToStr::Get(SourceResource);
+      srcName = ToStr(SourceResource);
 
     AddEvent(desc);
     string name = "ResolveSubresource(" + dstName + ", " + srcName + ")";
@@ -6193,7 +6192,7 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(ID3D11ShaderResourceView
     std::string resName = GetDebugName(m_pDevice->GetResourceManager()->GetLiveResource(id));
 
     if(resName == "")
-      resName = ToStr::Get(id);
+      resName = ToStr(id);
 
     AddEvent(desc);
     string name = "GenerateMips(" + resName + ")";
@@ -6349,8 +6348,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "ClearRenderTargetView(" + ToStr::Get(Color[0]) + ", " + ToStr::Get(Color[1]) +
-                  ", " + ToStr::Get(Color[2]) + ", " + ToStr::Get(Color[3]) + ")";
+    string name = "ClearRenderTargetView(" + ToStr(Color[0]) + ", " + ToStr(Color[1]) + ", " +
+                  ToStr(Color[2]) + ", " + ToStr(Color[3]) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -6514,9 +6513,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "ClearUnorderedAccessViewUint(" + ToStr::Get(Values[0]) + ", " +
-                  ToStr::Get(Values[1]) + ", " + ToStr::Get(Values[2]) + ", " +
-                  ToStr::Get(Values[3]) + ")";
+    string name = "ClearUnorderedAccessViewUint(" + ToStr(Values[0]) + ", " + ToStr(Values[1]) +
+                  ", " + ToStr(Values[2]) + ", " + ToStr(Values[3]) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -6674,9 +6672,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "ClearUnorderedAccessViewFloat(" + ToStr::Get(Values[0]) + ", " +
-                  ToStr::Get(Values[1]) + ", " + ToStr::Get(Values[2]) + ", " +
-                  ToStr::Get(Values[3]) + ", " + ")";
+    string name = "ClearUnorderedAccessViewFloat(" + ToStr(Values[0]) + ", " + ToStr(Values[1]) +
+                  ", " + ToStr(Values[2]) + ", " + ToStr(Values[3]) + ", " + ")";
 
     DrawcallDescription draw;
     draw.name = (name);
@@ -6821,7 +6818,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(
   if(m_State == READING)
   {
     AddEvent(desc);
-    string name = "ClearDepthStencilView(" + ToStr::Get(Depth) + ", " + ToStr::Get(Stencil) + ")";
+    string name = "ClearDepthStencilView(" + ToStr(Depth) + ", " + ToStr(Stencil) + ")";
 
     DrawcallDescription draw;
     draw.name = name;
@@ -7422,7 +7419,7 @@ bool WrappedID3D11DeviceContext::Serialise_Map(ID3D11Resource *pResource, UINT S
 
             if(FAILED(hr))
             {
-              RDCERR("Failed to map while getting initial states %08x", hr);
+              RDCERR("Failed to map while getting initial states HRESULT: %s", ToStr(hr).c_str());
             }
             else
             {
@@ -7800,7 +7797,7 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(ID3D11Resource *pResource, UINT
 
         if(FAILED(hr))
         {
-          RDCERR("Failed to create temp Unmap() buffer %08x", hr);
+          RDCERR("Failed to create temp Unmap() buffer HRESULT: %s", ToStr(hr).c_str());
         }
         else
         {
@@ -7824,7 +7821,7 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(ID3D11Resource *pResource, UINT
 
         if(FAILED(hr))
         {
-          RDCERR("Failed to map resource, HRESULT: 0x%08x", hr);
+          RDCERR("Failed to map resource, HRESULT: %s", ToStr(hr).c_str());
         }
         else
         {
