@@ -33,173 +33,6 @@
 #include "maths/formatpacking.h"
 #include "strings/string_utils.h"
 
-const char *D3D11ChunkNames[] = {
-    "ID3D11Device::Initialisation",
-    "ID3D11Resource::SetDebugName",
-    "ID3D11Resource::Release",
-    "IDXGISwapChain::GetBuffer",
-    "ID3D11Device::CreateTexture1D",
-    "ID3D11Device::CreateTexture2D",
-    "ID3D11Device::CreateTexture3D",
-    "ID3D11Device::CreateBuffer",
-    "ID3D11Device::CreateVertexShader",
-    "ID3D11Device::CreateHullShader",
-    "ID3D11Device::CreateDomainShader",
-    "ID3D11Device::CreateGeometryShader",
-    "ID3D11Device::CreateGeometryShaderWithStreamOut",
-    "ID3D11Device::CreatePixelShader",
-    "ID3D11Device::CreateComputeShader",
-    "ID3D11ClassLinkage::GetClassInstance",
-    "ID3D11ClassLinkage::CreateClassInstance",
-    "ID3D11Device::CreateClassLinkage",
-    "ID3D11Device::CreateShaderResourceView",
-    "ID3D11Device::CreateRenderTargetView",
-    "ID3D11Device::CreateDepthStencilView",
-    "ID3D11Device::CreateUnorderedAccessView",
-    "ID3D11Device::CreateInputLayout",
-    "ID3D11Device::CreateBlendState",
-    "ID3D11Device::CreateDepthStencilState",
-    "ID3D11Device::CreateRasterizerState",
-    "ID3D11Device::CreateSamplerState",
-    "ID3D11Device::CreateQuery",
-    "ID3D11Device::CreatePredicate",
-    "ID3D11Device::CreateCounter",
-    "ID3D11Device::CreateDeferredContext",
-    "ID3D11Device::SetExceptionMode",
-    "ID3D11Device::OpenSharedResource",
-
-    "Capture",
-
-    "ID3D11DeviceContext::IASetInputLayout",
-    "ID3D11DeviceContext::IASetVertexBuffers",
-    "ID3D11DeviceContext::IASetIndexBuffer",
-    "ID3D11DeviceContext::IASetPrimitiveTopology",
-
-    "ID3D11DeviceContext::VSSetConstantBuffers",
-    "ID3D11DeviceContext::VSSetShaderResources",
-    "ID3D11DeviceContext::VSSetSamplers",
-    "ID3D11DeviceContext::VSSetShader",
-
-    "ID3D11DeviceContext::HSSetConstantBuffers",
-    "ID3D11DeviceContext::HSSetShaderResources",
-    "ID3D11DeviceContext::HSSetSamplers",
-    "ID3D11DeviceContext::HSSetShader",
-
-    "ID3D11DeviceContext::DSSetConstantBuffers",
-    "ID3D11DeviceContext::DSSetShaderResources",
-    "ID3D11DeviceContext::DSSetSamplers",
-    "ID3D11DeviceContext::DSSetShader",
-
-    "ID3D11DeviceContext::GSSetConstantBuffers",
-    "ID3D11DeviceContext::GSSetShaderResources",
-    "ID3D11DeviceContext::GSSetSamplers",
-    "ID3D11DeviceContext::GSSetShader",
-
-    "ID3D11DeviceContext::SOSetTargets",
-
-    "ID3D11DeviceContext::PSSetConstantBuffers",
-    "ID3D11DeviceContext::PSSetShaderResources",
-    "ID3D11DeviceContext::PSSetSamplers",
-    "ID3D11DeviceContext::PSSetShader",
-
-    "ID3D11DeviceContext::CSSetConstantBuffers",
-    "ID3D11DeviceContext::CSSetShaderResources",
-    "ID3D11DeviceContext::CSSetUnorderedAccessViews",
-    "ID3D11DeviceContext::CSSetSamplers",
-    "ID3D11DeviceContext::CSSetShader",
-
-    "ID3D11DeviceContext::RSSetViewports",
-    "ID3D11DeviceContext::RSSetScissors",
-    "ID3D11DeviceContext::RSSetState",
-
-    "ID3D11DeviceContext::OMSetRenderTargets",
-    "ID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews",
-    "ID3D11DeviceContext::OMSetBlendState",
-    "ID3D11DeviceContext::OMSetDepthStencilState",
-
-    "ID3D11DeviceContext::DrawIndexedInstanced",
-    "ID3D11DeviceContext::DrawInstanced",
-    "ID3D11DeviceContext::DrawIndexed",
-    "ID3D11DeviceContext::Draw",
-    "ID3D11DeviceContext::DrawAuto",
-    "ID3D11DeviceContext::DrawIndexedInstancedIndirect",
-    "ID3D11DeviceContext::DrawInstancedIndirect",
-
-    "ID3D11DeviceContext::Map",
-    "ID3D11DeviceContext::Unmap",
-
-    "ID3D11DeviceContext::CopySubresourceRegion",
-    "ID3D11DeviceContext::CopyResource",
-    "ID3D11DeviceContext::UpdateSubresource",
-    "ID3D11DeviceContext::CopyStructureCount",
-    "ID3D11DeviceContext::ResolveSubresource",
-    "ID3D11DeviceContext::GenerateMips",
-
-    "ID3D11DeviceContext::ClearDepthStencilView",
-    "ID3D11DeviceContext::ClearRenderTargetView",
-    "ID3D11DeviceContext::ClearUnorderedAccessViewInt",
-    "ID3D11DeviceContext::ClearUnorderedAccessViewFloat",
-    "ID3D11DeviceContext::ClearState",
-
-    "ID3D11DeviceContext::ExecuteCommandList",
-    "ID3D11DeviceContext::Dispatch",
-    "ID3D11DeviceContext::DispatchIndirect",
-    "ID3D11DeviceContext::FinishCommandlist",
-    "ID3D11DeviceContext::Flush",
-
-    "ID3D11DeviceContext::SetPredication",
-    "ID3D11DeviceContext::SetResourceMinLOD",
-
-    "ID3D11DeviceContext::Begin",
-    "ID3D11DeviceContext::End",
-
-    "ID3D11Device2::CreateRasterizerState1",
-    "ID3D11Device2::CreateBlendState1",
-
-    "ID3D11DeviceContext1::CopySubresourceRegion1",
-    "ID3D11DeviceContext1::UpdateSubresource1",
-    "ID3D11DeviceContext1::ClearView",
-
-    "ID3D11DeviceContext1::VSSetConstantBuffers1",
-    "ID3D11DeviceContext1::HSSetConstantBuffers1",
-    "ID3D11DeviceContext1::DSSetConstantBuffers1",
-    "ID3D11DeviceContext1::GSSetConstantBuffers1",
-    "ID3D11DeviceContext1::PSSetConstantBuffers1",
-    "ID3D11DeviceContext1::CSSetConstantBuffers1",
-
-    "D3DPERF_PushMarker",
-    "D3DPERF_SetMarker",
-    "D3DPERF_PopMarker",
-
-    "DebugMessageList",
-
-    "ContextBegin",
-    "ContextEnd",
-
-    "SetShaderDebugPath",
-
-    "ID3D11DeviceContext1::DiscardResource",
-    "ID3D11DeviceContext1::DiscardView",
-    "ID3D11DeviceContext1::DiscardView1",
-
-    "ID3D11Device3::CreateRasterizerState2",
-    "ID3D11Device3::CreateQuery1",
-
-    "ID3D11Device3::CreateTexture2D1",
-    "ID3D11Device3::CreateTexture3D1",
-
-    "ID3D11Device3::CreateShaderResourceView1",
-    "ID3D11Device3::CreateRenderTargetView1",
-    "ID3D11Device3::CreateUnorderedAccessView1",
-
-    "IDXGISwapChain::Present",
-
-    "ID3D11DeviceContext::ExecuteCommandList",
-    "ID3D11DeviceContext::FinishCommandList",
-
-    "ID3D11DeviceContext1::SwapDeviceContextState",
-};
-
 WRAPPED_POOL_INST(WrappedID3D11Device);
 
 WrappedID3D11Device *WrappedID3D11Device::m_pCurrentWrappedDevice = NULL;
@@ -467,12 +300,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   if(GetModuleHandleA("nvwgf2umx.dll"))
     LoadLibraryA("nvwgf2umx.dll");
-
-  //////////////////////////////////////////////////////////////////////////
-  // Compile time asserts
-
-  RDCCOMPILE_ASSERT(ARRAY_COUNT(D3D11ChunkNames) == NUM_D3D11_CHUNKS - FIRST_CHUNK_ID,
-                    "Not right number of chunk names");
 }
 
 WrappedID3D11Device::~WrappedID3D11Device()
@@ -871,23 +698,10 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 
 const char *WrappedID3D11Device::GetChunkName(uint32_t idx)
 {
-  if(idx == CREATE_PARAMS)
-    return "Create Params";
-  if(idx == THUMBNAIL_DATA)
-    return "Thumbnail Data";
-  if(idx == DRIVER_INIT_PARAMS)
-    return "Driver Init Params";
-  if(idx == INITIAL_CONTENTS)
-    return "Initial Contents";
-  if(idx < FIRST_CHUNK_ID || idx >= NUM_D3D11_CHUNKS)
-    return "<unknown>";
-  return D3D11ChunkNames[idx - FIRST_CHUNK_ID];
-}
+  if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
+    return ::GetChunkName((SystemChunk)idx);
 
-template <>
-std::string DoStringise(const D3D11ChunkType &el)
-{
-  return WrappedID3D11Device::GetChunkName(el);
+  return ::GetChunkName((D3D11Chunk)idx);
 }
 
 void WrappedID3D11Device::LazyInit()
