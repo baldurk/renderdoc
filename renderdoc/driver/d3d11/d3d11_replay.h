@@ -73,7 +73,7 @@ public:
   void FreeTargetResource(ResourceId id);
   void FreeCustomShader(ResourceId id);
 
-  void ReadLogInitialisation();
+  void ReadLogInitialisation(RDCFile *rdc);
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);
