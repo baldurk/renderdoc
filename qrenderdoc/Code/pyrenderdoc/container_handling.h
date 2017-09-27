@@ -143,6 +143,8 @@ int array_setitem(arrayType *thisptr, Py_ssize_t idx, PyObject *val)
   if(idx < 0 || (size_t)idx >= thisptr->size())
     SWIG_exception_fail(SWIG_IndexError, "list assignment index out of range");
 
+  ExtRefcount<typename arrayType::value_type>::Dec(thisptr->at(idx));
+
   if(val == NULL)
   {
     thisptr->erase(idx);
@@ -168,6 +170,9 @@ Py_ssize_t array_len(arrayType *thisptr)
 template <typename arrayType>
 PyObject *array_clear(arrayType *thisptr)
 {
+  for(size_t i = 0; i < thisptr->size(); i++)
+    ExtRefcount<typename arrayType::value_type>::Dec(thisptr->at(i));
+
   thisptr->clear();
   return SWIG_Py_Void();
 }
@@ -281,6 +286,7 @@ PyObject *array_pop(arrayType *thisptr, PyObject *index)
   if(!ret)
     SWIG_exception_fail(SWIG_TypeError, "failed to convert element while popping");
 
+  ExtRefcount<typename arrayType::value_type>::Dec(thisptr->at(idx));
   thisptr->erase(idx);
   return ret;
 fail:

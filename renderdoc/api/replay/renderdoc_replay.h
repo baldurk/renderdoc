@@ -345,6 +345,7 @@ inline enum_name operator++(enum_name &a)                                      \
 #define ENUM_ARRAY_SIZE(enum_name) size_t(enum_name::Count)
 
 #include "basic_types.h"
+#include "structured_data.h"
 
 #ifdef RENDERDOC_EXPORTS
 struct ResourceId;

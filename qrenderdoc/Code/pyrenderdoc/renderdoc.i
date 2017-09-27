@@ -15,8 +15,9 @@
 #define DOCUMENT3(text1, text2, text3) %feature("docstring") text1 text2 text3
 #define DOCUMENT4(text1, text2, text3, text4) %feature("docstring") text1 text2 text3 text4
 
-// ignore warning about base class rdcarray<char> methods in rdcstr
+// ignore warning about base class rdcarray<char> methods in rdcstr, and similar warning in structured lists
 #pragma SWIG nowarn=401
+#pragma SWIG nowarn=315
 
 // ignore warning about redundant declaration of typedef (byte)
 #pragma SWIG nowarn=322
@@ -44,6 +45,18 @@
 
 %include "pyconversion.i"
 
+// ignore some operators SWIG doesn't have to worry about
+%ignore SDType::operator=;
+%ignore StructuredObjectList::swap;
+%ignore StructuredChunkList::swap;
+%ignore StructuredObjectList::operator=;
+%ignore StructuredObjectList::operator=;
+%ignore StructuredChunkList::operator=;
+%ignore StructuredBufferList::operator=;
+
+// these objects return a new copy which the python caller should own.
+%newobject SDObject::Duplicate;
+%newobject SDChunk::Duplicate;
 
 // Add custom conversion/__str__/__repr__ functions for beautification
 %include "cosmetics.i"
@@ -74,6 +87,16 @@
 %ignore rdcstr::operator=;
 %ignore rdcstr::operator std::string;
 
+// simple typemap to delete old byte arrays in a buffer list before assigning the new one
+%typemap(memberin) StructuredBufferList {
+  // delete old byte arrays
+  for(size_t i=0; i < $1.size(); i++)
+    delete $1[i];
+
+  // copy the values
+  $1.assign(*$input);
+}
+
 SIMPLE_TYPEMAPS(rdcstr)
 SIMPLE_TYPEMAPS(bytebuf)
 
@@ -85,6 +108,21 @@ FIXED_ARRAY_TYPEMAPS(uint64_t)
 FIXED_ARRAY_TYPEMAPS(uint32_t)
 FIXED_ARRAY_TYPEMAPS(int32_t)
 FIXED_ARRAY_TYPEMAPS(uint16_t)
+
+REFCOUNTED_TYPE(SDChunk);
+REFCOUNTED_TYPE(SDObject);
+
+// Not really, but we do want to handle deleting it and removing refcounted children
+REFCOUNTED_TYPE(SDFile);
+
+// these arrays contain refcounted members
+DEFINE_REFCOUNTED_ARRAY(StructuredChunkList);
+DEFINE_REFCOUNTED_ARRAY(StructuredObjectList);
+
+// these types are to be treated like python lists/arrays
+NON_TEMPLATE_ARRAY_INSTANTIATE(StructuredChunkList)
+NON_TEMPLATE_ARRAY_INSTANTIATE(StructuredObjectList)
+NON_TEMPLATE_ARRAY_INSTANTIATE(StructuredBufferList)
 
 // these types are to be treated like python lists/arrays, and will be instantiated after declaration
 // below
@@ -98,6 +136,7 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 
 %include "renderdoc_replay.h"
 %include "basic_types.h"
+%include "structured_data.h"
 %include "capture_options.h"
 %include "control_types.h"
 %include "d3d11_pipestate.h"
@@ -118,6 +157,9 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 
 // add python array members that aren't in slots
 EXTEND_ARRAY_CLASS_METHODS(rdcarray)
+EXTEND_ARRAY_CLASS_METHODS(StructuredChunkList)
+EXTEND_ARRAY_CLASS_METHODS(StructuredObjectList)
+EXTEND_ARRAY_CLASS_METHODS(StructuredBufferList)
 
 // list of array types. These are the concrete types used in rdcarray that will be bound
 // If you get an error with add_your_use_of_rdcarray_to_swig_interface missing, add your type here

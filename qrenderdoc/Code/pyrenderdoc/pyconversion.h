@@ -25,7 +25,9 @@
 #pragma once
 
 #include <algorithm>
+#include <map>
 #include <type_traits>
+
 // struct to allow partial specialisation for enums
 template <typename T, bool isEnum = std::is_enum<T>::value>
 struct TypeConversion
@@ -555,6 +557,8 @@ struct TypeConversion<rdcstr, false>
 
 #include "qt_conversion.h"
 
+#include "structured_conversion.h"
+
 // free functions forward to struct
 template <typename T>
 int ConvertFromPy(PyObject *in, T &out)
@@ -625,3 +629,5 @@ inline typename std::remove_pointer<T>::type &indirect(T &ptr)
 #include "function_conversion.h"
 
 #include "container_handling.h"
+
+#include "ext_refcounts.h"

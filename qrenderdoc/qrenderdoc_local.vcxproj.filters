@@ -977,9 +977,6 @@
     <ClInclude Include="Styles\StyleData.h">
       <Filter>Styles</Filter>
     </ClInclude>
-    <ClInclude Include="Windows\Dialogs\PerformanceCounterSelection.h">
-      <Filter>Windows\Dialogs</Filter>
-    </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_PerformanceCounterSelection.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
@@ -993,6 +990,12 @@
       <Filter>Code\pyrenderdoc</Filter>
     </ClInclude>
     <ClInclude Include="Code\pyrenderdoc\qt_conversion.h">
+      <Filter>Code\pyrenderdoc</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\pyrenderdoc\ext_refcounts.h">
+      <Filter>Code\pyrenderdoc</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\pyrenderdoc\structured_conversion.h">
       <Filter>Code\pyrenderdoc</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1181,6 +1184,9 @@
       <Filter>Code\pyrenderdoc</Filter>
     </None>
     <None Include="Code\pyrenderdoc\container_handling.i">
+      <Filter>Code\pyrenderdoc</Filter>
+    </None>
+    <None Include="Code\pyrenderdoc\ext_refcounts.i">
       <Filter>Code\pyrenderdoc</Filter>
     </None>
   </ItemGroup>

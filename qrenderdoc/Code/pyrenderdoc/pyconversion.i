@@ -121,4 +121,5 @@ SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType &)
 
 %}
 
+%include "ext_refcounts.i"
 %include "container_handling.i"

@@ -143,6 +143,7 @@
     <ClInclude Include="api\replay\renderdoc_replay.h" />
     <ClInclude Include="api\replay\replay_enums.h" />
     <ClInclude Include="api\replay\shader_types.h" />
+    <ClInclude Include="api\replay\structured_data.h" />
     <ClInclude Include="api\replay\version.h" />
     <ClInclude Include="api\replay\vk_pipestate.h" />
     <ClInclude Include="common\common.h" />

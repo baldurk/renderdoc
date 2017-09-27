@@ -55,6 +55,7 @@ endif()
 set(sources
     api/app/renderdoc_app.h
     api/replay/basic_types.h
+    api/replay/structured_data.h
     api/replay/capture_options.h
     api/replay/control_types.h
     api/replay/d3d11_pipestate.h

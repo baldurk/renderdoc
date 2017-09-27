@@ -34,4 +34,45 @@
    </ArrayItems>
   </Expand>
  </Type>
+ <Type Name="SDType">
+  <DisplayString>{name}</DisplayString>
+  <Expand>
+   <Item Name="name">name</Item>
+   <Item Name="basetype">basetype</Item>
+   <Item Name="byteSize">byteSize</Item>
+   <Item Name="flags">flags</Item>
+  </Expand>
+ </Type>
+ <Type Name="SDObject">
+  <DisplayString Condition="type.flags &amp; SDTypeFlags::HasCustomString">{name} = {data.str}</DisplayString>
+  <DisplayString Condition="type.basetype == SDBasic::String">{name} = {data.str}</DisplayString>
+  <DisplayString Condition="type.basetype == SDBasic::UnsignedInteger">{name} = {data.basic.u}</DisplayString>
+  <DisplayString Condition="type.basetype == SDBasic::SignedInteger">{name} = {data.basic.i}</DisplayString>
+  <DisplayString Condition="type.basetype == SDBasic::Float">{name} = {data.basic.d}</DisplayString>
+  <DisplayString Condition="type.basetype == SDBasic::Boolean">{name} = {data.basic.b}</DisplayString>
+  <DisplayString Condition="type.basetype == SDBasic::Character">{name} = {data.basic.c}</DisplayString>
+  <DisplayString Condition="type.basetype == SDBasic::Array">{name} = {type.name}[]</DisplayString>
+  <DisplayString>SDObject: {type.name} {name}</DisplayString>
+  <Expand>
+   <Item Condition="type.basetype == SDBasic::Array" Name="[size]" ExcludeView="simple">data.children.usedCount</Item>
+   <ArrayItems Condition="type.basetype == SDBasic::Array">
+    <Size>data.children.usedCount</Size>
+    <ValuePointer>data.children.elems</ValuePointer>
+   </ArrayItems>
+   <Item Condition="type.basetype != SDBasic::Array" Name="type">type</Item>
+   <Item Condition="type.basetype != SDBasic::Array" Name="name">name</Item>
+   <Item Condition="type.basetype != SDBasic::Array" Name="data">data</Item>
+  </Expand>
+ </Type>
+ <Type Name="SDChunk">
+  <DisplayString>SDChunk: {name} ({metadata.chunkID})</DisplayString>
+  <Expand>
+   <Item Name="metadata" ExcludeView="simple">metadata</Item>
+   <Item Name="[size]" ExcludeView="simple">data.children.usedCount</Item>
+   <ArrayItems>
+    <Size>data.children.usedCount</Size>
+    <ValuePointer>data.children.elems</ValuePointer>
+   </ArrayItems>
+  </Expand>
+ </Type>
 </AutoVisualizer>
