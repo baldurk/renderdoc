@@ -37,29 +37,25 @@
 using std::vector;
 using std::list;
 
-struct VkInitParams : public RDCInitParams
+struct VkInitParams
 {
   VkInitParams();
-  ReplayStatus Serialise();
 
   void Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst);
 
-  static const uint32_t VK_SERIALISE_VERSION = 0x0000006;
-
-  // backwards compatibility for old logs described at the declaration of this array
-  static const uint32_t VK_NUM_SUPPORTED_OLD_VERSIONS = 1;
-  static const uint32_t VK_OLD_VERSIONS[VK_NUM_SUPPORTED_OLD_VERSIONS];
-
-  // version number internal to vulkan stream
-  uint32_t SerialiseVersion;
-
-  string AppName, EngineName;
+  std::string AppName, EngineName;
   uint32_t AppVersion, EngineVersion, APIVersion;
 
-  vector<string> Layers;
-  vector<string> Extensions;
+  std::vector<std::string> Layers;
+  std::vector<std::string> Extensions;
   ResourceId InstanceID;
+
+  // check if a frame capture section version is supported
+  static const uint64_t CurrentVersion = 0x7;
+  static bool IsSupportedVersion(uint64_t ver);
 };
+
+DECLARE_REFLECTION_STRUCT(VkInitParams);
 
 struct VulkanDrawcallTreeNode
 {
@@ -241,6 +237,7 @@ private:
   VulkanReplay m_Replay;
 
   VkInitParams m_InitParams;
+  uint64_t m_SectionVersion;
 
   VkResourceRecord *m_FrameCaptureRecord;
   Chunk *m_HeaderChunk;
@@ -700,7 +697,7 @@ private:
   }
 
 public:
-  WrappedVulkan(const char *logFilename);
+  WrappedVulkan();
   virtual ~WrappedVulkan();
 
   ResourceId GetContextResourceID() { return m_FrameCaptureRecord->GetResourceID(); }
@@ -717,11 +714,11 @@ public:
 
   bool ReleaseResource(WrappedVkRes *res);
 
-  ReplayStatus Initialise(VkInitParams &params);
-  uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
+  ReplayStatus Initialise(VkInitParams &params, uint64_t sectionVersion);
+  uint64_t GetLogVersion() { return m_SectionVersion; }
   void Shutdown();
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
-  void ReadLogInitialisation();
+  void ReadLogInitialisation(RDCFile *rdc);
 
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const APIEvent &GetEvent(uint32_t eventID);
