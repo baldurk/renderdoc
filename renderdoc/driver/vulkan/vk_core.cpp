@@ -28,135 +28,6 @@
 #include "strings/string_utils.h"
 #include "vk_debug.h"
 
-const char *VkChunkNames[] = {
-    "WrappedVulkan::Initialisation",
-    "vkCreateInstance",
-    "vkEnumeratePhysicalDevices",
-    "vkCreateDevice",
-    "vkGetDeviceQueue",
-
-    "vkAllocMemory",
-    "vkUnmapMemory",
-    "vkFlushMappedMemoryRanges",
-    "vkFreeMemory",
-
-    "vkCreateCommandPool",
-    "vkResetCommandPool",
-
-    "vkCreateCommandBuffer",
-    "vkCreateFramebuffer",
-    "vkCreateRenderPass",
-    "vkCreateDescriptorPool",
-    "vkCreateDescriptorSetLayout",
-    "vkCreateBuffer",
-    "vkCreateBufferView",
-    "vkCreateImage",
-    "vkCreateImageView",
-    "vkCreateDepthTargetView",
-    "vkCreateSampler",
-    "vkCreateShaderModule",
-    "vkCreatePipelineLayout",
-    "vkCreatePipelineCache",
-    "vkCreateGraphicsPipelines",
-    "vkCreateComputePipelines",
-    "vkGetSwapchainImagesKHR",
-
-    "vkCreateSemaphore",
-    "vkCreateFence",
-    "vkGetFenceStatus",
-    "vkResetFences",
-    "vkWaitForFences",
-
-    "vkCreateEvent",
-    "vkGetEventStatus",
-    "vkSetEvent",
-    "vkResetEvent",
-
-    "vkCreateQueryPool",
-
-    "vkAllocDescriptorSets",
-    "vkUpdateDescriptorSets",
-
-    "vkBeginCommandBuffer",
-    "vkEndCommandBuffer",
-
-    "vkQueueWaitIdle",
-    "vkDeviceWaitIdle",
-
-    "vkQueueSubmit",
-    "vkBindBufferMemory",
-    "vkBindImageMemory",
-
-    "vkQueueBindSparse",
-
-    "vkCmdBeginRenderPass",
-    "vkCmdNextSubpass",
-    "vkCmdExecuteCommands",
-    "vkCmdEndRenderPass",
-
-    "vkCmdBindPipeline",
-
-    "vkCmdSetViewport",
-    "vkCmdSetScissor",
-    "vkCmdSetLineWidth",
-    "vkCmdSetDepthBias",
-    "vkCmdSetBlendConstants",
-    "vkCmdSetDepthBounds",
-    "vkCmdSetStencilCompareMask",
-    "vkCmdSetStencilWriteMask",
-    "vkCmdSetStencilReference",
-
-    "vkCmdBindDescriptorSet",
-    "vkCmdBindVertexBuffers",
-    "vkCmdBindIndexBuffer",
-    "vkCmdCopyBufferToImage",
-    "vkCmdCopyImageToBuffer",
-    "vkCmdCopyBuffer",
-    "vkCmdCopyImage",
-    "vkCmdBlitImage",
-    "vkCmdResolveImage",
-    "vkCmdUpdateBuffer",
-    "vkCmdFillBuffer",
-    "vkCmdPushConstants",
-
-    "vkCmdClearColorImage",
-    "vkCmdClearDepthStencilImage",
-    "vkCmdClearAttachments",
-    "vkCmdPipelineBarrier",
-
-    "vkCmdWriteTimestamp",
-    "vkCmdCopyQueryPoolResults",
-    "vkCmdBeginQuery",
-    "vkCmdEndQuery",
-    "vkCmdResetQueryPool",
-
-    "vkCmdSetEvent",
-    "vkCmdResetEvent",
-    "vkCmdWaitEvents",
-
-    "vkCmdDraw",
-    "vkCmdDrawIndirect",
-    "vkCmdDrawIndexed",
-    "vkCmdDrawIndexedIndirect",
-    "vkCmdDispatch",
-    "vkCmdDispatchIndirect",
-
-    "vkCmdDebugMarkerBeginEXT",
-    "vkCmdDebugMarkerInsertEXT",
-    "vkCmdDebugMarkerEndEXT",
-
-    "vkDebugMarkerSetObjectNameEXT",
-    "vkDebugMarkerSetObjectTagEXT",
-
-    "vkCreateSwapchainKHR",
-
-    "Debug Messages",
-
-    "Capture",
-    "BeginCapture",
-    "EndCapture",
-};
-
 VkInitParams::VkInitParams()
 {
   SerialiseVersion = VK_SERIALISE_VERSION;
@@ -568,25 +439,12 @@ uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, DrawFla
   return eventID;
 }
 
-const char *WrappedVulkan::GetChunkName(uint32_t idx)
+std::string WrappedVulkan::GetChunkName(uint32_t idx)
 {
-  if(idx == CREATE_PARAMS)
-    return "Create Params";
-  if(idx == THUMBNAIL_DATA)
-    return "Thumbnail Data";
-  if(idx == DRIVER_INIT_PARAMS)
-    return "Driver Init Params";
-  if(idx == INITIAL_CONTENTS)
-    return "Initial Contents";
-  if(idx < FIRST_CHUNK_ID || idx >= NUM_VULKAN_CHUNKS)
-    return "<unknown>";
-  return VkChunkNames[idx - FIRST_CHUNK_ID];
-}
+  if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
+    return ToStr((SystemChunk)idx);
 
-template <>
-std::string DoStringise(const VulkanChunkType &el)
-{
-  return WrappedVulkan::GetChunkName(el);
+  return ToStr((VulkanChunk)idx);
 }
 
 WrappedVulkan::ScopedDebugMessageSink::ScopedDebugMessageSink(WrappedVulkan *driver)
@@ -1724,7 +1582,7 @@ void WrappedVulkan::ReadLogInitialisation()
         "% 5d chunks - Time: %9.3fms total/%9.3fms avg - Size: %8.3fMB total/%7.3fMB avg - %s (%u)",
         it->second.count, it->second.total, it->second.total / dcount,
         double(it->second.totalsize) / (1024.0 * 1024.0),
-        double(it->second.totalsize) / (dcount * 1024.0 * 1024.0), GetChunkName(it->first),
+        double(it->second.totalsize) / (dcount * 1024.0 * 1024.0), ToStr(it->first).c_str(),
         uint32_t(it->first));
   }
 #endif

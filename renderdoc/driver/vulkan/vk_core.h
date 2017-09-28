@@ -701,7 +701,7 @@ public:
   virtual ~WrappedVulkan();
 
   ResourceId GetContextResourceID() { return m_FrameCaptureRecord->GetResourceID(); }
-  static const char *GetChunkName(uint32_t idx);
+  static std::string GetChunkName(uint32_t idx);
   VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
   VulkanDebugManager *GetDebugManager() { return m_DebugManager; }
   LogState GetState() { return m_State; }
