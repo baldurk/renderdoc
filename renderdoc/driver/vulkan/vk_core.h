@@ -708,7 +708,10 @@ public:
   VulkanReplay *GetReplay() { return &m_Replay; }
   // replay interface
   bool Prepare_InitialState(WrappedVkRes *res);
-  bool Serialise_InitialState(ResourceId resid, WrappedVkRes *res);
+  uint32_t GetSize_InitialState(ResourceId id, WrappedVkRes *res);
+  uint32_t GetSize_SparseInitialState(ResourceId id, WrappedVkRes *res);
+  template <typename SerialiserType>
+  bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, WrappedVkRes *res);
   void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
   void Apply_InitialState(WrappedVkRes *live, VulkanResourceManager::InitialContentData initial);
 

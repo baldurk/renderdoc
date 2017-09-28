@@ -72,6 +72,8 @@ enum VkResourceType
   eResSurface
 };
 
+DECLARE_REFLECTION_ENUM(VkResourceType);
+
 // VkDisplayKHR and VkDisplayModeKHR are both UNWRAPPED because there's no need to wrap them.
 // The only thing we need to wrap VkSurfaceKHR for is to get back the window from it later.
 

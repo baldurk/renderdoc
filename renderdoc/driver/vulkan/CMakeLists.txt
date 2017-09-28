@@ -12,6 +12,7 @@ set(sources
     vk_info.cpp
     vk_info.h
     vk_initstate.cpp
+    vk_sparse_initstate.cpp
     vk_manager.cpp
     vk_manager.h
     vk_memory.cpp
