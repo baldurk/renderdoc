@@ -777,5 +777,3 @@ void PixelHistoryView::on_events_doubleClicked(const QModelIndex &index)
   if(tag.eventID > 0)
     m_Ctx.SetEventID({this}, tag.eventID, tag.eventID);
 }
-
-// TODO TimelineBar
