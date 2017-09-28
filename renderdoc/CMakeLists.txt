@@ -132,6 +132,7 @@ set(sources
     serialise/streamio.h
     serialise/rdcfile.cpp
     serialise/rdcfile.h
+    serialise/codecs/xml_codec.cpp
     serialise/comp_io_tests.cpp
     serialise/streamio_tests.cpp
     strings/grisu2.cpp

@@ -106,6 +106,9 @@
     <Filter Include="Common\Serialise\Stream I/O">
       <UniqueIdentifier>{3b8694d9-cb25-45e0-a1c2-8cc8cd03df3f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common\Serialise\Codecs">
+      <UniqueIdentifier>{dc39ebda-045d-4d75-8ef9-0c927be3c7ff}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -625,6 +628,9 @@
     </ClCompile>
     <ClCompile Include="serialise\rdcfile.cpp">
       <Filter>Common\Serialise\Container File</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\codecs\xml_codec.cpp">
+      <Filter>Common\Serialise\Codecs</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
