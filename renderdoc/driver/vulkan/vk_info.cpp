@@ -58,15 +58,7 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
       bindings[b].immutableSampler = new ResourceId[bindings[b].descriptorCount];
 
       for(uint32_t s = 0; s < bindings[b].descriptorCount; s++)
-      {
-        // during writing, the create info contains the *wrapped* objects.
-        // on replay, we have the wrapper map so we can look it up
-        if(resourceMan->IsWriting())
-          bindings[b].immutableSampler[s] = GetResID(pCreateInfo->pBindings[i].pImmutableSamplers[s]);
-        else
-          bindings[b].immutableSampler[s] =
-              resourceMan->GetNonDispWrapper(pCreateInfo->pBindings[i].pImmutableSamplers[s])->id;
-      }
+        bindings[b].immutableSampler[s] = GetResID(pCreateInfo->pBindings[i].pImmutableSamplers[s]);
     }
   }
 }
@@ -125,8 +117,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 {
   flags = pCreateInfo->flags;
 
-  layout = resourceMan->GetNonDispWrapper(pCreateInfo->layout)->id;
-  renderpass = resourceMan->GetNonDispWrapper(pCreateInfo->renderPass)->id;
+  layout = GetResID(pCreateInfo->layout);
+  renderpass = GetResID(pCreateInfo->renderPass);
   subpass = pCreateInfo->subpass;
 
   // need to figure out which states are valid to be NULL
@@ -134,7 +126,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
   // VkPipelineShaderStageCreateInfo
   for(uint32_t i = 0; i < pCreateInfo->stageCount; i++)
   {
-    ResourceId id = resourceMan->GetNonDispWrapper(pCreateInfo->pStages[i].module)->id;
+    ResourceId id = GetResID(pCreateInfo->pStages[i].module);
 
     // convert shader bit to shader index
     int stageIndex = StageIndex(pCreateInfo->pStages[i].stage);
@@ -358,13 +350,13 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 {
   flags = pCreateInfo->flags;
 
-  layout = resourceMan->GetNonDispWrapper(pCreateInfo->layout)->id;
+  layout = GetResID(pCreateInfo->layout);
 
   // need to figure out which states are valid to be NULL
 
   // VkPipelineShaderStageCreateInfo
   {
-    ResourceId id = resourceMan->GetNonDispWrapper(pCreateInfo->stage.module)->id;
+    ResourceId id = GetResID(pCreateInfo->stage.module);
     Shader &shad = shaders[5];    // 5 is the compute shader's index (VS, TCS, TES, GS, FS, CS)
 
     shad.module = id;
@@ -451,7 +443,7 @@ void VulkanCreationInfo::PipelineLayout::Init(VulkanResourceManager *resourceMan
 {
   descSetLayouts.resize(pCreateInfo->setLayoutCount);
   for(uint32_t i = 0; i < pCreateInfo->setLayoutCount; i++)
-    descSetLayouts[i] = resourceMan->GetNonDispWrapper(pCreateInfo->pSetLayouts[i])->id;
+    descSetLayouts[i] = GetResID(pCreateInfo->pSetLayouts[i]);
 
   pushRanges.reserve(pCreateInfo->pushConstantRangeCount);
   for(uint32_t i = 0; i < pCreateInfo->pushConstantRangeCount; i++)
@@ -514,7 +506,7 @@ void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *resourceMan,
   attachments.resize(pCreateInfo->attachmentCount);
   for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
   {
-    attachments[i].view = resourceMan->GetNonDispWrapper(pCreateInfo->pAttachments[i])->id;
+    attachments[i].view = GetResID(pCreateInfo->pAttachments[i]);
     attachments[i].format = info.m_ImageView[attachments[i].view].format;
   }
 }
@@ -536,7 +528,7 @@ void VulkanCreationInfo::BufferView::Init(VulkanResourceManager *resourceMan,
                                           VulkanCreationInfo &info,
                                           const VkBufferViewCreateInfo *pCreateInfo)
 {
-  buffer = resourceMan->GetNonDispWrapper(pCreateInfo->buffer)->id;
+  buffer = GetResID(pCreateInfo->buffer);
   offset = pCreateInfo->offset;
   size = pCreateInfo->range;
 }
@@ -608,7 +600,7 @@ static TextureSwizzle Convert(VkComponentSwizzle s, int i)
 void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
                                          const VkImageViewCreateInfo *pCreateInfo)
 {
-  image = resourceMan->GetNonDispWrapper(pCreateInfo->image)->id;
+  image = GetResID(pCreateInfo->image);
   format = pCreateInfo->format;
   range = pCreateInfo->subresourceRange;
 

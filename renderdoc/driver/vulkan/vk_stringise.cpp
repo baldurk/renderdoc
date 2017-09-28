@@ -1310,106 +1310,6 @@ std::string DoStringise(const VkResult &el)
   END_ENUM_STRINGISE();
 }
 
-template <>
-std::string DoStringise(const VkMemoryType &el)
-{
-  return StringFormat::Fmt("VkMemoryType<heap %u, %s>", el.heapIndex,
-                           ToStr((VkMemoryPropertyFlagBits)el.propertyFlags).c_str());
-}
-
-template <>
-std::string DoStringise(const VkMemoryHeap &el)
-{
-  return StringFormat::Fmt("VkMemoryHeap<%.3fMB, %s>", float(el.size) / (1024.0f * 1024.0f),
-                           ToStr((VkMemoryHeapFlagBits)el.flags).c_str());
-}
-
-template <>
-std::string DoStringise(const VkRect2D &el)
-{
-  return StringFormat::Fmt("VkRect2D<%dx%d+%d+%d>", el.extent.width, el.extent.height, el.offset.x,
-                           el.offset.y);
-}
-
-template <>
-std::string DoStringise(const VkClearRect &el)
-{
-  return StringFormat::Fmt("VkClearRect<%dx%d+%d+%d %u->%u>", el.rect.extent.width,
-                           el.rect.extent.height, el.rect.offset.x, el.rect.offset.y,
-                           el.baseArrayLayer, el.baseArrayLayer + el.layerCount);
-}
-
-template <>
-std::string DoStringise(const VkClearAttachment &el)
-{
-  return StringFormat::Fmt("%s[%u] = %s", ToStr((VkImageAspectFlagBits)el.aspectMask).c_str(),
-                           el.colorAttachment, ToStr(el.clearValue).c_str());
-}
-
-template <>
-std::string DoStringise(const VkQueueFamilyProperties &el)
-{
-  return StringFormat::Fmt("%s x %u, %u bits, %s", ToStr((VkQueueFlagBits)el.queueFlags).c_str(),
-                           el.queueCount, el.timestampValidBits,
-                           ToStr(el.minImageTransferGranularity).c_str());
-}
-
-template <>
-std::string DoStringise(const VkExtent2D &el)
-{
-  return StringFormat::Fmt("VkExtent<%u,%u>", el.width, el.height);
-}
-
-template <>
-std::string DoStringise(const VkExtent3D &el)
-{
-  return StringFormat::Fmt("VkExtent<%u,%u,%u>", el.width, el.height, el.depth);
-}
-
-template <>
-std::string DoStringise(const VkOffset2D &el)
-{
-  return StringFormat::Fmt("VkOffset<%d,%d>", el.x, el.y);
-}
-
-template <>
-std::string DoStringise(const VkOffset3D &el)
-{
-  return StringFormat::Fmt("VkOffset<%d,%d,%d>", el.x, el.y, el.z);
-}
-
-template <>
-std::string DoStringise(const VkViewport &el)
-{
-  return StringFormat::Fmt("VkViewport<%f,%f, %fx%f, %f-%f>", el.x, el.y, el.width, el.height,
-                           el.minDepth, el.maxDepth);
-}
-
-template <>
-std::string DoStringise(const VkClearColorValue &el)
-{
-  return StringFormat::Fmt("VkClearColorValue<%f,%f,%f,%f>", el.float32[0], el.float32[1],
-                           el.float32[2], el.float32[3]);
-}
-template <>
-std::string DoStringise(const VkClearDepthStencilValue &el)
-{
-  return StringFormat::Fmt("VkClearDepthStencilValue<%f %u>", el.depth, el.stencil);
-}
-template <>
-std::string DoStringise(const VkClearValue &el)
-{
-  return StringFormat::Fmt("VkClearValue[ col:<%f,%f,%f,%f> / d:%f s:%u ]", el.color.float32[0],
-                           el.color.float32[1], el.color.float32[2], el.color.float32[3],
-                           el.depthStencil.depth, el.depthStencil.stencil);
-}
-
-template <>
-std::string DoStringise(const VkAttachmentReference &el)
-{
-  return StringFormat::Fmt("VkAttachmentReference<%u, %s>", el.attachment, ToStr(el.layout).c_str());
-}
-
 ////////////////////////////////////////////////////////////
 // VK_KHR_surface
 ////////////////////////////////////////////////////////////
@@ -1483,4 +1383,10 @@ std::string DoStringise(const VkPresentModeKHR &el)
     STRINGISE_ENUM(VK_PRESENT_MODE_FIFO_RELAXED_KHR)
   }
   END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const VkExtent3D &el)
+{
+  return StringFormat::Fmt("VkExtent3D(%u, %u, %u)", el.width, el.height, el.depth);
 }

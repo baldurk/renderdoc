@@ -3293,8 +3293,7 @@ void VulkanReplay::SavePipelineState()
                 }
                 else if(info[a].imageInfo.sampler != VK_NULL_HANDLE)
                 {
-                  dst.bindings[b].binds[a].sampler =
-                      rm->GetNonDispWrapper(info[a].imageInfo.sampler)->id;
+                  dst.bindings[b].binds[a].sampler = GetResID(info[a].imageInfo.sampler);
                 }
 
                 if(dst.bindings[b].binds[a].sampler != ResourceId())
@@ -3339,7 +3338,7 @@ void VulkanReplay::SavePipelineState()
 
                 if(view != VK_NULL_HANDLE)
                 {
-                  ResourceId viewid = rm->GetNonDispWrapper(view)->id;
+                  ResourceId viewid = GetResID(view);
 
                   dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
                   dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_ImageView[viewid].image);
@@ -3369,7 +3368,7 @@ void VulkanReplay::SavePipelineState()
 
                 if(view != VK_NULL_HANDLE)
                 {
-                  ResourceId viewid = rm->GetNonDispWrapper(view)->id;
+                  ResourceId viewid = GetResID(view);
 
                   dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
                   dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
@@ -3408,7 +3407,7 @@ void VulkanReplay::SavePipelineState()
 
                 if(info[a].bufferInfo.buffer != VK_NULL_HANDLE)
                   dst.bindings[b].binds[a].res =
-                      rm->GetOriginalID(rm->GetNonDispWrapper(info[a].bufferInfo.buffer)->id);
+                      rm->GetOriginalID(GetResID(info[a].bufferInfo.buffer));
 
                 dst.bindings[b].binds[a].offset = info[a].bufferInfo.offset;
                 if(dynamicOffset)
