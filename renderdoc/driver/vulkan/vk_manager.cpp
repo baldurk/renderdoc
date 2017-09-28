@@ -25,16 +25,6 @@
 #include "vk_manager.h"
 #include "vk_core.h"
 
-template <>
-void Serialiser::Serialise(const char *name, ImageRegionState &el)
-{
-  ScopedContext scope(this, name, "ImageRegionState", 0, true);
-
-  Serialise("range", el.subresourceRange);
-  Serialise("prevstate", el.oldLayout);
-  Serialise("state", el.newLayout);
-}
-
 bool VulkanResourceManager::SerialisableResource(ResourceId id, VkResourceRecord *record)
 {
   if(record->SpecialResource || id == m_Core->GetContextResourceID())
@@ -208,7 +198,7 @@ void VulkanResourceManager::RecordBarriers(vector<pair<ResourceId, ImageRegionSt
   {
     const VkImageMemoryBarrier &t = barriers[ti];
 
-    ResourceId id = m_State < WRITING ? GetNonDispWrapper(t.image)->id : GetResID(t.image);
+    ResourceId id = IsReplayMode(m_State) ? GetNonDispWrapper(t.image)->id : GetResID(t.image);
 
     if(id == ResourceId())
     {

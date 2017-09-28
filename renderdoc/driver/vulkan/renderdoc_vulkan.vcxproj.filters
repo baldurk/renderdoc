@@ -100,6 +100,9 @@
     <ClCompile Include="vk_stringise.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="vk_serialise.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">

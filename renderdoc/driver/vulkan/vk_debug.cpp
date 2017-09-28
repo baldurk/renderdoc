@@ -4955,6 +4955,8 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 
       m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), module);
 
+      m_pDriver->GetResourceManager()->AddLiveResource(GetResID(module), module);
+
       bool found = false;
       for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
       {

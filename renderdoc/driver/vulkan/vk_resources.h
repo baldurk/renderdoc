@@ -817,6 +817,8 @@ struct ImageRegionState
   VkImageLayout newLayout;
 };
 
+DECLARE_REFLECTION_STRUCT(ImageRegionState);
+
 struct SwapchainInfo
 {
   VkFormat format;
@@ -1146,6 +1148,8 @@ struct ImageLayouts
   VkExtent3D extent;
   VkFormat format;
 };
+
+DECLARE_REFLECTION_STRUCT(ImageLayouts);
 
 bool IsBlockFormat(VkFormat f);
 bool IsDepthOrStencilFormat(VkFormat f);
