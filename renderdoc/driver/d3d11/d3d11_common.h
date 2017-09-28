@@ -391,6 +391,42 @@ enum class D3D11Chunk : uint32_t
 
 DECLARE_REFLECTION_ENUM(D3D11Chunk);
 
+// this is special - these serialise overloads will fetch the ID during capture, serialise the ID
+// directly as-if it were the original type, then on replay load up the resource if available.
+// Really this is only one type of serialisation, but we declare a couple of overloads to account
+// for resources being accessed through different interfaces in different functions
+#define SERIALISE_D3D_INTERFACES()                \
+  SERIALISE_INTERFACE(ID3D11DeviceChild);         \
+  SERIALISE_INTERFACE(ID3D11Resource);            \
+  SERIALISE_INTERFACE(ID3D11View);                \
+  SERIALISE_INTERFACE(ID3D11UnorderedAccessView); \
+  SERIALISE_INTERFACE(ID3D11ShaderResourceView);  \
+  SERIALISE_INTERFACE(ID3D11RenderTargetView);    \
+  SERIALISE_INTERFACE(ID3D11DepthStencilView);    \
+  SERIALISE_INTERFACE(ID3D11BlendState);          \
+  SERIALISE_INTERFACE(ID3D11DepthStencilState);   \
+  SERIALISE_INTERFACE(ID3D11RasterizerState);     \
+  SERIALISE_INTERFACE(ID3D11SamplerState);        \
+  SERIALISE_INTERFACE(ID3D11Buffer);              \
+  SERIALISE_INTERFACE(ID3D11ClassInstance);       \
+  SERIALISE_INTERFACE(ID3D11ClassLinkage);        \
+  SERIALISE_INTERFACE(ID3D11InputLayout);         \
+  SERIALISE_INTERFACE(ID3D11VertexShader);        \
+  SERIALISE_INTERFACE(ID3D11HullShader);          \
+  SERIALISE_INTERFACE(ID3D11DomainShader);        \
+  SERIALISE_INTERFACE(ID3D11GeometryShader);      \
+  SERIALISE_INTERFACE(ID3D11PixelShader);         \
+  SERIALISE_INTERFACE(ID3D11ComputeShader);       \
+  SERIALISE_INTERFACE(ID3D11CommandList);         \
+  SERIALISE_INTERFACE(ID3D11Counter);             \
+  SERIALISE_INTERFACE(ID3D11Predicate);           \
+  SERIALISE_INTERFACE(ID3D11Query);               \
+  SERIALISE_INTERFACE(ID3D11Asynchronous);
+
+#define SERIALISE_INTERFACE(iface) DECLARE_REFLECTION_STRUCT(iface *)
+
+SERIALISE_D3D_INTERFACES();
+
 DECLARE_REFLECTION_ENUM(D3D11_BIND_FLAG);
 DECLARE_REFLECTION_ENUM(D3D11_CPU_ACCESS_FLAG);
 DECLARE_REFLECTION_ENUM(D3D11_RESOURCE_MISC_FLAG);
