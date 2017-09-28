@@ -159,7 +159,7 @@ public:
   const VKPipe::State &GetVulkanPipelineState() { return m_VulkanPipelineState; }
   void FreeTargetResource(ResourceId id);
 
-  void ReadLogInitialisation();
+  void ReadLogInitialisation(RDCFile *rdc);
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);

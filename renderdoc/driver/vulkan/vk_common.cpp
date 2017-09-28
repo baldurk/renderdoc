@@ -125,6 +125,16 @@ void VkMarkerRegion::End(VkCommandBuffer cmd)
   ObjDisp(scope.cmd)->CmdDebugMarkerEndEXT(Unwrap(scope.cmd));
 }
 
+bool VkInitParams::IsSupportedVersion(uint64_t ver)
+{
+  if(ver == CurrentVersion)
+    return true;
+
+  // we can check other older versions we support here.
+
+  return false;
+}
+
 VkAccessFlags MakeAccessMask(VkImageLayout layout)
 {
   switch(layout)
@@ -1439,3 +1449,18 @@ StencilOp MakeStencilOp(VkStencilOp op)
 
   return StencilOp::Keep;
 }
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkInitParams &el)
+{
+  SERIALISE_MEMBER(AppName);
+  SERIALISE_MEMBER(EngineName);
+  SERIALISE_MEMBER(AppVersion);
+  SERIALISE_MEMBER(EngineVersion);
+  SERIALISE_MEMBER(APIVersion);
+  SERIALISE_MEMBER(Layers);
+  SERIALISE_MEMBER(Extensions);
+  SERIALISE_MEMBER(InstanceID);
+}
+
+INSTANTIATE_SERIALISE_TYPE(VkInitParams);

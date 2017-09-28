@@ -163,7 +163,7 @@ VkResult VKAPI_CALL hooked_vkCreateInstance(const VkInstanceCreateInfo *pCreateI
                                             const VkAllocationCallbacks *pAllocator,
                                             VkInstance *pInstance)
 {
-  WrappedVulkan *core = new WrappedVulkan("");
+  WrappedVulkan *core = new WrappedVulkan();
   return core->vkCreateInstance(pCreateInfo, pAllocator, pInstance);
 }
 

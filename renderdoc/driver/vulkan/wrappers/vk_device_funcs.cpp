@@ -89,12 +89,10 @@ static void StripUnwantedLayers(vector<string> &Layers)
   }
 }
 
-ReplayStatus WrappedVulkan::Initialise(VkInitParams &params)
+ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion)
 {
-  if(m_pSerialiser->HasError())
-    return ReplayStatus::FileIOFailed;
-
   m_InitParams = params;
+  m_SectionVersion = sectionVersion;
 
   params.AppName = string("RenderDoc @ ") + params.AppName;
   params.EngineName = string("RenderDoc @ ") + params.EngineName;

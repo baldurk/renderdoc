@@ -27,6 +27,7 @@
 #include "driver/ihv/amd/amd_isa.h"
 #include "maths/camera.h"
 #include "maths/matrix.h"
+#include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "vk_core.h"
 #include "vk_debug.h"
@@ -658,9 +659,9 @@ APIProperties VulkanReplay::GetAPIProperties()
   return ret;
 }
 
-void VulkanReplay::ReadLogInitialisation()
+void VulkanReplay::ReadLogInitialisation(RDCFile *rdc)
 {
-  m_pDriver->ReadLogInitialisation();
+  m_pDriver->ReadLogInitialisation(rdc);
 }
 
 void VulkanReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
@@ -732,21 +733,6 @@ vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventID)
 ResourceId VulkanReplay::GetLiveID(ResourceId id)
 {
   return m_pDriver->GetResourceManager()->GetLiveID(id);
-}
-
-void VulkanReplay::InitCallstackResolver()
-{
-  m_pDriver->GetMainSerialiser()->InitCallstackResolver();
-}
-
-bool VulkanReplay::HasCallstacks()
-{
-  return m_pDriver->GetMainSerialiser()->HasCallstacks();
-}
-
-Callstack::StackResolver *VulkanReplay::GetCallstackResolver()
-{
-  return m_pDriver->GetMainSerialiser()->GetCallstackResolver();
 }
 
 FrameRecord VulkanReplay::GetFrameRecord()
@@ -5345,7 +5331,7 @@ void VulkanReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataS
   VULKANNOTIMP("SetProxyTextureData");
 }
 
-ReplayStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a VulkanReplay replay device");
 
@@ -5369,28 +5355,53 @@ ReplayStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driv
   }
 
   VkInitParams initParams;
-  RDCDriver driverType = RDC_Vulkan;
-  string driverName = "VulkanReplay";
-  uint64_t machineIdent = 0;
-  if(logfile)
+
+  uint64_t ver = VkInitParams::CurrentVersion;
+
+  // if we have an RDCFile, open the frame capture section and serialise the init params.
+  // if not, we're creating a proxy-capable device so use default-initialised init params.
+  if(rdc)
   {
-    auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
-                                                   (RDCInitParams *)&initParams);
+    int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
-    if(status != ReplayStatus::Succeeded)
-      return status;
+    if(sectionIdx < 0)
+      return ReplayStatus::InternalError;
+
+    ver = rdc->GetSectionProperties(sectionIdx).version;
+
+    if(!VkInitParams::IsSupportedVersion(ver))
+    {
+      RDCERR("Incompatible Vulkan serialise version %llu", ver);
+      return ReplayStatus::APIUnsupported;
+    }
+
+    StreamReader *reader = rdc->ReadSection(sectionIdx);
+
+    ReadSerialiser ser(reader, Ownership::Stream);
+
+    SystemChunk chunk = ser.ReadChunk<SystemChunk>();
+
+    if(chunk != SystemChunk::DriverInit)
+    {
+      RDCERR("Expected to get a DriverInit chunk, instead got %u", chunk);
+      return ReplayStatus::FileCorrupted;
+    }
+
+    SERIALISE_ELEMENT(initParams);
+
+    if(ser.IsErrored())
+    {
+      RDCERR("Failed reading driver init params.");
+      return ReplayStatus::FileIOFailed;
+    }
   }
-
-  // initParams.SerialiseVersion is guaranteed to be valid/supported since otherwise the
-  // FillInitParams (which calls VkInitParams::Serialise) would have failed above, so no need to
-  // check it here.
 
   InitReplayTables(module);
 
   VulkanReplay::PreDeviceInitCounters();
 
-  WrappedVulkan *vk = new WrappedVulkan(logfile);
-  ReplayStatus status = vk->Initialise(initParams);
+  WrappedVulkan *vk = new WrappedVulkan();
+  ReplayStatus status = vk->Initialise(initParams, ver);
 
   if(status != ReplayStatus::Succeeded)
   {
@@ -5400,7 +5411,7 @@ ReplayStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driv
 
   RDCLOG("Created device.");
   VulkanReplay *replay = vk->GetReplay();
-  replay->SetProxy(logfile == NULL);
+  replay->SetProxy(rdc == NULL);
 
   *driver = (IReplayDriver *)replay;
 
