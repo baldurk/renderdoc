@@ -213,21 +213,21 @@ private:
 
   void AddUsage(const DrawcallDescription &d);
 
-  void AddEvent(string description);
+  void AddEvent();
   void AddDrawcall(const DrawcallDescription &d, bool hasEvents);
 
   void RecordIndexBindStats(ID3D11Buffer *Buffer);
-  void RecordVertexBindStats(UINT NumBuffers, ID3D11Buffer *Buffers[]);
+  void RecordVertexBindStats(UINT NumBuffers, ID3D11Buffer *const Buffers[]);
   void RecordLayoutBindStats(ID3D11InputLayout *Layout);
-  void RecordConstantStats(ShaderStage stage, UINT NumBuffers, ID3D11Buffer *Buffers[]);
+  void RecordConstantStats(ShaderStage stage, UINT NumBuffers, ID3D11Buffer *const Buffers[]);
   void RecordResourceStats(ShaderStage stage, UINT NumResources,
-                           ID3D11ShaderResourceView *Resources[]);
-  void RecordSamplerStats(ShaderStage stage, UINT NumSamplers, ID3D11SamplerState *Samplers[]);
+                           ID3D11ShaderResourceView *const Resources[]);
+  void RecordSamplerStats(ShaderStage stage, UINT NumSamplers, ID3D11SamplerState *const Samplers[]);
   void RecordUpdateStats(ID3D11Resource *res, uint32_t Size, bool Server);
   void RecordDrawStats(bool instanced, bool indirect, UINT InstanceCount);
   void RecordDispatchStats(bool indirect);
   void RecordShaderStats(ShaderStage stage, ID3D11DeviceChild *Current, ID3D11DeviceChild *Shader);
-  void RecordBlendStats(ID3D11BlendState *Blend, FLOAT BlendFactor[4], UINT SampleMask);
+  void RecordBlendStats(ID3D11BlendState *Blend, const FLOAT BlendFactor[4], UINT SampleMask);
   void RecordDepthStencilStats(ID3D11DepthStencilState *DepthStencil, UINT StencilRef);
   void RecordRasterizationStats(ID3D11RasterizerState *Rasterizer);
   void RecordViewportStats(UINT NumViewports, const D3D11_VIEWPORT *viewports);
@@ -242,9 +242,9 @@ private:
 
 // this is defined as a macro so that we can re-use it to explicitly instantiate these functions as
 // templates in the wrapper definition file.
-#define SERIALISED_ID3D11CONTEXT_MARKER_FUNCTIONS()                                  \
-  IMPLEMENT_FUNCTION_SERIALISED(void, SetMarker, uint32_t col, const wchar_t *name); \
-  IMPLEMENT_FUNCTION_SERIALISED(int, PushMarker, uint32_t col, const wchar_t *name); \
+#define SERIALISED_ID3D11CONTEXT_MARKER_FUNCTIONS()                                          \
+  IMPLEMENT_FUNCTION_SERIALISED(void, SetMarker, uint32_t Color, const wchar_t *MarkerName); \
+  IMPLEMENT_FUNCTION_SERIALISED(int, PushMarker, uint32_t Color, const wchar_t *MarkerName); \
   IMPLEMENT_FUNCTION_SERIALISED(int, PopMarker);
 
   SERIALISED_ID3D11CONTEXT_MARKER_FUNCTIONS();
@@ -522,6 +522,9 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, ExecuteCommandList,                 \
                                 ID3D11CommandList *pCommandList, BOOL RestoreContextState);         \
                                                                                                     \
+  /* Fake function used to restore state after ExecuteCommandList */                                \
+  IMPLEMENT_FUNCTION_SERIALISED(void, PostExecuteCommandListRestore);                               \
+                                                                                                    \
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, HSSetShaderResources,               \
                                 UINT StartSlot, UINT NumViews,                                      \
                                 ID3D11ShaderResourceView *const *ppShaderResourceViews);            \
@@ -713,7 +716,10 @@ public:
                                                                                                     \
   IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, FinishCommandList,               \
                                 BOOL RestoreDeferredContextState,                                   \
-                                ID3D11CommandList **ppCommandList);
+                                ID3D11CommandList **ppCommandList);                                 \
+                                                                                                    \
+  /* Fake function used to restore state after FinishCommandList */                                 \
+  IMPLEMENT_FUNCTION_SERIALISED(void, PostFinishCommandListSet);
 
   SERIALISED_ID3D11CONTEXT_FUNCTIONS();
 

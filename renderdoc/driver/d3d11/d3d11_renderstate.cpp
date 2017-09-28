@@ -1090,8 +1090,9 @@ void D3D11RenderState::UnbindRangeForRead(const ResourceRange &range)
   }
 }
 
-bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11DepthStencilView *depth,
-                                         ID3D11UnorderedAccessView **uavs)
+bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView *const RTs[], UINT NumRTs,
+                                         ID3D11DepthStencilView *depth,
+                                         ID3D11UnorderedAccessView *const uavs[], UINT NumUAVs)
 {
   D3D11_RENDER_TARGET_VIEW_DESC RTDescs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
   D3D11_DEPTH_STENCIL_VIEW_DESC DepthDesc;
@@ -1106,7 +1107,7 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
       D3D11_RESOURCE_DIMENSION_UNKNOWN};
   D3D11_RESOURCE_DIMENSION depthdim = D3D11_RESOURCE_DIMENSION_UNKNOWN;
 
-  for(int i = 0; RTs && i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+  for(UINT i = 0; RTs && i < NumRTs; i++)
   {
     if(RTs[i])
     {
@@ -1151,7 +1152,7 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
         ResourceRange::Null, ResourceRange::Null, ResourceRange::Null, ResourceRange::Null,
     };
 
-    for(int i = 0; RTs && i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+    for(UINT i = 0; RTs && i < NumRTs; i++)
     {
       if(RTs[i])
         rtvRanges[i] = GetResourceRange(RTs[i]);
@@ -1164,7 +1165,7 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
 
     int numUAVs = 0;
 
-    for(int i = 0; uavs && i < D3D11_1_UAV_SLOT_COUNT; i++)
+    for(UINT i = 0; uavs && i < NumUAVs; i++)
     {
       if(uavs[i])
       {
