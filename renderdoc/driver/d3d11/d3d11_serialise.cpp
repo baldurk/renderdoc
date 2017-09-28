@@ -25,6 +25,41 @@
 #include "common/common.h"
 #include "serialise/serialiser.h"
 #include "d3d11_common.h"
+#include "d3d11_manager.h"
+#include "d3d11_resources.h"
+
+// serialisation of object handles via IDs.
+template <class SerialiserType, class Interface>
+void DoSerialiseViaResourceId(SerialiserType &ser, Interface *&el)
+{
+  D3D11ResourceManager *rm = (D3D11ResourceManager *)ser.GetUserData();
+
+  ResourceId id;
+
+  if(ser.IsWriting() && rm)
+    id = GetIDForResource(el);
+
+  DoSerialise(ser, id);
+
+  if(ser.IsReading())
+  {
+    if(id != ResourceId() && rm && rm->HasLiveResource(id))
+      el = (Interface *)rm->GetLiveResource(id);
+    else
+      el = NULL;
+  }
+}
+
+#undef SERIALISE_INTERFACE
+#define SERIALISE_INTERFACE(iface)                  \
+  template <class SerialiserType>                   \
+  void DoSerialise(SerialiserType &ser, iface *&el) \
+  {                                                 \
+    DoSerialiseViaResourceId(ser, el);              \
+  }                                                 \
+  INSTANTIATE_SERIALISE_TYPE(iface *);
+
+SERIALISE_D3D_INTERFACES();
 
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_BUFFER_DESC &el)
