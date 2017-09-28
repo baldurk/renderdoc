@@ -520,15 +520,15 @@ public:
 
 // this is defined as a macro so that we can re-use it to explicitly instantiate these functions as
 // templates in the wrapper definition file.
-#define SERIALISED_ID3D11DEVICE_FAKE_FUNCTIONS()                                                   \
-  IMPLEMENT_FUNCTION_SERIALISED(ID3D11ClassInstance *, CreateClassInstance, LPCSTR pClassTypeName, \
-                                UINT ConstantBufferOffset, UINT ConstantVectorOffset,              \
-                                UINT TextureOffset, UINT SamplerOffset,                            \
-                                WrappedID3D11ClassLinkage *linkage, ID3D11ClassInstance *inst);    \
-                                                                                                   \
-  IMPLEMENT_FUNCTION_SERIALISED(ID3D11ClassInstance *, GetClassInstance,                           \
-                                LPCSTR pClassInstanceName, UINT InstanceIndex,                     \
-                                WrappedID3D11ClassLinkage *linkage, ID3D11ClassInstance *inst);
+#define SERIALISED_ID3D11DEVICE_FAKE_FUNCTIONS()                                                    \
+  IMPLEMENT_FUNCTION_SERIALISED(                                                                    \
+      ID3D11ClassInstance *, CreateClassInstance, LPCSTR pClassTypeName,                            \
+      UINT ConstantBufferOffset, UINT ConstantVectorOffset, UINT TextureOffset,                     \
+      UINT SamplerOffset, ID3D11ClassLinkage *pClassLinkage, ID3D11ClassInstance **ppInstance);     \
+                                                                                                    \
+  IMPLEMENT_FUNCTION_SERIALISED(ID3D11ClassInstance *, GetClassInstance, LPCSTR pClassInstanceName, \
+                                UINT InstanceIndex, ID3D11ClassLinkage *pClassLinkage,              \
+                                ID3D11ClassInstance **ppInstance);
 
   SERIALISED_ID3D11DEVICE_FAKE_FUNCTIONS();
 

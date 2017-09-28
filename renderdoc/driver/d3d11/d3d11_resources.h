@@ -1228,7 +1228,7 @@ public:
 
     if(SUCCEEDED(hr) && real)
     {
-      *ppInstance = m_pDevice->GetClassInstance(pClassInstanceName, InstanceIndex, this, real);
+      *ppInstance = m_pDevice->GetClassInstance(pClassInstanceName, InstanceIndex, this, &real);
     }
     else
     {
@@ -1264,7 +1264,7 @@ public:
     {
       *ppInstance =
           m_pDevice->CreateClassInstance(pClassTypeName, ConstantBufferOffset, ConstantVectorOffset,
-                                         TextureOffset, SamplerOffset, this, real);
+                                         TextureOffset, SamplerOffset, this, &real);
     }
     else
     {
