@@ -776,23 +776,10 @@ void WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
     case D3D11Chunk::DiscardView1: Serialise_DiscardView1(ser, NULL, NULL, 0); break;
 
     case D3D11Chunk::PostExecuteCommandListRestore:
-    {
-      // apply saved state.
-      if(m_DeferredSavedState)
-      {
-        m_DeferredSavedState->ApplyState(this);
-        SAFE_DELETE(m_DeferredSavedState);
-      }
+      Serialise_PostExecuteCommandListRestore(ser);
       break;
-    }
 
-    case D3D11Chunk::PostFinishCommandListSet:
-    {
-      D3D11RenderState RenderState(D3D11RenderState::Empty);
-      SERIALISE_ELEMENT(RenderState);
-      RenderState.ApplyState(this);
-      break;
-    }
+    case D3D11Chunk::PostFinishCommandListSet: Serialise_PostFinishCommandListSet(ser); break;
 
     case D3D11Chunk::SwapDeviceContextState:
       Serialise_SwapDeviceContextState(ser, NULL, NULL);
@@ -814,7 +801,7 @@ void WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
       if(IsLoading(m_State))
       {
         if(!m_PresentChunk)
-          AddEvent("End of Frame");
+          AddEvent();
 
         DrawcallDescription draw;
         draw.name = "End of Frame";
@@ -849,7 +836,7 @@ void WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
     else
     {
       if(!m_AddedDrawcall)
-        AddEvent("");
+        AddEvent();
     }
   }
 
@@ -1010,14 +997,15 @@ void WrappedID3D11DeviceContext::AddDrawcall(const DrawcallDescription &d, bool 
     RDCERR("Somehow lost drawcall stack!");
 }
 
-void WrappedID3D11DeviceContext::AddEvent(string description)
+void WrappedID3D11DeviceContext::AddEvent()
 {
   APIEvent apievent;
 
   apievent.fileOffset = m_CurChunkOffset;
   apievent.eventID = m_CurEventID;
 
-  apievent.eventDesc = description;
+  // TODO structured data?
+  apievent.eventDesc = "TODO";
 
   apievent.callstack = m_ChunkMetadata.callstack;
 
@@ -1328,7 +1316,7 @@ void WrappedID3D11DeviceContext::RecordIndexBindStats(ID3D11Buffer *Buffer)
   indices.nulls += (Buffer == NULL);
 }
 
-void WrappedID3D11DeviceContext::RecordVertexBindStats(UINT NumBuffers, ID3D11Buffer *Buffers[])
+void WrappedID3D11DeviceContext::RecordVertexBindStats(UINT NumBuffers, ID3D11Buffer *const Buffers[])
 {
   FrameStatistics &stats = m_pDevice->GetFrameStats();
   VertexBindStats &vertices = stats.vertices;
@@ -1355,7 +1343,7 @@ void WrappedID3D11DeviceContext::RecordLayoutBindStats(ID3D11InputLayout *Layout
 }
 
 void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStage stage, UINT NumBuffers,
-                                                     ID3D11Buffer *Buffers[])
+                                                     ID3D11Buffer *const Buffers[])
 {
   FrameStatistics &stats = m_pDevice->GetFrameStats();
   RDCASSERT(size_t(stage) < ARRAY_COUNT(stats.constants));
@@ -1385,7 +1373,7 @@ void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStage stage, UINT Num
 }
 
 void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStage stage, UINT NumResources,
-                                                     ID3D11ShaderResourceView *Resources[])
+                                                     ID3D11ShaderResourceView *const Resources[])
 {
   FrameStatistics &stats = m_pDevice->GetFrameStats();
   RDCASSERT(size_t(stage) < ARRAY_COUNT(stats.resources));
@@ -1426,7 +1414,7 @@ void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStage stage, UINT Num
 }
 
 void WrappedID3D11DeviceContext::RecordSamplerStats(ShaderStage stage, UINT NumSamplers,
-                                                    ID3D11SamplerState *Samplers[])
+                                                    ID3D11SamplerState *const Samplers[])
 {
   FrameStatistics &stats = m_pDevice->GetFrameStats();
   RDCASSERT(size_t(stage) < ARRAY_COUNT(stats.samplers));
@@ -1517,8 +1505,8 @@ void WrappedID3D11DeviceContext::RecordShaderStats(ShaderStage stage, ID3D11Devi
   shaders.redundants += (Current == Shader);
 }
 
-void WrappedID3D11DeviceContext::RecordBlendStats(ID3D11BlendState *Blend, FLOAT BlendFactor[4],
-                                                  UINT SampleMask)
+void WrappedID3D11DeviceContext::RecordBlendStats(ID3D11BlendState *Blend,
+                                                  const FLOAT BlendFactor[4], UINT SampleMask)
 {
   FrameStatistics &stats = m_pDevice->GetFrameStats();
   BlendStats &blends = stats.blends;

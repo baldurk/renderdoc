@@ -198,8 +198,9 @@ struct D3D11RenderState
   // that might not be obvious/intended.
 
   // validate an output merger combination of render targets and depth view
-  bool ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11DepthStencilView *depth,
-                         ID3D11UnorderedAccessView **uavs);
+  bool ValidOutputMerger(ID3D11RenderTargetView *const RTs[], UINT NumRTs,
+                         ID3D11DepthStencilView *depth, ID3D11UnorderedAccessView *const uavs[],
+                         UINT NumUAVs);
 
   struct inputassembler
   {
@@ -275,7 +276,7 @@ struct D3D11RenderState
   void SetDevice(WrappedID3D11Device *device) { m_pDevice = device; }
   void MarkReferenced(WrappedID3D11DeviceContext *ctx, bool initial) const;
   void CacheViewportPartial();
-
+  bool IsViewportPartial() { return m_ViewportScissorPartial; }
 private:
   void AddRefs();
   void ReleaseRefs();
