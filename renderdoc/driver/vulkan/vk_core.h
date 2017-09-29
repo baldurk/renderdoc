@@ -1087,6 +1087,9 @@ public:
                                 VkDescriptorPool descriptorPool, uint32_t descriptorSetCount,
                                 const VkDescriptorSet *pDescriptorSets);
 
+  void ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescriptorSet &writeDesc);
+  void ReplayDescriptorSetCopy(VkDevice device, const VkCopyDescriptorSet &copyDesc);
+
   IMPLEMENT_FUNCTION_SERIALISED(void, vkUpdateDescriptorSets, VkDevice device,
                                 uint32_t descriptorWriteCount,
                                 const VkWriteDescriptorSet *pDescriptorWrites,
