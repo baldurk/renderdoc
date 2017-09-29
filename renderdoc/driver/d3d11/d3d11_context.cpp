@@ -1038,7 +1038,7 @@ const APIEvent &WrappedID3D11DeviceContext::GetEvent(uint32_t eventID)
       return e;
   }
 
-  return m_Events[0];
+  return m_Events.back();
 }
 
 void WrappedID3D11DeviceContext::ReplayFakeContext(ResourceId id)

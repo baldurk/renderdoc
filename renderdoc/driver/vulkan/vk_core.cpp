@@ -3113,7 +3113,7 @@ const APIEvent &WrappedVulkan::GetEvent(uint32_t eventID)
       return e;
   }
 
-  return m_Events[0];
+  return m_Events.back();
 }
 
 const DrawcallDescription *WrappedVulkan::GetDrawcall(uint32_t eventID)

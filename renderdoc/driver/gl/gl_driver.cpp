@@ -4476,7 +4476,7 @@ const APIEvent &WrappedOpenGL::GetEvent(uint32_t eventID)
       return e;
   }
 
-  return m_Events[0];
+  return m_Events.back();
 }
 
 const DrawcallDescription *WrappedOpenGL::GetDrawcall(uint32_t eventID)
