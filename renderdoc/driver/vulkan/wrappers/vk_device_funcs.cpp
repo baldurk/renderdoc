@@ -364,7 +364,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   *pInstance = m_Instance;
 
   // should only be called during capture
-  RDCASSERT(m_State >= WRITING);
+  RDCASSERT(IsCaptureMode(m_State));
 
   m_InitParams.Set(pCreateInfo, GetResID(m_Instance));
   VkResourceRecord *record = GetResourceManager()->AddResourceRecord(m_Instance);
@@ -519,35 +519,32 @@ void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCal
   m_Instance = VK_NULL_HANDLE;
 }
 
-bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerialiser,
-                                                         VkInstance instance,
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, VkInstance instance,
                                                          uint32_t *pPhysicalDeviceCount,
                                                          VkPhysicalDevice *pPhysicalDevices)
 {
-  SERIALISE_ELEMENT(ResourceId, inst, GetResID(instance));
-  SERIALISE_ELEMENT(uint32_t, physIndex, *pPhysicalDeviceCount);
-  SERIALISE_ELEMENT(ResourceId, physId, GetResID(*pPhysicalDevices));
+  SERIALISE_ELEMENT(instance);
+  SERIALISE_ELEMENT_LOCAL(PhysicalDeviceIndex, *pPhysicalDeviceCount);
+  SERIALISE_ELEMENT_LOCAL(PhysicalDevice, GetResID(*pPhysicalDevices));
 
-  uint32_t memIdxMap[32] = {0};
-  if(m_State >= WRITING)
-    memcpy(memIdxMap, GetRecord(*pPhysicalDevices)->memIdxMap, sizeof(memIdxMap));
-
-  localSerialiser->SerialisePODArray<32>("memIdxMap", memIdxMap);
-
+  uint32_t memIdxMap[VK_MAX_MEMORY_TYPES] = {0};
   // not used at the moment but useful for reference and might be used
   // in the future
   VkPhysicalDeviceProperties physProps;
   VkPhysicalDeviceMemoryProperties memProps;
   VkPhysicalDeviceFeatures physFeatures;
+  uint32_t queueCount = 0;
   VkQueueFamilyProperties queueProps[16];
 
-  if(m_State >= WRITING)
+  if(ser.IsWriting())
   {
+    memcpy(memIdxMap, GetRecord(*pPhysicalDevices)->memIdxMap, sizeof(memIdxMap));
+
     ObjDisp(instance)->GetPhysicalDeviceProperties(Unwrap(*pPhysicalDevices), &physProps);
     ObjDisp(instance)->GetPhysicalDeviceMemoryProperties(Unwrap(*pPhysicalDevices), &memProps);
     ObjDisp(instance)->GetPhysicalDeviceFeatures(Unwrap(*pPhysicalDevices), &physFeatures);
 
-    uint32_t queueCount = 0;
     ObjDisp(instance)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(*pPhysicalDevices),
                                                               &queueCount, NULL);
 
@@ -561,33 +558,31 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerial
                                                               &queueCount, queueProps);
   }
 
-  localSerialiser->Serialise("physProps", physProps);
-  localSerialiser->Serialise("memProps", memProps);
-  localSerialiser->Serialise("physFeatures", physFeatures);
-  localSerialiser->SerialisePODArray<16>("queueProps", queueProps);
+  SERIALISE_ELEMENT(memIdxMap);
+  SERIALISE_ELEMENT(physProps);
+  SERIALISE_ELEMENT(memProps);
+  SERIALISE_ELEMENT(physFeatures);
+  SERIALISE_ELEMENT(queueCount);
+  SERIALISE_ELEMENT(queueProps);
 
   VkPhysicalDevice pd = VK_NULL_HANDLE;
 
-  if(m_State >= WRITING)
-  {
-    pd = *pPhysicalDevices;
-  }
-  else
+  if(IsReplayingAndReading())
   {
     {
       VkDriverInfo capturedVersion(physProps);
 
-      RDCLOG("Captured log describes physical device %u:", physIndex);
+      RDCLOG("Captured log describes physical device %u:", PhysicalDeviceIndex);
       RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", physProps.deviceName,
              capturedVersion.Major(), capturedVersion.Minor(), capturedVersion.Patch(),
              physProps.vendorID, physProps.deviceID);
 
-      if(physIndex >= m_OriginalPhysicalDevices.size())
-        m_OriginalPhysicalDevices.resize(physIndex + 1);
+      if(PhysicalDeviceIndex >= m_OriginalPhysicalDevices.size())
+        m_OriginalPhysicalDevices.resize(PhysicalDeviceIndex + 1);
 
-      m_OriginalPhysicalDevices[physIndex].props = physProps;
-      m_OriginalPhysicalDevices[physIndex].memProps = memProps;
-      m_OriginalPhysicalDevices[physIndex].features = physFeatures;
+      m_OriginalPhysicalDevices[PhysicalDeviceIndex].props = physProps;
+      m_OriginalPhysicalDevices[PhysicalDeviceIndex].memProps = memProps;
+      m_OriginalPhysicalDevices[PhysicalDeviceIndex].features = physFeatures;
     }
 
     // match up physical devices to those available on replay as best as possible. In general
@@ -667,14 +662,14 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerial
     pd = m_ReplayPhysicalDevices[bestIdx];
 
     if(!m_ReplayPhysicalDevicesUsed[bestIdx])
-      GetResourceManager()->AddLiveResource(physId, pd);
+      GetResourceManager()->AddLiveResource(PhysicalDevice, pd);
     else
-      GetResourceManager()->ReplaceResource(physId,
+      GetResourceManager()->ReplaceResource(PhysicalDevice,
                                             GetResourceManager()->GetOriginalID(GetResID(pd)));
 
-    if(physIndex >= m_PhysicalDevices.size())
-      m_PhysicalDevices.resize(physIndex + 1);
-    m_PhysicalDevices[physIndex] = pd;
+    if(PhysicalDeviceIndex >= m_PhysicalDevices.size())
+      m_PhysicalDevices.resize(PhysicalDeviceIndex + 1);
+    m_PhysicalDevices[PhysicalDeviceIndex] = pd;
 
     if(m_ReplayPhysicalDevicesUsed[bestIdx])
     {
@@ -734,7 +729,7 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
     {
       GetResourceManager()->WrapResource(instance, devices[i]);
 
-      if(m_State >= WRITING)
+      if(IsCaptureMode(m_State))
       {
         // add the record first since it's used in the serialise function below to fetch
         // the memory indices
@@ -753,8 +748,8 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
         {
           CACHE_THREAD_SERIALISER();
 
-          SCOPED_SERIALISE_CONTEXT(ENUM_PHYSICALS);
-          Serialise_vkEnumeratePhysicalDevices(localSerialiser, instance, &i, &devices[i]);
+          SCOPED_SERIALISE_CHUNK(VulkanChunk::vkEnumeratePhysicalDevices);
+          Serialise_vkEnumeratePhysicalDevices(ser, instance, &i, &devices[i]);
 
           record->AddChunk(scope.Get());
         }
@@ -869,24 +864,22 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
   return VK_SUCCESS;
 }
 
-bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
-                                             VkPhysicalDevice physicalDevice,
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevice physicalDevice,
                                              const VkDeviceCreateInfo *pCreateInfo,
                                              const VkAllocationCallbacks *pAllocator,
                                              VkDevice *pDevice)
 {
-  SERIALISE_ELEMENT(ResourceId, physId, GetResID(physicalDevice));
-  SERIALISE_ELEMENT(VkDeviceCreateInfo, serCreateInfo, *pCreateInfo);
-  SERIALISE_ELEMENT(ResourceId, devId, GetResID(*pDevice));
-  SERIALISE_ELEMENT(uint32_t, queueFamily, m_SupportedQueueFamily);
+  SERIALISE_ELEMENT(physicalDevice);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(Device, GetResID(*pDevice));
+  SERIALISE_ELEMENT(m_SupportedQueueFamily);
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
     // we must make any modifications locally, so the free of pointers
     // in the serialised VkDeviceCreateInfo don't double-free
-    VkDeviceCreateInfo createInfo = serCreateInfo;
-
-    m_SupportedQueueFamily = queueFamily;
+    VkDeviceCreateInfo createInfo = CreateInfo;
 
     std::vector<string> Extensions;
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
@@ -912,8 +905,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
       Layers.push_back(createInfo.ppEnabledLayerNames[i]);
 
     StripUnwantedLayers(Layers);
-
-    physicalDevice = GetResourceManager()->GetLiveHandle<VkPhysicalDevice>(physId);
 
     std::set<string> supportedExtensions;
 
@@ -1132,7 +1123,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     GetResourceManager()->WrapResource(device, device);
-    GetResourceManager()->AddLiveResource(devId, device);
+    GetResourceManager()->AddLiveResource(Device, device);
 
     InstanceDeviceInfo extInfo;
 
@@ -1403,15 +1394,15 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
     ResourceId id = GetResourceManager()->WrapResource(*pDevice, *pDevice);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       Chunk *chunk = NULL;
 
       {
         CACHE_THREAD_SERIALISER();
 
-        SCOPED_SERIALISE_CONTEXT(CREATE_DEVICE);
-        Serialise_vkCreateDevice(localSerialiser, physicalDevice, &createInfo, NULL, pDevice);
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateDevice);
+        Serialise_vkCreateDevice(ser, physicalDevice, &createInfo, NULL, pDevice);
 
         chunk = scope.Get();
       }
@@ -1556,13 +1547,13 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
   m_PhysicalDevice = VK_NULL_HANDLE;
 }
 
-bool WrappedVulkan::Serialise_vkDeviceWaitIdle(Serialiser *localSerialiser, VkDevice device)
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkDeviceWaitIdle(SerialiserType &ser, VkDevice device)
 {
-  SERIALISE_ELEMENT(ResourceId, id, GetResID(device));
+  SERIALISE_ELEMENT(device);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    device = GetResourceManager()->GetLiveHandle<VkDevice>(id);
     ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
   }
 
@@ -1573,15 +1564,24 @@ VkResult WrappedVulkan::vkDeviceWaitIdle(VkDevice device)
 {
   VkResult ret = ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
 
-  if(m_State >= WRITING_CAPFRAME)
+  if(IsActiveCapturing(m_State))
   {
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CONTEXT(DEVICE_WAIT_IDLE);
-    Serialise_vkDeviceWaitIdle(localSerialiser, device);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkDeviceWaitIdle);
+    Serialise_vkDeviceWaitIdle(ser, device);
 
     m_FrameCaptureRecord->AddChunk(scope.Get());
   }
 
   return ret;
 }
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkEnumeratePhysicalDevices, VkInstance instance,
+                                uint32_t *pPhysicalDeviceCount, VkPhysicalDevice *pPhysicalDevices);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateDevice, VkPhysicalDevice physicalDevice,
+                                const VkDeviceCreateInfo *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator, VkDevice *pDevice);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkDeviceWaitIdle, VkDevice device);
