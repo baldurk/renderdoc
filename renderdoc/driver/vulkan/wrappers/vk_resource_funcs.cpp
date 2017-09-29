@@ -140,27 +140,26 @@
 
 // Memory functions
 
-bool WrappedVulkan::Serialise_vkAllocateMemory(Serialiser *localSerialiser, VkDevice device,
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice device,
                                                const VkMemoryAllocateInfo *pAllocateInfo,
                                                const VkAllocationCallbacks *pAllocator,
                                                VkDeviceMemory *pMemory)
 {
-  SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-  SERIALISE_ELEMENT(VkMemoryAllocateInfo, info, *pAllocateInfo);
-  SERIALISE_ELEMENT(ResourceId, id, GetResID(*pMemory));
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo);
+  SERIALISE_ELEMENT_LOCAL(Memory, GetResID(*pMemory));
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
     VkDeviceMemory mem = VK_NULL_HANDLE;
-
-    device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 
     // serialised memory type index is non-remapped, so we remap now.
     // PORTABILITY may need to re-write info to change memory type index to the
     // appropriate index on replay
-    info.memoryTypeIndex = m_PhysicalDeviceData.memIdxMap[info.memoryTypeIndex];
+    AllocateInfo.memoryTypeIndex = m_PhysicalDeviceData.memIdxMap[AllocateInfo.memoryTypeIndex];
 
-    VkResult ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &info, NULL, &mem);
+    VkResult ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &AllocateInfo, NULL, &mem);
 
     if(ret != VK_SUCCESS)
     {
@@ -169,9 +168,9 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(Serialiser *localSerialiser, VkDe
     else
     {
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), mem);
-      GetResourceManager()->AddLiveResource(id, mem);
+      GetResourceManager()->AddLiveResource(Memory, mem);
 
-      m_CreationInfo.m_Memory[live].Init(GetResourceManager(), m_CreationInfo, &info);
+      m_CreationInfo.m_Memory[live].Init(GetResourceManager(), m_CreationInfo, &AllocateInfo);
 
       // create a buffer with the whole memory range bound, for copying to and from
       // conveniently (for initial state data)
@@ -181,7 +180,7 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(Serialiser *localSerialiser, VkDe
           VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
           NULL,
           0,
-          info.allocationSize,
+          AllocateInfo.allocationSize,
           VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
       };
 
@@ -194,7 +193,7 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(Serialiser *localSerialiser, VkDe
       VkMemoryRequirements mrq = {};
       ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), buf, &mrq);
 
-      RDCASSERT(mrq.size <= info.allocationSize, mrq.size, info.allocationSize);
+      RDCASSERT(mrq.size <= AllocateInfo.allocationSize, mrq.size, AllocateInfo.allocationSize);
 
       ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
 
@@ -215,7 +214,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
                                          VkDeviceMemory *pMemory)
 {
   VkMemoryAllocateInfo info = *pAllocateInfo;
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
     info.memoryTypeIndex = GetRecord(device)->memIdxMap[info.memoryTypeIndex];
 
   {
@@ -411,15 +410,15 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
   {
     ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pMemory);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       Chunk *chunk = NULL;
 
       {
         CACHE_THREAD_SERIALISER();
 
-        SCOPED_SERIALISE_CONTEXT(ALLOC_MEM);
-        Serialise_vkAllocateMemory(localSerialiser, device, &info, NULL, pMemory);
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkAllocateMemory);
+        Serialise_vkAllocateMemory(ser, device, &info, NULL, pMemory);
 
         chunk = scope.Get();
       }
@@ -497,7 +496,7 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
 
   VkDeviceMemory unwrappedMem = wrapped->real.As<VkDeviceMemory>();
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     // there is an implicit unmap on free, so make sure to tidy up
     if(wrapped->record->memMapState && wrapped->record->memMapState->refData)
@@ -531,7 +530,7 @@ VkResult WrappedVulkan::vkMapMemory(VkDevice device, VkDeviceMemory mem, VkDevic
   {
     ResourceId id = GetResID(mem);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       VkResourceRecord *memrecord = GetRecord(mem);
 
@@ -572,49 +571,51 @@ VkResult WrappedVulkan::vkMapMemory(VkDevice device, VkDeviceMemory mem, VkDevic
   return ret;
 }
 
-bool WrappedVulkan::Serialise_vkUnmapMemory(Serialiser *localSerialiser, VkDevice device,
-                                            VkDeviceMemory mem)
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device,
+                                            VkDeviceMemory memory)
 {
-  SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-  SERIALISE_ELEMENT(ResourceId, id, GetResID(mem));
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(memory);
+
+  uint64_t MapOffset = 0;
+  uint64_t MapSize = 0;
+  byte *MapData = NULL;
 
   MemMapState *state = NULL;
-  if(m_State >= WRITING)
-    state = GetRecord(mem)->memMapState;
-
-  SERIALISE_ELEMENT(uint64_t, memOffset, state->mapOffset);
-  SERIALISE_ELEMENT(uint64_t, memSize, state->mapSize);
-  SERIALISE_ELEMENT_BUF(byte *, data, (byte *)state->mappedPtr + state->mapOffset, (size_t)memSize);
-
-  if(m_State < WRITING)
+  if(IsCaptureMode(m_State))
   {
-    device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-    mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(id);
+    state = GetRecord(memory)->memMapState;
 
-    void *mapPtr = NULL;
-    VkResult ret =
-        ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), memOffset, memSize, 0, &mapPtr);
+    MapOffset = state->mapOffset;
+    MapSize = state->mapSize;
 
-    if(ret != VK_SUCCESS)
-    {
-      RDCERR("Error mapping memory on replay: 0x%08x", ret);
-    }
-    else
-    {
-      memcpy((byte *)mapPtr, data, (size_t)memSize);
-
-      ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
-    }
-
-    SAFE_DELETE_ARRAY(data);
+    MapData = (byte *)state->mappedPtr + MapOffset;
   }
+
+  if(IsReplayingAndReading())
+  {
+    VkResult vkr = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(memory), MapOffset, MapSize, 0,
+                                              (void **)&MapData);
+    if(vkr != VK_SUCCESS)
+      RDCERR("Error mapping memory on replay: %s", ToStr(vkr).c_str());
+  }
+
+  SERIALISE_ELEMENT(MapOffset);
+
+  // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
+  // directly into upload memory
+  ser.Serialise("MapData", MapData, MapSize, SerialiserFlags::NoFlags);
+
+  if(IsReplayingAndReading() && MapData)
+    ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(memory));
 
   return true;
 }
 
 void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
 {
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     ResourceId id = GetResID(mem);
 
@@ -631,7 +632,7 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
       bool capframe = false;
       {
         SCOPED_LOCK(m_CapTransitionLock);
-        capframe = (m_State == WRITING_CAPFRAME);
+        capframe = IsActiveCapturing(m_State);
 
         if(!capframe)
           GetResourceManager()->MarkDirtyResource(id);
@@ -650,12 +651,12 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
         {
           CACHE_THREAD_SERIALISER();
 
-          SCOPED_SERIALISE_CONTEXT(UNMAP_MEM);
-          Serialise_vkUnmapMemory(localSerialiser, device, mem);
+          SCOPED_SERIALISE_CHUNK(VulkanChunk::vkUnmapMemory);
+          Serialise_vkUnmapMemory(ser, device, mem);
 
           VkResourceRecord *record = GetRecord(mem);
 
-          if(m_State == WRITING_IDLE)
+          if(IsBackgroundCapturing(m_State))
           {
             record->AddChunk(scope.Get());
           }
@@ -688,41 +689,56 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
   ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
 }
 
-bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(Serialiser *localSerialiser,
-                                                        VkDevice device, uint32_t memRangeCount,
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkDevice device,
+                                                        uint32_t memRangeCount,
                                                         const VkMappedMemoryRange *pMemRanges)
 {
-  SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-  SERIALISE_ELEMENT(ResourceId, id, GetResID(pMemRanges->memory));
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(MemRange, *pMemRanges);
 
-  VkDeviceSize memRangeSize = 1;
+  byte *MappedData = NULL;
+  uint64_t memRangeSize = 1;
 
   MemMapState *state = NULL;
-  if(m_State >= WRITING)
+  if(ser.IsWriting())
   {
-    VkResourceRecord *record = GetRecord(pMemRanges->memory);
+    VkResourceRecord *record = GetRecord(MemRange.memory);
     state = record->memMapState;
 
-    memRangeSize = pMemRanges->size;
+    memRangeSize = MemRange.size;
     if(memRangeSize == VK_WHOLE_SIZE)
-      memRangeSize = record->Length - pMemRanges->offset;
+      memRangeSize = record->Length - MemRange.offset;
 
     // don't support any extensions on VkMappedMemoryRange
     RDCASSERT(pMemRanges->pNext == NULL);
+
+    MappedData = state->mappedPtr + (size_t)MemRange.offset;
   }
 
-  SERIALISE_ELEMENT(uint64_t, memOffset, pMemRanges->offset);
-  SERIALISE_ELEMENT(uint64_t, memSize, memRangeSize);
-  SERIALISE_ELEMENT_BUF(byte *, data, state->mappedPtr + (size_t)memOffset, (size_t)memSize);
+  if(IsReplayingAndReading())
+  {
+    VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(MemRange.memory),
+                                              MemRange.offset, memRangeSize, 0, (void **)&MappedData);
+    if(ret != VK_SUCCESS)
+      RDCERR("Error mapping memory on replay: %s", ToStr(ret).c_str());
+  }
+
+  // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
+  // directly into upload memory
+  ser.Serialise("MappedData", MappedData, memRangeSize, SerialiserFlags::NoFlags);
+
+  if(IsReplayingAndReading() && MappedData)
+    ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(MemRange.memory));
 
   // if we need to save off this serialised buffer as reference for future comparison,
   // do so now. See the call to vkFlushMappedMemoryRanges in WrappedVulkan::vkQueueSubmit()
-  if(m_State >= WRITING && state->needRefData)
+  if(ser.IsWriting() && state->needRefData)
   {
     if(!state->refData)
     {
       // if we're in this case, the range should be for the whole memory region.
-      RDCASSERT(memOffset == 0 && memSize == state->mapSize);
+      RDCASSERT(MemRange.offset == 0 && memRangeSize == state->mapSize);
 
       // allocate ref data so we can compare next time to minimise serialised data
       state->refData = AllocAlignedBuffer((size_t)state->mapSize);
@@ -731,34 +747,11 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(Serialiser *localSeriali
     // it's no longer safe to use state->mappedPtr, we need to save *precisely* what
     // was serialised. We do this by copying out of the serialiser since we know this
     // memory is not changing
-    size_t offs = size_t(localSerialiser->GetOffset() - memSize);
+    size_t offs = size_t(ser.GetWriter()->GetOffset() - memRangeSize);
 
-    byte *serialisedData = localSerialiser->GetRawPtr(offs);
+    const byte *serialisedData = ser.GetWriter()->GetData() + offs;
 
-    memcpy(state->refData, serialisedData, (size_t)memSize);
-  }
-
-  if(m_State < WRITING)
-  {
-    device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-    VkDeviceMemory mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(id);
-
-    void *mapPtr = NULL;
-    VkResult ret =
-        ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), memOffset, memSize, 0, &mapPtr);
-
-    if(ret != VK_SUCCESS)
-    {
-      RDCERR("Error mapping memory on replay: 0x%08x", ret);
-    }
-    else
-    {
-      memcpy((byte *)mapPtr, data, (size_t)memSize);
-
-      ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
-    }
-
-    SAFE_DELETE_ARRAY(data);
+    memcpy(state->refData, serialisedData, (size_t)memRangeSize);
   }
 
   return true;
@@ -767,16 +760,26 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(Serialiser *localSeriali
 VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memRangeCount,
                                                   const VkMappedMemoryRange *pMemRanges)
 {
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     bool capframe = false;
     {
       SCOPED_LOCK(m_CapTransitionLock);
-      capframe = (m_State == WRITING_CAPFRAME);
+      capframe = IsActiveCapturing(m_State);
     }
 
     for(uint32_t i = 0; i < memRangeCount; i++)
     {
+      if(capframe)
+      {
+        CACHE_THREAD_SERIALISER();
+
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkFlushMappedMemoryRanges);
+        Serialise_vkFlushMappedMemoryRanges(ser, device, 1, pMemRanges + i);
+
+        m_FrameCaptureRecord->AddChunk(scope.Get());
+      }
+
       ResourceId memid = GetResID(pMemRanges[i].memory);
 
       MemMapState *state = GetRecord(pMemRanges[i].memory)->memMapState;
@@ -790,12 +793,6 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
 
       if(capframe)
       {
-        CACHE_THREAD_SERIALISER();
-
-        SCOPED_SERIALISE_CONTEXT(FLUSH_MEM);
-        Serialise_vkFlushMappedMemoryRanges(localSerialiser, device, 1, pMemRanges + i);
-
-        m_FrameCaptureRecord->AddChunk(scope.Get());
         GetResourceManager()->MarkResourceFrameReferenced(GetResID(pMemRanges[i].memory),
                                                           eFrameRef_Write);
       }
@@ -835,41 +832,36 @@ VkResult WrappedVulkan::vkInvalidateMappedMemoryRanges(VkDevice device, uint32_t
 
 // Generic API object functions
 
-bool WrappedVulkan::Serialise_vkBindBufferMemory(Serialiser *localSerialiser, VkDevice device,
-                                                 VkBuffer buffer, VkDeviceMemory mem,
-                                                 VkDeviceSize memOffset)
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice device,
+                                                 VkBuffer buffer, VkDeviceMemory memory,
+                                                 VkDeviceSize memoryOffset)
 {
-  SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-  SERIALISE_ELEMENT(ResourceId, bufId, GetResID(buffer));
-  SERIALISE_ELEMENT(ResourceId, memId, GetResID(mem));
-  SERIALISE_ELEMENT(uint64_t, offs, memOffset);
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(buffer);
+  SERIALISE_ELEMENT(memory);
+  SERIALISE_ELEMENT(memoryOffset);
 
-  if(m_State < WRITING)
-  {
-    device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-    buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufId);
-    mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(memId);
-
-    ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(mem), offs);
-  }
+  if(IsReplayingAndReading())
+    ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(memory), memoryOffset);
 
   return true;
 }
 
-VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkDeviceMemory mem,
-                                           VkDeviceSize memOffset)
+VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkDeviceMemory memory,
+                                           VkDeviceSize memoryOffset)
 {
   VkResourceRecord *record = GetRecord(buffer);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     Chunk *chunk = NULL;
 
     {
       CACHE_THREAD_SERIALISER();
 
-      SCOPED_SERIALISE_CONTEXT(BIND_BUFFER_MEM);
-      Serialise_vkBindBufferMemory(localSerialiser, device, buffer, mem, memOffset);
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkBindBufferMemory);
+      Serialise_vkBindBufferMemory(ser, device, buffer, memory, memoryOffset);
 
       chunk = scope.Get();
     }
@@ -879,30 +871,25 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
     // to memory mid-frame
     record->AddChunk(chunk);
 
-    record->AddParent(GetRecord(mem));
-    record->baseResource = GetResID(mem);
+    record->AddParent(GetRecord(memory));
+    record->baseResource = GetResID(memory);
   }
 
-  return ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(mem), memOffset);
+  return ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(memory),
+                                           memoryOffset);
 }
 
-bool WrappedVulkan::Serialise_vkBindImageMemory(Serialiser *localSerialiser, VkDevice device,
-                                                VkImage image, VkDeviceMemory mem,
-                                                VkDeviceSize memOffset)
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice device, VkImage image,
+                                                VkDeviceMemory memory, VkDeviceSize memoryOffset)
 {
-  SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-  SERIALISE_ELEMENT(ResourceId, imgId, GetResID(image));
-  SERIALISE_ELEMENT(ResourceId, memId, GetResID(mem));
-  SERIALISE_ELEMENT(uint64_t, offs, memOffset);
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(image);
+  SERIALISE_ELEMENT(memory);
+  SERIALISE_ELEMENT(memoryOffset);
 
-  if(m_State < WRITING)
-  {
-    device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-    image = GetResourceManager()->GetLiveHandle<VkImage>(imgId);
-    mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(memId);
-
-    ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(mem), offs);
-  }
+  if(IsReplayingAndReading())
+    ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(memory), memoryOffset);
 
   return true;
 }
@@ -912,15 +899,15 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
 {
   VkResourceRecord *record = GetRecord(image);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     Chunk *chunk = NULL;
 
     {
       CACHE_THREAD_SERIALISER();
 
-      SCOPED_SERIALISE_CONTEXT(BIND_IMAGE_MEM);
-      Serialise_vkBindImageMemory(localSerialiser, device, image, mem, memOffset);
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkBindImageMemory);
+      Serialise_vkBindImageMemory(ser, device, image, mem, memOffset);
 
       chunk = scope.Get();
     }
@@ -941,28 +928,28 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
   return ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(mem), memOffset);
 }
 
-bool WrappedVulkan::Serialise_vkCreateBuffer(Serialiser *localSerialiser, VkDevice device,
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice device,
                                              const VkBufferCreateInfo *pCreateInfo,
                                              const VkAllocationCallbacks *pAllocator,
                                              VkBuffer *pBuffer)
 {
-  SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-  SERIALISE_ELEMENT(VkBufferCreateInfo, info, *pCreateInfo);
-  SERIALISE_ELEMENT(ResourceId, id, GetResID(*pBuffer));
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(Buffer, GetResID(*pBuffer));
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
-    device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
     VkBuffer buf = VK_NULL_HANDLE;
 
-    VkBufferUsageFlags origusage = info.usage;
+    VkBufferUsageFlags origusage = CreateInfo.usage;
 
     // ensure we can always readback from buffers
-    info.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    CreateInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-    VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &info, NULL, &buf);
+    VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &CreateInfo, NULL, &buf);
 
-    info.usage = origusage;
+    CreateInfo.usage = origusage;
 
     if(ret != VK_SUCCESS)
     {
@@ -971,9 +958,9 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(Serialiser *localSerialiser, VkDevi
     else
     {
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), buf);
-      GetResourceManager()->AddLiveResource(id, buf);
+      GetResourceManager()->AddLiveResource(Buffer, buf);
 
-      m_CreationInfo.m_Buffer[live].Init(GetResourceManager(), m_CreationInfo, &info);
+      m_CreationInfo.m_Buffer[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
     }
   }
 
@@ -997,15 +984,15 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
   {
     ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pBuffer);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       Chunk *chunk = NULL;
 
       {
         CACHE_THREAD_SERIALISER();
 
-        SCOPED_SERIALISE_CONTEXT(CREATE_BUFFER);
-        Serialise_vkCreateBuffer(localSerialiser, device, pCreateInfo, NULL, pBuffer);
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateBuffer);
+        Serialise_vkCreateBuffer(ser, device, pCreateInfo, NULL, pBuffer);
 
         chunk = scope.Get();
       }
@@ -1022,13 +1009,17 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         // only means not all the buffer needs to be bound, which is not that interesting for
         // our purposes
 
+        bool capframe = false;
+
         {
           SCOPED_LOCK(m_CapTransitionLock);
-          if(m_State != WRITING_CAPFRAME)
-            GetResourceManager()->MarkDirtyResource(id);
-          else
-            GetResourceManager()->MarkPendingDirty(id);
+          capframe = IsActiveCapturing(m_State);
         }
+
+        if(capframe)
+          GetResourceManager()->MarkPendingDirty(id);
+        else
+          GetResourceManager()->MarkDirtyResource(id);
       }
     }
     else
@@ -1042,21 +1033,23 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
   return ret;
 }
 
-bool WrappedVulkan::Serialise_vkCreateBufferView(Serialiser *localSerialiser, VkDevice device,
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCreateBufferView(SerialiserType &ser, VkDevice device,
                                                  const VkBufferViewCreateInfo *pCreateInfo,
                                                  const VkAllocationCallbacks *pAllocator,
                                                  VkBufferView *pView)
 {
-  SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-  SERIALISE_ELEMENT(VkBufferViewCreateInfo, info, *pCreateInfo);
-  SERIALISE_ELEMENT(ResourceId, id, GetResID(*pView));
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(View, GetResID(*pView));
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
-    device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
     VkBufferView view = VK_NULL_HANDLE;
 
-    VkResult ret = ObjDisp(device)->CreateBufferView(Unwrap(device), &info, NULL, &view);
+    VkBufferViewCreateInfo unwrappedInfo = CreateInfo;
+    unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
+    VkResult ret = ObjDisp(device)->CreateBufferView(Unwrap(device), &unwrappedInfo, NULL, &view);
 
     if(ret != VK_SUCCESS)
     {
@@ -1075,14 +1068,14 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(Serialiser *localSerialiser, Vk
         ObjDisp(device)->DestroyBufferView(Unwrap(device), view, NULL);
 
         // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+        GetResourceManager()->ReplaceResource(View, GetResourceManager()->GetOriginalID(live));
       }
       else
       {
         live = GetResourceManager()->WrapResource(Unwrap(device), view);
-        GetResourceManager()->AddLiveResource(id, view);
+        GetResourceManager()->AddLiveResource(View, view);
 
-        m_CreationInfo.m_BufferView[live].Init(GetResourceManager(), m_CreationInfo, &info);
+        m_CreationInfo.m_BufferView[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
       }
     }
   }
@@ -1102,15 +1095,15 @@ VkResult WrappedVulkan::vkCreateBufferView(VkDevice device, const VkBufferViewCr
   {
     ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pView);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       Chunk *chunk = NULL;
 
       {
         CACHE_THREAD_SERIALISER();
 
-        SCOPED_SERIALISE_CONTEXT(CREATE_BUFFER_VIEW);
-        Serialise_vkCreateBufferView(localSerialiser, device, pCreateInfo, NULL, pView);
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateBufferView);
+        Serialise_vkCreateBufferView(ser, device, pCreateInfo, NULL, pView);
 
         chunk = scope.Get();
       }
@@ -1136,50 +1129,50 @@ VkResult WrappedVulkan::vkCreateBufferView(VkDevice device, const VkBufferViewCr
   return ret;
 }
 
-bool WrappedVulkan::Serialise_vkCreateImage(Serialiser *localSerialiser, VkDevice device,
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device,
                                             const VkImageCreateInfo *pCreateInfo,
                                             const VkAllocationCallbacks *pAllocator, VkImage *pImage)
 {
-  SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-  SERIALISE_ELEMENT(VkImageCreateInfo, info, *pCreateInfo);
-  SERIALISE_ELEMENT(ResourceId, id, GetResID(*pImage));
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(Image, GetResID(*pImage));
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
-    device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
     VkImage img = VK_NULL_HANDLE;
 
-    VkImageUsageFlags origusage = info.usage;
+    VkImageUsageFlags origusage = CreateInfo.usage;
 
     // ensure we can always display and copy from/to textures
-    info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                  VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    CreateInfo.usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                        VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     // ensure we can cast multisampled images, for copying to arrays
-    if((int)info.samples > 1)
+    if((int)CreateInfo.samples > 1)
     {
-      info.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+      CreateInfo.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
       // colour targets we do a simple compute copy, for depth-stencil we need
       // to take a slower path that uses drawing
-      if(!IsDepthOrStencilFormat(info.format))
+      if(!IsDepthOrStencilFormat(CreateInfo.format))
       {
         // only add STORAGE_BIT if we have an MS2Array pipeline. If it failed to create due to lack
         // of capability or because we disabled it as a workaround then we don't need this
         // capability (and it might be the bug we're trying to work around by disabling the
         // pipeline)
         if(GetDebugManager()->m_MS2ArrayPipe != VK_NULL_HANDLE)
-          info.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+          CreateInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
       }
       else
       {
-        info.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        CreateInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
       }
     }
 
-    VkResult ret = ObjDisp(device)->CreateImage(Unwrap(device), &info, NULL, &img);
+    VkResult ret = ObjDisp(device)->CreateImage(Unwrap(device), &CreateInfo, NULL, &img);
 
-    info.usage = origusage;
+    CreateInfo.usage = origusage;
 
     if(ret != VK_SUCCESS)
     {
@@ -1188,30 +1181,30 @@ bool WrappedVulkan::Serialise_vkCreateImage(Serialiser *localSerialiser, VkDevic
     else
     {
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), img);
-      GetResourceManager()->AddLiveResource(id, img);
+      GetResourceManager()->AddLiveResource(Image, img);
 
-      m_CreationInfo.m_Image[live].Init(GetResourceManager(), m_CreationInfo, &info);
+      m_CreationInfo.m_Image[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
 
       VkImageSubresourceRange range;
       range.baseMipLevel = range.baseArrayLayer = 0;
-      range.levelCount = info.mipLevels;
-      range.layerCount = info.arrayLayers;
+      range.levelCount = CreateInfo.mipLevels;
+      range.layerCount = CreateInfo.arrayLayers;
 
       ImageLayouts &layouts = m_ImageLayouts[live];
       layouts.subresourceStates.clear();
 
-      layouts.layerCount = info.arrayLayers;
-      layouts.sampleCount = (int)info.samples;
-      layouts.levelCount = info.mipLevels;
-      layouts.extent = info.extent;
-      layouts.format = info.format;
+      layouts.layerCount = CreateInfo.arrayLayers;
+      layouts.sampleCount = (int)CreateInfo.samples;
+      layouts.levelCount = CreateInfo.mipLevels;
+      layouts.extent = CreateInfo.extent;
+      layouts.format = CreateInfo.format;
 
       range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      if(IsDepthOnlyFormat(info.format))
+      if(IsDepthOnlyFormat(CreateInfo.format))
         range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-      else if(IsStencilOnlyFormat(info.format))
+      else if(IsStencilOnlyFormat(CreateInfo.format))
         range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-      else if(IsDepthOrStencilFormat(info.format))
+      else if(IsDepthOrStencilFormat(CreateInfo.format))
         range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 
       layouts.subresourceStates.push_back(
@@ -1231,7 +1224,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
   // TEMP HACK: Until we define a portable fake hardware, need to match the requirements for usage
   // on replay, so that the memory requirements are the same
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     createInfo_adjusted.usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
   }
@@ -1242,7 +1235,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     createInfo_adjusted.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
     // TEMP HACK: matching replay requirements
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       if(!IsDepthOrStencilFormat(createInfo_adjusted.format))
       {
@@ -1265,15 +1258,15 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
   {
     ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pImage);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       Chunk *chunk = NULL;
 
       {
         CACHE_THREAD_SERIALISER();
 
-        SCOPED_SERIALISE_CONTEXT(CREATE_IMAGE);
-        Serialise_vkCreateImage(localSerialiser, device, pCreateInfo, NULL, pImage);
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateImage);
+        Serialise_vkCreateImage(ser, device, pCreateInfo, NULL, pImage);
 
         chunk = scope.Get();
       }
@@ -1301,16 +1294,22 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
         next = next->pNext;
       }
 
+      bool capframe = false;
+
+      {
+        SCOPED_LOCK(m_CapTransitionLock);
+        capframe = IsActiveCapturing(m_State);
+      }
+
       // sparse and external images are considered dirty from creation. For sparse images this is
       // so that we can serialise the tracked page table, for external images this is so we can be
       // sure to fetch their contents even if we don't see any writes.
       if(isSparse || isExternal)
       {
-        SCOPED_LOCK(m_CapTransitionLock);
-        if(m_State != WRITING_CAPFRAME)
-          GetResourceManager()->MarkDirtyResource(id);
-        else
+        if(capframe)
           GetResourceManager()->MarkPendingDirty(id);
+        else
+          GetResourceManager()->MarkDirtyResource(id);
       }
 
       if(isSparse)
@@ -1404,21 +1403,23 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
 // Image view functions
 
-bool WrappedVulkan::Serialise_vkCreateImageView(Serialiser *localSerialiser, VkDevice device,
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice device,
                                                 const VkImageViewCreateInfo *pCreateInfo,
                                                 const VkAllocationCallbacks *pAllocator,
                                                 VkImageView *pView)
 {
-  SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-  SERIALISE_ELEMENT(VkImageViewCreateInfo, info, *pCreateInfo);
-  SERIALISE_ELEMENT(ResourceId, id, GetResID(*pView));
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(View, GetResID(*pView));
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
-    device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
     VkImageView view = VK_NULL_HANDLE;
 
-    VkResult ret = ObjDisp(device)->CreateImageView(Unwrap(device), &info, NULL, &view);
+    VkImageViewCreateInfo unwrappedInfo = CreateInfo;
+    unwrappedInfo.image = Unwrap(unwrappedInfo.image);
+    VkResult ret = ObjDisp(device)->CreateImageView(Unwrap(device), &unwrappedInfo, NULL, &view);
 
     if(ret != VK_SUCCESS)
     {
@@ -1437,14 +1438,14 @@ bool WrappedVulkan::Serialise_vkCreateImageView(Serialiser *localSerialiser, VkD
         ObjDisp(device)->DestroyImageView(Unwrap(device), view, NULL);
 
         // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(id, GetResourceManager()->GetOriginalID(live));
+        GetResourceManager()->ReplaceResource(View, GetResourceManager()->GetOriginalID(live));
       }
       else
       {
         live = GetResourceManager()->WrapResource(Unwrap(device), view);
-        GetResourceManager()->AddLiveResource(id, view);
+        GetResourceManager()->AddLiveResource(View, view);
 
-        m_CreationInfo.m_ImageView[live].Init(GetResourceManager(), m_CreationInfo, &info);
+        m_CreationInfo.m_ImageView[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
       }
     }
   }
@@ -1463,15 +1464,15 @@ VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCrea
   {
     ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pView);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       Chunk *chunk = NULL;
 
       {
         CACHE_THREAD_SERIALISER();
 
-        SCOPED_SERIALISE_CONTEXT(CREATE_IMAGE_VIEW);
-        Serialise_vkCreateImageView(localSerialiser, device, pCreateInfo, NULL, pView);
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateImageView);
+        Serialise_vkCreateImageView(ser, device, pCreateInfo, NULL, pView);
 
         chunk = scope.Get();
       }
@@ -1493,9 +1494,40 @@ VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCrea
     {
       GetResourceManager()->AddLiveResource(id, *pView);
 
-      m_CreationInfo.m_ImageView[id].Init(GetResourceManager(), m_CreationInfo, &unwrappedInfo);
+      m_CreationInfo.m_ImageView[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
     }
   }
 
   return ret;
 }
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkAllocateMemory, VkDevice device,
+                                const VkMemoryAllocateInfo *pAllocateInfo,
+                                const VkAllocationCallbacks *pAllocator, VkDeviceMemory *pMemory);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkUnmapMemory, VkDevice device, VkDeviceMemory memory);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkFlushMappedMemoryRanges, VkDevice device,
+                                uint32_t memoryRangeCount, const VkMappedMemoryRange *pMemoryRanges);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkBindBufferMemory, VkDevice device, VkBuffer buffer,
+                                VkDeviceMemory memory, VkDeviceSize memoryOffset);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkBindImageMemory, VkDevice device, VkImage image,
+                                VkDeviceMemory memory, VkDeviceSize memoryOffset);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateBuffer, VkDevice device,
+                                const VkBufferCreateInfo *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator, VkBuffer *pBuffer);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateBufferView, VkDevice device,
+                                const VkBufferViewCreateInfo *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator, VkBufferView *pView);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateImage, VkDevice device,
+                                const VkImageCreateInfo *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator, VkImage *pImage);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateImageView, VkDevice device,
+                                const VkImageViewCreateInfo *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator, VkImageView *pView);
