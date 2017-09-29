@@ -39,16 +39,17 @@ using std::list;
 
 struct VkInitParams
 {
-  VkInitParams();
-
   void Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst);
 
   std::string AppName, EngineName;
-  uint32_t AppVersion, EngineVersion, APIVersion;
+  uint32_t AppVersion = 0, EngineVersion = 0, APIVersion = 0;
 
   std::vector<std::string> Layers;
   std::vector<std::string> Extensions;
   ResourceId InstanceID;
+
+  // remember to update this function if you add more members
+  uint32_t GetSerialiseSize();
 
   // check if a frame capture section version is supported
   static const uint64_t CurrentVersion = 0x7;
@@ -124,12 +125,8 @@ struct VulkanDrawcallTreeNode
   }
 };
 
-// use locally cached serialiser, per-thread
-#undef GET_SERIALISER
-#define GET_SERIALISER localSerialiser
-
 // must be at the start of any function that serialises
-#define CACHE_THREAD_SERIALISER() Serialiser *localSerialiser = GetThreadSerialiser();
+#define CACHE_THREAD_SERIALISER() WriteSerialiser &ser = GetThreadSerialiser();
 
 struct VulkanDrawcallCallback
 {
@@ -199,12 +196,13 @@ private:
 
   // the messages retrieved for the current event (filled in Serialise_vk...() and read in
   // AddEvent())
-  vector<DebugMessage> m_EventMessages;
+  std::vector<DebugMessage> m_EventMessages;
 
   // list of all debug messages by EID in the frame
-  vector<DebugMessage> m_DebugMessages;
-  void Serialise_DebugMessages(Serialiser *localSerialiser, bool isDrawcall);
-  vector<DebugMessage> GetDebugMessages();
+  std::vector<DebugMessage> m_DebugMessages;
+  template <typename SerialiserType>
+  void Serialise_DebugMessages(SerialiserType &ser);
+  std::vector<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
 
@@ -215,14 +213,13 @@ private:
     eInitialContents_Sparse,
   };
 
-  Serialiser *m_pSerialiser;
-  LogState m_State;
+  CaptureState m_State;
   bool m_AppControlledCapture;
 
   uint64_t threadSerialiserTLSSlot;
 
   Threading::CriticalSection m_ThreadSerialisersLock;
-  vector<Serialiser *> m_ThreadSerialisers;
+  std::vector<WriteSerialiser *> m_ThreadSerialisers;
 
   uint64_t tempMemoryTLSSlot;
   struct TempMem
@@ -238,6 +235,10 @@ private:
 
   VkInitParams m_InitParams;
   uint64_t m_SectionVersion;
+
+  StreamReader *m_FrameReader = NULL;
+
+  std::set<std::string> m_StringDB;
 
   VkResourceRecord *m_FrameCaptureRecord;
   Chunk *m_HeaderChunk;
@@ -606,11 +607,28 @@ private:
     return (T *)GetTempMemory(sizeof(T) * arraycount);
   }
 
-  Serialiser *GetThreadSerialiser();
-  Serialiser *GetMainSerialiser() { return m_pSerialiser; }
-  void Serialise_CaptureScope(uint64_t offset);
+  template <class T>
+  T *UnwrapArray(const T *wrapped, uint32_t count)
+  {
+    T *ret = GetTempArray<T>(count);
+    for(uint32_t i = 0; i < count; i++)
+      ret[i] = Unwrap(wrapped[i]);
+    return ret;
+  }
+
+  // specialised for each info structure we want to unwrap, where it's used
+  template <class T>
+  T UnwrapInfo(const T *info);
+  template <class T>
+  T *UnwrapInfos(const T *infos, uint32_t count);
+
+  WriteSerialiser &GetThreadSerialiser();
+  template <typename SerialiserType>
+  void Serialise_CaptureScope(SerialiserType &ser);
   bool HasSuccessfulCapture();
-  bool Serialise_BeginCaptureFrame(bool applyInitialState);
+
+  template <typename SerialiserType>
+  bool Serialise_BeginCaptureFrame(SerialiserType &ser);
   void EndCaptureFrame(VkImage presentImage);
 
   void FirstFrame(VkSwapchainKHR swap);
@@ -625,16 +643,19 @@ private:
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
 
-  bool Serialise_SetShaderDebugPath(Serialiser *localSerialiser, VkDevice device,
+  template <typename SerialiserType>
+  bool Serialise_SetShaderDebugPath(SerialiserType &ser, VkDevice device,
                                     const VkDebugMarkerObjectTagInfoEXT *pTagInfo);
 
   // replay
 
   bool Prepare_SparseInitialState(WrappedVkBuffer *buf);
   bool Prepare_SparseInitialState(WrappedVkImage *im);
-  bool Serialise_SparseBufferInitialState(ResourceId id,
+  template <typename SerialiserType>
+  bool Serialise_SparseBufferInitialState(SerialiserType &ser, ResourceId id,
                                           VulkanResourceManager::InitialContentData contents);
-  bool Serialise_SparseImageInitialState(ResourceId id,
+  template <typename SerialiserType>
+  bool Serialise_SparseImageInitialState(SerialiserType &ser, ResourceId id,
                                          VulkanResourceManager::InitialContentData contents);
   bool Apply_SparseInitialState(WrappedVkBuffer *buf,
                                 VulkanResourceManager::InitialContentData contents);
@@ -647,6 +668,7 @@ private:
   bool m_AddedDrawcall;
 
   uint64_t m_CurChunkOffset;
+  SDChunkMetaData m_ChunkMetadata;
   uint32_t m_RootEventID, m_RootDrawcallID;
   uint32_t m_FirstEventID, m_LastEventID;
 
@@ -670,11 +692,12 @@ private:
     return m_DrawcallStack;
   }
 
-  void ProcessChunk(uint64_t offset, VulkanChunkType context);
-  void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
-  void ContextProcessChunk(uint64_t offset, VulkanChunkType chunk);
+  void ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk);
+  void ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
+                        bool partial);
+  void ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk);
   void AddDrawcall(const DrawcallDescription &d, bool hasEvents);
-  void AddEvent(string description);
+  void AddEvent();
 
   void AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessage> &debugMessages);
 
@@ -704,7 +727,7 @@ public:
   static std::string GetChunkName(uint32_t idx);
   VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
   VulkanDebugManager *GetDebugManager() { return m_DebugManager; }
-  LogState GetState() { return m_State; }
+  CaptureState GetState() { return m_State; }
   VulkanReplay *GetReplay() { return &m_Replay; }
   // replay interface
   bool Prepare_InitialState(WrappedVkRes *res);
