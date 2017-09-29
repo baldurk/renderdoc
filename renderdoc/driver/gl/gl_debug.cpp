@@ -45,7 +45,7 @@ GLuint GLReplay::CreateCShaderProgram(const vector<string> &csSources)
 
   MakeCurrentReplayContext(m_DebugCtx);
 
-  WrappedOpenGL &gl = *m_pDriver;
+  const GLHookSet &gl = m_pDriver->GetHookset();
 
   GLuint cs = gl.glCreateShader(eGL_COMPUTE_SHADER);
 
@@ -102,7 +102,7 @@ GLuint GLReplay::CreateShaderProgram(const vector<string> &vsSources,
 
   MakeCurrentReplayContext(m_DebugCtx);
 
-  WrappedOpenGL &gl = *m_pDriver;
+  const GLHookSet &gl = m_pDriver->GetHookset();
 
   GLuint vs = 0;
   GLuint fs = 0;
