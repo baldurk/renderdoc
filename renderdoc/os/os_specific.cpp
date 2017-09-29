@@ -284,7 +284,7 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
 
       uint64_t firstTick = Timing::GetTick();
 
-      Threading::Sleep(500);
+      Threading::Sleep(1500);
 
       uint64_t lastTick = Timing::GetTick();
 
@@ -294,8 +294,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       CHECK(milliseconds1 > 0.0);
       CHECK(milliseconds1 < 1.0);
 
-      CHECK(milliseconds2 > 490.0);
-      CHECK(milliseconds2 < 510.0);
+      CHECK(milliseconds2 > 1480.0);
+      CHECK(milliseconds2 < 1520.0);
     }
 
     // timestamp as of the creation of this test
