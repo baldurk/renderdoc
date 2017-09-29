@@ -24,26 +24,26 @@
 
 #include "../vk_core.h"
 
-bool WrappedVulkan::Serialise_vkGetDeviceQueue(Serialiser *localSerialiser, VkDevice device,
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice device,
                                                uint32_t queueFamilyIndex, uint32_t queueIndex,
                                                VkQueue *pQueue)
 {
-  SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
-  SERIALISE_ELEMENT(uint32_t, familyIdx, m_SupportedQueueFamily);
-  SERIALISE_ELEMENT(uint32_t, idx, queueIndex);
-  SERIALISE_ELEMENT(ResourceId, queueId, GetResID(*pQueue));
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(queueFamilyIndex);
+  SERIALISE_ELEMENT(queueIndex);
+  SERIALISE_ELEMENT_LOCAL(Queue, GetResID(*pQueue));
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
-    device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
-
     VkQueue queue;
-    ObjDisp(device)->GetDeviceQueue(Unwrap(device), familyIdx, idx, &queue);
+    // MULTIQUEUE - re-map the queue family/index instead of using the supported family
+    ObjDisp(device)->GetDeviceQueue(Unwrap(device), m_SupportedQueueFamily, 0, &queue);
 
     GetResourceManager()->WrapResource(Unwrap(device), queue);
-    GetResourceManager()->AddLiveResource(queueId, queue);
+    GetResourceManager()->AddLiveResource(Queue, queue);
 
-    if(familyIdx == m_QueueFamilyIdx)
+    if(queueFamilyIndex == m_QueueFamilyIdx)
     {
       m_Queue = queue;
 
@@ -66,7 +66,7 @@ void WrappedVulkan::vkGetDeviceQueue(VkDevice device, uint32_t queueFamilyIndex,
   else
     SetDispatchTableOverMagicNumber(device, *pQueue);
 
-  RDCASSERT(m_State >= WRITING);
+  RDCASSERT(IsCaptureMode(m_State));
 
   {
     // it's perfectly valid for enumerate type functions to return the same handle
@@ -86,8 +86,8 @@ void WrappedVulkan::vkGetDeviceQueue(VkDevice device, uint32_t queueFamilyIndex,
         {
           CACHE_THREAD_SERIALISER();
 
-          SCOPED_SERIALISE_CONTEXT(GET_DEVICE_QUEUE);
-          Serialise_vkGetDeviceQueue(localSerialiser, device, queueFamilyIndex, queueIndex, pQueue);
+          SCOPED_SERIALISE_CHUNK(VulkanChunk::vkGetDeviceQueue);
+          Serialise_vkGetDeviceQueue(ser, device, queueFamilyIndex, queueIndex, pQueue);
 
           chunk = scope.Get();
         }
@@ -121,329 +121,303 @@ void WrappedVulkan::vkGetDeviceQueue(VkDevice device, uint32_t queueFamilyIndex,
   }
 }
 
-bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue queue,
-                                            uint32_t submitCount, const VkSubmitInfo *pSubmits,
-                                            VkFence fence)
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, uint32_t submitCount,
+                                            const VkSubmitInfo *pSubmits, VkFence fence)
 {
-  SERIALISE_ELEMENT(ResourceId, queueId, GetResID(queue));
-  SERIALISE_ELEMENT(ResourceId, fenceId, fence != VK_NULL_HANDLE ? GetResID(fence) : ResourceId());
+  SERIALISE_ELEMENT(queue);
+  SERIALISE_ELEMENT(fence);
+  SERIALISE_ELEMENT_ARRAY(pSubmits, submitCount);
 
-  SERIALISE_ELEMENT(uint32_t, numCmds, pSubmits->commandBufferCount);
+  Serialise_DebugMessages(ser);
 
-  vector<ResourceId> cmdIds;
-  VkCommandBuffer *cmds = m_State >= WRITING ? NULL : new VkCommandBuffer[numCmds];
-  for(uint32_t i = 0; i < numCmds; i++)
+  if(IsReplayingAndReading())
   {
-    ResourceId bakedId;
+    // if we ever waited on any semaphores, wait for idle here.
+    bool doWait = false;
+    for(uint32_t i = 0; i < submitCount; i++)
+      if(pSubmits[i].waitSemaphoreCount > 0)
+        doWait = true;
 
-    if(m_State >= WRITING)
+    if(doWait)
+      ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
+
+    for(uint32_t sub = 0; sub < submitCount; sub++)
     {
-      VkResourceRecord *record = GetRecord(pSubmits->pCommandBuffers[i]);
-      RDCASSERT(record->bakedCommands);
-      if(record->bakedCommands)
-        bakedId = record->bakedCommands->GetResourceID();
-    }
+      VkSubmitInfo submitInfo = pSubmits[sub];
+      submitInfo.pWaitSemaphores = NULL;
+      submitInfo.waitSemaphoreCount = 0;
+      submitInfo.pSignalSemaphores = NULL;
+      submitInfo.signalSemaphoreCount = 0;
 
-    SERIALISE_ELEMENT(ResourceId, id, bakedId);
-
-    if(m_State < WRITING)
-    {
-      cmdIds.push_back(id);
-
-      cmds[i] = id != ResourceId() ? Unwrap(GetResourceManager()->GetLiveHandle<VkCommandBuffer>(id))
-                                   : NULL;
-    }
-  }
-
-  if(m_State < WRITING)
-  {
-    queue = GetResourceManager()->GetLiveHandle<VkQueue>(queueId);
-    if(fenceId != ResourceId())
-      fence = GetResourceManager()->GetLiveHandle<VkFence>(fenceId);
-    else
-      fence = VK_NULL_HANDLE;
-  }
-
-  // we don't serialise semaphores at all, just whether we waited on any.
-  // For waiting semaphores, since we don't track state we have to just conservatively
-  // wait for queue idle. Since we do that, there's equally no point in signalling semaphores
-  SERIALISE_ELEMENT(uint32_t, numWaitSems, pSubmits->waitSemaphoreCount);
-
-  if(m_State < WRITING && numWaitSems > 0)
-    ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
-
-  VkSubmitInfo submitInfo = {
-      VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      NULL,
-      0,
-      NULL,
-      NULL,    // wait semaphores
-      numCmds,
-      cmds,    // command buffers
-      0,
-      NULL,    // signal semaphores
-  };
-
-  const string desc = localSerialiser->GetDebugStr();
-
-  Serialise_DebugMessages(localSerialiser, true);
-
-  if(m_State == READING)
-  {
-    // don't submit the fence, since we have nothing to wait on it being signalled, and we might
-    // not have it correctly in the unsignalled state.
-    ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
-
-    for(uint32_t i = 0; i < numCmds; i++)
-    {
-      ResourceId cmd = GetResourceManager()->GetLiveID(cmdIds[i]);
-      GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
-    }
-
-    AddEvent(desc);
-
-    // we're adding multiple events, need to increment ourselves
-    m_RootEventID++;
-
-    string basename = "vkQueueSubmit(" + ToStr(numCmds) + ")";
-
-    for(uint32_t c = 0; c < numCmds; c++)
-    {
-      string name = StringFormat::Fmt("=> %s[%u]: vkBeginCommandBuffer(%s)", basename.c_str(), c,
-                                      ToStr(cmdIds[c]).c_str());
-
-      // add a fake marker
-      DrawcallDescription draw;
-      draw.name = name;
-      draw.flags |= DrawFlags::SetMarker;
-      AddEvent(name);
-      AddDrawcall(draw, true);
-      m_RootEventID++;
-
-      BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmdIds[c]];
-
-      // insert the baked command buffer in-line into this list of notes, assigning new event and
-      // drawIDs
-      InsertDrawsAndRefreshIDs(cmdBufInfo.draw->children);
-
-      for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
+      if(IsLoading(m_State))
       {
-        vector<Submission> &submits =
-            m_Partial[Secondary].cmdBufferSubmits[cmdBufInfo.draw->executedCmds[e]];
+        // don't submit the fence, since we have nothing to wait on it being signalled, and we might
+        // not have it correctly in the unsignalled state.
+        VkSubmitInfo unwrapped = submitInfo;
+        unwrapped.pCommandBuffers =
+            UnwrapArray(unwrapped.pCommandBuffers, unwrapped.commandBufferCount);
+        ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &unwrapped, VK_NULL_HANDLE);
 
-        for(size_t s = 0; s < submits.size(); s++)
+        AddEvent();
+
+        // we're adding multiple events, need to increment ourselves
+        m_RootEventID++;
+
+        std::string basename = StringFormat::Fmt("vkQueueSubmit(%u)", submitInfo.commandBufferCount);
+
+        for(uint32_t c = 0; c < submitInfo.commandBufferCount; c++)
         {
-          if(!submits[s].rebased)
+          ResourceId cmd =
+              GetResourceManager()->GetOriginalID(GetResID(submitInfo.pCommandBuffers[c]));
+          GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
+
+          std::string name = StringFormat::Fmt("=> %s[%u]: vkBeginCommandBuffer(%s)",
+                                               basename.c_str(), c, ToStr(cmd).c_str());
+
+          // add a fake marker
+          DrawcallDescription draw;
+          draw.name = name;
+          draw.flags |= DrawFlags::SetMarker;
+          AddEvent();
+          AddDrawcall(draw, true);
+          m_RootEventID++;
+
+          BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmd];
+
+          // insert the baked command buffer in-line into this list of notes, assigning new event
+          // and drawIDs
+          InsertDrawsAndRefreshIDs(cmdBufInfo.draw->children);
+
+          for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
           {
-            submits[s].baseEvent += m_RootEventID;
-            submits[s].rebased = true;
+            std::vector<Submission> &submits =
+                m_Partial[Secondary].cmdBufferSubmits[cmdBufInfo.draw->executedCmds[e]];
+
+            for(size_t s = 0; s < submits.size(); s++)
+            {
+              if(!submits[s].rebased)
+              {
+                submits[s].baseEvent += m_RootEventID;
+                submits[s].rebased = true;
+              }
+            }
           }
+
+          for(size_t i = 0; i < cmdBufInfo.debugMessages.size(); i++)
+          {
+            m_DebugMessages.push_back(cmdBufInfo.debugMessages[i]);
+            m_DebugMessages.back().eventID += m_RootEventID;
+          }
+
+          // only primary command buffers can be submitted
+          m_Partial[Primary].cmdBufferSubmits[cmd].push_back(Submission(m_RootEventID));
+
+          m_RootEventID += cmdBufInfo.eventCount;
+          m_RootDrawcallID += cmdBufInfo.drawCount;
+
+          name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c,
+                                   ToStr(cmd).c_str());
+          draw.name = name;
+          AddEvent();
+          AddDrawcall(draw, true);
+          m_RootEventID++;
         }
-      }
 
-      for(size_t i = 0; i < cmdBufInfo.debugMessages.size(); i++)
+        // account for the outer loop thinking we've added one event and incrementing,
+        // since we've done all the handling ourselves this will be off by one.
+        m_RootEventID--;
+      }
+      else
       {
-        m_DebugMessages.push_back(cmdBufInfo.debugMessages[i]);
-        m_DebugMessages.back().eventID += m_RootEventID;
-      }
+        // account for the queue submit event
+        m_RootEventID++;
 
-      // only primary command buffers can be submitted
-      m_Partial[Primary].cmdBufferSubmits[cmdIds[c]].push_back(Submission(m_RootEventID));
+        uint32_t startEID = m_RootEventID;
 
-      m_RootEventID += cmdBufInfo.eventCount;
-      m_RootDrawcallID += cmdBufInfo.drawCount;
+        // advance m_CurEventID to match the events added when reading
+        for(uint32_t c = 0; c < submitInfo.commandBufferCount; c++)
+        {
+          ResourceId cmd =
+              GetResourceManager()->GetOriginalID(GetResID(submitInfo.pCommandBuffers[c]));
 
-      name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c,
-                               ToStr(cmdIds[c]).c_str());
-      draw.name = name;
-      AddEvent(name);
-      AddDrawcall(draw, true);
-      m_RootEventID++;
-    }
+          // 2 extra for the virtual labels around the command buffer
+          m_RootEventID += 2 + m_BakedCmdBufferInfo[cmd].eventCount;
+          m_RootDrawcallID += 2 + m_BakedCmdBufferInfo[cmd].drawCount;
+        }
 
-    // account for the outer loop thinking we've added one event and incrementing,
-    // since we've done all the handling ourselves this will be off by one.
-    m_RootEventID--;
-  }
-  else if(m_State == EXECUTING)
-  {
-    // account for the queue submit event
-    m_RootEventID++;
+        // same accounting for the outer loop as above
+        m_RootEventID--;
 
-    uint32_t startEID = m_RootEventID;
-
-    // advance m_CurEventID to match the events added when reading
-    for(uint32_t c = 0; c < numCmds; c++)
-    {
-      // 2 extra for the virtual labels around the command buffer
-      m_RootEventID += 2 + m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
-      m_RootDrawcallID += 2 + m_BakedCmdBufferInfo[cmdIds[c]].drawCount;
-    }
-
-    // same accounting for the outer loop as above
-    m_RootEventID--;
-
-    if(numCmds == 0)
-    {
-      // do nothing, don't bother with the logic below
-    }
-    else if(m_LastEventID <= startEID)
-    {
+        if(submitInfo.commandBufferCount == 0)
+        {
+          // do nothing, don't bother with the logic below
+        }
+        else if(m_LastEventID <= startEID)
+        {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-      RDCDEBUG("Queue Submit no replay %u == %u", m_LastEventID, startEID);
+          RDCDEBUG("Queue Submit no replay %u == %u", m_LastEventID, startEID);
 #endif
-    }
-    else if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
-    {
+        }
+        else if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+        {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-      RDCDEBUG("Queue Submit re-recording from %u", m_RootEventID);
+          RDCDEBUG("Queue Submit re-recording from %u", m_RootEventID);
 #endif
 
-      vector<VkCommandBuffer> rerecordedCmds;
+          std::vector<VkCommandBuffer> rerecordedCmds;
 
-      for(uint32_t c = 0; c < numCmds; c++)
-      {
-        VkCommandBuffer cmd = RerecordCmdBuf(cmdIds[c]);
-        ResourceId rerecord = GetResID(cmd);
+          for(uint32_t c = 0; c < submitInfo.commandBufferCount; c++)
+          {
+            ResourceId cmdId =
+                GetResourceManager()->GetOriginalID(GetResID(submitInfo.pCommandBuffers[c]));
+
+            VkCommandBuffer cmd = RerecordCmdBuf(cmdId);
+            ResourceId rerecord = GetResID(cmd);
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-        RDCDEBUG("Queue Submit fully re-recorded replay of %llu, using %llu", cmdIds[c], rerecord);
+            RDCDEBUG("Queue Submit fully re-recorded replay of %llu, using %llu", cmdId, rerecord);
 #endif
-        rerecordedCmds.push_back(Unwrap(cmd));
+            rerecordedCmds.push_back(Unwrap(cmd));
 
-        GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[rerecord].imgbarriers,
-                                            m_ImageLayouts);
-      }
+            GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[rerecord].imgbarriers,
+                                                m_ImageLayouts);
+          }
 
-      submitInfo.commandBufferCount = (uint32_t)rerecordedCmds.size();
-      submitInfo.pCommandBuffers = &rerecordedCmds[0];
+          submitInfo.commandBufferCount = (uint32_t)rerecordedCmds.size();
+          submitInfo.pCommandBuffers = &rerecordedCmds[0];
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
-      uint32_t cmdCount = submitInfo.commandBufferCount;
-      submitInfo.commandBufferCount = 1;
-      for(uint32_t i = 0; i < cmdCount; i++)
-      {
-        ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
-        submitInfo.pCommandBuffers++;
+          submitInfo.commandBufferCount = 1;
+          for(uint32_t i = 0; i < submitInfo.commandBufferCount; i++)
+          {
+            ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+            submitInfo.pCommandBuffers++;
 
-        FlushQ();
-      }
+            FlushQ();
+          }
 #else
-      // don't submit the fence, since we have nothing to wait on it being signalled, and we might
-      // not have it correctly in the unsignalled state.
-      ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+          // don't submit the fence, since we have nothing to wait on it being signalled, and we
+          // might not have it correctly in the unsignalled state.
+          ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
 #endif
-    }
-    else if(m_LastEventID > startEID && m_LastEventID < m_RootEventID)
-    {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-      RDCDEBUG("Queue Submit partial replay %u < %u", m_LastEventID, m_RootEventID);
-#endif
-
-      uint32_t eid = startEID;
-
-      vector<ResourceId> trimmedCmdIds;
-      vector<VkCommandBuffer> trimmedCmds;
-
-      for(uint32_t c = 0; c < numCmds; c++)
-      {
-        // account for the virtual vkBeginCommandBuffer label at the start of the events here
-        // so it matches up to baseEvent
-        eid++;
-
-        uint32_t end = eid + m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
-
-        if(eid == m_Partial[Primary].baseEvent)
-        {
-          ResourceId partial = GetResID(RerecordCmdBuf(cmdIds[c], Primary));
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-          RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdIds[c], eid, partial);
-#endif
-          trimmedCmdIds.push_back(partial);
-          trimmedCmds.push_back(Unwrap(RerecordCmdBuf(cmdIds[c], Primary)));
         }
-        else if(m_LastEventID >= end)
+        else if(m_LastEventID > startEID && m_LastEventID < m_RootEventID)
         {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-          RDCDEBUG("Queue Submit full replay %llu", cmdIds[c]);
+          RDCDEBUG("Queue Submit partial replay %u < %u", m_LastEventID, m_RootEventID);
 #endif
-          trimmedCmdIds.push_back(cmdIds[c]);
-          trimmedCmds.push_back(
-              Unwrap(GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdIds[c])));
+
+          uint32_t eid = startEID;
+
+          std::vector<ResourceId> trimmedCmdIds;
+          std::vector<VkCommandBuffer> trimmedCmds;
+
+          for(uint32_t c = 0; c < submitInfo.commandBufferCount; c++)
+          {
+            ResourceId cmdId =
+                GetResourceManager()->GetOriginalID(GetResID(submitInfo.pCommandBuffers[c]));
+
+            // account for the virtual vkBeginCommandBuffer label at the start of the events here
+            // so it matches up to baseEvent
+            eid++;
+
+            uint32_t end = eid + m_BakedCmdBufferInfo[cmdId].eventCount;
+
+            if(eid == m_Partial[Primary].baseEvent)
+            {
+              ResourceId partial = GetResID(RerecordCmdBuf(cmdId, Primary));
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
+              RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdId, eid, partial);
+#endif
+              trimmedCmdIds.push_back(partial);
+              trimmedCmds.push_back(Unwrap(RerecordCmdBuf(cmdId, Primary)));
+            }
+            else if(m_LastEventID >= end)
+            {
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
+              RDCDEBUG("Queue Submit full replay %llu", cmdId);
+#endif
+              trimmedCmdIds.push_back(cmdId);
+              trimmedCmds.push_back(
+                  Unwrap(GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdId)));
+            }
+            else
+            {
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
+              RDCDEBUG("Queue not submitting %llu", cmdId);
+#endif
+            }
+
+            // 1 extra to account for the virtual end command buffer label (begin is accounted for
+            // above)
+            eid += 1 + m_BakedCmdBufferInfo[cmdId].eventCount;
+          }
+
+          RDCASSERT(trimmedCmds.size() > 0);
+
+          submitInfo.commandBufferCount = (uint32_t)trimmedCmds.size();
+          submitInfo.pCommandBuffers = &trimmedCmds[0];
+
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
+          submitInfo.commandBufferCount = 1;
+          for(uint32_t i = 0; i < submitInfo.commandBufferCount; i++)
+          {
+            ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+            submitInfo.pCommandBuffers++;
+
+            FlushQ();
+          }
+#else
+          // don't submit the fence, since we have nothing to wait on it being signalled, and we
+          // might not have it correctly in the unsignalled state.
+          ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+#endif
+
+          for(uint32_t i = 0; i < trimmedCmdIds.size(); i++)
+          {
+            ResourceId cmd = GetResID(submitInfo.pCommandBuffers[i]);
+            GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers,
+                                                m_ImageLayouts);
+          }
         }
         else
         {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-          RDCDEBUG("Queue not submitting %llu", cmdIds[c]);
+          RDCDEBUG("Queue Submit full replay %u >= %u", m_LastEventID, m_RootEventID);
+#endif
+
+          VkCommandBuffer *cmds = (VkCommandBuffer *)submitInfo.pCommandBuffers;
+          for(uint32_t i = 0; i < submitInfo.commandBufferCount; i++)
+          {
+            ResourceId cmd = GetResID(submitInfo.pCommandBuffers[i]);
+            GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers,
+                                                m_ImageLayouts);
+
+            cmds[i] = Unwrap(cmds[i]);
+          }
+
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
+          submitInfo.commandBufferCount = 1;
+          for(uint32_t i = 0; i < submitInfo.commandBufferCount; i++)
+          {
+            ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+            submitInfo.pCommandBuffers++;
+
+            FlushQ();
+          }
+#else
+          // don't submit the fence, since we have nothing to wait on it being signalled, and we
+          // might not have it correctly in the unsignalled state.
+          ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
 #endif
         }
-
-        // 1 extra to account for the virtual end command buffer label (begin is accounted for
-        // above)
-        eid += 1 + m_BakedCmdBufferInfo[cmdIds[c]].eventCount;
       }
-
-      RDCASSERT(trimmedCmds.size() > 0);
-
-      submitInfo.commandBufferCount = (uint32_t)trimmedCmds.size();
-      submitInfo.pCommandBuffers = &trimmedCmds[0];
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
-      uint32_t cmdCount = submitInfo.commandBufferCount;
-      submitInfo.commandBufferCount = 1;
-      for(uint32_t i = 0; i < cmdCount; i++)
-      {
-        ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
-        submitInfo.pCommandBuffers++;
-
-        FlushQ();
-      }
-#else
-      // don't submit the fence, since we have nothing to wait on it being signalled, and we might
-      // not have it correctly in the unsignalled state.
-      ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+      FlushQ();
 #endif
-
-      for(uint32_t i = 0; i < trimmedCmdIds.size(); i++)
-      {
-        ResourceId cmd = trimmedCmdIds[i];
-        GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
-      }
-    }
-    else
-    {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-      RDCDEBUG("Queue Submit full replay %u >= %u", m_LastEventID, m_RootEventID);
-#endif
-
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-      uint32_t cmdCount = submitInfo.commandBufferCount;
-      submitInfo.commandBufferCount = 1;
-      for(uint32_t i = 0; i < cmdCount; i++)
-      {
-        ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
-        submitInfo.pCommandBuffers++;
-
-        FlushQ();
-      }
-#else
-      // don't submit the fence, since we have nothing to wait on it being signalled, and we might
-      // not have it correctly in the unsignalled state.
-      ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
-#endif
-
-      for(uint32_t i = 0; i < numCmds; i++)
-      {
-        ResourceId cmd = GetResourceManager()->GetLiveID(cmdIds[i]);
-        GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
-      }
     }
   }
-
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-  FlushQ();
-#endif
-
-  SAFE_DELETE_ARRAY(cmds);
 
   return true;
 }
@@ -673,24 +647,15 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
       // dirty.
       {
         SCOPED_LOCK(m_CapTransitionLock);
-        if(m_State == WRITING_CAPFRAME)
-        {
-          for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-              it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-            GetResourceManager()->MarkPendingDirty(*it);
-
-          capframe = true;
-        }
-        else
-        {
-          for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-              it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-            GetResourceManager()->MarkDirtyResource(*it);
-        }
+        capframe = IsActiveCapturing(m_State);
       }
 
       if(capframe)
       {
+        for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
+            it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+          GetResourceManager()->MarkPendingDirty(*it);
+
         // for each bound descriptor set, mark it referenced as well as all resources currently
         // bound to it
         for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin();
@@ -737,11 +702,6 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddRef();
         }
 
-        GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
-
-        if(fence != VK_NULL_HANDLE)
-          GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
-
         {
           SCOPED_LOCK(m_CmdBufferRecordsLock);
           m_CmdBufferRecords.push_back(record->bakedCommands);
@@ -751,6 +711,12 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
         record->bakedCommands->AddRef();
       }
+      else
+      {
+        for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
+            it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+          GetResourceManager()->MarkDirtyResource(*it);
+      }
 
       record->cmdInfo->dirtied.clear();
     }
@@ -758,7 +724,12 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
   if(capframe)
   {
-    vector<VkResourceRecord *> maps;
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+
+    if(fence != VK_NULL_HANDLE)
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
+
+    std::vector<VkResourceRecord *> maps;
     {
       SCOPED_LOCK(m_CoherentMapsLock);
       maps = m_CoherentMaps;
@@ -843,91 +814,121 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     {
       CACHE_THREAD_SERIALISER();
 
-      for(uint32_t s = 0; s < submitCount; s++)
-      {
-        SCOPED_SERIALISE_CONTEXT(QUEUE_SUBMIT);
-        Serialise_vkQueueSubmit(localSerialiser, queue, 1, &pSubmits[s], fence);
+      ser.SetDrawChunk();
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueSubmit);
+      Serialise_vkQueueSubmit(ser, queue, submitCount, pSubmits, fence);
 
-        m_FrameCaptureRecord->AddChunk(scope.Get());
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+    }
 
-        for(uint32_t sem = 0; sem < pSubmits[s].waitSemaphoreCount; sem++)
-          GetResourceManager()->MarkResourceFrameReferenced(
-              GetResID(pSubmits[s].pWaitSemaphores[sem]), eFrameRef_Read);
+    for(uint32_t s = 0; s < submitCount; s++)
+    {
+      for(uint32_t sem = 0; sem < pSubmits[s].waitSemaphoreCount; sem++)
+        GetResourceManager()->MarkResourceFrameReferenced(
+            GetResID(pSubmits[s].pWaitSemaphores[sem]), eFrameRef_Read);
 
-        for(uint32_t sem = 0; sem < pSubmits[s].signalSemaphoreCount; sem++)
-          GetResourceManager()->MarkResourceFrameReferenced(
-              GetResID(pSubmits[s].pSignalSemaphores[sem]), eFrameRef_Read);
-      }
+      for(uint32_t sem = 0; sem < pSubmits[s].signalSemaphoreCount; sem++)
+        GetResourceManager()->MarkResourceFrameReferenced(
+            GetResID(pSubmits[s].pSignalSemaphores[sem]), eFrameRef_Read);
     }
   }
 
   return ret;
 }
 
-bool WrappedVulkan::Serialise_vkQueueBindSparse(Serialiser *localSerialiser, VkQueue queue,
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkQueueBindSparse(SerialiserType &ser, VkQueue queue,
                                                 uint32_t bindInfoCount,
                                                 const VkBindSparseInfo *pBindInfo, VkFence fence)
 {
-  SERIALISE_ELEMENT(ResourceId, qid, GetResID(queue));
-  SERIALISE_ELEMENT(ResourceId, fid, GetResID(fence));
+  SERIALISE_ELEMENT(queue);
+  SERIALISE_ELEMENT_ARRAY(pBindInfo, bindInfoCount);
+  SERIALISE_ELEMENT(fence);
 
-  SERIALISE_ELEMENT(VkBindSparseInfo, bindInfo, *pBindInfo);
-
-  // similar to vkQueueSubmit we don't need semaphores at all, just whether we waited on any.
-  // For waiting semaphores, since we don't track state we have to just conservatively
-  // wait for queue idle. Since we do that, there's equally no point in signalling semaphores
-
-  if(m_State < WRITING && bindInfo.waitSemaphoreCount > 0)
-    ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
-
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    queue = GetResourceManager()->GetLiveHandle<VkQueue>(qid);
-    fence = GetResourceManager()->GetLiveHandle<VkFence>(fid);
+    // similar to vkQueueSubmit we don't need semaphores at all, just whether we waited on any.
+    // For waiting semaphores, since we don't track state we have to just conservatively
+    // wait for queue idle. Since we do that, there's equally no point in signalling semaphores
+    bool doWait = false;
+    for(uint32_t i = 0; i < bindInfoCount; i++)
+      if(pBindInfo[i].waitSemaphoreCount > 0)
+        doWait = true;
 
-    VkBindSparseInfo noSemBindInfo = bindInfo;
-    noSemBindInfo.pWaitSemaphores = NULL;
-    noSemBindInfo.waitSemaphoreCount = 0;
-    noSemBindInfo.pSignalSemaphores = NULL;
-    noSemBindInfo.signalSemaphoreCount = 0;
+    if(doWait)
+      ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
 
-    // remove any binds for resources that aren't present, since this
-    // is totally valid (if the resource wasn't referenced in anything
-    // else, it will be omitted from the capture)
-    VkSparseBufferMemoryBindInfo *buf = (VkSparseBufferMemoryBindInfo *)noSemBindInfo.pBufferBinds;
-    for(uint32_t i = 0; i < noSemBindInfo.bufferBindCount; i++)
+    for(uint32_t bind = 0; bind < bindInfoCount; bind++)
     {
-      if(buf[i].buffer == VK_NULL_HANDLE)
+      // we can freely mutate the info as it's locally allocated
+      VkBindSparseInfo &bindInfo = ((VkBindSparseInfo *)pBindInfo)[bind];
+      bindInfo.pWaitSemaphores = NULL;
+      bindInfo.waitSemaphoreCount = 0;
+      bindInfo.pSignalSemaphores = NULL;
+      bindInfo.signalSemaphoreCount = 0;
+
+      // remove any binds for resources that aren't present, since this
+      // is totally valid (if the resource wasn't referenced in anything
+      // else, it will be omitted from the capture)
+      VkSparseBufferMemoryBindInfo *buf = (VkSparseBufferMemoryBindInfo *)bindInfo.pBufferBinds;
+      for(uint32_t i = 0; i < bindInfo.bufferBindCount; i++)
       {
-        noSemBindInfo.bufferBindCount--;
-        std::swap(buf[i], buf[noSemBindInfo.bufferBindCount]);
+        if(buf[i].buffer == VK_NULL_HANDLE)
+        {
+          bindInfo.bufferBindCount--;
+          std::swap(buf[i], buf[bindInfo.bufferBindCount]);
+        }
+        else
+        {
+          buf[i].buffer = Unwrap(buf[i].buffer);
+
+          VkSparseMemoryBind *binds = (VkSparseMemoryBind *)buf[i].pBinds;
+          for(uint32_t b = 0; b < buf[i].bindCount; b++)
+            binds[b].memory = Unwrap(binds[b].memory);
+        }
       }
-    }
 
-    VkSparseImageOpaqueMemoryBindInfo *imopaque =
-        (VkSparseImageOpaqueMemoryBindInfo *)noSemBindInfo.pImageOpaqueBinds;
-    for(uint32_t i = 0; i < noSemBindInfo.imageOpaqueBindCount; i++)
-    {
-      if(imopaque[i].image == VK_NULL_HANDLE)
+      VkSparseImageOpaqueMemoryBindInfo *imopaque =
+          (VkSparseImageOpaqueMemoryBindInfo *)bindInfo.pImageOpaqueBinds;
+      for(uint32_t i = 0; i < bindInfo.imageOpaqueBindCount; i++)
       {
-        noSemBindInfo.imageOpaqueBindCount--;
-        std::swap(imopaque[i], imopaque[noSemBindInfo.imageOpaqueBindCount]);
+        if(imopaque[i].image == VK_NULL_HANDLE)
+        {
+          bindInfo.imageOpaqueBindCount--;
+          std::swap(imopaque[i], imopaque[bindInfo.imageOpaqueBindCount]);
+        }
+        else
+        {
+          imopaque[i].image = Unwrap(imopaque[i].image);
+
+          VkSparseMemoryBind *binds = (VkSparseMemoryBind *)imopaque[i].pBinds;
+          for(uint32_t b = 0; b < imopaque[i].bindCount; b++)
+            binds[b].memory = Unwrap(binds[b].memory);
+        }
       }
-    }
 
-    VkSparseImageMemoryBindInfo *im = (VkSparseImageMemoryBindInfo *)noSemBindInfo.pImageBinds;
-    for(uint32_t i = 0; i < noSemBindInfo.imageBindCount; i++)
-    {
-      if(im[i].image == VK_NULL_HANDLE)
+      VkSparseImageMemoryBindInfo *im = (VkSparseImageMemoryBindInfo *)bindInfo.pImageBinds;
+      for(uint32_t i = 0; i < bindInfo.imageBindCount; i++)
       {
-        noSemBindInfo.imageBindCount--;
-        std::swap(im[i], im[noSemBindInfo.imageBindCount]);
+        if(im[i].image == VK_NULL_HANDLE)
+        {
+          bindInfo.imageBindCount--;
+          std::swap(im[i], im[bindInfo.imageBindCount]);
+        }
+        else
+        {
+          im[i].image = Unwrap(im[i].image);
+
+          VkSparseImageMemoryBind *binds = (VkSparseImageMemoryBind *)im[i].pBinds;
+          for(uint32_t b = 0; b < im[i].bindCount; b++)
+            binds[b].memory = Unwrap(binds[b].memory);
+        }
       }
     }
 
     // don't submit the fence, since we have nothing to wait on it being signalled, and we might
     // not have it correctly in the unsignalled state.
-    ObjDisp(queue)->QueueBindSparse(Unwrap(queue), 1, &noSemBindInfo, VK_NULL_HANDLE);
+    ObjDisp(queue)->QueueBindSparse(Unwrap(queue), bindInfoCount, pBindInfo, VK_NULL_HANDLE);
   }
 
   return true;
@@ -936,54 +937,6 @@ bool WrappedVulkan::Serialise_vkQueueBindSparse(Serialiser *localSerialiser, VkQ
 VkResult WrappedVulkan::vkQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
                                           const VkBindSparseInfo *pBindInfo, VkFence fence)
 {
-  if(m_State >= WRITING_CAPFRAME)
-  {
-    CACHE_THREAD_SERIALISER();
-
-    for(uint32_t i = 0; i < bindInfoCount; i++)
-    {
-      SCOPED_SERIALISE_CONTEXT(BIND_SPARSE);
-      Serialise_vkQueueBindSparse(localSerialiser, queue, 1, pBindInfo + i, fence);
-
-      m_FrameCaptureRecord->AddChunk(scope.Get());
-      GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
-      GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
-      // images/buffers aren't marked referenced. If the only ref is a memory bind, we just skip it
-
-      for(uint32_t w = 0; w < pBindInfo[i].waitSemaphoreCount; w++)
-        GetResourceManager()->MarkResourceFrameReferenced(GetResID(pBindInfo[i].pWaitSemaphores[w]),
-                                                          eFrameRef_Read);
-      for(uint32_t s = 0; s < pBindInfo[i].signalSemaphoreCount; s++)
-        GetResourceManager()->MarkResourceFrameReferenced(
-            GetResID(pBindInfo[i].pSignalSemaphores[s]), eFrameRef_Read);
-    }
-  }
-
-  // update our internal page tables
-  if(m_State >= WRITING)
-  {
-    for(uint32_t i = 0; i < bindInfoCount; i++)
-    {
-      for(uint32_t buf = 0; buf < pBindInfo[i].bufferBindCount; buf++)
-      {
-        const VkSparseBufferMemoryBindInfo &bind = pBindInfo[i].pBufferBinds[buf];
-        GetRecord(bind.buffer)->sparseInfo->Update(bind.bindCount, bind.pBinds);
-      }
-
-      for(uint32_t op = 0; op < pBindInfo[i].imageOpaqueBindCount; op++)
-      {
-        const VkSparseImageOpaqueMemoryBindInfo &bind = pBindInfo[i].pImageOpaqueBinds[op];
-        GetRecord(bind.image)->sparseInfo->Update(bind.bindCount, bind.pBinds);
-      }
-
-      for(uint32_t op = 0; op < pBindInfo[i].imageBindCount; op++)
-      {
-        const VkSparseImageMemoryBindInfo &bind = pBindInfo[i].pImageBinds[op];
-        GetRecord(bind.image)->sparseInfo->Update(bind.bindCount, bind.pBinds);
-      }
-    }
-  }
-
   // need to allocate space for each bind batch
   size_t tempmemSize = sizeof(VkBindSparseInfo) * bindInfoCount;
 
@@ -1090,16 +1043,71 @@ VkResult WrappedVulkan::vkQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
     }
   }
 
-  return ObjDisp(queue)->QueueBindSparse(Unwrap(queue), bindInfoCount, unwrapped, Unwrap(fence));
+  VkResult ret =
+      ObjDisp(queue)->QueueBindSparse(Unwrap(queue), bindInfoCount, unwrapped, Unwrap(fence));
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+
+    {
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueBindSparse);
+      ser.SetDrawChunk();
+      Serialise_vkQueueBindSparse(ser, queue, bindInfoCount, pBindInfo, fence);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+    }
+
+    for(uint32_t i = 0; i < bindInfoCount; i++)
+    {
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
+      // images/buffers aren't marked referenced. If the only ref is a memory bind, we just skip it
+
+      for(uint32_t w = 0; w < pBindInfo[i].waitSemaphoreCount; w++)
+        GetResourceManager()->MarkResourceFrameReferenced(GetResID(pBindInfo[i].pWaitSemaphores[w]),
+                                                          eFrameRef_Read);
+      for(uint32_t s = 0; s < pBindInfo[i].signalSemaphoreCount; s++)
+        GetResourceManager()->MarkResourceFrameReferenced(
+            GetResID(pBindInfo[i].pSignalSemaphores[s]), eFrameRef_Read);
+    }
+  }
+
+  // update our internal page tables
+  if(IsCaptureMode(m_State))
+  {
+    for(uint32_t i = 0; i < bindInfoCount; i++)
+    {
+      for(uint32_t buf = 0; buf < pBindInfo[i].bufferBindCount; buf++)
+      {
+        const VkSparseBufferMemoryBindInfo &bind = pBindInfo[i].pBufferBinds[buf];
+        GetRecord(bind.buffer)->sparseInfo->Update(bind.bindCount, bind.pBinds);
+      }
+
+      for(uint32_t op = 0; op < pBindInfo[i].imageOpaqueBindCount; op++)
+      {
+        const VkSparseImageOpaqueMemoryBindInfo &bind = pBindInfo[i].pImageOpaqueBinds[op];
+        GetRecord(bind.image)->sparseInfo->Update(bind.bindCount, bind.pBinds);
+      }
+
+      for(uint32_t op = 0; op < pBindInfo[i].imageBindCount; op++)
+      {
+        const VkSparseImageMemoryBindInfo &bind = pBindInfo[i].pImageBinds[op];
+        GetRecord(bind.image)->sparseInfo->Update(bind.bindCount, bind.pBinds);
+      }
+    }
+  }
+
+  return ret;
 }
 
-bool WrappedVulkan::Serialise_vkQueueWaitIdle(Serialiser *localSerialiser, VkQueue queue)
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkQueueWaitIdle(SerialiserType &ser, VkQueue queue)
 {
-  SERIALISE_ELEMENT(ResourceId, id, GetResID(queue));
+  SERIALISE_ELEMENT(queue);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    queue = GetResourceManager()->GetLiveHandle<VkQueue>(id);
     ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
   }
 
@@ -1110,12 +1118,12 @@ VkResult WrappedVulkan::vkQueueWaitIdle(VkQueue queue)
 {
   VkResult ret = ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
 
-  if(m_State >= WRITING_CAPFRAME)
+  if(IsActiveCapturing(m_State))
   {
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CONTEXT(QUEUE_WAIT_IDLE);
-    Serialise_vkQueueWaitIdle(localSerialiser, queue);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueWaitIdle);
+    Serialise_vkQueueWaitIdle(ser, queue);
 
     m_FrameCaptureRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
@@ -1123,3 +1131,14 @@ VkResult WrappedVulkan::vkQueueWaitIdle(VkQueue queue)
 
   return ret;
 }
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkGetDeviceQueue, VkDevice device, uint32_t queueFamilyIndex,
+                                uint32_t queueIndex, VkQueue *pQueue);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkQueueSubmit, VkQueue queue, uint32_t submitCount,
+                                const VkSubmitInfo *pSubmits, VkFence fence);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkQueueBindSparse, VkQueue queue, uint32_t bindInfoCount,
+                                const VkBindSparseInfo *pBindInfo, VkFence fence);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkQueueWaitIdle, VkQueue queue);
