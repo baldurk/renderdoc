@@ -262,7 +262,7 @@ const APIEvent &WrappedID3D12CommandQueue::GetEvent(uint32_t eventID)
       return e;
   }
 
-  return m_Cmd.m_Events[0];
+  return m_Cmd.m_Events.back();
 }
 
 void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chunk)
