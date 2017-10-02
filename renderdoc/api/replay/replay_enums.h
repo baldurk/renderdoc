@@ -1115,6 +1115,10 @@ or formats that don't have equal byte-multiple sizes for each channel.
 .. data:: YUV
 
   The pixel data is in an opaque YUV format.
+
+.. data:: PVRTC
+
+  PowerVR properitary texture compression format.
 )");
 enum class ResourceFormatType : uint8_t
 {
