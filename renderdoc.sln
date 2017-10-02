@@ -60,6 +60,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "d3d8", "renderdoc\driver\d3
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "d3d9", "renderdoc\driver\d3d9\renderdoc_d3d9.vcxproj", "{44044776-9469-4079-B587-ABFFF6574AA4}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vulkan", "renderdoc\driver\vulkan\renderdoc_vulkan.vcxproj", "{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Development|x64 = Development|x64
@@ -180,6 +182,14 @@ Global
 		{44044776-9469-4079-B587-ABFFF6574AA4}.Release|x64.Build.0 = Release|x64
 		{44044776-9469-4079-B587-ABFFF6574AA4}.Release|x86.ActiveCfg = Release|Win32
 		{44044776-9469-4079-B587-ABFFF6574AA4}.Release|x86.Build.0 = Release|Win32
+		{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F}.Development|x64.ActiveCfg = Development|x64
+		{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F}.Development|x64.Build.0 = Development|x64
+		{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F}.Development|x86.ActiveCfg = Development|Win32
+		{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F}.Development|x86.Build.0 = Development|Win32
+		{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F}.Release|x64.ActiveCfg = Release|x64
+		{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F}.Release|x64.Build.0 = Release|x64
+		{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F}.Release|x86.ActiveCfg = Release|Win32
+		{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -204,5 +214,6 @@ Global
 		{F1E59A05-60D4-4927-9E57-DD191EAE90EF} = {864A44B0-5612-451A-857F-41E3EF785EF6}
 		{9C4487E8-EEB0-4A7F-BD81-23F81CD24E22} = {864A44B0-5612-451A-857F-41E3EF785EF6}
 		{44044776-9469-4079-B587-ABFFF6574AA4} = {864A44B0-5612-451A-857F-41E3EF785EF6}
+		{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F} = {864A44B0-5612-451A-857F-41E3EF785EF6}
 	EndGlobalSection
 EndGlobal

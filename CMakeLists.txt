@@ -112,7 +112,7 @@ project(RenderDoc CXX C)
 
 option(ENABLE_GL "Enable GL driver" OFF)
 option(ENABLE_GLES "Enable GL ES driver" OFF)
-option(ENABLE_VULKAN "Enable Vulkan driver" OFF)
+option(ENABLE_VULKAN "Enable Vulkan driver" ON)
 option(ENABLE_RENDERDOCCMD "Enable renderdoccmd" ON)
 option(ENABLE_QRENDERDOC "Enable qrenderdoc" ON)
 
