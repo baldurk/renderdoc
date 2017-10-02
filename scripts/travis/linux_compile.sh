@@ -25,3 +25,4 @@ make -j2
 echo "--- Running unit tests ---"
 
 ./bin/renderdoccmd test -t unit
+./bin/qrenderdoc --unittest

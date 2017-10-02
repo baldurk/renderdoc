@@ -24,7 +24,7 @@
 
 #pragma once
 
-inline void check_docstrings(swig_type_info **swig_types, size_t numTypes)
+inline bool check_docstrings(swig_type_info **swig_types, size_t numTypes)
 {
   // track all errors and fatal error at the end, so we see all of the problems at once instead of
   // requiring rebuilds over and over.
@@ -180,7 +180,5 @@ inline void check_docstrings(swig_type_info **swig_types, size_t numTypes)
     }
   }
 
-  if(errors_found)
-    RENDERDOC_LogMessage(LogType::Fatal, "QTRD", __FILE__, __LINE__,
-                         "Found errors in python binding docstrings. Please fix!");
+  return errors_found;
 }

@@ -55,6 +55,8 @@ public:
   static void GlobalInit();
   static void GlobalShutdown();
 
+  bool CheckDocstrings();
+
   QString versionString();
 
   template <typename T>

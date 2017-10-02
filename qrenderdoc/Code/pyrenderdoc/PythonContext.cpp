@@ -58,6 +58,10 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 #include "Code/QRDUtils.h"
 #include "PythonContext.h"
 
+// exported by generated files, used to check docstrings in interfaces
+bool CheckCoreDocstrings();
+bool CheckQtDocstrings();
+
 // defined in SWIG-generated renderdoc_python.cpp
 extern "C" PyObject *PyInit__renderdoc(void);
 extern "C" PyObject *PassObjectToPython(const char *type, void *obj);
@@ -441,6 +445,18 @@ PythonContext::~PythonContext()
 {
   // do a final tick to gather any remaining output
   outputTick();
+}
+
+bool PythonContext::CheckDocstrings()
+{
+  bool errors = false;
+
+  PyGILState_STATE gil = PyGILState_Ensure();
+  errors |= CheckCoreDocstrings();
+  errors |= CheckQtDocstrings();
+  PyGILState_Release(gil);
+
+  return errors;
 }
 
 void PythonContext::Finish()

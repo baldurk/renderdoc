@@ -66,6 +66,35 @@ int main(int argc, char *argv[])
 
   qInstallMessageHandler(sharedLogOutput);
 
+#if !defined(RELEASE)
+  for(int i = 0; i < argc; i++)
+  {
+    if(!QString::compare(QString::fromUtf8(argv[i]), lit("--unittest"), Qt::CaseInsensitive))
+    {
+      QCoreApplication app(argc, argv);
+      PythonContext::GlobalInit();
+
+      bool errors = false;
+
+      qInfo() << "Checking python binding docstrings.";
+
+      {
+        PythonContextHandle py;
+        errors = py.ctx().CheckDocstrings();
+      }
+
+      if(errors)
+      {
+        qCritical() << "Found errors in python binding docstrings. Please fix!";
+        return 1;
+      }
+
+      qInfo() << "Python binding docstrings are consistent.";
+      return 0;
+    }
+  }
+#endif
+
   qInfo() << "QRenderDoc initialising.";
 
   QString filename;
