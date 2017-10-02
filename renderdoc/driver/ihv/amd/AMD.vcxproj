@@ -114,13 +114,10 @@
     <ClInclude Include="official\GPUPerfAPI\Include\GPAFunctions.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPAICounterAccessor.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPAICounterScheduler.h" />
-    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI-HSA.h" />
-    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI-Private.h" />
+    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI-VK.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPICounters.h" />
-    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPIFunctionTypes-Private.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPIFunctionTypes.h" />
-    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPITypes-Private.h" />
     <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPITypes.h" />
     <ClInclude Include="official\RGA\Common\AmdDxGsaCompile.h" />
     <ClInclude Include="official\RGA\Common\asic_reg\devices.h" />
