@@ -1166,7 +1166,9 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         gl.glLinkProgram(initProg);
       }
 
-      SerialiseProgramUniforms(gl, m_pSerialiser, initProg, &details.locationTranslate, false);
+      GLuint live = GetLiveResource(Id).name;
+      SerialiseProgramUniforms(gl, m_pSerialiser, live, &details.locationTranslate, false);
+      CopyProgramUniforms(gl, live, initProg);
 
       SetInitialContents(Id, InitialContentData(ProgramRes(m_GL->GetCtx(), initProg), 0, NULL));
     }
