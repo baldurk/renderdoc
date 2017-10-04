@@ -65,6 +65,15 @@ bool AMDCounters::Init(void *pContext)
   {
     getFuncTable((void **)&m_pGPUPerfAPI);
   }
+  else
+  {
+    RDCWARN(
+        "GPA version is out of date, doesn't expose GPA_GetFuncTable. Make sure you have 3.0 or "
+        "above.");
+    delete m_pGPUPerfAPI;
+    m_pGPUPerfAPI = NULL;
+    return false;
+  }
 
   if(m_pGPUPerfAPI->GPA_Initialize() != GPA_STATUS_OK)
   {
