@@ -38,6 +38,8 @@ enum ReplayProxyPacket
   eReplayProxy_ReplayLog = eReplayProxy_First,
 
   eReplayProxy_GetAPIProperties,
+  eReplayProxy_FetchStructuredFile,
+
   eReplayProxy_GetPassEvents,
 
   eReplayProxy_GetTextures,
@@ -103,6 +105,7 @@ public:
       : m_Reader(reader), m_Writer(writer), m_Proxy(proxy), m_Remote(NULL), m_RemoteServer(false)
   {
     GetAPIProperties();
+    FetchStructuredFile();
   }
 
   ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IRemoteDriver *remote)
@@ -385,6 +388,9 @@ public:
   const D3D12Pipe::State &GetD3D12PipelineState() { return m_D3D12PipelineState; }
   const GLPipe::State &GetGLPipelineState() { return m_GLPipelineState; }
   const VKPipe::State &GetVulkanPipelineState() { return m_VulkanPipelineState; }
+  const SDFile &GetStructuredFile() { return m_StructuredFile; }
+  IMPLEMENT_FUNCTION_PROXIED(void, FetchStructuredFile);
+
   IMPLEMENT_FUNCTION_PROXIED(std::vector<ResourceId>, GetBuffers);
   IMPLEMENT_FUNCTION_PROXIED(BufferDescription, GetBuffer, ResourceId id);
 
@@ -550,6 +556,8 @@ private:
   bool m_IsErrored = false;
 
   APIProperties m_APIProps;
+
+  SDFile m_StructuredFile;
 
   D3D11Pipe::State m_D3D11PipelineState;
   D3D12Pipe::State m_D3D12PipelineState;

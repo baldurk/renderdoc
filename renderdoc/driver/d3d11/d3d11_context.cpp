@@ -1008,8 +1008,7 @@ void WrappedID3D11DeviceContext::AddEvent()
   apievent.fileOffset = m_CurChunkOffset;
   apievent.eventID = m_CurEventID;
 
-  // TODO structured data?
-  apievent.eventDesc = "TODO";
+  apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
 
   apievent.callstack = m_ChunkMetadata.callstack;
 
@@ -1058,6 +1057,12 @@ void WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32_t start
     ser.ConfigureStructuredExport(&GetChunkName, IsStructuredExporting(m_State));
 
     ser.GetStructuredFile().swap(m_pDevice->GetStructuredFile());
+
+    m_StructuredFile = &ser.GetStructuredFile();
+  }
+  else
+  {
+    m_StructuredFile = &m_pDevice->GetStructuredFile();
   }
 
   m_DoStateVerify = true;
@@ -1207,6 +1212,8 @@ void WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32_t start
   // swap the structure back now that we've accumulated the frame as well.
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
     ser.GetStructuredFile().swap(m_pDevice->GetStructuredFile());
+
+  m_StructuredFile = NULL;
 
   m_pDevice->GetResourceManager()->MarkInFrame(false);
 

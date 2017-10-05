@@ -75,6 +75,7 @@ public:
 
   void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
+  const SDFile &GetStructuredFile();
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);
 

@@ -156,6 +156,7 @@ public:
   void FreeTargetResource(ResourceId id);
 
   FrameDescription GetFrameInfo();
+  const SDFile &GetStructuredFile();
   rdcarray<DrawcallDescription> GetDrawcalls();
   rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters);
   rdcarray<GPUCounter> EnumerateCounters();

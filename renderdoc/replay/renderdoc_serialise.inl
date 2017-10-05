@@ -386,10 +386,10 @@ void DoSerialise(SerialiserType &ser, APIEvent &el)
 {
   SERIALISE_MEMBER(eventID);
   SERIALISE_MEMBER(callstack);
-  SERIALISE_MEMBER(eventDesc);
+  SERIALISE_MEMBER(chunkIndex);
   SERIALISE_MEMBER(fileOffset);
 
-  SIZE_CHECK(48);
+  SIZE_CHECK(40);
 }
 
 template <typename SerialiserType>

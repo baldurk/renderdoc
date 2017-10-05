@@ -1300,6 +1300,11 @@ void D3D11Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
   m_pDevice->ReplayLog(0, endEventID, replayType);
 }
 
+const SDFile &D3D11Replay::GetStructuredFile()
+{
+  return m_pDevice->GetStructuredFile();
+}
+
 vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventID)
 {
   vector<uint32_t> passEvents;

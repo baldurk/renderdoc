@@ -760,6 +760,13 @@ See :meth:`BuildTargetShader`.
 )");
   virtual FrameDescription GetFrameInfo() = 0;
 
+  DOCUMENT(R"(Fetch the structured data representation of the capture loaded.
+
+:return: The structured file.
+:rtype: SDFile
+)");
+  virtual const SDFile &GetStructuredFile() = 0;
+
   DOCUMENT(R"(Retrieve the list of root-level drawcalls in the capture.
 
 :return: The list of root-level drawcalls in the capture.

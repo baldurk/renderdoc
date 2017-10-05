@@ -248,8 +248,8 @@ results part way through the multi draw.
   DOCUMENT("A list of addresses in the CPU callstack where this function was called.");
   rdcarray<uint64_t> callstack;
 
-  DOCUMENT("A raw debug string with the serialised form of the function call parameters.");
-  rdcstr eventDesc;
+  DOCUMENT("The chunk index for this function call in the structured file.");
+  uint32_t chunkIndex;
 
   DOCUMENT(R"(A byte offset in the data stream where this event happens.
 

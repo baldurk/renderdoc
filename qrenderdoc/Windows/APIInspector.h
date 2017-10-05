@@ -32,6 +32,8 @@ namespace Ui
 class APIInspector;
 }
 
+class RDTreeWidgetItem;
+
 class APIInspector : public QFrame, public IAPIInspector, public ILogViewer
 {
   Q_OBJECT
@@ -57,4 +59,5 @@ private:
 
   void addCallstack(rdcarray<rdcstr> calls);
   void fillAPIView();
+  void addObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs, bool parentIsArray);
 };
