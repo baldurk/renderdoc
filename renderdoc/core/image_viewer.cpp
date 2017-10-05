@@ -149,6 +149,7 @@ public:
   const D3D11Pipe::State &GetD3D11PipelineState() { return m_PipelineState; }
   // other operations are dropped/ignored, to avoid confusion
   void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers) {}
+  const SDFile &GetStructuredFile() { return m_File; }
   void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
   {
   }
@@ -276,6 +277,7 @@ private:
   IReplayDriver *m_Proxy;
   string m_Filename;
   ResourceId m_TextureID;
+  SDFile m_File;
   TextureDescription m_TexDetails;
 };
 

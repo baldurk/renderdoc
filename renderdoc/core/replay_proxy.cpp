@@ -1255,6 +1255,64 @@ void ReplayProxy::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
   PROXY_FUNCTION(ReplayLog, endEventID, replayType);
 }
 
+template <typename ParamSerialiser, typename ReturnSerialiser>
+void ReplayProxy::Proxied_FetchStructuredFile(ParamSerialiser &paramser, ReturnSerialiser &retser)
+{
+  const ReplayProxyPacket packet = eReplayProxy_FetchStructuredFile;
+
+  {
+    BEGIN_PARAMS();
+    END_PARAMS();
+  }
+
+  SDFile *file = &m_StructuredFile;
+
+  if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+    file = (SDFile *)&m_Remote->GetStructuredFile();
+
+  {
+    ReturnSerialiser &ser = retser;
+    PACKET_HEADER(packet);
+
+    uint64_t chunkCount = file->chunks.size();
+    SERIALISE_ELEMENT(chunkCount);
+
+    if(retser.IsReading())
+      file->chunks.resize((size_t)chunkCount);
+
+    for(size_t c = 0; c < (size_t)chunkCount; c++)
+    {
+      if(retser.IsReading())
+        file->chunks[c] = new SDChunk("");
+
+      ser.Serialise("chunk", *file->chunks[c]);
+    }
+
+    uint64_t bufferCount = file->buffers.size();
+    SERIALISE_ELEMENT(bufferCount);
+
+    if(retser.IsReading())
+      file->buffers.resize((size_t)bufferCount);
+
+    for(size_t b = 0; b < (size_t)bufferCount; b++)
+    {
+      if(retser.IsReading())
+        file->buffers[b] = new bytebuf;
+
+      bytebuf *buf = file->buffers[b];
+
+      ser.Serialise("buffer", *buf);
+    }
+
+    ser.EndChunk();
+  }
+}
+
+void ReplayProxy::FetchStructuredFile()
+{
+  PROXY_FUNCTION(FetchStructuredFile);
+}
+
 #pragma endregion Proxied Functions
 
 // If a remap is required, modify the params that are used when getting the proxy texture data
@@ -1400,6 +1458,7 @@ bool ReplayProxy::Tick(int type)
   switch(type)
   {
     case eReplayProxy_ReplayLog: ReplayLog(0, (ReplayLogType)0); break;
+    case eReplayProxy_FetchStructuredFile: FetchStructuredFile(); break;
     case eReplayProxy_GetAPIProperties: GetAPIProperties(); break;
     case eReplayProxy_GetPassEvents: GetPassEvents(0); break;
     case eReplayProxy_GetTextures: GetTextures(); break;

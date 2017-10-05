@@ -34,6 +34,7 @@ APIInspector::APIInspector(ICaptureContext &ctx, QWidget *parent)
   ui->setupUi(this);
 
   ui->apiEvents->setColumns({lit("EID"), tr("Event")});
+  ui->apiEvents->header()->resizeSection(0, 200);
 
   ui->splitter->setCollapsible(1, true);
   ui->splitter->setSizes({1, 0});
@@ -134,43 +135,128 @@ void APIInspector::fillAPIView()
   QRegularExpression rgxopen(lit("^\\s*{"));
   QRegularExpression rgxclose(lit("^\\s*}"));
 
-  const DrawcallDescription *draw = m_Ctx.CurSelectedDrawcall();
+  m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
+    const SDFile &file = r->GetStructuredFile();
 
-  if(draw != NULL && !draw->events.isEmpty())
-  {
-    for(const APIEvent &ev : draw->events)
-    {
-      QStringList lines = QString(ev.eventDesc).split(lit("\n"), QString::SkipEmptyParts);
+    GUIInvoke::call([this, &file]() {
+      const DrawcallDescription *draw = m_Ctx.CurSelectedDrawcall();
 
-      RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventID), lines[0]});
-
-      int i = 1;
-
-      if(i < lines.count() && lines[i].trimmed() == lit("{"))
-        i++;
-
-      QList<RDTreeWidgetItem *> nodestack;
-      nodestack.push_back(root);
-
-      for(; i < lines.count(); i++)
+      if(draw != NULL && !draw->events.isEmpty())
       {
-        if(rgxopen.match(lines[i]).hasMatch())
-          nodestack.push_back(nodestack.back()->child(nodestack.back()->childCount() - 1));
-        else if(rgxclose.match(lines[i]).hasMatch())
-          nodestack.pop_back();
-        else if(!nodestack.empty())
-          nodestack.back()->addChild(new RDTreeWidgetItem({QString(), lines[i].trimmed()}));
+        for(const APIEvent &ev : draw->events)
+        {
+          RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventID), QString()});
+
+          if(ev.chunkIndex < file.chunks.size())
+          {
+            SDChunk *chunk = file.chunks[ev.chunkIndex];
+
+            root->setText(1, chunk->name);
+
+            addObjects(root, chunk->data.children, false);
+          }
+          else
+          {
+            root->setText(1, tr("Invalid chunk index %1").arg(ev.chunkIndex));
+          }
+
+          if(ev.eventID == draw->eventID)
+            root->setBold(true);
+
+          root->setTag(QVariant::fromValue(ev));
+
+          ui->apiEvents->addTopLevelItem(root);
+
+          ui->apiEvents->setSelectedItem(root);
+        }
       }
+      ui->apiEvents->setUpdatesEnabled(true);
+    });
+  });
+}
 
-      if(ev.eventID == draw->eventID)
-        root->setBold(true);
+void APIInspector::addObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs,
+                              bool parentIsArray)
+{
+  for(const SDObject *obj : objs)
+  {
+    if(obj->type.flags & SDTypeFlags::Hidden)
+      continue;
 
-      root->setTag(QVariant::fromValue(ev));
+    QString param;
 
-      ui->apiEvents->addTopLevelItem(root);
+    if(parentIsArray)
+      param = QFormatStr("[%1]").arg(parent->childCount());
+    else
+      param = obj->name;
 
-      ui->apiEvents->setSelectedItem(root);
+    RDTreeWidgetItem *item = new RDTreeWidgetItem({param, QString()});
+
+    param = QString();
+
+    // we don't identify via the type name as many types could be serialised as a ResourceId -
+    // e.g. ID3D11Resource* or ID3D11Buffer* which would be the actual typename. We want to preserve
+    // that for the best raw structured data representation instead of flattening those out to just
+    // "ResourceId", and we also don't want to store two types ('fake' and 'real'), so instead we
+    // check the custom string.
+    if((obj->type.flags & SDTypeFlags::HasCustomString) &&
+       !strncmp(obj->data.str.c_str(), "ResourceId", 10))
+    {
+      ResourceId id;
+      static_assert(sizeof(id) == sizeof(obj->data.basic.u), "ResourceId is no longer uint64_t!");
+      memcpy(&id, &obj->data.basic.u, sizeof(id));
+      // for resource IDs, try to locate the resource.
+      TextureDescription *tex = m_Ctx.GetTexture(id);
+      BufferDescription *buf = m_Ctx.GetBuffer(id);
+
+      if(tex)
+      {
+        param += tex->name;
+      }
+      else if(buf)
+      {
+        param += buf->name;
+      }
+      else
+      {
+        param += lit("%1 %2").arg(obj->type.name).arg(obj->data.basic.u);
+      }
     }
+    else if(obj->type.flags & SDTypeFlags::NullString)
+    {
+      param += lit("NULL");
+    }
+    else if(obj->type.flags & SDTypeFlags::HasCustomString)
+    {
+      param += obj->data.str;
+    }
+    else
+    {
+      switch(obj->type.basetype)
+      {
+        case SDBasic::Chunk:
+        case SDBasic::Struct:
+          param += QFormatStr("%1()").arg(obj->type.name);
+          addObjects(item, obj->data.children, false);
+          break;
+        case SDBasic::Array:
+          param += QFormatStr("%1[]").arg(obj->type.name);
+          addObjects(item, obj->data.children, true);
+          break;
+        case SDBasic::Null: param += lit("NULL"); break;
+        case SDBasic::Buffer: param += lit("(%1 byte buffer)").arg(obj->type.byteSize); break;
+        case SDBasic::String: param += obj->data.str; break;
+        case SDBasic::Enum:
+        case SDBasic::UnsignedInteger: param += Formatter::Format(obj->data.basic.u); break;
+        case SDBasic::SignedInteger: param += Formatter::Format(obj->data.basic.i); break;
+        case SDBasic::Float: param += Formatter::Format(obj->data.basic.d); break;
+        case SDBasic::Boolean: param += (obj->data.basic.b ? tr("True") : tr("False")); break;
+        case SDBasic::Character: param += QLatin1Char(obj->data.basic.c); break;
+      }
+    }
+
+    item->setText(1, param);
+
+    parent->addChild(item);
   }
-  ui->apiEvents->setUpdatesEnabled(true);
 }

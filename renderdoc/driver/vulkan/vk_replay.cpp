@@ -669,6 +669,11 @@ void VulkanReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
   m_pDriver->ReplayLog(0, endEventID, replayType);
 }
 
+const SDFile &VulkanReplay::GetStructuredFile()
+{
+  return m_pDriver->GetStructuredFile();
+}
+
 vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventID)
 {
   vector<uint32_t> passEvents;

@@ -2790,8 +2790,7 @@ void WrappedVulkan::AddEvent()
                          ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID
                          : m_RootEventID;
 
-  // TODO structured data?
-  apievent.eventDesc = "TODO";
+  apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
 
   apievent.callstack = m_ChunkMetadata.callstack;
 

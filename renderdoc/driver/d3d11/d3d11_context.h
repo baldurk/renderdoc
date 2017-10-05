@@ -194,6 +194,8 @@ private:
   vector<Annotation> m_AnnotationQueue;
   Threading::CriticalSection m_AnnotLock;
 
+  SDFile *m_StructuredFile = NULL;
+
   uint64_t m_CurChunkOffset;
   SDChunkMetaData m_ChunkMetadata;
   uint32_t m_CurEventID, m_CurDrawcallID;

@@ -258,6 +258,11 @@ FrameDescription ReplayController::GetFrameInfo()
   return m_FrameRecord.frameInfo;
 }
 
+const SDFile &ReplayController::GetStructuredFile()
+{
+  return m_pDevice->GetStructuredFile();
+}
+
 DrawcallDescription *ReplayController::GetDrawcallByEID(uint32_t eventID)
 {
   if(eventID >= m_Drawcalls.size())
