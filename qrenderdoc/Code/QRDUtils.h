@@ -676,6 +676,7 @@ struct Formatter
       return Format(u, true);
   }
   static QString Format(int32_t i, bool hex = false) { return QString::number(i); }
+  static QString Format(int64_t i, bool hex = false) { return QString::number(i); }
   static const QFont &PreferredFont() { return *m_Font; }
   static const QColor DarkCheckerColor() { return m_DarkChecker; }
   static const QColor LightCheckerColor() { return m_LightChecker; }
