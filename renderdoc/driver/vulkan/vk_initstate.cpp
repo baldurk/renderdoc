@@ -712,7 +712,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
   }
   else if(type == eResDeviceMemory || type == eResImage)
   {
-    VkDevice d = GetDev();
+    VkDevice d = !IsStructuredExporting(m_State) ? GetDev() : VK_NULL_HANDLE;
     VulkanResourceManager::InitialContentData initContents =
         GetResourceManager()->GetInitialContents(id);
 
@@ -797,7 +797,8 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
     ser.Serialise("Contents", Contents, ContentsSize, SerialiserFlags::NoFlags);
 
     // unmap the resource we mapped before - we need to do this on read and on write.
-    ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem));
+    if(!IsStructuredExporting(m_State))
+      ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem));
 
     // if we're handling a device memory object, we're done - we note the memory object to delete at
     // the end of the program, and store the buffer to copy off in Apply
@@ -1023,6 +1024,9 @@ template bool WrappedVulkan::Serialise_InitialState(WriteSerialiser &ser, Resour
 
 void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData)
 {
+  if(IsStructuredExporting(m_State))
+    return;
+
   VkResourceType type = IdentifyTypeByPtr(live);
 
   if(type == eResDescriptorSet)

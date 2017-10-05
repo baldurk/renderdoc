@@ -934,6 +934,9 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
 
 void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData)
 {
+  if(IsStructuredExporting(m_State))
+    return;
+
   ResourceType type = IdentifyTypeByPtr(live);
 
   {

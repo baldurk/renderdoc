@@ -424,7 +424,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
             }
             else
             {
-              driver->ReadLogInitialisation(rdc);
+              driver->ReadLogInitialisation(rdc, false);
 
               RenderDoc::Inst().SetProgressPtr(NULL);
 

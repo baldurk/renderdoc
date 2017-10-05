@@ -97,23 +97,27 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
 
   D3D11_FEATURE_DATA_D3D11_OPTIONS features;
   RDCEraseEl(features);
-  HRESULT hr =
-      m_pDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &features, sizeof(features));
+  HRESULT hr = S_OK;
+
+  if(m_pRealContext)
+    hr = m_pDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &features, sizeof(features));
 
   m_SetCBuffer1 = false;
   if(SUCCEEDED(hr))
     m_SetCBuffer1 = features.ConstantBufferOffsetting == TRUE;
 
   m_pRealContext1 = NULL;
-  m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext1), (void **)&m_pRealContext1);
-
   m_pRealContext2 = NULL;
-  m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext2), (void **)&m_pRealContext2);
-
   m_pRealContext3 = NULL;
-  m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext3), (void **)&m_pRealContext3);
+  if(m_pRealContext)
+  {
+    m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext1), (void **)&m_pRealContext1);
+    m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext2), (void **)&m_pRealContext2);
+    m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext3), (void **)&m_pRealContext3);
+  }
 
   m_NeedUpdateSubWorkaround = false;
+  if(m_pRealContext)
   {
     D3D11_FEATURE_DATA_THREADING caps = {FALSE, FALSE};
 
@@ -167,7 +171,7 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   m_DeferredSavedState = NULL;
   m_DoStateVerify = IsCaptureMode(m_State);
 
-  if(context->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
+  if(!context || context->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
   {
     m_CurrentPipelineState->SetImmediatePipeline(m_pDevice);
   }
@@ -188,7 +192,7 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
   if(m_ContextRecord)
     m_ContextRecord->Delete(m_pDevice->GetResourceManager());
 
-  if(m_pRealContext->GetType() != D3D11_DEVICE_CONTEXT_IMMEDIATE)
+  if(m_pRealContext && m_pRealContext->GetType() != D3D11_DEVICE_CONTEXT_IMMEDIATE)
     m_pDevice->RemoveDeferredContext(this);
 
   for(auto it = m_StreamOutCounters.begin(); it != m_StreamOutCounters.end(); ++it)
@@ -1049,8 +1053,12 @@ void WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32_t start
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());
 
-  if(IsLoading(m_State))
-    ser.ConfigureStructuredExport(&GetChunkName, false);
+  if(IsLoading(m_State) || IsStructuredExporting(m_State))
+  {
+    ser.ConfigureStructuredExport(&GetChunkName, IsStructuredExporting(m_State));
+
+    ser.GetStructuredFile().swap(m_pDevice->GetStructuredFile());
+  }
 
   m_DoStateVerify = true;
 
@@ -1195,6 +1203,10 @@ void WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32_t start
 
     // RDCDEBUG("Can skip %d initial states.", initialSkips);
   }
+
+  // swap the structure back now that we've accumulated the frame as well.
+  if(IsLoading(m_State) || IsStructuredExporting(m_State))
+    ser.GetStructuredFile().swap(m_pDevice->GetStructuredFile());
 
   m_pDevice->GetResourceManager()->MarkInFrame(false);
 

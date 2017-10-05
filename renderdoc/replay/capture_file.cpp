@@ -131,7 +131,17 @@ public:
 
   const SDFile &GetStructuredData()
   {
-    // TODO - fetch structured data from capture on demand?
+    if(m_StructuredData.chunks.empty() && m_RDC && m_RDC->SectionIndex(SectionType::FrameCapture) >= 0)
+    {
+      // decompile to structured data on demand.
+      StructuredProcessor proc = RenderDoc::Inst().GetStructuredProcessor(m_RDC->GetDriver());
+
+      if(proc)
+        proc(m_RDC, m_StructuredData);
+      else
+        RDCERR("Can't get structured data for driver %s", m_RDC->GetDriverName().c_str());
+    }
+
     return m_StructuredData;
   }
 

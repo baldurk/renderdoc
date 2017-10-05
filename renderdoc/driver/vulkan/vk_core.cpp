@@ -99,6 +99,8 @@ WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
     m_State = CaptureState::BackgroundCapturing;
   }
 
+  m_StructuredFile = &m_StoredStructuredData;
+
   m_SectionVersion = VkInitParams::CurrentVersion;
 
   InitSPIRVCompiler();
@@ -1383,7 +1385,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   return true;
 }
 
-void WrappedVulkan::ReadLogInitialisation(RDCFile *rdc)
+void WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
@@ -1400,9 +1402,11 @@ void WrappedVulkan::ReadLogInitialisation(RDCFile *rdc)
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());
 
-  // TODO make this an option passed in
-  ser.ConfigureStructuredExport(&GetChunkName, false);
+  ser.ConfigureStructuredExport(&GetChunkName, storeStructuredBuffers);
 
+  m_StructuredFile = &ser.GetStructuredFile();
+
+  m_StoredStructuredData.version = m_StructuredFile->version = m_SectionVersion;
 
   int chunkIdx = 0;
 
@@ -1472,6 +1476,12 @@ void WrappedVulkan::ReadLogInitialisation(RDCFile *rdc)
   }
 #endif
 
+  // steal the structured data for ourselves
+  m_StructuredFile->swap(m_StoredStructuredData);
+
+  // and in future use this file.
+  m_StructuredFile = &m_StoredStructuredData;
+
   m_FrameRecord.frameInfo.uncompressedFileSize =
       rdc->GetSectionProperties(sectionIdx).uncompressedSize;
   m_FrameRecord.frameInfo.compressedFileSize = rdc->GetSectionProperties(sectionIdx).compressedSize;
@@ -1483,8 +1493,11 @@ void WrappedVulkan::ReadLogInitialisation(RDCFile *rdc)
            m_FrameRecord.frameInfo.persistentSize);
 
   // ensure the capture at least created a device and fetched a queue.
-  RDCASSERT(m_Device != VK_NULL_HANDLE && m_Queue != VK_NULL_HANDLE &&
-            m_InternalCmds.cmdpool != VK_NULL_HANDLE);
+  if(!IsStructuredExporting(m_State))
+  {
+    RDCASSERT(m_Device != VK_NULL_HANDLE && m_Queue != VK_NULL_HANDLE &&
+              m_InternalCmds.cmdpool != VK_NULL_HANDLE);
+  }
 }
 
 void WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEventID,
@@ -1497,8 +1510,16 @@ void WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEventI
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());
 
-  if(IsLoading(m_State))
+  SDFile *prevFile = m_StructuredFile;
+
+  if(IsLoading(m_State) || IsStructuredExporting(m_State))
+  {
     ser.ConfigureStructuredExport(&GetChunkName, false);
+
+    ser.GetStructuredFile().swap(*m_StructuredFile);
+
+    m_StructuredFile = &ser.GetStructuredFile();
+  }
 
   VulkanChunk header = ser.ReadChunk<VulkanChunk>();
   RDCASSERTEQUAL(header, VulkanChunk::CaptureBegin);
@@ -1510,7 +1531,8 @@ void WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEventI
 
   ser.EndChunk();
 
-  ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
+  if(!IsStructuredExporting(m_State))
+    ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
 
   // apply initial contents here so that images are in the right layout
   // (not undefined)
@@ -1606,6 +1628,12 @@ void WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEventI
     }
   }
 
+  // swap the structure back now that we've accumulated the frame as well.
+  if(IsLoading(m_State) || IsStructuredExporting(m_State))
+    ser.GetStructuredFile().swap(*prevFile);
+
+  m_StructuredFile = prevFile;
+
   if(IsLoading(m_State))
   {
     GetFrameRecord().drawcallList = m_ParentDrawcall.Bake();
@@ -1622,11 +1650,14 @@ void WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEventI
     m_ParentDrawcall.children.clear();
   }
 
-  ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
+  if(!IsStructuredExporting(m_State))
+  {
+    ObjDisp(GetDev())->DeviceWaitIdle(Unwrap(GetDev()));
 
-  // destroy any events we created for waiting on
-  for(size_t i = 0; i < m_CleanupEvents.size(); i++)
-    ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i], NULL);
+    // destroy any events we created for waiting on
+    for(size_t i = 0; i < m_CleanupEvents.size(); i++)
+      ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_CleanupEvents[i], NULL);
+  }
 
   m_CleanupEvents.clear();
 

@@ -478,7 +478,7 @@ template <typename SerialiserType>
 bool WrappedVulkan::Serialise_SparseBufferInitialState(
     SerialiserType &ser, ResourceId id, VulkanResourceManager::InitialContentData contents)
 {
-  VkDevice d = GetDev();
+  VkDevice d = !IsStructuredExporting(m_State) ? GetDev() : VK_NULL_HANDLE;
   VkResult vkr = VK_SUCCESS;
 
   SparseBufferInitState *info = (SparseBufferInitState *)contents.blob;
@@ -580,7 +580,7 @@ template <typename SerialiserType>
 bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, ResourceId id,
                                                       VulkanResourceManager::InitialContentData contents)
 {
-  VkDevice d = GetDev();
+  VkDevice d = !IsStructuredExporting(m_State) ? GetDev() : VK_NULL_HANDLE;
   VkResult vkr = VK_SUCCESS;
 
   SparseImageInitState *info = (SparseImageInitState *)contents.blob;

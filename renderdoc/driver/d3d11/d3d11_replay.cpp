@@ -1290,9 +1290,9 @@ void D3D11Replay::SavePipelineState()
   }
 }
 
-void D3D11Replay::ReadLogInitialisation(RDCFile *rdc)
+void D3D11Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
-  m_pDevice->ReadLogInitialisation(rdc);
+  m_pDevice->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
 
 void D3D11Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
@@ -2110,3 +2110,16 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 }
 
 static DriverRegistration D3D11DriverRegistration(RDC_D3D11, "D3D11", &D3D11_CreateReplayDevice);
+
+void D3D11_ProcessStructured(RDCFile *rdc, SDFile &output)
+{
+  WrappedID3D11Device device(NULL, NULL);
+
+  device.SetStructuredExport(
+      rdc->GetSectionProperties(rdc->SectionIndex(SectionType::FrameCapture)).version);
+  device.ReadLogInitialisation(rdc, true);
+
+  device.GetStructuredFile().swap(output);
+}
+
+static StructuredProcessRegistration D3D11ProcessRegistration(RDC_D3D11, &D3D11_ProcessStructured);
