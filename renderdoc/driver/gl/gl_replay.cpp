@@ -2606,13 +2606,13 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
         {
           const vector<byte> &data = texDetails.compressedData[mip];
           if(data.size() == dataSize)
-            memcpy(m_GetTexturePrevData[mip], data.data(), data.size());
+            memcpy(ret, data.data(), data.size());
           else
             RDCERR("Different expected and stored compressed texture sizes!");
         }
         else
         {
-          gl.glGetCompressedTexImage(target, mip, m_GetTexturePrevData[mip]);
+          gl.glGetCompressedTexImage(target, mip, ret);
         }
       }
     }
