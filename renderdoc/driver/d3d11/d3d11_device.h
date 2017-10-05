@@ -393,6 +393,9 @@ private:
   CaptureFailReason m_FailedReason;
   uint32_t m_Failures;
 
+  SDFile *m_StructuredFile = NULL;
+  SDFile m_StoredStructuredData;
+
   vector<DebugMessage> m_DebugMessages;
 
   vector<FrameDescription> m_CapturedFrames;
@@ -440,6 +443,7 @@ public:
   void LockForChunkRemoval();
   void UnlockForChunkRemoval();
 
+  SDFile &GetStructuredFile() { return *m_StructuredFile; }
   void FirstFrame(WrappedIDXGISwapChain4 *swapChain);
 
   std::vector<DebugMessage> GetDebugMessages();
@@ -500,7 +504,12 @@ public:
   void Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData);
   void Apply_InitialState(ID3D11DeviceChild *live, D3D11ResourceManager::InitialContentData initial);
 
-  void ReadLogInitialisation(RDCFile *rdc);
+  void SetStructuredExport(uint64_t sectionVersion)
+  {
+    m_SectionVersion = sectionVersion;
+    m_State = CaptureState::StructuredExport;
+  }
+  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ProcessChunk(ReadSerialiser &ser, D3D11Chunk context);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 

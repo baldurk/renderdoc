@@ -659,9 +659,9 @@ APIProperties VulkanReplay::GetAPIProperties()
   return ret;
 }
 
-void VulkanReplay::ReadLogInitialisation(RDCFile *rdc)
+void VulkanReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
-  m_pDriver->ReadLogInitialisation(rdc);
+  m_pDriver->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
 
 void VulkanReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
@@ -5429,3 +5429,15 @@ struct VulkanDriverRegistration
 };
 
 static VulkanDriverRegistration VkDriverRegistration;
+
+void Vulkan_ProcessStructured(RDCFile *rdc, SDFile &output)
+{
+  WrappedVulkan vulkan;
+  vulkan.SetStructuredExport(
+      rdc->GetSectionProperties(rdc->SectionIndex(SectionType::FrameCapture)).version);
+  vulkan.ReadLogInitialisation(rdc, true);
+
+  vulkan.GetStructuredFile().swap(output);
+}
+
+static StructuredProcessRegistration VulkanProcessRegistration(RDC_Vulkan, &Vulkan_ProcessStructured);

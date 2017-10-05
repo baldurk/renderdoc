@@ -142,6 +142,11 @@ constexpr inline bool IsActiveCapturing(CaptureState state)
   return state == CaptureState::ActiveCapturing;
 }
 
+constexpr inline bool IsStructuredExporting(CaptureState state)
+{
+  return state == CaptureState::StructuredExport;
+}
+
 enum class SystemChunk : uint32_t
 {
   // 0 is reserved as a 'null' chunk that is only for debug
@@ -232,6 +237,8 @@ class RDCFile;
 typedef ReplayStatus (*RemoteDriverProvider)(RDCFile *rdc, IRemoteDriver **driver);
 typedef ReplayStatus (*ReplayDriverProvider)(RDCFile *rdc, IReplayDriver **driver);
 
+typedef void (*StructuredProcessor)(RDCFile *rdc, SDFile &structData);
+
 typedef ReplayStatus (*CaptureImporter)(const char *filename, StreamReader &reader, RDCFile *rdc,
                                         SDFile &structData);
 typedef ReplayStatus (*CaptureExporter)(const char *filename, const RDCFile &rdc,
@@ -311,10 +318,14 @@ public:
   void RegisterReplayProvider(RDCDriver driver, const char *name, ReplayDriverProvider provider);
   void RegisterRemoteProvider(RDCDriver driver, const char *name, RemoteDriverProvider provider);
 
+  void RegisterStructuredProcessor(RDCDriver driver, StructuredProcessor provider);
+
   void RegisterCaptureExporter(const char *filetype, const char *description,
                                CaptureExporter exporter);
   void RegisterCaptureImportExporter(const char *filetype, const char *description,
                                      CaptureImporter importer, CaptureExporter exporter);
+
+  StructuredProcessor GetStructuredProcessor(RDCDriver driver);
 
   CaptureExporter GetCaptureExporter(const char *filetype);
   CaptureImporter GetCaptureImporter(const char *filetype);
@@ -462,6 +473,8 @@ private:
   map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
   map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
 
+  std::map<RDCDriver, StructuredProcessor> m_StructProcesssors;
+
   std::map<std::string, std::string> m_ImportExportFormats;
   std::map<std::string, CaptureImporter> m_Importers;
   std::map<std::string, CaptureExporter> m_Exporters;
@@ -539,6 +552,14 @@ struct DriverRegistration
   DriverRegistration(RDCDriver driver, const char *name, RemoteDriverProvider provider)
   {
     RenderDoc::Inst().RegisterRemoteProvider(driver, name, provider);
+  }
+};
+
+struct StructuredProcessRegistration
+{
+  StructuredProcessRegistration(RDCDriver driver, StructuredProcessor provider)
+  {
+    RenderDoc::Inst().RegisterStructuredProcessor(driver, provider);
   }
 };
 

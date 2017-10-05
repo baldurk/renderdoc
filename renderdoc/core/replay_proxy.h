@@ -115,7 +115,7 @@ public:
 
   bool IsRemoteProxy() { return !m_RemoteServer; }
   void Shutdown() { delete this; }
-  void ReadLogInitialisation(RDCFile *rdc) {}
+  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers) {}
   vector<WindowingSystem> GetSupportedWindowSystems()
   {
     if(m_Proxy)

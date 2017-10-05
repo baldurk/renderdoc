@@ -68,17 +68,19 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   m_ScratchSerialiser.SetChunkMetadataRecording(flags);
 
+  m_StructuredFile = &m_StoredStructuredData;
+
   m_pDevice1 = NULL;
-  m_pDevice->QueryInterface(__uuidof(ID3D11Device1), (void **)&m_pDevice1);
-
   m_pDevice2 = NULL;
-  m_pDevice->QueryInterface(__uuidof(ID3D11Device2), (void **)&m_pDevice2);
-
   m_pDevice3 = NULL;
-  m_pDevice->QueryInterface(__uuidof(ID3D11Device3), (void **)&m_pDevice3);
-
   m_pDevice4 = NULL;
-  m_pDevice->QueryInterface(__uuidof(ID3D11Device4), (void **)&m_pDevice4);
+  if(m_pDevice)
+  {
+    m_pDevice->QueryInterface(__uuidof(ID3D11Device1), (void **)&m_pDevice1);
+    m_pDevice->QueryInterface(__uuidof(ID3D11Device2), (void **)&m_pDevice2);
+    m_pDevice->QueryInterface(__uuidof(ID3D11Device3), (void **)&m_pDevice3);
+    m_pDevice->QueryInterface(__uuidof(ID3D11Device4), (void **)&m_pDevice4);
+  }
 
   m_Replay.SetDevice(this);
 
@@ -103,12 +105,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   m_ChunkAtomic = 0;
 
   m_AppControlledCapture = false;
-
-#if ENABLED(RDOC_RELEASE)
-  const bool debugSerialiser = false;
-#else
-  const bool debugSerialiser = true;
-#endif
 
   if(RenderDoc::Inst().IsReplayApp())
   {
@@ -148,17 +144,22 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   }
 
   ID3D11DeviceContext *context = NULL;
-  realDevice->GetImmediateContext(&context);
+  if(realDevice)
+    realDevice->GetImmediateContext(&context);
 
   m_pImmediateContext = new WrappedID3D11DeviceContext(this, context);
 
-  realDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&m_pInfoQueue);
-  realDevice->QueryInterface(__uuidof(ID3D11Debug), (void **)&m_WrappedDebug.m_pDebug);
+  m_pInfoQueue = NULL;
+  if(realDevice)
+  {
+    realDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&m_pInfoQueue);
+    realDevice->QueryInterface(__uuidof(ID3D11Debug), (void **)&m_WrappedDebug.m_pDebug);
+  }
 
   // useful for marking regions during replay for self-captures
   m_RealAnnotations = NULL;
-  m_pImmediateContext->GetReal()->QueryInterface(__uuidof(ID3DUserDefinedAnnotation),
-                                                 (void **)&m_RealAnnotations);
+  if(context)
+    context->QueryInterface(__uuidof(ID3DUserDefinedAnnotation), (void **)&m_RealAnnotations);
 
   if(m_pInfoQueue)
   {
@@ -186,12 +187,13 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
     if(RenderDoc::Inst().IsReplayApp())
       m_pInfoQueue->SetMuteDebugOutput(false);
   }
-  else
+  else if(m_pDevice)
   {
     RDCDEBUG("Couldn't get ID3D11InfoQueue.");
   }
 
-  m_InitParams = *params;
+  if(params)
+    m_InitParams = *params;
 
   // ATI workaround - these dlls can get unloaded and cause a crash.
 
@@ -752,8 +754,11 @@ void WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
       // add a reference for the resource manager - normally it takes ownership of the resource on
       // creation and releases it
       // to destruction, but we want to control our immediate context ourselves.
-      m_pImmediateContext->AddRef();
-      m_ResourceManager->AddLiveResource(ImmediateContext, m_pImmediateContext);
+      if(IsReplayingAndReading())
+      {
+        m_pImmediateContext->AddRef();
+        m_ResourceManager->AddLiveResource(ImmediateContext, m_pImmediateContext);
+      }
       break;
     }
     case D3D11Chunk::SetResourceName: Serialise_SetResourceName(ser, 0x0, ""); break;
@@ -901,7 +906,7 @@ void WrappedID3D11Device::Serialise_CaptureScope(SerialiserType &ser)
   }
 }
 
-void WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc)
+void WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
@@ -918,8 +923,11 @@ void WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc)
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());
 
-  // TODO make this an option passed in
-  ser.ConfigureStructuredExport(&GetChunkName, false);
+  ser.ConfigureStructuredExport(&GetChunkName, storeStructuredBuffers);
+
+  m_StructuredFile = &ser.GetStructuredFile();
+
+  m_StoredStructuredData.version = m_StructuredFile->version = m_SectionVersion;
 
   int chunkIdx = 0;
 
@@ -964,7 +972,8 @@ void WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc)
 
       m_pImmediateContext->SetFrameReader(new StreamReader(reader, frameDataSize));
 
-      GetResourceManager()->ApplyInitialContents();
+      if(!IsStructuredExporting(m_State))
+        GetResourceManager()->ApplyInitialContents();
 
       m_pImmediateContext->ReplayLog(m_State, 0, 0, false);
     }
@@ -977,8 +986,17 @@ void WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc)
       break;
   }
 
-  DrawcallDescription *previous = NULL;
-  SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().drawcallList, NULL, previous);
+  // steal the structured data for ourselves
+  m_StructuredFile->swap(m_StoredStructuredData);
+
+  // and in future use this file.
+  m_StructuredFile = &m_StoredStructuredData;
+
+  if(!IsStructuredExporting(m_State))
+  {
+    DrawcallDescription *previous = NULL;
+    SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().drawcallList, NULL, previous);
+  }
 
 #if ENABLED(RDOC_DEVEL)
   for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)

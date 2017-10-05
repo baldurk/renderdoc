@@ -114,7 +114,7 @@ public:
 
   virtual FrameRecord GetFrameRecord() = 0;
 
-  virtual void ReadLogInitialisation(RDCFile *rdc) = 0;
+  virtual void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers) = 0;
   virtual void ReplayLog(uint32_t endEventID, ReplayLogType replayType) = 0;
 
   virtual vector<uint32_t> GetPassEvents(uint32_t eventID) = 0;

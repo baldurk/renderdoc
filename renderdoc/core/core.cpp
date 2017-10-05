@@ -784,6 +784,13 @@ void RenderDoc::RegisterRemoteProvider(RDCDriver driver, const char *name,
   m_RemoteDriverProviders[driver] = provider;
 }
 
+void RenderDoc::RegisterStructuredProcessor(RDCDriver driver, StructuredProcessor provider)
+{
+  RDCASSERT(m_StructProcesssors.find(driver) == m_StructProcesssors.end());
+
+  m_StructProcesssors[driver] = provider;
+}
+
 void RenderDoc::RegisterCaptureExporter(const char *filetype, const char *description,
                                         CaptureExporter exporter)
 {
@@ -803,6 +810,16 @@ void RenderDoc::RegisterCaptureImportExporter(const char *filetype, const char *
 
   m_Importers[filetype] = importer;
   m_Exporters[filetype] = exporter;
+}
+
+StructuredProcessor RenderDoc::GetStructuredProcessor(RDCDriver driver)
+{
+  auto it = m_StructProcesssors.find(driver);
+
+  if(it == m_StructProcesssors.end())
+    return NULL;
+
+  return it->second;
 }
 
 CaptureExporter RenderDoc::GetCaptureExporter(const char *filetype)

@@ -259,6 +259,9 @@ private:
 
   VulkanDrawcallCallback *m_DrawcallCallback;
 
+  SDFile *m_StructuredFile;
+  SDFile m_StoredStructuredData;
+
   // util function to handle fetching the right eventID, calling any
   // aliases then calling PreDraw/PreDispatch.
   uint32_t HandlePreCallback(VkCommandBuffer commandBuffer, DrawFlags type = DrawFlags::Drawcall,
@@ -742,10 +745,16 @@ public:
 
   ReplayStatus Initialise(VkInitParams &params, uint64_t sectionVersion);
   uint64_t GetLogVersion() { return m_SectionVersion; }
+  void SetStructuredExport(uint64_t sectionVersion)
+  {
+    m_SectionVersion = sectionVersion;
+    m_State = CaptureState::StructuredExport;
+  }
   void Shutdown();
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
-  void ReadLogInitialisation(RDCFile *rdc);
+  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 
+  SDFile &GetStructuredFile() { return *m_StructuredFile; }
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const APIEvent &GetEvent(uint32_t eventID);
   uint32_t GetMaxEID() { return m_Events.back().eventID; }

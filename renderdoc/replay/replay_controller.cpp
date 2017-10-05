@@ -1545,7 +1545,7 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
 {
   m_pDevice = device;
 
-  m_pDevice->ReadLogInitialisation(rdc);
+  m_pDevice->ReadLogInitialisation(rdc, false);
 
   FetchPipelineState();
 
