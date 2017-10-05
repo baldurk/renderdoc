@@ -2969,6 +2969,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(GLuint texture, GLen
   {
     void *databuf = buf;
 
+    if(IsGLES)
+      StoreCompressedTexData(GetResourceManager()->GetLiveID(id), Target, Level, 0, 0, 0, Width,
+                             Height, 0, fmt, byteSize, buf);
+
     // if we didn't have data provided (this is invalid, but could happen if the data
     // should have been sourced from an unpack buffer), then grow our scratch buffer if
     // necessary and use that instead to make sure we don't pass NULL to glCompressedTexImage*
@@ -3223,6 +3227,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(GLuint texture, GLen
   if(m_State == READING)
   {
     void *databuf = buf;
+
+    if(IsGLES)
+      StoreCompressedTexData(GetResourceManager()->GetLiveID(id), Target, Level, 0, 0, 0, Width,
+                             Height, Depth, fmt, byteSize, buf);
 
     // if we didn't have data provided (this is invalid, but could happen if the data
     // should have been sourced from an unpack buffer), then grow our scratch buffer if
@@ -5267,6 +5275,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, G
 
   SAFE_DELETE_ARRAY(unpackedPixels);
 
+  if(m_State == READING && IsGLES)
+    StoreCompressedTexData(GetResourceManager()->GetLiveID(id), Target, Level, xoff, yoff, 0, Width,
+                           Height, 0, fmt, byteSize, buf);
+
   if(m_State <= EXECUTING)
   {
     PixelUnpackState unpack;
@@ -5463,6 +5475,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, G
   SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
 
   SAFE_DELETE_ARRAY(unpackedPixels);
+
+  if(m_State == READING && IsGLES)
+    StoreCompressedTexData(GetResourceManager()->GetLiveID(id), Target, Level, xoff, yoff, zoff,
+                           Width, Height, Depth, fmt, byteSize, buf);
 
   if(m_State <= EXECUTING)
   {
