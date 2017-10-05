@@ -1175,7 +1175,7 @@ void D3D11PipelineStateViewer::setState()
         QString VSname = VS[i].semanticIdxName;
 
         // misorder or misnamed semantics
-        if(!IAname.compare(VSname, Qt::CaseInsensitive))
+        if(IAname.compare(VSname, Qt::CaseInsensitive))
           mismatchDetails += tr("IA bytecode semantic %1: %2 != VS bytecode semantic %1: %3\n")
                                  .arg(i)
                                  .arg(IAname)
