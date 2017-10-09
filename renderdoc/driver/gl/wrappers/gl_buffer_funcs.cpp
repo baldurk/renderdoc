@@ -2959,6 +2959,12 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, G
       GLenum SizeEnum = Size == 1 ? eGL_RED : Size == 2 ? eGL_RG : Size == 3 ? eGL_RGB : eGL_RGBA;
       Stride = (uint32_t)GetByteSize(1, 1, 1, SizeEnum, Type);
     }
+    if(!buffer)
+    {
+      // ES allows client-memory pointers, which we override with temp buffers during capture.
+      // For replay, discard these pointers to prevent driver complaining about "negative offsets".
+      Offset = 0;
+    }
     m_Real.glVertexArrayBindVertexBufferEXT(vaobj, Index, buffer, (GLintptr)Offset, Stride);
 
     m_Real.glBindVertexArray(prevVAO);
@@ -3071,6 +3077,10 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIOffsetEXT(GLuint vaobj, 
       GLenum SizeEnum = Size == 1 ? eGL_RED : Size == 2 ? eGL_RG : Size == 3 ? eGL_RGB : eGL_RGBA;
       Stride = (uint32_t)GetByteSize(1, 1, 1, SizeEnum, Type);
     }
+    if(!buffer)
+    {
+      Offset = 0;
+    }
     m_Real.glVertexArrayBindVertexBufferEXT(vaobj, Index, buffer, (GLintptr)Offset, Stride);
   }
 
@@ -3179,6 +3189,10 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, 
     {
       GLenum SizeEnum = Size == 1 ? eGL_RED : Size == 2 ? eGL_RG : Size == 3 ? eGL_RGB : eGL_RGBA;
       Stride = (uint32_t)GetByteSize(1, 1, 1, SizeEnum, Type);
+    }
+    if(!buffer)
+    {
+      Offset = 0;
     }
     m_Real.glVertexArrayBindVertexBufferEXT(vaobj, Index, buffer, (GLintptr)Offset, Stride);
   }
