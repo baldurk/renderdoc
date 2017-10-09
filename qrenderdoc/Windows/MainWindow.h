@@ -79,8 +79,6 @@ public:
   void OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
                        CaptureOptions opts, std::function<void(LiveCapture *)> callback);
 
-  void PopulateRecentFiles();
-
   void ShowLiveCapture(LiveCapture *live);
   void LiveCaptureClosed(LiveCapture *live);
 
@@ -95,6 +93,9 @@ public:
   void showTimelineBar() { on_action_Timeline_triggered(); }
   void showPythonShell() { on_action_Python_Shell_triggered(); }
   void showPerformanceCounterViewer() { on_action_Counter_Viewer_triggered(); }
+public slots:
+  void ClearRecentFiles();
+  void PopulateRecentFiles();
 private slots:
   // automatic slots
   void on_action_Exit_triggered();
@@ -133,6 +134,9 @@ private slots:
   void statusDoubleClicked(QMouseEvent *event);
   void switchContext();
   void contextChooser_menuShowing();
+
+  void PopulateRecentCaptures();
+  void ClearRecentCaptures();
 
 private:
   void closeEvent(QCloseEvent *event) override;
@@ -174,8 +178,6 @@ private:
 
   void SetTitle(const QString &filename);
   void SetTitle();
-
-  void PopulateRecentCaptures();
 
   void recentLog(const QString &filename);
   void recentCapture(const QString &filename);
