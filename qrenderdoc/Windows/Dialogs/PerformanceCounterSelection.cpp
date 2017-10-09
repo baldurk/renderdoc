@@ -353,8 +353,9 @@ void PerformanceCounterSelection::SetSelectedCounters(const QList<GPUCounter> &c
 
 void PerformanceCounterSelection::Save()
 {
-  QString filename = RDDialog::getSaveFileName(this, tr("Save File"), QDir::homePath(),
-                                               tr("Performance Counter Settings (*.json)"));
+  QString filename =
+      RDDialog::getSaveFileName(this, tr("Save File"), QDir::homePath(),
+                                tr("Performance Counter Settings (*.json)"), lit("json"));
 
   if(filename.isEmpty())
     return;
