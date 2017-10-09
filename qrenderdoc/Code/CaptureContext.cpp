@@ -714,7 +714,7 @@ ICaptureDialog *CaptureContext::GetCaptureDialog()
              CaptureOptions opts, std::function<void(LiveCapture *)> callback) {
         return m_MainWindow->OnInjectTrigger(PID, env, name, opts, callback);
       },
-      m_MainWindow);
+      m_MainWindow, m_MainWindow);
   m_CaptureDialog->setObjectName(lit("capDialog"));
   m_CaptureDialog->setWindowIcon(*m_Icon);
 

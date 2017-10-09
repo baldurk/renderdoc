@@ -35,6 +35,7 @@ class CaptureDialog;
 
 class QStandardItemModel;
 class LiveCapture;
+class MainWindow;
 class RDLabel;
 
 class CaptureDialog : public QFrame, public ICaptureDialog
@@ -51,7 +52,7 @@ public:
       OnInjectMethod;
 
   explicit CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallback,
-                         OnInjectMethod injectCallback, QWidget *parent = 0);
+                         OnInjectMethod injectCallback, MainWindow *main, QWidget *parent = 0);
   ~CaptureDialog();
 
   // ICaptureDialog
@@ -103,6 +104,7 @@ private slots:
 private:
   Ui::CaptureDialog *ui;
   ICaptureContext &m_Ctx;
+  MainWindow *m_Main;
 
   QStandardItemModel *m_ProcessModel;
 
