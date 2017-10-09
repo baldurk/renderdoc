@@ -93,9 +93,8 @@ public:
   void showTimelineBar() { on_action_Timeline_triggered(); }
   void showPythonShell() { on_action_Python_Shell_triggered(); }
   void showPerformanceCounterViewer() { on_action_Counter_Viewer_triggered(); }
-public slots:
-  void ClearRecentFiles();
   void PopulateRecentFiles();
+  void PopulateRecentCaptures();
 private slots:
   // automatic slots
   void on_action_Exit_triggered();
@@ -135,7 +134,7 @@ private slots:
   void switchContext();
   void contextChooser_menuShowing();
 
-  void PopulateRecentCaptures();
+  void ClearRecentFiles();
   void ClearRecentCaptures();
 
 private:

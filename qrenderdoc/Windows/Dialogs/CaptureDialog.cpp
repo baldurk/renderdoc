@@ -32,6 +32,7 @@
 #include "Code/qprocessinfo.h"
 #include "Windows/Dialogs/EnvironmentEditor.h"
 #include "Windows/Dialogs/VirtualFileDialog.h"
+#include "Windows/MainWindow.h"
 #include "LiveCapture.h"
 #include "ui_CaptureDialog.h"
 
@@ -91,8 +92,8 @@ void CaptureDialog::initWarning(RDLabel *warning)
 }
 
 CaptureDialog::CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallback,
-                             OnInjectMethod injectCallback, QWidget *parent)
-    : QFrame(parent), ui(new Ui::CaptureDialog), m_Ctx(ctx)
+                             OnInjectMethod injectCallback, MainWindow *main, QWidget *parent)
+    : QFrame(parent), ui(new Ui::CaptureDialog), m_Ctx(ctx), m_Main(main)
 {
   ui->setupUi(this);
 
@@ -865,6 +866,7 @@ void CaptureDialog::on_saveSettings_clicked()
     {
       SaveSettings(filename);
       AddRecentFile(m_Ctx.Config().RecentCaptureSettings, filename, 10);
+      m_Main->PopulateRecentCaptures();
     }
   }
 }
