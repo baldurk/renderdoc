@@ -526,8 +526,8 @@ void TextureSaveDialog::on_browse_clicked()
 
   QString *selectedFilter = NULL;
 
-  QString filename =
-      RDDialog::getSaveFileName(this, tr("Save Texture As"), QString(), filter, selectedFilter);
+  QString filename = RDDialog::getSaveFileName(this, tr("Save Texture As"), QString(), filter,
+                                               QString(), selectedFilter);
 
   QFileInfo checkFile(filename);
   if(!filename.isEmpty())

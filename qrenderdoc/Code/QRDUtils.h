@@ -877,6 +877,7 @@ struct RDDialog
 
   static QString getSaveFileName(QWidget *parent = NULL, const QString &caption = QString(),
                                  const QString &dir = QString(), const QString &filter = QString(),
+                                 const QString &defaultExt = QString(),
                                  QString *selectedFilter = NULL,
                                  QFileDialog::Options options = QFileDialog::Options());
 };
