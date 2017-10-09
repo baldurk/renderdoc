@@ -98,6 +98,11 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   QObject::connect(ui->action_Launch_Application_Window, &QAction::triggered, this,
                    &MainWindow::on_action_Launch_Application_triggered);
 
+  QObject::connect(ui->action_Clear_Capture_History, &QAction::triggered, this,
+                   &MainWindow::ClearRecentCaptures);
+  QObject::connect(ui->action_Clear_Log_History, &QAction::triggered, this,
+                   &MainWindow::ClearRecentFiles);
+
   contextChooserMenu = new QMenu(this);
 
   FillRemotesMenu(contextChooserMenu, true);
@@ -727,6 +732,12 @@ void MainWindow::SetTitle()
   SetTitle(m_Ctx.LogFilename());
 }
 
+void MainWindow::ClearRecentFiles()
+{
+  m_Ctx.Config().RecentLogFiles.clear();
+  PopulateRecentFiles();
+}
+
 void MainWindow::PopulateRecentFiles()
 {
   ui->menu_Recent_Logs->clear();
@@ -748,6 +759,12 @@ void MainWindow::PopulateRecentFiles()
   ui->menu_Recent_Logs->addAction(ui->action_Clear_Log_History);
 }
 
+void MainWindow::ClearRecentCaptures()
+{
+  m_Ctx.Config().RecentCaptureSettings.clear();
+  PopulateRecentCaptures();
+}
+
 void MainWindow::PopulateRecentCaptures()
 {
   ui->menu_Recent_Capture_Settings->clear();
@@ -766,7 +783,7 @@ void MainWindow::PopulateRecentCaptures()
   }
 
   ui->menu_Recent_Capture_Settings->addSeparator();
-  ui->menu_Recent_Capture_Settings->addAction(ui->action_Clear_Log_History);
+  ui->menu_Recent_Capture_Settings->addAction(ui->action_Clear_Capture_History);
 }
 
 void MainWindow::ShowLiveCapture(LiveCapture *live)
@@ -914,9 +931,9 @@ void MainWindow::recentCapture(const QString &filename)
 
     if(res == QMessageBox::Yes)
     {
-      m_Ctx.Config().RecentLogFiles.removeOne(filename);
+      m_Ctx.Config().RecentCaptureSettings.removeOne(filename);
 
-      PopulateRecentFiles();
+      PopulateRecentCaptures();
     }
   }
 }
