@@ -44,7 +44,7 @@ matrix:
       env: ANDROID_BUILD=1
       compiler: clang
     - os: osx
-      osx_image: xcode8.2
+      osx_image: xcode9.1
       env: APPLE_BUILD=1
       compiler: clang
 
