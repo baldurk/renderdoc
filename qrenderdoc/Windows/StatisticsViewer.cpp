@@ -746,11 +746,17 @@ void StatisticsViewer::GenerateReport()
     }
   }
 
-  texW /= texCount;
-  texH /= texCount;
+  if(texCount > 0)
+  {
+    texW /= texCount;
+    texH /= texCount;
+  }
 
-  largeTexW /= largeTexCount;
-  largeTexH /= largeTexCount;
+  if(largeTexCount > 0)
+  {
+    largeTexW /= largeTexCount;
+    largeTexH /= largeTexCount;
+  }
 
   const FrameDescription &frameInfo = m_Ctx.FrameInfo();
 
