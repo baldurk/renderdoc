@@ -1972,38 +1972,48 @@ void WrappedID3D11DeviceContext::RecordOutputMergerStats(UINT NumRTVs, ID3D11Ren
   // #mivance is an elaborate redundancy here even useful?
   // const D3D11RenderState::outmerger* Current = &m_CurrentPipelineState->OM;
 
-  if(RTVs != NULL)
+  if(NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
   {
-    for(UINT index = 0; index < NumRTVs; index++)
+    if(RTVs != NULL)
     {
-      outputs.sets += (RTVs[index] != NULL);
-      outputs.nulls += (RTVs[index] == NULL);
+      for(UINT index = 0; index < NumRTVs; index++)
+      {
+        outputs.sets += (RTVs[index] != NULL);
+        outputs.nulls += (RTVs[index] == NULL);
+      }
     }
-  }
-  else if(NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
-  {
-    outputs.nulls += NumRTVs;
+    else
+    {
+      outputs.nulls += NumRTVs;
+    }
   }
 
   outputs.sets += (DSV != NULL);
   outputs.nulls += (DSV == NULL);
 
-  if(UAVs != NULL)
+  if(NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS)
   {
-    for(UINT index = 0; index < NumUAVs; index++)
+    if(UAVs != NULL)
     {
-      outputs.sets += (UAVs[index] != NULL);
-      outputs.nulls += (UAVs[index] == NULL);
+      for(UINT index = 0; index < NumUAVs; index++)
+      {
+        outputs.sets += (UAVs[index] != NULL);
+        outputs.nulls += (UAVs[index] == NULL);
+      }
+    }
+    else
+    {
+      outputs.nulls += NumUAVs;
     }
   }
-  else
-  {
-    outputs.nulls += NumUAVs;
-  }
 
-  UINT NumSlots = NumRTVs + NumUAVs;
-  if(NumRTVs == D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
-    NumSlots = NumUAVs;
+  UINT NumSlots = 0;
+
+  if(NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
+    NumSlots += NumRTVs;
+  if(NumRTVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS)
+    NumSlots += NumUAVs;
+
   RDCASSERT(NumSlots < outputs.bindslots.size());
   outputs.bindslots[NumSlots] += 1;
 }
