@@ -3392,7 +3392,12 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
   // D3D11 doesn't seem to complain about this case, but it messes our render state tracking so
   // ensure we don't blat over any RTs with 'empty' UAVs.
   if(NumUAVs == 0)
-    UAVStartSlot = RDCMAX(NumRTVs, UAVStartSlot);
+  {
+    if(NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
+      UAVStartSlot = RDCMAX(NumRTVs, UAVStartSlot);
+    else
+      UAVStartSlot = RDCMAX(m_CurrentPipelineState->OM.UAVStartSlot, UAVStartSlot);
+  }
 
   if(m_State == WRITING_CAPFRAME)
   {
@@ -3408,10 +3413,13 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
   ID3D11RenderTargetView *RTs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
   ID3D11UnorderedAccessView *UAVs[D3D11_1_UAV_SLOT_COUNT] = {0};
 
-  for(UINT i = 0; ppRenderTargetViews && i < NumRTVs; i++)
+  for(UINT i = 0;
+      ppRenderTargetViews && NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL && i < NumRTVs;
+      i++)
     RTs[i] = ppRenderTargetViews[i];
 
-  for(UINT i = 0; ppUnorderedAccessViews && i < NumUAVs; i++)
+  for(UINT i = 0;
+      ppUnorderedAccessViews && NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS && i < NumUAVs; i++)
     UAVs[i] = ppUnorderedAccessViews[i];
 
   if(NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
@@ -3478,7 +3486,9 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
                                            RDCMIN(NumUAVs, D3D11_1_UAV_SLOT_COUNT - StartSlot));
   }
 
-  for(UINT i = 0; ppRenderTargetViews && i < NumRTVs; i++)
+  for(UINT i = 0;
+      ppRenderTargetViews && NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL && i < NumRTVs;
+      i++)
   {
     if(ppRenderTargetViews[i] && m_State >= WRITING)
     {
@@ -3494,7 +3504,8 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
     RTs[i] = UNWRAP(WrappedID3D11RenderTargetView1, ppRenderTargetViews[i]);
   }
 
-  for(UINT i = 0; ppUnorderedAccessViews && i < NumUAVs; i++)
+  for(UINT i = 0;
+      ppUnorderedAccessViews && NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS && i < NumUAVs; i++)
   {
     if(ppUnorderedAccessViews[i] && m_State >= WRITING)
     {
