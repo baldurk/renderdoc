@@ -2981,15 +2981,17 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
     m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, prevPackAlignment);
 
     // scale down if necessary using simple point sampling
-    if(thwidth > maxSize)
+    uint32_t resample_width = RDCMIN(maxSize, thwidth);
+    resample_width &= ~3;    // JPEG encoder gives shear distortion if width is not divisible by 4.
+    if(thwidth != resample_width)
     {
       float widthf = float(thwidth);
       float heightf = float(thheight);
 
       float aspect = widthf / heightf;
 
-      // clamp dimensions to a width of maxSize
-      thwidth = maxSize;
+      // clamp dimensions to a width of resample_width
+      thwidth = resample_width;
       thheight = uint32_t(float(thwidth) / aspect);
 
       byte *src = thpixels;
