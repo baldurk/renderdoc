@@ -8,9 +8,9 @@ QT       += core gui widgets svg
 
 CONFIG   += silent
 
-lessThan(QT_MAJOR_VERSION, 5): error("requires Qt 5")
+lessThan(QT_MAJOR_VERSION, 5): error("requires Qt 5.6; found $$[QT_VERSION]")
 
-equals(QT_MAJOR_VERSION, 5): lessThan(QT_MINOR_VERSION, 6): error("requires Qt 5.6")
+equals(QT_MAJOR_VERSION, 5): lessThan(QT_MINOR_VERSION, 6): error("requires Qt 5.6; found $$[QT_VERSION]")
 
 TARGET = qrenderdoc
 TEMPLATE = app
