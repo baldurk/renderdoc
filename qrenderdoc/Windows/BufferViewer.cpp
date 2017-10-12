@@ -2894,7 +2894,7 @@ void BufferViewer::exportData(const BufferExport &params)
     filter = tr("Binary Files (*.bin)");
 
   QString filename = RDDialog::getSaveFileName(this, tr("Export buffer to bytes"), QString(),
-                                               tr("%1;;All files (*.*)").arg(filter));
+                                               tr("%1;;All files (*)").arg(filter));
 
   if(filename.isEmpty())
     return;

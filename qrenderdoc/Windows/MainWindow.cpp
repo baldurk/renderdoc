@@ -268,7 +268,7 @@ void MainWindow::on_action_Open_Log_triggered()
   QString filename = RDDialog::getOpenFileName(
       this, tr("Select Logfile to open"), m_Ctx.Config().LastLogPath,
       tr("Capture Files (*.rdc);;Image Files (*.dds *.hdr *.exr *.bmp *.jpg "
-         "*.jpeg *.png *.tga *.gif *.psd;;All Files (*.*)"));
+         "*.jpeg *.png *.tga *.gif *.psd;;All Files (*)"));
 
   if(!filename.isEmpty())
     LoadFromFilename(filename, false);
