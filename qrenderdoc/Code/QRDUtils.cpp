@@ -537,12 +537,11 @@ QString RDDialog::getExecutableFileName(QWidget *parent, const QString &caption,
 }
 
 QString RDDialog::getSaveFileName(QWidget *parent, const QString &caption, const QString &dir,
-                                  const QString &filter, const QString &defaultExt,
-                                  QString *selectedFilter, QFileDialog::Options options)
+                                  const QString &filter, QString *selectedFilter,
+                                  QFileDialog::Options options)
 {
   QFileDialog fd(parent, caption, dir, filter);
   fd.setAcceptMode(QFileDialog::AcceptSave);
-  fd.setDefaultSuffix(defaultExt);
   fd.setOptions(options);
   show(&fd);
 

@@ -857,7 +857,7 @@ void CaptureDialog::on_toggleGlobal_clicked()
 void CaptureDialog::on_saveSettings_clicked()
 {
   QString filename = RDDialog::getSaveFileName(this, tr("Save Settings As"), QString(),
-                                               tr("Capture settings (*.cap)"), lit("cap"));
+                                               tr("Capture settings (*.cap)"));
 
   if(!filename.isEmpty())
   {
