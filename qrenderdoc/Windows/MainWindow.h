@@ -120,9 +120,9 @@ private slots:
   void on_action_Settings_triggered();
   void on_action_View_Documentation_triggered();
   void on_action_View_Diagnostic_Log_File_triggered();
-  void on_action_Source_on_github_triggered();
-  void on_action_Build_Release_downloads_triggered();
-  void on_actionShow_Tips_triggered();
+  void on_action_Source_on_GitHub_triggered();
+  void on_action_Build_Release_Downloads_triggered();
+  void on_action_Show_Tips_triggered();
   void on_action_Counter_Viewer_triggered();
 
   // manual slots

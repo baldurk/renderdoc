@@ -1645,17 +1645,17 @@ void MainWindow::on_action_View_Diagnostic_Log_File_triggered()
     QDesktopServices::openUrl(QUrl::fromLocalFile(logPath));
 }
 
-void MainWindow::on_action_Source_on_github_triggered()
+void MainWindow::on_action_Source_on_GitHub_triggered()
 {
   QDesktopServices::openUrl(QUrl::fromUserInput(lit("https://github.com/baldurk/renderdoc")));
 }
 
-void MainWindow::on_action_Build_Release_downloads_triggered()
+void MainWindow::on_action_Build_Release_Downloads_triggered()
 {
   QDesktopServices::openUrl(QUrl::fromUserInput(lit("https://renderdoc.org/builds")));
 }
 
-void MainWindow::on_actionShow_Tips_triggered()
+void MainWindow::on_action_Show_Tips_triggered()
 {
   TipsDialog tipsDialog(m_Ctx, this);
   RDDialog::show(&tipsDialog);
