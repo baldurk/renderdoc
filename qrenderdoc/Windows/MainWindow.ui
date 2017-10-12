@@ -138,14 +138,14 @@
     </property>
     <addaction name="action_View_Documentation"/>
     <addaction name="action_View_Diagnostic_Log_File"/>
-    <addaction name="actionShow_Tips"/>
+    <addaction name="action_Show_Tips"/>
     <addaction name="separator"/>
     <addaction name="action_Send_Error_Report"/>
     <addaction name="separator"/>
-    <addaction name="actionUpdate_available"/>
+    <addaction name="action_Update_Available"/>
     <addaction name="separator"/>
-    <addaction name="action_Source_on_github"/>
-    <addaction name="action_Build_Release_downloads"/>
+    <addaction name="action_Source_on_GitHub"/>
+    <addaction name="action_Build_Release_Downloads"/>
     <addaction name="action_About"/>
    </widget>
    <addaction name="menu_File"/>
@@ -356,19 +356,19 @@
     <string>Send &amp;Error Report</string>
    </property>
   </action>
-  <action name="actionUpdate_available">
+  <action name="action_Update_Available">
    <property name="text">
-    <string>Update available</string>
+    <string>Update Available</string>
    </property>
   </action>
-  <action name="action_Source_on_github">
+  <action name="action_Source_on_GitHub">
    <property name="text">
-    <string>Source on github</string>
+    <string>Source on GitHub</string>
    </property>
   </action>
-  <action name="action_Build_Release_downloads">
+  <action name="action_Build_Release_Downloads">
    <property name="text">
-    <string>Build/Release downloads</string>
+    <string>Build/Release Downloads</string>
    </property>
   </action>
   <action name="action_About">
@@ -391,7 +391,7 @@
     <string>Statisti&amp;cs Viewer</string>
    </property>
   </action>
-  <action name="actionShow_Tips">
+  <action name="action_Show_Tips">
    <property name="text">
     <string>Show Tips</string>
    </property>
