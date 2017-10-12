@@ -3363,6 +3363,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
   void *ctx = m_ReplayCtx.ctx;
 
   WrappedOpenGL &gl = *m_pDriver;
+  if(gl.m_ActiveFeedback)
+    gl.glEndTransformFeedback();
+
   GLResourceManager *rm = m_pDriver->GetResourceManager();
 
   GLRenderState rs(&gl.GetHookset(), NULL, READING);
