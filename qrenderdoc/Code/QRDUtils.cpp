@@ -36,6 +36,8 @@
 #include <QMetaMethod>
 #include <QProcess>
 #include <QProgressDialog>
+#include <QRegularExpression>
+#include <QRegularExpressionMatch>
 #include <QStandardPaths>
 #include <QtMath>
 
@@ -536,6 +538,19 @@ QString RDDialog::getExecutableFileName(QWidget *parent, const QString &caption,
   return QString();
 }
 
+static QStringList getDefaultSuffixesFromFilter(const QString &filter)
+{
+  // capture the first suffix found and discard the rest
+  static const QRegularExpression regex(lit("\\*\\.([\\w.]+).*"));
+
+  QStringList suffixes;
+  for(const QString &s : filter.split(lit(";;")))
+  {
+    suffixes << regex.match(s).captured(1);
+  }
+  return suffixes;
+}
+
 QString RDDialog::getSaveFileName(QWidget *parent, const QString &caption, const QString &dir,
                                   const QString &filter, QString *selectedFilter,
                                   QFileDialog::Options options)
@@ -543,6 +558,13 @@ QString RDDialog::getSaveFileName(QWidget *parent, const QString &caption, const
   QFileDialog fd(parent, caption, dir, filter);
   fd.setAcceptMode(QFileDialog::AcceptSave);
   fd.setOptions(options);
+  const QStringList &defaultSuffixes = getDefaultSuffixesFromFilter(filter);
+  if(!defaultSuffixes.isEmpty())
+    fd.setDefaultSuffix(defaultSuffixes.first());
+  QObject::connect(&fd, &QFileDialog::filterSelected, [&](const QString &filter) {
+    int i = fd.nameFilters().indexOf(filter);
+    fd.setDefaultSuffix(defaultSuffixes.value(i));
+  });
   show(&fd);
 
   if(fd.result() == QFileDialog::Accepted)
