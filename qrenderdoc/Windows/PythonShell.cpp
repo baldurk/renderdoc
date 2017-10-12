@@ -511,7 +511,7 @@ void PythonShell::on_openScript_clicked()
 void PythonShell::on_saveScript_clicked()
 {
   QString filename = RDDialog::getSaveFileName(this, tr("Save Python Script"), QString(),
-                                               tr("Python scripts (*.py)"), lit("py"));
+                                               tr("Python scripts (*.py)"));
 
   if(!filename.isEmpty())
   {

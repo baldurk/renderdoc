@@ -571,8 +571,8 @@ QString MainWindow::GetSavePath()
       dir = m_LastSaveCapturePath;
   }
 
-  QString filename = RDDialog::getSaveFileName(this, tr("Save Capture As"), dir,
-                                               tr("Capture Files (*.rdc)"), lit("rdc"));
+  QString filename =
+      RDDialog::getSaveFileName(this, tr("Save Capture As"), dir, tr("Capture Files (*.rdc)"));
 
   if(!filename.isEmpty())
   {
