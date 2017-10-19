@@ -2580,17 +2580,10 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
         {
           m_GetTexturePrevData[mip] = new byte[dataSize * arraysize];
           if(IsGLES)
-          {
-            const vector<byte> &data = texDetails.compressedData[mip];
-            if(data.size() == dataSize * arraysize)
-              memcpy(m_GetTexturePrevData[mip], data.data(), data.size());
-            else
-              RDCERR("Different expected and stored compressed texture sizes for array texture!");
-          }
+            texDetails.GetCompressedImageDataGLES(mip, target, dataSize * arraysize,
+                                                  m_GetTexturePrevData[mip]);
           else
-          {
             gl.glGetCompressedTexImage(target, mip, m_GetTexturePrevData[mip]);
-          }
         }
 
         // now copy the slice from the cache into ret
@@ -2603,17 +2596,9 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
       {
         // for non-arrays we can just readback without caching
         if(IsGLES)
-        {
-          const vector<byte> &data = texDetails.compressedData[mip];
-          if(data.size() == dataSize)
-            memcpy(ret, data.data(), data.size());
-          else
-            RDCERR("Different expected and stored compressed texture sizes!");
-        }
+          texDetails.GetCompressedImageDataGLES(mip, target, dataSize, ret);
         else
-        {
           gl.glGetCompressedTexImage(target, mip, ret);
-        }
       }
     }
     else

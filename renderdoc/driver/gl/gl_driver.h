@@ -287,6 +287,8 @@ private:
     // uploading
     // level -> data
     map<int, vector<byte> > compressedData;
+
+    void GetCompressedImageDataGLES(int mip, GLenum target, size_t size, byte *buf);
   };
 
   map<ResourceId, TextureData> m_Textures;
