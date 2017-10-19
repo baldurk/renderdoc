@@ -660,20 +660,19 @@ void GLResourceManager::CreateTextureImage(GLuint tex, GLenum internalFormat, GL
   }
 }
 
-static void GetCompressedImageDataGLES(const vector<byte> &data, GLenum target, size_t size, byte *buf)
+void WrappedOpenGL::TextureData::GetCompressedImageDataGLES(int mip, GLenum target, size_t size,
+                                                            byte *buf)
 {
-  const bool isCubeFace = IsCubeFace(target);
-  size_t startOffs = isCubeFace ? CubeTargetIndex(target) * size : 0;
-  if(data.size() >= startOffs + size)
+  const vector<byte> &data = compressedData[mip];
+
+  memset(buf, 0, size);
+
+  size_t startOffs = IsCubeFace(target) ? CubeTargetIndex(target) * size : 0;
+  if(data.size() >= startOffs)
   {
-    memcpy(buf, data.data() + startOffs, size);
-  }
-  else
-  {
-    // we don't warn for cube maps because some cube faces can be missing
-    if(!isCubeFace)
-      RDCERR("Different expected and stored compressed texture sizes!");
-    memset(buf, 0, size);
+    size_t byteSize = RDCMIN(data.size() - startOffs, size);
+    if(byteSize > 0)
+      memcpy(buf, data.data() + startOffs, byteSize);
   }
 }
 
@@ -887,7 +886,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 
             if(IsGLES)
             {
-              GetCompressedImageDataGLES(details.compressedData[i], targets[trg], size, buf);
+              details.GetCompressedImageDataGLES(i, targets[trg], size, buf);
             }
             else
             {
@@ -1270,7 +1269,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
               if(IsGLES)
               {
-                GetCompressedImageDataGLES(details.compressedData[i], targets[trg], size, buf);
+                details.GetCompressedImageDataGLES(i, targets[trg], size, buf);
               }
               else
               {
@@ -1860,7 +1859,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
               if(IsGLES)
               {
-                GetCompressedImageDataGLES(details.compressedData[i], targets[trg], size, buf);
+                details.GetCompressedImageDataGLES(i, targets[trg], size, buf);
               }
               else
               {
