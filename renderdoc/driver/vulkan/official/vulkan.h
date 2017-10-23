@@ -6226,7 +6226,12 @@ VKAPI_ATTR VkResult VKAPI_CALL vkReleaseDisplayEXT(
 
 #ifdef VK_USE_PLATFORM_XLIB_XRANDR_EXT
 #define VK_EXT_acquire_xlib_display 1
-#include <X11/extensions/Xrandr.h>
+
+// RenderDoc modification
+// Don't want to depend on Xrandr for this
+//#include <X11/extensions/Xrandr.h>
+
+typedef unsigned int RROutput;
 
 #define VK_EXT_ACQUIRE_XLIB_DISPLAY_SPEC_VERSION 1
 #define VK_EXT_ACQUIRE_XLIB_DISPLAY_EXTENSION_NAME "VK_EXT_acquire_xlib_display"
