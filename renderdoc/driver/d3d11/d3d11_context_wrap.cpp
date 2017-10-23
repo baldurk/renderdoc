@@ -4854,6 +4854,11 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
   {
     SAFE_DELETE(m_DeferredSavedState);
     m_DeferredSavedState = new D3D11RenderState(this);
+
+    // From the Docs:
+    // "Immediate context state is cleared before and after a command list is executed. A command
+    // list has no concept of inheritance."
+    ClearState();
   }
 
   if(m_State == READING)
