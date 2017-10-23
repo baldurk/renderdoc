@@ -320,7 +320,7 @@ The path follows the template set in :cpp:func:`SetLogFilePathTemplate` so it ma
 
     * For D3D11 it must be the ``ID3D11Device`` device object.
     * For OpenGL it must be the ``HGLRC`` or ``GLXContext`` context object.
-    * For Vulkan it must be the dispatch table pointer within the ``VkInstance``. This is a pointer-sized value at the location pointed to by the ``VkInstance``. NOTE - this is not the actual ``VkInstance`` pointer itself.
+    * For Vulkan it must be the dispatch table pointer within the ``VkInstance``. This is a pointer-sized value at the location pointed to by the ``VkInstance``. NOTE - this is not the actual ``VkInstance`` pointer itself. You can use the RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE helper macro defined in the renderdoc header to obtain this pointer from any VkInstance.
 
     ``RENDERDOC_WindowHandle`` is a typedef to ``void *``. It is the platform specific ``HWND``, ``xcb_window_t``, or Xlib ``Window``.
 
