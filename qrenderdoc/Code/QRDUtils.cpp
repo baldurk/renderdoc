@@ -833,7 +833,7 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
 {
 #if defined(Q_OS_WIN32)
 
-  std::wstring wideExe = fullExecutablePath.toStdWString();
+  std::wstring wideExe = QDir::toNativeSeparators(fullExecutablePath).toStdWString();
   std::wstring wideParams = params.join(QLatin1Char(' ')).toStdWString();
 
   SHELLEXECUTEINFOW info = {};
