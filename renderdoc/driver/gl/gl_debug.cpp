@@ -3619,7 +3619,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
 
   if(!(drawcall->flags & DrawFlags::UseIBuffer))
   {
-    uint32_t outputSize = drawcall->numIndices * drawcall->numInstances * stride;
+    uint32_t outputSize = drawcall->numIndices * stride;
 
     if(drawcall->flags & DrawFlags::Instanced)
       outputSize *= drawcall->numInstances;
@@ -3732,7 +3732,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
     gl.glNamedBufferDataEXT(indexSetBuffer, sizeof(uint32_t) * indices.size(), &indices[0],
                             eGL_STATIC_DRAW);
 
-    uint32_t outputSize = (uint32_t)indices.size() * drawcall->numInstances * stride;
+    uint32_t outputSize = (uint32_t)indices.size() * stride;
 
     if(drawcall->flags & DrawFlags::Instanced)
       outputSize *= drawcall->numInstances;
