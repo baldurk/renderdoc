@@ -65,19 +65,16 @@ Process::ProcessResult execScript(const string &script, const string &args,
   Process::LaunchScript(script.c_str(), workDir.c_str(), args.c_str(), &result);
   return result;
 }
-Process::ProcessResult execCommand(const string &cmd, const string &workDir = ".")
+Process::ProcessResult execCommand(const string &exe, const string &args,
+                                   const string &workDir = ".")
 {
-  RDCLOG("COMMAND: %s", cmd.c_str());
-
-  size_t firstSpace = cmd.find(" ");
-  string exe = cmd.substr(0, firstSpace);
-  string args = cmd.substr(firstSpace + 1, cmd.length());
+  RDCLOG("COMMAND: %s '%s'", exe.c_str(), args.c_str());
 
   Process::ProcessResult result;
   Process::LaunchProcess(exe.c_str(), workDir.c_str(), args.c_str(), &result);
   return result;
 }
-Process::ProcessResult adbExecCommand(const string &device, const string &args)
+Process::ProcessResult adbExecCommand(const string &device, const string &args, const string &workDir)
 {
   string adbExePath = RenderDoc::Inst().GetConfigSetting("adbExePath");
   if(adbExePath.empty())
@@ -107,7 +104,7 @@ Process::ProcessResult adbExecCommand(const string &device, const string &args)
     deviceArgs = args;
   else
     deviceArgs = StringFormat::Fmt("-s %s %s", device.c_str(), args.c_str());
-  return execCommand(string(adbExePath + " " + deviceArgs).c_str());
+  return execCommand(adbExePath, deviceArgs, workDir);
 }
 string adbGetDeviceList()
 {
@@ -179,7 +176,7 @@ bool RemoveAPKSignature(const string &apk)
   RDCLOG("Checking for existing signature");
 
   // Get the list of files in META-INF
-  string fileList = execCommand("aapt list " + apk).strStdout;
+  string fileList = execCommand("aapt", "list " + apk).strStdout;
   if(fileList.empty())
     return false;
 
@@ -196,7 +193,7 @@ bool RemoveAPKSignature(const string &apk)
     if(line.compare(0, prefix.size(), prefix) == 0)
     {
       RDCDEBUG("Match found, removing  %s", line.c_str());
-      execCommand("aapt remove " + apk + " " + line);
+      execCommand("aapt", "remove " + apk + " " + line);
       matchCount++;
     }
   }
@@ -204,7 +201,7 @@ bool RemoveAPKSignature(const string &apk)
 
   // Ensure no hits on second pass through
   RDCDEBUG("Walk through file list again, ensure signature removed");
-  fileList = execCommand("aapt list " + apk).strStdout;
+  fileList = execCommand("aapt", "list " + apk).strStdout;
   std::istringstream recheck(fileList);
   while(std::getline(recheck, line))
   {
@@ -225,7 +222,7 @@ bool AddLayerToAPK(const string &apk, const string &layerPath, const string &lay
   // Run aapt from the directory containing "lib" so the relative paths are good
   string relativeLayer("lib/" + abi + "/" + layerName);
   string workDir = removeFromEnd(layerPath, relativeLayer);
-  Process::ProcessResult result = execCommand("aapt add " + apk + " " + relativeLayer, workDir);
+  Process::ProcessResult result = execCommand("aapt", "add " + apk + " " + relativeLayer, workDir);
 
   if(result.strStdout.empty())
   {
@@ -240,7 +237,7 @@ bool RealignAPK(const string &apk, string &alignedAPK, const string &tmpDir)
 {
   // Re-align the APK for performance
   RDCLOG("Realigning APK");
-  string errOut = execCommand("zipalign -f 4 " + apk + " " + alignedAPK, tmpDir).strStderror;
+  string errOut = execCommand("zipalign", "-f 4 " + apk + " " + alignedAPK, tmpDir).strStderror;
 
   if(!errOut.empty())
     return false;
@@ -271,7 +268,7 @@ string GetAndroidDebugKey()
   if(FileIO::exists(key.c_str()))
     return key;
 
-  string create = "keytool";
+  string create;
   create += " -genkey";
   create += " -keystore " + key;
   create += " -storepass android";
@@ -282,7 +279,7 @@ string GetAndroidDebugKey()
   create += " -validity 10000";
   create += " -dname \"CN=, OU=, O=, L=, S=, C=\"";
 
-  Process::ProcessResult result = execCommand(create);
+  Process::ProcessResult result = execCommand("keytool", create);
 
   if(!result.strStderror.empty())
     RDCERR("Failed to create debug key");
@@ -305,7 +302,7 @@ bool DebugSignAPK(const string &apk, const string &workDir)
   execScript("apksigner", args.c_str(), workDir.c_str());
 
   // Check for signature
-  string list = execCommand("aapt list " + apk).strStdout;
+  string list = execCommand("aapt", "list " + apk).strStdout;
 
   // Walk through the output.  If it starts with META-INF, we're good
   std::istringstream contents(list);
@@ -328,7 +325,7 @@ bool UninstallOriginalAPK(const string &deviceID, const string &packageName, con
 {
   RDCLOG("Uninstalling previous version of application");
 
-  execCommand("adb uninstall " + packageName, workDir);
+  adbExecCommand(deviceID, "uninstall " + packageName, workDir);
 
   // Wait until uninstall completes
   string uninstallResult;
@@ -356,7 +353,7 @@ bool ReinstallPatchedAPK(const string &deviceID, const string &apk, const string
 {
   RDCLOG("Reinstalling APK");
 
-  execCommand("adb install --abi " + abi + " " + apk, workDir);
+  adbExecCommand(deviceID, "install --abi " + abi + " " + apk, workDir);
 
   // Wait until re-install completes
   string reinstallResult;
@@ -446,7 +443,7 @@ bool CheckAPKPermissions(const string &apk)
 {
   RDCLOG("Checking that APK can be can write to sdcard");
 
-  string badging = execCommand("aapt dump badging " + apk).strStdout;
+  string badging = execCommand("aapt", "dump badging " + apk).strStdout;
 
   if(badging.empty())
   {
@@ -460,7 +457,7 @@ bool CheckDebuggable(const string &apk)
 {
   RDCLOG("Checking that APK s debuggable");
 
-  string badging = execCommand("aapt dump badging " + apk).strStdout;
+  string badging = execCommand("aapt", "dump badging " + apk).strStdout;
 
   if(badging.find("application-debuggable"))
   {
