@@ -1302,6 +1302,8 @@ through the execution of a given shader.
 
 :param ~renderdoc.ShaderBindpointMapping bind: The bindpoint mapping for the shader to view.
 :param ~renderdoc.ShaderReflection shader: The reflection data for the shader to view.
+:param ~renderdoc.ResourceId pipeline: The pipeline state object, if applicable, that this shader is
+  bound to.
 :param ~renderdoc.ShaderStage stage: The stage that the shader is bound to.
 :param ~renderdoc.ShaderDebugTrace trace: The execution trace of the debugged shader.
 :param str debugContext: A human-readable context string describing which invocation of this shader
@@ -1310,19 +1312,23 @@ through the execution of a given shader.
 :rtype: ShaderViewer
 )");
   virtual IShaderViewer *DebugShader(const ShaderBindpointMapping *bind,
-                                     const ShaderReflection *shader, ShaderStage stage,
-                                     ShaderDebugTrace *trace, const QString &debugContext) = 0;
+                                     const ShaderReflection *shader, ResourceId pipeline,
+                                     ShaderStage stage, ShaderDebugTrace *trace,
+                                     const QString &debugContext) = 0;
 
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing a read-only view of a given shader.
 
 :param ~renderdoc.ShaderBindpointMapping bind: The bindpoint mapping for the shader to view.
 :param ~renderdoc.ShaderReflection shader: The reflection data for the shader to view.
+:param ~renderdoc.ResourceId pipeline: The pipeline state object, if applicable, that this shader is
+  bound to.
 :param ~renderdoc.ShaderStage stage: The stage that the shader is bound to.
 :return: The new :class:`ShaderViewer` window opened, but not shown.
 :rtype: ShaderViewer
 )");
   virtual IShaderViewer *ViewShader(const ShaderBindpointMapping *bind,
-                                    const ShaderReflection *shader, ShaderStage stage) = 0;
+                                    const ShaderReflection *shader, ResourceId pipeline,
+                                    ShaderStage stage) = 0;
 
   DOCUMENT(R"(Show a new :class:`BufferViewer` window, showing a read-only view of buffer data.
 

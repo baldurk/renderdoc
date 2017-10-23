@@ -72,19 +72,20 @@ public:
   }
 
   static IShaderViewer *DebugShader(ICaptureContext &ctx, const ShaderBindpointMapping *bind,
-                                    const ShaderReflection *shader, ShaderStage stage,
-                                    ShaderDebugTrace *trace, const QString &debugContext,
-                                    QWidget *parent)
+                                    const ShaderReflection *shader, ResourceId pipeline,
+                                    ShaderStage stage, ShaderDebugTrace *trace,
+                                    const QString &debugContext, QWidget *parent)
   {
     ShaderViewer *ret = new ShaderViewer(ctx, parent);
-    ret->debugShader(bind, shader, stage, trace, debugContext);
+    ret->debugShader(bind, shader, pipeline, stage, trace, debugContext);
     return ret;
   }
 
   static IShaderViewer *ViewShader(ICaptureContext &ctx, const ShaderBindpointMapping *bind,
-                                   const ShaderReflection *shader, ShaderStage stage, QWidget *parent)
+                                   const ShaderReflection *shader, ResourceId pipeline,
+                                   ShaderStage stage, QWidget *parent)
   {
-    return DebugShader(ctx, bind, shader, stage, NULL, QString(), parent);
+    return DebugShader(ctx, bind, shader, pipeline, stage, NULL, QString(), parent);
   }
 
   ~ShaderViewer();
@@ -149,7 +150,8 @@ private:
   explicit ShaderViewer(ICaptureContext &ctx, QWidget *parent = 0);
   void editShader(bool customShader, const QString &entryPoint, const QStringMap &files);
   void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
-                   ShaderStage stage, ShaderDebugTrace *trace, const QString &debugContext);
+                   ResourceId pipeline, ShaderStage stage, ShaderDebugTrace *trace,
+                   const QString &debugContext);
 
   bool eventFilter(QObject *watched, QEvent *event) override;
 
@@ -170,6 +172,7 @@ private:
   const ShaderBindpointMapping *m_Mapping = NULL;
   const ShaderReflection *m_ShaderDetails = NULL;
   ShaderStage m_Stage;
+  ResourceId m_Pipeline;
   ScintillaEdit *m_DisassemblyView = NULL;
   QFrame *m_DisassemblyToolbar = NULL;
   QWidget *m_DisassemblyFrame = NULL;

@@ -327,7 +327,8 @@ vector<string> D3D11Replay::GetDisassemblyTargets()
   return ret;
 }
 
-string D3D11Replay::DisassembleShader(const ShaderReflection *refl, const string &target)
+string D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                      const string &target)
 {
   auto it = WrappedShader::m_ShaderList.find(m_pDevice->GetResourceManager()->GetLiveID(refl->ID));
 

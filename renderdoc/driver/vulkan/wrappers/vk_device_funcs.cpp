@@ -937,6 +937,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
       RDCLOG("Enabling VK_EXT_debug_marker");
     }
 
+    // enable VK_EXT_debug_marker if it's available, to fetch shader disassembly
+    if(supportedExtensions.find(VK_AMD_SHADER_INFO_EXTENSION_NAME) != supportedExtensions.end())
+    {
+      Extensions.push_back(VK_AMD_SHADER_INFO_EXTENSION_NAME);
+      RDCLOG("Enabling VK_AMD_shader_info");
+    }
+
 #if ENABLED(FORCE_VALIDATION_LAYERS)
     Layers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif

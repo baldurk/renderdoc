@@ -845,7 +845,8 @@ vector<string> GLReplay::GetDisassemblyTargets()
   return ret;
 }
 
-string GLReplay::DisassembleShader(const ShaderReflection *refl, const string &target)
+string GLReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                   const string &target)
 {
   auto &shaderDetails = m_pDriver->m_Shaders[m_pDriver->GetResourceManager()->GetLiveID(refl->ID)];
 

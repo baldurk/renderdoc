@@ -351,6 +351,34 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage sta
   return NULL;
 }
 
+ResourceId CommonPipelineState::GetComputePipelineObject()
+{
+  if(LogLoaded() && IsLogVK())
+  {
+    return m_Vulkan->compute.obj;
+  }
+  else if(LogLoaded() && IsLogD3D12())
+  {
+    return m_D3D12->pipeline;
+  }
+
+  return ResourceId();
+}
+
+ResourceId CommonPipelineState::GetGraphicsPipelineObject()
+{
+  if(LogLoaded() && IsLogVK())
+  {
+    return m_Vulkan->graphics.obj;
+  }
+  else if(LogLoaded() && IsLogD3D12())
+  {
+    return m_D3D12->pipeline;
+  }
+
+  return ResourceId();
+}
+
 QString CommonPipelineState::GetShaderEntryPoint(ShaderStage stage)
 {
   if(LogLoaded() && IsLogVK())

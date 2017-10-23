@@ -308,6 +308,20 @@ This returns ``None`` if no shader is bound.
 )");
   const ShaderReflection *GetShaderReflection(ShaderStage stage);
 
+  DOCUMENT(R"(Retrieves the the compute pipeline state object, if applicable.
+
+:return: The object ID for the given pipeline object.
+:rtype: ~renderdoc.ResourceId
+)");
+  ResourceId GetComputePipelineObject();
+
+  DOCUMENT(R"(Retrieves the the graphics pipeline state object, if applicable.
+
+:return: The object ID for the given pipeline object.
+:rtype: ~renderdoc.ResourceId
+)");
+  ResourceId GetGraphicsPipelineObject();
+
   DOCUMENT(R"(Retrieves the name of the entry point function for a shader stage.
 
 For some APIs that don't distinguish by entry point, this may be empty.

@@ -282,11 +282,12 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
 }
 
 void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
-                               ShaderStage stage, ShaderDebugTrace *trace,
+                               ResourceId pipeline, ShaderStage stage, ShaderDebugTrace *trace,
                                const QString &debugContext)
 {
   m_Mapping = bind;
   m_ShaderDetails = shader;
+  m_Pipeline = pipeline;
   m_Trace = trace;
   m_Stage = stage;
 
@@ -308,7 +309,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
       rdctype::array<rdctype::str> targets = r->GetDisassemblyTargets();
 
-      rdctype::str disasm = r->DisassembleShader(m_ShaderDetails, "");
+      rdctype::str disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, "");
 
       GUIInvoke::call([this, targets, disasm]() {
         QStringList targetNames;
@@ -830,7 +831,7 @@ void ShaderViewer::disassemble_typeChanged(int index)
   QByteArray target = m_DisassemblyType->currentText().toUtf8();
 
   m_Ctx.Replay().AsyncInvoke([this, target](IReplayController *r) {
-    rdctype::str disasm = r->DisassembleShader(m_ShaderDetails, target.data());
+    rdctype::str disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, target.data());
 
     GUIInvoke::call([this, disasm]() {
       m_DisassemblyView->setReadOnly(false);

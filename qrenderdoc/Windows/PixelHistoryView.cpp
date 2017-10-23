@@ -684,10 +684,11 @@ void PixelHistoryView::startDebug(EventTag tag)
         m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
     const ShaderBindpointMapping &bindMapping =
         m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Pixel);
+    ResourceId pipeline = m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
 
     // viewer takes ownership of the trace
-    IShaderViewer *s =
-        m_Ctx.DebugShader(&bindMapping, shaderDetails, ShaderStage::Pixel, trace, debugContext);
+    IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, pipeline, ShaderStage::Pixel,
+                                         trace, debugContext);
 
     m_Ctx.AddDockWindow(s->Widget(), DockReference::MainToolArea, NULL);
   });

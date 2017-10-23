@@ -564,13 +564,15 @@ or hardware-specific ISA formats.
 
   DOCUMENT(R"(Retrieve the disassembly for a given shader, for the given disassembly target.
 
+:param ResourceId pipeline: The pipeline state object, if applicable, that this shader is bound to.
 :param ShaderReflection refl: The shader reflection details of the shader to disassemble
 :param str target: The name of the disassembly target to generate for. Must be one of the values
   returned by :meth:`GetDisassemblyTargets`, or empty to use the default generation.
 :return: The disassembly text, or an error message if something went wrong.
 :rtype: str
 )");
-  virtual rdctype::str DisassembleShader(const ShaderReflection *refl, const char *target) = 0;
+  virtual rdctype::str DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                         const char *target) = 0;
 
   DOCUMENT(R"(Builds a shader suitable for running on the local replay instance as a custom shader.
 

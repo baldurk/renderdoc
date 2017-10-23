@@ -2291,7 +2291,11 @@ void VulkanPipelineStateViewer::shaderView_clicked()
 
   ShaderReflection *shaderDetails = stage->ShaderDetails;
 
-  IShaderViewer *shad = m_Ctx.ViewShader(&stage->BindpointMapping, shaderDetails, stage->stage);
+  ResourceId pipe = stage->stage == ShaderStage::Compute
+                        ? m_Ctx.CurVulkanPipelineState().compute.obj
+                        : m_Ctx.CurVulkanPipelineState().graphics.obj;
+
+  IShaderViewer *shad = m_Ctx.ViewShader(&stage->BindpointMapping, shaderDetails, pipe, stage->stage);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
 }
@@ -2312,6 +2316,10 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
     return;
 
   const ShaderReflection *shaderDetails = stage->ShaderDetails;
+
+  ResourceId pipe = stage->stage == ShaderStage::Compute
+                        ? m_Ctx.CurVulkanPipelineState().compute.obj
+                        : m_Ctx.CurVulkanPipelineState().graphics.obj;
 
   if(!shaderDetails)
     return;
@@ -2343,8 +2351,8 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
     if(glsl.isEmpty())
     {
       m_Ctx.Replay().AsyncInvoke(
-          [this, stage, shaderDetails, entryFunc, mainfile](IReplayController *r) {
-            rdctype::str disasm = r->DisassembleShader(shaderDetails, "");
+          [this, stage, pipe, shaderDetails, entryFunc, mainfile](IReplayController *r) {
+            rdctype::str disasm = r->DisassembleShader(pipe, shaderDetails, "");
 
             GUIInvoke::call([this, stage, shaderDetails, entryFunc, mainfile, disasm]() {
               QStringMap fileMap;

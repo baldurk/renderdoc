@@ -308,17 +308,20 @@ struct CaptureContextInvoker : ICaptureContext
   }
 
   virtual IShaderViewer *DebugShader(const ShaderBindpointMapping *bind,
-                                     const ShaderReflection *shader, ShaderStage stage,
-                                     ShaderDebugTrace *trace, const QString &debugContext) override
+                                     const ShaderReflection *shader, ResourceId pipeline,
+                                     ShaderStage stage, ShaderDebugTrace *trace,
+                                     const QString &debugContext) override
   {
-    return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::DebugShader, bind, shader, stage,
-                                              trace, debugContext);
+    return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::DebugShader, bind, shader, pipeline,
+                                              stage, trace, debugContext);
   }
 
   virtual IShaderViewer *ViewShader(const ShaderBindpointMapping *bind,
-                                    const ShaderReflection *shader, ShaderStage stage) override
+                                    const ShaderReflection *shader, ResourceId pipeline,
+                                    ShaderStage stage) override
   {
-    return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::ViewShader, bind, shader, stage);
+    return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::ViewShader, bind, shader, pipeline,
+                                              stage);
   }
 
   virtual IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,

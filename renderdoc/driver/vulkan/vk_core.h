@@ -1549,4 +1549,8 @@ public:
       VkDevice device, const VkImageSparseMemoryRequirementsInfo2KHR *pInfo,
       uint32_t *pSparseMemoryRequirementCount,
       VkSparseImageMemoryRequirements2KHR *pSparseMemoryRequirements);
+
+  // VK_AMD_shader_info
+  VkResult vkGetShaderInfoAMD(VkDevice device, VkPipeline pipeline, VkShaderStageFlagBits shaderStage,
+                              VkShaderInfoTypeAMD infoType, size_t *pInfoSize, void *pInfo);
 };

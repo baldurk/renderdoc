@@ -2307,7 +2307,7 @@ bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
       DebugThread(0, dummy1, dummy2);
       break;
     }
-    case eReplayProxy_DisassembleShader: DisassembleShader(NULL, ""); break;
+    case eReplayProxy_DisassembleShader: DisassembleShader(ResourceId(), NULL, ""); break;
     case eReplayProxy_GetISATargets: GetDisassemblyTargets(); break;
     default: RDCERR("Unexpected command"); return false;
   }
@@ -2980,7 +2980,8 @@ ShaderReflection *ReplayProxy::GetShader(ResourceId id, string entryPoint)
   return m_ShaderReflectionCache[key];
 }
 
-string ReplayProxy::DisassembleShader(const ShaderReflection *refl, const string &target)
+string ReplayProxy::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                      const string &target)
 {
   string ret;
 
@@ -2994,6 +2995,7 @@ string ReplayProxy::DisassembleShader(const ShaderReflection *refl, const string
     entryPoint = refl->EntryPoint;
   }
 
+  m_ToReplaySerialiser->Serialise("", pipeline);
   m_ToReplaySerialiser->Serialise("", id);
   m_ToReplaySerialiser->Serialise("", entryPoint);
   m_ToReplaySerialiser->Serialise("", isatarget);
@@ -3002,8 +3004,8 @@ string ReplayProxy::DisassembleShader(const ShaderReflection *refl, const string
   {
     refl = m_Remote->GetShader(m_Remote->GetLiveID(id), entryPoint);
     if(refl)
-      ret = m_Remote->DisassembleShader(m_Remote->GetShader(m_Remote->GetLiveID(id), entryPoint),
-                                        isatarget);
+      ret = m_Remote->DisassembleShader(
+          pipeline, m_Remote->GetShader(m_Remote->GetLiveID(id), entryPoint), isatarget);
   }
   else
   {

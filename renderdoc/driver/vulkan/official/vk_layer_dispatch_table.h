@@ -177,6 +177,9 @@ typedef struct VkLayerInstanceDispatchTable_ {
 #ifdef VK_USE_PLATFORM_MACOS_MVK
     PFN_vkCreateMacOSSurfaceMVK CreateMacOSSurfaceMVK;
 #endif // VK_USE_PLATFORM_MACOS_MVK
+
+    // ---- VK_EXT_sample_locations extension commands
+    PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT GetPhysicalDeviceMultisamplePropertiesEXT;
 } VkLayerInstanceDispatchTable;
 
 // Device function pointer dispatch table
@@ -371,6 +374,14 @@ typedef struct VkLayerDispatchTable_ {
     PFN_vkGetBufferMemoryRequirements2KHR GetBufferMemoryRequirements2KHR;
     PFN_vkGetImageSparseMemoryRequirements2KHR GetImageSparseMemoryRequirements2KHR;
 
+    // ---- VK_KHR_sampler_ycbcr_conversion extension commands
+    PFN_vkCreateSamplerYcbcrConversionKHR CreateSamplerYcbcrConversionKHR;
+    PFN_vkDestroySamplerYcbcrConversionKHR DestroySamplerYcbcrConversionKHR;
+
+    // ---- VK_KHR_bind_memory2 extension commands
+    PFN_vkBindBufferMemory2KHR BindBufferMemory2KHR;
+    PFN_vkBindImageMemory2KHR BindImageMemory2KHR;
+
     // ---- VK_EXT_debug_marker extension commands
     PFN_vkDebugMarkerSetObjectTagEXT DebugMarkerSetObjectTagEXT;
     PFN_vkDebugMarkerSetObjectNameEXT DebugMarkerSetObjectNameEXT;
@@ -382,6 +393,9 @@ typedef struct VkLayerDispatchTable_ {
     PFN_vkCmdDrawIndirectCountAMD CmdDrawIndirectCountAMD;
     PFN_vkCmdDrawIndexedIndirectCountAMD CmdDrawIndexedIndirectCountAMD;
 
+    // ---- VK_AMD_shader_info extension commands
+    PFN_vkGetShaderInfoAMD GetShaderInfoAMD;
+
     // ---- VK_NV_external_memory_win32 extension commands
 #ifdef VK_USE_PLATFORM_WIN32_KHR
     PFN_vkGetMemoryWin32HandleNV GetMemoryWin32HandleNV;
@@ -389,13 +403,11 @@ typedef struct VkLayerDispatchTable_ {
 
     // ---- VK_KHX_device_group extension commands
     PFN_vkGetDeviceGroupPeerMemoryFeaturesKHX GetDeviceGroupPeerMemoryFeaturesKHX;
-    PFN_vkBindBufferMemory2KHX BindBufferMemory2KHX;
-    PFN_vkBindImageMemory2KHX BindImageMemory2KHX;
     PFN_vkCmdSetDeviceMaskKHX CmdSetDeviceMaskKHX;
+    PFN_vkCmdDispatchBaseKHX CmdDispatchBaseKHX;
     PFN_vkGetDeviceGroupPresentCapabilitiesKHX GetDeviceGroupPresentCapabilitiesKHX;
     PFN_vkGetDeviceGroupSurfacePresentModesKHX GetDeviceGroupSurfacePresentModesKHX;
     PFN_vkAcquireNextImage2KHX AcquireNextImage2KHX;
-    PFN_vkCmdDispatchBaseKHX CmdDispatchBaseKHX;
 
     // ---- VK_NVX_device_generated_commands extension commands
     PFN_vkCmdProcessCommandsNVX CmdProcessCommandsNVX;
@@ -425,6 +437,15 @@ typedef struct VkLayerDispatchTable_ {
 
     // ---- VK_EXT_hdr_metadata extension commands
     PFN_vkSetHdrMetadataEXT SetHdrMetadataEXT;
+
+    // ---- VK_EXT_sample_locations extension commands
+    PFN_vkCmdSetSampleLocationsEXT CmdSetSampleLocationsEXT;
+
+    // ---- VK_EXT_validation_cache extension commands
+    PFN_vkCreateValidationCacheEXT CreateValidationCacheEXT;
+    PFN_vkDestroyValidationCacheEXT DestroyValidationCacheEXT;
+    PFN_vkMergeValidationCachesEXT MergeValidationCachesEXT;
+    PFN_vkGetValidationCacheDataEXT GetValidationCacheDataEXT;
 } VkLayerDispatchTable;
 
 

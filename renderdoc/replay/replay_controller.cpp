@@ -246,9 +246,10 @@ rdctype::array<rdctype::str> ReplayController::GetDisassemblyTargets()
   return ret;
 }
 
-rdctype::str ReplayController::DisassembleShader(const ShaderReflection *refl, const char *target)
+rdctype::str ReplayController::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                                 const char *target)
 {
-  return m_pDevice->DisassembleShader(refl, target);
+  return m_pDevice->DisassembleShader(pipeline, refl, target);
 }
 
 FrameDescription ReplayController::GetFrameInfo()

@@ -167,11 +167,11 @@ public:
                             IShaderViewer::CloseCallback closeCallback) override;
 
   IShaderViewer *DebugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
-                             ShaderStage stage, ShaderDebugTrace *trace,
+                             ResourceId pipeline, ShaderStage stage, ShaderDebugTrace *trace,
                              const QString &debugContext) override;
 
   IShaderViewer *ViewShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
-                            ShaderStage stage) override;
+                            ResourceId pipeline, ShaderStage stage) override;
 
   IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                             const QString &format = QString()) override;

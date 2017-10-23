@@ -846,17 +846,19 @@ IShaderViewer *CaptureContext::EditShader(bool customShader, const QString &entr
 }
 
 IShaderViewer *CaptureContext::DebugShader(const ShaderBindpointMapping *bind,
-                                           const ShaderReflection *shader, ShaderStage stage,
-                                           ShaderDebugTrace *trace, const QString &debugContext)
+                                           const ShaderReflection *shader, ResourceId pipeline,
+                                           ShaderStage stage, ShaderDebugTrace *trace,
+                                           const QString &debugContext)
 {
-  return ShaderViewer::DebugShader(*this, bind, shader, stage, trace, debugContext,
+  return ShaderViewer::DebugShader(*this, bind, shader, pipeline, stage, trace, debugContext,
                                    m_MainWindow->Widget());
 }
 
 IShaderViewer *CaptureContext::ViewShader(const ShaderBindpointMapping *bind,
-                                          const ShaderReflection *shader, ShaderStage stage)
+                                          const ShaderReflection *shader, ResourceId pipeline,
+                                          ShaderStage stage)
 {
-  return ShaderViewer::ViewShader(*this, bind, shader, stage, m_MainWindow->Widget());
+  return ShaderViewer::ViewShader(*this, bind, shader, pipeline, stage, m_MainWindow->Widget());
 }
 
 IBufferViewer *CaptureContext::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,

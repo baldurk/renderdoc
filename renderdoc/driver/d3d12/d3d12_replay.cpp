@@ -268,7 +268,8 @@ vector<string> D3D12Replay::GetDisassemblyTargets()
   return ret;
 }
 
-string D3D12Replay::DisassembleShader(const ShaderReflection *refl, const string &target)
+string D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                      const string &target)
 {
   WrappedID3D12Shader *sh = m_pDevice->GetResourceManager()->GetLiveAs<WrappedID3D12Shader>(refl->ID);
 

@@ -421,3 +421,12 @@ void WrappedVulkan::vkGetPhysicalDeviceSparseImageFormatProperties2KHR(
       ->GetPhysicalDeviceSparseImageFormatProperties2KHR(Unwrap(physicalDevice), pFormatInfo,
                                                          pPropertyCount, pProperties);
 }
+
+VkResult WrappedVulkan::vkGetShaderInfoAMD(VkDevice device, VkPipeline pipeline,
+                                           VkShaderStageFlagBits shaderStage,
+                                           VkShaderInfoTypeAMD infoType, size_t *pInfoSize,
+                                           void *pInfo)
+{
+  return ObjDisp(device)->GetShaderInfoAMD(Unwrap(device), Unwrap(pipeline), shaderStage, infoType,
+                                           pInfoSize, pInfo);
+}

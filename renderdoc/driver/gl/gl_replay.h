@@ -102,7 +102,7 @@ public:
   ShaderReflection *GetShader(ResourceId shader, string entryPoint);
 
   vector<string> GetDisassemblyTargets();
-  string DisassembleShader(const ShaderReflection *refl, const string &target);
+  string DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const string &target);
 
   vector<DebugMessage> GetDebugMessages();
 

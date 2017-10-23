@@ -922,7 +922,13 @@ vector<string> VulkanReplay::GetDisassemblyTargets()
 {
   vector<string> ret;
 
-  GCNISA::GetTargets(GraphicsAPI::Vulkan, ret);
+  VkDevice dev = m_pDriver->GetDev();
+  const VkLayerDispatchTable *vt = ObjDisp(dev);
+
+  if(vt->GetShaderInfoAMD)
+    ret.push_back("Live driver disassembly");
+  else
+    GCNISA::GetTargets(GraphicsAPI::Vulkan, ret);
 
   // default is always first
   ret.insert(ret.begin(), "SPIR-V (RenderDoc)");
@@ -933,7 +939,8 @@ vector<string> VulkanReplay::GetDisassemblyTargets()
   return ret;
 }
 
-string VulkanReplay::DisassembleShader(const ShaderReflection *refl, const string &target)
+string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                       const string &target)
 {
   auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(GetResourceManager()->GetLiveID(refl->ID));
 
@@ -946,6 +953,28 @@ string VulkanReplay::DisassembleShader(const ShaderReflection *refl, const strin
 
     if(disasm.empty())
       disasm = it->second.spirv.Disassemble(refl->EntryPoint.c_str());
+
+    return disasm;
+  }
+
+  VkDevice dev = m_pDriver->GetDev();
+  const VkLayerDispatchTable *vt = ObjDisp(dev);
+
+  if(vt->GetShaderInfoAMD)
+  {
+    VkPipeline pipe = m_pDriver->GetResourceManager()->GetLiveHandle<VkPipeline>(pipeline);
+
+    VkShaderStageFlagBits stageBit =
+        VkShaderStageFlagBits(1 << it->second.m_Reflections[refl->EntryPoint.c_str()].stage);
+
+    size_t size;
+    vt->GetShaderInfoAMD(Unwrap(dev), Unwrap(pipe), stageBit, VK_SHADER_INFO_TYPE_DISASSEMBLY_AMD,
+                         &size, NULL);
+
+    std::string disasm;
+    disasm.resize(size);
+    vt->GetShaderInfoAMD(Unwrap(dev), Unwrap(pipe), stageBit, VK_SHADER_INFO_TYPE_DISASSEMBLY_AMD,
+                         &size, (void *)disasm.data());
 
     return disasm;
   }
