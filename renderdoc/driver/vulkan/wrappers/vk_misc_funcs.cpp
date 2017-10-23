@@ -865,6 +865,46 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(Serialiser *localSerialiser, VkD
     {
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pool);
       GetResourceManager()->AddLiveResource(id, pool);
+
+      // We fill the query pool with valid but empty data, just so that future copies of query
+      // results don't read from invalid data.
+
+      VkCommandBuffer cmd = GetNextCmd();
+
+      VkResult vkr = VK_SUCCESS;
+
+      VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+      vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      ObjDisp(cmd)->CmdResetQueryPool(Unwrap(cmd), Unwrap(pool), 0, info.queryCount);
+
+      // Timestamps are easy - we can do these without needing to render
+      if(info.queryType == VK_QUERY_TYPE_TIMESTAMP)
+      {
+        for(uint32_t i = 0; i < info.queryCount; i++)
+          ObjDisp(cmd)->CmdWriteTimestamp(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                          Unwrap(pool), i);
+      }
+      else
+      {
+        // we do batches, to balance too many queries at once
+        const uint32_t batchSize = 64;
+
+        for(uint32_t i = 0; i < info.queryCount; i += batchSize)
+        {
+          for(uint32_t j = i; j < info.queryCount && j < i + batchSize; j++)
+            ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), Unwrap(pool), j, 0);
+
+          for(uint32_t j = i; j < info.queryCount && j < i + batchSize; j++)
+            ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), Unwrap(pool), j);
+        }
+      }
+
+      vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
     }
   }
 
