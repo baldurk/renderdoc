@@ -2064,10 +2064,19 @@ void BufferViewer::updatePreviewColumns()
       {
         const FormatElement &el = m_ModelVSIn->columns[elIdx];
 
-        m_VSInPosition.buf = vbs[el.buffer].Buffer;
-        m_VSInPosition.stride = vbs[el.buffer].ByteStride;
-        m_VSInPosition.offset =
-            vbs[el.buffer].ByteOffset + el.offset + draw->vertexOffset * m_VSInPosition.stride;
+        if(el.buffer < vbs.count())
+        {
+          m_VSInPosition.buf = vbs[el.buffer].Buffer;
+          m_VSInPosition.stride = vbs[el.buffer].ByteStride;
+          m_VSInPosition.offset =
+              vbs[el.buffer].ByteOffset + el.offset + draw->vertexOffset * m_VSInPosition.stride;
+        }
+        else
+        {
+          m_VSInPosition.buf = ResourceId();
+          m_VSInPosition.stride = 0;
+          m_VSInPosition.offset = 0;
+        }
 
         m_VSInPosition.fmt = el.format;
       }
@@ -2078,10 +2087,19 @@ void BufferViewer::updatePreviewColumns()
       {
         const FormatElement &el = m_ModelVSIn->columns[elIdx];
 
-        m_VSInSecondary.buf = vbs[el.buffer].Buffer;
-        m_VSInSecondary.stride = vbs[el.buffer].ByteStride;
-        m_VSInSecondary.offset =
-            vbs[el.buffer].ByteOffset + el.offset + draw->vertexOffset * m_VSInPosition.stride;
+        if(el.buffer < vbs.count())
+        {
+          m_VSInSecondary.buf = vbs[el.buffer].Buffer;
+          m_VSInSecondary.stride = vbs[el.buffer].ByteStride;
+          m_VSInSecondary.offset =
+              vbs[el.buffer].ByteOffset + el.offset + draw->vertexOffset * m_VSInPosition.stride;
+        }
+        else
+        {
+          m_VSInSecondary.buf = ResourceId();
+          m_VSInSecondary.stride = 0;
+          m_VSInSecondary.offset = 0;
+        }
 
         m_VSInSecondary.fmt = el.format;
         m_VSInSecondary.showAlpha = m_ModelVSIn->secondaryAlpha();
