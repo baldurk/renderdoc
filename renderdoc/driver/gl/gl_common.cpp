@@ -2062,6 +2062,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
           case eGL_SAMPLER_BUFFER:
           case eGL_SAMPLER_2D_RECT:
           case eGL_SAMPLER_2D_RECT_SHADOW:
+          case eGL_SAMPLER_EXTERNAL_OES:
           case eGL_INT_SAMPLER_1D:
           case eGL_INT_SAMPLER_2D:
           case eGL_INT_SAMPLER_3D:
