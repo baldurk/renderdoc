@@ -164,6 +164,12 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
           return;
         }
       }
+      else if(!nonsamp.resource)
+      {
+        // if we don't have a resource (which is possible if the descriptor is unused), use a
+        // default descriptor
+        desc = defaultSRV();
+      }
 
       // it's possible to end up with invalid resource and descriptor combinations:
       // 1. descriptor is created for ResID_1234 BC1_TYPELESS and a view BC1_UNORM
@@ -235,6 +241,12 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
           return;
         }
       }
+      else if(!nonsamp.resource)
+      {
+        // if we don't have a resource (which is possible if the descriptor is unused), use a
+        // default descriptor
+        desc = defaultRTV();
+      }
 
       // see comment above in SRV case for what this code is doing
       if(nonsamp.resource && desc)
@@ -270,7 +282,15 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
     {
       D3D12_DEPTH_STENCIL_VIEW_DESC *desc = &nonsamp.dsv;
       if(desc->ViewDimension == D3D12_DSV_DIMENSION_UNKNOWN)
+      {
         desc = nonsamp.resource ? NULL : defaultDSV();
+      }
+      else if(!nonsamp.resource)
+      {
+        // if we don't have a resource (which is possible if the descriptor is unused), use a
+        // default descriptor
+        desc = defaultDSV();
+      }
 
       // see comment above in SRV case for what this code is doing
       if(nonsamp.resource && desc)
@@ -324,6 +344,12 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
           dev->CreateUnorderedAccessView(nonsamp.resource, NULL, &bbDesc, handle);
           return;
         }
+      }
+      else if(!nonsamp.resource)
+      {
+        // if we don't have a resource (which is possible if the descriptor is unused), use a
+        // default descriptor
+        desc = defaultUAV();
       }
 
       // don't create a UAV with a counter resource but no main resource. This is fine because
