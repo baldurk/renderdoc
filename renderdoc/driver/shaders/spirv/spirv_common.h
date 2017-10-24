@@ -82,6 +82,9 @@ struct SPIRVPatchData
 
     // the access chain of indices
     std::vector<uint32_t> accessChain;
+
+    // is this output part of a matrix
+    bool isMatrix = false;
   };
 
   // matches the output signature array, with details of where to fetch the output from in the

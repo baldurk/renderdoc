@@ -7521,14 +7521,18 @@ static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData 
       }
     }
 
-    // it would be very strange to have no output pointer ID, since the original SPIR-V would have
-    // had to use some other mechanism to write to the output variable. But just to be safe we
-    // ensure that we have it here too.
+    // matrices would have been written through an output pointer of matrix type, but we're reading
+    // them vector-by-vector so we may need to declare an output pointer of the corresponding
+    // vector type.
+    // Otherwise, we expect to re-use the original SPIR-V's output pointer.
     if(outs[i].outputPtrID == 0)
     {
-      RDCERR("No output pointer ID found for output %d: %s (%u %u)", i,
-             refl.OutputSig[i].varName.c_str(), refl.OutputSig[i].compType,
-             refl.OutputSig[i].compCount);
+      if(!patchData.outputs[i].isMatrix)
+      {
+        RDCERR("No output pointer ID found for non-matrix output %d: %s (%u %u)", i,
+               refl.OutputSig[i].varName.c_str(), refl.OutputSig[i].compType,
+               refl.OutputSig[i].compCount);
+      }
 
       outs[i].outputPtrID = idBound++;
 

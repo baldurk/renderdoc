@@ -3850,6 +3850,10 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id,
     }
     else
     {
+      // use an extra access chain to get each vector out of the matrix.
+      patch.accessChain.push_back(0);
+      patch.isMatrix = true;
+
       for(uint32_t m = 0; m < type->matrixSize; m++)
       {
         SigParameter s = sig;
@@ -3862,7 +3866,12 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id,
 
         if(!isInput)
           patchData.outputs.push_back(patch);
+
+        patch.accessChain.back()++;
       }
+
+      patch.isMatrix = false;
+      patch.accessChain.pop_back();
     }
 
     sig.regIndex += RDCMAX(1U, type->matrixSize);
