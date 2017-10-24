@@ -3184,9 +3184,12 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
 
     GLint depth = 1;
     if(target == eGL_TEXTURE_3D)
-      depth = texdetails.depth;
+      depth = RDCMAX(1, texdetails.depth >> mip);
 
-    if(dataSize < GetByteSize(texdetails.width, texdetails.height, depth, baseformat, datatype))
+    GLint width = RDCMAX(1, texdetails.width >> mip);
+    GLint height = RDCMAX(1, texdetails.height >> mip);
+
+    if(dataSize < GetByteSize(width, height, depth, baseformat, datatype))
     {
       RDCERR("Insufficient data provided to SetProxyTextureData");
       return;
@@ -3194,28 +3197,27 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
 
     if(target == eGL_TEXTURE_1D)
     {
-      gl.glTextureSubImage1DEXT(tex, target, (GLint)mip, 0, texdetails.width, baseformat, datatype,
-                                data);
+      gl.glTextureSubImage1DEXT(tex, target, (GLint)mip, 0, width, baseformat, datatype, data);
     }
     else if(target == eGL_TEXTURE_1D_ARRAY)
     {
-      gl.glTextureSubImage2DEXT(tex, target, (GLint)mip, 0, (GLint)arrayIdx, texdetails.width, 1,
-                                baseformat, datatype, data);
+      gl.glTextureSubImage2DEXT(tex, target, (GLint)mip, 0, (GLint)arrayIdx, width, 1, baseformat,
+                                datatype, data);
     }
     else if(target == eGL_TEXTURE_2D)
     {
-      gl.glTextureSubImage2DEXT(tex, target, (GLint)mip, 0, 0, texdetails.width, texdetails.height,
-                                baseformat, datatype, data);
+      gl.glTextureSubImage2DEXT(tex, target, (GLint)mip, 0, 0, width, height, baseformat, datatype,
+                                data);
     }
     else if(target == eGL_TEXTURE_2D_ARRAY || target == eGL_TEXTURE_CUBE_MAP_ARRAY)
     {
-      gl.glTextureSubImage3DEXT(tex, target, (GLint)mip, 0, 0, (GLint)arrayIdx, texdetails.width,
-                                texdetails.height, 1, baseformat, datatype, data);
+      gl.glTextureSubImage3DEXT(tex, target, (GLint)mip, 0, 0, (GLint)arrayIdx, width, height, 1,
+                                baseformat, datatype, data);
     }
     else if(target == eGL_TEXTURE_3D)
     {
-      gl.glTextureSubImage3DEXT(tex, target, (GLint)mip, 0, 0, 0, texdetails.width,
-                                texdetails.height, texdetails.depth, baseformat, datatype, data);
+      gl.glTextureSubImage3DEXT(tex, target, (GLint)mip, 0, 0, 0, width, height, depth, baseformat,
+                                datatype, data);
     }
     else if(target == eGL_TEXTURE_CUBE_MAP)
     {
@@ -3228,8 +3230,8 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
       RDCASSERT(arrayIdx < ARRAY_COUNT(targets));
       target = targets[arrayIdx];
 
-      gl.glTextureSubImage2DEXT(tex, target, (GLint)mip, 0, 0, texdetails.width, texdetails.height,
-                                baseformat, datatype, data);
+      gl.glTextureSubImage2DEXT(tex, target, (GLint)mip, 0, 0, width, height, baseformat, datatype,
+                                data);
     }
     else if(target == eGL_TEXTURE_2D_MULTISAMPLE)
     {
