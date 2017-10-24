@@ -339,9 +339,10 @@ private:
 
   enum TexDisplayFlags
   {
-    eTexDisplay_F32Render = 0x1,
-    eTexDisplay_BlendAlpha = 0x2,
-    eTexDisplay_MipShift = 0x4,
+    eTexDisplay_F16Render = 0x1,
+    eTexDisplay_F32Render = 0x2,
+    eTexDisplay_BlendAlpha = 0x4,
+    eTexDisplay_MipShift = 0x8,
   };
 
   bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, int flags);

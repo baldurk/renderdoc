@@ -1168,6 +1168,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 {
   const bool blendAlpha = (flags & eTexDisplay_BlendAlpha) != 0;
   const bool mipShift = (flags & eTexDisplay_MipShift) != 0;
+  const bool f16render = (flags & eTexDisplay_F16Render) != 0;
   const bool f32render = (flags & eTexDisplay_F32Render) != 0;
 
   VkDevice dev = m_pDriver->GetDev();
@@ -1441,6 +1442,10 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     {
       GetDebugManager()->CreateCustomShaderPipeline(cfg.CustomShader);
       pipe = GetDebugManager()->m_CustomTexPipeline;
+    }
+    else if(f16render)
+    {
+      pipe = GetDebugManager()->m_TexDisplayF16Pipeline;
     }
     else if(f32render)
     {
@@ -4365,9 +4370,29 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
   if(params.remap)
   {
+    int renderFlags = 0;
+
     // force readback texture to RGBA8 unorm
-    imCreateInfo.format =
-        IsSRGBFormat(imCreateInfo.format) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+    if(params.remap == eRemap_RGBA8)
+    {
+      imCreateInfo.format =
+          IsSRGBFormat(imCreateInfo.format) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+    }
+    else if(params.remap == eRemap_RGBA16)
+    {
+      imCreateInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+      renderFlags = eTexDisplay_F16Render;
+    }
+    else if(params.remap == eRemap_RGBA32)
+    {
+      imCreateInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+      renderFlags = eTexDisplay_F32Render;
+    }
+    else
+    {
+      RDCERR("Unsupported remap format: %u", params.remap);
+    }
+
     // force to 1 array slice, 1 mip
     imCreateInfo.arrayLayers = 1;
     imCreateInfo.mipLevels = 1;
@@ -4545,7 +4570,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
           &clearval,
       };
 
-      RenderTextureInternal(texDisplay, rpbegin, 0);
+      RenderTextureInternal(texDisplay, rpbegin, renderFlags);
     }
 
     m_DebugWidth = oldW;

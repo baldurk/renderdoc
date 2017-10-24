@@ -248,6 +248,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_TexDisplayNextSet = 0;
   m_TexDisplayPipeline = VK_NULL_HANDLE;
   m_TexDisplayBlendPipeline = VK_NULL_HANDLE;
+  m_TexDisplayF16Pipeline = VK_NULL_HANDLE;
   m_TexDisplayF32Pipeline = VK_NULL_HANDLE;
   RDCEraseEl(m_TexDisplayUBO);
 
@@ -1881,6 +1882,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
                                              &m_TexDisplayF32Pipeline);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  pipeInfo.renderPass = RGBA16RP;
+
+  vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
+                                             &m_TexDisplayF16Pipeline);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
   pipeInfo.renderPass = RGBA8sRGBRP;
 
   attState.blendEnable = true;
@@ -2545,6 +2552,7 @@ VulkanDebugManager::~VulkanDebugManager()
   m_pDriver->vkDestroyPipelineLayout(dev, m_TexDisplayPipeLayout, NULL);
   m_pDriver->vkDestroyPipeline(dev, m_TexDisplayPipeline, NULL);
   m_pDriver->vkDestroyPipeline(dev, m_TexDisplayBlendPipeline, NULL);
+  m_pDriver->vkDestroyPipeline(dev, m_TexDisplayF16Pipeline, NULL);
   m_pDriver->vkDestroyPipeline(dev, m_TexDisplayF32Pipeline, NULL);
 
   for(size_t i = 0; i < ARRAY_COUNT(m_TexDisplayDummyImages); i++)

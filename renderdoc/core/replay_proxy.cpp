@@ -2078,7 +2078,7 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
     {
       case ResourceFormatType::S8:
       case ResourceFormatType::D16S8: params.remap = eRemap_D32S8; break;
-      case ResourceFormatType::ASTC:
+      case ResourceFormatType::ASTC: params.remap = eRemap_RGBA16; break;
       case ResourceFormatType::EAC:
       case ResourceFormatType::R5G6B5:
       case ResourceFormatType::ETC2: params.remap = eRemap_RGBA8; break;
@@ -2113,7 +2113,7 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
     case eRemap_RGBA16:
       tex.format.compCount = 4;
       tex.format.compByteWidth = 2;
-      tex.format.compType = CompType::UNorm;
+      tex.format.compType = CompType::Float;
       break;
     case eRemap_RGBA32:
       tex.format.compCount = 4;

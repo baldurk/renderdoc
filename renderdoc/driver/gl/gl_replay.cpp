@@ -2253,7 +2253,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     if(params.remap == eRemap_RGBA8)
       remapFormat = eGL_RGBA8;
     else if(params.remap == eRemap_RGBA16)
-      remapFormat = eGL_RGBA16;
+      remapFormat = eGL_RGBA16F;
     else if(params.remap == eRemap_RGBA32)
       remapFormat = eGL_RGBA32F;
 
