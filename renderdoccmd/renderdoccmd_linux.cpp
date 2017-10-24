@@ -452,8 +452,10 @@ int main(int argc, char *argv[])
 
   int ret = renderdoccmd(env, argc, argv);
 
+#if defined(RENDERDOC_WINDOWING_XLIB) || defined(RENDERDOC_WINDOWING_XCB)
   if(display)
     XCloseDisplay(display);
+#endif
 
   return ret;
 }
