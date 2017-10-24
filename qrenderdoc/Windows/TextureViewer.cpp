@@ -1058,14 +1058,14 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
     m_TextureSettings[m_TexDisplay.texid].b = ui->channelBlue->isChecked();
     m_TextureSettings[m_TexDisplay.texid].a = ui->channelAlpha->isChecked();
 
-    m_TextureSettings[m_TexDisplay.texid].displayType = ui->channels->currentIndex();
+    m_TextureSettings[m_TexDisplay.texid].displayType = qMax(0, ui->channels->currentIndex());
     m_TextureSettings[m_TexDisplay.texid].customShader = ui->customShader->currentText();
 
     m_TextureSettings[m_TexDisplay.texid].depth = ui->depthDisplay->isChecked();
     m_TextureSettings[m_TexDisplay.texid].stencil = ui->stencilDisplay->isChecked();
 
-    m_TextureSettings[m_TexDisplay.texid].mip = ui->mipLevel->currentIndex();
-    m_TextureSettings[m_TexDisplay.texid].slice = ui->sliceFace->currentIndex();
+    m_TextureSettings[m_TexDisplay.texid].mip = qMax(0, ui->mipLevel->currentIndex());
+    m_TextureSettings[m_TexDisplay.texid].slice = qMax(0, ui->sliceFace->currentIndex());
 
     m_TextureSettings[m_TexDisplay.texid].minrange = ui->rangeHistogram->blackPoint();
     m_TextureSettings[m_TexDisplay.texid].maxrange = ui->rangeHistogram->whitePoint();
@@ -3167,13 +3167,13 @@ void TextureViewer::on_mipLevel_currentIndexChanged(int index)
 
   if(tex.mips > 1)
   {
-    m_TexDisplay.mip = (uint32_t)index;
+    m_TexDisplay.mip = (uint32_t)qMax(0, index);
     m_TexDisplay.sampleIdx = 0;
   }
   else
   {
     m_TexDisplay.mip = 0;
-    m_TexDisplay.sampleIdx = (uint32_t)index;
+    m_TexDisplay.sampleIdx = (uint32_t)qMax(0, index);
     if(m_TexDisplay.sampleIdx == tex.msSamp)
       m_TexDisplay.sampleIdx = ~0U;
   }
@@ -3213,10 +3213,10 @@ void TextureViewer::on_sliceFace_currentIndexChanged(int index)
     return;
 
   TextureDescription &tex = *texptr;
-  m_TexDisplay.sliceFace = (uint32_t)index;
+  m_TexDisplay.sliceFace = (uint32_t)qMax(0, index);
 
   if(tex.depth > 1)
-    m_TexDisplay.sliceFace = (uint32_t)(index << (int)m_TexDisplay.mip);
+    m_TexDisplay.sliceFace = (uint32_t)(qMax(0, index) << (int)m_TexDisplay.mip);
 
   INVOKE_MEMFN(RT_UpdateVisualRange);
 

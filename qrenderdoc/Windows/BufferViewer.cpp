@@ -3191,7 +3191,7 @@ void BufferViewer::on_solidShading_currentIndexChanged(int index)
     m_Config.wireframeDraw = true;
   }
 
-  m_Config.solidShadeMode = (SolidShade)index;
+  m_Config.solidShadeMode = (SolidShade)qMax(0, index);
 
   m_ModelVSIn->setSecondaryColumn(m_ModelVSIn->secondaryColumn(),
                                   m_Config.solidShadeMode == SolidShade::Secondary,
