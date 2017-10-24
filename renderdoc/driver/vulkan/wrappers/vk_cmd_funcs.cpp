@@ -582,6 +582,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(Serialiser *localSerialiser,
 
       // add one-time submit flag as this partial cmd buffer will only be submitted once
       info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+      if(allocInfo.level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
+        info.flags |= VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
       ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &info);
     }
@@ -592,6 +594,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(Serialiser *localSerialiser,
   {
     // remove one-time submit flag as we will want to submit many
     info.flags &= ~VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    if(allocInfo.level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
+      info.flags |= VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
     VkCommandBuffer cmd = VK_NULL_HANDLE;
 
