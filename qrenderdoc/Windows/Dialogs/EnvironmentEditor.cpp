@@ -149,7 +149,7 @@ void EnvironmentEditor::on_addUpdate_clicked()
   EnvironmentModification mod;
   mod.name = ui->name->text().toUtf8().data();
   mod.value = ui->value->text().toUtf8().data();
-  mod.sep = (EnvSep)ui->separator->currentIndex();
+  mod.sep = (EnvSep)qMax(0, ui->separator->currentIndex());
 
   if(ui->appendValue->isChecked())
     mod.mod = EnvMod::Append;

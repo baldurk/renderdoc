@@ -316,7 +316,7 @@ void SettingsDialog::on_EventBrowser_TimeUnit_currentIndexChanged(int index)
   if(m_Init)
     return;
 
-  m_Ctx.Config().EventBrowser_TimeUnit = (TimeUnit)ui->EventBrowser_TimeUnit->currentIndex();
+  m_Ctx.Config().EventBrowser_TimeUnit = (TimeUnit)qMax(0, ui->EventBrowser_TimeUnit->currentIndex());
 
   if(m_Ctx.HasEventBrowser())
     m_Ctx.GetEventBrowser()->UpdateDurationColumn();

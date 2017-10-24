@@ -191,7 +191,7 @@ void TextureSaveDialog::SetFilenameFromFiletype()
 
 void TextureSaveDialog::on_fileFormat_currentIndexChanged(int index)
 {
-  saveData.destType = (FileType)ui->fileFormat->currentIndex();
+  saveData.destType = (FileType)qMax(0, ui->fileFormat->currentIndex());
 
   ui->jpegCompression->setEnabled(saveData.destType == FileType::JPG);
 
@@ -273,7 +273,7 @@ void TextureSaveDialog::on_oneMip_toggled(bool checked)
 
 void TextureSaveDialog::on_mipSelect_currentIndexChanged(int index)
 {
-  saveData.mip = index;
+  saveData.mip = qMax(0, index);
 }
 
 void TextureSaveDialog::on_mapSampleArray_toggled(bool checked)
@@ -344,7 +344,7 @@ void TextureSaveDialog::on_oneSample_toggled(bool checked)
 
 void TextureSaveDialog::on_sampleSelect_currentIndexChanged(int index)
 {
-  saveData.sample.sampleIndex = (uint32_t)index;
+  saveData.sample.sampleIndex = (uint32_t)qMax(0, index);
 }
 
 void TextureSaveDialog::on_exportAllSlices_toggled(bool checked)
@@ -466,7 +466,7 @@ void TextureSaveDialog::on_cubeCruciform_toggled(bool checked)
 
 void TextureSaveDialog::on_sliceSelect_currentIndexChanged(int index)
 {
-  saveData.slice.sliceIndex = index;
+  saveData.slice.sliceIndex = qMax(0, index);
 }
 
 void TextureSaveDialog::on_gridWidth_valueChanged(double arg1)
@@ -488,7 +488,7 @@ void TextureSaveDialog::on_alphaCol_clicked()
 
 void TextureSaveDialog::on_alphaMap_currentIndexChanged(int index)
 {
-  saveData.alpha = (AlphaMapping)index;
+  saveData.alpha = (AlphaMapping)qMax(0, index);
 
   ui->alphaCol->setEnabled(saveData.alpha == AlphaMapping::BlendToColor);
 }
@@ -546,7 +546,7 @@ void TextureSaveDialog::on_filename_textEdited(const QString &arg1)
 
 void TextureSaveDialog::on_saveCancelButtons_accepted()
 {
-  saveData.alpha = (AlphaMapping)ui->alphaMap->currentIndex();
+  saveData.alpha = (AlphaMapping)qMax(0, ui->alphaMap->currentIndex());
 
   if(saveData.alpha == AlphaMapping::BlendToCheckerboard)
   {
@@ -556,7 +556,7 @@ void TextureSaveDialog::on_saveCancelButtons_accepted()
   if(ui->exportAllMips->isChecked())
     saveData.mip = -1;
   else
-    saveData.mip = (int)ui->mipSelect->currentIndex();
+    saveData.mip = (int)qMax(0, ui->mipSelect->currentIndex());
 
   if(ui->resolveSamples->isChecked())
   {
@@ -570,7 +570,7 @@ void TextureSaveDialog::on_saveCancelButtons_accepted()
   }
   else
   {
-    saveData.sample.sampleIndex = (uint)ui->sampleSelect->currentIndex();
+    saveData.sample.sampleIndex = (uint)qMax(0, ui->sampleSelect->currentIndex());
     saveData.sample.mapToArray = false;
   }
 
@@ -578,7 +578,7 @@ void TextureSaveDialog::on_saveCancelButtons_accepted()
   {
     saveData.slice.cubeCruciform = saveData.slice.slicesAsGrid = false;
     saveData.slice.sliceGridWidth = 1;
-    saveData.slice.sliceIndex = (int)ui->sliceSelect->currentIndex();
+    saveData.slice.sliceIndex = (int)qMax(0, ui->sliceSelect->currentIndex());
   }
   else
   {
@@ -597,7 +597,7 @@ void TextureSaveDialog::on_saveCancelButtons_accepted()
     }
   }
 
-  saveData.destType = (FileType)ui->fileFormat->currentIndex();
+  saveData.destType = (FileType)qMax(0, ui->fileFormat->currentIndex());
   saveData.jpegQuality = (int)ui->jpegCompression->value();
 
   bool ok = false;
