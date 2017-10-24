@@ -307,7 +307,7 @@ uintptr_t FindRemoteDLL(DWORD pid, wstring libName)
 
     numModules++;
 
-    if(wcsstr(modnameLower, libName.c_str()))
+    if(wcsstr(modnameLower, libName.c_str()) == modnameLower)
     {
       ret = (uintptr_t)me32.modBaseAddr;
     }
