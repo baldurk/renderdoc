@@ -501,7 +501,10 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
   {
     // there is an implicit unmap on free, so make sure to tidy up
     if(wrapped->record->memMapState && wrapped->record->memMapState->refData)
+    {
       Serialiser::FreeAlignedBuffer(wrapped->record->memMapState->refData);
+      wrapped->record->memMapState->refData = NULL;
+    }
 
     {
       SCOPED_LOCK(m_CoherentMapsLock);
@@ -668,6 +671,7 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
     }
 
     Serialiser::FreeAlignedBuffer(state.refData);
+    state.refData = NULL;
 
     if(state.mapCoherent)
     {
