@@ -43,6 +43,7 @@
 #define PLTHOOK_INVALID_ARGUMENT     4
 #define PLTHOOK_OUT_OF_MEMORY        5
 #define PLTHOOK_INTERNAL_ERROR       6
+#define PLTHOOK_NOT_IMPLEMENTED      7
 
 typedef struct plthook plthook_t;
 
