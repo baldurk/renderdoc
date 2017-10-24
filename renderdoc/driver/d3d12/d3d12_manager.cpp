@@ -217,6 +217,50 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
         }
       }
 
+      D3D12_SHADER_RESOURCE_VIEW_DESC planeDesc;
+      // ensure that multi-plane formats have a valid plane slice specified. This shouldn't be
+      // possible as it should be the application's responsibility to be valid too, but we fix it up
+      // here anyway.
+      if(nonsamp.resource)
+      {
+        D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
+        formatInfo.Format = desc->Format;
+        dev->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo, sizeof(formatInfo));
+
+        // if this format is multi-plane
+        if(formatInfo.PlaneCount > 1)
+        {
+          planeDesc = *desc;
+          desc = &planeDesc;
+
+          // detect formats that only read plane 1 and set the planeslice to 1
+          if(desc->Format == DXGI_FORMAT_X24_TYPELESS_G8_UINT ||
+             desc->Format == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT)
+          {
+            switch(planeDesc.ViewDimension)
+            {
+              case D3D12_SRV_DIMENSION_TEXTURE2D: planeDesc.Texture2D.PlaneSlice = 1; break;
+              case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
+                planeDesc.Texture2DArray.PlaneSlice = 1;
+                break;
+              default: break;
+            }
+          }
+          else
+          {
+            // otherwise set it to 0
+            switch(planeDesc.ViewDimension)
+            {
+              case D3D12_SRV_DIMENSION_TEXTURE2D: planeDesc.Texture2D.PlaneSlice = 0; break;
+              case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
+                planeDesc.Texture2DArray.PlaneSlice = 0;
+                break;
+              default: break;
+            }
+          }
+        }
+      }
+
       dev->CreateShaderResourceView(nonsamp.resource, desc, handle);
       break;
     }
@@ -270,6 +314,50 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
             {
               nonsamp.resource = NULL;
               desc = defaultRTV();
+            }
+          }
+        }
+      }
+
+      D3D12_RENDER_TARGET_VIEW_DESC planeDesc;
+      // ensure that multi-plane formats have a valid plane slice specified. This shouldn't be
+      // possible as it should be the application's responsibility to be valid too, but we fix it up
+      // here anyway.
+      if(nonsamp.resource)
+      {
+        D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
+        formatInfo.Format = desc->Format;
+        dev->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo, sizeof(formatInfo));
+
+        // if this format is multi-plane
+        if(formatInfo.PlaneCount > 1)
+        {
+          planeDesc = *desc;
+          desc = &planeDesc;
+
+          // detect formats that only read plane 1 and set the planeslice to 1
+          if(desc->Format == DXGI_FORMAT_X24_TYPELESS_G8_UINT ||
+             desc->Format == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT)
+          {
+            switch(planeDesc.ViewDimension)
+            {
+              case D3D12_RTV_DIMENSION_TEXTURE2D: planeDesc.Texture2D.PlaneSlice = 1; break;
+              case D3D12_RTV_DIMENSION_TEXTURE2DARRAY:
+                planeDesc.Texture2DArray.PlaneSlice = 1;
+                break;
+              default: break;
+            }
+          }
+          else
+          {
+            // otherwise set it to 0
+            switch(planeDesc.ViewDimension)
+            {
+              case D3D12_RTV_DIMENSION_TEXTURE2D: planeDesc.Texture2D.PlaneSlice = 0; break;
+              case D3D12_RTV_DIMENSION_TEXTURE2DARRAY:
+                planeDesc.Texture2DArray.PlaneSlice = 0;
+                break;
+              default: break;
             }
           }
         }
@@ -384,6 +472,50 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
             {
               nonsamp.resource = NULL;
               desc = defaultUAV();
+            }
+          }
+        }
+      }
+
+      D3D12_UNORDERED_ACCESS_VIEW_DESC planeDesc;
+      // ensure that multi-plane formats have a valid plane slice specified. This shouldn't be
+      // possible as it should be the application's responsibility to be valid too, but we fix it up
+      // here anyway.
+      if(nonsamp.resource)
+      {
+        D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
+        formatInfo.Format = desc->Format;
+        dev->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo, sizeof(formatInfo));
+
+        // if this format is multi-plane
+        if(formatInfo.PlaneCount > 1)
+        {
+          planeDesc = *desc;
+          desc = &planeDesc;
+
+          // detect formats that only read plane 1 and set the planeslice to 1
+          if(desc->Format == DXGI_FORMAT_X24_TYPELESS_G8_UINT ||
+             desc->Format == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT)
+          {
+            switch(planeDesc.ViewDimension)
+            {
+              case D3D12_UAV_DIMENSION_TEXTURE2D: planeDesc.Texture2D.PlaneSlice = 1; break;
+              case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
+                planeDesc.Texture2DArray.PlaneSlice = 1;
+                break;
+              default: break;
+            }
+          }
+          else
+          {
+            // otherwise set it to 0
+            switch(planeDesc.ViewDimension)
+            {
+              case D3D12_UAV_DIMENSION_TEXTURE2D: planeDesc.Texture2D.PlaneSlice = 0; break;
+              case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
+                planeDesc.Texture2DArray.PlaneSlice = 0;
+                break;
+              default: break;
             }
           }
         }
