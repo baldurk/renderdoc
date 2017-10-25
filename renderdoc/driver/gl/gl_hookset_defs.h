@@ -1339,6 +1339,7 @@
     HookWrapper4(void, glViewport, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
     HookWrapper3(void, glDrawArrays, GLenum, mode, GLint, first, GLsizei, count); \
     HookWrapper4(void, glDrawElements, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices); \
+    HookAliasWrapper2(void, glGetPointervKHR, glGetPointerv, GLenum, pname, void **, params); \
     HookWrapper2(void, glGetPointerv, GLenum, pname, void **, params); \
     HookWrapper2(void, glPolygonOffset, GLfloat, factor, GLfloat, units); \
     HookWrapper7(void, glCopyTexImage1D, GLenum, target, GLint, level, GLenum, internalformat, GLint, x, GLint, y, GLsizei, width, GLint, border); \
@@ -1356,48 +1357,106 @@
 
 // gl extensions
 #define DefineGLExtensionHooks() \
+    HookAliasWrapper6(void, glDrawRangeElementsEXT, glDrawRangeElements, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices); \
     HookWrapper6(void, glDrawRangeElements, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices); \
+    HookAliasWrapper10(void, glTexImage3DEXT, glTexImage3D, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
+    HookAliasWrapper10(void, glTexImage3DOES, glTexImage3D, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper10(void, glTexImage3D, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
+    HookAliasWrapper11(void, glTexSubImage3DOES, glTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper11(void, glTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, pixels); \
+    HookAliasWrapper9(void, glCopyTexSubImage3DOES, glCopyTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
     HookWrapper9(void, glCopyTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
+    HookAliasWrapper1(void, glActiveTextureARB, glActiveTexture, GLenum, texture); \
     HookWrapper1(void, glActiveTexture, GLenum, texture); \
+    HookAliasWrapper2(void, glSampleCoverageARB, glSampleCoverage, GLfloat, value, GLboolean, invert); \
     HookWrapper2(void, glSampleCoverage, GLfloat, value, GLboolean, invert); \
+    HookAliasWrapper9(void, glCompressedTexImage3DARB, glCompressedTexImage3D, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLsizei, imageSize, const void *, data); \
+    HookAliasWrapper9(void, glCompressedTexImage3DOES, glCompressedTexImage3D, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLsizei, imageSize, const void *, data); \
     HookWrapper9(void, glCompressedTexImage3D, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLsizei, imageSize, const void *, data); \
+    HookAliasWrapper8(void, glCompressedTexImage2DARB, glCompressedTexImage2D, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLint, border, GLsizei, imageSize, const void *, data); \
     HookWrapper8(void, glCompressedTexImage2D, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLint, border, GLsizei, imageSize, const void *, data); \
+    HookAliasWrapper7(void, glCompressedTexImage1DARB, glCompressedTexImage1D, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLint, border, GLsizei, imageSize, const void *, data); \
     HookWrapper7(void, glCompressedTexImage1D, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLint, border, GLsizei, imageSize, const void *, data); \
+    HookAliasWrapper11(void, glCompressedTexSubImage3DARB, glCompressedTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLsizei, imageSize, const void *, data); \
+    HookAliasWrapper11(void, glCompressedTexSubImage3DOES, glCompressedTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLsizei, imageSize, const void *, data); \
     HookWrapper11(void, glCompressedTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLsizei, imageSize, const void *, data); \
+    HookAliasWrapper9(void, glCompressedTexSubImage2DARB, glCompressedTexSubImage2D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLsizei, width, GLsizei, height, GLenum, format, GLsizei, imageSize, const void *, data); \
     HookWrapper9(void, glCompressedTexSubImage2D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLsizei, width, GLsizei, height, GLenum, format, GLsizei, imageSize, const void *, data); \
+    HookAliasWrapper7(void, glCompressedTexSubImage1DARB, glCompressedTexSubImage1D, GLenum, target, GLint, level, GLint, xoffset, GLsizei, width, GLenum, format, GLsizei, imageSize, const void *, data); \
     HookWrapper7(void, glCompressedTexSubImage1D, GLenum, target, GLint, level, GLint, xoffset, GLsizei, width, GLenum, format, GLsizei, imageSize, const void *, data); \
+    HookAliasWrapper3(void, glGetCompressedTexImageARB, glGetCompressedTexImage, GLenum, target, GLint, level, void *, img); \
     HookWrapper3(void, glGetCompressedTexImage, GLenum, target, GLint, level, void *, img); \
+    HookAliasWrapper4(void, glBlendFuncSeparateARB, glBlendFuncSeparate, GLenum, sfactorRGB, GLenum, dfactorRGB, GLenum, sfactorAlpha, GLenum, dfactorAlpha); \
     HookWrapper4(void, glBlendFuncSeparate, GLenum, sfactorRGB, GLenum, dfactorRGB, GLenum, sfactorAlpha, GLenum, dfactorAlpha); \
+    HookAliasWrapper4(void, glMultiDrawArraysEXT, glMultiDrawArrays, GLenum, mode, const GLint *, first, const GLsizei *, count, GLsizei, drawcount); \
     HookWrapper4(void, glMultiDrawArrays, GLenum, mode, const GLint *, first, const GLsizei *, count, GLsizei, drawcount); \
     HookWrapper5(void, glMultiDrawElements, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, drawcount); \
+    HookAliasWrapper2(void, glPointParameterfARB, glPointParameterf, GLenum, pname, GLfloat, param); \
+    HookAliasWrapper2(void, glPointParameterfEXT, glPointParameterf, GLenum, pname, GLfloat, param); \
     HookWrapper2(void, glPointParameterf, GLenum, pname, GLfloat, param); \
+    HookAliasWrapper2(void, glPointParameterfvARB, glPointParameterfv, GLenum, pname, const GLfloat *, params); \
+    HookAliasWrapper2(void, glPointParameterfvEXT, glPointParameterfv, GLenum, pname, const GLfloat *, params); \
     HookWrapper2(void, glPointParameterfv, GLenum, pname, const GLfloat *, params); \
     HookWrapper2(void, glPointParameteri, GLenum, pname, GLint, param); \
     HookWrapper2(void, glPointParameteriv, GLenum, pname, const GLint *, params); \
+    HookAliasWrapper4(void, glBlendColorEXT, glBlendColor, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
     HookWrapper4(void, glBlendColor, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
+    HookAliasWrapper1(void, glBlendEquationEXT, glBlendEquation, GLenum, mode); \
     HookWrapper1(void, glBlendEquation, GLenum, mode); \
+    HookAliasWrapper2(void, glGenQueriesARB, glGenQueries, GLsizei, n, GLuint *, ids); \
+    HookAliasWrapper2(void, glGenQueriesEXT, glGenQueries, GLsizei, n, GLuint *, ids); \
     HookWrapper2(void, glGenQueries, GLsizei, n, GLuint *, ids); \
+    HookAliasWrapper2(void, glDeleteQueriesARB, glDeleteQueries, GLsizei, n, const GLuint *, ids); \
+    HookAliasWrapper2(void, glDeleteQueriesEXT, glDeleteQueries, GLsizei, n, const GLuint *, ids); \
     HookWrapper2(void, glDeleteQueries, GLsizei, n, const GLuint *, ids); \
+    HookAliasWrapper1(GLboolean, glIsQueryARB, glIsQuery, GLuint, id); \
+    HookAliasWrapper1(GLboolean, glIsQueryEXT, glIsQuery, GLuint, id); \
     HookWrapper1(GLboolean, glIsQuery, GLuint, id); \
+    HookAliasWrapper2(void, glBeginQueryARB, glBeginQuery, GLenum, target, GLuint, id); \
+    HookAliasWrapper2(void, glBeginQueryEXT, glBeginQuery, GLenum, target, GLuint, id); \
     HookWrapper2(void, glBeginQuery, GLenum, target, GLuint, id); \
+    HookAliasWrapper1(void, glEndQueryARB, glEndQuery, GLenum, target); \
+    HookAliasWrapper1(void, glEndQueryEXT, glEndQuery, GLenum, target); \
     HookWrapper1(void, glEndQuery, GLenum, target); \
+    HookAliasWrapper3(void, glGetQueryivARB, glGetQueryiv, GLenum, target, GLenum, pname, GLint *, params); \
+    HookAliasWrapper3(void, glGetQueryivEXT, glGetQueryiv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetQueryiv, GLenum, target, GLenum, pname, GLint *, params); \
+    HookAliasWrapper3(void, glGetQueryObjectivARB, glGetQueryObjectiv, GLuint, id, GLenum, pname, GLint *, params); \
+    HookAliasWrapper3(void, glGetQueryObjectivEXT, glGetQueryObjectiv, GLuint, id, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetQueryObjectiv, GLuint, id, GLenum, pname, GLint *, params); \
+    HookAliasWrapper3(void, glGetQueryObjectuivARB, glGetQueryObjectuiv, GLuint, id, GLenum, pname, GLuint *, params); \
+    HookAliasWrapper3(void, glGetQueryObjectuivEXT, glGetQueryObjectuiv, GLuint, id, GLenum, pname, GLuint *, params); \
     HookWrapper3(void, glGetQueryObjectuiv, GLuint, id, GLenum, pname, GLuint *, params); \
+    HookAliasWrapper2(void, glBindBufferARB, glBindBuffer, GLenum, target, GLuint, buffer); \
     HookWrapper2(void, glBindBuffer, GLenum, target, GLuint, buffer); \
+    HookAliasWrapper2(void, glDeleteBuffersARB, glDeleteBuffers, GLsizei, n, const GLuint *, buffers); \
     HookWrapper2(void, glDeleteBuffers, GLsizei, n, const GLuint *, buffers); \
+    HookAliasWrapper2(void, glGenBuffersARB, glGenBuffers, GLsizei, n, GLuint *, buffers); \
     HookWrapper2(void, glGenBuffers, GLsizei, n, GLuint *, buffers); \
+    HookAliasWrapper1(GLboolean, glIsBufferARB, glIsBuffer, GLuint, buffer); \
     HookWrapper1(GLboolean, glIsBuffer, GLuint, buffer); \
+    HookAliasWrapper4(void, glBufferDataARB, glBufferData, GLenum, target, GLsizeiptr, size, const void *, data, GLenum, usage); \
     HookWrapper4(void, glBufferData, GLenum, target, GLsizeiptr, size, const void *, data, GLenum, usage); \
+    HookAliasWrapper4(void, glBufferSubDataARB, glBufferSubData, GLenum, target, GLintptr, offset, GLsizeiptr, size, const void *, data); \
     HookWrapper4(void, glBufferSubData, GLenum, target, GLintptr, offset, GLsizeiptr, size, const void *, data); \
+    HookAliasWrapper4(void, glGetBufferSubDataARB, glGetBufferSubData, GLenum, target, GLintptr, offset, GLsizeiptr, size, void *, data); \
     HookWrapper4(void, glGetBufferSubData, GLenum, target, GLintptr, offset, GLsizeiptr, size, void *, data); \
+    HookAliasWrapper2(void *, glMapBufferARB, glMapBuffer, GLenum, target, GLenum, access); \
+    HookAliasWrapper2(void *, glMapBufferOES, glMapBuffer, GLenum, target, GLenum, access); \
     HookWrapper2(void *, glMapBuffer, GLenum, target, GLenum, access); \
+    HookAliasWrapper1(GLboolean, glUnmapBufferARB, glUnmapBuffer, GLenum, target); \
+    HookAliasWrapper1(GLboolean, glUnmapBufferOES, glUnmapBuffer, GLenum, target); \
     HookWrapper1(GLboolean, glUnmapBuffer, GLenum, target); \
+    HookAliasWrapper3(void, glGetBufferParameterivARB, glGetBufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetBufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
+    HookAliasWrapper3(void, glGetBufferPointervARB, glGetBufferPointerv, GLenum, target, GLenum, pname, void **, params); \
+    HookAliasWrapper3(void, glGetBufferPointervOES, glGetBufferPointerv, GLenum, target, GLenum, pname, void **, params); \
     HookWrapper3(void, glGetBufferPointerv, GLenum, target, GLenum, pname, void **, params); \
+    HookAliasWrapper2(void, glBlendEquationSeparateARB, glBlendEquationSeparate, GLenum, modeRGB, GLenum, modeAlpha); \
+    HookAliasWrapper2(void, glBlendEquationSeparateEXT, glBlendEquationSeparate, GLenum, modeRGB, GLenum, modeAlpha); \
     HookWrapper2(void, glBlendEquationSeparate, GLenum, modeRGB, GLenum, modeAlpha); \
+    HookAliasWrapper2(void, glDrawBuffersARB, glDrawBuffers, GLsizei, n, const GLenum *, bufs); \
+    HookAliasWrapper2(void, glDrawBuffersEXT, glDrawBuffers, GLsizei, n, const GLenum *, bufs); \
     HookWrapper2(void, glDrawBuffers, GLsizei, n, const GLenum *, bufs); \
     HookWrapper4(void, glStencilOpSeparate, GLenum, face, GLenum, sfail, GLenum, dpfail, GLenum, dppass); \
     HookWrapper4(void, glStencilFuncSeparate, GLenum, face, GLenum, func, GLint, ref, GLuint, mask); \
@@ -1410,7 +1469,9 @@
     HookWrapper1(void, glDeleteProgram, GLuint, program); \
     HookWrapper1(void, glDeleteShader, GLuint, shader); \
     HookWrapper2(void, glDetachShader, GLuint, program, GLuint, shader); \
+    HookAliasWrapper1(void, glDisableVertexAttribArrayARB, glDisableVertexAttribArray, GLuint, index); \
     HookWrapper1(void, glDisableVertexAttribArray, GLuint, index); \
+    HookAliasWrapper1(void, glEnableVertexAttribArrayARB, glEnableVertexAttribArray, GLuint, index); \
     HookWrapper1(void, glEnableVertexAttribArray, GLuint, index); \
     HookWrapper7(void, glGetActiveAttrib, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
     HookWrapper7(void, glGetActiveUniform, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
@@ -1453,42 +1514,78 @@
     HookWrapper4(void, glUniformMatrix3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper4(void, glUniformMatrix4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper1(void, glValidateProgram, GLuint, program); \
+    HookAliasWrapper2(void, glVertexAttrib1dARB, glVertexAttrib1d, GLuint, index, GLdouble, x); \
     HookWrapper2(void, glVertexAttrib1d, GLuint, index, GLdouble, x); \
+    HookAliasWrapper2(void, glVertexAttrib1dvARB, glVertexAttrib1dv, GLuint, index, const GLdouble *, v); \
     HookWrapper2(void, glVertexAttrib1dv, GLuint, index, const GLdouble *, v); \
+    HookAliasWrapper2(void, glVertexAttrib1fARB, glVertexAttrib1f, GLuint, index, GLfloat, x); \
     HookWrapper2(void, glVertexAttrib1f, GLuint, index, GLfloat, x); \
+    HookAliasWrapper2(void, glVertexAttrib1fvARB, glVertexAttrib1fv, GLuint, index, const GLfloat *, v); \
     HookWrapper2(void, glVertexAttrib1fv, GLuint, index, const GLfloat *, v); \
+    HookAliasWrapper2(void, glVertexAttrib1sARB, glVertexAttrib1s, GLuint, index, GLshort, x); \
     HookWrapper2(void, glVertexAttrib1s, GLuint, index, GLshort, x); \
+    HookAliasWrapper2(void, glVertexAttrib1svARB, glVertexAttrib1sv, GLuint, index, const GLshort *, v); \
     HookWrapper2(void, glVertexAttrib1sv, GLuint, index, const GLshort *, v); \
+    HookAliasWrapper3(void, glVertexAttrib2dARB, glVertexAttrib2d, GLuint, index, GLdouble, x, GLdouble, y); \
     HookWrapper3(void, glVertexAttrib2d, GLuint, index, GLdouble, x, GLdouble, y); \
+    HookAliasWrapper2(void, glVertexAttrib2dvARB, glVertexAttrib2dv, GLuint, index, const GLdouble *, v); \
     HookWrapper2(void, glVertexAttrib2dv, GLuint, index, const GLdouble *, v); \
+    HookAliasWrapper3(void, glVertexAttrib2fARB, glVertexAttrib2f, GLuint, index, GLfloat, x, GLfloat, y); \
     HookWrapper3(void, glVertexAttrib2f, GLuint, index, GLfloat, x, GLfloat, y); \
+    HookAliasWrapper2(void, glVertexAttrib2fvARB, glVertexAttrib2fv, GLuint, index, const GLfloat *, v); \
     HookWrapper2(void, glVertexAttrib2fv, GLuint, index, const GLfloat *, v); \
+    HookAliasWrapper3(void, glVertexAttrib2sARB, glVertexAttrib2s, GLuint, index, GLshort, x, GLshort, y); \
     HookWrapper3(void, glVertexAttrib2s, GLuint, index, GLshort, x, GLshort, y); \
+    HookAliasWrapper2(void, glVertexAttrib2svARB, glVertexAttrib2sv, GLuint, index, const GLshort *, v); \
     HookWrapper2(void, glVertexAttrib2sv, GLuint, index, const GLshort *, v); \
+    HookAliasWrapper4(void, glVertexAttrib3dARB, glVertexAttrib3d, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z); \
     HookWrapper4(void, glVertexAttrib3d, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z); \
+    HookAliasWrapper2(void, glVertexAttrib3dvARB, glVertexAttrib3dv, GLuint, index, const GLdouble *, v); \
     HookWrapper2(void, glVertexAttrib3dv, GLuint, index, const GLdouble *, v); \
+    HookAliasWrapper4(void, glVertexAttrib3fARB, glVertexAttrib3f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z); \
     HookWrapper4(void, glVertexAttrib3f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z); \
+    HookAliasWrapper2(void, glVertexAttrib3fvARB, glVertexAttrib3fv, GLuint, index, const GLfloat *, v); \
     HookWrapper2(void, glVertexAttrib3fv, GLuint, index, const GLfloat *, v); \
+    HookAliasWrapper4(void, glVertexAttrib3sARB, glVertexAttrib3s, GLuint, index, GLshort, x, GLshort, y, GLshort, z); \
     HookWrapper4(void, glVertexAttrib3s, GLuint, index, GLshort, x, GLshort, y, GLshort, z); \
+    HookAliasWrapper2(void, glVertexAttrib3svARB, glVertexAttrib3sv, GLuint, index, const GLshort *, v); \
     HookWrapper2(void, glVertexAttrib3sv, GLuint, index, const GLshort *, v); \
+    HookAliasWrapper2(void, glVertexAttrib4NbvARB, glVertexAttrib4Nbv, GLuint, index, const GLbyte *, v); \
     HookWrapper2(void, glVertexAttrib4Nbv, GLuint, index, const GLbyte *, v); \
+    HookAliasWrapper2(void, glVertexAttrib4NivARB, glVertexAttrib4Niv, GLuint, index, const GLint *, v); \
     HookWrapper2(void, glVertexAttrib4Niv, GLuint, index, const GLint *, v); \
+    HookAliasWrapper2(void, glVertexAttrib4NsvARB, glVertexAttrib4Nsv, GLuint, index, const GLshort *, v); \
     HookWrapper2(void, glVertexAttrib4Nsv, GLuint, index, const GLshort *, v); \
     HookWrapper5(void, glVertexAttrib4Nub, GLuint, index, GLubyte, x, GLubyte, y, GLubyte, z, GLubyte, w); \
+    HookAliasWrapper2(void, glVertexAttrib4NubvARB, glVertexAttrib4Nubv, GLuint, index, const GLubyte *, v); \
     HookWrapper2(void, glVertexAttrib4Nubv, GLuint, index, const GLubyte *, v); \
+    HookAliasWrapper2(void, glVertexAttrib4NuivARB, glVertexAttrib4Nuiv, GLuint, index, const GLuint *, v); \
     HookWrapper2(void, glVertexAttrib4Nuiv, GLuint, index, const GLuint *, v); \
+    HookAliasWrapper2(void, glVertexAttrib4NusvARB, glVertexAttrib4Nusv, GLuint, index, const GLushort *, v); \
     HookWrapper2(void, glVertexAttrib4Nusv, GLuint, index, const GLushort *, v); \
+    HookAliasWrapper2(void, glVertexAttrib4bvARB, glVertexAttrib4bv, GLuint, index, const GLbyte *, v); \
     HookWrapper2(void, glVertexAttrib4bv, GLuint, index, const GLbyte *, v); \
+    HookAliasWrapper5(void, glVertexAttrib4dARB, glVertexAttrib4d, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
     HookWrapper5(void, glVertexAttrib4d, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+    HookAliasWrapper2(void, glVertexAttrib4dvARB, glVertexAttrib4dv, GLuint, index, const GLdouble *, v); \
     HookWrapper2(void, glVertexAttrib4dv, GLuint, index, const GLdouble *, v); \
+    HookAliasWrapper5(void, glVertexAttrib4fARB, glVertexAttrib4f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
     HookWrapper5(void, glVertexAttrib4f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+    HookAliasWrapper2(void, glVertexAttrib4fvARB, glVertexAttrib4fv, GLuint, index, const GLfloat *, v); \
     HookWrapper2(void, glVertexAttrib4fv, GLuint, index, const GLfloat *, v); \
+    HookAliasWrapper2(void, glVertexAttrib4ivARB, glVertexAttrib4iv, GLuint, index, const GLint *, v); \
     HookWrapper2(void, glVertexAttrib4iv, GLuint, index, const GLint *, v); \
+    HookAliasWrapper5(void, glVertexAttrib4sARB, glVertexAttrib4s, GLuint, index, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
     HookWrapper5(void, glVertexAttrib4s, GLuint, index, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
+    HookAliasWrapper2(void, glVertexAttrib4svARB, glVertexAttrib4sv, GLuint, index, const GLshort *, v); \
     HookWrapper2(void, glVertexAttrib4sv, GLuint, index, const GLshort *, v); \
+    HookAliasWrapper2(void, glVertexAttrib4ubvARB, glVertexAttrib4ubv, GLuint, index, const GLubyte *, v); \
     HookWrapper2(void, glVertexAttrib4ubv, GLuint, index, const GLubyte *, v); \
+    HookAliasWrapper2(void, glVertexAttrib4uivARB, glVertexAttrib4uiv, GLuint, index, const GLuint *, v); \
     HookWrapper2(void, glVertexAttrib4uiv, GLuint, index, const GLuint *, v); \
+    HookAliasWrapper2(void, glVertexAttrib4usvARB, glVertexAttrib4usv, GLuint, index, const GLushort *, v); \
     HookWrapper2(void, glVertexAttrib4usv, GLuint, index, const GLushort *, v); \
+    HookAliasWrapper6(void, glVertexAttribPointerARB, glVertexAttribPointer, GLuint, index, GLint, size, GLenum, type, GLboolean, normalized, GLsizei, stride, const void *, pointer); \
     HookWrapper6(void, glVertexAttribPointer, GLuint, index, GLint, size, GLenum, type, GLboolean, normalized, GLsizei, stride, const void *, pointer); \
     HookWrapper4(void, glUniformMatrix2x3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper4(void, glUniformMatrix3x2fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
@@ -1496,92 +1593,189 @@
     HookWrapper4(void, glUniformMatrix4x2fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper4(void, glUniformMatrix3x4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper4(void, glUniformMatrix4x3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookAliasWrapper5(void, glColorMaskiEXT, glColorMaski, GLuint, index, GLboolean, r, GLboolean, g, GLboolean, b, GLboolean, a); \
+    HookAliasWrapper5(void, glColorMaskIndexedEXT, glColorMaski, GLuint, index, GLboolean, r, GLboolean, g, GLboolean, b, GLboolean, a); \
+    HookAliasWrapper5(void, glColorMaskiOES, glColorMaski, GLuint, index, GLboolean, r, GLboolean, g, GLboolean, b, GLboolean, a); \
     HookWrapper5(void, glColorMaski, GLuint, index, GLboolean, r, GLboolean, g, GLboolean, b, GLboolean, a); \
     HookWrapper3(void, glGetBooleani_v, GLenum, target, GLuint, index, GLboolean *, data); \
     HookWrapper3(void, glGetIntegeri_v, GLenum, target, GLuint, index, GLint *, data); \
+    HookAliasWrapper2(void, glEnableiEXT, glEnablei, GLenum, target, GLuint, index); \
+    HookAliasWrapper2(void, glEnableIndexedEXT, glEnablei, GLenum, target, GLuint, index); \
+    HookAliasWrapper2(void, glEnableiOES, glEnablei, GLenum, target, GLuint, index); \
+    HookAliasWrapper2(void, glEnableiNV, glEnablei, GLenum, target, GLuint, index); \
     HookWrapper2(void, glEnablei, GLenum, target, GLuint, index); \
+    HookAliasWrapper2(void, glDisableiEXT, glDisablei, GLenum, target, GLuint, index); \
+    HookAliasWrapper2(void, glDisableIndexedEXT, glDisablei, GLenum, target, GLuint, index); \
+    HookAliasWrapper2(void, glDisableiOES, glDisablei, GLenum, target, GLuint, index); \
+    HookAliasWrapper2(void, glDisableiNV, glDisablei, GLenum, target, GLuint, index); \
     HookWrapper2(void, glDisablei, GLenum, target, GLuint, index); \
+    HookAliasWrapper2(GLboolean, glIsEnablediEXT, glIsEnabledi, GLenum, target, GLuint, index); \
+    HookAliasWrapper2(GLboolean, glIsEnabledIndexedEXT, glIsEnabledi, GLenum, target, GLuint, index); \
+    HookAliasWrapper2(GLboolean, glIsEnablediOES, glIsEnabledi, GLenum, target, GLuint, index); \
+    HookAliasWrapper2(GLboolean, glIsEnablediNV, glIsEnabledi, GLenum, target, GLuint, index); \
     HookWrapper2(GLboolean, glIsEnabledi, GLenum, target, GLuint, index); \
+    HookAliasWrapper1(void, glBeginTransformFeedbackEXT, glBeginTransformFeedback, GLenum, primitiveMode); \
     HookWrapper1(void, glBeginTransformFeedback, GLenum, primitiveMode); \
+    HookAliasWrapper0(void, glEndTransformFeedbackEXT, glEndTransformFeedback); \
     HookWrapper0(void, glEndTransformFeedback); \
+    HookAliasWrapper5(void, glBindBufferRangeEXT, glBindBufferRange, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper5(void, glBindBufferRange, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
+    HookAliasWrapper3(void, glBindBufferBaseEXT, glBindBufferBase, GLenum, target, GLuint, index, GLuint, buffer); \
     HookWrapper3(void, glBindBufferBase, GLenum, target, GLuint, index, GLuint, buffer); \
+    HookAliasWrapper4(void, glTransformFeedbackVaryingsEXT, glTransformFeedbackVaryings, GLuint, program, GLsizei, count, const GLchar *const*, varyings, GLenum, bufferMode); \
     HookWrapper4(void, glTransformFeedbackVaryings, GLuint, program, GLsizei, count, const GLchar *const*, varyings, GLenum, bufferMode); \
+    HookAliasWrapper7(void, glGetTransformFeedbackVaryingEXT, glGetTransformFeedbackVarying, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLsizei *, size, GLenum *, type, GLchar *, name); \
     HookWrapper7(void, glGetTransformFeedbackVarying, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLsizei *, size, GLenum *, type, GLchar *, name); \
+    HookAliasWrapper2(void, glClampColorARB, glClampColor, GLenum, target, GLenum, clamp); \
     HookWrapper2(void, glClampColor, GLenum, target, GLenum, clamp); \
     HookWrapper2(void, glBeginConditionalRender, GLuint, id, GLenum, mode); \
     HookWrapper0(void, glEndConditionalRender); \
+    HookAliasWrapper5(void, glVertexAttribIPointerEXT, glVertexAttribIPointer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
     HookWrapper5(void, glVertexAttribIPointer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+    HookAliasWrapper3(void, glGetVertexAttribIivEXT, glGetVertexAttribIiv, GLuint, index, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetVertexAttribIiv, GLuint, index, GLenum, pname, GLint *, params); \
+    HookAliasWrapper3(void, glGetVertexAttribIuivEXT, glGetVertexAttribIuiv, GLuint, index, GLenum, pname, GLuint *, params); \
     HookWrapper3(void, glGetVertexAttribIuiv, GLuint, index, GLenum, pname, GLuint *, params); \
+    HookAliasWrapper2(void, glVertexAttribI1iEXT, glVertexAttribI1i, GLuint, index, GLint, x); \
     HookWrapper2(void, glVertexAttribI1i, GLuint, index, GLint, x); \
+    HookAliasWrapper3(void, glVertexAttribI2iEXT, glVertexAttribI2i, GLuint, index, GLint, x, GLint, y); \
     HookWrapper3(void, glVertexAttribI2i, GLuint, index, GLint, x, GLint, y); \
+    HookAliasWrapper4(void, glVertexAttribI3iEXT, glVertexAttribI3i, GLuint, index, GLint, x, GLint, y, GLint, z); \
     HookWrapper4(void, glVertexAttribI3i, GLuint, index, GLint, x, GLint, y, GLint, z); \
+    HookAliasWrapper5(void, glVertexAttribI4iEXT, glVertexAttribI4i, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
     HookWrapper5(void, glVertexAttribI4i, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
+    HookAliasWrapper2(void, glVertexAttribI1uiEXT, glVertexAttribI1ui, GLuint, index, GLuint, x); \
     HookWrapper2(void, glVertexAttribI1ui, GLuint, index, GLuint, x); \
+    HookAliasWrapper3(void, glVertexAttribI2uiEXT, glVertexAttribI2ui, GLuint, index, GLuint, x, GLuint, y); \
     HookWrapper3(void, glVertexAttribI2ui, GLuint, index, GLuint, x, GLuint, y); \
+    HookAliasWrapper4(void, glVertexAttribI3uiEXT, glVertexAttribI3ui, GLuint, index, GLuint, x, GLuint, y, GLuint, z); \
     HookWrapper4(void, glVertexAttribI3ui, GLuint, index, GLuint, x, GLuint, y, GLuint, z); \
+    HookAliasWrapper5(void, glVertexAttribI4uiEXT, glVertexAttribI4ui, GLuint, index, GLuint, x, GLuint, y, GLuint, z, GLuint, w); \
     HookWrapper5(void, glVertexAttribI4ui, GLuint, index, GLuint, x, GLuint, y, GLuint, z, GLuint, w); \
+    HookAliasWrapper2(void, glVertexAttribI1ivEXT, glVertexAttribI1iv, GLuint, index, const GLint *, v); \
     HookWrapper2(void, glVertexAttribI1iv, GLuint, index, const GLint *, v); \
+    HookAliasWrapper2(void, glVertexAttribI2ivEXT, glVertexAttribI2iv, GLuint, index, const GLint *, v); \
     HookWrapper2(void, glVertexAttribI2iv, GLuint, index, const GLint *, v); \
+    HookAliasWrapper2(void, glVertexAttribI3ivEXT, glVertexAttribI3iv, GLuint, index, const GLint *, v); \
     HookWrapper2(void, glVertexAttribI3iv, GLuint, index, const GLint *, v); \
+    HookAliasWrapper2(void, glVertexAttribI4ivEXT, glVertexAttribI4iv, GLuint, index, const GLint *, v); \
     HookWrapper2(void, glVertexAttribI4iv, GLuint, index, const GLint *, v); \
+    HookAliasWrapper2(void, glVertexAttribI1uivEXT, glVertexAttribI1uiv, GLuint, index, const GLuint *, v); \
     HookWrapper2(void, glVertexAttribI1uiv, GLuint, index, const GLuint *, v); \
+    HookAliasWrapper2(void, glVertexAttribI2uivEXT, glVertexAttribI2uiv, GLuint, index, const GLuint *, v); \
     HookWrapper2(void, glVertexAttribI2uiv, GLuint, index, const GLuint *, v); \
+    HookAliasWrapper2(void, glVertexAttribI3uivEXT, glVertexAttribI3uiv, GLuint, index, const GLuint *, v); \
     HookWrapper2(void, glVertexAttribI3uiv, GLuint, index, const GLuint *, v); \
+    HookAliasWrapper2(void, glVertexAttribI4uivEXT, glVertexAttribI4uiv, GLuint, index, const GLuint *, v); \
     HookWrapper2(void, glVertexAttribI4uiv, GLuint, index, const GLuint *, v); \
+    HookAliasWrapper2(void, glVertexAttribI4bvEXT, glVertexAttribI4bv, GLuint, index, const GLbyte *, v); \
     HookWrapper2(void, glVertexAttribI4bv, GLuint, index, const GLbyte *, v); \
+    HookAliasWrapper2(void, glVertexAttribI4svEXT, glVertexAttribI4sv, GLuint, index, const GLshort *, v); \
     HookWrapper2(void, glVertexAttribI4sv, GLuint, index, const GLshort *, v); \
+    HookAliasWrapper2(void, glVertexAttribI4ubvEXT, glVertexAttribI4ubv, GLuint, index, const GLubyte *, v); \
     HookWrapper2(void, glVertexAttribI4ubv, GLuint, index, const GLubyte *, v); \
+    HookAliasWrapper2(void, glVertexAttribI4usvEXT, glVertexAttribI4usv, GLuint, index, const GLushort *, v); \
     HookWrapper2(void, glVertexAttribI4usv, GLuint, index, const GLushort *, v); \
+    HookAliasWrapper3(void, glGetUniformuivEXT, glGetUniformuiv, GLuint, program, GLint, location, GLuint *, params); \
     HookWrapper3(void, glGetUniformuiv, GLuint, program, GLint, location, GLuint *, params); \
+    HookAliasWrapper3(void, glBindFragDataLocationEXT, glBindFragDataLocation, GLuint, program, GLuint, color, const GLchar *, name); \
     HookWrapper3(void, glBindFragDataLocation, GLuint, program, GLuint, color, const GLchar *, name); \
+    HookAliasWrapper2(GLint, glGetFragDataLocationEXT, glGetFragDataLocation, GLuint, program, const GLchar *, name); \
     HookWrapper2(GLint, glGetFragDataLocation, GLuint, program, const GLchar *, name); \
+    HookAliasWrapper2(void, glUniform1uiEXT, glUniform1ui, GLint, location, GLuint, v0); \
     HookWrapper2(void, glUniform1ui, GLint, location, GLuint, v0); \
+    HookAliasWrapper3(void, glUniform2uiEXT, glUniform2ui, GLint, location, GLuint, v0, GLuint, v1); \
     HookWrapper3(void, glUniform2ui, GLint, location, GLuint, v0, GLuint, v1); \
+    HookAliasWrapper4(void, glUniform3uiEXT, glUniform3ui, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2); \
     HookWrapper4(void, glUniform3ui, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2); \
+    HookAliasWrapper5(void, glUniform4uiEXT, glUniform4ui, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2, GLuint, v3); \
     HookWrapper5(void, glUniform4ui, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2, GLuint, v3); \
+    HookAliasWrapper3(void, glUniform1uivEXT, glUniform1uiv, GLint, location, GLsizei, count, const GLuint *, value); \
     HookWrapper3(void, glUniform1uiv, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookAliasWrapper3(void, glUniform2uivEXT, glUniform2uiv, GLint, location, GLsizei, count, const GLuint *, value); \
     HookWrapper3(void, glUniform2uiv, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookAliasWrapper3(void, glUniform3uivEXT, glUniform3uiv, GLint, location, GLsizei, count, const GLuint *, value); \
     HookWrapper3(void, glUniform3uiv, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookAliasWrapper3(void, glUniform4uivEXT, glUniform4uiv, GLint, location, GLsizei, count, const GLuint *, value); \
     HookWrapper3(void, glUniform4uiv, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookAliasWrapper3(void, glTexParameterIivEXT, glTexParameterIiv, GLenum, target, GLenum, pname, const GLint *, params); \
+    HookAliasWrapper3(void, glTexParameterIivOES, glTexParameterIiv, GLenum, target, GLenum, pname, const GLint *, params); \
     HookWrapper3(void, glTexParameterIiv, GLenum, target, GLenum, pname, const GLint *, params); \
+    HookAliasWrapper3(void, glTexParameterIuivEXT, glTexParameterIuiv, GLenum, target, GLenum, pname, const GLuint *, params); \
+    HookAliasWrapper3(void, glTexParameterIuivOES, glTexParameterIuiv, GLenum, target, GLenum, pname, const GLuint *, params); \
     HookWrapper3(void, glTexParameterIuiv, GLenum, target, GLenum, pname, const GLuint *, params); \
+    HookAliasWrapper3(void, glGetTexParameterIivEXT, glGetTexParameterIiv, GLenum, target, GLenum, pname, GLint *, params); \
+    HookAliasWrapper3(void, glGetTexParameterIivOES, glGetTexParameterIiv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetTexParameterIiv, GLenum, target, GLenum, pname, GLint *, params); \
+    HookAliasWrapper3(void, glGetTexParameterIuivEXT, glGetTexParameterIuiv, GLenum, target, GLenum, pname, GLuint *, params); \
+    HookAliasWrapper3(void, glGetTexParameterIuivOES, glGetTexParameterIuiv, GLenum, target, GLenum, pname, GLuint *, params); \
     HookWrapper3(void, glGetTexParameterIuiv, GLenum, target, GLenum, pname, GLuint *, params); \
     HookWrapper3(void, glClearBufferiv, GLenum, buffer, GLint, drawbuffer, const GLint *, value); \
     HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \
     HookWrapper3(void, glClearBufferfv, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \
     HookWrapper4(void, glClearBufferfi, GLenum, buffer, GLint, drawbuffer, GLfloat, depth, GLint, stencil); \
     HookWrapper2(const GLubyte *, glGetStringi, GLenum, name, GLuint, index); \
+    HookAliasWrapper1(GLboolean, glIsRenderbufferEXT, glIsRenderbuffer, GLuint, renderbuffer); \
     HookWrapper1(GLboolean, glIsRenderbuffer, GLuint, renderbuffer); \
+    HookAliasWrapper2(void, glBindRenderbufferEXT, glBindRenderbuffer, GLenum, target, GLuint, renderbuffer); \
     HookWrapper2(void, glBindRenderbuffer, GLenum, target, GLuint, renderbuffer); \
+    HookAliasWrapper2(void, glDeleteRenderbuffersEXT, glDeleteRenderbuffers, GLsizei, n, const GLuint *, renderbuffers); \
     HookWrapper2(void, glDeleteRenderbuffers, GLsizei, n, const GLuint *, renderbuffers); \
+    HookAliasWrapper2(void, glGenRenderbuffersEXT, glGenRenderbuffers, GLsizei, n, GLuint *, renderbuffers); \
     HookWrapper2(void, glGenRenderbuffers, GLsizei, n, GLuint *, renderbuffers); \
+    HookAliasWrapper4(void, glRenderbufferStorageEXT, glRenderbufferStorage, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper4(void, glRenderbufferStorage, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+    HookAliasWrapper3(void, glGetRenderbufferParameterivEXT, glGetRenderbufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetRenderbufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
+    HookAliasWrapper1(GLboolean, glIsFramebufferEXT, glIsFramebuffer, GLuint, framebuffer); \
     HookWrapper1(GLboolean, glIsFramebuffer, GLuint, framebuffer); \
+    HookAliasWrapper2(void, glBindFramebufferEXT, glBindFramebuffer, GLenum, target, GLuint, framebuffer); \
     HookWrapper2(void, glBindFramebuffer, GLenum, target, GLuint, framebuffer); \
+    HookAliasWrapper2(void, glDeleteFramebuffersEXT, glDeleteFramebuffers, GLsizei, n, const GLuint *, framebuffers); \
     HookWrapper2(void, glDeleteFramebuffers, GLsizei, n, const GLuint *, framebuffers); \
+    HookAliasWrapper2(void, glGenFramebuffersEXT, glGenFramebuffers, GLsizei, n, GLuint *, framebuffers); \
     HookWrapper2(void, glGenFramebuffers, GLsizei, n, GLuint *, framebuffers); \
+    HookAliasWrapper1(GLenum, glCheckFramebufferStatusEXT, glCheckFramebufferStatus, GLenum, target); \
     HookWrapper1(GLenum, glCheckFramebufferStatus, GLenum, target); \
+    HookAliasWrapper5(void, glFramebufferTexture1DEXT, glFramebufferTexture1D, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level); \
     HookWrapper5(void, glFramebufferTexture1D, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level); \
+    HookAliasWrapper5(void, glFramebufferTexture2DEXT, glFramebufferTexture2D, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level); \
     HookWrapper5(void, glFramebufferTexture2D, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level); \
+    HookAliasWrapper6(void, glFramebufferTexture3DEXT, glFramebufferTexture3D, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLint, zoffset); \
+    HookAliasWrapper6(void, glFramebufferTexture3DOES, glFramebufferTexture3D, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLint, zoffset); \
     HookWrapper6(void, glFramebufferTexture3D, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLint, zoffset); \
+    HookAliasWrapper4(void, glFramebufferRenderbufferEXT, glFramebufferRenderbuffer, GLenum, target, GLenum, attachment, GLenum, renderbuffertarget, GLuint, renderbuffer); \
     HookWrapper4(void, glFramebufferRenderbuffer, GLenum, target, GLenum, attachment, GLenum, renderbuffertarget, GLuint, renderbuffer); \
+    HookAliasWrapper4(void, glGetFramebufferAttachmentParameterivEXT, glGetFramebufferAttachmentParameteriv, GLenum, target, GLenum, attachment, GLenum, pname, GLint *, params); \
     HookWrapper4(void, glGetFramebufferAttachmentParameteriv, GLenum, target, GLenum, attachment, GLenum, pname, GLint *, params); \
+    HookAliasWrapper1(void, glGenerateMipmapEXT, glGenerateMipmap, GLenum, target); \
     HookWrapper1(void, glGenerateMipmap, GLenum, target); \
+    HookAliasWrapper10(void, glBlitFramebufferEXT, glBlitFramebuffer, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
     HookWrapper10(void, glBlitFramebuffer, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
+    HookAliasWrapper5(void, glRenderbufferStorageMultisampleEXT, glRenderbufferStorageMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper5(void, glRenderbufferStorageMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+    HookAliasWrapper5(void, glFramebufferTextureLayerARB, glFramebufferTextureLayer, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, layer); \
+    HookAliasWrapper5(void, glFramebufferTextureLayerEXT, glFramebufferTextureLayer, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, layer); \
     HookWrapper5(void, glFramebufferTextureLayer, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, layer); \
     HookWrapper4(void *, glMapBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
     HookWrapper3(void, glFlushMappedBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
+    HookAliasWrapper1(void, glBindVertexArrayOES, glBindVertexArray, GLuint, array); \
     HookWrapper1(void, glBindVertexArray, GLuint, array); \
+    HookAliasWrapper2(void, glDeleteVertexArraysOES, glDeleteVertexArrays, GLsizei, n, const GLuint *, arrays); \
     HookWrapper2(void, glDeleteVertexArrays, GLsizei, n, const GLuint *, arrays); \
+    HookAliasWrapper2(void, glGenVertexArraysOES, glGenVertexArrays, GLsizei, n, GLuint *, arrays); \
     HookWrapper2(void, glGenVertexArrays, GLsizei, n, GLuint *, arrays); \
+    HookAliasWrapper1(GLboolean, glIsVertexArrayOES, glIsVertexArray, GLuint, array); \
     HookWrapper1(GLboolean, glIsVertexArray, GLuint, array); \
+    HookAliasWrapper4(void, glDrawArraysInstancedARB, glDrawArraysInstanced, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount); \
+    HookAliasWrapper4(void, glDrawArraysInstancedEXT, glDrawArraysInstanced, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount); \
     HookWrapper4(void, glDrawArraysInstanced, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount); \
+    HookAliasWrapper5(void, glDrawElementsInstancedARB, glDrawElementsInstanced, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount); \
+    HookAliasWrapper5(void, glDrawElementsInstancedEXT, glDrawElementsInstanced, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount); \
     HookWrapper5(void, glDrawElementsInstanced, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount); \
+    HookAliasWrapper3(void, glTexBufferARB, glTexBuffer, GLenum, target, GLenum, internalformat, GLuint, buffer); \
+    HookAliasWrapper3(void, glTexBufferEXT, glTexBuffer, GLenum, target, GLenum, internalformat, GLuint, buffer); \
+    HookAliasWrapper3(void, glTexBufferOES, glTexBuffer, GLenum, target, GLenum, internalformat, GLuint, buffer); \
     HookWrapper3(void, glTexBuffer, GLenum, target, GLenum, internalformat, GLuint, buffer); \
     HookWrapper1(void, glPrimitiveRestartIndex, GLuint, index); \
     HookWrapper5(void, glCopyBufferSubData, GLenum, readTarget, GLenum, writeTarget, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
@@ -1592,10 +1786,19 @@
     HookWrapper4(void, glGetActiveUniformBlockiv, GLuint, program, GLuint, uniformBlockIndex, GLenum, pname, GLint *, params); \
     HookWrapper5(void, glGetActiveUniformBlockName, GLuint, program, GLuint, uniformBlockIndex, GLsizei, bufSize, GLsizei *, length, GLchar *, uniformBlockName); \
     HookWrapper3(void, glUniformBlockBinding, GLuint, program, GLuint, uniformBlockIndex, GLuint, uniformBlockBinding); \
+    HookAliasWrapper5(void, glDrawElementsBaseVertexEXT, glDrawElementsBaseVertex, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
+    HookAliasWrapper5(void, glDrawElementsBaseVertexOES, glDrawElementsBaseVertex, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
     HookWrapper5(void, glDrawElementsBaseVertex, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
+    HookAliasWrapper7(void, glDrawRangeElementsBaseVertexEXT, glDrawRangeElementsBaseVertex, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
+    HookAliasWrapper7(void, glDrawRangeElementsBaseVertexOES, glDrawRangeElementsBaseVertex, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
     HookWrapper7(void, glDrawRangeElementsBaseVertex, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
+    HookAliasWrapper6(void, glDrawElementsInstancedBaseVertexEXT, glDrawElementsInstancedBaseVertex, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex); \
+    HookAliasWrapper6(void, glDrawElementsInstancedBaseVertexOES, glDrawElementsInstancedBaseVertex, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex); \
     HookWrapper6(void, glDrawElementsInstancedBaseVertex, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex); \
+    HookAliasWrapper6(void, glMultiDrawElementsBaseVertexEXT, glMultiDrawElementsBaseVertex, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, drawcount, const GLint *, basevertex); \
+    HookAliasWrapper6(void, glMultiDrawElementsBaseVertexOES, glMultiDrawElementsBaseVertex, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, drawcount, const GLint *, basevertex); \
     HookWrapper6(void, glMultiDrawElementsBaseVertex, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, drawcount, const GLint *, basevertex); \
+    HookAliasWrapper1(void, glProvokingVertexEXT, glProvokingVertex, GLenum, mode); \
     HookWrapper1(void, glProvokingVertex, GLenum, mode); \
     HookWrapper2(GLsync, glFenceSync, GLenum, condition, GLbitfield, flags); \
     HookWrapper1(GLboolean, glIsSync, GLsync, sync); \
@@ -1606,6 +1809,9 @@
     HookWrapper5(void, glGetSynciv, GLsync, sync, GLenum, pname, GLsizei, bufSize, GLsizei *, length, GLint *, values); \
     HookWrapper3(void, glGetInteger64i_v, GLenum, target, GLuint, index, GLint64 *, data); \
     HookWrapper3(void, glGetBufferParameteri64v, GLenum, target, GLenum, pname, GLint64 *, params); \
+    HookAliasWrapper4(void, glFramebufferTextureARB, glFramebufferTexture, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level); \
+    HookAliasWrapper4(void, glFramebufferTextureOES, glFramebufferTexture, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level); \
+    HookAliasWrapper4(void, glFramebufferTextureEXT, glFramebufferTexture, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level); \
     HookWrapper4(void, glFramebufferTexture, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level); \
     HookWrapper6(void, glTexImage2DMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLboolean, fixedsamplelocations); \
     HookWrapper7(void, glTexImage3DMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedsamplelocations); \
@@ -1621,15 +1827,27 @@
     HookWrapper3(void, glSamplerParameteriv, GLuint, sampler, GLenum, pname, const GLint *, param); \
     HookWrapper3(void, glSamplerParameterf, GLuint, sampler, GLenum, pname, GLfloat, param); \
     HookWrapper3(void, glSamplerParameterfv, GLuint, sampler, GLenum, pname, const GLfloat *, param); \
+    HookAliasWrapper3(void, glSamplerParameterIivEXT, glSamplerParameterIiv, GLuint, sampler, GLenum, pname, const GLint *, param); \
+    HookAliasWrapper3(void, glSamplerParameterIivOES, glSamplerParameterIiv, GLuint, sampler, GLenum, pname, const GLint *, param); \
     HookWrapper3(void, glSamplerParameterIiv, GLuint, sampler, GLenum, pname, const GLint *, param); \
+    HookAliasWrapper3(void, glSamplerParameterIuivEXT, glSamplerParameterIuiv, GLuint, sampler, GLenum, pname, const GLuint *, param); \
+    HookAliasWrapper3(void, glSamplerParameterIuivOES, glSamplerParameterIuiv, GLuint, sampler, GLenum, pname, const GLuint *, param); \
     HookWrapper3(void, glSamplerParameterIuiv, GLuint, sampler, GLenum, pname, const GLuint *, param); \
     HookWrapper3(void, glGetSamplerParameteriv, GLuint, sampler, GLenum, pname, GLint *, params); \
+    HookAliasWrapper3(void, glGetSamplerParameterIivEXT, glGetSamplerParameterIiv, GLuint, sampler, GLenum, pname, GLint *, params); \
+    HookAliasWrapper3(void, glGetSamplerParameterIivOES, glGetSamplerParameterIiv, GLuint, sampler, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetSamplerParameterIiv, GLuint, sampler, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetSamplerParameterfv, GLuint, sampler, GLenum, pname, GLfloat *, params); \
+    HookAliasWrapper3(void, glGetSamplerParameterIuivEXT, glGetSamplerParameterIuiv, GLuint, sampler, GLenum, pname, GLuint *, params); \
+    HookAliasWrapper3(void, glGetSamplerParameterIuivOES, glGetSamplerParameterIuiv, GLuint, sampler, GLenum, pname, GLuint *, params); \
     HookWrapper3(void, glGetSamplerParameterIuiv, GLuint, sampler, GLenum, pname, GLuint *, params); \
+    HookAliasWrapper2(void, glQueryCounterEXT, glQueryCounter, GLuint, id, GLenum, target); \
     HookWrapper2(void, glQueryCounter, GLuint, id, GLenum, target); \
+    HookAliasWrapper3(void, glGetQueryObjecti64vEXT, glGetQueryObjecti64v, GLuint, id, GLenum, pname, GLint64 *, params); \
     HookWrapper3(void, glGetQueryObjecti64v, GLuint, id, GLenum, pname, GLint64 *, params); \
+    HookAliasWrapper3(void, glGetQueryObjectui64vEXT, glGetQueryObjectui64v, GLuint, id, GLenum, pname, GLuint64 *, params); \
     HookWrapper3(void, glGetQueryObjectui64v, GLuint, id, GLenum, pname, GLuint64 *, params); \
+    HookAliasWrapper2(void, glVertexAttribDivisorARB, glVertexAttribDivisor, GLuint, index, GLuint, divisor); \
     HookWrapper2(void, glVertexAttribDivisor, GLuint, index, GLuint, divisor); \
     HookWrapper4(void, glVertexAttribP1ui, GLuint, index, GLenum, type, GLboolean, normalized, GLuint, value); \
     HookWrapper4(void, glVertexAttribP1uiv, GLuint, index, GLenum, type, GLboolean, normalized, const GLuint *, value); \
@@ -1639,10 +1857,24 @@
     HookWrapper4(void, glVertexAttribP3uiv, GLuint, index, GLenum, type, GLboolean, normalized, const GLuint *, value); \
     HookWrapper4(void, glVertexAttribP4ui, GLuint, index, GLenum, type, GLboolean, normalized, GLuint, value); \
     HookWrapper4(void, glVertexAttribP4uiv, GLuint, index, GLenum, type, GLboolean, normalized, const GLuint *, value); \
+    HookAliasWrapper1(void, glMinSampleShadingARB, glMinSampleShading, GLfloat, value); \
+    HookAliasWrapper1(void, glMinSampleShadingOES, glMinSampleShading, GLfloat, value); \
     HookWrapper1(void, glMinSampleShading, GLfloat, value); \
+    HookAliasWrapper2(void, glBlendEquationiARB, glBlendEquationi, GLuint, buf, GLenum, mode); \
+    HookAliasWrapper2(void, glBlendEquationiEXT, glBlendEquationi, GLuint, buf, GLenum, mode); \
+    HookAliasWrapper2(void, glBlendEquationiOES, glBlendEquationi, GLuint, buf, GLenum, mode); \
     HookWrapper2(void, glBlendEquationi, GLuint, buf, GLenum, mode); \
+    HookAliasWrapper3(void, glBlendEquationSeparateiARB, glBlendEquationSeparatei, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
+    HookAliasWrapper3(void, glBlendEquationSeparateiEXT, glBlendEquationSeparatei, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
+    HookAliasWrapper3(void, glBlendEquationSeparateiOES, glBlendEquationSeparatei, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
     HookWrapper3(void, glBlendEquationSeparatei, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
+    HookAliasWrapper3(void, glBlendFunciARB, glBlendFunci, GLuint, buf, GLenum, src, GLenum, dst); \
+    HookAliasWrapper3(void, glBlendFunciEXT, glBlendFunci, GLuint, buf, GLenum, src, GLenum, dst); \
+    HookAliasWrapper3(void, glBlendFunciOES, glBlendFunci, GLuint, buf, GLenum, src, GLenum, dst); \
     HookWrapper3(void, glBlendFunci, GLuint, buf, GLenum, src, GLenum, dst); \
+    HookAliasWrapper5(void, glBlendFuncSeparateiARB, glBlendFuncSeparatei, GLuint, buf, GLenum, srcRGB, GLenum, dstRGB, GLenum, srcAlpha, GLenum, dstAlpha); \
+    HookAliasWrapper5(void, glBlendFuncSeparateiEXT, glBlendFuncSeparatei, GLuint, buf, GLenum, srcRGB, GLenum, dstRGB, GLenum, srcAlpha, GLenum, dstAlpha); \
+    HookAliasWrapper5(void, glBlendFuncSeparateiOES, glBlendFuncSeparatei, GLuint, buf, GLenum, srcRGB, GLenum, dstRGB, GLenum, srcAlpha, GLenum, dstAlpha); \
     HookWrapper5(void, glBlendFuncSeparatei, GLuint, buf, GLenum, srcRGB, GLenum, dstRGB, GLenum, srcAlpha, GLenum, dstAlpha); \
     HookWrapper2(void, glDrawArraysIndirect, GLenum, mode, const void *, indirect); \
     HookWrapper3(void, glDrawElementsIndirect, GLenum, mode, GLenum, type, const void *, indirect); \
@@ -1672,6 +1904,8 @@
     HookWrapper3(void, glUniformSubroutinesuiv, GLenum, shadertype, GLsizei, count, const GLuint *, indices); \
     HookWrapper3(void, glGetUniformSubroutineuiv, GLenum, shadertype, GLint, location, GLuint *, params); \
     HookWrapper4(void, glGetProgramStageiv, GLuint, program, GLenum, shadertype, GLenum, pname, GLint *, values); \
+    HookAliasWrapper2(void, glPatchParameteriEXT, glPatchParameteri, GLenum, pname, GLint, value); \
+    HookAliasWrapper2(void, glPatchParameteriOES, glPatchParameteri, GLenum, pname, GLint, value); \
     HookWrapper2(void, glPatchParameteri, GLenum, pname, GLint, value); \
     HookWrapper2(void, glPatchParameterfv, GLenum, pname, const GLfloat *, values); \
     HookWrapper2(void, glBindTransformFeedback, GLenum, target, GLuint, id); \
@@ -1692,96 +1926,192 @@
     HookWrapper1(void, glClearDepthf, GLfloat, d); \
     HookWrapper5(void, glGetProgramBinary, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLenum *, binaryFormat, void *, binary); \
     HookWrapper4(void, glProgramBinary, GLuint, program, GLenum, binaryFormat, const void *, binary, GLsizei, length); \
+    HookAliasWrapper3(void, glProgramParameteriARB, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \
+    HookAliasWrapper3(void, glProgramParameteriEXT, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \
     HookWrapper3(void, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \
+    HookAliasWrapper3(void, glUseProgramStagesEXT, glUseProgramStages, GLuint, pipeline, GLbitfield, stages, GLuint, program); \
     HookWrapper3(void, glUseProgramStages, GLuint, pipeline, GLbitfield, stages, GLuint, program); \
+    HookAliasWrapper2(void, glActiveShaderProgramEXT, glActiveShaderProgram, GLuint, pipeline, GLuint, program); \
     HookWrapper2(void, glActiveShaderProgram, GLuint, pipeline, GLuint, program); \
+    HookAliasWrapper3(GLuint, glCreateShaderProgramvEXT, glCreateShaderProgramv, GLenum, type, GLsizei, count, const GLchar *const*, strings); \
     HookWrapper3(GLuint, glCreateShaderProgramv, GLenum, type, GLsizei, count, const GLchar *const*, strings); \
+    HookAliasWrapper1(void, glBindProgramPipelineEXT, glBindProgramPipeline, GLuint, pipeline); \
     HookWrapper1(void, glBindProgramPipeline, GLuint, pipeline); \
+    HookAliasWrapper2(void, glDeleteProgramPipelinesEXT, glDeleteProgramPipelines, GLsizei, n, const GLuint *, pipelines); \
     HookWrapper2(void, glDeleteProgramPipelines, GLsizei, n, const GLuint *, pipelines); \
+    HookAliasWrapper2(void, glGenProgramPipelinesEXT, glGenProgramPipelines, GLsizei, n, GLuint *, pipelines); \
     HookWrapper2(void, glGenProgramPipelines, GLsizei, n, GLuint *, pipelines); \
+    HookAliasWrapper1(GLboolean, glIsProgramPipelineEXT, glIsProgramPipeline, GLuint, pipeline); \
     HookWrapper1(GLboolean, glIsProgramPipeline, GLuint, pipeline); \
+    HookAliasWrapper3(void, glGetProgramPipelineivEXT, glGetProgramPipelineiv, GLuint, pipeline, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetProgramPipelineiv, GLuint, pipeline, GLenum, pname, GLint *, params); \
+    HookAliasWrapper3(void, glProgramUniform1iEXT, glProgramUniform1i, GLuint, program, GLint, location, GLint, v0); \
     HookWrapper3(void, glProgramUniform1i, GLuint, program, GLint, location, GLint, v0); \
+    HookAliasWrapper4(void, glProgramUniform1ivEXT, glProgramUniform1iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
     HookWrapper4(void, glProgramUniform1iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
+    HookAliasWrapper3(void, glProgramUniform1fEXT, glProgramUniform1f, GLuint, program, GLint, location, GLfloat, v0); \
     HookWrapper3(void, glProgramUniform1f, GLuint, program, GLint, location, GLfloat, v0); \
+    HookAliasWrapper4(void, glProgramUniform1fvEXT, glProgramUniform1fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper4(void, glProgramUniform1fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookAliasWrapper3(void, glProgramUniform1dEXT, glProgramUniform1d, GLuint, program, GLint, location, GLdouble, v0); \
     HookWrapper3(void, glProgramUniform1d, GLuint, program, GLint, location, GLdouble, v0); \
+    HookAliasWrapper4(void, glProgramUniform1dvEXT, glProgramUniform1dv, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
     HookWrapper4(void, glProgramUniform1dv, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
+    HookAliasWrapper3(void, glProgramUniform1uiEXT, glProgramUniform1ui, GLuint, program, GLint, location, GLuint, v0); \
     HookWrapper3(void, glProgramUniform1ui, GLuint, program, GLint, location, GLuint, v0); \
+    HookAliasWrapper4(void, glProgramUniform1uivEXT, glProgramUniform1uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
     HookWrapper4(void, glProgramUniform1uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookAliasWrapper4(void, glProgramUniform2iEXT, glProgramUniform2i, GLuint, program, GLint, location, GLint, v0, GLint, v1); \
     HookWrapper4(void, glProgramUniform2i, GLuint, program, GLint, location, GLint, v0, GLint, v1); \
+    HookAliasWrapper4(void, glProgramUniform2ivEXT, glProgramUniform2iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
     HookWrapper4(void, glProgramUniform2iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
+    HookAliasWrapper4(void, glProgramUniform2fEXT, glProgramUniform2f, GLuint, program, GLint, location, GLfloat, v0, GLfloat, v1); \
     HookWrapper4(void, glProgramUniform2f, GLuint, program, GLint, location, GLfloat, v0, GLfloat, v1); \
+    HookAliasWrapper4(void, glProgramUniform2fvEXT, glProgramUniform2fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper4(void, glProgramUniform2fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookAliasWrapper4(void, glProgramUniform2dEXT, glProgramUniform2d, GLuint, program, GLint, location, GLdouble, v0, GLdouble, v1); \
     HookWrapper4(void, glProgramUniform2d, GLuint, program, GLint, location, GLdouble, v0, GLdouble, v1); \
+    HookAliasWrapper4(void, glProgramUniform2dvEXT, glProgramUniform2dv, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
     HookWrapper4(void, glProgramUniform2dv, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
+    HookAliasWrapper4(void, glProgramUniform2uiEXT, glProgramUniform2ui, GLuint, program, GLint, location, GLuint, v0, GLuint, v1); \
     HookWrapper4(void, glProgramUniform2ui, GLuint, program, GLint, location, GLuint, v0, GLuint, v1); \
+    HookAliasWrapper4(void, glProgramUniform2uivEXT, glProgramUniform2uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
     HookWrapper4(void, glProgramUniform2uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookAliasWrapper5(void, glProgramUniform3iEXT, glProgramUniform3i, GLuint, program, GLint, location, GLint, v0, GLint, v1, GLint, v2); \
     HookWrapper5(void, glProgramUniform3i, GLuint, program, GLint, location, GLint, v0, GLint, v1, GLint, v2); \
+    HookAliasWrapper4(void, glProgramUniform3ivEXT, glProgramUniform3iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
     HookWrapper4(void, glProgramUniform3iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
+    HookAliasWrapper5(void, glProgramUniform3fEXT, glProgramUniform3f, GLuint, program, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2); \
     HookWrapper5(void, glProgramUniform3f, GLuint, program, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2); \
+    HookAliasWrapper4(void, glProgramUniform3fvEXT, glProgramUniform3fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper4(void, glProgramUniform3fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookAliasWrapper5(void, glProgramUniform3dEXT, glProgramUniform3d, GLuint, program, GLint, location, GLdouble, v0, GLdouble, v1, GLdouble, v2); \
     HookWrapper5(void, glProgramUniform3d, GLuint, program, GLint, location, GLdouble, v0, GLdouble, v1, GLdouble, v2); \
+    HookAliasWrapper4(void, glProgramUniform3dvEXT, glProgramUniform3dv, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
     HookWrapper4(void, glProgramUniform3dv, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
+    HookAliasWrapper5(void, glProgramUniform3uiEXT, glProgramUniform3ui, GLuint, program, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2); \
     HookWrapper5(void, glProgramUniform3ui, GLuint, program, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2); \
+    HookAliasWrapper4(void, glProgramUniform3uivEXT, glProgramUniform3uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
     HookWrapper4(void, glProgramUniform3uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookAliasWrapper6(void, glProgramUniform4iEXT, glProgramUniform4i, GLuint, program, GLint, location, GLint, v0, GLint, v1, GLint, v2, GLint, v3); \
     HookWrapper6(void, glProgramUniform4i, GLuint, program, GLint, location, GLint, v0, GLint, v1, GLint, v2, GLint, v3); \
+    HookAliasWrapper4(void, glProgramUniform4ivEXT, glProgramUniform4iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
     HookWrapper4(void, glProgramUniform4iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
+    HookAliasWrapper6(void, glProgramUniform4fEXT, glProgramUniform4f, GLuint, program, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2, GLfloat, v3); \
     HookWrapper6(void, glProgramUniform4f, GLuint, program, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2, GLfloat, v3); \
+    HookAliasWrapper4(void, glProgramUniform4fvEXT, glProgramUniform4fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper4(void, glProgramUniform4fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookAliasWrapper6(void, glProgramUniform4dEXT, glProgramUniform4d, GLuint, program, GLint, location, GLdouble, v0, GLdouble, v1, GLdouble, v2, GLdouble, v3); \
     HookWrapper6(void, glProgramUniform4d, GLuint, program, GLint, location, GLdouble, v0, GLdouble, v1, GLdouble, v2, GLdouble, v3); \
+    HookAliasWrapper4(void, glProgramUniform4dvEXT, glProgramUniform4dv, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
     HookWrapper4(void, glProgramUniform4dv, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
+    HookAliasWrapper6(void, glProgramUniform4uiEXT, glProgramUniform4ui, GLuint, program, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2, GLuint, v3); \
     HookWrapper6(void, glProgramUniform4ui, GLuint, program, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2, GLuint, v3); \
+    HookAliasWrapper4(void, glProgramUniform4uivEXT, glProgramUniform4uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
     HookWrapper4(void, glProgramUniform4uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix2fvEXT, glProgramUniformMatrix2fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper5(void, glProgramUniformMatrix2fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix3fvEXT, glProgramUniformMatrix3fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper5(void, glProgramUniformMatrix3fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix4fvEXT, glProgramUniformMatrix4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper5(void, glProgramUniformMatrix4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix2dvEXT, glProgramUniformMatrix2dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper5(void, glProgramUniformMatrix2dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix3dvEXT, glProgramUniformMatrix3dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper5(void, glProgramUniformMatrix3dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix4dvEXT, glProgramUniformMatrix4dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper5(void, glProgramUniformMatrix4dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix2x3fvEXT, glProgramUniformMatrix2x3fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper5(void, glProgramUniformMatrix2x3fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix3x2fvEXT, glProgramUniformMatrix3x2fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper5(void, glProgramUniformMatrix3x2fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix2x4fvEXT, glProgramUniformMatrix2x4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper5(void, glProgramUniformMatrix2x4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix4x2fvEXT, glProgramUniformMatrix4x2fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper5(void, glProgramUniformMatrix4x2fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix3x4fvEXT, glProgramUniformMatrix3x4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper5(void, glProgramUniformMatrix3x4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix4x3fvEXT, glProgramUniformMatrix4x3fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper5(void, glProgramUniformMatrix4x3fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix2x3dvEXT, glProgramUniformMatrix2x3dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper5(void, glProgramUniformMatrix2x3dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix3x2dvEXT, glProgramUniformMatrix3x2dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper5(void, glProgramUniformMatrix3x2dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix2x4dvEXT, glProgramUniformMatrix2x4dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper5(void, glProgramUniformMatrix2x4dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix4x2dvEXT, glProgramUniformMatrix4x2dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper5(void, glProgramUniformMatrix4x2dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix3x4dvEXT, glProgramUniformMatrix3x4dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper5(void, glProgramUniformMatrix3x4dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookAliasWrapper5(void, glProgramUniformMatrix4x3dvEXT, glProgramUniformMatrix4x3dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper5(void, glProgramUniformMatrix4x3dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookAliasWrapper1(void, glValidateProgramPipelineEXT, glValidateProgramPipeline, GLuint, pipeline); \
     HookWrapper1(void, glValidateProgramPipeline, GLuint, pipeline); \
+    HookAliasWrapper4(void, glGetProgramPipelineInfoLogEXT, glGetProgramPipelineInfoLog, GLuint, pipeline, GLsizei, bufSize, GLsizei *, length, GLchar *, infoLog); \
     HookWrapper4(void, glGetProgramPipelineInfoLog, GLuint, pipeline, GLsizei, bufSize, GLsizei *, length, GLchar *, infoLog); \
+    HookAliasWrapper2(void, glVertexAttribL1dEXT, glVertexAttribL1d, GLuint, index, GLdouble, x); \
     HookWrapper2(void, glVertexAttribL1d, GLuint, index, GLdouble, x); \
+    HookAliasWrapper3(void, glVertexAttribL2dEXT, glVertexAttribL2d, GLuint, index, GLdouble, x, GLdouble, y); \
     HookWrapper3(void, glVertexAttribL2d, GLuint, index, GLdouble, x, GLdouble, y); \
+    HookAliasWrapper4(void, glVertexAttribL3dEXT, glVertexAttribL3d, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z); \
     HookWrapper4(void, glVertexAttribL3d, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z); \
+    HookAliasWrapper5(void, glVertexAttribL4dEXT, glVertexAttribL4d, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
     HookWrapper5(void, glVertexAttribL4d, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+    HookAliasWrapper2(void, glVertexAttribL1dvEXT, glVertexAttribL1dv, GLuint, index, const GLdouble *, v); \
     HookWrapper2(void, glVertexAttribL1dv, GLuint, index, const GLdouble *, v); \
+    HookAliasWrapper2(void, glVertexAttribL2dvEXT, glVertexAttribL2dv, GLuint, index, const GLdouble *, v); \
     HookWrapper2(void, glVertexAttribL2dv, GLuint, index, const GLdouble *, v); \
+    HookAliasWrapper2(void, glVertexAttribL3dvEXT, glVertexAttribL3dv, GLuint, index, const GLdouble *, v); \
     HookWrapper2(void, glVertexAttribL3dv, GLuint, index, const GLdouble *, v); \
+    HookAliasWrapper2(void, glVertexAttribL4dvEXT, glVertexAttribL4dv, GLuint, index, const GLdouble *, v); \
     HookWrapper2(void, glVertexAttribL4dv, GLuint, index, const GLdouble *, v); \
+    HookAliasWrapper5(void, glVertexAttribLPointerEXT, glVertexAttribLPointer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
     HookWrapper5(void, glVertexAttribLPointer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+    HookAliasWrapper3(void, glGetVertexAttribLdvEXT, glGetVertexAttribLdv, GLuint, index, GLenum, pname, GLdouble *, params); \
     HookWrapper3(void, glGetVertexAttribLdv, GLuint, index, GLenum, pname, GLdouble *, params); \
+    HookAliasWrapper3(void, glViewportArrayvOES, glViewportArrayv, GLuint, first, GLsizei, count, const GLfloat *, v); \
+    HookAliasWrapper3(void, glViewportArrayvNV, glViewportArrayv, GLuint, first, GLsizei, count, const GLfloat *, v); \
     HookWrapper3(void, glViewportArrayv, GLuint, first, GLsizei, count, const GLfloat *, v); \
+    HookAliasWrapper5(void, glViewportIndexedfOES, glViewportIndexedf, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, w, GLfloat, h); \
+    HookAliasWrapper5(void, glViewportIndexedfNV, glViewportIndexedf, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, w, GLfloat, h); \
     HookWrapper5(void, glViewportIndexedf, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, w, GLfloat, h); \
+    HookAliasWrapper2(void, glViewportIndexedfvOES, glViewportIndexedfv, GLuint, index, const GLfloat *, v); \
+    HookAliasWrapper2(void, glViewportIndexedfvNV, glViewportIndexedfv, GLuint, index, const GLfloat *, v); \
     HookWrapper2(void, glViewportIndexedfv, GLuint, index, const GLfloat *, v); \
+    HookAliasWrapper3(void, glScissorArrayvOES, glScissorArrayv, GLuint, first, GLsizei, count, const GLint *, v); \
+    HookAliasWrapper3(void, glScissorArrayvNV, glScissorArrayv, GLuint, first, GLsizei, count, const GLint *, v); \
     HookWrapper3(void, glScissorArrayv, GLuint, first, GLsizei, count, const GLint *, v); \
+    HookAliasWrapper5(void, glScissorIndexedOES, glScissorIndexed, GLuint, index, GLint, left, GLint, bottom, GLsizei, width, GLsizei, height); \
+    HookAliasWrapper5(void, glScissorIndexedNV, glScissorIndexed, GLuint, index, GLint, left, GLint, bottom, GLsizei, width, GLsizei, height); \
     HookWrapper5(void, glScissorIndexed, GLuint, index, GLint, left, GLint, bottom, GLsizei, width, GLsizei, height); \
+    HookAliasWrapper2(void, glScissorIndexedvOES, glScissorIndexedv, GLuint, index, const GLint *, v); \
+    HookAliasWrapper2(void, glScissorIndexedvNV, glScissorIndexedv, GLuint, index, const GLint *, v); \
     HookWrapper2(void, glScissorIndexedv, GLuint, index, const GLint *, v); \
     HookWrapper3(void, glDepthRangeArrayv, GLuint, first, GLsizei, count, const GLdouble *, v); \
     HookWrapper3(void, glDepthRangeIndexed, GLuint, index, GLdouble, n, GLdouble, f); \
+    HookAliasWrapper3(void, glGetFloati_vEXT, glGetFloati_v, GLenum, target, GLuint, index, GLfloat *, data); \
+    HookAliasWrapper3(void, glGetFloati_vOES, glGetFloati_v, GLenum, target, GLuint, index, GLfloat *, data); \
+    HookAliasWrapper3(void, glGetFloati_vNV, glGetFloati_v, GLenum, target, GLuint, index, GLfloat *, data); \
     HookWrapper3(void, glGetFloati_v, GLenum, target, GLuint, index, GLfloat *, data); \
+    HookAliasWrapper3(void, glGetDoublei_vEXT, glGetDoublei_v, GLenum, target, GLuint, index, GLdouble *, data); \
     HookWrapper3(void, glGetDoublei_v, GLenum, target, GLuint, index, GLdouble *, data); \
+    HookAliasWrapper5(void, glDrawArraysInstancedBaseInstanceEXT, glDrawArraysInstancedBaseInstance, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount, GLuint, baseinstance); \
     HookWrapper5(void, glDrawArraysInstancedBaseInstance, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount, GLuint, baseinstance); \
+    HookAliasWrapper6(void, glDrawElementsInstancedBaseInstanceEXT, glDrawElementsInstancedBaseInstance, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLuint, baseinstance); \
     HookWrapper6(void, glDrawElementsInstancedBaseInstance, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLuint, baseinstance); \
+    HookAliasWrapper7(void, glDrawElementsInstancedBaseVertexBaseInstanceEXT, glDrawElementsInstancedBaseVertexBaseInstance, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex, GLuint, baseinstance); \
     HookWrapper7(void, glDrawElementsInstancedBaseVertexBaseInstance, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex, GLuint, baseinstance); \
     HookWrapper5(void, glGetInternalformativ, GLenum, target, GLenum, internalformat, GLenum, pname, GLsizei, bufSize, GLint *, params); \
     HookWrapper4(void, glGetActiveAtomicCounterBufferiv, GLuint, program, GLuint, bufferIndex, GLenum, pname, GLint *, params); \
+    HookAliasWrapper7(void, glBindImageTextureEXT, glBindImageTexture, GLuint, unit, GLuint, texture, GLint, level, GLboolean, layered, GLint, layer, GLenum, access, GLenum, format); \
     HookWrapper7(void, glBindImageTexture, GLuint, unit, GLuint, texture, GLint, level, GLboolean, layered, GLint, layer, GLenum, access, GLenum, format); \
+    HookAliasWrapper1(void, glMemoryBarrierEXT, glMemoryBarrier, GLbitfield, barriers); \
     HookWrapper1(void, glMemoryBarrier, GLbitfield, barriers); \
+    HookAliasWrapper4(void, glTexStorage1DEXT, glTexStorage1D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width); \
     HookWrapper4(void, glTexStorage1D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width); \
+    HookAliasWrapper5(void, glTexStorage2DEXT, glTexStorage2D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper5(void, glTexStorage2D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+    HookAliasWrapper6(void, glTexStorage3DEXT, glTexStorage3D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth); \
     HookWrapper6(void, glTexStorage3D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth); \
     HookWrapper3(void, glDrawTransformFeedbackInstanced, GLenum, mode, GLuint, id, GLsizei, instancecount); \
     HookWrapper4(void, glDrawTransformFeedbackStreamInstanced, GLenum, mode, GLuint, id, GLuint, stream, GLsizei, instancecount); \
@@ -1789,6 +2119,8 @@
     HookWrapper7(void, glClearBufferSubData, GLenum, target, GLenum, internalformat, GLintptr, offset, GLsizeiptr, size, GLenum, format, GLenum, type, const void *, data); \
     HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
     HookWrapper1(void, glDispatchComputeIndirect, GLintptr, indirect); \
+    HookAliasWrapper15(void, glCopyImageSubDataEXT, glCopyImageSubData, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
+    HookAliasWrapper15(void, glCopyImageSubDataOES, glCopyImageSubData, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
     HookWrapper15(void, glCopyImageSubData, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
     HookWrapper3(void, glFramebufferParameteri, GLenum, target, GLenum, pname, GLint, param); \
     HookWrapper3(void, glGetFramebufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
@@ -1808,9 +2140,14 @@
     HookWrapper3(GLint, glGetProgramResourceLocation, GLuint, program, GLenum, programInterface, const GLchar *, name); \
     HookWrapper3(GLint, glGetProgramResourceLocationIndex, GLuint, program, GLenum, programInterface, const GLchar *, name); \
     HookWrapper3(void, glShaderStorageBlockBinding, GLuint, program, GLuint, storageBlockIndex, GLuint, storageBlockBinding); \
+    HookAliasWrapper5(void, glTexBufferRangeEXT, glTexBufferRange, GLenum, target, GLenum, internalformat, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
+    HookAliasWrapper5(void, glTexBufferRangeOES, glTexBufferRange, GLenum, target, GLenum, internalformat, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper5(void, glTexBufferRange, GLenum, target, GLenum, internalformat, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper6(void, glTexStorage2DMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLboolean, fixedsamplelocations); \
+    HookAliasWrapper7(void, glTexStorage3DMultisampleOES, glTexStorage3DMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedsamplelocations); \
     HookWrapper7(void, glTexStorage3DMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedsamplelocations); \
+    HookAliasWrapper8(void, glTextureViewEXT, glTextureView, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
+    HookAliasWrapper8(void, glTextureViewOES, glTextureView, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
     HookWrapper8(void, glTextureView, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
     HookWrapper4(void, glBindVertexBuffer, GLuint, bindingindex, GLuint, buffer, GLintptr, offset, GLsizei, stride); \
     HookWrapper5(void, glVertexAttribFormat, GLuint, attribindex, GLint, size, GLenum, type, GLboolean, normalized, GLuint, relativeoffset); \
@@ -1818,15 +2155,29 @@
     HookWrapper4(void, glVertexAttribLFormat, GLuint, attribindex, GLint, size, GLenum, type, GLuint, relativeoffset); \
     HookWrapper2(void, glVertexAttribBinding, GLuint, attribindex, GLuint, bindingindex); \
     HookWrapper2(void, glVertexBindingDivisor, GLuint, bindingindex, GLuint, divisor); \
+    HookAliasWrapper6(void, glDebugMessageControlARB, glDebugMessageControl, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
+    HookAliasWrapper6(void, glDebugMessageControlKHR, glDebugMessageControl, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
     HookWrapper6(void, glDebugMessageControl, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
+    HookAliasWrapper6(void, glDebugMessageInsertARB, glDebugMessageInsert, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
+    HookAliasWrapper6(void, glDebugMessageInsertKHR, glDebugMessageInsert, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
     HookWrapper6(void, glDebugMessageInsert, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
+    HookAliasWrapper2(void, glDebugMessageCallbackARB, glDebugMessageCallback, GLDEBUGPROC, callback, const void *, userParam); \
+    HookAliasWrapper2(void, glDebugMessageCallbackKHR, glDebugMessageCallback, GLDEBUGPROC, callback, const void *, userParam); \
     HookWrapper2(void, glDebugMessageCallback, GLDEBUGPROC, callback, const void *, userParam); \
+    HookAliasWrapper8(GLuint, glGetDebugMessageLogARB, glGetDebugMessageLog, GLuint, count, GLsizei, bufSize, GLenum *, sources, GLenum *, types, GLuint *, ids, GLenum *, severities, GLsizei *, lengths, GLchar *, messageLog); \
+    HookAliasWrapper8(GLuint, glGetDebugMessageLogKHR, glGetDebugMessageLog, GLuint, count, GLsizei, bufSize, GLenum *, sources, GLenum *, types, GLuint *, ids, GLenum *, severities, GLsizei *, lengths, GLchar *, messageLog); \
     HookWrapper8(GLuint, glGetDebugMessageLog, GLuint, count, GLsizei, bufSize, GLenum *, sources, GLenum *, types, GLuint *, ids, GLenum *, severities, GLsizei *, lengths, GLchar *, messageLog); \
+    HookAliasWrapper4(void, glPushDebugGroupKHR, glPushDebugGroup, GLenum, source, GLuint, id, GLsizei, length, const GLchar *, message); \
     HookWrapper4(void, glPushDebugGroup, GLenum, source, GLuint, id, GLsizei, length, const GLchar *, message); \
+    HookAliasWrapper0(void, glPopDebugGroupKHR, glPopDebugGroup); \
     HookWrapper0(void, glPopDebugGroup); \
+    HookAliasWrapper4(void, glObjectLabelKHR, glObjectLabel, GLenum, identifier, GLuint, name, GLsizei, length, const GLchar *, label); \
     HookWrapper4(void, glObjectLabel, GLenum, identifier, GLuint, name, GLsizei, length, const GLchar *, label); \
+    HookAliasWrapper5(void, glGetObjectLabelKHR, glGetObjectLabel, GLenum, identifier, GLuint, name, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
     HookWrapper5(void, glGetObjectLabel, GLenum, identifier, GLuint, name, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
+    HookAliasWrapper3(void, glObjectPtrLabelKHR, glObjectPtrLabel, const void *, ptr, GLsizei, length, const GLchar *, label); \
     HookWrapper3(void, glObjectPtrLabel, const void *, ptr, GLsizei, length, const GLchar *, label); \
+    HookAliasWrapper4(void, glGetObjectPtrLabelKHR, glGetObjectPtrLabel, const void *, ptr, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
     HookWrapper4(void, glGetObjectPtrLabel, const void *, ptr, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
     HookWrapper4(void, glBufferStorage, GLenum, target, GLsizeiptr, size, const void *, data, GLbitfield, flags); \
     HookWrapper5(void, glClearTexImage, GLuint, texture, GLint, level, GLenum, format, GLenum, type, const void *, data); \
@@ -1849,23 +2200,35 @@
     HookWrapper4(void, glNamedBufferData, GLuint, buffer, GLsizeiptr, size, const void *, data, GLenum, usage); \
     HookWrapper4(void, glNamedBufferSubData, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, const void *, data); \
     HookWrapper5(void, glCopyNamedBufferSubData, GLuint, readBuffer, GLuint, writeBuffer, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
+    HookAliasWrapper5(void, glClearNamedBufferData, glClearNamedBufferDataEXT, GLuint, buffer, GLenum, internalformat, GLenum, format, GLenum, type, const void *, data); \
     HookWrapper5(void, glClearNamedBufferDataEXT, GLuint, buffer, GLenum, internalformat, GLenum, format, GLenum, type, const void *, data); \
     HookWrapper7(void, glClearNamedBufferSubData, GLuint, buffer, GLenum, internalformat, GLintptr, offset, GLsizeiptr, size, GLenum, format, GLenum, type, const void *, data); \
+    HookAliasWrapper2(void *, glMapNamedBuffer, glMapNamedBufferEXT, GLuint, buffer, GLenum, access); \
     HookWrapper2(void *, glMapNamedBufferEXT, GLuint, buffer, GLenum, access); \
     HookWrapper4(void *, glMapNamedBufferRange, GLuint, buffer, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
+    HookAliasWrapper1(GLboolean, glUnmapNamedBuffer, glUnmapNamedBufferEXT, GLuint, buffer); \
     HookWrapper1(GLboolean, glUnmapNamedBufferEXT, GLuint, buffer); \
     HookWrapper3(void, glFlushMappedNamedBufferRange, GLuint, buffer, GLintptr, offset, GLsizeiptr, length); \
+    HookAliasWrapper3(void, glGetNamedBufferParameteriv, glGetNamedBufferParameterivEXT, GLuint, buffer, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetNamedBufferParameterivEXT, GLuint, buffer, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetNamedBufferParameteri64v, GLuint, buffer, GLenum, pname, GLint64 *, params); \
+    HookAliasWrapper3(void, glGetNamedBufferPointerv, glGetNamedBufferPointervEXT, GLuint, buffer, GLenum, pname, void **, params); \
     HookWrapper3(void, glGetNamedBufferPointervEXT, GLuint, buffer, GLenum, pname, void **, params); \
     HookWrapper4(void, glGetNamedBufferSubData, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, void *, data); \
     HookWrapper2(void, glCreateFramebuffers, GLsizei, n, GLuint *, framebuffers); \
+    HookAliasWrapper4(void, glNamedFramebufferRenderbuffer, glNamedFramebufferRenderbufferEXT, GLuint, framebuffer, GLenum, attachment, GLenum, renderbuffertarget, GLuint, renderbuffer); \
     HookWrapper4(void, glNamedFramebufferRenderbufferEXT, GLuint, framebuffer, GLenum, attachment, GLenum, renderbuffertarget, GLuint, renderbuffer); \
+    HookAliasWrapper3(void, glNamedFramebufferParameteri, glNamedFramebufferParameteriEXT, GLuint, framebuffer, GLenum, pname, GLint, param); \
     HookWrapper3(void, glNamedFramebufferParameteriEXT, GLuint, framebuffer, GLenum, pname, GLint, param); \
+    HookAliasWrapper4(void, glNamedFramebufferTexture, glNamedFramebufferTextureEXT, GLuint, framebuffer, GLenum, attachment, GLuint, texture, GLint, level); \
     HookWrapper4(void, glNamedFramebufferTextureEXT, GLuint, framebuffer, GLenum, attachment, GLuint, texture, GLint, level); \
+    HookAliasWrapper5(void, glNamedFramebufferTextureLayer, glNamedFramebufferTextureLayerEXT, GLuint, framebuffer, GLenum, attachment, GLuint, texture, GLint, level, GLint, layer); \
     HookWrapper5(void, glNamedFramebufferTextureLayerEXT, GLuint, framebuffer, GLenum, attachment, GLuint, texture, GLint, level, GLint, layer); \
+    HookAliasWrapper2(void, glNamedFramebufferDrawBuffer, glFramebufferDrawBufferEXT, GLuint, framebuffer, GLenum, buf); \
     HookWrapper2(void, glFramebufferDrawBufferEXT, GLuint, framebuffer, GLenum, buf); \
+    HookAliasWrapper3(void, glNamedFramebufferDrawBuffers, glFramebufferDrawBuffersEXT, GLuint, framebuffer, GLsizei, n, const GLenum *, bufs); \
     HookWrapper3(void, glFramebufferDrawBuffersEXT, GLuint, framebuffer, GLsizei, n, const GLenum *, bufs); \
+    HookAliasWrapper2(void, glNamedFramebufferReadBuffer, glFramebufferReadBufferEXT, GLuint, framebuffer, GLenum, src); \
     HookWrapper2(void, glFramebufferReadBufferEXT, GLuint, framebuffer, GLenum, src); \
     HookWrapper3(void, glInvalidateNamedFramebufferData, GLuint, framebuffer, GLsizei, numAttachments, const GLenum *, attachments); \
     HookWrapper7(void, glInvalidateNamedFramebufferSubData, GLuint, framebuffer, GLsizei, numAttachments, const GLenum *, attachments, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
@@ -1874,12 +2237,19 @@
     HookWrapper4(void, glClearNamedFramebufferfv, GLuint, framebuffer, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \
     HookWrapper4(void, glClearNamedFramebufferfi, GLuint, framebuffer, GLenum, buffer, const GLfloat, depth, GLint, stencil); \
     HookWrapper12(void, glBlitNamedFramebuffer, GLuint, readFramebuffer, GLuint, drawFramebuffer, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
+    HookAliasWrapper2(GLenum, glCheckNamedFramebufferStatus, glCheckNamedFramebufferStatusEXT, GLuint, framebuffer, GLenum, target); \
     HookWrapper2(GLenum, glCheckNamedFramebufferStatusEXT, GLuint, framebuffer, GLenum, target); \
+    HookAliasWrapper3(void, glGetFramebufferParameterivEXT, glGetNamedFramebufferParameterivEXT, GLuint, framebuffer, GLenum, pname, GLint *, param); \
+    HookAliasWrapper3(void, glGetNamedFramebufferParameteriv, glGetNamedFramebufferParameterivEXT, GLuint, framebuffer, GLenum, pname, GLint *, param); \
     HookWrapper3(void, glGetNamedFramebufferParameterivEXT, GLuint, framebuffer, GLenum, pname, GLint *, param); \
+    HookAliasWrapper4(void, glGetNamedFramebufferAttachmentParameteriv, glGetNamedFramebufferAttachmentParameterivEXT, GLuint, framebuffer, GLenum, attachment, GLenum, pname, GLint *, params); \
     HookWrapper4(void, glGetNamedFramebufferAttachmentParameterivEXT, GLuint, framebuffer, GLenum, attachment, GLenum, pname, GLint *, params); \
     HookWrapper2(void, glCreateRenderbuffers, GLsizei, n, GLuint *, renderbuffers); \
+    HookAliasWrapper4(void, glNamedRenderbufferStorage, glNamedRenderbufferStorageEXT, GLuint, renderbuffer, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper4(void, glNamedRenderbufferStorageEXT, GLuint, renderbuffer, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+    HookAliasWrapper5(void, glNamedRenderbufferStorageMultisample, glNamedRenderbufferStorageMultisampleEXT, GLuint, renderbuffer, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper5(void, glNamedRenderbufferStorageMultisampleEXT, GLuint, renderbuffer, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+    HookAliasWrapper3(void, glGetNamedRenderbufferParameteriv, glGetNamedRenderbufferParameterivEXT, GLuint, renderbuffer, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetNamedRenderbufferParameterivEXT, GLuint, renderbuffer, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glCreateTextures, GLenum, target, GLsizei, n, GLuint *, textures); \
     HookWrapper3(void, glTextureBuffer, GLuint, texture, GLenum, internalformat, GLuint, buffer); \
@@ -1915,15 +2285,23 @@
     HookWrapper3(void, glGetTextureParameterIuiv, GLuint, texture, GLenum, pname, GLuint *, params); \
     HookWrapper3(void, glGetTextureParameteriv, GLuint, texture, GLenum, pname, GLint *, params); \
     HookWrapper2(void, glCreateVertexArrays, GLsizei, n, GLuint *, arrays); \
+    HookAliasWrapper2(void, glDisableVertexArrayAttrib, glDisableVertexArrayAttribEXT, GLuint, vaobj, GLuint, index); \
     HookWrapper2(void, glDisableVertexArrayAttribEXT, GLuint, vaobj, GLuint, index); \
+    HookAliasWrapper2(void, glEnableVertexArrayAttrib, glEnableVertexArrayAttribEXT, GLuint, vaobj, GLuint, index); \
     HookWrapper2(void, glEnableVertexArrayAttribEXT, GLuint, vaobj, GLuint, index); \
     HookWrapper2(void, glVertexArrayElementBuffer, GLuint, vaobj, GLuint, buffer); \
+    HookAliasWrapper5(void, glVertexArrayVertexBuffer, glVertexArrayBindVertexBufferEXT, GLuint, vaobj, GLuint, bindingindex, GLuint, buffer, GLintptr, offset, GLsizei, stride); \
     HookWrapper5(void, glVertexArrayBindVertexBufferEXT, GLuint, vaobj, GLuint, bindingindex, GLuint, buffer, GLintptr, offset, GLsizei, stride); \
     HookWrapper6(void, glVertexArrayVertexBuffers, GLuint, vaobj, GLuint, first, GLsizei, count, const GLuint *, buffers, const GLintptr *, offsets, const GLsizei *, strides); \
+    HookAliasWrapper3(void, glVertexArrayAttribBinding, glVertexArrayVertexAttribBindingEXT, GLuint, vaobj, GLuint, attribindex, GLuint, bindingindex); \
     HookWrapper3(void, glVertexArrayVertexAttribBindingEXT, GLuint, vaobj, GLuint, attribindex, GLuint, bindingindex); \
+    HookAliasWrapper6(void, glVertexArrayAttribFormat, glVertexArrayVertexAttribFormatEXT, GLuint, vaobj, GLuint, attribindex, GLint, size, GLenum, type, GLboolean, normalized, GLuint, relativeoffset); \
     HookWrapper6(void, glVertexArrayVertexAttribFormatEXT, GLuint, vaobj, GLuint, attribindex, GLint, size, GLenum, type, GLboolean, normalized, GLuint, relativeoffset); \
+    HookAliasWrapper5(void, glVertexArrayAttribIFormat, glVertexArrayVertexAttribIFormatEXT, GLuint, vaobj, GLuint, attribindex, GLint, size, GLenum, type, GLuint, relativeoffset); \
     HookWrapper5(void, glVertexArrayVertexAttribIFormatEXT, GLuint, vaobj, GLuint, attribindex, GLint, size, GLenum, type, GLuint, relativeoffset); \
+    HookAliasWrapper5(void, glVertexArrayAttribLFormat, glVertexArrayVertexAttribLFormatEXT, GLuint, vaobj, GLuint, attribindex, GLint, size, GLenum, type, GLuint, relativeoffset); \
     HookWrapper5(void, glVertexArrayVertexAttribLFormatEXT, GLuint, vaobj, GLuint, attribindex, GLint, size, GLenum, type, GLuint, relativeoffset); \
+    HookAliasWrapper3(void, glVertexArrayBindingDivisor, glVertexArrayVertexBindingDivisorEXT, GLuint, vaobj, GLuint, bindingindex, GLuint, divisor); \
     HookWrapper3(void, glVertexArrayVertexBindingDivisorEXT, GLuint, vaobj, GLuint, bindingindex, GLuint, divisor); \
     HookWrapper3(void, glGetVertexArrayiv, GLuint, vaobj, GLenum, pname, GLint *, param); \
     HookWrapper4(void, glGetVertexArrayIndexediv, GLuint, vaobj, GLuint, index, GLenum, pname, GLint *, param); \
@@ -1938,13 +2316,25 @@
     HookWrapper1(void, glMemoryBarrierByRegion, GLbitfield, barriers); \
     HookWrapper12(void, glGetTextureSubImage, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, GLsizei, bufSize, void *, pixels); \
     HookWrapper10(void, glGetCompressedTextureSubImage, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLsizei, bufSize, void *, pixels); \
+    HookAliasWrapper0(GLenum, glGetGraphicsResetStatusARB, glGetGraphicsResetStatus); \
+    HookAliasWrapper0(GLenum, glGetGraphicsResetStatusEXT, glGetGraphicsResetStatus); \
     HookWrapper0(GLenum, glGetGraphicsResetStatus); \
+    HookAliasWrapper4(void, glGetnCompressedTexImageARB, glGetnCompressedTexImage, GLenum, target, GLint, lod, GLsizei, bufSize, void *, pixels); \
     HookWrapper4(void, glGetnCompressedTexImage, GLenum, target, GLint, lod, GLsizei, bufSize, void *, pixels); \
+    HookAliasWrapper6(void, glGetnTexImageARB, glGetnTexImage, GLenum, target, GLint, level, GLenum, format, GLenum, type, GLsizei, bufSize, void *, pixels); \
     HookWrapper6(void, glGetnTexImage, GLenum, target, GLint, level, GLenum, format, GLenum, type, GLsizei, bufSize, void *, pixels); \
+    HookAliasWrapper4(void, glGetnUniformdvARB, glGetnUniformdv, GLuint, program, GLint, location, GLsizei, bufSize, GLdouble *, params); \
     HookWrapper4(void, glGetnUniformdv, GLuint, program, GLint, location, GLsizei, bufSize, GLdouble *, params); \
+    HookAliasWrapper4(void, glGetnUniformfvARB, glGetnUniformfv, GLuint, program, GLint, location, GLsizei, bufSize, GLfloat *, params); \
+    HookAliasWrapper4(void, glGetnUniformfvEXT, glGetnUniformfv, GLuint, program, GLint, location, GLsizei, bufSize, GLfloat *, params); \
     HookWrapper4(void, glGetnUniformfv, GLuint, program, GLint, location, GLsizei, bufSize, GLfloat *, params); \
+    HookAliasWrapper4(void, glGetnUniformivARB, glGetnUniformiv, GLuint, program, GLint, location, GLsizei, bufSize, GLint *, params); \
+    HookAliasWrapper4(void, glGetnUniformivEXT, glGetnUniformiv, GLuint, program, GLint, location, GLsizei, bufSize, GLint *, params); \
     HookWrapper4(void, glGetnUniformiv, GLuint, program, GLint, location, GLsizei, bufSize, GLint *, params); \
+    HookAliasWrapper4(void, glGetnUniformuivARB, glGetnUniformuiv, GLuint, program, GLint, location, GLsizei, bufSize, GLuint *, params); \
     HookWrapper4(void, glGetnUniformuiv, GLuint, program, GLint, location, GLsizei, bufSize, GLuint *, params); \
+    HookAliasWrapper8(void, glReadnPixelsARB, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
+    HookAliasWrapper8(void, glReadnPixelsEXT, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper8(void, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper0(void, glTextureBarrier); \
     HookWrapper6(void, glDispatchComputeGroupSizeARB, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z, GLuint, group_size_x, GLuint, group_size_y, GLuint, group_size_z); \
@@ -2068,8 +2458,12 @@
     HookWrapper2(void, glStringMarkerGREMEDY, GLsizei, len, const void *, string); \
     HookWrapper6(void, glFramebufferTextureMultiviewOVR, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, baseViewIndex, GLsizei, numViews); \
     HookWrapper0(void, glBlendBarrier); \
+    HookAliasWrapper8(void, glPrimitiveBoundingBoxEXT, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
+    HookAliasWrapper8(void, glPrimitiveBoundingBoxOES, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
     HookWrapper8(void, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
+    HookAliasWrapper3(void, glDepthRangeArrayfvNV, glDepthRangeArrayfvOES, GLuint, first, GLsizei, count, const GLfloat *, v); \
     HookWrapper3(void, glDepthRangeArrayfvOES, GLuint, first, GLsizei, count, const GLfloat *, v); \
+    HookAliasWrapper3(void, glDepthRangeIndexedfNV, glDepthRangeIndexedfOES, GLuint, index, GLfloat, n, GLfloat, f); \
     HookWrapper3(void, glDepthRangeIndexedfOES, GLuint, index, GLfloat, n, GLfloat, f); \
     HookWrapper3(void, glDiscardFramebufferEXT, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
     HookWrapper6(void, glFramebufferTexture2DMultisampleEXT, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \

@@ -156,9 +156,13 @@ foreach my $typedef (split(/\n/, $typedefs))
 		$funcdefmacro .= ", $args" if $args ne "";
 		$funcdefmacro .= ");";
 
+		my $aliasdefmacro = "HookAliasWrapper$argcount($returnType, ALIASNAME, $name";
+		$aliasdefmacro .= ", $args" if $args ne "";
+		$aliasdefmacro .= ");";
+
 		if(not grep {$_ eq $name} @processed)
 		{
-			my %func = ('name', $name, 'typedef', $def, 'macro', $funcdefmacro, 'ret', $returnType, 'args', $origargs, 'aliases', $aliases);
+			my %func = ('name', $name, 'typedef', $def, 'macro', $funcdefmacro, 'aliasmacro', $aliasdefmacro, 'ret', $returnType, 'args', $origargs, 'aliases', $aliases);
 
 			push @{$current}, { %func };
 			push @processed, $name;
@@ -255,6 +259,12 @@ print "// dllexport functions\n";
 print "#define DefineDLLExportHooks() \\\n";
 foreach my $el (@dllexportfuncs)
 {
+  foreach my $alias (@{$el->{aliases}})
+	{
+		my $aliasmacro = $el->{aliasmacro};
+		$aliasmacro =~ s/ALIASNAME/$alias/g;
+		print "    $aliasmacro \\\n";
+	}
 	print "    $el->{macro} \\\n"
 }
 print "\n";
@@ -264,6 +274,12 @@ print "// gl extensions\n";
 print "#define DefineGLExtensionHooks() \\\n";
 foreach my $el (@glextfuncs)
 {
+  foreach my $alias (@{$el->{aliases}})
+	{
+		my $aliasmacro = $el->{aliasmacro};
+		$aliasmacro =~ s/ALIASNAME/$alias/g;
+		print "    $aliasmacro \\\n";
+	}
 	print "    $el->{macro} \\\n"
 }
 print "\n";

@@ -304,6 +304,34 @@
                                          p14, p15);                                                 \
   }
 
+#define HookAliasWrapper0(ret, function, realfunc)
+#define HookAliasWrapper1(ret, function, realfunc, t1, p1)
+#define HookAliasWrapper2(ret, function, realfunc, t1, p1, t2, p2)
+#define HookAliasWrapper3(ret, function, realfunc, t1, p1, t2, p2, t3, p3)
+#define HookAliasWrapper4(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4)
+#define HookAliasWrapper5(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5)
+#define HookAliasWrapper6(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6)
+#define HookAliasWrapper7(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, \
+                          t7, p7)
+#define HookAliasWrapper8(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, \
+                          t7, p7, t8, p8)
+#define HookAliasWrapper9(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, \
+                          t7, p7, t8, p8, t9, p9)
+#define HookAliasWrapper10(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, \
+                           p6, t7, p7, t8, p8, t9, p9, t10, p10)
+#define HookAliasWrapper11(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, \
+                           p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11)
+#define HookAliasWrapper12(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, \
+                           p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12)
+#define HookAliasWrapper13(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, \
+                           p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13)
+#define HookAliasWrapper14(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, \
+                           p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13,  \
+                           t14, p14)
+#define HookAliasWrapper15(ret, function, realfunc, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, \
+                           p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13,  \
+                           t14, p14, t15, p15)
+
 Threading::CriticalSection glLock;
 
 typedef BOOL(WINAPI *WGLMAKECURRENTPROC)(HDC, HGLRC);
