@@ -376,6 +376,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     if(reflData.entryPoint.empty())
     {
       reflData.entryPoint = shad.entryPoint;
+      reflData.stage = StageIndex(pCreateInfo->stage.stage);
       SPVModule &spv = info.m_ShaderModule[id].spirv;
       spv.MakeReflection(ShaderStage::Compute, reflData.entryPoint, reflData.refl, reflData.mapping,
                          reflData.patchData);
