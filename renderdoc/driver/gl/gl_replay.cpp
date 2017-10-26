@@ -2930,162 +2930,128 @@ ResourceId GLReplay::CreateProxyTexture(const TextureDescription &templateTex)
   gl.glGenTextures(1, &tex);
 
   GLenum intFormat = MakeGLFormat(templateTex.format);
-
-  GLenum binding = eGL_NONE;
+  bool isCompressed = IsCompressedFormat(intFormat);
 
   GLenum baseFormat = eGL_RGBA;
   GLenum dataType = eGL_UNSIGNED_BYTE;
-  if(!IsCompressedFormat(intFormat))
+  if(!isCompressed)
   {
     baseFormat = GetBaseFormat(intFormat);
     dataType = GetDataType(intFormat);
   }
 
+  GLenum target = eGL_NONE;
+
   switch(templateTex.resType)
   {
     case TextureDim::Unknown: break;
     case TextureDim::Buffer:
-    case TextureDim::Texture1D:
-    {
-      binding = eGL_TEXTURE_1D;
-      gl.glBindTexture(eGL_TEXTURE_1D, tex);
-      uint32_t w = templateTex.width;
-      for(uint32_t i = 0; i < templateTex.mips; i++)
-      {
-        m_pDriver->glTextureImage1DEXT(tex, eGL_TEXTURE_1D, i, intFormat, w, 0, baseFormat,
-                                       dataType, NULL);
-        w = RDCMAX(1U, w >> 1);
-      }
-      break;
-    }
-    case TextureDim::Texture1DArray:
-    {
-      binding = eGL_TEXTURE_1D_ARRAY;
-      gl.glBindTexture(eGL_TEXTURE_1D_ARRAY, tex);
-      uint32_t w = templateTex.width;
-      for(uint32_t i = 0; i < templateTex.mips; i++)
-      {
-        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_1D_ARRAY, i, intFormat, w,
-                                       templateTex.arraysize, 0, baseFormat, dataType, NULL);
-        w = RDCMAX(1U, w >> 1);
-      }
-      break;
-    }
+    case TextureDim::Texture1D: target = eGL_TEXTURE_1D; break;
+    case TextureDim::Texture1DArray: target = eGL_TEXTURE_1D_ARRAY; break;
     case TextureDim::TextureRect:
-    case TextureDim::Texture2D:
-    {
-      binding = eGL_TEXTURE_2D;
-      gl.glBindTexture(eGL_TEXTURE_2D, tex);
-      uint32_t w = templateTex.width;
-      uint32_t h = templateTex.height;
-      for(uint32_t i = 0; i < templateTex.mips; i++)
-      {
-        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_2D, i, intFormat, w, h, 0, baseFormat,
-                                       dataType, NULL);
-        w = RDCMAX(1U, w >> 1);
-        h = RDCMAX(1U, h >> 1);
-      }
-      break;
-    }
-    case TextureDim::Texture2DArray:
-    {
-      binding = eGL_TEXTURE_2D_ARRAY;
-      gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, tex);
-      uint32_t w = templateTex.width;
-      uint32_t h = templateTex.height;
-      for(uint32_t i = 0; i < templateTex.mips; i++)
-      {
-        m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, i, intFormat, w, h,
-                                       templateTex.arraysize, 0, baseFormat, dataType, NULL);
-        w = RDCMAX(1U, w >> 1);
-        h = RDCMAX(1U, h >> 1);
-      }
-      break;
-    }
-    case TextureDim::Texture2DMS:
-    {
-      binding = eGL_TEXTURE_2D_MULTISAMPLE;
-      gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, tex);
-      gl.glTextureStorage2DMultisampleEXT(tex, eGL_TEXTURE_2D_MULTISAMPLE, templateTex.msSamp,
-                                          intFormat, templateTex.width, templateTex.height, GL_TRUE);
-      break;
-    }
-    case TextureDim::Texture2DMSArray:
-    {
-      binding = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
-      gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, tex);
-      gl.glTextureStorage3DMultisampleEXT(tex, eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, templateTex.msSamp,
-                                          intFormat, templateTex.width, templateTex.height,
-                                          templateTex.arraysize, GL_TRUE);
-      break;
-    }
-    case TextureDim::Texture3D:
-    {
-      binding = eGL_TEXTURE_3D;
-      gl.glBindTexture(eGL_TEXTURE_3D, tex);
-      uint32_t w = templateTex.width;
-      uint32_t h = templateTex.height;
-      uint32_t d = templateTex.depth;
-      for(uint32_t i = 0; i < templateTex.mips; i++)
-      {
-        m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_3D, i, intFormat, w, h, d, 0, baseFormat,
-                                       dataType, NULL);
-        w = RDCMAX(1U, w >> 1);
-        h = RDCMAX(1U, h >> 1);
-        d = RDCMAX(1U, d >> 1);
-      }
-      break;
-    }
-    case TextureDim::TextureCube:
-    {
-      binding = eGL_TEXTURE_CUBE_MAP;
-      gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, tex);
-      uint32_t w = templateTex.width;
-      uint32_t h = templateTex.height;
-      for(uint32_t i = 0; i < templateTex.mips; i++)
-      {
-        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_POSITIVE_X, i, intFormat, w, h, 0,
-                                       baseFormat, dataType, NULL);
-        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X, i, intFormat, w, h, 0,
-                                       baseFormat, dataType, NULL);
-        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, i, intFormat, w, h, 0,
-                                       baseFormat, dataType, NULL);
-        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y, i, intFormat, w, h, 0,
-                                       baseFormat, dataType, NULL);
-        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, i, intFormat, w, h, 0,
-                                       baseFormat, dataType, NULL);
-        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z, i, intFormat, w, h, 0,
-                                       baseFormat, dataType, NULL);
-        w = RDCMAX(1U, w >> 1);
-        h = RDCMAX(1U, h >> 1);
-      }
-      break;
-    }
-    case TextureDim::TextureCubeArray:
-    {
-      binding = eGL_TEXTURE_CUBE_MAP_ARRAY;
-      gl.glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, tex);
-      uint32_t w = templateTex.width;
-      uint32_t h = templateTex.height;
-      for(uint32_t i = 0; i < templateTex.mips; i++)
-      {
-        m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, i, intFormat, w, h,
-                                       templateTex.arraysize, 0, baseFormat, dataType, NULL);
-        w = RDCMAX(1U, w >> 1);
-        h = RDCMAX(1U, h >> 1);
-      }
-      break;
-    }
-    case TextureDim::Count:
-    {
-      RDCERR("Invalid shader resource type");
-      break;
-    }
+    case TextureDim::Texture2D: target = eGL_TEXTURE_2D; break;
+    case TextureDim::Texture2DArray: target = eGL_TEXTURE_2D_ARRAY; break;
+    case TextureDim::Texture2DMS: target = eGL_TEXTURE_2D_MULTISAMPLE; break;
+    case TextureDim::Texture2DMSArray: target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY; break;
+    case TextureDim::Texture3D: target = eGL_TEXTURE_3D; break;
+    case TextureDim::TextureCube: target = eGL_TEXTURE_CUBE_MAP; break;
+    case TextureDim::TextureCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
+    case TextureDim::Count: RDCERR("Invalid texture dimension"); break;
   }
 
-  gl.glTexParameteri(binding, eGL_TEXTURE_MAX_LEVEL, templateTex.mips - 1);
+  if(target != eGL_NONE)
+  {
+    gl.glBindTexture(target, tex);
 
-  if(templateTex.format.bgraOrder && binding != eGL_NONE)
+    if(target == eGL_TEXTURE_2D_MULTISAMPLE)
+    {
+      gl.glTextureStorage2DMultisampleEXT(tex, target, templateTex.msSamp, intFormat,
+                                          templateTex.width, templateTex.height, GL_TRUE);
+    }
+    else if(target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+    {
+      gl.glTextureStorage3DMultisampleEXT(tex, target, templateTex.msSamp, intFormat,
+                                          templateTex.width, templateTex.height,
+                                          templateTex.arraysize, GL_TRUE);
+    }
+    else
+    {
+      GLsizei w = (GLsizei)templateTex.width;
+      GLsizei h = (GLsizei)templateTex.height;
+      GLsizei d = (GLsizei)templateTex.depth;
+      int dim = (int)templateTex.dimension;
+
+      if(target == eGL_TEXTURE_1D_ARRAY)
+      {
+        h = templateTex.arraysize;
+        dim = 2;
+      }
+      else if(target == eGL_TEXTURE_2D_ARRAY || target == eGL_TEXTURE_CUBE_MAP_ARRAY)
+      {
+        d = templateTex.arraysize;
+        dim = 3;
+      }
+
+      GLenum targets[] = {
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+      };
+
+      int count = ARRAY_COUNT(targets);
+
+      if(target != eGL_TEXTURE_CUBE_MAP)
+      {
+        targets[0] = target;
+        count = 1;
+      }
+
+      for(int m = 0; m < (int)templateTex.mips; m++)
+      {
+        for(int t = 0; t < count; t++)
+        {
+          if(isCompressed)
+          {
+            GLsizei compSize = (GLsizei)GetCompressedByteSize(w, h, d, intFormat);
+
+            vector<byte> dummy;
+            dummy.resize(compSize);
+
+            if(dim == 1)
+              gl.glCompressedTextureImage1DEXT(tex, targets[t], m, intFormat, w, 0, compSize,
+                                               &dummy[0]);
+            else if(dim == 2)
+              gl.glCompressedTextureImage2DEXT(tex, targets[t], m, intFormat, w, h, 0, compSize,
+                                               &dummy[0]);
+            else if(dim == 3)
+              gl.glCompressedTextureImage3DEXT(tex, targets[t], m, intFormat, w, h, d, 0, compSize,
+                                               &dummy[0]);
+          }
+          else
+          {
+            if(dim == 1)
+              gl.glTextureImage1DEXT(tex, targets[t], m, intFormat, w, 0, baseFormat, dataType, NULL);
+            else if(dim == 2)
+              gl.glTextureImage2DEXT(tex, targets[t], m, intFormat, w, h, 0, baseFormat, dataType,
+                                     NULL);
+            else if(dim == 3)
+              gl.glTextureImage3DEXT(tex, targets[t], m, intFormat, w, h, d, 0, baseFormat,
+                                     dataType, NULL);
+          }
+        }
+
+        w = RDCMAX(1, w >> 1);
+        if(target != eGL_TEXTURE_1D_ARRAY)
+          h = RDCMAX(1, h >> 1);
+        if(target != eGL_TEXTURE_2D_ARRAY && target != eGL_TEXTURE_CUBE_MAP_ARRAY)
+          d = RDCMAX(1, d >> 1);
+      }
+    }
+
+    gl.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, templateTex.mips - 1);
+  }
+
+  if(templateTex.format.bgraOrder && target != eGL_NONE)
   {
     if(HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle])
     {
@@ -3093,9 +3059,9 @@ ResourceId GLReplay::CreateProxyTexture(const TextureDescription &templateTex)
       GLint bgrSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ONE};
 
       if(templateTex.format.compCount == 4)
-        SetTextureSwizzle(gl.GetHookset(), tex, binding, (GLenum *)bgraSwizzle);
+        SetTextureSwizzle(gl.GetHookset(), tex, target, (GLenum *)bgraSwizzle);
       else if(templateTex.format.compCount == 3)
-        SetTextureSwizzle(gl.GetHookset(), tex, binding, (GLenum *)bgrSwizzle);
+        SetTextureSwizzle(gl.GetHookset(), tex, target, (GLenum *)bgrSwizzle);
       else
         RDCERR("Unexpected component count %d for BGRA order format", templateTex.format.compCount);
     }
