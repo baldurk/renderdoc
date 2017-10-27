@@ -63,8 +63,10 @@ vector<GPUCounter> GLReplay::EnumerateCounters()
   return ret;
 }
 
-void GLReplay::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
+CounterDescription GLReplay::DescribeCounter(GPUCounter counterID)
 {
+  CounterDescription desc = {};
+
   desc.counterID = counterID;
   // FFBA5548-FBF8-405D-BA18-F0329DA370A0
   desc.uuid.bytes[0] = 0xFFBA5548;
@@ -174,6 +176,8 @@ void GLReplay::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
       desc.unit = CounterUnit::Absolute;
       break;
   }
+
+  return desc;
 }
 
 struct GPUQueries
