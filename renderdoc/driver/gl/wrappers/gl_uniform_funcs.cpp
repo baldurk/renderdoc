@@ -27,18 +27,26 @@
 #include "common/common.h"
 #include "strings/string_utils.h"
 
-bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint location, GLsizei count,
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glProgramUniformVector(SerialiserType &ser, GLuint program,
+                                                     GLint location, GLsizei count,
                                                      const void *value, UniformType type)
 {
-  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
-  SERIALISE_ELEMENT(UniformType, Type, type);
-  SERIALISE_ELEMENT(int32_t, Loc, location);
-  SERIALISE_ELEMENT(uint32_t, Count, count);
+  SERIALISE_ELEMENT_LOCAL(Program, ProgramRes(GetCtx(), program));
+  SERIALISE_ELEMENT(location);
+
+  // this is used to share serialisation code amongst the brazillion variations
+  SERIALISE_ELEMENT(type).Hidden();
+
+  // not all variants technically have a count, so this will come through as a fixed value of 1.
+  // It showing up even for those functions is a concession to sanity...
+  SERIALISE_ELEMENT(count);
 
   size_t elemsPerVec = 0;
+  SDBasic elemBaseType = SDBasic::Float;
   size_t elemSize = sizeof(float);
 
-  switch(Type)
+  switch(type)
   {
     case VEC1iv:
     case VEC1uiv:
@@ -56,23 +64,25 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint locat
     case VEC4uiv:
     case VEC4fv:
     case VEC4dv: elemsPerVec = 4; break;
-    default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformVector: %d", Type);
+    default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformVector: %d", type);
   }
 
-  switch(Type)
+  switch(type)
   {
+    case VEC1iv:
+    case VEC2iv:
+    case VEC3iv:
+    case VEC4iv: elemBaseType = SDBasic::SignedInteger; break;
+    case VEC1uiv:
+    case VEC2uiv:
+    case VEC3uiv:
+    case VEC4uiv: elemBaseType = SDBasic::UnsignedInteger; break;
     case VEC1dv:
     case VEC2dv:
     case VEC3dv:
-    case VEC4dv: elemSize = sizeof(double);
+    case VEC4dv: elemSize = sizeof(double); break;
     default: break;
   }
-
-  size_t totalSize = elemSize * elemsPerVec * Count;
-  if(m_State >= WRITING)
-    m_pSerialiser->RawWriteBytes(value, totalSize);
-  else if(m_State <= EXECUTING)
-    value = m_pSerialiser->RawReadBytes(totalSize);
 
   union
   {
@@ -83,117 +93,86 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint locat
     double *d;
   } v;
 
-  v.alloc = new byte[totalSize];
+  if(ser.IsReading())
+    v.alloc = new byte[elemSize * elemsPerVec * count];
+  else
+    v.alloc = (byte *)value;
 
-  // Copy the pointer first to guarantee alignment, which is needed on ARM.
-  memcpy(v.d, value, totalSize);
+  uint32_t arrayLength = uint32_t(elemsPerVec * count);
 
-  if(m_State <= EXECUTING)
+  // we don't want to allocate since we've already handled that
+  if(elemBaseType == SDBasic::Float && elemSize == sizeof(float))
+    ser.Serialise("values", v.f, arrayLength, SerialiserFlags::NoFlags);
+  else if(elemBaseType == SDBasic::Float)
+    ser.Serialise("values", v.d, arrayLength, SerialiserFlags::NoFlags);
+  else if(elemBaseType == SDBasic::SignedInteger)
+    ser.Serialise("values", v.i, arrayLength, SerialiserFlags::NoFlags);
+  else if(elemBaseType == SDBasic::UnsignedInteger)
+    ser.Serialise("values", v.u, arrayLength, SerialiserFlags::NoFlags);
+
+  if(IsReplayingAndReading() && Program.name)
   {
-    if(GetResourceManager()->HasLiveResource(id))
+    ResourceId liveProgId = GetResourceManager()->GetID(Program);
+    GLuint live = Program.name;
+
+    std::map<GLint, GLint> &translate = m_Programs[liveProgId].locationTranslate;
+    if(translate.find(location) != translate.end())
+      location = translate[location];
+    else
+      location = -1;
+
+    if(location >= 0)
     {
-      ResourceId liveProgId = GetResourceManager()->GetLiveID(id);
-      GLuint live = GetResourceManager()->GetLiveResource(id).name;
-
-      map<GLint, GLint> &translate = m_Programs[liveProgId].locationTranslate;
-      if(translate.find(Loc) != translate.end())
-        Loc = translate[Loc];
-      else
-        Loc = -1;
-
-      if(Loc >= 0)
+      switch(type)
       {
-        switch(Type)
-        {
-          case VEC1iv: m_Real.glProgramUniform1iv(live, Loc, Count, v.i); break;
-          case VEC1uiv: m_Real.glProgramUniform1uiv(live, Loc, Count, v.u); break;
-          case VEC1fv: m_Real.glProgramUniform1fv(live, Loc, Count, v.f); break;
-          case VEC1dv: m_Real.glProgramUniform1dv(live, Loc, Count, v.d); break;
-          case VEC2iv: m_Real.glProgramUniform2iv(live, Loc, Count, v.i); break;
-          case VEC2uiv: m_Real.glProgramUniform2uiv(live, Loc, Count, v.u); break;
-          case VEC2fv: m_Real.glProgramUniform2fv(live, Loc, Count, v.f); break;
-          case VEC2dv: m_Real.glProgramUniform2dv(live, Loc, Count, v.d); break;
-          case VEC3iv: m_Real.glProgramUniform3iv(live, Loc, Count, v.i); break;
-          case VEC3uiv: m_Real.glProgramUniform3uiv(live, Loc, Count, v.u); break;
-          case VEC3fv: m_Real.glProgramUniform3fv(live, Loc, Count, v.f); break;
-          case VEC3dv: m_Real.glProgramUniform3dv(live, Loc, Count, v.d); break;
-          case VEC4iv: m_Real.glProgramUniform4iv(live, Loc, Count, v.i); break;
-          case VEC4uiv: m_Real.glProgramUniform4uiv(live, Loc, Count, v.u); break;
-          case VEC4fv: m_Real.glProgramUniform4fv(live, Loc, Count, v.f); break;
-          case VEC4dv: m_Real.glProgramUniform4dv(live, Loc, Count, v.d); break;
-          default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformVector: %d", Type);
-        }
+        case VEC1iv: m_Real.glProgramUniform1iv(live, location, count, v.i); break;
+        case VEC1uiv: m_Real.glProgramUniform1uiv(live, location, count, v.u); break;
+        case VEC1fv: m_Real.glProgramUniform1fv(live, location, count, v.f); break;
+        case VEC1dv: m_Real.glProgramUniform1dv(live, location, count, v.d); break;
+        case VEC2iv: m_Real.glProgramUniform2iv(live, location, count, v.i); break;
+        case VEC2uiv: m_Real.glProgramUniform2uiv(live, location, count, v.u); break;
+        case VEC2fv: m_Real.glProgramUniform2fv(live, location, count, v.f); break;
+        case VEC2dv: m_Real.glProgramUniform2dv(live, location, count, v.d); break;
+        case VEC3iv: m_Real.glProgramUniform3iv(live, location, count, v.i); break;
+        case VEC3uiv: m_Real.glProgramUniform3uiv(live, location, count, v.u); break;
+        case VEC3fv: m_Real.glProgramUniform3fv(live, location, count, v.f); break;
+        case VEC3dv: m_Real.glProgramUniform3dv(live, location, count, v.d); break;
+        case VEC4iv: m_Real.glProgramUniform4iv(live, location, count, v.i); break;
+        case VEC4uiv: m_Real.glProgramUniform4uiv(live, location, count, v.u); break;
+        case VEC4fv: m_Real.glProgramUniform4fv(live, location, count, v.f); break;
+        case VEC4dv: m_Real.glProgramUniform4dv(live, location, count, v.d); break;
+        default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformVector: %d", type);
       }
     }
   }
 
-  if(m_pSerialiser->GetDebugText())
-  {
-    switch(Type)
-    {
-      case VEC1fv: m_pSerialiser->DebugPrint("value: {%f}\n", v.f[0]); break;
-      case VEC1iv: m_pSerialiser->DebugPrint("value: {%d}\n", v.i[0]); break;
-      case VEC1uiv: m_pSerialiser->DebugPrint("value: {%u}\n", v.u[0]); break;
-      case VEC1dv: m_pSerialiser->DebugPrint("value: {%f}\n", (float)v.d[0]); break;
-
-      case VEC2fv: m_pSerialiser->DebugPrint("value: {%f, %f}\n", v.f[0], v.f[1]); break;
-      case VEC2iv: m_pSerialiser->DebugPrint("value: {%d, %d}\n", v.i[0], v.i[1]); break;
-      case VEC2uiv: m_pSerialiser->DebugPrint("value: {%u, %u}\n", v.u[0], v.u[1]); break;
-      case VEC2dv:
-        m_pSerialiser->DebugPrint("value: {%f, %f}\n", (float)v.d[0], (float)v.d[1]);
-        break;
-
-      case VEC3fv:
-        m_pSerialiser->DebugPrint("value: {%f, %f, %f}\n", v.f[0], v.f[1], v.f[2]);
-        break;
-      case VEC3iv:
-        m_pSerialiser->DebugPrint("value: {%d, %d, %d}\n", v.i[0], v.i[1], v.i[2]);
-        break;
-      case VEC3uiv:
-        m_pSerialiser->DebugPrint("value: {%u, %u, %u}\n", v.u[0], v.u[1], v.u[2]);
-        break;
-      case VEC3dv:
-        m_pSerialiser->DebugPrint("value: {%f, %f, %f}\n", (float)v.d[0], (float)v.d[1],
-                                  (float)v.d[2]);
-        break;
-
-      case VEC4fv:
-        m_pSerialiser->DebugPrint("value: {%f, %f, %f, %f}\n", v.f[0], v.f[1], v.f[2], v.f[3]);
-        break;
-      case VEC4iv:
-        m_pSerialiser->DebugPrint("value: {%d, %d, %d, %d}\n", v.i[0], v.i[1], v.i[2], v.i[3]);
-        break;
-      case VEC4uiv:
-        m_pSerialiser->DebugPrint("value: {%u, %u, %u, %u}\n", v.u[0], v.u[1], v.u[2], v.u[3]);
-        break;
-      case VEC4dv:
-        m_pSerialiser->DebugPrint("value: {%f, %f, %f, %f}\n", (float)v.d[0], (float)v.d[1],
-                                  (float)v.d[2], (float)v.d[3]);
-        break;
-
-      default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformVector: %d", Type);
-    }
-  }
-
-  delete[] v.alloc;
+  if(ser.IsReading())
+    delete[] v.alloc;
 
   return true;
 }
 
-bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint location, GLsizei count,
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glProgramUniformMatrix(SerialiserType &ser, GLuint program,
+                                                     GLint location, GLsizei count,
                                                      GLboolean transpose, const void *value,
                                                      UniformType type)
 {
-  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
-  SERIALISE_ELEMENT(UniformType, Type, type);
-  SERIALISE_ELEMENT(int32_t, Loc, location);
-  SERIALISE_ELEMENT(uint32_t, Count, count);
-  SERIALISE_ELEMENT(uint8_t, Transpose, transpose);
+  SERIALISE_ELEMENT_LOCAL(Program, ProgramRes(GetCtx(), program));
+  SERIALISE_ELEMENT(location);
+  SERIALISE_ELEMENT_TYPED(bool, transpose);
+
+  // this is used to share serialisation code amongst the brazillion variations
+  SERIALISE_ELEMENT(type).Hidden();
+
+  // not all variants technically have a count, so this will come through as a fixed value of 1.
+  // It showing up even for those functions is a concession to sanity...
+  SERIALISE_ELEMENT(count);
 
   size_t elemsPerMat = 0;
   size_t elemSize = sizeof(float);
 
-  switch(Type)
+  switch(type)
   {
     case MAT2fv:
     case MAT2dv: elemsPerMat = 2 * 2; break;
@@ -213,12 +192,10 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
     case MAT4x3dv: elemsPerMat = 3 * 4; break;
     case MAT4fv:
     case MAT4dv: elemsPerMat = 4 * 4; break;
-    default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformMatrix: %d", Type);
+    default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformMatrix: %d", type);
   }
 
-  bool isDouble = false;
-
-  switch(Type)
+  switch(type)
   {
     case MAT2dv:
     case MAT2x3dv:
@@ -228,18 +205,9 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
     case MAT3x4dv:
     case MAT4dv:
     case MAT4x2dv:
-    case MAT4x3dv:
-      elemSize = sizeof(double);
-      isDouble = true;
-      break;
+    case MAT4x3dv: elemSize = sizeof(double); break;
     default: break;
   }
-
-  size_t totalSize = elemSize * elemsPerMat * Count;
-  if(m_State >= WRITING)
-    m_pSerialiser->RawWriteBytes(value, totalSize);
-  else if(m_State <= EXECUTING)
-    value = m_pSerialiser->RawReadBytes(totalSize);
 
   union
   {
@@ -248,89 +216,113 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
     double *d;
   } v;
 
-  v.alloc = new byte[totalSize];
+  if(ser.IsReading())
+    v.alloc = new byte[elemSize * elemsPerMat * count];
+  else
+    v.alloc = (byte *)value;
 
-  memcpy(v.d, value, totalSize);
+  uint32_t arrayLength = uint32_t(elemsPerMat * count);
 
-  if(m_State <= EXECUTING)
+  // we don't want to allocate since we've already handled that
+  if(elemSize == sizeof(float))
+    ser.Serialise("values", v.f, arrayLength, SerialiserFlags::NoFlags);
+  else
+    ser.Serialise("values", v.d, arrayLength, SerialiserFlags::NoFlags);
+
+  if(IsReplayingAndReading() && Program.name)
   {
-    if(GetResourceManager()->HasLiveResource(id))
+    ResourceId liveProgId = GetResourceManager()->GetID(Program);
+    GLuint live = Program.name;
+
+    std::map<GLint, GLint> &translate = m_Programs[liveProgId].locationTranslate;
+    if(translate.find(location) != translate.end())
+      location = translate[location];
+    else
+      location = -1;
+
+    if(location >= 0)
     {
-      ResourceId liveProgId = GetResourceManager()->GetLiveID(id);
-      GLuint live = GetResourceManager()->GetLiveResource(id).name;
-
-      map<GLint, GLint> &translate = m_Programs[liveProgId].locationTranslate;
-      if(translate.find(Loc) != translate.end())
-        Loc = translate[Loc];
-      else
-        Loc = -1;
-
-      if(Loc >= 0)
+      switch(type)
       {
-        switch(Type)
-        {
-          case MAT2fv: m_Real.glProgramUniformMatrix2fv(live, Loc, Count, Transpose, v.f); break;
-          case MAT2x3fv:
-            m_Real.glProgramUniformMatrix2x3fv(live, Loc, Count, Transpose, v.f);
-            break;
-          case MAT2x4fv:
-            m_Real.glProgramUniformMatrix2x4fv(live, Loc, Count, Transpose, v.f);
-            break;
-          case MAT3fv: m_Real.glProgramUniformMatrix3fv(live, Loc, Count, Transpose, v.f); break;
-          case MAT3x2fv:
-            m_Real.glProgramUniformMatrix3x2fv(live, Loc, Count, Transpose, v.f);
-            break;
-          case MAT3x4fv:
-            m_Real.glProgramUniformMatrix3x4fv(live, Loc, Count, Transpose, v.f);
-            break;
-          case MAT4fv: m_Real.glProgramUniformMatrix4fv(live, Loc, Count, Transpose, v.f); break;
-          case MAT4x2fv:
-            m_Real.glProgramUniformMatrix4x2fv(live, Loc, Count, Transpose, v.f);
-            break;
-          case MAT4x3fv:
-            m_Real.glProgramUniformMatrix4x3fv(live, Loc, Count, Transpose, v.f);
-            break;
-          case MAT2dv: m_Real.glProgramUniformMatrix2dv(live, Loc, Count, Transpose, v.d); break;
-          case MAT2x3dv:
-            m_Real.glProgramUniformMatrix2x3dv(live, Loc, Count, Transpose, v.d);
-            break;
-          case MAT2x4dv:
-            m_Real.glProgramUniformMatrix2x4dv(live, Loc, Count, Transpose, v.d);
-            break;
-          case MAT3dv: m_Real.glProgramUniformMatrix3dv(live, Loc, Count, Transpose, v.d); break;
-          case MAT3x2dv:
-            m_Real.glProgramUniformMatrix3x2dv(live, Loc, Count, Transpose, v.d);
-            break;
-          case MAT3x4dv:
-            m_Real.glProgramUniformMatrix3x4dv(live, Loc, Count, Transpose, v.d);
-            break;
-          case MAT4dv: m_Real.glProgramUniformMatrix4dv(live, Loc, Count, Transpose, v.d); break;
-          case MAT4x2dv:
-            m_Real.glProgramUniformMatrix4x2dv(live, Loc, Count, Transpose, v.d);
-            break;
-          case MAT4x3dv:
-            m_Real.glProgramUniformMatrix4x3dv(live, Loc, Count, Transpose, v.d);
-            break;
-          default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformMatrix: %d", Type);
-        }
+        case MAT2fv:
+          m_Real.glProgramUniformMatrix2fv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                           v.f);
+          break;
+        case MAT2x3fv:
+          m_Real.glProgramUniformMatrix2x3fv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                             v.f);
+          break;
+        case MAT2x4fv:
+          m_Real.glProgramUniformMatrix2x4fv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                             v.f);
+          break;
+        case MAT3fv:
+          m_Real.glProgramUniformMatrix3fv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                           v.f);
+          break;
+        case MAT3x2fv:
+          m_Real.glProgramUniformMatrix3x2fv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                             v.f);
+          break;
+        case MAT3x4fv:
+          m_Real.glProgramUniformMatrix3x4fv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                             v.f);
+          break;
+        case MAT4fv:
+          m_Real.glProgramUniformMatrix4fv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                           v.f);
+          break;
+        case MAT4x2fv:
+          m_Real.glProgramUniformMatrix4x2fv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                             v.f);
+          break;
+        case MAT4x3fv:
+          m_Real.glProgramUniformMatrix4x3fv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                             v.f);
+          break;
+        case MAT2dv:
+          m_Real.glProgramUniformMatrix2dv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                           v.d);
+          break;
+        case MAT2x3dv:
+          m_Real.glProgramUniformMatrix2x3dv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                             v.d);
+          break;
+        case MAT2x4dv:
+          m_Real.glProgramUniformMatrix2x4dv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                             v.d);
+          break;
+        case MAT3dv:
+          m_Real.glProgramUniformMatrix3dv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                           v.d);
+          break;
+        case MAT3x2dv:
+          m_Real.glProgramUniformMatrix3x2dv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                             v.d);
+          break;
+        case MAT3x4dv:
+          m_Real.glProgramUniformMatrix3x4dv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                             v.d);
+          break;
+        case MAT4dv:
+          m_Real.glProgramUniformMatrix4dv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                           v.d);
+          break;
+        case MAT4x2dv:
+          m_Real.glProgramUniformMatrix4x2dv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                             v.d);
+          break;
+        case MAT4x3dv:
+          m_Real.glProgramUniformMatrix4x3dv(live, location, count, transpose ? GL_TRUE : GL_FALSE,
+                                             v.d);
+          break;
+        default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformMatrix: %d", type);
       }
     }
   }
 
-  if(m_pSerialiser->GetDebugText())
-  {
-    m_pSerialiser->DebugPrint("value: {");
-    for(size_t i = 0; i < elemsPerMat; i++)
-    {
-      if(i == 0)
-        m_pSerialiser->DebugPrint("%f", isDouble ? (float)v.d[i] : v.f[i]);
-      else
-        m_pSerialiser->DebugPrint(", %f", isDouble ? (float)v.d[i] : v.f[i]);
-    }
-    m_pSerialiser->DebugPrint("}\n");
-  }
-
-  delete[] v.alloc;
+  if(ser.IsReading())
+    delete[] v.alloc;
 
   return true;
 }
@@ -342,15 +334,16 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
   {                                                                                    \
     m_Real.CONCAT(CONCAT(FUNCNAME, count), suffix)(FUNCARGPASS, ARRAYLIST);            \
                                                                                        \
-    if(m_State == WRITING_CAPFRAME)                                                    \
+    if(IsActiveCapturing(m_State))                                                     \
     {                                                                                  \
-      SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR);                                 \
+      USE_SCRATCH_SERIALISER();                                                        \
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                             \
       const paramtype vals[] = {ARRAYLIST};                                            \
-      Serialise_glProgramUniformVector(PROGRAM, location, 1, vals,                     \
+      Serialise_glProgramUniformVector(ser, PROGRAM, location, 1, vals,                \
                                        CONCAT(CONCAT(VEC, count), CONCAT(suffix, v))); \
       m_ContextRecord->AddChunk(scope.Get());                                          \
     }                                                                                  \
-    else if(m_State == WRITING_IDLE)                                                   \
+    else if(IsBackgroundCapturing(m_State))                                            \
     {                                                                                  \
       GetResourceManager()->MarkDirtyResource(ProgramRes(GetCtx(), PROGRAM));          \
     }                                                                                  \
@@ -444,14 +437,15 @@ UNIFORM_FUNC(4, d, GLdouble, GLdouble v0, GLdouble v1, GLdouble v2, GLdouble v3)
   {                                                                                          \
     m_Real.CONCAT(CONCAT(FUNCNAME, unicount), CONCAT(suffix, v))(FUNCARGPASS, count, value); \
                                                                                              \
-    if(m_State == WRITING_CAPFRAME)                                                          \
+    if(IsActiveCapturing(m_State))                                                           \
     {                                                                                        \
-      SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR);                                       \
-      Serialise_glProgramUniformVector(PROGRAM, location, count, value,                      \
+      USE_SCRATCH_SERIALISER();                                                              \
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                                   \
+      Serialise_glProgramUniformVector(ser, PROGRAM, location, count, value,                 \
                                        CONCAT(CONCAT(VEC, unicount), CONCAT(suffix, v)));    \
       m_ContextRecord->AddChunk(scope.Get());                                                \
     }                                                                                        \
-    else if(m_State == WRITING_IDLE)                                                         \
+    else if(IsBackgroundCapturing(m_State))                                                  \
     {                                                                                        \
       GetResourceManager()->MarkDirtyResource(ProgramRes(GetCtx(), PROGRAM));                \
     }                                                                                        \
@@ -524,14 +518,15 @@ UNIFORM_FUNC(4, d, GLdouble)
   {                                                                                     \
     m_Real.CONCAT(CONCAT(FUNCNAME, dim), suffix)(FUNCARGPASS, count, transpose, value); \
                                                                                         \
-    if(m_State == WRITING_CAPFRAME)                                                     \
+    if(IsActiveCapturing(m_State))                                                      \
     {                                                                                   \
-      SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_MATRIX);                                  \
-      Serialise_glProgramUniformMatrix(PROGRAM, location, count, transpose, value,      \
+      USE_SCRATCH_SERIALISER();                                                         \
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                              \
+      Serialise_glProgramUniformMatrix(ser, PROGRAM, location, count, transpose, value, \
                                        CONCAT(CONCAT(MAT, dim), suffix));               \
       m_ContextRecord->AddChunk(scope.Get());                                           \
     }                                                                                   \
-    else if(m_State == WRITING_IDLE)                                                    \
+    else if(IsBackgroundCapturing(m_State))                                             \
     {                                                                                   \
       GetResourceManager()->MarkDirtyResource(ProgramRes(GetCtx(), PROGRAM));           \
     }                                                                                   \
@@ -594,3 +589,9 @@ UNIFORM_FUNC(3x4, dv, GLdouble)
 UNIFORM_FUNC(4, dv, GLdouble)
 UNIFORM_FUNC(4x2, dv, GLdouble)
 UNIFORM_FUNC(4x3, dv, GLdouble)
+
+INSTANTIATE_FUNCTION_SERIALISED(void, glProgramUniformVector, GLuint program, GLint location,
+                                GLsizei count, const void *value, UniformType type);
+INSTANTIATE_FUNCTION_SERIALISED(void, glProgramUniformMatrix, GLuint program, GLint location,
+                                GLsizei count, GLboolean transpose, const void *value,
+                                UniformType type);
