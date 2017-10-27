@@ -309,7 +309,7 @@ public:
   {
     if(m_GLDriver == NULL)
     {
-      m_GLDriver = new WrappedOpenGL("", GL, *this);
+      m_GLDriver = new WrappedOpenGL(GL, *this);
       m_GLDriver->SetDriverType(RDC_OpenGLES);
     }
 
