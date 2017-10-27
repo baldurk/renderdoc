@@ -31,11 +31,14 @@
 #include "jpeg-compressor/jpge.h"
 #include "maths/matrix.h"
 #include "maths/vec.h"
+#include "serialise/rdcfile.h"
 #include "stb/stb_truetype.h"
 #include "strings/string_utils.h"
 
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"
+
+std::map<uint64_t, GLWindowingData> WrappedOpenGL::m_ActiveContexts;
 
 const int firstChar = int(' ') + 1;
 const int lastChar = 127;
@@ -487,7 +490,9 @@ void WrappedOpenGL::BuildGLESExtensions()
 }
 
 WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
-    : m_Real(funcs), m_Platform(platform)
+    : m_Real(funcs),
+      m_Platform(platform),
+      m_ScratchSerialiser(new StreamWriter(1024), Ownership::Stream)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedOpenGL));
@@ -498,6 +503,17 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
   SetDriverType(RDC_OpenGL);
 
   m_Replay.SetDriver(this);
+
+  m_StructuredFile = &m_StoredStructuredData;
+
+  uint32_t flags = 0;
+
+  if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
+    flags |= WriteSerialiser::ChunkCallstack;
+
+  m_ScratchSerialiser.SetChunkMetadataRecording(flags);
+
+  m_SectionVersion = GLInitParams::CurrentVersion;
 
   m_FrameCounter = 0;
   m_NoCtxFrames = 0;
@@ -528,16 +544,7 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
 
   if(RenderDoc::Inst().IsReplayApp())
   {
-    m_State = READING;
-    if(logfile)
-    {
-      m_pSerialiser = new Serialiser(logfile, Serialiser::READING, false);
-    }
-    else
-    {
-      byte dummy[4];
-      m_pSerialiser = new Serialiser(4, dummy, false);
-    }
+    m_State = CaptureState::LoadingReplaying;
 
     GLMarkerRegion::gl = &m_Real;
 
@@ -552,13 +559,14 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
   }
   else
   {
-    m_State = WRITING_IDLE;
-    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, false);
+    m_State = CaptureState::BackgroundCapturing;
   }
 
   m_DeviceRecord = NULL;
 
-  m_ResourceManager = new GLResourceManager(m_State, m_pSerialiser, this);
+  m_ResourceManager = new GLResourceManager(this);
+
+  m_ScratchSerialiser.SetUserData(GetResourceManager());
 
   m_DeviceResourceID =
       GetResourceManager()->RegisterResource(GLResource(NULL, eResSpecial, eSpecialResDevice));
@@ -601,25 +609,15 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
 
   m_CurChunkOffset = 0;
   m_AddedDrawcall = false;
-
-  RDCDEBUG("Debug Text enabled - for development! remove before release!");
-  m_pSerialiser->SetDebugText(true);
-
-  m_pSerialiser->SetChunkNameLookup(&GetChunkName);
-
-  //////////////////////////////////////////////////////////////////////////
-  // Compile time asserts
-
-  RDCCOMPILE_ASSERT(ARRAY_COUNT(GLChunkNames) == NUM_OPENGL_CHUNKS - FIRST_CHUNK_ID,
-                    "Not right number of chunk names");
 }
 
-void WrappedOpenGL::Initialise(GLInitParams &params)
+void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion)
 {
   // deliberately want to go through our own wrappers to set up e.g. m_Textures members
   WrappedOpenGL &gl = *this;
 
   m_InitParams = params;
+  m_SectionVersion = sectionVersion;
 
   // as a concession to compatibility, generate a 'fake' VBO to act as VBO 0.
   // consider making it an error/warning for programs to use this?
@@ -743,25 +741,12 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
   }
 }
 
-const char *WrappedOpenGL::GetChunkName(uint32_t idx)
+std::string WrappedOpenGL::GetChunkName(uint32_t idx)
 {
-  if(idx == CREATE_PARAMS)
-    return "Create Params";
-  if(idx == THUMBNAIL_DATA)
-    return "Thumbnail Data";
-  if(idx == DRIVER_INIT_PARAMS)
-    return "Driver Init Params";
-  if(idx == INITIAL_CONTENTS)
-    return "Initial Contents";
-  if(idx < FIRST_CHUNK_ID || idx >= NUM_OPENGL_CHUNKS)
-    return "<unknown>";
-  return GLChunkNames[idx - FIRST_CHUNK_ID];
-}
+  if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
+    return ToStr((SystemChunk)idx);
 
-template <>
-std::string DoStringise(const GLChunkType &el)
-{
-  return WrappedOpenGL::GetChunkName(el);
+  return ToStr((GLChunk)idx);
 }
 
 WrappedOpenGL::~WrappedOpenGL()
@@ -775,7 +760,7 @@ WrappedOpenGL::~WrappedOpenGL()
   if(m_FakeBB_DepthStencil)
     m_Real.glDeleteTextures(1, &m_FakeBB_DepthStencil);
 
-  SAFE_DELETE(m_pSerialiser);
+  SAFE_DELETE(m_FrameReader);
 
   GetResourceManager()->ReleaseCurrentResource(m_DeviceResourceID);
   GetResourceManager()->ReleaseCurrentResource(m_ContextResourceID);
@@ -1116,7 +1101,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
   if(winData.ctx)
   {
     // if we're capturing, we need to serialise out the changed state vector
-    if(m_State == WRITING_CAPFRAME)
+    if(IsActiveCapturing(m_State))
     {
       // fetch any initial states needed. Note this is insufficient, and doesn't handle the case
       // where
@@ -1132,8 +1117,9 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         it = m_QueuedInitialFetches.erase(it);
       }
 
-      SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_HEADER);
-      Serialise_BeginCaptureFrame(false);
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(GLChunk::CaptureBegin);
+      Serialise_BeginCaptureFrame(ser);
       m_ContextRecord->AddChunk(scope.Get());
     }
 
@@ -1224,7 +1210,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         }
       }
 
-      if(m_State >= WRITING)
+      if(IsCaptureMode(m_State))
       {
         GLuint prevArrayBuffer = 0;
         glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&prevArrayBuffer);
@@ -2042,7 +2028,7 @@ void WrappedOpenGL::FreeTargetResource(ResourceId id)
 
 void WrappedOpenGL::SwapBuffers(void *windowHandle)
 {
-  if(m_State == WRITING_IDLE)
+  if(IsBackgroundCapturing(m_State))
     RenderDoc::Inst().Tick();
 
   // don't do anything if no context is active.
@@ -2116,7 +2102,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
     }
   }
 
-  if(m_State == WRITING_IDLE)
+  if(IsBackgroundCapturing(m_State))
   {
     uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
@@ -2169,7 +2155,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
     }
   }
 
-  if(m_State == WRITING_CAPFRAME && m_AppControlledCapture)
+  if(IsActiveCapturing(m_State) && m_AppControlledCapture)
     m_BackbufferImages[windowHandle] = SaveBackbufferImage();
 
   if(!activeWindow)
@@ -2182,10 +2168,10 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
     return;
 
   // kill any current capture that isn't application defined
-  if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
+  if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
     RenderDoc::Inst().EndFrameCapture(ctxdata.ctx, windowHandle);
 
-  if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
+  if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && IsBackgroundCapturing(m_State))
   {
     RenderDoc::Inst().StartFrameCapture(ctxdata.ctx, windowHandle);
 
@@ -2199,22 +2185,28 @@ void WrappedOpenGL::CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType, 
   GLResource res = TextureRes(GetCtx(), tex);
   ResourceId id = GetResourceManager()->RegisterResource(res);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
-    Chunk *chunk = NULL;
-
-    {
-      SCOPED_SERIALISE_CONTEXT(GEN_TEXTURE);
-      Serialise_glGenTextures(1, &tex);
-
-      chunk = scope.Get();
-    }
-
     GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
     RDCASSERT(record);
 
-    record->AddChunk(chunk);
+    // this chunk is just a dummy, to indicate that this is where the emulated calls below come from
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
 
+      record->AddChunk(scope.Get());
+    }
+
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(GLChunk::glGenTextures);
+      Serialise_glGenTextures(ser, 1, &tex);
+
+      record->AddChunk(scope.Get());
+    }
+
+    gl_CurChunk = GLChunk::glTexParameteri;
     Common_glTextureParameteriEXT(record, textureType, eGL_TEXTURE_MAX_LEVEL, levels);
   }
   else
@@ -2226,11 +2218,13 @@ void WrappedOpenGL::CreateVRAPITextureSwapChain(GLuint tex, GLenum textureType, 
   {
     if(textureType == eGL_TEXTURE_2D_ARRAY)
     {
+      gl_CurChunk = GLChunk::glTexImage3D;
       Common_glTextureImage3DEXT(id, eGL_TEXTURE_2D_ARRAY, i, internalformat, width, height, 2, 0,
                                  eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
     }
     else if(textureType == eGL_TEXTURE_2D)
     {
+      gl_CurChunk = GLChunk::glTexImage2D;
       Common_glTextureImage2DEXT(id, eGL_TEXTURE_2D, i, internalformat, width, height, 0, eGL_RGBA,
                                  eGL_UNSIGNED_BYTE, NULL);
     }
@@ -2284,14 +2278,14 @@ void WrappedOpenGL::MakeValidContextCurrent(GLWindowingData &prevctx, void *favo
 
 void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 {
-  if(m_State != WRITING_IDLE)
+  if(!IsBackgroundCapturing(m_State))
     return;
 
   SCOPED_LOCK(GetGLLock());
 
   RenderDoc::Inst().SetCurrentDriver(GetDriverType());
 
-  m_State = WRITING_CAPFRAME;
+  m_State = CaptureState::ActiveCapturing;
 
   m_AppControlledCapture = true;
 
@@ -2342,7 +2336,7 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 
 bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 {
-  if(m_State != WRITING_CAPFRAME)
+  if(!IsActiveCapturing(m_State))
     return true;
 
   SCOPED_LOCK(GetGLLock());
@@ -2384,8 +2378,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     if(bbim == NULL)
       bbim = SaveBackbufferImage();
 
-    Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(
-        m_FrameCounter, &m_InitParams, bbim->jpgbuf, bbim->len, bbim->thwidth, bbim->thheight);
+    RDCFile *rdc = RenderDoc::Inst().CreateRDC(m_FrameCounter, bbim->jpgbuf, bbim->len,
+                                               bbim->thwidth, bbim->thheight);
 
     SAFE_DELETE(bbim);
 
@@ -2393,56 +2387,80 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       delete it->second;
     m_BackbufferImages.clear();
 
+    StreamWriter *captureWriter = NULL;
+
+    if(rdc)
     {
-      SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
+      SectionProperties props;
 
-      SERIALISE_ELEMENT(ResourceId, immContextId, m_ContextResourceID);
-      SERIALISE_ELEMENT(ResourceId, vaoId, m_FakeVAOID);
+      // Compress with LZ4 so that it's fast
+      props.flags = SectionFlags::LZ4Compressed;
+      props.version = m_SectionVersion;
+      props.type = SectionType::FrameCapture;
 
-      m_pFileSerialiser->Insert(scope.Get(true));
+      captureWriter = rdc->WriteSection(props);
     }
-
-    RDCDEBUG("Inserting Resource Serialisers");
-
-    GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
-
-    GetResourceManager()->InsertInitialContentsChunks(m_pFileSerialiser);
-
-    RDCDEBUG("Creating Capture Scope");
-
+    else
     {
-      SCOPED_SERIALISE_CONTEXT(CAPTURE_SCOPE);
-
-      Serialise_CaptureScope(0);
-
-      m_pFileSerialiser->Insert(scope.Get(true));
+      captureWriter = new StreamWriter(StreamWriter::InvalidStream);
     }
 
     {
-      RDCDEBUG("Getting Resource Record");
+      WriteSerialiser ser(captureWriter, Ownership::Stream);
 
-      GLResourceRecord *record = m_ResourceManager->GetResourceRecord(m_ContextResourceID);
+      ser.SetUserData(GetResourceManager());
 
-      RDCDEBUG("Accumulating context resource list");
+      {
+        SCOPED_SERIALISE_CHUNK(SystemChunk::DriverInit, sizeof(GLInitParams) + 16);
 
-      map<int32_t, Chunk *> recordlist;
-      record->Insert(recordlist);
+        SERIALISE_ELEMENT(m_InitParams);
+      }
 
-      RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());
+      {
+        // remember to update this estimated chunk length if you add more parameters
+        SCOPED_SERIALISE_CHUNK(GLChunk::DeviceInitialisation, 32);
 
-      for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
-        m_pFileSerialiser->Insert(it->second);
+        SERIALISE_ELEMENT(m_FakeVAOID);
+      }
 
-      RDCDEBUG("Done");
+      RDCDEBUG("Inserting Resource Serialisers");
+
+      GetResourceManager()->InsertReferencedChunks(ser);
+
+      GetResourceManager()->InsertInitialContentsChunks(ser);
+
+      RDCDEBUG("Creating Capture Scope");
+
+      GetResourceManager()->Serialise_InitialContentsNeeded(ser);
+
+      {
+        SCOPED_SERIALISE_CHUNK(GLChunk::CaptureScope, 16);
+
+        Serialise_CaptureScope(ser);
+      }
+
+      {
+        RDCDEBUG("Getting Resource Record");
+
+        GLResourceRecord *record = m_ResourceManager->GetResourceRecord(m_ContextResourceID);
+
+        RDCDEBUG("Accumulating context resource list");
+
+        map<int32_t, Chunk *> recordlist;
+        record->Insert(recordlist);
+
+        RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());
+
+        for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
+          it->second->Write(ser);
+
+        RDCDEBUG("Done");
+      }
     }
 
-    m_pFileSerialiser->FlushToDisk();
+    RenderDoc::Inst().FinishCaptureWriting(rdc, m_FrameCounter);
 
-    RenderDoc::Inst().SuccessfullyWrittenLog(m_FrameCounter);
-
-    SAFE_DELETE(m_pFileSerialiser);
-
-    m_State = WRITING_IDLE;
+    m_State = CaptureState::BackgroundCapturing;
 
     GetResourceManager()->MarkUnwrittenResources();
 
@@ -2509,7 +2527,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       m_FailedFrame = m_FrameCounter;
       m_FailedReason = reason;
 
-      m_State = WRITING_IDLE;
+      m_State = CaptureState::BackgroundCapturing;
 
       GetResourceManager()->MarkUnwrittenResources();
     }
@@ -2535,7 +2553,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 void WrappedOpenGL::FirstFrame(void *ctx, void *wndHandle)
 {
   // if we have to capture the first frame, begin capturing immediately
-  if(m_FrameCounter == 0 && m_State == WRITING_IDLE && RenderDoc::Inst().ShouldTriggerCapture(0))
+  if(m_FrameCounter == 0 && IsBackgroundCapturing(m_State) &&
+     RenderDoc::Inst().ShouldTriggerCapture(0))
   {
     // since we haven't associated the window we can't capture by window, so we have to capture just
     // on the device - the very next present to any window on this context will end the capture.
@@ -2547,11 +2566,11 @@ void WrappedOpenGL::FirstFrame(void *ctx, void *wndHandle)
 
 WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
 {
-  const uint32_t maxSize = 2048;
+  const uint16_t maxSize = 2048;
 
   byte *thpixels = NULL;
-  uint32_t thwidth = 0;
-  uint32_t thheight = 0;
+  uint16_t thwidth = 0;
+  uint16_t thheight = 0;
 
   if(m_Real.glGetIntegerv && m_Real.glReadBuffer && m_Real.glBindFramebuffer &&
      m_Real.glBindBuffer && m_Real.glReadPixels)
@@ -2579,8 +2598,8 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
     m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, 0);
     m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
 
-    thwidth = m_InitParams.width;
-    thheight = m_InitParams.height;
+    thwidth = (uint16_t)m_InitParams.width;
+    thheight = (uint16_t)m_InitParams.height;
 
     thpixels = new byte[thwidth * thheight * 4];
 
@@ -2599,11 +2618,11 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
     }
 
     // flip the image in-place
-    for(uint32_t y = 0; y <= thheight / 2; y++)
+    for(uint16_t y = 0; y <= thheight / 2; y++)
     {
-      uint32_t flipY = (thheight - 1 - y);
+      uint16_t flipY = (thheight - 1 - y);
 
-      for(uint32_t x = 0; x < thwidth; x++)
+      for(uint16_t x = 0; x < thwidth; x++)
       {
         byte save[3];
         save[0] = thpixels[(y * thwidth + x) * 3 + 0];
@@ -2629,7 +2648,7 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
     m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, prevPackAlignment);
 
     // scale down if necessary using simple point sampling
-    uint32_t resample_width = RDCMIN(maxSize, thwidth);
+    uint16_t resample_width = RDCMIN(maxSize, thwidth);
     resample_width &= ~3;    // JPEG encoder gives shear distortion if width is not divisible by 4.
     if(thwidth != resample_width)
     {
@@ -2640,7 +2659,7 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
 
       // clamp dimensions to a width of resample_width
       thwidth = resample_width;
-      thheight = uint32_t(float(thwidth) / aspect);
+      thheight = uint16_t(float(thwidth) / aspect);
 
       byte *src = thpixels;
       byte *dst = thpixels = new byte[3 * thwidth * thheight];
@@ -2702,42 +2721,23 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
   return bbim;
 }
 
-void WrappedOpenGL::Serialise_CaptureScope(uint64_t offset)
+template <typename SerialiserType>
+void WrappedOpenGL::Serialise_CaptureScope(SerialiserType &ser)
 {
-  SERIALISE_ELEMENT(uint32_t, FrameNumber, m_FrameCounter);
+  SERIALISE_ELEMENT(m_FrameCounter);
 
-  if(m_State >= WRITING)
+  if(IsReplayingAndReading())
   {
-    GetResourceManager()->Serialise_InitialContentsNeeded();
-  }
-  else
-  {
-    m_FrameRecord.frameInfo.fileOffset = offset;
-    m_FrameRecord.frameInfo.frameNumber = FrameNumber;
+    m_FrameRecord.frameInfo.frameNumber = m_FrameCounter;
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
-
-    GetResourceManager()->CreateInitialContents();
   }
 }
 
 void WrappedOpenGL::ContextEndFrame()
 {
-  SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_FOOTER);
-
-  bool HasCallstack = RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks != 0;
-  m_pSerialiser->Serialise("HasCallstack", HasCallstack);
-
-  if(HasCallstack)
-  {
-    Callstack::Stackwalk *call = Callstack::Collect();
-
-    uint32_t numLevels = (uint32_t)call->NumLevels();
-    uint64_t *stack = (uint64_t *)call->GetAddrs();
-
-    m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
-
-    delete call;
-  }
+  USE_SCRATCH_SERIALISER();
+  ser.SetDrawChunk();
+  SCOPED_SERIALISE_CHUNK(GLChunk::CaptureEnd);
 
   m_ContextRecord->AddChunk(scope.Get());
 }
@@ -2785,7 +2785,7 @@ void WrappedOpenGL::QueuePrepareInitialState(GLResource res, byte *blob)
 
 void WrappedOpenGL::AttemptCapture()
 {
-  m_State = WRITING_CAPFRAME;
+  m_State = CaptureState::ActiveCapturing;
 
   m_DebugMessages.clear();
 
@@ -2807,22 +2807,22 @@ void WrappedOpenGL::AttemptCapture()
   }
 }
 
-bool WrappedOpenGL::Serialise_BeginCaptureFrame(bool applyInitialState)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_BeginCaptureFrame(SerialiserType &ser)
 {
-  GLRenderState state(&m_Real, m_pSerialiser, m_State);
+  GLRenderState state(&m_Real);
 
-  if(m_State >= WRITING)
+  if(ser.IsWriting())
   {
-    state.FetchState(GetCtx(), this);
-
+    state.FetchState(this);
     state.MarkReferenced(this, true);
   }
 
-  state.Serialise(m_State, GetCtx(), this);
+  SERIALISE_ELEMENT(state);
 
-  if(m_State <= EXECUTING && applyInitialState)
+  if(IsReplayingAndReading())
   {
-    state.ApplyState(GetCtx(), this);
+    state.ApplyState(this);
   }
 
   return true;
@@ -2830,16 +2830,17 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 void WrappedOpenGL::BeginCaptureFrame()
 {
-  SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_HEADER);
+  USE_SCRATCH_SERIALISER();
+  SCOPED_SERIALISE_CHUNK(GLChunk::CaptureBegin);
 
-  Serialise_BeginCaptureFrame(false);
+  Serialise_BeginCaptureFrame(ser);
 
   m_ContextRecord->AddChunk(scope.Get(), 1);
 }
 
 void WrappedOpenGL::FinishCapture()
 {
-  m_State = WRITING_IDLE;
+  m_State = CaptureState::BackgroundCapturing;
 
   m_DebugMessages.clear();
 
@@ -2849,7 +2850,7 @@ void WrappedOpenGL::FinishCapture()
 void WrappedOpenGL::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
                                     std::string d)
 {
-  if(m_State == READING || src == MessageSource::RuntimeWarning)
+  if(IsLoading(m_State) || src == MessageSource::RuntimeWarning)
   {
     DebugMessage msg;
     msg.eventID = m_CurEventID;
@@ -2862,85 +2863,41 @@ void WrappedOpenGL::AddDebugMessage(MessageCategory c, MessageSeverity sv, Messa
   }
 }
 
-vector<DebugMessage> WrappedOpenGL::GetDebugMessages()
+std::vector<DebugMessage> WrappedOpenGL::GetDebugMessages()
 {
-  vector<DebugMessage> ret;
+  std::vector<DebugMessage> ret;
   ret.swap(m_DebugMessages);
   return ret;
 }
 
-void WrappedOpenGL::Serialise_DebugMessages()
+template <typename SerialiserType>
+void WrappedOpenGL::Serialise_DebugMessages(SerialiserType &ser)
 {
-  SCOPED_SERIALISE_CONTEXT(DEBUG_MESSAGES);
+  std::vector<DebugMessage> DebugMessages;
 
-  vector<DebugMessage> debugMessages;
-
-  if(m_State == WRITING_CAPFRAME)
+  if(ser.IsWriting())
   {
-    debugMessages = m_DebugMessages;
-    m_DebugMessages.clear();
+    DebugMessages.swap(m_DebugMessages);
   }
 
-  SERIALISE_ELEMENT(bool, HasCallstack,
-                    RenderDoc::Inst().GetCaptureOptions().CaptureCallstacksOnlyDraws != 0);
+  SERIALISE_ELEMENT(DebugMessages);
 
-  if(HasCallstack)
+  // hide empty sets of messages.
+  if(ser.IsReading() && DebugMessages.empty())
+    ser.Hidden();
+
+  if(ser.IsReading() && IsLoading(m_State))
   {
-    if(m_State >= WRITING)
+    for(DebugMessage &msg : DebugMessages)
     {
-      Callstack::Stackwalk *call = Callstack::Collect();
-
-      RDCASSERT(call->NumLevels() < 0xff);
-
-      uint32_t numLevels = (uint32_t)call->NumLevels();
-      uint64_t *stack = (uint64_t *)call->GetAddrs();
-
-      m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
-
-      delete call;
-    }
-    else
-    {
-      uint32_t numLevels = 0;
-      uint64_t *stack = NULL;
-
-      m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
-
-      m_pSerialiser->SetCallstack(stack, numLevels);
-
-      SAFE_DELETE_ARRAY(stack);
-    }
-  }
-
-  SERIALISE_ELEMENT(uint32_t, NumMessages, (uint32_t)debugMessages.size());
-
-  for(uint32_t i = 0; i < NumMessages; i++)
-  {
-    ScopedContext msgscope(m_pSerialiser, "DebugMessage", "DebugMessage", 0, false);
-
-    std::string desc;
-    if(m_State >= WRITING)
-      desc = debugMessages[i].description;
-
-    SERIALISE_ELEMENT(MessageCategory, Category, debugMessages[i].category);
-    SERIALISE_ELEMENT(MessageSeverity, Severity, debugMessages[i].severity);
-    SERIALISE_ELEMENT(uint32_t, ID, debugMessages[i].messageID);
-    SERIALISE_ELEMENT(string, Description, desc);
-
-    if(m_State == READING)
-    {
-      DebugMessage msg;
       msg.eventID = m_CurEventID;
-      msg.source = MessageSource::API;
-      msg.category = Category;
-      msg.severity = Severity;
-      msg.messageID = ID;
-      msg.description = Description;
-
-      m_DebugMessages.push_back(msg);
+      AddDebugMessage(msg);
     }
   }
 }
+
+template void WrappedOpenGL::Serialise_DebugMessages(WriteSerialiser &ser);
+template void WrappedOpenGL::Serialise_DebugMessages(ReadSerialiser &ser);
 
 bool WrappedOpenGL::RecordUpdateCheck(GLResourceRecord *record)
 {
@@ -2980,7 +2937,7 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
         RDCLOG("Debug Message context: \"%s\"", m_DebugMsgContext.c_str());
     }
 
-    if(m_State == WRITING_CAPFRAME)
+    if(IsActiveCapturing(m_State))
     {
       DebugMessage msg;
 
@@ -3028,13 +2985,28 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
     m_RealDebugFunc(source, type, id, severity, length, message, m_RealDebugFuncParam);
 }
 
-void WrappedOpenGL::ReadLogInitialisation()
+void WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
-  uint64_t frameOffset = 0;
+  int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
-  m_pSerialiser->SetDebugText(true);
+  if(sectionIdx < 0)
+    return;
 
-  m_pSerialiser->Rewind();
+  StreamReader *reader = rdc->ReadSection(sectionIdx);
+
+  if(reader->IsErrored())
+    return;
+
+  ReadSerialiser ser(reader, Ownership::Stream);
+
+  ser.SetStringDatabase(&m_StringDB);
+  ser.SetUserData(GetResourceManager());
+
+  ser.ConfigureStructuredExport(&GetChunkName, storeStructuredBuffers);
+
+  m_StructuredFile = &ser.GetStructuredFile();
+
+  m_StoredStructuredData.version = m_StructuredFile->version = m_SectionVersion;
 
   int chunkIdx = 0;
 
@@ -3046,51 +3018,49 @@ void WrappedOpenGL::ReadLogInitialisation()
     double total;
   };
 
-  map<GLChunkType, chunkinfo> chunkInfos;
+  std::map<GLChunk, chunkinfo> chunkInfos;
 
   SCOPED_TIMER("chunk initialisation");
+
+  uint64_t frameDataSize = 0;
 
   for(;;)
   {
     PerformanceTimer timer;
 
-    uint64_t offset = m_pSerialiser->GetOffset();
+    uint64_t offsetStart = reader->GetOffset();
 
-    GLChunkType context = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
-
-    if(context == CAPTURE_SCOPE)
-    {
-      // immediately read rest of log into memory
-      m_pSerialiser->SetPersistentBlock(offset);
-    }
+    GLChunk context = ser.ReadChunk<GLChunk>();
 
     chunkIdx++;
 
-    ProcessChunk(offset, context);
+    ProcessChunk(ser, context);
 
-    m_pSerialiser->PopContext(context);
+    ser.EndChunk();
 
-    RenderDoc::Inst().SetProgress(FileInitialRead, float(offset) / float(m_pSerialiser->GetSize()));
+    uint64_t offsetEnd = reader->GetOffset();
 
-    if(context == CAPTURE_SCOPE)
+    RenderDoc::Inst().SetProgress(FileInitialRead, float(offsetEnd) / float(reader->GetSize()));
+
+    if(context == GLChunk::CaptureScope)
     {
-      frameOffset = offset;
+      m_FrameRecord.frameInfo.fileOffset = offsetStart;
+
+      // read the remaining data into memory and pass to immediate context
+      frameDataSize = reader->GetSize() - reader->GetOffset();
+
+      m_FrameReader = new StreamReader(reader, frameDataSize);
 
       GetResourceManager()->ApplyInitialContents();
 
-      ContextReplayLog(READING, 0, 0, false);
+      ContextReplayLog(m_State, 0, 0, false);
     }
 
-    uint64_t offset2 = m_pSerialiser->GetOffset();
-
     chunkInfos[context].total += timer.GetMilliseconds();
-    chunkInfos[context].totalsize += offset2 - offset;
+    chunkInfos[context].totalsize += offsetEnd - offsetStart;
     chunkInfos[context].count++;
 
-    if(context == CAPTURE_SCOPE)
-      break;
-
-    if(m_pSerialiser->AtEnd())
+    if(context == GLChunk::CaptureScope || reader->IsErrored() || reader->AtEnd())
       break;
   }
 
@@ -3103,455 +3073,1558 @@ void WrappedOpenGL::ReadLogInitialisation()
         "% 5d chunks - Time: %9.3fms total/%9.3fms avg - Size: %8.3fMB total/%7.3fMB avg - %s (%u)",
         it->second.count, it->second.total, it->second.total / dcount,
         double(it->second.totalsize) / (1024.0 * 1024.0),
-        double(it->second.totalsize) / (dcount * 1024.0 * 1024.0), GetChunkName(it->first),
-        uint32_t(it->first));
+        double(it->second.totalsize) / (dcount * 1024.0 * 1024.0),
+        GetChunkName((uint32_t)it->first).c_str(), uint32_t(it->first));
   }
 #endif
 
-  m_FrameRecord.frameInfo.uncompressedFileSize = m_pSerialiser->GetSize();
-  m_FrameRecord.frameInfo.compressedFileSize = m_pSerialiser->GetFileSize();
-  m_FrameRecord.frameInfo.persistentSize = m_pSerialiser->GetSize() - frameOffset;
-  m_FrameRecord.frameInfo.initDataSize = chunkInfos[(GLChunkType)INITIAL_CONTENTS].totalsize;
+  // steal the structured data for ourselves
+  m_StructuredFile->swap(m_StoredStructuredData);
+
+  // and in future use this file.
+  m_StructuredFile = &m_StoredStructuredData;
+
+  m_FrameRecord.frameInfo.uncompressedFileSize =
+      rdc->GetSectionProperties(sectionIdx).uncompressedSize;
+  m_FrameRecord.frameInfo.compressedFileSize = rdc->GetSectionProperties(sectionIdx).compressedSize;
+  m_FrameRecord.frameInfo.persistentSize = frameDataSize;
+  m_FrameRecord.frameInfo.initDataSize = chunkInfos[(GLChunk)SystemChunk::InitialContents].totalsize;
 
   RDCDEBUG("Allocating %llu persistant bytes of memory for the log.",
-           m_pSerialiser->GetSize() - frameOffset);
-
-  m_pSerialiser->SetDebugText(false);
+           m_FrameRecord.frameInfo.persistentSize);
 }
 
-void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
+void WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
 {
-  switch(context)
-  {
-    case DEVICE_INIT:
-    {
-      SERIALISE_ELEMENT(ResourceId, immContextId, ResourceId());
-      SERIALISE_ELEMENT(ResourceId, vaoId, ResourceId());
+  gl_CurChunk = chunk;
 
-      GetResourceManager()->AddLiveResource(immContextId,
-                                            GLResource(NULL, eResSpecial, eSpecialResContext));
-      GetResourceManager()->AddLiveResource(vaoId, VertexArrayRes(NULL, 0));
+  // there are unfortunately too many special cases with serialisation to be able to re-use the hook
+  // definition macros here. Aliases forward to their 'real' functions, but we also share
+  // serialisation between EXT_dsa, ARB_dsa and non-dsa functions. Likewise for the horrible
+  // glUniform variants where there are loads of functions that serialise the same way with slight
+  // type differences.
+
+  // we handle this here as we don't want a default: in the switch() below - that means we get a
+  // warning if any GL chunk is missed.
+  {
+    SystemChunk system = (SystemChunk)chunk;
+    if(system == SystemChunk::DriverInit)
+    {
+      GLInitParams InitParams;
+      SERIALISE_ELEMENT(InitParams);
+    }
+    else if(system == SystemChunk::InitialContentsList)
+    {
+      GetResourceManager()->CreateInitialContents(ser);
+    }
+    else if(system == SystemChunk::InitialContents)
+    {
+      GetResourceManager()->Serialise_InitialState(ser, ResourceId(), GLResource(MakeNullResource));
+    }
+    else if(system < SystemChunk::FirstDriverChunk)
+    {
+      RDCERR("Unexpected system chunk in capture data: %u", system);
+      ser.SkipCurrentChunk();
+    }
+  }
+
+  switch(chunk)
+  {
+    case GLChunk::DeviceInitialisation:
+    {
+      SERIALISE_ELEMENT(m_FakeVAOID).Named("VAO 0 ID");
+
+      GetResourceManager()->AddLiveResource(m_FakeVAOID, VertexArrayRes(NULL, 0));
       break;
     }
-    case GEN_TEXTURE: Serialise_glGenTextures(0, NULL); break;
-    case CREATE_TEXTURE: Serialise_glCreateTextures(eGL_NONE, 0, NULL); break;
-    case ACTIVE_TEXTURE: Serialise_glActiveTexture(eGL_NONE); break;
-    case BIND_TEXTURE: Serialise_glBindTexture(eGL_NONE, 0); break;
-    case BIND_TEXTURES: Serialise_glBindTextures(0, 0, NULL); break;
-    case BIND_MULTI_TEX: Serialise_glBindMultiTextureEXT(eGL_NONE, eGL_NONE, 0); break;
-    case BIND_TEXTURE_UNIT: Serialise_glBindTextureUnit(0, 0); break;
-    case BIND_IMAGE_TEXTURE: Serialise_glBindImageTexture(0, 0, 0, 0, 0, eGL_NONE, eGL_NONE); break;
-    case BIND_IMAGE_TEXTURES: Serialise_glBindImageTextures(0, 0, NULL); break;
-    case TEXSTORAGE1D: Serialise_glTextureStorage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0); break;
-    case TEXSTORAGE2D: Serialise_glTextureStorage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0); break;
-    case TEXSTORAGE3D: Serialise_glTextureStorage3DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0); break;
-    case TEXSTORAGE2DMS:
-      Serialise_glTextureStorage2DMultisampleEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, GL_FALSE);
-      break;
-    case TEXSTORAGE3DMS:
-      Serialise_glTextureStorage3DMultisampleEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, GL_FALSE);
-      break;
-    case TEXIMAGE1D:
-      Serialise_glTextureImage1DEXT(0, eGL_NONE, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-      break;
-    case TEXIMAGE2D:
-      Serialise_glTextureImage2DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-      break;
-    case TEXIMAGE3D:
-      Serialise_glTextureImage3DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-      break;
-    case TEXSUBIMAGE1D:
-      Serialise_glTextureSubImage1DEXT(0, eGL_NONE, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-      break;
-    case TEXSUBIMAGE2D:
-      Serialise_glTextureSubImage2DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-      break;
-    case TEXSUBIMAGE3D:
-      Serialise_glTextureSubImage3DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-      break;
-    case TEXIMAGE1D_COMPRESSED:
-      Serialise_glCompressedTextureImage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, NULL);
-      break;
-    case TEXIMAGE2D_COMPRESSED:
-      Serialise_glCompressedTextureImage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, NULL);
-      break;
-    case TEXIMAGE3D_COMPRESSED:
-      Serialise_glCompressedTextureImage3DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0, NULL);
-      break;
-    case TEXSUBIMAGE1D_COMPRESSED:
-      Serialise_glCompressedTextureSubImage1DEXT(0, eGL_NONE, 0, 0, 0, eGL_NONE, 0, NULL);
-      break;
-    case TEXSUBIMAGE2D_COMPRESSED:
-      Serialise_glCompressedTextureSubImage2DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, 0, NULL);
-      break;
-    case TEXSUBIMAGE3D_COMPRESSED:
-      Serialise_glCompressedTextureSubImage3DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, 0, NULL);
-      break;
-    case TEXBUFFER: Serialise_glTextureBufferEXT(0, eGL_NONE, eGL_NONE, 0); break;
-    case TEXBUFFER_RANGE: Serialise_glTextureBufferRangeEXT(0, eGL_NONE, eGL_NONE, 0, 0, 0); break;
-    case PIXELSTORE: Serialise_glPixelStorei(eGL_NONE, 0); break;
-    case TEXPARAMETERF: Serialise_glTextureParameterfEXT(0, eGL_NONE, eGL_NONE, 0); break;
-    case TEXPARAMETERFV: Serialise_glTextureParameterfvEXT(0, eGL_NONE, eGL_NONE, NULL); break;
-    case TEXPARAMETERI: Serialise_glTextureParameteriEXT(0, eGL_NONE, eGL_NONE, 0); break;
-    case TEXPARAMETERIV: Serialise_glTextureParameterivEXT(0, eGL_NONE, eGL_NONE, NULL); break;
-    case TEXPARAMETERIIV: Serialise_glTextureParameterIivEXT(0, eGL_NONE, eGL_NONE, NULL); break;
-    case TEXPARAMETERIUIV: Serialise_glTextureParameterIuivEXT(0, eGL_NONE, eGL_NONE, NULL); break;
-    case GENERATE_MIPMAP: Serialise_glGenerateTextureMipmapEXT(0, eGL_NONE); break;
-    case COPY_SUBIMAGE:
-      Serialise_glCopyImageSubData(0, eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0);
-      break;
-    case COPY_IMAGE1D:
-      Serialise_glCopyTextureImage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0);
-      break;
-    case COPY_IMAGE2D:
-      Serialise_glCopyTextureImage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0);
-      break;
-    case COPY_SUBIMAGE1D: Serialise_glCopyTextureSubImage1DEXT(0, eGL_NONE, 0, 0, 0, 0, 0); break;
-    case COPY_SUBIMAGE2D:
-      Serialise_glCopyTextureSubImage2DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0);
-      break;
-    case COPY_SUBIMAGE3D:
-      Serialise_glCopyTextureSubImage3DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0, 0);
-      break;
-    case TEXTURE_VIEW: Serialise_glTextureView(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0); break;
 
-    case CREATE_SHADER: Serialise_glCreateShader(0, eGL_NONE); break;
-    case CREATE_PROGRAM: Serialise_glCreateProgram(0); break;
-    case CREATE_SHADERPROGRAM: Serialise_glCreateShaderProgramv(0, eGL_NONE, 0, NULL); break;
-    case COMPILESHADER: Serialise_glCompileShader(0); break;
-    case SHADERSOURCE: Serialise_glShaderSource(0, 0, NULL, NULL); break;
-    case ATTACHSHADER: Serialise_glAttachShader(0, 0); break;
-    case DETACHSHADER: Serialise_glDetachShader(0, 0); break;
-    case USEPROGRAM: Serialise_glUseProgram(0); break;
-    case PROGRAMPARAMETER: Serialise_glProgramParameteri(0, eGL_NONE, 0); break;
-    case FEEDBACK_VARYINGS: Serialise_glTransformFeedbackVaryings(0, 0, NULL, eGL_NONE); break;
-    case BINDATTRIB_LOCATION: Serialise_glBindAttribLocation(0, 0, NULL); break;
-    case BINDFRAGDATA_LOCATION: Serialise_glBindFragDataLocation(0, 0, NULL); break;
-    case BINDFRAGDATA_LOCATION_INDEXED:
-      Serialise_glBindFragDataLocationIndexed(0, 0, 0, NULL);
-      break;
-    case UNIFORM_BLOCKBIND: Serialise_glUniformBlockBinding(0, 0, 0); break;
-    case STORAGE_BLOCKBIND: Serialise_glShaderStorageBlockBinding(0, 0, 0); break;
-    case UNIFORM_SUBROUTINE: Serialise_glUniformSubroutinesuiv(eGL_NONE, 0, NULL); break;
-    case PROGRAMUNIFORM_VECTOR:
-      Serialise_glProgramUniformVector(0, eGL_NONE, 0, 0, UNIFORM_UNKNOWN);
-      break;
-    case PROGRAMUNIFORM_MATRIX:
-      Serialise_glProgramUniformMatrix(0, 0, 0, 0, NULL, UNIFORM_UNKNOWN);
-      break;
-    case LINKPROGRAM: Serialise_glLinkProgram(0); break;
+    case GLChunk::glGenBuffersARB:
+    case GLChunk::glGenBuffers: Serialise_glGenBuffers(ser, 0, 0); break;
+    case GLChunk::glCreateBuffers: Serialise_glCreateBuffers(ser, 0, 0); break;
 
-    case NAMEDSTRING: Serialise_glNamedStringARB(eGL_NONE, 0, NULL, 0, NULL); break;
-    case DELETENAMEDSTRING: Serialise_glDeleteNamedStringARB(0, NULL); break;
-    case COMPILESHADERINCLUDE: Serialise_glCompileShaderIncludeARB(0, 0, NULL, NULL); break;
-
-    case GEN_FEEDBACK: Serialise_glGenTransformFeedbacks(0, NULL); break;
-    case CREATE_FEEDBACK: Serialise_glCreateTransformFeedbacks(0, NULL); break;
-    case BIND_FEEDBACK: Serialise_glBindTransformFeedback(eGL_NONE, 0); break;
-    case BEGIN_FEEDBACK: Serialise_glBeginTransformFeedback(eGL_NONE); break;
-    case END_FEEDBACK: Serialise_glEndTransformFeedback(); break;
-    case PAUSE_FEEDBACK: Serialise_glPauseTransformFeedback(); break;
-    case RESUME_FEEDBACK: Serialise_glResumeTransformFeedback(); break;
-
-    case GEN_PROGRAMPIPE: Serialise_glGenProgramPipelines(0, NULL); break;
-    case CREATE_PROGRAMPIPE: Serialise_glCreateProgramPipelines(0, NULL); break;
-    case USE_PROGRAMSTAGES: Serialise_glUseProgramStages(0, 0, 0); break;
-    case BIND_PROGRAMPIPE: Serialise_glBindProgramPipeline(0); break;
-
-    case FENCE_SYNC: Serialise_glFenceSync(NULL, eGL_NONE, 0); break;
-    case CLIENTWAIT_SYNC: Serialise_glClientWaitSync(NULL, 0, 0); break;
-    case WAIT_SYNC: Serialise_glWaitSync(NULL, 0, 0); break;
-
-    case GEN_QUERIES: Serialise_glGenQueries(0, NULL); break;
-    case CREATE_QUERIES: Serialise_glCreateQueries(eGL_NONE, 0, NULL); break;
-    case BEGIN_QUERY: Serialise_glBeginQuery(eGL_NONE, 0); break;
-    case BEGIN_QUERY_INDEXED: Serialise_glBeginQueryIndexed(eGL_NONE, 0, 0); break;
-    case END_QUERY: Serialise_glEndQuery(eGL_NONE); break;
-    case END_QUERY_INDEXED: Serialise_glEndQueryIndexed(eGL_NONE, 0); break;
-    case BEGIN_CONDITIONAL: Serialise_glBeginConditionalRender(0, eGL_NONE); break;
-    case END_CONDITIONAL: Serialise_glEndConditionalRender(); break;
-    case QUERY_COUNTER: Serialise_glQueryCounter(0, eGL_NONE); break;
-
-    case CLEAR_COLOR: Serialise_glClearColor(0, 0, 0, 0); break;
-    case CLEAR_DEPTH: Serialise_glClearDepth(0); break;
-    case CLEAR_STENCIL: Serialise_glClearStencil(0); break;
-    case CLEAR: Serialise_glClear(0); break;
-    case CLEARBUFFERF: Serialise_glClearNamedFramebufferfv(0, eGL_NONE, 0, NULL); break;
-    case CLEARBUFFERI: Serialise_glClearNamedFramebufferiv(0, eGL_NONE, 0, NULL); break;
-    case CLEARBUFFERUI: Serialise_glClearNamedFramebufferuiv(0, eGL_NONE, 0, NULL); break;
-    case CLEARBUFFERFI: Serialise_glClearNamedFramebufferfi(0, eGL_NONE, 0, 0); break;
-    case CLEARBUFFERDATA:
-      Serialise_glClearNamedBufferDataEXT(0, eGL_NONE, eGL_NONE, eGL_NONE, NULL);
+    case GLChunk::glBufferStorage:
+    case GLChunk::glNamedBufferStorage:
+    case GLChunk::glNamedBufferStorageEXT:
+      Serialise_glNamedBufferStorageEXT(ser, 0, 0, 0, 0);
       break;
-    case CLEARBUFFERSUBDATA:
-      Serialise_glClearNamedBufferSubDataEXT(0, eGL_NONE, 0, 0, eGL_NONE, eGL_NONE, NULL);
+    case GLChunk::glBufferData:
+    case GLChunk::glBufferDataARB:
+    case GLChunk::glNamedBufferData:
+    case GLChunk::glNamedBufferDataEXT:
+      Serialise_glNamedBufferDataEXT(ser, 0, 0, 0, eGL_NONE);
       break;
-    case CLEARTEXIMAGE: Serialise_glClearTexImage(0, 0, eGL_NONE, eGL_NONE, NULL); break;
-    case CLEARTEXSUBIMAGE:
-      Serialise_glClearTexSubImage(0, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
+    case GLChunk::glBufferSubData:
+    case GLChunk::glBufferSubDataARB:
+    case GLChunk::glNamedBufferSubData:
+    case GLChunk::glNamedBufferSubDataEXT:
+      Serialise_glNamedBufferSubDataEXT(ser, 0, 0, 0, 0);
       break;
-    case POLYGON_MODE: Serialise_glPolygonMode(eGL_NONE, eGL_NONE); break;
-    case POLYGON_OFFSET: Serialise_glPolygonOffset(0, 0); break;
-    case POLYGON_OFFSET_CLAMP: Serialise_glPolygonOffsetClampEXT(0, 0, 0); break;
-    case CULL_FACE: Serialise_glCullFace(eGL_NONE); break;
-    case HINT: Serialise_glHint(eGL_NONE, eGL_NONE); break;
-    case ENABLE: Serialise_glEnable(eGL_NONE); break;
-    case DISABLE: Serialise_glDisable(eGL_NONE); break;
-    case ENABLEI: Serialise_glEnablei(eGL_NONE, 0); break;
-    case DISABLEI: Serialise_glDisablei(eGL_NONE, 0); break;
-    case FRONT_FACE: Serialise_glFrontFace(eGL_NONE); break;
-    case BLEND_FUNC: Serialise_glBlendFunc(eGL_NONE, eGL_NONE); break;
-    case BLEND_FUNCI: Serialise_glBlendFunci(0, eGL_NONE, eGL_NONE); break;
-    case BLEND_COLOR: Serialise_glBlendColor(0, 0, 0, 0); break;
-    case BLEND_FUNC_SEP:
-      Serialise_glBlendFuncSeparate(eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
-      break;
-    case BLEND_FUNC_SEPI:
-      Serialise_glBlendFuncSeparatei(0, eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
-      break;
-    case BLEND_EQ: Serialise_glBlendEquation(eGL_NONE); break;
-    case BLEND_EQI: Serialise_glBlendEquationi(0, eGL_NONE); break;
-    case BLEND_EQ_SEP: Serialise_glBlendEquationSeparate(eGL_NONE, eGL_NONE); break;
-    case BLEND_EQ_SEPI: Serialise_glBlendEquationSeparatei(0, eGL_NONE, eGL_NONE); break;
-    case BLEND_BARRIER: Serialise_glBlendBarrierKHR(); break;
-
-    case LOGIC_OP: Serialise_glLogicOp(eGL_NONE); break;
-
-    case STENCIL_OP: Serialise_glStencilOp(eGL_NONE, eGL_NONE, eGL_NONE); break;
-    case STENCIL_OP_SEP:
-      Serialise_glStencilOpSeparate(eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
-      break;
-    case STENCIL_FUNC: Serialise_glStencilFunc(eGL_NONE, 0, 0); break;
-    case STENCIL_FUNC_SEP: Serialise_glStencilFuncSeparate(eGL_NONE, eGL_NONE, 0, 0); break;
-    case STENCIL_MASK: Serialise_glStencilMask(0); break;
-    case STENCIL_MASK_SEP: Serialise_glStencilMaskSeparate(eGL_NONE, 0); break;
-
-    case COLOR_MASK: Serialise_glColorMask(0, 0, 0, 0); break;
-    case COLOR_MASKI: Serialise_glColorMaski(0, 0, 0, 0, 0); break;
-    case SAMPLE_MASK: Serialise_glSampleMaski(0, 0); break;
-    case SAMPLE_COVERAGE: Serialise_glSampleCoverage(0.0f, 0); break;
-    case MIN_SAMPLE_SHADING: Serialise_glMinSampleShading(0.0f); break;
-    case RASTER_SAMPLES: Serialise_glRasterSamplesEXT(0, 0); break;
-    case DEPTH_FUNC: Serialise_glDepthFunc(eGL_NONE); break;
-    case DEPTH_MASK: Serialise_glDepthMask(0); break;
-    case DEPTH_RANGE: Serialise_glDepthRange(0, 0); break;
-    case DEPTH_RANGEF: Serialise_glDepthRangef(0, 0); break;
-    case DEPTH_RANGE_IDX: Serialise_glDepthRangeIndexed(0, 0.0, 0.0); break;
-    case DEPTH_RANGEARRAY: Serialise_glDepthRangeArrayv(0, 0, NULL); break;
-    case DEPTH_BOUNDS: Serialise_glDepthBoundsEXT(0, 0); break;
-    case CLIP_CONTROL: Serialise_glClipControl(eGL_NONE, eGL_NONE); break;
-    case PROVOKING_VERTEX: Serialise_glProvokingVertex(eGL_NONE); break;
-    case PRIMITIVE_RESTART: Serialise_glPrimitiveRestartIndex(0); break;
-    case PATCH_PARAMI: Serialise_glPatchParameteri(eGL_NONE, 0); break;
-    case PATCH_PARAMFV: Serialise_glPatchParameterfv(eGL_NONE, NULL); break;
-    case LINE_WIDTH: Serialise_glLineWidth(0.0f); break;
-    case POINT_SIZE: Serialise_glPointSize(0.0f); break;
-    case POINT_PARAMF: Serialise_glPointParameterf(eGL_NONE, 0.0f); break;
-    case POINT_PARAMFV: Serialise_glPointParameterfv(eGL_NONE, NULL); break;
-    case POINT_PARAMI: Serialise_glPointParameteri(eGL_NONE, 0); break;
-    case POINT_PARAMIV: Serialise_glPointParameteriv(eGL_NONE, NULL); break;
-    case VIEWPORT: Serialise_glViewport(0, 0, 0, 0); break;
-    case VIEWPORT_ARRAY: Serialise_glViewportArrayv(0, 0, 0); break;
-    case SCISSOR: Serialise_glScissor(0, 0, 0, 0); break;
-    case SCISSOR_ARRAY: Serialise_glScissorArrayv(0, 0, 0); break;
-    case BIND_VERTEXBUFFER: Serialise_glVertexArrayBindVertexBufferEXT(0, 0, 0, 0, 0); break;
-    case BIND_VERTEXBUFFERS: Serialise_glVertexArrayVertexBuffers(0, 0, 0, NULL, NULL, NULL); break;
-    case VERTEXBINDINGDIVISOR: Serialise_glVertexArrayVertexBindingDivisorEXT(0, 0, 0); break;
-    case DISPATCH_COMPUTE: Serialise_glDispatchCompute(0, 0, 0); break;
-    case DISPATCH_COMPUTE_GROUP_SIZE:
-      Serialise_glDispatchComputeGroupSizeARB(0, 0, 0, 0, 0, 0);
-      break;
-    case DISPATCH_COMPUTE_INDIRECT: Serialise_glDispatchComputeIndirect(0); break;
-    case MEMORY_BARRIER: Serialise_glMemoryBarrier(0); break;
-    case MEMORY_BARRIER_BY_REGION: Serialise_glMemoryBarrierByRegion(0); break;
-    case TEXTURE_BARRIER: Serialise_glTextureBarrier(); break;
-    case DRAWARRAYS: Serialise_glDrawArrays(eGL_NONE, 0, 0); break;
-    case DRAWARRAYS_INDIRECT: Serialise_glDrawArraysIndirect(eGL_NONE, 0); break;
-    case DRAWARRAYS_INSTANCED: Serialise_glDrawArraysInstanced(eGL_NONE, 0, 0, 0); break;
-    case DRAWARRAYS_INSTANCEDBASEINSTANCE:
-      Serialise_glDrawArraysInstancedBaseInstance(eGL_NONE, 0, 0, 0, 0);
-      break;
-    case DRAWELEMENTS: Serialise_glDrawElements(eGL_NONE, 0, eGL_NONE, NULL); break;
-    case DRAWELEMENTS_INDIRECT: Serialise_glDrawElementsIndirect(eGL_NONE, eGL_NONE, 0); break;
-    case DRAWRANGEELEMENTS: Serialise_glDrawRangeElements(eGL_NONE, 0, 0, 0, eGL_NONE, NULL); break;
-    case DRAWRANGEELEMENTSBASEVERTEX:
-      Serialise_glDrawRangeElementsBaseVertex(eGL_NONE, 0, 0, 0, eGL_NONE, NULL, 0);
-      break;
-    case DRAWELEMENTS_INSTANCED:
-      Serialise_glDrawElementsInstanced(eGL_NONE, 0, eGL_NONE, NULL, 0);
-      break;
-    case DRAWELEMENTS_INSTANCEDBASEINSTANCE:
-      Serialise_glDrawElementsInstancedBaseInstance(eGL_NONE, 0, eGL_NONE, NULL, 0, 0);
-      break;
-    case DRAWELEMENTS_BASEVERTEX:
-      Serialise_glDrawElementsBaseVertex(eGL_NONE, 0, eGL_NONE, NULL, 0);
-      break;
-    case DRAWELEMENTS_INSTANCEDBASEVERTEX:
-      Serialise_glDrawElementsInstancedBaseVertex(eGL_NONE, 0, eGL_NONE, NULL, 0, 0);
-      break;
-    case DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE:
-      Serialise_glDrawElementsInstancedBaseVertexBaseInstance(eGL_NONE, 0, eGL_NONE, NULL, 0, 0, 0);
-      break;
-    case DRAW_FEEDBACK: Serialise_glDrawTransformFeedback(eGL_NONE, 0); break;
-    case DRAW_FEEDBACK_INSTANCED: Serialise_glDrawTransformFeedbackInstanced(eGL_NONE, 0, 0); break;
-    case DRAW_FEEDBACK_STREAM: Serialise_glDrawTransformFeedbackStream(eGL_NONE, 0, 0); break;
-    case DRAW_FEEDBACK_STREAM_INSTANCED:
-      Serialise_glDrawTransformFeedbackStreamInstanced(eGL_NONE, 0, 0, 0);
-      break;
-    case MULTI_DRAWARRAYS: Serialise_glMultiDrawArrays(eGL_NONE, NULL, NULL, 0); break;
-    case MULTI_DRAWELEMENTS:
-      Serialise_glMultiDrawElements(eGL_NONE, NULL, eGL_NONE, NULL, 0);
-      break;
-    case MULTI_DRAWELEMENTSBASEVERTEX:
-      Serialise_glMultiDrawElementsBaseVertex(eGL_NONE, NULL, eGL_NONE, NULL, 0, NULL);
-      break;
-    case MULTI_DRAWARRAYS_INDIRECT:
-      Serialise_glMultiDrawArraysIndirect(eGL_NONE, NULL, 0, 0);
-      break;
-    case MULTI_DRAWELEMENTS_INDIRECT:
-      Serialise_glMultiDrawElementsIndirect(eGL_NONE, eGL_NONE, NULL, 0, 0);
-      break;
-    case MULTI_DRAWARRAYS_INDIRECT_COUNT:
-      Serialise_glMultiDrawArraysIndirectCountARB(eGL_NONE, 0, 0, 0, 0);
-      break;
-    case MULTI_DRAWELEMENTS_INDIRECT_COUNT:
-      Serialise_glMultiDrawElementsIndirectCountARB(eGL_NONE, eGL_NONE, 0, 0, 0, 0);
+    case GLChunk::glCopyBufferSubData:
+    case GLChunk::glCopyNamedBufferSubData:
+    case GLChunk::glNamedCopyBufferSubDataEXT:
+      Serialise_glNamedCopyBufferSubDataEXT(ser, 0, 0, 0, 0, 0);
       break;
 
-    case GEN_FRAMEBUFFERS: Serialise_glGenFramebuffers(0, NULL); break;
-    case CREATE_FRAMEBUFFERS: Serialise_glCreateFramebuffers(0, NULL); break;
-    case FRAMEBUFFER_TEX: Serialise_glNamedFramebufferTextureEXT(0, eGL_NONE, 0, 0); break;
-    case FRAMEBUFFER_TEX1D:
-      Serialise_glNamedFramebufferTexture1DEXT(0, eGL_NONE, eGL_NONE, 0, 0);
-      break;
-    case FRAMEBUFFER_TEX2D:
-      Serialise_glNamedFramebufferTexture2DEXT(0, eGL_NONE, eGL_NONE, 0, 0);
-      break;
-    case FRAMEBUFFER_TEX2DMS:
-      Serialise_glFramebufferTexture2DMultisampleEXT(0, eGL_NONE, eGL_NONE, eGL_NONE, 0, 0, 0);
-      break;
-    case FRAMEBUFFER_TEX3D:
-      Serialise_glNamedFramebufferTexture3DEXT(0, eGL_NONE, eGL_NONE, 0, 0, 0);
-      break;
-    case FRAMEBUFFER_RENDBUF:
-      Serialise_glNamedFramebufferRenderbufferEXT(0, eGL_NONE, eGL_NONE, 0);
-      break;
-    case FRAMEBUFFER_TEXLAYER:
-      Serialise_glNamedFramebufferTextureLayerEXT(0, eGL_NONE, 0, 0, 0);
-      break;
-    case FRAMEBUFFER_MULTIVIEW:
-      Serialise_glFramebufferTextureMultiviewOVR(eGL_NONE, eGL_NONE, 0, 0, 0, 0);
-      break;
-    case FRAMEBUFFER_MULTIVIEWMS:
-      Serialise_glFramebufferTextureMultisampleMultiviewOVR(eGL_NONE, eGL_NONE, 0, 0, 0, 0, 0);
-      break;
-    case FRAMEBUFFER_PARAM: Serialise_glNamedFramebufferParameteriEXT(0, eGL_NONE, 0); break;
-    case READ_BUFFER: Serialise_glFramebufferReadBufferEXT(0, eGL_NONE); break;
-    case BIND_FRAMEBUFFER: Serialise_glBindFramebuffer(eGL_NONE, 0); break;
-    case DRAW_BUFFER: Serialise_glFramebufferDrawBufferEXT(0, eGL_NONE); break;
-    case DRAW_BUFFERS: Serialise_glFramebufferDrawBuffersEXT(0, 0, NULL); break;
-    case BLIT_FRAMEBUFFER:
-      Serialise_glBlitNamedFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, eGL_NONE);
+    case GLChunk::glBindBufferARB:
+    case GLChunk::glBindBuffer: Serialise_glBindBuffer(ser, eGL_NONE, 0); break;
+    case GLChunk::glBindBufferBaseEXT:
+    case GLChunk::glBindBufferBase: Serialise_glBindBufferBase(ser, eGL_NONE, 0, 0); break;
+    case GLChunk::glBindBufferRangeEXT:
+    case GLChunk::glBindBufferRange: Serialise_glBindBufferRange(ser, eGL_NONE, 0, 0, 0, 0); break;
+    case GLChunk::glBindBuffersBase: Serialise_glBindBuffersBase(ser, eGL_NONE, 0, 0, 0); break;
+    case GLChunk::glBindBuffersRange:
+      Serialise_glBindBuffersRange(ser, eGL_NONE, 0, 0, 0, 0, 0);
       break;
 
-    case GEN_RENDERBUFFERS: Serialise_glGenRenderbuffers(0, NULL); break;
-    case CREATE_RENDERBUFFERS: Serialise_glCreateRenderbuffers(0, NULL); break;
-    case RENDERBUFFER_STORAGE: Serialise_glNamedRenderbufferStorageEXT(0, eGL_NONE, 0, 0); break;
-    case RENDERBUFFER_STORAGEMS:
-      Serialise_glNamedRenderbufferStorageMultisampleEXT(0, 0, eGL_NONE, 0, 0);
+    case GLChunk::glUnmapBuffer:
+    case GLChunk::glUnmapBufferARB:
+    case GLChunk::glUnmapBufferOES:
+    case GLChunk::glUnmapNamedBuffer:
+    case GLChunk::glUnmapNamedBufferEXT: Serialise_glUnmapNamedBufferEXT(ser, 0); break;
+    case GLChunk::glFlushMappedBufferRange:
+    case GLChunk::glFlushMappedNamedBufferRange:
+    case GLChunk::glFlushMappedNamedBufferRangeEXT:
+      Serialise_glFlushMappedNamedBufferRangeEXT(ser, 0, 0, 0);
       break;
 
-    case GEN_SAMPLERS: Serialise_glGenSamplers(0, NULL); break;
-    case CREATE_SAMPLERS: Serialise_glCreateSamplers(0, NULL); break;
-    case SAMPLER_PARAMETERI: Serialise_glSamplerParameteri(0, eGL_NONE, 0); break;
-    case SAMPLER_PARAMETERF: Serialise_glSamplerParameterf(0, eGL_NONE, 0); break;
-    case SAMPLER_PARAMETERIV: Serialise_glSamplerParameteriv(0, eGL_NONE, NULL); break;
-    case SAMPLER_PARAMETERFV: Serialise_glSamplerParameterfv(0, eGL_NONE, NULL); break;
-    case SAMPLER_PARAMETERIIV: Serialise_glSamplerParameterIiv(0, eGL_NONE, NULL); break;
-    case SAMPLER_PARAMETERIUIV: Serialise_glSamplerParameterIuiv(0, eGL_NONE, NULL); break;
-    case BIND_SAMPLER: Serialise_glBindSampler(0, 0); break;
-    case BIND_SAMPLERS: Serialise_glBindSamplers(0, 0, NULL); break;
+    case GLChunk::glGenTransformFeedbacks: Serialise_glGenTransformFeedbacks(ser, 0, 0); break;
+    case GLChunk::glCreateTransformFeedbacks:
+      Serialise_glCreateTransformFeedbacks(ser, 0, 0);
+      break;
+    case GLChunk::glTransformFeedbackBufferBase:
+      Serialise_glTransformFeedbackBufferBase(ser, 0, 0, 0);
+      break;
+    case GLChunk::glTransformFeedbackBufferRange:
+      Serialise_glTransformFeedbackBufferRange(ser, 0, 0, 0, 0, 0);
+      break;
+    case GLChunk::glBindTransformFeedback:
+      Serialise_glBindTransformFeedback(ser, eGL_NONE, 0);
+      break;
+    case GLChunk::glBeginTransformFeedbackEXT:
+    case GLChunk::glBeginTransformFeedback:
+      Serialise_glBeginTransformFeedback(ser, eGL_NONE);
+      break;
+    case GLChunk::glPauseTransformFeedback: Serialise_glPauseTransformFeedback(ser); break;
+    case GLChunk::glResumeTransformFeedback: Serialise_glResumeTransformFeedback(ser); break;
+    case GLChunk::glEndTransformFeedbackEXT:
+    case GLChunk::glEndTransformFeedback: Serialise_glEndTransformFeedback(ser); break;
 
-    case GEN_BUFFER: Serialise_glGenBuffers(0, NULL); break;
-    case CREATE_BUFFER: Serialise_glCreateBuffers(0, NULL); break;
-    case BIND_BUFFER: Serialise_glBindBuffer(eGL_NONE, 0); break;
-    case BIND_BUFFER_BASE: Serialise_glBindBufferBase(eGL_NONE, 0, 0); break;
-    case BIND_BUFFER_RANGE: Serialise_glBindBufferRange(eGL_NONE, 0, 0, 0, 0); break;
-    case BIND_BUFFERS_BASE: Serialise_glBindBuffersBase(eGL_NONE, 0, 0, NULL); break;
-    case BIND_BUFFERS_RANGE: Serialise_glBindBuffersRange(eGL_NONE, 0, 0, NULL, NULL, NULL); break;
-    case BUFFERSTORAGE: Serialise_glNamedBufferStorageEXT(0, 0, NULL, 0); break;
-    case BUFFERDATA: Serialise_glNamedBufferDataEXT(eGL_NONE, 0, NULL, eGL_NONE); break;
-    case BUFFERSUBDATA: Serialise_glNamedBufferSubDataEXT(0, 0, 0, NULL); break;
-    case COPYBUFFERSUBDATA: Serialise_glNamedCopyBufferSubDataEXT(0, 0, 0, 0, 0); break;
-    case UNMAP: Serialise_glUnmapNamedBufferEXT(eGL_NONE); break;
-    case FLUSHMAP: Serialise_glFlushMappedNamedBufferRangeEXT(0, 0, 0); break;
-    case GEN_VERTEXARRAY: Serialise_glGenVertexArrays(0, NULL); break;
-    case CREATE_VERTEXARRAY: Serialise_glCreateVertexArrays(0, NULL); break;
-    case BIND_VERTEXARRAY: Serialise_glBindVertexArray(0); break;
-    case VERTEXATTRIBPOINTER:
-      Serialise_glVertexArrayVertexAttribOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0, 0);
+    case GLChunk::glVertexAttribPointer:
+    case GLChunk::glVertexAttribPointerARB:
+    case GLChunk::glVertexArrayVertexAttribOffsetEXT:
+      Serialise_glVertexArrayVertexAttribOffsetEXT(ser, 0, 0, 0, 0, eGL_NONE, 0, 0, 0);
       break;
-    case VERTEXATTRIBIPOINTER:
-      Serialise_glVertexArrayVertexAttribIOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0);
+    case GLChunk::glVertexAttribIPointer:
+    case GLChunk::glVertexAttribIPointerEXT:
+    case GLChunk::glVertexArrayVertexAttribIOffsetEXT:
+      Serialise_glVertexArrayVertexAttribIOffsetEXT(ser, 0, 0, 0, 0, eGL_NONE, 0, 0);
       break;
-    case VERTEXATTRIBLPOINTER:
-      Serialise_glVertexArrayVertexAttribLOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0);
+    case GLChunk::glVertexAttribLPointer:
+    case GLChunk::glVertexAttribLPointerEXT:
+    case GLChunk::glVertexArrayVertexAttribLOffsetEXT:
+      Serialise_glVertexArrayVertexAttribLOffsetEXT(ser, 0, 0, 0, 0, eGL_NONE, 0, 0);
       break;
-    case ENABLEVERTEXATTRIBARRAY: Serialise_glEnableVertexArrayAttribEXT(0, 0); break;
-    case DISABLEVERTEXATTRIBARRAY: Serialise_glDisableVertexArrayAttribEXT(0, 0); break;
-    case VERTEXATTRIB_GENERIC:
-      Serialise_glVertexAttrib(0, 0, eGL_NONE, GL_FALSE, NULL, Attrib_packed);
+    case GLChunk::glVertexAttribBinding:
+    case GLChunk::glVertexArrayAttribBinding:
+    case GLChunk::glVertexArrayVertexAttribBindingEXT:
+      Serialise_glVertexArrayVertexAttribBindingEXT(ser, 0, 0, 0);
       break;
-    case VERTEXATTRIBFORMAT:
-      Serialise_glVertexArrayVertexAttribFormatEXT(0, 0, 0, eGL_NONE, 0, 0);
+    case GLChunk::glVertexAttribFormat:
+    case GLChunk::glVertexArrayAttribFormat:
+    case GLChunk::glVertexArrayVertexAttribFormatEXT:
+      Serialise_glVertexArrayVertexAttribFormatEXT(ser, 0, 0, 0, eGL_NONE, 0, 0);
       break;
-    case VERTEXATTRIBIFORMAT:
-      Serialise_glVertexArrayVertexAttribIFormatEXT(0, 0, 0, eGL_NONE, 0);
+    case GLChunk::glVertexAttribIFormat:
+    case GLChunk::glVertexArrayAttribIFormat:
+    case GLChunk::glVertexArrayVertexAttribIFormatEXT:
+      Serialise_glVertexArrayVertexAttribIFormatEXT(ser, 0, 0, 0, eGL_NONE, 0);
       break;
-    case VERTEXATTRIBLFORMAT:
-      Serialise_glVertexArrayVertexAttribLFormatEXT(0, 0, 0, eGL_NONE, 0);
+    case GLChunk::glVertexAttribLFormat:
+    case GLChunk::glVertexArrayAttribLFormat:
+    case GLChunk::glVertexArrayVertexAttribLFormatEXT:
+      Serialise_glVertexArrayVertexAttribLFormatEXT(ser, 0, 0, 0, eGL_NONE, 0);
       break;
-    case VERTEXATTRIBDIVISOR: Serialise_glVertexArrayVertexAttribDivisorEXT(0, 0, 0); break;
-    case VERTEXATTRIBBINDING: Serialise_glVertexArrayVertexAttribBindingEXT(0, 0, 0); break;
+    case GLChunk::glVertexAttribDivisor:
+    case GLChunk::glVertexAttribDivisorARB:
+    case GLChunk::glVertexArrayVertexAttribDivisorEXT:
+      Serialise_glVertexArrayVertexAttribDivisorEXT(ser, 0, 0, 0);
+      break;
+    case GLChunk::glEnableVertexAttribArray:
+    case GLChunk::glEnableVertexAttribArrayARB:
+    case GLChunk::glEnableVertexArrayAttrib:
+    case GLChunk::glEnableVertexArrayAttribEXT:
+      Serialise_glEnableVertexArrayAttribEXT(ser, 0, 0);
+      break;
+    case GLChunk::glDisableVertexAttribArray:
+    case GLChunk::glDisableVertexAttribArrayARB:
+    case GLChunk::glDisableVertexArrayAttrib:
+    case GLChunk::glDisableVertexArrayAttribEXT:
+      Serialise_glDisableVertexArrayAttribEXT(ser, 0, 0);
+      break;
+    case GLChunk::glGenVertexArraysOES:
+    case GLChunk::glGenVertexArrays: Serialise_glGenVertexArrays(ser, 0, 0); break;
+    case GLChunk::glCreateVertexArrays: Serialise_glCreateVertexArrays(ser, 0, 0); break;
+    case GLChunk::glBindVertexArrayOES:
+    case GLChunk::glBindVertexArray: Serialise_glBindVertexArray(ser, 0); break;
+    case GLChunk::glVertexArrayElementBuffer:
+      Serialise_glVertexArrayElementBuffer(ser, 0, 0);
+      break;
+    case GLChunk::glBindVertexBuffer:
+    case GLChunk::glVertexArrayVertexBuffer:
+    case GLChunk::glVertexArrayBindVertexBufferEXT:
+      Serialise_glVertexArrayBindVertexBufferEXT(ser, 0, 0, 0, 0, 0);
+      break;
+    case GLChunk::glBindVertexBuffers:
+    case GLChunk::glVertexArrayVertexBuffers:
 
-    case VAO_ELEMENT_BUFFER: Serialise_glVertexArrayElementBuffer(0, 0); break;
-    case FEEDBACK_BUFFER_BASE: Serialise_glTransformFeedbackBufferBase(0, 0, 0); break;
-    case FEEDBACK_BUFFER_RANGE: Serialise_glTransformFeedbackBufferRange(0, 0, 0, 0, 0); break;
-
-    case OBJECT_LABEL: Serialise_glObjectLabel(eGL_NONE, 0, 0, NULL); break;
-    case BEGIN_EVENT: Serialise_glPushDebugGroup(eGL_NONE, 0, 0, NULL); break;
-    case SET_MARKER:
-      Serialise_glDebugMessageInsert(eGL_NONE, eGL_NONE, 0, eGL_NONE, 0, NULL);
+      Serialise_glVertexArrayVertexBuffers(ser, 0, 0, 0, 0, 0, 0);
       break;
-    case END_EVENT: Serialise_glPopDebugGroup(); break;
+    case GLChunk::glVertexBindingDivisor:
+    case GLChunk::glVertexArrayBindingDivisor:
+    case GLChunk::glVertexArrayVertexBindingDivisorEXT:
+      Serialise_glVertexArrayVertexBindingDivisorEXT(ser, 0, 0, 0);
+      break;
 
-    case CAPTURE_SCOPE: Serialise_CaptureScope(offset); break;
-    case CONTEXT_CAPTURE_HEADER:
+    case GLChunk::glVertexAttrib1d:
+    case GLChunk::glVertexAttrib1dARB:
+    case GLChunk::glVertexAttrib1dv:
+    case GLChunk::glVertexAttrib1dvARB:
+    case GLChunk::glVertexAttrib1f:
+    case GLChunk::glVertexAttrib1fARB:
+    case GLChunk::glVertexAttrib1fv:
+    case GLChunk::glVertexAttrib1fvARB:
+    case GLChunk::glVertexAttrib1s:
+    case GLChunk::glVertexAttrib1sARB:
+    case GLChunk::glVertexAttrib1sv:
+    case GLChunk::glVertexAttrib1svARB:
+    case GLChunk::glVertexAttrib2d:
+    case GLChunk::glVertexAttrib2dARB:
+    case GLChunk::glVertexAttrib2dv:
+    case GLChunk::glVertexAttrib2dvARB:
+    case GLChunk::glVertexAttrib2f:
+    case GLChunk::glVertexAttrib2fARB:
+    case GLChunk::glVertexAttrib2fv:
+    case GLChunk::glVertexAttrib2fvARB:
+    case GLChunk::glVertexAttrib2s:
+    case GLChunk::glVertexAttrib2sARB:
+    case GLChunk::glVertexAttrib2sv:
+    case GLChunk::glVertexAttrib2svARB:
+    case GLChunk::glVertexAttrib3d:
+    case GLChunk::glVertexAttrib3dARB:
+    case GLChunk::glVertexAttrib3dv:
+    case GLChunk::glVertexAttrib3dvARB:
+    case GLChunk::glVertexAttrib3f:
+    case GLChunk::glVertexAttrib3fARB:
+    case GLChunk::glVertexAttrib3fv:
+    case GLChunk::glVertexAttrib3fvARB:
+    case GLChunk::glVertexAttrib3s:
+    case GLChunk::glVertexAttrib3sARB:
+    case GLChunk::glVertexAttrib3sv:
+    case GLChunk::glVertexAttrib3svARB:
+    case GLChunk::glVertexAttrib4bv:
+    case GLChunk::glVertexAttrib4bvARB:
+    case GLChunk::glVertexAttrib4d:
+    case GLChunk::glVertexAttrib4dARB:
+    case GLChunk::glVertexAttrib4dv:
+    case GLChunk::glVertexAttrib4dvARB:
+    case GLChunk::glVertexAttrib4f:
+    case GLChunk::glVertexAttrib4fARB:
+    case GLChunk::glVertexAttrib4fv:
+    case GLChunk::glVertexAttrib4fvARB:
+    case GLChunk::glVertexAttrib4iv:
+    case GLChunk::glVertexAttrib4ivARB:
+    case GLChunk::glVertexAttrib4Nbv:
+    case GLChunk::glVertexAttrib4NbvARB:
+    case GLChunk::glVertexAttrib4Niv:
+    case GLChunk::glVertexAttrib4NivARB:
+    case GLChunk::glVertexAttrib4Nsv:
+    case GLChunk::glVertexAttrib4NsvARB:
+    case GLChunk::glVertexAttrib4Nub:
+    case GLChunk::glVertexAttrib4Nubv:
+    case GLChunk::glVertexAttrib4NubvARB:
+    case GLChunk::glVertexAttrib4Nuiv:
+    case GLChunk::glVertexAttrib4NuivARB:
+    case GLChunk::glVertexAttrib4Nusv:
+    case GLChunk::glVertexAttrib4NusvARB:
+    case GLChunk::glVertexAttrib4s:
+    case GLChunk::glVertexAttrib4sARB:
+    case GLChunk::glVertexAttrib4sv:
+    case GLChunk::glVertexAttrib4svARB:
+    case GLChunk::glVertexAttrib4ubv:
+    case GLChunk::glVertexAttrib4ubvARB:
+    case GLChunk::glVertexAttrib4uiv:
+    case GLChunk::glVertexAttrib4uivARB:
+    case GLChunk::glVertexAttrib4usv:
+    case GLChunk::glVertexAttrib4usvARB:
+    case GLChunk::glVertexAttribI1i:
+    case GLChunk::glVertexAttribI1iEXT:
+    case GLChunk::glVertexAttribI1iv:
+    case GLChunk::glVertexAttribI1ivEXT:
+    case GLChunk::glVertexAttribI1ui:
+    case GLChunk::glVertexAttribI1uiEXT:
+    case GLChunk::glVertexAttribI1uiv:
+    case GLChunk::glVertexAttribI1uivEXT:
+    case GLChunk::glVertexAttribI2i:
+    case GLChunk::glVertexAttribI2iEXT:
+    case GLChunk::glVertexAttribI2iv:
+    case GLChunk::glVertexAttribI2ivEXT:
+    case GLChunk::glVertexAttribI2ui:
+    case GLChunk::glVertexAttribI2uiEXT:
+    case GLChunk::glVertexAttribI2uiv:
+    case GLChunk::glVertexAttribI2uivEXT:
+    case GLChunk::glVertexAttribI3i:
+    case GLChunk::glVertexAttribI3iEXT:
+    case GLChunk::glVertexAttribI3iv:
+    case GLChunk::glVertexAttribI3ivEXT:
+    case GLChunk::glVertexAttribI3ui:
+    case GLChunk::glVertexAttribI3uiEXT:
+    case GLChunk::glVertexAttribI3uiv:
+    case GLChunk::glVertexAttribI3uivEXT:
+    case GLChunk::glVertexAttribI4bv:
+    case GLChunk::glVertexAttribI4bvEXT:
+    case GLChunk::glVertexAttribI4i:
+    case GLChunk::glVertexAttribI4iEXT:
+    case GLChunk::glVertexAttribI4iv:
+    case GLChunk::glVertexAttribI4ivEXT:
+    case GLChunk::glVertexAttribI4sv:
+    case GLChunk::glVertexAttribI4svEXT:
+    case GLChunk::glVertexAttribI4ubv:
+    case GLChunk::glVertexAttribI4ubvEXT:
+    case GLChunk::glVertexAttribI4ui:
+    case GLChunk::glVertexAttribI4uiEXT:
+    case GLChunk::glVertexAttribI4uiv:
+    case GLChunk::glVertexAttribI4uivEXT:
+    case GLChunk::glVertexAttribI4usv:
+    case GLChunk::glVertexAttribI4usvEXT:
+    case GLChunk::glVertexAttribL1d:
+    case GLChunk::glVertexAttribL1dEXT:
+    case GLChunk::glVertexAttribL1dv:
+    case GLChunk::glVertexAttribL1dvEXT:
+    case GLChunk::glVertexAttribL2d:
+    case GLChunk::glVertexAttribL2dEXT:
+    case GLChunk::glVertexAttribL2dv:
+    case GLChunk::glVertexAttribL2dvEXT:
+    case GLChunk::glVertexAttribL3d:
+    case GLChunk::glVertexAttribL3dEXT:
+    case GLChunk::glVertexAttribL3dv:
+    case GLChunk::glVertexAttribL3dvEXT:
+    case GLChunk::glVertexAttribL4d:
+    case GLChunk::glVertexAttribL4dEXT:
+    case GLChunk::glVertexAttribL4dv:
+    case GLChunk::glVertexAttribL4dvEXT:
+    case GLChunk::glVertexAttribP1ui:
+    case GLChunk::glVertexAttribP1uiv:
+    case GLChunk::glVertexAttribP2ui:
+    case GLChunk::glVertexAttribP2uiv:
+    case GLChunk::glVertexAttribP3ui:
+    case GLChunk::glVertexAttribP3uiv:
+    case GLChunk::glVertexAttribP4ui:
+    case GLChunk::glVertexAttribP4uiv:
+      Serialise_glVertexAttrib(ser, 0, 0, eGL_NONE, 0, 0, Attrib_typemask);
+      break;
+
+    case GLChunk::glLabelObjectEXT:
+    case GLChunk::glObjectLabelKHR:
+    case GLChunk::glObjectPtrLabel:
+    case GLChunk::glObjectPtrLabelKHR:
+    case GLChunk::glObjectLabel: Serialise_glObjectLabel(ser, eGL_NONE, 0, 0, 0); break;
+    case GLChunk::glDebugMessageInsertARB:
+    case GLChunk::glDebugMessageInsertKHR:
+    case GLChunk::glDebugMessageInsert:
+      Serialise_glDebugMessageInsert(ser, eGL_NONE, eGL_NONE, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glStringMarkerGREMEDY:
+    case GLChunk::glInsertEventMarkerEXT: Serialise_glInsertEventMarkerEXT(ser, 0, 0); break;
+    case GLChunk::glPushGroupMarkerEXT:
+    case GLChunk::glPushDebugGroupKHR:
+    case GLChunk::glPushDebugGroup: Serialise_glPushDebugGroup(ser, eGL_NONE, 0, 0, 0); break;
+    case GLChunk::glPopGroupMarkerEXT:
+    case GLChunk::glPopDebugGroupKHR:
+    case GLChunk::glPopDebugGroup: Serialise_glPopDebugGroup(ser); break;
+
+    case GLChunk::glDispatchCompute: Serialise_glDispatchCompute(ser, 0, 0, 0); break;
+    case GLChunk::glDispatchComputeGroupSizeARB:
+      Serialise_glDispatchComputeGroupSizeARB(ser, 0, 0, 0, 0, 0, 0);
+      break;
+    case GLChunk::glDispatchComputeIndirect: Serialise_glDispatchComputeIndirect(ser, 0); break;
+    case GLChunk::glMemoryBarrierEXT:
+    case GLChunk::glMemoryBarrier: Serialise_glMemoryBarrier(ser, 0); break;
+    case GLChunk::glMemoryBarrierByRegion: Serialise_glMemoryBarrierByRegion(ser, 0); break;
+    case GLChunk::glTextureBarrier: Serialise_glTextureBarrier(ser); break;
+    case GLChunk::glDrawTransformFeedback:
+      Serialise_glDrawTransformFeedback(ser, eGL_NONE, 0);
+      break;
+    case GLChunk::glDrawTransformFeedbackInstanced:
+      Serialise_glDrawTransformFeedbackInstanced(ser, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glDrawTransformFeedbackStream:
+      Serialise_glDrawTransformFeedbackStream(ser, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glDrawTransformFeedbackStreamInstanced:
+      Serialise_glDrawTransformFeedbackStreamInstanced(ser, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glDrawArrays: Serialise_glDrawArrays(ser, eGL_NONE, 0, 0); break;
+    case GLChunk::glDrawArraysIndirect: Serialise_glDrawArraysIndirect(ser, eGL_NONE, 0); break;
+    case GLChunk::glDrawArraysInstancedARB:
+    case GLChunk::glDrawArraysInstancedEXT:
+    case GLChunk::glDrawArraysInstanced:
+      Serialise_glDrawArraysInstanced(ser, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glDrawArraysInstancedBaseInstanceEXT:
+    case GLChunk::glDrawArraysInstancedBaseInstance:
+      Serialise_glDrawArraysInstancedBaseInstance(ser, eGL_NONE, 0, 0, 0, 0);
+      break;
+    case GLChunk::glDrawElements: Serialise_glDrawElements(ser, eGL_NONE, 0, eGL_NONE, 0); break;
+    case GLChunk::glDrawElementsIndirect:
+      Serialise_glDrawElementsIndirect(ser, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glDrawRangeElementsEXT:
+    case GLChunk::glDrawRangeElements:
+      Serialise_glDrawRangeElements(ser, eGL_NONE, 0, 0, 0, eGL_NONE, 0);
+      break;
+    case GLChunk::glDrawRangeElementsBaseVertexEXT:
+    case GLChunk::glDrawRangeElementsBaseVertexOES:
+    case GLChunk::glDrawRangeElementsBaseVertex:
+      Serialise_glDrawRangeElementsBaseVertex(ser, eGL_NONE, 0, 0, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glDrawElementsBaseVertexEXT:
+    case GLChunk::glDrawElementsBaseVertexOES:
+    case GLChunk::glDrawElementsBaseVertex:
+      Serialise_glDrawElementsBaseVertex(ser, eGL_NONE, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glDrawElementsInstancedARB:
+    case GLChunk::glDrawElementsInstancedEXT:
+    case GLChunk::glDrawElementsInstanced:
+      Serialise_glDrawElementsInstanced(ser, eGL_NONE, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glDrawElementsInstancedBaseInstanceEXT:
+    case GLChunk::glDrawElementsInstancedBaseInstance:
+      Serialise_glDrawElementsInstancedBaseInstance(ser, eGL_NONE, 0, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glDrawElementsInstancedBaseVertexEXT:
+    case GLChunk::glDrawElementsInstancedBaseVertexOES:
+    case GLChunk::glDrawElementsInstancedBaseVertex:
+      Serialise_glDrawElementsInstancedBaseVertex(ser, eGL_NONE, 0, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glDrawElementsInstancedBaseVertexBaseInstanceEXT:
+    case GLChunk::glDrawElementsInstancedBaseVertexBaseInstance:
+      Serialise_glDrawElementsInstancedBaseVertexBaseInstance(ser, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0);
+      break;
+    case GLChunk::glMultiDrawArraysEXT:
+    case GLChunk::glMultiDrawArrays: Serialise_glMultiDrawArrays(ser, eGL_NONE, 0, 0, 0); break;
+    case GLChunk::glMultiDrawElements:
+      Serialise_glMultiDrawElements(ser, eGL_NONE, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glMultiDrawElementsBaseVertexEXT:
+    case GLChunk::glMultiDrawElementsBaseVertexOES:
+    case GLChunk::glMultiDrawElementsBaseVertex:
+      Serialise_glMultiDrawElementsBaseVertex(ser, eGL_NONE, 0, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glMultiDrawArraysIndirect:
+      Serialise_glMultiDrawArraysIndirect(ser, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glMultiDrawElementsIndirect:
+      Serialise_glMultiDrawElementsIndirect(ser, eGL_NONE, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glMultiDrawArraysIndirectCountARB:
+      Serialise_glMultiDrawArraysIndirectCountARB(ser, eGL_NONE, 0, 0, 0, 0);
+      break;
+    case GLChunk::glMultiDrawElementsIndirectCountARB:
+      Serialise_glMultiDrawElementsIndirectCountARB(ser, eGL_NONE, eGL_NONE, 0, 0, 0, 0);
+      break;
+    case GLChunk::glClearBufferfv:
+    case GLChunk::glClearNamedFramebufferfv:
+      Serialise_glClearNamedFramebufferfv(ser, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glClearBufferiv:
+    case GLChunk::glClearNamedFramebufferiv:
+      Serialise_glClearNamedFramebufferiv(ser, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glClearBufferuiv:
+    case GLChunk::glClearNamedFramebufferuiv:
+      Serialise_glClearNamedFramebufferuiv(ser, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glClearBufferfi:
+    case GLChunk::glClearNamedFramebufferfi:
+      Serialise_glClearNamedFramebufferfi(ser, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glClearBufferData:
+    case GLChunk::glClearNamedBufferData:
+    case GLChunk::glClearNamedBufferDataEXT:
+      Serialise_glClearNamedBufferDataEXT(ser, 0, eGL_NONE, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glClearBufferSubData:
+    case GLChunk::glClearNamedBufferSubData:
+    case GLChunk::glClearNamedBufferSubDataEXT:
+      Serialise_glClearNamedBufferSubDataEXT(ser, 0, eGL_NONE, 0, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glClear: Serialise_glClear(ser, 0); break;
+    case GLChunk::glClearTexImage:
+      Serialise_glClearTexImage(ser, 0, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glClearTexSubImage:
+      Serialise_glClearTexSubImage(ser, 0, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+
+    case GLChunk::glGenFramebuffersEXT:
+    case GLChunk::glGenFramebuffers: Serialise_glGenFramebuffers(ser, 0, 0); break;
+    case GLChunk::glCreateFramebuffers: Serialise_glCreateFramebuffers(ser, 0, 0); break;
+    case GLChunk::glFramebufferTexture:
+    case GLChunk::glFramebufferTextureOES:
+    case GLChunk::glFramebufferTextureARB:
+    case GLChunk::glFramebufferTextureEXT:
+    case GLChunk::glNamedFramebufferTexture:
+    case GLChunk::glNamedFramebufferTextureEXT:
+      Serialise_glNamedFramebufferTextureEXT(ser, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glFramebufferTexture1D:
+    case GLChunk::glFramebufferTexture1DEXT:
+    case GLChunk::glNamedFramebufferTexture1DEXT:
+      Serialise_glNamedFramebufferTexture1DEXT(ser, 0, eGL_NONE, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glFramebufferTexture2D:
+    case GLChunk::glFramebufferTexture2DEXT:
+    case GLChunk::glNamedFramebufferTexture2DEXT:
+      Serialise_glNamedFramebufferTexture2DEXT(ser, 0, eGL_NONE, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glFramebufferTexture2DMultisampleEXT:
+      Serialise_glFramebufferTexture2DMultisampleEXT(ser, 0, eGL_NONE, eGL_NONE, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glFramebufferTexture3D:
+    case GLChunk::glFramebufferTexture3DEXT:
+    case GLChunk::glFramebufferTexture3DOES:
+    case GLChunk::glNamedFramebufferTexture3DEXT:
+      Serialise_glNamedFramebufferTexture3DEXT(ser, 0, eGL_NONE, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glFramebufferRenderbuffer:
+    case GLChunk::glFramebufferRenderbufferEXT:
+    case GLChunk::glNamedFramebufferRenderbuffer:
+    case GLChunk::glNamedFramebufferRenderbufferEXT:
+      Serialise_glNamedFramebufferRenderbufferEXT(ser, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glFramebufferTextureLayer:
+    case GLChunk::glFramebufferTextureLayerARB:
+    case GLChunk::glFramebufferTextureLayerEXT:
+    case GLChunk::glNamedFramebufferTextureLayer:
+    case GLChunk::glNamedFramebufferTextureLayerEXT:
+      Serialise_glNamedFramebufferTextureLayerEXT(ser, 0, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glFramebufferTextureMultiviewOVR:
+      Serialise_glFramebufferTextureMultiviewOVR(ser, eGL_NONE, eGL_NONE, 0, 0, 0, 0);
+      break;
+    case GLChunk::glFramebufferTextureMultisampleMultiviewOVR:
+      Serialise_glFramebufferTextureMultisampleMultiviewOVR(ser, eGL_NONE, eGL_NONE, 0, 0, 0, 0, 0);
+      break;
+    case GLChunk::glFramebufferParameteri:
+    case GLChunk::glNamedFramebufferParameteri:
+    case GLChunk::glNamedFramebufferParameteriEXT:
+      Serialise_glNamedFramebufferParameteriEXT(ser, 0, eGL_NONE, 0);
+      break;
+    case GLChunk::glNamedFramebufferReadBuffer:
+    case GLChunk::glFramebufferReadBufferEXT:
+      Serialise_glFramebufferReadBufferEXT(ser, 0, eGL_NONE);
+      break;
+    case GLChunk::glBindFramebufferEXT:
+    case GLChunk::glBindFramebuffer: Serialise_glBindFramebuffer(ser, eGL_NONE, 0); break;
+    case GLChunk::glDrawBuffer:
+    case GLChunk::glNamedFramebufferDrawBuffer:
+    case GLChunk::glFramebufferDrawBufferEXT:
+      Serialise_glFramebufferDrawBufferEXT(ser, 0, eGL_NONE);
+      break;
+    case GLChunk::glDrawBuffers:
+    case GLChunk::glDrawBuffersARB:
+    case GLChunk::glDrawBuffersEXT:
+    case GLChunk::glNamedFramebufferDrawBuffers:
+    case GLChunk::glFramebufferDrawBuffersEXT:
+      Serialise_glFramebufferDrawBuffersEXT(ser, 0, 0, 0);
+      break;
+    case GLChunk::glBlitFramebuffer:
+    case GLChunk::glBlitFramebufferEXT:
+    case GLChunk::glBlitNamedFramebuffer:
+      Serialise_glBlitNamedFramebuffer(ser, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, eGL_NONE);
+      break;
+    case GLChunk::glGenRenderbuffersEXT:
+    case GLChunk::glGenRenderbuffers: Serialise_glGenRenderbuffers(ser, 0, 0); break;
+    case GLChunk::glCreateRenderbuffers: Serialise_glCreateRenderbuffers(ser, 0, 0); break;
+    case GLChunk::glRenderbufferStorage:
+    case GLChunk::glRenderbufferStorageEXT:
+    case GLChunk::glNamedRenderbufferStorage:
+    case GLChunk::glNamedRenderbufferStorageEXT:
+      Serialise_glNamedRenderbufferStorageEXT(ser, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glRenderbufferStorageMultisample:
+    case GLChunk::glRenderbufferStorageMultisampleEXT:
+    case GLChunk::glNamedRenderbufferStorageMultisample:
+    case GLChunk::glNamedRenderbufferStorageMultisampleEXT:
+      Serialise_glNamedRenderbufferStorageMultisampleEXT(ser, 0, 0, eGL_NONE, 0, 0);
+      break;
+
+    case GLChunk::wglDXRegisterObjectNV:
+      Serialise_wglDXRegisterObjectNV(ser, GLResource(MakeNullResource), eGL_NONE, 0);
+      break;
+    case GLChunk::wglDXLockObjectsNV:
+      Serialise_wglDXLockObjectsNV(ser, GLResource(MakeNullResource));
+      break;
+
+    case GLChunk::glFenceSync: Serialise_glFenceSync(ser, 0, eGL_NONE, 0); break;
+    case GLChunk::glClientWaitSync: Serialise_glClientWaitSync(ser, 0, 0, 0); break;
+    case GLChunk::glWaitSync: Serialise_glWaitSync(ser, 0, 0, 0); break;
+    case GLChunk::glGenQueriesARB:
+    case GLChunk::glGenQueriesEXT:
+    case GLChunk::glGenQueries: Serialise_glGenQueries(ser, 0, 0); break;
+    case GLChunk::glCreateQueries: Serialise_glCreateQueries(ser, eGL_NONE, 0, 0); break;
+    case GLChunk::glBeginQueryARB:
+    case GLChunk::glBeginQueryEXT:
+    case GLChunk::glBeginQuery: Serialise_glBeginQuery(ser, eGL_NONE, 0); break;
+    case GLChunk::glBeginQueryIndexed: Serialise_glBeginQueryIndexed(ser, eGL_NONE, 0, 0); break;
+    case GLChunk::glEndQueryARB:
+    case GLChunk::glEndQueryEXT:
+    case GLChunk::glEndQuery: Serialise_glEndQuery(ser, eGL_NONE); break;
+    case GLChunk::glEndQueryIndexed: Serialise_glEndQueryIndexed(ser, eGL_NONE, 0); break;
+    case GLChunk::glBeginConditionalRender:
+      Serialise_glBeginConditionalRender(ser, 0, eGL_NONE);
+      break;
+    case GLChunk::glEndConditionalRender: Serialise_glEndConditionalRender(ser);
+    case GLChunk::glQueryCounterEXT:
+    case GLChunk::glQueryCounter: Serialise_glQueryCounter(ser, 0, eGL_NONE); break;
+
+    case GLChunk::glGenSamplers: Serialise_glGenSamplers(ser, 0, 0); break;
+    case GLChunk::glCreateSamplers: Serialise_glCreateSamplers(ser, 0, 0); break;
+    case GLChunk::glBindSampler: Serialise_glBindSampler(ser, 0, 0); break;
+    case GLChunk::glBindSamplers: Serialise_glBindSamplers(ser, 0, 0, 0); break;
+    case GLChunk::glSamplerParameteri: Serialise_glSamplerParameteri(ser, 0, eGL_NONE, 0); break;
+    case GLChunk::glSamplerParameterf: Serialise_glSamplerParameterf(ser, 0, eGL_NONE, 0); break;
+    case GLChunk::glSamplerParameteriv: Serialise_glSamplerParameteriv(ser, 0, eGL_NONE, 0); break;
+    case GLChunk::glSamplerParameterfv: Serialise_glSamplerParameterfv(ser, 0, eGL_NONE, 0); break;
+    case GLChunk::glSamplerParameterIivEXT:
+    case GLChunk::glSamplerParameterIivOES:
+    case GLChunk::glSamplerParameterIiv:
+      Serialise_glSamplerParameterIiv(ser, 0, eGL_NONE, 0);
+      break;
+    case GLChunk::glSamplerParameterIuivEXT:
+    case GLChunk::glSamplerParameterIuivOES:
+    case GLChunk::glSamplerParameterIuiv:
+      Serialise_glSamplerParameterIuiv(ser, 0, eGL_NONE, 0);
+      break;
+
+    case GLChunk::glCreateShader: Serialise_glCreateShader(ser, 0, eGL_NONE); break;
+    case GLChunk::glShaderSource: Serialise_glShaderSource(ser, 0, 0, 0, 0); break;
+    case GLChunk::glCompileShader: Serialise_glCompileShader(ser, 0); break;
+    case GLChunk::glAttachShader: Serialise_glAttachShader(ser, 0, 0); break;
+    case GLChunk::glDetachShader: Serialise_glDetachShader(ser, 0, 0); break;
+    case GLChunk::glCreateShaderProgramvEXT:
+    case GLChunk::glCreateShaderProgramv:
+      Serialise_glCreateShaderProgramv(ser, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glCreateProgram: Serialise_glCreateProgram(ser, 0); break;
+    case GLChunk::glLinkProgram: Serialise_glLinkProgram(ser, 0); break;
+    case GLChunk::glUniformBlockBinding: Serialise_glUniformBlockBinding(ser, 0, 0, 0); break;
+    case GLChunk::glShaderStorageBlockBinding:
+      Serialise_glShaderStorageBlockBinding(ser, 0, 0, 0);
+      break;
+    case GLChunk::glBindAttribLocation: Serialise_glBindAttribLocation(ser, 0, 0, 0); break;
+    case GLChunk::glBindFragDataLocationEXT:
+    case GLChunk::glBindFragDataLocation: Serialise_glBindFragDataLocation(ser, 0, 0, 0); break;
+    case GLChunk::glUniformSubroutinesuiv:
+      Serialise_glUniformSubroutinesuiv(ser, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glBindFragDataLocationIndexed:
+      Serialise_glBindFragDataLocationIndexed(ser, 0, 0, 0, 0);
+      break;
+    case GLChunk::glTransformFeedbackVaryingsEXT:
+    case GLChunk::glTransformFeedbackVaryings:
+      Serialise_glTransformFeedbackVaryings(ser, 0, 0, 0, eGL_NONE);
+      break;
+    case GLChunk::glProgramParameteriARB:
+    case GLChunk::glProgramParameteriEXT:
+    case GLChunk::glProgramParameteri: Serialise_glProgramParameteri(ser, 0, eGL_NONE, 0); break;
+    case GLChunk::glUseProgram: Serialise_glUseProgram(ser, 0); break;
+    case GLChunk::glUseProgramStagesEXT:
+    case GLChunk::glUseProgramStages: Serialise_glUseProgramStages(ser, 0, 0, 0); break;
+    case GLChunk::glGenProgramPipelinesEXT:
+    case GLChunk::glGenProgramPipelines: Serialise_glGenProgramPipelines(ser, 0, 0); break;
+    case GLChunk::glCreateProgramPipelines: Serialise_glCreateProgramPipelines(ser, 0, 0); break;
+    case GLChunk::glBindProgramPipelineEXT:
+    case GLChunk::glBindProgramPipeline: Serialise_glBindProgramPipeline(ser, 0); break;
+    case GLChunk::glCompileShaderIncludeARB:
+      Serialise_glCompileShaderIncludeARB(ser, 0, 0, 0, 0);
+      break;
+    case GLChunk::glNamedStringARB: Serialise_glNamedStringARB(ser, eGL_NONE, 0, 0, 0, 0); break;
+    case GLChunk::glDeleteNamedStringARB: Serialise_glDeleteNamedStringARB(ser, 0, 0); break;
+
+    case GLChunk::glBlendFunc: Serialise_glBlendFunc(ser, eGL_NONE, eGL_NONE); break;
+    case GLChunk::glBlendFunciARB:
+    case GLChunk::glBlendFunciEXT:
+    case GLChunk::glBlendFunciOES:
+    case GLChunk::glBlendFunci: Serialise_glBlendFunci(ser, 0, eGL_NONE, eGL_NONE); break;
+    case GLChunk::glBlendColorEXT:
+    case GLChunk::glBlendColor: Serialise_glBlendColor(ser, 0, 0, 0, 0); break;
+    case GLChunk::glBlendFuncSeparateARB:
+    case GLChunk::glBlendFuncSeparate:
+      Serialise_glBlendFuncSeparate(ser, eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
+      break;
+    case GLChunk::glBlendFuncSeparateiARB:
+    case GLChunk::glBlendFuncSeparateiEXT:
+    case GLChunk::glBlendFuncSeparateiOES:
+    case GLChunk::glBlendFuncSeparatei:
+      Serialise_glBlendFuncSeparatei(ser, 0, eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
+      break;
+    case GLChunk::glBlendEquationEXT:
+    case GLChunk::glBlendEquation: Serialise_glBlendEquation(ser, eGL_NONE); break;
+    case GLChunk::glBlendEquationiARB:
+    case GLChunk::glBlendEquationiEXT:
+    case GLChunk::glBlendEquationiOES:
+    case GLChunk::glBlendEquationi: Serialise_glBlendEquationi(ser, 0, eGL_NONE); break;
+    case GLChunk::glBlendEquationSeparateARB:
+    case GLChunk::glBlendEquationSeparateEXT:
+    case GLChunk::glBlendEquationSeparate:
+      Serialise_glBlendEquationSeparate(ser, eGL_NONE, eGL_NONE);
+      break;
+    case GLChunk::glBlendEquationSeparateiARB:
+    case GLChunk::glBlendEquationSeparateiEXT:
+    case GLChunk::glBlendEquationSeparateiOES:
+    case GLChunk::glBlendEquationSeparatei:
+      Serialise_glBlendEquationSeparatei(ser, 0, eGL_NONE, eGL_NONE);
+      break;
+    case GLChunk::glBlendBarrier:
+    case GLChunk::glBlendBarrierKHR: Serialise_glBlendBarrierKHR(ser); break;
+    case GLChunk::glLogicOp: Serialise_glLogicOp(ser, eGL_NONE); break;
+    case GLChunk::glStencilFunc: Serialise_glStencilFunc(ser, eGL_NONE, 0, 0); break;
+    case GLChunk::glStencilFuncSeparate:
+      Serialise_glStencilFuncSeparate(ser, eGL_NONE, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glStencilMask: Serialise_glStencilMask(ser, 0); break;
+    case GLChunk::glStencilMaskSeparate: Serialise_glStencilMaskSeparate(ser, eGL_NONE, 0); break;
+    case GLChunk::glStencilOp: Serialise_glStencilOp(ser, eGL_NONE, eGL_NONE, eGL_NONE); break;
+    case GLChunk::glStencilOpSeparate:
+      Serialise_glStencilOpSeparate(ser, eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
+      break;
+    case GLChunk::glClearColor: Serialise_glClearColor(ser, 0, 0, 0, 0); break;
+    case GLChunk::glClearStencil: Serialise_glClearStencil(ser, 0); break;
+    case GLChunk::glClearDepthf:
+    case GLChunk::glClearDepth: Serialise_glClearDepth(ser, 0); break;
+    case GLChunk::glDepthFunc: Serialise_glDepthFunc(ser, eGL_NONE); break;
+    case GLChunk::glDepthMask: Serialise_glDepthMask(ser, 0); break;
+    case GLChunk::glDepthRange: Serialise_glDepthRange(ser, 0, 0); break;
+    case GLChunk::glDepthRangef: Serialise_glDepthRangef(ser, 0, 0); break;
+    case GLChunk::glDepthRangeIndexedfNV:
+    case GLChunk::glDepthRangeIndexedfOES:
+    case GLChunk::glDepthRangeIndexed: Serialise_glDepthRangeIndexed(ser, 0, 0, 0); break;
+    case GLChunk::glDepthRangeArrayfvNV:
+    case GLChunk::glDepthRangeArrayfvOES:
+    case GLChunk::glDepthRangeArrayv: Serialise_glDepthRangeArrayv(ser, 0, 0, 0); break;
+    case GLChunk::glDepthBoundsEXT: Serialise_glDepthBoundsEXT(ser, 0, 0); break;
+    case GLChunk::glClipControl: Serialise_glClipControl(ser, eGL_NONE, eGL_NONE); break;
+    case GLChunk::glProvokingVertexEXT:
+    case GLChunk::glProvokingVertex: Serialise_glProvokingVertex(ser, eGL_NONE); break;
+    case GLChunk::glPrimitiveRestartIndex: Serialise_glPrimitiveRestartIndex(ser, 0); break;
+    case GLChunk::glDisable: Serialise_glDisable(ser, eGL_NONE); break;
+    case GLChunk::glEnable: Serialise_glEnable(ser, eGL_NONE); break;
+    case GLChunk::glDisableiEXT:
+    case GLChunk::glDisableIndexedEXT:
+    case GLChunk::glDisableiNV:
+    case GLChunk::glDisableiOES:
+    case GLChunk::glDisablei: Serialise_glDisablei(ser, eGL_NONE, 0); break;
+    case GLChunk::glEnableiEXT:
+    case GLChunk::glEnableIndexedEXT:
+    case GLChunk::glEnableiNV:
+    case GLChunk::glEnableiOES:
+    case GLChunk::glEnablei: Serialise_glEnablei(ser, eGL_NONE, 0); break;
+    case GLChunk::glFrontFace: Serialise_glFrontFace(ser, eGL_NONE); break;
+    case GLChunk::glCullFace: Serialise_glCullFace(ser, eGL_NONE); break;
+    case GLChunk::glHint: Serialise_glHint(ser, eGL_NONE, eGL_NONE); break;
+    case GLChunk::glColorMask: Serialise_glColorMask(ser, 0, 0, 0, 0); break;
+    case GLChunk::glColorMaskiEXT:
+    case GLChunk::glColorMaskIndexedEXT:
+    case GLChunk::glColorMaskiOES:
+    case GLChunk::glColorMaski: Serialise_glColorMaski(ser, 0, 0, 0, 0, 0); break;
+    case GLChunk::glSampleMaski: Serialise_glSampleMaski(ser, 0, 0); break;
+    case GLChunk::glSampleCoverageARB:
+    case GLChunk::glSampleCoverage: Serialise_glSampleCoverage(ser, 0, 0); break;
+    case GLChunk::glMinSampleShadingARB:
+    case GLChunk::glMinSampleShadingOES:
+    case GLChunk::glMinSampleShading: Serialise_glMinSampleShading(ser, 0); break;
+    case GLChunk::glRasterSamplesEXT: Serialise_glRasterSamplesEXT(ser, 0, 0); break;
+    case GLChunk::glPatchParameteri: Serialise_glPatchParameteri(ser, eGL_NONE, 0); break;
+    case GLChunk::glPatchParameterfv: Serialise_glPatchParameterfv(ser, eGL_NONE, 0); break;
+    case GLChunk::glLineWidth: Serialise_glLineWidth(ser, 0); break;
+    case GLChunk::glPointSize: Serialise_glPointSize(ser, 0); break;
+    case GLChunk::glPatchParameteriEXT:
+    case GLChunk::glPatchParameteriOES:
+    case GLChunk::glPointParameteri: Serialise_glPointParameteri(ser, eGL_NONE, 0); break;
+    case GLChunk::glPointParameteriv: Serialise_glPointParameteriv(ser, eGL_NONE, 0); break;
+    case GLChunk::glPointParameterfARB:
+    case GLChunk::glPointParameterfEXT:
+    case GLChunk::glPointParameterf: Serialise_glPointParameterf(ser, eGL_NONE, 0); break;
+    case GLChunk::glPointParameterfvARB:
+    case GLChunk::glPointParameterfvEXT:
+    case GLChunk::glPointParameterfv: Serialise_glPointParameterfv(ser, eGL_NONE, 0); break;
+    case GLChunk::glViewport: Serialise_glViewport(ser, 0, 0, 0, 0); break;
+    case GLChunk::glViewportArrayvNV:
+    case GLChunk::glViewportArrayvOES:
+    case GLChunk::glViewportIndexedf:
+    case GLChunk::glViewportIndexedfNV:
+    case GLChunk::glViewportIndexedfOES:
+    case GLChunk::glViewportIndexedfv:
+    case GLChunk::glViewportIndexedfvNV:
+    case GLChunk::glViewportIndexedfvOES:
+    case GLChunk::glViewportArrayv: Serialise_glViewportArrayv(ser, 0, 0, 0); break;
+    case GLChunk::glScissor: Serialise_glScissor(ser, 0, 0, 0, 0); break;
+    case GLChunk::glScissorArrayvNV:
+    case GLChunk::glScissorArrayvOES:
+    case GLChunk::glScissorIndexed:
+    case GLChunk::glScissorIndexedNV:
+    case GLChunk::glScissorIndexedOES:
+    case GLChunk::glScissorIndexedv:
+    case GLChunk::glScissorIndexedvNV:
+    case GLChunk::glScissorIndexedvOES:
+    case GLChunk::glScissorArrayv: Serialise_glScissorArrayv(ser, 0, 0, 0); break;
+    case GLChunk::glPolygonMode: Serialise_glPolygonMode(ser, eGL_NONE, eGL_NONE); break;
+    case GLChunk::glPolygonOffset: Serialise_glPolygonOffset(ser, 0, 0); break;
+    case GLChunk::glPolygonOffsetClampEXT: Serialise_glPolygonOffsetClampEXT(ser, 0, 0, 0); break;
+    case GLChunk::glPrimitiveBoundingBoxEXT:
+    case GLChunk::glPrimitiveBoundingBoxOES:
+    case GLChunk::glPrimitiveBoundingBox:
+      Serialise_glPrimitiveBoundingBox(ser, 0, 0, 0, 0, 0, 0, 0, 0);
+      break;
+
+    case GLChunk::glGenTextures: Serialise_glGenTextures(ser, 0, 0); break;
+    case GLChunk::glCreateTextures: Serialise_glCreateTextures(ser, eGL_NONE, 0, 0); break;
+    case GLChunk::glBindTexture: Serialise_glBindTexture(ser, eGL_NONE, 0); break;
+    case GLChunk::glBindTextures: Serialise_glBindTextures(ser, 0, 0, 0); break;
+    case GLChunk::glBindMultiTextureEXT:
+      Serialise_glBindMultiTextureEXT(ser, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glBindTextureUnit: Serialise_glBindTextureUnit(ser, 0, 0); break;
+    case GLChunk::glBindImageTextureEXT:
+    case GLChunk::glBindImageTexture:
+      Serialise_glBindImageTexture(ser, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE);
+      break;
+    case GLChunk::glBindImageTextures: Serialise_glBindImageTextures(ser, 0, 0, 0); break;
+    case GLChunk::glTextureViewEXT:
+    case GLChunk::glTextureViewOES:
+    case GLChunk::glTextureView:
+      Serialise_glTextureView(ser, 0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0);
+      break;
+    case GLChunk::glGenerateMipmap:
+    case GLChunk::glGenerateMipmapEXT:
+    case GLChunk::glGenerateMultiTexMipmapEXT:
+    case GLChunk::glGenerateTextureMipmap:
+    case GLChunk::glGenerateTextureMipmapEXT:
+      Serialise_glGenerateTextureMipmapEXT(ser, 0, eGL_NONE);
+      break;
+    case GLChunk::glCopyImageSubDataEXT:
+    case GLChunk::glCopyImageSubDataOES:
+    case GLChunk::glCopyImageSubData:
+      Serialise_glCopyImageSubData(ser, 0, eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0);
+      break;
+    case GLChunk::glCopyMultiTexSubImage1DEXT:
+    case GLChunk::glCopyTexSubImage1D:
+    case GLChunk::glCopyTextureSubImage1D:
+    case GLChunk::glCopyTextureSubImage1DEXT:
+      Serialise_glCopyTextureSubImage1DEXT(ser, 0, eGL_NONE, 0, 0, 0, 0, 0);
+      break;
+    case GLChunk::glCopyTexSubImage2D:
+    case GLChunk::glCopyTextureSubImage2D:
+    case GLChunk::glCopyMultiTexSubImage2DEXT:
+    case GLChunk::glCopyTextureSubImage2DEXT:
+      Serialise_glCopyTextureSubImage2DEXT(ser, 0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0);
+      break;
+    case GLChunk::glCopyMultiTexSubImage3DEXT:
+    case GLChunk::glCopyTexSubImage3D:
+    case GLChunk::glCopyTexSubImage3DOES:
+    case GLChunk::glCopyTextureSubImage3D:
+    case GLChunk::glCopyTextureSubImage3DEXT:
+      Serialise_glCopyTextureSubImage3DEXT(ser, 0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0, 0);
+      break;
+    case GLChunk::glMultiTexParameteriEXT:
+    case GLChunk::glTexParameteri:
+    case GLChunk::glTextureParameteri:
+    case GLChunk::glTextureParameteriEXT:
+      Serialise_glTextureParameteriEXT(ser, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glMultiTexParameterivEXT:
+    case GLChunk::glTexParameteriv:
+    case GLChunk::glTextureParameteriv:
+    case GLChunk::glTextureParameterivEXT:
+      Serialise_glTextureParameterivEXT(ser, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glMultiTexParameterIivEXT:
+    case GLChunk::glTexParameterIiv:
+    case GLChunk::glTexParameterIivEXT:
+    case GLChunk::glTexParameterIivOES:
+    case GLChunk::glTextureParameterIiv:
+    case GLChunk::glTextureParameterIivEXT:
+      Serialise_glTextureParameterIivEXT(ser, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glMultiTexParameterIuivEXT:
+    case GLChunk::glTexParameterIuiv:
+    case GLChunk::glTexParameterIuivEXT:
+    case GLChunk::glTexParameterIuivOES:
+    case GLChunk::glTextureParameterIuiv:
+    case GLChunk::glTextureParameterIuivEXT:
+      Serialise_glTextureParameterIuivEXT(ser, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glMultiTexParameterfEXT:
+    case GLChunk::glTexParameterf:
+    case GLChunk::glTextureParameterf:
+    case GLChunk::glTextureParameterfEXT:
+      Serialise_glTextureParameterfEXT(ser, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glMultiTexParameterfvEXT:
+    case GLChunk::glTexParameterfv:
+    case GLChunk::glTextureParameterfv:
+    case GLChunk::glTextureParameterfvEXT:
+      Serialise_glTextureParameterfvEXT(ser, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+
+    case GLChunk::glPixelStoref:
+    case GLChunk::glPixelStorei: Serialise_glPixelStorei(ser, eGL_NONE, 0); break;
+    case GLChunk::glActiveTextureARB:
+    case GLChunk::glActiveTexture: Serialise_glActiveTexture(ser, eGL_NONE); break;
+    case GLChunk::glMultiTexImage1DEXT:
+    case GLChunk::glTexImage1D:
+    case GLChunk::glTextureImage1DEXT:
+      Serialise_glTextureImage1DEXT(ser, 0, eGL_NONE, 0, 0, 0, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glMultiTexImage2DEXT:
+    case GLChunk::glTexImage2D:
+    case GLChunk::glTextureImage2DEXT:
+      Serialise_glTextureImage2DEXT(ser, 0, eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glMultiTexImage3DEXT:
+    case GLChunk::glTexImage3D:
+    case GLChunk::glTexImage3DEXT:
+    case GLChunk::glTexImage3DOES:
+    case GLChunk::glTextureImage3DEXT:
+      Serialise_glTextureImage3DEXT(ser, 0, eGL_NONE, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+
+    case GLChunk::glCompressedMultiTexImage1DEXT:
+    case GLChunk::glCompressedTexImage1D:
+    case GLChunk::glCompressedTexImage1DARB:
+    case GLChunk::glCompressedTextureImage1DEXT:
+      Serialise_glCompressedTextureImage1DEXT(ser, 0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0);
+      break;
+    case GLChunk::glCompressedMultiTexImage2DEXT:
+    case GLChunk::glCompressedTexImage2D:
+    case GLChunk::glCompressedTexImage2DARB:
+    case GLChunk::glCompressedTextureImage2DEXT:
+      Serialise_glCompressedTextureImage2DEXT(ser, 0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0);
+      break;
+    case GLChunk::glCompressedMultiTexImage3DEXT:
+    case GLChunk::glCompressedTexImage3D:
+    case GLChunk::glCompressedTexImage3DARB:
+    case GLChunk::glCompressedTexImage3DOES:
+    case GLChunk::glCompressedTextureImage3DEXT:
+      Serialise_glCompressedTextureImage3DEXT(ser, 0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0, 0);
+      break;
+    case GLChunk::glCopyTexImage1D:
+    case GLChunk::glCopyMultiTexImage1DEXT:
+    case GLChunk::glCopyTextureImage1DEXT:
+      Serialise_glCopyTextureImage1DEXT(ser, 0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0);
+      break;
+    case GLChunk::glCopyTexImage2D:
+    case GLChunk::glCopyMultiTexImage2DEXT:
+    case GLChunk::glCopyTextureImage2DEXT:
+      Serialise_glCopyTextureImage2DEXT(ser, 0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0);
+      break;
+    case GLChunk::glTexStorage1D:
+    case GLChunk::glTexStorage1DEXT:
+    case GLChunk::glTextureStorage1D:
+    case GLChunk::glTextureStorage1DEXT:
+      Serialise_glTextureStorage1DEXT(ser, 0, eGL_NONE, 0, eGL_NONE, 0);
+      break;
+    case GLChunk::glTexStorage2D:
+    case GLChunk::glTexStorage2DEXT:
+    case GLChunk::glTextureStorage2D:
+    case GLChunk::glTextureStorage2DEXT:
+      Serialise_glTextureStorage2DEXT(ser, 0, eGL_NONE, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glTexStorage3D:
+    case GLChunk::glTexStorage3DEXT:
+    case GLChunk::glTextureStorage3D:
+    case GLChunk::glTextureStorage3DEXT:
+      Serialise_glTextureStorage3DEXT(ser, 0, eGL_NONE, 0, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glTexImage2DMultisample:
+    // technically this isn't equivalent to storage, but we treat it as such because there's no DSA
+    // variant of this teximage
+    case GLChunk::glTexStorage2DMultisample:
+    case GLChunk::glTextureStorage2DMultisample:
+    case GLChunk::glTextureStorage2DMultisampleEXT:
+      Serialise_glTextureStorage2DMultisampleEXT(ser, 0, eGL_NONE, 0, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glTexImage3DMultisample:
+    // technically this isn't equivalent to storage, but we treat it as such because there's no DSA
+    // variant of this teximage
+    case GLChunk::glTexStorage3DMultisample:
+    case GLChunk::glTexStorage3DMultisampleOES:
+    case GLChunk::glTextureStorage3DMultisample:
+    case GLChunk::glTextureStorage3DMultisampleEXT:
+      Serialise_glTextureStorage3DMultisampleEXT(ser, 0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0);
+      break;
+    case GLChunk::glMultiTexSubImage1DEXT:
+    case GLChunk::glTexSubImage1D:
+    case GLChunk::glTextureSubImage1D:
+    case GLChunk::glTextureSubImage1DEXT:
+      Serialise_glTextureSubImage1DEXT(ser, 0, eGL_NONE, 0, 0, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glMultiTexSubImage2DEXT:
+    case GLChunk::glTexSubImage2D:
+    case GLChunk::glTextureSubImage2D:
+    case GLChunk::glTextureSubImage2DEXT:
+      Serialise_glTextureSubImage2DEXT(ser, 0, eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glMultiTexSubImage3DEXT:
+    case GLChunk::glTexSubImage3D:
+    case GLChunk::glTexSubImage3DOES:
+    case GLChunk::glTextureSubImage3D:
+    case GLChunk::glTextureSubImage3DEXT:
+      Serialise_glTextureSubImage3DEXT(ser, 0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+    case GLChunk::glCompressedMultiTexSubImage1DEXT:
+    case GLChunk::glCompressedTexSubImage1D:
+    case GLChunk::glCompressedTexSubImage1DARB:
+    case GLChunk::glCompressedTextureSubImage1D:
+    case GLChunk::glCompressedTextureSubImage1DEXT:
+      Serialise_glCompressedTextureSubImage1DEXT(ser, 0, eGL_NONE, 0, 0, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glCompressedMultiTexSubImage2DEXT:
+    case GLChunk::glCompressedTexSubImage2D:
+    case GLChunk::glCompressedTexSubImage2DARB:
+    case GLChunk::glCompressedTextureSubImage2D:
+    case GLChunk::glCompressedTextureSubImage2DEXT:
+      Serialise_glCompressedTextureSubImage2DEXT(ser, 0, eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, 0, 0);
+      break;
+    case GLChunk::glCompressedMultiTexSubImage3DEXT:
+    case GLChunk::glCompressedTexSubImage3D:
+    case GLChunk::glCompressedTexSubImage3DARB:
+    case GLChunk::glCompressedTexSubImage3DOES:
+    case GLChunk::glCompressedTextureSubImage3D:
+    case GLChunk::glCompressedTextureSubImage3DEXT:
+      Serialise_glCompressedTextureSubImage3DEXT(ser, 0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, 0,
+                                                 0);
+      break;
+    case GLChunk::glTexBufferRange:
+    case GLChunk::glTexBufferRangeEXT:
+    case GLChunk::glTexBufferRangeOES:
+    case GLChunk::glTextureBufferRange:
+    case GLChunk::glTextureBufferRangeEXT:
+      Serialise_glTextureBufferRangeEXT(ser, 0, eGL_NONE, eGL_NONE, 0, 0, 0);
+      break;
+    case GLChunk::glMultiTexBufferEXT:
+    case GLChunk::glTexBuffer:
+    case GLChunk::glTexBufferARB:
+    case GLChunk::glTexBufferEXT:
+    case GLChunk::glTexBufferOES:
+    case GLChunk::glTextureBuffer:
+    case GLChunk::glTextureBufferEXT:
+      Serialise_glTextureBufferEXT(ser, 0, eGL_NONE, eGL_NONE, 0);
+      break;
+
+    case GLChunk::glProgramUniform1d:
+    case GLChunk::glProgramUniform1dEXT:
+    case GLChunk::glProgramUniform1dv:
+    case GLChunk::glProgramUniform1dvEXT:
+    case GLChunk::glProgramUniform1f:
+    case GLChunk::glProgramUniform1fEXT:
+    case GLChunk::glProgramUniform1fv:
+    case GLChunk::glProgramUniform1fvEXT:
+    case GLChunk::glProgramUniform1i:
+    case GLChunk::glProgramUniform1iEXT:
+    case GLChunk::glProgramUniform1iv:
+    case GLChunk::glProgramUniform1ivEXT:
+    case GLChunk::glProgramUniform1ui:
+    case GLChunk::glProgramUniform1uiEXT:
+    case GLChunk::glProgramUniform1uiv:
+    case GLChunk::glProgramUniform1uivEXT:
+    case GLChunk::glProgramUniform2d:
+    case GLChunk::glProgramUniform2dEXT:
+    case GLChunk::glProgramUniform2dv:
+    case GLChunk::glProgramUniform2dvEXT:
+    case GLChunk::glProgramUniform2f:
+    case GLChunk::glProgramUniform2fEXT:
+    case GLChunk::glProgramUniform2fv:
+    case GLChunk::glProgramUniform2fvEXT:
+    case GLChunk::glProgramUniform2i:
+    case GLChunk::glProgramUniform2iEXT:
+    case GLChunk::glProgramUniform2iv:
+    case GLChunk::glProgramUniform2ivEXT:
+    case GLChunk::glProgramUniform2ui:
+    case GLChunk::glProgramUniform2uiEXT:
+    case GLChunk::glProgramUniform2uiv:
+    case GLChunk::glProgramUniform2uivEXT:
+    case GLChunk::glProgramUniform3d:
+    case GLChunk::glProgramUniform3dEXT:
+    case GLChunk::glProgramUniform3dv:
+    case GLChunk::glProgramUniform3dvEXT:
+    case GLChunk::glProgramUniform3f:
+    case GLChunk::glProgramUniform3fEXT:
+    case GLChunk::glProgramUniform3fv:
+    case GLChunk::glProgramUniform3fvEXT:
+    case GLChunk::glProgramUniform3i:
+    case GLChunk::glProgramUniform3iEXT:
+    case GLChunk::glProgramUniform3iv:
+    case GLChunk::glProgramUniform3ivEXT:
+    case GLChunk::glProgramUniform3ui:
+    case GLChunk::glProgramUniform3uiEXT:
+    case GLChunk::glProgramUniform3uiv:
+    case GLChunk::glProgramUniform3uivEXT:
+    case GLChunk::glProgramUniform4d:
+    case GLChunk::glProgramUniform4dEXT:
+    case GLChunk::glProgramUniform4dv:
+    case GLChunk::glProgramUniform4dvEXT:
+    case GLChunk::glProgramUniform4f:
+    case GLChunk::glProgramUniform4fEXT:
+    case GLChunk::glProgramUniform4fv:
+    case GLChunk::glProgramUniform4fvEXT:
+    case GLChunk::glProgramUniform4i:
+    case GLChunk::glProgramUniform4iEXT:
+    case GLChunk::glProgramUniform4iv:
+    case GLChunk::glProgramUniform4ivEXT:
+    case GLChunk::glProgramUniform4ui:
+    case GLChunk::glProgramUniform4uiEXT:
+    case GLChunk::glProgramUniform4uiv:
+    case GLChunk::glProgramUniform4uivEXT:
+    case GLChunk::glUniform1d:
+    case GLChunk::glUniform1dv:
+    case GLChunk::glUniform1f:
+    case GLChunk::glUniform1fv:
+    case GLChunk::glUniform1i:
+    case GLChunk::glUniform1iv:
+    case GLChunk::glUniform1ui:
+    case GLChunk::glUniform1uiEXT:
+    case GLChunk::glUniform1uiv:
+    case GLChunk::glUniform1uivEXT:
+    case GLChunk::glUniform2d:
+    case GLChunk::glUniform2dv:
+    case GLChunk::glUniform2f:
+    case GLChunk::glUniform2fv:
+    case GLChunk::glUniform2i:
+    case GLChunk::glUniform2iv:
+    case GLChunk::glUniform2ui:
+    case GLChunk::glUniform2uiEXT:
+    case GLChunk::glUniform2uiv:
+    case GLChunk::glUniform2uivEXT:
+    case GLChunk::glUniform3d:
+    case GLChunk::glUniform3dv:
+    case GLChunk::glUniform3f:
+    case GLChunk::glUniform3fv:
+    case GLChunk::glUniform3i:
+    case GLChunk::glUniform3iv:
+    case GLChunk::glUniform3ui:
+    case GLChunk::glUniform3uiEXT:
+    case GLChunk::glUniform3uiv:
+    case GLChunk::glUniform3uivEXT:
+    case GLChunk::glUniform4d:
+    case GLChunk::glUniform4dv:
+    case GLChunk::glUniform4f:
+    case GLChunk::glUniform4fv:
+    case GLChunk::glUniform4i:
+    case GLChunk::glUniform4iv:
+    case GLChunk::glUniform4ui:
+    case GLChunk::glUniform4uiEXT:
+    case GLChunk::glUniform4uiv:
+    case GLChunk::glUniform4uivEXT:
+      Serialise_glProgramUniformVector(ser, 0, 0, 0, 0, UNIFORM_UNKNOWN);
+      break;
+
+    case GLChunk::glProgramUniformMatrix2dv:
+    case GLChunk::glProgramUniformMatrix2dvEXT:
+    case GLChunk::glProgramUniformMatrix2fv:
+    case GLChunk::glProgramUniformMatrix2fvEXT:
+    case GLChunk::glProgramUniformMatrix2x3dv:
+    case GLChunk::glProgramUniformMatrix2x3dvEXT:
+    case GLChunk::glProgramUniformMatrix2x3fv:
+    case GLChunk::glProgramUniformMatrix2x3fvEXT:
+    case GLChunk::glProgramUniformMatrix2x4dv:
+    case GLChunk::glProgramUniformMatrix2x4dvEXT:
+    case GLChunk::glProgramUniformMatrix2x4fv:
+    case GLChunk::glProgramUniformMatrix2x4fvEXT:
+    case GLChunk::glProgramUniformMatrix3dv:
+    case GLChunk::glProgramUniformMatrix3dvEXT:
+    case GLChunk::glProgramUniformMatrix3fv:
+    case GLChunk::glProgramUniformMatrix3fvEXT:
+    case GLChunk::glProgramUniformMatrix3x2dv:
+    case GLChunk::glProgramUniformMatrix3x2dvEXT:
+    case GLChunk::glProgramUniformMatrix3x2fv:
+    case GLChunk::glProgramUniformMatrix3x2fvEXT:
+    case GLChunk::glProgramUniformMatrix3x4dv:
+    case GLChunk::glProgramUniformMatrix3x4dvEXT:
+    case GLChunk::glProgramUniformMatrix3x4fv:
+    case GLChunk::glProgramUniformMatrix3x4fvEXT:
+    case GLChunk::glProgramUniformMatrix4dv:
+    case GLChunk::glProgramUniformMatrix4dvEXT:
+    case GLChunk::glProgramUniformMatrix4fv:
+    case GLChunk::glProgramUniformMatrix4fvEXT:
+    case GLChunk::glProgramUniformMatrix4x2dv:
+    case GLChunk::glProgramUniformMatrix4x2dvEXT:
+    case GLChunk::glProgramUniformMatrix4x2fv:
+    case GLChunk::glProgramUniformMatrix4x2fvEXT:
+    case GLChunk::glProgramUniformMatrix4x3dv:
+    case GLChunk::glProgramUniformMatrix4x3dvEXT:
+    case GLChunk::glProgramUniformMatrix4x3fv:
+    case GLChunk::glProgramUniformMatrix4x3fvEXT:
+    case GLChunk::glUniformMatrix2dv:
+    case GLChunk::glUniformMatrix2fv:
+    case GLChunk::glUniformMatrix2x3dv:
+    case GLChunk::glUniformMatrix2x3fv:
+    case GLChunk::glUniformMatrix2x4dv:
+    case GLChunk::glUniformMatrix2x4fv:
+    case GLChunk::glUniformMatrix3dv:
+    case GLChunk::glUniformMatrix3fv:
+    case GLChunk::glUniformMatrix3x2dv:
+    case GLChunk::glUniformMatrix3x2fv:
+    case GLChunk::glUniformMatrix3x4dv:
+    case GLChunk::glUniformMatrix3x4fv:
+    case GLChunk::glUniformMatrix4dv:
+    case GLChunk::glUniformMatrix4fv:
+    case GLChunk::glUniformMatrix4x2dv:
+    case GLChunk::glUniformMatrix4x2fv:
+    case GLChunk::glUniformMatrix4x3dv:
+    case GLChunk::glUniformMatrix4x3fv:
+      Serialise_glProgramUniformMatrix(ser, 0, 0, 0, 0, 0, UNIFORM_UNKNOWN);
+      break;
+
+    case GLChunk::vrapi_CreateTextureSwapChain:
+    case GLChunk::vrapi_CreateTextureSwapChain2:
+      // nothing to do, these chunks are just markers
+      break;
+
+    // these functions are not currently serialised - they do nothing on replay and are not
+    // serialised for information (it would be harmless and perhaps useful for the user to see
+    // where and how they're called).
+    case GLChunk::glGetActiveAtomicCounterBufferiv:
+    case GLChunk::glGetActiveAttrib:
+    case GLChunk::glGetActiveSubroutineName:
+    case GLChunk::glGetActiveSubroutineUniformiv:
+    case GLChunk::glGetActiveSubroutineUniformName:
+    case GLChunk::glGetActiveUniform:
+    case GLChunk::glGetActiveUniformBlockiv:
+    case GLChunk::glGetActiveUniformBlockName:
+    case GLChunk::glGetActiveUniformName:
+    case GLChunk::glGetActiveUniformsiv:
+    case GLChunk::glGetAttachedShaders:
+    case GLChunk::glGetAttribLocation:
+    case GLChunk::glGetBooleani_v:
+    case GLChunk::glGetBooleanIndexedvEXT:
+    case GLChunk::glGetBooleanv:
+    case GLChunk::glGetBufferParameteri64v:
+    case GLChunk::glGetBufferParameteriv:
+    case GLChunk::glGetBufferParameterivARB:
+    case GLChunk::glGetBufferPointerv:
+    case GLChunk::glGetBufferPointervARB:
+    case GLChunk::glGetBufferPointervOES:
+    case GLChunk::glGetBufferSubData:
+    case GLChunk::glGetBufferSubDataARB:
+    case GLChunk::glGetCompressedMultiTexImageEXT:
+    case GLChunk::glGetCompressedTexImage:
+    case GLChunk::glGetCompressedTexImageARB:
+    case GLChunk::glGetCompressedTextureImage:
+    case GLChunk::glGetCompressedTextureImageEXT:
+    case GLChunk::glGetCompressedTextureSubImage:
+    case GLChunk::glGetDebugMessageLog:
+    case GLChunk::glGetDebugMessageLogARB:
+    case GLChunk::glGetDebugMessageLogKHR:
+    case GLChunk::glGetDoublei_v:
+    case GLChunk::glGetDoublei_vEXT:
+    case GLChunk::glGetDoubleIndexedvEXT:
+    case GLChunk::glGetDoublev:
+    case GLChunk::glGetError:
+    case GLChunk::glGetFloati_v:
+    case GLChunk::glGetFloati_vEXT:
+    case GLChunk::glGetFloati_vNV:
+    case GLChunk::glGetFloati_vOES:
+    case GLChunk::glGetFloatIndexedvEXT:
+    case GLChunk::glGetFloatv:
+    case GLChunk::glGetFragDataIndex:
+    case GLChunk::glGetFragDataLocation:
+    case GLChunk::glGetFragDataLocationEXT:
+    case GLChunk::glGetFramebufferAttachmentParameteriv:
+    case GLChunk::glGetFramebufferAttachmentParameterivEXT:
+    case GLChunk::glGetFramebufferParameteriv:
+    case GLChunk::glGetFramebufferParameterivEXT:
+    case GLChunk::glGetGraphicsResetStatus:
+    case GLChunk::glGetGraphicsResetStatusARB:
+    case GLChunk::glGetGraphicsResetStatusEXT:
+    case GLChunk::glGetInteger64i_v:
+    case GLChunk::glGetInteger64v:
+    case GLChunk::glGetIntegeri_v:
+    case GLChunk::glGetIntegerIndexedvEXT:
+    case GLChunk::glGetIntegerv:
+    case GLChunk::glGetInternalformati64v:
+    case GLChunk::glGetInternalformativ:
+    case GLChunk::glGetMultisamplefv:
+    case GLChunk::glGetMultiTexImageEXT:
+    case GLChunk::glGetMultiTexLevelParameterfvEXT:
+    case GLChunk::glGetMultiTexLevelParameterivEXT:
+    case GLChunk::glGetMultiTexParameterfvEXT:
+    case GLChunk::glGetMultiTexParameterIivEXT:
+    case GLChunk::glGetMultiTexParameterIuivEXT:
+    case GLChunk::glGetMultiTexParameterivEXT:
+    case GLChunk::glGetNamedBufferParameteri64v:
+    case GLChunk::glGetNamedBufferParameteriv:
+    case GLChunk::glGetNamedBufferParameterivEXT:
+    case GLChunk::glGetNamedBufferPointerv:
+    case GLChunk::glGetNamedBufferPointervEXT:
+    case GLChunk::glGetNamedBufferSubData:
+    case GLChunk::glGetNamedBufferSubDataEXT:
+    case GLChunk::glGetNamedFramebufferAttachmentParameteriv:
+    case GLChunk::glGetNamedFramebufferAttachmentParameterivEXT:
+    case GLChunk::glGetNamedFramebufferParameteriv:
+    case GLChunk::glGetNamedFramebufferParameterivEXT:
+    case GLChunk::glGetNamedProgramivEXT:
+    case GLChunk::glGetNamedRenderbufferParameteriv:
+    case GLChunk::glGetNamedRenderbufferParameterivEXT:
+    case GLChunk::glGetNamedStringARB:
+    case GLChunk::glGetNamedStringivARB:
+    case GLChunk::glGetnCompressedTexImage:
+    case GLChunk::glGetnCompressedTexImageARB:
+    case GLChunk::glGetnTexImage:
+    case GLChunk::glGetnTexImageARB:
+    case GLChunk::glGetnUniformdv:
+    case GLChunk::glGetnUniformdvARB:
+    case GLChunk::glGetnUniformfv:
+    case GLChunk::glGetnUniformfvARB:
+    case GLChunk::glGetnUniformfvEXT:
+    case GLChunk::glGetnUniformiv:
+    case GLChunk::glGetnUniformivARB:
+    case GLChunk::glGetnUniformivEXT:
+    case GLChunk::glGetnUniformuiv:
+    case GLChunk::glGetnUniformuivARB:
+    case GLChunk::glGetObjectLabel:
+    case GLChunk::glGetObjectLabelEXT:
+    case GLChunk::glGetObjectLabelKHR:
+    case GLChunk::glGetObjectPtrLabel:
+    case GLChunk::glGetObjectPtrLabelKHR:
+    case GLChunk::glGetPointeri_vEXT:
+    case GLChunk::glGetPointerIndexedvEXT:
+    case GLChunk::glGetPointerv:
+    case GLChunk::glGetPointervKHR:
+    case GLChunk::glGetProgramBinary:
+    case GLChunk::glGetProgramInfoLog:
+    case GLChunk::glGetProgramInterfaceiv:
+    case GLChunk::glGetProgramiv:
+    case GLChunk::glGetProgramPipelineInfoLog:
+    case GLChunk::glGetProgramPipelineInfoLogEXT:
+    case GLChunk::glGetProgramPipelineiv:
+    case GLChunk::glGetProgramPipelineivEXT:
+    case GLChunk::glGetProgramResourceIndex:
+    case GLChunk::glGetProgramResourceiv:
+    case GLChunk::glGetProgramResourceLocation:
+    case GLChunk::glGetProgramResourceLocationIndex:
+    case GLChunk::glGetProgramResourceName:
+    case GLChunk::glGetProgramStageiv:
+    case GLChunk::glGetQueryBufferObjecti64v:
+    case GLChunk::glGetQueryBufferObjectiv:
+    case GLChunk::glGetQueryBufferObjectui64v:
+    case GLChunk::glGetQueryBufferObjectuiv:
+    case GLChunk::glGetQueryIndexediv:
+    case GLChunk::glGetQueryiv:
+    case GLChunk::glGetQueryivARB:
+    case GLChunk::glGetQueryivEXT:
+    case GLChunk::glGetQueryObjecti64v:
+    case GLChunk::glGetQueryObjecti64vEXT:
+    case GLChunk::glGetQueryObjectiv:
+    case GLChunk::glGetQueryObjectivARB:
+    case GLChunk::glGetQueryObjectivEXT:
+    case GLChunk::glGetQueryObjectui64v:
+    case GLChunk::glGetQueryObjectui64vEXT:
+    case GLChunk::glGetQueryObjectuiv:
+    case GLChunk::glGetQueryObjectuivARB:
+    case GLChunk::glGetQueryObjectuivEXT:
+    case GLChunk::glGetRenderbufferParameteriv:
+    case GLChunk::glGetRenderbufferParameterivEXT:
+    case GLChunk::glGetSamplerParameterfv:
+    case GLChunk::glGetSamplerParameterIiv:
+    case GLChunk::glGetSamplerParameterIivEXT:
+    case GLChunk::glGetSamplerParameterIivOES:
+    case GLChunk::glGetSamplerParameterIuiv:
+    case GLChunk::glGetSamplerParameterIuivEXT:
+    case GLChunk::glGetSamplerParameterIuivOES:
+    case GLChunk::glGetSamplerParameteriv:
+    case GLChunk::glGetShaderInfoLog:
+    case GLChunk::glGetShaderiv:
+    case GLChunk::glGetShaderPrecisionFormat:
+    case GLChunk::glGetShaderSource:
+    case GLChunk::glGetString:
+    case GLChunk::glGetStringi:
+    case GLChunk::glGetSubroutineIndex:
+    case GLChunk::glGetSubroutineUniformLocation:
+    case GLChunk::glGetSynciv:
+    case GLChunk::glGetTexImage:
+    case GLChunk::glGetTexLevelParameterfv:
+    case GLChunk::glGetTexLevelParameteriv:
+    case GLChunk::glGetTexParameterfv:
+    case GLChunk::glGetTexParameterIiv:
+    case GLChunk::glGetTexParameterIivEXT:
+    case GLChunk::glGetTexParameterIivOES:
+    case GLChunk::glGetTexParameterIuiv:
+    case GLChunk::glGetTexParameterIuivEXT:
+    case GLChunk::glGetTexParameterIuivOES:
+    case GLChunk::glGetTexParameteriv:
+    case GLChunk::glGetTextureImage:
+    case GLChunk::glGetTextureImageEXT:
+    case GLChunk::glGetTextureLevelParameterfv:
+    case GLChunk::glGetTextureLevelParameterfvEXT:
+    case GLChunk::glGetTextureLevelParameteriv:
+    case GLChunk::glGetTextureLevelParameterivEXT:
+    case GLChunk::glGetTextureParameterfv:
+    case GLChunk::glGetTextureParameterfvEXT:
+    case GLChunk::glGetTextureParameterIiv:
+    case GLChunk::glGetTextureParameterIivEXT:
+    case GLChunk::glGetTextureParameterIuiv:
+    case GLChunk::glGetTextureParameterIuivEXT:
+    case GLChunk::glGetTextureParameteriv:
+    case GLChunk::glGetTextureParameterivEXT:
+    case GLChunk::glGetTextureSubImage:
+    case GLChunk::glGetTransformFeedbacki_v:
+    case GLChunk::glGetTransformFeedbacki64_v:
+    case GLChunk::glGetTransformFeedbackiv:
+    case GLChunk::glGetTransformFeedbackVarying:
+    case GLChunk::glGetTransformFeedbackVaryingEXT:
+    case GLChunk::glGetUniformBlockIndex:
+    case GLChunk::glGetUniformdv:
+    case GLChunk::glGetUniformfv:
+    case GLChunk::glGetUniformIndices:
+    case GLChunk::glGetUniformiv:
+    case GLChunk::glGetUniformLocation:
+    case GLChunk::glGetUniformSubroutineuiv:
+    case GLChunk::glGetUniformuiv:
+    case GLChunk::glGetUniformuivEXT:
+    case GLChunk::glGetVertexArrayIndexed64iv:
+    case GLChunk::glGetVertexArrayIndexediv:
+    case GLChunk::glGetVertexArrayIntegeri_vEXT:
+    case GLChunk::glGetVertexArrayIntegervEXT:
+    case GLChunk::glGetVertexArrayiv:
+    case GLChunk::glGetVertexArrayPointeri_vEXT:
+    case GLChunk::glGetVertexArrayPointervEXT:
+    case GLChunk::glGetVertexAttribdv:
+    case GLChunk::glGetVertexAttribfv:
+    case GLChunk::glGetVertexAttribIiv:
+    case GLChunk::glGetVertexAttribIivEXT:
+    case GLChunk::glGetVertexAttribIuiv:
+    case GLChunk::glGetVertexAttribIuivEXT:
+    case GLChunk::glGetVertexAttribiv:
+    case GLChunk::glGetVertexAttribLdv:
+    case GLChunk::glGetVertexAttribLdvEXT:
+    case GLChunk::glGetVertexAttribPointerv:
+    case GLChunk::glIsBuffer:
+    case GLChunk::glIsBufferARB:
+    case GLChunk::glIsEnabled:
+    case GLChunk::glIsEnabledi:
+    case GLChunk::glIsEnablediEXT:
+    case GLChunk::glIsEnabledIndexedEXT:
+    case GLChunk::glIsEnablediNV:
+    case GLChunk::glIsEnablediOES:
+    case GLChunk::glIsFramebuffer:
+    case GLChunk::glIsFramebufferEXT:
+    case GLChunk::glIsNamedStringARB:
+    case GLChunk::glIsProgram:
+    case GLChunk::glIsProgramPipeline:
+    case GLChunk::glIsProgramPipelineEXT:
+    case GLChunk::glIsQuery:
+    case GLChunk::glIsQueryARB:
+    case GLChunk::glIsQueryEXT:
+    case GLChunk::glIsRenderbuffer:
+    case GLChunk::glIsRenderbufferEXT:
+    case GLChunk::glIsSampler:
+    case GLChunk::glIsShader:
+    case GLChunk::glIsSync:
+    case GLChunk::glIsTexture:
+    case GLChunk::glIsTransformFeedback:
+    case GLChunk::glIsVertexArray:
+    case GLChunk::glIsVertexArrayOES:
+    case GLChunk::glValidateProgram:
+    case GLChunk::glValidateProgramPipeline:
+    case GLChunk::glValidateProgramPipelineEXT:
+    case GLChunk::glCheckFramebufferStatus:
+    case GLChunk::glCheckFramebufferStatusEXT:
+    case GLChunk::glCheckNamedFramebufferStatus:
+    case GLChunk::glCheckNamedFramebufferStatusEXT:
+    case GLChunk::glReadBuffer:
+    case GLChunk::glReadnPixels:
+    case GLChunk::glReadnPixelsARB:
+    case GLChunk::glReadnPixelsEXT:
+    case GLChunk::glClampColor:
+    case GLChunk::glClampColorARB:
+    case GLChunk::glReadPixels:
+    case GLChunk::glDeleteBuffers:
+    case GLChunk::glDeleteBuffersARB:
+    case GLChunk::glDeleteFramebuffers:
+    case GLChunk::glDeleteFramebuffersEXT:
+    case GLChunk::glDeleteProgram:
+    case GLChunk::glDeleteProgramPipelines:
+    case GLChunk::glDeleteProgramPipelinesEXT:
+    case GLChunk::glDeleteQueries:
+    case GLChunk::glDeleteQueriesARB:
+    case GLChunk::glDeleteQueriesEXT:
+    case GLChunk::glDeleteRenderbuffers:
+    case GLChunk::glDeleteRenderbuffersEXT:
+    case GLChunk::glDeleteSamplers:
+    case GLChunk::glDeleteShader:
+    case GLChunk::glDeleteSync:
+    case GLChunk::glDeleteTextures:
+    case GLChunk::glDeleteTransformFeedbacks:
+    case GLChunk::glDeleteVertexArrays:
+    case GLChunk::glDeleteVertexArraysOES:
+    case GLChunk::glBindRenderbufferEXT:
+    case GLChunk::glBindRenderbuffer:
+    case GLChunk::glActiveShaderProgram:
+    case GLChunk::glActiveShaderProgramEXT:
+    case GLChunk::glProgramBinary:
+    case GLChunk::glShaderBinary:
+    case GLChunk::glReleaseShaderCompiler:
+    case GLChunk::glFrameTerminatorGREMEDY:
+    case GLChunk::glDiscardFramebufferEXT:
+    case GLChunk::glFinish:
+    case GLChunk::glFlush:
+    case GLChunk::glInvalidateBufferData:
+    case GLChunk::glInvalidateBufferSubData:
+    case GLChunk::glInvalidateFramebuffer:
+    case GLChunk::glInvalidateNamedFramebufferData:
+    case GLChunk::glInvalidateNamedFramebufferSubData:
+    case GLChunk::glInvalidateSubFramebuffer:
+    case GLChunk::glInvalidateTexImage:
+    case GLChunk::glInvalidateTexSubImage:
+    case GLChunk::glDebugMessageCallback:
+    case GLChunk::glDebugMessageCallbackARB:
+    case GLChunk::glDebugMessageCallbackKHR:
+    case GLChunk::glDebugMessageControl:
+    case GLChunk::glDebugMessageControlARB:
+    case GLChunk::glDebugMessageControlKHR:
+    case GLChunk::glMapBuffer:
+    case GLChunk::glMapBufferARB:
+    case GLChunk::glMapBufferOES:
+    case GLChunk::glMapBufferRange:
+    case GLChunk::glMapNamedBuffer:
+    case GLChunk::glMapNamedBufferEXT:
+    case GLChunk::glMapNamedBufferRange:
+    case GLChunk::glMapNamedBufferRangeEXT:
+    case GLChunk::wglDXSetResourceShareHandleNV:
+    case GLChunk::wglDXOpenDeviceNV:
+    case GLChunk::wglDXCloseDeviceNV:
+    case GLChunk::wglDXUnregisterObjectNV:
+    case GLChunk::wglDXObjectAccessNV:
+    case GLChunk::wglDXUnlockObjectsNV:
+    case GLChunk::Max:
+      RDCERR("Unexpected chunk, or missing case for processing! Skipping...");
+      ser.SkipCurrentChunk();
+      break;
+
+    case GLChunk::CaptureScope: Serialise_CaptureScope(ser); break;
+    case GLChunk::CaptureBegin:
       // normally this would be handled as a special case when we start processing the frame,
       // but it can be emitted mid-frame if MakeCurrent is called on a different context.
       // when processed here, we always want to apply the contents
-      Serialise_BeginCaptureFrame(true);
+      Serialise_BeginCaptureFrame(ser);
       break;
-    case CONTEXT_CAPTURE_FOOTER:
+    case GLChunk::CaptureEnd:
     {
-      bool HasCallstack = false;
-      m_pSerialiser->Serialise("HasCallstack", HasCallstack);
-
-      if(HasCallstack)
+      if(IsLoading(m_State))
       {
-        uint32_t numLevels = 0;
-        uint64_t *stack = NULL;
-
-        m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
-
-        m_pSerialiser->SetCallstack(stack, numLevels);
-
-        SAFE_DELETE_ARRAY(stack);
-      }
-
-      if(m_State == READING)
-      {
-        AddEvent("SwapBuffers()");
+        AddEvent();
 
         DrawcallDescription draw;
         draw.name = "SwapBuffers()";
@@ -3562,34 +4635,36 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 
         AddDrawcall(draw, true);
       }
+      break;
     }
-    break;
-    case INTEROP_INIT:
-      Serialise_wglDXRegisterObjectNV(GLResource(MakeNullResource), eGL_NONE, NULL);
-      break;
-    case INTEROP_DATA: Serialise_wglDXLockObjectsNV(GLResource(MakeNullResource)); break;
-    case PRIMITIVE_BOUNDING_BOX: Serialise_glPrimitiveBoundingBox(0, 0, 0, 0, 0, 0, 0, 0); break;
-    default:
-      // ignore system chunks
-      if((int)context == (int)INITIAL_CONTENTS)
-        GetResourceManager()->Serialise_InitialState(ResourceId(), GLResource(MakeNullResource));
-      else if((int)context < (int)FIRST_CHUNK_ID)
-        m_pSerialiser->SkipCurrentChunk();
-      else
-        RDCERR("Unrecognised Chunk type %d", context);
-      break;
   }
 }
 
-void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID,
-                                     bool partial)
+void WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t startEventID,
+                                     uint32_t endEventID, bool partial)
 {
-  m_State = readType;
+  m_FrameReader->SetOffset(0);
 
-  GLChunkType header = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
-  RDCASSERTEQUAL(header, CONTEXT_CAPTURE_HEADER);
+  ReadSerialiser ser(m_FrameReader, Ownership::Nothing);
 
-  if(m_State == EXECUTING && !partial)
+  ser.SetStringDatabase(&m_StringDB);
+  ser.SetUserData(GetResourceManager());
+
+  SDFile *prevFile = m_StructuredFile;
+
+  if(IsLoading(m_State) || IsStructuredExporting(m_State))
+  {
+    ser.ConfigureStructuredExport(&GetChunkName, false);
+
+    ser.GetStructuredFile().swap(*m_StructuredFile);
+
+    m_StructuredFile = &ser.GetStructuredFile();
+  }
+
+  GLChunk header = ser.ReadChunk<GLChunk>();
+  RDCASSERTEQUAL(header, GLChunk::CaptureBegin);
+
+  if(IsActiveReplaying(m_State) && !partial)
   {
     for(size_t i = 0; i < 8; i++)
     {
@@ -3624,21 +4699,25 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
     }
   }
 
-  Serialise_BeginCaptureFrame(!partial);
+  if(partial)
+    ser.SkipCurrentChunk();
+  else
+    Serialise_BeginCaptureFrame(ser);
 
-  m_pSerialiser->PopContext(header);
+  ser.EndChunk();
 
   m_CurEvents.clear();
 
-  if(m_State == EXECUTING)
+  if(IsActiveReplaying(m_State))
   {
     APIEvent ev = GetEvent(startEventID);
     m_CurEventID = ev.eventID;
-    m_pSerialiser->SetOffset(ev.fileOffset);
+    if(partial)
+      ser.GetReader()->SetOffset(ev.fileOffset);
     m_FirstEventID = startEventID;
     m_LastEventID = endEventID;
   }
-  else if(m_State == READING)
+  else
   {
     m_CurEventID = 1;
     m_CurDrawcallID = 1;
@@ -3648,34 +4727,42 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
   GetResourceManager()->MarkInFrame(true);
 
-  uint64_t startOffset = m_pSerialiser->GetOffset();
+  uint64_t startOffset = ser.GetReader()->GetOffset();
 
   for(;;)
   {
-    if(m_State == EXECUTING && m_CurEventID > endEventID)
+    if(IsActiveReplaying(m_State) && m_CurEventID > endEventID)
     {
       // we can just break out if we've done all the events desired.
       break;
     }
 
-    uint64_t offset = m_pSerialiser->GetOffset();
+    m_CurChunkOffset = ser.GetReader()->GetOffset();
 
-    GLChunkType chunktype = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
+    GLChunk chunktype = ser.ReadChunk<GLChunk>();
 
-    ContextProcessChunk(offset, chunktype);
+    m_ChunkMetadata = ser.ChunkMetadata();
 
-    RenderDoc::Inst().SetProgress(FrameEventsRead,
-                                  float(offset - startOffset) / float(m_pSerialiser->GetSize()));
+    ContextProcessChunk(ser, chunktype);
 
-    // for now just abort after capture scope. Really we'd need to support multiple frames
-    // but for now this will do.
-    if(chunktype == CONTEXT_CAPTURE_FOOTER)
+    ser.EndChunk();
+
+    RenderDoc::Inst().SetProgress(
+        FileInitialRead, float(m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
+
+    if(chunktype == GLChunk::CaptureEnd)
       break;
 
     m_CurEventID++;
   }
 
-  if(m_State == READING)
+  // swap the structure back now that we've accumulated the frame as well.
+  if(IsLoading(m_State) || IsStructuredExporting(m_State))
+    ser.GetStructuredFile().swap(*prevFile);
+
+  m_StructuredFile = prevFile;
+
+  if(IsLoading(m_State))
   {
     GetFrameRecord().drawcallList = m_ParentDrawcall.children;
     GetFrameRecord().frameInfo.debugMessages = GetDebugMessages();
@@ -3695,39 +4782,48 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
   }
 
   GetResourceManager()->MarkInFrame(false);
-
-  m_State = READING;
 }
 
-void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk)
+void WrappedOpenGL::ContextProcessChunk(ReadSerialiser &ser, GLChunk chunk)
 {
-  m_CurChunkOffset = offset;
-
   m_AddedDrawcall = false;
 
-  ProcessChunk(offset, chunk);
+  ProcessChunk(ser, chunk);
 
-  m_pSerialiser->PopContext(chunk);
-
-  if(m_State == READING && chunk == SET_MARKER)
+  if(IsLoading(m_State))
   {
-    // no push/pop necessary
-  }
-  else if(m_State == READING && chunk == BEGIN_EVENT)
-  {
-    // push down the drawcallstack to the latest drawcall
-    m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
-  }
-  else if(m_State == READING && chunk == END_EVENT)
-  {
-    // refuse to pop off further than the root drawcall (mismatched begin/end events e.g.)
-    if(m_DrawcallStack.size() > 1)
-      m_DrawcallStack.pop_back();
-  }
-  else if(m_State == READING)
-  {
-    if(!m_AddedDrawcall)
-      AddEvent(m_pSerialiser->GetDebugStr());
+    switch(chunk)
+    {
+      case GLChunk::glStringMarkerGREMEDY:
+      case GLChunk::glInsertEventMarkerEXT:
+      case GLChunk::glDebugMessageInsert:
+      case GLChunk::glDebugMessageInsertARB:
+      case GLChunk::glDebugMessageInsertKHR:
+        // no push/pop necessary
+        break;
+      case GLChunk::glPushGroupMarkerEXT:
+      case GLChunk::glPushDebugGroup:
+      case GLChunk::glPushDebugGroupKHR:
+      {
+        // push down the drawcallstack to the latest drawcall
+        m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
+        break;
+      }
+      case GLChunk::glPopGroupMarkerEXT:
+      case GLChunk::glPopDebugGroup:
+      case GLChunk::glPopDebugGroupKHR:
+      {
+        // refuse to pop off further than the root drawcall (mismatched begin/end events e.g.)
+        if(m_DrawcallStack.size() > 1)
+          m_DrawcallStack.pop_back();
+        break;
+      }
+      default:
+      {
+        if(!m_AddedDrawcall)
+          AddEvent();
+      }
+    }
   }
 
   m_AddedDrawcall = false;
@@ -3777,8 +4873,8 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
   // Shaders
 
   {
-    GLRenderState rs(&m_Real, NULL, READING);
-    rs.FetchState(ctx, this);
+    GLRenderState rs(&m_Real);
+    rs.FetchState(this);
 
     ShaderReflection *refl[6] = {NULL};
     ShaderBindpointMapping mapping[6];
@@ -3841,8 +4937,8 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
 
           int32_t bind = mapping[i].ConstantBlocks[cblock.bindPoint].bind;
 
-          if(rs.UniformBinding[bind].name)
-            m_ResourceUses[rm->GetID(BufferRes(ctx, rs.UniformBinding[bind].name))].push_back(cb);
+          if(rs.UniformBinding[bind].res.name)
+            m_ResourceUses[rm->GetID(rs.UniformBinding[bind].res)].push_back(cb);
         }
 
         for(const ShaderResource &res : refl[i]->ReadWriteResources)
@@ -3851,21 +4947,21 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
 
           if(res.IsTexture)
           {
-            if(rs.Images[bind].name)
-              m_ResourceUses[rm->GetID(TextureRes(ctx, rs.Images[bind].name))].push_back(rw);
+            if(rs.Images[bind].res.name)
+              m_ResourceUses[rm->GetID(rs.Images[bind].res)].push_back(rw);
           }
           else
           {
             if(res.variableType.descriptor.cols == 1 && res.variableType.descriptor.rows == 1 &&
                res.variableType.descriptor.type == VarType::UInt)
             {
-              if(rs.AtomicCounter[bind].name)
-                m_ResourceUses[rm->GetID(BufferRes(ctx, rs.AtomicCounter[bind].name))].push_back(rw);
+              if(rs.AtomicCounter[bind].res.name)
+                m_ResourceUses[rm->GetID(rs.AtomicCounter[bind].res)].push_back(rw);
             }
             else
             {
-              if(rs.ShaderStorage[bind].name)
-                m_ResourceUses[rm->GetID(BufferRes(ctx, rs.ShaderStorage[bind].name))].push_back(rw);
+              if(rs.ShaderStorage[bind].res.name)
+                m_ResourceUses[rm->GetID(rs.ShaderStorage[bind].res)].push_back(rw);
             }
           }
         }
@@ -3874,61 +4970,29 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
         {
           int32_t bind = mapping[i].ReadOnlyResources[res.bindPoint].bind;
 
-          uint32_t *texList = NULL;
-          int32_t listSize = 0;
+          GLResource *texList = NULL;
+          const int32_t listSize = (int32_t)ARRAY_COUNT(rs.Tex2D);
+          ;
 
           switch(res.resType)
           {
             case TextureDim::Unknown: texList = NULL; break;
-            case TextureDim::Buffer:
-              texList = rs.TexBuffer;
-              listSize = (int32_t)ARRAY_COUNT(rs.TexBuffer);
-              break;
-            case TextureDim::Texture1D:
-              texList = rs.Tex1D;
-              listSize = (int32_t)ARRAY_COUNT(rs.Tex1D);
-              break;
-            case TextureDim::Texture1DArray:
-              texList = rs.Tex1DArray;
-              listSize = (int32_t)ARRAY_COUNT(rs.Tex1DArray);
-              break;
-            case TextureDim::Texture2D:
-              texList = rs.Tex2D;
-              listSize = (int32_t)ARRAY_COUNT(rs.Tex2D);
-              break;
-            case TextureDim::TextureRect:
-              texList = rs.TexRect;
-              listSize = (int32_t)ARRAY_COUNT(rs.TexRect);
-              break;
-            case TextureDim::Texture2DArray:
-              texList = rs.Tex2DArray;
-              listSize = (int32_t)ARRAY_COUNT(rs.Tex2DArray);
-              break;
-            case TextureDim::Texture2DMS:
-              texList = rs.Tex2DMS;
-              listSize = (int32_t)ARRAY_COUNT(rs.Tex2DMS);
-              break;
-            case TextureDim::Texture2DMSArray:
-              texList = rs.Tex2DMSArray;
-              listSize = (int32_t)ARRAY_COUNT(rs.Tex2DMSArray);
-              break;
-            case TextureDim::Texture3D:
-              texList = rs.Tex3D;
-              listSize = (int32_t)ARRAY_COUNT(rs.Tex3D);
-              break;
-            case TextureDim::TextureCube:
-              texList = rs.TexCube;
-              listSize = (int32_t)ARRAY_COUNT(rs.TexCube);
-              break;
-            case TextureDim::TextureCubeArray:
-              texList = rs.TexCubeArray;
-              listSize = (int32_t)ARRAY_COUNT(rs.TexCubeArray);
-              break;
+            case TextureDim::Buffer: texList = rs.TexBuffer; break;
+            case TextureDim::Texture1D: texList = rs.Tex1D; break;
+            case TextureDim::Texture1DArray: texList = rs.Tex1DArray; break;
+            case TextureDim::Texture2D: texList = rs.Tex2D; break;
+            case TextureDim::TextureRect: texList = rs.TexRect; break;
+            case TextureDim::Texture2DArray: texList = rs.Tex2DArray; break;
+            case TextureDim::Texture2DMS: texList = rs.Tex2DMS; break;
+            case TextureDim::Texture2DMSArray: texList = rs.Tex2DMSArray; break;
+            case TextureDim::Texture3D: texList = rs.Tex3D; break;
+            case TextureDim::TextureCube: texList = rs.TexCube; break;
+            case TextureDim::TextureCubeArray: texList = rs.TexCubeArray; break;
             case TextureDim::Count: RDCERR("Invalid shader resource type"); break;
           }
 
-          if(texList != NULL && bind >= 0 && bind < listSize && texList[bind] != 0)
-            m_ResourceUses[rm->GetID(TextureRes(ctx, texList[bind]))].push_back(ro);
+          if(texList != NULL && bind >= 0 && bind < listSize && texList[bind].name != 0)
+            m_ResourceUses[rm->GetID(texList[bind])].push_back(ro);
         }
       }
     }
@@ -4088,24 +5152,20 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
     RDCERR("Somehow lost drawcall stack!");
 }
 
-void WrappedOpenGL::AddEvent(string description)
+void WrappedOpenGL::AddEvent()
 {
   APIEvent apievent;
 
   apievent.fileOffset = m_CurChunkOffset;
   apievent.eventID = m_CurEventID;
 
-  apievent.eventDesc = description;
+  apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
 
-  Callstack::Stackwalk *stack = m_pSerialiser->GetLastCallstack();
-  if(stack)
-  {
-    apievent.callstack.assign(stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
-  }
+  apievent.callstack = m_ChunkMetadata.callstack;
 
   m_CurEvents.push_back(apievent);
 
-  if(m_State == READING)
+  if(IsLoading(m_State))
     m_Events.push_back(apievent);
 }
 
@@ -4130,10 +5190,6 @@ const DrawcallDescription *WrappedOpenGL::GetDrawcall(uint32_t eventID)
 
 void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
 {
-  uint64_t offs = m_FrameRecord.frameInfo.fileOffset;
-
-  m_pSerialiser->SetOffset(offs);
-
   bool partial = true;
 
   if(startEventID == 0 && (replayType == eReplay_WithoutDraw || replayType == eReplay_Full))
@@ -4142,14 +5198,6 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     partial = false;
   }
 
-  GLChunkType header = (GLChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
-
-  RDCASSERTEQUAL(header, CAPTURE_SCOPE);
-
-  m_pSerialiser->SkipCurrentChunk();
-
-  m_pSerialiser->PopContext(header);
-
   if(!partial)
   {
     GLMarkerRegion apply("!!!!RenderDoc Internal: ApplyInitialContents");
@@ -4157,17 +5205,19 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     GetResourceManager()->ReleaseInFrameResources();
   }
 
+  m_State = CaptureState::ActiveReplaying;
+
   GLMarkerRegion::Set(StringFormat::Fmt("!!!!RenderDoc Internal:  Replay %d (%d): %u->%u",
                                         (int)replayType, (int)partial, startEventID, endEventID));
 
   m_ReplayEventCount = 0;
 
   if(replayType == eReplay_Full)
-    ContextReplayLog(EXECUTING, startEventID, endEventID, partial);
+    ContextReplayLog(m_State, startEventID, endEventID, partial);
   else if(replayType == eReplay_WithoutDraw)
-    ContextReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
+    ContextReplayLog(m_State, startEventID, RDCMAX(1U, endEventID) - 1, partial);
   else if(replayType == eReplay_OnlyDraw)
-    ContextReplayLog(EXECUTING, endEventID, endEventID, partial);
+    ContextReplayLog(m_State, endEventID, endEventID, partial);
   else
     RDCFATAL("Unexpected replay type");
 
