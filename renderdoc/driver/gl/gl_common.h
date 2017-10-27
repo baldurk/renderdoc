@@ -34,6 +34,8 @@
 #define GLenum RDCGLenum
 #include "gl_enum.h"
 
+DECLARE_REFLECTION_ENUM(RDCGLenum);
+
 // official headers
 #include "official/glcorearb.h"
 #include "official/glext.h"
