@@ -212,5 +212,8 @@
     <ClCompile Include="precompiled.cpp">
       <Filter>PCH</Filter>
     </ClCompile>
+    <ClCompile Include="gl_hooks_vrapi.cpp">
+      <Filter>OS\EGL</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
