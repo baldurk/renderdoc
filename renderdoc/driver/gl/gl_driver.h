@@ -40,10 +40,9 @@
 
 using std::list;
 
-struct GLInitParams : public RDCInitParams
+struct GLInitParams
 {
   GLInitParams();
-  ReplayStatus Serialise();
 
   uint32_t colorBits;
   uint32_t depthBits;
@@ -53,15 +52,12 @@ struct GLInitParams : public RDCInitParams
   uint32_t width;
   uint32_t height;
 
-  static const uint32_t GL_SERIALISE_VERSION = 0x0000016;
-
-  // backwards compatibility for old logs described at the declaration of this array
-  static const uint32_t GL_NUM_SUPPORTED_OLD_VERSIONS = 6;
-  static const uint32_t GL_OLD_VERSIONS[GL_NUM_SUPPORTED_OLD_VERSIONS];
-
-  // version number internal to opengl stream
-  uint32_t SerialiseVersion;
+  // check if a frame capture section version is supported
+  static const uint64_t CurrentVersion = 0x17;
+  static bool IsSupportedVersion(uint64_t ver);
 };
+
+DECLARE_REFLECTION_STRUCT(GLInitParams);
 
 enum CaptureFailReason
 {
@@ -123,6 +119,7 @@ private:
   RDCDriver m_DriverType;
 
   GLInitParams m_InitParams;
+  uint64_t m_SectionVersion;
 
   map<uint64_t, GLWindowingData> m_ActiveContexts;
 
@@ -511,10 +508,10 @@ private:
   WrappedOpenGL &operator=(const WrappedOpenGL &);
 
 public:
-  WrappedOpenGL(const char *logfile, const GLHookSet &funcs, GLPlatform &platform);
+  WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform);
   virtual ~WrappedOpenGL();
 
-  uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
+  uint64_t GetLogVersion() { return m_SectionVersion; }
   static const char *GetChunkName(uint32_t idx);
   GLResourceManager *GetResourceManager() { return m_ResourceManager; }
   ResourceId GetDeviceResourceID() { return m_DeviceResourceID; }
@@ -538,7 +535,7 @@ public:
 
   void AddMissingTrack(ResourceId id) { m_MissingTracks.insert(id); }
   // replay interface
-  void Initialise(GLInitParams &params);
+  void Initialise(GLInitParams &params, uint64_t sectionVersion);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
   void ReadLogInitialisation();
 

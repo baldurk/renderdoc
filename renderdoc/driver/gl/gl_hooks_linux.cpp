@@ -375,7 +375,7 @@ public:
   WrappedOpenGL *GetDriver()
   {
     if(m_GLDriver == NULL)
-      m_GLDriver = new WrappedOpenGL("", GL, *this);
+      m_GLDriver = new WrappedOpenGL(GL, *this);
 
     return m_GLDriver;
   }

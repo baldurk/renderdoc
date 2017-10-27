@@ -773,6 +773,41 @@ void GLMarkerRegion::End()
   gl->glPopDebugGroup();
 }
 
+GLInitParams::GLInitParams()
+{
+  colorBits = 32;
+  depthBits = 32;
+  stencilBits = 8;
+  isSRGB = 1;
+  multiSamples = 1;
+  width = 32;
+  height = 32;
+}
+
+bool GLInitParams::IsSupportedVersion(uint64_t ver)
+{
+  if(ver == CurrentVersion)
+    return true;
+
+  // we can check other older versions we support here.
+
+  return false;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, GLInitParams &el)
+{
+  SERIALISE_MEMBER(colorBits);
+  SERIALISE_MEMBER(depthBits);
+  SERIALISE_MEMBER(stencilBits);
+  SERIALISE_MEMBER(isSRGB);
+  SERIALISE_MEMBER(multiSamples);
+  SERIALISE_MEMBER(width);
+  SERIALISE_MEMBER(height);
+}
+
+INSTANTIATE_SERIALISE_TYPE(GLInitParams);
+
 size_t BufferIdx(GLenum buf)
 {
   switch(buf)

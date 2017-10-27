@@ -44,74 +44,6 @@ const float charPixelHeight = 20.0f;
 
 stbtt_bakedchar chardata[numChars];
 
-
-GLInitParams::GLInitParams()
-{
-  SerialiseVersion = GL_SERIALISE_VERSION;
-  colorBits = 32;
-  depthBits = 32;
-  stencilBits = 8;
-  isSRGB = 1;
-  multiSamples = 1;
-  width = 32;
-  height = 32;
-}
-
-// handling for these versions is scattered throughout the code (as relevant to enable/disable bits
-// of serialisation and set some defaults if necessary).
-// Here we list which non-current versions we support, and what changed
-const uint32_t GLInitParams::GL_OLD_VERSIONS[GLInitParams::GL_NUM_SUPPORTED_OLD_VERSIONS] = {
-    0x000010,    // from 0x10 to 0x11, we added a dummy marker value used to identify serialised
-                 // data in glUseProgramStages (hack :( )
-    0x000011,    // We added initial contents for buffers in this version, we don't have to do
-                 // anything special to support older logs, just make sure we don't open new logs
-                 // in an older version.
-    0x000012,    // Added support for GL-DX interop
-    0x000013,    // Serialised vertex attribute and fragdata bindings for programs as initial
-                 // contents data
-    0x000014,    // Added support for primitive bounding boxes on GLES
-    0x000015,    // Changed serialisation of client-side index buffers which removed a bool even
-                 // when they aren't used.
-};
-
-ReplayStatus GLInitParams::Serialise()
-{
-  SERIALISE_ELEMENT(uint32_t, ver, GL_SERIALISE_VERSION);
-  SerialiseVersion = ver;
-
-  if(ver != GL_SERIALISE_VERSION)
-  {
-    bool oldsupported = false;
-    for(uint32_t i = 0; i < GL_NUM_SUPPORTED_OLD_VERSIONS; i++)
-    {
-      if(ver == GL_OLD_VERSIONS[i])
-      {
-        oldsupported = true;
-        RDCWARN(
-            "Old OpenGL serialise version %d, latest is %d. Loading with possibly degraded "
-            "features/support.",
-            ver, GL_SERIALISE_VERSION);
-      }
-    }
-
-    if(!oldsupported)
-    {
-      RDCERR("Incompatible OpenGL serialise version, expected %d got %d", GL_SERIALISE_VERSION, ver);
-      return ReplayStatus::APIIncompatibleVersion;
-    }
-  }
-
-  m_pSerialiser->Serialise("Color bits", colorBits);
-  m_pSerialiser->Serialise("Depth bits", depthBits);
-  m_pSerialiser->Serialise("Stencil bits", stencilBits);
-  m_pSerialiser->Serialise("Is SRGB", isSRGB);
-  m_pSerialiser->Serialise("MSAA samples", multiSamples);
-  m_pSerialiser->Serialise("Width", width);
-  m_pSerialiser->Serialise("Height", height);
-
-  return ReplayStatus::Succeeded;
-}
-
 void WrappedOpenGL::BuildGLExtensions()
 {
   m_GLExtensions.push_back("GL_ARB_arrays_of_arrays");
@@ -554,7 +486,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   std::sort(m_GLESExtensions.begin(), m_GLESExtensions.end());
 }
 
-WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs, GLPlatform &platform)
+WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
     : m_Real(funcs), m_Platform(platform)
 {
   if(RenderDoc::Inst().GetCrashHandler())

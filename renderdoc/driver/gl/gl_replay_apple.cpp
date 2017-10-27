@@ -23,10 +23,11 @@
  ******************************************************************************/
 
 #include "gl_replay.h"
+#include "serialise/rdcfile.h"
 #include "gl_driver.h"
 #include "gl_resources.h"
 
-ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCUNIMPLEMENTED("GL_CreateReplayDevice");
   return ReplayStatus::APIHardwareUnsupported;
