@@ -85,6 +85,13 @@ struct CustomSortedTableItem : public QTableWidgetItem
     return sortVal.val.d < customother.sortVal.val.d;
   }
 
+  virtual QVariant data(int role) const
+  {
+    if(role == Qt::TextAlignmentRole && column() > 0)
+      return QVariant(Qt::AlignRight | Qt::AlignCenter);
+
+    return QTableWidgetItem::data(role);
+  }
   SortValue sortVal;
 };
 

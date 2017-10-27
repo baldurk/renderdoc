@@ -84,6 +84,8 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->events->header()->setSectionResizeMode(COL_DRAW, QHeaderView::Interactive);
   ui->events->header()->setSectionResizeMode(COL_DURATION, QHeaderView::Interactive);
 
+  ui->events->setColumnAlignment(COL_DURATION, Qt::AlignRight | Qt::AlignCenter);
+
   ui->events->header()->setMinimumSectionSize(40);
 
   ui->events->header()->setSectionsMovable(true);
