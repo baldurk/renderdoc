@@ -27,12 +27,13 @@
 #include "common/common.h"
 #include "strings/string_utils.h"
 
-bool WrappedOpenGL::Serialise_glGenFramebuffers(GLsizei n, GLuint *framebuffers)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glGenFramebuffers(SerialiserType &ser, GLsizei n, GLuint *framebuffers)
 {
-  SERIALISE_ELEMENT(ResourceId, id,
-                    GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
+  SERIALISE_ELEMENT_LOCAL(framebuffer,
+                          GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
     GLuint real = 0;
     m_Real.glGenFramebuffers(1, &real);
@@ -42,7 +43,7 @@ bool WrappedOpenGL::Serialise_glGenFramebuffers(GLsizei n, GLuint *framebuffers)
     GLResource res = FramebufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
-    GetResourceManager()->AddLiveResource(id, res);
+    GetResourceManager()->AddLiveResource(framebuffer, res);
   }
 
   return true;
@@ -57,13 +58,14 @@ void WrappedOpenGL::glGenFramebuffers(GLsizei n, GLuint *framebuffers)
     GLResource res = FramebufferRes(GetCtx(), framebuffers[i]);
     ResourceId id = GetResourceManager()->RegisterResource(res);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       Chunk *chunk = NULL;
 
       {
-        SCOPED_SERIALISE_CONTEXT(GEN_FRAMEBUFFERS);
-        Serialise_glGenFramebuffers(1, framebuffers + i);
+        USE_SCRATCH_SERIALISER();
+        SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+        Serialise_glGenFramebuffers(ser, 1, framebuffers + i);
 
         chunk = scope.Get();
       }
@@ -80,12 +82,14 @@ void WrappedOpenGL::glGenFramebuffers(GLsizei n, GLuint *framebuffers)
   }
 }
 
-bool WrappedOpenGL::Serialise_glCreateFramebuffers(GLsizei n, GLuint *framebuffers)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glCreateFramebuffers(SerialiserType &ser, GLsizei n,
+                                                   GLuint *framebuffers)
 {
-  SERIALISE_ELEMENT(ResourceId, id,
-                    GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
+  SERIALISE_ELEMENT_LOCAL(framebuffer,
+                          GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
     GLuint real = 0;
     m_Real.glCreateFramebuffers(1, &real);
@@ -93,7 +97,7 @@ bool WrappedOpenGL::Serialise_glCreateFramebuffers(GLsizei n, GLuint *framebuffe
     GLResource res = FramebufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
-    GetResourceManager()->AddLiveResource(id, res);
+    GetResourceManager()->AddLiveResource(framebuffer, res);
   }
 
   return true;
@@ -108,13 +112,14 @@ void WrappedOpenGL::glCreateFramebuffers(GLsizei n, GLuint *framebuffers)
     GLResource res = FramebufferRes(GetCtx(), framebuffers[i]);
     ResourceId id = GetResourceManager()->RegisterResource(res);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       Chunk *chunk = NULL;
 
       {
-        SCOPED_SERIALISE_CONTEXT(CREATE_FRAMEBUFFERS);
-        Serialise_glCreateFramebuffers(1, framebuffers + i);
+        USE_SCRATCH_SERIALISER();
+        SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+        Serialise_glCreateFramebuffers(ser, 1, framebuffers + i);
 
         chunk = scope.Get();
       }
@@ -131,34 +136,27 @@ void WrappedOpenGL::glCreateFramebuffers(GLsizei n, GLuint *framebuffers)
   }
 }
 
-bool WrappedOpenGL::Serialise_glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum attachment,
-                                                           GLuint texture, GLint level)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glNamedFramebufferTextureEXT(SerialiserType &ser,
+                                                           GLuint framebufferHandle,
+                                                           GLenum attachment, GLuint textureHandle,
+                                                           GLint level)
 {
-  SERIALISE_ELEMENT(GLenum, Attach, attachment);
-  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-  SERIALISE_ELEMENT(int32_t, Level, level);
-  SERIALISE_ELEMENT(ResourceId, fbid,
-                    (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
-                                                           FramebufferRes(GetCtx(), framebuffer))));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT(attachment);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT(level);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
-                     ? 0
-                     : GetResourceManager()->GetLiveResource(id).name;
-    if(fbid == ResourceId())
-    {
-      m_Real.glNamedFramebufferTextureEXT(0, Attach, tex, Level);
-    }
-    else
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glNamedFramebufferTextureEXT(fbres.name, Attach, tex, Level);
-    }
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
 
-    if(m_State == READING && tex)
+    m_Real.glNamedFramebufferTextureEXT(framebuffer.name, attachment, texture.name, level);
+
+    if(IsLoading(m_State) && texture.name)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
     }
   }
 
@@ -170,7 +168,7 @@ void WrappedOpenGL::glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum atta
 {
   m_Real.glNamedFramebufferTextureEXT(framebuffer, attachment, texture, level);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
@@ -179,20 +177,21 @@ void WrappedOpenGL::glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum atta
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX);
-    Serialise_glNamedFramebufferTextureEXT(framebuffer, attachment, texture, level);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferTextureEXT(ser, framebuffer, attachment, texture, level);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
       record->UpdateCount++;
@@ -217,7 +216,7 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
 {
   m_Real.glFramebufferTexture(target, attachment, texture, level);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = m_DeviceRecord;
 
@@ -236,20 +235,21 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX);
-    Serialise_glNamedFramebufferTextureEXT(record->Resource.name, attachment, texture, level);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferTextureEXT(ser, record->Resource.name, attachment, texture, level);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
 
@@ -274,36 +274,29 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
   }
 }
 
-bool WrappedOpenGL::Serialise_glNamedFramebufferTexture1DEXT(GLuint framebuffer, GLenum attachment,
-                                                             GLenum textarget, GLuint texture,
-                                                             GLint level)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glNamedFramebufferTexture1DEXT(SerialiserType &ser,
+                                                             GLuint framebufferHandle,
+                                                             GLenum attachment, GLenum textarget,
+                                                             GLuint textureHandle, GLint level)
 {
-  SERIALISE_ELEMENT(GLenum, Attach, attachment);
-  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-  SERIALISE_ELEMENT(GLenum, TexTarget, textarget);
-  SERIALISE_ELEMENT(int32_t, Level, level);
-  SERIALISE_ELEMENT(ResourceId, fbid,
-                    (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
-                                                           FramebufferRes(GetCtx(), framebuffer))));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT(attachment);
+  SERIALISE_ELEMENT(textarget);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT(level);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
-                     ? 0
-                     : GetResourceManager()->GetLiveResource(id).name;
-    if(fbid == ResourceId())
-    {
-      m_Real.glNamedFramebufferTexture1DEXT(0, Attach, TexTarget, tex, Level);
-    }
-    else
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glNamedFramebufferTexture1DEXT(fbres.name, Attach, TexTarget, tex, Level);
-    }
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
 
-    if(m_State == READING && tex)
+    m_Real.glNamedFramebufferTexture1DEXT(framebuffer.name, attachment, textarget, texture.name,
+                                          level);
+
+    if(IsLoading(m_State) && texture.name)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
     }
   }
 
@@ -315,7 +308,7 @@ void WrappedOpenGL::glNamedFramebufferTexture1DEXT(GLuint framebuffer, GLenum at
 {
   m_Real.glNamedFramebufferTexture1DEXT(framebuffer, attachment, textarget, texture, level);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
@@ -324,20 +317,21 @@ void WrappedOpenGL::glNamedFramebufferTexture1DEXT(GLuint framebuffer, GLenum at
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX1D);
-    Serialise_glNamedFramebufferTexture1DEXT(framebuffer, attachment, textarget, texture, level);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferTexture1DEXT(ser, framebuffer, attachment, textarget, texture, level);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
       record->UpdateCount++;
@@ -363,7 +357,7 @@ void WrappedOpenGL::glFramebufferTexture1D(GLenum target, GLenum attachment, GLe
 {
   m_Real.glFramebufferTexture1D(target, attachment, textarget, texture, level);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = m_DeviceRecord;
 
@@ -382,21 +376,22 @@ void WrappedOpenGL::glFramebufferTexture1D(GLenum target, GLenum attachment, GLe
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX1D);
-    Serialise_glNamedFramebufferTexture1DEXT(record->Resource.name, attachment, textarget, texture,
-                                             level);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferTexture1DEXT(ser, record->Resource.name, attachment, textarget,
+                                             texture, level);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
 
@@ -421,36 +416,29 @@ void WrappedOpenGL::glFramebufferTexture1D(GLenum target, GLenum attachment, GLe
   }
 }
 
-bool WrappedOpenGL::Serialise_glNamedFramebufferTexture2DEXT(GLuint framebuffer, GLenum attachment,
-                                                             GLenum textarget, GLuint texture,
-                                                             GLint level)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glNamedFramebufferTexture2DEXT(SerialiserType &ser,
+                                                             GLuint framebufferHandle,
+                                                             GLenum attachment, GLenum textarget,
+                                                             GLuint textureHandle, GLint level)
 {
-  SERIALISE_ELEMENT(GLenum, Attach, attachment);
-  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-  SERIALISE_ELEMENT(GLenum, TexTarget, textarget);
-  SERIALISE_ELEMENT(int32_t, Level, level);
-  SERIALISE_ELEMENT(ResourceId, fbid,
-                    (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
-                                                           FramebufferRes(GetCtx(), framebuffer))));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT(attachment);
+  SERIALISE_ELEMENT(textarget);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT(level);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
-                     ? 0
-                     : GetResourceManager()->GetLiveResource(id).name;
-    if(fbid == ResourceId())
-    {
-      m_Real.glNamedFramebufferTexture2DEXT(0, Attach, TexTarget, tex, Level);
-    }
-    else
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glNamedFramebufferTexture2DEXT(fbres.name, Attach, TexTarget, tex, Level);
-    }
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
 
-    if(m_State == READING && tex)
+    m_Real.glNamedFramebufferTexture2DEXT(framebuffer.name, attachment, textarget, texture.name,
+                                          level);
+
+    if(IsLoading(m_State) && texture.name)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
     }
   }
 
@@ -462,7 +450,7 @@ void WrappedOpenGL::glNamedFramebufferTexture2DEXT(GLuint framebuffer, GLenum at
 {
   m_Real.glNamedFramebufferTexture2DEXT(framebuffer, attachment, textarget, texture, level);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
@@ -471,20 +459,21 @@ void WrappedOpenGL::glNamedFramebufferTexture2DEXT(GLuint framebuffer, GLenum at
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX2D);
-    Serialise_glNamedFramebufferTexture2DEXT(framebuffer, attachment, textarget, texture, level);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferTexture2DEXT(ser, framebuffer, attachment, textarget, texture, level);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
       record->UpdateCount++;
@@ -510,7 +499,7 @@ void WrappedOpenGL::glFramebufferTexture2D(GLenum target, GLenum attachment, GLe
 {
   m_Real.glFramebufferTexture2D(target, attachment, textarget, texture, level);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = m_DeviceRecord;
 
@@ -529,21 +518,22 @@ void WrappedOpenGL::glFramebufferTexture2D(GLenum target, GLenum attachment, GLe
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX2D);
-    Serialise_glNamedFramebufferTexture2DEXT(record->Resource.name, attachment, textarget, texture,
-                                             level);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferTexture2DEXT(ser, record->Resource.name, attachment, textarget,
+                                             texture, level);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
 
@@ -568,43 +558,36 @@ void WrappedOpenGL::glFramebufferTexture2D(GLenum target, GLenum attachment, GLe
   }
 }
 
-bool WrappedOpenGL::Serialise_glFramebufferTexture2DMultisampleEXT(GLuint framebuffer,
-                                                                   GLenum target, GLenum attachment,
-                                                                   GLenum textarget, GLuint texture,
-                                                                   GLint level, GLsizei samples)
-
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glFramebufferTexture2DMultisampleEXT(
+    SerialiserType &ser, GLuint framebufferHandle, GLenum target, GLenum attachment,
+    GLenum textarget, GLuint textureHandle, GLint level, GLsizei samples)
 {
-  SERIALISE_ELEMENT(GLenum, Target, target);
-  SERIALISE_ELEMENT(GLenum, Attach, attachment);
-  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-  SERIALISE_ELEMENT(GLenum, TexTarget, textarget);
-  SERIALISE_ELEMENT(int32_t, Level, level);
-  SERIALISE_ELEMENT(uint32_t, Samples, samples);
-  SERIALISE_ELEMENT(ResourceId, fbid,
-                    (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
-                                                           FramebufferRes(GetCtx(), framebuffer))));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT(target);
+  SERIALISE_ELEMENT(attachment);
+  SERIALISE_ELEMENT(textarget);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT(level);
+  SERIALISE_ELEMENT(samples);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
-                     ? 0
-                     : GetResourceManager()->GetLiveResource(id).name;
-
     GLuint prevread = 0, prevdraw = 0;
     m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&prevdraw);
     m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&prevread);
 
-    GLuint fbbinding = (fbid == ResourceId()) ? 0 : GetResourceManager()->GetLiveResource(fbid).name;
-    m_Real.glBindFramebuffer(Target, fbbinding);
+    m_Real.glBindFramebuffer(target, framebuffer.name);
 
-    m_Real.glFramebufferTexture2DMultisampleEXT(Target, Attach, TexTarget, tex, Level, Samples);
+    m_Real.glFramebufferTexture2DMultisampleEXT(target, attachment, textarget, texture.name, level,
+                                                samples);
 
     m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevdraw);
     m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevread);
 
-    if(m_State == READING && tex)
+    if(IsLoading(m_State) && texture.name)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
     }
   }
 
@@ -617,7 +600,7 @@ void WrappedOpenGL::glFramebufferTexture2DMultisampleEXT(GLenum target, GLenum a
 {
   m_Real.glFramebufferTexture2DMultisampleEXT(target, attachment, textarget, texture, level, samples);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = m_DeviceRecord;
 
@@ -636,21 +619,22 @@ void WrappedOpenGL::glFramebufferTexture2DMultisampleEXT(GLenum target, GLenum a
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX2DMS);
-    Serialise_glFramebufferTexture2DMultisampleEXT(record->Resource.name, target, attachment,
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glFramebufferTexture2DMultisampleEXT(ser, record->Resource.name, target, attachment,
                                                    textarget, texture, level, samples);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
 
@@ -675,37 +659,31 @@ void WrappedOpenGL::glFramebufferTexture2DMultisampleEXT(GLenum target, GLenum a
   }
 }
 
-bool WrappedOpenGL::Serialise_glNamedFramebufferTexture3DEXT(GLuint framebuffer, GLenum attachment,
-                                                             GLenum textarget, GLuint texture,
-                                                             GLint level, GLint zoffset)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glNamedFramebufferTexture3DEXT(SerialiserType &ser,
+                                                             GLuint framebufferHandle,
+                                                             GLenum attachment, GLenum textarget,
+                                                             GLuint textureHandle, GLint level,
+                                                             GLint zoffset)
 {
-  SERIALISE_ELEMENT(GLenum, Attach, attachment);
-  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-  SERIALISE_ELEMENT(GLenum, TexTarget, textarget);
-  SERIALISE_ELEMENT(int32_t, Level, level);
-  SERIALISE_ELEMENT(int32_t, Zoffset, zoffset);
-  SERIALISE_ELEMENT(ResourceId, fbid,
-                    (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
-                                                           FramebufferRes(GetCtx(), framebuffer))));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT(attachment);
+  SERIALISE_ELEMENT(textarget);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT(level);
+  SERIALISE_ELEMENT(zoffset);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
-                     ? 0
-                     : GetResourceManager()->GetLiveResource(id).name;
-    if(fbid == ResourceId())
-    {
-      m_Real.glNamedFramebufferTexture3DEXT(0, Attach, TexTarget, tex, Level, Zoffset);
-    }
-    else
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glNamedFramebufferTexture3DEXT(fbres.name, Attach, TexTarget, tex, Level, Zoffset);
-    }
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
 
-    if(m_State == READING && tex)
+    m_Real.glNamedFramebufferTexture3DEXT(framebuffer.name, attachment, textarget, texture.name,
+                                          level, zoffset);
+
+    if(IsLoading(m_State) && texture.name)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
     }
   }
 
@@ -718,7 +696,7 @@ void WrappedOpenGL::glNamedFramebufferTexture3DEXT(GLuint framebuffer, GLenum at
 {
   m_Real.glNamedFramebufferTexture3DEXT(framebuffer, attachment, textarget, texture, level, zoffset);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
@@ -727,21 +705,22 @@ void WrappedOpenGL::glNamedFramebufferTexture3DEXT(GLuint framebuffer, GLenum at
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX3D);
-    Serialise_glNamedFramebufferTexture3DEXT(framebuffer, attachment, textarget, texture, level,
-                                             zoffset);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferTexture3DEXT(ser, framebuffer, attachment, textarget, texture,
+                                             level, zoffset);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
       record->UpdateCount++;
@@ -767,7 +746,7 @@ void WrappedOpenGL::glFramebufferTexture3D(GLenum target, GLenum attachment, GLe
 {
   m_Real.glFramebufferTexture3D(target, attachment, textarget, texture, level, zoffset);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = m_DeviceRecord;
 
@@ -786,21 +765,22 @@ void WrappedOpenGL::glFramebufferTexture3D(GLenum target, GLenum attachment, GLe
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX3D);
-    Serialise_glNamedFramebufferTexture3DEXT(record->Resource.name, attachment, textarget, texture,
-                                             level, zoffset);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferTexture3DEXT(ser, record->Resource.name, attachment, textarget,
+                                             texture, level, zoffset);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
 
@@ -825,36 +805,30 @@ void WrappedOpenGL::glFramebufferTexture3D(GLenum target, GLenum attachment, GLe
   }
 }
 
-bool WrappedOpenGL::Serialise_glNamedFramebufferRenderbufferEXT(GLuint framebuffer, GLenum attachment,
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glNamedFramebufferRenderbufferEXT(SerialiserType &ser,
+                                                                GLuint framebufferHandle,
+                                                                GLenum attachment,
                                                                 GLenum renderbuffertarget,
-                                                                GLuint renderbuffer)
+                                                                GLuint renderbufferHandle)
 {
-  SERIALISE_ELEMENT(ResourceId, fbid,
-                    (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
-                                                           FramebufferRes(GetCtx(), framebuffer))));
-  SERIALISE_ELEMENT(GLenum, Attach, attachment);
-  SERIALISE_ELEMENT(GLenum, RendBufTarget, renderbuffertarget);
-  SERIALISE_ELEMENT(ResourceId, id,
-                    GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer)));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT(attachment);
+  SERIALISE_ELEMENT(renderbuffertarget);
+  SERIALISE_ELEMENT_LOCAL(renderbuffer, RenderbufferRes(GetCtx(), renderbufferHandle));
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    GLuint rb = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
-                    ? 0
-                    : GetResourceManager()->GetLiveResource(id).name;
-    if(fbid == ResourceId())
-    {
-      m_Real.glNamedFramebufferRenderbufferEXT(0, Attach, RendBufTarget, rb);
-    }
-    else
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glNamedFramebufferRenderbufferEXT(fbres.name, Attach, RendBufTarget, rb);
-    }
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
 
-    if(m_State == READING && rb)
+    m_Real.glNamedFramebufferRenderbufferEXT(framebuffer.name, attachment, renderbuffertarget,
+                                             renderbuffer.name);
+
+    if(IsLoading(m_State) && renderbuffer.name)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetID(renderbuffer)].creationFlags |=
+          TextureCategory::ColorTarget;
     }
   }
 
@@ -866,20 +840,21 @@ void WrappedOpenGL::glNamedFramebufferRenderbufferEXT(GLuint framebuffer, GLenum
 {
   m_Real.glNamedFramebufferRenderbufferEXT(framebuffer, attachment, renderbuffertarget, renderbuffer);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_RENDBUF);
-    Serialise_glNamedFramebufferRenderbufferEXT(framebuffer, attachment, renderbuffertarget,
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferRenderbufferEXT(ser, framebuffer, attachment, renderbuffertarget,
                                                 renderbuffer);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
       record->UpdateCount++;
@@ -905,7 +880,7 @@ void WrappedOpenGL::glFramebufferRenderbuffer(GLenum target, GLenum attachment,
 {
   m_Real.glFramebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = m_DeviceRecord;
 
@@ -921,14 +896,15 @@ void WrappedOpenGL::glFramebufferRenderbuffer(GLenum target, GLenum attachment,
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_RENDBUF);
-    Serialise_glNamedFramebufferRenderbufferEXT(record->Resource.name, attachment,
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferRenderbufferEXT(ser, record->Resource.name, attachment,
                                                 renderbuffertarget, renderbuffer);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
 
@@ -953,36 +929,30 @@ void WrappedOpenGL::glFramebufferRenderbuffer(GLenum target, GLenum attachment,
   }
 }
 
-bool WrappedOpenGL::Serialise_glNamedFramebufferTextureLayerEXT(GLuint framebuffer,
-                                                                GLenum attachment, GLuint texture,
-                                                                GLint level, GLint layer)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glNamedFramebufferTextureLayerEXT(SerialiserType &ser,
+                                                                GLuint framebufferHandle,
+                                                                GLenum attachment,
+                                                                GLuint textureHandle, GLint level,
+                                                                GLint layer)
 {
-  SERIALISE_ELEMENT(GLenum, Attach, attachment);
-  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-  SERIALISE_ELEMENT(int32_t, Level, level);
-  SERIALISE_ELEMENT(int32_t, Layer, layer);
-  SERIALISE_ELEMENT(ResourceId, fbid,
-                    (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
-                                                           FramebufferRes(GetCtx(), framebuffer))));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT(attachment);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT(level);
+  SERIALISE_ELEMENT(layer);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
-                     ? 0
-                     : GetResourceManager()->GetLiveResource(id).name;
-    if(fbid == ResourceId())
-    {
-      m_Real.glNamedFramebufferTextureLayerEXT(0, Attach, tex, Level, Layer);
-    }
-    else
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glNamedFramebufferTextureLayerEXT(fbres.name, Attach, tex, Level, Layer);
-    }
+    if(framebuffer.name == 0)
+      framebuffer.name = m_FakeBB_FBO;
 
-    if(m_State == READING && tex)
+    m_Real.glNamedFramebufferTextureLayerEXT(framebuffer.name, attachment, texture.name, level,
+                                             layer);
+
+    if(IsLoading(m_State) && texture.name)
     {
-      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
     }
   }
 
@@ -994,7 +964,7 @@ void WrappedOpenGL::glNamedFramebufferTextureLayerEXT(GLuint framebuffer, GLenum
 {
   m_Real.glNamedFramebufferTextureLayerEXT(framebuffer, attachment, texture, level, layer);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
@@ -1003,20 +973,21 @@ void WrappedOpenGL::glNamedFramebufferTextureLayerEXT(GLuint framebuffer, GLenum
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEXLAYER);
-    Serialise_glNamedFramebufferTextureLayerEXT(framebuffer, attachment, texture, level, layer);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferTextureLayerEXT(ser, framebuffer, attachment, texture, level, layer);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
       record->UpdateCount++;
@@ -1042,7 +1013,7 @@ void WrappedOpenGL::glFramebufferTextureLayer(GLenum target, GLenum attachment, 
 {
   m_Real.glFramebufferTextureLayer(target, attachment, texture, level, layer);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = m_DeviceRecord;
 
@@ -1061,21 +1032,22 @@ void WrappedOpenGL::glFramebufferTextureLayer(GLenum target, GLenum attachment, 
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEXLAYER);
-    Serialise_glNamedFramebufferTextureLayerEXT(record->Resource.name, attachment, texture, level,
-                                                layer);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferTextureLayerEXT(ser, record->Resource.name, attachment, texture,
+                                                level, layer);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
 
@@ -1100,31 +1072,32 @@ void WrappedOpenGL::glFramebufferTextureLayer(GLenum target, GLenum attachment, 
   }
 }
 
-bool WrappedOpenGL::Serialise_glFramebufferTextureMultiviewOVR(GLenum target, GLenum attachment,
-                                                               GLuint texture, GLint level,
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glFramebufferTextureMultiviewOVR(SerialiserType &ser, GLenum target,
+                                                               GLenum attachment,
+                                                               GLuint textureHandle, GLint level,
                                                                GLint baseViewIndex, GLsizei numViews)
 {
-  SERIALISE_ELEMENT(GLenum, Target, target);
-  SERIALISE_ELEMENT(GLenum, Attach, attachment);
-  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-  SERIALISE_ELEMENT(int32_t, Level, level);
-  SERIALISE_ELEMENT(int32_t, BaseViewIndex, baseViewIndex);
-  SERIALISE_ELEMENT(uint32_t, NumViews, numViews);
+  SERIALISE_ELEMENT(target);
+  SERIALISE_ELEMENT(attachment);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT(level);
+  SERIALISE_ELEMENT(baseViewIndex);
+  SERIALISE_ELEMENT(numViews);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
-                     ? 0
-                     : GetResourceManager()->GetLiveResource(id).name;
+    m_Real.glFramebufferTextureMultiviewOVR(target, attachment, texture.name, level, baseViewIndex,
+                                            numViews);
 
-    m_Real.glFramebufferTextureMultiviewOVR(Target, Attach, tex, Level, BaseViewIndex, NumViews);
-
-    if(m_State == READING && tex)
+    if(IsLoading(m_State) && texture.name)
     {
-      if(Attach == eGL_DEPTH_ATTACHMENT || Attach == eGL_DEPTH_STENCIL_ATTACHMENT)
-        m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::DepthTarget;
+      if(attachment == eGL_DEPTH_ATTACHMENT || attachment == eGL_DEPTH_STENCIL_ATTACHMENT)
+        m_Textures[GetResourceManager()->GetID(texture)].creationFlags |=
+            TextureCategory::DepthTarget;
       else
-        m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
+        m_Textures[GetResourceManager()->GetID(texture)].creationFlags |=
+            TextureCategory::ColorTarget;
     }
   }
 
@@ -1138,7 +1111,7 @@ void WrappedOpenGL::glFramebufferTextureMultiviewOVR(GLenum target, GLenum attac
   m_Real.glFramebufferTextureMultiviewOVR(target, attachment, texture, level, baseViewIndex,
                                           numViews);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = m_DeviceRecord;
 
@@ -1157,21 +1130,22 @@ void WrappedOpenGL::glFramebufferTextureMultiviewOVR(GLenum target, GLenum attac
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_MULTIVIEW);
-    Serialise_glFramebufferTextureMultiviewOVR(target, attachment, texture, level, baseViewIndex,
-                                               numViews);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glFramebufferTextureMultiviewOVR(ser, target, attachment, texture, level,
+                                               baseViewIndex, numViews);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
 
@@ -1196,33 +1170,32 @@ void WrappedOpenGL::glFramebufferTextureMultiviewOVR(GLenum target, GLenum attac
   }
 }
 
+template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glFramebufferTextureMultisampleMultiviewOVR(
-    GLenum target, GLenum attachment, GLuint texture, GLint level, GLsizei samples,
-    GLint baseViewIndex, GLsizei numViews)
+    SerialiserType &ser, GLenum target, GLenum attachment, GLuint textureHandle, GLint level,
+    GLsizei samples, GLint baseViewIndex, GLsizei numViews)
 {
-  SERIALISE_ELEMENT(GLenum, Target, target);
-  SERIALISE_ELEMENT(GLenum, Attach, attachment);
-  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-  SERIALISE_ELEMENT(int32_t, Level, level);
-  SERIALISE_ELEMENT(uint32_t, Samples, samples);
-  SERIALISE_ELEMENT(int32_t, BaseViewIndex, baseViewIndex);
-  SERIALISE_ELEMENT(uint32_t, NumViews, numViews);
+  SERIALISE_ELEMENT(target);
+  SERIALISE_ELEMENT(attachment);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT(level);
+  SERIALISE_ELEMENT(samples);
+  SERIALISE_ELEMENT(baseViewIndex);
+  SERIALISE_ELEMENT(numViews);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
-                     ? 0
-                     : GetResourceManager()->GetLiveResource(id).name;
+    m_Real.glFramebufferTextureMultisampleMultiviewOVR(target, attachment, texture.name, level,
+                                                       samples, baseViewIndex, numViews);
 
-    m_Real.glFramebufferTextureMultisampleMultiviewOVR(Target, Attach, tex, Level, Samples,
-                                                       BaseViewIndex, NumViews);
-
-    if(m_State == READING && tex)
+    if(IsLoading(m_State) && texture.name)
     {
-      if(Attach == eGL_DEPTH_ATTACHMENT || Attach == eGL_DEPTH_STENCIL_ATTACHMENT)
-        m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::DepthTarget;
+      if(attachment == eGL_DEPTH_ATTACHMENT || attachment == eGL_DEPTH_STENCIL_ATTACHMENT)
+        m_Textures[GetResourceManager()->GetID(texture)].creationFlags |=
+            TextureCategory::DepthTarget;
       else
-        m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= TextureCategory::ColorTarget;
+        m_Textures[GetResourceManager()->GetID(texture)].creationFlags |=
+            TextureCategory::ColorTarget;
     }
   }
 
@@ -1237,7 +1210,7 @@ void WrappedOpenGL::glFramebufferTextureMultisampleMultiviewOVR(GLenum target, G
   m_Real.glFramebufferTextureMultisampleMultiviewOVR(target, attachment, texture, level, samples,
                                                      baseViewIndex, numViews);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = m_DeviceRecord;
 
@@ -1256,21 +1229,22 @@ void WrappedOpenGL::glFramebufferTextureMultisampleMultiviewOVR(GLenum target, G
     {
       ResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      if(m_State == WRITING_IDLE)
+      if(IsBackgroundCapturing(m_State))
         GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
       else
         m_MissingTracks.insert(texrecord->GetResourceID());
     }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-       m_State != WRITING_CAPFRAME)
+       IsBackgroundCapturing(m_State))
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_MULTIVIEWMS);
-    Serialise_glFramebufferTextureMultisampleMultiviewOVR(target, attachment, texture, level,
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glFramebufferTextureMultisampleMultiviewOVR(ser, target, attachment, texture, level,
                                                           samples, baseViewIndex, numViews);
 
-    if(m_State == WRITING_IDLE)
+    if(IsBackgroundCapturing(m_State))
     {
       record->AddChunk(scope.Get());
 
@@ -1295,22 +1269,19 @@ void WrappedOpenGL::glFramebufferTextureMultisampleMultiviewOVR(GLenum target, G
   }
 }
 
-bool WrappedOpenGL::Serialise_glNamedFramebufferParameteriEXT(GLuint framebuffer, GLenum pname,
-                                                              GLint param)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glNamedFramebufferParameteriEXT(SerialiserType &ser,
+                                                              GLuint framebufferHandle,
+                                                              GLenum pname, GLint param)
 {
-  SERIALISE_ELEMENT(GLenum, PName, pname);
-  SERIALISE_ELEMENT(int32_t, Param, param);
-  SERIALISE_ELEMENT(ResourceId, fbid,
-                    (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
-                                                           FramebufferRes(GetCtx(), framebuffer))));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT(pname);
+  SERIALISE_ELEMENT(param);
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
-    if(fbid != ResourceId())
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glNamedFramebufferParameteriEXT(fbres.name, PName, Param);
-    }
+    if(framebuffer.name)
+      m_Real.glNamedFramebufferParameteriEXT(framebuffer.name, pname, param);
   }
 
   return true;
@@ -1320,13 +1291,14 @@ void WrappedOpenGL::glNamedFramebufferParameteriEXT(GLuint framebuffer, GLenum p
 {
   m_Real.glNamedFramebufferParameteriEXT(framebuffer, pname, param);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_PARAM);
-    Serialise_glNamedFramebufferParameteriEXT(framebuffer, pname, param);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferParameteriEXT(ser, framebuffer, pname, param);
 
     record->AddChunk(scope.Get());
   }
@@ -1336,7 +1308,7 @@ void WrappedOpenGL::glFramebufferParameteri(GLenum target, GLenum pname, GLint p
 {
   m_Real.glFramebufferParameteri(target, pname, param);
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = NULL;
 
@@ -1354,36 +1326,36 @@ void WrappedOpenGL::glFramebufferParameteri(GLenum target, GLenum pname, GLint p
     if(record == NULL)
       return;
 
-    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_PARAM);
-    Serialise_glNamedFramebufferParameteriEXT(record->Resource.name, pname, param);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glNamedFramebufferParameteriEXT(ser, record->Resource.name, pname, param);
 
     record->AddChunk(scope.Get());
   }
 }
 
-bool WrappedOpenGL::Serialise_glFramebufferReadBufferEXT(GLuint framebuffer, GLenum mode)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glFramebufferReadBufferEXT(SerialiserType &ser,
+                                                         GLuint framebufferHandle, GLenum mode)
 {
-  SERIALISE_ELEMENT(ResourceId, Id,
-                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
-                                 : ResourceId()));
-  SERIALISE_ELEMENT(GLenum, b, mode);
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT(mode);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    if(Id == ResourceId())
+    if(framebuffer.name == 0)
     {
       // since we are faking the default framebuffer with our own
       // to see the results, replace back/front/left/right with color attachment 0
-      if(b == eGL_BACK_LEFT || b == eGL_BACK_RIGHT || b == eGL_BACK || b == eGL_FRONT_LEFT ||
-         b == eGL_FRONT_RIGHT || b == eGL_FRONT)
-        b = eGL_COLOR_ATTACHMENT0;
+      if(mode == eGL_BACK_LEFT || mode == eGL_BACK_RIGHT || mode == eGL_BACK ||
+         mode == eGL_FRONT_LEFT || mode == eGL_FRONT_RIGHT || mode == eGL_FRONT)
+        mode = eGL_COLOR_ATTACHMENT0;
 
-      m_Real.glFramebufferReadBufferEXT(m_FakeBB_FBO, b);
+      m_Real.glFramebufferReadBufferEXT(m_FakeBB_FBO, mode);
     }
     else
     {
-      GLResource res = GetResourceManager()->GetLiveResource(Id);
-      m_Real.glFramebufferReadBufferEXT(res.name, b);
+      m_Real.glFramebufferReadBufferEXT(framebuffer.name, mode);
     }
   }
 
@@ -1394,19 +1366,21 @@ void WrappedOpenGL::glFramebufferReadBufferEXT(GLuint framebuffer, GLenum buf)
 {
   m_Real.glFramebufferReadBufferEXT(framebuffer, buf);
 
-  if(m_State == WRITING_CAPFRAME)
+  if(IsActiveCapturing(m_State))
   {
-    SCOPED_SERIALISE_CONTEXT(READ_BUFFER);
-    Serialise_glFramebufferReadBufferEXT(framebuffer, buf);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glFramebufferReadBufferEXT(ser, framebuffer, buf);
 
     m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
                                             eFrameRef_ReadBeforeWrite);
   }
-  else if(m_State == WRITING_IDLE && framebuffer != 0)
+  else if(IsBackgroundCapturing(m_State) && framebuffer != 0)
   {
-    SCOPED_SERIALISE_CONTEXT(READ_BUFFER);
-    Serialise_glFramebufferReadBufferEXT(framebuffer, buf);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glFramebufferReadBufferEXT(ser, framebuffer, buf);
 
     ResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
@@ -1416,13 +1390,14 @@ void WrappedOpenGL::glFramebufferReadBufferEXT(GLuint framebuffer, GLenum buf)
 
 void WrappedOpenGL::glReadBuffer(GLenum mode)
 {
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *readrecord = GetCtxData().m_ReadFramebufferRecord;
-    if(m_State == WRITING_CAPFRAME)
+    if(IsActiveCapturing(m_State))
     {
-      SCOPED_SERIALISE_CONTEXT(READ_BUFFER);
-      Serialise_glFramebufferReadBufferEXT(readrecord ? readrecord->Resource.name : 0, mode);
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      Serialise_glFramebufferReadBufferEXT(ser, readrecord ? readrecord->Resource.name : 0, mode);
 
       m_ContextRecord->AddChunk(scope.Get());
       if(readrecord)
@@ -1438,24 +1413,16 @@ void WrappedOpenGL::glReadBuffer(GLenum mode)
   m_Real.glReadBuffer(mode);
 }
 
-bool WrappedOpenGL::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffer)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glBindFramebuffer(SerialiserType &ser, GLenum target,
+                                                GLuint framebufferHandle)
 {
-  SERIALISE_ELEMENT(GLenum, Target, target);
-  SERIALISE_ELEMENT(ResourceId, Id,
-                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
-                                 : ResourceId()));
+  SERIALISE_ELEMENT(target);
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
 
-  if(m_State <= EXECUTING)
+  if(IsReplayingAndReading())
   {
-    if(Id == ResourceId())
-    {
-      m_Real.glBindFramebuffer(Target, m_FakeBB_FBO);
-    }
-    else
-    {
-      GLResource res = GetResourceManager()->GetLiveResource(Id);
-      m_Real.glBindFramebuffer(Target, res.name);
-    }
+    m_Real.glBindFramebuffer(target, framebuffer.name ? framebuffer.name : m_FakeBB_FBO);
   }
 
   return true;
@@ -1463,17 +1430,18 @@ bool WrappedOpenGL::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffe
 
 void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
 {
-  if(m_State == WRITING_CAPFRAME)
+  if(IsActiveCapturing(m_State))
   {
-    SCOPED_SERIALISE_CONTEXT(BIND_FRAMEBUFFER);
-    Serialise_glBindFramebuffer(target, framebuffer);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glBindFramebuffer(ser, target, framebuffer);
 
     m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
                                             eFrameRef_ReadBeforeWrite);
   }
 
-  if(framebuffer == 0 && m_State < WRITING)
+  if(framebuffer == 0 && IsReplayMode(m_State))
     framebuffer = m_FakeBB_FBO;
 
   if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
@@ -1486,29 +1454,28 @@ void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
   m_Real.glBindFramebuffer(target, framebuffer);
 }
 
-bool WrappedOpenGL::Serialise_glFramebufferDrawBufferEXT(GLuint framebuffer, GLenum buf)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glFramebufferDrawBufferEXT(SerialiserType &ser,
+                                                         GLuint framebufferHandle, GLenum buf)
 {
-  SERIALISE_ELEMENT(ResourceId, Id,
-                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
-                                 : ResourceId()));
-  SERIALISE_ELEMENT(GLenum, b, buf);
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT(buf);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    if(Id == ResourceId())
+    if(framebuffer.name == 0)
     {
       // since we are faking the default framebuffer with our own
       // to see the results, replace back/front/left/right with color attachment 0
-      if(b == eGL_BACK_LEFT || b == eGL_BACK_RIGHT || b == eGL_BACK || b == eGL_FRONT_LEFT ||
-         b == eGL_FRONT_RIGHT || b == eGL_FRONT)
-        b = eGL_COLOR_ATTACHMENT0;
+      if(buf == eGL_BACK_LEFT || buf == eGL_BACK_RIGHT || buf == eGL_BACK ||
+         buf == eGL_FRONT_LEFT || buf == eGL_FRONT_RIGHT || buf == eGL_FRONT)
+        buf = eGL_COLOR_ATTACHMENT0;
 
-      m_Real.glFramebufferDrawBufferEXT(m_FakeBB_FBO, b);
+      m_Real.glFramebufferDrawBufferEXT(m_FakeBB_FBO, buf);
     }
     else
     {
-      GLResource res = GetResourceManager()->GetLiveResource(Id);
-      m_Real.glFramebufferDrawBufferEXT(res.name, b);
+      m_Real.glFramebufferDrawBufferEXT(framebuffer.name, buf);
     }
   }
 
@@ -1519,19 +1486,21 @@ void WrappedOpenGL::glFramebufferDrawBufferEXT(GLuint framebuffer, GLenum buf)
 {
   m_Real.glFramebufferDrawBufferEXT(framebuffer, buf);
 
-  if(m_State == WRITING_CAPFRAME)
+  if(IsActiveCapturing(m_State))
   {
-    SCOPED_SERIALISE_CONTEXT(DRAW_BUFFER);
-    Serialise_glFramebufferDrawBufferEXT(framebuffer, buf);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glFramebufferDrawBufferEXT(ser, framebuffer, buf);
 
     m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
                                             eFrameRef_ReadBeforeWrite);
   }
-  else if(m_State == WRITING_IDLE && framebuffer != 0)
+  else if(IsBackgroundCapturing(m_State) && framebuffer != 0)
   {
-    SCOPED_SERIALISE_CONTEXT(DRAW_BUFFER);
-    Serialise_glFramebufferDrawBufferEXT(framebuffer, buf);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glFramebufferDrawBufferEXT(ser, framebuffer, buf);
 
     ResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
@@ -1541,13 +1510,14 @@ void WrappedOpenGL::glFramebufferDrawBufferEXT(GLuint framebuffer, GLenum buf)
 
 void WrappedOpenGL::glDrawBuffer(GLenum buf)
 {
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *drawrecord = GetCtxData().m_DrawFramebufferRecord;
-    if(m_State == WRITING_CAPFRAME)
+    if(IsActiveCapturing(m_State))
     {
-      SCOPED_SERIALISE_CONTEXT(DRAW_BUFFER);
-      Serialise_glFramebufferDrawBufferEXT(drawrecord ? drawrecord->Resource.name : 0, buf);
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      Serialise_glFramebufferDrawBufferEXT(ser, drawrecord ? drawrecord->Resource.name : 0, buf);
 
       m_ContextRecord->AddChunk(scope.Get());
       if(drawrecord)
@@ -1563,17 +1533,19 @@ void WrappedOpenGL::glDrawBuffer(GLenum buf)
   m_Real.glDrawBuffer(buf);
 }
 
-bool WrappedOpenGL::Serialise_glFramebufferDrawBuffersEXT(GLuint framebuffer, GLsizei n,
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glFramebufferDrawBuffersEXT(SerialiserType &ser,
+                                                          GLuint framebufferHandle, GLsizei n,
                                                           const GLenum *bufs)
 {
-  SERIALISE_ELEMENT(ResourceId, Id,
-                    GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer)));
-  SERIALISE_ELEMENT(uint32_t, num, n);
-  SERIALISE_ELEMENT_ARR(GLenum, buffers, bufs, num);
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT_ARRAY(bufs, (uint32_t &)n);
 
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
-    for(uint32_t i = 0; i < num; i++)
+    GLenum *buffers = (GLenum *)bufs;
+
+    for(GLsizei i = 0; i < n; i++)
     {
       // since we are faking the default framebuffer with our own
       // to see the results, replace back/front/left/right with color attachment 0
@@ -1582,10 +1554,8 @@ bool WrappedOpenGL::Serialise_glFramebufferDrawBuffersEXT(GLuint framebuffer, GL
         buffers[i] = eGL_COLOR_ATTACHMENT0;
     }
 
-    m_Real.glFramebufferDrawBuffersEXT(GetResourceManager()->GetLiveResource(Id).name, num, buffers);
+    m_Real.glFramebufferDrawBuffersEXT(framebuffer.name, n, bufs);
   }
-
-  delete[] buffers;
 
   return true;
 }
@@ -1594,19 +1564,21 @@ void WrappedOpenGL::glFramebufferDrawBuffersEXT(GLuint framebuffer, GLsizei n, c
 {
   m_Real.glFramebufferDrawBuffersEXT(framebuffer, n, bufs);
 
-  if(m_State == WRITING_CAPFRAME)
+  if(IsActiveCapturing(m_State))
   {
-    SCOPED_SERIALISE_CONTEXT(DRAW_BUFFERS);
-    Serialise_glFramebufferDrawBuffersEXT(framebuffer, n, bufs);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glFramebufferDrawBuffersEXT(ser, framebuffer, n, bufs);
 
     m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
                                             eFrameRef_ReadBeforeWrite);
   }
-  else if(m_State == WRITING_IDLE && framebuffer != 0)
+  else if(IsBackgroundCapturing(m_State) && framebuffer != 0)
   {
-    SCOPED_SERIALISE_CONTEXT(DRAW_BUFFERS);
-    Serialise_glFramebufferDrawBuffersEXT(framebuffer, n, bufs);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glFramebufferDrawBuffersEXT(ser, framebuffer, n, bufs);
 
     ResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
@@ -1616,16 +1588,17 @@ void WrappedOpenGL::glFramebufferDrawBuffersEXT(GLuint framebuffer, GLsizei n, c
 
 void WrappedOpenGL::glDrawBuffers(GLsizei n, const GLenum *bufs)
 {
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *drawrecord = GetCtxData().m_DrawFramebufferRecord;
-    if(m_State == WRITING_CAPFRAME)
+    if(IsActiveCapturing(m_State))
     {
-      SCOPED_SERIALISE_CONTEXT(DRAW_BUFFERS);
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
       if(drawrecord)
-        Serialise_glFramebufferDrawBuffersEXT(drawrecord->Resource.name, n, bufs);
+        Serialise_glFramebufferDrawBuffersEXT(ser, drawrecord->Resource.name, n, bufs);
       else
-        Serialise_glFramebufferDrawBuffersEXT(0, n, bufs);
+        Serialise_glFramebufferDrawBuffersEXT(ser, 0, n, bufs);
 
       m_ContextRecord->AddChunk(scope.Get());
       if(drawrecord)
@@ -1646,7 +1619,7 @@ void WrappedOpenGL::glInvalidateFramebuffer(GLenum target, GLsizei numAttachment
 {
   m_Real.glInvalidateFramebuffer(target, numAttachments, attachments);
 
-  if(m_State == WRITING_IDLE)
+  if(IsBackgroundCapturing(m_State))
   {
     GLResourceRecord *record = NULL;
 
@@ -1675,7 +1648,7 @@ void WrappedOpenGL::glDiscardFramebufferEXT(GLenum target, GLsizei numAttachment
 {
   m_Real.glDiscardFramebufferEXT(target, numAttachments, attachments);
 
-  if(m_State == WRITING_IDLE)
+  if(IsBackgroundCapturing(m_State))
   {
     GLResourceRecord *record = NULL;
 
@@ -1702,7 +1675,7 @@ void WrappedOpenGL::glInvalidateNamedFramebufferData(GLuint framebuffer, GLsizei
 {
   m_Real.glInvalidateNamedFramebufferData(framebuffer, numAttachments, attachments);
 
-  if(m_State == WRITING_IDLE)
+  if(IsBackgroundCapturing(m_State))
   {
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
@@ -1718,7 +1691,7 @@ void WrappedOpenGL::glInvalidateSubFramebuffer(GLenum target, GLsizei numAttachm
 {
   m_Real.glInvalidateSubFramebuffer(target, numAttachments, attachments, x, y, width, height);
 
-  if(m_State == WRITING_IDLE)
+  if(IsBackgroundCapturing(m_State))
   {
     GLResourceRecord *record = NULL;
 
@@ -1747,7 +1720,7 @@ void WrappedOpenGL::glInvalidateNamedFramebufferSubData(GLuint framebuffer, GLsi
   m_Real.glInvalidateNamedFramebufferSubData(framebuffer, numAttachments, attachments, x, y, width,
                                              height);
 
-  if(m_State == WRITING_IDLE)
+  if(IsBackgroundCapturing(m_State))
   {
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
@@ -1757,145 +1730,136 @@ void WrappedOpenGL::glInvalidateNamedFramebufferSubData(GLuint framebuffer, GLsi
   }
 }
 
-bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
-                                                     GLint srcX0, GLint srcY0, GLint srcX1,
-                                                     GLint srcY1, GLint dstX0, GLint dstY0,
-                                                     GLint dstX1, GLint dstY1, GLbitfield mask,
-                                                     GLenum filter)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
+                                                     GLuint readFramebufferHandle,
+                                                     GLuint drawFramebufferHandle, GLint srcX0,
+                                                     GLint srcY0, GLint srcX1, GLint srcY1,
+                                                     GLint dstX0, GLint dstY0, GLint dstX1,
+                                                     GLint dstY1, GLbitfield mask, GLenum filter)
 {
-  SERIALISE_ELEMENT(
-      ResourceId, readId,
-      (readFramebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), readFramebuffer))
-                       : ResourceId()));
-  SERIALISE_ELEMENT(
-      ResourceId, drawId,
-      (drawFramebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), drawFramebuffer))
-                       : ResourceId()));
-  SERIALISE_ELEMENT(int32_t, sX0, srcX0);
-  SERIALISE_ELEMENT(int32_t, sY0, srcY0);
-  SERIALISE_ELEMENT(int32_t, sX1, srcX1);
-  SERIALISE_ELEMENT(int32_t, sY1, srcY1);
-  SERIALISE_ELEMENT(int32_t, dX0, dstX0);
-  SERIALISE_ELEMENT(int32_t, dY0, dstY0);
-  SERIALISE_ELEMENT(int32_t, dX1, dstX1);
-  SERIALISE_ELEMENT(int32_t, dY1, dstY1);
-  SERIALISE_ELEMENT(uint32_t, msk, mask);
-  SERIALISE_ELEMENT(GLenum, flt, filter);
+  SERIALISE_ELEMENT_LOCAL(readFramebuffer, FramebufferRes(GetCtx(), readFramebufferHandle));
+  SERIALISE_ELEMENT_LOCAL(drawFramebuffer, FramebufferRes(GetCtx(), drawFramebufferHandle));
+  SERIALISE_ELEMENT(srcX0);
+  SERIALISE_ELEMENT(srcY0);
+  SERIALISE_ELEMENT(srcX1);
+  SERIALISE_ELEMENT(srcY1);
+  SERIALISE_ELEMENT(dstX0);
+  SERIALISE_ELEMENT(dstY0);
+  SERIALISE_ELEMENT(dstX1);
+  SERIALISE_ELEMENT(dstY1);
+  SERIALISE_ELEMENT(mask);
+  SERIALISE_ELEMENT(filter);
 
-  if(m_State <= EXECUTING)
+  if(IsReplayingAndReading())
   {
-    if(readId == ResourceId())
-      readFramebuffer = m_FakeBB_FBO;
-    else
-      readFramebuffer = GetResourceManager()->GetLiveResource(readId).name;
+    if(readFramebuffer.name == 0)
+      readFramebuffer.name = m_FakeBB_FBO;
 
-    if(drawId == ResourceId())
-      drawFramebuffer = m_FakeBB_FBO;
-    else
-      drawFramebuffer = GetResourceManager()->GetLiveResource(drawId).name;
+    if(drawFramebuffer.name == 0)
+      drawFramebuffer.name = m_FakeBB_FBO;
 
     // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
     // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
-    // is
-    // necessary since these functions can be serialised even if ARB_dsa was not used originally,
-    // and
-    // we need to support this case.
-    m_Real.glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, sX0, sY0, sX1, sY1, dX0, dY0,
-                                  dX1, dY1, msk, flt);
-  }
+    // is necessary since these functions can be serialised even if ARB_dsa was not used originally,
+    // and we need to support this case.
+    m_Real.glBlitNamedFramebuffer(readFramebuffer.name, drawFramebuffer.name, srcX0, srcY0, srcX1,
+                                  srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 
-  const string desc = m_pSerialiser->GetDebugStr();
-
-  Serialise_DebugMessages();
-
-  if(m_State == READING)
-  {
-    AddEvent(desc);
-    string name = "glBlitFramebuffer(" + ToStr(readId) + ", " + ToStr(drawId) + ")";
-
-    DrawcallDescription draw;
-    draw.name = name;
-    draw.flags |= DrawFlags::Resolve;
-
-    GLint numCols = 8;
-    m_Real.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
-
-    for(int i = 0; i < numCols + 2; i++)
+    if(IsLoading(m_State))
     {
-      GLenum attachName = GLenum(eGL_COLOR_ATTACHMENT0 + i);
-      if(i == numCols)
-        attachName = eGL_DEPTH_ATTACHMENT;
-      if(i == numCols + 1)
-        attachName = eGL_STENCIL_ATTACHMENT;
+      AddEvent();
 
-      GLuint srcattachment = 0, dstattachment = 0;
-      GLenum srctype = eGL_TEXTURE, dsttype = eGL_TEXTURE;
+      ResourceId readId = GetResourceManager()->GetID(readFramebuffer);
+      ResourceId drawId = GetResourceManager()->GetID(drawFramebuffer);
 
-      m_Real.glGetNamedFramebufferAttachmentParameterivEXT(readFramebuffer, attachName,
-                                                           eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                           (GLint *)&srcattachment);
-      m_Real.glGetNamedFramebufferAttachmentParameterivEXT(
-          readFramebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&srctype);
+      DrawcallDescription draw;
+      draw.name = StringFormat::Fmt("%s(%s, %s)", ToStr(gl_CurChunk).c_str(), ToStr(readId).c_str(),
+                                    ToStr(drawId).c_str());
+      draw.flags |= DrawFlags::Resolve;
 
-      m_Real.glGetNamedFramebufferAttachmentParameterivEXT(drawFramebuffer, attachName,
-                                                           eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                           (GLint *)&dstattachment);
-      m_Real.glGetNamedFramebufferAttachmentParameterivEXT(
-          drawFramebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&dsttype);
+      GLint numCols = 8;
+      m_Real.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
 
-      ResourceId srcid, dstid;
-
-      if(srctype == eGL_TEXTURE)
-        srcid = GetResourceManager()->GetID(TextureRes(GetCtx(), srcattachment));
-      else
-        srcid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), srcattachment));
-
-      if(dsttype == eGL_TEXTURE)
-        dstid = GetResourceManager()->GetID(TextureRes(GetCtx(), dstattachment));
-      else
-        dstid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), dstattachment));
-
-      if(msk & GL_COLOR_BUFFER_BIT)
+      for(int i = 0; i < numCols + 2; i++)
       {
-        if(attachName == eGL_COLOR_ATTACHMENT0)
+        GLenum attachName = GLenum(eGL_COLOR_ATTACHMENT0 + i);
+        if(i == numCols)
+          attachName = eGL_DEPTH_ATTACHMENT;
+        if(i == numCols + 1)
+          attachName = eGL_STENCIL_ATTACHMENT;
+
+        GLuint srcattachment = 0, dstattachment = 0;
+        GLenum srctype = eGL_TEXTURE, dsttype = eGL_TEXTURE;
+
+        m_Real.glGetNamedFramebufferAttachmentParameterivEXT(readFramebuffer.name, attachName,
+                                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                             (GLint *)&srcattachment);
+        m_Real.glGetNamedFramebufferAttachmentParameterivEXT(readFramebuffer.name, attachName,
+                                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                             (GLint *)&srctype);
+
+        m_Real.glGetNamedFramebufferAttachmentParameterivEXT(drawFramebuffer.name, attachName,
+                                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                             (GLint *)&dstattachment);
+        m_Real.glGetNamedFramebufferAttachmentParameterivEXT(drawFramebuffer.name, attachName,
+                                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                             (GLint *)&dsttype);
+
+        ResourceId srcid, dstid;
+
+        if(srctype == eGL_TEXTURE)
+          srcid = GetResourceManager()->GetID(TextureRes(GetCtx(), srcattachment));
+        else
+          srcid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), srcattachment));
+
+        if(dsttype == eGL_TEXTURE)
+          dstid = GetResourceManager()->GetID(TextureRes(GetCtx(), dstattachment));
+        else
+          dstid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), dstattachment));
+
+        if(mask & GL_COLOR_BUFFER_BIT)
         {
-          draw.copySource = GetResourceManager()->GetOriginalID(srcid);
-          draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
-        }
-      }
-      else
-      {
-        if(attachName == eGL_DEPTH_ATTACHMENT)
-        {
-          draw.copySource = GetResourceManager()->GetOriginalID(srcid);
-          draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
-        }
-      }
-
-      if(dstattachment == srcattachment && srctype == dsttype)
-      {
-        m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
-      }
-      else
-      {
-        // MS to non-MS is a resolve
-        if((m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE ||
-            m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY) &&
-           m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE &&
-           m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
-        {
-          m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveSrc));
-          m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveDst));
+          if(attachName == eGL_COLOR_ATTACHMENT0)
+          {
+            draw.copySource = GetResourceManager()->GetOriginalID(srcid);
+            draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+          }
         }
         else
         {
-          m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
-          m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
+          if(attachName == eGL_DEPTH_ATTACHMENT)
+          {
+            draw.copySource = GetResourceManager()->GetOriginalID(srcid);
+            draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+          }
+        }
+
+        if(dstattachment == srcattachment && srctype == dsttype)
+        {
+          m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
+        }
+        else
+        {
+          // MS to non-MS is a resolve
+          if((m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE ||
+              m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY) &&
+             m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE &&
+             m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+          {
+            m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveSrc));
+            m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, ResourceUsage::ResolveDst));
+          }
+          else
+          {
+            m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
+            m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
+          }
         }
       }
-    }
 
-    AddDrawcall(draw, true);
+      AddDrawcall(draw, true);
+    }
   }
 
   return true;
@@ -1908,11 +1872,13 @@ void WrappedOpenGL::glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFr
 {
   CoherentMapImplicitBarrier();
 
-  if(m_State == WRITING_CAPFRAME)
+  if(IsActiveCapturing(m_State))
   {
-    SCOPED_SERIALISE_CONTEXT(BLIT_FRAMEBUFFER);
-    Serialise_glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1,
-                                     dstX0, dstY0, dstX1, dstY1, mask, filter);
+    USE_SCRATCH_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glBlitNamedFramebuffer(ser, readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1,
+                                     srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 
     m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), readFramebuffer),
@@ -1936,7 +1902,7 @@ void WrappedOpenGL::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLi
 {
   CoherentMapImplicitBarrier();
 
-  if(m_State == WRITING_CAPFRAME)
+  if(IsActiveCapturing(m_State))
   {
     GLuint readFramebuffer = 0, drawFramebuffer = 0;
 
@@ -1945,9 +1911,10 @@ void WrappedOpenGL::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLi
     if(GetCtxData().m_DrawFramebufferRecord)
       drawFramebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
 
-    SCOPED_SERIALISE_CONTEXT(BLIT_FRAMEBUFFER);
-    Serialise_glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1,
-                                     dstX0, dstY0, dstX1, dstY1, mask, filter);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glBlitNamedFramebuffer(ser, readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1,
+                                     srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 
     m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), readFramebuffer),
@@ -1976,12 +1943,13 @@ void WrappedOpenGL::glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
   m_Real.glDeleteFramebuffers(n, framebuffers);
 }
 
-bool WrappedOpenGL::Serialise_glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glGenRenderbuffers(SerialiserType &ser, GLsizei n, GLuint *renderbuffers)
 {
-  SERIALISE_ELEMENT(ResourceId, id,
-                    GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)));
+  SERIALISE_ELEMENT_LOCAL(renderbuffer,
+                          GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)));
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
     GLuint real = 0;
     m_Real.glGenRenderbuffers(1, &real);
@@ -1990,7 +1958,7 @@ bool WrappedOpenGL::Serialise_glGenRenderbuffers(GLsizei n, GLuint *renderbuffer
     GLResource res = RenderbufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
-    GetResourceManager()->AddLiveResource(id, res);
+    GetResourceManager()->AddLiveResource(renderbuffer, res);
 
     m_Textures[live].resource = res;
     m_Textures[live].curType = eGL_RENDERBUFFER;
@@ -2008,13 +1976,14 @@ void WrappedOpenGL::glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
     GLResource res = RenderbufferRes(GetCtx(), renderbuffers[i]);
     ResourceId id = GetResourceManager()->RegisterResource(res);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       Chunk *chunk = NULL;
 
       {
-        SCOPED_SERIALISE_CONTEXT(GEN_RENDERBUFFERS);
-        Serialise_glGenRenderbuffers(1, renderbuffers + i);
+        USE_SCRATCH_SERIALISER();
+        SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+        Serialise_glGenRenderbuffers(ser, 1, renderbuffers + i);
 
         chunk = scope.Get();
       }
@@ -2031,12 +2000,14 @@ void WrappedOpenGL::glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
   }
 }
 
-bool WrappedOpenGL::Serialise_glCreateRenderbuffers(GLsizei n, GLuint *renderbuffers)
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glCreateRenderbuffers(SerialiserType &ser, GLsizei n,
+                                                    GLuint *renderbuffers)
 {
-  SERIALISE_ELEMENT(ResourceId, id,
-                    GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)));
+  SERIALISE_ELEMENT_LOCAL(renderbuffer,
+                          GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)));
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
     GLuint real = 0;
     m_Real.glCreateRenderbuffers(1, &real);
@@ -2045,7 +2016,7 @@ bool WrappedOpenGL::Serialise_glCreateRenderbuffers(GLsizei n, GLuint *renderbuf
     GLResource res = RenderbufferRes(GetCtx(), real);
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
-    GetResourceManager()->AddLiveResource(id, res);
+    GetResourceManager()->AddLiveResource(renderbuffer, res);
 
     m_Textures[live].resource = res;
     m_Textures[live].curType = eGL_RENDERBUFFER;
@@ -2063,13 +2034,14 @@ void WrappedOpenGL::glCreateRenderbuffers(GLsizei n, GLuint *renderbuffers)
     GLResource res = RenderbufferRes(GetCtx(), renderbuffers[i]);
     ResourceId id = GetResourceManager()->RegisterResource(res);
 
-    if(m_State >= WRITING)
+    if(IsCaptureMode(m_State))
     {
       Chunk *chunk = NULL;
 
       {
-        SCOPED_SERIALISE_CONTEXT(CREATE_RENDERBUFFERS);
-        Serialise_glCreateRenderbuffers(1, renderbuffers + i);
+        USE_SCRATCH_SERIALISER();
+        SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+        Serialise_glCreateRenderbuffers(ser, 1, renderbuffers + i);
 
         chunk = scope.Get();
       }
@@ -2113,39 +2085,36 @@ void WrappedOpenGL::glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers
   m_Real.glDeleteRenderbuffers(n, renderbuffers);
 }
 
-bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(GLuint renderbuffer,
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
+                                                            GLuint renderbufferHandle,
                                                             GLenum internalformat, GLsizei width,
                                                             GLsizei height)
 {
-  SERIALISE_ELEMENT(
-      ResourceId, id,
-      (renderbuffer ? GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer))
-                    : ResourceId()));
-  SERIALISE_ELEMENT(GLenum, Format, internalformat);
-  SERIALISE_ELEMENT(uint32_t, Width, width);
-  SERIALISE_ELEMENT(uint32_t, Height, height);
+  SERIALISE_ELEMENT_LOCAL(renderbuffer, FramebufferRes(GetCtx(), renderbufferHandle));
+  SERIALISE_ELEMENT(internalformat);
+  SERIALISE_ELEMENT(width);
+  SERIALISE_ELEMENT(height);
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
-    ResourceId liveId = GetResourceManager()->GetLiveID(id);
+    ResourceId liveId = GetResourceManager()->GetID(renderbuffer);
     TextureData &texDetails = m_Textures[liveId];
 
-    texDetails.width = Width;
-    texDetails.height = Height;
+    texDetails.width = width;
+    texDetails.height = height;
     texDetails.depth = 1;
     texDetails.samples = 1;
     texDetails.curType = eGL_RENDERBUFFER;
-    texDetails.internalFormat = Format;
+    texDetails.internalFormat = internalformat;
 
-    GLuint real = GetResourceManager()->GetLiveResource(id).name;
-
-    m_Real.glNamedRenderbufferStorageEXT(real, Format, Width, Height);
+    m_Real.glNamedRenderbufferStorageEXT(renderbuffer.name, internalformat, width, height);
 
     // create read-from texture for displaying this render buffer
     m_Real.glGenTextures(1, &texDetails.renderbufferReadTex);
     m_Real.glBindTexture(eGL_TEXTURE_2D, texDetails.renderbufferReadTex);
-    m_Real.glTexImage2D(eGL_TEXTURE_2D, 0, Format, Width, Height, 0, GetBaseFormat(Format),
-                        GetDataType(Format), NULL);
+    m_Real.glTexImage2D(eGL_TEXTURE_2D, 0, internalformat, width, height, 0,
+                        GetBaseFormat(internalformat), GetDataType(internalformat), NULL);
     m_Real.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
     m_Real.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_LINEAR);
     m_Real.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
@@ -2154,7 +2123,7 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(GLuint renderbuffer,
     m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
     m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
 
-    GLenum fmt = GetBaseFormat(Format);
+    GLenum fmt = GetBaseFormat(internalformat);
 
     GLenum attach = eGL_COLOR_ATTACHMENT0;
     if(fmt == eGL_DEPTH_COMPONENT)
@@ -2164,7 +2133,7 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(GLuint renderbuffer,
     if(fmt == eGL_DEPTH_STENCIL)
       attach = eGL_DEPTH_STENCIL_ATTACHMENT;
     m_Real.glNamedFramebufferRenderbufferEXT(texDetails.renderbufferFBOs[0], attach,
-                                             eGL_RENDERBUFFER, real);
+                                             eGL_RENDERBUFFER, renderbuffer.name);
     m_Real.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach, eGL_TEXTURE_2D,
                                           texDetails.renderbufferReadTex, 0);
   }
@@ -2181,7 +2150,7 @@ void WrappedOpenGL::glNamedRenderbufferStorageEXT(GLuint renderbuffer, GLenum in
 
   ResourceId rb = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer));
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(rb);
     RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
@@ -2189,8 +2158,10 @@ void WrappedOpenGL::glNamedRenderbufferStorageEXT(GLuint renderbuffer, GLenum in
 
     if(record)
     {
-      SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGE);
-      Serialise_glNamedRenderbufferStorageEXT(record->Resource.name, internalformat, width, height);
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      Serialise_glNamedRenderbufferStorageEXT(ser, record->Resource.name, internalformat, width,
+                                              height);
 
       record->AddChunk(scope.Get());
     }
@@ -2216,15 +2187,17 @@ void WrappedOpenGL::glRenderbufferStorage(GLenum target, GLenum internalformat, 
 
   ResourceId rb = GetCtxData().m_Renderbuffer;
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(rb);
     RDCASSERTMSG("Couldn't identify implicit renderbuffer. Not bound?", record);
 
     if(record)
     {
-      SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGE);
-      Serialise_glNamedRenderbufferStorageEXT(record->Resource.name, internalformat, width, height);
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      Serialise_glNamedRenderbufferStorageEXT(ser, record->Resource.name, internalformat, width,
+                                              height);
 
       record->AddChunk(scope.Get());
     }
@@ -2241,48 +2214,46 @@ void WrappedOpenGL::glRenderbufferStorage(GLenum target, GLenum internalformat, 
   }
 }
 
-bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer,
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(SerialiserType &ser,
+                                                                       GLuint renderbufferHandle,
                                                                        GLsizei samples,
                                                                        GLenum internalformat,
                                                                        GLsizei width, GLsizei height)
 {
-  SERIALISE_ELEMENT(GLenum, Format, internalformat);
-  SERIALISE_ELEMENT(uint32_t, Samples, samples);
-  SERIALISE_ELEMENT(uint32_t, Width, width);
-  SERIALISE_ELEMENT(uint32_t, Height, height);
-  SERIALISE_ELEMENT(
-      ResourceId, id,
-      (renderbuffer ? GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer))
-                    : ResourceId()));
+  SERIALISE_ELEMENT_LOCAL(renderbuffer, FramebufferRes(GetCtx(), renderbufferHandle));
+  SERIALISE_ELEMENT(samples);
+  SERIALISE_ELEMENT(internalformat);
+  SERIALISE_ELEMENT(width);
+  SERIALISE_ELEMENT(height);
 
-  if(m_State == READING)
+  if(IsReplayingAndReading())
   {
-    ResourceId liveId = GetResourceManager()->GetLiveID(id);
+    ResourceId liveId = GetResourceManager()->GetID(renderbuffer);
     TextureData &texDetails = m_Textures[liveId];
 
-    texDetails.width = Width;
-    texDetails.height = Height;
+    texDetails.width = width;
+    texDetails.height = height;
     texDetails.depth = 1;
-    texDetails.samples = Samples;
+    texDetails.samples = samples;
     texDetails.curType = eGL_RENDERBUFFER;
-    texDetails.internalFormat = Format;
+    texDetails.internalFormat = internalformat;
 
-    GLuint real = GetResourceManager()->GetLiveResource(id).name;
-
-    m_Real.glNamedRenderbufferStorageMultisampleEXT(real, Samples, Format, Width, Height);
+    m_Real.glNamedRenderbufferStorageMultisampleEXT(renderbuffer.name, samples, internalformat,
+                                                    width, height);
 
     // create read-from texture for displaying this render buffer
     m_Real.glGenTextures(1, &texDetails.renderbufferReadTex);
     m_Real.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, texDetails.renderbufferReadTex);
     m_Real.glTextureStorage2DMultisampleEXT(texDetails.renderbufferReadTex,
-                                            eGL_TEXTURE_2D_MULTISAMPLE, Samples, Format, Width,
-                                            Height, true);
+                                            eGL_TEXTURE_2D_MULTISAMPLE, samples, internalformat,
+                                            width, height, true);
 
     m_Real.glGenFramebuffers(2, texDetails.renderbufferFBOs);
     m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
     m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
 
-    GLenum fmt = GetBaseFormat(Format);
+    GLenum fmt = GetBaseFormat(internalformat);
 
     GLenum attach = eGL_COLOR_ATTACHMENT0;
     if(fmt == eGL_DEPTH_COMPONENT)
@@ -2292,7 +2263,7 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(GLuint re
     if(fmt == eGL_DEPTH_STENCIL)
       attach = eGL_DEPTH_STENCIL_ATTACHMENT;
     m_Real.glNamedFramebufferRenderbufferEXT(texDetails.renderbufferFBOs[0], attach,
-                                             eGL_RENDERBUFFER, real);
+                                             eGL_RENDERBUFFER, renderbuffer.name);
     m_Real.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach,
                                           eGL_TEXTURE_2D_MULTISAMPLE,
                                           texDetails.renderbufferReadTex, 0);
@@ -2312,7 +2283,7 @@ void WrappedOpenGL::glNamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer
 
   ResourceId rb = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer));
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(rb);
     RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
@@ -2320,8 +2291,9 @@ void WrappedOpenGL::glNamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer
 
     if(record)
     {
-      SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGEMS);
-      Serialise_glNamedRenderbufferStorageMultisampleEXT(record->Resource.name, samples,
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      Serialise_glNamedRenderbufferStorageMultisampleEXT(ser, record->Resource.name, samples,
                                                          internalformat, width, height);
 
       record->AddChunk(scope.Get());
@@ -2349,15 +2321,16 @@ void WrappedOpenGL::glRenderbufferStorageMultisample(GLenum target, GLsizei samp
 
   ResourceId rb = GetCtxData().m_Renderbuffer;
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(rb);
     RDCASSERTMSG("Couldn't identify implicit renderbuffer. Not bound?", record);
 
     if(record)
     {
-      SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGEMS);
-      Serialise_glNamedRenderbufferStorageMultisampleEXT(record->Resource.name, samples,
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      Serialise_glNamedRenderbufferStorageMultisampleEXT(ser, record->Resource.name, samples,
                                                          internalformat, width, height);
 
       record->AddChunk(scope.Get());
@@ -2374,3 +2347,51 @@ void WrappedOpenGL::glRenderbufferStorageMultisample(GLenum target, GLsizei samp
     m_Textures[rb].internalFormat = internalformat;
   }
 }
+
+INSTANTIATE_FUNCTION_SERIALISED(void, glGenFramebuffers, GLsizei n, GLuint *framebuffers);
+INSTANTIATE_FUNCTION_SERIALISED(void, glCreateFramebuffers, GLsizei n, GLuint *framebuffers);
+INSTANTIATE_FUNCTION_SERIALISED(void, glNamedFramebufferTextureEXT, GLuint framebufferHandle,
+                                GLenum attachment, GLuint textureHandle, GLint level);
+INSTANTIATE_FUNCTION_SERIALISED(void, glNamedFramebufferTexture1DEXT, GLuint framebufferHandle,
+                                GLenum attachment, GLenum textarget, GLuint textureHandle,
+                                GLint level);
+INSTANTIATE_FUNCTION_SERIALISED(void, glNamedFramebufferTexture2DEXT, GLuint framebufferHandle,
+                                GLenum attachment, GLenum textarget, GLuint textureHandle,
+                                GLint level);
+INSTANTIATE_FUNCTION_SERIALISED(void, glFramebufferTexture2DMultisampleEXT, GLuint framebufferHandle,
+                                GLenum target, GLenum attachment, GLenum textarget,
+                                GLuint textureHandle, GLint level, GLsizei samples);
+INSTANTIATE_FUNCTION_SERIALISED(void, glNamedFramebufferTexture3DEXT, GLuint framebufferHandle,
+                                GLenum attachment, GLenum textarget, GLuint textureHandle,
+                                GLint level, GLint zoffset);
+INSTANTIATE_FUNCTION_SERIALISED(void, glNamedFramebufferRenderbufferEXT, GLuint framebufferHandle,
+                                GLenum attachment, GLenum renderbuffertarget,
+                                GLuint renderbufferHandle);
+INSTANTIATE_FUNCTION_SERIALISED(void, glNamedFramebufferTextureLayerEXT, GLuint framebufferHandle,
+                                GLenum attachment, GLuint textureHandle, GLint level, GLint layer);
+INSTANTIATE_FUNCTION_SERIALISED(void, glFramebufferTextureMultiviewOVR, GLenum target,
+                                GLenum attachment, GLuint textureHandle, GLint level,
+                                GLint baseViewIndex, GLsizei numViews);
+INSTANTIATE_FUNCTION_SERIALISED(void, glFramebufferTextureMultisampleMultiviewOVR, GLenum target,
+                                GLenum attachment, GLuint textureHandle, GLint level,
+                                GLsizei samples, GLint baseViewIndex, GLsizei numViews);
+INSTANTIATE_FUNCTION_SERIALISED(void, glNamedFramebufferParameteriEXT, GLuint framebufferHandle,
+                                GLenum pname, GLint param);
+INSTANTIATE_FUNCTION_SERIALISED(void, glFramebufferReadBufferEXT, GLuint framebufferHandle,
+                                GLenum mode);
+INSTANTIATE_FUNCTION_SERIALISED(void, glBindFramebuffer, GLenum target, GLuint framebufferHandle);
+INSTANTIATE_FUNCTION_SERIALISED(void, glFramebufferDrawBufferEXT, GLuint framebufferHandle,
+                                GLenum buf);
+INSTANTIATE_FUNCTION_SERIALISED(void, glFramebufferDrawBuffersEXT, GLuint framebufferHandle,
+                                GLsizei n, const GLenum *bufs);
+INSTANTIATE_FUNCTION_SERIALISED(void, glBlitNamedFramebuffer, GLuint readFramebufferHandle,
+                                GLuint drawFramebufferHandle, GLint srcX0, GLint srcY0, GLint srcX1,
+                                GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                                GLbitfield mask, GLenum filter);
+INSTANTIATE_FUNCTION_SERIALISED(void, glGenRenderbuffers, GLsizei n, GLuint *renderbuffers);
+INSTANTIATE_FUNCTION_SERIALISED(void, glCreateRenderbuffers, GLsizei n, GLuint *renderbuffers);
+INSTANTIATE_FUNCTION_SERIALISED(void, glNamedRenderbufferStorageEXT, GLuint renderbufferHandle,
+                                GLenum internalformat, GLsizei width, GLsizei height);
+INSTANTIATE_FUNCTION_SERIALISED(void, glNamedRenderbufferStorageMultisampleEXT,
+                                GLuint renderbufferHandle, GLsizei samples, GLenum internalformat,
+                                GLsizei width, GLsizei height);
