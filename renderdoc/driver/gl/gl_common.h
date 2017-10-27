@@ -229,9 +229,23 @@ typedef BOOL(APIENTRYP *PFNWGLDXUNLOCKOBJECTSNVPROC)(HANDLE hDevice, GLint count
 // debugbreak.
 #define GLNOTIMP(...) RDCDEBUG("OpenGL not implemented - " __VA_ARGS__)
 
-#define IMPLEMENT_FUNCTION_SERIALISED(ret, func) \
-  ret func;                                      \
-  bool CONCAT(Serialise_, func);
+#define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...) \
+  ret func(__VA_ARGS__);                              \
+  template <typename SerialiserType>                  \
+  bool CONCAT(Serialise_, func)(SerialiserType & ser, ##__VA_ARGS__);
+
+#define INSTANTIATE_FUNCTION_SERIALISED(ret, func, ...)                                      \
+  template bool WrappedOpenGL::CONCAT(Serialise_, func(ReadSerialiser &ser, ##__VA_ARGS__)); \
+  template bool WrappedOpenGL::CONCAT(Serialise_, func(WriteSerialiser &ser, ##__VA_ARGS__));
+
+#define USE_SCRATCH_SERIALISER() WriteSerialiser &ser = m_ScratchSerialiser;
+
+// A handy macros to say "is the serialiser reading and we're doing replay-mode stuff?"
+// The reason we check both is that checking the first allows the compiler to eliminate the other
+// path at compile-time, and the second because we might be just struct-serialising in which case we
+// should be doing no work to restore states.
+// Writing is unambiguously during capture mode, so we don't have to check both in that case.
+#define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_State))
 
 // no longer in glcorearb.h or glext.h
 const GLenum eGL_INTENSITY = (GLenum)0x8049;
