@@ -25,6 +25,53 @@
 
 #include "gl_resources.h"
 #include "gl_hookset.h"
+#include "gl_manager.h"
+
+template <>
+std::string DoStringise(const GLNamespace &el)
+{
+  BEGIN_ENUM_STRINGISE(GLNamespace)
+  {
+    STRINGISE_ENUM_NAMED(eResUnknown, "Unknown");
+    STRINGISE_ENUM_NAMED(eResSpecial, "Special Resource");
+    STRINGISE_ENUM_NAMED(eResTexture, "Texture");
+    STRINGISE_ENUM_NAMED(eResSampler, "Sampler");
+    STRINGISE_ENUM_NAMED(eResFramebuffer, "Framebuffer");
+    STRINGISE_ENUM_NAMED(eResRenderbuffer, "Renderbuffer");
+    STRINGISE_ENUM_NAMED(eResBuffer, "Buffer");
+    STRINGISE_ENUM_NAMED(eResVertexArray, "Vertex Array");
+    STRINGISE_ENUM_NAMED(eResShader, "Shader");
+    STRINGISE_ENUM_NAMED(eResProgram, "Program");
+    STRINGISE_ENUM_NAMED(eResProgramPipe, "Program Pipeline");
+    STRINGISE_ENUM_NAMED(eResFeedback, "Transform Feedback");
+    STRINGISE_ENUM_NAMED(eResQuery, "Query");
+    STRINGISE_ENUM_NAMED(eResSync, "Sync");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, GLResource &el)
+{
+  GLResourceManager *rm = (GLResourceManager *)ser.GetUserData();
+
+  ResourceId id;
+
+  if(ser.IsWriting() && rm && el.name)
+    id = rm->GetID(el);
+
+  DoSerialise(ser, id);
+
+  if(ser.IsReading())
+  {
+    if(id != ResourceId() && rm && rm->HasLiveResource(id))
+      el = rm->GetLiveResource(id);
+    else
+      el = GLResource(MakeNullResource);
+  }
+}
+
+INSTANTIATE_SERIALISE_TYPE(GLResource);
 
 byte GLResourceRecord::markerValue[32] = {
     0xaa, 0xbb, 0xcc, 0xdd, 0x88, 0x77, 0x66, 0x55, 0x01, 0x23, 0x45, 0x67, 0x98, 0x76, 0x54, 0x32,

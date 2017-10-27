@@ -85,6 +85,8 @@ enum GLNamespace
   eResSync,
 };
 
+DECLARE_REFLECTION_ENUM(GLNamespace);
+
 enum GLSpecialResource
 {
   eSpecialResDevice = 0,
@@ -136,6 +138,8 @@ struct GLResource
     return name < o.name;
   }
 };
+
+DECLARE_REFLECTION_STRUCT(GLResource);
 
 // Shared objects currently ignore the context parameter.
 // For correctness we'd need to check if the context is shared and if so move up to a 'parent'
