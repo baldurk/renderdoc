@@ -70,13 +70,12 @@ void ResetPixelUnpackState(const GLHookSet &gl, bool compressed, GLint alignment
 
 struct GLRenderState
 {
-  GLRenderState(const GLHookSet *funcs, Serialiser *ser, LogState state);
+  GLRenderState(const GLHookSet *funcs);
   ~GLRenderState();
 
-  void FetchState(void *ctx, WrappedOpenGL *gl);
-  void ApplyState(void *ctx, WrappedOpenGL *gl);
+  void FetchState(WrappedOpenGL *gl);
+  void ApplyState(WrappedOpenGL *gl);
   void Clear();
-  void Serialise(LogState state, void *ctx, WrappedOpenGL *gl);
 
   void MarkReferenced(WrappedOpenGL *gl, bool initial) const;
   void MarkDirty(WrappedOpenGL *gl);
@@ -126,23 +125,23 @@ struct GLRenderState
 
   bool Enabled[eEnabled_Count];
 
-  uint32_t Tex1D[128];
-  uint32_t Tex2D[128];
-  uint32_t Tex3D[128];
-  uint32_t Tex1DArray[128];
-  uint32_t Tex2DArray[128];
-  uint32_t TexCubeArray[128];
-  uint32_t TexRect[128];
-  uint32_t TexBuffer[128];
-  uint32_t TexCube[128];
-  uint32_t Tex2DMS[128];
-  uint32_t Tex2DMSArray[128];
-  uint32_t Samplers[128];
+  GLResource Tex1D[128];
+  GLResource Tex2D[128];
+  GLResource Tex3D[128];
+  GLResource Tex1DArray[128];
+  GLResource Tex2DArray[128];
+  GLResource TexCubeArray[128];
+  GLResource TexRect[128];
+  GLResource TexBuffer[128];
+  GLResource TexCube[128];
+  GLResource Tex2DMS[128];
+  GLResource Tex2DMSArray[128];
+  GLResource Samplers[128];
   GLenum ActiveTexture;
 
-  struct
+  struct Image
   {
-    uint32_t name;
+    GLResource res;
     uint32_t level;
     bool layered;
     uint32_t layer;
@@ -150,10 +149,10 @@ struct GLRenderState
     GLenum format;
   } Images[8];
 
-  GLuint Program;
-  GLuint Pipeline;
+  GLResource Program;
+  GLResource Pipeline;
 
-  struct
+  struct Subroutine
   {
     GLint numSubroutines;
     GLuint Values[128];
@@ -171,13 +170,14 @@ struct GLRenderState
     eBufIdx_Query,
     eBufIdx_Texture,
     eBufIdx_Parameter,
+    eBufIdx_Count,
   };
 
-  GLuint VAO;
+  GLResource VAO;
 
-  GLuint FeedbackObj;
+  GLResource FeedbackObj;
 
-  Vec4f GenericVertexAttribs[32];
+  FloatVector GenericVertexAttribs[32];
 
   float PointFadeThresholdSize;
   GLenum PointSpriteOrigin;
@@ -195,10 +195,10 @@ struct GLRenderState
   GLenum ClipOrigin, ClipDepth;
   GLenum ProvokingVertex;
 
-  uint32_t BufferBindings[10];
+  GLResource BufferBindings[eBufIdx_Count];
   struct IdxRangeBuffer
   {
-    uint32_t name;
+    GLResource res;
     uint64_t start;
     uint64_t size;
   } AtomicCounter[8], ShaderStorage[96], TransformFeedback[4], UniformBinding[84];
@@ -223,12 +223,12 @@ struct GLRenderState
     bool enabled;
   } Scissors[16];
 
-  struct
+  struct DepthRange
   {
     double nearZ, farZ;
   } DepthRanges[16];
 
-  GLuint ReadFBO, DrawFBO;
+  GLResource ReadFBO, DrawFBO;
 
   // these refer to the states on the default framebuffer.
   // Other FBOs serialise them in their resource records.
@@ -249,12 +249,12 @@ struct GLRenderState
   float DepthClearValue;
   GLenum DepthFunc;
 
-  struct
+  struct DepthBound
   {
     double nearZ, farZ;
   } DepthBounds;
 
-  struct
+  struct StencilFace
   {
     GLenum func;
     int32_t ref;
@@ -267,7 +267,7 @@ struct GLRenderState
   } StencilBack, StencilFront;
   uint32_t StencilClearValue;
 
-  struct
+  struct ColorMask
   {
     uint8_t red, green, blue, alpha;
   } ColorMasks[8];
@@ -281,7 +281,7 @@ struct GLRenderState
 
   GLenum LogicOp;
 
-  struct
+  struct ClearValue
   {
     float red, green, blue, alpha;
   } ColorClearValue;
@@ -300,10 +300,19 @@ struct GLRenderState
   PixelUnpackState Unpack;
 
 private:
-  Serialiser *m_pSerialiser;
-  LogState m_State;
   const GLHookSet *m_Real;
 
-  Serialiser *GetSerialiser() { return m_pSerialiser; }
   bool CheckEnableDisableParam(GLenum pname);
 };
+
+DECLARE_REFLECTION_STRUCT(GLRenderState::Image);
+DECLARE_REFLECTION_STRUCT(GLRenderState::Subroutine);
+DECLARE_REFLECTION_STRUCT(GLRenderState::IdxRangeBuffer);
+DECLARE_REFLECTION_STRUCT(GLRenderState::BlendState);
+DECLARE_REFLECTION_STRUCT(GLRenderState::Viewport);
+DECLARE_REFLECTION_STRUCT(GLRenderState::Scissor);
+DECLARE_REFLECTION_STRUCT(GLRenderState::DepthRange);
+DECLARE_REFLECTION_STRUCT(GLRenderState::DepthBound);
+DECLARE_REFLECTION_STRUCT(GLRenderState::ColorMask);
+DECLARE_REFLECTION_STRUCT(GLRenderState::ClearValue);
+DECLARE_REFLECTION_STRUCT(GLRenderState);
