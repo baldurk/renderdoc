@@ -248,11 +248,14 @@ struct GLHookSet;
 // replay only class for handling marker regions
 struct GLMarkerRegion
 {
-  GLMarkerRegion(const std::string &marker);
+  GLMarkerRegion(const std::string &marker, GLenum source = eGL_DEBUG_SOURCE_APPLICATION,
+                 GLuint id = 0);
   ~GLMarkerRegion();
 
-  static void Begin(const std::string &marker);
-  static void Set(const std::string &marker);
+  static void Begin(const std::string &marker, GLenum source = eGL_DEBUG_SOURCE_APPLICATION,
+                    GLuint id = 0);
+  static void Set(const std::string &marker, GLenum source = eGL_DEBUG_SOURCE_APPLICATION,
+                  GLuint id = 0, GLenum severity = eGL_DEBUG_SEVERITY_NOTIFICATION);
   static void End();
 
   static const GLHookSet *gl;

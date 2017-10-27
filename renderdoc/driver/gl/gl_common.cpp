@@ -737,9 +737,9 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
 
 const GLHookSet *GLMarkerRegion::gl;
 
-GLMarkerRegion::GLMarkerRegion(const std::string &marker)
+GLMarkerRegion::GLMarkerRegion(const std::string &marker, GLenum source, GLuint id)
 {
-  Begin(marker);
+  Begin(marker, source, id);
 }
 
 GLMarkerRegion::~GLMarkerRegion()
@@ -747,21 +747,20 @@ GLMarkerRegion::~GLMarkerRegion()
   End();
 }
 
-void GLMarkerRegion::Begin(const std::string &marker)
+void GLMarkerRegion::Begin(const std::string &marker, GLenum source, GLuint id)
 {
   if(gl == NULL || !HasExt[KHR_debug] || !gl->glPushDebugGroup)
     return;
 
-  gl->glPushDebugGroup(eGL_DEBUG_SOURCE_APPLICATION, 0, -1, marker.c_str());
+  gl->glPushDebugGroup(source, id, -1, marker.c_str());
 }
 
-void GLMarkerRegion::Set(const std::string &marker)
+void GLMarkerRegion::Set(const std::string &marker, GLenum source, GLuint id, GLenum severity)
 {
   if(gl == NULL || !HasExt[KHR_debug] || !gl->glDebugMessageInsert)
     return;
 
-  gl->glDebugMessageInsert(eGL_DEBUG_SOURCE_APPLICATION, eGL_DEBUG_TYPE_MARKER, 0,
-                           eGL_DEBUG_SEVERITY_NOTIFICATION, -1, marker.c_str());
+  gl->glDebugMessageInsert(source, eGL_DEBUG_TYPE_MARKER, id, severity, -1, marker.c_str());
 }
 
 void GLMarkerRegion::End()
