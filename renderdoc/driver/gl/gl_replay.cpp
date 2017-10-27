@@ -26,6 +26,7 @@
 #include "gl_replay.h"
 #include "driver/ihv/amd/amd_isa.h"
 #include "maths/matrix.h"
+#include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "gl_driver.h"
 #include "gl_resources.h"
@@ -72,18 +73,21 @@ void GLReplay::Shutdown()
   GLReplay::PostContextShutdownCounters();
 }
 
-#pragma region Implemented
-
-void GLReplay::ReadLogInitialisation()
+void GLReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   MakeCurrentReplayContext(&m_ReplayCtx);
-  m_pDriver->ReadLogInitialisation();
+  m_pDriver->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
 
 void GLReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
   MakeCurrentReplayContext(&m_ReplayCtx);
   m_pDriver->ReplayLog(0, endEventID, replayType);
+}
+
+const SDFile &GLReplay::GetStructuredFile()
+{
+  return m_pDriver->GetStructuredFile();
 }
 
 vector<uint32_t> GLReplay::GetPassEvents(uint32_t eventID)
@@ -188,21 +192,6 @@ void GLReplay::SetReplayData(GLWindowingData data)
   InitDebugData();
 
   PostContextInitCounters();
-}
-
-void GLReplay::InitCallstackResolver()
-{
-  m_pDriver->GetSerialiser()->InitCallstackResolver();
-}
-
-bool GLReplay::HasCallstacks()
-{
-  return m_pDriver->GetSerialiser()->HasCallstacks();
-}
-
-Callstack::StackResolver *GLReplay::GetCallstackResolver()
-{
-  return m_pDriver->GetSerialiser()->GetCallstackResolver();
 }
 
 void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
@@ -880,8 +869,8 @@ void GLReplay::SavePipelineState()
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
-  GLRenderState rs(&gl.GetHookset(), NULL, READING);
-  rs.FetchState(m_ReplayCtx.ctx, &gl);
+  GLRenderState rs(&gl.GetHookset());
+  rs.FetchState(&gl);
 
   // Index buffer
 
@@ -1488,15 +1477,14 @@ void GLReplay::SavePipelineState()
   pipe.UniformBuffers.resize(ARRAY_COUNT(rs.UniformBinding));
   for(size_t b = 0; b < pipe.UniformBuffers.size(); b++)
   {
-    if(rs.UniformBinding[b].name == 0)
+    if(rs.UniformBinding[b].res.name == 0)
     {
       pipe.UniformBuffers[b].Resource = ResourceId();
       pipe.UniformBuffers[b].Offset = pipe.UniformBuffers[b].Size = 0;
     }
     else
     {
-      pipe.UniformBuffers[b].Resource =
-          rm->GetOriginalID(rm->GetID(BufferRes(ctx, rs.UniformBinding[b].name)));
+      pipe.UniformBuffers[b].Resource = rm->GetOriginalID(rm->GetID(rs.UniformBinding[b].res));
       pipe.UniformBuffers[b].Offset = rs.UniformBinding[b].start;
       pipe.UniformBuffers[b].Size = rs.UniformBinding[b].size;
     }
@@ -1505,15 +1493,14 @@ void GLReplay::SavePipelineState()
   pipe.AtomicBuffers.resize(ARRAY_COUNT(rs.AtomicCounter));
   for(size_t b = 0; b < pipe.AtomicBuffers.size(); b++)
   {
-    if(rs.AtomicCounter[b].name == 0)
+    if(rs.AtomicCounter[b].res.name == 0)
     {
       pipe.AtomicBuffers[b].Resource = ResourceId();
       pipe.AtomicBuffers[b].Offset = pipe.AtomicBuffers[b].Size = 0;
     }
     else
     {
-      pipe.AtomicBuffers[b].Resource =
-          rm->GetOriginalID(rm->GetID(BufferRes(ctx, rs.AtomicCounter[b].name)));
+      pipe.AtomicBuffers[b].Resource = rm->GetOriginalID(rm->GetID(rs.AtomicCounter[b].res));
       pipe.AtomicBuffers[b].Offset = rs.AtomicCounter[b].start;
       pipe.AtomicBuffers[b].Size = rs.AtomicCounter[b].size;
     }
@@ -1522,15 +1509,14 @@ void GLReplay::SavePipelineState()
   pipe.ShaderStorageBuffers.resize(ARRAY_COUNT(rs.ShaderStorage));
   for(size_t b = 0; b < pipe.ShaderStorageBuffers.size(); b++)
   {
-    if(rs.ShaderStorage[b].name == 0)
+    if(rs.ShaderStorage[b].res.name == 0)
     {
       pipe.ShaderStorageBuffers[b].Resource = ResourceId();
       pipe.ShaderStorageBuffers[b].Offset = pipe.ShaderStorageBuffers[b].Size = 0;
     }
     else
     {
-      pipe.ShaderStorageBuffers[b].Resource =
-          rm->GetOriginalID(rm->GetID(BufferRes(ctx, rs.ShaderStorage[b].name)));
+      pipe.ShaderStorageBuffers[b].Resource = rm->GetOriginalID(rm->GetID(rs.ShaderStorage[b].res));
       pipe.ShaderStorageBuffers[b].Offset = rs.ShaderStorage[b].start;
       pipe.ShaderStorageBuffers[b].Size = rs.ShaderStorage[b].size;
     }
@@ -1539,13 +1525,13 @@ void GLReplay::SavePipelineState()
   pipe.Images.resize(ARRAY_COUNT(rs.Images));
   for(size_t i = 0; i < pipe.Images.size(); i++)
   {
-    if(rs.Images[i].name == 0)
+    if(rs.Images[i].res.name == 0)
     {
       RDCEraseEl(pipe.Images[i]);
     }
     else
     {
-      ResourceId id = rm->GetID(TextureRes(ctx, rs.Images[i].name));
+      ResourceId id = rm->GetID(rs.Images[i].res);
       pipe.Images[i].Resource = rm->GetOriginalID(id);
       pipe.Images[i].Level = rs.Images[i].level;
       pipe.Images[i].Layered = rs.Images[i].layered;
@@ -2191,12 +2177,12 @@ void GLReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32
                        outvars, data);
 }
 
-byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                               const GetTextureDataParams &params, size_t &dataSize)
+void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                              const GetTextureDataParams &params, bytebuf &data)
 {
   WrappedOpenGL &gl = *m_pDriver;
 
-  auto &texDetails = m_pDriver->m_Textures[tex];
+  WrappedOpenGL::TextureData &texDetails = m_pDriver->m_Textures[tex];
 
   byte *ret = NULL;
 
@@ -2214,8 +2200,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
   if(texType == eGL_NONE)
   {
     RDCERR("Trying to get texture data for unknown ID %llu!", tex);
-    dataSize = 0;
-    return new byte[0];
+    return;
   }
 
   if(texType == eGL_TEXTURE_BUFFER)
@@ -2230,14 +2215,13 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                                        (GLint *)&offs);
     gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&size);
 
-    vector<byte> data;
-    GetBufferData(id, offs, size, data);
+    // TODO optimise this copy
+    vector<byte> bufdata;
+    GetBufferData(id, offs, size, bufdata);
 
-    dataSize = data.size();
-    ret = new byte[dataSize];
-    memcpy(ret, &data[0], dataSize);
+    data = bufdata;
 
-    return ret;
+    return;
   }
 
   if(texType == eGL_TEXTURE_2D_ARRAY || texType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ||
@@ -2249,14 +2233,14 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     arraysize = texDetails.depth;
   }
 
-  if(params.remap)
+  if(params.remap != RemapTexture::NoRemap)
   {
     GLenum remapFormat = eGL_RGBA8;
-    if(params.remap == eRemap_RGBA8)
+    if(params.remap == RemapTexture::RGBA8)
       remapFormat = eGL_RGBA8;
-    else if(params.remap == eRemap_RGBA16)
+    else if(params.remap == RemapTexture::RGBA16)
       remapFormat = eGL_RGBA16F;
-    else if(params.remap == eRemap_RGBA32)
+    else if(params.remap == RemapTexture::RGBA32)
       remapFormat = eGL_RGBA32F;
 
     if(intFormat != remapFormat)
@@ -2545,12 +2529,14 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
       target = targets[arrayIdx];
     }
 
+    size_t dataSize = 0;
+
     if(IsCompressedFormat(intFormat))
     {
       dataSize = (size_t)GetCompressedByteSize(width, height, depth, intFormat);
 
       // contains a single slice
-      ret = new byte[dataSize];
+      data.resize(dataSize);
 
       // Note that for array textures we fetch the whole mip level (all slices at that mip). Since
       // GL returns all slices together, we cache it and keep the data around. This is because in
@@ -2593,7 +2579,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
         byte *src = m_GetTexturePrevData[mip];
         src += dataSize * arrayIdx;
 
-        memcpy(ret, src, dataSize);
+        memcpy(data.data(), src, dataSize);
       }
       else
       {
@@ -2611,7 +2597,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
 
       size_t rowSize = GetByteSize(width, 1, 1, fmt, type);
       dataSize = GetByteSize(width, height, depth, fmt, type);
-      ret = new byte[dataSize];
+      data.resize(dataSize);
 
       // see above for the logic of handling arrays
       if(arraysize > 1)
@@ -2640,7 +2626,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
         byte *src = m_GetTexturePrevData[mip];
         src += dataSize * arrayIdx;
 
-        memcpy(ret, src, dataSize);
+        memcpy(data.data(), src, dataSize);
       }
       else
       {
@@ -2668,7 +2654,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
         // invert all slices in a 3D texture
         for(GLsizei d = 0; d < depth; d++)
         {
-          dst = ret + d * sliceSize;
+          dst = data.data() + d * sliceSize;
           src = dst + (height - 1) * rowSize;
 
           for(GLsizei i = 0; i<height>> 1; i++)
@@ -2693,8 +2679,6 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
 
   if(tempTex)
     gl.glDeleteTextures(1, &tempTex);
-
-  return ret;
 }
 
 void GLReplay::BuildCustomShader(string source, string entry, const ShaderCompileFlags &compileFlags,
@@ -3270,8 +3254,6 @@ vector<EventUsage> GLReplay::GetUsage(ResourceId id)
   return m_pDriver->GetUsage(id);
 }
 
-#pragma endregion
-
 vector<PixelModification> GLReplay::PixelHistory(vector<EventUsage> events, ResourceId target,
                                                  uint32_t x, uint32_t y, uint32_t slice,
                                                  uint32_t mip, uint32_t sampleIdx, CompType typeHint)
@@ -3378,10 +3360,46 @@ bool GLReplay::IsOutputWindowVisible(uint64_t id)
   return m_pDriver->m_Platform.IsOutputWindowVisible(m_OutputWindows[id]);
 }
 
+class GLDummyPlatform : public GLPlatform
+{
+  virtual GLWindowingData MakeContext(GLWindowingData share) { return GLWindowingData(); }
+  virtual void DeleteContext(GLWindowingData context) {}
+  virtual void DeleteReplayContext(GLWindowingData context) {}
+  virtual void MakeContextCurrent(GLWindowingData data) {}
+  virtual void SwapBuffers(GLWindowingData context) {}
+  virtual void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) {}
+  virtual bool IsOutputWindowVisible(GLWindowingData context) { return false; }
+  virtual GLWindowingData MakeOutputWindow(WindowingSystem system, void *data, bool depth,
+                                           GLWindowingData share_context)
+  {
+    return GLWindowingData();
+  }
+  virtual bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
+  {
+    return false;
+  }
+};
+
+void GL_ProcessStructured(RDCFile *rdc, SDFile &output)
+{
+  GLHookSet empty = {};
+  GLDummyPlatform dummy;
+  WrappedOpenGL device(empty, dummy);
+
+  device.SetStructuredExport(
+      rdc->GetSectionProperties(rdc->SectionIndex(SectionType::FrameCapture)).version);
+  device.ReadLogInitialisation(rdc, true);
+
+  device.GetStructuredFile().swap(output);
+}
+
+static StructuredProcessRegistration GLProcessRegistration(RDC_OpenGL, &GL_ProcessStructured);
+static StructuredProcessRegistration GLESProcessRegistration(RDC_OpenGLES, &GL_ProcessStructured);
+
 #if defined(RENDERDOC_SUPPORT_GL)
 
 // defined in gl_replay_<platform>.cpp
-ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
+ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver);
 
 static DriverRegistration GLDriverRegistration(RDC_OpenGL, "OpenGL", &GL_CreateReplayDevice);
 
@@ -3390,7 +3408,8 @@ static DriverRegistration GLDriverRegistration(RDC_OpenGL, "OpenGL", &GL_CreateR
 #if defined(RENDERDOC_SUPPORT_GLES)
 
 // defined in gl_replay_egl.cpp
-ReplayStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
+ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver);
+void GLES_ProcessStructured(RDCFile *rdc, SDFile &output);
 
 static DriverRegistration GLESDriverRegistration(RDC_OpenGLES, "OpenGLES", &GLES_CreateReplayDevice);
 

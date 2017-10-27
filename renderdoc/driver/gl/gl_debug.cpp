@@ -1636,8 +1636,8 @@ void GLReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, G
     return;
   }
 
-  GLRenderState rs(&gl.GetHookset(), NULL, READING);
-  rs.FetchState(m_pDriver->GetCtx(), m_pDriver);
+  GLRenderState rs(&gl.GetHookset());
+  rs.FetchState(m_pDriver);
 
   GLenum viewClass;
   gl.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS,
@@ -1686,7 +1686,7 @@ void GLReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, G
 
   gl.glDeleteTextures(2, texs);
 
-  rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
+  rs.ApplyState(m_pDriver);
 }
 
 bool GLReplay::RenderTexture(TextureDisplay cfg)
@@ -2201,8 +2201,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
   void *ctx = m_ReplayCtx.ctx;
 
-  GLRenderState rs(&gl.GetHookset(), NULL, READING);
-  rs.FetchState(ctx, &gl);
+  GLRenderState rs(&gl.GetHookset());
+  rs.FetchState(&gl);
 
   // use our overlay pipeline that we'll fill up with all the right
   // shaders, then replace the fragment shader with our own.
@@ -2212,7 +2212,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
   // we bind the separable program created for each shader, and copy
   // uniforms and attrib bindings from the 'real' programs, wherever
   // they are.
-  SetupOverlayPipeline(rs.Program, rs.Pipeline, DebugData.fixedcolFSProg);
+  SetupOverlayPipeline(rs.Program.name, rs.Pipeline.name, DebugData.fixedcolFSProg);
 
   auto &texDetails = m_pDriver->m_Textures[texid];
 
@@ -2396,9 +2396,10 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
 
     GLuint curDepth = 0, curStencil = 0;
 
-    gl.glGetNamedFramebufferAttachmentParameterivEXT(
-        rs.DrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&curDepth);
-    gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO, eGL_STENCIL_ATTACHMENT,
+    gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
+                                                     eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                     (GLint *)&curDepth);
+    gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_STENCIL_ATTACHMENT,
                                                      eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                      (GLint *)&curStencil);
 
@@ -2415,7 +2416,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     {
       GLint type = 0;
       gl.glGetNamedFramebufferAttachmentParameterivEXT(
-          rs.DrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type);
+          rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type);
 
       GLenum fmt;
 
@@ -2427,14 +2428,14 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         fmt = details.internalFormat;
 
         gl.glGetNamedFramebufferAttachmentParameterivEXT(
-            rs.DrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
+            rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
 
         if(details.curType == eGL_TEXTURE_CUBE_MAP)
         {
           GLenum face;
           gl.glGetNamedFramebufferAttachmentParameterivEXT(
-              rs.DrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-              (GLint *)&face);
+              rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
+              eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
 
           layer = CubeTargetIndex(face);
         }
@@ -2484,7 +2485,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     {
       GLint type = 0;
       gl.glGetNamedFramebufferAttachmentParameterivEXT(
-          rs.DrawFBO, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type);
+          rs.DrawFBO.name, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type);
 
       GLenum fmt;
 
@@ -2499,8 +2500,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         {
           GLenum face;
           gl.glGetNamedFramebufferAttachmentParameterivEXT(
-              rs.DrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-              (GLint *)&face);
+              rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
+              eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
 
           layer = CubeTargetIndex(face);
         }
@@ -2566,7 +2567,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
     }
 
     // bind the 'real' fbo to the read framebuffer, so we can blit from it
-    gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, rs.DrawFBO);
+    gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, rs.DrawFBO.name);
 
     float green[] = {0.0f, 1.0f, 0.0f, 1.0f};
     gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, green);
@@ -2659,7 +2660,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       else
       {
         // if we don't replay the real state, restore what we've changed
-        rs.ApplyState(ctx, &gl);
+        rs.ApplyState(&gl);
       }
 
       float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -2719,7 +2720,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
       if(overlay == DebugOverlay::TriangleSizePass)
         ReplayLog(events[0], eReplay_WithoutDraw);
       else
-        rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
+        rs.ApplyState(m_pDriver);
 
       // this all happens on the replay context so we need a temp FBO/VAO
       GLuint overlayFBO = 0, tempVAO = 0;
@@ -3107,14 +3108,14 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         // TODO handle non-2D depth/stencil attachments and fetch slice or cubemap face
         GLint mip = 0;
 
-        gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO, eGL_DEPTH_ATTACHMENT,
+        gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
                                                          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                          (GLint *)&curDepth);
-        gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO, eGL_DEPTH_ATTACHMENT,
+        gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
                                                          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
                                                          (GLint *)&depthType);
         gl.glGetNamedFramebufferAttachmentParameterivEXT(
-            rs.DrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
+            rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
 
         GLenum fmt = eGL_DEPTH32F_STENCIL8;
 
@@ -3148,7 +3149,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         if(overlay == DebugOverlay::QuadOverdrawPass)
           ReplayLog(events[0], eReplay_WithoutDraw);
         else
-          rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
+          rs.ApplyState(m_pDriver);
 
         for(size_t i = 0; i < events.size(); i++)
         {
@@ -3295,7 +3296,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         "types");
   }
 
-  rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
+  rs.ApplyState(m_pDriver);
 
   return m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, DebugData.overlayTex));
 }
@@ -3307,18 +3308,16 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
-  void *ctx = m_ReplayCtx.ctx;
-
   WrappedOpenGL &gl = *m_pDriver;
   if(gl.m_ActiveFeedback)
     gl.glEndTransformFeedback();
 
   GLResourceManager *rm = m_pDriver->GetResourceManager();
 
-  GLRenderState rs(&gl.GetHookset(), NULL, READING);
-  rs.FetchState(ctx, &gl);
+  GLRenderState rs(&gl.GetHookset());
+  rs.FetchState(&gl);
   GLuint elArrayBuffer = 0;
-  if(rs.VAO)
+  if(rs.VAO.name)
     gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&elArrayBuffer);
 
   // reflection structures
@@ -3341,15 +3340,15 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
   GLuint tesProgSrc = 0;
   GLuint gsProgSrc = 0;
 
-  if(rs.Program == 0)
+  if(rs.Program.name == 0)
   {
-    if(rs.Pipeline == 0)
+    if(rs.Pipeline.name == 0)
     {
       return;
     }
     else
     {
-      ResourceId id = rm->GetID(ProgramPipeRes(ctx, rs.Pipeline));
+      ResourceId id = rm->GetID(rs.Pipeline);
       auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
       if(pipeDetails.stageShaders[0] != ResourceId())
@@ -3379,7 +3378,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
   }
   else
   {
-    auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(ctx, rs.Program))];
+    auto &progDetails = m_pDriver->m_Programs[rm->GetID(rs.Program)];
 
     if(progDetails.stageShaders[0] != ResourceId())
     {
@@ -3401,7 +3400,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
       gsProg = m_pDriver->m_Shaders[progDetails.stageShaders[3]].prog;
     }
 
-    vsProgSrc = tcsProgSrc = tesProgSrc = gsProgSrc = rs.Program;
+    vsProgSrc = tcsProgSrc = tesProgSrc = gsProgSrc = rs.Program.name;
   }
 
   if(vsRefl == NULL)
@@ -3878,13 +3877,13 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
     gl.glDeleteProgramPipelines(1, &vsFeedbackPipe);
 
     // restore replay state we trashed
-    gl.glUseProgram(rs.Program);
-    gl.glBindProgramPipeline(rs.Pipeline);
+    gl.glUseProgram(rs.Program.name);
+    gl.glBindProgramPipeline(rs.Pipeline.name);
 
-    gl.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array]);
+    gl.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
     gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
 
-    gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj);
+    gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
 
     if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
       gl.glDisable(eGL_RASTERIZER_DISCARD);
@@ -4486,13 +4485,13 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
           gl.glDeleteProgramPipelines(1, &lastFeedbackPipe);
 
         // restore replay state we trashed
-        gl.glUseProgram(rs.Program);
-        gl.glBindProgramPipeline(rs.Pipeline);
+        gl.glUseProgram(rs.Program.name);
+        gl.glBindProgramPipeline(rs.Pipeline.name);
 
-        gl.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array]);
+        gl.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
         gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
 
-        gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj);
+        gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
 
         if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
           gl.glDisable(eGL_RASTERIZER_DISCARD);
@@ -4627,13 +4626,13 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
     gl.glDeleteProgramPipelines(1, &lastFeedbackPipe);
 
   // restore replay state we trashed
-  gl.glUseProgram(rs.Program);
-  gl.glBindProgramPipeline(rs.Pipeline);
+  gl.glUseProgram(rs.Program.name);
+  gl.glBindProgramPipeline(rs.Pipeline.name);
 
-  gl.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array]);
+  gl.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
   gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
 
-  gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj);
+  gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
 
   if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
     gl.glDisable(eGL_RASTERIZER_DISCARD);

@@ -116,8 +116,9 @@ public:
   const VKPipe::State &GetVulkanPipelineState() { return m_VKState; }
   void FreeTargetResource(ResourceId id);
 
-  void ReadLogInitialisation();
+  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
+  const SDFile &GetStructuredFile();
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);
 
@@ -157,14 +158,14 @@ public:
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &ret);
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                       const GetTextureDataParams &params, size_t &dataSize);
+  void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                      const GetTextureDataParams &params, bytebuf &data);
 
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
 
   vector<GPUCounter> EnumerateCounters();
-  void DescribeCounter(GPUCounter counterID, CounterDescription &desc);
+  CounterDescription DescribeCounter(GPUCounter counterID);
   vector<CounterResult> FetchCounters(const vector<GPUCounter> &counters);
 
   void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
@@ -221,10 +222,6 @@ public:
   bool IsRenderOutput(ResourceId id);
 
   void FileChanged() {}
-  void InitCallstackResolver();
-  bool HasCallstacks();
-  Callstack::StackResolver *GetCallstackResolver();
-
   // called before any context is created, to init any counters
   static void PreContextInitCounters();
   // called after any context is destroyed, to do corresponding shutdown of counters
