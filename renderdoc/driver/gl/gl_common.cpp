@@ -1924,41 +1924,44 @@ bool CheckConstParam(bool t)
   return t;
 }
 
-template <const bool CopyUniforms, const bool SerialiseUniforms>
-static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint progSrc,
-                                  GLuint progDst, map<GLint, GLint> *locTranslate, bool writing)
+template <const bool CopyUniforms, const bool SerialiseUniforms, typename SerialiserType>
+static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const GLHookSet &gl,
+                                  GLuint progSrc, GLuint progDst, map<GLint, GLint> *locTranslate)
 {
-  const bool ReadSourceProgram = CopyUniforms || (SerialiseUniforms && writing);
-  const bool WriteDestProgram = CopyUniforms || (SerialiseUniforms && !writing);
+  const bool ReadSourceProgram = CopyUniforms || (SerialiseUniforms && ser && ser->IsWriting());
+  const bool WriteDestProgram = CopyUniforms || (SerialiseUniforms && ser && ser->IsReading());
 
   RDCCOMPILE_ASSERT((CopyUniforms && !SerialiseUniforms) || (!CopyUniforms && SerialiseUniforms),
                     "Invalid call to ForAllProgramUniforms");
 
-  GLint numUniforms = 0;
+  GLint NumUniforms = 0;
   if(CheckConstParam(ReadSourceProgram))
-    gl.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
+    gl.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &NumUniforms);
 
   if(CheckConstParam(SerialiseUniforms))
   {
     // get accurate count of uniforms not in UBOs
-    GLint numSerialisedUniforms = 0;
+    GLint numSerialised = 0;
 
-    for(GLint i = 0; writing && i < numUniforms; i++)
+    if(ser->IsWriting())
     {
-      GLenum prop = eGL_BLOCK_INDEX;
-      GLint blockIdx;
-      gl.glGetProgramResourceiv(progSrc, eGL_UNIFORM, i, 1, &prop, 1, NULL, (GLint *)&blockIdx);
+      for(GLint i = 0; i < NumUniforms; i++)
+      {
+        GLenum prop = eGL_BLOCK_INDEX;
+        GLint blockIdx;
+        gl.glGetProgramResourceiv(progSrc, eGL_UNIFORM, i, 1, &prop, 1, NULL, (GLint *)&blockIdx);
 
-      if(blockIdx >= 0)
-        continue;
+        if(blockIdx >= 0)
+          continue;
 
-      numSerialisedUniforms++;
+        numSerialised++;
+      }
     }
 
-    ser->Serialise("numUniforms", numSerialisedUniforms);
+    ser->Serialise("NumUniforms", numSerialised);
 
-    if(!writing)
-      numUniforms = numSerialisedUniforms;
+    if(ser->IsReading())
+      NumUniforms = numSerialised;
   }
 
   const size_t numProps = 5;
@@ -1966,7 +1969,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
       eGL_BLOCK_INDEX, eGL_TYPE, eGL_NAME_LENGTH, eGL_ARRAY_SIZE, eGL_LOCATION,
   };
 
-  for(GLint i = 0; i < numUniforms; i++)
+  for(GLint i = 0; i < NumUniforms; i++)
   {
     GLenum type = eGL_NONE;
     int32_t arraySize = 0;
@@ -2015,7 +2018,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
       ser->Serialise("isArray", isArray);
     }
 
-    double dv[16];
+    double dv[16] = {};
     float *fv = (float *)dv;
     int32_t *iv = (int32_t *)dv;
     uint32_t *uiv = (uint32_t *)dv;
@@ -2036,7 +2039,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
         ser->Serialise("srcLocation", srcLocation);
 
       GLint newloc = 0;
-      if(CheckConstParam(WriteDestProgram))
+      if(CheckConstParam(WriteDestProgram) && IsReplayMode(state))
       {
         newloc = gl.glGetUniformLocation(progDst, name.c_str());
         if(locTranslate)
@@ -2169,9 +2172,9 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
       }
 
       if(CheckConstParam(SerialiseUniforms))
-        ser->SerialisePODArray<16>("data", dv);
+        ser->Serialise("data", dv);
 
-      if(CheckConstParam(WriteDestProgram))
+      if(CheckConstParam(WriteDestProgram) && IsReplayMode(state))
       {
         switch(type)
         {
@@ -2348,7 +2351,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
       ser->Serialise("name", name);
     }
 
-    if(CheckConstParam(WriteDestProgram))
+    if(CheckConstParam(WriteDestProgram) && IsReplayMode(state))
     {
       GLuint idx = gl.glGetUniformBlockIndex(progDst, name.c_str());
       if(idx != GL_INVALID_INDEX)
@@ -2386,7 +2389,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
       ser->Serialise("name", name);
     }
 
-    if(CheckConstParam(WriteDestProgram))
+    if(CheckConstParam(WriteDestProgram) && IsReplayMode(state))
     {
       GLuint idx = gl.glGetProgramResourceIndex(progDst, eGL_SHADER_STORAGE_BLOCK, name.c_str());
       if(idx != GL_INVALID_INDEX)
@@ -2409,16 +2412,84 @@ void CopyProgramUniforms(const GLHookSet &gl, GLuint progSrc, GLuint progDst)
 {
   const bool CopyUniforms = true;
   const bool SerialiseUniforms = false;
-  ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(gl, NULL, progSrc, progDst, NULL, false);
+  ForAllProgramUniforms<CopyUniforms, SerialiseUniforms, ReadSerialiser>(
+      NULL, CaptureState::ActiveReplaying, gl, progSrc, progDst, NULL);
 }
 
-void SerialiseProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint prog,
-                              map<GLint, GLint> *locTranslate, bool writing)
+uint32_t GetUniformsSerialiseSize(const GLHookSet &gl, GLuint prog)
+{
+  // we do this by hand rather than adding another path to ForAllProgramUniforms, since we can just
+  // make a conservative estimate on uniform size.
+
+  uint32_t ret = 0;
+
+  GLint NumUniforms = 0;
+  gl.glGetProgramInterfaceiv(prog, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &NumUniforms);
+
+  // number of serialised uniforms
+  ret += 4;
+
+  // we figure out the number of serialised uniforms since it could be drastically lower than the
+  // number of uniforms (think shaders with lots of uniforms in UBOs).
+
+  // get accurate count of uniforms not in UBOs
+  GLint numSerialised = 0;
+
+  for(GLint i = 0; i < NumUniforms; i++)
+  {
+    GLenum props[2] = {
+        eGL_BLOCK_INDEX, eGL_ARRAY_SIZE,
+    };
+
+    GLint values[2] = {0, 0};
+    gl.glGetProgramResourceiv(prog, eGL_UNIFORM, i, 2, props, 2, NULL, values);
+
+    if(values[0] >= 0)
+      continue;
+
+    ret += 8 + sizeof(double) * 16 * RDCMAX(1, values[1]);
+
+    numSerialised++;
+  }
+
+  // estimate 256 bytes of data per serialised global uniform not in a UBO. This is variable based
+  // on type and name length
+  ret += 256 * numSerialised;
+
+  // number of UBOs.
+  ret += 4;
+
+  GLint numUBOs = 0;
+  gl.glGetProgramInterfaceiv(prog, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
+
+  // name + binding per UBO
+  ret += 128 * numUBOs;
+
+  // number of SSBOs.
+  ret += 4;
+
+  GLint numSSBOs = 0;
+  gl.glGetProgramInterfaceiv(prog, eGL_SHADER_STORAGE_BLOCK, eGL_ACTIVE_RESOURCES, &numSSBOs);
+
+  // name + binding per SSBO
+  ret += 128 * numSSBOs;
+
+  return ret;
+}
+
+template <typename SerialiserType>
+void SerialiseProgramUniforms(SerialiserType &ser, CaptureState state, const GLHookSet &gl,
+                              GLuint prog, map<GLint, GLint> *locTranslate)
 {
   const bool CopyUniforms = false;
   const bool SerialiseUniforms = true;
-  ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(gl, ser, prog, prog, locTranslate, writing);
+  ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(&ser, state, gl, prog, prog, locTranslate);
 }
+
+template void SerialiseProgramUniforms(ReadSerialiser &ser, CaptureState state, const GLHookSet &gl,
+                                       GLuint prog, map<GLint, GLint> *locTranslate);
+template void SerialiseProgramUniforms(WriteSerialiser &ser, CaptureState state, const GLHookSet &gl,
+                                       GLuint prog, map<GLint, GLint> *locTranslate);
 
 void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst,
                                ShaderReflection *refl)
@@ -2479,9 +2550,32 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
   }
 }
 
-void SerialiseProgramBindings(const GLHookSet &gl, Serialiser *ser, GLuint prog, bool writing)
+uint32_t GetBindingsSerialiseSize(const GLHookSet &gl, GLuint prog)
 {
-  char name[128] = {0};
+  uint32_t ret = 0;
+
+  for(int sigType = 0; sigType < 2; sigType++)
+  {
+    GLenum sigEnum = (sigType == 0 ? eGL_PROGRAM_INPUT : eGL_PROGRAM_OUTPUT);
+
+    int32_t NumAttributes = 0;
+    gl.glGetProgramInterfaceiv(prog, sigEnum, eGL_ACTIVE_RESOURCES, (GLint *)&NumAttributes);
+
+    // number
+    ret += 4;
+
+    // 128 character name and 4 byte location for each attribute
+    ret += 132 * NumAttributes;
+  }
+
+  return ret;
+}
+
+template <typename SerialiserType>
+void SerialiseProgramBindings(SerialiserType &ser, CaptureState state, const GLHookSet &gl,
+                              GLuint prog)
+{
+  char Name[128] = {0};
 
   for(int sigType = 0; sigType < 2; sigType++)
   {
@@ -2489,58 +2583,56 @@ void SerialiseProgramBindings(const GLHookSet &gl, Serialiser *ser, GLuint prog,
 
     uint64_t used = 0;
 
-    int32_t numAttrs = 0;
+    int32_t NumAttributes = 0;
 
-    if(writing)
-      gl.glGetProgramInterfaceiv(prog, sigEnum, eGL_ACTIVE_RESOURCES, (GLint *)&numAttrs);
+    if(ser.IsWriting())
+      gl.glGetProgramInterfaceiv(prog, sigEnum, eGL_ACTIVE_RESOURCES, (GLint *)&NumAttributes);
 
-    ser->Serialise("numAttrs", numAttrs);
+    SERIALISE_ELEMENT(NumAttributes);
 
-    for(GLint i = 0; i < numAttrs; i++)
+    for(GLint i = 0; i < NumAttributes; i++)
     {
-      int32_t idx = -1;
+      int32_t Location = -1;
 
-      if(writing)
+      if(ser.IsWriting())
       {
-        gl.glGetProgramResourceName(prog, sigEnum, i, 128, NULL, name);
+        gl.glGetProgramResourceName(prog, sigEnum, i, 128, NULL, Name);
 
         if(sigType == 0)
-          idx = gl.glGetAttribLocation(prog, name);
+          Location = gl.glGetAttribLocation(prog, Name);
         else
-          idx = gl.glGetFragDataLocation(prog, name);
+          Location = gl.glGetFragDataLocation(prog, Name);
       }
 
-      string n = name;
+      SERIALISE_ELEMENT(Name);
+      SERIALISE_ELEMENT(Location);
 
-      ser->Serialise("name", n);
-      ser->Serialise("idx", idx);
-
-      if(!writing && idx >= 0)
+      if(ser.IsReading() && IsReplayMode(state) && Location >= 0)
       {
-        uint64_t mask = 1ULL << idx;
+        uint64_t mask = 1ULL << Location;
 
         if(used & mask)
         {
           RDCWARN("Multiple %s items bound to location %d, ignoring %s",
-                  sigType == 0 ? "attrib" : "fragdata", idx, n.c_str());
+                  sigType == 0 ? "attrib" : "fragdata", Location, Name);
           continue;
         }
 
         used |= mask;
 
-        if(!strncmp("gl_", n.c_str(), 3))
+        if(!strncmp("gl_", Name, 3))
           continue;    // GL_INVALID_OPERATION if name starts with reserved gl_ prefix (for both
                        // glBindAttribLocation and glBindFragDataLocation)
 
         if(sigType == 0)
         {
-          gl.glBindAttribLocation(prog, (GLuint)idx, n.c_str());
+          gl.glBindAttribLocation(prog, (GLuint)Location, Name);
         }
         else
         {
           if(gl.glBindFragDataLocation)
           {
-            gl.glBindFragDataLocation(prog, (GLuint)idx, n.c_str());
+            gl.glBindFragDataLocation(prog, (GLuint)Location, Name);
           }
           else
           {
@@ -2554,6 +2646,10 @@ void SerialiseProgramBindings(const GLHookSet &gl, Serialiser *ser, GLuint prog,
   }
 }
 
+template void SerialiseProgramBindings(ReadSerialiser &ser, CaptureState state, const GLHookSet &gl,
+                                       GLuint prog);
+template void SerialiseProgramBindings(WriteSerialiser &ser, CaptureState state,
+                                       const GLHookSet &gl, GLuint prog);
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 

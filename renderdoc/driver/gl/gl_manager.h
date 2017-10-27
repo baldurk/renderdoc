@@ -33,10 +33,7 @@ class WrappedOpenGL;
 class GLResourceManager : public ResourceManager<GLResource, GLResource, GLResourceRecord>
 {
 public:
-  GLResourceManager(LogState state, Serialiser *ser, WrappedOpenGL *gl)
-      : ResourceManager(state, ser), m_GL(gl), m_SyncName(1)
-  {
-  }
+  GLResourceManager(WrappedOpenGL *gl) : ResourceManager(), m_GL(gl), m_SyncName(1) {}
   ~GLResourceManager() {}
   void Shutdown()
   {
@@ -209,8 +206,14 @@ public:
   void MarkVAOReferenced(GLResource res, FrameRefType ref, bool allowFake0 = false);
   void MarkFBOReferenced(GLResource res, FrameRefType ref);
 
+  template <typename SerialiserType>
+  bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, GLResource res);
+
   bool Prepare_InitialState(GLResource res, byte *blob);
-  bool Serialise_InitialState(ResourceId resid, GLResource res);
+  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, GLResource res)
+  {
+    return Serialise_InitialState<WriteSerialiser>(ser, resid, res);
+  }
 
 private:
   bool SerialisableResource(ResourceId id, GLResourceRecord *record);
@@ -219,6 +222,7 @@ private:
   bool Force_InitialState(GLResource res, bool prepare);
   bool Need_InitialStateChunk(GLResource res);
   bool Prepare_InitialState(GLResource res);
+  uint32_t GetSize_InitialState(ResourceId resid, GLResource res);
 
   void CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum textype, GLint dim, GLint width,
                           GLint height, GLint depth, GLint samples, int mips);
@@ -238,5 +242,6 @@ private:
   map<ResourceId, std::string> m_Names;
   volatile int64_t m_SyncName;
 
+  CaptureState m_State;
   WrappedOpenGL *m_GL;
 };
