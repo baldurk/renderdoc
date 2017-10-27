@@ -311,7 +311,7 @@ void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node,
     else if(m_TimeUnit == TimeUnit::Nanoseconds)
       secs *= 1000000000.0;
 
-    node->setText(COL_DURATION, duration < 0.0f ? QString() : QString::number(secs));
+    node->setText(COL_DURATION, duration < 0.0f ? QString() : Formatter::Format(secs));
     EventItemTag tag = node->tag().value<EventItemTag>();
     tag.duration = duration;
     node->setTag(QVariant::fromValue(tag));
@@ -338,7 +338,7 @@ void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node,
   else if(m_TimeUnit == TimeUnit::Nanoseconds)
     secs *= 1000000000.0;
 
-  node->setText(COL_DURATION, duration < 0.0f ? QString() : QString::number(secs));
+  node->setText(COL_DURATION, duration < 0.0f ? QString() : Formatter::Format(secs));
   EventItemTag tag = node->tag().value<EventItemTag>();
   tag.duration = duration;
   node->setTag(QVariant::fromValue(tag));
