@@ -222,6 +222,16 @@ public:
       font.setBold(item->m_bold);
       return font;
     }
+    else if(role == Qt::TextAlignmentRole)
+    {
+      if(index.column() < widget->m_alignments.count())
+      {
+        Qt::Alignment align = widget->m_alignments[index.column()];
+
+        if(align != 0)
+          return QVariant(align);
+      }
+    }
     else if(role < 64 && item->m_customData & 1ULL << role)
     {
       return item->data(index.column(), role);
@@ -586,6 +596,14 @@ void RDTreeWidget::endUpdate()
   }
 
   setUpdatesEnabled(true);
+}
+
+void RDTreeWidget::setColumnAlignment(int column, Qt::Alignment align)
+{
+  if(m_alignments.count() <= column)
+    m_alignments.resize(column + 1);
+
+  m_alignments[column] = align;
 }
 
 void RDTreeWidget::setColumns(const QStringList &columns)

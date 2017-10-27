@@ -223,6 +223,7 @@ public:
   int topLevelItemCount() const { return m_root->childCount(); }
   void beginUpdate();
   void endUpdate();
+  void setColumnAlignment(int column, Qt::Alignment align);
 
   void setColumns(const QStringList &columns);
   QString headerText(int column) const { return m_headers[column]; }
@@ -291,6 +292,8 @@ private:
   QPair<int, int> m_highestIndex;
   uint64_t m_queuedRoles = 0;
   bool m_queuedChildren = false;
+
+  QVector<Qt::Alignment> m_alignments;
 
   bool m_instantTooltips = false;
   bool m_customCopyPaste = false;
