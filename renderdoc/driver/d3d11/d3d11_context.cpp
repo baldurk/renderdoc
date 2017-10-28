@@ -2011,7 +2011,7 @@ void WrappedID3D11DeviceContext::RecordOutputMergerStats(UINT NumRTVs, ID3D11Ren
 
   if(NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
     NumSlots += NumRTVs;
-  if(NumRTVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS)
+  if(NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS)
     NumSlots += NumUAVs;
 
   RDCASSERT(NumSlots < outputs.bindslots.size());
