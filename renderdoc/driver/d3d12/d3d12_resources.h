@@ -703,6 +703,10 @@ public:
       ShaderEntry::ReleaseShader(GS());
       ShaderEntry::ReleaseShader(PS());
 
+      SAFE_DELETE_ARRAY(graphics->InputLayout.pInputElementDescs);
+      SAFE_DELETE_ARRAY(graphics->StreamOutput.pSODeclaration);
+      SAFE_DELETE_ARRAY(graphics->StreamOutput.pBufferStrides);
+
       SAFE_DELETE(graphics);
     }
 

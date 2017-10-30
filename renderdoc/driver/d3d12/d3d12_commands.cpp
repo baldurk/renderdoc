@@ -285,7 +285,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
       break;
     case D3D12Chunk::Device_CopyDescriptors:
     case D3D12Chunk::Device_CopyDescriptorsSimple:
-      m_pDevice->Serialise_DynamicDescriptorCopies(ser, NULL);
+      m_pDevice->Serialise_DynamicDescriptorCopies(ser, std::vector<DynamicDescriptorCopy>());
       break;
 
     case D3D12Chunk::Queue_ExecuteCommandLists: Serialise_ExecuteCommandLists(ser, 0, NULL); break;

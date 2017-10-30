@@ -466,7 +466,7 @@ public:
   bool Serialise_DynamicDescriptorWrite(SerialiserType &ser, const DynamicDescriptorWrite *write);
   template <typename SerialiserType>
   bool Serialise_DynamicDescriptorCopies(SerialiserType &ser,
-                                         const std::vector<DynamicDescriptorCopy> *copies);
+                                         const std::vector<DynamicDescriptorCopy> &DescriptorCopies);
 
   void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
