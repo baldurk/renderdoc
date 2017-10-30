@@ -43,12 +43,6 @@
 
 WRAPPED_POOL_INST(WrappedID3D12Device);
 
-const char *D3D12ChunkNames[] = {
-#undef D3D12_CHUNK_MACRO
-#define D3D12_CHUNK_MACRO(enum, string) string,
-
-    D3D12_CHUNKS};
-
 D3D12InitParams::D3D12InitParams()
 {
   SerialiseVersion = D3D12_SERIALISE_VERSION;
@@ -75,23 +69,10 @@ ReplayStatus D3D12InitParams::Serialise()
 
 const char *WrappedID3D12Device::GetChunkName(uint32_t idx)
 {
-  if(idx == CREATE_PARAMS)
-    return "Create Params";
-  if(idx == THUMBNAIL_DATA)
-    return "Thumbnail Data";
-  if(idx == DRIVER_INIT_PARAMS)
-    return "Driver Init Params";
-  if(idx == INITIAL_CONTENTS)
-    return "Initial Contents";
-  if(idx < FIRST_CHUNK_ID || idx >= NUM_D3D12_CHUNKS)
-    return "<unknown>";
-  return D3D12ChunkNames[idx - FIRST_CHUNK_ID];
-}
+  if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
+    return ToStr((SystemChunk)idx);
 
-template <>
-std::string DoStringise(const D3D12ChunkType &el)
-{
-  return WrappedID3D12Device::GetChunkName(el);
+  return ToStr((D3D12Chunk)idx);
 }
 
 ULONG STDMETHODCALLTYPE DummyID3D12InfoQueue::AddRef()
@@ -336,12 +317,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   }
 
   m_InitParams = *params;
-
-  //////////////////////////////////////////////////////////////////////////
-  // Compile time asserts
-
-  RDCCOMPILE_ASSERT(ARRAY_COUNT(D3D12ChunkNames) == NUM_D3D12_CHUNKS - FIRST_CHUNK_ID + 1,
-                    "Not right number of chunk names");
 }
 
 WrappedID3D12Device::~WrappedID3D12Device()
