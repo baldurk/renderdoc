@@ -43,29 +43,6 @@
 
 WRAPPED_POOL_INST(WrappedID3D12Device);
 
-D3D12InitParams::D3D12InitParams()
-{
-  SerialiseVersion = D3D12_SERIALISE_VERSION;
-  MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
-}
-
-ReplayStatus D3D12InitParams::Serialise()
-{
-  Serialiser *localSerialiser = GetSerialiser();
-
-  SERIALISE_ELEMENT(uint32_t, ver, D3D12_SERIALISE_VERSION);
-  SerialiseVersion = ver;
-
-  if(ver != D3D12_SERIALISE_VERSION)
-  {
-    RDCERR("Incompatible D3D12 serialise version, expected %d got %d", D3D12_SERIALISE_VERSION, ver);
-    return ReplayStatus::APIIncompatibleVersion;
-  }
-
-  localSerialiser->Serialise("MinimumFeatureLevel", MinimumFeatureLevel);
-
-  return ReplayStatus::Succeeded;
-}
 
 const char *WrappedID3D12Device::GetChunkName(uint32_t idx)
 {

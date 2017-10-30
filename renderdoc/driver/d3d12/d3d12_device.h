@@ -40,18 +40,18 @@
 
 struct IAmdExtD3DFactory;
 
-struct D3D12InitParams : public RDCInitParams
+struct D3D12InitParams
 {
   D3D12InitParams();
-  ReplayStatus Serialise();
 
   D3D_FEATURE_LEVEL MinimumFeatureLevel;
 
-  static const uint32_t D3D12_SERIALISE_VERSION = 0x0000001;
-
-  // version number internal to d3d12 stream
-  uint32_t SerialiseVersion;
+  // check if a frame capture section version is supported
+  static const uint64_t CurrentVersion = 0x2;
+  static bool IsSupportedVersion(uint64_t ver);
 };
+
+DECLARE_REFLECTION_STRUCT(D3D12InitParams);
 
 class WrappedID3D12Device;
 class WrappedID3D12Resource;
@@ -285,6 +285,9 @@ private:
 
   vector<DebugMessage> m_DebugMessages;
 
+  SDFile *m_StructuredFile = NULL;
+  SDFile m_StoredStructuredData;
+
   uint32_t m_FrameCounter;
   vector<FrameDescription> m_CapturedFrames;
   FrameRecord m_FrameRecord;
@@ -297,6 +300,7 @@ private:
   LogState m_State;
 
   D3D12InitParams m_InitParams;
+  uint64_t m_SectionVersion;
   ID3D12InfoQueue *m_pInfoQueue;
 
   D3D12ResourceRecord *m_FrameCaptureRecord;
@@ -383,7 +387,11 @@ public:
   const map<ResourceId, SubresourceStateVector> &GetSubresourceStates() { return m_ResourceStates; }
   const map<ResourceId, DXGI_FORMAT> &GetBackbufferFormats() { return m_BackbufferFormat; }
   void SetLogFile(const char *logfile);
-  void SetLogVersion(uint32_t fileversion) { m_InitParams.SerialiseVersion = fileversion; }
+  void SetInitParams(const D3D12InitParams &params, uint64_t sectionVersion)
+  {
+    m_InitParams = params;
+    m_SectionVersion = sectionVersion;
+  }
   D3D12Replay *GetReplay() { return &m_Replay; }
   WrappedID3D12CommandQueue *GetQueue() { return m_Queue; }
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }
@@ -455,9 +463,15 @@ public:
   bool Serialise_DynamicDescriptorCopies(Serialiser *localSerialiser,
                                          const std::vector<DynamicDescriptorCopy> *copies);
 
-  void ReadLogInitialisation();
+  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 
+  void SetStructuredExport(uint64_t sectionVersion)
+  {
+    m_SectionVersion = sectionVersion;
+    m_State = CaptureState::StructuredExport;
+  }
+  SDFile &GetStructuredFile() { return *m_StructuredFile; }
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
   virtual IID GetBackbufferUUID() { return __uuidof(ID3D12Resource); }

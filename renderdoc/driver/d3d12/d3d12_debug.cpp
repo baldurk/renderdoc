@@ -3360,8 +3360,8 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
   m_DebugAlloc->Reset();
 }
 
-byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                                        const GetTextureDataParams &params, size_t &dataSize)
+void D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                       const GetTextureDataParams &params, bytebuf &data)
 {
   bool wasms = false;
 
@@ -3370,8 +3370,7 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
   if(resource == NULL)
   {
     RDCERR("Trying to get texture data for unknown ID %llu!", tex);
-    dataSize = 0;
-    return new byte[0];
+    return;
   }
 
   HRESULT hr = S_OK;
@@ -3408,8 +3407,10 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
 
   ID3D12GraphicsCommandList *list = NULL;
 
-  if(params.remap)
+  if(params.remap != RemapTexture::NoRemap)
   {
+    RDCASSERT(params.remap == RemapTexture::RGBA8);
+
     // force readback texture to RGBA8 unorm
     copyDesc.Format = IsSRGBFormat(copyDesc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
                                                     : DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -3683,16 +3684,14 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
   m_WrappedDevice->FlushLists();
 
   // map the buffer and copy to return buffer
-  D3D12_RANGE range = {0, dataSize};
   byte *pData = NULL;
-  hr = readbackBuf->Map(0, &range, (void **)&pData);
+  hr = readbackBuf->Map(0, NULL, (void **)&pData);
   RDCASSERTEQUAL(hr, S_OK);
 
   RDCASSERT(pData != NULL);
 
-  dataSize = GetByteSize(layouts[0].Footprint.Width, layouts[0].Footprint.Height,
-                         layouts[0].Footprint.Depth, copyDesc.Format, 0);
-  byte *ret = new byte[dataSize];
+  data.resize(GetByteSize(layouts[0].Footprint.Width, layouts[0].Footprint.Height,
+                          layouts[0].Footprint.Depth, copyDesc.Format, 0));
 
   // for depth-stencil need to merge the planes pixel-wise
   if(isDepth && isStencil)
@@ -3713,7 +3712,7 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
           uint8_t *sSrc =
               (uint8_t *)(pData + layouts[1].Offset + layouts[1].Footprint.RowPitch * row);
 
-          uint32_t *dDst = (uint32_t *)(ret + dstRowPitch * row);
+          uint32_t *dDst = (uint32_t *)(data.data() + dstRowPitch * row);
           uint32_t *sDst = dDst + 1;    // interleaved, next pixel
 
           for(UINT i = 0; i < layouts[0].Footprint.Width; i++)
@@ -3747,7 +3746,7 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
           uint8_t *sSrc =
               (uint8_t *)(pData + layouts[1].Offset + layouts[1].Footprint.RowPitch * row);
 
-          uint32_t *dst = (uint32_t *)(ret + dstRowPitch * row);
+          uint32_t *dst = (uint32_t *)(data.data() + dstRowPitch * row);
 
           for(UINT i = 0; i < layouts[0].Footprint.Width; i++)
           {
@@ -3774,7 +3773,7 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
         UINT row = r + s * rowcounts[0];
 
         byte *src = pData + layouts[0].Footprint.RowPitch * row;
-        byte *dst = ret + dstRowPitch * row;
+        byte *dst = data.data() + dstRowPitch * row;
 
         memcpy(dst, src, dstRowPitch);
       }
@@ -3784,14 +3783,12 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
   SAFE_DELETE_ARRAY(layouts);
   SAFE_DELETE_ARRAY(rowcounts);
 
-  range.End = 0;
+  D3D12_RANGE range = {0, 0};
   readbackBuf->Unmap(0, &range);
 
   // clean up temporary objects
   SAFE_RELEASE(readbackBuf);
   SAFE_RELEASE(tmpTexture);
-
-  return ret;
 }
 
 void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
