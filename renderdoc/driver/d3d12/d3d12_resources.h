@@ -270,7 +270,7 @@ public:
       return m_pDevice->SetShaderDebugPath(this, (const char *)pData);
 
     if(guid == WKPDID_D3DDebugObjectName)
-      m_pDevice->SetResourceName(this, (const char *)pData);
+      m_pDevice->SetName(this, (const char *)pData);
 
     if(!m_pReal)
       return S_OK;
@@ -289,7 +289,7 @@ public:
   HRESULT STDMETHODCALLTYPE SetName(LPCWSTR Name)
   {
     string utf8 = StringFormat::Wide2UTF8(Name);
-    m_pDevice->SetResourceName(this, utf8.c_str());
+    m_pDevice->SetName(this, utf8.c_str());
 
     if(!m_pReal)
       return S_OK;
