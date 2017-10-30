@@ -98,6 +98,29 @@ void D3D12MarkerRegion::End(ID3D12CommandQueue *queue)
   queue->EndEvent();
 }
 
+D3D12InitParams::D3D12InitParams()
+{
+  MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+}
+
+bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
+{
+  if(ver == CurrentVersion)
+    return true;
+
+  // we can check other older versions we support here.
+
+  return false;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12InitParams &el)
+{
+  SERIALISE_MEMBER(MinimumFeatureLevel);
+}
+
+INSTANTIATE_SERIALISE_TYPE(D3D12InitParams);
+
 TextureDim MakeTextureDim(D3D12_SRV_DIMENSION dim)
 {
   switch(dim)

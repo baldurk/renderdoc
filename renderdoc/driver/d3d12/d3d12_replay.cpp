@@ -26,6 +26,7 @@
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/ihv/amd/amd_isa.h"
+#include "serialise/rdcfile.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
@@ -58,9 +59,9 @@ void D3D12Replay::Shutdown()
   D3D12Replay::PostDeviceShutdownCounters();
 }
 
-void D3D12Replay::ReadLogInitialisation()
+void D3D12Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
-  m_pDevice->ReadLogInitialisation();
+  m_pDevice->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
 
 APIProperties D3D12Replay::GetAPIProperties()
@@ -78,6 +79,11 @@ APIProperties D3D12Replay::GetAPIProperties()
 void D3D12Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
   m_pDevice->ReplayLog(0, endEventID, replayType);
+}
+
+const SDFile &D3D12Replay::GetStructuredFile()
+{
+  return m_pDevice->GetStructuredFile();
 }
 
 vector<ResourceId> D3D12Replay::GetBuffers()
@@ -1556,21 +1562,6 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
   m_pDevice->GetDebugManager()->FlipOutputWindow(id);
 }
 
-void D3D12Replay::InitCallstackResolver()
-{
-  m_pDevice->GetMainSerialiser()->InitCallstackResolver();
-}
-
-bool D3D12Replay::HasCallstacks()
-{
-  return m_pDevice->GetMainSerialiser()->HasCallstacks();
-}
-
-Callstack::StackResolver *D3D12Replay::GetCallstackResolver()
-{
-  return m_pDevice->GetMainSerialiser()->GetCallstackResolver();
-}
-
 vector<DebugMessage> D3D12Replay::GetDebugMessages()
 {
   return m_pDevice->GetDebugMessages();
@@ -1680,10 +1671,10 @@ void D3D12Replay::RemoveReplacement(ResourceId id)
   }
 }
 
-byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                                  const GetTextureDataParams &params, size_t &dataSize)
+void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                 const GetTextureDataParams &params, bytebuf &data)
 {
-  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, dataSize);
+  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, data);
 }
 
 void D3D12Replay::BuildCustomShader(string source, string entry,
@@ -1755,7 +1746,7 @@ extern "C" __declspec(dllexport) HRESULT
                                                void **ppDevice);
 ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev);
 
-ReplayStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a D3D12 replay device");
 
@@ -1783,20 +1774,46 @@ ReplayStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver **drive
   }
 
   D3D12InitParams initParams;
-  RDCDriver driverFileType = RDC_D3D12;
-  string driverName = "D3D12";
-  uint64_t machineIdent = 0;
-  if(logfile)
-  {
-    auto status = RenderDoc::Inst().FillInitParams(logfile, driverFileType, driverName,
-                                                   machineIdent, (RDCInitParams *)&initParams);
-    if(status != ReplayStatus::Succeeded)
-      return status;
-  }
 
-  // initParams.SerialiseVersion is guaranteed to be valid/supported since otherwise the
-  // FillInitParams (which calls D3D12InitParams::Serialise) would have failed above, so no need to
-  // check it here.
+  uint64_t ver = D3D12InitParams::CurrentVersion;
+
+  // if we have an RDCFile, open the frame capture section and serialise the init params.
+  // if not, we're creating a proxy-capable device so use default-initialised init params.
+  if(rdc)
+  {
+    int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
+
+    if(sectionIdx < 0)
+      return ReplayStatus::InternalError;
+
+    ver = rdc->GetSectionProperties(sectionIdx).version;
+
+    if(!D3D12InitParams::IsSupportedVersion(ver))
+    {
+      RDCERR("Incompatible D3D11 serialise version %llu", ver);
+      return ReplayStatus::APIUnsupported;
+    }
+
+    StreamReader *reader = rdc->ReadSection(sectionIdx);
+
+    ReadSerialiser ser(reader, Ownership::Stream);
+
+    SystemChunk chunk = ser.ReadChunk<SystemChunk>();
+
+    if(chunk != SystemChunk::DriverInit)
+    {
+      RDCERR("Expected to get a DriverInit chunk, instead got %u", chunk);
+      return ReplayStatus::FileCorrupted;
+    }
+
+    SERIALISE_ELEMENT(initParams);
+
+    if(ser.IsErrored())
+    {
+      RDCERR("Failed reading driver init params.");
+      return ReplayStatus::FileIOFailed;
+    }
+  }
 
   if(initParams.MinimumFeatureLevel < D3D_FEATURE_LEVEL_11_0)
     initParams.MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
@@ -1815,23 +1832,28 @@ ReplayStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver **drive
   }
 
   WrappedID3D12Device *wrappedDev = (WrappedID3D12Device *)dev;
-  if(logfile)
-    wrappedDev->SetLogFile(logfile);
-  wrappedDev->SetLogVersion(initParams.SerialiseVersion);
-
-  if(logfile && wrappedDev->GetMainSerialiser()->HasError())
-  {
-    SAFE_RELEASE(wrappedDev);
-    return ReplayStatus::FileIOFailed;
-  }
+  wrappedDev->SetInitParams(initParams, ver);
 
   RDCLOG("Created device.");
   D3D12Replay *replay = wrappedDev->GetReplay();
 
-  replay->SetProxy(logfile == NULL);
+  replay->SetProxy(rdc == NULL);
 
   *driver = (IReplayDriver *)replay;
   return ReplayStatus::Succeeded;
 }
 
 static DriverRegistration D3D12DriverRegistration(RDC_D3D12, "D3D12", &D3D12_CreateReplayDevice);
+
+void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
+{
+  WrappedID3D12Device device(NULL, NULL);
+
+  device.SetStructuredExport(
+      rdc->GetSectionProperties(rdc->SectionIndex(SectionType::FrameCapture)).version);
+  device.ReadLogInitialisation(rdc, true);
+
+  device.GetStructuredFile().swap(output);
+}
+
+static StructuredProcessRegistration D3D12ProcessRegistration(RDC_D3D12, &D3D12_ProcessStructured);
