@@ -93,7 +93,7 @@ vector<ResourceId> D3D12RenderState::GetRTVIDs() const
 
       for(UINT i = 0; i < rts.size(); i++)
       {
-        RDCASSERT(descs[i].GetType() == D3D12Descriptor::TypeRTV);
+        RDCASSERT(descs[i].GetType() == D3D12DescriptorType::RTV);
         ret.push_back(GetResID(descs[i].nonsamp.resource));
       }
     }
@@ -107,7 +107,7 @@ vector<ResourceId> D3D12RenderState::GetRTVIDs() const
 
       const D3D12Descriptor &desc = heap->GetDescriptors()[rts[i].index];
 
-      RDCASSERT(desc.GetType() == D3D12Descriptor::TypeRTV);
+      RDCASSERT(desc.GetType() == D3D12DescriptorType::RTV);
       ret.push_back(GetResID(desc.nonsamp.resource));
     }
   }
@@ -121,7 +121,7 @@ ResourceId D3D12RenderState::GetDSVID() const
   {
     const D3D12Descriptor *desc = DescriptorFromPortableHandle(GetResourceManager(), dsv);
 
-    RDCASSERT(desc->GetType() == D3D12Descriptor::TypeDSV);
+    RDCASSERT(desc->GetType() == D3D12DescriptorType::DSV);
 
     return GetResID(desc->nonsamp.resource);
   }

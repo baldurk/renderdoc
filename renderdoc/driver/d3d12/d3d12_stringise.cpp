@@ -164,19 +164,19 @@ std::string DoStringise(const D3D12Chunk &el)
 }
 
 template <>
-std::string DoStringise(const D3D12Descriptor::DescriptorType &el)
+std::string DoStringise(const D3D12DescriptorType &el)
 {
-  if((uint32_t)el < D3D12Descriptor::TypeCBV)
+  if((uint32_t)el < (uint32_t)D3D12DescriptorType::CBV)
     return "Sampler";
 
-  BEGIN_ENUM_STRINGISE(D3D12Descriptor::DescriptorType);
+  BEGIN_ENUM_STRINGISE(D3D12DescriptorType);
   {
-    STRINGISE_ENUM_NAMED(D3D12Descriptor::TypeCBV, "CBV");
-    STRINGISE_ENUM_NAMED(D3D12Descriptor::TypeSRV, "SRV");
-    STRINGISE_ENUM_NAMED(D3D12Descriptor::TypeUAV, "UAV");
-    STRINGISE_ENUM_NAMED(D3D12Descriptor::TypeRTV, "RTV");
-    STRINGISE_ENUM_NAMED(D3D12Descriptor::TypeDSV, "DSV");
-    STRINGISE_ENUM_NAMED(D3D12Descriptor::TypeUndefined, "Undefined");
+    STRINGISE_ENUM_CLASS_NAMED(CBV, "CBV");
+    STRINGISE_ENUM_CLASS_NAMED(SRV, "SRV");
+    STRINGISE_ENUM_CLASS_NAMED(UAV, "UAV");
+    STRINGISE_ENUM_CLASS_NAMED(RTV, "RTV");
+    STRINGISE_ENUM_CLASS_NAMED(DSV, "DSV");
+    STRINGISE_ENUM_CLASS_NAMED(Undefined, "Undefined");
   }
   END_ENUM_STRINGISE();
 }

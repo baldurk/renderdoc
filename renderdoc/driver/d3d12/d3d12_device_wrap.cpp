@@ -656,7 +656,7 @@ bool WrappedID3D12Device::Serialise_DynamicDescriptorWrite(Serialiser *localSeri
     {
       // safe to pass an invalid heap type to Create() as these descriptors will by definition not
       // be undefined
-      RDCASSERT(desc.GetType() != D3D12Descriptor::TypeUndefined);
+      RDCASSERT(desc.GetType() != D3D12DescriptorType::Undefined);
       desc.Create(D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES, this, *handle);
     }
   }
