@@ -209,7 +209,6 @@ struct D3D12CommandData
   D3D12CommandData();
 
   WrappedID3D12Device *m_pDevice;
-  Serialiser *m_pSerialiser;
 
   D3D12DrawcallCallback *m_DrawcallCallback;
 
@@ -322,9 +321,11 @@ struct D3D12CommandData
   vector<APIEvent> m_RootEvents, m_Events;
 
   uint64_t m_CurChunkOffset;
-
+  SDChunkMetaData m_ChunkMetadata;
   uint32_t m_RootEventID, m_RootDrawcallID;
   uint32_t m_FirstEventID, m_LastEventID;
+
+  SDFile *m_StructuredFile;
 
   map<ResourceId, vector<EventUsage> > m_ResourceUses;
 
@@ -353,7 +354,7 @@ struct D3D12CommandData
                                              PartialReplayIndex partialType = ePartialNum);
 
   void AddDrawcall(const DrawcallDescription &d, bool hasEvents, bool addUsage = true);
-  void AddEvent(string description);
+  void AddEvent();
   void AddUsage(D3D12DrawcallTreeNode &drawNode);
   void AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, uint32_t EID, ResourceUsage usage);
 };
