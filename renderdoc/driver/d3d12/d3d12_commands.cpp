@@ -137,48 +137,40 @@ ULONG STDMETHODCALLTYPE WrappedID3D12DebugCommandList::Release()
 }
 
 WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
-                                                     WrappedID3D12Device *device,
-                                                     Serialiser *serialiser, LogState &state)
-    : RefCounter12(real), m_pDevice(device), m_State(state)
+                                                     WrappedID3D12Device *device, CaptureState &state)
+    : RefCounter12(real),
+      m_pDevice(device),
+      m_State(state),
+      m_ScratchSerialiser(new StreamWriter(1024), Ownership::Stream)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this,
                                                               sizeof(WrappedID3D12CommandQueue));
 
-  m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_WrappedDebug.m_pReal);
+  uint32_t flags = 0;
 
-#if ENABLED(RDOC_RELEASE)
-  const bool debugSerialiser = false;
-#else
-  const bool debugSerialiser = true;
-#endif
+  if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
+    flags |= WriteSerialiser::ChunkCallstack;
+
+  m_ScratchSerialiser.SetChunkMetadataRecording(flags);
+
+  m_ScratchSerialiser.SetUserData(GetResourceManager());
+
+  if(m_pReal)
+    m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_WrappedDebug.m_pReal);
 
   if(RenderDoc::Inst().IsReplayApp())
   {
-    m_pSerialiser = serialiser;
-
-    m_ReplayList = new WrappedID3D12GraphicsCommandList(NULL, m_pDevice, m_pSerialiser, state);
+    m_ReplayList = new WrappedID3D12GraphicsCommandList(NULL, m_pDevice, state);
 
     m_ReplayList->SetCommandData(&m_Cmd);
   }
-  else
-  {
-    // make serialisers smaller by default since we create a lot of these internally for small
-    // commands.
-    // User lists will quickly grow to a steady-state over time.
-    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser, 256);
-
-    m_pSerialiser->SetDebugText(debugSerialiser);
-  }
-
-  m_pSerialiser->SetUserData(m_pDevice->GetResourceManager());
 
   // create a temporary and grab its resource ID
   m_ResourceID = ResourceIDGen::GetNewUniqueID();
 
   m_QueueRecord = NULL;
 
-  m_Cmd.m_pSerialiser = m_pSerialiser;
   m_Cmd.m_pDevice = m_pDevice;
 
   if(!RenderDoc::Inst().IsReplayApp())
@@ -190,11 +182,15 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
     m_QueueRecord->Length = 0;
   }
 
+  m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
+
   m_pDevice->SoftRef();
 }
 
 WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 {
+  m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
+
   for(size_t i = 0; i < m_Cmd.m_IndirectBuffers.size(); i++)
     SAFE_RELEASE(m_Cmd.m_IndirectBuffers[i]);
 
@@ -254,6 +250,14 @@ void WrappedID3D12CommandQueue::ClearAfterCapture()
   m_QueueRecord->DeleteChunks();
 }
 
+std::string WrappedID3D12CommandQueue::GetChunkName(uint32_t idx)
+{
+  if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
+    return ToStr((SystemChunk)idx);
+
+  return ToStr((D3D12Chunk)idx);
+}
+
 const APIEvent &WrappedID3D12CommandQueue::GetEvent(uint32_t eventID)
 {
   for(const APIEvent &e : m_Cmd.m_Events)
@@ -265,214 +269,269 @@ const APIEvent &WrappedID3D12CommandQueue::GetEvent(uint32_t eventID)
   return m_Cmd.m_Events.back();
 }
 
-void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chunk)
+void WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chunk)
 {
-  m_Cmd.m_CurChunkOffset = offset;
   m_Cmd.m_AddedDrawcall = false;
 
   switch(chunk)
   {
-    case CLOSE_LIST: m_ReplayList->Serialise_Close(); break;
-    case RESET_LIST: m_ReplayList->Serialise_Reset(NULL, NULL); break;
-
-    case RESOURCE_BARRIER: m_ReplayList->Serialise_ResourceBarrier(0, NULL); break;
-
-    case MAP_DATA_WRITE:
-      m_pDevice->Serialise_MapDataWrite(m_pSerialiser, NULL, 0, NULL, D3D12_RANGE());
+    case D3D12Chunk::Device_CreateConstantBufferView:
+    case D3D12Chunk::Device_CreateShaderResourceView:
+    case D3D12Chunk::Device_CreateUnorderedAccessView:
+    case D3D12Chunk::Device_CreateRenderTargetView:
+    case D3D12Chunk::Device_CreateDepthStencilView:
+    case D3D12Chunk::Device_CreateSampler:
+      m_pDevice->Serialise_DynamicDescriptorWrite(ser, NULL);
       break;
-    case WRITE_TO_SUB:
-      m_pDevice->Serialise_WriteToSubresource(m_pSerialiser, NULL, 0, NULL, NULL, 0, 0);
-      break;
-
-    case BEGIN_QUERY:
-      m_ReplayList->Serialise_BeginQuery(NULL, D3D12_QUERY_TYPE_OCCLUSION, 0);
-      break;
-    case END_QUERY: m_ReplayList->Serialise_EndQuery(NULL, D3D12_QUERY_TYPE_OCCLUSION, 0); break;
-    case RESOLVE_QUERY:
-      m_ReplayList->Serialise_ResolveQueryData(NULL, D3D12_QUERY_TYPE_OCCLUSION, 0, 0, NULL, 0);
-      break;
-    case SET_PREDICATION:
-      m_ReplayList->Serialise_SetPredication(NULL, 0, D3D12_PREDICATION_OP_EQUAL_ZERO);
+    case D3D12Chunk::Device_CopyDescriptors:
+    case D3D12Chunk::Device_CopyDescriptorsSimple:
+      m_pDevice->Serialise_DynamicDescriptorCopies(ser, NULL);
       break;
 
-    case BEGIN_EVENT: m_ReplayList->Serialise_BeginEvent(0, NULL, 0); break;
-    case SET_MARKER: m_ReplayList->Serialise_SetMarker(0, NULL, 0); break;
-    case END_EVENT: m_ReplayList->Serialise_EndEvent(); break;
-
-    case DRAW_INST: m_ReplayList->Serialise_DrawInstanced(0, 0, 0, 0); break;
-    case DRAW_INDEXED_INST: m_ReplayList->Serialise_DrawIndexedInstanced(0, 0, 0, 0, 0); break;
-    case DISPATCH: m_ReplayList->Serialise_Dispatch(0, 0, 0); break;
-    case EXEC_INDIRECT: m_ReplayList->Serialise_ExecuteIndirect(NULL, 0, NULL, 0, NULL, 0); break;
-    case EXEC_BUNDLE: m_ReplayList->Serialise_ExecuteBundle(NULL); break;
-
-    case COPY_BUFFER: m_ReplayList->Serialise_CopyBufferRegion(NULL, 0, NULL, 0, 0); break;
-    case COPY_TEXTURE: m_ReplayList->Serialise_CopyTextureRegion(NULL, 0, 0, 0, NULL, NULL); break;
-    case COPY_RESOURCE: m_ReplayList->Serialise_CopyResource(NULL, NULL); break;
-    case RESOLVE_SUBRESOURCE:
-      m_ReplayList->Serialise_ResolveSubresource(NULL, 0, NULL, 0, DXGI_FORMAT_UNKNOWN);
+    case D3D12Chunk::Queue_ExecuteCommandLists: Serialise_ExecuteCommandLists(ser, 0, NULL); break;
+    case D3D12Chunk::Queue_Signal: Serialise_Signal(ser, NULL, 0); break;
+    case D3D12Chunk::Queue_Wait: Serialise_Wait(ser, NULL, 0); break;
+    case D3D12Chunk::Queue_UpdateTileMappings:
+      Serialise_UpdateTileMappings(ser, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL,
+                                   D3D12_TILE_MAPPING_FLAGS(0));
+      break;
+    case D3D12Chunk::Queue_CopyTileMappings:
+      Serialise_CopyTileMappings(ser, NULL, NULL, NULL, NULL, NULL, D3D12_TILE_MAPPING_FLAGS(0));
       break;
 
-    case CLEAR_RTV:
-      m_ReplayList->Serialise_ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE(), (FLOAT *)NULL, 0,
-                                                    NULL);
+    case D3D12Chunk::List_Close: m_ReplayList->Serialise_Close(ser); break;
+    case D3D12Chunk::List_Reset: m_ReplayList->Serialise_Reset(ser, NULL, NULL); break;
+    case D3D12Chunk::List_ResourceBarrier:
+      m_ReplayList->Serialise_ResourceBarrier(ser, 0, NULL);
       break;
-    case CLEAR_DSV:
-      m_ReplayList->Serialise_ClearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE(),
+    case D3D12Chunk::List_BeginQuery:
+      m_ReplayList->Serialise_BeginQuery(ser, NULL, D3D12_QUERY_TYPE(0), 0);
+      break;
+    case D3D12Chunk::List_EndQuery:
+      m_ReplayList->Serialise_EndQuery(ser, NULL, D3D12_QUERY_TYPE(0), 0);
+      break;
+    case D3D12Chunk::List_ResolveQueryData:
+      m_ReplayList->Serialise_ResolveQueryData(ser, NULL, D3D12_QUERY_TYPE(0), 0, 0, NULL, 0);
+      break;
+    case D3D12Chunk::List_SetPredication:
+      m_ReplayList->Serialise_SetPredication(ser, NULL, 0, D3D12_PREDICATION_OP(0));
+      break;
+    case D3D12Chunk::List_DrawIndexedInstanced:
+      m_ReplayList->Serialise_DrawIndexedInstanced(ser, 0, 0, 0, 0, 0);
+      break;
+    case D3D12Chunk::List_DrawInstanced:
+      m_ReplayList->Serialise_DrawInstanced(ser, 0, 0, 0, 0);
+      break;
+    case D3D12Chunk::List_Dispatch: m_ReplayList->Serialise_Dispatch(ser, 0, 0, 0); break;
+    case D3D12Chunk::List_ExecuteIndirect:
+      m_ReplayList->Serialise_ExecuteIndirect(ser, NULL, 0, NULL, 0, NULL, 0);
+      break;
+    case D3D12Chunk::List_ExecuteBundle: m_ReplayList->Serialise_ExecuteBundle(ser, NULL); break;
+    case D3D12Chunk::List_CopyBufferRegion:
+      m_ReplayList->Serialise_CopyBufferRegion(ser, NULL, 0, NULL, 0, 0);
+      break;
+    case D3D12Chunk::List_CopyTextureRegion:
+      m_ReplayList->Serialise_CopyTextureRegion(ser, NULL, 0, 0, 0, NULL, NULL);
+      break;
+    case D3D12Chunk::List_CopyResource:
+      m_ReplayList->Serialise_CopyResource(ser, NULL, NULL);
+      break;
+    case D3D12Chunk::List_ResolveSubresource:
+      m_ReplayList->Serialise_ResolveSubresource(ser, NULL, 0, NULL, 0, DXGI_FORMAT_UNKNOWN);
+      break;
+    case D3D12Chunk::List_ClearRenderTargetView:
+      m_ReplayList->Serialise_ClearRenderTargetView(ser, D3D12_CPU_DESCRIPTOR_HANDLE(),
+                                                    (FLOAT *)NULL, 0, NULL);
+      break;
+    case D3D12Chunk::List_ClearDepthStencilView:
+      m_ReplayList->Serialise_ClearDepthStencilView(ser, D3D12_CPU_DESCRIPTOR_HANDLE(),
                                                     D3D12_CLEAR_FLAGS(0), 0.0f, 0, 0, NULL);
       break;
-    case CLEAR_UAV_INT:
+    case D3D12Chunk::List_ClearUnorderedAccessViewUint:
       m_ReplayList->Serialise_ClearUnorderedAccessViewUint(
-          D3D12_GPU_DESCRIPTOR_HANDLE(), D3D12_CPU_DESCRIPTOR_HANDLE(), NULL, NULL, 0, NULL);
+          ser, D3D12_GPU_DESCRIPTOR_HANDLE(), D3D12_CPU_DESCRIPTOR_HANDLE(), NULL, NULL, 0, NULL);
       break;
-    case CLEAR_UAV_FLOAT:
+    case D3D12Chunk::List_ClearUnorderedAccessViewFloat:
       m_ReplayList->Serialise_ClearUnorderedAccessViewFloat(
-          D3D12_GPU_DESCRIPTOR_HANDLE(), D3D12_CPU_DESCRIPTOR_HANDLE(), NULL, NULL, 0, NULL);
+          ser, D3D12_GPU_DESCRIPTOR_HANDLE(), D3D12_CPU_DESCRIPTOR_HANDLE(), NULL, NULL, 0, NULL);
       break;
-    case DISCARD_RESOURCE: m_ReplayList->Serialise_DiscardResource(NULL, NULL); break;
+    case D3D12Chunk::List_DiscardResource:
+      m_ReplayList->Serialise_DiscardResource(ser, NULL, NULL);
+      break;
+    case D3D12Chunk::List_IASetPrimitiveTopology:
+      m_ReplayList->Serialise_IASetPrimitiveTopology(ser, D3D_PRIMITIVE_TOPOLOGY_UNDEFINED);
+      break;
+    case D3D12Chunk::List_IASetIndexBuffer:
+      m_ReplayList->Serialise_IASetIndexBuffer(ser, NULL);
+      break;
+    case D3D12Chunk::List_IASetVertexBuffers:
+      m_ReplayList->Serialise_IASetVertexBuffers(ser, 0, 0, NULL);
+      break;
+    case D3D12Chunk::List_SOSetTargets:
+      m_ReplayList->Serialise_SOSetTargets(ser, 0, 0, NULL);
+      break;
+    case D3D12Chunk::List_RSSetViewports:
+      m_ReplayList->Serialise_RSSetViewports(ser, 0, NULL);
+      break;
+    case D3D12Chunk::List_RSSetScissorRects:
+      m_ReplayList->Serialise_RSSetScissorRects(ser, 0, NULL);
+      break;
+    case D3D12Chunk::List_SetPipelineState:
+      m_ReplayList->Serialise_SetPipelineState(ser, NULL);
+      break;
+    case D3D12Chunk::List_SetDescriptorHeaps:
+      m_ReplayList->Serialise_SetDescriptorHeaps(ser, 0, NULL);
+      break;
+    case D3D12Chunk::List_OMSetRenderTargets:
+      m_ReplayList->Serialise_OMSetRenderTargets(ser, 0, NULL, FALSE, NULL);
+      break;
+    case D3D12Chunk::List_OMSetStencilRef: m_ReplayList->Serialise_OMSetStencilRef(ser, 0); break;
+    case D3D12Chunk::List_OMSetBlendFactor:
+      m_ReplayList->Serialise_OMSetBlendFactor(ser, NULL);
+      break;
+    case D3D12Chunk::List_SetGraphicsRootDescriptorTable:
+      m_ReplayList->Serialise_SetGraphicsRootDescriptorTable(ser, 0, D3D12_GPU_DESCRIPTOR_HANDLE());
+      break;
+    case D3D12Chunk::List_SetGraphicsRootSignature:
+      m_ReplayList->Serialise_SetGraphicsRootSignature(ser, NULL);
+      break;
+    case D3D12Chunk::List_SetGraphicsRoot32BitConstant:
+      m_ReplayList->Serialise_SetGraphicsRoot32BitConstant(ser, 0, 0, 0);
+      break;
+    case D3D12Chunk::List_SetGraphicsRoot32BitConstants:
+      m_ReplayList->Serialise_SetGraphicsRoot32BitConstants(ser, 0, 0, NULL, 0);
+      break;
+    case D3D12Chunk::List_SetGraphicsRootConstantBufferView:
+      m_ReplayList->Serialise_SetGraphicsRootConstantBufferView(ser, 0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case D3D12Chunk::List_SetGraphicsRootShaderResourceView:
+      m_ReplayList->Serialise_SetGraphicsRootShaderResourceView(ser, 0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case D3D12Chunk::List_SetGraphicsRootUnorderedAccessView:
+      m_ReplayList->Serialise_SetGraphicsRootUnorderedAccessView(ser, 0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case D3D12Chunk::List_SetComputeRootDescriptorTable:
+      m_ReplayList->Serialise_SetComputeRootDescriptorTable(ser, 0, D3D12_GPU_DESCRIPTOR_HANDLE());
+      break;
+    case D3D12Chunk::List_SetComputeRootSignature:
+      m_ReplayList->Serialise_SetComputeRootSignature(ser, NULL);
+      break;
+    case D3D12Chunk::List_SetComputeRoot32BitConstant:
+      m_ReplayList->Serialise_SetComputeRoot32BitConstant(ser, 0, 0, 0);
+      break;
+    case D3D12Chunk::List_SetComputeRoot32BitConstants:
+      m_ReplayList->Serialise_SetComputeRoot32BitConstants(ser, 0, 0, NULL, 0);
+      break;
+    case D3D12Chunk::List_SetComputeRootConstantBufferView:
+      m_ReplayList->Serialise_SetComputeRootConstantBufferView(ser, 0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case D3D12Chunk::List_SetComputeRootShaderResourceView:
+      m_ReplayList->Serialise_SetComputeRootShaderResourceView(ser, 0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case D3D12Chunk::List_SetComputeRootUnorderedAccessView:
+      m_ReplayList->Serialise_SetComputeRootUnorderedAccessView(ser, 0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case D3D12Chunk::List_CopyTiles:
+      m_ReplayList->Serialise_CopyTiles(ser, NULL, NULL, NULL, NULL, 0, D3D12_TILE_COPY_FLAGS(0));
+      break;
 
-    case SET_TOPOLOGY:
-      m_ReplayList->Serialise_IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED);
-      break;
-    case SET_IBUFFER: m_ReplayList->Serialise_IASetIndexBuffer(NULL); break;
-    case SET_VBUFFERS: m_ReplayList->Serialise_IASetVertexBuffers(0, 0, NULL); break;
-    case SET_SOTARGETS: m_ReplayList->Serialise_SOSetTargets(0, 0, NULL); break;
-    case SET_VIEWPORTS: m_ReplayList->Serialise_RSSetViewports(0, NULL); break;
-    case SET_SCISSORS: m_ReplayList->Serialise_RSSetScissorRects(0, NULL); break;
-    case SET_STENCIL: m_ReplayList->Serialise_OMSetStencilRef(0); break;
-    case SET_BLENDFACTOR: m_ReplayList->Serialise_OMSetBlendFactor(NULL); break;
-    case SET_PIPE: m_ReplayList->Serialise_SetPipelineState(NULL); break;
-    case SET_RTVS: m_ReplayList->Serialise_OMSetRenderTargets(0, NULL, FALSE, NULL); break;
-    case SET_DESC_HEAPS: m_ReplayList->Serialise_SetDescriptorHeaps(0, NULL); break;
+    case D3D12Chunk::PushMarker: m_ReplayList->Serialise_BeginEvent(ser, 0, NULL, 0); break;
+    case D3D12Chunk::PopMarker: m_ReplayList->Serialise_EndEvent(ser); break;
+    case D3D12Chunk::SetMarker: m_ReplayList->Serialise_SetMarker(ser, 0, NULL, 0); break;
 
-    case SET_GFX_ROOT_SIG: m_ReplayList->Serialise_SetGraphicsRootSignature(NULL); break;
-    case SET_GFX_ROOT_TABLE:
-      m_ReplayList->Serialise_SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE());
+    case D3D12Chunk::Resource_Unmap:
+      m_pDevice->Serialise_MapDataWrite(ser, NULL, 0, NULL, D3D12_RANGE());
       break;
-    case SET_GFX_ROOT_CONST: m_ReplayList->Serialise_SetGraphicsRoot32BitConstant(0, 0, 0); break;
-    case SET_GFX_ROOT_CONSTS:
-      m_ReplayList->Serialise_SetGraphicsRoot32BitConstants(0, 0, NULL, 0);
-      break;
-    case SET_GFX_ROOT_CBV:
-      m_ReplayList->Serialise_SetGraphicsRootConstantBufferView(0, D3D12_GPU_VIRTUAL_ADDRESS());
-      break;
-    case SET_GFX_ROOT_SRV:
-      m_ReplayList->Serialise_SetGraphicsRootShaderResourceView(0, D3D12_GPU_VIRTUAL_ADDRESS());
-      break;
-    case SET_GFX_ROOT_UAV:
-      m_ReplayList->Serialise_SetGraphicsRootUnorderedAccessView(0, D3D12_GPU_VIRTUAL_ADDRESS());
+    case D3D12Chunk::Resource_WriteToSubresource:
+      m_pDevice->Serialise_WriteToSubresource(ser, NULL, 0, NULL, NULL, 0, 0);
       break;
 
-    case SET_COMP_ROOT_SIG: m_ReplayList->Serialise_SetComputeRootSignature(NULL); break;
-    case SET_COMP_ROOT_TABLE:
-      m_ReplayList->Serialise_SetComputeRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE());
-      break;
-    case SET_COMP_ROOT_CONST: m_ReplayList->Serialise_SetComputeRoot32BitConstant(0, 0, 0); break;
-    case SET_COMP_ROOT_CONSTS:
-      m_ReplayList->Serialise_SetComputeRoot32BitConstants(0, 0, NULL, 0);
-      break;
-    case SET_COMP_ROOT_CBV:
-      m_ReplayList->Serialise_SetComputeRootConstantBufferView(0, D3D12_GPU_VIRTUAL_ADDRESS());
-      break;
-    case SET_COMP_ROOT_SRV:
-      m_ReplayList->Serialise_SetComputeRootShaderResourceView(0, D3D12_GPU_VIRTUAL_ADDRESS());
-      break;
-    case SET_COMP_ROOT_UAV:
-      m_ReplayList->Serialise_SetComputeRootUnorderedAccessView(0, D3D12_GPU_VIRTUAL_ADDRESS());
-      break;
-
-    case DYN_DESC_WRITE:
-      m_pDevice->Serialise_DynamicDescriptorWrite(m_pDevice->GetMainSerialiser(), NULL);
-      break;
-    case DYN_DESC_COPIES:
-      m_pDevice->Serialise_DynamicDescriptorCopies(m_pDevice->GetMainSerialiser(), NULL);
-      break;
-
-    case UPDATE_TILE_MAPPINGS:
-      Serialise_UpdateTileMappings(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL,
-                                   D3D12_TILE_MAPPING_FLAG_NONE);
-      break;
-    case COPY_TILE_MAPPINGS:
-      Serialise_CopyTileMappings(NULL, NULL, NULL, NULL, NULL, D3D12_TILE_MAPPING_FLAG_NONE);
-      break;
-    case EXECUTE_CMD_LISTS: Serialise_ExecuteCommandLists(0, NULL); break;
-    case SIGNAL: Serialise_Signal(NULL, 0); break;
-    case WAIT: Serialise_Wait(NULL, 0); break;
-    case CONTEXT_CAPTURE_FOOTER:
+    case D3D12Chunk::CaptureEnd:
     {
-      SERIALISE_ELEMENT(ResourceId, bbid, ResourceId());
+      SERIALISE_ELEMENT_LOCAL(PresentedImage, ResourceId());
 
-      bool HasCallstack = false;
-      m_pSerialiser->Serialise("HasCallstack", HasCallstack);
+      m_BackbufferID = PresentedImage;
 
-      m_BackbufferID = bbid;
-
-      if(HasCallstack)
+      if(IsLoading(m_State))
       {
-        size_t numLevels = 0;
-        uint64_t *stack = NULL;
-
-        m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
-
-        m_pSerialiser->SetCallstack(stack, numLevels);
-
-        SAFE_DELETE_ARRAY(stack);
-      }
-
-      if(m_State == READING)
-      {
-        m_Cmd.AddEvent("Present()");
+        m_Cmd.AddEvent();
 
         DrawcallDescription draw;
         draw.name = "Present()";
         draw.flags |= DrawFlags::Present;
 
-        draw.copyDestination = bbid;
+        draw.copyDestination = m_BackbufferID;
 
         m_Cmd.AddDrawcall(draw, true);
       }
       break;
     }
-    default:
-      // ignore system chunks
-      if(chunk == INITIAL_CONTENTS)
-        GetResourceManager()->Serialise_InitialState(ResourceId(), NULL);
-      else if(chunk < FIRST_CHUNK_ID)
-        m_pSerialiser->SkipCurrentChunk();
-      else
-        RDCERR("Unexpected non-device chunk %d at offset %llu", chunk, offset);
-      break;
+    default: RDCERR("Unrecognised Chunk type %s", ToStr(chunk).c_str()); break;
   }
 
-  m_pSerialiser->PopContext(chunk);
-
-  if(m_State == READING && chunk == SET_MARKER)
+  if(IsLoading(m_State))
   {
-    // no push/pop necessary
-  }
-  else if(m_State == READING && (chunk == BEGIN_EVENT || chunk == END_EVENT))
-  {
-    // don't add these events - they will be handled when inserted in-line into queue submit
-  }
-  else if(m_State == READING)
-  {
-    if(!m_Cmd.m_AddedDrawcall)
-      m_Cmd.AddEvent(m_pSerialiser->GetDebugStr());
+    if(chunk == D3D12Chunk::PushMarker)
+    {
+      // no push/pop necessary
+    }
+    else if(chunk == D3D12Chunk::SetMarker || chunk == D3D12Chunk::PopMarker)
+    {
+      // don't add these events - they will be handled when inserted in-line into queue submit
+    }
+    else
+    {
+      if(!m_Cmd.m_AddedDrawcall)
+        m_Cmd.AddEvent();
+    }
   }
 
   m_Cmd.m_AddedDrawcall = false;
 }
 
-void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEventID,
+void WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t startEventID,
                                           uint32_t endEventID, bool partial)
 {
   m_State = readType;
 
-  D3D12ChunkType header = (D3D12ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
-  RDCASSERTEQUAL(header, CONTEXT_CAPTURE_HEADER);
+  if(!m_FrameReader)
+  {
+    RDCERR("Can't replay context capture without frame reader");
+    return;
+  }
 
-  m_pDevice->Serialise_BeginCaptureFrame(!partial);
+  m_FrameReader->SetOffset(0);
 
-  if(readType == READING)
+  ReadSerialiser ser(m_FrameReader, Ownership::Nothing);
+
+  ser.SetStringDatabase(&m_StringDB);
+  ser.SetUserData(GetResourceManager());
+
+  if(IsLoading(m_State) || IsStructuredExporting(m_State))
+  {
+    ser.ConfigureStructuredExport(&GetChunkName, IsStructuredExporting(m_State));
+
+    ser.GetStructuredFile().swap(m_pDevice->GetStructuredFile());
+
+    m_StructuredFile = &ser.GetStructuredFile();
+  }
+  else
+  {
+    m_StructuredFile = &m_pDevice->GetStructuredFile();
+  }
+
+  m_Cmd.m_StructuredFile = m_StructuredFile;
+
+  D3D12Chunk header = ser.ReadChunk<D3D12Chunk>();
+  RDCASSERTEQUAL(header, D3D12Chunk::CaptureBegin);
+
+  m_pDevice->Serialise_BeginCaptureFrame(ser, !partial);
+
+  ser.EndChunk();
+
+  m_Cmd.m_RootEvents.clear();
+
+  if(IsLoading(m_State))
   {
     m_pDevice->ApplyInitialContents();
 
@@ -480,11 +539,7 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     m_pDevice->FlushLists();
   }
 
-  m_pSerialiser->PopContext(header);
-
-  m_Cmd.m_RootEvents.clear();
-
-  if(m_State == EXECUTING)
+  if(IsActiveReplaying(m_State))
   {
     APIEvent ev = GetEvent(startEventID);
     m_Cmd.m_RootEventID = ev.eventID;
@@ -494,7 +549,7 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     // skip to the file offset of the first event
     if(partial)
     {
-      m_pSerialiser->SetOffset(ev.fileOffset);
+      ser.GetReader()->SetOffset(ev.fileOffset);
 
       D3D12CommandData::DrawcallUse use(ev.fileOffset, 0);
       auto it = std::lower_bound(m_Cmd.m_DrawcallUses.begin(), m_Cmd.m_DrawcallUses.end(), use);
@@ -510,7 +565,7 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     m_Cmd.m_FirstEventID = startEventID;
     m_Cmd.m_LastEventID = endEventID;
   }
-  else if(m_State == READING)
+  else
   {
     m_Cmd.m_RootEventID = 1;
     m_Cmd.m_RootDrawcallID = 1;
@@ -518,32 +573,39 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     m_Cmd.m_LastEventID = ~0U;
   }
 
+  uint64_t startOffset = ser.GetReader()->GetOffset();
+
   for(;;)
   {
-    if(m_State == EXECUTING && m_Cmd.m_RootEventID > endEventID)
+    if(IsActiveReplaying(m_State) && m_Cmd.m_RootEventID > endEventID)
     {
       // we can just break out if we've done all the events desired.
       // note that the command list events aren't 'real' and we just blaze through them
       break;
     }
 
-    uint64_t offset = m_pSerialiser->GetOffset();
+    m_Cmd.m_CurChunkOffset = ser.GetReader()->GetOffset();
 
-    D3D12ChunkType context = (D3D12ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
+    D3D12Chunk context = ser.ReadChunk<D3D12Chunk>();
+
+    m_Cmd.m_ChunkMetadata = ser.ChunkMetadata();
 
     m_Cmd.m_LastCmdListID = ResourceId();
 
-    ProcessChunk(offset, context);
+    ProcessChunk(ser, context);
 
-    RenderDoc::Inst().SetProgress(FileInitialRead, float(offset) / float(m_pSerialiser->GetSize()));
+    ser.EndChunk();
+
+    RenderDoc::Inst().SetProgress(FileInitialRead, float(m_Cmd.m_CurChunkOffset - startOffset) /
+                                                       float(ser.GetReader()->GetSize()));
 
     // for now just abort after capture scope. Really we'd need to support multiple frames
     // but for now this will do.
-    if(context == CONTEXT_CAPTURE_FOOTER)
+    if(context == D3D12Chunk::CaptureEnd)
       break;
 
     // break out if we were only executing one event
-    if(m_State == EXECUTING && startEventID == endEventID)
+    if(IsActiveReplaying(m_State) && startEventID == endEventID)
       break;
 
     // increment root event ID either if we didn't just replay a cmd
@@ -556,7 +618,7 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
       m_Cmd.m_RootEventID++;
 
       if(startEventID > 1)
-        m_pSerialiser->SetOffset(GetEvent(m_Cmd.m_RootEventID).fileOffset);
+        ser.GetReader()->SetOffset(GetEvent(m_Cmd.m_RootEventID).fileOffset);
     }
     else
     {
@@ -564,7 +626,13 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     }
   }
 
-  if(m_State == READING)
+  // swap the structure back now that we've accumulated the frame as well.
+  if(IsLoading(m_State) || IsStructuredExporting(m_State))
+    ser.GetStructuredFile().swap(m_pDevice->GetStructuredFile());
+
+  m_StructuredFile = NULL;
+
+  if(IsLoading(m_State))
   {
     struct SortEID
     {
@@ -581,14 +649,11 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     SAFE_RELEASE(it->second);
 
   m_Cmd.m_RerecordCmds.clear();
-
-  m_State = READING;
 }
 
 WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real,
                                                                    WrappedID3D12Device *device,
-                                                                   Serialiser *serialiser,
-                                                                   LogState &state)
+                                                                   CaptureState &state)
     : RefCounter12(real), m_pDevice(device), m_State(state)
 {
   if(RenderDoc::Inst().GetCrashHandler())
@@ -597,25 +662,6 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
 
   if(m_pReal)
     m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandList), (void **)&m_WrappedDebug.m_pReal);
-
-#if ENABLED(RDOC_RELEASE)
-  const bool debugSerialiser = false;
-#else
-  const bool debugSerialiser = true;
-#endif
-
-  if(RenderDoc::Inst().IsReplayApp())
-  {
-    m_pSerialiser = serialiser;
-  }
-  else
-  {
-    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
-
-    m_pSerialiser->SetDebugText(debugSerialiser);
-  }
-
-  m_pSerialiser->SetUserData(m_pDevice->GetResourceManager());
 
   // create a temporary and grab its resource ID
   m_ResourceID = ResourceIDGen::GetNewUniqueID();
@@ -678,7 +724,7 @@ bool WrappedID3D12GraphicsCommandList::ValidateRootGPUVA(ResourceId buffer)
   if(!GetResourceManager()->HasLiveResource(buffer))
   {
     // abort, we don't have this buffer. Print errors while reading
-    if(m_State == READING)
+    if(IsLoading(m_State))
     {
       if(buffer != ResourceId())
       {
@@ -697,6 +743,14 @@ bool WrappedID3D12GraphicsCommandList::ValidateRootGPUVA(ResourceId buffer)
   }
 
   return false;
+}
+
+std::string WrappedID3D12GraphicsCommandList::GetChunkName(uint32_t idx)
+{
+  if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
+    return ToStr((SystemChunk)idx);
+
+  return ToStr((D3D12Chunk)idx);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFIID riid,
@@ -802,7 +856,6 @@ D3D12CommandData::D3D12CommandData()
   m_LastEventID = ~0U;
 
   m_pDevice = NULL;
-  m_pSerialiser = NULL;
 
   m_DrawcallCallback = NULL;
 
@@ -955,7 +1008,7 @@ ID3D12GraphicsCommandList *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
   return NULL;
 }
 
-void D3D12CommandData::AddEvent(string description)
+void D3D12CommandData::AddEvent()
 {
   APIEvent apievent;
 
@@ -963,13 +1016,9 @@ void D3D12CommandData::AddEvent(string description)
   apievent.eventID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
                                                      : m_RootEventID;
 
-  apievent.eventDesc = description;
+  apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
 
-  Callstack::Stackwalk *stack = m_pSerialiser->GetLastCallstack();
-  if(stack)
-  {
-    apievent.callstack.assign(stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
-  }
+  apievent.callstack = m_ChunkMetadata.callstack;
 
   for(size_t i = 0; i < m_EventMessages.size(); i++)
     m_EventMessages[i].eventID = apievent.eventID;
@@ -978,7 +1027,7 @@ void D3D12CommandData::AddEvent(string description)
   {
     m_BakedCmdListInfo[m_LastCmdListID].curEvents.push_back(apievent);
 
-    vector<DebugMessage> &msgs = m_BakedCmdListInfo[m_LastCmdListID].debugMessages;
+    std::vector<DebugMessage> &msgs = m_BakedCmdListInfo[m_LastCmdListID].debugMessages;
 
     msgs.insert(msgs.end(), m_EventMessages.begin(), m_EventMessages.end());
   }

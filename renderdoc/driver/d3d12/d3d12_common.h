@@ -293,9 +293,14 @@ struct D3D12CommandSignature
 #define IMPLEMENT_IUNKNOWN_WITH_REFCOUNTER_CUSTOMQUERY                \
   ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::AddRef(); } \
   ULONG STDMETHODCALLTYPE Release() { return RefCounter12::Release(); }
-#define IMPLEMENT_FUNCTION_SERIALISED(ret, func) \
-  ret func;                                      \
-  bool CONCAT(Serialise_, func);
+#define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...) \
+  ret func(__VA_ARGS__);                              \
+  template <typename SerialiserType>                  \
+  bool CONCAT(Serialise_, func(SerialiserType &ser, __VA_ARGS__));
+
+#define INSTANTIATE_FUNCTION_SERIALISED(ret, parent, func, ...)                     \
+  template bool parent::CONCAT(Serialise_, func(ReadSerialiser &ser, __VA_ARGS__)); \
+  template bool parent::CONCAT(Serialise_, func(WriteSerialiser &ser, __VA_ARGS__));
 
 // A handy macros to say "is the serialiser reading and we're doing replay-mode stuff?"
 // The reason we check both is that checking the first allows the compiler to eliminate the other
