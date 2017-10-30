@@ -556,8 +556,7 @@ void WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t startE
 
       if(it != m_Cmd.m_DrawcallUses.end())
       {
-        BakedCmdListInfo &cmdInfo =
-            m_Cmd.m_BakedCmdListInfo[m_Cmd.m_BakedCmdListInfo[it->cmdList].parentList];
+        BakedCmdListInfo &cmdInfo = m_Cmd.m_BakedCmdListInfo[it->cmdList];
         cmdInfo.curEventID = it->relativeEID;
       }
     }
@@ -719,24 +718,17 @@ WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
   SAFE_RELEASE(m_pReal);
 }
 
-bool WrappedID3D12GraphicsCommandList::ValidateRootGPUVA(ResourceId buffer)
+bool WrappedID3D12GraphicsCommandList::ValidateRootGPUVA(D3D12_GPU_VIRTUAL_ADDRESS buffer)
 {
-  if(!GetResourceManager()->HasLiveResource(buffer))
+  if(buffer == 0)
   {
     // abort, we don't have this buffer. Print errors while reading
     if(IsLoading(m_State))
     {
-      if(buffer != ResourceId())
-      {
-        RDCERR("Don't have live buffer for %llu", buffer);
-      }
-      else
-      {
-        m_pDevice->AddDebugMessage(MessageCategory::Resource_Manipulation, MessageSeverity::Medium,
-                                   MessageSource::IncorrectAPIUse,
-                                   "Binding 0 as a GPU Virtual Address in a root constant is "
-                                   "invalid. This call will be dropped during replay.");
-      }
+      m_pDevice->AddDebugMessage(MessageCategory::Resource_Manipulation, MessageSeverity::Medium,
+                                 MessageSource::IncorrectAPIUse,
+                                 "Binding 0 as a GPU Virtual Address in a root constant is "
+                                 "invalid. This call will be dropped during replay.");
     }
 
     return true;

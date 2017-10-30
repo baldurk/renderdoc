@@ -1099,12 +1099,10 @@ void D3D12Replay::SavePipelineState()
     {
       D3D12Pipe::View &view = state.m_OM.RenderTargets[i];
 
-      PortableHandle h = rs.rtSingle ? rs.rts[0] : rs.rts[i];
+      D3D12Descriptor *desc = rs.rtSingle ? GetWrapped(rs.rts[0]) : GetWrapped(rs.rts[i]);
 
-      if(h.heap != ResourceId())
+      if(desc)
       {
-        D3D12Descriptor *desc = DescriptorFromPortableHandle(rm, h);
-
         if(rs.rtSingle)
           desc += i;
 
@@ -1118,9 +1116,9 @@ void D3D12Replay::SavePipelineState()
     {
       D3D12Pipe::View &view = state.m_OM.DepthTarget;
 
-      if(rs.dsv.heap != ResourceId())
+      if(rs.dsv.ptr)
       {
-        D3D12Descriptor *desc = DescriptorFromPortableHandle(rm, rs.dsv);
+        D3D12Descriptor *desc = GetWrapped(rs.dsv);
 
         view.RootElement = 0;
         view.Immediate = false;
@@ -1255,12 +1253,10 @@ bool D3D12Replay::IsRenderOutput(ResourceId id)
 
   for(size_t i = 0; i < rs.rts.size(); i++)
   {
-    PortableHandle h = rs.rtSingle ? rs.rts[0] : rs.rts[i];
+    D3D12Descriptor *desc = rs.rtSingle ? GetWrapped(rs.rts[0]) : GetWrapped(rs.rts[i]);
 
-    if(h.heap != ResourceId())
+    if(desc)
     {
-      D3D12Descriptor *desc = DescriptorFromPortableHandle(m_pDevice->GetResourceManager(), h);
-
       if(rs.rtSingle)
         desc += i;
 
@@ -1269,9 +1265,9 @@ bool D3D12Replay::IsRenderOutput(ResourceId id)
     }
   }
 
-  if(rs.dsv.heap != ResourceId())
+  if(rs.dsv.ptr)
   {
-    D3D12Descriptor *desc = DescriptorFromPortableHandle(m_pDevice->GetResourceManager(), rs.dsv);
+    D3D12Descriptor *desc = GetWrapped(rs.dsv);
 
     if(id == GetResID(desc->nonsamp.resource))
       return true;

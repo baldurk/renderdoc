@@ -33,6 +33,7 @@
 #include "maths/vec.h"
 #include "stb/stb_truetype.h"
 #include "strings/string_utils.h"
+#include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 
@@ -6955,8 +6956,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
   ID3D12Resource *renderDepth = NULL;
 
-  D3D12Descriptor *dsView =
-      DescriptorFromPortableHandle(m_WrappedDevice->GetResourceManager(), rs.dsv);
+  D3D12Descriptor *dsView = GetWrapped(rs.dsv);
 
   D3D12_RESOURCE_DESC depthTexDesc = {};
   D3D12_DEPTH_STENCIL_VIEW_DESC dsViewDesc = {};
@@ -7141,8 +7141,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       rs.pipe = GetResID(pso);
       rs.rtSingle = true;
       rs.rts.resize(1);
-      rs.rts[0] = ToPortableHandle(rtv);
-      rs.dsv = PortableHandle();
+      rs.rts[0] = rtv;
+      rs.dsv = D3D12_CPU_DESCRIPTOR_HANDLE();
 
       m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
@@ -7233,8 +7233,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       rs.pipe = GetResID(redPSO);
       rs.rtSingle = true;
       rs.rts.resize(1);
-      rs.rts[0] = ToPortableHandle(rtv);
-      rs.dsv = PortableHandle();
+      rs.rts[0] = rtv;
+      rs.dsv = D3D12_CPU_DESCRIPTOR_HANDLE();
 
       m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
@@ -7312,8 +7312,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       rs.pipe = GetResID(pso);
       rs.rtSingle = true;
       rs.rts.resize(1);
-      rs.rts[0] = ToPortableHandle(rtv);
-      rs.dsv = ToPortableHandle(dsv);
+      rs.rts[0] = rtv;
+      rs.dsv = dsv;
 
       m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
@@ -7341,7 +7341,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       list = NULL;
 
       bool rtSingle = rs.rtSingle;
-      vector<PortableHandle> rts = rs.rts;
+      std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rts = rs.rts;
 
       if(overlay == DebugOverlay::ClearBeforePass)
         m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
@@ -7350,20 +7350,14 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
       for(size_t i = 0; i < rts.size(); i++)
       {
-        PortableHandle ph = rtSingle ? rts[0] : rts[i];
+        D3D12Descriptor *desc = rtSingle ? GetWrapped(rts[0]) : GetWrapped(rts[i]);
 
-        WrappedID3D12DescriptorHeap *heap =
-            m_WrappedDevice->GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(ph.heap);
-
-        if(heap)
+        if(desc)
         {
-          D3D12_CPU_DESCRIPTOR_HANDLE clearrtv = heap->GetCPUDescriptorHandleForHeapStart();
-          clearrtv.ptr += ph.index * sizeof(D3D12Descriptor);
-
           if(rtSingle)
-            clearrtv.ptr += i * sizeof(D3D12Descriptor);
+            desc += i;
 
-          list->ClearRenderTargetView(clearrtv, black, 0, NULL);
+          Unwrap(list)->ClearRenderTargetView(UnwrapCPU(desc), black, 0, NULL);
         }
       }
 
@@ -7519,13 +7513,9 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
       Vec4f viewport(rs.views[0].Width, rs.views[0].Height);
 
-      if(rs.dsv.heap != ResourceId())
+      if(rs.dsv.ptr)
       {
-        WrappedID3D12DescriptorHeap *realDSVHeap =
-            m_WrappedDevice->GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(rs.dsv.heap);
-
-        D3D12_CPU_DESCRIPTOR_HANDLE realDSV = realDSVHeap->GetCPUDescriptorHandleForHeapStart();
-        realDSV.ptr += sizeof(D3D12Descriptor) * rs.dsv.index;
+        D3D12_CPU_DESCRIPTOR_HANDLE realDSV = Unwrap(rs.dsv);
 
         list->OMSetRenderTargets(1, &rtv, TRUE, &realDSV);
       }
@@ -7856,8 +7846,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       rs.pipe = GetResID(redPSO);
       rs.rtSingle = true;
       rs.rts.resize(1);
-      rs.rts[0] = ToPortableHandle(rtv);
-      rs.dsv = ToPortableHandle(dsv);
+      rs.rts[0] = rtv;
+      rs.dsv = dsv;
 
       m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 

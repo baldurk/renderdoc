@@ -121,57 +121,24 @@ struct D3D12DrawcallCallback
   virtual void AliasEvent(uint32_t primary, uint32_t alias) = 0;
 };
 
+class WrappedID3D12CommandSignature;
+
 struct BakedCmdListInfo
 {
-  void BakeFrom(ResourceId parentID, BakedCmdListInfo &parent)
-  {
-    draw = parent.draw;
-    curEvents = parent.curEvents;
-    debugMessages = parent.debugMessages;
-    eventCount = parent.curEventID;
-    drawCount = parent.drawCount;
-    crackedLists.swap(parent.crackedLists);
-    executeEvents.swap(parent.executeEvents);
-
-    parentList = parentID;
-
-    curEventID = 0;
-
-    parent.draw = NULL;
-    parent.curEventID = 0;
-    parent.eventCount = 0;
-    parent.drawCount = 0;
-    parent.curEvents.clear();
-    parent.debugMessages.clear();
-  }
-
   void ShiftForRemoved(uint32_t shiftDrawID, uint32_t shiftEID, size_t idx);
 
   struct ExecuteData
   {
-    ExecuteData()
-        : baseEvent(0),
-          lastEvent(0),
-          patched(false),
-          argBuf(NULL),
-          countBuf(NULL),
-          argOffs(0),
-          countOffs(0),
-          maxCount(0),
-          realCount(0)
-    {
-    }
-
-    uint32_t baseEvent;
-    uint32_t lastEvent;
-    bool patched;
-    ID3D12Resource *argBuf;
-    ID3D12Resource *countBuf;
-    uint64_t argOffs;
-    uint64_t countOffs;
-    ResourceId sig;
-    UINT maxCount;
-    UINT realCount;
+    uint32_t baseEvent = 0;
+    uint32_t lastEvent = 0;
+    bool patched = false;
+    ID3D12Resource *argBuf = NULL;
+    ID3D12Resource *countBuf = NULL;
+    uint64_t argOffs = 0;
+    uint64_t countOffs = 0;
+    WrappedID3D12CommandSignature *sig = NULL;
+    UINT maxCount = 0;
+    UINT realCount = 0;
   };
 
   vector<ID3D12GraphicsCommandList *> crackedLists;

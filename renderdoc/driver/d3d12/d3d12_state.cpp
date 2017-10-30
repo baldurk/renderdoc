@@ -34,7 +34,7 @@ D3D12RenderState::D3D12RenderState()
 
   rts.clear();
   rtSingle = false;
-  dsv = PortableHandle();
+  dsv = D3D12_CPU_DESCRIPTOR_HANDLE();
 
   m_ResourceManager = NULL;
 
@@ -89,7 +89,7 @@ vector<ResourceId> D3D12RenderState::GetRTVIDs() const
   {
     if(!rts.empty())
     {
-      const D3D12Descriptor *descs = DescriptorFromPortableHandle(GetResourceManager(), rts[0]);
+      const D3D12Descriptor *descs = GetWrapped(rts[0]);
 
       for(UINT i = 0; i < rts.size(); i++)
       {
@@ -102,13 +102,10 @@ vector<ResourceId> D3D12RenderState::GetRTVIDs() const
   {
     for(UINT i = 0; i < rts.size(); i++)
     {
-      WrappedID3D12DescriptorHeap *heap =
-          GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(rts[0].heap);
+      const D3D12Descriptor *desc = GetWrapped(rts[i]);
 
-      const D3D12Descriptor &desc = heap->GetDescriptors()[rts[i].index];
-
-      RDCASSERT(desc.GetType() == D3D12DescriptorType::RTV);
-      ret.push_back(GetResID(desc.nonsamp.resource));
+      RDCASSERT(desc->GetType() == D3D12DescriptorType::RTV);
+      ret.push_back(GetResID(desc->nonsamp.resource));
     }
   }
 
@@ -117,9 +114,9 @@ vector<ResourceId> D3D12RenderState::GetRTVIDs() const
 
 ResourceId D3D12RenderState::GetDSVID() const
 {
-  if(dsv.heap != ResourceId())
+  if(dsv.ptr)
   {
-    const D3D12Descriptor *desc = DescriptorFromPortableHandle(GetResourceManager(), dsv);
+    const D3D12Descriptor *desc = GetWrapped(dsv);
 
     RDCASSERT(desc->GetType() == D3D12DescriptorType::DSV);
 
@@ -186,20 +183,20 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd) const
       }
     }
 
-    if(!rts.empty() || dsv.heap != ResourceId())
+    if(!rts.empty() || dsv.ptr)
     {
       D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
-      D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = CPUHandleFromPortableHandle(GetResourceManager(), dsv);
+      D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = Unwrap(dsv);
 
       UINT rtCount = (UINT)rts.size();
       UINT numActualHandles = rtSingle ? RDCMIN(1U, rtCount) : rtCount;
 
       for(UINT i = 0; i < numActualHandles; i++)
-        rtHandles[i] = CPUHandleFromPortableHandle(GetResourceManager(), rts[i]);
+        rtHandles[i] = Unwrap(rts[i]);
 
       // need to unwrap here, as FromPortableHandle unwraps too.
       Unwrap(cmd)->OMSetRenderTargets((UINT)rts.size(), rtHandles, rtSingle ? TRUE : FALSE,
-                                      dsv.heap != ResourceId() ? &dsvHandle : NULL);
+                                      dsv.ptr ? &dsvHandle : NULL);
     }
   }
 
