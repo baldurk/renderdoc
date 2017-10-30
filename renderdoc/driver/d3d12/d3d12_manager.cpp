@@ -39,7 +39,7 @@ void D3D12Descriptor::Init(const D3D12_SAMPLER_DESC *pDesc)
 
 void D3D12Descriptor::Init(const D3D12_CONSTANT_BUFFER_VIEW_DESC *pDesc)
 {
-  nonsamp.type = TypeCBV;
+  nonsamp.type = D3D12DescriptorType::CBV;
   nonsamp.resource = NULL;
   if(pDesc)
     nonsamp.cbv = *pDesc;
@@ -49,7 +49,7 @@ void D3D12Descriptor::Init(const D3D12_CONSTANT_BUFFER_VIEW_DESC *pDesc)
 
 void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_SHADER_RESOURCE_VIEW_DESC *pDesc)
 {
-  nonsamp.type = TypeSRV;
+  nonsamp.type = D3D12DescriptorType::SRV;
   nonsamp.resource = pResource;
   if(pDesc)
     nonsamp.srv = *pDesc;
@@ -60,7 +60,7 @@ void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_SHADER_RESOURC
 void D3D12Descriptor::Init(ID3D12Resource *pResource, ID3D12Resource *pCounterResource,
                            const D3D12_UNORDERED_ACCESS_VIEW_DESC *pDesc)
 {
-  nonsamp.type = TypeUAV;
+  nonsamp.type = D3D12DescriptorType::UAV;
   nonsamp.resource = pResource;
   nonsamp.uav.counterResource = pCounterResource;
   if(pDesc)
@@ -71,7 +71,7 @@ void D3D12Descriptor::Init(ID3D12Resource *pResource, ID3D12Resource *pCounterRe
 
 void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_RENDER_TARGET_VIEW_DESC *pDesc)
 {
-  nonsamp.type = TypeRTV;
+  nonsamp.type = D3D12DescriptorType::RTV;
   nonsamp.resource = pResource;
   if(pDesc)
     nonsamp.rtv = *pDesc;
@@ -81,7 +81,7 @@ void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_RENDER_TARGET_
 
 void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC *pDesc)
 {
-  nonsamp.type = TypeDSV;
+  nonsamp.type = D3D12DescriptorType::DSV;
   nonsamp.resource = pResource;
   if(pDesc)
     nonsamp.dsv = *pDesc;
@@ -127,21 +127,21 @@ static D3D12_UNORDERED_ACCESS_VIEW_DESC *defaultUAV()
 void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12Device *dev,
                              D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
-  D3D12Descriptor::DescriptorType type = GetType();
+  D3D12DescriptorType type = GetType();
 
   switch(type)
   {
-    case D3D12Descriptor::TypeSampler:
+    case D3D12DescriptorType::Sampler:
     {
       dev->CreateSampler(&samp.desc, handle);
       break;
     }
-    case D3D12Descriptor::TypeCBV:
+    case D3D12DescriptorType::CBV:
     {
       dev->CreateConstantBufferView(&nonsamp.cbv, handle);
       break;
     }
-    case D3D12Descriptor::TypeSRV:
+    case D3D12DescriptorType::SRV:
     {
       D3D12_SHADER_RESOURCE_VIEW_DESC *desc = &nonsamp.srv;
       if(desc->ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
@@ -264,7 +264,7 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       dev->CreateShaderResourceView(nonsamp.resource, desc, handle);
       break;
     }
-    case D3D12Descriptor::TypeRTV:
+    case D3D12DescriptorType::RTV:
     {
       D3D12_RENDER_TARGET_VIEW_DESC *desc = &nonsamp.rtv;
       if(desc->ViewDimension == D3D12_RTV_DIMENSION_UNKNOWN)
@@ -366,7 +366,7 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       dev->CreateRenderTargetView(nonsamp.resource, desc, handle);
       break;
     }
-    case D3D12Descriptor::TypeDSV:
+    case D3D12DescriptorType::DSV:
     {
       D3D12_DEPTH_STENCIL_VIEW_DESC *desc = &nonsamp.dsv;
       if(desc->ViewDimension == D3D12_DSV_DIMENSION_UNKNOWN)
@@ -410,7 +410,7 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       dev->CreateDepthStencilView(nonsamp.resource, desc, handle);
       break;
     }
-    case D3D12Descriptor::TypeUAV:
+    case D3D12DescriptorType::UAV:
     {
       D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc = nonsamp.uav.desc.AsDesc();
 
@@ -524,7 +524,7 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       dev->CreateUnorderedAccessView(nonsamp.resource, counter, desc, handle);
       break;
     }
-    case D3D12Descriptor::TypeUndefined:
+    case D3D12DescriptorType::Undefined:
     {
       // initially descriptors are undefined. This way we just init with
       // a null descriptor so it's valid to copy around etc but is no
@@ -562,19 +562,19 @@ void D3D12Descriptor::GetRefIDs(ResourceId &id, ResourceId &id2, FrameRefType &r
 
   switch(GetType())
   {
-    case D3D12Descriptor::TypeUndefined:
-    case D3D12Descriptor::TypeSampler:
+    case D3D12DescriptorType::Undefined:
+    case D3D12DescriptorType::Sampler:
       // nothing to do - no resource here
       break;
-    case D3D12Descriptor::TypeCBV:
+    case D3D12DescriptorType::CBV:
       id = WrappedID3D12Resource::GetResIDFromAddr(nonsamp.cbv.BufferLocation);
       break;
-    case D3D12Descriptor::TypeSRV: id = GetResID(nonsamp.resource); break;
-    case D3D12Descriptor::TypeUAV:
+    case D3D12DescriptorType::SRV: id = GetResID(nonsamp.resource); break;
+    case D3D12DescriptorType::UAV:
       id2 = GetResID(nonsamp.uav.counterResource);
     // deliberate fall-through
-    case D3D12Descriptor::TypeRTV:
-    case D3D12Descriptor::TypeDSV:
+    case D3D12DescriptorType::RTV:
+    case D3D12DescriptorType::DSV:
       ref = eFrameRef_Write;
       id = GetResID(nonsamp.resource);
       break;

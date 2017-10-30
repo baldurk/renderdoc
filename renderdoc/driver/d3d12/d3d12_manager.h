@@ -50,6 +50,8 @@ enum D3D12ResourceType
   Resource_PipelineLibrary,
 };
 
+DECLARE_REFLECTION_ENUM(D3D12ResourceType);
+
 class WrappedID3D12DescriptorHeap;
 
 // squeeze the descriptor a bit so that the below struct fits in 64 bytes
@@ -117,27 +119,29 @@ struct D3D12_UNORDERED_ACCESS_VIEW_DESC_SQUEEZED
   }
 };
 
+enum class D3D12DescriptorType
+{
+  // we start at 0x1000 since this element will alias with the filter
+  // in the sampler, to save space
+  Sampler,
+  CBV = 0x1000,
+  SRV,
+  UAV,
+  RTV,
+  DSV,
+  Undefined,
+};
+
+DECLARE_REFLECTION_ENUM(D3D12DescriptorType);
+
 struct D3D12Descriptor
 {
-  enum DescriptorType
-  {
-    // we start at 0x1000 since this element will alias with the filter
-    // in the sampler, to save space
-    TypeSampler,
-    TypeCBV = 0x1000,
-    TypeSRV,
-    TypeUAV,
-    TypeRTV,
-    TypeDSV,
-    TypeUndefined,
-  };
-
-  DescriptorType GetType() const
+  D3D12DescriptorType GetType() const
   {
     RDCCOMPILE_ASSERT(sizeof(D3D12Descriptor) <= 64, "D3D12Descriptor has gotten larger");
 
-    if(nonsamp.type < TypeCBV)
-      return TypeSampler;
+    if(nonsamp.type < D3D12DescriptorType::CBV)
+      return D3D12DescriptorType::Sampler;
 
     return nonsamp.type;
   }
@@ -189,7 +193,7 @@ struct D3D12Descriptor
 
       // this element overlaps with the D3D12_FILTER in D3D12_SAMPLER_DESC,
       // with values that are invalid for filter
-      DescriptorType type;
+      D3D12DescriptorType type;
 
       ID3D12Resource *resource;
 
@@ -208,6 +212,8 @@ struct D3D12Descriptor
     } nonsamp;
   };
 };
+
+DECLARE_REFLECTION_STRUCT(D3D12Descriptor);
 
 inline D3D12Descriptor *GetWrapped(D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
@@ -232,6 +238,8 @@ struct PortableHandle
   ResourceId heap;
   uint32_t index;
 };
+
+DECLARE_REFLECTION_STRUCT(PortableHandle);
 
 class D3D12ResourceManager;
 
@@ -263,6 +271,8 @@ struct DynamicDescriptorCopy
   D3D12Descriptor *src;
   D3D12_DESCRIPTOR_HEAP_TYPE type;
 };
+
+DECLARE_REFLECTION_STRUCT(DynamicDescriptorCopy);
 
 struct D3D12ResourceRecord;
 

@@ -111,6 +111,7 @@
     <ClCompile Include="d3d12_manager.cpp" />
     <ClCompile Include="d3d12_replay.cpp" />
     <ClCompile Include="d3d12_resources.cpp" />
+    <ClCompile Include="d3d12_serialise.cpp" />
     <ClCompile Include="d3d12_state.cpp" />
     <ClCompile Include="d3d12_stringise.cpp" />
     <ClCompile Include="precompiled.cpp">

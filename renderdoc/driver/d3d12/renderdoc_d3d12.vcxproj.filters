@@ -113,5 +113,8 @@
     <ClCompile Include="d3d12_initstate.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12_serialise.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

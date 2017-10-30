@@ -324,7 +324,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
 {
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  if(desc->GetType() == D3D12Descriptor::TypeSampler || desc->GetType() == D3D12Descriptor::TypeCBV)
+  if(desc->GetType() == D3D12DescriptorType::Sampler || desc->GetType() == D3D12DescriptorType::CBV)
   {
     return;
   }
@@ -339,11 +339,11 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
   {
     DXGI_FORMAT fmt = DXGI_FORMAT_UNKNOWN;
 
-    if(desc->GetType() == D3D12Descriptor::TypeRTV)
+    if(desc->GetType() == D3D12DescriptorType::RTV)
       fmt = desc->nonsamp.rtv.Format;
-    else if(desc->GetType() == D3D12Descriptor::TypeSRV)
+    else if(desc->GetType() == D3D12DescriptorType::SRV)
       fmt = desc->nonsamp.srv.Format;
-    else if(desc->GetType() == D3D12Descriptor::TypeUAV)
+    else if(desc->GetType() == D3D12DescriptorType::UAV)
       fmt = (DXGI_FORMAT)desc->nonsamp.uav.desc.Format;
 
     if(fmt == DXGI_FORMAT_UNKNOWN)
@@ -353,7 +353,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
 
     view.Format = MakeResourceFormat(fmt);
 
-    if(desc->GetType() == D3D12Descriptor::TypeRTV)
+    if(desc->GetType() == D3D12DescriptorType::RTV)
     {
       view.Type = MakeTextureDim(desc->nonsamp.rtv.ViewDimension);
 
@@ -397,7 +397,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
         view.HighestMip = desc->nonsamp.rtv.Texture3D.MipSlice;
       }
     }
-    else if(desc->GetType() == D3D12Descriptor::TypeDSV)
+    else if(desc->GetType() == D3D12DescriptorType::DSV)
     {
       view.Type = MakeTextureDim(desc->nonsamp.dsv.ViewDimension);
 
@@ -430,7 +430,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
         view.FirstArraySlice = desc->nonsamp.dsv.Texture2DArray.FirstArraySlice;
       }
     }
-    else if(desc->GetType() == D3D12Descriptor::TypeSRV)
+    else if(desc->GetType() == D3D12DescriptorType::SRV)
     {
       view.Type = MakeTextureDim(desc->nonsamp.srv.ViewDimension);
 
@@ -495,7 +495,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
         view.MinLODClamp = desc->nonsamp.srv.Texture3D.ResourceMinLODClamp;
       }
     }
-    else if(desc->GetType() == D3D12Descriptor::TypeUAV)
+    else if(desc->GetType() == D3D12DescriptorType::UAV)
     {
       D3D12_UNORDERED_ACCESS_VIEW_DESC uav = desc->nonsamp.uav.desc.AsDesc();
 
