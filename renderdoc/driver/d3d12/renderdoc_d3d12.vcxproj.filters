@@ -110,5 +110,8 @@
     <ClCompile Include="d3d12_stringise.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12_initstate.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
