@@ -724,41 +724,41 @@ void D3D12ResourceManager::ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barrier
   }
 }
 
-void D3D12ResourceManager::SerialiseResourceStates(vector<D3D12_RESOURCE_BARRIER> &barriers,
-                                                   map<ResourceId, SubresourceStateVector> &states)
+template <typename SerialiserType>
+void D3D12ResourceManager::SerialiseResourceStates(SerialiserType &ser,
+                                                   std::vector<D3D12_RESOURCE_BARRIER> &barriers,
+                                                   std::map<ResourceId, SubresourceStateVector> &states)
 {
-  SERIALISE_ELEMENT(uint32_t, NumMems, (uint32_t)states.size());
+  SERIALISE_ELEMENT_LOCAL(NumMems, (uint32_t)states.size());
 
   auto srcit = states.begin();
 
   for(uint32_t i = 0; i < NumMems; i++)
   {
-    SERIALISE_ELEMENT(ResourceId, id, srcit->first);
-    SERIALISE_ELEMENT(uint32_t, NumStates, (uint32_t)srcit->second.size());
+    SERIALISE_ELEMENT_LOCAL(Resource, srcit->first);
+    SERIALISE_ELEMENT_LOCAL(States, srcit->second);
 
     ResourceId liveid;
-    if(m_State < WRITING && HasLiveResource(id))
-      liveid = GetLiveID(id);
+    if(IsReplayingAndReading() && HasLiveResource(Resource))
+      liveid = GetLiveID(Resource);
 
-    for(uint32_t m = 0; m < NumStates; m++)
+    if(IsReplayingAndReading() && liveid != ResourceId())
     {
-      SERIALISE_ELEMENT(D3D12_RESOURCE_STATES, state, srcit->second[m]);
-
-      if(m_State < WRITING && liveid != ResourceId() && srcit != states.end())
+      for(size_t m = 0; m < States.size(); m++)
       {
         D3D12_RESOURCE_BARRIER b;
         b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
         b.Transition.pResource = (ID3D12Resource *)GetCurrentResource(liveid);
-        b.Transition.Subresource = m;
+        b.Transition.Subresource = (UINT)m;
         b.Transition.StateBefore = states[liveid][m];
-        b.Transition.StateAfter = state;
+        b.Transition.StateAfter = States[m];
 
         barriers.push_back(b);
       }
     }
 
-    if(m_State >= WRITING)
+    if(ser.IsWriting())
       srcit++;
   }
 
@@ -773,6 +773,13 @@ void D3D12ResourceManager::SerialiseResourceStates(vector<D3D12_RESOURCE_BARRIER
 
   ApplyBarriers(barriers, states);
 }
+
+template void D3D12ResourceManager::SerialiseResourceStates(
+    ReadSerialiser &ser, std::vector<D3D12_RESOURCE_BARRIER> &barriers,
+    std::map<ResourceId, SubresourceStateVector> &states);
+template void D3D12ResourceManager::SerialiseResourceStates(
+    WriteSerialiser &ser, std::vector<D3D12_RESOURCE_BARRIER> &barriers,
+    std::map<ResourceId, SubresourceStateVector> &states);
 
 bool D3D12ResourceManager::SerialisableResource(ResourceId id, D3D12ResourceRecord *record)
 {

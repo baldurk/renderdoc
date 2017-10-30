@@ -372,7 +372,7 @@ struct GPUAddressRangeTracker
 
 struct MapState
 {
-  WrappedID3D12Resource *res;
+  ID3D12Resource *res;
   UINT subres;
   UINT64 totalSize;
 };
@@ -443,11 +443,10 @@ class D3D12ResourceManager
     : public ResourceManager<ID3D12DeviceChild *, ID3D12DeviceChild *, D3D12ResourceRecord>
 {
 public:
-  D3D12ResourceManager(LogState state, Serialiser *ser, WrappedID3D12Device *dev)
-      : ResourceManager(state, ser), m_Device(dev)
+  D3D12ResourceManager(CaptureState state, WrappedID3D12Device *dev)
+      : ResourceManager(), m_State(state), m_Device(dev)
   {
   }
-
   template <class T>
   T *GetLiveAs(ResourceId id)
   {
@@ -463,10 +462,12 @@ public:
   void ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers,
                      map<ResourceId, SubresourceStateVector> &states);
 
-  void SerialiseResourceStates(vector<D3D12_RESOURCE_BARRIER> &barriers,
-                               map<ResourceId, SubresourceStateVector> &states);
+  template <typename SerialiserType>
+  void SerialiseResourceStates(SerialiserType &ser, std::vector<D3D12_RESOURCE_BARRIER> &barriers,
+                               std::map<ResourceId, SubresourceStateVector> &states);
 
-  bool Serialise_InitialState(ResourceId resid, ID3D12DeviceChild *res);
+  template <typename SerialiserType>
+  bool Serialise_InitialState(SerialiserType &ser, ResourceId resid, ID3D12DeviceChild *res);
 
 private:
   bool SerialisableResource(ResourceId id, D3D12ResourceRecord *record);
@@ -477,8 +478,14 @@ private:
   bool Force_InitialState(ID3D12DeviceChild *res, bool prepare);
   bool Need_InitialStateChunk(ID3D12DeviceChild *res);
   bool Prepare_InitialState(ID3D12DeviceChild *res);
+  uint32_t GetSize_InitialState(ResourceId id, ID3D12DeviceChild *res);
+  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, ID3D12DeviceChild *res)
+  {
+    return Serialise_InitialState<WriteSerialiser>(ser, resid, res);
+  }
   void Create_InitialState(ResourceId id, ID3D12DeviceChild *live, bool hasData);
   void Apply_InitialState(ID3D12DeviceChild *live, InitialContentData data);
 
+  CaptureState m_State;
   WrappedID3D12Device *m_Device;
 };
