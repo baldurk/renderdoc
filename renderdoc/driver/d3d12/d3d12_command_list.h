@@ -123,10 +123,8 @@ public:
   ID3D12GraphicsCommandList *GetReal() { return m_pReal; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   D3D12ResourceRecord *GetResourceRecord() { return m_ListRecord; }
-  ID3D12GraphicsCommandList *GetList(ResourceId id);
-  ID3D12GraphicsCommandList *GetWrappedList(ResourceId id);
-  ID3D12GraphicsCommandList *GetCrackedList(ResourceId id);
-  ID3D12GraphicsCommandList *GetWrappedCrackedList(ResourceId id);
+  ID3D12GraphicsCommandList *GetCrackedList();
+  ID3D12GraphicsCommandList *GetWrappedCrackedList();
 
   void SetAMDMarkerInterface(IAmdExtD3DCommandListMarker *marker) { m_AMDMarkers = marker; }
   void SetCommandData(D3D12CommandData *cmd) { m_Cmd = cmd; }
@@ -137,7 +135,7 @@ public:
     m_Init.type = type;
   }
 
-  bool ValidateRootGPUVA(ResourceId buffer);
+  bool ValidateRootGPUVA(D3D12_GPU_VIRTUAL_ADDRESS buffer);
 
   //////////////////////////////
   // implement IUnknown
@@ -376,7 +374,8 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, EndEvent, );
 
-  void ReserveExecuteIndirect(ID3D12GraphicsCommandList *list, ResourceId sig, UINT maxCount);
+  void ReserveExecuteIndirect(ID3D12GraphicsCommandList *list,
+                              WrappedID3D12CommandSignature *comSig, UINT maxCount);
   void PatchExecuteIndirect(BakedCmdListInfo &info, uint32_t executeIndex);
   void ReplayExecuteIndirect(ID3D12GraphicsCommandList *list, BakedCmdListInfo &info);
 

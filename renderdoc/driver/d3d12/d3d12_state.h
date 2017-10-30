@@ -52,9 +52,9 @@ struct D3D12RenderState
   vector<D3D12_VIEWPORT> views;
   vector<D3D12_RECT> scissors;
 
-  vector<PortableHandle> rts;
+  vector<D3D12_CPU_DESCRIPTOR_HANDLE> rts;
   bool rtSingle;
-  PortableHandle dsv;
+  D3D12_CPU_DESCRIPTOR_HANDLE dsv;
 
   vector<ResourceId> GetRTVIDs() const;
   ResourceId GetDSVID() const;
