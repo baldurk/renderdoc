@@ -254,95 +254,74 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
   return false;
 }
 
-bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12DeviceChild *liveRes)
+uint32_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, ID3D12DeviceChild *res)
 {
-  D3D12ResourceRecord *record = NULL;
-  if(m_State >= WRITING)
-    record = GetResourceRecord(resid);
+  D3D12ResourceRecord *record = GetResourceRecord(id);
+  D3D12ResourceManager::InitialContentData initContents = GetInitialContents(id);
 
-  SERIALISE_ELEMENT(ResourceId, id, resid);
-  SERIALISE_ELEMENT(D3D12ResourceType, type, record->type);
-
-  if(m_State >= WRITING)
+  if(record->type == Resource_DescriptorHeap)
   {
-    D3D12ResourceManager::InitialContentData initContents = GetInitialContents(id);
+    // the initial contents are just the descriptors. Estimate the serialise size here
+    const uint32_t descriptorSerSize = 40 + sizeof(D3D12_UNORDERED_ACCESS_VIEW_DESC);
 
-    if(type == Resource_DescriptorHeap)
+    return initContents.num * descriptorSerSize;
+  }
+  else if(record->type == Resource_Resource)
+  {
+    ID3D12Resource *buf = (ID3D12Resource *)initContents.resource;
+
+    if(initContents.num == 1)
     {
-      D3D12Descriptor *descs = (D3D12Descriptor *)initContents.blob;
-      uint32_t numElems = initContents.num;
-
-      m_pSerialiser->SerialiseComplexArray("Descriptors", descs, numElems);
+      buf = (ID3D12Resource *)res;
     }
-    else if(type == Resource_Resource)
+    else if(initContents.num == 2)
     {
-      m_Device->ExecuteLists();
-      m_Device->FlushLists();
-
-      ID3D12Resource *copiedBuffer = (ID3D12Resource *)initContents.resource;
-
-      if(initContents.num == 1)
-      {
-        copiedBuffer = (ID3D12Resource *)liveRes;
-      }
-
-      if(initContents.num == 2)
-      {
-        D3D12NOTIMP("Multisampled initial contents");
-        return true;
-      }
-
-      byte dummy[4] = {};
-      byte *ptr = NULL;
-      uint64_t size = 0;
-
-      HRESULT hr = E_NOINTERFACE;
-
-      if(copiedBuffer)
-      {
-        hr = copiedBuffer->Map(0, NULL, (void **)&ptr);
-        size = (uint64_t)copiedBuffer->GetDesc().Width;
-      }
-
-      if(FAILED(hr) || ptr == NULL)
-      {
-        size = 4;
-        ptr = dummy;
-
-        RDCERR("Failed to map buffer for readback! 0x%08x", hr);
-      }
-
-      m_pSerialiser->Serialise("NumBytes", size);
-      size_t sz = (size_t)size;
-      m_pSerialiser->SerialiseBuffer("BufferData", ptr, sz);
-
-      if(SUCCEEDED(hr) && ptr)
-        copiedBuffer->Unmap(0, NULL);
-
-      return true;
+      D3D12NOTIMP("Multisampled initial contents");
+      buf = NULL;
     }
-    else
-    {
-      RDCERR("Unexpected type needing an initial state serialised out: %d", type);
-      return false;
-    }
+
+    return (uint32_t)WriteSerialiser::GetChunkAlignment() + 16 +
+           uint32_t(buf ? buf->GetDesc().Width : 0);
   }
   else
   {
-    ID3D12DeviceChild *res = GetLiveResource(id);
+    RDCERR("Unexpected type needing an initial state serialised: %d", record->type);
+  }
 
-    RDCASSERT(res != NULL);
+  return 16;
+}
 
-    ResourceId liveid = GetLiveID(id);
+template <typename SerialiserType>
+bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId resid,
+                                                  ID3D12DeviceChild *liveRes)
+{
+  D3D12ResourceRecord *record = NULL;
+  D3D12ResourceManager::InitialContentData initContents;
+  if(ser.IsWriting())
+  {
+    record = GetResourceRecord(resid);
+    initContents = GetInitialContents(resid);
+  }
 
-    if(type == Resource_DescriptorHeap)
+  SERIALISE_ELEMENT_LOCAL(id, resid);
+  SERIALISE_ELEMENT_LOCAL(type, record->type);
+
+  if(IsReplayingAndReading())
+  {
+    liveRes = GetLiveResource(id);
+    RDCASSERT(liveRes);
+  }
+
+  if(type == Resource_DescriptorHeap)
+  {
+    D3D12Descriptor *Descriptors = (D3D12Descriptor *)initContents.blob;
+    uint32_t numElems = initContents.num;
+
+    SERIALISE_ELEMENT_ARRAY(Descriptors, numElems);
+
+    if(IsReplayingAndReading())
     {
-      WrappedID3D12DescriptorHeap *heap = (WrappedID3D12DescriptorHeap *)res;
-
-      uint32_t numElems = 0;
-      D3D12Descriptor *descs = NULL;
-
-      m_pSerialiser->SerialiseComplexArray("Descriptors", descs, numElems);
+      WrappedID3D12DescriptorHeap *heap = (WrappedID3D12DescriptorHeap *)liveRes;
 
       D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
 
@@ -367,91 +346,148 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
 
       for(uint32_t i = 0; i < numElems; i++)
       {
-        descs[i].Create(desc.Type, m_Device, handle);
+        Descriptors[i].Create(desc.Type, m_Device, handle);
 
         handle.ptr += increment;
       }
 
-      SAFE_DELETE_ARRAY(descs);
-
       SetInitialContents(id, D3D12ResourceManager::InitialContentData(type, copyheap, 0, NULL));
     }
-    else if(type == Resource_Resource)
+  }
+  else if(type == Resource_Resource)
+  {
+    byte *ResourceContents = NULL;
+    uint64_t ContentsLength = 0;
+    byte *dummy = NULL;
+    ID3D12Resource *mappedBuffer = NULL;
+
+    if(ser.IsWriting())
     {
-      D3D12_RESOURCE_DESC resDesc = ((ID3D12Resource *)res)->GetDesc();
+      m_Device->ExecuteLists();
+      m_Device->FlushLists();
+
+      mappedBuffer = (ID3D12Resource *)initContents.resource;
+
+      if(initContents.num == 1)
+      {
+        mappedBuffer = (ID3D12Resource *)liveRes;
+      }
+      else if(initContents.num == 2)
+      {
+        D3D12NOTIMP("Multisampled initial contents");
+        mappedBuffer = NULL;
+      }
+
+      if(mappedBuffer)
+      {
+        HRESULT hr = mappedBuffer->Map(0, NULL, (void **)&ResourceContents);
+        ContentsLength = mappedBuffer->GetDesc().Width;
+
+        if(FAILED(hr) || ResourceContents == NULL)
+        {
+          ContentsLength = 0;
+          ResourceContents = NULL;
+          mappedBuffer = NULL;
+
+          RDCERR("Failed to map buffer for readback! %s", ToStr(hr).c_str());
+        }
+      }
+    }
+
+    // serialise the size separately so we can recreate on replay
+    SERIALISE_ELEMENT(ContentsLength);
+
+    if(IsReplayingAndReading())
+    {
+      D3D12_RESOURCE_DESC resDesc = ((ID3D12Resource *)liveRes)->GetDesc();
 
       if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && resDesc.SampleDesc.Count > 1)
       {
         D3D12NOTIMP("Multisampled initial contents");
-        return true;
       }
-
-      uint64_t size = 0;
-
-      m_pSerialiser->Serialise("NumBytes", size);
-
-      D3D12_HEAP_PROPERTIES heapProps;
-      heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-      heapProps.CreationNodeMask = 1;
-      heapProps.VisibleNodeMask = 1;
-
-      D3D12_RESOURCE_DESC desc;
-      desc.Alignment = 0;
-      desc.DepthOrArraySize = 1;
-      desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-      desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-      desc.Format = DXGI_FORMAT_UNKNOWN;
-      desc.Height = 1;
-      desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-      desc.MipLevels = 1;
-      desc.SampleDesc.Count = 1;
-      desc.SampleDesc.Quality = 0;
-      desc.Width = size;
-
-      ID3D12Resource *copySrc = NULL;
-      HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
-          &heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
-          __uuidof(ID3D12Resource), (void **)&copySrc);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Couldn't create upload buffer: 0x%08x", hr);
-        return false;
-      }
-
-      byte *ptr = NULL;
-      hr = copySrc->Map(0, NULL, (void **)&ptr);
-
-      if(FAILED(hr))
-      {
-        RDCERR("Couldn't map upload buffer: 0x%08x", hr);
-        ptr = NULL;
-      }
-
-      size_t sz = (size_t)size;
-
-      m_pSerialiser->SerialiseBuffer("BufferData", ptr, sz);
-
-      if(SUCCEEDED(hr))
-        copySrc->Unmap(0, NULL);
       else
-        SAFE_DELETE_ARRAY(ptr);
+      {
+        // create an upload buffer to contain the contents
+        D3D12_HEAP_PROPERTIES heapProps;
+        heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+        heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        heapProps.CreationNodeMask = 1;
+        heapProps.VisibleNodeMask = 1;
 
-      SetInitialContents(id, D3D12ResourceManager::InitialContentData(type, copySrc, 1, NULL));
+        D3D12_RESOURCE_DESC desc;
+        desc.Alignment = 0;
+        desc.DepthOrArraySize = 1;
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+        desc.Format = DXGI_FORMAT_UNKNOWN;
+        desc.Height = 1;
+        desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        desc.MipLevels = 1;
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+        desc.Width = ContentsLength;
 
-      return true;
+        ID3D12Resource *copySrc = NULL;
+        HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
+            &heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+            __uuidof(ID3D12Resource), (void **)&copySrc);
+
+        if(SUCCEEDED(hr))
+        {
+          mappedBuffer = copySrc;
+
+          // map the upload buffer to serialise into
+          hr = copySrc->Map(0, NULL, (void **)&ResourceContents);
+
+          if(FAILED(hr))
+          {
+            RDCERR("Created but couldn't map upload buffer: %s", ToStr(hr).c_str());
+            SAFE_RELEASE(copySrc);
+            mappedBuffer = NULL;
+            ResourceContents = NULL;
+          }
+        }
+        else
+        {
+          RDCERR("Couldn't create upload buffer: %s", ToStr(hr).c_str());
+          mappedBuffer = NULL;
+          ResourceContents = NULL;
+        }
+      }
+
+      // need to create a dummy buffer to serialise into if anything went wrong
+      if(ResourceContents == NULL && ContentsLength > 0)
+        ResourceContents = dummy = new byte[(size_t)ContentsLength];
     }
-    else
-    {
-      RDCERR("Unexpected type needing an initial state serialised in: %d", type);
-      return false;
-    }
+
+    // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
+    // directly into upload memory
+    ser.Serialise("ResourceContents", ResourceContents, ContentsLength, SerialiserFlags::NoFlags);
+
+    if(mappedBuffer)
+      mappedBuffer->Unmap(0, NULL);
+
+    SAFE_DELETE_ARRAY(dummy);
+
+    if(IsReplayingAndReading() && mappedBuffer)
+      SetInitialContents(id, D3D12ResourceManager::InitialContentData(type, mappedBuffer, 1, NULL));
+
+    return true;
+  }
+  else
+  {
+    RDCERR("Unexpected type needing an initial state serialised: %d", type);
+    return false;
   }
 
   return true;
 }
+
+template bool D3D12ResourceManager::Serialise_InitialState(ReadSerialiser &ser, ResourceId resid,
+                                                           ID3D12DeviceChild *liveRes);
+template bool D3D12ResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId resid,
+                                                           ID3D12DeviceChild *liveRes);
 
 void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild *live, bool hasData)
 {
