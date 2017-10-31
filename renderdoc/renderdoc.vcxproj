@@ -452,6 +452,9 @@
     <ProjectReference Include="driver\d3d11\renderdoc_d3d11.vcxproj">
       <Project>{f1e59a05-60d4-4927-9e57-dd191eae90ef}</Project>
     </ProjectReference>
+    <ProjectReference Include="driver\d3d12\renderdoc_d3d12.vcxproj">
+      <Project>{9e6b10a2-84b4-434d-abdb-43be4ea650f4}</Project>
+    </ProjectReference>
     <ProjectReference Include="driver\d3d8\renderdoc_d3d8.vcxproj">
       <Project>{9c4487e8-eeb0-4a7f-bd81-23f81cd24e22}</Project>
     </ProjectReference>
