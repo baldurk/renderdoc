@@ -221,7 +221,7 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       // ensure that multi-plane formats have a valid plane slice specified. This shouldn't be
       // possible as it should be the application's responsibility to be valid too, but we fix it up
       // here anyway.
-      if(nonsamp.resource)
+      if(nonsamp.resource && desc)
       {
         D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
         formatInfo.Format = desc->Format;
@@ -323,7 +323,7 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       // ensure that multi-plane formats have a valid plane slice specified. This shouldn't be
       // possible as it should be the application's responsibility to be valid too, but we fix it up
       // here anyway.
-      if(nonsamp.resource)
+      if(nonsamp.resource && desc)
       {
         D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
         formatInfo.Format = desc->Format;
@@ -481,7 +481,7 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       // ensure that multi-plane formats have a valid plane slice specified. This shouldn't be
       // possible as it should be the application's responsibility to be valid too, but we fix it up
       // here anyway.
-      if(nonsamp.resource)
+      if(nonsamp.resource && desc)
       {
         D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
         formatInfo.Format = desc->Format;
