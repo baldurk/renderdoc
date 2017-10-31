@@ -64,6 +64,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vulkan", "renderdoc\driver\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gl", "renderdoc\driver\gl\renderdoc_gl.vcxproj", "{F92FCDA6-A261-4EEC-9CD0-73A11FBCC459}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "d3d12", "renderdoc\driver\d3d12\renderdoc_d3d12.vcxproj", "{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Development|x64 = Development|x64
@@ -200,6 +202,14 @@ Global
 		{F92FCDA6-A261-4EEC-9CD0-73A11FBCC459}.Release|x64.Build.0 = Release|x64
 		{F92FCDA6-A261-4EEC-9CD0-73A11FBCC459}.Release|x86.ActiveCfg = Release|Win32
 		{F92FCDA6-A261-4EEC-9CD0-73A11FBCC459}.Release|x86.Build.0 = Release|Win32
+		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}.Development|x64.ActiveCfg = Development|x64
+		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}.Development|x64.Build.0 = Development|x64
+		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}.Development|x86.ActiveCfg = Development|Win32
+		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}.Development|x86.Build.0 = Development|Win32
+		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}.Release|x64.ActiveCfg = Release|x64
+		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}.Release|x64.Build.0 = Release|x64
+		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}.Release|x86.ActiveCfg = Release|Win32
+		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -226,5 +236,6 @@ Global
 		{44044776-9469-4079-B587-ABFFF6574AA4} = {864A44B0-5612-451A-857F-41E3EF785EF6}
 		{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F} = {864A44B0-5612-451A-857F-41E3EF785EF6}
 		{F92FCDA6-A261-4EEC-9CD0-73A11FBCC459} = {864A44B0-5612-451A-857F-41E3EF785EF6}
+		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4} = {864A44B0-5612-451A-857F-41E3EF785EF6}
 	EndGlobalSection
 EndGlobal
