@@ -24,6 +24,7 @@
 
 #include <unistd.h>
 #include "os/os_specific.h"
+#include "core/net_cfg.h"
 
 extern char **environ;
 
@@ -34,9 +35,17 @@ char **GetCurrentEnvironment()
 
 int GetIdentPort(pid_t childPid)
 {
+  const char *net_target =
+#ifdef ANDROID_ABSTRACT_SOCKET
+    "unix"
+#else
+    "tcp"
+#endif
+    ;
+
   int ret = 0;
 
-  string procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
+  string procfile = StringFormat::Fmt("/proc/%d/net/%s", (int)childPid, net_target);
 
   // try for a little while for the /proc entry to appear
   for(int retry = 0; retry < 10; retry++)
@@ -60,6 +69,26 @@ int GetIdentPort(pid_t childPid)
       line[sz - 1] = 0;
       fgets(line, sz - 1, f);
 
+#ifdef ANDROID_ABSTRACT_SOCKET
+      int port = 0;
+      char* startpos = strstr(line, "@/renderdoc/");
+
+      if (startpos == NULL)
+      {
+        // This is not the line you are looking for.
+        continue;
+      }
+
+      int num = sscanf(startpos, "@/renderdoc/%d", &port);
+
+      // find open listen socket on 0.0.0.0:port
+      if(num == 1 && port >= RenderDoc_FirstTargetControlPort &&
+         port <= RenderDoc_LastTargetControlPort)
+      {
+        ret = port;
+        break;
+      }
+#else
       int socketnum = 0, hexip = 0, hexport = 0;
       int num = sscanf(line, " %d: %x:%x", &socketnum, &hexip, &hexport);
 
@@ -70,9 +99,17 @@ int GetIdentPort(pid_t childPid)
         ret = hexport;
         break;
       }
+#endif
     }
 
     FileIO::fclose(f);
+  }
+
+  if(ret == 0)
+  {
+    RDCWARN("Couldn't locate renderdoc target control listening port between %u and %u in %s",
+            (uint32_t)RenderDoc_FirstTargetControlPort, (uint32_t)RenderDoc_LastTargetControlPort,
+            procfile.c_str());
   }
 
   return ret;

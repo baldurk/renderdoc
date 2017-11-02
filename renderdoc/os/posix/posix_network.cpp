@@ -32,10 +32,12 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <unistd.h>
 #include <string>
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
+#include "core/net_cfg.h"
 
 using std::string;
 
@@ -86,6 +88,7 @@ void Socket::Shutdown()
   if(Connected())
   {
     shutdown((int)socket, SHUT_RDWR);
+    fprintf(stderr, "CLOSING\n");
     close((int)socket);
     socket = -1;
   }
@@ -319,6 +322,39 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
 
 Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
 {
+#if defined(LINUX_ABSTRACT_SOCKET) || defined(ANDORID_ABSTRACT_SOCKET)
+  char socketName[256] = {0};
+  StringFormat::snprintf(socketName, 256, "/renderdoc/%d", port);
+  int s = socket(AF_UNIX, SOCK_STREAM, 0);
+
+  if (s == -1) {
+    return NULL;
+  }
+
+  sockaddr_un addr;
+  RDCEraseEl(addr);
+
+  addr.sun_family = AF_UNIX;
+  // first char is '\0'
+  strcpy(addr.sun_path + 1, socketName);
+
+  int result = bind(s, (sockaddr *)&addr, sizeof(addr));
+  if (result == -1)
+  {
+    RDCWARN("Failed to create abstract socket: %s", socketName);
+    close(s);
+    return NULL;
+  }
+  RDCWARN("Created and bind socket: %d", s);
+
+  result = listen(s, queuesize);
+  if(result == -1)
+  {
+    RDCWARN("Failed to listen on %s", addr.sun_path + 1);
+    close(s);
+    return NULL;
+  }
+#else
   int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   int yes = 1;
@@ -351,6 +387,7 @@ Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
     close(s);
     return NULL;
   }
+#endif
 
   int flags = fcntl(s, F_GETFL, 0);
   fcntl(s, F_SETFL, flags | O_NONBLOCK);
@@ -360,6 +397,61 @@ Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
 
 Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 {
+#if defined(LINUX_ABSTRACT_SOCKET_CLIENT) || defined(ANDROID_ABSTRACT_SOCKET_CLIENT)
+  char socketName[256] = {0};
+  StringFormat::snprintf(socketName, 256, "/renderdoc/%d", port);
+
+  sockaddr_un addr;
+  RDCEraseEl(addr);
+
+  addr.sun_family = AF_UNIX;
+  // first char is '\0'
+  strcpy(addr.sun_path + 1, socketName);
+
+  int s = socket(AF_UNIX, SOCK_STREAM, 0);
+
+  if (s == -1)
+    return NULL;
+
+  int flags = fcntl(s, F_GETFL, 0);
+  fcntl(s, F_SETFL, flags | O_NONBLOCK);
+
+  int result = connect(s, (sockaddr *)&addr, sizeof(addr));
+  if(result == -1)
+  {
+    fd_set set;
+    FD_ZERO(&set);
+    FD_SET(s, &set);
+
+    int err = errno;
+
+    if(err == EWOULDBLOCK || err == EINPROGRESS)
+    {
+      timeval timeout;
+      timeout.tv_sec = (timeoutMS / 1000);
+      timeout.tv_usec = (timeoutMS % 1000) * 1000;
+      result = select(s + 1, NULL, &set, NULL, &timeout);
+
+      if(result <= 0)
+      {
+        RDCDEBUG("connect timed out");
+        close(s);
+        return NULL;
+      }
+    }
+    else
+    {
+      RDCWARN("Error connecting to %s:%d - %d", host, port, err);
+      close(s);
+      return NULL;
+    }
+  }
+
+  int nodelay = 1;
+  setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char *)&nodelay, sizeof(nodelay));
+
+  return new Socket((ptrdiff_t)s);
+#else
   char portstr[7] = {0};
   StringFormat::snprintf(portstr, 6, "%d", port);
 
@@ -425,6 +517,7 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 
   RDCDEBUG("Failed to connect to %s:%d", host, port);
   return NULL;
+#endif
 }
 
 bool ParseIPRangeCIDR(const char *str, uint32_t &ip, uint32_t &mask)
