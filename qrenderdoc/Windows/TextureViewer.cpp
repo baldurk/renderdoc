@@ -1127,6 +1127,10 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
   UI_UpdateStatusText();
 
+  // block signals for mipLevel and sliceFace comboboxes while editing them
+  ui->mipLevel->blockSignals(true);
+  ui->sliceFace->blockSignals(true);
+
   ui->mipLevel->clear();
 
   m_TexDisplay.mip = 0;
@@ -1238,6 +1242,10 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
     m_PrevFirstArraySlice = firstArraySlice;
   }
+
+  // enable signals for mipLevel and sliceFace
+  ui->mipLevel->blockSignals(false);
+  ui->sliceFace->blockSignals(false);
 
   // because slice and mip are specially set above, we restore any per-tex settings to apply
   // even if we don't switch to a new texture.
