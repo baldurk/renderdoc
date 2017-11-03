@@ -130,6 +130,8 @@ set(sources
     serialise/zstdio.h
     serialise/streamio.cpp
     serialise/streamio.h
+    serialise/rdcfile.cpp
+    serialise/rdcfile.h
     serialise/comp_io_tests.cpp
     serialise/streamio_tests.cpp
     strings/grisu2.cpp

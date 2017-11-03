@@ -58,19 +58,7 @@ std::string DoStringise(const ResourceId &el)
 ReplayStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
 
 // not provided by tinyexr, just do by hand
-bool is_exr_file(FILE *f)
-{
-  FileIO::fseek64(f, 0, SEEK_SET);
-
-  const uint32_t openexr_magic = MAKE_FOURCC(0x76, 0x2f, 0x31, 0x01);
-
-  uint32_t magic = 0;
-  size_t bytesRead = FileIO::fread(&magic, 1, sizeof(magic), f);
-
-  FileIO::fseek64(f, 0, SEEK_SET);
-
-  return bytesRead == sizeof(magic) && magic == openexr_magic;
-}
+bool is_exr_file(FILE *f);
 
 template <>
 std::string DoStringise(const RDCDriver &el)

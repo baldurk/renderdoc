@@ -191,6 +191,7 @@
     <ClInclude Include="replay\replay_driver.h" />
     <ClInclude Include="replay\replay_controller.h" />
     <ClInclude Include="serialise\lz4io.h" />
+    <ClInclude Include="serialise\rdcfile.h" />
     <ClInclude Include="serialise\serialiser.h" />
     <ClInclude Include="serialise\streamio.h" />
     <ClInclude Include="serialise\zstdio.h" />
@@ -398,6 +399,7 @@
     <ClCompile Include="replay\replay_controller.cpp" />
     <ClCompile Include="serialise\comp_io_tests.cpp" />
     <ClCompile Include="serialise\lz4io.cpp" />
+    <ClCompile Include="serialise\rdcfile.cpp" />
     <ClCompile Include="serialise\serialiser.cpp" />
     <ClCompile Include="serialise\streamio.cpp" />
     <ClCompile Include="serialise\streamio_tests.cpp" />

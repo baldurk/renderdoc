@@ -100,6 +100,9 @@
     <Filter Include="Common\Serialise\Compressors">
       <UniqueIdentifier>{3cb4fd0e-7cd9-45a3-99d2-1158f27ec438}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common\Serialise\Container File">
+      <UniqueIdentifier>{95eea12f-e6e5-4638-acd6-72e71dcd8853}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Common\Serialise\Stream I/O">
       <UniqueIdentifier>{3b8694d9-cb25-45e0-a1c2-8cc8cd03df3f}</UniqueIdentifier>
     </Filter>
@@ -353,6 +356,9 @@
     </ClInclude>
     <ClInclude Include="serialise\zstdio.h">
       <Filter>Common\Serialise\Compressors</Filter>
+    </ClInclude>
+    <ClInclude Include="serialise\rdcfile.h">
+      <Filter>Common\Serialise\Container File</Filter>
     </ClInclude>
     <ClInclude Include="serialise\streamio.h">
       <Filter>Common\Serialise\Stream I/O</Filter>
@@ -616,6 +622,9 @@
     </ClCompile>
     <ClCompile Include="serialise\streamio_tests.cpp">
       <Filter>Common\Serialise\Stream I/O</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\rdcfile.cpp">
+      <Filter>Common\Serialise\Container File</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
