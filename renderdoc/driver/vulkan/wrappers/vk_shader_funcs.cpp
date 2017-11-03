@@ -580,8 +580,8 @@ VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCach
           }
 
           SCOPED_SERIALISE_CONTEXT(CREATE_COMPUTE_PIPE);
-          Serialise_vkCreateComputePipelines(localSerialiser, device, pipelineCache, 1,
-                                             createInfo, NULL, &pPipelines[i]);
+          Serialise_vkCreateComputePipelines(localSerialiser, device, pipelineCache, 1, createInfo,
+                                             NULL, &pPipelines[i]);
 
           chunk = scope.Get();
         }
