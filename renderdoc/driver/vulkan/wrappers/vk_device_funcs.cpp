@@ -672,7 +672,11 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerial
 
     pd = m_ReplayPhysicalDevices[bestIdx];
 
-    GetResourceManager()->AddLiveResource(physId, pd);
+    if(!m_ReplayPhysicalDevicesUsed[bestIdx])
+      GetResourceManager()->AddLiveResource(physId, pd);
+    else
+      GetResourceManager()->ReplaceResource(physId,
+                                            GetResourceManager()->GetOriginalID(GetResID(pd)));
 
     if(physIndex >= m_PhysicalDevices.size())
       m_PhysicalDevices.resize(physIndex + 1);
@@ -682,16 +686,22 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerial
     {
       // error if we're remapping multiple physical devices to the same best match
       RDCERR(
-          "Mappnig multiple capture-time physical devices to a single replay-time physical device."
+          "Mapping multiple capture-time physical devices to a single replay-time physical device."
           "This means the HW has changed between capture and replay and may cause bugs.");
     }
-    else
+    else if(m_MemIdxMaps[bestIdx] == NULL)
     {
       // the first physical device 'wins' for the memory index map
       uint32_t *storedMap = new uint32_t[32];
       memcpy(storedMap, memIdxMap, sizeof(memIdxMap));
-      m_MemIdxMaps[physIndex] = storedMap;
+
+      for(uint32_t i = 0; i < 32; i++)
+        storedMap[i] = i;
+
+      m_MemIdxMaps[bestIdx] = storedMap;
     }
+
+    m_ReplayPhysicalDevicesUsed[bestIdx] = true;
   }
 
   return true;
