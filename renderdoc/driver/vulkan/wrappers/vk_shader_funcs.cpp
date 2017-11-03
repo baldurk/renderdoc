@@ -438,6 +438,20 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
         VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pPipelines[i]);
         record->AddChunk(chunk);
 
+        if(pCreateInfos[i].basePipelineHandle != VK_NULL_HANDLE)
+        {
+          VkResourceRecord *baserecord = GetRecord(pCreateInfos[i].basePipelineHandle);
+          record->AddParent(baserecord);
+
+          RDCLOG("Creating pipeline %llu base is %llu", record->GetResourceID(),
+                 baserecord->GetResourceID());
+        }
+        else if(pCreateInfos[i].basePipelineIndex != -1 && pCreateInfos[i].basePipelineIndex < (int)i)
+        {
+          VkResourceRecord *baserecord = GetRecord(pPipelines[pCreateInfos[i].basePipelineIndex]);
+          record->AddParent(baserecord);
+        }
+
         if(pipelineCache != VK_NULL_HANDLE)
         {
           VkResourceRecord *cacherecord = GetRecord(pipelineCache);
@@ -553,9 +567,21 @@ VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCach
         {
           CACHE_THREAD_SERIALISER();
 
+          VkComputePipelineCreateInfo modifiedCreateInfo;
+          const VkComputePipelineCreateInfo *createInfo = &pCreateInfos[i];
+
+          // since we serialise one by one, we need to fixup basePipelineIndex
+          if(createInfo->basePipelineIndex != -1 && createInfo->basePipelineIndex < (int)i)
+          {
+            modifiedCreateInfo = *createInfo;
+            modifiedCreateInfo.basePipelineHandle = pPipelines[modifiedCreateInfo.basePipelineIndex];
+            modifiedCreateInfo.basePipelineIndex = -1;
+            createInfo = &modifiedCreateInfo;
+          }
+
           SCOPED_SERIALISE_CONTEXT(CREATE_COMPUTE_PIPE);
           Serialise_vkCreateComputePipelines(localSerialiser, device, pipelineCache, 1,
-                                             &pCreateInfos[i], NULL, &pPipelines[i]);
+                                             createInfo, NULL, &pPipelines[i]);
 
           chunk = scope.Get();
         }
@@ -567,6 +593,17 @@ VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCach
         {
           VkResourceRecord *cacherecord = GetRecord(pipelineCache);
           record->AddParent(cacherecord);
+        }
+
+        if(pCreateInfos[i].basePipelineHandle != VK_NULL_HANDLE)
+        {
+          VkResourceRecord *baserecord = GetRecord(pCreateInfos[i].basePipelineHandle);
+          record->AddParent(baserecord);
+        }
+        else if(pCreateInfos[i].basePipelineIndex != -1 && pCreateInfos[i].basePipelineIndex < (int)i)
+        {
+          VkResourceRecord *baserecord = GetRecord(pPipelines[pCreateInfos[i].basePipelineIndex]);
+          record->AddParent(baserecord);
         }
 
         VkResourceRecord *layoutrecord = GetRecord(pCreateInfos[i].layout);
