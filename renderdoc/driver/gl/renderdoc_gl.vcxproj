@@ -148,6 +148,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="gl_hooks_win32.cpp" />
+    <ClCompile Include="gl_initstate.cpp" />
     <ClCompile Include="gl_manager.cpp" />
     <ClCompile Include="gl_renderstate.cpp" />
     <ClCompile Include="gl_replay.cpp" />
