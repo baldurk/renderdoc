@@ -219,6 +219,22 @@ const char *Process::GetEnvVariable(const char *name)
   return getenv(name);
 }
 
+static void CleanupStringArray(char **arr, char **invalid)
+{
+  if(arr != invalid)
+  {
+    char **arr_delete = arr;
+
+    while(*arr)
+    {
+      delete[] * arr;
+      arr++;
+    }
+
+    delete[] arr_delete;
+  }
+}
+
 static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char **envp,
                         int stdoutPipe[2] = NULL, int stderrPipe[2] = NULL)
 {
@@ -253,6 +269,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
     }
 
     argv = new char *[argc + 2];
+    memset(argv, 0, (argc + 2) * sizeof(char *));
 
     c = cmdLine;
 
@@ -315,6 +332,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
           }
           else
           {
+            CleanupStringArray(argv, emptyargv);
             RDCERR("Malformed command line:\n%s", cmdLine);
             return 0;
           }
@@ -340,10 +358,9 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
       argc++;
     }
 
-    argv[argc] = NULL;
-
     if(squot || dquot)
     {
+      CleanupStringArray(argv, emptyargv);
       RDCERR("Malformed command line\n%s", cmdLine);
       return 0;
     }
@@ -388,19 +405,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
     close(stderrPipe[1]);
   }
 
-  char **argv_delete = argv;
-
-  if(argv != emptyargv)
-  {
-    while(*argv)
-    {
-      delete[] * argv;
-      argv++;
-    }
-
-    delete[] argv_delete;
-  }
-
+  CleanupStringArray(argv, emptyargv);
   return childPid;
 }
 
@@ -604,16 +609,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
     }
   }
 
-  char **envp_delete = envp;
-
-  while(*envp)
-  {
-    delete[] * envp;
-    envp++;
-  }
-
-  delete[] envp_delete;
-
+  CleanupStringArray(envp, NULL);
   return ret;
 }
 
