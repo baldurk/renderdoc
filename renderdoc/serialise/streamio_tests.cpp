@@ -209,7 +209,6 @@ TEST_CASE("Test stream I/O operations over the network", "[streamio][network]")
 
     REQUIRE(receivedValues.size() == 17);
     CHECK(receivedValues == list);
-    CHECK(writer.GetOffset() == reader.GetOffset());
     CHECK(writer.GetOffset() > 128);
 
     Threading::JoinThread(sendThread);
