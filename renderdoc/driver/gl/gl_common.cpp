@@ -2518,14 +2518,14 @@ void SerialiseProgramBindings(const GLHookSet &gl, Serialiser *ser, GLuint prog,
 }
 
 template <>
-std::string DoStringise(const WrappedOpenGL::UniformType &el)
+std::string DoStringise(const UniformType &el)
 {
   switch(el)
   {
-    case WrappedOpenGL::UNIFORM_UNKNOWN: return "unk";
+    case UNIFORM_UNKNOWN: return "unk";
 
 #define VEC2STR(suffix) \
-  case WrappedOpenGL::CONCAT(VEC, suffix): return STRINGIZE(suffix);
+  case CONCAT(VEC, suffix): return STRINGIZE(suffix);
       VEC2STR(1fv)
       VEC2STR(1iv)
       VEC2STR(1uiv)
@@ -2545,7 +2545,7 @@ std::string DoStringise(const WrappedOpenGL::UniformType &el)
 #undef VEC2STR
 
 #define MAT2STR(suffix) \
-  case WrappedOpenGL::CONCAT(MAT, suffix): return STRINGIZE(suffix);
+  case CONCAT(MAT, suffix): return STRINGIZE(suffix);
       MAT2STR(2fv)
       MAT2STR(2x3fv)
       MAT2STR(2x4fv)

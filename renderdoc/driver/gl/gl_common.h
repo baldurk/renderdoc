@@ -297,6 +297,73 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 
 void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping);
 
+enum UniformType
+{
+  UNIFORM_UNKNOWN,
+
+  VEC1fv,
+  VEC1iv,
+  VEC1uiv,
+  VEC1dv,
+
+  VEC2fv,
+  VEC2iv,
+  VEC2uiv,
+  VEC2dv,
+
+  VEC3fv,
+  VEC3iv,
+  VEC3uiv,
+  VEC3dv,
+
+  VEC4fv,
+  VEC4iv,
+  VEC4uiv,
+  VEC4dv,
+
+  MAT2fv,
+  MAT2x3fv,
+  MAT2x4fv,
+  MAT3fv,
+  MAT3x2fv,
+  MAT3x4fv,
+  MAT4fv,
+  MAT4x2fv,
+  MAT4x3fv,
+
+  MAT2dv,
+  MAT2x3dv,
+  MAT2x4dv,
+  MAT3dv,
+  MAT3x2dv,
+  MAT3x4dv,
+  MAT4dv,
+  MAT4x2dv,
+  MAT4x3dv,
+};
+
+DECLARE_REFLECTION_ENUM(UniformType);
+
+enum AttribType
+{
+  Attrib_GLdouble = 0x01,
+  Attrib_GLfloat = 0x02,
+  Attrib_GLshort = 0x03,
+  Attrib_GLushort = 0x04,
+  Attrib_GLbyte = 0x05,
+  Attrib_GLubyte = 0x06,
+  Attrib_GLint = 0x07,
+  Attrib_GLuint = 0x08,
+  Attrib_packed = 0x09,
+  Attrib_typemask = 0x0f,
+
+  Attrib_L = 0x10,
+  Attrib_I = 0x20,
+  Attrib_N = 0x40,
+};
+
+DECLARE_REFLECTION_ENUM(AttribType);
+
 extern int GLCoreVersion;
 extern bool GLIsCore;
 extern bool IsGLES;
