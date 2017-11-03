@@ -50,6 +50,10 @@ typedef EGLBoolean (*PFN_eglMakeCurrent)(EGLDisplay dpy, EGLSurface draw, EGLSur
                                          EGLContext ctx);
 typedef EGLBoolean (*PFN_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
 typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
+typedef EGLContext (*PFN_eglGetCurrentContext)(void);
+typedef EGLDisplay (*PFN_eglGetCurrentDisplay)(void);
+typedef EGLSurface (*PFN_eglGetCurrentSurface)(EGLint readdraw);
+typedef EGLint (*PFN_eglGetError)(void);
 
 class EGLHook : LibraryHook, public GLPlatform
 {
@@ -192,8 +196,27 @@ public:
 
   void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h)
   {
-    eglQuerySurface_real(context.egl_dpy, context.egl_wnd, EGL_WIDTH, &w);
-    eglQuerySurface_real(context.egl_dpy, context.egl_wnd, EGL_HEIGHT, &h);
+    // On some Linux systems the surface seems to be context dependant.
+    // Thus we need to switch to that context where the surface was created.
+    // To avoid any problems because of the context change we'll save the old
+    // context information so we can switch back to it after the surface query is done.
+    GLWindowingData oldContext;
+    oldContext.egl_ctx = eglGetCurrentContext_real();
+    oldContext.egl_dpy = eglGetCurrentDisplay_real();
+    oldContext.egl_wnd = eglGetCurrentSurface_real(EGL_READ);
+    MakeContextCurrent(context);
+
+    EGLBoolean width_ok = eglQuerySurface_real(context.egl_dpy, context.egl_wnd, EGL_WIDTH, &w);
+    EGLBoolean height_ok = eglQuerySurface_real(context.egl_dpy, context.egl_wnd, EGL_HEIGHT, &h);
+
+    if(!width_ok || !height_ok)
+    {
+      RDCGLenum error_code = (RDCGLenum)eglGetError_real();
+      RDCWARN("Unable to query the surface size. Error: (0x%x) %s", error_code,
+              ToStr(error_code).c_str());
+    }
+
+    MakeContextCurrent(oldContext);
   }
 
   bool IsOutputWindowVisible(GLWindowingData context) { return true; }
@@ -301,6 +324,10 @@ public:
   PFN_eglQuerySurface eglQuerySurface_real;
   PFN_eglGetConfigAttrib eglGetConfigAttrib_real;
   PFN_eglGetDisplay eglGetDisplay_real;
+  PFN_eglGetCurrentContext eglGetCurrentContext_real;
+  PFN_eglGetCurrentDisplay eglGetCurrentDisplay_real;
+  PFN_eglGetCurrentSurface eglGetCurrentSurface_real;
+  PFN_eglGetError eglGetError_real;
 
   set<EGLContext> m_Contexts;
 
@@ -329,6 +356,17 @@ public:
           (PFN_eglGetConfigAttrib)dlsym(libGLdlsymHandle, "eglGetConfigAttrib");
     if(eglGetDisplay_real == NULL)
       eglGetDisplay_real = (PFN_eglGetDisplay)dlsym(libGLdlsymHandle, "eglGetDisplay");
+    if(eglGetCurrentContext_real == NULL)
+      eglGetCurrentContext_real =
+          (PFN_eglGetCurrentContext)dlsym(libGLdlsymHandle, "eglGetCurrentContext");
+    if(eglGetCurrentDisplay_real == NULL)
+      eglGetCurrentDisplay_real =
+          (PFN_eglGetCurrentDisplay)dlsym(libGLdlsymHandle, "eglGetCurrentDisplay");
+    if(eglGetCurrentSurface_real == NULL)
+      eglGetCurrentSurface_real =
+          (PFN_eglGetCurrentSurface)dlsym(libGLdlsymHandle, "eglGetCurrentSurface");
+    if(eglGetError_real == NULL)
+      eglGetError_real = (PFN_eglGetError)dlsym(libGLdlsymHandle, "eglGetError");
 
     return success;
   }
