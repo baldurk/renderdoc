@@ -5355,6 +5355,12 @@ ReplayStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driv
   // disable the layer env var, just in case the user left it set from a previous capture run
   Process::RegisterEnvironmentModification(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "0"));
+
+  // disable buggy and user-hostile NV optimus layer, which can completely delete physical devices
+  // (not just rearrange them) and cause problems between capture and replay.
+  Process::RegisterEnvironmentModification(
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_LAYER_NV_OPTIMUS_1", ""));
+
   Process::ApplyEnvironmentModification();
 
   void *module = Process::LoadModule(VulkanLibraryName);
