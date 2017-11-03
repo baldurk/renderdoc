@@ -669,9 +669,8 @@ void LiveCapture::openCapture(CaptureLog *log)
     RDDialog::critical(
         this, tr("No active replay context"),
         tr("This capture is on remote host %1 and there is no active replay context on that "
-           "host.\n") +
-            tr("You can either save the log locally, or switch to a replay context on %1.")
-                .arg(m_Hostname));
+           "host.\nYou can either save the log locally, or switch to a replay context on %1.")
+            .arg(m_HostFriendlyname));
     return;
   }
 
