@@ -449,6 +449,9 @@
     <Natvis Include="renderdoc.natvis" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="driver\d3d11\renderdoc_d3d11.vcxproj">
+      <Project>{f1e59a05-60d4-4927-9e57-dd191eae90ef}</Project>
+    </ProjectReference>
     <ProjectReference Include="driver\dxgi\renderdoc_dxgi.vcxproj">
       <Project>{2a793574-bd3c-46d4-9788-c339d9550ce1}</Project>
     </ProjectReference>
