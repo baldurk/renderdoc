@@ -73,7 +73,7 @@ void APIInspector::OnSelectedEventChanged(uint32_t eventID)
   fillAPIView();
 }
 
-void APIInspector::addCallstack(rdctype::array<rdctype::str> calls)
+void APIInspector::addCallstack(rdcarray<rdcstr> calls)
 {
   ui->callstack->setUpdatesEnabled(false);
   ui->callstack->clear();
@@ -84,7 +84,7 @@ void APIInspector::addCallstack(rdctype::array<rdctype::str> calls)
   }
   else
   {
-    for(rdctype::str &s : calls)
+    for(rdcstr &s : calls)
       ui->callstack->addItem(s);
   }
   ui->callstack->setUpdatesEnabled(true);
@@ -102,7 +102,7 @@ void APIInspector::on_apiEvents_itemSelectionChanged()
   if(!ev.callstack.isEmpty())
   {
     m_Ctx.Replay().AsyncInvoke([this, ev](IReplayController *r) {
-      rdctype::array<rdctype::str> trace = r->GetResolve(ev.callstack);
+      rdcarray<rdcstr> trace = r->GetResolve(ev.callstack);
 
       GUIInvoke::call([this, trace]() { addCallstack(trace); });
     });

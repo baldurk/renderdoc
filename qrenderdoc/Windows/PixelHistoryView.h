@@ -46,7 +46,7 @@ public:
 
   // IPixelHistoryView
   QWidget *Widget() override { return this; }
-  void SetHistory(const rdctype::array<PixelModification> &history) override;
+  void SetHistory(const rdcarray<PixelModification> &history) override;
 
   // ILogViewerForm
   void OnLogfileLoaded() override;

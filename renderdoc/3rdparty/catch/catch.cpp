@@ -275,8 +275,8 @@ std::ostream &clog()
 }
 }
 
-extern "C" RENDERDOC_API int RENDERDOC_CC
-RENDERDOC_RunUnitTests(const rdctype::str &command, const rdctype::array<rdctype::str> &args)
+extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &command,
+                                                                 const rdcarray<rdcstr> &args)
 {
   LogOutputter logbuf;
   std::ostream logstream(&logbuf);

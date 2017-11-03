@@ -108,7 +108,7 @@ private:
   uint32_t eventAt(qreal x);
   qreal offsetOf(uint32_t eid);
   uint32_t processDraws(QVector<Marker> &markers, QVector<uint32_t> &draws,
-                        const rdctype::array<DrawcallDescription> &curDraws);
+                        const rdcarray<DrawcallDescription> &curDraws);
   void paintMarkers(QPainter &p, const QVector<Marker> &markers, const QVector<uint32_t> &draws,
                     QRectF markerRect);
   Marker *findMarker(QVector<Marker> &markers, QRectF markerRect, QPointF pos);

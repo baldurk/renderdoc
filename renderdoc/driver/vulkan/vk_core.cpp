@@ -2908,8 +2908,8 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
 
     struct ResUsageType
     {
-      ResUsageType(rdctype::array<BindpointMap> &a, ResourceUsage u) : bindmap(a), usage(u) {}
-      rdctype::array<BindpointMap> &bindmap;
+      ResUsageType(rdcarray<BindpointMap> &a, ResourceUsage u) : bindmap(a), usage(u) {}
+      rdcarray<BindpointMap> &bindmap;
       ResourceUsage usage;
     };
 

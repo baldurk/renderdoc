@@ -529,7 +529,7 @@ struct IPixelHistoryView
 
 :param list history: A list of :class:`~renderdoc.PixelModification` events to display.
 )");
-  virtual void SetHistory(const rdctype::array<PixelModification> &history) = 0;
+  virtual void SetHistory(const rdcarray<PixelModification> &history) = 0;
 
 protected:
   IPixelHistoryView() = default;
@@ -598,7 +598,7 @@ in UI side structures. This manager controls and serialises access to the underl
 struct IReplayManager
 {
   typedef std::function<void(IReplayController *)> InvokeCallback;
-  typedef std::function<void(const rdctype::str &, const rdctype::array<PathEntry> &)> DirectoryBrowseCallback;
+  typedef std::function<void(const rdcstr &, const rdcarray<PathEntry> &)> DirectoryBrowseCallback;
 
   DOCUMENT(R"(Delete a capture file, whether local or remote.
 
@@ -1005,7 +1005,7 @@ more information for how this differs.
 :return: The root drawcalls.
 :rtype: ``list`` of :class:`~renderdoc.DrawcallDescription`
 )");
-  virtual const rdctype::array<DrawcallDescription> &CurDrawcalls() = 0;
+  virtual const rdcarray<DrawcallDescription> &CurDrawcalls() = 0;
 
   DOCUMENT(R"(Retrieve the information about a particular texture.
 
@@ -1020,7 +1020,7 @@ more information for how this differs.
 :return: The list of textures.
 :rtype: ``list`` of :class:`~renderdoc.TextureDescription`
 )");
-  virtual const rdctype::array<TextureDescription> &GetTextures() = 0;
+  virtual const rdcarray<TextureDescription> &GetTextures() = 0;
 
   DOCUMENT(R"(Retrieve the information about a particular buffer.
 
@@ -1035,7 +1035,7 @@ more information for how this differs.
 :return: The list of buffers.
 :rtype: ``list`` of :class:`~renderdoc.BufferDescription`
 )");
-  virtual const rdctype::array<BufferDescription> &GetBuffers() = 0;
+  virtual const rdcarray<BufferDescription> &GetBuffers() = 0;
 
   DOCUMENT(R"(Retrieve the information about a drawcall at a given
 :data:`EID <renderdoc.APIEvent.eventID>`.
@@ -1090,7 +1090,7 @@ as well as messages generated during replay and analysis.
 
 :param list msgs: A list of :class:`~renderdoc.DebugMessage` to add.
 )");
-  virtual void AddMessages(const rdctype::array<DebugMessage> &msgs) = 0;
+  virtual void AddMessages(const rdcarray<DebugMessage> &msgs) = 0;
 
   DOCUMENT(R"(Retrieve the current singleton :class:`MainWindow`.
 

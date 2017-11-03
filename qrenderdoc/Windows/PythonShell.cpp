@@ -73,20 +73,14 @@ struct CaptureContextInvoker : ICaptureContext
     return m_Ctx.GetFirstDrawcall();
   }
   virtual const DrawcallDescription *GetLastDrawcall() override { return m_Ctx.GetLastDrawcall(); }
-  virtual const rdctype::array<DrawcallDescription> &CurDrawcalls() override
+  virtual const rdcarray<DrawcallDescription> &CurDrawcalls() override
   {
     return m_Ctx.CurDrawcalls();
   }
   virtual TextureDescription *GetTexture(ResourceId id) override { return m_Ctx.GetTexture(id); }
-  virtual const rdctype::array<TextureDescription> &GetTextures() override
-  {
-    return m_Ctx.GetTextures();
-  }
+  virtual const rdcarray<TextureDescription> &GetTextures() override { return m_Ctx.GetTextures(); }
   virtual BufferDescription *GetBuffer(ResourceId id) override { return m_Ctx.GetBuffer(id); }
-  virtual const rdctype::array<BufferDescription> &GetBuffers() override
-  {
-    return m_Ctx.GetBuffers();
-  }
+  virtual const rdcarray<BufferDescription> &GetBuffers() override { return m_Ctx.GetBuffers(); }
   virtual const DrawcallDescription *GetDrawcall(uint32_t eventID) override
   {
     return m_Ctx.GetDrawcall(eventID);
@@ -166,7 +160,7 @@ struct CaptureContextInvoker : ICaptureContext
   {
     InvokeVoidFunction(&ICaptureContext::RemoveLogViewer, viewer);
   }
-  virtual void AddMessages(const rdctype::array<DebugMessage> &msgs) override
+  virtual void AddMessages(const rdcarray<DebugMessage> &msgs) override
   {
     InvokeVoidFunction(&ICaptureContext::AddMessages, msgs);
   }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?> 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
-  <Type Name="rdctype::str">
+  <Type Name="rdcstr">
     <DisplayString Condition="elems == 0">""</DisplayString>
     <DisplayString>{elems,s}</DisplayString>
     <Expand>
@@ -12,7 +12,7 @@
       </ArrayItems>
     </Expand>
   </Type>
-  <Type Name="rdctype::array&lt;*&gt;">
+  <Type Name="rdcarray&lt;*&gt;">
     <DisplayString>{{ size={usedCount} }}</DisplayString>
     <Expand>
       <Item Name="[size]" ExcludeView="simple">usedCount</Item>
@@ -23,7 +23,7 @@
       </ArrayItems>
     </Expand>
   </Type>
- <Type Name="rdctype::pair&lt;*&gt;">
+ <Type Name="rdcpair&lt;*&gt;">
   <DisplayString>{{ {first}, {second} }}</DisplayString>
   <Expand>
    <Item Name="first" ExcludeView="simple">first</Item>

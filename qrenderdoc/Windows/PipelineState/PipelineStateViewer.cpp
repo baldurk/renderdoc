@@ -570,7 +570,7 @@ bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDet
 }
 
 void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
-                                                  const rdctype::array<ShaderConstant> &vars,
+                                                  const rdcarray<ShaderConstant> &vars,
                                                   QString &struct_contents, QString &struct_defs)
 {
   for(const ShaderConstant &v : vars)
@@ -628,7 +628,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
 
   for(int i = 0; i < 2; i++)
   {
-    const rdctype::array<ShaderResource> &resources =
+    const rdcarray<ShaderResource> &resources =
         (i == 0 ? shaderDetails->ReadOnlyResources : shaderDetails->ReadWriteResources);
     for(const ShaderResource &res : resources)
     {
@@ -822,7 +822,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
         // with our edited one
         ctx->Replay().AsyncInvoke([ctx, entryFunc, compileSource, shaderType, id, shaderDetails,
                                    viewer](IReplayController *r) {
-          rdctype::str errs;
+          rdcstr errs;
 
           const ShaderCompileFlags &flags = shaderDetails->DebugInfo.compileFlags;
 

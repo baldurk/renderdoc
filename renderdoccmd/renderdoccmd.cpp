@@ -34,9 +34,9 @@ using std::wstring;
 bool usingKillSignal = false;
 volatile bool killSignal = false;
 
-rdctype::array<rdctype::str> convertArgs(const std::vector<std::string> &args)
+rdcarray<rdcstr> convertArgs(const std::vector<std::string> &args)
 {
-  rdctype::array<rdctype::str> ret;
+  rdcarray<rdcstr> ret;
   ret.reserve(args.size());
   for(size_t i = 0; i < args.size(); i++)
     ret.push_back(args[i]);
@@ -59,7 +59,7 @@ void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_
   if(renderer == NULL)
     return;
 
-  rdctype::array<TextureDescription> texs = renderer->GetTextures();
+  rdcarray<TextureDescription> texs = renderer->GetTextures();
 
   TextureDisplay d;
   d.mip = 0;
@@ -89,7 +89,7 @@ void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_
     }
   }
 
-  rdctype::array<DrawcallDescription> draws = renderer->GetDrawcalls();
+  rdcarray<DrawcallDescription> draws = renderer->GetDrawcalls();
 
   if(!draws.empty() && draws.back().flags & DrawFlags::Present)
   {
@@ -277,7 +277,7 @@ struct ThumbCommand : public Command
                   << std::endl;
     }
 
-    rdctype::array<byte> buf;
+    bytebuf buf;
 
     ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename.c_str());
     if(file->OpenStatus() == ReplayStatus::Succeeded)
@@ -349,7 +349,7 @@ struct CaptureCommand : public Command
       cmdLine += EscapeArgument(parser.rest()[i]);
     }
 
-    RENDERDOC_InitGlobalEnv(m_Env, rdctype::array<rdctype::str>());
+    RENDERDOC_InitGlobalEnv(m_Env, rdcarray<rdcstr>());
 
     std::cout << "Launching '" << executable << "'";
 
@@ -358,7 +358,7 @@ struct CaptureCommand : public Command
 
     std::cout << std::endl;
 
-    rdctype::array<EnvironmentModification> env;
+    rdcarray<EnvironmentModification> env;
 
     uint32_t ident = RENDERDOC_ExecuteAndInject(
         executable.c_str(), workingDir.empty() ? "" : workingDir.c_str(),
@@ -423,7 +423,7 @@ struct InjectCommand : public Command
 
     std::cout << "Injecting into PID " << PID << std::endl;
 
-    rdctype::array<EnvironmentModification> env;
+    rdcarray<EnvironmentModification> env;
 
     RENDERDOC_InitGlobalEnv(m_Env, convertArgs(parser.rest()));
 
@@ -549,7 +549,7 @@ struct ReplayCommand : public Command
 
       std::cerr << "Copying capture file to remote server" << std::endl;
 
-      rdctype::str remotePath = remote->CopyCaptureToRemote(filename.c_str(), NULL);
+      rdcstr remotePath = remote->CopyCaptureToRemote(filename.c_str(), NULL);
 
       IReplayController *renderer = NULL;
       std::tie(status, renderer) = remote->OpenCapture(~0U, remotePath.c_str(), NULL);
@@ -646,7 +646,7 @@ struct CapAltBitCommand : public Command
     CaptureOptions cmdopts;
     readCapOpts(parser.get<string>("capopts").c_str(), &cmdopts);
 
-    RENDERDOC_InitGlobalEnv(m_Env, rdctype::array<rdctype::str>());
+    RENDERDOC_InitGlobalEnv(m_Env, rdcarray<rdcstr>());
 
     std::vector<std::string> rest = parser.rest();
 
@@ -658,7 +658,7 @@ struct CapAltBitCommand : public Command
 
     int numEnvs = int(rest.size() / 3);
 
-    rdctype::array<EnvironmentModification> env;
+    rdcarray<EnvironmentModification> env;
     env.reserve(numEnvs);
 
     for(int i = 0; i < numEnvs; i++)

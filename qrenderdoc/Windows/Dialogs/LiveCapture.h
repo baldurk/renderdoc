@@ -122,7 +122,7 @@ private:
   void connectionThreadEntry();
   void captureCopied(uint32_t ID, const QString &localPath);
   void captureAdded(uint32_t ID, const QString &executable, const QString &api,
-                    const rdctype::array<byte> &thumbnail, int32_t thumbWidth, int32_t thumbHeight,
+                    const bytebuf &thumbnail, int32_t thumbWidth, int32_t thumbHeight,
                     QDateTime timestamp, const QString &path, bool local);
   void connectionClosed();
 

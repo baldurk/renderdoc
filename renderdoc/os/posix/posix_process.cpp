@@ -404,7 +404,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   return childPid;
 }
 
-uint32_t Process::InjectIntoProcess(uint32_t pid, const rdctype::array<EnvironmentModification> &env,
+uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
                                     const char *logfile, const CaptureOptions &opts, bool waitForExit)
 {
   RDCUNIMPLEMENTED("Injecting into already running processes on linux");
@@ -474,7 +474,7 @@ uint32_t Process::LaunchScript(const char *script, const char *workingDir, const
 
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
                                              const char *cmdLine,
-                                             const rdctype::array<EnvironmentModification> &envList,
+                                             const rdcarray<EnvironmentModification> &envList,
                                              const char *logfile, const CaptureOptions &opts,
                                              bool waitForExit)
 {

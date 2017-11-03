@@ -239,7 +239,7 @@ private:
                         uint32_t offs, uint32_t matStride, const vector<byte> &data,
                         ShaderVariable &outVar);
   void FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, std::string prefix,
-                            const rdctype::array<ShaderConstant> &variables,
+                            const rdcarray<ShaderConstant> &variables,
                             std::vector<ShaderVariable> &outvars, const std::vector<byte> &data);
 
   void CreateCustomShaderTex(uint32_t w, uint32_t h);

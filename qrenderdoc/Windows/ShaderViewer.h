@@ -155,7 +155,7 @@ private:
 
   bool eventFilter(QObject *watched, QEvent *event) override;
 
-  const rdctype::array<ShaderVariable> *GetVariableList(VariableCategory varCat, int arrayIdx);
+  const rdcarray<ShaderVariable> *GetVariableList(VariableCategory varCat, int arrayIdx);
   void getRegisterFromWord(const QString &text, VariableCategory &varCat, int &varIdx, int &arrayIdx);
 
   void showVariableTooltip(VariableCategory varCat, int varIdx, int arrayIdx);

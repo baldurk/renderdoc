@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
 #if defined(RENDERDOC_PLATFORM_LINUX)
       env.xlibDisplay = QX11Info::display();
 #endif
-      RENDERDOC_InitGlobalEnv(env, rdctype::array<rdctype::str>());
+      RENDERDOC_InitGlobalEnv(env, rdcarray<rdcstr>());
     }
 
     {

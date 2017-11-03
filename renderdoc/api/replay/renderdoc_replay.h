@@ -341,7 +341,7 @@ Should only be called for texture outputs.
 :return: A tuple with the minimum and maximum pixel values respectively.
 :rtype: ``tuple`` of PixelValue and PixelValue
 )");
-  virtual rdctype::pair<PixelValue, PixelValue> GetMinMax() = 0;
+  virtual rdcpair<PixelValue, PixelValue> GetMinMax() = 0;
 
   DOCUMENT(R"(Retrieve a list of values that can be used to show a histogram of values for the
 current texture.
@@ -360,7 +360,7 @@ Should only be called for texture outputs.
 :return: A list of the unnormalised bucket values.
 :rtype: ``list`` of ``int``
 )");
-  virtual rdctype::array<uint32_t> GetHistogram(float minval, float maxval, bool channels[4]) = 0;
+  virtual rdcarray<uint32_t> GetHistogram(float minval, float maxval, bool channels[4]) = 0;
 
   DOCUMENT(R"(Retrieves the :class:`ResourceId` containing the contents of the texture after being
 passed through a custom shader pass.
@@ -411,7 +411,7 @@ Should only be called for mesh outputs.
   the instance index. The values are set to :data:`NoResult` if no vertex was found, 
 :rtype: ``tuple`` of ``int`` and ``int``
 )");
-  virtual rdctype::pair<uint32_t, uint32_t> PickVertex(uint32_t eventID, uint32_t x, uint32_t y) = 0;
+  virtual rdcpair<uint32_t, uint32_t> PickVertex(uint32_t eventID, uint32_t x, uint32_t y) = 0;
 
   static const uint32_t NoResult = ~0U;
 
@@ -441,7 +441,7 @@ struct IReplayController
 :return: The list of supported systems.
 :rtype: ``list`` of :class:`WindowingSystem`
 )");
-  virtual rdctype::array<WindowingSystem> GetSupportedWindowSystems() = 0;
+  virtual rdcarray<WindowingSystem> GetSupportedWindowSystems() = 0;
 
   DOCUMENT(R"(Creates a replay output of the given type to the given native window
 
@@ -558,7 +558,7 @@ or hardware-specific ISA formats.
 :return: The list of disassembly targets available.
 :rtype: ``list`` of ``str``
 )");
-  virtual rdctype::array<rdctype::str> GetDisassemblyTargets() = 0;
+  virtual rdcarray<rdcstr> GetDisassemblyTargets() = 0;
 
   DOCUMENT(R"(Retrieve the disassembly for a given shader, for the given disassembly target.
 
@@ -569,8 +569,8 @@ or hardware-specific ISA formats.
 :return: The disassembly text, or an error message if something went wrong.
 :rtype: str
 )");
-  virtual rdctype::str DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                         const char *target) = 0;
+  virtual rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                   const char *target) = 0;
 
   DOCUMENT(R"(Builds a shader suitable for running on the local replay instance as a custom shader.
 
@@ -586,9 +586,9 @@ See :data:`TextureDisplay.CustomShader`.
   :meth:`ResourceId.Null` otherwise, and a ``str`` with any warnings/errors from compilation.
 :rtype: ``tuple`` of :class:`ResourceId` and ``str``.
 )");
-  virtual rdctype::pair<ResourceId, rdctype::str> BuildCustomShader(
-      const char *entry, const char *source, const ShaderCompileFlags &compileFlags,
-      ShaderStage type) = 0;
+  virtual rdcpair<ResourceId, rdcstr> BuildCustomShader(const char *entry, const char *source,
+                                                        const ShaderCompileFlags &compileFlags,
+                                                        ShaderStage type) = 0;
 
   DOCUMENT(R"(Free a previously created custom shader.
 
@@ -610,10 +610,9 @@ The language used is native to the API's renderer - HLSL for D3D based renderers
   :meth:`ResourceId.Null` otherwise, and a ``str`` with any warnings/errors from compilation.
 :rtype: ``tuple`` of :class:`ResourceId` and ``str``.
 )");
-  virtual rdctype::pair<ResourceId, rdctype::str> BuildTargetShader(const char *entry,
-                                                                    const char *source,
-                                                                    const ShaderCompileFlags &flags,
-                                                                    ShaderStage type) = 0;
+  virtual rdcpair<ResourceId, rdcstr> BuildTargetShader(const char *entry, const char *source,
+                                                        const ShaderCompileFlags &flags,
+                                                        ShaderStage type) = 0;
 
   DOCUMENT(R"(Replace one resource with another for subsequent replay and analysis work.
 
@@ -655,7 +654,7 @@ See :meth:`BuildTargetShader`.
 :return: The list of root-level drawcalls in the capture.
 :rtype: ``list`` of :class:`DrawcallDescription`
 )");
-  virtual rdctype::array<DrawcallDescription> GetDrawcalls() = 0;
+  virtual rdcarray<DrawcallDescription> GetDrawcalls() = 0;
 
   DOCUMENT(R"(Retrieve the values of a specified set of counters.
 
@@ -663,7 +662,7 @@ See :meth:`BuildTargetShader`.
 :return: The list of counter results generated.
 :rtype: ``list`` of :class:`CounterResult`
 )");
-  virtual rdctype::array<CounterResult> FetchCounters(const rdctype::array<GPUCounter> &counters) = 0;
+  virtual rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters) = 0;
 
   DOCUMENT(R"(Retrieve a list of which counters are available in the current capture analysis
 implementation.
@@ -671,7 +670,7 @@ implementation.
 :return: The list of counters available.
 :rtype: ``list`` of :class:`GPUCounter`
 )");
-  virtual rdctype::array<GPUCounter> EnumerateCounters() = 0;
+  virtual rdcarray<GPUCounter> EnumerateCounters() = 0;
 
   DOCUMENT(R"(Get information about what a counter actually represents, in terms of a human-readable
 understanding as well as the type and unit of the resulting information.
@@ -687,14 +686,14 @@ understanding as well as the type and unit of the resulting information.
 :return: The list of textures in the capture.
 :rtype: ``list`` of :class:`TextureDescription`
 )");
-  virtual rdctype::array<TextureDescription> GetTextures() = 0;
+  virtual rdcarray<TextureDescription> GetTextures() = 0;
 
   DOCUMENT(R"(Retrieve the list of buffers alive in the capture.
 
 :return: The list of buffers in the capture.
 :rtype: ``list`` of :class:`BufferDescription`
 )");
-  virtual rdctype::array<BufferDescription> GetBuffers() = 0;
+  virtual rdcarray<BufferDescription> GetBuffers() = 0;
 
   DOCUMENT(R"(Retrieve the list of buffers alive in the capture.
 
@@ -704,7 +703,7 @@ Must only be called after :meth:`InitResolver` has returned ``True``.
 :return: The list of resolved callstack entries as strings.
 :rtype: ``list`` of ``str``
 )");
-  virtual rdctype::array<rdctype::str> GetResolve(const rdctype::array<uint64_t> &callstack) = 0;
+  virtual rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack) = 0;
 
   DOCUMENT(R"(Retrieve a list of any newly generated diagnostic messages.
 
@@ -714,7 +713,7 @@ newly generated messages will be returned after that.
 :return: The list of the :class:`DebugMessage` messages.
 :rtype: ``list`` of :class:`DebugMessage`
 )");
-  virtual rdctype::array<DebugMessage> GetDebugMessages() = 0;
+  virtual rdcarray<DebugMessage> GetDebugMessages() = 0;
 
   DOCUMENT(R"(Retrieve the history of modifications to the selected pixel on the selected texture.
 
@@ -728,9 +727,9 @@ newly generated messages will be returned after that.
 :return: The list of pixel history events.
 :rtype: ``list`` of :class:`PixelModification`
 )");
-  virtual rdctype::array<PixelModification> PixelHistory(ResourceId texture, uint32_t x, uint32_t y,
-                                                         uint32_t slice, uint32_t mip,
-                                                         uint32_t sampleIdx, CompType typeHint) = 0;
+  virtual rdcarray<PixelModification> PixelHistory(ResourceId texture, uint32_t x, uint32_t y,
+                                                   uint32_t slice, uint32_t mip, uint32_t sampleIdx,
+                                                   CompType typeHint) = 0;
 
   DOCUMENT(R"(Retrieve a debugging trace from running a vertex shader.
 
@@ -783,7 +782,7 @@ newly generated messages will be returned after that.
 :return: The list of usages of the resource.
 :rtype: ``list`` of :class:`EventUsage`
 )");
-  virtual rdctype::array<EventUsage> GetUsage(ResourceId id) = 0;
+  virtual rdcarray<EventUsage> GetUsage(ResourceId id) = 0;
 
   DOCUMENT(R"(Retrieve the contents of a constant block by reading from memory or their source
 otherwise.
@@ -797,11 +796,10 @@ otherwise.
 :return: The shader variables with their contents.
 :rtype: ``list`` of :class:`ShaderVariable`
 )");
-  virtual rdctype::array<ShaderVariable> GetCBufferVariableContents(ResourceId shader,
-                                                                    const char *entryPoint,
-                                                                    uint32_t cbufslot,
-                                                                    ResourceId buffer,
-                                                                    uint64_t offs) = 0;
+  virtual rdcarray<ShaderVariable> GetCBufferVariableContents(ResourceId shader,
+                                                              const char *entryPoint,
+                                                              uint32_t cbufslot, ResourceId buffer,
+                                                              uint64_t offs) = 0;
 
   DOCUMENT(R"(Save a texture to a file on disk, with possible transformation to map a complex
 texture to something compatible with the target file format.
@@ -830,7 +828,7 @@ texture to something compatible with the target file format.
 :return: The requested buffer contents.
 :rtype: ``bytes``
 )");
-  virtual rdctype::array<byte> GetBufferData(ResourceId buff, uint64_t offset, uint64_t len) = 0;
+  virtual bytebuf GetBufferData(ResourceId buff, uint64_t offset, uint64_t len) = 0;
 
   DOCUMENT(R"(Retrieve the contents of one subresource of a texture as a ``bytes``.
 
@@ -844,7 +842,7 @@ sample 0, etc.
 :return: The requested texture contents.
 :rtype: ``bytes``
 )");
-  virtual rdctype::array<byte> GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip) = 0;
+  virtual bytebuf GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip) = 0;
 
   static const uint32_t NoPreference = ~0U;
 
@@ -981,7 +979,7 @@ These will be strings like "D3D11" or "OpenGL".
 :return: A list of names of the local proxies.
 :rtype: ``list`` of ``str``
 )");
-  virtual rdctype::array<rdctype::str> LocalProxies() = 0;
+  virtual rdcarray<rdcstr> LocalProxies() = 0;
 
   DOCUMENT(R"(Retrieve a list of renderers supported by the remote server.
 
@@ -990,14 +988,14 @@ These will be strings like "D3D11" or "OpenGL".
 :return: A list of names of the remote renderers.
 :rtype: ``list`` of ``str``
 )");
-  virtual rdctype::array<rdctype::str> RemoteSupportedReplays() = 0;
+  virtual rdcarray<rdcstr> RemoteSupportedReplays() = 0;
 
   DOCUMENT(R"(Retrieve the path on the remote system where browsing can begin.
 
 :return: The 'home' path where browsing for files or folders can begin.
 :rtype: ``str``
 )");
-  virtual rdctype::str GetHomeFolder() = 0;
+  virtual rdcstr GetHomeFolder() = 0;
 
   DOCUMENT(R"(Retrieve the contents of a folder path on the remote system.
 
@@ -1007,7 +1005,7 @@ If an error occurs, a single :class:`PathEntry` will be returned with appropriat
 :return: The contents of the specified folder.
 :rtype: ``list`` of :class:`PathEntry`
 )");
-  virtual rdctype::array<PathEntry> ListFolder(const char *path) = 0;
+  virtual rdcarray<PathEntry> ListFolder(const char *path) = 0;
 
   DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 
@@ -1025,7 +1023,7 @@ This happens on the remote system, so all paths are relative to the remote files
 :rtype: ``int``
 )");
   virtual uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
-                                    const rdctype::array<EnvironmentModification> &env,
+                                    const rdcarray<EnvironmentModification> &env,
                                     const CaptureOptions &opts) = 0;
 
   DOCUMENT(R"(Take ownership over a capture file.
@@ -1054,7 +1052,7 @@ the capture must be available on the machine where the replay happens.
 :return: The path on the remote system where the capture was saved temporarily.
 :rtype: ``str``
 )");
-  virtual rdctype::str CopyCaptureToRemote(const char *filename, float *progress) = 0;
+  virtual rdcstr CopyCaptureToRemote(const char *filename, float *progress) = 0;
 
   DOCUMENT(R"(Copy a capture file that is stored on the remote system to the local system.
 
@@ -1089,9 +1087,9 @@ or an error has occurred.
   resulting :class:`ReplayController` handle if successful.
 :rtype: ``tuple`` of :class:`ReplayStatus` and :class:`ReplayController`
 )");
-  virtual rdctype::pair<ReplayStatus, IReplayController *> OpenCapture(uint32_t proxyid,
-                                                                       const char *logfile,
-                                                                       float *progress) = 0;
+  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(uint32_t proxyid,
+                                                                 const char *logfile,
+                                                                 float *progress) = 0;
 
   DOCUMENT(R"(Close a capture analysis handle previously opened by :meth:`OpenCapture`.
 
@@ -1167,7 +1165,7 @@ by the :class:`ReplayController`.
   resulting :class:`ReplayController` handle if successful.
 :rtype: ``tuple`` of :class:`ReplayStatus` and :class:`ReplayController`.
 )");
-  virtual rdctype::pair<ReplayStatus, IReplayController *> OpenCapture(float *progress) = 0;
+  virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(float *progress) = 0;
 
   DOCUMENT(R"(Retrieves the embedded thumbnail from the capture.
 
@@ -1177,7 +1175,7 @@ by the :class:`ReplayController`.
   resolution.
 :rtype: ``bytes``.
   )");
-  virtual rdctype::array<byte> GetThumbnail(FileType type, uint32_t maxsize) = 0;
+  virtual bytebuf GetThumbnail(FileType type, uint32_t maxsize) = 0;
 
 protected:
   ICaptureFile() = default;
@@ -1490,7 +1488,7 @@ DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 )");
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
-                           const rdctype::array<EnvironmentModification> &env, const char *logfile,
+                           const rdcarray<EnvironmentModification> &env, const char *logfile,
                            const CaptureOptions &opts, bool waitForExit);
 
 DOCUMENT(R"(Where supported by operating system and permissions, inject into a running process.
@@ -1504,7 +1502,7 @@ DOCUMENT(R"(Where supported by operating system and permissions, inject into a r
 :rtype: ``int``
 )");
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
-RENDERDOC_InjectIntoProcess(uint32_t pid, const rdctype::array<EnvironmentModification> &env,
+RENDERDOC_InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
                             const char *logfile, const CaptureOptions &opts, bool waitForExit);
 
 DOCUMENT(R"(When debugging RenderDoc it can be useful to capture itself by doing a side-build with a
@@ -1526,9 +1524,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const ch
 //////////////////////////////////////////////////////////////////////////
 
 DOCUMENT("Internal function for determining vulkan layer registration status.");
-extern "C" RENDERDOC_API bool RENDERDOC_CC
-RENDERDOC_NeedVulkanLayerRegistration(VulkanLayerFlags *flags, rdctype::array<rdctype::str> *myJSONs,
-                                      rdctype::array<rdctype::str> *otherJSONs);
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_NeedVulkanLayerRegistration(
+    VulkanLayerFlags *flags, rdcarray<rdcstr> *myJSONs, rdcarray<rdcstr> *otherJSONs);
 
 DOCUMENT("Internal function for updating vulkan layer registration.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistration(bool systemLevel);
@@ -1538,8 +1535,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistrati
 //////////////////////////////////////////////////////////////////////////
 
 DOCUMENT("Internal function for initialising global process environment in a replay program.");
-extern "C" RENDERDOC_API void RENDERDOC_CC
-RENDERDOC_InitGlobalEnv(GlobalEnvironment env, const rdctype::array<rdctype::str> &args);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitGlobalEnv(GlobalEnvironment env,
+                                                                   const rdcarray<rdcstr> &args);
 
 DOCUMENT("Internal function for triggering exception handler.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs,
@@ -1590,11 +1587,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetColors(FloatVector darkC
                                                                bool darkTheme);
 
 DOCUMENT("Internal function for fetching friendly android names.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(const rdctype::str &device,
-                                                                            rdctype::str &friendly);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(const rdcstr &device,
+                                                                            rdcstr &friendly);
 
 DOCUMENT("Internal function for enumerating android devices.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdctype::str *deviceList);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdcstr *deviceList);
 
 DOCUMENT("Internal function for starting an android remote server.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(const char *device);
@@ -1614,5 +1611,5 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(co
                                                                               float *progress);
 
 DOCUMENT("Internal function that runs unit tests.");
-extern "C" RENDERDOC_API int RENDERDOC_CC
-RENDERDOC_RunUnitTests(const rdctype::str &command, const rdctype::array<rdctype::str> &args);
+extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &command,
+                                                                 const rdcarray<rdcstr> &args);

@@ -108,8 +108,8 @@ struct VulkanRegisterCommand : public Command
 void VerifyVulkanLayer(const GlobalEnvironment &env, int argc, char *argv[])
 {
   VulkanLayerFlags flags = VulkanLayerFlags::NoFlags;
-  rdctype::array<rdctype::str> myJSONs;
-  rdctype::array<rdctype::str> otherJSONs;
+  rdcarray<rdcstr> myJSONs;
+  rdcarray<rdcstr> otherJSONs;
 
   bool needUpdate = RENDERDOC_NeedVulkanLayerRegistration(&flags, &myJSONs, &otherJSONs);
 
@@ -138,20 +138,20 @@ void VerifyVulkanLayer(const GlobalEnvironment &env, int argc, char *argv[])
   const bool registerAll = bool(flags & VulkanLayerFlags::RegisterAll);
   const bool updateAllowed = bool(flags & VulkanLayerFlags::UpdateAllowed);
 
-  for(const rdctype::str &j : otherJSONs)
+  for(const rdcstr &j : otherJSONs)
     std::cerr << (updateAllowed ? "Unregister/update: " : "Unregister: ") << j.c_str() << std::endl;
 
   if(!(flags & VulkanLayerFlags::ThisInstallRegistered))
   {
     if(registerAll)
     {
-      for(const rdctype::str &j : myJSONs)
+      for(const rdcstr &j : myJSONs)
         std::cerr << (updateAllowed ? "Register/update: " : "Register: ") << j.c_str() << std::endl;
     }
     else
     {
       std::cerr << (updateAllowed ? "Register one of:" : "Register/update one of:") << std::endl;
-      for(const rdctype::str &j : myJSONs)
+      for(const rdcstr &j : myJSONs)
         std::cerr << "  -- " << j.c_str() << "\n";
     }
   }
@@ -265,7 +265,7 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
 
   xcb_map_window(connection, window);
 
-  rdctype::array<WindowingSystem> systems = renderer->GetSupportedWindowSystems();
+  rdcarray<WindowingSystem> systems = renderer->GetSupportedWindowSystems();
 
   bool xcb = false, xlib = false;
 

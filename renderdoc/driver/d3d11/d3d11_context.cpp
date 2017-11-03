@@ -1772,7 +1772,7 @@ void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStage stage, UINT Num
       RDCASSERT(desc.ViewDimension < ARRAY_COUNT(mapping));
       TextureDim type = mapping[desc.ViewDimension];
       // #mivance surprisingly this is not asserted in operator[] for
-      // rdctype::array so I'm being paranoid
+      // rdcarray so I'm being paranoid
       RDCASSERT((int)type < (int)resources.types.size());
       resources.types[(int)type] += 1;
     }

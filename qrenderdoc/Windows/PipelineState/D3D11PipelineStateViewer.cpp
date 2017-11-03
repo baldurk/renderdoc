@@ -1164,8 +1164,8 @@ void D3D11PipelineStateViewer::setState()
     }
 
     {
-      const rdctype::array<SigParameter> &IA = state.m_IA.Bytecode->InputSig;
-      const rdctype::array<SigParameter> &VS = state.m_VS.ShaderDetails->InputSig;
+      const rdcarray<SigParameter> &IA = state.m_IA.Bytecode->InputSig;
+      const rdcarray<SigParameter> &VS = state.m_VS.ShaderDetails->InputSig;
 
       int count = qMin(IA.count(), VS.count());
 
@@ -1766,7 +1766,7 @@ void D3D11PipelineStateViewer::setState()
 }
 
 QString D3D11PipelineStateViewer::formatMembers(int indent, const QString &nameprefix,
-                                                const rdctype::array<ShaderConstant> &vars)
+                                                const rdcarray<ShaderConstant> &vars)
 {
   QString indentstr(indent * 4, QLatin1Char(' '));
 
@@ -1919,9 +1919,9 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
     if(stage->ShaderDetails)
     {
-      const rdctype::array<ShaderResource> &resArray =
-          view.type == D3D11ViewTag::SRV ? stage->ShaderDetails->ReadOnlyResources
-                                         : stage->ShaderDetails->ReadWriteResources;
+      const rdcarray<ShaderResource> &resArray = view.type == D3D11ViewTag::SRV
+                                                     ? stage->ShaderDetails->ReadOnlyResources
+                                                     : stage->ShaderDetails->ReadWriteResources;
 
       for(const ShaderResource &res : resArray)
       {

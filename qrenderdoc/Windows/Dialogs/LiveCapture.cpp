@@ -891,9 +891,8 @@ void LiveCapture::captureCopied(uint32_t ID, const QString &localPath)
 }
 
 void LiveCapture::captureAdded(uint32_t ID, const QString &executable, const QString &api,
-                               const rdctype::array<byte> &thumbnail, int32_t thumbWidth,
-                               int32_t thumbHeight, QDateTime timestamp, const QString &path,
-                               bool local)
+                               const bytebuf &thumbnail, int32_t thumbWidth, int32_t thumbHeight,
+                               QDateTime timestamp, const QString &path, bool local)
 {
   CaptureLog *log = new CaptureLog();
   log->remoteID = ID;
@@ -1101,7 +1100,7 @@ void LiveCapture::connectionThreadEntry()
       uint32_t capID = msg.NewCapture.ID;
       QDateTime timestamp = QDateTime(QDate(1970, 1, 1), QTime(0, 0, 0));
       timestamp = timestamp.addSecs(msg.NewCapture.timestamp).toLocalTime();
-      rdctype::array<byte> thumb = msg.NewCapture.thumbnail;
+      bytebuf thumb = msg.NewCapture.thumbnail;
       int32_t thumbWidth = msg.NewCapture.thumbWidth;
       int32_t thumbHeight = msg.NewCapture.thumbHeight;
       QString path = msg.NewCapture.path;

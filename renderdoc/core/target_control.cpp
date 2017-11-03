@@ -126,7 +126,7 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
       ser.Serialise("", captures.back().timestamp);
       ser.Serialise("", path);
 
-      rdctype::array<byte> buf;
+      bytebuf buf;
 
       ICaptureFile *file = RENDERDOC_OpenCaptureFile(captures.back().path.c_str());
       if(file->OpenStatus() == ReplayStatus::Succeeded)

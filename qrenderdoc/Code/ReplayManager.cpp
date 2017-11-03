@@ -91,8 +91,8 @@ QStringList ReplayManager::GetRemoteSupport()
   {
     QMutexLocker autolock(&m_RemoteLock);
 
-    rdctype::array<rdctype::str> supported = m_Remote->RemoteSupportedReplays();
-    for(rdctype::str &s : supported)
+    rdcarray<rdcstr> supported = m_Remote->RemoteSupportedReplays();
+    for(rdcstr &s : supported)
       ret << s;
   }
 
@@ -107,7 +107,7 @@ void ReplayManager::GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb)
   if(IsRunning() && m_Thread->isCurrentThread())
   {
     auto lambda = [cb, this](IReplayController *r) {
-      cb(m_Remote->GetHomeFolder().c_str(), rdctype::array<PathEntry>());
+      cb(m_Remote->GetHomeFolder().c_str(), rdcarray<PathEntry>());
     };
 
     if(synchronous)
@@ -117,14 +117,14 @@ void ReplayManager::GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb)
     return;
   }
 
-  rdctype::str home;
+  rdcstr home;
 
   {
     QMutexLocker autolock(&m_RemoteLock);
     home = m_Remote->GetHomeFolder();
   }
 
-  cb(home.c_str(), rdctype::array<PathEntry>());
+  cb(home.c_str(), rdcarray<PathEntry>());
 }
 
 void ReplayManager::ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb)
@@ -147,7 +147,7 @@ void ReplayManager::ListFolder(QString path, bool synchronous, DirectoryBrowseCa
     return;
   }
 
-  rdctype::array<PathEntry> contents;
+  rdcarray<PathEntry> contents;
 
   // prevent pings while fetching remote FS data
   {
@@ -360,7 +360,7 @@ uint32_t ReplayManager::ExecuteAndInject(const QString &exe, const QString &work
                                          const QList<EnvironmentModification> &env,
                                          const QString &logfile, CaptureOptions opts)
 {
-  rdctype::array<EnvironmentModification> envList = env.toVector().toStdVector();
+  rdcarray<EnvironmentModification> envList = env.toVector().toStdVector();
 
   uint32_t ret = 0;
 

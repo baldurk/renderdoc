@@ -188,7 +188,7 @@ void PerformanceCounterViewer::CaptureCounters()
 
   bool done = false;
   m_Ctx.Replay().AsyncInvoke([this, &done](IReplayController *controller) -> void {
-    rdctype::array<GPUCounter> counters;
+    rdcarray<GPUCounter> counters;
     counters.resize(m_SelectedCounters.size());
 
     QMap<GPUCounter, CounterDescription> counterDescriptions;
@@ -205,7 +205,7 @@ void PerformanceCounterViewer::CaptureCounters()
       counterIndex.insert((GPUCounter)m_SelectedCounters[i], i);
     }
 
-    const rdctype::array<CounterResult> results = controller->FetchCounters(counters);
+    const rdcarray<CounterResult> results = controller->FetchCounters(counters);
 
     GUIInvoke::call([this, results, counterDescriptions, counterIndex]() -> void {
       ui->counterResults->clear();

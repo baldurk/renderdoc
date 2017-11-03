@@ -27,7 +27,7 @@
 #include <functional>
 #include "gl_driver.h"
 
-void sort(rdctype::array<ShaderConstant> &vars)
+void sort(rdcarray<ShaderConstant> &vars)
 {
   if(vars.empty())
     return;
@@ -490,8 +490,8 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
 }
 
 void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuint varIdx,
-                        GLint numParentBlocks, rdctype::array<ShaderConstant> *parentBlocks,
-                        rdctype::array<ShaderConstant> *defaultBlock)
+                        GLint numParentBlocks, rdcarray<ShaderConstant> *parentBlocks,
+                        rdcarray<ShaderConstant> *defaultBlock)
 {
   const size_t numProps = 8;
 
@@ -709,7 +709,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     gl.glGetProgramResourceiv(sepProg, query, varIdx, 1, &propName, 1, NULL, &topLevelStride);
   }
 
-  rdctype::array<ShaderConstant> *parentmembers = defaultBlock;
+  rdcarray<ShaderConstant> *parentmembers = defaultBlock;
 
   if(values[3] != -1 && values[3] < numParentBlocks)
   {
@@ -847,8 +847,8 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     RDCEraseEl(refl.DispatchThreadsDimension);
   }
 
-  rdctype::array<ShaderResource> &roresources = refl.ReadOnlyResources;
-  rdctype::array<ShaderResource> &rwresources = refl.ReadWriteResources;
+  rdcarray<ShaderResource> &roresources = refl.ReadOnlyResources;
+  rdcarray<ShaderResource> &rwresources = refl.ReadWriteResources;
 
   GLint numUniforms = 0;
   gl.glGetProgramInterfaceiv(sepProg, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
@@ -1369,7 +1369,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
 
     res.name = name;
 
-    rdctype::array<ShaderResource> &reslist = (res.IsReadOnly ? roresources : rwresources);
+    rdcarray<ShaderResource> &reslist = (res.IsReadOnly ? roresources : rwresources);
 
     res.bindPoint = (int32_t)reslist.size();
     reslist.push_back(res);
@@ -1434,7 +1434,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
   }
 
   {
-    rdctype::array<ShaderConstant> *members = new rdctype::array<ShaderConstant>[ssbos.size()];
+    rdcarray<ShaderConstant> *members = new rdcarray<ShaderConstant>[ssbos.size()];
 
     for(uint32_t i = 0; i < ssboMembers; i++)
     {
@@ -1498,16 +1498,16 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     delete[] members;
   }
 
-  rdctype::array<ShaderConstant> globalUniforms;
+  rdcarray<ShaderConstant> globalUniforms;
 
   GLint numUBOs = 0;
   vector<string> uboNames;
-  rdctype::array<ShaderConstant> *ubos = NULL;
+  rdcarray<ShaderConstant> *ubos = NULL;
 
   {
     gl.glGetProgramInterfaceiv(sepProg, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
 
-    ubos = new rdctype::array<ShaderConstant>[numUBOs];
+    ubos = new rdcarray<ShaderConstant>[numUBOs];
     uboNames.resize(numUBOs);
 
     for(GLint u = 0; u < numUBOs; u++)
@@ -1571,7 +1571,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
   for(int sigType = 0; sigType < 2; sigType++)
   {
     GLenum sigEnum = (sigType == 0 ? eGL_PROGRAM_INPUT : eGL_PROGRAM_OUTPUT);
-    rdctype::array<SigParameter> *sigArray = (sigType == 0 ? &refl.InputSig : &refl.OutputSig);
+    rdcarray<SigParameter> *sigArray = (sigType == 0 ? &refl.InputSig : &refl.OutputSig);
 
     GLint numInputs;
     gl.glGetProgramInterfaceiv(sepProg, sigEnum, eGL_ACTIVE_RESOURCES, &numInputs);

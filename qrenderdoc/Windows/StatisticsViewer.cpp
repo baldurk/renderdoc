@@ -67,7 +67,7 @@ QString CountOrEmpty(uint32_t count)
     return QFormatStr("(%1)").arg(count);
 }
 
-QString CreateSimpleIntegerHistogram(const QString &legend, const rdctype::array<uint32_t> &array)
+QString CreateSimpleIntegerHistogram(const QString &legend, const rdcarray<uint32_t> &array)
 {
   uint32_t maxCount = 0;
   int maxWithValue = 0;
@@ -684,7 +684,7 @@ void StatisticsViewer::AppendAPICallSummary()
 
 void StatisticsViewer::GenerateReport()
 {
-  const rdctype::array<DrawcallDescription> &curDraws = m_Ctx.CurDrawcalls();
+  const rdcarray<DrawcallDescription> &curDraws = m_Ctx.CurDrawcalls();
 
   uint32_t drawCount = 0;
   uint32_t dispatchCount = 0;

@@ -434,7 +434,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
         recvser->Serialise("cmdLine", cmdLine);
         recvser->Serialise("opts", opts);
 
-        rdctype::array<EnvironmentModification> env;
+        rdcarray<EnvironmentModification> env;
         recvser->Serialise("env", env);
 
         uint32_t ident = uint32_t(ReplayStatus::NetworkIOFailed);
@@ -743,9 +743,9 @@ public:
     return type == eRemoteServer_Ping;
   }
 
-  rdctype::array<rdctype::str> LocalProxies()
+  rdcarray<rdcstr> LocalProxies()
   {
-    rdctype::array<rdctype::str> out;
+    rdcarray<rdcstr> out;
 
     m_Proxies.reserve(m_Proxies.size());
 
@@ -756,9 +756,9 @@ public:
     return out;
   }
 
-  rdctype::array<rdctype::str> RemoteSupportedReplays()
+  rdcarray<rdcstr> RemoteSupportedReplays()
   {
-    rdctype::array<rdctype::str> out;
+    rdcarray<rdcstr> out;
 
     {
       Serialiser sendData("", Serialiser::WRITING, false);
@@ -793,12 +793,12 @@ public:
     return out;
   }
 
-  rdctype::str GetHomeFolder()
+  rdcstr GetHomeFolder()
   {
     if(Android::IsHostADB(m_hostname.c_str()))
       return "/";
 
-    rdctype::str ret;
+    rdcstr ret;
 
     Serialiser sendData("", Serialiser::WRITING, false);
     Send(eRemoteServer_HomeDir, sendData);
@@ -821,7 +821,7 @@ public:
     return ret;
   }
 
-  rdctype::array<PathEntry> ListFolder(const char *path)
+  rdcarray<PathEntry> ListFolder(const char *path)
   {
     if(Android::IsHostADB(m_hostname.c_str()))
     {
@@ -863,7 +863,7 @@ public:
     Serialiser *ser = NULL;
     Get(type, &ser);
 
-    rdctype::array<PathEntry> files;
+    rdcarray<PathEntry> files;
 
     if(ser)
     {
@@ -886,8 +886,7 @@ public:
   }
 
   uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
-                            const rdctype::array<EnvironmentModification> &env,
-                            const CaptureOptions &opts)
+                            const rdcarray<EnvironmentModification> &env, const CaptureOptions &opts)
   {
     const char *host = hostname().c_str();
     if(Android::IsHostADB(host))
@@ -902,7 +901,7 @@ public:
     sendData.Serialise("workingDir", workstr);
     sendData.Serialise("cmdLine", cmdstr);
     sendData.Serialise("opts", (CaptureOptions &)opts);
-    sendData.Serialise("env", (rdctype::array<EnvironmentModification> &)env);
+    sendData.Serialise("env", (rdcarray<EnvironmentModification> &)env);
 
     Send(eRemoteServer_ExecuteAndInject, sendData);
 
@@ -943,7 +942,7 @@ public:
     SAFE_DELETE(fileRecv);
   }
 
-  rdctype::str CopyCaptureToRemote(const char *filename, float *progress)
+  rdcstr CopyCaptureToRemote(const char *filename, float *progress)
   {
     Serialiser sendData("", Serialiser::WRITING, false);
     Send(eRemoteServer_CopyCaptureToRemote, sendData);
@@ -983,10 +982,10 @@ public:
     Send(eRemoteServer_TakeOwnershipCapture, sendData);
   }
 
-  rdctype::pair<ReplayStatus, IReplayController *> OpenCapture(uint32_t proxyid,
-                                                               const char *filename, float *progress)
+  rdcpair<ReplayStatus, IReplayController *> OpenCapture(uint32_t proxyid, const char *filename,
+                                                         float *progress)
   {
-    rdctype::pair<ReplayStatus, IReplayController *> ret;
+    rdcpair<ReplayStatus, IReplayController *> ret;
     ret.first = ReplayStatus::InternalError;
     ret.second = NULL;
 

@@ -50,14 +50,14 @@ public:
   void SetPixelContextLocation(uint32_t x, uint32_t y);
   void DisablePixelContext();
 
-  rdctype::pair<PixelValue, PixelValue> GetMinMax();
-  rdctype::array<uint32_t> GetHistogram(float minval, float maxval, bool channels[4]);
+  rdcpair<PixelValue, PixelValue> GetMinMax();
+  rdcarray<uint32_t> GetHistogram(float minval, float maxval, bool channels[4]);
 
   ResourceId GetCustomShaderTexID() { return m_CustomShaderResourceId; }
   ResourceId GetDebugOverlayTexID() { return m_OverlayResourceId; }
   PixelValue PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y,
                        uint32_t sliceFace, uint32_t mip, uint32_t sample);
-  rdctype::pair<uint32_t, uint32_t> PickVertex(uint32_t eventID, uint32_t x, uint32_t y);
+  rdcpair<uint32_t, uint32_t> PickVertex(uint32_t eventID, uint32_t x, uint32_t y);
 
 private:
   ReplayOutput(ReplayController *parent, WindowingSystem system, void *data, ReplayOutputType type);
@@ -143,35 +143,33 @@ public:
   const GLPipe::State &GetGLPipelineState();
   const VKPipe::State &GetVulkanPipelineState();
 
-  rdctype::array<rdctype::str> GetDisassemblyTargets();
-  rdctype::str DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                 const char *target);
+  rdcarray<rdcstr> GetDisassemblyTargets();
+  rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const char *target);
 
-  rdctype::pair<ResourceId, rdctype::str> BuildCustomShader(const char *entry, const char *source,
-                                                            const ShaderCompileFlags &compileFlags,
-                                                            ShaderStage type);
+  rdcpair<ResourceId, rdcstr> BuildCustomShader(const char *entry, const char *source,
+                                                const ShaderCompileFlags &compileFlags,
+                                                ShaderStage type);
   void FreeCustomShader(ResourceId id);
 
-  rdctype::pair<ResourceId, rdctype::str> BuildTargetShader(const char *entry, const char *source,
-                                                            const ShaderCompileFlags &compileFlags,
-                                                            ShaderStage type);
+  rdcpair<ResourceId, rdcstr> BuildTargetShader(const char *entry, const char *source,
+                                                const ShaderCompileFlags &compileFlags,
+                                                ShaderStage type);
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);
   void FreeTargetResource(ResourceId id);
 
   FrameDescription GetFrameInfo();
-  rdctype::array<DrawcallDescription> GetDrawcalls();
-  rdctype::array<CounterResult> FetchCounters(const rdctype::array<GPUCounter> &counters);
-  rdctype::array<GPUCounter> EnumerateCounters();
+  rdcarray<DrawcallDescription> GetDrawcalls();
+  rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters);
+  rdcarray<GPUCounter> EnumerateCounters();
   CounterDescription DescribeCounter(GPUCounter counterID);
-  rdctype::array<TextureDescription> GetTextures();
-  rdctype::array<BufferDescription> GetBuffers();
-  rdctype::array<rdctype::str> GetResolve(const rdctype::array<uint64_t> &callstack);
-  rdctype::array<DebugMessage> GetDebugMessages();
+  rdcarray<TextureDescription> GetTextures();
+  rdcarray<BufferDescription> GetBuffers();
+  rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack);
+  rdcarray<DebugMessage> GetDebugMessages();
 
-  rdctype::array<PixelModification> PixelHistory(ResourceId target, uint32_t x, uint32_t y,
-                                                 uint32_t slice, uint32_t mip, uint32_t sampleIdx,
-                                                 CompType typeHint);
+  rdcarray<PixelModification> PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice,
+                                           uint32_t mip, uint32_t sampleIdx, CompType typeHint);
   ShaderDebugTrace *DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset,
                                 uint32_t vertOffset);
   ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive);
@@ -180,18 +178,18 @@ public:
 
   MeshFormat GetPostVSData(uint32_t instID, MeshDataStage stage);
 
-  rdctype::array<EventUsage> GetUsage(ResourceId id);
+  rdcarray<EventUsage> GetUsage(ResourceId id);
 
-  rdctype::array<byte> GetBufferData(ResourceId buff, uint64_t offset, uint64_t len);
-  rdctype::array<byte> GetTextureData(ResourceId buff, uint32_t arrayIdx, uint32_t mip);
+  bytebuf GetBufferData(ResourceId buff, uint64_t offset, uint64_t len);
+  bytebuf GetTextureData(ResourceId buff, uint32_t arrayIdx, uint32_t mip);
 
   bool SaveTexture(const TextureSave &saveData, const char *path);
 
-  rdctype::array<ShaderVariable> GetCBufferVariableContents(ResourceId shader, const char *entryPoint,
-                                                            uint32_t cbufslot, ResourceId buffer,
-                                                            uint64_t offs);
+  rdcarray<ShaderVariable> GetCBufferVariableContents(ResourceId shader, const char *entryPoint,
+                                                      uint32_t cbufslot, ResourceId buffer,
+                                                      uint64_t offs);
 
-  rdctype::array<WindowingSystem> GetSupportedWindowSystems();
+  rdcarray<WindowingSystem> GetSupportedWindowSystems();
 
   void ReplayLoop(WindowingSystem system, void *data, ResourceId texid);
   void CancelReplayLoop();

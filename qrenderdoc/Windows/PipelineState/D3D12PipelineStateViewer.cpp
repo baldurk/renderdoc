@@ -631,9 +631,9 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
 
   if(stage && stage->ShaderDetails)
   {
-    const rdctype::array<BindpointMap> &binds = uav ? stage->BindpointMapping.ReadWriteResources
-                                                    : stage->BindpointMapping.ReadOnlyResources;
-    const rdctype::array<ShaderResource> &res =
+    const rdcarray<BindpointMap> &binds = uav ? stage->BindpointMapping.ReadWriteResources
+                                              : stage->BindpointMapping.ReadOnlyResources;
+    const rdcarray<ShaderResource> &res =
         uav ? stage->ShaderDetails->ReadWriteResources : stage->ShaderDetails->ReadOnlyResources;
     for(int i = 0; i < binds.count(); i++)
     {
@@ -1645,7 +1645,7 @@ void D3D12PipelineStateViewer::setState()
 }
 
 QString D3D12PipelineStateViewer::formatMembers(int indent, const QString &nameprefix,
-                                                const rdctype::array<ShaderConstant> &vars)
+                                                const rdcarray<ShaderConstant> &vars)
 {
   QString indentstr(indent * 4, QLatin1Char(' '));
 
@@ -1765,13 +1765,13 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
     if(stage->ShaderDetails)
     {
-      const rdctype::array<ShaderResource> &resArray =
-          view.space == D3D12ViewTag::SRV ? stage->ShaderDetails->ReadOnlyResources
-                                          : stage->ShaderDetails->ReadWriteResources;
+      const rdcarray<ShaderResource> &resArray = view.space == D3D12ViewTag::SRV
+                                                     ? stage->ShaderDetails->ReadOnlyResources
+                                                     : stage->ShaderDetails->ReadWriteResources;
 
-      const rdctype::array<BindpointMap> &bindArray =
-          view.space == D3D12ViewTag::SRV ? stage->BindpointMapping.ReadOnlyResources
-                                          : stage->BindpointMapping.ReadOnlyResources;
+      const rdcarray<BindpointMap> &bindArray = view.space == D3D12ViewTag::SRV
+                                                    ? stage->BindpointMapping.ReadOnlyResources
+                                                    : stage->BindpointMapping.ReadOnlyResources;
 
       for(int i = 0; i < bindArray.count(); i++)
       {

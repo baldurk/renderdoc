@@ -1916,7 +1916,7 @@ void GLPipelineStateViewer::setState()
 }
 
 QString GLPipelineStateViewer::formatMembers(int indent, const QString &nameprefix,
-                                             const rdctype::array<ShaderConstant> &vars)
+                                             const rdcarray<ShaderConstant> &vars)
 {
   QString indentstr(indent * 4, QLatin1Char(' '));
 

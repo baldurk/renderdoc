@@ -229,14 +229,13 @@ private:
   void InitResourcePreview(ResourcePreview *prev, ResourceId id, CompType typeHint, bool force,
                            Following &follow, const QString &bindName, const QString &slotName);
 
-  void InitStageResourcePreviews(ShaderStage stage,
-                                 const rdctype::array<ShaderResource> &resourceDetails,
-                                 const rdctype::array<BindpointMap> &mapping,
+  void InitStageResourcePreviews(ShaderStage stage, const rdcarray<ShaderResource> &resourceDetails,
+                                 const rdcarray<BindpointMap> &mapping,
                                  QMap<BindpointMap, QVector<BoundResource>> &ResList,
                                  ThumbnailStrip *prevs, int &prevIndex, bool copy, bool rw);
 
   void AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t end, ResourceUsage usage);
-  void OpenResourceContextMenu(ResourceId id, const rdctype::array<EventUsage> &usage);
+  void OpenResourceContextMenu(ResourceId id, const rdcarray<EventUsage> &usage);
 
   void AutoFitRange();
   void rangePoint_Update();

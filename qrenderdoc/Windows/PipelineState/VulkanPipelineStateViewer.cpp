@@ -753,7 +753,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
     }
   }
 
-  const rdctype::array<VKPipe::BindingElement> *slotBinds = NULL;
+  const rdcarray<VKPipe::BindingElement> *slotBinds = NULL;
   BindType bindType = BindType::Unknown;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
 
@@ -1113,7 +1113,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       slot = ~0U;
   }
 
-  const rdctype::array<VKPipe::BindingElement> *slotBinds = NULL;
+  const rdcarray<VKPipe::BindingElement> *slotBinds = NULL;
   BindType bindType = BindType::ConstantBuffer;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
 
@@ -1999,7 +1999,7 @@ void VulkanPipelineStateViewer::setState()
 }
 
 QString VulkanPipelineStateViewer::formatMembers(int indent, const QString &nameprefix,
-                                                 const rdctype::array<ShaderConstant> &vars)
+                                                 const rdcarray<ShaderConstant> &vars)
 {
   QString indentstr(indent * 4, QLatin1Char(' '));
 
@@ -2352,7 +2352,7 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
     {
       m_Ctx.Replay().AsyncInvoke(
           [this, stage, pipe, shaderDetails, entryFunc, mainfile](IReplayController *r) {
-            rdctype::str disasm = r->DisassembleShader(pipe, shaderDetails, "");
+            rdcstr disasm = r->DisassembleShader(pipe, shaderDetails, "");
 
             GUIInvoke::call([this, stage, shaderDetails, entryFunc, mainfile, disasm]() {
               QStringMap fileMap;

@@ -126,15 +126,15 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventID)
   if(!m_formatOverride.empty())
   {
     m_Ctx.Replay().AsyncInvoke([this, offs, size](IReplayController *r) {
-      rdctype::array<byte> data = r->GetBufferData(m_cbuffer, offs, size);
-      rdctype::array<ShaderVariable> vars = applyFormatOverride(data);
+      bytebuf data = r->GetBufferData(m_cbuffer, offs, size);
+      rdcarray<ShaderVariable> vars = applyFormatOverride(data);
       GUIInvoke::call([this, vars] { setVariables(vars); });
     });
   }
   else
   {
     m_Ctx.Replay().AsyncInvoke([this, entryPoint, offs](IReplayController *r) {
-      rdctype::array<ShaderVariable> vars = r->GetCBufferVariableContents(
+      rdcarray<ShaderVariable> vars = r->GetCBufferVariableContents(
           m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offs);
       GUIInvoke::call([this, vars] { setVariables(vars); });
     });
@@ -226,7 +226,7 @@ void ConstantBufferPreviewer::processFormat(const QString &format)
 }
 
 void ConstantBufferPreviewer::addVariables(RDTreeWidgetItem *root,
-                                           const rdctype::array<ShaderVariable> &vars)
+                                           const rdcarray<ShaderVariable> &vars)
 {
   for(const ShaderVariable &v : vars)
   {
@@ -247,8 +247,8 @@ void ConstantBufferPreviewer::addVariables(RDTreeWidgetItem *root,
 }
 
 bool ConstantBufferPreviewer::updateVariables(RDTreeWidgetItem *root,
-                                              const rdctype::array<ShaderVariable> &prevVars,
-                                              const rdctype::array<ShaderVariable> &newVars)
+                                              const rdcarray<ShaderVariable> &prevVars,
+                                              const rdcarray<ShaderVariable> &newVars)
 {
   // mismatched child count? can't update
   if(prevVars.size() != newVars.size())
@@ -293,7 +293,7 @@ bool ConstantBufferPreviewer::updateVariables(RDTreeWidgetItem *root,
   return true;
 }
 
-void ConstantBufferPreviewer::setVariables(const rdctype::array<ShaderVariable> &vars)
+void ConstantBufferPreviewer::setVariables(const rdcarray<ShaderVariable> &vars)
 {
   ui->variables->beginUpdate();
 
@@ -364,8 +364,7 @@ void ConstantBufferPreviewer::updateLabels()
   setWindowTitle(title);
 }
 
-rdctype::array<ShaderVariable> ConstantBufferPreviewer::applyFormatOverride(
-    const rdctype::array<byte> &bytes)
+rdcarray<ShaderVariable> ConstantBufferPreviewer::applyFormatOverride(const bytebuf &bytes)
 {
   QVector<ShaderVariable> variables;
 
@@ -377,7 +376,7 @@ rdctype::array<ShaderVariable> ConstantBufferPreviewer::applyFormatOverride(
     variables[i] = m_formatOverride[i].GetShaderVar(b, bytes.end());
   }
 
-  rdctype::array<ShaderVariable> ret;
+  rdcarray<ShaderVariable> ret;
   ret = variables.toStdVector();
   return ret;
 }

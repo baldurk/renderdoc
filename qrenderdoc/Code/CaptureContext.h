@@ -108,11 +108,11 @@ public:
   const DrawcallDescription *CurDrawcall() override { return GetDrawcall(CurEvent()); }
   const DrawcallDescription *GetFirstDrawcall() override { return m_FirstDrawcall; };
   const DrawcallDescription *GetLastDrawcall() override { return m_LastDrawcall; };
-  const rdctype::array<DrawcallDescription> &CurDrawcalls() override { return m_Drawcalls; }
+  const rdcarray<DrawcallDescription> &CurDrawcalls() override { return m_Drawcalls; }
   TextureDescription *GetTexture(ResourceId id) override { return m_Textures[id]; }
-  const rdctype::array<TextureDescription> &GetTextures() override { return m_TextureList; }
+  const rdcarray<TextureDescription> &GetTextures() override { return m_TextureList; }
   BufferDescription *GetBuffer(ResourceId id) override { return m_Buffers[id]; }
-  const rdctype::array<BufferDescription> &GetBuffers() override { return m_BufferList; }
+  const rdcarray<BufferDescription> &GetBuffers() override { return m_BufferList; }
   const DrawcallDescription *GetDrawcall(uint32_t eventID) override
   {
     return GetDrawcall(m_Drawcalls, eventID);
@@ -124,7 +124,7 @@ public:
   const QVector<DebugMessage> &DebugMessages() override { return m_DebugMessages; }
   int UnreadMessageCount() override { return m_UnreadMessageCount; }
   void MarkMessagesRead() override { m_UnreadMessageCount = 0; }
-  void AddMessages(const rdctype::array<DebugMessage> &msgs) override;
+  void AddMessages(const rdcarray<DebugMessage> &msgs) override;
 
   IMainWindow *GetMainWindow() override;
   IEventBrowser *GetEventBrowser() override;
@@ -216,7 +216,7 @@ private:
   int m_UnreadMessageCount = 0;
 
   bool PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b);
-  bool ContainsMarker(const rdctype::array<DrawcallDescription> &m_Drawcalls);
+  bool ContainsMarker(const rdcarray<DrawcallDescription> &m_Drawcalls);
   void AddFakeProfileMarkers();
 
   float m_LoadProgress = 0.0f;
@@ -229,8 +229,7 @@ private:
   uint32_t m_SelectedEventID;
   uint32_t m_EventID;
 
-  const DrawcallDescription *GetDrawcall(const rdctype::array<DrawcallDescription> &draws,
-                                         uint32_t eventID)
+  const DrawcallDescription *GetDrawcall(const rdcarray<DrawcallDescription> &draws, uint32_t eventID)
   {
     for(const DrawcallDescription &d : draws)
     {
@@ -250,7 +249,7 @@ private:
 
   void setupDockWindow(QWidget *shad);
 
-  rdctype::array<DrawcallDescription> m_Drawcalls;
+  rdcarray<DrawcallDescription> m_Drawcalls;
 
   APIProperties m_APIProps;
   FrameDescription m_FrameInfo;
@@ -258,11 +257,11 @@ private:
   DrawcallDescription *m_LastDrawcall = NULL;
 
   QMap<ResourceId, TextureDescription *> m_Textures;
-  rdctype::array<TextureDescription> m_TextureList;
+  rdcarray<TextureDescription> m_TextureList;
   QMap<ResourceId, BufferDescription *> m_Buffers;
-  rdctype::array<BufferDescription> m_BufferList;
+  rdcarray<BufferDescription> m_BufferList;
 
-  rdctype::array<WindowingSystem> m_WinSystems;
+  rdcarray<WindowingSystem> m_WinSystems;
 
   WindowingSystem m_CurWinSystem;
 

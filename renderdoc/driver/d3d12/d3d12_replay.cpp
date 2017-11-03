@@ -553,7 +553,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
 }
 
 void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &rootSig,
-                                     rdctype::array<D3D12Pipe::RegisterSpace> &dstSpaces,
+                                     rdcarray<D3D12Pipe::RegisterSpace> &dstSpaces,
                                      D3D12_SHADER_VISIBILITY visibility)
 {
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();

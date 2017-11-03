@@ -224,7 +224,7 @@ void EventBrowser::OnEventChanged(uint32_t eventID)
 }
 
 QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
-                                                     const rdctype::array<DrawcallDescription> &draws)
+                                                     const rdcarray<DrawcallDescription> &draws)
 {
   uint lastEID = 0, lastDraw = 0;
 
@@ -282,8 +282,7 @@ QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
   return qMakePair(lastEID, lastDraw);
 }
 
-void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node,
-                                    const rdctype::array<CounterResult> &results)
+void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<CounterResult> &results)
 {
   if(node == NULL)
     return;

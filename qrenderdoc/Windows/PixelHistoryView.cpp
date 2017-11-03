@@ -70,7 +70,7 @@ public:
     }
   }
 
-  void setHistory(const rdctype::array<PixelModification> &history)
+  void setHistory(const rdcarray<PixelModification> &history)
   {
     m_ModList.reserve(history.count());
     for(const PixelModification &h : history)
@@ -653,7 +653,7 @@ void PixelHistoryView::OnLogfileClosed()
   ToolWindowManager::closeToolWindow(this);
 }
 
-void PixelHistoryView::SetHistory(const rdctype::array<PixelModification> &history)
+void PixelHistoryView::SetHistory(const rdcarray<PixelModification> &history)
 {
   m_Model->setHistory(history);
 

@@ -61,7 +61,7 @@ TEST_CASE("Test array type", "[basictypes]")
 {
   SECTION("Basic test")
   {
-    rdctype::array<int> test;
+    rdcarray<int> test;
 
     CHECK(test.size() == 0);
     CHECK(test.capacity() == 0);
@@ -145,7 +145,7 @@ TEST_CASE("Test array type", "[basictypes]")
 
   SECTION("Test constructing/assigning from other types")
   {
-    rdctype::array<int> test;
+    rdcarray<int> test;
 
     SECTION("std::vector")
     {
@@ -159,7 +159,7 @@ TEST_CASE("Test array type", "[basictypes]")
       CHECK(test[2] == 4);
       CHECK(test[3] == 5);
 
-      rdctype::array<int> cc(vec);
+      rdcarray<int> cc(vec);
 
       REQUIRE(cc.size() == 4);
       CHECK(cc[0] == 2);
@@ -167,7 +167,7 @@ TEST_CASE("Test array type", "[basictypes]")
       CHECK(cc[2] == 4);
       CHECK(cc[3] == 5);
 
-      rdctype::array<int> ass;
+      rdcarray<int> ass;
 
       ass.assign(vec);
 
@@ -188,7 +188,7 @@ TEST_CASE("Test array type", "[basictypes]")
       CHECK(test[2] == 4);
       CHECK(test[3] == 5);
 
-      rdctype::array<int> cc({2, 3, 4, 5});
+      rdcarray<int> cc({2, 3, 4, 5});
 
       REQUIRE(cc.size() == 4);
       CHECK(cc[0] == 2);
@@ -196,7 +196,7 @@ TEST_CASE("Test array type", "[basictypes]")
       CHECK(cc[2] == 4);
       CHECK(cc[3] == 5);
 
-      rdctype::array<int> ass;
+      rdcarray<int> ass;
 
       ass.assign({2, 3, 4, 5});
 
@@ -209,7 +209,7 @@ TEST_CASE("Test array type", "[basictypes]")
 
     SECTION("other array")
     {
-      rdctype::array<int> vec = {2, 3, 4, 5};
+      rdcarray<int> vec = {2, 3, 4, 5};
 
       test = vec;
 
@@ -219,7 +219,7 @@ TEST_CASE("Test array type", "[basictypes]")
       CHECK(test[2] == 4);
       CHECK(test[3] == 5);
 
-      rdctype::array<int> cc(vec);
+      rdcarray<int> cc(vec);
 
       REQUIRE(cc.size() == 4);
       CHECK(cc[0] == 2);
@@ -227,7 +227,7 @@ TEST_CASE("Test array type", "[basictypes]")
       CHECK(cc[2] == 4);
       CHECK(cc[3] == 5);
 
-      rdctype::array<int> ass;
+      rdcarray<int> ass;
 
       ass.assign(vec);
 
@@ -241,7 +241,7 @@ TEST_CASE("Test array type", "[basictypes]")
 
   SECTION("Verify insert()")
   {
-    rdctype::array<int> vec = {6, 3, 13, 5};
+    rdcarray<int> vec = {6, 3, 13, 5};
 
     vec.insert(0, 9);
 
@@ -321,7 +321,7 @@ TEST_CASE("Test array type", "[basictypes]")
 
   SECTION("Verify erase()")
   {
-    rdctype::array<int> vec = {6, 3, 13, 5};
+    rdcarray<int> vec = {6, 3, 13, 5};
 
     vec.erase(2);
 
@@ -378,7 +378,7 @@ TEST_CASE("Test array type", "[basictypes]")
 
   SECTION("Check construction")
   {
-    rdctype::array<ConstructorCounter> test;
+    rdcarray<ConstructorCounter> test;
 
     CHECK(constructor == 0);
     CHECK(valueConstructor == 0);
@@ -462,7 +462,7 @@ TEST_CASE("Test array type", "[basictypes]")
 
 TEST_CASE("Test string type", "[basictypes][string]")
 {
-  rdctype::str test;
+  rdcstr test;
 
   // should not have any data in it
   CHECK(test.size() == 0);
@@ -486,7 +486,7 @@ TEST_CASE("Test string type", "[basictypes][string]")
   CHECK(test.c_str() != NULL);
   CHECK(test == "Test string type");
   CHECK(test == std::string("Test string type"));
-  CHECK(test == rdctype::str("Test string type"));
+  CHECK(test == rdcstr("Test string type"));
   CHECK_NULL_TERM(test);
 
   test[4] = '!';
@@ -501,7 +501,7 @@ TEST_CASE("Test string type", "[basictypes][string]")
   CHECK(test.c_str() != NULL);
   CHECK(test == "Test!string type");
   CHECK(test == std::string("Test!string type"));
-  CHECK(test == rdctype::str("Test!string type"));
+  CHECK(test == rdcstr("Test!string type"));
   CHECK_NULL_TERM(test);
 
   test.clear();

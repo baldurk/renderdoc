@@ -86,7 +86,7 @@ void TimelineBar::HighlightResourceUsage(ResourceId id)
     m_UsageTarget = buf->name;
 
   m_Ctx.Replay().AsyncInvoke([this, id](IReplayController *r) {
-    rdctype::array<EventUsage> usage = r->GetUsage(id);
+    rdcarray<EventUsage> usage = r->GetUsage(id);
 
     GUIInvoke::call([this, usage]() {
       for(const EventUsage &u : usage)
@@ -928,7 +928,7 @@ qreal TimelineBar::offsetOf(uint32_t eid)
 }
 
 uint32_t TimelineBar::processDraws(QVector<Marker> &markers, QVector<uint32_t> &draws,
-                                   const rdctype::array<DrawcallDescription> &curDraws)
+                                   const rdcarray<DrawcallDescription> &curDraws)
 {
   uint32_t maxEID = 0;
 

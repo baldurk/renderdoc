@@ -281,7 +281,7 @@ bool ReplayOutput::AddThumbnail(WindowingSystem system, void *data, ResourceId t
   return true;
 }
 
-rdctype::pair<PixelValue, PixelValue> ReplayOutput::GetMinMax()
+rdcpair<PixelValue, PixelValue> ReplayOutput::GetMinMax()
 {
   PixelValue minval;
   PixelValue maxval;
@@ -303,10 +303,10 @@ rdctype::pair<PixelValue, PixelValue> ReplayOutput::GetMinMax()
 
   m_pDevice->GetMinMax(tex, slice, mip, sample, typeHint, &minval.value_f[0], &maxval.value_f[0]);
 
-  return rdctype::make_pair(minval, maxval);
+  return make_rdcpair(minval, maxval);
 }
 
-rdctype::array<uint32_t> ReplayOutput::GetHistogram(float minval, float maxval, bool channels[4])
+rdcarray<uint32_t> ReplayOutput::GetHistogram(float minval, float maxval, bool channels[4])
 {
   vector<uint32_t> hist;
 
@@ -399,11 +399,11 @@ PixelValue ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x
   return ret;
 }
 
-rdctype::pair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y)
+rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y)
 {
   DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(eventID);
 
-  const rdctype::pair<uint32_t, uint32_t> errorReturn = rdctype::make_pair(~0U, ~0U);
+  const rdcpair<uint32_t, uint32_t> errorReturn = make_rdcpair(~0U, ~0U);
 
   if(!draw)
     return errorReturn;
@@ -458,7 +458,7 @@ rdctype::pair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventID, uin
       uint32_t vert = m_pDevice->PickVertex(m_EventID, cfg, x, y);
       if(vert != ~0U)
       {
-        return rdctype::make_pair(vert, inst);
+        return make_rdcpair(vert, inst);
       }
     }
 
@@ -466,7 +466,7 @@ rdctype::pair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventID, uin
   }
   else
   {
-    return rdctype::make_pair(m_pDevice->PickVertex(m_EventID, cfg, x, y), 0U);
+    return make_rdcpair(m_pDevice->PickVertex(m_EventID, cfg, x, y), 0U);
   }
 }
 

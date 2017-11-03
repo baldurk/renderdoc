@@ -350,7 +350,7 @@ private:
   void CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage liveIm,
                           VulkanCreationInfo::Image &iminfo);
 
-  void FillCBufferVariables(rdctype::array<ShaderConstant>, vector<ShaderVariable> &outvars,
+  void FillCBufferVariables(rdcarray<ShaderConstant>, vector<ShaderVariable> &outvars,
                             const vector<byte> &data, size_t baseOffset);
 
   VulkanDebugManager *GetDebugManager();

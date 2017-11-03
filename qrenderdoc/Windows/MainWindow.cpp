@@ -347,7 +347,7 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModificati
   if(!PromptCloseLog())
     return;
 
-  rdctype::array<EnvironmentModification> envList = env.toVector().toStdVector();
+  rdcarray<EnvironmentModification> envList = env.toVector().toStdVector();
 
   LambdaThread *th = new LambdaThread([this, PID, envList, name, opts, callback]() {
     QString logfile = m_Ctx.TempLogFilename(name);
@@ -1001,7 +1001,7 @@ void MainWindow::messageCheck()
   if(m_Ctx.LogLoaded())
   {
     m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
-      rdctype::array<DebugMessage> msgs = r->GetDebugMessages();
+      rdcarray<DebugMessage> msgs = r->GetDebugMessages();
 
       bool disconnected = false;
 

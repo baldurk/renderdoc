@@ -498,7 +498,7 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
   return pi;
 }
 
-uint32_t Process::InjectIntoProcess(uint32_t pid, const rdctype::array<EnvironmentModification> &env,
+uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
                                     const char *logfile, const CaptureOptions &opts, bool waitForExit)
 {
   wstring wlogfile = logfile == NULL ? L"" : StringFormat::UTF82Wide(logfile);
@@ -991,7 +991,7 @@ uint32_t Process::LaunchScript(const char *script, const char *workingDir, const
 
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
                                              const char *cmdLine,
-                                             const rdctype::array<EnvironmentModification> &env,
+                                             const rdcarray<EnvironmentModification> &env,
                                              const char *logfile, const CaptureOptions &opts,
                                              bool waitForExit)
 {

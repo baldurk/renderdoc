@@ -3210,7 +3210,7 @@ void VulkanReplay::SavePipelineState()
     m_VulkanPipelineState.compute.DescSets.resize(state.compute.descSets.size());
 
     {
-      rdctype::array<VKPipe::DescriptorSet> *dsts[] = {
+      rdcarray<VKPipe::DescriptorSet> *dsts[] = {
           &m_VulkanPipelineState.graphics.DescSets, &m_VulkanPipelineState.compute.DescSets,
       };
 
@@ -3460,7 +3460,7 @@ void VulkanReplay::SavePipelineState()
   }
 }
 
-void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars,
+void VulkanReplay::FillCBufferVariables(rdcarray<ShaderConstant> invars,
                                         vector<ShaderVariable> &outvars, const vector<byte> &data,
                                         size_t baseOffset)
 {

@@ -305,9 +305,9 @@ struct TypeConversion<T, true>
 
 // specialisation for pair
 template <typename A, typename B>
-struct TypeConversion<rdctype::pair<A, B>, false>
+struct TypeConversion<rdcpair<A, B>, false>
 {
-  static int ConvertFromPy(PyObject *in, rdctype::pair<A, B> &out, int *failIdx)
+  static int ConvertFromPy(PyObject *in, rdcpair<A, B> &out, int *failIdx)
   {
     if(!PyTuple_Check(in))
       return SWIG_TypeError;
@@ -338,12 +338,12 @@ struct TypeConversion<rdctype::pair<A, B>, false>
     return ret;
   }
 
-  static int ConvertFromPy(PyObject *in, rdctype::pair<A, B> &out)
+  static int ConvertFromPy(PyObject *in, rdcpair<A, B> &out)
   {
     return ConvertFromPy(in, out, NULL);
   }
 
-  static PyObject *ConvertToPy(const rdctype::pair<A, B> &in, int *failIdx)
+  static PyObject *ConvertToPy(const rdcpair<A, B> &in, int *failIdx)
   {
     PyObject *first = TypeConversion<A>::ConvertToPy(in.first);
     if(!first)
@@ -371,16 +371,16 @@ struct TypeConversion<rdctype::pair<A, B>, false>
     return ret;
   }
 
-  static PyObject *ConvertToPy(const rdctype::pair<A, B> &in) { return ConvertToPy(in, NULL); }
+  static PyObject *ConvertToPy(const rdcpair<A, B> &in) { return ConvertToPy(in, NULL); }
 };
 
-// specialisation for array<byte>
+// specialisation for bytebuf
 template <>
-struct TypeConversion<rdctype::array<byte>, false>
+struct TypeConversion<bytebuf, false>
 {
   // we add some extra parameters so the typemaps for array can use these to get
   // nicer failure error messages out with the index that failed
-  static int ConvertFromPy(PyObject *in, rdctype::array<byte> &out, int *failIdx)
+  static int ConvertFromPy(PyObject *in, bytebuf &out, int *failIdx)
   {
     if(!PyBytes_Check(in))
       return SWIG_TypeError;
@@ -393,32 +393,41 @@ struct TypeConversion<rdctype::array<byte>, false>
     return SWIG_OK;
   }
 
-  static int ConvertFromPy(PyObject *in, rdctype::array<byte> &out)
-  {
-    return ConvertFromPy(in, out, NULL);
-  }
-
-  static PyObject *ConvertToPyInPlace(PyObject *list, const rdctype::array<byte> &in, int *failIdx)
+  static int ConvertFromPy(PyObject *in, bytebuf &out) { return ConvertFromPy(in, out, NULL); }
+  static PyObject *ConvertToPyInPlace(PyObject *list, const bytebuf &in, int *failIdx)
   {
     // can't modify bytes objects
     return SWIG_Py_Void();
   }
 
-  static PyObject *ConvertToPy(const rdctype::array<byte> &in, int *failIdx)
+  static PyObject *ConvertToPy(const bytebuf &in, int *failIdx)
   {
     return PyBytes_FromStringAndSize((const char *)in.data(), (Py_ssize_t)in.size());
   }
 
-  static PyObject *ConvertToPy(const rdctype::array<byte> &in) { return ConvertToPy(in, NULL); }
+  static PyObject *ConvertToPy(const bytebuf &in) { return ConvertToPy(in, NULL); }
 };
 
 // specialisation for array
 template <typename U>
-struct TypeConversion<rdctype::array<U>, false>
+struct TypeConversion<rdcarray<U>, false>
 {
+  static swig_type_info *GetTypeInfo()
+  {
+    static swig_type_info *cached_type_info = NULL;
+    static std::string typeName = std::string("rdcarray < ") + TypeName<U>() + " > *";
+
+    if(cached_type_info)
+      return cached_type_info;
+
+    cached_type_info = SWIG_TypeQuery(typeName.c_str());
+
+    return cached_type_info;
+  }
+
   // we add some extra parameters so the typemaps for array can use these to get
   // nicer failure error messages out with the index that failed
-  static int ConvertFromPy(PyObject *in, rdctype::array<U> &out, int *failIdx)
+  static int ConvertFromPy(PyObject *in, rdcarray<U> &out, int *failIdx)
   {
     if(!PyList_Check(in))
       return SWIG_TypeError;
@@ -439,11 +448,8 @@ struct TypeConversion<rdctype::array<U>, false>
     return SWIG_OK;
   }
 
-  static int ConvertFromPy(PyObject *in, rdctype::array<U> &out)
-  {
-    return ConvertFromPy(in, out, NULL);
-  }
-  static PyObject *ConvertToPyInPlace(PyObject *list, const rdctype::array<U> &in, int *failIdx)
+  static int ConvertFromPy(PyObject *in, rdcarray<U> &out) { return ConvertFromPy(in, out, NULL); }
+  static PyObject *ConvertToPyInPlace(PyObject *list, const rdcarray<U> &in, int *failIdx)
   {
     for(int i = 0; i < in.count(); i++)
     {
@@ -465,7 +471,7 @@ struct TypeConversion<rdctype::array<U>, false>
     return list;
   }
 
-  static PyObject *ConvertToPy(const rdctype::array<U> &in, int *failIdx)
+  static PyObject *ConvertToPy(const rdcarray<U> &in, int *failIdx)
   {
     PyObject *list = PyList_New(0);
     if(!list)
@@ -480,12 +486,12 @@ struct TypeConversion<rdctype::array<U>, false>
     return ret;
   }
 
-  static PyObject *ConvertToPy(const rdctype::array<U> &in) { return ConvertToPy(in, NULL); }
+  static PyObject *ConvertToPy(const rdcarray<U> &in) { return ConvertToPy(in, NULL); }
 };
 
 // specialisation for string
 template <>
-struct TypeConversion<rdctype::str, false>
+struct TypeConversion<rdcstr, false>
 {
   static swig_type_info *GetTypeInfo()
   {
@@ -494,12 +500,12 @@ struct TypeConversion<rdctype::str, false>
     if(cached_type_info)
       return cached_type_info;
 
-    cached_type_info = SWIG_TypeQuery("rdctype::str *");
+    cached_type_info = SWIG_TypeQuery("rdcstr *");
 
     return cached_type_info;
   }
 
-  static int ConvertFromPy(PyObject *in, rdctype::str &out)
+  static int ConvertFromPy(PyObject *in, rdcstr &out)
   {
     if(PyUnicode_Check(in))
     {
@@ -531,7 +537,7 @@ struct TypeConversion<rdctype::str, false>
     if(!type_info)
       return SWIG_ERROR;
 
-    rdctype::str *ptr = NULL;
+    rdcstr *ptr = NULL;
     int res = SWIG_ConvertPtr(in, (void **)&ptr, type_info, 0);
     if(SWIG_IsOK(res))
       out = *ptr;
@@ -539,7 +545,7 @@ struct TypeConversion<rdctype::str, false>
     return res;
   }
 
-  static PyObject *ConvertToPy(const rdctype::str &in)
+  static PyObject *ConvertToPy(const rdcstr &in)
   {
     return PyUnicode_FromStringAndSize(in.c_str(), in.size());
   }

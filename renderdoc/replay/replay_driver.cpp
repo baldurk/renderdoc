@@ -26,7 +26,7 @@
 #include "maths/formatpacking.h"
 
 DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawcallTable,
-                                           rdctype::array<DrawcallDescription> &draws,
+                                           rdcarray<DrawcallDescription> &draws,
                                            DrawcallDescription *parent,
                                            DrawcallDescription *&previous)
 {

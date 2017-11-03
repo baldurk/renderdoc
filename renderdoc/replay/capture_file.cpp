@@ -50,9 +50,9 @@ public:
   ReplaySupport LocalReplaySupport() { return m_Support; }
   const char *DriverName() { return m_DriverName.c_str(); }
   const char *RecordedMachineIdent() { return m_Ident.c_str(); }
-  rdctype::pair<ReplayStatus, IReplayController *> OpenCapture(float *progress);
+  rdcpair<ReplayStatus, IReplayController *> OpenCapture(float *progress);
 
-  rdctype::array<byte> GetThumbnail(FileType type, uint32_t maxsize);
+  bytebuf GetThumbnail(FileType type, uint32_t maxsize);
 
 private:
   std::string m_Filename, m_DriverName, m_Ident;
@@ -92,10 +92,10 @@ CaptureFile::CaptureFile(const char *f)
   }
 }
 
-rdctype::pair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(float *progress)
+rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(float *progress)
 {
   if(m_Status != ReplayStatus::Succeeded)
-    return rdctype::make_pair<ReplayStatus, IReplayController *>(m_Status, NULL);
+    return make_rdcpair<ReplayStatus, IReplayController *>(m_Status, NULL);
 
   ReplayController *render = new ReplayController();
   ReplayStatus ret;
@@ -109,12 +109,12 @@ rdctype::pair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(float 
   if(ret != ReplayStatus::Succeeded)
     SAFE_DELETE(render);
 
-  return rdctype::make_pair<ReplayStatus, IReplayController *>(ret, render);
+  return make_rdcpair<ReplayStatus, IReplayController *>(ret, render);
 }
 
-rdctype::array<byte> CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
+bytebuf CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
 {
-  rdctype::array<byte> buf;
+  bytebuf buf;
 
   Serialiser ser(Filename(), Serialiser::READING, false);
 

@@ -2038,8 +2038,7 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
 }
 
 void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked,
-                                    std::string prefix,
-                                    const rdctype::array<ShaderConstant> &variables,
+                                    std::string prefix, const rdcarray<ShaderConstant> &variables,
                                     std::vector<ShaderVariable> &outvars,
                                     const std::vector<byte> &data)
 {

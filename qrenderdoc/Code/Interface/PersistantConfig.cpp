@@ -193,7 +193,7 @@ void PersistantConfig::AddAndroidHosts()
   SetConfigSetting(lit("Android_AutoPushLayerToApp"),
                    Android_AutoPushLayerToApp ? lit("1") : lit("0"));
 
-  rdctype::str androidHosts;
+  rdcstr androidHosts;
   RENDERDOC_EnumerateAndroidDevices(&androidHosts);
   for(const QString &hostName :
       QString(androidHosts).split(QLatin1Char(','), QString::SkipEmptyParts))
@@ -206,7 +206,7 @@ void PersistantConfig::AddAndroidHosts()
       host = new RemoteHost();
 
     host->Hostname = hostName;
-    rdctype::str friendly;
+    rdcstr friendly;
     RENDERDOC_GetAndroidFriendlyName(hostName.toUtf8().data(), friendly);
     host->FriendlyName = friendly;
     // Just a command to display in the GUI and allow Launch() to be called.

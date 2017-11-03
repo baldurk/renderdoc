@@ -414,13 +414,13 @@ struct NewCaptureData
   DOCUMENT("The time the capture was created, as a unix timestamp in UTC.");
   uint64_t timestamp;
   DOCUMENT("The raw bytes that contain the capture thumbnail, as RGB8 data.");
-  rdctype::array<byte> thumbnail;
+  bytebuf thumbnail;
   DOCUMENT("The width of the image contained in :data:`thumbnail`.");
   int32_t thumbWidth;
   DOCUMENT("The height of the image contained in :data:`thumbnail`.");
   int32_t thumbHeight;
   DOCUMENT("The local path on the target system where the capture is saved.");
-  rdctype::str path;
+  rdcstr path;
   DOCUMENT("``True`` if the target is running on the local system.");
   bool local;
 };
@@ -431,7 +431,7 @@ DOCUMENT("Information about the API that the target has begun using.");
 struct RegisterAPIData
 {
   DOCUMENT("The name of the new API.");
-  rdctype::str APIName;
+  rdcstr APIName;
 };
 
 DECLARE_REFLECTION_STRUCT(RegisterAPIData);
@@ -440,7 +440,7 @@ DOCUMENT("Information about why the target is busy.");
 struct BusyData
 {
   DOCUMENT("The name of the client currently connected to the target.");
-  rdctype::str ClientName;
+  rdcstr ClientName;
 };
 
 DECLARE_REFLECTION_STRUCT(BusyData);
@@ -488,9 +488,9 @@ struct EnvironmentModification
   DOCUMENT("The :class:`separator <EnvSep>` to use if needed.");
   EnvSep sep;
   DOCUMENT("The name of the environment variable.");
-  rdctype::str name;
+  rdcstr name;
   DOCUMENT("The value to use with the modification specified in :data:`mod`.");
-  rdctype::str value;
+  rdcstr value;
 };
 
 DECLARE_REFLECTION_STRUCT(EnvironmentModification);

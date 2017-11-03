@@ -792,8 +792,8 @@ string FindAndroidLayer(const string &abi, const string &layerName)
   return layer;
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(const rdctype::str &device,
-                                                                            rdctype::str &friendly)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(const rdcstr &device,
+                                                                            rdcstr &friendly)
 {
   if(!IsHostADB(device.c_str()))
   {
@@ -831,7 +831,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetAndroidFriendlyName(cons
     friendly = combined;
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdctype::str *deviceList)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdcstr *deviceList)
 {
   string adbStdout = adbGetDeviceList();
 

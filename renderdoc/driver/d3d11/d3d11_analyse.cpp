@@ -1922,7 +1922,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 
     State initialState = CreateShaderDebugState(traces[destIdx], destIdx, dxbc, cbufData);
 
-    rdctype::array<ShaderVariable> &ins = traces[destIdx].inputs;
+    rdcarray<ShaderVariable> &ins = traces[destIdx].inputs;
     if(!ins.empty() && ins.back().name == "vCoverage")
       ins.back().value.u.x = hit->coverage;
 

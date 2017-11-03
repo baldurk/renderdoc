@@ -55,8 +55,7 @@ public:
     makeIconStates(exeIcon, Pixmaps::page_white_code(parent));
     makeIconStates(dirIcon, Pixmaps::folder(parent));
 
-    Renderer.GetHomeFolder(true, [this](const rdctype::str &path,
-                                        const rdctype::array<PathEntry> &files) {
+    Renderer.GetHomeFolder(true, [this](const rdcstr &path, const rdcarray<PathEntry> &files) {
       QString homeDir = path;
 
       if(QChar(QLatin1Char(path[0])).isLetter() && path[1] == ':')
@@ -64,19 +63,19 @@ public:
         NTPaths = true;
 
         // NT paths
-        Renderer.ListFolder(lit("/"), true, [this, homeDir](const rdctype::str &path,
-                                                            const rdctype::array<PathEntry> &files) {
-          for(int i = 0; i < files.count(); i++)
-          {
-            FSNode *node = new FSNode();
-            node->parent = NULL;
-            node->parentIndex = i;
-            node->file = files[i];
-            roots.push_back(node);
+        Renderer.ListFolder(lit("/"), true,
+                            [this, homeDir](const rdcstr &path, const rdcarray<PathEntry> &files) {
+                              for(int i = 0; i < files.count(); i++)
+                              {
+                                FSNode *node = new FSNode();
+                                node->parent = NULL;
+                                node->parentIndex = i;
+                                node->file = files[i];
+                                roots.push_back(node);
 
-            home = indexForPath(homeDir);
-          }
-        });
+                                home = indexForPath(homeDir);
+                              }
+                            });
       }
       else
       {
@@ -449,37 +448,37 @@ private:
     if(!(node->file.flags & PathProperty::Directory))
       return;
 
-    Renderer.ListFolder(makePath(node), true, [this, node](const rdctype::str &path,
-                                                           const rdctype::array<PathEntry> &files) {
+    Renderer.ListFolder(
+        makePath(node), true, [this, node](const rdcstr &path, const rdcarray<PathEntry> &files) {
 
-      if(files.count() == 1 && (files[0].flags & PathProperty::ErrorAccessDenied))
-      {
-        node->file.flags |= PathProperty::ErrorAccessDenied;
-        return;
-      }
+          if(files.count() == 1 && (files[0].flags & PathProperty::ErrorAccessDenied))
+          {
+            node->file.flags |= PathProperty::ErrorAccessDenied;
+            return;
+          }
 
-      QVector<PathEntry> sortedFiles;
-      sortedFiles.reserve(files.count());
-      for(const PathEntry &f : files)
-        sortedFiles.push_back(f);
+          QVector<PathEntry> sortedFiles;
+          sortedFiles.reserve(files.count());
+          for(const PathEntry &f : files)
+            sortedFiles.push_back(f);
 
-      qSort(sortedFiles.begin(), sortedFiles.end(), [](const PathEntry &a, const PathEntry &b) {
-        // sort greater than so that files with the flag are sorted before those without
-        if((a.flags & PathProperty::Directory) != (b.flags & PathProperty::Directory))
-          return (a.flags & PathProperty::Directory) > (b.flags & PathProperty::Directory);
+          qSort(sortedFiles.begin(), sortedFiles.end(), [](const PathEntry &a, const PathEntry &b) {
+            // sort greater than so that files with the flag are sorted before those without
+            if((a.flags & PathProperty::Directory) != (b.flags & PathProperty::Directory))
+              return (a.flags & PathProperty::Directory) > (b.flags & PathProperty::Directory);
 
-        return strcmp(a.filename.c_str(), b.filename.c_str()) < 0;
-      });
+            return strcmp(a.filename.c_str(), b.filename.c_str()) < 0;
+          });
 
-      for(int i = 0; i < sortedFiles.count(); i++)
-      {
-        FSNode *child = new FSNode();
-        child->parent = node;
-        child->parentIndex = i;
-        child->file = sortedFiles[i];
-        node->children.push_back(child);
-      }
-    });
+          for(int i = 0; i < sortedFiles.count(); i++)
+          {
+            FSNode *child = new FSNode();
+            child->parent = node;
+            child->parentIndex = i;
+            child->file = sortedFiles[i];
+            node->children.push_back(child);
+          }
+        });
   }
 };
 

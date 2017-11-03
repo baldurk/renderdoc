@@ -700,7 +700,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
 
         if(m_D3D11->m_IA.Bytecode != NULL)
         {
-          rdctype::array<SigParameter> &sig = m_D3D11->m_IA.Bytecode->InputSig;
+          rdcarray<SigParameter> &sig = m_D3D11->m_IA.Bytecode->InputSig;
           for(int ia = 0; ia < sig.count(); ia++)
           {
             if(!semName.compare(sig[ia].semanticName, Qt::CaseInsensitive) &&
@@ -757,7 +757,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
 
         if(m_D3D12->m_VS.ShaderDetails != NULL)
         {
-          rdctype::array<SigParameter> &sig = m_D3D12->m_VS.ShaderDetails->InputSig;
+          rdcarray<SigParameter> &sig = m_D3D12->m_VS.ShaderDetails->InputSig;
           for(int ia = 0; ia < sig.count(); ia++)
           {
             if(!semName.compare(sig[ia].semanticName, Qt::CaseInsensitive) &&

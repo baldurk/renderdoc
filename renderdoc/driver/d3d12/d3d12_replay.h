@@ -179,7 +179,7 @@ public:
 
 private:
   void FillRegisterSpaces(const D3D12RenderState::RootSignature &rootSig,
-                          rdctype::array<D3D12Pipe::RegisterSpace> &spaces,
+                          rdcarray<D3D12Pipe::RegisterSpace> &spaces,
                           D3D12_SHADER_VISIBILITY visibility);
   void FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc);
 

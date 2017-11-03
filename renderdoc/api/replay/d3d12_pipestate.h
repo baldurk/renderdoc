@@ -37,7 +37,7 @@ DOCUMENT(R"(Describes a single D3D12 input layout element for one vertex input.
 struct Layout
 {
   DOCUMENT("The semantic name for this input.");
-  rdctype::str SemanticName;
+  rdcstr SemanticName;
 
   DOCUMENT("The semantic index for this input.");
   uint32_t SemanticIndex = 0;
@@ -104,10 +104,10 @@ DOCUMENT("Describes the input assembler state in the PSO.");
 struct IA
 {
   DOCUMENT("A list of :class:`D3D12_Layout` describing the input layout elements in this layout.");
-  rdctype::array<Layout> layouts;
+  rdcarray<Layout> layouts;
 
   DOCUMENT("A list of :class:`D3D12_VB` with the vertex buffers that are bound.");
-  rdctype::array<VB> vbuffers;
+  rdcarray<VB> vbuffers;
 
   DOCUMENT("The :class:`D3D12_IB` describing the index buffer.");
   IB ibuffer;
@@ -236,20 +236,20 @@ struct CBuffer
   DOCUMENT(R"(If :data:`Immediate` is ``True`` and this is a root constant, this contains a list of
 ``int`` values with the root values set.
 )");
-  rdctype::array<uint32_t> RootValues;
+  rdcarray<uint32_t> RootValues;
 };
 
 DOCUMENT("Contains all of the registers in a single register space mapped to by a root signature.");
 struct RegisterSpace
 {
   DOCUMENT("List of :class:`D3D12_CBuffer` containing the constant buffers.");
-  rdctype::array<CBuffer> ConstantBuffers;
+  rdcarray<CBuffer> ConstantBuffers;
   DOCUMENT("List of :class:`D3D12_Sampler` containing the samplers.");
-  rdctype::array<Sampler> Samplers;
+  rdcarray<Sampler> Samplers;
   DOCUMENT("List of :class:`D3D12_View` containing the SRVs.");
-  rdctype::array<View> SRVs;
+  rdcarray<View> SRVs;
   DOCUMENT("List of :class:`D3D12_View` containing the UAVs.");
-  rdctype::array<View> UAVs;
+  rdcarray<View> UAVs;
 };
 
 DOCUMENT("Describes a D3D12 shader stage.");
@@ -269,7 +269,7 @@ mapping data.
   ShaderStage stage = ShaderStage::Vertex;
 
   DOCUMENT("A list of :class:`D3D12_RegisterSpace` with the register spaces for this stage.");
-  rdctype::array<RegisterSpace> Spaces;
+  rdcarray<RegisterSpace> Spaces;
 };
 
 DOCUMENT("Describes a binding on the D3D12 stream-out stage.");
@@ -294,7 +294,7 @@ DOCUMENT("Describes the stream-out state in the PSO.");
 struct Streamout
 {
   DOCUMENT("A list of ``D3D12_SOBind`` with the bound buffers.");
-  rdctype::array<SOBind> Outputs;
+  rdcarray<SOBind> Outputs;
 };
 
 DOCUMENT("Describes a single D3D12 viewport.");
@@ -377,10 +377,10 @@ struct Rasterizer
   uint32_t SampleMask = ~0U;
 
   DOCUMENT("A list of :class:`D3D12_Viewport` with the bound viewports.");
-  rdctype::array<Viewport> Viewports;
+  rdcarray<Viewport> Viewports;
 
   DOCUMENT("A list of :class:`D3D12_Scissor` with the bound scissor regions.");
-  rdctype::array<Scissor> Scissors;
+  rdcarray<Scissor> Scissors;
 
   DOCUMENT("A :class:`D3D12_RasterizerState` with the details of the rasterization state.");
   RasterizerState m_State;
@@ -467,7 +467,7 @@ struct BlendState
   bool IndependentBlend = false;
 
   DOCUMENT("A list of :class:`D3D12_Blend` describing the blend operations for each target.");
-  rdctype::array<Blend> Blends;
+  rdcarray<Blend> Blends;
 
   DOCUMENT("The constant blend factor to use in blend equations.");
   float BlendFactor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -482,7 +482,7 @@ struct OM
   BlendState m_BlendState;
 
   DOCUMENT("A list of :class:`D3D12_View` describing the bound render targets.");
-  rdctype::array<View> RenderTargets;
+  rdcarray<View> RenderTargets;
 
   DOCUMENT("A :class:`D3D12_View` with details of the bound depth-stencil target.");
   View DepthTarget;
@@ -501,7 +501,7 @@ DOCUMENT("Describes the current state that a sub-resource is in.");
 struct ResourceState
 {
   DOCUMENT("A human-readable name for the current state.");
-  rdctype::str name;
+  rdcstr name;
 };
 
 DOCUMENT("Contains the current state of a given resource.");
@@ -511,7 +511,7 @@ struct ResourceData
   ResourceId id;
 
   DOCUMENT("A list of :class:`D3D12_ResourceState` entries, one for each subresource.");
-  rdctype::array<ResourceState> states;
+  rdcarray<ResourceState> states;
 };
 
 DOCUMENT("The full current D3D12 pipeline state.");
@@ -526,7 +526,7 @@ based on the ID.
   bool customName = false;
 
   DOCUMENT("The name of the pipeline state object.");
-  rdctype::str name;
+  rdcstr name;
 
   DOCUMENT("The :class:`ResourceId` of the root signature object.");
   ResourceId rootSig;
@@ -557,7 +557,7 @@ based on the ID.
   OM m_OM;
 
   DOCUMENT("A list of :class:`D3D12_ResourceData` entries, one for each resource.");
-  rdctype::array<ResourceData> Resources;
+  rdcarray<ResourceData> Resources;
 };
 
 };    // namespace D3D12Pipe

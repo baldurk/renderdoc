@@ -75,15 +75,15 @@ private:
 
   void exportCSV(QTextStream &ts, const QString &prefix, RDTreeWidgetItem *item);
 
-  rdctype::array<ShaderVariable> applyFormatOverride(const rdctype::array<byte> &data);
+  rdcarray<ShaderVariable> applyFormatOverride(const bytebuf &data);
 
-  void addVariables(RDTreeWidgetItem *root, const rdctype::array<ShaderVariable> &vars);
-  void setVariables(const rdctype::array<ShaderVariable> &vars);
+  void addVariables(RDTreeWidgetItem *root, const rdcarray<ShaderVariable> &vars);
+  void setVariables(const rdcarray<ShaderVariable> &vars);
 
-  rdctype::array<ShaderVariable> m_Vars;
+  rdcarray<ShaderVariable> m_Vars;
 
-  bool updateVariables(RDTreeWidgetItem *root, const rdctype::array<ShaderVariable> &prevVars,
-                       const rdctype::array<ShaderVariable> &newVars);
+  bool updateVariables(RDTreeWidgetItem *root, const rdcarray<ShaderVariable> &prevVars,
+                       const rdcarray<ShaderVariable> &newVars);
 
   void updateLabels();
 

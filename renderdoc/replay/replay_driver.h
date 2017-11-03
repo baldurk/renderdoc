@@ -33,7 +33,7 @@ struct FrameRecord
 {
   FrameDescription frameInfo;
 
-  rdctype::array<DrawcallDescription> drawcallList;
+  rdcarray<DrawcallDescription> drawcallList;
 };
 
 enum RemapTextureEnum
@@ -212,7 +212,7 @@ public:
 
 // utility functions useful in any driver implementation
 DrawcallDescription *SetupDrawcallPointers(std::vector<DrawcallDescription *> *drawcallTable,
-                                           rdctype::array<DrawcallDescription> &draws,
+                                           rdcarray<DrawcallDescription> &draws,
                                            DrawcallDescription *parent,
                                            DrawcallDescription *&previous);
 

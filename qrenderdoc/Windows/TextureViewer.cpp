@@ -338,7 +338,7 @@ public:
   }
   void reset(FilterType type, const QString &filter, ICaptureContext &ctx)
   {
-    const rdctype::array<TextureDescription> src = ctx.GetTextures();
+    const rdcarray<TextureDescription> src = ctx.GetTextures();
 
     texs.clear();
     texs.reserve(src.count());
@@ -734,8 +734,8 @@ void TextureViewer::RT_UpdateVisualRange(IReplayController *)
       m_TexDisplay.Blue && fmt.compCount > 2, m_TexDisplay.Alpha && fmt.compCount > 3,
   };
 
-  rdctype::array<uint32_t> histogram = m_Output->GetHistogram(
-      ui->rangeHistogram->rangeMin(), ui->rangeHistogram->rangeMax(), channels);
+  rdcarray<uint32_t> histogram = m_Output->GetHistogram(ui->rangeHistogram->rangeMin(),
+                                                        ui->rangeHistogram->rangeMax(), channels);
 
   if(!histogram.empty())
   {
@@ -1799,7 +1799,7 @@ void TextureViewer::AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t 
   menu.addAction(item);
 }
 
-void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdctype::array<EventUsage> &usage)
+void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdcarray<EventUsage> &usage)
 {
   QMenu contextMenu(this);
 
@@ -1991,8 +1991,8 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
 }
 
 void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
-                                              const rdctype::array<ShaderResource> &resourceDetails,
-                                              const rdctype::array<BindpointMap> &mapping,
+                                              const rdcarray<ShaderResource> &resourceDetails,
+                                              const rdcarray<BindpointMap> &mapping,
                                               QMap<BindpointMap, QVector<BoundResource>> &ResList,
                                               ThumbnailStrip *prevs, int &prevIndex, bool copy,
                                               bool rw)
@@ -2132,7 +2132,7 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
     if(id == ResourceId() && follow == m_Following)
       id = m_TexDisplay.texid;
 
-    rdctype::array<EventUsage> empty;
+    rdcarray<EventUsage> empty;
 
     if(id == ResourceId())
     {
@@ -2141,7 +2141,7 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
     else
     {
       m_Ctx.Replay().AsyncInvoke([this, id](IReplayController *r) {
-        rdctype::array<EventUsage> usage = r->GetUsage(id);
+        rdcarray<EventUsage> usage = r->GetUsage(id);
 
         GUIInvoke::call([this, id, usage]() { OpenResourceContextMenu(id, usage); });
       });
@@ -2664,7 +2664,7 @@ void TextureViewer::OnEventChanged(uint32_t eventID)
     count = 1;
   }
 
-  const rdctype::array<ShaderResource> empty;
+  const rdcarray<ShaderResource> empty;
 
   // display resources used for all stages
   for(int i = 0; i < count; i++)
@@ -3449,7 +3449,7 @@ void TextureViewer::on_pixelHistory_clicked()
   LambdaThread *thread = new LambdaThread([this, texptr, x, y, hist]() {
     QThread::msleep(150);
     m_Ctx.Replay().AsyncInvoke([this, texptr, x, y, hist](IReplayController *r) {
-      rdctype::array<PixelModification> history =
+      rdcarray<PixelModification> history =
           r->PixelHistory(texptr->ID, (uint32_t)x, (int32_t)y, m_TexDisplay.sliceFace,
                           m_TexDisplay.mip, m_TexDisplay.sampleIdx, m_TexDisplay.typeHint);
 
@@ -3593,7 +3593,7 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
         m_CustomShaders[key] = ResourceId();
         m_CustomShadersBusy.push_back(key);
         m_Ctx.Replay().AsyncInvoke([this, fn, key, source](IReplayController *r) {
-          rdctype::str errors;
+          rdcstr errors;
 
           ResourceId id;
           std::tie(id, errors) = r->BuildCustomShader("main", source.toUtf8().data(),

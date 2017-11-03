@@ -95,8 +95,7 @@ private:
   void setEmptyRow(RDTreeWidgetItem *node);
   void highlightIABind(int slot);
 
-  QString formatMembers(int indent, const QString &nameprefix,
-                        const rdctype::array<ShaderConstant> &vars);
+  QString formatMembers(int indent, const QString &nameprefix, const rdcarray<ShaderConstant> &vars);
   const D3D12Pipe::Shader *stageForSender(QWidget *widget);
 
   bool HasImportantViewParams(const D3D12Pipe::View &view, TextureDescription *tex);

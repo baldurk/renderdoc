@@ -373,7 +373,7 @@ bool CaptureContext::PassEquivalent(const DrawcallDescription &a, const Drawcall
   return false;
 }
 
-bool CaptureContext::ContainsMarker(const rdctype::array<DrawcallDescription> &draws)
+bool CaptureContext::ContainsMarker(const rdcarray<DrawcallDescription> &draws)
 {
   bool ret = false;
 
@@ -392,7 +392,7 @@ bool CaptureContext::ContainsMarker(const rdctype::array<DrawcallDescription> &d
 
 void CaptureContext::AddFakeProfileMarkers()
 {
-  rdctype::array<DrawcallDescription> &draws = m_Drawcalls;
+  rdcarray<DrawcallDescription> &draws = m_Drawcalls;
 
   if(!Config().EventBrowser_AddFake)
     return;
@@ -583,7 +583,7 @@ void CaptureContext::SetEventID(const QVector<ILogViewer *> &exclude, uint32_t s
   }
 }
 
-void CaptureContext::AddMessages(const rdctype::array<DebugMessage> &msgs)
+void CaptureContext::AddMessages(const rdcarray<DebugMessage> &msgs)
 {
   m_UnreadMessageCount += msgs.count();
   for(const DebugMessage &msg : msgs)

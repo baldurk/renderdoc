@@ -281,8 +281,8 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
   QString caption = tr("Configure Vulkan layer settings in registry?");
 
   VulkanLayerFlags flags = VulkanLayerFlags::NoFlags;
-  rdctype::array<rdctype::str> myJSONs;
-  rdctype::array<rdctype::str> otherJSONs;
+  rdcarray<rdcstr> myJSONs;
+  rdcarray<rdcstr> otherJSONs;
 
   RENDERDOC_NeedVulkanLayerRegistration(&flags, &myJSONs, &otherJSONs);
 
@@ -299,7 +299,7 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
         tr("There is an unfixable problem with your vulkan layer configuration. Please consult the "
            "RenderDoc documentation, or package/distribution documentation on linux\n\n");
 
-    for(const rdctype::str &j : otherJSONs)
+    for(const rdcstr &j : otherJSONs)
       msg += j + lit("\n");
 
     RDDialog::critical(this, tr("Unfixable vulkan layer configuration"), msg);
@@ -336,7 +336,7 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
 
   if(hasOtherJSON)
   {
-    for(const rdctype::str &j : otherJSONs)
+    for(const rdcstr &j : otherJSONs)
       msg += (updateAllowed ? tr("Unregister/update: %1\n") : tr("Unregister: %1\n")).arg(j);
 
     msg += lit("\n");
@@ -346,13 +346,13 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
   {
     if(registerAll)
     {
-      for(const rdctype::str &j : myJSONs)
+      for(const rdcstr &j : myJSONs)
         msg += (updateAllowed ? tr("Register/update: %1\n") : tr("Register: %1\n")).arg(j);
     }
     else
     {
       msg += updateAllowed ? tr("Register one of:\n") : tr("Register/update one of:\n");
-      for(const rdctype::str &j : myJSONs)
+      for(const rdcstr &j : myJSONs)
         msg += tr("  -- %1\n").arg(j);
     }
 

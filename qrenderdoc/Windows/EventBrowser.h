@@ -96,8 +96,8 @@ public slots:
 
 private:
   QPair<uint32_t, uint32_t> AddDrawcalls(RDTreeWidgetItem *parent,
-                                         const rdctype::array<DrawcallDescription> &draws);
-  void SetDrawcallTimes(RDTreeWidgetItem *node, const rdctype::array<CounterResult> &results);
+                                         const rdcarray<DrawcallDescription> &draws);
+  void SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<CounterResult> &results);
 
   void ExpandNode(RDTreeWidgetItem *node);
 
@@ -129,7 +129,7 @@ private:
 
   TimeUnit m_TimeUnit = TimeUnit::Count;
 
-  rdctype::array<CounterResult> m_Times;
+  rdcarray<CounterResult> m_Times;
 
   QTimer *m_FindHighlight;
 

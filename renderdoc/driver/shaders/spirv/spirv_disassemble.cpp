@@ -3444,7 +3444,7 @@ string SPVModule::Disassemble(const string &entryPoint)
   return retDisasm;
 }
 
-void MakeConstantBlockVariables(SPVTypeData *structType, rdctype::array<ShaderConstant> &cblock);
+void MakeConstantBlockVariables(SPVTypeData *structType, rdcarray<ShaderConstant> &cblock);
 
 void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, const std::string &name,
                                const std::vector<SPVDecoration> &decorations)
@@ -3569,7 +3569,7 @@ void MakeConstantBlockVariable(ShaderConstant &outConst, SPVTypeData *type, cons
   }
 }
 
-void MakeConstantBlockVariables(SPVTypeData *structType, rdctype::array<ShaderConstant> &cblock)
+void MakeConstantBlockVariables(SPVTypeData *structType, rdcarray<ShaderConstant> &cblock)
 {
   if(structType->children.empty())
     return;
@@ -3580,7 +3580,7 @@ void MakeConstantBlockVariables(SPVTypeData *structType, rdctype::array<ShaderCo
                               structType->children[i].second, structType->childDecorations[i]);
 }
 
-uint32_t CalculateMinimumByteSize(const rdctype::array<ShaderConstant> &variables)
+uint32_t CalculateMinimumByteSize(const rdcarray<ShaderConstant> &variables)
 {
   if(variables.empty())
   {

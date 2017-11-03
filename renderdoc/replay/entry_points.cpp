@@ -228,12 +228,12 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetLogFile()
   return RDCGETLOGFILE();
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC
-RENDERDOC_InitGlobalEnv(GlobalEnvironment env, const rdctype::array<rdctype::str> &args)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitGlobalEnv(GlobalEnvironment env,
+                                                                   const rdcarray<rdcstr> &args)
 {
   std::vector<std::string> argsVec;
   argsVec.reserve(args.size());
-  for(const rdctype::str &a : args)
+  for(const rdcstr &a : args)
     argsVec.push_back(a.c_str());
 
   RenderDoc::Inst().ProcessGlobalEnvironment(env, argsVec);
@@ -265,8 +265,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(voi
   }
 }
 
-extern "C" RENDERDOC_API ReplaySupport RENDERDOC_CC RENDERDOC_SupportLocalReplay(
-    const char *logfile, rdctype::str *driver, rdctype::str *recordMachineIdent)
+extern "C" RENDERDOC_API ReplaySupport RENDERDOC_CC
+RENDERDOC_SupportLocalReplay(const char *logfile, rdcstr *driver, rdcstr *recordMachineIdent)
 {
   ICaptureFile *file = RENDERDOC_OpenCaptureFile(logfile);
 
@@ -305,7 +305,7 @@ RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, IReplayCont
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
-                           const rdctype::array<EnvironmentModification> &env, const char *logfile,
+                           const rdcarray<EnvironmentModification> &env, const char *logfile,
                            const CaptureOptions &opts, bool waitForExit)
 {
   return Process::LaunchAndInjectIntoProcess(app, workingDir, cmdLine, env, logfile, opts,
@@ -340,15 +340,14 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_CanGlobalHook()
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
-RENDERDOC_InjectIntoProcess(uint32_t pid, const rdctype::array<EnvironmentModification> &env,
+RENDERDOC_InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
                             const char *logfile, const CaptureOptions &opts, bool waitForExit)
 {
   return Process::InjectIntoProcess(pid, env, logfile, opts, waitForExit != 0);
 }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename,
-                                                                  FileType type, uint32_t maxsize,
-                                                                  rdctype::array<byte> *buf)
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename, FileType type,
+                                                                  uint32_t maxsize, bytebuf *buf)
 {
   ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename);
 
@@ -489,8 +488,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const ch
 }
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_NeedVulkanLayerRegistration(
-    VulkanLayerFlags *flagsPtr, rdctype::array<rdctype::str> *myJSONsPtr,
-    rdctype::array<rdctype::str> *otherJSONsPtr)
+    VulkanLayerFlags *flagsPtr, rdcarray<rdcstr> *myJSONsPtr, rdcarray<rdcstr> *otherJSONsPtr)
 {
   VulkanLayerFlags flags = VulkanLayerFlags::NoFlags;
   std::vector<std::string> myJSONs;
@@ -612,7 +610,7 @@ static std::string ResourceFormatName(const ResourceFormat &fmt)
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ResourceFormatName(const ResourceFormat &fmt,
-                                                                        rdctype::str &name)
+                                                                        rdcstr &name)
 {
   name = ResourceFormatName(fmt);
 }

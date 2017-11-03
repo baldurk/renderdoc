@@ -307,13 +307,13 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   if(shader)
   {
     m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
-      rdctype::array<rdctype::str> targets = r->GetDisassemblyTargets();
+      rdcarray<rdcstr> targets = r->GetDisassemblyTargets();
 
-      rdctype::str disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, "");
+      rdcstr disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, "");
 
       GUIInvoke::call([this, targets, disasm]() {
         QStringList targetNames;
-        for(const rdctype::str &t : targets)
+        for(const rdcstr &t : targets)
           targetNames << t;
 
         m_DisassemblyType->addItems(targetNames);
@@ -831,7 +831,7 @@ void ShaderViewer::disassemble_typeChanged(int index)
   QByteArray target = m_DisassemblyType->currentText().toUtf8();
 
   m_Ctx.Replay().AsyncInvoke([this, target](IReplayController *r) {
-    rdctype::str disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, target.data());
+    rdcstr disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, target.data());
 
     GUIInvoke::call([this, disasm]() {
       m_DisassemblyView->setReadOnly(false);
@@ -1360,7 +1360,7 @@ void ShaderViewer::updateDebugging()
           arrIndex = -1;
       }
 
-      const rdctype::array<ShaderVariable> *vars = GetVariableList(varCat, arrIndex);
+      const rdcarray<ShaderVariable> *vars = GetVariableList(varCat, arrIndex);
 
       ok = false;
       int regindex = regidx.toInt(&ok);
@@ -1896,7 +1896,7 @@ void ShaderViewer::disasm_tooltipHide(int x, int y)
 
 void ShaderViewer::showVariableTooltip(VariableCategory varCat, int varIdx, int arrayIdx)
 {
-  const rdctype::array<ShaderVariable> *vars = GetVariableList(varCat, arrayIdx);
+  const rdcarray<ShaderVariable> *vars = GetVariableList(varCat, arrayIdx);
 
   if(!vars || varIdx < 0 || varIdx >= vars->count())
   {
@@ -1912,10 +1912,9 @@ void ShaderViewer::showVariableTooltip(VariableCategory varCat, int varIdx, int 
   updateVariableTooltip();
 }
 
-const rdctype::array<ShaderVariable> *ShaderViewer::GetVariableList(VariableCategory varCat,
-                                                                    int arrayIdx)
+const rdcarray<ShaderVariable> *ShaderViewer::GetVariableList(VariableCategory varCat, int arrayIdx)
 {
-  const rdctype::array<ShaderVariable> *vars = NULL;
+  const rdcarray<ShaderVariable> *vars = NULL;
 
   if(!m_Trace || m_CurrentStep < 0 || m_CurrentStep >= m_Trace->states.count())
     return vars;
@@ -1977,7 +1976,7 @@ void ShaderViewer::updateVariableTooltip()
   if(m_TooltipVarIdx < 0)
     return;
 
-  const rdctype::array<ShaderVariable> *vars = GetVariableList(m_TooltipVarCat, m_TooltipArrayIdx);
+  const rdcarray<ShaderVariable> *vars = GetVariableList(m_TooltipVarCat, m_TooltipArrayIdx);
   const ShaderVariable &var = (*vars)[m_TooltipVarIdx];
 
   QString text = QFormatStr("<pre>%1\n").arg(var.name);

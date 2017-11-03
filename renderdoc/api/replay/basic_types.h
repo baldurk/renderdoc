@@ -52,10 +52,8 @@ typedef uint8_t byte;
 
 // here we define our own data structures that are ABI compatible between modules, as STL is not
 // safe to pass a module boundary.
-namespace rdctype
-{
 template <typename A, typename B>
-struct pair
+struct rdcpair
 {
   A first;
   B second;
@@ -64,9 +62,9 @@ struct pair
 };
 
 template <typename A, typename B>
-pair<A, B> make_pair(const A &a, const B &b)
+rdcpair<A, B> make_rdcpair(const A &a, const B &b)
 {
-  pair<A, B> ret;
+  rdcpair<A, B> ret;
   ret.first = a;
   ret.second = b;
   return ret;
@@ -92,7 +90,7 @@ struct null_terminator<char>
 };
 
 template <typename T>
-struct array
+struct rdcarray
 {
 protected:
   T *elems;
@@ -127,8 +125,8 @@ protected:
 public:
   typedef T value_type;
 
-  array() : elems(NULL), allocatedCount(0), usedCount(0) {}
-  ~array()
+  rdcarray() : elems(NULL), allocatedCount(0), usedCount(0) {}
+  ~rdcarray()
   {
     // clear will destruct the actual elements still existing
     clear();
@@ -335,7 +333,7 @@ public:
   {
     insert(offs, in.begin(), in.size());
   }
-  inline void insert(size_t offs, const array<T> &in) { insert(offs, in.data(), in.size()); }
+  inline void insert(size_t offs, const rdcarray<T> &in) { insert(offs, in.data(), in.size()); }
   inline void insert(size_t offs, const T &in) { insert(offs, &in, 1); }
   void erase(size_t offs, size_t count = 1)
   {
@@ -365,32 +363,32 @@ public:
   }
   /////////////////////////////////////////////////////////////////
   // constructors that just forward to assign
-  array(const T *in, size_t count)
+  rdcarray(const T *in, size_t count)
   {
     elems = NULL;
     allocatedCount = usedCount = 0;
     assign(in, count);
   }
-  array(const std::vector<T> &in)
+  rdcarray(const std::vector<T> &in)
   {
     elems = NULL;
     allocatedCount = usedCount = 0;
     assign(in);
   }
-  array(const std::initializer_list<T> &in)
+  rdcarray(const std::initializer_list<T> &in)
   {
     elems = NULL;
     allocatedCount = usedCount = 0;
     assign(in);
   }
-  array(const array<T> &in)
+  rdcarray(const rdcarray<T> &in)
   {
     elems = NULL;
     allocatedCount = usedCount = 0;
     assign(in);
   }
 
-  inline void swap(array<T> &other)
+  inline void swap(rdcarray<T> &other)
   {
     std::swap(elems, other.elems);
     std::swap(allocatedCount, other.allocatedCount);
@@ -400,10 +398,10 @@ public:
   // assign forwards to operator =
   inline void assign(const std::vector<T> &in) { *this = in; }
   inline void assign(const std::initializer_list<T> &in) { *this = in; }
-  inline void assign(const array<T> &in) { *this = in; }
+  inline void assign(const rdcarray<T> &in) { *this = in; }
   /////////////////////////////////////////////////////////////////
   // assignment operators
-  array &operator=(const std::vector<T> &in)
+  rdcarray &operator=(const std::vector<T> &in)
   {
     // make sure we have enough space, allocating more if needed
     reserve(in.size());
@@ -422,7 +420,7 @@ public:
     return *this;
   }
 
-  array &operator=(const std::initializer_list<T> &in)
+  rdcarray &operator=(const std::initializer_list<T> &in)
   {
     // make sure we have enough space, allocating more if needed
     reserve(in.size());
@@ -445,7 +443,7 @@ public:
     return *this;
   }
 
-  array &operator=(const array &in)
+  rdcarray &operator=(const rdcarray &in)
   {
     // do nothing if we're self-assigning
     if(this == &in)
@@ -485,14 +483,14 @@ public:
   }
 
 #if defined(RENDERDOC_QT_COMPAT)
-  array(const QList<T> &in)
+  rdcarray(const QList<T> &in)
   {
     elems = NULL;
     allocatedCount = usedCount = 0;
     assign(in);
   }
   inline void assign(const QList<T> &in) { *this = in; }
-  array &operator=(const QList<T> &in)
+  rdcarray &operator=(const QList<T> &in)
   {
     // make sure we have enough space, allocating more if needed
     reserve(in.size());
@@ -509,14 +507,14 @@ public:
     return *this;
   }
 
-  array(const QVector<T> &in)
+  rdcarray(const QVector<T> &in)
   {
     elems = NULL;
     allocatedCount = usedCount = 0;
     assign(in);
   }
   inline void assign(const QVector<T> &in) { *this = in; }
-  array &operator=(const QVector<T> &in)
+  rdcarray &operator=(const QVector<T> &in)
   {
     // make sure we have enough space, allocating more if needed
     reserve(in.size());
@@ -536,20 +534,20 @@ public:
 };
 
 DOCUMENT("");
-struct str : public rdctype::array<char>
+struct rdcstr : public rdcarray<char>
 {
   // extra string constructors
-  str() : rdctype::array<char>() {}
-  str(const str &in) : rdctype::array<char>() { assign(in); }
-  str(const std::string &in) : rdctype::array<char>() { assign(in.c_str(), in.size()); }
-  str(const char *const in) : rdctype::array<char>() { assign(in, strlen(in)); }
+  rdcstr() : rdcarray<char>() {}
+  rdcstr(const rdcstr &in) : rdcarray<char>() { assign(in); }
+  rdcstr(const std::string &in) : rdcarray<char>() { assign(in.c_str(), in.size()); }
+  rdcstr(const char *const in) : rdcarray<char>() { assign(in, strlen(in)); }
   // extra string assignment
-  str &operator=(const std::string &in)
+  rdcstr &operator=(const std::string &in)
   {
     assign(in.c_str(), in.size());
     return *this;
   }
-  str &operator=(const char *const in)
+  rdcstr &operator=(const char *const in)
   {
     assign(in, strlen(in));
     return *this;
@@ -573,18 +571,18 @@ struct str : public rdctype::array<char>
     return !strcmp(elems, o);
   }
   bool operator==(const std::string &o) const { return o == elems; }
-  bool operator==(const str &o) const { return *this == (const char *const)o.elems; }
+  bool operator==(const rdcstr &o) const { return *this == (const char *const)o.elems; }
   bool operator!=(const char *const o) const { return !(*this == o); }
   bool operator!=(const std::string &o) const { return !(*this == o); }
-  bool operator!=(const str &o) const { return !(*this == o); }
+  bool operator!=(const rdcstr &o) const { return !(*this == o); }
   // define ordering operators
-  bool operator<(const str &o) const { return strcmp(elems, o.elems) < 0; }
-  bool operator>(const str &o) const { return strcmp(elems, o.elems) > 0; }
+  bool operator<(const rdcstr &o) const { return strcmp(elems, o.elems) < 0; }
+  bool operator>(const rdcstr &o) const { return strcmp(elems, o.elems) > 0; }
 };
 
 DOCUMENT("");
-struct bytebuf : public rdctype::array<byte>
+struct bytebuf : public rdcarray<byte>
 {
+  bytebuf() : rdcarray<byte>() {}
+  bytebuf(const std::vector<byte> &in) : rdcarray<byte>(in) {}
 };
-
-};    // namespace rdctype

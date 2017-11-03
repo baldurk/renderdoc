@@ -84,7 +84,7 @@ private:
   Ui::PipelineStateViewer *ui;
   ICaptureContext &m_Ctx;
 
-  void MakeShaderVariablesHLSL(bool cbufferContents, const rdctype::array<ShaderConstant> &vars,
+  void MakeShaderVariablesHLSL(bool cbufferContents, const rdcarray<ShaderConstant> &vars,
                                QString &struct_contents, QString &struct_defs);
 
   QPixmap m_TopoPixmaps[(int)Topology::PatchList + 1];

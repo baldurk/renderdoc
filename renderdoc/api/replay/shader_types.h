@@ -171,7 +171,7 @@ struct ShaderVariable
   DOCUMENT("The number of columns in this matrix.");
   uint32_t columns;
   DOCUMENT("The name of this variable.");
-  rdctype::str name;
+  rdcstr name;
 
   DOCUMENT("The :class:`basic type <VarType>` of this variable.");
   VarType type;
@@ -186,7 +186,7 @@ struct ShaderVariable
   bool isStruct;
 
   DOCUMENT("The members of this variable as a list of :class:`ShaderValue`.");
-  rdctype::array<ShaderVariable> members;
+  rdcarray<ShaderVariable> members;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderVariable);
@@ -197,13 +197,13 @@ with all mutable variable contents.
 struct ShaderDebugState
 {
   DOCUMENT("The temporary variables for this shader as a list of :class:`ShaderValue`.");
-  rdctype::array<ShaderVariable> registers;
+  rdcarray<ShaderVariable> registers;
   DOCUMENT("The output variables for this shader as a list of :class:`ShaderValue`.");
-  rdctype::array<ShaderVariable> outputs;
+  rdcarray<ShaderVariable> outputs;
 
   DOCUMENT(
       "Indexable temporary variables for this shader as a list of :class:`ShaderValue` lists.");
-  rdctype::array<rdctype::array<ShaderVariable> > indexableTemps;
+  rdcarray<rdcarray<ShaderVariable> > indexableTemps;
 
   DOCUMENT(R"(The next instruction to be executed after this state. The initial state before any
 shader execution happened will have ``nextInstruction == 0``.)");
@@ -222,18 +222,18 @@ change with shader execution.
 struct ShaderDebugTrace
 {
   DOCUMENT("The input variables for this shader as a list of :class:`ShaderValue`.");
-  rdctype::array<ShaderVariable> inputs;
+  rdcarray<ShaderVariable> inputs;
   DOCUMENT(R"(Constant variables for this shader as a list of :class:`ShaderValue` lists.
 
 Each entry in this list corresponds to a constant block with the same index in the
 :data:`ShaderBindpointMapping.ConstantBlocks` list, which can be used to look up the metadata.
 )");
-  rdctype::array<rdctype::array<ShaderVariable> > cbuffers;
+  rdcarray<rdcarray<ShaderVariable> > cbuffers;
 
   DOCUMENT(R"(A list of :class:`ShaderDebugState` states representing the state after each
 instruction was executed
 )");
-  rdctype::array<ShaderDebugState> states;
+  rdcarray<ShaderDebugState> states;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderDebugTrace);
@@ -262,11 +262,11 @@ struct SigParameter
   }
 
   DOCUMENT("The name of this variable - may not be present in the metadata for all APIs.");
-  rdctype::str varName;
+  rdcstr varName;
   DOCUMENT("The semantic name of this variable, if the API uses semantic matching for bindings.");
-  rdctype::str semanticName;
+  rdcstr semanticName;
   DOCUMENT("The combined semantic name and index.");
-  rdctype::str semanticIdxName;
+  rdcstr semanticIdxName;
   DOCUMENT("The semantic index of this variable - see :data:`semanticName`.");
   uint32_t semanticIndex;
 
@@ -326,7 +326,7 @@ struct ShaderVariableDescriptor
   DOCUMENT("The number of bytes between the start of one element in the array and the next.");
   uint32_t arrayStride;
   DOCUMENT("The name of the type of this constant, e.g. a ``struct`` name.");
-  rdctype::str name;
+  rdcstr name;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderVariableDescriptor);
@@ -338,7 +338,7 @@ struct ShaderVariableType
   ShaderVariableDescriptor descriptor;
 
   DOCUMENT("A list of :class:`ShaderConstant` with any members that this constant may contain.");
-  rdctype::array<ShaderConstant> members;
+  rdcarray<ShaderConstant> members;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderVariableType);
@@ -358,7 +358,7 @@ DOCUMENT("Contains the detail of a constant within a :class:`ConstantBlock` in m
 struct ShaderConstant
 {
   DOCUMENT("The name of this constant");
-  rdctype::str name;
+  rdcstr name;
   DOCUMENT(
       "A :class:`ShaderRegister` describing where this constant is offset from the start of the "
       "block");
@@ -379,9 +379,9 @@ information.
 struct ConstantBlock
 {
   DOCUMENT("The name of this constant block, may be empty on some APIs.");
-  rdctype::str name;
+  rdcstr name;
   DOCUMENT("The constants contained within this block as a list of :class:`ShaderConstant`.");
-  rdctype::array<ShaderConstant> variables;
+  rdcarray<ShaderConstant> variables;
   DOCUMENT(R"(The bindpoint for this block. This is an index in the
 :data:`ShaderBindpointMapping.ConstantBlocks` list.
 )");
@@ -406,7 +406,7 @@ relevant.
 struct ShaderSampler
 {
   DOCUMENT("The name of this sampler.");
-  rdctype::str name;
+  rdcstr name;
 
   DOCUMENT(R"(The bindpoint for this block. This is an index in either the
 :data:`ShaderBindpointMapping.Samplers` list.
@@ -428,7 +428,7 @@ struct ShaderResource
   TextureDim resType;
 
   DOCUMENT("The name of this resource.");
-  rdctype::str name;
+  rdcstr name;
 
   DOCUMENT("A :class:`ShaderVariableType` describing type of each element of this resource.");
   ShaderVariableType variableType;
@@ -458,7 +458,7 @@ struct ShaderCompileFlags
 
 Each entry is an API or compiler specific flag used to compile this shader originally.
 )");
-  rdctype::array<rdctype::pair<rdctype::str, rdctype::str> > flags;
+  rdcarray<rdcpair<rdcstr, rdcstr> > flags;
 };
 
 DOCUMENT(R"(Contains the information about a shader contained within API-specific debugging
@@ -476,7 +476,7 @@ struct ShaderDebugChunk
 
 The first entry in the list is always the file where the entry point is.
 )");
-  rdctype::array<rdctype::pair<rdctype::str, rdctype::str> > files;
+  rdcarray<rdcpair<rdcstr, rdcstr> > files;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderDebugChunk);
@@ -493,37 +493,37 @@ struct ShaderReflection
   ResourceId ID;
 
   DOCUMENT("The entry point in the shader for this reflection, if multiple entry points exist.");
-  rdctype::str EntryPoint;
+  rdcstr EntryPoint;
 
   DOCUMENT(
       "A :class:`ShaderDebugChunk` containing any embedded debugging information in this shader.");
   ShaderDebugChunk DebugInfo;
 
   DOCUMENT("A raw ``bytes`` dump of the original shader, encoded in API specific binary form.");
-  rdctype::array<byte> RawBytes;
+  bytebuf RawBytes;
 
   DOCUMENT("The 3D dimensions of a compute workgroup, for compute shaders.");
   uint32_t DispatchThreadsDimension[3];
 
   DOCUMENT("A list of :class:`SigParameter` with the shader's input signature.");
-  rdctype::array<SigParameter> InputSig;
+  rdcarray<SigParameter> InputSig;
   DOCUMENT("A list of :class:`SigParameter` with the shader's output signature.");
-  rdctype::array<SigParameter> OutputSig;
+  rdcarray<SigParameter> OutputSig;
 
   DOCUMENT("A list of :class:`ConstantBlock` with the shader's constant bindings.");
-  rdctype::array<ConstantBlock> ConstantBlocks;
+  rdcarray<ConstantBlock> ConstantBlocks;
 
   DOCUMENT("A list of :class:`ShaderSampler` with the shader's samplers.");
-  rdctype::array<ShaderSampler> Samplers;
+  rdcarray<ShaderSampler> Samplers;
 
   DOCUMENT("A list of :class:`ShaderResource` with the shader's read-only resources.");
-  rdctype::array<ShaderResource> ReadOnlyResources;
+  rdcarray<ShaderResource> ReadOnlyResources;
   DOCUMENT("A list of :class:`ShaderResource` with the shader's read-write resources.");
-  rdctype::array<ShaderResource> ReadWriteResources;
+  rdcarray<ShaderResource> ReadWriteResources;
 
   // TODO expand this to encompass shader subroutines.
   DOCUMENT("A list of strings with the shader's interfaces. Largely an unused API feature.");
-  rdctype::array<rdctype::str> Interfaces;
+  rdcarray<rdcstr> Interfaces;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderReflection);
@@ -613,27 +613,27 @@ struct ShaderBindpointMapping
   DOCUMENT(R"(This maps input attributes as a simple swizzle on the
 :data:`ShaderReflection.InputSig` indices for APIs where this mapping is mutable at runtime.
 )");
-  rdctype::array<int> InputAttributes;
+  rdcarray<int> InputAttributes;
 
   DOCUMENT(R"(Provides a list of :class:`BindpointMap` entries for remapping the
 :data:`ShaderReflection.ConstantBlocks` list.
 )");
-  rdctype::array<BindpointMap> ConstantBlocks;
+  rdcarray<BindpointMap> ConstantBlocks;
 
   DOCUMENT(R"(Provides a list of :class:`BindpointMap` entries for remapping the
 :data:`ShaderReflection.Samplers` list.
 )");
-  rdctype::array<BindpointMap> Samplers;
+  rdcarray<BindpointMap> Samplers;
 
   DOCUMENT(R"(Provides a list of :class:`BindpointMap` entries for remapping the
 :data:`ShaderReflection.ReadOnlyResources` list.
 )");
-  rdctype::array<BindpointMap> ReadOnlyResources;
+  rdcarray<BindpointMap> ReadOnlyResources;
 
   DOCUMENT(R"(Provides a list of :class:`BindpointMap` entries for remapping the
 :data:`ShaderReflection.ReadWriteResources` list.
 )");
-  rdctype::array<BindpointMap> ReadWriteResources;
+  rdcarray<BindpointMap> ReadWriteResources;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderBindpointMapping);

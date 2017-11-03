@@ -1420,7 +1420,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
     else
     {
       buf = new BufferData;
-      rdctype::array<byte> data;
+      bytebuf data;
       if(m_IsBuffer)
       {
         uint64_t len = m_ByteSize;
@@ -1507,7 +1507,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
 
   QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
 
-  rdctype::array<byte> idata;
+  bytebuf idata;
   if(ib.first != ResourceId() && draw && (draw->flags & DrawFlags::UseIBuffer))
     idata = r->GetBufferData(ib.first, ib.second + draw->indexOffset * draw->indexByteWidth,
                              draw->numIndices * draw->indexByteWidth);
@@ -1621,8 +1621,8 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     BufferData *buf = new BufferData;
     if(used)
     {
-      rdctype::array<byte> bufdata = r->GetBufferData(
-          vb.Buffer, vb.ByteOffset + offset * vb.ByteStride, (maxIdx + 1) * vb.ByteStride);
+      bytebuf bufdata = r->GetBufferData(vb.Buffer, vb.ByteOffset + offset * vb.ByteStride,
+                                         (maxIdx + 1) * vb.ByteStride);
 
       buf->data = new byte[bufdata.size()];
       memcpy(buf->data, bufdata.data(), bufdata.size());
@@ -1680,7 +1680,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   if(m_PostVS.buf != ResourceId())
   {
     BufferData *postvs = new BufferData;
-    rdctype::array<byte> bufdata = r->GetBufferData(m_PostVS.buf, m_PostVS.offset, 0);
+    bytebuf bufdata = r->GetBufferData(m_PostVS.buf, m_PostVS.offset, 0);
 
     postvs->data = new byte[bufdata.size()];
     memcpy(postvs->data, bufdata.data(), bufdata.size());
@@ -1701,7 +1701,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   if(m_PostGS.buf != ResourceId())
   {
     BufferData *postgs = new BufferData;
-    rdctype::array<byte> bufdata = r->GetBufferData(m_PostGS.buf, m_PostGS.offset, 0);
+    bytebuf bufdata = r->GetBufferData(m_PostGS.buf, m_PostGS.offset, 0);
 
     postgs->data = new byte[bufdata.size()];
     memcpy(postgs->data, bufdata.data(), bufdata.size());

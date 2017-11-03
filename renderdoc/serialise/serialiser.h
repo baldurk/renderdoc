@@ -477,7 +477,7 @@ public:
   }
 
   template <typename X>
-  void Serialise(const char *name, rdctype::array<X> &el)
+  void Serialise(const char *name, rdcarray<X> &el)
   {
     int32_t sz = el.count();
     Serialise(name, sz);
@@ -494,7 +494,68 @@ public:
     }
   }
 
-  void Serialise(const char *name, rdctype::str &el)
+  void Serialise(const char *name, bytebuf &el)
+  {
+    int32_t bufLen = el.count();
+
+    if(m_Mode >= WRITING)
+    {
+      WriteFrom(bufLen);
+
+      // ensure byte alignment
+      uint64_t offs = GetOffset();
+      uint64_t alignedoffs = AlignUp(offs, BufferAlignment);
+
+      if(offs != alignedoffs)
+      {
+        static const byte padding[64] = {0};
+        WriteBytes(&padding[0], (size_t)(alignedoffs - offs));
+      }
+
+      RDCASSERT((GetOffset() % BufferAlignment) == 0);
+
+      WriteBytes(el.data(), bufLen);
+
+      m_AlignedData = true;
+    }
+    else
+    {
+      ReadInto(bufLen);
+
+      // ensure byte alignment
+      uint64_t offs = GetOffset();
+
+      // serialise version 0x00000031 had only 16-byte alignment
+      uint64_t alignedoffs = AlignUp(offs, m_SerVer == 0x00000031 ? 16 : BufferAlignment);
+
+      if(offs != alignedoffs)
+      {
+        ReadBytes((size_t)(alignedoffs - offs));
+      }
+
+      el.resize((size_t)bufLen);
+      memcpy(el.data(), ReadBytes(bufLen), bufLen);
+    }
+
+    if(m_DebugTextWriting && name && name[0])
+    {
+      const char *ellipsis = "...";
+
+      uint32_t lbuf[4];
+
+      memcpy(lbuf, el.data(), RDCMIN((size_t)bufLen, 4 * sizeof(uint32_t)));
+
+      if(bufLen <= 16)
+      {
+        ellipsis = "   ";
+      }
+
+      DebugPrint("%s: RawBuffer % 5d:< 0x%08x 0x%08x 0x%08x 0x%08x %s>\n", name, bufLen, lbuf[0],
+                 lbuf[1], lbuf[2], lbuf[3], ellipsis);
+    }
+  }
+
+  void Serialise(const char *name, rdcstr &el)
   {
     int32_t sz = el.count();
     Serialise(name, sz);
@@ -519,7 +580,7 @@ public:
   }
 
   template <typename X, typename Y>
-  void Serialise(const char *name, rdctype::pair<X, Y> &el)
+  void Serialise(const char *name, rdcpair<X, Y> &el)
   {
     Serialise(name, el.first);
     Serialise(name, el.second);

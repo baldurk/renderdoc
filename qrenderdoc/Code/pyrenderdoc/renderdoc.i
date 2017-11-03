@@ -15,7 +15,7 @@
 #define DOCUMENT3(text1, text2, text3) %feature("docstring") text1 text2 text3
 #define DOCUMENT4(text1, text2, text3, text4) %feature("docstring") text1 text2 text3 text4
 
-// ignore warning about base class rdctype::array<char> methods in rdctype::str
+// ignore warning about base class rdcarray<char> methods in rdcstr
 #pragma SWIG nowarn=401
 
 // ignore warning about redundant declaration of typedef (byte)
@@ -50,10 +50,10 @@
 
 %include "pyconversion.i"
 
-SIMPLE_TYPEMAPS(rdctype::str)
+SIMPLE_TYPEMAPS(rdcstr)
 
-CONTAINER_TYPEMAPS(rdctype::array)
-CONTAINER_TYPEMAPS(rdctype::pair)
+CONTAINER_TYPEMAPS(rdcarray)
+CONTAINER_TYPEMAPS(rdcpair)
 
 FIXED_ARRAY_TYPEMAPS(ResourceId)
 FIXED_ARRAY_TYPEMAPS(double)
@@ -78,29 +78,29 @@ FIXED_ARRAY_TYPEMAPS(uint16_t)
 
 // ignore some operators SWIG doesn't have to worry about
 // ignore array members
-%ignore rdctype::array::array;
-%ignore rdctype::array::begin;
-%ignore rdctype::array::end;
-%ignore rdctype::array::front;
-%ignore rdctype::array::back;
-%ignore rdctype::array::data;
-%ignore rdctype::array::assign;
-%ignore rdctype::array::insert;
-%ignore rdctype::array::erase;
-%ignore rdctype::array::count;
-%ignore rdctype::array::capacity;
-%ignore rdctype::array::size;
-%ignore rdctype::array::byteSize;
-%ignore rdctype::array::empty;
-%ignore rdctype::array::isEmpty;
-%ignore rdctype::array::resize;
-%ignore rdctype::array::reserve;
-%ignore rdctype::array::swap;
-%ignore rdctype::array::push_back;
-%ignore rdctype::array::operator=;
-%ignore rdctype::array::operator[];
-%ignore rdctype::str::operator=;
-%ignore rdctype::str::operator std::string;
+%ignore rdcarray::rdcarray;
+%ignore rdcarray::begin;
+%ignore rdcarray::end;
+%ignore rdcarray::front;
+%ignore rdcarray::back;
+%ignore rdcarray::data;
+%ignore rdcarray::assign;
+%ignore rdcarray::insert;
+%ignore rdcarray::erase;
+%ignore rdcarray::count;
+%ignore rdcarray::capacity;
+%ignore rdcarray::size;
+%ignore rdcarray::byteSize;
+%ignore rdcarray::empty;
+%ignore rdcarray::isEmpty;
+%ignore rdcarray::resize;
+%ignore rdcarray::reserve;
+%ignore rdcarray::swap;
+%ignore rdcarray::push_back;
+%ignore rdcarray::operator=;
+%ignore rdcarray::operator[];
+%ignore rdcstr::operator=;
+%ignore rdcstr::operator std::string;
 
 // add __str__ functions
 %feature("python:tp_str") ResourceId "resid_str";
