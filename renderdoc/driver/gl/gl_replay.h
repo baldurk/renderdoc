@@ -35,7 +35,6 @@ using std::map;
 
 class WrappedOpenGL;
 struct GLCounterContext;
-struct DrawcallTreeNode;
 
 struct GLPostVSData
 {
@@ -384,7 +383,7 @@ private:
   // called before the context is destroyed, to shutdown any counters
   void PreContextShutdownCounters();
 
-  void FillTimers(GLCounterContext &ctx, const DrawcallTreeNode &drawnode,
+  void FillTimers(GLCounterContext &ctx, const DrawcallDescription &drawnode,
                   const vector<GPUCounter> &counters);
 
   GLuint CreateShaderProgram(const vector<string> &vs, const vector<string> &fs,

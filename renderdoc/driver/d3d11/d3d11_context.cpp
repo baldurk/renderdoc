@@ -997,11 +997,7 @@ void WrappedID3D11DeviceContext::AddDrawcall(const DrawcallDescription &d, bool 
   // should have at least the root drawcall here, push this drawcall
   // onto the back's children list.
   if(!m_DrawcallStack.empty())
-  {
-    DrawcallTreeNode node(draw);
-    node.children.insert(node.children.begin(), draw.children.begin(), draw.children.end());
-    m_DrawcallStack.back()->children.push_back(node);
-  }
+    m_DrawcallStack.back()->children.push_back(draw);
   else
     RDCERR("Somehow lost drawcall stack!");
 }
@@ -1483,7 +1479,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
   if(m_State == READING)
   {
-    m_pDevice->GetFrameRecord().drawcallList = m_ParentDrawcall.Bake();
+    m_pDevice->GetFrameRecord().drawcallList = m_ParentDrawcall.children;
     m_pDevice->GetFrameRecord().frameInfo.debugMessages = m_pDevice->GetDebugMessages();
 
     for(auto it = WrappedID3D11Buffer::m_BufferList.begin();

@@ -69,36 +69,6 @@ enum CaptureFailReason
   CaptureFailed_UncappedUnmap,
 };
 
-struct DrawcallTreeNode
-{
-  DrawcallTreeNode() {}
-  explicit DrawcallTreeNode(const DrawcallDescription &d) : draw(d) {}
-  DrawcallDescription draw;
-  vector<DrawcallTreeNode> children;
-
-  DrawcallTreeNode &operator=(const DrawcallDescription &d)
-  {
-    *this = DrawcallTreeNode(d);
-    return *this;
-  }
-
-  vector<DrawcallDescription> Bake()
-  {
-    vector<DrawcallDescription> ret;
-    if(children.empty())
-      return ret;
-
-    ret.resize(children.size());
-    for(size_t i = 0; i < children.size(); i++)
-    {
-      ret[i] = children[i].draw;
-      ret[i].children = children[i].Bake();
-    }
-
-    return ret;
-  }
-};
-
 struct Replacement
 {
   Replacement(ResourceId i, GLResource r) : id(i), res(r) {}
@@ -229,9 +199,9 @@ private:
   uint32_t m_FirstEventID;
   uint32_t m_LastEventID;
 
-  DrawcallTreeNode m_ParentDrawcall;
+  DrawcallDescription m_ParentDrawcall;
 
-  list<DrawcallTreeNode *> m_DrawcallStack;
+  list<DrawcallDescription *> m_DrawcallStack;
 
   map<ResourceId, vector<EventUsage> > m_ResourceUses;
 
@@ -578,7 +548,7 @@ public:
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const APIEvent &GetEvent(uint32_t eventID);
 
-  const DrawcallTreeNode &GetRootDraw() { return m_ParentDrawcall; }
+  const DrawcallDescription &GetRootDraw() { return m_ParentDrawcall; }
   const DrawcallDescription *GetDrawcall(uint32_t eventID);
 
   void SuppressDebugMessages(bool suppress) { m_SuppressDebugMessages = suppress; }

@@ -206,7 +206,7 @@ GLenum glCounters[] = {
     eGL_COMPUTE_SHADER_INVOCATIONS_ARB             // GPUCounter::CSInvocations
 };
 
-void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallTreeNode &drawnode,
+void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallDescription &drawnode,
                           const vector<GPUCounter> &counters)
 {
   if(drawnode.children.empty())
@@ -214,7 +214,7 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallTreeNode &drawnod
 
   for(size_t i = 0; i < drawnode.children.size(); i++)
   {
-    const DrawcallDescription &d = drawnode.children[i].draw;
+    const DrawcallDescription &d = drawnode.children[i];
     FillTimers(ctx, drawnode.children[i], counters);
 
     if(d.events.empty())

@@ -98,30 +98,6 @@ enum CaptureFailReason
   CaptureFailed_UncappedCmdlist,
 };
 
-struct DrawcallTreeNode
-{
-  DrawcallTreeNode() {}
-  explicit DrawcallTreeNode(const DrawcallDescription &d) : draw(d) {}
-  DrawcallDescription draw;
-  vector<DrawcallTreeNode> children;
-
-  vector<DrawcallDescription> Bake()
-  {
-    vector<DrawcallDescription> ret;
-    if(children.empty())
-      return ret;
-
-    ret.resize(children.size());
-    for(size_t i = 0; i < children.size(); i++)
-    {
-      ret[i] = children[i].draw;
-      ret[i].children = children[i].Bake();
-    }
-
-    return ret;
-  }
-};
-
 class WrappedID3D11DeviceContext : public RefCounter, public ID3D11DeviceContext3
 {
 private:
@@ -218,10 +194,10 @@ private:
   uint64_t m_CurChunkOffset;
   uint32_t m_CurEventID, m_CurDrawcallID;
 
-  DrawcallTreeNode m_ParentDrawcall;
-  map<ResourceId, DrawcallTreeNode> m_CmdLists;
+  DrawcallDescription m_ParentDrawcall;
+  map<ResourceId, DrawcallDescription> m_CmdLists;
 
-  list<DrawcallTreeNode *> m_DrawcallStack;
+  list<DrawcallDescription *> m_DrawcallStack;
 
   void FlattenLog();
 
@@ -318,7 +294,7 @@ public:
   uint32_t GetEventID() { return m_CurEventID; }
   const APIEvent &GetEvent(uint32_t eventID);
 
-  const DrawcallTreeNode &GetRootDraw() { return m_ParentDrawcall; }
+  const DrawcallDescription &GetRootDraw() { return m_ParentDrawcall; }
   void ThreadSafe_SetMarker(uint32_t col, const wchar_t *name);
   int ThreadSafe_BeginEvent(uint32_t col, const wchar_t *name);
   int ThreadSafe_EndEvent();

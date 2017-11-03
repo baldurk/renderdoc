@@ -4028,7 +4028,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
   if(m_State == READING)
   {
-    GetFrameRecord().drawcallList = m_ParentDrawcall.Bake();
+    GetFrameRecord().drawcallList = m_ParentDrawcall.children;
     GetFrameRecord().frameInfo.debugMessages = GetDebugMessages();
 
     DrawcallDescription *previous = NULL;
@@ -4434,11 +4434,7 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
   // should have at least the root drawcall here, push this drawcall
   // onto the back's children list.
   if(!context->m_DrawcallStack.empty())
-  {
-    DrawcallTreeNode node(draw);
-    node.children.insert(node.children.begin(), draw.children.begin(), draw.children.end());
-    context->m_DrawcallStack.back()->children.push_back(node);
-  }
+    m_DrawcallStack.back()->children.push_back(draw);
   else
     RDCERR("Somehow lost drawcall stack!");
 }

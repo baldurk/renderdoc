@@ -45,8 +45,6 @@ class WrappedID3D11DeviceContext;
 
 class AMDCounters;
 
-struct DrawcallTreeNode;
-
 struct D3D11CounterContext;
 
 class D3D11ResourceManager;
@@ -584,10 +582,10 @@ private:
   // called before the device is shutdown, to shutdown any counters
   void PreDeviceShutdownCounters();
 
-  void FillTimers(D3D11CounterContext &ctx, const DrawcallTreeNode &drawnode);
+  void FillTimers(D3D11CounterContext &ctx, const DrawcallDescription &drawnode);
 
   void FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex, vector<uint32_t> &eventIDs,
-                     const DrawcallTreeNode &drawnode);
+                     const DrawcallDescription &drawnode);
 
   void FillCBuffer(ID3D11Buffer *buf, const void *data, size_t size);
 };

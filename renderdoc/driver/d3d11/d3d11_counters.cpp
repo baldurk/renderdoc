@@ -220,7 +220,7 @@ struct D3D11CounterContext
   int reuseIdx;
 };
 
-void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallTreeNode &drawnode)
+void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription &drawnode)
 {
   const D3D11_QUERY_DESC qtimedesc = {D3D11_QUERY_TIMESTAMP, 0};
   const D3D11_QUERY_DESC qstatsdesc = {D3D11_QUERY_PIPELINE_STATISTICS, 0};
@@ -231,7 +231,7 @@ void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallTreeN
 
   for(size_t i = 0; i < drawnode.children.size(); i++)
   {
-    const DrawcallDescription &d = drawnode.children[i].draw;
+    const DrawcallDescription &d = drawnode.children[i];
     FillTimers(ctx, drawnode.children[i]);
 
     if(d.events.empty())
@@ -288,14 +288,14 @@ void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallTreeN
 }
 
 void D3D11DebugManager::FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex,
-                                      vector<uint32_t> &eventIDs, const DrawcallTreeNode &drawnode)
+                                      vector<uint32_t> &eventIDs, const DrawcallDescription &drawnode)
 {
   if(drawnode.children.empty())
     return;
 
   for(size_t i = 0; i < drawnode.children.size(); i++)
   {
-    const DrawcallDescription &d = drawnode.children[i].draw;
+    const DrawcallDescription &d = drawnode.children[i];
 
     FillTimersAMD(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
 
