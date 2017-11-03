@@ -1,23 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?> 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
   <Type Name="rdctype::str">
+    <DisplayString Condition="elems == 0">""</DisplayString>
     <DisplayString>{elems,s}</DisplayString>
     <Expand>
-      <Item Name="[size]" ExcludeView="simple">count</Item>
+     <Item Name="[size]" ExcludeView="simple">usedCount</Item>
+     <Item Name="[capacity]" ExcludeView="simple">allocatedCount</Item>
       <ArrayItems>
-        <Size>count</Size>
+        <Size>usedCount</Size>
         <ValuePointer>elems</ValuePointer>
       </ArrayItems>
     </Expand>
   </Type>
   <Type Name="rdctype::array&lt;*&gt;">
-    <DisplayString>{{ size={count} }}</DisplayString>
+    <DisplayString>{{ size={usedCount} }}</DisplayString>
     <Expand>
-      <Item Name="[size]" ExcludeView="simple">count</Item>
+      <Item Name="[size]" ExcludeView="simple">usedCount</Item>
+      <Item Name="[capacity]" ExcludeView="simple">allocatedCount</Item>
       <ArrayItems>
-        <Size>count</Size>
+        <Size>usedCount</Size>
         <ValuePointer>elems</ValuePointer>
       </ArrayItems>
     </Expand>
   </Type>
+ <Type Name="rdctype::pair&lt;*&gt;">
+  <DisplayString>{{ {first}, {second} }}</DisplayString>
+  <Expand>
+   <Item Name="first" ExcludeView="simple">first</Item>
+   <Item Name="second" ExcludeView="simple">second</Item>
+   <ArrayItems>
+    <Size>usedCount</Size>
+    <ValuePointer>elems</ValuePointer>
+   </ArrayItems>
+  </Expand>
+ </Type>
 </AutoVisualizer>

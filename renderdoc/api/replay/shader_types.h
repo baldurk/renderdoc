@@ -29,8 +29,6 @@
 #include "basic_types.h"
 #include "replay_enums.h"
 
-typedef uint8_t byte;
-
 DOCUMENT("A ``float`` 4 component vector.")
 struct FloatVecVal
 {

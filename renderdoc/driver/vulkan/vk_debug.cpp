@@ -7130,7 +7130,7 @@ static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData 
   uint32_t *spirv = &modSpirv[0];
   size_t spirvLength = modSpirv.size();
 
-  int numOutputs = refl.OutputSig.count;
+  int numOutputs = refl.OutputSig.count();
 
   RDCASSERT(numOutputs > 0);
 
@@ -7935,7 +7935,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
 
   // no outputs from this shader? unexpected but theoretically possible (dummy VS before
   // tessellation maybe). Just fill out an empty data set
-  if(refl->OutputSig.count == 0)
+  if(refl->OutputSig.empty())
   {
     // empty vertex output signature
     m_PostVSData[eventID].vsin.topo = pipeInfo.topology;

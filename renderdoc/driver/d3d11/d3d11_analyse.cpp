@@ -200,7 +200,7 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 
     size_t dataOffset = vec * sizeof(Vec4f) + comp * sizeof(float);
 
-    if(outvars[outIdx].name.count > 0)
+    if(!outvars[outIdx].name.empty())
     {
       RDCASSERT(flatten);
 
@@ -208,7 +208,7 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
       RDCASSERT(outvars[vec].columns == comp);
       RDCASSERT(rows == 1);
 
-      string combinedName = outvars[outIdx].name.elems;
+      std::string combinedName = outvars[outIdx].name;
       combinedName += ", " + basename;
       outvars[outIdx].name = combinedName;
       outvars[outIdx].rows = 1;
@@ -294,15 +294,15 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 
         var.name = outvars[outIdx].name;
 
-        vector<ShaderVariable> varmembers;
-        vector<ShaderVariable> *out = &outvars;
+        std::vector<ShaderVariable> varmembers;
+        std::vector<ShaderVariable> *out = &outvars;
         size_t rowCopy = 1;
 
         uint32_t registers = rows;
         uint32_t regLen = cols;
         const char *regName = "row";
 
-        string base = outvars[outIdx].name.elems;
+        std::string base = outvars[outIdx].name;
 
         if(!flatten)
         {
@@ -459,18 +459,14 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 
   if(maxReg >= 0 || inputCoverage)
   {
-    create_array(trace.inputs, maxReg + 1 + (inputCoverage ? 1 : 0));
+    trace.inputs.resize(maxReg + 1 + (inputCoverage ? 1 : 0));
     for(size_t i = 0; i < dxbc->m_InputSig.size(); i++)
     {
-      char buf[64] = {0};
-
       SigParameter &sig = dxbc->m_InputSig[i];
-
-      StringFormat::snprintf(buf, 63, "v%d", sig.regIndex);
 
       ShaderVariable v;
 
-      v.name = StringFormat::Fmt("%s (%s)", buf, sig.semanticIdxName.elems);
+      v.name = StringFormat::Fmt("v%d (%s)", sig.regIndex, sig.semanticIdxName.c_str());
       v.rows = 1;
       v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
                                                      ? 3
@@ -508,7 +504,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 
   if(maxReg >= 0 || specialOutputs > 0)
   {
-    create_array(initialState.outputs, maxReg + 1 + specialOutputs);
+    initialState.outputs.resize(maxReg + 1 + specialOutputs);
     for(size_t i = 0; i < dxbc->m_OutputSig.size(); i++)
     {
       SigParameter &sig = dxbc->m_OutputSig[i];
@@ -516,13 +512,9 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
       if(sig.regIndex == ~0U)
         continue;
 
-      char buf[64] = {0};
-
-      StringFormat::snprintf(buf, 63, "o%d", sig.regIndex);
-
       ShaderVariable v;
 
-      v.name = StringFormat::Fmt("%s (%s)", buf, sig.semanticIdxName.elems);
+      v.name = StringFormat::Fmt("o%d (%s)", sig.regIndex, sig.semanticIdxName.c_str());
       v.rows = 1;
       v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
                                                      ? 3
@@ -576,22 +568,22 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
     }
   }
 
-  create_array(trace.cbuffers, dxbc->m_CBuffers.size());
+  trace.cbuffers.resize(dxbc->m_CBuffers.size());
   for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
   {
     if(dxbc->m_CBuffers[i].descriptor.type != CBuffer::Descriptor::TYPE_CBUFFER)
       continue;
 
-    vector<ShaderVariable> vars;
+    std::vector<ShaderVariable> vars;
 
     FillCBufferVariables(dxbc->m_CBuffers[i].variables, vars, true,
                          cbufData[dxbc->m_CBuffers[i].reg]);
 
     trace.cbuffers[i] = vars;
 
-    for(int32_t c = 0; c < trace.cbuffers[i].count; c++)
+    for(size_t c = 0; c < trace.cbuffers[i].size(); c++)
       trace.cbuffers[i][c].name = StringFormat::Fmt("cb%u[%u] (%s)", dxbc->m_CBuffers[i].reg,
-                                                    (uint32_t)c, trace.cbuffers[i][c].name.elems);
+                                                    (uint32_t)c, trace.cbuffers[i][c].name.c_str());
   }
 
   initialState.Init();
@@ -1072,7 +1064,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
   CreateShaderGlobalState(global, dxbc, 0, NULL, rs->VS.SRVs);
   State initialState = CreateShaderDebugState(ret, -1, dxbc, cbufData);
 
-  for(int32_t i = 0; i < ret.inputs.count; i++)
+  for(size_t i = 0; i < ret.inputs.size(); i++)
   {
     if(dxbc->m_InputSig[i].systemValue == ShaderBuiltin::Undefined ||
        dxbc->m_InputSig[i].systemValue ==
@@ -1082,11 +1074,11 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
     {
       const D3D11_INPUT_ELEMENT_DESC *el = NULL;
 
-      string signame = strlower(string(dxbc->m_InputSig[i].semanticName.elems));
+      std::string signame = strlower(dxbc->m_InputSig[i].semanticName);
 
       for(size_t l = 0; l < inputlayout.size(); l++)
       {
-        string layoutname = strlower(string(inputlayout[l].SemanticName));
+        std::string layoutname = strlower(inputlayout[l].SemanticName);
 
         if(signame == layoutname && dxbc->m_InputSig[i].semanticIndex == inputlayout[l].SemanticIndex)
         {
@@ -1447,7 +1439,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 
     for(size_t a = 0; a < arrays.size(); a++)
     {
-      if(arrays[a].first == dxbc->m_InputSig[i].semanticName.elems &&
+      if(dxbc->m_InputSig[i].semanticName == arrays[a].first &&
          arrays[a].second.first <= dxbc->m_InputSig[i].semanticIndex &&
          arrays[a].second.second >= dxbc->m_InputSig[i].semanticIndex)
       {
@@ -1491,7 +1483,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 
             initialValues.push_back(DataOutput(-1, 0, numCols, ShaderBuiltin::Undefined, true));
 
-            string name = prevdxbc->m_OutputSig[os].semanticIdxName.elems;
+            std::string name = prevdxbc->m_OutputSig[os].semanticIdxName;
 
             extractHlsl += ToStr::Get((uint32_t)numCols) + " input_" + name + " : " + name + ";\n";
           }
@@ -1529,7 +1521,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
     if(included)
       structureStride += 4 * numCols;
 
-    string name = dxbc->m_InputSig[i].semanticIdxName.elems;
+    std::string name = dxbc->m_InputSig[i].semanticIdxName;
 
     // arrays of interpolators are handled really weirdly. They use cbuffer
     // packing rules where each new value is in a new register (rather than
@@ -1558,7 +1550,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
       for(size_t j = i + 1; j < dxbc->m_InputSig.size(); j++)
       {
         // if we've found the 'next' semantic
-        if(!strcmp(dxbc->m_InputSig[i].semanticName.elems, dxbc->m_InputSig[j].semanticName.elems) &&
+        if(dxbc->m_InputSig[i].semanticName == dxbc->m_InputSig[j].semanticName &&
            nextIdx == dxbc->m_InputSig[j].semanticIndex)
         {
           int jNumCols = (dxbc->m_InputSig[i].regChannelMask & 0x1 ? 1 : 0) +
@@ -1584,7 +1576,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 
       if(arrayLength > 0)
         arrays.push_back(
-            std::make_pair(dxbc->m_InputSig[i].semanticName.elems,
+            std::make_pair(dxbc->m_InputSig[i].semanticName,
                            std::make_pair(dxbc->m_InputSig[i].semanticIndex, nextIdx - 1)));
     }
 
@@ -1931,8 +1923,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
     State initialState = CreateShaderDebugState(traces[destIdx], destIdx, dxbc, cbufData);
 
     rdctype::array<ShaderVariable> &ins = traces[destIdx].inputs;
-    if(ins.count > 0 && !strcmp(ins[ins.count - 1].name.elems, "vCoverage"))
-      ins[ins.count - 1].value.u.x = hit->coverage;
+    if(!ins.empty() && ins.back().name == "vCoverage")
+      ins.back().value.u.x = hit->coverage;
 
     initialState.semantics.coverage = hit->coverage;
     initialState.semantics.primID = hit->primitive;

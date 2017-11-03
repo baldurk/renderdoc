@@ -36,6 +36,18 @@
 #include "stb/stb_image.h"
 #include "crash_handler.h"
 
+template <>
+string ToStrHelper<false, ResourceId>::Get(const ResourceId &el)
+{
+  char tostrBuf[256] = {0};
+
+  RDCCOMPILE_ASSERT(sizeof(el) == sizeof(uint64_t), "ResourceId is no longer 1:1 with uint64_t");
+
+  StringFormat::snprintf(tostrBuf, 255, "ResID_%llu", (uint64_t &)el);
+
+  return tostrBuf;
+}
+
 #if ENABLED(RDOC_LINUX) && ENABLED(RDOC_XLIB)
 #include <X11/Xlib.h>
 #endif

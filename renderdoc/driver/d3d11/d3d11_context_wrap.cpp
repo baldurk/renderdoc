@@ -3723,7 +3723,7 @@ void WrappedID3D11DeviceContext::Serialise_DebugMessages()
 
     string desc;
     if(m_State >= WRITING)
-      desc = debugMessages[i].description.elems;
+      desc = debugMessages[i].description;
 
     SERIALISE_ELEMENT(MessageCategory, Category, debugMessages[i].category);
     SERIALISE_ELEMENT(MessageSeverity, Severity, debugMessages[i].severity);

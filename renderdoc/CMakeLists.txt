@@ -110,6 +110,7 @@ set(sources
     os/os_specific.cpp
     os/os_specific.h
     replay/app_api.cpp
+    replay/basic_types_tests.cpp
     replay/capture_options.cpp
     replay/capture_file.cpp
     replay/entry_points.cpp
@@ -118,8 +119,6 @@ set(sources
     replay/replay_output.cpp
     replay/replay_controller.cpp
     replay/replay_controller.h
-    replay/type_helpers.cpp
-    replay/type_helpers.h
     serialise/grisu2.cpp
     serialise/serialiser.cpp
     serialise/serialiser.h

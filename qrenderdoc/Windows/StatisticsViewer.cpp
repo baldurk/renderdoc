@@ -72,7 +72,7 @@ QString CreateSimpleIntegerHistogram(const QString &legend, const rdctype::array
   uint32_t maxCount = 0;
   int maxWithValue = 0;
 
-  for(int o = 0; o < array.count; o++)
+  for(int o = 0; o < array.count(); o++)
   {
     uint32_t value = array[o];
     if(value > 0)
@@ -111,7 +111,7 @@ void StatisticsViewer::AppendDrawStatistics()
     m_Report.append(tr("\nInstance counts:\n"));
     uint32_t maxCount = 0;
     int maxWithValue = 0;
-    int maximum = draws.counts.count;
+    int maximum = draws.counts.count();
     for(int s = 1; s < maximum; s++)
     {
       uint32_t value = draws.counts[s];
@@ -224,8 +224,8 @@ void StatisticsViewer::AppendConstantBindStatistics()
   memset(&totalConstantsPerStage, 0, sizeof(totalConstantsPerStage));
   for(auto s : indices<ShaderStage>())
   {
-    totalConstantsPerStage[s].bindslots.create(reference.bindslots.count);
-    totalConstantsPerStage[s].sizes.create(reference.sizes.count);
+    totalConstantsPerStage[s].bindslots.resize(reference.bindslots.size());
+    totalConstantsPerStage[s].sizes.resize(reference.sizes.size());
   }
 
   {
@@ -236,18 +236,18 @@ void StatisticsViewer::AppendConstantBindStatistics()
       totalConstantsPerStage[s].sets += constants[s].sets;
       totalConstantsPerStage[s].nulls += constants[s].nulls;
 
-      for(int l = 0; l < constants[s].bindslots.count; l++)
+      for(int l = 0; l < constants[s].bindslots.count(); l++)
         totalConstantsPerStage[s].bindslots[l] += constants[s].bindslots[l];
 
-      for(int z = 0; z < constants[s].sizes.count; z++)
+      for(int z = 0; z < constants[s].sizes.count(); z++)
         totalConstantsPerStage[s].sizes[z] += constants[s].sizes[z];
     }
   }
 
   ConstantBindStats totalConstantsForAllStages;
   memset(&totalConstantsForAllStages, 0, sizeof(totalConstantsForAllStages));
-  totalConstantsForAllStages.bindslots.create(totalConstantsPerStage[0].bindslots.count);
-  totalConstantsForAllStages.sizes.create(totalConstantsPerStage[0].sizes.count);
+  totalConstantsForAllStages.bindslots.resize(totalConstantsPerStage[0].bindslots.size());
+  totalConstantsForAllStages.sizes.resize(totalConstantsPerStage[0].sizes.size());
 
   for(auto s : indices<ShaderStage>())
   {
@@ -256,10 +256,10 @@ void StatisticsViewer::AppendConstantBindStatistics()
     totalConstantsForAllStages.sets += perStage.sets;
     totalConstantsForAllStages.nulls += perStage.nulls;
 
-    for(int l = 0; l < perStage.bindslots.count; l++)
+    for(int l = 0; l < perStage.bindslots.count(); l++)
       totalConstantsForAllStages.bindslots[l] += perStage.bindslots[l];
 
-    for(int z = 0; z < perStage.sizes.count; z++)
+    for(int z = 0; z < perStage.sizes.count(); z++)
       totalConstantsForAllStages.sizes[z] += perStage.sizes[z];
   }
 
@@ -286,7 +286,7 @@ void StatisticsViewer::AppendConstantBindStatistics()
   m_Report.append(tr("\nAggregate constant buffer sizes across all stages:\n"));
   uint32_t maxCount = 0;
   int maxWithValue = 0;
-  for(int s = 0; s < totalConstantsForAllStages.sizes.count; s++)
+  for(int s = 0; s < totalConstantsForAllStages.sizes.count(); s++)
   {
     uint32_t value = totalConstantsForAllStages.sizes[s];
     if(value > 0)
@@ -316,7 +316,7 @@ void StatisticsViewer::AppendSamplerBindStatistics()
   memset(&totalSamplersPerStage, 0, sizeof(totalSamplersPerStage));
   for(auto s : indices<ShaderStage>())
   {
-    totalSamplersPerStage[s].bindslots.create(reference.bindslots.count);
+    totalSamplersPerStage[s].bindslots.resize(reference.bindslots.size());
   }
 
   {
@@ -327,7 +327,7 @@ void StatisticsViewer::AppendSamplerBindStatistics()
       totalSamplersPerStage[s].sets += samplers[s].sets;
       totalSamplersPerStage[s].nulls += samplers[s].nulls;
 
-      for(int l = 0; l < samplers[s].bindslots.count; l++)
+      for(int l = 0; l < samplers[s].bindslots.count(); l++)
       {
         totalSamplersPerStage[s].bindslots[l] += samplers[s].bindslots[l];
       }
@@ -336,7 +336,7 @@ void StatisticsViewer::AppendSamplerBindStatistics()
 
   SamplerBindStats totalSamplersForAllStages;
   memset(&totalSamplersForAllStages, 0, sizeof(totalSamplersForAllStages));
-  totalSamplersForAllStages.bindslots.create(totalSamplersPerStage[0].bindslots.count);
+  totalSamplersForAllStages.bindslots.resize(totalSamplersPerStage[0].bindslots.size());
 
   for(auto s : indices<ShaderStage>())
   {
@@ -344,7 +344,7 @@ void StatisticsViewer::AppendSamplerBindStatistics()
     totalSamplersForAllStages.calls += perStage.calls;
     totalSamplersForAllStages.sets += perStage.sets;
     totalSamplersForAllStages.nulls += perStage.nulls;
-    for(int l = 0; l < perStage.bindslots.count; l++)
+    for(int l = 0; l < perStage.bindslots.count(); l++)
     {
       totalSamplersForAllStages.bindslots[l] += perStage.bindslots[l];
     }
@@ -382,8 +382,8 @@ void StatisticsViewer::AppendResourceBindStatistics()
   memset(&totalResourcesPerStage, 0, sizeof(totalResourcesPerStage));
   for(auto s : indices<ShaderStage>())
   {
-    totalResourcesPerStage[s].types.create(reference.types.count);
-    totalResourcesPerStage[s].bindslots.create(reference.bindslots.count);
+    totalResourcesPerStage[s].types.resize(reference.types.size());
+    totalResourcesPerStage[s].bindslots.resize(reference.bindslots.size());
   }
 
   {
@@ -394,12 +394,12 @@ void StatisticsViewer::AppendResourceBindStatistics()
       totalResourcesPerStage[s].sets += resources[s].sets;
       totalResourcesPerStage[s].nulls += resources[s].nulls;
 
-      for(int z = 0; z < resources[s].types.count; z++)
+      for(int z = 0; z < resources[s].types.count(); z++)
       {
         totalResourcesPerStage[s].types[z] += resources[s].types[z];
       }
 
-      for(int l = 0; l < resources[s].bindslots.count; l++)
+      for(int l = 0; l < resources[s].bindslots.count(); l++)
       {
         totalResourcesPerStage[s].bindslots[l] += resources[s].bindslots[l];
       }
@@ -408,8 +408,8 @@ void StatisticsViewer::AppendResourceBindStatistics()
 
   ResourceBindStats totalResourcesForAllStages;
   memset(&totalResourcesForAllStages, 0, sizeof(totalResourcesForAllStages));
-  totalResourcesForAllStages.types.create(totalResourcesPerStage[0].types.count);
-  totalResourcesForAllStages.bindslots.create(totalResourcesPerStage[0].bindslots.count);
+  totalResourcesForAllStages.types.resize(totalResourcesPerStage[0].types.size());
+  totalResourcesForAllStages.bindslots.resize(totalResourcesPerStage[0].bindslots.size());
 
   for(auto s : indices<ShaderStage>())
   {
@@ -417,11 +417,11 @@ void StatisticsViewer::AppendResourceBindStatistics()
     totalResourcesForAllStages.calls += perStage.calls;
     totalResourcesForAllStages.sets += perStage.sets;
     totalResourcesForAllStages.nulls += perStage.nulls;
-    for(int t = 0; t < perStage.types.count; t++)
+    for(int t = 0; t < perStage.types.count(); t++)
     {
       totalResourcesForAllStages.types[t] += perStage.types[t];
     }
-    for(int l = 0; l < perStage.bindslots.count; l++)
+    for(int l = 0; l < perStage.bindslots.count(); l++)
     {
       totalResourcesForAllStages.bindslots[l] += perStage.bindslots[l];
     }
@@ -447,7 +447,7 @@ void StatisticsViewer::AppendResourceBindStatistics()
   int maxWithCount = 0;
 
   m_Report.append(tr("\nResource types across all stages:\n"));
-  for(int s = 0; s < totalResourcesForAllStages.types.count; s++)
+  for(int s = 0; s < totalResourcesForAllStages.types.count(); s++)
   {
     uint32_t count = totalResourcesForAllStages.types[s];
     if(count > 0)
@@ -478,8 +478,8 @@ void StatisticsViewer::AppendUpdateStatistics()
 
   ResourceUpdateStats totalUpdates;
   memset(&totalUpdates, 0, sizeof(totalUpdates));
-  totalUpdates.types.create(reference.types.count);
-  totalUpdates.sizes.create(reference.sizes.count);
+  totalUpdates.types.resize(reference.types.size());
+  totalUpdates.sizes.resize(reference.sizes.size());
 
   {
     ResourceUpdateStats updates = frameInfo.stats.updates;
@@ -488,10 +488,10 @@ void StatisticsViewer::AppendUpdateStatistics()
     totalUpdates.clients += updates.clients;
     totalUpdates.servers += updates.servers;
 
-    for(int t = 0; t < updates.types.count; t++)
+    for(int t = 0; t < updates.types.count(); t++)
       totalUpdates.types[t] += updates.types[t];
 
-    for(int t = 0; t < updates.sizes.count; t++)
+    for(int t = 0; t < updates.sizes.count(); t++)
       totalUpdates.sizes[t] += updates.sizes[t];
   }
 
@@ -505,7 +505,7 @@ void StatisticsViewer::AppendUpdateStatistics()
   m_Report.append(tr("\nUpdated resource types:\n"));
   uint32_t maxCount = 0;
   int maxWithValue = 0;
-  for(int s = 1; s < totalUpdates.types.count; s++)
+  for(int s = 1; s < totalUpdates.types.count(); s++)
   {
     uint32_t value = totalUpdates.types[s];
     if(value > 0)
@@ -525,7 +525,7 @@ void StatisticsViewer::AppendUpdateStatistics()
   m_Report.append(tr("\nUpdated resource sizes:\n"));
   maxCount = 0;
   maxWithValue = 0;
-  for(int s = 0; s < totalUpdates.sizes.count; s++)
+  for(int s = 0; s < totalUpdates.sizes.count(); s++)
   {
     uint32_t value = totalUpdates.sizes[s];
     if(value > 0)
@@ -695,8 +695,8 @@ void StatisticsViewer::GenerateReport()
   uint32_t numAPIcalls =
       m_Ctx.GetLastDrawcall()->eventID - (drawCount + dispatchCount + diagnosticCount);
 
-  int numTextures = m_Ctx.GetTextures().count;
-  int numBuffers = m_Ctx.GetBuffers().count;
+  int numTextures = m_Ctx.GetTextures().count();
+  int numBuffers = m_Ctx.GetBuffers().count();
 
   uint64_t IBBytes = 0;
   uint64_t VBBytes = 0;

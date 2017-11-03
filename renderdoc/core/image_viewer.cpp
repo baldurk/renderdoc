@@ -25,7 +25,6 @@
 #include "common/dds_readwrite.h"
 #include "core/core.h"
 #include "replay/replay_driver.h"
-#include "replay/type_helpers.h"
 #include "stb/stb_image.h"
 #include "tinyexr/tinyexr.h"
 
@@ -47,7 +46,7 @@ public:
     m_FrameRecord.frameInfo.frameNumber = 1;
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
 
-    create_array_uninit(m_FrameRecord.drawcallList, 1);
+    m_FrameRecord.drawcallList.resize(1);
     DrawcallDescription &d = m_FrameRecord.drawcallList[0];
     d.drawcallID = 1;
     d.eventID = 1;
@@ -55,7 +54,7 @@ public:
 
     RefreshFile();
 
-    create_array_uninit(m_PipelineState.m_OM.RenderTargets, 1);
+    m_PipelineState.m_OM.RenderTargets.resize(1);
     m_PipelineState.m_OM.RenderTargets[0].Resource = m_TextureID;
   }
 

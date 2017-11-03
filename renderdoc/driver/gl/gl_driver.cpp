@@ -31,7 +31,6 @@
 #include "jpeg-compressor/jpge.h"
 #include "maths/matrix.h"
 #include "maths/vec.h"
-#include "replay/type_helpers.h"
 #include "serialise/string_utils.h"
 #include "stb/stb_truetype.h"
 
@@ -3270,9 +3269,9 @@ void WrappedOpenGL::Serialise_DebugMessages()
   {
     ScopedContext msgscope(m_pSerialiser, "DebugMessage", "DebugMessage", 0, false);
 
-    string desc;
+    std::string desc;
     if(m_State >= WRITING)
-      desc = debugMessages[i].description.elems;
+      desc = debugMessages[i].description;
 
     SERIALISE_ELEMENT(MessageCategory, Category, debugMessages[i].category);
     SERIALISE_ELEMENT(MessageSeverity, Severity, debugMessages[i].severity);
@@ -4180,39 +4179,37 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
     for(size_t i = 0; i < ARRAY_COUNT(refl); i++)
     {
       EventUsage cb = EventUsage(e, CBUsage(i));
-      EventUsage res = EventUsage(e, ResUsage(i));
+      EventUsage ro = EventUsage(e, ResUsage(i));
       EventUsage rw = EventUsage(e, RWResUsage(i));
 
       if(refl[i])
       {
-        for(int32_t c = 0; c < refl[i]->ConstantBlocks.count; c++)
+        for(const ConstantBlock &cblock : refl[i]->ConstantBlocks)
         {
-          if(!refl[i]->ConstantBlocks[c].bufferBacked)
+          if(!cblock.bufferBacked)
             continue;
-          if(refl[i]->ConstantBlocks[c].bindPoint < 0 ||
-             refl[i]->ConstantBlocks[c].bindPoint >= mapping[i].ConstantBlocks.count)
+          if(cblock.bindPoint < 0 || cblock.bindPoint >= mapping[i].ConstantBlocks.count())
             continue;
 
-          int32_t bind = mapping[i].ConstantBlocks[refl[i]->ConstantBlocks[c].bindPoint].bind;
+          int32_t bind = mapping[i].ConstantBlocks[cblock.bindPoint].bind;
 
           if(rs.UniformBinding[bind].name)
             m_ResourceUses[rm->GetID(BufferRes(ctx, rs.UniformBinding[bind].name))].push_back(cb);
         }
 
-        for(int32_t r = 0; r < refl[i]->ReadWriteResources.count; r++)
+        for(const ShaderResource &res : refl[i]->ReadWriteResources)
         {
-          int32_t bind = mapping[i].ReadWriteResources[refl[i]->ReadWriteResources[r].bindPoint].bind;
+          int32_t bind = mapping[i].ReadWriteResources[res.bindPoint].bind;
 
-          if(refl[i]->ReadWriteResources[r].IsTexture)
+          if(res.IsTexture)
           {
             if(rs.Images[bind].name)
               m_ResourceUses[rm->GetID(TextureRes(ctx, rs.Images[bind].name))].push_back(rw);
           }
           else
           {
-            if(refl[i]->ReadWriteResources[r].variableType.descriptor.cols == 1 &&
-               refl[i]->ReadWriteResources[r].variableType.descriptor.rows == 1 &&
-               refl[i]->ReadWriteResources[r].variableType.descriptor.type == VarType::UInt)
+            if(res.variableType.descriptor.cols == 1 && res.variableType.descriptor.rows == 1 &&
+               res.variableType.descriptor.type == VarType::UInt)
             {
               if(rs.AtomicCounter[bind].name)
                 m_ResourceUses[rm->GetID(BufferRes(ctx, rs.AtomicCounter[bind].name))].push_back(rw);
@@ -4225,14 +4222,14 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
           }
         }
 
-        for(int32_t r = 0; r < refl[i]->ReadOnlyResources.count; r++)
+        for(const ShaderResource &res : refl[i]->ReadOnlyResources)
         {
-          int32_t bind = mapping[i].ReadOnlyResources[refl[i]->ReadOnlyResources[r].bindPoint].bind;
+          int32_t bind = mapping[i].ReadOnlyResources[res.bindPoint].bind;
 
           uint32_t *texList = NULL;
           int32_t listSize = 0;
 
-          switch(refl[i]->ReadOnlyResources[r].resType)
+          switch(res.resType)
           {
             case TextureDim::Unknown: texList = NULL; break;
             case TextureDim::Buffer:
@@ -4283,7 +4280,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
           }
 
           if(texList != NULL && bind >= 0 && bind < listSize && texList[bind] != 0)
-            m_ResourceUses[rm->GetID(TextureRes(ctx, texList[bind]))].push_back(res);
+            m_ResourceUses[rm->GetID(TextureRes(ctx, texList[bind]))].push_back(ro);
         }
       }
     }
@@ -4440,8 +4437,7 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
   if(!context->m_DrawcallStack.empty())
   {
     DrawcallTreeNode node(draw);
-    node.children.insert(node.children.begin(), draw.children.elems,
-                         draw.children.elems + draw.children.count);
+    node.children.insert(node.children.begin(), draw.children.begin(), draw.children.end());
     context->m_DrawcallStack.back()->children.push_back(node);
   }
   else
@@ -4460,8 +4456,7 @@ void WrappedOpenGL::AddEvent(string description)
   Callstack::Stackwalk *stack = m_pSerialiser->GetLastCallstack();
   if(stack)
   {
-    create_array(apievent.callstack, stack->NumLevels());
-    memcpy(apievent.callstack.elems, stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
+    apievent.callstack.assign(stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
   }
 
   m_CurEvents.push_back(apievent);

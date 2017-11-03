@@ -3434,10 +3434,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
   uint32_t stride = 0;
   int32_t posidx = -1;
 
-  for(int32_t i = 0; i < vsRefl->OutputSig.count; i++)
+  for(const SigParameter &sig : vsRefl->OutputSig)
   {
-    const char *name = vsRefl->OutputSig[i].varName.elems;
-    int32_t len = vsRefl->OutputSig[i].varName.count;
+    const char *name = sig.varName.c_str();
+    size_t len = sig.varName.size();
 
     bool include = true;
 
@@ -3461,10 +3461,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
     if(include)
       varyings.push_back(name);
 
-    if(vsRefl->OutputSig[i].systemValue == ShaderBuiltin::Position)
+    if(sig.systemValue == ShaderBuiltin::Position)
       posidx = int32_t(varyings.size()) - 1;
 
-    stride += sizeof(float) * vsRefl->OutputSig[i].compCount;
+    stride += sizeof(float) * sig.compCount;
   }
 
   // shift position attribute up to first, keeping order otherwise
@@ -4014,10 +4014,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
     stride = 0;
     posidx = -1;
 
-    for(int32_t i = 0; i < lastRefl->OutputSig.count; i++)
+    for(const SigParameter &sig : lastRefl->OutputSig)
     {
-      const char *name = lastRefl->OutputSig[i].varName.elems;
-      int32_t len = lastRefl->OutputSig[i].varName.count;
+      const char *name = sig.varName.c_str();
+      size_t len = sig.varName.size();
 
       bool include = true;
 
@@ -4033,7 +4033,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
         }
         else
         {
-          matrixVaryings.push_back(string(name, colon));
+          matrixVaryings.push_back(std::string(name, colon));
           name = matrixVaryings.back().c_str();
         }
       }
@@ -4041,10 +4041,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
       if(include)
         varyings.push_back(name);
 
-      if(lastRefl->OutputSig[i].systemValue == ShaderBuiltin::Position)
+      if(sig.systemValue == ShaderBuiltin::Position)
         posidx = int32_t(varyings.size()) - 1;
 
-      stride += sizeof(float) * lastRefl->OutputSig[i].compCount;
+      stride += sizeof(float) * sig.compCount;
     }
 
     // shift position attribute up to first, keeping order otherwise

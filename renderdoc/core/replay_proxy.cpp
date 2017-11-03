@@ -285,13 +285,13 @@ void Serialiser::Serialise(const char *name, ShaderDebugState &el)
   Serialise("", el.nextInstruction);
   Serialise("", el.flags);
 
-  vector<vector<ShaderVariable> > indexableTemps;
+  std::vector<std::vector<ShaderVariable> > indexableTemps;
 
-  int32_t numidxtemps = el.indexableTemps.count;
+  int32_t numidxtemps = el.indexableTemps.count();
   Serialise("", numidxtemps);
 
   if(m_Mode == READING)
-    create_array_uninit(el.indexableTemps, numidxtemps);
+    el.indexableTemps.resize(numidxtemps);
 
   for(int32_t i = 0; i < numidxtemps; i++)
     Serialise("", el.indexableTemps[i]);
@@ -304,11 +304,11 @@ void Serialiser::Serialise(const char *name, ShaderDebugTrace &el)
 {
   Serialise("", el.inputs);
 
-  int32_t numcbuffers = el.cbuffers.count;
+  int32_t numcbuffers = el.cbuffers.count();
   Serialise("", numcbuffers);
 
   if(m_Mode == READING)
-    create_array_uninit(el.cbuffers, numcbuffers);
+    el.cbuffers.resize(numcbuffers);
 
   for(int32_t i = 0; i < numcbuffers; i++)
     Serialise("", el.cbuffers[i]);
@@ -2532,8 +2532,7 @@ void ReplayProxy::SavePipelineState()
 
       for(int i = 0; i < 6; i++)
         if(stages[i]->Object != ResourceId())
-          stages[i]->ShaderDetails =
-              GetShader(GetLiveID(stages[i]->Object), stages[i]->entryPoint.elems);
+          stages[i]->ShaderDetails = GetShader(GetLiveID(stages[i]->Object), stages[i]->entryPoint);
     }
   }
 }

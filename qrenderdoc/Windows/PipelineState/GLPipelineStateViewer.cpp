@@ -618,7 +618,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
   samplers->beginUpdate();
   samplers->clear();
 
-  for(int i = 0; i < state.Textures.count; i++)
+  for(int i = 0; i < state.Textures.count(); i++)
   {
     const GLPipe::Texture &r = state.Textures[i];
     const GLPipe::Sampler &s = state.Samplers[i];
@@ -797,14 +797,14 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
   vs = ubos->verticalScrollBar()->value();
   ubos->beginUpdate();
   ubos->clear();
-  for(int i = 0; shaderDetails && i < shaderDetails->ConstantBlocks.count; i++)
+  for(int i = 0; shaderDetails && i < shaderDetails->ConstantBlocks.count(); i++)
   {
     const ConstantBlock &shaderCBuf = shaderDetails->ConstantBlocks[i];
     int bindPoint = stage.BindpointMapping.ConstantBlocks[i].bind;
 
     const GLPipe::Buffer *b = NULL;
 
-    if(bindPoint >= 0 && bindPoint < state.UniformBuffers.count)
+    if(bindPoint >= 0 && bindPoint < state.UniformBuffers.count())
       b = &state.UniformBuffers[bindPoint];
 
     bool filledSlot = !shaderCBuf.bufferBacked || (b && b->Resource != ResourceId());
@@ -814,7 +814,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
     {
       ulong offset = 0;
       ulong length = 0;
-      int numvars = shaderCBuf.variables.count;
+      int numvars = shaderCBuf.variables.count();
       ulong byteSize = (ulong)shaderCBuf.byteSize;
 
       QString slotname = tr("Uniforms");
@@ -875,7 +875,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
   vs = subs->verticalScrollBar()->value();
   subs->beginUpdate();
   subs->clear();
-  for(int i = 0; i < stage.Subroutines.count; i++)
+  for(int i = 0; i < stage.Subroutines.count(); i++)
     subs->addTopLevelItem(new RDTreeWidgetItem({i, stage.Subroutines[i]}));
   subs->clearSelection();
   subs->endUpdate();
@@ -886,7 +886,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
   vs = readwrites->verticalScrollBar()->value();
   readwrites->beginUpdate();
   readwrites->clear();
-  for(int i = 0; shaderDetails && i < shaderDetails->ReadWriteResources.count; i++)
+  for(int i = 0; shaderDetails && i < shaderDetails->ReadWriteResources.count(); i++)
   {
     const ShaderResource &res = shaderDetails->ReadWriteResources[i];
     int bindPoint = stage.BindpointMapping.ReadWriteResources[i].bind;
@@ -897,21 +897,21 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
     const GLPipe::ImageLoadStore *im = NULL;
     ResourceId id;
 
-    if(readWriteType == GLReadWriteType::Image && bindPoint >= 0 && bindPoint < state.Images.count)
+    if(readWriteType == GLReadWriteType::Image && bindPoint >= 0 && bindPoint < state.Images.count())
     {
       im = &state.Images[bindPoint];
       id = state.Images[bindPoint].Resource;
     }
 
     if(readWriteType == GLReadWriteType::Atomic && bindPoint >= 0 &&
-       bindPoint < state.AtomicBuffers.count)
+       bindPoint < state.AtomicBuffers.count())
     {
       bf = &state.AtomicBuffers[bindPoint];
       id = state.AtomicBuffers[bindPoint].Resource;
     }
 
     if(readWriteType == GLReadWriteType::SSBO && bindPoint >= 0 &&
-       bindPoint < state.ShaderStorageBuffers.count)
+       bindPoint < state.ShaderStorageBuffers.count())
     {
       bf = &state.ShaderStorageBuffers[bindPoint];
       id = state.ShaderStorageBuffers[bindPoint].Resource;
@@ -1125,10 +1125,10 @@ void GLPipelineStateViewer::setState()
       if(state.m_VS.Object != ResourceId())
       {
         int attrib = -1;
-        if(i < state.m_VS.BindpointMapping.InputAttributes.count)
+        if(i < state.m_VS.BindpointMapping.InputAttributes.count())
           attrib = state.m_VS.BindpointMapping.InputAttributes[i];
 
-        if(attrib >= 0 && attrib < state.m_VS.ShaderDetails->InputSig.count)
+        if(attrib >= 0 && attrib < state.m_VS.ShaderDetails->InputSig.count())
         {
           name = state.m_VS.ShaderDetails->InputSig[attrib].varName;
           compCount = state.m_VS.ShaderDetails->InputSig[attrib].compCount;
@@ -1250,7 +1250,7 @@ void GLPipelineStateViewer::setState()
 
   m_VBNodes.clear();
 
-  for(int i = 0; i < state.m_VtxIn.vbuffers.count; i++)
+  for(int i = 0; i < state.m_VtxIn.vbuffers.count(); i++)
   {
     const GLPipe::VB &v = state.m_VtxIn.vbuffers[i];
 
@@ -1371,7 +1371,7 @@ void GLPipelineStateViewer::setState()
   {
     // accumulate identical viewports to save on visual repetition
     int prev = 0;
-    for(int i = 0; i < state.m_Rasterizer.Viewports.count; i++)
+    for(int i = 0; i < state.m_Rasterizer.Viewports.count(); i++)
     {
       const GLPipe::Viewport &v1 = state.m_Rasterizer.Viewports[prev];
       const GLPipe::Viewport &v2 = state.m_Rasterizer.Viewports[i];
@@ -1402,7 +1402,7 @@ void GLPipelineStateViewer::setState()
     }
 
     // handle the last batch (the loop above leaves the last batch un-added)
-    if(prev < state.m_Rasterizer.Viewports.count)
+    if(prev < state.m_Rasterizer.Viewports.count())
     {
       const GLPipe::Viewport &v1 = state.m_Rasterizer.Viewports[prev];
 
@@ -1414,8 +1414,8 @@ void GLPipelineStateViewer::setState()
          ui->showEmpty->isChecked() || prev == 0)
       {
         QString indexstring;
-        if(prev < state.m_Rasterizer.Viewports.count - 1)
-          indexstring = QFormatStr("%1-%2").arg(prev).arg(state.m_Rasterizer.Viewports.count - 1);
+        if(prev < state.m_Rasterizer.Viewports.count() - 1)
+          indexstring = QFormatStr("%1-%2").arg(prev).arg(state.m_Rasterizer.Viewports.count() - 1);
         else
           indexstring = QString::number(prev);
 
@@ -1441,7 +1441,7 @@ void GLPipelineStateViewer::setState()
   {
     // accumulate identical scissors to save on visual repetition
     int prev = 0;
-    for(int i = 0; i < state.m_Rasterizer.Scissors.count; i++)
+    for(int i = 0; i < state.m_Rasterizer.Scissors.count(); i++)
     {
       const GLPipe::Scissor &s1 = state.m_Rasterizer.Scissors[prev];
       const GLPipe::Scissor &s2 = state.m_Rasterizer.Scissors[i];
@@ -1477,15 +1477,15 @@ void GLPipelineStateViewer::setState()
     }
 
     // handle the last batch (the loop above leaves the last batch un-added)
-    if(prev < state.m_Rasterizer.Scissors.count)
+    if(prev < state.m_Rasterizer.Scissors.count())
     {
       const GLPipe::Scissor &s1 = state.m_Rasterizer.Scissors[prev];
 
       if(s1.Enabled || ui->showEmpty->isChecked())
       {
         QString indexstring;
-        if(prev < state.m_Rasterizer.Scissors.count - 1)
-          indexstring = QFormatStr("%1-%2").arg(prev).arg(state.m_Rasterizer.Scissors.count - 1);
+        if(prev < state.m_Rasterizer.Scissors.count() - 1)
+          indexstring = QFormatStr("%1-%2").arg(prev).arg(state.m_Rasterizer.Scissors.count() - 1);
         else
           indexstring = QString::number(prev);
 
@@ -1619,7 +1619,7 @@ void GLPipelineStateViewer::setState()
       ResourceId p;
       const GLPipe::Attachment *r = NULL;
 
-      if(db >= 0 && db < state.m_FB.m_DrawFBO.Color.count)
+      if(db >= 0 && db < state.m_FB.m_DrawFBO.Color.count())
       {
         p = state.m_FB.m_DrawFBO.Color[db].Obj;
         r = &state.m_FB.m_DrawFBO.Color[db];
@@ -1660,7 +1660,7 @@ void GLPipelineStateViewer::setState()
 
           if(!tex->customName && state.m_FS.ShaderDetails)
           {
-            for(int s = 0; s < state.m_FS.ShaderDetails->OutputSig.count; s++)
+            for(int s = 0; s < state.m_FS.ShaderDetails->OutputSig.count(); s++)
             {
               if(state.m_FS.ShaderDetails->OutputSig[s].regIndex == (uint32_t)db &&
                  (state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::Undefined ||
@@ -1933,7 +1933,7 @@ QString GLPipelineStateViewer::formatMembers(int indent, const QString &namepref
       ret += indentstr + QFormatStr("// struct %1\n").arg(v.type.descriptor.name);
       ret += indentstr + lit("{\n") + formatMembers(indent + 1, v.name + lit("_"), v.type.members) +
              indentstr + lit("}\n");
-      if(i < vars.count - 1)
+      if(i < vars.count() - 1)
         ret += lit("\n");
     }
     else
@@ -1995,10 +1995,10 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
 
     QString format = lit("// struct %1\n").arg(shaderRes.variableType.descriptor.name);
 
-    if(shaderRes.variableType.members.count > 1)
+    if(shaderRes.variableType.members.count() > 1)
     {
       format += tr("// members skipped as they are fixed size:\n");
-      for(int i = 0; i < shaderRes.variableType.members.count - 1; i++)
+      for(int i = 0; i < shaderRes.variableType.members.count() - 1; i++)
         format += QFormatStr("%1 %2;\n")
                       .arg(shaderRes.variableType.members[i].type.descriptor.name)
                       .arg(shaderRes.variableType.members[i].name);
@@ -2132,7 +2132,7 @@ void GLPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 
   if(idx.isValid())
   {
-    if(idx.row() >= 0 && idx.row() < VI.attributes.count)
+    if(idx.row() >= 0 && idx.row() < VI.attributes.count())
     {
       uint32_t buffer = VI.attributes[idx.row()].BufferSlot;
 
@@ -2479,7 +2479,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
   QList<QVariantList> readwriteRows;
   QList<QVariantList> subRows;
 
-  for(int i = 0; i < pipe.Textures.count; i++)
+  for(int i = 0; i < pipe.Textures.count(); i++)
   {
     const GLPipe::Texture &r = pipe.Textures[i];
     const GLPipe::Sampler &s = pipe.Samplers[i];
@@ -2508,7 +2508,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
       {
         QString slotname = QString::number(i);
 
-        if(shaderInput && shaderInput->name.count > 0)
+        if(shaderInput && !shaderInput->name.isEmpty())
           slotname += QFormatStr(": %1").arg(shaderInput->name);
 
         uint32_t w = 1, h = 1, d = 1;
@@ -2563,7 +2563,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
       {
         QString slotname = QString::number(i);
 
-        if(shaderInput && shaderInput->name.count > 0)
+        if(shaderInput && !shaderInput->name.isEmpty())
           slotname += QFormatStr(": %1").arg(shaderInput->name);
 
         QString borderColor = QFormatStr("%1, %2, %3, %4")
@@ -2637,7 +2637,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
 
       const GLPipe::Buffer *b = NULL;
 
-      if(bindPoint >= 0 && bindPoint < pipe.UniformBuffers.count)
+      if(bindPoint >= 0 && bindPoint < pipe.UniformBuffers.count())
         b = &pipe.UniformBuffers[bindPoint];
 
       bool filledSlot = !shaderCBuf.bufferBacked || (b && b->Resource != ResourceId());
@@ -2647,7 +2647,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
       {
         uint64_t offset = 0;
         uint64_t length = 0;
-        int numvars = shaderCBuf.variables.count;
+        int numvars = shaderCBuf.variables.count();
         uint64_t byteSize = shaderCBuf.byteSize;
 
         QString slotname = tr("Uniforms");
@@ -2714,21 +2714,21 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
       const GLPipe::ImageLoadStore *im = NULL;
       ResourceId id;
 
-      if(readWriteType == GLReadWriteType::Image && bindPoint >= 0 && bindPoint < pipe.Images.count)
+      if(readWriteType == GLReadWriteType::Image && bindPoint >= 0 && bindPoint < pipe.Images.count())
       {
         im = &pipe.Images[bindPoint];
         id = pipe.Images[bindPoint].Resource;
       }
 
       if(readWriteType == GLReadWriteType::Atomic && bindPoint >= 0 &&
-         bindPoint < pipe.AtomicBuffers.count)
+         bindPoint < pipe.AtomicBuffers.count())
       {
         bf = &pipe.AtomicBuffers[bindPoint];
         id = pipe.AtomicBuffers[bindPoint].Resource;
       }
 
       if(readWriteType == GLReadWriteType::SSBO && bindPoint >= 0 &&
-         bindPoint < pipe.ShaderStorageBuffers.count)
+         bindPoint < pipe.ShaderStorageBuffers.count())
       {
         bf = &pipe.ShaderStorageBuffers[bindPoint];
         id = pipe.ShaderStorageBuffers[bindPoint].Resource;
@@ -3066,7 +3066,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
     int i = 0;
     for(const GLPipe::Blend &b : fb.m_Blending.Blends)
     {
-      if(i >= fb.m_DrawFBO.Color.count)
+      if(i >= fb.m_DrawFBO.Color.count())
         continue;
 
       rows.push_back({i, b.Enabled ? tr("Yes") : tr("No"), ToQStr(b.m_Blend.Source),
@@ -3190,7 +3190,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
 
     QList<QVariantList> drawbuffers;
 
-    for(i = 0; i < fb.m_DrawFBO.DrawBuffers.count; i++)
+    for(i = 0; i < fb.m_DrawFBO.DrawBuffers.count(); i++)
       drawbuffers.push_back({fb.m_DrawFBO.DrawBuffers[i]});
 
     xml.writeStartElement(tr("p"));

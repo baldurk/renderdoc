@@ -150,7 +150,7 @@ rdctype::array<byte> CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
   // return the data directly
   if(type == FileType::JPG && (maxsize == 0 || (maxsize > thumbwidth && maxsize > thumbheight)))
   {
-    create_array_init(buf, thumblen, jpgbuf);
+    buf.assign(jpgbuf, thumblen);
   }
   else
   {

@@ -387,8 +387,8 @@ struct TypeConversion<rdctype::array<byte>, false>
 
     Py_ssize_t len = PyBytes_Size(in);
 
-    out.create((int)len);
-    memcpy(&out[0], PyBytes_AsString(in), out.count);
+    out.resize((size_t)len);
+    memcpy(out.data(), PyBytes_AsString(in), out.size());
 
     return SWIG_OK;
   }
@@ -406,7 +406,7 @@ struct TypeConversion<rdctype::array<byte>, false>
 
   static PyObject *ConvertToPy(const rdctype::array<byte> &in, int *failIdx)
   {
-    return PyBytes_FromStringAndSize((const char *)in.elems, (Py_ssize_t)in.count);
+    return PyBytes_FromStringAndSize((const char *)in.data(), (Py_ssize_t)in.size());
   }
 
   static PyObject *ConvertToPy(const rdctype::array<byte> &in) { return ConvertToPy(in, NULL); }
@@ -423,11 +423,11 @@ struct TypeConversion<rdctype::array<U>, false>
     if(!PyList_Check(in))
       return SWIG_TypeError;
 
-    out.create((int)PyList_Size(in));
+    out.resize((size_t)PyList_Size(in));
 
-    for(int i = 0; i < out.count; i++)
+    for(int i = 0; i < out.count(); i++)
     {
-      int ret = TypeConversion<U>::ConvertFromPy(PyList_GetItem(in, i), out.elems[i]);
+      int ret = TypeConversion<U>::ConvertFromPy(PyList_GetItem(in, i), out[i]);
       if(!SWIG_IsOK(ret))
       {
         if(failIdx)
@@ -445,9 +445,9 @@ struct TypeConversion<rdctype::array<U>, false>
   }
   static PyObject *ConvertToPyInPlace(PyObject *list, const rdctype::array<U> &in, int *failIdx)
   {
-    for(int i = 0; i < in.count; i++)
+    for(int i = 0; i < in.count(); i++)
     {
-      PyObject *elem = TypeConversion<U>::ConvertToPy(in.elems[i]);
+      PyObject *elem = TypeConversion<U>::ConvertToPy(in[i]);
 
       if(elem)
       {
@@ -515,10 +515,7 @@ struct TypeConversion<rdctype::str, false>
 
       if(ret == 0)
       {
-        out.count = (int)size;
-        out.elems = (char *)out.allocate(size + 1);
-        memcpy(out.elems, buf, size);
-        out.elems[size] = 0;
+        out.assign(buf, size);
 
         Py_DecRef(bytes);
 
@@ -544,7 +541,7 @@ struct TypeConversion<rdctype::str, false>
 
   static PyObject *ConvertToPy(const rdctype::str &in)
   {
-    return PyUnicode_FromStringAndSize(in.elems, in.count);
+    return PyUnicode_FromStringAndSize(in.c_str(), in.size());
   }
 };
 

@@ -2380,7 +2380,7 @@ string SPVModule::Disassemble(const string &entryPoint)
       if(b > 0)
         funcops.push_back(block);    // OpLabel
 
-      set<SPVInstruction *> ignore_items;
+      std::set<SPVInstruction *> ignore_items;
 
       for(size_t i = 0; i < block->block->instructions.size(); i++)
       {
@@ -3574,7 +3574,7 @@ void MakeConstantBlockVariables(SPVTypeData *structType, rdctype::array<ShaderCo
   if(structType->children.empty())
     return;
 
-  create_array_uninit(cblock, structType->children.size());
+  cblock.resize(structType->children.size());
   for(size_t i = 0; i < structType->children.size(); i++)
     MakeConstantBlockVariable(cblock[i], structType->children[i].first,
                               structType->children[i].second, structType->childDecorations[i]);
@@ -3582,13 +3582,13 @@ void MakeConstantBlockVariables(SPVTypeData *structType, rdctype::array<ShaderCo
 
 uint32_t CalculateMinimumByteSize(const rdctype::array<ShaderConstant> &variables)
 {
-  if(variables.count == 0)
+  if(variables.empty())
   {
     RDCERR("Unexpectedly empty array of shader constants!");
     return 0;
   }
 
-  const ShaderConstant &last = variables[variables.count - 1];
+  const ShaderConstant &last = variables.back();
 
   // find its offset
   uint32_t byteOffset = last.reg.vec * sizeof(Vec4f) + last.reg.comp * sizeof(float);
@@ -3597,7 +3597,7 @@ uint32_t CalculateMinimumByteSize(const rdctype::array<ShaderConstant> &variable
   if(last.type.descriptor.arrayStride > 0)
     return byteOffset + last.type.descriptor.arrayStride * last.type.descriptor.elements;
 
-  if(last.type.members.count == 0)
+  if(last.type.members.empty())
   {
     // this is the last basic member
     // now calculate its size and return offset + size
@@ -3917,7 +3917,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   // TODO sort these so that the entry point is in the first file
   if(!sourceFiles.empty())
   {
-    create_array_uninit(reflection.DebugInfo.files, sourceFiles.size());
+    reflection.DebugInfo.files.resize(sourceFiles.size());
 
     for(size_t i = 0; i < sourceFiles.size(); i++)
     {
@@ -4345,7 +4345,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
     bindmap.arraySize = 1;
     bindmap.used = true;
 
-    create_array_uninit(cblock.variables, specConstants.size());
+    cblock.variables.resize(specConstants.size());
     for(size_t i = 0; i < specConstants.size(); i++)
     {
       cblock.variables[i].name = specConstants[i]->str;
@@ -4399,7 +4399,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
         if(a.regIndex != b.regIndex)
           return a.regIndex < b.regIndex;
 
-        return strcmp(a.varName.elems, b.varName.elems) < 0;
+        return a.varName < b.varName;
       }
       if(a.systemValue == ShaderBuiltin::Undefined)
         return false;
@@ -4418,9 +4418,9 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
     std::sort(indices.begin(), indices.end(), sig_param_sort(inputs));
 
-    create_array_uninit(reflection.InputSig, inputs.size());
+    reflection.InputSig.reserve(inputs.size());
     for(size_t i = 0; i < inputs.size(); i++)
-      reflection.InputSig[i] = inputs[indices[i]];
+      reflection.InputSig.push_back(inputs[indices[i]]);
   }
 
   {
@@ -4430,9 +4430,9 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
     std::sort(indices.begin(), indices.end(), sig_param_sort(outputs));
 
-    create_array_uninit(reflection.OutputSig, outputs.size());
+    reflection.OutputSig.reserve(outputs.size());
     for(size_t i = 0; i < outputs.size(); i++)
-      reflection.OutputSig[i] = outputs[indices[i]];
+      reflection.OutputSig.push_back(outputs[indices[i]]);
 
     std::vector<SPIRVPatchData::OutputAccess> outPatch = patchData.outputs;
     for(size_t i = 0; i < outputs.size(); i++)
@@ -4445,7 +4445,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
     if(reflection.InputSig[i].systemValue == ShaderBuiltin::Undefined)
       numInputs = RDCMAX(numInputs, (size_t)reflection.InputSig[i].regIndex + 1);
 
-  create_array_uninit(mapping.InputAttributes, numInputs);
+  mapping.InputAttributes.resize(numInputs);
   for(size_t i = 0; i < numInputs; i++)
     mapping.InputAttributes[i] = -1;
 
@@ -4458,17 +4458,17 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   std::sort(roresources.begin(), roresources.end());
   std::sort(rwresources.begin(), rwresources.end());
 
-  create_array_uninit(mapping.ConstantBlocks, cblocks.size());
-  create_array_uninit(reflection.ConstantBlocks, cblocks.size());
+  mapping.ConstantBlocks.resize(cblocks.size());
+  reflection.ConstantBlocks.resize(cblocks.size());
 
-  create_array_uninit(mapping.Samplers, samplers.size());
-  create_array_uninit(reflection.Samplers, samplers.size());
+  mapping.Samplers.resize(samplers.size());
+  reflection.Samplers.resize(samplers.size());
 
-  create_array_uninit(mapping.ReadOnlyResources, roresources.size());
-  create_array_uninit(reflection.ReadOnlyResources, roresources.size());
+  mapping.ReadOnlyResources.resize(roresources.size());
+  reflection.ReadOnlyResources.resize(roresources.size());
 
-  create_array_uninit(mapping.ReadWriteResources, rwresources.size());
-  create_array_uninit(reflection.ReadWriteResources, rwresources.size());
+  mapping.ReadWriteResources.resize(rwresources.size());
+  reflection.ReadWriteResources.resize(rwresources.size());
 
   for(size_t i = 0; i < cblocks.size(); i++)
   {

@@ -38,8 +38,6 @@ inline const char *TypeName();
     return #type;                       \
   }
 
-typedef uint8_t byte;
-
 // Guidelines for documentation:
 //
 // * If you only need a short string, use DOCUMENT("Here is my string");

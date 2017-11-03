@@ -747,11 +747,11 @@ public:
   {
     rdctype::array<rdctype::str> out;
 
-    create_array_uninit(out, m_Proxies.size());
+    m_Proxies.reserve(m_Proxies.size());
 
     size_t i = 0;
     for(auto it = m_Proxies.begin(); it != m_Proxies.end(); ++it, ++i)
-      out[i] = it->second;
+      out.push_back(it->second);
 
     return out;
   }
@@ -774,7 +774,7 @@ public:
         uint32_t count = 0;
         ser->Serialise("", count);
 
-        create_array_uninit(out, count);
+        out.reserve(count);
 
         for(uint32_t i = 0; i < count; i++)
         {
@@ -783,7 +783,7 @@ public:
           ser->Serialise("", driver);
           ser->Serialise("", name);
 
-          out[i] = name;
+          out.push_back(name);
         }
 
         delete ser;
@@ -823,8 +823,6 @@ public:
 
   rdctype::array<PathEntry> ListFolder(const char *path)
   {
-    rdctype::array<PathEntry> ret;
-
     if(Android::IsHostADB(m_hostname.c_str()))
     {
       int index = 0;
@@ -851,11 +849,7 @@ public:
         }
       }
 
-      create_array_uninit(ret, packages.size());
-      for(size_t i = 0; i < packages.size(); i++)
-        ret[i] = packages[i];
-
-      return ret;
+      return packages;
     }
 
     string folderPath = path;
@@ -869,24 +863,26 @@ public:
     Serialiser *ser = NULL;
     Get(type, &ser);
 
+    rdctype::array<PathEntry> files;
+
     if(ser)
     {
       std::vector<PathEntry> paths;
 
       ser->Serialise("", paths);
 
-      ret = paths;
+      files = paths;
 
       delete ser;
     }
     else
     {
-      create_array_uninit(ret, 1);
-      ret.elems[0].filename = path;
-      ret.elems[0].flags = PathProperty::ErrorUnknown;
+      files.resize(1);
+      files[0].filename = path;
+      files[0].flags = PathProperty::ErrorUnknown;
     }
 
-    return ret;
+    return files;
   }
 
   uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,

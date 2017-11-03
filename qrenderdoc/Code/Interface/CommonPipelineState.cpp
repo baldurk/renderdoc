@@ -194,28 +194,28 @@ Viewport CommonPipelineState::GetViewport(int index)
 
   if(LogLoaded())
   {
-    if(IsLogD3D11() && index < m_D3D11->m_RS.Viewports.count)
+    if(IsLogD3D11() && index < m_D3D11->m_RS.Viewports.count())
     {
       ret.x = m_D3D11->m_RS.Viewports[index].X;
       ret.y = m_D3D11->m_RS.Viewports[index].Y;
       ret.width = m_D3D11->m_RS.Viewports[index].Width;
       ret.height = m_D3D11->m_RS.Viewports[index].Height;
     }
-    else if(IsLogD3D12() && index < m_D3D12->m_RS.Viewports.count)
+    else if(IsLogD3D12() && index < m_D3D12->m_RS.Viewports.count())
     {
       ret.x = m_D3D12->m_RS.Viewports[index].X;
       ret.y = m_D3D12->m_RS.Viewports[index].Y;
       ret.width = m_D3D12->m_RS.Viewports[index].Width;
       ret.height = m_D3D12->m_RS.Viewports[index].Height;
     }
-    else if(IsLogGL() && index < m_GL->m_Rasterizer.Viewports.count)
+    else if(IsLogGL() && index < m_GL->m_Rasterizer.Viewports.count())
     {
       ret.x = m_GL->m_Rasterizer.Viewports[index].Left;
       ret.y = m_GL->m_Rasterizer.Viewports[index].Bottom;
       ret.width = m_GL->m_Rasterizer.Viewports[index].Width;
       ret.height = m_GL->m_Rasterizer.Viewports[index].Height;
     }
-    else if(IsLogVK() && index < m_Vulkan->VP.viewportScissors.count)
+    else if(IsLogVK() && index < m_Vulkan->VP.viewportScissors.count())
     {
       ret.x = m_Vulkan->VP.viewportScissors[index].vp.x;
       ret.y = m_Vulkan->VP.viewportScissors[index].vp.y;
@@ -610,8 +610,8 @@ QVector<BoundVBuffer> CommonPipelineState::GetVBuffers()
   {
     if(IsLogD3D11())
     {
-      ret.resize(m_D3D11->m_IA.vbuffers.count);
-      for(int i = 0; i < m_D3D11->m_IA.vbuffers.count; i++)
+      ret.resize(m_D3D11->m_IA.vbuffers.count());
+      for(int i = 0; i < m_D3D11->m_IA.vbuffers.count(); i++)
       {
         ret[i].Buffer = m_D3D11->m_IA.vbuffers[i].Buffer;
         ret[i].ByteOffset = m_D3D11->m_IA.vbuffers[i].Offset;
@@ -620,8 +620,8 @@ QVector<BoundVBuffer> CommonPipelineState::GetVBuffers()
     }
     else if(IsLogD3D12())
     {
-      ret.resize(m_D3D12->m_IA.vbuffers.count);
-      for(int i = 0; i < m_D3D12->m_IA.vbuffers.count; i++)
+      ret.resize(m_D3D12->m_IA.vbuffers.count());
+      for(int i = 0; i < m_D3D12->m_IA.vbuffers.count(); i++)
       {
         ret[i].Buffer = m_D3D12->m_IA.vbuffers[i].Buffer;
         ret[i].ByteOffset = m_D3D12->m_IA.vbuffers[i].Offset;
@@ -630,8 +630,8 @@ QVector<BoundVBuffer> CommonPipelineState::GetVBuffers()
     }
     else if(IsLogGL())
     {
-      ret.resize(m_GL->m_VtxIn.vbuffers.count);
-      for(int i = 0; i < m_GL->m_VtxIn.vbuffers.count; i++)
+      ret.resize(m_GL->m_VtxIn.vbuffers.count());
+      for(int i = 0; i < m_GL->m_VtxIn.vbuffers.count(); i++)
       {
         ret[i].Buffer = m_GL->m_VtxIn.vbuffers[i].Buffer;
         ret[i].ByteOffset = m_GL->m_VtxIn.vbuffers[i].Offset;
@@ -640,12 +640,12 @@ QVector<BoundVBuffer> CommonPipelineState::GetVBuffers()
     }
     else if(IsLogVK())
     {
-      ret.resize(m_Vulkan->VI.binds.count);
-      for(int i = 0; i < m_Vulkan->VI.binds.count; i++)
+      ret.resize(m_Vulkan->VI.binds.count());
+      for(int i = 0; i < m_Vulkan->VI.binds.count(); i++)
       {
         ret[i].Buffer =
-            i < m_Vulkan->VI.vbuffers.count ? m_Vulkan->VI.vbuffers[i].buffer : ResourceId();
-        ret[i].ByteOffset = i < m_Vulkan->VI.vbuffers.count ? m_Vulkan->VI.vbuffers[i].offset : 0;
+            i < m_Vulkan->VI.vbuffers.count() ? m_Vulkan->VI.vbuffers[i].buffer : ResourceId();
+        ret[i].ByteOffset = i < m_Vulkan->VI.vbuffers.count() ? m_Vulkan->VI.vbuffers[i].offset : 0;
         ret[i].ByteStride = m_Vulkan->VI.binds[i].bytestride;
       }
     }
@@ -664,13 +664,13 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
 
       auto &layouts = m_D3D11->m_IA.layouts;
 
-      QVector<VertexInputAttribute> ret(layouts.count);
-      for(int i = 0; i < layouts.count; i++)
+      QVector<VertexInputAttribute> ret(layouts.count());
+      for(int i = 0; i < layouts.count(); i++)
       {
         QString semName = layouts[i].SemanticName;
 
         bool needsSemanticIdx = false;
-        for(int j = 0; j < layouts.count; j++)
+        for(int j = 0; j < layouts.count(); j++)
         {
           if(i != j && !semName.compare(layouts[j].SemanticName, Qt::CaseInsensitive))
           {
@@ -701,7 +701,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         if(m_D3D11->m_IA.Bytecode != NULL)
         {
           rdctype::array<SigParameter> &sig = m_D3D11->m_IA.Bytecode->InputSig;
-          for(int ia = 0; ia < sig.count; ia++)
+          for(int ia = 0; ia < sig.count(); ia++)
           {
             if(!semName.compare(sig[ia].semanticName, Qt::CaseInsensitive) &&
                sig[ia].semanticIndex == layouts[i].SemanticIndex)
@@ -721,13 +721,13 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
 
       auto &layouts = m_D3D12->m_IA.layouts;
 
-      QVector<VertexInputAttribute> ret(layouts.count);
-      for(int i = 0; i < layouts.count; i++)
+      QVector<VertexInputAttribute> ret(layouts.count());
+      for(int i = 0; i < layouts.count(); i++)
       {
         QString semName = layouts[i].SemanticName;
 
         bool needsSemanticIdx = false;
-        for(int j = 0; j < layouts.count; j++)
+        for(int j = 0; j < layouts.count(); j++)
         {
           if(i != j && !semName.compare(layouts[j].SemanticName, Qt::CaseInsensitive))
           {
@@ -758,7 +758,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         if(m_D3D12->m_VS.ShaderDetails != NULL)
         {
           rdctype::array<SigParameter> &sig = m_D3D12->m_VS.ShaderDetails->InputSig;
-          for(int ia = 0; ia < sig.count; ia++)
+          for(int ia = 0; ia < sig.count(); ia++)
           {
             if(!semName.compare(sig[ia].semanticName, Qt::CaseInsensitive) &&
                sig[ia].semanticIndex == layouts[i].SemanticIndex)
@@ -777,7 +777,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       auto &attrs = m_GL->m_VtxIn.attributes;
 
       int num = 0;
-      for(int i = 0; i < attrs.count; i++)
+      for(int i = 0; i < attrs.count(); i++)
       {
         int attrib = -1;
         if(m_GL->m_VS.ShaderDetails != NULL)
@@ -790,8 +790,8 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       }
 
       int a = 0;
-      QVector<VertexInputAttribute> ret(attrs.count);
-      for(int i = 0; i < attrs.count && a < num; i++)
+      QVector<VertexInputAttribute> ret(attrs.count());
+      for(int i = 0; i < attrs.count() && a < num; i++)
       {
         ret[a].Name = lit("attr%1").arg(i);
         memset(&ret[a].GenericValue, 0, sizeof(PixelValue));
@@ -806,7 +806,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         {
           int attrib = m_GL->m_VS.BindpointMapping.InputAttributes[i];
 
-          if(attrib >= 0 && attrib < m_GL->m_VS.ShaderDetails->InputSig.count)
+          if(attrib >= 0 && attrib < m_GL->m_VS.ShaderDetails->InputSig.count())
             ret[a].Name = m_GL->m_VS.ShaderDetails->InputSig[attrib].varName;
 
           if(attrib == -1)
@@ -851,12 +851,12 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       auto &attrs = m_Vulkan->VI.attrs;
 
       int num = 0;
-      for(int i = 0; i < attrs.count; i++)
+      for(int i = 0; i < attrs.count(); i++)
       {
         int attrib = -1;
         if(m_Vulkan->m_VS.ShaderDetails != NULL)
         {
-          if(attrs[i].location < (uint32_t)m_Vulkan->m_VS.BindpointMapping.InputAttributes.count)
+          if(attrs[i].location < (uint32_t)m_Vulkan->m_VS.BindpointMapping.InputAttributes.count())
             attrib = m_Vulkan->m_VS.BindpointMapping.InputAttributes[attrs[i].location];
         }
         else
@@ -868,14 +868,14 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
 
       int a = 0;
       QVector<VertexInputAttribute> ret(num);
-      for(int i = 0; i < attrs.count && a < num; i++)
+      for(int i = 0; i < attrs.count() && a < num; i++)
       {
         ret[a].Name = lit("attr%1").arg(i);
         memset(&ret[a].GenericValue, 0, sizeof(PixelValue));
         ret[a].VertexBuffer = (int)attrs[i].binding;
         ret[a].RelativeByteOffset = attrs[i].byteoffset;
         ret[a].PerInstance = false;
-        if(attrs[i].binding < (uint32_t)m_Vulkan->VI.binds.count)
+        if(attrs[i].binding < (uint32_t)m_Vulkan->VI.binds.count())
           ret[a].PerInstance = m_Vulkan->VI.binds[attrs[i].binding].perInstance;
         ret[a].InstanceRate = 1;
         ret[a].Format = attrs[i].format;
@@ -885,10 +885,10 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         {
           int attrib = -1;
 
-          if(attrs[i].location < (uint32_t)m_Vulkan->m_VS.BindpointMapping.InputAttributes.count)
+          if(attrs[i].location < (uint32_t)m_Vulkan->m_VS.BindpointMapping.InputAttributes.count())
             attrib = m_Vulkan->m_VS.BindpointMapping.InputAttributes[attrs[i].location];
 
-          if(attrib >= 0 && attrib < m_Vulkan->m_VS.ShaderDetails->InputSig.count)
+          if(attrib >= 0 && attrib < m_Vulkan->m_VS.ShaderDetails->InputSig.count())
             ret[a].Name = m_Vulkan->m_VS.ShaderDetails->InputSig[attrib].varName;
 
           if(attrib == -1)
@@ -918,12 +918,12 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
     {
       const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
 
-      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count)
+      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count())
       {
         const BindpointMap &bind =
             s.BindpointMapping.ConstantBlocks[s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint];
 
-        if(bind.bind >= s.ConstantBuffers.count)
+        if(bind.bind >= s.ConstantBuffers.count())
           return BoundCBuffer();
 
         const D3D11Pipe::CBuffer &descriptor = s.ConstantBuffers[bind.bind];
@@ -937,12 +937,13 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
-      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count)
+      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count())
       {
         const BindpointMap &bind =
             s.BindpointMapping.ConstantBlocks[s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint];
 
-        if(bind.bindset >= s.Spaces.count || bind.bind >= s.Spaces[bind.bindset].ConstantBuffers.count)
+        if(bind.bindset >= s.Spaces.count() ||
+           bind.bind >= s.Spaces[bind.bindset].ConstantBuffers.count())
           return BoundCBuffer();
 
         const D3D12Pipe::CBuffer &descriptor = s.Spaces[bind.bindset].ConstantBuffers[bind.bind];
@@ -956,13 +957,13 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
     {
       const GLPipe::Shader &s = GetGLStage(stage);
 
-      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count)
+      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count())
       {
         if(s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint >= 0)
         {
           int uboIdx =
               s.BindpointMapping.ConstantBlocks[s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint].bind;
-          if(uboIdx >= 0 && uboIdx < m_GL->UniformBuffers.count)
+          if(uboIdx >= 0 && uboIdx < m_GL->UniformBuffers.count())
           {
             const GLPipe::Buffer &b = m_GL->UniformBuffers[uboIdx];
 
@@ -979,7 +980,7 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
           stage == ShaderStage::Compute ? m_Vulkan->compute : m_Vulkan->graphics;
       const VKPipe::Shader &s = GetVulkanStage(stage);
 
-      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count)
+      if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count())
       {
         const BindpointMap &bind =
             s.BindpointMapping.ConstantBlocks[s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint];
@@ -1020,7 +1021,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
     {
       const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
 
-      for(int i = 0; i < s.SRVs.count; i++)
+      for(int i = 0; i < s.SRVs.count(); i++)
       {
         BindpointMap key(0, i);
         BoundResource val;
@@ -1039,9 +1040,9 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
-      for(int space = 0; space < s.Spaces.count; space++)
+      for(int space = 0; space < s.Spaces.count(); space++)
       {
-        for(int reg = 0; reg < s.Spaces[space].SRVs.count; reg++)
+        for(int reg = 0; reg < s.Spaces[space].SRVs.count(); reg++)
         {
           const D3D12Pipe::View &bind = s.Spaces[space].SRVs[reg];
           BindpointMap key(space, reg);
@@ -1065,7 +1066,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
     }
     else if(IsLogGL())
     {
-      for(int i = 0; i < m_GL->Textures.count; i++)
+      for(int i = 0; i < m_GL->Textures.count(); i++)
       {
         BindpointMap key(0, i);
         BoundResource val;
@@ -1087,10 +1088,10 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
 
       ShaderStageMask mask = MaskForStage(stage);
 
-      for(int set = 0; set < descsets.count; set++)
+      for(int set = 0; set < descsets.count(); set++)
       {
         const auto &descset = descsets[set];
-        for(int slot = 0; slot < descset.bindings.count; slot++)
+        for(int slot = 0; slot < descset.bindings.count(); slot++)
         {
           const auto &bind = descset.bindings[slot];
           if((bind.type == BindType::ImageSampler || bind.type == BindType::InputAttachment ||
@@ -1130,7 +1131,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
     {
       if(stage == ShaderStage::Compute)
       {
-        for(int i = 0; i < m_D3D11->m_CS.UAVs.count; i++)
+        for(int i = 0; i < m_D3D11->m_CS.UAVs.count(); i++)
         {
           BindpointMap key(0, i);
           BoundResource val;
@@ -1156,7 +1157,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
           ret[key] = {val};
         }
 
-        for(int i = 0; i < m_D3D11->m_OM.UAVs.count - uavstart; i++)
+        for(int i = 0; i < m_D3D11->m_OM.UAVs.count() - uavstart; i++)
         {
           BindpointMap key(0, i + uavstart);
           BoundResource val;
@@ -1174,9 +1175,9 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
-      for(int space = 0; space < s.Spaces.count; space++)
+      for(int space = 0; space < s.Spaces.count(); space++)
       {
-        for(int reg = 0; reg < s.Spaces[space].UAVs.count; reg++)
+        for(int reg = 0; reg < s.Spaces[space].UAVs.count(); reg++)
         {
           const D3D12Pipe::View &bind = s.Spaces[space].UAVs[reg];
           BindpointMap key(space, reg);
@@ -1198,7 +1199,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
     }
     else if(IsLogGL())
     {
-      for(int i = 0; i < m_GL->Images.count; i++)
+      for(int i = 0; i < m_GL->Images.count(); i++)
       {
         BindpointMap key(0, i);
         BoundResource val;
@@ -1218,10 +1219,10 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
 
       ShaderStageMask mask = MaskForStage(stage);
 
-      for(int set = 0; set < descsets.count; set++)
+      for(int set = 0; set < descsets.count(); set++)
       {
         const auto &descset = descsets[set];
-        for(int slot = 0; slot < descset.bindings.count; slot++)
+        for(int slot = 0; slot < descset.bindings.count(); slot++)
         {
           const auto &bind = descset.bindings[slot];
           if((bind.type == BindType::ReadWriteBuffer || bind.type == BindType::ReadWriteImage ||
@@ -1285,7 +1286,7 @@ BoundResource CommonPipelineState::GetDepthTarget()
       const auto &rp = m_Vulkan->Pass.renderpass;
       const auto &fb = m_Vulkan->Pass.framebuffer;
 
-      if(rp.depthstencilAttachment >= 0 && rp.depthstencilAttachment < fb.attachments.count)
+      if(rp.depthstencilAttachment >= 0 && rp.depthstencilAttachment < fb.attachments.count())
       {
         BoundResource ret;
         ret.Id = fb.attachments[rp.depthstencilAttachment].img;
@@ -1310,8 +1311,8 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
   {
     if(IsLogD3D11())
     {
-      ret.resize(m_D3D11->m_OM.RenderTargets.count);
-      for(int i = 0; i < m_D3D11->m_OM.RenderTargets.count; i++)
+      ret.resize(m_D3D11->m_OM.RenderTargets.count());
+      for(int i = 0; i < m_D3D11->m_OM.RenderTargets.count(); i++)
       {
         ret[i].Id = m_D3D11->m_OM.RenderTargets[i].Resource;
         ret[i].HighestMip = (int)m_D3D11->m_OM.RenderTargets[i].HighestMip;
@@ -1321,8 +1322,8 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
     }
     else if(IsLogD3D12())
     {
-      ret.resize(m_D3D12->m_OM.RenderTargets.count);
-      for(int i = 0; i < m_D3D12->m_OM.RenderTargets.count; i++)
+      ret.resize(m_D3D12->m_OM.RenderTargets.count());
+      for(int i = 0; i < m_D3D12->m_OM.RenderTargets.count(); i++)
       {
         ret[i].Id = m_D3D12->m_OM.RenderTargets[i].Resource;
         ret[i].HighestMip = (int)m_D3D12->m_OM.RenderTargets[i].HighestMip;
@@ -1332,8 +1333,8 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
     }
     else if(IsLogGL())
     {
-      ret.resize(m_GL->m_FB.m_DrawFBO.DrawBuffers.count);
-      for(int i = 0; i < m_GL->m_FB.m_DrawFBO.DrawBuffers.count; i++)
+      ret.resize(m_GL->m_FB.m_DrawFBO.DrawBuffers.count());
+      for(int i = 0; i < m_GL->m_FB.m_DrawFBO.DrawBuffers.count(); i++)
       {
         int db = m_GL->m_FB.m_DrawFBO.DrawBuffers[i];
 
@@ -1353,10 +1354,10 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
 
       int idx = 0;
 
-      ret.resize(rp.colorAttachments.count + rp.resolveAttachments.count);
-      for(int i = 0; i < rp.colorAttachments.count; i++)
+      ret.resize(rp.colorAttachments.count() + rp.resolveAttachments.count());
+      for(int i = 0; i < rp.colorAttachments.count(); i++)
       {
-        if(rp.colorAttachments[i] < (uint32_t)fb.attachments.count)
+        if(rp.colorAttachments[i] < (uint32_t)fb.attachments.count())
         {
           ret[idx].Id = fb.attachments[rp.colorAttachments[i]].img;
           ret[idx].HighestMip = (int)fb.attachments[rp.colorAttachments[i]].baseMip;
@@ -1367,9 +1368,9 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
         idx++;
       }
 
-      for(int i = 0; i < rp.resolveAttachments.count; i++)
+      for(int i = 0; i < rp.resolveAttachments.count(); i++)
       {
-        if(rp.resolveAttachments[i] < (uint32_t)fb.attachments.count)
+        if(rp.resolveAttachments[i] < (uint32_t)fb.attachments.count())
         {
           ret[idx].Id = fb.attachments[rp.resolveAttachments[i]].img;
           ret[idx].HighestMip = (int)fb.attachments[rp.resolveAttachments[i]].baseMip;

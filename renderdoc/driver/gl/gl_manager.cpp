@@ -1093,9 +1093,9 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
         if(shadDetails.type == eGL_VERTEX_SHADER)
         {
-          for(int s = 0; s < shadDetails.reflection.OutputSig.count; s++)
+          for(const SigParameter &sig : shadDetails.reflection.OutputSig)
           {
-            std::string name = shadDetails.reflection.OutputSig[s].varName.c_str();
+            std::string name = sig.varName;
 
             // look for :row added to split up matrix variables
             size_t colon = name.find(":row");

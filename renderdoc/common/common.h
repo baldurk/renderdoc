@@ -387,5 +387,3 @@ void rdcassert(const char *msg, const char *file, unsigned int line, const char 
 #else
 #define RDCCOMPILE_ASSERT(condition, message) static_assert(condition, message)
 #endif
-
-typedef uint8_t byte;

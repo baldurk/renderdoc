@@ -217,7 +217,7 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallTreeNode &drawnod
     const DrawcallDescription &d = drawnode.children[i].draw;
     FillTimers(ctx, drawnode.children[i], counters);
 
-    if(d.events.count == 0)
+    if(d.events.empty())
       continue;
 
     GPUQueries *queries = NULL;

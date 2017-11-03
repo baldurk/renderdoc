@@ -1115,29 +1115,27 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
 
     for(uint32_t stage = uint32_t(ShaderStage::First); stage < uint32_t(ShaderStage::Count); stage++)
     {
-      create_array(stats.constants[stage].bindslots,
-                   D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT + 1);
-      create_array(stats.constants[stage].sizes, ConstantBindStats::BucketCount);
+      stats.constants[stage].bindslots.resize(D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT + 1);
+      stats.constants[stage].sizes.resize(ConstantBindStats::BucketCount);
 
-      create_array(stats.samplers[stage].bindslots, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT + 1);
+      stats.samplers[stage].bindslots.resize(D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT + 1);
 
-      create_array(stats.resources[stage].types, uint32_t(TextureDim::Count));
-      create_array(stats.resources[stage].bindslots,
-                   D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT + 1);
+      stats.resources[stage].types.resize(uint32_t(TextureDim::Count));
+      stats.resources[stage].bindslots.resize(D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT + 1);
     }
 
-    create_array(stats.updates.types, uint32_t(TextureDim::Count));
-    create_array(stats.updates.sizes, ResourceUpdateStats::BucketCount);
+    stats.updates.types.resize(uint32_t(TextureDim::Count));
+    stats.updates.sizes.resize(ResourceUpdateStats::BucketCount);
 
-    create_array(stats.draws.counts, DrawcallStats::BucketCount);
+    stats.draws.counts.resize(DrawcallStats::BucketCount);
 
-    create_array(stats.vertices.bindslots, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT + 1);
+    stats.vertices.bindslots.resize(D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT + 1);
 
-    create_array(stats.rasters.viewports, D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 2);
-    create_array(stats.rasters.rects, D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 2);
+    stats.rasters.viewports.resize(D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 2);
+    stats.rasters.rects.resize(D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 2);
 
-    create_array(stats.outputs.bindslots,
-                 D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT + D3D11_1_UAV_SLOT_COUNT + 1);
+    stats.outputs.bindslots.resize(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT + D3D11_1_UAV_SLOT_COUNT +
+                                   1);
 
     GetResourceManager()->CreateInitialContents();
   }

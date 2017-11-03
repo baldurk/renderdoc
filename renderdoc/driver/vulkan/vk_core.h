@@ -101,8 +101,8 @@ struct VulkanDrawcallTreeNode
     draw.eventID += baseEventID;
     draw.drawcallID += baseDrawID;
 
-    for(int32_t i = 0; i < draw.events.count; i++)
-      draw.events[i].eventID += baseEventID;
+    for(APIEvent &ev : draw.events)
+      ev.eventID += baseEventID;
 
     for(size_t i = 0; i < resourceUsage.size(); i++)
       resourceUsage[i].second.eventID += baseEventID;

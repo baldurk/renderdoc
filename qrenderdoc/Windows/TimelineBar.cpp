@@ -934,7 +934,7 @@ uint32_t TimelineBar::processDraws(QVector<Marker> &markers, QVector<uint32_t> &
 
   for(const DrawcallDescription &d : curDraws)
   {
-    if(d.children.count > 0)
+    if(!d.children.isEmpty())
     {
       markers.push_back(Marker());
       Marker &m = markers.back();

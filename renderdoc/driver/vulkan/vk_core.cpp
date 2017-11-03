@@ -2552,9 +2552,9 @@ void WrappedVulkan::Serialise_DebugMessages(Serialiser *localSerialiser, bool is
   {
     ScopedContext msgscope(m_pSerialiser, "DebugMessage", "DebugMessage", 0, false);
 
-    string desc;
+    std::string desc;
     if(m_State >= WRITING)
-      desc = debugMessages[i].description.elems;
+      desc = debugMessages[i].description;
 
     SERIALISE_ELEMENT(MessageCategory, Category, debugMessages[i].category);
     SERIALISE_ELEMENT(MessageSource, Source, debugMessages[i].source);
@@ -2858,8 +2858,7 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
     if(m_LastCmdBufferID != ResourceId())
       AddUsage(node, m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages);
 
-    node.children.insert(node.children.begin(), draw.children.elems,
-                         draw.children.elems + draw.children.count);
+    node.children.insert(node.children.begin(), draw.children.begin(), draw.children.end());
     GetDrawcallStack().back()->children.push_back(node);
   }
   else
@@ -2929,7 +2928,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
 
     for(size_t t = 0; t < ARRAY_COUNT(types); t++)
     {
-      for(int32_t i = 0; i < types[t].bindmap.count; i++)
+      for(size_t i = 0; i < types[t].bindmap.size(); i++)
       {
         if(!types[t].bindmap[i].used)
           continue;
@@ -3084,8 +3083,7 @@ void WrappedVulkan::AddEvent(string description)
   Callstack::Stackwalk *stack = m_pSerialiser->GetLastCallstack();
   if(stack)
   {
-    create_array(apievent.callstack, stack->NumLevels());
-    memcpy(apievent.callstack.elems, stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
+    apievent.callstack.assign(stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
   }
 
   for(size_t i = 0; i < m_EventMessages.size(); i++)

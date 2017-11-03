@@ -135,7 +135,7 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
 
     ShaderBindpointMapping mapping = GetMapping(ctx);
 
-    if(index < mapping.ReadWriteResources.count)
+    if(index < mapping.ReadWriteResources.count())
     {
       BindpointMap &key = mapping.ReadWriteResources[index];
 
@@ -149,7 +149,7 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
 
     ShaderBindpointMapping mapping = GetMapping(ctx);
 
-    if(index < mapping.ReadOnlyResources.count)
+    if(index < mapping.ReadOnlyResources.count())
     {
       BindpointMap &key = mapping.ReadOnlyResources[index];
 
@@ -341,7 +341,7 @@ public:
     const rdctype::array<TextureDescription> src = ctx.GetTextures();
 
     texs.clear();
-    texs.reserve(src.count);
+    texs.reserve(src.count());
 
     emit beginResetModel();
 
@@ -739,9 +739,9 @@ void TextureViewer::RT_UpdateVisualRange(IReplayController *)
 
   if(!histogram.empty())
   {
-    QVector<uint32_t> histogramVec(histogram.count);
-    if(histogram.count > 0)
-      memcpy(histogramVec.data(), histogram.elems, histogram.count * sizeof(uint32_t));
+    QVector<uint32_t> histogramVec(histogram.count());
+    if(!histogram.isEmpty())
+      memcpy(histogramVec.data(), histogram.data(), histogram.byteSize());
 
     GUIInvoke::call([this, histogramVec]() {
       ui->rangeHistogram->setHistogramRange(ui->rangeHistogram->rangeMin(),
@@ -1997,7 +1997,7 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
                                               ThumbnailStrip *prevs, int &prevIndex, bool copy,
                                               bool rw)
 {
-  for(int idx = 0; idx < mapping.count; idx++)
+  for(int idx = 0; idx < mapping.count(); idx++)
   {
     const BindpointMap &key = mapping[idx];
 
@@ -3403,7 +3403,7 @@ void TextureViewer::on_debugPixelContext_clicked()
   m_Ctx.Replay().AsyncInvoke([this, x, y](IReplayController *r) {
     ShaderDebugTrace *trace = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.sampleIdx, ~0U);
 
-    if(trace->states.count == 0)
+    if(trace->states.isEmpty())
     {
       r->FreeTrace(trace);
 

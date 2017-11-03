@@ -31,7 +31,6 @@
 #include "core/core.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
-#include "replay/type_helpers.h"
 #include "serialise/string_utils.h"
 
 // these entry points are for the replay/analysis side - not for the application.
@@ -366,12 +365,12 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_GetThumbnail(const char *fi
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem)
 {
-  rdctype::array<char>::deallocate(mem);
+  free((void *)mem);
 }
 
 extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz)
 {
-  return rdctype::array<char>::allocate((size_t)sz);
+  return malloc((size_t)sz);
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *host,
@@ -504,14 +503,14 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_NeedVulkanLayerRegistration
 
   if(myJSONsPtr)
   {
-    create_array(*myJSONsPtr, myJSONs.size());
+    myJSONsPtr->resize(myJSONs.size());
     for(size_t i = 0; i < myJSONs.size(); i++)
       (*myJSONsPtr)[i] = myJSONs[i];
   }
 
   if(otherJSONsPtr)
   {
-    create_array(*otherJSONsPtr, otherJSONs.size());
+    otherJSONsPtr->resize(otherJSONs.size());
     for(size_t i = 0; i < otherJSONs.size(); i++)
       (*otherJSONsPtr)[i] = otherJSONs[i];
   }

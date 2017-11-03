@@ -269,7 +269,7 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
 
   bool xcb = false, xlib = false;
 
-  for(int32_t i = 0; i < systems.count; i++)
+  for(size_t i = 0; i < systems.size(); i++)
   {
     if(systems[i] == WindowingSystem::Xlib)
       xlib = true;
@@ -300,7 +300,7 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
   {
     std::cerr << "Neither XCB nor XLib are supported, can't create window." << std::endl;
     std::cerr << "Supported systems: ";
-    for(int32_t i = 0; i < systems.count; i++)
+    for(size_t i = 0; i < systems.size(); i++)
       std::cerr << (uint32_t)systems[i] << std::endl;
     std::cerr << std::endl;
     return;

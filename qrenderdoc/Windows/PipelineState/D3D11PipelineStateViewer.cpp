@@ -864,14 +864,14 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
   vs = resources->verticalScrollBar()->value();
   resources->beginUpdate();
   resources->clear();
-  for(int i = 0; i < stage.SRVs.count; i++)
+  for(int i = 0; i < stage.SRVs.count(); i++)
   {
     const ShaderResource *shaderInput = NULL;
     const BindpointMap *map = NULL;
 
     if(shaderDetails)
     {
-      for(int b = 0; b < shaderDetails->ReadOnlyResources.count; b++)
+      for(int b = 0; b < shaderDetails->ReadOnlyResources.count(); b++)
       {
         const ShaderResource &res = shaderDetails->ReadOnlyResources[b];
         const BindpointMap &bind = mapping.ReadOnlyResources[b];
@@ -894,7 +894,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
   vs = samplers->verticalScrollBar()->value();
   samplers->beginUpdate();
   samplers->clear();
-  for(int i = 0; i < stage.Samplers.count; i++)
+  for(int i = 0; i < stage.Samplers.count(); i++)
   {
     const D3D11Pipe::Sampler &s = stage.Samplers[i];
 
@@ -903,7 +903,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
 
     if(shaderDetails)
     {
-      for(int b = 0; b < shaderDetails->Samplers.count; b++)
+      for(int b = 0; b < shaderDetails->Samplers.count(); b++)
       {
         const ShaderSampler &res = shaderDetails->Samplers[b];
         const BindpointMap &bind = mapping.Samplers[b];
@@ -1001,7 +1001,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
   vs = cbuffers->verticalScrollBar()->value();
   cbuffers->beginUpdate();
   cbuffers->clear();
-  for(int i = 0; i < stage.ConstantBuffers.count; i++)
+  for(int i = 0; i < stage.ConstantBuffers.count(); i++)
   {
     const D3D11Pipe::CBuffer &b = stage.ConstantBuffers[i];
 
@@ -1010,7 +1010,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
 
     if(shaderDetails)
     {
-      for(int cb = 0; cb < shaderDetails->ConstantBlocks.count; cb++)
+      for(int cb = 0; cb < shaderDetails->ConstantBlocks.count(); cb++)
       {
         const ConstantBlock &cbuf = shaderDetails->ConstantBlocks[cb];
         const BindpointMap &bind = mapping.ConstantBlocks[cb];
@@ -1031,7 +1031,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
     {
       QString name = tr("Constant Buffer %1").arg(ToQStr(b.Buffer));
       ulong length = 1;
-      int numvars = shaderCBuf ? shaderCBuf->variables.count : 0;
+      int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
       uint32_t bytesize = shaderCBuf ? shaderCBuf->byteSize : 0;
 
       if(!filledSlot)
@@ -1085,11 +1085,11 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
   vs = classes->verticalScrollBar()->value();
   classes->beginUpdate();
   classes->clear();
-  for(int i = 0; i < stage.ClassInstances.count; i++)
+  for(int i = 0; i < stage.ClassInstances.count(); i++)
   {
     QString interfaceName = lit("Interface %1").arg(i);
 
-    if(shaderDetails && i < shaderDetails->Interfaces.count)
+    if(shaderDetails && i < shaderDetails->Interfaces.count())
       interfaceName = shaderDetails->Interfaces[i];
 
     classes->addTopLevelItem(new RDTreeWidgetItem({i, interfaceName, stage.ClassInstances[i]}));
@@ -1141,9 +1141,9 @@ void D3D11PipelineStateViewer::setState()
     QString mismatchDetails;
 
     // VS wants more elements
-    if(state.m_IA.Bytecode->InputSig.count < state.m_VS.ShaderDetails->InputSig.count)
+    if(state.m_IA.Bytecode->InputSig.count() < state.m_VS.ShaderDetails->InputSig.count())
     {
-      int excess = state.m_VS.ShaderDetails->InputSig.count - state.m_IA.Bytecode->InputSig.count;
+      int excess = state.m_VS.ShaderDetails->InputSig.count() - state.m_IA.Bytecode->InputSig.count();
 
       bool allSystem = true;
 
@@ -1151,7 +1151,7 @@ void D3D11PipelineStateViewer::setState()
       // (ie. SV_VertexID or SV_InstanceID)
       for(int e = 0; e < excess; e++)
       {
-        if(state.m_VS.ShaderDetails->InputSig[state.m_VS.ShaderDetails->InputSig.count - 1 - e]
+        if(state.m_VS.ShaderDetails->InputSig[state.m_VS.ShaderDetails->InputSig.count() - 1 - e]
                .systemValue == ShaderBuiltin::Undefined)
         {
           allSystem = false;
@@ -1167,7 +1167,7 @@ void D3D11PipelineStateViewer::setState()
       const rdctype::array<SigParameter> &IA = state.m_IA.Bytecode->InputSig;
       const rdctype::array<SigParameter> &VS = state.m_VS.ShaderDetails->InputSig;
 
-      int count = qMin(IA.count, VS.count);
+      int count = qMin(IA.count(), VS.count());
 
       for(int i = 0; i < count; i++)
       {
@@ -1242,7 +1242,7 @@ void D3D11PipelineStateViewer::setState()
       bool filledSlot = true;
       bool usedSlot = false;
 
-      for(int ia = 0; state.m_IA.Bytecode && ia < state.m_IA.Bytecode->InputSig.count; ia++)
+      for(int ia = 0; state.m_IA.Bytecode && ia < state.m_IA.Bytecode->InputSig.count(); ia++)
       {
         if(!QString(state.m_IA.Bytecode->InputSig[ia].semanticName)
                 .compare(l.SemanticName, Qt::CaseInsensitive) &&
@@ -1351,7 +1351,7 @@ void D3D11PipelineStateViewer::setState()
 
   m_VBNodes.clear();
 
-  for(int i = 0; i < state.m_IA.vbuffers.count; i++)
+  for(int i = 0; i < state.m_IA.vbuffers.count(); i++)
   {
     const D3D11Pipe::VB &v = state.m_IA.vbuffers[i];
 
@@ -1417,7 +1417,7 @@ void D3D11PipelineStateViewer::setState()
   vs = ui->csUAVs->verticalScrollBar()->value();
   ui->csUAVs->beginUpdate();
   ui->csUAVs->clear();
-  for(int i = 0; i < state.m_CS.UAVs.count; i++)
+  for(int i = 0; i < state.m_CS.UAVs.count(); i++)
   {
     const ShaderResource *shaderInput = NULL;
     const BindpointMap *map = NULL;
@@ -1426,7 +1426,7 @@ void D3D11PipelineStateViewer::setState()
 
     if(cs.ShaderDetails)
     {
-      for(int b = 0; b < cs.ShaderDetails->ReadWriteResources.count; b++)
+      for(int b = 0; b < cs.ShaderDetails->ReadWriteResources.count(); b++)
       {
         const ShaderResource &res = cs.ShaderDetails->ReadWriteResources[b];
         const BindpointMap &bind = cs.BindpointMapping.ReadWriteResources[b];
@@ -1451,7 +1451,7 @@ void D3D11PipelineStateViewer::setState()
   vs = ui->gsStreamOut->verticalScrollBar()->value();
   ui->gsStreamOut->beginUpdate();
   ui->gsStreamOut->clear();
-  for(int i = 0; i < state.m_SO.Outputs.count; i++)
+  for(int i = 0; i < state.m_SO.Outputs.count(); i++)
   {
     const D3D11Pipe::SOBind &s = state.m_SO.Outputs[i];
 
@@ -1503,7 +1503,7 @@ void D3D11PipelineStateViewer::setState()
   vs = ui->viewports->verticalScrollBar()->value();
   ui->viewports->beginUpdate();
   ui->viewports->clear();
-  for(int i = 0; i < state.m_RS.Viewports.count; i++)
+  for(int i = 0; i < state.m_RS.Viewports.count(); i++)
   {
     const D3D11Pipe::Viewport &v = state.m_RS.Viewports[i];
 
@@ -1528,7 +1528,7 @@ void D3D11PipelineStateViewer::setState()
   vs = ui->scissors->verticalScrollBar()->value();
   ui->scissors->beginUpdate();
   ui->scissors->clear();
-  for(int i = 0; i < state.m_RS.Scissors.count; i++)
+  for(int i = 0; i < state.m_RS.Scissors.count(); i++)
   {
     const D3D11Pipe::Scissor &s = state.m_RS.Scissors[i];
 
@@ -1574,7 +1574,7 @@ void D3D11PipelineStateViewer::setState()
   ui->targetOutputs->beginUpdate();
   ui->targetOutputs->clear();
   {
-    for(int i = 0; i < state.m_OM.RenderTargets.count; i++)
+    for(int i = 0; i < state.m_OM.RenderTargets.count(); i++)
     {
       addResourceRow(D3D11ViewTag(D3D11ViewTag::OMTarget, i, state.m_OM.RenderTargets[i]), NULL,
                      NULL, ui->targetOutputs);
@@ -1583,7 +1583,7 @@ void D3D11PipelineStateViewer::setState()
         targets[i] = true;
     }
 
-    for(int i = 0; i < state.m_OM.UAVs.count; i++)
+    for(int i = 0; i < state.m_OM.UAVs.count(); i++)
     {
       const ShaderResource *shaderInput = NULL;
       const BindpointMap *map = NULL;
@@ -1598,7 +1598,7 @@ void D3D11PipelineStateViewer::setState()
       {
         if(stage->ShaderDetails)
         {
-          for(int b = 0; b < stage->ShaderDetails->ReadOnlyResources.count; b++)
+          for(int b = 0; b < stage->ShaderDetails->ReadOnlyResources.count(); b++)
           {
             const ShaderResource &res = stage->ShaderDetails->ReadOnlyResources[b];
             const BindpointMap &bind = stage->BindpointMapping.ReadOnlyResources[b];
@@ -1783,7 +1783,7 @@ QString D3D11PipelineStateViewer::formatMembers(int indent, const QString &namep
       ret += indentstr + lit("// struct %1\n").arg(v.type.descriptor.name);
       ret += indentstr + lit("{\n") + formatMembers(indent + 1, v.name + lit("_"), v.type.members) +
              indentstr + lit("}\n");
-      if(i < vars.count - 1)
+      if(i < vars.count() - 1)
         ret += lit("\n");
     }
     else
@@ -1868,7 +1868,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
       if(stage->stage == ShaderStage::Geometry)
       {
-        for(int i = 0; i < m_Ctx.CurD3D11PipelineState().m_SO.Outputs.count; i++)
+        for(int i = 0; i < m_Ctx.CurD3D11PipelineState().m_SO.Outputs.count(); i++)
         {
           if(buf->ID == m_Ctx.CurD3D11PipelineState().m_SO.Outputs[i].Buffer)
           {
@@ -2056,7 +2056,7 @@ void D3D11PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
 
   int cbufIdx = -1;
 
-  for(int i = 0; i < stage->BindpointMapping.ConstantBlocks.count; i++)
+  for(int i = 0; i < stage->BindpointMapping.ConstantBlocks.count(); i++)
   {
     if(stage->BindpointMapping.ConstantBlocks[i].bind == cb)
     {
@@ -2068,7 +2068,7 @@ void D3D11PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
   if(cbufIdx == -1)
   {
     // unused cbuffer, open regular buffer viewer
-    if(cb >= stage->ConstantBuffers.count)
+    if(cb >= stage->ConstantBuffers.count())
       return;
 
     const D3D11Pipe::CBuffer &bind = stage->ConstantBuffers[cb];
@@ -2160,7 +2160,7 @@ void D3D11PipelineStateViewer::on_iaLayouts_mouseMove(QMouseEvent *e)
 
   if(idx.isValid())
   {
-    if(idx.row() >= 0 && idx.row() < IA.layouts.count)
+    if(idx.row() >= 0 && idx.row() < IA.layouts.count())
     {
       uint32_t buffer = IA.layouts[idx.row()].InputSlot;
 
@@ -2405,7 +2405,7 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(const D3D11Pipe::View &vie
     {
       if(view.Format.compType == CompType::Typeless)
       {
-        if(shaderInput->variableType.members.count > 0)
+        if(!shaderInput->variableType.members.isEmpty())
           viewFormat = format = lit("struct ") + shaderInput->variableType.descriptor.name;
         else
           viewFormat = format = shaderInput->variableType.descriptor.name;
@@ -2545,7 +2545,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
     else
       shadername = sh.name;
 
-    if(shaderDetails && shaderDetails->DebugInfo.files.count > 0)
+    if(shaderDetails && !shaderDetails->DebugInfo.files.isEmpty())
     {
       shadername = QFormatStr("%1() - %2")
                        .arg(shaderDetails->EntryPoint)
@@ -2567,7 +2567,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     QList<QVariantList> rows;
 
-    for(int i = 0; i < sh.SRVs.count; i++)
+    for(int i = 0; i < sh.SRVs.count(); i++)
     {
       if(sh.SRVs[i].Object == ResourceId())
         continue;
@@ -2592,7 +2592,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     QList<QVariantList> rows;
 
-    for(int i = 0; i < sh.UAVs.count; i++)
+    for(int i = 0; i < sh.UAVs.count(); i++)
     {
       if(sh.UAVs[i].Object == ResourceId())
         continue;
@@ -2616,7 +2616,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     QList<QVariantList> rows;
 
-    for(int i = 0; i < sh.Samplers.count; i++)
+    for(int i = 0; i < sh.Samplers.count(); i++)
     {
       const D3D11Pipe::Sampler &s = sh.Samplers[i];
 
@@ -2678,20 +2678,20 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     QList<QVariantList> rows;
 
-    for(int i = 0; i < sh.ConstantBuffers.count; i++)
+    for(int i = 0; i < sh.ConstantBuffers.count(); i++)
     {
       ConstantBlock *shaderCBuf = NULL;
 
       if(sh.ConstantBuffers[i].Buffer == ResourceId())
         continue;
 
-      if(shaderDetails && i < shaderDetails->ConstantBlocks.count &&
-         shaderDetails->ConstantBlocks[i].name.count > 0)
+      if(shaderDetails && i < shaderDetails->ConstantBlocks.count() &&
+         !shaderDetails->ConstantBlocks[i].name.isEmpty())
         shaderCBuf = &shaderDetails->ConstantBlocks[i];
 
       QString name = tr("Constant Buffer %1").arg(ToQStr(sh.ConstantBuffers[i].Buffer));
       uint64_t length = 1;
-      int numvars = shaderCBuf ? shaderCBuf->variables.count : 0;
+      int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
       uint32_t byteSize = shaderCBuf ? shaderCBuf->byteSize : 0;
 
       if(sh.ConstantBuffers[i].Buffer == ResourceId())
@@ -2717,7 +2717,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
                              rows);
   }
 
-  if(sh.ClassInstances.count > 0)
+  if(!sh.ClassInstances.isEmpty())
   {
     xml.writeStartElement(lit("h3"));
     xml.writeCharacters(tr("Class Instances"));
@@ -2725,11 +2725,11 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     QList<QVariantList> rows;
 
-    for(int i = 0; i < sh.ClassInstances.count; i++)
+    for(int i = 0; i < sh.ClassInstances.count(); i++)
     {
       QString interfaceName = tr("Interface %1").arg(i);
 
-      if(sh.ShaderDetails && i < sh.ShaderDetails->Interfaces.count)
+      if(sh.ShaderDetails && i < sh.ShaderDetails->Interfaces.count())
         interfaceName = sh.ShaderDetails->Interfaces[i];
 
       rows.push_back({i, interfaceName, sh.ClassInstances[i]});
@@ -2888,7 +2888,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
     int i = 0;
     for(const D3D11Pipe::Blend &b : om.m_BlendState.Blends)
     {
-      if(i >= om.RenderTargets.count)
+      if(i >= om.RenderTargets.count())
         continue;
 
       QString mask = QFormatStr("%1%2%3%4")
@@ -2960,7 +2960,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     QList<QVariantList> rows;
 
-    for(int i = 0; i < om.RenderTargets.count; i++)
+    for(int i = 0; i < om.RenderTargets.count(); i++)
     {
       if(om.RenderTargets[i].Object == ResourceId())
         continue;
@@ -2977,7 +2977,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
                              rows);
   }
 
-  if(om.UAVs.count > 0 && om.UAVs[0].Object != ResourceId())
+  if(!om.UAVs.isEmpty() && om.UAVs[0].Object != ResourceId())
   {
     xml.writeStartElement(lit("h3"));
     xml.writeCharacters(tr("Unordered Access Views"));
@@ -2991,7 +2991,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
       rows.push_back({i, tr("Empty"), QString(), QString(), QString(), QString(), 0, 0, 0, 0,
                       QString(), QString(), QString()});
 
-    for(; i < (uint32_t)om.RenderTargets.count; i++)
+    for(; i < (uint32_t)om.RenderTargets.count(); i++)
     {
       if(om.UAVs[i - om.UAVStartSlot].Object == ResourceId())
         continue;
@@ -3140,7 +3140,7 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
   m_Ctx.Replay().AsyncInvoke([this, thread](IReplayController *r) {
     ShaderDebugTrace *trace = r->DebugThread(thread.g, thread.t);
 
-    if(trace->states.count == 0)
+    if(trace->states.isEmpty())
     {
       r->FreeTrace(trace);
 

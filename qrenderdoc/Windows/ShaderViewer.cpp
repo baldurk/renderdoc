@@ -354,7 +354,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                      &ShaderViewer::disasm_tooltipHide);
   }
 
-  if(shader && shader->DebugInfo.files.count > 0)
+  if(shader && !shader->DebugInfo.files.isEmpty())
   {
     if(trace)
       setWindowTitle(QFormatStr("Debug %1() - %2").arg(shader->EntryPoint).arg(debugContext));
@@ -380,7 +380,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     if(trace || sel == NULL)
       sel = m_DisassemblyView;
 
-    if(shader->DebugInfo.files.count > 2)
+    if(shader->DebugInfo.files.size() > 2)
       addFileList();
 
     ToolWindowManager::raiseToolWindow(sel);
@@ -508,10 +508,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     {
       for(const SigParameter &s : shader->InputSig)
       {
-        QString name = s.varName.count == 0
+        QString name = s.varName.isEmpty()
                            ? s.semanticName
                            : QFormatStr("%1 (%2)").arg(s.varName).arg(s.semanticName);
-        if(s.semanticName.count == 0)
+        if(s.semanticName.isEmpty())
           name = s.varName;
 
         QString semIdx = s.needSemanticIndex ? QString::number(s.semanticIndex) : QString();
@@ -536,10 +536,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
       for(const SigParameter &s : shader->OutputSig)
       {
-        QString name = s.varName.count == 0
+        QString name = s.varName.isEmpty()
                            ? s.semanticName
                            : QFormatStr("%1 (%2)").arg(s.varName).arg(s.semanticName);
-        if(s.semanticName.count == 0)
+        if(s.semanticName.isEmpty())
           name = s.varName;
 
         if(multipleStreams)
@@ -912,7 +912,7 @@ bool ShaderViewer::stepNext()
   if(!m_Trace)
     return false;
 
-  if(CurrentStep() + 1 >= m_Trace->states.count)
+  if(CurrentStep() + 1 >= m_Trace->states.count())
     return false;
 
   SetCurrentStep(CurrentStep() + 1);
@@ -989,7 +989,7 @@ void ShaderViewer::runTo(int runToInstruction, bool forward, ShaderEvents condit
 
   bool firstStep = true;
 
-  while(step < m_Trace->states.count)
+  while(step < m_Trace->states.count())
   {
     if(runToInstruction >= 0 && m_Trace->states[step].nextInstruction == (uint32_t)runToInstruction)
       break;
@@ -1002,7 +1002,7 @@ void ShaderViewer::runTo(int runToInstruction, bool forward, ShaderEvents condit
 
     firstStep = false;
 
-    if(step + inc < 0 || step + inc >= m_Trace->states.count)
+    if(step + inc < 0 || step + inc >= m_Trace->states.count())
       break;
 
     step += inc;
@@ -1095,7 +1095,7 @@ void ShaderViewer::addFileList()
 
 void ShaderViewer::updateDebugging()
 {
-  if(!m_Trace || m_CurrentStep < 0 || m_CurrentStep >= m_Trace->states.count)
+  if(!m_Trace || m_CurrentStep < 0 || m_CurrentStep >= m_Trace->states.count())
     return;
 
   const ShaderDebugState &state = m_Trace->states[m_CurrentStep];
@@ -1103,7 +1103,7 @@ void ShaderViewer::updateDebugging()
   uint32_t nextInst = state.nextInstruction;
   bool done = false;
 
-  if(m_CurrentStep == m_Trace->states.count - 1)
+  if(m_CurrentStep == m_Trace->states.count() - 1)
   {
     nextInst--;
     done = true;
@@ -1133,9 +1133,9 @@ void ShaderViewer::updateDebugging()
 
   if(ui->constants->topLevelItemCount() == 0)
   {
-    for(int i = 0; i < m_Trace->cbuffers.count; i++)
+    for(int i = 0; i < m_Trace->cbuffers.count(); i++)
     {
-      for(int j = 0; j < m_Trace->cbuffers[i].count; j++)
+      for(int j = 0; j < m_Trace->cbuffers[i].count(); j++)
       {
         if(m_Trace->cbuffers[i][j].rows > 0 || m_Trace->cbuffers[i][j].columns > 0)
         {
@@ -1149,7 +1149,7 @@ void ShaderViewer::updateDebugging()
       }
     }
 
-    for(int i = 0; i < m_Trace->inputs.count; i++)
+    for(int i = 0; i < m_Trace->inputs.count(); i++)
     {
       const ShaderVariable &input = m_Trace->inputs[i];
 
@@ -1171,7 +1171,8 @@ void ShaderViewer::updateDebugging()
     bool tree = false;
 
     for(int i = 0;
-        i < m_Mapping->ReadWriteResources.count && i < m_ShaderDetails->ReadWriteResources.count; i++)
+        i < m_Mapping->ReadWriteResources.count() && i < m_ShaderDetails->ReadWriteResources.count();
+        i++)
     {
       BindpointMap bind = m_Mapping->ReadWriteResources[i];
 
@@ -1202,7 +1203,8 @@ void ShaderViewer::updateDebugging()
     }
 
     for(int i = 0;
-        i < m_Mapping->ReadOnlyResources.count && i < m_ShaderDetails->ReadOnlyResources.count; i++)
+        i < m_Mapping->ReadOnlyResources.count() && i < m_ShaderDetails->ReadOnlyResources.count();
+        i++)
     {
       BindpointMap bind = m_Mapping->ReadOnlyResources[i];
 
@@ -1241,21 +1243,21 @@ void ShaderViewer::updateDebugging()
 
   if(ui->variables->topLevelItemCount() == 0)
   {
-    for(int i = 0; i < state.registers.count; i++)
+    for(int i = 0; i < state.registers.count(); i++)
       ui->variables->addTopLevelItem(
           new RDTreeWidgetItem({state.registers[i].name, lit("temporary"), QString()}));
 
-    for(int i = 0; i < state.indexableTemps.count; i++)
+    for(int i = 0; i < state.indexableTemps.count(); i++)
     {
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({QFormatStr("x%1").arg(i), lit("indexable"), QString()});
-      for(int t = 0; t < state.indexableTemps[i].count; t++)
+      for(int t = 0; t < state.indexableTemps[i].count(); t++)
         node->addChild(
             new RDTreeWidgetItem({state.indexableTemps[i][t].name, lit("indexable"), QString()}));
       ui->variables->addTopLevelItem(node);
     }
 
-    for(int i = 0; i < state.outputs.count; i++)
+    for(int i = 0; i < state.outputs.count(); i++)
       ui->variables->addTopLevelItem(
           new RDTreeWidgetItem({state.outputs[i].name, lit("output"), QString()}));
   }
@@ -1264,7 +1266,7 @@ void ShaderViewer::updateDebugging()
 
   int v = 0;
 
-  for(int i = 0; i < state.registers.count; i++)
+  for(int i = 0; i < state.registers.count(); i++)
   {
     RDTreeWidgetItem *node = ui->variables->topLevelItem(v++);
 
@@ -1272,11 +1274,11 @@ void ShaderViewer::updateDebugging()
     node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Temporaries, i)));
   }
 
-  for(int i = 0; i < state.indexableTemps.count; i++)
+  for(int i = 0; i < state.indexableTemps.count(); i++)
   {
     RDTreeWidgetItem *node = ui->variables->topLevelItem(v++);
 
-    for(int t = 0; t < state.indexableTemps[i].count; t++)
+    for(int t = 0; t < state.indexableTemps[i].count(); t++)
     {
       RDTreeWidgetItem *child = node->child(t);
 
@@ -1285,7 +1287,7 @@ void ShaderViewer::updateDebugging()
     }
   }
 
-  for(int i = 0; i < state.outputs.count; i++)
+  for(int i = 0; i < state.outputs.count(); i++)
   {
     RDTreeWidgetItem *node = ui->variables->topLevelItem(v++);
 
@@ -1363,9 +1365,9 @@ void ShaderViewer::updateDebugging()
       ok = false;
       int regindex = regidx.toInt(&ok);
 
-      if(vars && ok && regindex >= 0 && regindex < vars->count)
+      if(vars && ok && regindex >= 0 && regindex < vars->count())
       {
-        const ShaderVariable &vr = vars->elems[regindex];
+        const ShaderVariable &vr = (*vars)[regindex];
 
         if(swizzle.isEmpty())
         {
@@ -1457,7 +1459,7 @@ int ShaderViewer::CurrentStep()
 void ShaderViewer::SetCurrentStep(int step)
 {
   if(m_Trace && !m_Trace->states.empty())
-    m_CurrentStep = qBound(0, step, m_Trace->states.count - 1);
+    m_CurrentStep = qBound(0, step, m_Trace->states.count() - 1);
   else
     m_CurrentStep = 0;
 
@@ -1860,7 +1862,7 @@ bool ShaderViewer::eventFilter(QObject *watched, QEvent *event)
 void ShaderViewer::disasm_tooltipShow(int x, int y)
 {
   // do nothing if there's no trace
-  if(!m_Trace || m_CurrentStep < 0 || m_CurrentStep >= m_Trace->states.count)
+  if(!m_Trace || m_CurrentStep < 0 || m_CurrentStep >= m_Trace->states.count())
     return;
 
   // ignore any messages if we're already outside the viewport
@@ -1896,7 +1898,7 @@ void ShaderViewer::showVariableTooltip(VariableCategory varCat, int varIdx, int 
 {
   const rdctype::array<ShaderVariable> *vars = GetVariableList(varCat, arrayIdx);
 
-  if(!vars || varIdx < 0 || varIdx >= vars->count)
+  if(!vars || varIdx < 0 || varIdx >= vars->count())
   {
     m_TooltipVarIdx = -1;
     return;
@@ -1915,7 +1917,7 @@ const rdctype::array<ShaderVariable> *ShaderViewer::GetVariableList(VariableCate
 {
   const rdctype::array<ShaderVariable> *vars = NULL;
 
-  if(!m_Trace || m_CurrentStep < 0 || m_CurrentStep >= m_Trace->states.count)
+  if(!m_Trace || m_CurrentStep < 0 || m_CurrentStep >= m_Trace->states.count())
     return vars;
 
   const ShaderDebugState &state = m_Trace->states[m_CurrentStep];
@@ -1927,11 +1929,11 @@ const rdctype::array<ShaderVariable> *ShaderViewer::GetVariableList(VariableCate
     case VariableCategory::Unknown: vars = NULL; break;
     case VariableCategory::Temporaries: vars = &state.registers; break;
     case VariableCategory::IndexTemporaries:
-      vars = arrayIdx < state.indexableTemps.count ? &state.indexableTemps[arrayIdx] : NULL;
+      vars = arrayIdx < state.indexableTemps.count() ? &state.indexableTemps[arrayIdx] : NULL;
       break;
     case VariableCategory::Inputs: vars = &m_Trace->inputs; break;
     case VariableCategory::Constants:
-      vars = arrayIdx < m_Trace->cbuffers.count ? &m_Trace->cbuffers[arrayIdx] : NULL;
+      vars = arrayIdx < m_Trace->cbuffers.count() ? &m_Trace->cbuffers[arrayIdx] : NULL;
       break;
     case VariableCategory::Outputs: vars = &state.outputs; break;
   }
@@ -1976,7 +1978,7 @@ void ShaderViewer::updateVariableTooltip()
     return;
 
   const rdctype::array<ShaderVariable> *vars = GetVariableList(m_TooltipVarCat, m_TooltipArrayIdx);
-  const ShaderVariable &var = vars->elems[m_TooltipVarIdx];
+  const ShaderVariable &var = (*vars)[m_TooltipVarIdx];
 
   QString text = QFormatStr("<pre>%1\n").arg(var.name);
   text +=

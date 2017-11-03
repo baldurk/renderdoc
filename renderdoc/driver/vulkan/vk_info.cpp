@@ -159,9 +159,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
       if(!spv.spirv.empty())
       {
-        rdctype::array<byte> &bytes = reflData.refl.RawBytes;
-        const vector<uint32_t> &spirv = spv.spirv;
-        create_array_init(bytes, spirv.size() * sizeof(uint32_t), (byte *)&spirv[0]);
+        const std::vector<uint32_t> &spirv = spv.spirv;
+        reflData.refl.RawBytes.assign((byte *)spirv.data(), spirv.size() * sizeof(uint32_t));
       }
     }
 
@@ -385,9 +384,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
 
       if(!spv.spirv.empty())
       {
-        rdctype::array<byte> &bytes = reflData.refl.RawBytes;
         const vector<uint32_t> &spirv = spv.spirv;
-        create_array_init(bytes, spirv.size() * sizeof(uint32_t), (byte *)&spirv[0]);
+        reflData.refl.RawBytes.assign((byte *)spirv.data(), spirv.size() * sizeof(uint32_t));
       }
     }
 

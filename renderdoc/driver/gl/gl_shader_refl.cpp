@@ -27,45 +27,14 @@
 #include <functional>
 #include "gl_driver.h"
 
-// declare versions of ShaderConstant/ShaderVariableType with vectors
-// to more easily build up the members of nested structures
-struct DynShaderConstant;
-
-struct DynShaderVariableType
-{
-  struct
-  {
-    VarType type;
-    uint32_t rows;
-    uint32_t cols;
-    uint32_t elements;
-    bool rowMajorStorage;
-    uint32_t arrayStride;
-    string name;
-  } descriptor;
-
-  vector<DynShaderConstant> members;
-};
-
-struct DynShaderConstant
-{
-  string name;
-  struct
-  {
-    uint32_t vec;
-    uint32_t comp;
-  } reg;
-  DynShaderVariableType type;
-};
-
-void sort(vector<DynShaderConstant> &vars)
+void sort(rdctype::array<ShaderConstant> &vars)
 {
   if(vars.empty())
     return;
 
   struct offset_sort
   {
-    bool operator()(const DynShaderConstant &a, const DynShaderConstant &b)
+    bool operator()(const ShaderConstant &a, const ShaderConstant &b)
     {
       if(a.reg.vec == b.reg.vec)
         return a.reg.comp < b.reg.comp;
@@ -78,32 +47,6 @@ void sort(vector<DynShaderConstant> &vars)
 
   for(size_t i = 0; i < vars.size(); i++)
     sort(vars[i].type.members);
-}
-
-void copy(rdctype::array<ShaderConstant> &outvars, const vector<DynShaderConstant> &invars)
-{
-  if(invars.empty())
-  {
-    RDCEraseEl(outvars);
-    return;
-  }
-
-  create_array_uninit(outvars, invars.size());
-  for(size_t i = 0; i < invars.size(); i++)
-  {
-    outvars[i].name = invars[i].name;
-    outvars[i].reg.vec = invars[i].reg.vec;
-    outvars[i].reg.comp = invars[i].reg.comp;
-    outvars[i].defaultValue = 0;
-    outvars[i].type.descriptor.type = invars[i].type.descriptor.type;
-    outvars[i].type.descriptor.rows = (uint8_t)invars[i].type.descriptor.rows;
-    outvars[i].type.descriptor.cols = (uint8_t)invars[i].type.descriptor.cols;
-    outvars[i].type.descriptor.elements = invars[i].type.descriptor.elements;
-    outvars[i].type.descriptor.rowMajorStorage = invars[i].type.descriptor.rowMajorStorage;
-    outvars[i].type.descriptor.arrayStride = invars[i].type.descriptor.arrayStride;
-    outvars[i].type.descriptor.name = invars[i].type.descriptor.name;
-    copy(outvars[i].type.members, invars[i].type.members);
-  }
 }
 
 void CheckVertexOutputUses(const vector<string> &sources, bool &pointSizeUsed, bool &clipDistanceUsed)
@@ -547,8 +490,8 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
 }
 
 void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuint varIdx,
-                        GLint numParentBlocks, vector<DynShaderConstant> *parentBlocks,
-                        vector<DynShaderConstant> *defaultBlock)
+                        GLint numParentBlocks, rdctype::array<ShaderConstant> *parentBlocks,
+                        rdctype::array<ShaderConstant> *defaultBlock)
 {
   const size_t numProps = 8;
 
@@ -564,7 +507,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
   GLint values[numProps] = {-1, -1, -1, -1, -1, -1, -1, -1};
   gl.glGetProgramResourceiv(sepProg, query, varIdx, numProps, resProps, numProps, NULL, values);
 
-  DynShaderConstant var;
+  ShaderConstant var;
 
   var.type.descriptor.elements = RDCMAX(1, values[4]);
 
@@ -766,7 +709,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     gl.glGetProgramResourceiv(sepProg, query, varIdx, 1, &propName, 1, NULL, &topLevelStride);
   }
 
-  vector<DynShaderConstant> *parentmembers = defaultBlock;
+  rdctype::array<ShaderConstant> *parentmembers = defaultBlock;
 
   if(values[3] != -1 && values[3] < numParentBlocks)
   {
@@ -832,7 +775,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     }
 
     // construct a parent variable
-    DynShaderConstant parentVar;
+    ShaderConstant parentVar;
     parentVar.name = base;
     parentVar.reg.vec = var.reg.vec;
     parentVar.reg.comp = 0;
@@ -904,7 +847,8 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     RDCEraseEl(refl.DispatchThreadsDimension);
   }
 
-  vector<ShaderResource> roresources, rwresources;
+  rdctype::array<ShaderResource> &roresources = refl.ReadOnlyResources;
+  rdctype::array<ShaderResource> &rwresources = refl.ReadWriteResources;
 
   GLint numUniforms = 0;
   gl.glGetProgramInterfaceiv(sepProg, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
@@ -1425,7 +1369,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
 
     res.name = name;
 
-    vector<ShaderResource> &reslist = (res.IsReadOnly ? roresources : rwresources);
+    rdctype::array<ShaderResource> &reslist = (res.IsReadOnly ? roresources : rwresources);
 
     res.bindPoint = (int32_t)reslist.size();
     reslist.push_back(res);
@@ -1490,7 +1434,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
   }
 
   {
-    vector<DynShaderConstant> *members = new vector<DynShaderConstant>[ssbos.size()];
+    rdctype::array<ShaderConstant> *members = new rdctype::array<ShaderConstant>[ssbos.size()];
 
     for(uint32_t i = 0; i < ssboMembers; i++)
     {
@@ -1510,7 +1454,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         // member
         uint32_t desiredStride = members[ssbo][0].type.descriptor.arrayStride;
 
-        DynShaderConstant *last = &members[ssbo][0].type.members.back();
+        ShaderConstant *last = &members[ssbo][0].type.members.back();
         while(!last->type.members.empty())
           last = &last->type.members.back();
 
@@ -1532,13 +1476,13 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
 
           padding /= 4;
 
-          DynShaderConstant paddingVar;
+          ShaderConstant paddingVar;
           paddingVar.name = "__padding";
           paddingVar.reg.vec = last->reg.vec + (size / 16);
           paddingVar.reg.comp = (last->reg.comp + size / 4) % 16;
           paddingVar.type.descriptor.type = VarType::UInt;
           paddingVar.type.descriptor.rows = 1;
-          paddingVar.type.descriptor.cols = padding;
+          paddingVar.type.descriptor.cols = (uint8_t)RDCMIN(padding, 255U);
           paddingVar.type.descriptor.elements = 1;
           paddingVar.type.descriptor.rowMajorStorage = false;
           paddingVar.type.descriptor.arrayStride = 0;
@@ -1548,22 +1492,22 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         }
       }
 
-      copy(rwresources[ssbos[ssbo]].variableType.members, members[ssbo]);
+      std::swap(rwresources[ssbos[ssbo]].variableType.members, members[ssbo]);
     }
 
     delete[] members;
   }
 
-  vector<DynShaderConstant> globalUniforms;
+  rdctype::array<ShaderConstant> globalUniforms;
 
   GLint numUBOs = 0;
   vector<string> uboNames;
-  vector<DynShaderConstant> *ubos = NULL;
+  rdctype::array<ShaderConstant> *ubos = NULL;
 
   {
     gl.glGetProgramInterfaceiv(sepProg, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
 
-    ubos = new vector<DynShaderConstant>[numUBOs];
+    ubos = new rdctype::array<ShaderConstant>[numUBOs];
     uboNames.resize(numUBOs);
 
     for(GLint u = 0; u < numUBOs; u++)
@@ -1584,12 +1528,10 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     ReconstructVarTree(gl, eGL_UNIFORM, sepProg, u, numUBOs, ubos, &globalUniforms);
   }
 
-  vector<ConstantBlock> cbuffers;
+  refl.ConstantBlocks.reserve(numUBOs + (globalUniforms.empty() ? 0 : 1));
 
   if(ubos)
   {
-    cbuffers.reserve(numUBOs + (globalUniforms.empty() ? 0 : 1));
-
     for(int i = 0; i < numUBOs; i++)
     {
       if(!ubos[i].empty())
@@ -1597,16 +1539,16 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         ConstantBlock cblock;
         cblock.name = uboNames[i];
         cblock.bufferBacked = true;
-        cblock.bindPoint = (int32_t)cbuffers.size();
+        cblock.bindPoint = (int32_t)refl.ConstantBlocks.size();
 
         GLenum bufSize = eGL_BUFFER_DATA_SIZE;
         gl.glGetProgramResourceiv(sepProg, eGL_UNIFORM_BLOCK, i, 1, &bufSize, 1, NULL,
                                   (GLint *)&cblock.byteSize);
 
         sort(ubos[i]);
-        copy(cblock.variables, ubos[i]);
+        std::swap(cblock.variables, ubos[i]);
 
-        cbuffers.push_back(cblock);
+        refl.ConstantBlocks.push_back(cblock);
       }
     }
   }
@@ -1616,15 +1558,16 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     ConstantBlock globals;
     globals.name = "$Globals";
     globals.bufferBacked = false;
-    globals.bindPoint = (int32_t)cbuffers.size();
+    globals.bindPoint = (int32_t)refl.ConstantBlocks.size();
 
     sort(globalUniforms);
-    copy(globals.variables, globalUniforms);
+    std::swap(globals.variables, globalUniforms);
 
-    cbuffers.push_back(globals);
+    refl.ConstantBlocks.push_back(globals);
   }
 
   delete[] ubos;
+
   for(int sigType = 0; sigType < 2; sigType++)
   {
     GLenum sigEnum = (sigType == 0 ? eGL_PROGRAM_INPUT : eGL_PROGRAM_OUTPUT);
@@ -1945,10 +1888,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
   }
 
   // TODO: fill in Interfaces with shader subroutines?
-
-  refl.ReadOnlyResources = roresources;
-  refl.ReadWriteResources = rwresources;
-  refl.ConstantBlocks = cbuffers;
 }
 
 void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, ShaderReflection *refl,
@@ -1968,16 +1907,14 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       eGL_REFERENCED_BY_FRAGMENT_SHADER,        eGL_REFERENCED_BY_COMPUTE_SHADER,
   };
 
-  int32_t numReadOnlyResources = refl ? refl->ReadOnlyResources.count : 0;
-
-  create_array_uninit(mapping.ReadOnlyResources, numReadOnlyResources);
-  for(int32_t i = 0; i < numReadOnlyResources; i++)
+  mapping.ReadOnlyResources.resize(refl->ReadOnlyResources.size());
+  for(size_t i = 0; i < refl->ReadOnlyResources.size(); i++)
   {
-    if(refl->ReadOnlyResources.elems[i].IsTexture)
+    if(refl->ReadOnlyResources[i].IsTexture)
     {
       // normal sampler or image load/store
 
-      GLint loc = gl.glGetUniformLocation(curProg, refl->ReadOnlyResources.elems[i].name.elems);
+      GLint loc = gl.glGetUniformLocation(curProg, refl->ReadOnlyResources[i].name.c_str());
       if(loc >= 0)
       {
         gl.glGetUniformiv(curProg, loc, dummyReadback);
@@ -1987,7 +1924,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       }
 
       // handle sampler arrays, use the base name
-      string name = refl->ReadOnlyResources.elems[i].name.elems;
+      std::string name = refl->ReadOnlyResources[i].name.c_str();
       if(name.back() == ']')
       {
         do
@@ -2020,16 +1957,14 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
     }
   }
 
-  int32_t numReadWriteResources = refl ? refl->ReadWriteResources.count : 0;
-
-  create_array_uninit(mapping.ReadWriteResources, numReadWriteResources);
-  for(int32_t i = 0; i < numReadWriteResources; i++)
+  mapping.ReadWriteResources.resize(refl->ReadWriteResources.size());
+  for(size_t i = 0; i < refl->ReadWriteResources.size(); i++)
   {
-    if(refl->ReadWriteResources.elems[i].IsTexture)
+    if(refl->ReadWriteResources[i].IsTexture)
     {
       // image load/store
 
-      GLint loc = gl.glGetUniformLocation(curProg, refl->ReadWriteResources.elems[i].name.elems);
+      GLint loc = gl.glGetUniformLocation(curProg, refl->ReadWriteResources[i].name.c_str());
       if(loc >= 0)
       {
         gl.glGetUniformiv(curProg, loc, dummyReadback);
@@ -2039,7 +1974,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       }
 
       // handle sampler arrays, use the base name
-      string name = refl->ReadWriteResources.elems[i].name.elems;
+      std::string name = refl->ReadWriteResources[i].name.c_str();
       if(name.back() == ']')
       {
         do
@@ -2063,15 +1998,15 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
         mapping.ReadWriteResources[i].used = (used != 0);
       }
     }
-    else if(!refl->ReadWriteResources.elems[i].IsTexture)
+    else if(!refl->ReadWriteResources[i].IsTexture)
     {
-      if(refl->ReadWriteResources.elems[i].variableType.descriptor.cols == 1 &&
-         refl->ReadWriteResources.elems[i].variableType.descriptor.rows == 1 &&
-         refl->ReadWriteResources.elems[i].variableType.descriptor.type == VarType::UInt)
+      if(refl->ReadWriteResources[i].variableType.descriptor.cols == 1 &&
+         refl->ReadWriteResources[i].variableType.descriptor.rows == 1 &&
+         refl->ReadWriteResources[i].variableType.descriptor.type == VarType::UInt)
       {
         // atomic uint
         GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM,
-                                                  refl->ReadWriteResources.elems[i].name.elems);
+                                                  refl->ReadWriteResources[i].name.c_str());
 
         if(idx == GL_INVALID_INDEX)
         {
@@ -2135,7 +2070,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       {
         // shader storage buffer object
         GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_SHADER_STORAGE_BLOCK,
-                                                  refl->ReadWriteResources.elems[i].name.elems);
+                                                  refl->ReadWriteResources[i].name.c_str());
 
         if(idx == GL_INVALID_INDEX)
         {
@@ -2167,14 +2102,12 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
     }
   }
 
-  int32_t numCBlocks = refl ? refl->ConstantBlocks.count : 0;
-
-  create_array_uninit(mapping.ConstantBlocks, numCBlocks);
-  for(int32_t i = 0; i < numCBlocks; i++)
+  mapping.ConstantBlocks.resize(refl->ConstantBlocks.size());
+  for(size_t i = 0; i < refl->ConstantBlocks.size(); i++)
   {
-    if(refl->ConstantBlocks.elems[i].bufferBacked)
+    if(refl->ConstantBlocks[i].bufferBacked)
     {
-      GLint loc = gl.glGetUniformBlockIndex(curProg, refl->ConstantBlocks.elems[i].name.elems);
+      GLint loc = gl.glGetUniformBlockIndex(curProg, refl->ConstantBlocks[i].name.c_str());
       if(loc >= 0)
       {
         gl.glGetActiveUniformBlockiv(curProg, loc, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
@@ -2190,14 +2123,14 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
       mapping.ConstantBlocks[i].arraySize = 1;
     }
 
-    if(!refl->ConstantBlocks.elems[i].bufferBacked)
+    if(!refl->ConstantBlocks[i].bufferBacked)
     {
       mapping.ConstantBlocks[i].used = true;
     }
     else
     {
       GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM_BLOCK,
-                                                refl->ConstantBlocks.elems[i].name.elems);
+                                                refl->ConstantBlocks[i].name.c_str());
       if(idx == GL_INVALID_INDEX)
       {
         mapping.ConstantBlocks[i].used = false;
@@ -2215,16 +2148,16 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
   GLint numVAttribBindings = 16;
   gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numVAttribBindings);
 
-  create_array_uninit(mapping.InputAttributes, numVAttribBindings);
+  mapping.InputAttributes.resize(numVAttribBindings);
   for(int32_t i = 0; i < numVAttribBindings; i++)
     mapping.InputAttributes[i] = -1;
 
   // override identity map with bindings
   if(shadIdx == 0 && refl)
   {
-    for(int32_t i = 0; i < refl->InputSig.count; i++)
+    for(int32_t i = 0; i < refl->InputSig.count(); i++)
     {
-      GLint loc = gl.glGetAttribLocation(curProg, refl->InputSig.elems[i].varName.elems);
+      GLint loc = gl.glGetAttribLocation(curProg, refl->InputSig[i].varName.c_str());
 
       if(loc >= 0 && loc < numVAttribBindings)
       {
@@ -2347,9 +2280,9 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
     }
   };
 
-  permutation.resize(mapping->ReadOnlyResources.count);
-  for(int i = 0; i < mapping->ReadOnlyResources.count; i++)
-    permutation[i] = std::make_pair((size_t)i, mapping->ReadOnlyResources[i].bind);
+  permutation.resize(mapping->ReadOnlyResources.size());
+  for(size_t i = 0; i < mapping->ReadOnlyResources.size(); i++)
+    permutation[i] = std::make_pair(i, mapping->ReadOnlyResources[i].bind);
 
   std::sort(permutation.begin(), permutation.end(), permutation_sort());
 
@@ -2362,9 +2295,9 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
   for(size_t i = 0; i < permutation.size(); i++)
     refl->ReadOnlyResources[i].bindPoint = (int)permutation[i].first;
 
-  permutation.resize(mapping->ReadWriteResources.count);
-  for(int i = 0; i < mapping->ReadWriteResources.count; i++)
-    permutation[i] = std::make_pair((size_t)i, mapping->ReadWriteResources[i].bind);
+  permutation.resize(mapping->ReadWriteResources.size());
+  for(size_t i = 0; i < mapping->ReadWriteResources.size(); i++)
+    permutation[i] = std::make_pair(i, mapping->ReadWriteResources[i].bind);
 
   std::sort(permutation.begin(), permutation.end(), permutation_sort());
 
@@ -2375,9 +2308,9 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
   for(size_t i = 0; i < permutation.size(); i++)
     refl->ReadWriteResources[i].bindPoint = (int)permutation[i].first;
 
-  permutation.resize(mapping->ConstantBlocks.count);
-  for(int i = 0; i < mapping->ConstantBlocks.count; i++)
-    permutation[i] = std::make_pair((size_t)i, mapping->ConstantBlocks[i].bind);
+  permutation.resize(mapping->ConstantBlocks.size());
+  for(size_t i = 0; i < mapping->ConstantBlocks.size(); i++)
+    permutation[i] = std::make_pair(i, mapping->ConstantBlocks[i].bind);
 
   std::sort(permutation.begin(), permutation.end(), permutation_sort());
 

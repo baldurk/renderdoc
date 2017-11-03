@@ -228,7 +228,7 @@ QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
 {
   uint lastEID = 0, lastDraw = 0;
 
-  for(int32_t i = 0; i < draws.count; i++)
+  for(int32_t i = 0; i < draws.count(); i++)
   {
     const DrawcallDescription &d = draws[i];
 
@@ -250,7 +250,7 @@ QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
       lastEID = d.eventID;
       lastDraw = d.drawcallID;
 
-      if((draws[i].flags & DrawFlags::SetMarker) && i + 1 < draws.count)
+      if((draws[i].flags & DrawFlags::SetMarker) && i + 1 < draws.count())
         lastEID = draws[i + 1].eventID;
     }
 

@@ -468,10 +468,10 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
     n.draw.eventID += m_RootEventID;
     n.draw.drawcallID += m_RootDrawcallID;
 
-    for(int32_t e = 0; e < n.draw.events.count; e++)
+    for(APIEvent &ev : n.draw.events)
     {
-      n.draw.events[e].eventID += m_RootEventID;
-      m_Events.push_back(n.draw.events[e]);
+      ev.eventID += m_RootEventID;
+      m_Events.push_back(ev);
     }
 
     DrawcallUse use(m_Events.back().fileOffset, n.draw.eventID);

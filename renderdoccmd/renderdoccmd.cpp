@@ -37,9 +37,9 @@ volatile bool killSignal = false;
 rdctype::array<rdctype::str> convertArgs(const std::vector<std::string> &args)
 {
   rdctype::array<rdctype::str> ret;
-  ret.create((int)args.size());
+  ret.reserve(args.size());
   for(size_t i = 0; i < args.size(); i++)
-    ret[i] = args[i];
+    ret.push_back(args[i]);
   return ret;
 }
 
@@ -80,20 +80,20 @@ void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_
   d.Red = d.Green = d.Blue = true;
   d.Alpha = false;
 
-  for(int32_t i = 0; i < texs.count; i++)
+  for(const TextureDescription &desc : texs)
   {
-    if(texs[i].creationFlags & TextureCategory::SwapBuffer)
+    if(desc.creationFlags & TextureCategory::SwapBuffer)
     {
-      d.texid = texs[i].ID;
+      d.texid = desc.ID;
       break;
     }
   }
 
   rdctype::array<DrawcallDescription> draws = renderer->GetDrawcalls();
 
-  if(draws.count > 0 && draws[draws.count - 1].flags & DrawFlags::Present)
+  if(!draws.empty() && draws.back().flags & DrawFlags::Present)
   {
-    ResourceId id = draws[draws.count - 1].copyDestination;
+    ResourceId id = draws.back().copyDestination;
     if(id != ResourceId())
       d.texid = id;
   }
@@ -304,7 +304,7 @@ struct ThumbCommand : public Command
       }
       else
       {
-        fwrite(buf.elems, 1, buf.count, f);
+        fwrite(buf.data(), 1, buf.size(), f);
         fclose(f);
 
         std::cout << "Wrote thumbnail from '" << filename << "' to '" << outfile << "'." << std::endl;
@@ -552,7 +552,7 @@ struct ReplayCommand : public Command
       rdctype::str remotePath = remote->CopyCaptureToRemote(filename.c_str(), NULL);
 
       IReplayController *renderer = NULL;
-      std::tie(status, renderer) = remote->OpenCapture(~0U, remotePath.elems, NULL);
+      std::tie(status, renderer) = remote->OpenCapture(~0U, remotePath.c_str(), NULL);
 
       if(status == ReplayStatus::Succeeded)
       {
@@ -659,7 +659,7 @@ struct CapAltBitCommand : public Command
     int numEnvs = int(rest.size() / 3);
 
     rdctype::array<EnvironmentModification> env;
-    env.create(numEnvs);
+    env.reserve(numEnvs);
 
     for(int i = 0; i < numEnvs; i++)
     {
@@ -719,7 +719,8 @@ struct CapAltBitCommand : public Command
         return 0;
       }
 
-      env[i] = EnvironmentModification(type, sep, rest[i * 3 + 1].c_str(), rest[i * 3 + 2].c_str());
+      env.push_back(
+          EnvironmentModification(type, sep, rest[i * 3 + 1].c_str(), rest[i * 3 + 2].c_str()));
     }
 
     string debuglog = parser.get<string>("debuglog");

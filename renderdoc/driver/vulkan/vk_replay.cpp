@@ -839,7 +839,7 @@ TextureDescription VulkanReplay::GetTexture(ResourceId id)
 
   ret.customName = true;
   ret.name = m_pDriver->m_CreationInfo.m_Names[id];
-  if(ret.name.count == 0)
+  if(ret.name.empty())
   {
     ret.customName = false;
 
@@ -896,7 +896,7 @@ BufferDescription VulkanReplay::GetBuffer(ResourceId id)
 
   ret.customName = true;
   ret.name = m_pDriver->m_CreationInfo.m_Names[id];
-  if(ret.name.count == 0)
+  if(ret.name.empty())
   {
     ret.customName = false;
     ret.name = StringFormat::Fmt("Buffer %llu", ret.ID);
@@ -2860,10 +2860,9 @@ void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
 
 bool VulkanReplay::IsRenderOutput(ResourceId id)
 {
-  for(int32_t i = 0; i < m_VulkanPipelineState.Pass.framebuffer.attachments.count; i++)
+  for(const VKPipe::Attachment &att : m_VulkanPipelineState.Pass.framebuffer.attachments)
   {
-    if(m_VulkanPipelineState.Pass.framebuffer.attachments[i].view == id ||
-       m_VulkanPipelineState.Pass.framebuffer.attachments[i].img == id)
+    if(att.view == id || att.img == id)
       return true;
   }
 
@@ -2903,7 +2902,7 @@ void VulkanReplay::SavePipelineState()
 
         stage.customName = true;
         stage.name = m_pDriver->m_CreationInfo.m_Names[p.shaders[i].module];
-        if(stage.name.count == 0)
+        if(stage.name.empty())
         {
           stage.customName = false;
           stage.name = StringFormat::Fmt("Shader %llu", stage.Object);
@@ -2915,12 +2914,12 @@ void VulkanReplay::SavePipelineState()
         if(p.shaders[i].refl)
           stage.ShaderDetails = p.shaders[i].refl;
 
-        create_array_uninit(stage.specialization, p.shaders[i].specialization.size());
+        stage.specialization.resize(p.shaders[i].specialization.size());
         for(size_t s = 0; s < p.shaders[i].specialization.size(); s++)
         {
           stage.specialization[s].specID = p.shaders[i].specialization[s].specID;
-          create_array_init(stage.specialization[s].data, p.shaders[i].specialization[s].size,
-                            p.shaders[i].specialization[s].data);
+          stage.specialization[s].data.assign(p.shaders[i].specialization[s].data,
+                                              p.shaders[i].specialization[s].size);
         }
       }
     }
@@ -2937,7 +2936,7 @@ void VulkanReplay::SavePipelineState()
       m_VulkanPipelineState.IA.primitiveRestartEnable = p.primitiveRestartEnable;
 
       // Vertex Input
-      create_array_uninit(m_VulkanPipelineState.VI.attrs, p.vertexAttrs.size());
+      m_VulkanPipelineState.VI.attrs.resize(p.vertexAttrs.size());
       for(size_t i = 0; i < p.vertexAttrs.size(); i++)
       {
         m_VulkanPipelineState.VI.attrs[i].location = p.vertexAttrs[i].location;
@@ -2946,7 +2945,7 @@ void VulkanReplay::SavePipelineState()
         m_VulkanPipelineState.VI.attrs[i].format = MakeResourceFormat(p.vertexAttrs[i].format);
       }
 
-      create_array_uninit(m_VulkanPipelineState.VI.binds, p.vertexBindings.size());
+      m_VulkanPipelineState.VI.binds.resize(p.vertexBindings.size());
       for(size_t i = 0; i < p.vertexBindings.size(); i++)
       {
         m_VulkanPipelineState.VI.binds[i].bytestride = p.vertexBindings[i].bytestride;
@@ -2954,7 +2953,7 @@ void VulkanReplay::SavePipelineState()
         m_VulkanPipelineState.VI.binds[i].perInstance = p.vertexBindings[i].perInstance;
       }
 
-      create_array_uninit(m_VulkanPipelineState.VI.vbuffers, state.vbuffers.size());
+      m_VulkanPipelineState.VI.vbuffers.resize(state.vbuffers.size());
       for(size_t i = 0; i < state.vbuffers.size(); i++)
       {
         m_VulkanPipelineState.VI.vbuffers[i].buffer = rm->GetOriginalID(state.vbuffers[i].buf);
@@ -2974,7 +2973,7 @@ void VulkanReplay::SavePipelineState()
 
         stages[i]->customName = true;
         stages[i]->name = m_pDriver->m_CreationInfo.m_Names[p.shaders[i].module];
-        if(stages[i]->name.count == 0)
+        if(stages[i]->name.empty())
         {
           stages[i]->customName = false;
           stages[i]->name = StringFormat::Fmt("Shader %llu", stages[i]->Object);
@@ -2986,12 +2985,12 @@ void VulkanReplay::SavePipelineState()
         if(p.shaders[i].refl)
           stages[i]->ShaderDetails = p.shaders[i].refl;
 
-        create_array_uninit(stages[i]->specialization, p.shaders[i].specialization.size());
+        stages[i]->specialization.resize(p.shaders[i].specialization.size());
         for(size_t s = 0; s < p.shaders[i].specialization.size(); s++)
         {
           stages[i]->specialization[s].specID = p.shaders[i].specialization[s].specID;
-          create_array_init(stages[i]->specialization[s].data, p.shaders[i].specialization[s].size,
-                            p.shaders[i].specialization[s].data);
+          stages[i]->specialization[s].data.assign(p.shaders[i].specialization[s].data,
+                                                   p.shaders[i].specialization[s].size);
         }
       }
 
@@ -3000,7 +2999,7 @@ void VulkanReplay::SavePipelineState()
 
       // Viewport/Scissors
       size_t numViewScissors = p.viewportCount;
-      create_array_uninit(m_VulkanPipelineState.VP.viewportScissors, numViewScissors);
+      m_VulkanPipelineState.VP.viewportScissors.resize(numViewScissors);
       for(size_t i = 0; i < numViewScissors; i++)
       {
         if(i < state.views.size())
@@ -3078,7 +3077,7 @@ void VulkanReplay::SavePipelineState()
       m_VulkanPipelineState.CB.alphaToOneEnable = p.alphaToOneEnable;
       m_VulkanPipelineState.CB.logic = MakeLogicOp(p.logicOp);
 
-      create_array_uninit(m_VulkanPipelineState.CB.attachments, p.attachments.size());
+      m_VulkanPipelineState.CB.attachments.resize(p.attachments.size());
       for(size_t i = 0; i < p.attachments.size(); i++)
       {
         m_VulkanPipelineState.CB.attachments[i].blendEnable = p.attachments[i].blendEnable;
@@ -3155,8 +3154,8 @@ void VulkanReplay::SavePipelineState()
         m_VulkanPipelineState.Pass.framebuffer.height = c.m_Framebuffer[state.framebuffer].height;
         m_VulkanPipelineState.Pass.framebuffer.layers = c.m_Framebuffer[state.framebuffer].layers;
 
-        create_array_uninit(m_VulkanPipelineState.Pass.framebuffer.attachments,
-                            c.m_Framebuffer[state.framebuffer].attachments.size());
+        m_VulkanPipelineState.Pass.framebuffer.attachments.resize(
+            c.m_Framebuffer[state.framebuffer].attachments.size());
         for(size_t i = 0; i < c.m_Framebuffer[state.framebuffer].attachments.size(); i++)
         {
           ResourceId viewid = c.m_Framebuffer[state.framebuffer].attachments[i].view;
@@ -3207,8 +3206,8 @@ void VulkanReplay::SavePipelineState()
     }
 
     // Descriptor sets
-    create_array_uninit(m_VulkanPipelineState.graphics.DescSets, state.graphics.descSets.size());
-    create_array_uninit(m_VulkanPipelineState.compute.DescSets, state.compute.descSets.size());
+    m_VulkanPipelineState.graphics.DescSets.resize(state.graphics.descSets.size());
+    m_VulkanPipelineState.compute.DescSets.resize(state.compute.descSets.size());
 
     {
       rdctype::array<VKPipe::DescriptorSet> *dsts[] = {
@@ -3230,8 +3229,7 @@ void VulkanReplay::SavePipelineState()
 
           dst.descset = rm->GetOriginalID(src);
           dst.layout = rm->GetOriginalID(layoutId);
-          create_array_uninit(dst.bindings,
-                              m_pDriver->m_DescriptorSetState[src].currentBindings.size());
+          dst.bindings.resize(m_pDriver->m_DescriptorSetState[src].currentBindings.size());
           for(size_t b = 0; b < m_pDriver->m_DescriptorSetState[src].currentBindings.size(); b++)
           {
             DescriptorSetSlot *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
@@ -3281,7 +3279,7 @@ void VulkanReplay::SavePipelineState()
                 RDCERR("Unexpected descriptor type");
             }
 
-            create_array_uninit(dst.bindings[b].binds, layoutBind.descriptorCount);
+            dst.bindings[b].binds.resize(layoutBind.descriptorCount);
             for(uint32_t a = 0; a < layoutBind.descriptorCount; a++)
             {
               if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
@@ -3309,7 +3307,7 @@ void VulkanReplay::SavePipelineState()
 
                   el.customName = true;
                   el.name = m_pDriver->m_CreationInfo.m_Names[liveId];
-                  if(el.name.count == 0)
+                  if(el.name.empty())
                   {
                     el.customName = false;
                     el.name = StringFormat::Fmt("Sampler %llu", el.sampler);
@@ -3438,7 +3436,7 @@ void VulkanReplay::SavePipelineState()
 
     // image layouts
     {
-      create_array_uninit(m_VulkanPipelineState.images, m_pDriver->m_ImageLayouts.size());
+      m_VulkanPipelineState.images.resize(m_pDriver->m_ImageLayouts.size());
       size_t i = 0;
       for(auto it = m_pDriver->m_ImageLayouts.begin(); it != m_pDriver->m_ImageLayouts.end(); ++it)
       {
@@ -3446,7 +3444,7 @@ void VulkanReplay::SavePipelineState()
 
         img.image = rm->GetOriginalID(it->first);
 
-        create_array_uninit(img.layouts, it->second.subresourceStates.size());
+        img.layouts.resize(it->second.subresourceStates.size());
         for(size_t l = 0; l < it->second.subresourceStates.size(); l++)
         {
           img.layouts[l].name = ToStr::Get(it->second.subresourceStates[l].newLayout);
@@ -3466,9 +3464,9 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars,
                                         vector<ShaderVariable> &outvars, const vector<byte> &data,
                                         size_t baseOffset)
 {
-  for(int v = 0; v < invars.count; v++)
+  for(size_t v = 0; v < invars.size(); v++)
   {
-    string basename = invars[v].name.elems;
+    std::string basename = invars[v].name;
 
     uint32_t rows = invars[v].type.descriptor.rows;
     uint32_t cols = invars[v].type.descriptor.cols;
@@ -3479,7 +3477,7 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars,
     size_t dataOffset =
         baseOffset + invars[v].reg.vec * sizeof(Vec4f) + invars[v].reg.comp * sizeof(float);
 
-    if(invars[v].type.members.count > 0 || (rows == 0 && cols == 0))
+    if(!invars[v].type.members.empty() || (rows == 0 && cols == 0))
     {
       ShaderVariable var;
       var.name = basename;
@@ -3593,7 +3591,7 @@ void VulkanReplay::FillCBufferVariables(rdctype::array<ShaderConstant> invars,
         vector<ShaderVariable> varmembers;
         varmembers.resize(elems);
 
-        string base = outvars[outIdx].name.elems;
+        std::string base = outvars[outIdx].name;
 
         // primary is the 'major' direction
         // so we copy secondaryDim number of primaryDim-sized elements
@@ -3671,7 +3669,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
   ShaderReflection &refl = it->second.m_Reflections[entryPoint].refl;
   ShaderBindpointMapping &mapping = it->second.m_Reflections[entryPoint].mapping;
 
-  if(cbufSlot >= (uint32_t)refl.ConstantBlocks.count)
+  if(cbufSlot >= (uint32_t)refl.ConstantBlocks.count())
   {
     RDCERR("Invalid cbuffer slot");
     return;
@@ -3689,12 +3687,12 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
     // magic constant here matches the one generated in SPVModule::MakeReflection(
     if(mapping.ConstantBlocks[c.bindPoint].bindset == 123456)
     {
-      outvars.resize(c.variables.count);
-      for(int32_t v = 0; v < c.variables.count; v++)
+      outvars.resize(c.variables.size());
+      for(size_t v = 0; v < c.variables.size(); v++)
       {
         outvars[v].rows = c.variables[v].type.descriptor.rows;
         outvars[v].columns = c.variables[v].type.descriptor.cols;
-        outvars[v].isStruct = c.variables[v].type.members.count > 0;
+        outvars[v].isStruct = !c.variables[v].type.members.empty();
         RDCASSERT(!outvars[v].isStruct);
         outvars[v].name = c.variables[v].name;
         outvars[v].type = c.variables[v].type.descriptor.type;
@@ -3716,7 +3714,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId shader, string entryPoint, ui
           // find any actual values specified
           for(size_t i = 0; i < specInfo.size(); i++)
           {
-            for(int32_t v = 0; v < c.variables.count; v++)
+            for(size_t v = 0; v < c.variables.size(); v++)
             {
               if(specInfo[i].specID == c.variables[v].reg.vec)
               {

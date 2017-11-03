@@ -234,7 +234,7 @@ void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallTreeN
     const DrawcallDescription &d = drawnode.children[i].draw;
     FillTimers(ctx, drawnode.children[i]);
 
-    if(d.events.count == 0)
+    if(d.events.empty())
       continue;
 
     GPUTimer *timer = NULL;
@@ -299,7 +299,7 @@ void D3D11DebugManager::FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIn
 
     FillTimersAMD(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
 
-    if(d.events.count == 0)
+    if(d.events.empty())
       continue;
 
     eventIDs.push_back(d.eventID);

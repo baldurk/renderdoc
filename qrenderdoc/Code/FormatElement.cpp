@@ -822,12 +822,12 @@ uint32_t FormatElement::byteSize() const
 
 QString TypeString(const ShaderVariable &v)
 {
-  if(v.members.count > 0 || v.isStruct)
+  if(!v.members.isEmpty() || v.isStruct)
   {
     if(v.isStruct)
       return lit("struct");
     else
-      return QFormatStr("%1[%2]").arg(TypeString(v.members[0])).arg(v.members.count);
+      return QFormatStr("%1[%2]").arg(TypeString(v.members[0])).arg(v.members.count());
   }
 
   QString typeStr = ToQStr(v.type);
@@ -888,7 +888,7 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
 
 QString VarString(const ShaderVariable &v)
 {
-  if(v.members.count > 0)
+  if(!v.members.isEmpty())
     return QString();
 
   if(v.rows == 1)
@@ -907,7 +907,7 @@ QString VarString(const ShaderVariable &v)
 
 QString RowTypeString(const ShaderVariable &v)
 {
-  if(v.members.count > 0 || v.isStruct)
+  if(!v.members.isEmpty() || v.isStruct)
   {
     if(v.isStruct)
       return lit("struct");

@@ -53,7 +53,7 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id, GLuint
       concatenated += sources[i];
     }
 
-    create_array_init(reflection.RawBytes, concatenated.size(), (byte *)concatenated.c_str());
+    reflection.RawBytes.assign((byte *)concatenated.c_str(), concatenated.size());
   }
 
   GLuint sepProg = prog;
@@ -93,7 +93,7 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id, GLuint
     reflection.EntryPoint = "main";
 
     // TODO sort these so that the first file contains the entry point
-    create_array_uninit(reflection.DebugInfo.files, sources.size());
+    reflection.DebugInfo.files.resize(sources.size());
     for(size_t i = 0; i < sources.size(); i++)
     {
       reflection.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);

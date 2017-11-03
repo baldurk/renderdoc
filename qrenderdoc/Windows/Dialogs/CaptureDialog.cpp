@@ -311,7 +311,7 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
 
   if(hasOtherJSON)
   {
-    if(otherJSONs.count > 1)
+    if(otherJSONs.size() > 1)
       msg +=
           tr("there are other RenderDoc builds registered already. They must be disabled so that "
              "capture can happen without nasty clashes.");

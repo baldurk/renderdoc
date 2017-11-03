@@ -66,7 +66,7 @@ public:
         // NT paths
         Renderer.ListFolder(lit("/"), true, [this, homeDir](const rdctype::str &path,
                                                             const rdctype::array<PathEntry> &files) {
-          for(int i = 0; i < files.count; i++)
+          for(int i = 0; i < files.count(); i++)
           {
             FSNode *node = new FSNode();
             node->parent = NULL;
@@ -452,14 +452,14 @@ private:
     Renderer.ListFolder(makePath(node), true, [this, node](const rdctype::str &path,
                                                            const rdctype::array<PathEntry> &files) {
 
-      if(files.count == 1 && (files[0].flags & PathProperty::ErrorAccessDenied))
+      if(files.count() == 1 && (files[0].flags & PathProperty::ErrorAccessDenied))
       {
         node->file.flags |= PathProperty::ErrorAccessDenied;
         return;
       }
 
       QVector<PathEntry> sortedFiles;
-      sortedFiles.reserve(files.count);
+      sortedFiles.reserve(files.count());
       for(const PathEntry &f : files)
         sortedFiles.push_back(f);
 

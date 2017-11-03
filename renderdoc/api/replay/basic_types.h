@@ -32,6 +32,8 @@
 #include <tuple>
 #include <vector>
 
+typedef uint8_t byte;
+
 #ifndef DOCUMENT
 #define DOCUMENT(text)
 #endif
@@ -48,14 +50,8 @@
 #define DOCUMENT4(text1, text2, text3, text4)
 #endif
 
-// we provide a basic templated type that is a fixed array that just contains a pointer to the
-// element
-// array and a size. This could easily map to C as just void* and size but in C++ at least we can be
-// type safe.
-//
-// While we can use STL elsewhere in the main library, we want to expose data to the UI layer as
-// fixed
-// arrays so that it's a plain C compatible interface.
+// here we define our own data structures that are ABI compatible between modules, as STL is not
+// safe to pass a module boundary.
 namespace rdctype
 {
 template <typename A, typename B>
@@ -76,199 +72,500 @@ pair<A, B> make_pair(const A &a, const B &b)
   return ret;
 }
 
+// utility class that adds a NULL terminator to array operations only if T == char
+template <typename T>
+struct null_terminator
+{
+  // adds 1 to every allocation to ensure we have space. Happens invisibly so even capacity()
+  // doesn't know about it
+  inline static size_t allocCount(size_t c) { return c; }
+  // adds the NULL terminator after a resize operation
+  inline static void fixup(T *elems, size_t count) {}
+};
+
+template <>
+struct null_terminator<char>
+{
+  inline static size_t allocCount(size_t c) { return c + 1; }
+  // indexing 'off the end' of elems is safe because we over-allocated above
+  inline static void fixup(char *elems, size_t count) { elems[count] = 0; }
+};
+
 template <typename T>
 struct array
 {
+protected:
   T *elems;
-  int32_t count;
+  int32_t allocatedCount;
+  int32_t usedCount;
 
-  array() : elems(0), count(0) {}
-  ~array() { Delete(); }
-  void Delete()
+  /////////////////////////////////////////////////////////////////
+  // memory management, in a dll safe way
+  static T *allocate(size_t count)
   {
-    for(int32_t i = 0; i < count; i++)
-      elems[i].~T();
-    deallocate(elems);
-    elems = 0;
-    count = 0;
+#ifdef RENDERDOC_EXPORTS
+    return (T *)malloc(count * sizeof(T));
+#else
+    return (T *)RENDERDOC_AllocArrayMem(count * sizeof(T));
+#endif
+  }
+  static void deallocate(const T *p)
+  {
+#ifdef RENDERDOC_EXPORTS
+    free((void *)p);
+#else
+    RENDERDOC_FreeArrayMem((const void *)p);
+#endif
   }
 
-#ifdef RENDERDOC_EXPORTS
-  static void *allocate(size_t s) { return malloc(s); }
-  static void deallocate(const void *p) { free((void *)p); }
-#else
-  static void *allocate(size_t s) { return RENDERDOC_AllocArrayMem(s); }
-  static void deallocate(const void *p) { RENDERDOC_FreeArrayMem(p); }
-#endif
+  inline void setUsedCount(int32_t newCount)
+  {
+    usedCount = newCount;
+    null_terminator<T>::fixup(elems, usedCount);
+  }
 
+public:
+  typedef T value_type;
+
+  array() : elems(NULL), allocatedCount(0), usedCount(0) {}
+  ~array()
+  {
+    // clear will destruct the actual elements still existing
+    clear();
+    // then we deallocate the backing store
+    deallocate(elems);
+    elems = NULL;
+    allocatedCount = 0;
+  }
+
+  /////////////////////////////////////////////////////////////////
+  // simple accessors
   T &operator[](size_t i) { return elems[i]; }
   const T &operator[](size_t i) const { return elems[i]; }
-  array(const std::vector<T> &in)
+  T *data() { return elems; }
+  const T *data() const { return elems; }
+  T *begin() { return elems ? elems : end(); }
+  T *end() { return elems ? elems + usedCount : NULL; }
+  T &front() { return *elems; }
+  T &back() { return *(elems + usedCount - 1); }
+  T &at(size_t idx) { return elems[idx]; }
+  const T *begin() const { return elems ? elems : end(); }
+  const T *end() const { return elems ? elems + usedCount : NULL; }
+  const T &front() const { return *elems; }
+  const T &back() const { return *(elems + usedCount - 1); }
+  size_t size() const { return (size_t)usedCount; }
+  size_t byteSize() const { return (size_t)usedCount * sizeof(T); }
+  int32_t count() const { return (int32_t)usedCount; }
+  size_t capacity() const { return (size_t)allocatedCount; }
+  bool empty() const { return usedCount == 0; }
+  bool isEmpty() const { return usedCount == 0; }
+  void clear() { resize(0); }
+  void push_back(const T &el) { insert(size(), &el, 1); }
+  /////////////////////////////////////////////////////////////////
+  // managing elements and memory
+
+  void reserve(size_t s)
   {
-    elems = 0;
-    count = 0;
-    *this = in;
-  }
-  array &operator=(const std::vector<T> &in)
-  {
-    Delete();
-    count = (int32_t)in.size();
-    if(count == 0)
+    // if we're empty then normally reserving s==0 would do nothing, but if we need to append a null
+    // terminator then we do actually need to allocate
+    if(s == 0 && capacity() == 0 && null_terminator<T>::allocCount(0) > 0)
     {
-      elems = 0;
+      elems = allocate(null_terminator<T>::allocCount(0));
+      return;
     }
-    else
-    {
-      elems = (T *)allocate(sizeof(T) * count);
-      for(int32_t i = 0; i < count; i++)
-        new(elems + i) T(in[i]);
-    }
-    return *this;
+
+    // nothing to do if we already have this much space. We only size up
+    if(s <= capacity())
+      return;
+
+    // for now, just resize exactly to what's needed.
+    T *newElems = allocate(null_terminator<T>::allocCount(s));
+
+    // copy the elements to new storage
+    for(int32_t i = 0; i < usedCount; i++)
+      new(newElems + i) T(elems[i]);
+
+    // delete the old elements
+    for(int32_t i = 0; i < usedCount; i++)
+      elems[i].~T();
+
+    // deallocate tee old storage
+    deallocate(elems);
+
+    // swap the storage. usedCount doesn't change
+    elems = newElems;
+
+    // update allocated size
+    allocatedCount = (int32_t)s;
   }
 
-  array(const std::initializer_list<T> &in)
+  void resize(size_t s)
   {
-    elems = 0;
-    count = 0;
-    *this = in;
-  }
-  array &operator=(const std::initializer_list<T> &in)
-  {
-    Delete();
-    count = (int32_t)in.size();
-    if(count == 0)
+    // do nothing if we're already this size
+    if(s == size())
+      return;
+
+    int32_t oldCount = usedCount;
+
+    if(s > size())
     {
-      elems = 0;
+      // make sure we have backing store allocated
+      reserve(s);
+
+      // update the currently allocated count
+      setUsedCount((int32_t)s);
+
+      // default initialise the new elements
+      for(int32_t i = oldCount; i < usedCount; i++)
+        new(elems + i) T();
     }
     else
     {
-      elems = (T *)allocate(sizeof(T) * count);
-      int i = 0;
-      for(const T &t : in)
+      // resizing down, we just need to update the count and destruct removed elements
+      setUsedCount((int32_t)s);
+
+      for(int32_t i = usedCount; i < oldCount; i++)
+        elems[i].~T();
+    }
+  }
+
+  void insert(size_t offs, const T *el, size_t count)
+  {
+    const size_t oldSize = size();
+
+    // invalid size
+    if(offs > oldSize)
+      return;
+
+    size_t newSize = oldSize + count;
+
+    // reserve more space if needed
+    reserve(newSize);
+
+    // fast path where offs == size(), for push_back
+    if(offs == oldSize)
+    {
+      // copy construct the new element into place. There was nothing here to destruct as it was
+      // unused memory
+      for(size_t i = 0; i < count; i++)
+        new(elems + offs + i) T(el[i]);
+    }
+    else
+    {
+      // we need to shuffle everything up. Iterate from the back in two stages: first into the
+      // newly-allocated elements that don't need to be destructed. Then one-by-one destructing an
+      // element (which has been moved later), and copy-constructing the new one into place
+      //
+      // e.g. an array of 6 elements, inserting 3 more at offset 1
+      //
+      // <==    old data     ==> <== new ==>
+      // [0] [1] [2] [3] [4] [5] [6] [7] [8]
+      //  A   B   C   D   E   F   .   .   .
+      //
+      // first pass:
+      //
+      // [8].copyConstruct([5])
+      // [7].copyConstruct([4])
+      // [6].copyConstruct([3])
+      //
+      // [0] [1] [2] [3] [4] [5] [6] [7] [8]
+      //  A   B   C   D*  E*  F*  D   E   F
+      //
+      // * marked elements have been moved now, so they're free to destruct.
+      //
+      // second pass:
+      // [5].destruct()
+      // [5].copyConstruct([2])
+      // [4].destruct()
+      // [4].copyConstruct([1])
+      //
+      // [0] [1] [2] [3] [4] [5] [6] [7] [8]
+      //  A   B*  C*  D*  B   C   D   E   F
+      //
+      // Note that at each point, we're moving 'count' elements along - 5->8, 4->7, 3->6, 2->5, 1->4
+      //
+      // [1] through [3] will be destructed next when we actually do the insert
+      //
+      // if we're inserting more elements than existed before, there may be gaps. E.g. if we
+      // inserted 10 in the example above we'd end up with something like:
+      //
+      // [0] [1] [2] [3] [4] [5] [6] [7] [8] [9] [a] [b] [c] [d] [e] [f]
+      //  A   B*  C*  D*  E*  F*  .   .   .   .   .   B   C   D   E   F
+      //
+      // and the second pass wouldn't have had anything to do.
+      // In the next part we just need to check if the slot was < oldCount to know if we should
+      // destruct it before inserting.
+
+      // first pass, copy
+      for(size_t i = 0; i < count; i++)
+        new(elems + oldSize + count - 1 - i) T(elems[oldSize - 1 - i]);
+
+      // second pass, destruct & copy if there was any overlap
+      if(count < oldSize - offs)
       {
-        new(elems + i) T(t);
-        i++;
+        size_t overlap = oldSize - offs - count;
+        for(size_t i = 0; i < overlap; i++)
+        {
+          // destruct old element
+          elems[oldSize - 1 - i].~T();
+          // copy from earlier
+          new(elems + oldSize - 1 - i) T(elems[oldSize - 1 - count - i]);
+        }
+      }
+
+      // elems[offs] to elems[offs + count - 1] are now free to construct into.
+      for(size_t i = 0; i < count; i++)
+      {
+        // if this was one used previously, destruct it
+        if(i < oldSize)
+          elems[offs + i].~T();
+
+        // then copy construct the new value
+        new(elems + offs + i) T(el[i]);
       }
     }
+
+    // update new size
+    setUsedCount(usedCount + (int32_t)count);
+  }
+
+  // a couple of helpers
+  inline void insert(size_t offs, const std::vector<T> &in) { insert(offs, in.data(), in.size()); }
+  inline void insert(size_t offs, const std::initializer_list<T> &in)
+  {
+    insert(offs, in.begin(), in.size());
+  }
+  inline void insert(size_t offs, const array<T> &in) { insert(offs, in.data(), in.size()); }
+  inline void insert(size_t offs, const T &in) { insert(offs, &in, 1); }
+  void erase(size_t offs, size_t count = 1)
+  {
+    // invalid count
+    if(offs + count > size())
+      return;
+
+    // this is simpler to implement than insert(). We do two simpler passes:
+    //
+    // Pass 1: Iterate over the secified range, destruct it.
+    // Pass 2: Iterate over the remainder after the range (if it exists), destruct and
+    // copy-construct into new place
+
+    // destruct elements to be removed
+    for(size_t i = 0; i < count; i++)
+      elems[offs + i].~T();
+
+    // move remaining elements into place
+    for(size_t i = offs + count; i < size(); i++)
+    {
+      new(elems + i - count) T(elems[i]);
+      elems[i].~T();
+    }
+
+    // update new size
+    setUsedCount(usedCount - (int32_t)count);
+  }
+  /////////////////////////////////////////////////////////////////
+  // constructors that just forward to assign
+  array(const T *in, size_t count)
+  {
+    elems = NULL;
+    allocatedCount = usedCount = 0;
+    assign(in, count);
+  }
+  array(const std::vector<T> &in)
+  {
+    elems = NULL;
+    allocatedCount = usedCount = 0;
+    assign(in);
+  }
+  array(const std::initializer_list<T> &in)
+  {
+    elems = NULL;
+    allocatedCount = usedCount = 0;
+    assign(in);
+  }
+  array(const array<T> &in)
+  {
+    elems = NULL;
+    allocatedCount = usedCount = 0;
+    assign(in);
+  }
+
+  inline void swap(array<T> &other)
+  {
+    std::swap(elems, other.elems);
+    std::swap(allocatedCount, other.allocatedCount);
+    std::swap(usedCount, other.usedCount);
+  }
+
+  // assign forwards to operator =
+  inline void assign(const std::vector<T> &in) { *this = in; }
+  inline void assign(const std::initializer_list<T> &in) { *this = in; }
+  inline void assign(const array<T> &in) { *this = in; }
+  /////////////////////////////////////////////////////////////////
+  // assignment operators
+  array &operator=(const std::vector<T> &in)
+  {
+    // make sure we have enough space, allocating more if needed
+    reserve(in.size());
+    // destruct the old objects
+    clear();
+
+    // update new size
+    setUsedCount((int32_t)in.size());
+
+    // copy construct the new elems
+    for(int32_t i = 0; i < usedCount; i++)
+      new(elems + i) T(in[i]);
+
+    null_terminator<T>::fixup(elems, usedCount);
+
     return *this;
   }
 
-  array(const array &o)
+  array &operator=(const std::initializer_list<T> &in)
   {
-    elems = 0;
-    count = 0;
-    *this = o;
+    // make sure we have enough space, allocating more if needed
+    reserve(in.size());
+    // destruct the old objects
+    clear();
+
+    // update new size
+    setUsedCount((int32_t)in.size());
+
+    // copy construct the new elems
+    int32_t i = 0;
+    for(const T &t : in)
+    {
+      new(elems + i) T(t);
+      i++;
+    }
+
+    null_terminator<T>::fixup(elems, usedCount);
+
+    return *this;
   }
 
-  array &operator=(const array &o)
+  array &operator=(const array &in)
   {
     // do nothing if we're self-assigning
-    if(this == &o)
+    if(this == &in)
       return *this;
 
-    Delete();
-    count = o.count;
-    if(count == 0)
-    {
-      elems = 0;
-    }
-    else
-    {
-      elems = (T *)allocate(sizeof(T) * o.count);
-      for(int32_t i = 0; i < count; i++)
-        new(elems + i) T(o.elems[i]);
-    }
+    // make sure we have enough space, allocating more if needed
+    reserve(in.size());
+    // destruct the old objects
+    clear();
+
+    // update new size
+    setUsedCount((int32_t)in.size());
+
+    // copy construct the new elems
+    for(int32_t i = 0; i < usedCount; i++)
+      new(elems + i) T(in[i]);
+
+    null_terminator<T>::fixup(elems, usedCount);
+
     return *this;
   }
 
-  void create(int sz)
+  // assignment with no operator = taking a pointer and length
+  inline void assign(const T *in, size_t count)
   {
-    Delete();
-    count = sz;
-    if(sz == 0)
-    {
-      elems = 0;
-    }
-    else
-    {
-      elems = (T *)allocate(sizeof(T) * count);
-      memset(elems, 0, sizeof(T) * count);
-    }
+    // make sure we have enough space, allocating more if needed
+    reserve(count);
+    // destruct the old objects
+    clear();
+
+    // update new size
+    setUsedCount((int32_t)count);
+
+    // copy construct the new elems
+    for(int32_t i = 0; i < usedCount; i++)
+      new(elems + i) T(in[i]);
   }
 
-  // provide some of the familiar stl interface
-  size_t size() const { return (size_t)count; }
-  void clear() { Delete(); }
-  bool empty() const { return count == 0; }
-  T *begin() { return elems ? elems : end(); }
-  T *end() { return elems ? elems + count : NULL; }
-  T &front() { return *elems; }
-  T &back() { return *(elems + count - 1); }
-  const T *begin() const { return elems ? elems : end(); }
-  const T *end() const { return elems ? elems + count : NULL; }
-  const T &front() const { return *elems; }
-  const T &back() const { return *(elems + count - 1); }
+#if defined(RENDERDOC_QT_COMPAT)
+  array(const QList<T> &in)
+  {
+    elems = NULL;
+    allocatedCount = usedCount = 0;
+    assign(in);
+  }
+  inline void assign(const QList<T> &in) { *this = in; }
+  array &operator=(const QList<T> &in)
+  {
+    // make sure we have enough space, allocating more if needed
+    reserve(in.size());
+    // destruct the old objects
+    clear();
+
+    // update new size
+    setUsedCount(in.count());
+
+    // copy construct the new elems
+    for(int32_t i = 0; i < usedCount; i++)
+      new(elems + i) T(in[i]);
+
+    return *this;
+  }
+
+  array(const QVector<T> &in)
+  {
+    elems = NULL;
+    allocatedCount = usedCount = 0;
+    assign(in);
+  }
+  inline void assign(const QVector<T> &in) { *this = in; }
+  array &operator=(const QVector<T> &in)
+  {
+    // make sure we have enough space, allocating more if needed
+    reserve(in.size());
+    // destruct the old objects
+    clear();
+
+    // update new size
+    setUsedCount(in.count());
+
+    // copy construct the new elems
+    for(int32_t i = 0; i < usedCount; i++)
+      new(elems + i) T(in[i]);
+
+    return *this;
+  }
+#endif
 };
 
 DOCUMENT("");
 struct str : public rdctype::array<char>
 {
-  str &operator=(const std::string &in);
-  str &operator=(const char *const in);
-
+  // extra string constructors
   str() : rdctype::array<char>() {}
-  str(const str &o) : rdctype::array<char>() { *this = o; }
-  str(const std::string &o) : rdctype::array<char>() { *this = o; }
-  str(const char *const o) : rdctype::array<char>() { *this = o; }
-  str &operator=(const str &o)
+  str(const str &in) : rdctype::array<char>() { assign(in); }
+  str(const std::string &in) : rdctype::array<char>() { assign(in.c_str(), in.size()); }
+  str(const char *const in) : rdctype::array<char>() { assign(in, strlen(in)); }
+  // extra string assignment
+  str &operator=(const std::string &in)
   {
-    // do nothing if we're self-assigning
-    if(this == &o)
-      return *this;
-
-    Delete();
-    count = o.count;
-    if(count == 0)
-    {
-      elems = (char *)allocate(sizeof(char));
-      elems[0] = 0;
-    }
-    else
-    {
-      elems = (char *)allocate(sizeof(char) * (o.count + 1));
-      memcpy(elems, o.elems, sizeof(char) * o.count);
-      elems[count] = 0;
-    }
-
+    assign(in.c_str(), in.size());
+    return *this;
+  }
+  str &operator=(const char *const in)
+  {
+    assign(in, strlen(in));
     return *this;
   }
 
-  DOCUMENT("");
-  void assign(const char *const in, int32_t inCount)
-  {
-    Delete();
-    count = inCount;
-    if(inCount == 0)
-    {
-      elems = (char *)allocate(sizeof(char));
-      elems[0] = 0;
-    }
-    else
-    {
-      elems = (char *)allocate(sizeof(char) * (inCount + 1));
-      if(in)
-        memcpy(elems, in, sizeof(char) * inCount);
-      elems[count] = 0;
-    }
-  }
-
+  // cast operators
+  operator std::string() const { return std::string(elems, elems + usedCount); }
 #if defined(RENDERDOC_QT_COMPAT)
-  operator QString() const { return QString::fromUtf8(elems, count); }
-  operator QVariant() const { return QVariant(QString::fromUtf8(elems, count)); }
+  operator QString() const { return QString::fromUtf8(elems, usedCount); }
+  operator QVariant() const { return QVariant(QString::fromUtf8(elems, usedCount)); }
 #endif
 
-  operator std::string() const { return std::string(elems, elems + count); }
+  // conventional data accessor
+  DOCUMENT("");
   const char *c_str() const { return elems ? elems : ""; }
+  // equality checks
   bool operator==(const char *const o) const
   {
     if(!elems)
@@ -280,42 +577,14 @@ struct str : public rdctype::array<char>
   bool operator!=(const char *const o) const { return !(*this == o); }
   bool operator!=(const std::string &o) const { return !(*this == o); }
   bool operator!=(const str &o) const { return !(*this == o); }
+  // define ordering operators
+  bool operator<(const str &o) const { return strcmp(elems, o.elems) < 0; }
+  bool operator>(const str &o) const { return strcmp(elems, o.elems) > 0; }
 };
 
-inline str &str::operator=(const std::string &in)
+DOCUMENT("");
+struct bytebuf : public rdctype::array<byte>
 {
-  Delete();
-  count = (int32_t)in.size();
-  if(count == 0)
-  {
-    elems = (char *)allocate(sizeof(char));
-    elems[0] = 0;
-  }
-  else
-  {
-    elems = (char *)allocate(sizeof(char) * (count + 1));
-    memcpy(elems, &in[0], sizeof(char) * in.size());
-    elems[count] = 0;
-  }
-  return *this;
-}
-
-inline str &str::operator=(const char *const in)
-{
-  Delete();
-  count = (int32_t)strlen(in);
-  if(count == 0)
-  {
-    elems = (char *)allocate(sizeof(char));
-    elems[0] = 0;
-  }
-  else
-  {
-    elems = (char *)allocate(sizeof(char) * (count + 1));
-    memcpy(elems, &in[0], sizeof(char) * count);
-    elems[count] = 0;
-  }
-  return *this;
-}
+};
 
 };    // namespace rdctype

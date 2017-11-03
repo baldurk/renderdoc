@@ -38,7 +38,7 @@ DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawca
 
     draw->parent = parent ? parent->eventID : 0;
 
-    if(draw->children.count > 0)
+    if(!draw->children.empty())
     {
       if(drawcallTable)
       {

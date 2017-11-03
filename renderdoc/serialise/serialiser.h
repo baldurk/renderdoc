@@ -35,7 +35,6 @@
 #include "api/replay/basic_types.h"
 #include "common/common.h"
 #include "os/os_specific.h"
-#include "replay/type_helpers.h"
 
 using std::set;
 using std::string;
@@ -480,35 +479,35 @@ public:
   template <typename X>
   void Serialise(const char *name, rdctype::array<X> &el)
   {
-    int32_t sz = el.count;
+    int32_t sz = el.count();
     Serialise(name, sz);
     if(m_Mode == WRITING)
     {
       for(int32_t i = 0; i < sz; i++)
-        Serialise("[]", el.elems[i]);
+        Serialise("[]", el[i]);
     }
     else
     {
-      create_array_uninit(el, sz);
+      el.resize(sz);
       for(int32_t i = 0; i < sz; i++)
-        Serialise("", el.elems[i]);
+        Serialise("", el[i]);
     }
   }
 
   void Serialise(const char *name, rdctype::str &el)
   {
-    int32_t sz = el.count;
+    int32_t sz = el.count();
     Serialise(name, sz);
     if(m_Mode == WRITING)
     {
       for(int32_t i = 0; i < sz; i++)
-        Serialise("[]", el.elems[i]);
+        Serialise("[]", el[i]);
     }
     else
     {
       el.assign(NULL, sz);
       for(int32_t i = 0; i < sz; i++)
-        Serialise("", el.elems[i]);
+        Serialise("", el[i]);
     }
   }
 

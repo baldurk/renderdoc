@@ -900,7 +900,7 @@ void LiveCapture::captureAdded(uint32_t ID, const QString &executable, const QSt
   log->name = executable;
   log->api = api;
   log->timestamp = timestamp;
-  log->thumb = QImage(thumbnail.elems, thumbWidth, thumbHeight, QImage::Format_RGB888)
+  log->thumb = QImage(thumbnail.data(), thumbWidth, thumbHeight, QImage::Format_RGB888)
                    .copy(0, 0, thumbWidth, thumbHeight);
   log->saved = false;
   log->path = path;

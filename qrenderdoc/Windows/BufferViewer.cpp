@@ -1434,9 +1434,9 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
         data = r->GetTextureData(m_BufferID, m_TexArrayIdx, m_TexMip);
       }
 
-      buf->data = new byte[data.count];
-      memcpy(buf->data, data.elems, data.count);
-      buf->end = buf->data + data.count;
+      buf->data = new byte[data.size()];
+      memcpy(buf->data, data.data(), data.size());
+      buf->end = buf->data + data.size();
     }
 
     GUIInvoke::call([this, buf, vsinHoriz, vsoutHoriz, gsoutHoriz] {
@@ -1516,7 +1516,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   if(m_ModelVSIn->indices)
     m_ModelVSIn->indices->deref();
   m_ModelVSIn->indices = new BufferData();
-  if(draw && draw->indexByteWidth != 0 && idata.count != 0)
+  if(draw && draw->indexByteWidth != 0 && !idata.isEmpty())
   {
     indices = new uint32_t[draw->numIndices];
     m_ModelVSIn->indices->data = (byte *)indices;
@@ -1527,19 +1527,19 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   if(draw)
     maxIndex = qMax(1U, draw->numIndices) - 1;
 
-  if(draw && idata.count > 0)
+  if(draw && !idata.isEmpty())
   {
     maxIndex = 0;
     if(draw->indexByteWidth == 1)
     {
       uint8_t primRestart = m_ModelVSIn->primRestart & 0xff;
 
-      for(size_t i = 0; i < (size_t)idata.count && (uint32_t)i < draw->numIndices; i++)
+      for(size_t i = 0; i < idata.size() && (uint32_t)i < draw->numIndices; i++)
       {
-        if(primRestart && idata.elems[i] == primRestart)
+        if(primRestart && idata[i] == primRestart)
           continue;
 
-        indices[i] = (uint32_t)idata.elems[i];
+        indices[i] = (uint32_t)idata[i];
         maxIndex = qMax(maxIndex, indices[i]);
       }
     }
@@ -1547,11 +1547,10 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     {
       uint16_t primRestart = m_ModelVSIn->primRestart & 0xffff;
 
-      uint16_t *src = (uint16_t *)idata.elems;
-      for(size_t i = 0;
-          i < (size_t)idata.count / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
+      uint16_t *src = (uint16_t *)idata.data();
+      for(size_t i = 0; i < idata.size() / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
       {
-        if(primRestart && idata.elems[i] == primRestart)
+        if(primRestart && idata[i] == primRestart)
           continue;
 
         indices[i] = (uint32_t)src[i];
@@ -1562,11 +1561,11 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     {
       uint16_t primRestart = m_ModelVSIn->primRestart;
 
-      memcpy(indices, idata.elems, qMin((size_t)idata.count, draw->numIndices * sizeof(uint32_t)));
+      memcpy(indices, idata.data(), qMin(idata.size(), draw->numIndices * sizeof(uint32_t)));
 
       for(uint32_t i = 0; i < draw->numIndices; i++)
       {
-        if(primRestart && idata.elems[i] == primRestart)
+        if(primRestart && idata[i] == primRestart)
           continue;
 
         maxIndex = qMax(maxIndex, indices[i]);
@@ -1625,9 +1624,9 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
       rdctype::array<byte> bufdata = r->GetBufferData(
           vb.Buffer, vb.ByteOffset + offset * vb.ByteStride, (maxIdx + 1) * vb.ByteStride);
 
-      buf->data = new byte[bufdata.count];
-      memcpy(buf->data, bufdata.elems, bufdata.count);
-      buf->end = buf->data + bufdata.count;
+      buf->data = new byte[bufdata.size()];
+      memcpy(buf->data, bufdata.data(), bufdata.size());
+      buf->end = buf->data + bufdata.size();
       buf->stride = vb.ByteStride;
     }
     // ref passes to model
@@ -1654,7 +1653,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     m_ModelVSOut->displayIndices->ref();
 
     m_ModelVSOut->indices = new BufferData();
-    if(draw && draw->indexByteWidth != 0 && idata.count != 0)
+    if(draw && draw->indexByteWidth != 0 && !idata.isEmpty())
     {
       indices = new uint32_t[draw->numIndices];
       m_ModelVSOut->indices->data = (byte *)indices;
@@ -1662,19 +1661,18 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
 
       if(draw->indexByteWidth == 1)
       {
-        for(size_t i = 0; i < (size_t)idata.count && (uint32_t)i < draw->numIndices; i++)
-          indices[i] = (uint32_t)idata.elems[i];
+        for(size_t i = 0; i < idata.size() && (uint32_t)i < draw->numIndices; i++)
+          indices[i] = (uint32_t)idata[i];
       }
       else if(draw->indexByteWidth == 2)
       {
-        uint16_t *src = (uint16_t *)idata.elems;
-        for(size_t i = 0;
-            i < (size_t)idata.count / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
+        uint16_t *src = (uint16_t *)idata.data();
+        for(size_t i = 0; i < idata.size() / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
           indices[i] = (uint32_t)src[i];
       }
       else if(draw->indexByteWidth == 4)
       {
-        memcpy(indices, idata.elems, qMin((size_t)idata.count, draw->numIndices * sizeof(uint32_t)));
+        memcpy(indices, idata.data(), qMin(idata.size(), draw->numIndices * sizeof(uint32_t)));
       }
     }
   }
@@ -1684,9 +1682,9 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     BufferData *postvs = new BufferData;
     rdctype::array<byte> bufdata = r->GetBufferData(m_PostVS.buf, m_PostVS.offset, 0);
 
-    postvs->data = new byte[bufdata.count];
-    memcpy(postvs->data, bufdata.elems, bufdata.count);
-    postvs->end = postvs->data + bufdata.count;
+    postvs->data = new byte[bufdata.size()];
+    memcpy(postvs->data, bufdata.data(), bufdata.size());
+    postvs->end = postvs->data + bufdata.size();
     postvs->stride = m_PostVS.stride;
 
     // ref passes to model
@@ -1705,9 +1703,9 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     BufferData *postgs = new BufferData;
     rdctype::array<byte> bufdata = r->GetBufferData(m_PostGS.buf, m_PostGS.offset, 0);
 
-    postgs->data = new byte[bufdata.count];
-    memcpy(postgs->data, bufdata.elems, bufdata.count);
-    postgs->end = postgs->data + bufdata.count;
+    postgs->data = new byte[bufdata.size()];
+    memcpy(postgs->data, bufdata.data(), bufdata.size());
+    postgs->end = postgs->data + bufdata.size();
     postgs->stride = m_PostGS.stride;
 
     // ref passes to model
@@ -2222,7 +2220,7 @@ void BufferViewer::configureMeshColumns()
 
   if(draw && vs)
   {
-    m_ModelVSOut->columns.reserve(vs->OutputSig.count);
+    m_ModelVSOut->columns.reserve(vs->OutputSig.count());
 
     int i = 0, posidx = -1;
     for(const SigParameter &sig : vs->OutputSig)
@@ -2230,7 +2228,7 @@ void BufferViewer::configureMeshColumns()
       FormatElement f;
 
       f.buffer = 0;
-      f.name = sig.varName.count > 0 ? sig.varName : sig.semanticIdxName;
+      f.name = !sig.varName.isEmpty() ? sig.varName : sig.semanticIdxName;
       f.format.compByteWidth = sizeof(float);
       f.format.compCount = sig.compCount;
       f.format.compType = sig.compType;
@@ -2289,7 +2287,7 @@ void BufferViewer::configureMeshColumns()
 
     if(last)
     {
-      m_ModelGSOut->columns.reserve(last->OutputSig.count);
+      m_ModelGSOut->columns.reserve(last->OutputSig.count());
 
       int i = 0, posidx = -1;
       for(const SigParameter &sig : last->OutputSig)
@@ -2297,7 +2295,7 @@ void BufferViewer::configureMeshColumns()
         FormatElement f;
 
         f.buffer = 0;
-        f.name = sig.varName.count > 0 ? sig.varName : sig.semanticIdxName;
+        f.name = !sig.varName.isEmpty() ? sig.varName : sig.semanticIdxName;
         f.format.compByteWidth = sizeof(float);
         f.format.compCount = sig.compCount;
         f.format.compType = sig.compType;
@@ -3049,7 +3047,7 @@ void BufferViewer::debugVertex()
         r->DebugVertex(vertid, m_Config.curInstance, index, m_Ctx.CurDrawcall()->instanceOffset,
                        m_Ctx.CurDrawcall()->vertexOffset);
 
-    if(trace->states.count == 0)
+    if(trace->states.isEmpty())
     {
       r->FreeTrace(trace);
 

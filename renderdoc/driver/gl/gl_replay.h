@@ -238,9 +238,9 @@ private:
   void FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor,
                         uint32_t offs, uint32_t matStride, const vector<byte> &data,
                         ShaderVariable &outVar);
-  void FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, string prefix,
+  void FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, std::string prefix,
                             const rdctype::array<ShaderConstant> &variables,
-                            vector<ShaderVariable> &outvars, const vector<byte> &data);
+                            std::vector<ShaderVariable> &outvars, const std::vector<byte> &data);
 
   void CreateCustomShaderTex(uint32_t w, uint32_t h);
   void SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint fragProgram);

@@ -77,6 +77,26 @@ FIXED_ARRAY_TYPEMAPS(uint16_t)
 }
 
 // ignore some operators SWIG doesn't have to worry about
+// ignore array members
+%ignore rdctype::array::array;
+%ignore rdctype::array::begin;
+%ignore rdctype::array::end;
+%ignore rdctype::array::front;
+%ignore rdctype::array::back;
+%ignore rdctype::array::data;
+%ignore rdctype::array::assign;
+%ignore rdctype::array::insert;
+%ignore rdctype::array::erase;
+%ignore rdctype::array::count;
+%ignore rdctype::array::capacity;
+%ignore rdctype::array::size;
+%ignore rdctype::array::byteSize;
+%ignore rdctype::array::empty;
+%ignore rdctype::array::isEmpty;
+%ignore rdctype::array::resize;
+%ignore rdctype::array::reserve;
+%ignore rdctype::array::swap;
+%ignore rdctype::array::push_back;
 %ignore rdctype::array::operator=;
 %ignore rdctype::array::operator[];
 %ignore rdctype::str::operator=;

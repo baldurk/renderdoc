@@ -413,7 +413,7 @@ void CaptureContext::AddFakeProfileMarkers()
   DrawFlags drawFlags =
       DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::SetMarker | DrawFlags::CmdList;
 
-  for(int i = 1; i < draws.count; i++)
+  for(int32_t i = 1; i < draws.count(); i++)
   {
     if(draws[refdraw].flags & drawFlags)
     {
@@ -490,7 +490,7 @@ void CaptureContext::AddFakeProfileMarkers()
                       .toUtf8()
                       .data();
 
-    mark.children.create(end - start + 1);
+    mark.children.resize(end - start + 1);
 
     for(int j = start; j <= end; j++)
     {
@@ -504,16 +504,13 @@ void CaptureContext::AddFakeProfileMarkers()
     refdraw = i;
   }
 
-  if(start < draws.count)
+  if(start < draws.count())
   {
-    for(int j = start; j < draws.count; j++)
+    for(int j = start; j < draws.count(); j++)
       ret.push_back(draws[j]);
   }
 
-  m_Drawcalls.clear();
-  m_Drawcalls.create(ret.count());
-  for(int i = 0; i < ret.count(); i++)
-    m_Drawcalls[i] = ret[i];
+  m_Drawcalls = ret;
 }
 
 void CaptureContext::CloseLogfile()
@@ -588,7 +585,7 @@ void CaptureContext::SetEventID(const QVector<ILogViewer *> &exclude, uint32_t s
 
 void CaptureContext::AddMessages(const rdctype::array<DebugMessage> &msgs)
 {
-  m_UnreadMessageCount += msgs.count;
+  m_UnreadMessageCount += msgs.count();
   for(const DebugMessage &msg : msgs)
     m_DebugMessages.push_back(msg);
 

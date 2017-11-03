@@ -3972,7 +3972,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
       decl.Stream = 0;
       decl.OutputSlot = 0;
 
-      decl.SemanticName = sign.semanticName.elems;
+      decl.SemanticName = sign.semanticName.c_str();
       decl.SemanticIndex = sign.semanticIndex;
       decl.StartComponent = 0;
       decl.ComponentCount = sign.compCount & 0xff;
@@ -4385,7 +4385,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
       decl.Stream = 0;
       decl.OutputSlot = 0;
 
-      decl.SemanticName = sign.semanticName.elems;
+      decl.SemanticName = sign.semanticName.c_str();
       decl.SemanticIndex = sign.semanticIndex;
       decl.StartComponent = 0;
       decl.ComponentCount = sign.compCount & 0xff;

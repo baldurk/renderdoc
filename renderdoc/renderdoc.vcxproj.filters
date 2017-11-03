@@ -153,9 +153,6 @@
     <ClInclude Include="core\crash_handler.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="replay\type_helpers.h">
-      <Filter>Replay</Filter>
-    </ClInclude>
     <ClInclude Include="replay\replay_driver.h">
       <Filter>Replay</Filter>
     </ClInclude>
@@ -389,9 +386,6 @@
     <ClCompile Include="core\replay_proxy.cpp">
       <Filter>Core\networking</Filter>
     </ClCompile>
-    <ClCompile Include="replay\type_helpers.cpp">
-      <Filter>Replay</Filter>
-    </ClCompile>
     <ClCompile Include="replay\entry_points.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
@@ -540,6 +534,9 @@
       <Filter>3rdparty\catch</Filter>
     </ClCompile>
     <ClCompile Include="core\android.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="replay\basic_types_tests.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
     <ClCompile Include="3rdparty\zstd\entropy_common.c">

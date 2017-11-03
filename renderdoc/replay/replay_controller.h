@@ -31,7 +31,6 @@
 #include "common/common.h"
 #include "core/core.h"
 #include "replay/replay_driver.h"
-#include "type_helpers.h"
 
 struct ReplayController;
 

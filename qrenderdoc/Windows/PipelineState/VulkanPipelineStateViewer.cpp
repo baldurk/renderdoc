@@ -693,7 +693,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
     // there's no used resource at all, the first declared unused resource (which will prefer
     // resources with proper bindings over those without, as with the sorting mentioned above).
 
-    for(int i = 0; i < shaderDetails->Samplers.count; i++)
+    for(int i = 0; i < shaderDetails->Samplers.count(); i++)
     {
       const ShaderSampler &s = shaderDetails->Samplers[i];
 
@@ -711,7 +711,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       }
     }
 
-    for(int i = 0; i < shaderDetails->ReadOnlyResources.count; i++)
+    for(int i = 0; i < shaderDetails->ReadOnlyResources.count(); i++)
     {
       const ShaderResource &ro = shaderDetails->ReadOnlyResources[i];
 
@@ -731,7 +731,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       }
     }
 
-    for(int i = 0; i < shaderDetails->ReadWriteResources.count; i++)
+    for(int i = 0; i < shaderDetails->ReadWriteResources.count(); i++)
     {
       const ShaderResource &rw = shaderDetails->ReadWriteResources[i];
 
@@ -757,7 +757,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
   BindType bindType = BindType::Unknown;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
 
-  if(bindset < pipe.DescSets.count && bind < pipe.DescSets[bindset].bindings.count)
+  if(bindset < pipe.DescSets.count() && bind < pipe.DescSets[bindset].bindings.count())
   {
     slotBinds = &pipe.DescSets[bindset].bindings[bind].binds;
     bindType = pipe.DescSets[bindset].bindings[bind].type;
@@ -787,7 +787,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
   // consider it filled if any array element is filled
   bool filledSlot = false;
-  for(int idx = 0; slotBinds != NULL && idx < slotBinds->count; idx++)
+  for(int idx = 0; slotBinds != NULL && idx < slotBinds->count(); idx++)
   {
     filledSlot |= (*slotBinds)[idx].res != ResourceId();
     if(bindType == BindType::Sampler || bindType == BindType::ImageSampler)
@@ -805,14 +805,14 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
     QString setname = QString::number(bindset);
 
     QString slotname = QString::number(bind);
-    if(shaderRes && shaderRes->name.count > 0)
+    if(shaderRes && !shaderRes->name.isEmpty())
       slotname += lit(": ") + shaderRes->name;
-    else if(shaderSamp && shaderSamp->name.count > 0)
+    else if(shaderSamp && !shaderSamp->name.isEmpty())
       slotname += lit(": ") + shaderSamp->name;
 
     int arrayLength = 0;
     if(slotBinds != NULL)
-      arrayLength = slotBinds->count;
+      arrayLength = slotBinds->count();
     else
       arrayLength = (int)bindMap->arraySize;
 
@@ -844,9 +844,9 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
       if(arrayLength > 1)
       {
-        if(shaderRes && shaderRes->name.count > 0)
+        if(shaderRes && !shaderRes->name.isEmpty())
           slotname = QFormatStr("%1[%2]: %3").arg(bind).arg(idx).arg(shaderRes->name);
-        else if(shaderSamp && shaderSamp->name.count > 0)
+        else if(shaderSamp && !shaderSamp->name.isEmpty())
           slotname = QFormatStr("%1[%2]: %3").arg(bind).arg(idx).arg(shaderSamp->name);
         else
           slotname = QFormatStr("%1[%2]").arg(bind).arg(idx);
@@ -1097,7 +1097,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   uint32_t slot = ~0U;
   if(shaderDetails != NULL)
   {
-    for(slot = 0; slot < (uint)shaderDetails->ConstantBlocks.count; slot++)
+    for(slot = 0; slot < (uint)shaderDetails->ConstantBlocks.count(); slot++)
     {
       ConstantBlock cb = shaderDetails->ConstantBlocks[slot];
       if(stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset == bindset &&
@@ -1109,7 +1109,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       }
     }
 
-    if(slot >= (uint)shaderDetails->ConstantBlocks.count)
+    if(slot >= (uint)shaderDetails->ConstantBlocks.count())
       slot = ~0U;
   }
 
@@ -1117,7 +1117,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   BindType bindType = BindType::ConstantBuffer;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
 
-  if(bindset < pipe.DescSets.count && bind < pipe.DescSets[bindset].bindings.count)
+  if(bindset < pipe.DescSets.count() && bind < pipe.DescSets[bindset].bindings.count())
   {
     slotBinds = &pipe.DescSets[bindset].bindings[bind].binds;
     bindType = pipe.DescSets[bindset].bindings[bind].type;
@@ -1136,7 +1136,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 
   // consider it filled if any array element is filled (or it's push constants)
   bool filledSlot = cblock != NULL && !cblock->bufferBacked;
-  for(int idx = 0; slotBinds != NULL && idx < slotBinds->count; idx++)
+  for(int idx = 0; slotBinds != NULL && idx < slotBinds->count(); idx++)
     filledSlot |= (*slotBinds)[idx].res != ResourceId();
 
   // if it's masked out by stage bits, act as if it's not filled, so it's marked in red
@@ -1150,12 +1150,12 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
     QString setname = QString::number(bindset);
 
     QString slotname = QString::number(bind);
-    if(cblock != NULL && cblock->name.count > 0)
+    if(cblock != NULL && !cblock->name.isEmpty())
       slotname += lit(": ") + cblock->name;
 
     int arrayLength = 0;
     if(slotBinds != NULL)
-      arrayLength = slotBinds->count;
+      arrayLength = slotBinds->count();
     else
       arrayLength = (int)bindMap->arraySize;
 
@@ -1184,7 +1184,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 
       if(arrayLength > 1)
       {
-        if(cblock != NULL && cblock->name.count > 0)
+        if(cblock != NULL && !cblock->name.isEmpty())
           slotname = QFormatStr("%1[%2]: %3").arg(bind).arg(idx).arg(cblock->name);
         else
           slotname = QFormatStr("%1[%2]").arg(bind).arg(idx);
@@ -1192,7 +1192,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 
       QString name = tr("Empty");
       uint64_t length = 0;
-      int numvars = cblock != NULL ? cblock->variables.count : 0;
+      int numvars = cblock != NULL ? cblock->variables.count() : 0;
       uint64_t byteSize = cblock != NULL ? cblock->byteSize : 0;
 
       QString vecrange = lit("-");
@@ -1273,10 +1273,10 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   if(shaderDetails != NULL)
   {
     QString entryFunc = shaderDetails->EntryPoint;
-    if(shaderDetails->DebugInfo.files.count > 0 || entryFunc != lit("main"))
+    if(!shaderDetails->DebugInfo.files.isEmpty() || entryFunc != lit("main"))
       shader->setText(entryFunc + lit("()"));
 
-    if(shaderDetails->DebugInfo.files.count > 0)
+    if(!shaderDetails->DebugInfo.files.isEmpty())
       shader->setText(entryFunc + lit("() - ") +
                       QFileInfo(shaderDetails->DebugInfo.files[0].first).fileName());
   }
@@ -1294,9 +1294,9 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
 
   QMap<ResourceId, SamplerData> samplers;
 
-  for(int bindset = 0; bindset < pipe.DescSets.count; bindset++)
+  for(int bindset = 0; bindset < pipe.DescSets.count(); bindset++)
   {
-    for(int bind = 0; bind < pipe.DescSets[bindset].bindings.count; bind++)
+    for(int bind = 0; bind < pipe.DescSets[bindset].bindings.count(); bind++)
     {
       addResourceRow(shaderDetails, stage, bindset, bind, pipe, resources, samplers);
     }
@@ -1306,13 +1306,13 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
     // in this descriptor set (e.g. if layout mismatches)
     if(shaderDetails != NULL)
     {
-      for(int i = 0; i < shaderDetails->ReadOnlyResources.count; i++)
+      for(int i = 0; i < shaderDetails->ReadOnlyResources.count(); i++)
       {
         const ShaderResource &ro = shaderDetails->ReadOnlyResources[i];
 
         if(stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset == bindset &&
            stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bind >=
-               pipe.DescSets[bindset].bindings.count)
+               pipe.DescSets[bindset].bindings.count())
         {
           addResourceRow(shaderDetails, stage, bindset,
                          stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bind, pipe,
@@ -1320,13 +1320,13 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
         }
       }
 
-      for(int i = 0; i < shaderDetails->ReadWriteResources.count; i++)
+      for(int i = 0; i < shaderDetails->ReadWriteResources.count(); i++)
       {
         const ShaderResource &rw = shaderDetails->ReadWriteResources[i];
 
         if(stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bindset == bindset &&
            stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bind >=
-               pipe.DescSets[bindset].bindings.count)
+               pipe.DescSets[bindset].bindings.count())
         {
           addResourceRow(shaderDetails, stage, bindset,
                          stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bind, pipe,
@@ -1341,11 +1341,11 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   // bound at all
   if(shaderDetails != NULL)
   {
-    for(int i = 0; i < shaderDetails->ReadOnlyResources.count; i++)
+    for(int i = 0; i < shaderDetails->ReadOnlyResources.count(); i++)
     {
       const ShaderResource &ro = shaderDetails->ReadOnlyResources[i];
 
-      if(stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset >= pipe.DescSets.count)
+      if(stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset >= pipe.DescSets.count())
       {
         addResourceRow(
             shaderDetails, stage, stage.BindpointMapping.ReadOnlyResources[ro.bindPoint].bindset,
@@ -1353,11 +1353,11 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
       }
     }
 
-    for(int i = 0; i < shaderDetails->ReadWriteResources.count; i++)
+    for(int i = 0; i < shaderDetails->ReadWriteResources.count(); i++)
     {
       const ShaderResource &rw = shaderDetails->ReadWriteResources[i];
 
-      if(stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bindset >= pipe.DescSets.count)
+      if(stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bindset >= pipe.DescSets.count())
       {
         addResourceRow(
             shaderDetails, stage, stage.BindpointMapping.ReadWriteResources[rw.bindPoint].bindset,
@@ -1373,9 +1373,9 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   vs = ubos->verticalScrollBar()->value();
   ubos->beginUpdate();
   ubos->clear();
-  for(int bindset = 0; bindset < pipe.DescSets.count; bindset++)
+  for(int bindset = 0; bindset < pipe.DescSets.count(); bindset++)
   {
-    for(int bind = 0; bind < pipe.DescSets[bindset].bindings.count; bind++)
+    for(int bind = 0; bind < pipe.DescSets[bindset].bindings.count(); bind++)
     {
       addConstantBlockRow(shaderDetails, stage, bindset, bind, pipe, ubos);
     }
@@ -1385,13 +1385,13 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
     // in this descriptor set (e.g. if layout mismatches)
     if(shaderDetails != NULL)
     {
-      for(int i = 0; i < shaderDetails->ConstantBlocks.count; i++)
+      for(int i = 0; i < shaderDetails->ConstantBlocks.count(); i++)
       {
         ConstantBlock &cb = shaderDetails->ConstantBlocks[i];
 
         if(stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset == bindset &&
            stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bind >=
-               pipe.DescSets[bindset].bindings.count)
+               pipe.DescSets[bindset].bindings.count())
         {
           addConstantBlockRow(shaderDetails, stage, bindset,
                               stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bind, pipe, ubos);
@@ -1405,11 +1405,11 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   // bound at all
   if(shaderDetails != NULL)
   {
-    for(int i = 0; i < shaderDetails->ConstantBlocks.count; i++)
+    for(int i = 0; i < shaderDetails->ConstantBlocks.count(); i++)
     {
       ConstantBlock &cb = shaderDetails->ConstantBlocks[i];
 
-      if(stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset >= pipe.DescSets.count &&
+      if(stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset >= pipe.DescSets.count() &&
          cb.bufferBacked)
       {
         addConstantBlockRow(shaderDetails, stage,
@@ -1422,7 +1422,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   // search for push constants and add them last
   if(shaderDetails != NULL)
   {
-    for(int cb = 0; cb < shaderDetails->ConstantBlocks.count; cb++)
+    for(int cb = 0; cb < shaderDetails->ConstantBlocks.count(); cb++)
     {
       ConstantBlock &cblock = shaderDetails->ConstantBlocks[cb];
       if(cblock.bufferBacked == false)
@@ -1432,7 +1432,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
 
         RDTreeWidgetItem *node =
             new RDTreeWidgetItem({QString(), QString(), cblock.name, tr("Push constants"),
-                                  QString(), tr("%1 Variables").arg(cblock.variables.count)});
+                                  QString(), tr("%1 Variables").arg(cblock.variables.count())});
 
         node->setTag(QVariant::fromValue(VulkanCBufferTag(cb, 0)));
 
@@ -1486,10 +1486,10 @@ void VulkanPipelineStateViewer::setState()
       if(state.m_VS.Object != ResourceId())
       {
         int attrib = -1;
-        if((int32_t)a.location < state.m_VS.BindpointMapping.InputAttributes.count)
+        if((int32_t)a.location < state.m_VS.BindpointMapping.InputAttributes.count())
           attrib = state.m_VS.BindpointMapping.InputAttributes[a.location];
 
-        if(attrib >= 0 && attrib < state.m_VS.ShaderDetails->InputSig.count)
+        if(attrib >= 0 && attrib < state.m_VS.ShaderDetails->InputSig.count())
         {
           name = state.m_VS.ShaderDetails->InputSig[attrib].varName;
           usedSlot = true;
@@ -1597,12 +1597,12 @@ void VulkanPipelineStateViewer::setState()
 
   {
     int i = 0;
-    for(; i < qMax(state.VI.vbuffers.count, state.VI.binds.count); i++)
+    for(; i < qMax(state.VI.vbuffers.count(), state.VI.binds.count()); i++)
     {
-      const VKPipe::VB *vbuff = (i < state.VI.vbuffers.count ? &state.VI.vbuffers[i] : NULL);
+      const VKPipe::VB *vbuff = (i < state.VI.vbuffers.count() ? &state.VI.vbuffers[i] : NULL);
       const VKPipe::VertexBinding *bind = NULL;
 
-      for(int b = 0; b < state.VI.binds.count; b++)
+      for(int b = 0; b < state.VI.binds.count(); b++)
       {
         if(state.VI.binds[b].vbufferBinding == (uint32_t)i)
           bind = &state.VI.binds[b];
@@ -1775,7 +1775,7 @@ void VulkanPipelineStateViewer::setState()
     for(const VKPipe::Attachment &p : state.Pass.framebuffer.attachments)
     {
       int colIdx = -1;
-      for(int c = 0; c < state.Pass.renderpass.colorAttachments.count; c++)
+      for(int c = 0; c < state.Pass.renderpass.colorAttachments.count(); c++)
       {
         if(state.Pass.renderpass.colorAttachments[c] == (uint)i)
         {
@@ -1784,7 +1784,7 @@ void VulkanPipelineStateViewer::setState()
         }
       }
       int resIdx = -1;
-      for(int c = 0; c < state.Pass.renderpass.resolveAttachments.count; c++)
+      for(int c = 0; c < state.Pass.renderpass.resolveAttachments.count(); c++)
       {
         if(state.Pass.renderpass.resolveAttachments[c] == (uint)i)
         {
@@ -1825,7 +1825,7 @@ void VulkanPipelineStateViewer::setState()
 
           if(!tex->customName && state.m_FS.ShaderDetails != NULL)
           {
-            for(int s = 0; s < state.m_FS.ShaderDetails->OutputSig.count; s++)
+            for(int s = 0; s < state.m_FS.ShaderDetails->OutputSig.count(); s++)
             {
               if(state.m_FS.ShaderDetails->OutputSig[s].regIndex == (uint32_t)colIdx &&
                  (state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::Undefined ||
@@ -2009,14 +2009,14 @@ QString VulkanPipelineStateViewer::formatMembers(int indent, const QString &name
 
   for(const ShaderConstant &v : vars)
   {
-    if(v.type.members.count > 0)
+    if(!v.type.members.isEmpty())
     {
       if(i > 0)
         ret += lit("\n");
       ret += indentstr + lit("// struct %1\n").arg(v.type.descriptor.name);
       ret += indentstr + lit("{\n") + formatMembers(indent + 1, v.name + lit("_"), v.type.members) +
              indentstr + lit("}\n");
-      if(i < vars.count - 1)
+      if(i < vars.count() - 1)
         ret += lit("\n");
     }
     else
@@ -2080,16 +2080,16 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
 
     QString format = lit("// struct %1\n").arg(shaderRes.variableType.descriptor.name);
 
-    if(shaderRes.variableType.members.count > 1)
+    if(shaderRes.variableType.members.count() > 1)
     {
       format += lit("// members skipped as they are fixed size:\n");
-      for(int i = 0; i < shaderRes.variableType.members.count - 1; i++)
+      for(int i = 0; i < shaderRes.variableType.members.count() - 1; i++)
         format += QFormatStr("%1 %2;\n")
                       .arg(shaderRes.variableType.members[i].type.descriptor.name)
                       .arg(shaderRes.variableType.members[i].name);
     }
 
-    if(shaderRes.variableType.members.count > 0)
+    if(!shaderRes.variableType.members.isEmpty())
     {
       format += lit("{\n") +
                 formatMembers(1, QString(), shaderRes.variableType.members.back().type.members) +
@@ -2109,7 +2109,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
       else if(desc.cols > 1)
         format += QString::number(desc.cols);
 
-      if(desc.name.count > 0)
+      if(!desc.name.isEmpty())
         format += lit(" ") + desc.name;
 
       if(desc.elements > 1)
@@ -2223,7 +2223,7 @@ void VulkanPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 
   if(idx.isValid())
   {
-    if(idx.row() >= 0 && idx.row() < VI.attrs.count)
+    if(idx.row() >= 0 && idx.row() < VI.attrs.count())
     {
       uint32_t binding = VI.attrs[idx.row()].binding;
 
@@ -2383,7 +2383,7 @@ QString VulkanPipelineStateViewer::disassembleSPIRV(const ShaderReflection *shad
   if(binHandle.open(QFile::WriteOnly | QIODevice::Truncate))
   {
     binHandle.write(
-        QByteArray((const char *)shaderDetails->RawBytes.elems, shaderDetails->RawBytes.count));
+        QByteArray((const char *)shaderDetails->RawBytes.data(), shaderDetails->RawBytes.count()));
     binHandle.close();
   }
   else
@@ -2592,7 +2592,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       QString entryFunc = shaderDetails->EntryPoint;
       if(entryFunc != lit("main"))
         shadername = QFormatStr("%1()").arg(entryFunc);
-      else if(shaderDetails->DebugInfo.files.count > 0)
+      else if(!shaderDetails->DebugInfo.files.isEmpty())
         shadername = QFormatStr("%1() - %2")
                          .arg(entryFunc)
                          .arg(QFileInfo(shaderDetails->DebugInfo.files[0].first).fileName());
@@ -2610,7 +2610,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       (sh.stage == ShaderStage::Compute ? m_Ctx.CurVulkanPipelineState().compute
                                         : m_Ctx.CurVulkanPipelineState().graphics);
 
-  if(shaderDetails && shaderDetails->ConstantBlocks.count > 0)
+  if(shaderDetails && !shaderDetails->ConstantBlocks.isEmpty())
   {
     xml.writeStartElement(lit("h3"));
     xml.writeCharacters(tr("UBOs"));
@@ -2618,7 +2618,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
 
     QList<QVariantList> rows;
 
-    for(int i = 0; i < shaderDetails->ConstantBlocks.count; i++)
+    for(int i = 0; i < shaderDetails->ConstantBlocks.count(); i++)
     {
       const ConstantBlock &b = shaderDetails->ConstantBlocks[i];
       const BindpointMap &bindMap = sh.BindpointMapping.ConstantBlocks[i];
@@ -2632,7 +2632,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
         // could maybe get range/size from ShaderVariable.reg if it's filled out
         // from SPIR-V side.
         rows.push_back({QString(), b.name, tr("Push constants"), (qulonglong)0, (qulonglong)0,
-                        b.variables.count, b.byteSize});
+                        b.variables.count(), b.byteSize});
 
         continue;
       }
@@ -2658,7 +2658,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
         QString name;
         uint64_t byteOffset = descriptorBind.offset;
         uint64_t length = descriptorBind.size;
-        int numvars = b.variables.count;
+        int numvars = b.variables.count();
 
         if(descriptorBind.res == ResourceId())
         {
@@ -2688,7 +2688,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
                              rows);
   }
 
-  if(shaderDetails->ReadOnlyResources.count > 0)
+  if(!shaderDetails->ReadOnlyResources.isEmpty())
   {
     xml.writeStartElement(lit("h3"));
     xml.writeCharacters(tr("Read-only Resources"));
@@ -2696,7 +2696,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
 
     QList<QVariantList> rows;
 
-    for(int i = 0; i < shaderDetails->ReadOnlyResources.count; i++)
+    for(int i = 0; i < shaderDetails->ReadOnlyResources.count(); i++)
     {
       const ShaderResource &b = shaderDetails->ReadOnlyResources[i];
       const BindpointMap &bindMap = sh.BindpointMapping.ReadOnlyResources[i];
@@ -2812,7 +2812,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
         rows);
   }
 
-  if(shaderDetails->ReadWriteResources.count > 0)
+  if(!shaderDetails->ReadWriteResources.isEmpty())
   {
     xml.writeStartElement(lit("h3"));
     xml.writeCharacters(tr("Read-write Resources"));
@@ -2820,7 +2820,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
 
     QList<QVariantList> rows;
 
-    for(int i = 0; i < shaderDetails->ReadWriteResources.count; i++)
+    for(int i = 0; i < shaderDetails->ReadWriteResources.count(); i++)
     {
       const ShaderResource &b = shaderDetails->ReadWriteResources[i];
       const BindpointMap &bindMap = sh.BindpointMapping.ReadWriteResources[i];
@@ -3158,11 +3158,11 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     xml.writeCharacters(tr("Render Pass"));
     xml.writeEndElement();
 
-    if(pass.renderpass.inputAttachments.count > 0)
+    if(!pass.renderpass.inputAttachments.isEmpty())
     {
       QList<QVariantList> inputs;
 
-      for(int i = 0; i < pass.renderpass.inputAttachments.count; i++)
+      for(int i = 0; i < pass.renderpass.inputAttachments.count(); i++)
         inputs.push_back({pass.renderpass.inputAttachments[i]});
 
       m_Common.exportHTMLTable(xml,
@@ -3175,11 +3175,11 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       xml.writeEndElement();
     }
 
-    if(pass.renderpass.colorAttachments.count > 0)
+    if(!pass.renderpass.colorAttachments.isEmpty())
     {
       QList<QVariantList> colors;
 
-      for(int i = 0; i < pass.renderpass.colorAttachments.count; i++)
+      for(int i = 0; i < pass.renderpass.colorAttachments.count(); i++)
         colors.push_back({pass.renderpass.colorAttachments[i]});
 
       m_Common.exportHTMLTable(xml,

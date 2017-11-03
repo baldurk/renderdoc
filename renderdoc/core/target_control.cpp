@@ -28,7 +28,6 @@
 #include "core/core.h"
 #include "jpeg-compressor/jpgd.h"
 #include "os/os_specific.h"
-#include "replay/type_helpers.h"
 #include "serialise/serialiser.h"
 #include "socket_helpers.h"
 
@@ -136,9 +135,12 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
       }
       file->Shutdown();
 
+      int32_t thumblen = buf.count();
+      ser.Serialise("", thumblen);
+
+      byte *data = buf.data();
       size_t sz = buf.size();
-      ser.Serialise("", buf.count);
-      ser.SerialiseBuffer("", buf.elems, sz);
+      ser.SerialiseBuffer("", data, sz);
     }
     else if(childprocs.size() != children.size())
     {
@@ -557,7 +559,7 @@ public:
 
         msg.NewCapture.path = m_CaptureCopies[msg.NewCapture.ID];
 
-        if(!RecvChunkedFile(m_Socket, ePacket_CopyCapture, msg.NewCapture.path.elems, ser, NULL))
+        if(!RecvChunkedFile(m_Socket, ePacket_CopyCapture, msg.NewCapture.path.c_str(), ser, NULL))
         {
           SAFE_DELETE(ser);
           SAFE_DELETE(m_Socket);
@@ -611,14 +613,13 @@ public:
         int w = 0;
         int h = 0;
         int comp = 3;
-        byte *thumbpixels =
-            jpgd::decompress_jpeg_image_from_memory(buf, (int)thumblen, &w, &h, &comp, 3);
+        byte *thumbpixels = jpgd::decompress_jpeg_image_from_memory(buf, thumblen, &w, &h, &comp, 3);
 
         if(w > 0 && h > 0 && thumbpixels)
         {
           msg.NewCapture.thumbWidth = w;
           msg.NewCapture.thumbHeight = h;
-          create_array_init(msg.NewCapture.thumbnail, w * h * 3, thumbpixels);
+          msg.NewCapture.thumbnail.assign(thumbpixels, w * h * 3);
         }
         else
         {

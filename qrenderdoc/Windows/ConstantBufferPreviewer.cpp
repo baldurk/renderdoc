@@ -117,7 +117,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventID)
 
   updateLabels();
 
-  if(reflection == NULL || reflection->ConstantBlocks.count <= (int)m_slot)
+  if(reflection == NULL || m_slot >= reflection->ConstantBlocks.size())
   {
     setVariables({});
     return;
@@ -241,7 +241,7 @@ void ConstantBufferPreviewer::addVariables(RDTreeWidgetItem *root,
             {QFormatStr("%1.row%2").arg(v.name).arg(i), RowString(v, i), RowTypeString(v)}));
     }
 
-    if(v.members.count > 0)
+    if(!v.members.isEmpty())
       addVariables(n, v.members);
   }
 }
@@ -251,10 +251,10 @@ bool ConstantBufferPreviewer::updateVariables(RDTreeWidgetItem *root,
                                               const rdctype::array<ShaderVariable> &newVars)
 {
   // mismatched child count? can't update
-  if(prevVars.count != newVars.count)
+  if(prevVars.size() != newVars.size())
     return false;
 
-  for(int i = 0; i < prevVars.count; i++)
+  for(int i = 0; i < prevVars.count(); i++)
   {
     const ShaderVariable &a = prevVars[i];
     const ShaderVariable &b = newVars[i];
@@ -279,7 +279,7 @@ bool ConstantBufferPreviewer::updateVariables(RDTreeWidgetItem *root,
         node->child(r)->setText(1, RowString(b, r));
     }
 
-    if(a.members.count > 0)
+    if(!a.members.isEmpty())
     {
       // recurse to update child members. This handles a and b having different number of variables
       bool updated = updateVariables(node, a.members, b.members);
@@ -316,7 +316,7 @@ void ConstantBufferPreviewer::setVariables(const rdctype::array<ShaderVariable> 
 
   ui->saveCSV->setEnabled(false);
 
-  if(vars.count > 0)
+  if(!vars.isEmpty())
   {
     addVariables(ui->variables->invisibleRootItem(), vars);
     ui->saveCSV->setEnabled(true);
@@ -343,8 +343,8 @@ void ConstantBufferPreviewer::updateLabels()
 
   if(reflection != NULL)
   {
-    if(needName && (int)m_slot < reflection->ConstantBlocks.count &&
-       reflection->ConstantBlocks[m_slot].name.count > 0)
+    if(needName && m_slot < reflection->ConstantBlocks.size() &&
+       !reflection->ConstantBlocks[m_slot].name.isEmpty())
       bufName = QFormatStr("<%1>").arg(reflection->ConstantBlocks[m_slot].name);
   }
 

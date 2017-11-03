@@ -430,9 +430,9 @@ void GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vec
 
 bool GLReplay::IsRenderOutput(ResourceId id)
 {
-  for(int32_t i = 0; i < m_CurPipelineState.m_FB.m_DrawFBO.Color.count; i++)
+  for(const GLPipe::Attachment &att : m_CurPipelineState.m_FB.m_DrawFBO.Color)
   {
-    if(m_CurPipelineState.m_FB.m_DrawFBO.Color[i].Obj == id)
+    if(att.Obj == id)
       return true;
   }
 
@@ -902,8 +902,8 @@ void GLReplay::SavePipelineState()
   GLint numVAttribBindings = 16;
   gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numVAttribBindings);
 
-  create_array_uninit(pipe.m_VtxIn.vbuffers, numVBufferBindings);
-  create_array_uninit(pipe.m_VtxIn.attributes, numVAttribBindings);
+  pipe.m_VtxIn.vbuffers.resize(numVBufferBindings);
+  pipe.m_VtxIn.attributes.resize(numVAttribBindings);
 
   for(GLuint i = 0; i < (GLuint)numVBufferBindings; i++)
   {
@@ -1046,8 +1046,8 @@ void GLReplay::SavePipelineState()
 
   GLint numTexUnits = 8;
   gl.glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &numTexUnits);
-  create_array_uninit(pipe.Textures, numTexUnits);
-  create_array_uninit(pipe.Samplers, numTexUnits);
+  pipe.Textures.resize(numTexUnits);
+  pipe.Samplers.resize(numTexUnits);
 
   GLenum activeTexture = eGL_TEXTURE0;
   gl.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&activeTexture);
@@ -1072,9 +1072,9 @@ void GLReplay::SavePipelineState()
   {
     stages[i]->Object = ResourceId();
     stages[i]->ShaderDetails = NULL;
-    stages[i]->BindpointMapping.ConstantBlocks.Delete();
-    stages[i]->BindpointMapping.ReadOnlyResources.Delete();
-    stages[i]->BindpointMapping.ReadWriteResources.Delete();
+    stages[i]->BindpointMapping.ConstantBlocks.clear();
+    stages[i]->BindpointMapping.ReadOnlyResources.clear();
+    stages[i]->BindpointMapping.ReadWriteResources.clear();
   }
 
   if(curProg == 0)
@@ -1195,8 +1195,8 @@ void GLReplay::SavePipelineState()
     }
     else
     {
-      create_array_uninit(stages[i]->Subroutines, num);
-      memcpy(stages[i]->Subroutines.elems, rs.Subroutines[i].Values, num);
+      stages[i]->Subroutines.resize(num);
+      memcpy(stages[i]->Subroutines.data(), rs.Subroutines[i].Values, num * sizeof(uint32_t));
     }
   }
 
@@ -1228,17 +1228,17 @@ void GLReplay::SavePipelineState()
       if(refls[s] == NULL)
         continue;
 
-      for(int32_t r = 0; r < refls[s]->ReadOnlyResources.count; r++)
+      for(const ShaderResource &res : refls[s]->ReadOnlyResources)
       {
         // bindPoint is the uniform value for this sampler
-        if(mappings[s]->ReadOnlyResources[refls[s]->ReadOnlyResources[r].bindPoint].bind == unit)
+        if(mappings[s]->ReadOnlyResources[res.bindPoint].bind == unit)
         {
           GLenum t = eGL_NONE;
 
-          if(strstr(refls[s]->ReadOnlyResources[r].variableType.descriptor.name.elems, "Shadow"))
+          if(strstr(res.variableType.descriptor.name.c_str(), "Shadow"))
             shadow = true;
 
-          switch(refls[s]->ReadOnlyResources[r].resType)
+          switch(res.resType)
           {
             case TextureDim::Unknown: target = eGL_NONE; break;
             case TextureDim::Buffer: target = eGL_TEXTURE_BUFFER; break;
@@ -1258,7 +1258,7 @@ void GLReplay::SavePipelineState()
           if(target != eGL_NONE)
             t = TextureBinding(target);
 
-          resType = refls[s]->ReadOnlyResources[r].resType;
+          resType = res.resType;
 
           if(binding == eGL_NONE)
           {
@@ -1484,8 +1484,8 @@ void GLReplay::SavePipelineState()
 
   gl.glActiveTexture(activeTexture);
 
-  create_array_uninit(pipe.UniformBuffers, ARRAY_COUNT(rs.UniformBinding));
-  for(int32_t b = 0; b < pipe.UniformBuffers.count; b++)
+  pipe.UniformBuffers.resize(ARRAY_COUNT(rs.UniformBinding));
+  for(size_t b = 0; b < pipe.UniformBuffers.size(); b++)
   {
     if(rs.UniformBinding[b].name == 0)
     {
@@ -1501,8 +1501,8 @@ void GLReplay::SavePipelineState()
     }
   }
 
-  create_array_uninit(pipe.AtomicBuffers, ARRAY_COUNT(rs.AtomicCounter));
-  for(int32_t b = 0; b < pipe.AtomicBuffers.count; b++)
+  pipe.AtomicBuffers.resize(ARRAY_COUNT(rs.AtomicCounter));
+  for(size_t b = 0; b < pipe.AtomicBuffers.size(); b++)
   {
     if(rs.AtomicCounter[b].name == 0)
     {
@@ -1518,8 +1518,8 @@ void GLReplay::SavePipelineState()
     }
   }
 
-  create_array_uninit(pipe.ShaderStorageBuffers, ARRAY_COUNT(rs.ShaderStorage));
-  for(int32_t b = 0; b < pipe.ShaderStorageBuffers.count; b++)
+  pipe.ShaderStorageBuffers.resize(ARRAY_COUNT(rs.ShaderStorage));
+  for(size_t b = 0; b < pipe.ShaderStorageBuffers.size(); b++)
   {
     if(rs.ShaderStorage[b].name == 0)
     {
@@ -1535,8 +1535,8 @@ void GLReplay::SavePipelineState()
     }
   }
 
-  create_array_uninit(pipe.Images, ARRAY_COUNT(rs.Images));
-  for(int32_t i = 0; i < pipe.Images.count; i++)
+  pipe.Images.resize(ARRAY_COUNT(rs.Images));
+  for(size_t i = 0; i < pipe.Images.size(); i++)
   {
     if(rs.Images[i].name == 0)
     {
@@ -1575,8 +1575,8 @@ void GLReplay::SavePipelineState()
 
   RDCCOMPILE_ASSERT(ARRAY_COUNT(rs.Viewports) == ARRAY_COUNT(rs.DepthRanges),
                     "GL Viewport count does not match depth ranges count");
-  create_array_uninit(pipe.m_Rasterizer.Viewports, ARRAY_COUNT(rs.Viewports));
-  for(int32_t v = 0; v < pipe.m_Rasterizer.Viewports.count; ++v)
+  pipe.m_Rasterizer.Viewports.resize(ARRAY_COUNT(rs.Viewports));
+  for(size_t v = 0; v < pipe.m_Rasterizer.Viewports.size(); ++v)
   {
     pipe.m_Rasterizer.Viewports[v].Left = rs.Viewports[v].x;
     pipe.m_Rasterizer.Viewports[v].Bottom = rs.Viewports[v].y;
@@ -1586,8 +1586,8 @@ void GLReplay::SavePipelineState()
     pipe.m_Rasterizer.Viewports[v].MaxDepth = rs.DepthRanges[v].farZ;
   }
 
-  create_array_uninit(pipe.m_Rasterizer.Scissors, ARRAY_COUNT(rs.Scissors));
-  for(int32_t s = 0; s < pipe.m_Rasterizer.Scissors.count; ++s)
+  pipe.m_Rasterizer.Scissors.resize(ARRAY_COUNT(rs.Scissors));
+  for(size_t s = 0; s < pipe.m_Rasterizer.Scissors.size(); ++s)
   {
     pipe.m_Rasterizer.Scissors[s].Left = rs.Scissors[s].x;
     pipe.m_Rasterizer.Scissors[s].Bottom = rs.Scissors[s].y;
@@ -1747,7 +1747,7 @@ void GLReplay::SavePipelineState()
       rbStencil = true;
 
     pipe.m_FB.m_DrawFBO.Obj = rm->GetOriginalID(rm->GetID(FramebufferRes(ctx, curDrawFBO)));
-    create_array_uninit(pipe.m_FB.m_DrawFBO.Color, numCols);
+    pipe.m_FB.m_DrawFBO.Color.resize(numCols);
     for(GLint i = 0; i < numCols; i++)
     {
       ResourceId id =
@@ -1799,7 +1799,7 @@ void GLReplay::SavePipelineState()
                                 (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Mip,
                                 (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Layer);
 
-    create_array_uninit(pipe.m_FB.m_DrawFBO.DrawBuffers, numCols);
+    pipe.m_FB.m_DrawFBO.DrawBuffers.resize(numCols);
     for(GLint i = 0; i < numCols; i++)
     {
       GLenum b = eGL_NONE;
@@ -1843,7 +1843,7 @@ void GLReplay::SavePipelineState()
       rbStencil = true;
 
     pipe.m_FB.m_ReadFBO.Obj = rm->GetOriginalID(rm->GetID(FramebufferRes(ctx, curReadFBO)));
-    create_array_uninit(pipe.m_FB.m_ReadFBO.Color, numCols);
+    pipe.m_FB.m_ReadFBO.Color.resize(numCols);
     for(GLint i = 0; i < numCols; i++)
     {
       pipe.m_FB.m_ReadFBO.Color[i].Obj = rm->GetOriginalID(
@@ -1871,7 +1871,7 @@ void GLReplay::SavePipelineState()
                                 (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Mip,
                                 (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Layer);
 
-    create_array_uninit(pipe.m_FB.m_ReadFBO.DrawBuffers, numCols);
+    pipe.m_FB.m_ReadFBO.DrawBuffers.resize(numCols);
     for(GLint i = 0; i < numCols; i++)
       pipe.m_FB.m_ReadFBO.DrawBuffers[i] = -1;
 
@@ -1890,7 +1890,7 @@ void GLReplay::SavePipelineState()
 
   RDCCOMPILE_ASSERT(ARRAY_COUNT(rs.Blends) == ARRAY_COUNT(rs.ColorMasks),
                     "Color masks and blends mismatched");
-  create_array_uninit(pipe.m_FB.m_Blending.Blends, ARRAY_COUNT(rs.Blends));
+  pipe.m_FB.m_Blending.Blends.resize(ARRAY_COUNT(rs.Blends));
   for(size_t i = 0; i < ARRAY_COUNT(rs.Blends); i++)
   {
     pipe.m_FB.m_Blending.Blends[i].Enabled = rs.Blends[i].Enabled;
@@ -2038,25 +2038,27 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
 }
 
 void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked,
-                                    string prefix, const rdctype::array<ShaderConstant> &variables,
-                                    vector<ShaderVariable> &outvars, const vector<byte> &data)
+                                    std::string prefix,
+                                    const rdctype::array<ShaderConstant> &variables,
+                                    std::vector<ShaderVariable> &outvars,
+                                    const std::vector<byte> &data)
 {
-  for(int32_t i = 0; i < variables.count; i++)
+  for(int32_t i = 0; i < variables.count(); i++)
   {
-    auto desc = variables[i].type.descriptor;
+    const ShaderVariableDescriptor &desc = variables[i].type.descriptor;
 
     ShaderVariable var;
-    var.name = variables[i].name.elems;
+    var.name = variables[i].name;
     var.rows = desc.rows;
     var.columns = desc.cols;
     var.type = desc.type;
 
-    if(variables[i].type.members.count > 0)
+    if(!variables[i].type.members.empty())
     {
       if(desc.elements == 0)
       {
         vector<ShaderVariable> ov;
-        FillCBufferVariables(gl, prog, bufferBacked, prefix + var.name.elems + ".",
+        FillCBufferVariables(gl, prog, bufferBacked, prefix + var.name.c_str() + ".",
                              variables[i].type.members, ov, data);
         var.isStruct = true;
         var.members = ov;
@@ -2067,10 +2069,10 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
         for(uint32_t a = 0; a < desc.elements; a++)
         {
           ShaderVariable arrEl = var;
-          arrEl.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
+          arrEl.name = StringFormat::Fmt("%s[%u]", var.name.c_str(), a);
 
           vector<ShaderVariable> ov;
-          FillCBufferVariables(gl, prog, bufferBacked, prefix + arrEl.name.elems + ".",
+          FillCBufferVariables(gl, prog, bufferBacked, prefix + arrEl.name.c_str() + ".",
                                variables[i].type.members, ov, data);
           arrEl.members = ov;
 
@@ -2089,7 +2091,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 
       // need to query offset and strides as there's no way to know what layout was used
       // (and if it's not an std layout it's implementation defined :( )
-      string fullname = prefix + var.name.elems;
+      std::string fullname = prefix + var.name.c_str();
 
       GLuint idx = gl.glGetProgramResourceIndex(prog, eGL_UNIFORM, fullname.c_str());
 
@@ -2122,7 +2124,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
           for(uint32_t a = 0; a < desc.elements; a++)
           {
             ShaderVariable el = var;
-            el.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
+            el.name = StringFormat::Fmt("%s[%u]", var.name.c_str(), a);
 
             FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
                              values[0] + values[2] * a, values[1], data, el);
@@ -2152,7 +2154,7 @@ void GLReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32
 
   auto &shaderDetails = m_pDriver->m_Shaders[shader];
 
-  if((int32_t)cbufSlot >= shaderDetails.reflection.ConstantBlocks.count)
+  if((int32_t)cbufSlot >= shaderDetails.reflection.ConstantBlocks.count())
   {
     RDCERR("Requesting invalid constant block");
     return;
@@ -2183,7 +2185,7 @@ void GLReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32
     }
   }
 
-  auto cblock = shaderDetails.reflection.ConstantBlocks.elems[cbufSlot];
+  const ConstantBlock &cblock = shaderDetails.reflection.ConstantBlocks[cbufSlot];
 
   FillCBufferVariables(gl, curProg, cblock.bufferBacked ? true : false, "", cblock.variables,
                        outvars, data);

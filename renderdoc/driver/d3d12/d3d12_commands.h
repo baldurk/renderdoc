@@ -61,8 +61,8 @@ struct D3D12DrawcallTreeNode
       children.back().draw.eventID += baseEventID;
       children.back().draw.drawcallID += baseDrawID;
 
-      for(int32_t e = 0; e < children.back().draw.events.count; e++)
-        children.back().draw.events[e].eventID += baseEventID;
+      for(APIEvent &ev : children.back().draw.events)
+        ev.eventID += baseEventID;
     }
   }
 

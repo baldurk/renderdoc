@@ -2943,7 +2943,7 @@ void D3D12DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 
     size_t dataOffset = vec * sizeof(Vec4f) + comp * sizeof(float);
 
-    if(outvars[outIdx].name.count > 0)
+    if(!outvars[outIdx].name.empty())
     {
       RDCASSERT(flatten);
 
@@ -2951,7 +2951,7 @@ void D3D12DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
       RDCASSERT(outvars[vec].columns == comp);
       RDCASSERT(rows == 1);
 
-      string combinedName = outvars[outIdx].name.elems;
+      std::string combinedName = outvars[outIdx].name.c_str();
       combinedName += ", " + basename;
       outvars[outIdx].name = combinedName;
       outvars[outIdx].rows = 1;
@@ -3045,7 +3045,7 @@ void D3D12DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
         uint32_t regLen = cols;
         const char *regName = "row";
 
-        string base = outvars[outIdx].name.elems;
+        std::string base = outvars[outIdx].name.c_str();
 
         if(!flatten)
         {
@@ -3893,16 +3893,14 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
 
   if(!dxbcVS->m_OutputSig.empty())
   {
-    for(size_t i = 0; i < dxbcVS->m_OutputSig.size(); i++)
+    for(const SigParameter &sign : dxbcVS->m_OutputSig)
     {
-      SigParameter &sign = dxbcVS->m_OutputSig[i];
-
       D3D12_SO_DECLARATION_ENTRY decl;
 
       decl.Stream = 0;
       decl.OutputSlot = 0;
 
-      decl.SemanticName = sign.semanticName.elems;
+      decl.SemanticName = sign.semanticName.c_str();
       decl.SemanticIndex = sign.semanticIndex;
       decl.StartComponent = 0;
       decl.ComponentCount = sign.compCount & 0xff;
@@ -4399,10 +4397,8 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       lastShader = dxbcDS;
 
     sodecls.clear();
-    for(size_t i = 0; i < lastShader->m_OutputSig.size(); i++)
+    for(const SigParameter &sign : lastShader->m_OutputSig)
     {
-      SigParameter &sign = lastShader->m_OutputSig[i];
-
       D3D12_SO_DECLARATION_ENTRY decl;
 
       // for now, skip streams that aren't stream 0
@@ -4412,7 +4408,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       decl.Stream = 0;
       decl.OutputSlot = 0;
 
-      decl.SemanticName = sign.semanticName.elems;
+      decl.SemanticName = sign.semanticName.c_str();
       decl.SemanticIndex = sign.semanticIndex;
       decl.StartComponent = 0;
       decl.ComponentCount = sign.compCount & 0xff;

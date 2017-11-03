@@ -3325,7 +3325,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           eventStr += StringFormat::Fmt("\tStartInstanceLocation: %u\n", args->StartInstanceLocation);
           eventStr += "}\n";
 
-          APIEvent &ev = draw.events[draw.events.count - 1];
+          APIEvent &ev = draw.events.back();
           ev.eventDesc = eventStr;
 
           RDCASSERT(ev.eventID == eid);
@@ -3370,7 +3370,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           eventStr += StringFormat::Fmt("\tStartInstanceLocation: %u\n", args->StartInstanceLocation);
           eventStr += "}\n";
 
-          APIEvent &ev = draw.events[draw.events.count - 1];
+          APIEvent &ev = draw.events.back();
           ev.eventDesc = eventStr;
 
           RDCASSERT(ev.eventID == eid);
@@ -3411,7 +3411,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           eventStr += StringFormat::Fmt("\tThreadGroupCountZ: %u\n", args->ThreadGroupCountZ);
           eventStr += "}\n";
 
-          APIEvent &ev = draw.events[draw.events.count - 1];
+          APIEvent &ev = draw.events.back();
           ev.eventDesc = eventStr;
 
           RDCASSERT(ev.eventID == eid);
@@ -3448,11 +3448,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           DrawcallDescription &draw = draws[idx].draw;
           APIEvent *ev = NULL;
 
-          for(int32_t e = 0; e < draw.events.count; e++)
+          for(APIEvent &e : draw.events)
           {
-            if(draw.events[e].eventID == eid)
+            if(e.eventID == eid)
             {
-              ev = &draw.events[e];
+              ev = &e;
               break;
             }
           }
@@ -3493,11 +3493,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           DrawcallDescription &draw = draws[idx].draw;
           APIEvent *ev = NULL;
 
-          for(int32_t e = 0; e < draw.events.count; e++)
+          for(APIEvent &e : draw.events)
           {
-            if(draw.events[e].eventID == eid)
+            if(e.eventID == eid)
             {
-              ev = &draw.events[e];
+              ev = &e;
               break;
             }
           }
@@ -3537,11 +3537,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           DrawcallDescription &draw = draws[idx].draw;
           APIEvent *ev = NULL;
 
-          for(int32_t e = 0; e < draw.events.count; e++)
+          for(APIEvent &e : draw.events)
           {
-            if(draw.events[e].eventID == eid)
+            if(e.eventID == eid)
             {
-              ev = &draw.events[e];
+              ev = &e;
               break;
             }
           }
@@ -3595,11 +3595,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           DrawcallDescription &draw = draws[idx].draw;
           APIEvent *ev = NULL;
 
-          for(int32_t e = 0; e < draw.events.count; e++)
+          for(APIEvent &e : draw.events)
           {
-            if(draw.events[e].eventID == eid)
+            if(e.eventID == eid)
             {
-              ev = &draw.events[e];
+              ev = &e;
               break;
             }
           }
@@ -4050,8 +4050,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
     // this drawcall needs an event to anchor its file offset. This is a bit of a hack,
     // but a proper solution for handling 'fake' events that don't correspond to actual
     // events in the file, or duplicates, is overkill.
-    create_array(draw.events, 1);
-    draw.events[0] = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].curEvents.back();
+    draw.events = {m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].curEvents.back()};
     m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].curEvents.pop_back();
 
     m_Cmd->AddDrawcall(draw, false);

@@ -188,7 +188,6 @@
     <ClInclude Include="os\win32\win32_specific.h" />
     <ClInclude Include="replay\replay_driver.h" />
     <ClInclude Include="replay\replay_controller.h" />
-    <ClInclude Include="replay\type_helpers.h" />
     <ClInclude Include="serialise\serialiser.h" />
     <ClInclude Include="serialise\string_utils.h" />
   </ItemGroup>
@@ -385,13 +384,13 @@
     <ClCompile Include="os\win32\win32_stringio.cpp" />
     <ClCompile Include="os\win32\win32_threading.cpp" />
     <ClCompile Include="replay\app_api.cpp" />
+    <ClCompile Include="replay\basic_types_tests.cpp" />
     <ClCompile Include="replay\capture_file.cpp" />
     <ClCompile Include="replay\capture_options.cpp" />
     <ClCompile Include="replay\entry_points.cpp" />
     <ClCompile Include="replay\replay_driver.cpp" />
     <ClCompile Include="replay\replay_output.cpp" />
     <ClCompile Include="replay\replay_controller.cpp" />
-    <ClCompile Include="replay\type_helpers.cpp" />
     <ClCompile Include="serialise\grisu2.cpp" />
     <ClCompile Include="serialise\serialiser.cpp" />
     <ClCompile Include="serialise\string_utils.cpp" />

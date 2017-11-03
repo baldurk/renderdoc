@@ -537,7 +537,7 @@ void State::Init()
 
     if(decl.declaration == OPCODE_DCL_TEMPS)
     {
-      create_array_uninit(registers, decl.numTemps);
+      registers.reserve(decl.numTemps);
 
       for(uint32_t t = 0; t < decl.numTemps; t++)
       {
@@ -545,7 +545,7 @@ void State::Init()
 
         StringFormat::snprintf(buf, 63, "r%d", t);
 
-        registers[t] = ShaderVariable(buf, 0l, 0l, 0l, 0l);
+        registers.push_back(ShaderVariable(buf, 0l, 0l, 0l, 0l));
       }
     }
     if(decl.declaration == OPCODE_DCL_INDEXABLE_TEMP)
@@ -561,13 +561,13 @@ void State::Init()
 
   if(indexTempSizes.size())
   {
-    create_array_uninit(indexableTemps, indexTempSizes.size());
+    indexableTemps.resize(indexTempSizes.size());
 
     for(int32_t i = 0; i < (int32_t)indexTempSizes.size(); i++)
     {
       if(indexTempSizes[i] > 0)
       {
-        create_array_uninit(indexableTemps[i], indexTempSizes[i]);
+        indexableTemps[i].resize(indexTempSizes[i]);
         for(uint32_t t = 0; t < indexTempSizes[i]; t++)
         {
           char buf[64] = {0};
@@ -632,8 +632,8 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
   {
     case TYPE_TEMP:
     {
-      RDCASSERT(indices[0] < (uint32_t)registers.count);
-      if(indices[0] < (uint32_t)registers.count)
+      RDCASSERT(indices[0] < (uint32_t)registers.size());
+      if(indices[0] < (uint32_t)registers.size())
         v = &registers[(size_t)indices[0]];
       break;
     }
@@ -643,11 +643,11 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
 
       if(dstoper.indices.size() == 2)
       {
-        RDCASSERT(indices[0] < (uint32_t)indexableTemps.count);
-        if(indices[0] < (uint32_t)indexableTemps.count)
+        RDCASSERT(indices[0] < (uint32_t)indexableTemps.size());
+        if(indices[0] < (uint32_t)indexableTemps.size())
         {
-          RDCASSERT(indices[1] < (uint32_t)indexableTemps[indices[0]].count);
-          if(indices[1] < (uint32_t)indexableTemps[indices[0]].count)
+          RDCASSERT(indices[1] < (uint32_t)indexableTemps[indices[0]].size());
+          if(indices[1] < (uint32_t)indexableTemps[indices[0]].size())
           {
             v = &indexableTemps[indices[0]][indices[1]];
           }
@@ -657,8 +657,8 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
     }
     case TYPE_OUTPUT:
     {
-      RDCASSERT(indices[0] < (uint32_t)outputs.count);
-      if(indices[0] < (uint32_t)outputs.count)
+      RDCASSERT(indices[0] < (uint32_t)outputs.size());
+      if(indices[0] < (uint32_t)outputs.size())
         v = &outputs[(size_t)indices[0]];
       break;
     }
@@ -680,10 +680,10 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
     {
       RDCERR("Currently unsupported destination operand type %d!", dstoper.type);
 
-      string name = dstoper.toString(dxbc, ToString::ShowSwizzle);
-      for(int32_t i = 0; i < outputs.count; i++)
+      std::string name = dstoper.toString(dxbc, ToString::ShowSwizzle);
+      for(size_t i = 0; i < outputs.size(); i++)
       {
-        if(outputs[i].name.elems && !strcmp(name.c_str(), outputs[i].name.elems))
+        if(outputs[i].name == name)
         {
           v = &outputs[i];
           break;
@@ -821,9 +821,9 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
     case TYPE_TEMP:
     {
       // we assume we never write to an uninitialised register
-      RDCASSERT(indices[0] < (uint32_t)registers.count);
+      RDCASSERT(indices[0] < (uint32_t)registers.size());
 
-      if(indices[0] < (uint32_t)registers.count)
+      if(indices[0] < (uint32_t)registers.size())
         v = s = registers[indices[0]];
       else
         v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
@@ -836,11 +836,11 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 
       if(oper.indices.size() == 2)
       {
-        RDCASSERT(indices[0] < (uint32_t)indexableTemps.count);
-        if(indices[0] < (uint32_t)indexableTemps.count)
+        RDCASSERT(indices[0] < (uint32_t)indexableTemps.size());
+        if(indices[0] < (uint32_t)indexableTemps.size())
         {
-          RDCASSERT(indices[1] < (uint32_t)indexableTemps[indices[0]].count);
-          if(indices[1] < (uint32_t)indexableTemps[indices[0]].count)
+          RDCASSERT(indices[1] < (uint32_t)indexableTemps[indices[0]].size());
+          if(indices[1] < (uint32_t)indexableTemps[indices[0]].size())
           {
             v = s = indexableTemps[indices[0]][indices[1]];
           }
@@ -850,9 +850,9 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
     }
     case TYPE_INPUT:
     {
-      RDCASSERT(indices[0] < (uint32_t)trace->inputs.count);
+      RDCASSERT(indices[0] < (uint32_t)trace->inputs.size());
 
-      if(indices[0] < (uint32_t)trace->inputs.count)
+      if(indices[0] < (uint32_t)trace->inputs.size())
         v = s = trace->inputs[indices[0]];
       else
         v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
@@ -861,9 +861,9 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
     }
     case TYPE_OUTPUT:
     {
-      RDCASSERT(indices[0] < (uint32_t)outputs.count);
+      RDCASSERT(indices[0] < (uint32_t)outputs.size());
 
-      if(indices[0] < (uint32_t)outputs.count)
+      if(indices[0] < (uint32_t)outputs.size())
         v = s = outputs[indices[0]];
       else
         v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
@@ -937,15 +937,16 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
         }
       }
 
-      RDCASSERTMSG("Invalid cbuffer lookup", cb != -1 && cb < trace->cbuffers.count, cb,
-                   trace->cbuffers.count);
+      RDCASSERTMSG("Invalid cbuffer lookup", cb != -1 && cb < trace->cbuffers.count(), cb,
+                   trace->cbuffers.count());
 
-      if(cb >= 0 && cb < trace->cbuffers.count)
+      if(cb >= 0 && cb < trace->cbuffers.count())
       {
-        RDCASSERTMSG("Out of bounds cbuffer lookup", indices[1] < (uint32_t)trace->cbuffers[cb].count,
-                     indices[1], trace->cbuffers[cb].count);
+        RDCASSERTMSG("Out of bounds cbuffer lookup",
+                     indices[1] < (uint32_t)trace->cbuffers[cb].count(), indices[1],
+                     trace->cbuffers[cb].count());
 
-        if(indices[1] < (uint32_t)trace->cbuffers[cb].count)
+        if(indices[1] < (uint32_t)trace->cbuffers[cb].size())
           v = s = trace->cbuffers[cb][indices[1]];
         else
           v = s = ShaderVariable("", 0U, 0U, 0U, 0U);

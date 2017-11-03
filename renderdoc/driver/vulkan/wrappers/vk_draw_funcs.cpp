@@ -487,7 +487,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
 
       multi.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
-      AddEvent(multi.name.elems);
+      AddEvent(multi.name);
       AddDrawcall(multi, true);
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
@@ -784,7 +784,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
       multi.flags |=
           DrawFlags::Drawcall | DrawFlags::UseIBuffer | DrawFlags::Instanced | DrawFlags::Indirect;
 
-      AddEvent(multi.name.elems);
+      AddEvent(multi.name);
       AddDrawcall(multi, true);
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;

@@ -714,7 +714,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         }
       }
 
-      set<string> cbuffernames;
+      std::set<std::string> cbuffernames;
 
       for(int32_t i = 0; i < h->cbuffers.count; i++)
       {
@@ -962,53 +962,53 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         // check system value semantics
         if(desc.systemValue == ShaderBuiltin::Undefined)
         {
-          if(!_stricmp(desc.semanticName.elems, "SV_Position"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_Position"))
             desc.systemValue = ShaderBuiltin::Position;
-          if(!_stricmp(desc.semanticName.elems, "SV_ClipDistance"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_ClipDistance"))
             desc.systemValue = ShaderBuiltin::ClipDistance;
-          if(!_stricmp(desc.semanticName.elems, "SV_CullDistance"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_CullDistance"))
             desc.systemValue = ShaderBuiltin::CullDistance;
-          if(!_stricmp(desc.semanticName.elems, "SV_RenderTargetArrayIndex"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_RenderTargetArrayIndex"))
             desc.systemValue = ShaderBuiltin::RTIndex;
-          if(!_stricmp(desc.semanticName.elems, "SV_ViewportArrayIndex"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_ViewportArrayIndex"))
             desc.systemValue = ShaderBuiltin::ViewportIndex;
-          if(!_stricmp(desc.semanticName.elems, "SV_VertexID"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_VertexID"))
             desc.systemValue = ShaderBuiltin::VertexIndex;
-          if(!_stricmp(desc.semanticName.elems, "SV_PrimitiveID"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_PrimitiveID"))
             desc.systemValue = ShaderBuiltin::PrimitiveIndex;
-          if(!_stricmp(desc.semanticName.elems, "SV_InstanceID"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_InstanceID"))
             desc.systemValue = ShaderBuiltin::InstanceIndex;
-          if(!_stricmp(desc.semanticName.elems, "SV_DispatchThreadID"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_DispatchThreadID"))
             desc.systemValue = ShaderBuiltin::DispatchThreadIndex;
-          if(!_stricmp(desc.semanticName.elems, "SV_GroupID"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_GroupID"))
             desc.systemValue = ShaderBuiltin::GroupIndex;
-          if(!_stricmp(desc.semanticName.elems, "SV_GroupIndex"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_GroupIndex"))
             desc.systemValue = ShaderBuiltin::GroupFlatIndex;
-          if(!_stricmp(desc.semanticName.elems, "SV_GroupThreadID"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_GroupThreadID"))
             desc.systemValue = ShaderBuiltin::GroupThreadIndex;
-          if(!_stricmp(desc.semanticName.elems, "SV_GSInstanceID"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_GSInstanceID"))
             desc.systemValue = ShaderBuiltin::GSInstanceIndex;
-          if(!_stricmp(desc.semanticName.elems, "SV_OutputControlPointID"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_OutputControlPointID"))
             desc.systemValue = ShaderBuiltin::OutputControlPointIndex;
-          if(!_stricmp(desc.semanticName.elems, "SV_DomainLocation"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_DomainLocation"))
             desc.systemValue = ShaderBuiltin::DomainLocation;
-          if(!_stricmp(desc.semanticName.elems, "SV_IsFrontFace"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_IsFrontFace"))
             desc.systemValue = ShaderBuiltin::IsFrontFace;
-          if(!_stricmp(desc.semanticName.elems, "SV_SampleIndex"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_SampleIndex"))
             desc.systemValue = ShaderBuiltin::MSAASampleIndex;
-          if(!_stricmp(desc.semanticName.elems, "SV_TessFactor"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_TessFactor"))
             desc.systemValue = ShaderBuiltin::OuterTessFactor;
-          if(!_stricmp(desc.semanticName.elems, "SV_InsideTessFactor"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_InsideTessFactor"))
             desc.systemValue = ShaderBuiltin::InsideTessFactor;
-          if(!_stricmp(desc.semanticName.elems, "SV_Target"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_Target"))
             desc.systemValue = ShaderBuiltin::ColorOutput;
-          if(!_stricmp(desc.semanticName.elems, "SV_Depth"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_Depth"))
             desc.systemValue = ShaderBuiltin::DepthOutput;
-          if(!_stricmp(desc.semanticName.elems, "SV_Coverage"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_Coverage"))
             desc.systemValue = ShaderBuiltin::MSAACoverage;
-          if(!_stricmp(desc.semanticName.elems, "SV_DepthGreaterEqual"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_DepthGreaterEqual"))
             desc.systemValue = ShaderBuiltin::DepthOutputGreaterEqual;
-          if(!_stricmp(desc.semanticName.elems, "SV_DepthLessEqual"))
+          if(!_stricmp(desc.semanticName.c_str(), "SV_DepthLessEqual"))
             desc.systemValue = ShaderBuiltin::DepthOutputLessEqual;
         }
 
@@ -1028,14 +1028,14 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         for(uint32_t j = 0; j < sign->numElems; j++)
         {
           SigParameter &b = (*sig)[j];
-          if(i != j && !strcmp(a.semanticName.elems, b.semanticName.elems))
+          if(i != j && a.semanticName == b.semanticName)
           {
             a.needSemanticIndex = true;
             break;
           }
         }
 
-        string semanticIdxName = a.semanticName.elems;
+        std::string semanticIdxName = a.semanticName;
         if(a.needSemanticIndex)
           semanticIdxName += ToStr::Get(a.semanticIndex);
 
@@ -1427,7 +1427,7 @@ uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags)
 {
   uint32_t ret = 0;
 
-  if(compileFlags.flags.count >= 1 && compileFlags.flags[0].first == "compileFlags")
+  if(!compileFlags.flags.empty() && compileFlags.flags[0].first == "compileFlags")
     ret = atoi(compileFlags.flags[0].second.c_str());
 
   return ret;
@@ -1437,7 +1437,6 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags)
 {
   ShaderCompileFlags ret;
 
-  create_array_uninit(ret.flags, 1);
   ret.flags = {{"compileFlags", StringFormat::Fmt("%u", flags)}};
 
   return ret;

@@ -635,7 +635,7 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
                                                     : stage->BindpointMapping.ReadOnlyResources;
     const rdctype::array<ShaderResource> &res =
         uav ? stage->ShaderDetails->ReadWriteResources : stage->ShaderDetails->ReadOnlyResources;
-    for(int i = 0; i < binds.count; i++)
+    for(int i = 0; i < binds.count(); i++)
     {
       const BindpointMap &b = binds[i];
 
@@ -934,9 +934,9 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
   vs = resources->verticalScrollBar()->value();
   resources->beginUpdate();
   resources->clear();
-  for(int space = 0; space < stage.Spaces.count; space++)
+  for(int space = 0; space < stage.Spaces.count(); space++)
   {
-    for(int reg = 0; reg < stage.Spaces[space].SRVs.count; reg++)
+    for(int reg = 0; reg < stage.Spaces[space].SRVs.count(); reg++)
     {
       addResourceRow(D3D12ViewTag(D3D12ViewTag::SRV, space, reg, stage.Spaces[space].SRVs[reg]),
                      &stage, resources);
@@ -949,9 +949,9 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
   vs = uavs->verticalScrollBar()->value();
   uavs->beginUpdate();
   uavs->clear();
-  for(int space = 0; space < stage.Spaces.count; space++)
+  for(int space = 0; space < stage.Spaces.count(); space++)
   {
-    for(int reg = 0; reg < stage.Spaces[space].UAVs.count; reg++)
+    for(int reg = 0; reg < stage.Spaces[space].UAVs.count(); reg++)
     {
       addResourceRow(D3D12ViewTag(D3D12ViewTag::UAV, space, reg, stage.Spaces[space].UAVs[reg]),
                      &stage, uavs);
@@ -964,9 +964,9 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
   vs = samplers->verticalScrollBar()->value();
   samplers->beginUpdate();
   samplers->clear();
-  for(int space = 0; space < stage.Spaces.count; space++)
+  for(int space = 0; space < stage.Spaces.count(); space++)
   {
-    for(int reg = 0; reg < stage.Spaces[space].Samplers.count; reg++)
+    for(int reg = 0; reg < stage.Spaces[space].Samplers.count(); reg++)
     {
       const D3D12Pipe::Sampler &s = stage.Spaces[space].Samplers[reg];
 
@@ -980,7 +980,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
 
       if(stage.ShaderDetails)
       {
-        for(int i = 0; i < stage.BindpointMapping.Samplers.count; i++)
+        for(int i = 0; i < stage.BindpointMapping.Samplers.count(); i++)
         {
           const BindpointMap &b = stage.BindpointMapping.Samplers[i];
           const ShaderSampler &res = stage.ShaderDetails->Samplers[i];
@@ -1085,9 +1085,9 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
   vs = cbuffers->verticalScrollBar()->value();
   cbuffers->beginUpdate();
   cbuffers->clear();
-  for(int space = 0; space < stage.Spaces.count; space++)
+  for(int space = 0; space < stage.Spaces.count(); space++)
   {
-    for(int reg = 0; reg < stage.Spaces[space].ConstantBuffers.count; reg++)
+    for(int reg = 0; reg < stage.Spaces[space].ConstantBuffers.count(); reg++)
     {
       const D3D12Pipe::CBuffer &b = stage.Spaces[space].ConstantBuffers[reg];
 
@@ -1098,7 +1098,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
 
       if(stage.ShaderDetails)
       {
-        for(int i = 0; i < stage.BindpointMapping.ConstantBlocks.count; i++)
+        for(int i = 0; i < stage.BindpointMapping.ConstantBlocks.count(); i++)
         {
           const BindpointMap &bm = stage.BindpointMapping.ConstantBlocks[i];
           const ConstantBlock &res = stage.ShaderDetails->ConstantBlocks[i];
@@ -1148,11 +1148,11 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
         QString name = tr("Constant Buffer %1").arg(ToQStr(b.Buffer));
         ulong length = b.ByteSize;
         uint64_t offset = b.Offset;
-        int numvars = shaderCBuf ? shaderCBuf->variables.count : 0;
+        int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
         uint32_t bytesize = shaderCBuf ? shaderCBuf->byteSize : 0;
 
         if(b.Immediate && !b.RootValues.empty())
-          bytesize = uint32_t(b.RootValues.count * 4);
+          bytesize = uint32_t(b.RootValues.count() * 4);
 
         if(!filledSlot)
           name = tr("Empty");
@@ -1243,7 +1243,8 @@ void D3D12PipelineStateViewer::setState()
       bool filledSlot = true;
       bool usedSlot = false;
 
-      for(int ia = 0; state.m_VS.ShaderDetails && ia < state.m_VS.ShaderDetails->InputSig.count; ia++)
+      for(int ia = 0; state.m_VS.ShaderDetails && ia < state.m_VS.ShaderDetails->InputSig.count();
+          ia++)
       {
         if(!QString(state.m_VS.ShaderDetails->InputSig[ia].semanticName)
                 .compare(l.SemanticName, Qt::CaseInsensitive) &&
@@ -1352,7 +1353,7 @@ void D3D12PipelineStateViewer::setState()
 
   m_VBNodes.clear();
 
-  for(int i = 0; i < state.m_IA.vbuffers.count; i++)
+  for(int i = 0; i < state.m_IA.vbuffers.count(); i++)
   {
     const D3D12Pipe::VB &v = state.m_IA.vbuffers[i];
 
@@ -1419,7 +1420,7 @@ void D3D12PipelineStateViewer::setState()
   vs = ui->gsStreamOut->verticalScrollBar()->value();
   ui->gsStreamOut->beginUpdate();
   ui->gsStreamOut->clear();
-  for(int i = 0; i < state.m_SO.Outputs.count; i++)
+  for(int i = 0; i < state.m_SO.Outputs.count(); i++)
   {
     const D3D12Pipe::SOBind &s = state.m_SO.Outputs[i];
 
@@ -1472,7 +1473,7 @@ void D3D12PipelineStateViewer::setState()
   vs = ui->viewports->verticalScrollBar()->value();
   ui->viewports->beginUpdate();
   ui->viewports->clear();
-  for(int i = 0; i < state.m_RS.Viewports.count; i++)
+  for(int i = 0; i < state.m_RS.Viewports.count(); i++)
   {
     const D3D12Pipe::Viewport &v = state.m_RS.Viewports[i];
 
@@ -1491,7 +1492,7 @@ void D3D12PipelineStateViewer::setState()
   vs = ui->scissors->verticalScrollBar()->value();
   ui->scissors->beginUpdate();
   ui->scissors->clear();
-  for(int i = 0; i < state.m_RS.Scissors.count; i++)
+  for(int i = 0; i < state.m_RS.Scissors.count(); i++)
   {
     const D3D12Pipe::Scissor &s = state.m_RS.Scissors[i];
 
@@ -1530,7 +1531,7 @@ void D3D12PipelineStateViewer::setState()
   ui->targetOutputs->beginUpdate();
   ui->targetOutputs->clear();
   {
-    for(int i = 0; i < state.m_OM.RenderTargets.count; i++)
+    for(int i = 0; i < state.m_OM.RenderTargets.count(); i++)
     {
       addResourceRow(D3D12ViewTag(D3D12ViewTag::OMTarget, 0, i, state.m_OM.RenderTargets[i]), NULL,
                      ui->targetOutputs);
@@ -1661,7 +1662,7 @@ QString D3D12PipelineStateViewer::formatMembers(int indent, const QString &namep
       ret += indentstr + lit("// struct %1\n").arg(v.type.descriptor.name);
       ret += indentstr + lit("{\n") + formatMembers(indent + 1, v.name + lit("_"), v.type.members) +
              indentstr + lit("}\n");
-      if(i < vars.count - 1)
+      if(i < vars.count() - 1)
         ret += lit("\n");
     }
     else
@@ -1746,7 +1747,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
       if(stage == &m_Ctx.CurD3D12PipelineState().m_GS)
       {
-        for(int i = 0; i < m_Ctx.CurD3D12PipelineState().m_SO.Outputs.count; i++)
+        for(int i = 0; i < m_Ctx.CurD3D12PipelineState().m_SO.Outputs.count(); i++)
         {
           if(buf->ID == m_Ctx.CurD3D12PipelineState().m_SO.Outputs[i].Buffer)
           {
@@ -1772,7 +1773,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
           view.space == D3D12ViewTag::SRV ? stage->BindpointMapping.ReadOnlyResources
                                           : stage->BindpointMapping.ReadOnlyResources;
 
-      for(int i = 0; i < bindArray.count; i++)
+      for(int i = 0; i < bindArray.count(); i++)
       {
         if(bindArray[i].bindset == view.space && bindArray[i].bind == view.reg)
         {
@@ -1993,7 +1994,7 @@ void D3D12PipelineStateViewer::on_iaLayouts_mouseMove(QMouseEvent *e)
 
   if(idx.isValid())
   {
-    if(idx.row() >= 0 && idx.row() < IA.layouts.count)
+    if(idx.row() >= 0 && idx.row() < IA.layouts.count())
     {
       uint32_t buffer = IA.layouts[idx.row()].InputSlot;
 
@@ -2215,7 +2216,7 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
     {
       if(view.Format.compType == CompType::Typeless)
       {
-        if(shaderInput->variableType.members.count > 0)
+        if(!shaderInput->variableType.members.isEmpty())
           viewFormat = format = lit("struct ") + shaderInput->variableType.descriptor.name;
         else
           viewFormat = format = shaderInput->variableType.descriptor.name;
@@ -2395,9 +2396,9 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
     QList<QVariantList> rows;
 
-    for(int space = 0; space < sh.Spaces.count; space++)
+    for(int space = 0; space < sh.Spaces.count(); space++)
     {
-      for(int reg = 0; reg < sh.Spaces[space].SRVs.count; reg++)
+      for(int reg = 0; reg < sh.Spaces[space].SRVs.count(); reg++)
       {
         const D3D12Pipe::View &v = sh.Spaces[space].SRVs[reg];
 
@@ -2410,7 +2411,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
         if(sh.ShaderDetails)
         {
-          for(int i = 0; i < sh.BindpointMapping.ReadOnlyResources.count; i++)
+          for(int i = 0; i < sh.BindpointMapping.ReadOnlyResources.count(); i++)
           {
             const BindpointMap &b = sh.BindpointMapping.ReadOnlyResources[i];
             const ShaderResource &res = sh.ShaderDetails->ReadOnlyResources[i];
@@ -2457,9 +2458,9 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
     QList<QVariantList> rows;
 
-    for(int space = 0; space < sh.Spaces.count; space++)
+    for(int space = 0; space < sh.Spaces.count(); space++)
     {
-      for(int reg = 0; reg < sh.Spaces[space].UAVs.count; reg++)
+      for(int reg = 0; reg < sh.Spaces[space].UAVs.count(); reg++)
       {
         const D3D12Pipe::View &v = sh.Spaces[space].UAVs[reg];
 
@@ -2472,7 +2473,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
         if(sh.ShaderDetails)
         {
-          for(int i = 0; i < sh.BindpointMapping.ReadWriteResources.count; i++)
+          for(int i = 0; i < sh.BindpointMapping.ReadWriteResources.count(); i++)
           {
             const BindpointMap &b = sh.BindpointMapping.ReadWriteResources[i];
             const ShaderResource &res = sh.ShaderDetails->ReadWriteResources[i];
@@ -2519,9 +2520,9 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
     QList<QVariantList> rows;
 
-    for(int space = 0; space < sh.Spaces.count; space++)
+    for(int space = 0; space < sh.Spaces.count(); space++)
     {
-      for(int reg = 0; reg < sh.Spaces[space].Samplers.count; reg++)
+      for(int reg = 0; reg < sh.Spaces[space].Samplers.count(); reg++)
       {
         const D3D12Pipe::Sampler &s = sh.Spaces[space].Samplers[reg];
 
@@ -2534,7 +2535,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
         if(sh.ShaderDetails)
         {
-          for(int i = 0; i < sh.BindpointMapping.Samplers.count; i++)
+          for(int i = 0; i < sh.BindpointMapping.Samplers.count(); i++)
           {
             const BindpointMap &b = sh.BindpointMapping.Samplers[i];
             const ShaderSampler &res = sh.ShaderDetails->Samplers[i];
@@ -2631,9 +2632,9 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
     QList<QVariantList> rows;
 
-    for(int space = 0; space < sh.Spaces.count; space++)
+    for(int space = 0; space < sh.Spaces.count(); space++)
     {
-      for(int reg = 0; reg < sh.Spaces[space].ConstantBuffers.count; reg++)
+      for(int reg = 0; reg < sh.Spaces[space].ConstantBuffers.count(); reg++)
       {
         const D3D12Pipe::CBuffer &b = sh.Spaces[space].ConstantBuffers[reg];
 
@@ -2641,7 +2642,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
         if(sh.ShaderDetails)
         {
-          for(int i = 0; i < sh.BindpointMapping.ConstantBlocks.count; i++)
+          for(int i = 0; i < sh.BindpointMapping.ConstantBlocks.count(); i++)
           {
             const BindpointMap &bm = sh.BindpointMapping.ConstantBlocks[i];
             const ConstantBlock &res = sh.ShaderDetails->ConstantBlocks[i];
@@ -2679,11 +2680,11 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
           QString name = tr("Constant Buffer %1").arg(ToQStr(b.Buffer));
           uint64_t length = b.ByteSize;
           uint64_t offset = b.Offset;
-          int numvars = shaderCBuf ? shaderCBuf->variables.count : 0;
+          int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
           uint32_t bytesize = shaderCBuf ? shaderCBuf->byteSize : 0;
 
           if(b.Immediate && !b.RootValues.empty())
-            bytesize = uint32_t(b.RootValues.count * 4);
+            bytesize = uint32_t(b.RootValues.count() * 4);
 
           BufferDescription *buf = m_Ctx.GetBuffer(b.Buffer);
 
@@ -2877,7 +2878,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
     int i = 0;
     for(const D3D12Pipe::Blend &b : om.m_BlendState.Blends)
     {
-      if(i >= om.RenderTargets.count)
+      if(i >= om.RenderTargets.count())
         continue;
 
       QString mask = QFormatStr("%1%2%3%4")
@@ -2949,7 +2950,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
     QList<QVariantList> rows;
 
-    for(int i = 0; i < om.RenderTargets.count; i++)
+    for(int i = 0; i < om.RenderTargets.count(); i++)
     {
       if(om.RenderTargets[i].Resource == ResourceId())
         continue;

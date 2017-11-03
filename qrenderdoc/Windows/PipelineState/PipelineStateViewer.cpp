@@ -575,7 +575,7 @@ void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
 {
   for(const ShaderConstant &v : vars)
   {
-    if(v.type.members.count > 0)
+    if(!v.type.members.isEmpty())
     {
       QString def = lit("struct %1 {\n").arg(v.type.descriptor.name);
 
@@ -670,7 +670,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
   int cbufIdx = 0;
   for(const ConstantBlock &cbuf : shaderDetails->ConstantBlocks)
   {
-    if(cbuf.name.count > 0 && cbuf.variables.count > 0)
+    if(!cbuf.name.isEmpty() && !cbuf.variables.isEmpty())
     {
       QString cbufName = cbuf.name;
       if(cbufName == lit("$Globals"))
@@ -690,7 +690,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
   for(const SigParameter &sig : shaderDetails->InputSig)
     hlsl += lit("\t%1 %2 : %3;\n")
                 .arg(TypeString(sig))
-                .arg(sig.varName.count > 0 ? sig.varName : lit("param%1").arg(sig.regIndex))
+                .arg(!sig.varName.isEmpty() ? sig.varName : lit("param%1").arg(sig.regIndex))
                 .arg(D3DSemanticString(sig));
   hlsl += lit("};\n\n");
 
@@ -698,7 +698,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
   for(const SigParameter &sig : shaderDetails->OutputSig)
     hlsl += lit("\t%1 %2 : %3;\n")
                 .arg(TypeString(sig))
-                .arg(sig.varName.count > 0 ? sig.varName : lit("param%1").arg(sig.regIndex))
+                .arg(!sig.varName.isEmpty() ? sig.varName : lit("param%1").arg(sig.regIndex))
                 .arg(D3DSemanticString(sig));
   hlsl += lit("};\n\n");
 
@@ -889,7 +889,7 @@ bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
       QFile f(filename);
       if(f.open(QIODevice::WriteOnly | QIODevice::Truncate))
       {
-        f.write((const char *)shader->RawBytes.elems, (qint64)shader->RawBytes.count);
+        f.write((const char *)shader->RawBytes.data(), (qint64)shader->RawBytes.size());
       }
       else
       {

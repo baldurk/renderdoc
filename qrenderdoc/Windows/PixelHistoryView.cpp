@@ -72,7 +72,7 @@ public:
 
   void setHistory(const rdctype::array<PixelModification> &history)
   {
-    m_ModList.reserve(history.count);
+    m_ModList.reserve(history.count());
     for(const PixelModification &h : history)
       m_ModList.push_back(h);
 
@@ -670,7 +670,7 @@ void PixelHistoryView::startDebug(EventTag tag)
     trace = r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(), m_Display.sampleIdx, ~0U);
   });
 
-  if(trace->states.count == 0)
+  if(trace->states.isEmpty())
   {
     RDDialog::critical(this, tr("Debug Error"), tr("Error debugging pixel."));
     m_Ctx.Replay().AsyncInvoke([trace](IReplayController *r) { r->FreeTrace(trace); });

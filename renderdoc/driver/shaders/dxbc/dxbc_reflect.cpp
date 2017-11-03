@@ -25,7 +25,6 @@
 #include "dxbc_reflect.h"
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
-#include "replay/type_helpers.h"
 #include "dxbc_inspect.h"
 
 static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var, uint32_t &offset);
@@ -73,14 +72,14 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type,
 
   uint32_t o = offset;
 
-  create_array_uninit(ret.members, type.members.size());
+  ret.members.reserve(type.members.size());
   for(size_t i = 0; i < type.members.size(); i++)
   {
     offset = o;
-    ret.members[i] = MakeConstantBufferVariable(type.members[i], offset);
+    ret.members.push_back(MakeConstantBufferVariable(type.members[i], offset));
   }
 
-  if(ret.members.count > 0)
+  if(!ret.members.empty())
   {
     ret.descriptor.rows = 0;
     ret.descriptor.cols = 0;
@@ -214,7 +213,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
   {
     refl->DebugInfo.compileFlags = DXBC::EncodeFlags(dxbc->m_DebugInfo);
 
-    create_array_uninit(refl->DebugInfo.files, dxbc->m_DebugInfo->Files.size());
+    refl->DebugInfo.files.resize(dxbc->m_DebugInfo->Files.size());
     for(size_t i = 0; i < dxbc->m_DebugInfo->Files.size(); i++)
     {
       refl->DebugInfo.files[i].first = dxbc->m_DebugInfo->Files[i].first;
@@ -229,16 +228,16 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     // one file.
     // This isn't a perfect search - it will match entry_point() anywhere in the file, even if it's
     // in a comment or disabled preprocessor definition. This is just best-effort
-    if(refl->DebugInfo.files.count > 1)
+    if(refl->DebugInfo.files.count() > 1)
     {
       // search from 0 up. If we find a match, we swap it into [0]. If we don't find a match then
       // we can't rearrange anything. This is a no-op for 0 since it's already in first place, but
       // since our search isn't perfect we might have multiple matches with some being false
       // positives, and so we want to bias towards leaving [0] in place.
-      for(int32_t i = 0; i < refl->DebugInfo.files.count; i++)
+      for(size_t i = 0; i < refl->DebugInfo.files.size(); i++)
       {
-        char *c = strstr(refl->DebugInfo.files[i].first.elems, entry.c_str());
-        char *end = refl->DebugInfo.files[i].first.elems + refl->DebugInfo.files[i].first.count;
+        const char *c = strstr(refl->DebugInfo.files[i].first.c_str(), entry.c_str());
+        const char *end = refl->DebugInfo.files[i].first.end();
 
         // no substring match? continue
         if(c == NULL)
@@ -275,10 +274,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     }
   }
 
-  if(dxbc->m_ShaderBlob.empty())
-    create_array_uninit(refl->RawBytes, 0);
-  else
-    create_array_init(refl->RawBytes, dxbc->m_ShaderBlob.size(), &dxbc->m_ShaderBlob[0]);
+  refl->RawBytes = dxbc->m_ShaderBlob;
 
   refl->DispatchThreadsDimension[0] = dxbc->DispatchThreadsDimension[0];
   refl->DispatchThreadsDimension[1] = dxbc->DispatchThreadsDimension[1];
@@ -287,12 +283,12 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
   refl->InputSig = dxbc->m_InputSig;
   refl->OutputSig = dxbc->m_OutputSig;
 
-  create_array_uninit(mapping->InputAttributes, D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
+  mapping->InputAttributes.resize(D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
   for(int s = 0; s < D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; s++)
     mapping->InputAttributes[s] = s;
 
-  create_array_uninit(mapping->ConstantBlocks, dxbc->m_CBuffers.size());
-  create_array_uninit(refl->ConstantBlocks, dxbc->m_CBuffers.size());
+  mapping->ConstantBlocks.resize(dxbc->m_CBuffers.size());
+  refl->ConstantBlocks.resize(dxbc->m_CBuffers.size());
   for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
   {
     ConstantBlock &cb = refl->ConstantBlocks[i];
@@ -310,16 +306,16 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
 
     mapping->ConstantBlocks[i] = map;
 
-    create_array_uninit(cb.variables, dxbc->m_CBuffers[i].variables.size());
+    cb.variables.reserve(dxbc->m_CBuffers[i].variables.size());
     for(size_t v = 0; v < dxbc->m_CBuffers[i].variables.size(); v++)
     {
       uint32_t vecOffset = 0;
-      cb.variables[v] = MakeConstantBufferVariable(dxbc->m_CBuffers[i].variables[v], vecOffset);
+      cb.variables.push_back(MakeConstantBufferVariable(dxbc->m_CBuffers[i].variables[v], vecOffset));
     }
   }
 
-  create_array_uninit(mapping->Samplers, dxbc->m_Samplers.size());
-  create_array_uninit(refl->Samplers, dxbc->m_Samplers.size());
+  mapping->Samplers.resize(dxbc->m_Samplers.size());
+  refl->Samplers.resize(dxbc->m_Samplers.size());
   for(size_t i = 0; i < dxbc->m_Samplers.size(); i++)
   {
     ShaderSampler &s = refl->Samplers[i];
@@ -336,19 +332,19 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     mapping->Samplers[i] = map;
   }
 
-  create_array_uninit(mapping->ReadOnlyResources, dxbc->m_SRVs.size());
-  create_array_uninit(refl->ReadOnlyResources, dxbc->m_SRVs.size());
+  mapping->ReadOnlyResources.resize(dxbc->m_SRVs.size());
+  refl->ReadOnlyResources.resize(dxbc->m_SRVs.size());
   MakeResourceList(true, dxbc, dxbc->m_SRVs, mapping->ReadOnlyResources, refl->ReadOnlyResources);
 
-  create_array_uninit(mapping->ReadWriteResources, dxbc->m_UAVs.size());
-  create_array_uninit(refl->ReadWriteResources, dxbc->m_UAVs.size());
+  mapping->ReadWriteResources.resize(dxbc->m_UAVs.size());
+  refl->ReadWriteResources.resize(dxbc->m_UAVs.size());
   MakeResourceList(true, dxbc, dxbc->m_UAVs, mapping->ReadWriteResources, refl->ReadWriteResources);
 
   uint32_t numInterfaces = 0;
   for(size_t i = 0; i < dxbc->m_Interfaces.variables.size(); i++)
     numInterfaces = RDCMAX(dxbc->m_Interfaces.variables[i].descriptor.offset + 1, numInterfaces);
 
-  create_array(refl->Interfaces, numInterfaces);
+  refl->Interfaces.resize(numInterfaces);
   for(size_t i = 0; i < dxbc->m_Interfaces.variables.size(); i++)
     refl->Interfaces[dxbc->m_Interfaces.variables[i].descriptor.offset] =
         dxbc->m_Interfaces.variables[i].name;

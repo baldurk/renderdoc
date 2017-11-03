@@ -570,7 +570,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
   };
 
   Space *spaces = new Space[sig->sig.numSpaces];
-  create_array_uninit(dstSpaces, sig->sig.numSpaces);
+  dstSpaces.resize(sig->sig.numSpaces);
 
   for(size_t rootEl = 0; rootEl < sig->sig.params.size(); rootEl++)
   {
@@ -591,12 +591,12 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
       {
         const D3D12RenderState::SignatureElement &e = rootSig.sigelems[rootEl];
         if(e.type == eRootConst)
-          create_array_init(cb.RootValues, RDCMIN(e.constants.size(), (size_t)cb.ByteSize),
-                            &e.constants[0]);
+          cb.RootValues.assign(e.constants.data(),
+                               RDCMIN(e.constants.size(), (size_t)p.Constants.Num32BitValues));
       }
 
-      if(cb.RootValues.count == 0)
-        create_array(cb.RootValues, p.Constants.Num32BitValues);
+      if(cb.RootValues.empty())
+        cb.RootValues.resize(p.Constants.Num32BitValues);
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV)
     {
@@ -930,7 +930,7 @@ void D3D12Replay::SavePipelineState()
     const D3D12_INPUT_ELEMENT_DESC *inputEl = pipe->graphics->InputLayout.pInputElementDescs;
     UINT numInput = pipe->graphics->InputLayout.NumElements;
 
-    create_array_uninit(state.m_IA.layouts, numInput);
+    state.m_IA.layouts.resize(numInput);
     for(UINT i = 0; i < numInput; i++)
     {
       D3D12Pipe::Layout &l = state.m_IA.layouts[i];
@@ -954,7 +954,7 @@ void D3D12Replay::SavePipelineState()
       default: break;
     }
 
-    create_array_uninit(state.m_IA.vbuffers, rs.vbuffers.size());
+    state.m_IA.vbuffers.resize(rs.vbuffers.size());
     for(size_t i = 0; i < rs.vbuffers.size(); i++)
     {
       D3D12Pipe::VB &vb = state.m_IA.vbuffers[i];
@@ -1028,7 +1028,7 @@ void D3D12Replay::SavePipelineState()
     // Stream Out
     /////////////////////////////////////////////////
 
-    create_array_uninit(state.m_SO.Outputs, rs.streamouts.size());
+    state.m_SO.Outputs.resize(rs.streamouts.size());
     for(size_t s = 0; s < rs.streamouts.size(); s++)
     {
       state.m_SO.Outputs[s].Buffer = rm->GetOriginalID(rs.streamouts[s].buf);
@@ -1072,12 +1072,12 @@ void D3D12Replay::SavePipelineState()
           src.ConservativeRaster == D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
     }
 
-    create_array_uninit(state.m_RS.Scissors, rs.scissors.size());
+    state.m_RS.Scissors.resize(rs.scissors.size());
     for(size_t i = 0; i < rs.scissors.size(); i++)
       state.m_RS.Scissors[i] = D3D12Pipe::Scissor(rs.scissors[i].left, rs.scissors[i].top,
                                                   rs.scissors[i].right, rs.scissors[i].bottom);
 
-    create_array_uninit(state.m_RS.Viewports, rs.views.size());
+    state.m_RS.Viewports.resize(rs.views.size());
     for(size_t i = 0; i < rs.views.size(); i++)
       state.m_RS.Viewports[i] =
           D3D12Pipe::Viewport(rs.views[i].TopLeftX, rs.views[i].TopLeftY, rs.views[i].Width,
@@ -1087,7 +1087,7 @@ void D3D12Replay::SavePipelineState()
     // Output Merger
     /////////////////////////////////////////////////
 
-    create_array(state.m_OM.RenderTargets, rs.rts.size());
+    state.m_OM.RenderTargets.resize(rs.rts.size());
     for(size_t i = 0; i < rs.rts.size(); i++)
     {
       D3D12Pipe::View &view = state.m_OM.RenderTargets[i];
@@ -1130,7 +1130,7 @@ void D3D12Replay::SavePipelineState()
       state.m_OM.m_BlendState.AlphaToCoverage = src.AlphaToCoverageEnable == TRUE;
       state.m_OM.m_BlendState.IndependentBlend = src.IndependentBlendEnable == TRUE;
 
-      create_array_uninit(state.m_OM.m_BlendState.Blends, 8);
+      state.m_OM.m_BlendState.Blends.resize(8);
       for(size_t i = 0; i < 8; i++)
       {
         D3D12Pipe::Blend &blend = state.m_OM.m_BlendState.Blends[i];
@@ -1178,8 +1178,8 @@ void D3D12Replay::SavePipelineState()
 
   // resource states
   {
-    const map<ResourceId, SubresourceStateVector> &states = m_pDevice->GetSubresourceStates();
-    create_array_uninit(state.Resources, states.size());
+    const std::map<ResourceId, SubresourceStateVector> &states = m_pDevice->GetSubresourceStates();
+    state.Resources.resize(states.size());
     size_t i = 0;
     for(auto it = states.begin(); it != states.end(); ++it)
     {
@@ -1187,7 +1187,7 @@ void D3D12Replay::SavePipelineState()
 
       res.id = rm->GetOriginalID(it->first);
 
-      create_array_uninit(res.states, it->second.size());
+      res.states.resize(it->second.size());
       for(size_t l = 0; l < it->second.size(); l++)
         res.states[l].name = ToStr::Get(it->second[l]);
 
@@ -1392,7 +1392,7 @@ void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uin
     idx++;
   }
 
-  if(cb && cbufSlot < (uint32_t)bindMap.ConstantBlocks.count)
+  if(cb && cbufSlot < (uint32_t)bindMap.ConstantBlocks.count())
   {
     // check if the data actually comes from root constants
 

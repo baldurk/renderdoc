@@ -28,7 +28,6 @@
 #include "driver/d3d11/d3d11_manager.h"
 #include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/d3d11/d3d11_resources.h"
-#include "replay/type_helpers.h"
 #include "serialise/string_utils.h"
 
 WRAPPED_POOL_INST(WrappedID3D11DeviceContext);
@@ -1000,8 +999,7 @@ void WrappedID3D11DeviceContext::AddDrawcall(const DrawcallDescription &d, bool 
   if(!m_DrawcallStack.empty())
   {
     DrawcallTreeNode node(draw);
-    node.children.insert(node.children.begin(), draw.children.elems,
-                         draw.children.elems + draw.children.count);
+    node.children.insert(node.children.begin(), draw.children.begin(), draw.children.end());
     m_DrawcallStack.back()->children.push_back(node);
   }
   else
@@ -1020,8 +1018,7 @@ void WrappedID3D11DeviceContext::AddEvent(string description)
   Callstack::Stackwalk *stack = m_pSerialiser->GetLastCallstack();
   if(stack)
   {
-    create_array(apievent.callstack, stack->NumLevels());
-    memcpy(apievent.callstack.elems, stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
+    apievent.callstack.assign(stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
   }
 
   m_CurEvents.push_back(apievent);

@@ -765,8 +765,8 @@ void BakedCmdListInfo::ShiftForRemoved(uint32_t shiftDrawID, uint32_t shiftEID, 
       draws[i].draw.eventID -= shiftEID;
       draws[i].draw.drawcallID -= shiftDrawID;
 
-      for(int32_t e = 0; e < draws[i].draw.events.count; e++)
-        draws[i].draw.events[e].eventID -= shiftEID;
+      for(APIEvent &ev : draws[i].draw.events)
+        ev.eventID -= shiftEID;
     }
 
     uint32_t lastEID = draws[idx].draw.eventID;
@@ -968,8 +968,7 @@ void D3D12CommandData::AddEvent(string description)
   Callstack::Stackwalk *stack = m_pSerialiser->GetLastCallstack();
   if(stack)
   {
-    create_array(apievent.callstack, stack->NumLevels());
-    memcpy(apievent.callstack.elems, stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
+    apievent.callstack.assign(stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
   }
 
   for(size_t i = 0; i < m_EventMessages.size(); i++)
@@ -1234,8 +1233,7 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
     if(m_LastCmdListID != ResourceId() && addUsage)
       AddUsage(node);
 
-    node.children.insert(node.children.begin(), draw.children.elems,
-                         draw.children.elems + draw.children.count);
+    node.children.insert(node.children.begin(), draw.children.begin(), draw.children.end());
     GetDrawcallStack().back()->children.push_back(node);
   }
   else
@@ -1262,10 +1260,10 @@ void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
     n.draw.eventID += m_RootEventID;
     n.draw.drawcallID += m_RootDrawcallID;
 
-    for(int32_t e = 0; e < n.draw.events.count; e++)
+    for(APIEvent &ev : n.draw.events)
     {
-      n.draw.events[e].eventID += m_RootEventID;
-      m_Events.push_back(n.draw.events[e]);
+      ev.eventID += m_RootEventID;
+      m_Events.push_back(ev);
     }
 
     DrawcallUse use(m_Events.back().fileOffset, n.draw.eventID, cmd, cmdBufNodes[i].draw.eventID);

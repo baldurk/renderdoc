@@ -78,7 +78,7 @@ void APIInspector::addCallstack(rdctype::array<rdctype::str> calls)
   ui->callstack->setUpdatesEnabled(false);
   ui->callstack->clear();
 
-  if(calls.count == 1 && calls[0].count == 0)
+  if(calls.size() == 1 && calls[0].isEmpty())
   {
     ui->callstack->addItem(tr("Symbols not loaded. Tools -> Resolve Symbols."));
   }
@@ -99,7 +99,7 @@ void APIInspector::on_apiEvents_itemSelectionChanged()
 
   APIEvent ev = node->tag().value<APIEvent>();
 
-  if(ev.callstack.count > 0)
+  if(!ev.callstack.isEmpty())
   {
     m_Ctx.Replay().AsyncInvoke([this, ev](IReplayController *r) {
       rdctype::array<rdctype::str> trace = r->GetResolve(ev.callstack);
@@ -126,7 +126,7 @@ void APIInspector::fillAPIView()
 
   const DrawcallDescription *draw = m_Ctx.CurSelectedDrawcall();
 
-  if(draw != NULL && draw->events.count > 0)
+  if(draw != NULL && !draw->events.isEmpty())
   {
     for(const APIEvent &ev : draw->events)
     {

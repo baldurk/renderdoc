@@ -2388,15 +2388,15 @@ void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progd
                                ShaderReflection *refl)
 {
   // copy over attrib bindings
-  for(int32_t i = 0; i < refl->InputSig.count; i++)
+  for(const SigParameter &sig : refl->InputSig)
   {
     // skip built-ins
-    if(refl->InputSig[i].systemValue != ShaderBuiltin::Undefined)
+    if(sig.systemValue != ShaderBuiltin::Undefined)
       continue;
 
-    GLint idx = gl.glGetAttribLocation(progsrc, refl->InputSig[i].varName.elems);
+    GLint idx = gl.glGetAttribLocation(progsrc, sig.varName.c_str());
     if(idx >= 0)
-      gl.glBindAttribLocation(progdst, (GLuint)idx, refl->InputSig[i].varName.elems);
+      gl.glBindAttribLocation(progdst, (GLuint)idx, sig.varName.c_str());
   }
 }
 
@@ -2406,24 +2406,24 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
   uint64_t used = 0;
 
   // copy over fragdata bindings
-  for(int32_t i = 0; i < refl->OutputSig.count; i++)
+  for(size_t i = 0; i < refl->OutputSig.size(); i++)
   {
     // only look at colour outputs (should be the only outputs from fs)
     if(refl->OutputSig[i].systemValue != ShaderBuiltin::ColorOutput)
       continue;
 
-    if(!strncmp("gl_", refl->OutputSig[i].varName.elems, 3))
+    if(!strncmp("gl_", refl->OutputSig[i].varName.c_str(), 3))
       continue;    // GL_INVALID_OPERATION if name starts with reserved gl_ prefix
 
-    GLint idx = gl.glGetFragDataLocation(progsrc, refl->OutputSig[i].varName.elems);
+    GLint idx = gl.glGetFragDataLocation(progsrc, refl->OutputSig[i].varName.c_str());
     if(idx >= 0)
     {
       uint64_t mask = 1ULL << idx;
 
       if(used & mask)
       {
-        RDCWARN("Multiple signatures bound to output %d, ignoring %s", i,
-                refl->OutputSig[i].varName.elems);
+        RDCWARN("Multiple signatures bound to output %zu, ignoring %s", i,
+                refl->OutputSig[i].varName.c_str());
         continue;
       }
 
@@ -2431,7 +2431,7 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
 
       if(gl.glBindFragDataLocation)
       {
-        gl.glBindFragDataLocation(progdst, (GLuint)idx, refl->OutputSig[i].varName.elems);
+        gl.glBindFragDataLocation(progdst, (GLuint)idx, refl->OutputSig[i].varName.c_str());
       }
       else
       {

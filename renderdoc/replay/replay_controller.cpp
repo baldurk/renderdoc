@@ -239,9 +239,9 @@ rdctype::array<rdctype::str> ReplayController::GetDisassemblyTargets()
 
   vector<string> targets = m_pDevice->GetDisassemblyTargets();
 
-  create_array_uninit(ret, targets.size());
-  for(int32_t i = 0; i < ret.count; i++)
-    ret[i] = targets[i];
+  ret.reserve(targets.size());
+  for(const std::string &t : targets)
+    ret.push_back(t);
 
   return ret;
 }
@@ -272,10 +272,7 @@ rdctype::array<DrawcallDescription> ReplayController::GetDrawcalls()
 
 rdctype::array<CounterResult> ReplayController::FetchCounters(const rdctype::array<GPUCounter> &counters)
 {
-  vector<GPUCounter> counterArray;
-  counterArray.reserve(counters.count);
-  for(int32_t i = 0; i < counters.count; i++)
-    counterArray.push_back(counters[i]);
+  std::vector<GPUCounter> counterArray(counters.begin(), counters.end());
 
   return m_pDevice->FetchCounters(counterArray);
 }
@@ -335,16 +332,15 @@ rdctype::array<rdctype::str> ReplayController::GetResolve(const rdctype::array<u
 
   if(resolv == NULL)
   {
-    create_array_uninit(ret, 1);
-    ret[0] = "";
+    ret = {""};
     return ret;
   }
 
-  create_array_uninit(ret, (size_t)callstack.count);
-  for(int32_t i = 0; i < callstack.count; i++)
+  ret.reserve(callstack.size());
+  for(uint64_t frame : callstack)
   {
-    Callstack::AddressDetails info = resolv->GetAddr(callstack[i]);
-    ret[i] = info.formattedString();
+    Callstack::AddressDetails info = resolv->GetAddr(frame);
+    ret.push_back(info.formattedString());
   }
 
   return ret;
@@ -377,25 +373,21 @@ MeshFormat ReplayController::GetPostVSData(uint32_t instID, MeshDataStage stage)
 
 rdctype::array<byte> ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
 {
-  rdctype::array<byte> ret;
-
   if(buff == ResourceId())
-    return ret;
+    return rdctype::array<byte>();
 
   ResourceId liveId = m_pDevice->GetLiveID(buff);
 
   if(liveId == ResourceId())
   {
     RDCERR("Couldn't get Live ID for %llu getting buffer data", buff);
-    return ret;
+    return rdctype::array<byte>();
   }
 
   vector<byte> retData;
   m_pDevice->GetBufferData(liveId, offset, len, retData);
 
-  create_array_init(ret, retData.size(), !retData.empty() ? &retData[0] : NULL);
-
-  return ret;
+  return retData;
 }
 
 rdctype::array<byte> ReplayController::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip)
@@ -413,10 +405,8 @@ rdctype::array<byte> ReplayController::GetTextureData(ResourceId tex, uint32_t a
   size_t sz = 0;
   byte *bytes = m_pDevice->GetTextureData(liveId, arrayIdx, mip, GetTextureDataParams(), sz);
 
-  if(sz == 0 || bytes == NULL)
-    create_array_uninit(ret, 0);
-  else
-    create_array_init(ret, sz, bytes);
+  if(sz != 0 && bytes != NULL)
+    ret.assign(bytes, sz);
 
   SAFE_DELETE_ARRAY(bytes);
 

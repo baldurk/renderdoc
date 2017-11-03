@@ -525,8 +525,7 @@ void D3D11Replay::SavePipelineState()
 
     ret.m_IA.name = str;
 
-    create_array_uninit(ret.m_IA.layouts, vec.size());
-
+    ret.m_IA.layouts.resize(vec.size());
     for(size_t i = 0; i < vec.size(); i++)
     {
       D3D11Pipe::Layout &l = ret.m_IA.layouts[i];
@@ -541,8 +540,7 @@ void D3D11Replay::SavePipelineState()
     }
   }
 
-  create_array_uninit(ret.m_IA.vbuffers, ARRAY_COUNT(rs->IA.VBs));
-
+  ret.m_IA.vbuffers.resize(ARRAY_COUNT(rs->IA.VBs));
   for(size_t i = 0; i < ARRAY_COUNT(rs->IA.VBs); i++)
   {
     D3D11Pipe::VB &vb = ret.m_IA.vbuffers[i];
@@ -600,7 +598,7 @@ void D3D11Replay::SavePipelineState()
 
       dst.name = str;
 
-      create_array_uninit(dst.ConstantBuffers, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
+      dst.ConstantBuffers.resize(D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
       for(size_t s = 0; s < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; s++)
       {
         dst.ConstantBuffers[s].Buffer = rm->GetOriginalID(GetIDForResource(src.ConstantBuffers[s]));
@@ -608,7 +606,7 @@ void D3D11Replay::SavePipelineState()
         dst.ConstantBuffers[s].VecCount = src.CBCounts[s];
       }
 
-      create_array_uninit(dst.Samplers, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT);
+      dst.Samplers.resize(D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT);
       for(size_t s = 0; s < D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT; s++)
       {
         D3D11Pipe::Sampler &samp = dst.Samplers[s];
@@ -620,7 +618,7 @@ void D3D11Replay::SavePipelineState()
           samp.name = GetDebugName(src.Samplers[s]);
           samp.customName = true;
 
-          if(samp.name.count == 0)
+          if(samp.name.empty())
           {
             samp.customName = false;
             samp.name = StringFormat::Fmt("Sampler %llu", samp.Samp);
@@ -646,7 +644,7 @@ void D3D11Replay::SavePipelineState()
         }
       }
 
-      create_array_uninit(dst.SRVs, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
+      dst.SRVs.resize(D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
       for(size_t s = 0; s < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; s++)
       {
         D3D11Pipe::View &view = dst.SRVs[s];
@@ -747,7 +745,7 @@ void D3D11Replay::SavePipelineState()
         }
       }
 
-      create_array(dst.UAVs, D3D11_1_UAV_SLOT_COUNT);
+      dst.UAVs.resize(D3D11_1_UAV_SLOT_COUNT);
       for(size_t s = 0; dst.stage == ShaderStage::Compute && s < D3D11_1_UAV_SLOT_COUNT; s++)
       {
         D3D11Pipe::View &view = dst.UAVs[s];
@@ -829,7 +827,7 @@ void D3D11Replay::SavePipelineState()
         }
       }
 
-      create_array_uninit(dst.ClassInstances, src.NumInstances);
+      dst.ClassInstances.reserve(src.NumInstances);
       for(UINT s = 0; s < src.NumInstances; s++)
       {
         D3D11_CLASS_INSTANCE_DESC desc;
@@ -843,7 +841,7 @@ void D3D11Replay::SavePipelineState()
         count = 255;
         src.Instances[s]->GetInstanceName(instName, &count);
 
-        dst.ClassInstances[s] = instName;
+        dst.ClassInstances.push_back(instName);
       }
     }
   }
@@ -853,7 +851,7 @@ void D3D11Replay::SavePipelineState()
   /////////////////////////////////////////////////
 
   {
-    create_array_uninit(ret.m_SO.Outputs, D3D11_SO_BUFFER_SLOT_COUNT);
+    ret.m_SO.Outputs.resize(D3D11_SO_BUFFER_SLOT_COUNT);
     for(size_t s = 0; s < D3D11_SO_BUFFER_SLOT_COUNT; s++)
     {
       ret.m_SO.Outputs[s].Buffer = rm->GetOriginalID(GetIDForResource(rs->SO.Buffers[s]));
@@ -931,7 +929,7 @@ void D3D11Replay::SavePipelineState()
     }
 
     size_t i = 0;
-    create_array_uninit(ret.m_RS.Scissors, D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
+    ret.m_RS.Scissors.resize(D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
     for(i = 0; i < rs->RS.NumScissors; i++)
       ret.m_RS.Scissors[i] =
           D3D11Pipe::Scissor(rs->RS.Scissors[i].left, rs->RS.Scissors[i].top,
@@ -940,7 +938,7 @@ void D3D11Replay::SavePipelineState()
     for(; i < D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE; i++)
       ret.m_RS.Scissors[i] = D3D11Pipe::Scissor(0, 0, 0, 0, false);
 
-    create_array_uninit(ret.m_RS.Viewports, D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
+    ret.m_RS.Viewports.resize(D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
     for(i = 0; i < rs->RS.NumViews; i++)
       ret.m_RS.Viewports[i] =
           D3D11Pipe::Viewport(rs->RS.Viewports[i].TopLeftX, rs->RS.Viewports[i].TopLeftY,
@@ -956,7 +954,7 @@ void D3D11Replay::SavePipelineState()
   /////////////////////////////////////////////////
 
   {
-    create_array_uninit(ret.m_OM.RenderTargets, D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
+    ret.m_OM.RenderTargets.resize(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
     for(size_t i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
     {
       D3D11Pipe::View &view = ret.m_OM.RenderTargets[i];
@@ -1024,7 +1022,7 @@ void D3D11Replay::SavePipelineState()
 
     ret.m_OM.UAVStartSlot = rs->OM.UAVStartSlot;
 
-    create_array_uninit(ret.m_OM.UAVs, D3D11_1_UAV_SLOT_COUNT);
+    ret.m_OM.UAVs.resize(D3D11_1_UAV_SLOT_COUNT);
     for(size_t s = 0; s < D3D11_1_UAV_SLOT_COUNT; s++)
     {
       D3D11Pipe::View view;
@@ -1191,7 +1189,7 @@ void D3D11Replay::SavePipelineState()
         state1 = true;
       }
 
-      create_array_uninit(ret.m_OM.m_BlendState.Blends, 8);
+      ret.m_OM.m_BlendState.Blends.resize(8);
       for(size_t i = 0; i < 8; i++)
       {
         D3D11Pipe::Blend &blend = ret.m_OM.m_BlendState.Blends[i];
@@ -1237,7 +1235,7 @@ void D3D11Replay::SavePipelineState()
 
       blend.WriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-      create_array_uninit(ret.m_OM.m_BlendState.Blends, 8);
+      ret.m_OM.m_BlendState.Blends.resize(8);
       for(size_t i = 0; i < 8; i++)
         ret.m_OM.m_BlendState.Blends[i] = blend;
     }
@@ -1722,10 +1720,7 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
   }
 
   if(resource != NULL && templateTex.customName)
-  {
-    string name = templateTex.name.elems;
-    SetDebugName(resource, templateTex.name.elems);
-  }
+    SetDebugName(resource, templateTex.name.c_str());
 
   m_ProxyResources.push_back(resource);
 
@@ -1888,10 +1883,7 @@ ResourceId D3D11Replay::CreateProxyBuffer(const BufferDescription &templateBuf)
   }
 
   if(resource != NULL && templateBuf.customName)
-  {
-    string name = templateBuf.name.elems;
-    SetDebugName(resource, templateBuf.name.elems);
-  }
+    SetDebugName(resource, templateBuf.name.c_str());
 
   m_ProxyResources.push_back(resource);
 
