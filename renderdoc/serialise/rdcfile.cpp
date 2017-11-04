@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "rdcfile.h"
+#include <errno.h>
 #include "3rdparty/stb/stb_image.h"
 #include "api/replay/version.h"
 #include "common/dds_readwrite.h"
