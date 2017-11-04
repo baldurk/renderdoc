@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "streamio.h"
+#include <errno.h>
 
 Compressor::~Compressor()
 {
