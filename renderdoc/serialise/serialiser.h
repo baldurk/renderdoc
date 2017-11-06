@@ -523,7 +523,7 @@ public:
     }
     else
     {
-      el.assign(NULL, sz);
+      el.resize((size_t)sz);
       for(int32_t i = 0; i < sz; i++)
         Serialise("", el[i]);
     }
