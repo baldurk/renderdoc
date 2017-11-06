@@ -120,6 +120,7 @@ QProcessList QProcessInfo::enumerate()
 #include <QDir>
 #include <QProcess>
 #include <QRegExp>
+#include <QStandardPaths>
 #include <QTextStream>
 
 QProcessList QProcessInfo::enumerate()
@@ -140,7 +141,7 @@ QProcessList QProcessInfo::enumerate()
       QProcessInfo info;
       info.setPid(pid);
 
-      QDir processDir(QStringLiteral("/proc") + f);
+      QDir processDir(QStringLiteral("/proc/") + f);
 
       // default to the exe symlink if valid
       QFileInfo exe(processDir.absoluteFilePath(QStringLiteral("exe")));
@@ -212,6 +213,15 @@ QProcessList QProcessInfo::enumerate()
 
     QList<QByteArray> windowlist;
 
+    QString inPath = QStandardPaths::findExecutable(QStringLiteral("xdotool"));
+
+    if(inPath.isEmpty())
+    {
+      // add a fake window title to the first process to indicate that xdotool is missing
+      if(!ret.isEmpty())
+        ret[0].setWindowTitle(QStringLiteral("Window titles not available - install `xdotool`"));
+    }
+    else
     {
       QProcess process;
       process.start(QStringLiteral("xdotool"), params);
