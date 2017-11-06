@@ -59,6 +59,12 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 {
   ui->setupUi(this);
 
+#if !defined(Q_OS_WIN32)
+  // process injection is not supported on non-Windows, so remove the menu item rather than disable
+  // it without a clear way to communicate that it is never supported
+  ui->menu_File->removeAction(ui->action_Inject_into_Process);
+#endif
+
   QToolTip::setPalette(palette());
 
   installEventFilter(this);

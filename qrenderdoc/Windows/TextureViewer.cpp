@@ -2491,6 +2491,28 @@ void TextureViewer::OnLogfileLoaded()
   ui->locationGoto->setEnabled(true);
   ui->viewTexBuffer->setEnabled(true);
 
+  if(m_Ctx.CurPipelineState().IsLogD3D11())
+  {
+    ui->pixelHistory->setEnabled(true);
+    ui->pixelHistory->setToolTip(QString());
+  }
+  else
+  {
+    ui->pixelHistory->setEnabled(false);
+    ui->pixelHistory->setToolTip(tr("Pixel History not implemented on this API"));
+  }
+
+  if(m_Ctx.CurPipelineState().IsLogD3D11())
+  {
+    ui->debugPixelContext->setEnabled(true);
+    ui->debugPixelContext->setToolTip(QString());
+  }
+  else
+  {
+    ui->debugPixelContext->setEnabled(false);
+    ui->debugPixelContext->setToolTip(tr("Shader Debugging not implemented on this API"));
+  }
+
   TextureListItemModel *model = (TextureListItemModel *)ui->textureList->model();
 
   model->reset(TextureListItemModel::String, QString(), m_Ctx);
@@ -2545,7 +2567,10 @@ void TextureViewer::Reset()
   ui->renderHScroll->setEnabled(false);
   ui->renderVScroll->setEnabled(false);
 
-  // PixelPicked = false;
+  ui->pixelHistory->setEnabled(false);
+  ui->pixelHistory->setToolTip(QString());
+  ui->debugPixelContext->setEnabled(false);
+  ui->debugPixelContext->setToolTip(QString());
 
   ui->statusText->setText(QString());
   ui->renderContainer->setWindowTitle(tr("Current"));
