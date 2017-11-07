@@ -1480,8 +1480,10 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
 // repeat the process for the Wow32 renderdoccmd
 #if ENABLED(RDOC_X64)
   _snwprintf_s(paramsAlloc, 2047, 2047,
-               L"\"%ls\" globalhook --match \"%ls\" --log \"%ls\" --capopts \"%hs\"",
-               cmdpathWow32.c_str(), wpathmatch.c_str(), wlogfile.c_str(), optstr.c_str());
+               L"\"%ls\" globalhook --match \"%ls\" --logfile \"%ls\" --debuglog \"%ls\" "
+               L"--capopts \"%hs\"",
+               cmdpathWow32.c_str(), wpathmatch.c_str(), wlogfile.c_str(), wdebugLogfile.c_str(),
+               optstr.c_str());
 
   paramsAlloc[2047] = 0;
 
