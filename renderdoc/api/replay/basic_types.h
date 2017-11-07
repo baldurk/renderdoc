@@ -176,7 +176,11 @@ public:
     if(s <= capacity())
       return;
 
-    // for now, just resize exactly to what's needed.
+    // either double, or allocate what's needed, whichever is bigger. ie. by default we double in
+    // size but we don't grow exponentially in 2^n to cover a single really large resize
+    if(size_t(allocatedCount) * 2 > s)
+      s = size_t(allocatedCount) * 2;
+
     T *newElems = allocate(null_terminator<T>::allocCount(s));
 
     // copy the elements to new storage
