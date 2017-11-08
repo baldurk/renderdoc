@@ -243,166 +243,19 @@ void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
 
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...) \
   ret func(__VA_ARGS__);                              \
-  bool CONCAT(Serialise_, func(Serialiser *localSerialiser, __VA_ARGS__));
+  template <typename SerialiserType>                  \
+  bool CONCAT(Serialise_, func(SerialiserType &ser, __VA_ARGS__));
 
-template <>
-void Serialiser::Serialise(const char *name, VkRect2D &el);
-template <>
-void Serialiser::Serialise(const char *name, VkDeviceQueueCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPhysicalDeviceMemoryProperties &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPhysicalDeviceProperties &el);
-template <>
-void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkBufferViewCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkImageCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkSparseMemoryBind &el);
-template <>
-void Serialiser::Serialise(const char *name, VkBindSparseInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPipelineInputAssemblyStateCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPipelineTessellationStateCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPipelineViewportStateCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPipelineRasterizationStateCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPipelineMultisampleStateCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPipelineDepthStencilStateCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPipelineColorBlendStateCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPipelineDynamicStateCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPushConstantRange &el);
-template <>
-void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el);
-template <>
-void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkDescriptorSetAllocateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el);
-template <>
-void Serialiser::Serialise(const char *name, VkCopyDescriptorSet &el);
-template <>
-void Serialiser::Serialise(const char *name, VkCommandPoolCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkCommandBufferAllocateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkCommandBufferBeginInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkStencilOpState &el);
-template <>
-void Serialiser::Serialise(const char *name, VkQueryPoolCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkSemaphoreCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkEventCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkFenceCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkSamplerCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkPipelineCacheCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkImageSubresourceRange &el);
-template <>
-void Serialiser::Serialise(const char *name, VkImageSubresource &el);
-template <>
-void Serialiser::Serialise(const char *name, VkImageSubresourceLayers &el);
-template <>
-void Serialiser::Serialise(const char *name, VkMemoryAllocateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkMemoryBarrier &el);
-template <>
-void Serialiser::Serialise(const char *name, VkBufferMemoryBarrier &el);
-template <>
-void Serialiser::Serialise(const char *name, VkImageMemoryBarrier &el);
-template <>
-void Serialiser::Serialise(const char *name, VkGraphicsPipelineCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkComputePipelineCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkComponentMapping &el);
-template <>
-void Serialiser::Serialise(const char *name, VkComputePipelineCreateInfo &el);
-template <>
-void Serialiser::Serialise(const char *name, VkBufferImageCopy &el);
-template <>
-void Serialiser::Serialise(const char *name, VkBufferCopy &el);
-template <>
-void Serialiser::Serialise(const char *name, VkImageCopy &el);
-template <>
-void Serialiser::Serialise(const char *name, VkImageBlit &el);
-template <>
-void Serialiser::Serialise(const char *name, VkImageResolve &el);
+#define INSTANTIATE_FUNCTION_SERIALISED(ret, func, ...)                                    \
+  template bool WrappedVulkan::CONCAT(Serialise_, func(ReadSerialiser &ser, __VA_ARGS__)); \
+  template bool WrappedVulkan::CONCAT(Serialise_, func(WriteSerialiser &ser, __VA_ARGS__));
 
-template <>
-void Serialiser::Serialise(const char *name, VkSwapchainCreateInfoKHR &el);
-
-struct DescriptorSetSlot;
-template <>
-void Serialiser::Serialise(const char *name, DescriptorSetSlot &el);
-
-template <>
-void Serialiser::Deserialise(const VkDeviceCreateInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkBufferCreateInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkImageCreateInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkBindSparseInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkDescriptorSetAllocateInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkFramebufferCreateInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkRenderPassCreateInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkRenderPassBeginInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkCommandBufferBeginInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkPipelineCacheCreateInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkPipelineLayoutCreateInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkShaderModuleCreateInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkGraphicsPipelineCreateInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkComputePipelineCreateInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkDescriptorPoolCreateInfo *const el) const;
-template <>
-void Serialiser::Deserialise(const VkWriteDescriptorSet *const el) const;
-template <>
-void Serialiser::Deserialise(const VkDescriptorSetLayoutCreateInfo *const el) const;
+// A handy macros to say "is the serialiser reading and we're doing replay-mode stuff?"
+// The reason we check both is that checking the first allows the compiler to eliminate the other
+// path at compile-time, and the second because we might be just struct-serialising in which case we
+// should be doing no work to restore states.
+// Writing is unambiguously during capture mode, so we don't have to check both in that case.
+#define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_State))
 
 // the possible contents of a descriptor set slot,
 // taken from the VkWriteDescriptorSet
@@ -412,6 +265,8 @@ struct DescriptorSetSlot
   VkDescriptorImageInfo imageInfo;
   VkBufferView texelBufferView;
 };
+
+DECLARE_REFLECTION_STRUCT(DescriptorSetSlot);
 
 #define NUM_VK_IMAGE_ASPECTS 4
 #define VK_ACCESS_ALL_READ_BITS                                                        \
@@ -425,138 +280,326 @@ struct DescriptorSetSlot
    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | \
    VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_MEMORY_WRITE_BIT)
 
-#pragma region Chunks
-
-enum VulkanChunkType
+enum class VulkanChunk : uint32_t
 {
-  DEVICE_INIT = FIRST_CHUNK_ID,
-  CREATE_INSTANCE,
-  ENUM_PHYSICALS,
-  CREATE_DEVICE,
-  GET_DEVICE_QUEUE,
-
-  ALLOC_MEM,
-  UNMAP_MEM,
-  FLUSH_MEM,
-  FREE_MEM,
-
-  CREATE_CMD_POOL,
-  RESET_CMD_POOL,
-
-  CREATE_CMD_BUFFER,
-  CREATE_FRAMEBUFFER,
-  CREATE_RENDERPASS,
-  CREATE_DESCRIPTOR_POOL,
-  CREATE_DESCRIPTOR_SET_LAYOUT,
-  CREATE_BUFFER,
-  CREATE_BUFFER_VIEW,
-  CREATE_IMAGE,
-  CREATE_IMAGE_VIEW,
-  CREATE_DEPTH_TARGET_VIEW,
-  CREATE_SAMPLER,
-  CREATE_SHADER_MODULE,
-  CREATE_PIPE_LAYOUT,
-  CREATE_PIPE_CACHE,
-  CREATE_GRAPHICS_PIPE,
-  CREATE_COMPUTE_PIPE,
-  GET_SWAPCHAIN_IMAGE,
-
-  CREATE_SEMAPHORE,
-  CREATE_FENCE,
-  GET_FENCE_STATUS,
-  RESET_FENCE,
-  WAIT_FENCES,
-
-  CREATE_EVENT,
-  GET_EVENT_STATUS,
-  SET_EVENT,
-  RESET_EVENT,
-
-  CREATE_QUERY_POOL,
-
-  ALLOC_DESC_SET,
-  UPDATE_DESC_SET,
-
-  BEGIN_CMD_BUFFER,
-  END_CMD_BUFFER,
-
-  QUEUE_WAIT_IDLE,
-  DEVICE_WAIT_IDLE,
-
-  QUEUE_SUBMIT,
-  BIND_BUFFER_MEM,
-  BIND_IMAGE_MEM,
-
-  BIND_SPARSE,
-
-  BEGIN_RENDERPASS,
-  NEXT_SUBPASS,
-  EXEC_CMDS,
-  END_RENDERPASS,
-
-  BIND_PIPELINE,
-
-  SET_VP,
-  SET_SCISSOR,
-  SET_LINE_WIDTH,
-  SET_DEPTH_BIAS,
-  SET_BLEND_CONST,
-  SET_DEPTH_BOUNDS,
-  SET_STENCIL_COMP_MASK,
-  SET_STENCIL_WRITE_MASK,
-  SET_STENCIL_REF,
-
-  BIND_DESCRIPTOR_SET,
-  BIND_VERTEX_BUFFERS,
-  BIND_INDEX_BUFFER,
-  COPY_BUF2IMG,
-  COPY_IMG2BUF,
-  COPY_BUF,
-  COPY_IMG,
-  BLIT_IMG,
-  RESOLVE_IMG,
-  UPDATE_BUF,
-  FILL_BUF,
-  PUSH_CONST,
-
-  CLEAR_COLOR,
-  CLEAR_DEPTHSTENCIL,
-  CLEAR_ATTACH,
-  PIPELINE_BARRIER,
-
-  WRITE_TIMESTAMP,
-  COPY_QUERY_RESULTS,
-  BEGIN_QUERY,
-  END_QUERY,
-  RESET_QUERY_POOL,
-
-  CMD_SET_EVENT,
-  CMD_RESET_EVENT,
-  CMD_WAIT_EVENTS,
-
-  DRAW,
-  DRAW_INDIRECT,
-  DRAW_INDEXED,
-  DRAW_INDEXED_INDIRECT,
-  DISPATCH,
-  DISPATCH_INDIRECT,
-
-  BEGIN_EVENT,
-  SET_MARKER,
-  END_EVENT,
-
-  SET_NAME,
-  SET_SHADER_DEBUG_PATH,
-
-  CREATE_SWAP_BUFFER,
-
-  DEBUG_MESSAGES,
-
-  CAPTURE_SCOPE,
-  CONTEXT_CAPTURE_HEADER,
-  CONTEXT_CAPTURE_FOOTER,
-
-  NUM_VULKAN_CHUNKS,
+  vkEnumeratePhysicalDevices = (uint32_t)SystemChunk::FirstDriverChunk,
+  vkCreateDevice,
+  vkGetDeviceQueue,
+  vkAllocateMemory,
+  vkUnmapMemory,
+  vkFlushMappedMemoryRanges,
+  vkCreateCommandPool,
+  vkResetCommandPool,
+  vkCreateFramebuffer,
+  vkCreateRenderPass,
+  vkCreateDescriptorPool,
+  vkCreateDescriptorSetLayout,
+  vkCreateBuffer,
+  vkCreateBufferView,
+  vkCreateImage,
+  vkCreateImageView,
+  vkCreateDepthTargetView,
+  vkCreateSampler,
+  vkCreateShaderModule,
+  vkCreatePipelineLayout,
+  vkCreatePipelineCache,
+  vkCreateGraphicsPipelines,
+  vkCreateComputePipelines,
+  vkGetSwapchainImagesKHR,
+  vkCreateSemaphore,
+  vkCreateFence,
+  vkGetFenceStatus,
+  vkResetFences,
+  vkWaitForFences,
+  vkCreateEvent,
+  vkGetEventStatus,
+  vkSetEvent,
+  vkResetEvent,
+  vkCreateQueryPool,
+  vkAllocateDescriptorSets,
+  vkUpdateDescriptorSets,
+  vkBeginCommandBuffer,
+  vkEndCommandBuffer,
+  vkQueueWaitIdle,
+  vkDeviceWaitIdle,
+  vkQueueSubmit,
+  vkBindBufferMemory,
+  vkBindImageMemory,
+  vkQueueBindSparse,
+  vkCmdBeginRenderPass,
+  vkCmdNextSubpass,
+  vkCmdExecuteCommands,
+  vkCmdEndRenderPass,
+  vkCmdBindPipeline,
+  vkCmdSetViewport,
+  vkCmdSetScissor,
+  vkCmdSetLineWidth,
+  vkCmdSetDepthBias,
+  vkCmdSetBlendConstants,
+  vkCmdSetDepthBounds,
+  vkCmdSetStencilCompareMask,
+  vkCmdSetStencilWriteMask,
+  vkCmdSetStencilReference,
+  vkCmdBindDescriptorSets,
+  vkCmdBindVertexBuffers,
+  vkCmdBindIndexBuffer,
+  vkCmdCopyBufferToImage,
+  vkCmdCopyImageToBuffer,
+  vkCmdCopyBuffer,
+  vkCmdCopyImage,
+  vkCmdBlitImage,
+  vkCmdResolveImage,
+  vkCmdUpdateBuffer,
+  vkCmdFillBuffer,
+  vkCmdPushConstants,
+  vkCmdClearColorImage,
+  vkCmdClearDepthStencilImage,
+  vkCmdClearAttachments,
+  vkCmdPipelineBarrier,
+  vkCmdWriteTimestamp,
+  vkCmdCopyQueryPoolResults,
+  vkCmdBeginQuery,
+  vkCmdEndQuery,
+  vkCmdResetQueryPool,
+  vkCmdSetEvent,
+  vkCmdResetEvent,
+  vkCmdWaitEvents,
+  vkCmdDraw,
+  vkCmdDrawIndirect,
+  vkCmdDrawIndexed,
+  vkCmdDrawIndexedIndirect,
+  vkCmdDispatch,
+  vkCmdDispatchIndirect,
+  vkCmdDebugMarkerBeginEXT,
+  vkCmdDebugMarkerInsertEXT,
+  vkCmdDebugMarkerEndEXT,
+  vkDebugMarkerSetObjectNameEXT,
+  vkCreateSwapchainKHR,
+  SetShaderDebugPath,
+  vkRegisterDeviceEventEXT,
+  vkRegisterDisplayEventEXT,
+  CaptureScope,
+  CaptureBegin,
+  CaptureEnd,
+  Max,
 };
 
-#pragma endregion Chunks
+DECLARE_REFLECTION_ENUM(VulkanChunk);
+
+// this is special - these serialise overloads will fetch the ID during capture, serialise the ID
+// directly as-if it were the original type, then on replay load up the resource if available.
+// Really this is only one type of serialisation, but we declare a couple of overloads to account
+// for resources being accessed through different interfaces in different functions
+#define SERIALISE_VK_HANDLES()            \
+  SERIALISE_HANDLE(VkInstance)            \
+  SERIALISE_HANDLE(VkPhysicalDevice)      \
+  SERIALISE_HANDLE(VkDevice)              \
+  SERIALISE_HANDLE(VkQueue)               \
+  SERIALISE_HANDLE(VkCommandBuffer)       \
+  SERIALISE_HANDLE(VkFence)               \
+  SERIALISE_HANDLE(VkDeviceMemory)        \
+  SERIALISE_HANDLE(VkBuffer)              \
+  SERIALISE_HANDLE(VkImage)               \
+  SERIALISE_HANDLE(VkSemaphore)           \
+  SERIALISE_HANDLE(VkEvent)               \
+  SERIALISE_HANDLE(VkQueryPool)           \
+  SERIALISE_HANDLE(VkBufferView)          \
+  SERIALISE_HANDLE(VkImageView)           \
+  SERIALISE_HANDLE(VkShaderModule)        \
+  SERIALISE_HANDLE(VkPipelineCache)       \
+  SERIALISE_HANDLE(VkPipelineLayout)      \
+  SERIALISE_HANDLE(VkRenderPass)          \
+  SERIALISE_HANDLE(VkPipeline)            \
+  SERIALISE_HANDLE(VkDescriptorSetLayout) \
+  SERIALISE_HANDLE(VkSampler)             \
+  SERIALISE_HANDLE(VkDescriptorPool)      \
+  SERIALISE_HANDLE(VkDescriptorSet)       \
+  SERIALISE_HANDLE(VkFramebuffer)         \
+  SERIALISE_HANDLE(VkCommandPool)         \
+  SERIALISE_HANDLE(VkSwapchainKHR)        \
+  SERIALISE_HANDLE(VkSurfaceKHR)
+
+#define SERIALISE_HANDLE(type) DECLARE_REFLECTION_STRUCT(type)
+
+SERIALISE_VK_HANDLES();
+
+// declare reflect-able types
+
+DECLARE_REFLECTION_STRUCT(VkOffset2D);
+DECLARE_REFLECTION_STRUCT(VkExtent2D);
+DECLARE_REFLECTION_STRUCT(VkMemoryType);
+DECLARE_REFLECTION_STRUCT(VkMemoryHeap);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceLimits);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceSparseProperties);
+DECLARE_REFLECTION_STRUCT(VkQueueFamilyProperties);
+DECLARE_REFLECTION_STRUCT(VkExtent3D);
+DECLARE_REFLECTION_STRUCT(VkPipelineShaderStageCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkOffset3D);
+DECLARE_REFLECTION_STRUCT(VkCommandBufferInheritanceInfo);
+DECLARE_REFLECTION_STRUCT(VkPipelineVertexInputStateCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkSparseBufferMemoryBindInfo);
+DECLARE_REFLECTION_STRUCT(VkSparseImageOpaqueMemoryBindInfo);
+DECLARE_REFLECTION_STRUCT(VkSparseImageMemoryBindInfo);
+DECLARE_REFLECTION_STRUCT(VkAttachmentDescription);
+DECLARE_REFLECTION_STRUCT(VkSubpassDescription);
+DECLARE_REFLECTION_STRUCT(VkSubpassDependency);
+DECLARE_REFLECTION_STRUCT(VkClearValue);
+DECLARE_REFLECTION_STRUCT(VkClearColorValue);
+DECLARE_REFLECTION_STRUCT(VkClearDepthStencilValue);
+DECLARE_REFLECTION_STRUCT(VkClearAttachment);
+DECLARE_REFLECTION_STRUCT(VkClearRect);
+DECLARE_REFLECTION_STRUCT(VkViewport);
+DECLARE_REFLECTION_STRUCT(VkPipelineColorBlendAttachmentState);
+DECLARE_REFLECTION_STRUCT(VkDescriptorPoolSize);
+DECLARE_REFLECTION_STRUCT(VkDescriptorImageInfo);
+DECLARE_REFLECTION_STRUCT(VkDescriptorBufferInfo);
+DECLARE_REFLECTION_STRUCT(VkSpecializationInfo);
+DECLARE_REFLECTION_STRUCT(VkAttachmentReference);
+DECLARE_REFLECTION_STRUCT(VkSparseImageMemoryBind);
+DECLARE_REFLECTION_STRUCT(VkVertexInputBindingDescription);
+DECLARE_REFLECTION_STRUCT(VkVertexInputAttributeDescription);
+DECLARE_REFLECTION_STRUCT(VkSpecializationMapEntry);
+DECLARE_REFLECTION_STRUCT(VkRect2D);
+DECLARE_REFLECTION_STRUCT(VkDeviceQueueCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceFeatures);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMemoryProperties);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceProperties);
+DECLARE_REFLECTION_STRUCT(VkDeviceCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkBufferCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkBufferViewCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkImageCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkImageViewCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkSparseMemoryBind);
+DECLARE_REFLECTION_STRUCT(VkBindSparseInfo);
+DECLARE_REFLECTION_STRUCT(VkSubmitInfo);
+DECLARE_REFLECTION_STRUCT(VkFramebufferCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkRenderPassCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkRenderPassBeginInfo);
+DECLARE_REFLECTION_STRUCT(VkPipelineInputAssemblyStateCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkPipelineTessellationStateCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkPipelineViewportStateCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkPipelineRasterizationStateCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkPipelineMultisampleStateCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkPipelineDepthStencilStateCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkPipelineColorBlendStateCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkPipelineDynamicStateCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkPipelineLayoutCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkPushConstantRange);
+DECLARE_REFLECTION_STRUCT(VkDescriptorSetLayoutBinding);
+DECLARE_REFLECTION_STRUCT(VkDescriptorSetLayoutCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkDescriptorPoolCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkDescriptorSetAllocateInfo);
+DECLARE_REFLECTION_STRUCT(VkWriteDescriptorSet);
+DECLARE_REFLECTION_STRUCT(VkCopyDescriptorSet);
+DECLARE_REFLECTION_STRUCT(VkCommandPoolCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkCommandBufferAllocateInfo);
+DECLARE_REFLECTION_STRUCT(VkCommandBufferBeginInfo);
+DECLARE_REFLECTION_STRUCT(VkStencilOpState);
+DECLARE_REFLECTION_STRUCT(VkQueryPoolCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkSemaphoreCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkEventCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkFenceCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkSamplerCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkPipelineCacheCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkShaderModuleCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkImageSubresourceRange);
+DECLARE_REFLECTION_STRUCT(VkImageSubresource);
+DECLARE_REFLECTION_STRUCT(VkImageSubresourceLayers);
+DECLARE_REFLECTION_STRUCT(VkMemoryAllocateInfo);
+DECLARE_REFLECTION_STRUCT(VkMemoryBarrier);
+DECLARE_REFLECTION_STRUCT(VkBufferMemoryBarrier);
+DECLARE_REFLECTION_STRUCT(VkImageMemoryBarrier);
+DECLARE_REFLECTION_STRUCT(VkGraphicsPipelineCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkComputePipelineCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkComponentMapping);
+DECLARE_REFLECTION_STRUCT(VkMappedMemoryRange);
+DECLARE_REFLECTION_STRUCT(VkBufferImageCopy);
+DECLARE_REFLECTION_STRUCT(VkBufferCopy);
+DECLARE_REFLECTION_STRUCT(VkImageCopy);
+DECLARE_REFLECTION_STRUCT(VkImageBlit);
+DECLARE_REFLECTION_STRUCT(VkImageResolve);
+DECLARE_REFLECTION_STRUCT(VkSwapchainCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkDebugMarkerMarkerInfoEXT);
+
+DECLARE_DESERIALISE_TYPE(VkDeviceCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkBufferCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkImageCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkBindSparseInfo);
+DECLARE_DESERIALISE_TYPE(VkSubmitInfo);
+DECLARE_DESERIALISE_TYPE(VkDescriptorSetAllocateInfo);
+DECLARE_DESERIALISE_TYPE(VkFramebufferCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkRenderPassCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkRenderPassBeginInfo);
+DECLARE_DESERIALISE_TYPE(VkCommandBufferBeginInfo);
+DECLARE_DESERIALISE_TYPE(VkPipelineCacheCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkPipelineLayoutCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkShaderModuleCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkGraphicsPipelineCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkComputePipelineCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkDescriptorPoolCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSet);
+DECLARE_DESERIALISE_TYPE(VkDescriptorSetLayoutCreateInfo);
+
+DECLARE_REFLECTION_ENUM(VkFlagWithNoBits);
+DECLARE_REFLECTION_ENUM(VkQueueFlagBits);
+DECLARE_REFLECTION_ENUM(VkPipelineCreateFlagBits);
+DECLARE_REFLECTION_ENUM(VkPipelineStageFlagBits);
+DECLARE_REFLECTION_ENUM(VkBufferUsageFlagBits);
+DECLARE_REFLECTION_ENUM(VkImageUsageFlagBits);
+DECLARE_REFLECTION_ENUM(VkBufferCreateFlagBits);
+DECLARE_REFLECTION_ENUM(VkImageCreateFlagBits);
+DECLARE_REFLECTION_ENUM(VkSparseMemoryBindFlagBits);
+DECLARE_REFLECTION_ENUM(VkCommandPoolCreateFlagBits);
+DECLARE_REFLECTION_ENUM(VkCommandPoolResetFlagBits);
+DECLARE_REFLECTION_ENUM(VkCommandBufferUsageFlagBits);
+DECLARE_REFLECTION_ENUM(VkDescriptorPoolCreateFlagBits);
+DECLARE_REFLECTION_ENUM(VkFenceCreateFlagBits);
+DECLARE_REFLECTION_ENUM(VkQueryPipelineStatisticFlagBits);
+DECLARE_REFLECTION_ENUM(VkQueryControlFlagBits);
+DECLARE_REFLECTION_ENUM(VkQueryResultFlagBits);
+DECLARE_REFLECTION_ENUM(VkAttachmentDescriptionFlagBits);
+DECLARE_REFLECTION_ENUM(VkSampleCountFlagBits);
+DECLARE_REFLECTION_ENUM(VkImageAspectFlagBits);
+DECLARE_REFLECTION_ENUM(VkDependencyFlagBits);
+DECLARE_REFLECTION_ENUM(VkShaderStageFlagBits);
+DECLARE_REFLECTION_ENUM(VkMemoryHeapFlagBits);
+DECLARE_REFLECTION_ENUM(VkMemoryPropertyFlagBits);
+DECLARE_REFLECTION_ENUM(VkAccessFlagBits);
+DECLARE_REFLECTION_ENUM(VkStencilFaceFlagBits);
+DECLARE_REFLECTION_ENUM(VkCullModeFlagBits);
+DECLARE_REFLECTION_ENUM(VkPipelineBindPoint);
+DECLARE_REFLECTION_ENUM(VkIndexType);
+DECLARE_REFLECTION_ENUM(VkImageType);
+DECLARE_REFLECTION_ENUM(VkImageTiling);
+DECLARE_REFLECTION_ENUM(VkImageViewType);
+DECLARE_REFLECTION_ENUM(VkVertexInputRate);
+DECLARE_REFLECTION_ENUM(VkPolygonMode);
+DECLARE_REFLECTION_ENUM(VkFrontFace);
+DECLARE_REFLECTION_ENUM(VkBlendFactor);
+DECLARE_REFLECTION_ENUM(VkBlendOp);
+DECLARE_REFLECTION_ENUM(VkDynamicState);
+DECLARE_REFLECTION_ENUM(VkAttachmentLoadOp);
+DECLARE_REFLECTION_ENUM(VkAttachmentStoreOp);
+DECLARE_REFLECTION_ENUM(VkStencilOp);
+DECLARE_REFLECTION_ENUM(VkLogicOp);
+DECLARE_REFLECTION_ENUM(VkCompareOp);
+DECLARE_REFLECTION_ENUM(VkFilter);
+DECLARE_REFLECTION_ENUM(VkSamplerMipmapMode);
+DECLARE_REFLECTION_ENUM(VkSamplerAddressMode);
+DECLARE_REFLECTION_ENUM(VkBorderColor);
+DECLARE_REFLECTION_ENUM(VkPrimitiveTopology);
+DECLARE_REFLECTION_ENUM(VkDescriptorType);
+DECLARE_REFLECTION_ENUM(VkQueryType);
+DECLARE_REFLECTION_ENUM(VkPhysicalDeviceType);
+DECLARE_REFLECTION_ENUM(VkSharingMode);
+DECLARE_REFLECTION_ENUM(VkCommandBufferLevel);
+DECLARE_REFLECTION_ENUM(VkSubpassContents);
+DECLARE_REFLECTION_ENUM(VkImageLayout);
+DECLARE_REFLECTION_ENUM(VkStructureType);
+DECLARE_REFLECTION_ENUM(VkComponentSwizzle);
+DECLARE_REFLECTION_ENUM(VkFormat);
+DECLARE_REFLECTION_ENUM(VkResult);
+DECLARE_REFLECTION_ENUM(VkSurfaceTransformFlagBitsKHR);
+DECLARE_REFLECTION_ENUM(VkCompositeAlphaFlagBitsKHR);
+DECLARE_REFLECTION_ENUM(VkColorSpaceKHR);
+DECLARE_REFLECTION_ENUM(VkPresentModeKHR);

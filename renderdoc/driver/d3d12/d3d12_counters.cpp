@@ -63,8 +63,9 @@ vector<GPUCounter> D3D12Replay::EnumerateCounters()
   return ret;
 }
 
-void D3D12Replay::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
+CounterDescription D3D12Replay::DescribeCounter(GPUCounter counterID)
 {
+  CounterDescription desc;
   desc.counterID = counterID;
   // 0808CC9B-79DF-4549-81F7-85494E648F22
   desc.uuid.bytes[0] = 0x0808CC9B;
@@ -176,6 +177,8 @@ void D3D12Replay::DescribeCounter(GPUCounter counterID, CounterDescription &desc
       desc.unit = CounterUnit::Absolute;
       break;
   }
+
+  return desc;
 }
 
 struct D3D12GPUTimerCallback : public D3D12DrawcallCallback

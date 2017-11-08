@@ -361,7 +361,7 @@ private:
   static const uint32_t FONT_TEX_WIDTH = 256;
   static const uint32_t FONT_TEX_HEIGHT = 128;
 
-  LogState m_State;
+  CaptureState m_State;
 
   float m_FontCharAspect;
   float m_FontCharSize;

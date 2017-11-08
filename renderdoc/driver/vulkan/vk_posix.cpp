@@ -178,7 +178,7 @@ VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(VkInstance instance,
                                               VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
-  RDCASSERT(m_State >= WRITING);
+  RDCASSERT(IsCaptureMode(m_State));
 
   VkResult ret =
       ObjDisp(instance)->CreateXcbSurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
@@ -222,7 +222,7 @@ VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(VkInstance instance,
                                                VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
-  RDCASSERT(m_State >= WRITING);
+  RDCASSERT(IsCaptureMode(m_State));
 
   VkResult ret =
       ObjDisp(instance)->CreateXlibSurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
@@ -267,7 +267,7 @@ VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
                                                   VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
-  RDCASSERT(m_State >= WRITING);
+  RDCASSERT(IsCaptureMode(m_State));
 
   VkResult ret = ObjDisp(instance)->CreateAndroidSurfaceKHR(Unwrap(instance), pCreateInfo,
                                                             pAllocator, pSurface);

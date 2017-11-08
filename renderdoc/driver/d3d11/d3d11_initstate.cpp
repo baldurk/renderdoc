@@ -31,7 +31,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
   ResourceType type = IdentifyTypeByPtr(res);
   ResourceId Id = GetIDForResource(res);
 
-  RDCASSERT(m_State >= WRITING);
+  RDCASSERT(IsCaptureMode(m_State));
 
   {
     RDCDEBUG("Prepare_InitialState(%llu)", Id);
@@ -76,7 +76,8 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 
       if(FAILED(hr) || stage == NULL)
       {
-        RDCERR("Failed to create staging buffer for UAV initial contents %08x", hr);
+        RDCERR("Failed to create staging buffer for UAV initial contents HRESULT: %s",
+               ToStr(hr).c_str());
       }
       else
       {
@@ -106,7 +107,8 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 
     if(FAILED(hr) || stage == NULL)
     {
-      RDCERR("Failed to create staging buffer for buffer initial contents %08x", hr);
+      RDCERR("Failed to create staging buffer for buffer initial contents HRESULT: %s",
+             ToStr(hr).c_str());
     }
     else
     {
@@ -135,7 +137,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create initial tex1D %08x", hr);
+      RDCERR("Failed to create initial tex1D HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -178,7 +180,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create initial tex2D %08x", hr);
+      RDCERR("Failed to create initial tex2D HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -241,7 +243,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create initial tex3D %08x", hr);
+      RDCERR("Failed to create initial tex3D HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -255,26 +257,163 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
   return true;
 }
 
-bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceChild *res)
+bool WrappedID3D11Device::ShouldOmitInitState(D3D11_TEXTURE2D_DESC &desc, ResourceId Id)
 {
-  ResourceType type = Resource_Unknown;
-  ResourceId Id = ResourceId();
+  bool bigrt = ((desc.BindFlags & D3D11_BIND_RENDER_TARGET) != 0 ||
+                (desc.BindFlags & D3D11_BIND_DEPTH_STENCIL) != 0 ||
+                (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS) != 0) &&
+               (desc.Width > 64 && desc.Height > 64) && (desc.Width != desc.Height);
 
-  if(m_State >= WRITING)
+  if(bigrt && m_ResourceManager->ReadBeforeWrite(Id))
+    bigrt = false;
+
+  return bigrt;
+}
+
+uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceChild *res)
+{
+  // This function provides an upper bound on how much data Serialise_InitialState will write, so
+  // that the chunk can be pre-allocated and not require seeking to fix-up the length.
+  // It can be an over-estimate as long as it's not *too* far over.
+
+  uint32_t ret = 128;    // type, Id, plus breathing room
+
+  // pessimistic RowPitch alignment since we don't know what will be reported
+  const UINT WorstRowPitchAlign = 256;
+
+  // pessimistic DepthPitch alignment
+  const UINT WorstDepthPitchAlign = 256;
+
+  ResourceType type = IdentifyTypeByPtr(res);
+
+  if(type == Resource_UnorderedAccessView)
   {
-    type = IdentifyTypeByPtr(res);
-    Id = GetIDForResource(res);
+    // no data stored, just a counter.
+    ret += 8;
+  }
+  else if(type == Resource_Buffer)
+  {
+    WrappedID3D11Buffer *buf = (WrappedID3D11Buffer *)res;
 
-    if(type != Resource_Buffer)
+    D3D11_BUFFER_DESC desc = {};
+    buf->GetDesc(&desc);
+
+    // buffer width plus alignment
+    ret += desc.ByteWidth;
+    ret += (uint32_t)WriteSerialiser::GetChunkAlignment();
+  }
+  else if(type == Resource_Texture1D)
+  {
+    WrappedID3D11Texture1D *tex = (WrappedID3D11Texture1D *)res;
+
+    D3D11_TEXTURE1D_DESC desc = {};
+    tex->GetDesc(&desc);
+
+    uint32_t NumSubresources = desc.MipLevels * desc.ArraySize;
+
+    ret += 4;    // number of subresources
+
+    // Subresource contents:
+    for(UINT sub = 0; sub < NumSubresources; sub++)
     {
-      m_pSerialiser->Serialise("type", type);
-      m_pSerialiser->Serialise("Id", Id);
+      UINT mip = GetMipForSubresource(tex, sub);
+
+      const UINT RowPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+
+      ret += RowPitch;
+      ret += (uint32_t)WriteSerialiser::GetChunkAlignment();
+    }
+  }
+  else if(type == Resource_Texture2D)
+  {
+    WrappedID3D11Texture2D1 *tex = (WrappedID3D11Texture2D1 *)res;
+
+    D3D11_TEXTURE2D_DESC desc = {};
+    tex->GetDesc(&desc);
+
+    uint32_t NumSubresources = desc.MipLevels * desc.ArraySize;
+
+    bool OmittedContents = ShouldOmitInitState(desc, tex->GetResourceID()) &&
+                           !RenderDoc::Inst().GetCaptureOptions().SaveAllInitials;
+
+    if(!OmittedContents)
+    {
+      ret += 4;                      // number of subresources
+      ret += 4 * NumSubresources;    // RowPitch for each subresource
+
+      // Subresource contents:
+      for(UINT sub = 0; sub < NumSubresources; sub++)
+      {
+        UINT mip = GetMipForSubresource(tex, sub);
+
+        uint32_t numRows = RDCMAX(1U, desc.Height >> mip);
+        if(IsBlockFormat(desc.Format))
+          numRows = AlignUp4(numRows) / 4;
+
+        const UINT RowPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+        const UINT WorstRowPitch = AlignUp(RowPitch, WorstRowPitchAlign);
+
+        ret += WorstRowPitch * numRows;
+        ret += (uint32_t)WriteSerialiser::GetChunkAlignment();
+      }
+    }
+  }
+  else if(type == Resource_Texture3D)
+  {
+    WrappedID3D11Texture3D1 *tex = (WrappedID3D11Texture3D1 *)res;
+
+    D3D11_TEXTURE3D_DESC desc = {};
+    tex->GetDesc(&desc);
+
+    uint32_t NumSubresources = desc.MipLevels;
+
+    ret += 4;                      // number of subresources
+    ret += 8 * NumSubresources;    // RowPitch and DepthPitch for each subresource
+
+    // Subresource contents:
+    for(UINT sub = 0; sub < NumSubresources; sub++)
+    {
+      UINT mip = GetMipForSubresource(tex, sub);
+
+      uint32_t numRows = RDCMAX(1U, desc.Height >> mip);
+      if(IsBlockFormat(desc.Format))
+        numRows = AlignUp4(numRows) / 4;
+
+      const UINT RowPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+      const UINT WorstRowPitch = AlignUp(RowPitch, WorstRowPitchAlign);
+
+      const UINT DepthPitch = WorstRowPitch * numRows;
+      const UINT WorstDepthPitch = AlignUp(DepthPitch, WorstDepthPitchAlign);
+
+      ret += WorstDepthPitch * RDCMAX(1U, desc.Depth >> mip);
+      ret += (uint32_t)WriteSerialiser::GetChunkAlignment();
     }
   }
   else
   {
-    m_pSerialiser->Serialise("type", type);
-    m_pSerialiser->Serialise("Id", Id);
+    RDCERR("Trying to serialise initial state of unsupported resource type %s", ToStr(type).c_str());
+  }
+
+  return ret;
+}
+
+template <typename SerialiserType>
+bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId resid,
+                                                 ID3D11DeviceChild *res)
+{
+  ResourceType type = Resource_Unknown;
+  ResourceId Id = ResourceId();
+
+  if(IsCaptureMode(m_State))
+  {
+    type = IdentifyTypeByPtr(res);
+    Id = GetIDForResource(res);
+  }
+
+  if(type != Resource_Buffer)
+  {
+    SERIALISE_ELEMENT(type);
+    SERIALISE_ELEMENT(Id);
   }
 
   {
@@ -299,76 +438,64 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 
   if(type == Resource_UnorderedAccessView)
   {
+    uint32_t InitialHiddenCount = 0;
+
     WrappedID3D11UnorderedAccessView1 *uav = (WrappedID3D11UnorderedAccessView1 *)res;
-    if(m_State < WRITING)
+    if(IsReplayMode(m_State))
     {
       if(m_ResourceManager->HasLiveResource(Id))
-      {
         uav = (WrappedID3D11UnorderedAccessView1 *)m_ResourceManager->GetLiveResource(Id);
-      }
-      else
-      {
-        uav = NULL;
-        SERIALISE_ELEMENT(uint32_t, initCount, 0);
-        return true;
-      }
     }
 
-    D3D11_UNORDERED_ACCESS_VIEW_DESC desc;
-    uav->GetDesc(&desc);
+    D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
+    if(uav)
+      uav->GetDesc(&desc);
 
-    if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
-       (desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_COUNTER | D3D11_BUFFER_UAV_FLAG_APPEND)) != 0)
+    bool bufferUAVWithCounter =
+        (desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER &&
+         (desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_COUNTER | D3D11_BUFFER_UAV_FLAG_APPEND)) != 0);
+
+    if(bufferUAVWithCounter && ser.IsWriting())
     {
-      if(m_State >= WRITING)
+      ID3D11Buffer *stage = (ID3D11Buffer *)m_ResourceManager->GetInitialContents(Id).resource;
+
+      if(stage != NULL)
       {
-        ID3D11Buffer *stage = (ID3D11Buffer *)m_ResourceManager->GetInitialContents(Id).resource;
+        D3D11_MAPPED_SUBRESOURCE mapped = {};
+        HRESULT hr = E_INVALIDARG;
 
-        uint32_t countData = 0;
+        if(stage)
+          hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
+        else
+          RDCERR(
+              "Didn't have stage resource for %llu when serialising initial state! "
+              "Dirty tracking is incorrect",
+              Id);
 
-        if(stage != NULL)
+        if(FAILED(hr))
         {
-          D3D11_MAPPED_SUBRESOURCE mapped = {};
-          HRESULT hr = E_INVALIDARG;
-
-          if(stage)
-            hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
-          else
-            RDCERR(
-                "Didn't have stage resource for %llu when serialising initial state! "
-                "Dirty tracking is incorrect",
-                Id);
-
-          if(FAILED(hr))
-          {
-            RDCERR("Failed to map while getting initial states %08x", hr);
-          }
-          else
-          {
-            countData = *((uint32_t *)mapped.pData);
-
-            m_pImmediateContext->GetReal()->Unmap(stage, 0);
-          }
+          RDCERR("Failed to map while getting initial states HRESULT: %s", ToStr(hr).c_str());
         }
+        else
+        {
+          InitialHiddenCount = *((uint32_t *)mapped.pData);
 
-        SERIALISE_ELEMENT(uint32_t, count, countData);
-      }
-      else
-      {
-        SERIALISE_ELEMENT(uint32_t, initCount, 0);
-
-        m_ResourceManager->SetInitialContents(
-            Id, D3D11ResourceManager::InitialContentData(type, NULL, initCount, NULL));
+          m_pImmediateContext->GetReal()->Unmap(stage, 0);
+        }
       }
     }
-    else
+
+    SERIALISE_ELEMENT(InitialHiddenCount);
+
+    if(bufferUAVWithCounter && IsReplayingAndReading())
     {
-      SERIALISE_ELEMENT(uint32_t, initCount, 0);
+      m_ResourceManager->SetInitialContents(
+          Id, D3D11ResourceManager::InitialContentData(type, NULL, InitialHiddenCount, NULL));
     }
   }
   else if(type == Resource_Buffer)
   {
-    if(m_State >= WRITING)
+    if(ser.IsWriting())
     {
       WrappedID3D11Buffer *buf = (WrappedID3D11Buffer *)res;
       D3D11ResourceRecord *record = m_ResourceManager->GetResourceRecord(Id);
@@ -394,7 +521,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to map while getting initial states %08x", hr);
+        RDCERR("Failed to map while getting initial states HRESULT: %s", ToStr(hr).c_str());
       }
       else
       {
@@ -411,263 +538,204 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
   }
   else if(type == Resource_Texture1D)
   {
-    WrappedID3D11Texture1D *tex1D = (WrappedID3D11Texture1D *)res;
-    if(m_State < WRITING && m_ResourceManager->HasLiveResource(Id))
-      tex1D = (WrappedID3D11Texture1D *)m_ResourceManager->GetLiveResource(Id);
+    WrappedID3D11Texture1D *tex = (WrappedID3D11Texture1D *)res;
+    if(IsReplayingAndReading() && m_ResourceManager->HasLiveResource(Id))
+      tex = (WrappedID3D11Texture1D *)m_ResourceManager->GetLiveResource(Id);
 
     D3D11ResourceRecord *record = NULL;
-    if(m_State >= WRITING)
+    if(ser.IsWriting())
       record = m_ResourceManager->GetResourceRecord(Id);
 
     D3D11_TEXTURE1D_DESC desc = {0};
-    if(tex1D)
-      tex1D->GetDesc(&desc);
+    if(tex)
+      tex->GetDesc(&desc);
 
-    SERIALISE_ELEMENT(uint32_t, numSubresources, desc.MipLevels * desc.ArraySize);
+    uint32_t NumSubresources = desc.MipLevels * desc.ArraySize;
+    SERIALISE_ELEMENT(NumSubresources);
 
+    D3D11_SUBRESOURCE_DATA *subData = NULL;
+
+    if(IsReplayingAndReading() && tex)
+      subData = new D3D11_SUBRESOURCE_DATA[NumSubresources];
+
+    ID3D11Texture1D *prepared = (ID3D11Texture1D *)m_ResourceManager->GetInitialContents(Id).resource;
+
+    for(UINT sub = 0; sub < NumSubresources; sub++)
     {
-      if(m_State < WRITING)
+      UINT mip = tex ? GetMipForSubresource(tex, sub) : 0;
+      HRESULT hr = E_INVALIDARG;
+
+      void *SubresourceContents = NULL;
+      uint32_t ContentsLength = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+
+      if(ser.IsWriting())
       {
-        ID3D11Texture1D *contents =
-            (ID3D11Texture1D *)m_ResourceManager->GetInitialContents(Id).resource;
+        D3D11_MAPPED_SUBRESOURCE mapped = {};
 
-        RDCASSERT(!contents);
-      }
-
-      byte *inmemBuffer = NULL;
-      D3D11_SUBRESOURCE_DATA *subData = NULL;
-
-      if(m_State >= WRITING)
-      {
-        inmemBuffer = new byte[GetByteSize(desc.Width, 1, 1, desc.Format, 0)];
-      }
-      else if(tex1D)
-      {
-        subData = new D3D11_SUBRESOURCE_DATA[numSubresources];
-      }
-
-      ID3D11Texture1D *stage = (ID3D11Texture1D *)m_ResourceManager->GetInitialContents(Id).resource;
-
-      for(UINT sub = 0; sub < numSubresources; sub++)
-      {
-        UINT mip = tex1D ? GetMipForSubresource(tex1D, sub) : 0;
-
-        if(m_State >= WRITING)
-        {
-          D3D11_MAPPED_SUBRESOURCE mapped = {};
-          HRESULT hr = E_INVALIDARG;
-
-          if(stage)
-            hr = m_pImmediateContext->GetReal()->Map(stage, sub, D3D11_MAP_READ, 0, &mapped);
-          else
-            RDCERR(
-                "Didn't have stage resource for %llu when serialising initial state! "
-                "Dirty tracking is incorrect",
-                Id);
-
-          size_t dstPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
-
-          if(FAILED(hr))
-          {
-            RDCERR("Failed to map in initial states %08x", hr);
-          }
-          else
-          {
-            byte *dst = inmemBuffer;
-            byte *src = (byte *)mapped.pData;
-
-            memcpy(dst, src, dstPitch);
-          }
-
-          size_t len = dstPitch;
-          m_pSerialiser->SerialiseBuffer("", inmemBuffer, len);
-
-          if(SUCCEEDED(hr))
-            m_pImmediateContext->GetReal()->Unmap(stage, 0);
-        }
+        if(prepared)
+          hr = m_pImmediateContext->GetReal()->Map(prepared, sub, D3D11_MAP_READ, 0, &mapped);
         else
-        {
-          byte *data = NULL;
-          size_t len = 0;
-          m_pSerialiser->SerialiseBuffer("", data, len);
+          RDCERR(
+              "Didn't have stage resource for %llu when serialising initial state! "
+              "Dirty tracking is incorrect",
+              Id);
 
-          if(tex1D)
-          {
-            subData[sub].pSysMem = data;
-            subData[sub].SysMemPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
-            subData[sub].SysMemSlicePitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
-          }
-          else
-          {
-            SAFE_DELETE_ARRAY(data);
-          }
-        }
+        if(FAILED(hr))
+          RDCERR("Failed to map in initial states %s", ToStr(hr).c_str());
+        else
+          SubresourceContents = mapped.pData;
       }
 
-      SAFE_DELETE_ARRAY(inmemBuffer);
+      SERIALISE_ELEMENT_ARRAY(SubresourceContents, ContentsLength);
 
-      if(m_State < WRITING && tex1D)
+      if(ser.IsWriting() && SUCCEEDED(hr))
+        m_pImmediateContext->GetReal()->Unmap(prepared, sub);
+
+      if(IsReplayingAndReading() && tex)
       {
-        // We don't need to bind this, but IMMUTABLE requires at least one
-        // BindFlags.
-        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-        desc.CPUAccessFlags = 0;
-        desc.Usage = D3D11_USAGE_IMMUTABLE;
-        desc.MiscFlags = 0;
+        // we 'steal' the SubresourceContents buffer so it doesn't get de-serialised and free'd
+        subData[sub].pSysMem = SubresourceContents;
+        SubresourceContents = NULL;
 
-        ID3D11Texture1D *contents = NULL;
-        HRESULT hr = m_pDevice->CreateTexture1D(&desc, subData, &contents);
-
-        if(FAILED(hr) || contents == NULL)
-        {
-          RDCERR("Failed to create staging resource for Texture1D initial contents %08x", hr);
-        }
-        else
-        {
-          m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(
-                                                        type, contents, eInitialContents_Copy, NULL));
-        }
-
-        for(UINT sub = 0; sub < numSubresources; sub++)
-          SAFE_DELETE_ARRAY(subData[sub].pSysMem);
-        SAFE_DELETE_ARRAY(subData);
+        subData[sub].SysMemPitch = ContentsLength;
+        subData[sub].SysMemSlicePitch = ContentsLength;
       }
     }
+
+    if(IsReplayingAndReading() && tex)
+    {
+      // We don't need to bind this, but IMMUTABLE requires at least one
+      // BindFlags.
+      desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+      desc.CPUAccessFlags = 0;
+      desc.Usage = D3D11_USAGE_IMMUTABLE;
+      desc.MiscFlags = 0;
+
+      ID3D11Texture1D *contents = NULL;
+      HRESULT hr = m_pDevice->CreateTexture1D(&desc, subData, &contents);
+
+      if(FAILED(hr) || contents == NULL)
+      {
+        RDCERR("Failed to create staging resource for Texture1D initial contents HRESULT: %s",
+               ToStr(hr).c_str());
+      }
+      else
+      {
+        m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(
+                                                      type, contents, eInitialContents_Copy, NULL));
+      }
+
+      // free the buffers we stole
+      for(UINT sub = 0; sub < NumSubresources; sub++)
+        FreeAlignedBuffer((byte *)subData[sub].pSysMem);
+    }
+
+    SAFE_DELETE_ARRAY(subData);
   }
   else if(type == Resource_Texture2D)
   {
-    WrappedID3D11Texture2D1 *tex2D = (WrappedID3D11Texture2D1 *)res;
-    if(m_State < WRITING && m_ResourceManager->HasLiveResource(Id))
-      tex2D = (WrappedID3D11Texture2D1 *)m_ResourceManager->GetLiveResource(Id);
+    WrappedID3D11Texture2D1 *tex = (WrappedID3D11Texture2D1 *)res;
+    if(IsReplayingAndReading() && m_ResourceManager->HasLiveResource(Id))
+      tex = (WrappedID3D11Texture2D1 *)m_ResourceManager->GetLiveResource(Id);
 
     D3D11ResourceRecord *record = NULL;
-    if(m_State >= WRITING)
+    if(ser.IsWriting())
       record = m_ResourceManager->GetResourceRecord(Id);
 
     D3D11_TEXTURE2D_DESC desc = {0};
-    if(tex2D)
-      tex2D->GetDesc(&desc);
+    if(tex)
+      tex->GetDesc(&desc);
 
-    SERIALISE_ELEMENT(uint32_t, numSubresources, desc.MipLevels * desc.ArraySize);
-
-    bool bigrt = ((desc.BindFlags & D3D11_BIND_RENDER_TARGET) != 0 ||
-                  (desc.BindFlags & D3D11_BIND_DEPTH_STENCIL) != 0 ||
-                  (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS) != 0) &&
-                 (desc.Width > 64 && desc.Height > 64) && (desc.Width != desc.Height);
-
-    if(bigrt && m_ResourceManager->ReadBeforeWrite(Id))
-      bigrt = false;
+    uint32_t NumSubresources = desc.MipLevels * desc.ArraySize;
+    SERIALISE_ELEMENT(NumSubresources);
 
     bool multisampled = desc.SampleDesc.Count > 1 || desc.SampleDesc.Quality > 0;
 
     if(multisampled)
-      numSubresources *= desc.SampleDesc.Count;
+      NumSubresources *= desc.SampleDesc.Count;
 
-    SERIALISE_ELEMENT(bool, omitted, bigrt && !RenderDoc::Inst().GetCaptureOptions().SaveAllInitials);
+    SERIALISE_ELEMENT_LOCAL(
+        OmittedContents,
+        ShouldOmitInitState(desc, Id) && !RenderDoc::Inst().GetCaptureOptions().SaveAllInitials);
 
-    if(omitted)
+    if(OmittedContents)
     {
-      if(m_State >= WRITING)
+      if(ser.IsWriting())
       {
         RDCWARN("Not serialising texture 2D initial state. ID %llu", Id);
-        if(bigrt)
-          RDCWARN(
-              "Detected Write before Read of this target - assuming initial contents are "
-              "unneeded.\n"
-              "Capture again with Save All Initials if this is wrong");
+        RDCWARN(
+            "Detected Write before Read of this target - assuming initial contents are "
+            "unneeded.\n"
+            "Capture again with Save All Initials if this is wrong");
       }
     }
     else
     {
-      if(m_State < WRITING)
-      {
-        ID3D11Texture2D *contents =
-            (ID3D11Texture2D *)m_ResourceManager->GetInitialContents(Id).resource;
-
-        RDCASSERT(!contents);
-      }
-
-      byte *inmemBuffer = NULL;
       D3D11_SUBRESOURCE_DATA *subData = NULL;
 
-      if(m_State >= WRITING)
-      {
-        inmemBuffer = new byte[GetByteSize(desc.Width, desc.Height, 1, desc.Format, 0)];
-      }
-      else if(tex2D)
-      {
-        subData = new D3D11_SUBRESOURCE_DATA[numSubresources];
-      }
+      if(IsReplayingAndReading() && tex)
+        subData = new D3D11_SUBRESOURCE_DATA[NumSubresources];
 
-      ID3D11Texture2D *stage = (ID3D11Texture2D *)m_ResourceManager->GetInitialContents(Id).resource;
+      ID3D11Texture2D *prepared =
+          (ID3D11Texture2D *)m_ResourceManager->GetInitialContents(Id).resource;
 
-      for(UINT sub = 0; sub < numSubresources; sub++)
+      for(UINT sub = 0; sub < NumSubresources; sub++)
       {
-        UINT mip = tex2D ? GetMipForSubresource(tex2D, sub) : 0;
+        UINT mip = tex ? GetMipForSubresource(tex, sub) : 0;
+        HRESULT hr = E_INVALIDARG;
 
-        if(m_State >= WRITING)
+        uint32_t numRows = RDCMAX(1U, desc.Height >> mip);
+        if(IsBlockFormat(desc.Format))
+          numRows = AlignUp4(numRows) / 4;
+
+        void *SubresourceContents = NULL;
+        uint32_t ContentsLength = 0;
+        uint32_t RowPitch = 0;
+
+        if(ser.IsWriting())
         {
           D3D11_MAPPED_SUBRESOURCE mapped = {};
-          HRESULT hr = E_INVALIDARG;
 
-          if(stage)
-            hr = m_pImmediateContext->GetReal()->Map(stage, sub, D3D11_MAP_READ, 0, &mapped);
+          if(prepared)
+            hr = m_pImmediateContext->GetReal()->Map(prepared, sub, D3D11_MAP_READ, 0, &mapped);
           else
             RDCERR(
                 "Didn't have stage resource for %llu when serialising initial state! "
                 "Dirty tracking is incorrect",
                 Id);
 
-          size_t dstPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
-          size_t len = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
-
-          uint32_t rowsPerLine = 1;
-          if(IsBlockFormat(desc.Format))
-            rowsPerLine = 4;
-
           if(FAILED(hr))
           {
-            RDCERR("Failed to map in initial states %08x", hr);
+            RDCERR("Failed to map in initial states HRESULT: %s", ToStr(hr).c_str());
           }
           else
           {
-            byte *dst = inmemBuffer;
-            byte *src = (byte *)mapped.pData;
-            for(uint32_t row = 0; row<desc.Height>> mip; row += rowsPerLine)
-            {
-              memcpy(dst, src, dstPitch);
-              dst += dstPitch;
-              src += mapped.RowPitch;
-            }
+            SubresourceContents = mapped.pData;
+            RowPitch = mapped.RowPitch;
+            ContentsLength = RowPitch * numRows;
           }
-
-          m_pSerialiser->SerialiseBuffer("", inmemBuffer, len);
-
-          if(SUCCEEDED(hr))
-            m_pImmediateContext->GetReal()->Unmap(stage, sub);
         }
-        else
-        {
-          byte *data = NULL;
-          size_t len = 0;
-          m_pSerialiser->SerialiseBuffer("", data, len);
 
-          if(tex2D)
-          {
-            subData[sub].pSysMem = data;
-            subData[sub].SysMemPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
-            subData[sub].SysMemSlicePitch = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
-          }
-          else
-          {
-            SAFE_DELETE_ARRAY(data);
-          }
+        SERIALISE_ELEMENT(RowPitch);
+        SERIALISE_ELEMENT_ARRAY(SubresourceContents, ContentsLength);
+
+        if(ser.IsWriting() && SUCCEEDED(hr))
+          m_pImmediateContext->GetReal()->Unmap(prepared, sub);
+
+        if(IsReplayingAndReading() && tex)
+        {
+          // we 'steal' the SubresourceContents buffer so it doesn't get de-serialised and free'd
+          subData[sub].pSysMem = SubresourceContents;
+          SubresourceContents = NULL;
+
+          // use the RowPitch provided when we mapped in the first place, since we read the whole
+          // buffer including padding
+          subData[sub].SysMemPitch = RowPitch;
+          subData[sub].SysMemSlicePitch = ContentsLength;
         }
       }
 
-      SAFE_DELETE_ARRAY(inmemBuffer);
-
-      if(m_State < WRITING && tex2D)
+      if(IsReplayingAndReading() && tex)
       {
         // We don't need to bind this, but IMMUTABLE requires at least one
         // BindFlags.
@@ -706,7 +774,8 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 
         if(FAILED(hr) || contents == NULL)
         {
-          RDCERR("Failed to create staging resource for Texture2D initial contents %08x", hr);
+          RDCERR("Failed to create staging resource for Texture2D initial contents HRESULT: %s",
+                 ToStr(hr).c_str());
         }
         else
         {
@@ -733,155 +802,127 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
                                                         type, contents, eInitialContents_Copy, NULL));
         }
 
-        for(UINT sub = 0; sub < numSubresources; sub++)
-          SAFE_DELETE_ARRAY(subData[sub].pSysMem);
-        SAFE_DELETE_ARRAY(subData);
+        // free the buffers we stole
+        for(UINT sub = 0; sub < NumSubresources; sub++)
+          FreeAlignedBuffer((byte *)subData[sub].pSysMem);
       }
+
+      SAFE_DELETE_ARRAY(subData);
     }
   }
   else if(type == Resource_Texture3D)
   {
-    WrappedID3D11Texture3D1 *tex3D = (WrappedID3D11Texture3D1 *)res;
-    if(m_State < WRITING && m_ResourceManager->HasLiveResource(Id))
-      tex3D = (WrappedID3D11Texture3D1 *)m_ResourceManager->GetLiveResource(Id);
+    WrappedID3D11Texture3D1 *tex = (WrappedID3D11Texture3D1 *)res;
+    if(IsReplayingAndReading() && m_ResourceManager->HasLiveResource(Id))
+      tex = (WrappedID3D11Texture3D1 *)m_ResourceManager->GetLiveResource(Id);
 
     D3D11ResourceRecord *record = NULL;
-    if(m_State >= WRITING)
+    if(ser.IsWriting())
       record = m_ResourceManager->GetResourceRecord(Id);
 
     D3D11_TEXTURE3D_DESC desc = {0};
-    if(tex3D)
-      tex3D->GetDesc(&desc);
+    if(tex)
+      tex->GetDesc(&desc);
 
-    SERIALISE_ELEMENT(uint32_t, numSubresources, desc.MipLevels);
+    uint32_t NumSubresources = desc.MipLevels;
+    SERIALISE_ELEMENT(NumSubresources);
 
+    D3D11_SUBRESOURCE_DATA *subData = NULL;
+
+    if(IsReplayingAndReading() && tex)
+      subData = new D3D11_SUBRESOURCE_DATA[NumSubresources];
+
+    ID3D11Texture3D *prepared = (ID3D11Texture3D *)m_ResourceManager->GetInitialContents(Id).resource;
+
+    for(UINT sub = 0; sub < NumSubresources; sub++)
     {
-      if(m_State < WRITING)
+      UINT mip = tex ? GetMipForSubresource(tex, sub) : 0;
+      HRESULT hr = E_INVALIDARG;
+
+      uint32_t numRows = RDCMAX(1U, desc.Height >> mip);
+      if(IsBlockFormat(desc.Format))
+        numRows = AlignUp4(numRows) / 4;
+
+      void *SubresourceContents = NULL;
+      uint32_t ContentsLength = 0;
+      uint32_t RowPitch = 0;
+      uint32_t DepthPitch = 0;
+
+      if(ser.IsWriting())
       {
-        ID3D11Texture3D *contents =
-            (ID3D11Texture3D *)m_ResourceManager->GetInitialContents(Id).resource;
+        D3D11_MAPPED_SUBRESOURCE mapped = {};
 
-        RDCASSERT(!contents);
-      }
+        if(prepared)
+          hr = m_pImmediateContext->GetReal()->Map(prepared, sub, D3D11_MAP_READ, 0, &mapped);
+        else
+          RDCERR(
+              "Didn't have stage resource for %llu when serialising initial state! "
+              "Dirty tracking is incorrect",
+              Id);
 
-      byte *inmemBuffer = NULL;
-      D3D11_SUBRESOURCE_DATA *subData = NULL;
-
-      if(m_State >= WRITING)
-      {
-        inmemBuffer = new byte[GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, 0)];
-      }
-      else if(tex3D)
-      {
-        subData = new D3D11_SUBRESOURCE_DATA[numSubresources];
-      }
-
-      ID3D11Texture3D *stage = (ID3D11Texture3D *)m_ResourceManager->GetInitialContents(Id).resource;
-
-      for(UINT sub = 0; sub < numSubresources; sub++)
-      {
-        UINT mip = tex3D ? GetMipForSubresource(tex3D, sub) : 0;
-
-        if(m_State >= WRITING)
+        if(FAILED(hr))
         {
-          D3D11_MAPPED_SUBRESOURCE mapped = {};
-          HRESULT hr = E_INVALIDARG;
-
-          if(stage)
-            hr = m_pImmediateContext->GetReal()->Map(stage, sub, D3D11_MAP_READ, 0, &mapped);
-          else
-            RDCERR(
-                "Didn't have stage resource for %llu when serialising initial state! "
-                "Dirty tracking is incorrect",
-                Id);
-
-          size_t dstPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
-          size_t dstSlicePitch = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
-
-          uint32_t rowsPerLine = 1;
-          if(IsBlockFormat(desc.Format))
-            rowsPerLine = 4;
-
-          if(FAILED(hr))
-          {
-            RDCERR("Failed to map in initial states %08x", hr);
-          }
-          else
-          {
-            byte *dst = inmemBuffer;
-            byte *src = (byte *)mapped.pData;
-
-            for(uint32_t slice = 0; slice < RDCMAX(1U, desc.Depth >> mip); slice++)
-            {
-              byte *sliceDst = dst;
-              byte *sliceSrc = src;
-
-              for(uint32_t row = 0; row < RDCMAX(1U, desc.Height >> mip); row += rowsPerLine)
-              {
-                memcpy(sliceDst, sliceSrc, dstPitch);
-                sliceDst += dstPitch;
-                sliceSrc += mapped.RowPitch;
-              }
-
-              dst += dstSlicePitch;
-              src += mapped.DepthPitch;
-            }
-          }
-
-          size_t len = dstSlicePitch * desc.Depth;
-          m_pSerialiser->SerialiseBuffer("", inmemBuffer, len);
-
-          if(SUCCEEDED(hr))
-            m_pImmediateContext->GetReal()->Unmap(stage, sub);
+          RDCERR("Failed to map in initial states HRESULT: %s", ToStr(hr).c_str());
         }
         else
         {
-          byte *data = NULL;
-          size_t len = 0;
-          m_pSerialiser->SerialiseBuffer("", data, len);
-
-          if(tex3D)
-          {
-            subData[sub].pSysMem = data;
-            subData[sub].SysMemPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
-            subData[sub].SysMemSlicePitch = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
-          }
-          else
-          {
-            SAFE_DELETE_ARRAY(data);
-          }
+          SubresourceContents = mapped.pData;
+          RowPitch = mapped.RowPitch;
+          DepthPitch = mapped.DepthPitch;
+          RDCASSERT(DepthPitch >= RowPitch * numRows);
+          ContentsLength = DepthPitch * RDCMAX(1U, desc.Depth >> mip);
         }
       }
 
-      SAFE_DELETE_ARRAY(inmemBuffer);
+      SERIALISE_ELEMENT(RowPitch);
+      SERIALISE_ELEMENT(DepthPitch);
+      SERIALISE_ELEMENT_ARRAY(SubresourceContents, ContentsLength);
 
-      if(m_State < WRITING && tex3D)
+      if(ser.IsWriting() && SUCCEEDED(hr))
+        m_pImmediateContext->GetReal()->Unmap(prepared, sub);
+
+      if(IsReplayingAndReading() && tex)
       {
-        // We don't need to bind this, but IMMUTABLE requires at least one
-        // BindFlags.
-        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-        desc.CPUAccessFlags = 0;
-        desc.Usage = D3D11_USAGE_IMMUTABLE;
-        desc.MiscFlags = 0;
+        // we 'steal' the SubresourceContents buffer so it doesn't get de-serialised and free'd
+        subData[sub].pSysMem = SubresourceContents;
+        SubresourceContents = NULL;
 
-        ID3D11Texture3D *contents = NULL;
-        HRESULT hr = m_pDevice->CreateTexture3D(&desc, subData, &contents);
-
-        if(FAILED(hr) || contents == NULL)
-        {
-          RDCERR("Failed to create staging resource for Texture3D initial contents %08x", hr);
-        }
-        else
-        {
-          m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(
-                                                        type, contents, eInitialContents_Copy, NULL));
-        }
-
-        for(UINT sub = 0; sub < numSubresources; sub++)
-          SAFE_DELETE_ARRAY(subData[sub].pSysMem);
-        SAFE_DELETE_ARRAY(subData);
+        // use the Row/DepthPitch provided when we mapped in the first place, since we read the
+        // whole buffer including padding
+        subData[sub].SysMemPitch = RowPitch;
+        subData[sub].SysMemSlicePitch = DepthPitch;
       }
     }
+
+    if(IsReplayingAndReading() && tex)
+    {
+      // We don't need to bind this, but IMMUTABLE requires at least one
+      // BindFlags.
+      desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+      desc.CPUAccessFlags = 0;
+      desc.Usage = D3D11_USAGE_IMMUTABLE;
+      desc.MiscFlags = 0;
+
+      ID3D11Texture3D *contents = NULL;
+      HRESULT hr = m_pDevice->CreateTexture3D(&desc, subData, &contents);
+
+      if(FAILED(hr) || contents == NULL)
+      {
+        RDCERR("Failed to create staging resource for Texture3D initial contents HRESULT: %s",
+               ToStr(hr).c_str());
+      }
+      else
+      {
+        m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(
+                                                      type, contents, eInitialContents_Copy, NULL));
+      }
+
+      // free the buffers we stole
+      for(UINT sub = 0; sub < NumSubresources; sub++)
+        FreeAlignedBuffer((byte *)subData[sub].pSysMem);
+    }
+
+    SAFE_DELETE_ARRAY(subData);
   }
   else
   {
@@ -893,6 +934,9 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 
 void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData)
 {
+  if(IsStructuredExporting(m_State))
+    return;
+
   ResourceType type = IdentifyTypeByPtr(live);
 
   {
@@ -938,7 +982,8 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
       if(FAILED(hr) || stage == NULL)
       {
-        RDCERR("Failed to create staging resource for UAV initial contents %08x", hr);
+        RDCERR("Failed to create staging resource for UAV initial contents HRESULT: %s",
+               ToStr(hr).c_str());
       }
       else
       {
@@ -952,7 +997,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
         if(FAILED(hr))
         {
-          RDCERR("Failed to map while creating initial states %08x", hr);
+          RDCERR("Failed to map while creating initial states HRESULT: %s", ToStr(hr).c_str());
         }
         else
         {
@@ -989,7 +1034,8 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create fast-clear RTV while creating initial states %08x", hr);
+        RDCERR("Failed to create fast-clear RTV while creating initial states HRESULT: %s",
+               ToStr(hr).c_str());
       }
       else
       {
@@ -1013,7 +1059,8 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create fast-clear DSV while creating initial states %08x", hr);
+        RDCERR("Failed to create fast-clear DSV while creating initial states HRESULT: %s",
+               ToStr(hr).c_str());
       }
       else
       {
@@ -1037,7 +1084,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create tex3D while creating initial states %08x", hr);
+        RDCERR("Failed to create tex3D while creating initial states HRESULT: %s", ToStr(hr).c_str());
       }
       else
       {
@@ -1076,7 +1123,8 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create fast-clear RTV while creating initial states %08x", hr);
+        RDCERR("Failed to create fast-clear RTV while creating initial states HRESULT: %s",
+               ToStr(hr).c_str());
       }
       else
       {
@@ -1103,7 +1151,8 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create fast-clear DSV while creating initial states %08x", hr);
+        RDCERR("Failed to create fast-clear DSV while creating initial states HRESULT: %s",
+               ToStr(hr).c_str());
       }
       else
       {
@@ -1127,7 +1176,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create tex2D while creating initial states %08x", hr);
+        RDCERR("Failed to create tex2D while creating initial states HRESULT: %s", ToStr(hr).c_str());
       }
       else
       {
@@ -1163,7 +1212,8 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create fast-clear RTV while creating initial states %08x", hr);
+        RDCERR("Failed to create fast-clear RTV while creating initial states HRESULT: %s",
+               ToStr(hr).c_str());
       }
       else
       {
@@ -1185,7 +1235,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create tex3D while creating initial states %08x", hr);
+        RDCERR("Failed to create tex3D while creating initial states HRESULT: %s", ToStr(hr).c_str());
       }
       else
       {
@@ -1236,3 +1286,8 @@ void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live,
     }
   }
 }
+
+template bool WrappedID3D11Device::Serialise_InitialState(ReadSerialiser &ser, ResourceId resid,
+                                                          ID3D11DeviceChild *res);
+template bool WrappedID3D11Device::Serialise_InitialState(WriteSerialiser &ser, ResourceId resid,
+                                                          ID3D11DeviceChild *res);

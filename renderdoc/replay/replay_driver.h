@@ -36,21 +36,25 @@ struct FrameRecord
   rdcarray<DrawcallDescription> drawcallList;
 };
 
-enum RemapTextureEnum
+DECLARE_REFLECTION_STRUCT(FrameRecord);
+
+enum class RemapTexture : uint32_t
 {
-  eRemap_None,
-  eRemap_RGBA8,
-  eRemap_RGBA16,
-  eRemap_RGBA32,
-  eRemap_D32S8
+  NoRemap,
+  RGBA8,
+  RGBA16,
+  RGBA32,
+  D32S8
 };
+
+DECLARE_REFLECTION_ENUM(RemapTexture);
 
 struct GetTextureDataParams
 {
   bool forDiskSave;
   CompType typeHint;
   bool resolve;
-  RemapTextureEnum remap;
+  RemapTexture remap;
   float blackPoint;
   float whitePoint;
 
@@ -58,12 +62,16 @@ struct GetTextureDataParams
       : forDiskSave(false),
         typeHint(CompType::Typeless),
         resolve(false),
-        remap(eRemap_None),
+        remap(RemapTexture::NoRemap),
         blackPoint(0.0f),
         whitePoint(1.0f)
   {
   }
 };
+
+DECLARE_REFLECTION_STRUCT(GetTextureDataParams);
+
+class RDCFile;
 
 // these two interfaces define what an API driver implementation must provide
 // to the replay. At minimum it must implement IRemoteDriver which contains
@@ -106,8 +114,9 @@ public:
 
   virtual FrameRecord GetFrameRecord() = 0;
 
-  virtual void ReadLogInitialisation() = 0;
+  virtual void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers) = 0;
   virtual void ReplayLog(uint32_t endEventID, ReplayLogType replayType) = 0;
+  virtual const SDFile &GetStructuredFile() = 0;
 
   virtual vector<uint32_t> GetPassEvents(uint32_t eventID) = 0;
 
@@ -120,8 +129,8 @@ public:
 
   virtual void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
                              vector<byte> &retData) = 0;
-  virtual byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                               const GetTextureDataParams &params, size_t &dataSize) = 0;
+  virtual void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                              const GetTextureDataParams &params, bytebuf &data) = 0;
 
   virtual void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
                                  ShaderStage type, ResourceId *id, string *errors) = 0;
@@ -130,7 +139,7 @@ public:
   virtual void FreeTargetResource(ResourceId id) = 0;
 
   virtual vector<GPUCounter> EnumerateCounters() = 0;
-  virtual void DescribeCounter(GPUCounter counterID, CounterDescription &desc) = 0;
+  virtual CounterDescription DescribeCounter(GPUCounter counterID) = 0;
   virtual vector<CounterResult> FetchCounters(const vector<GPUCounter> &counterID) = 0;
 
   virtual void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
@@ -152,10 +161,6 @@ public:
   virtual bool IsRenderOutput(ResourceId id) = 0;
 
   virtual void FileChanged() = 0;
-
-  virtual void InitCallstackResolver() = 0;
-  virtual bool HasCallstacks() = 0;
-  virtual Callstack::StackResolver *GetCallstackResolver() = 0;
 
   virtual bool NeedRemapForFetch(const ResourceFormat &format) = 0;
 };

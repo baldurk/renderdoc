@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "gl_replay.h"
+#include "serialise/rdcfile.h"
 #include "gl_driver.h"
 #include "gl_resources.h"
 
@@ -40,7 +41,7 @@ WGLCREATECONTEXTPROC wglCreateRC = NULL;
 WGLMAKECURRENTPROC wglMakeCurrentProc = NULL;
 WGLDELETECONTEXTPROC wglDeleteRC = NULL;
 
-ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus GL_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCDEBUG("Creating an OpenGL replay device");
 
@@ -53,15 +54,44 @@ ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
   }
 
   GLInitParams initParams;
-  RDCDriver driverType = RDC_OpenGL;
-  string driverName = "OpenGL";
-  uint64_t machineIdent = 0;
-  if(logfile)
+  uint64_t ver = GLInitParams::CurrentVersion;
+
+  // if we have an RDCFile, open the frame capture section and serialise the init params.
+  // if not, we're creating a proxy-capable device so use default-initialised init params.
+  if(rdc)
   {
-    auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
-                                                   (RDCInitParams *)&initParams);
-    if(status != ReplayStatus::Succeeded)
-      return status;
+    int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
+
+    if(sectionIdx < 0)
+      return ReplayStatus::InternalError;
+
+    ver = rdc->GetSectionProperties(sectionIdx).version;
+
+    if(!GLInitParams::IsSupportedVersion(ver))
+    {
+      RDCERR("Incompatible D3D11 serialise version %llu", ver);
+      return ReplayStatus::APIUnsupported;
+    }
+
+    StreamReader *reader = rdc->ReadSection(sectionIdx);
+
+    ReadSerialiser ser(reader, Ownership::Stream);
+
+    SystemChunk chunk = ser.ReadChunk<SystemChunk>();
+
+    if(chunk != SystemChunk::DriverInit)
+    {
+      RDCERR("Expected to get a DriverInit chunk, instead got %u", chunk);
+      return ReplayStatus::FileCorrupted;
+    }
+
+    SERIALISE_ELEMENT(initParams);
+
+    if(ser.IsErrored())
+    {
+      RDCERR("Failed reading driver init params.");
+      return ReplayStatus::FileIOFailed;
+    }
   }
 
   PIXELFORMATDESCRIPTOR pfd = {0};
@@ -287,18 +317,12 @@ ReplayStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
     return ReplayStatus::APIInitFailed;
   }
 
-  WrappedOpenGL *gl = new WrappedOpenGL(logfile, real, GetGLPlatform());
-  gl->Initialise(initParams);
-
-  if(gl->GetSerialiser()->HasError())
-  {
-    delete gl;
-    return ReplayStatus::FileIOFailed;
-  }
+  WrappedOpenGL *gl = new WrappedOpenGL(real, GetGLPlatform());
+  gl->Initialise(initParams, ver);
 
   RDCLOG("Created device.");
   GLReplay *replay = gl->GetReplay();
-  replay->SetProxy(logfile == NULL);
+  replay->SetProxy(rdc == NULL);
   GLWindowingData data;
   data.DC = dc;
   data.ctx = rc;

@@ -568,7 +568,7 @@ WrappedID3DDeviceContextState::WrappedID3DDeviceContextState(ID3DDeviceContextSt
                                                              WrappedID3D11Device *device)
     : WrappedDeviceChild11(real, device)
 {
-  state = new D3D11RenderState((Serialiser *)NULL);
+  state = new D3D11RenderState(D3D11RenderState::Empty);
 
   {
     SCOPED_LOCK(WrappedID3DDeviceContextState::m_Lock);

@@ -73,8 +73,9 @@ public:
   void FreeTargetResource(ResourceId id);
   void FreeCustomShader(ResourceId id);
 
-  void ReadLogInitialisation();
+  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
+  const SDFile &GetStructuredFile();
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);
 
@@ -109,8 +110,8 @@ public:
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData);
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                       const GetTextureDataParams &params, size_t &dataSize);
+  void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                      const GetTextureDataParams &params, bytebuf &data);
 
   void BuildTargetShader(string source, string entry, const ShaderCompileFlags &compileFlags,
                          ShaderStage type, ResourceId *id, string *errors);
@@ -118,7 +119,7 @@ public:
   void RemoveReplacement(ResourceId id);
 
   vector<GPUCounter> EnumerateCounters();
-  void DescribeCounter(GPUCounter counterID, CounterDescription &desc);
+  CounterDescription DescribeCounter(GPUCounter counterID);
   vector<CounterResult> FetchCounters(const vector<GPUCounter> &counters);
 
   ResourceId CreateProxyTexture(const TextureDescription &templateTex);
@@ -165,10 +166,6 @@ public:
   bool IsRenderOutput(ResourceId id);
 
   void FileChanged() {}
-  void InitCallstackResolver();
-  bool HasCallstacks();
-  Callstack::StackResolver *GetCallstackResolver();
-
 private:
   bool m_WARP;
   bool m_Proxy;

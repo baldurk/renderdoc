@@ -97,6 +97,13 @@
 
 #endif
 
+// is size_t a real separate type, not just typedef'd to uint32_t or uint64_t (or equivalent)?
+#if defined(RENDERDOC_PLATFORM_APPLE)
+#define RDOC_SIZET_SEP_TYPE OPTION_ON
+#else
+#define RDOC_SIZET_SEP_TYPE OPTION_OFF
+#endif
+
 #if defined(RENDERDOC_WINDOWING_XLIB)
 #define RDOC_XLIB OPTION_ON
 #else

@@ -27,6 +27,7 @@
 #include "driver/ihv/amd/amd_isa.h"
 #include "maths/camera.h"
 #include "maths/matrix.h"
+#include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "vk_core.h"
 #include "vk_debug.h"
@@ -653,18 +654,24 @@ APIProperties VulkanReplay::GetAPIProperties()
   ret.pipelineType = GraphicsAPI::Vulkan;
   ret.localRenderer = GraphicsAPI::Vulkan;
   ret.degraded = false;
+  ret.shadersMutable = false;
 
   return ret;
 }
 
-void VulkanReplay::ReadLogInitialisation()
+void VulkanReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
-  m_pDriver->ReadLogInitialisation();
+  m_pDriver->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
 
 void VulkanReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
   m_pDriver->ReplayLog(0, endEventID, replayType);
+}
+
+const SDFile &VulkanReplay::GetStructuredFile()
+{
+  return m_pDriver->GetStructuredFile();
 }
 
 vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventID)
@@ -731,21 +738,6 @@ vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventID)
 ResourceId VulkanReplay::GetLiveID(ResourceId id)
 {
   return m_pDriver->GetResourceManager()->GetLiveID(id);
-}
-
-void VulkanReplay::InitCallstackResolver()
-{
-  m_pDriver->GetMainSerialiser()->InitCallstackResolver();
-}
-
-bool VulkanReplay::HasCallstacks()
-{
-  return m_pDriver->GetMainSerialiser()->HasCallstacks();
-}
-
-Callstack::StackResolver *VulkanReplay::GetCallstackResolver()
-{
-  return m_pDriver->GetMainSerialiser()->GetCallstackResolver();
 }
 
 FrameRecord VulkanReplay::GetFrameRecord()
@@ -3292,8 +3284,7 @@ void VulkanReplay::SavePipelineState()
                 }
                 else if(info[a].imageInfo.sampler != VK_NULL_HANDLE)
                 {
-                  dst.bindings[b].binds[a].sampler =
-                      rm->GetNonDispWrapper(info[a].imageInfo.sampler)->id;
+                  dst.bindings[b].binds[a].sampler = GetResID(info[a].imageInfo.sampler);
                 }
 
                 if(dst.bindings[b].binds[a].sampler != ResourceId())
@@ -3338,7 +3329,7 @@ void VulkanReplay::SavePipelineState()
 
                 if(view != VK_NULL_HANDLE)
                 {
-                  ResourceId viewid = rm->GetNonDispWrapper(view)->id;
+                  ResourceId viewid = GetResID(view);
 
                   dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
                   dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_ImageView[viewid].image);
@@ -3368,7 +3359,7 @@ void VulkanReplay::SavePipelineState()
 
                 if(view != VK_NULL_HANDLE)
                 {
-                  ResourceId viewid = rm->GetNonDispWrapper(view)->id;
+                  ResourceId viewid = GetResID(view);
 
                   dst.bindings[b].binds[a].view = rm->GetOriginalID(viewid);
                   dst.bindings[b].binds[a].res = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
@@ -3407,7 +3398,7 @@ void VulkanReplay::SavePipelineState()
 
                 if(info[a].bufferInfo.buffer != VK_NULL_HANDLE)
                   dst.bindings[b].binds[a].res =
-                      rm->GetOriginalID(rm->GetNonDispWrapper(info[a].bufferInfo.buffer)->id);
+                      rm->GetOriginalID(GetResID(info[a].bufferInfo.buffer));
 
                 dst.bindings[b].binds[a].offset = info[a].bufferInfo.offset;
                 if(dynamicOffset)
@@ -4298,16 +4289,15 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, Mes
   return GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
 }
 
-byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                                   const GetTextureDataParams &params, size_t &dataSize)
+void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                  const GetTextureDataParams &params, bytebuf &data)
 {
   bool wasms = false;
 
   if(m_pDriver->m_CreationInfo.m_Image.find(tex) == m_pDriver->m_CreationInfo.m_Image.end())
   {
     RDCERR("Trying to get texture data for unknown ID %llu!", tex);
-    dataSize = 0;
-    return new byte[0];
+    return;
   }
 
   VulkanCreationInfo::Image &imInfo = m_pDriver->m_CreationInfo.m_Image[tex];
@@ -4366,22 +4356,22 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     wasms = true;
   }
 
-  if(params.remap)
+  if(params.remap != RemapTexture::NoRemap)
   {
     int renderFlags = 0;
 
     // force readback texture to RGBA8 unorm
-    if(params.remap == eRemap_RGBA8)
+    if(params.remap == RemapTexture::RGBA8)
     {
       imCreateInfo.format =
           IsSRGBFormat(imCreateInfo.format) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
     }
-    else if(params.remap == eRemap_RGBA16)
+    else if(params.remap == RemapTexture::RGBA16)
     {
       imCreateInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
       renderFlags = eTexDisplay_F16Render;
     }
-    else if(params.remap == eRemap_RGBA32)
+    else if(params.remap == RemapTexture::RGBA32)
     {
       imCreateInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
       renderFlags = eTexDisplay_F32Render;
@@ -4884,6 +4874,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     copyregion[i].imageExtent.depth = RDCMAX(1U, copyregion[i].imageExtent.depth >> mip);
   }
 
+  uint32_t dataSize = 0;
+
   // for most combined depth-stencil images this will be large enough for both to be copied
   // separately, but for D24S8 we need to add extra space since they won't be copied packed
   dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
@@ -4891,7 +4883,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
   if(imCreateInfo.format == VK_FORMAT_D24_UNORM_S8_UINT)
   {
-    dataSize = AlignUp(dataSize, (size_t)4);
+    dataSize = AlignUp(dataSize, 4U);
     dataSize += GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
                             VK_FORMAT_S8_UINT, mip);
   }
@@ -4935,7 +4927,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     vt->CmdCopyImageToBuffer(Unwrap(cmd), srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                              readbackBuf, 2, copyregion);
   }
-  else if(imInfo.type == VK_IMAGE_TYPE_3D && params.remap)
+  else if(imInfo.type == VK_IMAGE_TYPE_3D && params.remap != RemapTexture::NoRemap)
   {
     // copy in each slice from the 2D array we created to render out the 3D texture
     for(uint32_t i = 0; i < imCreateInfo.arrayLayers; i++)
@@ -4997,7 +4989,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
   RDCASSERT(pData != NULL);
 
-  byte *ret = new byte[dataSize];
+  data.resize(dataSize);
 
   if(isDepth && isStencil)
   {
@@ -5009,7 +5001,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       uint16_t *dSrc = (uint16_t *)pData;
       uint8_t *sSrc = (uint8_t *)(pData + copyregion[1].bufferOffset);
 
-      uint16_t *dDst = (uint16_t *)ret;
+      uint16_t *dDst = (uint16_t *)data.data();
       uint16_t *sDst = dDst + 1;    // interleaved, next pixel
 
       for(size_t i = 0; i < pixelCount; i++)
@@ -5033,7 +5025,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       uint32_t *dSrc = (uint32_t *)pData;
       uint8_t *sSrc = (uint8_t *)(pData + copyregion[1].bufferOffset);
 
-      uint32_t *dst = (uint32_t *)ret;
+      uint32_t *dst = (uint32_t *)data.data();
 
       for(size_t i = 0; i < pixelCount; i++)
       {
@@ -5050,7 +5042,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       uint32_t *dSrc = (uint32_t *)pData;
       uint8_t *sSrc = (uint8_t *)(pData + copyregion[1].bufferOffset);
 
-      uint32_t *dDst = (uint32_t *)ret;
+      uint32_t *dDst = (uint32_t *)data.data();
       uint32_t *sDst = dDst + 1;    // interleaved, next pixel
 
       for(size_t i = 0; i < pixelCount; i++)
@@ -5071,7 +5063,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
   }
   else
   {
-    memcpy(ret, pData, dataSize);
+    memcpy(data.data(), pData, dataSize);
   }
 
   vt->UnmapMemory(Unwrap(dev), readbackMem);
@@ -5097,8 +5089,6 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     delete[] tmpView;
     vt->DestroyRenderPass(Unwrap(dev), tmpRP, NULL);
   }
-
-  return ret;
 }
 
 void VulkanReplay::BuildCustomShader(string source, string entry,
@@ -5346,7 +5336,7 @@ void VulkanReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataS
   VULKANNOTIMP("SetProxyTextureData");
 }
 
-ReplayStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a VulkanReplay replay device");
 
@@ -5370,28 +5360,53 @@ ReplayStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driv
   }
 
   VkInitParams initParams;
-  RDCDriver driverType = RDC_Vulkan;
-  string driverName = "VulkanReplay";
-  uint64_t machineIdent = 0;
-  if(logfile)
+
+  uint64_t ver = VkInitParams::CurrentVersion;
+
+  // if we have an RDCFile, open the frame capture section and serialise the init params.
+  // if not, we're creating a proxy-capable device so use default-initialised init params.
+  if(rdc)
   {
-    auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
-                                                   (RDCInitParams *)&initParams);
+    int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
-    if(status != ReplayStatus::Succeeded)
-      return status;
+    if(sectionIdx < 0)
+      return ReplayStatus::InternalError;
+
+    ver = rdc->GetSectionProperties(sectionIdx).version;
+
+    if(!VkInitParams::IsSupportedVersion(ver))
+    {
+      RDCERR("Incompatible Vulkan serialise version %llu", ver);
+      return ReplayStatus::APIUnsupported;
+    }
+
+    StreamReader *reader = rdc->ReadSection(sectionIdx);
+
+    ReadSerialiser ser(reader, Ownership::Stream);
+
+    SystemChunk chunk = ser.ReadChunk<SystemChunk>();
+
+    if(chunk != SystemChunk::DriverInit)
+    {
+      RDCERR("Expected to get a DriverInit chunk, instead got %u", chunk);
+      return ReplayStatus::FileCorrupted;
+    }
+
+    SERIALISE_ELEMENT(initParams);
+
+    if(ser.IsErrored())
+    {
+      RDCERR("Failed reading driver init params.");
+      return ReplayStatus::FileIOFailed;
+    }
   }
-
-  // initParams.SerialiseVersion is guaranteed to be valid/supported since otherwise the
-  // FillInitParams (which calls VkInitParams::Serialise) would have failed above, so no need to
-  // check it here.
 
   InitReplayTables(module);
 
   VulkanReplay::PreDeviceInitCounters();
 
-  WrappedVulkan *vk = new WrappedVulkan(logfile);
-  ReplayStatus status = vk->Initialise(initParams);
+  WrappedVulkan *vk = new WrappedVulkan();
+  ReplayStatus status = vk->Initialise(initParams, ver);
 
   if(status != ReplayStatus::Succeeded)
   {
@@ -5401,7 +5416,7 @@ ReplayStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driv
 
   RDCLOG("Created device.");
   VulkanReplay *replay = vk->GetReplay();
-  replay->SetProxy(logfile == NULL);
+  replay->SetProxy(rdc == NULL);
 
   *driver = (IReplayDriver *)replay;
 
@@ -5419,3 +5434,15 @@ struct VulkanDriverRegistration
 };
 
 static VulkanDriverRegistration VkDriverRegistration;
+
+void Vulkan_ProcessStructured(RDCFile *rdc, SDFile &output)
+{
+  WrappedVulkan vulkan;
+  vulkan.SetStructuredExport(
+      rdc->GetSectionProperties(rdc->SectionIndex(SectionType::FrameCapture)).version);
+  vulkan.ReadLogInitialisation(rdc, true);
+
+  vulkan.GetStructuredFile().swap(output);
+}
+
+static StructuredProcessRegistration VulkanProcessRegistration(RDC_Vulkan, &Vulkan_ProcessStructured);

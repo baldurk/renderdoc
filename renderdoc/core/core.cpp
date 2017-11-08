@@ -28,37 +28,36 @@
 #include <algorithm>
 #include "api/replay/version.h"
 #include "common/common.h"
-#include "common/dds_readwrite.h"
 #include "hooks/hooks.h"
 #include "replay/replay_driver.h"
+#include "serialise/rdcfile.h"
 #include "serialise/serialiser.h"
-#include "stb/stb_image.h"
 #include "strings/string_utils.h"
 #include "crash_handler.h"
 
 #include "api/replay/renderdoc_tostr.inl"
 
+#include "replay/renderdoc_serialise.inl"
+
+// this one is done by hand as we format it
 template <>
 std::string DoStringise(const ResourceId &el)
 {
-  char tostrBuf[256] = {0};
-
   RDCCOMPILE_ASSERT(sizeof(el) == sizeof(uint64_t), "ResourceId is no longer 1:1 with uint64_t");
 
-  StringFormat::snprintf(tostrBuf, 255, "ResID_%llu", (uint64_t &)el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("ResourceId(%llu)", el);
 }
+
+BASIC_TYPE_SERIALISE_STRINGIFY(ResourceId, (uint64_t &)el, SDBasic::UnsignedInteger, 8);
+
+INSTANTIATE_SERIALISE_TYPE(ResourceId);
 
 #if ENABLED(RDOC_LINUX) && ENABLED(RDOC_XLIB)
 #include <X11/Xlib.h>
 #endif
 
 // from image_viewer.cpp
-ReplayStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
-
-// not provided by tinyexr, just do by hand
-bool is_exr_file(FILE *f);
+ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver);
 
 template <>
 std::string DoStringise(const RDCDriver &el)
@@ -76,6 +75,18 @@ std::string DoStringise(const RDCDriver &el)
     STRINGISE_ENUM_NAMED(RDC_D3D8, "D3D8");
     STRINGISE_ENUM_NAMED(RDC_Image, "Image");
     STRINGISE_ENUM_NAMED(RDC_Vulkan, "Vulkan");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const ReplayLogType &el)
+{
+  BEGIN_ENUM_STRINGISE(ReplayLogType);
+  {
+    STRINGISE_ENUM_CLASS_NAMED(eReplay_Full, "Full replay including draw");
+    STRINGISE_ENUM_CLASS_NAMED(eReplay_WithoutDraw, "Replay without draw");
+    STRINGISE_ENUM_CLASS_NAMED(eReplay_OnlyDraw, "Replay only draw");
   }
   END_ENUM_STRINGISE();
 }
@@ -138,6 +149,18 @@ std::string DoStringise(const RENDERDOC_InputButton &el)
     STRINGISE_ENUM_NAMED(eRENDERDOC_Key_Tab, "Tab");
     STRINGISE_ENUM_NAMED(eRENDERDOC_Key_PrtScrn, "PrtScrn");
     STRINGISE_ENUM_NAMED(eRENDERDOC_Key_Pause, "Pause");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const SystemChunk &el)
+{
+  BEGIN_ENUM_STRINGISE(SystemChunk);
+  {
+    STRINGISE_ENUM_CLASS_NAMED(DriverInit, "Driver Initialisation Parameters");
+    STRINGISE_ENUM_CLASS_NAMED(InitialContentsList, "List of Initial Contents Resources");
+    STRINGISE_ENUM_CLASS_NAMED(InitialContents, "Initial Contents");
   }
   END_ENUM_STRINGISE();
 }
@@ -673,16 +696,10 @@ bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
   return ret;
 }
 
-Serialiser *RenderDoc::OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *params, void *thpixels,
-                                           size_t thlen, uint32_t thwidth, uint32_t thheight)
+RDCFile *RenderDoc::CreateRDC(uint32_t frameNum, void *thpixels, size_t thlen, uint16_t thwidth,
+                              uint16_t thheight)
 {
-  RDCASSERT(m_CurrentDriver != RDC_Unknown);
-
-#if ENABLED(RDOC_RELEASE)
-  const bool debugSerialiser = false;
-#else
-  const bool debugSerialiser = true;
-#endif
+  RDCFile *ret = new RDCFile;
 
   m_CurrentLogFile = StringFormat::Fmt("%s_frame%u.rdc", m_LogFile.c_str(), frameNum);
 
@@ -699,143 +716,29 @@ Serialiser *RenderDoc::OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *par
     }
   }
 
-  Serialiser *fileSerialiser =
-      new Serialiser(m_CurrentLogFile.c_str(), Serialiser::WRITING, debugSerialiser);
+  RDCThumb th;
+  RDCThumb *thumb = NULL;
 
-  Serialiser *chunkSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
-
+  if(thpixels)
   {
-    ScopedContext scope(chunkSerialiser, "Thumbnail", THUMBNAIL_DATA, false);
-
-    bool HasThumbnail = (thpixels != NULL && thwidth > 0 && thheight > 0);
-    chunkSerialiser->Serialise("HasThumbnail", HasThumbnail);
-
-    if(HasThumbnail)
-    {
-      byte *buf = (byte *)thpixels;
-      chunkSerialiser->Serialise("ThumbWidth", thwidth);
-      chunkSerialiser->Serialise("ThumbHeight", thheight);
-      chunkSerialiser->SerialiseBuffer("ThumbnailPixels", buf, thlen);
-    }
-
-    fileSerialiser->Insert(scope.Get(true));
+    th.len = (uint32_t)thlen;
+    th.pixels = (const byte *)thpixels;
+    th.width = thwidth;
+    th.height = thheight;
+    thumb = &th;
   }
 
+  ret->SetData(m_CurrentDriver, m_CurrentDriverName.c_str(), OSUtility::GetMachineIdent(), thumb);
+
+  ret->Create(m_CurrentLogFile.c_str());
+
+  if(ret->ErrorCode() != ContainerError::NoError)
   {
-    ScopedContext scope(chunkSerialiser, "Capture Create Parameters", CREATE_PARAMS, false);
-
-    chunkSerialiser->Serialise("DriverType", m_CurrentDriver);
-    chunkSerialiser->SerialiseString("DriverName", m_CurrentDriverName);
-
-    {
-      ScopedContext driverparams(chunkSerialiser, "Driver Specific", DRIVER_INIT_PARAMS, false);
-
-      params->m_pSerialiser = chunkSerialiser;
-      params->m_State = WRITING;
-      params->Serialise();
-    }
-
-    fileSerialiser->Insert(scope.Get(true));
+    RDCERR("Error creating RDC at '%s'", m_CurrentLogFile.c_str());
+    SAFE_DELETE(ret);
   }
 
-  SAFE_DELETE(chunkSerialiser);
-
-  return fileSerialiser;
-}
-
-ReplayStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &driverType, string &driverName,
-                                       uint64_t &fileMachineIdent, RDCInitParams *params)
-{
-  Serialiser ser(logFile, Serialiser::READING, true);
-
-  if(ser.HasError())
-  {
-    FILE *f = FileIO::fopen(logFile, "rb");
-    if(f)
-    {
-      int x = 0, y = 0, comp = 0;
-      int ret = stbi_info_from_file(f, &x, &y, &comp);
-
-      FileIO::fseek64(f, 0, SEEK_SET);
-
-      if(is_dds_file(f))
-        ret = x = y = comp = 1;
-
-      if(is_exr_file(f))
-        ret = x = y = comp = 1;
-
-      FileIO::fclose(f);
-
-      if(ret == 1 && x > 0 && y > 0 && comp > 0)
-      {
-        driverType = RDC_Image;
-        driverName = "Image";
-        fileMachineIdent = 0;
-        return ReplayStatus::Succeeded;
-      }
-    }
-
-    RDCERR("Couldn't open '%s'", logFile);
-
-    switch(ser.ErrorCode())
-    {
-      case Serialiser::eSerError_FileIO: return ReplayStatus::FileIOFailed;
-      case Serialiser::eSerError_Corrupt: return ReplayStatus::FileCorrupted;
-      case Serialiser::eSerError_UnsupportedVersion: return ReplayStatus::FileIncompatibleVersion;
-      default: break;
-    }
-
-    return ReplayStatus::InternalError;
-  }
-
-  ser.Rewind();
-
-  fileMachineIdent = ser.GetSavedMachineIdent();
-
-  {
-    int chunkType = ser.PushContext(NULL, NULL, 1, false);
-
-    if(chunkType != THUMBNAIL_DATA)
-    {
-      RDCERR("Malformed logfile '%s', first chunk isn't thumbnail data", logFile);
-      return ReplayStatus::FileCorrupted;
-    }
-
-    ser.SkipCurrentChunk();
-
-    ser.PopContext(1);
-  }
-
-  {
-    int chunkType = ser.PushContext(NULL, NULL, 1, false);
-
-    if(chunkType != CREATE_PARAMS)
-    {
-      RDCERR("Malformed logfile '%s', second chunk isn't create params", logFile);
-      return ReplayStatus::FileCorrupted;
-    }
-
-    ser.Serialise("DriverType", driverType);
-    ser.SerialiseString("DriverName", driverName);
-
-    chunkType = ser.PushContext(NULL, NULL, 1, false);
-
-    if(chunkType != DRIVER_INIT_PARAMS)
-    {
-      RDCERR("Malformed logfile '%s', chunk doesn't contain driver init params", logFile);
-      return ReplayStatus::FileCorrupted;
-    }
-
-    if(params)
-    {
-      params->m_State = READING;
-      params->m_pSerialiser = &ser;
-      return params->Serialise();
-    }
-  }
-
-  // we can just throw away the serialiser, don't need to care about closing/popping contexts
-  return ReplayStatus::Succeeded;
+  return ret;
 }
 
 bool RenderDoc::HasReplayDriver(RDCDriver driver) const
@@ -881,42 +784,163 @@ void RenderDoc::RegisterRemoteProvider(RDCDriver driver, const char *name,
   m_RemoteDriverProviders[driver] = provider;
 }
 
-ReplayStatus RenderDoc::CreateReplayDriver(RDCDriver driverType, const char *logfile,
-                                           IReplayDriver **driver)
+void RenderDoc::RegisterStructuredProcessor(RDCDriver driver, StructuredProcessor provider)
 {
-  if(driver == NULL)
-    return ReplayStatus::InternalError;
+  RDCASSERT(m_StructProcesssors.find(driver) == m_StructProcesssors.end());
 
-  // allows passing RDC_Unknown as 'I don't care, give me a proxy driver of any type'
-  // only valid if logfile is NULL and it will be used as a proxy, not to process a log
-  if(driverType == RDC_Unknown && logfile == NULL && !m_ReplayDriverProviders.empty())
-    return m_ReplayDriverProviders.begin()->second(logfile, driver);
+  m_StructProcesssors[driver] = provider;
+}
 
-  // image support is special, handle it here
-  if(driverType == RDC_Image && logfile != NULL)
-    return IMG_CreateReplayDevice(logfile, driver);
+void RenderDoc::RegisterCaptureExporter(const char *filetype, const char *description,
+                                        CaptureExporter exporter)
+{
+  RDCASSERT(m_ImportExportFormats.find(filetype) == m_ImportExportFormats.end());
 
-  if(m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end())
-    return m_ReplayDriverProviders[driverType](logfile, driver);
+  m_ImportExportFormats[filetype] = description;
 
-  RDCERR("Unsupported replay driver requested: %d", driverType);
+  m_Exporters[filetype] = exporter;
+}
+
+void RenderDoc::RegisterCaptureImportExporter(const char *filetype, const char *description,
+                                              CaptureImporter importer, CaptureExporter exporter)
+{
+  RDCASSERT(m_ImportExportFormats.find(filetype) == m_ImportExportFormats.end());
+
+  m_ImportExportFormats[filetype] = description;
+
+  m_Importers[filetype] = importer;
+  m_Exporters[filetype] = exporter;
+}
+
+StructuredProcessor RenderDoc::GetStructuredProcessor(RDCDriver driver)
+{
+  auto it = m_StructProcesssors.find(driver);
+
+  if(it == m_StructProcesssors.end())
+    return NULL;
+
+  return it->second;
+}
+
+CaptureExporter RenderDoc::GetCaptureExporter(const char *filetype)
+{
+  auto it = m_Exporters.find(filetype);
+
+  if(it == m_Exporters.end())
+    return NULL;
+
+  return it->second;
+}
+
+CaptureImporter RenderDoc::GetCaptureImporter(const char *filetype)
+{
+  auto it = m_Importers.find(filetype);
+
+  if(it == m_Importers.end())
+    return NULL;
+
+  return it->second;
+}
+
+std::vector<CaptureFileFormat> RenderDoc::GetCaptureFileFormats()
+{
+  std::vector<CaptureFileFormat> ret;
+
+  CaptureFileFormat rdc;
+  rdc.name = "rdc";
+  rdc.description = "Native RDC capture file format.";
+  rdc.openSupported = true;
+  rdc.convertSupported = true;
+
+  ret.push_back(rdc);
+
+  for(auto it = m_ImportExportFormats.begin(); it != m_ImportExportFormats.end(); ++it)
+  {
+    CaptureFileFormat fmt;
+    fmt.name = it->first;
+    fmt.description = it->second;
+
+    rdc.openSupported = m_Importers.find(it->first) != m_Importers.end();
+    rdc.convertSupported = m_Exporters.find(it->first) != m_Exporters.end();
+
+    RDCASSERT(rdc.openSupported || rdc.convertSupported);
+
+    ret.push_back(fmt);
+  }
+
+  return ret;
+}
+
+bool RenderDoc::HasReplaySupport(RDCDriver driverType)
+{
+  if(driverType == RDC_Image)
+    return true;
+
+  if(driverType == RDC_Unknown && !m_ReplayDriverProviders.empty())
+    return true;
+
+  return m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end();
+}
+
+ReplayStatus RenderDoc::CreateProxyReplayDriver(RDCDriver proxyDriver, IReplayDriver **driver)
+{
+  // passing RDC_Unknown means 'I don't care, give me a proxy driver of any type'
+  if(proxyDriver == RDC_Unknown)
+  {
+    if(!m_ReplayDriverProviders.empty())
+      return m_ReplayDriverProviders.begin()->second(NULL, driver);
+  }
+
+  if(m_ReplayDriverProviders.find(proxyDriver) != m_ReplayDriverProviders.end())
+    return m_ReplayDriverProviders[proxyDriver](NULL, driver);
+
+  RDCERR("Unsupported replay driver requested: %s", ToStr(proxyDriver).c_str());
   return ReplayStatus::APIUnsupported;
 }
 
-ReplayStatus RenderDoc::CreateRemoteDriver(RDCDriver driverType, const char *logfile,
-                                           IRemoteDriver **driver)
+ReplayStatus RenderDoc::CreateReplayDriver(RDCFile *rdc, IReplayDriver **driver)
 {
   if(driver == NULL)
     return ReplayStatus::InternalError;
 
+  // allows passing NULL rdcfile as 'I don't care, give me a proxy driver of any type'
+  if(rdc == NULL)
+  {
+    if(!m_ReplayDriverProviders.empty())
+      return m_ReplayDriverProviders.begin()->second(NULL, driver);
+
+    RDCERR("Request for proxy replay device, but no replay providers are available.");
+    return ReplayStatus::InternalError;
+  }
+
+  RDCDriver driverType = rdc->GetDriver();
+
+  // image support is special, handle it here
+  if(driverType == RDC_Image)
+    return IMG_CreateReplayDevice(rdc, driver);
+
+  if(m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end())
+    return m_ReplayDriverProviders[driverType](rdc, driver);
+
+  RDCERR("Unsupported replay driver requested: %s", ToStr(driverType).c_str());
+  return ReplayStatus::APIUnsupported;
+}
+
+ReplayStatus RenderDoc::CreateRemoteDriver(RDCFile *rdc, IRemoteDriver **driver)
+{
+  if(rdc == NULL || driver == NULL)
+    return ReplayStatus::InternalError;
+
+  RDCDriver driverType = rdc->GetDriver();
+
   if(m_RemoteDriverProviders.find(driverType) != m_RemoteDriverProviders.end())
-    return m_RemoteDriverProviders[driverType](logfile, driver);
+    return m_RemoteDriverProviders[driverType](rdc, driver);
 
   // replay drivers are remote drivers, fall back and try them
   if(m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end())
   {
     IReplayDriver *dr = NULL;
-    auto status = m_ReplayDriverProviders[driverType](logfile, &dr);
+    ReplayStatus status = m_ReplayDriverProviders[driverType](rdc, &dr);
 
     if(status == ReplayStatus::Succeeded)
       *driver = (IRemoteDriver *)dr;
@@ -926,7 +950,7 @@ ReplayStatus RenderDoc::CreateRemoteDriver(RDCDriver driverType, const char *log
     return status;
   }
 
-  RDCERR("Unsupported replay driver requested: %d", driverType);
+  RDCERR("Unsupported replay driver requested: %s", ToStr(driverType).c_str());
   return ReplayStatus::APIUnsupported;
 }
 
@@ -1011,14 +1035,40 @@ void RenderDoc::SetProgress(LoadProgressSection section, float delta)
   *m_ProgressPtr = progress;
 }
 
-void RenderDoc::SuccessfullyWrittenLog(uint32_t frameNumber)
+void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
 {
-  RDCLOG("Written to disk: %s", m_CurrentLogFile.c_str());
-
-  CaptureData cap(m_CurrentLogFile, Timing::GetUnixTimestamp(), frameNumber);
+  if(rdc)
   {
-    SCOPED_LOCK(m_CaptureLock);
-    m_Captures.push_back(cap);
+    // add the resolve database if we were capturing callstacks.
+    if(m_Options.CaptureCallstacks)
+    {
+      SectionProperties props = {};
+      props.type = SectionType::ResolveDatabase;
+      props.version = 1;
+      StreamWriter *w = rdc->WriteSection(props);
+
+      size_t sz = 0;
+      Callstack::GetLoadedModules(NULL, sz);
+
+      byte *buf = new byte[sz];
+      Callstack::GetLoadedModules(buf, sz);
+
+      w->Write(buf, sz);
+
+      w->Finish();
+
+      delete w;
+    }
+
+    delete rdc;
+
+    RDCLOG("Written to disk: %s", m_CurrentLogFile.c_str());
+
+    CaptureData cap(m_CurrentLogFile, Timing::GetUnixTimestamp(), frameNumber);
+    {
+      SCOPED_LOCK(m_CaptureLock);
+      m_Captures.push_back(cap);
+    }
   }
 }
 

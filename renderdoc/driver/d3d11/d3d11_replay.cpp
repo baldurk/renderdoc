@@ -27,6 +27,7 @@
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/ihv/amd/amd_isa.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
+#include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
@@ -385,6 +386,7 @@ APIProperties D3D11Replay::GetAPIProperties()
   ret.pipelineType = GraphicsAPI::D3D11;
   ret.localRenderer = GraphicsAPI::D3D11;
   ret.degraded = m_WARP;
+  ret.shadersMutable = false;
 
   return ret;
 }
@@ -560,7 +562,7 @@ void D3D11Replay::SavePipelineState()
   {
     D3D11Pipe::Shader *dstArr[] = {&ret.m_VS, &ret.m_HS, &ret.m_DS,
                                    &ret.m_GS, &ret.m_PS, &ret.m_CS};
-    const D3D11RenderState::shader *srcArr[] = {&rs->VS, &rs->HS, &rs->DS,
+    const D3D11RenderState::Shader *srcArr[] = {&rs->VS, &rs->HS, &rs->DS,
                                                 &rs->GS, &rs->PS, &rs->CS};
 
     const char *stageNames[] = {"Vertex", "Hull", "Domain", "Geometry", "Pixel", "Compute"};
@@ -568,13 +570,13 @@ void D3D11Replay::SavePipelineState()
     for(size_t stage = 0; stage < 6; stage++)
     {
       D3D11Pipe::Shader &dst = *dstArr[stage];
-      const D3D11RenderState::shader &src = *srcArr[stage];
+      const D3D11RenderState::Shader &src = *srcArr[stage];
 
       dst.stage = (ShaderStage)stage;
 
-      ResourceId id = GetIDForResource(src.Shader);
+      ResourceId id = GetIDForResource(src.Object);
 
-      WrappedShader *shad = (WrappedShader *)(WrappedID3D11Shader<ID3D11VertexShader> *)src.Shader;
+      WrappedShader *shad = (WrappedShader *)(WrappedID3D11Shader<ID3D11VertexShader> *)src.Object;
 
       ShaderReflection *refl = NULL;
 
@@ -587,7 +589,7 @@ void D3D11Replay::SavePipelineState()
       dst.Object = rm->GetOriginalID(id);
       dst.ShaderDetails = refl;
 
-      string str = GetDebugName(src.Shader);
+      string str = GetDebugName(src.Object);
       dst.customName = true;
 
       if(str == "" && dst.Object != ResourceId())
@@ -1288,14 +1290,19 @@ void D3D11Replay::SavePipelineState()
   }
 }
 
-void D3D11Replay::ReadLogInitialisation()
+void D3D11Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
-  m_pDevice->ReadLogInitialisation();
+  m_pDevice->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
 
 void D3D11Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
   m_pDevice->ReplayLog(0, endEventID, replayType);
+}
+
+const SDFile &D3D11Replay::GetStructuredFile()
+{
+  return m_pDevice->GetStructuredFile();
 }
 
 vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventID)
@@ -1433,10 +1440,10 @@ void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, 
   m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);
 }
 
-byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                                  const GetTextureDataParams &params, size_t &dataSize)
+void D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                 const GetTextureDataParams &params, bytebuf &data)
 {
-  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, dataSize);
+  m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, data);
 }
 
 void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)
@@ -1454,9 +1461,9 @@ vector<GPUCounter> D3D11Replay::EnumerateCounters()
   return m_pDevice->GetDebugManager()->EnumerateCounters();
 }
 
-void D3D11Replay::DescribeCounter(GPUCounter counterID, CounterDescription &desc)
+CounterDescription D3D11Replay::DescribeCounter(GPUCounter counterID)
 {
-  m_pDevice->GetDebugManager()->DescribeCounter(counterID, desc);
+  return m_pDevice->GetDebugManager()->DescribeCounter(counterID);
 }
 
 vector<CounterResult> D3D11Replay::FetchCounters(const vector<GPUCounter> &counters)
@@ -1586,21 +1593,6 @@ bool D3D11Replay::IsRenderOutput(ResourceId id)
     return true;
 
   return false;
-}
-
-void D3D11Replay::InitCallstackResolver()
-{
-  m_pDevice->GetSerialiser()->InitCallstackResolver();
-}
-
-bool D3D11Replay::HasCallstacks()
-{
-  return m_pDevice->GetSerialiser()->HasCallstacks();
-}
-
-Callstack::StackResolver *D3D11Replay::GetCallstackResolver()
-{
-  return m_pDevice->GetSerialiser()->GetCallstackResolver();
 }
 
 ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex)
@@ -1921,11 +1913,15 @@ void D3D11Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSi
 
 ID3DDevice *GetD3D11DeviceIfAlloc(IUnknown *dev);
 
-ReplayStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+extern "C" HRESULT RENDERDOC_CreateWrappedD3D11DeviceAndSwapChain(
+    __in_opt IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT,
+    __in_ecount_opt(FeatureLevels) CONST D3D_FEATURE_LEVEL *, UINT FeatureLevels, UINT,
+    __in_opt CONST DXGI_SWAP_CHAIN_DESC *, __out_opt IDXGISwapChain **, __out_opt ID3D11Device **,
+    __out_opt D3D_FEATURE_LEVEL *, __out_opt ID3D11DeviceContext **);
+
+ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a D3D11 replay device");
-
-  WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D11DeviceIfAlloc);
 
   HMODULE lib = NULL;
   lib = LoadLibraryA("d3d11.dll");
@@ -1955,35 +1951,51 @@ ReplayStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver **drive
     return ReplayStatus::APIInitFailed;
   }
 
-  typedef HRESULT(__cdecl * PFN_RENDERDOC_CREATE_DEVICE_AND_SWAP_CHAIN)(
-      __in_opt IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT,
-      __in_ecount_opt(FeatureLevels) CONST D3D_FEATURE_LEVEL *, UINT FeatureLevels, UINT,
-      __in_opt CONST DXGI_SWAP_CHAIN_DESC *, __out_opt IDXGISwapChain **, __out_opt ID3D11Device **,
-      __out_opt D3D_FEATURE_LEVEL *, __out_opt ID3D11DeviceContext **);
-
-  PFN_RENDERDOC_CREATE_DEVICE_AND_SWAP_CHAIN createDevice =
-      (PFN_RENDERDOC_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(
-          GetModuleHandleA("renderdoc.dll"), "RENDERDOC_CreateWrappedD3D11DeviceAndSwapChain");
-
-  RDCASSERT(createDevice);
-
-  ID3D11Device *device = NULL;
-
   D3D11InitParams initParams;
-  RDCDriver driverFileType = RDC_D3D11;
-  string driverName = "D3D11";
-  uint64_t machineIdent = 0;
-  if(logfile)
+
+  uint64_t ver = D3D11InitParams::CurrentVersion;
+
+  WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D11DeviceIfAlloc);
+
+  // if we have an RDCFile, open the frame capture section and serialise the init params.
+  // if not, we're creating a proxy-capable device so use default-initialised init params.
+  if(rdc)
   {
-    auto status = RenderDoc::Inst().FillInitParams(logfile, driverFileType, driverName,
-                                                   machineIdent, (RDCInitParams *)&initParams);
-    if(status != ReplayStatus::Succeeded)
-      return status;
+    int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
+
+    if(sectionIdx < 0)
+      return ReplayStatus::InternalError;
+
+    ver = rdc->GetSectionProperties(sectionIdx).version;
+
+    if(!D3D11InitParams::IsSupportedVersion(ver))
+    {
+      RDCERR("Incompatible D3D11 serialise version %llu", ver);
+      return ReplayStatus::APIUnsupported;
+    }
+
+    StreamReader *reader = rdc->ReadSection(sectionIdx);
+
+    ReadSerialiser ser(reader, Ownership::Stream);
+
+    SystemChunk chunk = ser.ReadChunk<SystemChunk>();
+
+    if(chunk != SystemChunk::DriverInit)
+    {
+      RDCERR("Expected to get a DriverInit chunk, instead got %u", chunk);
+      return ReplayStatus::FileCorrupted;
+    }
+
+    SERIALISE_ELEMENT(initParams);
+
+    if(ser.IsErrored())
+    {
+      RDCERR("Failed reading driver init params.");
+      return ReplayStatus::FileIOFailed;
+    }
   }
 
-  // initParams.SerialiseVersion is guaranteed to be valid/supported since otherwise the
-  // FillInitParams (which calls D3D11InitParams::Serialise) would have failed above, so no need to
-  // check it here.
+  ID3D11Device *device = NULL;
 
   if(initParams.SDKVersion != D3D11_SDK_VERSION)
   {
@@ -2020,8 +2032,9 @@ ReplayStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver **drive
 
   // check for feature level 11 support - passing NULL feature level array implicitly checks for
   // 11_0 before others
-  hr = createDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, NULL, 0, D3D11_SDK_VERSION, NULL, NULL,
-                    NULL, &maxFeatureLevel, NULL);
+  hr = RENDERDOC_CreateWrappedD3D11DeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, NULL,
+                                                      0, D3D11_SDK_VERSION, NULL, NULL, NULL,
+                                                      &maxFeatureLevel, NULL);
 
   bool warpFallback = false;
 
@@ -2039,7 +2052,7 @@ ReplayStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver **drive
   hr = E_FAIL;
   for(;;)
   {
-    hr = createDevice(
+    hr = RENDERDOC_CreateWrappedD3D11DeviceAndSwapChain(
         /*pAdapter=*/NULL, driverType, /*Software=*/NULL, flags,
         /*pFeatureLevels=*/featureLevelArray, /*nFeatureLevels=*/numFeatureLevels, D3D11_SDK_VERSION,
         /*pSwapChainDesc=*/NULL, (IDXGISwapChain **)NULL, (ID3D11Device **)&device,
@@ -2048,20 +2061,12 @@ ReplayStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver **drive
     if(SUCCEEDED(hr))
     {
       WrappedID3D11Device *wrappedDev = (WrappedID3D11Device *)device;
-      if(logfile)
-        wrappedDev->SetLogFile(logfile);
-      wrappedDev->SetLogVersion(initParams.SerialiseVersion);
-
-      if(logfile && wrappedDev->GetSerialiser()->HasError())
-      {
-        SAFE_RELEASE(wrappedDev);
-        return ReplayStatus::FileIOFailed;
-      }
+      wrappedDev->SetInitParams(initParams, ver);
 
       RDCLOG("Created device.");
       D3D11Replay *replay = wrappedDev->GetReplay();
 
-      replay->SetProxy(logfile == NULL, warpFallback);
+      replay->SetProxy(rdc == NULL, warpFallback);
       if(warpFallback)
       {
         wrappedDev->AddDebugMessage(
@@ -2110,3 +2115,16 @@ ReplayStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver **drive
 }
 
 static DriverRegistration D3D11DriverRegistration(RDC_D3D11, "D3D11", &D3D11_CreateReplayDevice);
+
+void D3D11_ProcessStructured(RDCFile *rdc, SDFile &output)
+{
+  WrappedID3D11Device device(NULL, NULL);
+
+  device.SetStructuredExport(
+      rdc->GetSectionProperties(rdc->SectionIndex(SectionType::FrameCapture)).version);
+  device.ReadLogInitialisation(rdc, true);
+
+  device.GetStructuredFile().swap(output);
+}
+
+static StructuredProcessRegistration D3D11ProcessRegistration(RDC_D3D11, &D3D11_ProcessStructured);

@@ -126,7 +126,7 @@ void WrappedVulkan::vkGetBufferMemoryRequirements(VkDevice device, VkBuffer buff
   ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(buffer), pMemoryRequirements);
 
   // don't do remapping here on replay.
-  if(m_State < WRITING)
+  if(IsReplayMode(m_State))
     return;
 
   uint32_t bits = pMemoryRequirements->memoryTypeBits;
@@ -147,7 +147,7 @@ void WrappedVulkan::vkGetImageMemoryRequirements(VkDevice device, VkImage image,
   ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image), pMemoryRequirements);
 
   // don't do remapping here on replay.
-  if(m_State < WRITING)
+  if(IsReplayMode(m_State))
     return;
 
   uint32_t bits = pMemoryRequirements->memoryTypeBits;
@@ -180,7 +180,7 @@ void WrappedVulkan::vkGetBufferMemoryRequirements2KHR(VkDevice device,
                                                    pMemoryRequirements);
 
   // don't do remapping here on replay.
-  if(m_State < WRITING)
+  if(IsReplayMode(m_State))
     return;
 
   uint32_t bits = pMemoryRequirements->memoryRequirements.memoryTypeBits;
@@ -205,7 +205,7 @@ void WrappedVulkan::vkGetImageMemoryRequirements2KHR(VkDevice device,
                                                   pMemoryRequirements);
 
   // don't do remapping here on replay.
-  if(m_State < WRITING)
+  if(IsReplayMode(m_State))
     return;
 
   uint32_t bits = pMemoryRequirements->memoryRequirements.memoryTypeBits;

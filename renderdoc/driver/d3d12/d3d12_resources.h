@@ -270,7 +270,7 @@ public:
       return m_pDevice->SetShaderDebugPath(this, (const char *)pData);
 
     if(guid == WKPDID_D3DDebugObjectName)
-      m_pDevice->SetResourceName(this, (const char *)pData);
+      m_pDevice->SetName(this, (const char *)pData);
 
     if(!m_pReal)
       return S_OK;
@@ -289,7 +289,7 @@ public:
   HRESULT STDMETHODCALLTYPE SetName(LPCWSTR Name)
   {
     string utf8 = StringFormat::Wide2UTF8(Name);
-    m_pDevice->SetResourceName(this, utf8.c_str());
+    m_pDevice->SetName(this, utf8.c_str());
 
     if(!m_pReal)
       return S_OK;
@@ -703,6 +703,10 @@ public:
       ShaderEntry::ReleaseShader(GS());
       ShaderEntry::ReleaseShader(PS());
 
+      SAFE_DELETE_ARRAY(graphics->InputLayout.pInputElementDescs);
+      SAFE_DELETE_ARRAY(graphics->StreamOutput.pSODeclaration);
+      SAFE_DELETE_ARRAY(graphics->StreamOutput.pBufferStrides);
+
       SAFE_DELETE(graphics);
     }
 
@@ -963,7 +967,7 @@ struct UnwrapHelper
 
 ALL_D3D12_TYPES;
 
-D3D12ResourceType IdentifyTypeByPtr(ID3D12DeviceChild *ptr);
+D3D12ResourceType IdentifyTypeByPtr(ID3D12Object *ptr);
 
 #define WRAPPING_DEBUG 0
 
@@ -1015,8 +1019,24 @@ D3D12ResourceRecord *GetRecord(ifaceptr obj)
 
 // specialisations that use the IsAlloc() function to identify the real type
 template <>
+ResourceId GetResID(ID3D12Object *ptr);
+template <>
+ID3D12Object *Unwrap(ID3D12Object *ptr);
+template <>
+D3D12ResourceRecord *GetRecord(ID3D12Object *ptr);
+
+template <>
 ResourceId GetResID(ID3D12DeviceChild *ptr);
 template <>
+ResourceId GetResID(ID3D12Pageable *ptr);
+template <>
+ResourceId GetResID(ID3D12CommandList *ptr);
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList *ptr);
+template <>
+ResourceId GetResID(ID3D12CommandQueue *ptr);
+template <>
 ID3D12DeviceChild *Unwrap(ID3D12DeviceChild *ptr);
+
 template <>
 D3D12ResourceRecord *GetRecord(ID3D12DeviceChild *ptr);

@@ -90,6 +90,9 @@
     <ClCompile Include="d3d11_initstate.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="d3d11_serialise.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d11_replay.h">

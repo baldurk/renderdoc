@@ -203,7 +203,7 @@ struct ShaderDebugState
 
   DOCUMENT(
       "Indexable temporary variables for this shader as a list of :class:`ShaderValue` lists.");
-  rdcarray<rdcarray<ShaderVariable> > indexableTemps;
+  rdcarray<ShaderVariable> indexableTemps;
 
   DOCUMENT(R"(The next instruction to be executed after this state. The initial state before any
 shader execution happened will have ``nextInstruction == 0``.)");
@@ -228,7 +228,7 @@ struct ShaderDebugTrace
 Each entry in this list corresponds to a constant block with the same index in the
 :data:`ShaderBindpointMapping.ConstantBlocks` list, which can be used to look up the metadata.
 )");
-  rdcarray<rdcarray<ShaderVariable> > cbuffers;
+  rdcarray<ShaderVariable> cbuffers;
 
   DOCUMENT(R"(A list of :class:`ShaderDebugState` states representing the state after each
 instruction was executed
@@ -451,15 +451,41 @@ able to be read from and written to arbitrarily.
 
 DECLARE_REFLECTION_STRUCT(ShaderResource);
 
+DOCUMENT("Contains a single flag used at compile-time on a shader.");
+struct ShaderCompileFlag
+{
+  DOCUMENT("The name of the compile flag.");
+  rdcstr Name;
+
+  DOCUMENT("The value of the compile flag.");
+  rdcstr Value;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderCompileFlag);
+
 DOCUMENT("Contains the information about the compilation environment of a shader");
 struct ShaderCompileFlags
 {
-  DOCUMENT(R"(A list of tuples, where each tuple is a pair of flagName, flagValue.
+  DOCUMENT(R"(A list of :class:`ShaderCompileFlag`.
 
 Each entry is an API or compiler specific flag used to compile this shader originally.
 )");
-  rdcarray<rdcpair<rdcstr, rdcstr> > flags;
+  rdcarray<ShaderCompileFlag> flags;
 };
+
+DECLARE_REFLECTION_STRUCT(ShaderCompileFlags);
+
+DOCUMENT("Contains a source file available in a debug-compiled shader.");
+struct ShaderSourceFile
+{
+  DOCUMENT("The filename of this source file.");
+  rdcstr Filename;
+
+  DOCUMENT("The actual contents of the file.");
+  rdcstr Contents;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderSourceFile);
 
 DOCUMENT(R"(Contains the information about a shader contained within API-specific debugging
 information attached to the shader.
@@ -472,11 +498,11 @@ struct ShaderDebugChunk
   DOCUMENT("A :class:`ShaderCompileFlags` containing the flags used to compile this shader.");
   ShaderCompileFlags compileFlags;
 
-  DOCUMENT(R"(A list of tuples, where each tuple is a pair of filename, source code.
+  DOCUMENT(R"(A list of :class:`ShaderSourceFile`.
 
 The first entry in the list is always the file where the entry point is.
 )");
-  rdcarray<rdcpair<rdcstr, rdcstr> > files;
+  rdcarray<ShaderSourceFile> files;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderDebugChunk);

@@ -33,6 +33,7 @@
 #include "maths/vec.h"
 #include "stb/stb_truetype.h"
 #include "strings/string_utils.h"
+#include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 
@@ -3360,8 +3361,8 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
   m_DebugAlloc->Reset();
 }
 
-byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                                        const GetTextureDataParams &params, size_t &dataSize)
+void D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                       const GetTextureDataParams &params, bytebuf &data)
 {
   bool wasms = false;
 
@@ -3370,8 +3371,7 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
   if(resource == NULL)
   {
     RDCERR("Trying to get texture data for unknown ID %llu!", tex);
-    dataSize = 0;
-    return new byte[0];
+    return;
   }
 
   HRESULT hr = S_OK;
@@ -3408,8 +3408,10 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
 
   ID3D12GraphicsCommandList *list = NULL;
 
-  if(params.remap)
+  if(params.remap != RemapTexture::NoRemap)
   {
+    RDCASSERT(params.remap == RemapTexture::RGBA8);
+
     // force readback texture to RGBA8 unorm
     copyDesc.Format = IsSRGBFormat(copyDesc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
                                                     : DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -3683,16 +3685,14 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
   m_WrappedDevice->FlushLists();
 
   // map the buffer and copy to return buffer
-  D3D12_RANGE range = {0, dataSize};
   byte *pData = NULL;
-  hr = readbackBuf->Map(0, &range, (void **)&pData);
+  hr = readbackBuf->Map(0, NULL, (void **)&pData);
   RDCASSERTEQUAL(hr, S_OK);
 
   RDCASSERT(pData != NULL);
 
-  dataSize = GetByteSize(layouts[0].Footprint.Width, layouts[0].Footprint.Height,
-                         layouts[0].Footprint.Depth, copyDesc.Format, 0);
-  byte *ret = new byte[dataSize];
+  data.resize(GetByteSize(layouts[0].Footprint.Width, layouts[0].Footprint.Height,
+                          layouts[0].Footprint.Depth, copyDesc.Format, 0));
 
   // for depth-stencil need to merge the planes pixel-wise
   if(isDepth && isStencil)
@@ -3713,7 +3713,7 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
           uint8_t *sSrc =
               (uint8_t *)(pData + layouts[1].Offset + layouts[1].Footprint.RowPitch * row);
 
-          uint32_t *dDst = (uint32_t *)(ret + dstRowPitch * row);
+          uint32_t *dDst = (uint32_t *)(data.data() + dstRowPitch * row);
           uint32_t *sDst = dDst + 1;    // interleaved, next pixel
 
           for(UINT i = 0; i < layouts[0].Footprint.Width; i++)
@@ -3747,7 +3747,7 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
           uint8_t *sSrc =
               (uint8_t *)(pData + layouts[1].Offset + layouts[1].Footprint.RowPitch * row);
 
-          uint32_t *dst = (uint32_t *)(ret + dstRowPitch * row);
+          uint32_t *dst = (uint32_t *)(data.data() + dstRowPitch * row);
 
           for(UINT i = 0; i < layouts[0].Footprint.Width; i++)
           {
@@ -3774,7 +3774,7 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
         UINT row = r + s * rowcounts[0];
 
         byte *src = pData + layouts[0].Footprint.RowPitch * row;
-        byte *dst = ret + dstRowPitch * row;
+        byte *dst = data.data() + dstRowPitch * row;
 
         memcpy(dst, src, dstRowPitch);
       }
@@ -3784,14 +3784,12 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
   SAFE_DELETE_ARRAY(layouts);
   SAFE_DELETE_ARRAY(rowcounts);
 
-  range.End = 0;
+  D3D12_RANGE range = {0, 0};
   readbackBuf->Unmap(0, &range);
 
   // clean up temporary objects
   SAFE_RELEASE(readbackBuf);
   SAFE_RELEASE(tmpTexture);
-
-  return ret;
 }
 
 void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
@@ -6958,8 +6956,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
   ID3D12Resource *renderDepth = NULL;
 
-  D3D12Descriptor *dsView =
-      DescriptorFromPortableHandle(m_WrappedDevice->GetResourceManager(), rs.dsv);
+  D3D12Descriptor *dsView = GetWrapped(rs.dsv);
 
   D3D12_RESOURCE_DESC depthTexDesc = {};
   D3D12_DEPTH_STENCIL_VIEW_DESC dsViewDesc = {};
@@ -7144,8 +7141,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       rs.pipe = GetResID(pso);
       rs.rtSingle = true;
       rs.rts.resize(1);
-      rs.rts[0] = ToPortableHandle(rtv);
-      rs.dsv = PortableHandle();
+      rs.rts[0] = rtv;
+      rs.dsv = D3D12_CPU_DESCRIPTOR_HANDLE();
 
       m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
@@ -7236,8 +7233,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       rs.pipe = GetResID(redPSO);
       rs.rtSingle = true;
       rs.rts.resize(1);
-      rs.rts[0] = ToPortableHandle(rtv);
-      rs.dsv = PortableHandle();
+      rs.rts[0] = rtv;
+      rs.dsv = D3D12_CPU_DESCRIPTOR_HANDLE();
 
       m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
@@ -7315,8 +7312,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       rs.pipe = GetResID(pso);
       rs.rtSingle = true;
       rs.rts.resize(1);
-      rs.rts[0] = ToPortableHandle(rtv);
-      rs.dsv = ToPortableHandle(dsv);
+      rs.rts[0] = rtv;
+      rs.dsv = dsv;
 
       m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 
@@ -7344,7 +7341,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       list = NULL;
 
       bool rtSingle = rs.rtSingle;
-      vector<PortableHandle> rts = rs.rts;
+      std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rts = rs.rts;
 
       if(overlay == DebugOverlay::ClearBeforePass)
         m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
@@ -7353,20 +7350,14 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
       for(size_t i = 0; i < rts.size(); i++)
       {
-        PortableHandle ph = rtSingle ? rts[0] : rts[i];
+        D3D12Descriptor *desc = rtSingle ? GetWrapped(rts[0]) : GetWrapped(rts[i]);
 
-        WrappedID3D12DescriptorHeap *heap =
-            m_WrappedDevice->GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(ph.heap);
-
-        if(heap)
+        if(desc)
         {
-          D3D12_CPU_DESCRIPTOR_HANDLE clearrtv = heap->GetCPUDescriptorHandleForHeapStart();
-          clearrtv.ptr += ph.index * sizeof(D3D12Descriptor);
-
           if(rtSingle)
-            clearrtv.ptr += i * sizeof(D3D12Descriptor);
+            desc += i;
 
-          list->ClearRenderTargetView(clearrtv, black, 0, NULL);
+          Unwrap(list)->ClearRenderTargetView(UnwrapCPU(desc), black, 0, NULL);
         }
       }
 
@@ -7522,13 +7513,9 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
       Vec4f viewport(rs.views[0].Width, rs.views[0].Height);
 
-      if(rs.dsv.heap != ResourceId())
+      if(rs.dsv.ptr)
       {
-        WrappedID3D12DescriptorHeap *realDSVHeap =
-            m_WrappedDevice->GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(rs.dsv.heap);
-
-        D3D12_CPU_DESCRIPTOR_HANDLE realDSV = realDSVHeap->GetCPUDescriptorHandleForHeapStart();
-        realDSV.ptr += sizeof(D3D12Descriptor) * rs.dsv.index;
+        D3D12_CPU_DESCRIPTOR_HANDLE realDSV = Unwrap(rs.dsv);
 
         list->OMSetRenderTargets(1, &rtv, TRUE, &realDSV);
       }
@@ -7859,8 +7846,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
       rs.pipe = GetResID(redPSO);
       rs.rtSingle = true;
       rs.rts.resize(1);
-      rs.rts[0] = ToPortableHandle(rtv);
-      rs.dsv = ToPortableHandle(dsv);
+      rs.rts[0] = rtv;
+      rs.dsv = dsv;
 
       m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
 

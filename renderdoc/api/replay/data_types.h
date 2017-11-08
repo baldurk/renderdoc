@@ -145,6 +145,8 @@ struct TextureFilter
   FilterFunc func = FilterFunc::Normal;
 };
 
+DECLARE_REFLECTION_STRUCT(TextureFilter);
+
 DOCUMENT("A description of a buffer resource.");
 struct BufferDescription
 {
@@ -246,8 +248,8 @@ results part way through the multi draw.
   DOCUMENT("A list of addresses in the CPU callstack where this function was called.");
   rdcarray<uint64_t> callstack;
 
-  DOCUMENT("A raw debug string with the serialised form of the function call parameters.");
-  rdcstr eventDesc;
+  DOCUMENT("The chunk index for this function call in the structured file.");
+  uint32_t chunkIndex;
 
   DOCUMENT(R"(A byte offset in the data stream where this event happens.
 
@@ -300,6 +302,7 @@ enum class BucketRecordType : int
   Linear,
   Pow2,
 };
+DECLARE_REFLECTION_ENUM(BucketRecordType);
 
 DOCUMENT(R"(Contains the statistics for constant binds in a frame.
 
@@ -879,6 +882,12 @@ different to the above, and lets the UI make decisions e.g. to flip rendering of
 with software rendering, or with some functionality disabled due to lack of support.
 )");
   bool degraded;
+
+  DOCUMENT(R"(``True`` if the driver mutates shader reflection structures from event to event.
+Currently this is only true for OpenGL where the superfluous indirect in the binding model must be
+worked around by re-sorting bindings.
+)");
+  bool shadersMutable;
 };
 
 DECLARE_REFLECTION_STRUCT(APIProperties);
@@ -906,6 +915,8 @@ struct Uuid
   DOCUMENT("The Uuid bytes.")
   uint32_t bytes[4];
 };
+
+DECLARE_REFLECTION_STRUCT(Uuid);
 
 DOCUMENT("Describes a GPU counter's purpose and result value.");
 struct CounterDescription
@@ -955,6 +966,8 @@ union CounterValue
   DOCUMENT("A 64-bit unsigned integer.");
   uint64_t u64;
 };
+
+DECLARE_REFLECTION_STRUCT(CounterValue);
 
 DOCUMENT("The resulting value from a counter at an event.");
 struct CounterResult

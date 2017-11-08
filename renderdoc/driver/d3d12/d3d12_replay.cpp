@@ -26,6 +26,7 @@
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/ihv/amd/amd_isa.h"
+#include "serialise/rdcfile.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
@@ -58,9 +59,9 @@ void D3D12Replay::Shutdown()
   D3D12Replay::PostDeviceShutdownCounters();
 }
 
-void D3D12Replay::ReadLogInitialisation()
+void D3D12Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
-  m_pDevice->ReadLogInitialisation();
+  m_pDevice->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
 
 APIProperties D3D12Replay::GetAPIProperties()
@@ -70,6 +71,7 @@ APIProperties D3D12Replay::GetAPIProperties()
   ret.pipelineType = GraphicsAPI::D3D12;
   ret.localRenderer = GraphicsAPI::D3D12;
   ret.degraded = false;
+  ret.shadersMutable = false;
 
   return ret;
 }
@@ -77,6 +79,11 @@ APIProperties D3D12Replay::GetAPIProperties()
 void D3D12Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
   m_pDevice->ReplayLog(0, endEventID, replayType);
+}
+
+const SDFile &D3D12Replay::GetStructuredFile()
+{
+  return m_pDevice->GetStructuredFile();
 }
 
 vector<ResourceId> D3D12Replay::GetBuffers()
@@ -323,7 +330,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
 {
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  if(desc->GetType() == D3D12Descriptor::TypeSampler || desc->GetType() == D3D12Descriptor::TypeCBV)
+  if(desc->GetType() == D3D12DescriptorType::Sampler || desc->GetType() == D3D12DescriptorType::CBV)
   {
     return;
   }
@@ -338,11 +345,11 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
   {
     DXGI_FORMAT fmt = DXGI_FORMAT_UNKNOWN;
 
-    if(desc->GetType() == D3D12Descriptor::TypeRTV)
+    if(desc->GetType() == D3D12DescriptorType::RTV)
       fmt = desc->nonsamp.rtv.Format;
-    else if(desc->GetType() == D3D12Descriptor::TypeSRV)
+    else if(desc->GetType() == D3D12DescriptorType::SRV)
       fmt = desc->nonsamp.srv.Format;
-    else if(desc->GetType() == D3D12Descriptor::TypeUAV)
+    else if(desc->GetType() == D3D12DescriptorType::UAV)
       fmt = (DXGI_FORMAT)desc->nonsamp.uav.desc.Format;
 
     if(fmt == DXGI_FORMAT_UNKNOWN)
@@ -352,7 +359,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
 
     view.Format = MakeResourceFormat(fmt);
 
-    if(desc->GetType() == D3D12Descriptor::TypeRTV)
+    if(desc->GetType() == D3D12DescriptorType::RTV)
     {
       view.Type = MakeTextureDim(desc->nonsamp.rtv.ViewDimension);
 
@@ -396,7 +403,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
         view.HighestMip = desc->nonsamp.rtv.Texture3D.MipSlice;
       }
     }
-    else if(desc->GetType() == D3D12Descriptor::TypeDSV)
+    else if(desc->GetType() == D3D12DescriptorType::DSV)
     {
       view.Type = MakeTextureDim(desc->nonsamp.dsv.ViewDimension);
 
@@ -429,7 +436,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
         view.FirstArraySlice = desc->nonsamp.dsv.Texture2DArray.FirstArraySlice;
       }
     }
-    else if(desc->GetType() == D3D12Descriptor::TypeSRV)
+    else if(desc->GetType() == D3D12DescriptorType::SRV)
     {
       view.Type = MakeTextureDim(desc->nonsamp.srv.ViewDimension);
 
@@ -494,7 +501,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
         view.MinLODClamp = desc->nonsamp.srv.Texture3D.ResourceMinLODClamp;
       }
     }
-    else if(desc->GetType() == D3D12Descriptor::TypeUAV)
+    else if(desc->GetType() == D3D12DescriptorType::UAV)
     {
       D3D12_UNORDERED_ACCESS_VIEW_DESC uav = desc->nonsamp.uav.desc.AsDesc();
 
@@ -1092,12 +1099,10 @@ void D3D12Replay::SavePipelineState()
     {
       D3D12Pipe::View &view = state.m_OM.RenderTargets[i];
 
-      PortableHandle h = rs.rtSingle ? rs.rts[0] : rs.rts[i];
+      D3D12Descriptor *desc = rs.rtSingle ? GetWrapped(rs.rts[0]) : GetWrapped(rs.rts[i]);
 
-      if(h.heap != ResourceId())
+      if(desc)
       {
-        D3D12Descriptor *desc = DescriptorFromPortableHandle(rm, h);
-
         if(rs.rtSingle)
           desc += i;
 
@@ -1111,9 +1116,9 @@ void D3D12Replay::SavePipelineState()
     {
       D3D12Pipe::View &view = state.m_OM.DepthTarget;
 
-      if(rs.dsv.heap != ResourceId())
+      if(rs.dsv.ptr)
       {
-        D3D12Descriptor *desc = DescriptorFromPortableHandle(rm, rs.dsv);
+        D3D12Descriptor *desc = GetWrapped(rs.dsv);
 
         view.RootElement = 0;
         view.Immediate = false;
@@ -1248,12 +1253,10 @@ bool D3D12Replay::IsRenderOutput(ResourceId id)
 
   for(size_t i = 0; i < rs.rts.size(); i++)
   {
-    PortableHandle h = rs.rtSingle ? rs.rts[0] : rs.rts[i];
+    D3D12Descriptor *desc = rs.rtSingle ? GetWrapped(rs.rts[0]) : GetWrapped(rs.rts[i]);
 
-    if(h.heap != ResourceId())
+    if(desc)
     {
-      D3D12Descriptor *desc = DescriptorFromPortableHandle(m_pDevice->GetResourceManager(), h);
-
       if(rs.rtSingle)
         desc += i;
 
@@ -1262,9 +1265,9 @@ bool D3D12Replay::IsRenderOutput(ResourceId id)
     }
   }
 
-  if(rs.dsv.heap != ResourceId())
+  if(rs.dsv.ptr)
   {
-    D3D12Descriptor *desc = DescriptorFromPortableHandle(m_pDevice->GetResourceManager(), rs.dsv);
+    D3D12Descriptor *desc = GetWrapped(rs.dsv);
 
     if(id == GetResID(desc->nonsamp.resource))
       return true;
@@ -1555,21 +1558,6 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
   m_pDevice->GetDebugManager()->FlipOutputWindow(id);
 }
 
-void D3D12Replay::InitCallstackResolver()
-{
-  m_pDevice->GetMainSerialiser()->InitCallstackResolver();
-}
-
-bool D3D12Replay::HasCallstacks()
-{
-  return m_pDevice->GetMainSerialiser()->HasCallstacks();
-}
-
-Callstack::StackResolver *D3D12Replay::GetCallstackResolver()
-{
-  return m_pDevice->GetMainSerialiser()->GetCallstackResolver();
-}
-
 vector<DebugMessage> D3D12Replay::GetDebugMessages()
 {
   return m_pDevice->GetDebugMessages();
@@ -1679,10 +1667,10 @@ void D3D12Replay::RemoveReplacement(ResourceId id)
   }
 }
 
-byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                                  const GetTextureDataParams &params, size_t &dataSize)
+void D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                 const GetTextureDataParams &params, bytebuf &data)
 {
-  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, dataSize);
+  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, data);
 }
 
 void D3D12Replay::BuildCustomShader(string source, string entry,
@@ -1754,7 +1742,7 @@ extern "C" __declspec(dllexport) HRESULT
                                                void **ppDevice);
 ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev);
 
-ReplayStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCDEBUG("Creating a D3D12 replay device");
 
@@ -1782,20 +1770,46 @@ ReplayStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver **drive
   }
 
   D3D12InitParams initParams;
-  RDCDriver driverFileType = RDC_D3D12;
-  string driverName = "D3D12";
-  uint64_t machineIdent = 0;
-  if(logfile)
-  {
-    auto status = RenderDoc::Inst().FillInitParams(logfile, driverFileType, driverName,
-                                                   machineIdent, (RDCInitParams *)&initParams);
-    if(status != ReplayStatus::Succeeded)
-      return status;
-  }
 
-  // initParams.SerialiseVersion is guaranteed to be valid/supported since otherwise the
-  // FillInitParams (which calls D3D12InitParams::Serialise) would have failed above, so no need to
-  // check it here.
+  uint64_t ver = D3D12InitParams::CurrentVersion;
+
+  // if we have an RDCFile, open the frame capture section and serialise the init params.
+  // if not, we're creating a proxy-capable device so use default-initialised init params.
+  if(rdc)
+  {
+    int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
+
+    if(sectionIdx < 0)
+      return ReplayStatus::InternalError;
+
+    ver = rdc->GetSectionProperties(sectionIdx).version;
+
+    if(!D3D12InitParams::IsSupportedVersion(ver))
+    {
+      RDCERR("Incompatible D3D11 serialise version %llu", ver);
+      return ReplayStatus::APIUnsupported;
+    }
+
+    StreamReader *reader = rdc->ReadSection(sectionIdx);
+
+    ReadSerialiser ser(reader, Ownership::Stream);
+
+    SystemChunk chunk = ser.ReadChunk<SystemChunk>();
+
+    if(chunk != SystemChunk::DriverInit)
+    {
+      RDCERR("Expected to get a DriverInit chunk, instead got %u", chunk);
+      return ReplayStatus::FileCorrupted;
+    }
+
+    SERIALISE_ELEMENT(initParams);
+
+    if(ser.IsErrored())
+    {
+      RDCERR("Failed reading driver init params.");
+      return ReplayStatus::FileIOFailed;
+    }
+  }
 
   if(initParams.MinimumFeatureLevel < D3D_FEATURE_LEVEL_11_0)
     initParams.MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
@@ -1814,23 +1828,28 @@ ReplayStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver **drive
   }
 
   WrappedID3D12Device *wrappedDev = (WrappedID3D12Device *)dev;
-  if(logfile)
-    wrappedDev->SetLogFile(logfile);
-  wrappedDev->SetLogVersion(initParams.SerialiseVersion);
-
-  if(logfile && wrappedDev->GetMainSerialiser()->HasError())
-  {
-    SAFE_RELEASE(wrappedDev);
-    return ReplayStatus::FileIOFailed;
-  }
+  wrappedDev->SetInitParams(initParams, ver);
 
   RDCLOG("Created device.");
   D3D12Replay *replay = wrappedDev->GetReplay();
 
-  replay->SetProxy(logfile == NULL);
+  replay->SetProxy(rdc == NULL);
 
   *driver = (IReplayDriver *)replay;
   return ReplayStatus::Succeeded;
 }
 
 static DriverRegistration D3D12DriverRegistration(RDC_D3D12, "D3D12", &D3D12_CreateReplayDevice);
+
+void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
+{
+  WrappedID3D12Device device(NULL, NULL);
+
+  device.SetStructuredExport(
+      rdc->GetSectionProperties(rdc->SectionIndex(SectionType::FrameCapture)).version);
+  device.ReadLogInitialisation(rdc, true);
+
+  device.GetStructuredFile().swap(output);
+}
+
+static StructuredProcessRegistration D3D12ProcessRegistration(RDC_D3D12, &D3D12_ProcessStructured);

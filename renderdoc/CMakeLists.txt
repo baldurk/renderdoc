@@ -92,7 +92,6 @@ set(sources
     core/plugins.h
     core/resource_manager.cpp
     core/resource_manager.h
-    core/socket_helpers.h
     data/hlsl/debugcbuffers.h
     data/glsl/debuguniforms.h
     data/glsl/vk_texsample.h
@@ -115,6 +114,7 @@ set(sources
     replay/app_api.cpp
     replay/basic_types_tests.cpp
     replay/capture_options.cpp
+    replay/renderdoc_serialise.inl
     replay/capture_file.cpp
     replay/entry_points.cpp
     replay/replay_driver.cpp
@@ -134,6 +134,7 @@ set(sources
     serialise/rdcfile.h
     serialise/codecs/xml_codec.cpp
     serialise/comp_io_tests.cpp
+    serialise/serialiser_tests.cpp
     serialise/streamio_tests.cpp
     strings/grisu2.cpp
     strings/string_utils.cpp

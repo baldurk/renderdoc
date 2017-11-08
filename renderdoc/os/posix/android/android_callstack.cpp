@@ -66,35 +66,19 @@ Stackwalk *Create()
   return new AndroidCallstack(NULL, 0);
 }
 
-bool GetLoadedModules(char *&buf, size_t &size)
+bool GetLoadedModules(byte *buf, size_t &size)
 {
   if(buf)
-  {
-    buf[0] = 'A';
-    buf[1] = 'N';
-    buf[2] = 'R';
-    buf[3] = 'D';
-    buf[4] = 'C';
-    buf[5] = 'A';
-    buf[6] = 'L';
-    buf[7] = 'L';
-  }
+    memcpy(buf, "ANRDCALL", 8);
 
   size += 8;
 
   return true;
 }
 
-class AndroidResolver : public Callstack::StackResolver
-{
-public:
-  Callstack::AddressDetails GetAddr(uint64_t addr) { return Callstack::AddressDetails(); }
-};
-
-StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths,
-                            volatile bool *killSignal)
+StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress, volatile bool *killSignal)
 {
   RDCERR("Callstack resolving not supported on Android.");
-  return new AndroidResolver();
+  return NULL;
 }
 };

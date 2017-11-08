@@ -37,8 +37,8 @@ class VulkanResourceManager
     : public ResourceManager<WrappedVkRes *, TypedRealHandle, VkResourceRecord>
 {
 public:
-  VulkanResourceManager(LogState s, Serialiser *ser, WrappedVulkan *core)
-      : ResourceManager(s, ser), m_Core(core)
+  VulkanResourceManager(CaptureState state, WrappedVulkan *core)
+      : ResourceManager(), m_State(state), m_Core(core)
   {
   }
   ~VulkanResourceManager() {}
@@ -114,8 +114,9 @@ public:
   void ApplyBarriers(vector<pair<ResourceId, ImageRegionState> > &states,
                      map<ResourceId, ImageLayouts> &layouts);
 
-  void SerialiseImageStates(map<ResourceId, ImageLayouts> &states,
-                            vector<VkImageMemoryBarrier> &barriers);
+  template <typename SerialiserType>
+  void SerialiseImageStates(SerialiserType &ser, std::map<ResourceId, ImageLayouts> &states,
+                            std::vector<VkImageMemoryBarrier> &barriers);
 
   ResourceId GetID(WrappedVkRes *res)
   {
@@ -143,11 +144,11 @@ public:
     typename UnwrapHelper<realtype>::Outer *wrapped =
         new typename UnwrapHelper<realtype>::Outer(obj, id);
 
-    SetTableIfDispatchable(m_State >= WRITING, parentObj, m_Core, wrapped);
+    SetTableIfDispatchable(IsCaptureMode(m_State), parentObj, m_Core, wrapped);
 
     AddCurrentResource(id, wrapped);
 
-    if(m_State < WRITING)
+    if(IsReplayMode(m_State))
       AddWrapper(wrapped, ToTypedHandle(obj));
 
     obj = realtype((uint64_t)wrapped);
@@ -164,7 +165,7 @@ public:
     if(origit != m_OriginalIDs.end())
       EraseLiveResource(origit->second);
 
-    if(m_State < WRITING)
+    if(IsReplayMode(m_State))
       ResourceManager::RemoveWrapper(ToTypedHandle(Unwrap(obj)));
 
     ResourceManager::ReleaseCurrentResource(id);
@@ -264,9 +265,11 @@ private:
   bool AllowDeletedResource_InitialState() { return true; }
   bool Need_InitialStateChunk(WrappedVkRes *res);
   bool Prepare_InitialState(WrappedVkRes *res);
-  bool Serialise_InitialState(ResourceId resid, WrappedVkRes *res);
+  uint32_t GetSize_InitialState(ResourceId id, WrappedVkRes *res);
+  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, WrappedVkRes *res);
   void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
   void Apply_InitialState(WrappedVkRes *live, InitialContentData initial);
 
+  CaptureState m_State;
   WrappedVulkan *m_Core;
 };

@@ -29,69 +29,23 @@
 #include "driver/ihv/amd/official/DXExt/AmdExtD3D.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
+#include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_resources.h"
 
-// use locally cached serialiser, per-thread
-#undef GET_SERIALISER
-#define GET_SERIALISER localSerialiser
-
 // must be at the start of any function that serialises
-#define CACHE_THREAD_SERIALISER() Serialiser *localSerialiser = GetThreadSerialiser();
+#define CACHE_THREAD_SERIALISER() WriteSerialiser &ser = GetThreadSerialiser();
 
 WRAPPED_POOL_INST(WrappedID3D12Device);
 
-const char *D3D12ChunkNames[] = {
-#undef D3D12_CHUNK_MACRO
-#define D3D12_CHUNK_MACRO(enum, string) string,
-
-    D3D12_CHUNKS};
-
-D3D12InitParams::D3D12InitParams()
+std::string WrappedID3D12Device::GetChunkName(uint32_t idx)
 {
-  SerialiseVersion = D3D12_SERIALISE_VERSION;
-  MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
-}
+  if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
+    return ToStr((SystemChunk)idx);
 
-ReplayStatus D3D12InitParams::Serialise()
-{
-  Serialiser *localSerialiser = GetSerialiser();
-
-  SERIALISE_ELEMENT(uint32_t, ver, D3D12_SERIALISE_VERSION);
-  SerialiseVersion = ver;
-
-  if(ver != D3D12_SERIALISE_VERSION)
-  {
-    RDCERR("Incompatible D3D12 serialise version, expected %d got %d", D3D12_SERIALISE_VERSION, ver);
-    return ReplayStatus::APIIncompatibleVersion;
-  }
-
-  localSerialiser->Serialise("MinimumFeatureLevel", MinimumFeatureLevel);
-
-  return ReplayStatus::Succeeded;
-}
-
-const char *WrappedID3D12Device::GetChunkName(uint32_t idx)
-{
-  if(idx == CREATE_PARAMS)
-    return "Create Params";
-  if(idx == THUMBNAIL_DATA)
-    return "Thumbnail Data";
-  if(idx == DRIVER_INIT_PARAMS)
-    return "Driver Init Params";
-  if(idx == INITIAL_CONTENTS)
-    return "Initial Contents";
-  if(idx < FIRST_CHUNK_ID || idx >= NUM_D3D12_CHUNKS)
-    return "<unknown>";
-  return D3D12ChunkNames[idx - FIRST_CHUNK_ID];
-}
-
-template <>
-std::string DoStringise(const D3D12ChunkType &el)
-{
-  return WrappedID3D12Device::GetChunkName(el);
+  return ToStr((D3D12Chunk)idx);
 }
 
 ULONG STDMETHODCALLTYPE DummyID3D12InfoQueue::AddRef()
@@ -168,21 +122,38 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12DebugDevice::QueryInterface(REFIID riid, 
 }
 
 WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams *params)
-    : m_RefCounter(realDevice, false), m_SoftRefCounter(NULL, false), m_pDevice(realDevice)
+    : m_RefCounter(realDevice, false),
+      m_SoftRefCounter(NULL, false),
+      m_pDevice(realDevice),
+      m_ScratchSerialiser(new StreamWriter(1024), Ownership::Stream)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D12Device));
 
-  m_pDevice1 = NULL;
-  m_pDevice->QueryInterface(__uuidof(ID3D12Device1), (void **)&m_pDevice1);
+  m_SectionVersion = D3D12InitParams::CurrentVersion;
 
-  for(size_t i = 0; i < ARRAY_COUNT(m_DescriptorIncrements); i++)
-    m_DescriptorIncrements[i] =
-        realDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE(i));
+  uint32_t flags = 0;
+
+  if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
+    flags |= WriteSerialiser::ChunkCallstack;
+
+  m_ScratchSerialiser.SetChunkMetadataRecording(flags);
+
+  m_StructuredFile = &m_StoredStructuredData;
 
   RDCEraseEl(m_D3D12Opts);
 
-  realDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &m_D3D12Opts, sizeof(m_D3D12Opts));
+  m_pDevice1 = NULL;
+  if(m_pDevice)
+  {
+    m_pDevice->QueryInterface(__uuidof(ID3D12Device1), (void **)&m_pDevice1);
+
+    for(size_t i = 0; i < ARRAY_COUNT(m_DescriptorIncrements); i++)
+      m_DescriptorIncrements[i] =
+          m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE(i));
+
+    m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &m_D3D12Opts, sizeof(m_D3D12Opts));
+  }
 
   WrappedID3D12Resource::m_List = NULL;
 
@@ -213,16 +184,9 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_GPUSyncHandle = NULL;
   m_GPUSyncCounter = 0;
 
-#if ENABLED(RDOC_RELEASE)
-  const bool debugSerialiser = false;
-#else
-  const bool debugSerialiser = true;
-#endif
-
   if(RenderDoc::Inst().IsReplayApp())
   {
-    m_State = READING;
-    m_pSerialiser = NULL;
+    m_State = CaptureState::LoadingReplaying;
 
     WrappedID3D12Resource::m_List = new std::map<ResourceId, WrappedID3D12Resource *>();
 
@@ -232,20 +196,13 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   }
   else
   {
-    m_State = WRITING_IDLE;
-    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
-
-    m_pSerialiser->SetDebugText(debugSerialiser);
+    m_State = CaptureState::BackgroundCapturing;
   }
 
   m_DebugManager = NULL;
-  m_ResourceManager = new D3D12ResourceManager(m_State, m_pSerialiser, this);
+  m_ResourceManager = new D3D12ResourceManager(m_State, this);
 
-  if(m_pSerialiser)
-  {
-    m_pSerialiser->SetUserData(m_ResourceManager);
-    m_pSerialiser->SetChunkNameLookup(&GetChunkName);
-  }
+  m_ScratchSerialiser.SetUserData(GetResourceManager());
 
   // create a temporary and grab its resource ID
   m_ResourceID = ResourceIDGen::GetNewUniqueID();
@@ -271,8 +228,12 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     RenderDoc::Inst().AddDeviceFrameCapturer((ID3D12Device *)this, this);
   }
 
-  realDevice->QueryInterface(__uuidof(ID3D12InfoQueue), (void **)&m_pInfoQueue);
-  realDevice->QueryInterface(__uuidof(ID3D12DebugDevice), (void **)&m_WrappedDebug.m_pDebug);
+  m_pInfoQueue = NULL;
+  if(m_pDevice)
+  {
+    m_pDevice->QueryInterface(__uuidof(ID3D12InfoQueue), (void **)&m_pInfoQueue);
+    m_pDevice->QueryInterface(__uuidof(ID3D12DebugDevice), (void **)&m_WrappedDebug.m_pDebug);
+  }
 
   if(m_pInfoQueue)
   {
@@ -336,12 +297,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   }
 
   m_InitParams = *params;
-
-  //////////////////////////////////////////////////////////////////////////
-  // Compile time asserts
-
-  RDCCOMPILE_ASSERT(ARRAY_COUNT(D3D12ChunkNames) == NUM_D3D12_CHUNKS - FIRST_CHUNK_ID + 1,
-                    "Not right number of chunk names");
 }
 
 WrappedID3D12Device::~WrappedID3D12Device()
@@ -385,8 +340,6 @@ WrappedID3D12Device::~WrappedID3D12Device()
   SAFE_RELEASE(m_pInfoQueue);
   SAFE_RELEASE(m_WrappedDebug.m_pDebug);
   SAFE_RELEASE(m_pDevice);
-
-  SAFE_DELETE(m_pSerialiser);
 
   for(size_t i = 0; i < m_ThreadSerialisers.size(); i++)
     delete m_ThreadSerialisers[i];
@@ -608,7 +561,8 @@ void WrappedID3D12Device::CheckForDeath()
   {
     RDCASSERT(m_SoftRefCounter.GetRefCount() >= m_InternalRefcount);
 
-    if(m_SoftRefCounter.GetRefCount() <= m_InternalRefcount || m_State < WRITING)    // MEGA HACK
+    // MEGA HACK
+    if(m_SoftRefCounter.GetRefCount() <= m_InternalRefcount || IsReplayMode(m_State))
     {
       m_Alive = false;
       delete this;
@@ -621,7 +575,7 @@ void WrappedID3D12Device::FirstFrame(WrappedIDXGISwapChain4 *swap)
   DXGI_SWAP_CHAIN_DESC swapdesc = swap->GetDescWithHWND();
 
   // if we have to capture the first frame, begin capturing immediately
-  if(m_State == WRITING_IDLE && RenderDoc::Inst().ShouldTriggerCapture(0))
+  if(IsBackgroundCapturing(m_State) && RenderDoc::Inst().ShouldTriggerCapture(0))
   {
     RenderDoc::Inst().StartFrameCapture((ID3D12Device *)this, swapdesc.OutputWindow);
 
@@ -692,27 +646,28 @@ void WrappedID3D12Device::NewSwapchainBuffer(IUnknown *backbuffer)
   }
 }
 
-bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(Serialiser *localSerialiser,
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser,
                                                         WrappedIDXGISwapChain4 *swap,
-                                                        DXGI_SWAP_CHAIN_DESC *swapDesc, UINT buffer,
+                                                        DXGI_SWAP_CHAIN_DESC *swapDesc, UINT Buffer,
                                                         IUnknown *realSurface)
 {
   WrappedID3D12Resource *pRes = (WrappedID3D12Resource *)realSurface;
 
-  SERIALISE_ELEMENT(DXGI_FORMAT, swapFormat, swapDesc->BufferDesc.Format);
-  SERIALISE_ELEMENT(uint32_t, BuffNum, buffer);
-  SERIALISE_ELEMENT(ResourceId, TexID, GetResID(pRes));
+  SERIALISE_ELEMENT(Buffer);
+  SERIALISE_ELEMENT_LOCAL(SwapbufferID, GetResID(pRes));
+  SERIALISE_ELEMENT_LOCAL(BackbufferDescriptor, pRes->GetDesc());
 
-  SERIALISE_ELEMENT(D3D12_RESOURCE_DESC, Descriptor, pRes->GetDesc());
-
-  if(m_State < WRITING)
+  if(IsReplayingAndReading())
   {
     ID3D12Resource *fakeBB = NULL;
+
+    DXGI_FORMAT SwapbufferFormat = BackbufferDescriptor.Format;
 
     // DXGI swap chain back buffers can be freely cast as a special-case.
     // translate the format to a typeless format to allow for this.
     // the original type is stored separately below
-    Descriptor.Format = GetTypelessFormat(Descriptor.Format);
+    BackbufferDescriptor.Format = GetTypelessFormat(BackbufferDescriptor.Format);
 
     HRESULT hr = S_OK;
 
@@ -724,7 +679,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(Serialiser *localSeriali
     heapProps.VisibleNodeMask = 1;
 
     // create in common, which is the same as present
-    hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &Descriptor,
+    hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &BackbufferDescriptor,
                                             D3D12_RESOURCE_STATE_COMMON, NULL,
                                             __uuidof(ID3D12Resource), (void **)&fakeBB);
 
@@ -737,12 +692,12 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(Serialiser *localSeriali
       WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(fakeBB, this);
       fakeBB = wrapped;
 
-      m_ResourceNames[TexID] = "Swap Chain Buffer";
+      m_ResourceNames[SwapbufferID] = "Swap Chain Buffer";
       fakeBB->SetName(L"Swap Chain Buffer");
 
-      GetResourceManager()->AddLiveResource(TexID, fakeBB);
+      GetResourceManager()->AddLiveResource(SwapbufferID, fakeBB);
 
-      m_BackbufferFormat[wrapped->GetResourceID()] = swapFormat;
+      m_BackbufferFormat[wrapped->GetResourceID()] = SwapbufferFormat;
 
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
@@ -776,7 +731,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
   // Create*Resource
   RDCASSERT(id != ResourceId() && !GetResourceManager()->HasResourceRecord(id));
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
     record->type = Resource_Resource;
@@ -788,11 +743,11 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
 
     wrapped->SetResourceRecord(record);
 
-    CACHE_THREAD_SERIALISER();
+    WriteSerialiser &ser = m_ScratchSerialiser;
 
-    SCOPED_SERIALISE_CONTEXT(CREATE_SWAP_BUFFER);
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::CreateSwapBuffer);
 
-    Serialise_WrapSwapchainBuffer(localSerialiser, swap, swapDesc, buffer, pRes);
+    Serialise_WrapSwapchainBuffer(ser, swap, swapDesc, buffer, pRes);
 
     record->AddChunk(scope.Get());
 
@@ -804,7 +759,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
     }
   }
 
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     D3D12_CPU_DESCRIPTOR_HANDLE rtv = {};
 
@@ -840,7 +795,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
   return pRes;
 }
 
-void WrappedID3D12Device::Map(WrappedID3D12Resource *Resource, UINT Subresource)
+void WrappedID3D12Device::Map(ID3D12Resource *Resource, UINT Subresource)
 {
   MapState map;
   map.res = Resource;
@@ -856,7 +811,7 @@ void WrappedID3D12Device::Map(WrappedID3D12Resource *Resource, UINT Subresource)
   }
 }
 
-void WrappedID3D12Device::Unmap(WrappedID3D12Resource *Resource, UINT Subresource, byte *mapPtr,
+void WrappedID3D12Device::Unmap(ID3D12Resource *Resource, UINT Subresource, byte *mapPtr,
                                 const D3D12_RANGE *pWrittenRange)
 {
   MapState map = {};
@@ -879,7 +834,7 @@ void WrappedID3D12Device::Unmap(WrappedID3D12Resource *Resource, UINT Subresourc
   bool capframe = false;
   {
     SCOPED_LOCK(m_CapTransitionLock);
-    capframe = (m_State == WRITING_CAPFRAME);
+    capframe = IsActiveCapturing(m_State);
   }
 
   D3D12_RANGE range = {0, (SIZE_T)map.totalSize};
@@ -891,49 +846,48 @@ void WrappedID3D12Device::Unmap(WrappedID3D12Resource *Resource, UINT Subresourc
     MapDataWrite(Resource, Subresource, mapPtr, range);
 }
 
-bool WrappedID3D12Device::Serialise_MapDataWrite(Serialiser *localSerialiser,
-                                                 WrappedID3D12Resource *Resource, UINT Subresource,
-                                                 byte *mapPtr, D3D12_RANGE range)
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Resource *Resource,
+                                                 UINT Subresource, byte *MappedData,
+                                                 D3D12_RANGE range)
 {
-  SERIALISE_ELEMENT(ResourceId, res, GetResID(Resource));
-  SERIALISE_ELEMENT(UINT, sub, Subresource);
-  SERIALISE_ELEMENT_BUF(byte *, data, mapPtr + range.Begin, range.End - range.Begin);
-  SERIALISE_ELEMENT(uint64_t, begin, (uint64_t)range.Begin);
-  SERIALISE_ELEMENT(uint64_t, end, (uint64_t)range.End);
+  SERIALISE_ELEMENT(Resource);
+  SERIALISE_ELEMENT(Subresource);
+  SERIALISE_ELEMENT(range);
+
+  MappedData += range.Begin;
+  uint64_t rangeSize = range.End - range.Begin;
+
+  SERIALISE_ELEMENT_ARRAY(MappedData, rangeSize);
 
   // don't do anything if end <= begin because the range is empty.
-  if(m_State < WRITING && GetResourceManager()->HasLiveResource(res) && end > begin)
+  if(IsReplayingAndReading() && Resource && range.End > range.Begin)
   {
-    ID3D12Resource *r = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
-
-    range.Begin = range.End = 0;
-
-    mapPtr = NULL;
-
-    if(m_UploadResourceIds.find(res) != m_UploadResourceIds.end())
+    ResourceId origid = GetResourceManager()->GetOriginalID(GetResID(Resource));
+    if(m_UploadResourceIds.find(origid) != m_UploadResourceIds.end())
     {
       D3D12CommandData &cmd = *m_Queue->GetCommandData();
 
-      ID3D12Resource *uploadBuf = GetUploadBuffer(cmd.m_CurChunkOffset, end - begin);
+      ID3D12Resource *uploadBuf = GetUploadBuffer(cmd.m_CurChunkOffset, rangeSize);
 
       SetObjName(uploadBuf, StringFormat::Fmt("Map data write, %llu bytes for %llu/%u @ %llu",
-                                              (begin - end), res, sub, cmd.m_CurChunkOffset));
+                                              rangeSize, origid, Subresource, cmd.m_CurChunkOffset));
 
-      // during reading, fill out the buffer itself
-      if(m_State == READING)
+      // during loading, fill out the buffer itself
+      if(IsLoading(m_State))
       {
         D3D12_RANGE maprange = {0, 0};
         void *dst = NULL;
-        HRESULT hr = uploadBuf->Map(sub, &maprange, &dst);
+        HRESULT hr = uploadBuf->Map(Subresource, &maprange, &dst);
 
         if(SUCCEEDED(hr))
         {
           maprange.Begin = 0;
-          maprange.End = SIZE_T(end - begin);
+          maprange.End = SIZE_T(rangeSize);
 
-          memcpy(dst, data, maprange.End);
+          memcpy(dst, MappedData, maprange.End);
 
-          uploadBuf->Unmap(sub, &maprange);
+          uploadBuf->Unmap(Subresource, &maprange);
         }
         else
         {
@@ -943,7 +897,8 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(Serialiser *localSerialiser,
 
       // then afterwards just execute a list to copy the result
       m_DataUploadList->Reset(m_DataUploadAlloc, NULL);
-      m_DataUploadList->CopyBufferRegion(r, begin, uploadBuf, 0, end - begin);
+      m_DataUploadList->CopyBufferRegion(Resource, range.Begin, uploadBuf, 0,
+                                         range.End - range.Begin);
       m_DataUploadList->Close();
       ID3D12CommandList *l = m_DataUploadList;
       GetQueue()->ExecuteCommandLists(1, &l);
@@ -951,106 +906,107 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(Serialiser *localSerialiser,
     }
     else
     {
-      HRESULT hr = r->Map(sub, &range, (void **)&mapPtr);
+      byte *dst = NULL;
+
+      D3D12_RANGE nopRange = {0, 0};
+
+      HRESULT hr = Resource->Map(Subresource, &nopRange, (void **)&dst);
 
       if(SUCCEEDED(hr))
       {
-        memcpy(mapPtr + begin, data, size_t(end - begin));
+        memcpy(dst + range.Begin, MappedData, size_t(range.End - range.Begin));
 
-        range.Begin = (size_t)begin;
-        range.End = (size_t)end;
-
-        r->Unmap(sub, &range);
+        Resource->Unmap(Subresource, &range);
       }
       else
       {
         RDCERR("Failed to map resource on replay %08x", hr);
       }
     }
-
-    SAFE_DELETE_ARRAY(data);
   }
 
   return true;
 }
 
-void WrappedID3D12Device::MapDataWrite(WrappedID3D12Resource *Resource, UINT Subresource,
-                                       byte *mapPtr, D3D12_RANGE range)
+template bool WrappedID3D12Device::Serialise_MapDataWrite(ReadSerialiser &ser,
+                                                          ID3D12Resource *Resource, UINT Subresource,
+                                                          byte *MappedData, D3D12_RANGE range);
+template bool WrappedID3D12Device::Serialise_MapDataWrite(WriteSerialiser &ser,
+                                                          ID3D12Resource *Resource, UINT Subresource,
+                                                          byte *MappedData, D3D12_RANGE range);
+
+void WrappedID3D12Device::MapDataWrite(ID3D12Resource *Resource, UINT Subresource, byte *mapPtr,
+                                       D3D12_RANGE range)
 {
   CACHE_THREAD_SERIALISER();
 
-  SCOPED_SERIALISE_CONTEXT(MAP_DATA_WRITE);
-  Serialise_MapDataWrite(localSerialiser, Resource, Subresource, mapPtr, range);
+  SCOPED_SERIALISE_CHUNK(D3D12Chunk::Resource_Unmap);
+  Serialise_MapDataWrite(ser, Resource, Subresource, mapPtr, range);
 
   m_FrameCaptureRecord->AddChunk(scope.Get());
 
-  GetResourceManager()->MarkResourceFrameReferenced(Resource->GetResourceID(), eFrameRef_Write);
+  GetResourceManager()->MarkResourceFrameReferenced(GetResID(Resource), eFrameRef_Write);
 }
 
-bool WrappedID3D12Device::Serialise_WriteToSubresource(Serialiser *localSerialiser,
-                                                       WrappedID3D12Resource *Resource,
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D12Resource *Resource,
                                                        UINT Subresource, const D3D12_BOX *pDstBox,
                                                        const void *pSrcData, UINT SrcRowPitch,
                                                        UINT SrcDepthPitch)
 {
-  SERIALISE_ELEMENT(ResourceId, res, GetResID(Resource));
-  SERIALISE_ELEMENT(UINT, sub, Subresource);
-  SERIALISE_ELEMENT(bool, HasBox, pDstBox != NULL);
-  SERIALISE_ELEMENT_OPT(D3D12_BOX, box, *pDstBox, HasBox);
-  SERIALISE_ELEMENT(UINT, rowPitch, SrcRowPitch);
-  SERIALISE_ELEMENT(UINT, depthPitch, SrcDepthPitch);
+  SERIALISE_ELEMENT(Resource);
+  SERIALISE_ELEMENT(Subresource);
+  SERIALISE_ELEMENT_OPT(pDstBox);
+  SERIALISE_ELEMENT(SrcRowPitch);
+  SERIALISE_ELEMENT(SrcDepthPitch);
 
-  size_t dataSize = 0;
+  uint64_t dataSize = 0;
 
-  if(m_State >= WRITING)
+  if(ser.IsWriting())
   {
     // if we have a box, calculate how much data from user's pitch
-    if(HasBox)
+    if(pDstBox)
     {
       UINT numSlicesBeforeLast = pDstBox->back - pDstBox->front - 1;
       UINT numRows = pDstBox->bottom - pDstBox->top;
 
-      dataSize = depthPitch * numSlicesBeforeLast + rowPitch * numRows;
+      dataSize = SrcDepthPitch * numSlicesBeforeLast + SrcRowPitch * numRows;
     }
     else
     {
       D3D12_RESOURCE_DESC desc = Resource->GetDesc();
-      UINT64 totalBytes = 0;
 
       // otherwise fetch the whole resource size
-      m_pDevice->GetCopyableFootprints(&desc, sub, 1, 0, NULL, NULL, NULL, &totalBytes);
-
-      dataSize = (size_t)totalBytes;
+      m_pDevice->GetCopyableFootprints(&desc, Subresource, 1, 0, NULL, NULL, NULL, &dataSize);
     }
   }
 
-  SERIALISE_ELEMENT_BUF(byte *, data, pSrcData, dataSize);
+  SERIALISE_ELEMENT_ARRAY(pSrcData, dataSize);
 
-  if(m_State < WRITING && GetResourceManager()->HasLiveResource(res))
+  if(IsReplayingAndReading() && Resource)
   {
-    ID3D12Resource *r = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
-
-    if(m_UploadResourceIds.find(res) != m_UploadResourceIds.end())
+    ResourceId origid = GetResourceManager()->GetOriginalID(GetResID(Resource));
+    if(m_UploadResourceIds.find(origid) != m_UploadResourceIds.end())
     {
       D3D12CommandData &cmd = *m_Queue->GetCommandData();
 
       ID3D12Resource *uploadBuf = GetUploadBuffer(cmd.m_CurChunkOffset, dataSize);
 
       // during reading, fill out the buffer itself
-      if(m_State == READING)
+      if(IsLoading(m_State))
       {
         D3D12_RANGE range = {0, 0};
         void *dst = NULL;
-        HRESULT hr = uploadBuf->Map(sub, &range, &dst);
+        HRESULT hr = uploadBuf->Map(Subresource, &range, &dst);
 
         if(SUCCEEDED(hr))
         {
-          memcpy(dst, data, dataSize);
+          memcpy(dst, pSrcData, (size_t)dataSize);
 
           range.Begin = 0;
-          range.End = dataSize;
+          range.End = (size_t)dataSize;
 
-          uploadBuf->Unmap(sub, &range);
+          uploadBuf->Unmap(Subresource, &range);
         }
         else
         {
@@ -1061,9 +1017,10 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(Serialiser *localSerialis
       // then afterwards just execute a list to copy the result
       m_DataUploadList->Reset(m_DataUploadAlloc, NULL);
       UINT64 copySize = dataSize;
-      if(HasBox)
-        copySize = RDCMIN(copySize, UINT64(box.right - box.left));
-      m_DataUploadList->CopyBufferRegion(r, HasBox ? box.left : 0, uploadBuf, 0, copySize);
+      if(pDstBox)
+        copySize = RDCMIN(copySize, UINT64(pDstBox->right - pDstBox->left));
+      m_DataUploadList->CopyBufferRegion(Resource, pDstBox ? pDstBox->left : 0, uploadBuf, 0,
+                                         copySize);
       m_DataUploadList->Close();
       ID3D12CommandList *l = m_DataUploadList;
       GetQueue()->ExecuteCommandLists(1, &l);
@@ -1071,47 +1028,52 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(Serialiser *localSerialis
     }
     else
     {
-      HRESULT hr = r->Map(sub, NULL, NULL);
+      HRESULT hr = Resource->Map(Subresource, NULL, NULL);
 
       if(SUCCEEDED(hr))
       {
-        r->WriteToSubresource(sub, HasBox ? &box : NULL, data, rowPitch, depthPitch);
+        Resource->WriteToSubresource(Subresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch);
 
-        r->Unmap(sub, NULL);
+        Resource->Unmap(Subresource, NULL);
       }
       else
       {
         RDCERR("Failed to map resource on replay %08x", hr);
       }
     }
-
-    SAFE_DELETE_ARRAY(data);
   }
 
   return true;
 }
 
-void WrappedID3D12Device::WriteToSubresource(WrappedID3D12Resource *Resource, UINT Subresource,
+template bool WrappedID3D12Device::Serialise_WriteToSubresource(
+    ReadSerialiser &ser, ID3D12Resource *Resource, UINT Subresource, const D3D12_BOX *pDstBox,
+    const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch);
+template bool WrappedID3D12Device::Serialise_WriteToSubresource(
+    WriteSerialiser &ser, ID3D12Resource *Resource, UINT Subresource, const D3D12_BOX *pDstBox,
+    const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch);
+
+void WrappedID3D12Device::WriteToSubresource(ID3D12Resource *Resource, UINT Subresource,
                                              const D3D12_BOX *pDstBox, const void *pSrcData,
                                              UINT SrcRowPitch, UINT SrcDepthPitch)
 {
   bool capframe = false;
   {
     SCOPED_LOCK(m_CapTransitionLock);
-    capframe = (m_State == WRITING_CAPFRAME);
+    capframe = IsActiveCapturing(m_State);
   }
 
   if(capframe)
   {
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CONTEXT(WRITE_TO_SUB);
-    Serialise_WriteToSubresource(localSerialiser, Resource, Subresource, pDstBox, pSrcData,
-                                 SrcRowPitch, SrcDepthPitch);
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::Resource_WriteToSubresource);
+    Serialise_WriteToSubresource(ser, Resource, Subresource, pDstBox, pSrcData, SrcRowPitch,
+                                 SrcDepthPitch);
 
     m_FrameCaptureRecord->AddChunk(scope.Get());
 
-    GetResourceManager()->MarkResourceFrameReferenced(Resource->GetResourceID(), eFrameRef_Write);
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(Resource), eFrameRef_Write);
   }
 }
 
@@ -1120,7 +1082,7 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
   if((Flags & DXGI_PRESENT_TEST) != 0)
     return S_OK;
 
-  if(m_State == WRITING_IDLE)
+  if(IsBackgroundCapturing(m_State))
     RenderDoc::Inst().Tick();
 
   m_FrameCounter++;    // first present becomes frame #1, this function is at the end of the frame
@@ -1142,7 +1104,7 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
     m_SwapChains[swap].lastPresentedBuffer %= swapdesc.BufferCount;
   }
 
-  if(m_State == WRITING_IDLE)
+  if(IsBackgroundCapturing(m_State))
   {
     uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
@@ -1191,10 +1153,10 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
   RenderDoc::Inst().SetCurrentDriver(RDC_D3D12);
 
   // kill any current capture that isn't application defined
-  if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
+  if(IsActiveCapturing(m_State) && !m_AppControlledCapture)
     RenderDoc::Inst().EndFrameCapture((ID3D12Device *)this, swapdesc.OutputWindow);
 
-  if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
+  if(IsBackgroundCapturing(m_State) && RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter))
   {
     RenderDoc::Inst().StartFrameCapture((ID3D12Device *)this, swapdesc.OutputWindow);
 
@@ -1204,39 +1166,26 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
   return S_OK;
 }
 
-void WrappedID3D12Device::Serialise_CaptureScope(uint64_t offset)
+template <typename SerialiserType>
+void WrappedID3D12Device::Serialise_CaptureScope(SerialiserType &ser)
 {
-  uint32_t FrameNumber = m_FrameCounter;
-  // must use main serialiser here to match resource manager below
-  GetMainSerialiser()->Serialise("FrameNumber", FrameNumber);
+  SERIALISE_ELEMENT(m_FrameCounter);
 
-  if(m_State >= WRITING)
+  if(IsReplayMode(m_State))
   {
-    GetResourceManager()->Serialise_InitialContentsNeeded();
-  }
-  else
-  {
-    m_FrameRecord.frameInfo.fileOffset = offset;
-    m_FrameRecord.frameInfo.frameNumber = FrameNumber;
+    m_FrameRecord.frameInfo.frameNumber = m_FrameCounter;
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
-
-    GetResourceManager()->CreateInitialContents();
   }
 }
 
-bool WrappedID3D12Device::Serialise_BeginCaptureFrame(bool applyInitialState)
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser, bool applyInitialState)
 {
-  if(m_State < WRITING && !applyInitialState)
-  {
-    m_pSerialiser->SkipCurrentChunk();
-    return true;
-  }
-
-  vector<D3D12_RESOURCE_BARRIER> barriers;
+  std::vector<D3D12_RESOURCE_BARRIER> barriers;
 
   {
     SCOPED_LOCK(m_ResourceStatesLock);    // not needed on replay, but harmless also
-    GetResourceManager()->SerialiseResourceStates(barriers, m_ResourceStates);
+    GetResourceManager()->SerialiseResourceStates(ser, barriers, m_ResourceStates);
   }
 
   if(applyInitialState && !barriers.empty())
@@ -1255,38 +1204,25 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(bool applyInitialState)
   return true;
 }
 
+template bool WrappedID3D12Device::Serialise_BeginCaptureFrame(ReadSerialiser &ser,
+                                                               bool applyInitialState);
+template bool WrappedID3D12Device::Serialise_BeginCaptureFrame(WriteSerialiser &ser,
+                                                               bool applyInitialState);
+
 void WrappedID3D12Device::EndCaptureFrame(ID3D12Resource *presentImage)
 {
-  // must use main serialiser here to match resource manager
-  Serialiser *localSerialiser = GetMainSerialiser();
+  WriteSerialiser &ser = m_ScratchSerialiser;
+  ser.SetDrawChunk();
+  SCOPED_SERIALISE_CHUNK(D3D12Chunk::CaptureEnd);
 
-  SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_FOOTER);
-
-  SERIALISE_ELEMENT(ResourceId, bbid, GetResID(presentImage));
-
-  bool HasCallstack = RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks != 0;
-  localSerialiser->Serialise("HasCallstack", HasCallstack);
-
-  if(HasCallstack)
-  {
-    Callstack::Stackwalk *call = Callstack::Collect();
-
-    RDCASSERT(call->NumLevels() < 0xff);
-
-    size_t numLevels = call->NumLevels();
-    uint64_t *stack = (uint64_t *)call->GetAddrs();
-
-    localSerialiser->SerialisePODArray("callstack", stack, numLevels);
-
-    delete call;
-  }
+  SERIALISE_ELEMENT_LOCAL(PresentedBackbuffer, GetResID(presentImage));
 
   m_FrameCaptureRecord->AddChunk(scope.Get());
 }
 
 void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 {
-  if(m_State != WRITING_IDLE)
+  if(!IsBackgroundCapturing(m_State))
     return;
 
   RenderDoc::Inst().SetCurrentDriver(RDC_D3D12);
@@ -1332,19 +1268,18 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
     m_FrameCaptureRecord->DeleteChunks();
 
     {
-      // must use main serialiser here to match resource manager
-      Serialiser *localSerialiser = GetMainSerialiser();
+      CACHE_THREAD_SERIALISER();
 
-      SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_HEADER);
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::CaptureBegin);
 
-      Serialise_BeginCaptureFrame(false);
+      Serialise_BeginCaptureFrame(ser, false);
 
       // need to hold onto this as it must come right after the capture chunk,
       // before any command lists
       m_HeaderChunk = scope.Get();
     }
 
-    m_State = WRITING_CAPFRAME;
+    m_State = CaptureState::ActiveCapturing;
   }
 
   RDCLOG("Starting capture, frame %u", m_FrameCounter);
@@ -1352,7 +1287,7 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 
 bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 {
-  if(m_State != WRITING_CAPFRAME)
+  if(!IsActiveCapturing(m_State))
     return true;
 
   WrappedIDXGISwapChain4 *swap = NULL;
@@ -1392,27 +1327,27 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   if(swap != NULL)
     backbuffer = (ID3D12Resource *)swap->GetBackbuffers()[swapInfo.lastPresentedBuffer];
 
-  Serialiser *m_pFileSerialiser = NULL;
   std::vector<WrappedID3D12CommandQueue *> queues;
+  RDCFile *rdc = NULL;
 
   // transition back to IDLE and readback initial states atomically
   {
     SCOPED_LOCK(m_CapTransitionLock);
     EndCaptureFrame(backbuffer);
 
-    m_State = WRITING_IDLE;
+    m_State = CaptureState::BackgroundCapturing;
 
     GPUSync();
 
     {
       SCOPED_LOCK(m_MapsLock);
       for(auto it = m_Maps.begin(); it != m_Maps.end(); ++it)
-        it->res->FreeShadow();
+        GetWrapped(it->res)->FreeShadow();
     }
 
     byte *thpixels = NULL;
-    uint32_t thwidth = 0;
-    uint32_t thheight = 0;
+    uint16_t thwidth = 0;
+    uint16_t thheight = 0;
 
     const uint32_t maxSize = 2048;
 
@@ -1498,9 +1433,9 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
           float aspect = float(desc.Width) / float(desc.Height);
 
-          thwidth = RDCMIN(maxSize, (uint32_t)desc.Width);
+          thwidth = (uint16_t)RDCMIN(maxSize, (uint32_t)desc.Width);
           thwidth &= ~0x7;    // align down to multiple of 8
-          thheight = uint32_t(float(thwidth) / aspect);
+          thheight = uint16_t(float(thwidth) / aspect);
 
           thpixels = new byte[3 * thwidth * thheight];
 
@@ -1615,94 +1550,111 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
       }
     }
 
-    m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, &m_InitParams, jpgbuf,
-                                                              len, thwidth, thheight);
-
     queues = m_Queues;
 
     for(auto it = queues.begin(); it != queues.end(); ++it)
       if((*it)->GetResourceRecord()->ContainsExecuteIndirect)
         WrappedID3D12Resource::RefBuffers(GetResourceManager());
 
+    rdc = RenderDoc::Inst().CreateRDC(m_FrameCounter, jpgbuf, len, thwidth, thheight);
+
+    SAFE_DELETE_ARRAY(jpgbuf);
+    SAFE_DELETE_ARRAY(thpixels);
+  }
+
+  StreamWriter *captureWriter = NULL;
+
+  if(rdc)
+  {
+    SectionProperties props;
+
+    // Compress with LZ4 so that it's fast
+    props.flags = SectionFlags::LZ4Compressed;
+    props.version = m_SectionVersion;
+    props.type = SectionType::FrameCapture;
+
+    captureWriter = rdc->WriteSection(props);
+  }
+  else
+  {
+    captureWriter = new StreamWriter(StreamWriter::InvalidStream);
+  }
+
+  {
+    WriteSerialiser ser(captureWriter, Ownership::Stream);
+
+    ser.SetUserData(GetResourceManager());
+
     {
-      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(SystemChunk::DriverInit, sizeof(D3D12InitParams));
 
-      SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
-
-      m_pFileSerialiser->Insert(scope.Get(true));
+      SERIALISE_ELEMENT(m_InitParams);
     }
 
     RDCDEBUG("Inserting Resource Serialisers");
 
-    GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
+    GetResourceManager()->InsertReferencedChunks(ser);
 
-    GetResourceManager()->InsertInitialContentsChunks(m_pFileSerialiser);
+    GetResourceManager()->InsertInitialContentsChunks(ser);
 
     RDCDEBUG("Creating Capture Scope");
-  }
 
-  {
-    Serialiser *localSerialiser = GetMainSerialiser();
+    GetResourceManager()->Serialise_InitialContentsNeeded(ser);
 
-    SCOPED_SERIALISE_CONTEXT(CAPTURE_SCOPE);
-
-    Serialise_CaptureScope(0);
-
-    m_pFileSerialiser->Insert(scope.Get(true));
-
-    m_pFileSerialiser->Insert(m_HeaderChunk);
-  }
-
-  // don't need to lock access to m_CmdListRecords as we are no longer
-  // in capframe (the transition is thread-protected) so nothing will be
-  // pushed to the vector
-
-  map<int32_t, Chunk *> recordlist;
-
-  for(auto it = queues.begin(); it != queues.end(); ++it)
-  {
-    WrappedID3D12CommandQueue *q = *it;
-
-    const vector<D3D12ResourceRecord *> &cmdListRecords = q->GetCmdLists();
-
-    RDCDEBUG("Flushing %u command list records from queue %llu", (uint32_t)cmdListRecords.size(),
-             q->GetResourceID());
-
-    for(size_t i = 0; i < cmdListRecords.size(); i++)
     {
-      uint32_t prevSize = (uint32_t)recordlist.size();
-      cmdListRecords[i]->Insert(recordlist);
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::CaptureScope, 16);
 
-      // prevent complaints in release that prevSize is unused
-      (void)prevSize;
-
-      RDCDEBUG("Adding %u chunks to file serialiser from command list %llu",
-               (uint32_t)recordlist.size() - prevSize, cmdListRecords[i]->GetResourceID());
+      Serialise_CaptureScope(ser);
     }
 
-    q->GetResourceRecord()->Insert(recordlist);
-  }
+    m_HeaderChunk->Write(ser);
 
-  {
+    // don't need to lock access to m_CmdListRecords as we are no longer
+    // in capframe (the transition is thread-protected) so nothing will be
+    // pushed to the vector
+
+    map<int32_t, Chunk *> recordlist;
+
+    for(auto it = queues.begin(); it != queues.end(); ++it)
+    {
+      WrappedID3D12CommandQueue *q = *it;
+
+      const std::vector<D3D12ResourceRecord *> &cmdListRecords = q->GetCmdLists();
+
+      RDCDEBUG("Flushing %u command list records from queue %llu", (uint32_t)cmdListRecords.size(),
+               q->GetResourceID());
+
+      for(size_t i = 0; i < cmdListRecords.size(); i++)
+      {
+        uint32_t prevSize = (uint32_t)recordlist.size();
+        cmdListRecords[i]->Insert(recordlist);
+
+        // prevent complaints in release that prevSize is unused
+        (void)prevSize;
+
+        RDCDEBUG("Adding %u chunks to file serialiser from command list %llu",
+                 (uint32_t)recordlist.size() - prevSize, cmdListRecords[i]->GetResourceID());
+      }
+
+      q->GetResourceRecord()->Insert(recordlist);
+    }
+
     m_FrameCaptureRecord->Insert(recordlist);
 
     RDCDEBUG("Flushing %u chunks to file serialiser from context record",
              (uint32_t)recordlist.size());
 
     for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
-      m_pFileSerialiser->Insert(it->second);
+      it->second->Write(ser);
 
     RDCDEBUG("Done");
   }
 
-  m_pFileSerialiser->FlushToDisk();
+  RenderDoc::Inst().FinishCaptureWriting(rdc, m_FrameCounter);
 
-  RenderDoc::Inst().SuccessfullyWrittenLog(m_FrameCounter);
-
-  SAFE_DELETE(m_pFileSerialiser);
   SAFE_DELETE(m_HeaderChunk);
 
-  m_State = WRITING_IDLE;
+  m_State = CaptureState::BackgroundCapturing;
 
   for(auto it = queues.begin(); it != queues.end(); ++it)
     (*it)->ClearAfterCapture();
@@ -1717,12 +1669,6 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
   FlushPendingDescriptorWrites();
 
-  return true;
-}
-
-bool WrappedID3D12Device::Serialise_ReleaseResource(Serialiser *localSerialiser,
-                                                    ID3D12DeviceChild *res)
-{
   return true;
 }
 
@@ -1742,7 +1688,7 @@ void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
 
   // wrapped resources get released all the time, we don't want to
   // try and slerp in a resource release. Just the explicit ones
-  if(m_State < WRITING)
+  if(IsReplayMode(m_State))
   {
     if(GetResourceManager()->HasLiveResource(id))
       GetResourceManager()->EraseLiveResource(id);
@@ -1762,8 +1708,7 @@ void WrappedID3D12Device::AddDebugMessage(MessageCategory c, MessageSeverity sv,
   msg.category = c;
   msg.severity = sv;
   msg.description = d;
-
-  if(m_State == EXECUTING)
+  if(IsActiveReplaying(m_State))
   {
     // look up the EID this drawcall came from
     D3D12CommandData::DrawcallUse use(cmd.m_CurChunkOffset, 0);
@@ -1771,24 +1716,31 @@ void WrappedID3D12Device::AddDebugMessage(MessageCategory c, MessageSeverity sv,
     RDCASSERT(it != cmd.m_DrawcallUses.end());
 
     msg.eventID = it->eventID;
-    AddDebugMessage(msg);
   }
-  else
-  {
-    cmd.m_EventMessages.push_back(msg);
-  }
+
+  AddDebugMessage(msg);
 }
 
-vector<DebugMessage> WrappedID3D12Device::GetDebugMessages()
+void WrappedID3D12Device::AddDebugMessage(const DebugMessage &msg)
 {
-  vector<DebugMessage> ret;
+  D3D12CommandData &cmd = *m_Queue->GetCommandData();
+
+  if(IsLoading(m_State))
+    cmd.m_EventMessages.push_back(msg);
+  else
+    m_DebugMessages.push_back(msg);
+}
+
+std::vector<DebugMessage> WrappedID3D12Device::GetDebugMessages()
+{
+  std::vector<DebugMessage> ret;
 
   // if reading, m_DebugMessages will contain all the messages (we
   // don't try and fetch anything from the API). If writing,
   // m_DebugMessages will contain any manually-added messages.
   ret.swap(m_DebugMessages);
 
-  if(m_State < WRITING)
+  if(IsReplayMode(m_State))
     return ret;
 
   if(!m_pInfoQueue)
@@ -1893,14 +1845,14 @@ void WrappedID3D12Device::FlushPendingDescriptorWrites()
     copies[i].dst->CopyFrom(*copies[i].src);
 }
 
-bool WrappedID3D12Device::Serialise_SetShaderDebugPath(Serialiser *localSerialiser,
-                                                       ID3D12DeviceChild *res, const char *p)
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_SetShaderDebugPath(SerialiserType &ser,
+                                                       ID3D12DeviceChild *pResource, const char *Path)
 {
-  SERIALISE_ELEMENT(ResourceId, resource, GetResID(res));
-  string debugPath = p ? p : "";
-  localSerialiser->Serialise("debugPath", debugPath);
+  SERIALISE_ELEMENT(pResource);
+  SERIALISE_ELEMENT(Path);
 
-  if(m_State < WRITING && GetResourceManager()->HasLiveResource(resource))
+  if(IsReplayingAndReading() && pResource)
   {
     RDCERR("SetDebugInfoPath doesn't work as-is because it can't specify a shader specific path");
   }
@@ -1908,79 +1860,80 @@ bool WrappedID3D12Device::Serialise_SetShaderDebugPath(Serialiser *localSerialis
   return true;
 }
 
-HRESULT WrappedID3D12Device::SetShaderDebugPath(ID3D12DeviceChild *res, const char *path)
+template bool WrappedID3D12Device::Serialise_SetShaderDebugPath(ReadSerialiser &ser,
+                                                                ID3D12DeviceChild *pResource,
+                                                                const char *Path);
+template bool WrappedID3D12Device::Serialise_SetShaderDebugPath(WriteSerialiser &ser,
+                                                                ID3D12DeviceChild *pResource,
+                                                                const char *Path);
+
+HRESULT WrappedID3D12Device::SetShaderDebugPath(ID3D12DeviceChild *pResource, const char *Path)
 {
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
-    D3D12ResourceRecord *record = GetRecord(res);
+    D3D12ResourceRecord *record = GetRecord(pResource);
 
     if(record == NULL)
     {
-      RDCERR("Setting shader debug path on object %p of type %d that has no resource record.", res,
-             IdentifyTypeByPtr(res));
+      RDCERR("Setting shader debug path on object %p of type %d that has no resource record.",
+             pResource, IdentifyTypeByPtr(pResource));
       return E_INVALIDARG;
     }
 
     {
-      CACHE_THREAD_SERIALISER();
-
-      SCOPED_SERIALISE_CONTEXT(SET_SHADER_DEBUG_PATH);
-      Serialise_SetShaderDebugPath(localSerialiser, res, path);
+      WriteSerialiser &ser = m_ScratchSerialiser;
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::SetShaderDebugPath);
+      Serialise_SetShaderDebugPath(ser, pResource, Path);
       record->AddChunk(scope.Get());
     }
-
-    return S_OK;
   }
 
   return S_OK;
 }
 
-bool WrappedID3D12Device::Serialise_SetResourceName(Serialiser *localSerialiser,
-                                                    ID3D12DeviceChild *res, const char *nm)
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_SetName(SerialiserType &ser, ID3D12DeviceChild *pResource,
+                                            const char *Name)
 {
-  SERIALISE_ELEMENT(ResourceId, resource, GetResID(res));
-  string name = nm ? nm : "";
-  localSerialiser->Serialise("name", name);
+  SERIALISE_ELEMENT(pResource);
+  SERIALISE_ELEMENT(Name);
 
-  if(m_State < WRITING && GetResourceManager()->HasLiveResource(resource))
+  if(IsReplayingAndReading() && pResource)
   {
-    ID3D12DeviceChild *r = GetResourceManager()->GetLiveResource(resource);
+    m_ResourceNames[GetResourceManager()->GetOriginalID(GetResID(pResource))] = Name;
 
-    m_ResourceNames[resource] = name;
-
-    r->SetName(StringFormat::UTF82Wide(name).c_str());
+    pResource->SetName(StringFormat::UTF82Wide(Name).c_str());
   }
 
   return true;
 }
 
-void WrappedID3D12Device::SetResourceName(ID3D12DeviceChild *res, const char *name)
+void WrappedID3D12Device::SetName(ID3D12DeviceChild *pResource, const char *Name)
 {
   // don't allow naming device contexts or command lists so we know this chunk
   // is always on a pre-capture chunk.
-  if(m_State >= WRITING && !WrappedID3D12GraphicsCommandList::IsAlloc(res) &&
-     !WrappedID3D12CommandQueue::IsAlloc(res))
+  if(IsCaptureMode(m_State) && !WrappedID3D12GraphicsCommandList::IsAlloc(pResource) &&
+     !WrappedID3D12CommandQueue::IsAlloc(pResource))
   {
-    D3D12ResourceRecord *record = GetRecord(res);
+    D3D12ResourceRecord *record = GetRecord(pResource);
 
     if(record == NULL)
       record = m_DeviceRecord;
 
     {
-      CACHE_THREAD_SERIALISER();
+      WriteSerialiser &ser = m_ScratchSerialiser;
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::SetName);
 
-      SCOPED_SERIALISE_CONTEXT(SET_RESOURCE_NAME);
+      Serialise_SetName(ser, pResource, Name);
 
-      Serialise_SetResourceName(localSerialiser, res, name);
-
-      // don't serialise many SetResourceName chunks to the
+      // don't serialise many SetName chunks to the
       // object record, but we can't afford to drop any.
       record->LockChunks();
       while(record->HasChunks())
       {
         Chunk *end = record->GetLastChunk();
 
-        if(end->GetChunkType() == SET_RESOURCE_NAME)
+        if(end->GetChunkType<D3D12Chunk>() == D3D12Chunk::SetName)
         {
           SAFE_DELETE(end);
           record->PopChunk();
@@ -2028,26 +1981,23 @@ byte *WrappedID3D12Device::GetTempMemory(size_t s)
   return newmem->memory;
 }
 
-Serialiser *WrappedID3D12Device::GetThreadSerialiser()
+WriteSerialiser &WrappedID3D12Device::GetThreadSerialiser()
 {
-  Serialiser *ser = (Serialiser *)Threading::GetTLSValue(threadSerialiserTLSSlot);
+  WriteSerialiser *ser = (WriteSerialiser *)Threading::GetTLSValue(threadSerialiserTLSSlot);
   if(ser)
-    return ser;
+    return *ser;
 
-// slow path, but rare
+  // slow path, but rare
 
-#if ENABLED(RDOC_RELEASE)
-  const bool debugSerialiser = false;
-#else
-  const bool debugSerialiser = true;
-#endif
+  ser = new WriteSerialiser(new StreamWriter(1024), Ownership::Stream);
 
-  ser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
-  ser->SetUserData(m_ResourceManager);
+  uint32_t flags = 0;
 
-  ser->SetDebugText(debugSerialiser);
+  if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
+    flags |= WriteSerialiser::ChunkCallstack;
 
-  ser->SetChunkNameLookup(&GetChunkName);
+  ser->SetChunkMetadataRecording(flags);
+  ser->SetUserData(GetResourceManager());
 
   Threading::SetTLSValue(threadSerialiserTLSSlot, (void *)ser);
 
@@ -2056,7 +2006,7 @@ Serialiser *WrappedID3D12Device::GetThreadSerialiser()
     m_ThreadSerialisers.push_back(ser);
   }
 
-  return ser;
+  return *ser;
 }
 
 void WrappedID3D12Device::CreateInternalResources()
@@ -2169,7 +2119,7 @@ ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
     if(ret == NULL)
       return NULL;
 
-    if(m_State < WRITING)
+    if(IsReplayMode(m_State))
     {
       GetResourceManager()->AddLiveResource(GetResID(ret), ret);
     }
@@ -2191,7 +2141,7 @@ ID3D12GraphicsCommandList *WrappedID3D12Device::GetInitialStateList()
   {
     initStateCurList = GetNewList();
 
-    if(m_State < WRITING)
+    if(IsReplayMode(m_State))
     {
       D3D12MarkerRegion::Begin(initStateCurList,
                                "!!!!RenderDoc Internal: ApplyInitialContents batched list");
@@ -2268,16 +2218,6 @@ void WrappedID3D12Device::FlushLists(bool forceSync, ID3D12CommandQueue *queue)
   }
 }
 
-void WrappedID3D12Device::SetLogFile(const char *logfile)
-{
-  m_pSerialiser = new Serialiser(logfile, Serialiser::READING, false);
-  m_pSerialiser->SetChunkNameLookup(&GetChunkName);
-
-  SAFE_DELETE(m_ResourceManager);
-  m_ResourceManager = new D3D12ResourceManager(m_State, m_pSerialiser, this);
-  m_pSerialiser->SetUserData(m_ResourceManager);
-}
-
 const DrawcallDescription *WrappedID3D12Device::GetDrawcall(uint32_t eventID)
 {
   if(eventID >= m_Drawcalls.size())
@@ -2286,86 +2226,110 @@ const DrawcallDescription *WrappedID3D12Device::GetDrawcall(uint32_t eventID)
   return m_Drawcalls[eventID];
 }
 
-void WrappedID3D12Device::ProcessChunk(uint64_t offset, D3D12ChunkType context)
+void WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
 {
   switch(context)
   {
-    case DEVICE_INIT: { break;
-    }
-
-    case CREATE_COMMAND_QUEUE:
-      Serialise_CreateCommandQueue(GetMainSerialiser(), NULL, IID(), NULL);
+    case D3D12Chunk::Device_CreateCommandQueue:
+      Serialise_CreateCommandQueue(ser, NULL, IID(), NULL);
       break;
-    case CREATE_COMMAND_ALLOCATOR:
-      Serialise_CreateCommandAllocator(GetMainSerialiser(), D3D12_COMMAND_LIST_TYPE_DIRECT, IID(),
-                                       NULL);
+    case D3D12Chunk::Device_CreateCommandAllocator:
+      Serialise_CreateCommandAllocator(ser, D3D12_COMMAND_LIST_TYPE_DIRECT, IID(), NULL);
       break;
 
-    case CREATE_GRAPHICS_PIPE:
-      Serialise_CreateGraphicsPipelineState(GetMainSerialiser(), NULL, IID(), NULL);
+    case D3D12Chunk::Device_CreateGraphicsPipeline:
+      Serialise_CreateGraphicsPipelineState(ser, NULL, IID(), NULL);
       break;
-    case CREATE_COMPUTE_PIPE:
-      Serialise_CreateComputePipelineState(GetMainSerialiser(), NULL, IID(), NULL);
+    case D3D12Chunk::Device_CreateComputePipeline:
+      Serialise_CreateComputePipelineState(ser, NULL, IID(), NULL);
       break;
-    case CREATE_DESCRIPTOR_HEAP:
-      Serialise_CreateDescriptorHeap(GetMainSerialiser(), NULL, IID(), NULL);
+    case D3D12Chunk::Device_CreateDescriptorHeap:
+      Serialise_CreateDescriptorHeap(ser, NULL, IID(), NULL);
       break;
-    case CREATE_ROOT_SIG:
-      Serialise_CreateRootSignature(GetMainSerialiser(), 0, NULL, 0, IID(), NULL);
+    case D3D12Chunk::Device_CreateRootSignature:
+      Serialise_CreateRootSignature(ser, 0, NULL, 0, IID(), NULL);
       break;
-    case CREATE_COMMAND_SIG:
-      Serialise_CreateCommandSignature(GetMainSerialiser(), NULL, NULL, IID(), NULL);
+    case D3D12Chunk::Device_CreateCommandSignature:
+      Serialise_CreateCommandSignature(ser, NULL, NULL, IID(), NULL);
       break;
 
-    case CREATE_HEAP: Serialise_CreateHeap(GetMainSerialiser(), NULL, IID(), NULL); break;
-    case CREATE_COMMITTED_RESOURCE:
-      Serialise_CreateCommittedResource(GetMainSerialiser(), NULL, D3D12_HEAP_FLAG_NONE, NULL,
+    case D3D12Chunk::Device_CreateHeap: Serialise_CreateHeap(ser, NULL, IID(), NULL); break;
+    case D3D12Chunk::Device_CreateCommittedResource:
+      Serialise_CreateCommittedResource(ser, NULL, D3D12_HEAP_FLAG_NONE, NULL,
                                         D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
       break;
-    case CREATE_PLACED_RESOURCE:
-      Serialise_CreatePlacedResource(GetMainSerialiser(), NULL, 0, NULL,
-                                     D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
+    case D3D12Chunk::Device_CreatePlacedResource:
+      Serialise_CreatePlacedResource(ser, NULL, 0, NULL, D3D12_RESOURCE_STATE_COMMON, NULL, IID(),
+                                     NULL);
       break;
-    case CREATE_RESERVED_RESOURCE:
-      Serialise_CreateReservedResource(GetMainSerialiser(), NULL, D3D12_RESOURCE_STATE_COMMON, NULL,
-                                       IID(), NULL);
-      break;
-
-    case CREATE_QUERY_HEAP:
-      Serialise_CreateQueryHeap(GetMainSerialiser(), NULL, IID(), NULL);
-      break;
-    case CREATE_FENCE:
-      Serialise_CreateFence(GetMainSerialiser(), 0, D3D12_FENCE_FLAG_NONE, IID(), NULL);
+    case D3D12Chunk::Device_CreateReservedResource:
+      Serialise_CreateReservedResource(ser, NULL, D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
       break;
 
-    case SET_RESOURCE_NAME: Serialise_SetResourceName(GetMainSerialiser(), 0x0, ""); break;
-    case SET_SHADER_DEBUG_PATH:
-      Serialise_SetShaderDebugPath(GetMainSerialiser(), NULL, NULL);
+    case D3D12Chunk::Device_CreateQueryHeap:
+      Serialise_CreateQueryHeap(ser, NULL, IID(), NULL);
       break;
-    case RELEASE_RESOURCE: Serialise_ReleaseResource(GetMainSerialiser(), 0x0); break;
-    case CREATE_SWAP_BUFFER:
-      Serialise_WrapSwapchainBuffer(GetMainSerialiser(), NULL, NULL, 0, NULL);
+    case D3D12Chunk::Device_CreateFence:
+      Serialise_CreateFence(ser, 0, D3D12_FENCE_FLAG_NONE, IID(), NULL);
       break;
-    case CAPTURE_SCOPE: Serialise_CaptureScope(offset); break;
+    case D3D12Chunk::SetName: Serialise_SetName(ser, 0x0, ""); break;
+    case D3D12Chunk::SetShaderDebugPath: Serialise_SetShaderDebugPath(ser, NULL, NULL); break;
+    case D3D12Chunk::CreateSwapBuffer:
+      Serialise_WrapSwapchainBuffer(ser, NULL, NULL, 0, NULL);
+      break;
+    case D3D12Chunk::CaptureScope: Serialise_CaptureScope(ser); break;
     default:
-      // ignore system chunks
-      if(context == INITIAL_CONTENTS)
-        GetResourceManager()->Serialise_InitialState(ResourceId(), NULL);
-      else if(context < FIRST_CHUNK_ID)
-        m_pSerialiser->SkipCurrentChunk();
+    {
+      SystemChunk system = (SystemChunk)context;
+      if(system == SystemChunk::DriverInit)
+      {
+        D3D12InitParams InitParams;
+        SERIALISE_ELEMENT(InitParams);
+      }
+      else if(system == SystemChunk::InitialContentsList)
+      {
+        GetResourceManager()->CreateInitialContents(ser);
+      }
+      else if(system == SystemChunk::InitialContents)
+      {
+        GetResourceManager()->Serialise_InitialState(ser, ResourceId(), NULL);
+      }
+      else if(system < SystemChunk::FirstDriverChunk)
+      {
+        RDCERR("Unexpected system chunk in capture data: %u", system);
+        ser.SkipCurrentChunk();
+      }
       else
-        RDCERR("Unexpected non-device chunk %d at offset %llu", context, offset);
+      {
+        RDCERR("Unexpected chunk %s", ToStr(context).c_str());
+      }
       break;
+    }
   }
 }
 
-void WrappedID3D12Device::ReadLogInitialisation()
+void WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
-  uint64_t frameOffset = 0;
+  int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
-  m_pSerialiser->SetDebugText(true);
+  if(sectionIdx < 0)
+    return;
 
-  m_pSerialiser->Rewind();
+  StreamReader *reader = rdc->ReadSection(sectionIdx);
+
+  if(reader->IsErrored())
+    return;
+
+  ReadSerialiser ser(reader, Ownership::Stream);
+
+  ser.SetStringDatabase(&m_StringDB);
+  ser.SetUserData(GetResourceManager());
+
+  ser.ConfigureStructuredExport(&GetChunkName, storeStructuredBuffers);
+
+  m_StructuredFile = &ser.GetStructuredFile();
+
+  m_StoredStructuredData.version = m_StructuredFile->version = m_SectionVersion;
 
   int chunkIdx = 0;
 
@@ -2377,55 +2341,60 @@ void WrappedID3D12Device::ReadLogInitialisation()
     double total;
   };
 
-  map<D3D12ChunkType, chunkinfo> chunkInfos;
+  std::map<D3D12Chunk, chunkinfo> chunkInfos;
 
   SCOPED_TIMER("chunk initialisation");
+
+  uint64_t frameDataSize = 0;
 
   for(;;)
   {
     PerformanceTimer timer;
 
-    uint64_t offset = m_pSerialiser->GetOffset();
+    uint64_t offsetStart = reader->GetOffset();
 
-    D3D12ChunkType context = (D3D12ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
-
-    if(context == CAPTURE_SCOPE)
-    {
-      // immediately read rest of log into memory
-      m_pSerialiser->SetPersistentBlock(offset);
-    }
+    D3D12Chunk context = ser.ReadChunk<D3D12Chunk>();
 
     chunkIdx++;
 
-    ProcessChunk(offset, context);
+    ProcessChunk(ser, context);
 
-    m_pSerialiser->PopContext(context);
+    ser.EndChunk();
 
-    RenderDoc::Inst().SetProgress(FileInitialRead, float(offset) / float(m_pSerialiser->GetSize()));
+    uint64_t offsetEnd = reader->GetOffset();
 
-    if(context == CAPTURE_SCOPE)
+    RenderDoc::Inst().SetProgress(FileInitialRead, float(offsetEnd) / float(reader->GetSize()));
+
+    if(context == D3D12Chunk::CaptureScope)
     {
-      frameOffset = offset;
+      m_FrameRecord.frameInfo.fileOffset = offsetStart;
 
-      ApplyInitialContents();
+      // read the remaining data into memory and pass to immediate context
+      frameDataSize = reader->GetSize() - reader->GetOffset();
 
-      m_Queue->ReplayLog(READING, 0, 0, false);
+      m_Queue->SetFrameReader(new StreamReader(reader, frameDataSize));
+
+      if(!IsStructuredExporting(m_State))
+        ApplyInitialContents();
+
+      m_Queue->ReplayLog(m_State, 0, 0, false);
     }
 
-    uint64_t offset2 = m_pSerialiser->GetOffset();
-
     chunkInfos[context].total += timer.GetMilliseconds();
-    chunkInfos[context].totalsize += offset2 - offset;
+    chunkInfos[context].totalsize += offsetEnd - offsetStart;
     chunkInfos[context].count++;
 
-    if(context == CAPTURE_SCOPE)
-      break;
-
-    if(m_pSerialiser->AtEnd())
+    if(context == D3D12Chunk::CaptureScope || reader->IsErrored() || reader->AtEnd())
       break;
   }
 
-  if(m_State == READING)
+  // steal the structured data for ourselves
+  m_StructuredFile->swap(m_StoredStructuredData);
+
+  // and in future use this file.
+  m_StructuredFile = &m_StoredStructuredData;
+
+  if(!IsStructuredExporting(m_State))
   {
     GetFrameRecord().drawcallList = m_Queue->GetParentDrawcall().Bake();
 
@@ -2456,29 +2425,25 @@ void WrappedID3D12Device::ReadLogInitialisation()
         "% 5d chunks - Time: %9.3fms total/%9.3fms avg - Size: %8.3fMB total/%7.3fMB avg - %s (%u)",
         it->second.count, it->second.total, it->second.total / dcount,
         double(it->second.totalsize) / (1024.0 * 1024.0),
-        double(it->second.totalsize) / (dcount * 1024.0 * 1024.0), GetChunkName(it->first),
-        uint32_t(it->first));
+        double(it->second.totalsize) / (dcount * 1024.0 * 1024.0),
+        GetChunkName((uint32_t)it->first).c_str(), uint32_t(it->first));
   }
 #endif
 
-  m_FrameRecord.frameInfo.uncompressedFileSize = m_pSerialiser->GetSize();
-  m_FrameRecord.frameInfo.compressedFileSize = m_pSerialiser->GetFileSize();
-  m_FrameRecord.frameInfo.persistentSize = m_pSerialiser->GetSize() - frameOffset;
-  m_FrameRecord.frameInfo.initDataSize = chunkInfos[(D3D12ChunkType)INITIAL_CONTENTS].totalsize;
+  m_FrameRecord.frameInfo.uncompressedFileSize =
+      rdc->GetSectionProperties(sectionIdx).uncompressedSize;
+  m_FrameRecord.frameInfo.compressedFileSize = rdc->GetSectionProperties(sectionIdx).compressedSize;
+  m_FrameRecord.frameInfo.persistentSize = frameDataSize;
+  m_FrameRecord.frameInfo.initDataSize =
+      chunkInfos[(D3D12Chunk)SystemChunk::InitialContents].totalsize;
 
   RDCDEBUG("Allocating %llu persistant bytes of memory for the log.",
-           m_pSerialiser->GetSize() - frameOffset);
-
-  m_pSerialiser->SetDebugText(false);
+           m_FrameRecord.frameInfo.persistentSize);
 }
 
 void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
                                     ReplayLogType replayType)
 {
-  uint64_t offs = m_FrameRecord.frameInfo.fileOffset;
-
-  m_pSerialiser->SetOffset(offs);
-
   bool partial = true;
 
   if(startEventID == 0 && (replayType == eReplay_WithoutDraw || replayType == eReplay_Full))
@@ -2495,14 +2460,6 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
       m_Queues[i]->Signal(m_QueueFences[i], m_GPUSyncCounter);
   }
 
-  D3D12ChunkType header = (D3D12ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
-
-  RDCASSERTEQUAL(header, CAPTURE_SCOPE);
-
-  m_pSerialiser->SkipCurrentChunk();
-
-  m_pSerialiser->PopContext(header);
-
   if(!partial)
   {
     {
@@ -2515,7 +2472,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     FlushLists(true);
   }
 
-  m_State = EXECUTING;
+  m_State = CaptureState::ActiveReplaying;
 
   D3D12MarkerRegion::Set(
       GetQueue(), StringFormat::Fmt("!!!!RenderDoc Internal: RenderDoc Replay %d (%d): %u->%u",
@@ -2547,11 +2504,11 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     }
 
     if(replayType == eReplay_Full)
-      m_Queue->ReplayLog(EXECUTING, startEventID, endEventID, partial);
+      m_Queue->ReplayLog(m_State, startEventID, endEventID, partial);
     else if(replayType == eReplay_WithoutDraw)
-      m_Queue->ReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
+      m_Queue->ReplayLog(m_State, startEventID, RDCMAX(1U, endEventID) - 1, partial);
     else if(replayType == eReplay_OnlyDraw)
-      m_Queue->ReplayLog(EXECUTING, endEventID, endEventID, partial);
+      m_Queue->ReplayLog(m_State, endEventID, endEventID, partial);
     else
       RDCFATAL("Unexpected replay type");
 

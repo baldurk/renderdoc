@@ -26,19 +26,157 @@
 #include "d3d12_resources.h"
 
 template <>
-std::string DoStringise(const D3D12Descriptor::DescriptorType &el)
+std::string DoStringise(const D3D12Chunk &el)
 {
-  if((uint32_t)el < D3D12Descriptor::TypeCBV)
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1084, "Chunks changed without updating names");
+
+  BEGIN_ENUM_STRINGISE(D3D12Chunk)
+  {
+    STRINGISE_ENUM_CLASS_NAMED(CaptureBegin, "Beginning of Capture");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureEnd, "End of Capture");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureScope, "Frame Capture Metadata");
+    STRINGISE_ENUM_CLASS_NAMED(SetName, "ID3D12Resource::SetName");
+    STRINGISE_ENUM_CLASS_NAMED(PushMarker, "Push Debug Region");
+    STRINGISE_ENUM_CLASS_NAMED(SetMarker, "Set Marker");
+    STRINGISE_ENUM_CLASS_NAMED(PopMarker, "Pop Debug Region");
+    STRINGISE_ENUM_CLASS_NAMED(SetShaderDebugPath, "SetShaderDebugPath");
+    STRINGISE_ENUM_CLASS_NAMED(CreateSwapBuffer, "IDXGISwapChain::GetBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandQueue, "ID3D12Device::CreateCommandQueue");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandAllocator,
+                               "ID3D12Device::CreateCommandAllocator");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateGraphicsPipeline,
+                               "ID3D12Device::CreateGraphicsPipeline");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateComputePipeline, "ID3D12Device::CreateComputePipeline");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateDescriptorHeap, "ID3D12Device::CreateDescriptorHeap");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateRootSignature, "ID3D12Device::CreateRootSignature");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandSignature,
+                               "ID3D12Device::CreateCommandSignature");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateHeap, "ID3D12Device::CreateHeap");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommittedResource,
+                               "ID3D12Device::CreateCommittedResource");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreatePlacedResource, "ID3D12Device::CreatePlacedResource");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateQueryHeap, "ID3D12Device::CreateQueryHeap");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateFence, "ID3D12Device::CreateFence");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateReservedResource,
+                               "ID3D12Device::CreateReservedResource");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateConstantBufferView,
+                               "ID3D12Device::CreateConstantBufferView");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateShaderResourceView,
+                               "ID3D12Device::CreateShaderResourceView");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateUnorderedAccessView,
+                               "ID3D12Device::CreateUnorderedAccessView");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateRenderTargetView,
+                               "ID3D12Device::CreateRenderTargetView");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateDepthStencilView,
+                               "ID3D12Device::CreateDepthStencilView");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateSampler, "ID3D12Device::CreateSampler");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CopyDescriptors, "ID3D12Device::CopyDescriptors");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CopyDescriptorsSimple, "ID3D12Device::CopyDescriptorsSimple");
+    STRINGISE_ENUM_CLASS_NAMED(Queue_ExecuteCommandLists,
+                               "ID3D12CommandQueue::ExecuteCommandLists");
+    STRINGISE_ENUM_CLASS_NAMED(Queue_Signal, "ID3D12CommandQueue::Signal");
+    STRINGISE_ENUM_CLASS_NAMED(Queue_Wait, "ID3D12CommandQueue::Wait");
+    STRINGISE_ENUM_CLASS_NAMED(Queue_UpdateTileMappings, "ID3D12CommandQueue::UpdateTileMappings");
+    STRINGISE_ENUM_CLASS_NAMED(Queue_CopyTileMappings, "ID3D12CommandQueue::CopyTileMappings");
+    STRINGISE_ENUM_CLASS_NAMED(List_Close, "ID3D12GraphicsCommandList::Close");
+    STRINGISE_ENUM_CLASS_NAMED(List_Reset, "ID3D12GraphicsCommandList::Reset");
+    STRINGISE_ENUM_CLASS_NAMED(List_ResourceBarrier, "ID3D12GraphicsCommandList::ResourceBarrier");
+    STRINGISE_ENUM_CLASS_NAMED(List_BeginQuery, "ID3D12GraphicsCommandList::BeginQuery");
+    STRINGISE_ENUM_CLASS_NAMED(List_EndQuery, "ID3D12GraphicsCommandList::EndQuery");
+    STRINGISE_ENUM_CLASS_NAMED(List_ResolveQueryData,
+                               "ID3D12GraphicsCommandList::ResolveQueryData");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetPredication, "ID3D12GraphicsCommandList::SetPredication");
+    STRINGISE_ENUM_CLASS_NAMED(List_DrawIndexedInstanced,
+                               "ID3D12GraphicsCommandList::DrawIndexedInstanced");
+    STRINGISE_ENUM_CLASS_NAMED(List_DrawInstanced, "ID3D12GraphicsCommandList::DrawInstanced");
+    STRINGISE_ENUM_CLASS_NAMED(List_Dispatch, "ID3D12GraphicsCommandList::Dispatch");
+    STRINGISE_ENUM_CLASS_NAMED(List_ExecuteIndirect, "ID3D12GraphicsCommandList::ExecuteIndirect");
+    STRINGISE_ENUM_CLASS_NAMED(List_ExecuteBundle, "ID3D12GraphicsCommandList::ExecuteBundle");
+    STRINGISE_ENUM_CLASS_NAMED(List_CopyBufferRegion,
+                               "ID3D12GraphicsCommandList::CopyBufferRegion");
+    STRINGISE_ENUM_CLASS_NAMED(List_CopyTextureRegion,
+                               "ID3D12GraphicsCommandList::CopyTextureRegion");
+    STRINGISE_ENUM_CLASS_NAMED(List_CopyResource, "ID3D12GraphicsCommandList::CopyResource");
+    STRINGISE_ENUM_CLASS_NAMED(List_ResolveSubresource,
+                               "ID3D12GraphicsCommandList::ResolveSubresource");
+    STRINGISE_ENUM_CLASS_NAMED(List_ClearRenderTargetView,
+                               "ID3D12GraphicsCommandList::ClearRenderTargetView");
+    STRINGISE_ENUM_CLASS_NAMED(List_ClearDepthStencilView,
+                               "ID3D12GraphicsCommandList::ClearDepthStencilView");
+    STRINGISE_ENUM_CLASS_NAMED(List_ClearUnorderedAccessViewUint,
+                               "ID3D12GraphicsCommandList::ClearUnorderedAccessViewUint");
+    STRINGISE_ENUM_CLASS_NAMED(List_ClearUnorderedAccessViewFloat,
+                               "ID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat");
+    STRINGISE_ENUM_CLASS_NAMED(List_DiscardResource, "ID3D12GraphicsCommandList::DiscardResource");
+    STRINGISE_ENUM_CLASS_NAMED(List_IASetPrimitiveTopology,
+                               "ID3D12GraphicsCommandList::IASetPrimitiveTopology");
+    STRINGISE_ENUM_CLASS_NAMED(List_IASetIndexBuffer,
+                               "ID3D12GraphicsCommandList::IASetIndexBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(List_IASetVertexBuffers,
+                               "ID3D12GraphicsCommandList::IASetVertexBuffers");
+    STRINGISE_ENUM_CLASS_NAMED(List_SOSetTargets, "ID3D12GraphicsCommandList::SOSetTargets");
+    STRINGISE_ENUM_CLASS_NAMED(List_RSSetViewports, "ID3D12GraphicsCommandList::RSSetViewports");
+    STRINGISE_ENUM_CLASS_NAMED(List_RSSetScissorRects,
+                               "ID3D12GraphicsCommandList::RSSetScissorRects");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetPipelineState,
+                               "ID3D12GraphicsCommandList::SetPipelineState");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetDescriptorHeaps,
+                               "ID3D12GraphicsCommandList::SetDescriptorHeaps");
+    STRINGISE_ENUM_CLASS_NAMED(List_OMSetRenderTargets,
+                               "ID3D12GraphicsCommandList::OMSetRenderTargets");
+    STRINGISE_ENUM_CLASS_NAMED(List_OMSetStencilRef, "ID3D12GraphicsCommandList::OMSetStencilRef");
+    STRINGISE_ENUM_CLASS_NAMED(List_OMSetBlendFactor,
+                               "ID3D12GraphicsCommandList::OMSetBlendFactor");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetGraphicsRootDescriptorTable,
+                               "ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetGraphicsRootSignature,
+                               "ID3D12GraphicsCommandList::SetGraphicsRootSignature");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetGraphicsRoot32BitConstant,
+                               "ID3D12GraphicsCommandList::SetGraphicsRoot32BitConstant");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetGraphicsRoot32BitConstants,
+                               "ID3D12GraphicsCommandList::SetGraphicsRoot32BitConstants");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetGraphicsRootConstantBufferView,
+                               "ID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetGraphicsRootShaderResourceView,
+                               "ID3D12GraphicsCommandList::SetGraphicsRootShaderResourceView");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetGraphicsRootUnorderedAccessView,
+                               "ID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetComputeRootDescriptorTable,
+                               "ID3D12GraphicsCommandList::SetComputeRootDescriptorTable");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetComputeRootSignature,
+                               "ID3D12GraphicsCommandList::SetComputeRootSignature");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetComputeRoot32BitConstant,
+                               "ID3D12GraphicsCommandList::SetComputeRoot32BitConstant");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetComputeRoot32BitConstants,
+                               "ID3D12GraphicsCommandList::SetComputeRoot32BitConstants");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetComputeRootConstantBufferView,
+                               "ID3D12GraphicsCommandList::SetComputeRootConstantBufferView");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetComputeRootShaderResourceView,
+                               "ID3D12GraphicsCommandList::SetComputeRootShaderResourceView");
+    STRINGISE_ENUM_CLASS_NAMED(List_SetComputeRootUnorderedAccessView,
+                               "ID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView");
+    STRINGISE_ENUM_CLASS_NAMED(List_CopyTiles, "ID3D12GraphicsCommandList::CopyTiles");
+    STRINGISE_ENUM_CLASS_NAMED(Resource_Unmap, "ID3D12Resource::Unmap");
+    STRINGISE_ENUM_CLASS_NAMED(Resource_WriteToSubresource, "ID3D12Resource::WriteToSubresource");
+    STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
+std::string DoStringise(const D3D12DescriptorType &el)
+{
+  if((uint32_t)el < (uint32_t)D3D12DescriptorType::CBV)
     return "Sampler";
 
-  BEGIN_ENUM_STRINGISE(D3D12Descriptor::DescriptorType);
+  BEGIN_ENUM_STRINGISE(D3D12DescriptorType);
   {
-    STRINGISE_ENUM_NAMED(D3D12Descriptor::TypeCBV, "CBV");
-    STRINGISE_ENUM_NAMED(D3D12Descriptor::TypeSRV, "SRV");
-    STRINGISE_ENUM_NAMED(D3D12Descriptor::TypeUAV, "UAV");
-    STRINGISE_ENUM_NAMED(D3D12Descriptor::TypeRTV, "RTV");
-    STRINGISE_ENUM_NAMED(D3D12Descriptor::TypeDSV, "DSV");
-    STRINGISE_ENUM_NAMED(D3D12Descriptor::TypeUndefined, "Undefined");
+    STRINGISE_ENUM_CLASS_NAMED(CBV, "CBV");
+    STRINGISE_ENUM_CLASS_NAMED(SRV, "SRV");
+    STRINGISE_ENUM_CLASS_NAMED(UAV, "UAV");
+    STRINGISE_ENUM_CLASS_NAMED(RTV, "RTV");
+    STRINGISE_ENUM_CLASS_NAMED(DSV, "DSV");
+    STRINGISE_ENUM_CLASS_NAMED(Undefined, "Undefined");
   }
   END_ENUM_STRINGISE();
 }

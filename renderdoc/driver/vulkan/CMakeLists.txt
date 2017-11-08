@@ -12,6 +12,7 @@ set(sources
     vk_info.cpp
     vk_info.h
     vk_initstate.cpp
+    vk_sparse_initstate.cpp
     vk_manager.cpp
     vk_manager.h
     vk_memory.cpp
@@ -21,6 +22,7 @@ set(sources
     vk_resources.h
     vk_state.cpp
     vk_state.h
+    vk_serialise.cpp
     vk_stringise.cpp
     vk_layer.cpp
     official/vk_layer.h
@@ -77,12 +79,6 @@ elseif(UNIX)
     add_custom_target(generate-json ALL DEPENDS ${json_out})
 
     install (FILES ${json_out} DESTINATION ${VULKAN_LAYER_FOLDER})
-endif()
-
-# GCC 6.1 may or may not complain about enum reference casts
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set_source_files_properties(vk_common.cpp
-        PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
 endif()
 
 add_library(rdoc_vulkan OBJECT ${sources})

@@ -29,14 +29,17 @@
 #include "core/core.h"
 #include "driver/d3d11/d3d11_manager.h"
 
-class Serialiser;
 class WrappedID3D11Device;
 class WrappedID3D11DeviceContext;
 class D3D11ResourceManager;
 
 struct D3D11RenderState
 {
-  D3D11RenderState(Serialiser *ser);
+  enum EmptyInit
+  {
+    Empty
+  };
+  D3D11RenderState(EmptyInit);
   D3D11RenderState(WrappedID3D11DeviceContext *context);
   D3D11RenderState(const D3D11RenderState &other);
   ~D3D11RenderState();
@@ -198,10 +201,11 @@ struct D3D11RenderState
   // that might not be obvious/intended.
 
   // validate an output merger combination of render targets and depth view
-  bool ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11DepthStencilView *depth,
-                         ID3D11UnorderedAccessView **uavs);
+  bool ValidOutputMerger(ID3D11RenderTargetView *const RTs[], UINT NumRTs,
+                         ID3D11DepthStencilView *depth, ID3D11UnorderedAccessView *const uavs[],
+                         UINT NumUAVs);
 
-  struct inputassembler
+  struct InputAssembler
   {
     ID3D11InputLayout *Layout;
     D3D11_PRIMITIVE_TOPOLOGY Topo;
@@ -215,9 +219,9 @@ struct D3D11RenderState
     bool Used_VB(WrappedID3D11Device *device, uint32_t slot) const;
   } IA;
 
-  struct shader
+  struct Shader
   {
-    ID3D11DeviceChild *Shader;
+    ID3D11DeviceChild *Object;
     ID3D11Buffer *ConstantBuffers[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
     UINT CBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
     UINT CBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
@@ -233,13 +237,13 @@ struct D3D11RenderState
 
   ID3D11UnorderedAccessView *CSUAVs[D3D11_1_UAV_SLOT_COUNT];
 
-  struct streamout
+  struct StreamOut
   {
     ID3D11Buffer *Buffers[D3D11_SO_BUFFER_SLOT_COUNT];
     UINT Offsets[D3D11_SO_BUFFER_SLOT_COUNT];
   } SO;
 
-  struct rasterizer
+  struct Rasterizer
   {
     UINT NumViews, NumScissors;
     D3D11_VIEWPORT Viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
@@ -247,7 +251,7 @@ struct D3D11RenderState
     ID3D11RasterizerState *State;
   } RS;
 
-  struct outmerger
+  struct OutputMerger
   {
     ID3D11DepthStencilState *DepthStencilState;
     UINT StencRef;
@@ -264,9 +268,6 @@ struct D3D11RenderState
     ID3D11UnorderedAccessView *UAVs[D3D11_1_UAV_SLOT_COUNT];
   } OM;
 
-  void SetSerialiser(Serialiser *ser) { m_pSerialiser = ser; }
-  void Serialise(LogState state, WrappedID3D11Device *device);
-
   void SetImmediatePipeline(WrappedID3D11Device *device)
   {
     m_ImmediatePipeline = true;
@@ -275,17 +276,25 @@ struct D3D11RenderState
   void SetDevice(WrappedID3D11Device *device) { m_pDevice = device; }
   void MarkReferenced(WrappedID3D11DeviceContext *ctx, bool initial) const;
   void CacheViewportPartial();
-
+  bool IsViewportPartial() { return m_ViewportScissorPartial; }
 private:
+  template <class SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, D3D11RenderState &el);
+
   void AddRefs();
   void ReleaseRefs();
 
-  Serialiser *GetSerialiser() { return m_pSerialiser; }
-  Serialiser *m_pSerialiser;
   bool m_ImmediatePipeline;
   bool m_ViewportScissorPartial;
   WrappedID3D11Device *m_pDevice;
 };
+
+DECLARE_REFLECTION_STRUCT(D3D11RenderState::InputAssembler);
+DECLARE_REFLECTION_STRUCT(D3D11RenderState::Shader);
+DECLARE_REFLECTION_STRUCT(D3D11RenderState::StreamOut);
+DECLARE_REFLECTION_STRUCT(D3D11RenderState::Rasterizer);
+DECLARE_REFLECTION_STRUCT(D3D11RenderState::OutputMerger);
+DECLARE_REFLECTION_STRUCT(D3D11RenderState);
 
 struct D3D11RenderStateTracker
 {

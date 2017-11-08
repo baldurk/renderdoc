@@ -159,8 +159,9 @@ public:
   const VKPipe::State &GetVulkanPipelineState() { return m_VulkanPipelineState; }
   void FreeTargetResource(ResourceId id);
 
-  void ReadLogInitialisation();
+  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
+  const SDFile &GetStructuredFile();
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);
 
@@ -182,7 +183,7 @@ public:
   ResourceId GetLiveID(ResourceId id);
 
   vector<GPUCounter> EnumerateCounters();
-  void DescribeCounter(GPUCounter counterID, CounterDescription &desc);
+  CounterDescription DescribeCounter(GPUCounter counterID);
   vector<CounterResult> FetchCounters(const vector<GPUCounter> &counters);
 
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
@@ -194,8 +195,8 @@ public:
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData);
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                       const GetTextureDataParams &params, size_t &dataSize);
+  void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                      const GetTextureDataParams &params, bytebuf &data);
 
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);

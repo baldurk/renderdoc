@@ -242,241 +242,193 @@ public:
 #define IMPLEMENT_IUNKNOWN_WITH_REFCOUNTER_CUSTOMQUERY              \
   ULONG STDMETHODCALLTYPE AddRef() { return RefCounter::AddRef(); } \
   ULONG STDMETHODCALLTYPE Release() { return RefCounter::Release(); }
-#define IMPLEMENT_FUNCTION_SERIALISED(ret, func) \
-  ret func;                                      \
-  bool CONCAT(Serialise_, func);
+#define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...) \
+  ret func(__VA_ARGS__);                              \
+  template <typename SerialiserType>                  \
+  bool CONCAT(Serialise_, func(SerialiserType &ser, __VA_ARGS__));
 
-#include "serialise/serialiser.h"
+#define USE_SCRATCH_SERIALISER() WriteSerialiser &ser = m_ScratchSerialiser;
 
-// I don't really like this but it's not the end of the world - declare d3d specialisations to
-// enforce
-// that this specialisation gets used.
-template <>
-void Serialiser::Serialise(const char *name, D3D11_BUFFER_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_TEXTURE1D_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_TEXTURE2D_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_TEXTURE2D_DESC1 &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_TEXTURE3D_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_TEXTURE3D_DESC1 &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_SHADER_RESOURCE_VIEW_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_SHADER_RESOURCE_VIEW_DESC1 &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_RENDER_TARGET_VIEW_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_RENDER_TARGET_VIEW_DESC1 &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_VIEW_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_UNORDERED_ACCESS_VIEW_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_UNORDERED_ACCESS_VIEW_DESC1 &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC1 &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC1 &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC2 &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_SAMPLER_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_QUERY_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_QUERY_DESC1 &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_COUNTER_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_INPUT_ELEMENT_DESC &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_SO_DECLARATION_ENTRY &el);
-template <>
-void Serialiser::Serialise(const char *name, D3D11_SUBRESOURCE_DATA &el);
+// A handy macros to say "is the serialiser reading and we're doing replay-mode stuff?"
+// The reason we check both is that checking the first allows the compiler to eliminate the other
+// path at compile-time, and the second because we might be just struct-serialising in which case we
+// should be doing no work to restore states.
+// Writing is unambiguously during capture mode, so we don't have to check both in that case.
+#define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_State))
 
-#pragma region Chunks
-
-enum D3D11ChunkType
+enum class D3D11Chunk : uint32_t
 {
-  DEVICE_INIT = FIRST_CHUNK_ID,
-  SET_RESOURCE_NAME,
-  RELEASE_RESOURCE,
-  CREATE_SWAP_BUFFER,
-
-  CREATE_TEXTURE_1D,
-  CREATE_TEXTURE_2D,
-  CREATE_TEXTURE_3D,
-  CREATE_BUFFER,
-  CREATE_VERTEX_SHADER,
-  CREATE_HULL_SHADER,
-  CREATE_DOMAIN_SHADER,
-  CREATE_GEOMETRY_SHADER,
-  CREATE_GEOMETRY_SHADER_WITH_SO,
-  CREATE_PIXEL_SHADER,
-  CREATE_COMPUTE_SHADER,
-  GET_CLASS_INSTANCE,
-  CREATE_CLASS_INSTANCE,
-  CREATE_CLASS_LINKAGE,
-  CREATE_SRV,
-  CREATE_RTV,
-  CREATE_DSV,
-  CREATE_UAV,
-  CREATE_INPUT_LAYOUT,
-  CREATE_BLEND_STATE,
-  CREATE_DEPTHSTENCIL_STATE,
-  CREATE_RASTER_STATE,
-  CREATE_SAMPLER_STATE,
-  CREATE_QUERY,
-  CREATE_PREDICATE,
-  CREATE_COUNTER,
-  CREATE_DEFERRED_CONTEXT,
-  SET_EXCEPTION_MODE,
-  OPEN_SHARED_RESOURCE,
-
-  CAPTURE_SCOPE,
-
-  SET_INPUT_LAYOUT,
-  SET_VBUFFER,
-  SET_IBUFFER,
-  SET_TOPOLOGY,
-
-  SET_VS_CBUFFERS,
-  SET_VS_RESOURCES,
-  SET_VS_SAMPLERS,
-  SET_VS,
-
-  SET_HS_CBUFFERS,
-  SET_HS_RESOURCES,
-  SET_HS_SAMPLERS,
-  SET_HS,
-
-  SET_DS_CBUFFERS,
-  SET_DS_RESOURCES,
-  SET_DS_SAMPLERS,
-  SET_DS,
-
-  SET_GS_CBUFFERS,
-  SET_GS_RESOURCES,
-  SET_GS_SAMPLERS,
-  SET_GS,
-
-  SET_SO_TARGETS,
-
-  SET_PS_CBUFFERS,
-  SET_PS_RESOURCES,
-  SET_PS_SAMPLERS,
-  SET_PS,
-
-  SET_CS_CBUFFERS,
-  SET_CS_RESOURCES,
-  SET_CS_UAVS,
-  SET_CS_SAMPLERS,
-  SET_CS,
-
-  SET_VIEWPORTS,
-  SET_SCISSORS,
-  SET_RASTER,
-
-  SET_RTARGET,
-  SET_RTARGET_AND_UAVS,
-  SET_BLEND,
-  SET_DEPTHSTENCIL,
-
-  DRAW_INDEXED_INST,
-  DRAW_INST,
-  DRAW_INDEXED,
-  DRAW,
-  DRAW_AUTO,
-  DRAW_INDEXED_INST_INDIRECT,
-  DRAW_INST_INDIRECT,
-
-  MAP,
-  UNMAP,
-
-  COPY_SUBRESOURCE_REGION,
-  COPY_RESOURCE,
-  UPDATE_SUBRESOURCE,
-  COPY_STRUCTURE_COUNT,
-  RESOLVE_SUBRESOURCE,
-  GENERATE_MIPS,
-
-  CLEAR_DSV,
-  CLEAR_RTV,
-  CLEAR_UAV_INT,
-  CLEAR_UAV_FLOAT,
-  CLEAR_STATE,
-
-  EXECUTE_CMD_LIST,
-  DISPATCH,
-  DISPATCH_INDIRECT,
-  FINISH_CMD_LIST,
-  FLUSH,
-
-  SET_PREDICATION,
-  SET_RESOURCE_MINLOD,
-
-  BEGIN,
-  END,
-
-  CREATE_RASTER_STATE1,
-  CREATE_BLEND_STATE1,
-
-  COPY_SUBRESOURCE_REGION1,
-  UPDATE_SUBRESOURCE1,
-  CLEAR_VIEW,
-
-  SET_VS_CBUFFERS1,
-  SET_HS_CBUFFERS1,
-  SET_DS_CBUFFERS1,
-  SET_GS_CBUFFERS1,
-  SET_PS_CBUFFERS1,
-  SET_CS_CBUFFERS1,
-
-  PUSH_EVENT,
-  SET_MARKER,
-  POP_EVENT,
-
-  DEBUG_MESSAGES,
-
-  CONTEXT_CAPTURE_HEADER,    // chunk at beginning of context's chunk stream
-  CONTEXT_CAPTURE_FOOTER,    // chunk at end of context's chunk stream
-
-  SET_SHADER_DEBUG_PATH,
-
-  DISCARD_RESOURCE,
-  DISCARD_VIEW,
-  DISCARD_VIEW1,
-
-  CREATE_RASTER_STATE2,
-  CREATE_QUERY1,
-
-  CREATE_TEXTURE_2D1,
-  CREATE_TEXTURE_3D1,
-
-  CREATE_SRV1,
-  CREATE_RTV1,
-  CREATE_UAV1,
-
-  SWAP_PRESENT,
-  RESTORE_STATE_AFTER_EXEC,
-  RESTORE_STATE_AFTER_FINISH,
-
-  SWAP_DEVICE_STATE,
-
-  NUM_D3D11_CHUNKS,
+  DeviceInitialisation = (uint32_t)SystemChunk::FirstDriverChunk,
+  CaptureBegin,
+  CaptureEnd,
+  CaptureScope,
+  SetResourceName,
+  ReleaseResource,
+  CreateSwapBuffer,
+  CreateTexture1D,
+  CreateTexture2D,
+  CreateTexture3D,
+  CreateBuffer,
+  CreateVertexShader,
+  CreateHullShader,
+  CreateDomainShader,
+  CreateGeometryShader,
+  CreateGeometryShaderWithStreamOutput,
+  CreatePixelShader,
+  CreateComputeShader,
+  GetClassInstance,
+  CreateClassInstance,
+  CreateClassLinkage,
+  CreateShaderResourceView,
+  CreateRenderTargetView,
+  CreateDepthStencilView,
+  CreateUnorderedAccessView,
+  CreateInputLayout,
+  CreateBlendState,
+  CreateDepthStencilState,
+  CreateRasterizerState,
+  CreateSamplerState,
+  CreateQuery,
+  CreatePredicate,
+  CreateCounter,
+  CreateDeferredContext,
+  SetExceptionMode,
+  OpenSharedResource,
+  IASetInputLayout,
+  IASetVertexBuffers,
+  IASetIndexBuffer,
+  IASetPrimitiveTopology,
+  VSSetConstantBuffers,
+  VSSetShaderResources,
+  VSSetSamplers,
+  VSSetShader,
+  HSSetConstantBuffers,
+  HSSetShaderResources,
+  HSSetSamplers,
+  HSSetShader,
+  DSSetConstantBuffers,
+  DSSetShaderResources,
+  DSSetSamplers,
+  DSSetShader,
+  GSSetConstantBuffers,
+  GSSetShaderResources,
+  GSSetSamplers,
+  GSSetShader,
+  SOSetTargets,
+  PSSetConstantBuffers,
+  PSSetShaderResources,
+  PSSetSamplers,
+  PSSetShader,
+  CSSetConstantBuffers,
+  CSSetShaderResources,
+  CSSetUnorderedAccessViews,
+  CSSetSamplers,
+  CSSetShader,
+  RSSetViewports,
+  RSSetScissorRects,
+  RSSetState,
+  OMSetRenderTargets,
+  OMSetRenderTargetsAndUnorderedAccessViews,
+  OMSetBlendState,
+  OMSetDepthStencilState,
+  DrawIndexedInstanced,
+  DrawInstanced,
+  DrawIndexed,
+  Draw,
+  DrawAuto,
+  DrawIndexedInstancedIndirect,
+  DrawInstancedIndirect,
+  Map,
+  Unmap,
+  CopySubresourceRegion,
+  CopyResource,
+  UpdateSubresource,
+  CopyStructureCount,
+  ResolveSubresource,
+  GenerateMips,
+  ClearDepthStencilView,
+  ClearRenderTargetView,
+  ClearUnorderedAccessViewUint,
+  ClearUnorderedAccessViewFloat,
+  ClearState,
+  ExecuteCommandList,
+  Dispatch,
+  DispatchIndirect,
+  FinishCommandList,
+  Flush,
+  SetPredication,
+  SetResourceMinLOD,
+  Begin,
+  End,
+  CreateRasterizerState1,
+  CreateBlendState1,
+  CopySubresourceRegion1,
+  UpdateSubresource1,
+  ClearView,
+  VSSetConstantBuffers1,
+  HSSetConstantBuffers1,
+  DSSetConstantBuffers1,
+  GSSetConstantBuffers1,
+  PSSetConstantBuffers1,
+  CSSetConstantBuffers1,
+  PushMarker,
+  SetMarker,
+  PopMarker,
+  SetShaderDebugPath,
+  DiscardResource,
+  DiscardView,
+  DiscardView1,
+  CreateRasterizerState2,
+  CreateQuery1,
+  CreateTexture2D1,
+  CreateTexture3D1,
+  CreateShaderResourceView1,
+  CreateRenderTargetView1,
+  CreateUnorderedAccessView1,
+  SwapchainPresent,
+  PostExecuteCommandListRestore,
+  PostFinishCommandListSet,
+  SwapDeviceContextState,
+  Max,
 };
 
-#pragma endregion Chunks
+DECLARE_REFLECTION_ENUM(D3D11Chunk);
+
+// this is special - these serialise overloads will fetch the ID during capture, serialise the ID
+// directly as-if it were the original type, then on replay load up the resource if available.
+// Really this is only one type of serialisation, but we declare a couple of overloads to account
+// for resources being accessed through different interfaces in different functions
+#define SERIALISE_D3D_INTERFACES()                \
+  SERIALISE_INTERFACE(ID3D11DeviceChild);         \
+  SERIALISE_INTERFACE(ID3D11Resource);            \
+  SERIALISE_INTERFACE(ID3D11View);                \
+  SERIALISE_INTERFACE(ID3D11UnorderedAccessView); \
+  SERIALISE_INTERFACE(ID3D11ShaderResourceView);  \
+  SERIALISE_INTERFACE(ID3D11RenderTargetView);    \
+  SERIALISE_INTERFACE(ID3D11DepthStencilView);    \
+  SERIALISE_INTERFACE(ID3D11BlendState);          \
+  SERIALISE_INTERFACE(ID3D11DepthStencilState);   \
+  SERIALISE_INTERFACE(ID3D11RasterizerState);     \
+  SERIALISE_INTERFACE(ID3D11SamplerState);        \
+  SERIALISE_INTERFACE(ID3D11Buffer);              \
+  SERIALISE_INTERFACE(ID3D11ClassInstance);       \
+  SERIALISE_INTERFACE(ID3D11ClassLinkage);        \
+  SERIALISE_INTERFACE(ID3D11InputLayout);         \
+  SERIALISE_INTERFACE(ID3D11VertexShader);        \
+  SERIALISE_INTERFACE(ID3D11HullShader);          \
+  SERIALISE_INTERFACE(ID3D11DomainShader);        \
+  SERIALISE_INTERFACE(ID3D11GeometryShader);      \
+  SERIALISE_INTERFACE(ID3D11PixelShader);         \
+  SERIALISE_INTERFACE(ID3D11ComputeShader);       \
+  SERIALISE_INTERFACE(ID3D11CommandList);         \
+  SERIALISE_INTERFACE(ID3D11Counter);             \
+  SERIALISE_INTERFACE(ID3D11Predicate);           \
+  SERIALISE_INTERFACE(ID3D11Query);               \
+  SERIALISE_INTERFACE(ID3D11Asynchronous);
+
+#define SERIALISE_INTERFACE(iface) DECLARE_REFLECTION_STRUCT(iface *)
+
+SERIALISE_D3D_INTERFACES();
 
 DECLARE_REFLECTION_ENUM(D3D11_BIND_FLAG);
 DECLARE_REFLECTION_ENUM(D3D11_CPU_ACCESS_FLAG);
@@ -511,3 +463,75 @@ DECLARE_REFLECTION_ENUM(D3D11_PRIMITIVE_TOPOLOGY);
 DECLARE_REFLECTION_ENUM(D3D11_USAGE);
 DECLARE_REFLECTION_ENUM(D3D11_INPUT_CLASSIFICATION);
 DECLARE_REFLECTION_ENUM(D3D11_LOGIC_OP);
+
+// declare reflect-able types
+
+DECLARE_REFLECTION_STRUCT(D3D11_BUFFER_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_TEXTURE1D_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_TEXTURE2D_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_TEXTURE2D_DESC1);
+DECLARE_REFLECTION_STRUCT(D3D11_TEXTURE3D_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_TEXTURE3D_DESC1);
+DECLARE_REFLECTION_STRUCT(D3D11_BUFFER_SRV);
+DECLARE_REFLECTION_STRUCT(D3D11_BUFFEREX_SRV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX1D_SRV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX1D_ARRAY_SRV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_SRV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_ARRAY_SRV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_SRV1);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_ARRAY_SRV1);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX3D_SRV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEXCUBE_SRV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEXCUBE_ARRAY_SRV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2DMS_SRV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2DMS_ARRAY_SRV);
+DECLARE_REFLECTION_STRUCT(D3D11_SHADER_RESOURCE_VIEW_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_SHADER_RESOURCE_VIEW_DESC1);
+DECLARE_REFLECTION_STRUCT(D3D11_BUFFER_RTV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX1D_RTV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX1D_ARRAY_RTV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_RTV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_ARRAY_RTV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2DMS_RTV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2DMS_ARRAY_RTV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_RTV1);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_ARRAY_RTV1);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX3D_RTV);
+DECLARE_REFLECTION_STRUCT(D3D11_RENDER_TARGET_VIEW_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_RENDER_TARGET_VIEW_DESC1);
+DECLARE_REFLECTION_STRUCT(D3D11_BUFFER_UAV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX1D_UAV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX1D_ARRAY_UAV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_UAV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_ARRAY_UAV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_UAV1);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_ARRAY_UAV1);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX3D_UAV);
+DECLARE_REFLECTION_STRUCT(D3D11_UNORDERED_ACCESS_VIEW_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_UNORDERED_ACCESS_VIEW_DESC1);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX1D_DSV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX1D_ARRAY_DSV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_DSV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2D_ARRAY_DSV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2DMS_DSV);
+DECLARE_REFLECTION_STRUCT(D3D11_TEX2DMS_ARRAY_DSV);
+DECLARE_REFLECTION_STRUCT(D3D11_DEPTH_STENCIL_VIEW_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_RENDER_TARGET_BLEND_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_RENDER_TARGET_BLEND_DESC1);
+DECLARE_REFLECTION_STRUCT(D3D11_BLEND_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_BLEND_DESC1);
+DECLARE_REFLECTION_STRUCT(D3D11_DEPTH_STENCILOP_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_DEPTH_STENCIL_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_RASTERIZER_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_RASTERIZER_DESC1);
+DECLARE_REFLECTION_STRUCT(D3D11_RASTERIZER_DESC2);
+DECLARE_REFLECTION_STRUCT(D3D11_QUERY_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_QUERY_DESC1);
+DECLARE_REFLECTION_STRUCT(D3D11_COUNTER_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_SAMPLER_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_SO_DECLARATION_ENTRY);
+DECLARE_REFLECTION_STRUCT(D3D11_INPUT_ELEMENT_DESC);
+DECLARE_REFLECTION_STRUCT(D3D11_SUBRESOURCE_DATA);
+DECLARE_REFLECTION_STRUCT(D3D11_VIEWPORT);
+DECLARE_REFLECTION_STRUCT(D3D11_RECT);
+DECLARE_REFLECTION_STRUCT(D3D11_BOX);

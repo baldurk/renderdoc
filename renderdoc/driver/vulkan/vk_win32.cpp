@@ -129,7 +129,7 @@ VkResult WrappedVulkan::vkCreateWin32SurfaceKHR(VkInstance instance,
                                                 VkSurfaceKHR *pSurface)
 {
   // should not come in here at all on replay
-  RDCASSERT(m_State >= WRITING);
+  RDCASSERT(IsCaptureMode(m_State));
 
   VkResult ret =
       ObjDisp(instance)->CreateWin32SurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);

@@ -424,7 +424,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   // during capture we only need one text descriptor set, so rather than
   // trying to wait and steal descriptors from a user-side pool, we just
   // create our own very small pool.
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     descpoolInfo.maxSets = 2;
     descpoolInfo.poolSizeCount = ARRAY_COUNT(captureDescPoolTypes);
@@ -997,7 +997,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   //////////////////////////////////////////////////////////////////////////////////////
   // if we're writing, only create text-rendering related resources,
   // then tidy up early and return
-  if(m_State >= WRITING)
+  if(IsCaptureMode(m_State))
   {
     {
       VkDescriptorSetLayoutBinding layoutBinding[] = {
@@ -4954,6 +4954,8 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
       m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), module);
+
+      m_pDriver->GetResourceManager()->AddLiveResource(GetResID(module), module);
 
       bool found = false;
       for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)

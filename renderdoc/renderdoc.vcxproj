@@ -162,7 +162,6 @@
     <ClInclude Include="core\precompiled.h" />
     <ClInclude Include="core\replay_proxy.h" />
     <ClInclude Include="core\resource_manager.h" />
-    <ClInclude Include="core\socket_helpers.h" />
     <ClInclude Include="data\embedded_files.h" />
     <ClInclude Include="data\glsl\debuguniforms.h" />
     <ClInclude Include="data\glsl\gl_texsample.h" />
@@ -402,6 +401,7 @@
     <ClCompile Include="serialise\lz4io.cpp" />
     <ClCompile Include="serialise\rdcfile.cpp" />
     <ClCompile Include="serialise\serialiser.cpp" />
+    <ClCompile Include="serialise\serialiser_tests.cpp" />
     <ClCompile Include="serialise\streamio.cpp" />
     <ClCompile Include="serialise\streamio_tests.cpp" />
     <ClCompile Include="serialise\zstdio.cpp" />
@@ -443,67 +443,36 @@
     <None Include="data\hlsl\mesh.hlsl" />
     <None Include="data\hlsl\multisample.hlsl" />
     <None Include="os\win32\comexport.def" />
+    <None Include="replay\renderdoc_serialise.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="renderdoc.natvis" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="driver\d3d11\renderdoc_d3d11.vcxproj">
       <Project>{f1e59a05-60d4-4927-9e57-dd191eae90ef}</Project>
-      <Private>false</Private>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
     <ProjectReference Include="driver\d3d12\renderdoc_d3d12.vcxproj">
       <Project>{9e6b10a2-84b4-434d-abdb-43be4ea650f4}</Project>
-      <Private>false</Private>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
     <ProjectReference Include="driver\d3d8\renderdoc_d3d8.vcxproj">
       <Project>{9c4487e8-eeb0-4a7f-bd81-23f81cd24e22}</Project>
-      <Private>false</Private>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
     <ProjectReference Include="driver\d3d9\renderdoc_d3d9.vcxproj">
       <Project>{44044776-9469-4079-b587-abfff6574aa4}</Project>
-      <Private>false</Private>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
     <ProjectReference Include="driver\dxgi\renderdoc_dxgi.vcxproj">
       <Project>{2a793574-bd3c-46d4-9788-c339d9550ce1}</Project>
-      <Private>false</Private>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
     <ProjectReference Include="driver\gl\renderdoc_gl.vcxproj">
       <Project>{f92fcda6-a261-4eec-9cd0-73a11fbcc459}</Project>
-      <Private>false</Private>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+    </ProjectReference>
+    <ProjectReference Include="driver\ihv\amd\AMD.vcxproj">
+      <Project>{5de5a561-548a-4dd7-90f0-06a2b39eae9a}</Project>
     </ProjectReference>
     <ProjectReference Include="driver\vulkan\renderdoc_vulkan.vcxproj">
       <Project>{88c5dac6-30a0-4cfd-af51-540a977d1f3f}</Project>
-      <Private>false</Private>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
-      <LinkLibraryDependencies>true</LinkLibraryDependencies>
-      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Natvis Include="renderdoc.natvis" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

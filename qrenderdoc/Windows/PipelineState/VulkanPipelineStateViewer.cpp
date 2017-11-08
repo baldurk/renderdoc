@@ -1278,7 +1278,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
 
     if(!shaderDetails->DebugInfo.files.isEmpty())
       shader->setText(entryFunc + lit("() - ") +
-                      QFileInfo(shaderDetails->DebugInfo.files[0].first).fileName());
+                      QFileInfo(shaderDetails->DebugInfo.files[0].Filename).fileName());
   }
 
   int vs = 0;
@@ -2595,7 +2595,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       else if(!shaderDetails->DebugInfo.files.isEmpty())
         shadername = QFormatStr("%1() - %2")
                          .arg(entryFunc)
-                         .arg(QFileInfo(shaderDetails->DebugInfo.files[0].first).fileName());
+                         .arg(QFileInfo(shaderDetails->DebugInfo.files[0].Filename).fileName());
     }
 
     xml.writeStartElement(lit("p"));

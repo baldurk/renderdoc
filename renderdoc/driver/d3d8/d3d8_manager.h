@@ -51,11 +51,7 @@ struct D3D8ResourceRecord : public ResourceRecord
 class D3D8ResourceManager : public ResourceManager<IUnknown *, IUnknown *, D3D8ResourceRecord>
 {
 public:
-  D3D8ResourceManager(LogState state, Serialiser *ser, WrappedD3DDevice8 *dev)
-      : ResourceManager(state, ser), m_Device(dev)
-  {
-  }
-
+  D3D8ResourceManager(WrappedD3DDevice8 *dev) : m_Device(dev) {}
 private:
   bool SerialisableResource(ResourceId id, D3D8ResourceRecord *record);
   ResourceId GetID(IUnknown *res);
@@ -65,7 +61,8 @@ private:
   bool Force_InitialState(IUnknown *res, bool prepare);
   bool Need_InitialStateChunk(IUnknown *res);
   bool Prepare_InitialState(IUnknown *res);
-  bool Serialise_InitialState(ResourceId resid, IUnknown *res);
+  uint32_t GetSize_InitialState(ResourceId id, IUnknown *res);
+  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId resid, IUnknown *res);
   void Create_InitialState(ResourceId id, IUnknown *live, bool hasData);
   void Apply_InitialState(IUnknown *live, InitialContentData data);
 

@@ -44,7 +44,6 @@ using std::map;
 using std::pair;
 using std::set;
 
-class Serialiser;
 class Chunk;
 
 // not provided by tinyexr, just do by hand
@@ -66,35 +65,99 @@ struct IFrameCapturer
   virtual bool EndFrameCapture(void *dev, void *wnd) = 0;
 };
 
-// READING and EXECUTING are replay states.
-// WRITING_IDLE and WRITING_CAPFRAME are capture states.
-// WRITING isn't actually a state, it's just a midpoint in the enum,
-// so it takes fewer characters to check which state we're in.
-//
-// on replay, m_State < WRITING is the same as
-//(m_State == READING || m_State == EXECUTING)
-//
-// on capture, m_State >= WRITING is the same as
-//(m_State == WRITING_IDLE || m_State == WRITING_CAPFRAME)
-enum LogState
+// In most cases you don't need to check these individually, use the utility functions below
+// to determine if you're in a capture or replay state. There are utility functions for each
+// state as well.
+// See the comments on each state to understand their purpose.
+enum class CaptureState
 {
-  READING = 0,
-  EXECUTING,
-  WRITING,
-  WRITING_IDLE,
-  WRITING_CAPFRAME,
+  // This is the state while the initial load of a capture is happening and the replay is
+  // initialising available resources. This is where any heavy one-off analysis can happen like
+  // noting down the details of a drawcall, tracking statistics about resource use and drawcall
+  // types, and creating resources that will be needed later in ActiveReplaying.
+  //
+  // After leaving this state, the capture enters ActiveReplaying and remains there until the
+  // capture is closed down.
+  LoadingReplaying,
+
+  // After loading, this state is used throughout replay. Whether replaying the frame whole or in
+  // part this state indicates that replaying is happening for analysis without the heavy-weight
+  // loading process.
+  ActiveReplaying,
+
+  // This is the state when no processing is happening - either record or replay - apart from
+  // serialising the data. Used with a 'virtual' driver to be able to interpret the contents of a
+  // frame capture for structured export without needing to have the API initialised.
+  //
+  // The idea is that the existing serialisation infrastructure for a driver can be used to decode
+  // the raw bits and chunks inside a capture without actually having to be able to initialise the
+  // API, and the structured data can then be exported to another format.
+  StructuredExport,
+
+  // This is the state while injected into a program for capturing, but no frame is actively being
+  // captured at present. Immediately after injection this state is active, and only the minimum
+  // necessary work happens to prepare for a frame capture at some later point.
+  //
+  // When a frame capture is triggered, we immediately transition to the ActiveCapturing state
+  // below, where we stay until the frame has been successfully captured, then transition back into
+  // this state to continue capturing necessary work in the background for further frame captures.
+  BackgroundCapturing,
+
+  // This is the state while injected into a program for capturing and a frame capture is actively
+  // ongoing. We transition into this state from BackgroundCapturing on frame capture begin, then
+  // stay here until the frame capture is complete and transition back.
+  //
+  // Note: This state is entered into immediately when a capture is triggered, so it doesn't imply
+  // anything about where in the frame we are.
+  ActiveCapturing,
 };
 
-enum SystemChunks
+constexpr inline bool IsReplayMode(CaptureState state)
+{
+  return state == CaptureState::LoadingReplaying || state == CaptureState::ActiveReplaying;
+}
+
+constexpr inline bool IsCaptureMode(CaptureState state)
+{
+  return state == CaptureState::BackgroundCapturing || state == CaptureState::ActiveCapturing;
+}
+
+constexpr inline bool IsLoading(CaptureState state)
+{
+  return state == CaptureState::LoadingReplaying;
+}
+
+constexpr inline bool IsActiveReplaying(CaptureState state)
+{
+  return state == CaptureState::ActiveReplaying;
+}
+
+constexpr inline bool IsBackgroundCapturing(CaptureState state)
+{
+  return state == CaptureState::BackgroundCapturing;
+}
+
+constexpr inline bool IsActiveCapturing(CaptureState state)
+{
+  return state == CaptureState::ActiveCapturing;
+}
+
+constexpr inline bool IsStructuredExporting(CaptureState state)
+{
+  return state == CaptureState::StructuredExport;
+}
+
+enum class SystemChunk : uint32_t
 {
   // 0 is reserved as a 'null' chunk that is only for debug
-  CREATE_PARAMS = 1,
-  THUMBNAIL_DATA,
-  DRIVER_INIT_PARAMS,
-  INITIAL_CONTENTS,
+  DriverInit = 1,
+  InitialContentsList,
+  InitialContents,
 
-  FIRST_CHUNK_ID,
+  FirstDriverChunk = 1000,
 };
+
+DECLARE_REFLECTION_ENUM(SystemChunk);
 
 enum RDCDriver
 {
@@ -109,6 +172,7 @@ enum RDCDriver
   RDC_Vulkan = 8,
   RDC_OpenGLES = 9,
   RDC_D3D8 = 10,
+  RDC_MaxBuiltin,
   RDC_Custom = 100000,
   RDC_Custom0 = RDC_Custom,
   RDC_Custom1,
@@ -121,6 +185,8 @@ enum RDCDriver
   RDC_Custom8,
   RDC_Custom9,
 };
+
+DECLARE_REFLECTION_ENUM(RDCDriver);
 
 namespace DXBC
 {
@@ -138,21 +204,7 @@ enum ReplayLogType
   eReplay_OnlyDraw,
 };
 
-struct RDCInitParams
-{
-  RDCInitParams()
-  {
-    m_State = WRITING;
-    m_pSerialiser = NULL;
-  }
-  virtual ~RDCInitParams() {}
-  virtual ReplayStatus Serialise() = 0;
-
-  LogState m_State;
-  Serialiser *m_pSerialiser;
-
-  Serialiser *GetSerialiser() { return m_pSerialiser; }
-};
+DECLARE_REFLECTION_ENUM(ReplayLogType);
 
 struct CaptureData
 {
@@ -177,8 +229,20 @@ enum LoadProgressSection
 class IRemoteDriver;
 class IReplayDriver;
 
-typedef ReplayStatus (*RemoteDriverProvider)(const char *logfile, IRemoteDriver **driver);
-typedef ReplayStatus (*ReplayDriverProvider)(const char *logfile, IReplayDriver **driver);
+class StreamReader;
+class RDCFile;
+
+class RDCFile;
+
+typedef ReplayStatus (*RemoteDriverProvider)(RDCFile *rdc, IRemoteDriver **driver);
+typedef ReplayStatus (*ReplayDriverProvider)(RDCFile *rdc, IReplayDriver **driver);
+
+typedef void (*StructuredProcessor)(RDCFile *rdc, SDFile &structData);
+
+typedef ReplayStatus (*CaptureImporter)(const char *filename, StreamReader &reader, RDCFile *rdc,
+                                        SDFile &structData);
+typedef ReplayStatus (*CaptureExporter)(const char *filename, const RDCFile &rdc,
+                                        const SDFile &structData);
 
 typedef bool (*VulkanLayerCheck)(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
                                  std::vector<std::string> &otherJSONs);
@@ -221,9 +285,9 @@ public:
   void RecreateCrashHandler();
   void UnloadCrashHandler();
   ICrashHandler *GetCrashHandler() const { return m_ExHandler; }
-  Serialiser *OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *params, void *thpixels,
-                                  size_t thlen, uint32_t thwidth, uint32_t thheight);
-  void SuccessfullyWrittenLog(uint32_t frameNumber);
+  RDCFile *CreateRDC(uint32_t frameNum, void *thpixels, size_t thlen, uint16_t thwidth,
+                     uint16_t thheight);
+  void FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber);
 
   void AddChildProcess(uint32_t pid, uint32_t ident)
   {
@@ -251,11 +315,22 @@ public:
     }
   }
 
-  ReplayStatus FillInitParams(const char *logfile, RDCDriver &driverType, string &driverName,
-                              uint64_t &fileMachineIdent, RDCInitParams *params);
-
   void RegisterReplayProvider(RDCDriver driver, const char *name, ReplayDriverProvider provider);
   void RegisterRemoteProvider(RDCDriver driver, const char *name, RemoteDriverProvider provider);
+
+  void RegisterStructuredProcessor(RDCDriver driver, StructuredProcessor provider);
+
+  void RegisterCaptureExporter(const char *filetype, const char *description,
+                               CaptureExporter exporter);
+  void RegisterCaptureImportExporter(const char *filetype, const char *description,
+                                     CaptureImporter importer, CaptureExporter exporter);
+
+  StructuredProcessor GetStructuredProcessor(RDCDriver driver);
+
+  CaptureExporter GetCaptureExporter(const char *filetype);
+  CaptureImporter GetCaptureImporter(const char *filetype);
+
+  std::vector<CaptureFileFormat> GetCaptureFileFormats();
 
   void SetVulkanLayerCheck(VulkanLayerCheck callback) { m_VulkanCheck = callback; }
   void SetVulkanLayerInstall(VulkanLayerInstall callback) { m_VulkanInstall = callback; }
@@ -280,8 +355,11 @@ public:
   void SetDarkCheckerboardColor(const Vec4f &col) { m_DarkChecker = col; }
   bool IsDarkTheme() { return m_DarkTheme; }
   void SetDarkTheme(bool dark) { m_DarkTheme = dark; }
-  ReplayStatus CreateReplayDriver(RDCDriver driverType, const char *logfile, IReplayDriver **driver);
-  ReplayStatus CreateRemoteDriver(RDCDriver driverType, const char *logfile, IRemoteDriver **driver);
+  ReplayStatus CreateProxyReplayDriver(RDCDriver proxyDriver, IReplayDriver **driver);
+  ReplayStatus CreateReplayDriver(RDCFile *rdc, IReplayDriver **driver);
+  ReplayStatus CreateRemoteDriver(RDCFile *rdc, IRemoteDriver **driver);
+
+  bool HasReplaySupport(RDCDriver driverType);
 
   map<RDCDriver, string> GetReplayDrivers();
   map<RDCDriver, string> GetRemoteDrivers();
@@ -395,6 +473,12 @@ private:
   map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
   map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
 
+  std::map<RDCDriver, StructuredProcessor> m_StructProcesssors;
+
+  std::map<std::string, std::string> m_ImportExportFormats;
+  std::map<std::string, CaptureImporter> m_Importers;
+  std::map<std::string, CaptureExporter> m_Exporters;
+
   VulkanLayerCheck m_VulkanCheck;
   VulkanLayerInstall m_VulkanInstall;
 
@@ -468,5 +552,26 @@ struct DriverRegistration
   DriverRegistration(RDCDriver driver, const char *name, RemoteDriverProvider provider)
   {
     RenderDoc::Inst().RegisterRemoteProvider(driver, name, provider);
+  }
+};
+
+struct StructuredProcessRegistration
+{
+  StructuredProcessRegistration(RDCDriver driver, StructuredProcessor provider)
+  {
+    RenderDoc::Inst().RegisterStructuredProcessor(driver, provider);
+  }
+};
+
+struct ConversionRegistration
+{
+  ConversionRegistration(const char *filetype, const char *description, CaptureImporter importer,
+                         CaptureExporter exporter)
+  {
+    RenderDoc::Inst().RegisterCaptureImportExporter(filetype, description, importer, exporter);
+  }
+  ConversionRegistration(const char *filetype, const char *description, CaptureExporter exporter)
+  {
+    RenderDoc::Inst().RegisterCaptureExporter(filetype, description, exporter);
   }
 };

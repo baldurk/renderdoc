@@ -19,6 +19,7 @@ set(sources
     gl_resources.h
     gl_shader_refl.cpp
     gl_shader_refl.h
+    gl_stringise.cpp
     official/gl32.h
     official/gl3platform.h
     official/glcorearb.h

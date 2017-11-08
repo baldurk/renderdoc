@@ -133,8 +133,8 @@ public:
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
   void GetBufferData(ID3D11Buffer *buff, uint64_t offset, uint64_t length, vector<byte> &retData);
 
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                       const GetTextureDataParams &params, size_t &dataSize);
+  void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                      const GetTextureDataParams &params, bytebuf &data);
 
   void FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars,
                             vector<ShaderVariable> &outvars, bool flattenVec4s,
@@ -156,7 +156,7 @@ public:
   static void PostDeviceShutdownCounters();
 
   vector<GPUCounter> EnumerateCounters();
-  void DescribeCounter(GPUCounter counterID, CounterDescription &desc);
+  CounterDescription DescribeCounter(GPUCounter counterID);
   vector<CounterResult> FetchCounters(const vector<GPUCounter> &counters);
   vector<CounterResult> FetchCountersAMD(const vector<GPUCounter> &counters);
 
@@ -328,7 +328,7 @@ private:
   // across work done to the output windows
   struct RealState
   {
-    RealState() : state((Serialiser *)NULL) { active = false; }
+    RealState() : state(D3D11RenderState::Empty) { active = false; }
     bool active;
     D3D11RenderState state;
   } m_RealState;

@@ -364,10 +364,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     int fileIdx = 0;
 
     QWidget *sel = NULL;
-    for(auto &f : shader->DebugInfo.files)
+    for(const ShaderSourceFile &f : shader->DebugInfo.files)
     {
-      QString name = QFileInfo(f.first).fileName();
-      QString text = f.second;
+      QString name = QFileInfo(f.Filename).fileName();
+      QString text = f.Contents;
 
       ScintillaEdit *scintilla = AddFileScintilla(name, text);
 
@@ -1135,13 +1135,13 @@ void ShaderViewer::updateDebugging()
   {
     for(int i = 0; i < m_Trace->cbuffers.count(); i++)
     {
-      for(int j = 0; j < m_Trace->cbuffers[i].count(); j++)
+      for(int j = 0; j < m_Trace->cbuffers[i].members.count(); j++)
       {
-        if(m_Trace->cbuffers[i][j].rows > 0 || m_Trace->cbuffers[i][j].columns > 0)
+        if(m_Trace->cbuffers[i].members[j].rows > 0 || m_Trace->cbuffers[i].members[j].columns > 0)
         {
           RDTreeWidgetItem *node =
-              new RDTreeWidgetItem({m_Trace->cbuffers[i][j].name, lit("cbuffer"),
-                                    stringRep(m_Trace->cbuffers[i][j], false)});
+              new RDTreeWidgetItem({m_Trace->cbuffers[i].members[j].name, lit("cbuffer"),
+                                    stringRep(m_Trace->cbuffers[i].members[j], false)});
           node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Constants, j, i)));
 
           ui->constants->addTopLevelItem(node);
@@ -1251,9 +1251,9 @@ void ShaderViewer::updateDebugging()
     {
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({QFormatStr("x%1").arg(i), lit("indexable"), QString()});
-      for(int t = 0; t < state.indexableTemps[i].count(); t++)
-        node->addChild(
-            new RDTreeWidgetItem({state.indexableTemps[i][t].name, lit("indexable"), QString()}));
+      for(int t = 0; t < state.indexableTemps[i].members.count(); t++)
+        node->addChild(new RDTreeWidgetItem(
+            {state.indexableTemps[i].members[t].name, lit("indexable"), QString()}));
       ui->variables->addTopLevelItem(node);
     }
 
@@ -1278,11 +1278,11 @@ void ShaderViewer::updateDebugging()
   {
     RDTreeWidgetItem *node = ui->variables->topLevelItem(v++);
 
-    for(int t = 0; t < state.indexableTemps[i].count(); t++)
+    for(int t = 0; t < state.indexableTemps[i].members.count(); t++)
     {
       RDTreeWidgetItem *child = node->child(t);
 
-      child->setText(2, stringRep(state.indexableTemps[i][t], false));
+      child->setText(2, stringRep(state.indexableTemps[i].members[t], false));
       child->setTag(QVariant::fromValue(VariableTag(VariableCategory::IndexTemporaries, t, i)));
     }
   }
@@ -1928,11 +1928,11 @@ const rdcarray<ShaderVariable> *ShaderViewer::GetVariableList(VariableCategory v
     case VariableCategory::Unknown: vars = NULL; break;
     case VariableCategory::Temporaries: vars = &state.registers; break;
     case VariableCategory::IndexTemporaries:
-      vars = arrayIdx < state.indexableTemps.count() ? &state.indexableTemps[arrayIdx] : NULL;
+      vars = arrayIdx < state.indexableTemps.count() ? &state.indexableTemps[arrayIdx].members : NULL;
       break;
     case VariableCategory::Inputs: vars = &m_Trace->inputs; break;
     case VariableCategory::Constants:
-      vars = arrayIdx < m_Trace->cbuffers.count() ? &m_Trace->cbuffers[arrayIdx] : NULL;
+      vars = arrayIdx < m_Trace->cbuffers.count() ? &m_Trace->cbuffers[arrayIdx].members : NULL;
       break;
     case VariableCategory::Outputs: vars = &state.outputs; break;
   }

@@ -24,6 +24,7 @@
 
 #include "gl_replay.h"
 #include <dlfcn.h>
+#include "serialise/rdcfile.h"
 #include "gl_driver.h"
 #include "gl_resources.h"
 
@@ -64,7 +65,7 @@ PFN_eglGetProcAddress eglGetProcAddressProc = NULL;
 const GLHookSet &GetRealGLFunctionsEGL();
 GLPlatform &GetGLPlatformEGL();
 
-ReplayStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCDEBUG("Creating an OpenGL ES replay device");
 
@@ -101,16 +102,44 @@ ReplayStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver
   }
 
   GLInitParams initParams;
-  RDCDriver driverType = RDC_OpenGLES;
-  string driverName = "OpenGLES";
-  uint64_t machineIdent = 0;
+  uint64_t ver = GLInitParams::CurrentVersion;
 
-  if(logfile)
+  // if we have an RDCFile, open the frame capture section and serialise the init params.
+  // if not, we're creating a proxy-capable device so use default-initialised init params.
+  if(rdc)
   {
-    auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
-                                                   (RDCInitParams *)&initParams);
-    if(status != ReplayStatus::Succeeded)
-      return status;
+    int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
+
+    if(sectionIdx < 0)
+      return ReplayStatus::InternalError;
+
+    ver = rdc->GetSectionProperties(sectionIdx).version;
+
+    if(!GLInitParams::IsSupportedVersion(ver))
+    {
+      RDCERR("Incompatible D3D11 serialise version %llu", ver);
+      return ReplayStatus::APIUnsupported;
+    }
+
+    StreamReader *reader = rdc->ReadSection(sectionIdx);
+
+    ReadSerialiser ser(reader, Ownership::Stream);
+
+    SystemChunk chunk = ser.ReadChunk<SystemChunk>();
+
+    if(chunk != SystemChunk::DriverInit)
+    {
+      RDCERR("Expected to get a DriverInit chunk, instead got %u", chunk);
+      return ReplayStatus::FileCorrupted;
+    }
+
+    SERIALISE_ELEMENT(initParams);
+
+    if(ser.IsErrored())
+    {
+      RDCERR("Failed reading driver init params.");
+      return ReplayStatus::FileIOFailed;
+    }
   }
 
 #if ENABLED(RDOC_ANDROID)
@@ -195,19 +224,13 @@ ReplayStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver
     return ReplayStatus::APIHardwareUnsupported;
   }
 
-  WrappedOpenGL *gl = new WrappedOpenGL(logfile, real, GetGLPlatformEGL());
+  WrappedOpenGL *gl = new WrappedOpenGL(real, GetGLPlatformEGL());
   gl->SetDriverType(RDC_OpenGLES);
-  gl->Initialise(initParams);
-
-  if(gl->GetSerialiser()->HasError())
-  {
-    delete gl;
-    return ReplayStatus::FileIOFailed;
-  }
+  gl->Initialise(initParams, ver);
 
   RDCLOG("Created OPEN GL ES replay device.");
   GLReplay *replay = gl->GetReplay();
-  replay->SetProxy(logfile == NULL);
+  replay->SetProxy(rdc == NULL);
   GLWindowingData data;
   data.egl_dpy = eglDisplay;
   data.egl_ctx = ctx;

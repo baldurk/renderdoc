@@ -164,6 +164,7 @@
     <ClCompile Include="gl_replay_win32.cpp" />
     <ClCompile Include="gl_resources.cpp" />
     <ClCompile Include="gl_shader_refl.cpp" />
+    <ClCompile Include="gl_stringise.cpp" />
     <ClCompile Include="precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>

@@ -26,6 +26,117 @@
 #include "vk_resources.h"
 
 template <>
+std::string DoStringise(const VulkanChunk &el)
+{
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1099, "Chunks changed without updating names");
+
+  BEGIN_ENUM_STRINGISE(VulkanChunk)
+  {
+    STRINGISE_ENUM_CLASS(vkEnumeratePhysicalDevices);
+    STRINGISE_ENUM_CLASS(vkCreateDevice);
+    STRINGISE_ENUM_CLASS(vkGetDeviceQueue);
+    STRINGISE_ENUM_CLASS(vkAllocateMemory);
+    STRINGISE_ENUM_CLASS(vkUnmapMemory);
+    STRINGISE_ENUM_CLASS(vkFlushMappedMemoryRanges);
+    STRINGISE_ENUM_CLASS(vkCreateCommandPool);
+    STRINGISE_ENUM_CLASS(vkResetCommandPool);
+    STRINGISE_ENUM_CLASS(vkCreateFramebuffer);
+    STRINGISE_ENUM_CLASS(vkCreateRenderPass);
+    STRINGISE_ENUM_CLASS(vkCreateDescriptorPool);
+    STRINGISE_ENUM_CLASS(vkCreateDescriptorSetLayout);
+    STRINGISE_ENUM_CLASS(vkCreateBuffer);
+    STRINGISE_ENUM_CLASS(vkCreateBufferView);
+    STRINGISE_ENUM_CLASS(vkCreateImage);
+    STRINGISE_ENUM_CLASS(vkCreateImageView);
+    STRINGISE_ENUM_CLASS(vkCreateDepthTargetView);
+    STRINGISE_ENUM_CLASS(vkCreateSampler);
+    STRINGISE_ENUM_CLASS(vkCreateShaderModule);
+    STRINGISE_ENUM_CLASS(vkCreatePipelineLayout);
+    STRINGISE_ENUM_CLASS(vkCreatePipelineCache);
+    STRINGISE_ENUM_CLASS(vkCreateGraphicsPipelines);
+    STRINGISE_ENUM_CLASS(vkCreateComputePipelines);
+    STRINGISE_ENUM_CLASS(vkGetSwapchainImagesKHR);
+    STRINGISE_ENUM_CLASS(vkCreateSemaphore);
+    STRINGISE_ENUM_CLASS(vkCreateFence);
+    STRINGISE_ENUM_CLASS(vkGetFenceStatus);
+    STRINGISE_ENUM_CLASS(vkResetFences);
+    STRINGISE_ENUM_CLASS(vkWaitForFences);
+    STRINGISE_ENUM_CLASS(vkCreateEvent);
+    STRINGISE_ENUM_CLASS(vkGetEventStatus);
+    STRINGISE_ENUM_CLASS(vkSetEvent);
+    STRINGISE_ENUM_CLASS(vkResetEvent);
+    STRINGISE_ENUM_CLASS(vkCreateQueryPool);
+    STRINGISE_ENUM_CLASS(vkAllocateDescriptorSets);
+    STRINGISE_ENUM_CLASS(vkUpdateDescriptorSets);
+    STRINGISE_ENUM_CLASS(vkBeginCommandBuffer);
+    STRINGISE_ENUM_CLASS(vkEndCommandBuffer);
+    STRINGISE_ENUM_CLASS(vkQueueWaitIdle);
+    STRINGISE_ENUM_CLASS(vkDeviceWaitIdle);
+    STRINGISE_ENUM_CLASS(vkQueueSubmit);
+    STRINGISE_ENUM_CLASS(vkBindBufferMemory);
+    STRINGISE_ENUM_CLASS(vkBindImageMemory);
+    STRINGISE_ENUM_CLASS(vkQueueBindSparse);
+    STRINGISE_ENUM_CLASS(vkCmdBeginRenderPass);
+    STRINGISE_ENUM_CLASS(vkCmdNextSubpass);
+    STRINGISE_ENUM_CLASS(vkCmdExecuteCommands);
+    STRINGISE_ENUM_CLASS(vkCmdEndRenderPass);
+    STRINGISE_ENUM_CLASS(vkCmdBindPipeline);
+    STRINGISE_ENUM_CLASS(vkCmdSetViewport);
+    STRINGISE_ENUM_CLASS(vkCmdSetScissor);
+    STRINGISE_ENUM_CLASS(vkCmdSetLineWidth);
+    STRINGISE_ENUM_CLASS(vkCmdSetDepthBias);
+    STRINGISE_ENUM_CLASS(vkCmdSetBlendConstants);
+    STRINGISE_ENUM_CLASS(vkCmdSetDepthBounds);
+    STRINGISE_ENUM_CLASS(vkCmdSetStencilCompareMask);
+    STRINGISE_ENUM_CLASS(vkCmdSetStencilWriteMask);
+    STRINGISE_ENUM_CLASS(vkCmdSetStencilReference);
+    STRINGISE_ENUM_CLASS(vkCmdBindDescriptorSets);
+    STRINGISE_ENUM_CLASS(vkCmdBindVertexBuffers);
+    STRINGISE_ENUM_CLASS(vkCmdBindIndexBuffer);
+    STRINGISE_ENUM_CLASS(vkCmdCopyBufferToImage);
+    STRINGISE_ENUM_CLASS(vkCmdCopyImageToBuffer);
+    STRINGISE_ENUM_CLASS(vkCmdCopyBuffer);
+    STRINGISE_ENUM_CLASS(vkCmdCopyImage);
+    STRINGISE_ENUM_CLASS(vkCmdBlitImage);
+    STRINGISE_ENUM_CLASS(vkCmdResolveImage);
+    STRINGISE_ENUM_CLASS(vkCmdUpdateBuffer);
+    STRINGISE_ENUM_CLASS(vkCmdFillBuffer);
+    STRINGISE_ENUM_CLASS(vkCmdPushConstants);
+    STRINGISE_ENUM_CLASS(vkCmdClearColorImage);
+    STRINGISE_ENUM_CLASS(vkCmdClearDepthStencilImage);
+    STRINGISE_ENUM_CLASS(vkCmdClearAttachments);
+    STRINGISE_ENUM_CLASS(vkCmdPipelineBarrier);
+    STRINGISE_ENUM_CLASS(vkCmdWriteTimestamp);
+    STRINGISE_ENUM_CLASS(vkCmdCopyQueryPoolResults);
+    STRINGISE_ENUM_CLASS(vkCmdBeginQuery);
+    STRINGISE_ENUM_CLASS(vkCmdEndQuery);
+    STRINGISE_ENUM_CLASS(vkCmdResetQueryPool);
+    STRINGISE_ENUM_CLASS(vkCmdSetEvent);
+    STRINGISE_ENUM_CLASS(vkCmdResetEvent);
+    STRINGISE_ENUM_CLASS(vkCmdWaitEvents);
+    STRINGISE_ENUM_CLASS(vkCmdDraw);
+    STRINGISE_ENUM_CLASS(vkCmdDrawIndirect);
+    STRINGISE_ENUM_CLASS(vkCmdDrawIndexed);
+    STRINGISE_ENUM_CLASS(vkCmdDrawIndexedIndirect);
+    STRINGISE_ENUM_CLASS(vkCmdDispatch);
+    STRINGISE_ENUM_CLASS(vkCmdDispatchIndirect);
+    STRINGISE_ENUM_CLASS(vkCmdDebugMarkerBeginEXT);
+    STRINGISE_ENUM_CLASS(vkCmdDebugMarkerInsertEXT);
+    STRINGISE_ENUM_CLASS(vkCmdDebugMarkerEndEXT);
+    STRINGISE_ENUM_CLASS(vkDebugMarkerSetObjectNameEXT);
+    STRINGISE_ENUM_CLASS(vkCreateSwapchainKHR);
+    STRINGISE_ENUM_CLASS(SetShaderDebugPath);
+    STRINGISE_ENUM_CLASS(vkRegisterDeviceEventEXT);
+    STRINGISE_ENUM_CLASS(vkRegisterDisplayEventEXT);
+    STRINGISE_ENUM_CLASS_NAMED(CaptureScope, "Frame Capture Metadata");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureBegin, "Beginning of Capture");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureEnd, "End of Capture");
+    STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
+  }
+  END_ENUM_STRINGISE()
+}
+
+template <>
 std::string DoStringise(const VkResourceType &el)
 {
   BEGIN_ENUM_STRINGISE(VkResourceType);
@@ -1310,106 +1421,6 @@ std::string DoStringise(const VkResult &el)
   END_ENUM_STRINGISE();
 }
 
-template <>
-std::string DoStringise(const VkMemoryType &el)
-{
-  return StringFormat::Fmt("VkMemoryType<heap %u, %s>", el.heapIndex,
-                           ToStr((VkMemoryPropertyFlagBits)el.propertyFlags).c_str());
-}
-
-template <>
-std::string DoStringise(const VkMemoryHeap &el)
-{
-  return StringFormat::Fmt("VkMemoryHeap<%.3fMB, %s>", float(el.size) / (1024.0f * 1024.0f),
-                           ToStr((VkMemoryHeapFlagBits)el.flags).c_str());
-}
-
-template <>
-std::string DoStringise(const VkRect2D &el)
-{
-  return StringFormat::Fmt("VkRect2D<%dx%d+%d+%d>", el.extent.width, el.extent.height, el.offset.x,
-                           el.offset.y);
-}
-
-template <>
-std::string DoStringise(const VkClearRect &el)
-{
-  return StringFormat::Fmt("VkClearRect<%dx%d+%d+%d %u->%u>", el.rect.extent.width,
-                           el.rect.extent.height, el.rect.offset.x, el.rect.offset.y,
-                           el.baseArrayLayer, el.baseArrayLayer + el.layerCount);
-}
-
-template <>
-std::string DoStringise(const VkClearAttachment &el)
-{
-  return StringFormat::Fmt("%s[%u] = %s", ToStr((VkImageAspectFlagBits)el.aspectMask).c_str(),
-                           el.colorAttachment, ToStr(el.clearValue).c_str());
-}
-
-template <>
-std::string DoStringise(const VkQueueFamilyProperties &el)
-{
-  return StringFormat::Fmt("%s x %u, %u bits, %s", ToStr((VkQueueFlagBits)el.queueFlags).c_str(),
-                           el.queueCount, el.timestampValidBits,
-                           ToStr(el.minImageTransferGranularity).c_str());
-}
-
-template <>
-std::string DoStringise(const VkExtent2D &el)
-{
-  return StringFormat::Fmt("VkExtent<%u,%u>", el.width, el.height);
-}
-
-template <>
-std::string DoStringise(const VkExtent3D &el)
-{
-  return StringFormat::Fmt("VkExtent<%u,%u,%u>", el.width, el.height, el.depth);
-}
-
-template <>
-std::string DoStringise(const VkOffset2D &el)
-{
-  return StringFormat::Fmt("VkOffset<%d,%d>", el.x, el.y);
-}
-
-template <>
-std::string DoStringise(const VkOffset3D &el)
-{
-  return StringFormat::Fmt("VkOffset<%d,%d,%d>", el.x, el.y, el.z);
-}
-
-template <>
-std::string DoStringise(const VkViewport &el)
-{
-  return StringFormat::Fmt("VkViewport<%f,%f, %fx%f, %f-%f>", el.x, el.y, el.width, el.height,
-                           el.minDepth, el.maxDepth);
-}
-
-template <>
-std::string DoStringise(const VkClearColorValue &el)
-{
-  return StringFormat::Fmt("VkClearColorValue<%f,%f,%f,%f>", el.float32[0], el.float32[1],
-                           el.float32[2], el.float32[3]);
-}
-template <>
-std::string DoStringise(const VkClearDepthStencilValue &el)
-{
-  return StringFormat::Fmt("VkClearDepthStencilValue<%f %u>", el.depth, el.stencil);
-}
-template <>
-std::string DoStringise(const VkClearValue &el)
-{
-  return StringFormat::Fmt("VkClearValue[ col:<%f,%f,%f,%f> / d:%f s:%u ]", el.color.float32[0],
-                           el.color.float32[1], el.color.float32[2], el.color.float32[3],
-                           el.depthStencil.depth, el.depthStencil.stencil);
-}
-
-template <>
-std::string DoStringise(const VkAttachmentReference &el)
-{
-  return StringFormat::Fmt("VkAttachmentReference<%u, %s>", el.attachment, ToStr(el.layout).c_str());
-}
-
 ////////////////////////////////////////////////////////////
 // VK_KHR_surface
 ////////////////////////////////////////////////////////////
@@ -1483,4 +1494,10 @@ std::string DoStringise(const VkPresentModeKHR &el)
     STRINGISE_ENUM(VK_PRESENT_MODE_FIFO_RELAXED_KHR)
   }
   END_ENUM_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const VkExtent3D &el)
+{
+  return StringFormat::Fmt("VkExtent3D(%u, %u, %u)", el.width, el.height, el.depth);
 }

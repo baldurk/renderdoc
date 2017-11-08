@@ -369,8 +369,7 @@ private:
 class Win32CallstackResolver : public Callstack::StackResolver
 {
 public:
-  Win32CallstackResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths,
-                         volatile bool *killSignal);
+  Win32CallstackResolver(byte *moduleDB, size_t DBSize, float *progress, volatile bool *killSignal);
   ~Win32CallstackResolver();
 
   Callstack::AddressDetails GetAddr(uint64_t addr);
@@ -519,7 +518,7 @@ struct CV_INFO_PDB70
 
 struct EnumBuf
 {
-  char *bufPtr;
+  byte *bufPtr;
   size_t size;
 };
 
@@ -676,7 +675,7 @@ wstring Win32CallstackResolver::pdbBrowse(wstring startingPoint)
   return outBuf;
 }
 
-Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths,
+Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize, float *progress,
                                                volatile bool *killSignal)
 {
   wstring configPath = StringFormat::UTF82Wide(FileIO::GetAppFolderFilename("config.ini"));
@@ -711,18 +710,8 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
 
   split(ignores, pdbIgnores, L';');
 
-  wstring widepdbsearch = StringFormat::UTF82Wide(pdbSearchPaths);
-
-  split(widepdbsearch, pdbRememberedPaths, L';');
-
-  if(memcmp(moduleDB, "WN32CALL", 8))
-  {
-    RDCWARN("Can't load callstack resolve for this log. Possibly from another platform?");
-    return;
-  }
-
-  char *chunks = moduleDB + 8;
-  char *end = chunks + DBSize - 8;
+  byte *chunks = moduleDB + 8;
+  byte *end = chunks + DBSize - 8;
 
   EnumModChunk *chunk = (EnumModChunk *)(chunks);
   WCHAR *modName = (WCHAR *)(chunks + sizeof(EnumModChunk));
@@ -732,6 +721,9 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
   {
     chunk = (EnumModChunk *)chunks;
     modName = (WCHAR *)(chunks + sizeof(EnumModChunk));
+
+    if(progress)
+      *progress = float(chunks - moduleDB) / float(end - moduleDB);
 
     if(killSignal && *killSignal)
       break;
@@ -862,6 +854,9 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
       continue;
     }
 
+    if(progress)
+      *progress = RDCMIN(1.0f, float(chunks - moduleDB) / float(end - moduleDB));
+
     DIA2::SetBaseAddress(m.moduleId, chunk->base);
 
     RDCLOG("Loaded Symbols for %ls", m.name.c_str());
@@ -971,13 +966,18 @@ Stackwalk *Create()
   return new Win32Callstack(NULL, 0);
 }
 
-StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths,
-                            volatile bool *killSignal)
+StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, float *progress, volatile bool *killSignal)
 {
-  return new Win32CallstackResolver(moduleDB, DBSize, pdbSearchPaths, killSignal);
+  if(DBSize < 8 || memcmp(moduleDB, "WN32CALL", 8))
+  {
+    RDCWARN("Can't load callstack resolve for this log. Possibly from another platform?");
+    return NULL;
+  }
+
+  return new Win32CallstackResolver(moduleDB, DBSize, progress, killSignal);
 }
 
-bool GetLoadedModules(char *&buf, size_t &size)
+bool GetLoadedModules(byte *buf, size_t &size)
 {
   EnumBuf e;
   e.bufPtr = buf;
@@ -985,14 +985,7 @@ bool GetLoadedModules(char *&buf, size_t &size)
 
   if(buf)
   {
-    buf[0] = 'W';
-    buf[1] = 'N';
-    buf[2] = '3';
-    buf[3] = '2';
-    buf[4] = 'C';
-    buf[5] = 'A';
-    buf[6] = 'L';
-    buf[7] = 'L';
+    memcpy(buf, "WN32CALL", 8);
 
     e.bufPtr += 8;
   }

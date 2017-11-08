@@ -292,8 +292,8 @@ struct ThumbCommand : public Command
 
     bytebuf buf;
 
-    ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename.c_str());
-    ReplayStatus st = file->OpenStatus();
+    ICaptureFile *file = RENDERDOC_OpenCaptureFile();
+    ReplayStatus st = file->OpenFile(filename.c_str(), "rdc");
     if(st == ReplayStatus::Succeeded)
     {
       buf = file->GetThumbnail(type, maxsize);
@@ -587,9 +587,9 @@ struct ReplayCommand : public Command
     {
       std::cout << "Replaying '" << filename << "' locally.." << std::endl;
 
-      ICaptureFile *file = RENDERDOC_OpenCaptureFile(filename.c_str());
+      ICaptureFile *file = RENDERDOC_OpenCaptureFile();
 
-      if(file->OpenStatus() != ReplayStatus::Succeeded)
+      if(file->OpenFile(filename.c_str(), "rdc") != ReplayStatus::Succeeded)
       {
         std::cerr << "Couldn't load '" << filename << "'." << std::endl;
         return 1;
@@ -614,6 +614,125 @@ struct ReplayCommand : public Command
         return 1;
       }
     }
+    return 0;
+  }
+};
+
+struct ConvertCommand : public Command
+{
+  rdcarray<CaptureFileFormat> m_Formats;
+
+  ConvertCommand(const GlobalEnvironment &env) : Command(env)
+  {
+    ICaptureFile *tmp = RENDERDOC_OpenCaptureFile();
+
+    m_Formats = tmp->GetCaptureFileFormats();
+
+    tmp->Shutdown();
+  }
+
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    cmdline::oneof_reader<string> formatOptions;
+    for(CaptureFileFormat f : m_Formats)
+      formatOptions.add(f.name);
+
+    parser.add<string>("filename", 'f', "The file to convert from.", false);
+    parser.add<string>("output", 'o', "The file to convert from.", false);
+    parser.add<string>("input-format", 'i', "The format of the input file.", false, "",
+                       formatOptions);
+    parser.add<string>("convert-format", 'c', "The format of the output file.", false, "",
+                       formatOptions);
+    parser.add("list-formats", '\0', "print a list of target formats");
+    parser.stop_at_rest(true);
+  }
+  virtual const char *Description() { return "Run internal tests such as unit tests."; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    if(parser.exist("list-formats"))
+    {
+      std::cerr << "Available formats:" << std::endl;
+      for(CaptureFileFormat f : m_Formats)
+        std::cerr << "'" << (std::string)f.name << "': " << (std::string)f.description << std::endl;
+      return 0;
+    }
+
+    std::string infile = parser.get<string>("filename");
+    std::string outfile = parser.get<string>("output");
+
+    if(infile.empty())
+    {
+      std::cerr << "Need an input filename." << std::endl;
+      std::cerr << parser.usage() << std::endl;
+      return 1;
+    }
+
+    if(outfile.empty())
+    {
+      std::cerr << "Need an output filename." << std::endl;
+      std::cerr << parser.usage() << std::endl;
+      return 1;
+    }
+
+    std::string infmt = parser.get<string>("input-format");
+    std::string outfmt = parser.get<string>("convert-format");
+
+    if(infmt.empty())
+    {
+      // try to guess the format by looking for the extension in the filename
+      for(CaptureFileFormat f : m_Formats)
+      {
+        string extension = ".";
+        extension += f.name;
+
+        if(infile.find(extension.c_str()) != string::npos)
+        {
+          infmt = f.name;
+          break;
+        }
+      }
+    }
+
+    if(outfmt.empty())
+    {
+      // try to guess the format by looking for the extension in the filename
+      for(CaptureFileFormat f : m_Formats)
+      {
+        string extension = ".";
+        extension += f.name;
+
+        if(outfile.find(extension.c_str()) != string::npos)
+        {
+          outfmt = f.name;
+          break;
+        }
+      }
+    }
+
+    ICaptureFile *file = RENDERDOC_OpenCaptureFile();
+
+    ReplayStatus st = file->OpenFile(infile.c_str(), infmt.c_str());
+
+    if(st != ReplayStatus::Succeeded)
+    {
+      std::cerr << "Couldn't load '" << infile << "' as '" << infmt << "': " << ToStr(st)
+                << std::endl;
+      return 1;
+    }
+
+    st = file->Convert(outfile.c_str(), outfmt.c_str());
+
+    if(st != ReplayStatus::Succeeded)
+    {
+      std::cerr << "Couldn't convert '" << infile << "' to '" << outfile << "' as '" << outfmt
+                << "': " << ToStr(st) << std::endl;
+      return 1;
+    }
+
+    std::cout << "Converted '" << infile << "' to '" << outfile << "'" << std::endl;
+
     return 0;
   }
 };
@@ -783,6 +902,7 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
     add_command("replay", new ReplayCommand(env));
     add_command("capaltbit", new CapAltBitCommand(env));
     add_command("test", new TestCommand(env));
+    add_command("convert", new ConvertCommand(env));
 
     if(argv.size() <= 1)
     {

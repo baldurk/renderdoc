@@ -25,16 +25,6 @@
 #include "vk_manager.h"
 #include "vk_core.h"
 
-template <>
-void Serialiser::Serialise(const char *name, ImageRegionState &el)
-{
-  ScopedContext scope(this, name, "ImageRegionState", 0, true);
-
-  Serialise("range", el.subresourceRange);
-  Serialise("prevstate", el.oldLayout);
-  Serialise("state", el.newLayout);
-}
-
 bool VulkanResourceManager::SerialisableResource(ResourceId id, VkResourceRecord *record)
 {
   if(record->SpecialResource || id == m_Core->GetContextResourceID())
@@ -208,7 +198,7 @@ void VulkanResourceManager::RecordBarriers(vector<pair<ResourceId, ImageRegionSt
   {
     const VkImageMemoryBarrier &t = barriers[ti];
 
-    ResourceId id = m_State < WRITING ? GetNonDispWrapper(t.image)->id : GetResID(t.image);
+    ResourceId id = IsReplayMode(m_State) ? GetNonDispWrapper(t.image)->id : GetResID(t.image);
 
     if(id == ResourceId())
     {
@@ -258,31 +248,29 @@ void VulkanResourceManager::MergeBarriers(vector<pair<ResourceId, ImageRegionSta
   TRDBG("Post-merge, there are %u states", (uint32_t)dststates.size());
 }
 
-void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &states,
-                                                 vector<VkImageMemoryBarrier> &barriers)
+template <typename SerialiserType>
+void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
+                                                 std::map<ResourceId, ImageLayouts> &states,
+                                                 std::vector<VkImageMemoryBarrier> &barriers)
 {
-  Serialiser *localSerialiser = m_pSerialiser;
-
-  SERIALISE_ELEMENT(uint32_t, NumMems, (uint32_t)states.size());
+  SERIALISE_ELEMENT_LOCAL(NumImages, (uint32_t)states.size());
 
   auto srcit = states.begin();
 
-  vector<pair<ResourceId, ImageRegionState> > vec;
+  std::vector<pair<ResourceId, ImageRegionState> > vec;
 
-  for(uint32_t i = 0; i < NumMems; i++)
+  for(uint32_t i = 0; i < NumImages; i++)
   {
-    SERIALISE_ELEMENT(ResourceId, id, srcit->first);
-    SERIALISE_ELEMENT(uint32_t, NumStates, (uint32_t)srcit->second.subresourceStates.size());
+    SERIALISE_ELEMENT_LOCAL(Image, (ResourceId)(srcit->first));
+    SERIALISE_ELEMENT_LOCAL(ImageState, (ImageLayouts)(srcit->second));
 
     ResourceId liveid;
-    if(m_State < WRITING && HasLiveResource(id))
-      liveid = GetLiveID(id);
+    if(IsReplayingAndReading() && HasLiveResource(Image))
+      liveid = GetLiveID(Image);
 
-    for(uint32_t m = 0; m < NumStates; m++)
+    if(IsReplayingAndReading() && liveid != ResourceId())
     {
-      SERIALISE_ELEMENT(ImageRegionState, state, srcit->second.subresourceStates[m]);
-
-      if(m_State < WRITING && liveid != ResourceId() && srcit != states.end())
+      for(ImageRegionState &state : ImageState.subresourceStates)
       {
         VkImageMemoryBarrier t;
         t.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -305,7 +293,7 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &
       }
     }
 
-    if(m_State >= WRITING)
+    if(ser.IsWriting())
       srcit++;
   }
 
@@ -360,6 +348,13 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &
     }
   }
 }
+
+template void VulkanResourceManager::SerialiseImageStates(ReadSerialiser &ser,
+                                                          std::map<ResourceId, ImageLayouts> &states,
+                                                          std::vector<VkImageMemoryBarrier> &barriers);
+template void VulkanResourceManager::SerialiseImageStates(WriteSerialiser &ser,
+                                                          std::map<ResourceId, ImageLayouts> &states,
+                                                          std::vector<VkImageMemoryBarrier> &barriers);
 
 void VulkanResourceManager::MarkSparseMapReferenced(SparseMapping *sparse)
 {
@@ -579,9 +574,15 @@ bool VulkanResourceManager::Prepare_InitialState(WrappedVkRes *res)
   return m_Core->Prepare_InitialState(res);
 }
 
-bool VulkanResourceManager::Serialise_InitialState(ResourceId resid, WrappedVkRes *res)
+uint32_t VulkanResourceManager::GetSize_InitialState(ResourceId id, WrappedVkRes *res)
 {
-  return m_Core->Serialise_InitialState(resid, res);
+  return m_Core->GetSize_InitialState(id, res);
+}
+
+bool VulkanResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId resid,
+                                                   WrappedVkRes *res)
+{
+  return m_Core->Serialise_InitialState(ser, resid, res);
 }
 
 void VulkanResourceManager::Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData)

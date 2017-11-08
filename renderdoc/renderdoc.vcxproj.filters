@@ -156,9 +156,6 @@
     <ClInclude Include="maths\formatpacking.h">
       <Filter>Common\Maths</Filter>
     </ClInclude>
-    <ClInclude Include="core\socket_helpers.h">
-      <Filter>Core\networking</Filter>
-    </ClInclude>
     <ClInclude Include="core\replay_proxy.h">
       <Filter>Core\networking</Filter>
     </ClInclude>
@@ -632,6 +629,9 @@
     <ClCompile Include="serialise\codecs\xml_codec.cpp">
       <Filter>Common\Serialise\Codecs</Filter>
     </ClCompile>
+    <ClCompile Include="serialise\serialiser_tests.cpp">
+      <Filter>Common\Serialise</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">
@@ -723,6 +723,9 @@
     </None>
     <None Include="api\replay\renderdoc_tostr.inl">
       <Filter>API\Replay</Filter>
+    </None>
+    <None Include="replay\renderdoc_serialise.inl">
+      <Filter>Replay</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
