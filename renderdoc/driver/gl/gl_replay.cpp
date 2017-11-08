@@ -1007,13 +1007,11 @@ void GLReplay::SavePipelineState()
         fmt.type = ResourceFormatType::R10G10B10A2;
         fmt.compType = type == eGL_UNSIGNED_INT_2_10_10_10_REV ? CompType::UInt : CompType::SInt;
       }
-      else
+      else if(type != eGL_UNSIGNED_BYTE)
       {
+        // haven't checked the other cases work properly
         RDCERR("Unexpected BGRA type");
       }
-
-      // haven't checked the other cases work properly
-      RDCASSERT(type == eGL_UNSIGNED_BYTE);
     }
 
     pipe.m_VtxIn.attributes[i].Format = fmt;
