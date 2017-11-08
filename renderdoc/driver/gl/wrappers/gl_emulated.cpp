@@ -379,7 +379,15 @@ void *APIENTRY _glMapNamedBufferEXT(GLuint buffer, GLenum access)
   PushPopBuffer(eGL_COPY_READ_BUFFER, buffer);
   GLint size;
   hookset->glGetBufferParameteriv(eGL_COPY_READ_BUFFER, eGL_BUFFER_SIZE, &size);
-  return hookset->glMapBufferRange(eGL_COPY_READ_BUFFER, 0, size, eGL_MAP_READ_BIT);
+
+  GLbitfield accessBits = eGL_MAP_READ_BIT | eGL_MAP_WRITE_BIT;
+
+  if(access == eGL_READ_ONLY)
+    accessBits = eGL_MAP_READ_BIT;
+  else if(access == eGL_WRITE_ONLY)
+    accessBits = eGL_MAP_WRITE_BIT;
+
+  return hookset->glMapBufferRange(eGL_COPY_READ_BUFFER, 0, size, accessBits);
 }
 
 void *APIENTRY _glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GLsizeiptr length,
