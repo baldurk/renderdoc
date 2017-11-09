@@ -593,6 +593,8 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
     MapData = (byte *)state->mappedPtr + MapOffset;
   }
 
+  SERIALISE_ELEMENT(MapOffset);
+
   if(IsReplayingAndReading())
   {
     VkResult vkr = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(memory), MapOffset, MapSize, 0,
@@ -600,8 +602,6 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
     if(vkr != VK_SUCCESS)
       RDCERR("Error mapping memory on replay: %s", ToStr(vkr).c_str());
   }
-
-  SERIALISE_ELEMENT(MapOffset);
 
   // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
   // directly into upload memory
