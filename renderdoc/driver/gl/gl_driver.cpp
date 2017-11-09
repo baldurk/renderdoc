@@ -1212,17 +1212,27 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
       if(IsCaptureMode(m_State))
       {
+        PUSH_CURRENT_CHUNK;
         GLuint prevArrayBuffer = 0;
         glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&prevArrayBuffer);
 
         // Initialize VBOs used in case we copy from client memory.
+        gl_CurChunk = GLChunk::glGenBuffers;
         glGenBuffers(ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs), ctxdata.m_ClientMemoryVBOs);
+
         for(size_t i = 0; i < ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs); i++)
         {
+          gl_CurChunk = GLChunk::glBindBuffer;
           glBindBuffer(eGL_ARRAY_BUFFER, ctxdata.m_ClientMemoryVBOs[i]);
+
+          gl_CurChunk = GLChunk::glBufferData;
           glBufferData(eGL_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
         }
+
+        gl_CurChunk = GLChunk::glBindBuffer;
         glBindBuffer(eGL_ARRAY_BUFFER, prevArrayBuffer);
+
+        gl_CurChunk = GLChunk::glGenBuffers;
         glGenBuffers(1, &ctxdata.m_ClientMemoryIBO);
       }
     }

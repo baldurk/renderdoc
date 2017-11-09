@@ -720,6 +720,7 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
                                                                        GLenum indexType,
                                                                        const void *&indices)
 {
+  PUSH_CURRENT_CHUNK;
   RDCASSERT(IsActiveCapturing(m_State));
   ContextData &cd = GetCtxData();
 
@@ -735,7 +736,10 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
     if(idxbuf == 0)
     {
       // Bind and update fake index buffer, to draw from the 'immediate' index data
+      gl_CurChunk = GLChunk::glBindBuffer;
       glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, cd.m_ClientMemoryIBO);
+
+      gl_CurChunk = GLChunk::glBufferData;
       glBufferData(eGL_ELEMENT_ARRAY_BUFFER, idxlen, indices, eGL_STATIC_DRAW);
 
       // Set offset to 0 - means we read data from start of our fake index buffer
@@ -820,9 +824,15 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
     m_Real.glGetVertexAttribPointerv(i, eGL_VERTEX_ATTRIB_ARRAY_POINTER, &attrib.pointer);
 
     GLint totalStride = attrib.stride ? attrib.stride : (GLint)GLTypeSize(attrib.type) * attrib.size;
+
+    gl_CurChunk = GLChunk::glBindBuffer;
     glBindBuffer(eGL_ARRAY_BUFFER, cd.m_ClientMemoryVBOs[i]);
+
     // Copy all client memory, and the pointer becomes a zero offset.
+    gl_CurChunk = GLChunk::glBufferData;
     glBufferData(eGL_ARRAY_BUFFER, (first + count) * totalStride, attrib.pointer, eGL_STATIC_DRAW);
+
+    gl_CurChunk = GLChunk::glVertexAttribPointer;
     glVertexAttribPointer(attrib.index, attrib.size, attrib.type, attrib.normalized, attrib.stride,
                           NULL);
 
@@ -834,26 +844,36 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
 
 void WrappedOpenGL::RestoreClientMemoryArrays(ClientMemoryData *clientMemoryArrays, GLenum indexType)
 {
+  PUSH_CURRENT_CHUNK;
+
   if(indexType != eGL_NONE)
   {
     ContextData &cd = GetCtxData();
     GLuint idxbuf = 0;
     m_Real.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&idxbuf);
     if(idxbuf == cd.m_ClientMemoryIBO)
+    {
       // Restore the zero buffer binding if we were using the fake index buffer.
+      gl_CurChunk = GLChunk::glBindBuffer;
       glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
+    }
   }
 
   if(!clientMemoryArrays)
     return;
 
   // Restore the 0-buffer bindings and attrib pointers.
+  gl_CurChunk = GLChunk::glBindBuffer;
   glBindBuffer(eGL_ARRAY_BUFFER, 0);
+
   for(const ClientMemoryData::VertexAttrib &attrib : clientMemoryArrays->attribs)
   {
+    gl_CurChunk = GLChunk::glVertexAttribPointer;
     glVertexAttribPointer(attrib.index, attrib.size, attrib.type, attrib.normalized, attrib.stride,
                           attrib.pointer);
   }
+
+  gl_CurChunk = GLChunk::glBindBuffer;
   glBindBuffer(eGL_ARRAY_BUFFER, clientMemoryArrays->prevArrayBufferBinding);
 
   delete clientMemoryArrays;
