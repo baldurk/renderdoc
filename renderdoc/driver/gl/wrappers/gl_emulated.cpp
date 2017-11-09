@@ -1446,6 +1446,16 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
 
   size_t sliceSize = GetByteSize(width, height, 1, format, type);
 
+  bool fixBGRA = false;
+  if(!HasExt[EXT_read_format_bgra] && format == eGL_BGRA)
+  {
+    if(type == eGL_UNSIGNED_BYTE)
+      fixBGRA = true;
+    else
+      RDCERR("Can't read back texture without EXT_read_format_bgra extension (data type: %s)",
+             ToStr(type).c_str());
+  }
+
   for(GLint d = 0; d < depth; ++d)
   {
     switch(target)
@@ -1472,7 +1482,16 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     }
 
     byte *dst = (byte *)pixels + d * sliceSize;
-    hookset->glReadPixels(0, 0, width, height, format, type, (void *)dst);
+    GLenum readFormat = fixBGRA ? eGL_RGBA : format;
+    hookset->glReadPixels(0, 0, width, height, readFormat, type, (void *)dst);
+
+    if(fixBGRA)
+    {
+      // since we read back the texture with RGBA format, we have to flip the R and B components
+      byte *b = dst;
+      for(GLint i = 0, n = width * height; i < n; ++i, b += 4)
+        std::swap(*b, *(b + 2));
+    }
   }
 
   hookset->glDeleteFramebuffers(1, &fbo);
