@@ -1828,6 +1828,8 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
       }
     }
 
+    ResourceId origcmd = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
     for(uint32_t i = 0; i < imageMemoryBarrierCount; i++)
     {
       if(pImageMemoryBarriers[i].image != VK_NULL_HANDLE)
@@ -1839,6 +1841,13 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
         ReplaceExternalQueueFamily(imgBarriers.back().srcQueueFamilyIndex,
                                    imgBarriers.back().dstQueueFamilyIndex);
+
+        if(IsLoading(m_State))
+        {
+          m_BakedCmdBufferInfo[origcmd].resourceUsage.push_back(std::make_pair(
+              GetResID(pImageMemoryBarriers[i].image),
+              EventUsage(m_BakedCmdBufferInfo[origcmd].curEventID, ResourceUsage::Barrier)));
+        }
       }
     }
 
@@ -1848,17 +1857,6 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
-    }
-    else
-    {
-      ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
-
-      for(size_t i = 0; i < imgBarriers.size(); i++)
-      {
-        m_BakedCmdBufferInfo[cmd].resourceUsage.push_back(std::make_pair(
-            GetResID(imgBarriers[i].image),
-            EventUsage(m_BakedCmdBufferInfo[cmd].curEventID, ResourceUsage::Barrier)));
-      }
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
