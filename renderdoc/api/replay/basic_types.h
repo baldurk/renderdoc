@@ -158,7 +158,6 @@ public:
   bool empty() const { return usedCount == 0; }
   bool isEmpty() const { return usedCount == 0; }
   void clear() { resize(0); }
-  void push_back(const T &el) { insert(size(), &el, 1); }
   /////////////////////////////////////////////////////////////////
   // managing elements and memory
 
@@ -229,6 +228,15 @@ public:
       for(int32_t i = usedCount; i < oldCount; i++)
         elems[i].~T();
     }
+  }
+
+  void push_back(const T &el)
+  {
+    // in-line implementation here instead of insert()
+    const size_t lastIdx = size();
+    reserve(size() + 1);
+    new(elems + lastIdx) T(el);
+    setUsedCount(usedCount + 1);
   }
 
   void insert(size_t offs, const T *el, size_t count)
