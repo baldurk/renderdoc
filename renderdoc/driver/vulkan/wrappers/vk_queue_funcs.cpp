@@ -375,7 +375,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
           for(uint32_t i = 0; i < trimmedCmdIds.size(); i++)
           {
-            ResourceId cmd = GetResID(submitInfo.pCommandBuffers[i]);
+            ResourceId cmd = trimmedCmdIds[i];
             GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers,
                                                 m_ImageLayouts);
           }
