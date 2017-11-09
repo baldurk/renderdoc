@@ -329,7 +329,7 @@ void RDCFile::Init(StreamReader &reader)
     RDCERR(
         "Capture file from wrong version. This program (v%s) is logfile version %llu, file is "
         "logfile version %llu capture on %s.",
-        SERIALISE_VERSION, header.version, MAJOR_MINOR_VERSION_STRING, header.progVersion);
+        MAJOR_MINOR_VERSION_STRING, SERIALISE_VERSION, header.version, header.progVersion);
 
     m_Error = ContainerError::UnsupportedVersion;
     return;
