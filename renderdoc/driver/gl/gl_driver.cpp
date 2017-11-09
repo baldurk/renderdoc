@@ -4654,7 +4654,7 @@ void WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t startEventI
 
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
   {
-    ser.ConfigureStructuredExport(&GetChunkName, false);
+    ser.ConfigureStructuredExport(&GetChunkName, IsStructuredExporting(m_State));
 
     ser.GetStructuredFile().swap(*m_StructuredFile);
 
