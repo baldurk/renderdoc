@@ -1213,6 +1213,10 @@ void DoSerialise(SerialiserType &ser, VkBufferMemoryBarrier &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER);
   SerialiseNext(ser, el.sType, el.pNext);
 
+  // Resources in this struct are optional, because if we decided a resource wasn't used - we
+  // might still have recorded some barriers on it
+  OPTIONAL_RESOURCES();
+
   SERIALISE_MEMBER_TYPED(VkAccessFlagBits, srcAccessMask);
   SERIALISE_MEMBER_TYPED(VkAccessFlagBits, dstAccessMask);
   // serialise as signed because then QUEUE_FAMILY_IGNORED is -1 and queue
@@ -1229,6 +1233,10 @@ void DoSerialise(SerialiserType &ser, VkImageMemoryBarrier &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
   SerialiseNext(ser, el.sType, el.pNext);
+
+  // Resources in this struct are optional, because if we decided a resource wasn't used - we
+  // might still have recorded some barriers on it
+  OPTIONAL_RESOURCES();
 
   SERIALISE_MEMBER_TYPED(VkAccessFlagBits, srcAccessMask);
   SERIALISE_MEMBER_TYPED(VkAccessFlagBits, dstAccessMask);
