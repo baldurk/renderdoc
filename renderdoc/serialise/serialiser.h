@@ -234,6 +234,8 @@ public:
       obj.type.byteSize = byteSize;
     }
 
+    byte *tempAlloc = NULL;
+
     {
       if(IsWriting())
       {
@@ -261,6 +263,17 @@ public:
           else
             el = NULL;
         }
+
+        // if we're exporting the buffers, make sure to always alloc space to read the data, so we
+        // can save it out, even if the external code has no use for it and has asked for no
+        // allocation.
+        if(el == NULL && ExportStructure() && m_ExportBuffers)
+        {
+          if(byteSize > 0)
+            el = tempAlloc = AllocAlignedBuffer(byteSize);
+          else
+            el = NULL;
+        }
 #endif
 
         m_Read->Read(el, byteSize);
@@ -284,6 +297,12 @@ public:
       }
 
       m_StructureStack.pop_back();
+    }
+
+    if(tempAlloc)
+    {
+      FreeAlignedBuffer(tempAlloc);
+      el = NULL;
     }
 
     return *this;
