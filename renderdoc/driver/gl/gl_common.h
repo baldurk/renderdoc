@@ -1754,7 +1754,19 @@ enum class GLChunk : uint32_t
   Max,
 };
 
+class GLChunkPreserver
+{
+public:
+  GLChunkPreserver(GLChunk &original) : m_original(original), m_value(original) {}
+  ~GLChunkPreserver() { m_original = m_value; }
+private:
+  GLChunk &m_original;
+  GLChunk m_value;
+};
+
 // set at the point of each hooked entry point, so we know precisely which function was called
 extern GLChunk gl_CurChunk;
+
+#define PUSH_CURRENT_CHUNK GLChunkPreserver _chunk_restore(gl_CurChunk)
 
 DECLARE_REFLECTION_ENUM(GLChunk);
