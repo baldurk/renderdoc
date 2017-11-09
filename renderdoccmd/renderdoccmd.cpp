@@ -638,7 +638,7 @@ struct ConvertCommand : public Command
       formatOptions.add(f.name);
 
     parser.add<string>("filename", 'f', "The file to convert from.", false);
-    parser.add<string>("output", 'o', "The file to convert from.", false);
+    parser.add<string>("output", 'o', "The file to convert to.", false);
     parser.add<string>("input-format", 'i', "The format of the input file.", false, "",
                        formatOptions);
     parser.add<string>("convert-format", 'c', "The format of the output file.", false, "",
@@ -646,7 +646,7 @@ struct ConvertCommand : public Command
     parser.add("list-formats", '\0', "print a list of target formats");
     parser.stop_at_rest(true);
   }
-  virtual const char *Description() { return "Run internal tests such as unit tests."; }
+  virtual const char *Description() { return "Convert between capture formats."; }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
