@@ -160,6 +160,30 @@ void WrappedVulkan::vkGetImageMemoryRequirements(VkDevice device, VkImage image,
   for(uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
     if(memIdxMap[i] < 32U && (bits & (1U << memIdxMap[i])))
       pMemoryRequirements->memoryTypeBits |= (1U << i);
+
+  // AMD can have some variability in the returned size, so we need to pad the reported size to
+  // allow for this. The variability isn't quite clear, but for now we assume aligning size to
+  // alignment * 4 should be sufficient (adding on a fixed padding won't help the problem as it
+  // won't remove the variability, nor will adding then aligning for the same reason).
+  if(GetDriverVersion().IsAMD())
+  {
+    VkMemoryRequirements &memreq = *pMemoryRequirements;
+
+    VkDeviceSize oldsize = memreq.size;
+    memreq.size = AlignUp(memreq.size, memreq.alignment * 4);
+
+    // if it's already 'super aligned', then bump it up a little. We assume that this case
+    // represents the low-end of the variation range, and other variations will be a little higher.
+    // The other alternative is the variations are all lower and this one happened to be super
+    // aligned, which I think (arbitrarily really) is less likely.
+    if(oldsize == memreq.size)
+      memreq.size = AlignUp(memreq.size + 1, memreq.alignment * 4);
+
+    RDCDEBUG(
+        "Padded image memory requirements from %llu to %llu (base alignment %llu) (%f%% increase)",
+        oldsize, memreq.size, memreq.alignment,
+        (100.0 * double(memreq.size - oldsize)) / double(oldsize));
+  }
 }
 
 void WrappedVulkan::vkGetImageSparseMemoryRequirements(
@@ -218,6 +242,30 @@ void WrappedVulkan::vkGetImageMemoryRequirements2KHR(VkDevice device,
   for(uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
     if(memIdxMap[i] < 32U && (bits & (1U << memIdxMap[i])))
       pMemoryRequirements->memoryRequirements.memoryTypeBits |= (1U << i);
+
+  // AMD can have some variability in the returned size, so we need to pad the reported size to
+  // allow for this. The variability isn't quite clear, but for now we assume aligning size to
+  // alignment * 4 should be sufficient (adding on a fixed padding won't help the problem as it
+  // won't remove the variability, nor will adding then aligning for the same reason).
+  if(GetDriverVersion().IsAMD())
+  {
+    VkMemoryRequirements &memreq = pMemoryRequirements->memoryRequirements;
+
+    VkDeviceSize oldsize = memreq.size;
+    memreq.size = AlignUp(memreq.size, memreq.alignment * 4);
+
+    // if it's already 'super aligned', then bump it up a little. We assume that this case
+    // represents the low-end of the variation range, and other variations will be a little higher.
+    // The other alternative is the variations are all lower and this one happened to be super
+    // aligned, which I think (arbitrarily really) is less likely.
+    if(oldsize == memreq.size)
+      memreq.size = AlignUp(memreq.size + 1, memreq.alignment * 4);
+
+    RDCDEBUG(
+        "Padded image memory requirements from %llu to %llu (base alignment %llu) (%f%% increase)",
+        oldsize, memreq.size, memreq.alignment,
+        (100.0 * double(memreq.size - oldsize)) / double(oldsize));
+  }
 }
 
 void WrappedVulkan::vkGetImageSparseMemoryRequirements2KHR(
