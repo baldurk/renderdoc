@@ -749,8 +749,7 @@ int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
     return 1;
 
   if(stylehint == SH_Menu_FlashTriggeredItem || stylehint == SH_Menu_KeyboardSearch ||
-     stylehint == SH_Menu_FadeOutOnHide || stylehint == SH_Menu_AllowActiveAndDisabled ||
-     stylehint == SH_Menu_Scrollable)
+     stylehint == SH_Menu_FadeOutOnHide || stylehint == SH_Menu_AllowActiveAndDisabled)
     return 0;
 
   if(stylehint == SH_Menu_SubMenuPopupDelay || stylehint == SH_Menu_SubMenuSloppyCloseTimeout)

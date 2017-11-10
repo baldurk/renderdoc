@@ -83,6 +83,15 @@ int RDTweakedNativeStyle::pixelMetric(PixelMetric metric, const QStyleOption *op
   return QProxyStyle::pixelMetric(metric, opt, widget);
 }
 
+int RDTweakedNativeStyle::styleHint(StyleHint stylehint, const QStyleOption *opt,
+                                    const QWidget *widget, QStyleHintReturn *returnData) const
+{
+  if(stylehint == QStyle::SH_Menu_Scrollable)
+    return 1;
+
+  return QProxyStyle::styleHint(stylehint, opt, widget, returnData);
+}
+
 QIcon RDTweakedNativeStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *opt,
                                          const QWidget *widget) const
 {
