@@ -1031,10 +1031,7 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   ui->controlType->addItems({tr("Arcball"), tr("WASD")});
   ui->controlType->adjustSize();
 
-  ui->drawRange->addItems({tr("Only this draw"), tr("Show previous instances"),
-                           tr("Show all instances"), tr("Show whole pass")});
-  ui->drawRange->adjustSize();
-  ui->drawRange->setCurrentIndex(0);
+  configureDrawRange();
 
   ui->solidShading->addItems({tr("None"), tr("Solid Colour"), tr("Flat Shaded"), tr("Secondary")});
   ui->solidShading->adjustSize();
@@ -1345,6 +1342,8 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   };
 
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+
+  configureDrawRange();
 
   if(m_MeshView)
   {
@@ -2345,6 +2344,42 @@ void BufferViewer::configureMeshColumns()
   }
 }
 
+void BufferViewer::configureDrawRange()
+{
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+
+  int curIndex = ui->drawRange->currentIndex();
+
+  bool instanced = true;
+
+  // don't check the flags, check if there are actually multiple instances
+  if(m_Ctx.LogLoaded())
+    instanced = draw && draw->numInstances > 1;
+
+  ui->drawRange->blockSignals(true);
+  ui->drawRange->clear();
+  if(instanced)
+    ui->drawRange->addItems(
+        {tr("This instance"), tr("Previous instances"), tr("All instances"), tr("Whole pass")});
+  else
+    ui->drawRange->addItems({tr("This draw"), tr("Previous instances (N/A)"),
+                             tr("All instances (N/A)"), tr("Whole pass")});
+
+  // preserve the previously selected index
+  ui->drawRange->setCurrentIndex(qMax(0, curIndex));
+  ui->drawRange->blockSignals(false);
+
+  ui->drawRange->adjustSize();
+
+  ui->drawRange->setEnabled(m_CurStage != MeshDataStage::VSIn);
+
+  curIndex = ui->drawRange->currentIndex();
+
+  m_Config.showPrevInstances = (curIndex >= 1);
+  m_Config.showAllInstances = (curIndex >= 2);
+  m_Config.showWholePass = (curIndex >= 3);
+}
+
 void BufferViewer::ApplyRowAndColumnDims(int numColumns, RDTableView *view)
 {
   int start = 0;
@@ -2621,6 +2656,8 @@ int BufferViewer::currentStageIndex()
 void BufferViewer::Reset()
 {
   m_Output = NULL;
+
+  configureDrawRange();
 
   ClearModels();
 
@@ -3157,7 +3194,7 @@ void BufferViewer::on_outputTabs_currentChanged(int index)
   else if(index == 2)
     m_CurStage = MeshDataStage::GSOut;
 
-  ui->drawRange->setEnabled(index > 0);
+  configureDrawRange();
 
   on_resetCamera_clicked();
   ui->autofitCamera->setEnabled(!isCurrentRasterOut());
@@ -3222,16 +3259,7 @@ void BufferViewer::on_solidShading_currentIndexChanged(int index)
 
 void BufferViewer::on_drawRange_currentIndexChanged(int index)
 {
-  /*
-  "Only this draw",
-  "Show previous instances",
-  "Show all instances",
-  "Show whole pass"
-   */
-
-  m_Config.showPrevInstances = (index >= 1);
-  m_Config.showAllInstances = (index >= 2);
-  m_Config.showWholePass = (index >= 3);
+  configureDrawRange();
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }

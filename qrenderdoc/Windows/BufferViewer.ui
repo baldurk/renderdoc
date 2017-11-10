@@ -234,6 +234,20 @@
             </widget>
            </item>
            <item>
+            <widget class="Line" name="line">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="controlTypeLabel">
+             <property name="text">
+              <string>Controls</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QComboBox" name="controlType"/>
            </item>
            <item>
@@ -244,7 +258,18 @@
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="drawRange"/>
+            <widget class="QLabel" name="drawRangeLabel">
+             <property name="text">
+              <string>Show</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="drawRange">
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToContents</enum>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="Line" name="line_6">

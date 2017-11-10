@@ -129,6 +129,8 @@ private:
 
   IReplayOutput *m_Output;
 
+  void configureDrawRange();
+
   void RT_UpdateAndDisplay(IReplayController *);
   void RT_FetchMeshData(IReplayController *r);
 
