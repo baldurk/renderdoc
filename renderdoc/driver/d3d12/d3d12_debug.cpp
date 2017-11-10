@@ -5519,18 +5519,21 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
         if(PatchList_Count(fmt.topo) > 0)
           list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-        if(fmt.idxByteWidth && fmt.idxbuf != ResourceId())
+        if(fmt.idxByteWidth)
         {
-          ID3D12Resource *ib =
-              m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.idxbuf);
+          if(fmt.idxbuf != ResourceId())
+          {
+            ID3D12Resource *ib =
+                m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.idxbuf);
 
-          D3D12_INDEX_BUFFER_VIEW iview;
-          iview.BufferLocation = ib->GetGPUVirtualAddress() + fmt.idxoffs;
-          iview.SizeInBytes = UINT(ib->GetDesc().Width - fmt.idxoffs);
-          iview.Format = fmt.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
-          list->IASetIndexBuffer(&iview);
+            D3D12_INDEX_BUFFER_VIEW iview;
+            iview.BufferLocation = ib->GetGPUVirtualAddress() + fmt.idxoffs;
+            iview.SizeInBytes = UINT(ib->GetDesc().Width - fmt.idxoffs);
+            iview.Format = fmt.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+            list->IASetIndexBuffer(&iview);
 
-          list->DrawIndexedInstanced(fmt.numVerts, 1, 0, fmt.baseVertex, 0);
+            list->DrawIndexedInstanced(fmt.numVerts, 1, 0, fmt.baseVertex, 0);
+          }
         }
         else
         {
@@ -5620,18 +5623,21 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     Vec4f colour(0.8f, 0.8f, 0.0f, 1.0f);
     list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
 
-    if(cfg.position.idxByteWidth && cfg.position.idxbuf != ResourceId())
+    if(cfg.position.idxByteWidth)
     {
-      ID3D12Resource *ib =
-          m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.idxbuf);
+      if(cfg.position.idxbuf != ResourceId())
+      {
+        ID3D12Resource *ib =
+            m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.idxbuf);
 
-      D3D12_INDEX_BUFFER_VIEW view;
-      view.BufferLocation = ib->GetGPUVirtualAddress() + cfg.position.idxoffs;
-      view.SizeInBytes = UINT(ib->GetDesc().Width - cfg.position.idxoffs);
-      view.Format = cfg.position.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
-      list->IASetIndexBuffer(&view);
+        D3D12_INDEX_BUFFER_VIEW view;
+        view.BufferLocation = ib->GetGPUVirtualAddress() + cfg.position.idxoffs;
+        view.SizeInBytes = UINT(ib->GetDesc().Width - cfg.position.idxoffs);
+        view.Format = cfg.position.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+        list->IASetIndexBuffer(&view);
 
-      list->DrawIndexedInstanced(cfg.position.numVerts, 1, 0, cfg.position.baseVertex, 0);
+        list->DrawIndexedInstanced(cfg.position.numVerts, 1, 0, cfg.position.baseVertex, 0);
+      }
     }
     else
     {

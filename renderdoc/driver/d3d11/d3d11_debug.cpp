@@ -4982,7 +4982,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     }
 
     m_pImmediateContext->IASetVertexBuffers(0, 2, vbs, str, offs);
-    if(ibuf)
+    if(cfg.position.idxByteWidth)
       m_pImmediateContext->IASetIndexBuffer(ibuf, ifmt, ioffs);
     else
       m_pImmediateContext->IASetIndexBuffer(NULL, DXGI_FORMAT_UNKNOWN, NULL);

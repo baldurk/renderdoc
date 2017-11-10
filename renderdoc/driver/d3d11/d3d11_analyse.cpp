@@ -2572,20 +2572,23 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
     RDCASSERT(cfg.position.idxoffs < 0xffffffff);
 
-    D3D11_BUFFER_DESC ibdesc;
-    ib->GetDesc(&ibdesc);
+    if(ib)
+    {
+      D3D11_BUFFER_DESC ibdesc;
+      ib->GetDesc(&ibdesc);
 
-    D3D11_BOX box;
-    box.front = 0;
-    box.back = 1;
-    box.left = (uint32_t)cfg.position.idxoffs;
-    box.right = (uint32_t)cfg.position.idxoffs + cfg.position.numVerts * cfg.position.idxByteWidth;
-    box.top = 0;
-    box.bottom = 1;
+      D3D11_BOX box;
+      box.front = 0;
+      box.back = 1;
+      box.left = (uint32_t)cfg.position.idxoffs;
+      box.right = (uint32_t)cfg.position.idxoffs + cfg.position.numVerts * cfg.position.idxByteWidth;
+      box.top = 0;
+      box.bottom = 1;
 
-    box.right = RDCMIN(box.right, ibdesc.ByteWidth - (uint32_t)cfg.position.idxoffs);
+      box.right = RDCMIN(box.right, ibdesc.ByteWidth - (uint32_t)cfg.position.idxoffs);
 
-    m_pImmediateContext->CopySubresourceRegion(m_DebugRender.PickIBBuf, 0, 0, 0, 0, ib, 0, &box);
+      m_pImmediateContext->CopySubresourceRegion(m_DebugRender.PickIBBuf, 0, 0, 0, 0, ib, 0, &box);
+    }
   }
 
   if(m_DebugRender.PickVBBuf == NULL ||
@@ -2629,6 +2632,7 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
   }
 
   // unpack and linearise the data
+  if(vb)
   {
     FloatVector *vbData = new FloatVector[cfg.position.numVerts];
 

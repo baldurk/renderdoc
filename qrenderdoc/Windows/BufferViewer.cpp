@@ -1453,6 +1453,9 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       guessSecondaryColumn(m_ModelGSOut);
   }
 
+  // needs to happen here so the mesh config is accurate when highlighting data is cached.
+  updatePreviewColumns();
+
   m_Ctx.Replay().AsyncInvoke([this, vsinHoriz, vsoutHoriz, gsoutHoriz](IReplayController *r) {
 
     BufferData *buf = NULL;
@@ -1501,8 +1504,6 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
         // ownership passes to model
         m_ModelVSIn->buffers.push_back(buf);
       }
-
-      updatePreviewColumns();
 
       INVOKE_MEMFN(RT_UpdateAndDisplay);
 
@@ -1565,6 +1566,12 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
     indices = new uint32_t[draw->numIndices];
     m_ModelVSIn->indices->data = (byte *)indices;
     m_ModelVSIn->indices->end = (byte *)(indices + draw->numIndices);
+  }
+  else if(draw && (draw->flags & DrawFlags::UseIBuffer))
+  {
+    indices = new uint32_t[1];
+    m_ModelVSIn->indices->data = (byte *)indices;
+    m_ModelVSIn->indices->end = (byte *)indices;
   }
 
   uint32_t maxIndex = 0;
@@ -2102,6 +2109,9 @@ void BufferViewer::updatePreviewColumns()
       QPair<ResourceId, uint64_t> ib = m_Ctx.CurPipelineState().GetIBuffer();
       m_VSInPosition.idxbuf = ib.first;
       m_VSInPosition.idxoffs = ib.second + draw->indexOffset * draw->indexByteWidth;
+
+      if((draw->flags & DrawFlags::UseIBuffer) && m_VSInPosition.idxByteWidth == 0)
+        m_VSInPosition.idxByteWidth = 4U;
 
       {
         const FormatElement &el = m_ModelVSIn->columns[elIdx];

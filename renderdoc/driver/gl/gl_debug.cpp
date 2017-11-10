@@ -2978,7 +2978,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
             gl.glEnableVertexAttribArray(0);
             gl.glDisableVertexAttribArray(1);
 
-            if(postvs.idxbuf != ResourceId())
+            if(postvs.idxByteWidth)
             {
               GLenum idxtype = eGL_UNSIGNED_BYTE;
               if(postvs.idxByteWidth == 2)
@@ -4811,7 +4811,7 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
 
         GLenum secondarytopo = MakeGLPrimitiveTopology(fmt.topo);
 
-        if(fmt.idxbuf != ResourceId())
+        if(fmt.idxByteWidth)
         {
           GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.idxbuf).name;
           gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
