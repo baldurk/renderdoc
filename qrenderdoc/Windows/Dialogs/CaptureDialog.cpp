@@ -136,6 +136,8 @@ CaptureDialog::CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallba
   proxy->setFilterKeyColumn(-1);
   // allow updating the underlying model
   proxy->setDynamicSortFilter(true);
+  // use case-insensitive filtering
+  proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
 
   ui->processList->setModel(proxy);
   ui->processList->setAlternatingRowColors(true);
