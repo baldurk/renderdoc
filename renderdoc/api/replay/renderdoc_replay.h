@@ -404,6 +404,13 @@ The different types are enumerated in :class:`ReplayOutputType`.
 )");
 struct IReplayOutput
 {
+  DOCUMENT(R"(Shutdown this output.
+
+It's optional to call this, as calling :meth:`ReplayController.Shutdown` will shut down all of its
+outputs.
+)");
+  virtual void Shutdown() = 0;
+
   DOCUMENT("Sets the :class:`TextureDisplay` configuration for a texture output.");
   virtual void SetTextureDisplay(const TextureDisplay &o) = 0;
 
@@ -586,12 +593,6 @@ struct IReplayController
 
   DOCUMENT("Shutdown and destroy the current interface and all outputs that have been created.");
   virtual void Shutdown() = 0;
-
-  DOCUMENT(R"(Shutdown a particular output.
-
-:param ReplayOutput output: The output to shut down.
-)");
-  virtual void ShutdownOutput(IReplayOutput *output) = 0;
 
   DOCUMENT(R"(Goes into a blocking loop, repeatedly replaying the open capture as fast as possible,
 displaying the selected texture in a default unscaled manner to the given output window.

@@ -117,6 +117,11 @@ ReplayOutput::~ReplayOutput()
   ClearThumbnails();
 }
 
+void ReplayOutput::Shutdown()
+{
+  m_pRenderer->ShutdownOutput(this);
+}
+
 void ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
 {
   if(o.overlay != m_RenderData.texDisplay.overlay ||

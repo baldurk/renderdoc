@@ -37,6 +37,7 @@ struct ReplayController;
 struct ReplayOutput : public IReplayOutput
 {
 public:
+  void Shutdown();
   void SetTextureDisplay(const TextureDisplay &o);
   void SetMeshDisplay(const MeshDisplay &o);
 

@@ -1274,6 +1274,9 @@ void BufferViewer::stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &
 
 BufferViewer::~BufferViewer()
 {
+  if(m_Output)
+    m_Output->Shutdown();
+
   if(m_ModelVSIn->indices)
     m_ModelVSIn->indices->deref();
 

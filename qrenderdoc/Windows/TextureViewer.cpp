@@ -652,6 +652,9 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
 
 TextureViewer::~TextureViewer()
 {
+  if(m_Output)
+    m_Output->Shutdown();
+
   m_Ctx.BuiltinWindowClosed(this);
   m_Ctx.RemoveLogViewer(this);
   delete ui;

@@ -1427,7 +1427,17 @@ ReplayOutput *ReplayController::CreateOutput(WindowingSystem system, void *data,
 
 void ReplayController::ShutdownOutput(IReplayOutput *output)
 {
-  RDCUNIMPLEMENTED("Shutting down individual outputs");
+  for(auto it = m_Outputs.begin(); it != m_Outputs.end(); ++it)
+  {
+    if((IReplayOutput *)*it == output)
+    {
+      delete *it;
+      m_Outputs.erase(it);
+      return;
+    }
+  }
+
+  RDCERR("Unrecognised output");
 }
 
 void ReplayController::Shutdown()
