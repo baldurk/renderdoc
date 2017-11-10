@@ -683,6 +683,9 @@ void TextureViewer::RT_PickPixelsAndUpdate(IReplayController *)
 {
   PixelValue pickValue, realValue;
 
+  if(m_PickedPoint.x() < 0 || m_PickedPoint.y() < 0)
+    return;
+
   uint32_t x = (uint32_t)m_PickedPoint.x();
   uint32_t y = (uint32_t)m_PickedPoint.y();
 
@@ -2550,6 +2553,9 @@ void TextureViewer::OnLogfileLoaded()
 void TextureViewer::Reset()
 {
   m_CachedTexture = NULL;
+
+  m_PickedPoint.setX(-1);
+  m_PickedPoint.setY(-1);
 
   memset(&m_TexDisplay, 0, sizeof(m_TexDisplay));
   m_TexDisplay.backgroundColor =
