@@ -189,8 +189,8 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   }
 
   QVBoxLayout *layout = new QVBoxLayout(this);
-  layout->setSpacing(0);
-  layout->setMargin(0);
+  layout->setSpacing(3);
+  layout->setContentsMargins(3, 3, 3, 3);
   layout->addWidget(ui->toolbar);
   layout->addWidget(ui->docking);
 

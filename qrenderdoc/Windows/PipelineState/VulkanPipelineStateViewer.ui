@@ -36,19 +36,19 @@
      </property>
      <layout class="QHBoxLayout" name="toolbarLayout">
       <property name="spacing">
-       <number>0</number>
+       <number>2</number>
       </property>
       <property name="leftMargin">
-       <number>0</number>
+       <number>6</number>
       </property>
       <property name="topMargin">
-       <number>0</number>
+       <number>2</number>
       </property>
       <property name="rightMargin">
-       <number>0</number>
+       <number>6</number>
       </property>
       <property name="bottomMargin">
-       <number>0</number>
+       <number>2</number>
       </property>
       <item>
        <widget class="QLabel" name="controlsLabel">
@@ -203,7 +203,7 @@
             <x>0</x>
             <y>0</y>
             <width>911</width>
-            <height>511</height>
+            <height>507</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
@@ -615,8 +615,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>462</height>
+            <width>96</width>
+            <height>432</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_12">
@@ -894,8 +894,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>462</height>
+            <width>96</width>
+            <height>432</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -1173,8 +1173,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>462</height>
+            <width>96</width>
+            <height>432</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_13">
@@ -1452,8 +1452,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>462</height>
+            <width>96</width>
+            <height>432</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_14">
@@ -2403,8 +2403,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>462</height>
+            <width>96</width>
+            <height>432</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_15">
@@ -2560,8 +2560,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>511</height>
+            <width>488</width>
+            <height>292</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -3173,8 +3173,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>462</height>
+            <width>96</width>
+            <height>432</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_16">
