@@ -563,6 +563,8 @@ void MainWindow::OpenCaptureConfigFile(const QString &filename, bool exe)
 
   if(!ui->toolWindowManager->toolWindows().contains(capDialog->Widget()))
     ui->toolWindowManager->addToolWindow(capDialog->Widget(), mainToolArea());
+
+  ToolWindowManager::raiseToolWindow(capDialog->Widget());
 }
 
 QString MainWindow::GetSavePath()
