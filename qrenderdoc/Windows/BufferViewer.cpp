@@ -2815,13 +2815,21 @@ void BufferViewer::CalcColumnWidth(int maxNumRows)
 
 void BufferViewer::data_selected(const QItemSelection &selected, const QItemSelection &deselected)
 {
-  m_CurView = qobject_cast<RDTableView *>(QObject::sender());
+  QObject *sender = QObject::sender();
+  RDTableView *view = qobject_cast<RDTableView *>(sender);
+  if(view == NULL)
+    view = qobject_cast<RDTableView *>(sender->parent());
+
+  if(view == NULL)
+    return;
+
+  m_CurView = view;
 
   if(selected.count() > 0)
   {
     UpdateHighlightVerts();
 
-    SyncViews(qobject_cast<RDTableView *>(QObject::sender()), true, false);
+    SyncViews(view, true, false);
 
     INVOKE_MEMFN(RT_UpdateAndDisplay);
   }
@@ -2829,7 +2837,15 @@ void BufferViewer::data_selected(const QItemSelection &selected, const QItemSele
 
 void BufferViewer::data_scrolled(int scrollvalue)
 {
-  SyncViews(qobject_cast<RDTableView *>(QObject::sender()), false, true);
+  QObject *sender = QObject::sender();
+  RDTableView *view = qobject_cast<RDTableView *>(sender);
+  if(view == NULL)
+    view = qobject_cast<RDTableView *>(sender->parent());
+
+  if(view == NULL)
+    return;
+
+  SyncViews(view, false, true);
 }
 
 void BufferViewer::camGuess_changed(double value)
