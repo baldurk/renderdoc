@@ -1645,6 +1645,8 @@ void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
 
     rm->ReplaceResource(from, to);
   }
+
+  m_pDevice->GetDebugManager()->ClearPostVSCache();
 }
 
 void D3D12Replay::RemoveReplacement(ResourceId id)

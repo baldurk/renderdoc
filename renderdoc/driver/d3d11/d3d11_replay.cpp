@@ -1498,6 +1498,7 @@ byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)
 {
   m_pDevice->GetResourceManager()->ReplaceResource(from, to);
+  m_pDevice->GetDebugManager()->ClearPostVSCache();
 }
 
 void D3D11Replay::RemoveReplacement(ResourceId id)

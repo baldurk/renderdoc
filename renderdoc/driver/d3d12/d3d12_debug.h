@@ -100,6 +100,7 @@ public:
   // indicates that EID alias is the same as eventID
   void AliasPostVSBuffers(uint32_t eventID, uint32_t alias) { m_PostVSAlias[alias] = eventID; }
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
+  void ClearPostVSCache();
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
   void GetBufferData(ID3D12Resource *buff, uint64_t offset, uint64_t length, vector<byte> &retData);

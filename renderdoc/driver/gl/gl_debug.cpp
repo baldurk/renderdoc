@@ -734,15 +734,7 @@ void GLReplay::DeleteDebugData()
 
   MakeCurrentReplayContext(m_DebugCtx);
 
-  for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
-  {
-    gl.glDeleteBuffers(1, &it->second.vsout.buf);
-    gl.glDeleteBuffers(1, &it->second.vsout.idxBuf);
-    gl.glDeleteBuffers(1, &it->second.gsout.buf);
-    gl.glDeleteBuffers(1, &it->second.gsout.idxBuf);
-  }
-
-  m_PostVSData.clear();
+  ClearPostVSCache();
 
   gl.glDeleteFramebuffers(1, &DebugData.overlayFBO);
   gl.glDeleteTextures(1, &DebugData.overlayTex);
@@ -3310,6 +3302,21 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
   rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
 
   return m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, DebugData.overlayTex));
+}
+
+void GLReplay::ClearPostVSCache()
+{
+  WrappedOpenGL &gl = *m_pDriver;
+
+  for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
+  {
+    gl.glDeleteBuffers(1, &it->second.vsout.buf);
+    gl.glDeleteBuffers(1, &it->second.vsout.idxBuf);
+    gl.glDeleteBuffers(1, &it->second.gsout.buf);
+    gl.glDeleteBuffers(1, &it->second.gsout.idxBuf);
+  }
+
+  m_PostVSData.clear();
 }
 
 void GLReplay::InitPostVSBuffers(uint32_t eventID)
