@@ -4555,7 +4555,27 @@ bool WrappedOpenGL::Serialise_glVertexAttrib(SerialiserType &ser, GLuint index, 
     uint8_t u8[4];
   } v;
 
-  RDCEraseEl(v);
+  if(ser.IsWriting())
+  {
+    uint32_t byteCount = count;
+
+    if(attr == Attrib_GLbyte)
+      byteCount *= sizeof(char);
+    else if(attr == Attrib_GLshort)
+      byteCount *= sizeof(int16_t);
+    else if(attr == Attrib_GLint)
+      byteCount *= sizeof(int32_t);
+    else if(attr == Attrib_GLubyte)
+      byteCount *= sizeof(unsigned char);
+    else if(attr == Attrib_GLushort)
+      byteCount *= sizeof(uint16_t);
+    else if(attr == Attrib_GLuint || attr == Attrib_packed)
+      byteCount *= sizeof(uint32_t);
+
+    RDCEraseEl(v);
+
+    memcpy(v.f, value, byteCount);
+  }
 
   // Serialise the array with the right type. We don't want to allocate new storage
   switch(attr)
