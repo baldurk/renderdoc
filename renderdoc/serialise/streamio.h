@@ -157,7 +157,26 @@ public:
     return true;
   }
 
-  bool SkipBytes(uint64_t numBytes) { return Read(NULL, numBytes); }
+  bool SkipBytes(uint64_t numBytes)
+  {
+    // fast path for file skipping
+    if(m_File && numBytes > Available())
+    {
+      // first, completely exhaust the buffer
+      numBytes -= Available();
+      Read(NULL, Available());
+
+      // then just seek for the rest
+      FileIO::fseek64(m_File, numBytes, SEEK_CUR);
+      m_ReadOffset += numBytes;
+
+      // the next read will re-fill the buffer, just the same as if we'd done a perfectly sized read
+      return true;
+    }
+
+    return Read(NULL, numBytes);
+  }
+
   // compile-time constant element to let the compiler inline the memcpy
   template <typename T>
   bool Read(T &data)
