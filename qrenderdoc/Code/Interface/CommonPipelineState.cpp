@@ -697,6 +697,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         ret[i].Format = layouts[i].Format;
         memset(&ret[i].GenericValue, 0, sizeof(PixelValue));
         ret[i].Used = false;
+        ret[i].GenericEnabled = false;
 
         if(m_D3D11->m_IA.Bytecode != NULL)
         {
@@ -754,6 +755,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         ret[i].Format = layouts[i].Format;
         memset(&ret[i].GenericValue, 0, sizeof(PixelValue));
         ret[i].Used = false;
+        ret[i].GenericEnabled = false;
 
         if(m_D3D12->m_VS.ShaderDetails != NULL)
         {
@@ -801,6 +803,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         ret[a].InstanceRate = (int)m_GL->m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor;
         ret[a].Format = attrs[i].Format;
         ret[a].Used = true;
+        ret[a].GenericEnabled = false;
 
         if(m_GL->m_VS.ShaderDetails != NULL)
         {
@@ -830,6 +833,8 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
               else if(compType == CompType::SScaled)
                 ret[a].GenericValue.value_f[c] = (float)attrs[i].GenericValue.value_i[c];
             }
+
+            ret[a].GenericEnabled = true;
 
             ret[a].PerInstance = false;
             ret[a].InstanceRate = 0;
@@ -880,6 +885,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         ret[a].InstanceRate = 1;
         ret[a].Format = attrs[i].format;
         ret[a].Used = true;
+        ret[a].GenericEnabled = false;
 
         if(m_Vulkan->m_VS.ShaderDetails != NULL)
         {

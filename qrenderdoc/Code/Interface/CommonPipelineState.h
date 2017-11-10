@@ -105,6 +105,8 @@ from the vertex buffer before advancing to the next value.
 no VB bound.
 )");
   PixelValue GenericValue;
+  DOCUMENT("``True`` if this attribute is using :data:`GenericValue` for its data.");
+  bool GenericEnabled;
   DOCUMENT("``True`` if this attribute is enabled and used by the vertex shader.");
   bool Used;
 };

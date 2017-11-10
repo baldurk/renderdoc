@@ -590,7 +590,7 @@ public:
               return col == 1 ? lit("--") : lit(" Restart");
 
             if(idx == ~0U)
-              return QVariant();
+              return outOfBounds();
           }
 
           if(col == 1 && meshView)
@@ -599,10 +599,16 @@ public:
             if(displayIndices && displayIndices->data)
               idx = CalcIndex(displayIndices, row, baseVertex);
 
+            if(idx == ~0U)
+              return outOfBounds();
+
             return idx;
           }
 
           const FormatElement &el = elementForColumn(col);
+
+          if(useGenerics(col))
+            return interpretGeneric(col, el);
 
           uint32_t instIdx = 0;
           if(el.instancerate > 0)
@@ -647,6 +653,8 @@ public:
               return ret;
             }
           }
+
+          return outOfBounds();
         }
       }
     }
@@ -669,6 +677,8 @@ public:
   BufferData *indices = NULL;
 
   QList<FormatElement> columns;
+  QVector<PixelValue> generics;
+  QVector<bool> genericsEnabled;
   QList<BufferData *> buffers;
   uint32_t primRestart = 0;
 
@@ -739,6 +749,12 @@ public:
   const FormatElement &elementForColumn(int col) const
   {
     return columns[columnLookup[col - reservedColumnCount()]];
+  }
+
+  bool useGenerics(int col) const
+  {
+    col = columnLookup[col - reservedColumnCount()];
+    return col < genericsEnabled.size() && genericsEnabled[col];
   }
 
 private:
@@ -829,7 +845,33 @@ private:
     }
   }
 
-  QString interpretVariant(QVariant &v, const FormatElement &el) const
+  QString outOfBounds() const { return lit("---"); }
+  QString interpretGeneric(int col, const FormatElement &el) const
+  {
+    int comp = componentForIndex(col);
+
+    col = columnLookup[col - reservedColumnCount()];
+
+    if(col < generics.size())
+    {
+      if(el.format.compType == CompType::Float)
+      {
+        return interpretVariant(QVariant(generics[col].value_f[comp]), el);
+      }
+      else if(el.format.compType == CompType::SInt)
+      {
+        return interpretVariant(QVariant(generics[col].value_i[comp]), el);
+      }
+      else if(el.format.compType == CompType::UInt)
+      {
+        return interpretVariant(QVariant(generics[col].value_u[comp]), el);
+      }
+    }
+
+    return outOfBounds();
+  }
+
+  QString interpretVariant(const QVariant &v, const FormatElement &el) const
   {
     QString ret;
 
@@ -2180,6 +2222,8 @@ void BufferViewer::configureMeshColumns()
   QVector<VertexInputAttribute> vinputs = m_Ctx.CurPipelineState().GetVertexInputs();
 
   m_ModelVSIn->columns.reserve(vinputs.count());
+  m_ModelVSIn->genericsEnabled.resize(vinputs.count());
+  m_ModelVSIn->generics.resize(vinputs.count());
 
   for(const VertexInputAttribute &a : vinputs)
   {
@@ -2190,6 +2234,14 @@ void BufferViewer::configureMeshColumns()
                     false,    // row major matrix
                     1,        // matrix dimension
                     a.Format, false, false);
+
+    m_ModelVSIn->genericsEnabled[m_ModelVSIn->columns.size()] = false;
+
+    if(a.GenericEnabled)
+    {
+      m_ModelVSIn->genericsEnabled[m_ModelVSIn->columns.size()] = true;
+      m_ModelVSIn->generics[m_ModelVSIn->columns.size()] = a.GenericValue;
+    }
 
     m_ModelVSIn->columns.push_back(f);
   }
@@ -2716,6 +2768,8 @@ void BufferViewer::ClearModels()
 
     m->buffers.clear();
     m->columns.clear();
+    m->generics.clear();
+    m->genericsEnabled.clear();
     m->numRows = 0;
 
     m->endReset();
