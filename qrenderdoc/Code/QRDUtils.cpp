@@ -372,6 +372,11 @@ void GUIInvoke::call(const std::function<void()> &f)
     return;
   }
 
+  defer(f);
+}
+
+void GUIInvoke::defer(const std::function<void()> &f)
+{
   GUIInvoke *invoke = new GUIInvoke(f);
   invoke->moveToThread(qApp->thread());
   invoke->metaObject()->method(methodIndex).invoke(invoke, Qt::QueuedConnection);

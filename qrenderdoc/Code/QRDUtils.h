@@ -177,6 +177,9 @@ public:
   static void blockcall(const std::function<void()> &f);
   static bool onUIThread();
 
+  // same as call() above, but it doesn't check for an instant call on the UI thread
+  static void defer(const std::function<void()> &f);
+
 protected slots:
   void doInvoke()
   {

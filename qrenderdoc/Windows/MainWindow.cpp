@@ -1776,7 +1776,11 @@ void MainWindow::dropEvent(QDropEvent *event)
 {
   QString fn = dragFilename(event->mimeData());
   if(!fn.isEmpty())
-    LoadFromFilename(fn, false);
+  {
+    // we defer this so we can return immediately and unblock whichever application dropped the
+    // item.
+    GUIInvoke::defer([this, fn]() { LoadFromFilename(fn, false); });
+  }
 }
 
 void MainWindow::LoadSaveLayout(QAction *action, bool save)
