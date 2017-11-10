@@ -2908,6 +2908,10 @@ void TextureViewer::on_overlay_currentIndexChanged(int index)
     m_TexDisplay.overlay = (DebugOverlay)ui->overlay->currentIndex();
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
+  if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
+  {
+    INVOKE_MEMFN(RT_PickPixelsAndUpdate);
+  }
 }
 
 void TextureViewer::channelsWidget_mouseClicked(QMouseEvent *event)
