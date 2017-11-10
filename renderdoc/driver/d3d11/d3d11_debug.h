@@ -128,6 +128,7 @@ public:
   int GetHeight() { return m_height; }
   void InitPostVSBuffers(uint32_t eventID);
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
+  void ClearPostVSCache();
 
   uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);

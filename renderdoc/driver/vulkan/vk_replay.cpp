@@ -5258,6 +5258,7 @@ void VulkanReplay::BuildTargetShader(string source, string entry,
 void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
 {
   GetDebugManager()->ReplaceResource(from, to);
+  GetDebugManager()->ClearPostVSCache();
 }
 
 void VulkanReplay::RemoveReplacement(ResourceId id)

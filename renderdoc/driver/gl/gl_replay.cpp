@@ -2890,6 +2890,7 @@ void GLReplay::ReplaceResource(ResourceId from, ResourceId to)
 {
   MakeCurrentReplayContext(&m_ReplayCtx);
   m_pDriver->ReplaceResource(from, to);
+  ClearPostVSCache();
 }
 
 void GLReplay::RemoveReplacement(ResourceId id)

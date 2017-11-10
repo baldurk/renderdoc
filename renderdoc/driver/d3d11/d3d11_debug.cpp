@@ -213,16 +213,7 @@ D3D11DebugManager::~D3D11DebugManager()
     elem.Release();
     m_ShaderItemCache.pop_back();
   }
-
-  for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
-  {
-    SAFE_RELEASE(it->second.vsout.buf);
-    SAFE_RELEASE(it->second.vsout.idxBuf);
-    SAFE_RELEASE(it->second.gsout.buf);
-    SAFE_RELEASE(it->second.gsout.idxBuf);
-  }
-
-  m_PostVSData.clear();
+  ClearPostVSCache();
 
   SAFE_RELEASE(m_pImmediateContext);
   m_WrappedDevice->InternalRelease();
@@ -3813,6 +3804,19 @@ void D3D11DebugManager::RenderCheckerboard()
 
     m_pImmediateContext->Draw(4, 0);
   }
+}
+
+void D3D11DebugManager::ClearPostVSCache()
+{
+  for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
+  {
+    SAFE_RELEASE(it->second.vsout.buf);
+    SAFE_RELEASE(it->second.vsout.idxBuf);
+    SAFE_RELEASE(it->second.gsout.buf);
+    SAFE_RELEASE(it->second.gsout.idxBuf);
+  }
+
+  m_PostVSData.clear();
 }
 
 MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)

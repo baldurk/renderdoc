@@ -1280,14 +1280,6 @@ D3D12DebugManager::~D3D12DebugManager()
     for(size_t p = 0; p < MeshDisplayPipelines::ePipe_Count; p++)
       SAFE_RELEASE(it->second.pipes[p]);
 
-  for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
-  {
-    SAFE_RELEASE(it->second.vsout.buf);
-    SAFE_RELEASE(it->second.vsout.idxBuf);
-    SAFE_RELEASE(it->second.gsout.buf);
-    SAFE_RELEASE(it->second.gsout.idxBuf);
-  }
-
   SAFE_RELEASE(m_pFactory);
 
   SAFE_RELEASE(dsvHeap);
@@ -3790,6 +3782,19 @@ void D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32
   // clean up temporary objects
   SAFE_RELEASE(readbackBuf);
   SAFE_RELEASE(tmpTexture);
+}
+
+void D3D12DebugManager::ClearPostVSCache()
+{
+  for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
+  {
+    SAFE_RELEASE(it->second.vsout.buf);
+    SAFE_RELEASE(it->second.vsout.idxBuf);
+    SAFE_RELEASE(it->second.gsout.buf);
+    SAFE_RELEASE(it->second.gsout.idxBuf);
+  }
+
+  m_PostVSData.clear();
 }
 
 void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)

@@ -366,6 +366,8 @@ private:
   // eventID -> data
   map<uint32_t, GLPostVSData> m_PostVSData;
 
+  void ClearPostVSCache();
+
   // cache the previous data returned
   ResourceId m_GetTexturePrevID;
   byte *m_GetTexturePrevData[16];

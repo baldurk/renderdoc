@@ -2514,15 +2514,7 @@ VulkanDebugManager::~VulkanDebugManager()
       ShaderCacheCallbacks.Destroy(it->second);
   }
 
-  for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
-  {
-    m_pDriver->vkDestroyBuffer(dev, it->second.vsout.buf, NULL);
-    m_pDriver->vkDestroyBuffer(dev, it->second.vsout.idxBuf, NULL);
-    m_pDriver->vkFreeMemory(dev, it->second.vsout.bufmem, NULL);
-    m_pDriver->vkFreeMemory(dev, it->second.vsout.idxBufMem, NULL);
-  }
-
-  m_PostVSData.clear();
+  ClearPostVSCache();
 
   // since we don't have properly registered resources, releasing our descriptor
   // pool here won't remove the descriptor sets, so we need to free our own
@@ -7905,6 +7897,21 @@ static void AddOutputDumping(const ShaderReflection &refl, const SPIRVPatchData 
 
   // patch up the new id bound
   spirv[3] = idBound;
+}
+
+void VulkanDebugManager::ClearPostVSCache()
+{
+  VkDevice dev = m_Device;
+
+  for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
+  {
+    m_pDriver->vkDestroyBuffer(dev, it->second.vsout.buf, NULL);
+    m_pDriver->vkDestroyBuffer(dev, it->second.vsout.idxBuf, NULL);
+    m_pDriver->vkFreeMemory(dev, it->second.vsout.bufmem, NULL);
+    m_pDriver->vkFreeMemory(dev, it->second.vsout.idxBufMem, NULL);
+  }
+
+  m_PostVSData.clear();
 }
 
 void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
