@@ -314,6 +314,12 @@ bool ToolWindowManagerWrapper::eventFilter(QObject *object, QEvent *event) {
       } else {
         showMaximized();
       }
+    } else if (event->type() == QEvent::NonClientAreaMouseButtonDblClick) {
+      if (isMaximized()) {
+        showNormal();
+      } else {
+        showMaximized();
+      }
     }
   }
   return QWidget::eventFilter(object, event);
