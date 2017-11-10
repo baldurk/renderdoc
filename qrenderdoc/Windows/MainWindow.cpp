@@ -67,7 +67,7 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
   QToolTip::setPalette(palette());
 
-  installEventFilter(this);
+  qApp->installEventFilter(this);
 
   setAcceptDrops(true);
 
