@@ -32,7 +32,7 @@
 #include "d3d12_resources.h"
 
 template <class T>
-T &resize_and_add(std::vector<T> &vec, size_t idx)
+T &resize_and_add(rdcarray<T> &vec, size_t idx)
 {
   if(idx >= vec.size())
     vec.resize(idx + 1);
@@ -568,15 +568,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
   WrappedID3D12RootSignature *sig =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootSig.rootsig);
 
-  struct Space
-  {
-    vector<D3D12Pipe::CBuffer> cbuffers;
-    vector<D3D12Pipe::Sampler> samplers;
-    vector<D3D12Pipe::View> srvs;
-    vector<D3D12Pipe::View> uavs;
-  };
-
-  Space *spaces = new Space[sig->sig.numSpaces];
+  D3D12Pipe::RegisterSpace *spaces = dstSpaces.data();
   dstSpaces.resize(sig->sig.numSpaces);
 
   for(size_t rootEl = 0; rootEl < sig->sig.params.size(); rootEl++)
@@ -588,8 +580,8 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
     if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
     {
-      D3D12Pipe::CBuffer &cb =
-          resize_and_add(spaces[p.Constants.RegisterSpace].cbuffers, p.Constants.ShaderRegister);
+      D3D12Pipe::CBuffer &cb = resize_and_add(spaces[p.Constants.RegisterSpace].ConstantBuffers,
+                                              p.Constants.ShaderRegister);
       cb.Immediate = true;
       cb.RootElement = (uint32_t)rootEl;
       cb.ByteSize = uint32_t(sizeof(uint32_t) * p.Constants.Num32BitValues);
@@ -607,8 +599,8 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV)
     {
-      D3D12Pipe::CBuffer &cb =
-          resize_and_add(spaces[p.Descriptor.RegisterSpace].cbuffers, p.Descriptor.ShaderRegister);
+      D3D12Pipe::CBuffer &cb = resize_and_add(spaces[p.Descriptor.RegisterSpace].ConstantBuffers,
+                                              p.Descriptor.ShaderRegister);
       cb.Immediate = true;
       cb.RootElement = (uint32_t)rootEl;
 
@@ -628,7 +620,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV)
     {
       D3D12Pipe::View &view =
-          resize_and_add(spaces[p.Descriptor.RegisterSpace].srvs, p.Descriptor.ShaderRegister);
+          resize_and_add(spaces[p.Descriptor.RegisterSpace].SRVs, p.Descriptor.ShaderRegister);
       view.Immediate = true;
       view.RootElement = (uint32_t)rootEl;
 
@@ -653,7 +645,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
     {
       D3D12Pipe::View &view =
-          resize_and_add(spaces[p.Descriptor.RegisterSpace].uavs, p.Descriptor.ShaderRegister);
+          resize_and_add(spaces[p.Descriptor.RegisterSpace].UAVs, p.Descriptor.ShaderRegister);
       view.Immediate = true;
       view.RootElement = (uint32_t)rootEl;
 
@@ -730,12 +722,12 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
         {
           UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= spaces[regSpace].samplers.size())
-            spaces[regSpace].samplers.resize(maxReg + 1);
+          if(maxReg >= spaces[regSpace].Samplers.size())
+            spaces[regSpace].Samplers.resize(maxReg + 1);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::Sampler &samp = spaces[regSpace].samplers[shaderReg];
+            D3D12Pipe::Sampler &samp = spaces[regSpace].Samplers[shaderReg];
             samp.Immediate = false;
             samp.RootElement = (uint32_t)rootEl;
             samp.TableIndex = offset + i;
@@ -766,12 +758,12 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
         {
           UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= spaces[regSpace].cbuffers.size())
-            spaces[regSpace].cbuffers.resize(maxReg + 1);
+          if(maxReg >= spaces[regSpace].ConstantBuffers.size())
+            spaces[regSpace].ConstantBuffers.resize(maxReg + 1);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::CBuffer &cb = spaces[regSpace].cbuffers[shaderReg];
+            D3D12Pipe::CBuffer &cb = spaces[regSpace].ConstantBuffers[shaderReg];
             cb.Immediate = false;
             cb.RootElement = (uint32_t)rootEl;
             cb.TableIndex = offset + i;
@@ -790,12 +782,12 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
         {
           UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= spaces[regSpace].srvs.size())
-            spaces[regSpace].srvs.resize(maxReg + 1);
+          if(maxReg >= spaces[regSpace].SRVs.size())
+            spaces[regSpace].SRVs.resize(maxReg + 1);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::View &view = spaces[regSpace].srvs[shaderReg];
+            D3D12Pipe::View &view = spaces[regSpace].SRVs[shaderReg];
             view.Immediate = false;
             view.RootElement = (uint32_t)rootEl;
             view.TableIndex = offset + i;
@@ -811,12 +803,12 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
         {
           UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= spaces[regSpace].uavs.size())
-            spaces[regSpace].uavs.resize(maxReg + 1);
+          if(maxReg >= spaces[regSpace].UAVs.size())
+            spaces[regSpace].UAVs.resize(maxReg + 1);
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::View &view = spaces[regSpace].uavs[shaderReg];
+            D3D12Pipe::View &view = spaces[regSpace].UAVs[shaderReg];
             view.Immediate = false;
             view.RootElement = (uint32_t)rootEl;
             view.TableIndex = offset + i;
@@ -842,7 +834,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
       continue;
 
     D3D12Pipe::Sampler &samp =
-        resize_and_add(spaces[sampDesc.RegisterSpace].samplers, sampDesc.ShaderRegister);
+        resize_and_add(spaces[sampDesc.RegisterSpace].Samplers, sampDesc.ShaderRegister);
     samp.Immediate = true;
     samp.RootElement = (uint32_t)i;
 
@@ -885,16 +877,6 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     samp.MinLOD = sampDesc.MinLOD;
     samp.MipLODBias = sampDesc.MipLODBias;
   }
-
-  for(uint32_t i = 0; i < sig->sig.numSpaces; i++)
-  {
-    dstSpaces[i].ConstantBuffers = spaces[i].cbuffers;
-    dstSpaces[i].Samplers = spaces[i].samplers;
-    dstSpaces[i].SRVs = spaces[i].srvs;
-    dstSpaces[i].UAVs = spaces[i].uavs;
-  }
-
-  SAFE_DELETE_ARRAY(spaces);
 }
 
 void D3D12Replay::SavePipelineState()
