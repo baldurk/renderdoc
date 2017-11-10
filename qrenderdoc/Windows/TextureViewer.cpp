@@ -3480,7 +3480,7 @@ void TextureViewer::on_pixelHistory_clicked()
 
   IPixelHistoryView *hist = m_Ctx.ViewPixelHistory(texptr->ID, x, y, m_TexDisplay);
 
-  m_Ctx.AddDockWindow(hist->Widget(), DockReference::RightOf, this, 0.2f);
+  m_Ctx.AddDockWindow(hist->Widget(), DockReference::RightOf, this, 0.3f);
 
   // add a short delay so that controls repainting after a new panel appears can get at the
   // render thread before we insert the long blocking pixel history task
