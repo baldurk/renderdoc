@@ -410,10 +410,6 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
   // clone our own local context
   context_namespace = PyDict_Copy(main_dict);
 
-  QString typeStr;
-  QString valueStr;
-  QList<QString> frames;
-
   // for compatibility with earlier versions of python that took a char * instead of const char *
   char noparams[1] = "";
 

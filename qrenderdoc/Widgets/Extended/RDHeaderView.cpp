@@ -835,7 +835,6 @@ void RDHeaderView::paintSection(QPainter *painter, const QRect &rect, int sectio
   else
     opt.state &= ~(QStyle::State_Active | QStyle::State_HasFocus);
 
-  QVariant textAlignment = m->headerData(section, orientation(), Qt::TextAlignmentRole);
   opt.rect = rect;
   opt.section = section;
   opt.textAlignment = defaultAlignment();
