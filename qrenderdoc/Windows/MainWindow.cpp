@@ -1723,7 +1723,6 @@ void MainWindow::on_action_Settings_triggered()
 void MainWindow::on_action_View_Documentation_triggered()
 {
   QFileInfo fi(QGuiApplication::applicationFilePath());
-  QDir curDir = QFileInfo(QGuiApplication::applicationFilePath()).absoluteDir();
 
   if(fi.absoluteDir().exists(lit("renderdoc.chm")))
     QDesktopServices::openUrl(

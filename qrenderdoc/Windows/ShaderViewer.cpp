@@ -515,7 +515,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
             s.systemValue == ShaderBuiltin::Undefined ? QString::number(s.regIndex) : lit("-");
 
         ui->inputSig->addTopLevelItem(new RDTreeWidgetItem(
-            {name, semIdx, QString::number(s.regIndex), TypeString(s), ToQStr(s.systemValue),
+            {name, semIdx, regIdx, TypeString(s), ToQStr(s.systemValue),
              GetComponentString(s.regChannelMask), GetComponentString(s.channelUsedMask)}));
       }
 

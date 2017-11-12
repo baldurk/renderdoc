@@ -2264,8 +2264,6 @@ void BufferViewer::configureMeshColumns()
   else
     m_ModelVSIn->numRows = draw->numIndices;
 
-  QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
-
   Viewport vp = m_Ctx.CurPipelineState().GetViewport(0);
 
   m_Config.fov = ui->fovGuess->value();

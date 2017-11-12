@@ -858,7 +858,6 @@ void TimelineBar::paintMarkers(QPainter &p, const QVector<Marker> &markers,
     if(elided == tooshort)
       elided = QString();
 
-    QRectF textRect = r;
     r.setLeft(qRound(r.left() + margin));
 
     p.drawText(r, elided, to);

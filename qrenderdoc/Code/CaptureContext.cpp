@@ -86,8 +86,6 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
 
   if(!paramFilename.isEmpty())
   {
-    QFileInfo fi(paramFilename);
-
     m_MainWindow->LoadFromFilename(paramFilename, temp);
     if(temp)
       m_MainWindow->takeCaptureOwnership();

@@ -461,8 +461,6 @@ ResourceId CommonPipelineState::GetShader(ShaderStage stage)
 
 QString CommonPipelineState::GetShaderName(ShaderStage stage)
 {
-  QString ret;
-
   if(IsCaptureLoaded())
   {
     if(IsCaptureD3D11())
