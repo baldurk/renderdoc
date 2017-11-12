@@ -136,7 +136,7 @@ This is the apt-get line you'd need to install the requirements bar Qt on Ubuntu
 sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev cmake python3-dev bison autoconf automake libpcre3-dev
 ```
 
-Your version of Ubuntu might not include a recent enough Qt version, so you can use [Stephan Binner's ppas](https://launchpad.net/~beineri) to install a more recent version of Qt. At least 5.6.2 is required. If you choose to instead install an [official Qt release](https://download.qt.io/official_releases/qt/) or build Qt from source, add `-DQMAKE_QT5_COMMAND=/path/to/qmake` to your cmake arguments to specify where to find it.
+Your version of Ubuntu might not include a recent enough Qt version, so you can use [Stephan Binner's ppas](https://launchpad.net/~beineri) to install a more recent version of Qt. At least 5.6.2 is required. If you choose to instead install an [official Qt release](https://download.qt.io/official_releases/qt/) or build Qt from source, add Qt's pkgconfig directory to the `PKG_CONFIG_PATH` environment variable and add `-DQMAKE_QT5_COMMAND=/path/to/qmake` to your cmake arguments.
 
 For Archlinux (as of 2017.04.18) you'll need:
 
