@@ -74,16 +74,7 @@ TimelineBar::~TimelineBar()
 void TimelineBar::HighlightResourceUsage(ResourceId id)
 {
   m_UsageEvents.clear();
-
-  TextureDescription *tex = m_Ctx.GetTexture(id);
-
-  if(tex)
-    m_UsageTarget = tex->name;
-
-  BufferDescription *buf = m_Ctx.GetBuffer(id);
-
-  if(buf)
-    m_UsageTarget = buf->name;
+  m_UsageTarget = m_Ctx.GetResourceName(id);
 
   m_Ctx.Replay().AsyncInvoke([this, id](IReplayController *r) {
     rdcarray<EventUsage> usage = r->GetUsage(id);
@@ -105,15 +96,7 @@ void TimelineBar::HighlightHistory(ResourceId id, const QList<PixelModification>
 
   if(id != ResourceId())
   {
-    TextureDescription *tex = m_Ctx.GetTexture(id);
-
-    if(tex)
-      m_HistoryTarget = tex->name;
-
-    BufferDescription *buf = m_Ctx.GetBuffer(id);
-
-    if(buf)
-      m_HistoryTarget = buf->name;
+    m_HistoryTarget = m_Ctx.GetResourceName(id);
 
     for(const PixelModification &mod : history)
       m_HistoryEvents << mod;

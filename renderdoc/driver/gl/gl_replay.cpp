@@ -480,8 +480,6 @@ void GLReplay::CacheTexture(ResourceId id)
     if(res.resource.Namespace == eResUnknown)
       RDCERR("Details for invalid texture id %llu requested", id);
 
-    tex.name = "<Uninitialised Texture>";
-    tex.customName = true;
     tex.format = ResourceFormat();
     tex.dimension = 1;
     tex.resType = TextureDim::Unknown;
@@ -518,29 +516,6 @@ void GLReplay::CacheTexture(ResourceId id)
       tex.creationFlags |= TextureCategory::DepthTarget;
 
     tex.byteSize = (tex.width * tex.height) * (tex.format.compByteWidth * tex.format.compCount);
-
-    string str = m_pDriver->GetResourceManager()->GetName(tex.ID);
-    tex.customName = true;
-
-    if(str == "")
-    {
-      const char *suffix = "";
-      const char *ms = "";
-
-      if(tex.msSamp > 1)
-        ms = "MS";
-
-      if(tex.creationFlags & TextureCategory::ColorTarget)
-        suffix = " RTV";
-      if(tex.creationFlags & TextureCategory::DepthTarget)
-        suffix = " DSV";
-
-      tex.customName = false;
-
-      str = StringFormat::Fmt("Renderbuffer%s%s %llu", ms, suffix, tex.ID);
-    }
-
-    tex.name = str;
 
     m_CachedTextures[id] = tex;
     return;
@@ -669,42 +644,6 @@ void GLReplay::CacheTexture(ResourceId id)
   if(tex.format.compType == CompType::Depth)
     tex.creationFlags |= TextureCategory::DepthTarget;
 
-  string str = m_pDriver->GetResourceManager()->GetName(tex.ID);
-  tex.customName = true;
-
-  if(str == "")
-  {
-    const char *suffix = "";
-    const char *ms = "";
-
-    if(tex.msSamp > 1)
-      ms = "MS";
-
-    if(tex.creationFlags & TextureCategory::ColorTarget)
-      suffix = " RTV";
-    if(tex.creationFlags & TextureCategory::DepthTarget)
-      suffix = " DSV";
-
-    tex.customName = false;
-
-    if(tex.cubemap)
-    {
-      if(tex.arraysize > 6)
-        str = StringFormat::Fmt("TextureCube%sArray%s %llu", ms, suffix, tex.ID);
-      else
-        str = StringFormat::Fmt("TextureCube%s%s %llu", ms, suffix, tex.ID);
-    }
-    else
-    {
-      if(tex.arraysize > 1)
-        str = StringFormat::Fmt("Texture%dD%sArray%s %llu", tex.dimension, ms, suffix, tex.ID);
-      else
-        str = StringFormat::Fmt("Texture%dD%s%s %llu", tex.dimension, ms, suffix, tex.ID);
-    }
-  }
-
-  tex.name = str;
-
   if(target == eGL_TEXTURE_BUFFER)
   {
     tex.dimension = 1;
@@ -806,17 +745,6 @@ BufferDescription GLReplay::GetBuffer(ResourceId id)
     RDCWARN("BufferData::size didn't get filled out, setting at last minute");
     res.size = ret.length;
   }
-
-  string str = m_pDriver->GetResourceManager()->GetName(ret.ID);
-  ret.customName = true;
-
-  if(str == "")
-  {
-    ret.customName = false;
-    str = StringFormat::Fmt("Buffer %llu", ret.ID);
-  }
-
-  ret.name = str;
 
   if(res.curType != eGL_NONE)
     gl.glBindBuffer(res.curType, prevBind);
@@ -1101,14 +1029,10 @@ void GLReplay::SavePipelineState()
       ResourceId id = rm->GetID(ProgramPipeRes(ctx, curProg));
       auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
-      string pipelineName = rm->GetName(rm->GetOriginalID(id));
+      pipe.Pipeline = rm->GetOriginalID(id);
 
       for(size_t i = 0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
       {
-        stages[i]->PipelineActive = true;
-        stages[i]->PipelineName = pipelineName;
-        stages[i]->customPipelineName = (pipelineName != "");
-
         if(pipeDetails.stageShaders[i] != ResourceId())
         {
           curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
@@ -1118,15 +1042,12 @@ void GLReplay::SavePipelineState()
                               stages[i]->BindpointMapping);
           mappings[i] = &stages[i]->BindpointMapping;
 
-          stages[i]->ProgramName = rm->GetName(rm->GetOriginalID(pipeDetails.stagePrograms[i]));
-          stages[i]->customProgramName = !stages[i]->ProgramName.empty();
-
-          stages[i]->ShaderName = rm->GetName(rm->GetOriginalID(pipeDetails.stageShaders[i]));
-          stages[i]->customShaderName = !stages[i]->ShaderName.empty();
+          stages[i]->Program = rm->GetOriginalID(pipeDetails.stagePrograms[i]);
+          stages[i]->Object = rm->GetOriginalID(pipeDetails.stageShaders[i]);
         }
         else
         {
-          stages[i]->Object = ResourceId();
+          stages[i]->Program = stages[i]->Object = ResourceId();
         }
       }
     }
@@ -1136,22 +1057,24 @@ void GLReplay::SavePipelineState()
     ResourceId id = rm->GetID(ProgramRes(ctx, curProg));
     auto &progDetails = m_pDriver->m_Programs[id];
 
-    string programName = rm->GetName(rm->GetOriginalID(id));
+    pipe.Pipeline = ResourceId();
 
     for(size_t i = 0; i < ARRAY_COUNT(progDetails.stageShaders); i++)
     {
       if(progDetails.stageShaders[i] != ResourceId())
       {
-        stages[i]->ProgramName = programName;
-        stages[i]->customProgramName = (programName != "");
+        stages[i]->Program = rm->GetOriginalID(id);
 
         stages[i]->Object = rm->GetOriginalID(progDetails.stageShaders[i]);
         stages[i]->ShaderDetails = refls[i] = GetShader(progDetails.stageShaders[i], "");
         GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->BindpointMapping);
         mappings[i] = &stages[i]->BindpointMapping;
 
-        stages[i]->ShaderName = rm->GetName(rm->GetOriginalID(progDetails.stageShaders[i]));
-        stages[i]->customShaderName = !stages[i]->ShaderName.empty();
+        stages[i]->Object = rm->GetOriginalID(progDetails.stageShaders[i]);
+      }
+      else
+      {
+        stages[i]->Program = stages[i]->Object = ResourceId();
       }
     }
   }
@@ -3077,9 +3000,6 @@ ResourceId GLReplay::CreateProxyTexture(const TextureDescription &templateTex)
 
   ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(m_pDriver->GetCtx(), tex));
 
-  if(templateTex.customName)
-    m_pDriver->GetResourceManager()->SetName(id, templateTex.name.c_str());
-
   return id;
 }
 
@@ -3253,9 +3173,6 @@ ResourceId GLReplay::CreateProxyBuffer(const BufferDescription &templateBuf)
   gl.glNamedBufferDataEXT(buf, (GLsizeiptr)templateBuf.length, NULL, eGL_DYNAMIC_DRAW);
 
   ResourceId id = m_pDriver->GetResourceManager()->GetID(BufferRes(m_pDriver->GetCtx(), buf));
-
-  if(templateBuf.customName)
-    m_pDriver->GetResourceManager()->SetName(id, templateBuf.name.c_str());
 
   return id;
 }

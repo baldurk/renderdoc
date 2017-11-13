@@ -98,27 +98,6 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
     tex.msQual = 0;
     tex.msSamp = 1;
 
-    tex.customName = true;
-
-    if(str == "")
-    {
-      const char *suffix = "";
-
-      if(tex.creationFlags & TextureCategory::ColorTarget)
-        suffix = " RTV";
-      if(tex.creationFlags & TextureCategory::DepthTarget)
-        suffix = " DSV";
-
-      tex.customName = false;
-
-      if(tex.arraysize > 1)
-        str = StringFormat::Fmt("Texture1DArray%s %llu", suffix, tex.ID);
-      else
-        str = StringFormat::Fmt("Texture1D%s %llu", suffix, tex.ID);
-    }
-
-    tex.name = str;
-
     tex.byteSize = 0;
     for(uint32_t s = 0; s < tex.mips * tex.arraysize; s++)
       tex.byteSize += GetByteSize(d3dtex, s);
@@ -178,41 +157,6 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
     if(tex.msSamp > 1)
       tex.resType = tex.arraysize > 1 ? TextureDim::Texture2DMSArray : TextureDim::Texture2DMS;
 
-    tex.customName = true;
-
-    if(str == "")
-    {
-      const char *suffix = "";
-      const char *ms = "";
-
-      if(tex.msSamp > 1)
-        ms = "MS";
-
-      if(tex.creationFlags & TextureCategory::ColorTarget)
-        suffix = " RTV";
-      if(tex.creationFlags & TextureCategory::DepthTarget)
-        suffix = " DSV";
-
-      tex.customName = false;
-
-      if(tex.cubemap)
-      {
-        if(tex.arraysize > 6)
-          str = StringFormat::Fmt("TextureCube%sArray%s %llu", ms, suffix, tex.ID);
-        else
-          str = StringFormat::Fmt("TextureCube%s%s %llu", ms, suffix, tex.ID);
-      }
-      else
-      {
-        if(tex.arraysize > 1)
-          str = StringFormat::Fmt("Texture2D%sArray%s %llu", ms, suffix, tex.ID);
-        else
-          str = StringFormat::Fmt("Texture2D%s%s %llu", ms, suffix, tex.ID);
-      }
-    }
-
-    tex.name = str;
-
     tex.byteSize = 0;
     for(uint32_t s = 0; s < tex.arraysize * tex.mips; s++)
       tex.byteSize += GetByteSize(d3dtex, s);
@@ -260,24 +204,6 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
 
     tex.arraysize = 1;
 
-    tex.customName = true;
-
-    if(str == "")
-    {
-      const char *suffix = "";
-
-      if(tex.creationFlags & TextureCategory::ColorTarget)
-        suffix = " RTV";
-      if(tex.creationFlags & TextureCategory::DepthTarget)
-        suffix = " DSV";
-
-      tex.customName = false;
-
-      str = StringFormat::Fmt("Texture3D%s %llu", suffix, tex.ID);
-    }
-
-    tex.name = str;
-
     tex.byteSize = 0;
     for(uint32_t s = 0; s < tex.arraysize * tex.mips; s++)
       tex.byteSize += GetByteSize(d3dtex, s);
@@ -287,8 +213,6 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
 
   RDCERR("Unrecognised/unknown texture %llu", id);
 
-  tex.name = "Unrecognised/unknown texture";
-  tex.customName = true;
   tex.byteSize = 0;
   tex.dimension = 2;
   tex.resType = TextureDim::Texture2D;
@@ -444,18 +368,10 @@ BufferDescription D3D11Replay::GetBuffer(ResourceId id)
   string str = GetDebugName(d3dbuf);
 
   ret.ID = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
-  ret.customName = true;
-
-  if(str == "")
-  {
-    ret.customName = false;
-    str = StringFormat::Fmt("Buffer %llu", ret.ID);
-  }
 
   D3D11_BUFFER_DESC desc;
   it->second.m_Buffer->GetDesc(&desc);
 
-  ret.name = str;
   ret.length = desc.ByteWidth;
 
   ret.creationFlags = BufferCategory::NoFlags;
@@ -535,17 +451,6 @@ void D3D11Replay::SavePipelineState()
     ret.m_IA.layout = rm->GetOriginalID(layoutId);
     ret.m_IA.Bytecode = GetShader(layoutId, "");
 
-    string str = GetDebugName(rs->IA.Layout);
-    ret.m_IA.customName = true;
-
-    if(str == "" && ret.m_IA.layout != ResourceId())
-    {
-      ret.m_IA.customName = false;
-      str = StringFormat::Fmt("Input Layout %llu", ret.m_IA.layout);
-    }
-
-    ret.m_IA.name = str;
-
     ret.m_IA.layouts.resize(vec.size());
     for(size_t i = 0; i < vec.size(); i++)
     {
@@ -608,17 +513,6 @@ void D3D11Replay::SavePipelineState()
       dst.Object = rm->GetOriginalID(id);
       dst.ShaderDetails = refl;
 
-      string str = GetDebugName(src.Object);
-      dst.customName = true;
-
-      if(str == "" && dst.Object != ResourceId())
-      {
-        dst.customName = false;
-        str = StringFormat::Fmt("%s Shader %llu", stageNames[stage], dst.Object);
-      }
-
-      dst.name = str;
-
       dst.ConstantBuffers.resize(D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
       for(size_t s = 0; s < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; s++)
       {
@@ -636,15 +530,6 @@ void D3D11Replay::SavePipelineState()
 
         if(samp.Samp != ResourceId())
         {
-          samp.name = GetDebugName(src.Samplers[s]);
-          samp.customName = true;
-
-          if(samp.name.empty())
-          {
-            samp.customName = false;
-            samp.name = StringFormat::Fmt("Sampler %llu", samp.Samp);
-          }
-
           D3D11_SAMPLER_DESC desc;
           src.Samplers[s]->GetDesc(&desc);
 
@@ -1731,9 +1616,6 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
     RDCERR("Invalid texture dimension: %d", templateTex.dimension);
   }
 
-  if(resource != NULL && templateTex.customName)
-    SetDebugName(resource, templateTex.name.c_str());
-
   m_ProxyResources.push_back(resource);
 
   return ret;
@@ -1893,9 +1775,6 @@ ResourceId D3D11Replay::CreateProxyBuffer(const BufferDescription &templateBuf)
 
     ret = ((WrappedID3D11Buffer *)throwaway)->GetResourceID();
   }
-
-  if(resource != NULL && templateBuf.customName)
-    SetDebugName(resource, templateBuf.name.c_str());
 
   m_ProxyResources.push_back(resource);
 

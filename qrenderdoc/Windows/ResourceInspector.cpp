@@ -79,13 +79,13 @@ public:
         const ResourceDescription &desc = resources[index.row()];
 
         if(role == Qt::DisplayRole)
-          return desc.name;
+          return m_Ctx.GetResourceName(desc.ID);
 
         if(role == ResourceIdRole)
           return QVariant::fromValue(desc.ID);
 
         if(role == FilterRole)
-          return ToQStr(desc.type) + lit(" ") + desc.name;
+          return ToQStr(desc.type) + lit(" ") + m_Ctx.GetResourceName(desc.ID);
       }
     }
 
@@ -168,6 +168,11 @@ void ResourceInspector::Inspect(ResourceId id)
   m_ResourceModel->reset();
   m_FilterModel->sort(0);
 
+  if(m_Ctx.HasResourceCustomName(id))
+    ui->resetName->show();
+  else
+    ui->resetName->hide();
+
   ui->initChunks->setUpdatesEnabled(false);
   ui->initChunks->clear();
   ui->relatedResources->clear();
@@ -200,13 +205,11 @@ void ResourceInspector::Inspect(ResourceId id)
 
   if(desc)
   {
-    // TODO fetch global name
-    ui->resourceName->setText(desc->name);
+    ui->resourceName->setText(m_Ctx.GetResourceName(id));
 
     for(ResourceId parent : desc->parentResources)
     {
-      // TODO fetch global name
-      RDTreeWidgetItem *item = new RDTreeWidgetItem({tr("Parent"), ToQStr(parent)});
+      RDTreeWidgetItem *item = new RDTreeWidgetItem({tr("Parent"), m_Ctx.GetResourceName(parent)});
       item->setData(0, ResourceIdRole, QVariant::fromValue(parent));
       item->setData(1, ResourceIdRole, QVariant::fromValue(parent));
       ui->relatedResources->addTopLevelItem(item);
@@ -214,8 +217,7 @@ void ResourceInspector::Inspect(ResourceId id)
 
     for(ResourceId derived : desc->derivedResources)
     {
-      // TODO fetch global name
-      RDTreeWidgetItem *item = new RDTreeWidgetItem({tr("Derived"), ToQStr(derived)});
+      RDTreeWidgetItem *item = new RDTreeWidgetItem({tr("Derived"), m_Ctx.GetResourceName(derived)});
       item->setData(0, ResourceIdRole, QVariant::fromValue(derived));
       item->setData(1, ResourceIdRole, QVariant::fromValue(derived));
       ui->relatedResources->addTopLevelItem(item);
@@ -231,7 +233,7 @@ void ResourceInspector::Inspect(ResourceId id)
 
         root->setText(0, chunkObj->name);
 
-        addStructuredObjects(root, chunkObj->data.children, false);
+        addStructuredObjects(m_Ctx, root, chunkObj->data.children, false);
       }
       else
       {
@@ -296,8 +298,7 @@ void ResourceInspector::on_renameResource_clicked()
 
     ui->resetName->show();
 
-    // TODO - set custom name globally
-    // m_Ctx.SetResourceCustomName(m_Resource, ui->resourceName->text());
+    m_Ctx.SetResourceCustomName(m_Resource, ui->resourceName->text());
   }
 }
 
@@ -318,14 +319,11 @@ void ResourceInspector::on_resourceNameEdit_keyPress(QKeyEvent *event)
 
 void ResourceInspector::on_resetName_clicked()
 {
-  const ResourceDescription *desc = m_Ctx.GetResource(m_Resource);
-  // TODO fetch global name
-  ui->resourceName->setText(desc->name);
+  ui->resourceName->setText(m_Ctx.GetResourceName(m_Resource));
 
   ui->resetName->hide();
 
-  // TODO - unset custom name globally
-  // m_Ctx.RemoveCustomName(m_Resource);
+  m_Ctx.SetResourceCustomName(m_Resource, QString());
 }
 
 void ResourceInspector::on_cancelResourceListFilter_clicked()

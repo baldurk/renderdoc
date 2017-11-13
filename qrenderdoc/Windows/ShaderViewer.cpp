@@ -1058,19 +1058,19 @@ RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, u
                        .arg(tex->depth > 1 ? tex->depth : tex->arraysize)
                        .arg(tex->mips)
                        .arg(tex->format.Name())
-                       .arg(tex->name);
+                       .arg(m_Ctx.GetResourceName(bound.Id));
 
     return new RDTreeWidgetItem({regname + name, lit("Texture"), type});
   }
   else if(buf)
   {
-    QString type = QFormatStr("%1 - %2").arg(buf->length).arg(buf->name);
+    QString type = QFormatStr("%1 - %2").arg(buf->length).arg(m_Ctx.GetResourceName(bound.Id));
 
     return new RDTreeWidgetItem({regname + name, lit("Buffer"), type});
   }
   else
   {
-    return new RDTreeWidgetItem({regname + name, lit("Resource"), lit("unknown")});
+    return new RDTreeWidgetItem({regname + name, lit("Resource"), m_Ctx.GetResourceName(bound.Id)});
   }
 }
 

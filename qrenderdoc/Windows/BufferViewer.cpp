@@ -2600,7 +2600,7 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
   BufferDescription *buf = m_Ctx.GetBuffer(id);
   if(buf)
   {
-    setWindowTitle(buf->name + lit(" - Contents"));
+    setWindowTitle(m_Ctx.GetResourceName(id) + lit(" - Contents"));
     m_ObjectByteSize = buf->length;
   }
 
@@ -2620,7 +2620,7 @@ void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, c
   TextureDescription *tex = m_Ctx.GetTexture(id);
   if(tex)
   {
-    setWindowTitle(tex->name + lit(" - Contents"));
+    setWindowTitle(m_Ctx.GetResourceName(id) + lit(" - Contents"));
     m_ObjectByteSize = tex->byteSize;
   }
 

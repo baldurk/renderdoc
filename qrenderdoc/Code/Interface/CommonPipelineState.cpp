@@ -469,12 +469,12 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_D3D11->m_VS.name;
-        case ShaderStage::Domain: return m_D3D11->m_DS.name;
-        case ShaderStage::Hull: return m_D3D11->m_HS.name;
-        case ShaderStage::Geometry: return m_D3D11->m_GS.name;
-        case ShaderStage::Pixel: return m_D3D11->m_PS.name;
-        case ShaderStage::Compute: return m_D3D11->m_CS.name;
+        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_D3D11->m_VS.Object);
+        case ShaderStage::Domain: return m_Ctx.GetResourceName(m_D3D11->m_DS.Object);
+        case ShaderStage::Hull: return m_Ctx.GetResourceName(m_D3D11->m_HS.Object);
+        case ShaderStage::Geometry: return m_Ctx.GetResourceName(m_D3D11->m_GS.Object);
+        case ShaderStage::Pixel: return m_Ctx.GetResourceName(m_D3D11->m_PS.Object);
+        case ShaderStage::Compute: return m_Ctx.GetResourceName(m_D3D11->m_CS.Object);
         default: break;
       }
     }
@@ -482,12 +482,12 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_D3D12->name + lit(" VS");
-        case ShaderStage::Domain: return m_D3D12->name + lit(" DS");
-        case ShaderStage::Hull: return m_D3D12->name + lit(" HS");
-        case ShaderStage::Geometry: return m_D3D12->name + lit(" GS");
-        case ShaderStage::Pixel: return m_D3D12->name + lit(" PS");
-        case ShaderStage::Compute: return m_D3D12->name + lit(" CS");
+        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_D3D12->pipeline) + lit(" VS");
+        case ShaderStage::Domain: return m_Ctx.GetResourceName(m_D3D12->pipeline) + lit(" DS");
+        case ShaderStage::Hull: return m_Ctx.GetResourceName(m_D3D12->pipeline) + lit(" HS");
+        case ShaderStage::Geometry: return m_Ctx.GetResourceName(m_D3D12->pipeline) + lit(" GS");
+        case ShaderStage::Pixel: return m_Ctx.GetResourceName(m_D3D12->pipeline) + lit(" PS");
+        case ShaderStage::Compute: return m_Ctx.GetResourceName(m_D3D12->pipeline) + lit(" CS");
         default: break;
       }
     }
@@ -495,12 +495,12 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_GL->m_VS.ShaderName;
-        case ShaderStage::Tess_Control: return m_GL->m_TCS.ShaderName;
-        case ShaderStage::Tess_Eval: return m_GL->m_TES.ShaderName;
-        case ShaderStage::Geometry: return m_GL->m_GS.ShaderName;
-        case ShaderStage::Fragment: return m_GL->m_FS.ShaderName;
-        case ShaderStage::Compute: return m_GL->m_CS.ShaderName;
+        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_GL->m_VS.Object);
+        case ShaderStage::Tess_Control: return m_Ctx.GetResourceName(m_GL->m_TCS.Object);
+        case ShaderStage::Tess_Eval: return m_Ctx.GetResourceName(m_GL->m_TES.Object);
+        case ShaderStage::Geometry: return m_Ctx.GetResourceName(m_GL->m_GS.Object);
+        case ShaderStage::Fragment: return m_Ctx.GetResourceName(m_GL->m_FS.Object);
+        case ShaderStage::Compute: return m_Ctx.GetResourceName(m_GL->m_CS.Object);
         default: break;
       }
     }
@@ -508,12 +508,12 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: return m_Vulkan->m_VS.name;
-        case ShaderStage::Domain: return m_Vulkan->m_TCS.name;
-        case ShaderStage::Hull: return m_Vulkan->m_TES.name;
-        case ShaderStage::Geometry: return m_Vulkan->m_GS.name;
-        case ShaderStage::Pixel: return m_Vulkan->m_FS.name;
-        case ShaderStage::Compute: return m_Vulkan->m_CS.name;
+        case ShaderStage::Vertex: return m_Ctx.GetResourceName(m_Vulkan->m_VS.Object);
+        case ShaderStage::Domain: return m_Ctx.GetResourceName(m_Vulkan->m_TCS.Object);
+        case ShaderStage::Hull: return m_Ctx.GetResourceName(m_Vulkan->m_TES.Object);
+        case ShaderStage::Geometry: return m_Ctx.GetResourceName(m_Vulkan->m_GS.Object);
+        case ShaderStage::Pixel: return m_Ctx.GetResourceName(m_Vulkan->m_FS.Object);
+        case ShaderStage::Compute: return m_Ctx.GetResourceName(m_Vulkan->m_CS.Object);
         default: break;
       }
     }

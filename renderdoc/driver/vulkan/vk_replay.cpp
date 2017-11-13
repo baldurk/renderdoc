@@ -848,39 +848,6 @@ TextureDescription VulkanReplay::GetTexture(ResourceId id)
     default: RDCERR("Unexpected image type"); break;
   }
 
-  ret.customName = true;
-  ret.name = m_pDriver->m_CreationInfo.m_Names[id];
-  if(ret.name.empty())
-  {
-    ret.customName = false;
-
-    const char *suffix = "";
-    const char *ms = "";
-
-    if(ret.msSamp > 1)
-      ms = "MS";
-
-    if(ret.creationFlags & TextureCategory::ColorTarget)
-      suffix = " RTV";
-    if(ret.creationFlags & TextureCategory::DepthTarget)
-      suffix = " DSV";
-
-    if(ret.cubemap)
-    {
-      if(ret.arraysize > 6)
-        ret.name = StringFormat::Fmt("TextureCube%sArray%s %llu", ms, suffix, ret.ID);
-      else
-        ret.name = StringFormat::Fmt("TextureCube%s%s %llu", ms, suffix, ret.ID);
-    }
-    else
-    {
-      if(ret.arraysize > 1)
-        ret.name = StringFormat::Fmt("Texture%dD%sArray%s %llu", ret.dimension, ms, suffix, ret.ID);
-      else
-        ret.name = StringFormat::Fmt("Texture%dD%s%s %llu", ret.dimension, ms, suffix, ret.ID);
-    }
-  }
-
   return ret;
 }
 
@@ -904,14 +871,6 @@ BufferDescription VulkanReplay::GetBuffer(ResourceId id)
     ret.creationFlags |= BufferCategory::Index;
   if(bufinfo.usage & (VK_BUFFER_USAGE_VERTEX_BUFFER_BIT))
     ret.creationFlags |= BufferCategory::Vertex;
-
-  ret.customName = true;
-  ret.name = m_pDriver->m_CreationInfo.m_Names[id];
-  if(ret.name.empty())
-  {
-    ret.customName = false;
-    ret.name = StringFormat::Fmt("Buffer %llu", ret.ID);
-  }
 
   return ret;
 }
@@ -2911,14 +2870,6 @@ void VulkanReplay::SavePipelineState()
         stage.Object = rm->GetOriginalID(p.shaders[i].module);
         stage.entryPoint = p.shaders[i].entryPoint;
 
-        stage.customName = true;
-        stage.name = m_pDriver->m_CreationInfo.m_Names[p.shaders[i].module];
-        if(stage.name.empty())
-        {
-          stage.customName = false;
-          stage.name = StringFormat::Fmt("Shader %llu", stage.Object);
-        }
-
         stage.stage = ShaderStage::Compute;
         if(p.shaders[i].mapping)
           stage.BindpointMapping = *p.shaders[i].mapping;
@@ -2981,14 +2932,6 @@ void VulkanReplay::SavePipelineState()
       {
         stages[i]->Object = rm->GetOriginalID(p.shaders[i].module);
         stages[i]->entryPoint = p.shaders[i].entryPoint;
-
-        stages[i]->customName = true;
-        stages[i]->name = m_pDriver->m_CreationInfo.m_Names[p.shaders[i].module];
-        if(stages[i]->name.empty())
-        {
-          stages[i]->customName = false;
-          stages[i]->name = StringFormat::Fmt("Shader %llu", stages[i]->Object);
-        }
 
         stages[i]->stage = StageFromIndex(i);
         if(p.shaders[i].mapping)
@@ -3314,14 +3257,6 @@ void VulkanReplay::SavePipelineState()
                   ResourceId liveId = el.sampler;
 
                   el.sampler = rm->GetOriginalID(el.sampler);
-
-                  el.customName = true;
-                  el.name = m_pDriver->m_CreationInfo.m_Names[liveId];
-                  if(el.name.empty())
-                  {
-                    el.customName = false;
-                    el.name = StringFormat::Fmt("Sampler %llu", el.sampler);
-                  }
 
                   // sampler info
                   el.Filter = MakeFilter(sampl.minFilter, sampl.magFilter, sampl.mipmapMode,

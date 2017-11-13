@@ -340,8 +340,6 @@ void DoSerialise(SerialiserType &ser, ResourceDescription &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, TextureDescription &el)
 {
-  SERIALISE_MEMBER(name);
-  SERIALISE_MEMBER(customName);
   SERIALISE_MEMBER(format);
   SERIALISE_MEMBER(dimension);
   SERIALISE_MEMBER(resType);
@@ -357,19 +355,17 @@ void DoSerialise(SerialiserType &ser, TextureDescription &el)
   SERIALISE_MEMBER(msSamp);
   SERIALISE_MEMBER(byteSize);
 
-  SIZE_CHECK(88);
+  SIZE_CHECK(72);
 }
 
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, BufferDescription &el)
 {
   SERIALISE_MEMBER(ID);
-  SERIALISE_MEMBER(name);
-  SERIALISE_MEMBER(customName);
   SERIALISE_MEMBER(creationFlags);
   SERIALISE_MEMBER(length);
 
-  SIZE_CHECK(40);
+  SIZE_CHECK(24);
 }
 
 template <typename SerialiserType>
@@ -814,17 +810,13 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::IA &el)
 {
   SERIALISE_MEMBER(layouts);
   SERIALISE_MEMBER(layout);
-
-  SERIALISE_MEMBER(customName);
-  SERIALISE_MEMBER(name);
-
   SERIALISE_MEMBER(vbuffers);
   SERIALISE_MEMBER(ibuffer);
 
   if(ser.IsReading())
     el.Bytecode = NULL;
 
-  SIZE_CHECK(88);
+  SIZE_CHECK(64);
 }
 
 template <typename SerialiserType>
@@ -853,8 +845,6 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11Pipe::Sampler &el)
 {
   SERIALISE_MEMBER(Samp);
-  SERIALISE_MEMBER(name);
-  SERIALISE_MEMBER(customName);
   SERIALISE_MEMBER(AddressU);
   SERIALISE_MEMBER(AddressV);
   SERIALISE_MEMBER(AddressW);
@@ -866,7 +856,7 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::Sampler &el)
   SERIALISE_MEMBER(MinLOD);
   SERIALISE_MEMBER(MipLODBias);
 
-  SIZE_CHECK(96);
+  SIZE_CHECK(72);
 }
 
 template <typename SerialiserType>
@@ -883,8 +873,6 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11Pipe::Shader &el)
 {
   SERIALISE_MEMBER(Object);
-  SERIALISE_MEMBER(name);
-  SERIALISE_MEMBER(customName);
   SERIALISE_MEMBER(stage);
   SERIALISE_MEMBER(SRVs);
   SERIALISE_MEMBER(UAVs);
@@ -896,7 +884,7 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::Shader &el)
     el.ShaderDetails = NULL;
   SERIALISE_MEMBER(BindpointMapping);
 
-  SIZE_CHECK(208);
+  SIZE_CHECK(184);
 }
 
 template <typename SerialiserType>
@@ -1071,7 +1059,7 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::State &el)
   SERIALISE_MEMBER(m_RS);
   SERIALISE_MEMBER(m_OM);
 
-  SIZE_CHECK(1656);
+  SIZE_CHECK(1488);
 }
 
 #pragma endregion D3D11 pipeline state
@@ -1388,9 +1376,6 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 {
   SERIALISE_MEMBER(pipeline);
-  SERIALISE_MEMBER(customName);
-  SERIALISE_MEMBER(name);
-
   SERIALISE_MEMBER(rootSig);
 
   SERIALISE_MEMBER(m_IA);
@@ -1410,7 +1395,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 
   SERIALISE_MEMBER(Resources);
 
-  SIZE_CHECK(1176);
+  SIZE_CHECK(1152);
 }
 
 #pragma endregion D3D12 pipeline state
@@ -1457,16 +1442,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, GLPipe::Shader &el)
 {
   SERIALISE_MEMBER(Object);
-
-  SERIALISE_MEMBER(ShaderName);
-  SERIALISE_MEMBER(customShaderName);
-
-  SERIALISE_MEMBER(ProgramName);
-  SERIALISE_MEMBER(customProgramName);
-
-  SERIALISE_MEMBER(PipelineActive);
-  SERIALISE_MEMBER(PipelineName);
-  SERIALISE_MEMBER(customPipelineName);
+  SERIALISE_MEMBER(Program);
 
   SERIALISE_MEMBER(stage);
   SERIALISE_MEMBER(Subroutines);
@@ -1475,7 +1451,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::Shader &el)
     el.ShaderDetails = NULL;
   SERIALISE_MEMBER(BindpointMapping);
 
-  SIZE_CHECK(192);
+  SIZE_CHECK(128);
 }
 
 template <typename SerialiserType>
@@ -1756,6 +1732,8 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
   SERIALISE_MEMBER(m_FS);
   SERIALISE_MEMBER(m_CS);
 
+  SERIALISE_MEMBER(Pipeline);
+
   SERIALISE_MEMBER(m_VtxProcess);
 
   SERIALISE_MEMBER(Textures);
@@ -1775,7 +1753,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
 
   SERIALISE_MEMBER(m_Hints);
 
-  SIZE_CHECK(1928);
+  SIZE_CHECK(1552);
 }
 
 #pragma endregion OpenGL pipeline state
@@ -1789,10 +1767,6 @@ void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
   SERIALISE_MEMBER(res);
   SERIALISE_MEMBER(sampler);
   SERIALISE_MEMBER(immutableSampler);
-
-  SERIALISE_MEMBER(name);
-  SERIALISE_MEMBER(customName);
-
   SERIALISE_MEMBER(viewfmt);
   SERIALISE_MEMBER(swizzle);
   SERIALISE_MEMBER(baseMip);
@@ -1815,7 +1789,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
   SERIALISE_MEMBER(BorderColor);
   SERIALISE_MEMBER(unnormalized);
 
-  SIZE_CHECK(176);
+  SIZE_CHECK(152);
 };
 
 template <typename SerialiserType>
@@ -1925,8 +1899,6 @@ void DoSerialise(SerialiserType &ser, VKPipe::Shader &el)
   SERIALISE_MEMBER(Object);
   SERIALISE_MEMBER(entryPoint);
 
-  SERIALISE_MEMBER(name);
-  SERIALISE_MEMBER(customName);
   SERIALISE_MEMBER(stage);
   SERIALISE_MEMBER(specialization);
 
@@ -1934,7 +1906,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::Shader &el)
     el.ShaderDetails = NULL;
   SERIALISE_MEMBER(BindpointMapping);
 
-  SIZE_CHECK(160);
+  SIZE_CHECK(136);
 }
 
 template <typename SerialiserType>
@@ -2193,7 +2165,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(images);
 
-  SIZE_CHECK(1424);
+  SIZE_CHECK(1280);
 }
 
 #pragma endregion Vulkan pipeline state

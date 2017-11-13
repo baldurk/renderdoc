@@ -144,17 +144,6 @@ BufferDescription D3D12Replay::GetBuffer(ResourceId id)
 
   D3D12_RESOURCE_DESC desc = it->second->GetDesc();
 
-  ret.customName = true;
-  string str = m_pDevice->GetResourceName(ret.ID);
-
-  if(str == "")
-  {
-    ret.customName = false;
-    str = StringFormat::Fmt("Buffer %llu", ret.ID);
-  }
-
-  ret.name = str;
-
   ret.length = desc.Width;
 
   ret.creationFlags = BufferCategory::NoFlags;
@@ -241,32 +230,6 @@ TextureDescription D3D12Replay::GetTexture(ResourceId id)
     ret.format = MakeResourceFormat(GetTypedFormat(desc.Format, CompType::UNorm));
     ret.creationFlags |= TextureCategory::SwapBuffer;
   }
-
-  ret.customName = true;
-  string str = m_pDevice->GetResourceName(ret.ID);
-
-  if(str == "")
-  {
-    const char *suffix = "";
-    const char *ms = "";
-
-    if(ret.msSamp > 1)
-      ms = "MS";
-
-    if(ret.creationFlags & TextureCategory::ColorTarget)
-      suffix = " RTV";
-    if(ret.creationFlags & TextureCategory::DepthTarget)
-      suffix = " DSV";
-
-    ret.customName = false;
-
-    if(ret.arraysize > 1)
-      str = StringFormat::Fmt("Texture%uD%sArray%s %llu", ret.dimension, ms, suffix, ret.ID);
-    else
-      str = StringFormat::Fmt("Texture%uD%s%s %llu", ret.dimension, ms, suffix, ret.ID);
-  }
-
-  ret.name = str;
 
   return ret;
 }
@@ -912,26 +875,10 @@ void D3D12Replay::SavePipelineState()
 
   state.pipeline = rm->GetOriginalID(rs.pipe);
 
-  state.customName = true;
-  string str = m_pDevice->GetResourceName(rs.pipe);
-
   WrappedID3D12PipelineState *pipe = NULL;
 
   if(rs.pipe != ResourceId())
     pipe = rm->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
-
-  if(str == "")
-  {
-    state.customName = false;
-
-    if(pipe)
-      str = StringFormat::Fmt(pipe->IsGraphics() ? "Graphics Pipe %llu" : "Compute Pipe %llu",
-                              state.pipeline);
-    else
-      str = "Unbound";
-  }
-
-  state.name = str;
 
   if(pipe && pipe->IsGraphics())
   {

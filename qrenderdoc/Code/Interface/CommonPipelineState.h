@@ -27,6 +27,8 @@
 // do not include any headers here, they must all be in QRDInterface.h
 #include "QRDInterface.h"
 
+struct ICaptureContext;
+
 DOCUMENT("Information about a single resource bound to a slot in an API-specific way.");
 struct BoundResource
 {
@@ -138,7 +140,7 @@ for the capture that's open.
 class CommonPipelineState
 {
 public:
-  CommonPipelineState() {}
+  CommonPipelineState(ICaptureContext &ctx) : m_Ctx(ctx) {}
   DOCUMENT(R"(Set the source API-specific states to read data from.
 
 :param ~renderdoc.APIProperties props: The properties of the current capture.
@@ -443,6 +445,8 @@ private:
   const GLPipe::State *m_GL = NULL;
   const VKPipe::State *m_Vulkan = NULL;
   APIProperties m_APIProps;
+
+  ICaptureContext &m_Ctx;
 
   const D3D11Pipe::Shader &GetD3D11Stage(ShaderStage stage);
   const D3D12Pipe::Shader &GetD3D12Stage(ShaderStage stage);

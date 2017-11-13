@@ -442,8 +442,6 @@ void ImageViewer::RefreshFile()
 
   texDetails.creationFlags = TextureCategory::SwapBuffer | TextureCategory::ColorTarget;
   texDetails.cubemap = false;
-  texDetails.customName = true;
-  texDetails.name = m_Filename;
   texDetails.ID = m_TextureID;
   texDetails.byteSize = 0;
   texDetails.msQual = 0;

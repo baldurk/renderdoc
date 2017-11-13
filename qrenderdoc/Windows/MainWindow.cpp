@@ -1615,7 +1615,7 @@ void MainWindow::on_action_Start_Replay_Loop_triggered()
     id = displayTex->ID;
     popup.resize((int)displayTex->width, (int)displayTex->height);
     popup.setWindowTitle(
-        tr("Looping replay of %1 Displaying %2").arg(m_Ctx.LogFilename()).arg(displayTex->name));
+        tr("Looping replay of %1 Displaying %2").arg(m_Ctx.LogFilename()).arg(m_Ctx.GetResourceName(id)));
   }
   else
   {
