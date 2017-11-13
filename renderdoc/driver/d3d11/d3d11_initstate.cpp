@@ -416,6 +416,11 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
     SERIALISE_ELEMENT(Id);
   }
 
+  if(IsReplayingAndReading())
+  {
+    AddResourceCurChunk(Id);
+  }
+
   {
     RDCDEBUG("Serialise_InitialState(%llu)", Id);
 

@@ -106,6 +106,8 @@ bool WrappedID3D11Device::Serialise_CreateBlendState1(SerialiserType &ser,
         GetResourceManager()->AddLiveResource(pState, ret);
       }
     }
+
+    AddResource(pState, ResourceType::StateObject, "Blend State");
   }
 
   return true;
@@ -200,6 +202,8 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState1(
         GetResourceManager()->AddLiveResource(pState, ret);
       }
     }
+
+    AddResource(pState, ResourceType::StateObject, "Rasterizer State");
   }
 
   return true;

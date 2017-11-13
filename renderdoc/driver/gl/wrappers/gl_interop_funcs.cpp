@@ -335,6 +335,8 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(SerialiserType &ser, GLResou
 
       m_Textures[liveId].internalFormat = internalFormat;
     }
+
+    AddResourceInitChunk(Resource);
   }
 
   return true;

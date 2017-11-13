@@ -516,6 +516,13 @@ public:
     static const int AllocMaxByteSize = 8 * 1024 * 1024;
     ALLOCATE_WITH_WRAPPED_POOL(ShaderEntry, AllocPoolCount, AllocMaxByteSize);
 
+    static bool m_InternalResources;
+
+    static void InternalResources(bool internalResources)
+    {
+      m_InternalResources = internalResources;
+    }
+
     ShaderEntry(const D3D12_SHADER_BYTECODE &byteCode, WrappedID3D12Device *device)
         : WrappedDeviceChild12(NULL, device), m_Key(byteCode)
     {
@@ -525,6 +532,19 @@ public:
       m_DXBCFile = NULL;
 
       device->GetResourceManager()->AddLiveResource(GetResourceID(), this);
+
+      if(!m_InternalResources)
+      {
+        device->AddResource(GetResourceID(), ResourceType::Shader, "Shader");
+
+        ResourceDescription &desc = device->GetReplay()->GetResourceDesc(GetResourceID());
+        // this will be appended to in the function above.
+        desc.initialisationChunks.clear();
+
+        // since these don't have live IDs, let's use the first uint of the hash as the name. Slight
+        // chance of collision but not that bad.
+        desc.name = StringFormat::Fmt("Shader {%08x}", m_Key.hash[0]);
+      }
 
       m_Built = false;
     }

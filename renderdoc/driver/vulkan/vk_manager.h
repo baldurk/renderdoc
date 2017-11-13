@@ -178,7 +178,14 @@ public:
       // either allocation or freeing happens, so we only need to
       // lock against concurrent allocs or deletes of children.
 
-      if(record && record->bakedCommands)
+      if(ToTypedHandle(obj).type == eResCommandBuffer && record->cmdInfo &&
+         record->cmdInfo->allocRecord)
+      {
+        record->cmdInfo->allocRecord->Delete(this);
+        record->cmdInfo->allocRecord = NULL;
+      }
+
+      if(record->bakedCommands)
       {
         record->bakedCommands->Delete(this);
         record->bakedCommands = NULL;

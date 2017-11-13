@@ -668,6 +668,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
   RDCEraseEl(m_Init);
 
   m_ListRecord = NULL;
+  m_CreationRecord = NULL;
   m_Cmd = NULL;
 
   m_CurGfxRootSig = NULL;
@@ -684,6 +685,17 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
 
     // this is set up in the implicit Reset() right after creation
     m_ListRecord->bakedCommands = NULL;
+
+    // a bit of a hack, we make a parallel resource record with the same lifetime as the command
+    // list and make it a parent, so it will hold onto our create chunk and not try to
+    // record it (and throw it away with baked commands that are unused), then it'll be pulled
+    // into the capture.
+    m_CreationRecord =
+        m_pDevice->GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+    m_CreationRecord->type = Resource_GraphicsCommandList;
+    m_CreationRecord->SpecialResource = true;
+
+    m_ListRecord->AddParent(m_CreationRecord);
   }
   else
   {
@@ -708,6 +720,9 @@ WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
 
   if(m_pReal)
     m_pDevice->GetResourceManager()->RemoveWrapper(m_pReal);
+
+  if(m_CreationRecord)
+    m_CreationRecord->Delete(m_pDevice->GetResourceManager());
 
   if(m_ListRecord && m_ListRecord->bakedCommands)
     m_ListRecord->bakedCommands->Delete(m_pDevice->GetResourceManager());

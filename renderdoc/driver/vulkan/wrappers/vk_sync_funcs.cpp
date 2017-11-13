@@ -95,6 +95,9 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), fence);
       GetResourceManager()->AddLiveResource(Fence, fence);
     }
+
+    AddResource(Fence, ResourceType::Sync, "Fence");
+    DerivedResource(device, Fence);
   }
 
   return true;
@@ -279,6 +282,9 @@ bool WrappedVulkan::Serialise_vkCreateEvent(SerialiserType &ser, VkDevice device
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), ev);
       GetResourceManager()->AddLiveResource(Event, ev);
     }
+
+    AddResource(Event, ResourceType::Sync, "Event");
+    DerivedResource(device, Event);
   }
 
   return true;
@@ -468,6 +474,9 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(SerialiserType &ser, VkDevice de
         GetResourceManager()->AddLiveResource(Semaphore, sem);
       }
     }
+
+    AddResource(Semaphore, ResourceType::Sync, "Semaphore");
+    DerivedResource(device, Semaphore);
   }
 
   return true;

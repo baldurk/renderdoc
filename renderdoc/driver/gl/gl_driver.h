@@ -156,6 +156,12 @@ private:
   SDFile *m_StructuredFile;
   SDFile m_StoredStructuredData;
 
+  void AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix);
+  void DerivedResource(GLResource parent, ResourceId child);
+  void AddResourceCurChunk(ResourceDescription &descr);
+  void AddResourceCurChunk(ResourceId id);
+  void AddResourceInitChunk(GLResource res);
+
   uint32_t m_FrameCounter;
   uint32_t m_NoCtxFrames;
   uint32_t m_FailedFrame;

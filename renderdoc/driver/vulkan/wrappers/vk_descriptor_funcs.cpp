@@ -180,6 +180,9 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(SerialiserType &ser, VkDevi
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pool);
       GetResourceManager()->AddLiveResource(DescriptorPool, pool);
     }
+
+    AddResource(DescriptorPool, ResourceType::Pool, "Descriptor Pool");
+    DerivedResource(device, DescriptorPool);
   }
 
   return true;
@@ -264,6 +267,22 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
         GetResourceManager()->AddLiveResource(SetLayout, layout);
 
         m_CreationInfo.m_DescSetLayout[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
+      }
+
+      AddResource(SetLayout, ResourceType::ShaderBinding, "Descriptor Layout");
+      DerivedResource(device, SetLayout);
+
+      for(uint32_t i = 0; i < CreateInfo.bindingCount; i++)
+      {
+        bool usesSampler =
+            CreateInfo.pBindings[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+            CreateInfo.pBindings[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+        if(usesSampler && CreateInfo.pBindings[i].pImmutableSamplers != NULL)
+        {
+          for(uint32_t d = 0; d < CreateInfo.pBindings[i].descriptorCount; d++)
+            DerivedResource(CreateInfo.pBindings[i].pImmutableSamplers[d], SetLayout);
+        }
       }
     }
   }
@@ -360,6 +379,10 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
       m_CreationInfo.m_DescSetLayout[layoutId].CreateBindingsArray(
           m_DescriptorSetState[live].currentBindings);
     }
+
+    AddResource(DescriptorSet, ResourceType::ShaderBinding, "Descriptor Set");
+    DerivedResource(device, DescriptorSet);
+    DerivedResource(AllocateInfo.pSetLayouts[0], DescriptorSet);
   }
 
   return true;

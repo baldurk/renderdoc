@@ -146,6 +146,8 @@ bool WrappedOpenGL::Serialise_glCreateShader(SerialiserType &ser, GLuint shader,
     m_Shaders[liveId].type = type;
 
     GetResourceManager()->AddLiveResource(Shader, res);
+
+    AddResource(Shader, ResourceType::Shader, "Shader");
   }
 
   return true;
@@ -233,6 +235,8 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
       m_Shaders[liveId].spirv = SPVModule();
       m_Shaders[liveId].reflection = ShaderReflection();
     }
+
+    AddResourceInitChunk(shader);
   }
 
   return true;
@@ -280,6 +284,8 @@ bool WrappedOpenGL::Serialise_glCompileShader(SerialiserType &ser, GLuint shader
     m_Real.glCompileShader(shader.name);
 
     m_Shaders[liveId].Compile(*this, GetResourceManager()->GetOriginalID(liveId), shader.name);
+
+    AddResourceInitChunk(shader);
   }
 
   return true;
@@ -343,6 +349,9 @@ bool WrappedOpenGL::Serialise_glAttachShader(SerialiserType &ser, GLuint program
     m_Programs[liveProgId].shaders.push_back(liveShadId);
 
     m_Real.glAttachShader(program.name, shader.name);
+
+    AddResourceInitChunk(program);
+    DerivedResource(program, GetResourceManager()->GetOriginalID(liveShadId));
   }
 
   return true;
@@ -501,6 +510,8 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLuint
     shadDetails.Compile(*this, Program, 0);
 
     GetResourceManager()->AddLiveResource(Program, res);
+
+    AddResource(Program, ResourceType::StateObject, "Program");
   }
 
   return true;
@@ -581,6 +592,8 @@ bool WrappedOpenGL::Serialise_glCreateProgram(SerialiserType &ser, GLuint progra
     m_Programs[liveId].linked = false;
 
     GetResourceManager()->AddLiveResource(Program, res);
+
+    AddResource(Program, ResourceType::StateObject, "Program");
   }
 
   return true;
@@ -647,6 +660,8 @@ bool WrappedOpenGL::Serialise_glLinkProgram(SerialiserType &ser, GLuint programH
     }
 
     m_Real.glLinkProgram(program.name);
+
+    AddResourceInitChunk(program);
   }
 
   return true;
@@ -1226,6 +1241,8 @@ bool WrappedOpenGL::Serialise_glGenProgramPipelines(SerialiserType &ser, GLsizei
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(pipeline, res);
+
+    AddResource(pipeline, ResourceType::StateObject, "Pipeline");
   }
 
   return true;
@@ -1280,6 +1297,8 @@ bool WrappedOpenGL::Serialise_glCreateProgramPipelines(SerialiserType &ser, GLsi
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(pipeline, res);
+
+    AddResource(pipeline, ResourceType::StateObject, "Pipeline");
   }
 
   return true;
@@ -1427,6 +1446,8 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(SerialiserType &ser, GLu
     m_Real.glCompileShaderIncludeARB(shader.name, count, path, NULL);
 
     shadDetails.Compile(*this, GetResourceManager()->GetOriginalID(liveId), shader.name);
+
+    AddResourceInitChunk(shader);
   }
 
   return true;

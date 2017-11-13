@@ -204,6 +204,9 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
 
       m_CreationInfo.m_Memory[live].wholeMemBuf = buf;
     }
+
+    AddResource(Memory, ResourceType::Memory, "Memory");
+    DerivedResource(device, Memory);
   }
 
   return true;
@@ -843,7 +846,18 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
   SERIALISE_ELEMENT(memoryOffset);
 
   if(IsReplayingAndReading())
+  {
     ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(memory), memoryOffset);
+
+    ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(buffer));
+    ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(memory));
+
+    GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
+    GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
+
+    AddResourceCurChunk(memOrigId);
+    AddResourceCurChunk(resOrigId);
+  }
 
   return true;
 }
@@ -889,7 +903,18 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
   SERIALISE_ELEMENT(memoryOffset);
 
   if(IsReplayingAndReading())
+  {
     ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(memory), memoryOffset);
+
+    ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(image));
+    ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(memory));
+
+    GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
+    GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
+
+    AddResourceCurChunk(memOrigId);
+    AddResourceCurChunk(resOrigId);
+  }
 
   return true;
 }
@@ -962,6 +987,9 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
 
       m_CreationInfo.m_Buffer[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
     }
+
+    AddResource(Buffer, ResourceType::Buffer, "Buffer");
+    DerivedResource(device, Buffer);
   }
 
   return true;
@@ -1078,6 +1106,10 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(SerialiserType &ser, VkDevice d
         m_CreationInfo.m_BufferView[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
       }
     }
+
+    AddResource(View, ResourceType::View, "Buffer View");
+    DerivedResource(device, View);
+    DerivedResource(CreateInfo.buffer, View);
   }
 
   return true;
@@ -1210,6 +1242,39 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       layouts.subresourceStates.push_back(
           ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
     }
+
+    const char *prefix = "Image";
+
+    if(CreateInfo.imageType == VK_IMAGE_TYPE_1D)
+    {
+      prefix = CreateInfo.arrayLayers > 1 ? "1D Array Image" : "1D Image";
+
+      if(CreateInfo.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+        prefix = "1D Color Attachment";
+      else if(CreateInfo.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        prefix = "1D Depth Attachment";
+    }
+    else if(CreateInfo.imageType == VK_IMAGE_TYPE_2D)
+    {
+      prefix = CreateInfo.arrayLayers > 1 ? "2D Array Image" : "2D Image";
+
+      if(CreateInfo.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+        prefix = "2D Color Attachment";
+      else if(CreateInfo.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        prefix = "2D Depth Attachment";
+    }
+    else if(CreateInfo.imageType == VK_IMAGE_TYPE_3D)
+    {
+      prefix = "3D Image";
+
+      if(CreateInfo.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+        prefix = "3D Color Attachment";
+      else if(CreateInfo.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        prefix = "3D Depth Attachment";
+    }
+
+    AddResource(Image, ResourceType::Texture, prefix);
+    DerivedResource(device, Image);
   }
 
   return true;
@@ -1448,6 +1513,10 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
         m_CreationInfo.m_ImageView[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
       }
     }
+
+    AddResource(View, ResourceType::View, "Image View");
+    DerivedResource(device, View);
+    DerivedResource(CreateInfo.image, View);
   }
 
   return true;

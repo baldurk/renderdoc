@@ -256,6 +256,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
         ID3D12GraphicsCommandList *list = NULL;
         m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState, riid, (void **)&list);
 
+        m_pDevice->AddResource(BakedCommandList, ResourceType::CommandBuffer, "Baked Command List");
+        m_pDevice->GetReplay()->GetResourceDesc(BakedCommandList).initialisationChunks.clear();
+        m_pDevice->DerivedResource(CommandList, BakedCommandList);
+        m_pDevice->DerivedResource(pAllocator, BakedCommandList);
+        if(pInitialState)
+          m_pDevice->DerivedResource(pInitialState, BakedCommandList);
+
         GetResourceManager()->AddLiveResource(BakedCommandList, list);
 
         // whenever a command-building chunk asks for the command list, it
@@ -330,9 +337,6 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
     // reset for new recording
     m_ListRecord->DeleteChunks();
     m_ListRecord->ContainsExecuteIndirect = false;
-
-    // free parents
-    m_ListRecord->FreeParents(GetResourceManager());
 
     // free any baked commands. If we don't have any, this is the creation reset
     // so we return before actually doing the 'real' reset.

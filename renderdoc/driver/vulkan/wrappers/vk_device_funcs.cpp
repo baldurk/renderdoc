@@ -239,6 +239,10 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   GetResourceManager()->WrapResource(m_Instance, m_Instance);
   GetResourceManager()->AddLiveResource(params.InstanceID, m_Instance);
 
+  // we'll add the chunk later when we re-process it.
+  AddResource(params.InstanceID, ResourceType::Device, "Instance");
+  GetReplay()->GetResourceDesc(params.InstanceID).initialisationChunks.clear();
+
   InitInstanceExtensionTables(m_Instance, &extInfo);
 
   m_DbgMsgCallback = VK_NULL_HANDLE;
@@ -666,6 +670,9 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
     else
       GetResourceManager()->ReplaceResource(PhysicalDevice,
                                             GetResourceManager()->GetOriginalID(GetResID(pd)));
+
+    AddResource(PhysicalDevice, ResourceType::Device, "Physical Device");
+    DerivedResource(m_Instance, PhysicalDevice);
 
     if(PhysicalDeviceIndex >= m_PhysicalDevices.size())
       m_PhysicalDevices.resize(PhysicalDeviceIndex + 1);
@@ -1124,6 +1131,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     GetResourceManager()->WrapResource(device, device);
     GetResourceManager()->AddLiveResource(Device, device);
+
+    AddResource(Device, ResourceType::Device, "Device");
+    DerivedResource(physicalDevice, Device);
 
     InstanceDeviceInfo extInfo;
 

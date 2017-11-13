@@ -28,7 +28,7 @@
 template <>
 std::string DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1099, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1100, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -40,6 +40,7 @@ std::string DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkFlushMappedMemoryRanges);
     STRINGISE_ENUM_CLASS(vkCreateCommandPool);
     STRINGISE_ENUM_CLASS(vkResetCommandPool);
+    STRINGISE_ENUM_CLASS(vkAllocateCommandBuffers);
     STRINGISE_ENUM_CLASS(vkCreateFramebuffer);
     STRINGISE_ENUM_CLASS(vkCreateRenderPass);
     STRINGISE_ENUM_CLASS(vkCreateDescriptorPool);

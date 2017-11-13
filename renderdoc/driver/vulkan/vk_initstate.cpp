@@ -531,6 +531,11 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(id);
 
+  if(IsReplayingAndReading())
+  {
+    AddResourceCurChunk(id);
+  }
+
   if(type == eResDescriptorSet)
   {
     DescriptorSetSlot *Bindings = NULL;

@@ -402,6 +402,8 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
 
     for(UINT i = 0; i < NumCommandLists; i++)
     {
+      WrappedID3D12GraphicsCommandList *wrapped =
+          (WrappedID3D12GraphicsCommandList *)ppCommandLists[i];
       D3D12ResourceRecord *record = GetRecord(ppCommandLists[i]);
 
       if(record->ContainsExecuteIndirect)
@@ -486,6 +488,10 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
         // pull in frame refs from this baked command list
         record->bakedCommands->AddResourceReferences(GetResourceManager());
         record->bakedCommands->AddReferencedIDs(refdIDs);
+
+        // mark the creation record as referenced so it gets pulled in.
+        GetResourceManager()->MarkResourceFrameReferenced(
+            wrapped->GetCreationRecord()->GetResourceID(), eFrameRef_Read);
 
         // reference all executed bundles as well
         for(size_t b = 0; b < record->bakedCommands->cmdInfo->bundles.size(); b++)

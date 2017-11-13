@@ -70,6 +70,8 @@ bool WrappedOpenGL::Serialise_glGenBuffers(SerialiserType &ser, GLsizei n, GLuin
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(buffer, res);
 
+    AddResource(buffer, ResourceType::Buffer, "Buffer");
+
     m_Buffers[live].resource = res;
     m_Buffers[live].curType = eGL_NONE;
     m_Buffers[live].creationFlags = BufferCategory::NoFlags;
@@ -128,6 +130,8 @@ bool WrappedOpenGL::Serialise_glCreateBuffers(SerialiserType &ser, GLsizei n, GL
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(buffer, res);
+
+    AddResource(buffer, ResourceType::Buffer, "Buffer");
 
     m_Buffers[live].resource = res;
     m_Buffers[live].curType = eGL_NONE;
@@ -205,6 +209,8 @@ bool WrappedOpenGL::Serialise_glBindBuffer(SerialiserType &ser, GLenum target, G
       if(IsLoading(m_State) && m_CurEventID == 0 && target != eGL_NONE)
         m_Real.glBindBuffer(target, prevbuf);
     }
+
+    AddResourceInitChunk(buffer);
   }
 
   return true;
@@ -395,6 +401,8 @@ bool WrappedOpenGL::Serialise_glNamedBufferStorageEXT(SerialiserType &ser, GLuin
     m_Real.glNamedBufferStorageEXT(buffer.name, (GLsizeiptr)bytesize, data, flags);
 
     m_Buffers[GetResourceManager()->GetID(buffer)].size = bytesize;
+
+    AddResourceInitChunk(buffer);
   }
 
   return true;
@@ -528,6 +536,8 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(SerialiserType &ser, GLuint b
     m_Real.glNamedBufferDataEXT(buffer.name, (GLsizeiptr)bytesize, data, usage);
 
     m_Buffers[GetResourceManager()->GetID(buffer)].size = bytesize;
+
+    AddResourceInitChunk(buffer);
   }
 
   return true;
@@ -1072,6 +1082,8 @@ bool WrappedOpenGL::Serialise_glBindBufferBase(SerialiserType &ser, GLenum targe
   if(IsReplayingAndReading())
   {
     m_Real.glBindBufferBase(target, index, buffer.name);
+
+    AddResourceInitChunk(buffer);
   }
 
   return true;
@@ -1177,6 +1189,8 @@ bool WrappedOpenGL::Serialise_glBindBufferRange(SerialiserType &ser, GLenum targ
   if(IsReplayingAndReading())
   {
     m_Real.glBindBufferRange(target, index, buffer.name, (GLintptr)offset, (GLsizeiptr)size);
+
+    AddResourceInitChunk(buffer);
   }
 
   return true;
@@ -1294,7 +1308,11 @@ bool WrappedOpenGL::Serialise_glBindBuffersBase(SerialiserType &ser, GLenum targ
     std::vector<GLuint> bufs;
     bufs.reserve(count);
     for(GLsizei i = 0; i < count; i++)
+    {
       bufs.push_back(buffers[i].name);
+
+      AddResourceInitChunk(buffers[i]);
+    }
 
     m_Real.glBindBuffersBase(target, first, count, bufs.data());
   }
@@ -1455,7 +1473,11 @@ bool WrappedOpenGL::Serialise_glBindBuffersRange(SerialiserType &ser, GLenum tar
     {
       bufs.reserve(count);
       for(GLsizei i = 0; i < count; i++)
+      {
         bufs.push_back(buffers[i].name);
+
+        AddResourceInitChunk(buffers[i]);
+      }
     }
     if(!offsets.empty())
     {
@@ -2575,6 +2597,8 @@ bool WrappedOpenGL::Serialise_glGenTransformFeedbacks(SerialiserType &ser, GLsiz
 
     m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(feedback, res);
+
+    AddResource(feedback, ResourceType::StateObject, "Transform Feedback");
   }
 
   return true;
@@ -2627,6 +2651,8 @@ bool WrappedOpenGL::Serialise_glCreateTransformFeedbacks(SerialiserType &ser, GL
 
     m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(feedback, res);
+
+    AddResource(feedback, ResourceType::StateObject, "Transform Feedback");
   }
 
   return true;
@@ -3924,6 +3950,8 @@ bool WrappedOpenGL::Serialise_glGenVertexArrays(SerialiserType &ser, GLsizei n, 
 
     m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(array, res);
+
+    AddResource(array, ResourceType::StateObject, "Vertex Array");
   }
 
   return true;
@@ -3976,6 +4004,8 @@ bool WrappedOpenGL::Serialise_glCreateVertexArrays(SerialiserType &ser, GLsizei 
 
     m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(array, res);
+
+    AddResource(array, ResourceType::StateObject, "Vertex Array");
   }
 
   return true;

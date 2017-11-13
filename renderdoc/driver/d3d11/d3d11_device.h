@@ -396,6 +396,11 @@ private:
   SDFile *m_StructuredFile = NULL;
   SDFile m_StoredStructuredData;
 
+  void AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix);
+  void DerivedResource(ID3D11DeviceChild *parent, ResourceId child);
+  void AddResourceCurChunk(ResourceDescription &descr);
+  void AddResourceCurChunk(ResourceId id);
+
   vector<DebugMessage> m_DebugMessages;
 
   vector<FrameDescription> m_CapturedFrames;

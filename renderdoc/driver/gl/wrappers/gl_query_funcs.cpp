@@ -67,6 +67,8 @@ bool WrappedOpenGL::Serialise_glFenceSync(SerialiserType &ser, GLsync real, GLen
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(sync, res);
+
+    AddResource(sync, ResourceType::Sync, "Sync");
   }
 
   return true;
@@ -191,6 +193,8 @@ bool WrappedOpenGL::Serialise_glGenQueries(SerialiserType &ser, GLsizei n, GLuin
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(query, res);
+
+    AddResource(query, ResourceType::Query, "Query");
   }
 
   return true;
@@ -245,6 +249,8 @@ bool WrappedOpenGL::Serialise_glCreateQueries(SerialiserType &ser, GLenum target
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(query, res);
+
+    AddResource(query, ResourceType::Query, "Query");
   }
 
   return true;

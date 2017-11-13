@@ -431,6 +431,9 @@ bool WrappedVulkan::Serialise_vkCreateSampler(SerialiserType &ser, VkDevice devi
         m_CreationInfo.m_Sampler[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
       }
     }
+
+    AddResource(Sampler, ResourceType::Sampler, "Sampler");
+    DerivedResource(device, Sampler);
   }
 
   return true;
@@ -556,6 +559,13 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
         m_CreationInfo.m_Framebuffer[live] = fbinfo;
       }
     }
+
+    AddResource(Framebuffer, ResourceType::RenderPass, "Framebuffer");
+    DerivedResource(device, Framebuffer);
+    DerivedResource(CreateInfo.renderPass, Framebuffer);
+
+    for(uint32_t i = 0; i < CreateInfo.attachmentCount; i++)
+      DerivedResource(CreateInfo.pAttachments[i], Framebuffer);
   }
 
   return true;
@@ -758,6 +768,9 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
         m_CreationInfo.m_RenderPass[live] = rpinfo;
       }
     }
+
+    AddResource(RenderPass, ResourceType::RenderPass, "Render Pass");
+    DerivedResource(device, RenderPass);
   }
 
   return true;
@@ -916,6 +929,9 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(SerialiserType &ser, VkDevice de
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
     }
+
+    AddResource(QueryPool, ResourceType::Query, "Query Pool");
+    DerivedResource(device, QueryPool);
   }
 
   return true;
@@ -1139,6 +1155,8 @@ bool WrappedVulkan::Serialise_SetShaderDebugPath(SerialiserType &ser, VkDevice d
   {
     m_CreationInfo.m_ShaderModule[GetResourceManager()->GetLiveID(ShaderObject)].unstrippedPath =
         DebugPath;
+
+    AddResourceCurChunk(ShaderObject);
   }
 
   return true;
@@ -1218,6 +1236,11 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
       m_CreationInfo.m_Names[Object] = ObjectName;
     else
       m_CreationInfo.m_Names[GetResourceManager()->GetLiveID(Object)] = ObjectName;
+
+    ResourceDescription &descr = GetReplay()->GetResourceDesc(Object);
+
+    AddResourceCurChunk(descr);
+    descr.SetCustomName(ObjectName);
   }
 
   return true;

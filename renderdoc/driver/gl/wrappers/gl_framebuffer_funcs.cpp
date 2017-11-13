@@ -44,6 +44,8 @@ bool WrappedOpenGL::Serialise_glGenFramebuffers(SerialiserType &ser, GLsizei n, 
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(framebuffer, res);
+
+    AddResource(framebuffer, ResourceType::RenderPass, "Framebuffer");
   }
 
   return true;
@@ -98,6 +100,8 @@ bool WrappedOpenGL::Serialise_glCreateFramebuffers(SerialiserType &ser, GLsizei 
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(framebuffer, res);
+
+    AddResource(framebuffer, ResourceType::RenderPass, "Framebuffer");
   }
 
   return true;
@@ -1960,6 +1964,8 @@ bool WrappedOpenGL::Serialise_glGenRenderbuffers(SerialiserType &ser, GLsizei n,
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(renderbuffer, res);
 
+    AddResource(renderbuffer, ResourceType::Texture, "Renderbuffer");
+
     m_Textures[live].resource = res;
     m_Textures[live].curType = eGL_RENDERBUFFER;
   }
@@ -2017,6 +2023,8 @@ bool WrappedOpenGL::Serialise_glCreateRenderbuffers(SerialiserType &ser, GLsizei
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(renderbuffer, res);
+
+    AddResource(renderbuffer, ResourceType::Texture, "Renderbuffer");
 
     m_Textures[live].resource = res;
     m_Textures[live].curType = eGL_RENDERBUFFER;
@@ -2136,6 +2144,8 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
                                              eGL_RENDERBUFFER, renderbuffer.name);
     m_Real.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach, eGL_TEXTURE_2D,
                                           texDetails.renderbufferReadTex, 0);
+
+    AddResourceInitChunk(renderbuffer);
   }
 
   return true;
@@ -2267,6 +2277,8 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
     m_Real.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach,
                                           eGL_TEXTURE_2D_MULTISAMPLE,
                                           texDetails.renderbufferReadTex, 0);
+
+    AddResourceInitChunk(renderbuffer);
   }
 
   return true;

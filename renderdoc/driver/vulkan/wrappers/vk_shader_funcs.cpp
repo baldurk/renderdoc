@@ -136,6 +136,11 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(SerialiserType &ser, VkDevi
         m_CreationInfo.m_PipelineLayout[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
       }
     }
+
+    AddResource(PipelineLayout, ResourceType::ShaderBinding, "Pipeline Layout");
+    DerivedResource(device, PipelineLayout);
+    for(uint32_t i = 0; i < CreateInfo.setLayoutCount; i++)
+      DerivedResource(CreateInfo.pSetLayouts[i], PipelineLayout);
   }
 
   return true;
@@ -231,6 +236,9 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(SerialiserType &ser, VkDevice
         m_CreationInfo.m_ShaderModule[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
       }
     }
+
+    AddResource(ShaderModule, ResourceType::Shader, "Shader Module");
+    DerivedResource(device, ShaderModule);
   }
 
   return true;
@@ -302,6 +310,9 @@ bool WrappedVulkan::Serialise_vkCreatePipelineCache(SerialiserType &ser, VkDevic
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), cache);
       GetResourceManager()->AddLiveResource(PipelineCache, cache);
     }
+
+    AddResource(PipelineCache, ResourceType::Pool, "Pipeline Cache");
+    DerivedResource(device, PipelineCache);
   }
 
   return true;
@@ -372,6 +383,9 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
   {
     VkPipeline pipe = VK_NULL_HANDLE;
 
+    VkRenderPass origRP = CreateInfo.renderPass;
+    VkPipelineCache origCache = pipelineCache;
+
     // don't use pipeline caches on replay
     pipelineCache = VK_NULL_HANDLE;
 
@@ -424,6 +438,16 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
         GetResourceManager()->AddLiveResource(subpass0id, pipeInfo.subpass0pipe);
       }
     }
+
+    AddResource(Pipeline, ResourceType::PipelineState, "Graphics Pipeline");
+    DerivedResource(device, Pipeline);
+    DerivedResource(origCache, Pipeline);
+    if(CreateInfo.basePipelineHandle != VK_NULL_HANDLE)
+      DerivedResource(CreateInfo.basePipelineHandle, Pipeline);
+    DerivedResource(origRP, Pipeline);
+    DerivedResource(CreateInfo.layout, Pipeline);
+    for(uint32_t i = 0; i < CreateInfo.stageCount; i++)
+      DerivedResource(CreateInfo.pStages[i].module, Pipeline);
   }
 
   return true;
@@ -534,6 +558,9 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
   {
     VkPipeline pipe = VK_NULL_HANDLE;
 
+    VkPipelineCache origCache = pipelineCache;
+
+    // don't use pipeline caches on replay
     pipelineCache = VK_NULL_HANDLE;
 
     VkComputePipelineCreateInfo *unwrapped = UnwrapInfos(&CreateInfo, 1);
@@ -567,6 +594,14 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
         m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
       }
     }
+
+    AddResource(Pipeline, ResourceType::PipelineState, "Graphics Pipeline");
+    DerivedResource(device, Pipeline);
+    DerivedResource(origCache, Pipeline);
+    if(CreateInfo.basePipelineHandle != VK_NULL_HANDLE)
+      DerivedResource(CreateInfo.basePipelineHandle, Pipeline);
+    DerivedResource(CreateInfo.layout, Pipeline);
+    DerivedResource(CreateInfo.stage.module, Pipeline);
   }
 
   return true;

@@ -119,6 +119,8 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
       GetResourceManager()->AddLiveResource(pBuffer, ret);
     }
 
+    AddResource(pBuffer, ResourceType::Buffer, "Buffer");
+
     if(Descriptor.Usage != D3D11_USAGE_IMMUTABLE)
     {
       ID3D11Buffer *stage = NULL;
@@ -373,6 +375,15 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(SerialiserType &ser,
       GetResourceManager()->AddLiveResource(pTexture, ret);
     }
 
+    const char *prefix = Descriptor.ArraySize > 1 ? "1D TextureArray" : "1D Texture";
+
+    if(Descriptor.BindFlags & D3D11_BIND_RENDER_TARGET)
+      prefix = "1D Render Target";
+    else if(Descriptor.BindFlags & D3D11_BIND_DEPTH_STENCIL)
+      prefix = "1D Depth Target";
+
+    AddResource(pTexture, ResourceType::Texture, prefix);
+
     // free the serialised buffers we stole in Serialise_CreateTextureData
     for(size_t i = 0; i < descs.size(); i++)
       FreeAlignedBuffer((byte *)descs[i].pSysMem);
@@ -481,6 +492,15 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(SerialiserType &ser,
       GetResourceManager()->AddLiveResource(pTexture, ret);
     }
 
+    const char *prefix = Descriptor.ArraySize > 1 ? "2D TextureArray" : "2D Texture";
+
+    if(Descriptor.BindFlags & D3D11_BIND_RENDER_TARGET)
+      prefix = "2D Render Target";
+    else if(Descriptor.BindFlags & D3D11_BIND_DEPTH_STENCIL)
+      prefix = "2D Depth Target";
+
+    AddResource(pTexture, ResourceType::Texture, prefix);
+
     // free the serialised buffers we stole in Serialise_CreateTextureData
     for(size_t i = 0; i < descs.size(); i++)
       FreeAlignedBuffer((byte *)descs[i].pSysMem);
@@ -588,6 +608,15 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pTexture, ret);
     }
+
+    const char *prefix = "3D Texture";
+
+    if(Descriptor.BindFlags & D3D11_BIND_RENDER_TARGET)
+      prefix = "3D Render Target";
+    else if(Descriptor.BindFlags & D3D11_BIND_DEPTH_STENCIL)
+      prefix = "3D Depth Target";
+
+    AddResource(pTexture, ResourceType::Texture, prefix);
 
     // free the serialised buffers we stole in Serialise_CreateTextureData
     for(size_t i = 0; i < descs.size(); i++)
@@ -707,6 +736,9 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
+
+    AddResource(pView, ResourceType::View, "Shader Resource View");
+    DerivedResource(pResource, pView);
   }
 
   return true;
@@ -802,6 +834,9 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView(
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
+
+    AddResource(pView, ResourceType::View, "Unordered Access View");
+    DerivedResource(pResource, pView);
   }
 
   return true;
@@ -927,6 +962,9 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
+
+    AddResource(pView, ResourceType::View, "Render Target View");
+    DerivedResource(pResource, pView);
   }
 
   return true;
@@ -1022,6 +1060,9 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilView(
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
+
+    AddResource(pView, ResourceType::View, "Depth Stencil View");
+    DerivedResource(pResource, pView);
   }
 
   return true;
@@ -1118,6 +1159,8 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
       GetResourceManager()->AddLiveResource(pInputLayout, ret);
     }
 
+    AddResource(pInputLayout, ResourceType::StateObject, "Input Layout");
+
     m_LayoutDescs[ret] =
         std::vector<D3D11_INPUT_ELEMENT_DESC>(pInputElementDescs, pInputElementDescs + NumElements);
 
@@ -1204,6 +1247,8 @@ bool WrappedID3D11Device::Serialise_CreateVertexShader(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
+
+    AddResource(pShader, ResourceType::Shader, "Vertex Shader");
   }
 
   return true;
@@ -1289,6 +1334,8 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShader(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
+
+    AddResource(pShader, ResourceType::Shader, "Geometry Shader");
   }
 
   return true;
@@ -1379,6 +1426,8 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
+
+    AddResource(pShader, ResourceType::Shader, "Geometry Shader");
   }
 
   return true;
@@ -1470,6 +1519,8 @@ bool WrappedID3D11Device::Serialise_CreatePixelShader(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
+
+    AddResource(pShader, ResourceType::Shader, "Pixel Shader");
   }
 
   return true;
@@ -1553,6 +1604,8 @@ bool WrappedID3D11Device::Serialise_CreateHullShader(SerialiserType &ser, const 
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
+
+    AddResource(pShader, ResourceType::Shader, "Hull Shader");
   }
 
   return true;
@@ -1637,6 +1690,8 @@ bool WrappedID3D11Device::Serialise_CreateDomainShader(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
+
+    AddResource(pShader, ResourceType::Shader, "Domain Shader");
   }
 
   return true;
@@ -1722,6 +1777,8 @@ bool WrappedID3D11Device::Serialise_CreateComputeShader(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pShader, ret);
     }
+
+    AddResource(pShader, ResourceType::Shader, "Compute Shader");
   }
 
   return true;
@@ -1815,6 +1872,9 @@ bool WrappedID3D11Device::Serialise_CreateClassInstance(SerialiserType &ser, LPC
 
       GetResourceManager()->AddLiveResource(pInstance, wrapped);
     }
+
+    AddResource(pInstance, ResourceType::ShaderBinding, "Class Instance");
+    DerivedResource(pClassLinkage, pInstance);
   }
 
   return true;
@@ -1877,6 +1937,9 @@ bool WrappedID3D11Device::Serialise_GetClassInstance(SerialiserType &ser, LPCSTR
 
       GetResourceManager()->AddLiveResource(pInstance, wrapped);
     }
+
+    AddResource(pInstance, ResourceType::ShaderBinding, "Class Instance");
+    DerivedResource(pClassLinkage, pInstance);
   }
 
   return true;
@@ -1932,6 +1995,8 @@ bool WrappedID3D11Device::Serialise_CreateClassLinkage(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pLinkage, ret);
     }
+
+    AddResource(pLinkage, ResourceType::ShaderBinding, "Class Linkage");
   }
 
   return true;
@@ -2002,6 +2067,8 @@ bool WrappedID3D11Device::Serialise_CreateBlendState(SerialiserType &ser,
         GetResourceManager()->AddLiveResource(pState, ret);
       }
     }
+
+    AddResource(pState, ResourceType::StateObject, "Blend State");
   }
 
   return true;
@@ -2090,6 +2157,8 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilState(
         GetResourceManager()->AddLiveResource(pState, ret);
       }
     }
+
+    AddResource(pState, ResourceType::StateObject, "Depth-Stencil State");
   }
 
   return true;
@@ -2178,6 +2247,8 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState(SerialiserType &ser,
         GetResourceManager()->AddLiveResource(pState, ret);
       }
     }
+
+    AddResource(pState, ResourceType::StateObject, "Rasterizer State");
   }
 
   return true;
@@ -2266,6 +2337,8 @@ bool WrappedID3D11Device::Serialise_CreateSamplerState(SerialiserType &ser,
         GetResourceManager()->AddLiveResource(pState, ret);
       }
     }
+
+    AddResource(pState, ResourceType::Sampler, "Sampler State");
   }
 
   return true;
@@ -2343,6 +2416,8 @@ bool WrappedID3D11Device::Serialise_CreateQuery(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pQuery, ret);
     }
+
+    AddResource(pQuery, ResourceType::Query, "Query");
   }
 
   return true;
@@ -2402,6 +2477,8 @@ bool WrappedID3D11Device::Serialise_CreatePredicate(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pPredicate, ret);
     }
+
+    AddResource(pPredicate, ResourceType::Query, "Predicate");
   }
 
   return true;
@@ -2462,6 +2539,8 @@ bool WrappedID3D11Device::Serialise_CreateCounter(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pCounter, ret);
     }
+
+    AddResource(pCounter, ResourceType::Query, "Counter");
   }
 
   return true;
@@ -2524,6 +2603,8 @@ bool WrappedID3D11Device::Serialise_CreateDeferredContext(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pDeferredContext, ret);
     }
+
+    AddResource(pDeferredContext, ResourceType::CommandBuffer, "Deferred Context");
   }
 
   return true;
@@ -2640,6 +2721,8 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
         GetResourceManager()->AddLiveResource(pResource, ret);
       }
 
+      AddResource(pResource, ResourceType::Buffer, "Shared Buffer");
+
       if(Descriptor.Usage != D3D11_USAGE_IMMUTABLE)
       {
         ID3D11Buffer *stage = NULL;
@@ -2709,6 +2792,8 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
 
         GetResourceManager()->AddLiveResource(pResource, ret);
       }
+
+      AddResource(pResource, ResourceType::Texture, "Shared 1D Texture");
     }
   }
   else if(Type == Resource_Texture2D)
@@ -2750,6 +2835,8 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
 
         GetResourceManager()->AddLiveResource(pResource, ret);
       }
+
+      AddResource(pResource, ResourceType::Texture, "Shared 2D Texture");
     }
   }
   else if(Type == Resource_Texture3D)
@@ -2791,6 +2878,8 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
 
         GetResourceManager()->AddLiveResource(pResource, ret);
       }
+
+      AddResource(pResource, ResourceType::Texture, "Shared 3D Texture");
     }
   }
   else

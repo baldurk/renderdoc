@@ -310,6 +310,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
   {
     liveRes = GetLiveResource(id);
     RDCASSERT(liveRes);
+
+    m_Device->AddResourceCurChunk(id);
   }
 
   if(type == Resource_DescriptorHeap)

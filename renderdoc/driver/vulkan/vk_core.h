@@ -262,6 +262,16 @@ private:
   SDFile *m_StructuredFile;
   SDFile m_StoredStructuredData;
 
+  void AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix);
+  void DerivedResource(ResourceId parentLive, ResourceId child);
+  template <typename VulkanType>
+  void DerivedResource(VulkanType parent, ResourceId child)
+  {
+    DerivedResource(GetResID(parent), child);
+  }
+  void AddResourceCurChunk(ResourceDescription &descr);
+  void AddResourceCurChunk(ResourceId id);
+
   // util function to handle fetching the right eventID, calling any
   // aliases then calling PreDraw/PreDispatch.
   uint32_t HandlePreCallback(VkCommandBuffer commandBuffer, DrawFlags type = DrawFlags::Drawcall,

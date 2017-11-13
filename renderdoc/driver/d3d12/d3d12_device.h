@@ -382,6 +382,12 @@ public:
   void AddDebugMessage(const DebugMessage &msg);
   vector<DebugMessage> GetDebugMessages();
 
+  void AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix);
+  void DerivedResource(ResourceId parent, ResourceId child);
+  void DerivedResource(ID3D12DeviceChild *parent, ResourceId child);
+  void AddResourceCurChunk(ResourceDescription &descr);
+  void AddResourceCurChunk(ResourceId id);
+
   const string &GetResourceName(ResourceId id) { return m_ResourceNames[id]; }
   vector<D3D12_RESOURCE_STATES> &GetSubresourceStates(ResourceId id)
   {

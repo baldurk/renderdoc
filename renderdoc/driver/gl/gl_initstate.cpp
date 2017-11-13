@@ -1120,6 +1120,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
       res = GetLiveResource(Id);
     else
       res = GLResource(MakeNullResource);
+
+    m_GL->AddResourceCurChunk(Id);
   }
 
   const GLHookSet &gl = m_GL->GetHookset();

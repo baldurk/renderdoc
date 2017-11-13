@@ -51,6 +51,9 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice dev
       // manager on vkCreateDevice)
       SubmitCmds();
     }
+
+    AddResource(Queue, ResourceType::Queue, "Queue");
+    DerivedResource(device, Queue);
   }
 
   return true;

@@ -28,7 +28,7 @@
 template <>
 std::string DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1084, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1085, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
@@ -44,6 +44,7 @@ std::string DoStringise(const D3D12Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandQueue, "ID3D12Device::CreateCommandQueue");
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandAllocator,
                                "ID3D12Device::CreateCommandAllocator");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandList, "ID3D12Device::CreateCommandList");
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateGraphicsPipeline,
                                "ID3D12Device::CreateGraphicsPipeline");
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateComputePipeline, "ID3D12Device::CreateComputePipeline");

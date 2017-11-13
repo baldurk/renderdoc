@@ -78,6 +78,8 @@ bool WrappedOpenGL::Serialise_glGenTextures(SerialiserType &ser, GLsizei n, GLui
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(texture, res);
 
+    AddResource(texture, ResourceType::Texture, "Texture");
+
     m_Textures[live].resource = res;
     m_Textures[live].curType = eGL_NONE;
   }
@@ -136,6 +138,8 @@ bool WrappedOpenGL::Serialise_glCreateTextures(SerialiserType &ser, GLenum targe
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(texture, res);
+
+    AddResource(texture, ResourceType::Texture, "Texture");
 
     m_Textures[live].resource = res;
     m_Textures[live].curType = TextureTarget(target);
@@ -625,6 +629,9 @@ bool WrappedOpenGL::Serialise_glTextureView(SerialiserType &ser, GLuint textureH
     m_Textures[liveTexId].width = m_Textures[liveOrigId].width;
     m_Textures[liveTexId].height = m_Textures[liveOrigId].height;
     m_Textures[liveTexId].depth = m_Textures[liveOrigId].depth;
+
+    AddResourceInitChunk(texture);
+    DerivedResource(origtexture, GetResourceManager()->GetOriginalID(liveTexId));
   }
 
   return true;
@@ -717,6 +724,8 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(SerialiserType &ser, GL
       m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::GenMips));
     }
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -2002,6 +2011,8 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(SerialiserType &ser, GLuint te
     if(unpackbuf)
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -2234,6 +2245,8 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(SerialiserType &ser, GLuint te
     if(unpackbuf)
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -2450,6 +2463,8 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(SerialiserType &ser, GLuint te
     if(unpackbuf)
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -2673,6 +2688,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(SerialiserType &ser,
     if(unpackbuf)
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -3015,6 +3032,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(SerialiserType &ser,
     if(unpackbuf)
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -3249,6 +3268,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(SerialiserType &ser,
     if(unpackbuf)
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -3437,6 +3458,8 @@ bool WrappedOpenGL::Serialise_glCopyTextureImage1DEXT(SerialiserType &ser, GLuin
     }
 
     m_Real.glCopyTextureImage1DEXT(texture.name, target, level, internalformat, x, y, width, border);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -3587,6 +3610,8 @@ bool WrappedOpenGL::Serialise_glCopyTextureImage2DEXT(SerialiserType &ser, GLuin
 
     m_Real.glCopyTextureImage2DEXT(texture.name, target, level, internalformat, x, y, width, height,
                                    border);
+
+    AddResourceInitChunk(texture);
   }
   return true;
 }
@@ -3741,6 +3766,8 @@ bool WrappedOpenGL::Serialise_glTextureStorage1DEXT(SerialiserType &ser, GLuint 
       m_Real.glTextureStorage1DEXT(texture.name, target, levels, internalformat, width);
     else
       m_Real.glTextureStorage1D(texture.name, levels, internalformat, width);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -3868,6 +3895,8 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DEXT(SerialiserType &ser, GLuint 
       m_Real.glTextureStorage2DEXT(texture.name, target, levels, internalformat, width, height);
     else
       m_Real.glTextureStorage2D(texture.name, levels, internalformat, width, height);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -3999,6 +4028,8 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DEXT(SerialiserType &ser, GLuint 
                                    depth);
     else
       m_Real.glTextureStorage3D(texture.name, levels, internalformat, width, height, depth);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -4135,6 +4166,8 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DMultisampleEXT(SerialiserType &s
     else
       m_Real.glTextureStorage2DMultisample(texture.name, samples, internalformat, width, height,
                                            fixedsamplelocations);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -4310,6 +4343,8 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DMultisampleEXT(SerialiserType &s
     else
       m_Real.glTextureStorage3DMultisample(texture.name, samples, internalformat, width, height,
                                            depth, fixedsamplelocations);
+
+    AddResourceInitChunk(texture);
   }
 
   return true;
@@ -5732,9 +5767,9 @@ bool WrappedOpenGL::Serialise_glTextureBufferRangeEXT(SerialiserType &ser, GLuin
 
   if(IsReplayingAndReading())
   {
+    ResourceId liveId = GetResourceManager()->GetID(texture);
     if(IsLoading(m_State) && m_CurEventID == 0)
     {
-      ResourceId liveId = GetResourceManager()->GetID(texture);
       m_Textures[liveId].width =
           uint32_t(size) /
           uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat)));
@@ -5751,6 +5786,9 @@ bool WrappedOpenGL::Serialise_glTextureBufferRangeEXT(SerialiserType &ser, GLuin
     else
       m_Real.glTextureBufferRange(texture.name, internalformat, buffer.name, (GLintptr)offs,
                                   (GLsizei)size);
+
+    AddResourceInitChunk(texture);
+    DerivedResource(buffer, GetResourceManager()->GetOriginalID(liveId));
   }
 
   return true;
@@ -5901,9 +5939,9 @@ bool WrappedOpenGL::Serialise_glTextureBufferEXT(SerialiserType &ser, GLuint tex
 
   if(IsReplayingAndReading())
   {
+    ResourceId liveId = GetResourceManager()->GetID(texture);
     if(IsLoading(m_State) && m_CurEventID == 0)
     {
-      ResourceId liveId = GetResourceManager()->GetID(texture);
       uint32_t Size = 1;
       m_Real.glGetNamedBufferParameterivEXT(buffer.name, eGL_BUFFER_SIZE, (GLint *)&Size);
       m_Textures[liveId].width = Size / uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat),
@@ -5919,6 +5957,9 @@ bool WrappedOpenGL::Serialise_glTextureBufferEXT(SerialiserType &ser, GLuint tex
       m_Real.glTextureBufferEXT(texture.name, target, internalformat, buffer.name);
     else
       m_Real.glTextureBuffer(texture.name, internalformat, buffer.name);
+
+    AddResourceInitChunk(texture);
+    DerivedResource(buffer, GetResourceManager()->GetOriginalID(liveId));
   }
 
   return true;

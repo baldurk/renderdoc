@@ -872,7 +872,8 @@ struct CmdBufferRecordingInfo
   VkDevice device;
   VkCommandBufferAllocateInfo allocInfo;
 
-  VkResourceRecord *framebuffer;
+  VkResourceRecord *framebuffer = NULL;
+  VkResourceRecord *allocRecord = NULL;
 
   vector<pair<ResourceId, ImageRegionState> > imgbarriers;
 

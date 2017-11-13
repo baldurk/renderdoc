@@ -456,6 +456,7 @@ enum class D3D12Chunk : uint32_t
   CreateSwapBuffer,
   Device_CreateCommandQueue,
   Device_CreateCommandAllocator,
+  Device_CreateCommandList,
   Device_CreateGraphicsPipeline,
   Device_CreateComputePipeline,
   Device_CreateDescriptorHeap,

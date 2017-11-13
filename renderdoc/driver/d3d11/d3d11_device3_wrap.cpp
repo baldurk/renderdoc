@@ -86,6 +86,15 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D1(SerialiserType &ser,
       GetResourceManager()->AddLiveResource(pTexture, ret);
     }
 
+    const char *prefix = Descriptor.ArraySize > 1 ? "2D TextureArray" : "2D Texture";
+
+    if(Descriptor.BindFlags & D3D11_BIND_RENDER_TARGET)
+      prefix = "2D Render Target";
+    else if(Descriptor.BindFlags & D3D11_BIND_DEPTH_STENCIL)
+      prefix = "2D Depth Target";
+
+    AddResource(pTexture, ResourceType::Texture, prefix);
+
     // free the serialised buffers we stole in Serialise_CreateTextureData
     for(size_t i = 0; i < descs.size(); i++)
       FreeAlignedBuffer((byte *)descs[i].pSysMem);
@@ -203,6 +212,15 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D1(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pTexture, ret);
     }
+
+    const char *prefix = "3D Texture";
+
+    if(Descriptor.BindFlags & D3D11_BIND_RENDER_TARGET)
+      prefix = "3D Render Target";
+    else if(Descriptor.BindFlags & D3D11_BIND_DEPTH_STENCIL)
+      prefix = "3D Depth Target";
+
+    AddResource(pTexture, ResourceType::Texture, prefix);
 
     // free the serialised buffers we stole in Serialise_CreateTextureData
     for(size_t i = 0; i < descs.size(); i++)
@@ -335,6 +353,9 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView1(
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
+
+    AddResource(pView, ResourceType::View, "Shader Resource View");
+    DerivedResource(pResource, pView);
   }
 
   return true;
@@ -473,6 +494,9 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView1(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
+
+    AddResource(pView, ResourceType::View, "Render Target View");
+    DerivedResource(pResource, pView);
   }
 
   return true;
@@ -580,6 +604,9 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView1(
 
       GetResourceManager()->AddLiveResource(pView, ret);
     }
+
+    AddResource(pView, ResourceType::View, "Unordered Access View");
+    DerivedResource(pResource, pView);
   }
 
   return true;
@@ -690,6 +717,8 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState2(
         GetResourceManager()->AddLiveResource(pState, ret);
       }
     }
+
+    AddResource(pState, ResourceType::StateObject, "Rasterizer State");
   }
 
   return true;
@@ -774,6 +803,8 @@ bool WrappedID3D11Device::Serialise_CreateQuery1(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pQuery, ret);
     }
+
+    AddResource(pQuery, ResourceType::Query, "Query");
   }
 
   return true;

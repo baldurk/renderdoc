@@ -48,6 +48,8 @@ bool WrappedOpenGL::Serialise_glGenSamplers(SerialiserType &ser, GLsizei n, GLui
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(sampler, res);
+
+    AddResource(sampler, ResourceType::Sampler, "Sampler");
   }
 
   return true;
@@ -100,6 +102,8 @@ bool WrappedOpenGL::Serialise_glCreateSamplers(SerialiserType &ser, GLsizei n, G
 
     ResourceId live = m_ResourceManager->RegisterResource(res);
     GetResourceManager()->AddLiveResource(sampler, res);
+
+    AddResource(sampler, ResourceType::Sampler, "Sampler");
   }
 
   return true;

@@ -96,6 +96,7 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
 
   ResourceId m_ResourceID;
   D3D12ResourceRecord *m_ListRecord;
+  D3D12ResourceRecord *m_CreationRecord;
 
   CaptureState &m_State;
 
@@ -123,6 +124,7 @@ public:
   ID3D12GraphicsCommandList *GetReal() { return m_pReal; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   D3D12ResourceRecord *GetResourceRecord() { return m_ListRecord; }
+  D3D12ResourceRecord *GetCreationRecord() { return m_CreationRecord; }
   ID3D12GraphicsCommandList *GetCrackedList();
   ID3D12GraphicsCommandList *GetWrappedCrackedList();
 

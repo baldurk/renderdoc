@@ -341,6 +341,9 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(SerialiserType &ser, VkDevice 
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pool);
       GetResourceManager()->AddLiveResource(CmdPool, pool);
     }
+
+    AddResource(CmdPool, ResourceType::Pool, "Command Pool");
+    DerivedResource(device, CmdPool);
   }
 
   return true;
@@ -397,6 +400,45 @@ void WrappedVulkan::vkTrimCommandPoolKHR(VkDevice device, VkCommandPool commandP
 
 // Command buffer functions
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkAllocateCommandBuffers(SerialiserType &ser, VkDevice device,
+                                                       const VkCommandBufferAllocateInfo *pAllocateInfo,
+                                                       VkCommandBuffer *pCommandBuffers)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo);
+  SERIALISE_ELEMENT_LOCAL(CommandBuffer, GetResID(*pCommandBuffers));
+
+  // this chunk is purely for user information and consistency, the command buffer we allocate is
+  // a dummy and is not used for anything.
+
+  if(IsReplayingAndReading())
+  {
+    VkCommandBuffer cmd = VK_NULL_HANDLE;
+
+    VkCommandBufferAllocateInfo unwrappedInfo = AllocateInfo;
+    unwrappedInfo.commandBufferCount = 1;
+    unwrappedInfo.commandPool = Unwrap(unwrappedInfo.commandPool);
+    VkResult ret = ObjDisp(device)->AllocateCommandBuffers(Unwrap(device), &unwrappedInfo, &cmd);
+
+    if(ret != VK_SUCCESS)
+    {
+      RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+    }
+    else
+    {
+      ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), cmd);
+      GetResourceManager()->AddLiveResource(CommandBuffer, cmd);
+    }
+
+    AddResource(CommandBuffer, ResourceType::CommandBuffer, "Command Buffer");
+    DerivedResource(device, CommandBuffer);
+    DerivedResource(AllocateInfo.commandPool, CommandBuffer);
+  }
+
+  return true;
+}
+
 VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
                                                  const VkCommandBufferAllocateInfo *pAllocateInfo,
                                                  VkCommandBuffer *pCommandBuffers)
@@ -426,6 +468,27 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
       {
         VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pCommandBuffers[i]);
 
+        Chunk *chunk = NULL;
+
+        {
+          CACHE_THREAD_SERIALISER();
+
+          SCOPED_SERIALISE_CHUNK(VulkanChunk::vkAllocateCommandBuffers);
+          Serialise_vkAllocateCommandBuffers(ser, device, pAllocateInfo, pCommandBuffers + i);
+
+          chunk = scope.Get();
+        }
+
+        // a bit of a hack, we make a parallel resource record with the same lifetime as the command
+        // buffer and make it a parent, so it will hold onto our allocation chunk and not try to
+        // record it (and throw it away with baked commands that are unused), then it'll be pulled
+        // into the capture.
+        VkResourceRecord *allocRecord =
+            GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+        allocRecord->SpecialResource = true;
+        allocRecord->AddChunk(chunk);
+        record->AddParent(allocRecord);
+
         record->bakedCommands = NULL;
 
         record->pool = GetRecord(pAllocateInfo->commandPool);
@@ -449,6 +512,7 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
         record->cmdInfo->device = device;
         record->cmdInfo->allocInfo = *pAllocateInfo;
         record->cmdInfo->allocInfo.commandBufferCount = 1;
+        record->cmdInfo->allocRecord = allocRecord;
       }
       else
       {
@@ -617,6 +681,16 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
           ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), cmd);
           GetResourceManager()->AddLiveResource(BakedCommandBuffer, cmd);
         }
+
+        AddResource(BakedCommandBuffer, ResourceType::CommandBuffer, "Baked Command Buffer");
+        GetReplay()->GetResourceDesc(BakedCommandBuffer).initialisationChunks.clear();
+        DerivedResource(device, BakedCommandBuffer);
+        DerivedResource(AllocateInfo.commandPool, BakedCommandBuffer);
+
+        // do this one manually since there's no live version of the swapchain, and
+        // DerivedResource() assumes we're passing it a live ID (or live resource)
+        GetReplay()->GetResourceDesc(CommandBuffer).derivedResources.push_back(BakedCommandBuffer);
+        GetReplay()->GetResourceDesc(BakedCommandBuffer).parentResources.push_back(CommandBuffer);
 
         // whenever a vkCmd command-building chunk asks for the command buffer, it
         // will get our baked version.
@@ -2724,6 +2798,10 @@ void WrappedVulkan::vkCmdDebugMarkerInsertEXT(VkCommandBuffer commandBuffer,
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool, VkDevice device,
                                 const VkCommandPoolCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkCommandPool *pCommandPool);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkAllocateCommandBuffers, VkDevice device,
+                                const VkCommandBufferAllocateInfo *pAllocateInfo,
+                                VkCommandBuffer *pCommandBuffers);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkBeginCommandBuffer, VkCommandBuffer commandBuffer,
                                 const VkCommandBufferBeginInfo *pBeginInfo);

@@ -60,6 +60,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pCommandQueue, ret);
 
+      AddResource(pCommandQueue, ResourceType::Queue, "Command Queue");
+
       WrappedID3D12CommandQueue *wrapped = (WrappedID3D12CommandQueue *)ret;
 
       if(Descriptor.Type == D3D12_COMMAND_LIST_TYPE_DIRECT && m_Queue == NULL)
@@ -151,6 +153,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandAllocator(SerialiserType &ser,
       ret = new WrappedID3D12CommandAllocator(ret, this);
 
       GetResourceManager()->AddLiveResource(pCommandAllocator, ret);
+
+      AddResource(pCommandAllocator, ResourceType::Pool, "Command Queue");
     }
   }
 
@@ -198,6 +202,51 @@ HRESULT WrappedID3D12Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type
   return ret;
 }
 
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_CreateCommandList(SerialiserType &ser, UINT nodeMask,
+                                                      D3D12_COMMAND_LIST_TYPE type,
+                                                      ID3D12CommandAllocator *pCommandAllocator,
+                                                      ID3D12PipelineState *pInitialState,
+                                                      REFIID riid, void **ppCommandList)
+{
+  SERIALISE_ELEMENT(nodeMask);
+  SERIALISE_ELEMENT(type);
+  SERIALISE_ELEMENT(pCommandAllocator);
+  SERIALISE_ELEMENT(pInitialState);
+  SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid");
+  SERIALISE_ELEMENT_LOCAL(pCommandList,
+                          ((WrappedID3D12GraphicsCommandList *)*ppCommandList)->GetResourceID());
+
+  // this chunk is purely for user information and consistency, the command buffer we allocate is
+  // a dummy and is not used for anything.
+
+  if(IsReplayingAndReading())
+  {
+    ID3D12GraphicsCommandList *list = NULL;
+    HRESULT hr =
+        CreateCommandList(nodeMask, type, pCommandAllocator, pInitialState, guid, (void **)&list);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+    }
+    else if(list)
+    {
+      // close it immediately, we don't want to tie up the allocator
+      list->Close();
+
+      GetResourceManager()->AddLiveResource(pCommandList, list);
+    }
+
+    AddResource(pCommandList, ResourceType::CommandBuffer, "Command List");
+    DerivedResource(pCommandAllocator, pCommandList);
+    if(pInitialState)
+      DerivedResource(pInitialState, pCommandList);
+  }
+
+  return true;
+}
+
 HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST_TYPE type,
                                                ID3D12CommandAllocator *pCommandAllocator,
                                                ID3D12PipelineState *pInitialState, REFIID riid,
@@ -232,6 +281,22 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
       // we just serialise out command allocator creation as a reset, since it's equivalent.
       wrapped->SetInitParams(riid, nodeMask, type);
       wrapped->Reset(pCommandAllocator, pInitialState);
+
+      {
+        CACHE_THREAD_SERIALISER();
+
+        SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateCommandList);
+        Serialise_CreateCommandList(ser, nodeMask, type, pCommandAllocator, pInitialState, riid,
+                                    (void **)&wrapped);
+
+        wrapped->GetCreationRecord()->AddChunk(scope.Get());
+      }
+
+      // add parents so these are always in the capture. They won't necessarily be used for replay
+      // but we want them to be available so the creation chunk is fully realised
+      wrapped->GetCreationRecord()->AddParent(GetRecord(pCommandAllocator));
+      if(pInitialState)
+        wrapped->GetCreationRecord()->AddParent(GetRecord(pInitialState));
     }
 
     // during replay, the caller is responsible for calling AddLiveResource as this function
@@ -278,12 +343,25 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
           &wrapped->graphics->GS, &wrapped->graphics->PS,
       };
 
+      AddResource(pPipelineState, ResourceType::PipelineState, "Graphics Pipeline State");
+      DerivedResource(Descriptor.pRootSignature, pPipelineState);
+
       for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
       {
         if(shaders[i]->BytecodeLength == 0)
+        {
           shaders[i]->pShaderBytecode = NULL;
+        }
         else
-          shaders[i]->pShaderBytecode = WrappedID3D12Shader::AddShader(*shaders[i], this, wrapped);
+        {
+          WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(*shaders[i], this, wrapped);
+
+          shaders[i]->pShaderBytecode = entry;
+
+          AddResourceCurChunk(entry->GetResourceID());
+
+          DerivedResource(entry->GetResourceID(), pPipelineState);
+        }
       }
 
       if(wrapped->graphics->InputLayout.NumElements)
@@ -461,8 +539,16 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
 
       wrapped->compute = new D3D12_COMPUTE_PIPELINE_STATE_DESC(Descriptor);
 
-      wrapped->compute->CS.pShaderBytecode =
+      WrappedID3D12Shader *entry =
           WrappedID3D12Shader::AddShader(wrapped->compute->CS, this, wrapped);
+
+      AddResourceCurChunk(entry->GetResourceID());
+
+      AddResource(pPipelineState, ResourceType::PipelineState, "Compute Pipeline State");
+      DerivedResource(Descriptor.pRootSignature, pPipelineState);
+      DerivedResource(entry->GetResourceID(), pPipelineState);
+
+      wrapped->compute->CS.pShaderBytecode = entry;
 
       GetResourceManager()->AddLiveResource(pPipelineState, ret);
     }
@@ -559,6 +645,8 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
       ret = new WrappedID3D12DescriptorHeap(ret, this, Descriptor);
 
       GetResourceManager()->AddLiveResource(pHeap, ret);
+
+      AddResource(pHeap, ResourceType::ShaderBinding, "Descriptor Heap");
     }
   }
 
@@ -656,6 +744,8 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
 
         GetResourceManager()->AddLiveResource(pRootSignature, ret);
       }
+
+      AddResource(pRootSignature, ResourceType::ShaderBinding, "Root Signature");
     }
   }
 
@@ -1078,6 +1168,44 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
 
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
       states.resize(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
+
+      ResourceType type = ResourceType::Texture;
+      const char *prefix = "Texture";
+
+      if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+      {
+        type = ResourceType::Buffer;
+        prefix = "Buffer";
+      }
+      else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D)
+      {
+        prefix = desc.DepthOrArraySize > 1 ? "1D TextureArray" : "1D Texture";
+
+        if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+          prefix = "1D Render Target";
+        else if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+          prefix = "1D Depth Target";
+      }
+      else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+      {
+        prefix = desc.DepthOrArraySize > 1 ? "2D TextureArray" : "2D Texture";
+
+        if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+          prefix = "2D Render Target";
+        else if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+          prefix = "2D Depth Target";
+      }
+      else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+      {
+        prefix = "3D Texture";
+
+        if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+          prefix = "3D Render Target";
+        else if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+          prefix = "3D Depth Target";
+      }
+
+      AddResource(pResource, type, prefix);
     }
   }
 
@@ -1171,6 +1299,8 @@ bool WrappedID3D12Device::Serialise_CreateHeap(SerialiserType &ser, const D3D12_
 
       GetResourceManager()->AddLiveResource(pHeap, ret);
     }
+
+    AddResource(pHeap, ResourceType::Pool, "Heap");
   }
 
   return true;
@@ -1268,6 +1398,45 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
       states.resize(GetNumSubresources(m_pDevice, &Descriptor), InitialState);
     }
+
+    ResourceType type = ResourceType::Texture;
+    const char *prefix = "Texture";
+
+    if(Descriptor.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    {
+      type = ResourceType::Buffer;
+      prefix = "Buffer";
+    }
+    else if(Descriptor.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D)
+    {
+      prefix = Descriptor.DepthOrArraySize > 1 ? "1D TextureArray" : "1D Texture";
+
+      if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+        prefix = "1D Render Target";
+      else if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+        prefix = "1D Depth Target";
+    }
+    else if(Descriptor.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+    {
+      prefix = Descriptor.DepthOrArraySize > 1 ? "2D TextureArray" : "2D Texture";
+
+      if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+        prefix = "2D Render Target";
+      else if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+        prefix = "2D Depth Target";
+    }
+    else if(Descriptor.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    {
+      prefix = "3D Texture";
+
+      if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+        prefix = "3D Render Target";
+      else if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+        prefix = "3D Depth Target";
+    }
+
+    AddResource(pResource, type, prefix);
+    DerivedResource(pHeap, pResource);
   }
 
   return true;
@@ -1381,6 +1550,8 @@ bool WrappedID3D12Device::Serialise_CreateFence(SerialiserType &ser, UINT64 Init
 
       GetResourceManager()->AddLiveResource(pFence, ret);
     }
+
+    AddResource(pFence, ResourceType::Sync, "Fence");
   }
 
   return true;
@@ -1451,6 +1622,8 @@ bool WrappedID3D12Device::Serialise_CreateQueryHeap(SerialiserType &ser,
 
       GetResourceManager()->AddLiveResource(pQueryHeap, ret);
     }
+
+    AddResource(pQueryHeap, ResourceType::Query, "Query Heap");
   }
 
   return true;
@@ -1549,6 +1722,10 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
       ret = wrapped;
 
       GetResourceManager()->AddLiveResource(pCommandSignature, ret);
+
+      AddResource(pCommandSignature, ResourceType::ShaderBinding, "Command Signature");
+      if(pRootSignature)
+        DerivedResource(pRootSignature, pCommandSignature);
     }
   }
 
@@ -2070,6 +2247,11 @@ INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, CreateCommandQueue,
                                 void **ppCommandQueue);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, CreateCommandAllocator,
                                 D3D12_COMMAND_LIST_TYPE type, REFIID riid, void **ppCommandAllocator);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, CreateCommandList, UINT nodeMask,
+                                D3D12_COMMAND_LIST_TYPE type,
+                                ID3D12CommandAllocator *pCommandAllocator,
+                                ID3D12PipelineState *pInitialState, REFIID riid,
+                                void **ppCommandList);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, CreateGraphicsPipelineState,
                                 const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, REFIID riid,
                                 void **ppPipelineState);

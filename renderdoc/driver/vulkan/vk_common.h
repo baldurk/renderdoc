@@ -290,6 +290,7 @@ enum class VulkanChunk : uint32_t
   vkFlushMappedMemoryRanges,
   vkCreateCommandPool,
   vkResetCommandPool,
+  vkAllocateCommandBuffers,
   vkCreateFramebuffer,
   vkCreateRenderPass,
   vkCreateDescriptorPool,
