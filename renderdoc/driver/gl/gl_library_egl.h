@@ -87,3 +87,6 @@ public:
 private:
   bool m_initialized;
 };
+
+GLWindowingData CreateWindowingData(const EGLPointers &egl, EGLDisplay eglDisplay,
+                                    EGLContext share_ctx, EGLNativeWindowType window);
