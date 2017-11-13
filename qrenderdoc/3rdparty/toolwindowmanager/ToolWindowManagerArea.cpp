@@ -139,7 +139,7 @@ bool ToolWindowManagerArea::eventFilter(QObject *object, QEvent *event) {
         QWidget *w = widget(tabIndex);
 
         if(!(m_manager->toolWindowProperties(w) & ToolWindowManager::HideCloseButton)) {
-          m_manager->removeToolWindow(w);
+          emit tabCloseRequested(tabIndex);
         }
       }
     } else if (event->type() == QEvent::MouseButtonRelease) {
