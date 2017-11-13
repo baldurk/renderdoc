@@ -23,44 +23,14 @@
  ******************************************************************************/
 
 #include "gl_replay.h"
+
 #include <dlfcn.h>
 #include "serialise/rdcfile.h"
 #include "gl_driver.h"
+#include "gl_library_egl.h"
 #include "gl_resources.h"
 
-typedef EGLBoolean (*PFN_eglBindAPI)(EGLenum api);
-typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
-typedef EGLContext (*PFN_eglCreateContext)(EGLDisplay dpy, EGLConfig config,
-                                           EGLContext share_context, const EGLint *attrib_list);
-typedef EGLBoolean (*PFN_eglMakeCurrent)(EGLDisplay dpy, EGLSurface draw, EGLSurface read,
-                                         EGLContext ctx);
-typedef EGLBoolean (*PFN_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
-typedef EGLBoolean (*PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
-typedef EGLBoolean (*PFN_eglQuerySurface)(EGLDisplay dpy, EGLSurface surface, EGLint attribute,
-                                          EGLint *value);
-typedef EGLBoolean (*PFN_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
-typedef EGLSurface (*PFN_eglCreatePbufferSurface)(EGLDisplay dpy, EGLConfig config,
-                                                  const EGLint *attrib_list);
-typedef EGLSurface (*PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config,
-                                                 EGLNativeWindowType win, const EGLint *attrib_list);
-typedef EGLBoolean (*PFN_eglChooseConfig)(EGLDisplay dpy, const EGLint *attrib_list,
-                                          EGLConfig *configs, EGLint config_size, EGLint *num_config);
-typedef __eglMustCastToProperFunctionPointerType (*PFN_eglGetProcAddress)(const char *procname);
-typedef EGLBoolean (*PFN_eglInitialize)(EGLDisplay dpy, EGLint *major, EGLint *minor);
-
-PFN_eglBindAPI eglBindAPIProc = NULL;
-PFN_eglInitialize eglInitializeProc = NULL;
-PFN_eglGetDisplay eglGetDisplayProc = NULL;
-PFN_eglCreateContext eglCreateContextProc = NULL;
-PFN_eglMakeCurrent eglMakeCurrentProc = NULL;
-PFN_eglSwapBuffers eglSwapBuffersProc = NULL;
-PFN_eglDestroyContext eglDestroyContextProc = NULL;
-PFN_eglQuerySurface eglQuerySurfaceProc = NULL;
-PFN_eglDestroySurface eglDestroySurfaceProc = NULL;
-PFN_eglCreatePbufferSurface eglCreatePbufferSurfaceProc = NULL;
-PFN_eglCreateWindowSurface eglCreateWindowSurfaceProc = NULL;
-PFN_eglChooseConfig eglChooseConfigProc = NULL;
-PFN_eglGetProcAddress eglGetProcAddressProc = NULL;
+static EGLPointers egl;
 
 const GLHookSet &GetRealGLFunctionsEGL();
 GLPlatform &GetGLPlatformEGL();
@@ -69,30 +39,11 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 {
   RDCDEBUG("Creating an OpenGL ES replay device");
 
-  // Query the required EGL functions
-  if(eglCreateContextProc == NULL)
+  if(!egl.IsInitialized())
   {
-    eglGetProcAddressProc = (PFN_eglGetProcAddress)dlsym(RTLD_NEXT, "eglGetProcAddress");
-    eglChooseConfigProc = (PFN_eglChooseConfig)dlsym(RTLD_NEXT, "eglChooseConfig");
-    eglInitializeProc = (PFN_eglInitialize)dlsym(RTLD_NEXT, "eglInitialize");
-    eglBindAPIProc = (PFN_eglBindAPI)dlsym(RTLD_NEXT, "eglBindAPI");
-    eglGetDisplayProc = (PFN_eglGetDisplay)dlsym(RTLD_NEXT, "eglGetDisplay");
-    eglCreateContextProc = (PFN_eglCreateContext)dlsym(RTLD_NEXT, "eglCreateContext");
-    eglMakeCurrentProc = (PFN_eglMakeCurrent)dlsym(RTLD_NEXT, "eglMakeCurrent");
-    eglSwapBuffersProc = (PFN_eglSwapBuffers)dlsym(RTLD_NEXT, "eglSwapBuffers");
-    eglDestroyContextProc = (PFN_eglDestroyContext)dlsym(RTLD_NEXT, "eglDestroyContext");
-    eglDestroySurfaceProc = (PFN_eglDestroySurface)dlsym(RTLD_NEXT, "eglDestroySurface");
-    eglQuerySurfaceProc = (PFN_eglQuerySurface)dlsym(RTLD_NEXT, "eglQuerySurface");
-    eglCreatePbufferSurfaceProc =
-        (PFN_eglCreatePbufferSurface)dlsym(RTLD_NEXT, "eglCreatePbufferSurface");
-    eglCreateWindowSurfaceProc =
-        (PFN_eglCreateWindowSurface)dlsym(RTLD_NEXT, "eglCreateWindowSurface");
+    bool load_ok = egl.LoadSymbolsFrom(RTLD_NEXT);
 
-    if(eglGetProcAddressProc == NULL || eglBindAPIProc == NULL || eglGetDisplayProc == NULL ||
-       eglCreateContextProc == NULL || eglMakeCurrentProc == NULL || eglSwapBuffersProc == NULL ||
-       eglDestroyContextProc == NULL || eglDestroySurfaceProc == NULL ||
-       eglQuerySurfaceProc == NULL || eglCreatePbufferSurfaceProc == NULL ||
-       eglCreateWindowSurfaceProc == NULL || eglChooseConfigProc == NULL)
+    if(!load_ok)
     {
       RDCERR(
           "Couldn't find required function addresses, eglGetProcAddress eglCreateContext"
@@ -146,9 +97,9 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   initParams.isSRGB = 0;
 #endif
 
-  eglBindAPIProc(EGL_OPENGL_ES_API);
+  egl.BindAPI(EGL_OPENGL_ES_API);
 
-  EGLDisplay eglDisplay = eglGetDisplayProc(EGL_DEFAULT_DISPLAY);
+  EGLDisplay eglDisplay = egl.GetDisplay(EGL_DEFAULT_DISPLAY);
   if(!eglDisplay)
   {
     RDCERR("Couldn't open default EGL display");
@@ -156,7 +107,7 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   }
 
   int major, minor;
-  eglInitializeProc(eglDisplay, &major, &minor);
+  egl.Initialize(eglDisplay, &major, &minor);
 
   static const EGLint configAttribs[] = {EGL_RED_SIZE,
                                          8,
@@ -172,7 +123,7 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   EGLint numConfigs;
   EGLConfig config;
 
-  if(!eglChooseConfigProc(eglDisplay, configAttribs, &config, 1, &numConfigs))
+  if(!egl.ChooseConfig(eglDisplay, configAttribs, &config, 1, &numConfigs))
   {
     RDCERR("Couldn't find a suitable EGL config");
     return ReplayStatus::APIInitFailed;
@@ -183,7 +134,7 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   GLReplay::PreContextInitCounters();
 
-  EGLContext ctx = eglCreateContextProc(eglDisplay, config, EGL_NO_CONTEXT, ctxAttribs);
+  EGLContext ctx = egl.CreateContext(eglDisplay, config, EGL_NO_CONTEXT, ctxAttribs);
   if(ctx == NULL)
   {
     GLReplay::PostContextShutdownCounters();
@@ -192,22 +143,22 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   }
 
   static const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
-  EGLSurface pbuffer = eglCreatePbufferSurfaceProc(eglDisplay, config, pbAttribs);
+  EGLSurface pbuffer = egl.CreatePbufferSurface(eglDisplay, config, pbAttribs);
 
   if(pbuffer == NULL)
   {
     RDCERR("Couldn't create a suitable PBuffer");
-    eglDestroySurfaceProc(eglDisplay, pbuffer);
+    egl.DestroySurface(eglDisplay, pbuffer);
     GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
 
-  EGLBoolean res = eglMakeCurrentProc(eglDisplay, pbuffer, pbuffer, ctx);
+  EGLBoolean res = egl.MakeCurrent(eglDisplay, pbuffer, pbuffer, ctx);
   if(!res)
   {
     RDCERR("Couldn't active the created GL ES context");
-    eglDestroySurfaceProc(eglDisplay, pbuffer);
-    eglDestroyContextProc(eglDisplay, ctx);
+    egl.DestroySurface(eglDisplay, pbuffer);
+    egl.DestroyContext(eglDisplay, ctx);
     GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
@@ -218,8 +169,8 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   bool extensionsValidated = ValidateFunctionPointers(real);
   if(!extensionsValidated)
   {
-    eglDestroySurfaceProc(eglDisplay, pbuffer);
-    eglDestroyContextProc(eglDisplay, ctx);
+    egl.DestroySurface(eglDisplay, pbuffer);
+    egl.DestroyContext(eglDisplay, ctx);
     GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIHardwareUnsupported;
   }

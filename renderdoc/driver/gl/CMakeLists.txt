@@ -60,6 +60,7 @@ else()
         list(APPEND sources
             gl_hooks_egl.cpp
             gl_hooks_egl_pass.cpp
+            gl_library_egl.cpp
             gl_replay_egl.cpp)
     endif()
 endif()
