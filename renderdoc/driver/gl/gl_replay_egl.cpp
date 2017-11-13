@@ -109,56 +109,31 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   int major, minor;
   egl.Initialize(eglDisplay, &major, &minor);
 
-  static const EGLint configAttribs[] = {EGL_RED_SIZE,
-                                         8,
-                                         EGL_GREEN_SIZE,
-                                         8,
-                                         EGL_BLUE_SIZE,
-                                         8,
-                                         EGL_RENDERABLE_TYPE,
-                                         EGL_OPENGL_ES3_BIT,
-                                         EGL_SURFACE_TYPE,
-                                         EGL_PBUFFER_BIT | EGL_WINDOW_BIT,
-                                         EGL_NONE};
-  EGLint numConfigs;
-  EGLConfig config;
-
-  if(!egl.ChooseConfig(eglDisplay, configAttribs, &config, 1, &numConfigs))
-  {
-    RDCERR("Couldn't find a suitable EGL config");
-    return ReplayStatus::APIInitFailed;
-  }
-
-  static const EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
-                                      EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_NONE};
-
   GLReplay::PreContextInitCounters();
 
-  EGLContext ctx = egl.CreateContext(eglDisplay, config, EGL_NO_CONTEXT, ctxAttribs);
-  if(ctx == NULL)
+  GLWindowingData data = CreateWindowingData(egl, eglDisplay, EGL_NO_CONTEXT, 0);
+
+  if(data.egl_ctx == NULL)
   {
     GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't create GL ES 3.x context - RenderDoc requires OpenGL ES 3.x availability");
     return ReplayStatus::APIHardwareUnsupported;
   }
 
-  static const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
-  EGLSurface pbuffer = egl.CreatePbufferSurface(eglDisplay, config, pbAttribs);
-
-  if(pbuffer == NULL)
+  if(data.egl_wnd == NULL)
   {
     RDCERR("Couldn't create a suitable PBuffer");
-    egl.DestroySurface(eglDisplay, pbuffer);
+    egl.DestroyContext(eglDisplay, data.egl_ctx);
     GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
 
-  EGLBoolean res = egl.MakeCurrent(eglDisplay, pbuffer, pbuffer, ctx);
+  EGLBoolean res = egl.MakeCurrent(eglDisplay, data.egl_wnd, data.egl_wnd, data.egl_ctx);
   if(!res)
   {
     RDCERR("Couldn't active the created GL ES context");
-    egl.DestroySurface(eglDisplay, pbuffer);
-    egl.DestroyContext(eglDisplay, ctx);
+    egl.DestroySurface(eglDisplay, data.egl_wnd);
+    egl.DestroyContext(eglDisplay, data.egl_ctx);
     GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIInitFailed;
   }
@@ -169,8 +144,8 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   bool extensionsValidated = ValidateFunctionPointers(real);
   if(!extensionsValidated)
   {
-    egl.DestroySurface(eglDisplay, pbuffer);
-    egl.DestroyContext(eglDisplay, ctx);
+    egl.DestroySurface(eglDisplay, data.egl_wnd);
+    egl.DestroyContext(eglDisplay, data.egl_ctx);
     GLReplay::PostContextShutdownCounters();
     return ReplayStatus::APIHardwareUnsupported;
   }
@@ -182,10 +157,6 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   RDCLOG("Created OPEN GL ES replay device.");
   GLReplay *replay = gl->GetReplay();
   replay->SetProxy(rdc == NULL);
-  GLWindowingData data;
-  data.egl_dpy = eglDisplay;
-  data.egl_ctx = ctx;
-  data.egl_wnd = pbuffer;
   replay->SetReplayData(data);
 
   *driver = (IReplayDriver *)replay;

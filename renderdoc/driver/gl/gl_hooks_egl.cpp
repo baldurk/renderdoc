@@ -103,36 +103,7 @@ public:
 
     if(real.CreateContext && real.ChooseConfig && real.CreatePbufferSurface)
     {
-      const EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
-                                   EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_NONE};
-
-      const EGLint attribs[] = {EGL_RED_SIZE,
-                                8,
-                                EGL_GREEN_SIZE,
-                                8,
-                                EGL_BLUE_SIZE,
-                                8,
-                                EGL_SURFACE_TYPE,
-                                EGL_PBUFFER_BIT,
-                                EGL_RENDERABLE_TYPE,
-                                EGL_OPENGL_ES3_BIT,
-                                EGL_CONFORMANT,
-                                EGL_OPENGL_ES3_BIT,
-                                EGL_COLOR_BUFFER_TYPE,
-                                EGL_RGB_BUFFER,
-                                EGL_NONE};
-
-      EGLConfig config;
-      EGLint numConfigs;
-      EGLBoolean configFound = real.ChooseConfig(share.egl_dpy, attribs, &config, 1, &numConfigs);
-
-      if(configFound)
-      {
-        const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
-        ret.egl_wnd = real.CreatePbufferSurface(share.egl_dpy, config, pbAttribs);
-        ret.egl_dpy = share.egl_dpy;
-        ret.egl_ctx = real.CreateContext(share.egl_dpy, config, share.ctx, ctxAttribs);
-      }
+      ret = CreateWindowingData(real, share.egl_dpy, share.ctx, 0);
     }
 
     return ret;
@@ -186,7 +157,6 @@ public:
   GLWindowingData MakeOutputWindow(WindowingSystem system, void *data, bool depth,
                                    GLWindowingData share_context)
   {
-    GLWindowingData ret;
     EGLNativeWindowType window = 0;
 
     switch(system)
@@ -210,54 +180,7 @@ public:
     EGLDisplay eglDisplay = real.GetDisplay(EGL_DEFAULT_DISPLAY);
     RDCASSERT(eglDisplay);
 
-    static const EGLint configAttribs[] = {EGL_RED_SIZE,
-                                           8,
-                                           EGL_GREEN_SIZE,
-                                           8,
-                                           EGL_BLUE_SIZE,
-                                           8,
-                                           EGL_RENDERABLE_TYPE,
-                                           EGL_OPENGL_ES3_BIT,
-                                           EGL_SURFACE_TYPE,
-                                           EGL_PBUFFER_BIT | EGL_WINDOW_BIT,
-                                           EGL_NONE};
-
-    EGLint numConfigs;
-    EGLConfig config;
-    if(!real.ChooseConfig(eglDisplay, configAttribs, &config, 1, &numConfigs))
-    {
-      RDCERR("Couldn't find a suitable EGL config");
-      return ret;
-    }
-
-    static const EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
-                                        EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_NONE};
-
-    EGLContext ctx = real.CreateContext(eglDisplay, config, share_context.ctx, ctxAttribs);
-
-    if(ctx == NULL)
-    {
-      RDCERR("Couldn't create GL ES context");
-      return ret;
-    }
-
-    EGLSurface surface = 0;
-
-    if(window != 0)
-    {
-      surface = real.CreateWindowSurface(eglDisplay, config, window, NULL);
-    }
-    else
-    {
-      static const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
-      surface = real.CreatePbufferSurface(eglDisplay, config, pbAttribs);
-    }
-
-    ret.egl_dpy = eglDisplay;
-    ret.egl_ctx = ctx;
-    ret.egl_wnd = surface;
-
-    return ret;
+    return CreateWindowingData(real, eglDisplay, share_context.ctx, window);
   }
 
   bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices);

@@ -51,3 +51,63 @@ bool EGLPointers::LoadSymbolsFrom(void *lib_handle)
   m_initialized = symbols_ok;
   return symbols_ok;
 }
+
+GLWindowingData CreateWindowingData(const EGLPointers &egl, EGLDisplay eglDisplay,
+                                    EGLContext share_ctx, EGLNativeWindowType window)
+{
+  GLWindowingData ret;
+  ret.egl_dpy = eglDisplay;
+  ret.egl_ctx = NULL;
+  ret.egl_wnd = NULL;
+
+  EGLint surfaceType = (window == 0) ? EGL_PBUFFER_BIT : EGL_WINDOW_BIT;
+  const EGLint configAttribs[] = {EGL_RED_SIZE,
+                                  8,
+                                  EGL_GREEN_SIZE,
+                                  8,
+                                  EGL_BLUE_SIZE,
+                                  8,
+                                  EGL_RENDERABLE_TYPE,
+                                  EGL_OPENGL_ES3_BIT,
+                                  EGL_CONFORMANT,
+                                  EGL_OPENGL_ES3_BIT,
+                                  EGL_SURFACE_TYPE,
+                                  surfaceType,
+                                  EGL_COLOR_BUFFER_TYPE,
+                                  EGL_RGB_BUFFER,
+                                  EGL_NONE};
+
+  EGLint numConfigs;
+  EGLConfig config;
+  if(!egl.ChooseConfig(eglDisplay, configAttribs, &config, 1, &numConfigs))
+  {
+    RDCERR("Couldn't find a suitable EGL config");
+    return ret;
+  }
+
+  static const EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
+                                      EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_NONE};
+
+  EGLContext ctx = egl.CreateContext(eglDisplay, config, share_ctx, ctxAttribs);
+  if(ctx == NULL)
+  {
+    RDCERR("Couldn't create GL ES context");
+    return ret;
+  }
+  ret.egl_ctx = ctx;
+
+  EGLSurface surface = 0;
+  if(window != 0)
+  {
+    surface = egl.CreateWindowSurface(eglDisplay, config, window, NULL);
+  }
+  else
+  {
+    static const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
+    surface = egl.CreatePbufferSurface(eglDisplay, config, pbAttribs);
+  }
+
+  ret.egl_wnd = surface;
+
+  return ret;
+}
