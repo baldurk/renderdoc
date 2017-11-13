@@ -1598,10 +1598,10 @@ void D3D11PipelineStateViewer::setState()
       {
         if(stage->ShaderDetails)
         {
-          for(int b = 0; b < stage->ShaderDetails->ReadOnlyResources.count(); b++)
+          for(int b = 0; b < stage->ShaderDetails->ReadWriteResources.count(); b++)
           {
-            const ShaderResource &res = stage->ShaderDetails->ReadOnlyResources[b];
-            const BindpointMap &bind = stage->BindpointMapping.ReadOnlyResources[b];
+            const ShaderResource &res = stage->ShaderDetails->ReadWriteResources[b];
+            const BindpointMap &bind = stage->BindpointMapping.ReadWriteResources[b];
 
             if(bind.bind == i + (int)state.m_OM.UAVStartSlot)
             {
