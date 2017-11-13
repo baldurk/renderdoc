@@ -28,7 +28,7 @@
 
 bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 {
-  ResourceType type = IdentifyTypeByPtr(res);
+  D3D11ResourceType type = IdentifyTypeByPtr(res);
   ResourceId Id = GetIDForResource(res);
 
   RDCASSERT(IsCaptureMode(m_State));
@@ -284,7 +284,7 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
   // pessimistic DepthPitch alignment
   const UINT WorstDepthPitchAlign = 256;
 
-  ResourceType type = IdentifyTypeByPtr(res);
+  D3D11ResourceType type = IdentifyTypeByPtr(res);
 
   if(type == Resource_UnorderedAccessView)
   {
@@ -401,7 +401,7 @@ template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId resid,
                                                  ID3D11DeviceChild *res)
 {
-  ResourceType type = Resource_Unknown;
+  D3D11ResourceType type = Resource_Unknown;
   ResourceId Id = ResourceId();
 
   if(IsCaptureMode(m_State))
@@ -937,7 +937,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
   if(IsStructuredExporting(m_State))
     return;
 
-  ResourceType type = IdentifyTypeByPtr(live);
+  D3D11ResourceType type = IdentifyTypeByPtr(live);
 
   {
     RDCDEBUG("Create_InitialState(%llu)", id);

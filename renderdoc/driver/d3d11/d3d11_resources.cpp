@@ -349,7 +349,7 @@ ResourceId GetIDForDeviceChild(ID3D11DeviceChild *ptr)
   return ResourceId();
 }
 
-ResourceType IdentifyTypeByPtr(IUnknown *ptr)
+D3D11ResourceType IdentifyTypeByPtr(IUnknown *ptr)
 {
   if(WrappedID3D11InputLayout::IsAlloc(ptr))
     return Resource_InputLayout;

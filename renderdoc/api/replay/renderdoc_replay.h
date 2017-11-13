@@ -800,19 +800,29 @@ understanding as well as the type and unit of the resulting information.
 )");
   virtual CounterDescription DescribeCounter(GPUCounter counterID) = 0;
 
+  DOCUMENT(R"(Retrieve the list of all resources in the capture.
+
+This includes any object allocated a :class:`ResourceId`, that don't have any other state or
+are only used as intermediary elements.
+
+:return: The list of resources in the capture.
+:rtype: ``list`` of :class:`ResourceDescription`
+)");
+  virtual const rdcarray<ResourceDescription> &GetResources() = 0;
+
   DOCUMENT(R"(Retrieve the list of textures alive in the capture.
 
 :return: The list of textures in the capture.
 :rtype: ``list`` of :class:`TextureDescription`
 )");
-  virtual rdcarray<TextureDescription> GetTextures() = 0;
+  virtual const rdcarray<TextureDescription> &GetTextures() = 0;
 
   DOCUMENT(R"(Retrieve the list of buffers alive in the capture.
 
 :return: The list of buffers in the capture.
 :rtype: ``list`` of :class:`BufferDescription`
 )");
-  virtual rdcarray<BufferDescription> GetBuffers() = 0;
+  virtual const rdcarray<BufferDescription> &GetBuffers() = 0;
 
   DOCUMENT(R"(Retrieve a list of any newly generated diagnostic messages.
 

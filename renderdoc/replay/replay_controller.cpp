@@ -293,33 +293,18 @@ CounterDescription ReplayController::DescribeCounter(GPUCounter counterID)
   return m_pDevice->DescribeCounter(counterID);
 }
 
-rdcarray<BufferDescription> ReplayController::GetBuffers()
+const rdcarray<ResourceDescription> &ReplayController::GetResources()
 {
-  if(m_Buffers.empty())
-  {
-    vector<ResourceId> ids = m_pDevice->GetBuffers();
+  return m_Resources;
+}
 
-    m_Buffers.resize(ids.size());
-
-    for(size_t i = 0; i < ids.size(); i++)
-      m_Buffers[i] = m_pDevice->GetBuffer(ids[i]);
-  }
-
+const rdcarray<BufferDescription> &ReplayController::GetBuffers()
+{
   return m_Buffers;
 }
 
-rdcarray<TextureDescription> ReplayController::GetTextures()
+const rdcarray<TextureDescription> &ReplayController::GetTextures()
 {
-  if(m_Textures.empty())
-  {
-    vector<ResourceId> ids = m_pDevice->GetTextures();
-
-    m_Textures.resize(ids.size());
-
-    for(size_t i = 0; i < ids.size(); i++)
-      m_Textures[i] = m_pDevice->GetTexture(ids[i]);
-  }
-
   return m_Textures;
 }
 
@@ -1563,6 +1548,26 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
   m_pDevice->ReadLogInitialisation(rdc, false);
 
   FetchPipelineState();
+
+  {
+    std::vector<ResourceId> ids = m_pDevice->GetBuffers();
+
+    m_Buffers.resize(ids.size());
+
+    for(size_t i = 0; i < ids.size(); i++)
+      m_Buffers[i] = m_pDevice->GetBuffer(ids[i]);
+  }
+
+  {
+    std::vector<ResourceId> ids = m_pDevice->GetTextures();
+
+    m_Textures.resize(ids.size());
+
+    for(size_t i = 0; i < ids.size(); i++)
+      m_Textures[i] = m_pDevice->GetTexture(ids[i]);
+  }
+
+  m_Resources = m_pDevice->GetResources();
 
   m_FrameRecord = m_pDevice->GetFrameRecord();
 

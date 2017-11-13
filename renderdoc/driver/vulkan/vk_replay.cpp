@@ -750,9 +750,28 @@ vector<DebugMessage> VulkanReplay::GetDebugMessages()
   return m_pDriver->GetDebugMessages();
 }
 
-vector<ResourceId> VulkanReplay::GetTextures()
+ResourceDescription &VulkanReplay::GetResourceDesc(ResourceId id)
 {
-  vector<ResourceId> texs;
+  auto it = m_ResourceIdx.find(id);
+  if(it == m_ResourceIdx.end())
+  {
+    m_ResourceIdx[id] = m_Resources.size();
+    m_Resources.push_back(ResourceDescription());
+    m_Resources.back().ID = id;
+    return m_Resources.back();
+  }
+
+  return m_Resources[it->second];
+}
+
+const std::vector<ResourceDescription> &VulkanReplay::GetResources()
+{
+  return m_Resources;
+}
+
+std::vector<ResourceId> VulkanReplay::GetTextures()
+{
+  std::vector<ResourceId> texs;
 
   for(auto it = m_pDriver->m_ImageLayouts.begin(); it != m_pDriver->m_ImageLayouts.end(); ++it)
   {
@@ -766,9 +785,9 @@ vector<ResourceId> VulkanReplay::GetTextures()
   return texs;
 }
 
-vector<ResourceId> VulkanReplay::GetBuffers()
+std::vector<ResourceId> VulkanReplay::GetBuffers()
 {
-  vector<ResourceId> bufs;
+  std::vector<ResourceId> bufs;
 
   for(auto it = m_pDriver->m_CreationInfo.m_Buffer.begin();
       it != m_pDriver->m_CreationInfo.m_Buffer.end(); ++it)

@@ -30,7 +30,7 @@
 #include "driver/d3d11/d3d11_manager.h"
 #include "driver/shaders/dxbc/dxbc_inspect.h"
 
-enum ResourceType
+enum D3D11ResourceType
 {
   Resource_Unknown = 0,
   Resource_InputLayout,
@@ -60,9 +60,9 @@ enum ResourceType
   Resource_DeviceState,
 };
 
-DECLARE_REFLECTION_ENUM(ResourceType);
+DECLARE_REFLECTION_ENUM(D3D11ResourceType);
 
-ResourceType IdentifyTypeByPtr(IUnknown *ptr);
+D3D11ResourceType IdentifyTypeByPtr(IUnknown *ptr);
 ResourceId GetIDForDeviceChild(ID3D11DeviceChild *ptr);
 template <typename T>
 inline ResourceId GetIDForResource(T *ptr);

@@ -162,8 +162,9 @@ public:
   rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters);
   rdcarray<GPUCounter> EnumerateCounters();
   CounterDescription DescribeCounter(GPUCounter counterID);
-  rdcarray<TextureDescription> GetTextures();
-  rdcarray<BufferDescription> GetBuffers();
+  const rdcarray<TextureDescription> &GetTextures();
+  const rdcarray<BufferDescription> &GetBuffers();
+  const rdcarray<ResourceDescription> &GetResources();
   rdcarray<DebugMessage> GetDebugMessages();
 
   rdcarray<PixelModification> PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice,
@@ -218,8 +219,9 @@ private:
 
   std::vector<ReplayOutput *> m_Outputs;
 
-  std::vector<BufferDescription> m_Buffers;
-  std::vector<TextureDescription> m_Textures;
+  rdcarray<ResourceDescription> m_Resources;
+  rdcarray<BufferDescription> m_Buffers;
+  rdcarray<TextureDescription> m_Textures;
 
   IReplayDriver *m_pDevice;
 

@@ -42,6 +42,7 @@ enum ReplayProxyPacket
 
   eReplayProxy_GetPassEvents,
 
+  eReplayProxy_GetResources,
   eReplayProxy_GetTextures,
   eReplayProxy_GetTexture,
   eReplayProxy_GetBuffers,
@@ -391,6 +392,8 @@ public:
   const SDFile &GetStructuredFile() { return m_StructuredFile; }
   IMPLEMENT_FUNCTION_PROXIED(void, FetchStructuredFile);
 
+  IMPLEMENT_FUNCTION_PROXIED(const std::vector<ResourceDescription> &, GetResources);
+
   IMPLEMENT_FUNCTION_PROXIED(std::vector<ResourceId>, GetBuffers);
   IMPLEMENT_FUNCTION_PROXIED(BufferDescription, GetBuffer, ResourceId id);
 
@@ -558,6 +561,8 @@ private:
   APIProperties m_APIProps;
 
   SDFile m_StructuredFile;
+
+  std::vector<ResourceDescription> m_Resources;
 
   D3D11Pipe::State m_D3D11PipelineState;
   D3D12Pipe::State m_D3D12PipelineState;

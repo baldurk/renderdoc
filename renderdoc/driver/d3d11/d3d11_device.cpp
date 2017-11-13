@@ -2184,7 +2184,7 @@ void WrappedID3D11Device::ReleaseResource(ID3D11DeviceChild *res)
 
   SCOPED_LOCK(m_D3DLock);
 
-  ResourceType type = IdentifyTypeByPtr(res);
+  D3D11ResourceType type = IdentifyTypeByPtr(res);
 
   D3D11ResourceRecord *record = m_DeviceRecord;
 

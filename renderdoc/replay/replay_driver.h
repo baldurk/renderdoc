@@ -90,10 +90,12 @@ public:
 
   virtual APIProperties GetAPIProperties() = 0;
 
-  virtual vector<ResourceId> GetBuffers() = 0;
+  virtual const std::vector<ResourceDescription> &GetResources() = 0;
+
+  virtual std::vector<ResourceId> GetBuffers() = 0;
   virtual BufferDescription GetBuffer(ResourceId id) = 0;
 
-  virtual vector<ResourceId> GetTextures() = 0;
+  virtual std::vector<ResourceId> GetTextures() = 0;
   virtual TextureDescription GetTexture(ResourceId id) = 0;
 
   virtual vector<DebugMessage> GetDebugMessages() = 0;

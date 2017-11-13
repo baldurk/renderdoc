@@ -86,9 +86,28 @@ const SDFile &D3D12Replay::GetStructuredFile()
   return m_pDevice->GetStructuredFile();
 }
 
-vector<ResourceId> D3D12Replay::GetBuffers()
+ResourceDescription &D3D12Replay::GetResourceDesc(ResourceId id)
 {
-  vector<ResourceId> ret;
+  auto it = m_ResourceIdx.find(id);
+  if(it == m_ResourceIdx.end())
+  {
+    m_ResourceIdx[id] = m_Resources.size();
+    m_Resources.push_back(ResourceDescription());
+    m_Resources.back().ID = id;
+    return m_Resources.back();
+  }
+
+  return m_Resources[it->second];
+}
+
+const std::vector<ResourceDescription> &D3D12Replay::GetResources()
+{
+  return m_Resources;
+}
+
+std::vector<ResourceId> D3D12Replay::GetBuffers()
+{
+  std::vector<ResourceId> ret;
 
   for(auto it = WrappedID3D12Resource::GetList().begin();
       it != WrappedID3D12Resource::GetList().end(); it++)
@@ -98,9 +117,9 @@ vector<ResourceId> D3D12Replay::GetBuffers()
   return ret;
 }
 
-vector<ResourceId> D3D12Replay::GetTextures()
+std::vector<ResourceId> D3D12Replay::GetTextures()
 {
-  vector<ResourceId> ret;
+  std::vector<ResourceId> ret;
 
   for(auto it = WrappedID3D12Resource::GetList().begin();
       it != WrappedID3D12Resource::GetList().end(); it++)

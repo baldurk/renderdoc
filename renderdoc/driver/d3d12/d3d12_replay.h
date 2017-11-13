@@ -46,10 +46,13 @@ public:
   void SetDevice(WrappedID3D12Device *d) { m_pDevice = d; }
   APIProperties GetAPIProperties();
 
-  vector<ResourceId> GetBuffers();
+  ResourceDescription &GetResourceDesc(ResourceId id);
+  const std::vector<ResourceDescription> &GetResources();
+
+  std::vector<ResourceId> GetBuffers();
   BufferDescription GetBuffer(ResourceId id);
 
-  vector<ResourceId> GetTextures();
+  std::vector<ResourceId> GetTextures();
   TextureDescription GetTexture(ResourceId id);
 
   vector<DebugMessage> GetDebugMessages();
@@ -183,6 +186,9 @@ private:
   bool m_Proxy;
 
   vector<ID3D12Resource *> m_ProxyResources;
+
+  std::vector<ResourceDescription> m_Resources;
+  std::map<ResourceId, size_t> m_ResourceIdx;
 
   D3D12Pipe::State m_PipelineState;
   D3D11Pipe::State m_D3D11State;

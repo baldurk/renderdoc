@@ -27,9 +27,9 @@
 #include "d3d11_resources.h"
 
 template <>
-std::string DoStringise(const ResourceType &el)
+std::string DoStringise(const D3D11ResourceType &el)
 {
-  BEGIN_ENUM_STRINGISE(ResourceType);
+  BEGIN_ENUM_STRINGISE(D3D11ResourceType);
   {
     STRINGISE_ENUM(Resource_InputLayout)
     STRINGISE_ENUM(Resource_Buffer)

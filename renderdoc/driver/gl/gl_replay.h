@@ -93,10 +93,13 @@ public:
   void SetDriver(WrappedOpenGL *d) { m_pDriver = d; }
   APIProperties GetAPIProperties();
 
-  vector<ResourceId> GetBuffers();
+  ResourceDescription &GetResourceDesc(ResourceId id);
+  const std::vector<ResourceDescription> &GetResources();
+
+  std::vector<ResourceId> GetBuffers();
   BufferDescription GetBuffer(ResourceId id);
 
-  vector<ResourceId> GetTextures();
+  std::vector<ResourceId> GetTextures();
   TextureDescription GetTexture(ResourceId id);
   ShaderReflection *GetShader(ResourceId shader, string entryPoint);
 
@@ -411,6 +414,9 @@ private:
   map<ResourceId, TextureDescription> m_CachedTextures;
 
   WrappedOpenGL *m_pDriver;
+
+  std::vector<ResourceDescription> m_Resources;
+  std::map<ResourceId, size_t> m_ResourceIdx;
 
   GLPipe::State m_CurPipelineState;
   D3D11Pipe::State m_D3D11State;

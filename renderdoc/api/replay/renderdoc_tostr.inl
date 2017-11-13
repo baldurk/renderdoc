@@ -417,6 +417,33 @@ std::string DoStringise(const AddressMode &el)
 }
 
 template <>
+std::string DoStringise(const ResourceType &el)
+{
+  BEGIN_ENUM_STRINGISE(ResourceType)
+  {
+    STRINGISE_ENUM_CLASS(Unknown);
+    STRINGISE_ENUM_CLASS(Device);
+    STRINGISE_ENUM_CLASS(Queue);
+    STRINGISE_ENUM_CLASS(CommandBuffer);
+    STRINGISE_ENUM_CLASS(Texture);
+    STRINGISE_ENUM_CLASS(Buffer);
+    STRINGISE_ENUM_CLASS(View);
+    STRINGISE_ENUM_CLASS(Sampler);
+    STRINGISE_ENUM_CLASS(SwapchainImage);
+    STRINGISE_ENUM_CLASS(Memory);
+    STRINGISE_ENUM_CLASS(Shader);
+    STRINGISE_ENUM_CLASS(ShaderBinding);
+    STRINGISE_ENUM_CLASS(PipelineState);
+    STRINGISE_ENUM_CLASS(StateObject);
+    STRINGISE_ENUM_CLASS(RenderPass);
+    STRINGISE_ENUM_CLASS(Query);
+    STRINGISE_ENUM_CLASS(Sync);
+    STRINGISE_ENUM_CLASS(Pool);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const TextureDim &el)
 {
   BEGIN_ENUM_STRINGISE(TextureDim)

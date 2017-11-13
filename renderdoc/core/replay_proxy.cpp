@@ -262,6 +262,30 @@ std::vector<ResourceId> ReplayProxy::GetBuffers()
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
+const std::vector<ResourceDescription> &ReplayProxy::Proxied_GetResources(ParamSerialiser &paramser,
+                                                                          ReturnSerialiser &retser)
+{
+  const ReplayProxyPacket packet = eReplayProxy_GetResources;
+
+  {
+    BEGIN_PARAMS();
+    END_PARAMS();
+  }
+
+  if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+    m_Resources = m_Remote->GetResources();
+
+  SERIALISE_RETURN(m_Resources);
+
+  return m_Resources;
+}
+
+const std::vector<ResourceDescription> &ReplayProxy::GetResources()
+{
+  PROXY_FUNCTION(GetResources);
+}
+
+template <typename ParamSerialiser, typename ReturnSerialiser>
 BufferDescription ReplayProxy::Proxied_GetBuffer(ParamSerialiser &paramser,
                                                  ReturnSerialiser &retser, ResourceId id)
 {
@@ -1461,6 +1485,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_FetchStructuredFile: FetchStructuredFile(); break;
     case eReplayProxy_GetAPIProperties: GetAPIProperties(); break;
     case eReplayProxy_GetPassEvents: GetPassEvents(0); break;
+    case eReplayProxy_GetResources: GetResources(); break;
     case eReplayProxy_GetTextures: GetTextures(); break;
     case eReplayProxy_GetTexture: GetTexture(ResourceId()); break;
     case eReplayProxy_GetBuffers: GetBuffers(); break;

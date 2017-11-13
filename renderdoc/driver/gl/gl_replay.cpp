@@ -145,9 +145,9 @@ APIProperties GLReplay::GetAPIProperties()
   return ret;
 }
 
-vector<ResourceId> GLReplay::GetBuffers()
+std::vector<ResourceId> GLReplay::GetBuffers()
 {
-  vector<ResourceId> ret;
+  std::vector<ResourceId> ret;
 
   for(auto it = m_pDriver->m_Buffers.begin(); it != m_pDriver->m_Buffers.end(); ++it)
   {
@@ -161,9 +161,28 @@ vector<ResourceId> GLReplay::GetBuffers()
   return ret;
 }
 
-vector<ResourceId> GLReplay::GetTextures()
+ResourceDescription &GLReplay::GetResourceDesc(ResourceId id)
 {
-  vector<ResourceId> ret;
+  auto it = m_ResourceIdx.find(id);
+  if(it == m_ResourceIdx.end())
+  {
+    m_ResourceIdx[id] = m_Resources.size();
+    m_Resources.push_back(ResourceDescription());
+    m_Resources.back().ID = id;
+    return m_Resources.back();
+  }
+
+  return m_Resources[it->second];
+}
+
+const std::vector<ResourceDescription> &GLReplay::GetResources()
+{
+  return m_Resources;
+}
+
+std::vector<ResourceId> GLReplay::GetTextures()
+{
+  std::vector<ResourceId> ret;
   ret.reserve(m_pDriver->m_Textures.size());
 
   for(auto it = m_pDriver->m_Textures.begin(); it != m_pDriver->m_Textures.end(); ++it)

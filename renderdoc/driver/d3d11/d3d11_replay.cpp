@@ -391,9 +391,28 @@ APIProperties D3D11Replay::GetAPIProperties()
   return ret;
 }
 
-vector<ResourceId> D3D11Replay::GetBuffers()
+ResourceDescription &D3D11Replay::GetResourceDesc(ResourceId id)
 {
-  vector<ResourceId> ret;
+  auto it = m_ResourceIdx.find(id);
+  if(it == m_ResourceIdx.end())
+  {
+    m_ResourceIdx[id] = m_Resources.size();
+    m_Resources.push_back(ResourceDescription());
+    m_Resources.back().ID = id;
+    return m_Resources.back();
+  }
+
+  return m_Resources[it->second];
+}
+
+const std::vector<ResourceDescription> &D3D11Replay::GetResources()
+{
+  return m_Resources;
+}
+
+std::vector<ResourceId> D3D11Replay::GetBuffers()
+{
+  std::vector<ResourceId> ret;
 
   ret.reserve(WrappedID3D11Buffer::m_BufferList.size());
 
@@ -452,9 +471,9 @@ BufferDescription D3D11Replay::GetBuffer(ResourceId id)
   return ret;
 }
 
-vector<ResourceId> D3D11Replay::GetTextures()
+std::vector<ResourceId> D3D11Replay::GetTextures()
 {
-  vector<ResourceId> ret;
+  std::vector<ResourceId> ret;
 
   ret.reserve(WrappedID3D11Texture1D::m_TextureList.size() +
               WrappedID3D11Texture2D1::m_TextureList.size() +

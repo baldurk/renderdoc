@@ -136,10 +136,13 @@ public:
   void SetDriver(WrappedVulkan *d) { m_pDriver = d; }
   APIProperties GetAPIProperties();
 
-  vector<ResourceId> GetBuffers();
+  ResourceDescription &GetResourceDesc(ResourceId id);
+  const std::vector<ResourceDescription> &GetResources();
+
+  std::vector<ResourceId> GetBuffers();
   BufferDescription GetBuffer(ResourceId id);
 
-  vector<ResourceId> GetTextures();
+  std::vector<ResourceId> GetTextures();
   TextureDescription GetTexture(ResourceId id);
 
   ShaderReflection *GetShader(ResourceId shader, string entryPoint);
@@ -320,6 +323,9 @@ private:
     VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
     VulkanResourceManager *m_ResourceManager;
   };
+
+  std::vector<ResourceDescription> m_Resources;
+  std::map<ResourceId, size_t> m_ResourceIdx;
 
   VKPipe::State m_VulkanPipelineState;
   D3D11Pipe::State m_D3D11State;
