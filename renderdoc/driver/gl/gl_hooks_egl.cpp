@@ -30,30 +30,7 @@
 #include "hooks/hooks.h"
 #include "strings/string_utils.h"
 #include "gl_hooks_linux_shared.h"
-
-typedef __eglMustCastToProperFunctionPointerType (*PFN_eglGetProcAddress)(const char *procname);
-typedef EGLBoolean (*PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, EGLint attribute,
-                                             EGLint *value);
-typedef EGLBoolean (*PFN_eglChooseConfig)(EGLDisplay dpy, const EGLint *attrib_list,
-                                          EGLConfig *configs, EGLint config_size, EGLint *num_config);
-typedef EGLContext (*PFN_eglCreateContext)(EGLDisplay dpy, EGLConfig config,
-                                           EGLContext share_context, const EGLint *attrib_list);
-typedef EGLBoolean (*PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
-typedef EGLSurface (*PFN_eglCreatePbufferSurface)(EGLDisplay dpy, EGLConfig config,
-                                                  const EGLint *attrib_list);
-typedef EGLSurface (*PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config,
-                                                 EGLNativeWindowType win, const EGLint *attrib_list);
-typedef EGLBoolean (*PFN_eglQuerySurface)(EGLDisplay dpy, EGLSurface surface, EGLint attribute,
-                                          EGLint *value);
-typedef EGLBoolean (*PFN_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
-typedef EGLBoolean (*PFN_eglMakeCurrent)(EGLDisplay dpy, EGLSurface draw, EGLSurface read,
-                                         EGLContext ctx);
-typedef EGLBoolean (*PFN_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
-typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
-typedef EGLContext (*PFN_eglGetCurrentContext)(void);
-typedef EGLDisplay (*PFN_eglGetCurrentDisplay)(void);
-typedef EGLSurface (*PFN_eglGetCurrentSurface)(EGLint readdraw);
-typedef EGLint (*PFN_eglGetError)(void);
+#include "gl_library_egl.h"
 
 class EGLHook : LibraryHook, public GLPlatform
 {
@@ -116,14 +93,15 @@ public:
 
   void MakeContextCurrent(GLWindowingData data)
   {
-    if(eglMakeCurrent_real)
-      eglMakeCurrent_real(data.egl_dpy, data.egl_wnd, data.egl_wnd, data.egl_ctx);
+    if(real.MakeCurrent)
+      real.MakeCurrent(data.egl_dpy, data.egl_wnd, data.egl_wnd, data.egl_ctx);
   }
 
   GLWindowingData MakeContext(GLWindowingData share)
   {
     GLWindowingData ret;
-    if(eglCreateContext_real)
+
+    if(real.CreateContext && real.ChooseConfig && real.CreatePbufferSurface)
     {
       const EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
                                    EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_NONE};
@@ -144,24 +122,16 @@ public:
                                 EGL_RGB_BUFFER,
                                 EGL_NONE};
 
-      PFN_eglChooseConfig eglChooseConfig =
-          (PFN_eglChooseConfig)dlsym(RTLD_NEXT, "eglChooseConfig");
-      PFN_eglCreatePbufferSurface eglCreatePbufferSurface =
-          (PFN_eglCreatePbufferSurface)dlsym(RTLD_NEXT, "eglCreatePbufferSurface");
+      EGLConfig config;
+      EGLint numConfigs;
+      EGLBoolean configFound = real.ChooseConfig(share.egl_dpy, attribs, &config, 1, &numConfigs);
 
-      if(eglChooseConfig && eglCreatePbufferSurface)
+      if(configFound)
       {
-        EGLConfig config;
-        EGLint numConfigs;
-        EGLBoolean configFound = eglChooseConfig(share.egl_dpy, attribs, &config, 1, &numConfigs);
-
-        if(configFound)
-        {
-          const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
-          ret.egl_wnd = eglCreatePbufferSurface(share.egl_dpy, config, pbAttribs);
-          ret.egl_dpy = share.egl_dpy;
-          ret.egl_ctx = eglCreateContext_real(share.egl_dpy, config, share.ctx, ctxAttribs);
-        }
+        const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
+        ret.egl_wnd = real.CreatePbufferSurface(share.egl_dpy, config, pbAttribs);
+        ret.egl_dpy = share.egl_dpy;
+        ret.egl_ctx = real.CreateContext(share.egl_dpy, config, share.ctx, ctxAttribs);
       }
     }
 
@@ -170,30 +140,23 @@ public:
 
   void DeleteContext(GLWindowingData context)
   {
-    PFN_eglDestroySurface eglDestroySurface =
-        (PFN_eglDestroySurface)dlsym(RTLD_NEXT, "eglDestroySurface");
+    if(context.wnd && real.DestroySurface)
+      real.DestroySurface(context.egl_dpy, context.egl_wnd);
 
-    if(context.wnd && eglDestroySurface)
-      eglDestroySurface(context.egl_dpy, context.egl_wnd);
-
-    if(context.ctx && eglDestroyContext_real)
-      eglDestroyContext_real(context.egl_dpy, context.egl_ctx);
+    if(context.ctx && real.DestroyContext)
+      real.DestroyContext(context.egl_dpy, context.egl_ctx);
   }
 
   void DeleteReplayContext(GLWindowingData context)
   {
-    if(eglDestroyContext_real)
+    if(real.DestroyContext)
     {
-      eglMakeCurrent_real(context.egl_dpy, 0L, 0L, NULL);
-      eglDestroyContext_real(context.egl_dpy, context.egl_ctx);
+      real.MakeCurrent(context.egl_dpy, 0L, 0L, NULL);
+      real.DestroyContext(context.egl_dpy, context.egl_ctx);
     }
   }
 
-  void SwapBuffers(GLWindowingData context)
-  {
-    eglSwapBuffers_real(context.egl_dpy, context.egl_wnd);
-  }
-
+  void SwapBuffers(GLWindowingData context) { real.SwapBuffers(context.egl_dpy, context.egl_wnd); }
   void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h)
   {
     // On some Linux systems the surface seems to be context dependant.
@@ -201,17 +164,17 @@ public:
     // To avoid any problems because of the context change we'll save the old
     // context information so we can switch back to it after the surface query is done.
     GLWindowingData oldContext;
-    oldContext.egl_ctx = eglGetCurrentContext_real();
-    oldContext.egl_dpy = eglGetCurrentDisplay_real();
-    oldContext.egl_wnd = eglGetCurrentSurface_real(EGL_READ);
+    oldContext.egl_ctx = real.GetCurrentContext();
+    oldContext.egl_dpy = real.GetCurrentDisplay();
+    oldContext.egl_wnd = real.GetCurrentSurface(EGL_READ);
     MakeContextCurrent(context);
 
-    EGLBoolean width_ok = eglQuerySurface_real(context.egl_dpy, context.egl_wnd, EGL_WIDTH, &w);
-    EGLBoolean height_ok = eglQuerySurface_real(context.egl_dpy, context.egl_wnd, EGL_HEIGHT, &h);
+    EGLBoolean width_ok = real.QuerySurface(context.egl_dpy, context.egl_wnd, EGL_WIDTH, &w);
+    EGLBoolean height_ok = real.QuerySurface(context.egl_dpy, context.egl_wnd, EGL_HEIGHT, &h);
 
     if(!width_ok || !height_ok)
     {
-      RDCGLenum error_code = (RDCGLenum)eglGetError_real();
+      RDCGLenum error_code = (RDCGLenum)real.GetError();
       RDCWARN("Unable to query the surface size. Error: (0x%x) %s", error_code,
               ToStr(error_code).c_str());
     }
@@ -244,7 +207,7 @@ public:
       default: RDCERR("Unexpected window system %u", system); break;
     }
 
-    EGLDisplay eglDisplay = eglGetDisplay_real(EGL_DEFAULT_DISPLAY);
+    EGLDisplay eglDisplay = real.GetDisplay(EGL_DEFAULT_DISPLAY);
     RDCASSERT(eglDisplay);
 
     static const EGLint configAttribs[] = {EGL_RED_SIZE,
@@ -259,15 +222,9 @@ public:
                                            EGL_PBUFFER_BIT | EGL_WINDOW_BIT,
                                            EGL_NONE};
 
-    PFN_eglChooseConfig eglChooseConfig = (PFN_eglChooseConfig)dlsym(RTLD_NEXT, "eglChooseConfig");
-    PFN_eglCreateWindowSurface eglCreateWindowSurface =
-        (PFN_eglCreateWindowSurface)dlsym(RTLD_NEXT, "eglCreateWindowSurface");
-    PFN_eglCreatePbufferSurface eglCreatePbufferSurface =
-        (PFN_eglCreatePbufferSurface)dlsym(RTLD_NEXT, "eglCreatePbufferSurface");
-
     EGLint numConfigs;
     EGLConfig config;
-    if(!eglChooseConfig(eglDisplay, configAttribs, &config, 1, &numConfigs))
+    if(!real.ChooseConfig(eglDisplay, configAttribs, &config, 1, &numConfigs))
     {
       RDCERR("Couldn't find a suitable EGL config");
       return ret;
@@ -276,7 +233,7 @@ public:
     static const EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
                                         EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_NONE};
 
-    EGLContext ctx = eglCreateContext_real(eglDisplay, config, share_context.ctx, ctxAttribs);
+    EGLContext ctx = real.CreateContext(eglDisplay, config, share_context.ctx, ctxAttribs);
 
     if(ctx == NULL)
     {
@@ -288,12 +245,12 @@ public:
 
     if(window != 0)
     {
-      surface = eglCreateWindowSurface(eglDisplay, config, window, NULL);
+      surface = real.CreateWindowSurface(eglDisplay, config, window, NULL);
     }
     else
     {
       static const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
-      surface = eglCreatePbufferSurface(eglDisplay, config, pbAttribs);
+      surface = real.CreatePbufferSurface(eglDisplay, config, pbAttribs);
     }
 
     ret.egl_dpy = eglDisplay;
@@ -316,19 +273,7 @@ public:
     return m_GLDriver;
   }
 
-  PFN_eglCreateContext eglCreateContext_real;
-  PFN_eglDestroyContext eglDestroyContext_real;
-  PFN_eglGetProcAddress eglGetProcAddress_real;
-  PFN_eglSwapBuffers eglSwapBuffers_real;
-  PFN_eglMakeCurrent eglMakeCurrent_real;
-  PFN_eglQuerySurface eglQuerySurface_real;
-  PFN_eglGetConfigAttrib eglGetConfigAttrib_real;
-  PFN_eglGetDisplay eglGetDisplay_real;
-  PFN_eglGetCurrentContext eglGetCurrentContext_real;
-  PFN_eglGetCurrentDisplay eglGetCurrentDisplay_real;
-  PFN_eglGetCurrentSurface eglGetCurrentSurface_real;
-  PFN_eglGetError eglGetError_real;
-
+  EGLPointers real;
   set<EGLContext> m_Contexts;
 
   bool m_PopulatedHooks;
@@ -339,35 +284,15 @@ public:
   {
     bool success = true;
 
-    if(eglGetProcAddress_real == NULL)
-      eglGetProcAddress_real = (PFN_eglGetProcAddress)dlsym(libGLdlsymHandle, "eglGetProcAddress");
-    if(eglCreateContext_real == NULL)
-      eglCreateContext_real = (PFN_eglCreateContext)dlsym(libGLdlsymHandle, "eglCreateContext");
-    if(eglDestroyContext_real == NULL)
-      eglDestroyContext_real = (PFN_eglDestroyContext)dlsym(libGLdlsymHandle, "eglDestroyContext");
-    if(eglMakeCurrent_real == NULL)
-      eglMakeCurrent_real = (PFN_eglMakeCurrent)dlsym(libGLdlsymHandle, "eglMakeCurrent");
-    if(eglSwapBuffers_real == NULL)
-      eglSwapBuffers_real = (PFN_eglSwapBuffers)dlsym(libGLdlsymHandle, "eglSwapBuffers");
-    if(eglQuerySurface_real == NULL)
-      eglQuerySurface_real = (PFN_eglQuerySurface)dlsym(libGLdlsymHandle, "eglQuerySurface");
-    if(eglGetConfigAttrib_real == NULL)
-      eglGetConfigAttrib_real =
-          (PFN_eglGetConfigAttrib)dlsym(libGLdlsymHandle, "eglGetConfigAttrib");
-    if(eglGetDisplay_real == NULL)
-      eglGetDisplay_real = (PFN_eglGetDisplay)dlsym(libGLdlsymHandle, "eglGetDisplay");
-    if(eglGetCurrentContext_real == NULL)
-      eglGetCurrentContext_real =
-          (PFN_eglGetCurrentContext)dlsym(libGLdlsymHandle, "eglGetCurrentContext");
-    if(eglGetCurrentDisplay_real == NULL)
-      eglGetCurrentDisplay_real =
-          (PFN_eglGetCurrentDisplay)dlsym(libGLdlsymHandle, "eglGetCurrentDisplay");
-    if(eglGetCurrentSurface_real == NULL)
-      eglGetCurrentSurface_real =
-          (PFN_eglGetCurrentSurface)dlsym(libGLdlsymHandle, "eglGetCurrentSurface");
-    if(eglGetError_real == NULL)
-      eglGetError_real = (PFN_eglGetError)dlsym(libGLdlsymHandle, "eglGetError");
-
+    if(!real.IsInitialized())
+    {
+      bool symbols_ok = real.LoadSymbolsFrom(libGLdlsymHandle);
+      if(!symbols_ok)
+      {
+        RDCWARN("Unable to load some of the EGL API functions, may cause problems");
+        success = false;
+      }
+    }
     return success;
   }
 
@@ -386,14 +311,14 @@ extern "C" {
 
 __attribute__((visibility("default"))) EGLDisplay eglGetDisplay(EGLNativeDisplayType display)
 {
-  if(eglhooks.eglGetDisplay_real == NULL)
+  if(eglhooks.real.GetDisplay == NULL)
     eglhooks.SetupExportedFunctions();
 
 #if DISABLED(RDOC_ANDROID)
   Keyboard::CloneDisplay(display);
 #endif
 
-  return eglhooks.eglGetDisplay_real(display);
+  return eglhooks.real.GetDisplay(display);
 }
 
 __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay display,
@@ -440,10 +365,10 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
     attribs = &attribVec[0];
   }
 
-  if(eglhooks.eglCreateContext_real == NULL)
+  if(eglhooks.real.CreateContext == NULL)
     eglhooks.SetupExportedFunctions();
 
-  EGLContext ret = eglhooks.eglCreateContext_real(display, config, shareContext, attribs);
+  EGLContext ret = eglhooks.real.CreateContext(display, config, shareContext, attribs);
 
   // don't continue if context creation failed
   if(!ret)
@@ -455,11 +380,11 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
   init.height = 0;
 
   EGLint value;
-  eglhooks.eglGetConfigAttrib_real(display, config, EGL_BUFFER_SIZE, &value);
+  eglhooks.real.GetConfigAttrib(display, config, EGL_BUFFER_SIZE, &value);
   init.colorBits = value;
-  eglhooks.eglGetConfigAttrib_real(display, config, EGL_DEPTH_SIZE, &value);
+  eglhooks.real.GetConfigAttrib(display, config, EGL_DEPTH_SIZE, &value);
   init.depthBits = value;
-  eglhooks.eglGetConfigAttrib_real(display, config, EGL_STENCIL_SIZE, &value);
+  eglhooks.real.GetConfigAttrib(display, config, EGL_STENCIL_SIZE, &value);
   init.stencilBits = value;
   // We will set isSRGB when we see the surface.
   init.isSRGB = 0;
@@ -480,7 +405,7 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
 
 __attribute__((visibility("default"))) EGLBoolean eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
 {
-  if(eglhooks.eglDestroyContext_real == NULL)
+  if(eglhooks.real.DestroyContext == NULL)
     eglhooks.SetupExportedFunctions();
 
   eglhooks.GetDriver()->SetDriverType(RDC_OpenGLES);
@@ -489,16 +414,16 @@ __attribute__((visibility("default"))) EGLBoolean eglDestroyContext(EGLDisplay d
     eglhooks.GetDriver()->DeleteContext(ctx);
   }
 
-  return eglhooks.eglDestroyContext_real(dpy, ctx);
+  return eglhooks.real.DestroyContext(dpy, ctx);
 }
 
 __attribute__((visibility("default"))) EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw,
                                                                  EGLSurface read, EGLContext ctx)
 {
-  if(eglhooks.eglMakeCurrent_real == NULL)
+  if(eglhooks.real.MakeCurrent == NULL)
     eglhooks.SetupExportedFunctions();
 
-  EGLBoolean ret = eglhooks.eglMakeCurrent_real(display, draw, read, ctx);
+  EGLBoolean ret = eglhooks.real.MakeCurrent(display, draw, read, ctx);
 
   SCOPED_LOCK(glLock);
 
@@ -522,18 +447,18 @@ __attribute__((visibility("default"))) EGLBoolean eglMakeCurrent(EGLDisplay disp
 
 __attribute__((visibility("default"))) EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
 {
-  if(eglhooks.eglSwapBuffers_real == NULL)
+  if(eglhooks.real.SwapBuffers == NULL)
     eglhooks.SetupExportedFunctions();
 
   SCOPED_LOCK(glLock);
 
   int height, width;
-  eglhooks.eglQuerySurface_real(dpy, surface, EGL_HEIGHT, &height);
-  eglhooks.eglQuerySurface_real(dpy, surface, EGL_WIDTH, &width);
+  eglhooks.real.QuerySurface(dpy, surface, EGL_HEIGHT, &height);
+  eglhooks.real.QuerySurface(dpy, surface, EGL_WIDTH, &width);
 
   GLInitParams &init = eglhooks.GetDriver()->GetInitParams();
   int colorspace = 0;
-  eglhooks.eglQuerySurface_real(dpy, surface, EGL_GL_COLORSPACE, &colorspace);
+  eglhooks.real.QuerySurface(dpy, surface, EGL_GL_COLORSPACE, &colorspace);
   // GL_SRGB8_ALPHA8 is specified as color-renderable, unlike GL_SRGB8.
   init.isSRGB = init.colorBits == 32 && colorspace == EGL_GL_COLORSPACE_SRGB;
 
@@ -541,16 +466,16 @@ __attribute__((visibility("default"))) EGLBoolean eglSwapBuffers(EGLDisplay dpy,
   eglhooks.GetDriver()->WindowSize(surface, width, height);
   eglhooks.GetDriver()->SwapBuffers(surface);
 
-  return eglhooks.eglSwapBuffers_real(dpy, surface);
+  return eglhooks.real.SwapBuffers(dpy, surface);
 }
 
 __attribute__((visibility("default"))) __eglMustCastToProperFunctionPointerType eglGetProcAddress(
     const char *func)
 {
-  if(eglhooks.eglGetProcAddress_real == NULL)
+  if(eglhooks.real.GetProcAddress == NULL)
     eglhooks.SetupExportedFunctions();
 
-  __eglMustCastToProperFunctionPointerType realFunc = eglhooks.eglGetProcAddress_real(func);
+  __eglMustCastToProperFunctionPointerType realFunc = eglhooks.real.GetProcAddress(func);
 
   if(!strcmp(func, "eglCreateContext"))
     return (__eglMustCastToProperFunctionPointerType)&eglCreateContext;
