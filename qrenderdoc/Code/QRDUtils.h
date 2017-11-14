@@ -102,6 +102,11 @@ void CombineUsageEvents(
     ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
     std::function<void(uint32_t startEID, uint32_t endEID, ResourceUsage use)> callback);
 
+class RDTreeWidgetItem;
+
+void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs,
+                          bool parentIsArray);
+
 struct Formatter
 {
   static void setParams(const PersistantConfig &config);

@@ -59,5 +59,4 @@ private:
 
   void addCallstack(rdcarray<rdcstr> calls);
   void fillAPIView();
-  void addObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs, bool parentIsArray);
 };

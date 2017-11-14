@@ -40,6 +40,7 @@
 #include <QRegularExpressionMatch>
 #include <QStandardPaths>
 #include <QtMath>
+#include "Widgets/Extended/RDTreeWidget.h"
 
 // normally this is in the renderdoc core library, but it's needed for the 'unknown enum' path,
 // so we implement it here using QString. It's inefficient, but this is a very uncommon path -
@@ -356,6 +357,77 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
 
   if(start != 0)
     callback(start, end, us);
+}
+
+void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs,
+                          bool parentIsArray)
+{
+  for(const SDObject *obj : objs)
+  {
+    if(obj->type.flags & SDTypeFlags::Hidden)
+      continue;
+
+    QVariant param;
+
+    if(parentIsArray)
+      param = QFormatStr("[%1]").arg(parent->childCount());
+    else
+      param = obj->name;
+
+    RDTreeWidgetItem *item = new RDTreeWidgetItem({param, QString()});
+
+    // we don't identify via the type name as many types could be serialised as a ResourceId -
+    // e.g. ID3D11Resource* or ID3D11Buffer* which would be the actual typename. We want to preserve
+    // that for the best raw structured data representation instead of flattening those out to just
+    // "ResourceId", and we also don't want to store two types ('fake' and 'real'), so instead we
+    // check the custom string.
+    if((obj->type.flags & SDTypeFlags::HasCustomString) &&
+       !strncmp(obj->data.str.c_str(), "ResourceId", 10))
+    {
+      ResourceId id;
+      static_assert(sizeof(id) == sizeof(obj->data.basic.u), "ResourceId is no longer uint64_t!");
+      memcpy(&id, &obj->data.basic.u, sizeof(id));
+
+      // TODO Get global name
+      param = ToQStr(id);
+    }
+    else if(obj->type.flags & SDTypeFlags::NullString)
+    {
+      param = lit("NULL");
+    }
+    else if(obj->type.flags & SDTypeFlags::HasCustomString)
+    {
+      param = obj->data.str;
+    }
+    else
+    {
+      switch(obj->type.basetype)
+      {
+        case SDBasic::Chunk:
+        case SDBasic::Struct:
+          param = QFormatStr("%1()").arg(obj->type.name);
+          addStructuredObjects(item, obj->data.children, false);
+          break;
+        case SDBasic::Array:
+          param = QFormatStr("%1[]").arg(obj->type.name);
+          addStructuredObjects(item, obj->data.children, true);
+          break;
+        case SDBasic::Null: param = lit("NULL"); break;
+        case SDBasic::Buffer: param = lit("(%1 bytes)").arg(obj->type.byteSize); break;
+        case SDBasic::String: param = obj->data.str; break;
+        case SDBasic::Enum:
+        case SDBasic::UnsignedInteger: param = Formatter::Format(obj->data.basic.u); break;
+        case SDBasic::SignedInteger: param = Formatter::Format(obj->data.basic.i); break;
+        case SDBasic::Float: param = Formatter::Format(obj->data.basic.d); break;
+        case SDBasic::Boolean: param = (obj->data.basic.b ? lit("True") : lit("False")); break;
+        case SDBasic::Character: param = QString(QLatin1Char(obj->data.basic.c)); break;
+      }
+    }
+
+    item->setText(1, param);
+
+    parent->addChild(item);
+  }
 }
 
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion)
