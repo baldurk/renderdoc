@@ -98,6 +98,10 @@ QString TypeString(const SigParameter &sig);
 QString D3DSemanticString(const SigParameter &sig);
 QString GetComponentString(byte mask);
 
+void CombineUsageEvents(
+    ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
+    std::function<void(uint32_t startEID, uint32_t endEID, ResourceUsage use)> callback);
+
 struct Formatter
 {
   static void setParams(const PersistantConfig &config);

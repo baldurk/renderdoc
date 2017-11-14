@@ -1845,66 +1845,10 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdcarray<EventU
     QObject::connect(&openLockedTab, &QAction::triggered, this,
                      &TextureViewer::texContextItem_triggered);
 
-    uint32_t start = 0;
-    uint32_t end = 0;
-    ResourceUsage us = ResourceUsage::IndexBuffer;
-
-    for(const EventUsage u : usage)
-    {
-      if(start == 0)
-      {
-        start = end = u.eventID;
-        us = u.usage;
-        continue;
-      }
-
-      const DrawcallDescription *curDraw = m_Ctx.GetDrawcall(u.eventID);
-
-      bool distinct = false;
-
-      // if the usage is different from the last, add a new entry,
-      // or if the previous draw link is broken.
-      if(u.usage != us || curDraw == NULL || curDraw->previous == 0)
-      {
-        distinct = true;
-      }
-      else
-      {
-        // otherwise search back through real draws, to see if the
-        // last event was where we were - otherwise it's a new
-        // distinct set of drawcalls and should have a separate
-        // entry in the context menu
-        const DrawcallDescription *prev = m_Ctx.GetDrawcall(curDraw->previous);
-
-        while(prev != NULL && prev->eventID > end)
-        {
-          if(!(prev->flags & (DrawFlags::Dispatch | DrawFlags::Drawcall | DrawFlags::CmdList)))
-          {
-            prev = m_Ctx.GetDrawcall(prev->previous);
-          }
-          else
-          {
-            distinct = true;
-            break;
-          }
-
-          if(prev == NULL)
-            distinct = true;
-        }
-      }
-
-      if(distinct)
-      {
-        AddResourceUsageEntry(contextMenu, start, end, us);
-        start = end = u.eventID;
-        us = u.usage;
-      }
-
-      end = u.eventID;
-    }
-
-    if(start != 0)
-      AddResourceUsageEntry(contextMenu, start, end, us);
+    CombineUsageEvents(m_Ctx, usage,
+                       [this, &contextMenu](uint32_t start, uint32_t end, ResourceUsage use) {
+                         AddResourceUsageEntry(contextMenu, start, end, use);
+                       });
 
     RDDialog::show(&contextMenu, QCursor::pos());
   }

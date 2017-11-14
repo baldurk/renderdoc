@@ -293,6 +293,71 @@ QString GetComponentString(byte mask)
   return ret;
 }
 
+void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
+                        std::function<void(uint32_t startEID, uint32_t endEID, ResourceUsage use)> callback)
+{
+  uint32_t start = 0;
+  uint32_t end = 0;
+  ResourceUsage us = ResourceUsage::IndexBuffer;
+
+  for(const EventUsage u : usage)
+  {
+    if(start == 0)
+    {
+      start = end = u.eventID;
+      us = u.usage;
+      continue;
+    }
+
+    const DrawcallDescription *draw = ctx.GetDrawcall(u.eventID);
+
+    bool distinct = false;
+
+    // if the usage is different from the last, add a new entry,
+    // or if the previous draw link is broken.
+    if(u.usage != us || draw == NULL || draw->previous == 0)
+    {
+      distinct = true;
+    }
+    else
+    {
+      // otherwise search back through real draws, to see if the
+      // last event was where we were - otherwise it's a new
+      // distinct set of drawcalls and should have a separate
+      // entry in the context menu
+      const DrawcallDescription *prev = ctx.GetDrawcall(draw->previous);
+
+      while(prev != NULL && prev->eventID > end)
+      {
+        if(!(prev->flags & (DrawFlags::Dispatch | DrawFlags::Drawcall | DrawFlags::CmdList)))
+        {
+          prev = ctx.GetDrawcall(prev->previous);
+        }
+        else
+        {
+          distinct = true;
+          break;
+        }
+
+        if(prev == NULL)
+          distinct = true;
+      }
+    }
+
+    if(distinct)
+    {
+      callback(start, end, us);
+      start = end = u.eventID;
+      us = u.usage;
+    }
+
+    end = u.eventID;
+  }
+
+  if(start != 0)
+    callback(start, end, us);
+}
+
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion)
 {
   // marker that this data is valid
