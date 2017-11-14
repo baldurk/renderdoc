@@ -32,6 +32,7 @@
 #include <QProcess>
 #include <QSemaphore>
 #include <QSortFilterProxyModel>
+#include <QStyledItemDelegate>
 #include "Code/Interface/QRDInterface.h"
 
 template <typename T>
@@ -256,6 +257,113 @@ protected:
 
 private:
   QDir::Filters m_requireMask, m_excludeMask;
+};
+
+// Simple QStyledItemDelegate child that will either forward to an external delegate (allowing
+// chaining) or to the base implementation. Delegates can derive from this and specialise a couple
+// of functions to still be able to chain
+class ForwardingDelegate : public QStyledItemDelegate
+{
+  Q_OBJECT
+public:
+  explicit ForwardingDelegate(QObject *parent = NULL) : QStyledItemDelegate(parent) {}
+  ~ForwardingDelegate() {}
+  void setForwardDelegate(QAbstractItemDelegate *real) { m_delegate = real; }
+  void paint(QPainter *painter, const QStyleOptionViewItem &option,
+             const QModelIndex &index) const override
+  {
+    if(m_delegate)
+      return m_delegate->paint(painter, option, index);
+
+    return QStyledItemDelegate::paint(painter, option, index);
+  }
+
+  QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override
+  {
+    if(m_delegate)
+      return m_delegate->sizeHint(option, index);
+
+    return QStyledItemDelegate::sizeHint(option, index);
+  }
+
+  QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+                        const QModelIndex &index) const override
+  {
+    if(m_delegate)
+      return m_delegate->createEditor(parent, option, index);
+
+    return QStyledItemDelegate::createEditor(parent, option, index);
+  }
+
+  void destroyEditor(QWidget *editor, const QModelIndex &index) const override
+  {
+    if(m_delegate)
+      return m_delegate->destroyEditor(editor, index);
+
+    return QStyledItemDelegate::destroyEditor(editor, index);
+  }
+
+  void setEditorData(QWidget *editor, const QModelIndex &index) const override
+  {
+    if(m_delegate)
+      return m_delegate->setEditorData(editor, index);
+
+    return QStyledItemDelegate::setEditorData(editor, index);
+  }
+
+  void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override
+  {
+    if(m_delegate)
+      return m_delegate->setModelData(editor, model, index);
+
+    return QStyledItemDelegate::setModelData(editor, model, index);
+  }
+
+  void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option,
+                            const QModelIndex &index) const override
+  {
+    if(m_delegate)
+      return m_delegate->updateEditorGeometry(editor, option, index);
+
+    return QStyledItemDelegate::updateEditorGeometry(editor, option, index);
+  }
+
+  bool eventFilter(QObject *watched, QEvent *event) override
+  {
+    if(m_delegate)
+      return m_delegate->eventFilter(watched, event);
+
+    return QStyledItemDelegate::eventFilter(watched, event);
+  }
+
+  bool editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option,
+                   const QModelIndex &index) override
+  {
+    if(m_delegate)
+      return m_delegate->editorEvent(event, model, option, index);
+
+    return QStyledItemDelegate::editorEvent(event, model, option, index);
+  }
+
+  bool helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option,
+                 const QModelIndex &index) override
+  {
+    if(m_delegate)
+      return m_delegate->helpEvent(event, view, option, index);
+
+    return QStyledItemDelegate::helpEvent(event, view, option, index);
+  }
+
+  QVector<int> paintingRoles() const override
+  {
+    if(m_delegate)
+      return m_delegate->paintingRoles();
+
+    return QStyledItemDelegate::paintingRoles();
+  }
+
+private:
+  QAbstractItemDelegate *m_delegate = NULL;
 };
 
 class QMenu;

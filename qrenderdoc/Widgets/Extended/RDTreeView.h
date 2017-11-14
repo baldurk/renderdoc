@@ -27,19 +27,28 @@
 #include <QLabel>
 #include <QStyledItemDelegate>
 #include <QTreeView>
+#include "Code/QRDUtils.h"
 
 class RDTreeView;
 
-class RDTreeViewDelegate : public QStyledItemDelegate
+class RDTreeViewDelegate : public ForwardingDelegate
 {
 private:
   Q_OBJECT
 
+  // I hate the mutable keyword, but it's necessary to modify it inside sizeHint to access in
+  // initStyleOption. There's no other way to only remove the icon while in sizeHint, and not in
+  // other places that call initStyleOption. We don't want to try and manually init, since if
+  // there's a forwarded delegate it might do something different.
+  mutable bool m_suppressIcon = false;
   RDTreeView *m_View;
 
 public:
   RDTreeViewDelegate(RDTreeView *view);
   QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+
+protected:
+  void initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const override;
 };
 
 class RDTipLabel : public QLabel
@@ -76,6 +85,9 @@ public:
   int verticalItemMargin() { return m_VertMargin; }
   void setIgnoreIconSize(bool ignore) { m_IgnoreIconSize = ignore; }
   bool ignoreIconSize() { return m_IgnoreIconSize; }
+  void setItemDelegate(QAbstractItemDelegate *delegate);
+  QAbstractItemDelegate *itemDelegate() const;
+
 protected:
   void rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end) override;
   void mouseMoveEvent(QMouseEvent *e) override;
@@ -95,6 +107,9 @@ private:
   bool m_VisibleBranches = true;
   bool m_VisibleGridLines = true;
   bool m_TooltipElidedItems = true;
+
+  QAbstractItemDelegate *m_userDelegate = NULL;
+  RDTreeViewDelegate *m_delegate;
 
   RDTipLabel *m_ElidedTooltip;
 
