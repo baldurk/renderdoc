@@ -236,6 +236,10 @@ public:
     {
       return item->data(index.column(), role);
     }
+    else if(role >= Qt::UserRole)
+    {
+      return item->data(index.column(), role);
+    }
 
     return QVariant();
   }
