@@ -649,6 +649,10 @@ void D3D11Replay::SavePipelineState()
 
           SAFE_RELEASE(res);
         }
+        else
+        {
+          view.Resource = ResourceId();
+        }
       }
 
       dst.UAVs.resize(D3D11_1_UAV_SLOT_COUNT);
@@ -730,6 +734,10 @@ void D3D11Replay::SavePipelineState()
           }
 
           SAFE_RELEASE(res);
+        }
+        else
+        {
+          view.Resource = ResourceId();
         }
       }
 
@@ -923,6 +931,10 @@ void D3D11Replay::SavePipelineState()
         }
 
         SAFE_RELEASE(res);
+      }
+      else
+      {
+        view.Resource = ResourceId();
       }
     }
 
