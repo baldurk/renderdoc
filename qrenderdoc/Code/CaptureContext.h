@@ -117,7 +117,7 @@ public:
   {
     return GetDrawcall(m_Drawcalls, eventID);
   }
-
+  const SDFile &GetStructuredFile() override { return *m_StructuredFile; }
   WindowingSystem CurWindowingSystem() override { return m_CurWinSystem; }
   void *FillWindowingData(uintptr_t winId) override;
 
@@ -205,6 +205,11 @@ private:
   const VKPipe::State *m_CurVulkanPipelineState;
   CommonPipelineState m_CurPipelineState;
 
+  D3D11Pipe::State m_DummyD3D11;
+  D3D12Pipe::State m_DummyD3D12;
+  GLPipe::State m_DummyGL;
+  VKPipe::State m_DummyVK;
+
   PersistantConfig &m_Config;
 
   QVector<ILogViewer *> m_LogViewers;
@@ -260,6 +265,9 @@ private:
   rdcarray<TextureDescription> m_TextureList;
   QMap<ResourceId, BufferDescription *> m_Buffers;
   rdcarray<BufferDescription> m_BufferList;
+
+  const SDFile *m_StructuredFile;
+  SDFile m_DummySDFile;
 
   rdcarray<WindowingSystem> m_WinSystems;
 

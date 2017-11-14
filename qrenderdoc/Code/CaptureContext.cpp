@@ -61,6 +61,13 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
 
   memset(&m_APIProps, 0, sizeof(m_APIProps));
 
+  m_CurD3D11PipelineState = &m_DummyD3D11;
+  m_CurD3D12PipelineState = &m_DummyD3D12;
+  m_CurGLPipelineState = &m_DummyGL;
+  m_CurVulkanPipelineState = &m_DummyVK;
+
+  m_StructuredFile = &m_DummySDFile;
+
   qApp->setApplicationVersion(QString::fromLatin1(RENDERDOC_GetVersionString()));
 
   m_Icon = new QIcon();
@@ -251,6 +258,8 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
     else
       m_X11Display = QX11Info::display();
 #endif
+
+    m_StructuredFile = &r->GetStructuredFile();
 
     m_BufferList = r->GetBuffers();
     for(BufferDescription &b : m_BufferList)
@@ -532,12 +541,13 @@ void CaptureContext::CloseLogfile()
   m_Drawcalls.clear();
   m_FirstDrawcall = m_LastDrawcall = NULL;
 
-  m_CurD3D11PipelineState = NULL;
-  m_CurD3D12PipelineState = NULL;
-  m_CurGLPipelineState = NULL;
-  m_CurVulkanPipelineState = NULL;
-  m_CurPipelineState.SetStates(m_APIProps, m_CurD3D11PipelineState, m_CurD3D12PipelineState,
-                               m_CurGLPipelineState, m_CurVulkanPipelineState);
+  m_CurD3D11PipelineState = &m_DummyD3D11;
+  m_CurD3D12PipelineState = &m_DummyD3D12;
+  m_CurGLPipelineState = &m_DummyGL;
+  m_CurVulkanPipelineState = &m_DummyVK;
+  m_CurPipelineState.SetStates(m_APIProps, NULL, NULL, NULL, NULL);
+
+  m_StructuredFile = &m_DummySDFile;
 
   m_DebugMessages.clear();
   m_UnreadMessageCount = 0;

@@ -85,6 +85,7 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return m_Ctx.GetDrawcall(eventID);
   }
+  virtual const SDFile &GetStructuredFile() override { return m_Ctx.GetStructuredFile(); }
   virtual WindowingSystem CurWindowingSystem() override { return m_Ctx.CurWindowingSystem(); }
   virtual void *FillWindowingData(uintptr_t winId) override
   {

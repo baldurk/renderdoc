@@ -1054,6 +1054,13 @@ more information for how this differs.
 )");
   virtual const DrawcallDescription *GetDrawcall(uint32_t eventID) = 0;
 
+  DOCUMENT(R"(Retrieve the :class:`~renderdoc.SDFile` for the currently open capture.
+
+:return: The structured file.
+:rtype: ~renderdoc.SDFile
+)");
+  virtual const SDFile &GetStructuredFile() = 0;
+
   DOCUMENT(R"(Retrieve the current windowing system in use.
 
 :return: The active windowing system.
@@ -1127,7 +1134,7 @@ as well as messages generated during replay and analysis.
 )");
   virtual ITextureViewer *GetTextureViewer() = 0;
 
-  DOCUMENT(R"(Retrieve the current singleton :class:`BufferViewer`.
+  DOCUMENT(R"(Retrieve the current singleton :class:`BufferViewer` configured for mesh viewing.
 
 :return: The current window, which is created (but not shown) it there wasn't one open.
 :rtype: BufferViewer

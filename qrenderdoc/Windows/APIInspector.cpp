@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 #include "APIInspector.h"
-#include <QRegularExpression>
 #include "ui_APIInspector.h"
 
 Q_DECLARE_METATYPE(APIEvent);
@@ -132,47 +131,40 @@ void APIInspector::fillAPIView()
   ui->apiEvents->setUpdatesEnabled(false);
   ui->apiEvents->clear();
 
-  QRegularExpression rgxopen(lit("^\\s*{"));
-  QRegularExpression rgxclose(lit("^\\s*}"));
+  const SDFile &file = m_Ctx.GetStructuredFile();
+  const DrawcallDescription *draw = m_Ctx.CurSelectedDrawcall();
 
-  m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
-    const SDFile &file = r->GetStructuredFile();
+  if(draw != NULL && !draw->events.isEmpty())
+  {
+    for(const APIEvent &ev : draw->events)
+    {
+      RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventID), QString()});
 
-    GUIInvoke::call([this, &file]() {
-      const DrawcallDescription *draw = m_Ctx.CurSelectedDrawcall();
-
-      if(draw != NULL && !draw->events.isEmpty())
+      if(ev.chunkIndex < file.chunks.size())
       {
-        for(const APIEvent &ev : draw->events)
-        {
-          RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventID), QString()});
+        SDChunk *chunk = file.chunks[ev.chunkIndex];
 
-          if(ev.chunkIndex < file.chunks.size())
-          {
-            SDChunk *chunk = file.chunks[ev.chunkIndex];
+        root->setText(1, chunk->name);
 
-            root->setText(1, chunk->name);
-
-            addObjects(root, chunk->data.children, false);
-          }
-          else
-          {
-            root->setText(1, tr("Invalid chunk index %1").arg(ev.chunkIndex));
-          }
-
-          if(ev.eventID == draw->eventID)
-            root->setBold(true);
-
-          root->setTag(QVariant::fromValue(ev));
-
-          ui->apiEvents->addTopLevelItem(root);
-
-          ui->apiEvents->setSelectedItem(root);
-        }
+        addObjects(root, chunk->data.children, false);
       }
-      ui->apiEvents->setUpdatesEnabled(true);
-    });
-  });
+      else
+      {
+        root->setText(1, tr("Invalid chunk index %1").arg(ev.chunkIndex));
+      }
+
+      if(ev.eventID == draw->eventID)
+        root->setBold(true);
+
+      root->setTag(QVariant::fromValue(ev));
+
+      ui->apiEvents->addTopLevelItem(root);
+
+      ui->apiEvents->setSelectedItem(root);
+    }
+  }
+
+  ui->apiEvents->setUpdatesEnabled(true);
 }
 
 void APIInspector::addObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs,
