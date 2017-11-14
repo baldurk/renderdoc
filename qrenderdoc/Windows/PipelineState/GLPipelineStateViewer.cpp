@@ -652,12 +652,10 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         uint32_t w = 1, h = 1, d = 1;
         uint32_t a = 1;
         QString format = lit("Unknown");
-        QString name = m_Ctx.GetResourceName(r.Resource);
         QString typeName = lit("Unknown");
 
         if(!filledSlot)
         {
-          name = tr("Empty");
           format = lit("-");
           typeName = lit("-");
           w = h = d = a = 0;
@@ -695,7 +693,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         }
 
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({slotname, name, typeName, w, h, d, a, format, QString()});
+            new RDTreeWidgetItem({slotname, r.Resource, typeName, w, h, d, a, format, QString()});
 
         node->setTag(QVariant::fromValue(r.Resource));
 
@@ -829,7 +827,6 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
       if(b)
       {
         slotname = QFormatStr("%1: %2").arg(bindPoint).arg(shaderCBuf.name);
-        name = m_Ctx.GetResourceName(b->Resource);
         offset = b->Offset;
         length = b->Size;
 
@@ -852,7 +849,8 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         byterange = QFormatStr("%1 - %2").arg(offset).arg(offset + length);
       }
 
-      RDTreeWidgetItem *node = new RDTreeWidgetItem({slotname, name, byterange, sizestr, QString()});
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({slotname, b->Resource, byterange, sizestr, QString()});
 
       node->setTag(QVariant::fromValue(i));
 
@@ -927,7 +925,6 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
                     : readWriteType == GLReadWriteType::SSBO ? tr("SSBO") : tr("Unknown");
 
       QString slotname = QFormatStr("%1: %2").arg(bindPoint).arg(res.name);
-      QString name = m_Ctx.GetResourceName(id);
       QString dimensions;
       QString format = lit("-");
       QString access = tr("Read/Write");
@@ -990,13 +987,12 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
 
       if(!filledSlot)
       {
-        name = tr("Empty");
         dimensions = lit("-");
         access = lit("-");
       }
 
       RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({binding, slotname, name, dimensions, format, access, QString()});
+          new RDTreeWidgetItem({binding, slotname, id, dimensions, format, access, QString()});
 
       node->setTag(tag);
 
@@ -1192,7 +1188,6 @@ void GLPipelineStateViewer::setState()
   {
     if(ibufferUsed || showDisabled)
     {
-      QString name = m_Ctx.GetResourceName(state.m_VtxIn.ibuffer);
       uint64_t length = 1;
 
       if(!ibufferUsed)
@@ -1201,13 +1196,11 @@ void GLPipelineStateViewer::setState()
       BufferDescription *buf = m_Ctx.GetBuffer(state.m_VtxIn.ibuffer);
 
       if(buf)
-      {
         length = buf->length;
-      }
 
-      RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({tr("Element"), name, draw ? draw->indexByteWidth : 0, 0, 0,
-                                (qulonglong)length, QString()});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({tr("Element"), state.m_VtxIn.ibuffer,
+                                                     draw ? draw->indexByteWidth : 0, 0, 0,
+                                                     (qulonglong)length, QString()});
 
       node->setTag(
           QVariant::fromValue(GLVBIBTag(state.m_VtxIn.ibuffer, draw ? draw->indexOffset : 0)));
@@ -1251,22 +1244,15 @@ void GLPipelineStateViewer::setState()
 
     if(showNode(usedSlot, filledSlot))
     {
-      QString name = m_Ctx.GetResourceName(v.Buffer);
-      uint64_t length = 1;
+      uint64_t length = 0;
       uint64_t offset = v.Offset;
-
-      if(!filledSlot)
-      {
-        name = tr("Empty");
-        length = 0;
-      }
 
       BufferDescription *buf = m_Ctx.GetBuffer(v.Buffer);
       if(buf)
         length = buf->length;
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {i, name, v.Stride, (qulonglong)offset, v.Divisor, (qulonglong)length, QString()});
+          {i, v.Buffer, v.Stride, (qulonglong)offset, v.Divisor, (qulonglong)length, QString()});
 
       node->setTag(QVariant::fromValue(GLVBIBTag(v.Buffer, v.Offset)));
 
@@ -1311,19 +1297,16 @@ void GLPipelineStateViewer::setState()
 
       if(showNode(usedSlot, filledSlot))
       {
-        QString name = m_Ctx.GetResourceName(state.m_Feedback.BufferBinding[i]);
         qulonglong length = state.m_Feedback.Size[i];
-
-        if(!filledSlot)
-          name = tr("Empty");
 
         BufferDescription *buf = m_Ctx.GetBuffer(state.m_Feedback.BufferBinding[i]);
 
-        if(buf && length == 0)
+        if(buf)
           length = buf->length;
 
-        RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {i, name, length, (qulonglong)state.m_Feedback.Offset[i], QString()});
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({i, state.m_Feedback.BufferBinding[i], length,
+                                  (qulonglong)state.m_Feedback.Offset[i], QString()});
 
         node->setTag(QVariant::fromValue(state.m_Feedback.BufferBinding[i]));
 
@@ -1616,12 +1599,10 @@ void GLPipelineStateViewer::setState()
         uint32_t w = 1, h = 1, d = 1;
         uint32_t a = 1;
         QString format = tr("Unknown");
-        QString name = m_Ctx.GetResourceName(p);
         QString typeName = tr("Unknown");
 
         if(p == ResourceId())
         {
-          name = tr("Empty");
           format = lit("-");
           typeName = lit("-");
           w = h = d = a = 0;
@@ -1637,19 +1618,6 @@ void GLPipelineStateViewer::setState()
           format = tex->format.Name();
           typeName = ToQStr(tex->resType);
 
-          if(m_Ctx.IsAutogeneratedName(p) && state.m_FS.ShaderDetails)
-          {
-            for(int s = 0; s < state.m_FS.ShaderDetails->OutputSig.count(); s++)
-            {
-              if(state.m_FS.ShaderDetails->OutputSig[s].regIndex == (uint32_t)db &&
-                 (state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::Undefined ||
-                  state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::ColorOutput))
-              {
-                name = QFormatStr("<%1>").arg(state.m_FS.ShaderDetails->OutputSig[s].varName);
-              }
-            }
-          }
-
           if(tex->format.srgbCorrected && !state.m_FB.FramebufferSRGB)
             format += lit(" (GL_FRAMEBUFFER_SRGB = 0)");
         }
@@ -1664,8 +1632,23 @@ void GLPipelineStateViewer::setState()
                         .arg(ToQStr(r->Swizzle[3]));
         }
 
+        QString slotname = QString::number(i);
+
+        if(state.m_FS.ShaderDetails)
+        {
+          for(int s = 0; s < state.m_FS.ShaderDetails->OutputSig.count(); s++)
+          {
+            if(state.m_FS.ShaderDetails->OutputSig[s].regIndex == (uint32_t)db &&
+               (state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::Undefined ||
+                state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::ColorOutput))
+            {
+              slotname += QFormatStr(": %1").arg(state.m_FS.ShaderDetails->OutputSig[s].varName);
+            }
+          }
+        }
+
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({i, name, typeName, w, h, d, a, format, QString()});
+            new RDTreeWidgetItem({i, p, typeName, w, h, d, a, format, QString()});
 
         if(tex)
           node->setTag(QVariant::fromValue(p));
@@ -1700,12 +1683,10 @@ void GLPipelineStateViewer::setState()
         uint32_t w = 1, h = 1, d = 1;
         uint32_t a = 1;
         QString format = tr("Unknown");
-        QString name = m_Ctx.GetResourceName(ds);
         QString typeName = tr("Unknown");
 
         if(ds == ResourceId())
         {
-          name = tr("Empty");
           format = lit("-");
           typeName = lit("-");
           w = h = d = a = 0;
@@ -1736,7 +1717,7 @@ void GLPipelineStateViewer::setState()
         }
 
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({slot, name, typeName, w, h, d, a, format, QString()});
+            new RDTreeWidgetItem({slot, ds, typeName, w, h, d, a, format, QString()});
 
         if(tex)
           node->setTag(QVariant::fromValue(ds));

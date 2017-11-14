@@ -1107,6 +1107,20 @@ name fetched from the capture.
 )");
   virtual void SetResourceCustomName(ResourceId id, const QString &name) = 0;
 
+  DOCUMENT(R"(Returns an index that can be used to cache the results of resource naming.
+
+In some cases (e.g. formatting in widgets) there might be high frequency fetches to names without an
+easy way to force a refresh on a rename. Instead, the index here can be cached and compared each
+time to see if any names have changed.
+
+The index starts at 1, so initialising an internal cache to 0 will cause the first check to be
+considered out of date
+
+:return: An incrementing index that can be used as a quick check if any names have changed.
+:rtype: int
+)");
+  virtual int ResourceNameCacheID() = 0;
+
   DOCUMENT(R"(Retrieve the information about a particular texture.
 
 :param ~renderdoc.ResourceId id: The ID of the texture to query about.
@@ -1594,3 +1608,17 @@ protected:
 };
 
 DECLARE_REFLECTION_STRUCT(ICaptureContext);
+
+DOCUMENT(R"(Attempt to retrieve the capture context for a particular widget.
+
+This will search up the widget heirarchy to find if a capture context is associated with this widget
+or any of its parents. Mostly useful from within widget code where a capture context can't be
+explicitly passed in.
+
+This may return ``None`` if no capture context can be found.
+
+:param QWidget widget: The widget to search from.
+:return: The capture context associated with this widget, if one unambiguously exists.
+:rtype: CaptureContext
+)");
+ICaptureContext *getCaptureContext(QWidget *widget);

@@ -55,7 +55,9 @@ std::string DoStringise(const uint32_t &el)
 template <>
 std::string DoStringise(const ResourceId &el)
 {
-  return QString::number((const uint64_t &)el).toStdString();
+  uint64_t num;
+  memcpy(&num, &el, sizeof(num));
+  return lit("resourceid::%1").arg(num).toStdString();
 }
 
 #include "renderdoc_tostr.inl"
@@ -359,8 +361,8 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
     callback(start, end, us);
 }
 
-void addStructuredObjects(ICaptureContext &ctx, RDTreeWidgetItem *parent,
-                          const StructuredObjectList &objs, bool parentIsArray)
+void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs,
+                          bool parentIsArray)
 {
   for(const SDObject *obj : objs)
   {
@@ -388,7 +390,7 @@ void addStructuredObjects(ICaptureContext &ctx, RDTreeWidgetItem *parent,
       static_assert(sizeof(id) == sizeof(obj->data.basic.u), "ResourceId is no longer uint64_t!");
       memcpy(&id, &obj->data.basic.u, sizeof(id));
 
-      param = ctx.GetResourceName(id);
+      param = id;
     }
     else if(obj->type.flags & SDTypeFlags::NullString)
     {
@@ -405,11 +407,11 @@ void addStructuredObjects(ICaptureContext &ctx, RDTreeWidgetItem *parent,
         case SDBasic::Chunk:
         case SDBasic::Struct:
           param = QFormatStr("%1()").arg(obj->type.name);
-          addStructuredObjects(ctx, item, obj->data.children, false);
+          addStructuredObjects(item, obj->data.children, false);
           break;
         case SDBasic::Array:
           param = QFormatStr("%1[]").arg(obj->type.name);
-          addStructuredObjects(ctx, item, obj->data.children, true);
+          addStructuredObjects(item, obj->data.children, true);
           break;
         case SDBasic::Null: param = lit("NULL"); break;
         case SDBasic::Buffer: param = lit("(%1 bytes)").arg(obj->type.byteSize); break;

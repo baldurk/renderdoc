@@ -683,12 +683,10 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
     uint32_t w = 1, h = 1, d = 1;
     uint32_t a = 1;
     QString format = tr("Unknown");
-    QString name = m_Ctx.GetResourceName(r.Resource);
     QString typeName = tr("Unknown");
 
     if(!filledSlot)
     {
-      name = tr("Empty");
       format = lit("-");
       typeName = lit("-");
       w = h = d = a = 0;
@@ -760,7 +758,7 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
     }
 
     RDTreeWidgetItem *node = new RDTreeWidgetItem(
-        {rootel, view.space, regname, name, typeName, w, h, d, a, format, QString()});
+        {rootel, view.space, regname, r.Resource, typeName, w, h, d, a, format, QString()});
 
     node->setTag(QVariant::fromValue(view));
 
@@ -1140,7 +1138,6 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
 
       if(showNode(usedSlot, filledSlot))
       {
-        QString name = m_Ctx.GetResourceName(b.Buffer);
         ulong length = b.ByteSize;
         uint64_t offset = b.Offset;
         int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
@@ -1148,9 +1145,6 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
 
         if(b.Immediate && !b.RootValues.empty())
           bytesize = uint32_t(b.RootValues.count() * 4);
-
-        if(!filledSlot)
-          name = tr("Empty");
 
         QString regname = QString::number(reg);
 
@@ -1168,7 +1162,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
           filledSlot = false;
 
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {rootel, (qulonglong)space, regname, name, (qulonglong)offset, sizestr, QString()});
+            {rootel, (qulonglong)space, regname, b.Buffer, (qulonglong)offset, sizestr, QString()});
 
         node->setTag(tag);
 
@@ -1292,11 +1286,7 @@ void D3D12PipelineStateViewer::setState()
   {
     if(ibufferUsed || ui->showDisabled->isChecked())
     {
-      QString name = m_Ctx.GetResourceName(state.m_IA.ibuffer.Buffer);
-      uint64_t length = 1;
-
-      if(!ibufferUsed)
-        length = 0;
+      uint64_t length = 0;
 
       BufferDescription *buf = m_Ctx.GetBuffer(state.m_IA.ibuffer.Buffer);
 
@@ -1304,7 +1294,7 @@ void D3D12PipelineStateViewer::setState()
         length = buf->length;
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {tr("Index"), name, draw ? draw->indexByteWidth : 0,
+          {tr("Index"), state.m_IA.ibuffer.Buffer, draw ? draw->indexByteWidth : 0,
            (qulonglong)state.m_IA.ibuffer.Offset, (qulonglong)length, QString()});
 
       node->setTag(QVariant::fromValue(
@@ -1349,14 +1339,7 @@ void D3D12PipelineStateViewer::setState()
 
     if(showNode(usedSlot, filledSlot))
     {
-      QString name = m_Ctx.GetResourceName(v.Buffer);
-      qulonglong length = 1;
-
-      if(!filledSlot)
-      {
-        name = tr("Empty");
-        length = 0;
-      }
+      qulonglong length = 0;
 
       BufferDescription *buf = m_Ctx.GetBuffer(v.Buffer);
       if(buf)
@@ -1365,7 +1348,7 @@ void D3D12PipelineStateViewer::setState()
       RDTreeWidgetItem *node = NULL;
 
       if(filledSlot)
-        node = new RDTreeWidgetItem({i, name, v.Stride, (qulonglong)v.Offset, length, QString()});
+        node = new RDTreeWidgetItem({i, v.Buffer, v.Stride, (qulonglong)v.Offset, length, QString()});
       else
         node =
             new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
@@ -1413,21 +1396,15 @@ void D3D12PipelineStateViewer::setState()
 
     if(showNode(usedSlot, filledSlot))
     {
-      QString name = m_Ctx.GetResourceName(s.Buffer);
       qulonglong length = 0;
-
-      if(!filledSlot)
-      {
-        name = tr("Empty");
-      }
 
       BufferDescription *buf = m_Ctx.GetBuffer(s.Buffer);
 
-      if(buf && length == 0)
+      if(buf)
         length = buf->length;
 
       RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({i, name, length, (qulonglong)s.Offset, QString()});
+          new RDTreeWidgetItem({i, s.Buffer, length, (qulonglong)s.Offset, QString()});
 
       node->setTag(QVariant::fromValue(s.Buffer));
 

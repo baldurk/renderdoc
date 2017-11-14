@@ -88,6 +88,7 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return m_Ctx.HasResourceCustomName(id);
   }
+  virtual int ResourceNameCacheID() override { return m_Ctx.ResourceNameCacheID(); }
   virtual TextureDescription *GetTexture(ResourceId id) override { return m_Ctx.GetTexture(id); }
   virtual const rdcarray<TextureDescription> &GetTextures() override { return m_Ctx.GetTextures(); }
   virtual BufferDescription *GetBuffer(ResourceId id) override { return m_Ctx.GetBuffer(id); }

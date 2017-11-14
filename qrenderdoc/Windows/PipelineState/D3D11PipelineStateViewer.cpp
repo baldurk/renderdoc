@@ -606,12 +606,10 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
     uint32_t w = 1, h = 1, d = 1;
     uint32_t a = 1;
     QString format = tr("Unknown");
-    QString name = m_Ctx.GetResourceName(r.Resource);
     QString typeName = tr("Unknown");
 
     if(!filledSlot)
     {
-      name = tr("Empty");
       format = lit("-");
       typeName = lit("-");
       w = h = d = a = 0;
@@ -688,6 +686,11 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
       if(HasImportantViewParams(r, buf))
         viewDetails = true;
     }
+
+    QVariant name = r.Resource;
+
+    if(viewDetails)
+      name = tr("%1 viewed by %2").arg(ToQStr(r.Resource)).arg(ToQStr(r.Object));
 
     RDTreeWidgetItem *node =
         new RDTreeWidgetItem({slotname, name, typeName, w, h, d, a, format, QString()});
@@ -924,8 +927,6 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
       if(shaderInput && !shaderInput->name.empty())
         slotname += lit(": ") + shaderInput->name;
 
-      QString sampName = m_Ctx.GetResourceName(s.Samp);
-
       QString borderColor = QFormatStr("%1, %2, %3, %4")
                                 .arg(s.BorderColor[0])
                                 .arg(s.BorderColor[1])
@@ -974,7 +975,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
         filter = QFormatStr(" (%1)").arg(ToQStr(s.Filter.func));
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {slotname, sampName, addressing, filter,
+          {slotname, s.Samp, addressing, filter,
            QFormatStr("%1 - %2")
                .arg(s.MinLOD == -FLT_MAX ? lit("0") : QString::number(s.MinLOD))
                .arg(s.MaxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.MaxLOD)),
@@ -1025,16 +1026,9 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
 
     if(showNode(usedSlot, filledSlot))
     {
-      QString name = m_Ctx.GetResourceName(b.Buffer);
-      ulong length = 1;
+      ulong length = 0;
       int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
       uint32_t bytesize = shaderCBuf ? shaderCBuf->byteSize : 0;
-
-      if(!filledSlot)
-      {
-        name = tr("Empty");
-        length = 0;
-      }
 
       BufferDescription *buf = m_Ctx.GetBuffer(b.Buffer);
 
@@ -1058,7 +1052,8 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
 
       QString vecrange = QFormatStr("%1 - %2").arg(b.VecOffset).arg(b.VecOffset + b.VecCount);
 
-      RDTreeWidgetItem *node = new RDTreeWidgetItem({slotname, name, vecrange, sizestr, QString()});
+      RDTreeWidgetItem *node =
+          new RDTreeWidgetItem({slotname, b.Buffer, vecrange, sizestr, QString()});
 
       node->setTag(QVariant::fromValue(i));
 
@@ -1293,20 +1288,16 @@ void D3D11PipelineStateViewer::setState()
   {
     if(ibufferUsed || ui->showDisabled->isChecked())
     {
-      QString name = m_Ctx.GetResourceName(state.m_IA.ibuffer.Buffer);
-      uint64_t length = 1;
-
-      if(!ibufferUsed)
-        length = 0;
+      uint64_t length = 0;
 
       BufferDescription *buf = m_Ctx.GetBuffer(state.m_IA.ibuffer.Buffer);
 
       if(buf)
         length = buf->length;
 
-      RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({tr("Index"), name, draw ? draw->indexByteWidth : 0,
-                                state.m_IA.ibuffer.Offset, (qulonglong)length, QString()});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem(
+          {tr("Index"), state.m_IA.ibuffer.Buffer, draw ? draw->indexByteWidth : 0,
+           state.m_IA.ibuffer.Offset, (qulonglong)length, QString()});
 
       node->setTag(QVariant::fromValue(
           D3D11VBIBTag(state.m_IA.ibuffer.Buffer, draw ? draw->indexOffset : 0)));
@@ -1350,14 +1341,7 @@ void D3D11PipelineStateViewer::setState()
 
     if(showNode(usedSlot, filledSlot))
     {
-      QString name = m_Ctx.GetResourceName(v.Buffer);
-      qulonglong length = 1;
-
-      if(!filledSlot)
-      {
-        name = tr("Empty");
-        length = 0;
-      }
+      qulonglong length = 0;
 
       BufferDescription *buf = m_Ctx.GetBuffer(v.Buffer);
       if(buf)
@@ -1366,7 +1350,7 @@ void D3D11PipelineStateViewer::setState()
       RDTreeWidgetItem *node = NULL;
 
       if(filledSlot)
-        node = new RDTreeWidgetItem({i, name, v.Stride, v.Offset, length, QString()});
+        node = new RDTreeWidgetItem({i, v.Buffer, v.Stride, v.Offset, length, QString()});
       else
         node =
             new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
@@ -1447,20 +1431,13 @@ void D3D11PipelineStateViewer::setState()
 
     if(showNode(usedSlot, filledSlot))
     {
-      QString name = m_Ctx.GetResourceName(s.Buffer);
       qulonglong length = 0;
-
-      if(!filledSlot)
-      {
-        name = tr("Empty");
-      }
-
       BufferDescription *buf = m_Ctx.GetBuffer(s.Buffer);
 
-      if(buf && length == 0)
+      if(buf)
         length = buf->length;
 
-      RDTreeWidgetItem *node = new RDTreeWidgetItem({i, name, length, s.Offset, QString()});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({i, s.Buffer, length, s.Offset, QString()});
 
       node->setTag(QVariant::fromValue(s.Buffer));
 

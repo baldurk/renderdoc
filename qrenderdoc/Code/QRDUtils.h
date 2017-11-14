@@ -104,8 +104,8 @@ void CombineUsageEvents(
 
 class RDTreeWidgetItem;
 
-void addStructuredObjects(ICaptureContext &ctx, RDTreeWidgetItem *parent,
-                          const StructuredObjectList &objs, bool parentIsArray);
+void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs,
+                          bool parentIsArray);
 
 struct Formatter
 {

@@ -207,7 +207,7 @@ void ResourceInspector::Inspect(ResourceId id)
 
     for(ResourceId parent : desc->parentResources)
     {
-      RDTreeWidgetItem *item = new RDTreeWidgetItem({tr("Parent"), m_Ctx.GetResourceName(parent)});
+      RDTreeWidgetItem *item = new RDTreeWidgetItem({tr("Parent"), parent});
       item->setData(0, ResourceIdRole, QVariant::fromValue(parent));
       item->setData(1, ResourceIdRole, QVariant::fromValue(parent));
       ui->relatedResources->addTopLevelItem(item);
@@ -215,7 +215,7 @@ void ResourceInspector::Inspect(ResourceId id)
 
     for(ResourceId derived : desc->derivedResources)
     {
-      RDTreeWidgetItem *item = new RDTreeWidgetItem({tr("Derived"), m_Ctx.GetResourceName(derived)});
+      RDTreeWidgetItem *item = new RDTreeWidgetItem({tr("Derived"), derived});
       item->setData(0, ResourceIdRole, QVariant::fromValue(derived));
       item->setData(1, ResourceIdRole, QVariant::fromValue(derived));
       ui->relatedResources->addTopLevelItem(item);
@@ -231,7 +231,7 @@ void ResourceInspector::Inspect(ResourceId id)
 
         root->setText(0, chunkObj->name);
 
-        addStructuredObjects(m_Ctx, root, chunkObj->data.children, false);
+        addStructuredObjects(root, chunkObj->data.children, false);
       }
       else
       {

@@ -103,6 +103,7 @@ public:
     }
 
     m_text[column] = value;
+    checkForResourceId(column);
     dataChanged(column, Qt::DisplayRole);
   }
   inline void setToolTip(const QString &value)
@@ -122,8 +123,11 @@ public:
   }
 
 private:
+  void checkForResourceId(int column);
+
   friend class RDTreeWidget;
   friend class RDTreeWidgetModel;
+  friend class RDTreeWidgetDelegate;
 
   void setWidget(RDTreeWidget *widget);
   RDTreeWidget *m_widget = NULL;
@@ -190,6 +194,26 @@ private:
   RDTreeWidgetItem *m_Current;
 };
 
+class RDTreeWidgetDelegate : public ForwardingDelegate
+{
+  Q_OBJECT
+public:
+  explicit RDTreeWidgetDelegate(RDTreeWidget *parent);
+  ~RDTreeWidgetDelegate();
+
+  void paint(QPainter *painter, const QStyleOptionViewItem &option,
+             const QModelIndex &index) const override;
+  QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+
+  bool editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option,
+                   const QModelIndex &index) override;
+
+  bool linkHover(QMouseEvent *e, const QModelIndex &index);
+
+private:
+  RDTreeWidget *m_widget;
+};
+
 class RDTreeWidget : public RDTreeView
 {
   Q_OBJECT
@@ -224,6 +248,9 @@ public:
   void beginUpdate();
   void endUpdate();
   void setColumnAlignment(int column, Qt::Alignment align);
+
+  void setItemDelegate(QAbstractItemDelegate *delegate);
+  QAbstractItemDelegate *itemDelegate() const;
 
   void setColumns(const QStringList &columns);
   QString headerText(int column) const { return m_headers[column]; }
@@ -275,11 +302,15 @@ private:
 
   friend class RDTreeWidgetModel;
   friend class RDTreeWidgetItem;
+  friend class RDTreeWidgetDelegate;
 
   // invisible root item, used to simplify recursion by even top-level items having a parent
   RDTreeWidgetItem *m_root;
 
   RDTreeWidgetModel *m_model;
+
+  QAbstractItemDelegate *m_userDelegate = NULL;
+  RDTreeWidgetDelegate *m_delegate;
 
   bool m_clearing = false;
 

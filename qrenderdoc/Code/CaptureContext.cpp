@@ -626,7 +626,7 @@ void CaptureContext::AddMessages(const rdcarray<DebugMessage> &msgs)
 QString CaptureContext::GetResourceName(ResourceId id)
 {
   if(id == ResourceId())
-    return tr("{No Resource}");
+    return tr("No Resource");
 
   if(m_CustomNames.contains(id))
     return m_CustomNames[id];
@@ -672,7 +672,14 @@ void CaptureContext::SetResourceCustomName(ResourceId id, const QString &name)
     m_CustomNames[id] = name;
   }
 
+  m_CustomNameCachedID++;
+
   RefreshUIStatus({}, true, true);
+}
+
+int CaptureContext::ResourceNameCacheID()
+{
+  return m_CustomNameCachedID;
 }
 
 void *CaptureContext::FillWindowingData(uintptr_t widget)
