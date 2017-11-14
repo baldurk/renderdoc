@@ -49,6 +49,7 @@ class PerformanceCounterViewer;
 class StatisticsViewer;
 class TimelineBar;
 class PythonShell;
+class ResourceInspector;
 
 QString ConfigFilePath(const QString &filename);
 
@@ -109,6 +110,8 @@ public:
   const DrawcallDescription *GetFirstDrawcall() override { return m_FirstDrawcall; };
   const DrawcallDescription *GetLastDrawcall() override { return m_LastDrawcall; };
   const rdcarray<DrawcallDescription> &CurDrawcalls() override { return m_Drawcalls; }
+  ResourceDescription *GetResource(ResourceId id) override { return m_Resources[id]; }
+  const rdcarray<ResourceDescription> &GetResources() override { return m_ResourceList; }
   TextureDescription *GetTexture(ResourceId id) override { return m_Textures[id]; }
   const rdcarray<TextureDescription> &GetTextures() override { return m_TextureList; }
   BufferDescription *GetBuffer(ResourceId id) override { return m_Buffers[id]; }
@@ -138,6 +141,7 @@ public:
   IStatisticsViewer *GetStatisticsViewer() override;
   ITimelineBar *GetTimelineBar() override;
   IPythonShell *GetPythonShell() override;
+  IResourceInspector *GetResourceInspector() override;
 
   bool HasEventBrowser() override { return m_EventBrowser != NULL; }
   bool HasAPIInspector() override { return m_APIInspector != NULL; }
@@ -150,6 +154,7 @@ public:
   bool HasStatisticsViewer() override { return m_StatisticsViewer != NULL; }
   bool HasTimelineBar() override { return m_TimelineBar != NULL; }
   bool HasPythonShell() override { return m_PythonShell != NULL; }
+  bool HasResourceInspector() override { return m_ResourceInspector != NULL; }
   void ShowEventBrowser() override;
   void ShowAPIInspector() override;
   void ShowTextureViewer() override;
@@ -161,6 +166,7 @@ public:
   void ShowStatisticsViewer() override;
   void ShowTimelineBar() override;
   void ShowPythonShell() override;
+  void ShowResourceInspector() override;
 
   IShaderViewer *EditShader(bool customShader, const QString &entryPoint, const QStringMap &files,
                             IShaderViewer::SaveCallback saveCallback,
@@ -265,6 +271,8 @@ private:
   rdcarray<TextureDescription> m_TextureList;
   QMap<ResourceId, BufferDescription *> m_Buffers;
   rdcarray<BufferDescription> m_BufferList;
+  QMap<ResourceId, ResourceDescription *> m_Resources;
+  rdcarray<ResourceDescription> m_ResourceList;
 
   const SDFile *m_StructuredFile;
   SDFile m_DummySDFile;
@@ -293,4 +301,5 @@ private:
   StatisticsViewer *m_StatisticsViewer = NULL;
   TimelineBar *m_TimelineBar = NULL;
   PythonShell *m_PythonShell = NULL;
+  ResourceInspector *m_ResourceInspector = NULL;
 };

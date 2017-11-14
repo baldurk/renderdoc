@@ -131,6 +131,7 @@
     <addaction name="action_Timeline"/>
     <addaction name="action_Statistics_Viewer"/>
     <addaction name="action_Counter_Viewer"/>
+    <addaction name="action_Resource_Inspector"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
@@ -385,7 +386,7 @@
   </action>
   <action name="action_Statistics_Viewer">
    <property name="text">
-    <string>Statisti&amp;cs Viewer</string>
+    <string>&amp;Statistics Viewer</string>
    </property>
   </action>
   <action name="action_Show_Tips">
@@ -405,7 +406,12 @@
   </action>
   <action name="action_Counter_Viewer">
    <property name="text">
-    <string>Performance Counter Viewer</string>
+    <string>Performance &amp;Counter Viewer</string>
+   </property>
+  </action>
+  <action name="action_Resource_Inspector">
+   <property name="text">
+    <string>&amp;Resource Inspector</string>
    </property>
   </action>
  </widget>

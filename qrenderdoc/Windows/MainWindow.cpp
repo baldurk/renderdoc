@@ -1700,6 +1700,16 @@ void MainWindow::on_action_Counter_Viewer_triggered()
     ui->toolWindowManager->addToolWindow(performanceCounterViewer, mainToolArea());
 }
 
+void MainWindow::on_action_Resource_Inspector_triggered()
+{
+  QWidget *resourceInspector = m_Ctx.GetResourceInspector()->Widget();
+
+  if(ui->toolWindowManager->toolWindows().contains(resourceInspector))
+    ToolWindowManager::raiseToolWindow(resourceInspector);
+  else
+    ui->toolWindowManager->addToolWindow(resourceInspector, mainToolArea());
+}
+
 void MainWindow::saveLayout_triggered()
 {
   LoadSaveLayout(qobject_cast<QAction *>(QObject::sender()), true);

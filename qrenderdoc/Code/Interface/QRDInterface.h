@@ -265,6 +265,35 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IBufferViewer);
 
+DOCUMENT("The Resource inspector window.");
+struct IResourceInspector
+{
+  DOCUMENT(
+      "Retrieves the QWidget for this :class:`ResourceInspector` if PySide2 is available, or "
+      "otherwise "
+      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
+  virtual QWidget *Widget() = 0;
+
+  DOCUMENT(R"(Change the current resource being inspected.
+
+:param ~renderdoc.ResourceId id: The ID of the resource to inspect.
+)");
+  virtual void Inspect(ResourceId id) = 0;
+
+  DOCUMENT(R"(Return which resource is currently being inspected.
+
+:return: The ID of the resource being inspected.
+:rtype: renderdoc.ResourceId id
+)");
+  virtual ResourceId CurrentResource() = 0;
+
+protected:
+  IResourceInspector() = default;
+  ~IResourceInspector() = default;
+};
+
+DECLARE_REFLECTION_STRUCT(IResourceInspector);
+
 DOCUMENT("The executable capture window.");
 struct ICaptureDialog
 {
@@ -1014,6 +1043,21 @@ more information for how this differs.
 )");
   virtual const rdcarray<DrawcallDescription> &CurDrawcalls() = 0;
 
+  DOCUMENT(R"(Retrieve the information about a particular resource.
+
+:param ~renderdoc.ResourceId id: The ID of the resource to query about.
+:return: The information about a resource, or ``None`` if the ID does not correspond to a resource.
+:rtype: ~renderdoc.ResourceDescription
+)");
+  virtual ResourceDescription *GetResource(ResourceId id) = 0;
+
+  DOCUMENT(R"(Retrieve the list of resources in the current capture.
+
+:return: The list of resources.
+:rtype: ``list`` of :class:`~renderdoc.ResourceDescription`
+)");
+  virtual const rdcarray<ResourceDescription> &GetResources() = 0;
+
   DOCUMENT(R"(Retrieve the information about a particular texture.
 
 :param ~renderdoc.ResourceId id: The ID of the texture to query about.
@@ -1190,6 +1234,13 @@ as well as messages generated during replay and analysis.
 )");
   virtual IPythonShell *GetPythonShell() = 0;
 
+  DOCUMENT(R"(Retrieve the current singleton :class:`ResourceInspector`.
+
+:return: The current window, which is created (but not shown) it there wasn't one open.
+:rtype: ResourceInspector
+)");
+  virtual IResourceInspector *GetResourceInspector() = 0;
+
   DOCUMENT(R"(Check if there is a current :class:`EventBrowser` open.
 
 :return: ``True`` if there is a window open.
@@ -1267,6 +1318,13 @@ as well as messages generated during replay and analysis.
 )");
   virtual bool HasPythonShell() = 0;
 
+  DOCUMENT(R"(Check if there is a current :class:`ResourceInspector` open.
+
+:return: ``True`` if there is a window open.
+:rtype: ``bool``
+)");
+  virtual bool HasResourceInspector() = 0;
+
   DOCUMENT("Raise the current :class:`EventBrowser`, showing it in the default place if needed.");
   virtual void ShowEventBrowser() = 0;
   DOCUMENT("Raise the current :class:`APIInspector`, showing it in the default place if needed.");
@@ -1293,6 +1351,9 @@ as well as messages generated during replay and analysis.
   virtual void ShowTimelineBar() = 0;
   DOCUMENT("Raise the current :class:`PythonShell`, showing it in the default place if needed.");
   virtual void ShowPythonShell() = 0;
+  DOCUMENT(
+      "Raise the current :class:`ResourceInspector`, showing it in the default place if needed.");
+  virtual void ShowResourceInspector() = 0;
 
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing an editable view of a given shader.
 

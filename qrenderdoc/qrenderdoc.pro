@@ -218,7 +218,8 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/Dialogs/TipsDialog.cpp \
     Windows/PythonShell.cpp \
     Windows/Dialogs/PerformanceCounterSelection.cpp \
-    Windows/PerformanceCounterViewer.cpp
+    Windows/PerformanceCounterViewer.cpp \
+    Windows/ResourceInspector.cpp
 HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
     Code/ReplayManager.h \
@@ -284,7 +285,8 @@ HEADERS += Code/CaptureContext.h \
     Windows/Dialogs/TipsDialog.h \
     Windows/PythonShell.h \
     Windows/Dialogs/PerformanceCounterSelection.h \
-    Windows/PerformanceCounterViewer.h
+    Windows/PerformanceCounterViewer.h \
+    Windows/ResourceInspector.h
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
     Windows/EventBrowser.ui \
@@ -317,7 +319,8 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/Dialogs/TipsDialog.ui \
     Windows/PythonShell.ui \
     Windows/Dialogs/PerformanceCounterSelection.ui \
-    Windows/PerformanceCounterViewer.ui
+    Windows/PerformanceCounterViewer.ui \
+    Windows/ResourceInspector.ui
 
 RESOURCES += Resources/resources.qrc
 

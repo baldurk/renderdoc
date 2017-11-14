@@ -77,6 +77,11 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return m_Ctx.CurDrawcalls();
   }
+  virtual ResourceDescription *GetResource(ResourceId id) override { return m_Ctx.GetResource(id); }
+  virtual const rdcarray<ResourceDescription> &GetResources() override
+  {
+    return m_Ctx.GetResources();
+  }
   virtual TextureDescription *GetTexture(ResourceId id) override { return m_Ctx.GetTexture(id); }
   virtual const rdcarray<TextureDescription> &GetTextures() override { return m_Ctx.GetTextures(); }
   virtual BufferDescription *GetBuffer(ResourceId id) override { return m_Ctx.GetBuffer(id); }
@@ -214,6 +219,10 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return InvokeRetFunction<IPythonShell *>(&ICaptureContext::GetPythonShell);
   }
+  virtual IResourceInspector *GetResourceInspector() override
+  {
+    return InvokeRetFunction<IResourceInspector *>(&ICaptureContext::GetResourceInspector);
+  }
   virtual bool HasEventBrowser() override
   {
     return InvokeRetFunction<bool>(&ICaptureContext::HasEventBrowser);
@@ -258,6 +267,10 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return InvokeRetFunction<bool>(&ICaptureContext::HasPythonShell);
   }
+  virtual bool HasResourceInspector() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasResourceInspector);
+  }
 
   virtual void ShowEventBrowser() override
   {
@@ -294,6 +307,10 @@ struct CaptureContextInvoker : ICaptureContext
   }
   virtual void ShowTimelineBar() override { InvokeVoidFunction(&ICaptureContext::ShowTimelineBar); }
   virtual void ShowPythonShell() override { InvokeVoidFunction(&ICaptureContext::ShowPythonShell); }
+  virtual void ShowResourceInspector() override
+  {
+    InvokeVoidFunction(&ICaptureContext::ShowResourceInspector);
+  }
   virtual IShaderViewer *EditShader(bool customShader, const QString &entryPoint,
                                     const QStringMap &files, IShaderViewer::SaveCallback saveCallback,
                                     IShaderViewer::CloseCallback closeCallback) override

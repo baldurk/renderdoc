@@ -93,6 +93,7 @@ public:
   void showTimelineBar() { on_action_Timeline_triggered(); }
   void showPythonShell() { on_action_Python_Shell_triggered(); }
   void showPerformanceCounterViewer() { on_action_Counter_Viewer_triggered(); }
+  void showResourceInspector() { on_action_Resource_Inspector_triggered(); }
   void PopulateRecentFiles();
   void PopulateRecentCaptures();
 private slots:
@@ -124,6 +125,7 @@ private slots:
   void on_action_Build_Release_Downloads_triggered();
   void on_action_Show_Tips_triggered();
   void on_action_Counter_Viewer_triggered();
+  void on_action_Resource_Inspector_triggered();
 
   // manual slots
   void saveLayout_triggered();

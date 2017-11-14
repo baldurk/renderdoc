@@ -44,6 +44,7 @@
 #include "Windows/PipelineState/PipelineStateViewer.h"
 #include "Windows/PixelHistoryView.h"
 #include "Windows/PythonShell.h"
+#include "Windows/ResourceInspector.h"
 #include "Windows/ShaderViewer.h"
 #include "Windows/StatisticsViewer.h"
 #include "Windows/TextureViewer.h"
@@ -260,6 +261,10 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
 #endif
 
     m_StructuredFile = &r->GetStructuredFile();
+
+    m_ResourceList = r->GetResources();
+    for(ResourceDescription &res : m_ResourceList)
+      m_Resources[res.ID] = &res;
 
     m_BufferList = r->GetBuffers();
     for(BufferDescription &b : m_BufferList)
@@ -537,6 +542,8 @@ void CaptureContext::CloseLogfile()
   m_BufferList.clear();
   m_Textures.clear();
   m_TextureList.clear();
+  m_Resources.clear();
+  m_ResourceList.clear();
 
   m_Drawcalls.clear();
   m_FirstDrawcall = m_LastDrawcall = NULL;
@@ -788,6 +795,18 @@ IPythonShell *CaptureContext::GetPythonShell()
   return m_PythonShell;
 }
 
+IResourceInspector *CaptureContext::GetResourceInspector()
+{
+  if(m_ResourceInspector)
+    return m_ResourceInspector;
+
+  m_ResourceInspector = new ResourceInspector(*this, m_MainWindow);
+  m_ResourceInspector->setObjectName(lit("resourceInspector"));
+  setupDockWindow(m_ResourceInspector);
+
+  return m_ResourceInspector;
+}
+
 void CaptureContext::ShowEventBrowser()
 {
   m_MainWindow->showEventBrowser();
@@ -841,6 +860,11 @@ void CaptureContext::ShowTimelineBar()
 void CaptureContext::ShowPythonShell()
 {
   m_MainWindow->showPythonShell();
+}
+
+void CaptureContext::ShowResourceInspector()
+{
+  m_MainWindow->showResourceInspector();
 }
 
 IShaderViewer *CaptureContext::EditShader(bool customShader, const QString &entryPoint,
@@ -946,6 +970,10 @@ QWidget *CaptureContext::CreateBuiltinWindow(const QString &objectName)
   {
     return GetPythonShell()->Widget();
   }
+  else if(objectName == lit("resourceInspector"))
+  {
+    return GetResourceInspector()->Widget();
+  }
   else if(objectName == lit("performanceCounterViewer"))
   {
     return GetPerformanceCounterViewer()->Widget();
@@ -976,6 +1004,8 @@ void CaptureContext::BuiltinWindowClosed(QWidget *window)
     m_TimelineBar = NULL;
   else if(m_PythonShell && m_PythonShell->Widget() == window)
     m_PythonShell = NULL;
+  else if(m_ResourceInspector && m_ResourceInspector->Widget() == window)
+    m_ResourceInspector = NULL;
   else if(m_PerformanceCounterViewer && m_PerformanceCounterViewer->Widget() == window)
     m_PerformanceCounterViewer = NULL;
   else

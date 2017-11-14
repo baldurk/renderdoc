@@ -663,6 +663,12 @@
     <ClCompile Include="$(IntDir)generated\moc_PerformanceCounterViewer.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ResourceInspector.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\ResourceInspector.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -997,6 +1003,9 @@
     </ClInclude>
     <ClInclude Include="Code\pyrenderdoc\structured_conversion.h">
       <Filter>Code\pyrenderdoc</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_ResourceInspector.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1497,6 +1506,12 @@
       <Filter>Windows</Filter>
     </CustomBuild>
     <CustomBuild Include="Windows\PerformanceCounterViewer.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ResourceInspector.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ResourceInspector.h">
       <Filter>Windows</Filter>
     </CustomBuild>
   </ItemGroup>
