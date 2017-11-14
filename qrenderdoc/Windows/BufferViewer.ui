@@ -739,6 +739,20 @@
      </widget>
     </item>
     <item>
+     <widget class="QToolButton" name="resourceDetails">
+      <property name="toolTip">
+       <string>Open the currently buffer's resource details in the resource inspector</string>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/link.png</normaloff>:/link.png</iconset>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="Line" name="offsetLine">
       <property name="orientation">
        <enum>Qt::Vertical</enum>

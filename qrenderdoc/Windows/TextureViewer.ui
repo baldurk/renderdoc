@@ -481,7 +481,7 @@
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/page_white_link.png</normaloff>:/page_white_link.png</iconset>
+        <normaloff>:/page_white_stack.png</normaloff>:/page_white_stack.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -516,6 +516,20 @@
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/find.png</normaloff>:/find.png</iconset>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="resourceDetails">
+      <property name="toolTip">
+       <string>Open the currently visible resource's details in the resource inspector</string>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/link.png</normaloff>:/link.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>

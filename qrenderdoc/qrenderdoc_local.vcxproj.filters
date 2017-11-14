@@ -1087,6 +1087,9 @@
     <None Include="Resources\information.png">
       <Filter>Resources\Files</Filter>
     </None>
+    <None Include="Resources\link.png">
+      <Filter>Resources\Files</Filter>
+    </None>
     <None Include="Resources\new_window.png">
       <Filter>Resources\Files</Filter>
     </None>
@@ -1099,7 +1102,13 @@
     <None Include="Resources\page_white_edit.png">
       <Filter>Resources\Files</Filter>
     </None>
+    <None Include="Resources\page_white_go.png">
+      <Filter>Resources\Files</Filter>
+    </None>
     <None Include="Resources\page_white_link.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\page_white_stack.png">
       <Filter>Resources\Files</Filter>
     </None>
     <None Include="Resources\plugin_add.png">

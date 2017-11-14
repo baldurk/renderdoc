@@ -61,11 +61,14 @@
   RESOURCE_DEF(hourglass, "hourglass.png")                              \
   RESOURCE_DEF(house, "house.png")                                      \
   RESOURCE_DEF(information, "information.png")                          \
+  RESOURCE_DEF(link, "link.png")                                        \
+  RESOURCE_DEF(page_go, "page_go.png")                                  \
   RESOURCE_DEF(page_white_code, "page_white_code.png")                  \
   RESOURCE_DEF(page_white_database, "page_white_database.png")          \
   RESOURCE_DEF(page_white_delete, "page_white_delete.png")              \
   RESOURCE_DEF(page_white_edit, "page_white_edit.png")                  \
   RESOURCE_DEF(page_white_link, "page_white_link.png")                  \
+  RESOURCE_DEF(page_white_stack, "page_white_stack.png")                \
   RESOURCE_DEF(plugin_add, "plugin_add.png")                            \
   RESOURCE_DEF(save, "save.png")                                        \
   RESOURCE_DEF(tick, "tick.png")                                        \

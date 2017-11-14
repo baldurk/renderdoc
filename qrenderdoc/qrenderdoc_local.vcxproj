@@ -1499,10 +1499,13 @@
     <None Include="Resources\icon.ico" />
     <None Include="Resources\information.png" />
     <None Include="Resources\new_window.png" />
+    <None Include="Resources\link.png" />
     <None Include="Resources\page_white_database.png" />
     <None Include="Resources\page_white_delete.png" />
     <None Include="Resources\page_white_edit.png" />
+    <None Include="Resources\page_white_go.png" />
     <None Include="Resources\page_white_link.png" />
+    <None Include="Resources\page_white_stack.png" />
     <None Include="Resources\plugin_add.png" />
     <None Include="Resources\red_x_16.png" />
     <CustomBuild Include="Resources\resources.qrc">

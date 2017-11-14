@@ -1173,6 +1173,7 @@ void BufferViewer::SetupMeshView()
   ui->byteRangeLengthLabel->setVisible(false);
   ui->byteRangeLength->setVisible(false);
 
+  ui->resourceDetails->setVisible(false);
   ui->formatSpecifier->setVisible(false);
   ui->cameraControlsGroup->setVisible(false);
 
@@ -2631,6 +2632,16 @@ void BufferViewer::updateWindowTitle()
 {
   if(!m_MeshView)
     setWindowTitle(m_Ctx.GetResourceName(m_BufferID) + lit(" - Contents"));
+}
+
+void BufferViewer::on_resourceDetails_clicked()
+{
+  if(!m_Ctx.HasResourceInspector())
+    m_Ctx.ShowResourceInspector();
+
+  m_Ctx.GetResourceInspector()->Inspect(m_BufferID);
+
+  ToolWindowManager::raiseToolWindow(m_Ctx.GetResourceInspector()->Widget());
 }
 
 void BufferViewer::render_mouseWheel(QWheelEvent *e)

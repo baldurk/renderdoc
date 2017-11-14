@@ -94,6 +94,7 @@ private slots:
   void on_autofitCamera_clicked();
   void on_toggleControls_toggled(bool checked);
   void on_syncViews_toggled(bool checked);
+  void on_resourceDetails_clicked();
   void on_highlightVerts_toggled(bool checked);
   void on_wireframeRender_toggled(bool checked);
   void on_solidShading_currentIndexChanged(int index);

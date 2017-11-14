@@ -59,6 +59,7 @@ private slots:
   // automatic slots
   void on_setFormat_toggled(bool checked);
   void on_saveCSV_clicked();
+  void on_resourceDetails_clicked();
 
   // manual slots
   void processFormat(const QString &format);

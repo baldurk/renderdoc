@@ -158,6 +158,16 @@ void ConstantBufferPreviewer::on_setFormat_toggled(bool checked)
   ui->splitter->handle(1)->setEnabled(true);
 }
 
+void ConstantBufferPreviewer::on_resourceDetails_clicked()
+{
+  if(!m_Ctx.HasResourceInspector())
+    m_Ctx.ShowResourceInspector();
+
+  m_Ctx.GetResourceInspector()->Inspect(m_cbuffer);
+
+  ToolWindowManager::raiseToolWindow(m_Ctx.GetResourceInspector()->Widget());
+}
+
 void ConstantBufferPreviewer::on_saveCSV_clicked()
 {
   QString filename = RDDialog::getSaveFileName(this, tr("Export buffer data as CSV"), QString(),

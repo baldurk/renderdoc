@@ -81,6 +81,10 @@
         <file>house@2x.png</file>
         <file>information.png</file>
         <file>information@2x.png</file>
+        <file>link.png</file>
+        <file>link@2x.png</file>
+        <file>page_go.png</file>
+        <file>page_go@2x.png</file>
         <file>page_white_code.png</file>
         <file>page_white_code@2x.png</file>
         <file>page_white_database.png</file>
@@ -91,6 +95,8 @@
         <file>page_white_edit@2x.png</file>
         <file>page_white_link.png</file>
         <file>page_white_link@2x.png</file>
+        <file>page_white_stack.png</file>
+        <file>page_white_stack@2x.png</file>
         <file>plugin_add.png</file>
         <file>plugin_add@2x.png</file>
         <file>save.png</file>

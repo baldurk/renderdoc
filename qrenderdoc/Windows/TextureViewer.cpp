@@ -1724,7 +1724,7 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
     int idx = textureTabs->indexOf(lockedContainer);
 
     if(idx >= 0)
-      textureTabs->setTabIcon(idx, Icons::page_white_link());
+      textureTabs->setTabIcon(idx, Icons::page_go());
     else
       qCritical() << "Couldn't get tab index of new tab to set icon";
 
@@ -3287,6 +3287,21 @@ void TextureViewer::on_viewTexBuffer_clicked()
         m_Ctx.ViewTextureAsBuffer(m_TexDisplay.sliceFace, m_TexDisplay.mip, texptr->ID, format);
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
+  }
+}
+
+void TextureViewer::on_resourceDetails_clicked()
+{
+  TextureDescription *texptr = GetCurrentTexture();
+
+  if(texptr)
+  {
+    if(!m_Ctx.HasResourceInspector())
+      m_Ctx.ShowResourceInspector();
+
+    m_Ctx.GetResourceInspector()->Inspect(texptr->ID);
+
+    ToolWindowManager::raiseToolWindow(m_Ctx.GetResourceInspector()->Widget());
   }
 }
 

@@ -1653,7 +1653,7 @@ void GLPipelineStateViewer::setState()
           }
 
           if(tex->format.srgbCorrected && !state.m_FB.FramebufferSRGB)
-            name += lit(" (GL_FRAMEBUFFER_SRGB = 0)");
+            format += lit(" (GL_FRAMEBUFFER_SRGB = 0)");
         }
 
         if(r && (r->Swizzle[0] != TextureSwizzle::Red || r->Swizzle[1] != TextureSwizzle::Green ||

@@ -161,6 +161,7 @@ private slots:
 
   void on_locationGoto_clicked();
   void on_viewTexBuffer_clicked();
+  void on_resourceDetails_clicked();
   void on_texListShow_clicked();
   void on_saveTex_clicked();
   void on_debugPixelContext_clicked();
