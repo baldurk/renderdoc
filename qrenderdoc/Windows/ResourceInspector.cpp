@@ -30,8 +30,6 @@
 static const int ResourceIdRole = Qt::UserRole;
 static const int FilterRole = Qt::UserRole + 1;
 
-Q_DECLARE_METATYPE(ResourceId);
-
 class ResourceListItemModel : public QAbstractItemModel
 {
 public:

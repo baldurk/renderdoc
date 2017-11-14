@@ -34,8 +34,6 @@
 #include "PipelineStateViewer.h"
 #include "ui_D3D12PipelineStateViewer.h"
 
-Q_DECLARE_METATYPE(ResourceId);
-
 struct D3D12VBIBTag
 {
   D3D12VBIBTag() { offset = 0; }

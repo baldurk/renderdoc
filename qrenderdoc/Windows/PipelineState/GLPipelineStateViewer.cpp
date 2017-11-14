@@ -33,8 +33,6 @@
 #include "PipelineStateViewer.h"
 #include "ui_GLPipelineStateViewer.h"
 
-Q_DECLARE_METATYPE(ResourceId);
-
 struct GLVBIBTag
 {
   GLVBIBTag() { offset = 0; }

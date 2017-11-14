@@ -33,7 +33,6 @@
 #include "PipelineStateViewer.h"
 #include "ui_VulkanPipelineStateViewer.h"
 
-Q_DECLARE_METATYPE(ResourceId);
 Q_DECLARE_METATYPE(SamplerData);
 
 struct VulkanVBIBTag

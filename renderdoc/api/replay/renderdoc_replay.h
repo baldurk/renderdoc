@@ -372,6 +372,10 @@ struct ResourceId
   bool operator!=(const ResourceId u) const { return id != u.id; }
   DOCUMENT("Compares two ``ResourceId`` objects for less-than.");
   bool operator<(const ResourceId u) const { return id < u.id; }
+#if defined(RENDERDOC_QT_COMPAT)
+  operator QVariant() const { return QVariant::fromValue(*this); }
+#endif
+
 private:
   uint64_t id;
 
@@ -379,6 +383,10 @@ private:
   friend ResourceId ResourceIDGen::GetNewUniqueID();
 #endif
 };
+
+#if defined(RENDERDOC_QT_COMPAT)
+Q_DECLARE_METATYPE(ResourceId);
+#endif
 
 DECLARE_REFLECTION_STRUCT(ResourceId);
 

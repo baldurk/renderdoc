@@ -55,7 +55,6 @@ float aspect(const QSizeF &s)
 }
 
 Q_DECLARE_METATYPE(Following);
-Q_DECLARE_METATYPE(ResourceId);
 
 const Following Following::Default = Following();
 
