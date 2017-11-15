@@ -68,6 +68,7 @@ public:
 
   void setProgress(float val);
   void takeCaptureOwnership() { m_OwnTempCapture = true; }
+  void captureModified();
   void LoadFromFilename(const QString &filename, bool temporary);
   void LoadCapture(const QString &filename, bool temporary, bool local);
   void CloseCapture();
@@ -101,7 +102,8 @@ private slots:
   void on_action_Exit_triggered();
   void on_action_About_triggered();
   void on_action_Open_Capture_triggered();
-  void on_action_Save_Capture_triggered();
+  void on_action_Save_Capture_Inplace_triggered();
+  void on_action_Save_Capture_As_triggered();
   void on_action_Close_Capture_triggered();
   void on_action_Mesh_Output_triggered();
   void on_action_API_Inspector_triggered();

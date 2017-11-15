@@ -597,4 +597,11 @@ struct bytebuf : public rdcarray<byte>
 {
   bytebuf() : rdcarray<byte>() {}
   bytebuf(const std::vector<byte> &in) : rdcarray<byte>(in) {}
+#if defined(RENDERDOC_QT_COMPAT)
+  bytebuf(const QByteArray &in)
+  {
+    resize(in.size());
+    memcpy(elems, in.data(), in.size());
+  }
+#endif
 };

@@ -103,6 +103,7 @@ public:
   bool IsCaptureTemporary() override { return m_CaptureTemporary; }
   bool IsCaptureLoading() override { return m_LoadInProgress; }
   QString GetCaptureFilename() override { return m_CaptureFile; }
+  CaptureModifications GetCaptureModifications() override { return m_CaptureMods; }
   const FrameDescription &FrameInfo() override { return m_FrameInfo; }
   const APIProperties &APIProps() override { return m_APIProps; }
   uint32_t CurSelectedEvent() override { return m_SelectedEventID; }
@@ -233,6 +234,7 @@ private:
   bool m_CaptureLoaded = false, m_LoadInProgress = false, m_CaptureLocal = false,
        m_CaptureTemporary = false;
   QString m_CaptureFile;
+  CaptureModifications m_CaptureMods = CaptureModifications::NoModifications;
 
   QVector<DebugMessage> m_DebugMessages;
   int m_UnreadMessageCount = 0;
@@ -240,6 +242,9 @@ private:
   bool PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b);
   bool ContainsMarker(const rdcarray<DrawcallDescription> &m_Drawcalls);
   void AddFakeProfileMarkers();
+
+  QString SaveRenames();
+  void LoadRenames(const QString &data);
 
   float m_LoadProgress = 0.0f;
   float m_PostloadProgress = 0.0f;

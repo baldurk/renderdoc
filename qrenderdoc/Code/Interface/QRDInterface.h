@@ -871,6 +871,40 @@ enum class DockReference : int
   ConstantBufferArea,
 };
 
+DOCUMENT(R"(Details any changes that have been made to a capture in the UI which can be saved to
+disk but currently aren't. Note that detection is conservative - e.g. if a change is made, then
+cancelled out by reversing the change, this will still count as 'modified' even if the end result is
+the same data. In that sense it's analogous to adding and then deleting some characters in a text
+editor, since there is no actual undo system.
+
+This is a bitmask, so several values can be present at once.
+
+.. data:: NoModifications
+
+  Fixed value of 0 indicating no modifications have been made.
+
+.. data:: Renames
+
+  One or more resources have been given a custom name which hasn't been saved.
+
+.. data:: Bookmarks
+
+  Event bookmarks have been added or removed.
+
+.. data:: Notes
+
+  The general notes field has been changed.
+)");
+enum class CaptureModifications : uint32_t
+{
+  NoModifications = 0x0000,
+  Renames = 0x0001,
+  Bookmarks = 0x0002,
+  Notes = 0x0004,
+};
+
+BITMASK_OPERATORS(CaptureModifications);
+
 DOCUMENT("The capture context that the python script is running in.")
 struct ICaptureContext
 {
@@ -997,6 +1031,14 @@ temporary and treated like any other capture.
 :rtype: ``str``
 )");
   virtual QString GetCaptureFilename() = 0;
+
+  DOCUMENT(R"(Get a bitmask indicating which modifications (if any) have been made to the capture in
+the UI which aren't reflected in the capture file on disk.
+
+:return: The modifications (if any) that have been made to the capture.
+:rtype: CaptureModifications
+)");
+  virtual CaptureModifications GetCaptureModifications() = 0;
 
   DOCUMENT(R"(Retrieve the :class:`~renderdoc.FrameDescription` for the currently loaded capture.
 

@@ -60,6 +60,10 @@ struct CaptureContextInvoker : ICaptureContext
   virtual bool IsCaptureTemporary() override { return m_Ctx.IsCaptureTemporary(); }
   virtual bool IsCaptureLoading() override { return m_Ctx.IsCaptureLoading(); }
   virtual QString GetCaptureFilename() override { return m_Ctx.GetCaptureFilename(); }
+  virtual CaptureModifications GetCaptureModifications() override
+  {
+    return m_Ctx.GetCaptureModifications();
+  }
   virtual const FrameDescription &FrameInfo() override { return m_Ctx.FrameInfo(); }
   virtual const APIProperties &APIProps() override { return m_Ctx.APIProps(); }
   virtual uint32_t CurSelectedEvent() override { return m_Ctx.CurSelectedEvent(); }

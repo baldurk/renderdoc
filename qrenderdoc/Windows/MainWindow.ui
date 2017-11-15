@@ -79,7 +79,8 @@
     <addaction name="action_Inject_into_Process"/>
     <addaction name="separator"/>
     <addaction name="action_Open_Capture"/>
-    <addaction name="action_Save_Capture"/>
+    <addaction name="action_Save_Capture_Inplace"/>
+    <addaction name="action_Save_Capture_As"/>
     <addaction name="action_Close_Capture"/>
     <addaction name="separator"/>
     <addaction name="menu_Recent_Capture_Files"/>
@@ -181,7 +182,7 @@
     <string>Ctrl+O</string>
    </property>
   </action>
-  <action name="action_Save_Capture">
+  <action name="action_Save_Capture_Inplace">
    <property name="text">
     <string>&amp;Save Capture</string>
    </property>
@@ -407,6 +408,11 @@
   <action name="action_Resource_Inspector">
    <property name="text">
     <string>&amp;Resource Inspector</string>
+   </property>
+  </action>
+  <action name="action_Save_Capture_As">
+   <property name="text">
+    <string>Sa&amp;ve Capture As</string>
    </property>
   </action>
  </widget>

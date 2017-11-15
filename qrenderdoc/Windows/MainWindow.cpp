@@ -220,7 +220,8 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
   m_Ctx.AddCaptureViewer(this);
 
-  ui->action_Save_Capture->setEnabled(false);
+  ui->action_Save_Capture_Inplace->setEnabled(false);
+  ui->action_Save_Capture_As->setEnabled(false);
   ui->action_Close_Capture->setEnabled(false);
 
   QList<QAction *> actions = ui->menuBar->actions();
@@ -280,6 +281,14 @@ void MainWindow::on_action_Open_Capture_triggered()
 
   if(!filename.isEmpty())
     LoadFromFilename(filename, false);
+}
+
+void MainWindow::captureModified()
+{
+  // once the capture is modified, enable the save-in-place option. It might already have been
+  // enabled if this capture was a temporary one
+  if(m_Ctx.IsCaptureLoaded())
+    ui->action_Save_Capture_Inplace->setEnabled(true);
 }
 
 void MainWindow::LoadFromFilename(const QString &filename, bool temporary)
@@ -652,6 +661,53 @@ bool MainWindow::PromptCloseCapture()
       deletepath = temppath;
     m_OwnTempCapture = false;
   }
+  else if(m_Ctx.GetCaptureModifications() != CaptureModifications::NoModifications)
+  {
+    QMessageBox::StandardButton res = QMessageBox::No;
+
+    QString text = tr("This capture has the following modifications:\n\n");
+
+    CaptureModifications mods = m_Ctx.GetCaptureModifications();
+
+    if(mods & CaptureModifications::Renames)
+      text += tr("Resources have been renamed.\n");
+    if(mods & CaptureModifications::Bookmarks)
+      text += tr("Bookmarks have been changed.\n");
+    if(mods & CaptureModifications::Notes)
+      text += tr("Capture notes have been changed.\n");
+
+    bool saveas = false;
+
+    if(m_Ctx.IsCaptureLocal())
+    {
+      text += tr("\nWould you like to save those changes to '%1'?").arg(m_Ctx.GetCaptureFilename());
+    }
+    else
+    {
+      saveas = true;
+      text +=
+          tr("\nThe capture is on a remote host, would you like to save these changes locally?");
+    }
+
+    res = RDDialog::question(NULL, tr("Save changes to capture?"), text,
+                             QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+    if(res == QMessageBox::Cancel)
+      return false;
+
+    if(res == QMessageBox::Yes)
+    {
+      bool success = false;
+
+      if(saveas)
+        success = PromptSaveCaptureAs();
+      else
+        success = m_Ctx.SaveCaptureTo(m_Ctx.GetCaptureFilename());
+
+      if(!success)
+        return false;
+    }
+  }
 
   CloseCapture();
 
@@ -665,7 +721,8 @@ void MainWindow::CloseCapture()
 {
   m_Ctx.CloseCapture();
 
-  ui->action_Save_Capture->setEnabled(false);
+  ui->action_Save_Capture_Inplace->setEnabled(false);
+  ui->action_Save_Capture_As->setEnabled(false);
 }
 
 void MainWindow::SetTitle(const QString &filename)
@@ -1226,7 +1283,11 @@ void MainWindow::statusDoubleClicked(QMouseEvent *event)
 
 void MainWindow::OnCaptureLoaded()
 {
-  ui->action_Save_Capture->setEnabled(true);
+  // at first only allow the default save for temporary captures. It should be disabled if we have
+  // loaded a 'permanent' capture from disk and haven't made any changes. It will be enabled as soon
+  // as any changes are made.
+  ui->action_Save_Capture_Inplace->setEnabled(m_Ctx.IsCaptureTemporary());
+  ui->action_Save_Capture_As->setEnabled(true);
   ui->action_Close_Capture->setEnabled(true);
 
   // don't allow changing context while capture is open
@@ -1247,8 +1308,6 @@ void MainWindow::OnCaptureLoaded()
       ui->action_Resolve_Symbols->setEnabled(hasResolver);
       ui->action_Resolve_Symbols->setText(hasResolver ? tr("Resolve Symbols")
                                                       : tr("Resolve Symbols - None in capture"));
-
-      ui->action_Save_Capture->setEnabled(true);
     });
   });
 
@@ -1261,7 +1320,8 @@ void MainWindow::OnCaptureLoaded()
 
 void MainWindow::OnCaptureClosed()
 {
-  ui->action_Save_Capture->setEnabled(false);
+  ui->action_Save_Capture_Inplace->setEnabled(false);
+  ui->action_Save_Capture_As->setEnabled(false);
   ui->action_Close_Capture->setEnabled(false);
 
   ui->action_Start_Replay_Loop->setEnabled(false);
@@ -1361,7 +1421,28 @@ void MainWindow::on_action_Close_Capture_triggered()
   PromptCloseCapture();
 }
 
-void MainWindow::on_action_Save_Capture_triggered()
+void MainWindow::on_action_Save_Capture_Inplace_triggered()
+{
+  bool saved = false;
+
+  if(m_Ctx.IsCaptureTemporary() || !m_Ctx.IsCaptureLocal())
+  {
+    saved = PromptSaveCaptureAs();
+  }
+  else
+  {
+    if(m_Ctx.GetCaptureModifications() != CaptureModifications::NoModifications &&
+       m_Ctx.IsCaptureLocal())
+    {
+      saved = m_Ctx.SaveCaptureTo(m_Ctx.GetCaptureFilename());
+    }
+  }
+
+  if(saved)
+    ui->action_Save_Capture_Inplace->setEnabled(false);
+}
+
+void MainWindow::on_action_Save_Capture_As_triggered()
 {
   PromptSaveCaptureAs();
 }

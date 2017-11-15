@@ -147,6 +147,8 @@ void CaptureContext::LoadCapture(const QString &captureFile, const QString &orig
   {
     m_CaptureTemporary = temporary;
 
+    m_CaptureMods = CaptureModifications::NoModifications;
+
     QVector<ICaptureViewer *> viewers(m_CaptureViewers);
 
     // make sure we're on a consistent event before invoking viewer forms
@@ -309,6 +311,18 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
            "This warning will not appear every time this happens, "
            "check debug errors/warnings window for more details.")
             .arg(origFilename));
+  }
+
+  ICaptureAccess *access = Replay().GetCaptureAccess();
+
+  if(access)
+  {
+    int idx = access->FindSectionByType(SectionType::ResourceRenames);
+    if(idx >= 0)
+    {
+      bytebuf buf = access->GetSectionContents(idx);
+      LoadRenames(QString::fromUtf8((const char *)buf.data(), buf.count()));
+    }
   }
 
   m_LoadInProgress = false;
@@ -596,6 +610,17 @@ bool CaptureContext::SaveCaptureTo(const QString &captureFile)
 
   Replay().ReopenCaptureFile(captureFile);
 
+  if(m_CaptureMods & CaptureModifications::Renames)
+  {
+    SectionProperties props;
+    props.type = SectionType::ResourceRenames;
+    props.version = 1;
+
+    Replay().GetCaptureAccess()->WriteSection(props, SaveRenames().toUtf8());
+  }
+
+  m_CaptureMods = CaptureModifications::NoModifications;
+
   return true;
 }
 
@@ -697,6 +722,48 @@ void CaptureContext::AddMessages(const rdcarray<DebugMessage> &msgs)
   }
 }
 
+QString CaptureContext::SaveRenames()
+{
+  QVariantMap resources;
+  for(ResourceId id : m_CustomNames.keys())
+  {
+    resources[ToQStr(id)] = m_CustomNames[id];
+  }
+
+  QVariantMap root;
+  root[lit("CustomResourceNames")] = resources;
+
+  return VariantToJSON(root);
+}
+
+void CaptureContext::LoadRenames(const QString &data)
+{
+  QVariantMap root = JSONToVariant(data);
+
+  if(root.contains(lit("CustomResourceNames")))
+  {
+    QVariantMap resources = root[lit("CustomResourceNames")].toMap();
+
+    for(const QString &str : resources.keys())
+    {
+      ResourceId id;
+
+      if(str.startsWith(lit("resourceid::")))
+      {
+        qulonglong num = str.mid(sizeof("resourceid::") - 1).toULongLong();
+        memcpy(&id, &num, sizeof(num));
+      }
+      else
+      {
+        qCritical() << "Unrecognised resourceid encoding" << str;
+      }
+
+      if(id != ResourceId())
+        m_CustomNames[id] = resources[str].toString();
+    }
+  }
+}
+
 QString CaptureContext::GetResourceName(ResourceId id)
 {
   if(id == ResourceId())
@@ -747,6 +814,9 @@ void CaptureContext::SetResourceCustomName(ResourceId id, const QString &name)
   }
 
   m_CustomNameCachedID++;
+
+  m_CaptureMods |= CaptureModifications::Renames;
+  m_MainWindow->captureModified();
 
   RefreshUIStatus({}, true, true);
 }
