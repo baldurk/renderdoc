@@ -253,7 +253,8 @@ void GetExecutableFilename(string &selfName);
 
 uint64_t GetModifiedTimestamp(const string &filename);
 
-void Copy(const char *from, const char *to, bool allowOverwrite);
+bool Copy(const char *from, const char *to, bool allowOverwrite);
+bool Move(const char *from, const char *to, bool allowOverwrite);
 void Delete(const char *path);
 std::vector<PathEntry> GetFilesInDirectory(const char *path);
 
@@ -270,6 +271,10 @@ std::string getline(FILE *f);
 
 uint64_t ftell64(FILE *f);
 void fseek64(FILE *f, uint64_t offset, int origin);
+
+void ftruncateat(FILE *f, uint64_t length);
+
+bool fflush(FILE *f);
 
 bool feof(FILE *f);
 

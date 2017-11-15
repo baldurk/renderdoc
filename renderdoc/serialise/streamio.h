@@ -401,7 +401,7 @@ public:
     if(m_Compressor)
       return m_Compressor->Finish();
     else if(m_File)
-      return fflush(m_File) == 0;
+      return FileIO::fflush(m_File);
     else if(m_Sock)
       return true;
 

@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <io.h>
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <stdio.h>
@@ -394,12 +395,28 @@ uint64_t GetModifiedTimestamp(const string &filename)
   return 0;
 }
 
-void Copy(const char *from, const char *to, bool allowOverwrite)
+bool Copy(const char *from, const char *to, bool allowOverwrite)
 {
   wstring wfrom = StringFormat::UTF82Wide(string(from));
   wstring wto = StringFormat::UTF82Wide(string(to));
 
-  ::CopyFileW(wfrom.c_str(), wto.c_str(), allowOverwrite == false);
+  return ::CopyFileW(wfrom.c_str(), wto.c_str(), allowOverwrite == false) != 0;
+}
+
+bool Move(const char *from, const char *to, bool allowOverwrite)
+{
+  wstring wfrom = StringFormat::UTF82Wide(string(from));
+  wstring wto = StringFormat::UTF82Wide(string(to));
+
+  if(exists(to))
+  {
+    if(allowOverwrite)
+      Delete(to);
+    else
+      return false;
+  }
+
+  return ::MoveFileW(wfrom.c_str(), wto.c_str()) != 0;
 }
 
 void Delete(const char *path)
@@ -589,6 +606,18 @@ void fseek64(FILE *f, uint64_t offset, int origin)
 bool feof(FILE *f)
 {
   return ::feof(f) != 0;
+}
+
+void ftruncateat(FILE *f, uint64_t length)
+{
+  ::fflush(f);
+  int fd = ::_fileno(f);
+  ::_chsize_s(fd, (int64_t)length);
+}
+
+bool fflush(FILE *f)
+{
+  return ::fflush(f) == 0;
 }
 
 int fclose(FILE *f)

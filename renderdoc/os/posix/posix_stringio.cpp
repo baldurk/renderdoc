@@ -255,17 +255,17 @@ uint64_t GetModifiedTimestamp(const string &filename)
   return 0;
 }
 
-void Copy(const char *from, const char *to, bool allowOverwrite)
+bool Copy(const char *from, const char *to, bool allowOverwrite)
 {
   if(from[0] == 0 || to[0] == 0)
-    return;
+    return false;
 
   FILE *ff = ::fopen(from, "r");
 
   if(!ff)
   {
     RDCERR("Can't open source file for copy '%s'", from);
-    return;
+    return false;
   }
 
   FILE *tf = ::fopen(to, "r");
@@ -275,7 +275,7 @@ void Copy(const char *from, const char *to, bool allowOverwrite)
     RDCERR("Destination file for non-overwriting copy '%s' already exists", from);
     ::fclose(ff);
     ::fclose(tf);
-    return;
+    return false;
   }
 
   if(tf)
@@ -287,6 +287,7 @@ void Copy(const char *from, const char *to, bool allowOverwrite)
   {
     ::fclose(ff);
     RDCERR("Can't open destination file for copy '%s'", to);
+    return false;
   }
 
   char buffer[BUFSIZ];
@@ -299,6 +300,19 @@ void Copy(const char *from, const char *to, bool allowOverwrite)
 
   ::fclose(ff);
   ::fclose(tf);
+
+  return true;
+}
+
+bool Move(const char *from, const char *to, bool allowOverwrite)
+{
+  if(exists(to))
+  {
+    if(!allowOverwrite)
+      return false;
+  }
+
+  return ::rename(from, to) == 0;
 }
 
 void Delete(const char *path)
@@ -432,6 +446,18 @@ void fseek64(FILE *f, uint64_t offset, int origin)
 bool feof(FILE *f)
 {
   return ::feof(f) != 0;
+}
+
+void ftruncateat(FILE *f, uint64_t length)
+{
+  ::fflush(f);
+  int fd = ::fileno(f);
+  ::ftruncate(fd, (off_t)length);
+}
+
+bool fflush(FILE *f)
+{
+  return ::fflush(f) == 0;
 }
 
 int fclose(FILE *f)
