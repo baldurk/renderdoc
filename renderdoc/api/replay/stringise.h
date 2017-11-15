@@ -130,7 +130,7 @@ std::string ToStr(const T &el)
 #define STRINGISE_BITFIELD_CLASS_BIT_NAMED(b, str) \
   if(el & enumType::b)                             \
   {                                                \
-    local -= (uint32_t)b;                          \
+    local -= (uint32_t)enumType::b;                \
     ret += " | " str;                              \
   }
 
