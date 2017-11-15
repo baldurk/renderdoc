@@ -494,6 +494,16 @@ bool LoadFromJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, 
   return true;
 }
 
+QString VariantToJSON(const QVariantMap &data)
+{
+  return QString::fromUtf8(QJsonDocument::fromVariant(data).toJson(QJsonDocument::Indented));
+}
+
+QVariantMap JSONToVariant(const QString &json)
+{
+  return QJsonDocument::fromJson(json.toUtf8()).toVariant().toMap();
+}
+
 int GUIInvoke::methodIndex = -1;
 
 void GUIInvoke::init()

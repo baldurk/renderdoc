@@ -154,6 +154,9 @@ bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, ui
 bool LoadFromJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier,
                   uint32_t magicVersion);
 
+QString VariantToJSON(const QVariantMap &data);
+QVariantMap JSONToVariant(const QString &json);
+
 // implementation of QOverload, to avoid depending on 5.7.
 // From: http://stackoverflow.com/a/16795664/4070143
 template <typename... Args>
