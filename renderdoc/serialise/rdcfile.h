@@ -36,40 +36,7 @@ enum class ContainerError
   UnsupportedVersion,
 };
 
-enum class SectionFlags : uint32_t
-{
-  NoFlags = 0x0,
-  ASCIIStored = 0x1,
-  LZ4Compressed = 0x2,
-  ZstdCompressed = 0x4,
-};
-
-BITMASK_OPERATORS(SectionFlags);
-
-enum class SectionType : uint32_t
-{
-  Unknown = 0,
-  First = Unknown,
-  FrameCapture,       // renderdoc/internal/framecapture
-  ResolveDatabase,    // renderdoc/internal/resolvedb
-  FrameBookmarks,     // renderdoc/ui/bookmarks
-  Notes,              // renderdoc/ui/notes
-  Count,
-};
-
-ITERABLE_OPERATORS(SectionType);
-
 extern const char *SectionTypeNames[];
-
-struct SectionProperties
-{
-  std::string name;
-  SectionType type = SectionType::Count;
-  SectionFlags flags = SectionFlags::NoFlags;
-  uint64_t version = 0;
-  uint64_t uncompressedSize = 0;
-  uint64_t compressedSize = 0;
-};
 
 struct RDCThumb
 {

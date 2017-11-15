@@ -775,6 +775,20 @@ std::string DoStringise(const GraphicsAPI &el)
 }
 
 template <>
+std::string DoStringise(const SectionType &el)
+{
+  BEGIN_ENUM_STRINGISE(SectionType);
+  {
+    STRINGISE_ENUM_CLASS_NAMED(FrameCapture, "Frame Capture");
+    STRINGISE_ENUM_CLASS_NAMED(ResolveDatabase, "Callstack Resolve Database");
+    STRINGISE_ENUM_CLASS_NAMED(Bookmarks, "Bookmarks");
+    STRINGISE_ENUM_CLASS_NAMED(Notes, "Notes");
+    STRINGISE_ENUM_CLASS_NAMED(ResourceRenames, "Resource Renames");
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 std::string DoStringise(const D3DBufferViewFlags &el)
 {
   BEGIN_BITFIELD_STRINGISE(D3DBufferViewFlags);
@@ -801,6 +815,20 @@ std::string DoStringise(const PathProperty &el)
     STRINGISE_BITFIELD_CLASS_BIT(Directory);
     STRINGISE_BITFIELD_CLASS_BIT(Hidden);
     STRINGISE_BITFIELD_CLASS_BIT(Executable);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
+std::string DoStringise(const SectionFlags &el)
+{
+  BEGIN_BITFIELD_STRINGISE(SectionFlags);
+  {
+    STRINGISE_BITFIELD_CLASS_VALUE_NAMED(NoFlags, "No Flags");
+
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(ASCIIStored, "Stored as ASCII");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(LZ4Compressed, "Compressed with LZ4");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(ZstdCompressed, "Compressed with Zstd");
   }
   END_BITFIELD_STRINGISE();
 }

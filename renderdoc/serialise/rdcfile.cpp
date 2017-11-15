@@ -41,6 +41,8 @@ const char *SectionTypeNames[] = {
     "renderdoc/ui/bookmarks",
     // Notes
     "renderdoc/ui/notes",
+    // Resource Renames
+    "renderdoc/ui/resrenames",
 };
 
 RDCCOMPILE_ASSERT(ARRAY_COUNT(SectionTypeNames) == (size_t)SectionType::Count,

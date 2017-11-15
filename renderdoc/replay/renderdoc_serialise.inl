@@ -65,6 +65,19 @@ void DoSerialise(SerialiserType &ser, PathEntry &el)
 }
 
 template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, SectionProperties &el)
+{
+  SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(type);
+  SERIALISE_MEMBER(flags);
+  SERIALISE_MEMBER(version);
+  SERIALISE_MEMBER(uncompressedSize);
+  SERIALISE_MEMBER(compressedSize);
+
+  SIZE_CHECK(48);
+}
+
+template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, EnvironmentModification &el)
 {
   SERIALISE_MEMBER(mod);
@@ -2171,6 +2184,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 #pragma endregion Vulkan pipeline state
 
 INSTANTIATE_SERIALISE_TYPE(PathEntry)
+INSTANTIATE_SERIALISE_TYPE(SectionProperties)
 INSTANTIATE_SERIALISE_TYPE(EnvironmentModification)
 INSTANTIATE_SERIALISE_TYPE(CaptureOptions)
 INSTANTIATE_SERIALISE_TYPE(ResourceFormat)

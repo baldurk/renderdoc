@@ -71,6 +71,98 @@ enum class PathProperty : uint32_t
 BITMASK_OPERATORS(PathProperty);
 DECLARE_REFLECTION_ENUM(PathProperty);
 
+DOCUMENT(R"(A set of flags describing the properties of a section in a renderdoc capture.
+
+.. data:: NoFlags
+
+  No special section properties.
+
+.. data:: ASCIIStored
+
+  This section was stored as pure ASCII. This can be useful since it is possible to generate
+  an ASCII section in a text editor by hand or with any simple printf style script, and then
+  concatenate it to a .rdc and have a valid section.
+
+.. data:: LZ4Compressed
+
+  This section is compressed with LZ4 on disk.
+
+.. data:: ZstdCompressed
+
+  This section is compressed with Zstd on disk.
+)");
+enum class SectionFlags : uint32_t
+{
+  NoFlags = 0x0,
+  ASCIIStored = 0x1,
+  LZ4Compressed = 0x2,
+  ZstdCompressed = 0x4,
+};
+
+BITMASK_OPERATORS(SectionFlags);
+DECLARE_REFLECTION_ENUM(SectionFlags);
+
+DOCUMENT(R"(The types of several pre-defined and known sections. This allows consumers of the API
+to recognise and understand the contents of the section.
+
+Note that sections above the highest value here may be encountered if they were written in a new
+version of RenderDoc that addes a new section type. They should be considered equal to
+:data:`Unknown` by any processing.
+
+.. data:: Unknown
+
+  An unknown section - any custom or non-predefined section will have this type.
+
+.. data:: FrameCapture
+
+  This section contains the actual captured frame, in RenderDoc's internal chunked representation.
+  The contents can be fetched as structured data with or without replaying the frame.
+
+  The name for this section will be "renderdoc/internal/framecapture".
+
+.. data:: ResolveDatabase
+
+  This section contains platform-specific data used to resolve callstacks.
+
+  The name for this section will be "renderdoc/internal/resolvedb".
+
+.. data:: Bookmarks
+
+  This section contains a JSON document with bookmarks added to the capture to highlight important
+  events.
+
+  The name for this section will be "renderdoc/ui/bookmarks".
+
+.. data:: Notes
+
+  This section contains a JSON document with free-form information added for human consumption, e.g.
+  details about how the capture was obtained with repro steps in the original program, or with
+  driver and machine info.
+
+  The name for this section will be "renderdoc/ui/notes".
+
+.. data:: ResourceRenames
+
+  This section contains a JSON document with custom names applied to resources in the UI, over and
+  above any friendly names specified in the capture itself.
+
+  The name for this section will be "renderdoc/ui/resrenames".
+)");
+enum class SectionType : uint32_t
+{
+  Unknown = 0,
+  First = Unknown,
+  FrameCapture,
+  ResolveDatabase,
+  Bookmarks,
+  Notes,
+  ResourceRenames,
+  Count,
+};
+
+ITERABLE_OPERATORS(SectionType);
+DECLARE_REFLECTION_ENUM(SectionType);
+
 // replay_shader.h
 
 DOCUMENT(R"(Represents the base type of a shader variable in debugging or constant blocks.

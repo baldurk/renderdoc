@@ -69,6 +69,30 @@ struct PathEntry
 
 DECLARE_REFLECTION_STRUCT(PathEntry);
 
+DOCUMENT("Properties of a section in a renderdoc capture file.");
+struct SectionProperties
+{
+  DOCUMENT("The name of this section.");
+  rdcstr name;
+
+  DOCUMENT("The type of this section, if it is a known pre-defined section.");
+  SectionType type = SectionType::Unknown;
+
+  DOCUMENT("The flags describing how this section is stored.");
+  SectionFlags flags = SectionFlags::NoFlags;
+
+  DOCUMENT("The version of this section - the meaning of which is up to the type.");
+  uint64_t version = 0;
+
+  DOCUMENT("The number of bytes of data contained in this section, once uncompressed.");
+  uint64_t uncompressedSize = 0;
+
+  DOCUMENT("The number of bytes of data in this section when compressed on disk.");
+  uint64_t compressedSize = 0;
+};
+
+DECLARE_REFLECTION_STRUCT(SectionProperties);
+
 struct ResourceFormat;
 
 DOCUMENT("Internal function for getting the name for a resource format.");
