@@ -83,6 +83,11 @@ public:
       return m_Remote;
     return NULL;
   }
+
+  // may return NULL if the capture file is not open locally. Consider using ICaptureAccess above to
+  // work whether local or remote.
+  ICaptureFile *GetCaptureFile() { return m_CaptureFile; }
+  void ReopenCaptureFile(const QString &path);
   const RemoteHost *CurrentRemote() { return m_RemoteHost; }
   uint32_t ExecuteAndInject(const QString &exe, const QString &workingDir, const QString &cmdLine,
                             const QList<EnvironmentModification> &env, const QString &capturefile,

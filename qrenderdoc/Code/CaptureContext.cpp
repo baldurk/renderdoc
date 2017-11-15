@@ -538,12 +538,29 @@ bool CaptureContext::SaveCaptureTo(const QString &captureFile)
   {
     if(QFileInfo(GetCaptureFilename()).exists())
     {
-      // QFile::copy won't overwrite, so remove the destination first (the save dialog already
-      // prompted for overwrite)
-      QFile::remove(captureFile);
-      success = QFile::copy(GetCaptureFilename(), captureFile);
+      if(GetCaptureFilename() == captureFile)
+      {
+        success = true;
+      }
+      else
+      {
+        ICaptureFile *capFile = Replay().GetCaptureFile();
 
-      error = tr("Couldn't save to %1").arg(captureFile);
+        if(capFile)
+        {
+          // this will overwrite
+          success = capFile->CopyFileTo(captureFile.toUtf8().data());
+        }
+        else
+        {
+          // QFile::copy won't overwrite, so remove the destination first (the save dialog already
+          // prompted for overwrite)
+          QFile::remove(captureFile);
+          success = QFile::copy(GetCaptureFilename(), captureFile);
+        }
+
+        error = tr("Couldn't save to %1").arg(captureFile);
+      }
     }
     else
     {
@@ -568,8 +585,16 @@ bool CaptureContext::SaveCaptureTo(const QString &captureFile)
     return false;
   }
 
+  // if it was a temporary capture, remove the old instnace
+  if(m_CaptureTemporary)
+    QFile::remove(m_CaptureFile);
+
+  // Update the filename, and mark that it's local and not temporary now.
   m_CaptureFile = captureFile;
+  m_CaptureLocal = true;
   m_CaptureTemporary = false;
+
+  Replay().ReopenCaptureFile(captureFile);
 
   return true;
 }

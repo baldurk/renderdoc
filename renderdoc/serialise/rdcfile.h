@@ -93,6 +93,8 @@ public:
   void Open(const char *filename);
   void Open(const std::vector<byte> &buffer);
 
+  bool CopyFileTo(const char *filename);
+
   // Sets the parameters of an RDCFile in memory.
   void SetData(RDCDriver driver, const char *driverName, uint64_t machineIdent,
                const RDCThumb *thumb);
@@ -136,7 +138,8 @@ private:
 
   struct SectionLocation
   {
-    uint64_t offs;
+    uint64_t headerOffset;
+    uint64_t dataOffset;
     uint64_t diskLength;
   };
 

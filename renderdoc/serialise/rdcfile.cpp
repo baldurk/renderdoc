@@ -245,7 +245,7 @@ void RDCFile::Open(const char *path)
   RDCCOMPILE_ASSERT(offsetof(BinarySectionHeader, name) == sizeof(uint32_t) * 10,
                     "BinarySectionHeader size has changed or contains padding");
 
-  m_File = FileIO::fopen(path, "rb");
+  m_File = FileIO::fopen(path, "r+b");
   m_Filename = path;
 
   if(!m_File)
@@ -423,6 +423,8 @@ void RDCFile::Init(StreamReader &reader)
     BinarySectionHeader sectionHeader = {0};
     byte *reading = (byte *)&sectionHeader;
 
+    uint64_t headerOffset = reader.GetOffset();
+
     reader.Read(*reading);
     reading++;
 
@@ -520,7 +522,8 @@ void RDCFile::Init(StreamReader &reader)
       props.uncompressedSize = length;
 
       SectionLocation loc;
-      loc.offs = reader.GetOffset();
+      loc.headerOffset = headerOffset;
+      loc.dataOffset = reader.GetOffset();
       loc.diskLength = length;
 
       reader.SkipBytes(loc.diskLength);
@@ -564,7 +567,8 @@ void RDCFile::Init(StreamReader &reader)
         RETURNCORRUPT("Error reading binary section header");
 
       SectionLocation loc;
-      loc.offs = reader.GetOffset();
+      loc.headerOffset = headerOffset;
+      loc.dataOffset = reader.GetOffset();
       loc.diskLength = sectionHeader.sectionCompressedLength;
 
       m_Sections.push_back(props);
@@ -585,6 +589,29 @@ void RDCFile::Init(StreamReader &reader)
   {
     RETURNCORRUPT("Capture file doesn't have a frame capture");
   }
+}
+
+bool RDCFile::CopyFileTo(const char *filename)
+{
+  if(!m_File)
+    return false;
+
+  // remember our position and close the file
+  uint64_t prevPos = FileIO::ftell64(m_File);
+  FileIO::fclose(m_File);
+
+  // try to move to the new location
+  bool success = FileIO::Copy(m_Filename.c_str(), filename, true);
+
+  // if it succeeded, update our filename
+  if(success)
+    m_Filename = filename;
+
+  // re-open the file (either the new one, or the old one if it failed) and re-seek
+  m_File = FileIO::fopen(m_Filename.c_str(), "r+b");
+  FileIO::fseek64(m_File, prevPos, SEEK_SET);
+
+  return success;
 }
 
 void RDCFile::SetData(RDCDriver driver, const char *driverName, uint64_t machineIdent,
@@ -657,6 +684,11 @@ void RDCFile::Create(const char *filename)
 
 int RDCFile::SectionIndex(SectionType type) const
 {
+  // Unknown is not a real type, any arbitrary sections with names will be listed as unknown, so
+  // don't return a false-positive index. This allows us to skip some special cases outside
+  if(type == SectionType::Unknown)
+    return -1;
+
   for(size_t i = 0; i < m_Sections.size(); i++)
     if(m_Sections[i].type == type)
       return int(i);
@@ -689,7 +721,7 @@ StreamReader *RDCFile::ReadSection(int index) const
 
   const SectionProperties &props = m_Sections[index];
   SectionLocation offsetSize = m_SectionLocations[index];
-  FileIO::fseek64(m_File, offsetSize.offs, SEEK_SET);
+  FileIO::fseek64(m_File, offsetSize.dataOffset, SEEK_SET);
 
   StreamReader *fileReader = new StreamReader(m_File, offsetSize.diskLength, Ownership::Nothing);
 
@@ -717,29 +749,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
   if(m_Error != ContainerError::NoError)
     return new StreamWriter(StreamWriter::InvalidStream);
 
-  // only handle the case of writing a section that doesn't exist yet.
-  // For handling a section that does exist, it depends on the section type:
-  // - For frame capture, then we just write to a new file since we want it
-  //   to be first. Once the writing is done, copy across any other sections
-  //   after it.
-  // - For non-frame capture, we remove the existing section and move up any
-  //   sections that were after it. Then just return a new writer that appends
-
-  if(props.type != SectionType::Unknown)
-  {
-    if(SectionIndex(props.type) >= 0)
-    {
-      RDCERR("Replacing sections is currently not supported.");
-      return new StreamWriter(StreamWriter::InvalidStream);
-    }
-    RDCASSERT((size_t)props.type < (size_t)SectionType::Count);
-  }
-
-  if(SectionIndex(props.name.c_str()) >= 0)
-  {
-    RDCERR("Replacing sections is currently not supported.");
-    return new StreamWriter(StreamWriter::InvalidStream);
-  }
+  RDCASSERT((size_t)props.type < (size_t)SectionType::Count);
 
   if(m_File == NULL)
   {
@@ -764,7 +774,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
     return new StreamWriter(StreamWriter::InvalidStream);
   }
 
-  if(m_CurrentWritingProps.type != SectionType::Count)
+  if(!m_CurrentWritingProps.name.empty())
   {
     RDCERR("Only one section can be written at once.");
     return new StreamWriter(StreamWriter::InvalidStream);
@@ -774,10 +784,216 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
   SectionType type = props.type;
 
   // normalise names for known sections
-  if(props.type != SectionType::Unknown)
+  if(type != SectionType::Unknown && type < SectionType::Count)
     name = SectionTypeNames[(size_t)type];
 
-  FileIO::fseek64(m_File, 0, SEEK_END);
+  if(name.empty())
+  {
+    RDCERR("Sections must have a name, either auto-populated from a known type or specified.");
+    return new StreamWriter(StreamWriter::InvalidStream);
+  }
+
+  // For handling a section that does exist, it depends on the section type:
+  // - For frame capture, then we just write to a new file since we want it
+  //   to be first. Once the writing is done, copy across any other sections
+  //   after it.
+  // - For non-frame capture, we remove the existing section and move up any
+  //   sections that were after it. Then just return a new writer that appends
+
+  // we store this callback here so that we can execute it after any post-section-writing header
+  // fixups. We need to be able to fixup any pre-existing sections that got shifted around.
+  StreamCloseCallback modifySectionCallback;
+
+  if(SectionIndex(type) >= 0 || SectionIndex(name.c_str()) >= 0)
+  {
+    if(type == SectionType::FrameCapture || name == SectionTypeNames[(int)SectionType::FrameCapture])
+    {
+      // simple case - if there are no other sections then we can just overwrite the existing frame
+      // capture.
+      if(NumSections() == 1)
+      {
+        // seek to the start of where the section is.
+        FileIO::fseek64(m_File, m_SectionLocations[0].headerOffset, SEEK_SET);
+
+        uint64_t oldLength = m_SectionLocations[0].diskLength;
+
+        // after writing, we need to be sure to fixup the size (in case we wrote less data).
+        modifySectionCallback = [this, oldLength]() {
+          if(oldLength > m_SectionLocations[0].diskLength)
+          {
+            FileIO::ftruncateat(
+                m_File, m_SectionLocations[0].dataOffset + m_SectionLocations[0].diskLength);
+          }
+        };
+      }
+      else
+      {
+        FILE *origFile = m_File;
+
+        // save the sections
+        std::vector<SectionProperties> origSections = m_Sections;
+        std::vector<SectionLocation> origSectionLocations = m_SectionLocations;
+
+        SectionLocation oldCaptureLocation = m_SectionLocations[0];
+
+        // remove section 0, the frame capture, since it will be fixed up separately
+        origSections.erase(origSections.begin());
+        origSectionLocations.erase(origSectionLocations.begin());
+
+        std::string tempFilename = FileIO::GetTempFolderFilename() + "capture_rewrite.rdc";
+
+        // create the file, this will overwrite m_File with the new file and file header using the
+        // existing loaded metadata
+        Create(tempFilename.c_str());
+
+        // after we've written the frame capture, we need to copy over the other sections into the
+        // temporary file and finally move the temporary file over the top of the existing file.
+        modifySectionCallback = [this, origFile, origSections, origSectionLocations, tempFilename]() {
+          // seek to write after the frame capture
+          FileIO::fseek64(
+              m_File, m_SectionLocations[0].dataOffset + m_SectionLocations[0].diskLength, SEEK_SET);
+
+          // write the old sections
+          for(size_t i = 0; i < origSections.size(); i++)
+          {
+            SectionLocation loc = origSectionLocations[i];
+
+            FileIO::fseek64(origFile, loc.headerOffset, SEEK_SET);
+
+            uint64_t newHeaderOffset = FileIO::ftell64(m_File);
+
+            // update the offsets to where they are in the new file
+            if(newHeaderOffset > loc.headerOffset)
+            {
+              uint64_t delta = newHeaderOffset - loc.headerOffset;
+
+              loc.headerOffset += delta;
+              loc.dataOffset += delta;
+            }
+            else if(newHeaderOffset < loc.headerOffset)
+            {
+              uint64_t delta = loc.headerOffset - newHeaderOffset;
+
+              loc.headerOffset -= delta;
+              loc.dataOffset -= delta;
+            }
+
+            uint64_t headerLen = loc.dataOffset - loc.headerOffset;
+
+            // copy header and data together
+            StreamWriter writer(m_File, Ownership::Nothing);
+            StreamReader reader(origFile, headerLen + loc.diskLength, Ownership::Nothing);
+
+            m_Sections.push_back(origSections[i]);
+            m_SectionLocations.push_back(loc);
+
+            StreamTransfer(&writer, &reader, NULL);
+          }
+
+          // close the file writing to the temp location
+          FileIO::fclose(m_File);
+
+          // move the temp file over the original
+          FileIO::Move(tempFilename.c_str(), m_Filename.c_str(), true);
+
+          // re-open the file after it's been overwritten.
+          m_File = FileIO::fopen(m_Filename.c_str(), "r+b");
+        };
+
+        // fall through - we'll write to m_File immediately after the file header
+      }
+
+      // the new section data for the framecapture will be pushed on after writing. Any others will
+      // be re-added in the fixup step above
+      m_Sections.clear();
+      m_SectionLocations.clear();
+    }
+    else
+    {
+      // we're writing some section after the frame capture. We'll do this in-place by reading the
+      // other sections out to memory (assuming that they are mostly small, and even if they are
+      // somewhat large, it's still much better to leave the frame capture (which should dominate
+      // file size) on disk where it is.
+      int index = SectionIndex(type);
+
+      if(index < 0)
+        index = SectionIndex(name.c_str());
+
+      RDCASSERT(index >= 0);
+
+      std::vector<bytebuf> origSectionData;
+      std::vector<uint64_t> origHeaderSizes;
+
+      uint64_t overwriteLocation = m_SectionLocations[index].headerOffset;
+      uint64_t oldLength = m_SectionLocations[index].diskLength;
+
+      // erase the target section. The others will be moved up to match
+      m_Sections.erase(m_Sections.begin() + index);
+      m_SectionLocations.erase(m_SectionLocations.begin() + index);
+
+      origSectionData.reserve(NumSections() - index);
+      origHeaderSizes.reserve(NumSections() - index);
+
+      // go through all subsequent sections after this one in the file, read them into memory.
+      // this could be optimised since we're going to write them back out below, we could do this
+      // just with an in-memory window large enough.
+      for(int i = index; i < NumSections(); i++)
+      {
+        const SectionLocation &loc = m_SectionLocations[i];
+
+        FileIO::fseek64(m_File, loc.headerOffset, SEEK_SET);
+
+        uint64_t headerLen = loc.dataOffset - loc.headerOffset;
+
+        // read header and data together
+        StreamReader reader(m_File, headerLen + loc.diskLength, Ownership::Nothing);
+
+        origHeaderSizes.push_back(headerLen);
+        origSectionData.push_back(bytebuf());
+
+        bytebuf &data = origSectionData.back();
+        data.resize((size_t)reader.GetSize());
+        reader.Read(data.data(), data.size());
+      }
+
+      // we write the sections now over where the old section used to be, so the newly written
+      // section is last in the file. This means if the same section is updated over and over, it
+      // doesn't require moving any sections once it's already at the end.
+
+      // seek to write to where the removed section started
+      FileIO::fseek64(m_File, overwriteLocation, SEEK_SET);
+
+      // write the old sections
+      for(size_t i = 0; i < origSectionData.size(); i++)
+      {
+        // update the offsets to where they are in the new file
+        m_SectionLocations[index + i].headerOffset = FileIO::ftell64(m_File);
+        m_SectionLocations[index + i].dataOffset =
+            m_SectionLocations[index + i].headerOffset + origHeaderSizes[i];
+
+        // write the data
+        StreamWriter writer(m_File, Ownership::Nothing);
+        writer.Write(origSectionData[i].data(), origSectionData[i].size());
+      }
+
+      // after writing, we need to be sure to fixup the size (in case we wrote less data).
+      modifySectionCallback = [this, oldLength]() {
+        if(oldLength > m_SectionLocations.back().diskLength)
+        {
+          FileIO::ftruncateat(
+              m_File, m_SectionLocations.back().dataOffset + m_SectionLocations.back().diskLength);
+        }
+      };
+
+      // fall through - we now write to m_File with the new section wherever we left off after the
+      // moved sections.
+    }
+  }
+  else
+  {
+    // we're adding a new section - seek to the end of the file to append it
+    FileIO::fseek64(m_File, 0, SEEK_END);
+  }
 
   uint64_t headerOffset = FileIO::ftell64(m_File);
 
@@ -830,11 +1046,14 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
         new StreamWriter(new ZSTDCompressor(fileWriter, Ownership::Stream), Ownership::Stream);
   }
 
+  uint64_t dataOffset = FileIO::ftell64(m_File);
+
   m_CurrentWritingProps = props;
   m_CurrentWritingProps.name = name;
 
   // register a destroy callback to tidy up the section at the end
-  fileWriter->AddCloseCallback([this, type, name, headerOffset, fileWriter, compWriter]() {
+  fileWriter->AddCloseCallback([this, type, name, headerOffset, dataOffset, fileWriter, compWriter]() {
+    FileIO::fflush(m_File);
 
     // the offset of the file writer is how many bytes were written to disk - the compressed length.
     uint64_t compressedLength = fileWriter->GetOffset();
@@ -852,6 +1071,11 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
     m_CurrentWritingProps.uncompressedSize = uncompressedLength;
 
     m_Sections.push_back(m_CurrentWritingProps);
+    SectionLocation loc;
+    loc.headerOffset = headerOffset;
+    loc.dataOffset = dataOffset;
+    loc.diskLength = compressedLength;
+    m_SectionLocations.push_back(loc);
 
     m_CurrentWritingProps = SectionProperties();
 
@@ -868,6 +1092,9 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
       return;
     }
   });
+
+  if(modifySectionCallback)
+    fileWriter->AddCloseCallback(modifySectionCallback);
 
   // if we're compressing return that writer, otherwise return the file writer directly
   return compWriter ? compWriter : fileWriter;

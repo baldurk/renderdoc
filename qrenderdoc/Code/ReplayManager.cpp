@@ -355,6 +355,13 @@ void ReplayManager::PingRemote()
   }
 }
 
+void ReplayManager::ReopenCaptureFile(const QString &path)
+{
+  if(!m_CaptureFile)
+    m_CaptureFile = RENDERDOC_OpenCaptureFile();
+  m_CaptureFile->OpenFile(path.toUtf8().data(), "rdc");
+}
+
 uint32_t ReplayManager::ExecuteAndInject(const QString &exe, const QString &workingDir,
                                          const QString &cmdLine,
                                          const QList<EnvironmentModification> &env,

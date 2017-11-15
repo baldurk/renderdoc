@@ -112,6 +112,7 @@ public:
 
   ReplayStatus OpenFile(const char *filename, const char *filetype);
   ReplayStatus OpenBuffer(const bytebuf &buffer, const char *filetype);
+  bool CopyFileTo(const char *filename);
 
   void Shutdown() { delete this; }
   ReplaySupport LocalReplaySupport() { return m_Support; }
@@ -251,6 +252,14 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
   }
 
   return Init();
+}
+
+bool CaptureFile::CopyFileTo(const char *filename)
+{
+  if(m_RDC)
+    return m_RDC->CopyFileTo(filename);
+
+  return false;
 }
 
 ReplayStatus CaptureFile::Init()

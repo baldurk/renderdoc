@@ -1310,6 +1310,20 @@ For the :param:`filetype` parameter, see :meth:`OpenFile`.
 )");
   virtual ReplayStatus OpenBuffer(const bytebuf &buffer, const char *filetype) = 0;
 
+  DOCUMENT(R"(When a capture file is opened, an exclusive lock is held on the file on disk. This
+makes it impossible to copy the file to another location at the user's request. Calling this
+function will copy the file on disk to a new location but otherwise won't affect the capture handle.
+The new file will be locked, the old file will be unlocked - to allow deleting if necessary.
+
+It is invalid to call this function if :meth:`OpenFile` has not previously been called to open the
+file.
+
+:param str filename: The filename to copy to.
+:return: ``True`` if the operation succeeded.
+:rtype: bool
+)");
+  virtual bool CopyFileTo(const char *filename) = 0;
+
   DOCUMENT(R"(Converts the currently loaded file to a given format and saves it to disk.
 
 This allows converting a native RDC to another representation, or vice-versa converting another
