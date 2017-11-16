@@ -123,7 +123,7 @@ public:
   void SetMetadata(const char *driverName, uint64_t machineIdent, FileType thumbType,
                    uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData);
 
-  ReplayStatus Convert(const char *filename, const char *filetype);
+  ReplayStatus Convert(const char *filename, const char *filetype, float *progress);
 
   rdcarray<CaptureFileFormat> GetCaptureFileFormats()
   {
@@ -207,8 +207,9 @@ ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype)
 
     {
       StreamReader reader(FileIO::fopen(filename, "rb"));
+      delete m_RDC;
       m_RDC = new RDCFile;
-      ret = importer(filename, reader, m_RDC, m_StructuredData);
+      ret = importer(filename, reader, m_RDC, m_StructuredData, NULL);
     }
 
     if(ret != ReplayStatus::Succeeded)
@@ -243,7 +244,7 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
     {
       StreamReader reader(vec);
       m_RDC = new RDCFile;
-      ret = importer(NULL, reader, m_RDC, m_StructuredData);
+      ret = importer(NULL, reader, m_RDC, m_StructuredData, NULL);
     }
 
     if(ret != ReplayStatus::Succeeded)
@@ -368,7 +369,7 @@ void CaptureFile::SetMetadata(const char *driverName, uint64_t machineIdent, Fil
   free((void *)th.pixels);
 }
 
-ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype)
+ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, float *progress)
 {
   if(!m_RDC)
   {
@@ -379,7 +380,7 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype)
   CaptureExporter exporter = RenderDoc::Inst().GetCaptureExporter(filetype);
 
   if(exporter)
-    return exporter(filename, *m_RDC, GetStructuredData());
+    return exporter(filename, *m_RDC, GetStructuredData(), progress);
 
   if(filetype != NULL && strcmp(filetype, "") && strcmp(filetype, "rdc"))
     RDCWARN("Converting file to unrecognised filetype '%s' - treating as 'rdc'", filetype);
@@ -419,7 +420,7 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype)
 
     WriteSerialiser ser(writer, Ownership::Nothing);
 
-    ser.WriteStructuredFile(GetStructuredData());
+    ser.WriteStructuredFile(GetStructuredData(), progress);
 
     writer->Finish();
 
@@ -436,7 +437,7 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype)
     StreamWriter *writer = output.WriteSection(props);
     StreamReader *reader = m_RDC->ReadSection(frameCaptureIndex);
 
-    StreamTransfer(writer, reader, NULL);
+    StreamTransfer(writer, reader, progress);
 
     writer->Finish();
 

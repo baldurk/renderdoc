@@ -240,9 +240,9 @@ typedef ReplayStatus (*ReplayDriverProvider)(RDCFile *rdc, IReplayDriver **drive
 typedef void (*StructuredProcessor)(RDCFile *rdc, SDFile &structData);
 
 typedef ReplayStatus (*CaptureImporter)(const char *filename, StreamReader &reader, RDCFile *rdc,
-                                        SDFile &structData);
+                                        SDFile &structData, float *progress);
 typedef ReplayStatus (*CaptureExporter)(const char *filename, const RDCFile &rdc,
-                                        const SDFile &structData);
+                                        const SDFile &structData, float *progress);
 
 typedef bool (*VulkanLayerCheck)(VulkanLayerFlags &flags, std::vector<std::string> &myJSONs,
                                  std::vector<std::string> &otherJSONs);

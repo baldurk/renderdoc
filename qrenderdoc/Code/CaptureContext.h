@@ -74,6 +74,7 @@ public:
   void LoadCapture(const QString &captureFile, const QString &origFilename, bool temporary,
                    bool local) override;
   bool SaveCaptureTo(const QString &captureFile) override;
+  void RecompressCapture() override;
   void CloseCapture() override;
 
   void SetEventID(const QVector<ICaptureViewer *> &exclude, uint32_t selectedEventID,
@@ -253,13 +254,15 @@ private:
   bool ContainsMarker(const rdcarray<DrawcallDescription> &m_Drawcalls);
   void AddFakeProfileMarkers();
 
-  QString SaveRenames();
+  void SaveChanges();
+
+  void SaveRenames();
   void LoadRenames(const QString &data);
 
-  QString SaveBookmarks();
+  void SaveBookmarks();
   void LoadBookmarks(const QString &data);
 
-  QString SaveNotes();
+  void SaveNotes();
   void LoadNotes(const QString &data);
 
   float m_LoadProgress = 0.0f;
@@ -291,7 +294,6 @@ private:
   }
 
   void setupDockWindow(QWidget *shad);
-
   rdcarray<DrawcallDescription> m_Drawcalls;
 
   APIProperties m_APIProps;

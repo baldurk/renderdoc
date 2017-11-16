@@ -183,6 +183,8 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   ui->action_Resolve_Symbols->setEnabled(false);
   ui->action_Resolve_Symbols->setText(tr("Resolve Symbols"));
 
+  ui->action_Recompress_Capture->setEnabled(false);
+
   LambdaThread *th = new LambdaThread([this]() {
     m_Ctx.Config().AddAndroidHosts();
     for(RemoteHost *host : m_Ctx.Config().RemoteHosts)
@@ -1295,6 +1297,8 @@ void MainWindow::OnCaptureLoaded()
 
   statusProgress->setVisible(false);
 
+  ui->action_Recompress_Capture->setEnabled(true);
+
   ui->action_Start_Replay_Loop->setEnabled(true);
 
   setCaptureHasErrors(!m_Ctx.DebugMessages().empty());
@@ -1334,6 +1338,8 @@ void MainWindow::OnCaptureClosed()
 
   ui->action_Resolve_Symbols->setEnabled(false);
   ui->action_Resolve_Symbols->setText(tr("Resolve Symbols"));
+
+  ui->action_Recompress_Capture->setEnabled(false);
 
   SetTitle();
 
@@ -1626,6 +1632,11 @@ void MainWindow::on_action_Resolve_Symbols_triggered()
 
   if(m_Ctx.HasAPIInspector())
     m_Ctx.GetAPIInspector()->Refresh();
+}
+
+void MainWindow::on_action_Recompress_Capture_triggered()
+{
+  m_Ctx.RecompressCapture();
 }
 
 void MainWindow::on_action_Start_Replay_Loop_triggered()

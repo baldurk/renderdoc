@@ -917,6 +917,7 @@ enum class CaptureModifications : uint32_t
   Renames = 0x0001,
   Bookmarks = 0x0002,
   Notes = 0x0004,
+  All = 0xffffffff,
 };
 
 BITMASK_OPERATORS(CaptureModifications);
@@ -983,6 +984,9 @@ time.
 :rtype: ``bool``
 )");
   virtual bool SaveCaptureTo(const QString &captureFile) = 0;
+
+  DOCUMENT("Recompress the current capture as much as possible.");
+  virtual void RecompressCapture() = 0;
 
   DOCUMENT("Close the currently open capture file.");
   virtual void CloseCapture() = 0;

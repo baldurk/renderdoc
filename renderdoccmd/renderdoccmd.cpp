@@ -722,7 +722,7 @@ struct ConvertCommand : public Command
       return 1;
     }
 
-    st = file->Convert(outfile.c_str(), outfmt.c_str());
+    st = file->Convert(outfile.c_str(), outfmt.c_str(), NULL);
 
     if(st != ReplayStatus::Succeeded)
     {

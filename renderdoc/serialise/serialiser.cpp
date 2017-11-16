@@ -407,7 +407,7 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
 }
 
 template <>
-void Serialiser<SerialiserMode::Writing>::WriteStructuredFile(const SDFile &file)
+void Serialiser<SerialiserMode::Writing>::WriteStructuredFile(const SDFile &file, float *progress)
 {
   Serialiser<SerialiserMode::Writing> scratchWriter(
       new StreamWriter(StreamWriter::DefaultScratchSize), Ownership::Stream);
@@ -472,6 +472,9 @@ void Serialiser<SerialiserMode::Writing>::WriteStructuredFile(const SDFile &file
       m_Write->Write(scratchWriter.GetWriter()->GetData(), scratchWriter.GetWriter()->GetOffset());
       scratchWriter.GetWriter()->Rewind();
     }
+
+    if(progress)
+      *progress = float(i) / float(file.chunks.size());
   }
 
   m_StructuredFile = &m_StructData;

@@ -567,6 +567,148 @@ void CaptureContext::AddFakeProfileMarkers()
   m_Drawcalls = ret;
 }
 
+void CaptureContext::RecompressCapture()
+{
+  QString destFilename = GetCaptureFilename();
+  QString tempFilename;
+
+  ICaptureFile *cap = NULL;
+  ICaptureFile *tempCap = NULL;
+
+  bool inplace = false;
+
+  if(IsCaptureTemporary() || !IsCaptureLocal())
+  {
+    QMessageBox::StandardButton res =
+        RDDialog::question(m_MainWindow, tr("Unsaved capture"),
+                           tr("To recompress a capture you must save it first. Save this capture?"),
+                           QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+    if(res == QMessageBox::Cancel || res == QMessageBox::No)
+      return;
+
+    destFilename = m_MainWindow->GetSavePath();
+
+    // if it's already local, we'll do the save as part of the recompression convert. If it's
+    // remote, we need to copy it first, but we copy it to a temporary so we can do the conversion
+    // to the target location
+
+    if(IsCaptureLocal())
+    {
+      tempFilename = GetCaptureFilename();
+    }
+    else
+    {
+      tempFilename = TempCaptureFilename(lit("recompress"));
+      Replay().CopyCaptureFromRemote(GetCaptureFilename(), tempFilename, m_MainWindow);
+
+      if(!QFile::exists(tempFilename))
+      {
+        RDDialog::critical(m_MainWindow, tr("Failed to save capture"),
+                           tr("Capture couldn't be saved from remote."));
+        return;
+      }
+    }
+  }
+  else
+  {
+    // if we're doing this inplace on an already saved capture, then we need to recompress to a
+    // temporary and close/move it afterwards.
+    inplace = true;
+    destFilename = TempCaptureFilename(lit("recompress"));
+  }
+
+  if(IsCaptureLocal())
+  {
+    // for local files we already have a handle. We'll reuse it, then re-open
+    cap = Replay().GetCaptureFile();
+  }
+  else
+  {
+    // for remote files we open a new short-lived handle on the temporary file
+    tempCap = cap = RENDERDOC_OpenCaptureFile();
+    cap->OpenFile(tempFilename.toUtf8().data(), "rdc");
+  }
+
+  if(!cap)
+  {
+    RDDialog::critical(m_MainWindow, tr("Unexpected missing handle"),
+                       tr("Couldn't get open handle to file for recompression."));
+    return;
+  }
+
+  int index = cap->FindSectionByType(SectionType::FrameCapture);
+  SectionProperties props = cap->GetSectionProperties(index);
+
+  if(props.flags & SectionFlags::ZstdCompressed)
+  {
+    RDDialog::information(m_MainWindow, tr("Capture already compressed"),
+                          tr("This capture is already compressed as much as is possible."));
+
+    if(tempCap)
+      tempCap->Shutdown();
+    if(!tempFilename.isEmpty())
+      QFile::remove(tempFilename);
+    return;
+  }
+
+  // convert from the currently open cap to the destination
+  float progress = 0.0f;
+
+  LambdaThread *th = new LambdaThread([this, cap, destFilename, &progress]() {
+    cap->Convert(destFilename.toUtf8().data(), "rdc", &progress);
+  });
+  th->start();
+  // wait a few ms before popping up a progress bar
+  th->wait(500);
+  if(th->isRunning())
+  {
+    ShowProgressDialog(m_MainWindow, tr("Recompressing file."), [th]() { return !th->isRunning(); },
+                       [&progress]() { return progress; });
+  }
+  th->deleteLater();
+
+  if(inplace)
+  {
+    // if we're recompressing "in place", we need to close our capture, move the temporary over
+    // the original, then re-open.
+
+    // this releases the hold over the real desired location.
+    cap->OpenFile("", "");
+
+    // now remove the old capture
+    QFile::remove(GetCaptureFilename());
+
+    // move the recompressed one over
+    QFile::rename(destFilename, GetCaptureFilename());
+
+    // and re-open
+    cap->OpenFile(GetCaptureFilename().toUtf8().data(), "rdc");
+  }
+  else
+  {
+    // we've converted into the desired location. We don't have to do anything else but mark our
+    // new locally saved non-temporary status.
+
+    m_CaptureFile = destFilename;
+    m_CaptureLocal = true;
+    m_CaptureTemporary = false;
+
+    // open the saved capture file. This will let us remove the old file too
+    Replay().ReopenCaptureFile(m_CaptureFile);
+
+    m_CaptureMods = CaptureModifications::All;
+
+    SaveChanges();
+  }
+
+  // close any temporary resources
+  if(tempCap)
+    tempCap->Shutdown();
+  if(!tempFilename.isEmpty())
+    QFile::remove(tempFilename);
+}
+
 bool CaptureContext::SaveCaptureTo(const QString &captureFile)
 {
   bool success = false;
@@ -633,33 +775,7 @@ bool CaptureContext::SaveCaptureTo(const QString &captureFile)
   m_CaptureTemporary = false;
 
   Replay().ReopenCaptureFile(captureFile);
-
-  if(m_CaptureMods & CaptureModifications::Renames)
-  {
-    SectionProperties props;
-    props.type = SectionType::ResourceRenames;
-    props.version = 1;
-
-    Replay().GetCaptureAccess()->WriteSection(props, SaveRenames().toUtf8());
-  }
-  if(m_CaptureMods & CaptureModifications::Bookmarks)
-  {
-    SectionProperties props;
-    props.type = SectionType::Bookmarks;
-    props.version = 1;
-
-    Replay().GetCaptureAccess()->WriteSection(props, SaveBookmarks().toUtf8());
-  }
-  if(m_CaptureMods & CaptureModifications::Notes)
-  {
-    SectionProperties props;
-    props.type = SectionType::Notes;
-    props.version = 1;
-
-    Replay().GetCaptureAccess()->WriteSection(props, SaveNotes().toUtf8());
-  }
-
-  m_CaptureMods = CaptureModifications::NoModifications;
+  SaveChanges();
 
   return true;
 }
@@ -810,7 +926,21 @@ void CaptureContext::RemoveBookmark(uint32_t EID)
   RefreshUIStatus({}, true, true);
 }
 
-QString CaptureContext::SaveRenames()
+void CaptureContext::SaveChanges()
+{
+  if(m_CaptureMods & CaptureModifications::Renames)
+    SaveRenames();
+
+  if(m_CaptureMods & CaptureModifications::Bookmarks)
+    SaveBookmarks();
+
+  if(m_CaptureMods & CaptureModifications::Notes)
+    SaveNotes();
+
+  m_CaptureMods = CaptureModifications::NoModifications;
+}
+
+void CaptureContext::SaveRenames()
 {
   QVariantMap resources;
   for(ResourceId id : m_CustomNames.keys())
@@ -821,7 +951,13 @@ QString CaptureContext::SaveRenames()
   QVariantMap root;
   root[lit("CustomResourceNames")] = resources;
 
-  return VariantToJSON(root);
+  QString json = VariantToJSON(root);
+
+  SectionProperties props;
+  props.type = SectionType::ResourceRenames;
+  props.version = 1;
+
+  Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8());
 }
 
 void CaptureContext::LoadRenames(const QString &data)
@@ -852,7 +988,7 @@ void CaptureContext::LoadRenames(const QString &data)
   }
 }
 
-QString CaptureContext::SaveBookmarks()
+void CaptureContext::SaveBookmarks()
 {
   QVariantList bookmarks;
   for(const EventBookmark &mark : m_Bookmarks)
@@ -867,7 +1003,13 @@ QString CaptureContext::SaveBookmarks()
   QVariantMap root;
   root[lit("Bookmarks")] = bookmarks;
 
-  return VariantToJSON(root);
+  QString json = VariantToJSON(root);
+
+  SectionProperties props;
+  props.type = SectionType::Bookmarks;
+  props.version = 1;
+
+  Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8());
 }
 
 void CaptureContext::LoadBookmarks(const QString &data)
@@ -892,13 +1034,19 @@ void CaptureContext::LoadBookmarks(const QString &data)
   }
 }
 
-QString CaptureContext::SaveNotes()
+void CaptureContext::SaveNotes()
 {
   QVariantMap root;
   for(const QString &key : m_Notes.keys())
     root[key] = m_Notes[key];
 
-  return VariantToJSON(root);
+  QString json = VariantToJSON(root);
+
+  SectionProperties props;
+  props.type = SectionType::Notes;
+  props.version = 1;
+
+  Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8());
 }
 
 void CaptureContext::LoadNotes(const QString &data)

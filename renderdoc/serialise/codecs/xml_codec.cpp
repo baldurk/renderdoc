@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <utility>
 #include "common/common.h"
 #include "serialise/rdcfile.h"
 
@@ -37,6 +38,16 @@ template <typename inttype>
 std::string GetBufferName(inttype i)
 {
   return StringFormat::Fmt("%06u", (uint32_t)i);
+}
+
+inline float BufferProgress(float progress)
+{
+  return 0.2f * progress;
+}
+
+inline float StructuredProgress(float progress)
+{
+  return 0.2f + 0.8f * progress;
 }
 
 struct xml_file_writer : pugi::xml_writer
@@ -247,7 +258,7 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
 }
 
 static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, uint64_t version,
-                                   const StructuredChunkList &chunks)
+                                   const StructuredChunkList &chunks, float *progress)
 {
   pugi::xml_document doc;
 
@@ -462,8 +473,8 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
   return ret;
 }
 
-static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &buffers,
-                                   RDCFile *rdc, uint64_t &version, StructuredChunkList &chunks)
+static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &buffers, RDCFile *rdc,
+                                   uint64_t &version, StructuredChunkList &chunks, float *progress)
 {
   pugi::xml_document doc;
   doc.load_string(xml);
@@ -527,6 +538,9 @@ static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &
 
   // push in other sections
   pugi::xml_node xSection = xHeader.next_sibling();
+
+  if(progress)
+    *progress = StructuredProgress(0.1f);
 
   while(!strcmp(xSection.name(), "section"))
   {
@@ -596,6 +610,9 @@ static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &
     xSection = xSection.next_sibling();
   }
 
+  if(progress)
+    *progress = StructuredProgress(0.2f);
+
   pugi::xml_node xChunks = xSection;
 
   if(strcmp(xSection.name(), "chunks"))
@@ -611,6 +628,9 @@ static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &
   }
 
   version = xChunks.attribute("version").as_ullong();
+
+  size_t chunkIdx = 0;
+  size_t numChunks = std::distance(xChunks.begin(), xChunks.end());
 
   for(pugi::xml_node xChunk = xChunks.first_child(); xChunk; xChunk = xChunk.next_sibling())
   {
@@ -657,13 +677,18 @@ static ReplayStatus XML2Structured(const char *xml, const StructuredBufferList &
     }
 
     chunks.push_back(chunk);
+
+    if(progress)
+      *progress = StructuredProgress(0.2f + 0.8f * (float(chunkIdx) / float(numChunks)));
+
+    chunkIdx++;
   }
 
   return ReplayStatus::Succeeded;
 }
 
 static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file,
-                                const StructuredBufferList &buffers)
+                                const StructuredBufferList &buffers, float *progress)
 {
   std::string zipFile = filename + ".zip";
 
@@ -679,8 +704,13 @@ static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file
   }
 
   for(size_t i = 0; i < buffers.size(); i++)
+  {
     mz_zip_writer_add_mem(&zip, GetBufferName(i).c_str(), buffers[i]->data(), buffers[i]->size(),
                           MZ_BEST_COMPRESSION);
+
+    if(progress)
+      *progress = BufferProgress(float(i) / float(buffers.size()));
+  }
 
   const RDCThumb &th = file.GetThumbnail();
   if(th.pixels && th.len > 0 && th.width > 0 && th.height > 0)
@@ -692,7 +722,7 @@ static ReplayStatus Buffers2ZIP(const std::string &filename, const RDCFile &file
   return ReplayStatus::Succeeded;
 }
 
-static void ZIP2Buffers(const std::string &filename, StructuredBufferList &buffers)
+static void ZIP2Buffers(const std::string &filename, StructuredBufferList &buffers, float *progress)
 {
   std::string zipFile = filename + ".zip";
 
@@ -735,33 +765,39 @@ static void ZIP2Buffers(const std::string &filename, StructuredBufferList &buffe
         buffers.back() = new bytebuf;
         buffers.back()->assign(buf, sz);
       }
+
+      if(progress)
+        *progress = BufferProgress(float(i) / float(numfiles));
     }
   }
 
   mz_zip_reader_end(&zip);
 }
 
-ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc, SDFile &structData)
+ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc,
+                        SDFile &structData, float *progress)
 {
   if(filename)
-    ZIP2Buffers(filename, structData.buffers);
+    ZIP2Buffers(filename, structData.buffers, progress);
 
   uint64_t len = reader.GetSize();
   char *buf = new char[(size_t)len + 1];
   reader.Read(buf, (size_t)len);
   buf[len] = 0;
 
-  return XML2Structured(buf, structData.buffers, rdc, structData.version, structData.chunks);
+  return XML2Structured(buf, structData.buffers, rdc, structData.version, structData.chunks,
+                        progress);
 }
 
-ReplayStatus exportXMLZ(const char *filename, const RDCFile &rdc, const SDFile &structData)
+ReplayStatus exportXMLZ(const char *filename, const RDCFile &rdc, const SDFile &structData,
+                        float *progress)
 {
-  ReplayStatus ret = Buffers2ZIP(filename, rdc, structData.buffers);
+  ReplayStatus ret = Buffers2ZIP(filename, rdc, structData.buffers, progress);
 
   if(ret != ReplayStatus::Succeeded)
     return ret;
 
-  return Structured2XML(filename, rdc, structData.version, structData.chunks);
+  return Structured2XML(filename, rdc, structData.version, structData.chunks, progress);
 }
 
 static ConversionRegistration XMLConversionRegistration("xml", R"(XML+ZIP format.

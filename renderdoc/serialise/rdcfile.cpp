@@ -241,6 +241,14 @@ RDCFile::~RDCFile()
 
 void RDCFile::Open(const char *path)
 {
+  // silently fail when opening the empty string, to allow 'releasing' a capture file by opening an
+  // empty path.
+  if(path == NULL || path[0] == 0)
+  {
+    m_Error = ContainerError::FileNotFound;
+    return;
+  }
+
   RDCLOG("Opening RDCFile %s", path);
 
   // ensure section header is compiled correctly

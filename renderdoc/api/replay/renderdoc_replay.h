@@ -1377,10 +1377,11 @@ representation back to native RDC.
 
 :param str filename: The filename to save to.
 :param str filetype: The format to convert to.
+:param float progress: A reference to a ``float`` value that will be updated as the copy happens
 :return: The status of the conversion operation, whether it succeeded or failed (and how it failed).
 :rtype: ReplayStatus
 )");
-  virtual ReplayStatus Convert(const char *filename, const char *filetype) = 0;
+  virtual ReplayStatus Convert(const char *filename, const char *filetype, float *progress) = 0;
 
   DOCUMENT(R"(Returns the list of capture file formats.
 

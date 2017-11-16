@@ -169,6 +169,10 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return InvokeRetFunction<bool>(&ICaptureContext::SaveCaptureTo, capture);
   }
+  virtual void RecompressCapture() override
+  {
+    InvokeVoidFunction(&ICaptureContext::RecompressCapture);
+  }
   virtual void CloseCapture() override { InvokeVoidFunction(&ICaptureContext::CloseCapture); }
   virtual void SetEventID(const QVector<ICaptureViewer *> &exclude, uint32_t selectedEventID,
                           uint32_t eventID, bool force = false) override

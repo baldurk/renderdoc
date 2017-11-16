@@ -131,7 +131,7 @@ public:
   // up-front
   void SetStreamingMode(bool stream) { m_DataStreaming = stream; }
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
-  void WriteStructuredFile(const SDFile &file);
+  void WriteStructuredFile(const SDFile &file, float *progress);
   void SetDrawChunk() { m_DrawChunk = true; }
   //////////////////////////////////////////
   // Public serialisation interface

@@ -462,7 +462,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     {
       WriteSerialiser rewrite(rewriteBuf, Ownership::Nothing);
 
-      rewrite.WriteStructuredFile(structFile);
+      rewrite.WriteStructuredFile(structFile, NULL);
     }
 
     // must be bitwise identical to the original serialised data.
@@ -934,7 +934,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
     {
       WriteSerialiser rewrite(rewriteBuf, Ownership::Nothing);
 
-      rewrite.WriteStructuredFile(structData);
+      rewrite.WriteStructuredFile(structData, NULL);
     }
 
     // must be bitwise identical to the original serialised data.
@@ -1304,7 +1304,7 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
     {
       WriteSerialiser rewrite(rewriteBuf, Ownership::Nothing);
 
-      rewrite.WriteStructuredFile(structData);
+      rewrite.WriteStructuredFile(structData, NULL);
     }
 
     // must be bitwise identical to the original serialised data.

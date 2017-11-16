@@ -50,6 +50,7 @@
      <string>&amp;Tools</string>
     </property>
     <addaction name="action_Resolve_Symbols"/>
+    <addaction name="action_Recompress_Capture"/>
     <addaction name="action_Start_Replay_Loop"/>
     <addaction name="separator"/>
     <addaction name="action_Settings"/>
@@ -422,6 +423,11 @@
   <action name="action_Comments">
    <property name="text">
     <string>Capture C&amp;omments</string>
+   </property>
+  </action>
+  <action name="action_Recompress_Capture">
+   <property name="text">
+    <string>Re&amp;compress Capture</string>
    </property>
   </action>
  </widget>
