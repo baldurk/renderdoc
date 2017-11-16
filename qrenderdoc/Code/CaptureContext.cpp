@@ -323,6 +323,13 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
       bytebuf buf = access->GetSectionContents(idx);
       LoadRenames(QString::fromUtf8((const char *)buf.data(), buf.count()));
     }
+
+    idx = access->FindSectionByType(SectionType::Bookmarks);
+    if(idx >= 0)
+    {
+      bytebuf buf = access->GetSectionContents(idx);
+      LoadBookmarks(QString::fromUtf8((const char *)buf.data(), buf.count()));
+    }
   }
 
   m_LoadInProgress = false;
@@ -618,6 +625,14 @@ bool CaptureContext::SaveCaptureTo(const QString &captureFile)
 
     Replay().GetCaptureAccess()->WriteSection(props, SaveRenames().toUtf8());
   }
+  if(m_CaptureMods & CaptureModifications::Bookmarks)
+  {
+    SectionProperties props;
+    props.type = SectionType::Bookmarks;
+    props.version = 1;
+
+    Replay().GetCaptureAccess()->WriteSection(props, SaveBookmarks().toUtf8());
+  }
 
   m_CaptureMods = CaptureModifications::NoModifications;
 
@@ -645,6 +660,7 @@ void CaptureContext::CloseCapture()
   m_ResourceList.clear();
 
   m_CustomNames.clear();
+  m_Bookmarks.clear();
 
   m_Drawcalls.clear();
   m_FirstDrawcall = m_LastDrawcall = NULL;
@@ -722,6 +738,38 @@ void CaptureContext::AddMessages(const rdcarray<DebugMessage> &msgs)
   }
 }
 
+void CaptureContext::SetBookmark(const EventBookmark &mark)
+{
+  int index = m_Bookmarks.indexOf(mark);
+  if(index >= 0)
+  {
+    // ignore no-op bookmarks
+    if(m_Bookmarks[index].text == mark.text)
+      return;
+
+    m_Bookmarks[index] = mark;
+  }
+  else
+  {
+    m_Bookmarks.push_back(mark);
+  }
+
+  m_CaptureMods |= CaptureModifications::Bookmarks;
+  m_MainWindow->captureModified();
+
+  RefreshUIStatus({}, true, true);
+}
+
+void CaptureContext::RemoveBookmark(uint32_t EID)
+{
+  m_Bookmarks.removeOne(EventBookmark(EID));
+
+  m_CaptureMods |= CaptureModifications::Bookmarks;
+  m_MainWindow->captureModified();
+
+  RefreshUIStatus({}, true, true);
+}
+
 QString CaptureContext::SaveRenames()
 {
   QVariantMap resources;
@@ -760,6 +808,46 @@ void CaptureContext::LoadRenames(const QString &data)
 
       if(id != ResourceId())
         m_CustomNames[id] = resources[str].toString();
+    }
+  }
+}
+
+QString CaptureContext::SaveBookmarks()
+{
+  QVariantList bookmarks;
+  for(const EventBookmark &mark : m_Bookmarks)
+  {
+    QVariantMap variantmark;
+    variantmark[lit("EID")] = mark.EID;
+    variantmark[lit("text")] = mark.text;
+
+    bookmarks.push_back(variantmark);
+  }
+
+  QVariantMap root;
+  root[lit("Bookmarks")] = bookmarks;
+
+  return VariantToJSON(root);
+}
+
+void CaptureContext::LoadBookmarks(const QString &data)
+{
+  QVariantMap root = JSONToVariant(data);
+
+  if(root.contains(lit("Bookmarks")))
+  {
+    QVariantList bookmarks = root[lit("Bookmarks")].toList();
+
+    for(QVariant v : bookmarks)
+    {
+      QVariantMap variantmark = v.toMap();
+
+      EventBookmark mark;
+      mark.EID = variantmark[lit("EID")].toUInt();
+      mark.text = variantmark[lit("text")].toString();
+
+      if(mark.EID != 0)
+        m_Bookmarks.push_back(mark);
     }
   }
 }

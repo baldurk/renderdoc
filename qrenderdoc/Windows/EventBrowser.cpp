@@ -176,8 +176,6 @@ void EventBrowser::OnCaptureLoaded()
   RDTreeWidgetItem *frame = new RDTreeWidgetItem(
       {QFormatStr("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), QString(), QString(), QString()});
 
-  clearBookmarks();
-
   RDTreeWidgetItem *framestart =
       new RDTreeWidgetItem({tr("Frame Start"), lit("0"), lit("0"), QString()});
   framestart->setTag(QVariant::fromValue(EventItemTag(0, 0)));
@@ -190,6 +188,9 @@ void EventBrowser::OnCaptureLoaded()
   ui->events->addTopLevelItem(frame);
 
   ui->events->expandItem(frame);
+
+  clearBookmarks();
+  repopulateBookmarks();
 
   ui->find->setEnabled(true);
   ui->gotoEID->setEnabled(true);
@@ -220,6 +221,7 @@ void EventBrowser::OnCaptureClosed()
 void EventBrowser::OnEventChanged(uint32_t eventID)
 {
   SelectEvent(eventID);
+  repopulateBookmarks();
   highlightBookmarks();
 }
 
@@ -892,84 +894,107 @@ void EventBrowser::clearBookmarks()
   for(QToolButton *b : m_BookmarkButtons)
     delete b;
 
-  m_Bookmarks.clear();
   m_BookmarkButtons.clear();
 
   ui->bookmarkStrip->setVisible(false);
 }
 
+void EventBrowser::repopulateBookmarks()
+{
+  const QList<EventBookmark> bookmarks = m_Ctx.GetBookmarks();
+
+  // add any bookmark markers that we don't have
+  for(const EventBookmark &mark : bookmarks)
+  {
+    if(!m_BookmarkButtons.contains(mark.EID))
+    {
+      uint32_t EID = mark.EID;
+
+      QToolButton *but = new QToolButton(this);
+
+      but->setText(QString::number(EID));
+      but->setCheckable(true);
+      but->setAutoRaise(true);
+      but->setProperty("eid", EID);
+      QObject::connect(but, &QToolButton::clicked, [this, but, EID]() {
+        but->setChecked(true);
+        SelectEvent(EID);
+        highlightBookmarks();
+      });
+
+      m_BookmarkButtons[EID] = but;
+
+      highlightBookmarks();
+
+      RDTreeWidgetItem *found = NULL;
+      FindEventNode(found, ui->events->topLevelItem(0), EID);
+
+      if(found)
+      {
+        EventItemTag tag = found->tag().value<EventItemTag>();
+        tag.bookmark = true;
+        found->setTag(QVariant::fromValue(tag));
+        RefreshIcon(found, tag);
+      }
+
+      m_BookmarkStripLayout->removeItem(m_BookmarkSpacer);
+      m_BookmarkStripLayout->addWidget(but);
+      m_BookmarkStripLayout->addItem(m_BookmarkSpacer);
+    }
+  }
+
+  // remove any bookmark markers we shouldn't have
+  for(uint32_t EID : m_BookmarkButtons.keys())
+  {
+    if(!bookmarks.contains(EventBookmark(EID)))
+    {
+      delete m_BookmarkButtons[EID];
+      m_BookmarkButtons.remove(EID);
+
+      RDTreeWidgetItem *found = NULL;
+      FindEventNode(found, ui->events->topLevelItem(0), EID);
+
+      if(found)
+      {
+        EventItemTag tag = found->tag().value<EventItemTag>();
+        tag.bookmark = false;
+        found->setTag(QVariant::fromValue(tag));
+        RefreshIcon(found, tag);
+      }
+    }
+  }
+
+  ui->bookmarkStrip->setVisible(!bookmarks.isEmpty());
+}
+
 void EventBrowser::toggleBookmark(uint32_t EID)
 {
-  int index = m_Bookmarks.indexOf(EID);
+  EventBookmark mark(EID);
 
-  RDTreeWidgetItem *found = NULL;
-  FindEventNode(found, ui->events->topLevelItem(0), EID);
-
-  if(index >= 0)
-  {
-    delete m_BookmarkButtons.takeAt(index);
-    m_Bookmarks.removeAt(index);
-
-    if(found)
-    {
-      EventItemTag tag = found->tag().value<EventItemTag>();
-      tag.bookmark = false;
-      found->setTag(QVariant::fromValue(tag));
-      RefreshIcon(found, tag);
-    }
-  }
+  if(m_Ctx.GetBookmarks().contains(mark))
+    m_Ctx.RemoveBookmark(EID);
   else
-  {
-    QToolButton *but = new QToolButton(this);
-
-    but->setText(QString::number(EID));
-    but->setCheckable(true);
-    but->setAutoRaise(true);
-    but->setProperty("eid", EID);
-    QObject::connect(but, &QToolButton::clicked, [this, but, EID]() {
-      but->setChecked(true);
-      SelectEvent(EID);
-      highlightBookmarks();
-    });
-
-    m_BookmarkButtons.push_back(but);
-    m_Bookmarks.push_back(EID);
-
-    highlightBookmarks();
-
-    if(found)
-    {
-      EventItemTag tag = found->tag().value<EventItemTag>();
-      tag.bookmark = true;
-      found->setTag(QVariant::fromValue(tag));
-      RefreshIcon(found, tag);
-    }
-
-    m_BookmarkStripLayout->removeItem(m_BookmarkSpacer);
-    m_BookmarkStripLayout->addWidget(but);
-    m_BookmarkStripLayout->addItem(m_BookmarkSpacer);
-  }
-
-  ui->bookmarkStrip->setVisible(!m_BookmarkButtons.isEmpty());
+    m_Ctx.SetBookmark(mark);
 }
 
 void EventBrowser::jumpToBookmark(int idx)
 {
-  if(idx < 0 || idx >= m_Bookmarks.count() || !m_Ctx.IsCaptureLoaded())
+  const QList<EventBookmark> bookmarks = m_Ctx.GetBookmarks();
+  if(idx < 0 || idx >= bookmarks.count() || !m_Ctx.IsCaptureLoaded())
     return;
 
   // don't exclude ourselves, so we're updated as normal
-  SelectEvent(m_Bookmarks[idx]);
+  SelectEvent(bookmarks[idx].EID);
 }
 
 void EventBrowser::highlightBookmarks()
 {
-  for(QToolButton *b : m_BookmarkButtons)
+  for(uint32_t eid : m_BookmarkButtons.keys())
   {
-    if(b->property("eid").toUInt() == m_Ctx.CurEvent())
-      b->setChecked(true);
+    if(eid == m_Ctx.CurEvent())
+      m_BookmarkButtons[eid]->setChecked(true);
     else
-      b->setChecked(false);
+      m_BookmarkButtons[eid]->setChecked(false);
   }
 }
 
@@ -983,7 +1008,7 @@ bool EventBrowser::hasBookmark(RDTreeWidgetItem *node)
 
 bool EventBrowser::hasBookmark(uint32_t EID)
 {
-  return m_Bookmarks.contains(EID);
+  return m_Ctx.GetBookmarks().contains(EventBookmark(EID));
 }
 
 void EventBrowser::RefreshIcon(RDTreeWidgetItem *item, EventItemTag tag)

@@ -111,6 +111,7 @@ struct CaptureContextInvoker : ICaptureContext
   virtual const QVector<DebugMessage> &DebugMessages() override { return m_Ctx.DebugMessages(); }
   virtual int UnreadMessageCount() override { return m_Ctx.UnreadMessageCount(); }
   virtual void MarkMessagesRead() override { return m_Ctx.MarkMessagesRead(); }
+  virtual QList<EventBookmark> GetBookmarks() override { return m_Ctx.GetBookmarks(); }
   virtual const D3D11Pipe::State &CurD3D11PipelineState() override
   {
     return m_Ctx.CurD3D11PipelineState();
@@ -189,6 +190,15 @@ struct CaptureContextInvoker : ICaptureContext
   virtual void SetResourceCustomName(ResourceId id, const QString &name) override
   {
     InvokeVoidFunction(&ICaptureContext::SetResourceCustomName, id, name);
+  }
+
+  virtual void SetBookmark(const EventBookmark &mark) override
+  {
+    InvokeVoidFunction(&ICaptureContext::SetBookmark, mark);
+  }
+  virtual void RemoveBookmark(uint32_t EID) override
+  {
+    InvokeVoidFunction(&ICaptureContext::RemoveBookmark, EID);
   }
   virtual IMainWindow *GetMainWindow() override
   {

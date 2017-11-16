@@ -110,6 +110,7 @@ private:
   int SetFindIcons(RDTreeWidgetItem *parent, QString filter);
   int SetFindIcons(QString filter);
 
+  void repopulateBookmarks();
   void highlightBookmarks();
   bool hasBookmark(RDTreeWidgetItem *node);
 
@@ -135,8 +136,7 @@ private:
 
   FlowLayout *m_BookmarkStripLayout;
   QSpacerItem *m_BookmarkSpacer;
-  QList<int> m_Bookmarks;
-  QList<QToolButton *> m_BookmarkButtons;
+  QMap<uint32_t, QToolButton *> m_BookmarkButtons;
 
   void RefreshIcon(RDTreeWidgetItem *item, EventItemTag tag);
 

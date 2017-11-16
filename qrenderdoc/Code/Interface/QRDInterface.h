@@ -905,6 +905,23 @@ enum class CaptureModifications : uint32_t
 
 BITMASK_OPERATORS(CaptureModifications);
 
+DOCUMENT("A description of a bookmark on an event");
+struct EventBookmark
+{
+  DOCUMENT("The EID at which this bookmark is placed.");
+  uint32_t EID = 0;
+
+  DOCUMENT("The text associated with this bookmark - could be empty");
+  QString text;
+
+  DOCUMENT("");
+  EventBookmark() = default;
+  EventBookmark(uint32_t e) : EID(e) {}
+  bool operator==(const EventBookmark &o) { return EID == o.EID; }
+  bool operator!=(const EventBookmark &o) const { return EID != o.EID; }
+  bool operator<(const EventBookmark &o) const { return EID < o.EID; }
+};
+
 DOCUMENT("The capture context that the python script is running in.")
 struct ICaptureContext
 {
@@ -1278,6 +1295,34 @@ as well as messages generated during replay and analysis.
 :param list msgs: A list of :class:`~renderdoc.DebugMessage` to add.
 )");
   virtual void AddMessages(const rdcarray<DebugMessage> &msgs) = 0;
+
+  DOCUMENT(R"(Get the current list of bookmarks in the capture. Each bookmark is associated with an
+EID and has some text attached. There will only be at most one bookmark for any given EID.
+
+The list of bookmarks is not necessarily sorted by EID. Thus, bookmark 1 is always bookmark 1 until
+it is removed, the indices do not shift as new bookmarks are added or removed.
+
+:return: The currently set bookmarks.
+:rtype: ``list`` of :class:`BookMark`
+)");
+  virtual QList<EventBookmark> GetBookmarks() = 0;
+
+  DOCUMENT(R"(Set or update a bookmark.
+
+A bookmark will be added at the specified EID, or if one already exists then the attached text will
+be replaced.
+
+:param Bookmark mark: The bookmark to add.
+)");
+  virtual void SetBookmark(const EventBookmark &mark) = 0;
+
+  DOCUMENT(R"(Remove a bookmark at a given EID.
+
+If no bookmark exists, this function will do nothing.
+
+:param int EID: The EID of the bookmark to remove.
+)");
+  virtual void RemoveBookmark(uint32_t EID) = 0;
 
   DOCUMENT(R"(Retrieve the current singleton :class:`MainWindow`.
 

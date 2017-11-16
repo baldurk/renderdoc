@@ -140,6 +140,10 @@ public:
   void MarkMessagesRead() override { m_UnreadMessageCount = 0; }
   void AddMessages(const rdcarray<DebugMessage> &msgs) override;
 
+  QList<EventBookmark> GetBookmarks() override { return m_Bookmarks; }
+  void SetBookmark(const EventBookmark &mark) override;
+  void RemoveBookmark(uint32_t EID) override;
+
   IMainWindow *GetMainWindow() override;
   IEventBrowser *GetEventBrowser() override;
   IAPIInspector *GetAPIInspector() override;
@@ -246,6 +250,9 @@ private:
   QString SaveRenames();
   void LoadRenames(const QString &data);
 
+  QString SaveBookmarks();
+  void LoadBookmarks(const QString &data);
+
   float m_LoadProgress = 0.0f;
   float m_PostloadProgress = 0.0f;
   float UpdateLoadProgress();
@@ -289,6 +296,8 @@ private:
   rdcarray<BufferDescription> m_BufferList;
   QMap<ResourceId, ResourceDescription *> m_Resources;
   rdcarray<ResourceDescription> m_ResourceList;
+
+  QList<EventBookmark> m_Bookmarks;
 
   QMap<ResourceId, QString> m_CustomNames;
   int m_CustomNameCachedID = 1;
