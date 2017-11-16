@@ -597,6 +597,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
   }
 
   SERIALISE_ELEMENT(MapOffset);
+  SERIALISE_ELEMENT(MapSize);
 
   if(IsReplayingAndReading())
   {
@@ -721,8 +722,9 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
 
   if(IsReplayingAndReading())
   {
-    VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(MemRange.memory),
-                                              MemRange.offset, memRangeSize, 0, (void **)&MappedData);
+    VkResult ret =
+        ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(MemRange.memory), MemRange.offset,
+                                   MemRange.size, 0, (void **)&MappedData);
     if(ret != VK_SUCCESS)
       RDCERR("Error mapping memory on replay: %s", ToStr(ret).c_str());
   }
