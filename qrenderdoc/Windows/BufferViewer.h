@@ -52,7 +52,7 @@ struct BufferExport
   BufferExport(ExportFormat f) : format(f) {}
 };
 
-class BufferViewer : public QFrame, public IBufferViewer, public ILogViewer
+class BufferViewer : public QFrame, public IBufferViewer, public ICaptureViewer
 {
   Q_OBJECT
 
@@ -78,9 +78,9 @@ public:
   void ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id,
                    const QString &format = QString()) override;
 
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
 

@@ -338,7 +338,7 @@ as is currently running, then by default the UI will prompt to ask if you want t
 This option overrides that and will always replay locally if the local context is selected.</string>
             </property>
             <property name="text">
-             <string>Always replay logs locally, never prompt about it</string>
+             <string>Always replay captures locally, never prompt about it</string>
             </property>
            </widget>
           </item>
@@ -849,7 +849,7 @@ If {spv_disas} is not used, the tool is expected to output the disassembly on st
              <string>In the Event Browser, add fake markers if none are found in the capture.</string>
             </property>
             <property name="text">
-             <string>Add fake markers if none present (requires log reload)</string>
+             <string>Add fake markers if none present (requires capture reload)</string>
             </property>
             <property name="wordWrap">
              <bool>true</bool>

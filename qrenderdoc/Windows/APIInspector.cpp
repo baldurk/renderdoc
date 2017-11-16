@@ -46,21 +46,21 @@ APIInspector::APIInspector(ICaptureContext &ctx, QWidget *parent)
   handle->setIndex(1);
   handle->setCollapsed(true);
 
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 }
 
 APIInspector::~APIInspector()
 {
   m_Ctx.BuiltinWindowClosed(this);
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
   delete ui;
 }
 
-void APIInspector::OnLogfileLoaded()
+void APIInspector::OnCaptureLoaded()
 {
 }
 
-void APIInspector::OnLogfileClosed()
+void APIInspector::OnCaptureClosed()
 {
   ui->apiEvents->clear();
   ui->callstack->clear();

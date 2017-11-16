@@ -335,12 +335,12 @@ VulkanPipelineStateViewer::~VulkanPipelineStateViewer()
   delete ui;
 }
 
-void VulkanPipelineStateViewer::OnLogfileLoaded()
+void VulkanPipelineStateViewer::OnCaptureLoaded()
 {
   OnEventChanged(m_Ctx.CurEvent());
 }
 
-void VulkanPipelineStateViewer::OnLogfileClosed()
+void VulkanPipelineStateViewer::OnCaptureClosed()
 {
   ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
 
@@ -492,7 +492,7 @@ bool VulkanPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 
 const VKPipe::Shader *VulkanPipelineStateViewer::stageForSender(QWidget *widget)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return NULL;
 
   while(widget)
@@ -1434,7 +1434,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
 
 void VulkanPipelineStateViewer::setState()
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
   {
     clearState();
     return;
@@ -2187,7 +2187,7 @@ void VulkanPipelineStateViewer::highlightIABind(int slot)
 
 void VulkanPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   QModelIndex idx = ui->viAttrs->indexAt(e->pos());
@@ -2209,7 +2209,7 @@ void VulkanPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 
 void VulkanPipelineStateViewer::on_viBuffers_mouseMove(QMouseEvent *e)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   RDTreeWidgetItem *item = ui->viBuffers->itemAt(e->pos());

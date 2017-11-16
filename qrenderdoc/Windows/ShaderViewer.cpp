@@ -194,7 +194,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   layout->addWidget(ui->toolbar);
   layout->addWidget(ui->docking);
 
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 }
 
 void ShaderViewer::editShader(bool customShader, const QString &entryPoint, const QStringMap &files)
@@ -590,15 +590,15 @@ ShaderViewer::~ShaderViewer()
   if(m_CloseCallback)
     m_CloseCallback(&m_Ctx);
 
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
   delete ui;
 }
 
-void ShaderViewer::OnLogfileLoaded()
+void ShaderViewer::OnCaptureLoaded()
 {
 }
 
-void ShaderViewer::OnLogfileClosed()
+void ShaderViewer::OnCaptureClosed()
 {
   ToolWindowManager::closeToolWindow(this);
 }

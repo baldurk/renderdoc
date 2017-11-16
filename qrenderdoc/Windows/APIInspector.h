@@ -34,7 +34,7 @@ class APIInspector;
 
 class RDTreeWidgetItem;
 
-class APIInspector : public QFrame, public IAPIInspector, public ILogViewer
+class APIInspector : public QFrame, public IAPIInspector, public ICaptureViewer
 {
   Q_OBJECT
 
@@ -45,9 +45,9 @@ public:
   // IAPIInspector
   QWidget *Widget() override { return this; }
   void Refresh() override { on_apiEvents_itemSelectionChanged(); }
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override;
   void OnEventChanged(uint32_t eventID) override {}
 public slots:

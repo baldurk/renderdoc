@@ -144,13 +144,13 @@ ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
 
   Inspect(ResourceId());
 
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 }
 
 ResourceInspector::~ResourceInspector()
 {
   m_Ctx.BuiltinWindowClosed(this);
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
   delete ui;
 }
 
@@ -252,7 +252,7 @@ void ResourceInspector::Inspect(ResourceId id)
   ui->initChunks->setUpdatesEnabled(true);
 }
 
-void ResourceInspector::OnLogfileLoaded()
+void ResourceInspector::OnCaptureLoaded()
 {
   ui->renameResource->setEnabled(true);
 
@@ -260,7 +260,7 @@ void ResourceInspector::OnLogfileLoaded()
   m_FilterModel->sort(0);
 }
 
-void ResourceInspector::OnLogfileClosed()
+void ResourceInspector::OnCaptureClosed()
 {
   ui->renameResource->setEnabled(false);
   ui->resetName->hide();

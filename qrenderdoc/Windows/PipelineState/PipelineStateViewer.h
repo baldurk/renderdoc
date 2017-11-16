@@ -41,7 +41,7 @@ class D3D12PipelineStateViewer;
 class GLPipelineStateViewer;
 class VulkanPipelineStateViewer;
 
-class PipelineStateViewer : public QFrame, public IPipelineStateViewer, public ILogViewer
+class PipelineStateViewer : public QFrame, public IPipelineStateViewer, public ICaptureViewer
 {
   Q_OBJECT
 
@@ -55,9 +55,9 @@ public:
   QWidget *Widget() override { return this; }
   bool SaveShaderFile(const ShaderReflection *shader) override;
 
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
 
@@ -101,5 +101,5 @@ private:
   D3D12PipelineStateViewer *m_D3D12;
   GLPipelineStateViewer *m_GL;
   VulkanPipelineStateViewer *m_Vulkan;
-  ILogViewer *m_Current;
+  ICaptureViewer *m_Current;
 };

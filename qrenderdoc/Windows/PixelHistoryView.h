@@ -35,7 +35,7 @@ class PixelHistoryView;
 class PixelHistoryItemModel;
 struct EventTag;
 
-class PixelHistoryView : public QFrame, public IPixelHistoryView, public ILogViewer
+class PixelHistoryView : public QFrame, public IPixelHistoryView, public ICaptureViewer
 {
   Q_OBJECT
 
@@ -48,9 +48,9 @@ public:
   QWidget *Widget() override { return this; }
   void SetHistory(const rdcarray<PixelModification> &history) override;
 
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
 private slots:

@@ -391,12 +391,12 @@ GLPipelineStateViewer::~GLPipelineStateViewer()
   delete ui;
 }
 
-void GLPipelineStateViewer::OnLogfileLoaded()
+void GLPipelineStateViewer::OnCaptureLoaded()
 {
   OnEventChanged(m_Ctx.CurEvent());
 }
 
-void GLPipelineStateViewer::OnLogfileClosed()
+void GLPipelineStateViewer::OnCaptureClosed()
 {
   ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
 
@@ -451,7 +451,7 @@ bool GLPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 
 const GLPipe::Shader *GLPipelineStateViewer::stageForSender(QWidget *widget)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return NULL;
 
   while(widget)
@@ -1074,7 +1074,7 @@ GLPipelineStateViewer::GLReadWriteType GLPipelineStateViewer::GetGLReadWriteType
 
 void GLPipelineStateViewer::setState()
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
   {
     clearState();
     return;
@@ -2083,7 +2083,7 @@ void GLPipelineStateViewer::highlightIABind(int slot)
 
 void GLPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   QModelIndex idx = ui->viAttrs->indexAt(e->pos());
@@ -2105,7 +2105,7 @@ void GLPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 
 void GLPipelineStateViewer::on_viBuffers_mouseMove(QMouseEvent *e)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   RDTreeWidgetItem *item = ui->viBuffers->itemAt(e->pos());

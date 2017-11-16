@@ -100,13 +100,13 @@ PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget
 {
   ui->setupUi(this);
 
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 
   connect(ui->captureCounters, &QToolButton::clicked, this,
           &PerformanceCounterViewer::CaptureCounters);
 
-  ui->captureCounters->setEnabled(m_Ctx.LogLoaded());
-  ui->saveCSV->setEnabled(m_Ctx.LogLoaded());
+  ui->captureCounters->setEnabled(m_Ctx.IsCaptureLoaded());
+  ui->saveCSV->setEnabled(m_Ctx.IsCaptureLoaded());
 
   ui->counterResults->horizontalHeader()->setSectionsMovable(true);
 }
@@ -115,7 +115,7 @@ PerformanceCounterViewer::~PerformanceCounterViewer()
 {
   m_Ctx.BuiltinWindowClosed(this);
 
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
   delete ui;
 }
 
@@ -178,7 +178,7 @@ QTableWidgetItem *PerformanceCounterViewer::MakeCounterResultItem(const CounterR
 
 void PerformanceCounterViewer::CaptureCounters()
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   PerformanceCounterSelection pcs(m_Ctx, m_SelectedCounters, this);
@@ -253,13 +253,13 @@ void PerformanceCounterViewer::CaptureCounters()
   ShowProgressDialog(this, tr("Capturing counters"), [&done]() -> bool { return done; });
 }
 
-void PerformanceCounterViewer::OnLogfileClosed()
+void PerformanceCounterViewer::OnCaptureClosed()
 {
   ui->captureCounters->setEnabled(false);
   ui->saveCSV->setEnabled(false);
 }
 
-void PerformanceCounterViewer::OnLogfileLoaded()
+void PerformanceCounterViewer::OnCaptureLoaded()
 {
   ui->captureCounters->setEnabled(true);
   ui->saveCSV->setEnabled(true);

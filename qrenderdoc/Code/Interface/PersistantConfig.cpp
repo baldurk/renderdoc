@@ -168,6 +168,15 @@ void PersistantConfig::applyValues(const QVariantMap &values)
     name = convertFromVariant<type>(values[lit(#name)].value<variantType>());
 
   CONFIG_SETTINGS()
+
+// backwards compatibility code, to apply old values.
+#define RENAMED_SETTING(variantType, oldName, newName) \
+  if(values.contains(lit(#oldName)))                   \
+    newName = convertFromVariant<decltype(newName)>(values[lit(#oldName)].value<variantType>());
+
+  RENAMED_SETTING(QString, LastLogPath, LastCaptureFilePath);
+  RENAMED_SETTING(QVariantList, RecentLogFiles, RecentCaptureFiles);
+  RENAMED_SETTING(QDateTime, DegradedLog_LastUpdate, DegradedCapture_LastUpdate);
 }
 
 void PersistantConfig::AddAndroidHosts()

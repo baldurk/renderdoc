@@ -1121,7 +1121,7 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 
   Reset();
 
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 }
 
 void BufferViewer::SetupRawView()
@@ -1303,7 +1303,7 @@ void BufferViewer::stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &
 
   menu->clear();
 
-  if(m_MeshView && stage != MeshDataStage::GSOut && m_Ctx.CurPipelineState().IsLogD3D11())
+  if(m_MeshView && stage != MeshDataStage::GSOut && m_Ctx.CurPipelineState().IsCaptureD3D11())
   {
     menu->addAction(m_DebugVert);
     menu->addSeparator();
@@ -1345,11 +1345,11 @@ BufferViewer::~BufferViewer()
   if(m_MeshView)
     m_Ctx.BuiltinWindowClosed(this);
 
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
   delete ui;
 }
 
-void BufferViewer::OnLogfileLoaded()
+void BufferViewer::OnCaptureLoaded()
 {
   Reset();
 
@@ -1368,7 +1368,7 @@ void BufferViewer::OnLogfileLoaded()
   });
 }
 
-void BufferViewer::OnLogfileClosed()
+void BufferViewer::OnCaptureClosed()
 {
   Reset();
 
@@ -2421,7 +2421,7 @@ void BufferViewer::configureDrawRange()
   bool instanced = true;
 
   // don't check the flags, check if there are actually multiple instances
-  if(m_Ctx.LogLoaded())
+  if(m_Ctx.IsCaptureLoaded())
     instanced = draw && draw->numInstances > 1;
 
   ui->drawRange->blockSignals(true);
@@ -2525,7 +2525,7 @@ void BufferViewer::UpdateMeshConfig()
 
 void BufferViewer::render_mouseMove(QMouseEvent *e)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   if(m_CurrentCamera)
@@ -2539,7 +2539,7 @@ void BufferViewer::render_mouseMove(QMouseEvent *e)
 
 void BufferViewer::render_clicked(QMouseEvent *e)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   QPoint curpos = e->pos();
@@ -2592,7 +2592,7 @@ void BufferViewer::ScrollToRow(BufferItemModel *model, int row)
 void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                               const QString &format)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   m_IsBuffer = true;
@@ -2611,7 +2611,7 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
 
 void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, const QString &format)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   m_IsBuffer = false;
@@ -2710,7 +2710,7 @@ bool BufferViewer::isCurrentRasterOut()
   }
   else if(m_CurStage == MeshDataStage::VSOut)
   {
-    if(m_Ctx.LogLoaded() && m_Ctx.CurPipelineState().IsTessellationEnabled())
+    if(m_Ctx.IsCaptureLoaded() && m_Ctx.CurPipelineState().IsTessellationEnabled())
       return false;
 
     return true;
@@ -2751,8 +2751,8 @@ void BufferViewer::Reset()
 
   ICaptureContext *ctx = &m_Ctx;
 
-  // while a log is loaded, pass NULL into the widget
-  if(!m_Ctx.LogLoaded())
+  // while a capture is loaded, pass NULL into the widget
+  if(!m_Ctx.IsCaptureLoaded())
     ctx = NULL;
 
   {
@@ -3031,7 +3031,7 @@ void BufferViewer::on_byteRangeLength_valueChanged(int value)
 
 void BufferViewer::exportData(const BufferExport &params)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   if(!m_Ctx.CurDrawcall())
@@ -3154,7 +3154,7 @@ void BufferViewer::exportData(const BufferExport &params)
 
 void BufferViewer::debugVertex()
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   if(!m_Ctx.CurDrawcall())

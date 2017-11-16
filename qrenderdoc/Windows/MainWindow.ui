@@ -60,29 +60,29 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <widget class="QMenu" name="menu_Recent_Logs">
+    <widget class="QMenu" name="menu_Recent_Capture_Files">
      <property name="title">
       <string>&amp;Recent Captures</string>
      </property>
      <addaction name="separator"/>
-     <addaction name="action_Clear_Log_History"/>
+     <addaction name="action_Clear_Capture_Files_History"/>
     </widget>
     <widget class="QMenu" name="menu_Recent_Capture_Settings">
      <property name="title">
       <string>R&amp;ecent Capture Settings</string>
      </property>
      <addaction name="separator"/>
-     <addaction name="action_Clear_Capture_History"/>
+     <addaction name="action_Clear_Capture_Settings_History"/>
     </widget>
     <addaction name="action_Launch_Application"/>
     <addaction name="action_Attach_to_Running_Instance"/>
     <addaction name="action_Inject_into_Process"/>
     <addaction name="separator"/>
-    <addaction name="action_Open_Log"/>
-    <addaction name="action_Save_Log"/>
-    <addaction name="action_Close_Log"/>
+    <addaction name="action_Open_Capture"/>
+    <addaction name="action_Save_Capture"/>
+    <addaction name="action_Close_Capture"/>
     <addaction name="separator"/>
-    <addaction name="menu_Recent_Logs"/>
+    <addaction name="menu_Recent_Capture_Files"/>
     <addaction name="menu_Recent_Capture_Settings"/>
     <addaction name="separator"/>
     <addaction name="action_Exit"/>
@@ -173,7 +173,7 @@
     <string>&amp;Inject into Process</string>
    </property>
   </action>
-  <action name="action_Open_Log">
+  <action name="action_Open_Capture">
    <property name="text">
     <string>&amp;Open Capture</string>
    </property>
@@ -181,7 +181,7 @@
     <string>Ctrl+O</string>
    </property>
   </action>
-  <action name="action_Save_Log">
+  <action name="action_Save_Capture">
    <property name="text">
     <string>&amp;Save Capture</string>
    </property>
@@ -189,7 +189,7 @@
     <string>Ctrl+S</string>
    </property>
   </action>
-  <action name="action_Close_Log">
+  <action name="action_Close_Capture">
    <property name="text">
     <string>&amp;Close Capture</string>
    </property>
@@ -324,11 +324,6 @@
     <string>&amp;Resolve Symbols</string>
    </property>
   </action>
-  <action name="action_Log_Statistics">
-   <property name="text">
-    <string>&amp;Statistics</string>
-   </property>
-  </action>
   <action name="action_Settings">
    <property name="text">
     <string>&amp;Settings</string>
@@ -374,12 +369,12 @@
     <string>&amp;About</string>
    </property>
   </action>
-  <action name="action_Clear_Log_History">
+  <action name="action_Clear_Capture_Files_History">
    <property name="text">
     <string>Clear History</string>
    </property>
   </action>
-  <action name="action_Clear_Capture_History">
+  <action name="action_Clear_Capture_Settings_History">
    <property name="text">
     <string>Clear History</string>
    </property>

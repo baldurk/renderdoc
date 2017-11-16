@@ -41,7 +41,7 @@ class QTextStream;
 class FlowLayout;
 struct EventItemTag;
 
-class EventBrowser : public QFrame, public IEventBrowser, public ILogViewer
+class EventBrowser : public QFrame, public IEventBrowser, public ICaptureViewer
 {
 private:
   Q_OBJECT
@@ -55,9 +55,9 @@ public:
   // IEventBrowser
   QWidget *Widget() override { return this; }
   void UpdateDurationColumn() override;
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
 

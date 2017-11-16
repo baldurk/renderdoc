@@ -50,15 +50,16 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return m_Ctx.ConfigFilePath(filename);
   }
-  virtual QString TempLogFilename(QString appname) override
+  virtual QString TempCaptureFilename(QString appname) override
   {
-    return m_Ctx.TempLogFilename(appname);
+    return m_Ctx.TempCaptureFilename(appname);
   }
   virtual IReplayManager &Replay() override { return m_Ctx.Replay(); }
-  virtual bool LogLoaded() override { return m_Ctx.LogLoaded(); }
-  virtual bool IsLogLocal() override { return m_Ctx.IsLogLocal(); }
-  virtual bool LogLoading() override { return m_Ctx.LogLoading(); }
-  virtual QString LogFilename() override { return m_Ctx.LogFilename(); }
+  virtual bool IsCaptureLoaded() override { return m_Ctx.IsCaptureLoaded(); }
+  virtual bool IsCaptureLocal() override { return m_Ctx.IsCaptureLocal(); }
+  virtual bool IsCaptureTemporary() override { return m_Ctx.IsCaptureTemporary(); }
+  virtual bool IsCaptureLoading() override { return m_Ctx.IsCaptureLoading(); }
+  virtual QString GetCaptureFilename() override { return m_Ctx.GetCaptureFilename(); }
   virtual const FrameDescription &FrameInfo() override { return m_Ctx.FrameInfo(); }
   virtual const APIProperties &APIProps() override { return m_Ctx.APIProps(); }
   virtual uint32_t CurSelectedEvent() override { return m_Ctx.CurSelectedEvent(); }
@@ -153,25 +154,29 @@ struct CaptureContextInvoker : ICaptureContext
     return (m_Ctx.*ptr)(params...);
   }
 
-  virtual void LoadLogfile(const QString &logFile, const QString &origFilename, bool temporary,
+  virtual void LoadCapture(const QString &capture, const QString &origFilename, bool temporary,
                            bool local) override
   {
-    InvokeVoidFunction(&ICaptureContext::LoadLogfile, logFile, origFilename, temporary, local);
+    InvokeVoidFunction(&ICaptureContext::LoadCapture, capture, origFilename, temporary, local);
   }
-  virtual void CloseLogfile() override { InvokeVoidFunction(&ICaptureContext::CloseLogfile); }
-  virtual void SetEventID(const QVector<ILogViewer *> &exclude, uint32_t selectedEventID,
+  virtual bool SaveCaptureTo(const QString &capture) override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::SaveCaptureTo, capture);
+  }
+  virtual void CloseCapture() override { InvokeVoidFunction(&ICaptureContext::CloseCapture); }
+  virtual void SetEventID(const QVector<ICaptureViewer *> &exclude, uint32_t selectedEventID,
                           uint32_t eventID, bool force = false) override
   {
     InvokeVoidFunction(&ICaptureContext::SetEventID, exclude, selectedEventID, eventID, force);
   }
   virtual void RefreshStatus() override { InvokeVoidFunction(&ICaptureContext::RefreshStatus); }
-  virtual void AddLogViewer(ILogViewer *viewer) override
+  virtual void AddCaptureViewer(ICaptureViewer *viewer) override
   {
-    InvokeVoidFunction(&ICaptureContext::AddLogViewer, viewer);
+    InvokeVoidFunction(&ICaptureContext::AddCaptureViewer, viewer);
   }
-  virtual void RemoveLogViewer(ILogViewer *viewer) override
+  virtual void RemoveCaptureViewer(ICaptureViewer *viewer) override
   {
-    InvokeVoidFunction(&ICaptureContext::RemoveLogViewer, viewer);
+    InvokeVoidFunction(&ICaptureContext::RemoveCaptureViewer, viewer);
   }
   virtual void AddMessages(const rdcarray<DebugMessage> &msgs) override
   {

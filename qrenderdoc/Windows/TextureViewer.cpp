@@ -463,7 +463,7 @@ TextureDescription *TextureViewer::GetCurrentTexture()
 
 void TextureViewer::UI_UpdateCachedTexture()
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
   {
     m_CachedTexture = NULL;
     return;
@@ -646,7 +646,7 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
   ui->zoomOption->setCurrentText(QString());
   ui->fitToWindow->toggle();
 
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 
   SetupTextureTabs();
 }
@@ -657,7 +657,7 @@ TextureViewer::~TextureViewer()
     m_Output->Shutdown();
 
   m_Ctx.BuiltinWindowClosed(this);
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
   delete ui;
 }
 
@@ -1416,7 +1416,7 @@ void TextureViewer::UI_UpdateChannels()
     }
     m_TexDisplay.CustomShader = ResourceId();
   }
-  else if(ui->channels->currentIndex() == 0 || !m_Ctx.LogLoaded())
+  else if(ui->channels->currentIndex() == 0 || !m_Ctx.IsCaptureLoaded())
   {
     // RGBA
     SHOW(ui->channelRed);
@@ -1654,7 +1654,7 @@ void TextureViewer::UI_CreateThumbnails()
 
 void TextureViewer::GotoLocation(int x, int y)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   TextureDescription *tex = GetCurrentTexture();
@@ -1770,7 +1770,7 @@ void TextureViewer::showDisabled_triggered()
 {
   m_ShowDisabled = !m_ShowDisabled;
 
-  if(m_Ctx.LogLoaded())
+  if(m_Ctx.IsCaptureLoaded())
     m_Ctx.RefreshStatus();
 }
 
@@ -1778,7 +1778,7 @@ void TextureViewer::showEmpty_triggered()
 {
   m_ShowEmpty = !m_ShowEmpty;
 
-  if(m_Ctx.LogLoaded())
+  if(m_Ctx.IsCaptureLoaded())
     m_Ctx.RefreshStatus();
 }
 
@@ -2182,7 +2182,7 @@ void TextureViewer::render_keyPress(QKeyEvent *e)
     clipboard->setText(ui->texStatusDim->text() + lit(" | ") + ui->statusText->text());
   }
 
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   if((e->modifiers() & Qt::ControlModifier) && e->key() == Qt::Key_G)
@@ -2355,8 +2355,8 @@ void TextureViewer::UI_RecreatePanels()
 {
   ICaptureContext *ctx = &m_Ctx;
 
-  // while a log is loaded, pass NULL into the widget
-  if(!m_Ctx.LogLoaded())
+  // while a capture is loaded, pass NULL into the widget
+  if(!m_Ctx.IsCaptureLoaded())
     ctx = NULL;
 
   {
@@ -2404,7 +2404,7 @@ void TextureViewer::updateBackgroundColors()
   }
 }
 
-void TextureViewer::OnLogfileLoaded()
+void TextureViewer::OnCaptureLoaded()
 {
   Reset();
 
@@ -2415,7 +2415,7 @@ void TextureViewer::OnLogfileLoaded()
   ui->locationGoto->setEnabled(true);
   ui->viewTexBuffer->setEnabled(true);
 
-  if(m_Ctx.CurPipelineState().IsLogD3D11())
+  if(m_Ctx.CurPipelineState().IsCaptureD3D11())
   {
     ui->pixelHistory->setEnabled(true);
     ui->pixelHistory->setToolTip(QString());
@@ -2426,7 +2426,7 @@ void TextureViewer::OnLogfileLoaded()
     ui->pixelHistory->setToolTip(tr("Pixel History not implemented on this API"));
   }
 
-  if(m_Ctx.CurPipelineState().IsLogD3D11())
+  if(m_Ctx.CurPipelineState().IsCaptureD3D11())
   {
     ui->debugPixelContext->setEnabled(true);
     ui->debugPixelContext->setToolTip(QString());
@@ -2528,7 +2528,7 @@ void TextureViewer::Reset()
   UI_UpdateChannels();
 }
 
-void TextureViewer::OnLogfileClosed()
+void TextureViewer::OnCaptureClosed()
 {
   Reset();
 
@@ -2990,8 +2990,8 @@ void TextureViewer::on_visualiseRange_clicked()
 
 void TextureViewer::AutoFitRange()
 {
-  // no log loaded or buffer/empty texture currently being viewed - don't autofit
-  if(!m_Ctx.LogLoaded() || GetCurrentTexture() == NULL || m_Output == NULL)
+  // no capture loaded or buffer/empty texture currently being viewed - don't autofit
+  if(!m_Ctx.IsCaptureLoaded() || GetCurrentTexture() == NULL || m_Output == NULL)
     return;
 
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
@@ -3501,7 +3501,7 @@ void TextureViewer::on_textureList_clicked(const QModelIndex &index)
 
 void TextureViewer::reloadCustomShaders(const QString &filter)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   if(filter.isEmpty())

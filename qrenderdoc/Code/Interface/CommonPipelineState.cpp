@@ -28,9 +28,9 @@
 
 QString CommonPipelineState::GetResourceLayout(ResourceId id)
 {
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogVK())
+    if(IsCaptureVK())
     {
       for(const VKPipe::ImageData &i : m_Vulkan->images)
       {
@@ -39,7 +39,7 @@ QString CommonPipelineState::GetResourceLayout(ResourceId id)
       }
     }
 
-    if(IsLogD3D12())
+    if(IsCaptureD3D12())
     {
       for(const D3D12Pipe::ResourceData &r : m_D3D12->Resources)
       {
@@ -54,8 +54,8 @@ QString CommonPipelineState::GetResourceLayout(ResourceId id)
 
 QString CommonPipelineState::Abbrev(ShaderStage stage)
 {
-  if(IsLogD3D11() || (!LogLoaded() && DefaultType == GraphicsAPI::D3D11) || IsLogD3D12() ||
-     (!LogLoaded() && DefaultType == GraphicsAPI::D3D12))
+  if(IsCaptureD3D11() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::D3D11) ||
+     IsCaptureD3D12() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::D3D12))
   {
     switch(stage)
     {
@@ -68,8 +68,8 @@ QString CommonPipelineState::Abbrev(ShaderStage stage)
       default: break;
     }
   }
-  else if(IsLogGL() || (!LogLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsLogVK() ||
-          (!LogLoaded() && DefaultType == GraphicsAPI::Vulkan))
+  else if(IsCaptureGL() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::OpenGL) ||
+          IsCaptureVK() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::Vulkan))
   {
     switch(stage)
     {
@@ -88,8 +88,8 @@ QString CommonPipelineState::Abbrev(ShaderStage stage)
 
 QString CommonPipelineState::OutputAbbrev()
 {
-  if(IsLogGL() || (!LogLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsLogVK() ||
-     (!LogLoaded() && DefaultType == GraphicsAPI::Vulkan))
+  if(IsCaptureGL() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsCaptureVK() ||
+     (!IsCaptureLoaded() && DefaultType == GraphicsAPI::Vulkan))
   {
     return lit("FB");
   }
@@ -175,8 +175,8 @@ const VKPipe::Shader &CommonPipelineState::GetVulkanStage(ShaderStage stage)
 
 QString CommonPipelineState::GetShaderExtension()
 {
-  if(IsLogGL() || (!LogLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsLogVK() ||
-     (!LogLoaded() && DefaultType == GraphicsAPI::Vulkan))
+  if(IsCaptureGL() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsCaptureVK() ||
+     (!IsCaptureLoaded() && DefaultType == GraphicsAPI::Vulkan))
   {
     return lit("glsl");
   }
@@ -192,30 +192,30 @@ Viewport CommonPipelineState::GetViewport(int index)
   ret.x = ret.y = 0.0f;
   ret.width = ret.height = 1.0f;
 
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11() && index < m_D3D11->m_RS.Viewports.count())
+    if(IsCaptureD3D11() && index < m_D3D11->m_RS.Viewports.count())
     {
       ret.x = m_D3D11->m_RS.Viewports[index].X;
       ret.y = m_D3D11->m_RS.Viewports[index].Y;
       ret.width = m_D3D11->m_RS.Viewports[index].Width;
       ret.height = m_D3D11->m_RS.Viewports[index].Height;
     }
-    else if(IsLogD3D12() && index < m_D3D12->m_RS.Viewports.count())
+    else if(IsCaptureD3D12() && index < m_D3D12->m_RS.Viewports.count())
     {
       ret.x = m_D3D12->m_RS.Viewports[index].X;
       ret.y = m_D3D12->m_RS.Viewports[index].Y;
       ret.width = m_D3D12->m_RS.Viewports[index].Width;
       ret.height = m_D3D12->m_RS.Viewports[index].Height;
     }
-    else if(IsLogGL() && index < m_GL->m_Rasterizer.Viewports.count())
+    else if(IsCaptureGL() && index < m_GL->m_Rasterizer.Viewports.count())
     {
       ret.x = m_GL->m_Rasterizer.Viewports[index].Left;
       ret.y = m_GL->m_Rasterizer.Viewports[index].Bottom;
       ret.width = m_GL->m_Rasterizer.Viewports[index].Width;
       ret.height = m_GL->m_Rasterizer.Viewports[index].Height;
     }
-    else if(IsLogVK() && index < m_Vulkan->VP.viewportScissors.count())
+    else if(IsCaptureVK() && index < m_Vulkan->VP.viewportScissors.count())
     {
       ret.x = m_Vulkan->VP.viewportScissors[index].vp.x;
       ret.y = m_Vulkan->VP.viewportScissors[index].vp.y;
@@ -229,9 +229,9 @@ Viewport CommonPipelineState::GetViewport(int index)
 
 const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderStage stage)
 {
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       switch(stage)
       {
@@ -244,7 +244,7 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
         default: break;
       }
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       switch(stage)
       {
@@ -257,7 +257,7 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
         default: break;
       }
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       switch(stage)
       {
@@ -270,7 +270,7 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
         default: break;
       }
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       switch(stage)
       {
@@ -292,9 +292,9 @@ const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderSta
 
 const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage stage)
 {
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       switch(stage)
       {
@@ -307,7 +307,7 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage sta
         default: break;
       }
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       switch(stage)
       {
@@ -320,7 +320,7 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage sta
         default: break;
       }
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       switch(stage)
       {
@@ -333,7 +333,7 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage sta
         default: break;
       }
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       switch(stage)
       {
@@ -353,11 +353,11 @@ const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStage sta
 
 ResourceId CommonPipelineState::GetComputePipelineObject()
 {
-  if(LogLoaded() && IsLogVK())
+  if(IsCaptureLoaded() && IsCaptureVK())
   {
     return m_Vulkan->compute.obj;
   }
-  else if(LogLoaded() && IsLogD3D12())
+  else if(IsCaptureLoaded() && IsCaptureD3D12())
   {
     return m_D3D12->pipeline;
   }
@@ -367,11 +367,11 @@ ResourceId CommonPipelineState::GetComputePipelineObject()
 
 ResourceId CommonPipelineState::GetGraphicsPipelineObject()
 {
-  if(LogLoaded() && IsLogVK())
+  if(IsCaptureLoaded() && IsCaptureVK())
   {
     return m_Vulkan->graphics.obj;
   }
-  else if(LogLoaded() && IsLogD3D12())
+  else if(IsCaptureLoaded() && IsCaptureD3D12())
   {
     return m_D3D12->pipeline;
   }
@@ -381,7 +381,7 @@ ResourceId CommonPipelineState::GetGraphicsPipelineObject()
 
 QString CommonPipelineState::GetShaderEntryPoint(ShaderStage stage)
 {
-  if(LogLoaded() && IsLogVK())
+  if(IsCaptureLoaded() && IsCaptureVK())
   {
     switch(stage)
     {
@@ -400,9 +400,9 @@ QString CommonPipelineState::GetShaderEntryPoint(ShaderStage stage)
 
 ResourceId CommonPipelineState::GetShader(ShaderStage stage)
 {
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       switch(stage)
       {
@@ -415,7 +415,7 @@ ResourceId CommonPipelineState::GetShader(ShaderStage stage)
         default: break;
       }
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       switch(stage)
       {
@@ -428,7 +428,7 @@ ResourceId CommonPipelineState::GetShader(ShaderStage stage)
         default: break;
       }
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       switch(stage)
       {
@@ -441,7 +441,7 @@ ResourceId CommonPipelineState::GetShader(ShaderStage stage)
         default: break;
       }
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       switch(stage)
       {
@@ -463,9 +463,9 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
 {
   QString ret;
 
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       switch(stage)
       {
@@ -478,7 +478,7 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
         default: break;
       }
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       switch(stage)
       {
@@ -491,7 +491,7 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
         default: break;
       }
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       switch(stage)
       {
@@ -504,7 +504,7 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
         default: break;
       }
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       switch(stage)
       {
@@ -527,24 +527,24 @@ QPair<ResourceId, uint64_t> CommonPipelineState::GetIBuffer()
   ResourceId buf;
   uint64_t ByteOffset = 0;
 
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       buf = m_D3D11->m_IA.ibuffer.Buffer;
       ByteOffset = m_D3D11->m_IA.ibuffer.Offset;
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       buf = m_D3D12->m_IA.ibuffer.Buffer;
       ByteOffset = m_D3D12->m_IA.ibuffer.Offset;
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       buf = m_GL->m_VtxIn.ibuffer;
       ByteOffset = 0;    // GL only has per-draw index offset
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       buf = m_Vulkan->IA.ibuffer.buf;
       ByteOffset = m_Vulkan->IA.ibuffer.offs;
@@ -556,22 +556,22 @@ QPair<ResourceId, uint64_t> CommonPipelineState::GetIBuffer()
 
 bool CommonPipelineState::IsStripRestartEnabled()
 {
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       // D3D11 this is always enabled
       return true;
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       return m_D3D12->m_IA.indexStripCutValue != 0;
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       return m_GL->m_VtxIn.primitiveRestart;
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       return m_Vulkan->IA.primitiveRestartEnable;
     }
@@ -582,18 +582,18 @@ bool CommonPipelineState::IsStripRestartEnabled()
 
 uint32_t CommonPipelineState::GetStripRestartIndex()
 {
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11() || IsLogVK())
+    if(IsCaptureD3D11() || IsCaptureVK())
     {
       // D3D11 or Vulkan this is always '-1'
       return UINT32_MAX;
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       return m_D3D12->m_IA.indexStripCutValue;
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       return qMin(UINT32_MAX, m_GL->m_VtxIn.restartIndex);
     }
@@ -606,9 +606,9 @@ QVector<BoundVBuffer> CommonPipelineState::GetVBuffers()
 {
   QVector<BoundVBuffer> ret;
 
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       ret.resize(m_D3D11->m_IA.vbuffers.count());
       for(int i = 0; i < m_D3D11->m_IA.vbuffers.count(); i++)
@@ -618,7 +618,7 @@ QVector<BoundVBuffer> CommonPipelineState::GetVBuffers()
         ret[i].ByteStride = m_D3D11->m_IA.vbuffers[i].Stride;
       }
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       ret.resize(m_D3D12->m_IA.vbuffers.count());
       for(int i = 0; i < m_D3D12->m_IA.vbuffers.count(); i++)
@@ -628,7 +628,7 @@ QVector<BoundVBuffer> CommonPipelineState::GetVBuffers()
         ret[i].ByteStride = m_D3D12->m_IA.vbuffers[i].Stride;
       }
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       ret.resize(m_GL->m_VtxIn.vbuffers.count());
       for(int i = 0; i < m_GL->m_VtxIn.vbuffers.count(); i++)
@@ -638,7 +638,7 @@ QVector<BoundVBuffer> CommonPipelineState::GetVBuffers()
         ret[i].ByteStride = m_GL->m_VtxIn.vbuffers[i].Stride;
       }
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       ret.resize(m_Vulkan->VI.binds.count());
       for(int i = 0; i < m_Vulkan->VI.binds.count(); i++)
@@ -656,9 +656,9 @@ QVector<BoundVBuffer> CommonPipelineState::GetVBuffers()
 
 QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
 {
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       uint32_t byteOffs[128] = {};
 
@@ -716,7 +716,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
 
       return ret;
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       uint32_t byteOffs[128] = {};
 
@@ -774,7 +774,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
 
       return ret;
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       auto &attrs = m_GL->m_VtxIn.attributes;
 
@@ -851,7 +851,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
 
       return ret;
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       auto &attrs = m_Vulkan->VI.attrs;
 
@@ -918,9 +918,9 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
   uint64_t ByteOffset = 0;
   uint64_t ByteSize = 0;
 
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
 
@@ -939,7 +939,7 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
         ByteSize = descriptor.VecCount * 4 * sizeof(float);
       }
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
@@ -959,7 +959,7 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
         ByteSize = descriptor.ByteSize;
       }
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       const GLPipe::Shader &s = GetGLStage(stage);
 
@@ -980,7 +980,7 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
         }
       }
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       const VKPipe::Pipeline &pipe =
           stage == ShaderStage::Compute ? m_Vulkan->compute : m_Vulkan->graphics;
@@ -1021,9 +1021,9 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
 {
   QMap<BindpointMap, QVector<BoundResource>> ret;
 
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
 
@@ -1042,7 +1042,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
 
       return ret;
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
@@ -1070,7 +1070,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
 
       return ret;
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       for(int i = 0; i < m_GL->Textures.count(); i++)
       {
@@ -1087,7 +1087,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
 
       return ret;
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       const auto &descsets =
           stage == ShaderStage::Compute ? m_Vulkan->compute.DescSets : m_Vulkan->graphics.DescSets;
@@ -1131,9 +1131,9 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
 {
   QMap<BindpointMap, QVector<BoundResource>> ret;
 
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       if(stage == ShaderStage::Compute)
       {
@@ -1177,7 +1177,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
         }
       }
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
@@ -1203,7 +1203,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
         }
       }
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       for(int i = 0; i < m_GL->Images.count(); i++)
       {
@@ -1218,7 +1218,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
         ret[key] = {val};
       }
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       const auto &descsets =
           stage == ShaderStage::Compute ? m_Vulkan->compute.DescSets : m_Vulkan->graphics.DescSets;
@@ -1258,9 +1258,9 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
 
 BoundResource CommonPipelineState::GetDepthTarget()
 {
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       BoundResource ret;
       ret.Id = m_D3D11->m_OM.DepthTarget.Resource;
@@ -1269,7 +1269,7 @@ BoundResource CommonPipelineState::GetDepthTarget()
       ret.typeHint = m_D3D11->m_OM.DepthTarget.Format.compType;
       return ret;
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       BoundResource ret;
       ret.Id = m_D3D12->m_OM.DepthTarget.Resource;
@@ -1278,7 +1278,7 @@ BoundResource CommonPipelineState::GetDepthTarget()
       ret.typeHint = m_D3D12->m_OM.DepthTarget.Format.compType;
       return ret;
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       BoundResource ret;
       ret.Id = m_GL->m_FB.m_DrawFBO.Depth.Obj;
@@ -1287,7 +1287,7 @@ BoundResource CommonPipelineState::GetDepthTarget()
       ret.typeHint = CompType::Typeless;
       return ret;
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       const auto &rp = m_Vulkan->Pass.renderpass;
       const auto &fb = m_Vulkan->Pass.framebuffer;
@@ -1313,9 +1313,9 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
 {
   QVector<BoundResource> ret;
 
-  if(LogLoaded())
+  if(IsCaptureLoaded())
   {
-    if(IsLogD3D11())
+    if(IsCaptureD3D11())
     {
       ret.resize(m_D3D11->m_OM.RenderTargets.count());
       for(int i = 0; i < m_D3D11->m_OM.RenderTargets.count(); i++)
@@ -1326,7 +1326,7 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
         ret[i].typeHint = m_D3D11->m_OM.RenderTargets[i].Format.compType;
       }
     }
-    else if(IsLogD3D12())
+    else if(IsCaptureD3D12())
     {
       ret.resize(m_D3D12->m_OM.RenderTargets.count());
       for(int i = 0; i < m_D3D12->m_OM.RenderTargets.count(); i++)
@@ -1337,7 +1337,7 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
         ret[i].typeHint = m_D3D12->m_OM.RenderTargets[i].Format.compType;
       }
     }
-    else if(IsLogGL())
+    else if(IsCaptureGL())
     {
       ret.resize(m_GL->m_FB.m_DrawFBO.DrawBuffers.count());
       for(int i = 0; i < m_GL->m_FB.m_DrawFBO.DrawBuffers.count(); i++)
@@ -1353,7 +1353,7 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
         }
       }
     }
-    else if(IsLogVK())
+    else if(IsCaptureVK())
     {
       const auto &rp = m_Vulkan->Pass.renderpass;
       const auto &fb = m_Vulkan->Pass.framebuffer;

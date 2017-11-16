@@ -37,7 +37,7 @@ class QSortFilterProxyModel;
 class RDTreeWidgetItem;
 class ResourceListItemModel;
 
-class ResourceInspector : public QFrame, public IResourceInspector, public ILogViewer
+class ResourceInspector : public QFrame, public IResourceInspector, public ICaptureViewer
 {
   Q_OBJECT
 
@@ -49,9 +49,9 @@ public:
   QWidget *Widget() override { return this; }
   void Inspect(ResourceId id) override;
   ResourceId CurrentResource() override { return m_Resource; }
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
 public slots:

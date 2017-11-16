@@ -49,7 +49,7 @@ QMargins uniformMargins(int m)
 TimelineBar::TimelineBar(ICaptureContext &ctx, QWidget *parent)
     : QAbstractScrollArea(parent), m_Ctx(ctx)
 {
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 
   setMouseTracking(true);
 
@@ -68,7 +68,7 @@ TimelineBar::~TimelineBar()
 {
   m_Ctx.BuiltinWindowClosed(this);
 
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
 }
 
 void TimelineBar::HighlightResourceUsage(ResourceId id)
@@ -107,7 +107,7 @@ void TimelineBar::HighlightHistory(ResourceId id, const QList<PixelModification>
   viewport()->update();
 }
 
-void TimelineBar::OnLogfileClosed()
+void TimelineBar::OnCaptureClosed()
 {
   setWindowTitle(tr("Timeline"));
 
@@ -118,7 +118,7 @@ void TimelineBar::OnLogfileClosed()
   layout();
 }
 
-void TimelineBar::OnLogfileLoaded()
+void TimelineBar::OnCaptureLoaded()
 {
   setWindowTitle(tr("Timeline - Frame #%1").arg(m_Ctx.FrameInfo().frameNumber));
 

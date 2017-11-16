@@ -156,22 +156,22 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   QObject::connect(ui->events->header(), &QHeaderView::customContextMenuRequested, this,
                    &EventBrowser::events_contextMenu);
 
-  OnLogfileClosed();
+  OnCaptureClosed();
 
   m_redPalette = palette();
   m_redPalette.setColor(QPalette::Base, Qt::red);
 
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 }
 
 EventBrowser::~EventBrowser()
 {
   m_Ctx.BuiltinWindowClosed(this);
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
   delete ui;
 }
 
-void EventBrowser::OnLogfileLoaded()
+void EventBrowser::OnCaptureLoaded()
 {
   RDTreeWidgetItem *frame = new RDTreeWidgetItem(
       {QFormatStr("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), QString(), QString(), QString()});
@@ -202,7 +202,7 @@ void EventBrowser::OnLogfileLoaded()
   m_Ctx.SetEventID({this}, lastEIDDraw.first, lastEIDDraw.first);
 }
 
-void EventBrowser::OnLogfileClosed()
+void EventBrowser::OnCaptureClosed()
 {
   clearBookmarks();
 
@@ -507,7 +507,7 @@ void EventBrowser::on_findPrev_clicked()
 
 void EventBrowser::on_stepNext_clicked()
 {
-  if(!m_Ctx.LogLoaded() || !ui->stepNext->isEnabled())
+  if(!m_Ctx.IsCaptureLoaded() || !ui->stepNext->isEnabled())
     return;
 
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
@@ -522,7 +522,7 @@ void EventBrowser::on_stepNext_clicked()
 
 void EventBrowser::on_stepPrev_clicked()
 {
-  if(!m_Ctx.LogLoaded() || !ui->stepPrev->isEnabled())
+  if(!m_Ctx.IsCaptureLoaded() || !ui->stepPrev->isEnabled())
     return;
 
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
@@ -550,7 +550,9 @@ void EventBrowser::on_exportDraws_clicked()
       {
         QTextStream stream(&f);
 
-        stream << tr("%1 - Frame #%2\n\n").arg(m_Ctx.LogFilename()).arg(m_Ctx.FrameInfo().frameNumber);
+        stream << tr("%1 - Frame #%2\n\n")
+                      .arg(m_Ctx.GetCaptureFilename())
+                      .arg(m_Ctx.FrameInfo().frameNumber);
 
         int maxNameLength = 0;
 
@@ -817,7 +819,7 @@ void EventBrowser::setPersistData(const QVariant &persistData)
 
 void EventBrowser::events_keyPress(QKeyEvent *event)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   if(event->key() == Qt::Key_F3)
@@ -953,7 +955,7 @@ void EventBrowser::toggleBookmark(uint32_t EID)
 
 void EventBrowser::jumpToBookmark(int idx)
 {
-  if(idx < 0 || idx >= m_Bookmarks.count() || !m_Ctx.LogLoaded())
+  if(idx < 0 || idx >= m_Bookmarks.count() || !m_Ctx.IsCaptureLoaded())
     return;
 
   // don't exclude ourselves, so we're updated as normal
@@ -1039,7 +1041,7 @@ void EventBrowser::ExpandNode(RDTreeWidgetItem *node)
 
 bool EventBrowser::SelectEvent(uint32_t eventID)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return false;
 
   RDTreeWidgetItem *found = NULL;
@@ -1074,7 +1076,7 @@ void EventBrowser::ClearFindIcons(RDTreeWidgetItem *parent)
 
 void EventBrowser::ClearFindIcons()
 {
-  if(m_Ctx.LogLoaded())
+  if(m_Ctx.IsCaptureLoaded())
     ClearFindIcons(ui->events->topLevelItem(0));
 }
 
@@ -1170,7 +1172,7 @@ int EventBrowser::FindEvent(RDTreeWidgetItem *parent, QString filter, uint32_t a
 
 int EventBrowser::FindEvent(QString filter, uint32_t after, bool forward)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return 0;
 
   return FindEvent(ui->events->topLevelItem(0), filter, after, forward);

@@ -27,7 +27,7 @@
 #include <QAbstractScrollArea>
 #include "Code/CaptureContext.h"
 
-class TimelineBar : public QAbstractScrollArea, public ITimelineBar, public ILogViewer
+class TimelineBar : public QAbstractScrollArea, public ITimelineBar, public ICaptureViewer
 {
   Q_OBJECT
 
@@ -41,9 +41,9 @@ public:
   QWidget *Widget() override { return this; }
   void HighlightResourceUsage(ResourceId id) override;
   void HighlightHistory(ResourceId id, const QList<PixelModification> &history) override;
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
 

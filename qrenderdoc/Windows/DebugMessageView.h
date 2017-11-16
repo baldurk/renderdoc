@@ -37,7 +37,7 @@ class QMenu;
 class DebugMessageItemModel;
 class DebugMessageFilterModel;
 
-class DebugMessageView : public QFrame, public IDebugMessageView, public ILogViewer
+class DebugMessageView : public QFrame, public IDebugMessageView, public ICaptureViewer
 {
   Q_OBJECT
 
@@ -47,9 +47,9 @@ public:
 
   // IDebugMessageView
   QWidget *Widget() override { return this; }
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override {}
   void RefreshMessageList();

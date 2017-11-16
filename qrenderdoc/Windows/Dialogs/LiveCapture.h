@@ -90,7 +90,7 @@ private:
 
   friend class NameEditOnlyDelegate;
 
-  struct CaptureLog
+  struct Capture
   {
     uint32_t remoteID;
     QString name;
@@ -113,10 +113,10 @@ private:
     bool added = false;
   };
 
-  CaptureLog *GetLog(QListWidgetItem *item);
-  void SetLog(QListWidgetItem *item, CaptureLog *log);
+  Capture *GetCapture(QListWidgetItem *item);
+  void AddCapture(QListWidgetItem *item, Capture *cap);
 
-  QString MakeText(CaptureLog *log);
+  QString MakeText(Capture *cap);
   QImage MakeThumb(const QImage &screenshot);
 
   void connectionThreadEntry();
@@ -131,8 +131,8 @@ private:
   void killThread();
 
   void setTitle(const QString &title);
-  void openCapture(CaptureLog *log);
-  bool saveCapture(CaptureLog *log);
+  void openCapture(Capture *cap);
+  bool saveCapture(Capture *cap);
   bool checkAllowDelete();
   void deleteCaptureUnprompted(QListWidgetItem *item);
 
@@ -152,10 +152,10 @@ private:
   QSemaphore m_Disconnect;
   ITargetControl *m_Connection = NULL;
 
-  uint32_t m_CopyLogID = ~0U;
-  QString m_CopyLogLocalPath;
-  QMutex m_DeleteLogsLock;
-  QVector<uint32_t> m_DeleteLogs;
+  uint32_t m_CopyCaptureID = ~0U;
+  QString m_CopyCaptureLocalPath;
+  QMutex m_DeleteCapturesLock;
+  QVector<uint32_t> m_DeleteCaptures;
 
   bool m_IgnoreThreadClosed = false;
   bool m_IgnorePreviewToggle = false;

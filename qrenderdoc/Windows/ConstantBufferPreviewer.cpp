@@ -58,12 +58,12 @@ ConstantBufferPreviewer::ConstantBufferPreviewer(ICaptureContext &ctx, const Sha
   ui->variables->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
   m_Previews.push_back(this);
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 }
 
 ConstantBufferPreviewer::~ConstantBufferPreviewer()
 {
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
   m_Previews.removeOne(this);
   delete ui;
 }
@@ -90,12 +90,12 @@ ConstantBufferPreviewer *ConstantBufferPreviewer::getOne()
   return NULL;
 }
 
-void ConstantBufferPreviewer::OnLogfileLoaded()
+void ConstantBufferPreviewer::OnCaptureLoaded()
 {
-  OnLogfileClosed();
+  OnCaptureClosed();
 }
 
-void ConstantBufferPreviewer::OnLogfileClosed()
+void ConstantBufferPreviewer::OnCaptureClosed()
 {
   ui->variables->clear();
 

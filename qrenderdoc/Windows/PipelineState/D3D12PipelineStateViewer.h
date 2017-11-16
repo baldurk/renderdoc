@@ -39,7 +39,7 @@ class RDTreeWidgetItem;
 struct D3D12ViewTag;
 class PipelineStateViewer;
 
-class D3D12PipelineStateViewer : public QFrame, public ILogViewer
+class D3D12PipelineStateViewer : public QFrame, public ICaptureViewer
 {
   Q_OBJECT
 
@@ -48,9 +48,9 @@ public:
                                     QWidget *parent = 0);
   ~D3D12PipelineStateViewer();
 
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
 

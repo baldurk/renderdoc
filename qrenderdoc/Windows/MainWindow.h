@@ -42,7 +42,7 @@ class QToolButton;
 class CaptureDialog;
 class LiveCapture;
 
-class MainWindow : public QMainWindow, public IMainWindow, public ILogViewer
+class MainWindow : public QMainWindow, public IMainWindow, public ICaptureViewer
 {
 private:
   Q_OBJECT
@@ -54,9 +54,9 @@ public:
   // IMainWindow
   QWidget *Widget() override { return this; }
   void RegisterShortcut(const QString &shortcut, QWidget *widget, ShortcutCallback callback) override;
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
 
@@ -67,10 +67,10 @@ public:
   void show();
 
   void setProgress(float val);
-  void takeLogOwnership() { m_OwnTempLog = true; }
+  void takeCaptureOwnership() { m_OwnTempCapture = true; }
   void LoadFromFilename(const QString &filename, bool temporary);
-  void LoadLogfile(const QString &filename, bool temporary, bool local);
-  void CloseLogfile();
+  void LoadCapture(const QString &filename, bool temporary, bool local);
+  void CloseCapture();
   QString GetSavePath();
 
   void OnCaptureTrigger(const QString &exe, const QString &workingDir, const QString &cmdLine,
@@ -94,15 +94,15 @@ public:
   void showPythonShell() { on_action_Python_Shell_triggered(); }
   void showPerformanceCounterViewer() { on_action_Counter_Viewer_triggered(); }
   void showResourceInspector() { on_action_Resource_Inspector_triggered(); }
-  void PopulateRecentFiles();
-  void PopulateRecentCaptures();
+  void PopulateRecentCaptureFiles();
+  void PopulateRecentCaptureSettings();
 private slots:
   // automatic slots
   void on_action_Exit_triggered();
   void on_action_About_triggered();
-  void on_action_Open_Log_triggered();
-  void on_action_Save_Log_triggered();
-  void on_action_Close_Log_triggered();
+  void on_action_Open_Capture_triggered();
+  void on_action_Save_Capture_triggered();
+  void on_action_Close_Capture_triggered();
   void on_action_Mesh_Output_triggered();
   void on_action_API_Inspector_triggered();
   void on_action_Event_Browser_triggered();
@@ -136,8 +136,8 @@ private slots:
   void switchContext();
   void contextChooser_menuShowing();
 
-  void ClearRecentFiles();
-  void ClearRecentCaptures();
+  void ClearRecentCaptureFiles();
+  void ClearRecentCaptureSettings();
 
 private:
   void closeEvent(QCloseEvent *event) override;
@@ -170,21 +170,20 @@ private:
 
   bool m_messageAlternate = false;
 
-  bool m_OwnTempLog = false;
-  bool m_SavedTempLog = false;
+  bool m_OwnTempCapture = false;
 
   QString m_LastSaveCapturePath;
 
-  void setLogHasErrors(bool errors);
+  void setCaptureHasErrors(bool errors);
 
   void SetTitle(const QString &filename);
   void SetTitle();
 
-  void recentLog(const QString &filename);
-  void recentCapture(const QString &filename);
+  void recentCaptureFile(const QString &filename);
+  void recentCaptureSetting(const QString &filename);
 
-  bool PromptCloseLog();
-  bool PromptSaveLog();
+  bool PromptCloseCapture();
+  bool PromptSaveCaptureAs();
   void OpenCaptureConfigFile(const QString &filename, bool exe);
 
   QVariantMap saveState();

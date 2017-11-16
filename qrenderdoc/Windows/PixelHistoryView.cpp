@@ -606,7 +606,7 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
   ui->events->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
   ui->events->header()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
 
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 }
 
 void PixelHistoryView::updateWindowTitle()
@@ -628,7 +628,7 @@ PixelHistoryView::~PixelHistoryView()
   disableTimelineHighlight();
 
   ui->events->setModel(NULL);
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
   delete ui;
 }
 
@@ -654,11 +654,11 @@ void PixelHistoryView::leaveEvent(QEvent *event)
   disableTimelineHighlight();
 }
 
-void PixelHistoryView::OnLogfileLoaded()
+void PixelHistoryView::OnCaptureLoaded()
 {
 }
 
-void PixelHistoryView::OnLogfileClosed()
+void PixelHistoryView::OnCaptureClosed()
 {
   ToolWindowManager::closeToolWindow(this);
 }

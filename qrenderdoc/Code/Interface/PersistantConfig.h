@@ -61,9 +61,9 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
                                                                                            \
   CONFIG_SETTING_VAL(public, QString, QString, UIStyle, QString())                         \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, LastLogPath, QString())                     \
+  CONFIG_SETTING_VAL(public, QString, QString, LastCaptureFilePath, QString())             \
                                                                                            \
-  CONFIG_SETTING(public, QVariantList, QList<QString>, RecentLogFiles)                     \
+  CONFIG_SETTING(public, QVariantList, QList<QString>, RecentCaptureFiles)                 \
                                                                                            \
   CONFIG_SETTING_VAL(public, QString, QString, LastCapturePath, QString())                 \
                                                                                            \
@@ -122,7 +122,7 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
   CONFIG_SETTING_VAL(public, QDateTime, QDateTime, CheckUpdate_LastUpdate,                 \
                      QDateTime(QDate(2012, 06, 27), QTime(0, 0, 0)))                       \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QDateTime, QDateTime, DegradedLog_LastUpdate,                 \
+  CONFIG_SETTING_VAL(public, QDateTime, QDateTime, DegradedCapture_LastUpdate,             \
                      QDateTime(QDate(2015, 01, 01), QTime(0, 0, 0)))                       \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, Tips_HasSeenFirst, false)                         \
@@ -206,11 +206,11 @@ For more information about some of these settings that are user-facing see
   the closest of RDLight and RDDark will be chosen, based on the overall light-on-dark or
   dark-on-light theme of the application native style.
 
-.. data:: LastLogPath
+.. data:: LastCaptureFilePath
 
   The path to the last capture to be opened, which is useful as a default location for browsing.
 
-.. data:: RecentLogFiles
+.. data:: RecentCaptureFiles
 
   A ``list`` of ``str`` with the recently opened capture files.
 
@@ -386,7 +386,7 @@ For more information about some of these settings that are user-facing see
 
   A date containing the last time that update checks happened.
 
-.. data:: DegradedLog_LastUpdate
+.. data:: DegradedCapture_LastUpdate
 
   A date containing the last time that the user was warned about captures being loaded in degraded
   support. This prevents the user being spammed if their hardware is low spec.

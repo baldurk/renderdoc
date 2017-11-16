@@ -169,7 +169,7 @@ public:
 :return: A boolean indicating if a capture is currently loaded.
 :rtype: ``bool``
 )");
-  bool LogLoaded()
+  bool IsCaptureLoaded()
   {
     return m_D3D11 != NULL || m_D3D12 != NULL || m_GL != NULL || m_Vulkan != NULL;
   }
@@ -179,9 +179,9 @@ public:
 :return: A boolean indicating if a D3D11 capture is currently loaded.
 :rtype: ``bool``
 )");
-  bool IsLogD3D11()
+  bool IsCaptureD3D11()
   {
-    return LogLoaded() && m_APIProps.pipelineType == GraphicsAPI::D3D11 && m_D3D11 != NULL;
+    return IsCaptureLoaded() && m_APIProps.pipelineType == GraphicsAPI::D3D11 && m_D3D11 != NULL;
   }
 
   DOCUMENT(R"(Determines whether or not a D3D12 capture is currently loaded.
@@ -189,9 +189,9 @@ public:
 :return: A boolean indicating if a D3D12 capture is currently loaded.
 :rtype: ``bool``
 )");
-  bool IsLogD3D12()
+  bool IsCaptureD3D12()
   {
-    return LogLoaded() && m_APIProps.pipelineType == GraphicsAPI::D3D12 && m_D3D12 != NULL;
+    return IsCaptureLoaded() && m_APIProps.pipelineType == GraphicsAPI::D3D12 && m_D3D12 != NULL;
   }
 
   DOCUMENT(R"(Determines whether or not an OpenGL capture is currently loaded.
@@ -199,9 +199,9 @@ public:
 :return: A boolean indicating if an OpenGL capture is currently loaded.
 :rtype: ``bool``
 )");
-  bool IsLogGL()
+  bool IsCaptureGL()
   {
-    return LogLoaded() && m_APIProps.pipelineType == GraphicsAPI::OpenGL && m_GL != NULL;
+    return IsCaptureLoaded() && m_APIProps.pipelineType == GraphicsAPI::OpenGL && m_GL != NULL;
   }
 
   DOCUMENT(R"(Determines whether or not a Vulkan capture is currently loaded.
@@ -209,9 +209,9 @@ public:
 :return: A boolean indicating if a Vulkan capture is currently loaded.
 :rtype: ``bool``
 )");
-  bool IsLogVK()
+  bool IsCaptureVK()
   {
-    return LogLoaded() && m_APIProps.pipelineType == GraphicsAPI::Vulkan && m_Vulkan != NULL;
+    return IsCaptureLoaded() && m_APIProps.pipelineType == GraphicsAPI::Vulkan && m_Vulkan != NULL;
   }
 
   // add a bunch of generic properties that people can check to save having to see which pipeline
@@ -223,18 +223,18 @@ public:
 )");
   bool IsTessellationEnabled()
   {
-    if(LogLoaded())
+    if(IsCaptureLoaded())
     {
-      if(IsLogD3D11())
+      if(IsCaptureD3D11())
         return m_D3D11 != NULL && m_D3D11->m_HS.Object != ResourceId();
 
-      if(IsLogD3D12())
+      if(IsCaptureD3D12())
         return m_D3D12 != NULL && m_D3D12->m_HS.Object != ResourceId();
 
-      if(IsLogGL())
+      if(IsCaptureGL())
         return m_GL != NULL && m_GL->m_TES.Object != ResourceId();
 
-      if(IsLogVK())
+      if(IsCaptureVK())
         return m_Vulkan != NULL && m_Vulkan->m_TES.Object != ResourceId();
     }
 
@@ -246,13 +246,13 @@ public:
 :return: A boolean indicating if binding arrays of resources is supported.
 :rtype: ``bool``
 )");
-  bool SupportsResourceArrays() { return LogLoaded() && IsLogVK(); }
+  bool SupportsResourceArrays() { return IsCaptureLoaded() && IsCaptureVK(); }
   DOCUMENT(R"(Determines whether or not the current capture uses explicit barriers.
 
 :return: A boolean indicating if explicit barriers are used.
 :rtype: ``bool``
 )");
-  bool SupportsBarriers() { return LogLoaded() && (IsLogVK() || IsLogD3D12()); }
+  bool SupportsBarriers() { return IsCaptureLoaded() && (IsCaptureVK() || IsCaptureD3D12()); }
   DOCUMENT(R"(Determines whether or not the PostVS data is aligned in the typical fashion (ie.
 vectors not crossing ``float4`` boundaries). APIs that use stream-out or transform feedback have
 tightly packed data, but APIs that rewrite shaders to dump data might have these alignment
@@ -261,7 +261,7 @@ requirements.
 :return: A boolean indicating if post-VS data is aligned.
 :rtype: ``bool``
 )");
-  bool HasAlignedPostVSData() { return LogLoaded() && IsLogVK(); }
+  bool HasAlignedPostVSData() { return IsCaptureLoaded() && IsCaptureVK(); }
   DOCUMENT(R"(For APIs that have explicit barriers, retrieves the current layout of a resource.
 
 :return: The name of the current resource layout.

@@ -114,7 +114,7 @@ struct TexSettings
   CompType typeHint;
 };
 
-class TextureViewer : public QFrame, public ITextureViewer, public ILogViewer
+class TextureViewer : public QFrame, public ITextureViewer, public ICaptureViewer
 {
 private:
   Q_OBJECT
@@ -130,9 +130,9 @@ public:
   void ViewTexture(ResourceId ID, bool focus) override;
   void GotoLocation(int x, int y) override;
 
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
 

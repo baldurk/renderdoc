@@ -35,7 +35,7 @@ class ConstantBufferPreviewer;
 class RDTreeWidgetItem;
 struct FormatElement;
 
-class ConstantBufferPreviewer : public QFrame, public IConstantBufferPreviewer, public ILogViewer
+class ConstantBufferPreviewer : public QFrame, public IConstantBufferPreviewer, public ICaptureViewer
 {
   Q_OBJECT
 
@@ -49,9 +49,9 @@ public:
 
   // IConstantBufferPreviewer
   QWidget *Widget() override { return this; }
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
 

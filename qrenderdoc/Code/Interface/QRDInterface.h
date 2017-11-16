@@ -568,13 +568,13 @@ protected:
 DECLARE_REFLECTION_STRUCT(IPixelHistoryView);
 
 DOCUMENT("An interface implemented by any object wanting to be notified of capture events.");
-struct ILogViewer
+struct ICaptureViewer
 {
   DOCUMENT("Called whenever a capture is opened.");
-  virtual void OnLogfileLoaded() = 0;
+  virtual void OnCaptureLoaded() = 0;
 
   DOCUMENT("Called whenever a capture is closed.");
-  virtual void OnLogfileClosed() = 0;
+  virtual void OnCaptureClosed() = 0;
 
   DOCUMENT(R"(Called whenever the current selected event changes. This is distinct from the actual
 effective current event, since for example selecting a marker region will change the current event
@@ -600,11 +600,11 @@ to a marker region.
   virtual void OnEventChanged(uint32_t eventID) = 0;
 
 protected:
-  ILogViewer() = default;
-  ~ILogViewer() = default;
+  ICaptureViewer() = default;
+  ~ICaptureViewer() = default;
 };
 
-DECLARE_REFLECTION_STRUCT(ILogViewer);
+DECLARE_REFLECTION_STRUCT(ICaptureViewer);
 
 DOCUMENT(R"(A manager for accessing the underlying replay information that isn't already abstracted
 in UI side structures. This manager controls and serialises access to the underlying
@@ -631,10 +631,10 @@ struct IReplayManager
 
   DOCUMENT(R"(Delete a capture file, whether local or remote.
 
-:param str logfile: The path to the file.
+:param str capturefile: The path to the file.
 :param bool local: ``True`` if the file is on the local machine.
 )");
-  virtual void DeleteCapture(const QString &logfile, bool local) = 0;
+  virtual void DeleteCapture(const QString &capturefile, bool local) = 0;
 
   DOCUMENT(R"(Connect to a remote server.
 
@@ -680,7 +680,7 @@ This happens either locally, or on the remote server, depending on whether a con
 :param str cmdLine: The command line to use when running the executable, it will be processed in a
   platform specific way to generate arguments.
 :param list env: Any :class:`EnvironmentModification` that should be made when running the program.
-:param str logfile: The location to save any captures, if running locally.
+:param str capturefile: The location to save any captures, if running locally.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
 :return: The ident where the new application is listening for target control, or 0 if something went
   wrong.
@@ -688,7 +688,7 @@ This happens either locally, or on the remote server, depending on whether a con
 )");
   virtual uint32_t ExecuteAndInject(const QString &exe, const QString &workingDir,
                                     const QString &cmdLine, const QList<EnvironmentModification> &env,
-                                    const QString &logfile, CaptureOptions opts) = 0;
+                                    const QString &capturefile, CaptureOptions opts) = 0;
 
   DOCUMENT(R"(Retrieve a list of drivers that the current remote server supports.
 
@@ -890,51 +890,65 @@ data.
 :return: The absolute path.
 :rtype: ``str``
 )");
-  virtual QString TempLogFilename(QString appname) = 0;
+  virtual QString TempCaptureFilename(QString appname) = 0;
 
   DOCUMENT(R"(Open a capture file for replay.
 
-:param str logFile: The actual path to the capture file.
+:param str captureFile: The actual path to the capture file.
 :param str origFilename: The original filename, if the capture was copied remotely for replay.
 :param bool temporary: ``True`` if this is a temporary capture which should prompt the user for
   either save or delete on close.
-:param bool local: ``True`` if ``logFile`` refers to a file on the local machine.
+:param bool local: ``True`` if ``captureFile`` refers to a file on the local machine.
 )");
-  virtual void LoadLogfile(const QString &logFile, const QString &origFilename, bool temporary,
+  virtual void LoadCapture(const QString &captureFile, const QString &origFilename, bool temporary,
                            bool local) = 0;
 
+  DOCUMENT(R"(Saves the current capture file to a given path.
+
+If the capture was temporary, this save action means it is no longer temporary and will be treated
+like any other capture.
+
+Any modifications to the capture (see :meth:`GetCaptureModifcations`) will be applied at the same
+time.
+
+:param str captureFile: The path to save the capture file to.
+:return: ``True`` if the save operation was successful.
+:rtype: ``bool``
+)");
+  virtual bool SaveCaptureTo(const QString &captureFile) = 0;
+
   DOCUMENT("Close the currently open capture file.");
-  virtual void CloseLogfile() = 0;
+  virtual void CloseCapture() = 0;
 
   DOCUMENT(R"(Move the current replay to a new event in the capture.
 
-:param list exclude: A list of :class:`LogViewer` to exclude from being notified of this, to stop
+:param list exclude: A list of :class:`CaptureViewer` to exclude from being notified of this, to stop
   infinite recursion.
 :param int selectedEventID: The selected :data:`EID <renderdoc.APIEvent.eventID>`. See
-  :meth:`LogViewer.OnSelectedEventChanged` for more information.
+  :meth:`CaptureViewer.OnSelectedEventChanged` for more information.
 :param int eventID: The new current :data:`EID <renderdoc.APIEvent.eventID>`. See
-  :meth:`LogViewer.OnEventChanged` for more information.
+  :meth:`CaptureViewer.OnEventChanged` for more information.
 :param bool force: Optional parameter, if ``True`` then the replay will 'move' even if it is moving
   to the same :data:`EID <renderdoc.APIEvent.eventID>` as it's currently on.
 )");
-  virtual void SetEventID(const QVector<ILogViewer *> &exclude, uint32_t selectedEventID,
+  virtual void SetEventID(const QVector<ICaptureViewer *> &exclude, uint32_t selectedEventID,
                           uint32_t eventID, bool force = false) = 0;
   DOCUMENT(R"(Replay the capture to the current event again, to pick up any changes that might have
 been made.
 )");
   virtual void RefreshStatus() = 0;
 
-  DOCUMENT(R"(Register a new instance of :class:`LogViewer` to receive capture event notifications.
+  DOCUMENT(R"(Register a new instance of :class:`CaptureViewer` to receive capture event notifications.
 
-:param LogViewer viewer: The viewer to register.
+:param CaptureViewer viewer: The viewer to register.
 )");
-  virtual void AddLogViewer(ILogViewer *viewer) = 0;
+  virtual void AddCaptureViewer(ICaptureViewer *viewer) = 0;
 
-  DOCUMENT(R"(Unregister an instance of :class:`LogViewer` from receiving notifications.
+  DOCUMENT(R"(Unregister an instance of :class:`CaptureViewer` from receiving notifications.
 
-:param LogViewer viewer: The viewer to unregister.
+:param CaptureViewer viewer: The viewer to unregister.
 )");
-  virtual void RemoveLogViewer(ILogViewer *viewer) = 0;
+  virtual void RemoveCaptureViewer(ICaptureViewer *viewer) = 0;
 
   //////////////////////////////////////////////////////////////////////////////
   // Accessors
@@ -951,28 +965,38 @@ been made.
 :return: ``True`` if a capture is loaded.
 :rtype: ``bool``
 )");
-  virtual bool LogLoaded() = 0;
+  virtual bool IsCaptureLoaded() = 0;
 
   DOCUMENT(R"(Check whether or not the current capture is stored locally, or on a remote host.
 
 :return: ``True`` if a capture is local.
 :rtype: ``bool``
 )");
-  virtual bool IsLogLocal() = 0;
+  virtual bool IsCaptureLocal() = 0;
+
+  DOCUMENT(R"(Check whether or not the current capture is considered temporary. Captures that were
+made by an application and then have not been explicitly saved anywhere are temporary and will be
+cleaned up on close (with a final prompt to save). Once they are save to disk, they are no longer
+temporary and treated like any other capture.
+
+:return: ``True`` if a capture is temporary.
+:rtype: ``bool``
+)");
+  virtual bool IsCaptureTemporary() = 0;
 
   DOCUMENT(R"(Check whether or not a capture is currently loading in-progress.
 
 :return: ``True`` if a capture is currently loading.
 :rtype: ``bool``
 )");
-  virtual bool LogLoading() = 0;
+  virtual bool IsCaptureLoading() = 0;
 
   DOCUMENT(R"(Retrieve the filename for the currently loaded capture.
 
 :return: The filename of the current capture.
 :rtype: ``str``
 )");
-  virtual QString LogFilename() = 0;
+  virtual QString GetCaptureFilename() = 0;
 
   DOCUMENT(R"(Retrieve the :class:`~renderdoc.FrameDescription` for the currently loaded capture.
 
@@ -990,7 +1014,7 @@ been made.
 
   DOCUMENT(R"(Retrieve the currently selected :data:`EID <renderdoc.APIEvent.eventID>`.
 
-In most cases, prefer using :meth:`CurEvent`. See :meth:`LogViewer.OnSelectedEventChanged` for more
+In most cases, prefer using :meth:`CurEvent`. See :meth:`CaptureViewer.OnSelectedEventChanged` for more
 information for how this differs.
 
 :return: The current selected event.
@@ -1007,7 +1031,7 @@ information for how this differs.
 
   DOCUMENT(R"(Retrieve the currently selected drawcall.
 
-In most cases, prefer using :meth:`CurDrawcall`. See :meth:`LogViewer.OnSelectedEventChanged` for
+In most cases, prefer using :meth:`CurDrawcall`. See :meth:`CaptureViewer.OnSelectedEventChanged` for
 more information for how this differs.
 
 :return: The currently selected drawcall.

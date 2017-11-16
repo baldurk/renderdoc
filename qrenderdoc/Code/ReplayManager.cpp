@@ -39,14 +39,14 @@ ReplayManager::~ReplayManager()
 {
 }
 
-void ReplayManager::OpenCapture(const QString &logfile, float *progress)
+void ReplayManager::OpenCapture(const QString &capturefile, float *progress)
 {
   if(m_Running)
     return;
 
   m_ProxyRenderer = -1;
   m_ReplayHost = QString();
-  m_Logfile = logfile;
+  m_CaptureFilename = capturefile;
   m_Progress = progress;
 
   *progress = 0.0f;
@@ -59,17 +59,17 @@ void ReplayManager::OpenCapture(const QString &logfile, float *progress)
   }
 }
 
-void ReplayManager::DeleteCapture(const QString &logfile, bool local)
+void ReplayManager::DeleteCapture(const QString &capture, bool local)
 {
   if(IsRunning())
   {
-    AsyncInvoke([this, logfile, local](IReplayController *) { DeleteCapture(logfile, local); });
+    AsyncInvoke([this, capture, local](IReplayController *) { DeleteCapture(capture, local); });
     return;
   }
 
   if(local)
   {
-    QFile::remove(logfile);
+    QFile::remove(capture);
   }
   else
   {
@@ -78,7 +78,7 @@ void ReplayManager::DeleteCapture(const QString &logfile, bool local)
     if(m_Remote)
     {
       QMutexLocker autolock(&m_RemoteLock);
-      m_Remote->TakeOwnershipCapture(logfile.toUtf8().data());
+      m_Remote->TakeOwnershipCapture(capture.toUtf8().data());
     }
   }
 }
@@ -358,7 +358,7 @@ void ReplayManager::PingRemote()
 uint32_t ReplayManager::ExecuteAndInject(const QString &exe, const QString &workingDir,
                                          const QString &cmdLine,
                                          const QList<EnvironmentModification> &env,
-                                         const QString &logfile, CaptureOptions opts)
+                                         const QString &capturefile, CaptureOptions opts)
 {
   rdcarray<EnvironmentModification> envList = env.toVector().toStdVector();
 
@@ -373,7 +373,7 @@ uint32_t ReplayManager::ExecuteAndInject(const QString &exe, const QString &work
   else
   {
     ret = RENDERDOC_ExecuteAndInject(exe.toUtf8().data(), workingDir.toUtf8().data(),
-                                     cmdLine.toUtf8().data(), envList, logfile.toUtf8().data(),
+                                     cmdLine.toUtf8().data(), envList, capturefile.toUtf8().data(),
                                      opts, false);
   }
 
@@ -403,13 +403,13 @@ void ReplayManager::run()
   if(m_Remote)
   {
     std::tie(m_CreateStatus, m_Renderer) =
-        m_Remote->OpenCapture(~0U, m_Logfile.toUtf8().data(), m_Progress);
+        m_Remote->OpenCapture(~0U, m_CaptureFilename.toUtf8().data(), m_Progress);
   }
   else
   {
     m_CaptureFile = RENDERDOC_OpenCaptureFile();
 
-    m_CreateStatus = m_CaptureFile->OpenFile(m_Logfile.toUtf8().data(), "rdc");
+    m_CreateStatus = m_CaptureFile->OpenFile(m_CaptureFilename.toUtf8().data(), "rdc");
 
     if(m_CreateStatus == ReplayStatus::Succeeded)
       std::tie(m_CreateStatus, m_Renderer) = m_CaptureFile->OpenCapture(m_Progress);
@@ -418,7 +418,7 @@ void ReplayManager::run()
   if(m_Renderer == NULL)
     return;
 
-  qInfo() << "QRenderDoc - renderer created for" << m_Logfile;
+  qInfo() << "QRenderDoc - renderer created for" << m_CaptureFilename;
 
   m_Running = true;
 

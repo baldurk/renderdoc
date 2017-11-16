@@ -769,7 +769,7 @@ void StatisticsViewer::GenerateReport()
   QString header =
       tr("Stats for %1.\n\nFile size: %2MB (%3MB uncompressed, compression ratio %4:1)\n"
          "Persistent Data (approx): %5MB, Frame-initial data (approx): %6MB\n")
-          .arg(QFileInfo(m_Ctx.LogFilename()).fileName())
+          .arg(QFileInfo(m_Ctx.GetCaptureFilename()).fileName())
           .arg(compressedMB, 2, 'f', 2)
           .arg(uncompressedMB, 2, 'f', 2)
           .arg(compressRatio, 2, 'f', 2)
@@ -818,23 +818,23 @@ StatisticsViewer::StatisticsViewer(ICaptureContext &ctx, QWidget *parent)
 
   ui->statistics->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 }
 
 StatisticsViewer::~StatisticsViewer()
 {
   m_Ctx.BuiltinWindowClosed(this);
 
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
   delete ui;
 }
 
-void StatisticsViewer::OnLogfileClosed()
+void StatisticsViewer::OnCaptureClosed()
 {
   ui->statistics->clear();
 }
 
-void StatisticsViewer::OnLogfileLoaded()
+void StatisticsViewer::OnCaptureLoaded()
 {
   GenerateReport();
   ui->statistics->setText(m_Report);

@@ -51,8 +51,8 @@ public:
   ReplayManager();
   ~ReplayManager();
 
-  void OpenCapture(const QString &logfile, float *progress);
-  void DeleteCapture(const QString &logfile, bool local);
+  void OpenCapture(const QString &capturefile, float *progress);
+  void DeleteCapture(const QString &capturefile, bool local);
 
   bool IsRunning();
   ReplayStatus GetCreateStatus() { return m_CreateStatus; }
@@ -85,7 +85,7 @@ public:
   }
   const RemoteHost *CurrentRemote() { return m_RemoteHost; }
   uint32_t ExecuteAndInject(const QString &exe, const QString &workingDir, const QString &cmdLine,
-                            const QList<EnvironmentModification> &env, const QString &logfile,
+                            const QList<EnvironmentModification> &env, const QString &capturefile,
                             CaptureOptions opts);
 
   QStringList GetRemoteSupport();
@@ -123,7 +123,7 @@ private:
 
   int m_ProxyRenderer;
   QString m_ReplayHost;
-  QString m_Logfile;
+  QString m_CaptureFilename;
   float *m_Progress;
 
   QMutex m_RemoteLock;

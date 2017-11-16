@@ -39,7 +39,7 @@ public:
   ~CustomPaintWidget();
 
   // this is needed to solve a chicken-and-egg problem. We need to recreate the widget
-  // whenever we go from custom rendering to painting (e.g. log loaded or closed). But
+  // whenever we go from custom rendering to painting (e.g. capture loaded or closed). But
   // we need the widget to have been recreated before we create the output, so we can
   // pass in the winId.
   // So we go by whether or not we have a CaptureContext * and go on faith that the

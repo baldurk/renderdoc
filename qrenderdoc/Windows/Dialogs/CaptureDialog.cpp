@@ -818,10 +818,10 @@ void CaptureDialog::on_toggleGlobal_clicked()
 
     QString exe = ui->exePath->text();
 
-    QString logfile = m_Ctx.TempLogFilename(QFileInfo(exe).baseName());
+    QString capturefile = m_Ctx.TempCaptureFilename(QFileInfo(exe).baseName());
 
-    bool success =
-        RENDERDOC_StartGlobalHook(exe.toUtf8().data(), logfile.toUtf8().data(), Settings().Options);
+    bool success = RENDERDOC_StartGlobalHook(exe.toUtf8().data(), capturefile.toUtf8().data(),
+                                             Settings().Options);
 
     if(!success)
     {
@@ -868,7 +868,7 @@ void CaptureDialog::on_saveSettings_clicked()
     {
       SaveSettings(filename);
       AddRecentFile(m_Ctx.Config().RecentCaptureSettings, filename, 10);
-      m_Main->PopulateRecentCaptures();
+      m_Main->PopulateRecentCaptureSettings();
     }
   }
 }

@@ -45,7 +45,7 @@ struct SamplerData
   RDTreeWidgetItem *node;
 };
 
-class VulkanPipelineStateViewer : public QFrame, public ILogViewer
+class VulkanPipelineStateViewer : public QFrame, public ICaptureViewer
 {
   Q_OBJECT
 
@@ -54,8 +54,8 @@ public:
                                      QWidget *parent = 0);
   ~VulkanPipelineStateViewer();
 
-  void OnLogfileLoaded();
-  void OnLogfileClosed();
+  void OnCaptureLoaded();
+  void OnCaptureClosed();
   void OnSelectedEventChanged(uint32_t eventID) {}
   void OnEventChanged(uint32_t eventID);
 

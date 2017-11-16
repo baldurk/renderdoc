@@ -55,7 +55,7 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
                                bool temp, PersistantConfig &cfg)
     : m_Config(cfg), m_CurPipelineState(*this)
 {
-  m_LogLoaded = false;
+  m_CaptureLoaded = false;
   m_LoadInProgress = false;
 
   m_EventID = 0;
@@ -89,7 +89,7 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
 
     m_MainWindow->LoadFromFilename(paramFilename, temp);
     if(temp)
-      m_MainWindow->takeLogOwnership();
+      m_MainWindow->takeCaptureOwnership();
   }
 }
 
@@ -105,7 +105,7 @@ bool CaptureContext::isRunning()
   return m_MainWindow && m_MainWindow->isVisible();
 }
 
-QString CaptureContext::TempLogFilename(QString appname)
+QString CaptureContext::TempCaptureFilename(QString appname)
 {
   QString folder = Config().TemporaryCaptureDirectory;
 
@@ -126,13 +126,13 @@ QString CaptureContext::TempLogFilename(QString appname)
           .arg(QDateTime::currentDateTimeUtc().toString(lit("yyyy.MM.dd_HH.mm.ss"))));
 }
 
-void CaptureContext::LoadLogfile(const QString &logFile, const QString &origFilename,
+void CaptureContext::LoadCapture(const QString &captureFile, const QString &origFilename,
                                  bool temporary, bool local)
 {
   m_LoadInProgress = true;
 
-  LambdaThread *thread = new LambdaThread([this, logFile, origFilename, temporary, local]() {
-    LoadLogfileThreaded(logFile, origFilename, temporary, local);
+  LambdaThread *thread = new LambdaThread([this, captureFile, origFilename, temporary, local]() {
+    LoadCaptureThreaded(captureFile, origFilename, temporary, local);
   });
   thread->selfDelete(true);
   thread->start();
@@ -143,22 +143,24 @@ void CaptureContext::LoadLogfile(const QString &logFile, const QString &origFile
 
   m_MainWindow->setProgress(-1.0f);
 
-  if(m_LogLoaded)
+  if(m_CaptureLoaded)
   {
-    QVector<ILogViewer *> logviewers(m_LogViewers);
+    m_CaptureTemporary = temporary;
 
-    // make sure we're on a consistent event before invoking log viewer forms
+    QVector<ICaptureViewer *> viewers(m_CaptureViewers);
+
+    // make sure we're on a consistent event before invoking viewer forms
     if(m_LastDrawcall)
-      SetEventID(logviewers, m_LastDrawcall->eventID, true);
+      SetEventID(viewers, m_LastDrawcall->eventID, true);
     else if(!m_Drawcalls.empty())
-      SetEventID(logviewers, m_Drawcalls.back().eventID, true);
+      SetEventID(viewers, m_Drawcalls.back().eventID, true);
 
-    GUIInvoke::blockcall([&logviewers]() {
-      // notify all the registers log viewers that a log has been loaded
-      for(ILogViewer *logviewer : logviewers)
+    GUIInvoke::blockcall([&viewers]() {
+      // notify all the registers viewers that a capture has been loaded
+      for(ICaptureViewer *viewer : viewers)
       {
-        if(logviewer)
-          logviewer->OnLogfileLoaded();
+        if(viewer)
+          viewer->OnCaptureLoaded();
       }
     });
   }
@@ -173,32 +175,32 @@ float CaptureContext::UpdateLoadProgress()
   return val;
 }
 
-void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &origFilename,
+void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QString &origFilename,
                                          bool temporary, bool local)
 {
-  m_LogFile = origFilename;
+  m_CaptureFile = origFilename;
 
-  m_LogLocal = local;
+  m_CaptureLocal = local;
 
   Config().Save();
 
   m_LoadProgress = 0.0f;
   m_PostloadProgress = 0.0f;
 
-  // this function call will block until the log is either loaded, or there's some failure
-  m_Renderer.OpenCapture(logFile, &m_LoadProgress);
+  // this function call will block until the capture is either loaded, or there's some failure
+  m_Renderer.OpenCapture(captureFile, &m_LoadProgress);
 
   // if the renderer isn't running, we hit a failure case so display an error message
   if(!m_Renderer.IsRunning())
   {
     QString errmsg = ToQStr(m_Renderer.GetCreateStatus());
 
-    QString messageText = tr("%1\nFailed to open logfile for replay: %2.\n\n"
+    QString messageText = tr("%1\nFailed to open capture for replay: %2.\n\n"
                              "Check diagnostic log in Help menu for more details.")
-                              .arg(logFile)
+                              .arg(captureFile)
                               .arg(errmsg);
 
-    RDDialog::critical(NULL, tr("Error opening log"), messageText);
+    RDDialog::critical(NULL, tr("Error opening capture"), messageText);
 
     m_LoadInProgress = false;
     return;
@@ -206,7 +208,7 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
 
   if(!temporary)
   {
-    AddRecentFile(Config().RecentLogFiles, origFilename, 10);
+    AddRecentFile(Config().RecentCaptureFiles, origFilename, 10);
 
     Config().Save();
   }
@@ -296,13 +298,13 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
   QDateTime today = QDateTime::currentDateTimeUtc();
   QDateTime compare = today.addDays(-21);
 
-  if(compare > Config().DegradedLog_LastUpdate && m_APIProps.degraded)
+  if(compare > Config().DegradedCapture_LastUpdate && m_APIProps.degraded)
   {
-    Config().DegradedLog_LastUpdate = today;
+    Config().DegradedCapture_LastUpdate = today;
 
     RDDialog::critical(
-        NULL, tr("Degraded support of log"),
-        tr("%1\nThis log opened with degraded support - "
+        NULL, tr("Degraded support of capture"),
+        tr("%1\nThis capture opened with degraded support - "
            "this could mean missing hardware support caused a fallback to software rendering.\n\n"
            "This warning will not appear every time this happens, "
            "check debug errors/warnings window for more details.")
@@ -310,7 +312,7 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
   }
 
   m_LoadInProgress = false;
-  m_LogLoaded = true;
+  m_CaptureLoaded = true;
 }
 
 bool CaptureContext::PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b)
@@ -527,12 +529,59 @@ void CaptureContext::AddFakeProfileMarkers()
   m_Drawcalls = ret;
 }
 
-void CaptureContext::CloseLogfile()
+bool CaptureContext::SaveCaptureTo(const QString &captureFile)
 {
-  if(!m_LogLoaded)
+  bool success = false;
+  QString error;
+
+  if(IsCaptureLocal())
+  {
+    if(QFileInfo(GetCaptureFilename()).exists())
+    {
+      // QFile::copy won't overwrite, so remove the destination first (the save dialog already
+      // prompted for overwrite)
+      QFile::remove(captureFile);
+      success = QFile::copy(GetCaptureFilename(), captureFile);
+
+      error = tr("Couldn't save to %1").arg(captureFile);
+    }
+    else
+    {
+      RDDialog::critical(
+          NULL, tr("File not found"),
+          error =
+              tr("Capture '%1' couldn't be found on disk, cannot save.").arg(GetCaptureFilename()));
+      success = false;
+    }
+  }
+  else
+  {
+    Replay().CopyCaptureFromRemote(GetCaptureFilename(), captureFile, m_MainWindow);
+    success = QFile::exists(captureFile);
+
+    error = tr("File couldn't be transferred from remote host");
+  }
+
+  if(!success)
+  {
+    RDDialog::critical(NULL, tr("Error Saving"), error);
+    return false;
+  }
+
+  m_CaptureFile = captureFile;
+  m_CaptureTemporary = false;
+
+  return true;
+}
+
+void CaptureContext::CloseCapture()
+{
+  if(!m_CaptureLoaded)
     return;
 
-  m_LogFile = QString();
+  m_CaptureTemporary = false;
+
+  m_CaptureFile = QString();
 
   m_Renderer.CloseThread();
 
@@ -561,18 +610,18 @@ void CaptureContext::CloseLogfile()
   m_DebugMessages.clear();
   m_UnreadMessageCount = 0;
 
-  m_LogLoaded = false;
+  m_CaptureLoaded = false;
 
-  QVector<ILogViewer *> logviewers(m_LogViewers);
+  QVector<ICaptureViewer *> capviewers(m_CaptureViewers);
 
-  for(ILogViewer *logviewer : logviewers)
+  for(ICaptureViewer *viewer : capviewers)
   {
-    if(logviewer)
-      logviewer->OnLogfileClosed();
+    if(viewer)
+      viewer->OnCaptureClosed();
   }
 }
 
-void CaptureContext::SetEventID(const QVector<ILogViewer *> &exclude, uint32_t selectedEventID,
+void CaptureContext::SetEventID(const QVector<ICaptureViewer *> &exclude, uint32_t selectedEventID,
                                 uint32_t eventID, bool force)
 {
   uint32_t prevSelectedEventID = m_SelectedEventID;
@@ -596,18 +645,18 @@ void CaptureContext::SetEventID(const QVector<ILogViewer *> &exclude, uint32_t s
   RefreshUIStatus(exclude, updateSelectedEvent, updateEvent);
 }
 
-void CaptureContext::RefreshUIStatus(const QVector<ILogViewer *> &exclude, bool updateSelectedEvent,
-                                     bool updateEvent)
+void CaptureContext::RefreshUIStatus(const QVector<ICaptureViewer *> &exclude,
+                                     bool updateSelectedEvent, bool updateEvent)
 {
-  for(ILogViewer *logviewer : m_LogViewers)
+  for(ICaptureViewer *viewer : m_CaptureViewers)
   {
-    if(exclude.contains(logviewer))
+    if(exclude.contains(viewer))
       continue;
 
     if(updateSelectedEvent)
-      logviewer->OnSelectedEventChanged(m_SelectedEventID);
+      viewer->OnSelectedEventChanged(m_SelectedEventID);
     if(updateEvent)
-      logviewer->OnEventChanged(m_EventID);
+      viewer->OnEventChanged(m_EventID);
   }
 }
 

@@ -425,12 +425,12 @@ D3D12PipelineStateViewer::~D3D12PipelineStateViewer()
   delete ui;
 }
 
-void D3D12PipelineStateViewer::OnLogfileLoaded()
+void D3D12PipelineStateViewer::OnCaptureLoaded()
 {
   OnEventChanged(m_Ctx.CurEvent());
 }
 
-void D3D12PipelineStateViewer::OnLogfileClosed()
+void D3D12PipelineStateViewer::OnCaptureClosed()
 {
   ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
 
@@ -802,7 +802,7 @@ bool D3D12PipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 
 const D3D12Pipe::Shader *D3D12PipelineStateViewer::stageForSender(QWidget *widget)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return NULL;
 
   while(widget)
@@ -1183,7 +1183,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
 
 void D3D12PipelineStateViewer::setState()
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
   {
     clearState();
     return;
@@ -1940,7 +1940,7 @@ void D3D12PipelineStateViewer::highlightIABind(int slot)
 
 void D3D12PipelineStateViewer::on_iaLayouts_mouseMove(QMouseEvent *e)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   QModelIndex idx = ui->iaLayouts->indexAt(e->pos());
@@ -1962,7 +1962,7 @@ void D3D12PipelineStateViewer::on_iaLayouts_mouseMove(QMouseEvent *e)
 
 void D3D12PipelineStateViewer::on_iaBuffers_mouseMove(QMouseEvent *e)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   RDTreeWidgetItem *item = ui->iaBuffers->itemAt(e->pos());

@@ -251,24 +251,24 @@ DebugMessageView::DebugMessageView(ICaptureContext &ctx, QWidget *parent)
 
   RefreshMessageList();
 
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 }
 
 DebugMessageView::~DebugMessageView()
 {
   m_Ctx.BuiltinWindowClosed(this);
 
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
   delete ui;
 }
 
-void DebugMessageView::OnLogfileClosed()
+void DebugMessageView::OnCaptureClosed()
 {
   m_FilterModel->showHidden = false;
   RefreshMessageList();
 }
 
-void DebugMessageView::OnLogfileLoaded()
+void DebugMessageView::OnCaptureLoaded()
 {
   m_FilterModel->showHidden = false;
   RefreshMessageList();
@@ -341,7 +341,7 @@ void DebugMessageView::messages_toggled()
 
 void DebugMessageView::messages_contextMenu(const QPoint &pos)
 {
-  if(!m_Ctx.LogLoaded())
+  if(!m_Ctx.IsCaptureLoaded())
     return;
 
   QModelIndex index = ui->messages->indexAt(pos);

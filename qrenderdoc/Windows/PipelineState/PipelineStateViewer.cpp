@@ -50,7 +50,7 @@ PipelineStateViewer::PipelineStateViewer(ICaptureContext &ctx, QWidget *parent)
 
   setToD3D11();
 
-  m_Ctx.AddLogViewer(this);
+  m_Ctx.AddCaptureViewer(this);
 }
 
 PipelineStateViewer::~PipelineStateViewer()
@@ -58,12 +58,12 @@ PipelineStateViewer::~PipelineStateViewer()
   reset();
 
   m_Ctx.BuiltinWindowClosed(this);
-  m_Ctx.RemoveLogViewer(this);
+  m_Ctx.RemoveCaptureViewer(this);
 
   delete ui;
 }
 
-void PipelineStateViewer::OnLogfileLoaded()
+void PipelineStateViewer::OnCaptureLoaded()
 {
   if(m_Ctx.APIProps().pipelineType == GraphicsAPI::D3D11)
     setToD3D11();
@@ -75,19 +75,19 @@ void PipelineStateViewer::OnLogfileLoaded()
     setToVulkan();
 
   if(m_Current)
-    m_Current->OnLogfileLoaded();
+    m_Current->OnCaptureLoaded();
 }
 
-void PipelineStateViewer::OnLogfileClosed()
+void PipelineStateViewer::OnCaptureClosed()
 {
   if(m_Current)
-    m_Current->OnLogfileClosed();
+    m_Current->OnCaptureClosed();
 }
 
 void PipelineStateViewer::OnEventChanged(uint32_t eventID)
 {
   if(m_Ctx.CurPipelineState().DefaultType != m_Ctx.APIProps().pipelineType)
-    OnLogfileLoaded();
+    OnCaptureLoaded();
 
   if(m_Current)
     m_Current->OnEventChanged(eventID);
@@ -223,7 +223,7 @@ QXmlStreamWriter *PipelineStateViewer::beginHTMLExport()
         xml.writeAttribute(lit("lang"), lit("en"));
 
         QString title = tr("%1 EID %2 - %3 Pipeline export")
-                            .arg(QFileInfo(m_Ctx.LogFilename()).fileName())
+                            .arg(QFileInfo(m_Ctx.GetCaptureFilename()).fileName())
                             .arg(m_Ctx.CurEvent())
                             .arg(GetCurrentAPI());
 
@@ -818,7 +818,7 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
         if(updatedfiles.contains(lit("@cmdline")))
           compileSource = updatedfiles[lit("@cmdline")] + lit("\n\n") + compileSource;
 
-        // invoke off to the ReplayController to replace the log's shader
+        // invoke off to the ReplayController to replace the capture's shader
         // with our edited one
         ctx->Replay().AsyncInvoke([ctx, entryFunc, compileSource, shaderType, id, shaderDetails,
                                    viewer](IReplayController *r) {
@@ -866,15 +866,15 @@ bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
 
   QString filter;
 
-  if(m_Ctx.CurPipelineState().IsLogD3D11() || m_Ctx.CurPipelineState().IsLogD3D12())
+  if(m_Ctx.CurPipelineState().IsCaptureD3D11() || m_Ctx.CurPipelineState().IsCaptureD3D12())
   {
     filter = tr("DXBC Shader files (*.dxbc)");
   }
-  else if(m_Ctx.CurPipelineState().IsLogGL())
+  else if(m_Ctx.CurPipelineState().IsCaptureGL())
   {
     filter = tr("GLSL files (*.glsl)");
   }
-  else if(m_Ctx.CurPipelineState().IsLogVK())
+  else if(m_Ctx.CurPipelineState().IsCaptureVK())
   {
     filter = tr("SPIR-V files (*.spv)");
   }

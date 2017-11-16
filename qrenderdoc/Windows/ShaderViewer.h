@@ -55,7 +55,7 @@ enum class VariableCategory
   Outputs,
 };
 
-class ShaderViewer : public QFrame, public IShaderViewer, public ILogViewer
+class ShaderViewer : public QFrame, public IShaderViewer, public ICaptureViewer
 {
   Q_OBJECT
 
@@ -99,9 +99,9 @@ public:
 
   virtual void ShowErrors(const QString &errors) override;
 
-  // ILogViewerForm
-  void OnLogfileLoaded() override;
-  void OnLogfileClosed() override;
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
   void OnEventChanged(uint32_t eventID) override;
 

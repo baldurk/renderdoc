@@ -65,43 +65,44 @@ public:
   bool isRunning();
 
   QString ConfigFilePath(const QString &filename) override { return ::ConfigFilePath(filename); }
-  QString TempLogFilename(QString appname) override;
+  QString TempCaptureFilename(QString appname) override;
 
   //////////////////////////////////////////////////////////////////////////////
   // Control functions
 
-  void LoadLogfile(const QString &logFile, const QString &origFilename, bool temporary,
+  void LoadCapture(const QString &captureFile, const QString &origFilename, bool temporary,
                    bool local) override;
+  bool SaveCaptureTo(const QString &captureFile) override;
+  void CloseCapture() override;
 
-  void CloseLogfile() override;
-
-  void SetEventID(const QVector<ILogViewer *> &exclude, uint32_t selectedEventID, uint32_t eventID,
-                  bool force = false) override;
+  void SetEventID(const QVector<ICaptureViewer *> &exclude, uint32_t selectedEventID,
+                  uint32_t eventID, bool force = false) override;
 
   void RefreshStatus() override { SetEventID({}, m_SelectedEventID, m_EventID, true); }
-  void RefreshUIStatus(const QVector<ILogViewer *> &exclude, bool updateSelectedEvent,
+  void RefreshUIStatus(const QVector<ICaptureViewer *> &exclude, bool updateSelectedEvent,
                        bool updateEvent);
 
-  void AddLogViewer(ILogViewer *f) override
+  void AddCaptureViewer(ICaptureViewer *f) override
   {
-    m_LogViewers.push_back(f);
+    m_CaptureViewers.push_back(f);
 
-    if(LogLoaded())
+    if(IsCaptureLoaded())
     {
-      f->OnLogfileLoaded();
+      f->OnCaptureLoaded();
       f->OnEventChanged(CurEvent());
     }
   }
 
-  void RemoveLogViewer(ILogViewer *f) override { m_LogViewers.removeAll(f); }
+  void RemoveCaptureViewer(ICaptureViewer *f) override { m_CaptureViewers.removeAll(f); }
   //////////////////////////////////////////////////////////////////////////////
   // Accessors
 
   ReplayManager &Replay() override { return m_Renderer; }
-  bool LogLoaded() override { return m_LogLoaded; }
-  bool IsLogLocal() override { return m_LogLocal; }
-  bool LogLoading() override { return m_LoadInProgress; }
-  QString LogFilename() override { return m_LogFile; }
+  bool IsCaptureLoaded() override { return m_CaptureLoaded; }
+  bool IsCaptureLocal() override { return m_CaptureLocal; }
+  bool IsCaptureTemporary() override { return m_CaptureTemporary; }
+  bool IsCaptureLoading() override { return m_LoadInProgress; }
+  QString GetCaptureFilename() override { return m_CaptureFile; }
   const FrameDescription &FrameInfo() override { return m_FrameInfo; }
   const APIProperties &APIProps() override { return m_APIProps; }
   uint32_t CurSelectedEvent() override { return m_SelectedEventID; }
@@ -227,10 +228,11 @@ private:
 
   PersistantConfig &m_Config;
 
-  QVector<ILogViewer *> m_LogViewers;
+  QVector<ICaptureViewer *> m_CaptureViewers;
 
-  bool m_LogLoaded, m_LoadInProgress, m_LogLocal;
-  QString m_LogFile;
+  bool m_CaptureLoaded = false, m_LoadInProgress = false, m_CaptureLocal = false,
+       m_CaptureTemporary = false;
+  QString m_CaptureFile;
 
   QVector<DebugMessage> m_DebugMessages;
   int m_UnreadMessageCount = 0;
@@ -243,7 +245,7 @@ private:
   float m_PostloadProgress = 0.0f;
   float UpdateLoadProgress();
 
-  void LoadLogfileThreaded(const QString &logFile, const QString &origFilename, bool temporary,
+  void LoadCaptureThreaded(const QString &captureFile, const QString &origFilename, bool temporary,
                            bool local);
 
   uint32_t m_SelectedEventID;
