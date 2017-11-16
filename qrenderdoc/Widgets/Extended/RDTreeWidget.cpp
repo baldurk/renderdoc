@@ -548,6 +548,9 @@ void RDTreeWidgetItem::addChild(RDTreeWidgetItem *item)
 {
   int colCount = item->m_text.count();
 
+  if(m_widget && colCount < m_widget->m_headers.count())
+    qCritical() << "Item added with insufficient column data";
+
   // remove it from any previous parent
   if(item->m_parent)
     item->m_parent->removeChild(this);

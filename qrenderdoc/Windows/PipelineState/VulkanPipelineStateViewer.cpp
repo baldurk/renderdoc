@@ -655,7 +655,8 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
           descriptor.immutableSampler ? tr("Immutable Sampler") : tr("Sampler"),
           descriptor.res,
           addressing,
-          filter + lit(", ") + lod};
+          filter + lit(", ") + lod,
+          QString()};
 }
 
 void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
@@ -918,7 +919,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(!isbuf)
         {
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, ToQStr(bindType), lit("-"), lit("-"), QString(),
+              QString(), bindset, slotname, ToQStr(bindType), lit("-"), lit("-"), QString(), QString(),
           });
 
           setEmptyRow(node);
@@ -931,7 +932,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
           node = new RDTreeWidgetItem({
               QString(), bindset, slotname, ToQStr(bindType), descriptorBind->res,
-              tr("%1 bytes").arg(len), range,
+              tr("%1 bytes").arg(len), range, QString(),
           });
 
           node->setTag(tag);
@@ -948,7 +949,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(descriptorBind == NULL || descriptorBind->sampler == ResourceId())
         {
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, ToQStr(bindType), lit("-"), lit("-"), QString(),
+              QString(), bindset, slotname, ToQStr(bindType), lit("-"), lit("-"), QString(), QString(),
           });
 
           setEmptyRow(node);
@@ -977,7 +978,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(descriptorBind == NULL || descriptorBind->res == ResourceId())
         {
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, ToQStr(bindType), lit("-"), lit("-"), QString(),
+              QString(), bindset, slotname, ToQStr(bindType), lit("-"), lit("-"), QString(), QString(),
           });
 
           setEmptyRow(node);
@@ -1017,7 +1018,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
             dim += QFormatStr(", %1x MSAA").arg(samples);
 
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, typeName, descriptorBind->res, dim, format,
+              QString(), bindset, slotname, typeName, descriptorBind->res, dim, format, QString(),
           });
 
           node->setTag(tag);
@@ -1231,7 +1232,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       }
 
       RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({QString(), setname, slotname, name, vecrange, sizestr});
+          new RDTreeWidgetItem({QString(), setname, slotname, name, vecrange, sizestr, QString()});
 
       node->setTag(QVariant::fromValue(VulkanCBufferTag(slot, (uint)idx)));
 
@@ -1418,8 +1419,8 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
         // from SPIR-V side.
 
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({QString(), QString(), cblock.name, tr("Push constants"),
-                                  QString(), tr("%1 Variables").arg(cblock.variables.count())});
+            new RDTreeWidgetItem({QString(), QString(), cblock.name, tr("Push constants"), QString(),
+                                  tr("%1 Variables").arg(cblock.variables.count()), QString()});
 
         node->setTag(QVariant::fromValue(VulkanCBufferTag(cb, 0)));
 

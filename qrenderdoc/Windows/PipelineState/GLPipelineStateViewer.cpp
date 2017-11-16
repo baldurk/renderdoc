@@ -1132,7 +1132,7 @@ void GLPipelineStateViewer::setState()
 
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {i, a.Enabled ? tr("Enabled") : tr("Disabled"), name,
-             a.Enabled ? a.Format.Name() : genericVal, a.BufferSlot, a.RelativeOffset});
+             a.Enabled ? a.Format.Name() : genericVal, a.BufferSlot, a.RelativeOffset, QString()});
 
         if(a.Enabled)
           usedBindings[a.BufferSlot] = true;
