@@ -194,6 +194,9 @@
    <property name="text">
     <string>&amp;Close Capture</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+F4</string>
+   </property>
   </action>
   <action name="action_Exit">
    <property name="text">
