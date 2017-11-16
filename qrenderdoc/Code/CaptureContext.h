@@ -45,6 +45,7 @@ class BufferViewer;
 class TextureViewer;
 class CaptureDialog;
 class DebugMessageView;
+class CommentView;
 class PerformanceCounterViewer;
 class StatisticsViewer;
 class TimelineBar;
@@ -140,6 +141,8 @@ public:
   void MarkMessagesRead() override { m_UnreadMessageCount = 0; }
   void AddMessages(const rdcarray<DebugMessage> &msgs) override;
 
+  QString GetNotes(const QString &key) override { return m_Notes[key]; }
+  void SetNotes(const QString &key, const QString &contents) override;
   QList<EventBookmark> GetBookmarks() override { return m_Bookmarks; }
   void SetBookmark(const EventBookmark &mark) override;
   void RemoveBookmark(uint32_t EID) override;
@@ -152,6 +155,7 @@ public:
   IPipelineStateViewer *GetPipelineViewer() override;
   ICaptureDialog *GetCaptureDialog() override;
   IDebugMessageView *GetDebugMessageView() override;
+  ICommentView *GetCommentView() override;
   IPerformanceCounterViewer *GetPerformanceCounterViewer() override;
   IStatisticsViewer *GetStatisticsViewer() override;
   ITimelineBar *GetTimelineBar() override;
@@ -165,6 +169,7 @@ public:
   bool HasMeshPreview() override { return m_MeshPreview != NULL; }
   bool HasCaptureDialog() override { return m_CaptureDialog != NULL; }
   bool HasDebugMessageView() override { return m_DebugMessageView != NULL; }
+  bool HasCommentView() override { return m_CommentView != NULL; }
   bool HasPerformanceCounterViewer() override { return m_PerformanceCounterViewer != NULL; }
   bool HasStatisticsViewer() override { return m_StatisticsViewer != NULL; }
   bool HasTimelineBar() override { return m_TimelineBar != NULL; }
@@ -177,6 +182,7 @@ public:
   void ShowPipelineViewer() override;
   void ShowCaptureDialog() override;
   void ShowDebugMessageView() override;
+  void ShowCommentView() override;
   void ShowPerformanceCounterViewer() override;
   void ShowStatisticsViewer() override;
   void ShowTimelineBar() override;
@@ -253,6 +259,9 @@ private:
   QString SaveBookmarks();
   void LoadBookmarks(const QString &data);
 
+  QString SaveNotes();
+  void LoadNotes(const QString &data);
+
   float m_LoadProgress = 0.0f;
   float m_PostloadProgress = 0.0f;
   float UpdateLoadProgress();
@@ -299,6 +308,8 @@ private:
 
   QList<EventBookmark> m_Bookmarks;
 
+  QStringMap m_Notes;
+
   QMap<ResourceId, QString> m_CustomNames;
   int m_CustomNameCachedID = 1;
 
@@ -325,6 +336,7 @@ private:
   PipelineStateViewer *m_PipelineViewer = NULL;
   CaptureDialog *m_CaptureDialog = NULL;
   DebugMessageView *m_DebugMessageView = NULL;
+  CommentView *m_CommentView = NULL;
   PerformanceCounterViewer *m_PerformanceCounterViewer = NULL;
   StatisticsViewer *m_StatisticsViewer = NULL;
   TimelineBar *m_TimelineBar = NULL;

@@ -82,6 +82,9 @@ private slots:
   void on_EventBrowser_ApplyColors_toggled(bool checked);
   void on_EventBrowser_ColorEventRow_toggled(bool checked);
 
+  // comments
+  void on_Comments_ShowOnLoad_toggled(bool checked);
+
   // android
   void on_browseTempCaptureDirectory_clicked();
   void on_browseAdbPath_clicked();

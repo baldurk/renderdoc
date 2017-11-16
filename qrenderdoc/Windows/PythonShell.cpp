@@ -111,6 +111,7 @@ struct CaptureContextInvoker : ICaptureContext
   virtual const QVector<DebugMessage> &DebugMessages() override { return m_Ctx.DebugMessages(); }
   virtual int UnreadMessageCount() override { return m_Ctx.UnreadMessageCount(); }
   virtual void MarkMessagesRead() override { return m_Ctx.MarkMessagesRead(); }
+  virtual QString GetNotes(const QString &key) override { return m_Ctx.GetNotes(key); }
   virtual QList<EventBookmark> GetBookmarks() override { return m_Ctx.GetBookmarks(); }
   virtual const D3D11Pipe::State &CurD3D11PipelineState() override
   {
@@ -191,6 +192,10 @@ struct CaptureContextInvoker : ICaptureContext
   {
     InvokeVoidFunction(&ICaptureContext::SetResourceCustomName, id, name);
   }
+  virtual void SetNotes(const QString &key, const QString &contents) override
+  {
+    InvokeVoidFunction(&ICaptureContext::SetNotes, key, contents);
+  }
 
   virtual void SetBookmark(const EventBookmark &mark) override
   {
@@ -231,6 +236,10 @@ struct CaptureContextInvoker : ICaptureContext
   virtual IDebugMessageView *GetDebugMessageView() override
   {
     return InvokeRetFunction<IDebugMessageView *>(&ICaptureContext::GetDebugMessageView);
+  }
+  virtual ICommentView *GetCommentView() override
+  {
+    return InvokeRetFunction<ICommentView *>(&ICaptureContext::GetCommentView);
   }
   virtual IPerformanceCounterViewer *GetPerformanceCounterViewer() override
   {
@@ -281,6 +290,10 @@ struct CaptureContextInvoker : ICaptureContext
   {
     return InvokeRetFunction<bool>(&ICaptureContext::HasDebugMessageView);
   }
+  virtual bool HasCommentView() override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::HasCommentView);
+  }
   virtual bool HasPerformanceCounterViewer() override
   {
     return InvokeRetFunction<bool>(&ICaptureContext::HasPerformanceCounterViewer);
@@ -327,6 +340,7 @@ struct CaptureContextInvoker : ICaptureContext
   {
     InvokeVoidFunction(&ICaptureContext::ShowDebugMessageView);
   }
+  virtual void ShowCommentView() override { InvokeVoidFunction(&ICaptureContext::ShowCommentView); }
   virtual void ShowPerformanceCounterViewer() override
   {
     InvokeVoidFunction(&ICaptureContext::ShowPerformanceCounterViewer);

@@ -106,6 +106,8 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   // disable sub-checkbox
   ui->EventBrowser_ColorEventRow->setEnabled(ui->EventBrowser_ApplyColors->isChecked());
 
+  ui->Comments_ShowOnLoad->setChecked(m_Ctx.Config().Comments_ShowOnLoad);
+
   ui->Formatter_MinFigures->setValue(m_Ctx.Config().Formatter_MinFigures);
   ui->Formatter_MaxFigures->setValue(m_Ctx.Config().Formatter_MaxFigures);
   ui->Formatter_NegExp->setValue(m_Ctx.Config().Formatter_NegExp);
@@ -355,6 +357,13 @@ void SettingsDialog::on_EventBrowser_ApplyColors_toggled(bool checked)
 void SettingsDialog::on_EventBrowser_ColorEventRow_toggled(bool checked)
 {
   m_Ctx.Config().EventBrowser_ColorEventRow = ui->EventBrowser_ColorEventRow->isChecked();
+
+  m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_Comments_ShowOnLoad_toggled(bool checked)
+{
+  m_Ctx.Config().Comments_ShowOnLoad = ui->Comments_ShowOnLoad->isChecked();
 
   m_Ctx.Config().Save();
 }

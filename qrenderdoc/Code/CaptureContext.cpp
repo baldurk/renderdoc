@@ -34,6 +34,7 @@
 #include <QTimer>
 #include "Windows/APIInspector.h"
 #include "Windows/BufferViewer.h"
+#include "Windows/CommentView.h"
 #include "Windows/ConstantBufferPreviewer.h"
 #include "Windows/DebugMessageView.h"
 #include "Windows/Dialogs/CaptureDialog.h"
@@ -131,6 +132,8 @@ void CaptureContext::LoadCapture(const QString &captureFile, const QString &orig
 {
   m_LoadInProgress = true;
 
+  bool newCapture = (!temporary && !Config().RecentCaptureFiles.contains(origFilename));
+
   LambdaThread *thread = new LambdaThread([this, captureFile, origFilename, temporary, local]() {
     LoadCaptureThreaded(captureFile, origFilename, temporary, local);
   });
@@ -165,6 +168,13 @@ void CaptureContext::LoadCapture(const QString &captureFile, const QString &orig
           viewer->OnCaptureLoaded();
       }
     });
+
+    if(newCapture && m_Notes.contains(lit("comments")))
+    {
+      if(!HasCommentView())
+        ShowCommentView();
+      RaiseDockWindow(GetCommentView()->Widget());
+    }
   }
 }
 
@@ -329,6 +339,13 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const QStri
     {
       bytebuf buf = access->GetSectionContents(idx);
       LoadBookmarks(QString::fromUtf8((const char *)buf.data(), buf.count()));
+    }
+
+    idx = access->FindSectionByType(SectionType::Notes);
+    if(idx >= 0)
+    {
+      bytebuf buf = access->GetSectionContents(idx);
+      LoadNotes(QString::fromUtf8((const char *)buf.data(), buf.count()));
     }
   }
 
@@ -633,6 +650,14 @@ bool CaptureContext::SaveCaptureTo(const QString &captureFile)
 
     Replay().GetCaptureAccess()->WriteSection(props, SaveBookmarks().toUtf8());
   }
+  if(m_CaptureMods & CaptureModifications::Notes)
+  {
+    SectionProperties props;
+    props.type = SectionType::Notes;
+    props.version = 1;
+
+    Replay().GetCaptureAccess()->WriteSection(props, SaveNotes().toUtf8());
+  }
 
   m_CaptureMods = CaptureModifications::NoModifications;
 
@@ -661,6 +686,7 @@ void CaptureContext::CloseCapture()
 
   m_CustomNames.clear();
   m_Bookmarks.clear();
+  m_Notes.clear();
 
   m_Drawcalls.clear();
   m_FirstDrawcall = m_LastDrawcall = NULL;
@@ -736,6 +762,20 @@ void CaptureContext::AddMessages(const rdcarray<DebugMessage> &msgs)
   {
     GUIInvoke::call([this]() { m_DebugMessageView->RefreshMessageList(); });
   }
+}
+
+void CaptureContext::SetNotes(const QString &key, const QString &contents)
+{
+  // ignore no-op changes
+  if(m_Notes.contains(key) && m_Notes[key] == contents)
+    return;
+
+  m_Notes[key] = contents;
+
+  m_CaptureMods |= CaptureModifications::Notes;
+  m_MainWindow->captureModified();
+
+  RefreshUIStatus({}, true, true);
 }
 
 void CaptureContext::SetBookmark(const EventBookmark &mark)
@@ -849,6 +889,26 @@ void CaptureContext::LoadBookmarks(const QString &data)
       if(mark.EID != 0)
         m_Bookmarks.push_back(mark);
     }
+  }
+}
+
+QString CaptureContext::SaveNotes()
+{
+  QVariantMap root;
+  for(const QString &key : m_Notes.keys())
+    root[key] = m_Notes[key];
+
+  return VariantToJSON(root);
+}
+
+void CaptureContext::LoadNotes(const QString &data)
+{
+  QVariantMap root = JSONToVariant(data);
+
+  for(QString key : root.keys())
+  {
+    if(!key.isEmpty())
+      m_Notes[key] = root[key].toString();
   }
 }
 
@@ -1049,6 +1109,18 @@ IDebugMessageView *CaptureContext::GetDebugMessageView()
   return m_DebugMessageView;
 }
 
+ICommentView *CaptureContext::GetCommentView()
+{
+  if(m_CommentView)
+    return m_CommentView;
+
+  m_CommentView = new CommentView(*this, m_MainWindow);
+  m_CommentView->setObjectName(lit("commentView"));
+  setupDockWindow(m_CommentView);
+
+  return m_CommentView;
+}
+
 IPerformanceCounterViewer *CaptureContext::GetPerformanceCounterViewer()
 {
   if(m_PerformanceCounterViewer)
@@ -1142,6 +1214,11 @@ void CaptureContext::ShowCaptureDialog()
 void CaptureContext::ShowDebugMessageView()
 {
   m_MainWindow->showDebugMessageView();
+}
+
+void CaptureContext::ShowCommentView()
+{
+  m_MainWindow->showCommentView();
 }
 
 void CaptureContext::ShowPerformanceCounterViewer()
@@ -1260,6 +1337,10 @@ QWidget *CaptureContext::CreateBuiltinWindow(const QString &objectName)
   {
     return GetDebugMessageView()->Widget();
   }
+  else if(objectName == lit("commentView"))
+  {
+    return GetCommentView()->Widget();
+  }
   else if(objectName == lit("statisticsViewer"))
   {
     return GetStatisticsViewer()->Widget();
@@ -1300,6 +1381,8 @@ void CaptureContext::BuiltinWindowClosed(QWidget *window)
     m_MeshPreview = NULL;
   else if(m_DebugMessageView && m_DebugMessageView->Widget() == window)
     m_DebugMessageView = NULL;
+  else if(m_CommentView && m_CommentView->Widget() == window)
+    m_CommentView = NULL;
   else if(m_StatisticsViewer && m_StatisticsViewer->Widget() == window)
     m_StatisticsViewer = NULL;
   else if(m_TimelineBar && m_TimelineBar->Widget() == window)

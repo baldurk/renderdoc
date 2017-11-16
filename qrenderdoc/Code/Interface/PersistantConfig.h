@@ -97,6 +97,8 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ColorEventRow, true)                 \
                                                                                            \
+  CONFIG_SETTING_VAL(public, bool, bool, Comments_ShowOnLoad, false)                       \
+                                                                                           \
   CONFIG_SETTING_VAL(public, int, int, Formatter_MinFigures, 2)                            \
                                                                                            \
   CONFIG_SETTING_VAL(public, int, int, Formatter_MaxFigures, 5)                            \
@@ -313,6 +315,13 @@ For more information about some of these settings that are user-facing see
   Defaults to ``True``.
 )",
           R"(
+.. data:: Comments_ShowOnLoad
+
+  ``True`` if when loading a new capture that contains a comments section, the comment viewer will
+  be opened and focussed.
+
+  Defaults to ``False``.
+
 .. data:: Formatter_MinFigures
 
   The minimum number of significant figures to show in formatted floating point values.

@@ -1552,6 +1552,16 @@ void MainWindow::on_action_Errors_and_Warnings_triggered()
     ui->toolWindowManager->addToolWindow(debugMessages, mainToolArea());
 }
 
+void MainWindow::on_action_Comments_triggered()
+{
+  QWidget *comments = m_Ctx.GetCommentView()->Widget();
+
+  if(ui->toolWindowManager->toolWindows().contains(comments))
+    ToolWindowManager::raiseToolWindow(comments);
+  else
+    ui->toolWindowManager->addToolWindow(comments, mainToolArea());
+}
+
 void MainWindow::on_action_Statistics_Viewer_triggered()
 {
   QWidget *stats = m_Ctx.GetStatisticsViewer()->Widget();

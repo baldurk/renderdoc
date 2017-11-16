@@ -393,6 +393,22 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IDebugMessageView);
 
+DOCUMENT("The capture comments window.");
+struct ICommentView
+{
+  DOCUMENT(
+      "Retrieves the QWidget for this :class:`CommentView` if PySide2 is available, or "
+      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
+      "QWidget.");
+  virtual QWidget *Widget() = 0;
+
+protected:
+  ICommentView() = default;
+  ~ICommentView() = default;
+};
+
+DECLARE_REFLECTION_STRUCT(ICommentView);
+
 DOCUMENT("The statistics window.");
 struct IStatisticsViewer
 {
@@ -1296,6 +1312,28 @@ as well as messages generated during replay and analysis.
 )");
   virtual void AddMessages(const rdcarray<DebugMessage> &msgs) = 0;
 
+  DOCUMENT(R"(Retrieve the contents for a given notes field.
+
+Examples of fields are:
+
+* 'comments' for generic comments to be displayed in a text field
+* 'hwinfo' for a plaintext summary of the hardware and driver configuration of the system.
+
+:param str key: The name of the notes field to retrieve.
+:return: The contents, or an empty string if the field doesn't exist.
+:rtype: str
+)");
+  virtual QString GetNotes(const QString &key) = 0;
+
+  DOCUMENT(R"(Set the contents for a given notes field.
+
+See :meth:`GetNotes` for a list of possible common field keys.
+
+:param str key: The name of the notes field to set.
+:param str contents: The new contents to assign to that field.
+)");
+  virtual void SetNotes(const QString &key, const QString &contents) = 0;
+
   DOCUMENT(R"(Get the current list of bookmarks in the capture. Each bookmark is associated with an
 EID and has some text attached. There will only be at most one bookmark for any given EID.
 
@@ -1379,6 +1417,13 @@ If no bookmark exists, this function will do nothing.
 :rtype: DebugMessageView
 )");
   virtual IDebugMessageView *GetDebugMessageView() = 0;
+
+  DOCUMENT(R"(Retrieve the current singleton :class:`CommentView`.
+
+:return: The current window, which is created (but not shown) it there wasn't one open.
+:rtype: CommentView
+)");
+  virtual ICommentView *GetCommentView() = 0;
 
   DOCUMENT(R"(Retrieve the current singleton :class:`PerformanceCounterViewer`.
 
@@ -1464,6 +1509,13 @@ If no bookmark exists, this function will do nothing.
 )");
   virtual bool HasDebugMessageView() = 0;
 
+  DOCUMENT(R"(Check if there is a current :class:`CommentView` open.
+
+:return: ``True`` if there is a window open.
+:rtype: ``bool``
+)");
+  virtual bool HasCommentView() = 0;
+
   DOCUMENT(R"(Check if there is a current :class:`PerformanceCounterViewer` open.
 
 :return: ``True`` if there is a window open.
@@ -1514,6 +1566,8 @@ If no bookmark exists, this function will do nothing.
   DOCUMENT(
       "Raise the current :class:`DebugMessageView`, showing it in the default place if needed.");
   virtual void ShowDebugMessageView() = 0;
+  DOCUMENT("Raise the current :class:`CommentView`, showing it in the default place if needed.");
+  virtual void ShowCommentView() = 0;
   DOCUMENT(
       "Raise the current :class:`PerformanceCounterViewer`, showing it in the default place if "
       "needed.");

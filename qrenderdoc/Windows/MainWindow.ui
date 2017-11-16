@@ -133,6 +133,7 @@
     <addaction name="action_Statistics_Viewer"/>
     <addaction name="action_Counter_Viewer"/>
     <addaction name="action_Resource_Inspector"/>
+    <addaction name="action_Comments"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
@@ -416,6 +417,11 @@
   <action name="action_Save_Capture_As">
    <property name="text">
     <string>Sa&amp;ve Capture As</string>
+   </property>
+  </action>
+  <action name="action_Comments">
+   <property name="text">
+    <string>Capture C&amp;omments</string>
    </property>
   </action>
  </widget>
