@@ -1241,7 +1241,7 @@ void MainWindow::OnCaptureLoaded()
   ui->action_Resolve_Symbols->setEnabled(false);
 
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *) {
-    bool hasResolver = m_Ctx.Replay().GetResolver()->HasCallstacks();
+    bool hasResolver = m_Ctx.Replay().GetCaptureAccess()->HasCallstacks();
 
     GUIInvoke::call([this, hasResolver]() {
       ui->action_Resolve_Symbols->setEnabled(hasResolver);
@@ -1505,7 +1505,7 @@ void MainWindow::on_action_Python_Shell_triggered()
 
 void MainWindow::on_action_Resolve_Symbols_triggered()
 {
-  if(!m_Ctx.Replay().GetResolver())
+  if(!m_Ctx.Replay().GetCaptureAccess())
   {
     RDDialog::critical(
         this, tr("Not Available"),
@@ -1517,7 +1517,7 @@ void MainWindow::on_action_Resolve_Symbols_triggered()
   bool finished = false;
 
   m_Ctx.Replay().AsyncInvoke([this, &progress, &finished](IReplayController *) {
-    bool success = m_Ctx.Replay().GetResolver()->InitResolver(&progress, NULL);
+    bool success = m_Ctx.Replay().GetCaptureAccess()->InitResolver(&progress, NULL);
 
     if(!success)
     {

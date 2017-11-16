@@ -668,7 +668,7 @@ struct IReplayManager
 :return: The file handle active, or ``None`` if no capture is open.
 :rtype: StackResolver
 )");
-  virtual IStackResolver *GetResolver() = 0;
+  virtual ICaptureAccess *GetCaptureAccess() = 0;
 
   DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 

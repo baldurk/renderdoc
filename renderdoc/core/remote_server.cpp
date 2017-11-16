@@ -61,6 +61,11 @@ enum RemoteServerPacket
   eRemoteServer_ListDir,
   eRemoteServer_ExecuteAndInject,
   eRemoteServer_ShutdownServer,
+  eRemoteServer_FindSectionByName,
+  eRemoteServer_FindSectionByType,
+  eRemoteServer_GetSectionProperties,
+  eRemoteServer_GetSectionContents,
+  eRemoteServer_WriteSection,
   eRemoteServer_RemoteServerCount,
 };
 
@@ -545,6 +550,121 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
           WRITE_DATA_SCOPE();
           SCOPED_SERIALISE_CHUNK(eRemoteServer_GetResolve);
           SERIALISE_ELEMENT(StackFrames);
+        }
+      }
+      else if(type == eRemoteServer_FindSectionByName)
+      {
+        std::string name;
+
+        {
+          READ_DATA_SCOPE();
+          SERIALISE_ELEMENT(name);
+        }
+
+        reader.EndChunk();
+
+        int index = rdc ? rdc->SectionIndex(name.c_str()) : -1;
+
+        {
+          WRITE_DATA_SCOPE();
+          SCOPED_SERIALISE_CHUNK(eRemoteServer_FindSectionByName);
+          SERIALISE_ELEMENT(index);
+        }
+      }
+      else if(type == eRemoteServer_FindSectionByType)
+      {
+        SectionType sectionType;
+
+        {
+          READ_DATA_SCOPE();
+          SERIALISE_ELEMENT(sectionType);
+        }
+
+        reader.EndChunk();
+
+        int index = rdc ? rdc->SectionIndex(sectionType) : -1;
+
+        {
+          WRITE_DATA_SCOPE();
+          SCOPED_SERIALISE_CHUNK(eRemoteServer_FindSectionByType);
+          SERIALISE_ELEMENT(index);
+        }
+      }
+      else if(type == eRemoteServer_GetSectionProperties)
+      {
+        int index = -1;
+
+        {
+          READ_DATA_SCOPE();
+          SERIALISE_ELEMENT(index);
+        }
+
+        reader.EndChunk();
+
+        SectionProperties props;
+        if(rdc && index >= 0 && index < rdc->NumSections())
+          props = rdc->GetSectionProperties(index);
+
+        {
+          WRITE_DATA_SCOPE();
+          SCOPED_SERIALISE_CHUNK(eRemoteServer_GetSectionProperties);
+          SERIALISE_ELEMENT(props);
+        }
+      }
+      else if(type == eRemoteServer_GetSectionContents)
+      {
+        int index = -1;
+
+        {
+          READ_DATA_SCOPE();
+          SERIALISE_ELEMENT(index);
+        }
+
+        reader.EndChunk();
+
+        bytebuf contents;
+
+        if(rdc && index >= 0 && index < rdc->NumSections())
+        {
+          StreamReader *sectionReader = rdc->ReadSection(index);
+
+          contents.resize((size_t)sectionReader->GetSize());
+          bool success = sectionReader->Read(contents.data(), sectionReader->GetSize());
+
+          if(!success)
+            contents.clear();
+
+          delete sectionReader;
+        }
+
+        {
+          WRITE_DATA_SCOPE();
+          SCOPED_SERIALISE_CHUNK(eRemoteServer_GetSectionContents);
+          SERIALISE_ELEMENT(contents);
+        }
+      }
+      else if(type == eRemoteServer_WriteSection)
+      {
+        SectionProperties props;
+        bytebuf contents;
+
+        {
+          READ_DATA_SCOPE();
+          SERIALISE_ELEMENT(props);
+          SERIALISE_ELEMENT(contents);
+        }
+
+        reader.EndChunk();
+
+        if(rdc)
+        {
+          StreamWriter *sectionWriter = rdc->WriteSection(props);
+
+          if(sectionWriter)
+          {
+            sectionWriter->Write(contents.data(), contents.size());
+            delete sectionWriter;
+          }
         }
       }
       else if(type == eRemoteServer_CloseLog)
@@ -1268,6 +1388,157 @@ public:
     return ret;
   }
 
+  void CloseCapture(IReplayController *rend)
+  {
+    {
+      WRITE_DATA_SCOPE();
+      SCOPED_SERIALISE_CHUNK(eRemoteServer_CloseLog);
+    }
+
+    rend->Shutdown();
+  }
+
+  int FindSectionByName(const char *name)
+  {
+    if(!Connected())
+      return -1;
+
+    {
+      WRITE_DATA_SCOPE();
+      SCOPED_SERIALISE_CHUNK(eRemoteServer_FindSectionByName);
+      SERIALISE_ELEMENT(name);
+    }
+
+    int index = -1;
+
+    {
+      READ_DATA_SCOPE();
+      RemoteServerPacket type = ser.ReadChunk<RemoteServerPacket>();
+
+      if(type == eRemoteServer_FindSectionByName)
+      {
+        SERIALISE_ELEMENT(index);
+      }
+      else
+      {
+        RDCERR("Unexpected response to FindSectionByName");
+      }
+
+      ser.EndChunk();
+    }
+
+    return index;
+  }
+
+  int FindSectionByType(SectionType sectionType)
+  {
+    if(!Connected())
+      return -1;
+
+    {
+      WRITE_DATA_SCOPE();
+      SCOPED_SERIALISE_CHUNK(eRemoteServer_FindSectionByType);
+      SERIALISE_ELEMENT(sectionType);
+    }
+
+    int index = -1;
+
+    {
+      READ_DATA_SCOPE();
+      RemoteServerPacket type = ser.ReadChunk<RemoteServerPacket>();
+
+      if(type == eRemoteServer_FindSectionByType)
+      {
+        SERIALISE_ELEMENT(index);
+      }
+      else
+      {
+        RDCERR("Unexpected response to FindSectionByType");
+      }
+
+      ser.EndChunk();
+    }
+
+    return index;
+  }
+
+  SectionProperties GetSectionProperties(int index)
+  {
+    if(!Connected())
+      return SectionProperties();
+
+    {
+      WRITE_DATA_SCOPE();
+      SCOPED_SERIALISE_CHUNK(eRemoteServer_GetSectionProperties);
+      SERIALISE_ELEMENT(index);
+    }
+
+    SectionProperties props;
+
+    {
+      READ_DATA_SCOPE();
+      RemoteServerPacket type = ser.ReadChunk<RemoteServerPacket>();
+
+      if(type == eRemoteServer_GetSectionProperties)
+      {
+        SERIALISE_ELEMENT(props);
+      }
+      else
+      {
+        RDCERR("Unexpected response to GetSectionProperties");
+      }
+
+      ser.EndChunk();
+    }
+
+    return props;
+  }
+
+  bytebuf GetSectionContents(int index) override
+  {
+    if(!Connected())
+      return bytebuf();
+
+    {
+      WRITE_DATA_SCOPE();
+      SCOPED_SERIALISE_CHUNK(eRemoteServer_GetSectionContents);
+      SERIALISE_ELEMENT(index);
+    }
+
+    bytebuf contents;
+
+    {
+      READ_DATA_SCOPE();
+      RemoteServerPacket type = ser.ReadChunk<RemoteServerPacket>();
+
+      if(type == eRemoteServer_GetSectionContents)
+      {
+        SERIALISE_ELEMENT(contents);
+      }
+      else
+      {
+        RDCERR("Unexpected response to GetSectionContents");
+      }
+
+      ser.EndChunk();
+    }
+
+    return contents;
+  }
+
+  void WriteSection(const SectionProperties &props, const bytebuf &contents)
+  {
+    if(!Connected())
+      return;
+
+    {
+      WRITE_DATA_SCOPE();
+      SCOPED_SERIALISE_CHUNK(eRemoteServer_WriteSection);
+      SERIALISE_ELEMENT(props);
+      SERIALISE_ELEMENT(contents);
+    }
+  }
+
   bool HasCallstacks()
   {
     if(!Connected())
@@ -1375,16 +1646,6 @@ public:
     }
 
     return StackFrames;
-  }
-
-  void CloseCapture(IReplayController *rend)
-  {
-    {
-      WRITE_DATA_SCOPE();
-      SCOPED_SERIALISE_CHUNK(eRemoteServer_CloseLog);
-    }
-
-    rend->Shutdown();
   }
 
 private:

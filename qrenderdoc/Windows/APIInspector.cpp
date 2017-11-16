@@ -101,10 +101,10 @@ void APIInspector::on_apiEvents_itemSelectionChanged()
 
   if(!ev.callstack.isEmpty())
   {
-    if(m_Ctx.Replay().GetResolver())
+    if(m_Ctx.Replay().GetCaptureAccess())
     {
       m_Ctx.Replay().AsyncInvoke([this, ev](IReplayController *) {
-        rdcarray<rdcstr> stack = m_Ctx.Replay().GetResolver()->GetResolve(ev.callstack);
+        rdcarray<rdcstr> stack = m_Ctx.Replay().GetCaptureAccess()->GetResolve(ev.callstack);
 
         GUIInvoke::call([this, stack]() { addCallstack(stack); });
       });

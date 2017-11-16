@@ -1074,11 +1074,57 @@ protected:
   ~ITargetControl() = default;
 };
 
-DOCUMENT(R"(An interface for resolving callstacks. This is separate since it can be either
-implemented locally by a file handle, or remotely to an open capture.
+DOCUMENT(R"(An interface for accessing a capture, possibly over a network connection. This is a
+subset of the functionality provided in :class:`CaptureFile` which only supports import/export
+and construction of files.
 )");
-struct IStackResolver
+struct ICaptureAccess
 {
+  DOCUMENT(R"(Locate the index of a section by its name. Returns ``-1`` if the section is not found.
+
+This index should not be cached, as writing sections could re-order the indices.
+
+:param str name: The name of the section to search for.
+:return: The index of the section, or ``-1`` if not found.
+:rtype: ``int``.
+)");
+  virtual int FindSectionByName(const char *name) = 0;
+
+  DOCUMENT(R"(Locate the index of a section by its type. Returns ``-1`` if the section is not found.
+
+This index should not be cached, as writing sections could re-order the indices.
+
+:param SectionType type: The type of the section to search for.
+:return: The index of the section, or ``-1`` if not found.
+:rtype: ``int``.
+)");
+  virtual int FindSectionByType(SectionType type) = 0;
+
+  DOCUMENT(R"(Get the describing properties of the specified section.
+
+:param int index: The index of the section.
+:return: The properties of the section, if the index is valid.
+:rtype: SectionProperties.
+)");
+  virtual SectionProperties GetSectionProperties(int index) = 0;
+
+  DOCUMENT(R"(Get the raw byte contents of the specified section.
+
+:param int index: The index of the section.
+:return: The raw contents of the section, if the index is valid.
+:rtype: ``bytes``.
+)");
+  virtual bytebuf GetSectionContents(int index) = 0;
+
+  DOCUMENT(R"(Writes a new section with specified properties and contents. If an existing section
+already has the same type or name, it will be overwritten (two sections cannot share the same type
+or name).
+
+:param SectionProperties props: The properties of the section to be written.
+:param byte contents: The raw contents of the section.
+)");
+  virtual void WriteSection(const SectionProperties &props, const bytebuf &contents) = 0;
+
   DOCUMENT(R"(Query if callstacks are available.
 
 :return: ``True`` if any callstacks are available, ``False`` otherwise.
@@ -1112,8 +1158,8 @@ Must only be called after :meth:`InitResolver` has returned ``True``.
   virtual rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack) = 0;
 
 protected:
-  IStackResolver() = default;
-  ~IStackResolver() = default;
+  ICaptureAccess() = default;
+  ~ICaptureAccess() = default;
 };
 
 DOCUMENT(R"(A connection to a running remote RenderDoc server on another machine. This allows the
@@ -1125,7 +1171,7 @@ much work as possible happening on the local machine.
 
   No preference for a particular value, see :meth:`DebugPixel`.
 )");
-struct IRemoteServer : public IStackResolver
+struct IRemoteServer : public ICaptureAccess
 {
   DOCUMENT("Closes the connection without affecting the running server.");
   virtual void ShutdownConnection() = 0;
@@ -1276,7 +1322,7 @@ protected:
 DOCUMENT(R"(A handle to a capture file. Used for simple cheap processing and meta-data fetching
 without opening the capture for analysis.
 )")
-struct ICaptureFile : public IStackResolver
+struct ICaptureFile : public ICaptureAccess
 {
   DOCUMENT("Closes the file handle.");
   virtual void Shutdown() = 0;

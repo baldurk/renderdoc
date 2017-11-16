@@ -162,6 +162,15 @@ public:
   }
 
   bytebuf GetThumbnail(FileType type, uint32_t maxsize);
+
+  // ICaptureAccess
+
+  int FindSectionByName(const char *name);
+  int FindSectionByType(SectionType type);
+  SectionProperties GetSectionProperties(int index);
+  bytebuf GetSectionContents(int index);
+  void WriteSection(const SectionProperties &props, const bytebuf &contents);
+
   bool HasCallstacks();
   bool InitResolver(float *progress, volatile bool *killSignal);
   rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack);
@@ -213,6 +222,7 @@ ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype)
     if(filetype != NULL && strcmp(filetype, "") && strcmp(filetype, "rdc"))
       RDCWARN("Opening file with unrecognised filetype '%s' - treating as 'rdc'", filetype);
 
+    delete m_RDC;
     m_RDC = new RDCFile;
     m_RDC->Open(filename);
   }
@@ -580,6 +590,61 @@ bytebuf CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
   }
 
   return buf;
+}
+
+int CaptureFile::FindSectionByName(const char *name)
+{
+  if(!m_RDC)
+    return -1;
+
+  return m_RDC->SectionIndex(name);
+}
+
+int CaptureFile::FindSectionByType(SectionType type)
+{
+  if(!m_RDC)
+    return -1;
+
+  return m_RDC->SectionIndex(type);
+}
+
+SectionProperties CaptureFile::GetSectionProperties(int index)
+{
+  if(!m_RDC || index < 0 || index >= m_RDC->NumSections())
+    return SectionProperties();
+
+  return m_RDC->GetSectionProperties(index);
+}
+
+bytebuf CaptureFile::GetSectionContents(int index)
+{
+  bytebuf ret;
+
+  if(!m_RDC || index < 0 || index >= m_RDC->NumSections())
+    return ret;
+
+  StreamReader *reader = m_RDC->ReadSection(index);
+
+  ret.resize((size_t)reader->GetSize());
+  bool success = reader->Read(ret.data(), reader->GetSize());
+
+  delete reader;
+
+  if(!success)
+    ret.clear();
+
+  return ret;
+}
+
+void CaptureFile::WriteSection(const SectionProperties &props, const bytebuf &contents)
+{
+  StreamWriter *writer = m_RDC->WriteSection(props);
+  if(!writer)
+    return;
+
+  writer->Write(contents.data(), contents.size());
+
+  delete writer;
 }
 
 bool CaptureFile::HasCallstacks()

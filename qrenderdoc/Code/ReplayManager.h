@@ -75,12 +75,12 @@ public:
   void ShutdownServer();
   void PingRemote();
 
-  IStackResolver *GetResolver()
+  ICaptureAccess *GetCaptureAccess()
   {
-    if(m_CaptureFile)
-      return m_CaptureFile;
     if(m_Remote)
       return m_Remote;
+    if(m_CaptureFile)
+      return m_CaptureFile;
     return NULL;
   }
 
