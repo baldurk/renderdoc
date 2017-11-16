@@ -562,14 +562,9 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
 
   m_Pixel = point;
   m_Display = display;
+  m_ID = id;
 
-  TextureDescription *tex = m_Ctx.GetTexture(id);
-
-  QString title =
-      tr("Pixel History on %1 for (%2, %3)").arg(m_Ctx.GetResourceName(id)).arg(point.x()).arg(point.y());
-  if(tex->msSamp > 1)
-    title += tr(" @ Sample %1").arg(display.sampleIdx);
-  setWindowTitle(title);
+  updateWindowTitle();
 
   QString channelStr;
   if(display.Red)
@@ -614,6 +609,20 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
   m_Ctx.AddLogViewer(this);
 }
 
+void PixelHistoryView::updateWindowTitle()
+{
+  QString title = tr("Pixel History on %1 for (%2, %3)")
+                      .arg(m_Ctx.GetResourceName(m_ID))
+                      .arg(m_Pixel.x())
+                      .arg(m_Pixel.y());
+
+  TextureDescription *tex = m_Ctx.GetTexture(m_ID);
+  if(tex->msSamp > 1)
+    title += tr(" @ Sample %1").arg(m_Display.sampleIdx);
+
+  setWindowTitle(title);
+}
+
 PixelHistoryView::~PixelHistoryView()
 {
   disableTimelineHighlight();
@@ -652,6 +661,11 @@ void PixelHistoryView::OnLogfileLoaded()
 void PixelHistoryView::OnLogfileClosed()
 {
   ToolWindowManager::closeToolWindow(this);
+}
+
+void PixelHistoryView::OnEventChanged(uint32_t eventID)
+{
+  updateWindowTitle();
 }
 
 void PixelHistoryView::SetHistory(const rdcarray<PixelModification> &history)

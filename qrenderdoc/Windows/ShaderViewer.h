@@ -152,11 +152,12 @@ private:
   void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
                    ResourceId pipeline, ShaderStage stage, ShaderDebugTrace *trace,
                    const QString &debugContext);
-
   bool eventFilter(QObject *watched, QEvent *event) override;
 
   const rdcarray<ShaderVariable> *GetVariableList(VariableCategory varCat, int arrayIdx);
   void getRegisterFromWord(const QString &text, VariableCategory &varCat, int &varIdx, int &arrayIdx);
+
+  void updateWindowTitle();
 
   void showVariableTooltip(VariableCategory varCat, int varIdx, int arrayIdx);
   void updateVariableTooltip();
@@ -172,6 +173,7 @@ private:
   const ShaderBindpointMapping *m_Mapping = NULL;
   const ShaderReflection *m_ShaderDetails = NULL;
   ShaderStage m_Stage;
+  QString m_DebugContext;
   ResourceId m_Pipeline;
   ScintillaEdit *m_DisassemblyView = NULL;
   QFrame *m_DisassemblyToolbar = NULL;

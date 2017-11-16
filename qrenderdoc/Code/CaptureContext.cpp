@@ -590,15 +590,24 @@ void CaptureContext::SetEventID(const QVector<ILogViewer *> &exclude, uint32_t s
                                  m_CurGLPipelineState, m_CurVulkanPipelineState);
   });
 
+  bool updateSelectedEvent = force || prevSelectedEventID != selectedEventID;
+  bool updateEvent = force || prevEventID != eventID;
+
+  RefreshUIStatus(exclude, updateSelectedEvent, updateEvent);
+}
+
+void CaptureContext::RefreshUIStatus(const QVector<ILogViewer *> &exclude, bool updateSelectedEvent,
+                                     bool updateEvent)
+{
   for(ILogViewer *logviewer : m_LogViewers)
   {
     if(exclude.contains(logviewer))
       continue;
 
-    if(force || prevSelectedEventID != selectedEventID)
-      logviewer->OnSelectedEventChanged(selectedEventID);
-    if(force || prevEventID != eventID)
-      logviewer->OnEventChanged(eventID);
+    if(updateSelectedEvent)
+      logviewer->OnSelectedEventChanged(m_SelectedEventID);
+    if(updateEvent)
+      logviewer->OnEventChanged(m_EventID);
   }
 }
 
@@ -662,6 +671,8 @@ void CaptureContext::SetResourceCustomName(ResourceId id, const QString &name)
   {
     m_CustomNames[id] = name;
   }
+
+  RefreshUIStatus({}, true, true);
 }
 
 void *CaptureContext::FillWindowingData(uintptr_t widget)

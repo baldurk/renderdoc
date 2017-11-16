@@ -129,6 +129,8 @@ private:
 
   IReplayOutput *m_Output;
 
+  void updateWindowTitle();
+
   void configureDrawRange();
 
   void RT_UpdateAndDisplay(IReplayController *);

@@ -75,6 +75,7 @@ private:
   QVector<uint32_t> m_RootDraws;
   QVector<uint32_t> m_Draws;
 
+  ResourceId m_ID;
   QString m_HistoryTarget;
   QList<PixelModification> m_HistoryEvents;
 

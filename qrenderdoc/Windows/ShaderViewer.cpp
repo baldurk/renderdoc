@@ -290,19 +290,14 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   m_Pipeline = pipeline;
   m_Trace = trace;
   m_Stage = stage;
+  m_DebugContext = debugContext;
 
   // no replacing allowed, stay in find mode
   m_FindReplace->allowUserModeChange(false);
 
   if(!shader || !bind)
     m_Trace = NULL;
-
-  if(trace)
-    setWindowTitle(QFormatStr("Debugging %1 - %2")
-                       .arg(m_Ctx.CurPipelineState().GetShaderName(stage))
-                       .arg(debugContext));
-  else
-    setWindowTitle(m_Ctx.CurPipelineState().GetShaderName(stage));
+  updateWindowTitle();
 
   if(shader)
   {
@@ -572,6 +567,19 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   }
 }
 
+void ShaderViewer::updateWindowTitle()
+{
+  if(m_ShaderDetails)
+  {
+    if(m_Trace)
+      setWindowTitle(QFormatStr("Debugging %1 - %2")
+                         .arg(m_Ctx.CurPipelineState().GetShaderName(m_Stage))
+                         .arg(m_DebugContext));
+    else
+      setWindowTitle(m_Ctx.CurPipelineState().GetShaderName(m_Stage));
+  }
+}
+
 ShaderViewer::~ShaderViewer()
 {
   // don't want to async invoke while using 'this', so save the trace separately
@@ -597,6 +605,8 @@ void ShaderViewer::OnLogfileClosed()
 
 void ShaderViewer::OnEventChanged(uint32_t eventID)
 {
+  updateDebugging();
+  updateWindowTitle();
 }
 
 ScintillaEdit *ShaderViewer::AddFileScintilla(const QString &name, const QString &text)

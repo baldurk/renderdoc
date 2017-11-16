@@ -77,7 +77,11 @@ public:
 
   void SetEventID(const QVector<ILogViewer *> &exclude, uint32_t selectedEventID, uint32_t eventID,
                   bool force = false) override;
+
   void RefreshStatus() override { SetEventID({}, m_SelectedEventID, m_EventID, true); }
+  void RefreshUIStatus(const QVector<ILogViewer *> &exclude, bool updateSelectedEvent,
+                       bool updateEvent);
+
   void AddLogViewer(ILogViewer *f) override
   {
     m_LogViewers.push_back(f);

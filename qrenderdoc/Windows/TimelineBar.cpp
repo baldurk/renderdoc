@@ -73,6 +73,7 @@ TimelineBar::~TimelineBar()
 
 void TimelineBar::HighlightResourceUsage(ResourceId id)
 {
+  m_ID = id;
   m_UsageEvents.clear();
   m_UsageTarget = m_Ctx.GetResourceName(id);
 
@@ -91,6 +92,7 @@ void TimelineBar::HighlightResourceUsage(ResourceId id)
 
 void TimelineBar::HighlightHistory(ResourceId id, const QList<PixelModification> &history)
 {
+  m_ID = id;
   m_HistoryTarget = QString();
   m_HistoryEvents.clear();
 
@@ -131,6 +133,11 @@ void TimelineBar::OnLogfileLoaded()
 
 void TimelineBar::OnEventChanged(uint32_t eventID)
 {
+  if(!m_HistoryTarget.isEmpty())
+    m_HistoryTarget = m_Ctx.GetResourceName(m_ID);
+  if(!m_UsageTarget.isEmpty())
+    m_UsageTarget = m_Ctx.GetResourceName(m_ID);
+
   viewport()->update();
 }
 

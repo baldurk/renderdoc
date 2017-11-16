@@ -1386,6 +1386,8 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       m_ModelVSOut->secondaryName(), m_ModelGSOut->posName(),      m_ModelGSOut->secondaryName(),
   };
 
+  updateWindowTitle();
+
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   configureDrawRange();
@@ -2597,12 +2599,11 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
   m_ByteSize = byteSize;
   m_BufferID = id;
 
+  updateWindowTitle();
+
   BufferDescription *buf = m_Ctx.GetBuffer(id);
   if(buf)
-  {
-    setWindowTitle(m_Ctx.GetResourceName(id) + lit(" - Contents"));
     m_ObjectByteSize = buf->length;
-  }
 
   processFormat(format);
 }
@@ -2617,14 +2618,19 @@ void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, c
   m_TexMip = mip;
   m_BufferID = id;
 
+  updateWindowTitle();
+
   TextureDescription *tex = m_Ctx.GetTexture(id);
   if(tex)
-  {
-    setWindowTitle(m_Ctx.GetResourceName(id) + lit(" - Contents"));
     m_ObjectByteSize = tex->byteSize;
-  }
 
   processFormat(format);
+}
+
+void BufferViewer::updateWindowTitle()
+{
+  if(!m_MeshView)
+    setWindowTitle(m_Ctx.GetResourceName(m_BufferID) + lit(" - Contents"));
 }
 
 void BufferViewer::render_mouseWheel(QWheelEvent *e)

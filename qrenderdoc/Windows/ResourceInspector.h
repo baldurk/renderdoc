@@ -53,7 +53,7 @@ public:
   void OnLogfileLoaded() override;
   void OnLogfileClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
-  void OnEventChanged(uint32_t eventID) override {}
+  void OnEventChanged(uint32_t eventID) override;
 public slots:
   // automatic slots
   void on_renameResource_clicked();

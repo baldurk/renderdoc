@@ -2561,6 +2561,16 @@ void TextureViewer::OnEventChanged(uint32_t eventID)
 
   UI_CreateThumbnails();
 
+  UI_UpdateTextureDetails();
+  refreshTextureList();
+
+  // iterate over locked tabs, and update the name if it's changed
+  for(QWidget *w : m_LockedTabs.values())
+  {
+    ResourceId id = w->property("id").value<ResourceId>();
+    w->setWindowTitle(m_Ctx.GetResourceName(id));
+  }
+
   QVector<BoundResource> RTs = Following::GetOutputTargets(m_Ctx);
   BoundResource Depth = Following::GetDepthTarget(m_Ctx);
 
@@ -3450,6 +3460,11 @@ void TextureViewer::on_textureListFilter_editTextChanged(const QString &text)
 }
 
 void TextureViewer::on_textureListFilter_currentIndexChanged(int index)
+{
+  refreshTextureList();
+}
+
+void TextureViewer::refreshTextureList()
 {
   TextureListItemModel *model = (TextureListItemModel *)ui->textureList->model();
 

@@ -52,7 +52,7 @@ public:
   void OnLogfileLoaded() override;
   void OnLogfileClosed() override;
   void OnSelectedEventChanged(uint32_t eventID) override {}
-  void OnEventChanged(uint32_t eventID) override {}
+  void OnEventChanged(uint32_t eventID) override;
 private slots:
   // automatic slots
   void on_events_customContextMenuRequested(const QPoint &pos);
@@ -66,9 +66,12 @@ private:
   void enableTimelineHighlight();
   void disableTimelineHighlight();
 
+  void updateWindowTitle();
+
   Ui::PixelHistoryView *ui;
   ICaptureContext &m_Ctx;
 
+  ResourceId m_ID;
   TextureDisplay m_Display;
   QPoint m_Pixel;
   PixelHistoryItemModel *m_Model;

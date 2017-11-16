@@ -280,6 +280,14 @@ void ResourceInspector::OnLogfileClosed()
   m_Resource = ResourceId();
 }
 
+void ResourceInspector::OnEventChanged(uint32_t eventID)
+{
+  Inspect(m_Resource);
+
+  m_ResourceModel->reset();
+  m_FilterModel->sort(0);
+}
+
 void ResourceInspector::on_renameResource_clicked()
 {
   if(!ui->resourceNameEdit->isVisible())
@@ -324,6 +332,11 @@ void ResourceInspector::on_resetName_clicked()
   ui->resetName->hide();
 
   m_Ctx.SetResourceCustomName(m_Resource, QString());
+
+  // force a refresh to pick up the new name
+  ResourceId id = m_Resource;
+  m_Resource = ResourceId();
+  Inspect(id);
 }
 
 void ResourceInspector::on_cancelResourceListFilter_clicked()
