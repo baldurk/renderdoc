@@ -266,7 +266,7 @@ void DoSerialise(SerialiserType &ser, VkMemoryHeap &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkMemoryType &el)
 {
-  SERIALISE_MEMBER(propertyFlags);
+  SERIALISE_MEMBER_TYPED(VkMemoryPropertyFlagBits, propertyFlags);
   SERIALISE_MEMBER(heapIndex);
 }
 
