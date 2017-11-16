@@ -315,7 +315,10 @@ rdcarray<DebugMessage> ReplayController::GetDebugMessages()
 
 rdcarray<EventUsage> ReplayController::GetUsage(ResourceId id)
 {
-  return m_pDevice->GetUsage(m_pDevice->GetLiveID(id));
+  id = m_pDevice->GetLiveID(id);
+  if(id == ResourceId())
+    return rdcarray<EventUsage>();
+  return m_pDevice->GetUsage(id);
 }
 
 MeshFormat ReplayController::GetPostVSData(uint32_t instID, MeshDataStage stage)
@@ -373,6 +376,13 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 {
   TextureSave sd = saveData;    // mutable copy
   ResourceId liveid = m_pDevice->GetLiveID(sd.id);
+
+  if(liveid == ResourceId())
+  {
+    RDCERR("Couldn't get Live ID for %llu getting texture data", sd.id);
+    return false;
+  }
+
   TextureDescription td = m_pDevice->GetTexture(liveid);
 
   bool success = false;
@@ -1211,7 +1221,12 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
     }
   }
 
-  auto usage = m_pDevice->GetUsage(m_pDevice->GetLiveID(target));
+  ResourceId id = m_pDevice->GetLiveID(target);
+
+  if(id == ResourceId())
+    return ret;
+
+  std::vector<EventUsage> usage = m_pDevice->GetUsage(id);
 
   vector<EventUsage> events;
 
@@ -1276,8 +1291,12 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
     return ret;
   }
 
-  ret = m_pDevice->PixelHistory(events, m_pDevice->GetLiveID(target), x, y, slice, mip, sampleIdx,
-                                typeHint);
+  id = m_pDevice->GetLiveID(target);
+
+  if(id == ResourceId())
+    return ret;
+
+  ret = m_pDevice->PixelHistory(events, id, x, y, slice, mip, sampleIdx, typeHint);
 
   SetFrameEvent(m_EventID, true);
 
@@ -1329,11 +1348,18 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
 {
   vector<byte> data;
   if(buffer != ResourceId())
-    m_pDevice->GetBufferData(m_pDevice->GetLiveID(buffer), offs, 0, data);
+  {
+    buffer = m_pDevice->GetLiveID(buffer);
+    if(buffer != ResourceId())
+      m_pDevice->GetBufferData(m_pDevice->GetLiveID(buffer), offs, 0, data);
+  }
 
   vector<ShaderVariable> v;
 
-  m_pDevice->FillCBufferVariables(m_pDevice->GetLiveID(shader), entryPoint, cbufslot, v, data);
+  shader = m_pDevice->GetLiveID(shader);
+
+  if(shader != ResourceId())
+    m_pDevice->FillCBufferVariables(m_pDevice->GetLiveID(shader), entryPoint, cbufslot, v, data);
 
   return v;
 }

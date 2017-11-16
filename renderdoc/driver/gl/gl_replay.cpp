@@ -130,6 +130,8 @@ FrameRecord GLReplay::GetFrameRecord()
 
 ResourceId GLReplay::GetLiveID(ResourceId id)
 {
+  if(!m_pDriver->GetResourceManager()->HasLiveResource(id))
+    return ResourceId();
   return m_pDriver->GetResourceManager()->GetLiveID(id);
 }
 

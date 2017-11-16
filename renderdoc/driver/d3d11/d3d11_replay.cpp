@@ -1328,6 +1328,8 @@ void D3D11Replay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
 
 ResourceId D3D11Replay::GetLiveID(ResourceId id)
 {
+  if(!m_pDevice->GetResourceManager()->HasLiveResource(id))
+    return ResourceId();
   return m_pDevice->GetResourceManager()->GetLiveID(id);
 }
 

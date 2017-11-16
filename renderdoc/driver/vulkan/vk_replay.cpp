@@ -737,6 +737,8 @@ vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventID)
 
 ResourceId VulkanReplay::GetLiveID(ResourceId id)
 {
+  if(!m_pDriver->GetResourceManager()->HasLiveResource(id))
+    return ResourceId();
   return m_pDriver->GetResourceManager()->GetLiveID(id);
 }
 

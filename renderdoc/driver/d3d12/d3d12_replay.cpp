@@ -300,6 +300,8 @@ FrameRecord D3D12Replay::GetFrameRecord()
 
 ResourceId D3D12Replay::GetLiveID(ResourceId id)
 {
+  if(!m_pDevice->GetResourceManager()->HasLiveResource(id))
+    return ResourceId();
   return m_pDevice->GetResourceManager()->GetLiveID(id);
 }
 
