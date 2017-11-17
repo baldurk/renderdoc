@@ -910,6 +910,10 @@ This is a bitmask, so several values can be present at once.
 .. data:: Notes
 
   The general notes field has been changed.
+
+.. data:: All
+
+  Fixed value with all bits set, indication all modifications have been made.
 )");
 enum class CaptureModifications : uint32_t
 {
