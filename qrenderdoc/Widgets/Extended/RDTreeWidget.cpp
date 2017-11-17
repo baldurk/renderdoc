@@ -706,7 +706,8 @@ void RDTreeWidgetDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
   {
     RDTreeWidgetItem *item = model->itemForIndex(index);
 
-    if(item->m_text[index.column()].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
+    if(index.column() < item->m_text.count() &&
+       item->m_text[index.column()].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
     {
       {
         // draw the item without text, so we get the proper background/selection/etc.
@@ -790,7 +791,8 @@ QSize RDTreeWidgetDelegate::sizeHint(const QStyleOptionViewItem &option, const Q
     {
       RDTreeWidgetItem *item = model->itemForIndex(index);
 
-      if(item->m_text[index.column()].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
+      if(index.column() < item->m_text.count() &&
+         item->m_text[index.column()].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
       {
         ResourceIdLinkedTextPtr linkedText =
             item->m_text[index.column()].value<ResourceIdLinkedTextPtr>();
@@ -818,7 +820,8 @@ bool RDTreeWidgetDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
     {
       RDTreeWidgetItem *item = rdmodel->itemForIndex(index);
 
-      if(item->m_text[index.column()].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
+      if(index.column() < item->m_text.count() &&
+         item->m_text[index.column()].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
       {
         ResourceIdLinkedTextPtr linkedText =
             item->m_text[index.column()].value<ResourceIdLinkedTextPtr>();
@@ -877,7 +880,8 @@ bool RDTreeWidgetDelegate::linkHover(QMouseEvent *e, const QModelIndex &index)
   {
     RDTreeWidgetItem *item = m_widget->m_model->itemForIndex(index);
 
-    if(item->m_text[index.column()].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
+    if(index.column() < item->m_text.count() &&
+       item->m_text[index.column()].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
     {
       ResourceIdLinkedTextPtr linkedText =
           item->m_text[index.column()].value<ResourceIdLinkedTextPtr>();

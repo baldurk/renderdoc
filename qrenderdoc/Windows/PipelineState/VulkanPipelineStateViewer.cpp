@@ -1486,8 +1486,8 @@ void VulkanPipelineStateViewer::setState()
 
       if(showNode(usedSlot, filledSlot))
       {
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({i, name, a.location, a.binding, a.format.Name(), a.byteoffset});
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
+            {i, name, a.location, a.binding, a.format.Name(), a.byteoffset, QString()});
 
         usedBindings[a.binding] = true;
 
