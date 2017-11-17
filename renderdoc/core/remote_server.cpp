@@ -1494,7 +1494,7 @@ public:
     return props;
   }
 
-  bytebuf GetSectionContents(int index) override
+  bytebuf GetSectionContents(int index)
   {
     if(!Connected())
       return bytebuf();
