@@ -552,8 +552,8 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
   WrappedID3D12RootSignature *sig =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootSig.rootsig);
 
-  D3D12Pipe::RegisterSpace *spaces = dstSpaces.data();
   dstSpaces.resize(sig->sig.numSpaces);
+  D3D12Pipe::RegisterSpace *spaces = dstSpaces.data();
 
   for(size_t rootEl = 0; rootEl < sig->sig.params.size(); rootEl++)
   {
