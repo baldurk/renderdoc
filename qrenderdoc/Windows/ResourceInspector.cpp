@@ -173,7 +173,6 @@ void ResourceInspector::Inspect(ResourceId id)
 
   ui->initChunks->setUpdatesEnabled(false);
   ui->initChunks->clear();
-  ui->relatedResources->clear();
   ui->resourceUsage->clear();
 
   const SDFile &file = m_Ctx.GetStructuredFile();
@@ -205,6 +204,8 @@ void ResourceInspector::Inspect(ResourceId id)
   {
     ui->resourceName->setText(m_Ctx.GetResourceName(id));
 
+    ui->relatedResources->beginUpdate();
+    ui->relatedResources->clear();
     for(ResourceId parent : desc->parentResources)
     {
       RDTreeWidgetItem *item = new RDTreeWidgetItem({tr("Parent"), parent});
@@ -213,13 +214,24 @@ void ResourceInspector::Inspect(ResourceId id)
       ui->relatedResources->addTopLevelItem(item);
     }
 
+    // sort the derived resources by name. Cache the names once, then sort by them
+    QVector<QPair<ResourceId, QString>> derivedResources;
+
     for(ResourceId derived : desc->derivedResources)
+      derivedResources.push_back(qMakePair(derived, m_Ctx.GetResourceName(derived)));
+
+    std::sort(derivedResources.begin(), derivedResources.end(),
+              [this](const QPair<ResourceId, QString> &a,
+                     const QPair<ResourceId, QString> &b) -> bool { return a.second < b.second; });
+
+    for(const QPair<ResourceId, QString> &derived : derivedResources)
     {
-      RDTreeWidgetItem *item = new RDTreeWidgetItem({tr("Derived"), derived});
-      item->setData(0, ResourceIdRole, QVariant::fromValue(derived));
-      item->setData(1, ResourceIdRole, QVariant::fromValue(derived));
+      RDTreeWidgetItem *item = new RDTreeWidgetItem({tr("Derived"), derived.first});
+      item->setData(0, ResourceIdRole, QVariant::fromValue(derived.first));
+      item->setData(1, ResourceIdRole, QVariant::fromValue(derived.first));
       ui->relatedResources->addTopLevelItem(item);
     }
+    ui->relatedResources->endUpdate();
 
     for(uint32_t chunk : desc->initialisationChunks)
     {
