@@ -2525,6 +2525,8 @@ void WrappedOpenGL::glFlushMappedBufferRange(GLenum target, GLintptr offset, GLs
 
 void WrappedOpenGL::PersistentMapMemoryBarrier(const set<GLResourceRecord *> &maps)
 {
+  PUSH_CURRENT_CHUNK;
+
   // this function iterates over all the maps, checking for any changes between
   // the shadow pointers, and propogates that to 'real' GL
 
@@ -2546,6 +2548,7 @@ void WrappedOpenGL::PersistentMapMemoryBarrier(const set<GLResourceRecord *> &ma
       // we use our own flush function so it will serialise chunks when necessary, and it
       // also handles copying into the persistent mapped pointer and flushing the real GL
       // buffer
+      gl_CurChunk = GLChunk::glFlushMappedNamedBufferRangeEXT;
       glFlushMappedNamedBufferRangeEXT(record->Resource.name, GLintptr(diffStart),
                                        GLsizeiptr(diffEnd - diffStart));
     }
