@@ -111,6 +111,11 @@ void TimelineBar::OnCaptureClosed()
 {
   setWindowTitle(tr("Timeline"));
 
+  m_ID = ResourceId();
+  m_HistoryTarget = m_UsageTarget = QString();
+  m_HistoryEvents.clear();
+  m_UsageEvents.clear();
+
   m_Draws.clear();
   m_RootDraws.clear();
   m_RootMarkers.clear();
