@@ -33,6 +33,7 @@
 #include <QJsonDocument>
 #include <QMenu>
 #include <QPainter>
+#include <QPointer>
 #include <QStyledItemDelegate>
 #include "3rdparty/flowlayout/FlowLayout.h"
 #include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
@@ -3425,16 +3426,23 @@ void TextureViewer::on_pixelHistory_clicked()
 
   m_Ctx.AddDockWindow(hist->Widget(), DockReference::RightOf, this, 0.3f);
 
+  // we use this pointer to ensure that the history viewer is still visible (and hasn't been closed)
+  // by the time we want to set the results.
+  QPointer<QWidget> histWidget = hist->Widget();
+
   // add a short delay so that controls repainting after a new panel appears can get at the
   // render thread before we insert the long blocking pixel history task
-  LambdaThread *thread = new LambdaThread([this, texptr, x, y, hist]() {
+  LambdaThread *thread = new LambdaThread([this, texptr, x, y, hist, histWidget]() {
     QThread::msleep(150);
-    m_Ctx.Replay().AsyncInvoke([this, texptr, x, y, hist](IReplayController *r) {
+    m_Ctx.Replay().AsyncInvoke([this, texptr, x, y, hist, histWidget](IReplayController *r) {
       rdcarray<PixelModification> history =
           r->PixelHistory(texptr->ID, (uint32_t)x, (int32_t)y, m_TexDisplay.sliceFace,
                           m_TexDisplay.mip, m_TexDisplay.sampleIdx, m_TexDisplay.typeHint);
 
-      GUIInvoke::call([hist, history] { hist->SetHistory(history); });
+      GUIInvoke::call([hist, histWidget, history] {
+        if(histWidget)
+          hist->SetHistory(history);
+      });
     });
   });
   thread->selfDelete(true);
