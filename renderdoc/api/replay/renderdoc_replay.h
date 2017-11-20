@@ -150,37 +150,6 @@ struct XCBWindowData
 
 #endif
 
-DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
-
-.. data:: Unknown
-
-  No windowing data is passed and no native window will be output to.
-
-.. data:: Win32
-
-  The windowing data refers to a Win32 ``HWND`` handle.
-
-.. data:: Xlib
-
-  The windowing data refers to an Xlib pair of ``Display *`` and ``Drawable``.
-
-.. data:: XCB
-
-  The windowing data refers to an XCB pair of ``xcb_connection_t *`` and ``xcb_window_t``.
-
-.. data:: Android
-
-  The windowing data refers to an Android ``ANativeWindow *``.
-)");
-enum class WindowingSystem : uint32_t
-{
-  Unknown,
-  Win32,
-  Xlib,
-  XCB,
-  Android,
-};
-
 DOCUMENT(R"(Internal structure used for initialising environment in a replay application.)");
 struct GlobalEnvironment
 {
@@ -337,6 +306,39 @@ inline enum_name operator++(enum_name &a)                                      \
 #include "basic_types.h"
 #include "stringise.h"
 #include "structured_data.h"
+
+DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
+
+.. data:: Unknown
+
+  No windowing data is passed and no native window will be output to.
+
+.. data:: Win32
+
+  The windowing data refers to a Win32 ``HWND`` handle.
+
+.. data:: Xlib
+
+  The windowing data refers to an Xlib pair of ``Display *`` and ``Drawable``.
+
+.. data:: XCB
+
+  The windowing data refers to an XCB pair of ``xcb_connection_t *`` and ``xcb_window_t``.
+
+.. data:: Android
+
+  The windowing data refers to an Android ``ANativeWindow *``.
+)");
+enum class WindowingSystem : uint32_t
+{
+  Unknown,
+  Win32,
+  Xlib,
+  XCB,
+  Android,
+};
+
+DECLARE_REFLECTION_ENUM(WindowingSystem);
 
 #ifdef RENDERDOC_EXPORTS
 struct ResourceId;

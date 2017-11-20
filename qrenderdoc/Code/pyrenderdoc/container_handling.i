@@ -210,10 +210,7 @@ LIST_MODIFY_IN_PLACE_TYPEMAP(typeName)
 // passing pure lists that aren't C++ side at all).
 %header %{
 template<typename innerType>
-void ARRAY_INSTANTIATION_CHECK_NAME(typeName)(typeName<innerType> *)
-{
-  // TODO remove this to make it an error to miss the instantiation of this array type
-}
+void ARRAY_INSTANTIATION_CHECK_NAME(typeName)(typeName<innerType> *);
 %}
 
 // override these typemaps to instantiate a checking template.
@@ -251,6 +248,27 @@ ARRAY_DEFINE_SLOTS(arrayType<innerType>, arrayType##_of_##innerType)
 
 template<>
 void ARRAY_INSTANTIATION_CHECK_NAME(arrayType)(arrayType<innerType> *)
+{
+}
+
+%}
+
+%enddef
+
+%define TEMPLATE_NAMESPACE_ARRAY_INSTANTIATE(arrayType, nspace, innerType)
+
+ARRAY_ADD_SLOTS(arrayType<nspace::innerType>, arrayType##_of_##nspace##_##innerType)
+
+// instantiate template
+%rename(arrayType##_of_##nspace##_##innerType) arrayType<nspace::innerType>;
+%template(arrayType##_of_##nspace##_##innerType) arrayType<nspace::innerType>;
+
+ARRAY_DEFINE_SLOTS(arrayType<nspace::innerType>, arrayType##_of_##nspace##_##innerType)
+
+%header %{
+
+template<>
+void ARRAY_INSTANTIATION_CHECK_NAME(arrayType)(arrayType<nspace::innerType> *)
 {
 }
 
