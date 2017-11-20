@@ -25,83 +25,6 @@
 
 #pragma once
 
-DOCUMENT(R"(A set of flags describing the properties of a path on a remote filesystem.
-
-.. data:: NoFlags
-
-  No special file properties.
-
-.. data:: Directory
-
-  This file is a directory or folder.
-
-.. data:: Hidden
-
-  This file is considered hidden by the filesystem.
-
-.. data:: Executable
-
-  This file has been identified as an executable program or script.
-
-.. data:: ErrorUnknown
-
-  A special flag indicating that a query for this file failed, but for unknown reasons.
-
-.. data:: ErrorAccessDenied
-
-  A special flag indicating that a query for this file failed because access to the path was
-  denied.
-
-.. data:: ErrorInvalidPath
-
-  A special flag indicating that a query for this file failed because the path was invalid.
-)");
-enum class PathProperty : uint32_t
-{
-  NoFlags = 0x0,
-  Directory = 0x1,
-  Hidden = 0x2,
-  Executable = 0x4,
-
-  ErrorUnknown = 0x2000,
-  ErrorAccessDenied = 0x4000,
-  ErrorInvalidPath = 0x8000,
-};
-
-BITMASK_OPERATORS(PathProperty);
-DECLARE_REFLECTION_ENUM(PathProperty);
-
-DOCUMENT(R"(A set of flags describing the properties of a section in a renderdoc capture.
-
-.. data:: NoFlags
-
-  No special section properties.
-
-.. data:: ASCIIStored
-
-  This section was stored as pure ASCII. This can be useful since it is possible to generate
-  an ASCII section in a text editor by hand or with any simple printf style script, and then
-  concatenate it to a .rdc and have a valid section.
-
-.. data:: LZ4Compressed
-
-  This section is compressed with LZ4 on disk.
-
-.. data:: ZstdCompressed
-
-  This section is compressed with Zstd on disk.
-)");
-enum class SectionFlags : uint32_t
-{
-  NoFlags = 0x0,
-  ASCIIStored = 0x1,
-  LZ4Compressed = 0x2,
-  ZstdCompressed = 0x4,
-};
-
-BITMASK_OPERATORS(SectionFlags);
-DECLARE_REFLECTION_ENUM(SectionFlags);
-
 DOCUMENT(R"(The types of several pre-defined and known sections. This allows consumers of the API
 to recognise and understand the contents of the section.
 
@@ -1586,113 +1509,6 @@ constexpr inline bool IsStrip(Topology topology)
          topology == Topology::LineStrip_Adj || topology == Topology::TriangleStrip_Adj;
 }
 
-DOCUMENT(R"(A set of flags describing how this buffer may be used
-
-.. data:: NoFlags
-
-  The buffer will not be used for any of the uses below.
-
-.. data:: Vertex
-
-  The buffer will be used for sourcing vertex input data.
-
-.. data:: Index
-
-  The buffer will be used for sourcing primitive index data.
-
-.. data:: Constants
-
-  The buffer will be used for sourcing shader constant data.
-
-.. data:: ReadWrite
-
-  The buffer will be used for read and write access from shaders.
-
-.. data:: Indirect
-
-  The buffer will be used to provide indirect parameters for launching GPU-based drawcalls.
-)");
-enum class BufferCategory : uint32_t
-{
-  NoFlags = 0x0,
-  Vertex = 0x1,
-  Index = 0x2,
-  Constants = 0x4,
-  ReadWrite = 0x8,
-  Indirect = 0x10,
-};
-
-BITMASK_OPERATORS(BufferCategory);
-DECLARE_REFLECTION_ENUM(BufferCategory);
-
-DOCUMENT(R"(A set of flags for D3D buffer view properties.
-
-.. data:: NoFlags
-
-  The buffer will not be used for any of the uses below.
-
-.. data:: Raw
-
-  The buffer is used as a raw (byte-addressed) buffer.
-
-.. data:: Append
-
-  The buffer is used as a append/consume view.
-
-.. data:: Counter
-
-  The buffer is used with a structured buffer with associated hidden counter.
-)");
-enum class D3DBufferViewFlags : uint32_t
-{
-  NoFlags = 0x0,
-  Raw = 0x1,
-  Append = 0x2,
-  Counter = 0x4,
-};
-
-BITMASK_OPERATORS(D3DBufferViewFlags);
-DECLARE_REFLECTION_ENUM(D3DBufferViewFlags);
-
-DOCUMENT(R"(A set of flags describing how this texture may be used
-
-.. data:: NoFlags
-
-  The texture will not be used for any of the uses below.
-
-.. data:: ShaderRead
-
-  The texture will be read by a shader.
-
-.. data:: ColorTarget
-
-  The texture will be written to as a color target.
-
-.. data:: DepthTarget
-
-  The texture will be written to and tested against as a depth target.
-
-.. data:: ShaderReadWrite
-
-  The texture will be read and written to by a shader.
-
-.. data:: SwapBuffer
-
-  The texture is part of a window swapchain.
-)");
-enum class TextureCategory : uint32_t
-{
-  NoFlags = 0x0,
-  ShaderRead = 0x1,
-  ColorTarget = 0x2,
-  DepthTarget = 0x4,
-  ShaderReadWrite = 0x8,
-  SwapBuffer = 0x10,
-};
-
-BITMASK_OPERATORS(TextureCategory);
-DECLARE_REFLECTION_ENUM(TextureCategory);
-
 DOCUMENT(R"(The stage in a pipeline where a shader runs
 
 .. data:: Vertex
@@ -1760,105 +1576,6 @@ constexpr inline ShaderStage StageFromIndex(integer stage)
 {
   return ShaderStage(stage);
 }
-
-DOCUMENT(R"(A set of flags for ``ShaderStage`` stages
-
-.. data:: Unknown
-
-  No flags set for any shader stages.
-
-.. data:: Vertex
-
-  The flag for :data:`ShaderStage.Vertex`.
-
-.. data:: Hull
-
-  The flag for :data:`ShaderStage.Hull`.
-
-.. data:: Tess_Control
-
-  The flag for :data:`ShaderStage.Tess_Control`.
-
-.. data:: Domain
-
-  The flag for :data:`ShaderStage.Domain`.
-
-.. data:: Tess_Eval
-
-  The flag for :data:`ShaderStage.Tess_Eval`.
-
-.. data:: Geometry
-
-  The flag for :data:`ShaderStage.Geometry`.
-
-.. data:: Pixel
-
-  The flag for :data:`ShaderStage.Pixel`.
-
-.. data:: Fragment
-
-  The flag for :data:`ShaderStage.Fragment`.
-
-.. data:: Compute
-
-  The flag for :data:`ShaderStage.Compute`.
-
-.. data:: All
-
-  A shorthand version with flags set for all stages together.
-)");
-enum class ShaderStageMask : uint32_t
-{
-  Unknown = 0,
-  Vertex = 1 << uint32_t(ShaderStage::Vertex),
-  Hull = 1 << uint32_t(ShaderStage::Hull),
-  Tess_Control = Hull,
-  Domain = 1 << uint32_t(ShaderStage::Domain),
-  Tess_Eval = Domain,
-  Geometry = 1 << uint32_t(ShaderStage::Geometry),
-  Pixel = 1 << uint32_t(ShaderStage::Pixel),
-  Fragment = Pixel,
-  Compute = 1 << uint32_t(ShaderStage::Compute),
-  All = Vertex | Hull | Domain | Geometry | Pixel | Compute,
-};
-
-BITMASK_OPERATORS(ShaderStageMask);
-DECLARE_REFLECTION_ENUM(ShaderStageMask);
-
-DOCUMENT(R"(Calculate the corresponding flag for a shader stage
-
-:param ShaderStage stage: The shader stage
-:return: The flag that corresponds to the input shader stage
-:rtype: ShaderStageMask
-)");
-constexpr inline ShaderStageMask MaskForStage(ShaderStage stage)
-{
-  return ShaderStageMask(1 << uint32_t(stage));
-}
-
-DOCUMENT(R"(A set of flags for events that may occur while debugging a shader
-
-.. data:: NoEvent
-
-  No event has occurred.
-
-.. data:: SampleLoadGather
-
-  A texture was sampled, loaded or gathered.
-
-.. data:: GeneratedNanOrInf
-
-  A floating point operation generated a ``NaN`` or ``infinity`` result.
-)");
-enum class ShaderEvents : uint32_t
-{
-  NoEvent = 0,
-  SampleLoadGather = 0x1,
-  GeneratedNanOrInf = 0x2,
-};
-
-BITMASK_OPERATORS(ShaderEvents);
-DECLARE_REFLECTION_ENUM(ShaderEvents);
 
 DOCUMENT(R"(The type of issue that a debug message is about.
 
@@ -2300,144 +2017,6 @@ constexpr inline ResourceUsage RWResUsage(ShaderStage stage)
 {
   return RWResUsage(uint32_t(stage));
 }
-
-DOCUMENT(R"(A set of flags describing the properties of a particular drawcall.
-
-.. data:: NoFlags
-
-  The drawcall has no special properties.
-
-.. data:: Clear
-
-  The drawcall is a clear call. See :data:`ClearColor` and :data:`ClearDepthStencil`.
-
-.. data:: Drawcall
-
-  The drawcall renders primitives using the graphics pipeline.
-
-.. data:: Dispatch
-
-  The drawcall issues a number of compute workgroups.
-
-.. data:: CmdList
-
-  The drawcall calls into a previously recorded child command list.
-
-.. data:: SetMarker
-
-  The drawcall inserts a single debugging marker.
-
-.. data:: PushMarker
-
-  The drawcall begins a debugging marker region that has children.
-
-.. data:: PopMarker
-
-  The drawcall ends a debugging marker region.
-
-  .. note::
-
-    Drawcalls with this flag will not be exposed and it is only used internally for tracking
-    markers.
-
-.. data:: Present
-
-  The drawcall is a presentation call that hands a swapchain image to the presentation engine.
-
-.. data:: MultiDraw
-
-  The drawcall is a multi-draw that contains several specified child draws.
-
-.. data:: Copy
-
-  The drawcall performs a resource copy operation.
-
-.. data:: Resolve
-
-  The drawcall performs a resource resolve or blit operation.
-
-.. data:: GenMips
-
-  The drawcall performs a resource mip-generation operation.
-
-.. data:: PassBoundary
-
-  The drawcall marks the beginning or end of a render pass. See :data:`BeginPass` and
-  :data:`EndPass`.
-
-.. data:: UseIBuffer
-
-  The drawcall uses an index buffer.
-
-.. data:: Instanced
-
-  The drawcall uses instancing. This does not mean it renders more than one instanced, simply that
-  it uses the instancing feature.
-
-.. data:: Auto
-
-  The drawcall interacts with stream-out to render all vertices previously written. This is a
-  Direct3D 11 specific feature.
-
-.. data:: Indirect
-
-  The drawcall uses a buffer on the GPU to source some or all of its parameters in an indirect way.
-
-.. data:: ClearColor
-
-  The drawcall clears a colour target.
-
-.. data:: ClearDepthStencil
-
-  The drawcall clears a depth-stencil target.
-
-.. data:: BeginPass
-
-  The drawcall marks the beginning of a render pass.
-
-.. data:: EndPass
-
-  The drawcall marks the end of a render pass.
-
-.. data:: APICalls
-
-  The drawcall does not contain any work directly, but is a 'virtual' draw inserted to encompass
-  non-draw API calls that happened within a region, so they are included within the region where
-  they occurred and not grouped into the next drawcall outside that region.
-)");
-enum class DrawFlags : uint32_t
-{
-  NoFlags = 0x0000,
-
-  // types
-  Clear = 0x0001,
-  Drawcall = 0x0002,
-  Dispatch = 0x0004,
-  CmdList = 0x0008,
-  SetMarker = 0x0010,
-  PushMarker = 0x0020,
-  PopMarker = 0x0040,    // this is only for internal tracking use
-  Present = 0x0080,
-  MultiDraw = 0x0100,
-  Copy = 0x0200,
-  Resolve = 0x0400,
-  GenMips = 0x0800,
-  PassBoundary = 0x1000,
-
-  // flags
-  UseIBuffer = 0x010000,
-  Instanced = 0x020000,
-  Auto = 0x040000,
-  Indirect = 0x080000,
-  ClearColor = 0x100000,
-  ClearDepthStencil = 0x200000,
-  BeginPass = 0x400000,
-  EndPass = 0x800000,
-  APICalls = 0x1000000,
-};
-
-BITMASK_OPERATORS(DrawFlags);
-DECLARE_REFLECTION_ENUM(DrawFlags);
 
 DOCUMENT(R"(What kind of solid shading to use when rendering a mesh.
 
@@ -3414,6 +2993,433 @@ enum class LogType : int32_t
 
 DECLARE_REFLECTION_ENUM(LogType);
 
+#if defined(ENABLE_PYTHON_FLAG_ENUMS)
+
+ENABLE_PYTHON_FLAG_ENUMS;
+
+#endif
+
+DOCUMENT(R"(A set of flags describing the properties of a path on a remote filesystem.
+
+.. data:: NoFlags
+
+  No special file properties.
+
+.. data:: Directory
+
+  This file is a directory or folder.
+
+.. data:: Hidden
+
+  This file is considered hidden by the filesystem.
+
+.. data:: Executable
+
+  This file has been identified as an executable program or script.
+
+.. data:: ErrorUnknown
+
+  A special flag indicating that a query for this file failed, but for unknown reasons.
+
+.. data:: ErrorAccessDenied
+
+  A special flag indicating that a query for this file failed because access to the path was
+  denied.
+
+.. data:: ErrorInvalidPath
+
+  A special flag indicating that a query for this file failed because the path was invalid.
+)");
+enum class PathProperty : uint32_t
+{
+  NoFlags = 0x0,
+  Directory = 0x1,
+  Hidden = 0x2,
+  Executable = 0x4,
+
+  ErrorUnknown = 0x2000,
+  ErrorAccessDenied = 0x4000,
+  ErrorInvalidPath = 0x8000,
+};
+
+BITMASK_OPERATORS(PathProperty);
+DECLARE_REFLECTION_ENUM(PathProperty);
+
+DOCUMENT(R"(A set of flags describing the properties of a section in a renderdoc capture.
+
+.. data:: NoFlags
+
+  No special section properties.
+
+.. data:: ASCIIStored
+
+  This section was stored as pure ASCII. This can be useful since it is possible to generate
+  an ASCII section in a text editor by hand or with any simple printf style script, and then
+  concatenate it to a .rdc and have a valid section.
+
+.. data:: LZ4Compressed
+
+  This section is compressed with LZ4 on disk.
+
+.. data:: ZstdCompressed
+
+  This section is compressed with Zstd on disk.
+)");
+enum class SectionFlags : uint32_t
+{
+  NoFlags = 0x0,
+  ASCIIStored = 0x1,
+  LZ4Compressed = 0x2,
+  ZstdCompressed = 0x4,
+};
+
+BITMASK_OPERATORS(SectionFlags);
+DECLARE_REFLECTION_ENUM(SectionFlags);
+
+DOCUMENT(R"(A set of flags describing how this buffer may be used
+
+.. data:: NoFlags
+
+  The buffer will not be used for any of the uses below.
+
+.. data:: Vertex
+
+  The buffer will be used for sourcing vertex input data.
+
+.. data:: Index
+
+  The buffer will be used for sourcing primitive index data.
+
+.. data:: Constants
+
+  The buffer will be used for sourcing shader constant data.
+
+.. data:: ReadWrite
+
+  The buffer will be used for read and write access from shaders.
+
+.. data:: Indirect
+
+  The buffer will be used to provide indirect parameters for launching GPU-based drawcalls.
+)");
+enum class BufferCategory : uint32_t
+{
+  NoFlags = 0x0,
+  Vertex = 0x1,
+  Index = 0x2,
+  Constants = 0x4,
+  ReadWrite = 0x8,
+  Indirect = 0x10,
+};
+
+BITMASK_OPERATORS(BufferCategory);
+DECLARE_REFLECTION_ENUM(BufferCategory);
+
+DOCUMENT(R"(A set of flags for D3D buffer view properties.
+
+.. data:: NoFlags
+
+  The buffer will not be used for any of the uses below.
+
+.. data:: Raw
+
+  The buffer is used as a raw (byte-addressed) buffer.
+
+.. data:: Append
+
+  The buffer is used as a append/consume view.
+
+.. data:: Counter
+
+  The buffer is used with a structured buffer with associated hidden counter.
+)");
+enum class D3DBufferViewFlags : uint32_t
+{
+  NoFlags = 0x0,
+  Raw = 0x1,
+  Append = 0x2,
+  Counter = 0x4,
+};
+
+BITMASK_OPERATORS(D3DBufferViewFlags);
+DECLARE_REFLECTION_ENUM(D3DBufferViewFlags);
+
+DOCUMENT(R"(A set of flags describing how this texture may be used
+
+.. data:: NoFlags
+
+  The texture will not be used for any of the uses below.
+
+.. data:: ShaderRead
+
+  The texture will be read by a shader.
+
+.. data:: ColorTarget
+
+  The texture will be written to as a color target.
+
+.. data:: DepthTarget
+
+  The texture will be written to and tested against as a depth target.
+
+.. data:: ShaderReadWrite
+
+  The texture will be read and written to by a shader.
+
+.. data:: SwapBuffer
+
+  The texture is part of a window swapchain.
+)");
+enum class TextureCategory : uint32_t
+{
+  NoFlags = 0x0,
+  ShaderRead = 0x1,
+  ColorTarget = 0x2,
+  DepthTarget = 0x4,
+  ShaderReadWrite = 0x8,
+  SwapBuffer = 0x10,
+};
+
+BITMASK_OPERATORS(TextureCategory);
+DECLARE_REFLECTION_ENUM(TextureCategory);
+
+DOCUMENT(R"(A set of flags for ``ShaderStage`` stages
+
+.. data:: Unknown
+
+  No flags set for any shader stages.
+
+.. data:: Vertex
+
+  The flag for :data:`ShaderStage.Vertex`.
+
+.. data:: Hull
+
+  The flag for :data:`ShaderStage.Hull`.
+
+.. data:: Tess_Control
+
+  The flag for :data:`ShaderStage.Tess_Control`.
+
+.. data:: Domain
+
+  The flag for :data:`ShaderStage.Domain`.
+
+.. data:: Tess_Eval
+
+  The flag for :data:`ShaderStage.Tess_Eval`.
+
+.. data:: Geometry
+
+  The flag for :data:`ShaderStage.Geometry`.
+
+.. data:: Pixel
+
+  The flag for :data:`ShaderStage.Pixel`.
+
+.. data:: Fragment
+
+  The flag for :data:`ShaderStage.Fragment`.
+
+.. data:: Compute
+
+  The flag for :data:`ShaderStage.Compute`.
+
+.. data:: All
+
+  A shorthand version with flags set for all stages together.
+)");
+enum class ShaderStageMask : uint32_t
+{
+  Unknown = 0,
+  Vertex = 1 << uint32_t(ShaderStage::Vertex),
+  Hull = 1 << uint32_t(ShaderStage::Hull),
+  Tess_Control = Hull,
+  Domain = 1 << uint32_t(ShaderStage::Domain),
+  Tess_Eval = Domain,
+  Geometry = 1 << uint32_t(ShaderStage::Geometry),
+  Pixel = 1 << uint32_t(ShaderStage::Pixel),
+  Fragment = Pixel,
+  Compute = 1 << uint32_t(ShaderStage::Compute),
+  All = Vertex | Hull | Domain | Geometry | Pixel | Compute,
+};
+
+BITMASK_OPERATORS(ShaderStageMask);
+DECLARE_REFLECTION_ENUM(ShaderStageMask);
+
+DOCUMENT(R"(Calculate the corresponding flag for a shader stage
+
+:param ShaderStage stage: The shader stage
+:return: The flag that corresponds to the input shader stage
+:rtype: ShaderStageMask
+)");
+constexpr inline ShaderStageMask MaskForStage(ShaderStage stage)
+{
+  return ShaderStageMask(1 << uint32_t(stage));
+}
+
+DOCUMENT(R"(A set of flags for events that may occur while debugging a shader
+
+.. data:: NoEvent
+
+  No event has occurred.
+
+.. data:: SampleLoadGather
+
+  A texture was sampled, loaded or gathered.
+
+.. data:: GeneratedNanOrInf
+
+  A floating point operation generated a ``NaN`` or ``infinity`` result.
+)");
+enum class ShaderEvents : uint32_t
+{
+  NoEvent = 0,
+  SampleLoadGather = 0x1,
+  GeneratedNanOrInf = 0x2,
+};
+
+BITMASK_OPERATORS(ShaderEvents);
+DECLARE_REFLECTION_ENUM(ShaderEvents);
+
+DOCUMENT(R"(A set of flags describing the properties of a particular drawcall.
+
+.. data:: NoFlags
+
+  The drawcall has no special properties.
+
+.. data:: Clear
+
+  The drawcall is a clear call. See :data:`ClearColor` and :data:`ClearDepthStencil`.
+
+.. data:: Drawcall
+
+  The drawcall renders primitives using the graphics pipeline.
+
+.. data:: Dispatch
+
+  The drawcall issues a number of compute workgroups.
+
+.. data:: CmdList
+
+  The drawcall calls into a previously recorded child command list.
+
+.. data:: SetMarker
+
+  The drawcall inserts a single debugging marker.
+
+.. data:: PushMarker
+
+  The drawcall begins a debugging marker region that has children.
+
+.. data:: PopMarker
+
+  The drawcall ends a debugging marker region.
+
+  .. note::
+
+    Drawcalls with this flag will not be exposed and it is only used internally for tracking
+    markers.
+
+.. data:: Present
+
+  The drawcall is a presentation call that hands a swapchain image to the presentation engine.
+
+.. data:: MultiDraw
+
+  The drawcall is a multi-draw that contains several specified child draws.
+
+.. data:: Copy
+
+  The drawcall performs a resource copy operation.
+
+.. data:: Resolve
+
+  The drawcall performs a resource resolve or blit operation.
+
+.. data:: GenMips
+
+  The drawcall performs a resource mip-generation operation.
+
+.. data:: PassBoundary
+
+  The drawcall marks the beginning or end of a render pass. See :data:`BeginPass` and
+  :data:`EndPass`.
+
+.. data:: UseIBuffer
+
+  The drawcall uses an index buffer.
+
+.. data:: Instanced
+
+  The drawcall uses instancing. This does not mean it renders more than one instanced, simply that
+  it uses the instancing feature.
+
+.. data:: Auto
+
+  The drawcall interacts with stream-out to render all vertices previously written. This is a
+  Direct3D 11 specific feature.
+
+.. data:: Indirect
+
+  The drawcall uses a buffer on the GPU to source some or all of its parameters in an indirect way.
+
+.. data:: ClearColor
+
+  The drawcall clears a colour target.
+
+.. data:: ClearDepthStencil
+
+  The drawcall clears a depth-stencil target.
+
+.. data:: BeginPass
+
+  The drawcall marks the beginning of a render pass.
+
+.. data:: EndPass
+
+  The drawcall marks the end of a render pass.
+
+.. data:: APICalls
+
+  The drawcall does not contain any work directly, but is a 'virtual' draw inserted to encompass
+  non-draw API calls that happened within a region, so they are included within the region where
+  they occurred and not grouped into the next drawcall outside that region.
+)");
+enum class DrawFlags : uint32_t
+{
+  NoFlags = 0x0000,
+
+  // types
+  Clear = 0x0001,
+  Drawcall = 0x0002,
+  Dispatch = 0x0004,
+  CmdList = 0x0008,
+  SetMarker = 0x0010,
+  PushMarker = 0x0020,
+  PopMarker = 0x0040,    // this is only for internal tracking use
+  Present = 0x0080,
+  MultiDraw = 0x0100,
+  Copy = 0x0200,
+  Resolve = 0x0400,
+  GenMips = 0x0800,
+  PassBoundary = 0x1000,
+
+  // flags
+  UseIBuffer = 0x010000,
+  Instanced = 0x020000,
+  Auto = 0x040000,
+  Indirect = 0x080000,
+  ClearColor = 0x100000,
+  ClearDepthStencil = 0x200000,
+  BeginPass = 0x400000,
+  EndPass = 0x800000,
+  APICalls = 0x1000000,
+};
+
+BITMASK_OPERATORS(DrawFlags);
+DECLARE_REFLECTION_ENUM(DrawFlags);
+
 DOCUMENT(R"(A set of flags giving details of the current status of vulkan layer registration.
 
 .. data:: NoFlags
@@ -3507,3 +3513,7 @@ enum class AndroidFlags : uint32_t
 
 BITMASK_OPERATORS(AndroidFlags);
 DECLARE_REFLECTION_ENUM(AndroidFlags);
+
+#if defined(DISABLE_PYTHON_FLAG_ENUMS)
+DISABLE_PYTHON_FLAG_ENUMS;
+#endif

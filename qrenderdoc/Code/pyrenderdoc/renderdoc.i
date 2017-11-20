@@ -20,6 +20,13 @@
 #define DOCUMENT3(text1, text2, text3) %feature("docstring") text1 text2 text3
 #define DOCUMENT4(text1, text2, text3, text4) %feature("docstring") text1 text2 text3 text4
 
+// include header for typed enums (hopefully using PEP435 enums)
+%include <enums.swg>
+
+// used for declaring python IntFlag type enums
+#define ENABLE_PYTHON_FLAG_ENUMS %feature("python:enum:flag");
+#define DISABLE_PYTHON_FLAG_ENUMS %feature("python:enum:flag", "");
+
 // ignore warning about base class rdcarray<char> methods in rdcstr, and similar warning in structured lists
 #pragma SWIG nowarn=401
 #pragma SWIG nowarn=315
