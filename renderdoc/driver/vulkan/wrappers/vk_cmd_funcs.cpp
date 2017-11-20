@@ -600,7 +600,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         if(!partial)
         {
           device = GetDev();
-          AllocateInfo.commandPool = Unwrap(m_InternalCmds.cmdpool);
+          AllocateInfo.commandPool = m_InternalCmds.cmdpool;
         }
 
         VkCommandBuffer cmd = VK_NULL_HANDLE;
