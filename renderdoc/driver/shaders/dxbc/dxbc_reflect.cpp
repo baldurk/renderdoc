@@ -83,7 +83,6 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type,
   {
     ret.descriptor.rows = 0;
     ret.descriptor.cols = 0;
-    ret.descriptor.elements = 0;
   }
 
   return ret;
