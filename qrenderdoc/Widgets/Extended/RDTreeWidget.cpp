@@ -540,7 +540,7 @@ void RDTreeWidgetItem::setData(int column, int role, const QVariant &value)
 
   dataVec.push_back(RoleData(role, value));
 
-  if(role < Qt::UserRole)
+  if(m_widget && role < Qt::UserRole)
     m_widget->m_model->itemChanged(this, {role});
 }
 

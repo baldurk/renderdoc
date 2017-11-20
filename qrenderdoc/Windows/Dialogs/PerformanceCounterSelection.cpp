@@ -281,10 +281,10 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
     if(family != currentFamily)
     {
       currentRoot = new RDTreeWidgetItem();
-      ui->counterTree->addTopLevelItem(currentRoot);
       currentRoot->setText(0, ToString(family));
       currentRoot->setCheckState(0, Qt::Unchecked);
       currentRoot->setData(0, PreviousCheckStateRole, Qt::Unchecked);
+      ui->counterTree->addTopLevelItem(currentRoot);
 
       categories.clear();
 
@@ -299,10 +299,10 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
     if(categoryIterator == categories.end())
     {
       RDTreeWidgetItem *item = new RDTreeWidgetItem();
-      currentRoot->addChild(item);
       item->setText(0, desc.category);
       item->setCheckState(0, Qt::Unchecked);
       item->setData(0, PreviousCheckStateRole, Qt::Unchecked);
+      currentRoot->addChild(item);
 
       categories[category] = item;
       categoryItem = item;
@@ -313,12 +313,12 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
     }
 
     RDTreeWidgetItem *counterItem = new RDTreeWidgetItem();
-    categoryItem->addChild(counterItem);
     counterItem->setText(0, desc.name);
     counterItem->setData(0, CounterDescriptionRole, desc.description);
     counterItem->setData(0, CounterIdRole, (uint32_t)desc.counterID);
     counterItem->setCheckState(0, Qt::Unchecked);
     counterItem->setData(0, PreviousCheckStateRole, Qt::Unchecked);
+    categoryItem->addChild(counterItem);
 
     m_CounterToTreeItem[desc.counterID] = counterItem;
   }
