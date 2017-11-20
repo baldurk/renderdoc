@@ -1883,9 +1883,14 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
                                                      ? stage->ShaderDetails->ReadOnlyResources
                                                      : stage->ShaderDetails->ReadWriteResources;
 
+      const rdcarray<BindpointMap> &bindArray = view.type == D3D11ViewTag::SRV
+                                                    ? stage->BindpointMapping.ReadOnlyResources
+                                                    : stage->BindpointMapping.ReadWriteResources;
+
       for(const ShaderResource &res : resArray)
       {
-        if(!res.IsTexture && res.bindPoint == bind)
+        if(!res.IsTexture && res.bindPoint < bindArray.count() &&
+           bindArray[res.bindPoint].bind == bind)
         {
           shaderRes = &res;
           break;
