@@ -99,8 +99,8 @@ signals:
   void textOutput(bool isStdError, const QString &output);
 
 public slots:
-  void executeString(const QString &source, bool interactive = false);
-  void executeString(const QString &filename, const QString &source, bool interactive = false);
+  void executeString(const QString &source);
+  void executeString(const QString &filename, const QString &source);
   void executeFile(const QString &filename);
   void setGlobal(const char *varName, const char *typeName, void *object);
   void setPyGlobal(const char *varName, PyObject *object);

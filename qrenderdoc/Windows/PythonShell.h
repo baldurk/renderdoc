@@ -79,6 +79,8 @@ private:
   QList<QString> history;
   int historyidx = -1;
 
+  QString m_storedLines;
+
   PythonContext *newContext();
 
   QString scriptHeader();

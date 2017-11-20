@@ -33,6 +33,8 @@ public:
   explicit RDLineEdit(QWidget *parent = 0);
   ~RDLineEdit();
 
+  void setAcceptTabCharacters(bool accept) { m_acceptTabs = accept; }
+  bool acceptTabCharacters() { return m_acceptTabs; }
 signals:
   void enter();
   void leave();
@@ -44,4 +46,8 @@ protected:
   void focusInEvent(QFocusEvent *e);
   void focusOutEvent(QFocusEvent *e);
   void keyPressEvent(QKeyEvent *e);
+  bool event(QEvent *e);
+
+private:
+  bool m_acceptTabs;
 };

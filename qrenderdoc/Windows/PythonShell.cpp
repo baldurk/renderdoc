@@ -447,6 +447,8 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
   ui->interactiveOutput->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->scriptOutput->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
+  ui->lineInput->setAcceptTabCharacters(true);
+
   scriptEditor = new ScintillaEdit(this);
 
   scriptEditor->styleSetFont(
@@ -513,13 +515,26 @@ void PythonShell::on_execute_clicked()
 
   appendText(ui->interactiveOutput, command + lit("\n"));
 
-  if(command.trimmed().length() > 0)
-    interactiveContext->executeString(command, true);
-
   history.push_front(command);
   historyidx = -1;
 
   ui->lineInput->clear();
+
+  // assume a trailing colon means there will be continuation. Store the command and add a continue
+  // prompt. If we're already continuing, then wait until we get a blank line before executing.
+  if(command.trimmed().right(1) == lit(":") || (!m_storedLines.isEmpty() && !command.isEmpty()))
+  {
+    appendText(ui->interactiveOutput, lit(".. "));
+    m_storedLines += command + lit("\n");
+    return;
+  }
+
+  // concatenate any previous lines if we are doing a multi-line command.
+  command = m_storedLines + command;
+  m_storedLines = QString();
+
+  if(command.trimmed().length() > 0)
+    interactiveContext->executeString(command);
 
   appendText(ui->interactiveOutput, lit(">> "));
 }

@@ -49,3 +49,17 @@ void RDLineEdit::keyPressEvent(QKeyEvent *e)
   QLineEdit::keyPressEvent(e);
   emit(keyPress(e));
 }
+
+bool RDLineEdit::event(QEvent *e)
+{
+  if(m_acceptTabs && e->type() == QEvent::KeyPress)
+  {
+    QKeyEvent *ke = (QKeyEvent *)e;
+    if(ke->key() == Qt::Key_Tab)
+    {
+      insert(lit("\t"));
+      return true;
+    }
+  }
+  return QLineEdit::event(e);
+}
