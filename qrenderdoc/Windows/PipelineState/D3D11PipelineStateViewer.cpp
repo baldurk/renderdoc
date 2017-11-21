@@ -139,10 +139,10 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
 
   for(RDLabel *b : shaderLabels)
   {
-    QObject::connect(b, &RDLabel::clicked, this, &D3D11PipelineStateViewer::shaderLabel_clicked);
     b->setAutoFillBackground(true);
     b->setBackgroundRole(QPalette::ToolTipBase);
     b->setForegroundRole(QPalette::ToolTipText);
+    b->setMinimumSizeHint(QSize(250, 0));
   }
 
   for(QToolButton *b : editButtons)
@@ -172,6 +172,14 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
   addGridLines(ui->rasterizerGridLayout, palette().color(QPalette::WindowText));
   addGridLines(ui->blendStateGridLayout, palette().color(QPalette::WindowText));
   addGridLines(ui->depthStateGridLayout, palette().color(QPalette::WindowText));
+
+  for(RDLabel *st : {ui->depthState, ui->blendState, ui->rastState})
+  {
+    st->setAutoFillBackground(true);
+    st->setBackgroundRole(QPalette::ToolTipBase);
+    st->setForegroundRole(QPalette::ToolTipText);
+    st->setMinimumSizeHint(QSize(100, 0));
+  }
 
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
@@ -769,10 +777,11 @@ const D3D11Pipe::Shader *D3D11PipelineStateViewer::stageForSender(QWidget *widge
   return NULL;
 }
 
-void D3D11PipelineStateViewer::clearShaderState(QLabel *shader, RDTreeWidget *tex, RDTreeWidget *samp,
-                                                RDTreeWidget *cbuffer, RDTreeWidget *sub)
+void D3D11PipelineStateViewer::clearShaderState(RDLabel *shader, RDTreeWidget *tex,
+                                                RDTreeWidget *samp, RDTreeWidget *cbuffer,
+                                                RDTreeWidget *sub)
 {
-  shader->setText(tr("Unbound Shader"));
+  shader->setText(ToQStr(ResourceId()));
   tex->clear();
   samp->clear();
   sub->clear();
@@ -840,24 +849,23 @@ void D3D11PipelineStateViewer::clearState()
   ui->stencils->clear();
 }
 
-void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QLabel *shader,
+void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, RDLabel *shader,
                                               RDTreeWidget *resources, RDTreeWidget *samplers,
                                               RDTreeWidget *cbuffers, RDTreeWidget *classes)
 {
   ShaderReflection *shaderDetails = stage.ShaderDetails;
   const ShaderBindpointMapping &mapping = stage.BindpointMapping;
 
-  if(stage.Object == ResourceId())
-    shader->setText(tr("Unbound Shader"));
-  else
-    shader->setText(m_Ctx.GetResourceName(stage.Object));
+  QString shText = ToQStr(stage.Object);
 
   if(shaderDetails && !shaderDetails->DebugInfo.files.empty())
   {
-    shader->setText(QFormatStr("%1() - %2")
-                        .arg(shaderDetails->EntryPoint)
-                        .arg(QFileInfo(shaderDetails->DebugInfo.files[0].Filename).fileName()));
+    shText += QFormatStr(": %1() - %2")
+                  .arg(shaderDetails->EntryPoint)
+                  .arg(QFileInfo(shaderDetails->DebugInfo.files[0].Filename).fileName());
   }
+
+  shader->setText(shText);
 
   int vs = 0;
 
@@ -1108,16 +1116,20 @@ void D3D11PipelineStateViewer::setState()
 
   if(state.m_IA.Bytecode)
   {
-    QString layout = m_Ctx.GetResourceName(state.m_IA.layout);
+    QString layout = ToQStr(state.m_IA.layout);
 
     if(state.m_IA.Bytecode && !state.m_IA.Bytecode->DebugInfo.files.empty())
-      layout += QFormatStr(" (%1)").arg(state.m_IA.Bytecode->EntryPoint);
+    {
+      layout += QFormatStr(": %1() - %2")
+                    .arg(state.m_IA.Bytecode->EntryPoint)
+                    .arg(QFileInfo(state.m_IA.Bytecode->DebugInfo.files[0].Filename).fileName());
+    }
 
     ui->iaBytecode->setText(layout);
   }
   else
   {
-    ui->iaBytecode->setText(tr("None"));
+    ui->iaBytecode->setText(ToQStr(state.m_IA.layout));
   }
 
   ui->iaBytecodeMismatch->setVisible(false);
@@ -1510,6 +1522,8 @@ void D3D11PipelineStateViewer::setState()
   ui->scissors->verticalScrollBar()->setValue(vs);
   ui->scissors->endUpdate();
 
+  ui->rastState->setText(ToQStr(state.m_RS.m_State.State));
+
   ui->fillMode->setText(ToQStr(state.m_RS.m_State.fillMode));
   ui->cullMode->setText(ToQStr(state.m_RS.m_State.cullMode));
   ui->frontCCW->setPixmap(state.m_RS.m_State.FrontCCW ? tick : cross);
@@ -1631,6 +1645,8 @@ void D3D11PipelineStateViewer::setState()
   ui->blends->endUpdate();
   ui->blends->verticalScrollBar()->setValue(vs);
 
+  ui->blendState->setText(ToQStr(state.m_OM.m_BlendState.State));
+
   ui->alphaToCoverage->setPixmap(state.m_OM.m_BlendState.AlphaToCoverage ? tick : cross);
   ui->independentBlend->setPixmap(state.m_OM.m_BlendState.IndependentBlend ? tick : cross);
   ui->sampleMask->setText(Formatter::Format(state.m_OM.m_BlendState.SampleMask, true));
@@ -1640,6 +1656,8 @@ void D3D11PipelineStateViewer::setState()
                                .arg(state.m_OM.m_BlendState.BlendFactor[1], 0, 'f', 2)
                                .arg(state.m_OM.m_BlendState.BlendFactor[2], 0, 'f', 2)
                                .arg(state.m_OM.m_BlendState.BlendFactor[3], 0, 'f', 2));
+
+  ui->depthState->setText(ToQStr(state.m_OM.m_State.State));
 
   ui->depthEnabled->setPixmap(state.m_OM.m_State.DepthEnable ? tick : cross);
   ui->depthFunc->setText(ToQStr(state.m_OM.m_State.DepthFunc));
@@ -2215,13 +2233,6 @@ void D3D11PipelineStateViewer::shaderView_clicked()
   IShaderViewer *shad = m_Ctx.ViewShader(bindMap, shaderDetails, ResourceId(), shaderStage);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
-}
-
-void D3D11PipelineStateViewer::shaderLabel_clicked(QMouseEvent *event)
-{
-  // forward to shaderView_clicked, we only need this to handle the different parameter, and we
-  // can't use a lambda because then QObject::sender() is NULL
-  shaderView_clicked();
 }
 
 void D3D11PipelineStateViewer::shaderEdit_clicked()

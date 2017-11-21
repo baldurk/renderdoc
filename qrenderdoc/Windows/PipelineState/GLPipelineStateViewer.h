@@ -34,6 +34,7 @@ class GLPipelineStateViewer;
 
 class QXmlStreamWriter;
 
+class RDLabel;
 class RDTreeWidget;
 class RDTreeWidgetItem;
 class PipelineStateViewer;
@@ -67,7 +68,6 @@ private slots:
 
   // manual slots
   void shaderView_clicked();
-  void shaderLabel_clicked(QMouseEvent *event);
   void shaderEdit_clicked();
   void shaderSave_clicked();
   void resource_itemActivated(RDTreeWidgetItem *item, int column);
@@ -90,9 +90,9 @@ private:
                                  const GLPipe::VertexAttribute &val);
   GLReadWriteType GetGLReadWriteType(ShaderResource res);
 
-  void setShaderState(const GLPipe::Shader &stage, QLabel *shader, RDTreeWidget *tex,
+  void setShaderState(const GLPipe::Shader &stage, RDLabel *shader, RDTreeWidget *tex,
                       RDTreeWidget *samp, RDTreeWidget *ubo, RDTreeWidget *sub, RDTreeWidget *rw);
-  void clearShaderState(QLabel *shader, RDTreeWidget *tex, RDTreeWidget *samp, RDTreeWidget *ubo,
+  void clearShaderState(RDLabel *shader, RDTreeWidget *tex, RDTreeWidget *samp, RDTreeWidget *ubo,
                         RDTreeWidget *sub, RDTreeWidget *rw);
   void setState();
   void clearState();

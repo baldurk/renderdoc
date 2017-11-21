@@ -131,10 +131,10 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
   for(RDLabel *b : shaderLabels)
   {
-    QObject::connect(b, &RDLabel::clicked, this, &VulkanPipelineStateViewer::shaderLabel_clicked);
     b->setAutoFillBackground(true);
     b->setBackgroundRole(QPalette::ToolTipBase);
     b->setForegroundRole(QPalette::ToolTipText);
+    b->setMinimumSizeHint(QSize(250, 0));
   }
 
   for(QToolButton *b : editButtons)
@@ -147,7 +147,7 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   QObject::connect(ui->viBuffers, &RDTreeWidget::leave, this,
                    &VulkanPipelineStateViewer::vertex_leave);
 
-  QObject::connect(ui->framebuffer, &RDTreeWidget::itemActivated, this,
+  QObject::connect(ui->fbAttach, &RDTreeWidget::itemActivated, this,
                    &VulkanPipelineStateViewer::resource_itemActivated);
 
   for(RDTreeWidget *res : resources)
@@ -242,17 +242,25 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->scissors->setInstantTooltips(true);
   }
 
+  for(RDLabel *rp : {ui->renderpass, ui->framebuffer})
+  {
+    rp->setAutoFillBackground(true);
+    rp->setBackgroundRole(QPalette::ToolTipBase);
+    rp->setForegroundRole(QPalette::ToolTipText);
+    rp->setMinimumSizeHint(QSize(250, 0));
+  }
+
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
-    ui->framebuffer->setHeader(header);
+    ui->fbAttach->setHeader(header);
 
-    ui->framebuffer->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
-                                 tr("Depth"), tr("Array Size"), tr("Format"), tr("Go")});
+    ui->fbAttach->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
+                              tr("Depth"), tr("Array Size"), tr("Format"), tr("Go")});
     header->setColumnStretchHints({2, 4, 2, 1, 1, 1, 1, 3, -1});
 
-    ui->framebuffer->setHoverIconColumn(8, action, action_hover);
-    ui->framebuffer->setClearSelectionOnFocusLoss(true);
-    ui->framebuffer->setInstantTooltips(true);
+    ui->fbAttach->setHoverIconColumn(8, action, action_hover);
+    ui->fbAttach->setClearSelectionOnFocusLoss(true);
+    ui->fbAttach->setInstantTooltips(true);
   }
 
   {
@@ -323,7 +331,9 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   ui->csUBOs->setFont(Formatter::PreferredFont());
   ui->viewports->setFont(Formatter::PreferredFont());
   ui->scissors->setFont(Formatter::PreferredFont());
+  ui->renderpass->setFont(Formatter::PreferredFont());
   ui->framebuffer->setFont(Formatter::PreferredFont());
+  ui->fbAttach->setFont(Formatter::PreferredFont());
   ui->blends->setFont(Formatter::PreferredFont());
 
   // reset everything back to defaults
@@ -524,10 +534,10 @@ const VKPipe::Shader *VulkanPipelineStateViewer::stageForSender(QWidget *widget)
   return NULL;
 }
 
-void VulkanPipelineStateViewer::clearShaderState(QLabel *shader, RDTreeWidget *resources,
+void VulkanPipelineStateViewer::clearShaderState(RDLabel *shader, RDTreeWidget *resources,
                                                  RDTreeWidget *cbuffers)
 {
-  shader->setText(tr("Unbound Shader"));
+  shader->setText(QFormatStr("%1: %1").arg(ToQStr(ResourceId())));
   resources->clear();
   cbuffers->clear();
 }
@@ -572,7 +582,10 @@ void VulkanPipelineStateViewer::clearState()
   ui->viewports->clear();
   ui->scissors->clear();
 
-  ui->framebuffer->clear();
+  ui->renderpass->setText(QFormatStr("Render Pass: %1").arg(ToQStr(ResourceId())));
+  ui->framebuffer->setText(QFormatStr("Framebuffer: %1").arg(ToQStr(ResourceId())));
+
+  ui->fbAttach->clear();
   ui->blends->clear();
 
   ui->blendFactor->setText(lit("0.00, 0.00, 0.00, 0.00"));
@@ -1248,15 +1261,12 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 }
 
 void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
-                                               const VKPipe::Pipeline &pipe, QLabel *shader,
+                                               const VKPipe::Pipeline &pipe, RDLabel *shader,
                                                RDTreeWidget *resources, RDTreeWidget *ubos)
 {
   ShaderReflection *shaderDetails = stage.ShaderDetails;
 
-  if(stage.Object == ResourceId())
-    shader->setText(tr("Unbound Shader"));
-  else
-    shader->setText(m_Ctx.GetResourceName(stage.Object));
+  shader->setText(QFormatStr("%1: %2").arg(ToQStr(pipe.obj)).arg(ToQStr(stage.Object)));
 
   if(shaderDetails != NULL)
   {
@@ -1746,9 +1756,14 @@ void VulkanPipelineStateViewer::setState()
 
   bool targets[32] = {};
 
-  vs = ui->framebuffer->verticalScrollBar()->value();
-  ui->framebuffer->beginUpdate();
-  ui->framebuffer->clear();
+  ui->renderpass->setText(QFormatStr("Render Pass: %1 (Subpass %2)")
+                              .arg(ToQStr(state.Pass.renderpass.obj))
+                              .arg(state.Pass.renderpass.subpass));
+  ui->framebuffer->setText(QFormatStr("Framebuffer: %1").arg(ToQStr(state.Pass.framebuffer.obj)));
+
+  vs = ui->fbAttach->verticalScrollBar()->value();
+  ui->fbAttach->beginUpdate();
+  ui->fbAttach->clear();
   {
     int i = 0;
     for(const VKPipe::Attachment &p : state.Pass.framebuffer.attachments)
@@ -1853,16 +1868,16 @@ void VulkanPipelineStateViewer::setState()
 
         setViewDetails(node, p, tex);
 
-        ui->framebuffer->addTopLevelItem(node);
+        ui->fbAttach->addTopLevelItem(node);
       }
 
       i++;
     }
   }
 
-  ui->framebuffer->clearSelection();
-  ui->framebuffer->endUpdate();
-  ui->framebuffer->verticalScrollBar()->setValue(vs);
+  ui->fbAttach->clearSelection();
+  ui->fbAttach->endUpdate();
+  ui->fbAttach->verticalScrollBar()->setValue(vs);
 
   vs = ui->blends->verticalScrollBar()->value();
   ui->blends->beginUpdate();
@@ -2274,13 +2289,6 @@ void VulkanPipelineStateViewer::shaderView_clicked()
   IShaderViewer *shad = m_Ctx.ViewShader(&stage->BindpointMapping, shaderDetails, pipe, stage->stage);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
-}
-
-void VulkanPipelineStateViewer::shaderLabel_clicked(QMouseEvent *event)
-{
-  // forward to shaderView_clicked, we only need this to handle the different parameter, and we
-  // can't use a lambda because then QObject::sender() is NULL
-  shaderView_clicked();
 }
 
 void VulkanPipelineStateViewer::shaderEdit_clicked()

@@ -33,6 +33,7 @@ class D3D11PipelineStateViewer;
 }
 
 class QXmlStreamWriter;
+class RDLabel;
 class RDTreeWidget;
 class RDTreeWidgetItem;
 struct D3D11ViewTag;
@@ -67,7 +68,6 @@ private slots:
 
   // manual slots
   void shaderView_clicked();
-  void shaderLabel_clicked(QMouseEvent *event);
   void shaderEdit_clicked();
 
   void shaderSave_clicked();
@@ -82,13 +82,13 @@ private:
   ICaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
 
-  void setShaderState(const D3D11Pipe::Shader &stage, QLabel *shader, RDTreeWidget *tex,
+  void setShaderState(const D3D11Pipe::Shader &stage, RDLabel *shader, RDTreeWidget *tex,
                       RDTreeWidget *samp, RDTreeWidget *cbuffer, RDTreeWidget *classes);
 
   void addResourceRow(const D3D11ViewTag &view, const ShaderResource *shaderInput,
                       const BindpointMap *map, RDTreeWidget *resources);
 
-  void clearShaderState(QLabel *shader, RDTreeWidget *tex, RDTreeWidget *samp,
+  void clearShaderState(RDLabel *shader, RDTreeWidget *tex, RDTreeWidget *samp,
                         RDTreeWidget *cbuffer, RDTreeWidget *classes);
   void setState();
   void clearState();

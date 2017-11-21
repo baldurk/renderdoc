@@ -503,18 +503,6 @@
           </property>
           <item>
            <widget class="RDLabel" name="vsShader">
-            <property name="minimumSize">
-             <size>
-              <width>250</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="cursor">
-             <cursorShape>PointingHandCursor</cursorShape>
-            </property>
-            <property name="toolTip">
-             <string>Open Shader Source</string>
-            </property>
             <property name="frameShape">
              <enum>QFrame::Box</enum>
             </property>
@@ -590,12 +578,6 @@
            <spacer name="vsShaderSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>576</width>
-              <height>20</height>
-             </size>
             </property>
            </spacer>
           </item>
@@ -782,18 +764,6 @@
           </property>
           <item>
            <widget class="RDLabel" name="tcsShader">
-            <property name="minimumSize">
-             <size>
-              <width>250</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="cursor">
-             <cursorShape>PointingHandCursor</cursorShape>
-            </property>
-            <property name="toolTip">
-             <string>Open Shader Source</string>
-            </property>
             <property name="frameShape">
              <enum>QFrame::Box</enum>
             </property>
@@ -869,12 +839,6 @@
            <spacer name="tcsShaderSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>576</width>
-              <height>20</height>
-             </size>
             </property>
            </spacer>
           </item>
@@ -1061,18 +1025,6 @@
           </property>
           <item>
            <widget class="RDLabel" name="tesShader">
-            <property name="minimumSize">
-             <size>
-              <width>250</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="cursor">
-             <cursorShape>PointingHandCursor</cursorShape>
-            </property>
-            <property name="toolTip">
-             <string>Open Shader Source</string>
-            </property>
             <property name="frameShape">
              <enum>QFrame::Box</enum>
             </property>
@@ -1148,12 +1100,6 @@
            <spacer name="tesShaderSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>576</width>
-              <height>20</height>
-             </size>
             </property>
            </spacer>
           </item>
@@ -1340,18 +1286,6 @@
           </property>
           <item>
            <widget class="RDLabel" name="gsShader">
-            <property name="minimumSize">
-             <size>
-              <width>250</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="cursor">
-             <cursorShape>PointingHandCursor</cursorShape>
-            </property>
-            <property name="toolTip">
-             <string>Open Shader Source</string>
-            </property>
             <property name="frameShape">
              <enum>QFrame::Box</enum>
             </property>
@@ -1427,12 +1361,6 @@
            <spacer name="gsShaderSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>576</width>
-              <height>20</height>
-             </size>
             </property>
            </spacer>
           </item>
@@ -2291,18 +2219,6 @@
           </property>
           <item>
            <widget class="RDLabel" name="fsShader">
-            <property name="minimumSize">
-             <size>
-              <width>250</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="cursor">
-             <cursorShape>PointingHandCursor</cursorShape>
-            </property>
-            <property name="toolTip">
-             <string>Open Shader Source</string>
-            </property>
             <property name="frameShape">
              <enum>QFrame::Box</enum>
             </property>
@@ -2378,12 +2294,6 @@
            <spacer name="fsShaderSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>576</width>
-              <height>20</height>
-             </size>
             </property>
            </spacer>
           </item>
@@ -2586,9 +2496,9 @@
               </sizepolicy>
              </property>
              <property name="title">
-              <string>Framebuffer Attachments</string>
+              <string>Render Pass</string>
              </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_24">
+             <layout class="QVBoxLayout" name="verticalLayout_17">
               <property name="leftMargin">
                <number>2</number>
               </property>
@@ -2602,7 +2512,44 @@
                <number>2</number>
               </property>
               <item>
-               <widget class="RDTreeWidget" name="framebuffer">
+               <layout class="QHBoxLayout" name="horizontalLayout_23">
+                <item>
+                 <widget class="RDLabel" name="renderpass">
+                  <property name="frameShape">
+                   <enum>QFrame::Box</enum>
+                  </property>
+                  <property name="margin">
+                   <number>4</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="RDLabel" name="framebuffer">
+                  <property name="frameShape">
+                   <enum>QFrame::Box</enum>
+                  </property>
+                  <property name="margin">
+                   <number>2</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_2">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="RDTreeWidget" name="fbAttach">
                 <property name="frameShape">
                  <enum>QFrame::Box</enum>
                 </property>
@@ -3061,18 +3008,6 @@
           </property>
           <item>
            <widget class="RDLabel" name="csShader">
-            <property name="minimumSize">
-             <size>
-              <width>250</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="cursor">
-             <cursorShape>PointingHandCursor</cursorShape>
-            </property>
-            <property name="toolTip">
-             <string>Open Shader Source</string>
-            </property>
             <property name="frameShape">
              <enum>QFrame::Box</enum>
             </property>
@@ -3148,12 +3083,6 @@
            <spacer name="csShaderSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>576</width>
-              <height>20</height>
-             </size>
             </property>
            </spacer>
           </item>

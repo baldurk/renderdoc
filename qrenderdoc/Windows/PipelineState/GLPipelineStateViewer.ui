@@ -164,7 +164,7 @@
    <item>
     <widget class="QTabWidget" name="stagesTabs">
      <property name="currentIndex">
-      <number>0</number>
+      <number>4</number>
      </property>
      <property name="documentMode">
       <bool>true</bool>
@@ -615,7 +615,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>116</width>
+            <width>873</width>
             <height>424</height>
            </rect>
           </property>
@@ -1050,7 +1050,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>116</width>
+            <width>873</width>
             <height>424</height>
            </rect>
           </property>
@@ -1485,7 +1485,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>116</width>
+            <width>873</width>
             <height>424</height>
            </rect>
           </property>
@@ -1920,7 +1920,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>236</width>
+            <width>857</width>
             <height>454</height>
            </rect>
           </property>
@@ -2121,6 +2121,13 @@
                 </property>
                 <item row="0" column="0">
                  <layout class="QHBoxLayout" name="xfbPaused_HLayout">
+                  <item>
+                   <widget class="RDLabel" name="xfbObj">
+                    <property name="frameShape">
+                     <enum>QFrame::Box</enum>
+                    </property>
+                   </widget>
+                  </item>
                   <item>
                    <widget class="QLabel" name="xfbPausedLabel">
                     <property name="text">
@@ -3330,7 +3337,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>116</width>
+            <width>873</width>
             <height>424</height>
            </rect>
           </property>
@@ -3643,8 +3650,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>488</width>
-            <height>292</height>
+            <width>873</width>
+            <height>473</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -3669,9 +3676,9 @@
               </sizepolicy>
              </property>
              <property name="title">
-              <string>Draw Buffers</string>
+              <string>Framebuffer</string>
              </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_24">
+             <layout class="QVBoxLayout" name="verticalLayout_17">
               <property name="leftMargin">
                <number>2</number>
               </property>
@@ -3684,6 +3691,37 @@
               <property name="bottomMargin">
                <number>2</number>
               </property>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_24">
+                <item>
+                 <widget class="RDLabel" name="drawFBO">
+                  <property name="frameShape">
+                   <enum>QFrame::Box</enum>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="RDLabel" name="readFBO">
+                  <property name="frameShape">
+                   <enum>QFrame::Box</enum>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_3">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
               <item>
                <widget class="RDTreeWidget" name="framebuffer">
                 <property name="frameShape">
@@ -4241,7 +4279,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>116</width>
+            <width>873</width>
             <height>424</height>
            </rect>
           </property>

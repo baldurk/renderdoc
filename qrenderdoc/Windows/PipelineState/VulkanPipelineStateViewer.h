@@ -34,6 +34,7 @@ class VulkanPipelineStateViewer;
 
 class QXmlStreamWriter;
 
+class RDLabel;
 class RDTreeWidget;
 class RDTreeWidgetItem;
 class PipelineStateViewer;
@@ -73,7 +74,6 @@ private slots:
 
   // manual slots
   void shaderView_clicked();
-  void shaderLabel_clicked(QMouseEvent *event);
   void shaderEdit_clicked();
 
   void shaderSave_clicked();
@@ -94,9 +94,9 @@ private:
   void addConstantBlockRow(ShaderReflection *shaderDetails, const VKPipe::Shader &stage,
                            int bindset, int bind, const VKPipe::Pipeline &pipe, RDTreeWidget *ubos);
 
-  void setShaderState(const VKPipe::Shader &stage, const VKPipe::Pipeline &pipe, QLabel *shader,
+  void setShaderState(const VKPipe::Shader &stage, const VKPipe::Pipeline &pipe, RDLabel *shader,
                       RDTreeWidget *res, RDTreeWidget *ubo);
-  void clearShaderState(QLabel *shader, RDTreeWidget *res, RDTreeWidget *ubo);
+  void clearShaderState(RDLabel *shader, RDTreeWidget *res, RDTreeWidget *ubo);
   void setState();
   void clearState();
 
