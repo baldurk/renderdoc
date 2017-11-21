@@ -628,6 +628,12 @@ void WrappedOpenGL::Initialise(GLInitParams &params, uint64_t sectionVersion)
   gl.glGenFramebuffers(1, &m_FakeBB_FBO);
   gl.glBindFramebuffer(eGL_FRAMEBUFFER, m_FakeBB_FBO);
 
+  // we'll add the chunk later when we re-process it.
+  ResourceId fboId = GetResourceManager()->GetID(FramebufferRes(GetCtx(), m_FakeBB_FBO));
+  AddResource(fboId, ResourceType::SwapchainImage, "");
+  GetReplay()->GetResourceDesc(fboId).initialisationChunks.clear();
+  GetReplay()->GetResourceDesc(fboId).SetCustomName("Default FBO");
+
   GLenum colfmt = eGL_RGBA8;
 
   if(params.colorBits == 32)
@@ -3176,11 +3182,13 @@ void WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
       GLInitParams InitParams;
       SERIALISE_ELEMENT(InitParams);
 
+      ResourceId fboId = GetResourceManager()->GetID(FramebufferRes(GetCtx(), m_FakeBB_FBO));
       ResourceId colorId = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color));
       ResourceId depthId;
       if(m_FakeBB_DepthStencil)
         depthId = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_DepthStencil));
 
+      AddResourceCurChunk(fboId);
       AddResourceCurChunk(colorId);
       AddResourceCurChunk(depthId);
     }
