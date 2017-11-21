@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "QRDUtils.h"
+#include <QAbstractTextDocumentLayout>
 #include <QApplication>
 #include <QElapsedTimer>
 #include <QFileSystemModel>
@@ -34,11 +35,15 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMetaMethod>
+#include <QMouseEvent>
+#include <QPainter>
 #include <QProcess>
 #include <QProgressDialog>
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
 #include <QStandardPaths>
+#include <QTextBlock>
+#include <QTextDocument>
 #include <QtMath>
 #include "Widgets/Extended/RDTreeWidget.h"
 
@@ -58,6 +63,272 @@ std::string DoStringise(const ResourceId &el)
   uint64_t num;
   memcpy(&num, &el, sizeof(num));
   return lit("resourceid::%1").arg(num).toStdString();
+}
+
+struct RichResourceText
+{
+  QVector<QVariant> fragments;
+
+  // cached formatted document. We use cacheId to check if it needs to be updated
+  QTextDocument doc;
+  int cacheId = 0;
+
+  // a plain-text version of the document, suitable for e.g. copy-paste
+  QString text;
+
+  // cache the context once we've obtained it.
+  ICaptureContext *ctxptr = NULL;
+
+  void cacheDocument(QWidget *widget)
+  {
+    if(!ctxptr)
+      ctxptr = getCaptureContext(widget);
+
+    if(!ctxptr)
+      return;
+
+    ICaptureContext &ctx = *(ICaptureContext *)ctxptr;
+
+    int refCache = ctx.ResourceNameCacheID();
+
+    if(cacheId == refCache)
+      return;
+
+    cacheId = refCache;
+
+    // use a table to ensure images don't screw up the baseline for text. DON'T JUDGE ME.
+    QString html = lit("<table><tr>");
+
+    int i = 0;
+
+    QVector<int> fragmentIndexFromBlockIndex;
+
+    // there's an empty block at the start.
+    fragmentIndexFromBlockIndex.push_back(-1);
+
+    text.clear();
+
+    for(const QVariant &v : fragments)
+    {
+      if(v.userType() == qMetaTypeId<ResourceId>())
+      {
+        QString resname = ctx.GetResourceName(v.value<ResourceId>());
+        html += lit("<td><b>%1</b></td><td><img src=':/link.png'></td>").arg(resname);
+        text += resname;
+
+        // these generate two blocks (one for each cell)
+        fragmentIndexFromBlockIndex.push_back(i);
+        fragmentIndexFromBlockIndex.push_back(i);
+      }
+      else
+      {
+        html += lit("<td>%1</td>").arg(v.toString());
+        text += v.toString();
+
+        // this only generates one block
+        fragmentIndexFromBlockIndex.push_back(i);
+      }
+
+      i++;
+    }
+
+    // there's another empty block at the end
+    fragmentIndexFromBlockIndex.push_back(-1);
+
+    html += lit("</tr></table>");
+
+    doc.setDocumentMargin(0);
+    doc.setHtml(html);
+
+    if(doc.blockCount() != fragmentIndexFromBlockIndex.count())
+    {
+      qCritical() << "Block count is not what's expected!" << doc.blockCount()
+                  << fragmentIndexFromBlockIndex.count();
+
+      for(i = 0; i < doc.blockCount(); i++)
+        doc.findBlockByNumber(i).setUserState(-1);
+
+      return;
+    }
+
+    for(i = 0; i < doc.blockCount(); i++)
+      doc.findBlockByNumber(i).setUserState(fragmentIndexFromBlockIndex[i]);
+  }
+};
+
+Q_DECLARE_METATYPE(RichResourceTextPtr);
+
+QString ResIdTextToString(RichResourceTextPtr ptr)
+{
+  return ptr->text;
+}
+
+void RegisterMetatypeConversions()
+{
+  QMetaType::registerConverter<RichResourceTextPtr, QString>(&ResIdTextToString);
+}
+
+void RichResourceTextInitialise(QVariant &var)
+{
+  static QRegularExpression re(lit("(resourceid::)([0-9]*)"));
+
+  if(var.userType() == qMetaTypeId<ResourceId>() || re.match(var.toString()).hasMatch())
+  {
+    QString text;
+    if(var.userType() == qMetaTypeId<ResourceId>())
+      text = ToQStr(var.value<ResourceId>());
+    else
+      text = var.toString();
+
+    RichResourceTextPtr linkedText(new RichResourceText);
+
+    // use regexp to split up into fragments of text and resourceid. The resourceid is then
+    // formatted on the fly in RichResourceText::cacheDocument
+    QRegularExpressionMatch match = re.match(text);
+    while(match.hasMatch())
+    {
+      qulonglong idnum = match.captured(2).toULongLong();
+      ResourceId id;
+      memcpy(&id, &idnum, sizeof(id));
+
+      // push any text that preceeded the ResourceId.
+      if(match.capturedStart(1) > 0)
+        linkedText->fragments.push_back(text.left(match.capturedStart(1)));
+
+      text.remove(0, match.capturedEnd(2));
+
+      linkedText->fragments.push_back(id);
+
+      match = re.match(text);
+    }
+
+    if(!text.isEmpty())
+      linkedText->fragments.push_back(text);
+
+    linkedText->doc.setHtml(text);
+
+    var = QVariant::fromValue(linkedText);
+  }
+}
+
+bool RichResourceTextCheck(const QVariant &var)
+{
+  return var.userType() == qMetaTypeId<RichResourceTextPtr>();
+}
+
+void RichResourceTextPaint(QWidget *owner, QPainter *painter, QRect rect, QFont font,
+                           QPalette palette, bool mouseOver, QPoint mousePos, const QVariant &var)
+{
+  RichResourceTextPtr linkedText = var.value<RichResourceTextPtr>();
+
+  linkedText->cacheDocument(owner);
+
+  painter->translate(rect.left(), rect.top());
+
+  linkedText->doc.setTextWidth(rect.width());
+  linkedText->doc.setDefaultFont(font);
+  linkedText->doc.drawContents(painter);
+
+  if(mouseOver)
+  {
+    painter->setPen(QPen(palette.brush(QPalette::WindowText), 1.0));
+
+    QAbstractTextDocumentLayout *layout = linkedText->doc.documentLayout();
+
+    QPoint p = mousePos - rect.topLeft();
+
+    int pos = layout->hitTest(p, Qt::FuzzyHit);
+
+    if(pos >= 0)
+    {
+      QTextBlock block = linkedText->doc.findBlock(pos);
+
+      int frag = block.userState();
+      if(frag >= 0)
+      {
+        QVariant v = linkedText->fragments[frag];
+        if(v.userType() == qMetaTypeId<ResourceId>() && v.value<ResourceId>() != ResourceId())
+        {
+          layout->blockBoundingRect(block);
+          QRectF blockrect = layout->blockBoundingRect(block);
+
+          if(block.previous().userState() == frag)
+          {
+            blockrect = blockrect.united(layout->blockBoundingRect(block.previous()));
+          }
+
+          if(block.next().userState() == frag)
+          {
+            blockrect = blockrect.united(layout->blockBoundingRect(block.next()));
+          }
+
+          blockrect.translate(0.0, -2.0);
+
+          painter->drawLine(blockrect.bottomLeft(), blockrect.bottomRight());
+        }
+      }
+    }
+  }
+}
+
+int RichResourceTextWidthHint(QWidget *owner, const QVariant &var)
+{
+  RichResourceTextPtr linkedText = var.value<RichResourceTextPtr>();
+
+  linkedText->cacheDocument(owner);
+
+  return linkedText->doc.idealWidth();
+}
+
+bool RichResourceTextMouseEvent(QWidget *owner, const QVariant &var, QRect rect, QMouseEvent *event)
+{
+  // only process clicks or moves
+  if(event->type() != QEvent::MouseButtonRelease && event->type() != QEvent::MouseMove)
+    return false;
+
+  RichResourceTextPtr linkedText = var.value<RichResourceTextPtr>();
+
+  linkedText->cacheDocument(owner);
+
+  QAbstractTextDocumentLayout *layout = linkedText->doc.documentLayout();
+
+  QPoint p = event->pos() - rect.topLeft();
+
+  int pos = layout->hitTest(p, Qt::FuzzyHit);
+
+  if(pos >= 0)
+  {
+    QTextBlock block = linkedText->doc.findBlock(pos);
+
+    int frag = block.userState();
+    if(frag >= 0)
+    {
+      QVariant v = linkedText->fragments[frag];
+      if(v.userType() == qMetaTypeId<ResourceId>())
+      {
+        // empty resource ids are not clickable or hover-highlighted.
+        ResourceId res = v.value<ResourceId>();
+        if(res == ResourceId())
+          return false;
+
+        if(event->type() == QEvent::MouseButtonRelease && linkedText->ctxptr)
+        {
+          ICaptureContext &ctx = *(ICaptureContext *)linkedText->ctxptr;
+
+          if(!ctx.HasResourceInspector())
+            ctx.ShowResourceInspector();
+
+          ctx.GetResourceInspector()->Inspect(v.value<ResourceId>());
+
+          ctx.RaiseDockWindow(ctx.GetResourceInspector()->Widget());
+        }
+
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 #include "renderdoc_tostr.inl"

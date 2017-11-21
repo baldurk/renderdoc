@@ -31,6 +31,7 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QSemaphore>
+#include <QSharedPointer>
 #include <QSortFilterProxyModel>
 #include <QStyledItemDelegate>
 #include "Code/Interface/QRDInterface.h"
@@ -106,6 +107,46 @@ class RDTreeWidgetItem;
 
 void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs,
                           bool parentIsArray);
+
+// this is an opaque struct that contains the data to render, hit-test, etc for some text that
+// contains links to resources. It will update and cache the names of the resources.
+struct RichResourceText;
+
+// we use QSharedPointer to refer to the text since the lifetime management of these objects would
+// get quite complicated. There's not necessarily an obvious QObject parent to assign to if the text
+// is being initialised before being assigned to a widget and we want the most seamless interface we
+// can get.
+typedef QSharedPointer<RichResourceText> RichResourceTextPtr;
+
+// this will check the variant, and if it contains a ResourceId directly or text with ResourceId
+// identifiers then it will be converted into a RichResourceTextPtr in-place. The new QVariant will
+// still convert to QString so it doesn't have to be special-cased. However it must be processed
+// through one of the functions below (generally painting) to cache the rendered text.
+// If the variant doesn't match the above conditions, it's unchanged. So it's safe to apply this
+// reasonably liberally.
+// NOTE: It is not possible to move a RichResourceText instance from one ICaptureContext to another
+// as the pointer is cached internally. Instead you should delete the old and re-initialise from
+// scratch.
+void RichResourceTextInitialise(QVariant &var);
+
+// checks if a variant is rich resource text
+bool RichResourceTextCheck(const QVariant &var);
+
+// paint the given variant containing rich text with the given parameters.
+void RichResourceTextPaint(QWidget *owner, QPainter *painter, QRect rect, QFont font,
+                           QPalette palette, bool mouseOver, QPoint mousePos, const QVariant &var);
+
+// gives the width for a size hint for the rich text (since it might be larger than the original
+// text)
+int RichResourceTextWidthHint(QWidget *owner, const QVariant &var);
+
+// handle a mouse event on some rich resource text.
+// returns true if the event is processed - for mouse move events, this means that the mouse is over
+// a resource link (which can be used to change the cursor to a pointing hand, for example).
+bool RichResourceTextMouseEvent(QWidget *owner, const QVariant &var, QRect rect, QMouseEvent *event);
+
+// register runtime conversions for custom Qt metatypes
+void RegisterMetatypeConversions();
 
 struct Formatter
 {

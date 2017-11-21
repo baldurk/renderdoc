@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 #include "RDTreeWidget.h"
-#include <QAbstractTextDocumentLayout>
 #include <QApplication>
 #include <QClipboard>
 #include <QColor>
@@ -33,115 +32,10 @@
 #include <QPainter>
 #include <QPen>
 #include <QStack>
-#include <QTextBlock>
-#include <QTextCursor>
-#include <QTextDocument>
 #include <QToolTip>
 #include "Code/Interface/QRDInterface.h"
+#include "Code/QRDUtils.h"
 #include "Code/Resources.h"
-
-// this is used often, so cache it
-QRegularExpression &ResourceIdRegexp()
-{
-  static QRegularExpression re(lit("(resourceid::)([0-9]*)"));
-  return re;
-}
-
-struct ResourceIdLinkedText
-{
-  QVector<QVariant> fragments;
-
-  // cached formatted document. We use cacheId to check if it needs to be updated
-  QTextDocument doc;
-  int cacheId = 0;
-
-  // a plain-text version of the document, suitable for e.g. copy-paste
-  QString text;
-
-  void cacheDocument(QWidget *widget)
-  {
-    ICaptureContext *ctxptr = getCaptureContext(widget);
-
-    if(!ctxptr)
-      return;
-
-    ICaptureContext &ctx = *(ICaptureContext *)ctxptr;
-
-    int refCache = ctx.ResourceNameCacheID();
-
-    if(cacheId == refCache)
-      return;
-
-    cacheId = refCache;
-
-    // use a table to ensure images don't screw up the baseline for text. DON'T JUDGE ME.
-    QString html = lit("<table><tr>");
-
-    int i = 0;
-
-    QVector<int> fragmentIndexFromBlockIndex;
-
-    // there's an empty block at the start.
-    fragmentIndexFromBlockIndex.push_back(-1);
-
-    for(const QVariant &v : fragments)
-    {
-      if(v.userType() == qMetaTypeId<ResourceId>())
-      {
-        html += lit("<td><b>%1</b></td><td><img src=':/link.png'></td>")
-                    .arg(ctx.GetResourceName(v.value<ResourceId>()));
-
-        // these generate two blocks (one for each cell)
-        fragmentIndexFromBlockIndex.push_back(i);
-        fragmentIndexFromBlockIndex.push_back(i);
-      }
-      else
-      {
-        html += lit("<td>%1</td>").arg(v.toString());
-
-        // this only generates one block
-        fragmentIndexFromBlockIndex.push_back(i);
-      }
-
-      i++;
-    }
-
-    // there's another empty block at the end
-    fragmentIndexFromBlockIndex.push_back(-1);
-
-    html += lit("</tr></table>");
-
-    doc.setDocumentMargin(0);
-    doc.setHtml(html);
-
-    if(doc.blockCount() != fragmentIndexFromBlockIndex.count())
-    {
-      qCritical() << "Block count is not what's expected!" << doc.blockCount()
-                  << fragmentIndexFromBlockIndex.count();
-
-      for(i = 0; i < doc.blockCount(); i++)
-        doc.findBlockByNumber(i).setUserState(-1);
-
-      return;
-    }
-
-    for(i = 0; i < doc.blockCount(); i++)
-      doc.findBlockByNumber(i).setUserState(fragmentIndexFromBlockIndex[i]);
-
-    text = doc.toPlainText();
-    // "Embedded objects, such as images, are represented by a Unicode value U+FFFC (OBJECT
-    // REPLACEMENT CHARACTER)."
-    text.remove(QChar(0xfffc));
-    text = text.trimmed();
-  }
-};
-
-// using QSharedPointer here since the lifetime management of these objects would get quite
-// complicated, and there is no obvious QObject parent to assign to. The alternative would be to
-// have the RDTreeWidgetItem track pointers in and out of the QVariant text
-typedef QSharedPointer<ResourceIdLinkedText> ResourceIdLinkedTextPtr;
-
-Q_DECLARE_METATYPE(ResourceIdLinkedTextPtr);
 
 class RDTreeWidgetModel : public QAbstractItemModel
 {
@@ -419,7 +313,7 @@ RDTreeWidgetItem::RDTreeWidgetItem(const QVariantList &values)
   m_icons.resize(m_text.size());
 
   for(int i = 0; i < m_text.count(); i++)
-    checkForResourceId(i);
+    RichResourceTextInitialise(m_text[i]);
 }
 
 RDTreeWidgetItem::RDTreeWidgetItem(const std::initializer_list<QVariant> &values)
@@ -428,52 +322,12 @@ RDTreeWidgetItem::RDTreeWidgetItem(const std::initializer_list<QVariant> &values
   m_icons.resize(m_text.size());
 
   for(int i = 0; i < m_text.count(); i++)
-    checkForResourceId(i);
+    RichResourceTextInitialise(m_text[i]);
 }
 
 void RDTreeWidgetItem::checkForResourceId(int col)
 {
-  QRegularExpression &re = ResourceIdRegexp();
-
-  QVariant &v = m_text[col];
-
-  if(v.userType() == qMetaTypeId<ResourceId>() || re.match(v.toString()).hasMatch())
-  {
-    QString text;
-    if(v.userType() == qMetaTypeId<ResourceId>())
-      text = ToQStr(v.value<ResourceId>());
-    else
-      text = v.toString();
-
-    ResourceIdLinkedTextPtr linkedText(new ResourceIdLinkedText);
-
-    // use regexp to split up into fragments of text and resourceid. The resourceid is then
-    // formatted on the fly in ResourceIdLinkedText::cacheDocument
-    QRegularExpressionMatch match = re.match(text);
-    while(match.hasMatch())
-    {
-      qulonglong idnum = match.captured(2).toULongLong();
-      ResourceId id;
-      memcpy(&id, &idnum, sizeof(id));
-
-      // push any text that preceeded the ResourceId.
-      if(match.capturedStart(1) > 0)
-        linkedText->fragments.push_back(text.left(match.capturedStart(1)));
-
-      text.remove(0, match.capturedEnd(2));
-
-      linkedText->fragments.push_back(id);
-
-      match = re.match(text);
-    }
-
-    if(!text.isEmpty())
-      linkedText->fragments.push_back(text);
-
-    linkedText->doc.setHtml(text);
-
-    v = QVariant::fromValue(linkedText);
-  }
+  RichResourceTextInitialise(m_text[col]);
 }
 
 RDTreeWidgetItem::~RDTreeWidgetItem()
@@ -702,81 +556,36 @@ void RDTreeWidgetDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
                                  const QModelIndex &index) const
 {
   RDTreeWidgetModel *model = m_widget->m_model;
-  if(model == index.model())
+  if(index.isValid() && model == index.model())
   {
     RDTreeWidgetItem *item = model->itemForIndex(index);
 
-    if(index.column() < item->m_text.count() &&
-       item->m_text[index.column()].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
+    if(index.column() < item->m_text.count())
     {
+      QVariant v = item->m_text[index.column()];
+
+      if(RichResourceTextCheck(v))
       {
         // draw the item without text, so we get the proper background/selection/etc.
+        // we'd like to be able to use ForwardingDelegate::paint here, but either it calls to
+        // QStyledItemDelegate which will re-fetch the text (bleh), or it calls to the manual
+        // delegate which could do anything. So for this case we just use the style and skip the
+        // delegate and hope it works out.
         QStyleOptionViewItem opt = option;
+        QStyledItemDelegate::initStyleOption(&opt, index);
         opt.text.clear();
+        m_widget->style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter, m_widget);
 
-        ForwardingDelegate::paint(painter, opt, index);
+        painter->save();
+
+        RichResourceTextPaint(m_widget, painter, option.rect, option.font, option.palette,
+                              option.state & QStyle::State_MouseOver,
+                              m_widget->viewport()->mapFromGlobal(QCursor::pos()), v);
+
+        painter->restore();
+        return;
       }
-
-      ResourceIdLinkedTextPtr linkedText =
-          item->m_text[index.column()].value<ResourceIdLinkedTextPtr>();
-
-      painter->save();
-
-      painter->translate(option.rect.left(), option.rect.top());
-
-      linkedText->cacheDocument(m_widget);
-      linkedText->doc.setTextWidth(option.rect.width());
-      linkedText->doc.drawContents(painter);
-
-      if(option.state & QStyle::State_MouseOver)
-      {
-        painter->setPen(QPen(option.palette.brush(QPalette::WindowText), 1.0));
-
-        QAbstractTextDocumentLayout *layout = linkedText->doc.documentLayout();
-
-        QPoint p = m_widget->viewport()->mapFromGlobal(QCursor::pos());
-        p -= option.rect.topLeft();
-
-        int pos = layout->hitTest(p, Qt::FuzzyHit);
-
-        if(pos >= 0)
-        {
-          QTextBlock block = linkedText->doc.findBlock(pos);
-
-          int frag = block.userState();
-          if(frag >= 0)
-          {
-            QVariant v = linkedText->fragments[frag];
-            if(v.userType() == qMetaTypeId<ResourceId>() && v.value<ResourceId>() != ResourceId())
-            {
-              layout->blockBoundingRect(block);
-              QRectF rect = layout->blockBoundingRect(block);
-
-              if(block.previous().userState() == frag)
-              {
-                rect = rect.united(layout->blockBoundingRect(block.previous()));
-              }
-
-              if(block.next().userState() == frag)
-              {
-                rect = rect.united(layout->blockBoundingRect(block.next()));
-              }
-
-              rect.translate(0.0, -2.0);
-
-              painter->drawLine(rect.bottomLeft(), rect.bottomRight());
-            }
-          }
-        }
-      }
-
-      painter->restore();
-      return;
     }
-  }
-  else
-  {
-    qCritical() << "Unexpected model being passed to RDTreeWidgetDelegate!";
   }
 
   return ForwardingDelegate::paint(painter, option, index);
@@ -784,26 +593,17 @@ void RDTreeWidgetDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
 QSize RDTreeWidgetDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-  if(index.isValid())
+  RDTreeWidgetModel *model = m_widget->m_model;
+  if(index.isValid() && model == index.model())
   {
-    RDTreeWidgetModel *model = m_widget->m_model;
-    if(model == index.model())
-    {
-      RDTreeWidgetItem *item = model->itemForIndex(index);
+    RDTreeWidgetItem *item = model->itemForIndex(index);
 
-      if(index.column() < item->m_text.count() &&
-         item->m_text[index.column()].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
-      {
-        ResourceIdLinkedTextPtr linkedText =
-            item->m_text[index.column()].value<ResourceIdLinkedTextPtr>();
-
-        linkedText->cacheDocument(m_widget);
-        return QSize(linkedText->doc.idealWidth(), option.fontMetrics.height());
-      }
-    }
-    else
+    if(index.column() < item->m_text.count())
     {
-      qCritical() << "Unexpected model being passed to RDTreeWidgetDelegate!";
+      QVariant v = item->m_text[index.column()];
+
+      if(RichResourceTextCheck(v))
+        return QSize(RichResourceTextWidthHint(m_widget, v), option.fontMetrics.height());
     }
   }
 
@@ -813,61 +613,21 @@ QSize RDTreeWidgetDelegate::sizeHint(const QStyleOptionViewItem &option, const Q
 bool RDTreeWidgetDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
                                        const QStyleOptionViewItem &option, const QModelIndex &index)
 {
-  if(event->type() == QEvent::MouseButtonRelease && index.isValid())
+  RDTreeWidgetModel *rdmodel = m_widget->m_model;
+  if(event->type() == QEvent::MouseButtonRelease && index.isValid() && rdmodel == model)
   {
-    RDTreeWidgetModel *rdmodel = m_widget->m_model;
-    if(rdmodel == model)
+    RDTreeWidgetItem *item = rdmodel->itemForIndex(index);
+
+    if(index.column() < item->m_text.count())
     {
-      RDTreeWidgetItem *item = rdmodel->itemForIndex(index);
+      QVariant v = item->m_text[index.column()];
 
-      if(index.column() < item->m_text.count() &&
-         item->m_text[index.column()].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
+      if(RichResourceTextCheck(v))
       {
-        ResourceIdLinkedTextPtr linkedText =
-            item->m_text[index.column()].value<ResourceIdLinkedTextPtr>();
-
-        linkedText->cacheDocument(m_widget);
-
-        QAbstractTextDocumentLayout *layout = linkedText->doc.documentLayout();
-
-        QPoint p = ((QMouseEvent *)event)->pos();
-        p -= option.rect.topLeft();
-
-        int pos = layout->hitTest(p, Qt::FuzzyHit);
-
-        if(pos >= 0)
-        {
-          QTextBlock block = linkedText->doc.findBlock(pos);
-
-          int frag = block.userState();
-          if(frag >= 0)
-          {
-            QVariant v = linkedText->fragments[frag];
-            if(v.userType() == qMetaTypeId<ResourceId>() && v.value<ResourceId>() != ResourceId())
-            {
-              ICaptureContext *ctxptr = getCaptureContext(m_widget);
-
-              if(ctxptr)
-              {
-                ICaptureContext &ctx = *(ICaptureContext *)ctxptr;
-
-                if(!ctx.HasResourceInspector())
-                  ctx.ShowResourceInspector();
-
-                ctx.GetResourceInspector()->Inspect(v.value<ResourceId>());
-
-                ctx.RaiseDockWindow(ctx.GetResourceInspector()->Widget());
-              }
-            }
-          }
-        }
-
+        // ignore the return value, we always consume clicks on this cell
+        RichResourceTextMouseEvent(m_widget, v, option.rect, (QMouseEvent *)event);
         return true;
       }
-    }
-    else
-    {
-      qCritical() << "Unexpected model being passed to RDTreeWidgetDelegate!";
     }
   }
 
@@ -880,35 +640,12 @@ bool RDTreeWidgetDelegate::linkHover(QMouseEvent *e, const QModelIndex &index)
   {
     RDTreeWidgetItem *item = m_widget->m_model->itemForIndex(index);
 
-    if(index.column() < item->m_text.count() &&
-       item->m_text[index.column()].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
+    if(index.column() < item->m_text.count())
     {
-      ResourceIdLinkedTextPtr linkedText =
-          item->m_text[index.column()].value<ResourceIdLinkedTextPtr>();
+      QVariant v = item->m_text[index.column()];
 
-      linkedText->cacheDocument(m_widget);
-
-      QAbstractTextDocumentLayout *layout = linkedText->doc.documentLayout();
-
-      QPoint p = e->pos();
-      p -= m_widget->visualRect(index).topLeft();
-
-      int pos = layout->hitTest(p, Qt::FuzzyHit);
-
-      if(pos >= 0)
-      {
-        QTextBlock block = linkedText->doc.findBlock(pos);
-
-        int frag = block.userState();
-        if(frag >= 0)
-        {
-          QVariant v = linkedText->fragments[frag];
-          if(v.userType() == qMetaTypeId<ResourceId>() && v.value<ResourceId>() != ResourceId())
-          {
-            return true;
-          }
-        }
-      }
+      if(RichResourceTextCheck(v))
+        return RichResourceTextMouseEvent(m_widget, v, m_widget->visualRect(index), e);
     }
   }
 
@@ -1013,7 +750,6 @@ QAbstractItemDelegate *RDTreeWidget::itemDelegate() const
 {
   return m_userDelegate;
 }
-
 void RDTreeWidget::setColumns(const QStringList &columns)
 {
   m_headers = columns;
@@ -1061,7 +797,6 @@ void RDTreeWidget::expandItem(RDTreeWidgetItem *item)
 {
   expand(m_model->indexForItem(item, 0));
 }
-
 void RDTreeWidget::expandAllItems(RDTreeWidgetItem *item)
 {
   expandItem(item);
@@ -1145,7 +880,8 @@ void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
       // the documentation says:
       //
       // "If text is empty the tool tip is hidden. If the text is the same as the currently shown
-      // tooltip, the tip will not move. You can force moving by first hiding the tip with an empty
+      // tooltip, the tip will not move. You can force moving by first hiding the tip with an
+      // empty
       // text, and then showing the new tip at the new position."
       //
       // However the actual implementation has some kind of 'fading' check, so if you hide then
@@ -1225,13 +961,6 @@ void RDTreeWidget::keyPressEvent(QKeyEvent *e)
       for(int i = 0; i < qMin(colCount, item->m_text.count()); i++)
       {
         QString text = item->m_text[i].toString();
-        if(item->m_text[i].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
-        {
-          ResourceIdLinkedTextPtr linkedText = item->m_text[i].value<ResourceIdLinkedTextPtr>();
-          linkedText->cacheDocument(this);
-          text = linkedText->text;
-        }
-
         widths[i] = qMax(widths[i], text.count());
       }
     }
@@ -1248,14 +977,7 @@ void RDTreeWidget::keyPressEvent(QKeyEvent *e)
       for(int i = 0; i < qMin(colCount, item->m_text.count()); i++)
       {
         QString format = i == 0 ? QFormatStr("%1") : QFormatStr(" %1");
-
         QString text = item->m_text[i].toString();
-        if(item->m_text[i].userType() == qMetaTypeId<ResourceIdLinkedTextPtr>())
-        {
-          ResourceIdLinkedTextPtr linkedText = item->m_text[i].value<ResourceIdLinkedTextPtr>();
-          linkedText->cacheDocument(this);
-          text = linkedText->text;
-        }
 
         clipData += format.arg(text, -widths[i]);
       }
@@ -1278,7 +1000,8 @@ void RDTreeWidget::keyPressEvent(QKeyEvent *e)
 
 void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const
 {
-  // we do our own custom branch rendering to ensure the backgrounds for the +/- markers are filled
+  // we do our own custom branch rendering to ensure the backgrounds for the +/- markers are
+  // filled
   // (as otherwise they don't show up well over selection or background fills) as well as to draw
   // any vertical branch colors.
 
@@ -1299,7 +1022,8 @@ void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QMod
     parent = parent->parent();
   }
 
-  // fill in the background behind the lines for the whole row, since by default it doesn't show up
+  // fill in the background behind the lines for the whole row, since by default it doesn't show
+  // up
   // behind the tree lines.
 
   QRect allLinesRect(rect.left(), rect.top(), (parents.count() + 1) * indentation(), rect.height());
@@ -1406,8 +1130,10 @@ void RDTreeWidget::beginAddChild(RDTreeWidgetItem *item)
     {
       m_queuedItem = item;
       // make an update of row 0. This will be a bit pessimistic if there are later data changes
-      // in a later row, but we're generally only changing data *or* adding children, not both, and
-      // in either case this is primarily about batching updates not providing a minimal update set
+      // in a later row, but we're generally only changing data *or* adding children, not both,
+      // and
+      // in either case this is primarily about batching updates not providing a minimal update
+      // set
       m_lowestIndex = qMakePair<int, int>(0, 0);
       m_highestIndex = qMakePair<int, int>(0, m_headers.count() - 1);
     }
