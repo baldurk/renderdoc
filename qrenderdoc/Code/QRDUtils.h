@@ -133,17 +133,18 @@ void RichResourceTextInitialise(QVariant &var);
 bool RichResourceTextCheck(const QVariant &var);
 
 // paint the given variant containing rich text with the given parameters.
-void RichResourceTextPaint(QWidget *owner, QPainter *painter, QRect rect, QFont font,
+void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, QFont font,
                            QPalette palette, bool mouseOver, QPoint mousePos, const QVariant &var);
 
 // gives the width for a size hint for the rich text (since it might be larger than the original
 // text)
-int RichResourceTextWidthHint(QWidget *owner, const QVariant &var);
+int RichResourceTextWidthHint(const QWidget *owner, const QVariant &var);
 
 // handle a mouse event on some rich resource text.
 // returns true if the event is processed - for mouse move events, this means that the mouse is over
 // a resource link (which can be used to change the cursor to a pointing hand, for example).
-bool RichResourceTextMouseEvent(QWidget *owner, const QVariant &var, QRect rect, QMouseEvent *event);
+bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect rect,
+                                QMouseEvent *event);
 
 // register runtime conversions for custom Qt metatypes
 void RegisterMetatypeConversions();

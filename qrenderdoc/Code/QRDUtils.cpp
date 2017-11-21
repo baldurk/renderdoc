@@ -79,7 +79,7 @@ struct RichResourceText
   // cache the context once we've obtained it.
   ICaptureContext *ctxptr = NULL;
 
-  void cacheDocument(QWidget *widget)
+  void cacheDocument(const QWidget *widget)
   {
     if(!ctxptr)
       ctxptr = getCaptureContext(widget);
@@ -216,7 +216,7 @@ bool RichResourceTextCheck(const QVariant &var)
   return var.userType() == qMetaTypeId<RichResourceTextPtr>();
 }
 
-void RichResourceTextPaint(QWidget *owner, QPainter *painter, QRect rect, QFont font,
+void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, QFont font,
                            QPalette palette, bool mouseOver, QPoint mousePos, const QVariant &var)
 {
   RichResourceTextPtr linkedText = var.value<RichResourceTextPtr>();
@@ -280,7 +280,7 @@ void RichResourceTextPaint(QWidget *owner, QPainter *painter, QRect rect, QFont 
   }
 }
 
-int RichResourceTextWidthHint(QWidget *owner, const QVariant &var)
+int RichResourceTextWidthHint(const QWidget *owner, const QVariant &var)
 {
   RichResourceTextPtr linkedText = var.value<RichResourceTextPtr>();
 
@@ -289,7 +289,8 @@ int RichResourceTextWidthHint(QWidget *owner, const QVariant &var)
   return linkedText->doc.idealWidth();
 }
 
-bool RichResourceTextMouseEvent(QWidget *owner, const QVariant &var, QRect rect, QMouseEvent *event)
+bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect rect,
+                                QMouseEvent *event)
 {
   // only process clicks or moves
   if(event->type() != QEvent::MouseButtonRelease && event->type() != QEvent::MouseMove)

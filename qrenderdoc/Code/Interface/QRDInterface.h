@@ -1794,4 +1794,4 @@ This may return ``None`` if no capture context can be found.
 :return: The capture context associated with this widget, if one unambiguously exists.
 :rtype: CaptureContext
 )");
-ICaptureContext *getCaptureContext(QWidget *widget);
+ICaptureContext *getCaptureContext(const QWidget *widget);

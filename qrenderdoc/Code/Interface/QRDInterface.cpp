@@ -132,7 +132,7 @@ QString ConfigFilePath(const QString &filename)
   return QDir::cleanPath(dir.absoluteFilePath(filename));
 }
 
-ICaptureContext *getCaptureContext(QWidget *widget)
+ICaptureContext *getCaptureContext(const QWidget *widget)
 {
   void *ctxptr = NULL;
 
