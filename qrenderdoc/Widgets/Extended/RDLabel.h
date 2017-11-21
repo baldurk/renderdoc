@@ -39,6 +39,7 @@ public:
   void setText(const QString &text);
   QString text() const;
 
+  void setMinimumSizeHint(const QSize &sz);
   void setPreserveAspectRatio(bool preserve) { m_preserveRatio = preserve; }
   bool preserveAspectRatio() { return m_preserveRatio; }
 signals:
@@ -64,6 +65,8 @@ protected:
 
   bool m_preserveRatio = false;
   bool m_hover = false;
+
+  QSize m_minSizeHint;
 
   QVariant m_variant;
 };

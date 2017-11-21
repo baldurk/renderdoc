@@ -57,6 +57,8 @@ QSize RDLabel::minimumSizeHint() const
 {
   QSize sz = QLabel::minimumSizeHint();
   modifySizeHint(sz);
+  if(m_minSizeHint.isValid())
+    sz = sz.expandedTo(m_minSizeHint);
   return sz;
 }
 
@@ -85,6 +87,12 @@ QString RDLabel::text() const
     return m_variant.toString();
 
   return QLabel::text();
+}
+
+void RDLabel::setMinimumSizeHint(const QSize &sz)
+{
+  m_minSizeHint = sz;
+  updateGeometry();
 }
 
 void RDLabel::mousePressEvent(QMouseEvent *event)
