@@ -3090,6 +3090,7 @@ void VulkanReplay::SavePipelineState()
     {
       // Renderpass
       m_VulkanPipelineState.Pass.renderpass.obj = rm->GetOriginalID(state.renderPass);
+      m_VulkanPipelineState.Pass.renderpass.subpass = state.subpass;
       if(state.renderPass != ResourceId())
       {
         m_VulkanPipelineState.Pass.renderpass.inputAttachments =

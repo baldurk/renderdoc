@@ -426,6 +426,9 @@ struct RenderPass
   DOCUMENT("The :class:`ResourceId` of the render pass.");
   ResourceId obj;
 
+  DOCUMENT("The index of the current active subpass.");
+  uint32_t subpass;
+
   // VKTODOMED renderpass and subpass information here
 
   DOCUMENT("A list of indices into the framebuffer attachments for input attachments.");
