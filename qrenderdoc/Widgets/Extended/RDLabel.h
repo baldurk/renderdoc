@@ -24,6 +24,7 @@
 
 #pragma once
 #include <QLabel>
+#include <QVariant>
 
 class RDLabel : public QLabel
 {

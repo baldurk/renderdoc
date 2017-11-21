@@ -1441,7 +1441,7 @@ void D3D12PipelineStateViewer::setState()
 
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({i, s.Buffer, (qulonglong)s.Offset, length, s.WrittenCountBuffer,
-                                s.WrittenCountOffset, QString()});
+                                (qulonglong)s.WrittenCountOffset, QString()});
 
       node->setTag(QVariant::fromValue(s.Buffer));
 
