@@ -1091,7 +1091,7 @@ void D3D11Replay::SavePipelineState()
       D3D11_BLEND_DESC desc;
       rs->OM.BlendState->GetDesc(&desc);
 
-      ret.m_OM.m_BlendState.State = GetIDForResource(rs->OM.BlendState);
+      ret.m_OM.m_BlendState.State = rm->GetOriginalID(GetIDForResource(rs->OM.BlendState));
 
       ret.m_OM.m_BlendState.AlphaToCoverage = desc.AlphaToCoverageEnable == TRUE;
       ret.m_OM.m_BlendState.IndependentBlend = desc.IndependentBlendEnable == TRUE;
