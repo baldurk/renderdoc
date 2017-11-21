@@ -227,6 +227,13 @@ void RichResourceTextPaint(QWidget *owner, QPainter *painter, QRect rect, QFont 
 
   linkedText->doc.setTextWidth(rect.width());
   linkedText->doc.setDefaultFont(font);
+
+  // vertical align to the centre, if there's spare room.
+  int diff = rect.height() - linkedText->doc.size().height();
+
+  if(diff > 0)
+    painter->translate(0, diff / 2);
+
   linkedText->doc.drawContents(painter);
 
   if(mouseOver)
@@ -236,6 +243,8 @@ void RichResourceTextPaint(QWidget *owner, QPainter *painter, QRect rect, QFont 
     QAbstractTextDocumentLayout *layout = linkedText->doc.documentLayout();
 
     QPoint p = mousePos - rect.topLeft();
+    if(diff > 0)
+      p -= QPoint(0, diff / 2);
 
     int pos = layout->hitTest(p, Qt::FuzzyHit);
 
@@ -293,6 +302,12 @@ bool RichResourceTextMouseEvent(QWidget *owner, const QVariant &var, QRect rect,
   QAbstractTextDocumentLayout *layout = linkedText->doc.documentLayout();
 
   QPoint p = event->pos() - rect.topLeft();
+
+  // vertical align to the centre, if there's spare room.
+  int diff = rect.height() - linkedText->doc.size().height();
+
+  if(diff > 0)
+    p -= QPoint(0, diff / 2);
 
   int pos = layout->hitTest(p, Qt::FuzzyHit);
 
