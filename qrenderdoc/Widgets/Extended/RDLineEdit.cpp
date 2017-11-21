@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include "RDLineEdit.h"
+#include <QKeyEvent>
+#include "Code/Interface/QRDInterface.h"
 
 RDLineEdit::RDLineEdit(QWidget *parent) : QLineEdit(parent)
 {
