@@ -36,6 +36,9 @@ public:
   QSize sizeHint() const override;
   QSize minimumSizeHint() const override;
 
+  void setText(const QString &text);
+  QString text() const;
+
   void setPreserveAspectRatio(bool preserve) { m_preserveRatio = preserve; }
   bool preserveAspectRatio() { return m_preserveRatio; }
 signals:
@@ -49,11 +52,18 @@ public slots:
 
 protected:
   void mousePressEvent(QMouseEvent *event) override;
+  void mouseReleaseEvent(QMouseEvent *event) override;
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseDoubleClickEvent(QMouseEvent *event) override;
   void leaveEvent(QEvent *event) override;
   void resizeEvent(QResizeEvent *event) override;
   void changeEvent(QEvent *event) override;
+  void paintEvent(QPaintEvent *event) override;
+
+  void modifySizeHint(QSize &sz) const;
 
   bool m_preserveRatio = false;
+  bool m_hover = false;
+
+  QVariant m_variant;
 };

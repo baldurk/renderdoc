@@ -24,6 +24,8 @@
 
 #include "RDLabel.h"
 #include <QMouseEvent>
+#include <QPainter>
+#include "Code/QRDUtils.h"
 
 RDLabel::RDLabel(QWidget *parent) : QLabel(parent)
 {
@@ -33,24 +35,56 @@ RDLabel::~RDLabel()
 {
 }
 
-QSize RDLabel::sizeHint() const
+void RDLabel::modifySizeHint(QSize &sz) const
 {
-  QSize sz = QLabel::sizeHint();
-
   if(m_preserveRatio)
     sz.setWidth(sz.width() - contentsMargins().left() - contentsMargins().right());
 
+  if(m_variant.isValid())
+    sz.setWidth(qMax(RichResourceTextWidthHint(this, m_variant) + contentsMargins().left() +
+                         contentsMargins().right() + margin() * 2,
+                     sz.width()));
+}
+
+QSize RDLabel::sizeHint() const
+{
+  QSize sz = QLabel::sizeHint();
+  modifySizeHint(sz);
   return sz;
 }
 
 QSize RDLabel::minimumSizeHint() const
 {
   QSize sz = QLabel::minimumSizeHint();
-
-  if(m_preserveRatio)
-    sz.setWidth(sz.width() - contentsMargins().left() - contentsMargins().right());
-
+  modifySizeHint(sz);
   return sz;
+}
+
+void RDLabel::setText(const QString &text)
+{
+  m_variant = text;
+  RichResourceTextInitialise(m_variant);
+  if(RichResourceTextCheck(m_variant))
+  {
+    setMouseTracking(true);
+    m_hover = false;
+    QLabel::setText(QString());
+    updateGeometry();
+    repaint();
+  }
+  else
+  {
+    m_variant = QVariant();
+    QLabel::setText(text);
+  }
+}
+
+QString RDLabel::text() const
+{
+  if(m_variant.isValid())
+    return m_variant.toString();
+
+  return QLabel::text();
 }
 
 void RDLabel::mousePressEvent(QMouseEvent *event)
@@ -60,9 +94,35 @@ void RDLabel::mousePressEvent(QMouseEvent *event)
   QLabel::mousePressEvent(event);
 }
 
+void RDLabel::mouseReleaseEvent(QMouseEvent *event)
+{
+  if(m_variant.isValid())
+  {
+    RichResourceTextMouseEvent(this, m_variant, rect(), event);
+    return;
+  }
+
+  QLabel::mouseReleaseEvent(event);
+}
+
 void RDLabel::mouseMoveEvent(QMouseEvent *event)
 {
   emit(mouseMoved(event));
+
+  if(m_variant.isValid())
+  {
+    bool hover = RichResourceTextMouseEvent(this, m_variant, rect(), event);
+    if(hover)
+      setCursor(QCursor(Qt::PointingHandCursor));
+    else
+      unsetCursor();
+
+    if(m_hover != hover)
+      update();
+    m_hover = hover;
+
+    return;
+  }
 
   QLabel::mouseMoveEvent(event);
 }
@@ -77,6 +137,13 @@ void RDLabel::mouseDoubleClickEvent(QMouseEvent *event)
 void RDLabel::leaveEvent(QEvent *event)
 {
   emit(leave());
+
+  if(m_variant.isValid())
+  {
+    unsetCursor();
+    repaint();
+    m_hover = false;
+  }
 
   QLabel::leaveEvent(event);
 }
@@ -118,4 +185,22 @@ void RDLabel::changeEvent(QEvent *event)
     emit styleChanged(event);
 
   QLabel::changeEvent(event);
+}
+
+void RDLabel::paintEvent(QPaintEvent *event)
+{
+  QLabel::paintEvent(event);
+
+  if(m_variant.isValid())
+  {
+    QPainter painter(this);
+
+    QPoint pos = mapFromGlobal(QCursor::pos());
+
+    QRect r = rect();
+    r.setLeft(r.left() + contentsMargins().left() + margin());
+    r.setRight(r.right() - contentsMargins().right() - margin());
+
+    RichResourceTextPaint(this, &painter, r, font(), palette(), r.contains(pos), pos, m_variant);
+  }
 }
