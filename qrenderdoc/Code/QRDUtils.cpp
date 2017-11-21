@@ -76,6 +76,9 @@ struct RichResourceText
   // a plain-text version of the document, suitable for e.g. copy-paste
   QString text;
 
+  // the ideal width for the document
+  int idealWidth;
+
   // cache the context once we've obtained it.
   ICaptureContext *ctxptr = NULL;
 
@@ -153,6 +156,11 @@ struct RichResourceText
 
     for(i = 0; i < doc.blockCount(); i++)
       doc.findBlockByNumber(i).setUserState(fragmentIndexFromBlockIndex[i]);
+
+    qreal old = doc.textWidth();
+    doc.setTextWidth(-1);
+    idealWidth = doc.idealWidth();
+    doc.setTextWidth(old);
   }
 };
 
@@ -225,7 +233,7 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
 
   painter->translate(rect.left(), rect.top());
 
-  linkedText->doc.setTextWidth(rect.width());
+  linkedText->doc.setTextWidth(10000);
   linkedText->doc.setDefaultFont(font);
 
   // vertical align to the centre, if there's spare room.
@@ -234,7 +242,7 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
   if(diff > 0)
     painter->translate(0, diff / 2);
 
-  linkedText->doc.drawContents(painter);
+  linkedText->doc.drawContents(painter, QRectF(0, 0, rect.width(), rect.height()));
 
   if(mouseOver)
   {
@@ -286,7 +294,7 @@ int RichResourceTextWidthHint(const QWidget *owner, const QVariant &var)
 
   linkedText->cacheDocument(owner);
 
-  return linkedText->doc.idealWidth();
+  return linkedText->idealWidth;
 }
 
 bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect rect,
