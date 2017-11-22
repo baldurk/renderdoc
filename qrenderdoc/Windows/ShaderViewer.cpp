@@ -585,6 +585,9 @@ ShaderViewer::~ShaderViewer()
   // don't want to async invoke while using 'this', so save the trace separately
   ShaderDebugTrace *trace = m_Trace;
 
+  // unregister any shortcuts on this window
+  m_Ctx.GetMainWindow()->UnregisterShortcut(QString(), this);
+
   m_Ctx.Replay().AsyncInvoke([trace](IReplayController *r) { r->FreeTrace(trace); });
 
   if(m_CloseCallback)

@@ -249,6 +249,12 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
 MainWindow::~MainWindow()
 {
+  // explicitly delete our children here, so that the MainWindow is still alive while they are
+  // closing.
+
+  setUpdatesEnabled(false);
+  qDeleteAll(findChildren<QWidget *>(QString(), Qt::FindDirectChildrenOnly));
+
   m_RemoteProbeSemaphore.acquire();
   m_RemoteProbe->wait();
   m_RemoteProbe->deleteLater();
@@ -1373,6 +1379,31 @@ void MainWindow::RegisterShortcut(const QString &shortcut, QWidget *widget, Shor
     }
 
     m_GlobalShortcutCallbacks[ks] = callback;
+  }
+}
+
+void MainWindow::UnregisterShortcut(const QString &shortcut, QWidget *widget)
+{
+  if(widget)
+  {
+    if(shortcut.isEmpty())
+    {
+      // if no shortcut is specified, remove all shortcuts for this widget
+      for(QMap<QWidget *, ShortcutCallback> &sh : m_WidgetShortcutCallbacks)
+        sh.remove(widget);
+    }
+    else
+    {
+      QKeySequence ks = QKeySequence::fromString(shortcut);
+
+      m_WidgetShortcutCallbacks[ks].remove(widget);
+    }
+  }
+  else
+  {
+    QKeySequence ks = QKeySequence::fromString(shortcut);
+
+    m_GlobalShortcutCallbacks.remove(ks);
   }
 }
 

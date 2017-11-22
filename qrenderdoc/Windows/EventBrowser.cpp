@@ -165,6 +165,26 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
 EventBrowser::~EventBrowser()
 {
+  // unregister any shortcuts we registered
+  Qt::Key keys[] = {
+      Qt::Key_1, Qt::Key_2, Qt::Key_3, Qt::Key_4, Qt::Key_5,
+      Qt::Key_6, Qt::Key_7, Qt::Key_8, Qt::Key_9, Qt::Key_0,
+  };
+  for(int i = 0; i < 10; i++)
+  {
+    m_Ctx.GetMainWindow()->UnregisterShortcut(
+        QKeySequence(keys[i] | Qt::ControlModifier).toString(), NULL);
+  }
+
+  m_Ctx.GetMainWindow()->UnregisterShortcut(
+      QKeySequence(Qt::Key_Left | Qt::ControlModifier).toString(), NULL);
+
+  m_Ctx.GetMainWindow()->UnregisterShortcut(
+      QKeySequence(Qt::Key_Right | Qt::ControlModifier).toString(), NULL);
+
+  m_Ctx.GetMainWindow()->UnregisterShortcut(QString(), ui->findStrip);
+  m_Ctx.GetMainWindow()->UnregisterShortcut(QString(), ui->jumpStrip);
+
   m_Ctx.BuiltinWindowClosed(this);
   m_Ctx.RemoveCaptureViewer(this);
   delete ui;

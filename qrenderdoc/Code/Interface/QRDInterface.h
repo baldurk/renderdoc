@@ -125,10 +125,22 @@ will be invoked, if it exists.
 :param QWidget widget: A handle to the widget to use as the context for this shortcut, or ``None``
   for a global shortcut. Note that if an existing global shortcut exists the new one will not be
   registered.
-:rtype: ``str``
 )");
   virtual void RegisterShortcut(const QString &shortcut, QWidget *widget,
                                 ShortcutCallback callback) = 0;
+
+  DOCUMENT(R"(Unregister a callback for a particular key shortcut, made in a previous call to
+:meth:`RegisterShortcut`.
+
+See the documentation for :meth:`RegisterShortcut` for what these shortcuts are for.
+
+:param str shortcut: The text string representing the shortcut, e.g. 'Ctrl+S'. To unregister all
+  shortcuts for a particular widget, you can pass an empty string here. In this case,
+  :param:`widget` must not be ``None``.
+:param QWidget widget: A handle to the widget used as the context for the shortcut, or ``None``
+  if referring to a global shortcut.
+)");
+  virtual void UnregisterShortcut(const QString &shortcut, QWidget *widget) = 0;
 
 protected:
   IMainWindow() = default;

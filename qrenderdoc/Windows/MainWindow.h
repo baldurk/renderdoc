@@ -53,6 +53,7 @@ public:
   // IMainWindow
   QWidget *Widget() override { return this; }
   void RegisterShortcut(const QString &shortcut, QWidget *widget, ShortcutCallback callback) override;
+  void UnregisterShortcut(const QString &shortcut, QWidget *widget) override;
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
