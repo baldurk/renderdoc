@@ -2727,8 +2727,10 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       {
         ID3D11Buffer *stage = NULL;
 
+        UINT byteSize = Descriptor.ByteWidth;
+
         RDCEraseEl(Descriptor);
-        Descriptor.ByteWidth = Descriptor.ByteWidth;
+        Descriptor.ByteWidth = byteSize;
         Descriptor.MiscFlags = 0;
         Descriptor.StructureByteStride = 0;
         // We don't need to bind this, but IMMUTABLE requires at least one

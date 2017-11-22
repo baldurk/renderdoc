@@ -1765,7 +1765,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
       const rdcarray<BindpointMap> &bindArray = view.space == D3D12ViewTag::SRV
                                                     ? stage->BindpointMapping.ReadOnlyResources
-                                                    : stage->BindpointMapping.ReadOnlyResources;
+                                                    : stage->BindpointMapping.ReadWriteResources;
 
       for(int i = 0; i < bindArray.count(); i++)
       {

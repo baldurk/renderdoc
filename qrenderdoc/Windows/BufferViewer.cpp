@@ -2147,7 +2147,7 @@ void BufferViewer::updatePreviewColumns()
           m_VSInSecondary.buf = vbs[el.buffer].Buffer;
           m_VSInSecondary.stride = vbs[el.buffer].ByteStride;
           m_VSInSecondary.offset =
-              vbs[el.buffer].ByteOffset + el.offset + draw->vertexOffset * m_VSInPosition.stride;
+              vbs[el.buffer].ByteOffset + el.offset + draw->vertexOffset * m_VSInSecondary.stride;
         }
         else
         {

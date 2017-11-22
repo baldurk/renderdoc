@@ -1060,7 +1060,7 @@ TextureFilter MakeFilter(GLenum minf, GLenum magf, bool shadowSampler, float max
     }
     else if(minf == eGL_NEAREST_MIPMAP_NEAREST || minf == eGL_LINEAR_MIPMAP_NEAREST)
     {
-      ret.minify = (minf == eGL_LINEAR_MIPMAP_LINEAR) ? FilterMode::Linear : FilterMode::Point;
+      ret.minify = (minf == eGL_LINEAR_MIPMAP_NEAREST) ? FilterMode::Linear : FilterMode::Point;
       ret.mip = FilterMode::Point;
     }
 
