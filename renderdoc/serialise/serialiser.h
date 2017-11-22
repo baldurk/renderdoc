@@ -299,11 +299,13 @@ public:
       m_StructureStack.pop_back();
     }
 
+#if !defined(__COVERITY__)
     if(tempAlloc)
     {
       FreeAlignedBuffer(tempAlloc);
       el = NULL;
     }
+#endif
 
     return *this;
   }

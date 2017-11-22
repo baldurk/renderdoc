@@ -1476,7 +1476,6 @@ void VulkanPipelineStateViewer::setState()
     int i = 0;
     for(const VKPipe::VertexAttribute &a : state.VI.attrs)
     {
-      bool filledSlot = true;
       bool usedSlot = false;
 
       QString name = tr("Attribute %1").arg(i);
@@ -1494,7 +1493,7 @@ void VulkanPipelineStateViewer::setState()
         }
       }
 
-      if(showNode(usedSlot, filledSlot))
+      if(showNode(usedSlot, /*filledSlot*/ true))
       {
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {i, name, a.location, a.binding, a.format.Name(), a.byteoffset, QString()});
@@ -1886,10 +1885,9 @@ void VulkanPipelineStateViewer::setState()
     int i = 0;
     for(const VKPipe::Blend &blend : state.CB.attachments)
     {
-      bool filledSlot = true;
       bool usedSlot = (targets[i]);
 
-      if(showNode(usedSlot, filledSlot))
+      if(showNode(usedSlot, /*filledSlot*/ true))
       {
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {i, blend.blendEnable ? tr("True") : tr("False"),
@@ -1905,9 +1903,6 @@ void VulkanPipelineStateViewer::setState()
                  .arg((blend.writeMask & 0x2) == 0 ? lit("_") : lit("G"))
                  .arg((blend.writeMask & 0x4) == 0 ? lit("_") : lit("B"))
                  .arg((blend.writeMask & 0x8) == 0 ? lit("_") : lit("A"))});
-
-        if(!filledSlot)
-          setEmptyRow(node);
 
         if(!usedSlot)
           setInactiveRow(node);
