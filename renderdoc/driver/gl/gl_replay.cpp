@@ -468,7 +468,7 @@ TextureDescription GLReplay::GetTexture(ResourceId id)
 
 void GLReplay::CacheTexture(ResourceId id)
 {
-  TextureDescription tex;
+  TextureDescription tex = {};
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
@@ -700,7 +700,7 @@ void GLReplay::CacheTexture(ResourceId id)
 
 BufferDescription GLReplay::GetBuffer(ResourceId id)
 {
-  BufferDescription ret;
+  BufferDescription ret = {};
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 

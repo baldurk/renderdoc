@@ -132,7 +132,7 @@ private:
 
   static PyObject *QtObjectToPython(const char *typeName, QObject *object);
 
-  QTimer *outputTicker;
+  QTimer *outputTicker = NULL;
   QMutex outputMutex;
   QString outstr, errstr;
 

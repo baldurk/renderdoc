@@ -83,7 +83,7 @@ struct D3D12ViewTag
     OMDepth,
   };
 
-  D3D12ViewTag() {}
+  D3D12ViewTag() : type(SRV), space(0), reg(0) {}
   D3D12ViewTag(ResType t, int s, int r, const D3D12Pipe::View &rs)
       : type(t), space(s), reg(r), res(rs)
   {

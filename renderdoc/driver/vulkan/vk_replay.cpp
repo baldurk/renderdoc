@@ -808,7 +808,7 @@ TextureDescription VulkanReplay::GetTexture(ResourceId id)
 {
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[id];
 
-  TextureDescription ret;
+  TextureDescription ret = {};
   ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
   ret.arraysize = iminfo.arrayLayers;
   ret.creationFlags = iminfo.creationFlags;
@@ -847,7 +847,10 @@ TextureDescription VulkanReplay::GetTexture(ResourceId id)
       ret.resType = TextureDim::Texture3D;
       ret.dimension = 3;
       break;
-    default: RDCERR("Unexpected image type"); break;
+    default:
+      ret.dimension = 2;
+      RDCERR("Unexpected image type");
+      break;
   }
 
   return ret;
@@ -860,7 +863,6 @@ BufferDescription VulkanReplay::GetBuffer(ResourceId id)
   BufferDescription ret;
   ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
   ret.length = bufinfo.size;
-
   ret.creationFlags = BufferCategory::NoFlags;
 
   if(bufinfo.usage & (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT))

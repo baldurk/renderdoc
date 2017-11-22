@@ -65,7 +65,11 @@ struct SortValue
         else
           val.u = result.value.u32;
 
-      default: break;
+      default:
+        qCritical() << "Unexpected component type" << ToQStr(description.resultType);
+        type = Float;
+        val.d = -1.0;
+        break;
     }
   }
 };

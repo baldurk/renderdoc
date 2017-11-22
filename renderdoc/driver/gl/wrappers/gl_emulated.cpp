@@ -61,6 +61,7 @@ struct PushPop
   {
     vao = bindFunc;
     other = NULL;
+    t = eGL_NONE;
     hookset->glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&o);
   }
 

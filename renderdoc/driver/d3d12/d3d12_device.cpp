@@ -178,11 +178,14 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_HeaderChunk = NULL;
 
-  m_Alloc = NULL;
-  m_List = NULL;
+  m_Alloc = m_DataUploadAlloc = NULL;
+  m_List = m_DataUploadList = NULL;
   m_GPUSyncFence = NULL;
   m_GPUSyncHandle = NULL;
   m_GPUSyncCounter = 0;
+
+  initStateCurBatch = 0;
+  initStateCurList = NULL;
 
   if(RenderDoc::Inst().IsReplayApp())
   {

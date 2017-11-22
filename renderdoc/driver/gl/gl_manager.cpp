@@ -27,6 +27,11 @@
 #include <algorithm>
 #include "driver/gl/gl_driver.h"
 
+GLResourceManager::GLResourceManager(WrappedOpenGL *gl) : ResourceManager(), m_GL(gl), m_SyncName(1)
+{
+  m_State = m_GL->GetState();
+}
+
 void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref, bool allowFake0)
 {
   const GLHookSet &gl = m_GL->GetHookset();

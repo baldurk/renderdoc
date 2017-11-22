@@ -1078,6 +1078,15 @@ public:
   // so just pack/unpack into bitfields
   struct ViewRange
   {
+    ViewRange()
+    {
+      aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      baseMipLevel = 0;
+      levelCount = 1;
+      baseArrayLayer = 0;
+      layerCount = 1;
+    }
+
     ViewRange &operator=(const VkImageSubresourceRange &range)
     {
       aspectMask = (uint32_t)range.aspectMask;

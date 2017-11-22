@@ -272,8 +272,8 @@ private:
   void LoadCaptureThreaded(const QString &captureFile, const QString &origFilename, bool temporary,
                            bool local);
 
-  uint32_t m_SelectedEventID;
-  uint32_t m_EventID;
+  uint32_t m_SelectedEventID = 0;
+  uint32_t m_EventID = 0;
 
   const DrawcallDescription *GetDrawcall(const rdcarray<DrawcallDescription> &draws, uint32_t eventID)
   {
@@ -315,19 +315,19 @@ private:
   QMap<ResourceId, QString> m_CustomNames;
   int m_CustomNameCachedID = 1;
 
-  const SDFile *m_StructuredFile;
+  const SDFile *m_StructuredFile = NULL;
   SDFile m_DummySDFile;
 
   rdcarray<WindowingSystem> m_WinSystems;
 
-  WindowingSystem m_CurWinSystem;
+  WindowingSystem m_CurWinSystem = WindowingSystem::Unknown;
 
 #if defined(RENDERDOC_PLATFORM_LINUX)
-  xcb_connection_t *m_XCBConnection;
-  Display *m_X11Display;
+  xcb_connection_t *m_XCBConnection = NULL;
+  Display *m_X11Display = NULL;
 #endif
 
-  QIcon *m_Icon;
+  QIcon *m_Icon = NULL;
 
   // Windows
   MainWindow *m_MainWindow = NULL;

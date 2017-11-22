@@ -30,7 +30,11 @@
 class TrackedResource8
 {
 public:
-  TrackedResource8() { m_ID = ResourceIDGen::GetNewUniqueID(); }
+  TrackedResource8()
+  {
+    m_ID = ResourceIDGen::GetNewUniqueID();
+    m_pRecord = NULL;
+  }
   ResourceId GetResourceID() { return m_ID; }
   D3D8ResourceRecord *GetResourceRecord() { return m_pRecord; }
   void SetResourceRecord(D3D8ResourceRecord *record) { m_pRecord = record; }

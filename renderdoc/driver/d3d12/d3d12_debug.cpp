@@ -106,6 +106,9 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   m_width = m_height = 1;
   m_BBFmtIdx = BGRA8_BACKBUFFER;
 
+  RDCEraseEl(m_TileMinMaxPipe);
+  RDCEraseEl(m_HistogramPipe);
+
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.0f);
 
   m_pFactory = NULL;

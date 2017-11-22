@@ -134,7 +134,7 @@ std::vector<ResourceId> D3D12Replay::GetTextures()
 
 BufferDescription D3D12Replay::GetBuffer(ResourceId id)
 {
-  BufferDescription ret;
+  BufferDescription ret = {};
   ret.ID = m_pDevice->GetResourceManager()->GetOriginalID(id);
 
   auto it = WrappedID3D12Resource::GetList().find(id);
@@ -175,7 +175,7 @@ BufferDescription D3D12Replay::GetBuffer(ResourceId id)
 
 TextureDescription D3D12Replay::GetTexture(ResourceId id)
 {
-  TextureDescription ret;
+  TextureDescription ret = {};
   ret.ID = m_pDevice->GetResourceManager()->GetOriginalID(id);
 
   auto it = WrappedID3D12Resource::GetList().find(id);

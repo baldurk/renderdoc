@@ -672,6 +672,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
   m_Cmd = NULL;
 
   m_CurGfxRootSig = NULL;
+  m_CurCompRootSig = NULL;
 
   if(!RenderDoc::Inst().IsReplayApp())
   {
@@ -857,10 +858,14 @@ D3D12CommandData::D3D12CommandData()
 {
   m_CurChunkOffset = 0;
 
+  m_IndirectOffset = 0;
+
   m_RootEventID = 1;
   m_RootDrawcallID = 1;
   m_FirstEventID = 0;
   m_LastEventID = ~0U;
+
+  m_StructuredFile = NULL;
 
   m_pDevice = NULL;
 

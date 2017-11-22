@@ -538,6 +538,11 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
   m_Disassembled = false;
 
+  m_Type = D3D11_ShaderType_Vertex;
+  m_Version.Major = 5;
+  m_Version.Minor = 0;
+  m_GuessedResources = true;
+
   RDCASSERT(ByteCodeLength < UINT32_MAX);
 
   RDCEraseEl(m_ShaderStats);

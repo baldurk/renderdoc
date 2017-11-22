@@ -59,8 +59,6 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
   m_CaptureLoaded = false;
   m_LoadInProgress = false;
 
-  m_EventID = 0;
-
   memset(&m_APIProps, 0, sizeof(m_APIProps));
 
   m_CurD3D11PipelineState = &m_DummyD3D11;

@@ -308,7 +308,7 @@ public:
     {
     }
     InitialContentData()
-        : resource((WrappedResourceType)RecordType::NullResource), num(0), blob(NULL)
+        : resourceType(0), resource((WrappedResourceType)RecordType::NullResource), num(0), blob(NULL)
     {
     }
     uint32_t resourceType;

@@ -78,6 +78,7 @@ public:
     LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
     m_EnabledHooks = true;
     m_HasHooks = false;
+    m_WSARefCount = 1;
   }
 
   bool CreateHooks(const char *libName)

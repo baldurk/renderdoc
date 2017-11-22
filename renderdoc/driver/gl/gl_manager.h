@@ -33,7 +33,7 @@ class WrappedOpenGL;
 class GLResourceManager : public ResourceManager<GLResource, GLResource, GLResourceRecord>
 {
 public:
-  GLResourceManager(WrappedOpenGL *gl) : ResourceManager(), m_GL(gl), m_SyncName(1) {}
+  GLResourceManager(WrappedOpenGL *gl);
   ~GLResourceManager() {}
   void Shutdown()
   {

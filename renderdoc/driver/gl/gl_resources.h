@@ -211,6 +211,7 @@ struct GLResourceRecord : public ResourceRecord
   {
     RDCEraseEl(ShadowPtr);
     RDCEraseEl(Map);
+    ShadowSize = 0;
   }
 
   ~GLResourceRecord() { FreeShadowStorage(); }

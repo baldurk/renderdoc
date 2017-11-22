@@ -70,7 +70,7 @@ public:
 
   DWORD m_fvf;
 
-  int m_width;
-  int m_height;
+  int m_width = 0;
+  int m_height = 0;
   WrappedD3DDevice8 *m_WrappedDevice;
 };

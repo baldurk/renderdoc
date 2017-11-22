@@ -409,43 +409,44 @@ private:
           curEventID(0),
           drawCount(0),
           level(VK_COMMAND_BUFFER_LEVEL_PRIMARY),
-          beginFlags(0)
+          beginFlags(0),
+          markerCount(0)
+
     {
     }
     ~BakedCmdBufferInfo() { SAFE_DELETE(draw); }
     vector<APIEvent> curEvents;
     vector<DebugMessage> debugMessages;
-    list<VulkanDrawcallTreeNode *> drawStack;
+    std::list<VulkanDrawcallTreeNode *> drawStack;
 
     VkCommandBufferLevel level;
     VkCommandBufferUsageFlags beginFlags;
 
     int markerCount;
 
-    vector<pair<ResourceId, EventUsage> > resourceUsage;
+    std::vector<std::pair<ResourceId, EventUsage> > resourceUsage;
 
     struct CmdBufferState
     {
-      CmdBufferState() : idxWidth(0), subpass(0) {}
       ResourceId pipeline;
 
       struct DescriptorAndOffsets
       {
         ResourceId descSet;
-        vector<uint32_t> offsets;
+        std::vector<uint32_t> offsets;
       };
-      vector<DescriptorAndOffsets> graphicsDescSets, computeDescSets;
+      std::vector<DescriptorAndOffsets> graphicsDescSets, computeDescSets;
 
-      uint32_t idxWidth;
+      uint32_t idxWidth = 0;
       ResourceId ibuffer;
-      vector<ResourceId> vbuffers;
+      std::vector<ResourceId> vbuffers;
 
       ResourceId renderPass;
       ResourceId framebuffer;
-      uint32_t subpass;
+      uint32_t subpass = 0;
     } state;
 
-    vector<pair<ResourceId, ImageRegionState> > imgbarriers;
+    std::vector<std::pair<ResourceId, ImageRegionState> > imgbarriers;
 
     VulkanDrawcallTreeNode *draw;    // the root draw to copy from when submitting
     uint32_t eventCount;             // how many events are in this cmd buffer, for quick skipping

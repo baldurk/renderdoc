@@ -78,7 +78,7 @@ private:
     None,
     White,
     Black,
-  } m_DragMode;
+  } m_DragMode = DraggingMode::None;
 
   QVector<uint32_t> m_HistogramData;
   float m_HistogramMin = 0.0f;

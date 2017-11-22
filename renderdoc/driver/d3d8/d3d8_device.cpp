@@ -64,6 +64,8 @@ WrappedD3DDevice8::WrappedD3DDevice8(IDirect3DDevice8 *device, HWND wnd,
   else
   {
     m_State = CaptureState::LoadingReplaying;
+
+    m_Wnd = NULL;
   }
 
   m_ResourceManager = new D3D8ResourceManager(this);

@@ -351,8 +351,8 @@ private:
     return E_FAIL;
   }
 
-  PFNNVCreateDevice nvapi_CreateDevice_real;
-  PFNNVCreateDeviceAndSwapChain nvapi_CreateDeviceAndSwapChain_real;
+  PFNNVCreateDevice nvapi_CreateDevice_real = NULL;
+  PFNNVCreateDeviceAndSwapChain nvapi_CreateDeviceAndSwapChain_real = NULL;
 
   static HRESULT WINAPI nvapi_CreateDevice(IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType,
                                            HMODULE Software, UINT Flags,

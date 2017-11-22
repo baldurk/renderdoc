@@ -49,5 +49,5 @@ protected:
   bool event(QEvent *e);
 
 private:
-  bool m_acceptTabs;
+  bool m_acceptTabs = false;
 };

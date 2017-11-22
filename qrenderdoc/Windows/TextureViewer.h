@@ -96,8 +96,11 @@ struct TexSettings
 {
   TexSettings()
   {
+    displayType = 0;
     r = g = b = true;
     a = false;
+    depth = true;
+    stencil = false;
     mip = 0;
     slice = 0;
     minrange = 0.0f;

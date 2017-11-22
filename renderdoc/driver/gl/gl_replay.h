@@ -256,11 +256,11 @@ private:
     struct
     {
       // used to blit from defined FBO (VAOs not shared)
-      GLuint emptyVAO;
+      GLuint emptyVAO = 0;
 
       // textures for the below FBO. Resize with the window
-      GLuint backbuffer;
-      GLuint depthstencil;
+      GLuint backbuffer = 0;
+      GLuint depthstencil = 0;
 
       // this FBO is on the debug GL context, not the window's GL context
       // when rendering a texture or mesh etc, we render onto this FBO on
@@ -268,18 +268,18 @@ private:
       // on the window's GL context.
       // This is so we don't have to re-create any non-shared resource we
       // need for debug rendering on the window's GL context.
-      GLuint windowFBO;
+      GLuint windowFBO = 0;
 
       // this FBO is the same as the above, but on the replay context,
       // for any cases where we need to use the replay context (like
       // re-rendering a draw).
-      GLuint replayFBO;
+      GLuint replayFBO = 0;
 
       // read FBO for blit to window
-      GLuint readFBO;
+      GLuint readFBO = 0;
     } BlitData;
 
-    int width, height;
+    int width = 1, height = 1;
   };
 
   // any objects that are shared between contexts, we just initialise

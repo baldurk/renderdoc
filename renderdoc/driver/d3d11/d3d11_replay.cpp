@@ -55,7 +55,7 @@ void D3D11Replay::Shutdown()
 
 TextureDescription D3D11Replay::GetTexture(ResourceId id)
 {
-  TextureDescription tex;
+  TextureDescription tex = {};
   tex.ID = ResourceId();
 
   auto it1D = WrappedID3D11Texture1D::m_TextureList.find(id);
@@ -355,7 +355,7 @@ std::vector<ResourceId> D3D11Replay::GetBuffers()
 
 BufferDescription D3D11Replay::GetBuffer(ResourceId id)
 {
-  BufferDescription ret;
+  BufferDescription ret = {};
   ret.ID = ResourceId();
 
   auto it = WrappedID3D11Buffer::m_BufferList.find(id);

@@ -822,14 +822,17 @@ struct ASMDecl
     declaration = NUM_OPCODES;
     refactoringAllowed = doublePrecisionFloats = forceEarlyDepthStencil =
         enableRawAndStructuredBuffers = skipOptimisation = enableMinPrecision =
-            enableD3D11_1DoubleExtensions = enableD3D11_1ShaderExtensions = false;
+            enableD3D11_1DoubleExtensions = enableD3D11_1ShaderExtensions =
+                enableD3D12AllResourcesBound = false;
     stride = 0;
     hasCounter = false;
+    rov = false;
     numTemps = 0;
     tempReg = 0;
     tempComponentCount = 0;
     count = 0;
     groupSize[0] = groupSize[1] = groupSize[2] = 0;
+    space = 0;
     resType[0] = resType[1] = resType[2] = resType[3] = NUM_RETURN_TYPES;
     dim = RESOURCE_DIMENSION_UNKNOWN;
     sampleCount = 0;

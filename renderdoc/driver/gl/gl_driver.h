@@ -173,7 +173,7 @@ private:
 
   set<ResourceId> m_HighTrafficResources;
 
-  int m_ReplayEventCount;
+  int m_ReplayEventCount = 0;
 
   // we store two separate sets of maps, since for an explicit glMemoryBarrier
   // we need to flush both types of maps, but for implicit sync points we only

@@ -59,7 +59,7 @@ struct D3D11ViewTag
     OMDepth,
   };
 
-  D3D11ViewTag() {}
+  D3D11ViewTag() : type(SRV), index(0) {}
   D3D11ViewTag(ResType t, int i, const D3D11Pipe::View &r) : type(t), index(i), res(r) {}
   ResType type;
   int index;
@@ -1828,7 +1828,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
   }
   else if(buf)
   {
-    D3D11ViewTag view = {};
+    D3D11ViewTag view;
     if(tag.canConvert<D3D11ViewTag>())
       view = tag.value<D3D11ViewTag>();
 

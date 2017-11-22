@@ -91,7 +91,7 @@ protected:
 
   QPair<ResizeType, int> checkResizing(QMouseEvent *event);
   QPair<ResizeType, int> m_resizeState;
-  int m_cursorPos;
+  int m_cursorPos = -1;
 
   void cacheSections();
   void resizeSectionsWithHints();
@@ -121,7 +121,7 @@ protected:
   int m_pinnedColumns = 0;
 
   int m_movingSection = -1;
-  QLabel *m_sectionPreview;
+  QLabel *m_sectionPreview = NULL;
   int m_sectionPreviewOffset = 0;
 };
 

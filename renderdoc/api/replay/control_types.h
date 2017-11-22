@@ -410,19 +410,19 @@ DOCUMENT("Information about the a new capture created by the target.");
 struct NewCaptureData
 {
   DOCUMENT("An identifier to use to refer to this capture.");
-  uint32_t ID;
+  uint32_t ID = 0;
   DOCUMENT("The time the capture was created, as a unix timestamp in UTC.");
-  uint64_t timestamp;
+  uint64_t timestamp = 0;
   DOCUMENT("The raw bytes that contain the capture thumbnail, as RGB8 data.");
   bytebuf thumbnail;
   DOCUMENT("The width of the image contained in :data:`thumbnail`.");
-  int32_t thumbWidth;
+  int32_t thumbWidth = 0;
   DOCUMENT("The height of the image contained in :data:`thumbnail`.");
-  int32_t thumbHeight;
+  int32_t thumbHeight = 0;
   DOCUMENT("The local path on the target system where the capture is saved.");
   rdcstr path;
   DOCUMENT("``True`` if the target is running on the local system.");
-  bool local;
+  bool local = true;
 };
 
 DECLARE_REFLECTION_STRUCT(NewCaptureData);
@@ -449,9 +449,9 @@ DOCUMENT("Information about a new child process spawned by the target.");
 struct NewChildData
 {
   DOCUMENT("The PID (Process ID) of the new child.");
-  uint32_t PID;
+  uint32_t PID = 0;
   DOCUMENT("The ident where the new child's target control is active.");
-  uint32_t ident;
+  uint32_t ident = 0;
 };
 
 DECLARE_REFLECTION_STRUCT(NewChildData);
@@ -459,9 +459,8 @@ DECLARE_REFLECTION_STRUCT(NewChildData);
 DOCUMENT("A message from a target control connection.");
 struct TargetControlMessage
 {
-  TargetControlMessage() {}
   DOCUMENT("The :class:`type <TargetControlMessageType>` of message received");
-  TargetControlMessageType Type;
+  TargetControlMessageType Type = TargetControlMessageType::Unknown;
 
   DOCUMENT("The :class:`new capture data <NewCaptureData>`.");
   NewCaptureData NewCapture;

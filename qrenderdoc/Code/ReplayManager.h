@@ -115,7 +115,7 @@ private:
     bool selfdelete;
   };
 
-  void run();
+  void run(int proxyRenderer, const QString &capturefile, float *progress);
 
   QMutex m_RenderLock;
   QQueue<InvokeHandle *> m_RenderQueue;
@@ -126,16 +126,11 @@ private:
 
   void PushInvoke(InvokeHandle *cmd);
 
-  int m_ProxyRenderer;
-  QString m_ReplayHost;
-  QString m_CaptureFilename;
-  float *m_Progress;
-
   QMutex m_RemoteLock;
   RemoteHost *m_RemoteHost = NULL;
   IRemoteServer *m_Remote = NULL;
 
   volatile bool m_Running;
   LambdaThread *m_Thread;
-  ReplayStatus m_CreateStatus;
+  ReplayStatus m_CreateStatus = ReplayStatus::Succeeded;
 };

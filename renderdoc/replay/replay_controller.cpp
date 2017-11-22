@@ -171,6 +171,11 @@ ReplayController::ReplayController()
   m_pDevice = NULL;
 
   m_EventID = 100000;
+
+  m_D3D11PipelineState = NULL;
+  m_D3D12PipelineState = NULL;
+  m_GLPipelineState = NULL;
+  m_VulkanPipelineState = NULL;
 }
 
 ReplayController::~ReplayController()

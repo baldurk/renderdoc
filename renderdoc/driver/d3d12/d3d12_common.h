@@ -268,26 +268,25 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER1
     }
   }
 
-  vector<D3D12_DESCRIPTOR_RANGE1> ranges;
+  std::vector<D3D12_DESCRIPTOR_RANGE1> ranges;
 };
 
 struct D3D12RootSignature
 {
-  D3D12RootSignature() : numSpaces(0) {}
-  uint32_t numSpaces;
-  uint32_t dwordLength;
+  uint32_t numSpaces = 0;
+  uint32_t dwordLength = 0;
 
-  D3D12_ROOT_SIGNATURE_FLAGS Flags;
-  vector<D3D12RootSignatureParameter> params;
-  vector<D3D12_STATIC_SAMPLER_DESC> samplers;
+  D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+  std::vector<D3D12RootSignatureParameter> params;
+  std::vector<D3D12_STATIC_SAMPLER_DESC> samplers;
 };
 
 struct D3D12CommandSignature
 {
-  bool graphics;
-  UINT numDraws;
-  UINT ByteStride;
-  vector<D3D12_INDIRECT_ARGUMENT_DESC> arguments;
+  bool graphics = true;
+  UINT numDraws = 0;
+  UINT ByteStride = 0;
+  std::vector<D3D12_INDIRECT_ARGUMENT_DESC> arguments;
 };
 
 #define IMPLEMENT_IUNKNOWN_WITH_REFCOUNTER_CUSTOMQUERY                \

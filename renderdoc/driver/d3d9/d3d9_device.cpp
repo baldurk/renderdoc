@@ -50,6 +50,10 @@ WrappedD3DDevice9::WrappedD3DDevice9(IDirect3DDevice9 *device, HWND wnd)
     if(wnd != NULL)
       RenderDoc::Inst().AddFrameCapturer((IDirect3DDevice9 *)this, wnd, this);
   }
+  else
+  {
+    m_Wnd = NULL;
+  }
 }
 
 void WrappedD3DDevice9::CheckForDeath()

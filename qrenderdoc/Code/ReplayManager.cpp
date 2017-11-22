@@ -44,14 +44,14 @@ void ReplayManager::OpenCapture(const QString &capturefile, float *progress)
   if(m_Running)
     return;
 
-  m_ProxyRenderer = -1;
-  m_ReplayHost = QString();
-  m_CaptureFilename = capturefile;
-  m_Progress = progress;
+  // TODO maybe we could expose this choice to the user?
+  int proxyRenderer = -1;
 
   *progress = 0.0f;
 
-  m_Thread = new LambdaThread([this]() { run(); });
+  m_Thread = new LambdaThread([this, proxyRenderer, capturefile, progress]() {
+    run(proxyRenderer, capturefile, progress);
+  });
   m_Thread->start(QThread::HighestPriority);
 
   while(m_Thread->isRunning() && !m_Running)
@@ -403,29 +403,29 @@ void ReplayManager::PushInvoke(ReplayManager::InvokeHandle *cmd)
   m_RenderCondition.wakeAll();
 }
 
-void ReplayManager::run()
+void ReplayManager::run(int proxyRenderer, const QString &capturefile, float *progress)
 {
   m_Renderer = NULL;
 
   if(m_Remote)
   {
     std::tie(m_CreateStatus, m_Renderer) =
-        m_Remote->OpenCapture(~0U, m_CaptureFilename.toUtf8().data(), m_Progress);
+        m_Remote->OpenCapture(proxyRenderer, capturefile.toUtf8().data(), progress);
   }
   else
   {
     m_CaptureFile = RENDERDOC_OpenCaptureFile();
 
-    m_CreateStatus = m_CaptureFile->OpenFile(m_CaptureFilename.toUtf8().data(), "rdc");
+    m_CreateStatus = m_CaptureFile->OpenFile(capturefile.toUtf8().data(), "rdc");
 
     if(m_CreateStatus == ReplayStatus::Succeeded)
-      std::tie(m_CreateStatus, m_Renderer) = m_CaptureFile->OpenCapture(m_Progress);
+      std::tie(m_CreateStatus, m_Renderer) = m_CaptureFile->OpenCapture(progress);
   }
 
   if(m_Renderer == NULL)
     return;
 
-  qInfo() << "QRenderDoc - renderer created for" << m_CaptureFilename;
+  qInfo() << "QRenderDoc - renderer created for" << capturefile;
 
   m_Running = true;
 

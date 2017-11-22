@@ -930,23 +930,23 @@ DOCUMENT("Gives some API-specific information about the capture.");
 struct APIProperties
 {
   DOCUMENT("The :class:`GraphicsAPI` of the actual log/capture.");
-  GraphicsAPI pipelineType;
+  GraphicsAPI pipelineType = GraphicsAPI::D3D11;
 
   DOCUMENT(R"(The :class:`GraphicsAPI` used to render the log. For remote replay this could be
 different to the above, and lets the UI make decisions e.g. to flip rendering of images.
 )");
-  GraphicsAPI localRenderer;
+  GraphicsAPI localRenderer = GraphicsAPI::D3D11;
 
   DOCUMENT(R"(``True`` if the capture was loaded successfully but running in a degraded mode - e.g.
 with software rendering, or with some functionality disabled due to lack of support.
 )");
-  bool degraded;
+  bool degraded = false;
 
   DOCUMENT(R"(``True`` if the driver mutates shader reflection structures from event to event.
 Currently this is only true for OpenGL where the superfluous indirect in the binding model must be
 worked around by re-sorting bindings.
 )");
-  bool shadersMutable;
+  bool shadersMutable = false;
 };
 
 DECLARE_REFLECTION_STRUCT(APIProperties);

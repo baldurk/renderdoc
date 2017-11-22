@@ -241,60 +241,60 @@ private:
     float CharSize;
   } m_Font;
 
-  ID3D12DescriptorHeap *cbvsrvuavHeap;
-  ID3D12DescriptorHeap *uavClearHeap;
-  ID3D12DescriptorHeap *samplerHeap;
-  ID3D12DescriptorHeap *rtvHeap;
-  ID3D12DescriptorHeap *dsvHeap;
+  ID3D12DescriptorHeap *cbvsrvuavHeap = NULL;
+  ID3D12DescriptorHeap *uavClearHeap = NULL;
+  ID3D12DescriptorHeap *samplerHeap = NULL;
+  ID3D12DescriptorHeap *rtvHeap = NULL;
+  ID3D12DescriptorHeap *dsvHeap = NULL;
 
-  ID3D12Resource *m_RingConstantBuffer;
-  UINT64 m_RingConstantOffset;
+  ID3D12Resource *m_RingConstantBuffer = NULL;
+  UINT64 m_RingConstantOffset = 0;
 
-  ID3D12PipelineState *m_TexDisplayPipe;
-  ID3D12PipelineState *m_TexDisplayLinearPipe;
-  ID3D12PipelineState *m_TexDisplayF32Pipe;
-  ID3D12PipelineState *m_TexDisplayBlendPipe;
-  ID3DBlob *m_GenericVS;
+  ID3D12PipelineState *m_TexDisplayPipe = NULL;
+  ID3D12PipelineState *m_TexDisplayLinearPipe = NULL;
+  ID3D12PipelineState *m_TexDisplayF32Pipe = NULL;
+  ID3D12PipelineState *m_TexDisplayBlendPipe = NULL;
+  ID3DBlob *m_GenericVS = NULL;
 
-  ID3D12RootSignature *m_TexDisplayRootSig;
+  ID3D12RootSignature *m_TexDisplayRootSig = NULL;
 
-  ID3D12RootSignature *m_CBOnlyRootSig;
-  ID3D12PipelineState *m_CheckerboardPipe;
-  ID3D12PipelineState *m_CheckerboardMSAAPipe;
-  ID3D12PipelineState *m_OutlinePipe;
+  ID3D12RootSignature *m_CBOnlyRootSig = NULL;
+  ID3D12PipelineState *m_CheckerboardPipe = NULL;
+  ID3D12PipelineState *m_CheckerboardMSAAPipe = NULL;
+  ID3D12PipelineState *m_OutlinePipe = NULL;
 
-  ID3DBlob *m_QuadOverdrawWritePS;
-  ID3D12RootSignature *m_QuadResolveRootSig;
-  ID3D12PipelineState *m_QuadResolvePipe;
+  ID3DBlob *m_QuadOverdrawWritePS = NULL;
+  ID3D12RootSignature *m_QuadResolveRootSig = NULL;
+  ID3D12PipelineState *m_QuadResolvePipe = NULL;
 
-  ID3D12Resource *m_PickPixelTex;
-  D3D12_CPU_DESCRIPTOR_HANDLE m_PickPixelRTV;
+  ID3D12Resource *m_PickPixelTex = NULL;
+  D3D12_CPU_DESCRIPTOR_HANDLE m_PickPixelRTV = {0};
 
-  ID3D12RootSignature *m_MeshPickRootSig;
-  ID3D12PipelineState *m_MeshPickPipe;
+  ID3D12RootSignature *m_MeshPickRootSig = NULL;
+  ID3D12PipelineState *m_MeshPickPipe = NULL;
 
-  ID3D12RootSignature *m_HistogramRootSig;
+  ID3D12RootSignature *m_HistogramRootSig = NULL;
   // one per texture type, one per int/uint/float
   ID3D12PipelineState *m_TileMinMaxPipe[10][3];
   ID3D12PipelineState *m_HistogramPipe[10][3];
   // one per int/uint/float
   ID3D12PipelineState *m_ResultMinMaxPipe[3];
-  ID3D12Resource *m_MinMaxResultBuffer;
-  ID3D12Resource *m_MinMaxTileBuffer;
+  ID3D12Resource *m_MinMaxResultBuffer = NULL;
+  ID3D12Resource *m_MinMaxTileBuffer = NULL;
 
-  ID3D12GraphicsCommandList *m_DebugList;
-  ID3D12CommandAllocator *m_DebugAlloc;
-  ID3D12Resource *m_ReadbackBuffer;
+  ID3D12GraphicsCommandList *m_DebugList = NULL;
+  ID3D12CommandAllocator *m_DebugAlloc = NULL;
+  ID3D12Resource *m_ReadbackBuffer = NULL;
 
-  ID3DBlob *m_MeshVS;
-  ID3DBlob *m_MeshGS;
-  ID3DBlob *m_MeshPS;
-  ID3DBlob *m_TriangleSizeGS;
-  ID3DBlob *m_TriangleSizePS;
+  ID3DBlob *m_MeshVS = NULL;
+  ID3DBlob *m_MeshGS = NULL;
+  ID3DBlob *m_MeshPS = NULL;
+  ID3DBlob *m_TriangleSizeGS = NULL;
+  ID3DBlob *m_TriangleSizePS = NULL;
 
-  ID3D12Resource *m_TexResource;
+  ID3D12Resource *m_TexResource = NULL;
 
-  ID3D12Resource *m_OverlayRenderTex;
+  ID3D12Resource *m_OverlayRenderTex = NULL;
   ResourceId m_OverlayResourceId;
 
   static const uint64_t m_ReadbackSize = 16 * 1024 * 1024;
@@ -302,8 +302,8 @@ private:
   static const uint32_t m_ShaderCacheMagic = 0xbaafd1d1;
   static const uint32_t m_ShaderCacheVersion = 1;
 
-  bool m_ShaderCacheDirty, m_CacheShaders;
-  map<uint32_t, ID3DBlob *> m_ShaderCache;
+  bool m_ShaderCacheDirty = false, m_CacheShaders = false;
+  std::map<uint32_t, ID3DBlob *> m_ShaderCache;
 
   void FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
                             const vector<DXBC::CBufferVariable> &invars,

@@ -1390,7 +1390,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
           gl.glGetTextureParameterivEXT(res.name, TextureState.type, eGL_TEXTURE_IMMUTABLE_FORMAT,
                                         &immut);
 
-          GLenum dummy;
+          GLenum dummy = eGL_RGBA;
           EmulateLuminanceFormat(gl, res.name, TextureState.type, TextureState.internalformat, dummy);
 
           if(immut == 0)
