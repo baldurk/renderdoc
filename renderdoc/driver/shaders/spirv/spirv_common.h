@@ -129,6 +129,7 @@ struct SPVModule
   SPVInstruction *GetByID(uint32_t id);
   string Disassemble(const string &entryPoint);
 
+  std::vector<std::string> EntryPoints() const;
   ShaderStage StageForEntry(const string &entryPoint) const;
 
   void MakeReflection(ShaderStage stage, const string &entryPoint, ShaderReflection &reflection,

@@ -59,6 +59,7 @@ public:
 
   vector<DebugMessage> GetDebugMessages();
 
+  rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
   ShaderReflection *GetShader(ResourceId shader, string entryPoint);
 
   vector<string> GetDisassemblyTargets();

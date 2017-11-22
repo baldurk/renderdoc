@@ -234,6 +234,19 @@ TextureDescription D3D12Replay::GetTexture(ResourceId id)
   return ret;
 }
 
+rdcarray<ShaderEntryPoint> D3D12Replay::GetShaderEntryPoints(ResourceId shader)
+{
+  WrappedID3D12Shader *sh =
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(shader);
+
+  if(!sh)
+    return {};
+
+  ShaderReflection &ret = sh->GetDetails();
+
+  return {{"main", ret.Stage}};
+}
+
 ShaderReflection *D3D12Replay::GetShader(ResourceId shader, string entryPoint)
 {
   WrappedID3D12Shader *sh =

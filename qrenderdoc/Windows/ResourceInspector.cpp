@@ -163,6 +163,8 @@ void ResourceInspector::Inspect(ResourceId id)
 
   ui->viewContents->setVisible(m_Ctx.GetTexture(id) || m_Ctx.GetBuffer(id));
 
+  m_Entries.clear();
+
   m_ResourceModel->reset();
   m_FilterModel->sort(0);
 
@@ -181,7 +183,16 @@ void ResourceInspector::Inspect(ResourceId id)
   m_Ctx.Replay().AsyncInvoke([this, id](IReplayController *r) {
     rdcarray<EventUsage> usage = r->GetUsage(id);
 
-    GUIInvoke::call([this, id, usage] {
+    rdcarray<ShaderEntryPoint> entries = r->GetShaderEntryPoints(id);
+
+    GUIInvoke::call([this, id, entries, usage] {
+
+      if(!entries.isEmpty())
+      {
+        m_Entries = entries;
+        ui->viewContents->setVisible(true);
+      }
+
       CombineUsageEvents(
           m_Ctx, usage, [this, id](uint32_t startEID, uint32_t endEID, ResourceUsage use) {
             QString text;
@@ -391,6 +402,30 @@ void ResourceInspector::on_viewContents_clicked()
     IBufferViewer *viewer = m_Ctx.ViewBuffer(0, buf->length, buf->ID);
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
+  }
+  else if(!m_Entries.isEmpty())
+  {
+    ShaderEntryPoint entry = m_Entries[0];
+
+    if(m_Entries.count() > 1)
+    {
+      // TODO need to let the user choose the entry point
+    }
+
+    ResourceId id = m_Resource;
+    ICaptureContext *ctx = &m_Ctx;
+    m_Ctx.Replay().AsyncInvoke([ctx, id, entry](IReplayController *r) {
+      ShaderReflection *refl = r->GetShader(id, entry);
+
+      if(!refl)
+        return;
+
+      GUIInvoke::call([ctx, refl] {
+        IShaderViewer *viewer = ctx->ViewShader(refl, ResourceId());
+
+        ctx->AddDockWindow(viewer->Widget(), DockReference::MainToolArea, NULL);
+      });
+    });
   }
 }
 

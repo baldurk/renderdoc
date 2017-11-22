@@ -225,6 +225,15 @@ void DoSerialise(SerialiserType &ser, ShaderResource &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ShaderEntryPoint &el)
+{
+  SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(stage);
+
+  SIZE_CHECK(24);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ShaderCompileFlag &el)
 {
   SERIALISE_MEMBER(Name);
@@ -2199,6 +2208,7 @@ INSTANTIATE_SERIALISE_TYPE(ShaderConstant)
 INSTANTIATE_SERIALISE_TYPE(ConstantBlock)
 INSTANTIATE_SERIALISE_TYPE(ShaderSampler)
 INSTANTIATE_SERIALISE_TYPE(ShaderResource)
+INSTANTIATE_SERIALISE_TYPE(ShaderEntryPoint)
 INSTANTIATE_SERIALISE_TYPE(ShaderCompileFlags)
 INSTANTIATE_SERIALISE_TYPE(ShaderDebugChunk)
 INSTANTIATE_SERIALISE_TYPE(ShaderReflection)

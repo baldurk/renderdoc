@@ -167,6 +167,9 @@ public:
   const rdcarray<ResourceDescription> &GetResources();
   rdcarray<DebugMessage> GetDebugMessages();
 
+  rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
+  ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry);
+
   rdcarray<PixelModification> PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice,
                                            uint32_t mip, uint32_t sampleIdx, CompType typeHint);
   ShaderDebugTrace *DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset,

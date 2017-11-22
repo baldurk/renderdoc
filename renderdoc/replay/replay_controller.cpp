@@ -318,6 +318,16 @@ rdcarray<DebugMessage> ReplayController::GetDebugMessages()
   return m_pDevice->GetDebugMessages();
 }
 
+rdcarray<ShaderEntryPoint> ReplayController::GetShaderEntryPoints(ResourceId shader)
+{
+  return m_pDevice->GetShaderEntryPoints(m_pDevice->GetLiveID(shader));
+}
+
+ShaderReflection *ReplayController::GetShader(ResourceId shader, ShaderEntryPoint entry)
+{
+  return m_pDevice->GetShader(m_pDevice->GetLiveID(shader), entry.name);
+}
+
 rdcarray<EventUsage> ReplayController::GetUsage(ResourceId id)
 {
   id = m_pDevice->GetLiveID(id);

@@ -879,6 +879,23 @@ BufferDescription VulkanReplay::GetBuffer(ResourceId id)
   return ret;
 }
 
+rdcarray<ShaderEntryPoint> VulkanReplay::GetShaderEntryPoints(ResourceId shader)
+{
+  auto shad = m_pDriver->m_CreationInfo.m_ShaderModule.find(shader);
+
+  if(shad == m_pDriver->m_CreationInfo.m_ShaderModule.end())
+    return {};
+
+  std::vector<std::string> entries = shad->second.spirv.EntryPoints();
+
+  rdcarray<ShaderEntryPoint> ret;
+
+  for(const std::string &e : entries)
+    ret.push_back({e, shad->second.spirv.StageForEntry(e)});
+
+  return ret;
+}
+
 ShaderReflection *VulkanReplay::GetShader(ResourceId shader, string entryPoint)
 {
   auto shad = m_pDriver->m_CreationInfo.m_ShaderModule.find(shader);

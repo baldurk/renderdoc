@@ -759,6 +759,22 @@ vector<DebugMessage> GLReplay::GetDebugMessages()
   return m_pDriver->GetDebugMessages();
 }
 
+rdcarray<ShaderEntryPoint> GLReplay::GetShaderEntryPoints(ResourceId shader)
+{
+  if(m_pDriver->m_Shaders.find(shader) == m_pDriver->m_Shaders.end())
+    return {};
+
+  WrappedOpenGL::ShaderData &shaderDetails = m_pDriver->m_Shaders[shader];
+
+  if(shaderDetails.prog == 0)
+  {
+    RDCERR("Can't get shader details without separable program");
+    return {};
+  }
+
+  return {{"main", MakeShaderStage(shaderDetails.type)}};
+}
+
 ShaderReflection *GLReplay::GetShader(ResourceId shader, string entryPoint)
 {
   auto &shaderDetails = m_pDriver->m_Shaders[shader];

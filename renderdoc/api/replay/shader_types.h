@@ -451,6 +451,18 @@ able to be read from and written to arbitrarily.
 
 DECLARE_REFLECTION_STRUCT(ShaderResource);
 
+DOCUMENT("Describes an entry point in a shader.");
+struct ShaderEntryPoint
+{
+  DOCUMENT("The name of the entry point.");
+  rdcstr name;
+
+  DOCUMENT("The :class:`ShaderStage` for this entry point .");
+  ShaderStage stage;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderEntryPoint);
+
 DOCUMENT("Contains a single flag used at compile-time on a shader.");
 struct ShaderCompileFlag
 {

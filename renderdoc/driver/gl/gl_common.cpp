@@ -1071,6 +1071,22 @@ TextureFilter MakeFilter(GLenum minf, GLenum magf, bool shadowSampler, float max
   return ret;
 }
 
+ShaderStage MakeShaderStage(GLenum type)
+{
+  switch(type)
+  {
+    case eGL_VERTEX_SHADER: return ShaderStage::Vertex;
+    case eGL_TESS_CONTROL_SHADER: return ShaderStage::Tess_Control;
+    case eGL_TESS_EVALUATION_SHADER: return ShaderStage::Tess_Eval;
+    case eGL_GEOMETRY_SHADER: return ShaderStage::Geometry;
+    case eGL_FRAGMENT_SHADER: return ShaderStage::Fragment;
+    case eGL_COMPUTE_SHADER: return ShaderStage::Compute;
+    default: RDCERR("Unexpected shader stage %s", ToStr(type).c_str());
+  }
+
+  return ShaderStage::Count;
+}
+
 CompareFunc MakeCompareFunc(GLenum func)
 {
   switch(func)

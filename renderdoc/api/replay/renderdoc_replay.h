@@ -844,6 +844,27 @@ newly generated messages will be returned after that.
 )");
   virtual rdcarray<DebugMessage> GetDebugMessages() = 0;
 
+  DOCUMENT(R"(Retrieve a list of entry points for a shader.
+
+If the given ID doesn't specify a shader, an empty list will be return. On some APIs, the list will
+only ever have one result (only one entry point per shader).
+
+:param ResourceId shader: The shader to look up entry points for.
+:return: The list of the :class:`ShaderEntryPoint` messages.
+:rtype: ``list`` of :class:`ShaderEntryPoint`
+)");
+  virtual rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader) = 0;
+
+  DOCUMENT(R"(Retrieve the information about the frame contained in the capture.
+
+:param ResourceId shader: The shader to get reflection data for.
+:param ShaderEntryPoint entry: The entry point within the shader to reflect. May be ignored on some
+  APIs
+:return: The frame information.
+:rtype: ShaderReflection
+)");
+  virtual ShaderReflection *GetShader(ResourceId shader, ShaderEntryPoint entry) = 0;
+
   DOCUMENT(R"(Retrieve the history of modifications to the selected pixel on the selected texture.
 
 :param ResourceId texture: The texture to search for modifications.

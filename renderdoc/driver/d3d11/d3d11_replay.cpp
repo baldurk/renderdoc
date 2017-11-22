@@ -228,6 +228,18 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
   return tex;
 }
 
+rdcarray<ShaderEntryPoint> D3D11Replay::GetShaderEntryPoints(ResourceId shader)
+{
+  auto it = WrappedShader::m_ShaderList.find(shader);
+
+  if(it == WrappedShader::m_ShaderList.end())
+    return {};
+
+  ShaderReflection &ret = it->second->GetDetails();
+
+  return {{"main", ret.Stage}};
+}
+
 ShaderReflection *D3D11Replay::GetShader(ResourceId shader, string entryPoint)
 {
   auto it = WrappedShader::m_ShaderList.find(shader);

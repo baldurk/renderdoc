@@ -784,6 +784,38 @@ ResourceId ReplayProxy::RenderOverlay(ResourceId texid, CompType typeHint, Debug
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
+rdcarray<ShaderEntryPoint> ReplayProxy::Proxied_GetShaderEntryPoints(ParamSerialiser &paramser,
+                                                                     ReturnSerialiser &retser,
+                                                                     ResourceId id)
+{
+  const ReplayProxyPacket packet = eReplayProxy_GetShaderEntryPoints;
+  rdcarray<ShaderEntryPoint> ret;
+
+  {
+    BEGIN_PARAMS();
+    SERIALISE_ELEMENT(id);
+    END_PARAMS();
+  }
+
+  if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+    ret = m_Remote->GetShaderEntryPoints(id);
+
+  {
+    ReturnSerialiser &ser = retser;
+    PACKET_HEADER(packet);
+    SERIALISE_ELEMENT(ret);
+    ser.EndChunk();
+  }
+
+  return ret;
+}
+
+rdcarray<ShaderEntryPoint> ReplayProxy::GetShaderEntryPoints(ResourceId id)
+{
+  PROXY_FUNCTION(GetShaderEntryPoints, id);
+}
+
+template <typename ParamSerialiser, typename ReturnSerialiser>
 ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser, ReturnSerialiser &retser,
                                                  ResourceId id, std::string entryPoint)
 {

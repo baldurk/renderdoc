@@ -74,6 +74,8 @@ private:
   Ui::ResourceInspector *ui;
   ICaptureContext &m_Ctx;
 
+  rdcarray<ShaderEntryPoint> m_Entries;
+
   ResourceId m_Resource;
   ResourceListItemModel *m_ResourceModel;
   QSortFilterProxyModel *m_FilterModel;

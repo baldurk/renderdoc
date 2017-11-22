@@ -3877,6 +3877,17 @@ void AddSignatureParameter(bool isInput, ShaderStage stage, uint32_t id,
   }
 }
 
+std::vector<std::string> SPVModule::EntryPoints() const
+{
+  std::vector<std::string> ret;
+
+  for(SPVInstruction *inst : entries)
+    if(inst->entry)
+      ret.push_back(inst->entry->name);
+
+  return ret;
+}
+
 ShaderStage SPVModule::StageForEntry(const string &entryPoint) const
 {
   for(SPVInstruction *inst : entries)

@@ -101,6 +101,8 @@ public:
 
   std::vector<ResourceId> GetTextures();
   TextureDescription GetTexture(ResourceId id);
+
+  rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
   ShaderReflection *GetShader(ResourceId shader, string entryPoint);
 
   vector<string> GetDisassemblyTargets();

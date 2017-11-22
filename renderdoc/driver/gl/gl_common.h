@@ -296,6 +296,7 @@ GLenum MakeGLPrimitiveTopology(Topology Topo);
 BufferCategory MakeBufferCategory(GLenum bufferTarget);
 AddressMode MakeAddressMode(GLenum addr);
 TextureFilter MakeFilter(GLenum minf, GLenum magf, bool shadowSampler, float maxAniso);
+ShaderStage MakeShaderStage(GLenum type);
 CompareFunc MakeCompareFunc(GLenum func);
 StencilOp MakeStencilOp(GLenum op);
 LogicOp MakeLogicOp(GLenum op);

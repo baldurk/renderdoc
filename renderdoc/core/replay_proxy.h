@@ -47,6 +47,7 @@ enum ReplayProxyPacket
   eReplayProxy_GetTexture,
   eReplayProxy_GetBuffers,
   eReplayProxy_GetBuffer,
+  eReplayProxy_GetShaderEntryPoints,
   eReplayProxy_GetShader,
   eReplayProxy_GetDebugMessages,
 
@@ -439,6 +440,7 @@ public:
                              DebugOverlay overlay, uint32_t eventID,
                              const std::vector<uint32_t> &passEvents);
 
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEntryPoint>, GetShaderEntryPoints, ResourceId shader);
   IMPLEMENT_FUNCTION_PROXIED(ShaderReflection *, GetShader, ResourceId shader,
                              std::string entryPoint);
 
