@@ -445,9 +445,6 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, fl
 
     delete reader;
     delete writer;
-
-    if(!success)
-      return ReplayStatus::FileIOFailed;
   }
 
   if(!success)
@@ -476,9 +473,6 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, fl
     if(!success)
       return ReplayStatus::FileIOFailed;
   }
-
-  if(!success)
-    return ReplayStatus::FileIOFailed;
 
   return ReplayStatus::Succeeded;
 }

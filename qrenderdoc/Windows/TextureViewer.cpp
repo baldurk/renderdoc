@@ -824,8 +824,8 @@ void TextureViewer::UI_UpdateStatusText()
   y = qMax(0, y);
 
   int x = m_CurHoverPixel.x() >> (int)m_TexDisplay.mip;
-  float invWidth = mipWidth > 0 ? 1.0f / mipWidth : 0.0f;
-  float invHeight = mipHeight > 0 ? 1.0f / mipHeight : 0.0f;
+  float invWidth = 1.0f / mipWidth;
+  float invHeight = 1.0f / mipHeight;
 
   QString hoverCoords = QFormatStr("%1, %2 (%3, %4)")
                             .arg(x, 4)

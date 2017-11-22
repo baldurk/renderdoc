@@ -441,22 +441,6 @@ void RDHeaderView::resizeSectionsWithHints()
         }
       }
     }
-
-    for(int pix = 0; pix < available; pix++)
-    {
-      int minSection = 0;
-      for(int i = 1; i < sizes.count(); i++)
-      {
-        // don't assign any space to sections with negative hints
-        if(i < m_sectionStretchHints.count() && m_sectionStretchHints[i] <= 0)
-          continue;
-
-        if(sizes[i] < sizes[minSection])
-          minSection = i;
-      }
-
-      sizes[minSection]++;
-    }
   }
 
   resizeSections(sizes.toList());

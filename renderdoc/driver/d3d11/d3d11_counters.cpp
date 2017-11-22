@@ -218,7 +218,6 @@ struct D3D11CounterContext
 {
   uint32_t eventStart;
   vector<GPUTimer> timers;
-  int reuseIdx;
 };
 
 void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription &drawnode)
@@ -243,27 +242,20 @@ void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallDescr
     HRESULT hr = S_OK;
 
     {
-      if(ctx.reuseIdx == -1)
-      {
-        ctx.timers.push_back(GPUTimer());
+      ctx.timers.push_back(GPUTimer());
 
-        timer = &ctx.timers.back();
-        timer->eventID = d.eventID;
-        timer->before = timer->after = timer->stats = timer->occlusion = NULL;
+      timer = &ctx.timers.back();
+      timer->eventID = d.eventID;
+      timer->before = timer->after = timer->stats = timer->occlusion = NULL;
 
-        hr = m_pDevice->CreateQuery(&qtimedesc, &timer->before);
-        RDCASSERTEQUAL(hr, S_OK);
-        hr = m_pDevice->CreateQuery(&qtimedesc, &timer->after);
-        RDCASSERTEQUAL(hr, S_OK);
-        hr = m_pDevice->CreateQuery(&qstatsdesc, &timer->stats);
-        RDCASSERTEQUAL(hr, S_OK);
-        hr = m_pDevice->CreateQuery(&qoccldesc, &timer->occlusion);
-        RDCASSERTEQUAL(hr, S_OK);
-      }
-      else
-      {
-        timer = &ctx.timers[ctx.reuseIdx++];
-      }
+      hr = m_pDevice->CreateQuery(&qtimedesc, &timer->before);
+      RDCASSERTEQUAL(hr, S_OK);
+      hr = m_pDevice->CreateQuery(&qtimedesc, &timer->after);
+      RDCASSERTEQUAL(hr, S_OK);
+      hr = m_pDevice->CreateQuery(&qstatsdesc, &timer->stats);
+      RDCASSERTEQUAL(hr, S_OK);
+      hr = m_pDevice->CreateQuery(&qoccldesc, &timer->occlusion);
+      RDCASSERTEQUAL(hr, S_OK);
     }
 
     m_WrappedDevice->ReplayLog(ctx.eventStart, d.eventID, eReplay_WithoutDraw);
@@ -498,7 +490,6 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
 
   D3D11CounterContext ctx;
 
-  for(int loop = 0; loop < 1; loop++)
   {
     {
       m_pImmediateContext->Begin(disjoint);
@@ -506,7 +497,6 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<GPUCounter> 
       m_pImmediateContext->End(start);
 
       ctx.eventStart = 0;
-      ctx.reuseIdx = loop == 0 ? -1 : 0;
       FillTimers(ctx, m_WrappedContext->GetRootDraw());
 
       m_pImmediateContext->End(disjoint);
