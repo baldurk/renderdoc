@@ -26,12 +26,12 @@ struct callbackContext
   callbackContext(QProcessList &l) : list(l) {}
   QProcessList &list;
 
-  PFN_GETWINDOWTHREADPROCESSID GetWindowThreadProcessId;
-  PFN_GETWINDOW GetWindow;
-  PFN_ISWINDOWVISIBLE IsWindowVisible;
-  PFN_GETWINDOWTEXTLENGTHW GetWindowTextLengthW;
-  PFN_GETWINDOWTEXTW GetWindowTextW;
-  PFN_ENUMWINDOWS EnumWindows;
+  PFN_GETWINDOWTHREADPROCESSID GetWindowThreadProcessId = NULL;
+  PFN_GETWINDOW GetWindow = NULL;
+  PFN_ISWINDOWVISIBLE IsWindowVisible = NULL;
+  PFN_GETWINDOWTEXTLENGTHW GetWindowTextLengthW = NULL;
+  PFN_GETWINDOWTEXTW GetWindowTextW = NULL;
+  PFN_ENUMWINDOWS EnumWindows = NULL;
 };
 };
 
@@ -344,6 +344,11 @@ QProcessList QProcessInfo::enumerate()
 }
 
 #endif
+
+QProcessInfo::QProcessInfo()
+{
+  m_pid = 0;
+}
 
 uint32_t QProcessInfo::pid() const
 {

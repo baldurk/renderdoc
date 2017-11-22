@@ -14,6 +14,8 @@ typedef QList<QProcessInfo> QProcessList;
 class QProcessInfo
 {
 public:
+  QProcessInfo();
+
   static QProcessList enumerate();
 
   uint32_t pid() const;
