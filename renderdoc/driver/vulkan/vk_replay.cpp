@@ -5398,8 +5398,13 @@ static VulkanDriverRegistration VkDriverRegistration;
 void Vulkan_ProcessStructured(RDCFile *rdc, SDFile &output)
 {
   WrappedVulkan vulkan;
-  vulkan.SetStructuredExport(
-      rdc->GetSectionProperties(rdc->SectionIndex(SectionType::FrameCapture)).version);
+
+  int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
+
+  if(sectionIdx < 0)
+    return;
+
+  vulkan.SetStructuredExport(rdc->GetSectionProperties(sectionIdx).version);
   vulkan.ReadLogInitialisation(rdc, true);
 
   vulkan.GetStructuredFile().swap(output);

@@ -286,22 +286,24 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
                                                 m_ImageLayouts);
           }
 
-          submitInfo.commandBufferCount = (uint32_t)rerecordedCmds.size();
-          submitInfo.pCommandBuffers = &rerecordedCmds[0];
+          VkSubmitInfo rerecordedSubmit = submitInfo;
+
+          rerecordedSubmit.commandBufferCount = (uint32_t)rerecordedCmds.size();
+          rerecordedSubmit.pCommandBuffers = &rerecordedCmds[0];
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
-          submitInfo.commandBufferCount = 1;
-          for(uint32_t i = 0; i < submitInfo.commandBufferCount; i++)
+          rerecordedSubmit.commandBufferCount = 1;
+          for(uint32_t i = 0; i < rerecordedSubmit.commandBufferCount; i++)
           {
-            ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
-            submitInfo.pCommandBuffers++;
+            ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &rerecordedSubmit, VK_NULL_HANDLE);
+            rerecordedSubmit.pCommandBuffers++;
 
             FlushQ();
           }
 #else
           // don't submit the fence, since we have nothing to wait on it being signalled, and we
           // might not have it correctly in the unsignalled state.
-          ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+          ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &rerecordedSubmit, VK_NULL_HANDLE);
 #endif
         }
         else if(m_LastEventID > startEID && m_LastEventID < m_RootEventID)
@@ -358,22 +360,24 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
           RDCASSERT(trimmedCmds.size() > 0);
 
-          submitInfo.commandBufferCount = (uint32_t)trimmedCmds.size();
-          submitInfo.pCommandBuffers = &trimmedCmds[0];
+          VkSubmitInfo trimmedSubmit = submitInfo;
+
+          trimmedSubmit.commandBufferCount = (uint32_t)trimmedCmds.size();
+          trimmedSubmit.pCommandBuffers = &trimmedCmds[0];
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
-          submitInfo.commandBufferCount = 1;
-          for(uint32_t i = 0; i < submitInfo.commandBufferCount; i++)
+          trimmedSubmit.commandBufferCount = 1;
+          for(uint32_t i = 0; i < trimmedSubmit.commandBufferCount; i++)
           {
-            ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
-            submitInfo.pCommandBuffers++;
+            ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &trimmedSubmit, VK_NULL_HANDLE);
+            trimmedSubmit.pCommandBuffers++;
 
             FlushQ();
           }
 #else
           // don't submit the fence, since we have nothing to wait on it being signalled, and we
           // might not have it correctly in the unsignalled state.
-          ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
+          ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &trimmedSubmit, VK_NULL_HANDLE);
 #endif
 
           for(uint32_t i = 0; i < trimmedCmdIds.size(); i++)

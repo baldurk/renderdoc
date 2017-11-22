@@ -225,7 +225,8 @@ private:
       allocated[idx] = false;
 
 #if ENABLED(RDOC_DEVEL)
-      memset(p, 0xfe, DebugClear ? AllocByteSize : 0);
+      if(DebugClear)
+        memset(p, 0xfe, AllocByteSize);
 #endif
     }
 

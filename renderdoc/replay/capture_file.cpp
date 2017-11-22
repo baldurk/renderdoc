@@ -665,6 +665,10 @@ bool CaptureFile::InitResolver(float *progress, volatile bool *killSignal)
     *progress = 0.001f;
 
   int idx = m_RDC->SectionIndex(SectionType::ResolveDatabase);
+
+  if(idx < 0)
+    return false;
+
   StreamReader *reader = m_RDC->ReadSection(idx);
 
   std::vector<byte> buf;

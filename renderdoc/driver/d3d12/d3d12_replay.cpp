@@ -1797,8 +1797,12 @@ void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
 {
   WrappedID3D12Device device(NULL, NULL);
 
-  device.SetStructuredExport(
-      rdc->GetSectionProperties(rdc->SectionIndex(SectionType::FrameCapture)).version);
+  int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
+
+  if(sectionIdx < 0)
+    return;
+
+  device.SetStructuredExport(rdc->GetSectionProperties(sectionIdx).version);
   device.ReadLogInitialisation(rdc, true);
 
   device.GetStructuredFile().swap(output);

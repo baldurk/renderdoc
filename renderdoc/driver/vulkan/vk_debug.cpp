@@ -974,16 +974,16 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
         m_pDriver->vkDestroyRenderPass(dev, rp, NULL);
       }
-
-      attDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-      msaa.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-      msaa.sampleShadingEnable = false;
-      msaa.minSampleShading = 0.0f;
     }
 
     // restore pipeline state to normal
     cb.attachmentCount = 1;
+
+    attDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+    msaa.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    msaa.sampleShadingEnable = false;
+    msaa.minSampleShading = 0.0f;
 
     pipeInfo.renderPass = RGBA8sRGBRP;
     dyn.dynamicStateCount = ARRAY_COUNT(dynstates);

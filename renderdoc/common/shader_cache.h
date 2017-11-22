@@ -68,65 +68,76 @@ bool LoadShaderCache(const char *filename, const uint32_t magicNumber, const uin
     {
       uint32_t numentries = header[2];
 
-      byte *ptr = cache + sizeof(uint32_t) * 3;
-
-      int64_t bufsize = (int64_t)cachelen - sizeof(uint32_t) * 3;
-
-      for(uint32_t i = 0; i < numentries; i++)
+      // assume at least 16 bytes for any cache entry. 8 bytes for hash and length, and 8 bytes
+      // data.
+      if(numentries > cachelen / 16LLU)
       {
-        if((size_t)bufsize < sizeof(uint32_t))
-        {
-          RDCERR("Invalid shader cache - truncated, not enough data for shader hash");
-          ret = false;
-          break;
-        }
-
-        uint32_t hash = *(uint32_t *)ptr;
-        ptr += sizeof(uint32_t);
-        bufsize -= sizeof(uint32_t);
-
-        if((size_t)bufsize < sizeof(uint32_t))
-        {
-          RDCERR("Invalid shader cache - truncated, not enough data for shader length");
-          ret = false;
-          break;
-        }
-
-        uint32_t len = *(uint32_t *)ptr;
-        ptr += sizeof(uint32_t);
-        bufsize -= sizeof(uint32_t);
-
-        if(bufsize < len)
-        {
-          RDCERR("Invalid shader cache - truncated, not enough data for shader buffer");
-          ret = false;
-          break;
-        }
-
-        byte *data = ptr;
-        ptr += len;
-        bufsize -= len;
-
-        ResultType result;
-        bool created = callbacks.Create(len, data, &result);
-
-        if(!created)
-        {
-          RDCERR("Couldn't create blob of size %u from shadercache", len);
-          ret = false;
-          break;
-        }
-
-        resultCache[hash] = result;
-      }
-
-      if(ret == true && bufsize != 0)
-      {
-        RDCERR("Invalid shader cache - trailing data");
+        RDCERR("Invalid shader cache - more entries %u than are feasible in a %llu byte cache",
+               numentries, cachelen);
         ret = false;
       }
+      else
+      {
+        byte *ptr = cache + sizeof(uint32_t) * 3;
 
-      RDCDEBUG("Successfully loaded %d shaders from shader cache", resultCache.size());
+        int64_t bufsize = (int64_t)cachelen - sizeof(uint32_t) * 3;
+
+        for(uint32_t i = 0; i < numentries; i++)
+        {
+          if((size_t)bufsize < sizeof(uint32_t))
+          {
+            RDCERR("Invalid shader cache - truncated, not enough data for shader hash");
+            ret = false;
+            break;
+          }
+
+          uint32_t hash = *(uint32_t *)ptr;
+          ptr += sizeof(uint32_t);
+          bufsize -= sizeof(uint32_t);
+
+          if((size_t)bufsize < sizeof(uint32_t))
+          {
+            RDCERR("Invalid shader cache - truncated, not enough data for shader length");
+            ret = false;
+            break;
+          }
+
+          uint32_t len = *(uint32_t *)ptr;
+          ptr += sizeof(uint32_t);
+          bufsize -= sizeof(uint32_t);
+
+          if(bufsize < len)
+          {
+            RDCERR("Invalid shader cache - truncated, not enough data for shader buffer");
+            ret = false;
+            break;
+          }
+
+          byte *data = ptr;
+          ptr += len;
+          bufsize -= len;
+
+          ResultType result;
+          bool created = callbacks.Create(len, data, &result);
+
+          if(!created)
+          {
+            RDCERR("Couldn't create blob of size %u from shadercache", len);
+            ret = false;
+            break;
+          }
+
+          resultCache[hash] = result;
+        }
+
+        if(ret == true && bufsize != 0)
+        {
+          RDCERR("Invalid shader cache - trailing data");
+          ret = false;
+        }
+
+        RDCDEBUG("Successfully loaded %d shaders from shader cache", resultCache.size());
+      }
     }
 
     delete[] cache;

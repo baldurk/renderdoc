@@ -115,7 +115,7 @@ public:
   void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 
   static D3D12RootSignature GetRootSig(const void *data, size_t dataSize);
-  static ID3DBlob *MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> params,
+  static ID3DBlob *MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> &params,
                                D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE,
                                UINT NumStaticSamplers = 0,
                                const D3D12_STATIC_SAMPLER_DESC *StaticSamplers = NULL);

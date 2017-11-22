@@ -3323,8 +3323,12 @@ void GL_ProcessStructured(RDCFile *rdc, SDFile &output)
   GLDummyPlatform dummy;
   WrappedOpenGL device(empty, dummy);
 
-  device.SetStructuredExport(
-      rdc->GetSectionProperties(rdc->SectionIndex(SectionType::FrameCapture)).version);
+  int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
+
+  if(sectionIdx < 0)
+    return;
+
+  device.SetStructuredExport(rdc->GetSectionProperties(sectionIdx).version);
   device.ReadLogInitialisation(rdc, true);
 
   device.GetStructuredFile().swap(output);

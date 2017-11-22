@@ -640,8 +640,10 @@ void RemoteManager::on_deleteHost_clicked()
 
   RemoteHost *host = getRemoteHost(item);
 
+  int itemIdx = ui->hosts->indexOfTopLevelItem(item);
+
   // don't delete running instances on a host
-  if(item->parent() != ui->hosts->invisibleRootItem() || !host)
+  if(item->parent() != ui->hosts->invisibleRootItem() || itemIdx < 0 || !host)
     return;
 
   QString hostname = item->text(0);
@@ -664,7 +666,7 @@ void RemoteManager::on_deleteHost_clicked()
 
     item->clear();
 
-    queueDelete(ui->hosts->takeTopLevelItem(ui->hosts->indexOfTopLevelItem(item)));
+    queueDelete(ui->hosts->takeTopLevelItem(itemIdx));
 
     ui->hosts->clearSelection();
 

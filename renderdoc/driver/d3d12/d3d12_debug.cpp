@@ -1663,7 +1663,7 @@ D3D12RootSignature D3D12DebugManager::GetRootSig(const void *data, size_t dataSi
   return ret;
 }
 
-ID3DBlob *D3D12DebugManager::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> params,
+ID3DBlob *D3D12DebugManager::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> &params,
                                          D3D12_ROOT_SIGNATURE_FLAGS Flags, UINT NumStaticSamplers,
                                          const D3D12_STATIC_SAMPLER_DESC *StaticSamplers)
 {

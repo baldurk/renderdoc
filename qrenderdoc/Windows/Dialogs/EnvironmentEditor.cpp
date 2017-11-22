@@ -170,7 +170,12 @@ void EnvironmentEditor::on_deleteButton_clicked()
   if(!sel)
     return;
 
-  delete ui->variables->takeTopLevelItem(ui->variables->indexOfTopLevelItem(sel));
+  int idx = ui->variables->indexOfTopLevelItem(sel);
+
+  if(idx >= 0)
+    delete ui->variables->takeTopLevelItem(idx);
+  else
+    qCritical() << "Can't find item to delete";
 
   on_name_textChanged(ui->name->text());
 }

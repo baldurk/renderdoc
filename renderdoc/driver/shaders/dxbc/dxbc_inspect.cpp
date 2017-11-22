@@ -914,13 +914,15 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
       RDCASSERT(sig && sig->empty());
 
-      SIGNElement *el = (SIGNElement *)(sign + 1);
-      SIGNElement7 *el7 = (SIGNElement7 *)el;
-      SIGNElement1 *el1 = (SIGNElement1 *)el;
+      SIGNElement *el0 = (SIGNElement *)(sign + 1);
+      SIGNElement7 *el7 = (SIGNElement7 *)el0;
+      SIGNElement1 *el1 = (SIGNElement1 *)el0;
 
       for(uint32_t signIdx = 0; signIdx < sign->numElems; signIdx++)
       {
         SigParameter desc;
+
+        const SIGNElement *el = el0;
 
         if(*fourcc == FOURCC_ISG1 || *fourcc == FOURCC_OSG1)
         {
@@ -1021,7 +1023,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
         sig->push_back(desc);
 
-        el++;
+        el0++;
         el1++;
         el7++;
       }

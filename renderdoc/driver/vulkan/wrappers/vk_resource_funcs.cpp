@@ -1413,9 +1413,11 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
                           reqs[i].formatProperties.imageGranularity.depth);
 
             int a = 0;
-            for(; a < NUM_VK_IMAGE_ASPECTS; a++)
+            for(a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
+            {
               if(reqs[i].formatProperties.aspectMask & (1 << a))
                 break;
+            }
 
             record->sparseInfo->pages[a] = new pair<VkDeviceMemory, VkDeviceSize>[numpages];
           }
