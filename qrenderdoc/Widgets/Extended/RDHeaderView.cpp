@@ -364,7 +364,7 @@ void RDHeaderView::cacheSectionMinSizes()
 
 void RDHeaderView::resizeSectionsWithHints()
 {
-  if(m_sectionMinSizes.count() == 0)
+  if(m_sectionMinSizes.count() == 0 || m_sectionStretchHintTotal <= 0)
     return;
 
   QVector<int> sizes = m_sectionMinSizes;

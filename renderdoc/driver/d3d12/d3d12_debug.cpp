@@ -3921,6 +3921,12 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       sodecls.push_back(decl);
     }
 
+    if(stride == 0)
+    {
+      RDCERR("Didn't get valid stride! Setting to 4 bytes");
+      stride = 4;
+    }
+
     // shift position attribute up to first, keeping order otherwise
     // the same
     if(posidx > 0)

@@ -758,6 +758,10 @@ void StatisticsViewer::GenerateReport()
     largeTexH /= largeTexCount;
   }
 
+  float drawRatio = 0.0f;
+  if(drawCount + dispatchCount > 0)
+    drawRatio = (float)numAPIcalls / (float)(drawCount + dispatchCount);
+
   const FrameDescription &frameInfo = m_Ctx.FrameInfo();
 
   float compressedMB = (float)frameInfo.compressedFileSize / (1024.0f * 1024.0f);
@@ -776,8 +780,7 @@ void StatisticsViewer::GenerateReport()
           .arg(persistentMB, 2, 'f', 2)
           .arg(initDataMB, 2, 'f', 2);
   QString drawList = tr("Draw calls: %1\nDispatch calls: %2\n").arg(drawCount).arg(dispatchCount);
-  QString ratio = tr("API:Draw/Dispatch call ratio: %1\n\n")
-                      .arg((float)numAPIcalls / (float)(drawCount + dispatchCount));
+  QString ratio = tr("API:Draw/Dispatch call ratio: %1\n\n").arg(drawRatio);
   QString textures = tr("%1 Textures - %2 MB (%3 MB over 32x32), %4 RTs - %5 MB.\n"
                         "Avg. tex dimension: %6x%7 (%8x%9 over 32x32)\n")
                          .arg(numTextures)
