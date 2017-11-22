@@ -214,7 +214,7 @@ bool ProcessImplicitLayersKey(HKEY key, const std::wstring &path,
 {
   bool thisRegistered = false;
 
-  wchar_t name[1024] = {};
+  wchar_t name[1025] = {};
   DWORD nameSize = 1024;
   DWORD idx = 0;
 

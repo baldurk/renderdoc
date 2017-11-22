@@ -540,7 +540,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModi
 
   wchar_t renderdocPathLower[MAX_PATH] = {0};
   memcpy(renderdocPathLower, renderdocPath, MAX_PATH * sizeof(wchar_t));
-  for(size_t i = 0; renderdocPathLower[i] && i < MAX_PATH; i++)
+  for(size_t i = 0; i < MAX_PATH && renderdocPathLower[i]; i++)
   {
     // lowercase
     if(renderdocPathLower[i] >= 'A' && renderdocPathLower[i] <= 'Z')
