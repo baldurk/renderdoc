@@ -544,7 +544,7 @@ RDTreeWidgetItemIterator &RDTreeWidgetItemIterator::operator++()
 }
 
 RDTreeWidgetDelegate::RDTreeWidgetDelegate(RDTreeWidget *parent)
-    : m_widget(parent), ForwardingDelegate(parent)
+    : m_widget(parent), RDTreeViewDelegate(parent)
 {
 }
 
@@ -567,7 +567,7 @@ void RDTreeWidgetDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
       if(RichResourceTextCheck(v))
       {
         // draw the item without text, so we get the proper background/selection/etc.
-        // we'd like to be able to use ForwardingDelegate::paint here, but either it calls to
+        // we'd like to be able to use the parent delegate's paint here, but either it calls to
         // QStyledItemDelegate which will re-fetch the text (bleh), or it calls to the manual
         // delegate which could do anything. So for this case we just use the style and skip the
         // delegate and hope it works out.
@@ -588,7 +588,7 @@ void RDTreeWidgetDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     }
   }
 
-  return ForwardingDelegate::paint(painter, option, index);
+  return RDTreeViewDelegate::paint(painter, option, index);
 }
 
 QSize RDTreeWidgetDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
@@ -607,7 +607,7 @@ QSize RDTreeWidgetDelegate::sizeHint(const QStyleOptionViewItem &option, const Q
     }
   }
 
-  return ForwardingDelegate::sizeHint(option, index);
+  return RDTreeViewDelegate::sizeHint(option, index);
 }
 
 bool RDTreeWidgetDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
@@ -631,7 +631,7 @@ bool RDTreeWidgetDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
     }
   }
 
-  return ForwardingDelegate::editorEvent(event, model, option, index);
+  return RDTreeViewDelegate::editorEvent(event, model, option, index);
 }
 
 bool RDTreeWidgetDelegate::linkHover(QMouseEvent *e, const QModelIndex &index)

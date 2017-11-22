@@ -194,7 +194,7 @@ private:
   RDTreeWidgetItem *m_Current;
 };
 
-class RDTreeWidgetDelegate : public ForwardingDelegate
+class RDTreeWidgetDelegate : public RDTreeViewDelegate
 {
   Q_OBJECT
 public:
