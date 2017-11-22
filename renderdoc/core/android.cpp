@@ -459,7 +459,7 @@ bool CheckDebuggable(const string &apk)
 
   string badging = execCommand("aapt", "dump badging " + apk).strStdout;
 
-  if(badging.find("application-debuggable"))
+  if(badging.find("application-debuggable") == string::npos)
   {
     RDCERR("APK is not debuggable");
     return false;
