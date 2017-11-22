@@ -29,7 +29,6 @@
 #include <QShortcut>
 #include <QTimer>
 #include "3rdparty/flowlayout/FlowLayout.h"
-#include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDHeaderView.h"

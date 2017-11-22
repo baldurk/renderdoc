@@ -28,8 +28,6 @@
 #include <QString>
 #include <QVector>
 
-#include "Code/CaptureContext.h"
-
 namespace Ui
 {
 class TipsDialog;

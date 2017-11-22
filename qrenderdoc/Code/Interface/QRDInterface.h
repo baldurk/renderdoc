@@ -946,15 +946,6 @@ struct EventBookmark
 DOCUMENT("The capture context that the python script is running in.")
 struct ICaptureContext
 {
-  DOCUMENT(R"(Retrieve the absolute path where a given file can be stored with other application
-data.
-
-:param str filename: The base filename.
-:return: The absolute path.
-:rtype: ``str``
-)");
-  virtual QString ConfigFilePath(const QString &filename) = 0;
-
   DOCUMENT(R"(Retrieve the absolute path where a given temporary capture should be stored.
 data.
 
@@ -1795,3 +1786,16 @@ This may return ``None`` if no capture context can be found.
 :rtype: CaptureContext
 )");
 ICaptureContext *getCaptureContext(const QWidget *widget);
+
+DOCUMENT(R"(Retrieve the absolute path where a given file can be stored with other application
+data.
+
+:param str filename: The base filename.
+:return: The absolute path.
+:rtype: ``str``
+)");
+QString configFilePath(const QString &filename);
+
+// simple helper for the common case of 'we just need to run this on the replay thread'
+#define INVOKE_MEMFN(function) \
+  m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) { function(r); });

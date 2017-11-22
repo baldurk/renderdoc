@@ -33,7 +33,6 @@
 #include <QProgressDialog>
 #include <QToolButton>
 #include <QToolTip>
-#include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Resources/resource.h"
@@ -263,7 +262,7 @@ QString MainWindow::GetLayoutPath(int layout)
   if(layout > 0)
     filename = lit("Layout%1.config").arg(layout);
 
-  return ConfigFilePath(filename);
+  return configFilePath(filename);
 }
 
 void MainWindow::on_action_Exit_triggered()

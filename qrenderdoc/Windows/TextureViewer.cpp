@@ -37,7 +37,6 @@
 #include <QStyledItemDelegate>
 #include "3rdparty/flowlayout/FlowLayout.h"
 #include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
-#include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Dialogs/TextureSaveDialog.h"
@@ -2460,7 +2459,7 @@ void TextureViewer::OnCaptureLoaded()
     GUIInvoke::call([this]() { OnEventChanged(m_Ctx.CurEvent()); });
   });
 
-  m_Watcher = new QFileSystemWatcher({ConfigFilePath(QString())}, this);
+  m_Watcher = new QFileSystemWatcher({configFilePath(QString())}, this);
 
   QObject::connect(m_Watcher, &QFileSystemWatcher::fileChanged, this,
                    &TextureViewer::customShaderModified);
@@ -3559,7 +3558,7 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
   }
 
   QStringList files =
-      QDir(ConfigFilePath(QString()))
+      QDir(configFilePath(QString()))
           .entryList({QFormatStr("*.%1").arg(m_Ctx.CurPipelineState().GetShaderExtension())},
                      QDir::Files | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase);
 
@@ -3572,11 +3571,11 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
     QString fn = QFileInfo(f).baseName();
     QString key = fn.toUpper();
 
-    m_Watcher->addPath(ConfigFilePath(f));
+    m_Watcher->addPath(configFilePath(f));
 
     if(!m_CustomShaders.contains(key) && !m_CustomShadersBusy.contains(key))
     {
-      QFile fileHandle(ConfigFilePath(f));
+      QFile fileHandle(configFilePath(f));
       if(fileHandle.open(QFile::ReadOnly | QFile::Text))
       {
         QTextStream stream(&fileHandle);
@@ -3635,7 +3634,7 @@ void TextureViewer::on_customCreate_clicked()
     return;
   }
 
-  QString path = ConfigFilePath(filename + lit(".") + m_Ctx.CurPipelineState().GetShaderExtension());
+  QString path = configFilePath(filename + lit(".") + m_Ctx.CurPipelineState().GetShaderExtension());
 
   QString src;
 
@@ -3690,7 +3689,7 @@ void TextureViewer::on_customEdit_clicked()
     return;
   }
 
-  QString path = ConfigFilePath(filename + lit(".") + m_Ctx.CurPipelineState().GetShaderExtension());
+  QString path = configFilePath(filename + lit(".") + m_Ctx.CurPipelineState().GetShaderExtension());
 
   QString src;
 
@@ -3769,7 +3768,7 @@ void TextureViewer::on_customDelete_clicked()
   if(res == QMessageBox::Yes)
   {
     QString path =
-        ConfigFilePath(shaderName + lit(".") + m_Ctx.CurPipelineState().GetShaderExtension());
+        configFilePath(shaderName + lit(".") + m_Ctx.CurPipelineState().GetShaderExtension());
     if(!QFileInfo::exists(path))
     {
       RDDialog::critical(

@@ -28,7 +28,6 @@
 #include <QMutex>
 #include <QSemaphore>
 #include <QTimer>
-#include "Code/CaptureContext.h"
 
 namespace Ui
 {

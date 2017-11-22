@@ -46,10 +46,6 @@ struct CaptureContextInvoker : ICaptureContext
   // pass-through functions that don't need the UI thread
   ///////////////////////////////////////////////////////////////////////
   //
-  virtual QString ConfigFilePath(const QString &filename) override
-  {
-    return m_Ctx.ConfigFilePath(filename);
-  }
   virtual QString TempCaptureFilename(QString appname) override
   {
     return m_Ctx.TempCaptureFilename(appname);

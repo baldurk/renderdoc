@@ -39,10 +39,6 @@ struct IReplayController;
 class LambdaThread;
 class RemoteHost;
 
-// simple helper for the common case of 'we just need to run this on the render thread
-#define INVOKE_MEMFN(function) \
-  m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) { function(r); });
-
 class ReplayManager : public IReplayManager
 {
   Q_DECLARE_TR_FUNCTIONS(ReplayManager);

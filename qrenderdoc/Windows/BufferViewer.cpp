@@ -28,6 +28,7 @@
 #include <QFontDatabase>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QMutexLocker>
 #include <QScrollBar>
 #include <QTimer>
 #include <QtMath>

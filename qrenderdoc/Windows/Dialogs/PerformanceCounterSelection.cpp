@@ -25,7 +25,6 @@
 #include "PerformanceCounterSelection.h"
 #include <QMenu>
 #include <QSet>
-#include "Code/CaptureContext.h"
 #include "Code/Interface/QRDInterface.h"
 #include "Code/Resources.h"
 #include "ui_PerformanceCounterSelection.h"

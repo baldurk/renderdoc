@@ -52,8 +52,6 @@ class TimelineBar;
 class PythonShell;
 class ResourceInspector;
 
-QString ConfigFilePath(const QString &filename);
-
 class CaptureContext : public ICaptureContext
 {
   Q_DECLARE_TR_FUNCTIONS(CaptureContext);
@@ -65,7 +63,6 @@ public:
 
   bool isRunning();
 
-  QString ConfigFilePath(const QString &filename) override { return ::ConfigFilePath(filename); }
   QString TempCaptureFilename(QString appname) override;
 
   //////////////////////////////////////////////////////////////////////////////

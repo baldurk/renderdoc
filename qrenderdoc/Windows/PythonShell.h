@@ -25,7 +25,6 @@
 #pragma once
 
 #include <QFrame>
-#include "Code/CaptureContext.h"
 
 class PythonContext;
 class ScintillaEdit;

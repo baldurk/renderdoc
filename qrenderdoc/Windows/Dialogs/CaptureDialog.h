@@ -26,7 +26,6 @@
 
 #include <QFrame>
 #include <functional>
-#include "Code/CaptureContext.h"
 
 namespace Ui
 {

@@ -25,7 +25,6 @@
 #pragma once
 
 #include <QAbstractScrollArea>
-#include "Code/CaptureContext.h"
 
 class TimelineBar : public QAbstractScrollArea, public ITimelineBar, public ICaptureViewer
 {

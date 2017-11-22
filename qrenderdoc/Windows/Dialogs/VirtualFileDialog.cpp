@@ -29,7 +29,6 @@
 #include <QPushButton>
 #include <QRegExp>
 #include <QSortFilterProxyModel>
-#include "Code/CaptureContext.h"
 #include "Code/ReplayManager.h"
 #include "Code/Resources.h"
 #include "ui_VirtualFileDialog.h"

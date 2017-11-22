@@ -26,7 +26,6 @@
 
 #include <QFrame>
 #include <QIcon>
-#include "Code/CaptureContext.h"
 
 namespace Ui
 {

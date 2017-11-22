@@ -25,7 +25,6 @@
 #include "TextureSaveDialog.h"
 #include <QColorDialog>
 #include <QFileInfo>
-#include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "ui_TextureSaveDialog.h"
 

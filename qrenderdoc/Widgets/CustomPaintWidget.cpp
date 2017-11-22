@@ -25,7 +25,6 @@
 #include "CustomPaintWidget.h"
 #include <math.h>
 #include <QPainter>
-#include "Code/CaptureContext.h"
 
 CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
 {

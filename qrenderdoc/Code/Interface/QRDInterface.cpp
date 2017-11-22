@@ -121,7 +121,7 @@ CaptureSettings::CaptureSettings(const QVariant &v)
   Options.DebugOutputMute = opts[lit("DebugOutputMute")].toBool();
 }
 
-QString ConfigFilePath(const QString &filename)
+QString configFilePath(const QString &filename)
 {
   QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 

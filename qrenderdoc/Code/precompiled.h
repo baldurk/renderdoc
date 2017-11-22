@@ -24,6 +24,5 @@
 
 #pragma once
 
-#include "Code/CaptureContext.h"
 #include "Code/Interface/QRDInterface.h"
 #include "Code/QRDUtils.h"

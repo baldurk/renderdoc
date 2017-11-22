@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 #include "SettingsDialog.h"
-#include "Code/CaptureContext.h"
 #include "Code/Interface/QRDInterface.h"
 #include "Code/QRDUtils.h"
 #include "Styles/StyleData.h"
