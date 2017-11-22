@@ -765,6 +765,9 @@ int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
   if(stylehint == SH_Menu_SubMenuSloppySelectOtherActions)
     return 1;
 
+  if(stylehint == QStyle::SH_ItemView_ArrowKeysNavigateIntoChildren)
+    return 1;
+
   return RDTweakedNativeStyle::styleHint(stylehint, opt, widget, returnData);
 }
 
