@@ -157,7 +157,7 @@ struct D3D11ResourceRecord : public ResourceRecord
   bool ignoreSerialise;
 
   int NumSubResources;
-  ResourceRecord **SubResources;
+  D3D11ResourceRecord **SubResources;
 
 private:
   byte *ShadowPtr[32][2];

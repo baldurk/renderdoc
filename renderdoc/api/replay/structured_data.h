@@ -352,7 +352,6 @@ DOCUMENT("Defines a single structured chunk, which is a :class:`SDObject`.");
 struct SDChunk : public SDObject
 {
   SDChunk(const char *name) : SDObject(name, "Chunk") { type.basetype = SDBasic::Chunk; }
-  ~SDChunk() { (void)metadata; };
   DOCUMENT("The :class:`SDChunkMetaData` with the metadata for this chunk.");
   SDChunkMetaData metadata;
 

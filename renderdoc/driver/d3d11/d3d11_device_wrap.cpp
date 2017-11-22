@@ -254,7 +254,7 @@ std::vector<D3D11_SUBRESOURCE_DATA> WrappedID3D11Device::Serialise_CreateTexture
           record->DataInSerialiser = true;
 
         record->NumSubResources = numSubresources;
-        record->SubResources = new ResourceRecord *[record->NumSubResources];
+        record->SubResources = new D3D11ResourceRecord *[record->NumSubResources];
         for(UINT s = 0; s < numSubresources; s++)
         {
           record->SubResources[s] = new D3D11ResourceRecord(ResourceId());
