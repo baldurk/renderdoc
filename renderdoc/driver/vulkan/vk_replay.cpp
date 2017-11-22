@@ -901,8 +901,8 @@ vector<string> VulkanReplay::GetDisassemblyTargets()
 
   if(vt->GetShaderInfoAMD)
     ret.push_back("Live driver disassembly");
-  else
-    GCNISA::GetTargets(GraphicsAPI::Vulkan, ret);
+
+  GCNISA::GetTargets(GraphicsAPI::Vulkan, ret);
 
   // default is always first
   ret.insert(ret.begin(), "SPIR-V (RenderDoc)");
@@ -936,6 +936,12 @@ string VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
 
   if(vt->GetShaderInfoAMD)
   {
+    if(pipeline == ResourceId())
+    {
+      return "No pipeline specified, live driver disassembly is not available\n"
+             "Shader must be disassembled with a specific pipeline to get live driver assembly.";
+    }
+
     VkPipeline pipe = m_pDriver->GetResourceManager()->GetLiveHandle<VkPipeline>(pipeline);
 
     VkShaderStageFlagBits stageBit =
