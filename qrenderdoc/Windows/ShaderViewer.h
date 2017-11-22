@@ -72,19 +72,18 @@ public:
 
   static IShaderViewer *DebugShader(ICaptureContext &ctx, const ShaderBindpointMapping *bind,
                                     const ShaderReflection *shader, ResourceId pipeline,
-                                    ShaderStage stage, ShaderDebugTrace *trace,
-                                    const QString &debugContext, QWidget *parent)
+                                    ShaderDebugTrace *trace, const QString &debugContext,
+                                    QWidget *parent)
   {
     ShaderViewer *ret = new ShaderViewer(ctx, parent);
-    ret->debugShader(bind, shader, pipeline, stage, trace, debugContext);
+    ret->debugShader(bind, shader, pipeline, trace, debugContext);
     return ret;
   }
 
-  static IShaderViewer *ViewShader(ICaptureContext &ctx, const ShaderBindpointMapping *bind,
-                                   const ShaderReflection *shader, ResourceId pipeline,
-                                   ShaderStage stage, QWidget *parent)
+  static IShaderViewer *ViewShader(ICaptureContext &ctx, const ShaderReflection *shader,
+                                   ResourceId pipeline, QWidget *parent)
   {
-    return DebugShader(ctx, bind, shader, pipeline, stage, NULL, QString(), parent);
+    return DebugShader(ctx, NULL, shader, pipeline, NULL, QString(), parent);
   }
 
   ~ShaderViewer();
@@ -149,8 +148,7 @@ private:
   explicit ShaderViewer(ICaptureContext &ctx, QWidget *parent = 0);
   void editShader(bool customShader, const QString &entryPoint, const QStringMap &files);
   void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
-                   ResourceId pipeline, ShaderStage stage, ShaderDebugTrace *trace,
-                   const QString &debugContext);
+                   ResourceId pipeline, ShaderDebugTrace *trace, const QString &debugContext);
   bool eventFilter(QObject *watched, QEvent *event) override;
 
   const rdcarray<ShaderVariable> *GetVariableList(VariableCategory varCat, int arrayIdx);

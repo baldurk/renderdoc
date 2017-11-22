@@ -185,9 +185,6 @@ void WrappedShader::ShaderEntry::BuildReflection()
 
   MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
   m_Details.ID = m_ID;
-  m_Details.EntryPoint = m_DXBCFile->m_DebugInfo ? m_DXBCFile->m_DebugInfo->GetEntryFunction() : "";
-  if(m_Details.EntryPoint.empty())
-    m_Details.EntryPoint = "main";
 }
 
 UINT GetMipForSubresource(ID3D11Resource *res, int Subresource)

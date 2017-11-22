@@ -2208,15 +2208,12 @@ void D3D11PipelineStateViewer::vertex_leave(QEvent *e)
 
 void D3D11PipelineStateViewer::shaderView_clicked()
 {
-  ShaderStage shaderStage = ShaderStage::Vertex;
   ShaderReflection *shaderDetails = NULL;
-  const ShaderBindpointMapping *bindMap = NULL;
 
   QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
   if(sender == ui->iaBytecode || sender == ui->iaBytecodeViewButton)
   {
     shaderDetails = m_Ctx.CurD3D11PipelineState().m_IA.Bytecode;
-    bindMap = NULL;
   }
   else
   {
@@ -2225,12 +2222,10 @@ void D3D11PipelineStateViewer::shaderView_clicked()
     if(stage == NULL || stage->Object == ResourceId())
       return;
 
-    bindMap = &stage->BindpointMapping;
     shaderDetails = stage->ShaderDetails;
-    shaderStage = stage->stage;
   }
 
-  IShaderViewer *shad = m_Ctx.ViewShader(bindMap, shaderDetails, ResourceId(), shaderStage);
+  IShaderViewer *shad = m_Ctx.ViewShader(shaderDetails, ResourceId());
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
 }
@@ -3130,8 +3125,8 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
           m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Compute);
 
       // viewer takes ownership of the trace
-      IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, ResourceId(),
-                                           ShaderStage::Compute, trace, debugContext);
+      IShaderViewer *s =
+          m_Ctx.DebugShader(&bindMapping, shaderDetails, ResourceId(), trace, debugContext);
 
       m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
     });

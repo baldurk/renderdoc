@@ -265,6 +265,8 @@ void DoSerialise(SerialiserType &ser, ShaderReflection &el)
   SERIALISE_MEMBER(ID);
   SERIALISE_MEMBER(EntryPoint);
 
+  SERIALISE_MEMBER(Stage);
+
   SERIALISE_MEMBER(DebugInfo);
 
   SERIALISE_MEMBER(DispatchThreadsDimension);
@@ -283,7 +285,7 @@ void DoSerialise(SerialiserType &ser, ShaderReflection &el)
 
   SERIALISE_MEMBER(Interfaces);
 
-  SIZE_CHECK(200);
+  SIZE_CHECK(208);
 }
 
 template <typename SerialiserType>

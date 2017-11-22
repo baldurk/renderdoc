@@ -3910,6 +3910,8 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
   vector<shaderrespair> samplers, roresources, rwresources;
 
   // VKTODOLOW filter to only functions/resources used by entryPoint
+  reflection.EntryPoint = entryPoint;
+  reflection.Stage = stage;
 
   // TODO sort these so that the entry point is in the first file
   if(!sourceFiles.empty())

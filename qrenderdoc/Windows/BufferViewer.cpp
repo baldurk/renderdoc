@@ -3208,8 +3208,8 @@ void BufferViewer::debugVertex()
       ResourceId pipeline = m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
 
       // viewer takes ownership of the trace
-      IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, pipeline,
-                                           ShaderStage::Vertex, trace, debugContext);
+      IShaderViewer *s =
+          m_Ctx.DebugShader(&bindMapping, shaderDetails, pipeline, trace, debugContext);
 
       m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
     });

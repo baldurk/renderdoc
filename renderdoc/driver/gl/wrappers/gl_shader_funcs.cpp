@@ -117,6 +117,21 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl, ResourceId id, GLuint
     reflection.ID = id;
     reflection.EntryPoint = "main";
 
+    switch(settings.stage)
+    {
+      case SPIRVShaderStage::Vertex: reflection.Stage = ShaderStage::Vertex; break;
+      case SPIRVShaderStage::TessControl: reflection.Stage = ShaderStage::Tess_Control; break;
+      case SPIRVShaderStage::TessEvaluation: reflection.Stage = ShaderStage::Tess_Eval; break;
+      case SPIRVShaderStage::Geometry: reflection.Stage = ShaderStage::Geometry; break;
+      case SPIRVShaderStage::Fragment: reflection.Stage = ShaderStage::Fragment; break;
+      case SPIRVShaderStage::Compute: reflection.Stage = ShaderStage::Compute; break;
+      case SPIRVShaderStage::Invalid:
+      default:
+        RDCERR("Unexpected shader stage %u", settings.stage);
+        reflection.Stage = ShaderStage::Vertex;
+        break;
+    }
+
     // TODO sort these so that the first file contains the entry point
     reflection.DebugInfo.files.resize(sources.size());
     for(size_t i = 0; i < sources.size(); i++)

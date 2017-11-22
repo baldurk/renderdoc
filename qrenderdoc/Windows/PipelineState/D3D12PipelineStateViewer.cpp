@@ -2059,8 +2059,8 @@ void D3D12PipelineStateViewer::shaderView_clicked()
   if(stage == NULL || stage->Object == ResourceId())
     return;
 
-  IShaderViewer *shad = m_Ctx.ViewShader(&stage->BindpointMapping, stage->ShaderDetails,
-                                         m_Ctx.CurD3D12PipelineState().pipeline, stage->stage);
+  IShaderViewer *shad =
+      m_Ctx.ViewShader(stage->ShaderDetails, m_Ctx.CurD3D12PipelineState().pipeline);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
 }

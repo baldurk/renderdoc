@@ -492,7 +492,4 @@ void WrappedID3D12PipelineState::ShaderEntry::BuildReflection()
 
   MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
   m_Details.ID = GetResourceID();
-  m_Details.EntryPoint = m_DXBCFile->m_DebugInfo ? m_DXBCFile->m_DebugInfo->GetEntryFunction() : "";
-  if(m_Details.EntryPoint.empty())
-    m_Details.EntryPoint = "main";
 }

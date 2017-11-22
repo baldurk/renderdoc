@@ -206,8 +206,26 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
   if(dxbc == NULL || !RenderDoc::Inst().IsReplayApp())
     return;
 
+  switch(dxbc->m_Type)
+  {
+    case D3D11_ShaderType_Pixel: refl->Stage = ShaderStage::Pixel; break;
+    case D3D11_ShaderType_Vertex: refl->Stage = ShaderStage::Vertex; break;
+    case D3D11_ShaderType_Geometry: refl->Stage = ShaderStage::Geometry; break;
+    case D3D11_ShaderType_Hull: refl->Stage = ShaderStage::Hull; break;
+    case D3D11_ShaderType_Domain: refl->Stage = ShaderStage::Domain; break;
+    case D3D11_ShaderType_Compute: refl->Stage = ShaderStage::Compute; break;
+    default:
+      RDCERR("Unexpected DXBC shader type %u", dxbc->m_Type);
+      refl->Stage = ShaderStage::Vertex;
+      break;
+  }
+
+  refl->EntryPoint = "main";
+
   if(dxbc->m_DebugInfo)
   {
+    refl->EntryPoint = dxbc->m_DebugInfo->GetEntryFunction();
+
     refl->DebugInfo.compileFlags = DXBC::EncodeFlags(dxbc->m_DebugInfo);
 
     refl->DebugInfo.files.resize(dxbc->m_DebugInfo->Files.size());

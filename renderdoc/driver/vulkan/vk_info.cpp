@@ -141,13 +141,12 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     if(reflData.entryPoint.empty())
     {
       SPVModule &spv = info.m_ShaderModule[id].spirv;
-      spv.MakeReflection(ShaderStage(reflData.stage), reflData.entryPoint, reflData.refl,
+      spv.MakeReflection(ShaderStage(reflData.stage), shad.entryPoint, reflData.refl,
                          reflData.mapping, reflData.patchData);
 
       reflData.entryPoint = shad.entryPoint;
       reflData.stage = stageIndex;
       reflData.refl.ID = resourceMan->GetOriginalID(id);
-      reflData.refl.EntryPoint = shad.entryPoint;
 
       if(!spv.spirv.empty())
       {
@@ -369,10 +368,9 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
       reflData.entryPoint = shad.entryPoint;
       reflData.stage = StageIndex(pCreateInfo->stage.stage);
       SPVModule &spv = info.m_ShaderModule[id].spirv;
-      spv.MakeReflection(ShaderStage::Compute, reflData.entryPoint, reflData.refl, reflData.mapping,
+      spv.MakeReflection(ShaderStage::Compute, shad.entryPoint, reflData.refl, reflData.mapping,
                          reflData.patchData);
       reflData.refl.ID = resourceMan->GetOriginalID(id);
-      reflData.refl.EntryPoint = shad.entryPoint;
 
       if(!spv.spirv.empty())
       {

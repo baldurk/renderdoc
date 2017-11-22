@@ -2285,7 +2285,7 @@ void VulkanPipelineStateViewer::shaderView_clicked()
                         ? m_Ctx.CurVulkanPipelineState().compute.obj
                         : m_Ctx.CurVulkanPipelineState().graphics.obj;
 
-  IShaderViewer *shad = m_Ctx.ViewShader(&stage->BindpointMapping, shaderDetails, pipe, stage->stage);
+  IShaderViewer *shad = m_Ctx.ViewShader(shaderDetails, pipe);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
 }

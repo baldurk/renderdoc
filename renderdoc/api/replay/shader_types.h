@@ -522,6 +522,10 @@ struct ShaderReflection
   rdcstr EntryPoint;
 
   DOCUMENT(
+      "The :class:`ShaderStage` that this shader corresponds to, if multiple entry points exist.");
+  ShaderStage Stage;
+
+  DOCUMENT(
       "A :class:`ShaderDebugChunk` containing any embedded debugging information in this shader.");
   ShaderDebugChunk DebugInfo;
 

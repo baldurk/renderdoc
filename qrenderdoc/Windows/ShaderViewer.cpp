@@ -282,14 +282,14 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
 }
 
 void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
-                               ResourceId pipeline, ShaderStage stage, ShaderDebugTrace *trace,
+                               ResourceId pipeline, ShaderDebugTrace *trace,
                                const QString &debugContext)
 {
   m_Mapping = bind;
   m_ShaderDetails = shader;
   m_Pipeline = pipeline;
   m_Trace = trace;
-  m_Stage = stage;
+  m_Stage = ShaderStage::Vertex;
   m_DebugContext = debugContext;
 
   // no replacing allowed, stay in find mode
@@ -301,6 +301,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
   if(shader)
   {
+    m_Stage = shader->Stage;
+
     m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
       rdcarray<rdcstr> targets = r->GetDisassemblyTargets();
 

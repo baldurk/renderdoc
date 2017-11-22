@@ -702,8 +702,7 @@ void PixelHistoryView::startDebug(EventTag tag)
     ResourceId pipeline = m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
 
     // viewer takes ownership of the trace
-    IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, pipeline, ShaderStage::Pixel,
-                                         trace, debugContext);
+    IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, pipeline, trace, debugContext);
 
     m_Ctx.AddDockWindow(s->Widget(), DockReference::MainToolArea, NULL);
   });
