@@ -3982,7 +3982,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
     ID3D12Resource *idxBuf = NULL;
 
     bool recreate = false;
-    uint64_t outputSize = stride * drawcall->numIndices * drawcall->numInstances;
+    uint64_t outputSize = uint64_t(drawcall->numIndices) * drawcall->numInstances * stride;
 
     if(m_SOBufferSize < outputSize)
     {

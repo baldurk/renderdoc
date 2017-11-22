@@ -1837,8 +1837,8 @@ void D3D11PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
     if(view.res.Resource != ResourceId())
     {
-      offs = view.res.FirstElement * view.res.ElementSize;
-      size = view.res.NumElements * view.res.ElementSize;
+      offs = uint64_t(view.res.FirstElement) * view.res.ElementSize;
+      size = uint64_t(view.res.NumElements) * view.res.ElementSize;
     }
     else
     {

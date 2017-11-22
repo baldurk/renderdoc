@@ -8045,7 +8045,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
   {
     // fetch ibuffer
     GetBufferData(state.ibuffer.buf, state.ibuffer.offs + drawcall->indexOffset * idxsize,
-                  drawcall->numIndices * idxsize, idxdata);
+                  uint64_t(drawcall->numIndices) * idxsize, idxdata);
 
     // figure out what the maximum index could be, so we can clamp our index buffer to something
     // sane

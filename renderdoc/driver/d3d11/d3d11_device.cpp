@@ -1484,7 +1484,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
             thwidth &= ~0x7;    // align down to multiple of 8
             thheight = uint16_t(float(thwidth) / aspect);
 
-            thpixels = new byte[3 * thwidth * thheight];
+            thpixels = new byte[3U * thwidth * thheight];
 
             float widthf = float(desc.Width);
             float heightf = float(desc.Height);

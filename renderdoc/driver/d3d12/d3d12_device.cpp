@@ -975,7 +975,7 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
       UINT numSlicesBeforeLast = pDstBox->back - pDstBox->front - 1;
       UINT numRows = pDstBox->bottom - pDstBox->top;
 
-      dataSize = SrcDepthPitch * numSlicesBeforeLast + SrcRowPitch * numRows;
+      dataSize = SrcDepthPitch * uint64_t(numSlicesBeforeLast) + SrcRowPitch * uint64_t(numRows);
     }
     else
     {
@@ -1445,7 +1445,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
           thwidth &= ~0x7;    // align down to multiple of 8
           thheight = uint16_t(float(thwidth) / aspect);
 
-          thpixels = new byte[3 * thwidth * thheight];
+          thpixels = new byte[3U * thwidth * thheight];
 
           float widthf = float(desc.Width);
           float heightf = float(desc.Height);

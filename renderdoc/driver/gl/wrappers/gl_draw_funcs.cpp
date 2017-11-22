@@ -729,8 +729,7 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
   const void *mmIndices = indices;
   if(indexType != eGL_NONE)
   {
-    uint32_t IdxSize = GetIdxSize(indexType);
-    idxlen = GLsizeiptr(IdxSize * count);
+    idxlen = GLsizeiptr(count) * GetIdxSize(indexType);
 
     m_Real.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
     if(idxbuf == 0)
@@ -2568,7 +2567,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
 
         m_Real.glDrawElementsInstancedBaseVertexBaseInstance(
-            mode, params.count, type, (const void *)ptrdiff_t(params.firstIndex * IdxSize),
+            mode, params.count, type, (const void *)(ptrdiff_t(params.firstIndex) * IdxSize),
             params.instanceCount, params.baseVertex, params.baseInstance);
       }
 
@@ -2916,7 +2915,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType
         m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
 
         m_Real.glDrawElementsInstancedBaseVertexBaseInstance(
-            mode, params.count, type, (const void *)ptrdiff_t(params.firstIndex * IdxSize),
+            mode, params.count, type, (const void *)(ptrdiff_t(params.firstIndex) * IdxSize),
             params.instanceCount, params.baseVertex, params.baseInstance);
       }
 

@@ -2691,7 +2691,7 @@ WrappedOpenGL::BackbufferImage *WrappedOpenGL::SaveBackbufferImage()
       thheight = uint16_t(float(thwidth) / aspect);
 
       byte *src = thpixels;
-      byte *dst = thpixels = new byte[3 * thwidth * thheight];
+      byte *dst = thpixels = new byte[3U * thwidth * thheight];
 
       for(uint32_t y = 0; y < thheight; y++)
       {
