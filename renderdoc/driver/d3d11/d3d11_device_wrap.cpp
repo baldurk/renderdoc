@@ -175,7 +175,7 @@ HRESULT WrappedID3D11Device::CreateBuffer(const D3D11_BUFFER_DESC *pDesc,
   {
     SCOPED_LOCK(m_D3DLock);
 
-    wrapped = new WrappedID3D11Buffer(real, pDesc ? pDesc->ByteWidth : 0, this);
+    wrapped = new WrappedID3D11Buffer(real, pDesc->ByteWidth, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -2653,7 +2653,7 @@ template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HANDLE hResource,
                                                        REFIID ReturnedInterface, void **ppResource)
 {
-  ID3D11DeviceChild *res = ppResource ? (ID3D11DeviceChild *)*ppResource : NULL;
+  ID3D11DeviceChild *res = ser.IsWriting() ? (ID3D11DeviceChild *)*ppResource : NULL;
 
   SERIALISE_ELEMENT_LOCAL(Type, IdentifyTypeByPtr(res));
   SERIALISE_ELEMENT_LOCAL(pResource, GetIDForResource(res));

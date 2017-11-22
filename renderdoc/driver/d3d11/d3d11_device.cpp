@@ -1656,8 +1656,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       {
         RDCDEBUG("Getting Resource Record");
 
-        D3D11ResourceRecord *record =
-            m_ResourceManager->GetResourceRecord(m_pImmediateContext->GetResourceID());
+        D3D11ResourceRecord *record = m_pImmediateContext->GetResourceRecord();
 
         RDCDEBUG("Accumulating context resource list");
 

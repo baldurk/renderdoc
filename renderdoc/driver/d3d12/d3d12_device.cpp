@@ -1260,8 +1260,11 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 
     GetResourceManager()->PrepareInitialContents();
 
-    // close the final list
-    initStateCurList->Close();
+    if(initStateCurList)
+    {
+      // close the final list
+      initStateCurList->Close();
+    }
 
     initStateCurBatch = 0;
     initStateCurList = NULL;

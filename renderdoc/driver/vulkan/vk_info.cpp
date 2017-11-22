@@ -441,13 +441,19 @@ void VulkanCreationInfo::PipelineLayout::Init(VulkanResourceManager *resourceMan
                                               VulkanCreationInfo &info,
                                               const VkPipelineLayoutCreateInfo *pCreateInfo)
 {
-  descSetLayouts.resize(pCreateInfo->setLayoutCount);
-  for(uint32_t i = 0; i < pCreateInfo->setLayoutCount; i++)
-    descSetLayouts[i] = GetResID(pCreateInfo->pSetLayouts[i]);
+  if(pCreateInfo->pSetLayouts)
+  {
+    descSetLayouts.resize(pCreateInfo->setLayoutCount);
+    for(uint32_t i = 0; i < pCreateInfo->setLayoutCount; i++)
+      descSetLayouts[i] = GetResID(pCreateInfo->pSetLayouts[i]);
+  }
 
-  pushRanges.reserve(pCreateInfo->pushConstantRangeCount);
-  for(uint32_t i = 0; i < pCreateInfo->pushConstantRangeCount; i++)
-    pushRanges.push_back(pCreateInfo->pPushConstantRanges[i]);
+  if(pCreateInfo->pPushConstantRanges)
+  {
+    pushRanges.reserve(pCreateInfo->pushConstantRangeCount);
+    for(uint32_t i = 0; i < pCreateInfo->pushConstantRangeCount; i++)
+      pushRanges.push_back(pCreateInfo->pPushConstantRanges[i]);
+  }
 }
 
 void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,

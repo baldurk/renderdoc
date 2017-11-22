@@ -182,13 +182,18 @@ public:
 
     T *newElems = allocate(null_terminator<T>::allocCount(s));
 
-    // copy the elements to new storage
-    for(int32_t i = 0; i < usedCount; i++)
-      new(newElems + i) T(elems[i]);
+    // when elems is NULL, usedCount should also be 0, but add an extra check in here just to
+    // satisfy coverity's static analysis which can't figure that out from the copy constructor
+    if(elems)
+    {
+      // copy the elements to new storage
+      for(int32_t i = 0; i < usedCount; i++)
+        new(newElems + i) T(elems[i]);
 
-    // delete the old elements
-    for(int32_t i = 0; i < usedCount; i++)
-      elems[i].~T();
+      // delete the old elements
+      for(int32_t i = 0; i < usedCount; i++)
+        elems[i].~T();
+    }
 
     // deallocate tee old storage
     deallocate(elems);

@@ -173,35 +173,28 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glBindSamplers(SerialiserType &ser, GLuint first, GLsizei count,
                                              const GLuint *samplerHandles)
 {
-  SERIALISE_ELEMENT(first);
-  SERIALISE_ELEMENT(count);
-
   // can't serialise arrays of GL handles since they're not wrapped or typed :(.
-  GLResource *samplers = NULL;
+  std::vector<GLResource> samplers;
 
   if(ser.IsWriting())
   {
-    samplers = new GLResource[count];
+    samplers.reserve(count);
     for(int32_t i = 0; i < count; i++)
-      samplers[i] = SamplerRes(GetCtx(), samplerHandles[i]);
+      samplers.push_back(SamplerRes(GetCtx(), samplerHandles[i]));
   }
 
-  uint32_t numSamps = count;
-
-  SERIALISE_ELEMENT_ARRAY(samplers, numSamps);
-
-  if(ser.IsWriting())
-    SAFE_DELETE_ARRAY(samplers);
+  SERIALISE_ELEMENT(first);
+  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(samplers);
 
   if(IsReplayingAndReading())
   {
-    GLuint *samps = new GLuint[count];
+    std::vector<GLuint> samps;
+    samps.reserve(count);
     for(int32_t i = 0; i < count; i++)
-      samps[i] = samplers[i].name;
+      samps.push_back(samplers[i].name);
 
-    m_Real.glBindSamplers(first, count, samps);
-
-    delete[] samps;
+    m_Real.glBindSamplers(first, count, samps.data());
   }
 
   return true;

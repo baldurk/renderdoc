@@ -315,7 +315,7 @@ void rdclog_filename(const char *filename)
 
   if(!logfile.empty())
   {
-    logfileOpened = FileIO::logfile_open(filename);
+    logfileOpened = FileIO::logfile_open(logfile.c_str());
 
     if(logfileOpened && previous.c_str())
     {

@@ -340,13 +340,19 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
         return false;
       }
 
+      if(Descriptors == NULL)
+      {
+        RDCERR("Failed to correctly serialise descriptor heap initial state");
+        return false;
+      }
+
       copyheap = new WrappedID3D12DescriptorHeap(copyheap, m_Device, desc);
 
       D3D12_CPU_DESCRIPTOR_HANDLE handle = copyheap->GetCPUDescriptorHandleForHeapStart();
 
       UINT increment = m_Device->GetDescriptorHandleIncrementSize(desc.Type);
 
-      for(uint32_t i = 0; i < numElems; i++)
+      for(uint32_t i = 0; i < RDCMIN(numElems, desc.NumDescriptors); i++)
       {
         Descriptors[i].Create(desc.Type, m_Device, handle);
 

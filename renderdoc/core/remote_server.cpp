@@ -1685,15 +1685,10 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, IRemoteS
       port += RenderDoc_AndroidPortOffset * (index + 1);
   }
 
-  Network::Socket *sock = NULL;
+  Network::Socket *sock = Network::CreateClientSocket(s.c_str(), (uint16_t)port, 750);
 
-  if(s != "-")
-  {
-    sock = Network::CreateClientSocket(s.c_str(), (uint16_t)port, 750);
-
-    if(sock == NULL)
-      return ReplayStatus::NetworkIOFailed;
-  }
+  if(sock == NULL)
+    return ReplayStatus::NetworkIOFailed;
 
   uint32_t version = RemoteServerProtocolVersion;
 

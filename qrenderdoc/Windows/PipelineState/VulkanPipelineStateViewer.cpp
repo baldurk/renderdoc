@@ -780,7 +780,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
   {
     if(shaderSamp)
       bindType = BindType::Sampler;
-    else if(shaderRes->resType == TextureDim::Buffer)
+    else if(shaderRes && shaderRes->resType == TextureDim::Buffer)
       bindType = isrw ? BindType::ReadWriteBuffer : BindType::ReadOnlyBuffer;
     else
       bindType = isrw ? BindType::ReadWriteImage : BindType::ReadOnlyImage;
@@ -932,7 +932,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(!isbuf)
         {
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, ToQStr(bindType), lit("-"), lit("-"), QString(), QString(),
+              QString(), bindset, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+              QString(),
           });
 
           setEmptyRow(node);
@@ -944,8 +945,9 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
             range = QFormatStr("%1 - %2").arg(descriptorBind->offset).arg(descriptorLen);
 
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, ToQStr(bindType), descriptorBind->res,
-              tr("%1 bytes").arg(len), range, QString(),
+              QString(), bindset, slotname, ToQStr(bindType),
+              descriptorBind ? descriptorBind->res : ResourceId(), tr("%1 bytes").arg(len), range,
+              QString(),
           });
 
           node->setTag(tag);
@@ -962,7 +964,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(descriptorBind == NULL || descriptorBind->sampler == ResourceId())
         {
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, ToQStr(bindType), lit("-"), lit("-"), QString(), QString(),
+              QString(), bindset, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+              QString(),
           });
 
           setEmptyRow(node);
@@ -991,7 +994,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(descriptorBind == NULL || descriptorBind->res == ResourceId())
         {
           node = new RDTreeWidgetItem({
-              QString(), bindset, slotname, ToQStr(bindType), lit("-"), lit("-"), QString(), QString(),
+              QString(), bindset, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
+              QString(),
           });
 
           setEmptyRow(node);
@@ -1048,7 +1052,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           if(descriptorBind == NULL || descriptorBind->sampler == ResourceId())
           {
             samplerNode = new RDTreeWidgetItem({
-                QString(), bindset, slotname, ToQStr(bindType), lit("-"), lit("-"), QString(),
+                QString(), bindset, slotname, ToQStr(bindType), ResourceId(), lit("-"), QString(),
             });
 
             setEmptyRow(node);
@@ -1218,7 +1222,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 
       QString sizestr;
 
-      QVariant name = descriptorBind->res;
+      QVariant name = descriptorBind ? descriptorBind->res : ResourceId();
 
       // push constants or specialization constants
       if(cblock != NULL && !cblock->bufferBacked)
@@ -1572,7 +1576,7 @@ void VulkanPipelineStateViewer::setState()
     if(ibufferUsed || showEmpty)
     {
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {tr("Index"), tr("No Buffer Set"), tr("Index"), lit("-"), lit("-"), lit("-"), QString()});
+          {tr("Index"), ResourceId(), tr("Index"), lit("-"), lit("-"), lit("-"), QString()});
 
       node->setTag(QVariant::fromValue(
           VulkanVBIBTag(state.IA.ibuffer.buf, draw != NULL ? draw->indexOffset : 0)));
@@ -2658,7 +2662,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
                              rows);
   }
 
-  if(!shaderDetails->ReadOnlyResources.isEmpty())
+  if(shaderDetails && !shaderDetails->ReadOnlyResources.isEmpty())
   {
     xml.writeStartElement(lit("h3"));
     xml.writeCharacters(tr("Read-only Resources"));
@@ -2770,7 +2774,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
         rows);
   }
 
-  if(!shaderDetails->ReadWriteResources.isEmpty())
+  if(shaderDetails && !shaderDetails->ReadWriteResources.isEmpty())
   {
     xml.writeStartElement(lit("h3"));
     xml.writeCharacters(tr("Read-write Resources"));

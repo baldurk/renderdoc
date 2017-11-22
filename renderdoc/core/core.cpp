@@ -824,6 +824,9 @@ StructuredProcessor RenderDoc::GetStructuredProcessor(RDCDriver driver)
 
 CaptureExporter RenderDoc::GetCaptureExporter(const char *filetype)
 {
+  if(!filetype)
+    return NULL;
+
   auto it = m_Exporters.find(filetype);
 
   if(it == m_Exporters.end())
@@ -834,6 +837,9 @@ CaptureExporter RenderDoc::GetCaptureExporter(const char *filetype)
 
 CaptureImporter RenderDoc::GetCaptureImporter(const char *filetype)
 {
+  if(!filetype)
+    return NULL;
+
   auto it = m_Importers.find(filetype);
 
   if(it == m_Importers.end())

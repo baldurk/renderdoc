@@ -288,6 +288,7 @@ public:
 
   D3D11RenderState *GetCurrentPipelineState() { return m_CurrentPipelineState; }
   ResourceId GetResourceID() { return m_ResourceID; }
+  D3D11ResourceRecord *GetResourceRecord() { return m_ContextRecord; }
   ID3D11DeviceContext *GetReal() { return m_pRealContext; }
   ID3D11DeviceContext1 *GetReal1() { return m_pRealContext1; }
   bool IsFL11_1();

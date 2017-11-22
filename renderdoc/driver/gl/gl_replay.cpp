@@ -2126,8 +2126,6 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
 
   WrappedOpenGL::TextureData &texDetails = m_pDriver->m_Textures[tex];
 
-  byte *ret = NULL;
-
   GLuint tempTex = 0;
 
   GLenum texType = texDetails.curType;
@@ -2525,9 +2523,9 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
       {
         // for non-arrays we can just readback without caching
         if(IsGLES)
-          texDetails.GetCompressedImageDataGLES(mip, target, dataSize, ret);
+          texDetails.GetCompressedImageDataGLES(mip, target, dataSize, data.data());
         else
-          gl.glGetCompressedTexImage(target, mip, ret);
+          gl.glGetCompressedTexImage(target, mip, data.data());
       }
     }
     else
@@ -2570,7 +2568,7 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
       }
       else
       {
-        gl.glGetTexImage(target, (GLint)mip, fmt, type, ret);
+        gl.glGetTexImage(target, (GLint)mip, fmt, type, data.data());
       }
 
       // if we're saving to disk we make the decision to vertically flip any non-compressed

@@ -4747,6 +4747,8 @@ void WrappedID3D11DeviceContext::ExecuteCommandList(ID3D11CommandList *pCommandL
       D3D11ResourceRecord *cmdListRecord =
           m_pDevice->GetResourceManager()->GetResourceRecord(contextId);
 
+      RDCASSERT(cmdListRecord);
+
       // insert all the deferred chunks immediately following the execute chunk.
       m_ContextRecord->AppendFrom(cmdListRecord);
       cmdListRecord->AddResourceReferences(m_pDevice->GetResourceManager());
@@ -5890,7 +5892,6 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
       draw.name = StringFormat::Fmt("ClearRenderTargetView(%f, %f, %f, %f)", ColorRGBA[0],
                                     ColorRGBA[1], ColorRGBA[2], ColorRGBA[3]);
       draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
-      draw.copyDestination = GetResourceManager()->GetOriginalID(view->GetResourceResID());
 
       if(view)
       {
@@ -5972,7 +5973,6 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
       draw.name = StringFormat::Fmt("ClearUnorderedAccessViewUint(%u, %u, %u, %u)", Values[0],
                                     Values[1], Values[2], Values[3]);
       draw.flags |= DrawFlags::Clear;
-      draw.copyDestination = GetResourceManager()->GetOriginalID(view->GetResourceResID());
 
       if(view)
       {
@@ -6049,7 +6049,6 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
       draw.name = StringFormat::Fmt("ClearUnorderedAccessViewFloat(%f, %f, %f, %f)", Values[0],
                                     Values[1], Values[2], Values[3]);
       draw.flags |= DrawFlags::Clear;
-      draw.copyDestination = GetResourceManager()->GetOriginalID(view->GetResourceResID());
 
       if(view)
       {
@@ -6134,7 +6133,6 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(
       else
         draw.name = "ClearDepthStencilView(None)";
       draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
-      draw.copyDestination = GetResourceManager()->GetOriginalID(view->GetResourceResID());
 
       if(view)
       {
@@ -6619,7 +6617,7 @@ bool WrappedID3D11DeviceContext::Serialise_Map(SerialiserType &ser, ID3D11Resour
 
   size_t mapLength = (size_t)record->Length;
 
-  if(IsActiveCapturing(m_State) || (record && !record->DataInSerialiser))
+  if(IsActiveCapturing(m_State) || !record->DataInSerialiser)
   {
     ResourceId Resource = GetIDForResource(pResource);
 
@@ -6947,7 +6945,7 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
     }
 
     // if we were verifying this map, then make sure the shadow storage is still safe
-    if(intercept.verifyWrite && record)
+    if(intercept.verifyWrite)
     {
       if(!record->VerifyShadowStorage(ctxMapID))
       {

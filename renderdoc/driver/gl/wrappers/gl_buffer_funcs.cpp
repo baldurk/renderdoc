@@ -2226,7 +2226,7 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(SerialiserType &ser, GLuint 
       m_Real.glFlushMappedNamedBufferRangeEXT(buffer.name, GLintptr(offset + diffStart),
                                               GLsizeiptr(diffEnd - diffStart));
     }
-    else
+    else if(MapWrittenData && length > 0)
     {
       void *ptr = m_Real.glMapNamedBufferRangeEXT(buffer.name, (GLintptr)(offset + diffStart),
                                                   GLsizeiptr(diffEnd - diffStart), GL_MAP_WRITE_BIT);
@@ -2424,7 +2424,7 @@ bool WrappedOpenGL::Serialise_glFlushMappedNamedBufferRangeEXT(SerialiserType &s
            record->Map.ptr - record->Map.offset + (size_t)offset, (size_t)length);
     m_Real.glFlushMappedNamedBufferRangeEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)length);
   }
-  else if(buffer.name)
+  else if(buffer.name && FlushedData && length > 0)
   {
     // perform a map of the range and copy the data, to emulate the modified region being flushed
     void *ptr = m_Real.glMapNamedBufferRangeEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)length,

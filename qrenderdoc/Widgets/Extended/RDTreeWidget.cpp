@@ -43,7 +43,7 @@ public:
   RDTreeWidgetModel(RDTreeWidget *parent) : QAbstractItemModel(parent), widget(parent) {}
   QModelIndex indexForItem(RDTreeWidgetItem *item, int column) const
   {
-    if(item->m_parent == NULL)
+    if(item == NULL || item->m_parent == NULL)
       return QModelIndex();
 
     int row = item->m_parent->indexOfChild(item);

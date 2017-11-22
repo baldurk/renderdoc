@@ -35,9 +35,6 @@ public:
   ImageViewer(IReplayDriver *proxy, const char *filename)
       : m_Proxy(proxy), m_Filename(filename), m_TextureID()
   {
-    if(m_Proxy == NULL)
-      RDCERR("Unexpectedly NULL proxy at creation of ImageViewer");
-
     // start with props so that m_Props.localRenderer is correct
     m_Props = m_Proxy->GetAPIProperties();
     m_Props.pipelineType = GraphicsAPI::D3D11;

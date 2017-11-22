@@ -94,6 +94,8 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
     WrappedID3D11Buffer *buf = (WrappedID3D11Buffer *)res;
     D3D11ResourceRecord *record = m_ResourceManager->GetResourceRecord(Id);
 
+    RDCASSERT(record);
+
     ID3D11Buffer *stage = NULL;
 
     D3D11_BUFFER_DESC desc;
@@ -505,6 +507,8 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       WrappedID3D11Buffer *buf = (WrappedID3D11Buffer *)res;
       D3D11ResourceRecord *record = m_ResourceManager->GetResourceRecord(Id);
 
+      RDCASSERT(record);
+
       D3D11_BUFFER_DESC desc;
       desc.BindFlags = 0;
       desc.ByteWidth = (UINT)record->Length;
@@ -549,7 +553,11 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
 
     D3D11ResourceRecord *record = NULL;
     if(ser.IsWriting())
+    {
       record = m_ResourceManager->GetResourceRecord(Id);
+
+      RDCASSERT(record);
+    }
 
     D3D11_TEXTURE1D_DESC desc = {0};
     if(tex)
@@ -645,7 +653,11 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
 
     D3D11ResourceRecord *record = NULL;
     if(ser.IsWriting())
+    {
       record = m_ResourceManager->GetResourceRecord(Id);
+
+      RDCASSERT(record);
+    }
 
     D3D11_TEXTURE2D_DESC desc = {0};
     if(tex)
@@ -823,7 +835,11 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
 
     D3D11ResourceRecord *record = NULL;
     if(ser.IsWriting())
+    {
       record = m_ResourceManager->GetResourceRecord(Id);
+
+      RDCASSERT(record);
+    }
 
     D3D11_TEXTURE3D_DESC desc = {0};
     if(tex)

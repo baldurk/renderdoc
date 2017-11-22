@@ -2153,7 +2153,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
     mapping.InputAttributes[i] = -1;
 
   // override identity map with bindings
-  if(shadIdx == 0 && refl)
+  if(shadIdx == 0)
   {
     for(int32_t i = 0; i < refl->InputSig.count(); i++)
     {

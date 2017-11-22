@@ -464,7 +464,7 @@ HRESULT WrappedIDXGISwapChain4::GetBuffer(
     }
 
     // if the original UUID was IDXGISurface, fixup for the expected interface being returned
-    if(riid == __uuidof(IDXGISurface))
+    if(tex && riid == __uuidof(IDXGISurface))
     {
       IDXGISurface *surf = NULL;
       HRESULT hr = tex->QueryInterface(__uuidof(IDXGISurface), (void **)&surf);

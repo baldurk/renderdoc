@@ -1938,7 +1938,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
   if(CheckConstParam(ReadSourceProgram))
     gl.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &NumUniforms);
 
-  if(CheckConstParam(SerialiseUniforms))
+  if(CheckConstParam(SerialiseUniforms) && ser)
   {
     // get accurate count of uniforms not in UBOs
     GLint numSerialised = 0;
@@ -2010,7 +2010,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
       basename = n;
     }
 
-    if(CheckConstParam(SerialiseUniforms))
+    if(CheckConstParam(SerialiseUniforms) && ser)
     {
       ser->Serialise("type", type);
       ser->Serialise("arraySize", arraySize);
@@ -2035,7 +2035,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
           srcLocation = gl.glGetUniformLocation(progSrc, name.c_str());
       }
 
-      if(CheckConstParam(SerialiseUniforms))
+      if(CheckConstParam(SerialiseUniforms) && ser)
         ser->Serialise("srcLocation", srcLocation);
 
       GLint newloc = 0;
@@ -2171,7 +2171,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
         }
       }
 
-      if(CheckConstParam(SerialiseUniforms))
+      if(CheckConstParam(SerialiseUniforms) && ser)
         ser->Serialise("data", dv);
 
       if(CheckConstParam(WriteDestProgram) && IsReplayMode(state))
@@ -2326,7 +2326,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
   if(CheckConstParam(ReadSourceProgram))
     gl.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
 
-  if(CheckConstParam(SerialiseUniforms))
+  if(CheckConstParam(SerialiseUniforms) && ser)
     ser->Serialise("numUBOs", numUBOs);
 
   for(GLint i = 0; i < numUBOs; i++)
@@ -2345,7 +2345,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
       name = n;
     }
 
-    if(CheckConstParam(SerialiseUniforms))
+    if(CheckConstParam(SerialiseUniforms) && ser)
     {
       ser->Serialise("bind", bind);
       ser->Serialise("name", name);
@@ -2363,7 +2363,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
   if(CheckConstParam(ReadSourceProgram) && HasExt[ARB_shader_storage_buffer_object])
     gl.glGetProgramInterfaceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, eGL_ACTIVE_RESOURCES, &numSSBOs);
 
-  if(CheckConstParam(SerialiseUniforms))
+  if(CheckConstParam(SerialiseUniforms) && ser)
     ser->Serialise("numSSBOs", numSSBOs);
 
   for(GLint i = 0; i < numSSBOs; i++)
@@ -2383,7 +2383,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
       name = n;
     }
 
-    if(CheckConstParam(SerialiseUniforms))
+    if(CheckConstParam(SerialiseUniforms) && ser)
     {
       ser->Serialise("bind", bind);
       ser->Serialise("name", name);

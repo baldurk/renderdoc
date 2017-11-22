@@ -867,9 +867,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer(co
   int index = 0;
   std::string deviceID;
 
-  // legacy code - delete when C# UI is gone. Handle a NULL or empty device string
-  if(device || device[0] == '\0')
-    Android::extractDeviceIDAndIndex(device, index, deviceID);
+  Android::extractDeviceIDAndIndex(device, index, deviceID);
 
   string adbPackage =
       adbExecCommand(deviceID, "shell pm list packages org.renderdoc.renderdoccmd").strStdout;

@@ -6423,7 +6423,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
         const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[0]);
 
         // remove any non-drawcalls, like the pass boundary.
-        if(!(draw->flags & DrawFlags::Drawcall))
+        if(!draw || !(draw->flags & DrawFlags::Drawcall))
           events.erase(events.begin());
         else
           break;
