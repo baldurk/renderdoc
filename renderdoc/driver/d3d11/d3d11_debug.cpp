@@ -4716,7 +4716,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
 
         if(decl.declaration == DXBC::OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
         {
-          topo = (D3D11_PRIMITIVE_TOPOLOGY) int(decl.outTopology);    // enums match
+          topo = decl.outTopology;
           break;
         }
       }

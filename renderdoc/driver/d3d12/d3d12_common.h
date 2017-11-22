@@ -64,6 +64,8 @@ TextureDim MakeTextureDim(D3D12_UAV_DIMENSION dim);
 AddressMode MakeAddressMode(D3D12_TEXTURE_ADDRESS_MODE addr);
 CompareFunc MakeCompareFunc(D3D12_COMPARISON_FUNC func);
 TextureFilter MakeFilter(D3D12_FILTER filter);
+D3DBufferViewFlags MakeBufferFlags(D3D12_BUFFER_SRV_FLAGS flags);
+D3DBufferViewFlags MakeBufferFlags(D3D12_BUFFER_UAV_FLAGS flags);
 LogicOp MakeLogicOp(D3D12_LOGIC_OP op);
 BlendMultiplier MakeBlendMultiplier(D3D12_BLEND blend, bool alpha);
 BlendOp MakeBlendOp(D3D12_BLEND_OP op);

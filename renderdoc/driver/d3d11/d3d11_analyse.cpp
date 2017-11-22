@@ -849,19 +849,18 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
           for(const DXBC::ShaderInputBind &bind : dxbc->m_SRVs)
           {
             if(bind.reg == (uint32_t)i && bind.dimension == DXBC::ShaderInputBind::DIM_BUFFER &&
-               bind.retType < DXBC::ShaderInputBind::RETTYPE_MIXED &&
-               bind.retType != DXBC::ShaderInputBind::RETTYPE_UNKNOWN)
+               bind.retType < DXBC::RETURN_TYPE_MIXED && bind.retType != DXBC::RETURN_TYPE_UNKNOWN)
             {
               global.srvs[i].format.byteWidth = 4;
               global.srvs[i].format.numComps = bind.numSamples;
 
-              if(bind.retType == DXBC::ShaderInputBind::RETTYPE_UNORM)
+              if(bind.retType == DXBC::RETURN_TYPE_UNORM)
                 global.srvs[i].format.fmt = CompType::UNorm;
-              else if(bind.retType == DXBC::ShaderInputBind::RETTYPE_SNORM)
+              else if(bind.retType == DXBC::RETURN_TYPE_SNORM)
                 global.srvs[i].format.fmt = CompType::SNorm;
-              else if(bind.retType == DXBC::ShaderInputBind::RETTYPE_UINT)
+              else if(bind.retType == DXBC::RETURN_TYPE_UINT)
                 global.srvs[i].format.fmt = CompType::UInt;
-              else if(bind.retType == DXBC::ShaderInputBind::RETTYPE_SINT)
+              else if(bind.retType == DXBC::RETURN_TYPE_SINT)
                 global.srvs[i].format.fmt = CompType::SInt;
               else
                 global.srvs[i].format.fmt = CompType::Float;

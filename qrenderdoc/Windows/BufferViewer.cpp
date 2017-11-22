@@ -31,6 +31,7 @@
 #include <QScrollBar>
 #include <QTimer>
 #include <QtMath>
+#include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "ui_BufferViewer.h"
 
@@ -527,7 +528,7 @@ public:
 
             if(!list.isEmpty())
             {
-              QMetaType::Type vt = (QMetaType::Type)list[0].type();
+              QMetaType::Type vt = GetVariantMetatype(list[0]);
 
               QColor rgb;
 
@@ -875,7 +876,7 @@ private:
   {
     QString ret;
 
-    QMetaType::Type vt = (QMetaType::Type)v.type();
+    QMetaType::Type vt = GetVariantMetatype(v);
 
     if(vt == QMetaType::Double)
     {
@@ -1885,7 +1886,7 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
           {
             const QVariant &v = list[comp];
 
-            QMetaType::Type vt = (QMetaType::Type)v.type();
+            QMetaType::Type vt = GetVariantMetatype(v);
 
             float fval = 0.0f;
 

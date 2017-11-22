@@ -438,7 +438,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
         view.FirstElement = desc->nonsamp.srv.Buffer.FirstElement;
         view.NumElements = desc->nonsamp.srv.Buffer.NumElements;
 
-        view.BufferFlags = D3DBufferViewFlags(desc->nonsamp.srv.Buffer.Flags);
+        view.BufferFlags = MakeBufferFlags(desc->nonsamp.srv.Buffer.Flags);
         if(desc->nonsamp.srv.Buffer.StructureByteStride > 0)
           view.ElementSize = desc->nonsamp.srv.Buffer.StructureByteStride;
       }
@@ -498,7 +498,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
         view.FirstElement = uav.Buffer.FirstElement;
         view.NumElements = uav.Buffer.NumElements;
 
-        view.BufferFlags = D3DBufferViewFlags(uav.Buffer.Flags);
+        view.BufferFlags = MakeBufferFlags(uav.Buffer.Flags);
         if(uav.Buffer.StructureByteStride > 0)
           view.ElementSize = uav.Buffer.StructureByteStride;
 

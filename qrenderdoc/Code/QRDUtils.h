@@ -61,6 +61,16 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype);
 // overload for a couple of things that need to know the pipeline type when converting
 QString ToQStr(const ShaderStage stage, const GraphicsAPI apitype);
 
+inline QMetaType::Type GetVariantMetatype(const QVariant &v)
+{
+  // this is explicitly called out by the documentation as the recommended process:
+  // "Although this function is declared as returning QVariant::Type, the return value should be
+  // interpreted as QMetaType::Type."
+  // Suppress static analysis complaints about the enums mismatching:
+  // coverity[mixed_enums]
+  return (QMetaType::Type)v.type();
+}
+
 struct FormatElement
 {
   Q_DECLARE_TR_FUNCTIONS(FormatElement);

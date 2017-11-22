@@ -172,7 +172,7 @@ static MaskedElement<TessellatorPartitioning, 0x00003800> TessPartitioning;
 static MaskedElement<PrimitiveType, 0x0001F800> InputPrimitive;
 
 // OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY
-static MaskedElement<PrimitiveTopology, 0x0001F800> OutputPrimitiveTopology;
+static MaskedElement<D3D_PRIMITIVE_TOPOLOGY, 0x0001F800> OutputPrimitiveTopology;
 
 // OPCODE_DCL_TESS_OUTPUT_PRIMITIVE
 static MaskedElement<TessellatorOutputPrimitive, 0x00003800> OutputPrimitive;
@@ -1979,23 +1979,23 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl, bool friend
     retDecl.outTopology = Declaration::OutputPrimitiveTopology.Get(OpcodeToken0);
 
     retDecl.str += " ";
-    if(retDecl.outTopology == TOPOLOGY_POINTLIST)
+    if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_POINTLIST)
       retDecl.str += "point";
-    else if(retDecl.outTopology == TOPOLOGY_LINELIST)
+    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_LINELIST)
       retDecl.str += "linelist";
-    else if(retDecl.outTopology == TOPOLOGY_LINESTRIP)
+    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP)
       retDecl.str += "linestrip";
-    else if(retDecl.outTopology == TOPOLOGY_TRIANGLELIST)
+    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
       retDecl.str += "trianglelist";
-    else if(retDecl.outTopology == TOPOLOGY_TRIANGLESTRIP)
+    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP)
       retDecl.str += "trianglestrip";
-    else if(retDecl.outTopology == TOPOLOGY_LINELIST_ADJ)
+    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
       retDecl.str += "linelist_adj";
-    else if(retDecl.outTopology == TOPOLOGY_LINESTRIP_ADJ)
+    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ)
       retDecl.str += "linestrip_adj";
-    else if(retDecl.outTopology == TOPOLOGY_TRIANGLELIST_ADJ)
+    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ)
       retDecl.str += "trianglelist_adj";
-    else if(retDecl.outTopology == TOPOLOGY_TRIANGLESTRIP_ADJ)
+    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ)
       retDecl.str += "trianglestrip_adj";
     else
       RDCERR("Unexpected primitive topology");

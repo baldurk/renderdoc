@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 #include "api/replay/renderdoc_replay.h"
+#include "driver/dx/official/d3dcommon.h"
 
 using std::vector;
 using std::string;
@@ -562,22 +563,6 @@ enum InterpolationMode
   NUM_INTERPOLATIONS,
 };
 
-enum PrimitiveTopology
-{
-  TOPOLOGY_UNDEFINED = 0,
-  TOPOLOGY_POINTLIST,
-  TOPOLOGY_LINELIST,
-  TOPOLOGY_LINESTRIP,
-  TOPOLOGY_TRIANGLELIST,
-  TOPOLOGY_TRIANGLESTRIP,
-  TOPOLOGY_LINELIST_ADJ,
-  TOPOLOGY_LINESTRIP_ADJ,
-  TOPOLOGY_TRIANGLELIST_ADJ,
-  TOPOLOGY_TRIANGLESTRIP_ADJ,
-
-  NUM_TOPOLOGYS,
-};
-
 enum PrimitiveType
 {
   PRIMITIVE_UNDEFINED = 0,
@@ -672,6 +657,7 @@ enum ResourceDimension
 
 enum ResourceRetType
 {
+  RETURN_TYPE_UNKNOWN = 0,
   RETURN_TYPE_UNORM = 1,
   RETURN_TYPE_SNORM,
   RETURN_TYPE_SINT,
@@ -845,7 +831,7 @@ struct ASMDecl
     partition = PARTITIONING_UNDEFINED;
     outPrim = OUTPUT_PRIMITIVE_UNDEFINED;
     inPrim = PRIMITIVE_UNDEFINED;
-    outTopology = TOPOLOGY_UNDEFINED;
+    outTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
     instanceCount = 0;
     indexRange = 0;
     maxTessFactor = 0.0f;
@@ -938,7 +924,7 @@ struct ASMDecl
   PrimitiveType inPrim;
 
   // OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY
-  PrimitiveTopology outTopology;
+  D3D_PRIMITIVE_TOPOLOGY outTopology;
 
   // OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT
   // OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT

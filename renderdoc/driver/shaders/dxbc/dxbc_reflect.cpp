@@ -147,9 +147,8 @@ static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::
         break;
     }
 
-    if(r.retType != DXBC::ShaderInputBind::RETTYPE_UNKNOWN &&
-       r.retType != DXBC::ShaderInputBind::RETTYPE_MIXED &&
-       r.retType != DXBC::ShaderInputBind::RETTYPE_CONTINUED)
+    if(r.retType != DXBC::RETURN_TYPE_UNKNOWN && r.retType != DXBC::RETURN_TYPE_MIXED &&
+       r.retType != DXBC::RETURN_TYPE_CONTINUED)
     {
       res.variableType.descriptor.rows = 1;
       res.variableType.descriptor.cols = (uint8_t)r.numSamples;
@@ -159,12 +158,12 @@ static void MakeResourceList(bool srv, DXBC::DXBCFile *dxbc, const vector<DXBC::
 
       switch(r.retType)
       {
-        case DXBC::ShaderInputBind::RETTYPE_UNORM: name = "unorm float"; break;
-        case DXBC::ShaderInputBind::RETTYPE_SNORM: name = "snorm float"; break;
-        case DXBC::ShaderInputBind::RETTYPE_SINT: name = "int"; break;
-        case DXBC::ShaderInputBind::RETTYPE_UINT: name = "uint"; break;
-        case DXBC::ShaderInputBind::RETTYPE_FLOAT: name = "float"; break;
-        case DXBC::ShaderInputBind::RETTYPE_DOUBLE: name = "double"; break;
+        case DXBC::RETURN_TYPE_UNORM: name = "unorm float"; break;
+        case DXBC::RETURN_TYPE_SNORM: name = "snorm float"; break;
+        case DXBC::RETURN_TYPE_SINT: name = "int"; break;
+        case DXBC::RETURN_TYPE_UINT: name = "uint"; break;
+        case DXBC::RETURN_TYPE_FLOAT: name = "float"; break;
+        case DXBC::RETURN_TYPE_DOUBLE: name = "double"; break;
         default: name = "unknown"; break;
       }
 

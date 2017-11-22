@@ -631,13 +631,12 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         desc.reg = res->bindPoint;
         desc.bindCount = res->bindCount;
         desc.flags = res->flags;
-        desc.retType = (ShaderInputBind::RetType)res->retType;
+        desc.retType = (ResourceRetType)res->retType;
         desc.dimension = (ShaderInputBind::Dimension)res->dimension;
         desc.numSamples = res->sampleCount;
 
-        if(desc.numSamples == ~0 && desc.retType != ShaderInputBind::RETTYPE_MIXED &&
-           desc.retType != ShaderInputBind::RETTYPE_UNKNOWN &&
-           desc.retType != ShaderInputBind::RETTYPE_CONTINUED)
+        if(desc.numSamples == ~0 && desc.retType != RETURN_TYPE_MIXED &&
+           desc.retType != RETURN_TYPE_UNKNOWN && desc.retType != RETURN_TYPE_CONTINUED)
         {
           // uint, uint2, uint3, uint4 seem to be in these bits of flags.
           desc.numSamples = 1 + ((desc.flags & 0xC) >> 2);
@@ -1093,7 +1092,7 @@ void DXBCFile::GuessResources()
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = dcl.samplerMode == SAMPLER_MODE_COMPARISON ? 2 : 0;
-        desc.retType = ShaderInputBind::RETTYPE_UNKNOWN;
+        desc.retType = RETURN_TYPE_UNKNOWN;
         desc.dimension = ShaderInputBind::DIM_UNKNOWN;
         desc.numSamples = 0;
 
@@ -1126,7 +1125,7 @@ void DXBCFile::GuessResources()
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
-        desc.retType = (ShaderInputBind::RetType)dcl.resType[0];
+        desc.retType = dcl.resType[0];
 
         switch(dcl.dim)
         {
@@ -1195,7 +1194,7 @@ void DXBCFile::GuessResources()
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
-        desc.retType = ShaderInputBind::RETTYPE_MIXED;
+        desc.retType = RETURN_TYPE_MIXED;
         desc.dimension = ShaderInputBind::DIM_BUFFER;
         desc.numSamples = 0;
 
@@ -1231,7 +1230,7 @@ void DXBCFile::GuessResources()
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
-        desc.retType = ShaderInputBind::RETTYPE_MIXED;
+        desc.retType = RETURN_TYPE_MIXED;
         desc.dimension = ShaderInputBind::DIM_BUFFER;
         desc.numSamples = dcl.stride;
 
@@ -1268,7 +1267,7 @@ void DXBCFile::GuessResources()
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
-        desc.retType = ShaderInputBind::RETTYPE_MIXED;
+        desc.retType = RETURN_TYPE_MIXED;
         desc.dimension = ShaderInputBind::DIM_BUFFER;
         desc.numSamples = dcl.stride;
 
@@ -1301,7 +1300,7 @@ void DXBCFile::GuessResources()
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
-        desc.retType = (ShaderInputBind::RetType) int(dcl.resType[0]);    // enums match
+        desc.retType = dcl.resType[0];
 
         switch(dcl.dim)
         {
@@ -1361,7 +1360,7 @@ void DXBCFile::GuessResources()
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 1;
-        desc.retType = ShaderInputBind::RETTYPE_UNKNOWN;
+        desc.retType = RETURN_TYPE_UNKNOWN;
         desc.dimension = ShaderInputBind::DIM_UNKNOWN;
         desc.numSamples = 0;
 

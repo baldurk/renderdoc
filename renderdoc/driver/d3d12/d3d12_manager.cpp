@@ -415,7 +415,7 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc = nonsamp.uav.desc.AsDesc();
 
       D3D12_UNORDERED_ACCESS_VIEW_DESC *desc = &uavdesc;
-      if(uavdesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+      if(uavdesc.ViewDimension == D3D12_UAV_DIMENSION_UNKNOWN)
       {
         desc = nonsamp.resource ? NULL : defaultUAV();
 
