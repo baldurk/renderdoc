@@ -3614,61 +3614,67 @@ void WrappedID3D12GraphicsCommandList::ReplayExecuteIndirect(ID3D12GraphicsComma
     D3D12CommandData::DrawcallUse use(m_Cmd->m_CurChunkOffset, 0);
     auto it = std::lower_bound(m_Cmd->m_DrawcallUses.begin(), m_Cmd->m_DrawcallUses.end(), use);
 
-    RDCASSERT(it != m_Cmd->m_DrawcallUses.end());
-
-    uint32_t baseEventID = it->eventID;
-
-    // TODO when re-recording all, we should submit every drawcall individually
-    if(m_Cmd->m_DrawcallCallback && m_Cmd->m_DrawcallCallback->RecordAllCmds())
+    if(it == m_Cmd->m_DrawcallUses.end())
     {
-      firstCommand = 0;
-      firstArg = 0;
-      lastArg = ~0U;
-    }
-    // To add the execute, we made an event N that is the 'parent' marker, then
-    // N+1, N+2, N+3, ... for each of the arguments. If the first sub-argument is selected
-    // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
-    // the first sub-draw in that range.
-    else if(m_Cmd->m_LastEventID > baseEventID)
-    {
-      if(m_Cmd->m_FirstEventID <= 1)
-      {
-        // one event per arg, and N args per command
-        uint32_t numArgs = m_Cmd->m_LastEventID - baseEventID;
-
-        // play all commands up to the one we want
-        firstCommand = 0;
-
-        // how many commands?
-        uint32_t numCmds = numArgs / sigSize + 1;
-        count = RDCMIN(count, numCmds);
-
-        // play all args in the fnial commmad up to the one we want
-        firstArg = 0;
-
-        // how many args in the final command
-        if(numCmds > count)
-          lastArg = ~0U;
-        else
-          lastArg = numArgs % sigSize;
-      }
-      else
-      {
-        // note we'll never be asked to do e.g. 3rd-7th commands of an execute. Only ever 0th-nth or
-        // a single argument.
-        uint32_t argIdx = (curEID - baseEventID - 1);
-
-        firstCommand = argIdx / sigSize;
-        count = RDCMIN(count, firstCommand + 1);
-
-        firstArg = argIdx % sigSize;
-        lastArg = firstArg + 1;
-      }
+      RDCERR("Unexpected drawcall not found in uses vector, offset %llu", m_Cmd->m_CurChunkOffset);
     }
     else
     {
-      // don't do anything, we've selected the base event
-      count = 0;
+      uint32_t baseEventID = it->eventID;
+
+      // TODO when re-recording all, we should submit every drawcall individually
+      if(m_Cmd->m_DrawcallCallback && m_Cmd->m_DrawcallCallback->RecordAllCmds())
+      {
+        firstCommand = 0;
+        firstArg = 0;
+        lastArg = ~0U;
+      }
+      // To add the execute, we made an event N that is the 'parent' marker, then
+      // N+1, N+2, N+3, ... for each of the arguments. If the first sub-argument is selected
+      // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
+      // the first sub-draw in that range.
+      else if(m_Cmd->m_LastEventID > baseEventID)
+      {
+        if(m_Cmd->m_FirstEventID <= 1)
+        {
+          // one event per arg, and N args per command
+          uint32_t numArgs = m_Cmd->m_LastEventID - baseEventID;
+
+          // play all commands up to the one we want
+          firstCommand = 0;
+
+          // how many commands?
+          uint32_t numCmds = numArgs / sigSize + 1;
+          count = RDCMIN(count, numCmds);
+
+          // play all args in the fnial commmad up to the one we want
+          firstArg = 0;
+
+          // how many args in the final command
+          if(numCmds > count)
+            lastArg = ~0U;
+          else
+            lastArg = numArgs % sigSize;
+        }
+        else
+        {
+          // note we'll never be asked to do e.g. 3rd-7th commands of an execute. Only ever 0th-nth
+          // or
+          // a single argument.
+          uint32_t argIdx = (curEID - baseEventID - 1);
+
+          firstCommand = argIdx / sigSize;
+          count = RDCMIN(count, firstCommand + 1);
+
+          firstArg = argIdx % sigSize;
+          lastArg = firstArg + 1;
+        }
+      }
+      else
+      {
+        // don't do anything, we've selected the base event
+        count = 0;
+      }
     }
   }
 

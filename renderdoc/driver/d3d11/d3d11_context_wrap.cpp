@@ -6929,9 +6929,16 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
 
     // locate the intercept data and remove it from the open maps list
     auto it = m_OpenMaps.find(mapIdx);
-    RDCASSERT(it != m_OpenMaps.end());
-    intercept = it->second;
-    m_OpenMaps.erase(it);
+
+    if(it != m_OpenMaps.end())
+    {
+      intercept = it->second;
+      m_OpenMaps.erase(it);
+    }
+    else
+    {
+      RDCERR("Couldn't find map for %llu/%u in open maps list", mapIdx.resource, mapIdx.subresource);
+    }
 
     MapWrittenData = (byte *)intercept.app.pData;
 

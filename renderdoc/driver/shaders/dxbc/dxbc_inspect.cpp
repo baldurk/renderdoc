@@ -689,12 +689,15 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         for(vector<ShaderInputBind> *arr : {&m_SRVs, &m_UAVs, &m_Samplers})
         {
           vector<ShaderInputBind> &resArray = *arr;
-          for(size_t i = 0; i < resArray.size();)
+          for(auto it = resArray.begin(); it != resArray.end();)
           {
-            if(resArray[i].bindCount > 1)
+            if(it->bindCount > 1)
             {
-              ShaderInputBind desc = resArray[i];
-              resArray.erase(resArray.begin() + i);
+              // copy off the array item description
+              ShaderInputBind desc = *it;
+
+              // remove the array item, and get the iterator to the next item to process
+              it = resArray.erase(it);
 
               string rname = desc.name;
               uint32_t arraySize = desc.bindCount;
@@ -708,12 +711,11 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
                 desc.reg++;
               }
 
-              // continue from the i'th element again since
-              // we just removed it.
               continue;
             }
 
-            i++;
+            // just move on if this item wasn't arrayed
+            it++;
           }
         }
       }

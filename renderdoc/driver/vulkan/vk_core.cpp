@@ -345,7 +345,12 @@ uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, DrawFla
   // look up the EID this drawcall came from
   DrawcallUse use(m_CurChunkOffset, 0);
   auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-  RDCASSERT(it != m_DrawcallUses.end());
+
+  if(it == m_DrawcallUses.end())
+  {
+    RDCERR("Couldn't find drawcall use entry for %llu", m_CurChunkOffset);
+    return 0;
+  }
 
   uint32_t eventID = it->eventID;
 
@@ -2342,9 +2347,11 @@ void WrappedVulkan::AddDebugMessage(MessageCategory c, MessageSeverity sv, Messa
     // look up the EID this drawcall came from
     DrawcallUse use(m_CurChunkOffset, 0);
     auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-    RDCASSERT(it != m_DrawcallUses.end());
 
-    msg.eventID = it->eventID;
+    if(it != m_DrawcallUses.end())
+      msg.eventID = it->eventID;
+    else
+      RDCERR("Couldn't locate drawcall use for current chunk offset %llu", m_CurChunkOffset);
   }
   msg.messageID = 0;
   msg.source = src;
@@ -2500,7 +2507,11 @@ VkCommandBuffer WrappedVulkan::RerecordCmdBuf(ResourceId cmdid, PartialReplayInd
   {
     auto it = m_RerecordCmds.find(cmdid);
 
-    RDCASSERT(it != m_RerecordCmds.end());
+    if(it == m_RerecordCmds.end())
+    {
+      RDCERR("Didn't generate re-record command for %llu", cmdid);
+      return NULL;
+    }
 
     return it->second;
   }

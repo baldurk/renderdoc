@@ -1723,7 +1723,10 @@ void WrappedID3D12Device::AddDebugMessage(MessageCategory c, MessageSeverity sv,
     auto it = std::lower_bound(cmd.m_DrawcallUses.begin(), cmd.m_DrawcallUses.end(), use);
     RDCASSERT(it != cmd.m_DrawcallUses.end());
 
-    msg.eventID = it->eventID;
+    if(it != cmd.m_DrawcallUses.end())
+      msg.eventID = it->eventID;
+    else
+      RDCERR("Couldn't locate drawcall use for current chunk offset %llu", cmd.m_CurChunkOffset);
   }
 
   AddDebugMessage(msg);

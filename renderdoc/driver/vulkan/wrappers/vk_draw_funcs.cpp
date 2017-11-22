@@ -325,68 +325,74 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
           DrawcallUse use(m_CurChunkOffset, 0);
           auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
 
-          RDCASSERT(it != m_DrawcallUses.end());
-
-          uint32_t baseEventID = it->eventID;
-
-          // when re-recording all, submit every drawcall individually to the callback
-          if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds() && IsDrawInRenderPass())
+          if(it == m_DrawcallUses.end())
           {
-            for(uint32_t i = 0; i < count; i++)
+            RDCERR("Unexpected drawcall not found in uses vector, offset %llu", m_CurChunkOffset);
+          }
+          else
+          {
+            uint32_t baseEventID = it->eventID;
+
+            // when re-recording all, submit every drawcall individually to the callback
+            if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds() && IsDrawInRenderPass())
             {
-              uint32_t eventID = HandlePreCallback(commandBuffer, DrawFlags::Drawcall, i + 1);
-
-              ObjDisp(commandBuffer)
-                  ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, 1, stride);
-
-              if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+              for(uint32_t i = 0; i < count; i++)
               {
+                uint32_t eventID = HandlePreCallback(commandBuffer, DrawFlags::Drawcall, i + 1);
+
                 ObjDisp(commandBuffer)
                     ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, 1, stride);
-                m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+
+                if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+                {
+                  ObjDisp(commandBuffer)
+                      ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, 1, stride);
+                  m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+                }
+
+                offset += stride;
+              }
+            }
+            // To add the multidraw, we made an event N that is the 'parent' marker, then
+            // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
+            // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
+            // the first sub-draw in that range.
+            else if(m_LastEventID > baseEventID)
+            {
+              uint32_t drawidx = 0;
+
+              if(m_FirstEventID <= 1)
+              {
+                // if we're replaying part-way into a multidraw, we can replay the first part
+                // 'easily'
+                // by just reducing the Count parameter to however many we want to replay. This only
+                // works if we're replaying from the first multidraw to the nth (n less than Count)
+                count = RDCMIN(count, m_LastEventID - baseEventID);
+              }
+              else
+              {
+                // otherwise we do the 'hard' case, draw only one multidraw
+                // note we'll never be asked to do e.g. 3rd-7th of a multidraw. Only ever 0th-nth or
+                // a single draw.
+                drawidx = (curEID - baseEventID - 1);
+
+                offset += stride * drawidx;
+                count = 1;
               }
 
-              offset += stride;
-            }
-          }
-          // To add the multidraw, we made an event N that is the 'parent' marker, then
-          // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
-          // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
-          // the first sub-draw in that range.
-          else if(m_LastEventID > baseEventID)
-          {
-            uint32_t drawidx = 0;
-
-            if(m_FirstEventID <= 1)
-            {
-              // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
-              // by just reducing the Count parameter to however many we want to replay. This only
-              // works if we're replaying from the first multidraw to the nth (n less than Count)
-              count = RDCMIN(count, m_LastEventID - baseEventID);
-            }
-            else
-            {
-              // otherwise we do the 'hard' case, draw only one multidraw
-              // note we'll never be asked to do e.g. 3rd-7th of a multidraw. Only ever 0th-nth or
-              // a single draw.
-              drawidx = (curEID - baseEventID - 1);
-
-              offset += stride * drawidx;
-              count = 1;
-            }
-
-            if(IsDrawInRenderPass())
-            {
-              uint32_t eventID = HandlePreCallback(commandBuffer, DrawFlags::Drawcall, drawidx + 1);
-
-              ObjDisp(commandBuffer)
-                  ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-
-              if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+              if(IsDrawInRenderPass())
               {
+                uint32_t eventID = HandlePreCallback(commandBuffer, DrawFlags::Drawcall, drawidx + 1);
+
                 ObjDisp(commandBuffer)
                     ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-                m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+
+                if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+                {
+                  ObjDisp(commandBuffer)
+                      ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
+                  m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+                }
               }
             }
           }
@@ -602,69 +608,76 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
           DrawcallUse use(m_CurChunkOffset, 0);
           auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
 
-          RDCASSERT(it != m_DrawcallUses.end());
-
-          uint32_t baseEventID = it->eventID;
-
-          // when re-recording all, submit every drawcall individually to the callback
-          if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds() && IsDrawInRenderPass())
+          if(it == m_DrawcallUses.end())
           {
-            for(uint32_t i = 0; i < count; i++)
+            RDCERR("Unexpected drawcall not found in uses vector, offset %llu", m_CurChunkOffset);
+          }
+          else
+          {
+            uint32_t baseEventID = it->eventID;
+
+            // when re-recording all, submit every drawcall individually to the callback
+            if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds() && IsDrawInRenderPass())
             {
-              uint32_t eventID = HandlePreCallback(commandBuffer, DrawFlags::Drawcall, i + 1);
-
-              ObjDisp(commandBuffer)
-                  ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, 1, stride);
-
-              if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+              for(uint32_t i = 0; i < count; i++)
               {
+                uint32_t eventID = HandlePreCallback(commandBuffer, DrawFlags::Drawcall, i + 1);
+
                 ObjDisp(commandBuffer)
                     ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, 1,
                                              stride);
-                m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+
+                if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+                {
+                  ObjDisp(commandBuffer)
+                      ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, 1,
+                                               stride);
+                  m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+                }
+
+                offset += stride;
+              }
+            }
+            // To add the multidraw, we made an event N that is the 'parent' marker, then
+            // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
+            // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
+            // the first sub-draw in that range.
+            else if(m_LastEventID > baseEventID)
+            {
+              uint32_t drawidx = 0;
+
+              if(m_FirstEventID <= 1)
+              {
+                // if we're replaying part-way into a multidraw, we can replay the first part
+                // 'easily'
+                // by just reducing the Count parameter to however many we want to replay. This only
+                // works if we're replaying from the first multidraw to the nth (n less than Count)
+                count = RDCMIN(count, m_LastEventID - baseEventID);
+              }
+              else
+              {
+                // otherwise we do the 'hard' case, draw only one multidraw
+                // note we'll never be asked to do e.g. 3rd-7th of a multidraw. Only ever 0th-nth or
+                // a single draw.
+                drawidx = (curEID - baseEventID - 1);
+
+                offset += stride * drawidx;
+                count = 1;
               }
 
-              offset += stride;
-            }
-          }
-          // To add the multidraw, we made an event N that is the 'parent' marker, then
-          // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
-          // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
-          // the first sub-draw in that range.
-          else if(m_LastEventID > baseEventID)
-          {
-            uint32_t drawidx = 0;
-
-            if(m_FirstEventID <= 1)
-            {
-              // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
-              // by just reducing the Count parameter to however many we want to replay. This only
-              // works if we're replaying from the first multidraw to the nth (n less than Count)
-              count = RDCMIN(count, m_LastEventID - baseEventID);
-            }
-            else
-            {
-              // otherwise we do the 'hard' case, draw only one multidraw
-              // note we'll never be asked to do e.g. 3rd-7th of a multidraw. Only ever 0th-nth or
-              // a single draw.
-              drawidx = (curEID - baseEventID - 1);
-
-              offset += stride * drawidx;
-              count = 1;
-            }
-
-            if(IsDrawInRenderPass())
-            {
-              uint32_t eventID = HandlePreCallback(commandBuffer, DrawFlags::Drawcall, drawidx + 1);
-
-              ObjDisp(commandBuffer)
-                  ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-
-              if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+              if(IsDrawInRenderPass())
               {
+                uint32_t eventID = HandlePreCallback(commandBuffer, DrawFlags::Drawcall, drawidx + 1);
+
                 ObjDisp(commandBuffer)
                     ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
-                m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+
+                if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+                {
+                  ObjDisp(commandBuffer)
+                      ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
+                  m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+                }
               }
             }
           }

@@ -933,7 +933,12 @@ uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandList *list, bo
   // look up the EID this drawcall came from
   DrawcallUse use(m_CurChunkOffset, 0);
   auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-  RDCASSERT(it != m_DrawcallUses.end());
+
+  if(it == m_DrawcallUses.end())
+  {
+    RDCERR("Couldn't find drawcall use entry for %llu", m_CurChunkOffset);
+    return 0;
+  }
 
   uint32_t eventID = it->eventID;
 
@@ -1003,7 +1008,11 @@ ID3D12GraphicsCommandList *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
   {
     auto it = m_RerecordCmds.find(cmdid);
 
-    RDCASSERT(it != m_RerecordCmds.end());
+    if(it == m_RerecordCmds.end())
+    {
+      RDCERR("Didn't generate re-record command for %llu", cmdid);
+      return NULL;
+    }
 
     return it->second;
   }

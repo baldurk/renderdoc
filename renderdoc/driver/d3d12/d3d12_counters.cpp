@@ -453,12 +453,18 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &count
 
       // find the result we're aliasing
       auto it = std::find(ret.begin(), ret.end(), search);
-      RDCASSERT(it != ret.end());
-
-      // duplicate the result and append
-      CounterResult aliased = *it;
-      aliased.eventID = cb.m_AliasEvents[i].second;
-      ret.push_back(aliased);
+      if(it != ret.end())
+      {
+        // duplicate the result and append
+        CounterResult aliased = *it;
+        aliased.eventID = cb.m_AliasEvents[i].second;
+        ret.push_back(aliased);
+      }
+      else
+      {
+        RDCERR("Expected to find alias-target result for EID %u counter %u, but didn't",
+               search.eventID, search.counterID);
+      }
     }
   }
 
