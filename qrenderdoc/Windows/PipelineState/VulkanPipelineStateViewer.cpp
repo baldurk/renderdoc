@@ -1107,7 +1107,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   {
     for(slot = 0; slot < (uint)shaderDetails->ConstantBlocks.count(); slot++)
     {
-      ConstantBlock cb = shaderDetails->ConstantBlocks[slot];
+      const ConstantBlock &cb = shaderDetails->ConstantBlocks[slot];
       if(stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset == bindset &&
          stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bind == bind)
       {
@@ -1385,7 +1385,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
     {
       for(int i = 0; i < shaderDetails->ConstantBlocks.count(); i++)
       {
-        ConstantBlock &cb = shaderDetails->ConstantBlocks[i];
+        const ConstantBlock &cb = shaderDetails->ConstantBlocks[i];
 
         if(stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset == bindset &&
            stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bind >=
@@ -1405,7 +1405,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   {
     for(int i = 0; i < shaderDetails->ConstantBlocks.count(); i++)
     {
-      ConstantBlock &cb = shaderDetails->ConstantBlocks[i];
+      const ConstantBlock &cb = shaderDetails->ConstantBlocks[i];
 
       if(stage.BindpointMapping.ConstantBlocks[cb.bindPoint].bindset >= pipe.DescSets.count() &&
          cb.bufferBacked)
