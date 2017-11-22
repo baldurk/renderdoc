@@ -572,9 +572,35 @@ void ReplayOutput::Display()
     m_MainOutput.dirty = true;
   }
 
+  if(m_pDevice->CheckResizeOutputWindow(m_PixelContext.outputID))
+    m_MainOutput.dirty = true;
+
   for(size_t i = 0; i < m_Thumbnails.size(); i++)
     if(m_pDevice->CheckResizeOutputWindow(m_Thumbnails[i].outputID))
       m_Thumbnails[i].dirty = true;
+
+  if(m_MainOutput.dirty)
+  {
+    m_MainOutput.dirty = false;
+
+    switch(m_Type)
+    {
+      case ReplayOutputType::Mesh: DisplayMesh(); break;
+      case ReplayOutputType::Texture: DisplayTex(); break;
+      default: RDCERR("Unexpected display type! %d", m_Type); break;
+    }
+
+    m_pDevice->FlipOutputWindow(m_MainOutput.outputID);
+
+    DisplayContext();
+  }
+  else
+  {
+    m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
+    m_pDevice->FlipOutputWindow(m_MainOutput.outputID);
+    m_pDevice->BindOutputWindow(m_PixelContext.outputID, false);
+    m_pDevice->FlipOutputWindow(m_PixelContext.outputID);
+  }
 
   for(size_t i = 0; i < m_Thumbnails.size(); i++)
   {
@@ -584,6 +610,7 @@ void ReplayOutput::Display()
       m_pDevice->FlipOutputWindow(m_Thumbnails[i].outputID);
       continue;
     }
+
     if(!m_pDevice->IsOutputWindowVisible(m_Thumbnails[i].outputID))
       continue;
 
@@ -642,31 +669,6 @@ void ReplayOutput::Display()
 
     m_Thumbnails[i].dirty = false;
   }
-
-  if(m_pDevice->CheckResizeOutputWindow(m_PixelContext.outputID))
-    m_MainOutput.dirty = true;
-
-  if(!m_MainOutput.dirty)
-  {
-    m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
-    m_pDevice->FlipOutputWindow(m_MainOutput.outputID);
-    m_pDevice->BindOutputWindow(m_PixelContext.outputID, false);
-    m_pDevice->FlipOutputWindow(m_PixelContext.outputID);
-    return;
-  }
-
-  m_MainOutput.dirty = false;
-
-  switch(m_Type)
-  {
-    case ReplayOutputType::Mesh: DisplayMesh(); break;
-    case ReplayOutputType::Texture: DisplayTex(); break;
-    default: RDCERR("Unexpected display type! %d", m_Type); break;
-  }
-
-  m_pDevice->FlipOutputWindow(m_MainOutput.outputID);
-
-  DisplayContext();
 }
 
 void ReplayOutput::DisplayTex()
