@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QFrame>
+#include "Code/Interface/QRDInterface.h"
 
 class PythonContext;
 class ScintillaEdit;

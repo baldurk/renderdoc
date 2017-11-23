@@ -24,6 +24,7 @@
 
 #include "StatisticsViewer.h"
 #include <QFontDatabase>
+#include "Code/QRDUtils.h"
 #include "ui_StatisticsViewer.h"
 
 static const int HistogramWidth = 128;

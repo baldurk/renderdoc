@@ -27,6 +27,7 @@
 #include <QFrame>
 #include <QMenu>
 #include <QMouseEvent>
+#include "Code/Interface/QRDInterface.h"
 
 namespace Ui
 {

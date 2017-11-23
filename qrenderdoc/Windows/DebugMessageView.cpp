@@ -25,6 +25,7 @@
 #include "DebugMessageView.h"
 #include <QAction>
 #include <QMenu>
+#include "Code/QRDUtils.h"
 #include "ui_DebugMessageView.h"
 
 static const int EIDRole = Qt::UserRole + 1;

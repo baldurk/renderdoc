@@ -26,12 +26,16 @@
 
 #include <QFrame>
 #include <QMutex>
+#include "Code/Interface/QRDInterface.h"
+#include "Code/QRDUtils.h"
 
 namespace Ui
 {
 class BufferViewer;
 }
 
+class QItemSelection;
+class QMenu;
 class RDTableView;
 class BufferItemModel;
 class CameraWrapper;

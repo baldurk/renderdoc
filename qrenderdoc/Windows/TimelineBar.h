@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QAbstractScrollArea>
+#include "Code/Interface/QRDInterface.h"
 
 class TimelineBar : public QAbstractScrollArea, public ITimelineBar, public ICaptureViewer
 {

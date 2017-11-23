@@ -25,12 +25,14 @@
 #pragma once
 
 #include <QFrame>
+#include "Code/Interface/QRDInterface.h"
 
 namespace Ui
 {
 class ConstantBufferPreviewer;
 }
 
+class QTextStream;
 class RDTreeWidgetItem;
 struct FormatElement;
 

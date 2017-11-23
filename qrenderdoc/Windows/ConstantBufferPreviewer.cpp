@@ -24,6 +24,7 @@
 
 #include "ConstantBufferPreviewer.h"
 #include <QFontDatabase>
+#include <QTextStream>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "ui_ConstantBufferPreviewer.h"
 

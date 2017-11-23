@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "TipsDialog.h"
+#include "Code/QRDUtils.h"
 #include "ui_TipsDialog.h"
 
 #include <stdlib.h>

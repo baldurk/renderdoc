@@ -25,6 +25,7 @@
 #include "CustomPaintWidget.h"
 #include <math.h>
 #include <QPainter>
+#include "Code/Interface/QRDInterface.h"
 
 CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
 {

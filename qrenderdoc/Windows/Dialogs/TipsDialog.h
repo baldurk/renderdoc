@@ -33,6 +33,8 @@ namespace Ui
 class TipsDialog;
 }
 
+class ICaptureContext;
+
 class TipsDialog : public QDialog
 {
   Q_OBJECT

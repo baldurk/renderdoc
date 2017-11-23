@@ -26,6 +26,7 @@
 
 #include <QFrame>
 #include <functional>
+#include "Code/Interface/QRDInterface.h"
 
 namespace Ui
 {

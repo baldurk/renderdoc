@@ -26,8 +26,10 @@
 
 #include <stdint.h>
 #include <QMainWindow>
+#include <QSemaphore>
 #include <QTimer>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
+#include "Code/Interface/QRDInterface.h"
 
 namespace Ui
 {
@@ -35,6 +37,7 @@ class MainWindow;
 }
 
 class RDLabel;
+class LambdaThread;
 class QMimeData;
 class QProgressBar;
 class QToolButton;

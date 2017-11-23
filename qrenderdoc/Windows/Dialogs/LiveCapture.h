@@ -24,10 +24,12 @@
 
 #pragma once
 
+#include <QDateTime>
 #include <QFrame>
 #include <QMutex>
 #include <QSemaphore>
 #include <QTimer>
+#include "Code/Interface/QRDInterface.h"
 
 namespace Ui
 {
@@ -38,6 +40,8 @@ class QSplitter;
 class QAction;
 class QToolButton;
 class QListWidgetItem;
+class QMenu;
+class LambdaThread;
 class RDLabel;
 class MainWindow;
 class QKeyEvent;

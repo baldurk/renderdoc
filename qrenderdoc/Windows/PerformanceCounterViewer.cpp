@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "PerformanceCounterViewer.h"
+#include "Code/QRDUtils.h"
 #include "Windows/Dialogs/PerformanceCounterSelection.h"
 #include "ui_PerformanceCounterViewer.h"
 

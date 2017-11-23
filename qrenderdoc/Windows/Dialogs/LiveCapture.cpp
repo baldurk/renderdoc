@@ -33,6 +33,7 @@
 #include <QToolBar>
 #include <QToolButton>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
+#include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Code/qprocessinfo.h"
 #include "Widgets/Extended/RDLabel.h"

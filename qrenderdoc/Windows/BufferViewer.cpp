@@ -26,6 +26,7 @@
 #include <float.h>
 #include <QDoubleSpinBox>
 #include <QFontDatabase>
+#include <QItemSelection>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QMutexLocker>

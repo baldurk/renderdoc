@@ -27,6 +27,7 @@
 #include <QPainter>
 #include <QScrollBar>
 #include <QWheelEvent>
+#include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 
 QPointF aliasAlign(QPointF pt)

@@ -28,6 +28,7 @@
 #include <QSvgRenderer>
 #include <QXmlStreamWriter>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
+#include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDLabel.h"
 #include "D3D11PipelineStateViewer.h"
