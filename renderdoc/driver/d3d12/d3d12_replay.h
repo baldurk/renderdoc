@@ -75,7 +75,7 @@ public:
   void FreeTargetResource(ResourceId id);
   void FreeCustomShader(ResourceId id);
 
-  void ReadLogInitialisation(RDCFile *rdc, bool readStructuredBuffers);
+  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool readStructuredBuffers);
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
   const SDFile &GetStructuredFile();
 

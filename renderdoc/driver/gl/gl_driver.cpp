@@ -3054,17 +3054,17 @@ void WrappedOpenGL::AddResourceInitChunk(GLResource res)
   }
 }
 
-void WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
   if(sectionIdx < 0)
-    return;
+    return ReplayStatus::FileCorrupted;
 
   StreamReader *reader = rdc->ReadSection(sectionIdx);
 
   if(reader->IsErrored())
-    return;
+    return ReplayStatus::FileIOFailed;
 
   ReadSerialiser ser(reader, Ownership::Stream);
 
@@ -3103,9 +3103,15 @@ void WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuff
 
     chunkIdx++;
 
+    if(reader->IsErrored())
+      return ReplayStatus::APIDataCorrupted;
+
     ProcessChunk(ser, context);
 
     ser.EndChunk();
+
+    if(reader->IsErrored())
+      return ReplayStatus::APIDataCorrupted;
 
     uint64_t offsetEnd = reader->GetOffset();
 
@@ -3161,6 +3167,8 @@ void WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuff
 
   RDCDEBUG("Allocating %llu persistant bytes of memory for the log.",
            m_FrameRecord.frameInfo.persistentSize);
+
+  return ReplayStatus::Succeeded;
 }
 
 void WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)

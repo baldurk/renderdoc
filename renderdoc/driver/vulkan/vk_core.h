@@ -763,7 +763,7 @@ public:
   }
   void Shutdown();
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
-  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
+  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }

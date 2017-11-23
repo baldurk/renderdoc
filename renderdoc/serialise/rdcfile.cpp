@@ -223,11 +223,17 @@ struct BinarySectionHeader
 };
 };
 
-#define RETURNCORRUPT(...)             \
-  {                                    \
-    RDCERR(__VA_ARGS__);               \
-    m_Error = ContainerError::Corrupt; \
-    return;                            \
+#define SETERROR(error, ...)                        \
+  {                                                 \
+    m_ErrorString = StringFormat::Fmt(__VA_ARGS__); \
+    RDCERR("%s", m_ErrorString.c_str());            \
+    m_Error = error;                                \
+  }
+
+#define RETURNERROR(error, ...)   \
+  {                               \
+    SETERROR(error, __VA_ARGS__); \
+    return;                       \
   }
 
 RDCFile::~RDCFile()
@@ -245,8 +251,7 @@ void RDCFile::Open(const char *path)
   // empty path.
   if(path == NULL || path[0] == 0)
   {
-    m_Error = ContainerError::FileNotFound;
-    return;
+    RETURNERROR(ContainerError::FileNotFound, "Invalid file path specified");
   }
 
   RDCLOG("Opening RDCFile %s", path);
@@ -260,9 +265,8 @@ void RDCFile::Open(const char *path)
 
   if(!m_File)
   {
-    RDCERR("Can't open capture file '%s' for read - errno %d", path, errno);
-    m_Error = ContainerError::FileNotFound;
-    return;
+    RETURNERROR(ContainerError::FileNotFound, "Can't open capture file '%s' for read - errno %d",
+                path, errno);
   }
 
   // try to identify if this is an image
@@ -318,31 +322,30 @@ void RDCFile::Init(StreamReader &reader)
 
   if(reader.IsErrored())
   {
-    RDCERR("I/O error reading magic number");
-    m_Error = ContainerError::FileIO;
-    return;
+    RETURNERROR(ContainerError::FileIO, "I/O error reading magic number");
   }
 
   if(header.magic != MAGIC_HEADER)
   {
-    RDCWARN("Invalid capture file. Expected magic %08x, got %08x.", MAGIC_HEADER,
-            (uint32_t)header.magic);
-
-    m_Error = ContainerError::Corrupt;
-    return;
+    RETURNERROR(ContainerError::Corrupt, "Invalid capture file. Expected magic %08x, got %08x.",
+                MAGIC_HEADER, (uint32_t)header.magic);
   }
 
   m_SerVer = header.version;
 
   if(m_SerVer != SERIALISE_VERSION)
   {
-    RDCERR(
-        "Capture file from wrong version. This program (v%s) is logfile version %llu, file is "
-        "logfile version %llu capture on %s.",
-        MAJOR_MINOR_VERSION_STRING, SERIALISE_VERSION, header.version, header.progVersion);
+    if(header.version < V1_0_VERSION)
+    {
+      RDCEraseEl(header.progVersion);
+      memcpy(header.progVersion, "v0.x", sizeof("v0.x"));
+    }
 
-    m_Error = ContainerError::UnsupportedVersion;
-    return;
+    RETURNERROR(
+        ContainerError::UnsupportedVersion,
+        "Capture file from wrong version. This program (v%s) uses logfile version %u, this file is "
+        "logfile version %u captured on %s.",
+        MAJOR_MINOR_VERSION_STRING, SERIALISE_VERSION, header.version, header.progVersion);
   }
 
   BinaryThumbnail thumb;
@@ -350,15 +353,13 @@ void RDCFile::Init(StreamReader &reader)
 
   if(reader.IsErrored())
   {
-    RDCERR("I/O error reading thumbnail header");
-    m_Error = ContainerError::FileIO;
-    return;
+    RETURNERROR(ContainerError::FileIO, "I/O error reading thumbnail header");
   }
 
   // check the thumbnail size is sensible
   if(thumb.length > 10 * 1024 * 1024)
   {
-    RETURNCORRUPT("Thumbnail byte length invalid: %u", thumb.length);
+    RETURNERROR(ContainerError::Corrupt, "Thumbnail byte length invalid: %u", thumb.length);
   }
 
   byte *thumbData = new byte[thumb.length];
@@ -366,10 +367,8 @@ void RDCFile::Init(StreamReader &reader)
 
   if(reader.IsErrored())
   {
-    RDCERR("I/O error reading thumbnail data");
     delete[] thumbData;
-    m_Error = ContainerError::FileIO;
-    return;
+    RETURNERROR(ContainerError::FileIO, "I/O error reading thumbnail data");
   }
 
   CaptureMetaData meta;
@@ -377,16 +376,15 @@ void RDCFile::Init(StreamReader &reader)
 
   if(reader.IsErrored())
   {
-    RDCERR("I/O error reading capture metadata");
     delete[] thumbData;
-    m_Error = ContainerError::FileIO;
-    return;
+    RETURNERROR(ContainerError::FileIO, "I/O error reading capture metadata");
   }
 
   if(meta.driverNameLength == 0)
   {
     delete[] thumbData;
-    RETURNCORRUPT("Driver name length is invalid, must be at least 1 to contain NULL terminator");
+    RETURNERROR(ContainerError::Corrupt,
+                "Driver name length is invalid, must be at least 1 to contain NULL terminator");
   }
 
   char *driverName = new char[meta.driverNameLength];
@@ -394,11 +392,9 @@ void RDCFile::Init(StreamReader &reader)
 
   if(reader.IsErrored())
   {
-    RDCERR("I/O error reading driver name");
     delete[] thumbData;
     delete[] driverName;
-    m_Error = ContainerError::FileIO;
-    return;
+    RETURNERROR(ContainerError::FileIO, "I/O error reading driver name");
   }
 
   driverName[meta.driverNameLength - 1] = '\0';
@@ -421,9 +417,7 @@ void RDCFile::Init(StreamReader &reader)
 
   if(reader.GetOffset() > header.headerLength)
   {
-    RDCERR("I/O error seeking to end of header");
-    m_Error = ContainerError::FileIO;
-    return;
+    RETURNERROR(ContainerError::FileIO, "I/O error seeking to end of header");
   }
 
   reader.SkipBytes(header.headerLength - (uint32_t)reader.GetOffset());
@@ -447,10 +441,10 @@ void RDCFile::Init(StreamReader &reader)
       char c = 0;
       reader.Read(c);
       if(reader.IsErrored())
-        RETURNCORRUPT("Invalid ASCII data section '%hhx'", c);
+        RETURNERROR(ContainerError::Corrupt, "Invalid ASCII data section '%hhx'", c);
 
       if(reader.AtEnd())
-        RETURNCORRUPT("Invalid truncated ASCII data section");
+        RETURNERROR(ContainerError::Corrupt, "Invalid truncated ASCII data section");
 
       uint64_t length = 0;
 
@@ -468,7 +462,7 @@ void RDCFile::Init(StreamReader &reader)
       }
 
       if(reader.IsErrored() || reader.AtEnd())
-        RETURNCORRUPT("Invalid truncated ASCII data section");
+        RETURNERROR(ContainerError::Corrupt, "Invalid truncated ASCII data section");
 
       uint32_t type = 0;
 
@@ -486,7 +480,7 @@ void RDCFile::Init(StreamReader &reader)
       }
 
       if(reader.IsErrored() || reader.AtEnd())
-        RETURNCORRUPT("Invalid truncated ASCII data section");
+        RETURNERROR(ContainerError::Corrupt, "Invalid truncated ASCII data section");
 
       uint64_t version = 0;
 
@@ -504,7 +498,7 @@ void RDCFile::Init(StreamReader &reader)
       }
 
       if(reader.IsErrored() || reader.AtEnd())
-        RETURNCORRUPT("Invalid truncated ASCII data section");
+        RETURNERROR(ContainerError::Corrupt, "Invalid truncated ASCII data section");
 
       std::string name;
 
@@ -521,7 +515,7 @@ void RDCFile::Init(StreamReader &reader)
       }
 
       if(reader.IsErrored() || reader.AtEnd())
-        RETURNCORRUPT("Invalid truncated ASCII data section");
+        RETURNERROR(ContainerError::Corrupt, "Invalid truncated ASCII data section");
 
       SectionProperties props;
       props.flags = SectionFlags::ASCIIStored;
@@ -539,7 +533,8 @@ void RDCFile::Init(StreamReader &reader)
       reader.SkipBytes(loc.diskLength);
 
       if(reader.IsErrored())
-        RETURNCORRUPT("Error seeking past ASCII section '%s' data", name.c_str());
+        RETURNERROR(ContainerError::Corrupt, "Error seeking past ASCII section '%s' data",
+                    name.c_str());
 
       m_Sections.push_back(props);
       m_SectionLocations.push_back(loc);
@@ -550,7 +545,7 @@ void RDCFile::Init(StreamReader &reader)
       reader.Read(reading, offsetof(BinarySectionHeader, name) - 1);
 
       if(reader.IsErrored())
-        RETURNCORRUPT("Error reading binary section header");
+        RETURNERROR(ContainerError::Corrupt, "Error reading binary section header");
 
       SectionProperties props;
       props.flags = sectionHeader.sectionFlags;
@@ -561,7 +556,8 @@ void RDCFile::Init(StreamReader &reader)
 
       if(sectionHeader.sectionNameLength == 0 || sectionHeader.sectionNameLength > 2 * 1024)
       {
-        RETURNCORRUPT("Invalid section name length %u", sectionHeader.sectionNameLength);
+        RETURNERROR(ContainerError::Corrupt, "Invalid section name length %u",
+                    sectionHeader.sectionNameLength);
       }
 
       props.name.resize(sectionHeader.sectionNameLength - 1);
@@ -569,12 +565,12 @@ void RDCFile::Init(StreamReader &reader)
       reader.Read(&props.name[0], sectionHeader.sectionNameLength - 1);
 
       if(reader.IsErrored())
-        RETURNCORRUPT("Error reading binary section header");
+        RETURNERROR(ContainerError::Corrupt, "Error reading binary section header");
 
       reader.SkipBytes(1);
 
       if(reader.IsErrored())
-        RETURNCORRUPT("Error reading binary section header");
+        RETURNERROR(ContainerError::Corrupt, "Error reading binary section header");
 
       SectionLocation loc;
       loc.headerOffset = headerOffset;
@@ -587,17 +583,18 @@ void RDCFile::Init(StreamReader &reader)
       reader.SkipBytes(loc.diskLength);
 
       if(reader.IsErrored())
-        RETURNCORRUPT("Error seeking past binary section '%s' data", props.name.c_str());
+        RETURNERROR(ContainerError::Corrupt, "Error seeking past binary section '%s' data",
+                    props.name.c_str());
     }
     else
     {
-      RETURNCORRUPT("Unrecognised section type '%hhx'", sectionHeader.isASCII);
+      RETURNERROR(ContainerError::Corrupt, "Unrecognised section type '%hhx'", sectionHeader.isASCII);
     }
   }
 
   if(SectionIndex(SectionType::FrameCapture) == -1)
   {
-    RETURNCORRUPT("Capture file doesn't have a frame capture");
+    RETURNERROR(ContainerError::Corrupt, "Capture file doesn't have a frame capture");
   }
 }
 
@@ -649,9 +646,8 @@ void RDCFile::Create(const char *filename)
 
   if(!m_File)
   {
-    RDCERR("Can't open capture file '%s' for write, errno %d", filename, errno);
-    m_Error = ContainerError::FileIO;
-    return;
+    RETURNERROR(ContainerError::FileIO, "Can't open capture file '%s' for write, errno %d",
+                filename, errno);
   }
 
   RDCDEBUG("Opened capture file for write");
@@ -686,9 +682,7 @@ void RDCFile::Create(const char *filename)
 
   if(writer.IsErrored())
   {
-    RDCERR("Error writing file header");
-    m_Error = ContainerError::FileIO;
-    return;
+    RETURNERROR(ContainerError::FileIO, "Error writing file header");
   }
 }
 
@@ -1033,8 +1027,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
 
   if(numWritten != offsetof(BinarySectionHeader, name) + name.size() + 1)
   {
-    RDCERR("Error seeking to end of file, errno %d", errno);
-    m_Error = ContainerError::FileIO;
+    SETERROR(ContainerError::FileIO, "Error seeking to end of file, errno %d", errno);
     return new StreamWriter(StreamWriter::InvalidStream);
   }
 
@@ -1097,9 +1090,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
 
     if(bytesWritten != 2 * sizeof(uint64_t))
     {
-      RDCERR("Error applying fixup to section header, errno %d", errno);
-      m_Error = ContainerError::FileIO;
-      return;
+      RETURNERROR(ContainerError::FileIO, "Error applying fixup to section header, errno %d", errno);
     }
   });
 

@@ -54,6 +54,10 @@ public:
   // API that interprets the stream that can be bumped.
   static const uint32_t SERIALISE_VERSION = 0x00000100;
 
+  // this must never be changed - files before this were in the v0.x series and didn't have embedded
+  // version numbers
+  static const uint32_t V1_0_VERSION = 0x00000100;
+
   ~RDCFile();
 
   // opens an existing file for read and/or modification. Error if file doesn't exist
@@ -70,6 +74,7 @@ public:
   void Create(const char *filename);
 
   ContainerError ErrorCode() const { return m_Error; }
+  std::string ErrorString() const { return m_ErrorString; }
   RDCDriver GetDriver() const { return m_Driver; }
   const std::string &GetDriverName() const { return m_DriverName; }
   uint64_t GetMachineIdent() const { return m_MachineIdent; }
@@ -102,6 +107,7 @@ private:
   RDCThumb m_Thumb;
 
   ContainerError m_Error = ContainerError::NoError;
+  std::string m_ErrorString;
 
   struct SectionLocation
   {

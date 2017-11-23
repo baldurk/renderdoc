@@ -68,6 +68,8 @@ StreamReader::StreamReader(StreamInvalidType)
   m_BufferHead = m_BufferBase = NULL;
 
   m_Ownership = Ownership::Nothing;
+
+  m_HasError = true;
 }
 
 StreamReader::StreamReader(Network::Socket *sock, Ownership own)
@@ -336,6 +338,8 @@ StreamWriter::StreamWriter(StreamInvalidType)
 
   m_Ownership = Ownership::Nothing;
   m_InMemory = false;
+
+  m_HasError = true;
 }
 
 StreamWriter::StreamWriter(Network::Socket *sock, Ownership own)

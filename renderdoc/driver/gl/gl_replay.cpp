@@ -73,10 +73,10 @@ void GLReplay::Shutdown()
   GLReplay::PostContextShutdownCounters();
 }
 
-void GLReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+ReplayStatus GLReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   MakeCurrentReplayContext(&m_ReplayCtx);
-  m_pDriver->ReadLogInitialisation(rdc, storeStructuredBuffers);
+  return m_pDriver->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
 
 void GLReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
@@ -3341,9 +3341,10 @@ void GL_ProcessStructured(RDCFile *rdc, SDFile &output)
     return;
 
   device.SetStructuredExport(rdc->GetSectionProperties(sectionIdx).version);
-  device.ReadLogInitialisation(rdc, true);
+  ReplayStatus status = device.ReadLogInitialisation(rdc, true);
 
-  device.GetStructuredFile().swap(output);
+  if(status == ReplayStatus::Succeeded)
+    device.GetStructuredFile().swap(output);
 }
 
 static StructuredProcessRegistration GLProcessRegistration(RDC_OpenGL, &GL_ProcessStructured);

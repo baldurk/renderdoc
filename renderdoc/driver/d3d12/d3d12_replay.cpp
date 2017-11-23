@@ -59,9 +59,9 @@ void D3D12Replay::Shutdown()
   D3D12Replay::PostDeviceShutdownCounters();
 }
 
-void D3D12Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+ReplayStatus D3D12Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
-  m_pDevice->ReadLogInitialisation(rdc, storeStructuredBuffers);
+  return m_pDevice->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
 
 APIProperties D3D12Replay::GetAPIProperties()
@@ -1752,7 +1752,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     if(!D3D12InitParams::IsSupportedVersion(ver))
     {
       RDCERR("Incompatible D3D11 serialise version %llu", ver);
-      return ReplayStatus::APIUnsupported;
+      return ReplayStatus::APIIncompatibleVersion;
     }
 
     StreamReader *reader = rdc->ReadSection(sectionIdx);
@@ -1816,9 +1816,10 @@ void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
     return;
 
   device.SetStructuredExport(rdc->GetSectionProperties(sectionIdx).version);
-  device.ReadLogInitialisation(rdc, true);
+  ReplayStatus status = device.ReadLogInitialisation(rdc, true);
 
-  device.GetStructuredFile().swap(output);
+  if(status == ReplayStatus::Succeeded)
+    device.GetStructuredFile().swap(output);
 }
 
 static StructuredProcessRegistration D3D12ProcessRegistration(RDC_D3D12, &D3D12_ProcessStructured);

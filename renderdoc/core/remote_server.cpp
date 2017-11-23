@@ -205,6 +205,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
   ReadSerialiser reader(new StreamReader(client, Ownership::Nothing), Ownership::Stream);
 
   writer.SetStreamingMode(true);
+  reader.SetStreamingMode(true);
 
   while(client)
   {
@@ -429,15 +430,25 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
             }
             else
             {
-              driver->ReadLogInitialisation(rdc, false);
+              status = driver->ReadLogInitialisation(rdc, false);
 
-              RenderDoc::Inst().SetProgressPtr(NULL);
+              if(status != ReplayStatus::Succeeded)
+              {
+                RDCERR("Failed to initialise remote driver.");
 
-              kill = true;
-              Threading::JoinThread(ticker);
-              Threading::CloseThread(ticker);
+                driver->Shutdown();
+                driver = NULL;
+              }
+              else
+              {
+                RenderDoc::Inst().SetProgressPtr(NULL);
 
-              proxy = new ReplayProxy(reader, writer, driver);
+                kill = true;
+                Threading::JoinThread(ticker);
+                Threading::CloseThread(ticker);
+
+                proxy = new ReplayProxy(reader, writer, driver);
+              }
             }
           }
           else
@@ -966,6 +977,7 @@ public:
         writer(new StreamWriter(sock, Ownership::Nothing), Ownership::Stream)
   {
     writer.SetStreamingMode(true);
+    reader.SetStreamingMode(true);
 
     std::map<RDCDriver, std::string> m = RenderDoc::Inst().GetReplayDrivers();
 

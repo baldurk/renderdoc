@@ -117,7 +117,7 @@ public:
 
   virtual FrameRecord GetFrameRecord() = 0;
 
-  virtual void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers) = 0;
+  virtual ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers) = 0;
   virtual void ReplayLog(uint32_t endEventID, ReplayLogType replayType) = 0;
   virtual const SDFile &GetStructuredFile() = 0;
 

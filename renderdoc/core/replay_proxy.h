@@ -120,7 +120,10 @@ public:
 
   bool IsRemoteProxy() { return !m_RemoteServer; }
   void Shutdown() { delete this; }
-  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers) {}
+  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+  {
+    return ReplayStatus::Succeeded;
+  }
   vector<WindowingSystem> GetSupportedWindowSystems()
   {
     if(m_Proxy)

@@ -1406,6 +1406,16 @@ representation back to native RDC.
 )");
   virtual ReplayStatus Convert(const char *filename, const char *filetype, float *progress) = 0;
 
+  DOCUMENT(R"(Returns the human-readable error string for the last error received.
+
+The error string is not reset by calling this function so it's safe to call multiple times. However
+any other function call may reset the error string to empty.
+
+:return: The error string, if one exists, or an empty string.
+:rtype: str
+)");
+  virtual rdcstr ErrorString() = 0;
+
   DOCUMENT(R"(Returns the list of capture file formats.
 
 :return: The list of capture file formats available.

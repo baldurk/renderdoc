@@ -912,17 +912,17 @@ void WrappedID3D11Device::Serialise_CaptureScope(SerialiserType &ser)
   }
 }
 
-void WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
   if(sectionIdx < 0)
-    return;
+    return ReplayStatus::FileCorrupted;
 
   StreamReader *reader = rdc->ReadSection(sectionIdx);
 
   if(reader->IsErrored())
-    return;
+    return ReplayStatus::FileIOFailed;
 
   ReadSerialiser ser(reader, Ownership::Stream);
 
@@ -961,9 +961,15 @@ void WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool storeStructur
 
     chunkIdx++;
 
+    if(reader->IsErrored())
+      return ReplayStatus::APIDataCorrupted;
+
     ProcessChunk(ser, context);
 
     ser.EndChunk();
+
+    if(reader->IsErrored())
+      return ReplayStatus::APIDataCorrupted;
 
     uint64_t offsetEnd = reader->GetOffset();
 
@@ -1027,6 +1033,8 @@ void WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool storeStructur
 
   RDCDEBUG("Allocating %llu persistant bytes of memory for the log.",
            m_FrameRecord.frameInfo.persistentSize);
+
+  return ReplayStatus::Succeeded;
 }
 
 void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,

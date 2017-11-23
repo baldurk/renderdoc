@@ -559,7 +559,7 @@ public:
   // replay interface
   void Initialise(GLInitParams &params, uint64_t sectionVersion);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
-  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
+  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 
   GLuint GetFakeBBFBO() { return m_FakeBB_FBO; }
   GLuint GetFakeVAO() { return m_FakeVAO; }

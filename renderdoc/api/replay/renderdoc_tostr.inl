@@ -39,10 +39,16 @@ std::string DoStringise(const ReplayStatus &el)
     STRINGISE_ENUM_CLASS_NAMED(FileIOFailed, "File I/O failed");
     STRINGISE_ENUM_CLASS_NAMED(FileIncompatibleVersion, "File of incompatible version");
     STRINGISE_ENUM_CLASS_NAMED(FileCorrupted, "File corrupted");
-    STRINGISE_ENUM_CLASS_NAMED(APIUnsupported, "API unsupported");
+    STRINGISE_ENUM_CLASS_NAMED(APIUnsupported, "API is not unsupported");
     STRINGISE_ENUM_CLASS_NAMED(APIInitFailed, "API initialisation failed");
-    STRINGISE_ENUM_CLASS_NAMED(APIIncompatibleVersion, "API incompatible version");
-    STRINGISE_ENUM_CLASS_NAMED(APIHardwareUnsupported, "API hardware unsupported");
+    STRINGISE_ENUM_CLASS_NAMED(APIIncompatibleVersion,
+                               "Captured API data has an incompatible version");
+    STRINGISE_ENUM_CLASS_NAMED(
+        APIHardwareUnsupported,
+        "Current hardware unsupported or incompatible with captured hardware");
+    STRINGISE_ENUM_CLASS_NAMED(APIDataCorrupted,
+                               "Replaying the capture encountered invalid/corrupted data");
+    STRINGISE_ENUM_CLASS_NAMED(APIReplayFailed, "Replaying the capture failed at the API level");
   }
   END_ENUM_STRINGISE();
 }

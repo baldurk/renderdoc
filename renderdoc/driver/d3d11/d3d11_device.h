@@ -514,7 +514,7 @@ public:
     m_SectionVersion = sectionVersion;
     m_State = CaptureState::StructuredExport;
   }
-  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
+  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ProcessChunk(ReadSerialiser &ser, D3D11Chunk context);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 

@@ -2833,6 +2833,15 @@ a remote server.
 .. data:: APIHardwareUnsupported
 
   The API is not supported on the currently available hardware.
+
+.. data:: APIDataCorrupted
+
+  While loading the capture for replay, the driver encountered corrupted or invalid serialised data.
+
+.. data:: APIReplayFailed
+
+  The API failed to replay the capture, with some runtime error that couldn't be determined until
+  the replay began.
 )");
 enum class ReplayStatus : uint32_t
 {
@@ -2853,6 +2862,8 @@ enum class ReplayStatus : uint32_t
   APIInitFailed,
   APIIncompatibleVersion,
   APIHardwareUnsupported,
+  APIDataCorrupted,
+  APIReplayFailed,
 };
 
 DECLARE_REFLECTION_ENUM(ReplayStatus);

@@ -113,7 +113,7 @@ public:
   ReplayStatus OpenFile(const char *filename, const char *filetype);
   ReplayStatus OpenBuffer(const bytebuf &buffer, const char *filetype);
   bool CopyFileTo(const char *filename);
-
+  rdcstr ErrorString() { return m_ErrorString; }
   void Shutdown() { delete this; }
   ReplaySupport LocalReplaySupport() { return m_Support; }
   const char *DriverName() { return m_DriverName.c_str(); }
@@ -183,7 +183,7 @@ private:
 
   SDFile m_StructuredData;
 
-  std::string m_DriverName, m_Ident;
+  std::string m_DriverName, m_Ident, m_ErrorString;
   ReplaySupport m_Support = ReplaySupport::Unsupported;
 };
 
@@ -214,6 +214,7 @@ ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype)
 
     if(ret != ReplayStatus::Succeeded)
     {
+      m_ErrorString = StringFormat::Fmt("Importer '%s' failed to import file.", filetype);
       delete m_RDC;
       return ret;
     }
@@ -249,6 +250,7 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
 
     if(ret != ReplayStatus::Succeeded)
     {
+      m_ErrorString = StringFormat::Fmt("Importer '%s' failed to import file.", filetype);
       delete m_RDC;
       return ret;
     }
@@ -277,6 +279,8 @@ ReplayStatus CaptureFile::Init()
 {
   if(!m_RDC)
     return ReplayStatus::InternalError;
+
+  m_ErrorString = m_RDC->ErrorString();
 
   switch(m_RDC->ErrorCode())
   {

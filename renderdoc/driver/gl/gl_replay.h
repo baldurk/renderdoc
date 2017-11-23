@@ -121,7 +121,7 @@ public:
   const VKPipe::State &GetVulkanPipelineState() { return m_VKState; }
   void FreeTargetResource(ResourceId id);
 
-  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
+  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
   const SDFile &GetStructuredFile();
 

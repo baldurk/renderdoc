@@ -1586,7 +1586,10 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
 {
   m_pDevice = device;
 
-  m_pDevice->ReadLogInitialisation(rdc, false);
+  ReplayStatus status = m_pDevice->ReadLogInitialisation(rdc, false);
+
+  if(status != ReplayStatus::Succeeded)
+    return status;
 
   FetchPipelineState();
 
@@ -1611,6 +1614,9 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
   m_Resources = m_pDevice->GetResources();
 
   m_FrameRecord = m_pDevice->GetFrameRecord();
+
+  if(m_FrameRecord.drawcallList.empty())
+    return ReplayStatus::APIReplayFailed;
 
   DrawcallDescription *previous = NULL;
   SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.drawcallList, NULL, previous);

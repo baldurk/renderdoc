@@ -423,7 +423,13 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile, float *pr
   }
 
   if(m_Renderer == NULL)
+  {
+    if(m_CaptureFile)
+      m_CaptureFile->Shutdown();
+    m_CaptureFile = NULL;
+
     return;
+  }
 
   qInfo() << "QRenderDoc - renderer created for" << capturefile;
 

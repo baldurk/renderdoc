@@ -423,10 +423,18 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
     {
       ICaptureFile *file = RENDERDOC_OpenCaptureFile();
 
-      if(file->OpenFile(filename.toUtf8().data(), "rdc") != ReplayStatus::Succeeded)
+      ReplayStatus status = file->OpenFile(filename.toUtf8().data(), "rdc");
+
+      if(status != ReplayStatus::Succeeded)
       {
-        RDDialog::critical(NULL, tr("Error opening capture"),
-                           tr("Couldn't open file '%1'").arg(filename));
+        QString text = tr("Couldn't open file '%1'\n").arg(filename);
+        QString message = file->ErrorString();
+        if(message.isEmpty())
+          text += tr("%1").arg(ToQStr(status));
+        else
+          text += tr("%1: %2").arg(ToQStr(status)).arg(message);
+
+        RDDialog::critical(NULL, tr("Error opening capture"), text);
 
         file->Shutdown();
         return;
@@ -559,6 +567,8 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
         }
       }
 
+      statusText->setText(tr("Loading %1...").arg(origFilename));
+
       m_Ctx.LoadCapture(fileToLoad, origFilename, temporary, local);
     }
 
@@ -566,8 +576,6 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
     {
       m_Ctx.Config().LastCaptureFilePath = QFileInfo(filename).absolutePath();
     }
-
-    statusText->setText(tr("Loading %1...").arg(origFilename));
   }
 }
 
@@ -976,6 +984,7 @@ void MainWindow::setProgress(float val)
   if(val < 0.0f || val >= 1.0f)
   {
     statusProgress->setVisible(false);
+    statusText->setText(QString());
   }
   else
   {

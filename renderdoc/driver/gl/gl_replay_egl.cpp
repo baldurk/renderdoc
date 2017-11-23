@@ -73,7 +73,7 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     if(!GLInitParams::IsSupportedVersion(ver))
     {
       RDCERR("Incompatible D3D11 serialise version %llu", ver);
-      return ReplayStatus::APIUnsupported;
+      return ReplayStatus::APIIncompatibleVersion;
     }
 
     StreamReader *reader = rdc->ReadSection(sectionIdx);

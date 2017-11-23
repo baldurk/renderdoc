@@ -474,7 +474,7 @@ public:
   bool Serialise_DynamicDescriptorCopies(SerialiserType &ser,
                                          const std::vector<DynamicDescriptorCopy> &DescriptorCopies);
 
-  void ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
+  ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 
   void SetStructuredExport(uint64_t sectionVersion)

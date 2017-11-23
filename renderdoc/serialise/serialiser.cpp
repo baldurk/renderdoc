@@ -198,7 +198,7 @@ void Serialiser<SerialiserMode::Reading>::EndChunk()
   // only skip remaining bytes if we have a valid length - if we have a length of 0 we wrote this
   // chunk in 'streaming mode' (see SetStreamingMode and the Writing EndChunk() impl) so there's
   // nothing to skip.
-  if(m_ChunkMetadata.length > 0)
+  if(m_ChunkMetadata.length > 0 && !m_Read->IsErrored())
   {
     // this will be a no-op if the last chunk length was accurate. If it was a
     // conservative estimate of the length then we'll skip some padding bytes

@@ -1420,17 +1420,17 @@ void WrappedVulkan::AddResourceCurChunk(ResourceId id)
   AddResourceCurChunk(GetReplay()->GetResourceDesc(id));
 }
 
-void WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
 
   if(sectionIdx < 0)
-    return;
+    return ReplayStatus::FileCorrupted;
 
   StreamReader *reader = rdc->ReadSection(sectionIdx);
 
   if(reader->IsErrored())
-    return;
+    return ReplayStatus::FileIOFailed;
 
   ReadSerialiser ser(reader, Ownership::Stream);
 
@@ -1469,9 +1469,15 @@ void WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuff
 
     chunkIdx++;
 
+    if(reader->IsErrored())
+      return ReplayStatus::APIDataCorrupted;
+
     ProcessChunk(ser, context);
 
     ser.EndChunk();
+
+    if(reader->IsErrored())
+      return ReplayStatus::APIDataCorrupted;
 
     uint64_t offsetEnd = reader->GetOffset();
 
@@ -1533,6 +1539,8 @@ void WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuff
     RDCASSERT(m_Device != VK_NULL_HANDLE && m_Queue != VK_NULL_HANDLE &&
               m_InternalCmds.cmdpool != VK_NULL_HANDLE);
   }
+
+  return ReplayStatus::Succeeded;
 }
 
 void WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEventID,

@@ -146,6 +146,14 @@ public:
   uint32_t BeginChunk(uint32_t chunkID, uint32_t byteLength);
   void EndChunk();
 
+  std::string GetCurChunkName()
+  {
+    if(m_ChunkLookup)
+      return m_ChunkLookup(m_ChunkMetadata.chunkID);
+
+    return StringFormat::Fmt("<No Chunk Lookup: %u>", m_ChunkMetadata.chunkID);
+  }
+
   /////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
@@ -213,7 +221,10 @@ public:
     }
 
     if(IsReading())
+    {
+      VerifyArraySize(count);
       byteSize = count;
+    }
 
     if(ExportStructure())
     {
@@ -343,6 +354,11 @@ public:
       m_InternalElement = false;
     }
 
+    if(IsReading())
+    {
+      VerifyArraySize(count);
+    }
+
     if(ExportStructure())
     {
       if(m_StructureStack.empty())
@@ -409,6 +425,11 @@ public:
       m_InternalElement = true;
       DoSerialise(*this, count);
       m_InternalElement = false;
+    }
+
+    if(IsReading())
+    {
+      VerifyArraySize(count);
     }
 
     if(ExportStructure())
@@ -651,7 +672,10 @@ public:
     }
 
     if(IsReading())
+    {
+      VerifyArraySize(count);
       arrayCount = count;
+    }
 
     if(ExportStructure())
     {
@@ -750,6 +774,11 @@ public:
       m_InternalElement = false;
     }
 
+    if(IsReading())
+    {
+      VerifyArraySize(size);
+    }
+
     if(ExportStructure())
     {
       if(m_StructureStack.empty())
@@ -813,6 +842,11 @@ public:
       m_InternalElement = true;
       DoSerialise(*this, size);
       m_InternalElement = false;
+    }
+
+    if(IsReading())
+    {
+      VerifyArraySize(size);
     }
 
     if(ExportStructure())
@@ -946,6 +980,11 @@ public:
       m_InternalElement = true;
       DoSerialise(*this, size);
       m_InternalElement = false;
+    }
+
+    if(IsReading())
+    {
+      VerifyArraySize(size);
     }
 
     if(ExportStructure())
@@ -1516,6 +1555,32 @@ private:
     }
   };
 
+  void VerifyArraySize(uint64_t &count)
+  {
+    uint64_t size = m_Read->GetSize();
+
+    // for streaming, just take 4GB as a 'semi reasonable' upper limit for array sizes
+    if(m_DataStreaming)
+      size = 0xFFFFFFFFU;
+
+    if(count > size)
+    {
+      RDCERR("Reading invalid array or byte buffer - %llu larger than total stream size %llu.",
+             count, size);
+
+      // if we owned the previous stream, delete it
+      if(m_Ownership == Ownership::Stream)
+        delete m_Read;
+
+      // replace our stream with an invalid one so all subsequent reads fail
+      m_Read = new StreamReader(StreamReader::InvalidStream);
+      m_Ownership = Ownership::Stream;
+
+      // set the count to 0
+      count = 0;
+    }
+  }
+
   void *m_pUserData = NULL;
 
   StreamWriter *m_Write = NULL;
@@ -1907,3 +1972,12 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
 // a member that is a pointer and could be NULL, so needs a hidden 'present'
 // flag serialised out
 #define SERIALISE_MEMBER_OPT(obj) ser.SerialiseNullable(#obj, el.obj)
+
+// simple utility function for inside serialise functions, to check if the serialiser has hit an
+// error and then bail, without trying to replay anything.
+#define SERIALISE_CHECK_READ_ERRORS()                                       \
+  if(ser.IsReading() && ser.IsErrored())                                    \
+  {                                                                         \
+    RDCERR("Serialisation failed in '%s'.", ser.GetCurChunkName().c_str()); \
+    return false;                                                           \
+  }

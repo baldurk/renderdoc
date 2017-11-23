@@ -76,6 +76,7 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
   ReadSerialiser reader(new StreamReader(client, Ownership::Nothing), Ownership::Stream);
 
   writer.SetStreamingMode(true);
+  reader.SetStreamingMode(true);
 
   std::string api = "";
   RDCDriver driver;
@@ -404,6 +405,7 @@ public:
     std::vector<byte> payload;
 
     writer.SetStreamingMode(true);
+    reader.SetStreamingMode(true);
 
     m_PID = 0;
 

@@ -659,9 +659,9 @@ APIProperties VulkanReplay::GetAPIProperties()
   return ret;
 }
 
-void VulkanReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
+ReplayStatus VulkanReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
-  m_pDriver->ReadLogInitialisation(rdc, storeStructuredBuffers);
+  return m_pDriver->ReadLogInitialisation(rdc, storeStructuredBuffers);
 }
 
 void VulkanReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
@@ -5360,7 +5360,7 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     if(!VkInitParams::IsSupportedVersion(ver))
     {
       RDCERR("Incompatible Vulkan serialise version %llu", ver);
-      return ReplayStatus::APIUnsupported;
+      return ReplayStatus::APIIncompatibleVersion;
     }
 
     StreamReader *reader = rdc->ReadSection(sectionIdx);
@@ -5428,9 +5428,10 @@ void Vulkan_ProcessStructured(RDCFile *rdc, SDFile &output)
     return;
 
   vulkan.SetStructuredExport(rdc->GetSectionProperties(sectionIdx).version);
-  vulkan.ReadLogInitialisation(rdc, true);
+  ReplayStatus status = vulkan.ReadLogInitialisation(rdc, true);
 
-  vulkan.GetStructuredFile().swap(output);
+  if(status == ReplayStatus::Succeeded)
+    vulkan.GetStructuredFile().swap(output);
 }
 
 static StructuredProcessRegistration VulkanProcessRegistration(RDC_Vulkan, &Vulkan_ProcessStructured);
