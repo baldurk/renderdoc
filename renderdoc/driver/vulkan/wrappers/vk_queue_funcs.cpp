@@ -34,6 +34,8 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice dev
   SERIALISE_ELEMENT(queueIndex);
   SERIALISE_ELEMENT_LOCAL(Queue, GetResID(*pQueue));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     VkQueue queue;
@@ -133,6 +135,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
   SERIALISE_ELEMENT_ARRAY(pSubmits, submitCount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -852,6 +856,8 @@ bool WrappedVulkan::Serialise_vkQueueBindSparse(SerialiserType &ser, VkQueue que
   SERIALISE_ELEMENT_ARRAY(pBindInfo, bindInfoCount);
   SERIALISE_ELEMENT(fence);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     // similar to vkQueueSubmit we don't need semaphores at all, just whether we waited on any.
@@ -1112,6 +1118,8 @@ template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkQueueWaitIdle(SerialiserType &ser, VkQueue queue)
 {
   SERIALISE_ELEMENT(queue);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

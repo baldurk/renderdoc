@@ -260,7 +260,7 @@ private:
   Threading::CriticalSection m_MapsLock;
   vector<MapState> m_Maps;
 
-  void ProcessChunk(ReadSerialiser &ser, D3D12Chunk context);
+  bool ProcessChunk(ReadSerialiser &ser, D3D12Chunk context);
 
   unsigned int m_InternalRefcount;
   RefCounter12<ID3D12Device> m_RefCounter;
@@ -291,6 +291,8 @@ private:
   vector<FrameDescription> m_CapturedFrames;
   FrameRecord m_FrameRecord;
   vector<DrawcallDescription *> m_Drawcalls;
+
+  ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
   bool m_AppControlledCapture;
 
@@ -346,7 +348,7 @@ private:
   UINT m_DescriptorIncrements[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
   template <typename SerialiserType>
-  void Serialise_CaptureScope(SerialiserType &ser);
+  bool Serialise_CaptureScope(SerialiserType &ser);
   void EndCaptureFrame(ID3D12Resource *presentImage);
 
 public:

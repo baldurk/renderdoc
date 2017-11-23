@@ -46,6 +46,8 @@ bool WrappedID3D11DeviceContext::Serialise_SetMarker(SerialiserType &ser, uint32
   SERIALISE_ELEMENT(Color);
   SERIALISE_ELEMENT_LOCAL(MarkerName, StringFormat::Wide2UTF8(MarkerNameW ? MarkerNameW : L""));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     D3D11MarkerRegion::Set(MarkerName);
@@ -79,6 +81,8 @@ bool WrappedID3D11DeviceContext::Serialise_PushMarker(SerialiserType &ser, uint3
 {
   SERIALISE_ELEMENT(Color);
   SERIALISE_ELEMENT_LOCAL(MarkerName, StringFormat::Wide2UTF8(MarkerNameW ? MarkerNameW : L""));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -329,6 +333,8 @@ bool WrappedID3D11DeviceContext::Serialise_IASetPrimitiveTopology(SerialiserType
 {
   SERIALISE_ELEMENT(Topology);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_CurrentPipelineState->Change(m_CurrentPipelineState->IA.Topo, Topology);
@@ -365,6 +371,8 @@ bool WrappedID3D11DeviceContext::Serialise_IASetInputLayout(SerialiserType &ser,
                                                             ID3D11InputLayout *pInputLayout)
 {
   SERIALISE_ELEMENT(pInputLayout);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -415,6 +423,8 @@ bool WrappedID3D11DeviceContext::Serialise_IASetVertexBuffers(SerialiserType &se
   SERIALISE_ELEMENT_ARRAY(pOffsets, NumBuffers);
   // serialise NumBuffers here, because if any of the above were NULL it would be set to 0
   SERIALISE_ELEMENT(NumBuffers);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -483,6 +493,8 @@ bool WrappedID3D11DeviceContext::Serialise_IASetIndexBuffer(SerialiserType &ser,
   SERIALISE_ELEMENT(pIndexBuffer);
   SERIALISE_ELEMENT(Format);
   SERIALISE_ELEMENT(Offset);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -638,6 +650,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers(SerialiserType &
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -706,6 +720,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShaderResources(
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppShaderResourceViews, NumViews);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -769,6 +785,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetSamplers(SerialiserType &ser, UI
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppSamplers, NumSamplers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -824,6 +842,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShader(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pShader);
   SERIALISE_ELEMENT_ARRAY(ppClassInstances, NumClassInstances);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -996,6 +1016,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers(SerialiserType &
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -1064,6 +1086,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShaderResources(
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppShaderResourceViews, NumViews);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -1127,6 +1151,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetSamplers(SerialiserType &ser, UI
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppSamplers, NumSamplers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -1181,6 +1207,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShader(SerialiserType &ser, ID3D
 {
   SERIALISE_ELEMENT(pShader);
   SERIALISE_ELEMENT_ARRAY(ppClassInstances, NumClassInstances);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1353,6 +1381,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers(SerialiserType &
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -1421,6 +1451,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShaderResources(
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppShaderResourceViews, NumViews);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -1484,6 +1516,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetSamplers(SerialiserType &ser, UI
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppSamplers, NumSamplers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -1539,6 +1573,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShader(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pShader);
   SERIALISE_ELEMENT_ARRAY(ppClassInstances, NumClassInstances);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1712,6 +1748,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers(SerialiserType &
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -1780,6 +1818,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShaderResources(
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppShaderResourceViews, NumViews);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -1843,6 +1883,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetSamplers(SerialiserType &ser, UI
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppSamplers, NumSamplers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -1898,6 +1940,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShader(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pShader);
   SERIALISE_ELEMENT_ARRAY(ppClassInstances, NumClassInstances);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1989,6 +2033,8 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(SerialiserType &ser, UIN
   SERIALISE_ELEMENT_ARRAY(pOffsets, NumBuffers);
   // serialise NumBuffers here, because if either of the above were NULL it would be set to 0
   SERIALISE_ELEMENT(NumBuffers);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2214,6 +2260,8 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetViewports(SerialiserType &ser, U
 {
   SERIALISE_ELEMENT_ARRAY(pViewports, NumViewports);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -2257,6 +2305,8 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetScissorRects(SerialiserType &ser
 {
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -2299,6 +2349,8 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetState(SerialiserType &ser,
                                                       ID3D11RasterizerState *pRasterizerState)
 {
   SERIALISE_ELEMENT(pRasterizerState);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2449,6 +2501,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers(SerialiserType &
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -2517,6 +2571,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShaderResources(
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppShaderResourceViews, NumViews);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -2580,6 +2636,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetSamplers(SerialiserType &ser, UI
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppSamplers, NumSamplers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -2635,6 +2693,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShader(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pShader);
   SERIALISE_ELEMENT_ARRAY(ppClassInstances, NumClassInstances);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2855,6 +2915,8 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargets(
   SERIALISE_ELEMENT_ARRAY(ppRenderTargetViews, NumViews);
   SERIALISE_ELEMENT(pDepthStencilView);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11RenderTargetView *RTs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
@@ -3012,6 +3074,8 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargetsAndUnorderedAccessV
   SERIALISE_ELEMENT(NumUAVs);
 
   RDCASSERT(ModifyRTVs || ModifyUAVs);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3261,6 +3325,8 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetBlendState(SerialiserType &ser,
   SERIALISE_ELEMENT_ARRAY(BlendFactor, FIXED_COUNT(4));
   SERIALISE_ELEMENT(SampleMask);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     FLOAT DefaultBlendFactor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -3320,6 +3386,8 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetDepthStencilState(
 {
   SERIALISE_ELEMENT(pDepthStencilState);
   SERIALISE_ELEMENT(StencilRef);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3409,6 +3477,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstanced(
 
   Serialise_DebugMessages(GET_SERIALISER);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_pRealContext->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation,
@@ -3477,6 +3547,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstanced(SerialiserType &ser,
 
   Serialise_DebugMessages(GET_SERIALISER);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_pRealContext->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation,
@@ -3540,6 +3612,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexed(SerialiserType &ser, UINT
 
   Serialise_DebugMessages(GET_SERIALISER);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_pRealContext->DrawIndexed(IndexCount, StartIndexLocation, BaseVertexLocation);
@@ -3597,6 +3671,8 @@ bool WrappedID3D11DeviceContext::Serialise_Draw(SerialiserType &ser, UINT Vertex
 
   Serialise_DebugMessages(GET_SERIALISER);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_pRealContext->Draw(VertexCount, StartVertexLocation);
@@ -3647,6 +3723,8 @@ template <typename SerialiserType>
 bool WrappedID3D11DeviceContext::Serialise_DrawAuto(SerialiserType &ser)
 {
   Serialise_DebugMessages(GET_SERIALISER);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   uint64_t numVerts = 0;
 
@@ -3759,6 +3837,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(Serialis
   SERIALISE_ELEMENT(AlignedByteOffsetForArgs);
 
   Serialise_DebugMessages(GET_SERIALISER);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3884,6 +3964,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(SerialiserType 
   SERIALISE_ELEMENT(AlignedByteOffsetForArgs);
 
   Serialise_DebugMessages(GET_SERIALISER);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4129,6 +4211,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers(SerialiserType &
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -4197,6 +4281,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShaderResources(
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppShaderResourceViews, NumViews);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -4261,6 +4347,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetUnorderedAccessViews(
   SERIALISE_ELEMENT_ARRAY(ppUnorderedAccessViews, NumUAVs);
   SERIALISE_ELEMENT_ARRAY(pUAVInitialCounts, NumUAVs);
   SERIALISE_ELEMENT(NumUAVs);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4336,6 +4424,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetSamplers(SerialiserType &ser, UI
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(ppSamplers, NumSamplers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -4391,6 +4481,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShader(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pShader);
   SERIALISE_ELEMENT_ARRAY(ppClassInstances, NumClassInstances);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4464,6 +4556,8 @@ bool WrappedID3D11DeviceContext::Serialise_Dispatch(SerialiserType &ser, UINT Th
   SERIALISE_ELEMENT(ThreadGroupCountZ);
 
   Serialise_DebugMessages(GET_SERIALISER);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4539,6 +4633,8 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(SerialiserType &ser,
   SERIALISE_ELEMENT(AlignedByteOffsetForArgs);
 
   Serialise_DebugMessages(GET_SERIALISER);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4661,6 +4757,8 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(SerialiserType &se
   SERIALISE_ELEMENT_LOCAL(RestoreContextState, bool(RestoreContextState_ == TRUE));
 
   Serialise_DebugMessages(GET_SERIALISER);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4813,6 +4911,8 @@ bool WrappedID3D11DeviceContext::Serialise_PostFinishCommandListSet(SerialiserTy
   D3D11RenderState RenderState(*m_CurrentPipelineState);
 
   SERIALISE_ELEMENT(RenderState).Named("Initial Pipeline State");
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   // this is a 'fake' call we insert after finishing in a fresh deferred context, to allow us to
   // preserve the state after a previous finish stole all the serialised chunks.
@@ -5003,6 +5103,8 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion(
 
   Serialise_DebugMessages(GET_SERIALISER);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(pDstResource && pSrcResource)
@@ -5151,6 +5253,8 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(SerialiserType &ser,
   SERIALISE_ELEMENT(pSrcResource);
 
   Serialise_DebugMessages(GET_SERIALISER);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -5594,6 +5698,8 @@ bool WrappedID3D11DeviceContext::Serialise_CopyStructureCount(SerialiserType &se
   SERIALISE_ELEMENT(DstAlignedByteOffset);
   SERIALISE_ELEMENT(pSrcView);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && pDstBuffer && pSrcView)
   {
     m_pRealContext->CopyStructureCount(UNWRAP(WrappedID3D11Buffer, pDstBuffer), DstAlignedByteOffset,
@@ -5661,6 +5767,8 @@ bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(SerialiserType &se
   SERIALISE_ELEMENT(Format);
 
   Serialise_DebugMessages(GET_SERIALISER);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -5756,6 +5864,8 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(SerialiserType &ser,
   SERIALISE_ELEMENT(pShaderResourceView);
 
   Serialise_DebugMessages(GET_SERIALISER);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -5874,6 +5984,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
 
   Serialise_DebugMessages(GET_SERIALISER);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(pRenderTargetView)
@@ -5954,6 +6066,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
 
   Serialise_DebugMessages(GET_SERIALISER);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(pUnorderedAccessView)
@@ -6029,6 +6143,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
   SERIALISE_ELEMENT_ARRAY(Values, FIXED_COUNT(4));
 
   Serialise_DebugMessages(GET_SERIALISER);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -6108,6 +6224,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(
   SERIALISE_ELEMENT(Stencil);
 
   Serialise_DebugMessages(GET_SERIALISER);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -6195,6 +6313,8 @@ bool WrappedID3D11DeviceContext::Serialise_Begin(SerialiserType &ser, ID3D11Asyn
 {
   SERIALISE_ELEMENT(pAsync);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   return true;
 }
 
@@ -6228,6 +6348,8 @@ template <typename SerialiserType>
 bool WrappedID3D11DeviceContext::Serialise_End(SerialiserType &ser, ID3D11Asynchronous *pAsync)
 {
   SERIALISE_ELEMENT(pAsync);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   return true;
 }
@@ -6283,6 +6405,8 @@ bool WrappedID3D11DeviceContext::Serialise_SetPredication(SerialiserType &ser,
   SERIALISE_ELEMENT(pPredicate);
   SERIALISE_ELEMENT_LOCAL(PredicateValue, PredicateValue_ == TRUE);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_pRealContext->SetPredication(pPredicate, PredicateValue ? TRUE : FALSE);
@@ -6319,6 +6443,8 @@ bool WrappedID3D11DeviceContext::Serialise_SetResourceMinLOD(SerialiserType &ser
 {
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT(MinLOD);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -6595,6 +6721,8 @@ bool WrappedID3D11DeviceContext::Serialise_Map(SerialiserType &ser, ID3D11Resour
   SERIALISE_ELEMENT(Subresource);
   SERIALISE_ELEMENT(MapType);
   SERIALISE_ELEMENT_TYPED(D3D11_MAP_FLAG, MapFlags);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   // nothing to do on replay, all the work happens in Unmap.
   if(ser.IsReading())
@@ -7050,6 +7178,13 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
       MapWrittenData = NULL;
     }
   }
+
+  if(IsReplayingAndReading() && ser.IsErrored())
+  {
+    FreeAlignedBuffer(MapWrittenData);
+  }
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading() && pResource)
   {

@@ -505,7 +505,7 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(
         ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem), 0, VK_WHOLE_SIZE, 0, (void **)&Contents);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
-  else if(IsReplayingAndReading())
+  else if(IsReplayingAndReading() && !ser.IsErrored())
   {
     // create a buffer with memory attached, which we will fill with the initial contents
     VkBufferCreateInfo bufInfo = {
@@ -548,7 +548,10 @@ bool WrappedVulkan::Serialise_SparseBufferInitialState(
   ser.Serialise("Contents", Contents, ContentsSize, SerialiserFlags::NoFlags);
 
   // unmap the resource we mapped before - we need to do this on read and on write.
-  ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem));
+  if(!IsStructuredExporting(m_State) && mappedMem)
+    ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -607,7 +610,7 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
         ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem), 0, VK_WHOLE_SIZE, 0, (void **)&Contents);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
-  else if(IsReplayingAndReading())
+  else if(IsReplayingAndReading() && !ser.IsErrored())
   {
     // create a buffer with memory attached, which we will fill with the initial contents
     VkBufferCreateInfo bufInfo = {
@@ -650,7 +653,10 @@ bool WrappedVulkan::Serialise_SparseImageInitialState(SerialiserType &ser, Resou
   ser.Serialise("Contents", Contents, ContentsSize, SerialiserFlags::NoFlags);
 
   // unmap the resource we mapped before - we need to do this on read and on write.
-  ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem));
+  if(!IsStructuredExporting(m_State) && mappedMem)
+    ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

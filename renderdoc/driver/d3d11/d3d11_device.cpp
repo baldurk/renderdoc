@@ -743,13 +743,15 @@ std::vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
   return ret;
 }
 
-void WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
+bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
 {
   switch(context)
   {
     case D3D11Chunk::DeviceInitialisation:
     {
       SERIALISE_ELEMENT_LOCAL(ImmediateContext, ResourceId());
+
+      SERIALISE_CHECK_READ_ERRORS();
 
       // add a reference for the resource manager - normally it takes ownership of the resource on
       // creation and releases it
@@ -765,82 +767,92 @@ void WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
         desc.name = "Immediate Context";
         desc.initialisationChunks.clear();
       }
-      break;
+
+      return true;
     }
-    case D3D11Chunk::SetResourceName: Serialise_SetResourceName(ser, 0x0, ""); break;
-    case D3D11Chunk::ReleaseResource: Serialise_ReleaseResource(ser, 0x0); break;
-    case D3D11Chunk::CreateSwapBuffer: Serialise_WrapSwapchainBuffer(ser, 0x0, 0x0, 0, 0x0); break;
-    case D3D11Chunk::CreateTexture1D: Serialise_CreateTexture1D(ser, 0x0, 0x0, 0x0); break;
-    case D3D11Chunk::CreateTexture2D: Serialise_CreateTexture2D(ser, 0x0, 0x0, 0x0); break;
-    case D3D11Chunk::CreateTexture2D1: Serialise_CreateTexture2D1(ser, 0x0, 0x0, 0x0); break;
-    case D3D11Chunk::CreateTexture3D: Serialise_CreateTexture3D(ser, 0x0, 0x0, 0x0); break;
-    case D3D11Chunk::CreateTexture3D1: Serialise_CreateTexture3D1(ser, 0x0, 0x0, 0x0); break;
-    case D3D11Chunk::CreateBuffer: Serialise_CreateBuffer(ser, 0x0, 0x0, 0x0); break;
-    case D3D11Chunk::CreateVertexShader: Serialise_CreateVertexShader(ser, 0x0, 0, 0x0, 0x0); break;
-    case D3D11Chunk::CreateHullShader: Serialise_CreateHullShader(ser, 0x0, 0, 0x0, 0x0); break;
-    case D3D11Chunk::CreateDomainShader: Serialise_CreateDomainShader(ser, 0x0, 0, 0x0, 0x0); break;
+    case D3D11Chunk::SetResourceName: return Serialise_SetResourceName(ser, 0x0, "");
+    case D3D11Chunk::ReleaseResource: return Serialise_ReleaseResource(ser, 0x0);
+    case D3D11Chunk::CreateSwapBuffer: return Serialise_WrapSwapchainBuffer(ser, 0x0, 0x0, 0, 0x0);
+
+    case D3D11Chunk::CreateTexture1D: return Serialise_CreateTexture1D(ser, 0x0, 0x0, 0x0);
+    case D3D11Chunk::CreateTexture2D: return Serialise_CreateTexture2D(ser, 0x0, 0x0, 0x0);
+    case D3D11Chunk::CreateTexture2D1: return Serialise_CreateTexture2D1(ser, 0x0, 0x0, 0x0);
+    case D3D11Chunk::CreateTexture3D: return Serialise_CreateTexture3D(ser, 0x0, 0x0, 0x0);
+    case D3D11Chunk::CreateTexture3D1: return Serialise_CreateTexture3D1(ser, 0x0, 0x0, 0x0);
+    case D3D11Chunk::CreateBuffer: return Serialise_CreateBuffer(ser, 0x0, 0x0, 0x0);
+    case D3D11Chunk::CreateVertexShader: return Serialise_CreateVertexShader(ser, 0x0, 0, 0x0, 0x0);
+
+    case D3D11Chunk::CreateHullShader: return Serialise_CreateHullShader(ser, 0x0, 0, 0x0, 0x0);
+
+    case D3D11Chunk::CreateDomainShader: return Serialise_CreateDomainShader(ser, 0x0, 0, 0x0, 0x0);
+
     case D3D11Chunk::CreateGeometryShader:
-      Serialise_CreateGeometryShader(ser, 0x0, 0, 0x0, 0x0);
-      break;
+      return Serialise_CreateGeometryShader(ser, 0x0, 0, 0x0, 0x0);
+
     case D3D11Chunk::CreateGeometryShaderWithStreamOutput:
-      Serialise_CreateGeometryShaderWithStreamOutput(ser, 0x0, 0, 0x0, 0, 0x0, 0, 0, 0x0, 0x0);
-      break;
-    case D3D11Chunk::CreatePixelShader: Serialise_CreatePixelShader(ser, 0x0, 0, 0x0, 0x0); break;
+      return Serialise_CreateGeometryShaderWithStreamOutput(ser, 0x0, 0, 0x0, 0, 0x0, 0, 0, 0x0, 0x0);
+
+    case D3D11Chunk::CreatePixelShader: return Serialise_CreatePixelShader(ser, 0x0, 0, 0x0, 0x0);
+
     case D3D11Chunk::CreateComputeShader:
-      Serialise_CreateComputeShader(ser, 0x0, 0, 0x0, 0x0);
-      break;
-    case D3D11Chunk::GetClassInstance: Serialise_GetClassInstance(ser, 0x0, 0, 0x0, 0x0); break;
+      return Serialise_CreateComputeShader(ser, 0x0, 0, 0x0, 0x0);
+
+    case D3D11Chunk::GetClassInstance: return Serialise_GetClassInstance(ser, 0x0, 0, 0x0, 0x0);
+
     case D3D11Chunk::CreateClassInstance:
-      Serialise_CreateClassInstance(ser, 0x0, 0, 0, 0, 0, 0x0, 0x0);
-      break;
-    case D3D11Chunk::CreateClassLinkage: Serialise_CreateClassLinkage(ser, 0x0); break;
+      return Serialise_CreateClassInstance(ser, 0x0, 0, 0, 0, 0, 0x0, 0x0);
+
+    case D3D11Chunk::CreateClassLinkage: return Serialise_CreateClassLinkage(ser, 0x0);
     case D3D11Chunk::CreateShaderResourceView:
-      Serialise_CreateShaderResourceView(ser, 0x0, 0x0, 0x0);
-      break;
+      return Serialise_CreateShaderResourceView(ser, 0x0, 0x0, 0x0);
+
     case D3D11Chunk::CreateShaderResourceView1:
-      Serialise_CreateShaderResourceView1(ser, 0x0, 0x0, 0x0);
-      break;
+      return Serialise_CreateShaderResourceView1(ser, 0x0, 0x0, 0x0);
+
     case D3D11Chunk::CreateRenderTargetView:
-      Serialise_CreateRenderTargetView(ser, 0x0, 0x0, 0x0);
-      break;
+      return Serialise_CreateRenderTargetView(ser, 0x0, 0x0, 0x0);
+
     case D3D11Chunk::CreateRenderTargetView1:
-      Serialise_CreateRenderTargetView1(ser, 0x0, 0x0, 0x0);
-      break;
+      return Serialise_CreateRenderTargetView1(ser, 0x0, 0x0, 0x0);
+
     case D3D11Chunk::CreateDepthStencilView:
-      Serialise_CreateDepthStencilView(ser, 0x0, 0x0, 0x0);
-      break;
+      return Serialise_CreateDepthStencilView(ser, 0x0, 0x0, 0x0);
+
     case D3D11Chunk::CreateUnorderedAccessView:
-      Serialise_CreateUnorderedAccessView(ser, 0x0, 0x0, 0x0);
-      break;
+      return Serialise_CreateUnorderedAccessView(ser, 0x0, 0x0, 0x0);
+
     case D3D11Chunk::CreateUnorderedAccessView1:
-      Serialise_CreateUnorderedAccessView1(ser, 0x0, 0x0, 0x0);
-      break;
+      return Serialise_CreateUnorderedAccessView1(ser, 0x0, 0x0, 0x0);
+
     case D3D11Chunk::CreateInputLayout:
-      Serialise_CreateInputLayout(ser, 0x0, 0, 0x0, 0, 0x0);
-      break;
-    case D3D11Chunk::CreateBlendState: Serialise_CreateBlendState(ser, 0x0, 0x0); break;
-    case D3D11Chunk::CreateBlendState1: Serialise_CreateBlendState1(ser, 0x0, 0x0); break;
+      return Serialise_CreateInputLayout(ser, 0x0, 0, 0x0, 0, 0x0);
+
+    case D3D11Chunk::CreateBlendState: return Serialise_CreateBlendState(ser, 0x0, 0x0);
+    case D3D11Chunk::CreateBlendState1: return Serialise_CreateBlendState1(ser, 0x0, 0x0);
     case D3D11Chunk::CreateDepthStencilState:
-      Serialise_CreateDepthStencilState(ser, 0x0, 0x0);
-      break;
-    case D3D11Chunk::CreateRasterizerState: Serialise_CreateRasterizerState(ser, 0x0, 0x0); break;
-    case D3D11Chunk::CreateRasterizerState1: Serialise_CreateRasterizerState1(ser, 0x0, 0x0); break;
-    case D3D11Chunk::CreateRasterizerState2: Serialise_CreateRasterizerState2(ser, 0x0, 0x0); break;
-    case D3D11Chunk::CreateSamplerState: Serialise_CreateSamplerState(ser, 0x0, 0x0); break;
-    case D3D11Chunk::CreateQuery: Serialise_CreateQuery(ser, 0x0, 0x0); break;
-    case D3D11Chunk::CreateQuery1: Serialise_CreateQuery1(ser, 0x0, 0x0); break;
-    case D3D11Chunk::CreatePredicate: Serialise_CreatePredicate(ser, 0x0, 0x0); break;
-    case D3D11Chunk::CreateCounter: Serialise_CreateCounter(ser, 0x0, 0x0); break;
-    case D3D11Chunk::CreateDeferredContext: Serialise_CreateDeferredContext(ser, 0, 0x0); break;
-    case D3D11Chunk::SetExceptionMode: Serialise_SetExceptionMode(ser, 0); break;
+      return Serialise_CreateDepthStencilState(ser, 0x0, 0x0);
+
+    case D3D11Chunk::CreateRasterizerState: return Serialise_CreateRasterizerState(ser, 0x0, 0x0);
+
+    case D3D11Chunk::CreateRasterizerState1: return Serialise_CreateRasterizerState1(ser, 0x0, 0x0);
+
+    case D3D11Chunk::CreateRasterizerState2: return Serialise_CreateRasterizerState2(ser, 0x0, 0x0);
+
+    case D3D11Chunk::CreateSamplerState: return Serialise_CreateSamplerState(ser, 0x0, 0x0);
+    case D3D11Chunk::CreateQuery: return Serialise_CreateQuery(ser, 0x0, 0x0);
+    case D3D11Chunk::CreateQuery1: return Serialise_CreateQuery1(ser, 0x0, 0x0);
+    case D3D11Chunk::CreatePredicate: return Serialise_CreatePredicate(ser, 0x0, 0x0);
+    case D3D11Chunk::CreateCounter: return Serialise_CreateCounter(ser, 0x0, 0x0);
+    case D3D11Chunk::CreateDeferredContext: return Serialise_CreateDeferredContext(ser, 0, 0x0);
+
+    case D3D11Chunk::SetExceptionMode: return Serialise_SetExceptionMode(ser, 0);
     case D3D11Chunk::OpenSharedResource:
     {
       IID nul;
-      Serialise_OpenSharedResource(ser, 0, nul, NULL);
-      break;
+      return Serialise_OpenSharedResource(ser, 0, nul, NULL);
     }
-    case D3D11Chunk::CaptureScope: Serialise_CaptureScope(ser); break;
-    case D3D11Chunk::SetShaderDebugPath: Serialise_SetShaderDebugPath(ser, NULL, NULL); break;
+    case D3D11Chunk::CaptureScope: return Serialise_CaptureScope(ser);
+    case D3D11Chunk::SetShaderDebugPath: return Serialise_SetShaderDebugPath(ser, NULL, NULL);
     default:
     {
       SystemChunk system = (SystemChunk)context;
@@ -848,33 +860,44 @@ void WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
       {
         D3D11InitParams InitParams;
         SERIALISE_ELEMENT(InitParams);
+
+        SERIALISE_CHECK_READ_ERRORS();
       }
       else if(system == SystemChunk::InitialContentsList)
       {
         GetResourceManager()->CreateInitialContents(ser);
+
+        SERIALISE_CHECK_READ_ERRORS();
       }
       else if(system == SystemChunk::InitialContents)
       {
-        Serialise_InitialState(ser, ResourceId(), NULL);
+        return Serialise_InitialState(ser, ResourceId(), NULL);
       }
       else if(system < SystemChunk::FirstDriverChunk)
       {
         RDCERR("Unexpected system chunk in capture data: %u", system);
         ser.SkipCurrentChunk();
+
+        SERIALISE_CHECK_READ_ERRORS();
       }
       else
       {
-        m_pImmediateContext->ProcessChunk(ser, context);
+        return m_pImmediateContext->ProcessChunk(ser, context);
       }
+
       break;
     }
   }
+
+  return true;
 }
 
 template <typename SerialiserType>
-void WrappedID3D11Device::Serialise_CaptureScope(SerialiserType &ser)
+bool WrappedID3D11Device::Serialise_CaptureScope(SerialiserType &ser)
 {
   SERIALISE_ELEMENT(m_FrameCounter);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayMode(m_State))
   {
@@ -910,6 +933,8 @@ void WrappedID3D11Device::Serialise_CaptureScope(SerialiserType &ser)
     stats.outputs.bindslots.resize(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT + D3D11_1_UAV_SLOT_COUNT +
                                    1);
   }
+
+  return true;
 }
 
 ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
@@ -964,12 +989,17 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
     if(reader->IsErrored())
       return ReplayStatus::APIDataCorrupted;
 
-    ProcessChunk(ser, context);
+    bool success = ProcessChunk(ser, context);
 
     ser.EndChunk();
 
     if(reader->IsErrored())
       return ReplayStatus::APIDataCorrupted;
+
+    // if there wasn't a serialisation error, but the chunk didn't succeed, then it's an API replay
+    // failure.
+    if(!success)
+      return m_FailedReplayStatus;
 
     uint64_t offsetEnd = reader->GetOffset();
 
@@ -987,7 +1017,10 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
       if(!IsStructuredExporting(m_State))
         GetResourceManager()->ApplyInitialContents();
 
-      m_pImmediateContext->ReplayLog(m_State, 0, 0, false);
+      ReplayStatus status = m_pImmediateContext->ReplayLog(m_State, 0, 0, false);
+
+      if(status != ReplayStatus::Succeeded)
+        return status;
     }
 
     chunkInfos[context].total += timer.GetMilliseconds();
@@ -1062,14 +1095,19 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   m_ReplayEventCount = 0;
 
+  ReplayStatus status = ReplayStatus::Succeeded;
+
   if(replayType == eReplay_Full)
-    m_pImmediateContext->ReplayLog(m_State, startEventID, endEventID, partial);
+    status = m_pImmediateContext->ReplayLog(m_State, startEventID, endEventID, partial);
   else if(replayType == eReplay_WithoutDraw)
-    m_pImmediateContext->ReplayLog(m_State, startEventID, RDCMAX(1U, endEventID) - 1, partial);
+    status =
+        m_pImmediateContext->ReplayLog(m_State, startEventID, RDCMAX(1U, endEventID) - 1, partial);
   else if(replayType == eReplay_OnlyDraw)
-    m_pImmediateContext->ReplayLog(m_State, endEventID, endEventID, partial);
+    status = m_pImmediateContext->ReplayLog(m_State, endEventID, endEventID, partial);
   else
     RDCFATAL("Unexpected replay type");
+
+  RDCASSERTEQUAL(status, ReplayStatus::Succeeded);
 
   // make sure to end any unbalanced replay events if we stopped in the middle of a frame
   for(int i = 0; i < m_ReplayEventCount; i++)
@@ -1152,6 +1190,8 @@ bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser,
     pTex->GetDesc(&BackbufferDescriptor);
 
   SERIALISE_ELEMENT(BackbufferDescriptor);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2095,6 +2135,8 @@ bool WrappedID3D11Device::Serialise_SetShaderDebugPath(SerialiserType &ser,
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT(Path);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && pResource)
   {
     ResourceId resId = GetResourceManager()->GetOriginalID(GetIDForResource(pResource));
@@ -2145,6 +2187,8 @@ bool WrappedID3D11Device::Serialise_SetResourceName(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT(Name);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading() && pResource)
   {
@@ -2212,6 +2256,8 @@ template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_ReleaseResource(SerialiserType &ser, ID3D11DeviceChild *pResource)
 {
   SERIALISE_ELEMENT(pResource);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading() && pResource)
   {

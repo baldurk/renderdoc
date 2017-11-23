@@ -35,6 +35,8 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(SerialiserType &ser, VkCommandBuf
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -96,6 +98,8 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(SerialiserType &ser, VkCommandBuff
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -154,6 +158,8 @@ bool WrappedVulkan::Serialise_vkCmdSetLineWidth(SerialiserType &ser, VkCommandBu
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -209,6 +215,8 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBias(SerialiserType &ser, VkCommandBu
   SERIALISE_ELEMENT(slopeScaledDepthBias);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -269,6 +277,8 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(SerialiserType &ser,
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -322,6 +332,8 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBounds(SerialiserType &ser, VkCommand
   SERIALISE_ELEMENT(maxDepthBounds);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -380,6 +392,8 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(SerialiserType &ser,
   SERIALISE_ELEMENT(compareMask);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -441,6 +455,8 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(SerialiserType &ser,
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -500,6 +516,8 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(SerialiserType &ser,
   SERIALISE_ELEMENT(reference);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

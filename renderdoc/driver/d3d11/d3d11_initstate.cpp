@@ -494,6 +494,8 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
 
     SERIALISE_ELEMENT(InitialHiddenCount);
 
+    SERIALISE_CHECK_READ_ERRORS();
+
     if(bufferUAVWithCounter && IsReplayingAndReading())
     {
       m_ResourceManager->SetInitialContents(
@@ -614,6 +616,18 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
         subData[sub].SysMemSlicePitch = ContentsLength;
       }
     }
+
+    // need to manually do cleanup here if we're about to bail on errors
+    if(IsReplayingAndReading() && tex && ser.IsErrored())
+    {
+      // free the buffers we stole
+      for(UINT sub = 0; sub < NumSubresources; sub++)
+        FreeAlignedBuffer((byte *)subData[sub].pSysMem);
+
+      SAFE_DELETE_ARRAY(subData);
+    }
+
+    SERIALISE_CHECK_READ_ERRORS();
 
     if(IsReplayingAndReading() && tex)
     {
@@ -751,6 +765,18 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
           subData[sub].SysMemSlicePitch = ContentsLength;
         }
       }
+
+      // need to manually do cleanup here if we're about to bail on errors
+      if(IsReplayingAndReading() && tex && ser.IsErrored())
+      {
+        // free the buffers we stole
+        for(UINT sub = 0; sub < NumSubresources; sub++)
+          FreeAlignedBuffer((byte *)subData[sub].pSysMem);
+
+        SAFE_DELETE_ARRAY(subData);
+      }
+
+      SERIALISE_CHECK_READ_ERRORS();
 
       if(IsReplayingAndReading() && tex)
       {
@@ -914,6 +940,18 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
         subData[sub].SysMemSlicePitch = DepthPitch;
       }
     }
+
+    // need to manually do cleanup here if we're about to bail on errors
+    if(IsReplayingAndReading() && tex && ser.IsErrored())
+    {
+      // free the buffers we stole
+      for(UINT sub = 0; sub < NumSubresources; sub++)
+        FreeAlignedBuffer((byte *)subData[sub].pSysMem);
+
+      SAFE_DELETE_ARRAY(subData);
+    }
+
+    SERIALISE_CHECK_READ_ERRORS();
 
     if(IsReplayingAndReading() && tex)
     {

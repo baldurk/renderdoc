@@ -363,6 +363,8 @@ private:
   CaptureState m_State;
   bool m_AppControlledCapture;
 
+  ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
+
   set<ID3D11DeviceChild *> m_CachedStateObjects;
 
   // This function will check if m_CachedStateObjects is growing too large, and if so
@@ -461,7 +463,7 @@ public:
 
   vector<string> *GetShaderDebugInfoSearchPaths() { return &m_ShaderSearchPaths; }
   template <typename SerialiserType>
-  void Serialise_CaptureScope(SerialiserType &ser);
+  bool Serialise_CaptureScope(SerialiserType &ser);
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
@@ -515,7 +517,7 @@ public:
     m_State = CaptureState::StructuredExport;
   }
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
-  void ProcessChunk(ReadSerialiser &ser, D3D11Chunk context);
+  bool ProcessChunk(ReadSerialiser &ser, D3D11Chunk context);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 
   ////////////////////////////////////////////////////////////////

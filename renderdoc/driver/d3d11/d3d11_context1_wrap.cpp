@@ -146,10 +146,11 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
 
     SERIALISE_ELEMENT_ARRAY(pSrcData, SourceDataLength);
 
-    if(ser.IsReading() && pDstResource)
+    SERIALISE_CHECK_READ_ERRORS();
+
+    if(IsReplayingAndReading() && pDstResource)
     {
-      if(IsReplayingAndReading())
-        RecordUpdateStats(pDstResource, SourceDataLength, true);
+      RecordUpdateStats(pDstResource, SourceDataLength, true);
 
       if(CopyFlags == ~0U)
       {
@@ -214,7 +215,9 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
     // data pointer and either marking the resource as dirty or updating the backing store with
     // pSrcData passed in
 
-    if(ser.IsReading() && pDstResource)
+    SERIALISE_CHECK_READ_ERRORS();
+
+    if(IsReplayingAndReading() && pDstResource)
     {
       WrappedID3D11Texture1D *tex1 = WrappedID3D11Texture1D::IsAlloc(pDstResource)
                                          ? (WrappedID3D11Texture1D *)pDstResource
@@ -356,6 +359,8 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(
   SERIALISE_ELEMENT_OPT(pSrcBox);
   SERIALISE_ELEMENT_TYPED(D3D11_COPY_FLAGS, CopyFlags);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && pDstResource && pSrcResource)
   {
     if(m_pRealContext1)
@@ -434,6 +439,8 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(SerialiserType &ser, ID3D11
   SERIALISE_ELEMENT_ARRAY(pRect, NumRects);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(ser.IsReading())
   {
@@ -563,6 +570,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers1(
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
   SERIALISE_ELEMENT(NumBuffers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -687,6 +696,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers1(
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
   SERIALISE_ELEMENT(NumBuffers);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -813,6 +824,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers1(
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
   SERIALISE_ELEMENT(NumBuffers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -937,6 +950,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers1(
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
   SERIALISE_ELEMENT(NumBuffers);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1063,6 +1078,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers1(
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
   SERIALISE_ELEMENT(NumBuffers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State))
@@ -1187,6 +1204,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers1(
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
   SERIALISE_ELEMENT(NumBuffers);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1556,6 +1575,8 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardResource(SerialiserType &ser,
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(pResource)
@@ -1645,6 +1666,8 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
   SERIALISE_ELEMENT(pResourceView);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1780,6 +1803,8 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
   SERIALISE_ELEMENT_ARRAY(pRect, NumRects);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1921,6 +1946,8 @@ bool WrappedID3D11DeviceContext::Serialise_SwapDeviceContextState(
   }
 
   SERIALISE_ELEMENT(state).Named("pState");
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

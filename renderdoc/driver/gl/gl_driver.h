@@ -211,6 +211,8 @@ private:
   uint32_t m_FirstEventID;
   uint32_t m_LastEventID;
 
+  ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
+
   DrawcallDescription m_ParentDrawcall;
 
   list<DrawcallDescription *> m_DrawcallStack;
@@ -339,16 +341,16 @@ private:
 
   ResourceId m_FakeVAOID;
 
-  void ProcessChunk(ReadSerialiser &ser, GLChunk chunk);
-  void ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
-                        bool partial);
-  void ContextProcessChunk(ReadSerialiser &ser, GLChunk chunk);
+  bool ProcessChunk(ReadSerialiser &ser, GLChunk chunk);
+  ReplayStatus ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
+                                bool partial);
+  bool ContextProcessChunk(ReadSerialiser &ser, GLChunk chunk);
   void AddUsage(const DrawcallDescription &d);
   void AddDrawcall(const DrawcallDescription &d, bool hasEvents);
   void AddEvent();
 
   template <typename SerialiserType>
-  void Serialise_CaptureScope(SerialiserType &ser);
+  bool Serialise_CaptureScope(SerialiserType &ser);
 
   bool HasSuccessfulCapture(CaptureFailReason &reason)
   {

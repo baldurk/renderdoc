@@ -165,6 +165,8 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(SerialiserType &ser, VkDevi
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(DescriptorPool, GetResID(*pDescriptorPool));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     VkDescriptorPool pool = VK_NULL_HANDLE;
@@ -233,6 +235,8 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(SetLayout, GetResID(*pSetLayout));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -355,6 +359,8 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo);
   SERIALISE_ELEMENT_LOCAL(DescriptorSet, GetResID(*pDescriptorSets));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -719,6 +725,8 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(SerialiserType &ser, VkDevi
   SERIALISE_ELEMENT_ARRAY(pDescriptorCopies, copyCount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

@@ -91,6 +91,8 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
     record->Length = Descriptor.ByteWidth;
   }
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11Buffer *ret;
@@ -347,6 +349,16 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(SerialiserType &ser,
       ser, ppTexture1D ? *ppTexture1D : NULL, pTexture, pInitialData, Descriptor.Width, 1, 1,
       Descriptor.Format, Descriptor.MipLevels, Descriptor.ArraySize, HasInitialData);
 
+  if(IsReplayingAndReading() && ser.IsErrored())
+  {
+    // need to manually free the serialised buffers we stole in Serialise_CreateTextureData here,
+    // before the SERIALISE_CHECK_READ_ERRORS macro below returns out of the function
+    for(size_t i = 0; i < descs.size(); i++)
+      FreeAlignedBuffer((byte *)descs[i].pSysMem);
+  }
+
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11Texture1D *ret;
@@ -463,6 +475,16 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(SerialiserType &ser,
       Serialise_CreateTextureData(ser, ppTexture2D ? *ppTexture2D : NULL, pTexture, pInitialData,
                                   Descriptor.Width, Descriptor.Height, 1, Descriptor.Format,
                                   Descriptor.MipLevels, Descriptor.ArraySize, HasInitialData);
+
+  if(IsReplayingAndReading() && ser.IsErrored())
+  {
+    // need to manually free the serialised buffers we stole in Serialise_CreateTextureData here,
+    // before the SERIALISE_CHECK_READ_ERRORS macro below returns out of the function
+    for(size_t i = 0; i < descs.size(); i++)
+      FreeAlignedBuffer((byte *)descs[i].pSysMem);
+  }
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -581,6 +603,16 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(SerialiserType &ser,
                                   Descriptor.Width, Descriptor.Height, Descriptor.Depth,
                                   Descriptor.Format, Descriptor.MipLevels, 1, HasInitialData);
 
+  if(IsReplayingAndReading() && ser.IsErrored())
+  {
+    // need to manually free the serialised buffers we stole in Serialise_CreateTextureData here,
+    // before the SERIALISE_CHECK_READ_ERRORS macro below returns out of the function
+    for(size_t i = 0; i < descs.size(); i++)
+      FreeAlignedBuffer((byte *)descs[i].pSysMem);
+  }
+
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11Texture3D *ret;
@@ -684,6 +716,8 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT_OPT(pDesc);
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForResource(*ppSRView));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading() && pResource)
   {
@@ -817,6 +851,8 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView(
   SERIALISE_ELEMENT_OPT(pDesc);
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForResource(*ppUAView));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && pResource)
   {
     ID3D11UnorderedAccessView *ret;
@@ -914,6 +950,8 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(SerialiserType &ser,
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT_OPT(pDesc);
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForResource(*ppRTView));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading() && pResource)
   {
@@ -1043,6 +1081,8 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilView(
   SERIALISE_ELEMENT_OPT(pDesc);
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForResource(*ppDepthStencilView));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && pResource)
   {
     ID3D11DepthStencilView *ret;
@@ -1142,6 +1182,8 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
   SERIALISE_ELEMENT_ARRAY(pShaderBytecodeWithInputSignature, BytecodeLength);
   SERIALISE_ELEMENT_LOCAL(pInputLayout, GetIDForResource(*ppInputLayout));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11InputLayout *ret = NULL;
@@ -1230,6 +1272,8 @@ bool WrappedID3D11Device::Serialise_CreateVertexShader(SerialiserType &ser,
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppVertexShader));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11VertexShader *ret;
@@ -1316,6 +1360,8 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShader(SerialiserType &ser,
   SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength);
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppGeometryShader));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1407,6 +1453,8 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
   SERIALISE_ELEMENT(RasterizedStream);
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppGeometryShader));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1502,6 +1550,8 @@ bool WrappedID3D11Device::Serialise_CreatePixelShader(SerialiserType &ser,
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppPixelShader));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11PixelShader *ret;
@@ -1586,6 +1636,8 @@ bool WrappedID3D11Device::Serialise_CreateHullShader(SerialiserType &ser, const 
   SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength);
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppHullShader));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1673,6 +1725,8 @@ bool WrappedID3D11Device::Serialise_CreateDomainShader(SerialiserType &ser,
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppDomainShader));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11DomainShader *ret;
@@ -1759,6 +1813,8 @@ bool WrappedID3D11Device::Serialise_CreateComputeShader(SerialiserType &ser,
   SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength);
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForResource(*ppComputeShader));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1854,6 +1910,8 @@ bool WrappedID3D11Device::Serialise_CreateClassInstance(SerialiserType &ser, LPC
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pInstance, GetIDForResource(*ppInstance));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && pClassLinkage)
   {
     ID3D11ClassInstance *real = NULL;
@@ -1920,6 +1978,8 @@ bool WrappedID3D11Device::Serialise_GetClassInstance(SerialiserType &ser, LPCSTR
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pInstance, GetIDForResource(*ppInstance));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && pClassLinkage)
   {
     ID3D11ClassInstance *real = NULL;
@@ -1979,6 +2039,8 @@ bool WrappedID3D11Device::Serialise_CreateClassLinkage(SerialiserType &ser,
                                                        ID3D11ClassLinkage **ppLinkage)
 {
   SERIALISE_ELEMENT_LOCAL(pLinkage, GetIDForResource(*ppLinkage));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2040,6 +2102,8 @@ bool WrappedID3D11Device::Serialise_CreateBlendState(SerialiserType &ser,
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pBlendStateDesc);
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForResource(*ppBlendState));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2131,6 +2195,8 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilState(
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pDepthStencilDesc);
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForResource(*ppDepthStencilState));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11DepthStencilState *ret;
@@ -2220,6 +2286,8 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState(SerialiserType &ser,
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pRasterizerDesc);
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForResource(*ppRasterizerState));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2311,6 +2379,8 @@ bool WrappedID3D11Device::Serialise_CreateSamplerState(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pSamplerDesc);
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForResource(*ppSamplerState));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11SamplerState *ret;
@@ -2401,6 +2471,8 @@ bool WrappedID3D11Device::Serialise_CreateQuery(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pQueryDesc);
   SERIALISE_ELEMENT_LOCAL(pQuery, GetIDForResource(*ppQuery));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11Query *ret;
@@ -2461,6 +2533,8 @@ bool WrappedID3D11Device::Serialise_CreatePredicate(SerialiserType &ser,
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pPredicateDesc);
   SERIALISE_ELEMENT_LOCAL(pPredicate, GetIDForResource(*ppPredicate));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2524,6 +2598,8 @@ bool WrappedID3D11Device::Serialise_CreateCounter(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pCounterDesc);
   SERIALISE_ELEMENT_LOCAL(pCounter, GetIDForResource(*ppCounter));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11Counter *ret;
@@ -2585,6 +2661,8 @@ bool WrappedID3D11Device::Serialise_CreateDeferredContext(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(ContextFlags);
   SERIALISE_ELEMENT_LOCAL(pDeferredContext, GetIDForDeviceChild(*ppDeferredContext));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2693,6 +2771,8 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       record->Length = Descriptor.ByteWidth;
     }
 
+    SERIALISE_CHECK_READ_ERRORS();
+
     if(IsReplayingAndReading())
     {
       ID3D11Buffer *ret;
@@ -2770,6 +2850,8 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
     Serialise_CreateTextureData(ser, tex, pResource, NULL, Descriptor.Width, 1, 1, Descriptor.Format,
                                 Descriptor.MipLevels, Descriptor.ArraySize, false);
 
+    SERIALISE_CHECK_READ_ERRORS();
+
     if(IsReplayingAndReading())
     {
       ID3D11Texture1D *ret;
@@ -2813,6 +2895,8 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
     Serialise_CreateTextureData(ser, tex, pResource, NULL, Descriptor.Width, Descriptor.Height, 1,
                                 Descriptor.Format, Descriptor.MipLevels, Descriptor.ArraySize, false);
 
+    SERIALISE_CHECK_READ_ERRORS();
+
     if(IsReplayingAndReading())
     {
       ID3D11Texture2D *ret;
@@ -2855,6 +2939,8 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
 
     Serialise_CreateTextureData(ser, tex, pResource, NULL, Descriptor.Width, Descriptor.Height,
                                 Descriptor.Depth, Descriptor.Format, Descriptor.MipLevels, 1, false);
+
+    SERIALISE_CHECK_READ_ERRORS();
 
     if(IsReplayingAndReading())
     {
@@ -3119,6 +3205,8 @@ template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_SetExceptionMode(SerialiserType &ser, UINT RaiseFlags)
 {
   SERIALISE_ELEMENT(RaiseFlags);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
     m_pDevice->SetExceptionMode(RaiseFlags);

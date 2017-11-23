@@ -150,6 +150,8 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
   SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo);
   SERIALISE_ELEMENT_LOCAL(Memory, GetResID(*pMemory));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     VkDeviceMemory mem = VK_NULL_HANDLE;
@@ -599,7 +601,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
   SERIALISE_ELEMENT(MapOffset);
   SERIALISE_ELEMENT(MapSize);
 
-  if(IsReplayingAndReading())
+  if(IsReplayingAndReading() && memory)
   {
     VkResult vkr = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(memory), MapOffset, MapSize, 0,
                                               (void **)&MapData);
@@ -611,8 +613,10 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
   // directly into upload memory
   ser.Serialise("MapData", MapData, MapSize, SerialiserFlags::NoFlags);
 
-  if(IsReplayingAndReading() && MapData)
+  if(IsReplayingAndReading() && MapData && memory)
     ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(memory));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   return true;
 }
@@ -720,7 +724,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
     MappedData = state->mappedPtr + (size_t)MemRange.offset;
   }
 
-  if(IsReplayingAndReading())
+  if(IsReplayingAndReading() && MemRange.memory)
   {
     VkResult ret =
         ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(MemRange.memory), MemRange.offset,
@@ -733,8 +737,10 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
   // directly into upload memory
   ser.Serialise("MappedData", MappedData, memRangeSize, SerialiserFlags::NoFlags);
 
-  if(IsReplayingAndReading() && MappedData)
+  if(IsReplayingAndReading() && MappedData && MemRange.memory)
     ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(MemRange.memory));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   // if we need to save off this serialised buffer as reference for future comparison,
   // do so now. See the call to vkFlushMappedMemoryRanges in WrappedVulkan::vkQueueSubmit()
@@ -847,6 +853,8 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
   SERIALISE_ELEMENT(memory);
   SERIALISE_ELEMENT(memoryOffset);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(memory), memoryOffset);
@@ -903,6 +911,8 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
   SERIALISE_ELEMENT(image);
   SERIALISE_ELEMENT(memory);
   SERIALISE_ELEMENT(memoryOffset);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -964,6 +974,8 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(Buffer, GetResID(*pBuffer));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1073,6 +1085,8 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(SerialiserType &ser, VkDevice d
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(View, GetResID(*pView));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     VkBufferView view = VK_NULL_HANDLE;
@@ -1171,6 +1185,8 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(Image, GetResID(*pImage));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1481,6 +1497,8 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(View, GetResID(*pView));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

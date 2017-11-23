@@ -137,6 +137,8 @@ bool WrappedOpenGL::Serialise_glCreateShader(SerialiserType &ser, GLuint shader,
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(Shader, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = m_Real.glCreateShader(type);
@@ -211,6 +213,8 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
 
   SERIALISE_ELEMENT(sources);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     std::vector<const char *> strs;
@@ -279,6 +283,8 @@ bool WrappedOpenGL::Serialise_glCompileShader(SerialiserType &ser, GLuint shader
 {
   SERIALISE_ELEMENT_LOCAL(shader, ShaderRes(GetCtx(), shaderHandle));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ResourceId liveId = GetResourceManager()->GetID(shader);
@@ -343,6 +349,8 @@ bool WrappedOpenGL::Serialise_glAttachShader(SerialiserType &ser, GLuint program
   SERIALISE_ELEMENT_LOCAL(program, ProgramRes(GetCtx(), programHandle));
   SERIALISE_ELEMENT_LOCAL(shader, ShaderRes(GetCtx(), shaderHandle));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ResourceId liveProgId = GetResourceManager()->GetID(program);
@@ -397,6 +405,8 @@ bool WrappedOpenGL::Serialise_glDetachShader(SerialiserType &ser, GLuint program
 {
   SERIALISE_ELEMENT_LOCAL(program, ProgramRes(GetCtx(), programHandle));
   SERIALISE_ELEMENT_LOCAL(shader, ShaderRes(GetCtx(), shaderHandle));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -480,6 +490,8 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLuint
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_ARRAY(strings, (uint32_t &)count);
   SERIALISE_ELEMENT_LOCAL(Program, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -583,6 +595,8 @@ bool WrappedOpenGL::Serialise_glCreateProgram(SerialiserType &ser, GLuint progra
 {
   SERIALISE_ELEMENT_LOCAL(Program, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = m_Real.glCreateProgram();
@@ -643,6 +657,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glLinkProgram(SerialiserType &ser, GLuint programHandle)
 {
   SERIALISE_ELEMENT_LOCAL(program, ProgramRes(GetCtx(), programHandle));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -715,6 +731,8 @@ bool WrappedOpenGL::Serialise_glUniformBlockBinding(SerialiserType &ser, GLuint 
   SERIALISE_ELEMENT(uniformBlockIndex);
   SERIALISE_ELEMENT(uniformBlockBinding);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glUniformBlockBinding(program.name, uniformBlockIndex, uniformBlockBinding);
@@ -753,6 +771,8 @@ bool WrappedOpenGL::Serialise_glShaderStorageBlockBinding(SerialiserType &ser, G
   SERIALISE_ELEMENT(storageBlockIndex);
   SERIALISE_ELEMENT(storageBlockBinding);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glShaderStorageBlockBinding(program.name, storageBlockIndex, storageBlockBinding);
@@ -790,6 +810,8 @@ bool WrappedOpenGL::Serialise_glBindAttribLocation(SerialiserType &ser, GLuint p
   SERIALISE_ELEMENT(index);
   SERIALISE_ELEMENT(name);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glBindAttribLocation(program.name, index, name);
@@ -826,6 +848,8 @@ bool WrappedOpenGL::Serialise_glBindFragDataLocation(SerialiserType &ser, GLuint
   SERIALISE_ELEMENT(color);
   SERIALISE_ELEMENT(name);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glBindFragDataLocation(program.name, color, name);
@@ -861,6 +885,8 @@ bool WrappedOpenGL::Serialise_glUniformSubroutinesuiv(SerialiserType &ser, GLenu
   SERIALISE_ELEMENT(shadertype);
   SERIALISE_ELEMENT_ARRAY(indices, (uint32_t &)count);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
     m_Real.glUniformSubroutinesuiv(shadertype, count, indices);
 
@@ -890,6 +916,8 @@ bool WrappedOpenGL::Serialise_glBindFragDataLocationIndexed(SerialiserType &ser,
   SERIALISE_ELEMENT(colorNumber);
   SERIALISE_ELEMENT(index);
   SERIALISE_ELEMENT(name);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -930,6 +958,8 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackVaryings(SerialiserType &ser, G
   SERIALISE_ELEMENT_ARRAY(varyings, (uint32_t &)count);
   SERIALISE_ELEMENT(bufferMode);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glTransformFeedbackVaryings(program.name, count, varyings, bufferMode);
@@ -966,6 +996,8 @@ bool WrappedOpenGL::Serialise_glProgramParameteri(SerialiserType &ser, GLuint pr
   SERIALISE_ELEMENT_LOCAL(program, ProgramRes(GetCtx(), programHandle));
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT(value);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1013,6 +1045,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glUseProgram(SerialiserType &ser, GLuint programHandle)
 {
   SERIALISE_ELEMENT_LOCAL(program, ProgramRes(GetCtx(), programHandle));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1082,6 +1116,8 @@ bool WrappedOpenGL::Serialise_glUseProgramStages(SerialiserType &ser, GLuint pip
   SERIALISE_ELEMENT_LOCAL(pipeline, ProgramPipeRes(GetCtx(), pipelineHandle));
   SERIALISE_ELEMENT_TYPED(GLshaderbitfield, stages);
   SERIALISE_ELEMENT_LOCAL(program, ProgramRes(GetCtx(), programHandle));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1232,6 +1268,8 @@ bool WrappedOpenGL::Serialise_glGenProgramPipelines(SerialiserType &ser, GLsizei
   SERIALISE_ELEMENT_LOCAL(pipeline,
                           GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), *pipelines)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
@@ -1290,6 +1328,8 @@ bool WrappedOpenGL::Serialise_glCreateProgramPipelines(SerialiserType &ser, GLsi
   SERIALISE_ELEMENT_LOCAL(pipeline,
                           GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), *pipelines)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
@@ -1343,6 +1383,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glBindProgramPipeline(SerialiserType &ser, GLuint pipelineHandle)
 {
   SERIALISE_ELEMENT_LOCAL(pipeline, ProgramPipeRes(GetCtx(), pipelineHandle));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1433,6 +1475,8 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(SerialiserType &ser, GLu
   SERIALISE_ELEMENT_ARRAY(length, (uint32_t &)count);
   SERIALISE_ELEMENT(count);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ResourceId liveId = GetResourceManager()->GetID(shader);
@@ -1502,6 +1546,8 @@ bool WrappedOpenGL::Serialise_glNamedStringARB(SerialiserType &ser, GLenum type,
       value,
       valStr ? std::string(valStr, valStr + (stringlen > 0 ? stringlen : strlen(valStr))) : "");
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glNamedStringARB(type, (GLint)name.length(), name.c_str(), (GLint)value.length(),
@@ -1535,6 +1581,8 @@ bool WrappedOpenGL::Serialise_glDeleteNamedStringARB(SerialiserType &ser, GLint 
 {
   SERIALISE_ELEMENT_LOCAL(
       name, nameStr ? std::string(nameStr, nameStr + (namelen > 0 ? namelen : strlen(nameStr))) : "");
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

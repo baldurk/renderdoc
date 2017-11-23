@@ -101,6 +101,8 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(SerialiserType &ser, VkDevi
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(PipelineLayout, GetResID(*pPipelineLayout));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     VkPipelineLayout layout = VK_NULL_HANDLE;
@@ -202,6 +204,8 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(SerialiserType &ser, VkDevice
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(ShaderModule, GetResID(*pShaderModule));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     VkShaderModule sh = VK_NULL_HANDLE;
@@ -295,6 +299,8 @@ bool WrappedVulkan::Serialise_vkCreatePipelineCache(SerialiserType &ser, VkDevic
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(PipelineCache, GetResID(*pPipelineCache));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     VkPipelineCache cache = VK_NULL_HANDLE;
@@ -378,6 +384,8 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
   SERIALISE_ELEMENT(pipelineCache);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfos);
   SERIALISE_ELEMENT_LOCAL(Pipeline, GetResID(*pPipelines));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -553,6 +561,8 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
   SERIALISE_ELEMENT(pipelineCache);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfos);
   SERIALISE_ELEMENT_LOCAL(Pipeline, GetResID(*pPipelines));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

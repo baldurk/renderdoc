@@ -110,6 +110,8 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(SerialiserType &ser, GLuint
   else if(elemBaseType == SDBasic::UnsignedInteger)
     ser.Serialise("values", v.u, arrayLength, SerialiserFlags::NoFlags);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && Program.name)
   {
     ResourceId liveProgId = GetResourceManager()->GetID(Program);
@@ -228,6 +230,8 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(SerialiserType &ser, GLuint
     ser.Serialise("values", v.f, arrayLength, SerialiserFlags::NoFlags);
   else
     ser.Serialise("values", v.d, arrayLength, SerialiserFlags::NoFlags);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading() && Program.name)
   {

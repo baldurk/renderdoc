@@ -558,6 +558,8 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
 
     SERIALISE_ELEMENT_ARRAY(Bindings, NumBindings);
 
+    SERIALISE_CHECK_READ_ERRORS();
+
     // while reading, fetch the binding information and allocate a VkWriteDescriptorSet array
     if(IsReplayingAndReading())
     {
@@ -759,7 +761,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
                                   (void **)&Contents);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
     }
-    else if(IsReplayingAndReading())
+    else if(IsReplayingAndReading() && !ser.IsErrored())
     {
       // create a buffer with memory attached, which we will fill with the initial contents
       VkBufferCreateInfo bufInfo = {
@@ -802,8 +804,10 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
     ser.Serialise("Contents", Contents, ContentsSize, SerialiserFlags::NoFlags);
 
     // unmap the resource we mapped before - we need to do this on read and on write.
-    if(!IsStructuredExporting(m_State))
+    if(!IsStructuredExporting(m_State) && mappedMem)
       ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem));
+
+    SERIALISE_CHECK_READ_ERRORS();
 
     // if we're handling a device memory object, we're done - we note the memory object to delete at
     // the end of the program, and store the buffer to copy off in Apply

@@ -51,6 +51,14 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D1(SerialiserType &ser,
                                   Descriptor.Width, Descriptor.Height, 1, Descriptor.Format,
                                   Descriptor.MipLevels, Descriptor.ArraySize, HasInitialData);
 
+  if(IsReplayingAndReading() && ser.IsErrored())
+  {
+    // need to manually free the serialised buffers we stole in Serialise_CreateTextureData here,
+    // before the SERIALISE_CHECK_READ_ERRORS macro below returns out of the function
+    for(size_t i = 0; i < descs.size(); i++)
+      FreeAlignedBuffer((byte *)descs[i].pSysMem);
+  }
+
   if(IsReplayingAndReading())
   {
     ID3D11Texture2D1 *ret = NULL;
@@ -178,6 +186,14 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D1(SerialiserType &ser,
                                   Descriptor.Width, Descriptor.Height, Descriptor.Depth,
                                   Descriptor.Format, Descriptor.MipLevels, 1, HasInitialData);
 
+  if(IsReplayingAndReading() && ser.IsErrored())
+  {
+    // need to manually free the serialised buffers we stole in Serialise_CreateTextureData here,
+    // before the SERIALISE_CHECK_READ_ERRORS macro below returns out of the function
+    for(size_t i = 0; i < descs.size(); i++)
+      FreeAlignedBuffer((byte *)descs[i].pSysMem);
+  }
+
   if(IsReplayingAndReading())
   {
     ID3D11Texture3D1 *ret = NULL;
@@ -291,6 +307,8 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView1(
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT_OPT(pDesc);
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForResource(*ppSRView));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading() && pResource)
   {
@@ -437,6 +455,8 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView1(SerialiserType &ser,
   SERIALISE_ELEMENT_OPT(pDesc);
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForResource(*ppRTView));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && pResource)
   {
     ID3D11RenderTargetView1 *ret = NULL;
@@ -578,6 +598,8 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView1(
   SERIALISE_ELEMENT_OPT(pDesc);
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForResource(*ppUAView));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && pResource)
   {
     ID3D11UnorderedAccessView1 *ret = NULL;
@@ -686,6 +708,8 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState2(
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pRasterizerDesc);
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForResource(*ppRasterizerState));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D11RasterizerState2 *ret = NULL;
@@ -782,6 +806,8 @@ bool WrappedID3D11Device::Serialise_CreateQuery1(SerialiserType &ser,
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pQueryDesc);
   SERIALISE_ELEMENT_LOCAL(pQuery, GetIDForResource(*ppQuery));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

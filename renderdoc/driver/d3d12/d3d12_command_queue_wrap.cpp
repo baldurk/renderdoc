@@ -96,6 +96,8 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
     }
   }
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D12CommandQueue *real = Unwrap(pQueue);
@@ -609,6 +611,8 @@ bool WrappedID3D12CommandQueue::Serialise_Signal(SerialiserType &ser, ID3D12Fenc
   SERIALISE_ELEMENT(pFence);
   SERIALISE_ELEMENT(Value);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && pFence)
   {
     m_pReal->Signal(Unwrap(pFence), Value);
@@ -639,6 +643,8 @@ bool WrappedID3D12CommandQueue::Serialise_Wait(SerialiserType &ser, ID3D12Fence 
 {
   SERIALISE_ELEMENT(pFence);
   SERIALISE_ELEMENT(Value);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading() && pFence)
   {

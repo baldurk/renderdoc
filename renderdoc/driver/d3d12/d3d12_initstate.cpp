@@ -321,6 +321,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
     SERIALISE_ELEMENT_ARRAY(Descriptors, numElems);
 
+    SERIALISE_CHECK_READ_ERRORS();
+
     if(IsReplayingAndReading())
     {
       WrappedID3D12DescriptorHeap *heap = (WrappedID3D12DescriptorHeap *)liveRes;
@@ -406,7 +408,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
     // serialise the size separately so we can recreate on replay
     SERIALISE_ELEMENT(ContentsLength);
 
-    if(IsReplayingAndReading())
+    // only map on replay if we haven't encountered any errors so far
+    if(IsReplayingAndReading() && !ser.IsErrored())
     {
       D3D12_RESOURCE_DESC resDesc = ((ID3D12Resource *)liveRes)->GetDesc();
 
@@ -478,6 +481,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
       mappedBuffer->Unmap(0, NULL);
 
     SAFE_DELETE_ARRAY(dummy);
+
+    SERIALISE_CHECK_READ_ERRORS();
 
     if(IsReplayingAndReading() && mappedBuffer)
       SetInitialContents(id, D3D12ResourceManager::InitialContentData(type, mappedBuffer, 1, NULL));

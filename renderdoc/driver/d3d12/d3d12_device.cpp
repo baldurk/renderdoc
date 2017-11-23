@@ -661,6 +661,8 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(SwapbufferID, GetResID(pRes));
   SERIALISE_ELEMENT_LOCAL(BackbufferDescriptor, pRes->GetDesc());
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ID3D12Resource *fakeBB = NULL;
@@ -865,6 +867,8 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
 
   SERIALISE_ELEMENT_ARRAY(MappedData, rangeSize);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   // don't do anything if end <= begin because the range is empty.
   if(IsReplayingAndReading() && Resource && range.End > range.Begin)
   {
@@ -987,6 +991,8 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
   }
 
   SERIALISE_ELEMENT_ARRAY(pSrcData, dataSize);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading() && Resource)
   {
@@ -1172,15 +1178,19 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
 }
 
 template <typename SerialiserType>
-void WrappedID3D12Device::Serialise_CaptureScope(SerialiserType &ser)
+bool WrappedID3D12Device::Serialise_CaptureScope(SerialiserType &ser)
 {
   SERIALISE_ELEMENT(m_FrameCounter);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayMode(m_State))
   {
     m_FrameRecord.frameInfo.frameNumber = m_FrameCounter;
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
   }
+
+  return true;
 }
 
 template <typename SerialiserType>
@@ -1192,6 +1202,8 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser, bool 
     SCOPED_LOCK(m_ResourceStatesLock);    // not needed on replay, but harmless also
     GetResourceManager()->SerialiseResourceStates(ser, barriers, m_ResourceStates);
   }
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(applyInitialState && !barriers.empty())
   {
@@ -1863,6 +1875,8 @@ bool WrappedID3D12Device::Serialise_SetShaderDebugPath(SerialiserType &ser,
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT(Path);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && pResource)
   {
     RDCERR("SetDebugInfoPath doesn't work as-is because it can't specify a shader specific path");
@@ -1908,6 +1922,8 @@ bool WrappedID3D12Device::Serialise_SetName(SerialiserType &ser, ID3D12DeviceChi
 {
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT(Name);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading() && pResource)
   {
@@ -2247,61 +2263,65 @@ const DrawcallDescription *WrappedID3D12Device::GetDrawcall(uint32_t eventID)
   return m_Drawcalls[eventID];
 }
 
-void WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
+bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
 {
   switch(context)
   {
     case D3D12Chunk::Device_CreateCommandQueue:
-      Serialise_CreateCommandQueue(ser, NULL, IID(), NULL);
+      return Serialise_CreateCommandQueue(ser, NULL, IID(), NULL);
       break;
     case D3D12Chunk::Device_CreateCommandAllocator:
-      Serialise_CreateCommandAllocator(ser, D3D12_COMMAND_LIST_TYPE_DIRECT, IID(), NULL);
+      return Serialise_CreateCommandAllocator(ser, D3D12_COMMAND_LIST_TYPE_DIRECT, IID(), NULL);
       break;
     case D3D12Chunk::Device_CreateCommandList:
-      Serialise_CreateCommandList(ser, 0, D3D12_COMMAND_LIST_TYPE_DIRECT, NULL, NULL, IID(), NULL);
+      return Serialise_CreateCommandList(ser, 0, D3D12_COMMAND_LIST_TYPE_DIRECT, NULL, NULL, IID(),
+                                         NULL);
       break;
 
     case D3D12Chunk::Device_CreateGraphicsPipeline:
-      Serialise_CreateGraphicsPipelineState(ser, NULL, IID(), NULL);
+      return Serialise_CreateGraphicsPipelineState(ser, NULL, IID(), NULL);
       break;
     case D3D12Chunk::Device_CreateComputePipeline:
-      Serialise_CreateComputePipelineState(ser, NULL, IID(), NULL);
+      return Serialise_CreateComputePipelineState(ser, NULL, IID(), NULL);
       break;
     case D3D12Chunk::Device_CreateDescriptorHeap:
-      Serialise_CreateDescriptorHeap(ser, NULL, IID(), NULL);
+      return Serialise_CreateDescriptorHeap(ser, NULL, IID(), NULL);
       break;
     case D3D12Chunk::Device_CreateRootSignature:
-      Serialise_CreateRootSignature(ser, 0, NULL, 0, IID(), NULL);
+      return Serialise_CreateRootSignature(ser, 0, NULL, 0, IID(), NULL);
       break;
     case D3D12Chunk::Device_CreateCommandSignature:
-      Serialise_CreateCommandSignature(ser, NULL, NULL, IID(), NULL);
+      return Serialise_CreateCommandSignature(ser, NULL, NULL, IID(), NULL);
       break;
 
-    case D3D12Chunk::Device_CreateHeap: Serialise_CreateHeap(ser, NULL, IID(), NULL); break;
+    case D3D12Chunk::Device_CreateHeap: return Serialise_CreateHeap(ser, NULL, IID(), NULL); break;
     case D3D12Chunk::Device_CreateCommittedResource:
-      Serialise_CreateCommittedResource(ser, NULL, D3D12_HEAP_FLAG_NONE, NULL,
-                                        D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
+      return Serialise_CreateCommittedResource(ser, NULL, D3D12_HEAP_FLAG_NONE, NULL,
+                                               D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
       break;
     case D3D12Chunk::Device_CreatePlacedResource:
-      Serialise_CreatePlacedResource(ser, NULL, 0, NULL, D3D12_RESOURCE_STATE_COMMON, NULL, IID(),
-                                     NULL);
+      return Serialise_CreatePlacedResource(ser, NULL, 0, NULL, D3D12_RESOURCE_STATE_COMMON, NULL,
+                                            IID(), NULL);
       break;
     case D3D12Chunk::Device_CreateReservedResource:
-      Serialise_CreateReservedResource(ser, NULL, D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
+      return Serialise_CreateReservedResource(ser, NULL, D3D12_RESOURCE_STATE_COMMON, NULL, IID(),
+                                              NULL);
       break;
 
     case D3D12Chunk::Device_CreateQueryHeap:
-      Serialise_CreateQueryHeap(ser, NULL, IID(), NULL);
+      return Serialise_CreateQueryHeap(ser, NULL, IID(), NULL);
       break;
     case D3D12Chunk::Device_CreateFence:
-      Serialise_CreateFence(ser, 0, D3D12_FENCE_FLAG_NONE, IID(), NULL);
+      return Serialise_CreateFence(ser, 0, D3D12_FENCE_FLAG_NONE, IID(), NULL);
       break;
-    case D3D12Chunk::SetName: Serialise_SetName(ser, 0x0, ""); break;
-    case D3D12Chunk::SetShaderDebugPath: Serialise_SetShaderDebugPath(ser, NULL, NULL); break;
+    case D3D12Chunk::SetName: return Serialise_SetName(ser, 0x0, ""); break;
+    case D3D12Chunk::SetShaderDebugPath:
+      return Serialise_SetShaderDebugPath(ser, NULL, NULL);
+      break;
     case D3D12Chunk::CreateSwapBuffer:
-      Serialise_WrapSwapchainBuffer(ser, NULL, NULL, 0, NULL);
+      return Serialise_WrapSwapchainBuffer(ser, NULL, NULL, 0, NULL);
       break;
-    case D3D12Chunk::CaptureScope: Serialise_CaptureScope(ser); break;
+    case D3D12Chunk::CaptureScope: return Serialise_CaptureScope(ser); break;
     default:
     {
       SystemChunk system = (SystemChunk)context;
@@ -2309,27 +2329,36 @@ void WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
       {
         D3D12InitParams InitParams;
         SERIALISE_ELEMENT(InitParams);
+
+        SERIALISE_CHECK_READ_ERRORS();
       }
       else if(system == SystemChunk::InitialContentsList)
       {
         GetResourceManager()->CreateInitialContents(ser);
+
+        SERIALISE_CHECK_READ_ERRORS();
       }
       else if(system == SystemChunk::InitialContents)
       {
-        GetResourceManager()->Serialise_InitialState(ser, ResourceId(), NULL);
+        return GetResourceManager()->Serialise_InitialState(ser, ResourceId(), NULL);
       }
       else if(system < SystemChunk::FirstDriverChunk)
       {
         RDCERR("Unexpected system chunk in capture data: %u", system);
         ser.SkipCurrentChunk();
+
+        SERIALISE_CHECK_READ_ERRORS();
       }
       else
       {
         RDCERR("Unexpected chunk %s", ToStr(context).c_str());
+        return false;
       }
       break;
     }
   }
+
+  return true;
 }
 
 void WrappedID3D12Device::AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix)
@@ -2419,12 +2448,17 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
     if(reader->IsErrored())
       return ReplayStatus::APIDataCorrupted;
 
-    ProcessChunk(ser, context);
+    bool success = ProcessChunk(ser, context);
 
     ser.EndChunk();
 
     if(reader->IsErrored())
       return ReplayStatus::APIDataCorrupted;
+
+    // if there wasn't a serialisation error, but the chunk didn't succeed, then it's an API replay
+    // failure.
+    if(!success)
+      return m_FailedReplayStatus;
 
     uint64_t offsetEnd = reader->GetOffset();
 
@@ -2442,7 +2476,10 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
       if(!IsStructuredExporting(m_State))
         ApplyInitialContents();
 
-      m_Queue->ReplayLog(m_State, 0, 0, false);
+      ReplayStatus status = m_Queue->ReplayLog(m_State, 0, 0, false);
+
+      if(status != ReplayStatus::Succeeded)
+        return status;
     }
 
     chunkInfos[context].total += timer.GetMilliseconds();
@@ -2570,14 +2607,18 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
       cmd.m_RenderState.ApplyState(list);
     }
 
+    ReplayStatus status = ReplayStatus::Succeeded;
+
     if(replayType == eReplay_Full)
-      m_Queue->ReplayLog(m_State, startEventID, endEventID, partial);
+      status = m_Queue->ReplayLog(m_State, startEventID, endEventID, partial);
     else if(replayType == eReplay_WithoutDraw)
-      m_Queue->ReplayLog(m_State, startEventID, RDCMAX(1U, endEventID) - 1, partial);
+      status = m_Queue->ReplayLog(m_State, startEventID, RDCMAX(1U, endEventID) - 1, partial);
     else if(replayType == eReplay_OnlyDraw)
-      m_Queue->ReplayLog(m_State, endEventID, endEventID, partial);
+      status = m_Queue->ReplayLog(m_State, endEventID, endEventID, partial);
     else
       RDCFATAL("Unexpected replay type");
+
+    RDCASSERTEQUAL(status, ReplayStatus::Succeeded);
 
     if(cmd.m_Partial[D3D12CommandData::Primary].outsideCmdList != NULL)
     {

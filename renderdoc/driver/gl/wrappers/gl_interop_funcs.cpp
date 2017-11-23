@@ -276,6 +276,8 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(SerialiserType &ser, GLResou
   SERIALISE_ELEMENT(layers);
   SERIALISE_ELEMENT(samples);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint name = Resource.name;
@@ -376,6 +378,8 @@ bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(SerialiserType &ser, GLResource
     }
 
     SERIALISE_ELEMENT_ARRAY(Contents, length);
+
+    SERIALISE_CHECK_READ_ERRORS();
 
     // restore on replay
     if(IsReplayingAndReading())
@@ -483,7 +487,7 @@ bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(SerialiserType &ser, GLResource
         // serialise without allocating memory as we already have our scratch buf sized.
         ser.Serialise("SubresourceContents", scratchBuf, size, SerialiserFlags::NoFlags);
 
-        if(IsReplayingAndReading())
+        if(IsReplayingAndReading() && !ser.IsErrored())
         {
           if(dim == 1)
             gl.glTextureSubImage1DEXT(tex, targets[trg], i, 0, w, fmt, type, scratchBuf);
@@ -508,6 +512,8 @@ bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(SerialiserType &ser, GLResource
 
     if(!IsStructuredExporting(m_State))
       gl.glBindTexture(textype, prevtex);
+
+    SERIALISE_CHECK_READ_ERRORS();
   }
 
   return true;

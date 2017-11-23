@@ -200,6 +200,8 @@ private:
   SDChunkMetaData m_ChunkMetadata;
   uint32_t m_CurEventID, m_CurDrawcallID;
 
+  ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
+
   DrawcallDescription m_ParentDrawcall;
   map<ResourceId, DrawcallDescription> m_CmdLists;
 
@@ -293,9 +295,10 @@ public:
   ID3D11DeviceContext1 *GetReal1() { return m_pRealContext1; }
   bool IsFL11_1();
 
-  void ProcessChunk(ReadSerialiser &ser, D3D11Chunk chunk);
+  bool ProcessChunk(ReadSerialiser &ser, D3D11Chunk chunk);
   void ReplayFakeContext(ResourceId id);
-  void ReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
+  ReplayStatus ReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
+                         bool partial);
   void SetFrameReader(StreamReader *reader) { m_FrameReader = reader; }
   void MarkResourceReferenced(ResourceId id, FrameRefType refType);
 

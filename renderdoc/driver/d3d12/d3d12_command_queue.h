@@ -85,6 +85,8 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
 
   CaptureState &m_State;
 
+  ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
+
   WrappedID3D12DebugCommandQueue m_WrappedDebug;
 
   vector<D3D12ResourceRecord *> m_CmdListRecords;
@@ -105,7 +107,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   ResourceId m_PrevQueueId;
   ResourceId m_BackbufferID;
 
-  void ProcessChunk(ReadSerialiser &ser, D3D12Chunk context);
+  bool ProcessChunk(ReadSerialiser &ser, D3D12Chunk context);
 
   static std::string GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
@@ -128,7 +130,8 @@ public:
   ResourceId GetBackbufferResourceID() { return m_BackbufferID; }
   void ClearAfterCapture();
 
-  void ReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
+  ReplayStatus ReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
+                         bool partial);
   void SetFrameReader(StreamReader *reader) { m_FrameReader = reader; }
   D3D12CommandData *GetCommandData() { return &m_Cmd; }
   const vector<EventUsage> &GetUsage(ResourceId id) { return m_Cmd.m_ResourceUses[id]; }

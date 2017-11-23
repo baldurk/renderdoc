@@ -398,6 +398,8 @@ bool WrappedVulkan::Serialise_vkCreateSampler(SerialiserType &ser, VkDevice devi
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(Sampler, GetResID(*pSampler));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     VkSampler samp = VK_NULL_HANDLE;
@@ -484,6 +486,8 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(Framebuffer, GetResID(*pFramebuffer));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -665,6 +669,8 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(RenderPass, GetResID(*pRenderPass));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -873,6 +879,8 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(SerialiserType &ser, VkDevice de
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(QueryPool, GetResID(*pQueryPool));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1151,6 +1159,8 @@ bool WrappedVulkan::Serialise_SetShaderDebugPath(SerialiserType &ser, VkDevice d
 
   SERIALISE_ELEMENT(DebugPath);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_CreationInfo.m_ShaderModule[GetResourceManager()->GetLiveID(ShaderObject)].unstrippedPath =
@@ -1226,6 +1236,8 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
   SERIALISE_ELEMENT_LOCAL(Object,
                           GetObjRecord(pNameInfo->objectType, pNameInfo->object)->GetResourceID());
   SERIALISE_ELEMENT_LOCAL(ObjectName, pNameInfo->pObjectName);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

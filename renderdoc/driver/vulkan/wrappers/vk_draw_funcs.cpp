@@ -78,6 +78,8 @@ bool WrappedVulkan::Serialise_vkCmdDraw(SerialiserType &ser, VkCommandBuffer com
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -173,6 +175,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(SerialiserType &ser, VkCommandBuf
   SERIALISE_ELEMENT(firstInstance);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -272,6 +276,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   bool multidraw = count > 1;
 
@@ -554,6 +560,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   bool multidraw = count > 1;
 
@@ -841,6 +849,8 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(SerialiserType &ser, VkCommandBuffer
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -915,6 +925,8 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(SerialiserType &ser,
   SERIALISE_ELEMENT(offset);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1020,6 +1032,8 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(SerialiserType &ser, VkCommandBuffe
   SERIALISE_ELEMENT(filter);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1141,6 +1155,8 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(SerialiserType &ser, VkCommandBu
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -1261,6 +1277,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(SerialiserType &ser, VkCommandBuffe
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -1378,6 +1396,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -1488,6 +1508,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(SerialiserType &ser,
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1600,6 +1622,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(SerialiserType &ser, VkCommandBuff
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1723,6 +1747,8 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(SerialiserType &ser, VkComman
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -1823,6 +1849,8 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
   SERIALISE_ELEMENT_ARRAY(pRanges, rangeCount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1925,6 +1953,8 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
   SERIALISE_ELEMENT_ARRAY(pRects, rectCount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

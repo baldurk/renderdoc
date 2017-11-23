@@ -68,6 +68,8 @@ bool WrappedOpenGL::Serialise_glObjectLabel(SerialiserType &ser, GLenum identifi
   SERIALISE_ELEMENT(length);
   SERIALISE_ELEMENT(Label);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && Resource.name)
   {
     ResourceId origId = GetResourceManager()->GetOriginalID(GetResourceManager()->GetID(Resource));
@@ -156,6 +158,8 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(SerialiserType &ser, GLenum s
   SERIALISE_ELEMENT(severity);
   SERIALISE_ELEMENT(name);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLMarkerRegion::Set(name);
@@ -222,6 +226,8 @@ bool WrappedOpenGL::Serialise_glInsertEventMarkerEXT(SerialiserType &ser, GLsize
 
   SERIALISE_ELEMENT(marker);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLMarkerRegion::Set(marker);
@@ -280,6 +286,8 @@ bool WrappedOpenGL::Serialise_glPushDebugGroup(SerialiserType &ser, GLenum sourc
   SERIALISE_ELEMENT(source);
   SERIALISE_ELEMENT(id);
   SERIALISE_ELEMENT(name);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

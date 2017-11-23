@@ -33,6 +33,8 @@ bool WrappedOpenGL::Serialise_glGenFramebuffers(SerialiserType &ser, GLsizei n, 
   SERIALISE_ELEMENT_LOCAL(framebuffer,
                           GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
@@ -90,6 +92,8 @@ bool WrappedOpenGL::Serialise_glCreateFramebuffers(SerialiserType &ser, GLsizei 
 {
   SERIALISE_ELEMENT_LOCAL(framebuffer,
                           GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -150,6 +154,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureEXT(SerialiserType &ser,
   SERIALISE_ELEMENT(attachment);
   SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
   SERIALISE_ELEMENT(level);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -289,6 +295,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture1DEXT(SerialiserType &ser
   SERIALISE_ELEMENT(textarget);
   SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
   SERIALISE_ELEMENT(level);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -431,6 +439,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture2DEXT(SerialiserType &ser
   SERIALISE_ELEMENT(textarget);
   SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
   SERIALISE_ELEMENT(level);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -575,6 +585,8 @@ bool WrappedOpenGL::Serialise_glFramebufferTexture2DMultisampleEXT(
   SERIALISE_ELEMENT(level);
   SERIALISE_ELEMENT(samples);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint prevread = 0, prevdraw = 0;
@@ -676,6 +688,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture3DEXT(SerialiserType &ser
   SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
   SERIALISE_ELEMENT(level);
   SERIALISE_ELEMENT(zoffset);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -821,6 +835,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferRenderbufferEXT(SerialiserType &
   SERIALISE_ELEMENT(renderbuffertarget);
   SERIALISE_ELEMENT_LOCAL(renderbuffer, RenderbufferRes(GetCtx(), renderbufferHandle));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(framebuffer.name == 0)
@@ -945,6 +961,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureLayerEXT(SerialiserType &
   SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
   SERIALISE_ELEMENT(level);
   SERIALISE_ELEMENT(layer);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1088,6 +1106,8 @@ bool WrappedOpenGL::Serialise_glFramebufferTextureMultiviewOVR(SerialiserType &s
   SERIALISE_ELEMENT(level);
   SERIALISE_ELEMENT(baseViewIndex);
   SERIALISE_ELEMENT(numViews);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1282,6 +1302,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferParameteriEXT(SerialiserType &se
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT(param);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(framebuffer.name)
@@ -1344,6 +1366,8 @@ bool WrappedOpenGL::Serialise_glFramebufferReadBufferEXT(SerialiserType &ser,
 {
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
   SERIALISE_ELEMENT(mode);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1424,6 +1448,8 @@ bool WrappedOpenGL::Serialise_glBindFramebuffer(SerialiserType &ser, GLenum targ
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glBindFramebuffer(target, framebuffer.name ? framebuffer.name : m_FakeBB_FBO);
@@ -1464,6 +1490,8 @@ bool WrappedOpenGL::Serialise_glFramebufferDrawBufferEXT(SerialiserType &ser,
 {
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
   SERIALISE_ELEMENT(buf);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1544,6 +1572,8 @@ bool WrappedOpenGL::Serialise_glFramebufferDrawBuffersEXT(SerialiserType &ser,
 {
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
   SERIALISE_ELEMENT_ARRAY(bufs, (uint32_t &)n);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1755,6 +1785,8 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
   SERIALISE_ELEMENT(mask);
   SERIALISE_ELEMENT(filter);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(readFramebuffer.name == 0)
@@ -1953,6 +1985,8 @@ bool WrappedOpenGL::Serialise_glGenRenderbuffers(SerialiserType &ser, GLsizei n,
   SERIALISE_ELEMENT_LOCAL(renderbuffer,
                           GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
@@ -2012,6 +2046,8 @@ bool WrappedOpenGL::Serialise_glCreateRenderbuffers(SerialiserType &ser, GLsizei
 {
   SERIALISE_ELEMENT_LOCAL(renderbuffer,
                           GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2103,6 +2139,8 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
   SERIALISE_ELEMENT(internalformat);
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(height);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2236,6 +2274,8 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
   SERIALISE_ELEMENT(internalformat);
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(height);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

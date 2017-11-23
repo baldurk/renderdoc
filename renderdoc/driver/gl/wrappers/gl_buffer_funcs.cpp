@@ -60,6 +60,8 @@ bool WrappedOpenGL::Serialise_glGenBuffers(SerialiserType &ser, GLsizei n, GLuin
 {
   SERIALISE_ELEMENT_LOCAL(buffer, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
@@ -120,6 +122,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glCreateBuffers(SerialiserType &ser, GLsizei n, GLuint *buffers)
 {
   SERIALISE_ELEMENT_LOCAL(buffer, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -182,6 +186,8 @@ bool WrappedOpenGL::Serialise_glBindBuffer(SerialiserType &ser, GLenum target, G
 {
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -375,6 +381,8 @@ bool WrappedOpenGL::Serialise_glNamedBufferStorageEXT(SerialiserType &ser, GLuin
   uint64_t bytesize = (uint64_t)size;
   SERIALISE_ELEMENT_ARRAY(data, bytesize);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(ser.IsWriting())
   {
     uint64_t offs = ser.GetWriter()->GetOffset() - bytesize;
@@ -516,6 +524,8 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(SerialiserType &ser, GLuint b
   uint64_t bytesize = (uint64_t)size;
 
   SERIALISE_ELEMENT_ARRAY(data, bytesize);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(ser.IsWriting())
   {
@@ -826,6 +836,8 @@ bool WrappedOpenGL::Serialise_glNamedBufferSubDataEXT(SerialiserType &ser, GLuin
   uint64_t bytesize = (uint64_t)size;
   SERIALISE_ELEMENT_ARRAY(data, bytesize);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glNamedBufferSubDataEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)bytesize, data);
@@ -943,6 +955,8 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(readOffset, (uint64_t)readOffsetPtr);
   SERIALISE_ELEMENT_LOCAL(writeOffset, (uint64_t)writeOffsetPtr);
   SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1079,6 +1093,8 @@ bool WrappedOpenGL::Serialise_glBindBufferBase(SerialiserType &ser, GLenum targe
   SERIALISE_ELEMENT(index);
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glBindBufferBase(target, index, buffer.name);
@@ -1185,6 +1201,8 @@ bool WrappedOpenGL::Serialise_glBindBufferRange(SerialiserType &ser, GLenum targ
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
   SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1302,6 +1320,8 @@ bool WrappedOpenGL::Serialise_glBindBuffersBase(SerialiserType &ser, GLenum targ
   }
 
   SERIALISE_ELEMENT(buffers);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1463,6 +1483,8 @@ bool WrappedOpenGL::Serialise_glBindBuffersRange(SerialiserType &ser, GLenum tar
   SERIALISE_ELEMENT(buffers);
   SERIALISE_ELEMENT(offsets);
   SERIALISE_ELEMENT(sizes);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2213,6 +2235,8 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(SerialiserType &ser, GLuint 
 
   SERIALISE_ELEMENT_ARRAY(MapWrittenData, length);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(!IsStructuredExporting(m_State) && diffEnd > diffStart)
   {
     if(record && record->Map.persistentPtr)
@@ -2414,6 +2438,8 @@ bool WrappedOpenGL::Serialise_glFlushMappedNamedBufferRangeEXT(SerialiserType &s
 
   SERIALISE_ELEMENT_ARRAY(FlushedData, length);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(record && record->Map.persistentPtr)
   {
     // if we have a persistent mapped pointer, copy the range into the 'real' memory and
@@ -2586,6 +2612,8 @@ bool WrappedOpenGL::Serialise_glGenTransformFeedbacks(SerialiserType &ser, GLsiz
 {
   SERIALISE_ELEMENT_LOCAL(feedback, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
@@ -2641,6 +2669,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glCreateTransformFeedbacks(SerialiserType &ser, GLsizei n, GLuint *ids)
 {
   SERIALISE_ELEMENT_LOCAL(feedback, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2716,6 +2746,8 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackBufferBase(SerialiserType &ser,
   SERIALISE_ELEMENT(index);
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
@@ -2768,6 +2800,8 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackBufferRange(SerialiserType &ser
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
   SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
@@ -2818,6 +2852,8 @@ bool WrappedOpenGL::Serialise_glBindTransformFeedback(SerialiserType &ser, GLenu
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glBindTransformFeedback(target, xfb.name);
@@ -2862,6 +2898,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glBeginTransformFeedback(SerialiserType &ser, GLenum primitiveMode)
 {
   SERIALISE_ELEMENT(primitiveMode);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2990,6 +3028,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribOffsetEXT(
   SERIALISE_ELEMENT(stride);
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(vaobj.name == 0)
@@ -3114,6 +3154,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIOffsetEXT(SerialiserType
   SERIALISE_ELEMENT(stride);
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(vaobj.name == 0)
@@ -3237,6 +3279,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLOffsetEXT(SerialiserType
   SERIALISE_ELEMENT(stride);
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(vaobj.name == 0)
@@ -3355,6 +3399,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribBindingEXT(SerialiserType
   SERIALISE_ELEMENT(attribindex);
   SERIALISE_ELEMENT(bindingindex);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(vaobj.name == 0)
@@ -3437,6 +3483,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribFormatEXT(SerialiserType 
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_TYPED(bool, normalized);
   SERIALISE_ELEMENT(relativeoffset);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3526,6 +3574,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIFormatEXT(SerialiserType
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(relativeoffset);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(vaobj.name == 0)
@@ -3610,6 +3660,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLFormatEXT(SerialiserType
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(relativeoffset);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(vaobj.name == 0)
@@ -3690,6 +3742,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribDivisorEXT(SerialiserType
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
   SERIALISE_ELEMENT(index);
   SERIALISE_ELEMENT(divisor);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3779,6 +3833,8 @@ bool WrappedOpenGL::Serialise_glEnableVertexArrayAttribEXT(SerialiserType &ser, 
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
   SERIALISE_ELEMENT(index);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(vaobj.name == 0)
@@ -3860,6 +3916,8 @@ bool WrappedOpenGL::Serialise_glDisableVertexArrayAttribEXT(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
   SERIALISE_ELEMENT(index);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(vaobj.name == 0)
@@ -3939,6 +3997,8 @@ bool WrappedOpenGL::Serialise_glGenVertexArrays(SerialiserType &ser, GLsizei n, 
 {
   SERIALISE_ELEMENT_LOCAL(array, GetResourceManager()->GetID(VertexArrayRes(GetCtx(), *arrays)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
@@ -3995,6 +4055,8 @@ bool WrappedOpenGL::Serialise_glCreateVertexArrays(SerialiserType &ser, GLsizei 
 {
   SERIALISE_ELEMENT_LOCAL(array, GetResourceManager()->GetID(VertexArrayRes(GetCtx(), *arrays)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
@@ -4049,6 +4111,8 @@ bool WrappedOpenGL::Serialise_glBindVertexArray(SerialiserType &ser, GLuint vaob
 {
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(vaobj.name == 0)
@@ -4097,6 +4161,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayElementBuffer(SerialiserType &ser, GL
 {
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4166,6 +4232,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayBindVertexBufferEXT(SerialiserType &s
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
   SERIALISE_ELEMENT(stride);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4285,6 +4353,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(SerialiserType &ser, GL
   SERIALISE_ELEMENT(offsets);
   SERIALISE_ELEMENT_ARRAY(strides, (uint32_t &)count);
   SERIALISE_ELEMENT(count);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4426,6 +4496,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBindingDivisorEXT(SerialiserTyp
   SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
   SERIALISE_ELEMENT(bindingindex);
   SERIALISE_ELEMENT(divisor);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4624,6 +4696,8 @@ bool WrappedOpenGL::Serialise_glVertexAttrib(SerialiserType &ser, GLuint index, 
     default:
     case Attrib_GLubyte: ser.Serialise("values", v.u8, SerialiserFlags::NoFlags); break;
   }
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

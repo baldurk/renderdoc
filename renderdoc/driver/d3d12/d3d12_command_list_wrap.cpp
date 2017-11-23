@@ -55,6 +55,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
   SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID());
   SERIALISE_ELEMENT(BakedCommandList);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = BakedCommandList;
@@ -169,6 +171,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID());
   SERIALISE_ELEMENT(pAllocator);
   SERIALISE_ELEMENT(pInitialState);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -387,6 +391,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT_ARRAY(pBarriers, NumBarriers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -510,6 +516,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetPrimitiveTopology(
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(PrimitiveTopology);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -558,6 +566,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetViewports(SerialiserType &
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT_ARRAY(pViewports, NumViewports);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -618,6 +628,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetScissorRects(SerialiserTyp
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -676,6 +688,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetBlendFactor(SerialiserType
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT_ARRAY(BlendFactor, FIXED_COUNT(4));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -724,6 +738,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetStencilRef(SerialiserType 
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(StencilRef);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -771,6 +787,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetDescriptorHeaps(
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT_ARRAY(ppDescriptorHeaps, NumDescriptorHeaps);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -843,6 +861,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(SerialiserType
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT_OPT(pView);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -927,6 +947,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(pViews, NumViews);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -1004,6 +1026,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SOSetTargets(
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(StartSlot);
   SERIALISE_ELEMENT_ARRAY(pViews, NumViews);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1085,6 +1109,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState(SerialiserType
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(pPipelineState);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -1143,6 +1169,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
 
   SERIALISE_ELEMENT_ARRAY(pRenderTargetDescriptors, numHandles);
   SERIALISE_ELEMENT_OPT(pDepthStencilDescriptor);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1257,6 +1285,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootSignature(
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(pRootSignature);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -1323,6 +1353,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootDescriptorTable(
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(RootParameterIndex);
   SERIALISE_ELEMENT(BaseDescriptor);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1428,6 +1460,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstant(
   SERIALISE_ELEMENT(SrcData);
   SERIALISE_ELEMENT(DestOffsetIn32BitValues);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -1494,6 +1528,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstants(
   SERIALISE_ELEMENT(DestOffsetIn32BitValues);
   const UINT *pSrcData = (const UINT *)pSrcVoidData;
   SERIALISE_ELEMENT_ARRAY(pSrcData, Num32BitValuesToSet);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1563,6 +1599,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootConstantBufferVie
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(RootParameterIndex);
   SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1638,6 +1676,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootShaderResourceVie
   SERIALISE_ELEMENT(RootParameterIndex);
   SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -1711,6 +1751,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootUnorderedAccessVi
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(RootParameterIndex);
   SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1789,6 +1831,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(pRootSignature);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -1855,6 +1899,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootDescriptorTable(
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(RootParameterIndex);
   SERIALISE_ELEMENT(BaseDescriptor);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1960,6 +2006,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstant(
   SERIALISE_ELEMENT(SrcData);
   SERIALISE_ELEMENT(DestOffsetIn32BitValues);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -2026,6 +2074,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstants(
   SERIALISE_ELEMENT(DestOffsetIn32BitValues);
   const UINT *pSrcData = (const UINT *)pSrcVoidData;
   SERIALISE_ELEMENT_ARRAY(pSrcData, Num32BitValuesToSet);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2095,6 +2145,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferVi
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(RootParameterIndex);
   SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2170,6 +2222,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootShaderResourceVi
   SERIALISE_ELEMENT(RootParameterIndex);
   SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -2243,6 +2297,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootUnorderedAccessV
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(RootParameterIndex);
   SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2324,6 +2380,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginQuery(SerialiserType &ser,
   SERIALISE_ELEMENT(Type);
   SERIALISE_ELEMENT(Index);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -2370,6 +2428,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndQuery(SerialiserType &ser,
   SERIALISE_ELEMENT(pQueryHeap);
   SERIALISE_ELEMENT(Type);
   SERIALISE_ELEMENT(Index);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2421,6 +2481,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveQueryData(
   SERIALISE_ELEMENT(NumQueries);
   SERIALISE_ELEMENT(pDestinationBuffer);
   SERIALISE_ELEMENT(AlignedDestinationBufferOffset);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2475,6 +2537,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPredication(SerialiserType &
   SERIALISE_ELEMENT(pBuffer);
   SERIALISE_ELEMENT(AlignedBufferOffset);
   SERIALISE_ELEMENT(Operation);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2704,6 +2768,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(SerialiserType &ser, 
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(MarkerText);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -2784,6 +2850,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser,
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(MarkerText);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -2839,6 +2907,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent(SerialiserType &ser)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2919,6 +2989,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(SerialiserType &s
   SERIALISE_ELEMENT(InstanceCount);
   SERIALISE_ELEMENT(StartVertexLocation);
   SERIALISE_ELEMENT(StartInstanceLocation);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3002,6 +3074,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(
   SERIALISE_ELEMENT(StartIndexLocation);
   SERIALISE_ELEMENT(BaseVertexLocation);
   SERIALISE_ELEMENT(StartInstanceLocation);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3087,6 +3161,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(SerialiserType &ser, U
   SERIALISE_ELEMENT(ThreadGroupCountY);
   SERIALISE_ELEMENT(ThreadGroupCountZ);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -3155,6 +3231,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &s
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(pBundle);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3917,6 +3995,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
   SERIALISE_ELEMENT(pCountBuffer);
   SERIALISE_ELEMENT(CountBufferOffset);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -4078,6 +4158,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
   SERIALISE_ELEMENT(Stencil);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -4161,6 +4243,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
   SERIALISE_ELEMENT_ARRAY(ColorRGBA, FIXED_COUNT(4));
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -4241,6 +4325,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT_ARRAY(Values, FIXED_COUNT(4));
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4332,6 +4418,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
   SERIALISE_ELEMENT_ARRAY(Values, FIXED_COUNT(4));
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -4418,6 +4506,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(SerialiserType 
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT_OPT(pRegion);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -4475,6 +4565,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType
   SERIALISE_ELEMENT(pSrcBuffer);
   SERIALISE_ELEMENT(SrcOffset);
   SERIALISE_ELEMENT(NumBytes);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4563,6 +4655,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
   SERIALISE_ELEMENT(DstZ);
   SERIALISE_ELEMENT_LOCAL(src, *pSrc);
   SERIALISE_ELEMENT_OPT(pSrcBox);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4663,6 +4757,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &se
   SERIALISE_ELEMENT(pDstResource);
   SERIALISE_ELEMENT(pSrcResource);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -4745,6 +4841,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(
   SERIALISE_ELEMENT(pSrcResource);
   SERIALISE_ELEMENT(SrcSubresource);
   SERIALISE_ELEMENT(Format);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

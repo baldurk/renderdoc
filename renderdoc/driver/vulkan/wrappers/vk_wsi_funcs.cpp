@@ -187,6 +187,8 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(SerialiserType &ser, VkDev
   SERIALISE_ELEMENT_LOCAL(SwapchainImageIndex, *pCount);
   SERIALISE_ELEMENT_LOCAL(SwapchainImage, GetResID(*pSwapchainImages));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     // use original ID because we don't create a live version of the swapchain
@@ -301,6 +303,8 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
   }
 
   SERIALISE_ELEMENT(NumImages);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

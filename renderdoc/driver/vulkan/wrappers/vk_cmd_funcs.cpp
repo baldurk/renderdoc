@@ -326,6 +326,8 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(SerialiserType &ser, VkDevice 
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(CmdPool, GetResID(*pCmdPool));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     VkCommandPool pool = VK_NULL_HANDLE;
@@ -408,6 +410,8 @@ bool WrappedVulkan::Serialise_vkAllocateCommandBuffers(SerialiserType &ser, VkDe
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo);
   SERIALISE_ELEMENT_LOCAL(CommandBuffer, GetResID(*pCommandBuffers));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   // this chunk is purely for user information and consistency, the command buffer we allocate is
   // a dummy and is not used for anything.
@@ -549,6 +553,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
   SERIALISE_ELEMENT(BakedCommandBuffer);
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(AllocateInfo);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -800,6 +806,8 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
   SERIALISE_ELEMENT_LOCAL(CommandBuffer, GetResID(commandBuffer));
   SERIALISE_ELEMENT(BakedCommandBuffer);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = CommandBuffer;
@@ -947,6 +955,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     VkRenderPassBeginInfo unwrappedInfo = RenderPassBegin;
@@ -1059,6 +1069,8 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -1134,6 +1146,8 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
   SERIALISE_ELEMENT(commandBuffer);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1230,6 +1244,8 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
   SERIALISE_ELEMENT(pipeline);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1350,6 +1366,8 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
   SERIALISE_ELEMENT_ARRAY(pDynamicOffsets, dynamicOffsetCount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1519,6 +1537,8 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(SerialiserType &ser,
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -1604,6 +1624,8 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -1676,6 +1698,8 @@ bool WrappedVulkan::Serialise_vkCmdUpdateBuffer(SerialiserType &ser, VkCommandBu
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -1742,6 +1766,8 @@ bool WrappedVulkan::Serialise_vkCmdFillBuffer(SerialiserType &ser, VkCommandBuff
   SERIALISE_ELEMENT(data);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1810,6 +1836,8 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandB
   SERIALISE_ELEMENT(length);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1880,6 +1908,8 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
   SERIALISE_ELEMENT_ARRAY(pImageMemoryBarriers, imageMemoryBarrierCount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   std::vector<VkImageMemoryBarrier> imgBarriers;
   std::vector<VkBufferMemoryBarrier> bufBarriers;
@@ -2019,6 +2049,8 @@ bool WrappedVulkan::Serialise_vkCmdWriteTimestamp(SerialiserType &ser, VkCommand
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -2081,6 +2113,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyQueryPoolResults(
   SERIALISE_ELEMENT_TYPED(VkQueryResultFlagBits, flags);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2153,6 +2187,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginQuery(SerialiserType &ser, VkCommandBuff
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -2202,6 +2238,8 @@ bool WrappedVulkan::Serialise_vkCmdEndQuery(SerialiserType &ser, VkCommandBuffer
   SERIALISE_ELEMENT(query);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2253,6 +2291,8 @@ bool WrappedVulkan::Serialise_vkCmdResetQueryPool(SerialiserType &ser, VkCommand
   SERIALISE_ELEMENT(queryCount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2307,6 +2347,8 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
   SERIALISE_ELEMENT_ARRAY(pCommandBuffers, commandBufferCount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2609,6 +2651,8 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(SerialiserType &ser,
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_LOCAL(Marker, *pMarker);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -2670,6 +2714,8 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(SerialiserType &ser,
                                                      VkCommandBuffer commandBuffer)
 {
   SERIALISE_ELEMENT(commandBuffer);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2740,6 +2786,8 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_LOCAL(Marker, *pMarker);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

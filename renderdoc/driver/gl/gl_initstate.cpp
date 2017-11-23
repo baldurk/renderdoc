@@ -1147,13 +1147,20 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
     if(IsReplayingAndReading())
     {
-      gl.glGenBuffers(1, &res.name);
-      gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, res.name);
-      gl.glNamedBufferDataEXT(res.name, (GLsizeiptr)BufferContentsSize, NULL, eGL_STATIC_DRAW);
-      BufferContents = (byte *)gl.glMapNamedBufferEXT(res.name, eGL_WRITE_ONLY);
+      if(!ser.IsErrored())
+      {
+        gl.glGenBuffers(1, &res.name);
+        gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, res.name);
+        gl.glNamedBufferDataEXT(res.name, (GLsizeiptr)BufferContentsSize, NULL, eGL_STATIC_DRAW);
+        BufferContents = (byte *)gl.glMapNamedBufferEXT(res.name, eGL_WRITE_ONLY);
 
-      SetInitialContents(Id, InitialContentData(res.Namespace, BufferRes(m_GL->GetCtx(), res.name),
-                                                BufferContentsSize, NULL));
+        SetInitialContents(Id, InitialContentData(res.Namespace, BufferRes(m_GL->GetCtx(), res.name),
+                                                  BufferContentsSize, NULL));
+      }
+      else
+      {
+        res = GLResource(MakeNullResource);
+      }
     }
 
     // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
@@ -1162,6 +1169,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
     if(res.name)
       gl.glUnmapNamedBufferEXT(res.name);
+
+    SERIALISE_CHECK_READ_ERRORS();
   }
   else if(Type == eResProgram)
   {
@@ -1283,10 +1292,12 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
     SerialiseProgramBindings(ser, m_State, gl, bindingsProgram);
 
     // re-link the program to set the new attrib bindings
-    if(IsReplayingAndReading())
+    if(IsReplayingAndReading() && !ser.IsErrored())
       gl.glLinkProgram(bindingsProgram);
 
     SerialiseProgramUniforms(ser, m_State, gl, uniformsProgram, translationTable);
+
+    SERIALISE_CHECK_READ_ERRORS();
 
     if(IsReplayingAndReading())
     {
@@ -1333,14 +1344,14 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
     // only continue with serialising the contents if the format is valid (storage allocated).
     // Otherwise this texture has no initial state to apply
-    if(TextureState.internalformat != eGL_NONE)
+    if(TextureState.internalformat != eGL_NONE && !ser.IsErrored())
     {
       WrappedOpenGL::TextureData &details = m_GL->m_Textures[GetID(res)];
 
       TextureStateInitialData *state = NULL;
 
       // on replay we need the state as an initial contents blob, so copy it off
-      if(IsReplayingAndReading())
+      if(IsReplayingAndReading() && !ser.IsErrored())
       {
         state = (TextureStateInitialData *)AllocAlignedBuffer(sizeof(TextureStateInitialData));
         memcpy(state, &TextureState, sizeof(TextureStateInitialData));
@@ -1351,7 +1362,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
         // no contents to copy for texture buffer (it's copied under the buffer)
         // same applies for texture views, their data is copies under the aliased texture.
         // We just set the metadata blob.
-        if(IsReplayingAndReading())
+        if(IsReplayingAndReading() && !ser.IsErrored())
         {
           SetInitialContents(
               Id, InitialContentData(res.Namespace, GLResource(MakeNullResource), 0, (byte *)state));
@@ -1382,7 +1393,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
         // For real textures, if number of mips isn't sufficient, make sure to initialise the lower
         // levels. This could happen if e.g. a texture is init'd with glTexImage(level = 0), then
         // after we stop tracking it glGenerateMipmap is called.
-        if(IsReplayingAndReading())
+        if(IsReplayingAndReading() && !ser.IsErrored())
         {
           // this is only relevant for non-immutable textures
           GLint immut = 0;
@@ -1470,11 +1481,11 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
         GLuint prevtex = 0;
 
         // push the texture binding
-        if(!IsStructuredExporting(m_State))
+        if(!IsStructuredExporting(m_State) && !ser.IsErrored())
           gl.glGetIntegerv(TextureBinding(TextureState.type), (GLint *)&prevtex);
 
         // create texture of identical format/size as the live resource to store initial contents
-        if(IsReplayingAndReading())
+        if(IsReplayingAndReading() && !ser.IsErrored())
         {
           gl.glGenTextures(1, &tex);
           gl.glBindTexture(TextureState.type, tex);
@@ -1566,7 +1577,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
               ser.Serialise("SubresourceContents", scratchBuf, size, SerialiserFlags::NoFlags);
 
               // on replay, restore the data into the initial contents texture
-              if(IsReplayingAndReading())
+              if(IsReplayingAndReading() && !ser.IsErrored())
               {
                 if(isCompressed)
                 {
@@ -1609,10 +1620,10 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
         }
 
         // restore the previous texture binding
-        if(!IsStructuredExporting(m_State))
+        if(!IsStructuredExporting(m_State) && !ser.IsErrored())
           gl.glBindTexture(TextureState.type, prevtex);
 
-        if(IsReplayingAndReading())
+        if(IsReplayingAndReading() && !ser.IsErrored())
         {
           SetInitialContents(Id, InitialContentData(res.Namespace, TextureRes(m_GL->GetCtx(), tex),
                                                     0, (byte *)state));
@@ -1628,6 +1639,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
       pack.Apply(&gl, false);
       unpack.Apply(&gl, false);
     }
+
+    SERIALISE_CHECK_READ_ERRORS();
   }
   else if(Type == eResFramebuffer)
   {
@@ -1640,6 +1653,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
     }
 
     SERIALISE_ELEMENT(FramebufferState);
+
+    SERIALISE_CHECK_READ_ERRORS();
 
     if(IsReplayingAndReading())
     {
@@ -1662,6 +1677,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
     SERIALISE_ELEMENT(TransformFeedbackState);
 
+    SERIALISE_CHECK_READ_ERRORS();
+
     if(IsReplayingAndReading())
     {
       byte *blob = AllocAlignedBuffer(sizeof(TransformFeedbackState));
@@ -1683,6 +1700,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
 
     SERIALISE_ELEMENT(ProgramPipelineState);
 
+    SERIALISE_CHECK_READ_ERRORS();
+
     if(IsReplayingAndReading())
     {
       byte *blob = AllocAlignedBuffer(sizeof(ProgramPipelineState));
@@ -1703,6 +1722,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId r
     }
 
     SERIALISE_ELEMENT(VAOState);
+
+    SERIALISE_CHECK_READ_ERRORS();
 
     if(IsReplayingAndReading())
     {

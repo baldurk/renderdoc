@@ -33,6 +33,8 @@ bool WrappedOpenGL::Serialise_glBlendFunc(SerialiserType &ser, GLenum sfactor, G
   SERIALISE_ELEMENT(sfactor);
   SERIALISE_ELEMENT(dfactor);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glBlendFunc(sfactor, dfactor);
@@ -61,6 +63,8 @@ bool WrappedOpenGL::Serialise_glBlendFunci(SerialiserType &ser, GLuint buf, GLen
   SERIALISE_ELEMENT(buf);
   SERIALISE_ELEMENT(src);
   SERIALISE_ELEMENT(dst);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -93,6 +97,8 @@ bool WrappedOpenGL::Serialise_glBlendColor(SerialiserType &ser, GLfloat red, GLf
   SERIALISE_ELEMENT(blue);
   SERIALISE_ELEMENT(alpha);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glBlendColor(red, green, blue, alpha);
@@ -124,6 +130,8 @@ bool WrappedOpenGL::Serialise_glBlendFuncSeparate(SerialiserType &ser, GLenum sf
   SERIALISE_ELEMENT(dfactorRGB);
   SERIALISE_ELEMENT(sfactorAlpha);
   SERIALISE_ELEMENT(dfactorAlpha);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -159,6 +167,8 @@ bool WrappedOpenGL::Serialise_glBlendFuncSeparatei(SerialiserType &ser, GLuint b
   SERIALISE_ELEMENT(sfactorAlpha);
   SERIALISE_ELEMENT(dfactorAlpha);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
@@ -187,6 +197,8 @@ bool WrappedOpenGL::Serialise_glBlendEquation(SerialiserType &ser, GLenum mode)
 {
   SERIALISE_ELEMENT(mode);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glBlendEquation(mode);
@@ -214,6 +226,8 @@ bool WrappedOpenGL::Serialise_glBlendEquationi(SerialiserType &ser, GLuint buf, 
 {
   SERIALISE_ELEMENT(buf);
   SERIALISE_ELEMENT(mode);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -244,6 +258,8 @@ bool WrappedOpenGL::Serialise_glBlendEquationSeparate(SerialiserType &ser, GLenu
   SERIALISE_ELEMENT(modeRGB);
   SERIALISE_ELEMENT(modeAlpha);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glBlendEquationSeparate(modeRGB, modeAlpha);
@@ -273,6 +289,8 @@ bool WrappedOpenGL::Serialise_glBlendEquationSeparatei(SerialiserType &ser, GLui
   SERIALISE_ELEMENT(buf);
   SERIALISE_ELEMENT(modeRGB);
   SERIALISE_ELEMENT(modeAlpha);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -347,6 +365,8 @@ bool WrappedOpenGL::Serialise_glLogicOp(SerialiserType &ser, GLenum opcode)
 {
   SERIALISE_ELEMENT(opcode);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glLogicOp(opcode);
@@ -375,6 +395,8 @@ bool WrappedOpenGL::Serialise_glStencilFunc(SerialiserType &ser, GLenum func, GL
   SERIALISE_ELEMENT(func);
   SERIALISE_ELEMENT(ref);
   SERIALISE_ELEMENT(mask);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -407,6 +429,8 @@ bool WrappedOpenGL::Serialise_glStencilFuncSeparate(SerialiserType &ser, GLenum 
   SERIALISE_ELEMENT(ref);
   SERIALISE_ELEMENT(mask);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glStencilFuncSeparate(face, func, ref, mask);
@@ -433,6 +457,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glStencilMask(SerialiserType &ser, GLuint mask)
 {
   SERIALISE_ELEMENT(mask);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -462,6 +488,8 @@ bool WrappedOpenGL::Serialise_glStencilMaskSeparate(SerialiserType &ser, GLenum 
   SERIALISE_ELEMENT(face);
   SERIALISE_ELEMENT(mask);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glStencilMaskSeparate(face, mask);
@@ -490,6 +518,8 @@ bool WrappedOpenGL::Serialise_glStencilOp(SerialiserType &ser, GLenum fail, GLen
   SERIALISE_ELEMENT(fail);
   SERIALISE_ELEMENT(zfail);
   SERIALISE_ELEMENT(zpass);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -522,6 +552,8 @@ bool WrappedOpenGL::Serialise_glStencilOpSeparate(SerialiserType &ser, GLenum fa
   SERIALISE_ELEMENT(dpfail);
   SERIALISE_ELEMENT(dppass);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glStencilOpSeparate(face, sfail, dpfail, dppass);
@@ -553,6 +585,8 @@ bool WrappedOpenGL::Serialise_glClearColor(SerialiserType &ser, GLclampf red, GL
   SERIALISE_ELEMENT(blue);
   SERIALISE_ELEMENT(alpha);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glClearColor(red, green, blue, alpha);
@@ -580,6 +614,8 @@ bool WrappedOpenGL::Serialise_glClearStencil(SerialiserType &ser, GLint stencil)
 {
   SERIALISE_ELEMENT_TYPED(int32_t, stencil);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glClearStencil(stencil);
@@ -606,6 +642,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glClearDepth(SerialiserType &ser, GLdouble depth)
 {
   SERIALISE_ELEMENT(depth);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -651,6 +689,8 @@ bool WrappedOpenGL::Serialise_glDepthFunc(SerialiserType &ser, GLenum func)
 {
   SERIALISE_ELEMENT(func);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glDepthFunc(func);
@@ -677,6 +717,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDepthMask(SerialiserType &ser, GLboolean flag)
 {
   SERIALISE_ELEMENT_TYPED(bool, flag);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -706,6 +748,8 @@ bool WrappedOpenGL::Serialise_glDepthRange(SerialiserType &ser, GLdouble nearVal
   SERIALISE_ELEMENT(nearVal);
   SERIALISE_ELEMENT(farVal);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
     m_Real.glDepthRange(nearVal, farVal);
 
@@ -731,6 +775,8 @@ bool WrappedOpenGL::Serialise_glDepthRangef(SerialiserType &ser, GLfloat nearVal
 {
   SERIALISE_ELEMENT(nearVal);
   SERIALISE_ELEMENT(farVal);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
     m_Real.glDepthRangef(nearVal, farVal);
@@ -759,6 +805,8 @@ bool WrappedOpenGL::Serialise_glDepthRangeIndexed(SerialiserType &ser, GLuint in
   SERIALISE_ELEMENT(index);
   SERIALISE_ELEMENT(nearVal);
   SERIALISE_ELEMENT(farVal);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -807,6 +855,8 @@ bool WrappedOpenGL::Serialise_glDepthRangeArrayv(SerialiserType &ser, GLuint fir
   SERIALISE_ELEMENT(count);
   uint32_t numValues = count * 2;
   SERIALISE_ELEMENT_ARRAY(v, numValues);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -869,6 +919,8 @@ bool WrappedOpenGL::Serialise_glDepthBoundsEXT(SerialiserType &ser, GLclampd nea
   SERIALISE_ELEMENT(nearVal);
   SERIALISE_ELEMENT(farVal);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glDepthBoundsEXT(nearVal, farVal);
@@ -897,6 +949,8 @@ bool WrappedOpenGL::Serialise_glClipControl(SerialiserType &ser, GLenum origin, 
   SERIALISE_ELEMENT(origin);
   SERIALISE_ELEMENT(depth);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glClipControl(origin, depth);
@@ -923,6 +977,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glProvokingVertex(SerialiserType &ser, GLenum mode)
 {
   SERIALISE_ELEMENT(mode);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -951,6 +1007,8 @@ bool WrappedOpenGL::Serialise_glPrimitiveRestartIndex(SerialiserType &ser, GLuin
 {
   SERIALISE_ELEMENT(index);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glPrimitiveRestartIndex(index);
@@ -977,6 +1035,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDisable(SerialiserType &ser, GLenum cap)
 {
   SERIALISE_ELEMENT(cap);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1016,6 +1076,8 @@ bool WrappedOpenGL::Serialise_glEnable(SerialiserType &ser, GLenum cap)
 {
   SERIALISE_ELEMENT(cap);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glEnable(cap);
@@ -1043,6 +1105,8 @@ bool WrappedOpenGL::Serialise_glDisablei(SerialiserType &ser, GLenum cap, GLuint
 {
   SERIALISE_ELEMENT(cap);
   SERIALISE_ELEMENT(index);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1072,6 +1136,8 @@ bool WrappedOpenGL::Serialise_glEnablei(SerialiserType &ser, GLenum cap, GLuint 
   SERIALISE_ELEMENT(cap);
   SERIALISE_ELEMENT(index);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glEnablei(cap, index);
@@ -1098,6 +1164,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glFrontFace(SerialiserType &ser, GLenum mode)
 {
   SERIALISE_ELEMENT(mode);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1126,6 +1194,8 @@ bool WrappedOpenGL::Serialise_glCullFace(SerialiserType &ser, GLenum mode)
 {
   SERIALISE_ELEMENT(mode);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glCullFace(mode);
@@ -1153,6 +1223,8 @@ bool WrappedOpenGL::Serialise_glHint(SerialiserType &ser, GLenum target, GLenum 
 {
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT(mode);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1184,6 +1256,8 @@ bool WrappedOpenGL::Serialise_glColorMask(SerialiserType &ser, GLboolean red, GL
   SERIALISE_ELEMENT_TYPED(bool, green);
   SERIALISE_ELEMENT_TYPED(bool, blue);
   SERIALISE_ELEMENT_TYPED(bool, alpha);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1218,6 +1292,8 @@ bool WrappedOpenGL::Serialise_glColorMaski(SerialiserType &ser, GLuint buf, GLbo
   SERIALISE_ELEMENT_TYPED(bool, blue);
   SERIALISE_ELEMENT_TYPED(bool, alpha);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glColorMaski(buf, red ? GL_TRUE : GL_FALSE, green ? GL_TRUE : GL_FALSE,
@@ -1248,6 +1324,8 @@ bool WrappedOpenGL::Serialise_glSampleMaski(SerialiserType &ser, GLuint maskNumb
   SERIALISE_ELEMENT(maskNumber);
   SERIALISE_ELEMENT(mask);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glSampleMaski(maskNumber, mask);
@@ -1276,6 +1354,8 @@ bool WrappedOpenGL::Serialise_glSampleCoverage(SerialiserType &ser, GLfloat valu
   SERIALISE_ELEMENT(value);
   SERIALISE_ELEMENT_TYPED(bool, invert);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glSampleCoverage(value, invert ? GL_TRUE : GL_FALSE);
@@ -1302,6 +1382,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glMinSampleShading(SerialiserType &ser, GLfloat value)
 {
   SERIALISE_ELEMENT(value);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1332,6 +1414,8 @@ bool WrappedOpenGL::Serialise_glRasterSamplesEXT(SerialiserType &ser, GLuint sam
   SERIALISE_ELEMENT(samples);
   SERIALISE_ELEMENT_TYPED(bool, fixedsamplelocations);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glRasterSamplesEXT(samples, fixedsamplelocations ? GL_TRUE : GL_FALSE);
@@ -1359,6 +1443,8 @@ bool WrappedOpenGL::Serialise_glPatchParameteri(SerialiserType &ser, GLenum pnam
 {
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT(value);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1389,6 +1475,8 @@ bool WrappedOpenGL::Serialise_glPatchParameterfv(SerialiserType &ser, GLenum pna
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT_ARRAY(values, FIXED_COUNT(pname == eGL_PATCH_DEFAULT_OUTER_LEVEL ? 4U : 2U));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glPatchParameterfv(pname, values);
@@ -1416,6 +1504,8 @@ bool WrappedOpenGL::Serialise_glLineWidth(SerialiserType &ser, GLfloat width)
 {
   SERIALISE_ELEMENT(width);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glLineWidth(width);
@@ -1442,6 +1532,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glPointSize(SerialiserType &ser, GLfloat size)
 {
   SERIALISE_ELEMENT(size);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1482,6 +1574,8 @@ bool WrappedOpenGL::Serialise_glPointParameteri(SerialiserType &ser, GLenum pnam
     SERIALISE_ELEMENT(param);
   }
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glPointParameteri(pname, param);
@@ -1511,6 +1605,8 @@ bool WrappedOpenGL::Serialise_glPointParameteriv(SerialiserType &ser, GLenum pna
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT_LOCAL(Param, *params);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glPointParameteriv(pname, &Param);
@@ -1538,6 +1634,8 @@ bool WrappedOpenGL::Serialise_glPointParameterf(SerialiserType &ser, GLenum pnam
 {
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT(param);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1567,6 +1665,8 @@ bool WrappedOpenGL::Serialise_glPointParameterfv(SerialiserType &ser, GLenum pna
 {
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT_LOCAL(Param, *params);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1599,6 +1699,8 @@ bool WrappedOpenGL::Serialise_glViewport(SerialiserType &ser, GLint x, GLint y, 
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(height);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glViewport(x, y, width, height);
@@ -1629,6 +1731,8 @@ bool WrappedOpenGL::Serialise_glViewportArrayv(SerialiserType &ser, GLuint index
   SERIALISE_ELEMENT(count);
   uint32_t numValues = count * 4;
   SERIALISE_ELEMENT_ARRAY(v, numValues);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1672,6 +1776,8 @@ bool WrappedOpenGL::Serialise_glScissor(SerialiserType &ser, GLint x, GLint y, G
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(height);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glScissor(x, y, width, height);
@@ -1702,6 +1808,8 @@ bool WrappedOpenGL::Serialise_glScissorArrayv(SerialiserType &ser, GLuint first,
   SERIALISE_ELEMENT(count);
   uint32_t numValues = count * 4;
   SERIALISE_ELEMENT_ARRAY(v, numValues);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1743,6 +1851,8 @@ bool WrappedOpenGL::Serialise_glPolygonMode(SerialiserType &ser, GLenum face, GL
   SERIALISE_ELEMENT(face);
   SERIALISE_ELEMENT(mode);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glPolygonMode(face, mode);
@@ -1770,6 +1880,8 @@ bool WrappedOpenGL::Serialise_glPolygonOffset(SerialiserType &ser, GLfloat facto
 {
   SERIALISE_ELEMENT(factor);
   SERIALISE_ELEMENT(units);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1800,6 +1912,8 @@ bool WrappedOpenGL::Serialise_glPolygonOffsetClampEXT(SerialiserType &ser, GLflo
   SERIALISE_ELEMENT(factor);
   SERIALISE_ELEMENT(units);
   SERIALISE_ELEMENT(clamp);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1836,6 +1950,8 @@ bool WrappedOpenGL::Serialise_glPrimitiveBoundingBox(SerialiserType &ser, GLfloa
   SERIALISE_ELEMENT(maxY);
   SERIALISE_ELEMENT(maxZ);
   SERIALISE_ELEMENT(maxW);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

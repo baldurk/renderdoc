@@ -269,9 +269,11 @@ const APIEvent &WrappedID3D12CommandQueue::GetEvent(uint32_t eventID)
   return m_Cmd.m_Events.back();
 }
 
-void WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chunk)
+bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chunk)
 {
   m_Cmd.m_AddedDrawcall = false;
+
+  bool ret = false;
 
   switch(chunk)
   {
@@ -281,174 +283,192 @@ void WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::Device_CreateRenderTargetView:
     case D3D12Chunk::Device_CreateDepthStencilView:
     case D3D12Chunk::Device_CreateSampler:
-      m_pDevice->Serialise_DynamicDescriptorWrite(ser, NULL);
+      ret = m_pDevice->Serialise_DynamicDescriptorWrite(ser, NULL);
       break;
     case D3D12Chunk::Device_CopyDescriptors:
     case D3D12Chunk::Device_CopyDescriptorsSimple:
-      m_pDevice->Serialise_DynamicDescriptorCopies(ser, std::vector<DynamicDescriptorCopy>());
+      ret = m_pDevice->Serialise_DynamicDescriptorCopies(ser, std::vector<DynamicDescriptorCopy>());
       break;
 
-    case D3D12Chunk::Queue_ExecuteCommandLists: Serialise_ExecuteCommandLists(ser, 0, NULL); break;
-    case D3D12Chunk::Queue_Signal: Serialise_Signal(ser, NULL, 0); break;
-    case D3D12Chunk::Queue_Wait: Serialise_Wait(ser, NULL, 0); break;
+    case D3D12Chunk::Queue_ExecuteCommandLists:
+      ret = Serialise_ExecuteCommandLists(ser, 0, NULL);
+      break;
+    case D3D12Chunk::Queue_Signal: ret = Serialise_Signal(ser, NULL, 0); break;
+    case D3D12Chunk::Queue_Wait: ret = Serialise_Wait(ser, NULL, 0); break;
     case D3D12Chunk::Queue_UpdateTileMappings:
-      Serialise_UpdateTileMappings(ser, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL,
-                                   D3D12_TILE_MAPPING_FLAGS(0));
+      ret = Serialise_UpdateTileMappings(ser, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL,
+                                         D3D12_TILE_MAPPING_FLAGS(0));
       break;
     case D3D12Chunk::Queue_CopyTileMappings:
-      Serialise_CopyTileMappings(ser, NULL, NULL, NULL, NULL, NULL, D3D12_TILE_MAPPING_FLAGS(0));
+      ret =
+          Serialise_CopyTileMappings(ser, NULL, NULL, NULL, NULL, NULL, D3D12_TILE_MAPPING_FLAGS(0));
       break;
 
-    case D3D12Chunk::List_Close: m_ReplayList->Serialise_Close(ser); break;
-    case D3D12Chunk::List_Reset: m_ReplayList->Serialise_Reset(ser, NULL, NULL); break;
+    case D3D12Chunk::List_Close: ret = m_ReplayList->Serialise_Close(ser); break;
+    case D3D12Chunk::List_Reset: ret = m_ReplayList->Serialise_Reset(ser, NULL, NULL); break;
     case D3D12Chunk::List_ResourceBarrier:
-      m_ReplayList->Serialise_ResourceBarrier(ser, 0, NULL);
+      ret = m_ReplayList->Serialise_ResourceBarrier(ser, 0, NULL);
       break;
     case D3D12Chunk::List_BeginQuery:
-      m_ReplayList->Serialise_BeginQuery(ser, NULL, D3D12_QUERY_TYPE(0), 0);
+      ret = m_ReplayList->Serialise_BeginQuery(ser, NULL, D3D12_QUERY_TYPE(0), 0);
       break;
     case D3D12Chunk::List_EndQuery:
-      m_ReplayList->Serialise_EndQuery(ser, NULL, D3D12_QUERY_TYPE(0), 0);
+      ret = m_ReplayList->Serialise_EndQuery(ser, NULL, D3D12_QUERY_TYPE(0), 0);
       break;
     case D3D12Chunk::List_ResolveQueryData:
-      m_ReplayList->Serialise_ResolveQueryData(ser, NULL, D3D12_QUERY_TYPE(0), 0, 0, NULL, 0);
+      ret = m_ReplayList->Serialise_ResolveQueryData(ser, NULL, D3D12_QUERY_TYPE(0), 0, 0, NULL, 0);
       break;
     case D3D12Chunk::List_SetPredication:
-      m_ReplayList->Serialise_SetPredication(ser, NULL, 0, D3D12_PREDICATION_OP(0));
+      ret = m_ReplayList->Serialise_SetPredication(ser, NULL, 0, D3D12_PREDICATION_OP(0));
       break;
     case D3D12Chunk::List_DrawIndexedInstanced:
-      m_ReplayList->Serialise_DrawIndexedInstanced(ser, 0, 0, 0, 0, 0);
+      ret = m_ReplayList->Serialise_DrawIndexedInstanced(ser, 0, 0, 0, 0, 0);
       break;
     case D3D12Chunk::List_DrawInstanced:
-      m_ReplayList->Serialise_DrawInstanced(ser, 0, 0, 0, 0);
+      ret = m_ReplayList->Serialise_DrawInstanced(ser, 0, 0, 0, 0);
       break;
-    case D3D12Chunk::List_Dispatch: m_ReplayList->Serialise_Dispatch(ser, 0, 0, 0); break;
+    case D3D12Chunk::List_Dispatch: ret = m_ReplayList->Serialise_Dispatch(ser, 0, 0, 0); break;
     case D3D12Chunk::List_ExecuteIndirect:
-      m_ReplayList->Serialise_ExecuteIndirect(ser, NULL, 0, NULL, 0, NULL, 0);
+      ret = m_ReplayList->Serialise_ExecuteIndirect(ser, NULL, 0, NULL, 0, NULL, 0);
       break;
-    case D3D12Chunk::List_ExecuteBundle: m_ReplayList->Serialise_ExecuteBundle(ser, NULL); break;
+    case D3D12Chunk::List_ExecuteBundle:
+      ret = m_ReplayList->Serialise_ExecuteBundle(ser, NULL);
+      break;
     case D3D12Chunk::List_CopyBufferRegion:
-      m_ReplayList->Serialise_CopyBufferRegion(ser, NULL, 0, NULL, 0, 0);
+      ret = m_ReplayList->Serialise_CopyBufferRegion(ser, NULL, 0, NULL, 0, 0);
       break;
     case D3D12Chunk::List_CopyTextureRegion:
-      m_ReplayList->Serialise_CopyTextureRegion(ser, NULL, 0, 0, 0, NULL, NULL);
+      ret = m_ReplayList->Serialise_CopyTextureRegion(ser, NULL, 0, 0, 0, NULL, NULL);
       break;
     case D3D12Chunk::List_CopyResource:
-      m_ReplayList->Serialise_CopyResource(ser, NULL, NULL);
+      ret = m_ReplayList->Serialise_CopyResource(ser, NULL, NULL);
       break;
     case D3D12Chunk::List_ResolveSubresource:
-      m_ReplayList->Serialise_ResolveSubresource(ser, NULL, 0, NULL, 0, DXGI_FORMAT_UNKNOWN);
+      ret = m_ReplayList->Serialise_ResolveSubresource(ser, NULL, 0, NULL, 0, DXGI_FORMAT_UNKNOWN);
       break;
     case D3D12Chunk::List_ClearRenderTargetView:
-      m_ReplayList->Serialise_ClearRenderTargetView(ser, D3D12_CPU_DESCRIPTOR_HANDLE(),
-                                                    (FLOAT *)NULL, 0, NULL);
+      ret = m_ReplayList->Serialise_ClearRenderTargetView(ser, D3D12_CPU_DESCRIPTOR_HANDLE(),
+                                                          (FLOAT *)NULL, 0, NULL);
       break;
     case D3D12Chunk::List_ClearDepthStencilView:
-      m_ReplayList->Serialise_ClearDepthStencilView(ser, D3D12_CPU_DESCRIPTOR_HANDLE(),
-                                                    D3D12_CLEAR_FLAGS(0), 0.0f, 0, 0, NULL);
+      ret = m_ReplayList->Serialise_ClearDepthStencilView(ser, D3D12_CPU_DESCRIPTOR_HANDLE(),
+                                                          D3D12_CLEAR_FLAGS(0), 0.0f, 0, 0, NULL);
       break;
     case D3D12Chunk::List_ClearUnorderedAccessViewUint:
-      m_ReplayList->Serialise_ClearUnorderedAccessViewUint(
+      ret = m_ReplayList->Serialise_ClearUnorderedAccessViewUint(
           ser, D3D12_GPU_DESCRIPTOR_HANDLE(), D3D12_CPU_DESCRIPTOR_HANDLE(), NULL, NULL, 0, NULL);
       break;
     case D3D12Chunk::List_ClearUnorderedAccessViewFloat:
-      m_ReplayList->Serialise_ClearUnorderedAccessViewFloat(
+      ret = m_ReplayList->Serialise_ClearUnorderedAccessViewFloat(
           ser, D3D12_GPU_DESCRIPTOR_HANDLE(), D3D12_CPU_DESCRIPTOR_HANDLE(), NULL, NULL, 0, NULL);
       break;
     case D3D12Chunk::List_DiscardResource:
-      m_ReplayList->Serialise_DiscardResource(ser, NULL, NULL);
+      ret = m_ReplayList->Serialise_DiscardResource(ser, NULL, NULL);
       break;
     case D3D12Chunk::List_IASetPrimitiveTopology:
-      m_ReplayList->Serialise_IASetPrimitiveTopology(ser, D3D_PRIMITIVE_TOPOLOGY_UNDEFINED);
+      ret = m_ReplayList->Serialise_IASetPrimitiveTopology(ser, D3D_PRIMITIVE_TOPOLOGY_UNDEFINED);
       break;
     case D3D12Chunk::List_IASetIndexBuffer:
-      m_ReplayList->Serialise_IASetIndexBuffer(ser, NULL);
+      ret = m_ReplayList->Serialise_IASetIndexBuffer(ser, NULL);
       break;
     case D3D12Chunk::List_IASetVertexBuffers:
-      m_ReplayList->Serialise_IASetVertexBuffers(ser, 0, 0, NULL);
+      ret = m_ReplayList->Serialise_IASetVertexBuffers(ser, 0, 0, NULL);
       break;
     case D3D12Chunk::List_SOSetTargets:
-      m_ReplayList->Serialise_SOSetTargets(ser, 0, 0, NULL);
+      ret = m_ReplayList->Serialise_SOSetTargets(ser, 0, 0, NULL);
       break;
     case D3D12Chunk::List_RSSetViewports:
-      m_ReplayList->Serialise_RSSetViewports(ser, 0, NULL);
+      ret = m_ReplayList->Serialise_RSSetViewports(ser, 0, NULL);
       break;
     case D3D12Chunk::List_RSSetScissorRects:
-      m_ReplayList->Serialise_RSSetScissorRects(ser, 0, NULL);
+      ret = m_ReplayList->Serialise_RSSetScissorRects(ser, 0, NULL);
       break;
     case D3D12Chunk::List_SetPipelineState:
-      m_ReplayList->Serialise_SetPipelineState(ser, NULL);
+      ret = m_ReplayList->Serialise_SetPipelineState(ser, NULL);
       break;
     case D3D12Chunk::List_SetDescriptorHeaps:
-      m_ReplayList->Serialise_SetDescriptorHeaps(ser, 0, NULL);
+      ret = m_ReplayList->Serialise_SetDescriptorHeaps(ser, 0, NULL);
       break;
     case D3D12Chunk::List_OMSetRenderTargets:
-      m_ReplayList->Serialise_OMSetRenderTargets(ser, 0, NULL, FALSE, NULL);
+      ret = m_ReplayList->Serialise_OMSetRenderTargets(ser, 0, NULL, FALSE, NULL);
       break;
-    case D3D12Chunk::List_OMSetStencilRef: m_ReplayList->Serialise_OMSetStencilRef(ser, 0); break;
+    case D3D12Chunk::List_OMSetStencilRef:
+      ret = m_ReplayList->Serialise_OMSetStencilRef(ser, 0);
+      break;
     case D3D12Chunk::List_OMSetBlendFactor:
-      m_ReplayList->Serialise_OMSetBlendFactor(ser, NULL);
+      ret = m_ReplayList->Serialise_OMSetBlendFactor(ser, NULL);
       break;
     case D3D12Chunk::List_SetGraphicsRootDescriptorTable:
-      m_ReplayList->Serialise_SetGraphicsRootDescriptorTable(ser, 0, D3D12_GPU_DESCRIPTOR_HANDLE());
+      ret = m_ReplayList->Serialise_SetGraphicsRootDescriptorTable(ser, 0,
+                                                                   D3D12_GPU_DESCRIPTOR_HANDLE());
       break;
     case D3D12Chunk::List_SetGraphicsRootSignature:
-      m_ReplayList->Serialise_SetGraphicsRootSignature(ser, NULL);
+      ret = m_ReplayList->Serialise_SetGraphicsRootSignature(ser, NULL);
       break;
     case D3D12Chunk::List_SetGraphicsRoot32BitConstant:
-      m_ReplayList->Serialise_SetGraphicsRoot32BitConstant(ser, 0, 0, 0);
+      ret = m_ReplayList->Serialise_SetGraphicsRoot32BitConstant(ser, 0, 0, 0);
       break;
     case D3D12Chunk::List_SetGraphicsRoot32BitConstants:
-      m_ReplayList->Serialise_SetGraphicsRoot32BitConstants(ser, 0, 0, NULL, 0);
+      ret = m_ReplayList->Serialise_SetGraphicsRoot32BitConstants(ser, 0, 0, NULL, 0);
       break;
     case D3D12Chunk::List_SetGraphicsRootConstantBufferView:
-      m_ReplayList->Serialise_SetGraphicsRootConstantBufferView(ser, 0, D3D12_GPU_VIRTUAL_ADDRESS());
+      ret = m_ReplayList->Serialise_SetGraphicsRootConstantBufferView(ser, 0,
+                                                                      D3D12_GPU_VIRTUAL_ADDRESS());
       break;
     case D3D12Chunk::List_SetGraphicsRootShaderResourceView:
-      m_ReplayList->Serialise_SetGraphicsRootShaderResourceView(ser, 0, D3D12_GPU_VIRTUAL_ADDRESS());
+      ret = m_ReplayList->Serialise_SetGraphicsRootShaderResourceView(ser, 0,
+                                                                      D3D12_GPU_VIRTUAL_ADDRESS());
       break;
     case D3D12Chunk::List_SetGraphicsRootUnorderedAccessView:
-      m_ReplayList->Serialise_SetGraphicsRootUnorderedAccessView(ser, 0, D3D12_GPU_VIRTUAL_ADDRESS());
+      ret = m_ReplayList->Serialise_SetGraphicsRootUnorderedAccessView(ser, 0,
+                                                                       D3D12_GPU_VIRTUAL_ADDRESS());
       break;
     case D3D12Chunk::List_SetComputeRootDescriptorTable:
-      m_ReplayList->Serialise_SetComputeRootDescriptorTable(ser, 0, D3D12_GPU_DESCRIPTOR_HANDLE());
+      ret = m_ReplayList->Serialise_SetComputeRootDescriptorTable(ser, 0,
+                                                                  D3D12_GPU_DESCRIPTOR_HANDLE());
       break;
     case D3D12Chunk::List_SetComputeRootSignature:
-      m_ReplayList->Serialise_SetComputeRootSignature(ser, NULL);
+      ret = m_ReplayList->Serialise_SetComputeRootSignature(ser, NULL);
       break;
     case D3D12Chunk::List_SetComputeRoot32BitConstant:
-      m_ReplayList->Serialise_SetComputeRoot32BitConstant(ser, 0, 0, 0);
+      ret = m_ReplayList->Serialise_SetComputeRoot32BitConstant(ser, 0, 0, 0);
       break;
     case D3D12Chunk::List_SetComputeRoot32BitConstants:
-      m_ReplayList->Serialise_SetComputeRoot32BitConstants(ser, 0, 0, NULL, 0);
+      ret = m_ReplayList->Serialise_SetComputeRoot32BitConstants(ser, 0, 0, NULL, 0);
       break;
     case D3D12Chunk::List_SetComputeRootConstantBufferView:
-      m_ReplayList->Serialise_SetComputeRootConstantBufferView(ser, 0, D3D12_GPU_VIRTUAL_ADDRESS());
+      ret = m_ReplayList->Serialise_SetComputeRootConstantBufferView(ser, 0,
+                                                                     D3D12_GPU_VIRTUAL_ADDRESS());
       break;
     case D3D12Chunk::List_SetComputeRootShaderResourceView:
-      m_ReplayList->Serialise_SetComputeRootShaderResourceView(ser, 0, D3D12_GPU_VIRTUAL_ADDRESS());
+      ret = m_ReplayList->Serialise_SetComputeRootShaderResourceView(ser, 0,
+                                                                     D3D12_GPU_VIRTUAL_ADDRESS());
       break;
     case D3D12Chunk::List_SetComputeRootUnorderedAccessView:
-      m_ReplayList->Serialise_SetComputeRootUnorderedAccessView(ser, 0, D3D12_GPU_VIRTUAL_ADDRESS());
+      ret = m_ReplayList->Serialise_SetComputeRootUnorderedAccessView(ser, 0,
+                                                                      D3D12_GPU_VIRTUAL_ADDRESS());
       break;
     case D3D12Chunk::List_CopyTiles:
-      m_ReplayList->Serialise_CopyTiles(ser, NULL, NULL, NULL, NULL, 0, D3D12_TILE_COPY_FLAGS(0));
+      ret = m_ReplayList->Serialise_CopyTiles(ser, NULL, NULL, NULL, NULL, 0,
+                                              D3D12_TILE_COPY_FLAGS(0));
       break;
 
-    case D3D12Chunk::PushMarker: m_ReplayList->Serialise_BeginEvent(ser, 0, NULL, 0); break;
-    case D3D12Chunk::PopMarker: m_ReplayList->Serialise_EndEvent(ser); break;
-    case D3D12Chunk::SetMarker: m_ReplayList->Serialise_SetMarker(ser, 0, NULL, 0); break;
+    case D3D12Chunk::PushMarker: ret = m_ReplayList->Serialise_BeginEvent(ser, 0, NULL, 0); break;
+    case D3D12Chunk::PopMarker: ret = m_ReplayList->Serialise_EndEvent(ser); break;
+    case D3D12Chunk::SetMarker: ret = m_ReplayList->Serialise_SetMarker(ser, 0, NULL, 0); break;
 
     case D3D12Chunk::Resource_Unmap:
-      m_pDevice->Serialise_MapDataWrite(ser, NULL, 0, NULL, D3D12_RANGE());
+      ret = m_pDevice->Serialise_MapDataWrite(ser, NULL, 0, NULL, D3D12_RANGE());
       break;
     case D3D12Chunk::Resource_WriteToSubresource:
-      m_pDevice->Serialise_WriteToSubresource(ser, NULL, 0, NULL, NULL, 0, 0);
+      ret = m_pDevice->Serialise_WriteToSubresource(ser, NULL, 0, NULL, NULL, 0, 0);
       break;
 
     case D3D12Chunk::CaptureEnd:
     {
       SERIALISE_ELEMENT_LOCAL(PresentedImage, ResourceId());
+
+      SERIALISE_CHECK_READ_ERRORS();
 
       m_BackbufferID = PresentedImage;
 
@@ -464,7 +484,8 @@ void WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
 
         m_Cmd.AddDrawcall(draw, true);
       }
-      break;
+
+      ret = true;
     }
     default: RDCERR("Unrecognised Chunk type %s", ToStr(chunk).c_str()); break;
   }
@@ -487,17 +508,19 @@ void WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
   }
 
   m_Cmd.m_AddedDrawcall = false;
+
+  return ret;
 }
 
-void WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t startEventID,
-                                          uint32_t endEventID, bool partial)
+ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t startEventID,
+                                                  uint32_t endEventID, bool partial)
 {
   m_State = readType;
 
   if(!m_FrameReader)
   {
     RDCERR("Can't replay context capture without frame reader");
-    return;
+    return ReplayStatus::InternalError;
   }
 
   m_FrameReader->SetOffset(0);
@@ -587,13 +610,24 @@ void WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t startE
 
     D3D12Chunk context = ser.ReadChunk<D3D12Chunk>();
 
+    if(ser.GetReader()->IsErrored())
+      return ReplayStatus::APIDataCorrupted;
+
     m_Cmd.m_ChunkMetadata = ser.ChunkMetadata();
 
     m_Cmd.m_LastCmdListID = ResourceId();
 
-    ProcessChunk(ser, context);
+    bool success = ProcessChunk(ser, context);
 
     ser.EndChunk();
+
+    if(ser.GetReader()->IsErrored())
+      return ReplayStatus::APIDataCorrupted;
+
+    // if there wasn't a serialisation error, but the chunk didn't succeed, then it's an API replay
+    // failure.
+    if(!success)
+      return m_FailedReplayStatus;
 
     RenderDoc::Inst().SetProgress(FileInitialRead, float(m_Cmd.m_CurChunkOffset - startOffset) /
                                                        float(ser.GetReader()->GetSize()));
@@ -648,6 +682,8 @@ void WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t startE
     SAFE_RELEASE(it->second);
 
   m_Cmd.m_RerecordCmds.clear();
+
+  return ReplayStatus::Succeeded;
 }
 
 WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real,

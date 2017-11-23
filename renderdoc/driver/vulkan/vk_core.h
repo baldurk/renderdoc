@@ -638,7 +638,7 @@ private:
 
   WriteSerialiser &GetThreadSerialiser();
   template <typename SerialiserType>
-  void Serialise_CaptureScope(SerialiserType &ser);
+  bool Serialise_CaptureScope(SerialiserType &ser);
   bool HasSuccessfulCapture();
 
   template <typename SerialiserType>
@@ -686,6 +686,8 @@ private:
   uint32_t m_RootEventID, m_RootDrawcallID;
   uint32_t m_FirstEventID, m_LastEventID;
 
+  ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
+
   VulkanDrawcallTreeNode m_ParentDrawcall;
 
   bool m_ExtensionsEnabled[VkCheckExt_Max];
@@ -706,10 +708,10 @@ private:
     return m_DrawcallStack;
   }
 
-  void ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk);
-  void ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
-                        bool partial);
-  void ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk);
+  bool ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk);
+  ReplayStatus ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
+                                bool partial);
+  bool ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk);
   void AddDrawcall(const DrawcallDescription &d, bool hasEvents);
   void AddEvent();
 

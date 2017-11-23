@@ -76,6 +76,8 @@ bool WrappedOpenGL::Serialise_glDispatchCompute(SerialiserType &ser, GLuint num_
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
@@ -156,6 +158,8 @@ bool WrappedOpenGL::Serialise_glDispatchComputeGroupSizeARB(SerialiserType &ser,
   SERIALISE_ELEMENT(group_size_z);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -255,6 +259,8 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(SerialiserType &ser, GLi
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glDispatchComputeIndirect((GLintptr)offset);
@@ -320,6 +326,8 @@ bool WrappedOpenGL::Serialise_glMemoryBarrier(SerialiserType &ser, GLbitfield ba
 {
   SERIALISE_ELEMENT_TYPED(GLbarrierbitfield, barriers);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glMemoryBarrier(barriers);
@@ -353,6 +361,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glMemoryBarrierByRegion(SerialiserType &ser, GLbitfield barriers)
 {
   SERIALISE_ELEMENT_TYPED(GLbarrierbitfield, barriers);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -418,6 +428,8 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(SerialiserType &ser, GLenu
   SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle));
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -486,6 +498,8 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(SerialiserType &s
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glDrawTransformFeedbackInstanced(mode, xfb.name, instancecount);
@@ -551,6 +565,8 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(SerialiserType &ser,
   SERIALISE_ELEMENT(stream);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -620,6 +636,8 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(SerialiserT
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glDrawTransformFeedbackStreamInstanced(mode, xfb.name, stream, instancecount);
@@ -688,6 +706,8 @@ bool WrappedOpenGL::Serialise_glDrawArrays(SerialiserType &ser, GLenum mode, GLi
   SERIALISE_ELEMENT(count);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -919,6 +939,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(SerialiserType &ser, GLenum m
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glDrawArraysIndirect(mode, (const void *)offset);
@@ -993,6 +1015,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(SerialiserType &ser, GLenum 
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glDrawArraysInstanced(mode, first, count, instancecount);
@@ -1066,6 +1090,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(SerialiserType &
   SERIALISE_ELEMENT(baseinstance);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1153,6 +1179,8 @@ bool WrappedOpenGL::Serialise_glDrawElements(SerialiserType &ser, GLenum mode, G
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(Check_preElements())
@@ -1224,6 +1252,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(SerialiserType &ser, GLenum
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1307,6 +1337,8 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(SerialiserType &ser, GLenum mo
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(Check_preElements())
@@ -1386,6 +1418,8 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(SerialiserType &ser,
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(Check_preElements())
@@ -1464,6 +1498,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(SerialiserType &ser, GLen
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(Check_preElements())
@@ -1539,6 +1575,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(SerialiserType &ser, GLenu
   SERIALISE_ELEMENT(instancecount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1618,6 +1656,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(SerialiserType
   SERIALISE_ELEMENT(baseinstance);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1701,6 +1741,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(SerialiserType &
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(Check_preElements())
@@ -1782,6 +1824,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(Check_preElements())
@@ -1861,6 +1905,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
   SERIALISE_ELEMENT(drawcount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1996,6 +2042,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
   SERIALISE_ELEMENT(drawcount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2148,6 +2196,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     std::vector<const void *> inds;
@@ -2288,6 +2338,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2448,6 +2500,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   uint32_t IdxSize = GetIdxSize(type);
 
@@ -2620,6 +2674,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(SerialiserType &
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLsizei realdrawcount = 0;
@@ -2791,6 +2847,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(SerialiserType
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2983,6 +3041,8 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
 
     ser.Serialise("value", value);
   }
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3239,6 +3299,8 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(SerialiserType &ser,
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(framebuffer.name == 0)
@@ -3340,6 +3402,8 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLu
   SERIALISE_ELEMENT(stencil);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3518,6 +3582,8 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(SerialiserType &ser, GLu
 
   SERIALISE_ELEMENT(data);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glClearNamedBufferDataEXT(buffer.name, internalformat, format, type,
@@ -3655,6 +3721,8 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferSubDataEXT(SerialiserType &ser, 
 
   SERIALISE_ELEMENT(data);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glClearNamedBufferSubDataEXT(buffer.name, internalformat, (GLintptr)offset,
@@ -3738,6 +3806,8 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
   SERIALISE_ELEMENT(mask);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3949,6 +4019,8 @@ bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textur
 
   SERIALISE_ELEMENT(data);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glClearTexImage(texture.name, level, format, type, (const void *)&data[0]);
@@ -4056,6 +4128,8 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
   }
 
   SERIALISE_ELEMENT(data);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

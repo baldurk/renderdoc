@@ -37,6 +37,8 @@ bool WrappedOpenGL::Serialise_glGenSamplers(SerialiserType &ser, GLsizei n, GLui
 {
   SERIALISE_ELEMENT_LOCAL(sampler, GetResourceManager()->GetID(SamplerRes(GetCtx(), *samplers)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
@@ -93,6 +95,8 @@ bool WrappedOpenGL::Serialise_glCreateSamplers(SerialiserType &ser, GLsizei n, G
 {
   SERIALISE_ELEMENT_LOCAL(sampler, GetResourceManager()->GetID(SamplerRes(GetCtx(), *samplers)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
@@ -148,6 +152,8 @@ bool WrappedOpenGL::Serialise_glBindSampler(SerialiserType &ser, GLuint unit, GL
   SERIALISE_ELEMENT(unit);
   SERIALISE_ELEMENT_LOCAL(sampler, SamplerRes(GetCtx(), samplerHandle));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
     m_Real.glBindSampler(unit, sampler.name);
 
@@ -186,6 +192,8 @@ bool WrappedOpenGL::Serialise_glBindSamplers(SerialiserType &ser, GLuint first, 
   SERIALISE_ELEMENT(first);
   SERIALISE_ELEMENT(count);
   SERIALISE_ELEMENT(samplers);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -239,6 +247,8 @@ bool WrappedOpenGL::Serialise_glSamplerParameteri(SerialiserType &ser, GLuint sa
     SERIALISE_ELEMENT(param);
   }
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
     m_Real.glSamplerParameteri(sampler.name, pname, param);
 
@@ -280,6 +290,8 @@ bool WrappedOpenGL::Serialise_glSamplerParameterf(SerialiserType &ser, GLuint sa
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT(param);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
     m_Real.glSamplerParameterf(sampler.name, pname, param);
 
@@ -320,6 +332,8 @@ bool WrappedOpenGL::Serialise_glSamplerParameteriv(SerialiserType &ser, GLuint s
   SERIALISE_ELEMENT_LOCAL(sampler, SamplerRes(GetCtx(), samplerHandle));
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT_ARRAY(params, FIXED_COUNT(numParams(pname)));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
     m_Real.glSamplerParameteriv(sampler.name, pname, params);
@@ -363,6 +377,8 @@ bool WrappedOpenGL::Serialise_glSamplerParameterfv(SerialiserType &ser, GLuint s
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT_ARRAY(params, FIXED_COUNT(numParams(pname)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
     m_Real.glSamplerParameterfv(sampler.name, pname, params);
 
@@ -405,6 +421,8 @@ bool WrappedOpenGL::Serialise_glSamplerParameterIiv(SerialiserType &ser, GLuint 
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT_ARRAY(params, FIXED_COUNT(numParams(pname)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
     m_Real.glSamplerParameterIiv(sampler.name, pname, params);
 
@@ -446,6 +464,8 @@ bool WrappedOpenGL::Serialise_glSamplerParameterIuiv(SerialiserType &ser, GLuint
   SERIALISE_ELEMENT_LOCAL(sampler, SamplerRes(GetCtx(), samplerHandle));
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT_ARRAY(params, FIXED_COUNT(numParams(pname)));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
     m_Real.glSamplerParameterIuiv(sampler.name, pname, params);

@@ -68,6 +68,8 @@ bool WrappedOpenGL::Serialise_glGenTextures(SerialiserType &ser, GLsizei n, GLui
 {
   SERIALISE_ELEMENT_LOCAL(texture, GetResourceManager()->GetID(TextureRes(GetCtx(), *textures)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
@@ -128,6 +130,8 @@ bool WrappedOpenGL::Serialise_glCreateTextures(SerialiserType &ser, GLenum targe
 {
   SERIALISE_ELEMENT_LOCAL(texture, GetResourceManager()->GetID(TextureRes(GetCtx(), *textures)));
   SERIALISE_ELEMENT(target);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -211,6 +215,8 @@ bool WrappedOpenGL::Serialise_glBindTexture(SerialiserType &ser, GLenum target, 
 {
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -309,6 +315,8 @@ bool WrappedOpenGL::Serialise_glBindTextures(SerialiserType &ser, GLuint first, 
   }
 
   SERIALISE_ELEMENT(textures);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -458,6 +466,8 @@ bool WrappedOpenGL::Serialise_glBindTextureUnit(SerialiserType &ser, GLuint texu
   SERIALISE_ELEMENT(texunit);
   SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glBindTextureUnit(texunit, texture.name);
@@ -507,6 +517,8 @@ bool WrappedOpenGL::Serialise_glBindImageTexture(SerialiserType &ser, GLuint uni
   SERIALISE_ELEMENT(layer);
   SERIALISE_ELEMENT(access);
   SERIALISE_ELEMENT(format);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -561,6 +573,8 @@ bool WrappedOpenGL::Serialise_glBindImageTextures(SerialiserType &ser, GLuint fi
 
   SERIALISE_ELEMENT(textures);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     std::vector<GLuint> texs;
@@ -614,6 +628,8 @@ bool WrappedOpenGL::Serialise_glTextureView(SerialiserType &ser, GLuint textureH
   SERIALISE_ELEMENT(numlevels);
   SERIALISE_ELEMENT(minlayer);
   SERIALISE_ELEMENT(numlayers);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -702,6 +718,8 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(SerialiserType &ser, GL
   HIDE_ARB_DSA_TARGET();
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -842,6 +860,8 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(SerialiserType &ser, GLuint src
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glCopyImageSubData(srcName.name, srcTarget, srcLevel, srcX, srcY, srcZ, dstName.name,
@@ -936,6 +956,8 @@ bool WrappedOpenGL::Serialise_glCopyTextureSubImage1DEXT(SerialiserType &ser, GL
   SERIALISE_ELEMENT(x);
   SERIALISE_ELEMENT(y);
   SERIALISE_ELEMENT(width);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1037,6 +1059,8 @@ bool WrappedOpenGL::Serialise_glCopyTextureSubImage2DEXT(SerialiserType &ser, GL
   SERIALISE_ELEMENT(y);
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(height);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1142,6 +1166,8 @@ bool WrappedOpenGL::Serialise_glCopyTextureSubImage3DEXT(SerialiserType &ser, GL
   SERIALISE_ELEMENT(y);
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(height);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1262,6 +1288,8 @@ bool WrappedOpenGL::Serialise_glTextureParameteriEXT(SerialiserType &ser, GLuint
     SERIALISE_ELEMENT(param);
   }
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(target != eGL_NONE)
@@ -1360,6 +1388,8 @@ bool WrappedOpenGL::Serialise_glTextureParameterivEXT(SerialiserType &ser, GLuin
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT_ARRAY(params, FIXED_COUNT(numParams(pname)));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -1464,6 +1494,8 @@ bool WrappedOpenGL::Serialise_glTextureParameterIivEXT(SerialiserType &ser, GLui
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT_ARRAY(params, FIXED_COUNT(numParams(pname)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(target != eGL_NONE)
@@ -1567,6 +1599,8 @@ bool WrappedOpenGL::Serialise_glTextureParameterIuivEXT(SerialiserType &ser, GLu
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT_ARRAY(params, FIXED_COUNT(numParams(pname)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(target != eGL_NONE)
@@ -1669,6 +1703,8 @@ bool WrappedOpenGL::Serialise_glTextureParameterfEXT(SerialiserType &ser, GLuint
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT(param);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(target != eGL_NONE)
@@ -1768,6 +1804,8 @@ bool WrappedOpenGL::Serialise_glTextureParameterfvEXT(SerialiserType &ser, GLuin
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT_ARRAY(params, FIXED_COUNT(numParams(pname)));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(target != eGL_NONE)
@@ -1866,6 +1904,8 @@ bool WrappedOpenGL::Serialise_glPixelStorei(SerialiserType &ser, GLenum pname, G
   SERIALISE_ELEMENT(pname);
   SERIALISE_ELEMENT(param);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glPixelStorei(pname, param);
@@ -1899,6 +1939,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glActiveTexture(SerialiserType &ser, GLenum texture)
 {
   SERIALISE_ELEMENT(texture);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
     m_Real.glActiveTexture(texture);
@@ -1974,6 +2016,8 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(SerialiserType &ser, GLuint te
   SERIALISE_ELEMENT_ARRAY(pixels, subimageSize);
 
   SAFE_DELETE_ARRAY(unpackedPixels);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2186,6 +2230,8 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(SerialiserType &ser, GLuint te
   SERIALISE_ELEMENT_ARRAY(pixels, subimageSize);
 
   SAFE_DELETE_ARRAY(unpackedPixels);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2427,6 +2473,8 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(SerialiserType &ser, GLuint te
 
   SAFE_DELETE_ARRAY(unpackedPixels);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLenum intFmt = (GLenum)internalformat;
@@ -2644,6 +2692,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(SerialiserType &ser,
   SERIALISE_ELEMENT_TYPED(uint32_t, imageSize);
 
   SAFE_DELETE_ARRAY(unpackedPixels);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -2964,6 +3014,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(SerialiserType &ser,
 
   SAFE_DELETE_ARRAY(unpackedPixels);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     const void *databuf = pixels;
@@ -3221,6 +3273,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(SerialiserType &ser,
 
   SAFE_DELETE_ARRAY(unpackedPixels);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     const void *databuf = pixels;
@@ -3443,6 +3497,8 @@ bool WrappedOpenGL::Serialise_glCopyTextureImage1DEXT(SerialiserType &ser, GLuin
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(border);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(level == 0)    // assume level 0 will always get a glTexImage call
@@ -3593,6 +3649,8 @@ bool WrappedOpenGL::Serialise_glCopyTextureImage2DEXT(SerialiserType &ser, GLuin
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(height);
   SERIALISE_ELEMENT(border);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -3747,6 +3805,8 @@ bool WrappedOpenGL::Serialise_glTextureStorage1DEXT(SerialiserType &ser, GLuint 
   SERIALISE_ELEMENT(internalformat);
   SERIALISE_ELEMENT(width);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLenum dummy = eGL_NONE;
@@ -3875,6 +3935,8 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DEXT(SerialiserType &ser, GLuint 
   SERIALISE_ELEMENT(internalformat);
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(height);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4007,6 +4069,8 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DEXT(SerialiserType &ser, GLuint 
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(height);
   SERIALISE_ELEMENT(depth);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4143,6 +4207,8 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DMultisampleEXT(SerialiserType &s
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(height);
   SERIALISE_ELEMENT_TYPED(bool, fixedsamplelocations);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4320,6 +4386,8 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DMultisampleEXT(SerialiserType &s
   SERIALISE_ELEMENT(height);
   SERIALISE_ELEMENT(depth);
   SERIALISE_ELEMENT_TYPED(bool, fixedsamplelocations);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4541,6 +4609,8 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(SerialiserType &ser, GLuint
 
   SAFE_DELETE_ARRAY(unpackedPixels);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     PixelUnpackState unpack;
@@ -4745,6 +4815,8 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(SerialiserType &ser, GLuint
   }
 
   SAFE_DELETE_ARRAY(unpackedPixels);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -4958,6 +5030,8 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(SerialiserType &ser, GLuint
   }
 
   SAFE_DELETE_ARRAY(unpackedPixels);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -5173,6 +5247,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(SerialiserType &s
 
   SAFE_DELETE_ARRAY(unpackedPixels);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     PixelUnpackState unpack;
@@ -5367,6 +5443,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(SerialiserType &s
   SERIALISE_ELEMENT_TYPED(uint32_t, imageSize);
 
   SAFE_DELETE_ARRAY(unpackedPixels);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -5582,6 +5660,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(
 
   SAFE_DELETE_ARRAY(unpackedPixels);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State) && IsGLES)
@@ -5765,6 +5845,8 @@ bool WrappedOpenGL::Serialise_glTextureBufferRangeEXT(SerialiserType &ser, GLuin
   SERIALISE_ELEMENT_LOCAL(offs, (uint64_t)offsetPtr);
   SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ResourceId liveId = GetResourceManager()->GetID(texture);
@@ -5936,6 +6018,8 @@ bool WrappedOpenGL::Serialise_glTextureBufferEXT(SerialiserType &ser, GLuint tex
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(internalformat);
   SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {

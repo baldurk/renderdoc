@@ -80,6 +80,8 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(Fence, GetResID(*pFence));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     VkFence fence = VK_NULL_HANDLE;
@@ -145,6 +147,8 @@ bool WrappedVulkan::Serialise_vkGetFenceStatus(SerialiserType &ser, VkDevice dev
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
@@ -180,6 +184,8 @@ bool WrappedVulkan::Serialise_vkResetFences(SerialiserType &ser, VkDevice device
   SERIALISE_ELEMENT_ARRAY(pFences, fenceCount);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -226,6 +232,8 @@ bool WrappedVulkan::Serialise_vkWaitForFences(SerialiserType &ser, VkDevice devi
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
@@ -263,6 +271,8 @@ bool WrappedVulkan::Serialise_vkCreateEvent(SerialiserType &ser, VkDevice device
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(Event, GetResID(*pEvent));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -332,6 +342,8 @@ bool WrappedVulkan::Serialise_vkSetEvent(SerialiserType &ser, VkDevice device, V
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     // see top of this file for current event/fence handling
@@ -367,6 +379,8 @@ bool WrappedVulkan::Serialise_vkResetEvent(SerialiserType &ser, VkDevice device,
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     // see top of this file for current event/fence handling
@@ -401,6 +415,8 @@ bool WrappedVulkan::Serialise_vkGetEventStatus(SerialiserType &ser, VkDevice dev
   SERIALISE_ELEMENT(event);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -438,6 +454,8 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(SerialiserType &ser, VkDevice de
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(Semaphore, GetResID(*pSemaphore));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -528,6 +546,8 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent(SerialiserType &ser, VkCommandBuffer
 
   Serialise_DebugMessages(ser);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -579,6 +599,8 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent(SerialiserType &ser, VkCommandBuff
   SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, stageMask);
 
   Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -642,6 +664,8 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
   SERIALISE_ELEMENT_ARRAY(pMemoryBarriers, memoryBarrierCount);
   SERIALISE_ELEMENT_ARRAY(pBufferMemoryBarriers, bufferMemoryBarrierCount);
   SERIALISE_ELEMENT_ARRAY(pImageMemoryBarriers, imageMemoryBarrierCount);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   std::vector<VkImageMemoryBarrier> imgBarriers;
   std::vector<VkBufferMemoryBarrier> bufBarriers;

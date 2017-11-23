@@ -55,6 +55,8 @@ bool WrappedOpenGL::Serialise_glFenceSync(SerialiserType &ser, GLsync real, GLen
   SERIALISE_ELEMENT_TYPED(GLsyncbitfield, flags);
   SERIALISE_ELEMENT_LOCAL(sync, GetResourceManager()->GetSyncID(real));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     real = m_Real.glFenceSync(condition, flags);
@@ -113,6 +115,8 @@ bool WrappedOpenGL::Serialise_glClientWaitSync(SerialiserType &ser, GLsync sync_
   SERIALISE_ELEMENT_TYPED(GLsyncbitfield, flags);
   SERIALISE_ELEMENT(timeout);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading() && GetResourceManager()->HasLiveResource(sync))
   {
     GLResource res = GetResourceManager()->GetLiveResource(sync);
@@ -145,6 +149,8 @@ bool WrappedOpenGL::Serialise_glWaitSync(SerialiserType &ser, GLsync sync_, GLbi
   SERIALISE_ELEMENT_LOCAL(sync, GetResourceManager()->GetSyncID(sync_));
   SERIALISE_ELEMENT_TYPED(GLsyncbitfield, flags);
   SERIALISE_ELEMENT(timeout);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading() && GetResourceManager()->HasLiveResource(sync))
   {
@@ -183,6 +189,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenQueries(SerialiserType &ser, GLsizei n, GLuint *ids)
 {
   SERIALISE_ELEMENT_LOCAL(query, GetResourceManager()->GetID(QueryRes(GetCtx(), *ids)));
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -240,6 +248,8 @@ bool WrappedOpenGL::Serialise_glCreateQueries(SerialiserType &ser, GLenum target
   SERIALISE_ELEMENT_LOCAL(query, GetResourceManager()->GetID(SamplerRes(GetCtx(), *ids)));
   SERIALISE_ELEMENT(target);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     GLuint real = 0;
@@ -295,6 +305,8 @@ bool WrappedOpenGL::Serialise_glBeginQuery(SerialiserType &ser, GLenum target, G
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT_LOCAL(query, QueryRes(GetCtx(), qid));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     // Queries in the log interfere with the queries from FetchCounters.
@@ -334,6 +346,8 @@ bool WrappedOpenGL::Serialise_glBeginQueryIndexed(SerialiserType &ser, GLenum ta
   SERIALISE_ELEMENT(index);
   SERIALISE_ELEMENT_LOCAL(query, QueryRes(GetCtx(), qid));
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glBeginQueryIndexed(target, index, query.name);
@@ -363,6 +377,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glEndQuery(SerialiserType &ser, GLenum target)
 {
   SERIALISE_ELEMENT(target);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -398,6 +414,8 @@ bool WrappedOpenGL::Serialise_glEndQueryIndexed(SerialiserType &ser, GLenum targ
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT(index);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Real.glEndQueryIndexed(target, index);
@@ -427,6 +445,8 @@ bool WrappedOpenGL::Serialise_glBeginConditionalRender(SerialiserType &ser, GLui
 {
   SERIALISE_ELEMENT_LOCAL(query, QueryRes(GetCtx(), id));
   SERIALISE_ELEMENT(mode);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
   {
@@ -486,6 +506,8 @@ bool WrappedOpenGL::Serialise_glQueryCounter(SerialiserType &ser, GLuint query_,
 {
   SERIALISE_ELEMENT_LOCAL(query, QueryRes(GetCtx(), query_));
   SERIALISE_ELEMENT(target);
+
+  SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
     m_Real.glQueryCounter(query.name, target);
