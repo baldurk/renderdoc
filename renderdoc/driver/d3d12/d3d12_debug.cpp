@@ -65,7 +65,8 @@ struct D3D12BlobShaderCallbacks
 
     if(FAILED(hr))
     {
-      RDCERR("Couldn't create blob of size %u from shadercache: %08x", size, hr);
+      RDCERR("Couldn't create blob of size %u from shadercache: HRESULT: %s", size,
+             ToStr(hr).c_str());
       return false;
     }
 
@@ -119,7 +120,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create DXGI factory! 0x%08x", hr);
+    RDCERR("Couldn't create DXGI factory! HRESULT: %s", ToStr(hr).c_str());
   }
 
   D3D12_DESCRIPTOR_HEAP_DESC desc;
@@ -133,7 +134,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create RTV descriptor heap! 0x%08x", hr);
+    RDCERR("Couldn't create RTV descriptor heap! HRESULT: %s", ToStr(hr).c_str());
   }
 
   desc.NumDescriptors = 16;
@@ -144,7 +145,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create DSV descriptor heap! 0x%08x", hr);
+    RDCERR("Couldn't create DSV descriptor heap! HRESULT: %s", ToStr(hr).c_str());
   }
 
   desc.NumDescriptors = 4096;
@@ -155,7 +156,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create CBV/SRV descriptor heap! 0x%08x", hr);
+    RDCERR("Couldn't create CBV/SRV descriptor heap! HRESULT: %s", ToStr(hr).c_str());
   }
 
   desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -165,7 +166,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create CBV/SRV descriptor heap! 0x%08x", hr);
+    RDCERR("Couldn't create CBV/SRV descriptor heap! HRESULT: %s", ToStr(hr).c_str());
   }
 
   desc.NumDescriptors = 16;
@@ -176,7 +177,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create sampler descriptor heap! 0x%08x", hr);
+    RDCERR("Couldn't create sampler descriptor heap! HRESULT: %s", ToStr(hr).c_str());
   }
 
   {
@@ -208,7 +209,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create rendering texture for pixel picking, HRESULT: 0x%08x", hr);
+      RDCERR("Failed to create rendering texture for pixel picking, HRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -253,7 +254,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create readback buffer, HRESULT: 0x%08x", hr);
+      RDCERR("Failed to create readback buffer, HRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -262,7 +263,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create readback command allocator, HRESULT: 0x%08x", hr);
+      RDCERR("Failed to create readback command allocator, HRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -272,7 +273,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create readback command list, HRESULT: 0x%08x", hr);
+      RDCERR("Failed to create readback command list, HRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -587,7 +588,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create m_TexDisplayBlendPipe! 0x%08x", hr);
+    RDCERR("Couldn't create m_TexDisplayBlendPipe! HRESULT: %s", ToStr(hr).c_str());
   }
 
   pipeDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
@@ -597,7 +598,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create m_TexDisplayPipe! 0x%08x", hr);
+    RDCERR("Couldn't create m_TexDisplayPipe! HRESULT: %s", ToStr(hr).c_str());
   }
 
   pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -607,7 +608,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create m_TexDisplayPipe! 0x%08x", hr);
+    RDCERR("Couldn't create m_TexDisplayPipe! HRESULT: %s", ToStr(hr).c_str());
   }
 
   pipeDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -617,7 +618,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create m_TexDisplayF32Pipe! 0x%08x", hr);
+    RDCERR("Couldn't create m_TexDisplayF32Pipe! HRESULT: %s", ToStr(hr).c_str());
   }
 
   pipeDesc.pRootSignature = m_CBOnlyRootSig;
@@ -632,7 +633,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create m_CheckerboardPipe! 0x%08x", hr);
+    RDCERR("Couldn't create m_CheckerboardPipe! HRESULT: %s", ToStr(hr).c_str());
   }
 
   pipeDesc.SampleDesc.Count = D3D12_MSAA_SAMPLECOUNT;
@@ -642,7 +643,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create m_CheckerboardMSAAPipe! 0x%08x", hr);
+    RDCERR("Couldn't create m_CheckerboardMSAAPipe! HRESULT: %s", ToStr(hr).c_str());
   }
 
   pipeDesc.SampleDesc.Count = 1;
@@ -661,7 +662,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create m_OutlinePipe! 0x%08x", hr);
+    RDCERR("Couldn't create m_OutlinePipe! HRESULT: %s", ToStr(hr).c_str());
   }
 
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
@@ -692,7 +693,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create m_QuadResolvePipe! 0x%08x", hr);
+    RDCERR("Couldn't create m_QuadResolvePipe! HRESULT: %s", ToStr(hr).c_str());
   }
 
   m_OverlayRenderTex = NULL;
@@ -724,7 +725,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create m_MeshPickPipe! 0x%08x", hr);
+    RDCERR("Couldn't create m_MeshPickPipe! HRESULT: %s", ToStr(hr).c_str());
   }
 
   compPipeDesc.pRootSignature = m_HistogramRootSig;
@@ -762,7 +763,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
       if(FAILED(hr))
       {
-        RDCERR("Couldn't create m_TileMinMaxPipe! 0x%08x", hr);
+        RDCERR("Couldn't create m_TileMinMaxPipe! HRESULT: %s", ToStr(hr).c_str());
       }
 
       GetShaderBlob(hlsl.c_str(), "RENDERDOC_HistogramCS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0",
@@ -776,7 +777,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
       if(FAILED(hr))
       {
-        RDCERR("Couldn't create m_HistogramPipe! 0x%08x", hr);
+        RDCERR("Couldn't create m_HistogramPipe! HRESULT: %s", ToStr(hr).c_str());
       }
 
       if(t == 1)
@@ -792,7 +793,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
         if(FAILED(hr))
         {
-          RDCERR("Couldn't create m_HistogramPipe! 0x%08x", hr);
+          RDCERR("Couldn't create m_HistogramPipe! HRESULT: %s", ToStr(hr).c_str());
         }
       }
 
@@ -838,7 +839,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create tile buffer for min/max, HRESULT: 0x%08x", hr);
+      RDCERR("Failed to create tile buffer for min/max, HRESULT: %s", ToStr(hr).c_str());
     }
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -902,7 +903,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create tile buffer for min/max, HRESULT: 0x%08x", hr);
+      RDCERR("Failed to create tile buffer for min/max, HRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -964,7 +965,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create result buffer for min/max, HRESULT: 0x%08x", hr);
+      RDCERR("Failed to create result buffer for min/max, HRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -1021,7 +1022,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
                                                   __uuidof(ID3D12Resource), (void **)&uploadBuf);
 
     if(FAILED(hr))
-      RDCERR("Failed to create uploadBuf %08x", hr);
+      RDCERR("Failed to create uploadBuf HRESULT: %s", ToStr(hr).c_str());
 
     D3D12_RESOURCE_DESC texDesc;
     texDesc.Alignment = 0;
@@ -1043,7 +1044,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     m_Font.Tex->SetName(L"m_Font.Tex");
 
     if(FAILED(hr))
-      RDCERR("Failed to create m_Font.Tex %08x", hr);
+      RDCERR("Failed to create m_Font.Tex HRESULT: %s", ToStr(hr).c_str());
 
     string font = GetEmbeddedResource(sourcecodepro_ttf);
     byte *ttfdata = (byte *)font.c_str();
@@ -1231,7 +1232,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
                                                       (void **)&m_Font.Pipe[BGRA8_BACKBUFFER]);
 
     if(FAILED(hr))
-      RDCERR("Couldn't create BGRA8 m_Font.Pipe! 0x%08x", hr);
+      RDCERR("Couldn't create BGRA8 m_Font.Pipe! HRESULT: %s", ToStr(hr).c_str());
 
     pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
@@ -1239,7 +1240,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
                                                       (void **)&m_Font.Pipe[RGBA8_SRGB_BACKBUFFER]);
 
     if(FAILED(hr))
-      RDCERR("Couldn't create BGRA8 m_Font.Pipe! 0x%08x", hr);
+      RDCERR("Couldn't create BGRA8 m_Font.Pipe! HRESULT: %s", ToStr(hr).c_str());
 
     pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
@@ -1247,7 +1248,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
                                                       (void **)&m_Font.Pipe[RGBA8_BACKBUFFER]);
 
     if(FAILED(hr))
-      RDCERR("Couldn't create RGBA8 m_Font.Pipe! 0x%08x", hr);
+      RDCERR("Couldn't create RGBA8 m_Font.Pipe! HRESULT: %s", ToStr(hr).c_str());
 
     pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
@@ -1255,7 +1256,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
                                                       (void **)&m_Font.Pipe[RGBA16_BACKBUFFER]);
 
     if(FAILED(hr))
-      RDCERR("Couldn't create RGBA16 m_Font.Pipe! 0x%08x", hr);
+      RDCERR("Couldn't create RGBA16 m_Font.Pipe! HRESULT: %s", ToStr(hr).c_str());
 
     SAFE_RELEASE(TextVS);
     SAFE_RELEASE(TextPS);
@@ -1395,7 +1396,7 @@ void D3D12DebugManager::CreateSOBuffers()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create SO output buffer, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create SO output buffer, HRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -1410,7 +1411,7 @@ void D3D12DebugManager::CreateSOBuffers()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create readback buffer, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create readback buffer, HRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -1427,7 +1428,7 @@ void D3D12DebugManager::CreateSOBuffers()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create SO index buffer, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create SO index buffer, HRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -1439,7 +1440,7 @@ void D3D12DebugManager::CreateSOBuffers()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create SO query heap, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create SO query heap, HRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -1852,7 +1853,7 @@ ID3D12Resource *D3D12DebugManager::MakeCBuffer(UINT64 size)
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create cbuffer size %llu! 0x%08x", size, hr);
+    RDCERR("Couldn't create cbuffer size %llu! %s", size, ToStr(hr).c_str());
     SAFE_RELEASE(ret);
     return NULL;
   }
@@ -1889,7 +1890,7 @@ void D3D12DebugManager::OutputWindow::MakeRTV(bool multisampled)
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create colour texture for window, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create colour texture for window, HRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -1907,7 +1908,7 @@ void D3D12DebugManager::OutputWindow::MakeRTV(bool multisampled)
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create resolve texture for window, HRESULT: 0x%08x", hr);
+      RDCERR("Failed to create resolve texture for window, HRESULT: %s", ToStr(hr).c_str());
       return;
     }
   }
@@ -1916,7 +1917,7 @@ void D3D12DebugManager::OutputWindow::MakeRTV(bool multisampled)
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create RTV for main window, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create RTV for main window, HRESULT: %s", ToStr(hr).c_str());
     SAFE_RELEASE(swap);
     SAFE_RELEASE(col);
     SAFE_RELEASE(colResolve);
@@ -1953,7 +1954,7 @@ void D3D12DebugManager::OutputWindow::MakeDSV()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create DSV texture for output window, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create DSV texture for output window, HRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -1961,7 +1962,7 @@ void D3D12DebugManager::OutputWindow::MakeDSV()
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create DSV for output window, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create DSV for output window, HRESULT: %s", ToStr(hr).c_str());
     SAFE_RELEASE(swap);
     SAFE_RELEASE(col);
     SAFE_RELEASE(colResolve);
@@ -2004,7 +2005,7 @@ uint64_t D3D12DebugManager::MakeOutputWindow(WindowingSystem system, void *data,
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to create swap chain for HWND, HRESULT: 0x%08x", hr);
+    RDCERR("Failed to create swap chain for HWND, HRESULT: %s", ToStr(hr).c_str());
     return 0;
   }
 
@@ -2090,7 +2091,7 @@ bool D3D12DebugManager::CheckResizeOutputWindow(uint64_t id)
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to resize swap chain, HRESULT: 0x%08x", hr);
+        RDCERR("Failed to resize swap chain, HRESULT: %s", ToStr(hr).c_str());
         return true;
       }
 
@@ -2252,7 +2253,7 @@ void D3D12DebugManager::FillBuffer(ID3D12Resource *buf, size_t offset, const voi
 
   if(FAILED(hr))
   {
-    RDCERR("Can't fill cbuffer %08x", hr);
+    RDCERR("Can't fill cbuffer HRESULT: %s", ToStr(hr).c_str());
   }
   else
   {
@@ -2418,7 +2419,7 @@ void D3D12DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to map picking stage tex %08x", hr);
+    RDCERR("Failed to map picking stage tex HRESULT: %s", ToStr(hr).c_str());
   }
 
   if(pix == NULL)
@@ -2648,7 +2649,7 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
       if(FAILED(hr))
       {
-        RDCERR("Couldn't create pick vertex buffer: %08x", hr);
+        RDCERR("Couldn't create pick vertex buffer: HRESULT: %s", ToStr(hr).c_str());
         return ~0U;
       }
 
@@ -3279,7 +3280,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to map buffer directly for readback %08x", hr);
+      RDCERR("Failed to map buffer directly for readback HRESULT: %s", ToStr(hr).c_str());
       return;
     }
 
@@ -3323,7 +3324,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to map bufferdata buffer %08x", hr);
+      RDCERR("Failed to map bufferdata buffer HRESULT: %s", ToStr(hr).c_str());
       return;
     }
     else
@@ -3883,7 +3884,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
                                                 __uuidof(ID3D12RootSignature), (void **)&soSig);
       if(FAILED(hr))
       {
-        RDCERR("Couldn't enable stream-out in root signature: 0x%08x", hr);
+        RDCERR("Couldn't enable stream-out in root signature: HRESULT: %s", ToStr(hr).c_str());
         return;
       }
 
@@ -3974,7 +3975,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
                                                       (void **)&pipe);
     if(FAILED(hr))
     {
-      RDCERR("Couldn't create patched graphics pipeline: 0x%08x", hr);
+      RDCERR("Couldn't create patched graphics pipeline: HRESULT: %s", ToStr(hr).c_str());
       SAFE_RELEASE(soSig);
       return;
     }
@@ -4238,7 +4239,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
     hr = m_SOStagingBuffer->Map(0, &range, (void **)&byteData);
     if(FAILED(hr))
     {
-      RDCERR("Failed to map sobuffer %08x", hr);
+      RDCERR("Failed to map sobuffer HRESULT: %s", ToStr(hr).c_str());
       SAFE_RELEASE(idxBuf);
       SAFE_RELEASE(soSig);
       return;
@@ -4466,7 +4467,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
                                                       (void **)&pipe);
     if(FAILED(hr))
     {
-      RDCERR("Couldn't create patched graphics pipeline: 0x%08x", hr);
+      RDCERR("Couldn't create patched graphics pipeline: HRESULT: %s", ToStr(hr).c_str());
       SAFE_RELEASE(soSig);
       return;
     }
@@ -4746,7 +4747,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
     hr = m_SOStagingBuffer->Map(0, &range, (void **)&byteData);
     if(FAILED(hr))
     {
-      RDCERR("Failed to map sobuffer %08x", hr);
+      RDCERR("Failed to map sobuffer HRESULT: %s", ToStr(hr).c_str());
       SAFE_RELEASE(soSig);
       return;
     }
@@ -5208,7 +5209,7 @@ void D3D12DebugManager::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
 
   if(FAILED(hr) || texs == NULL)
   {
-    RDCERR("Failed to map charbuffer %08x", hr);
+    RDCERR("Failed to map charbuffer HRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -6407,7 +6408,7 @@ bool D3D12DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to map bufferdata buffer %08x", hr);
+    RDCERR("Failed to map bufferdata buffer HRESULT: %s", ToStr(hr).c_str());
     return false;
   }
   else
@@ -6572,7 +6573,7 @@ bool D3D12DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
 
   if(FAILED(hr))
   {
-    RDCERR("Failed to map bufferdata buffer %08x", hr);
+    RDCERR("Failed to map bufferdata buffer HRESULT: %s", ToStr(hr).c_str());
     return false;
   }
   else
@@ -6961,7 +6962,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
         __uuidof(ID3D12Resource), (void **)&customRenderTex);
     if(FAILED(hr))
     {
-      RDCERR("Failed to create custom render tex %08x", hr);
+      RDCERR("Failed to create custom render tex HRESULT: %s", ToStr(hr).c_str());
       return ResourceId();
     }
     wrappedCustomRenderTex = (WrappedID3D12Resource *)customRenderTex;
@@ -6997,7 +6998,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
                                                   __uuidof(ID3D12Resource), (void **)&renderDepth);
     if(FAILED(hr))
     {
-      RDCERR("Failed to create renderDepth %08x", hr);
+      RDCERR("Failed to create renderDepth HRESULT: %s", ToStr(hr).c_str());
       return m_OverlayResourceId;
     }
 
@@ -7151,7 +7152,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
           &psoDesc, __uuidof(ID3D12PipelineState), (void **)&pso);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create overlay pso %08x", hr);
+        RDCERR("Failed to create overlay pso HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(ps);
         return m_OverlayResourceId;
       }
@@ -7226,7 +7227,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
           &psoDesc, __uuidof(ID3D12PipelineState), (void **)&redPSO);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create overlay pso %08x", hr);
+        RDCERR("Failed to create overlay pso HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(red);
         SAFE_RELEASE(green);
         return m_OverlayResourceId;
@@ -7241,7 +7242,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
                                                         (void **)&greenPSO);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create overlay pso %08x", hr);
+        RDCERR("Failed to create overlay pso HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(red);
         SAFE_RELEASE(redPSO);
         SAFE_RELEASE(green);
@@ -7322,7 +7323,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
           &psoDesc, __uuidof(ID3D12PipelineState), (void **)&pso);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create overlay pso %08x", hr);
+        RDCERR("Failed to create overlay pso HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(ps);
         return m_OverlayResourceId;
       }
@@ -7682,7 +7683,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
           NULL, __uuidof(ID3D12Resource), (void **)&overdrawTex);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create overdrawTex %08x", hr);
+        RDCERR("Failed to create overdrawTex HRESULT: %s", ToStr(hr).c_str());
         list->Close();
         list = NULL;
         return m_OverlayResourceId;
@@ -7835,7 +7836,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
           &psoDesc, __uuidof(ID3D12PipelineState), (void **)&greenPSO);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create overlay pso %08x", hr);
+        RDCERR("Failed to create overlay pso HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(red);
         SAFE_RELEASE(green);
         return m_OverlayResourceId;
@@ -7854,7 +7855,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
                                                         (void **)&redPSO);
       if(FAILED(hr))
       {
-        RDCERR("Failed to create overlay pso %08x", hr);
+        RDCERR("Failed to create overlay pso HRESULT: %s", ToStr(hr).c_str());
         SAFE_RELEASE(redPSO);
         SAFE_RELEASE(red);
         SAFE_RELEASE(green);

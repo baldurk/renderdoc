@@ -690,7 +690,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser,
 
     if(FAILED(hr))
     {
-      RDCERR("Failed to create fake back buffer, HRESULT: 0x%08x", hr);
+      RDCERR("Failed to create fake back buffer, HRESULT: %s", ToStr(hr).c_str());
     }
     else
     {
@@ -896,7 +896,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
         }
         else
         {
-          RDCERR("Failed to map resource on replay %08x", hr);
+          RDCERR("Failed to map resource on replay HRESULT: %s", ToStr(hr).c_str());
         }
       }
 
@@ -925,7 +925,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
       }
       else
       {
-        RDCERR("Failed to map resource on replay %08x", hr);
+        RDCERR("Failed to map resource on replay HRESULT: %s", ToStr(hr).c_str());
       }
     }
   }
@@ -1015,7 +1015,7 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
         }
         else
         {
-          RDCERR("Failed to map resource on replay %08x", hr);
+          RDCERR("Failed to map resource on replay HRESULT: %s", ToStr(hr).c_str());
         }
       }
 
@@ -1043,7 +1043,7 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
       }
       else
       {
-        RDCERR("Failed to map resource on replay %08x", hr);
+        RDCERR("Failed to map resource on replay HRESULT: %s", ToStr(hr).c_str());
       }
     }
   }
@@ -1525,14 +1525,14 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
         }
         else
         {
-          RDCERR("Couldn't map readback buffer: 0x%08x", hr);
+          RDCERR("Couldn't map readback buffer: HRESULT: %s", ToStr(hr).c_str());
         }
 
         SAFE_RELEASE(copyDst);
       }
       else
       {
-        RDCERR("Couldn't create readback buffer: 0x%08x", hr);
+        RDCERR("Couldn't create readback buffer: HRESULT: %s", ToStr(hr).c_str());
       }
     }
 

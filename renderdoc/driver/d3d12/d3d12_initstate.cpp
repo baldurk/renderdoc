@@ -114,7 +114,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       }
       else
       {
-        RDCERR("Couldn't create readback buffer: 0x%08x", hr);
+        RDCERR("Couldn't create readback buffer: HRESULT: %s", ToStr(hr).c_str());
       }
 
       if(nonresident)
@@ -226,7 +226,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       }
       else
       {
-        RDCERR("Couldn't create readback buffer: 0x%08x", hr);
+        RDCERR("Couldn't create readback buffer: HRESULT: %s", ToStr(hr).c_str());
       }
 
       if(nonresident)
@@ -336,7 +336,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
       if(FAILED(hr))
       {
-        RDCERR("Failed to create CPU descriptor heap for initial state: 0x%08x", hr);
+        RDCERR("Failed to create CPU descriptor heap for initial state: HRESULT: %s",
+               ToStr(hr).c_str());
         return false;
       }
 
@@ -558,7 +559,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
 
         if(FAILED(hr))
         {
-          RDCERR("Doing CPU-side copy, couldn't map source: 0x%08x", hr);
+          RDCERR("Doing CPU-side copy, couldn't map source: HRESULT: %s", ToStr(hr).c_str());
           src = NULL;
         }
 
@@ -568,7 +569,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
 
           if(FAILED(hr))
           {
-            RDCERR("Doing CPU-side copy, couldn't map source: 0x%08x", hr);
+            RDCERR("Doing CPU-side copy, couldn't map source: HRESULT: %s", ToStr(hr).c_str());
             dst = NULL;
           }
 
@@ -602,7 +603,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
 
             if(FAILED(hr))
             {
-              RDCERR("Doing CPU-side copy, couldn't map source: 0x%08x", hr);
+              RDCERR("Doing CPU-side copy, couldn't map source: HRESULT: %s", ToStr(hr).c_str());
               dst = NULL;
             }
 

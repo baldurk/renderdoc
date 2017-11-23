@@ -173,7 +173,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(SerialiserType &ser, VkDevi
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
     }
     else
     {
@@ -244,7 +244,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
     }
     else
     {
@@ -365,7 +365,7 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
     }
     else
     {

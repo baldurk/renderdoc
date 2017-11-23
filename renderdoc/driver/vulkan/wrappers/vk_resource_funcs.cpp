@@ -163,7 +163,7 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
     }
     else
     {
@@ -980,7 +980,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
     }
     else
     {
@@ -1083,7 +1083,7 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(SerialiserType &ser, VkDevice d
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
     }
     else
     {
@@ -1210,7 +1210,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
     }
     else
     {
@@ -1492,7 +1492,7 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
 
     if(ret != VK_SUCCESS)
     {
-      RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+      RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
     }
     else
     {

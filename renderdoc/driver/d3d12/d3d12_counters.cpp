@@ -283,7 +283,7 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &count
                                                   __uuidof(ID3D12Resource), (void **)&readbackBuf);
   if(FAILED(hr))
   {
-    RDCERR("Failed to create query readback buffer %08x", hr);
+    RDCERR("Failed to create query readback buffer HRESULT: %s", ToStr(hr).c_str());
     return ret;
   }
 
@@ -296,7 +296,7 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &count
                                   (void **)&timerQueryHeap);
   if(FAILED(hr))
   {
-    RDCERR("Failed to create timer query heap %08x", hr);
+    RDCERR("Failed to create timer query heap HRESULT: %s", ToStr(hr).c_str());
     return ret;
   }
 
@@ -309,7 +309,7 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &count
                                   (void **)&pipestatsQueryHeap);
   if(FAILED(hr))
   {
-    RDCERR("Failed to create pipeline statistics query heap %08x", hr);
+    RDCERR("Failed to create pipeline statistics query heap HRESULT: %s", ToStr(hr).c_str());
     return ret;
   }
 
@@ -322,7 +322,7 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &count
                                   (void **)&occlusionQueryHeap);
   if(FAILED(hr))
   {
-    RDCERR("Failed to create occlusion query heap %08x", hr);
+    RDCERR("Failed to create occlusion query heap HRESULT: %s", ToStr(hr).c_str());
     return ret;
   }
 
@@ -377,7 +377,7 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<GPUCounter> &count
   hr = readbackBuf->Map(0, &range, (void **)&data);
   if(FAILED(hr))
   {
-    RDCERR("Failed to read timer query heap data %08x", hr);
+    RDCERR("Failed to read timer query heap data HRESULT: %s", ToStr(hr).c_str());
     SAFE_RELEASE(readbackBuf);
     SAFE_RELEASE(timerQueryHeap);
     SAFE_RELEASE(pipestatsQueryHeap);

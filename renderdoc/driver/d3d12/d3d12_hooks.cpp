@@ -265,7 +265,7 @@ private:
 
     HRESULT ret = createFunc(pAdapter, MinimumFeatureLevel, riid, ppDevice);
 
-    RDCDEBUG("Called real createdevice... 0x%08x", ret);
+    RDCDEBUG("Called real createdevice... HRESULT: %s", ToStr(ret).c_str());
 
     if(SUCCEEDED(ret) && m_EnabledHooks && ppDevice)
     {
@@ -303,7 +303,7 @@ private:
     }
     else
     {
-      RDCDEBUG("failed. 0x%08x", ret);
+      RDCDEBUG("failed. HRESULT: %s", ToStr(ret).c_str());
     }
 
     m_InsideCreate = false;
