@@ -159,7 +159,8 @@ bool WrappedOpenGL::Serialise_glCreateShader(SerialiserType &ser, GLuint shader,
 
 GLuint WrappedOpenGL::glCreateShader(GLenum type)
 {
-  GLuint real = m_Real.glCreateShader(type);
+  GLuint real;
+  SERIALISE_TIME_CALL(real = m_Real.glCreateShader(type));
 
   GLResource res = ShaderRes(GetCtx(), real);
   ResourceId id = GetResourceManager()->RegisterResource(res);
@@ -251,7 +252,7 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
 void WrappedOpenGL::glShaderSource(GLuint shader, GLsizei count, const GLchar *const *string,
                                    const GLint *length)
 {
-  m_Real.glShaderSource(shader, count, string, length);
+  SERIALISE_TIME_CALL(m_Real.glShaderSource(shader, count, string, length));
 
   if(IsCaptureMode(m_State))
   {
@@ -369,7 +370,7 @@ bool WrappedOpenGL::Serialise_glAttachShader(SerialiserType &ser, GLuint program
 
 void WrappedOpenGL::glAttachShader(GLuint program, GLuint shader)
 {
-  m_Real.glAttachShader(program, shader);
+  SERIALISE_TIME_CALL(m_Real.glAttachShader(program, shader));
 
   if(program && shader)
   {
@@ -440,7 +441,7 @@ bool WrappedOpenGL::Serialise_glDetachShader(SerialiserType &ser, GLuint program
 
 void WrappedOpenGL::glDetachShader(GLuint program, GLuint shader)
 {
-  m_Real.glDetachShader(program, shader);
+  SERIALISE_TIME_CALL(m_Real.glDetachShader(program, shader));
 
   if(program && shader)
   {
@@ -533,7 +534,8 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLuint
 
 GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const GLchar *const *strings)
 {
-  GLuint real = m_Real.glCreateShaderProgramv(type, count, strings);
+  GLuint real;
+  SERIALISE_TIME_CALL(real = m_Real.glCreateShaderProgramv(type, count, strings));
 
   if(real == 0)
     return real;
@@ -617,7 +619,8 @@ bool WrappedOpenGL::Serialise_glCreateProgram(SerialiserType &ser, GLuint progra
 
 GLuint WrappedOpenGL::glCreateProgram()
 {
-  GLuint real = m_Real.glCreateProgram();
+  GLuint real;
+  SERIALISE_TIME_CALL(real = m_Real.glCreateProgram());
 
   GLResource res = ProgramRes(GetCtx(), real);
   ResourceId id = GetResourceManager()->RegisterResource(res);
@@ -687,7 +690,7 @@ bool WrappedOpenGL::Serialise_glLinkProgram(SerialiserType &ser, GLuint programH
 
 void WrappedOpenGL::glLinkProgram(GLuint program)
 {
-  m_Real.glLinkProgram(program);
+  SERIALISE_TIME_CALL(m_Real.glLinkProgram(program));
 
   if(IsCaptureMode(m_State))
   {
@@ -744,7 +747,7 @@ bool WrappedOpenGL::Serialise_glUniformBlockBinding(SerialiserType &ser, GLuint 
 void WrappedOpenGL::glUniformBlockBinding(GLuint program, GLuint uniformBlockIndex,
                                           GLuint uniformBlockBinding)
 {
-  m_Real.glUniformBlockBinding(program, uniformBlockIndex, uniformBlockBinding);
+  SERIALISE_TIME_CALL(m_Real.glUniformBlockBinding(program, uniformBlockIndex, uniformBlockBinding));
 
   if(IsCaptureMode(m_State))
   {
@@ -784,7 +787,8 @@ bool WrappedOpenGL::Serialise_glShaderStorageBlockBinding(SerialiserType &ser, G
 void WrappedOpenGL::glShaderStorageBlockBinding(GLuint program, GLuint storageBlockIndex,
                                                 GLuint storageBlockBinding)
 {
-  m_Real.glShaderStorageBlockBinding(program, storageBlockIndex, storageBlockBinding);
+  SERIALISE_TIME_CALL(
+      m_Real.glShaderStorageBlockBinding(program, storageBlockIndex, storageBlockBinding));
 
   if(IsCaptureMode(m_State))
   {
@@ -822,7 +826,7 @@ bool WrappedOpenGL::Serialise_glBindAttribLocation(SerialiserType &ser, GLuint p
 
 void WrappedOpenGL::glBindAttribLocation(GLuint program, GLuint index, const GLchar *name)
 {
-  m_Real.glBindAttribLocation(program, index, name);
+  SERIALISE_TIME_CALL(m_Real.glBindAttribLocation(program, index, name));
 
   if(IsCaptureMode(m_State))
   {
@@ -860,7 +864,7 @@ bool WrappedOpenGL::Serialise_glBindFragDataLocation(SerialiserType &ser, GLuint
 
 void WrappedOpenGL::glBindFragDataLocation(GLuint program, GLuint color, const GLchar *name)
 {
-  m_Real.glBindFragDataLocation(program, color, name);
+  SERIALISE_TIME_CALL(m_Real.glBindFragDataLocation(program, color, name));
 
   if(IsCaptureMode(m_State))
   {
@@ -895,7 +899,7 @@ bool WrappedOpenGL::Serialise_glUniformSubroutinesuiv(SerialiserType &ser, GLenu
 
 void WrappedOpenGL::glUniformSubroutinesuiv(GLenum shadertype, GLsizei count, const GLuint *indices)
 {
-  m_Real.glUniformSubroutinesuiv(shadertype, count, indices);
+  SERIALISE_TIME_CALL(m_Real.glUniformSubroutinesuiv(shadertype, count, indices));
 
   if(IsActiveCapturing(m_State))
   {
@@ -930,7 +934,7 @@ bool WrappedOpenGL::Serialise_glBindFragDataLocationIndexed(SerialiserType &ser,
 void WrappedOpenGL::glBindFragDataLocationIndexed(GLuint program, GLuint colorNumber, GLuint index,
                                                   const GLchar *name)
 {
-  m_Real.glBindFragDataLocationIndexed(program, colorNumber, index, name);
+  SERIALISE_TIME_CALL(m_Real.glBindFragDataLocationIndexed(program, colorNumber, index, name));
 
   if(IsCaptureMode(m_State))
   {
@@ -971,7 +975,7 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackVaryings(SerialiserType &ser, G
 void WrappedOpenGL::glTransformFeedbackVaryings(GLuint program, GLsizei count,
                                                 const GLchar *const *varyings, GLenum bufferMode)
 {
-  m_Real.glTransformFeedbackVaryings(program, count, varyings, bufferMode);
+  SERIALISE_TIME_CALL(m_Real.glTransformFeedbackVaryings(program, count, varyings, bufferMode));
 
   if(IsCaptureMode(m_State))
   {
@@ -1009,7 +1013,7 @@ bool WrappedOpenGL::Serialise_glProgramParameteri(SerialiserType &ser, GLuint pr
 
 void WrappedOpenGL::glProgramParameteri(GLuint program, GLenum pname, GLint value)
 {
-  m_Real.glProgramParameteri(program, pname, value);
+  SERIALISE_TIME_CALL(m_Real.glProgramParameteri(program, pname, value));
 
   if(IsCaptureMode(m_State))
   {
@@ -1058,7 +1062,7 @@ bool WrappedOpenGL::Serialise_glUseProgram(SerialiserType &ser, GLuint programHa
 
 void WrappedOpenGL::glUseProgram(GLuint program)
 {
-  m_Real.glUseProgram(program);
+  SERIALISE_TIME_CALL(m_Real.glUseProgram(program));
 
   GetCtxData().m_Program = program;
 
@@ -1170,7 +1174,7 @@ bool WrappedOpenGL::Serialise_glUseProgramStages(SerialiserType &ser, GLuint pip
 
 void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
 {
-  m_Real.glUseProgramStages(pipeline, stages, program);
+  SERIALISE_TIME_CALL(m_Real.glUseProgramStages(pipeline, stages, program));
 
   if(IsCaptureMode(m_State))
   {
@@ -1290,7 +1294,7 @@ bool WrappedOpenGL::Serialise_glGenProgramPipelines(SerialiserType &ser, GLsizei
 
 void WrappedOpenGL::glGenProgramPipelines(GLsizei n, GLuint *pipelines)
 {
-  m_Real.glGenProgramPipelines(n, pipelines);
+  SERIALISE_TIME_CALL(m_Real.glGenProgramPipelines(n, pipelines));
 
   for(GLsizei i = 0; i < n; i++)
   {
@@ -1348,7 +1352,7 @@ bool WrappedOpenGL::Serialise_glCreateProgramPipelines(SerialiserType &ser, GLsi
 
 void WrappedOpenGL::glCreateProgramPipelines(GLsizei n, GLuint *pipelines)
 {
-  m_Real.glCreateProgramPipelines(n, pipelines);
+  SERIALISE_TIME_CALL(m_Real.glCreateProgramPipelines(n, pipelines));
 
   for(GLsizei i = 0; i < n; i++)
   {
@@ -1396,7 +1400,7 @@ bool WrappedOpenGL::Serialise_glBindProgramPipeline(SerialiserType &ser, GLuint 
 
 void WrappedOpenGL::glBindProgramPipeline(GLuint pipeline)
 {
-  m_Real.glBindProgramPipeline(pipeline);
+  SERIALISE_TIME_CALL(m_Real.glBindProgramPipeline(pipeline));
 
   GetCtxData().m_ProgramPipeline = pipeline;
 
@@ -1502,7 +1506,7 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(SerialiserType &ser, GLu
 void WrappedOpenGL::glCompileShaderIncludeARB(GLuint shader, GLsizei count,
                                               const GLchar *const *path, const GLint *length)
 {
-  m_Real.glCompileShaderIncludeARB(shader, count, path, length);
+  SERIALISE_TIME_CALL(m_Real.glCompileShaderIncludeARB(shader, count, path, length));
 
   if(IsCaptureMode(m_State))
   {
@@ -1560,7 +1564,7 @@ bool WrappedOpenGL::Serialise_glNamedStringARB(SerialiserType &ser, GLenum type,
 void WrappedOpenGL::glNamedStringARB(GLenum type, GLint namelen, const GLchar *name,
                                      GLint stringlen, const GLchar *str)
 {
-  m_Real.glNamedStringARB(type, namelen, name, stringlen, str);
+  SERIALISE_TIME_CALL(m_Real.glNamedStringARB(type, namelen, name, stringlen, str));
 
   if(IsCaptureMode(m_State))
   {
@@ -1594,7 +1598,7 @@ bool WrappedOpenGL::Serialise_glDeleteNamedStringARB(SerialiserType &ser, GLint 
 
 void WrappedOpenGL::glDeleteNamedStringARB(GLint namelen, const GLchar *name)
 {
-  m_Real.glDeleteNamedStringARB(namelen, name);
+  SERIALISE_TIME_CALL(m_Real.glDeleteNamedStringARB(namelen, name));
 
   if(IsCaptureMode(m_State))
   {

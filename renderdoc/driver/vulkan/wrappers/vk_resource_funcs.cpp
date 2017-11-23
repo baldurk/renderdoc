@@ -406,7 +406,9 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
     }
   }
 
-  VkResult ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &info, pAllocator, pMemory);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &info, pAllocator, pMemory));
 
   // restore the memoryTypeIndex to the original, as that's what we want to serialise,
   // but maintain any potential modifications we made to info.allocationSize
@@ -772,6 +774,17 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
 VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memRangeCount,
                                                   const VkMappedMemoryRange *pMemRanges)
 {
+  VkMappedMemoryRange *unwrapped = GetTempArray<VkMappedMemoryRange>(memRangeCount);
+  for(uint32_t i = 0; i < memRangeCount; i++)
+  {
+    unwrapped[i] = pMemRanges[i];
+    unwrapped[i].memory = Unwrap(unwrapped[i].memory);
+  }
+
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->FlushMappedMemoryRanges(Unwrap(device), memRangeCount, unwrapped));
+
   if(IsCaptureMode(m_State))
   {
     bool capframe = false;
@@ -814,15 +827,6 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
       }
     }
   }
-
-  VkMappedMemoryRange *unwrapped = GetTempArray<VkMappedMemoryRange>(memRangeCount);
-  for(uint32_t i = 0; i < memRangeCount; i++)
-  {
-    unwrapped[i] = pMemRanges[i];
-    unwrapped[i].memory = Unwrap(unwrapped[i].memory);
-  }
-
-  VkResult ret = ObjDisp(device)->FlushMappedMemoryRanges(Unwrap(device), memRangeCount, unwrapped);
 
   return ret;
 }
@@ -927,6 +931,10 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
 {
   VkResourceRecord *record = GetRecord(buffer);
 
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer),
+                                                              Unwrap(memory), memoryOffset));
+
   if(IsCaptureMode(m_State))
   {
     Chunk *chunk = NULL;
@@ -949,8 +957,7 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
     record->baseResource = GetResID(memory);
   }
 
-  return ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(memory),
-                                           memoryOffset);
+  return ret;
 }
 
 template <typename SerialiserType>
@@ -1035,6 +1042,10 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
 {
   VkResourceRecord *record = GetRecord(image);
 
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image),
+                                                             Unwrap(mem), memOffset));
+
   if(IsCaptureMode(m_State))
   {
     Chunk *chunk = NULL;
@@ -1061,7 +1072,7 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
     record->baseResource = GetResID(mem);
   }
 
-  return ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(mem), memOffset);
+  return ret;
 }
 
 template <typename SerialiserType>
@@ -1118,7 +1129,9 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
   // on replay, so that the memory requirements are the same
   adjusted_info.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-  VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &adjusted_info, pAllocator, pBuffer);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &adjusted_info, pAllocator, pBuffer));
 
   // SHARING: pCreateInfo sharingMode, queueFamilyCount, pQueueFamilyIndices
 
@@ -1238,7 +1251,9 @@ VkResult WrappedVulkan::vkCreateBufferView(VkDevice device, const VkBufferViewCr
 {
   VkBufferViewCreateInfo unwrappedInfo = *pCreateInfo;
   unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
-  VkResult ret = ObjDisp(device)->CreateBufferView(Unwrap(device), &unwrappedInfo, pAllocator, pView);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateBufferView(Unwrap(device), &unwrappedInfo, pAllocator, pView));
 
   if(ret == VK_SUCCESS)
   {
@@ -1434,8 +1449,9 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     }
   }
 
-  VkResult ret =
-      ObjDisp(device)->CreateImage(Unwrap(device), &createInfo_adjusted, pAllocator, pImage);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateImage(Unwrap(device), &createInfo_adjusted, pAllocator, pImage));
 
   // SHARING: pCreateInfo sharingMode, queueFamilyCount, pQueueFamilyIndices
 
@@ -1652,7 +1668,9 @@ VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCrea
 {
   VkImageViewCreateInfo unwrappedInfo = *pCreateInfo;
   unwrappedInfo.image = Unwrap(unwrappedInfo.image);
-  VkResult ret = ObjDisp(device)->CreateImageView(Unwrap(device), &unwrappedInfo, pAllocator, pView);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateImageView(Unwrap(device), &unwrappedInfo, pAllocator, pView));
 
   if(ret == VK_SUCCESS)
   {

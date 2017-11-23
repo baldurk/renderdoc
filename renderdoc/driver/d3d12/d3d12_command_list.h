@@ -87,6 +87,8 @@ class WrappedID3D12GraphicsCommandList : public RefCounter12<ID3D12GraphicsComma
 {
   WrappedID3D12Device *m_pDevice;
 
+  WriteSerialiser &GetThreadSerialiser();
+
   // command recording/replay data shared between queues and lists
   D3D12CommandData *m_Cmd;
 

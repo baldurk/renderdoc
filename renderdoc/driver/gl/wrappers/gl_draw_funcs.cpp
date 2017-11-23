@@ -122,7 +122,7 @@ void WrappedOpenGL::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, 
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
+  SERIALISE_TIME_CALL(m_Real.glDispatchCompute(num_groups_x, num_groups_y, num_groups_z));
 
   if(IsActiveCapturing(m_State))
   {
@@ -228,8 +228,8 @@ void WrappedOpenGL::glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint nu
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDispatchComputeGroupSizeARB(num_groups_x, num_groups_y, num_groups_z, group_size_x,
-                                       group_size_y, group_size_z);
+  SERIALISE_TIME_CALL(m_Real.glDispatchComputeGroupSizeARB(
+      num_groups_x, num_groups_y, num_groups_z, group_size_x, group_size_y, group_size_z));
 
   if(IsActiveCapturing(m_State))
   {
@@ -299,7 +299,7 @@ void WrappedOpenGL::glDispatchComputeIndirect(GLintptr indirect)
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDispatchComputeIndirect(indirect);
+  SERIALISE_TIME_CALL(m_Real.glDispatchComputeIndirect(indirect));
 
   if(IsActiveCapturing(m_State))
   {
@@ -345,7 +345,7 @@ void WrappedOpenGL::glMemoryBarrier(GLbitfield barriers)
     PersistentMapMemoryBarrier(m_PersistentMaps);
   }
 
-  m_Real.glMemoryBarrier(barriers);
+  SERIALISE_TIME_CALL(m_Real.glMemoryBarrier(barriers));
 
   if(IsActiveCapturing(m_State))
   {
@@ -381,7 +381,7 @@ void WrappedOpenGL::glMemoryBarrierByRegion(GLbitfield barriers)
     PersistentMapMemoryBarrier(m_PersistentMaps);
   }
 
-  m_Real.glMemoryBarrierByRegion(barriers);
+  SERIALISE_TIME_CALL(m_Real.glMemoryBarrierByRegion(barriers));
 
   if(IsActiveCapturing(m_State))
   {
@@ -408,7 +408,7 @@ void WrappedOpenGL::glTextureBarrier()
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glTextureBarrier();
+  SERIALISE_TIME_CALL(m_Real.glTextureBarrier());
 
   if(IsActiveCapturing(m_State))
   {
@@ -464,7 +464,7 @@ void WrappedOpenGL::glDrawTransformFeedback(GLenum mode, GLuint id)
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawTransformFeedback(mode, id);
+  SERIALISE_TIME_CALL(m_Real.glDrawTransformFeedback(mode, id));
 
   if(IsActiveCapturing(m_State))
   {
@@ -533,7 +533,7 @@ void WrappedOpenGL::glDrawTransformFeedbackInstanced(GLenum mode, GLuint id, GLs
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawTransformFeedbackInstanced(mode, id, instancecount);
+  SERIALISE_TIME_CALL(m_Real.glDrawTransformFeedbackInstanced(mode, id, instancecount));
 
   if(IsActiveCapturing(m_State))
   {
@@ -601,7 +601,7 @@ void WrappedOpenGL::glDrawTransformFeedbackStream(GLenum mode, GLuint id, GLuint
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawTransformFeedbackStream(mode, id, stream);
+  SERIALISE_TIME_CALL(m_Real.glDrawTransformFeedbackStream(mode, id, stream));
 
   if(IsActiveCapturing(m_State))
   {
@@ -674,7 +674,7 @@ void WrappedOpenGL::glDrawTransformFeedbackStreamInstanced(GLenum mode, GLuint i
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawTransformFeedbackStreamInstanced(mode, id, stream, instancecount);
+  SERIALISE_TIME_CALL(m_Real.glDrawTransformFeedbackStreamInstanced(mode, id, stream, instancecount));
 
   if(IsActiveCapturing(m_State))
   {
@@ -902,7 +902,7 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawArrays(mode, first, count);
+  SERIALISE_TIME_CALL(m_Real.glDrawArrays(mode, first, count));
 
   if(IsActiveCapturing(m_State))
   {
@@ -981,7 +981,7 @@ void WrappedOpenGL::glDrawArraysIndirect(GLenum mode, const void *indirect)
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawArraysIndirect(mode, indirect);
+  SERIALISE_TIME_CALL(m_Real.glDrawArraysIndirect(mode, indirect));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1049,7 +1049,7 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawArraysInstanced(mode, first, count, instancecount);
+  SERIALISE_TIME_CALL(m_Real.glDrawArraysInstanced(mode, first, count, instancecount));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1125,7 +1125,8 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawArraysInstancedBaseInstance(mode, first, count, instancecount, baseinstance);
+  SERIALISE_TIME_CALL(
+      m_Real.glDrawArraysInstancedBaseInstance(mode, first, count, instancecount, baseinstance));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1216,7 +1217,7 @@ void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, cons
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawElements(mode, count, type, indices);
+  SERIALISE_TIME_CALL(m_Real.glDrawElements(mode, count, type, indices));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1300,7 +1301,7 @@ void WrappedOpenGL::glDrawElementsIndirect(GLenum mode, GLenum type, const void 
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawElementsIndirect(mode, type, indirect);
+  SERIALISE_TIME_CALL(m_Real.glDrawElementsIndirect(mode, type, indirect));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1375,7 +1376,7 @@ void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, G
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawRangeElements(mode, start, end, count, type, indices);
+  SERIALISE_TIME_CALL(m_Real.glDrawRangeElements(mode, start, end, count, type, indices));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1458,7 +1459,8 @@ void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLu
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex);
+  SERIALISE_TIME_CALL(
+      m_Real.glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1536,7 +1538,7 @@ void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum 
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
+  SERIALISE_TIME_CALL(m_Real.glDrawElementsBaseVertex(mode, count, type, indices, basevertex));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1614,7 +1616,7 @@ void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum t
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawElementsInstanced(mode, count, type, indices, instancecount);
+  SERIALISE_TIME_CALL(m_Real.glDrawElementsInstanced(mode, count, type, indices, instancecount));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1697,7 +1699,8 @@ void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei cou
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawElementsInstancedBaseInstance(mode, count, type, indices, instancecount, baseinstance);
+  SERIALISE_TIME_CALL(m_Real.glDrawElementsInstancedBaseInstance(mode, count, type, indices,
+                                                                 instancecount, baseinstance));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1781,7 +1784,8 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawElementsInstancedBaseVertex(mode, count, type, indices, instancecount, basevertex);
+  SERIALISE_TIME_CALL(m_Real.glDrawElementsInstancedBaseVertex(mode, count, type, indices,
+                                                               instancecount, basevertex));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1866,8 +1870,8 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, G
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawElementsInstancedBaseVertexBaseInstance(mode, count, type, indices, instancecount,
-                                                       basevertex, baseinstance);
+  SERIALISE_TIME_CALL(m_Real.glDrawElementsInstancedBaseVertexBaseInstance(
+      mode, count, type, indices, instancecount, basevertex, baseinstance));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1998,7 +2002,7 @@ void WrappedOpenGL::glMultiDrawArrays(GLenum mode, const GLint *first, const GLs
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glMultiDrawArrays(mode, first, count, drawcount);
+  SERIALISE_TIME_CALL(m_Real.glMultiDrawArrays(mode, first, count, drawcount));
 
   if(IsActiveCapturing(m_State))
   {
@@ -2148,7 +2152,7 @@ void WrappedOpenGL::glMultiDrawElements(GLenum mode, const GLsizei *count, GLenu
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glMultiDrawElements(mode, count, type, indices, drawcount);
+  SERIALISE_TIME_CALL(m_Real.glMultiDrawElements(mode, count, type, indices, drawcount));
 
   if(IsActiveCapturing(m_State))
   {
@@ -2304,7 +2308,8 @@ void WrappedOpenGL::glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *co
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glMultiDrawElementsBaseVertex(mode, count, type, indices, drawcount, basevertex);
+  SERIALISE_TIME_CALL(
+      m_Real.glMultiDrawElementsBaseVertex(mode, count, type, indices, drawcount, basevertex));
 
   if(IsActiveCapturing(m_State))
   {
@@ -2465,7 +2470,7 @@ void WrappedOpenGL::glMultiDrawArraysIndirect(GLenum mode, const void *indirect,
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glMultiDrawArraysIndirect(mode, indirect, drawcount, stride);
+  SERIALISE_TIME_CALL(m_Real.glMultiDrawArraysIndirect(mode, indirect, drawcount, stride));
 
   if(IsActiveCapturing(m_State))
   {
@@ -2637,7 +2642,7 @@ void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const 
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glMultiDrawElementsIndirect(mode, type, indirect, drawcount, stride);
+  SERIALISE_TIME_CALL(m_Real.glMultiDrawElementsIndirect(mode, type, indirect, drawcount, stride));
 
   if(IsActiveCapturing(m_State))
   {
@@ -2809,7 +2814,8 @@ void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, GLintptr indi
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glMultiDrawArraysIndirectCountARB(mode, indirect, drawcount, maxdrawcount, stride);
+  SERIALISE_TIME_CALL(
+      m_Real.glMultiDrawArraysIndirectCountARB(mode, indirect, drawcount, maxdrawcount, stride));
 
   if(IsActiveCapturing(m_State))
   {
@@ -2990,7 +2996,8 @@ void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glMultiDrawElementsIndirectCountARB(mode, type, indirect, drawcount, maxdrawcount, stride);
+  SERIALISE_TIME_CALL(m_Real.glMultiDrawElementsIndirectCountARB(mode, type, indirect, drawcount,
+                                                                 maxdrawcount, stride));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3111,7 +3118,7 @@ void WrappedOpenGL::glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer,
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearNamedFramebufferfv(framebuffer, buffer, drawbuffer, value);
+  SERIALISE_TIME_CALL(m_Real.glClearNamedFramebufferfv(framebuffer, buffer, drawbuffer, value));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3138,7 +3145,7 @@ void WrappedOpenGL::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLflo
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearBufferfv(buffer, drawbuffer, value);
+  SERIALISE_TIME_CALL(m_Real.glClearBufferfv(buffer, drawbuffer, value));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3251,7 +3258,7 @@ void WrappedOpenGL::glClearNamedFramebufferiv(GLuint framebuffer, GLenum buffer,
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearNamedFramebufferiv(framebuffer, buffer, drawbuffer, value);
+  SERIALISE_TIME_CALL(m_Real.glClearNamedFramebufferiv(framebuffer, buffer, drawbuffer, value));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3269,7 +3276,7 @@ void WrappedOpenGL::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearBufferiv(buffer, drawbuffer, value);
+  SERIALISE_TIME_CALL(m_Real.glClearBufferiv(buffer, drawbuffer, value));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3356,7 +3363,7 @@ void WrappedOpenGL::glClearNamedFramebufferuiv(GLuint framebuffer, GLenum buffer
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearNamedFramebufferuiv(framebuffer, buffer, drawbuffer, value);
+  SERIALISE_TIME_CALL(m_Real.glClearNamedFramebufferuiv(framebuffer, buffer, drawbuffer, value));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3374,7 +3381,7 @@ void WrappedOpenGL::glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLui
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearBufferuiv(buffer, drawbuffer, value);
+  SERIALISE_TIME_CALL(m_Real.glClearBufferuiv(buffer, drawbuffer, value));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3477,7 +3484,7 @@ void WrappedOpenGL::glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer,
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearNamedFramebufferfi(framebuffer, buffer, depth, stencil);
+  SERIALISE_TIME_CALL(m_Real.glClearNamedFramebufferfi(framebuffer, buffer, depth, stencil));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3495,7 +3502,7 @@ void WrappedOpenGL::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat dep
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearBufferfi(buffer, drawbuffer, depth, stencil);
+  SERIALISE_TIME_CALL(m_Real.glClearBufferfi(buffer, drawbuffer, depth, stencil));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3601,7 +3608,7 @@ void WrappedOpenGL::glClearNamedBufferDataEXT(GLuint buffer, GLenum internalform
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearNamedBufferDataEXT(buffer, internalformat, format, type, data);
+  SERIALISE_TIME_CALL(m_Real.glClearNamedBufferDataEXT(buffer, internalformat, format, type, data));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3624,7 +3631,7 @@ void WrappedOpenGL::glClearBufferData(GLenum target, GLenum internalformat, GLen
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearBufferData(target, internalformat, format, type, data);
+  SERIALISE_TIME_CALL(m_Real.glClearBufferData(target, internalformat, format, type, data));
 
   if(IsCaptureMode(m_State))
   {
@@ -3744,7 +3751,8 @@ void WrappedOpenGL::glClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalf
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearNamedBufferSubDataEXT(buffer, internalformat, offset, size, format, type, data);
+  SERIALISE_TIME_CALL(m_Real.glClearNamedBufferSubDataEXT(buffer, internalformat, offset, size,
+                                                          format, type, data));
 
   if(IsActiveCapturing(m_State))
   {
@@ -3777,7 +3785,8 @@ void WrappedOpenGL::glClearBufferSubData(GLenum target, GLenum internalformat, G
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearBufferSubData(target, internalformat, offset, size, format, type, data);
+  SERIALISE_TIME_CALL(
+      m_Real.glClearBufferSubData(target, internalformat, offset, size, format, type, data));
 
   if(IsCaptureMode(m_State))
   {
@@ -3944,7 +3953,7 @@ void WrappedOpenGL::glClear(GLbitfield mask)
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClear(mask);
+  SERIALISE_TIME_CALL(m_Real.glClear(mask));
 
   if(IsActiveCapturing(m_State))
   {
@@ -4043,7 +4052,7 @@ void WrappedOpenGL::glClearTexImage(GLuint texture, GLint level, GLenum format, 
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearTexImage(texture, level, format, type, data);
+  SERIALISE_TIME_CALL(m_Real.glClearTexImage(texture, level, format, type, data));
 
   if(IsActiveCapturing(m_State))
   {
@@ -4158,8 +4167,8 @@ void WrappedOpenGL::glClearTexSubImage(GLuint texture, GLint level, GLint xoffse
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glClearTexSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, format,
-                            type, data);
+  SERIALISE_TIME_CALL(m_Real.glClearTexSubImage(texture, level, xoffset, yoffset, zoffset, width,
+                                                height, depth, format, type, data));
 
   if(IsActiveCapturing(m_State))
   {

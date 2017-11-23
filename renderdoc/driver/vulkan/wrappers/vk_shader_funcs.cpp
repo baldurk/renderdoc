@@ -155,8 +155,9 @@ VkResult WrappedVulkan::vkCreatePipelineLayout(VkDevice device,
                                                VkPipelineLayout *pPipelineLayout)
 {
   VkPipelineLayoutCreateInfo unwrapped = UnwrapInfo(pCreateInfo);
-  VkResult ret =
-      ObjDisp(device)->CreatePipelineLayout(Unwrap(device), &unwrapped, pAllocator, pPipelineLayout);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreatePipelineLayout(Unwrap(device), &unwrapped,
+                                                                  pAllocator, pPipelineLayout));
 
   if(ret == VK_SUCCESS)
   {
@@ -255,8 +256,9 @@ VkResult WrappedVulkan::vkCreateShaderModule(VkDevice device,
                                              const VkAllocationCallbacks *pAllocator,
                                              VkShaderModule *pShaderModule)
 {
-  VkResult ret =
-      ObjDisp(device)->CreateShaderModule(Unwrap(device), pCreateInfo, pAllocator, pShaderModule);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateShaderModule(Unwrap(device), pCreateInfo,
+                                                                pAllocator, pShaderModule));
 
   if(ret == VK_SUCCESS)
   {
@@ -345,8 +347,9 @@ VkResult WrappedVulkan::vkCreatePipelineCache(VkDevice device,
         "incompatibility with previous caches");
   }
 
-  VkResult ret =
-      ObjDisp(device)->CreatePipelineCache(Unwrap(device), &createInfo, pAllocator, pPipelineCache);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreatePipelineCache(Unwrap(device), &createInfo,
+                                                                 pAllocator, pPipelineCache));
 
   if(ret == VK_SUCCESS)
   {
@@ -472,8 +475,10 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
                                                   VkPipeline *pPipelines)
 {
   VkGraphicsPipelineCreateInfo *unwrapped = UnwrapInfos(pCreateInfos, count);
-  VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache),
-                                                          count, unwrapped, pAllocator, pPipelines);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), count,
+                                                     unwrapped, pAllocator, pPipelines));
 
   if(ret == VK_SUCCESS)
   {
@@ -628,9 +633,10 @@ VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCach
                                                  const VkAllocationCallbacks *pAllocator,
                                                  VkPipeline *pPipelines)
 {
-  VkResult ret = ObjDisp(device)->CreateComputePipelines(Unwrap(device), Unwrap(pipelineCache),
-                                                         count, UnwrapInfos(pCreateInfos, count),
-                                                         pAllocator, pPipelines);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateComputePipelines(
+                          Unwrap(device), Unwrap(pipelineCache), count,
+                          UnwrapInfos(pCreateInfos, count), pAllocator, pPipelines));
 
   if(ret == VK_SUCCESS)
   {

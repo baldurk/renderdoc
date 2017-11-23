@@ -355,6 +355,11 @@ void WrappedID3D12Resource::FreeShadow()
   }
 }
 
+WriteSerialiser &WrappedID3D12Resource::GetThreadSerialiser()
+{
+  return m_pDevice->GetThreadSerialiser();
+}
+
 HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::Map(UINT Subresource,
                                                      const D3D12_RANGE *pReadRange, void **ppData)
 {
@@ -423,6 +428,11 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::WriteToSubresource(UINT DstSubr
                                                                     UINT SrcRowPitch,
                                                                     UINT SrcDepthPitch)
 {
+  HRESULT ret;
+
+  SERIALISE_TIME_CALL(ret = m_pReal->WriteToSubresource(DstSubresource, pDstBox, pSrcData,
+                                                        SrcRowPitch, SrcDepthPitch));
+
   if(GetResourceRecord())
   {
     vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
@@ -438,7 +448,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::WriteToSubresource(UINT DstSubr
     }
   }
 
-  return m_pReal->WriteToSubresource(DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch);
+  return ret;
 }
 
 void WrappedID3D12Resource::RefBuffers(D3D12ResourceManager *rm)

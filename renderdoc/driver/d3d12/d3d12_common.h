@@ -303,6 +303,17 @@ struct D3D12CommandSignature
   template bool parent::CONCAT(Serialise_, func(ReadSerialiser &ser, __VA_ARGS__)); \
   template bool parent::CONCAT(Serialise_, func(WriteSerialiser &ser, __VA_ARGS__));
 
+#define CACHE_THREAD_SERIALISER() WriteSerialiser &ser = GetThreadSerialiser();
+
+#define SERIALISE_TIME_CALL(...)                                                          \
+  {                                                                                       \
+    WriteSerialiser &ser = GetThreadSerialiser();                                         \
+    ser.ChunkMetadata().timestampMicro = RenderDoc::Inst().GetMicrosecondTimestamp();     \
+    __VA_ARGS__;                                                                          \
+    ser.ChunkMetadata().durationMicro =                                                   \
+        RenderDoc::Inst().GetMicrosecondTimestamp() - ser.ChunkMetadata().timestampMicro; \
+  }
+
 // A handy macros to say "is the serialiser reading and we're doing replay-mode stuff?"
 // The reason we check both is that checking the first allows the compiler to eliminate the other
 // path at compile-time, and the second because we might be just struct-serialising in which case we

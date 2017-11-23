@@ -78,7 +78,8 @@ bool WrappedOpenGL::Serialise_glFenceSync(SerialiserType &ser, GLsync real, GLen
 
 GLsync WrappedOpenGL::glFenceSync(GLenum condition, GLbitfield flags)
 {
-  GLsync sync = m_Real.glFenceSync(condition, flags);
+  GLsync sync;
+  SERIALISE_TIME_CALL(sync = m_Real.glFenceSync(condition, flags));
 
   GLuint name = 0;
   ResourceId id = ResourceId();
@@ -128,7 +129,8 @@ bool WrappedOpenGL::Serialise_glClientWaitSync(SerialiserType &ser, GLsync sync_
 
 GLenum WrappedOpenGL::glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
-  GLenum ret = m_Real.glClientWaitSync(sync, flags, timeout);
+  GLenum ret;
+  SERIALISE_TIME_CALL(ret = m_Real.glClientWaitSync(sync, flags, timeout));
 
   if(IsActiveCapturing(m_State))
   {
@@ -163,7 +165,7 @@ bool WrappedOpenGL::Serialise_glWaitSync(SerialiserType &ser, GLsync sync_, GLbi
 
 void WrappedOpenGL::glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
-  m_Real.glWaitSync(sync, flags, timeout);
+  SERIALISE_TIME_CALL(m_Real.glWaitSync(sync, flags, timeout));
 
   if(IsActiveCapturing(m_State))
   {
@@ -210,7 +212,7 @@ bool WrappedOpenGL::Serialise_glGenQueries(SerialiserType &ser, GLsizei n, GLuin
 
 void WrappedOpenGL::glGenQueries(GLsizei count, GLuint *ids)
 {
-  m_Real.glGenQueries(count, ids);
+  SERIALISE_TIME_CALL(m_Real.glGenQueries(count, ids));
 
   for(GLsizei i = 0; i < count; i++)
   {
@@ -268,7 +270,7 @@ bool WrappedOpenGL::Serialise_glCreateQueries(SerialiserType &ser, GLenum target
 
 void WrappedOpenGL::glCreateQueries(GLenum target, GLsizei count, GLuint *ids)
 {
-  m_Real.glCreateQueries(target, count, ids);
+  SERIALISE_TIME_CALL(m_Real.glCreateQueries(target, count, ids));
 
   for(GLsizei i = 0; i < count; i++)
   {
@@ -322,7 +324,7 @@ bool WrappedOpenGL::Serialise_glBeginQuery(SerialiserType &ser, GLenum target, G
 
 void WrappedOpenGL::glBeginQuery(GLenum target, GLuint id)
 {
-  m_Real.glBeginQuery(target, id);
+  SERIALISE_TIME_CALL(m_Real.glBeginQuery(target, id));
   if(m_ActiveQueries[QueryIdx(target)][0])
     RDCLOG("Query already active %s", ToStr(target).c_str());
   m_ActiveQueries[QueryIdx(target)][0] = true;
@@ -359,7 +361,7 @@ bool WrappedOpenGL::Serialise_glBeginQueryIndexed(SerialiserType &ser, GLenum ta
 
 void WrappedOpenGL::glBeginQueryIndexed(GLenum target, GLuint index, GLuint id)
 {
-  m_Real.glBeginQueryIndexed(target, index, id);
+  SERIALISE_TIME_CALL(m_Real.glBeginQueryIndexed(target, index, id));
   m_ActiveQueries[QueryIdx(target)][index] = true;
 
   if(IsActiveCapturing(m_State))
@@ -395,7 +397,7 @@ bool WrappedOpenGL::Serialise_glEndQuery(SerialiserType &ser, GLenum target)
 
 void WrappedOpenGL::glEndQuery(GLenum target)
 {
-  m_Real.glEndQuery(target);
+  SERIALISE_TIME_CALL(m_Real.glEndQuery(target));
   m_ActiveQueries[QueryIdx(target)][0] = false;
 
   if(IsActiveCapturing(m_State))
@@ -427,7 +429,7 @@ bool WrappedOpenGL::Serialise_glEndQueryIndexed(SerialiserType &ser, GLenum targ
 
 void WrappedOpenGL::glEndQueryIndexed(GLenum target, GLuint index)
 {
-  m_Real.glEndQueryIndexed(target, index);
+  SERIALISE_TIME_CALL(m_Real.glEndQueryIndexed(target, index));
   m_ActiveQueries[QueryIdx(target)][index] = false;
 
   if(IsActiveCapturing(m_State))
@@ -459,7 +461,7 @@ bool WrappedOpenGL::Serialise_glBeginConditionalRender(SerialiserType &ser, GLui
 
 void WrappedOpenGL::glBeginConditionalRender(GLuint id, GLenum mode)
 {
-  m_Real.glBeginConditionalRender(id, mode);
+  SERIALISE_TIME_CALL(m_Real.glBeginConditionalRender(id, mode));
 
   m_ActiveConditional = true;
 
@@ -488,7 +490,7 @@ bool WrappedOpenGL::Serialise_glEndConditionalRender(SerialiserType &ser)
 
 void WrappedOpenGL::glEndConditionalRender()
 {
-  m_Real.glEndConditionalRender();
+  SERIALISE_TIME_CALL(m_Real.glEndConditionalRender());
   m_ActiveConditional = false;
 
   if(IsActiveCapturing(m_State))
@@ -517,7 +519,7 @@ bool WrappedOpenGL::Serialise_glQueryCounter(SerialiserType &ser, GLuint query_,
 
 void WrappedOpenGL::glQueryCounter(GLuint query, GLenum target)
 {
-  m_Real.glQueryCounter(query, target);
+  SERIALISE_TIME_CALL(m_Real.glQueryCounter(query, target));
 
   if(IsActiveCapturing(m_State))
   {

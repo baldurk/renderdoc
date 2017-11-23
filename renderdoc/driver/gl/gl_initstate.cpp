@@ -466,6 +466,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   {
     WriteSerialiser ser(new StreamWriter(4 * 1024), Ownership::Stream);
 
+    ser.SetChunkMetadataRecording(m_GL->GetSerialiser().GetChunkMetadataRecording());
+
     SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents);
 
     SERIALISE_ELEMENT(Id);

@@ -61,7 +61,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   m_SectionVersion = D3D11InitParams::CurrentVersion;
 
-  uint32_t flags = 0;
+  uint32_t flags = WriteSerialiser::ChunkDuration | WriteSerialiser::ChunkTimestamp |
+                   WriteSerialiser::ChunkThreadID;
 
   if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
     flags |= WriteSerialiser::ChunkCallstack;
@@ -148,6 +149,9 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
     realDevice->GetImmediateContext(&context);
 
   m_pImmediateContext = new WrappedID3D11DeviceContext(this, context);
+
+  m_pImmediateContext->GetScratchSerialiser().SetChunkMetadataRecording(
+      m_ScratchSerialiser.GetChunkMetadataRecording());
 
   m_pInfoQueue = NULL;
   if(realDevice)
@@ -1663,6 +1667,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
     {
       WriteSerialiser ser(captureWriter, Ownership::Stream);
+
+      ser.SetChunkMetadataRecording(m_ScratchSerialiser.GetChunkMetadataRecording());
 
       ser.SetUserData(GetResourceManager());
 

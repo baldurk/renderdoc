@@ -138,23 +138,11 @@ ULONG STDMETHODCALLTYPE WrappedID3D12DebugCommandList::Release()
 
 WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
                                                      WrappedID3D12Device *device, CaptureState &state)
-    : RefCounter12(real),
-      m_pDevice(device),
-      m_State(state),
-      m_ScratchSerialiser(new StreamWriter(1024), Ownership::Stream)
+    : RefCounter12(real), m_pDevice(device), m_State(state)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this,
                                                               sizeof(WrappedID3D12CommandQueue));
-
-  uint32_t flags = 0;
-
-  if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
-    flags |= WriteSerialiser::ChunkCallstack;
-
-  m_ScratchSerialiser.SetChunkMetadataRecording(flags);
-
-  m_ScratchSerialiser.SetUserData(GetResourceManager());
 
   if(m_pReal)
     m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_WrappedDebug.m_pReal);
@@ -248,6 +236,11 @@ void WrappedID3D12CommandQueue::ClearAfterCapture()
   m_CmdListRecords.clear();
 
   m_QueueRecord->DeleteChunks();
+}
+
+WriteSerialiser &WrappedID3D12CommandQueue::GetThreadSerialiser()
+{
+  return m_pDevice->GetThreadSerialiser();
 }
 
 std::string WrappedID3D12CommandQueue::GetChunkName(uint32_t idx)
@@ -787,6 +780,11 @@ bool WrappedID3D12GraphicsCommandList::ValidateRootGPUVA(D3D12_GPU_VIRTUAL_ADDRE
   }
 
   return false;
+}
+
+WriteSerialiser &WrappedID3D12GraphicsCommandList::GetThreadSerialiser()
+{
+  return m_pDevice->GetThreadSerialiser();
 }
 
 std::string WrappedID3D12GraphicsCommandList::GetChunkName(uint32_t idx)

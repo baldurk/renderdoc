@@ -112,6 +112,7 @@ public:
   bool IsErrored() { return IsReading() ? m_Read->IsErrored() : m_Write->IsErrored(); }
   StreamWriter *GetWriter() { return m_Write; }
   StreamReader *GetReader() { return m_Read; }
+  uint32_t GetChunkMetadataRecording() { return m_ChunkFlags; }
   void SetChunkMetadataRecording(uint32_t flags);
 
   SDChunkMetaData &ChunkMetadata() { return m_ChunkMetadata; }

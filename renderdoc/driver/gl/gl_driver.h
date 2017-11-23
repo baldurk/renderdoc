@@ -536,6 +536,7 @@ public:
   ResourceId GetContextResourceID() { return m_ContextResourceID; }
   CaptureState GetState() { return m_State; }
   GLReplay *GetReplay() { return &m_Replay; }
+  WriteSerialiser &GetSerialiser() { return m_ScratchSerialiser; }
   void SetDriverType(RDCDriver type) { m_DriverType = type; }
   bool isGLESMode() { return m_DriverType == RDC_OpenGLES; }
   RDCDriver GetDriverType() { return m_DriverType; }

@@ -249,6 +249,13 @@ public:
 
 #define USE_SCRATCH_SERIALISER() WriteSerialiser &ser = m_ScratchSerialiser;
 
+#define SERIALISE_TIME_CALL(...)                                                                    \
+  m_ScratchSerialiser.ChunkMetadata().timestampMicro = RenderDoc::Inst().GetMicrosecondTimestamp(); \
+  __VA_ARGS__;                                                                                      \
+  m_ScratchSerialiser.ChunkMetadata().durationMicro =                                               \
+      RenderDoc::Inst().GetMicrosecondTimestamp() -                                                 \
+      m_ScratchSerialiser.ChunkMetadata().timestampMicro;
+
 // A handy macros to say "is the serialiser reading and we're doing replay-mode stuff?"
 // The reason we check both is that checking the first allows the compiler to eliminate the other
 // path at compile-time, and the second because we might be just struct-serialising in which case we

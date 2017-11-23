@@ -82,13 +82,6 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this,
                                                               sizeof(WrappedID3D11DeviceContext));
 
-  uint32_t flags = 0;
-
-  if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
-    flags |= WriteSerialiser::ChunkCallstack;
-
-  m_ScratchSerialiser.SetChunkMetadataRecording(flags);
-
   for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
   {
     NullCBOffsets[i] = 0;
@@ -998,6 +991,9 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
 
 void WrappedID3D11DeviceContext::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
 {
+  if(m_CurEventID == 0)
+    return;
+
   DrawcallDescription draw = d;
 
   m_AddedDrawcall = true;
@@ -1052,6 +1048,9 @@ void WrappedID3D11DeviceContext::AddDrawcall(const DrawcallDescription &d, bool 
 
 void WrappedID3D11DeviceContext::AddEvent()
 {
+  if(m_CurEventID == 0)
+    return;
+
   APIEvent apievent;
 
   apievent.fileOffset = m_CurChunkOffset;

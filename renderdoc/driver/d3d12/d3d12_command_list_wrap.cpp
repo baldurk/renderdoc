@@ -27,8 +27,6 @@
 #include "driver/ihv/amd/official/DXExt/AmdExtD3DCommandListMarkerApi.h"
 #include "d3d12_command_queue.h"
 
-#define CACHE_THREAD_SERIALISER() WriteSerialiser &ser = m_pDevice->GetThreadSerialiser();
-
 ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetCrackedList()
 {
   return Unwrap(m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].crackedLists.back());
@@ -130,6 +128,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
 
 HRESULT WrappedID3D12GraphicsCommandList::Close()
 {
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pReal->Close());
+
   if(IsCaptureMode(m_State))
   {
     {
@@ -144,7 +145,7 @@ HRESULT WrappedID3D12GraphicsCommandList::Close()
     m_ListRecord->Bake();
   }
 
-  return m_pReal->Close();
+  return ret;
 }
 
 template <typename SerialiserType>
@@ -337,6 +338,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
 HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocator,
                                                 ID3D12PipelineState *pInitialState)
 {
+  HRESULT ret = S_OK;
+  ;
+
   if(IsCaptureMode(m_State))
   {
     bool firstTime = false;
@@ -346,11 +350,16 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
     m_ListRecord->ContainsExecuteIndirect = false;
 
     // free any baked commands. If we don't have any, this is the creation reset
-    // so we return before actually doing the 'real' reset.
+    // so we don't actually do the 'real' reset.
     if(m_ListRecord->bakedCommands)
       m_ListRecord->bakedCommands->Delete(GetResourceManager());
     else
       firstTime = true;
+
+    if(!firstTime)
+    {
+      SERIALISE_TIME_CALL(ret = m_pReal->Reset(Unwrap(pAllocator), Unwrap(pInitialState)));
+    }
 
     m_ListRecord->bakedCommands =
         GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
@@ -377,8 +386,12 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
     if(firstTime)
       return S_OK;
   }
+  else
+  {
+    ret = m_pReal->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
+  }
 
-  return m_pReal->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
+  return ret;
 }
 
 void WrappedID3D12GraphicsCommandList::ClearState(ID3D12PipelineState *pPipelineState)
@@ -494,7 +507,7 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
     }
   }
 
-  m_pReal->ResourceBarrier(NumBarriers, barriers);
+  SERIALISE_TIME_CALL(m_pReal->ResourceBarrier(NumBarriers, barriers));
 
   if(IsCaptureMode(m_State))
   {
@@ -549,7 +562,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetPrimitiveTopology(
 
 void WrappedID3D12GraphicsCommandList::IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology)
 {
-  m_pReal->IASetPrimitiveTopology(PrimitiveTopology);
+  SERIALISE_TIME_CALL(m_pReal->IASetPrimitiveTopology(PrimitiveTopology));
 
   if(IsCaptureMode(m_State))
   {
@@ -611,7 +624,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetViewports(SerialiserType &
 void WrappedID3D12GraphicsCommandList::RSSetViewports(UINT NumViewports,
                                                       const D3D12_VIEWPORT *pViewports)
 {
-  m_pReal->RSSetViewports(NumViewports, pViewports);
+  SERIALISE_TIME_CALL(m_pReal->RSSetViewports(NumViewports, pViewports));
 
   if(IsCaptureMode(m_State))
   {
@@ -671,7 +684,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetScissorRects(SerialiserTyp
 
 void WrappedID3D12GraphicsCommandList::RSSetScissorRects(UINT NumRects, const D3D12_RECT *pRects)
 {
-  m_pReal->RSSetScissorRects(NumRects, pRects);
+  SERIALISE_TIME_CALL(m_pReal->RSSetScissorRects(NumRects, pRects));
 
   if(IsCaptureMode(m_State))
   {
@@ -722,7 +735,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetBlendFactor(SerialiserType
 
 void WrappedID3D12GraphicsCommandList::OMSetBlendFactor(const FLOAT BlendFactor[4])
 {
-  m_pReal->OMSetBlendFactor(BlendFactor);
+  SERIALISE_TIME_CALL(m_pReal->OMSetBlendFactor(BlendFactor));
 
   if(IsCaptureMode(m_State))
   {
@@ -771,7 +784,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetStencilRef(SerialiserType 
 
 void WrappedID3D12GraphicsCommandList::OMSetStencilRef(UINT StencilRef)
 {
-  m_pReal->OMSetStencilRef(StencilRef);
+  SERIALISE_TIME_CALL(m_pReal->OMSetStencilRef(StencilRef));
 
   if(IsCaptureMode(m_State))
   {
@@ -843,7 +856,7 @@ void WrappedID3D12GraphicsCommandList::SetDescriptorHeaps(UINT NumDescriptorHeap
   for(UINT i = 0; i < NumDescriptorHeaps; i++)
     heaps[i] = Unwrap(ppDescriptorHeaps[i]);
 
-  m_pReal->SetDescriptorHeaps(NumDescriptorHeaps, heaps);
+  SERIALISE_TIME_CALL(m_pReal->SetDescriptorHeaps(NumDescriptorHeaps, heaps));
 
   if(IsCaptureMode(m_State))
   {
@@ -926,7 +939,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(SerialiserType
 
 void WrappedID3D12GraphicsCommandList::IASetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *pView)
 {
-  m_pReal->IASetIndexBuffer(pView);
+  SERIALISE_TIME_CALL(m_pReal->IASetIndexBuffer(pView));
 
   if(IsCaptureMode(m_State))
   {
@@ -1006,7 +1019,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
 void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT NumViews,
                                                           const D3D12_VERTEX_BUFFER_VIEW *pViews)
 {
-  m_pReal->IASetVertexBuffers(StartSlot, NumViews, pViews);
+  SERIALISE_TIME_CALL(m_pReal->IASetVertexBuffers(StartSlot, NumViews, pViews));
 
   if(IsCaptureMode(m_State))
   {
@@ -1089,7 +1102,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SOSetTargets(
 void WrappedID3D12GraphicsCommandList::SOSetTargets(UINT StartSlot, UINT NumViews,
                                                     const D3D12_STREAM_OUTPUT_BUFFER_VIEW *pViews)
 {
-  m_pReal->SOSetTargets(StartSlot, NumViews, pViews);
+  SERIALISE_TIME_CALL(m_pReal->SOSetTargets(StartSlot, NumViews, pViews));
 
   if(IsCaptureMode(m_State))
   {
@@ -1142,7 +1155,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState(SerialiserType
 
 void WrappedID3D12GraphicsCommandList::SetPipelineState(ID3D12PipelineState *pPipelineState)
 {
-  m_pReal->SetPipelineState(Unwrap(pPipelineState));
+  SERIALISE_TIME_CALL(m_pReal->SetPipelineState(Unwrap(pPipelineState)));
 
   if(IsCaptureMode(m_State))
   {
@@ -1249,8 +1262,8 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
   D3D12_CPU_DESCRIPTOR_HANDLE dsv =
       pDepthStencilDescriptor ? Unwrap(*pDepthStencilDescriptor) : D3D12_CPU_DESCRIPTOR_HANDLE();
 
-  m_pReal->OMSetRenderTargets(num, unwrapped, RTsSingleHandleToDescriptorRange,
-                              pDepthStencilDescriptor ? &dsv : NULL);
+  SERIALISE_TIME_CALL(m_pReal->OMSetRenderTargets(num, unwrapped, RTsSingleHandleToDescriptorRange,
+                                                  pDepthStencilDescriptor ? &dsv : NULL));
 
   if(IsCaptureMode(m_State))
   {
@@ -1332,7 +1345,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootSignature(
 
 void WrappedID3D12GraphicsCommandList::SetComputeRootSignature(ID3D12RootSignature *pRootSignature)
 {
-  m_pReal->SetComputeRootSignature(Unwrap(pRootSignature));
+  SERIALISE_TIME_CALL(m_pReal->SetComputeRootSignature(Unwrap(pRootSignature)));
 
   if(IsCaptureMode(m_State))
   {
@@ -1402,7 +1415,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootDescriptorTable(
 void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
     UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
 {
-  m_pReal->SetComputeRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor));
+  SERIALISE_TIME_CALL(
+      m_pReal->SetComputeRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor)));
 
   if(IsCaptureMode(m_State))
   {
@@ -1507,7 +1521,8 @@ void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstant(UINT RootPara
                                                                    UINT SrcData,
                                                                    UINT DestOffsetIn32BitValues)
 {
-  m_pReal->SetComputeRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
+  SERIALISE_TIME_CALL(
+      m_pReal->SetComputeRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues));
 
   if(IsCaptureMode(m_State))
   {
@@ -1580,8 +1595,8 @@ void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstants(UINT RootPar
                                                                     const void *pSrcData,
                                                                     UINT DestOffsetIn32BitValues)
 {
-  m_pReal->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData,
-                                        DestOffsetIn32BitValues);
+  SERIALISE_TIME_CALL(m_pReal->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet,
+                                                            pSrcData, DestOffsetIn32BitValues));
 
   if(IsCaptureMode(m_State))
   {
@@ -1653,7 +1668,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootConstantBufferVie
 void WrappedID3D12GraphicsCommandList::SetComputeRootConstantBufferView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetComputeRootConstantBufferView(RootParameterIndex, BufferLocation);
+  SERIALISE_TIME_CALL(m_pReal->SetComputeRootConstantBufferView(RootParameterIndex, BufferLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -1729,7 +1744,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootShaderResourceVie
 void WrappedID3D12GraphicsCommandList::SetComputeRootShaderResourceView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetComputeRootShaderResourceView(RootParameterIndex, BufferLocation);
+  SERIALISE_TIME_CALL(m_pReal->SetComputeRootShaderResourceView(RootParameterIndex, BufferLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -1805,7 +1820,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootUnorderedAccessVi
 void WrappedID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetComputeRootUnorderedAccessView(RootParameterIndex, BufferLocation);
+  SERIALISE_TIME_CALL(m_pReal->SetComputeRootUnorderedAccessView(RootParameterIndex, BufferLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -1878,7 +1893,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
 
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootSignature(ID3D12RootSignature *pRootSignature)
 {
-  m_pReal->SetGraphicsRootSignature(Unwrap(pRootSignature));
+  SERIALISE_TIME_CALL(m_pReal->SetGraphicsRootSignature(Unwrap(pRootSignature)));
 
   if(IsCaptureMode(m_State))
   {
@@ -1948,7 +1963,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootDescriptorTable(
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
     UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
 {
-  m_pReal->SetGraphicsRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor));
+  SERIALISE_TIME_CALL(
+      m_pReal->SetGraphicsRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor)));
 
   if(IsCaptureMode(m_State))
   {
@@ -2053,7 +2069,8 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstant(UINT RootPar
                                                                     UINT SrcData,
                                                                     UINT DestOffsetIn32BitValues)
 {
-  m_pReal->SetGraphicsRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
+  SERIALISE_TIME_CALL(
+      m_pReal->SetGraphicsRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues));
 
   if(IsCaptureMode(m_State))
   {
@@ -2126,8 +2143,8 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstants(UINT RootPa
                                                                      const void *pSrcData,
                                                                      UINT DestOffsetIn32BitValues)
 {
-  m_pReal->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData,
-                                         DestOffsetIn32BitValues);
+  SERIALISE_TIME_CALL(m_pReal->SetGraphicsRoot32BitConstants(
+      RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues));
 
   if(IsCaptureMode(m_State))
   {
@@ -2199,7 +2216,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferVi
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetGraphicsRootConstantBufferView(RootParameterIndex, BufferLocation);
+  SERIALISE_TIME_CALL(m_pReal->SetGraphicsRootConstantBufferView(RootParameterIndex, BufferLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -2275,7 +2292,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootShaderResourceVi
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootShaderResourceView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetGraphicsRootShaderResourceView(RootParameterIndex, BufferLocation);
+  SERIALISE_TIME_CALL(m_pReal->SetGraphicsRootShaderResourceView(RootParameterIndex, BufferLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -2351,7 +2368,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootUnorderedAccessV
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
-  m_pReal->SetGraphicsRootUnorderedAccessView(RootParameterIndex, BufferLocation);
+  SERIALISE_TIME_CALL(m_pReal->SetGraphicsRootUnorderedAccessView(RootParameterIndex, BufferLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -2407,7 +2424,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginQuery(SerialiserType &ser,
 void WrappedID3D12GraphicsCommandList::BeginQuery(ID3D12QueryHeap *pQueryHeap,
                                                   D3D12_QUERY_TYPE Type, UINT Index)
 {
-  m_pReal->BeginQuery(Unwrap(pQueryHeap), Type, Index);
+  SERIALISE_TIME_CALL(m_pReal->BeginQuery(Unwrap(pQueryHeap), Type, Index));
 
   if(IsCaptureMode(m_State))
   {
@@ -2456,7 +2473,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndQuery(SerialiserType &ser,
 void WrappedID3D12GraphicsCommandList::EndQuery(ID3D12QueryHeap *pQueryHeap, D3D12_QUERY_TYPE Type,
                                                 UINT Index)
 {
-  m_pReal->EndQuery(Unwrap(pQueryHeap), Type, Index);
+  SERIALISE_TIME_CALL(m_pReal->EndQuery(Unwrap(pQueryHeap), Type, Index));
 
   if(IsCaptureMode(m_State))
   {
@@ -2512,8 +2529,9 @@ void WrappedID3D12GraphicsCommandList::ResolveQueryData(ID3D12QueryHeap *pQueryH
                                                         ID3D12Resource *pDestinationBuffer,
                                                         UINT64 AlignedDestinationBufferOffset)
 {
-  m_pReal->ResolveQueryData(Unwrap(pQueryHeap), Type, StartIndex, NumQueries,
-                            Unwrap(pDestinationBuffer), AlignedDestinationBufferOffset);
+  SERIALISE_TIME_CALL(m_pReal->ResolveQueryData(Unwrap(pQueryHeap), Type, StartIndex, NumQueries,
+                                                Unwrap(pDestinationBuffer),
+                                                AlignedDestinationBufferOffset));
 
   if(IsCaptureMode(m_State))
   {
@@ -2557,7 +2575,7 @@ void WrappedID3D12GraphicsCommandList::SetPredication(ID3D12Resource *pBuffer,
                                                       UINT64 AlignedBufferOffset,
                                                       D3D12_PREDICATION_OP Operation)
 {
-  m_pReal->SetPredication(Unwrap(pBuffer), AlignedBufferOffset, Operation);
+  SERIALISE_TIME_CALL(m_pReal->SetPredication(Unwrap(pBuffer), AlignedBufferOffset, Operation));
 
   if(IsCaptureMode(m_State))
   {
@@ -2805,7 +2823,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(SerialiserType &ser, 
 
 void WrappedID3D12GraphicsCommandList::SetMarker(UINT Metadata, const void *pData, UINT Size)
 {
-  m_pReal->SetMarker(Metadata, pData, Size);
+  SERIALISE_TIME_CALL(m_pReal->SetMarker(Metadata, pData, Size));
 
   if(m_AMDMarkers && Metadata == PIX_EVENT_UNICODE_VERSION)
     m_AMDMarkers->SetMarker(StringFormat::Wide2UTF8((const wchar_t *)pData).c_str());
@@ -2889,7 +2907,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser,
 
 void WrappedID3D12GraphicsCommandList::BeginEvent(UINT Metadata, const void *pData, UINT Size)
 {
-  m_pReal->BeginEvent(Metadata, pData, Size);
+  SERIALISE_TIME_CALL(m_pReal->BeginEvent(Metadata, pData, Size));
 
   if(m_AMDMarkers && Metadata == PIX_EVENT_UNICODE_VERSION)
     m_AMDMarkers->PushMarker(StringFormat::Wide2UTF8((const wchar_t *)pData).c_str());
@@ -2959,7 +2977,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent(SerialiserType &ser)
 
 void WrappedID3D12GraphicsCommandList::EndEvent()
 {
-  m_pReal->EndEvent();
+  SERIALISE_TIME_CALL(m_pReal->EndEvent());
 
   if(m_AMDMarkers)
     m_AMDMarkers->PopMarker();
@@ -3050,8 +3068,8 @@ void WrappedID3D12GraphicsCommandList::DrawInstanced(UINT VertexCountPerInstance
                                                      UINT InstanceCount, UINT StartVertexLocation,
                                                      UINT StartInstanceLocation)
 {
-  m_pReal->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation,
-                         StartInstanceLocation);
+  SERIALISE_TIME_CALL(m_pReal->DrawInstanced(VertexCountPerInstance, InstanceCount,
+                                             StartVertexLocation, StartInstanceLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -3138,8 +3156,9 @@ void WrappedID3D12GraphicsCommandList::DrawIndexedInstanced(UINT IndexCountPerIn
                                                             INT BaseVertexLocation,
                                                             UINT StartInstanceLocation)
 {
-  m_pReal->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation,
-                                BaseVertexLocation, StartInstanceLocation);
+  SERIALISE_TIME_CALL(m_pReal->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount,
+                                                    StartIndexLocation, BaseVertexLocation,
+                                                    StartInstanceLocation));
 
   if(IsCaptureMode(m_State))
   {
@@ -3214,7 +3233,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(SerialiserType &ser, U
 void WrappedID3D12GraphicsCommandList::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY,
                                                 UINT ThreadGroupCountZ)
 {
-  m_pReal->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+  SERIALISE_TIME_CALL(m_pReal->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ));
 
   if(IsCaptureMode(m_State))
   {
@@ -3281,7 +3300,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &s
 
 void WrappedID3D12GraphicsCommandList::ExecuteBundle(ID3D12GraphicsCommandList *pCommandList)
 {
-  m_pReal->ExecuteBundle(Unwrap(pCommandList));
+  SERIALISE_TIME_CALL(m_pReal->ExecuteBundle(Unwrap(pCommandList)));
 
   if(IsCaptureMode(m_State))
   {
@@ -4123,9 +4142,9 @@ void WrappedID3D12GraphicsCommandList::ExecuteIndirect(ID3D12CommandSignature *p
                                                        ID3D12Resource *pCountBuffer,
                                                        UINT64 CountBufferOffset)
 {
-  m_pReal->ExecuteIndirect(Unwrap(pCommandSignature), MaxCommandCount, Unwrap(pArgumentBuffer),
-                           ArgumentBufferOffset, Unwrap(pCountBuffer), CountBufferOffset);
-
+  SERIALISE_TIME_CALL(m_pReal->ExecuteIndirect(Unwrap(pCommandSignature), MaxCommandCount,
+                                               Unwrap(pArgumentBuffer), ArgumentBufferOffset,
+                                               Unwrap(pCountBuffer), CountBufferOffset));
   if(IsCaptureMode(m_State))
   {
     CACHE_THREAD_SERIALISER();
@@ -4214,8 +4233,8 @@ void WrappedID3D12GraphicsCommandList::ClearDepthStencilView(
     D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth,
     UINT8 Stencil, UINT NumRects, const D3D12_RECT *pRects)
 {
-  m_pReal->ClearDepthStencilView(Unwrap(DepthStencilView), ClearFlags, Depth, Stencil, NumRects,
-                                 pRects);
+  SERIALISE_TIME_CALL(m_pReal->ClearDepthStencilView(Unwrap(DepthStencilView), ClearFlags, Depth,
+                                                     Stencil, NumRects, pRects));
 
   if(IsCaptureMode(m_State))
   {
@@ -4296,7 +4315,8 @@ void WrappedID3D12GraphicsCommandList::ClearRenderTargetView(
     D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetView, const FLOAT ColorRGBA[4], UINT NumRects,
     const D3D12_RECT *pRects)
 {
-  m_pReal->ClearRenderTargetView(Unwrap(RenderTargetView), ColorRGBA, NumRects, pRects);
+  SERIALISE_TIME_CALL(
+      m_pReal->ClearRenderTargetView(Unwrap(RenderTargetView), ColorRGBA, NumRects, pRects));
 
   if(IsCaptureMode(m_State))
   {
@@ -4380,8 +4400,9 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewUint(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const UINT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
-  m_pReal->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap), Unwrap(ViewCPUHandle),
-                                        Unwrap(pResource), Values, NumRects, pRects);
+  SERIALISE_TIME_CALL(m_pReal->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap),
+                                                            Unwrap(ViewCPUHandle), Unwrap(pResource),
+                                                            Values, NumRects, pRects));
 
   if(IsCaptureMode(m_State))
   {
@@ -4472,8 +4493,9 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const FLOAT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
-  m_pReal->ClearUnorderedAccessViewFloat(Unwrap(ViewGPUHandleInCurrentHeap), Unwrap(ViewCPUHandle),
-                                         Unwrap(pResource), Values, NumRects, pRects);
+  SERIALISE_TIME_CALL(m_pReal->ClearUnorderedAccessViewFloat(
+      Unwrap(ViewGPUHandleInCurrentHeap), Unwrap(ViewCPUHandle), Unwrap(pResource), Values,
+      NumRects, pRects));
 
   if(IsCaptureMode(m_State))
   {
@@ -4537,7 +4559,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(SerialiserType 
 void WrappedID3D12GraphicsCommandList::DiscardResource(ID3D12Resource *pResource,
                                                        const D3D12_DISCARD_REGION *pRegion)
 {
-  m_pReal->DiscardResource(Unwrap(pResource), pRegion);
+  SERIALISE_TIME_CALL(m_pReal->DiscardResource(Unwrap(pResource), pRegion));
 
   if(IsCaptureMode(m_State))
   {
@@ -4630,7 +4652,8 @@ void WrappedID3D12GraphicsCommandList::CopyBufferRegion(ID3D12Resource *pDstBuff
                                                         UINT64 DstOffset, ID3D12Resource *pSrcBuffer,
                                                         UINT64 SrcOffset, UINT64 NumBytes)
 {
-  m_pReal->CopyBufferRegion(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer), SrcOffset, NumBytes);
+  SERIALISE_TIME_CALL(m_pReal->CopyBufferRegion(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer),
+                                                SrcOffset, NumBytes));
 
   if(IsCaptureMode(m_State))
   {
@@ -4735,7 +4758,7 @@ void WrappedID3D12GraphicsCommandList::CopyTextureRegion(const D3D12_TEXTURE_COP
   D3D12_TEXTURE_COPY_LOCATION src = *pSrc;
   src.pResource = Unwrap(src.pResource);
 
-  m_pReal->CopyTextureRegion(&dst, DstX, DstY, DstZ, &src, pSrcBox);
+  SERIALISE_TIME_CALL(m_pReal->CopyTextureRegion(&dst, DstX, DstY, DstZ, &src, pSrcBox));
 
   if(IsCaptureMode(m_State))
   {
@@ -4817,7 +4840,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &se
 void WrappedID3D12GraphicsCommandList::CopyResource(ID3D12Resource *pDstResource,
                                                     ID3D12Resource *pSrcResource)
 {
-  m_pReal->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
+  SERIALISE_TIME_CALL(m_pReal->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource)));
 
   if(IsCaptureMode(m_State))
   {
@@ -4909,8 +4932,8 @@ void WrappedID3D12GraphicsCommandList::ResolveSubresource(ID3D12Resource *pDstRe
                                                           ID3D12Resource *pSrcResource,
                                                           UINT SrcSubresource, DXGI_FORMAT Format)
 {
-  m_pReal->ResolveSubresource(Unwrap(pDstResource), DstSubresource, Unwrap(pSrcResource),
-                              SrcSubresource, Format);
+  SERIALISE_TIME_CALL(m_pReal->ResolveSubresource(Unwrap(pDstResource), DstSubresource,
+                                                  Unwrap(pSrcResource), SrcSubresource, Format));
 
   if(IsCaptureMode(m_State))
   {

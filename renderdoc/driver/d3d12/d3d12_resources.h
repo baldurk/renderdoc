@@ -772,6 +772,8 @@ class WrappedID3D12Resource : public WrappedDeviceChild12<ID3D12Resource>
 
   bool resident;
 
+  WriteSerialiser &GetThreadSerialiser();
+
 public:
   static const int AllocPoolCount = 16384;
   static const int AllocMaxByteSize = 1536 * 1024;

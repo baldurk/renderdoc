@@ -357,8 +357,9 @@ VkResult WrappedVulkan::vkCreateCommandPool(VkDevice device,
                                             const VkAllocationCallbacks *pAllocator,
                                             VkCommandPool *pCmdPool)
 {
-  VkResult ret =
-      ObjDisp(device)->CreateCommandPool(Unwrap(device), pCreateInfo, pAllocator, pCmdPool);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateCommandPool(Unwrap(device), pCreateInfo, pAllocator, pCmdPool));
 
   if(ret == VK_SUCCESS)
   {
@@ -451,8 +452,9 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
 {
   VkCommandBufferAllocateInfo unwrappedInfo = *pAllocateInfo;
   unwrappedInfo.commandPool = Unwrap(unwrappedInfo.commandPool);
-  VkResult ret =
-      ObjDisp(device)->AllocateCommandBuffers(Unwrap(device), &unwrappedInfo, pCommandBuffers);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->AllocateCommandBuffers(Unwrap(device), &unwrappedInfo,
+                                                                    pCommandBuffers));
 
   if(ret == VK_SUCCESS)
   {
@@ -742,6 +744,21 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
 VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
                                              const VkCommandBufferBeginInfo *pBeginInfo)
 {
+  VkCommandBufferBeginInfo beginInfo = *pBeginInfo;
+  VkCommandBufferInheritanceInfo unwrappedInfo;
+  if(pBeginInfo->pInheritanceInfo)
+  {
+    unwrappedInfo = *pBeginInfo->pInheritanceInfo;
+    unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
+    unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
+
+    beginInfo.pInheritanceInfo = &unwrappedInfo;
+  }
+
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(commandBuffer)->BeginCommandBuffer(Unwrap(commandBuffer), &beginInfo));
+
   VkResourceRecord *record = GetRecord(commandBuffer);
   RDCASSERT(record);
 
@@ -779,19 +796,7 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
     }
   }
 
-  VkCommandBufferInheritanceInfo unwrappedInfo;
-  if(pBeginInfo->pInheritanceInfo)
-  {
-    unwrappedInfo = *pBeginInfo->pInheritanceInfo;
-    unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
-    unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
-
-    VkCommandBufferBeginInfo beginInfo = *pBeginInfo;
-    beginInfo.pInheritanceInfo = &unwrappedInfo;
-    return ObjDisp(commandBuffer)->BeginCommandBuffer(Unwrap(commandBuffer), &beginInfo);
-  }
-
-  return ObjDisp(commandBuffer)->BeginCommandBuffer(Unwrap(commandBuffer), pBeginInfo);
+  return ret;
 }
 
 template <typename SerialiserType>
@@ -898,6 +903,9 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCommandBuffer commandBuffer)
   VkResourceRecord *record = GetRecord(commandBuffer);
   RDCASSERT(record);
 
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer)));
+
   if(record)
   {
     // ensure that we have a matching begin
@@ -915,7 +923,7 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCommandBuffer commandBuffer)
     record->Bake();
   }
 
-  return ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
+  return ret;
 }
 
 VkResult WrappedVulkan::vkResetCommandBuffer(VkCommandBuffer commandBuffer,
@@ -1029,7 +1037,8 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
   VkRenderPassBeginInfo unwrappedInfo = *pRenderPassBegin;
   unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
   unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
-  ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents));
 
   if(IsCaptureMode(m_State))
   {
@@ -1129,7 +1138,7 @@ void WrappedVulkan::vkCmdNextSubpass(VkCommandBuffer commandBuffer, VkSubpassCon
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents));
 
   if(IsCaptureMode(m_State))
   {
@@ -1204,7 +1213,7 @@ void WrappedVulkan::vkCmdEndRenderPass(VkCommandBuffer commandBuffer)
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer)));
 
   if(IsCaptureMode(m_State))
   {
@@ -1339,7 +1348,9 @@ void WrappedVulkan::vkCmdBindPipeline(VkCommandBuffer commandBuffer,
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdBindPipeline(Unwrap(commandBuffer), pipelineBindPoint, Unwrap(pipeline));
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdBindPipeline(Unwrap(commandBuffer), pipelineBindPoint, Unwrap(pipeline)));
 
   if(IsCaptureMode(m_State))
   {
@@ -1486,10 +1497,11 @@ void WrappedVulkan::vkCmdBindDescriptorSets(VkCommandBuffer commandBuffer,
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdBindDescriptorSets(Unwrap(commandBuffer), pipelineBindPoint, Unwrap(layout), firstSet,
-                              setCount, UnwrapArray(pDescriptorSets, setCount), dynamicOffsetCount,
-                              pDynamicOffsets);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdBindDescriptorSets(Unwrap(commandBuffer), pipelineBindPoint,
+                                                  Unwrap(layout), firstSet, setCount,
+                                                  UnwrapArray(pDescriptorSets, setCount),
+                                                  dynamicOffsetCount, pDynamicOffsets));
 
   if(IsCaptureMode(m_State))
   {
@@ -1591,9 +1603,9 @@ void WrappedVulkan::vkCmdBindVertexBuffers(VkCommandBuffer commandBuffer, uint32
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdBindVertexBuffers(Unwrap(commandBuffer), firstBinding, bindingCount,
-                             UnwrapArray(pBuffers, bindingCount), pOffsets);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdBindVertexBuffers(Unwrap(commandBuffer), firstBinding, bindingCount,
+                                                 UnwrapArray(pBuffers, bindingCount), pOffsets));
 
   if(IsCaptureMode(m_State))
   {
@@ -1668,7 +1680,9 @@ void WrappedVulkan::vkCmdBindIndexBuffer(VkCommandBuffer commandBuffer, VkBuffer
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdBindIndexBuffer(Unwrap(commandBuffer), Unwrap(buffer), offset, indexType);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdBindIndexBuffer(Unwrap(commandBuffer), Unwrap(buffer), offset, indexType));
 
   if(IsCaptureMode(m_State))
   {
@@ -1732,8 +1746,9 @@ void WrappedVulkan::vkCmdUpdateBuffer(VkCommandBuffer commandBuffer, VkBuffer de
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdUpdateBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset, dataSize, pData);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdUpdateBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset,
+                                            dataSize, pData));
 
   if(IsCaptureMode(m_State))
   {
@@ -1800,8 +1815,9 @@ void WrappedVulkan::vkCmdFillBuffer(VkCommandBuffer commandBuffer, VkBuffer dest
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdFillBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset, fillSize, data);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdFillBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset, fillSize, data));
 
   if(IsCaptureMode(m_State))
   {
@@ -1878,8 +1894,9 @@ void WrappedVulkan::vkCmdPushConstants(VkCommandBuffer commandBuffer, VkPipeline
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdPushConstants(Unwrap(commandBuffer), Unwrap(layout), stageFlags, start, length, values);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdPushConstants(Unwrap(commandBuffer), Unwrap(layout), stageFlags,
+                                             start, length, values));
 
   if(IsCaptureMode(m_State))
   {
@@ -2011,10 +2028,11 @@ void WrappedVulkan::vkCmdPipelineBarrier(
       im[i].image = Unwrap(im[i].image);
     }
 
-    ObjDisp(commandBuffer)
-        ->CmdPipelineBarrier(Unwrap(commandBuffer), srcStageMask, destStageMask, dependencyFlags,
-                             memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, buf,
-                             imageMemoryBarrierCount, im);
+    SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                            ->CmdPipelineBarrier(Unwrap(commandBuffer), srcStageMask, destStageMask,
+                                                 dependencyFlags, memoryBarrierCount,
+                                                 pMemoryBarriers, bufferMemoryBarrierCount, buf,
+                                                 imageMemoryBarrierCount, im));
   }
 
   if(IsCaptureMode(m_State))
@@ -2083,8 +2101,9 @@ void WrappedVulkan::vkCmdWriteTimestamp(VkCommandBuffer commandBuffer,
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdWriteTimestamp(Unwrap(commandBuffer), pipelineStage, Unwrap(queryPool), query);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdWriteTimestamp(Unwrap(commandBuffer), pipelineStage, Unwrap(queryPool), query));
 
   if(IsCaptureMode(m_State))
   {
@@ -2150,9 +2169,10 @@ void WrappedVulkan::vkCmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQ
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdCopyQueryPoolResults(Unwrap(commandBuffer), Unwrap(queryPool), firstQuery, queryCount,
-                                Unwrap(destBuffer), destOffset, destStride, flags);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdCopyQueryPoolResults(Unwrap(commandBuffer), Unwrap(queryPool),
+                                                    firstQuery, queryCount, Unwrap(destBuffer),
+                                                    destOffset, destStride, flags));
 
   if(IsCaptureMode(m_State))
   {
@@ -2217,7 +2237,8 @@ void WrappedVulkan::vkCmdBeginQuery(VkCommandBuffer commandBuffer, VkQueryPool q
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdBeginQuery(Unwrap(commandBuffer), Unwrap(queryPool), query, flags);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdBeginQuery(Unwrap(commandBuffer), Unwrap(queryPool), query, flags));
 
   if(IsCaptureMode(m_State))
   {
@@ -2268,7 +2289,8 @@ void WrappedVulkan::vkCmdEndQuery(VkCommandBuffer commandBuffer, VkQueryPool que
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdEndQuery(Unwrap(commandBuffer), Unwrap(queryPool), query);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdEndQuery(Unwrap(commandBuffer), Unwrap(queryPool), query));
 
   if(IsCaptureMode(m_State))
   {
@@ -2325,8 +2347,9 @@ void WrappedVulkan::vkCmdResetQueryPool(VkCommandBuffer commandBuffer, VkQueryPo
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdResetQueryPool(Unwrap(commandBuffer), Unwrap(queryPool), firstQuery, queryCount);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdResetQueryPool(Unwrap(commandBuffer), Unwrap(queryPool), firstQuery, queryCount));
 
   if(IsCaptureMode(m_State))
   {
@@ -2613,9 +2636,9 @@ void WrappedVulkan::vkCmdExecuteCommands(VkCommandBuffer commandBuffer, uint32_t
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdExecuteCommands(Unwrap(commandBuffer), commandBufferCount,
-                           UnwrapArray(pCommandBuffers, commandBufferCount));
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdExecuteCommands(Unwrap(commandBuffer), commandBufferCount,
+                                               UnwrapArray(pCommandBuffers, commandBufferCount)));
 
   if(IsCaptureMode(m_State))
   {
@@ -2698,7 +2721,10 @@ void WrappedVulkan::vkCmdDebugMarkerBeginEXT(VkCommandBuffer commandBuffer,
                                              const VkDebugMarkerMarkerInfoEXT *pMarker)
 {
   if(ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT)
-    ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT(Unwrap(commandBuffer), pMarker);
+  {
+    SERIALISE_TIME_CALL(
+        ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT(Unwrap(commandBuffer), pMarker));
+  }
 
   if(IsCaptureMode(m_State))
   {
@@ -2768,7 +2794,9 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(SerialiserType &ser,
 void WrappedVulkan::vkCmdDebugMarkerEndEXT(VkCommandBuffer commandBuffer)
 {
   if(ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT)
-    ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer));
+  {
+    SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer)));
+  }
 
   if(IsCaptureMode(m_State))
   {
@@ -2832,7 +2860,10 @@ void WrappedVulkan::vkCmdDebugMarkerInsertEXT(VkCommandBuffer commandBuffer,
                                               const VkDebugMarkerMarkerInfoEXT *pMarker)
 {
   if(ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT)
-    ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT(Unwrap(commandBuffer), pMarker);
+  {
+    SERIALISE_TIME_CALL(
+        ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT(Unwrap(commandBuffer), pMarker));
+  }
 
   if(IsCaptureMode(m_State))
   {

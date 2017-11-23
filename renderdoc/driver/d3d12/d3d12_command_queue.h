@@ -94,8 +94,9 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   // D3D12 guarantees that queues are thread-safe
   Threading::CriticalSection m_Lock;
 
-  WriteSerialiser m_ScratchSerialiser;
   std::set<std::string> m_StringDB;
+
+  WriteSerialiser &GetThreadSerialiser();
 
   StreamReader *m_FrameReader = NULL;
 

@@ -718,7 +718,8 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
 
   VkPhysicalDevice *devices = new VkPhysicalDevice[count];
 
-  vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, devices);
+  SERIALISE_TIME_CALL(
+      vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, devices));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   m_PhysicalDevices.resize(count);
@@ -1396,7 +1397,8 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
   createInfo.pEnabledFeatures = &enabledFeatures;
 
-  VkResult ret = createFunc(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = createFunc(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice));
 
   // don't serialise out any of the pNext stuff for layer initialisation
   // (note that we asserted above that there was nothing else in the chain)
@@ -1578,7 +1580,8 @@ bool WrappedVulkan::Serialise_vkDeviceWaitIdle(SerialiserType &ser, VkDevice dev
 
 VkResult WrappedVulkan::vkDeviceWaitIdle(VkDevice device)
 {
-  VkResult ret = ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->DeviceWaitIdle(Unwrap(device)));
 
   if(IsActiveCapturing(m_State))
   {

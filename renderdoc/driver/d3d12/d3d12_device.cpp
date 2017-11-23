@@ -35,9 +35,6 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_resources.h"
 
-// must be at the start of any function that serialises
-#define CACHE_THREAD_SERIALISER() WriteSerialiser &ser = GetThreadSerialiser();
-
 WRAPPED_POOL_INST(WrappedID3D12Device);
 
 std::string WrappedID3D12Device::GetChunkName(uint32_t idx)
@@ -122,22 +119,12 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12DebugDevice::QueryInterface(REFIID riid, 
 }
 
 WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams *params)
-    : m_RefCounter(realDevice, false),
-      m_SoftRefCounter(NULL, false),
-      m_pDevice(realDevice),
-      m_ScratchSerialiser(new StreamWriter(1024), Ownership::Stream)
+    : m_RefCounter(realDevice, false), m_SoftRefCounter(NULL, false), m_pDevice(realDevice)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D12Device));
 
   m_SectionVersion = D3D12InitParams::CurrentVersion;
-
-  uint32_t flags = 0;
-
-  if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
-    flags |= WriteSerialiser::ChunkCallstack;
-
-  m_ScratchSerialiser.SetChunkMetadataRecording(flags);
 
   m_StructuredFile = &m_StoredStructuredData;
 
@@ -204,8 +191,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_DebugManager = NULL;
   m_ResourceManager = new D3D12ResourceManager(m_State, this);
-
-  m_ScratchSerialiser.SetUserData(GetResourceManager());
 
   // create a temporary and grab its resource ID
   m_ResourceID = ResourceIDGen::GetNewUniqueID();
@@ -750,7 +735,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
 
     wrapped->SetResourceRecord(record);
 
-    WriteSerialiser &ser = m_ScratchSerialiser;
+    WriteSerialiser &ser = GetThreadSerialiser();
 
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::CreateSwapBuffer);
 
@@ -1228,7 +1213,7 @@ template bool WrappedID3D12Device::Serialise_BeginCaptureFrame(WriteSerialiser &
 
 void WrappedID3D12Device::EndCaptureFrame(ID3D12Resource *presentImage)
 {
-  WriteSerialiser &ser = m_ScratchSerialiser;
+  WriteSerialiser &ser = GetThreadSerialiser();
   ser.SetDrawChunk();
   SCOPED_SERIALISE_CHUNK(D3D12Chunk::CaptureEnd);
 
@@ -1603,6 +1588,8 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   {
     WriteSerialiser ser(captureWriter, Ownership::Stream);
 
+    ser.SetChunkMetadataRecording(GetThreadSerialiser().GetChunkMetadataRecording());
+
     ser.SetUserData(GetResourceManager());
 
     {
@@ -1906,7 +1893,7 @@ HRESULT WrappedID3D12Device::SetShaderDebugPath(ID3D12DeviceChild *pResource, co
     }
 
     {
-      WriteSerialiser &ser = m_ScratchSerialiser;
+      WriteSerialiser &ser = GetThreadSerialiser();
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::SetShaderDebugPath);
       Serialise_SetShaderDebugPath(ser, pResource, Path);
       record->AddChunk(scope.Get());
@@ -1953,7 +1940,7 @@ void WrappedID3D12Device::SetName(ID3D12DeviceChild *pResource, const char *Name
       record = m_DeviceRecord;
 
     {
-      WriteSerialiser &ser = m_ScratchSerialiser;
+      WriteSerialiser &ser = GetThreadSerialiser();
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::SetName);
 
       Serialise_SetName(ser, pResource, Name);
@@ -2023,12 +2010,14 @@ WriteSerialiser &WrappedID3D12Device::GetThreadSerialiser()
 
   ser = new WriteSerialiser(new StreamWriter(1024), Ownership::Stream);
 
-  uint32_t flags = 0;
+  uint32_t flags = WriteSerialiser::ChunkDuration | WriteSerialiser::ChunkTimestamp |
+                   WriteSerialiser::ChunkThreadID;
 
   if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
     flags |= WriteSerialiser::ChunkCallstack;
 
   ser->SetChunkMetadataRecording(flags);
+
   ser->SetUserData(GetResourceManager());
 
   Threading::SetTLSValue(threadSerialiserTLSSlot, (void *)ser);

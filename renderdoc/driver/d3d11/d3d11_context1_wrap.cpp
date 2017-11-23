@@ -320,6 +320,10 @@ void WrappedID3D11DeviceContext::UpdateSubresource1(ID3D11Resource *pDstResource
 
   m_EmptyCommandList = false;
 
+  SERIALISE_TIME_CALL(m_pRealContext1->UpdateSubresource1(
+      m_pDevice->GetResourceManager()->UnwrapResource(pDstResource), DstSubresource, pDstBox,
+      pSrcData, SrcRowPitch, SrcDepthPitch, CopyFlags));
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -337,10 +341,6 @@ void WrappedID3D11DeviceContext::UpdateSubresource1(ID3D11Resource *pDstResource
     // just mark dirty
     MarkDirtyResource(GetIDForResource(pDstResource));
   }
-
-  m_pRealContext1->UpdateSubresource1(m_pDevice->GetResourceManager()->UnwrapResource(pDstResource),
-                                      DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch,
-                                      CopyFlags);
 }
 
 template <typename SerialiserType>
@@ -402,6 +402,10 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion1(ID3D11Resource *pDstReso
 
   m_EmptyCommandList = false;
 
+  SERIALISE_TIME_CALL(m_pRealContext1->CopySubresourceRegion1(
+      GetResourceManager()->UnwrapResource(pDstResource), DstSubresource, DstX, DstY, DstZ,
+      GetResourceManager()->UnwrapResource(pSrcResource), SrcSubresource, pSrcBox, CopyFlags));
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -423,10 +427,6 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion1(ID3D11Resource *pDstReso
 
     MarkDirtyResource(GetIDForResource(pDstResource));
   }
-
-  m_pRealContext1->CopySubresourceRegion1(
-      GetResourceManager()->UnwrapResource(pDstResource), DstSubresource, DstX, DstY, DstZ,
-      GetResourceManager()->UnwrapResource(pSrcResource), SrcSubresource, pSrcBox, CopyFlags);
 }
 
 template <typename SerialiserType>
@@ -527,7 +527,7 @@ void WrappedID3D11DeviceContext::ClearView(ID3D11View *pView, const FLOAT Color[
 
     RDCASSERT(real);
 
-    m_pRealContext1->ClearView(real, Color, pRect, NumRects);
+    SERIALISE_TIME_CALL(m_pRealContext1->ClearView(real, Color, pRect, NumRects));
   }
 
   if(IsActiveCapturing(m_State))
@@ -630,6 +630,21 @@ void WrappedID3D11DeviceContext::VSSetConstantBuffers1(UINT StartSlot, UINT NumB
     return;
   }
 
+  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+  for(UINT i = 0; i < NumBuffers; i++)
+  {
+    if(ppConstantBuffers && ppConstantBuffers[i])
+    {
+      if(IsActiveCapturing(m_State))
+        MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
+
+      bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+    }
+  }
+
+  SERIALISE_TIME_CALL(m_pRealContext1->VSSetConstantBuffers1(StartSlot, NumBuffers, bufs,
+                                                             pFirstConstant, pNumConstants));
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -670,19 +685,6 @@ void WrappedID3D11DeviceContext::VSSetConstantBuffers1(UINT StartSlot, UINT NumB
     m_CurrentPipelineState->Change(m_CurrentPipelineState->VS.CBCounts, cnts, StartSlot, NumBuffers);
   }
 
-  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
-  for(UINT i = 0; i < NumBuffers; i++)
-  {
-    if(ppConstantBuffers && ppConstantBuffers[i])
-    {
-      if(IsActiveCapturing(m_State))
-        MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
-
-      bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
-    }
-  }
-
-  m_pRealContext1->VSSetConstantBuffers1(StartSlot, NumBuffers, bufs, pFirstConstant, pNumConstants);
   VerifyState();
 }
 
@@ -757,6 +759,21 @@ void WrappedID3D11DeviceContext::HSSetConstantBuffers1(UINT StartSlot, UINT NumB
     return;
   }
 
+  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+  for(UINT i = 0; i < NumBuffers; i++)
+  {
+    if(ppConstantBuffers && ppConstantBuffers[i])
+    {
+      if(IsActiveCapturing(m_State))
+        MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
+
+      bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+    }
+  }
+
+  SERIALISE_TIME_CALL(m_pRealContext1->HSSetConstantBuffers1(StartSlot, NumBuffers, bufs,
+                                                             pFirstConstant, pNumConstants));
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -797,19 +814,6 @@ void WrappedID3D11DeviceContext::HSSetConstantBuffers1(UINT StartSlot, UINT NumB
     m_CurrentPipelineState->Change(m_CurrentPipelineState->HS.CBCounts, cnts, StartSlot, NumBuffers);
   }
 
-  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
-  for(UINT i = 0; i < NumBuffers; i++)
-  {
-    if(ppConstantBuffers && ppConstantBuffers[i])
-    {
-      if(IsActiveCapturing(m_State))
-        MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
-
-      bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
-    }
-  }
-
-  m_pRealContext1->HSSetConstantBuffers1(StartSlot, NumBuffers, bufs, pFirstConstant, pNumConstants);
   VerifyState();
 }
 
@@ -884,6 +888,21 @@ void WrappedID3D11DeviceContext::DSSetConstantBuffers1(UINT StartSlot, UINT NumB
     return;
   }
 
+  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+  for(UINT i = 0; i < NumBuffers; i++)
+  {
+    if(ppConstantBuffers && ppConstantBuffers[i])
+    {
+      if(IsActiveCapturing(m_State))
+        MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
+
+      bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+    }
+  }
+
+  SERIALISE_TIME_CALL(m_pRealContext1->DSSetConstantBuffers1(StartSlot, NumBuffers, bufs,
+                                                             pFirstConstant, pNumConstants));
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -924,19 +943,6 @@ void WrappedID3D11DeviceContext::DSSetConstantBuffers1(UINT StartSlot, UINT NumB
     m_CurrentPipelineState->Change(m_CurrentPipelineState->DS.CBCounts, cnts, StartSlot, NumBuffers);
   }
 
-  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
-  for(UINT i = 0; i < NumBuffers; i++)
-  {
-    if(ppConstantBuffers && ppConstantBuffers[i])
-    {
-      if(IsActiveCapturing(m_State))
-        MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
-
-      bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
-    }
-  }
-
-  m_pRealContext1->DSSetConstantBuffers1(StartSlot, NumBuffers, bufs, pFirstConstant, pNumConstants);
   VerifyState();
 }
 
@@ -1011,6 +1017,21 @@ void WrappedID3D11DeviceContext::GSSetConstantBuffers1(UINT StartSlot, UINT NumB
     return;
   }
 
+  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+  for(UINT i = 0; i < NumBuffers; i++)
+  {
+    if(ppConstantBuffers && ppConstantBuffers[i])
+    {
+      if(IsActiveCapturing(m_State))
+        MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
+
+      bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+    }
+  }
+
+  SERIALISE_TIME_CALL(m_pRealContext1->GSSetConstantBuffers1(StartSlot, NumBuffers, bufs,
+                                                             pFirstConstant, pNumConstants));
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -1051,19 +1072,6 @@ void WrappedID3D11DeviceContext::GSSetConstantBuffers1(UINT StartSlot, UINT NumB
     m_CurrentPipelineState->Change(m_CurrentPipelineState->GS.CBCounts, cnts, StartSlot, NumBuffers);
   }
 
-  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
-  for(UINT i = 0; i < NumBuffers; i++)
-  {
-    if(ppConstantBuffers && ppConstantBuffers[i])
-    {
-      if(IsActiveCapturing(m_State))
-        MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
-
-      bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
-    }
-  }
-
-  m_pRealContext1->GSSetConstantBuffers1(StartSlot, NumBuffers, bufs, pFirstConstant, pNumConstants);
   VerifyState();
 }
 
@@ -1138,6 +1146,21 @@ void WrappedID3D11DeviceContext::PSSetConstantBuffers1(UINT StartSlot, UINT NumB
     return;
   }
 
+  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+  for(UINT i = 0; i < NumBuffers; i++)
+  {
+    if(ppConstantBuffers && ppConstantBuffers[i])
+    {
+      if(IsActiveCapturing(m_State))
+        MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
+
+      bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+    }
+  }
+
+  SERIALISE_TIME_CALL(m_pRealContext1->PSSetConstantBuffers1(StartSlot, NumBuffers, bufs,
+                                                             pFirstConstant, pNumConstants));
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -1178,19 +1201,6 @@ void WrappedID3D11DeviceContext::PSSetConstantBuffers1(UINT StartSlot, UINT NumB
     m_CurrentPipelineState->Change(m_CurrentPipelineState->PS.CBCounts, cnts, StartSlot, NumBuffers);
   }
 
-  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
-  for(UINT i = 0; i < NumBuffers; i++)
-  {
-    if(ppConstantBuffers && ppConstantBuffers[i])
-    {
-      if(IsActiveCapturing(m_State))
-        MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
-
-      bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
-    }
-  }
-
-  m_pRealContext1->PSSetConstantBuffers1(StartSlot, NumBuffers, bufs, pFirstConstant, pNumConstants);
   VerifyState();
 }
 
@@ -1265,6 +1275,21 @@ void WrappedID3D11DeviceContext::CSSetConstantBuffers1(UINT StartSlot, UINT NumB
     return;
   }
 
+  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+  for(UINT i = 0; i < NumBuffers; i++)
+  {
+    if(ppConstantBuffers && ppConstantBuffers[i])
+    {
+      if(IsActiveCapturing(m_State))
+        MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
+
+      bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+    }
+  }
+
+  SERIALISE_TIME_CALL(m_pRealContext1->CSSetConstantBuffers1(StartSlot, NumBuffers, bufs,
+                                                             pFirstConstant, pNumConstants));
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -1305,19 +1330,6 @@ void WrappedID3D11DeviceContext::CSSetConstantBuffers1(UINT StartSlot, UINT NumB
     m_CurrentPipelineState->Change(m_CurrentPipelineState->CS.CBCounts, cnts, StartSlot, NumBuffers);
   }
 
-  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
-  for(UINT i = 0; i < NumBuffers; i++)
-  {
-    if(ppConstantBuffers && ppConstantBuffers[i])
-    {
-      if(IsActiveCapturing(m_State))
-        MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
-
-      bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
-    }
-  }
-
-  m_pRealContext1->CSSetConstantBuffers1(StartSlot, NumBuffers, bufs, pFirstConstant, pNumConstants);
   VerifyState();
 }
 
@@ -1638,7 +1650,7 @@ void WrappedID3D11DeviceContext::DiscardResource(ID3D11Resource *pResource)
 
     RDCASSERT(real);
 
-    m_pRealContext1->DiscardResource(real);
+    SERIALISE_TIME_CALL(m_pRealContext1->DiscardResource(real));
   }
 
   if(IsActiveCapturing(m_State))
@@ -1761,8 +1773,7 @@ void WrappedID3D11DeviceContext::DiscardView(ID3D11View *pResourceView)
 
     RDCASSERT(real);
 
-    // no need to serialise
-    m_pRealContext1->DiscardView(real);
+    SERIALISE_TIME_CALL(m_pRealContext1->DiscardView(real));
   }
 
   if(IsActiveCapturing(m_State))
@@ -1898,8 +1909,7 @@ void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D
 
     RDCASSERT(real);
 
-    // no need to serialise
-    m_pRealContext1->DiscardView1(real, pRects, NumRects);
+    SERIALISE_TIME_CALL(m_pRealContext1->DiscardView1(real, pRects, NumRects));
   }
 
   if(IsActiveCapturing(m_State))
@@ -1972,7 +1982,8 @@ void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *
 
   ID3DDeviceContextState *prev = NULL;
 
-  m_pRealContext1->SwapDeviceContextState(UNWRAP(WrappedID3DDeviceContextState, pState), &prev);
+  SERIALISE_TIME_CALL(m_pRealContext1->SwapDeviceContextState(
+      UNWRAP(WrappedID3DDeviceContextState, pState), &prev));
 
   {
     WrappedID3DDeviceContextState *wrapped = NULL;

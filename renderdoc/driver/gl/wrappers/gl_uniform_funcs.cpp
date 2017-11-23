@@ -331,26 +331,26 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(SerialiserType &ser, GLuint
   return true;
 }
 
-#define UNIFORM_FUNC(count, suffix, paramtype, ...)                                    \
-                                                                                       \
-  void WrappedOpenGL::CONCAT(CONCAT(FUNCNAME, count), suffix)(FUNCPARAMS, __VA_ARGS__) \
-                                                                                       \
-  {                                                                                    \
-    m_Real.CONCAT(CONCAT(FUNCNAME, count), suffix)(FUNCARGPASS, ARRAYLIST);            \
-                                                                                       \
-    if(IsActiveCapturing(m_State))                                                     \
-    {                                                                                  \
-      USE_SCRATCH_SERIALISER();                                                        \
-      SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                             \
-      const paramtype vals[] = {ARRAYLIST};                                            \
-      Serialise_glProgramUniformVector(ser, PROGRAM, location, 1, vals,                \
-                                       CONCAT(CONCAT(VEC, count), CONCAT(suffix, v))); \
-      m_ContextRecord->AddChunk(scope.Get());                                          \
-    }                                                                                  \
-    else if(IsBackgroundCapturing(m_State))                                            \
-    {                                                                                  \
-      GetResourceManager()->MarkDirtyResource(ProgramRes(GetCtx(), PROGRAM));          \
-    }                                                                                  \
+#define UNIFORM_FUNC(count, suffix, paramtype, ...)                                              \
+                                                                                                 \
+  void WrappedOpenGL::CONCAT(CONCAT(FUNCNAME, count), suffix)(FUNCPARAMS, __VA_ARGS__)           \
+                                                                                                 \
+  {                                                                                              \
+    SERIALISE_TIME_CALL(m_Real.CONCAT(CONCAT(FUNCNAME, count), suffix)(FUNCARGPASS, ARRAYLIST)); \
+                                                                                                 \
+    if(IsActiveCapturing(m_State))                                                               \
+    {                                                                                            \
+      USE_SCRATCH_SERIALISER();                                                                  \
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                                       \
+      const paramtype vals[] = {ARRAYLIST};                                                      \
+      Serialise_glProgramUniformVector(ser, PROGRAM, location, 1, vals,                          \
+                                       CONCAT(CONCAT(VEC, count), CONCAT(suffix, v)));           \
+      m_ContextRecord->AddChunk(scope.Get());                                                    \
+    }                                                                                            \
+    else if(IsBackgroundCapturing(m_State))                                                      \
+    {                                                                                            \
+      GetResourceManager()->MarkDirtyResource(ProgramRes(GetCtx(), PROGRAM));                    \
+    }                                                                                            \
   }
 
 #define FUNCNAME glUniform
@@ -433,107 +433,109 @@ UNIFORM_FUNC(4, d, GLdouble, GLdouble v0, GLdouble v1, GLdouble v2, GLdouble v3)
 #undef ARRAYLIST
 
 #undef UNIFORM_FUNC
-#define UNIFORM_FUNC(unicount, suffix, paramtype)                                            \
+#define UNIFORM_FUNC(unicount, suffix, paramtype)                                                 \
+                                                                                                  \
+  void WrappedOpenGL::CONCAT(CONCAT(FUNCNAME, unicount), CONCAT(suffix, v))(                      \
+      FUNCPARAMS, GLsizei count, const paramtype *value)                                          \
+                                                                                                  \
+  {                                                                                               \
+    SERIALISE_TIME_CALL(                                                                          \
+        m_Real.CONCAT(CONCAT(FUNCNAME, unicount), CONCAT(suffix, v))(FUNCARGPASS, count, value)); \
+                                                                                                  \
+    if(IsActiveCapturing(m_State))                                                                \
+    {                                                                                             \
+      USE_SCRATCH_SERIALISER();                                                                   \
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                                        \
+      Serialise_glProgramUniformVector(ser, PROGRAM, location, count, value,                      \
+                                       CONCAT(CONCAT(VEC, unicount), CONCAT(suffix, v)));         \
+      m_ContextRecord->AddChunk(scope.Get());                                                     \
+    }                                                                                             \
+    else if(IsBackgroundCapturing(m_State))                                                       \
+    {                                                                                             \
+      GetResourceManager()->MarkDirtyResource(ProgramRes(GetCtx(), PROGRAM));                     \
+    }                                                                                             \
+  }
+
+#undef FUNCNAME
+#undef FUNCPARAMS
+#undef FUNCARGPASS
+#undef PROGRAM
+#define FUNCNAME glUniform
+#define FUNCPARAMS GLint location
+#define FUNCARGPASS location
+#define PROGRAM GetUniformProgram()
+
+UNIFORM_FUNC(1, f, GLfloat)
+UNIFORM_FUNC(1, i, GLint)
+UNIFORM_FUNC(1, ui, GLuint)
+UNIFORM_FUNC(1, d, GLdouble)
+
+UNIFORM_FUNC(2, f, GLfloat)
+UNIFORM_FUNC(2, i, GLint)
+UNIFORM_FUNC(2, ui, GLuint)
+UNIFORM_FUNC(2, d, GLdouble)
+
+UNIFORM_FUNC(3, f, GLfloat)
+UNIFORM_FUNC(3, i, GLint)
+UNIFORM_FUNC(3, ui, GLuint)
+UNIFORM_FUNC(3, d, GLdouble)
+
+UNIFORM_FUNC(4, f, GLfloat)
+UNIFORM_FUNC(4, i, GLint)
+UNIFORM_FUNC(4, ui, GLuint)
+UNIFORM_FUNC(4, d, GLdouble)
+
+#undef FUNCNAME
+#undef FUNCPARAMS
+#undef FUNCARGPASS
+#undef PROGRAM
+#define FUNCNAME glProgramUniform
+#define FUNCPARAMS GLuint program, GLint location
+#define FUNCARGPASS program, location
+#define PROGRAM program
+
+UNIFORM_FUNC(1, f, GLfloat)
+UNIFORM_FUNC(1, i, GLint)
+UNIFORM_FUNC(1, ui, GLuint)
+UNIFORM_FUNC(1, d, GLdouble)
+
+UNIFORM_FUNC(2, f, GLfloat)
+UNIFORM_FUNC(2, i, GLint)
+UNIFORM_FUNC(2, ui, GLuint)
+UNIFORM_FUNC(2, d, GLdouble)
+
+UNIFORM_FUNC(3, f, GLfloat)
+UNIFORM_FUNC(3, i, GLint)
+UNIFORM_FUNC(3, ui, GLuint)
+UNIFORM_FUNC(3, d, GLdouble)
+
+UNIFORM_FUNC(4, f, GLfloat)
+UNIFORM_FUNC(4, i, GLint)
+UNIFORM_FUNC(4, ui, GLuint)
+UNIFORM_FUNC(4, d, GLdouble)
+
+#undef UNIFORM_FUNC
+#define UNIFORM_FUNC(dim, suffix, paramtype)                                                 \
                                                                                              \
-  void WrappedOpenGL::CONCAT(CONCAT(FUNCNAME, unicount), CONCAT(suffix, v))(                 \
-      FUNCPARAMS, GLsizei count, const paramtype *value)                                     \
+  void WrappedOpenGL::CONCAT(CONCAT(FUNCNAME, dim), suffix)(                                 \
+      FUNCPARAMS, GLsizei count, GLboolean transpose, const paramtype *value)                \
                                                                                              \
   {                                                                                          \
-    m_Real.CONCAT(CONCAT(FUNCNAME, unicount), CONCAT(suffix, v))(FUNCARGPASS, count, value); \
+    SERIALISE_TIME_CALL(                                                                     \
+        m_Real.CONCAT(CONCAT(FUNCNAME, dim), suffix)(FUNCARGPASS, count, transpose, value)); \
                                                                                              \
     if(IsActiveCapturing(m_State))                                                           \
     {                                                                                        \
       USE_SCRATCH_SERIALISER();                                                              \
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                                   \
-      Serialise_glProgramUniformVector(ser, PROGRAM, location, count, value,                 \
-                                       CONCAT(CONCAT(VEC, unicount), CONCAT(suffix, v)));    \
+      Serialise_glProgramUniformMatrix(ser, PROGRAM, location, count, transpose, value,      \
+                                       CONCAT(CONCAT(MAT, dim), suffix));                    \
       m_ContextRecord->AddChunk(scope.Get());                                                \
     }                                                                                        \
     else if(IsBackgroundCapturing(m_State))                                                  \
     {                                                                                        \
       GetResourceManager()->MarkDirtyResource(ProgramRes(GetCtx(), PROGRAM));                \
     }                                                                                        \
-  }
-
-#undef FUNCNAME
-#undef FUNCPARAMS
-#undef FUNCARGPASS
-#undef PROGRAM
-#define FUNCNAME glUniform
-#define FUNCPARAMS GLint location
-#define FUNCARGPASS location
-#define PROGRAM GetUniformProgram()
-
-UNIFORM_FUNC(1, f, GLfloat)
-UNIFORM_FUNC(1, i, GLint)
-UNIFORM_FUNC(1, ui, GLuint)
-UNIFORM_FUNC(1, d, GLdouble)
-
-UNIFORM_FUNC(2, f, GLfloat)
-UNIFORM_FUNC(2, i, GLint)
-UNIFORM_FUNC(2, ui, GLuint)
-UNIFORM_FUNC(2, d, GLdouble)
-
-UNIFORM_FUNC(3, f, GLfloat)
-UNIFORM_FUNC(3, i, GLint)
-UNIFORM_FUNC(3, ui, GLuint)
-UNIFORM_FUNC(3, d, GLdouble)
-
-UNIFORM_FUNC(4, f, GLfloat)
-UNIFORM_FUNC(4, i, GLint)
-UNIFORM_FUNC(4, ui, GLuint)
-UNIFORM_FUNC(4, d, GLdouble)
-
-#undef FUNCNAME
-#undef FUNCPARAMS
-#undef FUNCARGPASS
-#undef PROGRAM
-#define FUNCNAME glProgramUniform
-#define FUNCPARAMS GLuint program, GLint location
-#define FUNCARGPASS program, location
-#define PROGRAM program
-
-UNIFORM_FUNC(1, f, GLfloat)
-UNIFORM_FUNC(1, i, GLint)
-UNIFORM_FUNC(1, ui, GLuint)
-UNIFORM_FUNC(1, d, GLdouble)
-
-UNIFORM_FUNC(2, f, GLfloat)
-UNIFORM_FUNC(2, i, GLint)
-UNIFORM_FUNC(2, ui, GLuint)
-UNIFORM_FUNC(2, d, GLdouble)
-
-UNIFORM_FUNC(3, f, GLfloat)
-UNIFORM_FUNC(3, i, GLint)
-UNIFORM_FUNC(3, ui, GLuint)
-UNIFORM_FUNC(3, d, GLdouble)
-
-UNIFORM_FUNC(4, f, GLfloat)
-UNIFORM_FUNC(4, i, GLint)
-UNIFORM_FUNC(4, ui, GLuint)
-UNIFORM_FUNC(4, d, GLdouble)
-
-#undef UNIFORM_FUNC
-#define UNIFORM_FUNC(dim, suffix, paramtype)                                            \
-                                                                                        \
-  void WrappedOpenGL::CONCAT(CONCAT(FUNCNAME, dim), suffix)(                            \
-      FUNCPARAMS, GLsizei count, GLboolean transpose, const paramtype *value)           \
-                                                                                        \
-  {                                                                                     \
-    m_Real.CONCAT(CONCAT(FUNCNAME, dim), suffix)(FUNCARGPASS, count, transpose, value); \
-                                                                                        \
-    if(IsActiveCapturing(m_State))                                                      \
-    {                                                                                   \
-      USE_SCRATCH_SERIALISER();                                                         \
-      SCOPED_SERIALISE_CHUNK(gl_CurChunk);                                              \
-      Serialise_glProgramUniformMatrix(ser, PROGRAM, location, count, transpose, value, \
-                                       CONCAT(CONCAT(MAT, dim), suffix));               \
-      m_ContextRecord->AddChunk(scope.Get());                                           \
-    }                                                                                   \
-    else if(IsBackgroundCapturing(m_State))                                             \
-    {                                                                                   \
-      GetResourceManager()->MarkDirtyResource(ProgramRes(GetCtx(), PROGRAM));           \
-    }                                                                                   \
   }
 
 #undef FUNCNAME

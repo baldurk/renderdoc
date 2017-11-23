@@ -506,7 +506,8 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
 
   m_StructuredFile = &m_StoredStructuredData;
 
-  uint32_t flags = 0;
+  uint32_t flags = WriteSerialiser::ChunkDuration | WriteSerialiser::ChunkTimestamp |
+                   WriteSerialiser::ChunkThreadID;
 
   if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
     flags |= WriteSerialiser::ChunkCallstack;
@@ -2436,6 +2437,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
     {
       WriteSerialiser ser(captureWriter, Ownership::Stream);
+
+      ser.SetChunkMetadataRecording(m_ScratchSerialiser.GetChunkMetadataRecording());
 
       ser.SetUserData(GetResourceManager());
 

@@ -98,8 +98,9 @@ VkResult WrappedVulkan::vkRegisterDeviceEventEXT(VkDevice device,
 {
   // for now we emulate this on replay as just a regular fence create, since we don't faithfully
   // replay sync events anyway.
-  VkResult ret =
-      ObjDisp(device)->RegisterDeviceEventEXT(Unwrap(device), pDeviceEventInfo, pAllocator, pFence);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->RegisterDeviceEventEXT(
+                          Unwrap(device), pDeviceEventInfo, pAllocator, pFence));
 
   if(ret == VK_SUCCESS)
   {
@@ -141,8 +142,9 @@ VkResult WrappedVulkan::vkRegisterDisplayEventEXT(VkDevice device, VkDisplayKHR 
 {
   // for now we emulate this on replay as just a regular fence create, since we don't faithfully
   // replay sync events anyway.
-  VkResult ret = ObjDisp(device)->RegisterDisplayEventEXT(Unwrap(device), display,
-                                                          pDisplayEventInfo, pAllocator, pFence);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->RegisterDisplayEventEXT(
+                          Unwrap(device), display, pDisplayEventInfo, pAllocator, pFence));
 
   if(ret == VK_SUCCESS)
   {
@@ -221,8 +223,9 @@ VkResult WrappedVulkan::vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR 
   if(pCount == NULL)
     pCount = &dummySize;
 
-  VkResult ret = ObjDisp(device)->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swapchain), pCount,
-                                                        pSwapchainImages);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->GetSwapchainImagesKHR(
+                          Unwrap(device), Unwrap(swapchain), pCount, pSwapchainImages));
 
   if(pSwapchainImages && IsCaptureMode(m_State))
   {

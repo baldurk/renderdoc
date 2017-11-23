@@ -144,8 +144,9 @@ void WrappedVulkan::vkCmdDraw(VkCommandBuffer commandBuffer, uint32_t vertexCoun
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdDraw(Unwrap(commandBuffer), vertexCount, instanceCount, firstVertex, firstInstance);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdDraw(Unwrap(commandBuffer), vertexCount, instanceCount, firstVertex, firstInstance));
 
   if(IsCaptureMode(m_State))
   {
@@ -245,9 +246,9 @@ void WrappedVulkan::vkCmdDrawIndexed(VkCommandBuffer commandBuffer, uint32_t ind
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdDrawIndexed(Unwrap(commandBuffer), indexCount, instanceCount, firstIndex, vertexOffset,
-                       firstInstance);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdDrawIndexed(Unwrap(commandBuffer), indexCount, instanceCount,
+                                           firstIndex, vertexOffset, firstInstance));
 
   if(IsCaptureMode(m_State))
   {
@@ -526,7 +527,9 @@ void WrappedVulkan::vkCmdDrawIndirect(VkCommandBuffer commandBuffer, VkBuffer bu
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride));
 
   if(IsCaptureMode(m_State))
   {
@@ -816,8 +819,9 @@ void WrappedVulkan::vkCmdDrawIndexedIndirect(VkCommandBuffer commandBuffer, VkBu
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride));
 
   if(IsCaptureMode(m_State))
   {
@@ -899,7 +903,7 @@ void WrappedVulkan::vkCmdDispatch(VkCommandBuffer commandBuffer, uint32_t x, uin
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z));
 
   if(IsCaptureMode(m_State))
   {
@@ -995,7 +999,8 @@ void WrappedVulkan::vkCmdDispatchIndirect(VkCommandBuffer commandBuffer, VkBuffe
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset));
 
   if(IsCaptureMode(m_State))
   {
@@ -1111,9 +1116,10 @@ void WrappedVulkan::vkCmdBlitImage(VkCommandBuffer commandBuffer, VkImage srcIma
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdBlitImage(Unwrap(commandBuffer), Unwrap(srcImage), srcImageLayout, Unwrap(destImage),
-                     destImageLayout, regionCount, pRegions, filter);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdBlitImage(Unwrap(commandBuffer), Unwrap(srcImage), srcImageLayout,
+                                         Unwrap(destImage), destImageLayout, regionCount, pRegions,
+                                         filter));
 
   if(IsCaptureMode(m_State))
   {
@@ -1233,9 +1239,10 @@ void WrappedVulkan::vkCmdResolveImage(VkCommandBuffer commandBuffer, VkImage src
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdResolveImage(Unwrap(commandBuffer), Unwrap(srcImage), srcImageLayout, Unwrap(destImage),
-                        destImageLayout, regionCount, pRegions);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdResolveImage(Unwrap(commandBuffer), Unwrap(srcImage), srcImageLayout,
+                                            Unwrap(destImage), destImageLayout, regionCount,
+                                            pRegions));
 
   if(IsCaptureMode(m_State))
   {
@@ -1355,9 +1362,9 @@ void WrappedVulkan::vkCmdCopyImage(VkCommandBuffer commandBuffer, VkImage srcIma
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdCopyImage(Unwrap(commandBuffer), Unwrap(srcImage), srcImageLayout, Unwrap(destImage),
-                     destImageLayout, regionCount, pRegions);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdCopyImage(Unwrap(commandBuffer), Unwrap(srcImage), srcImageLayout,
+                                         Unwrap(destImage), destImageLayout, regionCount, pRegions));
 
   if(IsCaptureMode(m_State))
   {
@@ -1465,9 +1472,10 @@ void WrappedVulkan::vkCmdCopyBufferToImage(VkCommandBuffer commandBuffer, VkBuff
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdCopyBufferToImage(Unwrap(commandBuffer), Unwrap(srcBuffer), Unwrap(destImage),
-                             destImageLayout, regionCount, pRegions);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdCopyBufferToImage(Unwrap(commandBuffer), Unwrap(srcBuffer),
+                                                 Unwrap(destImage), destImageLayout, regionCount,
+                                                 pRegions));
 
   if(IsCaptureMode(m_State))
   {
@@ -1578,9 +1586,10 @@ void WrappedVulkan::vkCmdCopyImageToBuffer(VkCommandBuffer commandBuffer, VkImag
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdCopyImageToBuffer(Unwrap(commandBuffer), Unwrap(srcImage), srcImageLayout,
-                             Unwrap(destBuffer), regionCount, pRegions);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdCopyImageToBuffer(Unwrap(commandBuffer), Unwrap(srcImage),
+                                                 srcImageLayout, Unwrap(destBuffer), regionCount,
+                                                 pRegions));
 
   if(IsCaptureMode(m_State))
   {
@@ -1700,9 +1709,9 @@ void WrappedVulkan::vkCmdCopyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcB
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(srcBuffer), Unwrap(destBuffer), regionCount,
-                      pRegions);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(srcBuffer),
+                                          Unwrap(destBuffer), regionCount, pRegions));
 
   if(IsCaptureMode(m_State))
   {
@@ -1813,9 +1822,9 @@ void WrappedVulkan::vkCmdClearColorImage(VkCommandBuffer commandBuffer, VkImage 
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdClearColorImage(Unwrap(commandBuffer), Unwrap(image), imageLayout, pColor, rangeCount,
-                           pRanges);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdClearColorImage(Unwrap(commandBuffer), Unwrap(image), imageLayout,
+                                               pColor, rangeCount, pRanges));
 
   if(IsCaptureMode(m_State))
   {
@@ -1918,9 +1927,10 @@ void WrappedVulkan::vkCmdClearDepthStencilImage(VkCommandBuffer commandBuffer, V
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdClearDepthStencilImage(Unwrap(commandBuffer), Unwrap(image), imageLayout, pDepthStencil,
-                                  rangeCount, pRanges);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdClearDepthStencilImage(Unwrap(commandBuffer), Unwrap(image),
+                                                      imageLayout, pDepthStencil, rangeCount,
+                                                      pRanges));
 
   if(IsCaptureMode(m_State))
   {
@@ -2062,8 +2072,9 @@ void WrappedVulkan::vkCmdClearAttachments(VkCommandBuffer commandBuffer, uint32_
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdClearAttachments(Unwrap(commandBuffer), attachmentCount, pAttachments, rectCount, pRects);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdClearAttachments(Unwrap(commandBuffer), attachmentCount,
+                                                pAttachments, rectCount, pRects));
 
   if(IsCaptureMode(m_State))
   {

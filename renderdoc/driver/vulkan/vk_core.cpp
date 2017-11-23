@@ -451,7 +451,8 @@ WriteSerialiser &WrappedVulkan::GetThreadSerialiser()
   // slow path, but rare
   ser = new WriteSerialiser(new StreamWriter(1024), Ownership::Stream);
 
-  uint32_t flags = 0;
+  uint32_t flags = WriteSerialiser::ChunkDuration | WriteSerialiser::ChunkTimestamp |
+                   WriteSerialiser::ChunkThreadID;
 
   if(RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks)
     flags |= WriteSerialiser::ChunkCallstack;
@@ -1315,6 +1316,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
   {
     WriteSerialiser ser(captureWriter, Ownership::Stream);
+
+    ser.SetChunkMetadataRecording(GetThreadSerialiser().GetChunkMetadataRecording());
 
     ser.SetUserData(GetResourceManager());
 

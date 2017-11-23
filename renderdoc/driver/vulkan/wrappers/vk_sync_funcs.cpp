@@ -109,7 +109,9 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
 VkResult WrappedVulkan::vkCreateFence(VkDevice device, const VkFenceCreateInfo *pCreateInfo,
                                       const VkAllocationCallbacks *pAllocator, VkFence *pFence)
 {
-  VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), pCreateInfo, pAllocator, pFence);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateFence(Unwrap(device), pCreateInfo, pAllocator, pFence));
 
   if(ret == VK_SUCCESS)
   {
@@ -162,7 +164,8 @@ VkResult WrappedVulkan::vkGetFenceStatus(VkDevice device, VkFence fence)
 {
   SCOPED_DBG_SINK();
 
-  VkResult ret = ObjDisp(device)->GetFenceStatus(Unwrap(device), Unwrap(fence));
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->GetFenceStatus(Unwrap(device), Unwrap(fence)));
 
   if(IsActiveCapturing(m_State))
   {
@@ -205,8 +208,9 @@ VkResult WrappedVulkan::vkResetFences(VkDevice device, uint32_t fenceCount, cons
 {
   SCOPED_DBG_SINK();
 
-  VkResult ret =
-      ObjDisp(device)->ResetFences(Unwrap(device), fenceCount, UnwrapArray(pFences, fenceCount));
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->ResetFences(Unwrap(device), fenceCount,
+                                                         UnwrapArray(pFences, fenceCount)));
 
   if(IsActiveCapturing(m_State))
   {
@@ -248,8 +252,10 @@ VkResult WrappedVulkan::vkWaitForFences(VkDevice device, uint32_t fenceCount,
 {
   SCOPED_DBG_SINK();
 
-  VkResult ret = ObjDisp(device)->WaitForFences(Unwrap(device), fenceCount,
-                                                UnwrapArray(pFences, fenceCount), waitAll, timeout);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->WaitForFences(Unwrap(device), fenceCount,
+                                                           UnwrapArray(pFences, fenceCount),
+                                                           waitAll, timeout));
 
   if(IsActiveCapturing(m_State))
   {
@@ -305,7 +311,9 @@ bool WrappedVulkan::Serialise_vkCreateEvent(SerialiserType &ser, VkDevice device
 VkResult WrappedVulkan::vkCreateEvent(VkDevice device, const VkEventCreateInfo *pCreateInfo,
                                       const VkAllocationCallbacks *pAllocator, VkEvent *pEvent)
 {
-  VkResult ret = ObjDisp(device)->CreateEvent(Unwrap(device), pCreateInfo, pAllocator, pEvent);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateEvent(Unwrap(device), pCreateInfo, pAllocator, pEvent));
 
   if(ret == VK_SUCCESS)
   {
@@ -358,7 +366,8 @@ VkResult WrappedVulkan::vkSetEvent(VkDevice device, VkEvent event)
 {
   SCOPED_DBG_SINK();
 
-  VkResult ret = ObjDisp(device)->SetEvent(Unwrap(device), Unwrap(event));
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->SetEvent(Unwrap(device), Unwrap(event)));
 
   if(IsActiveCapturing(m_State))
   {
@@ -395,7 +404,8 @@ VkResult WrappedVulkan::vkResetEvent(VkDevice device, VkEvent event)
 {
   SCOPED_DBG_SINK();
 
-  VkResult ret = ObjDisp(device)->ResetEvent(Unwrap(device), Unwrap(event));
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->ResetEvent(Unwrap(device), Unwrap(event)));
 
   if(IsActiveCapturing(m_State))
   {
@@ -432,7 +442,8 @@ VkResult WrappedVulkan::vkGetEventStatus(VkDevice device, VkEvent event)
 {
   SCOPED_DBG_SINK();
 
-  VkResult ret = ObjDisp(device)->GetEventStatus(Unwrap(device), Unwrap(event));
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->GetEventStatus(Unwrap(device), Unwrap(event)));
 
   if(IsActiveCapturing(m_State))
   {
@@ -507,8 +518,9 @@ VkResult WrappedVulkan::vkCreateSemaphore(VkDevice device, const VkSemaphoreCrea
                                           const VkAllocationCallbacks *pAllocator,
                                           VkSemaphore *pSemaphore)
 {
-  VkResult ret =
-      ObjDisp(device)->CreateSemaphore(Unwrap(device), pCreateInfo, pAllocator, pSemaphore);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateSemaphore(Unwrap(device), pCreateInfo, pAllocator, pSemaphore));
 
   if(ret == VK_SUCCESS)
   {
@@ -577,7 +589,8 @@ void WrappedVulkan::vkCmdSetEvent(VkCommandBuffer commandBuffer, VkEvent event,
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdSetEvent(Unwrap(commandBuffer), Unwrap(event), stageMask);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetEvent(Unwrap(commandBuffer), Unwrap(event), stageMask));
 
   if(IsCaptureMode(m_State))
   {
@@ -633,7 +646,8 @@ void WrappedVulkan::vkCmdResetEvent(VkCommandBuffer commandBuffer, VkEvent event
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdResetEvent(Unwrap(commandBuffer), Unwrap(event), stageMask);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdResetEvent(Unwrap(commandBuffer), Unwrap(event), stageMask));
 
   if(IsCaptureMode(m_State))
   {
@@ -784,10 +798,11 @@ void WrappedVulkan::vkCmdWaitEvents(VkCommandBuffer commandBuffer, uint32_t even
       im[i].image = Unwrap(im[i].image);
     }
 
-    ObjDisp(commandBuffer)
-        ->CmdWaitEvents(Unwrap(commandBuffer), eventCount, ev, srcStageMask, dstStageMask,
-                        memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, buf,
-                        imageMemoryBarrierCount, im);
+    SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                            ->CmdWaitEvents(Unwrap(commandBuffer), eventCount, ev, srcStageMask,
+                                            dstStageMask, memoryBarrierCount, pMemoryBarriers,
+                                            bufferMemoryBarrierCount, buf, imageMemoryBarrierCount,
+                                            im));
   }
 
   if(IsCaptureMode(m_State))

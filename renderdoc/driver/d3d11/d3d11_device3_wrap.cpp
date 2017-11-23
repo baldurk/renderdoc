@@ -125,7 +125,8 @@ HRESULT WrappedID3D11Device::CreateTexture2D1(const D3D11_TEXTURE2D_DESC1 *pDesc
 
   ID3D11Texture2D1 *real = NULL;
   ID3D11Texture2D1 *wrapped = NULL;
-  HRESULT ret = m_pDevice3->CreateTexture2D1(pDesc1, pInitialData, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice3->CreateTexture2D1(pDesc1, pInitialData, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -261,7 +262,8 @@ HRESULT WrappedID3D11Device::CreateTexture3D1(const D3D11_TEXTURE3D_DESC1 *pDesc
 
   ID3D11Texture3D1 *real = NULL;
   ID3D11Texture3D1 *wrapped = NULL;
-  HRESULT ret = m_pDevice3->CreateTexture3D1(pDesc1, pInitialData, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice3->CreateTexture3D1(pDesc1, pInitialData, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -396,8 +398,9 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView1(ID3D11Resource *pResource
 
   ID3D11ShaderResourceView1 *real = NULL;
   ID3D11ShaderResourceView1 *wrapped = NULL;
-  HRESULT ret = m_pDevice3->CreateShaderResourceView1(
-      GetResourceManager()->UnwrapResource(pResource), pDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice3->CreateShaderResourceView1(
+                          GetResourceManager()->UnwrapResource(pResource), pDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -540,8 +543,9 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView1(ID3D11Resource *pResource,
 
   ID3D11RenderTargetView1 *real = NULL;
   ID3D11RenderTargetView1 *wrapped = NULL;
-  HRESULT ret = m_pDevice3->CreateRenderTargetView1(GetResourceManager()->UnwrapResource(pResource),
-                                                    pDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice3->CreateRenderTargetView1(
+                          GetResourceManager()->UnwrapResource(pResource), pDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -653,8 +657,9 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView1(ID3D11Resource *pResourc
 
   ID3D11UnorderedAccessView1 *real = NULL;
   ID3D11UnorderedAccessView1 *wrapped = NULL;
-  HRESULT ret = m_pDevice3->CreateUnorderedAccessView1(
-      GetResourceManager()->UnwrapResource(pResource), pDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice3->CreateUnorderedAccessView1(
+                          GetResourceManager()->UnwrapResource(pResource), pDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -764,7 +769,8 @@ HRESULT WrappedID3D11Device::CreateRasterizerState2(const D3D11_RASTERIZER_DESC2
     return m_pDevice3->CreateRasterizerState2(pRasterizerDesc, NULL);
 
   ID3D11RasterizerState2 *real = NULL;
-  HRESULT ret = m_pDevice3->CreateRasterizerState2(pRasterizerDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice3->CreateRasterizerState2(pRasterizerDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -854,7 +860,8 @@ HRESULT WrappedID3D11Device::CreateQuery1(const D3D11_QUERY_DESC1 *pQueryDesc, I
 
   ID3D11Query1 *real = NULL;
   ID3D11Query1 *wrapped = NULL;
-  HRESULT ret = m_pDevice3->CreateQuery1(pQueryDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice3->CreateQuery1(pQueryDesc, &real));
 
   if(SUCCEEDED(ret))
   {

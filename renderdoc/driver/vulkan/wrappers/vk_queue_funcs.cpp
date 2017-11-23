@@ -64,7 +64,8 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice dev
 void WrappedVulkan::vkGetDeviceQueue(VkDevice device, uint32_t queueFamilyIndex,
                                      uint32_t queueIndex, VkQueue *pQueue)
 {
-  ObjDisp(device)->GetDeviceQueue(Unwrap(device), queueFamilyIndex, queueIndex, pQueue);
+  SERIALISE_TIME_CALL(
+      ObjDisp(device)->GetDeviceQueue(Unwrap(device), queueFamilyIndex, queueIndex, pQueue));
 
   if(m_SetDeviceLoaderData)
     m_SetDeviceLoaderData(m_Device, *pQueue);
@@ -628,8 +629,9 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     }
   }
 
-  VkResult ret =
-      ObjDisp(queue)->QueueSubmit(Unwrap(queue), submitCount, unwrappedSubmits, Unwrap(fence));
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), submitCount,
+                                                        unwrappedSubmits, Unwrap(fence)));
 
   bool capframe = false;
   set<ResourceId> refdIDs;
@@ -1056,8 +1058,9 @@ VkResult WrappedVulkan::vkQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
     }
   }
 
-  VkResult ret =
-      ObjDisp(queue)->QueueBindSparse(Unwrap(queue), bindInfoCount, unwrapped, Unwrap(fence));
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(queue)->QueueBindSparse(Unwrap(queue), bindInfoCount, unwrapped,
+                                                            Unwrap(fence)));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1131,7 +1134,8 @@ bool WrappedVulkan::Serialise_vkQueueWaitIdle(SerialiserType &ser, VkQueue queue
 
 VkResult WrappedVulkan::vkQueueWaitIdle(VkQueue queue)
 {
-  VkResult ret = ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(queue)->QueueWaitIdle(Unwrap(queue)));
 
   if(IsActiveCapturing(m_State))
   {

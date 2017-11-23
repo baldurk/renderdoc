@@ -91,7 +91,7 @@ bool WrappedOpenGL::Serialise_glGenTextures(SerialiserType &ser, GLsizei n, GLui
 
 void WrappedOpenGL::glGenTextures(GLsizei n, GLuint *textures)
 {
-  m_Real.glGenTextures(n, textures);
+  SERIALISE_TIME_CALL(m_Real.glGenTextures(n, textures));
 
   for(GLsizei i = 0; i < n; i++)
   {
@@ -155,7 +155,7 @@ bool WrappedOpenGL::Serialise_glCreateTextures(SerialiserType &ser, GLenum targe
 
 void WrappedOpenGL::glCreateTextures(GLenum target, GLsizei n, GLuint *textures)
 {
-  m_Real.glCreateTextures(target, n, textures);
+  SERIALISE_TIME_CALL(m_Real.glCreateTextures(target, n, textures));
 
   for(GLsizei i = 0; i < n; i++)
   {
@@ -234,7 +234,7 @@ bool WrappedOpenGL::Serialise_glBindTexture(SerialiserType &ser, GLenum target, 
 
 void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
 {
-  m_Real.glBindTexture(target, texture);
+  SERIALISE_TIME_CALL(m_Real.glBindTexture(target, texture));
 
   if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
     return;
@@ -342,7 +342,7 @@ bool WrappedOpenGL::Serialise_glBindTextures(SerialiserType &ser, GLuint first, 
 // which makes our lives a bit easier
 void WrappedOpenGL::glBindTextures(GLuint first, GLsizei count, const GLuint *textures)
 {
-  m_Real.glBindTextures(first, count, textures);
+  SERIALISE_TIME_CALL(m_Real.glBindTextures(first, count, textures));
 
   if(IsActiveCapturing(m_State))
   {
@@ -395,7 +395,7 @@ bool WrappedOpenGL::Serialise_glBindMultiTextureEXT(SerialiserType &ser, GLenum 
 
 void WrappedOpenGL::glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint texture)
 {
-  m_Real.glBindMultiTextureEXT(texunit, target, texture);
+  SERIALISE_TIME_CALL(m_Real.glBindMultiTextureEXT(texunit, target, texture));
 
   if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
     return;
@@ -478,7 +478,7 @@ bool WrappedOpenGL::Serialise_glBindTextureUnit(SerialiserType &ser, GLuint texu
 
 void WrappedOpenGL::glBindTextureUnit(GLuint unit, GLuint texture)
 {
-  m_Real.glBindTextureUnit(unit, texture);
+  SERIALISE_TIME_CALL(m_Real.glBindTextureUnit(unit, texture));
 
   if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
     return;
@@ -535,7 +535,7 @@ bool WrappedOpenGL::Serialise_glBindImageTexture(SerialiserType &ser, GLuint uni
 void WrappedOpenGL::glBindImageTexture(GLuint unit, GLuint texture, GLint level, GLboolean layered,
                                        GLint layer, GLenum access, GLenum format)
 {
-  m_Real.glBindImageTexture(unit, texture, level, layered, layer, access, format);
+  SERIALISE_TIME_CALL(m_Real.glBindImageTexture(unit, texture, level, layered, layer, access, format));
 
   if(IsActiveCapturing(m_State))
   {
@@ -597,7 +597,7 @@ bool WrappedOpenGL::Serialise_glBindImageTextures(SerialiserType &ser, GLuint fi
 
 void WrappedOpenGL::glBindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
 {
-  m_Real.glBindImageTextures(first, count, textures);
+  SERIALISE_TIME_CALL(m_Real.glBindImageTextures(first, count, textures));
 
   if(IsActiveCapturing(m_State))
   {
@@ -659,8 +659,8 @@ void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtext
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTextureView(texture, target, origtexture, internalformat, minlevel, numlevels, minlayer,
-                       numlayers);
+  SERIALISE_TIME_CALL(m_Real.glTextureView(texture, target, origtexture, internalformat, minlevel,
+                                           numlevels, minlayer, numlayers));
 
   if(IsCaptureMode(m_State))
   {
@@ -780,7 +780,7 @@ void WrappedOpenGL::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, 
 
 void WrappedOpenGL::glGenerateTextureMipmapEXT(GLuint texture, GLenum target)
 {
-  m_Real.glGenerateTextureMipmapEXT(texture, target);
+  SERIALISE_TIME_CALL(m_Real.glGenerateTextureMipmapEXT(texture, target));
 
   if(IsCaptureMode(m_State))
     Common_glGenerateTextureMipmapEXT(
@@ -789,7 +789,7 @@ void WrappedOpenGL::glGenerateTextureMipmapEXT(GLuint texture, GLenum target)
 
 void WrappedOpenGL::glGenerateTextureMipmap(GLuint texture)
 {
-  m_Real.glGenerateTextureMipmap(texture);
+  SERIALISE_TIME_CALL(m_Real.glGenerateTextureMipmap(texture));
 
   if(IsCaptureMode(m_State))
     Common_glGenerateTextureMipmapEXT(
@@ -798,7 +798,7 @@ void WrappedOpenGL::glGenerateTextureMipmap(GLuint texture)
 
 void WrappedOpenGL::glGenerateMipmap(GLenum target)
 {
-  m_Real.glGenerateMipmap(target);
+  SERIALISE_TIME_CALL(m_Real.glGenerateMipmap(target));
 
   if(IsCaptureMode(m_State))
     Common_glGenerateTextureMipmapEXT(GetCtxData().GetActiveTexRecord(), target);
@@ -806,7 +806,7 @@ void WrappedOpenGL::glGenerateMipmap(GLenum target)
 
 void WrappedOpenGL::glGenerateMultiTexMipmapEXT(GLenum texunit, GLenum target)
 {
-  m_Real.glGenerateMultiTexMipmapEXT(texunit, target);
+  SERIALISE_TIME_CALL(m_Real.glGenerateMultiTexMipmapEXT(texunit, target));
 
   if(IsCaptureMode(m_State))
     Common_glGenerateTextureMipmapEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target);
@@ -814,7 +814,7 @@ void WrappedOpenGL::glGenerateMultiTexMipmapEXT(GLenum texunit, GLenum target)
 
 void WrappedOpenGL::glInvalidateTexImage(GLuint texture, GLint level)
 {
-  m_Real.glInvalidateTexImage(texture, level);
+  SERIALISE_TIME_CALL(m_Real.glInvalidateTexImage(texture, level));
 
   if(IsBackgroundCapturing(m_State))
     GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
@@ -826,7 +826,8 @@ void WrappedOpenGL::glInvalidateTexSubImage(GLuint texture, GLint level, GLint x
                                             GLint yoffset, GLint zoffset, GLsizei width,
                                             GLsizei height, GLsizei depth)
 {
-  m_Real.glInvalidateTexSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth);
+  SERIALISE_TIME_CALL(m_Real.glInvalidateTexSubImage(texture, level, xoffset, yoffset, zoffset,
+                                                     width, height, depth));
 
   if(IsBackgroundCapturing(m_State))
     GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
@@ -909,8 +910,9 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget,
-                            dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight, srcDepth);
+  SERIALISE_TIME_CALL(m_Real.glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ,
+                                                dstName, dstTarget, dstLevel, dstX, dstY, dstZ,
+                                                srcWidth, srcHeight, srcDepth));
 
   if(IsActiveCapturing(m_State))
   {
@@ -1004,7 +1006,7 @@ void WrappedOpenGL::Common_glCopyTextureSubImage1DEXT(GLResourceRecord *record, 
 void WrappedOpenGL::glCopyTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level,
                                                GLint xoffset, GLint x, GLint y, GLsizei width)
 {
-  m_Real.glCopyTextureSubImage1DEXT(texture, target, level, xoffset, x, y, width);
+  SERIALISE_TIME_CALL(m_Real.glCopyTextureSubImage1DEXT(texture, target, level, xoffset, x, y, width));
 
   if(IsCaptureMode(m_State))
     Common_glCopyTextureSubImage1DEXT(
@@ -1015,7 +1017,7 @@ void WrappedOpenGL::glCopyTextureSubImage1DEXT(GLuint texture, GLenum target, GL
 void WrappedOpenGL::glCopyTextureSubImage1D(GLuint texture, GLint level, GLint xoffset, GLint x,
                                             GLint y, GLsizei width)
 {
-  m_Real.glCopyTextureSubImage1D(texture, level, xoffset, x, y, width);
+  SERIALISE_TIME_CALL(m_Real.glCopyTextureSubImage1D(texture, level, xoffset, x, y, width));
 
   if(IsCaptureMode(m_State))
     Common_glCopyTextureSubImage1DEXT(
@@ -1026,7 +1028,8 @@ void WrappedOpenGL::glCopyTextureSubImage1D(GLuint texture, GLint level, GLint x
 void WrappedOpenGL::glCopyMultiTexSubImage1DEXT(GLenum texunit, GLenum target, GLint level,
                                                 GLint xoffset, GLint x, GLint y, GLsizei width)
 {
-  m_Real.glCopyMultiTexSubImage1DEXT(texunit, target, level, xoffset, x, y, width);
+  SERIALISE_TIME_CALL(
+      m_Real.glCopyMultiTexSubImage1DEXT(texunit, target, level, xoffset, x, y, width));
 
   if(IsCaptureMode(m_State))
     Common_glCopyTextureSubImage1DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
@@ -1036,7 +1039,7 @@ void WrappedOpenGL::glCopyMultiTexSubImage1DEXT(GLenum texunit, GLenum target, G
 void WrappedOpenGL::glCopyTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLint x, GLint y,
                                         GLsizei width)
 {
-  m_Real.glCopyTexSubImage1D(target, level, xoffset, x, y, width);
+  SERIALISE_TIME_CALL(m_Real.glCopyTexSubImage1D(target, level, xoffset, x, y, width));
 
   if(IsCaptureMode(m_State))
     Common_glCopyTextureSubImage1DEXT(GetCtxData().GetActiveTexRecord(), eGL_NONE, level, xoffset,
@@ -1109,7 +1112,8 @@ void WrappedOpenGL::glCopyTextureSubImage2DEXT(GLuint texture, GLenum target, GL
                                                GLint xoffset, GLint yoffset, GLint x, GLint y,
                                                GLsizei width, GLsizei height)
 {
-  m_Real.glCopyTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, x, y, width, height);
+  SERIALISE_TIME_CALL(m_Real.glCopyTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, x,
+                                                        y, width, height));
 
   if(IsCaptureMode(m_State))
     Common_glCopyTextureSubImage2DEXT(
@@ -1120,7 +1124,8 @@ void WrappedOpenGL::glCopyTextureSubImage2DEXT(GLuint texture, GLenum target, GL
 void WrappedOpenGL::glCopyTextureSubImage2D(GLuint texture, GLint level, GLint xoffset, GLint yoffset,
                                             GLint x, GLint y, GLsizei width, GLsizei height)
 {
-  m_Real.glCopyTextureSubImage2D(texture, level, xoffset, yoffset, x, y, width, height);
+  SERIALISE_TIME_CALL(
+      m_Real.glCopyTextureSubImage2D(texture, level, xoffset, yoffset, x, y, width, height));
 
   if(IsCaptureMode(m_State))
     Common_glCopyTextureSubImage2DEXT(
@@ -1132,7 +1137,8 @@ void WrappedOpenGL::glCopyMultiTexSubImage2DEXT(GLenum texunit, GLenum target, G
                                                 GLint xoffset, GLint yoffset, GLint x, GLint y,
                                                 GLsizei width, GLsizei height)
 {
-  m_Real.glCopyMultiTexSubImage2DEXT(texunit, target, level, xoffset, yoffset, x, y, width, height);
+  SERIALISE_TIME_CALL(m_Real.glCopyMultiTexSubImage2DEXT(texunit, target, level, xoffset, yoffset,
+                                                         x, y, width, height));
 
   if(IsCaptureMode(m_State))
     Common_glCopyTextureSubImage2DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
@@ -1142,7 +1148,8 @@ void WrappedOpenGL::glCopyMultiTexSubImage2DEXT(GLenum texunit, GLenum target, G
 void WrappedOpenGL::glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                                         GLint x, GLint y, GLsizei width, GLsizei height)
 {
-  m_Real.glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+  SERIALISE_TIME_CALL(
+      m_Real.glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height));
 
   if(IsCaptureMode(m_State))
     Common_glCopyTextureSubImage2DEXT(GetCtxData().GetActiveTexRecord(), target, level, xoffset,
@@ -1219,8 +1226,8 @@ void WrappedOpenGL::glCopyTextureSubImage3DEXT(GLuint texture, GLenum target, GL
                                                GLint xoffset, GLint yoffset, GLint zoffset, GLint x,
                                                GLint y, GLsizei width, GLsizei height)
 {
-  m_Real.glCopyTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, x, y, width,
-                                    height);
+  SERIALISE_TIME_CALL(m_Real.glCopyTextureSubImage3DEXT(texture, target, level, xoffset, yoffset,
+                                                        zoffset, x, y, width, height));
 
   if(IsCaptureMode(m_State))
     Common_glCopyTextureSubImage3DEXT(
@@ -1232,7 +1239,8 @@ void WrappedOpenGL::glCopyTextureSubImage3D(GLuint texture, GLint level, GLint x
                                             GLint yoffset, GLint zoffset, GLint x, GLint y,
                                             GLsizei width, GLsizei height)
 {
-  m_Real.glCopyTextureSubImage3D(texture, level, xoffset, yoffset, zoffset, x, y, width, height);
+  SERIALISE_TIME_CALL(m_Real.glCopyTextureSubImage3D(texture, level, xoffset, yoffset, zoffset, x,
+                                                     y, width, height));
 
   if(IsCaptureMode(m_State))
     Common_glCopyTextureSubImage3DEXT(
@@ -1244,8 +1252,8 @@ void WrappedOpenGL::glCopyMultiTexSubImage3DEXT(GLenum texunit, GLenum target, G
                                                 GLint xoffset, GLint yoffset, GLint zoffset,
                                                 GLint x, GLint y, GLsizei width, GLsizei height)
 {
-  m_Real.glCopyMultiTexSubImage3DEXT(texunit, target, level, xoffset, yoffset, zoffset, x, y, width,
-                                     height);
+  SERIALISE_TIME_CALL(m_Real.glCopyMultiTexSubImage3DEXT(texunit, target, level, xoffset, yoffset,
+                                                         zoffset, x, y, width, height));
 
   if(IsCaptureMode(m_State))
     Common_glCopyTextureSubImage3DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
@@ -1256,7 +1264,8 @@ void WrappedOpenGL::glCopyTexSubImage3D(GLenum target, GLint level, GLint xoffse
                                         GLint zoffset, GLint x, GLint y, GLsizei width,
                                         GLsizei height)
 {
-  m_Real.glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
+  SERIALISE_TIME_CALL(
+      m_Real.glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height));
 
   if(IsCaptureMode(m_State))
     Common_glCopyTextureSubImage3DEXT(GetCtxData().GetActiveTexRecord(), target, level, xoffset,
@@ -1344,7 +1353,7 @@ void WrappedOpenGL::Common_glTextureParameteriEXT(GLResourceRecord *record, GLen
 
 void WrappedOpenGL::glTextureParameteri(GLuint texture, GLenum pname, GLint param)
 {
-  m_Real.glTextureParameteri(texture, pname, param);
+  SERIALISE_TIME_CALL(m_Real.glTextureParameteri(texture, pname, param));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameteriEXT(
@@ -1354,7 +1363,7 @@ void WrappedOpenGL::glTextureParameteri(GLuint texture, GLenum pname, GLint para
 
 void WrappedOpenGL::glTextureParameteriEXT(GLuint texture, GLenum target, GLenum pname, GLint param)
 {
-  m_Real.glTextureParameteriEXT(texture, target, pname, param);
+  SERIALISE_TIME_CALL(m_Real.glTextureParameteriEXT(texture, target, pname, param));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameteriEXT(
@@ -1363,7 +1372,7 @@ void WrappedOpenGL::glTextureParameteriEXT(GLuint texture, GLenum target, GLenum
 
 void WrappedOpenGL::glTexParameteri(GLenum target, GLenum pname, GLint param)
 {
-  m_Real.glTexParameteri(target, pname, param);
+  SERIALISE_TIME_CALL(m_Real.glTexParameteri(target, pname, param));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameteriEXT(GetCtxData().GetActiveTexRecord(), target, pname, param);
@@ -1371,7 +1380,7 @@ void WrappedOpenGL::glTexParameteri(GLenum target, GLenum pname, GLint param)
 
 void WrappedOpenGL::glMultiTexParameteriEXT(GLenum texunit, GLenum target, GLenum pname, GLint param)
 {
-  m_Real.glMultiTexParameteriEXT(texunit, target, pname, param);
+  SERIALISE_TIME_CALL(m_Real.glMultiTexParameteriEXT(texunit, target, pname, param));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameteriEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
@@ -1447,7 +1456,7 @@ void WrappedOpenGL::Common_glTextureParameterivEXT(GLResourceRecord *record, GLe
 void WrappedOpenGL::glTextureParameterivEXT(GLuint texture, GLenum target, GLenum pname,
                                             const GLint *params)
 {
-  m_Real.glTextureParameterivEXT(texture, target, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glTextureParameterivEXT(texture, target, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterivEXT(
@@ -1457,7 +1466,7 @@ void WrappedOpenGL::glTextureParameterivEXT(GLuint texture, GLenum target, GLenu
 
 void WrappedOpenGL::glTextureParameteriv(GLuint texture, GLenum pname, const GLint *params)
 {
-  m_Real.glTextureParameteriv(texture, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glTextureParameteriv(texture, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterivEXT(
@@ -1467,7 +1476,7 @@ void WrappedOpenGL::glTextureParameteriv(GLuint texture, GLenum pname, const GLi
 
 void WrappedOpenGL::glTexParameteriv(GLenum target, GLenum pname, const GLint *params)
 {
-  m_Real.glTexParameteriv(target, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glTexParameteriv(target, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterivEXT(GetCtxData().GetActiveTexRecord(), target, pname, params);
@@ -1476,7 +1485,7 @@ void WrappedOpenGL::glTexParameteriv(GLenum target, GLenum pname, const GLint *p
 void WrappedOpenGL::glMultiTexParameterivEXT(GLenum texunit, GLenum target, GLenum pname,
                                              const GLint *params)
 {
-  m_Real.glMultiTexParameterivEXT(texunit, target, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glMultiTexParameterivEXT(texunit, target, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterivEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
@@ -1552,7 +1561,7 @@ void WrappedOpenGL::Common_glTextureParameterIivEXT(GLResourceRecord *record, GL
 void WrappedOpenGL::glTextureParameterIivEXT(GLuint texture, GLenum target, GLenum pname,
                                              const GLint *params)
 {
-  m_Real.glTextureParameterIivEXT(texture, target, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glTextureParameterIivEXT(texture, target, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterIivEXT(
@@ -1562,7 +1571,7 @@ void WrappedOpenGL::glTextureParameterIivEXT(GLuint texture, GLenum target, GLen
 
 void WrappedOpenGL::glTextureParameterIiv(GLuint texture, GLenum pname, const GLint *params)
 {
-  m_Real.glTextureParameterIiv(texture, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glTextureParameterIiv(texture, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterIivEXT(
@@ -1572,7 +1581,7 @@ void WrappedOpenGL::glTextureParameterIiv(GLuint texture, GLenum pname, const GL
 
 void WrappedOpenGL::glTexParameterIiv(GLenum target, GLenum pname, const GLint *params)
 {
-  m_Real.glTexParameterIiv(target, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glTexParameterIiv(target, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterIivEXT(GetCtxData().GetActiveTexRecord(), target, pname, params);
@@ -1581,7 +1590,7 @@ void WrappedOpenGL::glTexParameterIiv(GLenum target, GLenum pname, const GLint *
 void WrappedOpenGL::glMultiTexParameterIivEXT(GLenum texunit, GLenum target, GLenum pname,
                                               const GLint *params)
 {
-  m_Real.glMultiTexParameterIivEXT(texunit, target, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glMultiTexParameterIivEXT(texunit, target, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterIivEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
@@ -1657,7 +1666,7 @@ void WrappedOpenGL::Common_glTextureParameterIuivEXT(GLResourceRecord *record, G
 void WrappedOpenGL::glTextureParameterIuivEXT(GLuint texture, GLenum target, GLenum pname,
                                               const GLuint *params)
 {
-  m_Real.glTextureParameterIuivEXT(texture, target, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glTextureParameterIuivEXT(texture, target, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterIuivEXT(
@@ -1667,7 +1676,7 @@ void WrappedOpenGL::glTextureParameterIuivEXT(GLuint texture, GLenum target, GLe
 
 void WrappedOpenGL::glTextureParameterIuiv(GLuint texture, GLenum pname, const GLuint *params)
 {
-  m_Real.glTextureParameterIuiv(texture, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glTextureParameterIuiv(texture, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterIuivEXT(
@@ -1677,7 +1686,7 @@ void WrappedOpenGL::glTextureParameterIuiv(GLuint texture, GLenum pname, const G
 
 void WrappedOpenGL::glTexParameterIuiv(GLenum target, GLenum pname, const GLuint *params)
 {
-  m_Real.glTexParameterIuiv(target, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glTexParameterIuiv(target, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterIuivEXT(GetCtxData().GetActiveTexRecord(), target, pname, params);
@@ -1686,7 +1695,7 @@ void WrappedOpenGL::glTexParameterIuiv(GLenum target, GLenum pname, const GLuint
 void WrappedOpenGL::glMultiTexParameterIuivEXT(GLenum texunit, GLenum target, GLenum pname,
                                                const GLuint *params)
 {
-  m_Real.glMultiTexParameterIuivEXT(texunit, target, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glMultiTexParameterIuivEXT(texunit, target, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterIuivEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
@@ -1759,7 +1768,7 @@ void WrappedOpenGL::Common_glTextureParameterfEXT(GLResourceRecord *record, GLen
 
 void WrappedOpenGL::glTextureParameterfEXT(GLuint texture, GLenum target, GLenum pname, GLfloat param)
 {
-  m_Real.glTextureParameterfEXT(texture, target, pname, param);
+  SERIALISE_TIME_CALL(m_Real.glTextureParameterfEXT(texture, target, pname, param));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterfEXT(
@@ -1768,7 +1777,7 @@ void WrappedOpenGL::glTextureParameterfEXT(GLuint texture, GLenum target, GLenum
 
 void WrappedOpenGL::glTextureParameterf(GLuint texture, GLenum pname, GLfloat param)
 {
-  m_Real.glTextureParameterf(texture, pname, param);
+  SERIALISE_TIME_CALL(m_Real.glTextureParameterf(texture, pname, param));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterfEXT(
@@ -1778,7 +1787,7 @@ void WrappedOpenGL::glTextureParameterf(GLuint texture, GLenum pname, GLfloat pa
 
 void WrappedOpenGL::glTexParameterf(GLenum target, GLenum pname, GLfloat param)
 {
-  m_Real.glTexParameterf(target, pname, param);
+  SERIALISE_TIME_CALL(m_Real.glTexParameterf(target, pname, param));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterfEXT(GetCtxData().GetActiveTexRecord(), target, pname, param);
@@ -1786,7 +1795,7 @@ void WrappedOpenGL::glTexParameterf(GLenum target, GLenum pname, GLfloat param)
 
 void WrappedOpenGL::glMultiTexParameterfEXT(GLenum texunit, GLenum target, GLenum pname, GLfloat param)
 {
-  m_Real.glMultiTexParameterfEXT(texunit, target, pname, param);
+  SERIALISE_TIME_CALL(m_Real.glMultiTexParameterfEXT(texunit, target, pname, param));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterfEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
@@ -1862,7 +1871,7 @@ void WrappedOpenGL::Common_glTextureParameterfvEXT(GLResourceRecord *record, GLe
 void WrappedOpenGL::glTextureParameterfvEXT(GLuint texture, GLenum target, GLenum pname,
                                             const GLfloat *params)
 {
-  m_Real.glTextureParameterfvEXT(texture, target, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glTextureParameterfvEXT(texture, target, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterfvEXT(
@@ -1872,7 +1881,7 @@ void WrappedOpenGL::glTextureParameterfvEXT(GLuint texture, GLenum target, GLenu
 
 void WrappedOpenGL::glTextureParameterfv(GLuint texture, GLenum pname, const GLfloat *params)
 {
-  m_Real.glTextureParameterfv(texture, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glTextureParameterfv(texture, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterfvEXT(
@@ -1882,7 +1891,7 @@ void WrappedOpenGL::glTextureParameterfv(GLuint texture, GLenum pname, const GLf
 
 void WrappedOpenGL::glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
 {
-  m_Real.glTexParameterfv(target, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glTexParameterfv(target, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterfvEXT(GetCtxData().GetActiveTexRecord(), target, pname, params);
@@ -1891,7 +1900,7 @@ void WrappedOpenGL::glTexParameterfv(GLenum target, GLenum pname, const GLfloat 
 void WrappedOpenGL::glMultiTexParameterfvEXT(GLenum texunit, GLenum target, GLenum pname,
                                              const GLfloat *params)
 {
-  m_Real.glMultiTexParameterfvEXT(texunit, target, pname, params);
+  SERIALISE_TIME_CALL(m_Real.glMultiTexParameterfvEXT(texunit, target, pname, params));
 
   if(IsCaptureMode(m_State))
     Common_glTextureParameterfvEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
@@ -1916,7 +1925,7 @@ bool WrappedOpenGL::Serialise_glPixelStorei(SerialiserType &ser, GLenum pname, G
 
 void WrappedOpenGL::glPixelStorei(GLenum pname, GLint param)
 {
-  m_Real.glPixelStorei(pname, param);
+  SERIALISE_TIME_CALL(m_Real.glPixelStorei(pname, param));
 
   // except for capturing frames we ignore this and embed the relevant
   // parameters in the chunks that reference them.
@@ -1950,7 +1959,7 @@ bool WrappedOpenGL::Serialise_glActiveTexture(SerialiserType &ser, GLenum textur
 
 void WrappedOpenGL::glActiveTexture(GLenum texture)
 {
-  m_Real.glActiveTexture(texture);
+  SERIALISE_TIME_CALL(m_Real.glActiveTexture(texture));
 
   GetCtxData().m_TextureUnit = texture - eGL_TEXTURE0;
 
@@ -2140,8 +2149,8 @@ void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint lev
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
 
-  m_Real.glTextureImage1DEXT(texture, target, level, internalformat, width, border, format, type,
-                             pixels);
+  SERIALISE_TIME_CALL(m_Real.glTextureImage1DEXT(texture, target, level, internalformat, width,
+                                                 border, format, type, pixels));
 
   Common_glTextureImage1DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
                              level, internalformat, width, border, format, type, pixels);
@@ -2152,7 +2161,8 @@ void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalforma
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
 
-  m_Real.glTexImage1D(target, level, internalformat, width, border, format, type, pixels);
+  SERIALISE_TIME_CALL(
+      m_Real.glTexImage1D(target, level, internalformat, width, border, format, type, pixels));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -2177,8 +2187,8 @@ void WrappedOpenGL::glMultiTexImage1DEXT(GLenum texunit, GLenum target, GLint le
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
 
-  m_Real.glMultiTexImage1DEXT(texunit, target, level, internalformat, width, border, format, type,
-                              pixels);
+  SERIALISE_TIME_CALL(m_Real.glMultiTexImage1DEXT(texunit, target, level, internalformat, width,
+                                                  border, format, type, pixels));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -2378,8 +2388,8 @@ void WrappedOpenGL::glTextureImage2DEXT(GLuint texture, GLenum target, GLint lev
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
 
-  m_Real.glTextureImage2DEXT(texture, target, level, internalformat, width, height, border, format,
-                             type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glTextureImage2DEXT(texture, target, level, internalformat, width,
+                                                 height, border, format, type, pixels));
 
   Common_glTextureImage2DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
                              level, internalformat, width, height, border, format, type, pixels);
@@ -2391,7 +2401,8 @@ void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalforma
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
 
-  m_Real.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glTexImage2D(target, level, internalformat, width, height, border,
+                                          format, type, pixels));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -2417,8 +2428,8 @@ void WrappedOpenGL::glMultiTexImage2DEXT(GLenum texunit, GLenum target, GLint le
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
 
-  m_Real.glMultiTexImage2DEXT(texunit, target, level, internalformat, width, height, border, format,
-                              type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glMultiTexImage2DEXT(texunit, target, level, internalformat, width,
+                                                  height, border, format, type, pixels));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -2601,8 +2612,8 @@ void WrappedOpenGL::glTextureImage3DEXT(GLuint texture, GLenum target, GLint lev
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
 
-  m_Real.glTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border,
-                             format, type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glTextureImage3DEXT(texture, target, level, internalformat, width,
+                                                 height, depth, border, format, type, pixels));
 
   Common_glTextureImage3DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
                              level, internalformat, width, height, depth, border, format, type,
@@ -2615,8 +2626,8 @@ void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalforma
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
 
-  m_Real.glTexImage3D(target, level, internalformat, width, height, depth, border, format, type,
-                      pixels);
+  SERIALISE_TIME_CALL(m_Real.glTexImage3D(target, level, internalformat, width, height, depth,
+                                          border, format, type, pixels));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -2642,8 +2653,8 @@ void WrappedOpenGL::glMultiTexImage3DEXT(GLenum texunit, GLenum target, GLint le
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat, type);
 
-  m_Real.glMultiTexImage3DEXT(texunit, target, level, internalformat, width, height, depth, border,
-                              format, type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glMultiTexImage3DEXT(texunit, target, level, internalformat, width,
+                                                  height, depth, border, format, type, pixels));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -2825,8 +2836,8 @@ void WrappedOpenGL::glCompressedTextureImage1DEXT(GLuint texture, GLenum target,
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glCompressedTextureImage1DEXT(texture, target, level, internalformat, width, border,
-                                       imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTextureImage1DEXT(texture, target, level, internalformat,
+                                                           width, border, imageSize, pixels));
 
   Common_glCompressedTextureImage1DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)),
                                        target, level, internalformat, width, border, imageSize,
@@ -2839,7 +2850,8 @@ void WrappedOpenGL::glCompressedTexImage1D(GLenum target, GLint level, GLenum in
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glCompressedTexImage1D(target, level, internalformat, width, border, imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTexImage1D(target, level, internalformat, width, border,
+                                                    imageSize, pixels));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -2864,8 +2876,8 @@ void WrappedOpenGL::glCompressedMultiTexImage1DEXT(GLenum texunit, GLenum target
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glCompressedMultiTexImage1DEXT(texunit, target, level, internalformat, width, border,
-                                        imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedMultiTexImage1DEXT(texunit, target, level, internalformat,
+                                                            width, border, imageSize, pixels));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -3177,8 +3189,8 @@ void WrappedOpenGL::glCompressedTextureImage2DEXT(GLuint texture, GLenum target,
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glCompressedTextureImage2DEXT(texture, target, level, internalformat, width, height,
-                                       border, imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTextureImage2DEXT(
+      texture, target, level, internalformat, width, height, border, imageSize, pixels));
 
   Common_glCompressedTextureImage2DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)),
                                        target, level, internalformat, width, height, border,
@@ -3191,8 +3203,8 @@ void WrappedOpenGL::glCompressedTexImage2D(GLenum target, GLint level, GLenum in
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize,
-                                pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTexImage2D(target, level, internalformat, width, height,
+                                                    border, imageSize, pixels));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -3218,8 +3230,8 @@ void WrappedOpenGL::glCompressedMultiTexImage2DEXT(GLenum texunit, GLenum target
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glCompressedMultiTexImage2DEXT(texunit, target, level, internalformat, width, height,
-                                        border, imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedMultiTexImage2DEXT(
+      texunit, target, level, internalformat, width, height, border, imageSize, pixels));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -3416,8 +3428,8 @@ void WrappedOpenGL::glCompressedTextureImage3DEXT(GLuint texture, GLenum target,
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glCompressedTextureImage3DEXT(texture, target, level, internalformat, width, height, depth,
-                                       border, imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTextureImage3DEXT(
+      texture, target, level, internalformat, width, height, depth, border, imageSize, pixels));
 
   Common_glCompressedTextureImage3DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)),
                                        target, level, internalformat, width, height, depth, border,
@@ -3430,8 +3442,8 @@ void WrappedOpenGL::glCompressedTexImage3D(GLenum target, GLint level, GLenum in
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glCompressedTexImage3D(target, level, internalformat, width, height, depth, border,
-                                imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTexImage3D(target, level, internalformat, width, height,
+                                                    depth, border, imageSize, pixels));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -3457,8 +3469,8 @@ void WrappedOpenGL::glCompressedMultiTexImage3DEXT(GLenum texunit, GLenum target
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glCompressedMultiTexImage3DEXT(texunit, target, level, internalformat, width, height,
-                                        depth, border, imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedMultiTexImage3DEXT(
+      texunit, target, level, internalformat, width, height, depth, border, imageSize, pixels));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -3594,7 +3606,8 @@ void WrappedOpenGL::glCopyTextureImage1DEXT(GLuint texture, GLenum target, GLint
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
 
-  m_Real.glCopyTextureImage1DEXT(texture, target, level, internalformat, x, y, width, border);
+  SERIALISE_TIME_CALL(
+      m_Real.glCopyTextureImage1DEXT(texture, target, level, internalformat, x, y, width, border));
 
   Common_glCopyTextureImage1DEXT(
       GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, level,
@@ -3607,7 +3620,8 @@ void WrappedOpenGL::glCopyMultiTexImage1DEXT(GLenum texunit, GLenum target, GLin
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
 
-  m_Real.glCopyMultiTexImage1DEXT(texunit, target, level, internalformat, x, y, width, border);
+  SERIALISE_TIME_CALL(
+      m_Real.glCopyMultiTexImage1DEXT(texunit, target, level, internalformat, x, y, width, border));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -3623,7 +3637,7 @@ void WrappedOpenGL::glCopyTexImage1D(GLenum target, GLint level, GLenum internal
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
 
-  m_Real.glCopyTexImage1D(target, level, internalformat, x, y, width, border);
+  SERIALISE_TIME_CALL(m_Real.glCopyTexImage1D(target, level, internalformat, x, y, width, border));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -3748,7 +3762,8 @@ void WrappedOpenGL::glCopyTextureImage2DEXT(GLuint texture, GLenum target, GLint
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
 
-  m_Real.glCopyTextureImage2DEXT(texture, target, level, internalformat, x, y, width, height, border);
+  SERIALISE_TIME_CALL(m_Real.glCopyTextureImage2DEXT(texture, target, level, internalformat, x, y,
+                                                     width, height, border));
 
   Common_glCopyTextureImage2DEXT(
       GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, level,
@@ -3761,8 +3776,8 @@ void WrappedOpenGL::glCopyMultiTexImage2DEXT(GLenum texunit, GLenum target, GLin
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
 
-  m_Real.glCopyMultiTexImage2DEXT(texunit, target, level, internalformat, x, y, width, height,
-                                  border);
+  SERIALISE_TIME_CALL(m_Real.glCopyMultiTexImage2DEXT(texunit, target, level, internalformat, x, y,
+                                                      width, height, border));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -3778,7 +3793,8 @@ void WrappedOpenGL::glCopyTexImage2D(GLenum target, GLint level, GLenum internal
 {
   internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
 
-  m_Real.glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
+  SERIALISE_TIME_CALL(
+      m_Real.glCopyTexImage2D(target, level, internalformat, x, y, width, height, border));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -3878,7 +3894,7 @@ void WrappedOpenGL::glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTextureStorage1DEXT(texture, target, levels, internalformat, width);
+  SERIALISE_TIME_CALL(m_Real.glTextureStorage1DEXT(texture, target, levels, internalformat, width));
 
   Common_glTextureStorage1DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
                                levels, internalformat, width);
@@ -3889,7 +3905,7 @@ void WrappedOpenGL::glTextureStorage1D(GLuint texture, GLsizei levels, GLenum in
 {
   internalformat = GetSizedFormat(m_Real, eGL_NONE, internalformat);
 
-  m_Real.glTextureStorage1D(texture, levels, internalformat, width);
+  SERIALISE_TIME_CALL(m_Real.glTextureStorage1D(texture, levels, internalformat, width));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -3904,7 +3920,7 @@ void WrappedOpenGL::glTexStorage1D(GLenum target, GLsizei levels, GLenum interna
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTexStorage1D(target, levels, internalformat, width);
+  SERIALISE_TIME_CALL(m_Real.glTexStorage1D(target, levels, internalformat, width));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -4009,7 +4025,8 @@ void WrappedOpenGL::glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTextureStorage2DEXT(texture, target, levels, internalformat, width, height);
+  SERIALISE_TIME_CALL(
+      m_Real.glTextureStorage2DEXT(texture, target, levels, internalformat, width, height));
 
   Common_glTextureStorage2DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
                                levels, internalformat, width, height);
@@ -4020,7 +4037,7 @@ void WrappedOpenGL::glTextureStorage2D(GLuint texture, GLsizei levels, GLenum in
 {
   internalformat = GetSizedFormat(m_Real, eGL_NONE, internalformat);
 
-  m_Real.glTextureStorage2D(texture, levels, internalformat, width, height);
+  SERIALISE_TIME_CALL(m_Real.glTextureStorage2D(texture, levels, internalformat, width, height));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -4036,7 +4053,7 @@ void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum interna
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTexStorage2D(target, levels, internalformat, width, height);
+  SERIALISE_TIME_CALL(m_Real.glTexStorage2D(target, levels, internalformat, width, height));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -4146,7 +4163,8 @@ void WrappedOpenGL::glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTextureStorage3DEXT(texture, target, levels, internalformat, width, height, depth);
+  SERIALISE_TIME_CALL(
+      m_Real.glTextureStorage3DEXT(texture, target, levels, internalformat, width, height, depth));
 
   Common_glTextureStorage3DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
                                levels, internalformat, width, height, depth);
@@ -4157,7 +4175,8 @@ void WrappedOpenGL::glTextureStorage3D(GLuint texture, GLsizei levels, GLenum in
 {
   internalformat = GetSizedFormat(m_Real, eGL_NONE, internalformat);
 
-  m_Real.glTextureStorage3D(texture, levels, internalformat, width, height, depth);
+  SERIALISE_TIME_CALL(
+      m_Real.glTextureStorage3D(texture, levels, internalformat, width, height, depth));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -4173,7 +4192,7 @@ void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum interna
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTexStorage3D(target, levels, internalformat, width, height, depth);
+  SERIALISE_TIME_CALL(m_Real.glTexStorage3D(target, levels, internalformat, width, height, depth));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -4288,8 +4307,8 @@ void WrappedOpenGL::glTextureStorage2DMultisampleEXT(GLuint texture, GLenum targ
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTextureStorage2DMultisampleEXT(texture, target, samples, internalformat, width, height,
-                                          fixedsamplelocations);
+  SERIALISE_TIME_CALL(m_Real.glTextureStorage2DMultisampleEXT(
+      texture, target, samples, internalformat, width, height, fixedsamplelocations));
 
   Common_glTextureStorage2DMultisampleEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)),
                                           target, samples, internalformat, width, height,
@@ -4302,8 +4321,8 @@ void WrappedOpenGL::glTextureStorage2DMultisample(GLuint texture, GLsizei sample
 {
   internalformat = GetSizedFormat(m_Real, eGL_NONE, internalformat);
 
-  m_Real.glTextureStorage2DMultisample(texture, samples, internalformat, width, height,
-                                       fixedsamplelocations);
+  SERIALISE_TIME_CALL(m_Real.glTextureStorage2DMultisample(texture, samples, internalformat, width,
+                                                           height, fixedsamplelocations));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -4321,8 +4340,8 @@ void WrappedOpenGL::glTexStorage2DMultisample(GLenum target, GLsizei samples, GL
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTexStorage2DMultisample(target, samples, internalformat, width, height,
-                                   fixedsamplelocations);
+  SERIALISE_TIME_CALL(m_Real.glTexStorage2DMultisample(target, samples, internalformat, width,
+                                                       height, fixedsamplelocations));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -4347,8 +4366,8 @@ void WrappedOpenGL::glTexImage2DMultisample(GLenum target, GLsizei samples, GLen
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTexImage2DMultisample(target, samples, internalformat, width, height,
-                                 fixedsamplelocations);
+  SERIALISE_TIME_CALL(m_Real.glTexImage2DMultisample(target, samples, internalformat, width, height,
+                                                     fixedsamplelocations));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -4470,8 +4489,8 @@ void WrappedOpenGL::glTextureStorage3DMultisampleEXT(GLuint texture, GLenum targ
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTextureStorage3DMultisampleEXT(texture, target, samples, internalformat, width, height,
-                                          depth, fixedsamplelocations);
+  SERIALISE_TIME_CALL(m_Real.glTextureStorage3DMultisampleEXT(
+      texture, target, samples, internalformat, width, height, depth, fixedsamplelocations));
 
   Common_glTextureStorage3DMultisampleEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)),
                                           target, samples, internalformat, width, height, depth,
@@ -4485,8 +4504,8 @@ void WrappedOpenGL::glTextureStorage3DMultisample(GLuint texture, GLsizei sample
 {
   internalformat = GetSizedFormat(m_Real, eGL_NONE, internalformat);
 
-  m_Real.glTextureStorage3DMultisample(texture, samples, internalformat, width, height, depth,
-                                       fixedsamplelocations);
+  SERIALISE_TIME_CALL(m_Real.glTextureStorage3DMultisample(texture, samples, internalformat, width,
+                                                           height, depth, fixedsamplelocations));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -4504,8 +4523,8 @@ void WrappedOpenGL::glTexStorage3DMultisample(GLenum target, GLsizei samples, GL
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTexStorage3DMultisample(target, samples, internalformat, width, height, depth,
-                                   fixedsamplelocations);
+  SERIALISE_TIME_CALL(m_Real.glTexStorage3DMultisample(target, samples, internalformat, width,
+                                                       height, depth, fixedsamplelocations));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -4531,8 +4550,8 @@ void WrappedOpenGL::glTexImage3DMultisample(GLenum target, GLsizei samples, GLen
 {
   internalformat = GetSizedFormat(m_Real, target, internalformat);
 
-  m_Real.glTexImage3DMultisample(target, samples, internalformat, width, height, depth,
-                                 fixedsamplelocations);
+  SERIALISE_TIME_CALL(m_Real.glTexImage3DMultisample(target, samples, internalformat, width, height,
+                                                     depth, fixedsamplelocations));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -4723,7 +4742,8 @@ void WrappedOpenGL::glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint 
                                            GLint xoffset, GLsizei width, GLenum format, GLenum type,
                                            const void *pixels)
 {
-  m_Real.glTextureSubImage1DEXT(texture, target, level, xoffset, width, format, type, pixels);
+  SERIALISE_TIME_CALL(
+      m_Real.glTextureSubImage1DEXT(texture, target, level, xoffset, width, format, type, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glTextureSubImage1DEXT(
@@ -4734,7 +4754,8 @@ void WrappedOpenGL::glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint 
 void WrappedOpenGL::glTextureSubImage1D(GLuint texture, GLint level, GLint xoffset, GLsizei width,
                                         GLenum format, GLenum type, const void *pixels)
 {
-  m_Real.glTextureSubImage1D(texture, level, xoffset, width, format, type, pixels);
+  SERIALISE_TIME_CALL(
+      m_Real.glTextureSubImage1D(texture, level, xoffset, width, format, type, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glTextureSubImage1DEXT(
@@ -4745,7 +4766,7 @@ void WrappedOpenGL::glTextureSubImage1D(GLuint texture, GLint level, GLint xoffs
 void WrappedOpenGL::glTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLsizei width,
                                     GLenum format, GLenum type, const void *pixels)
 {
-  m_Real.glTexSubImage1D(target, level, xoffset, width, format, type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glTexSubImage1D(target, level, xoffset, width, format, type, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glTextureSubImage1DEXT(GetCtxData().GetActiveTexRecord(), target, level, xoffset, width,
@@ -4756,7 +4777,8 @@ void WrappedOpenGL::glMultiTexSubImage1DEXT(GLenum texunit, GLenum target, GLint
                                             GLint xoffset, GLsizei width, GLenum format,
                                             GLenum type, const void *pixels)
 {
-  m_Real.glMultiTexSubImage1DEXT(texunit, target, level, xoffset, width, format, type, pixels);
+  SERIALISE_TIME_CALL(
+      m_Real.glMultiTexSubImage1DEXT(texunit, target, level, xoffset, width, format, type, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glTextureSubImage1DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
@@ -4931,8 +4953,8 @@ void WrappedOpenGL::glTextureSubImage2DEXT(GLuint texture, GLenum target, GLint 
                                            GLint yoffset, GLsizei width, GLsizei height,
                                            GLenum format, GLenum type, const void *pixels)
 {
-  m_Real.glTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width, height, format,
-                                type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width,
+                                                    height, format, type, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glTextureSubImage2DEXT(
@@ -4944,7 +4966,8 @@ void WrappedOpenGL::glTextureSubImage2D(GLuint texture, GLint level, GLint xoffs
                                         GLsizei width, GLsizei height, GLenum format, GLenum type,
                                         const void *pixels)
 {
-  m_Real.glTextureSubImage2D(texture, level, xoffset, yoffset, width, height, format, type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glTextureSubImage2D(texture, level, xoffset, yoffset, width, height,
+                                                 format, type, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glTextureSubImage2DEXT(
@@ -4956,7 +4979,8 @@ void WrappedOpenGL::glTexSubImage2D(GLenum target, GLint level, GLint xoffset, G
                                     GLsizei width, GLsizei height, GLenum format, GLenum type,
                                     const void *pixels)
 {
-  m_Real.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
+  SERIALISE_TIME_CALL(
+      m_Real.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glTextureSubImage2DEXT(GetCtxData().GetActiveTexRecord(), target, level, xoffset,
@@ -4967,8 +4991,8 @@ void WrappedOpenGL::glMultiTexSubImage2DEXT(GLenum texunit, GLenum target, GLint
                                             GLint yoffset, GLsizei width, GLsizei height,
                                             GLenum format, GLenum type, const void *pixels)
 {
-  m_Real.glMultiTexSubImage2DEXT(texunit, target, level, xoffset, yoffset, width, height, format,
-                                 type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glMultiTexSubImage2DEXT(texunit, target, level, xoffset, yoffset,
+                                                     width, height, format, type, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glTextureSubImage2DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
@@ -5149,8 +5173,8 @@ void WrappedOpenGL::glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint 
                                            GLsizei width, GLsizei height, GLsizei depth,
                                            GLenum format, GLenum type, const void *pixels)
 {
-  m_Real.glTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, width, height,
-                                depth, format, type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glTextureSubImage3DEXT(
+      texture, target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glTextureSubImage3DEXT(
@@ -5162,8 +5186,8 @@ void WrappedOpenGL::glTextureSubImage3D(GLuint texture, GLint level, GLint xoffs
                                         GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
                                         GLenum format, GLenum type, const void *pixels)
 {
-  m_Real.glTextureSubImage3D(texture, level, xoffset, yoffset, zoffset, width, height, depth,
-                             format, type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glTextureSubImage3D(texture, level, xoffset, yoffset, zoffset, width,
+                                                 height, depth, format, type, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glTextureSubImage3DEXT(
@@ -5175,8 +5199,8 @@ void WrappedOpenGL::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, G
                                     GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
                                     GLenum format, GLenum type, const void *pixels)
 {
-  m_Real.glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format,
-                         type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width,
+                                             height, depth, format, type, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glTextureSubImage3DEXT(GetCtxData().GetActiveTexRecord(), target, level, xoffset,
@@ -5188,8 +5212,8 @@ void WrappedOpenGL::glMultiTexSubImage3DEXT(GLenum texunit, GLenum target, GLint
                                             GLsizei width, GLsizei height, GLsizei depth,
                                             GLenum format, GLenum type, const void *pixels)
 {
-  m_Real.glMultiTexSubImage3DEXT(texunit, target, level, xoffset, yoffset, zoffset, width, height,
-                                 depth, format, type, pixels);
+  SERIALISE_TIME_CALL(m_Real.glMultiTexSubImage3DEXT(
+      texunit, target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glTextureSubImage3DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
@@ -5347,8 +5371,8 @@ void WrappedOpenGL::glCompressedTextureSubImage1DEXT(GLuint texture, GLenum targ
                                                      GLint xoffset, GLsizei width, GLenum format,
                                                      GLsizei imageSize, const void *pixels)
 {
-  m_Real.glCompressedTextureSubImage1DEXT(texture, target, level, xoffset, width, format, imageSize,
-                                          pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTextureSubImage1DEXT(texture, target, level, xoffset,
+                                                              width, format, imageSize, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glCompressedTextureSubImage1DEXT(
@@ -5360,7 +5384,8 @@ void WrappedOpenGL::glCompressedTextureSubImage1D(GLuint texture, GLint level, G
                                                   GLsizei width, GLenum format, GLsizei imageSize,
                                                   const void *pixels)
 {
-  m_Real.glCompressedTextureSubImage1D(texture, level, xoffset, width, format, imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTextureSubImage1D(texture, level, xoffset, width, format,
+                                                           imageSize, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glCompressedTextureSubImage1DEXT(
@@ -5372,7 +5397,8 @@ void WrappedOpenGL::glCompressedTexSubImage1D(GLenum target, GLint level, GLint 
                                               GLsizei width, GLenum format, GLsizei imageSize,
                                               const void *pixels)
 {
-  m_Real.glCompressedTexSubImage1D(target, level, xoffset, width, format, imageSize, pixels);
+  SERIALISE_TIME_CALL(
+      m_Real.glCompressedTexSubImage1D(target, level, xoffset, width, format, imageSize, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glCompressedTextureSubImage1DEXT(GetCtxData().GetActiveTexRecord(), target, level,
@@ -5383,8 +5409,8 @@ void WrappedOpenGL::glCompressedMultiTexSubImage1DEXT(GLenum texunit, GLenum tar
                                                       GLint xoffset, GLsizei width, GLenum format,
                                                       GLsizei imageSize, const void *pixels)
 {
-  m_Real.glCompressedMultiTexSubImage1DEXT(texunit, target, level, xoffset, width, format,
-                                           imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedMultiTexSubImage1DEXT(texunit, target, level, xoffset,
+                                                               width, format, imageSize, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glCompressedTextureSubImage1DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0],
@@ -5558,8 +5584,8 @@ void WrappedOpenGL::glCompressedTextureSubImage2DEXT(GLuint texture, GLenum targ
                                                      GLsizei height, GLenum format,
                                                      GLsizei imageSize, const void *pixels)
 {
-  m_Real.glCompressedTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width, height,
-                                          format, imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTextureSubImage2DEXT(
+      texture, target, level, xoffset, yoffset, width, height, format, imageSize, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glCompressedTextureSubImage2DEXT(
@@ -5572,8 +5598,8 @@ void WrappedOpenGL::glCompressedTextureSubImage2D(GLuint texture, GLint level, G
                                                   GLenum format, GLsizei imageSize,
                                                   const void *pixels)
 {
-  m_Real.glCompressedTextureSubImage2D(texture, level, xoffset, yoffset, width, height, format,
-                                       imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTextureSubImage2D(texture, level, xoffset, yoffset, width,
+                                                           height, format, imageSize, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glCompressedTextureSubImage2DEXT(
@@ -5585,8 +5611,8 @@ void WrappedOpenGL::glCompressedTexSubImage2D(GLenum target, GLint level, GLint 
                                               GLint yoffset, GLsizei width, GLsizei height,
                                               GLenum format, GLsizei imageSize, const void *pixels)
 {
-  m_Real.glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format,
-                                   imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTexSubImage2D(target, level, xoffset, yoffset, width,
+                                                       height, format, imageSize, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glCompressedTextureSubImage2DEXT(GetCtxData().GetActiveTexRecord(), target, level, xoffset,
@@ -5598,8 +5624,8 @@ void WrappedOpenGL::glCompressedMultiTexSubImage2DEXT(GLenum texunit, GLenum tar
                                                       GLsizei height, GLenum format,
                                                       GLsizei imageSize, const void *pixels)
 {
-  m_Real.glCompressedMultiTexSubImage2DEXT(texunit, target, level, xoffset, yoffset, width, height,
-                                           format, imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedMultiTexSubImage2DEXT(
+      texunit, target, level, xoffset, yoffset, width, height, format, imageSize, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glCompressedTextureSubImage2DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0],
@@ -5775,8 +5801,9 @@ void WrappedOpenGL::glCompressedTextureSubImage3DEXT(GLuint texture, GLenum targ
                                                      GLenum format, GLsizei imageSize,
                                                      const void *pixels)
 {
-  m_Real.glCompressedTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, width,
-                                          height, depth, format, imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTextureSubImage3DEXT(texture, target, level, xoffset,
+                                                              yoffset, zoffset, width, height,
+                                                              depth, format, imageSize, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glCompressedTextureSubImage3DEXT(
@@ -5789,8 +5816,8 @@ void WrappedOpenGL::glCompressedTextureSubImage3D(GLuint texture, GLint level, G
                                                   GLsizei height, GLsizei depth, GLenum format,
                                                   GLsizei imageSize, const void *pixels)
 {
-  m_Real.glCompressedTextureSubImage3D(texture, level, xoffset, yoffset, zoffset, width, height,
-                                       depth, format, imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTextureSubImage3D(
+      texture, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glCompressedTextureSubImage3DEXT(
@@ -5803,8 +5830,8 @@ void WrappedOpenGL::glCompressedTexSubImage3D(GLenum target, GLint level, GLint 
                                               GLsizei height, GLsizei depth, GLenum format,
                                               GLsizei imageSize, const void *pixels)
 {
-  m_Real.glCompressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth,
-                                   format, imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedTexSubImage3D(
+      target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glCompressedTextureSubImage3DEXT(GetCtxData().GetActiveTexRecord(), target, level,
@@ -5818,8 +5845,9 @@ void WrappedOpenGL::glCompressedMultiTexSubImage3DEXT(GLenum texunit, GLenum tar
                                                       GLenum format, GLsizei imageSize,
                                                       const void *pixels)
 {
-  m_Real.glCompressedMultiTexSubImage3DEXT(texunit, target, level, xoffset, yoffset, zoffset, width,
-                                           height, depth, format, imageSize, pixels);
+  SERIALISE_TIME_CALL(m_Real.glCompressedMultiTexSubImage3DEXT(texunit, target, level, xoffset,
+                                                               yoffset, zoffset, width, height,
+                                                               depth, format, imageSize, pixels));
 
   if(IsCaptureMode(m_State))
     Common_glCompressedTextureSubImage3DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0],
@@ -5966,7 +5994,8 @@ void WrappedOpenGL::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum targ
 void WrappedOpenGL::glTextureBufferRangeEXT(GLuint texture, GLenum target, GLenum internalformat,
                                             GLuint buffer, GLintptr offset, GLsizeiptr size)
 {
-  m_Real.glTextureBufferRangeEXT(texture, target, internalformat, buffer, offset, size);
+  SERIALISE_TIME_CALL(
+      m_Real.glTextureBufferRangeEXT(texture, target, internalformat, buffer, offset, size));
 
   Common_glTextureBufferRangeEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
                                  internalformat, buffer, offset, size);
@@ -5975,7 +6004,7 @@ void WrappedOpenGL::glTextureBufferRangeEXT(GLuint texture, GLenum target, GLenu
 void WrappedOpenGL::glTextureBufferRange(GLuint texture, GLenum internalformat, GLuint buffer,
                                          GLintptr offset, GLsizeiptr size)
 {
-  m_Real.glTextureBufferRange(texture, internalformat, buffer, offset, size);
+  SERIALISE_TIME_CALL(m_Real.glTextureBufferRange(texture, internalformat, buffer, offset, size));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -5989,7 +6018,7 @@ void WrappedOpenGL::glTextureBufferRange(GLuint texture, GLenum internalformat, 
 void WrappedOpenGL::glTexBufferRange(GLenum target, GLenum internalformat, GLuint buffer,
                                      GLintptr offset, GLsizeiptr size)
 {
-  m_Real.glTexBufferRange(target, internalformat, buffer, offset, size);
+  SERIALISE_TIME_CALL(m_Real.glTexBufferRange(target, internalformat, buffer, offset, size));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -6149,7 +6178,7 @@ void WrappedOpenGL::Common_glTextureBufferEXT(ResourceId texId, GLenum target,
 void WrappedOpenGL::glTextureBufferEXT(GLuint texture, GLenum target, GLenum internalformat,
                                        GLuint buffer)
 {
-  m_Real.glTextureBufferEXT(texture, target, internalformat, buffer);
+  SERIALISE_TIME_CALL(m_Real.glTextureBufferEXT(texture, target, internalformat, buffer));
 
   Common_glTextureBufferEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
                             internalformat, buffer);
@@ -6157,7 +6186,7 @@ void WrappedOpenGL::glTextureBufferEXT(GLuint texture, GLenum target, GLenum int
 
 void WrappedOpenGL::glTextureBuffer(GLuint texture, GLenum internalformat, GLuint buffer)
 {
-  m_Real.glTextureBuffer(texture, internalformat, buffer);
+  SERIALISE_TIME_CALL(m_Real.glTextureBuffer(texture, internalformat, buffer));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -6170,7 +6199,7 @@ void WrappedOpenGL::glTextureBuffer(GLuint texture, GLenum internalformat, GLuin
 
 void WrappedOpenGL::glTexBuffer(GLenum target, GLenum internalformat, GLuint buffer)
 {
-  m_Real.glTexBuffer(target, internalformat, buffer);
+  SERIALISE_TIME_CALL(m_Real.glTexBuffer(target, internalformat, buffer));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
@@ -6191,7 +6220,7 @@ void WrappedOpenGL::glTexBuffer(GLenum target, GLenum internalformat, GLuint buf
 void WrappedOpenGL::glMultiTexBufferEXT(GLenum texunit, GLenum target, GLenum internalformat,
                                         GLuint buffer)
 {
-  m_Real.glMultiTexBufferEXT(texunit, target, internalformat, buffer);
+  SERIALISE_TIME_CALL(m_Real.glMultiTexBufferEXT(texunit, target, internalformat, buffer));
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay

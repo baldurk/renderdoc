@@ -196,8 +196,9 @@ VkResult WrappedVulkan::vkCreateDescriptorPool(VkDevice device,
                                                const VkAllocationCallbacks *pAllocator,
                                                VkDescriptorPool *pDescriptorPool)
 {
-  VkResult ret = ObjDisp(device)->CreateDescriptorPool(Unwrap(device), pCreateInfo, pAllocator,
-                                                       pDescriptorPool);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateDescriptorPool(Unwrap(device), pCreateInfo,
+                                                                  pAllocator, pDescriptorPool));
 
   if(ret == VK_SUCCESS)
   {
@@ -302,8 +303,9 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(VkDevice device,
                                                     VkDescriptorSetLayout *pSetLayout)
 {
   VkDescriptorSetLayoutCreateInfo unwrapped = UnwrapInfo(pCreateInfo);
-  VkResult ret =
-      ObjDisp(device)->CreateDescriptorSetLayout(Unwrap(device), &unwrapped, pAllocator, pSetLayout);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateDescriptorSetLayout(Unwrap(device), &unwrapped,
+                                                                       pAllocator, pSetLayout));
 
   if(ret == VK_SUCCESS)
   {
@@ -402,7 +404,9 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
                                                  VkDescriptorSet *pDescriptorSets)
 {
   VkDescriptorSetAllocateInfo unwrapped = UnwrapInfo(pAllocateInfo);
-  VkResult ret = ObjDisp(device)->AllocateDescriptorSets(Unwrap(device), &unwrapped, pDescriptorSets);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->AllocateDescriptorSets(Unwrap(device), &unwrapped, pDescriptorSets));
 
   if(ret != VK_SUCCESS)
     return ret;
@@ -836,8 +840,8 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       unwrappedCopies[i].srcSet = Unwrap(unwrappedCopies[i].srcSet);
     }
 
-    ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), writeCount, unwrappedWrites, copyCount,
-                                          unwrappedCopies);
+    SERIALISE_TIME_CALL(ObjDisp(device)->UpdateDescriptorSets(
+        Unwrap(device), writeCount, unwrappedWrites, copyCount, unwrappedCopies));
   }
 
   bool capframe = false;

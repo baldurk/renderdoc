@@ -72,7 +72,9 @@ void WrappedVulkan::vkCmdSetViewport(VkCommandBuffer commandBuffer, uint32_t fir
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdSetViewport(Unwrap(commandBuffer), firstViewport, viewportCount, pViewports);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdSetViewport(Unwrap(commandBuffer), firstViewport, viewportCount, pViewports));
 
   if(IsCaptureMode(m_State))
   {
@@ -134,7 +136,9 @@ void WrappedVulkan::vkCmdSetScissor(VkCommandBuffer commandBuffer, uint32_t firs
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdSetScissor(Unwrap(commandBuffer), firstScissor, scissorCount, pScissors);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdSetScissor(Unwrap(commandBuffer), firstScissor, scissorCount, pScissors));
 
   if(IsCaptureMode(m_State))
   {
@@ -189,7 +193,7 @@ void WrappedVulkan::vkCmdSetLineWidth(VkCommandBuffer commandBuffer, float lineW
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdSetLineWidth(Unwrap(commandBuffer), lineWidth);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdSetLineWidth(Unwrap(commandBuffer), lineWidth));
 
   if(IsCaptureMode(m_State))
   {
@@ -251,8 +255,9 @@ void WrappedVulkan::vkCmdSetDepthBias(VkCommandBuffer commandBuffer, float depth
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)
-      ->CmdSetDepthBias(Unwrap(commandBuffer), depthBias, depthBiasClamp, slopeScaledDepthBias);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdSetDepthBias(Unwrap(commandBuffer), depthBias, depthBiasClamp,
+                                            slopeScaledDepthBias));
 
   if(IsCaptureMode(m_State))
   {
@@ -308,7 +313,7 @@ void WrappedVulkan::vkCmdSetBlendConstants(VkCommandBuffer commandBuffer, const 
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdSetBlendConstants(Unwrap(commandBuffer), blendConst);
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdSetBlendConstants(Unwrap(commandBuffer), blendConst));
 
   if(IsCaptureMode(m_State))
   {
@@ -366,7 +371,8 @@ void WrappedVulkan::vkCmdSetDepthBounds(VkCommandBuffer commandBuffer, float min
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdSetDepthBounds(Unwrap(commandBuffer), minDepthBounds, maxDepthBounds);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetDepthBounds(Unwrap(commandBuffer), minDepthBounds, maxDepthBounds));
 
   if(IsCaptureMode(m_State))
   {
@@ -428,7 +434,8 @@ void WrappedVulkan::vkCmdSetStencilCompareMask(VkCommandBuffer commandBuffer,
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdSetStencilCompareMask(Unwrap(commandBuffer), faceMask, compareMask);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetStencilCompareMask(Unwrap(commandBuffer), faceMask, compareMask));
 
   if(IsCaptureMode(m_State))
   {
@@ -490,7 +497,8 @@ void WrappedVulkan::vkCmdSetStencilWriteMask(VkCommandBuffer commandBuffer,
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdSetStencilWriteMask(Unwrap(commandBuffer), faceMask, writeMask);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetStencilWriteMask(Unwrap(commandBuffer), faceMask, writeMask));
 
   if(IsCaptureMode(m_State))
   {
@@ -552,7 +560,8 @@ void WrappedVulkan::vkCmdSetStencilReference(VkCommandBuffer commandBuffer,
 {
   SCOPED_DBG_SINK();
 
-  ObjDisp(commandBuffer)->CmdSetStencilReference(Unwrap(commandBuffer), faceMask, reference);
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetStencilReference(Unwrap(commandBuffer), faceMask, reference));
 
   if(IsCaptureMode(m_State))
   {

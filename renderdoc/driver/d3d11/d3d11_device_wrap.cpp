@@ -172,7 +172,8 @@ HRESULT WrappedID3D11Device::CreateBuffer(const D3D11_BUFFER_DESC *pDesc,
 
   ID3D11Buffer *real = NULL;
   ID3D11Buffer *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateBuffer(pDesc, pInitialData, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateBuffer(pDesc, pInitialData, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -189,6 +190,8 @@ HRESULT WrappedID3D11Device::CreateBuffer(const D3D11_BUFFER_DESC *pDesc,
         SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateBuffer);
         Serialise_CreateBuffer(GET_SERIALISER, pDesc, pInitialData, &wrapped);
 
+        RDCLOG("Chunk for %llu is %llu bytes", GetIDForResource(wrapped),
+               ser.GetWriter()->GetOffset());
         chunk = scope.Get();
       }
 
@@ -416,7 +419,8 @@ HRESULT WrappedID3D11Device::CreateTexture1D(const D3D11_TEXTURE1D_DESC *pDesc,
 
   ID3D11Texture1D *real = NULL;
   ID3D11Texture1D *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateTexture1D(pDesc, pInitialData, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateTexture1D(pDesc, pInitialData, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -544,7 +548,8 @@ HRESULT WrappedID3D11Device::CreateTexture2D(const D3D11_TEXTURE2D_DESC *pDesc,
 
   ID3D11Texture2D *real = NULL;
   ID3D11Texture2D *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateTexture2D(pDesc, pInitialData, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateTexture2D(pDesc, pInitialData, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -672,7 +677,8 @@ HRESULT WrappedID3D11Device::CreateTexture3D(const D3D11_TEXTURE3D_DESC *pDesc,
 
   ID3D11Texture3D *real = NULL;
   ID3D11Texture3D *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateTexture3D(pDesc, pInitialData, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateTexture3D(pDesc, pInitialData, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -794,8 +800,9 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView(ID3D11Resource *pResource,
 
   ID3D11ShaderResourceView *real = NULL;
   ID3D11ShaderResourceView *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateShaderResourceView(GetResourceManager()->UnwrapResource(pResource),
-                                                    pDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateShaderResourceView(
+                          GetResourceManager()->UnwrapResource(pResource), pDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -895,8 +902,9 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView(ID3D11Resource *pResource
 
   ID3D11UnorderedAccessView *real = NULL;
   ID3D11UnorderedAccessView *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateUnorderedAccessView(
-      GetResourceManager()->UnwrapResource(pResource), pDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateUnorderedAccessView(
+                          GetResourceManager()->UnwrapResource(pResource), pDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -1026,8 +1034,9 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView(ID3D11Resource *pResource,
 
   ID3D11RenderTargetView *real = NULL;
   ID3D11RenderTargetView *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateRenderTargetView(GetResourceManager()->UnwrapResource(pResource),
-                                                  pDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateRenderTargetView(
+                          GetResourceManager()->UnwrapResource(pResource), pDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -1127,8 +1136,9 @@ HRESULT WrappedID3D11Device::CreateDepthStencilView(ID3D11Resource *pResource,
 
   ID3D11DepthStencilView *real = NULL;
   ID3D11DepthStencilView *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateDepthStencilView(GetResourceManager()->UnwrapResource(pResource),
-                                                  pDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateDepthStencilView(
+                          GetResourceManager()->UnwrapResource(pResource), pDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -1237,8 +1247,10 @@ HRESULT WrappedID3D11Device::CreateInputLayout(const D3D11_INPUT_ELEMENT_DESC *p
 
   ID3D11InputLayout *real = NULL;
   ID3D11InputLayout *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateInputLayout(
-      pInputElementDescs, NumElements, pShaderBytecodeWithInputSignature, BytecodeLength, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateInputLayout(pInputElementDescs, NumElements,
+                                                         pShaderBytecodeWithInputSignature,
+                                                         BytecodeLength, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -1319,8 +1331,10 @@ HRESULT WrappedID3D11Device::CreateVertexShader(const void *pShaderBytecode, SIZ
 
   ID3D11VertexShader *real = NULL;
   ID3D11VertexShader *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateVertexShader(
-      pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(
+      ret = m_pDevice->CreateVertexShader(pShaderBytecode, BytecodeLength,
+                                          UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real));
 
   if(SUCCEEDED(ret))
   {
@@ -1409,8 +1423,10 @@ HRESULT WrappedID3D11Device::CreateGeometryShader(const void *pShaderBytecode, S
 
   ID3D11GeometryShader *real = NULL;
   ID3D11GeometryShader *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateGeometryShader(
-      pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateGeometryShader(
+                          pShaderBytecode, BytecodeLength,
+                          UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real));
 
   if(SUCCEEDED(ret))
   {
@@ -1507,9 +1523,11 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
 
   ID3D11GeometryShader *real = NULL;
   ID3D11GeometryShader *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateGeometryShaderWithStreamOutput(
-      pShaderBytecode, BytecodeLength, pSODeclaration, NumEntries, pBufferStrides, NumStrides,
-      RasterizedStream, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateGeometryShaderWithStreamOutput(
+                          pShaderBytecode, BytecodeLength, pSODeclaration, NumEntries,
+                          pBufferStrides, NumStrides, RasterizedStream,
+                          UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real));
 
   if(SUCCEEDED(ret))
   {
@@ -1600,8 +1618,10 @@ HRESULT WrappedID3D11Device::CreatePixelShader(const void *pShaderBytecode, SIZE
 
   ID3D11PixelShader *real = NULL;
   ID3D11PixelShader *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreatePixelShader(
-      pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(
+      ret = m_pDevice->CreatePixelShader(pShaderBytecode, BytecodeLength,
+                                         UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real));
 
   if(SUCCEEDED(ret))
   {
@@ -1688,8 +1708,10 @@ HRESULT WrappedID3D11Device::CreateHullShader(const void *pShaderBytecode, SIZE_
 
   ID3D11HullShader *real = NULL;
   ID3D11HullShader *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateHullShader(
-      pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(
+      ret = m_pDevice->CreateHullShader(pShaderBytecode, BytecodeLength,
+                                        UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real));
 
   if(SUCCEEDED(ret))
   {
@@ -1777,8 +1799,10 @@ HRESULT WrappedID3D11Device::CreateDomainShader(const void *pShaderBytecode, SIZ
 
   ID3D11DomainShader *real = NULL;
   ID3D11DomainShader *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateDomainShader(
-      pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(
+      ret = m_pDevice->CreateDomainShader(pShaderBytecode, BytecodeLength,
+                                          UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real));
 
   if(SUCCEEDED(ret))
   {
@@ -1867,8 +1891,10 @@ HRESULT WrappedID3D11Device::CreateComputeShader(const void *pShaderBytecode, SI
 
   ID3D11ComputeShader *real = NULL;
   ID3D11ComputeShader *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateComputeShader(
-      pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateComputeShader(
+                          pShaderBytecode, BytecodeLength,
+                          UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), &real));
 
   if(SUCCEEDED(ret))
   {
@@ -2166,7 +2192,8 @@ HRESULT WrappedID3D11Device::CreateBlendState(const D3D11_BLEND_DESC *pBlendStat
     return m_pDevice->CreateBlendState(pBlendStateDesc, NULL);
 
   ID3D11BlendState *real = NULL;
-  HRESULT ret = m_pDevice->CreateBlendState(pBlendStateDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateBlendState(pBlendStateDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -2259,7 +2286,8 @@ HRESULT WrappedID3D11Device::CreateDepthStencilState(const D3D11_DEPTH_STENCIL_D
     return m_pDevice->CreateDepthStencilState(pDepthStencilDesc, NULL);
 
   ID3D11DepthStencilState *real = NULL;
-  HRESULT ret = m_pDevice->CreateDepthStencilState(pDepthStencilDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateDepthStencilState(pDepthStencilDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -2352,7 +2380,8 @@ HRESULT WrappedID3D11Device::CreateRasterizerState(const D3D11_RASTERIZER_DESC *
     return m_pDevice->CreateRasterizerState(pRasterizerDesc, NULL);
 
   ID3D11RasterizerState *real = NULL;
-  HRESULT ret = m_pDevice->CreateRasterizerState(pRasterizerDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateRasterizerState(pRasterizerDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -2445,7 +2474,8 @@ HRESULT WrappedID3D11Device::CreateSamplerState(const D3D11_SAMPLER_DESC *pSampl
     return m_pDevice->CreateSamplerState(pSamplerDesc, NULL);
 
   ID3D11SamplerState *real = NULL;
-  HRESULT ret = m_pDevice->CreateSamplerState(pSamplerDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateSamplerState(pSamplerDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -2527,7 +2557,8 @@ HRESULT WrappedID3D11Device::CreateQuery(const D3D11_QUERY_DESC *pQueryDesc, ID3
 
   ID3D11Query *real = NULL;
   ID3D11Query *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateQuery(pQueryDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateQuery(pQueryDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -2592,7 +2623,8 @@ HRESULT WrappedID3D11Device::CreatePredicate(const D3D11_QUERY_DESC *pPredicateD
 
   ID3D11Predicate *real = NULL;
   ID3D11Predicate *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreatePredicate(pPredicateDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreatePredicate(pPredicateDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -2657,7 +2689,8 @@ HRESULT WrappedID3D11Device::CreateCounter(const D3D11_COUNTER_DESC *pCounterDes
 
   ID3D11Counter *real = NULL;
   ID3D11Counter *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateCounter(pCounterDesc, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateCounter(pCounterDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -2724,13 +2757,17 @@ HRESULT WrappedID3D11Device::CreateDeferredContext(UINT ContextFlags,
 
   ID3D11DeviceContext *real = NULL;
   ID3D11DeviceContext *wrapped = NULL;
-  HRESULT ret = m_pDevice->CreateDeferredContext(ContextFlags, &real);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->CreateDeferredContext(ContextFlags, &real));
 
   if(SUCCEEDED(ret))
   {
     SCOPED_LOCK(m_D3DLock);
 
     WrappedID3D11DeviceContext *w = new WrappedID3D11DeviceContext(this, real);
+
+    w->GetScratchSerialiser().SetChunkMetadataRecording(
+        m_ScratchSerialiser.GetChunkMetadataRecording());
 
     wrapped = w;
 
@@ -3031,7 +3068,8 @@ HRESULT WrappedID3D11Device::OpenSharedResource(HANDLE hResource, REFIID Returne
   if(isDXGIRes || isRes || isBuf || isTex1D || isTex2D || isTex3D)
   {
     void *res = NULL;
-    HRESULT hr = m_pDevice->OpenSharedResource(hResource, ReturnedInterface, &res);
+    HRESULT hr;
+    SERIALISE_TIME_CALL(hr = m_pDevice->OpenSharedResource(hResource, ReturnedInterface, &res));
 
     if(FAILED(hr))
     {
@@ -3247,7 +3285,8 @@ bool WrappedID3D11Device::Serialise_SetExceptionMode(SerialiserType &ser, UINT R
 
 HRESULT WrappedID3D11Device::SetExceptionMode(UINT RaiseFlags)
 {
-  HRESULT ret = m_pDevice->SetExceptionMode(RaiseFlags);
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pDevice->SetExceptionMode(RaiseFlags));
 
   if(SUCCEEDED(ret) && IsCaptureMode(m_State))
   {

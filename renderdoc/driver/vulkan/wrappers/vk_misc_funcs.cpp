@@ -445,7 +445,9 @@ bool WrappedVulkan::Serialise_vkCreateSampler(SerialiserType &ser, VkDevice devi
 VkResult WrappedVulkan::vkCreateSampler(VkDevice device, const VkSamplerCreateInfo *pCreateInfo,
                                         const VkAllocationCallbacks *pAllocator, VkSampler *pSampler)
 {
-  VkResult ret = ObjDisp(device)->CreateSampler(Unwrap(device), pCreateInfo, pAllocator, pSampler);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateSampler(Unwrap(device), pCreateInfo, pAllocator, pSampler));
 
   if(ret == VK_SUCCESS)
   {
@@ -583,8 +585,9 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
                                             VkFramebuffer *pFramebuffer)
 {
   VkFramebufferCreateInfo unwrapped = UnwrapInfo(pCreateInfo);
-  VkResult ret =
-      ObjDisp(device)->CreateFramebuffer(Unwrap(device), &unwrapped, pAllocator, pFramebuffer);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &unwrapped,
+                                                               pAllocator, pFramebuffer));
 
   if(ret == VK_SUCCESS)
   {
@@ -789,8 +792,9 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
                                            const VkAllocationCallbacks *pAllocator,
                                            VkRenderPass *pRenderPass)
 {
-  VkResult ret =
-      ObjDisp(device)->CreateRenderPass(Unwrap(device), pCreateInfo, pAllocator, pRenderPass);
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), pCreateInfo,
+                                                              pAllocator, pRenderPass));
 
   if(ret == VK_SUCCESS)
   {
@@ -953,8 +957,9 @@ VkResult WrappedVulkan::vkCreateQueryPool(VkDevice device, const VkQueryPoolCrea
                                           const VkAllocationCallbacks *pAllocator,
                                           VkQueryPool *pQueryPool)
 {
-  VkResult ret =
-      ObjDisp(device)->CreateQueryPool(Unwrap(device), pCreateInfo, pAllocator, pQueryPool);
+  VkResult ret;
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->CreateQueryPool(Unwrap(device), pCreateInfo, pAllocator, pQueryPool));
 
   if(ret == VK_SUCCESS)
   {

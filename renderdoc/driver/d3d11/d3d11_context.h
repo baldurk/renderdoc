@@ -293,6 +293,7 @@ public:
   D3D11ResourceRecord *GetResourceRecord() { return m_ContextRecord; }
   ID3D11DeviceContext *GetReal() { return m_pRealContext; }
   ID3D11DeviceContext1 *GetReal1() { return m_pRealContext1; }
+  WriteSerialiser &GetScratchSerialiser() { return m_ScratchSerialiser; }
   bool IsFL11_1();
 
   bool ProcessChunk(ReadSerialiser &ser, D3D11Chunk chunk);

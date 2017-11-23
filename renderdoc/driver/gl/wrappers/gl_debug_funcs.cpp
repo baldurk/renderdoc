@@ -87,7 +87,7 @@ bool WrappedOpenGL::Serialise_glObjectLabel(SerialiserType &ser, GLenum identifi
 void WrappedOpenGL::glLabelObjectEXT(GLenum identifier, GLuint name, GLsizei length,
                                      const GLchar *label)
 {
-  m_Real.glLabelObjectEXT(identifier, name, length, label);
+  SERIALISE_TIME_CALL(m_Real.glLabelObjectEXT(identifier, name, length, label));
 
   if(IsCaptureMode(m_State))
   {
@@ -101,7 +101,7 @@ void WrappedOpenGL::glLabelObjectEXT(GLenum identifier, GLuint name, GLsizei len
 
 void WrappedOpenGL::glObjectLabel(GLenum identifier, GLuint name, GLsizei length, const GLchar *label)
 {
-  m_Real.glObjectLabel(identifier, name, length, label);
+  SERIALISE_TIME_CALL(m_Real.glObjectLabel(identifier, name, length, label));
 
   if(IsCaptureMode(m_State))
   {
@@ -115,7 +115,7 @@ void WrappedOpenGL::glObjectLabel(GLenum identifier, GLuint name, GLsizei length
 
 void WrappedOpenGL::glObjectPtrLabel(const void *ptr, GLsizei length, const GLchar *label)
 {
-  m_Real.glObjectPtrLabel(ptr, length, label);
+  SERIALISE_TIME_CALL(m_Real.glObjectPtrLabel(ptr, length, label));
 
   if(IsCaptureMode(m_State))
   {
@@ -180,6 +180,8 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(SerialiserType &ser, GLenum s
 void WrappedOpenGL::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity,
                                          GLsizei length, const GLchar *buf)
 {
+  SERIALISE_TIME_CALL(m_Real.glDebugMessageInsert(source, type, id, severity, length, buf));
+
   if(IsActiveCapturing(m_State) && type == eGL_DEBUG_TYPE_MARKER)
   {
     USE_SCRATCH_SERIALISER();
@@ -189,8 +191,6 @@ void WrappedOpenGL::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, 
 
     m_ContextRecord->AddChunk(scope.Get());
   }
-
-  m_Real.glDebugMessageInsert(source, type, id, severity, length, buf);
 }
 
 void WrappedOpenGL::glPushGroupMarkerEXT(GLsizei length, const GLchar *marker)
@@ -309,6 +309,8 @@ bool WrappedOpenGL::Serialise_glPushDebugGroup(SerialiserType &ser, GLenum sourc
 
 void WrappedOpenGL::glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message)
 {
+  SERIALISE_TIME_CALL(m_Real.glPushDebugGroup(source, id, length, message));
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -318,8 +320,6 @@ void WrappedOpenGL::glPushDebugGroup(GLenum source, GLuint id, GLsizei length, c
 
     m_ContextRecord->AddChunk(scope.Get());
   }
-
-  m_Real.glPushDebugGroup(source, id, length, message);
 }
 
 template <typename SerialiserType>
@@ -344,6 +344,8 @@ bool WrappedOpenGL::Serialise_glPopDebugGroup(SerialiserType &ser)
 }
 void WrappedOpenGL::glPopDebugGroup()
 {
+  SERIALISE_TIME_CALL(m_Real.glPopDebugGroup());
+
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
@@ -353,8 +355,6 @@ void WrappedOpenGL::glPopDebugGroup()
 
     m_ContextRecord->AddChunk(scope.Get());
   }
-
-  m_Real.glPopDebugGroup();
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(void, glObjectLabel, GLenum identifier, GLuint name, GLsizei length,

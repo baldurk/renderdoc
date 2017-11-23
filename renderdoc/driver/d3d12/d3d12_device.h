@@ -306,7 +306,6 @@ private:
   D3D12ResourceRecord *m_FrameCaptureRecord;
   Chunk *m_HeaderChunk;
 
-  WriteSerialiser m_ScratchSerialiser;
   std::set<std::string> m_StringDB;
 
   ResourceId m_ResourceID;

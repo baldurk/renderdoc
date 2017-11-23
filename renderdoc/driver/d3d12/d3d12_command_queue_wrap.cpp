@@ -392,7 +392,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
   for(UINT i = 0; i < NumCommandLists; i++)
     unwrapped[i] = Unwrap(ppCommandLists[i]);
 
-  m_pReal->ExecuteCommandLists(NumCommandLists, unwrapped);
+  SERIALISE_TIME_CALL(m_pReal->ExecuteCommandLists(NumCommandLists, unwrapped));
 
   if(IsCaptureMode(m_State))
   {
@@ -576,7 +576,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
       }
 
       {
-        WriteSerialiser &ser = m_ScratchSerialiser;
+        WriteSerialiser &ser = GetThreadSerialiser();
         ser.SetDrawChunk();
         SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_ExecuteCommandLists);
         Serialise_ExecuteCommandLists(ser, NumCommandLists, ppCommandLists);
@@ -623,11 +623,14 @@ bool WrappedID3D12CommandQueue::Serialise_Signal(SerialiserType &ser, ID3D12Fenc
 
 HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Signal(ID3D12Fence *pFence, UINT64 Value)
 {
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pReal->Signal(Unwrap(pFence), Value));
+
   if(IsActiveCapturing(m_State))
   {
     SCOPED_LOCK(m_Lock);
 
-    WriteSerialiser &ser = m_ScratchSerialiser;
+    WriteSerialiser &ser = GetThreadSerialiser();
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_Signal);
     Serialise_Signal(ser, pFence, Value);
 
@@ -635,7 +638,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Signal(ID3D12Fence *pFence,
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(pFence), eFrameRef_Read);
   }
 
-  return m_pReal->Signal(Unwrap(pFence), Value);
+  return ret;
 }
 
 template <typename SerialiserType>
@@ -656,11 +659,14 @@ bool WrappedID3D12CommandQueue::Serialise_Wait(SerialiserType &ser, ID3D12Fence 
 
 HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Wait(ID3D12Fence *pFence, UINT64 Value)
 {
+  HRESULT ret;
+  SERIALISE_TIME_CALL(ret = m_pReal->Wait(Unwrap(pFence), Value));
+
   if(IsActiveCapturing(m_State))
   {
     SCOPED_LOCK(m_Lock);
 
-    WriteSerialiser &ser = m_ScratchSerialiser;
+    WriteSerialiser &ser = GetThreadSerialiser();
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_Wait);
     Serialise_Wait(ser, pFence, Value);
 
@@ -668,7 +674,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Wait(ID3D12Fence *pFence, U
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(pFence), eFrameRef_Read);
   }
 
-  return m_pReal->Wait(Unwrap(pFence), Value);
+  return ret;
 }
 
 HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::GetTimestampFrequency(UINT64 *pFrequency)

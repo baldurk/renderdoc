@@ -105,7 +105,8 @@ HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLui
     return NULL;
   }
 
-  wrapped->real = m_Real.wglDXRegisterObjectNV(hDevice, real, name, type, access);
+  SERIALISE_TIME_CALL(wrapped->real =
+                          m_Real.wglDXRegisterObjectNV(hDevice, real, name, type, access));
 
   {
     RDCASSERT(record);
@@ -170,7 +171,8 @@ BOOL WrappedOpenGL::wglDXLockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObj
   for(GLint i = 0; i < count; i++)
     unwrapped[i] = Unwrap(hObjects[i]);
 
-  BOOL ret = m_Real.wglDXLockObjectsNV(hDevice, count, unwrapped);
+  BOOL ret;
+  SERIALISE_TIME_CALL(ret = m_Real.wglDXLockObjectsNV(hDevice, count, unwrapped));
 
   if(IsActiveCapturing(m_State))
   {
