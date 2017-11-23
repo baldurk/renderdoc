@@ -33,7 +33,7 @@ namespace Ui
 class TipsDialog;
 }
 
-class ICaptureContext;
+struct ICaptureContext;
 
 class TipsDialog : public QDialog
 {
