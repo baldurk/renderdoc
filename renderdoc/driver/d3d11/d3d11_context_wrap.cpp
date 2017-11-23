@@ -7166,7 +7166,7 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
 
     SERIALISE_ELEMENT_ARRAY(MapWrittenData, len);
 
-    if(ser.IsWriting())
+    if(ser.IsWriting() && IsBackgroundCapturing(m_State) && !record->DataInSerialiser)
     {
       record->DataInSerialiser = true;
       record->SetDataOffset(ser.GetWriter()->GetOffset() - (uint64_t)len);
