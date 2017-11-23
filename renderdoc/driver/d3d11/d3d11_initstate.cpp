@@ -406,6 +406,8 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
   D3D11ResourceType type = Resource_Unknown;
   ResourceId Id = ResourceId();
 
+  bool ret = true;
+
   if(IsCaptureMode(m_State))
   {
     type = IdentifyTypeByPtr(res);
@@ -645,6 +647,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       {
         RDCERR("Failed to create staging resource for Texture1D initial contents HRESULT: %s",
                ToStr(hr).c_str());
+        ret = false;
       }
       else
       {
@@ -819,6 +822,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
         {
           RDCERR("Failed to create staging resource for Texture2D initial contents HRESULT: %s",
                  ToStr(hr).c_str());
+          ret = false;
         }
         else
         {
@@ -969,6 +973,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       {
         RDCERR("Failed to create staging resource for Texture3D initial contents HRESULT: %s",
                ToStr(hr).c_str());
+        ret = false;
       }
       else
       {
@@ -988,7 +993,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
     RDCERR("Trying to serialise initial state of unsupported resource type");
   }
 
-  return true;
+  return ret;
 }
 
 void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData)

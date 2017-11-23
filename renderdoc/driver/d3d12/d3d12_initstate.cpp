@@ -303,6 +303,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
     initContents = GetInitialContents(resid);
   }
 
+  bool ret = true;
+
   SERIALISE_ELEMENT_LOCAL(id, resid);
   SERIALISE_ELEMENT_LOCAL(type, record->type);
 
@@ -401,6 +403,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
           mappedBuffer = NULL;
 
           RDCERR("Failed to map buffer for readback! %s", ToStr(hr).c_str());
+          ret = false;
         }
       }
     }
@@ -455,6 +458,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
           if(FAILED(hr))
           {
             RDCERR("Created but couldn't map upload buffer: %s", ToStr(hr).c_str());
+            ret = false;
             SAFE_RELEASE(copySrc);
             mappedBuffer = NULL;
             ResourceContents = NULL;
@@ -463,6 +467,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
         else
         {
           RDCERR("Couldn't create upload buffer: %s", ToStr(hr).c_str());
+          ret = false;
           mappedBuffer = NULL;
           ResourceContents = NULL;
         }
@@ -495,7 +500,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
     return false;
   }
 
-  return true;
+  return ret;
 }
 
 template bool D3D12ResourceManager::Serialise_InitialState(ReadSerialiser &ser, ResourceId resid,

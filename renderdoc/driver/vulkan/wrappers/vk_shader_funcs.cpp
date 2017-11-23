@@ -113,6 +113,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(SerialiserType &ser, VkDevi
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {
@@ -215,6 +216,7 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(SerialiserType &ser, VkDevice
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {
@@ -310,6 +312,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineCache(SerialiserType &ser, VkDevic
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {
@@ -404,6 +407,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {
@@ -580,6 +584,7 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {

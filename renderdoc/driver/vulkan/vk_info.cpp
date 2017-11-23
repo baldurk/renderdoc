@@ -518,6 +518,7 @@ void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *resourceMan,
 void VulkanCreationInfo::Memory::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
                                       const VkMemoryAllocateInfo *pAllocInfo)
 {
+  memoryTypeIndex = pAllocInfo->memoryTypeIndex;
   size = pAllocInfo->allocationSize;
 }
 

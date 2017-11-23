@@ -91,6 +91,7 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {
@@ -286,6 +287,7 @@ bool WrappedVulkan::Serialise_vkCreateEvent(SerialiserType &ser, VkDevice device
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {
@@ -466,6 +468,7 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(SerialiserType &ser, VkDevice de
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {

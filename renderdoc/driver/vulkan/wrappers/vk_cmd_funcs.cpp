@@ -337,6 +337,7 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(SerialiserType &ser, VkDevice 
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {
@@ -428,6 +429,7 @@ bool WrappedVulkan::Serialise_vkAllocateCommandBuffers(SerialiserType &ser, VkDe
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {
@@ -617,6 +619,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         if(ret != VK_SUCCESS)
         {
           RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+          return false;
         }
         else
         {
@@ -681,6 +684,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         if(ret != VK_SUCCESS)
         {
           RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+          return false;
         }
         else
         {

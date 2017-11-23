@@ -166,6 +166,7 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {
@@ -857,10 +858,59 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
 
   if(IsReplayingAndReading())
   {
-    ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(memory), memoryOffset);
-
     ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(buffer));
     ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(memory));
+
+    // verify that the memory meets basic requirements. If not, something changed and we should bail
+    // loading this capture. This is a bit of an under-estimate since we just make sure there's
+    // enough space left in the memory, that doesn't mean that there aren't overlaps due to
+    // increased size requirements.
+    VkMemoryRequirements mrq = {};
+    ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(buffer), &mrq);
+
+    VulkanCreationInfo::Memory &memInfo = m_CreationInfo.m_Memory[GetResID(memory)];
+    uint32_t bit = 1U << memInfo.memoryTypeIndex;
+
+    // verify type
+    if((mrq.memoryTypeBits & bit) == 0)
+    {
+      RDCERR(
+          "Trying to bind buffer %llu to memory %llu which is type %u, "
+          "but only these types are allowed: %08x.\n"
+          "This is most likely caused by incompatible hardware or drivers between capture and "
+          "replay, causing a change in memory requirements.",
+          resOrigId, memOrigId, memInfo.memoryTypeIndex, mrq.memoryTypeBits);
+      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+      return false;
+    }
+
+    // verify offset alignment
+    if((memoryOffset & mrq.alignment) != 0)
+    {
+      RDCERR(
+          "Trying to bind buffer %llu to memory %llu which is type %u, "
+          "but offset 0x%llx doesn't satisfy alignment 0x%llx.\n"
+          "This is most likely caused by incompatible hardware or drivers between capture and "
+          "replay, causing a change in memory requirements.",
+          resOrigId, memOrigId, memoryOffset, mrq.alignment);
+      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+      return false;
+    }
+
+    // verify size
+    if(mrq.size > memInfo.size - memoryOffset)
+    {
+      RDCERR(
+          "Trying to bind buffer %llu to memory %llu which is type %u, "
+          "but at offset 0x%llx the reported size of 0x%llx won't fit the 0x%llx bytes of memory.\n"
+          "This is most likely caused by incompatible hardware or drivers between capture and "
+          "replay, causing a change in memory requirements.",
+          resOrigId, memOrigId, memoryOffset, mrq.size, memInfo.size);
+      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+      return false;
+    }
+
+    ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(memory), memoryOffset);
 
     GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
     GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
@@ -916,10 +966,59 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
 
   if(IsReplayingAndReading())
   {
-    ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(memory), memoryOffset);
-
     ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(image));
     ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(memory));
+
+    // verify that the memory meets basic requirements. If not, something changed and we should bail
+    // loading this capture. This is a bit of an under-estimate since we just make sure there's
+    // enough space left in the memory, that doesn't mean that there aren't overlaps due to
+    // increased size requirements.
+    VkMemoryRequirements mrq = {};
+    ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image), &mrq);
+
+    VulkanCreationInfo::Memory &memInfo = m_CreationInfo.m_Memory[GetResID(memory)];
+    uint32_t bit = 1U << memInfo.memoryTypeIndex;
+
+    // verify type
+    if((mrq.memoryTypeBits & bit) == 0)
+    {
+      RDCERR(
+          "Trying to bind image %llu to memory %llu which is type %u, "
+          "but only these types are allowed: %08x.\n"
+          "This is most likely caused by incompatible hardware or drivers between capture and "
+          "replay, causing a change in memory requirements.",
+          resOrigId, memOrigId, memInfo.memoryTypeIndex, mrq.memoryTypeBits);
+      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+      return false;
+    }
+
+    // verify offset alignment
+    if((memoryOffset & mrq.alignment) != 0)
+    {
+      RDCERR(
+          "Trying to bind image %llu to memory %llu which is type %u, "
+          "but offset 0x%llx doesn't satisfy alignment 0x%llx.\n"
+          "This is most likely caused by incompatible hardware or drivers between capture and "
+          "replay, causing a change in memory requirements.",
+          resOrigId, memOrigId, memoryOffset, mrq.alignment);
+      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+      return false;
+    }
+
+    // verify size
+    if(mrq.size > memInfo.size - memoryOffset)
+    {
+      RDCERR(
+          "Trying to bind image %llu to memory %llu which is type %u, "
+          "but at offset 0x%llx the reported size of 0x%llx won't fit the 0x%llx bytes of memory.\n"
+          "This is most likely caused by incompatible hardware or drivers between capture and "
+          "replay, causing a change in memory requirements.",
+          resOrigId, memOrigId, memoryOffset, mrq.size, memInfo.size);
+      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+      return false;
+    }
+
+    ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(memory), memoryOffset);
 
     GetReplay()->GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
     GetReplay()->GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
@@ -993,6 +1092,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {
@@ -1098,6 +1198,7 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(SerialiserType &ser, VkDevice d
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {
@@ -1227,6 +1328,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {
@@ -1511,6 +1613,7 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
     if(ret != VK_SUCCESS)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
+      return false;
     }
     else
     {

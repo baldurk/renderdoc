@@ -113,6 +113,7 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -379,6 +380,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -506,6 +508,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -633,6 +636,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -763,6 +767,7 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -863,6 +868,7 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView(
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -993,6 +999,7 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -1093,6 +1100,7 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilView(
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -1193,6 +1201,7 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -1283,6 +1292,7 @@ bool WrappedID3D11Device::Serialise_CreateVertexShader(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -1372,6 +1382,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShader(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -1466,6 +1477,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -1561,6 +1573,7 @@ bool WrappedID3D11Device::Serialise_CreatePixelShader(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -1648,6 +1661,7 @@ bool WrappedID3D11Device::Serialise_CreateHullShader(SerialiserType &ser, const 
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -1736,6 +1750,7 @@ bool WrappedID3D11Device::Serialise_CreateDomainShader(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -1825,6 +1840,7 @@ bool WrappedID3D11Device::Serialise_CreateComputeShader(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -1923,6 +1939,7 @@ bool WrappedID3D11Device::Serialise_CreateClassInstance(SerialiserType &ser, LPC
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -1990,6 +2007,7 @@ bool WrappedID3D11Device::Serialise_GetClassInstance(SerialiserType &ser, LPCSTR
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -2050,6 +2068,7 @@ bool WrappedID3D11Device::Serialise_CreateClassLinkage(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -2113,6 +2132,7 @@ bool WrappedID3D11Device::Serialise_CreateBlendState(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -2205,6 +2225,7 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilState(
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -2297,6 +2318,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -2389,6 +2411,7 @@ bool WrappedID3D11Device::Serialise_CreateSamplerState(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -2481,6 +2504,7 @@ bool WrappedID3D11Device::Serialise_CreateQuery(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -2544,6 +2568,7 @@ bool WrappedID3D11Device::Serialise_CreatePredicate(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -2608,6 +2633,7 @@ bool WrappedID3D11Device::Serialise_CreateCounter(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -2672,6 +2698,7 @@ bool WrappedID3D11Device::Serialise_CreateDeferredContext(SerialiserType &ser,
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
     }
     else
     {
@@ -2793,6 +2820,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       if(FAILED(hr))
       {
         RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+        return false;
       }
       else
       {
@@ -2869,6 +2897,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       if(FAILED(hr))
       {
         RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+        return false;
       }
       else
       {
@@ -2914,6 +2943,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       if(FAILED(hr))
       {
         RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+        return false;
       }
       else
       {
@@ -2959,6 +2989,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       if(FAILED(hr))
       {
         RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+        return false;
       }
       else
       {

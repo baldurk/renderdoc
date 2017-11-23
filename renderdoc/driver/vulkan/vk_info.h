@@ -265,6 +265,7 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkMemoryAllocateInfo *pAllocInfo);
 
+    uint32_t memoryTypeIndex;
     uint64_t size;
 
     VkBuffer wholeMemBuf;

@@ -215,7 +215,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
                                                   (void **)&list);
 
         if(FAILED(hr))
+        {
           RDCERR("Failed on resource serialise-creation, hr: %s", ToStr(hr).c_str());
+          return false;
+        }
 
         if(partial)
         {

@@ -528,6 +528,8 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
     type = IdentifyTypeByPtr(record->Resource);
   }
 
+  bool ret = true;
+
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(id);
 
@@ -696,7 +698,11 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
               writes[i].pBufferInfo = dstBuffer;
               break;
             }
-            default: RDCERR("Unexpected descriptor type %d", writes[i].descriptorType);
+            default:
+            {
+              RDCERR("Unexpected descriptor type %d", writes[i].descriptorType);
+              ret = false;
+            }
           }
         }
 
@@ -729,12 +735,17 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
 
     if(IsSparse)
     {
-      bool ret = false;
+      ret = false;
 
       if(type == eResImage)
+      {
         ret = Serialise_SparseImageInitialState(ser, id, initContents);
+      }
       else
+      {
         RDCERR("Invalid initial state - sparse marker for device memory");
+        ret = false;
+      }
 
       return ret;
     }
@@ -1021,9 +1032,10 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
   else
   {
     RDCERR("Unhandled resource type %s", ToStr(type).c_str());
+    ret = false;
   }
 
-  return true;
+  return ret;
 }
 
 template bool WrappedVulkan::Serialise_InitialState(ReadSerialiser &ser, ResourceId resid,
