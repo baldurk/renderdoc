@@ -3577,7 +3577,10 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(SerialiserType &ser, GLu
       case eGL_UNSIGNED_INT_10_10_10_2:
       case eGL_UNSIGNED_INT_2_10_10_10_REV: s = 4; break;
     }
-    memcpy(data, dataPtr, s);
+    if(dataPtr)
+      memcpy(data, dataPtr, s);
+    else
+      memset(data, 0, s);
   }
 
   SERIALISE_ELEMENT(data);
@@ -3716,7 +3719,10 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferSubDataEXT(SerialiserType &ser, 
       case eGL_UNSIGNED_INT_10_10_10_2:
       case eGL_UNSIGNED_INT_2_10_10_10_REV: s = 4; break;
     }
-    memcpy(data, dataPtr, s);
+    if(dataPtr)
+      memcpy(data, dataPtr, s);
+    else
+      memset(data, 0, s);
   }
 
   SERIALISE_ELEMENT(data);
@@ -4014,7 +4020,10 @@ bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textur
       case eGL_UNSIGNED_INT_10_10_10_2:
       case eGL_UNSIGNED_INT_2_10_10_10_REV: s = 4; break;
     }
-    memcpy(data, dataPtr, s);
+    if(dataPtr)
+      memcpy(data, dataPtr, s);
+    else
+      memset(data, 0, s);
   }
 
   SERIALISE_ELEMENT(data);
@@ -4124,7 +4133,10 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
       case eGL_UNSIGNED_INT_10_10_10_2:
       case eGL_UNSIGNED_INT_2_10_10_10_REV: s = 4; break;
     }
-    memcpy(data, dataPtr, s);
+    if(dataPtr)
+      memcpy(data, dataPtr, s);
+    else
+      memset(data, 0, s);
   }
 
   SERIALISE_ELEMENT(data);
