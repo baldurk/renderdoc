@@ -3600,7 +3600,10 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(GLuint buffer, GLenum in
       case eGL_UNSIGNED_INT_10_10_10_2:
       case eGL_UNSIGNED_INT_2_10_10_10_REV: s = 4; break;
     }
-    memcpy(val, data, s);
+    if(data)
+      memcpy(val, data, s);
+    else
+      memset(val, 0, s);
   }
 
   m_pSerialiser->SerialisePODArray<4>("data", val);
@@ -3730,7 +3733,10 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferSubDataEXT(GLuint buffer, GLenum
       case eGL_UNSIGNED_INT_10_10_10_2:
       case eGL_UNSIGNED_INT_2_10_10_10_REV: s = 4; break;
     }
-    memcpy(val, data, s);
+    if(data)
+      memcpy(val, data, s);
+    else
+      memset(val, 0, s);
   }
 
   m_pSerialiser->SerialisePODArray<4>("data", val);
@@ -4013,7 +4019,10 @@ bool WrappedOpenGL::Serialise_glClearTexImage(GLuint texture, GLint level, GLenu
       case eGL_UNSIGNED_INT_10_10_10_2:
       case eGL_UNSIGNED_INT_2_10_10_10_REV: s = 4; break;
     }
-    memcpy(val, data, s);
+    if(data)
+      memcpy(val, data, s);
+    else
+      memset(val, 0, s);
   }
 
   m_pSerialiser->SerialisePODArray<4>("data", val);
@@ -4117,7 +4126,10 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(GLuint texture, GLint level, GL
       case eGL_UNSIGNED_INT_10_10_10_2:
       case eGL_UNSIGNED_INT_2_10_10_10_REV: s = 4; break;
     }
-    memcpy(val, data, s);
+    if(data)
+      memcpy(val, data, s);
+    else
+      memset(val, 0, s);
   }
 
   m_pSerialiser->SerialisePODArray<4>("data", val);
