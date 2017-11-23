@@ -2532,6 +2532,8 @@ void TextureViewer::OnCaptureClosed()
 {
   Reset();
 
+  refreshTextureList();
+
   delete m_Watcher;
   m_Watcher = NULL;
 
