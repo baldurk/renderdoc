@@ -474,7 +474,6 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     SERIALISE_ELEMENT(res.Namespace);
 
     SerialiseProgramBindings(ser, CaptureState::ActiveCapturing, gl, res.name);
-
     SerialiseProgramUniforms(ser, CaptureState::ActiveCapturing, gl, res.name, NULL);
 
     SetInitialChunk(Id, scope.Get());

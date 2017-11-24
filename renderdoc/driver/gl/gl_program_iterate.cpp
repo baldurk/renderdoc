@@ -27,6 +27,252 @@
 #include "gl_common.h"
 #include "gl_driver.h"
 
+struct ProgramUniformValue
+{
+  ProgramUniformValue() { RDCEraseEl(data); }
+  GLenum Type;
+  int32_t Location;
+
+  union
+  {
+    double dval[16];
+    float fval[16];
+    int32_t ival[16];
+    uint32_t uval[16];
+  } data;
+};
+
+DECLARE_REFLECTION_STRUCT(ProgramUniformValue);
+
+struct ProgramUniform
+{
+  std::string Basename;
+  bool IsArray;
+
+  std::vector<ProgramUniformValue> Values;
+};
+
+DECLARE_REFLECTION_STRUCT(ProgramUniform);
+
+struct ProgramBinding
+{
+  ProgramBinding() = default;
+  ProgramBinding(const char *n, int32_t b) : Name(n), Binding(b) {}
+  std::string Name;
+  int32_t Binding = -1;
+};
+
+DECLARE_REFLECTION_STRUCT(ProgramBinding);
+
+struct ProgramUniforms
+{
+  std::vector<ProgramUniform> ValueUniforms;
+  std::vector<ProgramBinding> UBOBindings;
+  std::vector<ProgramBinding> SSBOBindings;
+};
+
+DECLARE_REFLECTION_STRUCT(ProgramUniforms);
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ProgramUniformValue &el)
+{
+  SERIALISE_MEMBER(Type);
+  SERIALISE_MEMBER(Location);
+
+  // some special logic here, we decode Type to figure out what the actual data is, and serialise it
+  // with the right type.
+
+  VarType baseType = VarType::Float;
+  uint32_t elemCount = 1;
+
+  switch(el.Type)
+  {
+    case eGL_FLOAT_MAT4:
+    case eGL_FLOAT_MAT4x3:
+    case eGL_FLOAT_MAT4x2:
+    case eGL_FLOAT_MAT3:
+    case eGL_FLOAT_MAT3x4:
+    case eGL_FLOAT_MAT3x2:
+    case eGL_FLOAT_MAT2:
+    case eGL_FLOAT_MAT2x4:
+    case eGL_FLOAT_MAT2x3:
+    case eGL_FLOAT:
+    case eGL_FLOAT_VEC2:
+    case eGL_FLOAT_VEC3:
+    case eGL_FLOAT_VEC4: baseType = VarType::Float; break;
+    case eGL_DOUBLE_MAT4:
+    case eGL_DOUBLE_MAT4x3:
+    case eGL_DOUBLE_MAT4x2:
+    case eGL_DOUBLE_MAT3:
+    case eGL_DOUBLE_MAT3x4:
+    case eGL_DOUBLE_MAT3x2:
+    case eGL_DOUBLE_MAT2:
+    case eGL_DOUBLE_MAT2x4:
+    case eGL_DOUBLE_MAT2x3:
+    case eGL_DOUBLE:
+    case eGL_DOUBLE_VEC2:
+    case eGL_DOUBLE_VEC3:
+    case eGL_DOUBLE_VEC4: baseType = VarType::Double; break;
+    case eGL_SAMPLER_1D:
+    case eGL_SAMPLER_2D:
+    case eGL_SAMPLER_3D:
+    case eGL_SAMPLER_CUBE:
+    case eGL_SAMPLER_CUBE_MAP_ARRAY:
+    case eGL_SAMPLER_1D_SHADOW:
+    case eGL_SAMPLER_2D_SHADOW:
+    case eGL_SAMPLER_1D_ARRAY:
+    case eGL_SAMPLER_2D_ARRAY:
+    case eGL_SAMPLER_1D_ARRAY_SHADOW:
+    case eGL_SAMPLER_2D_ARRAY_SHADOW:
+    case eGL_SAMPLER_2D_MULTISAMPLE:
+    case eGL_SAMPLER_2D_MULTISAMPLE_ARRAY:
+    case eGL_SAMPLER_CUBE_SHADOW:
+    case eGL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
+    case eGL_SAMPLER_BUFFER:
+    case eGL_SAMPLER_2D_RECT:
+    case eGL_SAMPLER_2D_RECT_SHADOW:
+    case eGL_INT_SAMPLER_1D:
+    case eGL_INT_SAMPLER_2D:
+    case eGL_INT_SAMPLER_3D:
+    case eGL_INT_SAMPLER_CUBE:
+    case eGL_INT_SAMPLER_CUBE_MAP_ARRAY:
+    case eGL_INT_SAMPLER_1D_ARRAY:
+    case eGL_INT_SAMPLER_2D_ARRAY:
+    case eGL_INT_SAMPLER_2D_MULTISAMPLE:
+    case eGL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+    case eGL_INT_SAMPLER_BUFFER:
+    case eGL_INT_SAMPLER_2D_RECT:
+    case eGL_UNSIGNED_INT_SAMPLER_1D:
+    case eGL_UNSIGNED_INT_SAMPLER_2D:
+    case eGL_UNSIGNED_INT_SAMPLER_3D:
+    case eGL_UNSIGNED_INT_SAMPLER_CUBE:
+    case eGL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
+    case eGL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+    case eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
+    case eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+    case eGL_UNSIGNED_INT_SAMPLER_BUFFER:
+    case eGL_UNSIGNED_INT_SAMPLER_2D_RECT:
+    case eGL_IMAGE_1D:
+    case eGL_IMAGE_2D:
+    case eGL_IMAGE_3D:
+    case eGL_IMAGE_2D_RECT:
+    case eGL_IMAGE_CUBE:
+    case eGL_IMAGE_BUFFER:
+    case eGL_IMAGE_1D_ARRAY:
+    case eGL_IMAGE_2D_ARRAY:
+    case eGL_IMAGE_CUBE_MAP_ARRAY:
+    case eGL_IMAGE_2D_MULTISAMPLE:
+    case eGL_IMAGE_2D_MULTISAMPLE_ARRAY:
+    case eGL_INT_IMAGE_1D:
+    case eGL_INT_IMAGE_2D:
+    case eGL_INT_IMAGE_3D:
+    case eGL_INT_IMAGE_2D_RECT:
+    case eGL_INT_IMAGE_CUBE:
+    case eGL_INT_IMAGE_BUFFER:
+    case eGL_INT_IMAGE_1D_ARRAY:
+    case eGL_INT_IMAGE_2D_ARRAY:
+    case eGL_INT_IMAGE_2D_MULTISAMPLE:
+    case eGL_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+    case eGL_UNSIGNED_INT_IMAGE_1D:
+    case eGL_UNSIGNED_INT_IMAGE_2D:
+    case eGL_UNSIGNED_INT_IMAGE_3D:
+    case eGL_UNSIGNED_INT_IMAGE_2D_RECT:
+    case eGL_UNSIGNED_INT_IMAGE_CUBE:
+    case eGL_UNSIGNED_INT_IMAGE_BUFFER:
+    case eGL_UNSIGNED_INT_IMAGE_1D_ARRAY:
+    case eGL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+    case eGL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
+    case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
+    case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+    case eGL_UNSIGNED_INT_ATOMIC_COUNTER:
+    case eGL_INT:
+    case eGL_INT_VEC2:
+    case eGL_INT_VEC3:
+    case eGL_INT_VEC4: baseType = VarType::Int; break;
+    case eGL_UNSIGNED_INT:
+    case eGL_BOOL:
+    case eGL_UNSIGNED_INT_VEC2:
+    case eGL_BOOL_VEC2:
+    case eGL_UNSIGNED_INT_VEC3:
+    case eGL_BOOL_VEC3:
+    case eGL_UNSIGNED_INT_VEC4:
+    case eGL_BOOL_VEC4: baseType = VarType::UInt; break;
+    default:
+      RDCERR("Unhandled uniform type '%s'", ToStr(el.Type).c_str());
+      baseType = VarType::Float;
+      elemCount = 1;
+      break;
+  }
+
+  switch(el.Type)
+  {
+    case eGL_FLOAT_MAT4:
+    case eGL_DOUBLE_MAT4: elemCount = 16; break;
+    case eGL_FLOAT_MAT4x3:
+    case eGL_FLOAT_MAT3x4:
+    case eGL_DOUBLE_MAT4x3:
+    case eGL_DOUBLE_MAT3x4: elemCount = 12; break;
+    case eGL_FLOAT_MAT4x2:
+    case eGL_FLOAT_MAT2x4:
+    case eGL_DOUBLE_MAT4x2:
+    case eGL_DOUBLE_MAT2x4: elemCount = 8; break;
+    case eGL_FLOAT_MAT3:
+    case eGL_DOUBLE_MAT3: elemCount = 9; break;
+    case eGL_FLOAT_MAT3x2:
+    case eGL_DOUBLE_MAT3x2:
+    case eGL_FLOAT_MAT2x3:
+    case eGL_DOUBLE_MAT2x3: elemCount = 6; break;
+    case eGL_FLOAT_MAT2:
+    case eGL_DOUBLE_MAT2:
+    case eGL_FLOAT_VEC4:
+    case eGL_DOUBLE_VEC4: elemCount = 4; break;
+    case eGL_FLOAT_VEC3:
+    case eGL_DOUBLE_VEC3: elemCount = 3; break;
+    case eGL_FLOAT_VEC2:
+    case eGL_DOUBLE_VEC2: elemCount = 2; break;
+    default:
+      // all other types are elemCount = 1
+      break;
+  }
+
+  double *dv = el.data.dval;
+  float *fv = el.data.fval;
+  int32_t *iv = el.data.ival;
+  uint32_t *uv = el.data.uval;
+
+  if(baseType == VarType::Double)
+    ser.Serialise("data", fv, elemCount, SerialiserFlags::NoFlags);
+  else if(baseType == VarType::Float)
+    ser.Serialise("data", dv, elemCount, SerialiserFlags::NoFlags);
+  else if(baseType == VarType::Int)
+    ser.Serialise("data", iv, elemCount, SerialiserFlags::NoFlags);
+  else if(baseType == VarType::UInt)
+    ser.Serialise("data", uv, elemCount, SerialiserFlags::NoFlags);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ProgramUniform &el)
+{
+  SERIALISE_MEMBER(Basename);
+  SERIALISE_MEMBER(IsArray);
+  SERIALISE_MEMBER(Values);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ProgramBinding &el)
+{
+  SERIALISE_MEMBER(Name);
+  SERIALISE_MEMBER(Binding);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ProgramUniforms &el)
+{
+  SERIALISE_MEMBER(ValueUniforms);
+  SERIALISE_MEMBER(UBOBindings);
+  SERIALISE_MEMBER(SSBOBindings);
+}
+
 // bit of a hack, to work around C4127: conditional expression is constant
 // on template parameters
 template <typename T>
@@ -47,58 +293,43 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
   RDCCOMPILE_ASSERT((CopyUniforms && !SerialiseUniforms) || (!CopyUniforms && SerialiseUniforms),
                     "Invalid call to ForAllProgramUniforms");
 
-  GLint NumUniforms = 0;
+  // this struct will be serialised with the uniform binding data, or if we're just copying it will
+  // be used to store the data fetched from the source program, before being applied to the
+  // destination program. It's slightly redundant since we could unify the loops (as the code used
+  // to do) but it's much better for code organisation and clarity to have a single path whether
+  // serialising or not.
+  ProgramUniforms serialisedUniforms;
+
+  // if we're reading the source program, iterate over the interfaces and fetch the data.
   if(CheckConstParam(ReadSourceProgram))
+  {
+    const size_t numProps = 5;
+    GLenum resProps[numProps] = {
+        eGL_BLOCK_INDEX, eGL_TYPE, eGL_NAME_LENGTH, eGL_ARRAY_SIZE, eGL_LOCATION,
+    };
+    GLint values[numProps];
+
+    GLint NumUniforms = 0;
     gl.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &NumUniforms);
 
-  if(CheckConstParam(SerialiseUniforms) && ser)
-  {
-    // get accurate count of uniforms not in UBOs
-    GLint numSerialised = 0;
+    // this is a very conservative figure - many uniforms will be in UBOs and so will be ignored
+    serialisedUniforms.ValueUniforms.reserve(NumUniforms);
 
-    if(ser->IsWriting())
+    for(GLint i = 0; i < NumUniforms; i++)
     {
-      for(GLint i = 0; i < NumUniforms; i++)
-      {
-        GLenum prop = eGL_BLOCK_INDEX;
-        GLint blockIdx;
-        gl.glGetProgramResourceiv(progSrc, eGL_UNIFORM, i, 1, &prop, 1, NULL, (GLint *)&blockIdx);
+      GLenum type = eGL_NONE;
+      int32_t arraySize = 0;
+      int32_t srcLocation = 0;
+      string basename;
+      bool isArray = false;
 
-        if(blockIdx >= 0)
-          continue;
-
-        numSerialised++;
-      }
-    }
-
-    ser->Serialise("NumUniforms", numSerialised);
-
-    if(ser->IsReading())
-      NumUniforms = numSerialised;
-  }
-
-  const size_t numProps = 5;
-  GLenum resProps[numProps] = {
-      eGL_BLOCK_INDEX, eGL_TYPE, eGL_NAME_LENGTH, eGL_ARRAY_SIZE, eGL_LOCATION,
-  };
-
-  for(GLint i = 0; i < NumUniforms; i++)
-  {
-    GLenum type = eGL_NONE;
-    int32_t arraySize = 0;
-    int32_t srcLocation = 0;
-    string basename;
-    bool isArray = false;
-
-    if(CheckConstParam(ReadSourceProgram))
-    {
-      GLint values[numProps];
       gl.glGetProgramResourceiv(progSrc, eGL_UNIFORM, i, numProps, resProps, numProps, NULL, values);
 
       // we don't need to consider uniforms within UBOs
       if(values[0] >= 0)
         continue;
 
+      // get the metadata we need for fetching the data
       type = (GLenum)values[1];
       arraySize = values[3];
       srcLocation = values[4];
@@ -121,76 +352,64 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
       }
 
       basename = n;
-    }
 
-    if(CheckConstParam(SerialiseUniforms) && ser)
-    {
-      ser->Serialise("type", type);
-      ser->Serialise("arraySize", arraySize);
-      ser->Serialise("basename", basename);
-      ser->Serialise("isArray", isArray);
-    }
+      // push it onto the list
+      serialisedUniforms.ValueUniforms.push_back(ProgramUniform());
+      ProgramUniform &uniform = serialisedUniforms.ValueUniforms.back();
 
-    double dv[16] = {};
-    float *fv = (float *)dv;
-    int32_t *iv = (int32_t *)dv;
-    uint32_t *uiv = (uint32_t *)dv;
+      uniform.Basename = basename;
+      uniform.IsArray = isArray;
+      uniform.Values.resize(arraySize);
 
-    for(GLint arr = 0; arr < arraySize; arr++)
-    {
-      string name = basename;
-
-      if(isArray)
+      // loop over every element in the array (arraySize = 1 for non arrays)
+      for(GLint arr = 0; arr < arraySize; arr++)
       {
-        name += StringFormat::Fmt("[%d]", arr);
+        ProgramUniformValue &uniformVal = uniform.Values[arr];
+        uniformVal.Type = type;
 
-        if(CheckConstParam(ReadSourceProgram))
-          srcLocation = gl.glGetUniformLocation(progSrc, name.c_str());
-      }
+        std::string name = basename;
 
-      if(CheckConstParam(SerialiseUniforms) && ser)
-        ser->Serialise("srcLocation", srcLocation);
+        // append the subscript if this item is an array.
+        if(isArray)
+        {
+          name += StringFormat::Fmt("[%d]", arr);
 
-      GLint newloc = 0;
-      if(CheckConstParam(WriteDestProgram) && IsReplayMode(state))
-      {
-        newloc = gl.glGetUniformLocation(progDst, name.c_str());
-        if(locTranslate)
-          (*locTranslate)[srcLocation] = newloc;
-      }
+          uniformVal.Location = srcLocation = gl.glGetUniformLocation(progSrc, name.c_str());
+        }
 
-      if(CheckConstParam(CopyUniforms) && newloc == -1)
-        continue;
+        // fetch the data into the ProgramUniformValue, with the appropriate method for its type
+        double *dv = uniformVal.data.dval;
+        float *fv = uniformVal.data.fval;
+        int32_t *iv = uniformVal.data.ival;
+        uint32_t *uiv = uniformVal.data.uval;
 
-      if(CheckConstParam(ReadSourceProgram))
-      {
         switch(type)
         {
-          case eGL_FLOAT_MAT4: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
-          case eGL_FLOAT_MAT4x3: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
-          case eGL_FLOAT_MAT4x2: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
-          case eGL_FLOAT_MAT3: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
-          case eGL_FLOAT_MAT3x4: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
-          case eGL_FLOAT_MAT3x2: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
-          case eGL_FLOAT_MAT2: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
-          case eGL_FLOAT_MAT2x4: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
-          case eGL_FLOAT_MAT2x3: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
-          case eGL_DOUBLE_MAT4: gl.glGetUniformdv(progSrc, srcLocation, dv); break;
-          case eGL_DOUBLE_MAT4x3: gl.glGetUniformdv(progSrc, srcLocation, dv); break;
-          case eGL_DOUBLE_MAT4x2: gl.glGetUniformdv(progSrc, srcLocation, dv); break;
-          case eGL_DOUBLE_MAT3: gl.glGetUniformdv(progSrc, srcLocation, dv); break;
-          case eGL_DOUBLE_MAT3x4: gl.glGetUniformdv(progSrc, srcLocation, dv); break;
-          case eGL_DOUBLE_MAT3x2: gl.glGetUniformdv(progSrc, srcLocation, dv); break;
-          case eGL_DOUBLE_MAT2: gl.glGetUniformdv(progSrc, srcLocation, dv); break;
-          case eGL_DOUBLE_MAT2x4: gl.glGetUniformdv(progSrc, srcLocation, dv); break;
-          case eGL_DOUBLE_MAT2x3: gl.glGetUniformdv(progSrc, srcLocation, dv); break;
-          case eGL_FLOAT: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
-          case eGL_FLOAT_VEC2: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
-          case eGL_FLOAT_VEC3: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+          case eGL_FLOAT_MAT4:
+          case eGL_FLOAT_MAT4x3:
+          case eGL_FLOAT_MAT4x2:
+          case eGL_FLOAT_MAT3:
+          case eGL_FLOAT_MAT3x4:
+          case eGL_FLOAT_MAT3x2:
+          case eGL_FLOAT_MAT2:
+          case eGL_FLOAT_MAT2x4:
+          case eGL_FLOAT_MAT2x3:
+          case eGL_FLOAT:
+          case eGL_FLOAT_VEC2:
+          case eGL_FLOAT_VEC3:
           case eGL_FLOAT_VEC4: gl.glGetUniformfv(progSrc, srcLocation, fv); break;
-          case eGL_DOUBLE: gl.glGetUniformdv(progSrc, srcLocation, dv); break;
-          case eGL_DOUBLE_VEC2: gl.glGetUniformdv(progSrc, srcLocation, dv); break;
-          case eGL_DOUBLE_VEC3: gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+          case eGL_DOUBLE_MAT4:
+          case eGL_DOUBLE_MAT4x3:
+          case eGL_DOUBLE_MAT4x2:
+          case eGL_DOUBLE_MAT3:
+          case eGL_DOUBLE_MAT3x4:
+          case eGL_DOUBLE_MAT3x2:
+          case eGL_DOUBLE_MAT2:
+          case eGL_DOUBLE_MAT2x4:
+          case eGL_DOUBLE_MAT2x3:
+          case eGL_DOUBLE:
+          case eGL_DOUBLE_VEC2:
+          case eGL_DOUBLE_VEC3:
           case eGL_DOUBLE_VEC4:
             gl.glGetUniformdv(progSrc, srcLocation, dv);
             break;
@@ -268,80 +487,168 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
           case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
           case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
           case eGL_UNSIGNED_INT_ATOMIC_COUNTER:
-          case eGL_INT: gl.glGetUniformiv(progSrc, srcLocation, iv); break;
-          case eGL_INT_VEC2: gl.glGetUniformiv(progSrc, srcLocation, iv); break;
-          case eGL_INT_VEC3: gl.glGetUniformiv(progSrc, srcLocation, iv); break;
-          case eGL_INT_VEC4: gl.glGetUniformiv(progSrc, srcLocation, iv); break;
+          case eGL_INT:
+          case eGL_INT_VEC2:
+          case eGL_INT_VEC3:
+          case eGL_INT_VEC4:
+            gl.glGetUniformiv(progSrc, srcLocation, iv);
+            break;
+          // bools are unsigned integers
           case eGL_UNSIGNED_INT:
-          case eGL_BOOL: gl.glGetUniformuiv(progSrc, srcLocation, uiv); break;
+          case eGL_BOOL:
           case eGL_UNSIGNED_INT_VEC2:
-          case eGL_BOOL_VEC2: gl.glGetUniformuiv(progSrc, srcLocation, uiv); break;
+          case eGL_BOOL_VEC2:
           case eGL_UNSIGNED_INT_VEC3:
-          case eGL_BOOL_VEC3: gl.glGetUniformuiv(progSrc, srcLocation, uiv); break;
+          case eGL_BOOL_VEC3:
           case eGL_UNSIGNED_INT_VEC4:
           case eGL_BOOL_VEC4: gl.glGetUniformuiv(progSrc, srcLocation, uiv); break;
           default: RDCERR("Unhandled uniform type '%s'", ToStr(type).c_str());
         }
       }
+    }
 
-      if(CheckConstParam(SerialiseUniforms) && ser)
-        ser->Serialise("data", dv);
+    // now find how many UBOs we have, and store their binding indices
+    GLint numUBOs = 0;
+    gl.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
 
-      if(CheckConstParam(WriteDestProgram) && IsReplayMode(state))
+    serialisedUniforms.UBOBindings.reserve(numUBOs);
+
+    for(GLint i = 0; i < numUBOs; i++)
+    {
+      GLenum prop = eGL_BUFFER_BINDING;
+      uint32_t bind = 0;
+
+      gl.glGetProgramResourceiv(progSrc, eGL_UNIFORM_BLOCK, i, 1, &prop, 1, NULL, (GLint *)&bind);
+
+      char n[1024] = {0};
+      gl.glGetProgramResourceName(progSrc, eGL_UNIFORM_BLOCK, i, 1023, NULL, n);
+
+      serialisedUniforms.UBOBindings.push_back(ProgramBinding(n, bind));
+    }
+
+    // finally, if SSBOs are supported on this implementation, fetch their bindings
+    GLint numSSBOs = 0;
+    if(HasExt[ARB_shader_storage_buffer_object])
+      gl.glGetProgramInterfaceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, eGL_ACTIVE_RESOURCES, &numSSBOs);
+
+    serialisedUniforms.SSBOBindings.reserve(numSSBOs);
+
+    for(GLint i = 0; i < numSSBOs; i++)
+    {
+      GLenum prop = eGL_BUFFER_BINDING;
+      uint32_t bind = 0;
+
+      gl.glGetProgramResourceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, i, 1, &prop, 1, NULL,
+                                (GLint *)&bind);
+
+      char n[1024] = {0};
+      gl.glGetProgramResourceName(progSrc, eGL_SHADER_STORAGE_BLOCK, i, 1023, NULL, n);
+
+      serialisedUniforms.SSBOBindings.push_back(ProgramBinding(n, bind));
+    }
+  }
+
+  // now serialise all the bindings if we are serialising
+  if(CheckConstParam(SerialiseUniforms) && ser)
+  {
+    ser->Serialise("ProgramUniforms", serialisedUniforms);
+  }
+
+  // if we are writing to a destination program and replaying, then apply the stored data from
+  // serialisedUniforms
+  if(CheckConstParam(WriteDestProgram) && IsReplayMode(state))
+  {
+    // loop over the loose global uniforms, see if there is an equivalent, and apply it.
+    for(const ProgramUniform &uniform : serialisedUniforms.ValueUniforms)
+    {
+      for(size_t arr = 0; arr < uniform.Values.size(); arr++)
       {
-        switch(type)
+        const ProgramUniformValue &val = uniform.Values[arr];
+
+        std::string name = uniform.Basename;
+
+        if(uniform.IsArray)
+          name += StringFormat::Fmt("[%u]", (uint32_t)arr);
+
+        GLint dstLocation = gl.glGetUniformLocation(progDst, name.c_str());
+        if(locTranslate)
+          (*locTranslate)[val.Location] = dstLocation;
+
+        // don't try and apply the uniform if the new location is -1
+        if(dstLocation == -1)
+          continue;
+
+        const double *dv = val.data.dval;
+        const float *fv = val.data.fval;
+        const int32_t *iv = val.data.ival;
+        const uint32_t *uiv = val.data.uval;
+
+        // call the appropriate function to apply the data to the destination program
+        switch(val.Type)
         {
-          case eGL_FLOAT_MAT4: gl.glProgramUniformMatrix4fv(progDst, newloc, 1, false, fv); break;
+          case eGL_FLOAT_MAT4:
+            gl.glProgramUniformMatrix4fv(progDst, dstLocation, 1, false, fv);
+            break;
           case eGL_FLOAT_MAT4x3:
-            gl.glProgramUniformMatrix4x3fv(progDst, newloc, 1, false, fv);
+            gl.glProgramUniformMatrix4x3fv(progDst, dstLocation, 1, false, fv);
             break;
           case eGL_FLOAT_MAT4x2:
-            gl.glProgramUniformMatrix4x2fv(progDst, newloc, 1, false, fv);
+            gl.glProgramUniformMatrix4x2fv(progDst, dstLocation, 1, false, fv);
             break;
-          case eGL_FLOAT_MAT3: gl.glProgramUniformMatrix3fv(progDst, newloc, 1, false, fv); break;
+          case eGL_FLOAT_MAT3:
+            gl.glProgramUniformMatrix3fv(progDst, dstLocation, 1, false, fv);
+            break;
           case eGL_FLOAT_MAT3x4:
-            gl.glProgramUniformMatrix3x4fv(progDst, newloc, 1, false, fv);
+            gl.glProgramUniformMatrix3x4fv(progDst, dstLocation, 1, false, fv);
             break;
           case eGL_FLOAT_MAT3x2:
-            gl.glProgramUniformMatrix3x2fv(progDst, newloc, 1, false, fv);
+            gl.glProgramUniformMatrix3x2fv(progDst, dstLocation, 1, false, fv);
             break;
-          case eGL_FLOAT_MAT2: gl.glProgramUniformMatrix2fv(progDst, newloc, 1, false, fv); break;
+          case eGL_FLOAT_MAT2:
+            gl.glProgramUniformMatrix2fv(progDst, dstLocation, 1, false, fv);
+            break;
           case eGL_FLOAT_MAT2x4:
-            gl.glProgramUniformMatrix2x4fv(progDst, newloc, 1, false, fv);
+            gl.glProgramUniformMatrix2x4fv(progDst, dstLocation, 1, false, fv);
             break;
           case eGL_FLOAT_MAT2x3:
-            gl.glProgramUniformMatrix2x3fv(progDst, newloc, 1, false, fv);
+            gl.glProgramUniformMatrix2x3fv(progDst, dstLocation, 1, false, fv);
             break;
-          case eGL_DOUBLE_MAT4: gl.glProgramUniformMatrix4dv(progDst, newloc, 1, false, dv); break;
+          case eGL_DOUBLE_MAT4:
+            gl.glProgramUniformMatrix4dv(progDst, dstLocation, 1, false, dv);
+            break;
           case eGL_DOUBLE_MAT4x3:
-            gl.glProgramUniformMatrix4x3dv(progDst, newloc, 1, false, dv);
+            gl.glProgramUniformMatrix4x3dv(progDst, dstLocation, 1, false, dv);
             break;
           case eGL_DOUBLE_MAT4x2:
-            gl.glProgramUniformMatrix4x2dv(progDst, newloc, 1, false, dv);
+            gl.glProgramUniformMatrix4x2dv(progDst, dstLocation, 1, false, dv);
             break;
-          case eGL_DOUBLE_MAT3: gl.glProgramUniformMatrix3dv(progDst, newloc, 1, false, dv); break;
+          case eGL_DOUBLE_MAT3:
+            gl.glProgramUniformMatrix3dv(progDst, dstLocation, 1, false, dv);
+            break;
           case eGL_DOUBLE_MAT3x4:
-            gl.glProgramUniformMatrix3x4dv(progDst, newloc, 1, false, dv);
+            gl.glProgramUniformMatrix3x4dv(progDst, dstLocation, 1, false, dv);
             break;
           case eGL_DOUBLE_MAT3x2:
-            gl.glProgramUniformMatrix3x2dv(progDst, newloc, 1, false, dv);
+            gl.glProgramUniformMatrix3x2dv(progDst, dstLocation, 1, false, dv);
             break;
-          case eGL_DOUBLE_MAT2: gl.glProgramUniformMatrix2dv(progDst, newloc, 1, false, dv); break;
+          case eGL_DOUBLE_MAT2:
+            gl.glProgramUniformMatrix2dv(progDst, dstLocation, 1, false, dv);
+            break;
           case eGL_DOUBLE_MAT2x4:
-            gl.glProgramUniformMatrix2x4dv(progDst, newloc, 1, false, dv);
+            gl.glProgramUniformMatrix2x4dv(progDst, dstLocation, 1, false, dv);
             break;
           case eGL_DOUBLE_MAT2x3:
-            gl.glProgramUniformMatrix2x3dv(progDst, newloc, 1, false, dv);
+            gl.glProgramUniformMatrix2x3dv(progDst, dstLocation, 1, false, dv);
             break;
-          case eGL_FLOAT: gl.glProgramUniform1fv(progDst, newloc, 1, fv); break;
-          case eGL_FLOAT_VEC2: gl.glProgramUniform2fv(progDst, newloc, 1, fv); break;
-          case eGL_FLOAT_VEC3: gl.glProgramUniform3fv(progDst, newloc, 1, fv); break;
-          case eGL_FLOAT_VEC4: gl.glProgramUniform4fv(progDst, newloc, 1, fv); break;
-          case eGL_DOUBLE: gl.glProgramUniform1dv(progDst, newloc, 1, dv); break;
-          case eGL_DOUBLE_VEC2: gl.glProgramUniform2dv(progDst, newloc, 1, dv); break;
-          case eGL_DOUBLE_VEC3: gl.glProgramUniform3dv(progDst, newloc, 1, dv); break;
+          case eGL_FLOAT: gl.glProgramUniform1fv(progDst, dstLocation, 1, fv); break;
+          case eGL_FLOAT_VEC2: gl.glProgramUniform2fv(progDst, dstLocation, 1, fv); break;
+          case eGL_FLOAT_VEC3: gl.glProgramUniform3fv(progDst, dstLocation, 1, fv); break;
+          case eGL_FLOAT_VEC4: gl.glProgramUniform4fv(progDst, dstLocation, 1, fv); break;
+          case eGL_DOUBLE: gl.glProgramUniform1dv(progDst, dstLocation, 1, dv); break;
+          case eGL_DOUBLE_VEC2: gl.glProgramUniform2dv(progDst, dstLocation, 1, dv); break;
+          case eGL_DOUBLE_VEC3: gl.glProgramUniform3dv(progDst, dstLocation, 1, dv); break;
           case eGL_DOUBLE_VEC4:
-            gl.glProgramUniform4dv(progDst, newloc, 1, dv);
+            gl.glProgramUniform4dv(progDst, dstLocation, 1, dv);
             break;
 
           // treat all samplers as just an int (since they just store their binding value)
@@ -417,99 +724,40 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
           case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
           case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
           case eGL_UNSIGNED_INT_ATOMIC_COUNTER:
-          case eGL_INT: gl.glProgramUniform1iv(progDst, newloc, 1, iv); break;
-          case eGL_INT_VEC2: gl.glProgramUniform2iv(progDst, newloc, 1, iv); break;
-          case eGL_INT_VEC3: gl.glProgramUniform3iv(progDst, newloc, 1, iv); break;
-          case eGL_INT_VEC4: gl.glProgramUniform4iv(progDst, newloc, 1, iv); break;
+          case eGL_INT: gl.glProgramUniform1iv(progDst, dstLocation, 1, iv); break;
+          case eGL_INT_VEC2: gl.glProgramUniform2iv(progDst, dstLocation, 1, iv); break;
+          case eGL_INT_VEC3: gl.glProgramUniform3iv(progDst, dstLocation, 1, iv); break;
+          case eGL_INT_VEC4: gl.glProgramUniform4iv(progDst, dstLocation, 1, iv); break;
           case eGL_UNSIGNED_INT:
-          case eGL_BOOL: gl.glProgramUniform1uiv(progDst, newloc, 1, uiv); break;
+          case eGL_BOOL: gl.glProgramUniform1uiv(progDst, dstLocation, 1, uiv); break;
           case eGL_UNSIGNED_INT_VEC2:
-          case eGL_BOOL_VEC2: gl.glProgramUniform2uiv(progDst, newloc, 1, uiv); break;
+          case eGL_BOOL_VEC2: gl.glProgramUniform2uiv(progDst, dstLocation, 1, uiv); break;
           case eGL_UNSIGNED_INT_VEC3:
-          case eGL_BOOL_VEC3: gl.glProgramUniform3uiv(progDst, newloc, 1, uiv); break;
+          case eGL_BOOL_VEC3: gl.glProgramUniform3uiv(progDst, dstLocation, 1, uiv); break;
           case eGL_UNSIGNED_INT_VEC4:
-          case eGL_BOOL_VEC4: gl.glProgramUniform4uiv(progDst, newloc, 1, uiv); break;
-          default: RDCERR("Unhandled uniform type '%s'", ToStr(type).c_str());
+          case eGL_BOOL_VEC4: gl.glProgramUniform4uiv(progDst, dstLocation, 1, uiv); break;
+          default: RDCERR("Unhandled uniform type '%s'", ToStr(val.Type).c_str());
         }
       }
     }
-  }
 
-  GLint numUBOs = 0;
-  if(CheckConstParam(ReadSourceProgram))
-    gl.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
-
-  if(CheckConstParam(SerialiseUniforms) && ser)
-    ser->Serialise("numUBOs", numUBOs);
-
-  for(GLint i = 0; i < numUBOs; i++)
-  {
-    GLenum prop = eGL_BUFFER_BINDING;
-    uint32_t bind = 0;
-    string name;
-
-    if(CheckConstParam(ReadSourceProgram))
+    // apply UBO bindings
+    for(const ProgramBinding &bind : serialisedUniforms.UBOBindings)
     {
-      gl.glGetProgramResourceiv(progSrc, eGL_UNIFORM_BLOCK, i, 1, &prop, 1, NULL, (GLint *)&bind);
-
-      char n[1024] = {0};
-      gl.glGetProgramResourceName(progSrc, eGL_UNIFORM_BLOCK, i, 1023, NULL, n);
-
-      name = n;
-    }
-
-    if(CheckConstParam(SerialiseUniforms) && ser)
-    {
-      ser->Serialise("bind", bind);
-      ser->Serialise("name", name);
-    }
-
-    if(CheckConstParam(WriteDestProgram) && IsReplayMode(state))
-    {
-      GLuint idx = gl.glGetUniformBlockIndex(progDst, name.c_str());
+      GLuint idx = gl.glGetUniformBlockIndex(progDst, bind.Name.c_str());
       if(idx != GL_INVALID_INDEX)
-        gl.glUniformBlockBinding(progDst, idx, bind);
-    }
-  }
-
-  GLint numSSBOs = 0;
-  if(CheckConstParam(ReadSourceProgram) && HasExt[ARB_shader_storage_buffer_object])
-    gl.glGetProgramInterfaceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, eGL_ACTIVE_RESOURCES, &numSSBOs);
-
-  if(CheckConstParam(SerialiseUniforms) && ser)
-    ser->Serialise("numSSBOs", numSSBOs);
-
-  for(GLint i = 0; i < numSSBOs; i++)
-  {
-    GLenum prop = eGL_BUFFER_BINDING;
-    uint32_t bind = 0;
-    string name;
-
-    if(CheckConstParam(ReadSourceProgram))
-    {
-      gl.glGetProgramResourceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, i, 1, &prop, 1, NULL,
-                                (GLint *)&bind);
-
-      char n[1024] = {0};
-      gl.glGetProgramResourceName(progSrc, eGL_SHADER_STORAGE_BLOCK, i, 1023, NULL, n);
-
-      name = n;
+        gl.glUniformBlockBinding(progDst, idx, bind.Binding);
     }
 
-    if(CheckConstParam(SerialiseUniforms) && ser)
+    // apply SSBO bindings
+    for(const ProgramBinding &bind : serialisedUniforms.SSBOBindings)
     {
-      ser->Serialise("bind", bind);
-      ser->Serialise("name", name);
-    }
-
-    if(CheckConstParam(WriteDestProgram) && IsReplayMode(state))
-    {
-      GLuint idx = gl.glGetProgramResourceIndex(progDst, eGL_SHADER_STORAGE_BLOCK, name.c_str());
+      GLuint idx = gl.glGetProgramResourceIndex(progDst, eGL_SHADER_STORAGE_BLOCK, bind.Name.c_str());
       if(idx != GL_INVALID_INDEX)
       {
         if(gl.glShaderStorageBlockBinding)
         {
-          gl.glShaderStorageBlockBinding(progDst, i, bind);
+          gl.glShaderStorageBlockBinding(progDst, idx, bind.Binding);
         }
         else
         {
@@ -608,68 +856,85 @@ void SerialiseProgramBindings(SerialiserType &ser, CaptureState state, const GLH
 {
   char Name[128] = {0};
 
-  for(int sigType = 0; sigType < 2; sigType++)
+  std::vector<ProgramBinding> InputBindings;
+  std::vector<ProgramBinding> OutputBindings;
+
+  if(ser.IsWriting())
   {
-    GLenum sigEnum = (sigType == 0 ? eGL_PROGRAM_INPUT : eGL_PROGRAM_OUTPUT);
+    char buf[128] = {};
 
-    uint64_t used = 0;
-
-    int32_t NumAttributes = 0;
-
-    if(ser.IsWriting())
-      gl.glGetProgramInterfaceiv(prog, sigEnum, eGL_ACTIVE_RESOURCES, (GLint *)&NumAttributes);
-
-    SERIALISE_ELEMENT(NumAttributes);
-
-    for(GLint i = 0; i < NumAttributes; i++)
+    for(int sigType = 0; sigType < 2; sigType++)
     {
-      int32_t Location = -1;
+      GLenum sigEnum = (sigType == 0 ? eGL_PROGRAM_INPUT : eGL_PROGRAM_OUTPUT);
+      std::vector<ProgramBinding> &bindings = (sigType == 0 ? InputBindings : OutputBindings);
 
-      if(ser.IsWriting())
+      int32_t NumAttributes = 0;
+      gl.glGetProgramInterfaceiv(prog, sigEnum, eGL_ACTIVE_RESOURCES, (GLint *)&NumAttributes);
+      bindings.reserve(NumAttributes);
+
+      for(GLint i = 0; i < NumAttributes; i++)
       {
-        gl.glGetProgramResourceName(prog, sigEnum, i, 128, NULL, Name);
+        gl.glGetProgramResourceName(prog, sigEnum, i, 128, NULL, buf);
+
+        ProgramBinding bind;
+        bind.Name = buf;
 
         if(sigType == 0)
-          Location = gl.glGetAttribLocation(prog, Name);
+          bind.Binding = gl.glGetAttribLocation(prog, buf);
         else
-          Location = gl.glGetFragDataLocation(prog, Name);
+          bind.Binding = gl.glGetFragDataLocation(prog, buf);
+
+        bindings.push_back(bind);
       }
+    }
+  }
 
-      SERIALISE_ELEMENT(Name);
-      SERIALISE_ELEMENT(Location);
+  SERIALISE_ELEMENT(InputBindings);
+  SERIALISE_ELEMENT(OutputBindings);
 
-      if(ser.IsReading() && IsReplayMode(state) && Location >= 0)
+  if(ser.IsReading() && IsReplayMode(state))
+  {
+    for(int sigType = 0; sigType < 2; sigType++)
+    {
+      const std::vector<ProgramBinding> &bindings = (sigType == 0 ? InputBindings : OutputBindings);
+
+      uint64_t used = 0;
+
+      for(const ProgramBinding &bind : bindings)
       {
-        uint64_t mask = 1ULL << Location;
-
-        if(used & mask)
+        if(bind.Binding >= 0)
         {
-          RDCWARN("Multiple %s items bound to location %d, ignoring %s",
-                  sigType == 0 ? "attrib" : "fragdata", Location, Name);
-          continue;
-        }
+          uint64_t mask = 1ULL << bind.Binding;
 
-        used |= mask;
-
-        if(!strncmp("gl_", Name, 3))
-          continue;    // GL_INVALID_OPERATION if name starts with reserved gl_ prefix (for both
-                       // glBindAttribLocation and glBindFragDataLocation)
-
-        if(sigType == 0)
-        {
-          gl.glBindAttribLocation(prog, (GLuint)Location, Name);
-        }
-        else
-        {
-          if(gl.glBindFragDataLocation)
+          if(used & mask)
           {
-            gl.glBindFragDataLocation(prog, (GLuint)Location, Name);
+            RDCWARN("Multiple %s items bound to location %d, ignoring %s",
+                    sigType == 0 ? "attrib" : "fragdata", bind.Binding, bind.Name.c_str());
+            continue;
+          }
+
+          used |= mask;
+
+          if(!strncmp("gl_", bind.Name.c_str(), 3))
+            continue;    // GL_INVALID_OPERATION if name starts with reserved gl_ prefix (for both
+                         // glBindAttribLocation and glBindFragDataLocation)
+
+          if(sigType == 0)
+          {
+            gl.glBindAttribLocation(prog, (GLuint)bind.Binding, bind.Name.c_str());
           }
           else
           {
-            // glBindFragDataLocation is not core GLES, but it is in GL_EXT_blend_func_extended
-            // TODO what to do if that extension is not supported
-            RDCERR("glBindFragDataLocation is not supported!");
+            if(gl.glBindFragDataLocation)
+            {
+              gl.glBindFragDataLocation(prog, (GLuint)bind.Binding, bind.Name.c_str());
+            }
+            else
+            {
+              // glBindFragDataLocation is not core GLES, but it is in GL_EXT_blend_func_extended
+              // TODO what to do if that extension is not supported
+              RDCERR("glBindFragDataLocation is not supported!");
+            }
           }
         }
       }
