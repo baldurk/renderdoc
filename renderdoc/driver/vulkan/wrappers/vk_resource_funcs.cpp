@@ -1081,9 +1081,19 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
                                              const VkAllocationCallbacks *pAllocator,
                                              VkBuffer *pBuffer)
 {
+  VkMemoryRequirements memoryRequirements = {};
+
+  if(ser.IsWriting())
+  {
+    ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(*pBuffer),
+                                                 &memoryRequirements);
+  }
+
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(Buffer, GetResID(*pBuffer));
+  // unused at the moment, just for user information
+  SERIALISE_ELEMENT(memoryRequirements);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1298,9 +1308,18 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
                                             const VkImageCreateInfo *pCreateInfo,
                                             const VkAllocationCallbacks *pAllocator, VkImage *pImage)
 {
+  VkMemoryRequirements memoryRequirements = {};
+
+  if(ser.IsWriting())
+  {
+    ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(*pImage), &memoryRequirements);
+  }
+
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
   SERIALISE_ELEMENT_LOCAL(Image, GetResID(*pImage));
+  // unused at the moment, just for user information
+  SERIALISE_ELEMENT(memoryRequirements);
 
   SERIALISE_CHECK_READ_ERRORS();
 

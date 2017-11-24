@@ -539,6 +539,14 @@ void Deserialise(const VkImageCreateInfo &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkMemoryRequirements &el)
+{
+  SERIALISE_MEMBER(size);
+  SERIALISE_MEMBER(alignment);
+  SERIALISE_MEMBER(memoryTypeBits);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkImageViewCreateInfo &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
@@ -1822,6 +1830,7 @@ INSTANTIATE_SERIALISE_TYPE(VkBufferCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkBufferViewCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImageCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImageViewCreateInfo);
+INSTANTIATE_SERIALISE_TYPE(VkMemoryRequirements);
 INSTANTIATE_SERIALISE_TYPE(VkSparseMemoryBind);
 INSTANTIATE_SERIALISE_TYPE(VkBindSparseInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSubmitInfo);
