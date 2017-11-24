@@ -1713,4 +1713,5 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
+  <Import Project="$(SolutionDir)\renderdoc\renderdoc.props" />
 </Project>

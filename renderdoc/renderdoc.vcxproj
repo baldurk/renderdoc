@@ -488,4 +488,5 @@
     <Copy SourceFiles="$(ProjectDir)3rdparty\dbghelp\$(Platform)\dbghelp.dll" DestinationFolder="$(OutDir)">
     </Copy>
   </Target>
+  <Import Project="$(SolutionDir)\renderdoc\renderdoc.props" />
 </Project>
