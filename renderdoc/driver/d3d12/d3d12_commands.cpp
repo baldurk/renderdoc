@@ -456,31 +456,39 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::Resource_WriteToSubresource:
       ret = m_pDevice->Serialise_WriteToSubresource(ser, NULL, 0, NULL, NULL, 0, 0);
       break;
-
-    case D3D12Chunk::CaptureEnd:
+    default:
     {
-      SERIALISE_ELEMENT_LOCAL(PresentedImage, ResourceId());
+      SystemChunk system = (SystemChunk)chunk;
 
-      SERIALISE_CHECK_READ_ERRORS();
-
-      m_BackbufferID = PresentedImage;
-
-      if(IsLoading(m_State))
+      if(system == SystemChunk::CaptureEnd)
       {
-        m_Cmd.AddEvent();
+        SERIALISE_ELEMENT_LOCAL(PresentedImage, ResourceId());
 
-        DrawcallDescription draw;
-        draw.name = "Present()";
-        draw.flags |= DrawFlags::Present;
+        SERIALISE_CHECK_READ_ERRORS();
 
-        draw.copyDestination = m_BackbufferID;
+        m_BackbufferID = PresentedImage;
 
-        m_Cmd.AddDrawcall(draw, true);
+        if(IsLoading(m_State))
+        {
+          m_Cmd.AddEvent();
+
+          DrawcallDescription draw;
+          draw.name = "Present()";
+          draw.flags |= DrawFlags::Present;
+
+          draw.copyDestination = m_BackbufferID;
+
+          m_Cmd.AddDrawcall(draw, true);
+        }
+
+        ret = true;
       }
-
-      ret = true;
+      else
+      {
+        RDCERR("Unrecognised Chunk type %s", ToStr(chunk).c_str());
+      }
+      break;
     }
-    default: RDCERR("Unrecognised Chunk type %s", ToStr(chunk).c_str()); break;
   }
 
   if(IsLoading(m_State))
@@ -538,8 +546,8 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
 
   m_Cmd.m_StructuredFile = m_StructuredFile;
 
-  D3D12Chunk header = ser.ReadChunk<D3D12Chunk>();
-  RDCASSERTEQUAL(header, D3D12Chunk::CaptureBegin);
+  SystemChunk header = ser.ReadChunk<SystemChunk>();
+  RDCASSERTEQUAL(header, SystemChunk::CaptureBegin);
 
   m_pDevice->Serialise_BeginCaptureFrame(ser, !partial);
 
@@ -625,9 +633,7 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
     RenderDoc::Inst().SetProgress(FileInitialRead, float(m_Cmd.m_CurChunkOffset - startOffset) /
                                                        float(ser.GetReader()->GetSize()));
 
-    // for now just abort after capture scope. Really we'd need to support multiple frames
-    // but for now this will do.
-    if(context == D3D12Chunk::CaptureEnd)
+    if((SystemChunk)context == SystemChunk::CaptureEnd)
       break;
 
     // break out if we were only executing one event

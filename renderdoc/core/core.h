@@ -153,6 +153,9 @@ enum class SystemChunk : uint32_t
   DriverInit = 1,
   InitialContentsList,
   InitialContents,
+  CaptureBegin,
+  CaptureScope,
+  CaptureEnd,
 
   FirstDriverChunk = 1000,
 };

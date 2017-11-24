@@ -566,9 +566,7 @@ enum class GLChunk : uint32_t
 {
   DeviceInitialisation = (uint32_t)SystemChunk::FirstDriverChunk,
 
-  CaptureBegin,
-  CaptureEnd,
-  CaptureScope,
+  MakeContextCurrent,
 
   vrapi_CreateTextureSwapChain,
   vrapi_CreateTextureSwapChain2,

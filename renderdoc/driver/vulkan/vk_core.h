@@ -52,7 +52,7 @@ struct VkInitParams
   uint32_t GetSerialiseSize();
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x8;
+  static const uint64_t CurrentVersion = 0x9;
   static bool IsSupportedVersion(uint64_t ver);
 };
 

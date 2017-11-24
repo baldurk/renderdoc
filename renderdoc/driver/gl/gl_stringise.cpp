@@ -32,9 +32,8 @@ std::string DoStringise(const GLChunk &el)
   BEGIN_ENUM_STRINGISE(GLChunk)
   {
     STRINGISE_ENUM_CLASS(DeviceInitialisation);
-    STRINGISE_ENUM_CLASS(CaptureBegin);
-    STRINGISE_ENUM_CLASS(CaptureEnd);
-    STRINGISE_ENUM_CLASS(CaptureScope);
+
+    STRINGISE_ENUM_CLASS_NAMED(MakeContextCurrent, "MakeContextCurrent");
 
     STRINGISE_ENUM_CLASS(vrapi_CreateTextureSwapChain);
     STRINGISE_ENUM_CLASS(vrapi_CreateTextureSwapChain2);

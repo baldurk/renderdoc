@@ -791,7 +791,7 @@ void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
 {
   CACHE_THREAD_SERIALISER();
   ser.SetDrawChunk();
-  SCOPED_SERIALISE_CHUNK(VulkanChunk::CaptureEnd);
+  SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
   SERIALISE_ELEMENT_LOCAL(PresentedImage, GetResID(presentImage));
 
@@ -910,7 +910,7 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
     {
       CACHE_THREAD_SERIALISER();
 
-      SCOPED_SERIALISE_CHUNK(VulkanChunk::CaptureBegin);
+      SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureBegin);
 
       Serialise_BeginCaptureFrame(ser);
 
@@ -1338,7 +1338,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     GetResourceManager()->Serialise_InitialContentsNeeded(ser);
 
     {
-      SCOPED_SERIALISE_CHUNK(VulkanChunk::CaptureScope, 16);
+      SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureScope, 16);
 
       Serialise_CaptureScope(ser);
     }
@@ -1498,7 +1498,7 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
     RenderDoc::Inst().SetProgress(FileInitialRead, float(offsetEnd) / float(reader->GetSize()));
 
-    if(context == VulkanChunk::CaptureScope)
+    if((SystemChunk)context == SystemChunk::CaptureScope)
     {
       m_FrameRecord.frameInfo.fileOffset = offsetStart;
 
@@ -1517,7 +1517,7 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
     chunkInfos[context].totalsize += offsetEnd - offsetStart;
     chunkInfos[context].count++;
 
-    if(context == VulkanChunk::CaptureScope || reader->IsErrored() || reader->AtEnd())
+    if((SystemChunk)context == SystemChunk::CaptureScope || reader->IsErrored() || reader->AtEnd())
       break;
   }
 
@@ -1582,8 +1582,8 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     m_StructuredFile = &ser.GetStructuredFile();
   }
 
-  VulkanChunk header = ser.ReadChunk<VulkanChunk>();
-  RDCASSERTEQUAL(header, VulkanChunk::CaptureBegin);
+  SystemChunk header = ser.ReadChunk<SystemChunk>();
+  RDCASSERTEQUAL(header, SystemChunk::CaptureBegin);
 
   if(partial)
     ser.SkipCurrentChunk();
@@ -1672,7 +1672,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
     RenderDoc::Inst().SetProgress(
         FileInitialRead, float(m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
 
-    if(chunktype == VulkanChunk::CaptureEnd)
+    if((SystemChunk)chunktype == SystemChunk::CaptureEnd)
       break;
 
     // break out if we were only executing one event
@@ -2159,27 +2159,6 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCreateSwapchainKHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
       break;
 
-    case VulkanChunk::CaptureScope: return Serialise_CaptureScope(ser); break;
-    case VulkanChunk::CaptureEnd:
-    {
-      SERIALISE_ELEMENT_LOCAL(PresentedImage, ResourceId());
-
-      SERIALISE_CHECK_READ_ERRORS();
-
-      if(IsLoading(m_State))
-      {
-        AddEvent();
-
-        DrawcallDescription draw;
-        draw.name = "vkQueuePresentKHR()";
-        draw.flags |= DrawFlags::Present;
-
-        draw.copyDestination = PresentedImage;
-
-        AddDrawcall(draw, true);
-      }
-      break;
-    }
     default:
     {
       SystemChunk system = (SystemChunk)chunk;
@@ -2201,6 +2180,31 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       else if(system == SystemChunk::InitialContents)
       {
         return Serialise_InitialState(ser, ResourceId(), NULL);
+      }
+      else if(system == SystemChunk::CaptureScope)
+      {
+        return Serialise_CaptureScope(ser);
+      }
+      else if(system == SystemChunk::CaptureEnd)
+      {
+        SERIALISE_ELEMENT_LOCAL(PresentedImage, ResourceId());
+
+        SERIALISE_CHECK_READ_ERRORS();
+
+        if(IsLoading(m_State))
+        {
+          AddEvent();
+
+          DrawcallDescription draw;
+          draw.name = "vkQueuePresentKHR()";
+          draw.flags |= DrawFlags::Present;
+
+          draw.copyDestination = PresentedImage;
+
+          AddDrawcall(draw, true);
+        }
+
+        return true;
       }
       else if(system < SystemChunk::FirstDriverChunk)
       {

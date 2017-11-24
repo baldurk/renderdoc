@@ -379,9 +379,6 @@ enum class VulkanChunk : uint32_t
   SetShaderDebugPath,
   vkRegisterDeviceEventEXT,
   vkRegisterDisplayEventEXT,
-  CaptureScope,
-  CaptureBegin,
-  CaptureEnd,
   Max,
 };
 

@@ -855,7 +855,6 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
       IID nul;
       return Serialise_OpenSharedResource(ser, 0, nul, NULL);
     }
-    case D3D11Chunk::CaptureScope: return Serialise_CaptureScope(ser);
     case D3D11Chunk::SetShaderDebugPath: return Serialise_SetShaderDebugPath(ser, NULL, NULL);
     default:
     {
@@ -876,6 +875,10 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
       else if(system == SystemChunk::InitialContents)
       {
         return Serialise_InitialState(ser, ResourceId(), NULL);
+      }
+      else if(system == SystemChunk::CaptureScope)
+      {
+        return Serialise_CaptureScope(ser);
       }
       else if(system < SystemChunk::FirstDriverChunk)
       {
@@ -1009,7 +1012,7 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
     RenderDoc::Inst().SetProgress(FileInitialRead, float(offsetEnd) / float(reader->GetSize()));
 
-    if(context == D3D11Chunk::CaptureScope)
+    if((SystemChunk)context == SystemChunk::CaptureScope)
     {
       m_FrameRecord.frameInfo.fileOffset = offsetStart;
 
@@ -1031,7 +1034,7 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
     chunkInfos[context].totalsize += offsetEnd - offsetStart;
     chunkInfos[context].count++;
 
-    if(context == D3D11Chunk::CaptureScope || reader->IsErrored() || reader->AtEnd())
+    if((SystemChunk)context == SystemChunk::CaptureScope || reader->IsErrored() || reader->AtEnd())
       break;
   }
 
@@ -1702,7 +1705,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
       {
         // remember to update this estimated chunk length if you add more parameters
-        SCOPED_SERIALISE_CHUNK(D3D11Chunk::CaptureScope, 16);
+        SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureScope, 16);
 
         Serialise_CaptureScope(ser);
       }

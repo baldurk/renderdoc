@@ -457,10 +457,7 @@ DECLARE_DESERIALISE_TYPE(D3D12_COMMAND_SIGNATURE_DESC);
 
 enum class D3D12Chunk : uint32_t
 {
-  CaptureBegin = (uint32_t)SystemChunk::FirstDriverChunk,
-  CaptureEnd,
-  CaptureScope,
-  SetName,
+  SetName = (uint32_t)SystemChunk::FirstDriverChunk,
   PushMarker,
   SetMarker,
   PopMarker,

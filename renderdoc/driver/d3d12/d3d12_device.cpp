@@ -1215,7 +1215,7 @@ void WrappedID3D12Device::EndCaptureFrame(ID3D12Resource *presentImage)
 {
   WriteSerialiser &ser = GetThreadSerialiser();
   ser.SetDrawChunk();
-  SCOPED_SERIALISE_CHUNK(D3D12Chunk::CaptureEnd);
+  SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
   SERIALISE_ELEMENT_LOCAL(PresentedBackbuffer, GetResID(presentImage));
 
@@ -1275,7 +1275,7 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
     {
       CACHE_THREAD_SERIALISER();
 
-      SCOPED_SERIALISE_CHUNK(D3D12Chunk::CaptureBegin);
+      SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureBegin);
 
       Serialise_BeginCaptureFrame(ser, false);
 
@@ -1609,7 +1609,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
     GetResourceManager()->Serialise_InitialContentsNeeded(ser);
 
     {
-      SCOPED_SERIALISE_CHUNK(D3D12Chunk::CaptureScope, 16);
+      SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureScope, 16);
 
       Serialise_CaptureScope(ser);
     }
@@ -2310,7 +2310,6 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::CreateSwapBuffer:
       return Serialise_WrapSwapchainBuffer(ser, NULL, NULL, 0, NULL);
       break;
-    case D3D12Chunk::CaptureScope: return Serialise_CaptureScope(ser); break;
     default:
     {
       SystemChunk system = (SystemChunk)context;
@@ -2330,6 +2329,10 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
       else if(system == SystemChunk::InitialContents)
       {
         return GetResourceManager()->Serialise_InitialState(ser, ResourceId(), NULL);
+      }
+      else if(system == SystemChunk::CaptureScope)
+      {
+        return Serialise_CaptureScope(ser);
       }
       else if(system < SystemChunk::FirstDriverChunk)
       {
@@ -2453,7 +2456,7 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
     RenderDoc::Inst().SetProgress(FileInitialRead, float(offsetEnd) / float(reader->GetSize()));
 
-    if(context == D3D12Chunk::CaptureScope)
+    if((SystemChunk)context == SystemChunk::CaptureScope)
     {
       m_FrameRecord.frameInfo.fileOffset = offsetStart;
 
@@ -2475,7 +2478,7 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
     chunkInfos[context].totalsize += offsetEnd - offsetStart;
     chunkInfos[context].count++;
 
-    if(context == D3D12Chunk::CaptureScope || reader->IsErrored() || reader->AtEnd())
+    if((SystemChunk)context == SystemChunk::CaptureScope || reader->IsErrored() || reader->AtEnd())
       break;
   }
 

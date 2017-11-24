@@ -426,7 +426,7 @@ void WrappedID3D11DeviceContext::VerifyState()
 void WrappedID3D11DeviceContext::BeginCaptureFrame()
 {
   WriteSerialiser &ser = m_ScratchSerialiser;
-  SCOPED_SERIALISE_CHUNK(D3D11Chunk::CaptureBegin);
+  SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureBegin);
 
   Serialise_BeginCaptureFrame(ser, false);
 
@@ -503,7 +503,7 @@ void WrappedID3D11DeviceContext::EndCaptureFrame()
 {
   WriteSerialiser &ser = m_ScratchSerialiser;
   ser.SetDrawChunk();
-  SCOPED_SERIALISE_CHUNK(D3D11Chunk::CaptureEnd);
+  SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
   SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
 
@@ -837,27 +837,34 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
       m_PresentChunk = true;
       break;
     }
-
-    case D3D11Chunk::CaptureEnd:
+    default:
     {
-      if(IsLoading(m_State))
+      SystemChunk system = (SystemChunk)chunk;
+
+      if(system == SystemChunk::CaptureEnd)
       {
-        if(!m_PresentChunk)
-          AddEvent();
+        if(IsLoading(m_State))
+        {
+          if(!m_PresentChunk)
+            AddEvent();
 
-        DrawcallDescription draw;
-        draw.name = "End of Frame";
-        draw.flags |= DrawFlags::Present;
+          DrawcallDescription draw;
+          draw.name = "End of Frame";
+          draw.flags |= DrawFlags::Present;
 
-        draw.copyDestination = m_pDevice->GetBackbufferResourceID();
+          draw.copyDestination = m_pDevice->GetBackbufferResourceID();
 
-        AddDrawcall(draw, true);
+          AddDrawcall(draw, true);
+        }
+
+        ret = true;
       }
-
-      ret = true;
+      else
+      {
+        RDCERR("Unrecognised Chunk type %d", chunk);
+      }
+      break;
     }
-    break;
-    default: RDCERR("Unrecognised Chunk type %d", chunk); break;
   }
 
   if(IsLoading(m_State) && m_CurEventID > 0)
@@ -1115,8 +1122,8 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
 
   m_DoStateVerify = true;
 
-  D3D11Chunk header = ser.ReadChunk<D3D11Chunk>();
-  RDCASSERTEQUAL(header, D3D11Chunk::CaptureBegin);
+  SystemChunk header = ser.ReadChunk<SystemChunk>();
+  RDCASSERTEQUAL(header, SystemChunk::CaptureBegin);
 
   Serialise_BeginCaptureFrame(ser, !partial);
 
@@ -1180,7 +1187,7 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
     RenderDoc::Inst().SetProgress(
         FrameEventsRead, float(m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
 
-    if(chunktype == D3D11Chunk::CaptureEnd)
+    if((SystemChunk)chunktype == SystemChunk::CaptureEnd)
       break;
 
     m_CurEventID++;

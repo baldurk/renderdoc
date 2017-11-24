@@ -161,6 +161,9 @@ std::string DoStringise(const SystemChunk &el)
     STRINGISE_ENUM_CLASS_NAMED(DriverInit, "Driver Initialisation Parameters");
     STRINGISE_ENUM_CLASS_NAMED(InitialContentsList, "List of Initial Contents Resources");
     STRINGISE_ENUM_CLASS_NAMED(InitialContents, "Initial Contents");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureBegin, "Beginning of Capture");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureScope, "Frame Metadata");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureEnd, "End of Capture");
   }
   END_ENUM_STRINGISE();
 }

@@ -28,13 +28,10 @@
 template <>
 std::string DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1085, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1082, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
-    STRINGISE_ENUM_CLASS_NAMED(CaptureBegin, "Beginning of Capture");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureEnd, "End of Capture");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureScope, "Frame Capture Metadata");
     STRINGISE_ENUM_CLASS_NAMED(SetName, "ID3D12Resource::SetName");
     STRINGISE_ENUM_CLASS_NAMED(PushMarker, "Push Debug Region");
     STRINGISE_ENUM_CLASS_NAMED(SetMarker, "Set Marker");

@@ -1138,7 +1138,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       }
 
       USE_SCRATCH_SERIALISER();
-      SCOPED_SERIALISE_CHUNK(GLChunk::CaptureBegin);
+      SCOPED_SERIALISE_CHUNK(GLChunk::MakeContextCurrent);
       Serialise_BeginCaptureFrame(ser);
       m_ContextRecord->AddChunk(scope.Get());
     }
@@ -2466,7 +2466,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       GetResourceManager()->Serialise_InitialContentsNeeded(ser);
 
       {
-        SCOPED_SERIALISE_CHUNK(GLChunk::CaptureScope, 16);
+        SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureScope, 16);
 
         Serialise_CaptureScope(ser);
       }
@@ -2773,7 +2773,7 @@ void WrappedOpenGL::ContextEndFrame()
 {
   USE_SCRATCH_SERIALISER();
   ser.SetDrawChunk();
-  SCOPED_SERIALISE_CHUNK(GLChunk::CaptureEnd);
+  SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
   m_ContextRecord->AddChunk(scope.Get());
 }
@@ -2869,7 +2869,7 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(SerialiserType &ser)
 void WrappedOpenGL::BeginCaptureFrame()
 {
   USE_SCRATCH_SERIALISER();
-  SCOPED_SERIALISE_CHUNK(GLChunk::CaptureBegin);
+  SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureBegin);
 
   Serialise_BeginCaptureFrame(ser);
 
@@ -3131,7 +3131,7 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
     RenderDoc::Inst().SetProgress(FileInitialRead, float(offsetEnd) / float(reader->GetSize()));
 
-    if(context == GLChunk::CaptureScope)
+    if((SystemChunk)context == SystemChunk::CaptureScope)
     {
       m_FrameRecord.frameInfo.fileOffset = offsetStart;
 
@@ -3152,7 +3152,7 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
     chunkInfos[context].totalsize += offsetEnd - offsetStart;
     chunkInfos[context].count++;
 
-    if(context == GLChunk::CaptureScope || reader->IsErrored() || reader->AtEnd())
+    if((SystemChunk)context == SystemChunk::CaptureScope || reader->IsErrored() || reader->AtEnd())
       break;
   }
 
@@ -3233,6 +3233,27 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     {
       return GetResourceManager()->Serialise_InitialState(ser, ResourceId(),
                                                           GLResource(MakeNullResource));
+    }
+    else if(system == SystemChunk::CaptureScope)
+    {
+      return Serialise_CaptureScope(ser);
+    }
+    else if(system == SystemChunk::CaptureEnd)
+    {
+      if(IsLoading(m_State))
+      {
+        AddEvent();
+
+        DrawcallDescription draw;
+        draw.name = "SwapBuffers()";
+        draw.flags |= DrawFlags::Present;
+
+        draw.copyDestination = GetResourceManager()->GetOriginalID(
+            GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color)));
+
+        AddDrawcall(draw, true);
+      }
+      return true;
     }
     else if(system < SystemChunk::FirstDriverChunk)
     {
@@ -4294,6 +4315,10 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
       // nothing to do, these chunks are just markers
       return true;
 
+    case GLChunk::MakeContextCurrent:
+      // re-use the serialisation for beginning of the frame
+      return Serialise_BeginCaptureFrame(ser);
+
     // these functions are not currently serialised - they do nothing on replay and are not
     // serialised for information (it would be harmless and perhaps useful for the user to see
     // where and how they're called).
@@ -4613,30 +4638,6 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
       RDCERR("Unexpected chunk, or missing case for processing! Skipping...");
       ser.SkipCurrentChunk();
       return false;
-
-    case GLChunk::CaptureScope: return Serialise_CaptureScope(ser);
-    case GLChunk::CaptureBegin:
-      // normally this would be handled as a special case when we start processing the frame,
-      // but it can be emitted mid-frame if MakeCurrent is called on a different context.
-      // when processed here, we always want to apply the contents
-      return Serialise_BeginCaptureFrame(ser);
-    case GLChunk::CaptureEnd:
-    {
-      if(IsLoading(m_State))
-      {
-        AddEvent();
-
-        DrawcallDescription draw;
-        draw.name = "SwapBuffers()";
-        draw.flags |= DrawFlags::Present;
-
-        draw.copyDestination = GetResourceManager()->GetOriginalID(
-            GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color)));
-
-        AddDrawcall(draw, true);
-      }
-      return true;
-    }
   }
 
   return false;
@@ -4663,8 +4664,8 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
     m_StructuredFile = &ser.GetStructuredFile();
   }
 
-  GLChunk header = ser.ReadChunk<GLChunk>();
-  RDCASSERTEQUAL(header, GLChunk::CaptureBegin);
+  SystemChunk header = ser.ReadChunk<SystemChunk>();
+  RDCASSERTEQUAL(header, SystemChunk::CaptureBegin);
 
   if(IsActiveReplaying(m_State) && !partial)
   {
@@ -4763,7 +4764,7 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
     RenderDoc::Inst().SetProgress(
         FileInitialRead, float(m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
 
-    if(chunktype == GLChunk::CaptureEnd)
+    if((SystemChunk)chunktype == SystemChunk::CaptureEnd)
       break;
 
     m_CurEventID++;

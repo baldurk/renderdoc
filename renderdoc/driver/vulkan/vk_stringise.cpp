@@ -28,7 +28,7 @@
 template <>
 std::string DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1100, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1097, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -129,9 +129,6 @@ std::string DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(SetShaderDebugPath);
     STRINGISE_ENUM_CLASS(vkRegisterDeviceEventEXT);
     STRINGISE_ENUM_CLASS(vkRegisterDisplayEventEXT);
-    STRINGISE_ENUM_CLASS_NAMED(CaptureScope, "Frame Capture Metadata");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureBegin, "Beginning of Capture");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureEnd, "End of Capture");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()

@@ -59,7 +59,7 @@ std::string DoStringise(const D3D11ResourceType &el)
 template <>
 std::string DoStringise(const D3D11Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D11Chunk::Max == 1131, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D11Chunk::Max == 1128, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D11Chunk)
   {
@@ -98,7 +98,6 @@ std::string DoStringise(const D3D11Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(CreateDeferredContext, "ID3D11Device::CreateDeferredContext");
     STRINGISE_ENUM_CLASS_NAMED(SetExceptionMode, "ID3D11Device::SetExceptionMode");
     STRINGISE_ENUM_CLASS_NAMED(OpenSharedResource, "ID3D11Device::OpenSharedResource");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureScope, "Frame Capture Metadata");
     STRINGISE_ENUM_CLASS_NAMED(IASetInputLayout, "ID3D11DeviceContext::IASetInputLayout");
     STRINGISE_ENUM_CLASS_NAMED(IASetVertexBuffers, "ID3D11DeviceContext::IASetVertexBuffers");
     STRINGISE_ENUM_CLASS_NAMED(IASetIndexBuffer, "ID3D11DeviceContext::IASetIndexBuffer");
@@ -193,8 +192,6 @@ std::string DoStringise(const D3D11Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(PushMarker, "Push Debug Region");
     STRINGISE_ENUM_CLASS_NAMED(SetMarker, "Set Marker");
     STRINGISE_ENUM_CLASS_NAMED(PopMarker, "Pop Debug Region");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureBegin, "Beginning of Capture");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureEnd, "End of Capture");
     STRINGISE_ENUM_CLASS_NAMED(SetShaderDebugPath, "SetShaderDebugPath");
     STRINGISE_ENUM_CLASS_NAMED(DiscardResource, "ID3D11DeviceContext1::DiscardResource");
     STRINGISE_ENUM_CLASS_NAMED(DiscardView, "ID3D11DeviceContext1::DiscardView");
