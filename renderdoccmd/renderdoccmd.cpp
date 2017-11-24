@@ -664,14 +664,14 @@ struct ConvertCommand : public Command
 
     if(infile.empty())
     {
-      std::cerr << "Need an input filename." << std::endl;
+      std::cerr << "Need an input filename (-f)." << std::endl << std::endl;
       std::cerr << parser.usage() << std::endl;
       return 1;
     }
 
     if(outfile.empty())
     {
-      std::cerr << "Need an output filename." << std::endl;
+      std::cerr << "Need an output filename (-o)." << std::endl << std::endl;
       std::cerr << parser.usage() << std::endl;
       return 1;
     }
@@ -695,6 +695,13 @@ struct ConvertCommand : public Command
       }
     }
 
+    if(infmt.empty())
+    {
+      std::cerr << "Couldn't guess input format from filename." << std::endl << std::endl;
+      std::cerr << parser.usage() << std::endl;
+      return 1;
+    }
+
     if(outfmt.empty())
     {
       // try to guess the format by looking for the extension in the filename
@@ -709,6 +716,13 @@ struct ConvertCommand : public Command
           break;
         }
       }
+    }
+
+    if(outfmt.empty())
+    {
+      std::cerr << "Couldn't guess output format from filename." << std::endl << std::endl;
+      std::cerr << parser.usage() << std::endl;
+      return 1;
     }
 
     ICaptureFile *file = RENDERDOC_OpenCaptureFile();
