@@ -196,7 +196,10 @@ void SettingsDialog::on_browseSaveCaptureDirectory_clicked()
                                      m_Ctx.Config().DefaultCaptureSaveDirectory);
 
   if(!dir.isEmpty())
+  {
     m_Ctx.Config().DefaultCaptureSaveDirectory = dir;
+    ui->saveDirectory->setText(dir);
+  }
 
   m_Ctx.Config().Save();
 }
@@ -374,7 +377,10 @@ void SettingsDialog::on_browseTempCaptureDirectory_clicked()
                                                m_Ctx.Config().TemporaryCaptureDirectory);
 
   if(!dir.isEmpty())
+  {
     m_Ctx.Config().TemporaryCaptureDirectory = dir;
+    ui->tempDirectory->setText(dir);
+  }
 
   m_Ctx.Config().Save();
 }
