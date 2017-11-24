@@ -1019,13 +1019,21 @@ uint32_t GLResourceManager::GetSize_InitialState(ResourceId resid, GLResource re
   }
   else if(res.Namespace == eResProgram)
   {
-    // need to estimate based on how many bindings and uniforms there are.
-    uint32_t ret = 0;
+    // need to estimate based on how many bindings and uniforms there are. This is a rare path -
+    // only happening when a program is created at runtime in the middle of a frameand we didn't
+    // prepare its initial contents. So we take a less efficient route by just serialising the
+    // current contents and using that as our size estimate, then throwing away the contents.
+    WriteSerialiser ser(new StreamWriter(4 * 1024), Ownership::Stream);
 
-    ret += GetBindingsSerialiseSize(m_GL->GetHookset(), res.name);
-    ret += GetUniformsSerialiseSize(m_GL->GetHookset(), res.name);
+    SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents);
 
-    return ret;
+    SERIALISE_ELEMENT(resid);
+    SERIALISE_ELEMENT(res.Namespace);
+
+    SerialiseProgramBindings(ser, CaptureState::ActiveCapturing, m_GL->GetHookset(), res.name);
+    SerialiseProgramUniforms(ser, CaptureState::ActiveCapturing, m_GL->GetHookset(), res.name, NULL);
+
+    return (uint32_t)ser.GetWriter()->GetOffset() + 256;
   }
   else if(res.Namespace == eResTexture)
   {

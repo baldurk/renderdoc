@@ -17,6 +17,7 @@ set(sources
     gl_replay.h
     gl_resources.cpp
     gl_resources.h
+    gl_program_iterate.cpp
     gl_shader_refl.cpp
     gl_shader_refl.h
     gl_stringise.cpp

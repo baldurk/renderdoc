@@ -532,7 +532,6 @@ void EmulateRequiredExtensions(GLHookSet *hooks);
 struct ShaderReflection;
 
 void CopyProgramUniforms(const GLHookSet &gl, GLuint progSrc, GLuint progDst);
-uint32_t GetUniformsSerialiseSize(const GLHookSet &gl, GLuint prog);
 template <typename SerialiserType>
 void SerialiseProgramUniforms(SerialiserType &ser, CaptureState state, const GLHookSet &gl,
                               GLuint prog, map<GLint, GLint> *locTranslate);
@@ -540,7 +539,6 @@ void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progd
                                ShaderReflection *refl);
 void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst,
                                  ShaderReflection *refl);
-uint32_t GetBindingsSerialiseSize(const GLHookSet &gl, GLuint prog);
 template <typename SerialiserType>
 void SerialiseProgramBindings(SerialiserType &ser, CaptureState state, const GLHookSet &gl,
                               GLuint prog);

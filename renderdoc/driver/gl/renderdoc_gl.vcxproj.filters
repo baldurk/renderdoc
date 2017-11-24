@@ -224,5 +224,8 @@
     <ClCompile Include="gl_stringise.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="gl_program_iterate.cpp">
+      <Filter>GLSL</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
