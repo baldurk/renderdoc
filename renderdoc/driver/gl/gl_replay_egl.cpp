@@ -27,6 +27,7 @@
 #include <dlfcn.h>
 #include "serialise/rdcfile.h"
 #include "gl_driver.h"
+#include "gl_hooks_linux_shared.h"
 #include "gl_library_egl.h"
 #include "gl_resources.h"
 
@@ -41,7 +42,10 @@ ReplayStatus GLES_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
   if(!egl.IsInitialized())
   {
-    bool load_ok = egl.LoadSymbolsFrom(RTLD_NEXT);
+#if ENABLED(RDOC_ANDROID)
+    libGLdlsymHandle = dlopen("libEGL.so", RTLD_NOW);
+#endif
+    bool load_ok = egl.LoadSymbolsFrom(libGLdlsymHandle);
 
     if(!load_ok)
     {

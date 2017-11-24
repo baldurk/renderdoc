@@ -31,7 +31,7 @@ void CloneDisplay(Display *dpy);
 #endif
 
 void *SharedLookupFuncPtr(const char *func, void *realFunc);
-bool SharedPopulateHooks(void *(*lookupFunc)(const char *));
+bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *));
 
 extern GLHookSet GL;
 extern WrappedOpenGL *m_GLDriver;

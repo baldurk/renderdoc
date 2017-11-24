@@ -426,7 +426,9 @@ bool EGLHook::PopulateHooks()
 {
   SetupHooks();
 
-  return SharedPopulateHooks([](const char *funcName) { return (void *)eglGetProcAddress(funcName); });
+  return SharedPopulateHooks(
+      false,    // dlsym can return GL symbols during a GLES context
+      [](const char *funcName) { return (void *)eglGetProcAddress(funcName); });
 }
 
 const GLHookSet &GetRealGLFunctionsEGL()

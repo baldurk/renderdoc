@@ -1037,14 +1037,15 @@ void *SharedLookupFuncPtr(const char *func, void *realFunc)
   return NULL;
 }
 
-bool SharedPopulateHooks(void *(*lookupFunc)(const char *))
+bool SharedPopulateHooks(bool dlsymFirst, void *(*lookupFunc)(const char *))
 {
 #undef HookInit
-#define HookInit(function)                                                                   \
-  if(GL.function == NULL)                                                                    \
-  {                                                                                          \
-    GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, STRINGIZE(function)); \
-    lookupFunc((const char *)STRINGIZE(function));                                           \
+#define HookInit(function)                                                                     \
+  if(GL.function == NULL)                                                                      \
+  {                                                                                            \
+    if(dlsymFirst)                                                                             \
+      GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, STRINGIZE(function)); \
+    lookupFunc((const char *)STRINGIZE(function));                                             \
   }
 
 // cheeky

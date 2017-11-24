@@ -810,8 +810,9 @@ bool OpenGLHook::PopulateHooks()
 
   glXGetProcAddress((const GLubyte *)"glXCreateContextAttribsARB");
 
-  return SharedPopulateHooks(
-      [](const char *funcName) { return (void *)glXGetProcAddress((const GLubyte *)funcName); });
+  return SharedPopulateHooks(true, [](const char *funcName) {
+    return (void *)glXGetProcAddress((const GLubyte *)funcName);
+  });
 }
 
 const GLHookSet &GetRealGLFunctions()
