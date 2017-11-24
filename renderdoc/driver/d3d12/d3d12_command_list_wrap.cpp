@@ -3286,8 +3286,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &s
       m_Cmd->AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("ExecuteBundle(%s)",
-                                    ToStr(GetResourceManager()->GetOriginalID(GetResID(pBundle))));
+      draw.name = StringFormat::Fmt(
+          "ExecuteBundle(%s)", ToStr(GetResourceManager()->GetOriginalID(GetResID(pBundle))).c_str());
 
       draw.flags |= DrawFlags::CmdList;
 
