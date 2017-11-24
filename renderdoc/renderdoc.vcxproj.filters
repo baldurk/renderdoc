@@ -632,6 +632,9 @@
     <ClCompile Include="serialise\serialiser_tests.cpp">
       <Filter>Common\Serialise</Filter>
     </ClCompile>
+    <ClCompile Include="serialise\codecs\chrome_json_codec.cpp">
+      <Filter>Common\Serialise\Codecs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

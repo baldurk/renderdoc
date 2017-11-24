@@ -133,6 +133,7 @@ set(sources
     serialise/rdcfile.cpp
     serialise/rdcfile.h
     serialise/codecs/xml_codec.cpp
+    serialise/codecs/chrome_json_codec.cpp
     serialise/comp_io_tests.cpp
     serialise/serialiser_tests.cpp
     serialise/streamio_tests.cpp
