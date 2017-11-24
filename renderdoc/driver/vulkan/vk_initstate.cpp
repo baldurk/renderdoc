@@ -815,7 +815,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, W
     ser.Serialise("Contents", Contents, ContentsSize, SerialiserFlags::NoFlags);
 
     // unmap the resource we mapped before - we need to do this on read and on write.
-    if(!IsStructuredExporting(m_State) && mappedMem)
+    if(!IsStructuredExporting(m_State) && mappedMem != VK_NULL_HANDLE)
       ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem));
 
     SERIALISE_CHECK_READ_ERRORS();
