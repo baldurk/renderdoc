@@ -24,6 +24,7 @@
 
 #include "streamio.h"
 #include <errno.h>
+#include "common/timing.h"
 
 Compressor::~Compressor()
 {
@@ -76,11 +77,12 @@ StreamReader::StreamReader(Network::Socket *sock, Ownership own)
 {
   m_Sock = sock;
 
-  m_InputSize = m_BufferSize = initialBufferSize;
+  m_BufferSize = initialBufferSize;
   m_BufferBase = AllocAlignedBuffer(m_BufferSize);
-  // place head at the *end* of the buffer, because for sockets we pretend the buffer is constantly
-  // exhausted, and just do a read of the minimum number of bytes each time to satisfy each read
-  m_BufferHead = m_BufferBase + m_BufferSize;
+  m_BufferHead = m_BufferBase;
+
+  // for sockets we use m_InputSize to indicate how much data has been read into the buffer.
+  m_InputSize = 0;
 
   m_Ownership = own;
 }
@@ -189,25 +191,7 @@ void StreamReader::SetOffset(uint64_t offs)
 
 bool StreamReader::Reserve(uint64_t numBytes)
 {
-  if(m_Sock)
-  {
-    // if we're reading more bytes than our buffer size, resize up
-    if(numBytes > m_BufferSize)
-    {
-      FreeAlignedBuffer(m_BufferBase);
-      m_InputSize = m_BufferSize = AlignUp<uint64_t>(numBytes, 256ULL);
-      m_BufferBase = AllocAlignedBuffer(m_BufferSize);
-      m_BufferHead = m_BufferBase + m_BufferSize;
-    }
-
-    m_ReadOffset += numBytes;
-
-    // read into the end of the buffer, so that the subsequent read re-exhausts the buffer
-    m_BufferHead = m_BufferBase + m_BufferSize - numBytes;
-    return ReadFromExternal(m_BufferSize - numBytes, numBytes);
-  }
-
-  RDCASSERT(m_File || m_Decompressor);
+  RDCASSERT(m_Sock || m_File || m_Decompressor);
 
   // store old buffer and the read data, so we can move it into the new buffer
   byte *oldBuffer = m_BufferBase;
@@ -217,6 +201,9 @@ bool StreamReader::Reserve(uint64_t numBytes)
 
   byte *currentData = m_BufferHead - backwardsWindow;
   uint64_t currentDataSize = m_BufferSize - (m_BufferHead - m_BufferBase) + backwardsWindow;
+
+  if(m_Sock)
+    currentDataSize = m_InputSize - (m_BufferHead - m_BufferBase) + backwardsWindow;
 
   uint64_t BufferOffset = m_BufferHead - m_BufferBase;
 
@@ -243,11 +230,21 @@ bool StreamReader::Reserve(uint64_t numBytes)
     m_BufferHead = m_BufferBase + BufferOffset;
   }
 
+  if(m_Sock)
+    m_InputSize = currentDataSize;
+
   // if there's anything left of the file to read in, do so now
   bool ret = false;
 
-  ret = ReadFromExternal(currentDataSize, RDCMIN(m_BufferSize - currentDataSize,
-                                                 m_InputSize - m_ReadOffset - currentDataSize));
+  uint64_t readSize =
+      RDCMIN(m_BufferSize - currentDataSize, m_InputSize - m_ReadOffset - currentDataSize);
+
+  // we'll read as much as possible anyway using m_BufferSize, but we need to know how much we
+  // *must* read.
+  if(m_Sock)
+    readSize = numBytes - Available();
+
+  ret = ReadFromExternal(currentDataSize, readSize);
 
   if(oldBuffer != m_BufferBase && m_BufferBase)
     FreeAlignedBuffer(oldBuffer);
@@ -276,7 +273,24 @@ bool StreamReader::ReadFromExternal(uint64_t bufferOffs, uint64_t length)
     }
     else
     {
-      success = m_Sock->RecvDataBlocking(m_BufferBase + bufferOffs, (uint32_t)length);
+      // first get the required data blocking (this will sleep the thread until it comes in).
+      byte *readDest = m_BufferBase + bufferOffs;
+
+      success = m_Sock->RecvDataBlocking(readDest, (uint32_t)length);
+
+      if(success)
+      {
+        m_InputSize += length;
+        readDest += length;
+
+        uint32_t bufSize = uint32_t(m_BufferSize - m_InputSize);
+
+        // now read more, as much as possible, to try and batch future reads
+        success = m_Sock->RecvDataNonBlocking(readDest, bufSize);
+
+        if(success)
+          m_InputSize += bufSize;
+      }
     }
   }
   else
@@ -344,7 +358,8 @@ StreamWriter::StreamWriter(StreamInvalidType)
 
 StreamWriter::StreamWriter(Network::Socket *sock, Ownership own)
 {
-  m_BufferBase = m_BufferHead = m_BufferEnd = NULL;
+  m_BufferBase = m_BufferHead = AllocAlignedBuffer(initialBufferSize);
+  m_BufferEnd = m_BufferBase + initialBufferSize;
 
   m_Sock = sock;
 
@@ -387,6 +402,56 @@ StreamWriter::~StreamWriter()
     if(m_Compressor)
       delete m_Compressor;
   }
+}
+
+bool StreamWriter::SendSocketData(const void *data, uint64_t numBytes)
+{
+  // try to coalesce small writes without doing blocking sends, at least until we're flushed.
+  // if the buffer is already full, flush it.
+  if(m_BufferHead + numBytes >= m_BufferEnd)
+  {
+    bool success = FlushSocketData();
+    if(!success)
+    {
+      HandleError();
+      return false;
+    }
+  }
+
+  // if it's larger than our buffer (even after flushing) just write directly
+  if(m_BufferHead + numBytes >= m_BufferEnd)
+  {
+    bool success = m_Sock->SendDataBlocking(data, (uint32_t)numBytes);
+    if(!success)
+    {
+      HandleError();
+      return false;
+    }
+  }
+  else
+  {
+    // otherwise, write it into the in-memory buffer
+    memcpy(m_BufferHead, data, (size_t)numBytes);
+    m_BufferHead += numBytes;
+  }
+
+  return true;
+}
+
+bool StreamWriter::FlushSocketData()
+{
+  // send out what we have buffered up
+  bool success = m_Sock->SendDataBlocking(m_BufferBase, uint32_t(m_BufferHead - m_BufferBase));
+  if(!success)
+  {
+    HandleError();
+    return false;
+  }
+
+  // reset buffer to the start
+  m_BufferHead = m_BufferBase;
+
+  return true;
 }
 
 void StreamWriter::HandleError()

@@ -91,7 +91,12 @@ public:
 
   inline uint64_t GetOffset() { return m_BufferHead - m_BufferBase + m_ReadOffset; }
   inline uint64_t GetSize() { return m_InputSize; }
-  inline bool AtEnd() { return GetOffset() >= GetSize(); }
+  inline bool AtEnd()
+  {
+    if(m_Sock)
+      return Available() == 0;
+    return GetOffset() >= GetSize();
+  }
   template <uint64_t alignment>
   bool AlignTo()
   {
@@ -189,7 +194,7 @@ private:
   inline uint64_t Available()
   {
     if(m_Sock)
-      return 0;
+      return m_InputSize - (m_BufferHead - m_BufferBase);
     return m_BufferSize - (m_BufferHead - m_BufferBase);
   }
   bool Reserve(uint64_t numBytes);
@@ -327,14 +332,7 @@ public:
     }
     else if(m_Sock)
     {
-      bool success = m_Sock->SendDataBlocking(data, (uint32_t)numBytes);
-      if(!success)
-      {
-        HandleError();
-        return false;
-      }
-
-      return true;
+      return SendSocketData(data, numBytes);
     }
     else
     {
@@ -396,6 +394,18 @@ public:
     return false;
   }
 
+  bool Flush()
+  {
+    if(m_Compressor)
+      return true;
+    else if(m_File)
+      return FileIO::fflush(m_File);
+    else if(m_Sock)
+      return FlushSocketData();
+
+    return true;
+  }
+
   bool Finish()
   {
     if(m_Compressor)
@@ -436,6 +446,9 @@ private:
   }
 
   void HandleError();
+
+  bool SendSocketData(const void *data, uint64_t numBytes);
+  bool FlushSocketData();
 
   // used for aligned writes
   static const byte empty[128];

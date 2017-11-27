@@ -195,7 +195,7 @@ void RenderDoc::TargetControlClientThread(Network::Socket *client)
       continue;
     }
 
-    if(client->IsRecvDataWaiting())
+    if(client->IsRecvDataWaiting() || !reader.GetReader()->AtEnd())
     {
       PacketType type = reader.ReadChunk<PacketType>();
 
@@ -533,7 +533,7 @@ public:
       return msg;
     }
 
-    if(!m_Socket->IsRecvDataWaiting())
+    if(!m_Socket->IsRecvDataWaiting() && reader.GetReader()->AtEnd())
     {
       if(!m_Socket->Connected())
       {

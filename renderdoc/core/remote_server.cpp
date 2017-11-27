@@ -215,525 +215,518 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
     if(threadData->killThread)
       break;
 
-    Threading::Sleep(4);
+    // this will block until a packet comes in.
+    RemoteServerPacket type = reader.ReadChunk<RemoteServerPacket>();
 
-    if(client->IsRecvDataWaiting())
+    if(reader.IsErrored() || writer.IsErrored())
+      break;
+
+    if(client == NULL)
+      continue;
+
+    if(type == eRemoteServer_Ping)
     {
-      RemoteServerPacket type = reader.ReadChunk<RemoteServerPacket>();
+      reader.EndChunk();
 
-      if(reader.IsErrored() || writer.IsErrored())
+      WRITE_DATA_SCOPE();
+      SCOPED_SERIALISE_CHUNK(eRemoteServer_Ping);
+    }
+    else if(type == eRemoteServer_RemoteDriverList)
+    {
+      reader.EndChunk();
+
+      std::map<RDCDriver, std::string> drivers = RenderDoc::Inst().GetRemoteDrivers();
+      uint32_t count = (uint32_t)drivers.size();
+
+      WRITE_DATA_SCOPE();
+      SCOPED_SERIALISE_CHUNK(eRemoteServer_RemoteDriverList);
+      SERIALISE_ELEMENT(count);
+
+      for(auto it = drivers.begin(); it != drivers.end(); ++it)
+      {
+        RDCDriver driverType = it->first;
+        const std::string &driverName = it->second;
+
+        SERIALISE_ELEMENT(driverType);
+        SERIALISE_ELEMENT(driverName);
+      }
+    }
+    else if(type == eRemoteServer_HomeDir)
+    {
+      reader.EndChunk();
+
+      std::string home = FileIO::GetHomeFolderFilename();
+
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_HomeDir);
+        SERIALISE_ELEMENT(home);
+      }
+    }
+    else if(type == eRemoteServer_ListDir)
+    {
+      std::string path;
+
+      {
+        READ_DATA_SCOPE();
+        SERIALISE_ELEMENT(path);
+      }
+
+      reader.EndChunk();
+
+      std::vector<PathEntry> files = FileIO::GetFilesInDirectory(path.c_str());
+
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_ListDir);
+        SERIALISE_ELEMENT(files);
+      }
+    }
+    else if(type == eRemoteServer_CopyCaptureFromRemote)
+    {
+      std::string path;
+
+      {
+        READ_DATA_SCOPE();
+        SERIALISE_ELEMENT(path);
+      }
+
+      reader.EndChunk();
+
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_CopyCaptureFromRemote);
+
+        StreamReader fileStream(FileIO::fopen(path.c_str(), "rb"));
+        ser.SerialiseStream(path, fileStream);
+      }
+    }
+    else if(type == eRemoteServer_CopyCaptureToRemote)
+    {
+      std::string path;
+      std::string dummy, dummy2;
+      FileIO::GetDefaultFiles("remotecopy", path, dummy, dummy2);
+
+      RDCLOG("Copying file to local path '%s'.", path.c_str());
+
+      {
+        READ_DATA_SCOPE();
+
+        StreamWriter streamWriter(FileIO::fopen(path.c_str(), "wb"), Ownership::Stream);
+
+        ser.SerialiseStream(path.c_str(), streamWriter, NULL);
+      }
+
+      reader.EndChunk();
+
+      if(reader.IsErrored())
+      {
+        FileIO::Delete(path.c_str());
+
+        RDCERR("Network error receiving file");
         break;
+      }
 
-      if(client == NULL)
-        continue;
+      RDCLOG("File received.");
 
-      if(type == eRemoteServer_Ping)
+      tempFiles.push_back(path);
+
       {
-        reader.EndChunk();
-
         WRITE_DATA_SCOPE();
-        SCOPED_SERIALISE_CHUNK(eRemoteServer_Ping);
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_CopyCaptureToRemote);
+        SERIALISE_ELEMENT(path);
       }
-      else if(type == eRemoteServer_RemoteDriverList)
+    }
+    else if(type == eRemoteServer_TakeOwnershipCapture)
+    {
+      std::string path;
+
       {
-        reader.EndChunk();
+        READ_DATA_SCOPE();
+        SERIALISE_ELEMENT(path);
+      }
 
-        std::map<RDCDriver, std::string> drivers = RenderDoc::Inst().GetRemoteDrivers();
-        uint32_t count = (uint32_t)drivers.size();
+      reader.EndChunk();
 
+      RDCLOG("Taking ownership of '%s'.", path.c_str());
+
+      tempFiles.push_back(path);
+    }
+    else if(type == eRemoteServer_ShutdownServer)
+    {
+      reader.EndChunk();
+
+      RDCLOG("Requested to shut down.");
+
+      threadData->killServer = true;
+      threadData->killThread = true;
+
+      {
         WRITE_DATA_SCOPE();
-        SCOPED_SERIALISE_CHUNK(eRemoteServer_RemoteDriverList);
-        SERIALISE_ELEMENT(count);
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_ShutdownServer);
+      }
+    }
+    else if(type == eRemoteServer_OpenLog)
+    {
+      std::string path;
 
-        for(auto it = drivers.begin(); it != drivers.end(); ++it)
+      {
+        READ_DATA_SCOPE();
+        SERIALISE_ELEMENT(path);
+      }
+
+      reader.EndChunk();
+
+      RDCASSERT(driver == NULL && proxy == NULL && rdc == NULL);
+      ReplayStatus status = ReplayStatus::InternalError;
+
+      rdc = new RDCFile();
+      rdc->Open(path.c_str());
+
+      if(rdc->ErrorCode() != ContainerError::NoError)
+      {
+        RDCERR("Failed to open '%s': %d", path.c_str(), rdc->ErrorCode());
+
+        switch(rdc->ErrorCode())
         {
-          RDCDriver driverType = it->first;
-          const std::string &driverName = it->second;
-
-          SERIALISE_ELEMENT(driverType);
-          SERIALISE_ELEMENT(driverName);
+          case ContainerError::FileNotFound: status = ReplayStatus::FileNotFound; break;
+          case ContainerError::FileIO: status = ReplayStatus::FileIOFailed; break;
+          case ContainerError::Corrupt: status = ReplayStatus::FileCorrupted; break;
+          case ContainerError::UnsupportedVersion:
+            status = ReplayStatus::FileIncompatibleVersion;
+            break;
+          default: break;
         }
       }
-      else if(type == eRemoteServer_HomeDir)
+      else
       {
-        reader.EndChunk();
-
-        std::string home = FileIO::GetHomeFolderFilename();
-
+        if(RenderDoc::Inst().HasRemoteDriver(rdc->GetDriver()))
         {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_HomeDir);
-          SERIALISE_ELEMENT(home);
-        }
-      }
-      else if(type == eRemoteServer_ListDir)
-      {
-        std::string path;
+          bool kill = false;
+          float progress = 0.0f;
 
-        {
-          READ_DATA_SCOPE();
-          SERIALISE_ELEMENT(path);
-        }
+          RenderDoc::Inst().SetProgressPtr(&progress);
 
-        reader.EndChunk();
-
-        std::vector<PathEntry> files = FileIO::GetFilesInDirectory(path.c_str());
-
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_ListDir);
-          SERIALISE_ELEMENT(files);
-        }
-      }
-      else if(type == eRemoteServer_CopyCaptureFromRemote)
-      {
-        std::string path;
-
-        {
-          READ_DATA_SCOPE();
-          SERIALISE_ELEMENT(path);
-        }
-
-        reader.EndChunk();
-
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_CopyCaptureFromRemote);
-
-          StreamReader fileStream(FileIO::fopen(path.c_str(), "rb"));
-          ser.SerialiseStream(path, fileStream);
-        }
-      }
-      else if(type == eRemoteServer_CopyCaptureToRemote)
-      {
-        std::string path;
-        std::string dummy, dummy2;
-        FileIO::GetDefaultFiles("remotecopy", path, dummy, dummy2);
-
-        RDCLOG("Copying file to local path '%s'.", path.c_str());
-
-        {
-          READ_DATA_SCOPE();
-
-          StreamWriter streamWriter(FileIO::fopen(path.c_str(), "wb"), Ownership::Stream);
-
-          ser.SerialiseStream(path.c_str(), streamWriter, NULL);
-        }
-
-        reader.EndChunk();
-
-        if(reader.IsErrored())
-        {
-          FileIO::Delete(path.c_str());
-
-          RDCERR("Network error receiving file");
-          break;
-        }
-
-        RDCLOG("File received.");
-
-        tempFiles.push_back(path);
-
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_CopyCaptureToRemote);
-          SERIALISE_ELEMENT(path);
-        }
-      }
-      else if(type == eRemoteServer_TakeOwnershipCapture)
-      {
-        std::string path;
-
-        {
-          READ_DATA_SCOPE();
-          SERIALISE_ELEMENT(path);
-        }
-
-        reader.EndChunk();
-
-        RDCLOG("Taking ownership of '%s'.", path.c_str());
-
-        tempFiles.push_back(path);
-      }
-      else if(type == eRemoteServer_ShutdownServer)
-      {
-        reader.EndChunk();
-
-        RDCLOG("Requested to shut down.");
-
-        threadData->killServer = true;
-        threadData->killThread = true;
-
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_ShutdownServer);
-        }
-      }
-      else if(type == eRemoteServer_OpenLog)
-      {
-        std::string path;
-
-        {
-          READ_DATA_SCOPE();
-          SERIALISE_ELEMENT(path);
-        }
-
-        reader.EndChunk();
-
-        RDCASSERT(driver == NULL && proxy == NULL && rdc == NULL);
-        ReplayStatus status = ReplayStatus::InternalError;
-
-        rdc = new RDCFile();
-        rdc->Open(path.c_str());
-
-        if(rdc->ErrorCode() != ContainerError::NoError)
-        {
-          RDCERR("Failed to open '%s': %d", path.c_str(), rdc->ErrorCode());
-
-          switch(rdc->ErrorCode())
-          {
-            case ContainerError::FileNotFound: status = ReplayStatus::FileNotFound; break;
-            case ContainerError::FileIO: status = ReplayStatus::FileIOFailed; break;
-            case ContainerError::Corrupt: status = ReplayStatus::FileCorrupted; break;
-            case ContainerError::UnsupportedVersion:
-              status = ReplayStatus::FileIncompatibleVersion;
-              break;
-            default: break;
-          }
-        }
-        else
-        {
-          if(RenderDoc::Inst().HasRemoteDriver(rdc->GetDriver()))
-          {
-            bool kill = false;
-            float progress = 0.0f;
-
-            RenderDoc::Inst().SetProgressPtr(&progress);
-
-            Threading::ThreadHandle ticker = Threading::CreateThread([&writer, &kill, &progress]() {
-              while(!kill)
-              {
-                {
-                  WRITE_DATA_SCOPE();
-                  SCOPED_SERIALISE_CHUNK(eRemoteServer_LogOpenProgress);
-                  SERIALISE_ELEMENT(progress);
-                }
-                Threading::Sleep(100);
-              }
-            });
-
-            status = RenderDoc::Inst().CreateRemoteDriver(rdc, &driver);
-
-            if(status != ReplayStatus::Succeeded || driver == NULL)
+          Threading::ThreadHandle ticker = Threading::CreateThread([&writer, &kill, &progress]() {
+            while(!kill)
             {
-              RDCERR("Failed to create remote driver for driver '%s'", rdc->GetDriverName().c_str());
+              {
+                WRITE_DATA_SCOPE();
+                SCOPED_SERIALISE_CHUNK(eRemoteServer_LogOpenProgress);
+                SERIALISE_ELEMENT(progress);
+              }
+              Threading::Sleep(100);
+            }
+          });
+
+          status = RenderDoc::Inst().CreateRemoteDriver(rdc, &driver);
+
+          if(status != ReplayStatus::Succeeded || driver == NULL)
+          {
+            RDCERR("Failed to create remote driver for driver '%s'", rdc->GetDriverName().c_str());
+          }
+          else
+          {
+            status = driver->ReadLogInitialisation(rdc, false);
+
+            if(status != ReplayStatus::Succeeded)
+            {
+              RDCERR("Failed to initialise remote driver.");
+
+              driver->Shutdown();
+              driver = NULL;
             }
             else
             {
-              status = driver->ReadLogInitialisation(rdc, false);
+              RenderDoc::Inst().SetProgressPtr(NULL);
 
-              if(status != ReplayStatus::Succeeded)
-              {
-                RDCERR("Failed to initialise remote driver.");
+              kill = true;
+              Threading::JoinThread(ticker);
+              Threading::CloseThread(ticker);
 
-                driver->Shutdown();
-                driver = NULL;
-              }
-              else
-              {
-                RenderDoc::Inst().SetProgressPtr(NULL);
-
-                kill = true;
-                Threading::JoinThread(ticker);
-                Threading::CloseThread(ticker);
-
-                proxy = new ReplayProxy(reader, writer, driver);
-              }
+              proxy = new ReplayProxy(reader, writer, driver);
             }
           }
-          else
-          {
-            RDCERR("File needs driver for '%s' which isn't supported!", rdc->GetDriverName().c_str());
-
-            status = ReplayStatus::APIUnsupported;
-          }
-        }
-
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_LogOpened);
-          SERIALISE_ELEMENT(status);
-        }
-      }
-      else if(type == eRemoteServer_HasCallstacks)
-      {
-        reader.EndChunk();
-
-        bool HasCallstacks = rdc && rdc->SectionIndex(SectionType::ResolveDatabase) >= 0;
-
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_HasCallstacks);
-          SERIALISE_ELEMENT(HasCallstacks);
-        }
-      }
-      else if(type == eRemoteServer_InitResolver)
-      {
-        reader.EndChunk();
-
-        bool success = false;
-
-        int sectionIndex = rdc ? rdc->SectionIndex(SectionType::ResolveDatabase) : -1;
-
-        SAFE_DELETE(resolver);
-        if(sectionIndex >= 0)
-        {
-          StreamReader *sectionReader = rdc->ReadSection(sectionIndex);
-
-          std::vector<byte> buf;
-          buf.resize((size_t)sectionReader->GetSize());
-          success = sectionReader->Read(buf.data(), sectionReader->GetSize());
-
-          delete sectionReader;
-
-          if(success)
-          {
-            float progress = 0.0f;
-
-            Threading::ThreadHandle ticker =
-                Threading::CreateThread([&writer, &resolver, &progress]() {
-                  while(!resolver)
-                  {
-                    {
-                      WRITE_DATA_SCOPE();
-                      SCOPED_SERIALISE_CHUNK(eRemoteServer_ResolverProgress);
-                      SERIALISE_ELEMENT(progress);
-                    }
-                    Threading::Sleep(100);
-                  }
-                });
-
-            resolver = Callstack::MakeResolver(buf.data(), buf.size(), &progress, NULL);
-
-            Threading::JoinThread(ticker);
-            Threading::CloseThread(ticker);
-          }
-          else
-          {
-            RDCERR("Failed to read resolve database.");
-          }
-        }
-
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_InitResolver);
-          SERIALISE_ELEMENT(success);
-        }
-      }
-      else if(type == eRemoteServer_GetResolve)
-      {
-        rdcarray<uint64_t> StackAddresses;
-
-        {
-          READ_DATA_SCOPE();
-          SERIALISE_ELEMENT(StackAddresses);
-        }
-
-        reader.EndChunk();
-
-        rdcarray<rdcstr> StackFrames;
-
-        if(resolver)
-        {
-          StackFrames.reserve(StackAddresses.size());
-          for(uint64_t frame : StackAddresses)
-          {
-            Callstack::AddressDetails info = resolver->GetAddr(frame);
-            StackFrames.push_back(info.formattedString());
-          }
         }
         else
         {
-          StackFrames = {""};
-        }
+          RDCERR("File needs driver for '%s' which isn't supported!", rdc->GetDriverName().c_str());
 
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_GetResolve);
-          SERIALISE_ELEMENT(StackFrames);
+          status = ReplayStatus::APIUnsupported;
         }
       }
-      else if(type == eRemoteServer_FindSectionByName)
+
       {
-        std::string name;
-
-        {
-          READ_DATA_SCOPE();
-          SERIALISE_ELEMENT(name);
-        }
-
-        reader.EndChunk();
-
-        int index = rdc ? rdc->SectionIndex(name.c_str()) : -1;
-
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_FindSectionByName);
-          SERIALISE_ELEMENT(index);
-        }
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_LogOpened);
+        SERIALISE_ELEMENT(status);
       }
-      else if(type == eRemoteServer_FindSectionByType)
+    }
+    else if(type == eRemoteServer_HasCallstacks)
+    {
+      reader.EndChunk();
+
+      bool HasCallstacks = rdc && rdc->SectionIndex(SectionType::ResolveDatabase) >= 0;
+
       {
-        SectionType sectionType;
-
-        {
-          READ_DATA_SCOPE();
-          SERIALISE_ELEMENT(sectionType);
-        }
-
-        reader.EndChunk();
-
-        int index = rdc ? rdc->SectionIndex(sectionType) : -1;
-
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_FindSectionByType);
-          SERIALISE_ELEMENT(index);
-        }
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_HasCallstacks);
+        SERIALISE_ELEMENT(HasCallstacks);
       }
-      else if(type == eRemoteServer_GetSectionProperties)
+    }
+    else if(type == eRemoteServer_InitResolver)
+    {
+      reader.EndChunk();
+
+      bool success = false;
+
+      int sectionIndex = rdc ? rdc->SectionIndex(SectionType::ResolveDatabase) : -1;
+
+      SAFE_DELETE(resolver);
+      if(sectionIndex >= 0)
       {
-        int index = -1;
+        StreamReader *sectionReader = rdc->ReadSection(sectionIndex);
 
+        std::vector<byte> buf;
+        buf.resize((size_t)sectionReader->GetSize());
+        success = sectionReader->Read(buf.data(), sectionReader->GetSize());
+
+        delete sectionReader;
+
+        if(success)
         {
-          READ_DATA_SCOPE();
-          SERIALISE_ELEMENT(index);
-        }
+          float progress = 0.0f;
 
-        reader.EndChunk();
+          Threading::ThreadHandle ticker = Threading::CreateThread([&writer, &resolver, &progress]() {
+            while(!resolver)
+            {
+              {
+                WRITE_DATA_SCOPE();
+                SCOPED_SERIALISE_CHUNK(eRemoteServer_ResolverProgress);
+                SERIALISE_ELEMENT(progress);
+              }
+              Threading::Sleep(100);
+            }
+          });
 
-        SectionProperties props;
-        if(rdc && index >= 0 && index < rdc->NumSections())
-          props = rdc->GetSectionProperties(index);
+          resolver = Callstack::MakeResolver(buf.data(), buf.size(), &progress, NULL);
 
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_GetSectionProperties);
-          SERIALISE_ELEMENT(props);
-        }
-      }
-      else if(type == eRemoteServer_GetSectionContents)
-      {
-        int index = -1;
-
-        {
-          READ_DATA_SCOPE();
-          SERIALISE_ELEMENT(index);
-        }
-
-        reader.EndChunk();
-
-        bytebuf contents;
-
-        if(rdc && index >= 0 && index < rdc->NumSections())
-        {
-          StreamReader *sectionReader = rdc->ReadSection(index);
-
-          contents.resize((size_t)sectionReader->GetSize());
-          bool success = sectionReader->Read(contents.data(), sectionReader->GetSize());
-
-          if(!success)
-            contents.clear();
-
-          delete sectionReader;
-        }
-
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_GetSectionContents);
-          SERIALISE_ELEMENT(contents);
-        }
-      }
-      else if(type == eRemoteServer_WriteSection)
-      {
-        SectionProperties props;
-        bytebuf contents;
-
-        {
-          READ_DATA_SCOPE();
-          SERIALISE_ELEMENT(props);
-          SERIALISE_ELEMENT(contents);
-        }
-
-        reader.EndChunk();
-
-        if(rdc)
-        {
-          StreamWriter *sectionWriter = rdc->WriteSection(props);
-
-          if(sectionWriter)
-          {
-            sectionWriter->Write(contents.data(), contents.size());
-            delete sectionWriter;
-          }
-        }
-      }
-      else if(type == eRemoteServer_CloseLog)
-      {
-        reader.EndChunk();
-
-        if(driver)
-          driver->Shutdown();
-        driver = NULL;
-
-        SAFE_DELETE(proxy);
-        SAFE_DELETE(rdc);
-        SAFE_DELETE(resolver);
-      }
-      else if(type == eRemoteServer_ExecuteAndInject)
-      {
-        std::string app, workingDir, cmdLine, logfile;
-        CaptureOptions opts;
-        rdcarray<EnvironmentModification> env;
-
-        {
-          READ_DATA_SCOPE();
-          SERIALISE_ELEMENT(app);
-          SERIALISE_ELEMENT(workingDir);
-          SERIALISE_ELEMENT(cmdLine);
-          SERIALISE_ELEMENT(opts);
-          SERIALISE_ELEMENT(env);
-        }
-
-        reader.EndChunk();
-
-        uint32_t ident = 0;
-
-        if(threadData->allowExecution)
-        {
-          ident = Process::LaunchAndInjectIntoProcess(app.c_str(), workingDir.c_str(),
-                                                      cmdLine.c_str(), env, "", opts, false);
+          Threading::JoinThread(ticker);
+          Threading::CloseThread(ticker);
         }
         else
         {
-          RDCWARN("Requested to execute program - disallowing based on configuration");
-        }
-
-        {
-          WRITE_DATA_SCOPE();
-          SCOPED_SERIALISE_CHUNK(eRemoteServer_ExecuteAndInject);
-          SERIALISE_ELEMENT(ident);
+          RDCERR("Failed to read resolve database.");
         }
       }
-      else if((int)type >= eReplayProxy_First && proxy)
+
       {
-        bool ok = proxy->Tick(type);
-
-        if(!ok)
-          break;
-
-        continue;
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_InitResolver);
+        SERIALISE_ELEMENT(success);
       }
+    }
+    else if(type == eRemoteServer_GetResolve)
+    {
+      rdcarray<uint64_t> StackAddresses;
+
+      {
+        READ_DATA_SCOPE();
+        SERIALISE_ELEMENT(StackAddresses);
+      }
+
+      reader.EndChunk();
+
+      rdcarray<rdcstr> StackFrames;
+
+      if(resolver)
+      {
+        StackFrames.reserve(StackAddresses.size());
+        for(uint64_t frame : StackAddresses)
+        {
+          Callstack::AddressDetails info = resolver->GetAddr(frame);
+          StackFrames.push_back(info.formattedString());
+        }
+      }
+      else
+      {
+        StackFrames = {""};
+      }
+
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_GetResolve);
+        SERIALISE_ELEMENT(StackFrames);
+      }
+    }
+    else if(type == eRemoteServer_FindSectionByName)
+    {
+      std::string name;
+
+      {
+        READ_DATA_SCOPE();
+        SERIALISE_ELEMENT(name);
+      }
+
+      reader.EndChunk();
+
+      int index = rdc ? rdc->SectionIndex(name.c_str()) : -1;
+
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_FindSectionByName);
+        SERIALISE_ELEMENT(index);
+      }
+    }
+    else if(type == eRemoteServer_FindSectionByType)
+    {
+      SectionType sectionType;
+
+      {
+        READ_DATA_SCOPE();
+        SERIALISE_ELEMENT(sectionType);
+      }
+
+      reader.EndChunk();
+
+      int index = rdc ? rdc->SectionIndex(sectionType) : -1;
+
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_FindSectionByType);
+        SERIALISE_ELEMENT(index);
+      }
+    }
+    else if(type == eRemoteServer_GetSectionProperties)
+    {
+      int index = -1;
+
+      {
+        READ_DATA_SCOPE();
+        SERIALISE_ELEMENT(index);
+      }
+
+      reader.EndChunk();
+
+      SectionProperties props;
+      if(rdc && index >= 0 && index < rdc->NumSections())
+        props = rdc->GetSectionProperties(index);
+
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_GetSectionProperties);
+        SERIALISE_ELEMENT(props);
+      }
+    }
+    else if(type == eRemoteServer_GetSectionContents)
+    {
+      int index = -1;
+
+      {
+        READ_DATA_SCOPE();
+        SERIALISE_ELEMENT(index);
+      }
+
+      reader.EndChunk();
+
+      bytebuf contents;
+
+      if(rdc && index >= 0 && index < rdc->NumSections())
+      {
+        StreamReader *sectionReader = rdc->ReadSection(index);
+
+        contents.resize((size_t)sectionReader->GetSize());
+        bool success = sectionReader->Read(contents.data(), sectionReader->GetSize());
+
+        if(!success)
+          contents.clear();
+
+        delete sectionReader;
+      }
+
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_GetSectionContents);
+        SERIALISE_ELEMENT(contents);
+      }
+    }
+    else if(type == eRemoteServer_WriteSection)
+    {
+      SectionProperties props;
+      bytebuf contents;
+
+      {
+        READ_DATA_SCOPE();
+        SERIALISE_ELEMENT(props);
+        SERIALISE_ELEMENT(contents);
+      }
+
+      reader.EndChunk();
+
+      if(rdc)
+      {
+        StreamWriter *sectionWriter = rdc->WriteSection(props);
+
+        if(sectionWriter)
+        {
+          sectionWriter->Write(contents.data(), contents.size());
+          delete sectionWriter;
+        }
+      }
+    }
+    else if(type == eRemoteServer_CloseLog)
+    {
+      reader.EndChunk();
+
+      if(driver)
+        driver->Shutdown();
+      driver = NULL;
+
+      SAFE_DELETE(proxy);
+      SAFE_DELETE(rdc);
+      SAFE_DELETE(resolver);
+    }
+    else if(type == eRemoteServer_ExecuteAndInject)
+    {
+      std::string app, workingDir, cmdLine, logfile;
+      CaptureOptions opts;
+      rdcarray<EnvironmentModification> env;
+
+      {
+        READ_DATA_SCOPE();
+        SERIALISE_ELEMENT(app);
+        SERIALISE_ELEMENT(workingDir);
+        SERIALISE_ELEMENT(cmdLine);
+        SERIALISE_ELEMENT(opts);
+        SERIALISE_ELEMENT(env);
+      }
+
+      reader.EndChunk();
+
+      uint32_t ident = 0;
+
+      if(threadData->allowExecution)
+      {
+        ident = Process::LaunchAndInjectIntoProcess(app.c_str(), workingDir.c_str(),
+                                                    cmdLine.c_str(), env, "", opts, false);
+      }
+      else
+      {
+        RDCWARN("Requested to execute program - disallowing based on configuration");
+      }
+
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_ExecuteAndInject);
+        SERIALISE_ELEMENT(ident);
+      }
+    }
+    else if((int)type >= eReplayProxy_First && proxy)
+    {
+      bool ok = proxy->Tick(type);
+
+      if(!ok)
+        break;
 
       continue;
     }

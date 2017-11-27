@@ -404,6 +404,8 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
   m_Write->AlignTo<ChunkAlignment>();
 
   m_ChunkMetadata = SDChunkMetaData();
+
+  m_Write->Flush();
 }
 
 template <>
