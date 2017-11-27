@@ -89,6 +89,22 @@ struct null_terminator<char>
   inline static void fixup(char *elems, size_t count) { elems[count] = 0; }
 };
 
+template <typename T, bool isStd = std::is_standard_layout<T>::value>
+struct ItemHelper
+{
+  static void initRange(T *first, int32_t count)
+  {
+    for(int32_t i = 0; i < count; i++)
+      new(first + i) T();
+  }
+};
+
+template <typename T>
+struct ItemHelper<T, true>
+{
+  static void initRange(T *first, int32_t itemCount) { memset(first, 0, itemCount * sizeof(T)); }
+};
+
 template <typename T>
 struct rdcarray
 {
@@ -222,8 +238,7 @@ public:
       setUsedCount((int32_t)s);
 
       // default initialise the new elements
-      for(int32_t i = oldCount; i < usedCount; i++)
-        new(elems + i) T();
+      ItemHelper<T>::initRange(elems + oldCount, usedCount - oldCount);
     }
     else
     {
