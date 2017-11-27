@@ -147,6 +147,7 @@ public:
 
   bool SendDataBlocking(const void *buf, uint32_t length);
   bool RecvDataBlocking(void *data, uint32_t length);
+  bool RecvDataNonBlocking(void *data, uint32_t &length);
 
 private:
   ptrdiff_t socket;

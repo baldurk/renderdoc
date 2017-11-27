@@ -184,6 +184,38 @@ bool Socket::IsRecvDataWaiting()
   return ret > 0;
 }
 
+bool Socket::RecvDataNonBlocking(void *buf, uint32_t &length)
+{
+  if(length == 0)
+    return true;
+
+  // socket is already blocking, don't have to change anything
+  int ret = recv(socket, (char *)buf, length, 0);
+
+  if(ret > 0)
+  {
+    length = (uint32_t)ret;
+  }
+  else
+  {
+    length = 0;
+    int err = WSAGetLastError();
+
+    if(err == WSAEWOULDBLOCK)
+    {
+      return true;
+    }
+    else
+    {
+      RDCWARN("recv: %d", err);
+      Shutdown();
+      return false;
+    }
+  }
+
+  return true;
+}
+
 bool Socket::RecvDataBlocking(void *buf, uint32_t length)
 {
   if(length == 0)
