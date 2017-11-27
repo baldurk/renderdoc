@@ -4975,13 +4975,19 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
   if(isDepth && isStencil)
   {
+    // for some reason reading direct from mapped memory here is *super* slow on android (1.5s to
+    // iterate over the image), so we memcpy to a temporary buffer.
+    std::vector<byte> tmp;
+    tmp.resize(copyregion[1].bufferOffset + pixelCount * sizeof(uint8_t));
+    memcpy(tmp.data(), pData, tmp.size());
+
     size_t pixelCount =
         imCreateInfo.extent.width * imCreateInfo.extent.height * imCreateInfo.extent.depth;
 
     if(imCreateInfo.format == VK_FORMAT_D16_UNORM_S8_UINT)
     {
-      uint16_t *dSrc = (uint16_t *)pData;
-      uint8_t *sSrc = (uint8_t *)(pData + copyregion[1].bufferOffset);
+      uint16_t *dSrc = (uint16_t *)tmp.data();
+      uint8_t *sSrc = (uint8_t *)(tmp.data() + copyregion[1].bufferOffset);
 
       uint16_t *dDst = (uint16_t *)data.data();
       uint16_t *sDst = dDst + 1;    // interleaved, next pixel
@@ -5004,8 +5010,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     {
       // we can copy the depth from D24 as a 32-bit integer, since the remaining bits are garbage
       // and we overwrite them with stencil
-      uint32_t *dSrc = (uint32_t *)pData;
-      uint8_t *sSrc = (uint8_t *)(pData + copyregion[1].bufferOffset);
+      uint32_t *dSrc = (uint32_t *)tmp.data();
+      uint8_t *sSrc = (uint8_t *)(tmp.data() + copyregion[1].bufferOffset);
 
       uint32_t *dst = (uint32_t *)data.data();
 
@@ -5021,8 +5027,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     }
     else
     {
-      uint32_t *dSrc = (uint32_t *)pData;
-      uint8_t *sSrc = (uint8_t *)(pData + copyregion[1].bufferOffset);
+      uint32_t *dSrc = (uint32_t *)tmp.data();
+      uint8_t *sSrc = (uint8_t *)(tmp.data() + copyregion[1].bufferOffset);
 
       uint32_t *dDst = (uint32_t *)data.data();
       uint32_t *sDst = dDst + 1;    // interleaved, next pixel
