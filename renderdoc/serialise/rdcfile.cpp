@@ -1092,6 +1092,8 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
     {
       RETURNERROR(ContainerError::FileIO, "Error applying fixup to section header, errno %d", errno);
     }
+
+    FileIO::fflush(m_File);
   });
 
   if(modifySectionCallback)
