@@ -29,6 +29,10 @@
 #include "replay/replay_driver.h"
 #include "serialise/serialiser.h"
 
+// turns on/off the feature to transfer resource contents (cached textures and buffers) as a series
+// of deltas to a shared view of the previous resource contents.
+#define TRANSFER_RESOURCE_CONTENTS_DELTAS OPTION_ON
+
 enum ReplayProxyPacket
 {
   // we offset these packet numbers so that it can co-exist
@@ -36,6 +40,9 @@ enum ReplayProxyPacket
   eReplayProxy_First = 0x1000,
 
   eReplayProxy_ReplayLog = eReplayProxy_First,
+
+  eReplayProxy_CacheBufferData,
+  eReplayProxy_CacheTextureData,
 
   eReplayProxy_GetAPIProperties,
   eReplayProxy_FetchStructuredFile,
@@ -470,6 +477,18 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(void, ReplaceResource, ResourceId from, ResourceId to);
   IMPLEMENT_FUNCTION_PROXIED(void, RemoveReplacement, ResourceId id);
 
+  // these functions are not part of the replay driver interface - they are similar to GetBufferData
+  // and GetTextureData, but they do extra work to try and optimise transfer by delta-encoding the
+  // difference in the returned data to the last time the resource was cached
+  IMPLEMENT_FUNCTION_PROXIED(void, CacheBufferData, ResourceId buff);
+  IMPLEMENT_FUNCTION_PROXIED(void, CacheTextureData, ResourceId tex, uint32_t arrayIdx,
+                             uint32_t mip, const GetTextureDataParams &params);
+
+  // utility function to serialise the contents of a byte array given the previous contents that's
+  // available on both sides of the communication.
+  template <typename SerialiserType>
+  void DeltaTransferBytes(SerialiserType &xferser, bytebuf &referenceData, bytebuf &newData);
+
   void FileChanged() {}
   // will never be used
   ResourceId CreateProxyTexture(const TextureDescription &templateTex)
@@ -517,8 +536,11 @@ private:
       return mip < o.mip;
     }
   };
+  // this cache only exists on the client side, with the proxy renderer. This denotes cases where we
+  // already have up-to-date texture data for the current event so we don't need to check for any
+  // deltas. It is cleared any time we set event.
   set<TextureCacheEntry> m_TextureProxyCache;
-  set<ResourceId> m_LocalTextures;
+  set<ResourceId> m_BufferProxyCache;
 
   struct ProxyTextureProperties
   {
@@ -531,10 +553,20 @@ private:
     operator ResourceId() const { return id; }
     bool operator==(const ResourceId &other) const { return id == other; }
   };
+  // this cache only exists on the client side, with the proxy renderer. It contains the created
+  // proxy textures to stand-in for remote real textures.
   map<ResourceId, ProxyTextureProperties> m_ProxyTextures;
-
-  set<ResourceId> m_BufferProxyCache;
   map<ResourceId, ResourceId> m_ProxyBufferIds;
+
+  // this cache exists on *both* sides of the proxy connection, and must be kept in sync. It is used
+  // on the remote side to determine which deltas are necessary, and then each time on the client
+  // side the data is uploaded into the proxy textures above.
+  std::map<TextureCacheEntry, bytebuf> m_ProxyTextureData;
+  std::map<ResourceId, bytebuf> m_ProxyBufferData;
+
+  // this lists any textures which are only created locally (e.g. custom visualisation shaders) and
+  // should not be treated as proxied.
+  std::set<ResourceId> m_LocalTextures;
 
   map<ResourceId, ResourceId> m_LiveIDs;
 
