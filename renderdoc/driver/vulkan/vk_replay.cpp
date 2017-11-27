@@ -4975,14 +4975,14 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
   if(isDepth && isStencil)
   {
+    size_t pixelCount =
+        imCreateInfo.extent.width * imCreateInfo.extent.height * imCreateInfo.extent.depth;
+
     // for some reason reading direct from mapped memory here is *super* slow on android (1.5s to
     // iterate over the image), so we memcpy to a temporary buffer.
     std::vector<byte> tmp;
     tmp.resize(copyregion[1].bufferOffset + pixelCount * sizeof(uint8_t));
     memcpy(tmp.data(), pData, tmp.size());
-
-    size_t pixelCount =
-        imCreateInfo.extent.width * imCreateInfo.extent.height * imCreateInfo.extent.depth;
 
     if(imCreateInfo.format == VK_FORMAT_D16_UNORM_S8_UINT)
     {
