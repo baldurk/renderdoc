@@ -352,6 +352,8 @@ public:
   }
   inline void insert(size_t offs, const rdcarray<T> &in) { insert(offs, in.data(), in.size()); }
   inline void insert(size_t offs, const T &in) { insert(offs, &in, 1); }
+  // helpful shortcut for 'append at end', basically a multi-element push_back
+  inline void append(const T *el, size_t count) { insert(size(), el, count); }
   void erase(size_t offs, size_t count = 1)
   {
     // invalid count
