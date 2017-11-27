@@ -1447,7 +1447,7 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
             RDCERR("{%llu, %llu} larger than reference data (%llu bytes) - expanding to fit.",
                    delta.offs, (uint64_t)delta.contents.size(), (uint64_t)referenceData.size());
 
-            referenceData.resize(delta.offs + delta.contents.size());
+            referenceData.resize(size_t(delta.offs + delta.contents.size()));
           }
 
           byte *dst = referenceData.data() + (ptrdiff_t)delta.offs;
