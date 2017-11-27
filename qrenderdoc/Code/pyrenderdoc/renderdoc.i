@@ -82,6 +82,7 @@
 %ignore rdcarray::data;
 %ignore rdcarray::assign;
 %ignore rdcarray::insert;
+%ignore rdcarray::append;
 %ignore rdcarray::erase;
 %ignore rdcarray::count;
 %ignore rdcarray::capacity;
@@ -163,8 +164,9 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 %feature("docstring") "";
 
 %extend rdcarray {
-  // we ignored insert and clear before, need to restore them so we can declare our own impls
+  // we ignored insert, append and clear before, need to restore them so we can declare our own impls
   %rename("%s") insert;
+  %rename("%s") append;
   %rename("%s") clear;
 }
 
