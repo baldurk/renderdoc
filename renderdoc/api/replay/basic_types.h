@@ -89,7 +89,7 @@ struct null_terminator<char>
   inline static void fixup(char *elems, size_t count) { elems[count] = 0; }
 };
 
-template <typename T, bool isStd = std::is_standard_layout<T>::value>
+template <typename T, bool isStd = std::is_trivial<T>::value>
 struct ItemHelper
 {
   static void initRange(T *first, int32_t count)
