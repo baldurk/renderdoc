@@ -818,7 +818,7 @@ ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser, Retu
                                                  ResourceId id, std::string entryPoint)
 {
   const ReplayProxyPacket packet = eReplayProxy_GetShader;
-  ShaderReflection *ret;
+  ShaderReflection *ret = NULL;
 
   ShaderReflKey key(id, entryPoint);
 

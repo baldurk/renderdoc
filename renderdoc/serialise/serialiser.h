@@ -625,7 +625,7 @@ public:
 
       for(size_t i = N; i < count; i++)
       {
-        T dummy;
+        T dummy = T();
         SerialiseDispatch<Serialiser, T>::Do(*this, dummy);
       }
     }
