@@ -4981,7 +4981,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
     // for some reason reading direct from mapped memory here is *super* slow on android (1.5s to
     // iterate over the image), so we memcpy to a temporary buffer.
     std::vector<byte> tmp;
-    tmp.resize(copyregion[1].bufferOffset + pixelCount * sizeof(uint8_t));
+    tmp.resize((size_t)copyregion[1].bufferOffset + pixelCount * sizeof(uint8_t));
     memcpy(tmp.data(), pData, tmp.size());
 
     if(imCreateInfo.format == VK_FORMAT_D16_UNORM_S8_UINT)
