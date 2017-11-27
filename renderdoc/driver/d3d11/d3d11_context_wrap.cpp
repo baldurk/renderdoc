@@ -3920,7 +3920,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(Serialis
           uint32_t StartInstanceLocation;
         };
 
-        std::vector<byte> argarray;
+        bytebuf argarray;
         m_pDevice->GetDebugManager()->GetBufferData(pBufferForArgs, AlignedByteOffsetForArgs,
                                                     sizeof(DrawArgs), argarray);
 
@@ -4046,7 +4046,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(SerialiserType 
           uint32_t StartInstanceLocation;
         };
 
-        std::vector<byte> argarray;
+        bytebuf argarray;
         m_pDevice->GetDebugManager()->GetBufferData(pBufferForArgs, AlignedByteOffsetForArgs,
                                                     sizeof(DrawArgs), argarray);
 
@@ -4722,7 +4722,7 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(SerialiserType &ser,
           UINT ThreadGroupCountZ;
         };
 
-        std::vector<byte> argarray;
+        bytebuf argarray;
         m_pDevice->GetDebugManager()->GetBufferData(pBufferForArgs, AlignedByteOffsetForArgs,
                                                     sizeof(DispatchArgs), argarray);
 

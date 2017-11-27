@@ -63,8 +63,7 @@ bool PromptDebugTimeout(DXBC::ProgramType prog, uint32_t cycleCounter)
 
 void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
                                              const vector<DXBC::CBufferVariable> &invars,
-                                             vector<ShaderVariable> &outvars,
-                                             const vector<byte> &data)
+                                             vector<ShaderVariable> &outvars, const bytebuf &data)
 {
   using namespace DXBC;
   using namespace ShaderDebug;
@@ -417,7 +416,7 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 
 void D3D11DebugManager::FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars,
                                              vector<ShaderVariable> &outvars, bool flattenVec4s,
-                                             const vector<byte> &data)
+                                             const bytebuf &data)
 {
   size_t zero = 0;
 
@@ -430,8 +429,7 @@ void D3D11DebugManager::FillCBufferVariables(const vector<DXBC::CBufferVariable>
 }
 
 ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
-                                                             DXBC::DXBCFile *dxbc,
-                                                             vector<byte> *cbufData)
+                                                             DXBC::DXBCFile *dxbc, bytebuf *cbufData)
 {
   using namespace DXBC;
   using namespace ShaderDebug;
@@ -671,7 +669,7 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
           uint32_t &rowPitch = global.uavs[dsti].rowPitch;
           uint32_t &depthPitch = global.uavs[dsti].depthPitch;
 
-          vector<byte> &data = global.uavs[dsti].data;
+          bytebuf &data = global.uavs[dsti].data;
 
           if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1D ||
              udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
@@ -1028,9 +1026,9 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
     trackingOffs[slot] += fmt.compByteWidth * fmt.compCount;
   }
 
-  vector<byte> vertData[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
-  vector<byte> *instData = new vector<byte>[MaxStepRate * D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
-  vector<byte> staticData[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+  bytebuf vertData[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+  bytebuf *instData = new bytebuf[MaxStepRate * D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+  bytebuf staticData[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
 
   for(auto it = vertexbuffers.begin(); it != vertexbuffers.end(); ++it)
   {
@@ -1052,7 +1050,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
     }
   }
 
-  vector<byte> cbufData[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
+  bytebuf cbufData[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 
   for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
     if(rs->VS.ConstantBuffers[i])
@@ -1849,7 +1847,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
   // get the index of our desired pixel
   int destIdx = (x - xTL) + 2 * (y - yTL);
 
-  vector<byte> cbufData[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
+  bytebuf cbufData[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 
   for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
     if(rs->PS.ConstantBuffers[i])
@@ -2320,7 +2318,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t eventID, const uint32_t
 
   D3D11RenderState *rs = m_WrappedContext->GetCurrentPipelineState();
 
-  vector<byte> cbufData[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
+  bytebuf cbufData[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 
   for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
     if(rs->CS.ConstantBuffers[i])
@@ -2635,7 +2633,7 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
   {
     FloatVector *vbData = new FloatVector[cfg.position.numVerts];
 
-    vector<byte> oldData;
+    bytebuf oldData;
     GetBufferData(vb, cfg.position.offset, 0, oldData);
 
     byte *data = &oldData[0];
@@ -2694,7 +2692,7 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
   m_pImmediateContext->CopyStructureCount(m_DebugRender.histogramBuff, 0,
                                           m_DebugRender.PickResultUAV);
 
-  vector<byte> results;
+  bytebuf results;
   GetBufferData(m_DebugRender.histogramBuff, 0, 0, results);
 
   uint32_t numResults = *(uint32_t *)&results[0];

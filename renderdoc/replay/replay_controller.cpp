@@ -353,18 +353,19 @@ MeshFormat ReplayController::GetPostVSData(uint32_t instID, MeshDataStage stage)
 
 bytebuf ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
 {
+  bytebuf retData;
+
   if(buff == ResourceId())
-    return bytebuf();
+    return retData;
 
   ResourceId liveId = m_pDevice->GetLiveID(buff);
 
   if(liveId == ResourceId())
   {
     RDCERR("Couldn't get Live ID for %llu getting buffer data", buff);
-    return bytebuf();
+    return retData;
   }
 
-  vector<byte> retData;
   m_pDevice->GetBufferData(liveId, offset, len, retData);
 
   return retData;
@@ -1361,7 +1362,7 @@ void ReplayController::FreeTrace(ShaderDebugTrace *trace)
 rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
     ResourceId shader, const char *entryPoint, uint32_t cbufslot, ResourceId buffer, uint64_t offs)
 {
-  vector<byte> data;
+  bytebuf data;
   if(buffer != ResourceId())
   {
     buffer = m_pDevice->GetLiveID(buffer);

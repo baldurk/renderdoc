@@ -1383,7 +1383,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
   {
     FloatVector *vbData = new FloatVector[cfg.position.numVerts];
 
-    vector<byte> oldData;
+    bytebuf oldData;
     GetBufferData(cfg.position.buf, cfg.position.offset, 0, oldData);
 
     byte *data = &oldData[0];
@@ -3672,7 +3672,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
   {
     ResourceId idxId = rm->GetID(BufferRes(NULL, elArrayBuffer));
 
-    vector<byte> idxdata;
+    bytebuf idxdata;
     GetBufferData(idxId, drawcall->indexOffset * drawcall->indexByteWidth,
                   drawcall->numIndices * drawcall->indexByteWidth, idxdata);
 

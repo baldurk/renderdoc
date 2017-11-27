@@ -512,7 +512,7 @@ void ReplayProxy::Proxied_FillCBufferVariables(ParamSerialiser &paramser, Return
                                                ResourceId shader, std::string entryPoint,
                                                uint32_t cbufSlot,
                                                std::vector<ShaderVariable> &outvars,
-                                               const std::vector<byte> &data)
+                                               const bytebuf &data)
 {
   const ReplayProxyPacket packet = eReplayProxy_FillCBufferVariables;
 
@@ -532,8 +532,7 @@ void ReplayProxy::Proxied_FillCBufferVariables(ParamSerialiser &paramser, Return
 }
 
 void ReplayProxy::FillCBufferVariables(ResourceId shader, std::string entryPoint, uint32_t cbufSlot,
-                                       std::vector<ShaderVariable> &outvars,
-                                       const std::vector<byte> &data)
+                                       std::vector<ShaderVariable> &outvars, const bytebuf &data)
 {
   PROXY_FUNCTION(FillCBufferVariables, shader, entryPoint, cbufSlot, outvars, data);
 }
@@ -541,7 +540,7 @@ void ReplayProxy::FillCBufferVariables(ResourceId shader, std::string entryPoint
 template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_GetBufferData(ParamSerialiser &paramser, ReturnSerialiser &retser,
                                         ResourceId buff, uint64_t offset, uint64_t len,
-                                        std::vector<byte> &retData)
+                                        bytebuf &retData)
 {
   const ReplayProxyPacket packet = eReplayProxy_GetBufferData;
 
@@ -602,8 +601,7 @@ void ReplayProxy::Proxied_GetBufferData(ParamSerialiser &paramser, ReturnSeriali
   retser.EndChunk();
 }
 
-void ReplayProxy::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
-                                std::vector<byte> &retData)
+void ReplayProxy::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData)
 {
   PROXY_FUNCTION(GetBufferData, buff, offset, len, retData);
 }
@@ -1493,7 +1491,7 @@ void ReplayProxy::EnsureBufCached(ResourceId bufid)
 
     ResourceId proxyid = m_ProxyBufferIds[bufid];
 
-    vector<byte> data;
+    bytebuf data;
     GetBufferData(bufid, 0, 0, data);
 
     if(!data.empty())
@@ -1526,7 +1524,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_GetDebugMessages: GetDebugMessages(); break;
     case eReplayProxy_GetBufferData:
     {
-      std::vector<byte> dummy;
+      bytebuf dummy;
       GetBufferData(ResourceId(), 0, 0, dummy);
       break;
     }
@@ -1554,7 +1552,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_FillCBufferVariables:
     {
       std::vector<ShaderVariable> vars;
-      std::vector<byte> data;
+      bytebuf data;
       FillCBufferVariables(ResourceId(), "", 0, vars, data);
       break;
     }

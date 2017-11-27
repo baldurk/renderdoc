@@ -3406,7 +3406,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
   if(exec.countBuf)
   {
-    vector<byte> data;
+    bytebuf data;
     m_pDevice->GetDebugManager()->GetBufferData(exec.countBuf, exec.countOffs, 4, data);
     count = RDCMIN(count, *(uint32_t *)&data[0]);
   }
@@ -3676,7 +3676,7 @@ void WrappedID3D12GraphicsCommandList::ReplayExecuteIndirect(ID3D12GraphicsComma
 
   const bool multidraw = (count > 1 || comSig->sig.numDraws > 1);
 
-  vector<byte> data;
+  bytebuf data;
   m_pDevice->GetDebugManager()->GetBufferData(exec.argBuf, exec.argOffs,
                                               count * comSig->sig.ByteStride, data);
 

@@ -131,15 +131,14 @@ public:
   void ClearPostVSCache();
 
   uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);
-  void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
-  void GetBufferData(ID3D11Buffer *buff, uint64_t offset, uint64_t length, vector<byte> &retData);
+  void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &retData);
+  void GetBufferData(ID3D11Buffer *buff, uint64_t offset, uint64_t length, bytebuf &retData);
 
   void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                       const GetTextureDataParams &params, bytebuf &data);
 
   void FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars,
-                            vector<ShaderVariable> &outvars, bool flattenVec4s,
-                            const vector<byte> &data);
+                            vector<ShaderVariable> &outvars, bool flattenVec4s, const bytebuf &data);
 
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                  CompType typeHint, float *minval, float *maxval);
@@ -568,13 +567,13 @@ private:
   bool InitDebugRendering();
 
   ShaderDebug::State CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx,
-                                            DXBC::DXBCFile *dxbc, vector<byte> *cbufData);
+                                            DXBC::DXBCFile *dxbc, bytebuf *cbufData);
   void CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCFile *dxbc,
                                uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs,
                                ID3D11ShaderResourceView **SRVs);
   void FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
                             const vector<DXBC::CBufferVariable> &invars,
-                            vector<ShaderVariable> &outvars, const vector<byte> &data);
+                            vector<ShaderVariable> &outvars, const bytebuf &data);
   friend struct ShaderDebugState;
 
   // called after the device is created, to init any counters

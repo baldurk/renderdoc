@@ -162,7 +162,7 @@ public:
 
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
 
-  void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &ret);
+  void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &ret);
   void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                       const GetTextureDataParams &params, bytebuf &data);
 
@@ -195,7 +195,7 @@ public:
   void RenderHighlightBox(float w, float h, float scale);
 
   void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                            vector<ShaderVariable> &outvars, const vector<byte> &data);
+                            vector<ShaderVariable> &outvars, const bytebuf &data);
 
   vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target, uint32_t x,
                                          uint32_t y, uint32_t slice, uint32_t mip,
@@ -237,11 +237,11 @@ public:
   bool IsReplayContext(void *ctx) { return m_ReplayCtx.ctx == NULL || ctx == m_ReplayCtx.ctx; }
 private:
   void FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor,
-                        uint32_t offs, uint32_t matStride, const vector<byte> &data,
+                        uint32_t offs, uint32_t matStride, const bytebuf &data,
                         ShaderVariable &outVar);
   void FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, std::string prefix,
                             const rdcarray<ShaderConstant> &variables,
-                            std::vector<ShaderVariable> &outvars, const std::vector<byte> &data);
+                            std::vector<ShaderVariable> &outvars, const bytebuf &data);
 
   void CreateCustomShaderTex(uint32_t w, uint32_t h);
   void SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint fragProgram);

@@ -519,7 +519,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
 
         if(view.CounterResource != ResourceId())
         {
-          vector<byte> counterVal;
+          bytebuf counterVal;
           m_pDevice->GetDebugManager()->GetBufferData(desc->nonsamp.uav.counterResource,
                                                       view.CounterByteOffset, 4, counterVal);
           uint32_t *val = (uint32_t *)&counterVal[0];
@@ -1312,7 +1312,7 @@ bool D3D12Replay::NeedRemapForFetch(const ResourceFormat &format)
   return false;
 }
 
-void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData)
+void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData)
 {
   m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);
 }
@@ -1324,7 +1324,7 @@ void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t
 }
 
 void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                                       vector<ShaderVariable> &outvars, const vector<byte> &data)
+                                       vector<ShaderVariable> &outvars, const bytebuf &data)
 {
   if(shader == ResourceId())
     return;
@@ -1381,7 +1381,7 @@ void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uin
       sigElems = &rs.graphics.sigelems;
     }
 
-    vector<byte> rootData;
+    bytebuf rootData;
 
     for(size_t i = 0; sig && i < sig->sig.params.size(); i++)
     {

@@ -218,7 +218,7 @@ void HighlightCache::CacheHighlightingData(uint32_t eventID, const MeshDisplay &
     {
       idxData = true;
 
-      vector<byte> idxdata;
+      bytebuf idxdata;
       if(cfg.position.idxbuf != ResourceId())
         driver->GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs,
                               cfg.position.numVerts * bytesize, idxdata);

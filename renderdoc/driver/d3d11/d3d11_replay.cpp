@@ -1365,7 +1365,7 @@ MeshFormat D3D11Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, Mesh
   return m_pDevice->GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
 }
 
-void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData)
+void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData)
 {
   m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);
 }
@@ -1441,7 +1441,7 @@ void D3D11Replay::RenderHighlightBox(float w, float h, float scale)
 }
 
 void D3D11Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                                       vector<ShaderVariable> &outvars, const vector<byte> &data)
+                                       vector<ShaderVariable> &outvars, const bytebuf &data)
 {
   auto it = WrappedShader::m_ShaderList.find(shader);
 

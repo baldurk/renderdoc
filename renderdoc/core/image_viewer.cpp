@@ -188,10 +188,10 @@ public:
     return vector<CounterResult>();
   }
   void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                            vector<ShaderVariable> &outvars, const vector<byte> &data)
+                            vector<ShaderVariable> &outvars, const bytebuf &data)
   {
   }
-  void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData) {}
+  void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData) {}
   void InitPostVSBuffers(uint32_t eventID) {}
   void InitPostVSBuffers(const vector<uint32_t> &eventID) {}
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)

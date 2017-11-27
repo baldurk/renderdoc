@@ -2669,7 +2669,7 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
   {
     FloatVector *vbData = new FloatVector[cfg.position.numVerts];
 
-    vector<byte> oldData;
+    bytebuf oldData;
     GetBufferData(vb, cfg.position.offset, 0, oldData);
 
     byte *data = &oldData[0];
@@ -2718,7 +2718,7 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
   list->Close();
   m_WrappedDevice->ExecuteLists();
 
-  vector<byte> results;
+  bytebuf results;
   GetBufferData(m_PickResultBuf, 0, 0, results);
 
   list = m_WrappedDevice->GetNewList();
@@ -2803,8 +2803,7 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
 void D3D12DebugManager::FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
                                              const vector<DXBC::CBufferVariable> &invars,
-                                             vector<ShaderVariable> &outvars,
-                                             const vector<byte> &data)
+                                             vector<ShaderVariable> &outvars, const bytebuf &data)
 {
   using namespace DXBC;
   using namespace ShaderDebug;
@@ -3151,7 +3150,7 @@ void D3D12DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 
 void D3D12DebugManager::FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars,
                                              vector<ShaderVariable> &outvars, bool flattenVec4s,
-                                             const vector<byte> &data)
+                                             const bytebuf &data)
 {
   size_t zero = 0;
 
@@ -3213,7 +3212,7 @@ void D3D12DebugManager::BuildShader(string source, string entry,
 }
 
 void D3D12DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length,
-                                      vector<byte> &retData)
+                                      bytebuf &retData)
 {
   auto it = WrappedID3D12Resource::GetList().find(buff);
 
@@ -3231,7 +3230,7 @@ void D3D12DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t
 }
 
 void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, uint64_t length,
-                                      vector<byte> &ret)
+                                      bytebuf &ret)
 {
   if(buffer == NULL)
     return;
@@ -4028,7 +4027,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
     }
     else    // drawcall is indexed
     {
-      vector<byte> idxdata;
+      bytebuf idxdata;
       GetBufferData(rs.ibuffer.buf, rs.ibuffer.offs + drawcall->indexOffset * rs.ibuffer.bytewidth,
                     RDCMIN(drawcall->numIndices * rs.ibuffer.bytewidth, rs.ibuffer.size), idxdata);
 

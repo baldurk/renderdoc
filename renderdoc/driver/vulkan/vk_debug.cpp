@@ -4053,7 +4053,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
 
   m_MeshPickUBO.Unmap();
 
-  vector<byte> idxs;
+  bytebuf idxs;
 
   if(cfg.position.idxByteWidth && cfg.position.idxbuf != ResourceId())
     GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs, 0, idxs);
@@ -4122,7 +4122,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
 
   // unpack and linearise the data
   {
-    vector<byte> oldData;
+    bytebuf oldData;
     GetBufferData(cfg.position.buf, cfg.position.offset, 0, oldData);
 
     byte *data = &oldData[0];
@@ -4348,8 +4348,7 @@ void VulkanDebugManager::EndText(const TextPrintState &textstate)
   ObjDisp(textstate.cmd)->CmdEndRenderPass(Unwrap(textstate.cmd));
 }
 
-void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
-                                       vector<byte> &ret)
+void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &ret)
 {
   VkDevice dev = m_pDriver->GetDev();
   const VkLayerDispatchTable *vt = ObjDisp(dev);
@@ -8033,7 +8032,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
   uint32_t idxsize = state.ibuffer.bytewidth;
   bool index16 = (idxsize == 2);
   uint32_t numIndices = numVerts;
-  vector<byte> idxdata;
+  bytebuf idxdata;
   uint16_t *idx16 = NULL;
   uint32_t *idx32 = NULL;
 

@@ -414,7 +414,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       ObjDisp(commandBuffer)
           ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
 
-      std::vector<byte> argbuf;
+      bytebuf argbuf;
       GetDebugManager()->GetBufferData(
           GetResID(buffer), offset, sizeof(VkDrawIndirectCommand) + (count - 1) * stride, argbuf);
 
@@ -703,7 +703,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       ObjDisp(commandBuffer)
           ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset, count, stride);
 
-      std::vector<byte> argbuf;
+      bytebuf argbuf;
       GetDebugManager()->GetBufferData(GetResID(buffer), offset,
                                        sizeof(VkDrawIndexedIndirectCommand) + (count - 1) * stride,
                                        argbuf);
@@ -959,7 +959,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(SerialiserType &ser,
 
       {
         VkDispatchIndirectCommand unknown = {0};
-        std::vector<byte> argbuf;
+        bytebuf argbuf;
         GetDebugManager()->GetBufferData(GetResID(buffer), offset,
                                          sizeof(VkDispatchIndirectCommand), argbuf);
         VkDispatchIndirectCommand *args = (VkDispatchIndirectCommand *)&argbuf[0];

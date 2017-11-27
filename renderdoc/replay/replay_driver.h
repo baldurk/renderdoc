@@ -130,8 +130,7 @@ public:
 
   virtual MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage) = 0;
 
-  virtual void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
-                             vector<byte> &retData) = 0;
+  virtual void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData) = 0;
   virtual void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                               const GetTextureDataParams &params, bytebuf &data) = 0;
 
@@ -146,7 +145,7 @@ public:
   virtual vector<CounterResult> FetchCounters(const vector<GPUCounter> &counterID) = 0;
 
   virtual void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                                    vector<ShaderVariable> &outvars, const vector<byte> &data) = 0;
+                                    vector<ShaderVariable> &outvars, const bytebuf &data) = 0;
 
   virtual vector<PixelModification> PixelHistory(vector<EventUsage> events, ResourceId target,
                                                  uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
@@ -238,7 +237,7 @@ struct HighlightCache
   MeshDataStage stage;
   bool idxData;
 
-  std::vector<byte> vertexData;
+  bytebuf vertexData;
   std::vector<uint32_t> indices;
 
   void CacheHighlightingData(uint32_t eventID, const MeshDisplay &cfg);

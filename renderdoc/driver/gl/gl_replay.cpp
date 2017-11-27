@@ -391,7 +391,7 @@ void GLReplay::FlipOutputWindow(uint64_t id)
   SwapBuffers(&outw);
 }
 
-void GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &ret)
+void GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &ret)
 {
   if(m_pDriver->m_Buffers.find(buff) == m_pDriver->m_Buffers.end())
   {
@@ -1905,7 +1905,7 @@ void GLReplay::SavePipelineState()
 }
 
 void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor,
-                                uint32_t offs, uint32_t matStride, const vector<byte> &data,
+                                uint32_t offs, uint32_t matStride, const bytebuf &data,
                                 ShaderVariable &outVar)
 {
   const byte *bufdata = data.empty() ? NULL : &data[offs];
@@ -1984,8 +1984,7 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
 
 void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked,
                                     std::string prefix, const rdcarray<ShaderConstant> &variables,
-                                    std::vector<ShaderVariable> &outvars,
-                                    const std::vector<byte> &data)
+                                    std::vector<ShaderVariable> &outvars, const bytebuf &data)
 {
   for(int32_t i = 0; i < variables.count(); i++)
   {
@@ -2090,7 +2089,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 }
 
 void GLReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                                    vector<ShaderVariable> &outvars, const vector<byte> &data)
+                                    vector<ShaderVariable> &outvars, const bytebuf &data)
 {
   WrappedOpenGL &gl = *m_pDriver;
 
@@ -2171,12 +2170,7 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                                        (GLint *)&offs);
     gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&size);
 
-    // TODO optimise this copy
-    vector<byte> bufdata;
-    GetBufferData(id, offs, size, bufdata);
-
-    data = bufdata;
-
+    GetBufferData(id, offs, size, data);
     return;
   }
 

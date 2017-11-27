@@ -427,10 +427,10 @@ public:
 
   IMPLEMENT_FUNCTION_PROXIED(void, FillCBufferVariables, ResourceId shader, std::string entryPoint,
                              uint32_t cbufSlot, std::vector<ShaderVariable> &outvars,
-                             const std::vector<byte> &data);
+                             const bytebuf &data);
 
   IMPLEMENT_FUNCTION_PROXIED(void, GetBufferData, ResourceId buff, uint64_t offset, uint64_t len,
-                             std::vector<byte> &retData);
+                             bytebuf &retData);
   IMPLEMENT_FUNCTION_PROXIED(void, GetTextureData, ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                              const GetTextureDataParams &params, bytebuf &data);
 

@@ -1996,7 +1996,7 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 }
 
 void D3D11DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length,
-                                      vector<byte> &retData)
+                                      bytebuf &retData)
 {
   auto it = WrappedID3D11Buffer::m_BufferList.find(buff);
 
@@ -2014,7 +2014,7 @@ void D3D11DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t
 }
 
 void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uint64_t length,
-                                      vector<byte> &ret)
+                                      bytebuf &ret)
 {
   D3D11_MAPPED_SUBRESOURCE mapped;
 
@@ -4064,7 +4064,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
       bool index16 = (idxFmt == DXGI_FORMAT_R16_UINT);
       UINT bytesize = index16 ? 2 : 4;
 
-      vector<byte> idxdata;
+      bytebuf idxdata;
       GetBufferData(idxBuf, idxOffs + drawcall->indexOffset * bytesize,
                     drawcall->numIndices * bytesize, idxdata);
 

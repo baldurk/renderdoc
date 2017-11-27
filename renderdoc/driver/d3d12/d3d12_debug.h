@@ -92,8 +92,7 @@ public:
   uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y);
 
   void FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars,
-                            vector<ShaderVariable> &outvars, bool flattenVec4s,
-                            const vector<byte> &data);
+                            vector<ShaderVariable> &outvars, bool flattenVec4s, const bytebuf &data);
 
   void InitPostVSBuffers(uint32_t eventID);
 
@@ -102,8 +101,8 @@ public:
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
   void ClearPostVSCache();
 
-  void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
-  void GetBufferData(ID3D12Resource *buff, uint64_t offset, uint64_t length, vector<byte> &retData);
+  void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, bytebuf &retData);
+  void GetBufferData(ID3D12Resource *buff, uint64_t offset, uint64_t length, bytebuf &retData);
 
   void GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                       const GetTextureDataParams &params, bytebuf &data);
@@ -307,7 +306,7 @@ private:
 
   void FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
                             const vector<DXBC::CBufferVariable> &invars,
-                            vector<ShaderVariable> &outvars, const vector<byte> &data);
+                            vector<ShaderVariable> &outvars, const bytebuf &data);
 
   void RenderTextInternal(ID3D12GraphicsCommandList *list, float x, float y, const char *text);
   bool RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg, bool blendAlpha);
