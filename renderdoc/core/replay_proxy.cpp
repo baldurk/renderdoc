@@ -1520,6 +1520,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_GetTexture: GetTexture(ResourceId()); break;
     case eReplayProxy_GetBuffers: GetBuffers(); break;
     case eReplayProxy_GetBuffer: GetBuffer(ResourceId()); break;
+    case eReplayProxy_GetShaderEntryPoints: GetShaderEntryPoints(ResourceId()); break;
     case eReplayProxy_GetShader: GetShader(ResourceId(), ""); break;
     case eReplayProxy_GetDebugMessages: GetDebugMessages(); break;
     case eReplayProxy_GetBufferData:
