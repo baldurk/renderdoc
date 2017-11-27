@@ -137,6 +137,7 @@ TEST_CASE("Test stream I/O operations over the network", "[streamio][network]")
     Threading::ThreadHandle sendThread = Threading::CreateThread([&writer]() {
       uint32_t pi = 3141592;
       writer.Write(pi);
+      writer.Flush();
     });
 
     Threading::Sleep(50);
@@ -193,6 +194,8 @@ TEST_CASE("Test stream I/O operations over the network", "[streamio][network]")
       for(int32_t i = 0; i < sz; i++)
         writer.Write(list[i]);
 
+      writer.Flush();
+
       Atomic::Inc32(&threadB);
     });
 
@@ -236,6 +239,8 @@ TEST_CASE("Test stream I/O operations over the network", "[streamio][network]")
         if(timer.GetMilliseconds() < i * 2)
           Threading::Sleep(15);
       }
+
+      writer.Flush();
 
       // close the socket now
       sender->Shutdown();
@@ -293,6 +298,7 @@ TEST_CASE("Test stream I/O operations over the network", "[streamio][network]")
 
     int32_t test = 42;
     bool success = writer.Write(test);
+    success &= writer.Flush();
     CHECK_FALSE(success);
     CHECK(writer.IsErrored());
   };
