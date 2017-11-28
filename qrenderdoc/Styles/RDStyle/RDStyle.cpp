@@ -69,6 +69,8 @@ static const int MenuBarIconSize = 16;
 
 static const int TabWidgetBorder = 1;
 static const int TabMargin = 4;
+static const int TabMinWidth = 120;
+static const int TabMaxWidth = 250;
 };
 
 namespace Animation
@@ -593,6 +595,12 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
 
     return ret;
   }
+  else if(type == CT_TabBarTab)
+  {
+    // have a maximum size for tabs
+    return size.boundedTo(QSize(Constants::TabMaxWidth, INT_MAX))
+        .expandedTo(QSize(Constants::TabMinWidth, 0));
+  }
   else if(type == CT_CheckBox || type == CT_RadioButton)
   {
     const QStyleOptionButton *button = qstyleoption_cast<const QStyleOptionButton *>(opt);
@@ -712,6 +720,9 @@ int RDStyle::pixelMetric(PixelMetric metric, const QStyleOption *opt, const QWid
   if(metric == PM_TabBarTabOverlap)
     return 0;
 
+  if(metric == PM_TabBarTabHSpace)
+    return Constants::TabMargin;
+
   return RDTweakedNativeStyle::pixelMetric(metric, opt, widget);
 }
 
@@ -767,6 +778,9 @@ int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
 
   if(stylehint == QStyle::SH_ItemView_ArrowKeysNavigateIntoChildren)
     return 1;
+
+  if(stylehint == QStyle::SH_TabBar_ElideMode)
+    return Qt::ElideRight;
 
   return RDTweakedNativeStyle::styleHint(stylehint, opt, widget, returnData);
 }
