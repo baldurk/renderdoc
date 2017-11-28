@@ -1108,6 +1108,12 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
 
     VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &CreateInfo, NULL, &buf);
 
+    if(CreateInfo.flags &
+       (VK_BUFFER_CREATE_SPARSE_BINDING_BIT | VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT))
+    {
+      APIProps.SparseResources = true;
+    }
+
     CreateInfo.usage = origusage;
 
     if(ret != VK_SUCCESS)
@@ -1353,6 +1359,13 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       {
         CreateInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
       }
+    }
+
+    APIProps.YUVTextures |= IsYUVFormat(CreateInfo.format);
+
+    if(CreateInfo.flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT | VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT))
+    {
+      APIProps.SparseResources = true;
     }
 
     VkResult ret = ObjDisp(device)->CreateImage(Unwrap(device), &CreateInfo, NULL, &img);
@@ -1644,6 +1657,8 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
     VkImageViewCreateInfo unwrappedInfo = CreateInfo;
     unwrappedInfo.image = Unwrap(unwrappedInfo.image);
     VkResult ret = ObjDisp(device)->CreateImageView(Unwrap(device), &unwrappedInfo, NULL, &view);
+
+    APIProps.YUVTextures |= IsYUVFormat(CreateInfo.format);
 
     if(ret != VK_SUCCESS)
     {

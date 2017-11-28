@@ -2843,6 +2843,30 @@ void TextureViewer::on_overlay_currentIndexChanged(int index)
   if(ui->overlay->currentIndex() > 0)
     m_TexDisplay.overlay = (DebugOverlay)ui->overlay->currentIndex();
 
+#define ANALYTICS_OVERLAY(name) \
+  case DebugOverlay::name: ANALYTIC_SET(UIFeatures.TextureDebugOverlays.name, true); break;
+
+  switch(m_TexDisplay.overlay)
+  {
+    ANALYTICS_OVERLAY(Drawcall);
+    ANALYTICS_OVERLAY(Wireframe);
+    ANALYTICS_OVERLAY(Depth);
+    ANALYTICS_OVERLAY(Stencil);
+    ANALYTICS_OVERLAY(BackfaceCull);
+    ANALYTICS_OVERLAY(ViewportScissor);
+    ANALYTICS_OVERLAY(NaN);
+    ANALYTICS_OVERLAY(Clipping);
+    ANALYTICS_OVERLAY(ClearBeforePass);
+    ANALYTICS_OVERLAY(ClearBeforeDraw);
+    ANALYTICS_OVERLAY(QuadOverdrawPass);
+    ANALYTICS_OVERLAY(QuadOverdrawDraw);
+    ANALYTICS_OVERLAY(TriangleSizePass);
+    ANALYTICS_OVERLAY(TriangleSizeDraw);
+    default: break;
+  }
+
+#undef ANALYTICS_OVERLAY
+
   INVOKE_MEMFN(RT_UpdateAndDisplay);
   if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
   {
@@ -3359,6 +3383,8 @@ void TextureViewer::on_saveTex_clicked()
 
   if(res)
   {
+    ANALYTIC_SET(UIFeatures.Export.TextureSave, true);
+
     bool ret = false;
     QString fn = saveDialog.filename();
 
@@ -3419,6 +3445,8 @@ void TextureViewer::on_pixelHistory_clicked()
 
   if(!texptr || !m_Output)
     return;
+
+  ANALYTIC_SET(UIFeatures.PixelHistory, true);
 
   int x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
   int y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
@@ -3582,6 +3610,8 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
       {
         QTextStream stream(&fileHandle);
         QString source = stream.readAll();
+
+        ANALYTIC_SET(UIFeatures.CustomTextureVisualise, true);
 
         fileHandle.close();
 

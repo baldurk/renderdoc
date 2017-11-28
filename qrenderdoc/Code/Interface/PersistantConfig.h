@@ -133,6 +133,10 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
                                                                                            \
   CONFIG_SETTING(public, QVariantList, QList<SPIRVDisassembler>, SPIRVDisassemblers)       \
                                                                                            \
+  CONFIG_SETTING_VAL(public, bool, bool, Analytics_TotalOptOut, false)                     \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, Analytics_ManualCheck, false)                     \
+                                                                                           \
   CONFIG_SETTING(private, QVariantMap, QStringMap, ConfigSettings)                         \
                                                                                            \
   CONFIG_SETTING(private, QVariantList, QList<RemoteHost>, RemoteHostList)
@@ -422,6 +426,21 @@ For more information about some of these settings that are user-facing see
 .. data:: RemoteHosts
 
   A ``list`` of :class:`RemoteHost` handles to the currently configured remote hosts.
+
+.. data:: Analytics_TotalOptOut
+
+  ``True`` if the user has selected to completely opt-out from and disable all analytics collection
+  and reporting.
+
+  Defaults to ``False``.
+
+.. data:: Analytics_ManualCheck
+
+  ``True`` if the user has remained with analytics turned on, but has chosen to manually check each
+  report that is sent out.
+
+  Defaults to ``False``.
+
 )");
 class PersistantConfig
 {

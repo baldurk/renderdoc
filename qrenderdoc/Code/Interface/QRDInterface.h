@@ -60,6 +60,7 @@ class QWidget;
 #define RENDERDOC_QT_COMPAT
 #include "renderdoc_replay.h"
 
+#include "Analytics.h"
 #include "CommonPipelineState.h"
 #include "PersistantConfig.h"
 #include "RemoteHost.h"

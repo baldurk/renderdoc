@@ -335,6 +335,19 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   // suppress the built-in context menu and hook up our own
   if(trace)
   {
+    if(m_Stage == ShaderStage::Vertex)
+    {
+      ANALYTIC_SET(UIFeatures.ShaderDebug.Vertex, true);
+    }
+    else if(m_Stage == ShaderStage::Pixel)
+    {
+      ANALYTIC_SET(UIFeatures.ShaderDebug.Pixel, true);
+    }
+    else if(m_Stage == ShaderStage::Compute)
+    {
+      ANALYTIC_SET(UIFeatures.ShaderDebug.Compute, true);
+    }
+
     m_DisassemblyView->usePopUp(SC_POPUP_NEVER);
 
     m_DisassemblyFrame->layout()->removeWidget(m_DisassemblyToolbar);

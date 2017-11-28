@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui widgets svg
+QT       += core gui widgets svg network
 
 CONFIG   += silent
 
@@ -163,6 +163,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/Resources.cpp \
     Code/pyrenderdoc/PythonContext.cpp \
     Code/Interface/QRDInterface.cpp \
+    Code/Interface/Analytics.cpp \
     Code/Interface/CommonPipelineState.cpp \
     Code/Interface/PersistantConfig.cpp \
     Code/Interface/RemoteHost.cpp \
@@ -220,7 +221,9 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/PythonShell.cpp \
     Windows/Dialogs/PerformanceCounterSelection.cpp \
     Windows/PerformanceCounterViewer.cpp \
-    Windows/ResourceInspector.cpp
+    Windows/ResourceInspector.cpp \
+    Windows/Dialogs/AnalyticsConfirmDialog.cpp \
+    Windows/Dialogs/AnalyticsPromptDialog.cpp
 HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
     Code/ReplayManager.h \
@@ -231,6 +234,7 @@ HEADERS += Code/CaptureContext.h \
     Code/pyrenderdoc/pyconversion.h \
     Code/pyrenderdoc/document_check.h \
     Code/Interface/QRDInterface.h \
+    Code/Interface/Analytics.h \
     Code/Interface/CommonPipelineState.h \
     Code/Interface/PersistantConfig.h \
     Code/Interface/RemoteHost.h \
@@ -288,7 +292,9 @@ HEADERS += Code/CaptureContext.h \
     Windows/PythonShell.h \
     Windows/Dialogs/PerformanceCounterSelection.h \
     Windows/PerformanceCounterViewer.h \
-    Windows/ResourceInspector.h
+    Windows/ResourceInspector.h \
+    Windows/Dialogs/AnalyticsConfirmDialog.h \
+    Windows/Dialogs/AnalyticsPromptDialog.h
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
     Windows/EventBrowser.ui \
@@ -323,7 +329,9 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/PythonShell.ui \
     Windows/Dialogs/PerformanceCounterSelection.ui \
     Windows/PerformanceCounterViewer.ui \
-    Windows/ResourceInspector.ui
+    Windows/ResourceInspector.ui \
+    Windows/Dialogs/AnalyticsConfirmDialog.ui \
+    Windows/Dialogs/AnalyticsPromptDialog.ui
 
 RESOURCES += Resources/resources.qrc
 

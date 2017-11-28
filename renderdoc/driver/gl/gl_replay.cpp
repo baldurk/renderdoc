@@ -137,7 +137,7 @@ ResourceId GLReplay::GetLiveID(ResourceId id)
 
 APIProperties GLReplay::GetAPIProperties()
 {
-  APIProperties ret;
+  APIProperties ret = m_pDriver->APIProps;
 
   ret.pipelineType = GraphicsAPI::OpenGL;
   ret.localRenderer = GraphicsAPI::OpenGL;

@@ -947,6 +947,14 @@ Currently this is only true for OpenGL where the superfluous indirect in the bin
 worked around by re-sorting bindings.
 )");
   bool shadersMutable = false;
+
+#if !defined(SWIG)
+  // flags about edge-case parts of the APIs that might be used in the capture.
+  bool ShaderLinkage = false;
+  bool YUVTextures = false;
+  bool SparseResources = false;
+  bool MultiGPU = false;
+#endif
 };
 
 DECLARE_REFLECTION_STRUCT(APIProperties);

@@ -569,6 +569,15 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
 
       statusText->setText(tr("Loading %1...").arg(origFilename));
 
+      if(driver == lit("Image"))
+      {
+        ANALYTIC_SET(UIFeatures.ImageViewer, true);
+      }
+      else
+      {
+        ANALYTIC_ADDUNIQ(APIsUsed, driver);
+      }
+
       m_Ctx.LoadCapture(fileToLoad, origFilename, temporary, local);
     }
 
@@ -1641,6 +1650,8 @@ void MainWindow::on_action_Python_Shell_triggered()
 
 void MainWindow::on_action_Resolve_Symbols_triggered()
 {
+  ANALYTIC_SET(UIFeatures.CallstackResolve, true);
+
   if(!m_Ctx.Replay().GetCaptureAccess())
   {
     RDDialog::critical(

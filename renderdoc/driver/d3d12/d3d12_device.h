@@ -365,6 +365,8 @@ public:
   ////////////////////////////////////////////////////////////////
   // non wrapping interface
 
+  APIProperties APIProps;
+
   WriteSerialiser &GetThreadSerialiser();
 
   ID3D12Device *GetReal() { return m_pDevice; }

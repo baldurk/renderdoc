@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AnalyticsPromptDialog</class>
+ <widget class="QDialog" name="AnalyticsPromptDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>498</width>
+    <height>554</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Analytics</string>
+  </property>
+  <property name="modal">
+   <bool>true</bool>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:18pt; font-weight:600;&quot;&gt;Anonymous Analytics&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;RenderDoc now has some very minimal analytics gathering in the UI, to help learn how RenderDoc is used and inform its future development. Here you can choose how to use it - if you have no problems with this, click OK to continue and you won't be prompted again.&lt;/p&gt;&lt;p&gt;The data gathered is &lt;span style=&quot; font-weight:600; text-decoration: underline;&quot;&gt;not personally identifiable&lt;/span&gt; and contains &lt;span style=&quot; font-weight:600; text-decoration: underline;&quot;&gt;absolutely no data from captures&lt;/span&gt;. It will store for example which API is captured, and what features in the UI are used. The source is freely available and auditable.&lt;/p&gt;&lt;p&gt;Analytics gathering only happens in the UI itself, no analytics code runs at capture time so there is no risk of leaking information from the target program.&lt;/p&gt;&lt;p&gt;Each month an anonymous report is generated and sent to securely the RenderDoc server. The aggregated statistics are visible publicly.&lt;/p&gt;&lt;p&gt;By default this happens behind the scenes and no user interaction is required. If you want, you can choose to manually approve each report before it's sent. That way you can see what information is stored.&lt;/p&gt;&lt;p&gt;If you wish, you can opt-out entirely and no statistics will be gathered or reported. However please consider this carefully as it will reduce the accuracy of the statistics and make it harder for me to reason about what features and work on RenderDoc to prioritise.&lt;/p&gt;&lt;p&gt;For more information (and to see what statistics are gathered) go to &lt;a href=&quot;https://renderdoc.org/analytics&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://renderdoc.org/analytics&lt;/span&gt;&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;Thanks!&lt;br/&gt;Baldur Karlsson&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="openExternalLinks">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Select your preference</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <widget class="QRadioButton" name="autoSubmit">
+        <property name="text">
+         <string>Gather anonymous low-detail statistics and submit automatically.</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="manualCheck">
+        <property name="text">
+         <string>Gather anonymous low-detail statistics, but manually verify before submitting.</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="optOut">
+        <property name="text">
+         <string>Do not gather or submit any statistics.</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>AnalyticsPromptDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>AnalyticsPromptDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

@@ -426,6 +426,8 @@ public:
   ////////////////////////////////////////////////////////////////
   // non wrapping interface
 
+  APIProperties APIProps;
+
   ID3D11Device *GetReal() { return m_pDevice; }
   static std::string GetChunkName(uint32_t idx);
   D3D11DebugManager *GetDebugManager() { return m_DebugManager; }

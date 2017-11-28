@@ -88,7 +88,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(IntDir)generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\python\include;3rdparty\pyside\include\PySide2;3rdparty\pyside\include\PySide2\QtCore;3rdparty\pyside\include\PySide2\QtGui;3rdparty\pyside\include\PySide2\QtWidgets;3rdparty\pyside\include\shiboken2;3rdparty\qt\$(Platform)\include;3rdparty\qt\$(Platform)\include\QtWidgets;3rdparty\qt\$(Platform)\include\QtGui;3rdparty\qt\$(Platform)\include\QtCore;3rdparty\qt\$(Platform)\include\QtSvg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(IntDir)generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\python\include;3rdparty\pyside\include\PySide2;3rdparty\pyside\include\PySide2\QtCore;3rdparty\pyside\include\PySide2\QtGui;3rdparty\pyside\include\PySide2\QtWidgets;3rdparty\pyside\include\shiboken2;3rdparty\qt\$(Platform)\include;3rdparty\qt\$(Platform)\include\QtWidgets;3rdparty\qt\$(Platform)\include\QtGui;3rdparty\qt\$(Platform)\include\QtCore;3rdparty\qt\$(Platform)\include\QtSvg;3rdparty\qt\$(Platform)\include\QtNetwork;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:strictStrings /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;WIN64;RENDERDOC_PLATFORM_WIN32;PYSIDE2_ENABLED=1;SCINTILLA_QT=1;MAKING_LIBRARY=1;SCI_LEXER=1;QT_NO_CAST_FROM_ASCII;QT_NO_CAST_TO_ASCII;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;QT_SVG_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level4</WarningLevel>
@@ -100,7 +100,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>shiboken2.lib;python36.lib;qtmain.lib;Qt5Widgets.lib;Qt5Gui.lib;Qt5Core.lib;Qt5Svg.lib;shell32.lib</AdditionalDependencies>
+      <AdditionalDependencies>shiboken2.lib;python36.lib;qtmain.lib;Qt5Widgets.lib;Qt5Gui.lib;Qt5Core.lib;Qt5Svg.lib;Qt5Network.lib;shell32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>3rdparty\pyside\$(Platform);3rdparty\python\$(Platform);3rdparty\qt\$(Platform)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DataExecutionPrevention>true</DataExecutionPrevention>
       <IgnoreImportLibrary>true</IgnoreImportLibrary>
@@ -561,6 +561,7 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="Code\FormatElement.cpp" />
+    <ClCompile Include="Code\Interface\Analytics.cpp" />
     <ClCompile Include="Code\Interface\CommonPipelineState.cpp" />
     <ClCompile Include="Code\Interface\PersistantConfig.cpp" />
     <ClCompile Include="Code\Interface\QRDInterface.cpp" />
@@ -576,6 +577,8 @@
     <ClCompile Include="$(IntDir)generated\moc_RDStyle.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_RDTweakedNativeStyle.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_AboutDialog.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_AnalyticsConfirmDialog.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_AnalyticsPromptDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_APIInspector.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_ResourceInspector.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_BufferFormatSpecifier.cpp" />
@@ -685,6 +688,8 @@
     <ClCompile Include="Windows\DebugMessageView.cpp" />
     <ClCompile Include="Windows\CommentView.cpp" />
     <ClCompile Include="Windows\Dialogs\AboutDialog.cpp" />
+    <ClCompile Include="Windows\Dialogs\AnalyticsConfirmDialog.cpp" />
+    <ClCompile Include="Windows\Dialogs\AnalyticsPromptDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\LiveCapture.cpp" />
     <ClCompile Include="Windows\Dialogs\EnvironmentEditor.cpp" />
@@ -866,6 +871,7 @@
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h" />
+    <ClInclude Include="Code\Interface\Analytics.h" />
     <ClInclude Include="Code\Interface\CommonPipelineState.h" />
     <ClInclude Include="Code\Interface\PersistantConfig.h" />
     <ClInclude Include="Code\Interface\QRDInterface.h" />
@@ -879,6 +885,8 @@
     <ClInclude Include="Code\pyrenderdoc\structured_conversion.h" />
     <ClInclude Include="Code\Resources.h" />
     <ClInclude Include="$(IntDir)generated\ui_AboutDialog.h" />
+    <ClInclude Include="$(IntDir)generated\ui_AnalyticsConfirmDialog.h" />
+    <ClInclude Include="$(IntDir)generated\ui_AnalyticsPromptDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_APIInspector.h" />
     <ClInclude Include="$(IntDir)generated\ui_ResourceInspector.h" />
     <ClInclude Include="$(IntDir)generated\ui_BufferFormatSpecifier.h" />
@@ -1111,6 +1119,18 @@
       <Message>MOC %(Filename).h</Message>
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AnalyticsConfirmDialog.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AnalyticsPromptDialog.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\CaptureDialog.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
@@ -1334,6 +1354,18 @@
       <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\AboutDialog.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AnalyticsConfirmDialog.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AnalyticsPromptDialog.ui">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
       <Message>UIC %(Filename).ui</Message>

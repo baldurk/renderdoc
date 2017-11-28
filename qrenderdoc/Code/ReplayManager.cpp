@@ -302,6 +302,15 @@ ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost *host)
   ReplayStatus status =
       RENDERDOC_CreateRemoteServerConnection(host->Hostname.toUtf8().data(), 0, &m_Remote);
 
+  if(host->IsHostADB())
+  {
+    ANALYTIC_SET(UIFeatures.RemoteReplay.Android, true);
+  }
+  else
+  {
+    ANALYTIC_SET(UIFeatures.RemoteReplay.NonAndroid, true);
+  }
+
   m_RemoteHost = host;
 
   if(status == ReplayStatus::Succeeded)

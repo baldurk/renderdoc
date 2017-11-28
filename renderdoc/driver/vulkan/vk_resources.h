@@ -1172,6 +1172,7 @@ bool IsStencilOnlyFormat(VkFormat f);
 bool IsSRGBFormat(VkFormat f);
 bool IsUIntFormat(VkFormat f);
 bool IsSIntFormat(VkFormat f);
+bool IsYUVFormat(VkFormat f);
 
 VkFormat GetDepthOnlyFormat(VkFormat f);
 VkFormat GetUIntTypedFormat(VkFormat f);

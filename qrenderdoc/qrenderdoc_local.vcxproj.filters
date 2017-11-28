@@ -675,6 +675,21 @@
     <ClCompile Include="Windows\ResourceInspector.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_AnalyticsConfirmDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\Dialogs\AnalyticsConfirmDialog.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_AnalyticsPromptDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\Dialogs\AnalyticsPromptDialog.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\Interface\Analytics.cpp">
+      <Filter>Code\Interface</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1014,6 +1029,15 @@
       <Filter>Code\pyrenderdoc</Filter>
     </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_ResourceInspector.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\Interface\Analytics.h">
+      <Filter>Code\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_AnalyticsConfirmDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_AnalyticsPromptDialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1537,6 +1561,18 @@
     </CustomBuild>
     <CustomBuild Include="Windows\ResourceInspector.h">
       <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AnalyticsConfirmDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AnalyticsConfirmDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AnalyticsPromptDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AnalyticsPromptDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

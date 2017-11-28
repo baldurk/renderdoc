@@ -213,6 +213,8 @@ void ResourceInspector::Inspect(ResourceId id)
 
   if(desc)
   {
+    ANALYTIC_SET(UIFeatures.ResourceInspect, true);
+
     ui->resourceName->setText(m_Ctx.GetResourceName(id));
 
     ui->relatedResources->beginUpdate();

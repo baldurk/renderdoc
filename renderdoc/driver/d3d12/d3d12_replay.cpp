@@ -66,7 +66,7 @@ ReplayStatus D3D12Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructur
 
 APIProperties D3D12Replay::GetAPIProperties()
 {
-  APIProperties ret;
+  APIProperties ret = m_pDevice->APIProps;
 
   ret.pipelineType = GraphicsAPI::D3D12;
   ret.localRenderer = GraphicsAPI::D3D12;

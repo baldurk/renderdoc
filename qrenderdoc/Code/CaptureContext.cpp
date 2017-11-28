@@ -25,6 +25,7 @@
 #include "CaptureContext.h"
 #include <QApplication>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFileInfo>
 #include <QLabel>
 #include <QMenu>
@@ -136,9 +137,19 @@ void CaptureContext::LoadCapture(const QString &captureFile, const QString &orig
   thread->selfDelete(true);
   thread->start();
 
+  QElapsedTimer loadTimer;
+  loadTimer.start();
+
   ShowProgressDialog(m_MainWindow, tr("Loading Capture: %1").arg(origFilename),
                      [this]() { return !m_LoadInProgress; },
                      [this]() { return UpdateLoadProgress(); });
+
+  ANALYTIC_ADDAVG(LoadTime, double(loadTimer.nsecsElapsed() * 1.0e-9));
+
+  ANALYTIC_SET(CaptureFeatures.ShaderLinkage, m_APIProps.ShaderLinkage);
+  ANALYTIC_SET(CaptureFeatures.YUVTextures, m_APIProps.YUVTextures);
+  ANALYTIC_SET(CaptureFeatures.SparseResources, m_APIProps.SparseResources);
+  ANALYTIC_SET(CaptureFeatures.MultiGPU, m_APIProps.MultiGPU);
 
   m_MainWindow->setProgress(-1.0f);
 
@@ -892,6 +903,8 @@ void CaptureContext::SetNotes(const QString &key, const QString &contents)
 
 void CaptureContext::SetBookmark(const EventBookmark &mark)
 {
+  ANALYTIC_SET(UIFeatures.Bookmarks, true);
+
   int index = m_Bookmarks.indexOf(mark);
   if(index >= 0)
   {
@@ -1041,6 +1054,8 @@ void CaptureContext::SaveNotes()
   SectionProperties props;
   props.type = SectionType::Notes;
   props.version = 1;
+
+  ANALYTIC_SET(UIFeatures.CaptureComments, true);
 
   Replay().GetCaptureAccess()->WriteSection(props, json.toUtf8());
 }

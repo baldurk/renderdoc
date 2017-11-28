@@ -191,6 +191,8 @@ void PerformanceCounterViewer::CaptureCounters()
     return;
   m_SelectedCounters = pcs.GetSelectedCounters();
 
+  ANALYTIC_SET(UIFeatures.PerformanceCounters, true);
+
   bool done = false;
   m_Ctx.Replay().AsyncInvoke([this, &done](IReplayController *controller) -> void {
     rdcarray<GPUCounter> counters;

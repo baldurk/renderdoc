@@ -892,7 +892,11 @@ bool WrappedOpenGL::Serialise_glUniformSubroutinesuiv(SerialiserType &ser, GLenu
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
+  {
     m_Real.glUniformSubroutinesuiv(shadertype, count, indices);
+
+    APIProps.ShaderLinkage = true;
+  }
 
   return true;
 }

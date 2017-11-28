@@ -3063,6 +3063,15 @@ void BufferViewer::exportData(const BufferExport &params)
     return;
   }
 
+  if(m_MeshView)
+  {
+    ANALYTIC_SET(UIFeatures.Export.MeshOutput, true);
+  }
+  else
+  {
+    ANALYTIC_SET(UIFeatures.Export.RawBuffer, true);
+  }
+
   BufferItemModel *model = (BufferItemModel *)m_CurView->model();
 
   LambdaThread *exportThread = new LambdaThread([this, params, model, f]() {

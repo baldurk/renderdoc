@@ -380,6 +380,8 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(SerialiserType &ser,
     else
       hr = m_pDevice->CreateTexture1D(&Descriptor, NULL, &ret);
 
+    APIProps.YUVTextures |= IsYUVFormat(Descriptor.Format);
+
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
@@ -498,6 +500,8 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(SerialiserType &ser,
     HRESULT hr = S_OK;
 
     TextureDisplayType dispType = DispTypeForTexture(Descriptor);
+
+    APIProps.YUVTextures |= IsYUVFormat(Descriptor.Format);
 
     // unset flags that are unimportant/problematic in replay
     Descriptor.MiscFlags &=
@@ -627,6 +631,8 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(SerialiserType &ser,
     HRESULT hr = S_OK;
 
     TextureDisplayType dispType = DispTypeForTexture(Descriptor);
+
+    APIProps.YUVTextures |= IsYUVFormat(Descriptor.Format);
 
     // unset flags that are unimportant/problematic in replay
     Descriptor.MiscFlags &=
@@ -766,6 +772,9 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
     {
       pSRVDesc->Format = tex2d->m_RealDescriptor->Format;
     }
+
+    if(pSRVDesc)
+      APIProps.YUVTextures |= IsYUVFormat(pSRVDesc->Format);
 
     HRESULT hr = m_pDevice->CreateShaderResourceView(
         GetResourceManager()->UnwrapResource(pResource), pSRVDesc, &ret);
@@ -1962,6 +1971,8 @@ bool WrappedID3D11Device::Serialise_CreateClassInstance(SerialiserType &ser, LPC
                      ->CreateClassInstance(pClassTypeName, ConstantBufferOffset,
                                            ConstantVectorOffset, TextureOffset, SamplerOffset, &real);
 
+    APIProps.ShaderLinkage = true;
+
     if(FAILED(hr))
     {
       RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
@@ -2029,6 +2040,8 @@ bool WrappedID3D11Device::Serialise_GetClassInstance(SerialiserType &ser, LPCSTR
     ID3D11ClassInstance *wrapped = NULL;
     HRESULT hr = UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage)
                      ->GetClassInstance(pClassInstanceName, InstanceIndex, &real);
+
+    APIProps.ShaderLinkage = true;
 
     if(FAILED(hr))
     {

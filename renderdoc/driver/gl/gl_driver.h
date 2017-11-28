@@ -529,6 +529,8 @@ public:
   WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform);
   virtual ~WrappedOpenGL();
 
+  APIProperties APIProps;
+
   uint64_t GetLogVersion() { return m_SectionVersion; }
   static std::string GetChunkName(uint32_t idx);
   GLResourceManager *GetResourceManager() { return m_ResourceManager; }

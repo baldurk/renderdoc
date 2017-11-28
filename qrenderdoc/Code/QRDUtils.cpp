@@ -729,7 +729,8 @@ void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion)
 {
   // marker that this data is valid
-  data[QString::fromLatin1(magicIdentifier)] = magicVersion;
+  if(magicIdentifier)
+    data[QString::fromLatin1(magicIdentifier)] = magicVersion;
 
   QJsonDocument doc = QJsonDocument::fromVariant(data);
 

@@ -1176,6 +1176,8 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
       }
     }
 
+    APIProps.YUVTextures |= IsYUVFormat(desc.Format);
+
     // always allow SRVs on replay so we can inspect resources
     desc.Flags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
 
@@ -1423,6 +1425,8 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
       m_GPUAddresses.AddTo(range);
     }
 
+    APIProps.YUVTextures |= IsYUVFormat(Descriptor.Format);
+
     // always allow SRVs on replay so we can inspect resources
     Descriptor.Flags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
 
@@ -1564,6 +1568,7 @@ bool WrappedID3D12Device::Serialise_CreateReservedResource(
     const D3D12_CLEAR_VALUE *pOptimizedClearValue, REFIID riid, void **ppvResource)
 {
   D3D12NOTIMP("Tiled Resources");
+  APIProps.SparseResources = true;
   return true;
 }
 

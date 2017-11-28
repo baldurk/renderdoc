@@ -317,7 +317,7 @@ vector<DebugMessage> D3D11Replay::GetDebugMessages()
 
 APIProperties D3D11Replay::GetAPIProperties()
 {
-  APIProperties ret;
+  APIProperties ret = m_pDevice->APIProps;
 
   ret.pipelineType = GraphicsAPI::D3D11;
   ret.localRenderer = GraphicsAPI::D3D11;

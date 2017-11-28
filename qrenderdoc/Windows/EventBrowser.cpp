@@ -390,6 +390,8 @@ void EventBrowser::on_bookmark_clicked()
 
 void EventBrowser::on_timeDraws_clicked()
 {
+  ANALYTIC_SET(UIFeatures.DrawcallTimes, true);
+
   ui->events->header()->showSection(COL_DURATION);
 
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
@@ -563,6 +565,8 @@ void EventBrowser::on_exportDraws_clicked()
 
   if(!filename.isEmpty())
   {
+    ANALYTIC_SET(UIFeatures.Export.EventBrowser, true);
+
     QDir dirinfo = QFileInfo(filename).dir();
     if(dirinfo.exists())
     {

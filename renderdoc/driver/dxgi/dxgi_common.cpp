@@ -479,6 +479,34 @@ bool IsSRGBFormat(DXGI_FORMAT f)
   return false;
 }
 
+bool IsYUVFormat(DXGI_FORMAT f)
+{
+  switch(f)
+  {
+    case DXGI_FORMAT_AYUV:
+    case DXGI_FORMAT_Y410:
+    case DXGI_FORMAT_Y416:
+    case DXGI_FORMAT_NV12:
+    case DXGI_FORMAT_P010:
+    case DXGI_FORMAT_P016:
+    case DXGI_FORMAT_420_OPAQUE:
+    case DXGI_FORMAT_YUY2:
+    case DXGI_FORMAT_Y210:
+    case DXGI_FORMAT_Y216:
+    case DXGI_FORMAT_NV11:
+    case DXGI_FORMAT_AI44:
+    case DXGI_FORMAT_IA44:
+    case DXGI_FORMAT_P8:
+    case DXGI_FORMAT_A8P8:
+    case DXGI_FORMAT_P208:
+    case DXGI_FORMAT_V208:
+    case DXGI_FORMAT_V408: return true;
+    default: break;
+  }
+
+  return false;
+}
+
 DXGI_FORMAT GetDepthTypedFormat(DXGI_FORMAT f)
 {
   switch(f)

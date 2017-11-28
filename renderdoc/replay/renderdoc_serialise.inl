@@ -399,7 +399,12 @@ void DoSerialise(SerialiserType &ser, APIProperties &el)
   SERIALISE_MEMBER(localRenderer);
   SERIALISE_MEMBER(degraded);
 
-  SIZE_CHECK(12);
+  SERIALISE_MEMBER(ShaderLinkage);
+  SERIALISE_MEMBER(YUVTextures);
+  SERIALISE_MEMBER(SparseResources);
+  SERIALISE_MEMBER(MultiGPU);
+
+  SIZE_CHECK(16);
 }
 
 template <typename SerialiserType>

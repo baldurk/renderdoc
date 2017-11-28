@@ -205,6 +205,8 @@ QXmlStreamWriter *PipelineStateViewer::beginHTMLExport()
 
   if(!filename.isEmpty())
   {
+    ANALYTIC_SET(UIFeatures.Export.PipelineState, true);
+
     QDir dirinfo = QFileInfo(filename).dir();
     if(dirinfo.exists())
     {
@@ -718,6 +720,8 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
                                      const ShaderReflection *shaderDetails, const QString &entryFunc,
                                      const QStringMap &files, const QString &mainfile)
 {
+  ANALYTIC_SET(UIFeatures.ShaderEditing, true);
+
   IShaderViewer *sv = m_Ctx.EditShader(
       false, entryFunc, files,
       // save callback
@@ -882,6 +886,8 @@ bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
 
   if(!filename.isEmpty())
   {
+    ANALYTIC_SET(UIFeatures.Export.ShaderSave, true);
+
     QDir dirinfo = QFileInfo(filename).dir();
     if(dirinfo.exists())
     {

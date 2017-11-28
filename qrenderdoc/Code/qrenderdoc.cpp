@@ -28,11 +28,13 @@
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
 #include <QStandardPaths>
+#include <QSysInfo>
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Code/pyrenderdoc/PythonContext.h"
 #include "Windows/MainWindow.h"
+#include "version.h"
 
 #if defined(Q_OS_WIN32)
 extern "C" {
@@ -203,6 +205,9 @@ int main(int argc, char *argv[])
               .arg(configFilename));
     }
 
+    if(!config.Analytics_TotalOptOut)
+      Analytics::Load();
+
     bool isDarkTheme = IsDarkTheme();
 
     bool styleSet = config.SetStyle();
@@ -234,9 +239,28 @@ int main(int argc, char *argv[])
     {
       CaptureContext ctx(filename, remoteHost, remoteIdent, temp, config);
 
+      Analytics::Prompt(ctx, config);
+
+      ANALYTIC_SET(Environment.RenderDocVersion, lit(FULL_VERSION_STRING));
+#if defined(DISTRIBUTION_VERSION)
+      ANALYTIC_SET(Environment.DistributionVersion, lit(DISTRIBUTION_NAME));
+#endif
+      ANALYTIC_SET(Environment.Bitness, ((sizeof(void *) == sizeof(uint64_t)) ? 64 : 32));
+      ANALYTIC_SET(Environment.OSVersion, QSysInfo::prettyProductName());
+
+#if RENDERDOC_STABLE_BUILD
+      ANALYTIC_SET(Environment.OfficialBuildRun, true);
+#else
+      ANALYTIC_SET(Environment.DevelBuildRun, true);
+#endif
+
+      ANALYTIC_SET(DaysUsed[QDateTime::currentDateTime().date().day()], true);
+
       if(!pyscripts.isEmpty())
       {
         PythonContextHandle py;
+
+        ANALYTIC_SET(UIFeatures.PythonInterop, true);
 
         py.ctx().setGlobal("pyrenderdoc", (ICaptureContext *)&ctx);
 

@@ -649,7 +649,7 @@ void VulkanReplay::Shutdown()
 
 APIProperties VulkanReplay::GetAPIProperties()
 {
-  APIProperties ret;
+  APIProperties ret = m_pDriver->APIProps;
 
   ret.pipelineType = GraphicsAPI::Vulkan;
   ret.localRenderer = GraphicsAPI::Vulkan;

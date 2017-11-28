@@ -505,6 +505,8 @@ void PythonShell::on_execute_clicked()
 {
   QString command = ui->lineInput->text();
 
+  ANALYTIC_SET(UIFeatures.PythonInterop, true);
+
   appendText(ui->interactiveOutput, command + lit("\n"));
 
   history.push_front(command);
@@ -611,6 +613,8 @@ void PythonShell::on_saveScript_clicked()
 void PythonShell::on_runScript_clicked()
 {
   PythonContext *context = newContext();
+
+  ANALYTIC_SET(UIFeatures.PythonInterop, true);
 
   ui->scriptOutput->clear();
 

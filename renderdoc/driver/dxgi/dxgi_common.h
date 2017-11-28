@@ -55,6 +55,7 @@ bool IsUIntFormat(DXGI_FORMAT f);
 bool IsTypelessFormat(DXGI_FORMAT f);
 bool IsIntFormat(DXGI_FORMAT f);
 bool IsSRGBFormat(DXGI_FORMAT f);
+bool IsYUVFormat(DXGI_FORMAT f);
 
 // not technically DXGI, but makes more sense to have it here common between D3D versions
 Topology MakePrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY Topo);
