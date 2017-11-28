@@ -340,6 +340,52 @@ struct SDObject
   DOCUMENT("The :class:`SDObjectData` with the contents of this object.");
   SDObjectData data;
 
+  DOCUMENT("Find a child object by a given name.");
+  inline SDObject *findChild(const char *childName) const
+  {
+    for(size_t i = 0; i < data.children.size(); i++)
+      if(data.children[i]->name == childName)
+        return data.children[i];
+
+    return NULL;
+  }
+
+  DOCUMENT("Add a new child object by duplicating it.");
+  inline void addChild(SDObject *child) { data.children.push_back(child->Duplicate()); }
+#if defined(RENDERDOC_QT_COMPAT) && !defined(SWIG)
+  operator QVariant() const
+  {
+    switch(type.basetype)
+    {
+      case SDBasic::Chunk:
+      case SDBasic::Struct:
+      {
+        QVariantMap ret;
+        for(size_t i = 0; i < data.children.size(); i++)
+          ret[data.children[i]->name] = *data.children[i];
+        break;
+      }
+      case SDBasic::Array:
+      {
+        QVariantList ret;
+        for(size_t i = 0; i < data.children.size(); i++)
+          ret.push_back(*data.children[i]);
+      }
+      case SDBasic::Null:
+      case SDBasic::Buffer: return QVariant();
+      case SDBasic::String: return data.str;
+      case SDBasic::Enum:
+      case SDBasic::UnsignedInteger: return QVariant(qulonglong(data.basic.u));
+      case SDBasic::SignedInteger: return QVariant(qlonglong(data.basic.i));
+      case SDBasic::Float: return data.basic.d;
+      case SDBasic::Boolean: return data.basic.b;
+      case SDBasic::Character: return data.basic.c;
+    }
+
+    return QVariant();
+  }
+#endif
+
 protected:
   SDObject() {}
   SDObject(const SDObject &other) = delete;
@@ -347,6 +393,150 @@ protected:
 };
 
 DECLARE_REFLECTION_STRUCT(SDObject);
+
+#if defined(RENDERDOC_QT_COMPAT) && !defined(SWIG)
+inline SDObject *makeSDObject(const char *name, QVariant val)
+{
+  SDObject *ret = new SDObject(name, "QVariant");
+  ret->type.basetype = SDBasic::Null;
+
+  // coverity[mixed_enums]
+  QMetaType::Type type = (QMetaType::Type)val.type();
+
+  switch(type)
+  {
+    case QMetaType::Bool:
+      ret->type.name = "bool";
+      ret->type.basetype = SDBasic::Boolean;
+      ret->type.byteSize = 1;
+      ret->data.basic.b = val.toBool();
+      break;
+    case QMetaType::Short:
+      ret->type.name = "int16_t";
+      ret->type.basetype = SDBasic::SignedInteger;
+      ret->type.byteSize = 2;
+      ret->data.basic.i = val.toInt();
+      break;
+    case QMetaType::UShort:
+      ret->type.name = "uint16_t";
+      ret->type.basetype = SDBasic::UnsignedInteger;
+      ret->type.byteSize = 2;
+      ret->data.basic.u = val.toUInt();
+      break;
+    case QMetaType::Long:
+    case QMetaType::Int:
+      ret->type.name = "int32_t";
+      ret->type.basetype = SDBasic::SignedInteger;
+      ret->type.byteSize = 4;
+      ret->data.basic.i = val.toInt();
+      break;
+    case QMetaType::ULong:
+    case QMetaType::UInt:
+      ret->type.name = "uint32_t";
+      ret->type.basetype = SDBasic::UnsignedInteger;
+      ret->type.byteSize = 4;
+      ret->data.basic.u = val.toUInt();
+      break;
+    case QMetaType::LongLong:
+      ret->type.name = "int64_t";
+      ret->type.basetype = SDBasic::SignedInteger;
+      ret->type.byteSize = 8;
+      ret->data.basic.i = val.toLongLong();
+      break;
+    case QMetaType::ULongLong:
+      ret->type.name = "uint64_t";
+      ret->type.basetype = SDBasic::UnsignedInteger;
+      ret->type.byteSize = 8;
+      ret->data.basic.u = val.toULongLong();
+      break;
+    case QMetaType::Float:
+      ret->type.name = "float";
+      ret->type.basetype = SDBasic::Float;
+      ret->type.byteSize = 4;
+      ret->data.basic.d = val.toFloat();
+      break;
+    case QMetaType::Double:
+      ret->type.name = "double";
+      ret->type.basetype = SDBasic::Float;
+      ret->type.byteSize = 8;
+      ret->data.basic.d = val.toDouble();
+      break;
+    case QMetaType::UChar:
+    case QMetaType::Char:
+    case QMetaType::QChar:
+      ret->type.name = "char";
+      ret->type.basetype = SDBasic::Character;
+      ret->type.byteSize = 1;
+      ret->data.basic.c = val.toChar().toLatin1();
+      break;
+    case QMetaType::QString:
+      ret->type.name = "string";
+      ret->type.basetype = SDBasic::String;
+      ret->data.str = val.toString().toUtf8().data();
+      ret->type.byteSize = ret->data.str.size();
+      break;
+    default: break;
+  }
+
+  return ret;
+}
+#endif
+
+DOCUMENT("Make a structured object out of a signed integer");
+inline SDObject *makeSDObject(const char *name, int64_t val)
+{
+  SDObject *ret = new SDObject(name, "int64_t");
+  ret->type.basetype = SDBasic::SignedInteger;
+  ret->type.byteSize = 8;
+  ret->data.basic.i = val;
+  return ret;
+}
+
+DOCUMENT("Make a structured object out of an unsigned integer");
+inline SDObject *makeSDObject(const char *name, uint64_t val)
+{
+  SDObject *ret = new SDObject(name, "uint64_t");
+  ret->type.basetype = SDBasic::UnsignedInteger;
+  ret->type.byteSize = 8;
+  ret->data.basic.u = val;
+  return ret;
+}
+
+DOCUMENT("Make a structured object out of a floating point value");
+inline SDObject *makeSDObject(const char *name, float val)
+{
+  SDObject *ret = new SDObject(name, "float");
+  ret->type.basetype = SDBasic::Float;
+  ret->type.byteSize = 4;
+  ret->data.basic.d = val;
+  return ret;
+}
+
+DOCUMENT("Make a structured object out of a string");
+inline SDObject *makeSDObject(const char *name, const char *val)
+{
+  SDObject *ret = new SDObject(name, "string");
+  ret->type.basetype = SDBasic::String;
+  ret->type.byteSize = strlen(val);
+  ret->data.str = val;
+  return ret;
+}
+
+DOCUMENT("Make an array-type structured object out of a string");
+inline SDObject *makeSDArray(const char *name)
+{
+  SDObject *ret = new SDObject(name, "array");
+  ret->type.basetype = SDBasic::Array;
+  return ret;
+}
+
+DOCUMENT("Make an array-type structured object out of a string");
+inline SDObject *makeSDStruct(const char *name)
+{
+  SDObject *ret = new SDObject(name, "struct");
+  ret->type.basetype = SDBasic::Struct;
+  return ret;
+}
 
 DOCUMENT("Defines a single structured chunk, which is a :class:`SDObject`.");
 struct SDChunk : public SDObject

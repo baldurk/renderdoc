@@ -69,6 +69,9 @@
 // these objects return a new copy which the python caller should own.
 %newobject SDObject::Duplicate;
 %newobject SDChunk::Duplicate;
+%newobject makeSDObject;
+%newobject makeSDArray;
+%newobject makeSDStruct;
 
 // Add custom conversion/__str__/__repr__ functions for beautification
 %include "cosmetics.i"
