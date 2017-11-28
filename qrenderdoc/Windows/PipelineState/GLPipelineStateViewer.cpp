@@ -1126,9 +1126,10 @@ void GLPipelineStateViewer::setState()
       {
         QString genericVal = tr("Generic=") + MakeGenericValueString(compCount, compType, a);
 
-        RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {i, a.Enabled ? tr("Enabled") : tr("Disabled"), name,
-             a.Enabled ? a.Format.Name() : genericVal, a.BufferSlot, a.RelativeOffset, QString()});
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({i, a.Enabled ? tr("Enabled") : tr("Disabled"), name,
+                                  a.Enabled ? QString(a.Format.Name()) : genericVal, a.BufferSlot,
+                                  a.RelativeOffset, QString()});
 
         if(a.Enabled)
           usedBindings[a.BufferSlot] = true;

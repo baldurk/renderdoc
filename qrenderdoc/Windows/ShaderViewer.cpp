@@ -506,7 +506,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       for(const SigParameter &s : shader->InputSig)
       {
         QString name = s.varName.isEmpty()
-                           ? s.semanticName
+                           ? QString(s.semanticName)
                            : QFormatStr("%1 (%2)").arg(s.varName).arg(s.semanticName);
         if(s.semanticName.isEmpty())
           name = s.varName;
@@ -534,7 +534,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       for(const SigParameter &s : shader->OutputSig)
       {
         QString name = s.varName.isEmpty()
-                           ? s.semanticName
+                           ? QString(s.semanticName)
                            : QFormatStr("%1 (%2)").arg(s.varName).arg(s.semanticName);
         if(s.semanticName.isEmpty())
           name = s.varName;

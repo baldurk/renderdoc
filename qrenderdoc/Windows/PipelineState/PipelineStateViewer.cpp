@@ -689,7 +689,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
   for(const SigParameter &sig : shaderDetails->InputSig)
     hlsl += lit("\t%1 %2 : %3;\n")
                 .arg(TypeString(sig))
-                .arg(!sig.varName.isEmpty() ? sig.varName : lit("param%1").arg(sig.regIndex))
+                .arg(!sig.varName.isEmpty() ? QString(sig.varName) : lit("param%1").arg(sig.regIndex))
                 .arg(D3DSemanticString(sig));
   hlsl += lit("};\n\n");
 
@@ -697,7 +697,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
   for(const SigParameter &sig : shaderDetails->OutputSig)
     hlsl += lit("\t%1 %2 : %3;\n")
                 .arg(TypeString(sig))
-                .arg(!sig.varName.isEmpty() ? sig.varName : lit("param%1").arg(sig.regIndex))
+                .arg(!sig.varName.isEmpty() ? QString(sig.varName) : lit("param%1").arg(sig.regIndex))
                 .arg(D3DSemanticString(sig));
   hlsl += lit("};\n\n");
 

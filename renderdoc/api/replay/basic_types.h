@@ -590,6 +590,11 @@ struct rdcstr : public rdcarray<char>
   // cast operators
   operator std::string() const { return std::string(elems, elems + usedCount); }
 #if defined(RENDERDOC_QT_COMPAT)
+  rdcstr(const QString &in) : rdcarray<char>()
+  {
+    QByteArray arr = in.toUtf8();
+    assign(arr.data(), arr.size());
+  }
   operator QString() const { return QString::fromUtf8(elems, usedCount); }
   operator QVariant() const { return QVariant(QString::fromUtf8(elems, usedCount)); }
 #endif
