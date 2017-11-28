@@ -262,7 +262,7 @@ uint32_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, ID3D12DeviceC
   if(record->type == Resource_DescriptorHeap)
   {
     // the initial contents are just the descriptors. Estimate the serialise size here
-    const uint32_t descriptorSerSize = 40 + sizeof(D3D12_UNORDERED_ACCESS_VIEW_DESC);
+    const uint32_t descriptorSerSize = 40 + sizeof(D3D12_SAMPLER_DESC);
 
     return initContents.num * descriptorSerSize;
   }
