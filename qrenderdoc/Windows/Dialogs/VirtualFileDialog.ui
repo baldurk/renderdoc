@@ -121,7 +121,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QTreeView" name="fileList">
+      <widget class="RDTreeView" name="fileList">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>2</horstretch>
@@ -243,6 +243,11 @@
    <class>RDLineEdit</class>
    <extends>QLineEdit</extends>
    <header>Widgets/Extended/RDLineEdit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RDTreeView</class>
+   <extends>QTreeView</extends>
+   <header>Widgets/Extended/RDTreeView.h</header>
   </customwidget>
  </customwidgets>
  <resources>

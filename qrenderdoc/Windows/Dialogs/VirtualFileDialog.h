@@ -51,6 +51,7 @@ private slots:
   void on_dirList_clicked(const QModelIndex &index);
   void on_fileList_doubleClicked(const QModelIndex &index);
   void on_fileList_clicked(const QModelIndex &index);
+  void on_fileList_keyPress(QKeyEvent *e);
   void on_showHidden_toggled(bool checked);
   void on_filename_keyPress(QKeyEvent *e);
   void on_filter_currentIndexChanged(int index);

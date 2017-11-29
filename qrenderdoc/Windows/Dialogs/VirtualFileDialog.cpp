@@ -719,6 +719,16 @@ void VirtualFileDialog::on_fileList_clicked(const QModelIndex &index)
   ui->filename->setText(m_FileProxy->data(index, RemoteFileModel::FileNameRole).toString());
 }
 
+void VirtualFileDialog::on_fileList_keyPress(QKeyEvent *e)
+{
+  // only process when enter is pressed
+  if(e->key() != Qt::Key_Return && e->key() != Qt::Key_Enter)
+    return;
+
+  // pass on to the filename field as if we hit enter there
+  on_filename_keyPress(e);
+}
+
 void VirtualFileDialog::on_showHidden_toggled(bool checked)
 {
   m_DirProxy->showHidden = ui->showHidden->isChecked();
