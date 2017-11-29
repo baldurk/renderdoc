@@ -921,8 +921,6 @@ void RDTreeWidget::leaveEvent(QEvent *e)
     m_model->itemChanged(item, {Qt::DecorationRole, Qt::BackgroundRole, Qt::ForegroundRole});
   }
 
-  emit leave(e);
-
   RDTreeView::leaveEvent(e);
 }
 
@@ -994,8 +992,6 @@ void RDTreeWidget::keyPressEvent(QKeyEvent *e)
   {
     RDTreeView::keyPressEvent(e);
   }
-
-  emit(keyPress(e));
 }
 
 void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const

@@ -88,11 +88,16 @@ public:
   void setItemDelegate(QAbstractItemDelegate *delegate);
   QAbstractItemDelegate *itemDelegate() const;
 
+signals:
+  void leave(QEvent *e);
+  void keyPress(QKeyEvent *e);
+
 protected:
   void rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end) override;
   void mouseMoveEvent(QMouseEvent *e) override;
   void wheelEvent(QWheelEvent *e) override;
   void leaveEvent(QEvent *e) override;
+  void keyPressEvent(QKeyEvent *e) override;
   bool viewportEvent(QEvent *event) override;
 
   void drawRow(QPainter *painter, const QStyleOptionViewItem &options,

@@ -142,7 +142,17 @@ void RDTreeView::leaveEvent(QEvent *e)
     m_ElidedTooltip->hide();
 
   m_currentHoverIndex = QModelIndex();
+
+  emit leave(e);
+
   QTreeView::leaveEvent(e);
+}
+
+void RDTreeView::keyPressEvent(QKeyEvent *e)
+{
+  emit(keyPress(e));
+
+  QTreeView::keyPressEvent(e);
 }
 
 bool RDTreeView::viewportEvent(QEvent *event)

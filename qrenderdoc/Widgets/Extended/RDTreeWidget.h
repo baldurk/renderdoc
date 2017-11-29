@@ -272,8 +272,6 @@ public:
 
 signals:
   void mouseMove(QMouseEvent *e);
-  void leave(QEvent *e);
-  void keyPress(QKeyEvent *e);
   void itemClicked(RDTreeWidgetItem *item, int column);
   void itemChanged(RDTreeWidgetItem *item, int column);
   void itemDoubleClicked(RDTreeWidgetItem *item, int column);
