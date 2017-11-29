@@ -467,6 +467,21 @@ void RDHeaderView::setColumnStretchHints(const QList<int> &hints)
   resizeSectionsWithHints();
 }
 
+void RDHeaderView::setRootIndex(const QModelIndex &index)
+{
+  QHeaderView::setRootIndex(index);
+
+  // need to enqueue this after the root index is actually processed (this function is called
+  // *before* the root index changes).
+  if(!m_sectionStretchHints.isEmpty())
+  {
+    GUIInvoke::defer([this]() {
+      cacheSectionMinSizes();
+      resizeSectionsWithHints();
+    });
+  }
+}
+
 void RDHeaderView::headerDataChanged(Qt::Orientation orientation, int logicalFirst, int logicalLast)
 {
   if(m_customSizing)

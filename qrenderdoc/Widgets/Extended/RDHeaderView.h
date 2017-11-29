@@ -67,6 +67,7 @@ public:
   void setCustomSizing(bool sizing) { m_customSizing = sizing; }
   int pinnedWidth() { return m_pinnedWidth; }
 public slots:
+  void setRootIndex(const QModelIndex &index) override;
   void headerDataChanged(Qt::Orientation orientation, int logicalFirst, int logicalLast);
   void columnsInserted(const QModelIndex &parent, int first, int last);
   void rowsChanged(const QModelIndex &parent, int first, int last);
