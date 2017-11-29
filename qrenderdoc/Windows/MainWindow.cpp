@@ -358,7 +358,8 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
   th->wait(500);
   if(th->isRunning())
   {
-    ShowProgressDialog(this, tr("Launching %1, please wait...").arg(exe),
+    QString filename = QFileInfo(exe).fileName();
+    ShowProgressDialog(this, tr("Launching %1, please wait...").arg(filename),
                        [th]() { return !th->isRunning(); });
   }
   th->deleteLater();

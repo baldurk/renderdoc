@@ -83,7 +83,7 @@ public:
         FSNode *node = new FSNode();
         node->parent = NULL;
         node->parentIndex = 0;
-        node->file.filename = "/";
+        node->file.filename = homeDir.isEmpty() ? "" : "/";
         node->file.flags = PathProperty::Directory;
         roots.push_back(node);
 

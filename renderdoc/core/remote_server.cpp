@@ -1079,7 +1079,7 @@ public:
   rdcstr GetHomeFolder()
   {
     if(Android::IsHostADB(m_hostname.c_str()))
-      return "/";
+      return "";
 
     {
       WRITE_DATA_SCOPE();
