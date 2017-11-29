@@ -137,9 +137,9 @@ ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
 
   ui->resourceUsage->setColumns({tr("EID"), tr("Usage")});
 
-  QObject::connect(ui->resourceList, &QListView::doubleClicked, this,
+  QObject::connect(ui->resourceList, &QListView::activated, this,
                    &ResourceInspector::resource_doubleClicked);
-  QObject::connect(ui->relatedResources, &QTreeView::doubleClicked, this,
+  QObject::connect(ui->relatedResources, &QTreeView::activated, this,
                    &ResourceInspector::resource_doubleClicked);
 
   Inspect(ResourceId());
