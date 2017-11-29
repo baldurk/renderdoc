@@ -131,6 +131,9 @@ public:
     // we start with a refcount of 1 because we initialise WSA ourselves for our own sockets.
     m_WSARefCount = 1;
 
+    m_RecurseSlot = Threading::AllocateTLSSlot();
+    Threading::SetTLSValue(m_RecurseSlot, NULL);
+
     if(!success)
       return false;
 
@@ -149,7 +152,19 @@ private:
   bool m_EnabledHooks;
 
   int m_WSARefCount;
+  uint64_t m_RecurseSlot = 0;
 
+  bool CheckRecurse()
+  {
+    if(Threading::GetTLSValue(m_RecurseSlot) == NULL)
+    {
+      Threading::SetTLSValue(m_RecurseSlot, (void *)1);
+      return false;
+    }
+
+    return true;
+  }
+  void EndRecurse() { Threading::SetTLSValue(m_RecurseSlot, NULL); }
   Hook<PFN_CREATE_PROCESS_A> CreateProcessA;
   Hook<PFN_CREATE_PROCESS_W> CreateProcessW;
 
@@ -203,6 +218,11 @@ private:
       std::function<BOOL(DWORD dwCreationFlags, LPPROCESS_INFORMATION lpProcessInformation)> realFunc,
       DWORD dwCreationFlags, bool inject, LPPROCESS_INFORMATION lpProcessInformation)
   {
+    bool recursive = syshooks.CheckRecurse();
+
+    if(recursive)
+      return realFunc(dwCreationFlags, lpProcessInformation);
+
     PROCESS_INFORMATION dummy;
     RDCEraseEl(dummy);
 
@@ -219,7 +239,9 @@ private:
     bool resume = (dwCreationFlags & CREATE_SUSPENDED) == 0;
     dwCreationFlags |= CREATE_SUSPENDED;
 
+    RDCDEBUG("Calling real %s", entryPoint);
     BOOL ret = realFunc(dwCreationFlags, lpProcessInformation);
+    RDCDEBUG("Called real %s", entryPoint);
 
     if(ret && inject)
     {
@@ -246,6 +268,8 @@ private:
       CloseHandle(dummy.hProcess);
       CloseHandle(dummy.hThread);
     }
+
+    syshooks.EndRecurse();
 
     return ret;
   }
