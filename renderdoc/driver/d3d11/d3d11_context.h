@@ -151,6 +151,8 @@ private:
   WriteSerialiser m_ScratchSerialiser;
   std::set<std::string> m_StringDB;
 
+  ResourceId m_CurContextId;
+
   StreamReader *m_FrameReader = NULL;
 
   map<ResourceId, int> m_MapResourceRecordAllocs;

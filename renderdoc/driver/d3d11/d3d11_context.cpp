@@ -621,8 +621,7 @@ bool WrappedID3D11DeviceContext::IsFL11_1()
 
 bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk chunk)
 {
-  ResourceId ctxId;
-  SERIALISE_ELEMENT(ctxId).Named("Context ID");
+  SERIALISE_ELEMENT(m_CurContextId).Named("Context ID");
 
   SERIALISE_CHECK_READ_ERRORS();
 

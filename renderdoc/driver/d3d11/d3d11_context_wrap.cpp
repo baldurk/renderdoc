@@ -4960,6 +4960,15 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(SerialiserType &ser
     draw.flags |= DrawFlags::CmdList;
 
     AddDrawcall(draw, true);
+
+    m_pDevice->AddResource(pCommandList, ResourceType::CommandBuffer, "Command List");
+
+    // add the current deferred context ID as a parent
+    m_pDevice->GetReplay()->GetResourceDesc(m_CurContextId).derivedResources.push_back(pCommandList);
+    m_pDevice->GetReplay()->GetResourceDesc(pCommandList).parentResources.push_back(m_CurContextId);
+
+    // don't include this as an 'initialisation chunk'
+    m_pDevice->GetReplay()->GetResourceDesc(pCommandList).initialisationChunks.clear();
   }
 
   return true;

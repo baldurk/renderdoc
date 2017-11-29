@@ -2126,7 +2126,8 @@ void WrappedID3D11Device::AddResourceCurChunk(ResourceDescription &descr)
 
 void WrappedID3D11Device::AddResourceCurChunk(ResourceId id)
 {
-  AddResourceCurChunk(GetReplay()->GetResourceDesc(id));
+  if(GetResourceManager()->HasLiveResource(id))
+    AddResourceCurChunk(GetReplay()->GetResourceDesc(id));
 }
 
 void WrappedID3D11Device::DerivedResource(ID3D11DeviceChild *parent, ResourceId child)
