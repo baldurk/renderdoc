@@ -31,6 +31,7 @@
 #include <QSortFilterProxyModel>
 #include "Code/ReplayManager.h"
 #include "Code/Resources.h"
+#include "Widgets/Extended/RDHeaderView.h"
 #include "ui_VirtualFileDialog.h"
 
 class RemoteFileModel : public QAbstractItemModel
@@ -573,12 +574,13 @@ VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QWidget *parent)
   ui->dirList->setModel(m_DirProxy);
   ui->fileList->setModel(m_FileProxy);
 
+  ui->fileList->hideGridLines();
+
   ui->fileList->sortByColumn(0, Qt::AscendingOrder);
 
-  ui->fileList->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-  ui->fileList->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-  ui->fileList->header()->setSectionResizeMode(2, QHeaderView::Stretch);
-  ui->fileList->header()->setSectionResizeMode(3, QHeaderView::Stretch);
+  RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+  ui->fileList->setHeader(header);
+  header->setColumnStretchHints({1, -1, -1, -1});
 
   ui->filter->addItems({tr("Executables"), tr("All Files")});
 
