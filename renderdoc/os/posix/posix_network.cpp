@@ -39,6 +39,33 @@
 
 using std::string;
 
+// because strerror_r is a complete mess...
+static std::string errno_string(int err)
+{
+  switch(err)
+  {
+#if EAGAIN != EWOULDBLOCK
+    case EAGAIN:
+#endif
+    case EWOULDBLOCK: return "EWOULDBLOCK: Operation would block.";
+    case EINVAL: return "EINVAL: Invalid argument.";
+    case EADDRINUSE: return "EADDRINUSE: Address already in use.";
+    case ECONNRESET: return "ECONNRESET: A connection was forcibly closed by a peer.";
+    case EINPROGRESS: return "EINPROGRESS: Operation now in progress.";
+    case EINTR:
+      return "EINTR: The function was interrupted by a signal that was caught, before any data was "
+             "available.";
+    case ETIMEDOUT: return "ETIMEDOUT: A socket operation timed out.";
+    case ECONNABORTED: return "ECONNABORTED: A connection has been aborted.";
+    case ECONNREFUSED: return "ECONNREFUSED: A connection was refused.";
+    case EHOSTDOWN: return "EHOSTDOWN: Host is down.";
+    case EHOSTUNREACH: return "EHOSTUNREACH: No route to host.";
+    default: break;
+  }
+
+  return StringFormat::Fmt("Unknown error %d", err);
+}
+
 namespace Network
 {
 void Init()
@@ -100,7 +127,7 @@ Socket *Socket::AcceptClient(bool wait)
 
     if(err != EWOULDBLOCK && err != EAGAIN)
     {
-      RDCWARN("accept: %d", err);
+      RDCWARN("accept: %s", errno_string(err).c_str());
       Shutdown();
     }
 
@@ -122,6 +149,15 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
   int flags = fcntl(socket, F_GETFL, 0);
   fcntl(socket, F_SETFL, flags & ~O_NONBLOCK);
 
+  timeval oldtimeout = {0};
+  socklen_t len = sizeof(oldtimeout);
+  getsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&oldtimeout, &len);
+
+  timeval timeout = {0};
+  timeout.tv_sec = (timeoutMS / 1000);
+  timeout.tv_usec = (timeoutMS % 1000) * 1000;
+  setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (const char *)&timeout, sizeof(timeout));
+
   while(sent < length)
   {
     int ret = send(socket, src, length - sent, 0);
@@ -132,11 +168,13 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
 
       if(err == EWOULDBLOCK || err == EAGAIN)
       {
-        ret = 0;
+        RDCWARN("Timeout in send");
+        Shutdown();
+        return false;
       }
       else
       {
-        RDCWARN("send: %d", err);
+        RDCWARN("send: %s", errno_string(err).c_str());
         Shutdown();
         return false;
       }
@@ -148,6 +186,8 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
 
   flags = fcntl(socket, F_GETFL, 0);
   fcntl(socket, F_SETFL, flags | O_NONBLOCK);
+
+  setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (const char *)&oldtimeout, sizeof(oldtimeout));
 
   RDCASSERT(sent == length);
 
@@ -174,7 +214,7 @@ bool Socket::IsRecvDataWaiting()
     }
     else
     {
-      RDCWARN("recv: %d", err);
+      RDCWARN("recv: %s", errno_string(err).c_str());
       Shutdown();
       return false;
     }
@@ -206,7 +246,7 @@ bool Socket::RecvDataNonBlocking(void *buf, uint32_t &length)
     }
     else
     {
-      RDCWARN("recv: %d", err);
+      RDCWARN("recv: %s", errno_string(err).c_str());
       Shutdown();
       return false;
     }
@@ -227,6 +267,15 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
   int flags = fcntl(socket, F_GETFL, 0);
   fcntl(socket, F_SETFL, flags & ~O_NONBLOCK);
 
+  timeval oldtimeout = {0};
+  socklen_t len = sizeof(oldtimeout);
+  getsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&oldtimeout, &len);
+
+  timeval timeout = {0};
+  timeout.tv_sec = (timeoutMS / 1000);
+  timeout.tv_usec = (timeoutMS % 1000) * 1000;
+  setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout));
+
   while(received < length)
   {
     int ret = recv(socket, dst, length - received, 0);
@@ -242,11 +291,13 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
 
       if(err == EWOULDBLOCK || err == EAGAIN)
       {
-        ret = 0;
+        RDCWARN("Timeout in recv");
+        Shutdown();
+        return false;
       }
       else
       {
-        RDCWARN("recv: %d", err);
+        RDCWARN("recv: %s", errno_string(err).c_str());
         Shutdown();
         return false;
       }
@@ -258,6 +309,8 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
 
   flags = fcntl(socket, F_GETFL, 0);
   fcntl(socket, F_SETFL, flags | O_NONBLOCK);
+
+  setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&oldtimeout, sizeof(oldtimeout));
 
   RDCASSERT(received == length);
 
@@ -347,14 +400,18 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 
         if(result <= 0)
         {
-          RDCDEBUG("connect timed out");
+          RDCDEBUG("Timed out");
           close(s);
           continue;
         }
+
+        socklen_t len = sizeof(err);
+        getsockopt(s, SOL_SOCKET, SO_ERROR, &err, &len);
       }
-      else
+
+      if(err != 0)
       {
-        RDCWARN("Error connecting to %s:%d - %d", host, port, err);
+        RDCDEBUG("%s", errno_string(err).c_str());
         close(s);
         continue;
       }
@@ -366,7 +423,7 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
     return new Socket((ptrdiff_t)s);
   }
 
-  RDCWARN("Failed to connect to %s:%d", host, port);
+  RDCDEBUG("Failed to connect to %s:%d", host, port);
   return NULL;
 }
 

@@ -133,12 +133,14 @@ namespace Network
 class Socket
 {
 public:
-  Socket(ptrdiff_t s) : socket(s) {}
+  Socket(ptrdiff_t s) : socket(s), timeoutMS(5000) {}
   ~Socket();
   void Shutdown();
 
   bool Connected() const;
 
+  uint32_t GetTimeout() const { return timeoutMS; }
+  void SetTimeout(uint32_t milliseconds) { timeoutMS = milliseconds; }
   Socket *AcceptClient(bool wait);
 
   uint32_t GetRemoteIP() const;
@@ -151,6 +153,7 @@ public:
 
 private:
   ptrdiff_t socket;
+  uint32_t timeoutMS;
 };
 
 Socket *CreateServerSocket(const char *addr, uint16_t port, int queuesize);
