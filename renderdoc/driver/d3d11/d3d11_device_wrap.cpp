@@ -189,9 +189,6 @@ HRESULT WrappedID3D11Device::CreateBuffer(const D3D11_BUFFER_DESC *pDesc,
         USE_SCRATCH_SERIALISER();
         SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateBuffer);
         Serialise_CreateBuffer(GET_SERIALISER, pDesc, pInitialData, &wrapped);
-
-        RDCLOG("Chunk for %llu is %llu bytes", GetIDForResource(wrapped),
-               ser.GetWriter()->GetOffset());
         chunk = scope.Get();
       }
 
