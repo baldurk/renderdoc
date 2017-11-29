@@ -74,6 +74,12 @@ static RemoteHost *getRemoteHost(RDTreeWidgetItem *item)
   return (RemoteHost *)item->tag().value<uintptr_t>();
 }
 
+void deleteItemAndHost(RDTreeWidgetItem *item)
+{
+  delete getRemoteHost(item);
+  delete item;
+}
+
 RemoteManager::RemoteManager(ICaptureContext &ctx, MainWindow *main)
     : QDialog(NULL), ui(new Ui::RemoteManager), m_Ctx(ctx), m_Main(main)
 {
@@ -119,7 +125,7 @@ RemoteManager::RemoteManager(ICaptureContext &ctx, MainWindow *main)
 RemoteManager::~RemoteManager()
 {
   for(RDTreeWidgetItem *item : m_QueuedDeletes)
-    delete item;
+    deleteItemAndHost(item);
   delete ui;
 }
 
@@ -287,7 +293,7 @@ void RemoteManager::updateStatus()
     ui->refreshAll->setEnabled(true);
 
     for(RDTreeWidgetItem *item : m_QueuedDeletes)
-      delete item;
+      deleteItemAndHost(item);
     m_QueuedDeletes.clear();
 
     // if the external ref is gone now, we can delete ourselves
@@ -410,9 +416,13 @@ void RemoteManager::queueDelete(RDTreeWidgetItem *item)
 {
   // if there are refreshes pending, queue it for deletion when they complete.
   if(m_Lookups.available() > 0)
+  {
     m_QueuedDeletes.push_back(item);
+  }
   else
-    delete item;
+  {
+    deleteItemAndHost(item);
+  }
 }
 
 void RemoteManager::on_hosts_itemActivated(RDTreeWidgetItem *item, int column)
@@ -661,7 +671,8 @@ void RemoteManager::on_deleteHost_clicked()
   if(res == QMessageBox::Yes)
   {
     int idx = m_Ctx.Config().RemoteHosts.indexOf(host);
-    delete m_Ctx.Config().RemoteHosts.takeAt(idx);
+    // the host will be removed in queueDelete.
+    m_Ctx.Config().RemoteHosts.removeAt(idx);
     m_Ctx.Config().Save();
 
     item->clear();
