@@ -4037,8 +4037,12 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       UINT texSlot = (UINT)op.operands[2].indices[0].index;
       UINT sampSlot = 0;
 
-      if(op.operands.size() >= 4 && !op.operands[3].indices.empty())
-        sampSlot = (UINT)op.operands[3].indices[0].index;
+      for(size_t i = 0; i < op.operands.size(); i++)
+      {
+        const ASMOperand &operand = op.operands[i];
+        if(operand.type == OperandType::TYPE_SAMPLER)
+          sampSlot = (UINT)operand.indices[0].index;
+      }
 
       if(op.operation == OPCODE_SAMPLE || op.operation == OPCODE_SAMPLE_B ||
          op.operation == OPCODE_SAMPLE_D)
