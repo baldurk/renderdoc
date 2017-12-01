@@ -366,6 +366,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state, const
       {
         ProgramUniformValue &uniformVal = uniform.Values[arr];
         uniformVal.Type = type;
+        uniformVal.Location = srcLocation;
 
         std::string name = basename;
 
