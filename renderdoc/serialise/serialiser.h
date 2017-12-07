@@ -243,7 +243,7 @@ public:
 
       SDObject &obj = *m_StructureStack.back();
       obj.type.basetype = SDBasic::Buffer;
-      obj.type.byteSize = byteSize;
+      obj.type.byteSize = count;
     }
 
     byte *tempAlloc = NULL;
@@ -255,9 +255,9 @@ public:
         m_Write->AlignTo<ChunkAlignment>();
 
         if(el)
-          m_Write->Write(el, byteSize);
+          m_Write->Write(el, count);
         else
-          RDCASSERT(byteSize == 0);
+          RDCASSERT(count == 0);
       }
       else if(IsReading())
       {
@@ -270,8 +270,8 @@ public:
 #if !defined(__COVERITY__)
         if(flags & SerialiserFlags::AllocateMemory)
         {
-          if(byteSize > 0)
-            el = AllocAlignedBuffer(byteSize);
+          if(count > 0)
+            el = AllocAlignedBuffer(count);
           else
             el = NULL;
         }
@@ -281,14 +281,14 @@ public:
         // allocation.
         if(el == NULL && ExportStructure() && m_ExportBuffers)
         {
-          if(byteSize > 0)
-            el = tempAlloc = AllocAlignedBuffer(byteSize);
+          if(count > 0)
+            el = tempAlloc = AllocAlignedBuffer(count);
           else
             el = NULL;
         }
 #endif
 
-        m_Read->Read(el, byteSize);
+        m_Read->Read(el, count);
       }
     }
 
@@ -301,9 +301,9 @@ public:
         obj.data.basic.u = m_StructuredFile->buffers.size();
 
         bytebuf *alloc = new bytebuf;
-        alloc->resize((size_t)byteSize);
+        alloc->resize((size_t)count);
         if(el)
-          memcpy(alloc->data(), el, (size_t)byteSize);
+          memcpy(alloc->data(), el, (size_t)count);
 
         m_StructuredFile->buffers.push_back(alloc);
       }
