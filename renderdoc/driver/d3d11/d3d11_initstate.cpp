@@ -335,6 +335,11 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
 
     uint32_t NumSubresources = desc.MipLevels * desc.ArraySize;
 
+    bool multisampled = desc.SampleDesc.Count > 1 || desc.SampleDesc.Quality > 0;
+
+    if(multisampled)
+      NumSubresources *= desc.SampleDesc.Count;
+
     bool OmittedContents = ShouldOmitInitState(desc, tex->GetResourceID()) &&
                            !RenderDoc::Inst().GetCaptureOptions().SaveAllInitials;
 
