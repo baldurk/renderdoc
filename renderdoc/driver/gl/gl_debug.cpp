@@ -1627,19 +1627,53 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
   }
 }
 
-void GLReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, GLint height,
+void GLReplay::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, GLint height,
                                   GLint arraySize, GLint samples, GLenum intFormat)
 {
   WrappedOpenGL &gl = *m_pDriver;
 
-  if(!HasExt[ARB_compute_shader])
-    return;
+  // create temporary texture array, which we'll initialise to be the width/height in same format,
+  // with the same number of array slices as multi samples.
+  gl.glGenTextures(1, &destArray);
+  gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, destArray);
 
-  if(!HasExt[ARB_texture_view])
+  bool failed = false;
+
+  if(!failed && !HasExt[ARB_compute_shader])
+  {
+    RDCWARN(
+        "Can't copy multisampled texture to array for serialisation without ARB_compute_shader.");
+    failed = true;
+  }
+
+  if(!failed && !HasExt[ARB_texture_view])
   {
     RDCWARN("Can't copy multisampled texture to array for serialisation without ARB_texture_view.");
+    failed = true;
+  }
+
+  if(!failed && !HasExt[ARB_texture_storage])
+  {
+    RDCWARN(
+        "Can't copy multisampled texture to array for serialisation without ARB_texture_view, and "
+        "ARB_texture_view requires ARB_texture_storage.");
+    failed = true;
+  }
+
+  if(failed)
+  {
+    // create using the non-storage API which is always available, so the texture is at least valid
+    // (but with undefined/empty contents).
+    gl.glTextureImage3DEXT(destArray, eGL_TEXTURE_2D_ARRAY, 0, intFormat, width, height,
+                           arraySize * samples, 0, GetBaseFormat(intFormat), GetDataType(intFormat),
+                           NULL);
+    gl.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
     return;
   }
+
+  // initialise the texture using texture storage, as required for texture views.
+  gl.glTextureStorage3DEXT(destArray, eGL_TEXTURE_2D_ARRAY, 1, intFormat, width, height,
+                           arraySize * samples);
 
   GLRenderState rs(&gl.GetHookset(), NULL, READING);
   rs.FetchState(m_pDriver->GetCtx(), m_pDriver);
