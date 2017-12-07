@@ -549,14 +549,7 @@ WrappedOpenGL::WrappedOpenGL(const GLHookSet &funcs, GLPlatform &platform)
 
     GLMarkerRegion::gl = &m_Real;
 
-    // once GL driver is more tested, this can be disabled
-    if(HasExt[KHR_debug] && m_Real.glDebugMessageCallback)
-    {
-      m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);
-#if ENABLED(RDOC_DEVEL)
-      m_Real.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
-#endif
-    }
+    RegisterDebugCallback();
   }
   else
   {
@@ -2959,6 +2952,18 @@ bool WrappedOpenGL::RecordUpdateCheck(GLResourceRecord *record)
   }
 
   return true;
+}
+
+void WrappedOpenGL::RegisterDebugCallback()
+{
+  // once GL driver is more tested, this can be disabled
+  if(HasExt[KHR_debug] && m_Real.glDebugMessageCallback)
+  {
+    m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);
+#if ENABLED(RDOC_DEVEL)
+    m_Real.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
+#endif
+  }
 }
 
 void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum severity,

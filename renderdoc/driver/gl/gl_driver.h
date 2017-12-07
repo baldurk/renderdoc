@@ -560,6 +560,8 @@ public:
   }
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
 
+  void RegisterDebugCallback();
+
   void AddMissingTrack(ResourceId id) { m_MissingTracks.insert(id); }
   // replay interface
   void Initialise(GLInitParams &params, uint64_t sectionVersion);

@@ -256,6 +256,8 @@ void GLReplay::InitDebugData()
     m_DebugCtx = &m_OutputWindows[id];
 
     MakeCurrentReplayContext(m_DebugCtx);
+
+    m_pDriver->RegisterDebugCallback();
   }
 
   WrappedOpenGL &gl = *m_pDriver;
