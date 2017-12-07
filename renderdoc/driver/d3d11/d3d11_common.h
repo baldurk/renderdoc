@@ -390,7 +390,7 @@ enum class D3D11Chunk : uint32_t
   CreateRenderTargetView1,
   CreateUnorderedAccessView1,
   SwapchainPresent,
-  PostExecuteCommandListRestore,
+  PostExecuteCommandList,
   PostFinishCommandListSet,
   SwapDeviceContextState,
   Max,

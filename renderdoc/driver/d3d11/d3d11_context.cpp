@@ -811,8 +811,8 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
     case D3D11Chunk::DiscardView: ret = Serialise_DiscardView(ser, NULL); break;
     case D3D11Chunk::DiscardView1: ret = Serialise_DiscardView1(ser, NULL, NULL, 0); break;
 
-    case D3D11Chunk::PostExecuteCommandListRestore:
-      ret = Serialise_PostExecuteCommandListRestore(ser);
+    case D3D11Chunk::PostExecuteCommandList:
+      ret = Serialise_PostExecuteCommandList(ser, FALSE);
       break;
 
     case D3D11Chunk::PostFinishCommandListSet: ret = Serialise_PostFinishCommandListSet(ser); break;

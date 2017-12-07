@@ -531,8 +531,8 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, ExecuteCommandList,                 \
                                 ID3D11CommandList *pCommandList, BOOL RestoreContextState);         \
                                                                                                     \
-  /* Fake function used to restore state after ExecuteCommandList */                                \
-  IMPLEMENT_FUNCTION_SERIALISED(void, PostExecuteCommandListRestore);                               \
+  /* Fake function used to restore or clear state after ExecuteCommandList */                       \
+  IMPLEMENT_FUNCTION_SERIALISED(void, PostExecuteCommandList, BOOL RestoreContextState);            \
                                                                                                     \
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, HSSetShaderResources,               \
                                 UINT StartSlot, UINT NumViews,                                      \

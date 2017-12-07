@@ -206,8 +206,7 @@ std::string DoStringise(const D3D11Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(CreateUnorderedAccessView1,
                                "ID3D11Device3::CreateUnorderedAccessView1");
     STRINGISE_ENUM_CLASS_NAMED(SwapchainPresent, "IDXGISwapChain::Present");
-    STRINGISE_ENUM_CLASS_NAMED(PostExecuteCommandListRestore,
-                               "ID3D11DeviceContext::ExecuteCommandList");
+    STRINGISE_ENUM_CLASS_NAMED(PostExecuteCommandList, "ID3D11DeviceContext::ExecuteCommandList");
     STRINGISE_ENUM_CLASS_NAMED(PostFinishCommandListSet, "ID3D11DeviceContext::FinishCommandList");
     STRINGISE_ENUM_CLASS_NAMED(SwapDeviceContextState,
                                "ID3D11DeviceContext1::SwapDeviceContextState");

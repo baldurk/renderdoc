@@ -4850,15 +4850,31 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(SerialiserType &se
 }
 
 template <typename SerialiserType>
-bool WrappedID3D11DeviceContext::Serialise_PostExecuteCommandListRestore(SerialiserType &ser)
+bool WrappedID3D11DeviceContext::Serialise_PostExecuteCommandList(SerialiserType &ser,
+                                                                  BOOL RestoreContextState_)
 {
+  SERIALISE_ELEMENT_LOCAL(RestoreContextState, bool(RestoreContextState_ == TRUE));
+
   // this is a 'fake' call we insert after executing, to give us a chance to restore the state.
   if(IsReplayingAndReading())
   {
-    if(m_DeferredSavedState)
+    if(RestoreContextState)
     {
-      m_DeferredSavedState->ApplyState(this);
-      SAFE_DELETE(m_DeferredSavedState);
+      if(m_DeferredSavedState)
+      {
+        m_DeferredSavedState->ApplyState(this);
+        SAFE_DELETE(m_DeferredSavedState);
+      }
+      else
+      {
+        RDCERR("Expected to have saved state from before execute saved, but didn't find one.");
+      }
+    }
+    else
+    {
+      // if we don't restore the state, then it's cleared. There's no inheritance down from the
+      // deferred context's state to the immediate context.
+      ClearState();
     }
   }
   return true;
@@ -4915,14 +4931,13 @@ void WrappedID3D11DeviceContext::ExecuteCommandList(ID3D11CommandList *pCommandL
     // still update dirty resources for subsequent captures
     wrapped->MarkDirtyResources(m_MissingTracks);
 
-    if(RestoreContextState)
     {
       // insert a chunk to let us know on replay that we finished the command list's
       // chunks and we can restore the state
       USE_SCRATCH_SERIALISER();
-      SCOPED_SERIALISE_CHUNK(D3D11Chunk::PostExecuteCommandListRestore);
+      SCOPED_SERIALISE_CHUNK(D3D11Chunk::PostExecuteCommandList);
       SERIALISE_ELEMENT(m_ResourceID).Named("Context ID");
-      Serialise_PostExecuteCommandListRestore(GET_SERIALISER);
+      Serialise_PostExecuteCommandList(GET_SERIALISER, RestoreContextState);
       m_ContextRecord->AddChunk(scope.Get());
     }
 
