@@ -28,6 +28,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPixmap>
+#include <QPointer>
 #include "Code/QRDUtils.h"
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -476,9 +477,13 @@ void RDHeaderView::setRootIndex(const QModelIndex &index)
   // *before* the root index changes).
   if(!m_sectionStretchHints.isEmpty())
   {
-    GUIInvoke::defer([this]() {
-      cacheSectionMinSizes();
-      resizeSectionsWithHints();
+    QPointer<RDHeaderView> ptr;
+    GUIInvoke::defer([ptr]() {
+      if(ptr)
+      {
+        ptr->cacheSectionMinSizes();
+        ptr->resizeSectionsWithHints();
+      }
     });
   }
 }
