@@ -248,7 +248,7 @@ private:
 
   void CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,
                           GLint arraySize, GLint samples, GLenum intFormat);
-  void CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, GLint height,
+  void CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint width, GLint height,
                           GLint arraySize, GLint samples, GLenum intFormat);
 
   struct OutputWindow : public GLWindowingData

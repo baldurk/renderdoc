@@ -2393,16 +2393,8 @@ void GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
   {
     MakeCurrentReplayContext(m_DebugCtx);
 
-    // create temporary texture array of width/height in same format to render to,
-    // with the same number of array slices as multi samples.
-    gl.glGenTextures(1, &tempTex);
-    gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, tempTex);
-    gl.glTextureImage3DEXT(tempTex, eGL_TEXTURE_2D_ARRAY, 0, intFormat, width, height,
-                           arraysize * samples, 0, GetBaseFormat(intFormat), GetDataType(intFormat),
-                           NULL);
-    gl.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
-
-    // copy multisampled texture to an array
+    // copy multisampled texture to an array. This creates tempTex and returns it in that variable,
+    // for us to own
     CopyTex2DMSToArray(tempTex, texname, width, height, arraysize, samples, intFormat);
 
     // rewrite the variables to temporary texture
