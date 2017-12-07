@@ -170,10 +170,43 @@ HRESULT WrappedID3D11Device::CreateBuffer(const D3D11_BUFFER_DESC *pDesc,
   if(ppBuffer == NULL)
     return m_pDevice->CreateBuffer(pDesc, pInitialData, NULL);
 
+  bool intelExtensionMagic = false;
+  byte intelExtensionData[28] = {0};
+
+  // snoop to disable the absurdly implemented intel DX11 extensions.
+  if(pDesc->ByteWidth == sizeof(intelExtensionData) && pDesc->Usage == D3D11_USAGE_STAGING &&
+     pInitialData && pDesc->BindFlags == 0)
+  {
+    byte *data = (byte *)pInitialData->pSysMem;
+
+    if(!memcmp(data, "INTCEXTN", 8))
+    {
+      RDCLOG("Intercepting and preventing attempt to initialise intel extensions.");
+
+      intelExtensionMagic = true;
+
+      // back-up the data from the user
+      memcpy(intelExtensionData, data, sizeof(intelExtensionData));
+
+      // overwrite the initial data, so the driver doesn't see the request (it just sees an empty
+      // buffer). Just in case passing along the real data does something.
+      memset(data, 0, sizeof(intelExtensionData));
+    }
+  }
+
   ID3D11Buffer *real = NULL;
   ID3D11Buffer *wrapped = NULL;
   HRESULT ret;
   SERIALISE_TIME_CALL(ret = m_pDevice->CreateBuffer(pDesc, pInitialData, &real));
+
+  if(intelExtensionMagic)
+  {
+    byte *data = (byte *)pInitialData->pSysMem;
+
+    // restore the user's data unmodified, which is the expected behaviour when the extensions
+    // aren't supported.
+    memcpy(data, intelExtensionData, sizeof(intelExtensionData));
+  }
 
   if(SUCCEEDED(ret))
   {
