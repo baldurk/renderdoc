@@ -440,6 +440,8 @@ public:
   void RemoveDeferredContext(WrappedID3D11DeviceContext *defctx);
   WrappedID3D11DeviceContext *GetDeferredContext(size_t idx);
 
+  void ReleaseResource(ID3D11DeviceChild *pResource);
+
   ResourceId GetResourceID() { return m_ResourceID; }
   FrameRecord &GetFrameRecord() { return m_FrameRecord; }
   FrameStatistics &GetFrameStats() { return m_FrameRecord.frameInfo.stats; }
@@ -530,7 +532,6 @@ public:
                                 const char *Name);
   IMPLEMENT_FUNCTION_SERIALISED(HRESULT, SetShaderDebugPath, ID3D11DeviceChild *pResource,
                                 const char *Path);
-  IMPLEMENT_FUNCTION_SERIALISED(void, ReleaseResource, ID3D11DeviceChild *pResource);
 
   // Swap Chain
   IMPLEMENT_FUNCTION_SERIALISED(IUnknown *, WrapSwapchainBuffer, WrappedIDXGISwapChain4 *swap,

@@ -333,9 +333,6 @@ public:
   WrappedResourceType GetCurrentResource(ResourceId id);
   void ReleaseCurrentResource(ResourceId id);
 
-  void MarkInFrame(bool inFrame) { m_InFrame = inFrame; }
-  void ReleaseInFrameResources();
-
   // insert the chunks for the resources referenced in the frame
   void InsertReferencedChunks(WriteSerialiser &ser);
 
@@ -443,8 +440,6 @@ protected:
   virtual void Create_InitialState(ResourceId id, WrappedResourceType live, bool hasData) = 0;
   virtual void Apply_InitialState(WrappedResourceType live, InitialContentData initial) = 0;
 
-  bool m_InFrame;
-
   // very coarse lock, protects EVERYTHING. This could certainly be improved and it may be a
   // bottleneck
   // for performance. Given that the main use cases are write-rarely read-often the lock should be
@@ -483,8 +478,7 @@ protected:
   map<ResourceId, ResourceId> m_OriginalIDs, m_LiveIDs;
 
   // used during replay - holds resources allocated and the original id that they represent
-  // for a) in-frame creations and b) pre-frame creations respectively.
-  map<ResourceId, WrappedResourceType> m_InframeResourceMap, m_LiveResourceMap;
+  map<ResourceId, WrappedResourceType> m_LiveResourceMap;
 
   // used during capture - holds resource records by id.
   map<ResourceId, RecordType *> m_ResourceRecords;
@@ -502,8 +496,6 @@ ResourceManagerType::ResourceManager()
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(ResourceManager));
-
-  m_InFrame = false;
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
@@ -520,17 +512,6 @@ void ResourceManagerType::Shutdown()
       m_LiveResourceMap.erase(removeit);
   }
 
-  while(!m_InframeResourceMap.empty())
-  {
-    auto it = m_InframeResourceMap.begin();
-    ResourceId id = it->first;
-    ResourceTypeRelease(it->second);
-
-    auto removeit = m_InframeResourceMap.find(id);
-    if(removeit != m_InframeResourceMap.end())
-      m_InframeResourceMap.erase(removeit);
-  }
-
   FreeInitialContents();
 
   RDCASSERT(m_ResourceRecords.empty());
@@ -540,7 +521,6 @@ template <typename WrappedResourceType, typename RealResourceType, typename Reco
 ResourceManagerType::~ResourceManager()
 {
   RDCASSERT(m_LiveResourceMap.empty());
-  RDCASSERT(m_InframeResourceMap.empty());
   RDCASSERT(m_InitialContents.empty());
   RDCASSERT(m_ResourceRecords.empty());
 
@@ -1120,21 +1100,6 @@ void ResourceManagerType::ApplyInitialContentsNonChunks(WriteSerialiser &ser)
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
-void ResourceManagerType::ReleaseInFrameResources()
-{
-  SCOPED_LOCK(m_Lock);
-
-  // clean up last frame's temporaries - we needed to keep them around so they were valid for
-  // pipeline inspection etc after replaying the last log.
-  for(auto it = m_InframeResourceMap.begin(); it != m_InframeResourceMap.end(); ++it)
-  {
-    ResourceTypeRelease(it->second);
-  }
-
-  m_InframeResourceMap.clear();
-}
-
-template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
 void ResourceManagerType::ClearReferencedResources()
 {
   SCOPED_LOCK(m_Lock);
@@ -1314,22 +1279,14 @@ void ResourceManagerType::AddLiveResource(ResourceId origid, WrappedResourceType
   m_OriginalIDs[GetID(livePtr)] = origid;
   m_LiveIDs[origid] = GetID(livePtr);
 
-  if(m_InFrame && m_InframeResourceMap.find(origid) != m_InframeResourceMap.end())
-  {
-    ResourceTypeRelease(m_InframeResourceMap[origid]);
-    m_InframeResourceMap.erase(origid);
-  }
-  else if(!m_InFrame && m_LiveResourceMap.find(origid) != m_LiveResourceMap.end())
+  if(m_LiveResourceMap.find(origid) != m_LiveResourceMap.end())
   {
     RDCERR("Releasing live resource for duplicate creation: %llu", origid);
     ResourceTypeRelease(m_LiveResourceMap[origid]);
     m_LiveResourceMap.erase(origid);
   }
 
-  if(m_InFrame)
-    m_InframeResourceMap[origid] = livePtr;
-  else
-    m_LiveResourceMap[origid] = livePtr;
+  m_LiveResourceMap[origid] = livePtr;
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
@@ -1341,7 +1298,6 @@ bool ResourceManagerType::HasLiveResource(ResourceId origid)
     return false;
 
   return (m_Replacements.find(origid) != m_Replacements.end() ||
-          m_InframeResourceMap.find(origid) != m_InframeResourceMap.end() ||
           m_LiveResourceMap.find(origid) != m_LiveResourceMap.end());
 }
 
@@ -1358,9 +1314,6 @@ WrappedResourceType ResourceManagerType::GetLiveResource(ResourceId origid)
   if(m_Replacements.find(origid) != m_Replacements.end())
     return GetLiveResource(m_Replacements[origid]);
 
-  if(m_InframeResourceMap.find(origid) != m_InframeResourceMap.end())
-    return m_InframeResourceMap[origid];
-
   if(m_LiveResourceMap.find(origid) != m_LiveResourceMap.end())
     return m_LiveResourceMap[origid];
 
@@ -1374,14 +1327,7 @@ void ResourceManagerType::EraseLiveResource(ResourceId origid)
 
   RDCASSERT(HasLiveResource(origid), origid);
 
-  if(m_InframeResourceMap.find(origid) != m_InframeResourceMap.end())
-  {
-    m_InframeResourceMap.erase(origid);
-  }
-  else
-  {
-    m_LiveResourceMap.erase(origid);
-  }
+  m_LiveResourceMap.erase(origid);
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>

@@ -267,7 +267,6 @@ enum class D3D11Chunk : uint32_t
 {
   DeviceInitialisation = (uint32_t)SystemChunk::FirstDriverChunk,
   SetResourceName,
-  ReleaseResource,
   CreateSwapBuffer,
   CreateTexture1D,
   CreateTexture2D,

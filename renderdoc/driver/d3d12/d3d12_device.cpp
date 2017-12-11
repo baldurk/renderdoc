@@ -2561,7 +2561,6 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     {
       D3D12MarkerRegion apply(GetQueue(), "!!!!RenderDoc Internal: ApplyInitialContents");
       ApplyInitialContents();
-      GetResourceManager()->ReleaseInFrameResources();
     }
 
     ExecuteLists();

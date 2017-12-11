@@ -1148,8 +1148,6 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
     m_CurEventID = 1;
   }
 
-  m_pDevice->GetResourceManager()->MarkInFrame(true);
-
   uint64_t startOffset = ser.GetReader()->GetOffset();
 
   for(;;)
@@ -1279,8 +1277,6 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
     ser.GetStructuredFile().swap(m_pDevice->GetStructuredFile());
 
   m_StructuredFile = NULL;
-
-  m_pDevice->GetResourceManager()->MarkInFrame(false);
 
   m_DoStateVerify = false;
 

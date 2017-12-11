@@ -48,14 +48,12 @@ public:
     // be calling Shutdown() after the device that owns them is destroyed. Instead
     // we just have to leak ourselves.
     RDCASSERT(m_LiveResourceMap.empty());
-    RDCASSERT(m_InframeResourceMap.empty());
     RDCASSERT(m_InitialContents.empty());
     RDCASSERT(m_ResourceRecords.empty());
     RDCASSERT(m_CurrentResourceMap.empty());
     RDCASSERT(m_WrapperMap.empty());
 
     m_LiveResourceMap.clear();
-    m_InframeResourceMap.clear();
     m_InitialContents.clear();
     m_ResourceRecords.clear();
     m_CurrentResourceMap.clear();

@@ -4733,8 +4733,6 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
     m_LastEventID = ~0U;
   }
 
-  GetResourceManager()->MarkInFrame(true);
-
   uint64_t startOffset = ser.GetReader()->GetOffset();
 
   for(;;)
@@ -4799,8 +4797,6 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
       v.erase(std::unique(v.begin(), v.end()), v.end());
     }
   }
-
-  GetResourceManager()->MarkInFrame(false);
 
   return ReplayStatus::Succeeded;
 }
@@ -5228,7 +5224,6 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
   {
     GLMarkerRegion apply("!!!!RenderDoc Internal: ApplyInitialContents");
     GetResourceManager()->ApplyInitialContents();
-    GetResourceManager()->ReleaseInFrameResources();
   }
 
   m_State = CaptureState::ActiveReplaying;

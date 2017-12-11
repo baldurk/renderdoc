@@ -59,13 +59,12 @@ std::string DoStringise(const D3D11ResourceType &el)
 template <>
 std::string DoStringise(const D3D11Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D11Chunk::Max == 1128, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D11Chunk::Max == 1127, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D11Chunk)
   {
     STRINGISE_ENUM_CLASS_NAMED(DeviceInitialisation, "Device Initialisation");
     STRINGISE_ENUM_CLASS_NAMED(SetResourceName, "ID3D11Resource::SetDebugName");
-    STRINGISE_ENUM_CLASS_NAMED(ReleaseResource, "IUnknown::Release");
     STRINGISE_ENUM_CLASS_NAMED(CreateSwapBuffer, "IDXGISwapChain::GetBuffer");
     STRINGISE_ENUM_CLASS_NAMED(CreateTexture1D, "ID3D11Device::CreateTexture1D");
     STRINGISE_ENUM_CLASS_NAMED(CreateTexture2D, "ID3D11Device::CreateTexture2D");

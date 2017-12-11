@@ -2242,8 +2242,6 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
     SubmitCmds();
     FlushQ();
-
-    GetResourceManager()->ReleaseInFrameResources();
   }
 
   m_State = CaptureState::ActiveReplaying;

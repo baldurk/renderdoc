@@ -775,7 +775,6 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
       return true;
     }
     case D3D11Chunk::SetResourceName: return Serialise_SetResourceName(ser, 0x0, "");
-    case D3D11Chunk::ReleaseResource: return Serialise_ReleaseResource(ser, 0x0);
     case D3D11Chunk::CreateSwapBuffer: return Serialise_WrapSwapchainBuffer(ser, 0x0, 0x0, 0, 0x0);
 
     case D3D11Chunk::CreateTexture1D: return Serialise_CreateTexture1D(ser, 0x0, 0x0, 0x0);
@@ -1092,7 +1091,6 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
   {
     D3D11MarkerRegion apply("!!!!RenderDoc Internal: ApplyInitialContents");
     GetResourceManager()->ApplyInitialContents();
-    GetResourceManager()->ReleaseInFrameResources();
   }
 
   m_State = CaptureState::ActiveReplaying;
@@ -2262,23 +2260,6 @@ void WrappedID3D11Device::SetResourceName(ID3D11DeviceChild *pResource, const ch
   }
 }
 
-template <typename SerialiserType>
-bool WrappedID3D11Device::Serialise_ReleaseResource(SerialiserType &ser, ID3D11DeviceChild *pResource)
-{
-  SERIALISE_ELEMENT(pResource);
-
-  SERIALISE_CHECK_READ_ERRORS();
-
-  if(IsReplayingAndReading() && pResource)
-  {
-    GetResourceManager()->EraseLiveResource(
-        GetResourceManager()->GetOriginalID(GetIDForResource(pResource)));
-    SAFE_RELEASE(pResource);
-  }
-
-  return true;
-}
-
 void WrappedID3D11Device::ReleaseResource(ID3D11DeviceChild *res)
 {
   ResourceId idx = GetIDForResource(res);
@@ -2294,88 +2275,14 @@ void WrappedID3D11Device::ReleaseResource(ID3D11DeviceChild *res)
 
   SCOPED_LOCK(m_D3DLock);
 
-  D3D11ResourceType type = IdentifyTypeByPtr(res);
-
-  D3D11ResourceRecord *record = m_DeviceRecord;
-
-  if(IsBackgroundCapturing(m_State))
-  {
-    if(type == Resource_ShaderResourceView || type == Resource_DepthStencilView ||
-       type == Resource_UnorderedAccessView || type == Resource_RenderTargetView ||
-       type == Resource_Buffer || type == Resource_Texture1D || type == Resource_Texture2D ||
-       type == Resource_Texture3D || type == Resource_CommandList)
-    {
-      record = GetResourceManager()->GetResourceRecord(idx);
-      RDCASSERT(record);
-
-      if(record->SpecialResource)
-      {
-        record = m_DeviceRecord;
-      }
-      else if(record->GetRefCount() == 1)
-      {
-        // we're about to decrement this chunk out of existance!
-        // don't hold onto the record to add the chunk.
-        record = NULL;
-      }
-    }
-  }
-
   GetResourceManager()->MarkCleanResource(idx);
 
-  if(type == Resource_DeviceContext)
-  {
+  if(WrappedID3D11DeviceContext::IsAlloc(res))
     RemoveDeferredContext((WrappedID3D11DeviceContext *)res);
-  }
 
-  bool serialiseRelease = true;
-
-  WrappedID3D11CommandList *cmdList = (WrappedID3D11CommandList *)res;
-
-  // don't serialise releases of counters or queries since we ignore them.
-  // Also don't serialise releases of command lists that weren't captured,
-  // since their creation won't be in the log either.
-  if(type == Resource_Counter || type == Resource_Query ||
-     (type == Resource_CommandList && !cmdList->IsCaptured()))
-    serialiseRelease = false;
-
-  if(type == Resource_DeviceState)
-    serialiseRelease = false;
-
-  if(type == Resource_CommandList && !cmdList->IsCaptured())
-  {
-    record = GetResourceManager()->GetResourceRecord(idx);
-    if(record)
-      record->Delete(GetResourceManager());
-  }
-
-  if(serialiseRelease)
-  {
-    WriteSerialiser &ser = m_ScratchSerialiser;
-
-    if(IsBackgroundCapturing(m_State))
-    {
-      SCOPED_SERIALISE_CHUNK(D3D11Chunk::ReleaseResource);
-      Serialise_ReleaseResource(ser, res);
-
-      if(record)
-      {
-        record->AddChunk(scope.Get());
-      }
-    }
-
-    if(record == NULL)
-    {
-      // if record is NULL then we just deleted a reference-less resource.
-      // That means it is not used and can be safely discarded, so just
-      // throw away the serialiser contents
-      ser.GetWriter()->Rewind();
-    }
-
-    record = GetResourceManager()->GetResourceRecord(idx);
-    if(record)
-      record->Delete(m_ResourceManager);
-  }
+  D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(idx);
+  if(record)
+    record->Delete(GetResourceManager());
 }
 
 WrappedID3D11DeviceContext *WrappedID3D11Device::GetDeferredContext(size_t idx)
