@@ -55,6 +55,9 @@ VulkanReplay::OutputWindow::OutputWindow()
   bbmem = VK_NULL_HANDLE;
   bbview = VK_NULL_HANDLE;
 
+  resolveimg = VK_NULL_HANDLE;
+  resolvemem = VK_NULL_HANDLE;
+
   dsimg = VK_NULL_HANDLE;
   dsmem = VK_NULL_HANDLE;
   dsview = VK_NULL_HANDLE;
@@ -151,6 +154,13 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
     vt->DestroyFramebuffer(Unwrap(device), Unwrap(fbdepth), NULL);
     GetResourceManager()->ReleaseWrappedResource(fbdepth);
 
+    vt->DestroyImage(Unwrap(device), Unwrap(resolveimg), NULL);
+    GetResourceManager()->ReleaseWrappedResource(resolveimg);
+    vt->FreeMemory(Unwrap(device), Unwrap(resolvemem), NULL);
+    GetResourceManager()->ReleaseWrappedResource(resolvemem);
+
+    resolveimg = VK_NULL_HANDLE;
+    resolvemem = VK_NULL_HANDLE;
     dsview = VK_NULL_HANDLE;
     dsimg = VK_NULL_HANDLE;
     dsmem = VK_NULL_HANDLE;
@@ -450,6 +460,30 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     GetResourceManager()->WrapResource(Unwrap(device), dsview);
+
+    // create resolve target, since it must precisely match the pre-resolve format, it doesn't allow
+    // any format conversion.
+    imInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imInfo.format = imformat;
+    imInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+    vkr = vt->CreateImage(Unwrap(device), &imInfo, NULL, &resolveimg);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    GetResourceManager()->WrapResource(Unwrap(device), resolveimg);
+
+    vt->GetImageMemoryRequirements(Unwrap(device), Unwrap(resolveimg), &mrq);
+
+    allocInfo.allocationSize = mrq.size;
+    allocInfo.memoryTypeIndex = driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits);
+
+    vkr = vt->AllocateMemory(Unwrap(device), &allocInfo, NULL, &resolvemem);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    GetResourceManager()->WrapResource(Unwrap(device), resolvemem);
+
+    vkr = vt->BindImageMemory(Unwrap(device), Unwrap(resolveimg), Unwrap(resolvemem), 0);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
   {
@@ -2713,22 +2747,48 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
       },
   };
 
-#if ENABLED(MSAA_MESH_VIEW)
-  VkImageResolve resolve = {
-      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0},
-      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0},
-      {outw.width, outw.height, 1},
-  };
+  VkImage blitSource = outw.bb;
 
+#if ENABLED(MSAA_MESH_VIEW)
   if(outw.dsimg != VK_NULL_HANDLE)
+  {
+    VkImageResolve resolve = {
+        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0},
+        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0},
+        {outw.width, outw.height, 1},
+    };
+
+    VkImageMemoryBarrier resolveBarrier = {
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        NULL,
+        VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        Unwrap(outw.resolveimg),
+        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+
+    // discard previous contents of resolve buffer and finish any work with it.
+    DoPipelineBarrier(cmd, 1, &resolveBarrier);
+
+    // resolve from the backbuffer to resolve buffer (identical format)
     vt->CmdResolveImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                        Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-                        &resolve);
-  else
+                        Unwrap(outw.resolveimg), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &resolve);
+
+    // wait for resolve to finish before we blit
+    blitSource = outw.resolveimg;
+
+    resolveBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    resolveBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    DoPipelineBarrier(cmd, 1, &resolveBarrier);
+  }
 #endif
-    vt->CmdBlitImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                     Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-                     &blit, VK_FILTER_NEAREST);
+
+  vt->CmdBlitImage(Unwrap(cmd), Unwrap(blitSource), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
+                   VK_FILTER_NEAREST);
 
   outw.bbBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
   outw.bbBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
