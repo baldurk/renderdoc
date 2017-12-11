@@ -65,6 +65,7 @@ struct SortValue
           val.u = result.value.u64;
         else
           val.u = result.value.u32;
+        break;
 
       default:
         qCritical() << "Unexpected component type" << ToQStr(description.resultType);
