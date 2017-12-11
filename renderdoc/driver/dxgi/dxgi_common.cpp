@@ -1101,8 +1101,6 @@ DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType typeHint)
     {
       if(typeHint == CompType::UInt)
         return DXGI_FORMAT_R10G10B10A2_UINT;
-      if(typeHint == CompType::Float)
-        return DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM;
       return DXGI_FORMAT_R10G10B10A2_UNORM;
     }
 
