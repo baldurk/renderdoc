@@ -403,6 +403,7 @@ void DoSerialise(SerialiserType &ser, APIProperties &el)
   SERIALISE_MEMBER(YUVTextures);
   SERIALISE_MEMBER(SparseResources);
   SERIALISE_MEMBER(MultiGPU);
+  SERIALISE_MEMBER(D3D12Bundle);
 
   SIZE_CHECK(16);
 }

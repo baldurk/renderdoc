@@ -3258,6 +3258,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &s
 
   if(IsReplayingAndReading())
   {
+    m_pDevice->APIProps.D3D12Bundle = true;
+
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
     if(IsActiveReplaying(m_State))

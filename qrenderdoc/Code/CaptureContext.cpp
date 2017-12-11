@@ -150,6 +150,7 @@ void CaptureContext::LoadCapture(const QString &captureFile, const QString &orig
   ANALYTIC_SET(CaptureFeatures.YUVTextures, m_APIProps.YUVTextures);
   ANALYTIC_SET(CaptureFeatures.SparseResources, m_APIProps.SparseResources);
   ANALYTIC_SET(CaptureFeatures.MultiGPU, m_APIProps.MultiGPU);
+  ANALYTIC_SET(CaptureFeatures.D3D12Bundle, m_APIProps.D3D12Bundle);
 
   m_MainWindow->setProgress(-1.0f);
 

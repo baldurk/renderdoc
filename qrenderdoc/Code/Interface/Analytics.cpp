@@ -259,6 +259,7 @@ void AnalyticsSerialise(QVariantMap &values, AnalyticsSerialiseType type)
     ANALYTIC_SERIALISE(CaptureFeatures.YUVTextures);
     ANALYTIC_SERIALISE(CaptureFeatures.SparseResources);
     ANALYTIC_SERIALISE(CaptureFeatures.MultiGPU);
+    ANALYTIC_SERIALISE(CaptureFeatures.D3D12Bundle);
   }
 }
 

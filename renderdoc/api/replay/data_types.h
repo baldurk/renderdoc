@@ -954,6 +954,7 @@ worked around by re-sorting bindings.
   bool YUVTextures = false;
   bool SparseResources = false;
   bool MultiGPU = false;
+  bool D3D12Bundle = false;
 #endif
 };
 
