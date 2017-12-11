@@ -2142,6 +2142,20 @@ TEST_CASE("DXGI formats", "[format][d3d]")
         CHECK(convfmt.srgbCorrected);
       }
 
+      if(f == DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM)
+      {
+        // this format has special handling, so we skip it from the below Typeless/Typed check
+
+        CompType typeHint = fmt.compType;
+
+        DXGI_FORMAT typeless = GetTypelessFormat(f);
+        DXGI_FORMAT typed = GetTypedFormat(typeless, typeHint);
+
+        CHECK(typed == DXGI_FORMAT_R10G10B10A2_UNORM);
+
+        continue;
+      }
+
       if(!IsTypelessFormat(f))
       {
         CompType typeHint = fmt.compType;
