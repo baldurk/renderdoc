@@ -211,7 +211,7 @@ void CaptureDialog::SetInjectMode(bool inject)
     ui->globalGroup->setVisible(m_Ctx.Config().AllowGlobalHook);
 
     ui->launch->setText(lit("Launch"));
-    this->setWindowTitle(lit("Capture Executable"));
+    this->setWindowTitle(lit("Launch Application"));
   }
 }
 
