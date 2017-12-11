@@ -1626,7 +1626,15 @@ void D3D12Replay::RemoveReplacement(ResourceId id)
 
         ResourceId pipeid = rm->GetOriginalID(pipe->GetResourceID());
 
-        rm->RemoveReplacement(pipeid);
+        if(rm->HasReplacement(pipeid))
+        {
+          // if there was an active replacement, remove the dependent replaced pipelines.
+          ID3D12DeviceChild *replpipe = rm->GetLiveResource(pipeid);
+
+          rm->RemoveReplacement(pipeid);
+
+          SAFE_RELEASE(replpipe);
+        }
       }
     }
   }
