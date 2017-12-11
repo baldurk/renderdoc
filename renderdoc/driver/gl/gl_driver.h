@@ -142,6 +142,7 @@ private:
                       [MAX_QUERY_INDICES];    // first index type, second index (for some, always 0)
   bool m_ActiveConditional;
   bool m_ActiveFeedback;
+  bool m_WasActiveFeedback = false;
 
   ResourceId m_DeviceResourceID;
   GLResourceRecord *m_DeviceRecord;

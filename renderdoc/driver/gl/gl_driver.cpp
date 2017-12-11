@@ -5224,6 +5224,8 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
   {
     GLMarkerRegion apply("!!!!RenderDoc Internal: ApplyInitialContents");
     GetResourceManager()->ApplyInitialContents();
+
+    m_WasActiveFeedback = false;
   }
 
   m_State = CaptureState::ActiveReplaying;

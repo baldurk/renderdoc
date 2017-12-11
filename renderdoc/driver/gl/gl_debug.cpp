@@ -3353,7 +3353,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
 
   WrappedOpenGL &gl = *m_pDriver;
   if(gl.m_ActiveFeedback)
+  {
     gl.glEndTransformFeedback();
+    gl.m_WasActiveFeedback = true;
+  }
 
   GLResourceManager *rm = m_pDriver->GetResourceManager();
 

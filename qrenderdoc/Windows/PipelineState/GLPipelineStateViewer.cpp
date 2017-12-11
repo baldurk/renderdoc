@@ -263,6 +263,21 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->xfbBuffers->setHeader(header);
+
+    ui->xfbBuffers->setColumns(
+        {tr("Slot"), tr("Buffer"), tr("Byte Length"), tr("Offset"), tr("Go")});
+    header->setColumnStretchHints({1, 4, 3, 2, -1});
+
+    header->setMinimumSectionSize(40);
+
+    ui->xfbBuffers->setClearSelectionOnFocusLoss(true);
+    ui->xfbBuffers->setInstantTooltips(true);
+    ui->xfbBuffers->setHoverIconColumn(4, action, action_hover);
+  }
+
+  {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->viewports->setHeader(header);
 
     ui->viewports->setColumns(
@@ -348,7 +363,7 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 
   ui->viAttrs->setFont(Formatter::PreferredFont());
   ui->viBuffers->setFont(Formatter::PreferredFont());
-  ui->gsFeedback->setFont(Formatter::PreferredFont());
+  ui->xfbBuffers->setFont(Formatter::PreferredFont());
   ui->vsShader->setFont(Formatter::PreferredFont());
   ui->vsTextures->setFont(Formatter::PreferredFont());
   ui->vsSamplers->setFont(Formatter::PreferredFont());
@@ -1281,9 +1296,9 @@ void GLPipelineStateViewer::setState()
   setShaderState(state.m_CS, ui->csShader, ui->csTextures, ui->csSamplers, ui->csUBOs,
                  ui->csSubroutines, ui->csReadWrite);
 
-  vs = ui->gsFeedback->verticalScrollBar()->value();
-  ui->gsFeedback->beginUpdate();
-  ui->gsFeedback->clear();
+  vs = ui->xfbBuffers->verticalScrollBar()->value();
+  ui->xfbBuffers->beginUpdate();
+  ui->xfbBuffers->clear();
   ui->xfbObj->setText(ToQStr(state.m_Feedback.Obj));
   if(state.m_Feedback.Active)
   {
@@ -1314,15 +1329,14 @@ void GLPipelineStateViewer::setState()
         if(!usedSlot)
           setInactiveRow(node);
 
-        ui->gsFeedback->addTopLevelItem(node);
+        ui->xfbBuffers->addTopLevelItem(node);
       }
     }
   }
-  ui->gsFeedback->verticalScrollBar()->setValue(vs);
-  ui->gsFeedback->clearSelection();
-  ui->gsFeedback->endUpdate();
+  ui->xfbBuffers->verticalScrollBar()->setValue(vs);
+  ui->xfbBuffers->clearSelection();
+  ui->xfbBuffers->endUpdate();
 
-  ui->gsFeedback->setVisible(state.m_Feedback.Active);
   ui->xfbGroup->setVisible(state.m_Feedback.Active);
 
   ////////////////////////////////////////////////
@@ -1872,9 +1886,27 @@ void GLPipelineStateViewer::setState()
   }
   else
   {
+    bool raster = true;
+    bool fbo = true;
+
+    if(state.m_VtxProcess.discard)
+    {
+      raster = fbo = false;
+    }
+
+    if(state.m_GS.Object == ResourceId() && state.m_Feedback.Active)
+    {
+      ui->pipeFlow->setStageName(4, lit("XFB"), tr("Transform Feedback"));
+    }
+    else
+    {
+      ui->pipeFlow->setStageName(4, lit("GS"), tr("Geometry Shader"));
+    }
+
     ui->pipeFlow->setStagesEnabled(
         {true, true, state.m_TCS.Object != ResourceId(), state.m_TES.Object != ResourceId(),
-         state.m_GS.Object != ResourceId(), true, state.m_FS.Object != ResourceId(), true, false});
+         state.m_GS.Object != ResourceId() || state.m_Feedback.Active, raster,
+         !state.m_VtxProcess.discard && state.m_FS.Object != ResourceId(), fbo, false});
   }
 }
 

@@ -1131,7 +1131,7 @@ void GLReplay::SavePipelineState()
     pipe.m_Feedback.Paused = (p != 0);
 
     gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_ACTIVE, &p);
-    pipe.m_Feedback.Active = (p != 0);
+    pipe.m_Feedback.Active = (p != 0) || m_pDriver->m_WasActiveFeedback;
   }
 
   for(int i = 0; i < 6; i++)

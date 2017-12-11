@@ -2170,7 +2170,7 @@
                  </layout>
                 </item>
                 <item row="4" column="0" colspan="2">
-                 <widget class="RDTreeWidget" name="gsFeedback">
+                 <widget class="RDTreeWidget" name="xfbBuffers">
                   <property name="frameShape">
                    <enum>QFrame::Box</enum>
                   </property>
