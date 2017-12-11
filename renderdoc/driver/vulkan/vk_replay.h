@@ -316,6 +316,9 @@ private:
     VkRenderPass rp, rpdepth;
     uint32_t curidx;
 
+    VkImage resolveimg;
+    VkDeviceMemory resolvemem;
+
     VkImage dsimg;
     VkDeviceMemory dsmem;
     VkImageView dsview;
