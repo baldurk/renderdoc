@@ -570,6 +570,17 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         m_BakedCmdBufferInfo[BakedCommandBuffer].beginFlags = BeginInfo.flags;
     m_BakedCmdBufferInfo[m_LastCmdBufferID].markerCount = 0;
 
+    VkCommandBufferBeginInfo unwrappedBeginInfo = BeginInfo;
+    VkCommandBufferInheritanceInfo unwrappedInheritInfo;
+    if(BeginInfo.pInheritanceInfo)
+    {
+      unwrappedInheritInfo = *BeginInfo.pInheritanceInfo;
+      unwrappedInheritInfo.framebuffer = Unwrap(unwrappedInheritInfo.framebuffer);
+      unwrappedInheritInfo.renderPass = Unwrap(unwrappedInheritInfo.renderPass);
+
+      unwrappedBeginInfo.pInheritanceInfo = &unwrappedInheritInfo;
+    }
+
     if(IsActiveReplaying(m_State))
     {
       const uint32_t length = m_BakedCmdBufferInfo[BakedCommandBuffer].eventCount;
@@ -655,7 +666,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         if(AllocateInfo.level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
           BeginInfo.flags |= VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-        ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &BeginInfo);
+        ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &unwrappedBeginInfo);
       }
 
       // whenever a vkCmd command-building chunk asks for the command buffer, it
@@ -734,7 +745,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         m_BakedCmdBufferInfo[BakedCommandBuffer].drawStack.push_back(draw);
       }
 
-      ObjDisp(device)->BeginCommandBuffer(Unwrap(cmd), &BeginInfo);
+      ObjDisp(device)->BeginCommandBuffer(Unwrap(cmd), &unwrappedBeginInfo);
     }
   }
 
