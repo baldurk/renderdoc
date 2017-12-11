@@ -2538,6 +2538,12 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
     if(isMEM && messageCode == 3)
       return false;
 
+    // Cannot read invalid region of memory
+    // The validation layers can't track simultaneous use of the same memory in multiple buffers, so
+    // misreports any buffer which was filled by initial states (whole-memory buffer copies).
+    if(isMEM && messageCode == 15)
+      return false;
+
     RDCWARN("[%s:%u/%d] %s", pLayerPrefix, (uint32_t)location, messageCode, pMessage);
   }
 
