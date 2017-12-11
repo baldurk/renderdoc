@@ -674,13 +674,11 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
     std::sort(m_Cmd.m_Events.begin(), m_Cmd.m_Events.end(), SortEID());
   }
 
-  for(int p = 0; p < D3D12CommandData::ePartialNum; p++)
-    SAFE_RELEASE(m_Cmd.m_Partial[p].resultPartialCmdList);
-
-  for(auto it = m_Cmd.m_RerecordCmds.begin(); it != m_Cmd.m_RerecordCmds.end(); ++it)
-    SAFE_RELEASE(it->second);
+  for(size_t i = 0; i < m_Cmd.m_RerecordCmdList.size(); i++)
+    SAFE_RELEASE(m_Cmd.m_RerecordCmdList[i]);
 
   m_Cmd.m_RerecordCmds.clear();
+  m_Cmd.m_RerecordCmdList.clear();
 
   return ReplayStatus::Succeeded;
 }
@@ -1007,25 +1005,15 @@ uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandList *list, bo
   return eventID;
 }
 
-bool D3D12CommandData::ShouldRerecordCmd(ResourceId cmdid)
-{
-  if(m_Partial[Primary].outsideCmdList != NULL)
-    return true;
-
-  if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
-    return true;
-
-  return cmdid == m_Partial[Primary].partialParent || cmdid == m_Partial[Secondary].partialParent;
-}
-
 bool D3D12CommandData::InRerecordRange(ResourceId cmdid)
 {
-  if(m_Partial[Primary].outsideCmdList != NULL)
+  // if we have an outside command list, assume the range is valid and we're replaying all events
+  // onto it.
+  if(m_OutsideCmdList != NULL)
     return true;
 
-  if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
-    return true;
-
+  // if not, check if we're one of the actual partial command buffers and check to see if we're in
+  // the range for their partial replay.
   for(int p = 0; p < ePartialNum; p++)
   {
     if(cmdid == m_Partial[p].partialParent)
@@ -1035,38 +1023,46 @@ bool D3D12CommandData::InRerecordRange(ResourceId cmdid)
     }
   }
 
+  // otherwise just check if we have a re-record command list for this, as then we're doing a full
+  // re-record and replay
+  return m_RerecordCmds.find(cmdid) != m_RerecordCmds.end();
+}
+
+bool D3D12CommandData::HasRerecordCmdList(ResourceId cmdid)
+{
+  if(m_OutsideCmdList != NULL)
+    return true;
+
+  return m_RerecordCmds.find(cmdid) != m_RerecordCmds.end();
+}
+
+bool D3D12CommandData::IsPartialCmdList(ResourceId cmdid)
+{
+  if(m_OutsideCmdList != NULL)
+    return true;
+
+  for(int p = 0; p < ePartialNum; p++)
+    if(cmdid == m_Partial[p].partialParent)
+      return true;
+
   return false;
 }
 
 ID3D12GraphicsCommandList *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
                                                              PartialReplayIndex partialType)
 {
-  if(m_Partial[Primary].outsideCmdList != NULL)
-    return m_Partial[Primary].outsideCmdList;
+  if(m_OutsideCmdList != NULL)
+    return m_OutsideCmdList;
 
-  if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+  auto it = m_RerecordCmds.find(cmdid);
+
+  if(it == m_RerecordCmds.end())
   {
-    auto it = m_RerecordCmds.find(cmdid);
-
-    if(it == m_RerecordCmds.end())
-    {
-      RDCERR("Didn't generate re-record command for %llu", cmdid);
-      return NULL;
-    }
-
-    return it->second;
+    RDCERR("Didn't generate re-record command for %llu", cmdid);
+    return NULL;
   }
 
-  if(partialType != ePartialNum)
-    return m_Partial[partialType].resultPartialCmdList;
-
-  for(int p = 0; p < ePartialNum; p++)
-    if(cmdid == m_Partial[p].partialParent)
-      return m_Partial[p].resultPartialCmdList;
-
-  RDCERR("Calling re-record for invalid command list id");
-
-  return NULL;
+  return it->second;
 }
 
 void D3D12CommandData::AddEvent()

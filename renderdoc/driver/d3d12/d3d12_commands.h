@@ -109,11 +109,6 @@ struct D3D12DrawcallCallback
   virtual bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) = 0;
   virtual void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) = 0;
 
-  // should we re-record all command lists? this needs to be true if the range
-  // being replayed is larger than one command list (which usually means the
-  // whole frame).
-  virtual bool RecordAllCmds() = 0;
-
   // if a command list is recorded once and submitted N > 1 times, then the same
   // drawcall will have several EIDs that refer to it. We'll only do the full
   // callbacks above for the first EID, then call this function for the others
@@ -198,51 +193,36 @@ struct D3D12CommandData
     ePartialNum
   };
 
+  // by definition, when replaying we must have N completely submitted command lists, and at most
+  // two partially-submitted command lists. One primary, that we're part-way through, and then
+  // if we're part-way through a ExecuteBundle inside that primary then there's one
+  // secondary.
   struct PartialReplayData
   {
     PartialReplayData() { Reset(); }
     void Reset()
     {
-      resultPartialCmdList = NULL;
-      outsideCmdList = NULL;
       partialParent = ResourceId();
       baseEvent = 0;
     }
 
-    // if we're doing a partial replay, by definition only one command
-    // list will be partial at any one time. While replaying through
-    // the command list chunks, the partial command list will be
-    // created as a temporary new command list and when it comes to
-    // the queue that should execute it, it can execute this instead.
-    ID3D12GraphicsCommandList *resultPartialCmdList;
-
-    // if we're replaying just a single draw or a particular command
-    // list subsection of command events, we don't go through the
-    // whole original command lists to set up the partial replay,
-    // so we just set this command list
-    ID3D12GraphicsCommandList *outsideCmdList;
-
-    // this records where in the frame a command list was executed,
-    // so that we know if our replay range ends in one of these ranges
-    // we need to construct a partial command list for future
-    // replaying. Note that we always have the complete command list
-    // around - it's the bakeID itself.
-    // Since we only ever record a bakeID once the key is unique - note
-    // that the same command list could be reset multiple times
-    // a frame, so the parent command list ID (the one recorded in
+    // this records where in the frame a command list was executed, so that we know if our replay
+    // range ends in one of these ranges we need to construct a partial command list for future
+    // replaying. Note that we always have the complete command list around - it's the bakeID
+    // itself.
+    // Since we only ever record a bakeID once the key is unique - note that the same command list
+    // could be reset multiple times a frame, so the parent command list ID (the one recorded in
     // CmdList chunks) is NOT unique.
-    // However, a single baked command list can be executed multiple
-    // times - so we have to have a list of base events
+    // However, a single baked command list can be executed multiple times - so we have to have a
+    // list of base events
     // Map from bakeID -> vector<baseEventID>
-    map<ResourceId, vector<uint32_t> > cmdListExecs;
+    std::map<ResourceId, std::vector<uint32_t> > cmdListExecs;
 
-    // This is just the ResourceId of the original parent command list
-    // and it's baked id.
-    // If we are in the middle of a partial replay - allows fast checking
-    // in all CmdList chunks, with the iteration through the above list
-    // only in Reset.
-    // partialParent gets reset to ResourceId() in the Close so that
-    // other baked command lists from the same parent don't pick it up
+    // This is just the baked ID of the parent command list that's partially replayed
+    // If we are in the middle of a partial replay - allows fast checking in all CmdList chunks,
+    // with the iteration through the above list only in Reset.
+    // partialParent gets reset to ResourceId() in the Close so that other baked command lists from
+    // the same parent don't pick it up
     // Also reset each overall replay
     ResourceId partialParent;
 
@@ -252,6 +232,12 @@ struct D3D12CommandData
     // last event ID by subtracting this, to know how far to record
     uint32_t baseEvent;
   } m_Partial[ePartialNum];
+
+  // if we're replaying just a single draw or a particular command
+  // list subsection of command events, we don't go through the
+  // whole original command lists to set up the partial replay,
+  // so we just set this command list
+  ID3D12GraphicsCommandList *m_OutsideCmdList = NULL;
 
   void InsertDrawsAndRefreshIDs(ResourceId cmd, vector<D3D12DrawcallTreeNode> &cmdBufNodes);
 
@@ -281,7 +267,8 @@ struct D3D12CommandData
 
   vector<DebugMessage> m_EventMessages;
 
-  map<ResourceId, ID3D12GraphicsCommandList *> m_RerecordCmds;
+  std::map<ResourceId, ID3D12GraphicsCommandList *> m_RerecordCmds;
+  std::vector<ID3D12GraphicsCommandList *> m_RerecordCmdList;
 
   bool m_AddedDrawcall;
 
@@ -315,8 +302,9 @@ struct D3D12CommandData
   uint32_t HandlePreCallback(ID3D12GraphicsCommandList *list, bool dispatch = false,
                              uint32_t multiDrawOffset = 0);
 
-  bool ShouldRerecordCmd(ResourceId cmdid);
   bool InRerecordRange(ResourceId cmdid);
+  bool HasRerecordCmdList(ResourceId cmdid);
+  bool IsPartialCmdList(ResourceId cmdid);
   ID3D12GraphicsCommandList *RerecordCmdList(ResourceId cmdid,
                                              PartialReplayIndex partialType = ePartialNum);
 

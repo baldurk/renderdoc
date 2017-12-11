@@ -571,7 +571,7 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent(SerialiserType &ser, VkCommandBuffer
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
@@ -626,7 +626,7 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent(SerialiserType &ser, VkCommandBuff
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
@@ -733,7 +733,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;

@@ -27,40 +27,25 @@
 
 bool WrappedVulkan::IsDrawInRenderPass()
 {
-  ResourceId rp;
+  BakedCmdBufferInfo &cmd = m_BakedCmdBufferInfo[m_LastCmdBufferID];
 
-  if(IsLoading(m_State))
-    rp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass;
-  else
-    rp = m_RenderState.renderPass;
-
-  ResourceId cmdid = m_LastCmdBufferID;
-
-  bool rpActive = true;
-
-  if(IsActiveReplaying(m_State))
+  if(cmd.level == VK_COMMAND_BUFFER_LEVEL_PRIMARY && cmd.state.renderPass == ResourceId())
   {
-    cmdid = GetResID(RerecordCmdBuf(cmdid));
-
-    rpActive =
-        m_Partial[m_BakedCmdBufferInfo[cmdid].level == VK_COMMAND_BUFFER_LEVEL_PRIMARY ? Primary : Secondary]
-            .renderPassActive;
-  }
-
-  if(m_BakedCmdBufferInfo[cmdid].level == VK_COMMAND_BUFFER_LEVEL_PRIMARY &&
-     (rp == ResourceId() || !rpActive))
-  {
+    // for primary command buffers, we just check the per-command buffer tracked state
     return false;
   }
-  else if(m_BakedCmdBufferInfo[cmdid].level == VK_COMMAND_BUFFER_LEVEL_SECONDARY &&
-          (m_BakedCmdBufferInfo[cmdid].beginFlags &
-           VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT) == 0 &&
-          (rp == ResourceId() || !rpActive))
+  else if(cmd.level == VK_COMMAND_BUFFER_LEVEL_SECONDARY &&
+          (cmd.beginFlags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT) == 0)
   {
+    // secondary command buffers the VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT bit is
+    // one-to-one with being a render pass. i.e. you must specify the bit if the execute comes from
+    // inside a render pass, and you can't start a render pass in a secondary command buffer so
+    // that's the only way to be inside.
     return false;
   }
 
-  // assume a secondary buffer with RENDER_PASS_CONTINUE_BIT is in a render pass.
+  // assume a secondary buffer with RENDER_PASS_CONTINUE_BIT is in a render pass without checking
+  // where it was actually executed since we won't know that yet.
 
   return true;
 }
@@ -86,8 +71,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(SerialiserType &ser, VkCommandBuffer com
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID) &&
-         IsDrawInRenderPass())
+      if(InRerecordRange(m_LastCmdBufferID) && IsDrawInRenderPass())
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -185,8 +169,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(SerialiserType &ser, VkCommandBuf
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID) &&
-         IsDrawInRenderPass())
+      if(InRerecordRange(m_LastCmdBufferID) && IsDrawInRenderPass())
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -293,8 +276,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       {
         // for single draws, it's pretty simple
 
-        if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID) &&
-           IsDrawInRenderPass())
+        if(InRerecordRange(m_LastCmdBufferID) && IsDrawInRenderPass())
         {
           commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -313,7 +295,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       }
       else
       {
-        if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+        if(InRerecordRange(m_LastCmdBufferID))
         {
           commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -340,8 +322,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
           {
             uint32_t baseEventID = it->eventID;
 
-            // when re-recording all, submit every drawcall individually to the callback
-            if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds() && IsDrawInRenderPass())
+            // when we have a callback, submit every drawcall individually to the callback
+            if(m_DrawcallCallback && IsDrawInRenderPass())
             {
               for(uint32_t i = 0; i < count; i++)
               {
@@ -579,8 +561,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       {
         // for single draws, it's pretty simple
 
-        if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID) &&
-           IsDrawInRenderPass())
+        if(InRerecordRange(m_LastCmdBufferID) && IsDrawInRenderPass())
         {
           commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -600,7 +581,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       }
       else
       {
-        if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+        if(InRerecordRange(m_LastCmdBufferID))
         {
           commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -627,8 +608,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
           {
             uint32_t baseEventID = it->eventID;
 
-            // when re-recording all, submit every drawcall individually to the callback
-            if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds() && IsDrawInRenderPass())
+            // when we have a callback, submit every drawcall individually to the callback
+            if(m_DrawcallCallback && IsDrawInRenderPass())
             {
               for(uint32_t i = 0; i < count; i++)
               {
@@ -861,7 +842,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(SerialiserType &ser, VkCommandBuffer
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -938,7 +919,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(SerialiserType &ser,
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -1046,7 +1027,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(SerialiserType &ser, VkCommandBuffe
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -1169,7 +1150,7 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(SerialiserType &ser, VkCommandBu
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -1292,7 +1273,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(SerialiserType &ser, VkCommandBuffe
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -1411,7 +1392,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -1525,7 +1506,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(SerialiserType &ser,
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -1640,7 +1621,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(SerialiserType &ser, VkCommandBuff
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -1764,7 +1745,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(SerialiserType &ser, VkComman
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -1867,7 +1848,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -1972,7 +1953,7 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 

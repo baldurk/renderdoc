@@ -28,7 +28,7 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(u
 {
   ResourceId rp, fb;
 
-  if(IsActiveReplaying(m_State))
+  if(m_LastCmdBufferID == ResourceId())
   {
     rp = m_RenderState.renderPass;
     fb = m_RenderState.framebuffer;
@@ -62,7 +62,7 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(u
   }
   else
   {
-    if(IsActiveReplaying(m_State))
+    if(m_LastCmdBufferID == ResourceId())
       subpass = m_RenderState.subpass;
     else
       subpass = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
@@ -585,6 +585,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
     {
       const uint32_t length = m_BakedCmdBufferInfo[BakedCommandBuffer].eventCount;
 
+      bool rerecord = false;
       bool partial = false;
       int partialType = ePartialNum;
 
@@ -606,23 +607,29 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
             m_Partial[p].partialParent = BakedCommandBuffer;
             m_Partial[p].baseEvent = it->baseEvent;
             m_Partial[p].renderPassActive = false;
-            m_Partial[p].partialDevice = device;
-            m_Partial[p].resultPartialCmdPool = AllocateInfo.commandPool;
 
+            rerecord = true;
             partial = true;
             partialType = p;
+          }
+          else if(it->baseEvent <= m_LastEventID)
+          {
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
+            RDCDEBUG("vkBegin - full re-record detected %u < %u <= %u, %llu -> %llu", it->baseEvent,
+                     it->baseEvent + length, m_LastEventID, m_LastCmdBufferID, BakedCommandBuffer);
+#endif
+
+            // this submission is completely within the range, so it should still be re-recorded
+            rerecord = true;
           }
         }
       }
 
-      if(partial || (m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds()))
+      if(rerecord)
       {
         // pull all re-recorded commands from our own device and command pool for easier cleanup
-        if(!partial)
-        {
-          device = GetDev();
-          AllocateInfo.commandPool = m_InternalCmds.cmdpool;
-        }
+        device = GetDev();
+        AllocateInfo.commandPool = m_InternalCmds.cmdpool;
 
         VkCommandBuffer cmd = VK_NULL_HANDLE;
         VkCommandBufferAllocateInfo unwrappedInfo = AllocateInfo;
@@ -639,24 +646,19 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
           GetResourceManager()->WrapResource(Unwrap(device), cmd);
         }
 
-        if(partial)
-        {
-          m_Partial[partialType].resultPartialCmdBuffer = cmd;
-        }
-        else
-        {
-          // we store under both baked and non baked ID.
-          // The baked ID is the 'real' entry, the non baked is simply so it
-          // can be found in the subsequent serialised commands that ref the
-          // non-baked ID. The baked ID is referenced by the submit itself.
-          //
-          // In vkEndCommandBuffer we erase the non-baked reference, and since
-          // we know you can only be recording a command buffer once at a time
-          // (even if it's baked to several command buffers in the frame)
-          // there's no issue with clashes here.
-          m_RerecordCmds[BakedCommandBuffer] = cmd;
-          m_RerecordCmds[m_LastCmdBufferID] = cmd;
-        }
+        // we store under both baked and non baked ID.
+        // The baked ID is the 'real' entry, the non baked is simply so it
+        // can be found in the subsequent serialised commands that ref the
+        // non-baked ID. The baked ID is referenced by the submit itself.
+        //
+        // In vkEndCommandBuffer we erase the non-baked reference, and since
+        // we know you can only be recording a command buffer once at a time
+        // (even if it's baked to several command buffers in the frame)
+        // there's no issue with clashes here.
+        m_RerecordCmds[BakedCommandBuffer] = cmd;
+        m_RerecordCmds[m_LastCmdBufferID] = cmd;
+
+        m_RerecordCmdList.push_back(cmd);
 
         m_BakedCmdBufferInfo[GetResID(cmd)].level = AllocateInfo.level;
         m_BakedCmdBufferInfo[GetResID(cmd)].beginFlags = BeginInfo.flags;
@@ -834,17 +836,17 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(BakedCommandBuffer))
+      if(HasRerecordCmdBuf(BakedCommandBuffer))
       {
         commandBuffer = RerecordCmdBuf(BakedCommandBuffer);
+
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-        RDCDEBUG("Ending partial command buffer for %llu baked to %llu", m_LastCmdBufferID,
+        RDCDEBUG("Ending re-recorded command buffer for %llu baked to %llu", m_LastCmdBufferID,
                  BakedCommandBuffer);
 #endif
 
-        bool recordAll = m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds();
-
-        if(!recordAll && m_Partial[Primary].partialParent == BakedCommandBuffer &&
+        // finish any render pass that was still active in the primary partial parent
+        if(m_Partial[Primary].partialParent == BakedCommandBuffer &&
            m_Partial[Primary].renderPassActive)
         {
           uint32_t numSubpasses =
@@ -856,15 +858,12 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
           ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
         }
 
+        // also finish any nested markers we truncated and didn't finish
         if(ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT)
           for(int i = 0; i < m_BakedCmdBufferInfo[BakedCommandBuffer].markerCount; i++)
             ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer));
 
         ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
-
-        // erase the non-baked reference to this command buffer so that we don't have
-        // duplicates when it comes time to clean up. See above in vkBeginCommandBuffer
-        m_RerecordCmds.erase(m_LastCmdBufferID);
 
         if(m_Partial[Primary].partialParent == BakedCommandBuffer)
           m_Partial[Primary].partialParent = ResourceId();
@@ -990,18 +989,30 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        m_Partial[Primary].renderPassActive = true;
+        // always track this, for WrappedVulkan::IsDrawInRenderPass()
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass =
+            GetResID(RenderPassBegin.renderPass);
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer =
+            GetResID(RenderPassBegin.framebuffer);
+
+        // only if we're partially recording do we update this state
+        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        {
+          m_Partial[Primary].renderPassActive = true;
+
+          m_RenderState.subpass = 0;
+
+          m_RenderState.renderPass = GetResID(RenderPassBegin.renderPass);
+          m_RenderState.framebuffer = GetResID(RenderPassBegin.framebuffer);
+          m_RenderState.renderArea = RenderPassBegin.renderArea;
+        }
+
         ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents);
-
-        m_RenderState.subpass = 0;
-
-        m_RenderState.renderPass = GetResID(RenderPassBegin.renderPass);
-        m_RenderState.framebuffer = GetResID(RenderPassBegin.framebuffer);
-        m_RenderState.renderArea = RenderPassBegin.renderArea;
 
         std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
@@ -1103,12 +1114,15 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
     {
       // don't do anything if we're executing a single draw, NextSubpass is meaningless (and invalid
       // on a partial render pass)
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID) &&
-         m_FirstEventID != m_LastEventID)
+      if(InRerecordRange(m_LastCmdBufferID) && m_FirstEventID != m_LastEventID)
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        m_RenderState.subpass++;
+        // always track this, for WrappedVulkan::IsDrawInRenderPass()
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
+
+        if(IsPartialCmdBuf(m_LastCmdBufferID))
+          m_RenderState.subpass++;
 
         ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents);
 
@@ -1179,11 +1193,19 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        m_Partial[Primary].renderPassActive = false;
+        // always track this, for WrappedVulkan::IsDrawInRenderPass()
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = ResourceId();
+
+        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        {
+          m_Partial[Primary].renderPassActive = false;
+        }
+
         ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
 
         std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
@@ -1277,62 +1299,65 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
         ResourceId liveid = GetResID(pipeline);
 
-        if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
+        if(IsPartialCmdBuf(m_LastCmdBufferID))
         {
-          m_RenderState.compute.pipeline = liveid;
-        }
-        else
-        {
-          m_RenderState.graphics.pipeline = liveid;
+          if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
+          {
+            m_RenderState.compute.pipeline = liveid;
+          }
+          else
+          {
+            m_RenderState.graphics.pipeline = liveid;
 
-          if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_VIEWPORT])
-          {
-            m_RenderState.views = m_CreationInfo.m_Pipeline[liveid].viewports;
-          }
-          if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_SCISSOR])
-          {
-            m_RenderState.scissors = m_CreationInfo.m_Pipeline[liveid].scissors;
-          }
-          if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_LINE_WIDTH])
-          {
-            m_RenderState.lineWidth = m_CreationInfo.m_Pipeline[liveid].lineWidth;
-          }
-          if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BIAS])
-          {
-            m_RenderState.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBiasConstantFactor;
-            m_RenderState.bias.biasclamp = m_CreationInfo.m_Pipeline[liveid].depthBiasClamp;
-            m_RenderState.bias.slope = m_CreationInfo.m_Pipeline[liveid].depthBiasSlopeFactor;
-          }
-          if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_BLEND_CONSTANTS])
-          {
-            memcpy(m_RenderState.blendConst, m_CreationInfo.m_Pipeline[liveid].blendConst,
-                   sizeof(float) * 4);
-          }
-          if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BOUNDS])
-          {
-            m_RenderState.mindepth = m_CreationInfo.m_Pipeline[liveid].minDepthBounds;
-            m_RenderState.maxdepth = m_CreationInfo.m_Pipeline[liveid].maxDepthBounds;
-          }
-          if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK])
-          {
-            m_RenderState.front.compare = m_CreationInfo.m_Pipeline[liveid].front.compareMask;
-            m_RenderState.back.compare = m_CreationInfo.m_Pipeline[liveid].back.compareMask;
-          }
-          if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_WRITE_MASK])
-          {
-            m_RenderState.front.write = m_CreationInfo.m_Pipeline[liveid].front.writeMask;
-            m_RenderState.back.write = m_CreationInfo.m_Pipeline[liveid].back.writeMask;
-          }
-          if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_REFERENCE])
-          {
-            m_RenderState.front.ref = m_CreationInfo.m_Pipeline[liveid].front.reference;
-            m_RenderState.back.ref = m_CreationInfo.m_Pipeline[liveid].back.reference;
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_VIEWPORT])
+            {
+              m_RenderState.views = m_CreationInfo.m_Pipeline[liveid].viewports;
+            }
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_SCISSOR])
+            {
+              m_RenderState.scissors = m_CreationInfo.m_Pipeline[liveid].scissors;
+            }
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_LINE_WIDTH])
+            {
+              m_RenderState.lineWidth = m_CreationInfo.m_Pipeline[liveid].lineWidth;
+            }
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BIAS])
+            {
+              m_RenderState.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBiasConstantFactor;
+              m_RenderState.bias.biasclamp = m_CreationInfo.m_Pipeline[liveid].depthBiasClamp;
+              m_RenderState.bias.slope = m_CreationInfo.m_Pipeline[liveid].depthBiasSlopeFactor;
+            }
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_BLEND_CONSTANTS])
+            {
+              memcpy(m_RenderState.blendConst, m_CreationInfo.m_Pipeline[liveid].blendConst,
+                     sizeof(float) * 4);
+            }
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_DEPTH_BOUNDS])
+            {
+              m_RenderState.mindepth = m_CreationInfo.m_Pipeline[liveid].minDepthBounds;
+              m_RenderState.maxdepth = m_CreationInfo.m_Pipeline[liveid].maxDepthBounds;
+            }
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK])
+            {
+              m_RenderState.front.compare = m_CreationInfo.m_Pipeline[liveid].front.compareMask;
+              m_RenderState.back.compare = m_CreationInfo.m_Pipeline[liveid].back.compareMask;
+            }
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_WRITE_MASK])
+            {
+              m_RenderState.front.write = m_CreationInfo.m_Pipeline[liveid].front.writeMask;
+              m_RenderState.back.write = m_CreationInfo.m_Pipeline[liveid].back.writeMask;
+            }
+            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VK_DYNAMIC_STATE_STENCIL_REFERENCE])
+            {
+              m_RenderState.front.ref = m_CreationInfo.m_Pipeline[liveid].front.reference;
+              m_RenderState.back.ref = m_CreationInfo.m_Pipeline[liveid].back.reference;
+            }
           }
         }
       }
@@ -1401,7 +1426,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -1410,64 +1435,68 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
                                     firstSet, setCount, UnwrapArray(pDescriptorSets, setCount),
                                     dynamicOffsetCount, pDynamicOffsets);
 
-        std::vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
-            (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) ? m_RenderState.graphics.descSets
-                                                                   : m_RenderState.compute.descSets;
-
-        // expand as necessary
-        if(descsets.size() < firstSet + setCount)
-          descsets.resize(firstSet + setCount);
-
-        const std::vector<ResourceId> &descSetLayouts =
-            m_CreationInfo.m_PipelineLayout[GetResID(layout)].descSetLayouts;
-
-        const uint32_t *offsIter = pDynamicOffsets;
-        uint32_t dynConsumed = 0;
-
-        // consume the offsets linearly along the descriptor set layouts
-        for(uint32_t i = 0; i < setCount; i++)
+        if(IsPartialCmdBuf(m_LastCmdBufferID))
         {
-          descsets[firstSet + i].descSet = GetResID(pDescriptorSets[i]);
-          uint32_t dynCount =
-              m_CreationInfo.m_DescSetLayout[descSetLayouts[firstSet + i]].dynamicCount;
-          descsets[firstSet + i].offsets.assign(offsIter, offsIter + dynCount);
-          offsIter += dynCount;
-          dynConsumed += dynCount;
-          RDCASSERT(dynConsumed <= dynamicOffsetCount);
-        }
+          std::vector<VulkanRenderState::Pipeline::DescriptorAndOffsets> &descsets =
+              (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
+                  ? m_RenderState.graphics.descSets
+                  : m_RenderState.compute.descSets;
 
-        // if there are dynamic offsets, bake them into the current bindings by alias'ing
-        // the image layout member (which is never used for buffer views).
-        // This lets us look it up easily when we want to show the current pipeline state
-        RDCCOMPILE_ASSERT(sizeof(VkImageLayout) >= sizeof(uint32_t),
-                          "Can't alias image layout for dynamic offset!");
-        if(dynamicOffsetCount > 0)
-        {
-          uint32_t o = 0;
+          // expand as necessary
+          if(descsets.size() < firstSet + setCount)
+            descsets.resize(firstSet + setCount);
 
-          // spec states that dynamic offsets precisely match all the offsets needed for these
-          // sets, in order of set N before set N+1, binding X before binding X+1 within a set,
-          // and in array element order within a binding
+          const std::vector<ResourceId> &descSetLayouts =
+              m_CreationInfo.m_PipelineLayout[GetResID(layout)].descSetLayouts;
+
+          const uint32_t *offsIter = pDynamicOffsets;
+          uint32_t dynConsumed = 0;
+
+          // consume the offsets linearly along the descriptor set layouts
           for(uint32_t i = 0; i < setCount; i++)
           {
-            ResourceId descId = GetResID(pDescriptorSets[i]);
-            const DescSetLayout &layoutinfo =
-                m_CreationInfo.m_DescSetLayout[descSetLayouts[firstSet + i]];
+            descsets[firstSet + i].descSet = GetResID(pDescriptorSets[i]);
+            uint32_t dynCount =
+                m_CreationInfo.m_DescSetLayout[descSetLayouts[firstSet + i]].dynamicCount;
+            descsets[firstSet + i].offsets.assign(offsIter, offsIter + dynCount);
+            offsIter += dynCount;
+            dynConsumed += dynCount;
+            RDCASSERT(dynConsumed <= dynamicOffsetCount);
+          }
 
-            for(size_t b = 0; b < layoutinfo.bindings.size(); b++)
+          // if there are dynamic offsets, bake them into the current bindings by alias'ing
+          // the image layout member (which is never used for buffer views).
+          // This lets us look it up easily when we want to show the current pipeline state
+          RDCCOMPILE_ASSERT(sizeof(VkImageLayout) >= sizeof(uint32_t),
+                            "Can't alias image layout for dynamic offset!");
+          if(dynamicOffsetCount > 0)
+          {
+            uint32_t o = 0;
+
+            // spec states that dynamic offsets precisely match all the offsets needed for these
+            // sets, in order of set N before set N+1, binding X before binding X+1 within a set,
+            // and in array element order within a binding
+            for(uint32_t i = 0; i < setCount; i++)
             {
-              // not dynamic, doesn't need an offset
-              if(layoutinfo.bindings[b].descriptorType != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC &&
-                 layoutinfo.bindings[b].descriptorType != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-                continue;
+              ResourceId descId = GetResID(pDescriptorSets[i]);
+              const DescSetLayout &layoutinfo =
+                  m_CreationInfo.m_DescSetLayout[descSetLayouts[firstSet + i]];
 
-              // assign every array element an offset according to array size
-              for(uint32_t a = 0; a < layoutinfo.bindings[b].descriptorCount; a++)
+              for(size_t b = 0; b < layoutinfo.bindings.size(); b++)
               {
-                RDCASSERT(o < dynamicOffsetCount);
-                uint32_t *alias =
-                    (uint32_t *)&m_DescriptorSetState[descId].currentBindings[b][a].imageInfo.imageLayout;
-                *alias = pDynamicOffsets[o++];
+                // not dynamic, doesn't need an offset
+                if(layoutinfo.bindings[b].descriptorType != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC &&
+                   layoutinfo.bindings[b].descriptorType != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+                  continue;
+
+                // assign every array element an offset according to array size
+                for(uint32_t a = 0; a < layoutinfo.bindings[b].descriptorCount; a++)
+                {
+                  RDCASSERT(o < dynamicOffsetCount);
+                  uint32_t *alias =
+                      (uint32_t *)&m_DescriptorSetState[descId].currentBindings[b][a].imageInfo.imageLayout;
+                  *alias = pDynamicOffsets[o++];
+                }
               }
             }
           }
@@ -1572,20 +1601,23 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(SerialiserType &ser,
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
         ObjDisp(commandBuffer)
             ->CmdBindVertexBuffers(Unwrap(commandBuffer), firstBinding, bindingCount,
                                    UnwrapArray(pBuffers, bindingCount), pOffsets);
 
-        if(m_RenderState.vbuffers.size() < firstBinding + bindingCount)
-          m_RenderState.vbuffers.resize(firstBinding + bindingCount);
-
-        for(uint32_t i = 0; i < bindingCount; i++)
+        if(IsPartialCmdBuf(m_LastCmdBufferID))
         {
-          m_RenderState.vbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
-          m_RenderState.vbuffers[firstBinding + i].offs = pOffsets[i];
+          if(m_RenderState.vbuffers.size() < firstBinding + bindingCount)
+            m_RenderState.vbuffers.resize(firstBinding + bindingCount);
+
+          for(uint32_t i = 0; i < bindingCount; i++)
+          {
+            m_RenderState.vbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
+            m_RenderState.vbuffers[firstBinding + i].offs = pOffsets[i];
+          }
         }
       }
     }
@@ -1659,15 +1691,18 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
         ObjDisp(commandBuffer)
             ->CmdBindIndexBuffer(Unwrap(commandBuffer), Unwrap(buffer), offset, indexType);
 
-        m_RenderState.ibuffer.buf = GetResID(buffer);
-        m_RenderState.ibuffer.offs = offset;
-        m_RenderState.ibuffer.bytewidth = indexType == VK_INDEX_TYPE_UINT32 ? 4 : 2;
+        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        {
+          m_RenderState.ibuffer.buf = GetResID(buffer);
+          m_RenderState.ibuffer.offs = offset;
+          m_RenderState.ibuffer.bytewidth = indexType == VK_INDEX_TYPE_UINT32 ? 4 : 2;
+        }
       }
     }
     else
@@ -1735,7 +1770,7 @@ bool WrappedVulkan::Serialise_vkCmdUpdateBuffer(SerialiserType &ser, VkCommandBu
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
@@ -1805,7 +1840,7 @@ bool WrappedVulkan::Serialise_vkCmdFillBuffer(SerialiserType &ser, VkCommandBuff
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
@@ -1876,16 +1911,19 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandB
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
         ObjDisp(commandBuffer)
             ->CmdPushConstants(Unwrap(commandBuffer), Unwrap(layout), stageFlags, start, length,
                                values);
 
-        RDCASSERT(start + length < (uint32_t)ARRAY_COUNT(m_RenderState.pushconsts));
+        if(IsPartialCmdBuf(m_LastCmdBufferID))
+        {
+          RDCASSERT(start + length < (uint32_t)ARRAY_COUNT(m_RenderState.pushconsts));
 
-        memcpy(m_RenderState.pushconsts + start, values, length);
+          memcpy(m_RenderState.pushconsts + start, values, length);
+        }
       }
     }
     else
@@ -1989,7 +2027,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
@@ -2090,7 +2128,7 @@ bool WrappedVulkan::Serialise_vkCmdWriteTimestamp(SerialiserType &ser, VkCommand
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
@@ -2156,7 +2194,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyQueryPoolResults(
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
@@ -2230,7 +2268,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginQuery(SerialiserType &ser, VkCommandBuff
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
@@ -2283,7 +2321,7 @@ bool WrappedVulkan::Serialise_vkCmdEndQuery(SerialiserType &ser, VkCommandBuffer
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
@@ -2337,7 +2375,7 @@ bool WrappedVulkan::Serialise_vkCmdResetQueryPool(SerialiserType &ser, VkCommand
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
@@ -2480,7 +2518,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
     }
     else
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -2526,43 +2564,15 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           RDCDEBUG("ExecuteCommands no replay %u == %u", m_LastEventID, startEID);
 #endif
         }
-        else if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+        else
         {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("ExecuteCommands re-recording from %u", startEID);
 #endif
 
-          std::vector<VkCommandBuffer> rerecordedCmds;
-
-          for(uint32_t c = 0; c < commandBufferCount; c++)
-          {
-            ResourceId cmdid = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[c]));
-            VkCommandBuffer cmd = RerecordCmdBuf(cmdid);
-            ResourceId rerecord = GetResID(cmd);
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-            RDCDEBUG("ExecuteCommands fully re-recorded replay of %llu, using %llu", cmdid, rerecord);
-#endif
-            rerecordedCmds.push_back(Unwrap(cmd));
-
-            GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[rerecord].imgbarriers,
-                                                m_ImageLayouts);
-          }
-
-          ObjDisp(commandBuffer)
-              ->CmdExecuteCommands(Unwrap(commandBuffer), commandBufferCount, &rerecordedCmds[0]);
-        }
-        else if(m_LastEventID > startEID &&
-                m_LastEventID < parentCmdBufInfo.curEventID + m_Partial[Primary].baseEvent)
-        {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-          RDCDEBUG("ExecuteCommands partial replay %u < %u", m_LastEventID,
-                   parentCmdBufInfo.curEventID + m_Partial[Primary].baseEvent);
-#endif
-
           uint32_t eid = startEID;
 
-          std::vector<ResourceId> trimmedCmdIds;
-          std::vector<VkCommandBuffer> trimmedCmds;
+          std::vector<VkCommandBuffer> rerecordedCmds;
 
           for(uint32_t c = 0; c < commandBufferCount; c++)
           {
@@ -2572,26 +2582,22 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
             // so it matches up to baseEvent
             eid++;
 
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
             uint32_t end = eid + m_BakedCmdBufferInfo[cmdid].eventCount;
+#endif
 
-            if(eid == m_Partial[Secondary].baseEvent)
+            if(eid <= m_LastEventID)
             {
-              ResourceId partial = GetResID(RerecordCmdBuf(cmdid, Secondary));
+              VkCommandBuffer cmd = RerecordCmdBuf(cmdid);
+              ResourceId rerecord = GetResID(cmd);
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-              RDCDEBUG("ExecuteCommands partial replay of %llu at %u, using %llu", cmdid, eid,
-                       partial);
+              RDCDEBUG("ExecuteCommands re-recorded replay of %llu, using %llu (%u -> %u <= %u)",
+                       cmdid, rerecord, eid, end, m_LastEventID);
 #endif
-              trimmedCmdIds.push_back(partial);
-              trimmedCmds.push_back(Unwrap(RerecordCmdBuf(cmdid, Secondary)));
-            }
-            else if(m_LastEventID >= end)
-            {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-              RDCDEBUG("ExecuteCommands full replay %llu", cmdid);
-#endif
-              trimmedCmdIds.push_back(cmdid);
-              trimmedCmds.push_back(
-                  Unwrap(GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid)));
+              rerecordedCmds.push_back(Unwrap(cmd));
+
+              GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[rerecord].imgbarriers,
+                                                  m_ImageLayouts);
             }
             else
             {
@@ -2605,35 +2611,10 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
             eid += 1 + m_BakedCmdBufferInfo[cmdid].eventCount;
           }
 
-          if(trimmedCmds.size() > 0)
+          if(!rerecordedCmds.empty())
             ObjDisp(commandBuffer)
-                ->CmdExecuteCommands(Unwrap(commandBuffer), (uint32_t)trimmedCmds.size(),
-                                     &trimmedCmds[0]);
-
-          for(uint32_t i = 0; i < trimmedCmdIds.size(); i++)
-          {
-            ResourceId cmd = trimmedCmdIds[i];
-            GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers,
-                                                m_ImageLayouts);
-          }
-        }
-        else
-        {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-          RDCDEBUG("ExecuteCommands full replay %u >= %u", m_LastEventID,
-                   parentCmdBufInfo.curEventID + m_Partial[Primary].baseEvent);
-#endif
-
-          // execute the commands
-          ObjDisp(commandBuffer)
-              ->CmdExecuteCommands(Unwrap(commandBuffer), commandBufferCount,
-                                   UnwrapArray(pCommandBuffers, commandBufferCount));
-
-          for(uint32_t i = 0; i < commandBufferCount; i++)
-          {
-            GetResourceManager()->ApplyBarriers(
-                m_BakedCmdBufferInfo[GetResID(pCommandBuffers[i])].imgbarriers, m_ImageLayouts);
-          }
+                ->CmdExecuteCommands(Unwrap(commandBuffer), (uint32_t)rerecordedCmds.size(),
+                                     &rerecordedCmds[0]);
         }
       }
     }
@@ -2697,7 +2678,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(SerialiserType &ser,
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -2764,7 +2745,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(SerialiserType &ser,
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
@@ -2838,7 +2819,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(SerialiserType &ser,
 
     if(IsActiveReplaying(m_State))
     {
-      if(ShouldRerecordCmd(m_LastCmdBufferID) && InRerecordRange(m_LastCmdBufferID))
+      if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 

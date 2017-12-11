@@ -381,7 +381,7 @@ public:
   void ReserveExecuteIndirect(ID3D12GraphicsCommandList *list,
                               WrappedID3D12CommandSignature *comSig, UINT maxCount);
   void PatchExecuteIndirect(BakedCmdListInfo &info, uint32_t executeIndex);
-  void ReplayExecuteIndirect(ID3D12GraphicsCommandList *list, BakedCmdListInfo &info);
+  void ReplayExecuteIndirect(ID3D12GraphicsCommandList *list);
 
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, ExecuteIndirect,
                                 ID3D12CommandSignature *pCommandSignature, UINT MaxCommandCount,

@@ -1440,7 +1440,6 @@ struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
   void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
   bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) { return false; }
   void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
-  bool RecordAllCmds() { return false; }
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
     if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())

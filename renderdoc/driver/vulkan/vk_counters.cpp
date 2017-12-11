@@ -234,7 +234,6 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
   void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { PreDraw(eid, cmd); }
   bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return PostDraw(eid, cmd); }
   void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { PostRedraw(eid, cmd); }
-  bool RecordAllCmds() { return true; }
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
     m_AliasEvents.push_back(std::make_pair(primary, alias));

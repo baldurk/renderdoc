@@ -250,48 +250,15 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         RDCDEBUG("Queue Submit no replay %u == %u", m_Cmd.m_LastEventID, startEID);
 #endif
       }
-      else if(m_Cmd.m_DrawcallCallback && m_Cmd.m_DrawcallCallback->RecordAllCmds())
+      else
       {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
         RDCDEBUG("Queue Submit re-recording from %u", m_Cmd.m_RootEventID);
 #endif
 
-        vector<ID3D12CommandList *> rerecordedCmds;
-
-        for(uint32_t c = 0; c < NumCommandLists; c++)
-        {
-          ResourceId cmdId = GetResourceManager()->GetOriginalID(GetResID(ppCommandLists[c]));
-
-          ID3D12CommandList *cmd = m_Cmd.RerecordCmdList(cmdId);
-          ResourceId rerecord = GetResID(cmd);
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-          RDCDEBUG("Queue Submit fully re-recorded replay of %llu, using %llu", cmdId, rerecord);
-#endif
-          rerecordedCmds.push_back(Unwrap(cmd));
-
-          m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[rerecord].barriers);
-        }
-
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-        for(size_t i = 0; i < rerecordedCmds.size(); i++)
-        {
-          real->ExecuteCommandLists(1, &rerecordedCmds[i]);
-          m_pDevice->GPUSync();
-        }
-#else
-        real->ExecuteCommandLists((UINT)rerecordedCmds.size(), &rerecordedCmds[0]);
-#endif
-      }
-      else if(m_Cmd.m_LastEventID > startEID && m_Cmd.m_LastEventID < m_Cmd.m_RootEventID)
-      {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-        RDCDEBUG("Queue Submit partial replay %u < %u", m_Cmd.m_LastEventID, m_Cmd.m_RootEventID);
-#endif
-
         uint32_t eid = startEID;
 
-        vector<ResourceId> trimmedCmdIds;
-        vector<ID3D12CommandList *> trimmedCmds;
+        std::vector<ID3D12CommandList *> rerecordedCmds;
 
         for(uint32_t c = 0; c < NumCommandLists; c++)
         {
@@ -301,25 +268,21 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
           // so it matches up to baseEvent
           eid++;
 
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
           uint32_t end = eid + m_Cmd.m_BakedCmdListInfo[cmdId].eventCount;
+#endif
 
-          if(eid == m_Cmd.m_Partial[D3D12CommandData::Primary].baseEvent)
+          if(eid <= m_Cmd.m_LastEventID)
           {
-            ID3D12GraphicsCommandList *list = m_Cmd.RerecordCmdList(cmdId, D3D12CommandData::Primary);
-            ResourceId partial = GetResID(list);
+            ID3D12CommandList *cmd = m_Cmd.RerecordCmdList(cmdId);
+            ResourceId rerecord = GetResID(cmd);
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-            RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdId, eid, partial);
+            RDCDEBUG("Queue submit re-recorded replay of %llu, using %llu (%u -> %u <= %u)", cmdId,
+                     rerecord, eid, end, m_Cmd.m_LastEventID);
 #endif
-            trimmedCmdIds.push_back(partial);
-            trimmedCmds.push_back(Unwrap(list));
-          }
-          else if(m_Cmd.m_LastEventID >= end)
-          {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-            RDCDEBUG("Queue Submit full replay %llu", cmdId);
-#endif
-            trimmedCmdIds.push_back(cmdId);
-            trimmedCmds.push_back(Unwrap(ppCommandLists[c]));
+            rerecordedCmds.push_back(Unwrap(cmd));
+
+            m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[rerecord].barriers);
           }
           else
           {
@@ -333,51 +296,15 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
           eid += 1 + m_Cmd.m_BakedCmdListInfo[cmdId].eventCount;
         }
 
-        RDCASSERT(trimmedCmds.size() > 0);
-
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
-        for(size_t i = 0; i < trimmedCmds.size(); i++)
+        for(size_t i = 0; i < rerecordedCmds.size(); i++)
         {
-          real->ExecuteCommandLists(1, &trimmedCmds[i]);
+          real->ExecuteCommandLists(1, &rerecordedCmds[i]);
           m_pDevice->GPUSync();
         }
 #else
-        real->ExecuteCommandLists((UINT)trimmedCmds.size(), &trimmedCmds[0]);
+        real->ExecuteCommandLists((UINT)rerecordedCmds.size(), &rerecordedCmds[0]);
 #endif
-
-        for(uint32_t i = 0; i < trimmedCmdIds.size(); i++)
-        {
-          ResourceId cmd = trimmedCmdIds[i];
-          m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[cmd].barriers);
-        }
-      }
-      else
-      {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-        RDCDEBUG("Queue Submit full replay %u >= %u", m_Cmd.m_LastEventID, m_Cmd.m_RootEventID);
-#endif
-
-        ID3D12CommandList **unwrapped = new ID3D12CommandList *[NumCommandLists];
-        for(uint32_t i = 0; i < NumCommandLists; i++)
-          unwrapped[i] = Unwrap(ppCommandLists[i]);
-
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-        for(UINT i = 0; i < NumCommandLists; i++)
-        {
-          real->ExecuteCommandLists(1, &unwrapped[i]);
-          m_pDevice->GPUSync();
-        }
-#else
-        real->ExecuteCommandLists(NumCommandLists, unwrapped);
-#endif
-
-        SAFE_DELETE_ARRAY(unwrapped);
-
-        for(uint32_t i = 0; i < NumCommandLists; i++)
-        {
-          ResourceId cmd = GetResID(ppCommandLists[i]);
-          m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[cmd].barriers);
-        }
       }
     }
   }

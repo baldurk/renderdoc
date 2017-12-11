@@ -228,7 +228,6 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
   void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) { PreDraw(eid, cmd); }
   bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) { return PostDraw(eid, cmd); }
   void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) { PostRedraw(eid, cmd); }
-  bool RecordAllCmds() { return true; }
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
     m_AliasEvents.push_back(std::make_pair(primary, alias));

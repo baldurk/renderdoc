@@ -2578,8 +2578,6 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
     if(!partial)
     {
-      RDCASSERT(cmd.m_Partial[D3D12CommandData::Primary].resultPartialCmdList == NULL);
-      RDCASSERT(cmd.m_Partial[D3D12CommandData::Secondary].resultPartialCmdList == NULL);
       cmd.m_Partial[D3D12CommandData::Primary].Reset();
       cmd.m_Partial[D3D12CommandData::Secondary].Reset();
       cmd.m_RenderState = D3D12RenderState();
@@ -2592,8 +2590,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     // has chosen a subsection that lies within a command list
     if(partial)
     {
-      ID3D12GraphicsCommandList *list = cmd.m_Partial[D3D12CommandData::Primary].outsideCmdList =
-          GetNewList();
+      ID3D12GraphicsCommandList *list = cmd.m_OutsideCmdList = GetNewList();
 
       cmd.m_RenderState.ApplyState(list);
     }
@@ -2611,15 +2608,15 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
     RDCASSERTEQUAL(status, ReplayStatus::Succeeded);
 
-    if(cmd.m_Partial[D3D12CommandData::Primary].outsideCmdList != NULL)
+    if(cmd.m_OutsideCmdList != NULL)
     {
-      ID3D12GraphicsCommandList *list = cmd.m_Partial[D3D12CommandData::Primary].outsideCmdList;
+      ID3D12GraphicsCommandList *list = cmd.m_OutsideCmdList;
 
       list->Close();
 
       ExecuteLists();
 
-      cmd.m_Partial[D3D12CommandData::Primary].outsideCmdList = NULL;
+      cmd.m_OutsideCmdList = NULL;
     }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)

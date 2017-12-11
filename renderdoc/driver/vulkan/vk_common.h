@@ -74,7 +74,7 @@
 
 // uncomment this to enable validation layers on replay, useful for debugging
 // problems with new replay code
-#define FORCE_VALIDATION_LAYERS OPTION_OFF
+#define FORCE_VALIDATION_LAYERS OPTION_ON
 
 ResourceFormat MakeResourceFormat(VkFormat fmt);
 VkFormat MakeVkFormat(ResourceFormat fmt);

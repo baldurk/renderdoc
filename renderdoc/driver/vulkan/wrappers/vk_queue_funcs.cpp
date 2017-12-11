@@ -267,11 +267,14 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
           RDCDEBUG("Queue Submit no replay %u == %u", m_LastEventID, startEID);
 #endif
         }
-        else if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+        else
         {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-          RDCDEBUG("Queue Submit re-recording from %u", m_RootEventID);
+          RDCDEBUG("Queue Submit from re-recorded commands, root EID %u last EID", m_RootEventID,
+                   m_LastEventID);
 #endif
+
+          uint32_t eid = startEID;
 
           std::vector<VkCommandBuffer> rerecordedCmds;
 
@@ -280,15 +283,37 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
             ResourceId cmdId =
                 GetResourceManager()->GetOriginalID(GetResID(submitInfo.pCommandBuffers[c]));
 
-            VkCommandBuffer cmd = RerecordCmdBuf(cmdId);
-            ResourceId rerecord = GetResID(cmd);
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-            RDCDEBUG("Queue Submit fully re-recorded replay of %llu, using %llu", cmdId, rerecord);
-#endif
-            rerecordedCmds.push_back(Unwrap(cmd));
+            // account for the virtual vkBeginCommandBuffer label at the start of the events here
+            // so it matches up to baseEvent
+            eid++;
 
-            GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[rerecord].imgbarriers,
-                                                m_ImageLayouts);
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
+            uint32_t end = eid + m_BakedCmdBufferInfo[cmdId].eventCount;
+#endif
+
+            if(eid <= m_LastEventID)
+            {
+              VkCommandBuffer cmd = RerecordCmdBuf(cmdId);
+              ResourceId rerecord = GetResID(cmd);
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
+              RDCDEBUG("Queue Submit re-recorded replay of %llu, using %llu (%u -> %u <= %u)",
+                       cmdId, rerecord, eid, end, m_LastEventID);
+#endif
+              rerecordedCmds.push_back(Unwrap(cmd));
+
+              GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[rerecord].imgbarriers,
+                                                  m_ImageLayouts);
+            }
+            else
+            {
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
+              RDCDEBUG("Queue not submitting %llu", cmdId);
+#endif
+            }
+
+            // 1 extra to account for the virtual end command buffer label (begin is accounted for
+            // above)
+            eid += 1 + m_BakedCmdBufferInfo[cmdId].eventCount;
           }
 
           VkSubmitInfo rerecordedSubmit = submitInfo;
@@ -309,118 +334,6 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
           // don't submit the fence, since we have nothing to wait on it being signalled, and we
           // might not have it correctly in the unsignalled state.
           ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &rerecordedSubmit, VK_NULL_HANDLE);
-#endif
-        }
-        else if(m_LastEventID > startEID && m_LastEventID < m_RootEventID)
-        {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-          RDCDEBUG("Queue Submit partial replay %u < %u", m_LastEventID, m_RootEventID);
-#endif
-
-          uint32_t eid = startEID;
-
-          std::vector<ResourceId> trimmedCmdIds;
-          std::vector<VkCommandBuffer> trimmedCmds;
-
-          for(uint32_t c = 0; c < submitInfo.commandBufferCount; c++)
-          {
-            ResourceId cmdId =
-                GetResourceManager()->GetOriginalID(GetResID(submitInfo.pCommandBuffers[c]));
-
-            // account for the virtual vkBeginCommandBuffer label at the start of the events here
-            // so it matches up to baseEvent
-            eid++;
-
-            uint32_t end = eid + m_BakedCmdBufferInfo[cmdId].eventCount;
-
-            if(eid == m_Partial[Primary].baseEvent)
-            {
-              ResourceId partial = GetResID(RerecordCmdBuf(cmdId, Primary));
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-              RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdId, eid, partial);
-#endif
-              trimmedCmdIds.push_back(partial);
-              trimmedCmds.push_back(Unwrap(RerecordCmdBuf(cmdId, Primary)));
-            }
-            else if(m_LastEventID >= end)
-            {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-              RDCDEBUG("Queue Submit full replay %llu", cmdId);
-#endif
-              trimmedCmdIds.push_back(cmdId);
-              trimmedCmds.push_back(
-                  Unwrap(GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdId)));
-            }
-            else
-            {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-              RDCDEBUG("Queue not submitting %llu", cmdId);
-#endif
-            }
-
-            // 1 extra to account for the virtual end command buffer label (begin is accounted for
-            // above)
-            eid += 1 + m_BakedCmdBufferInfo[cmdId].eventCount;
-          }
-
-          RDCASSERT(trimmedCmds.size() > 0);
-
-          VkSubmitInfo trimmedSubmit = submitInfo;
-
-          trimmedSubmit.commandBufferCount = (uint32_t)trimmedCmds.size();
-          trimmedSubmit.pCommandBuffers = &trimmedCmds[0];
-
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-          trimmedSubmit.commandBufferCount = 1;
-          for(uint32_t i = 0; i < trimmedSubmit.commandBufferCount; i++)
-          {
-            ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &trimmedSubmit, VK_NULL_HANDLE);
-            trimmedSubmit.pCommandBuffers++;
-
-            FlushQ();
-          }
-#else
-          // don't submit the fence, since we have nothing to wait on it being signalled, and we
-          // might not have it correctly in the unsignalled state.
-          ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &trimmedSubmit, VK_NULL_HANDLE);
-#endif
-
-          for(uint32_t i = 0; i < trimmedCmdIds.size(); i++)
-          {
-            ResourceId cmd = trimmedCmdIds[i];
-            GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers,
-                                                m_ImageLayouts);
-          }
-        }
-        else
-        {
-#if ENABLED(VERBOSE_PARTIAL_REPLAY)
-          RDCDEBUG("Queue Submit full replay %u >= %u", m_LastEventID, m_RootEventID);
-#endif
-
-          VkCommandBuffer *cmds = (VkCommandBuffer *)submitInfo.pCommandBuffers;
-          for(uint32_t i = 0; i < submitInfo.commandBufferCount; i++)
-          {
-            ResourceId cmd = GetResID(submitInfo.pCommandBuffers[i]);
-            GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers,
-                                                m_ImageLayouts);
-
-            cmds[i] = Unwrap(cmds[i]);
-          }
-
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-          submitInfo.commandBufferCount = 1;
-          for(uint32_t i = 0; i < submitInfo.commandBufferCount; i++)
-          {
-            ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
-            submitInfo.pCommandBuffers++;
-
-            FlushQ();
-          }
-#else
-          // don't submit the fence, since we have nothing to wait on it being signalled, and we
-          // might not have it correctly in the unsignalled state.
-          ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
 #endif
         }
       }

@@ -90,7 +90,7 @@ StencilOp MakeStencilOp(D3D12_STENCIL_OP op);
 
 // uncomment this to get verbose debugging about when/where/why partial command
 // buffer replay is happening
-#define VERBOSE_PARTIAL_REPLAY OPTION_ON
+#define VERBOSE_PARTIAL_REPLAY OPTION_OFF
 
 ShaderStageMask ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility);
 UINT GetNumSubresources(ID3D12Device *dev, const D3D12_RESOURCE_DESC *desc);

@@ -168,11 +168,6 @@ struct VulkanDrawcallCallback
   virtual bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
   virtual void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
 
-  // should we re-record all command buffers? this needs to be true if the range
-  // being replayed is larger than one command buffer (which usually means the
-  // whole frame).
-  virtual bool RecordAllCmds() = 0;
-
   // if a command buffer is recorded once and submitted N > 1 times, then the same
   // drawcall will have several EIDs that refer to it. We'll only do the full
   // callbacks above for the first EID, then call this function for the others
@@ -500,84 +495,70 @@ private:
     bool rebased = false;
   };
 
+  // by definition, when replaying we must have N completely submitted command buffers, and at most
+  // two partially-submitted command buffers. One primary, that we're part-way through, and then
+  // if we're part-way through a vkCmdExecuteCommandBuffers inside that primary then there's one
+  // secondary.
   struct PartialReplayData
   {
     PartialReplayData() { Reset(); }
     void Reset()
     {
-      resultPartialCmdPool = VK_NULL_HANDLE;
-      resultPartialCmdBuffer = VK_NULL_HANDLE;
-      partialDevice = VK_NULL_HANDLE;
-      outsideCmdBuffer = VK_NULL_HANDLE;
       partialParent = ResourceId();
       baseEvent = 0;
       renderPassActive = false;
     }
 
-    // if we're doing a partial replay, by definition only one command
-    // buffer will be partial at any one time. While replaying through
-    // the command buffer chunks, the partial command buffer will be
-    // created as a temporary new command buffer and when it comes to
-    // the queue that should submit it, it can submit this instead.
-    VkCommandPool resultPartialCmdPool;
-    VkCommandBuffer resultPartialCmdBuffer;
-    VkDevice partialDevice;    // device for above cmd buffer
-
-    // if we're replaying just a single draw or a particular command
-    // buffer subsection of command events, we don't go through the
-    // whole original command buffers to set up the partial replay,
-    // so we just set this command buffer
-    VkCommandBuffer outsideCmdBuffer;
-
-    // this records where in the frame a command buffer was submitted,
-    // so that we know if our replay range ends in one of these ranges
-    // we need to construct a partial command buffer for future
-    // replaying. Note that we always have the complete command buffer
-    // around - it's the bakeID itself.
-    // Since we only ever record a bakeID once the key is unique - note
-    // that the same command buffer could be recorded multiple times
-    // a frame, so the parent command buffer ID (the one recorded in
-    // vkCmd chunks) is NOT unique.
-    // However, a single baked command list can be submitted multiple
-    // times - so we have to have a list of base events
-    // Note in the case of secondary command buffers we mark when these
-    // are rebased to 'absolute' event IDs, since they could be submitted
-    // multiple times in the frame and we don't want to rebase all of
-    // them each time.
+    // this records where in the frame a command buffer was submitted, so that we know if our replay
+    // range ends in one of these ranges we need to construct a partial command buffer for future
+    // replaying. Note that we always have the complete command buffer around - it's the bakeID
+    // itself.
+    // Since we only ever record a bakeID once the key is unique - note that the same command buffer
+    // could be recorded multiple times a frame, so the parent command buffer ID (the one recorded
+    // in vkCmd chunks) is NOT unique.
+    // However, a single baked command list can be submitted multiple times - so we have to have a
+    // list of base events
+    // Note in the case of secondary command buffers we mark when these are rebased to 'absolute'
+    // event IDs, since they could be submitted multiple times in the frame and we don't want to
+    // rebase all of them each time.
     // Map from bakeID -> vector<Submission>
-    map<ResourceId, vector<Submission> > cmdBufferSubmits;
+    std::map<ResourceId, std::vector<Submission> > cmdBufferSubmits;
 
-    // This is just the ResourceId of the original parent command buffer
-    // and it's baked id.
-    // If we are in the middle of a partial replay - allows fast checking
-    // in all vkCmd chunks, with the iteration through the above list
-    // only in vkBegin.
-    // partialParent gets reset to ResourceId() in the vkEnd so that
-    // other baked command buffers from the same parent don't pick it up
-    // Also reset each overall replay
+    // identifies the baked ID of the command buffer that's actually partial at each level.
     ResourceId partialParent;
 
-    // If a partial replay is detected, this records the base of the
-    // range. This both allows easily and uniquely identifying it in the
-    // queuesubmit, but also allows the recording to 'rebase' the last
-    // event ID by subtracting this, to know how far to record
+    // the base even of the submission that's partial, as defined above in partialParent
     uint32_t baseEvent;
 
-    // If we're doing a partial record this bool tells us when we
-    // reach the vkEndCommandBuffer that we also need to end a render
-    // pass.
+    // whether a renderpass is currently active in the partial recording - as with baseEvent, only
+    // valid for the command buffer referred to by partialParent.
     bool renderPassActive;
   } m_Partial[ePartialNum];
 
-  map<ResourceId, VkCommandBuffer> m_RerecordCmds;
+  // if we're replaying just a single draw or a particular command
+  // buffer subsection of command events, we don't go through the
+  // whole original command buffers to set up the partial replay,
+  // so we just set this command buffer
+  VkCommandBuffer m_OutsideCmdBuffer = VK_NULL_HANDLE;
+
+  // stores the currently re-recording command buffer for any original command buffer ID (not bake
+  // ID). This allows a quick check to see if an original command should be recorded, and also to
+  // fetch the command buffer to record into.
+  std::map<ResourceId, VkCommandBuffer> m_RerecordCmds;
+
+  // we store the list here, since we need to keep all command buffers until the whole replay is
+  // finished, but if a command buffer is re-recorded multiple times it would be overwritten in the
+  // above map
+  std::vector<VkCommandBuffer> m_RerecordCmdList;
 
   // There is only a state while currently partially replaying, it's
   // undefined/empty otherwise.
   // All IDs are original IDs, not live.
   VulkanRenderState m_RenderState;
 
-  bool ShouldRerecordCmd(ResourceId cmdid);
   bool InRerecordRange(ResourceId cmdid);
+  bool HasRerecordCmdBuf(ResourceId cmdid);
+  bool IsPartialCmdBuf(ResourceId cmdid);
   VkCommandBuffer RerecordCmdBuf(ResourceId cmdid, PartialReplayIndex partialType = ePartialNum);
 
   // this info is stored in the record on capture, but we
