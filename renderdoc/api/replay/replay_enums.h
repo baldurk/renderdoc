@@ -3494,12 +3494,6 @@ DOCUMENT(R"(A set of flags giving details of the current status of Android traca
   The RenderDoc library (whether Vulkan layer or OpenGLES library) could not be found in the
   application or system locations.
 
-.. data:: MissingPermissions
-
-  The application being checked does not have the requesite permission:
-
-  android.permission.INTERNET
-
 .. data:: NotDebuggable
 
   The application is not debuggable.
@@ -3516,10 +3510,9 @@ enum class AndroidFlags : uint32_t
 {
   NoFlags = 0x0,
   MissingLibrary = 0x1,
-  MissingPermissions = 0x2,
-  NotDebuggable = 0x4,
-  RootAccess = 0x8,
-  Unfixable = 0x10,
+  NotDebuggable = 0x2,
+  RootAccess = 0x4,
+  Unfixable = 0x8,
 };
 
 BITMASK_OPERATORS(AndroidFlags);

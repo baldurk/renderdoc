@@ -197,6 +197,7 @@ if(ANDROID)
         os/posix/android/android_process.cpp
         os/posix/android/android_threading.cpp
         os/posix/android/android_hook.cpp
+        os/posix/android/android_network.cpp
         os/posix/posix_hook.h
         os/posix/posix_network.cpp
         os/posix/posix_process.cpp
@@ -214,6 +215,7 @@ elseif(APPLE)
         os/posix/apple/apple_process.cpp
         os/posix/apple/apple_threading.cpp
         os/posix/apple/apple_hook.cpp
+        os/posix/apple/apple_network.cpp
         os/posix/posix_hook.h
         os/posix/posix_network.cpp
         os/posix/posix_process.cpp
@@ -231,6 +233,7 @@ elseif(UNIX)
         os/posix/linux/linux_process.cpp
         os/posix/linux/linux_threading.cpp
         os/posix/linux/linux_hook.cpp
+        os/posix/linux/linux_network.cpp
         3rdparty/plthook/plthook.h
         3rdparty/plthook/plthook_elf.c
         os/posix/posix_hook.h

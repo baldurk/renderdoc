@@ -37,6 +37,9 @@
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
+// defined in foo/foo_network.cpp
+Network::Socket *CreateServerSocket(const char *, uint16_t, int);
+
 using std::string;
 
 // because strerror_r is a complete mess...
@@ -102,6 +105,9 @@ uint32_t Socket::GetRemoteIP() const
   socklen_t len = sizeof(addr);
 
   getpeername((int)socket, (sockaddr *)&addr, &len);
+
+ if (addr.sin_family == AF_UNIX)
+    return Network::MakeIP(127, 0, 0, 1);
 
   return ntohl(addr.sin_addr.s_addr);
 }
@@ -315,47 +321,6 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
   RDCASSERT(received == length);
 
   return true;
-}
-
-Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
-{
-  int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  int yes = 1;
-  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
-
-  if(s == -1)
-    return NULL;
-
-  sockaddr_in addr;
-  RDCEraseEl(addr);
-
-  hostent *hp = gethostbyname(bindaddr);
-
-  addr.sin_family = AF_INET;
-  memcpy(&addr.sin_addr, hp->h_addr, hp->h_length);
-  addr.sin_port = htons(port);
-
-  int result = bind(s, (sockaddr *)&addr, sizeof(addr));
-  if(result == -1)
-  {
-    RDCWARN("Failed to bind to %s:%d - %d", bindaddr, port, errno);
-    close(s);
-    return NULL;
-  }
-
-  result = listen(s, queuesize);
-  if(result == -1)
-  {
-    RDCWARN("Failed to listen on %s:%d - %d", bindaddr, port, errno);
-    close(s);
-    return NULL;
-  }
-
-  int flags = fcntl(s, F_GETFL, 0);
-  fcntl(s, F_SETFL, flags | O_NONBLOCK);
-
-  return new Socket((ptrdiff_t)s);
 }
 
 Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)

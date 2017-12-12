@@ -113,11 +113,12 @@ string adbGetDeviceList()
 void adbForwardPorts(int index, const std::string &deviceID)
 {
   int offs = RenderDoc_AndroidPortOffset * (index + 1);
+
   adbExecCommand(deviceID,
-                 StringFormat::Fmt("forward tcp:%i tcp:%i", RenderDoc_RemoteServerPort + offs,
+                 StringFormat::Fmt("forward tcp:%i localabstract:/renderdoc/%i", RenderDoc_RemoteServerPort + offs,
                                    RenderDoc_RemoteServerPort));
   adbExecCommand(deviceID,
-                 StringFormat::Fmt("forward tcp:%i tcp:%i", RenderDoc_FirstTargetControlPort + offs,
+                 StringFormat::Fmt("forward tcp:%i localabstract:/renderdoc/%i", RenderDoc_FirstTargetControlPort + offs,
                                    RenderDoc_FirstTargetControlPort));
 }
 uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
@@ -428,31 +429,6 @@ bool PullAPK(const string &deviceID, const string &pkgPath, const string &apk)
   return false;
 }
 
-bool CheckPermissions(const string &dump)
-{
-  if(dump.find("android.permission.INTERNET") == string::npos)
-  {
-    RDCWARN("APK missing INTERNET permission");
-    return false;
-  }
-
-  return true;
-}
-
-bool CheckAPKPermissions(const string &apk)
-{
-  RDCLOG("Checking that APK can be can write to sdcard");
-
-  string badging = execCommand("aapt", "dump badging " + apk).strStdout;
-
-  if(badging.empty())
-  {
-    RDCERR("Unable to aapt dump %s", apk.c_str());
-    return false;
-  }
-
-  return CheckPermissions(badging);
-}
 bool CheckDebuggable(const string &apk)
 {
   RDCLOG("Checking that APK s debuggable");
@@ -661,17 +637,6 @@ bool CheckAndroidServerVersion(const string &deviceID)
     RDCLOG("Uninstall of incompatible server succeeded");
 
   return false;
-}
-
-bool CheckInstalledPermissions(const string &deviceID, const string &packageName)
-{
-  RDCLOG("Checking installed permissions for %s", packageName.c_str());
-
-  string dump = adbExecCommand(deviceID, "shell pm dump " + packageName).strStdout;
-  if(dump.empty())
-    RDCERR("Unable to pm dump %s", packageName.c_str());
-
-  return CheckPermissions(dump);
 }
 
 bool CheckRootAccess(const string &deviceID)
@@ -926,13 +891,6 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(const c
     *flags |= AndroidFlags::MissingLibrary;
   }
 
-  // Next check permissions of the installed application (without pulling the APK)
-  if(!CheckInstalledPermissions(deviceID, packageName))
-  {
-    RDCWARN("Android application does not have required permissions");
-    *flags |= AndroidFlags::MissingPermissions;
-  }
-
   if(CheckRootAccess(deviceID))
   {
     RDCLOG("Root access detected");
@@ -1022,35 +980,30 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_AddLayerToAndroidPackage(co
 
   *progress = 0.31f;
 
-  if(!CheckAPKPermissions(origAPK))
+  if(!RemoveAPKSignature(origAPK))
     return false;
 
   *progress = 0.41f;
 
-  if(!RemoveAPKSignature(origAPK))
+  if(!AddLayerToAPK(origAPK, layerPath, layerName, abi, tmpDir))
     return false;
 
   *progress = 0.51f;
 
-  if(!AddLayerToAPK(origAPK, layerPath, layerName, abi, tmpDir))
+  if(!RealignAPK(origAPK, alignedAPK, tmpDir))
     return false;
 
   *progress = 0.61f;
 
-  if(!RealignAPK(origAPK, alignedAPK, tmpDir))
+  if(!DebugSignAPK(alignedAPK, tmpDir))
     return false;
 
   *progress = 0.71f;
 
-  if(!DebugSignAPK(alignedAPK, tmpDir))
-    return false;
-
-  *progress = 0.81f;
-
   if(!UninstallOriginalAPK(deviceID, packageName, tmpDir))
     return false;
 
-  *progress = 0.91f;
+  *progress = 0.81f;
 
   if(!ReinstallPatchedAPK(deviceID, alignedAPK, abi, packageName, tmpDir))
     return false;

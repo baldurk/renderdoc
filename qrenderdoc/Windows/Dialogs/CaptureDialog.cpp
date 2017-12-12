@@ -429,9 +429,8 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
     RENDERDOC_CheckAndroidPackage(hostnameBytes.data(), filename.toUtf8().data(), &m_AndroidFlags);
 
     const bool missingLibrary = bool(m_AndroidFlags & AndroidFlags::MissingLibrary);
-    const bool missingPermissions = bool(m_AndroidFlags & AndroidFlags::MissingPermissions);
 
-    if(missingLibrary || missingPermissions)
+    if(missingLibrary)
     {
       // Check failed - set the warning visible
       GUIInvoke::call([this]() {
@@ -461,17 +460,8 @@ void CaptureDialog::androidWarn_mouseClick()
 
   QString msg = tr("In order to debug on Android, the following problems must be fixed:<br><br>");
 
-  bool missingPermissions = bool(m_AndroidFlags & AndroidFlags::MissingPermissions);
   bool missingLibrary = bool(m_AndroidFlags & AndroidFlags::MissingLibrary);
   bool rootAccess = bool(m_AndroidFlags & AndroidFlags::RootAccess);
-
-  if(missingPermissions)
-  {
-    msg +=
-        tr("<b>Missing permissions</b><br>"
-           "The target APK must have the following permissions:<br>"
-           "android.permission.INTERNET<br><br>");
-  }
 
   if(missingLibrary)
   {
@@ -479,13 +469,6 @@ void CaptureDialog::androidWarn_mouseClick()
         tr("<b>Missing library</b><br>"
            "The RenderDoc library must be present in the "
            "installed application.<br><br>");
-  }
-
-  if(missingPermissions)
-  {
-    // Don't prompt for patching if permissions are wrong - we can't fix that
-    RDDialog::critical(this, caption, msg);
-    return;
   }
 
   // Track whether we tried to push layer directly, to influence text
