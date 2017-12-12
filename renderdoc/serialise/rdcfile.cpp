@@ -260,7 +260,7 @@ void RDCFile::Open(const char *path)
   RDCCOMPILE_ASSERT(offsetof(BinarySectionHeader, name) == sizeof(uint32_t) * 10,
                     "BinarySectionHeader size has changed or contains padding");
 
-  m_File = FileIO::fopen(path, "r+b");
+  m_File = FileIO::fopen(path, "rb");
   m_Filename = path;
 
   if(!m_File)
@@ -615,7 +615,7 @@ bool RDCFile::CopyFileTo(const char *filename)
     m_Filename = filename;
 
   // re-open the file (either the new one, or the old one if it failed) and re-seek
-  m_File = FileIO::fopen(m_Filename.c_str(), "r+b");
+  m_File = FileIO::fopen(m_Filename.c_str(), "rb");
   FileIO::fseek64(m_File, prevPos, SEEK_SET);
 
   return success;
@@ -640,7 +640,8 @@ void RDCFile::SetData(RDCDriver driver, const char *driverName, uint64_t machine
 
 void RDCFile::Create(const char *filename)
 {
-  m_File = FileIO::fopen(filename, "w+b");
+  m_File = FileIO::fopen(filename, "wb");
+  m_Filename = filename;
 
   RDCDEBUG("creating RDC file.");
 
@@ -668,22 +669,29 @@ void RDCFile::Create(const char *filename)
   header.headerLength = sizeof(FileHeader) + offsetof(BinaryThumbnail, data) + thumbHeader.length +
                         offsetof(CaptureMetaData, driverName) + meta.driverNameLength;
 
-  StreamWriter writer(m_File, Ownership::Nothing);
-
-  writer.Write(header);
-  writer.Write(&thumbHeader, offsetof(BinaryThumbnail, data));
-
-  if(thumbHeader.length > 0)
-    writer.Write(m_Thumb.pixels, thumbHeader.length);
-
-  writer.Write(&meta, offsetof(CaptureMetaData, driverName));
-
-  writer.Write(m_DriverName.c_str(), meta.driverNameLength);
-
-  if(writer.IsErrored())
   {
-    RETURNERROR(ContainerError::FileIO, "Error writing file header");
+    StreamWriter writer(m_File, Ownership::Nothing);
+
+    writer.Write(header);
+    writer.Write(&thumbHeader, offsetof(BinaryThumbnail, data));
+
+    if(thumbHeader.length > 0)
+      writer.Write(m_Thumb.pixels, thumbHeader.length);
+
+    writer.Write(&meta, offsetof(CaptureMetaData, driverName));
+
+    writer.Write(m_DriverName.c_str(), meta.driverNameLength);
+
+    if(writer.IsErrored())
+    {
+      RETURNERROR(ContainerError::FileIO, "Error writing file header");
+    }
   }
+
+  // re-open as read-only now.
+  FileIO::fclose(m_File);
+  m_File = FileIO::fopen(filename, "rb");
+  FileIO::fseek64(m_File, 0, SEEK_END);
 }
 
 int RDCFile::SectionIndex(SectionType type) const
@@ -770,6 +778,24 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
     });
 
     return w;
+  }
+
+  // re-open the file as read-write
+  {
+    uint64_t offs = FileIO::ftell64(m_File);
+    FileIO::fclose(m_File);
+    m_File = FileIO::fopen(m_Filename.c_str(), "r+b");
+
+    if(m_File == NULL)
+    {
+      RDCERR("Couldn't re-open file as read/write to write section.");
+      m_File = FileIO::fopen(m_Filename.c_str(), "rb");
+      if(m_File)
+        FileIO::fseek64(m_File, offs, SEEK_SET);
+      return new StreamWriter(StreamWriter::InvalidStream);
+    }
+
+    FileIO::fseek64(m_File, offs, SEEK_SET);
   }
 
   if(m_Sections.empty() && props.type != SectionType::FrameCapture)
@@ -1098,6 +1124,17 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
 
   if(modifySectionCallback)
     fileWriter->AddCloseCallback(modifySectionCallback);
+
+  // finally once we're done, re-open the file as read-only again
+  fileWriter->AddCloseCallback([this]() {
+    // remember our position and close the file
+    uint64_t prevPos = FileIO::ftell64(m_File);
+    FileIO::fclose(m_File);
+
+    // re-open the file and re-seek
+    m_File = FileIO::fopen(m_Filename.c_str(), "rb");
+    FileIO::fseek64(m_File, prevPos, SEEK_SET);
+  });
 
   // if we're compressing return that writer, otherwise return the file writer directly
   return compWriter ? compWriter : fileWriter;
