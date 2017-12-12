@@ -161,7 +161,7 @@ public:
       m_StructuredData.buffers.push_back(new bytebuf(*buf));
   }
 
-  bytebuf GetThumbnail(FileType type, uint32_t maxsize);
+  Thumbnail GetThumbnail(FileType type, uint32_t maxsize);
 
   // ICaptureAccess
 
@@ -481,12 +481,13 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, fl
   return ReplayStatus::Succeeded;
 }
 
-bytebuf CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
+Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
 {
-  bytebuf buf;
+  Thumbnail ret;
+  ret.type = type;
 
   if(m_RDC == NULL)
-    return buf;
+    return ret;
 
   const RDCThumb &thumb = m_RDC->GetThumbnail();
 
@@ -495,7 +496,9 @@ bytebuf CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
   uint32_t thumbwidth = thumb.width, thumbheight = thumb.height;
 
   if(jpgbuf == NULL)
-    return buf;
+    return ret;
+
+  bytebuf buf;
 
   // if the desired output is jpg and either there's no max size or it's already satisfied,
   // return the data directly
@@ -546,6 +549,11 @@ bytebuf CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
 
     switch(type)
     {
+      case FileType::Raw:
+      {
+        encodedBytes.assign(thumbpixels, thumbpixels + (thumbwidth * thumbheight * 3));
+        break;
+      }
       case FileType::JPG:
       {
         int len = thumbwidth * thumbheight * 3;
@@ -579,7 +587,7 @@ bytebuf CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
       {
         RDCERR("Unsupported file type %d in thumbnail fetch", type);
         free(thumbpixels);
-        return buf;
+        return ret;
       }
     }
 
@@ -588,7 +596,11 @@ bytebuf CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
     free(thumbpixels);
   }
 
-  return buf;
+  ret.bytes.swap(buf);
+  ret.width = thumbwidth;
+  ret.height = thumbheight;
+
+  return ret;
 }
 
 int CaptureFile::FindSectionByName(const char *name)

@@ -1515,9 +1515,9 @@ The data is copied internally so it can be destroyed after calling this function
 :param int maxsize: The largest width or height allowed. If the thumbnail is larger, it's resized.
 :return: The raw contents of the thumbnail, converted to the desired type at the desired max
   resolution.
-:rtype: ``bytes``.
+:rtype: Thumbnail.
   )");
-  virtual bytebuf GetThumbnail(FileType type, uint32_t maxsize) = 0;
+  virtual Thumbnail GetThumbnail(FileType type, uint32_t maxsize) = 0;
 
 protected:
   ICaptureFile() = default;

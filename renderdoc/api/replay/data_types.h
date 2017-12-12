@@ -1180,3 +1180,21 @@ pixel.
 };
 
 DECLARE_REFLECTION_STRUCT(PixelModification);
+
+DOCUMENT("Contains the bytes and metadata describing a thumbnail.");
+struct Thumbnail
+{
+  DOCUMENT("The :class:`FileType` of the data in the thumbnail.");
+  FileType type;
+
+  DOCUMENT("The ``bytes`` byte array containing the raw data.");
+  bytebuf bytes;
+
+  DOCUMENT("The width of the thumbnail image.");
+  uint32_t width;
+
+  DOCUMENT("The height of the thumbnail image.");
+  uint32_t height;
+};
+
+DECLARE_REFLECTION_STRUCT(Thumbnail);
