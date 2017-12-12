@@ -27,7 +27,6 @@
 #include "api/replay/version.h"
 #include "core/core.h"
 #include "strings/string_utils.h"
-#include "core/net_cfg.h"
 
 namespace Android
 {
@@ -115,22 +114,12 @@ void adbForwardPorts(int index, const std::string &deviceID)
 {
   int offs = RenderDoc_AndroidPortOffset * (index + 1);
 
-#ifdef ANDROID_ABSTRACT_SOCKET
   adbExecCommand(deviceID,
                  StringFormat::Fmt("forward tcp:%i localabstract:/renderdoc/%i", RenderDoc_RemoteServerPort + offs,
                                    RenderDoc_RemoteServerPort));
   adbExecCommand(deviceID,
                  StringFormat::Fmt("forward tcp:%i localabstract:/renderdoc/%i", RenderDoc_FirstTargetControlPort + offs,
                                    RenderDoc_FirstTargetControlPort));
-#else
-   adbExecCommand(deviceID,
-                  StringFormat::Fmt("forward tcp:%i tcp:%i", RenderDoc_RemoteServerPort + offs,
-                                    RenderDoc_RemoteServerPort));
-   adbExecCommand(deviceID,
-                  StringFormat::Fmt("forward tcp:%i tcp:%i", RenderDoc_FirstTargetControlPort + offs,
-                                    RenderDoc_FirstTargetControlPort));
-
-#endif
 }
 uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
 {

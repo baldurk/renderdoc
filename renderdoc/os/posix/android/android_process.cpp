@@ -24,7 +24,6 @@
 
 #include <unistd.h>
 #include "os/os_specific.h"
-#include "core/net_cfg.h"
 
 extern char **environ;
 
@@ -35,17 +34,9 @@ char **GetCurrentEnvironment()
 
 int GetIdentPort(pid_t childPid)
 {
-  const char *net_target =
-#ifdef ANDROID_ABSTRACT_SOCKET
-    "unix"
-#else
-    "tcp"
-#endif
-    ;
-
   int ret = 0;
 
-  string procfile = StringFormat::Fmt("/proc/%d/net/%s", (int)childPid, net_target);
+  string procfile = StringFormat::Fmt("/proc/%d/net/unix", (int)childPid);
 
   // try for a little while for the /proc entry to appear
   for(int retry = 0; retry < 10; retry++)
@@ -69,7 +60,6 @@ int GetIdentPort(pid_t childPid)
       line[sz - 1] = 0;
       fgets(line, sz - 1, f);
 
-#ifdef ANDROID_ABSTRACT_SOCKET
       int port = 0;
       char* startpos = strstr(line, "@/renderdoc/");
 
@@ -88,18 +78,6 @@ int GetIdentPort(pid_t childPid)
         ret = port;
         break;
       }
-#else
-      int socketnum = 0, hexip = 0, hexport = 0;
-      int num = sscanf(line, " %d: %x:%x", &socketnum, &hexip, &hexport);
-
-      // find open listen socket on 0.0.0.0:port
-      if(num == 3 && hexip == 0 && hexport >= RenderDoc_FirstTargetControlPort &&
-         hexport <= RenderDoc_LastTargetControlPort)
-      {
-        ret = hexport;
-        break;
-      }
-#endif
     }
 
     FileIO::fclose(f);

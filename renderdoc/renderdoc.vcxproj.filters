@@ -467,10 +467,16 @@
     <ClCompile Include="os\posix\android\android_stringio.cpp">
       <Filter>OS\Posix\Android</Filter>
     </ClCompile>
+    <ClCompile Include="os\posix\android\android_network.cpp">
+      <Filter>OS\Posix\Android</Filter>
+    </ClCompile>
     <ClCompile Include="os\posix\linux\linux_callstack.cpp">
       <Filter>OS\Posix\Linux</Filter>
     </ClCompile>
     <ClCompile Include="os\posix\linux\linux_stringio.cpp">
+      <Filter>OS\Posix\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_network.cpp">
       <Filter>OS\Posix\Linux</Filter>
     </ClCompile>
     <ClCompile Include="os\posix\posix_libentry.cpp">
@@ -495,6 +501,9 @@
       <Filter>OS\Posix\Apple</Filter>
     </ClCompile>
     <ClCompile Include="os\posix\apple\apple_stringio.cpp">
+      <Filter>OS\Posix\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_network.cpp">
       <Filter>OS\Posix\Apple</Filter>
     </ClCompile>
     <ClCompile Include="os\posix\apple\apple_threading.cpp">
