@@ -36,7 +36,7 @@ int GetIdentPort(pid_t childPid)
 {
   int ret = 0;
 
-  string procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
+  string procfile = StringFormat::Fmt("/proc/%d/net/unix", (int)childPid);
 
   // try for a little while for the /proc entry to appear
   for(int retry = 0; retry < 10; retry++)
@@ -60,19 +60,36 @@ int GetIdentPort(pid_t childPid)
       line[sz - 1] = 0;
       fgets(line, sz - 1, f);
 
-      int socketnum = 0, hexip = 0, hexport = 0;
-      int num = sscanf(line, " %d: %x:%x", &socketnum, &hexip, &hexport);
+      int port = 0;
+      char *startpos = strstr(line, "@renderdoc_");
 
-      // find open listen socket on 0.0.0.0:port
-      if(num == 3 && hexip == 0 && hexport >= RenderDoc_FirstTargetControlPort &&
-         hexport <= RenderDoc_LastTargetControlPort)
+      if(startpos == NULL)
       {
-        ret = hexport;
+        // This is not the line we are looking for, continue the processing.
+        continue;
+      }
+
+      int num = sscanf(startpos, "@renderdoc_%d", &port);
+
+      // find open listen abstract socket on 'renderdoc_<port>'
+      if(num == 1 && port >= RenderDoc_FirstTargetControlPort &&
+         port <= RenderDoc_LastTargetControlPort)
+      {
+        ret = port;
         break;
       }
     }
 
     FileIO::fclose(f);
+  }
+
+  if(ret == 0)
+  {
+    RDCWARN(
+        "Couldn't locate renderdoc target control listening port between @renderdoc_%u and "
+        "@renderdoc_%u in %s",
+        (uint32_t)RenderDoc_FirstTargetControlPort, (uint32_t)RenderDoc_LastTargetControlPort,
+        procfile.c_str());
   }
 
   return ret;

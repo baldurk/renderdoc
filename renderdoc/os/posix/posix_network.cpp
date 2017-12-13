@@ -32,10 +32,13 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <unistd.h>
 #include <string>
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
+
+#include "posix_network.h"
 
 using std::string;
 
@@ -94,16 +97,6 @@ void Socket::Shutdown()
 bool Socket::Connected() const
 {
   return (int)socket != -1;
-}
-
-uint32_t Socket::GetRemoteIP() const
-{
-  sockaddr_in addr = {};
-  socklen_t len = sizeof(addr);
-
-  getpeername((int)socket, (sockaddr *)&addr, &len);
-
-  return ntohl(addr.sin_addr.s_addr);
 }
 
 Socket *Socket::AcceptClient(bool wait)
@@ -317,7 +310,17 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
   return true;
 }
 
-Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
+uint32_t GetIPFromTCPSocket(int socket)
+{
+  sockaddr_in addr = {};
+  socklen_t len = sizeof(addr);
+
+  getpeername(socket, (sockaddr *)&addr, &len);
+
+  return ntohl(addr.sin_addr.s_addr);
+}
+
+Socket *CreateTCPServerSocket(const char *bindaddr, uint16_t port, int queuesize)
 {
   int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -348,6 +351,50 @@ Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
   if(result == -1)
   {
     RDCWARN("Failed to listen on %s:%d - %d", bindaddr, port, errno);
+    close(s);
+    return NULL;
+  }
+
+  int flags = fcntl(s, F_GETFL, 0);
+  fcntl(s, F_SETFL, flags | O_NONBLOCK);
+
+  return new Socket((ptrdiff_t)s);
+}
+
+Socket *CreateAbstractServerSocket(uint16_t port, int queuesize)
+{
+  char socketName[17] = {0};
+  StringFormat::snprintf(socketName, 16, "renderdoc_%d", port);
+  int socketNameLength = strlen(socketName);
+  int s = socket(AF_UNIX, SOCK_STREAM, 0);
+
+  if(s == -1)
+  {
+    RDCWARN("Unable to create unix socket");
+    return NULL;
+  }
+
+  sockaddr_un addr;
+  RDCEraseEl(addr);
+
+  addr.sun_family = AF_UNIX;
+  // first char is '\0'
+  addr.sun_path[0] = '\0';
+  strncpy(addr.sun_path + 1, socketName, socketNameLength);
+
+  int result = bind(s, (sockaddr *)&addr, offsetof(sockaddr_un, sun_path) + 1 + socketNameLength);
+  if(result == -1)
+  {
+    RDCWARN("Failed to create abstract socket: %s", socketName);
+    close(s);
+    return NULL;
+  }
+  RDCLOG("Created and bind socket: %d", s);
+
+  result = listen(s, queuesize);
+  if(result == -1)
+  {
+    RDCWARN("Failed to listen on %s", socketName);
     close(s);
     return NULL;
   }

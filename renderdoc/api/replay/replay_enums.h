@@ -3501,9 +3501,8 @@ DOCUMENT(R"(A set of flags giving details of the current status of Android traca
 
 .. data:: MissingPermissions
 
-  The application being checked does not have the requesite permission:
-
-  android.permission.INTERNET
+  The application being checked does not have the requesite permission. Currently there
+  are no required permissions.
 
 .. data:: NotDebuggable
 
