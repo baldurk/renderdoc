@@ -189,7 +189,7 @@ foreach(in ${swig_interfaces})
     get_filename_component(swig_file ${in} NAME_WE)
 
     add_custom_command(OUTPUT ${swig_file}_python.cxx ${swig_file}.py
-            COMMAND ${CMAKE_BINARY_DIR}/bin/swig -v -Wextra -Werror -O -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I${CMAKE_CURRENT_SOURCE_DIR} -I${CMAKE_SOURCE_DIR}/renderdoc/api/replay -outdir ${CMAKE_CURRENT_BINARY_DIR} -o ${CMAKE_CURRENT_BINARY_DIR}/${swig_file}_python.cxx ${CMAKE_CURRENT_SOURCE_DIR}/${in}
+            COMMAND ${CMAKE_BINARY_DIR}/bin/swig -v -Wextra -Werror -DSWIGWORDSIZE64 -O -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I${CMAKE_CURRENT_SOURCE_DIR} -I${CMAKE_SOURCE_DIR}/renderdoc/api/replay -outdir ${CMAKE_CURRENT_BINARY_DIR} -o ${CMAKE_CURRENT_BINARY_DIR}/${swig_file}_python.cxx ${CMAKE_CURRENT_SOURCE_DIR}/${in}
             DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${in}
             DEPENDS custom_swig
             DEPENDS ${RDOC_REPLAY_FILES}
