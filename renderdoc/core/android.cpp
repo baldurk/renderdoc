@@ -112,13 +112,13 @@ string adbGetDeviceList()
 }
 void adbForwardPorts(int index, const std::string &deviceID)
 {
+  const char *forwardCommand = "forward tcp:%i localabstract:renderdoc_%i";
   int offs = RenderDoc_AndroidPortOffset * (index + 1);
-  adbExecCommand(deviceID,
-                 StringFormat::Fmt("forward tcp:%i tcp:%i", RenderDoc_RemoteServerPort + offs,
-                                   RenderDoc_RemoteServerPort));
-  adbExecCommand(deviceID,
-                 StringFormat::Fmt("forward tcp:%i tcp:%i", RenderDoc_FirstTargetControlPort + offs,
-                                   RenderDoc_FirstTargetControlPort));
+
+  adbExecCommand(deviceID, StringFormat::Fmt(forwardCommand, RenderDoc_RemoteServerPort + offs,
+                                             RenderDoc_RemoteServerPort));
+  adbExecCommand(deviceID, StringFormat::Fmt(forwardCommand, RenderDoc_FirstTargetControlPort + offs,
+                                             RenderDoc_FirstTargetControlPort));
 }
 uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
 {
@@ -430,12 +430,7 @@ bool PullAPK(const string &deviceID, const string &pkgPath, const string &apk)
 
 bool CheckPermissions(const string &dump)
 {
-  if(dump.find("android.permission.INTERNET") == string::npos)
-  {
-    RDCWARN("APK missing INTERNET permission");
-    return false;
-  }
-
+  // TODO: remove this if we are sure that there are no permissions to check.
   return true;
 }
 
