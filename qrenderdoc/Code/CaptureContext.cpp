@@ -103,7 +103,7 @@ bool CaptureContext::isRunning()
   return m_MainWindow && m_MainWindow->isVisible();
 }
 
-QString CaptureContext::TempCaptureFilename(QString appname)
+rdcstr CaptureContext::TempCaptureFilename(const rdcstr &appname)
 {
   QString folder = Config().TemporaryCaptureDirectory;
 
@@ -124,7 +124,7 @@ QString CaptureContext::TempCaptureFilename(QString appname)
           .arg(QDateTime::currentDateTimeUtc().toString(lit("yyyy.MM.dd_HH.mm.ss"))));
 }
 
-void CaptureContext::LoadCapture(const QString &captureFile, const QString &origFilename,
+void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFilename,
                                  bool temporary, bool local)
 {
   m_LoadInProgress = true;
@@ -160,7 +160,7 @@ void CaptureContext::LoadCapture(const QString &captureFile, const QString &orig
 
     m_CaptureMods = CaptureModifications::NoModifications;
 
-    QVector<ICaptureViewer *> viewers(m_CaptureViewers);
+    rdcarray<ICaptureViewer *> viewers(m_CaptureViewers);
 
     // make sure we're on a consistent event before invoking viewer forms
     if(m_LastDrawcall)
@@ -691,7 +691,7 @@ void CaptureContext::RecompressCapture()
     QFile::rename(destFilename, GetCaptureFilename());
 
     // and re-open
-    cap->OpenFile(GetCaptureFilename().toUtf8().data(), "rdc");
+    cap->OpenFile(GetCaptureFilename().c_str(), "rdc");
   }
   else
   {
@@ -717,7 +717,7 @@ void CaptureContext::RecompressCapture()
     QFile::remove(tempFilename);
 }
 
-bool CaptureContext::SaveCaptureTo(const QString &captureFile)
+bool CaptureContext::SaveCaptureTo(const rdcstr &captureFile)
 {
   bool success = false;
   QString error;
@@ -737,7 +737,7 @@ bool CaptureContext::SaveCaptureTo(const QString &captureFile)
         if(capFile)
         {
           // this will overwrite
-          success = capFile->CopyFileTo(captureFile.toUtf8().data());
+          success = capFile->CopyFileTo(captureFile.c_str());
         }
         else
         {
@@ -828,7 +828,7 @@ void CaptureContext::CloseCapture()
 
   m_CaptureLoaded = false;
 
-  QVector<ICaptureViewer *> capviewers(m_CaptureViewers);
+  rdcarray<ICaptureViewer *> capviewers(m_CaptureViewers);
 
   for(ICaptureViewer *viewer : capviewers)
   {
@@ -837,7 +837,7 @@ void CaptureContext::CloseCapture()
   }
 }
 
-void CaptureContext::SetEventID(const QVector<ICaptureViewer *> &exclude, uint32_t selectedEventID,
+void CaptureContext::SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint32_t selectedEventID,
                                 uint32_t eventID, bool force)
 {
   uint32_t prevSelectedEventID = m_SelectedEventID;
@@ -861,7 +861,7 @@ void CaptureContext::SetEventID(const QVector<ICaptureViewer *> &exclude, uint32
   RefreshUIStatus(exclude, updateSelectedEvent, updateEvent);
 }
 
-void CaptureContext::RefreshUIStatus(const QVector<ICaptureViewer *> &exclude,
+void CaptureContext::RefreshUIStatus(const rdcarray<ICaptureViewer *> &exclude,
                                      bool updateSelectedEvent, bool updateEvent)
 {
   for(ICaptureViewer *viewer : m_CaptureViewers)
@@ -888,7 +888,7 @@ void CaptureContext::AddMessages(const rdcarray<DebugMessage> &msgs)
   }
 }
 
-void CaptureContext::SetNotes(const QString &key, const QString &contents)
+void CaptureContext::SetNotes(const rdcstr &key, const rdcstr &contents)
 {
   // ignore no-op changes
   if(m_Notes.contains(key) && m_Notes[key] == contents)
@@ -1072,7 +1072,7 @@ void CaptureContext::LoadNotes(const QString &data)
   }
 }
 
-QString CaptureContext::GetResourceName(ResourceId id)
+rdcstr CaptureContext::GetResourceName(ResourceId id)
 {
   if(id == ResourceId())
     return tr("No Resource");
@@ -1111,7 +1111,7 @@ bool CaptureContext::HasResourceCustomName(ResourceId id)
   return m_CustomNames.contains(id);
 }
 
-void CaptureContext::SetResourceCustomName(ResourceId id, const QString &name)
+void CaptureContext::SetResourceCustomName(ResourceId id, const rdcstr &name)
 {
   if(name.isEmpty())
   {
@@ -1244,11 +1244,11 @@ ICaptureDialog *CaptureContext::GetCaptureDialog()
   m_CaptureDialog = new CaptureDialog(
       *this,
       [this](const QString &exe, const QString &workingDir, const QString &cmdLine,
-             const QList<EnvironmentModification> &env, CaptureOptions opts,
+             const rdcarray<EnvironmentModification> &env, CaptureOptions opts,
              std::function<void(LiveCapture *)> callback) {
         return m_MainWindow->OnCaptureTrigger(exe, workingDir, cmdLine, env, opts, callback);
       },
-      [this](uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
+      [this](uint32_t PID, const rdcarray<EnvironmentModification> &env, const QString &name,
              CaptureOptions opts, std::function<void(LiveCapture *)> callback) {
         return m_MainWindow->OnInjectTrigger(PID, env, name, opts, callback);
       },
@@ -1408,8 +1408,8 @@ void CaptureContext::ShowResourceInspector()
   m_MainWindow->showResourceInspector();
 }
 
-IShaderViewer *CaptureContext::EditShader(bool customShader, const QString &entryPoint,
-                                          const QStringMap &files,
+IShaderViewer *CaptureContext::EditShader(bool customShader, const rdcstr &entryPoint,
+                                          const rdcstrpairs &files,
                                           IShaderViewer::SaveCallback saveCallback,
                                           IShaderViewer::CloseCallback closeCallback)
 {
@@ -1419,7 +1419,7 @@ IShaderViewer *CaptureContext::EditShader(bool customShader, const QString &entr
 
 IShaderViewer *CaptureContext::DebugShader(const ShaderBindpointMapping *bind,
                                            const ShaderReflection *shader, ResourceId pipeline,
-                                           ShaderDebugTrace *trace, const QString &debugContext)
+                                           ShaderDebugTrace *trace, const rdcstr &debugContext)
 {
   return ShaderViewer::DebugShader(*this, bind, shader, pipeline, trace, debugContext,
                                    m_MainWindow->Widget());
@@ -1431,7 +1431,7 @@ IShaderViewer *CaptureContext::ViewShader(const ShaderReflection *shader, Resour
 }
 
 IBufferViewer *CaptureContext::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
-                                          const QString &format)
+                                          const rdcstr &format)
 {
   BufferViewer *viewer = new BufferViewer(*this, false, m_MainWindow);
 
@@ -1441,7 +1441,7 @@ IBufferViewer *CaptureContext::ViewBuffer(uint64_t byteOffset, uint64_t byteSize
 }
 
 IBufferViewer *CaptureContext::ViewTextureAsBuffer(uint32_t arrayIdx, uint32_t mip, ResourceId id,
-                                                   const QString &format)
+                                                   const rdcstr &format)
 {
   BufferViewer *viewer = new BufferViewer(*this, false, m_MainWindow);
 
@@ -1466,57 +1466,57 @@ IPixelHistoryView *CaptureContext::ViewPixelHistory(ResourceId texID, int x, int
   return new PixelHistoryView(*this, texID, QPoint(x, y), display, m_MainWindow);
 }
 
-QWidget *CaptureContext::CreateBuiltinWindow(const QString &objectName)
+QWidget *CaptureContext::CreateBuiltinWindow(const rdcstr &objectName)
 {
-  if(objectName == lit("textureViewer"))
+  if(objectName == "textureViewer")
   {
     return GetTextureViewer()->Widget();
   }
-  else if(objectName == lit("eventBrowser"))
+  else if(objectName == "eventBrowser")
   {
     return GetEventBrowser()->Widget();
   }
-  else if(objectName == lit("pipelineViewer"))
+  else if(objectName == "pipelineViewer")
   {
     return GetPipelineViewer()->Widget();
   }
-  else if(objectName == lit("meshPreview"))
+  else if(objectName == "meshPreview")
   {
     return GetMeshPreview()->Widget();
   }
-  else if(objectName == lit("apiInspector"))
+  else if(objectName == "apiInspector")
   {
     return GetAPIInspector()->Widget();
   }
-  else if(objectName == lit("capDialog"))
+  else if(objectName == "capDialog")
   {
     return GetCaptureDialog()->Widget();
   }
-  else if(objectName == lit("debugMessageView"))
+  else if(objectName == "debugMessageView")
   {
     return GetDebugMessageView()->Widget();
   }
-  else if(objectName == lit("commentView"))
+  else if(objectName == "commentView")
   {
     return GetCommentView()->Widget();
   }
-  else if(objectName == lit("statisticsViewer"))
+  else if(objectName == "statisticsViewer")
   {
     return GetStatisticsViewer()->Widget();
   }
-  else if(objectName == lit("timelineBar"))
+  else if(objectName == "timelineBar")
   {
     return GetTimelineBar()->Widget();
   }
-  else if(objectName == lit("pythonShell"))
+  else if(objectName == "pythonShell")
   {
     return GetPythonShell()->Widget();
   }
-  else if(objectName == lit("resourceInspector"))
+  else if(objectName == "resourceInspector")
   {
     return GetResourceInspector()->Widget();
   }
-  else if(objectName == lit("performanceCounterViewer"))
+  else if(objectName == "performanceCounterViewer")
   {
     return GetPerformanceCounterViewer()->Widget();
   }

@@ -67,10 +67,10 @@ public:
   void setPersistData(const QVariant &persistData);
 
   bool PrepareShaderEditing(const ShaderReflection *shaderDetails, QString &entryFunc,
-                            QStringMap &files, QString &mainfile);
+                            rdcstrpairs &files);
   QString GenerateHLSLStub(const ShaderReflection *shaderDetails, const QString &entryFunc);
   void EditShader(ShaderStage shaderType, ResourceId id, const ShaderReflection *shaderDetails,
-                  const QString &entryFunc, const QStringMap &files, const QString &mainfile);
+                  const QString &entryFunc, const rdcstrpairs &files);
 
   void setTopologyDiagram(QLabel *diagram, Topology topo);
   void setMeshViewPixmap(RDLabel *meshView);

@@ -598,7 +598,7 @@ struct BindpointMap
       return bindset < o.bindset;
     return bind < o.bind;
   }
-
+  bool operator==(const BindpointMap &o) const { return bindset == o.bindset && bind == o.bind; }
   DOCUMENT("The binding set.");
   int32_t bindset;
   DOCUMENT("The binding index.");

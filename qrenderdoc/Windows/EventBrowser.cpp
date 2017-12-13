@@ -924,7 +924,7 @@ void EventBrowser::clearBookmarks()
 
 void EventBrowser::repopulateBookmarks()
 {
-  const QList<EventBookmark> bookmarks = m_Ctx.GetBookmarks();
+  const rdcarray<EventBookmark> bookmarks = m_Ctx.GetBookmarks();
 
   // add any bookmark markers that we don't have
   for(const EventBookmark &mark : bookmarks)
@@ -1002,7 +1002,7 @@ void EventBrowser::toggleBookmark(uint32_t EID)
 
 void EventBrowser::jumpToBookmark(int idx)
 {
-  const QList<EventBookmark> bookmarks = m_Ctx.GetBookmarks();
+  const rdcarray<EventBookmark> bookmarks = m_Ctx.GetBookmarks();
   if(idx < 0 || idx >= bookmarks.count() || !m_Ctx.IsCaptureLoaded())
     return;
 

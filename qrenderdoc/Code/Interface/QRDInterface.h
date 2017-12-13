@@ -4,13 +4,7 @@
 // types in the RenderDoc core interface are already wrapped, and Qt types must either be manually
 // converted directly to python, or interfaced with PySide, otherwise we get into the situation
 // where pyside and SWIG have independent incompatible wrappers of Qt types
-#include <QColor>
 #include <QDateTime>
-#include <QList>
-#include <QMap>
-#include <QPair>
-#include <QString>
-#include <QVector>
 
 #include <functional>
 
@@ -54,10 +48,17 @@ class QWidget;
   classname(const QVariant &var); \
   operator QVariant() const;
 
+// we also add some headers here that are only needed for Qt helpers in the replay interface, which
+// is not exposed to swig
+#define RENDERDOC_QT_COMPAT
+#include <QColor>
+#include <QList>
+#include <QString>
+#include <QVector>
+
 #endif
 
 // we depend on the internal RenderDoc API, but the bindings for that are imported entirely
-#define RENDERDOC_QT_COMPAT
 #include "renderdoc_replay.h"
 
 #include "Analytics.h"
@@ -83,15 +84,15 @@ struct CaptureSettings
   DOCUMENT("``True`` if this capture settings object should be immediately executed upon load.");
   bool AutoStart;
   DOCUMENT("The path to the executable to run.");
-  QString Executable;
+  rdcstr Executable;
   DOCUMENT("The path to the working directory to run in, or blank for the executable's directory.");
-  QString WorkingDir;
+  rdcstr WorkingDir;
   DOCUMENT("The command line to pass when running :data:`Exectuable`.");
-  QString CmdLine;
+  rdcstr CmdLine;
   DOCUMENT(
       "A ``list`` of :class:`~renderdoc.EnvironmentModification` with environment changes to "
       "apply.");
-  QList<EnvironmentModification> Environment;
+  rdcarray<EnvironmentModification> Environment;
 };
 
 DECLARE_REFLECTION_STRUCT(CaptureSettings);
@@ -127,7 +128,7 @@ will be invoked, if it exists.
   for a global shortcut. Note that if an existing global shortcut exists the new one will not be
   registered.
 )");
-  virtual void RegisterShortcut(const QString &shortcut, QWidget *widget,
+  virtual void RegisterShortcut(const rdcstr &shortcut, QWidget *widget,
                                 ShortcutCallback callback) = 0;
 
   DOCUMENT(R"(Unregister a callback for a particular key shortcut, made in a previous call to
@@ -141,7 +142,7 @@ See the documentation for :meth:`RegisterShortcut` for what these shortcuts are 
 :param QWidget widget: A handle to the widget used as the context for the shortcut, or ``None``
   if referring to a global shortcut.
 )");
-  virtual void UnregisterShortcut(const QString &shortcut, QWidget *widget) = 0;
+  virtual void UnregisterShortcut(const rdcstr &shortcut, QWidget *widget) = 0;
 
 protected:
   IMainWindow() = default;
@@ -260,7 +261,7 @@ struct IBufferViewer
 :param str format: Optionally a HLSL/GLSL style formatting string.
 )");
   virtual void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
-                          const QString &format = QString()) = 0;
+                          const rdcstr &format = "") = 0;
   DOCUMENT(R"(In a raw buffer viewer, load the contents from a particular texture resource.
 
 :param int arrayIdx: The array slice to load from.
@@ -269,7 +270,7 @@ struct IBufferViewer
 :param str format: Optionally a HLSL/GLSL style formatting string.
 )");
   virtual void ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id,
-                           const QString &format = QString()) = 0;
+                           const rdcstr &format = "") = 0;
 
 protected:
   IBufferViewer() = default;
@@ -332,25 +333,25 @@ struct ICaptureDialog
 
 :param str filename: The filename to execute.
 )");
-  virtual void SetExecutableFilename(const QString &filename) = 0;
+  virtual void SetExecutableFilename(const rdcstr &filename) = 0;
 
   DOCUMENT(R"(Sets the working directory for capture.
 
 :param str dir: The directory to use.
 )");
-  virtual void SetWorkingDirectory(const QString &dir) = 0;
+  virtual void SetWorkingDirectory(const rdcstr &dir) = 0;
 
   DOCUMENT(R"(Sets the command line string to use when launching an executable.
 
 :param str cmd: The command line to use.
 )");
-  virtual void SetCommandLine(const QString &cmd) = 0;
+  virtual void SetCommandLine(const rdcstr &cmd) = 0;
 
   DOCUMENT(R"(Sets the list of environment modifications to apply when launching.
 
 :param list modifications: The list of :class:`~renderdoc.EnvironmentModification` to apply.
 )");
-  virtual void SetEnvironmentModifications(const QList<EnvironmentModification> &modifications) = 0;
+  virtual void SetEnvironmentModifications(const rdcarray<EnvironmentModification> &modifications) = 0;
 
   DOCUMENT(R"(Configures the window based on a bulk structure of settings.
 
@@ -372,13 +373,13 @@ struct ICaptureDialog
 
 :param str filename: The filename to load the settings from.
 )");
-  virtual void LoadSettings(QString filename) = 0;
+  virtual void LoadSettings(const rdcstr &filename) = 0;
 
   DOCUMENT(R"(Saves the current settings to a file. See :meth:`Settings`.
 
 :param str filename: The filename to save the settings to.
 )");
-  virtual void SaveSettings(QString filename) = 0;
+  virtual void SaveSettings(const rdcstr &filename) = 0;
 
   DOCUMENT("Update the current state of the global hook, e.g. if it has been enabled.");
   virtual void UpdateGlobalHook() = 0;
@@ -455,7 +456,7 @@ struct ITimelineBar
 :param ~renderdoc.ResourceId id: The ID of the resource that is being modified.
 :param list history: A list of :class:`~renderdoc.PixelModification` events to display.
 )");
-  virtual void HighlightHistory(ResourceId id, const QList<PixelModification> &history) = 0;
+  virtual void HighlightHistory(ResourceId id, const rdcarray<PixelModification> &history) = 0;
 
 protected:
   ITimelineBar() = default;
@@ -505,7 +506,8 @@ DOCUMENT(R"(A shader window used for viewing, editing, or debugging.
 
   :param CaptureContext context: The current capture context.
   :param ShaderViewer viewer: The open shader viewer.
-  :param dict files: A dictionary with ``str`` filename keys and ``str`` file contents values.
+  :param list files: A ``list`` with 2-tuples of ``str``, the first element being the filename and
+    the second element being the file contents.
 
 .. function:: CloseCallback(context)
 
@@ -517,7 +519,7 @@ DOCUMENT(R"(A shader window used for viewing, editing, or debugging.
 )");
 struct IShaderViewer
 {
-  typedef std::function<void(ICaptureContext *ctx, IShaderViewer *, const QStringMap &)> SaveCallback;
+  typedef std::function<void(ICaptureContext *ctx, IShaderViewer *, const rdcstrpairs &)> SaveCallback;
   typedef std::function<void(ICaptureContext *ctx)> CloseCallback;
 
   DOCUMENT(
@@ -549,7 +551,7 @@ struct IShaderViewer
 
 :param str errors: The string of errors or warnings to display.
 )");
-  virtual void ShowErrors(const QString &errors) = 0;
+  virtual void ShowErrors(const rdcstr &errors) = 0;
 
 protected:
   IShaderViewer() = default;
@@ -634,6 +636,7 @@ protected:
 };
 
 DECLARE_REFLECTION_STRUCT(ICaptureViewer);
+DECLARE_REFLECTION_STRUCT(ICaptureViewer *);
 
 DOCUMENT(R"(A manager for accessing the underlying replay information that isn't already abstracted
 in UI side structures. This manager controls and serialises access to the underlying
@@ -663,7 +666,7 @@ struct IReplayManager
 :param str capturefile: The path to the file.
 :param bool local: ``True`` if the file is on the local machine.
 )");
-  virtual void DeleteCapture(const QString &capturefile, bool local) = 0;
+  virtual void DeleteCapture(const rdcstr &capturefile, bool local) = 0;
 
   DOCUMENT(R"(Connect to a remote server.
 
@@ -715,16 +718,17 @@ This happens either locally, or on the remote server, depending on whether a con
   wrong.
 :rtype: ``int``
 )");
-  virtual uint32_t ExecuteAndInject(const QString &exe, const QString &workingDir,
-                                    const QString &cmdLine, const QList<EnvironmentModification> &env,
-                                    const QString &capturefile, CaptureOptions opts) = 0;
+  virtual uint32_t ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir,
+                                    const rdcstr &cmdLine,
+                                    const rdcarray<EnvironmentModification> &env,
+                                    const rdcstr &capturefile, CaptureOptions opts) = 0;
 
   DOCUMENT(R"(Retrieve a list of drivers that the current remote server supports.
 
 :return: The list of supported replay drivers.
 :rtype: ``list`` of ``str``.
 )");
-  virtual QStringList GetRemoteSupport() = 0;
+  virtual rdcarray<rdcstr> GetRemoteSupport() = 0;
 
   DOCUMENT(R"(Query the remote host for its home directory.
 
@@ -747,7 +751,7 @@ blocking fashion on the current thread.
   the callback. Otherwise if ``False`` then :meth:`AsyncInvoke` will be used.
 :param DirectoryBrowseMethod method: The function to callback on the replay thread.
 )");
-  virtual void ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb) = 0;
+  virtual void ListFolder(const rdcstr &path, bool synchronous, DirectoryBrowseCallback cb) = 0;
 
   DOCUMENT(R"(Copy a capture from the local machine to the remote host.
 
@@ -756,7 +760,7 @@ blocking fashion on the current thread.
 :param QWidget window: A handle to the window to use when showing a progress bar.
 :rtype: ``str``
 )");
-  virtual QString CopyCaptureToRemote(const QString &localpath, QWidget *window) = 0;
+  virtual rdcstr CopyCaptureToRemote(const rdcstr &localpath, QWidget *window) = 0;
 
   DOCUMENT(R"(Copy a capture from the remote host to the local machine.
 
@@ -764,7 +768,7 @@ blocking fashion on the current thread.
 :param str localpath: The path on the local machine to copy to.
 :param QWidget window: A handle to the window to use when showing a progress bar.
 )");
-  virtual void CopyCaptureFromRemote(const QString &remotepath, const QString &localpath,
+  virtual void CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr &localpath,
                                      QWidget *window) = 0;
 
   DOCUMENT(R"(Make a tagged non-blocking invoke call onto the replay thread.
@@ -780,7 +784,7 @@ comes in, we remove any other requests in the queue before it that have the same
 :param str tag: The tag to identify this callback.
 :param InvokeCallback method: The function to callback on the replay thread.
 )");
-  virtual void AsyncInvoke(const QString &tag, InvokeCallback method) = 0;
+  virtual void AsyncInvoke(const rdcstr &tag, InvokeCallback method) = 0;
 
   DOCUMENT(R"(Make a non-blocking invoke call onto the replay thread.
 
@@ -946,7 +950,7 @@ struct EventBookmark
   uint32_t EID = 0;
 
   DOCUMENT("The text associated with this bookmark - could be empty");
-  QString text;
+  rdcstr text;
 
   DOCUMENT("");
   EventBookmark() = default;
@@ -955,6 +959,8 @@ struct EventBookmark
   bool operator!=(const EventBookmark &o) const { return EID != o.EID; }
   bool operator<(const EventBookmark &o) const { return EID < o.EID; }
 };
+
+DECLARE_REFLECTION_STRUCT(EventBookmark);
 
 DOCUMENT("The capture context that the python script is running in.")
 struct ICaptureContext
@@ -966,7 +972,7 @@ data.
 :return: The absolute path.
 :rtype: ``str``
 )");
-  virtual QString TempCaptureFilename(QString appname) = 0;
+  virtual rdcstr TempCaptureFilename(const rdcstr &appname) = 0;
 
   DOCUMENT(R"(Open a capture file for replay.
 
@@ -976,7 +982,7 @@ data.
   either save or delete on close.
 :param bool local: ``True`` if ``captureFile`` refers to a file on the local machine.
 )");
-  virtual void LoadCapture(const QString &captureFile, const QString &origFilename, bool temporary,
+  virtual void LoadCapture(const rdcstr &captureFile, const rdcstr &origFilename, bool temporary,
                            bool local) = 0;
 
   DOCUMENT(R"(Saves the current capture file to a given path.
@@ -991,7 +997,7 @@ time.
 :return: ``True`` if the save operation was successful.
 :rtype: ``bool``
 )");
-  virtual bool SaveCaptureTo(const QString &captureFile) = 0;
+  virtual bool SaveCaptureTo(const rdcstr &captureFile) = 0;
 
   DOCUMENT("Recompress the current capture as much as possible.");
   virtual void RecompressCapture() = 0;
@@ -1010,7 +1016,7 @@ time.
 :param bool force: Optional parameter, if ``True`` then the replay will 'move' even if it is moving
   to the same :data:`EID <renderdoc.APIEvent.eventID>` as it's currently on.
 )");
-  virtual void SetEventID(const QVector<ICaptureViewer *> &exclude, uint32_t selectedEventID,
+  virtual void SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint32_t selectedEventID,
                           uint32_t eventID, bool force = false) = 0;
   DOCUMENT(R"(Replay the capture to the current event again, to pick up any changes that might have
 been made.
@@ -1075,7 +1081,7 @@ temporary and treated like any other capture.
 :return: The filename of the current capture.
 :rtype: ``str``
 )");
-  virtual QString GetCaptureFilename() = 0;
+  virtual rdcstr GetCaptureFilename() = 0;
 
   DOCUMENT(R"(Get a bitmask indicating which modifications (if any) have been made to the capture in
 the UI which aren't reflected in the capture file on disk.
@@ -1179,7 +1185,7 @@ the resource type.
 :return: The current name of the resource.
 :rtype: str
 )");
-  virtual QString GetResourceName(ResourceId id) = 0;
+  virtual rdcstr GetResourceName(ResourceId id) = 0;
 
   DOCUMENT(R"(Determines whether the name for the given resource has been customised at all, either
 during capture time or with :meth:`SetResourceCustomName`.
@@ -1216,7 +1222,7 @@ name fetched from the capture.
 :param ~renderdoc.ResourceId id: The ID of the resource to name.
 :param str name: The name to provide, or an empty string to remove any previous custom name.
 )");
-  virtual void SetResourceCustomName(ResourceId id, const QString &name) = 0;
+  virtual void SetResourceCustomName(ResourceId id, const rdcstr &name) = 0;
 
   DOCUMENT(R"(Returns an index that can be used to cache the results of resource naming.
 
@@ -1306,7 +1312,7 @@ as well as messages generated during replay and analysis.
 :return: The debug messages generated to date.
 :rtype: ``list`` of :class:`~renderdoc.DebugMessage`
 )");
-  virtual const QVector<DebugMessage> &DebugMessages() = 0;
+  virtual const rdcarray<DebugMessage> &DebugMessages() = 0;
 
   DOCUMENT(R"(Retrieve how many messages in :meth:`DebugMessages` are currently unread.
 
@@ -1335,7 +1341,7 @@ Examples of fields are:
 :return: The contents, or an empty string if the field doesn't exist.
 :rtype: str
 )");
-  virtual QString GetNotes(const QString &key) = 0;
+  virtual rdcstr GetNotes(const rdcstr &key) = 0;
 
   DOCUMENT(R"(Set the contents for a given notes field.
 
@@ -1344,7 +1350,7 @@ See :meth:`GetNotes` for a list of possible common field keys.
 :param str key: The name of the notes field to set.
 :param str contents: The new contents to assign to that field.
 )");
-  virtual void SetNotes(const QString &key, const QString &contents) = 0;
+  virtual void SetNotes(const rdcstr &key, const rdcstr &contents) = 0;
 
   DOCUMENT(R"(Get the current list of bookmarks in the capture. Each bookmark is associated with an
 EID and has some text attached. There will only be at most one bookmark for any given EID.
@@ -1355,7 +1361,7 @@ it is removed, the indices do not shift as new bookmarks are added or removed.
 :return: The currently set bookmarks.
 :rtype: ``list`` of :class:`BookMark`
 )");
-  virtual QList<EventBookmark> GetBookmarks() = 0;
+  virtual rdcarray<EventBookmark> GetBookmarks() = 0;
 
   DOCUMENT(R"(Set or update a bookmark.
 
@@ -1599,8 +1605,8 @@ If no bookmark exists, this function will do nothing.
 
 :param bool customShader: ``True`` if the shader being edited is a custom display shader.
 :param str entryPoint: The entry point to be used when compiling the edited shader.
-:param dict files: The files stored in a ``dict`` with ``str`` keys as filenames and ``str`` values
-  with the file contents.
+:param list files: The files stored in a ``list`` with 2-tuples of ``str``. The first element being
+  the filename and the second being the file contents.
 :param ShaderViewer.SaveCallback saveCallback: The callback function to call when a save/update is
   triggered.
 :param ShaderViewer.CloseCallback closeCallback: The callback function to call when the shader
@@ -1608,8 +1614,9 @@ If no bookmark exists, this function will do nothing.
 :return: The new :class:`ShaderViewer` window opened but not shown for editing.
 :rtype: ShaderViewer
 )");
-  virtual IShaderViewer *EditShader(bool customShader, const QString &entryPoint,
-                                    const QStringMap &files, IShaderViewer::SaveCallback saveCallback,
+  virtual IShaderViewer *EditShader(bool customShader, const rdcstr &entryPoint,
+                                    const rdcstrpairs &files,
+                                    IShaderViewer::SaveCallback saveCallback,
                                     IShaderViewer::CloseCallback closeCallback) = 0;
 
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing a read-only view of a debug trace
@@ -1627,7 +1634,7 @@ through the execution of a given shader.
 )");
   virtual IShaderViewer *DebugShader(const ShaderBindpointMapping *bind,
                                      const ShaderReflection *shader, ResourceId pipeline,
-                                     ShaderDebugTrace *trace, const QString &debugContext) = 0;
+                                     ShaderDebugTrace *trace, const rdcstr &debugContext) = 0;
 
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing a read-only view of a given shader.
 
@@ -1649,7 +1656,7 @@ through the execution of a given shader.
 :rtype: BufferViewer
 )");
   virtual IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
-                                    const QString &format = QString()) = 0;
+                                    const rdcstr &format = "") = 0;
 
   DOCUMENT(R"(Show a new :class:`BufferViewer` window, showing a read-only view of a texture's raw
 bytes.
@@ -1662,7 +1669,7 @@ bytes.
 :rtype: BufferViewer
 )");
   virtual IBufferViewer *ViewTextureAsBuffer(uint32_t arrayIdx, uint32_t mip, ResourceId id,
-                                             const QString &format = QString()) = 0;
+                                             const rdcstr &format = "") = 0;
 
   DOCUMENT(R"(Show a new :class:`ConstantBufferPreviewer` window, showing a read-only view of a the
 variables in a constant buffer with their values.
@@ -1701,7 +1708,7 @@ by user code.
   not available.
 :rtype: ``QWidget``
 )");
-  virtual QWidget *CreateBuiltinWindow(const QString &objectName) = 0;
+  virtual QWidget *CreateBuiltinWindow(const rdcstr &objectName) = 0;
 
   DOCUMENT(R"(Marks a built-in window as closed.
 
@@ -1801,7 +1808,7 @@ data.
 :return: The absolute path.
 :rtype: ``str``
 )");
-QString configFilePath(const QString &filename);
+rdcstr configFilePath(const rdcstr &filename);
 
 // simple helper for the common case of 'we just need to run this on the replay thread'
 #define INVOKE_MEMFN(function) \

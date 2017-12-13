@@ -71,19 +71,17 @@ struct Following
   ResourceId GetResourceId(ICaptureContext &ctx);
   BoundResource GetBoundResource(ICaptureContext &ctx, int arrayIdx);
 
-  static QVector<BoundResource> GetOutputTargets(ICaptureContext &ctx);
+  static rdcarray<BoundResource> GetOutputTargets(ICaptureContext &ctx);
 
   static BoundResource GetDepthTarget(ICaptureContext &ctx);
 
-  QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(ICaptureContext &ctx);
+  rdcarray<BoundResourceArray> GetReadWriteResources(ICaptureContext &ctx);
 
-  static QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(ICaptureContext &ctx,
-                                                                          ShaderStage stage);
+  static rdcarray<BoundResourceArray> GetReadWriteResources(ICaptureContext &ctx, ShaderStage stage);
 
-  QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(ICaptureContext &ctx);
+  rdcarray<BoundResourceArray> GetReadOnlyResources(ICaptureContext &ctx);
 
-  static QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(ICaptureContext &ctx,
-                                                                         ShaderStage stage);
+  static rdcarray<BoundResourceArray> GetReadOnlyResources(ICaptureContext &ctx, ShaderStage stage);
 
   const ShaderReflection *GetReflection(ICaptureContext &ctx);
   static const ShaderReflection *GetReflection(ICaptureContext &ctx, ShaderStage stage);
@@ -237,8 +235,8 @@ private:
 
   void InitStageResourcePreviews(ShaderStage stage, const rdcarray<ShaderResource> &resourceDetails,
                                  const rdcarray<BindpointMap> &mapping,
-                                 QMap<BindpointMap, QVector<BoundResource>> &ResList,
-                                 ThumbnailStrip *prevs, int &prevIndex, bool copy, bool rw);
+                                 rdcarray<BoundResourceArray> &ResList, ThumbnailStrip *prevs,
+                                 int &prevIndex, bool copy, bool rw);
 
   void AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t end, ResourceUsage usage);
   void OpenResourceContextMenu(ResourceId id, const rdcarray<EventUsage> &usage);

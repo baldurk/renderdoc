@@ -13,6 +13,33 @@
 // a typemap that allows us to modify 'self' in place, but convert any inputs by value.
 %define LIST_MODIFY_IN_PLACE_TYPEMAP(ContainerType)
 
+%typemap(in) const ContainerType & (unsigned char tempmem[32], bool wasSelf = false) {
+  using array_type = std::remove_pointer<decltype($1)>::type;
+
+  {
+    // convert the sequence by value using ConvertFromPy
+    static_assert(sizeof(tempmem) >= sizeof(array_type), "not enough temp space for $1_basetype");
+
+    tempalloc($1, tempmem);
+
+    int failIdx = 0;
+    int res = TypeConversion<array_type>::ConvertFromPy($input, indirect($1), &failIdx);
+
+    if(!SWIG_IsOK(res))
+    {
+      if(res == SWIG_TypeError)
+      {
+        SWIG_exception_fail(SWIG_ArgError(res), "in method '$symname' argument $argnum of type '$1_basetype'"); 
+      }
+      else
+      {
+        snprintf(convert_error, sizeof(convert_error)-1, "in method '$symname' argument $argnum of type '$1_basetype', decoding element %d", failIdx);
+        SWIG_exception_fail(SWIG_ArgError(res), convert_error);
+      }
+    }
+  }
+}
+
 %typemap(in) ContainerType * (unsigned char tempmem[32], bool wasSelf = false) {
   using array_type = std::remove_pointer<decltype($1)>::type;
 
@@ -248,6 +275,28 @@ ARRAY_DEFINE_SLOTS(arrayType<innerType>, arrayType##_of_##innerType)
 
 template<>
 void ARRAY_INSTANTIATION_CHECK_NAME(arrayType)(arrayType<innerType> *)
+{
+}
+
+%}
+
+%enddef
+
+// variation of the above to handle pointer'd inner type
+%define TEMPLATE_ARRAY_INSTANTIATE_PTR(arrayType, innerType)
+
+ARRAY_ADD_SLOTS(arrayType<innerType *>, arrayType##_of_ptr_##innerType)
+
+// instantiate template
+%rename(arrayType##_of_ptr_##innerType) arrayType<innerType *>;
+%template(arrayType##_of_ptr_##innerType) arrayType<innerType *>;
+
+ARRAY_DEFINE_SLOTS(arrayType<innerType *>, arrayType##_of_ptr_##innerType)
+
+%header %{
+
+template<>
+void ARRAY_INSTANTIATION_CHECK_NAME(arrayType)(arrayType<innerType *> *)
 {
 }
 

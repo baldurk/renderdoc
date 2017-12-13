@@ -28,8 +28,6 @@
 #include "QRDInterface.h"
 #include "RemoteHost.h"
 
-typedef QMap<QString, QString> QStringMap;
-
 DOCUMENT("Describes an external program that can be used to disassemble SPIR-V.");
 struct SPIRVDisassembler
 {
@@ -37,11 +35,11 @@ struct SPIRVDisassembler
   VARIANT_CAST(SPIRVDisassembler);
 
   DOCUMENT("The human-readable name of the program.");
-  QString name;
+  rdcstr name;
   DOCUMENT("The path to the executable to run for this program.");
-  QString executable;
+  rdcstr executable;
   DOCUMENT("The command line argmuents to pass to the program.");
-  QString args;
+  rdcstr args;
 };
 
 DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
@@ -59,21 +57,21 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
 // Note that only public properties should be documented.
 #define CONFIG_SETTINGS()                                                                  \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, UIStyle, QString())                         \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, UIStyle, "")                                 \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, LastCaptureFilePath, QString())             \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, LastCaptureFilePath, "")                     \
                                                                                            \
-  CONFIG_SETTING(public, QVariantList, QList<QString>, RecentCaptureFiles)                 \
+  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, RecentCaptureFiles)               \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, LastCapturePath, QString())                 \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, LastCapturePath, "")                         \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, LastCaptureExe, QString())                  \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, LastCaptureExe, "")                          \
                                                                                            \
-  CONFIG_SETTING(public, QVariantList, QList<QString>, RecentCaptureSettings)              \
+  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, RecentCaptureSettings)            \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, TemporaryCaptureDirectory, QString())       \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, TemporaryCaptureDirectory, "")               \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, DefaultCaptureSaveDirectory, QString())     \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, DefaultCaptureSaveDirectory, "")             \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_ResetRange, false)                  \
                                                                                            \
@@ -109,7 +107,7 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, Font_PreferMonospaced, false)                     \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, Android_AdbExecutablePath, QString())       \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, Android_AdbExecutablePath, "")               \
                                                                                            \
   CONFIG_SETTING_VAL(public, int, int, Android_MaxConnectTimeout, 30)                      \
                                                                                            \
@@ -119,7 +117,7 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_UpdateAvailable, false)               \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, QString, CheckUpdate_UpdateResponse, QString())      \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, CheckUpdate_UpdateResponse, "")              \
                                                                                            \
   CONFIG_SETTING_VAL(public, QDateTime, QDateTime, CheckUpdate_LastUpdate,                 \
                      QDateTime(QDate(2012, 06, 27), QTime(0, 0, 0)))                       \
@@ -131,15 +129,15 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, AllowGlobalHook, false)                           \
                                                                                            \
-  CONFIG_SETTING(public, QVariantList, QList<SPIRVDisassembler>, SPIRVDisassemblers)       \
+  CONFIG_SETTING(public, QVariantList, rdcarray<SPIRVDisassembler>, SPIRVDisassemblers)    \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, Analytics_TotalOptOut, false)                     \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, Analytics_ManualCheck, false)                     \
                                                                                            \
-  CONFIG_SETTING(private, QVariantMap, QStringMap, ConfigSettings)                         \
+  CONFIG_SETTING(private, QVariantMap, rdcstrpairs, ConfigSettings)                        \
                                                                                            \
-  CONFIG_SETTING(private, QVariantList, QList<RemoteHost>, RemoteHostList)
+  CONFIG_SETTING(private, QVariantList, rdcarray<RemoteHost>, RemoteHostList)
 
 DOCUMENT(R"(The unit that GPU durations are displayed in.
 
@@ -173,19 +171,19 @@ DOCUMENT(R"(Gets the suffix for a time unit.
 :return: The one or two character suffix.
 :rtype: ``str``
 )");
-inline QString UnitSuffix(TimeUnit unit)
+inline rdcstr UnitSuffix(TimeUnit unit)
 {
   if(unit == TimeUnit::Seconds)
-    return lit("s");
+    return "s";
   else if(unit == TimeUnit::Milliseconds)
-    return lit("ms");
+    return "ms";
   else if(unit == TimeUnit::Microseconds)
     // without a BOM in the file, this will break using lit() in MSVC
-    return QString::fromUtf8("µs");
+    return "µs";
   else if(unit == TimeUnit::Nanoseconds)
-    return lit("ns");
+    return "ns";
 
-  return lit("s");
+  return "s";
 }
 
 DOCUMENT(R"(Checks if a given file is in a list. If it is, then it's shuffled to the end. If it's
@@ -198,7 +196,7 @@ As the name suggests, this is used for tracking a 'recent file' list.
 :param str file: The file to add to the list.
 :param int maxItems: The maximum allowed length of the list.
 )");
-void AddRecentFile(QList<QString> &recentList, const QString &file, int maxItems);
+void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file, int maxItems);
 
 DOCUMENT2(R"(A persistant config file that is automatically loaded and saved, which contains any
 settings and information that needs to be preserved from one run to the next.
@@ -423,10 +421,6 @@ For more information about some of these settings that are user-facing see
   A list of :class:`SPIRVDisassembler` detailing the potential disassembler programs. The first one
   in the list is the default.
 
-.. data:: RemoteHosts
-
-  A ``list`` of :class:`RemoteHost` handles to the currently configured remote hosts.
-
 .. data:: Analytics_TotalOptOut
 
   ``True`` if the user has selected to completely opt-out from and disable all analytics collection
@@ -445,12 +439,40 @@ For more information about some of these settings that are user-facing see
 class PersistantConfig
 {
 public:
+// don't allow SWIG direct access to the RemoteHosts since they're an array of references and our
+// bindings can't handle that properly
+#if !defined(SWIG)
   // Runtime list of dynamically allocated hosts.
   // Saved to/from private RemoteHostList in CONFIG_SETTINGS()
   // This is documented above in the docstring, similar to the values in CONFIG_SETTINGS()
   DOCUMENT("");
-  QList<RemoteHost *> RemoteHosts;
+  rdcarray<RemoteHost *> RemoteHosts;
+#endif
 
+  DOCUMENT(R"(Returns the number of remote hosts currently registered.
+
+:return: The number of remote hosts.
+:rtype: ``int``
+)");
+  int RemoteHostCount() { return RemoteHosts.count(); }
+  DOCUMENT(R"(Returns a given remote host at an index.
+
+:param int index: The index of the remote host to retrieve
+:return: The remote host specified, or ``None`` if an invalid index was passed
+:rtype: ``RemoteHost``
+)");
+  RemoteHost *GetRemoteHost(int index)
+  {
+    if(index < 0 || index >= RemoteHostCount())
+      return NULL;
+    return RemoteHosts[index];
+  }
+
+  DOCUMENT(R"(Adds a new remote host.
+
+:param RemoteHost host: The remote host to add.
+R)");
+  void AddRemoteHost(RemoteHost host) { RemoteHosts.push_back(new RemoteHost(host)); }
   DOCUMENT("If configured, queries ``adb`` to add android hosts to :data:`RemoteHosts`.");
   void AddAndroidHosts();
 
@@ -461,12 +483,13 @@ public:
   ~PersistantConfig();
 
   DOCUMENT(R"(Loads the config from a given filename. This happens automatically on startup, so it's
-not recommended thattyou call this function manually.
+not recommended that you call this function manually.
 
+:param str filename: The filename to load from
 :return: A boolean status if the load was successful.
 :rtype: ``bool``
 )");
-  bool Load(const QString &filename);
+  bool Load(const rdcstr &filename);
 
   DOCUMENT(R"(Saves the config to disk. This can happen if you want to be sure a setting has been
 propagated and will not be forgotten in the case of crash or otherwise unexpected exit.
@@ -494,14 +517,14 @@ storing custom settings to be persisted without needing to modify code.
 :param str name: The name of the setting. Any existing setting will be overwritten.
 :param str value: The contents of the setting.
 )");
-  void SetConfigSetting(const QString &name, const QString &value);
+  void SetConfigSetting(const rdcstr &name, const rdcstr &value);
   DOCUMENT(R"(Retrieves an arbitrary dynamic setting. See :meth:`SetConfigSetting`.
 
 :param str name: The name of the setting.
 :return: The value of the setting, or the empty string if the setting did not exist.
 :rtype: ``str``
 )");
-  QString GetConfigSetting(const QString &name);
+  rdcstr GetConfigSetting(const rdcstr &name);
 
   DOCUMENT(R"(Sets the UI style to the value in :data:`UIStyle`.
 
@@ -516,10 +539,10 @@ sure the new style is applied, the application should be restarted.
   bool SetStyle();
 
 private:
-  bool Deserialize(const QString &filename);
-  bool Serialize(const QString &filename);
+  bool Deserialize(const rdcstr &filename);
+  bool Serialize(const rdcstr &filename);
   QVariantMap storeValues() const;
   void applyValues(const QVariantMap &values);
 
-  QString m_Filename;
+  rdcstr m_Filename;
 };

@@ -617,9 +617,9 @@ bool LiveCapture::checkAllowClose()
     // we either have to save or delete the capture. Make sure that if it's remote that we are able
     // to by having an active connection or replay context on that host.
     if(suppressRemoteWarning == false && (!m_Connection || !m_Connection->Connected()) &&
-       !cap->local &&
-       (!m_Ctx.Replay().CurrentRemote() || m_Ctx.Replay().CurrentRemote()->Hostname != m_Hostname ||
-        !m_Ctx.Replay().CurrentRemote()->Connected))
+       !cap->local && (!m_Ctx.Replay().CurrentRemote() ||
+                       QString(m_Ctx.Replay().CurrentRemote()->Hostname) != m_Hostname ||
+                       !m_Ctx.Replay().CurrentRemote()->Connected))
     {
       QMessageBox::StandardButton res2 = RDDialog::question(
           this, tr("No active replay context"),
@@ -670,9 +670,9 @@ void LiveCapture::openCapture(Capture *cap)
 {
   cap->opened = true;
 
-  if(!cap->local &&
-     (!m_Ctx.Replay().CurrentRemote() || m_Ctx.Replay().CurrentRemote()->Hostname != m_Hostname ||
-      !m_Ctx.Replay().CurrentRemote()->Connected))
+  if(!cap->local && (!m_Ctx.Replay().CurrentRemote() ||
+                     QString(m_Ctx.Replay().CurrentRemote()->Hostname) != m_Hostname ||
+                     !m_Ctx.Replay().CurrentRemote()->Connected))
   {
     RDDialog::critical(
         this, tr("No active replay context"),
@@ -725,7 +725,8 @@ bool LiveCapture::saveCapture(Capture *cap)
     }
     else
     {
-      if(!m_Ctx.Replay().CurrentRemote() || m_Ctx.Replay().CurrentRemote()->Hostname != m_Hostname ||
+      if(!m_Ctx.Replay().CurrentRemote() ||
+         QString(m_Ctx.Replay().CurrentRemote()->Hostname) != m_Hostname ||
          !m_Ctx.Replay().CurrentRemote()->Connected)
       {
         RDDialog::critical(this, tr("No active replay context"),
@@ -949,7 +950,8 @@ void LiveCapture::connectionClosed()
       // to this machine as a remote context
       if(!cap->local)
       {
-        if(!m_Ctx.Replay().CurrentRemote() || m_Ctx.Replay().CurrentRemote()->Hostname != m_Hostname ||
+        if(!m_Ctx.Replay().CurrentRemote() ||
+           QString(m_Ctx.Replay().CurrentRemote()->Hostname) != m_Hostname ||
            !m_Ctx.Replay().CurrentRemote()->Connected)
           return;
       }

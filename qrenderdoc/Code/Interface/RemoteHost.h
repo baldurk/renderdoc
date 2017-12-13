@@ -53,18 +53,23 @@ public:
   bool VersionMismatch : 1;
 
   DOCUMENT("The hostname of this host.");
-  QString Hostname;
+  rdcstr Hostname;
   DOCUMENT("The friendly name for this host, if available (if empty, the Hostname is used).");
-  QString FriendlyName;
+  rdcstr FriendlyName;
   DOCUMENT("The command to run locally to try to launch the server remotely.");
-  QString RunCommand;
+  rdcstr RunCommand;
 
   DOCUMENT(R"(
 Returns the name to display for this host in the UI, either :data:`FriendlyName` or :data:`Hostname`
 )");
-  const QString &Name() const { return !FriendlyName.isEmpty() ? FriendlyName : Hostname; }
+  const rdcstr &Name() const { return !FriendlyName.isEmpty() ? FriendlyName : Hostname; }
   DOCUMENT("Returns ``True`` if this host represents a connected ADB (Android) device.");
-  bool IsHostADB() const { return Hostname.startsWith(lit("adb:")); }
+  bool IsHostADB() const
+  {
+    return Hostname[0] == 'a' && Hostname[1] == 'd' && Hostname[2] == 'b' && Hostname[3] == ':';
+  }
+  DOCUMENT("Returns ``True`` if this host represents the special localhost device.");
+  bool IsLocalhost() const { return Hostname == "localhost"; }
 };
 
 DECLARE_REFLECTION_STRUCT(RemoteHost);

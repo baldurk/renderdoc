@@ -91,7 +91,7 @@ void TimelineBar::HighlightResourceUsage(ResourceId id)
   viewport()->update();
 }
 
-void TimelineBar::HighlightHistory(ResourceId id, const QList<PixelModification> &history)
+void TimelineBar::HighlightHistory(ResourceId id, const rdcarray<PixelModification> &history)
 {
   m_ID = id;
   m_HistoryTarget = QString();

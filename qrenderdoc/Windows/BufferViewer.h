@@ -78,9 +78,8 @@ public:
       ScrollToRow(m_ModelVSIn, row);
   }
   void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
-                  const QString &format = QString()) override;
-  void ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id,
-                   const QString &format = QString()) override;
+                  const rdcstr &format = "") override;
+  void ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, const rdcstr &format = "") override;
 
   // ICaptureViewer
   void OnCaptureLoaded() override;

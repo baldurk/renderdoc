@@ -44,10 +44,10 @@ class CaptureDialog : public QFrame, public ICaptureDialog
 
 public:
   typedef std::function<void(const QString &exe, const QString &workingDir, const QString &cmdLine,
-                             const QList<EnvironmentModification> &env, CaptureOptions opts,
+                             const rdcarray<EnvironmentModification> &env, CaptureOptions opts,
                              std::function<void(LiveCapture *)> callback)>
       OnCaptureMethod;
-  typedef std::function<void(uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
+  typedef std::function<void(uint32_t PID, const rdcarray<EnvironmentModification> &env, const QString &name,
                              CaptureOptions opts, std::function<void(LiveCapture *)> callback)>
       OnInjectMethod;
 
@@ -60,18 +60,18 @@ public:
   bool IsInjectMode() override { return m_Inject; }
   void SetInjectMode(bool inject) override;
 
-  void SetExecutableFilename(const QString &filename) override;
-  void SetWorkingDirectory(const QString &dir) override;
-  void SetCommandLine(const QString &cmd) override;
-  void SetEnvironmentModifications(const QList<EnvironmentModification> &modifications) override;
+  void SetExecutableFilename(const rdcstr &filename) override;
+  void SetWorkingDirectory(const rdcstr &dir) override;
+  void SetCommandLine(const rdcstr &cmd) override;
+  void SetEnvironmentModifications(const rdcarray<EnvironmentModification> &modifications) override;
 
   void SetSettings(CaptureSettings settings) override;
   CaptureSettings Settings() override;
 
   void TriggerCapture() override;
 
-  void LoadSettings(QString filename) override;
-  void SaveSettings(QString filename) override;
+  void LoadSettings(const rdcstr &filename) override;
+  void SaveSettings(const rdcstr &filename) override;
   void UpdateGlobalHook() override;
 
 public slots:
@@ -111,7 +111,7 @@ private:
   OnCaptureMethod m_CaptureCallback;
   OnInjectMethod m_InjectCallback;
 
-  QList<EnvironmentModification> m_EnvModifications;
+  rdcarray<EnvironmentModification> m_EnvModifications;
   bool m_Inject;
   void fillProcessList();
   void initWarning(RDLabel *label);

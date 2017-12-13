@@ -40,7 +40,7 @@ public:
   // IStatisticsViewer
   QWidget *Widget() override { return this; }
   void HighlightResourceUsage(ResourceId id) override;
-  void HighlightHistory(ResourceId id, const QList<PixelModification> &history) override;
+  void HighlightHistory(ResourceId id, const rdcarray<PixelModification> &history) override;
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;

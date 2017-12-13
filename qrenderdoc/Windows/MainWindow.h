@@ -55,8 +55,8 @@ public:
 
   // IMainWindow
   QWidget *Widget() override { return this; }
-  void RegisterShortcut(const QString &shortcut, QWidget *widget, ShortcutCallback callback) override;
-  void UnregisterShortcut(const QString &shortcut, QWidget *widget) override;
+  void RegisterShortcut(const rdcstr &shortcut, QWidget *widget, ShortcutCallback callback) override;
+  void UnregisterShortcut(const rdcstr &shortcut, QWidget *widget) override;
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
@@ -78,10 +78,11 @@ public:
   QString GetSavePath();
 
   void OnCaptureTrigger(const QString &exe, const QString &workingDir, const QString &cmdLine,
-                        const QList<EnvironmentModification> &env, CaptureOptions opts,
+                        const rdcarray<EnvironmentModification> &env, CaptureOptions opts,
                         std::function<void(LiveCapture *)> callback);
-  void OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
-                       CaptureOptions opts, std::function<void(LiveCapture *)> callback);
+  void OnInjectTrigger(uint32_t PID, const rdcarray<EnvironmentModification> &env,
+                       const QString &name, CaptureOptions opts,
+                       std::function<void(LiveCapture *)> callback);
 
   void ShowLiveCapture(LiveCapture *live);
   void LiveCaptureClosed(LiveCapture *live);

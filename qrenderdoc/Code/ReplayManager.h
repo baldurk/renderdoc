@@ -48,7 +48,7 @@ public:
   ~ReplayManager();
 
   void OpenCapture(const QString &capturefile, float *progress);
-  void DeleteCapture(const QString &capturefile, bool local);
+  void DeleteCapture(const rdcstr &capturefile, bool local);
 
   bool IsRunning();
   ReplayStatus GetCreateStatus() { return m_CreateStatus; }
@@ -58,7 +58,7 @@ public:
   // processed.
   // the manager processes only the request on the top of the queue, so when a new tagged invoke
   // comes in, we remove any other requests in the queue before it that have the same tag
-  void AsyncInvoke(const QString &tag, InvokeCallback m);
+  void AsyncInvoke(const rdcstr &tag, InvokeCallback m);
   void AsyncInvoke(InvokeCallback m);
   void BlockInvoke(InvokeCallback m);
 
@@ -85,15 +85,15 @@ public:
   ICaptureFile *GetCaptureFile() { return m_CaptureFile; }
   void ReopenCaptureFile(const QString &path);
   const RemoteHost *CurrentRemote() { return m_RemoteHost; }
-  uint32_t ExecuteAndInject(const QString &exe, const QString &workingDir, const QString &cmdLine,
-                            const QList<EnvironmentModification> &env, const QString &capturefile,
+  uint32_t ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir, const rdcstr &cmdLine,
+                            const rdcarray<EnvironmentModification> &env, const rdcstr &capturefile,
                             CaptureOptions opts);
 
-  QStringList GetRemoteSupport();
+  rdcarray<rdcstr> GetRemoteSupport();
   void GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb);
-  void ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb);
-  QString CopyCaptureToRemote(const QString &localpath, QWidget *window);
-  void CopyCaptureFromRemote(const QString &remotepath, const QString &localpath, QWidget *window);
+  void ListFolder(const rdcstr &path, bool synchronous, DirectoryBrowseCallback cb);
+  rdcstr CopyCaptureToRemote(const rdcstr &localpath, QWidget *window);
+  void CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr &localpath, QWidget *window);
 
 private:
   struct InvokeHandle

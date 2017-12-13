@@ -59,7 +59,7 @@ void ReplayManager::OpenCapture(const QString &capturefile, float *progress)
   }
 }
 
-void ReplayManager::DeleteCapture(const QString &capture, bool local)
+void ReplayManager::DeleteCapture(const rdcstr &capture, bool local)
 {
   if(IsRunning())
   {
@@ -78,22 +78,20 @@ void ReplayManager::DeleteCapture(const QString &capture, bool local)
     if(m_Remote)
     {
       QMutexLocker autolock(&m_RemoteLock);
-      m_Remote->TakeOwnershipCapture(capture.toUtf8().data());
+      m_Remote->TakeOwnershipCapture(capture.c_str());
     }
   }
 }
 
-QStringList ReplayManager::GetRemoteSupport()
+rdcarray<rdcstr> ReplayManager::GetRemoteSupport()
 {
-  QStringList ret;
+  rdcarray<rdcstr> ret;
 
   if(m_Remote && !IsRunning())
   {
     QMutexLocker autolock(&m_RemoteLock);
 
-    rdcarray<rdcstr> supported = m_Remote->RemoteSupportedReplays();
-    for(rdcstr &s : supported)
-      ret << s;
+    ret = m_Remote->RemoteSupportedReplays();
   }
 
   return ret;
@@ -127,17 +125,15 @@ void ReplayManager::GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb)
   cb(home.c_str(), rdcarray<PathEntry>());
 }
 
-void ReplayManager::ListFolder(QString path, bool synchronous, DirectoryBrowseCallback cb)
+void ReplayManager::ListFolder(const rdcstr &path, bool synchronous, DirectoryBrowseCallback cb)
 {
   if(!m_Remote)
     return;
 
-  QByteArray pathUTF8 = path.toUtf8();
-
   if(IsRunning() && m_Thread->isCurrentThread())
   {
-    auto lambda = [cb, pathUTF8, this](IReplayController *r) {
-      cb(pathUTF8.data(), m_Remote->ListFolder(pathUTF8.data()));
+    auto lambda = [cb, path, this](IReplayController *r) {
+      cb(path, m_Remote->ListFolder(path.c_str()));
     };
 
     if(synchronous)
@@ -152,27 +148,27 @@ void ReplayManager::ListFolder(QString path, bool synchronous, DirectoryBrowseCa
   // prevent pings while fetching remote FS data
   {
     QMutexLocker autolock(&m_RemoteLock);
-    contents = m_Remote->ListFolder(pathUTF8.data());
+    contents = m_Remote->ListFolder(path.c_str());
   }
 
-  cb(pathUTF8.data(), contents);
+  cb(path, contents);
 
   return;
 }
 
-QString ReplayManager::CopyCaptureToRemote(const QString &localpath, QWidget *window)
+rdcstr ReplayManager::CopyCaptureToRemote(const rdcstr &localpath, QWidget *window)
 {
   if(!m_Remote)
-    return QString();
+    return "";
 
-  QString remotepath;
+  rdcstr remotepath;
 
   bool copied = false;
   float progress = 0.0f;
 
   auto lambda = [this, localpath, &remotepath, &progress, &copied](IReplayController *r) {
     QMutexLocker autolock(&m_RemoteLock);
-    remotepath = m_Remote->CopyCaptureToRemote(localpath.toUtf8().data(), &progress);
+    remotepath = m_Remote->CopyCaptureToRemote(localpath.c_str(), &progress);
     copied = true;
   };
 
@@ -194,7 +190,7 @@ QString ReplayManager::CopyCaptureToRemote(const QString &localpath, QWidget *wi
   return remotepath;
 }
 
-void ReplayManager::CopyCaptureFromRemote(const QString &remotepath, const QString &localpath,
+void ReplayManager::CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr &localpath,
                                           QWidget *window)
 {
   if(!m_Remote)
@@ -205,7 +201,7 @@ void ReplayManager::CopyCaptureFromRemote(const QString &remotepath, const QStri
 
   auto lambda = [this, localpath, remotepath, &progress, &copied](IReplayController *r) {
     QMutexLocker autolock(&m_RemoteLock);
-    m_Remote->CopyCaptureFromRemote(remotepath.toUtf8().data(), localpath.toUtf8().data(), &progress);
+    m_Remote->CopyCaptureFromRemote(remotepath.c_str(), localpath.c_str(), &progress);
     copied = true;
   };
 
@@ -230,13 +226,15 @@ bool ReplayManager::IsRunning()
   return m_Thread && m_Thread->isRunning() && m_Running;
 }
 
-void ReplayManager::AsyncInvoke(const QString &tag, ReplayManager::InvokeCallback m)
+void ReplayManager::AsyncInvoke(const rdcstr &tag, ReplayManager::InvokeCallback m)
 {
+  QString qtag(tag);
+
   {
     QMutexLocker autolock(&m_RenderLock);
     for(int i = 0; i < m_RenderQueue.count();)
     {
-      if(m_RenderQueue[i]->tag == tag)
+      if(m_RenderQueue[i]->tag == qtag)
       {
         InvokeHandle *cmd = m_RenderQueue.takeAt(i);
         if(cmd->selfdelete)
@@ -249,7 +247,7 @@ void ReplayManager::AsyncInvoke(const QString &tag, ReplayManager::InvokeCallbac
     }
   }
 
-  InvokeHandle *cmd = new InvokeHandle(m, tag);
+  InvokeHandle *cmd = new InvokeHandle(m, qtag);
   cmd->selfdelete = true;
 
   PushInvoke(cmd);
@@ -299,8 +297,7 @@ void ReplayManager::CloseThread()
 
 ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost *host)
 {
-  ReplayStatus status =
-      RENDERDOC_CreateRemoteServerConnection(host->Hostname.toUtf8().data(), 0, &m_Remote);
+  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(host->Hostname.c_str(), 0, &m_Remote);
 
   if(host->IsHostADB())
   {
@@ -371,26 +368,22 @@ void ReplayManager::ReopenCaptureFile(const QString &path)
   m_CaptureFile->OpenFile(path.toUtf8().data(), "rdc");
 }
 
-uint32_t ReplayManager::ExecuteAndInject(const QString &exe, const QString &workingDir,
-                                         const QString &cmdLine,
-                                         const QList<EnvironmentModification> &env,
-                                         const QString &capturefile, CaptureOptions opts)
+uint32_t ReplayManager::ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir,
+                                         const rdcstr &cmdLine,
+                                         const rdcarray<EnvironmentModification> &env,
+                                         const rdcstr &capturefile, CaptureOptions opts)
 {
-  rdcarray<EnvironmentModification> envList = env.toVector().toStdVector();
-
   uint32_t ret = 0;
 
   if(m_Remote)
   {
     QMutexLocker autolock(&m_RemoteLock);
-    ret = m_Remote->ExecuteAndInject(exe.toUtf8().data(), workingDir.toUtf8().data(),
-                                     cmdLine.toUtf8().data(), envList, opts);
+    ret = m_Remote->ExecuteAndInject(exe.c_str(), workingDir.c_str(), cmdLine.c_str(), env, opts);
   }
   else
   {
-    ret = RENDERDOC_ExecuteAndInject(exe.toUtf8().data(), workingDir.toUtf8().data(),
-                                     cmdLine.toUtf8().data(), envList, capturefile.toUtf8().data(),
-                                     opts, false);
+    ret = RENDERDOC_ExecuteAndInject(exe.c_str(), workingDir.c_str(), cmdLine.c_str(), env,
+                                     capturefile.c_str(), opts, false);
   }
 
   return ret;

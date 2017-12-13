@@ -88,7 +88,7 @@ CaptureSettings::operator QVariant() const
   ret[lit("CmdLine")] = CmdLine;
 
   QVariantList env;
-  for(int i = 0; i < Environment.size(); i++)
+  for(int i = 0; i < Environment.count(); i++)
     env.push_back(EnvModToVariant(Environment[i]));
   ret[lit("Environment")] = env;
 
@@ -144,7 +144,7 @@ CaptureSettings::CaptureSettings(const QVariant &v)
   Options.DebugOutputMute = opts[lit("DebugOutputMute")].toBool();
 }
 
-QString configFilePath(const QString &filename)
+rdcstr configFilePath(const rdcstr &filename)
 {
   QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 

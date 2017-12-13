@@ -26,7 +26,7 @@
 #include "Code/QRDUtils.h"
 #include "QRDInterface.h"
 
-QString CommonPipelineState::GetResourceLayout(ResourceId id)
+rdcstr CommonPipelineState::GetResourceLayout(ResourceId id)
 {
   if(IsCaptureLoaded())
   {
@@ -52,7 +52,7 @@ QString CommonPipelineState::GetResourceLayout(ResourceId id)
   return lit("Unknown");
 }
 
-QString CommonPipelineState::Abbrev(ShaderStage stage)
+rdcstr CommonPipelineState::Abbrev(ShaderStage stage)
 {
   if(IsCaptureD3D11() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::D3D11) ||
      IsCaptureD3D12() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::D3D12))
@@ -86,7 +86,7 @@ QString CommonPipelineState::Abbrev(ShaderStage stage)
   return lit("?S");
 }
 
-QString CommonPipelineState::OutputAbbrev()
+rdcstr CommonPipelineState::OutputAbbrev()
 {
   if(IsCaptureGL() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsCaptureVK() ||
      (!IsCaptureLoaded() && DefaultType == GraphicsAPI::Vulkan))
@@ -173,7 +173,7 @@ const VKPipe::Shader &CommonPipelineState::GetVulkanStage(ShaderStage stage)
   return m_Vulkan->m_CS;
 }
 
-QString CommonPipelineState::GetShaderExtension()
+rdcstr CommonPipelineState::GetShaderExtension()
 {
   if(IsCaptureGL() || (!IsCaptureLoaded() && DefaultType == GraphicsAPI::OpenGL) || IsCaptureVK() ||
      (!IsCaptureLoaded() && DefaultType == GraphicsAPI::Vulkan))
@@ -379,7 +379,7 @@ ResourceId CommonPipelineState::GetGraphicsPipelineObject()
   return ResourceId();
 }
 
-QString CommonPipelineState::GetShaderEntryPoint(ShaderStage stage)
+rdcstr CommonPipelineState::GetShaderEntryPoint(ShaderStage stage)
 {
   if(IsCaptureLoaded() && IsCaptureVK())
   {
@@ -395,7 +395,7 @@ QString CommonPipelineState::GetShaderEntryPoint(ShaderStage stage)
     }
   }
 
-  return QString();
+  return "";
 }
 
 ResourceId CommonPipelineState::GetShader(ShaderStage stage)
@@ -459,7 +459,7 @@ ResourceId CommonPipelineState::GetShader(ShaderStage stage)
   return ResourceId();
 }
 
-QString CommonPipelineState::GetShaderName(ShaderStage stage)
+rdcstr CommonPipelineState::GetShaderName(ShaderStage stage)
 {
   if(IsCaptureLoaded())
   {
@@ -517,10 +517,10 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
     }
   }
 
-  return QString();
+  return "";
 }
 
-QPair<ResourceId, uint64_t> CommonPipelineState::GetIBuffer()
+BoundBuffer CommonPipelineState::GetIBuffer()
 {
   ResourceId buf;
   uint64_t ByteOffset = 0;
@@ -549,7 +549,11 @@ QPair<ResourceId, uint64_t> CommonPipelineState::GetIBuffer()
     }
   }
 
-  return qMakePair(buf, ByteOffset);
+  BoundBuffer ret;
+  ret.Buffer = buf;
+  ret.ByteOffset = ByteOffset;
+
+  return ret;
 }
 
 bool CommonPipelineState::IsStripRestartEnabled()
@@ -600,9 +604,9 @@ uint32_t CommonPipelineState::GetStripRestartIndex()
   return UINT32_MAX;
 }
 
-QVector<BoundVBuffer> CommonPipelineState::GetVBuffers()
+rdcarray<BoundBuffer> CommonPipelineState::GetVBuffers()
 {
-  QVector<BoundVBuffer> ret;
+  rdcarray<BoundBuffer> ret;
 
   if(IsCaptureLoaded())
   {
@@ -652,7 +656,7 @@ QVector<BoundVBuffer> CommonPipelineState::GetVBuffers()
   return ret;
 }
 
-QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
+rdcarray<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
 {
   if(IsCaptureLoaded())
   {
@@ -660,9 +664,10 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
     {
       uint32_t byteOffs[128] = {};
 
-      auto &layouts = m_D3D11->m_IA.layouts;
+      const rdcarray<D3D11Pipe::Layout> &layouts = m_D3D11->m_IA.layouts;
 
-      QVector<VertexInputAttribute> ret(layouts.count());
+      rdcarray<VertexInputAttribute> ret;
+      ret.resize(layouts.size());
       for(int i = 0; i < layouts.count(); i++)
       {
         QString semName = layouts[i].SemanticName;
@@ -718,9 +723,10 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
     {
       uint32_t byteOffs[128] = {};
 
-      auto &layouts = m_D3D12->m_IA.layouts;
+      const rdcarray<D3D12Pipe::Layout> &layouts = m_D3D12->m_IA.layouts;
 
-      QVector<VertexInputAttribute> ret(layouts.count());
+      rdcarray<VertexInputAttribute> ret;
+      ret.resize(layouts.size());
       for(int i = 0; i < layouts.count(); i++)
       {
         QString semName = layouts[i].SemanticName;
@@ -728,7 +734,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         bool needsSemanticIdx = false;
         for(int j = 0; j < layouts.count(); j++)
         {
-          if(i != j && !semName.compare(layouts[j].SemanticName, Qt::CaseInsensitive))
+          if(i != j && !semName.compare(QString(layouts[j].SemanticName), Qt::CaseInsensitive))
           {
             needsSemanticIdx = true;
             break;
@@ -774,7 +780,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
     }
     else if(IsCaptureGL())
     {
-      auto &attrs = m_GL->m_VtxIn.attributes;
+      const rdcarray<GLPipe::VertexAttribute> &attrs = m_GL->m_VtxIn.attributes;
 
       int num = 0;
       for(int i = 0; i < attrs.count(); i++)
@@ -790,7 +796,8 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       }
 
       int a = 0;
-      QVector<VertexInputAttribute> ret(attrs.count());
+      rdcarray<VertexInputAttribute> ret;
+      ret.resize(attrs.count());
       for(int i = 0; i < attrs.count() && a < num; i++)
       {
         ret[a].Name = lit("attr%1").arg(i);
@@ -851,7 +858,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
     }
     else if(IsCaptureVK())
     {
-      auto &attrs = m_Vulkan->VI.attrs;
+      const rdcarray<VKPipe::VertexAttribute> &attrs = m_Vulkan->VI.attrs;
 
       int num = 0;
       for(int i = 0; i < attrs.count(); i++)
@@ -870,7 +877,8 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       }
 
       int a = 0;
-      QVector<VertexInputAttribute> ret(num);
+      rdcarray<VertexInputAttribute> ret;
+      ret.resize(num);
       for(int i = 0; i < attrs.count() && a < num; i++)
       {
         ret[a].Name = lit("attr%1").arg(i);
@@ -906,7 +914,7 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
     }
   }
 
-  return QVector<VertexInputAttribute>();
+  return rdcarray<VertexInputAttribute>();
 }
 
 BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx,
@@ -997,7 +1005,8 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
           return ret;
         }
 
-        auto &descriptorBind = pipe.DescSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
+        const VKPipe::BindingElement &descriptorBind =
+            pipe.DescSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
 
         buf = descriptorBind.res;
         ByteOffset = descriptorBind.offset;
@@ -1015,15 +1024,17 @@ BoundCBuffer CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t 
   return ret;
 }
 
-QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResources(ShaderStage stage)
+rdcarray<BoundResourceArray> CommonPipelineState::GetReadOnlyResources(ShaderStage stage)
 {
-  QMap<BindpointMap, QVector<BoundResource>> ret;
+  rdcarray<BoundResourceArray> ret;
 
   if(IsCaptureLoaded())
   {
     if(IsCaptureD3D11())
     {
       const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
+
+      ret.reserve(s.SRVs.size());
 
       for(int i = 0; i < s.SRVs.count(); i++)
       {
@@ -1035,7 +1046,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
         val.FirstSlice = (int)s.SRVs[i].FirstArraySlice;
         val.typeHint = s.SRVs[i].Format.compType;
 
-        ret[key] = {val};
+        ret.push_back(BoundResourceArray(key, {val}));
       }
 
       return ret;
@@ -1062,7 +1073,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
           val.FirstSlice = (int)bind.FirstArraySlice;
           val.typeHint = bind.Format.compType;
 
-          ret[key] = {val};
+          ret.push_back(BoundResourceArray(key, {val}));
         }
       }
 
@@ -1070,6 +1081,8 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
     }
     else if(IsCaptureGL())
     {
+      ret.reserve(m_GL->Textures.size());
+
       for(int i = 0; i < m_GL->Textures.count(); i++)
       {
         BindpointMap key(0, i);
@@ -1080,30 +1093,33 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
         val.FirstSlice = (int)m_GL->Textures[i].FirstSlice;
         val.typeHint = CompType::Typeless;
 
-        ret[key] = {val};
+        ret.push_back(BoundResourceArray(key, {val}));
       }
 
       return ret;
     }
     else if(IsCaptureVK())
     {
-      const auto &descsets =
+      const rdcarray<VKPipe::DescriptorSet> &descsets =
           stage == ShaderStage::Compute ? m_Vulkan->compute.DescSets : m_Vulkan->graphics.DescSets;
 
       ShaderStageMask mask = MaskForStage(stage);
 
       for(int set = 0; set < descsets.count(); set++)
       {
-        const auto &descset = descsets[set];
+        const VKPipe::DescriptorSet &descset = descsets[set];
         for(int slot = 0; slot < descset.bindings.count(); slot++)
         {
-          const auto &bind = descset.bindings[slot];
+          const VKPipe::DescriptorBinding &bind = descset.bindings[slot];
           if((bind.type == BindType::ImageSampler || bind.type == BindType::InputAttachment ||
               bind.type == BindType::ReadOnlyImage || bind.type == BindType::ReadOnlyTBuffer) &&
              (bind.stageFlags & mask) == mask)
           {
-            BindpointMap key(set, slot);
-            QVector<BoundResource> val(bind.descriptorCount);
+            ret.push_back(BoundResourceArray());
+            ret.back().BindPoint = BindpointMap(set, slot);
+
+            rdcarray<BoundResource> &val = ret.back().Resources;
+            val.resize(bind.descriptorCount);
 
             for(uint32_t i = 0; i < bind.descriptorCount; i++)
             {
@@ -1112,8 +1128,6 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
               val[i].FirstSlice = (int)bind.binds[i].baseLayer;
               val[i].typeHint = bind.binds[i].viewfmt.compType;
             }
-
-            ret[key] = val;
           }
         }
       }
@@ -1125,9 +1139,9 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
   return ret;
 }
 
-QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteResources(ShaderStage stage)
+rdcarray<BoundResourceArray> CommonPipelineState::GetReadWriteResources(ShaderStage stage)
 {
-  QMap<BindpointMap, QVector<BoundResource>> ret;
+  rdcarray<BoundResourceArray> ret;
 
   if(IsCaptureLoaded())
   {
@@ -1135,6 +1149,8 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
     {
       if(stage == ShaderStage::Compute)
       {
+        ret.reserve(m_D3D11->m_CS.UAVs.size());
+
         for(int i = 0; i < m_D3D11->m_CS.UAVs.count(); i++)
         {
           BindpointMap key(0, i);
@@ -1145,12 +1161,14 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
           val.FirstSlice = (int)m_D3D11->m_CS.UAVs[i].FirstArraySlice;
           val.typeHint = m_D3D11->m_CS.UAVs[i].Format.compType;
 
-          ret[key] = {val};
+          ret.push_back(BoundResourceArray(key, {val}));
         }
       }
       else
       {
         int uavstart = (int)m_D3D11->m_OM.UAVStartSlot;
+
+        ret.reserve(m_D3D11->m_OM.UAVs.size() + qMax(0, uavstart));
 
         // up to UAVStartSlot treat these bindings as empty.
         for(int i = 0; i < uavstart; i++)
@@ -1158,7 +1176,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
           BindpointMap key(0, i);
           BoundResource val;
 
-          ret[key] = {val};
+          ret.push_back(BoundResourceArray(key, {val}));
         }
 
         for(int i = 0; i < m_D3D11->m_OM.UAVs.count() - uavstart; i++)
@@ -1171,7 +1189,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
           val.FirstSlice = (int)m_D3D11->m_OM.UAVs[i].FirstArraySlice;
           val.typeHint = m_D3D11->m_OM.UAVs[i].Format.compType;
 
-          ret[key] = {val};
+          ret.push_back(BoundResourceArray(key, {val}));
         }
       }
     }
@@ -1197,12 +1215,14 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
           val.FirstSlice = (int)bind.FirstArraySlice;
           val.typeHint = bind.Format.compType;
 
-          ret[key] = {val};
+          ret.push_back(BoundResourceArray(key, {val}));
         }
       }
     }
     else if(IsCaptureGL())
     {
+      ret.reserve(m_GL->Images.size());
+
       for(int i = 0; i < m_GL->Images.count(); i++)
       {
         BindpointMap key(0, i);
@@ -1213,28 +1233,31 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
         val.FirstSlice = (int)m_GL->Images[i].Layer;
         val.typeHint = m_GL->Images[i].Format.compType;
 
-        ret[key] = {val};
+        ret.push_back(BoundResourceArray(key, {val}));
       }
     }
     else if(IsCaptureVK())
     {
-      const auto &descsets =
+      const rdcarray<VKPipe::DescriptorSet> &descsets =
           stage == ShaderStage::Compute ? m_Vulkan->compute.DescSets : m_Vulkan->graphics.DescSets;
 
       ShaderStageMask mask = MaskForStage(stage);
 
       for(int set = 0; set < descsets.count(); set++)
       {
-        const auto &descset = descsets[set];
+        const VKPipe::DescriptorSet &descset = descsets[set];
         for(int slot = 0; slot < descset.bindings.count(); slot++)
         {
-          const auto &bind = descset.bindings[slot];
+          const VKPipe::DescriptorBinding &bind = descset.bindings[slot];
           if((bind.type == BindType::ReadWriteBuffer || bind.type == BindType::ReadWriteImage ||
               bind.type == BindType::ReadWriteTBuffer) &&
              (bind.stageFlags & mask) == mask)
           {
-            BindpointMap key(set, slot);
-            QVector<BoundResource> val(bind.descriptorCount);
+            ret.push_back(BoundResourceArray());
+            ret.back().BindPoint = BindpointMap(set, slot);
+
+            rdcarray<BoundResource> &val = ret.back().Resources;
+            val.resize(bind.descriptorCount);
 
             for(uint32_t i = 0; i < bind.descriptorCount; i++)
             {
@@ -1243,8 +1266,6 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
               val[i].FirstSlice = (int)bind.binds[i].baseLayer;
               val[i].typeHint = bind.binds[i].viewfmt.compType;
             }
-
-            ret[key] = val;
           }
         }
       }
@@ -1287,8 +1308,8 @@ BoundResource CommonPipelineState::GetDepthTarget()
     }
     else if(IsCaptureVK())
     {
-      const auto &rp = m_Vulkan->Pass.renderpass;
-      const auto &fb = m_Vulkan->Pass.framebuffer;
+      const VKPipe::RenderPass &rp = m_Vulkan->Pass.renderpass;
+      const VKPipe::Framebuffer &fb = m_Vulkan->Pass.framebuffer;
 
       if(rp.depthstencilAttachment >= 0 && rp.depthstencilAttachment < fb.attachments.count())
       {
@@ -1307,9 +1328,9 @@ BoundResource CommonPipelineState::GetDepthTarget()
   return BoundResource();
 }
 
-QVector<BoundResource> CommonPipelineState::GetOutputTargets()
+rdcarray<BoundResource> CommonPipelineState::GetOutputTargets()
 {
-  QVector<BoundResource> ret;
+  rdcarray<BoundResource> ret;
 
   if(IsCaptureLoaded())
   {
@@ -1353,8 +1374,8 @@ QVector<BoundResource> CommonPipelineState::GetOutputTargets()
     }
     else if(IsCaptureVK())
     {
-      const auto &rp = m_Vulkan->Pass.renderpass;
-      const auto &fb = m_Vulkan->Pass.framebuffer;
+      const VKPipe::RenderPass &rp = m_Vulkan->Pass.renderpass;
+      const VKPipe::Framebuffer &fb = m_Vulkan->Pass.framebuffer;
 
       int idx = 0;
 

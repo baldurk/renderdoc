@@ -352,7 +352,7 @@ struct SDObject
 
   DOCUMENT("Add a new child object by duplicating it.");
   inline void addChild(SDObject *child) { data.children.push_back(child->Duplicate()); }
-#if defined(RENDERDOC_QT_COMPAT) && !defined(SWIG)
+#if defined(RENDERDOC_QT_COMPAT)
   operator QVariant() const
   {
     switch(type.basetype)
@@ -394,7 +394,7 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(SDObject);
 
-#if defined(RENDERDOC_QT_COMPAT) && !defined(SWIG)
+#if defined(RENDERDOC_QT_COMPAT)
 inline SDObject *makeSDObject(const char *name, QVariant val)
 {
   SDObject *ret = new SDObject(name, "QVariant");

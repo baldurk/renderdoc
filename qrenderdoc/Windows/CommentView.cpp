@@ -77,7 +77,7 @@ void CommentView::OnCaptureClosed()
 
 void CommentView::OnCaptureLoaded()
 {
-  m_commentsEditor->setText(m_Ctx.GetNotes(lit("comments")).toUtf8().data());
+  m_commentsEditor->setText(m_Ctx.GetNotes("comments").c_str());
   m_commentsEditor->emptyUndoBuffer();
   m_ignoreModifications = false;
 }
@@ -85,7 +85,7 @@ void CommentView::OnCaptureLoaded()
 void CommentView::OnEventChanged(uint32_t eventID)
 {
   QString oldText = QString::fromUtf8(m_commentsEditor->getText(m_commentsEditor->textLength() + 1));
-  QString newText = m_Ctx.GetNotes(lit("comments"));
+  QString newText = m_Ctx.GetNotes("comments");
 
   if(oldText != newText)
   {

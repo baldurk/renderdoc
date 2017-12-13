@@ -540,8 +540,7 @@ void PipelineStateViewer::setMeshViewPixmap(RDLabel *meshView)
 }
 
 bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDetails,
-                                               QString &entryFunc, QStringMap &files,
-                                               QString &mainfile)
+                                               QString &entryFunc, rdcstrpairs &files)
 {
   if(!shaderDetails->DebugInfo.files.empty())
   {
@@ -549,7 +548,7 @@ bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDet
 
     QStringList uniqueFiles;
 
-    for(auto &s : shaderDetails->DebugInfo.files)
+    for(const ShaderSourceFile &s : shaderDetails->DebugInfo.files)
     {
       QString filename = s.Filename;
       if(uniqueFiles.contains(filename.toLower()))
@@ -559,10 +558,8 @@ bool PipelineStateViewer::PrepareShaderEditing(const ShaderReflection *shaderDet
       }
       uniqueFiles.push_back(filename.toLower());
 
-      files[filename] = s.Contents;
+      files.push_back(make_rdcpair(s.Filename, s.Contents));
     }
-
-    mainfile = shaderDetails->DebugInfo.files[0].Filename;
 
     return true;
   }
@@ -717,17 +714,17 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
 }
 
 void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
-                                     const ShaderReflection *shaderDetails, const QString &entryFunc,
-                                     const QStringMap &files, const QString &mainfile)
+                                     const ShaderReflection *shaderDetails,
+                                     const QString &entryFunc, const rdcstrpairs &files)
 {
   ANALYTIC_SET(UIFeatures.ShaderEditing, true);
 
   IShaderViewer *sv = m_Ctx.EditShader(
       false, entryFunc, files,
       // save callback
-      [entryFunc, mainfile, shaderType, id, shaderDetails](
-          ICaptureContext *ctx, IShaderViewer *viewer, const QStringMap &updatedfiles) {
-        QString compileSource = updatedfiles[mainfile];
+      [entryFunc, shaderType, id, shaderDetails](ICaptureContext *ctx, IShaderViewer *viewer,
+                                                 const rdcstrpairs &updatedfiles) {
+        QString compileSource = updatedfiles[0].second;
 
         // try and match up #includes against the files that we have. This isn't always
         // possible as fxc only seems to include the source for files if something in
@@ -789,19 +786,25 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
           QString fileText;
 
           // look for exact match first
-          if(updatedfiles.contains(fname))
+          for(int i = 0; i < updatedfiles.count(); i++)
           {
-            fileText = updatedfiles[fname];
+            if(QString(updatedfiles[i].first) == fname)
+            {
+              fileText = updatedfiles[i].second;
+              break;
+            }
           }
-          else
+
+          if(fileText.isEmpty())
           {
             QString search = QFileInfo(fname).fileName();
+
             // if not, try and find the same filename (this is not proper include handling!)
-            for(const QString &k : updatedfiles.keys())
+            for(const rdcstrpair &kv : updatedfiles)
             {
-              if(QFileInfo(k).fileName().compare(search, Qt::CaseInsensitive) == 0)
+              if(QFileInfo(kv.first).fileName().compare(search, Qt::CaseInsensitive) == 0)
               {
-                fileText = updatedfiles[k];
+                fileText = kv.second;
                 break;
               }
             }
@@ -818,8 +821,11 @@ void PipelineStateViewer::EditShader(ShaderStage shaderType, ResourceId id,
           offs = compileSource.indexOf(lit("#include"));
         }
 
-        if(updatedfiles.contains(lit("@cmdline")))
-          compileSource = updatedfiles[lit("@cmdline")] + lit("\n\n") + compileSource;
+        for(const rdcstrpair &kv : updatedfiles)
+        {
+          if(kv.first == "@cmdline")
+            compileSource = QString(kv.second) + lit("\n\n") + compileSource;
+        }
 
         // invoke off to the ReplayController to replace the capture's shader
         // with our edited one

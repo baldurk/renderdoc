@@ -119,9 +119,9 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
 
   if(Type == FollowType::OutputColour)
   {
-    auto outputs = GetOutputTargets(ctx);
+    rdcarray<BoundResource> outputs = GetOutputTargets(ctx);
 
-    if(index < outputs.size())
+    if(index < outputs.count())
       ret = outputs[index];
   }
   else if(Type == FollowType::OutputDepth)
@@ -130,7 +130,7 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
   }
   else if(Type == FollowType::ReadWrite)
   {
-    auto rw = GetReadWriteResources(ctx);
+    rdcarray<BoundResourceArray> rw = GetReadWriteResources(ctx);
 
     ShaderBindpointMapping mapping = GetMapping(ctx);
 
@@ -138,13 +138,14 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
     {
       BindpointMap &key = mapping.ReadWriteResources[index];
 
-      if(rw.contains(key))
-        ret = rw[key][arrayIdx];
+      int residx = rw.indexOf(key);
+      if(residx >= 0)
+        ret = rw[residx].Resources[arrayIdx];
     }
   }
   else if(Type == FollowType::ReadOnly)
   {
-    auto ro = GetReadOnlyResources(ctx);
+    rdcarray<BoundResourceArray> ro = GetReadOnlyResources(ctx);
 
     ShaderBindpointMapping mapping = GetMapping(ctx);
 
@@ -152,15 +153,16 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
     {
       BindpointMap &key = mapping.ReadOnlyResources[index];
 
-      if(ro.contains(key))
-        ret = ro[key][arrayIdx];
+      int residx = ro.indexOf(key);
+      if(residx >= 0)
+        ret = ro[residx].Resources[arrayIdx];
     }
   }
 
   return ret;
 }
 
-QVector<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
+rdcarray<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
 {
   const DrawcallDescription *curDraw = ctx.CurDrawcall();
   bool copy = false, clear = false, compute = false;
@@ -176,7 +178,7 @@ QVector<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
   }
   else
   {
-    QVector<BoundResource> ret = ctx.CurPipelineState().GetOutputTargets();
+    rdcarray<BoundResource> ret = ctx.CurPipelineState().GetOutputTargets();
 
     if(ret.isEmpty() && curDraw != NULL && (curDraw->flags & DrawFlags::Present))
     {
@@ -205,15 +207,14 @@ BoundResource Following::GetDepthTarget(ICaptureContext &ctx)
     return ctx.CurPipelineState().GetDepthTarget();
 }
 
-QMap<BindpointMap, QVector<BoundResource>> Following::GetReadWriteResources(ICaptureContext &ctx,
-                                                                            ShaderStage stage)
+rdcarray<BoundResourceArray> Following::GetReadWriteResources(ICaptureContext &ctx, ShaderStage stage)
 {
   bool copy = false, clear = false, compute = false;
   GetDrawContext(ctx, copy, clear, compute);
 
   if(copy || clear)
   {
-    return QMap<BindpointMap, QVector<BoundResource>>();
+    return rdcarray<BoundResourceArray>();
   }
   else if(compute)
   {
@@ -221,7 +222,7 @@ QMap<BindpointMap, QVector<BoundResource>> Following::GetReadWriteResources(ICap
     if(stage == ShaderStage::Pixel || stage == ShaderStage::Compute)
       return ctx.CurPipelineState().GetReadWriteResources(ShaderStage::Compute);
     else
-      return QMap<BindpointMap, QVector<BoundResource>>();
+      return rdcarray<BoundResourceArray>();
   }
   else
   {
@@ -229,13 +230,12 @@ QMap<BindpointMap, QVector<BoundResource>> Following::GetReadWriteResources(ICap
   }
 }
 
-QMap<BindpointMap, QVector<BoundResource>> Following::GetReadWriteResources(ICaptureContext &ctx)
+rdcarray<BoundResourceArray> Following::GetReadWriteResources(ICaptureContext &ctx)
 {
   return GetReadWriteResources(ctx, Stage);
 }
 
-QMap<BindpointMap, QVector<BoundResource>> Following::GetReadOnlyResources(ICaptureContext &ctx,
-                                                                           ShaderStage stage)
+rdcarray<BoundResourceArray> Following::GetReadOnlyResources(ICaptureContext &ctx, ShaderStage stage)
 {
   const DrawcallDescription *curDraw = ctx.CurDrawcall();
   bool copy = false, clear = false, compute = false;
@@ -243,11 +243,11 @@ QMap<BindpointMap, QVector<BoundResource>> Following::GetReadOnlyResources(ICapt
 
   if(copy || clear)
   {
-    QMap<BindpointMap, QVector<BoundResource>> ret;
+    rdcarray<BoundResourceArray> ret;
 
     // only return copy source for one stage
     if(copy && stage == ShaderStage::Pixel)
-      ret[BindpointMap(0, 0)] = {BoundResource(curDraw->copySource)};
+      ret.push_back(BoundResourceArray(BindpointMap(0, 0), {BoundResource(curDraw->copySource)}));
 
     return ret;
   }
@@ -257,7 +257,7 @@ QMap<BindpointMap, QVector<BoundResource>> Following::GetReadOnlyResources(ICapt
     if(stage == ShaderStage::Pixel || stage == ShaderStage::Compute)
       return ctx.CurPipelineState().GetReadOnlyResources(ShaderStage::Compute);
     else
-      return QMap<BindpointMap, QVector<BoundResource>>();
+      return rdcarray<BoundResourceArray>();
   }
   else
   {
@@ -265,7 +265,7 @@ QMap<BindpointMap, QVector<BoundResource>> Following::GetReadOnlyResources(ICapt
   }
 }
 
-QMap<BindpointMap, QVector<BoundResource>> Following::GetReadOnlyResources(ICaptureContext &ctx)
+rdcarray<BoundResourceArray> Following::GetReadOnlyResources(ICaptureContext &ctx)
 {
   return GetReadOnlyResources(ctx, Stage);
 }
@@ -363,7 +363,7 @@ public:
       {
         if(filter.isEmpty())
           texs.push_back(t);
-        else if(m_Ctx.GetResourceName(t.ID).contains(filter, Qt::CaseInsensitive))
+        else if(QString(m_Ctx.GetResourceName(t.ID)).contains(filter, Qt::CaseInsensitive))
           texs.push_back(t);
       }
     }
@@ -1917,7 +1917,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id, Co
 void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
                                               const rdcarray<ShaderResource> &resourceDetails,
                                               const rdcarray<BindpointMap> &mapping,
-                                              QMap<BindpointMap, QVector<BoundResource>> &ResList,
+                                              rdcarray<BoundResourceArray> &ResList,
                                               ThumbnailStrip *prevs, int &prevIndex, bool copy,
                                               bool rw)
 {
@@ -1925,12 +1925,13 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
   {
     const BindpointMap &key = mapping[idx];
 
-    const QVector<BoundResource> *resArray = NULL;
+    const rdcarray<BoundResource> *resArray = NULL;
 
-    if(ResList.contains(key))
-      resArray = &ResList[key];
+    int residx = ResList.indexOf(key);
+    if(residx >= 0)
+      resArray = &ResList[residx].Resources;
 
-    int arrayLen = resArray != NULL ? resArray->size() : 1;
+    int arrayLen = resArray != NULL ? resArray->count() : 1;
 
     for(int arrayIdx = 0; arrayIdx < arrayLen; arrayIdx++)
     {
@@ -2572,7 +2573,7 @@ void TextureViewer::OnEventChanged(uint32_t eventID)
     w->setWindowTitle(m_Ctx.GetResourceName(id));
   }
 
-  QVector<BoundResource> RTs = Following::GetOutputTargets(m_Ctx);
+  rdcarray<BoundResource> RTs = Following::GetOutputTargets(m_Ctx);
   BoundResource Depth = Following::GetDepthTarget(m_Ctx);
 
   int outIndex = 0;
@@ -2581,7 +2582,7 @@ void TextureViewer::OnEventChanged(uint32_t eventID)
   bool copy = false, clear = false, compute = false;
   Following::GetDrawContext(m_Ctx, copy, clear, compute);
 
-  for(int rt = 0; rt < RTs.size(); rt++)
+  for(int rt = 0; rt < RTs.count(); rt++)
   {
     ResourcePreview *prev;
 
@@ -2635,8 +2636,8 @@ void TextureViewer::OnEventChanged(uint32_t eventID)
   {
     ShaderStage stage = stages[i];
 
-    QMap<BindpointMap, QVector<BoundResource>> RWs = Following::GetReadWriteResources(m_Ctx, stage);
-    QMap<BindpointMap, QVector<BoundResource>> ROs = Following::GetReadOnlyResources(m_Ctx, stage);
+    rdcarray<BoundResourceArray> RWs = Following::GetReadWriteResources(m_Ctx, stage);
+    rdcarray<BoundResourceArray> ROs = Following::GetReadOnlyResources(m_Ctx, stage);
 
     const ShaderReflection *details = Following::GetReflection(m_Ctx, stage);
     const ShaderBindpointMapping &mapping = Following::GetMapping(m_Ctx, stage);
@@ -3740,19 +3741,19 @@ void TextureViewer::on_customEdit_clicked()
     return;
   }
 
-  QStringMap files;
-  files[filename] = src;
+  rdcstrpairs files;
+  files.push_back(make_rdcpair<rdcstr, rdcstr>(filename, src));
 
   IShaderViewer *s = m_Ctx.EditShader(
       true, lit("main"), files,
       // Save Callback
       [this, key, filename, path](ICaptureContext *ctx, IShaderViewer *viewer,
-                                  const QStringMap &updatedfiles) {
+                                  const rdcstrpairs &updatedfiles) {
         {
           QFile fileHandle(path);
           if(fileHandle.open(QFile::WriteOnly | QIODevice::Truncate | QIODevice::Text))
           {
-            fileHandle.write(updatedfiles[filename].toUtf8());
+            fileHandle.write(updatedfiles[0].second.c_str());
             fileHandle.close();
 
             // watcher doesn't trigger on internal modifications

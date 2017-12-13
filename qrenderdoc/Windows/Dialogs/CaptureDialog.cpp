@@ -425,8 +425,8 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
 
   LambdaThread *scan = new LambdaThread([this, filename]() {
 
-    QByteArray hostnameBytes = m_Ctx.Replay().CurrentRemote()->Hostname.toUtf8();
-    RENDERDOC_CheckAndroidPackage(hostnameBytes.data(), filename.toUtf8().data(), &m_AndroidFlags);
+    rdcstr host = m_Ctx.Replay().CurrentRemote()->Hostname;
+    RENDERDOC_CheckAndroidPackage(host.c_str(), filename.toUtf8().data(), &m_AndroidFlags);
 
     const bool missingLibrary = bool(m_AndroidFlags & AndroidFlags::MissingLibrary);
     const bool missingPermissions = bool(m_AndroidFlags & AndroidFlags::MissingPermissions);
@@ -534,8 +534,8 @@ void CaptureDialog::androidWarn_mouseClick()
 
       // Call into layer push routine, then continue
       LambdaThread *push = new LambdaThread([this, exe, &pushSucceeded]() {
-        QByteArray hostnameBytes = m_Ctx.Replay().CurrentRemote()->Hostname.toUtf8();
-        if(RENDERDOC_PushLayerToInstalledAndroidApp(hostnameBytes.data(), exe.toUtf8().data()))
+        rdcstr host = m_Ctx.Replay().CurrentRemote()->Hostname;
+        if(RENDERDOC_PushLayerToInstalledAndroidApp(host.c_str(), exe.toUtf8().data()))
         {
           // Sucess!
           pushSucceeded = true;
@@ -599,8 +599,8 @@ void CaptureDialog::androidWarn_mouseClick()
 
       // call into APK pull, patch, install routine, then continue
       LambdaThread *patch = new LambdaThread([this, exe, &patchSucceeded, &progress]() {
-        QByteArray hostnameBytes = m_Ctx.Replay().CurrentRemote()->Hostname.toUtf8();
-        if(RENDERDOC_AddLayerToAndroidPackage(hostnameBytes.data(), exe.toUtf8().data(), &progress))
+        rdcstr host = m_Ctx.Replay().CurrentRemote()->Hostname;
+        if(RENDERDOC_AddLayerToAndroidPackage(host.c_str(), exe.toUtf8().data(), &progress))
         {
           // Sucess!
           patchSucceeded = true;
@@ -955,7 +955,7 @@ CaptureSettings CaptureDialog::Settings()
   return ret;
 }
 
-void CaptureDialog::SaveSettings(QString filename)
+void CaptureDialog::SaveSettings(const rdcstr &filename)
 {
   QFile f(filename);
   if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
@@ -990,7 +990,7 @@ void CaptureDialog::fillProcessList()
   }
 }
 
-void CaptureDialog::SetExecutableFilename(const QString &filename)
+void CaptureDialog::SetExecutableFilename(const rdcstr &filename)
 {
   QString fn = filename;
 
@@ -1006,17 +1006,17 @@ void CaptureDialog::SetExecutableFilename(const QString &filename)
   }
 }
 
-void CaptureDialog::SetWorkingDirectory(const QString &dir)
+void CaptureDialog::SetWorkingDirectory(const rdcstr &dir)
 {
   ui->workDirPath->setText(dir);
 }
 
-void CaptureDialog::SetCommandLine(const QString &cmd)
+void CaptureDialog::SetCommandLine(const rdcstr &cmd)
 {
   ui->cmdline->setText(cmd);
 }
 
-void CaptureDialog::LoadSettings(QString filename)
+void CaptureDialog::LoadSettings(const rdcstr &filename)
 {
   QFile f(filename);
   if(f.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -1064,7 +1064,7 @@ void CaptureDialog::UpdateGlobalHook()
   }
 }
 
-void CaptureDialog::SetEnvironmentModifications(const QList<EnvironmentModification> &modifications)
+void CaptureDialog::SetEnvironmentModifications(const rdcarray<EnvironmentModification> &modifications)
 {
   m_EnvModifications = modifications;
 

@@ -60,18 +60,43 @@ struct BoundResource
 
 DECLARE_REFLECTION_STRUCT(BoundResource);
 
-DOCUMENT("Information about a single vertex buffer binding.");
-struct BoundVBuffer
+// TODO this should be replaced with an rdcmap
+DOCUMENT(R"(Contains all of the bound resources at a particular bindpoint. In APIs that don't
+support resource arrays, there will only be one bound resource.
+)");
+struct BoundResourceArray
+{
+  BoundResourceArray() = default;
+  BoundResourceArray(BindpointMap b) : BindPoint(b) {}
+  BoundResourceArray(BindpointMap b, const rdcarray<BoundResource> &r) : BindPoint(b), Resources(r)
+  {
+  }
+
+  // for convenience for searching the array, we compare only using the BindPoint
+  bool operator==(const BoundResourceArray &o) const { return BindPoint == o.BindPoint; }
+  bool operator!=(const BoundResourceArray &o) const { return !(BindPoint == o.BindPoint); }
+  bool operator<(const BoundResourceArray &o) const { return BindPoint < o.BindPoint; }
+  DOCUMENT("The bind point for this array of bound resources.");
+  BindpointMap BindPoint;
+
+  DOCUMENT("The resources at this bind point");
+  rdcarray<BoundResource> Resources;
+};
+
+DECLARE_REFLECTION_STRUCT(BoundResourceArray);
+
+DOCUMENT("Information about a single vertex or index buffer binding.");
+struct BoundBuffer
 {
   DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the buffer.");
   ResourceId Buffer;
-  DOCUMENT("The offset in bytes from the start of the buffer to the vertex data.");
+  DOCUMENT("The offset in bytes from the start of the buffer to the data.");
   uint64_t ByteOffset = 0;
-  DOCUMENT("The stride in bytes between the start of one vertex and the start of the next.");
+  DOCUMENT("The stride in bytes between the start of one element and the start of the next.");
   uint32_t ByteStride = 0;
 };
 
-DECLARE_REFLECTION_STRUCT(BoundVBuffer);
+DECLARE_REFLECTION_STRUCT(BoundBuffer);
 
 DOCUMENT("Information about a single constant buffer binding.");
 struct BoundCBuffer
@@ -90,7 +115,7 @@ DOCUMENT("Information about a vertex input attribute feeding the vertex shader."
 struct VertexInputAttribute
 {
   DOCUMENT("The name of this input. This may be a variable name or a semantic name.");
-  QString Name;
+  rdcstr Name;
   DOCUMENT("The index of the vertex buffer used to provide this attribute.");
   int VertexBuffer;
   DOCUMENT("The byte offset from the start of the vertex data for this VB to this attribute.");
@@ -267,7 +292,7 @@ requirements.
 :return: The name of the current resource layout.
 :rtype: ``str``
 )");
-  QString GetResourceLayout(ResourceId id);
+  rdcstr GetResourceLayout(ResourceId id);
 
   DOCUMENT(R"(Retrieves a suitable two or three letter abbreviation of the given shader stage.
 
@@ -275,14 +300,14 @@ requirements.
 :return: The abbreviation of the stage.
 :rtype: ``str``
 )");
-  QString Abbrev(ShaderStage stage);
+  rdcstr Abbrev(ShaderStage stage);
   DOCUMENT(R"(Retrieves a suitable two or three letter abbreviation of the output stage. Typically
 'OM' or 'FBO'.
 
 :return: The abbreviation of the output stage.
 :rtype: ``str``
 )");
-  QString OutputAbbrev();
+  rdcstr OutputAbbrev();
 
   DOCUMENT(R"(Retrieves the viewport for a given index.
 
@@ -334,7 +359,7 @@ For some APIs that don't distinguish by entry point, this may be empty.
 :return: The entry point name for the given shader.
 :rtype: ``str``
 )");
-  QString GetShaderEntryPoint(ShaderStage stage);
+  rdcstr GetShaderEntryPoint(ShaderStage stage);
 
   DOCUMENT(R"(Retrieves the object ID of the shader bound at a shader stage.
 
@@ -350,7 +375,7 @@ For some APIs that don't distinguish by entry point, this may be empty.
 :return: The object name for the given shader.
 :rtype: ``str``
 )");
-  QString GetShaderName(ShaderStage stage);
+  rdcstr GetShaderName(ShaderStage stage);
 
   DOCUMENT(R"(Retrieves the common file extension for high level shaders in the current API.
 
@@ -359,7 +384,7 @@ Typically this is ``glsl`` or ``hlsl``.
 :return: The file extension with no ``.``.
 :rtype: ``str``
 )");
-  QString GetShaderExtension();
+  rdcstr GetShaderExtension();
 
   DOCUMENT(R"(Retrieves the current index buffer binding.
 
@@ -367,7 +392,7 @@ Typically this is ``glsl`` or ``hlsl``.
   start of the index data.
 :rtype: ``tuple`` of :class:`~renderdoc.ResourceId` and ``int``
 )");
-  QPair<ResourceId, uint64_t> GetIBuffer();
+  BoundBuffer GetIBuffer();
 
   DOCUMENT(R"(Determines whether or not primitive restart is enabled.
 
@@ -387,16 +412,16 @@ Typically this is ``glsl`` or ``hlsl``.
   DOCUMENT(R"(Retrieves the currently bound vertex buffers.
 
 :return: The list of bound vertex buffers.
-:rtype: ``list`` of :class:`BoundVBuffer`.
+:rtype: ``list`` of :class:`BoundBuffer`.
 )");
-  QVector<BoundVBuffer> GetVBuffers();
+  rdcarray<BoundBuffer> GetVBuffers();
 
   DOCUMENT(R"(Retrieves the currently specified vertex attributes.
 
 :return: The list of current vertex attributes.
 :rtype: ``list`` of :class:`VertexInputAttribute`.
 )");
-  QVector<VertexInputAttribute> GetVertexInputs();
+  rdcarray<VertexInputAttribute> GetVertexInputs();
 
   DOCUMENT(R"(Retrieves the constant buffer at a given binding.
 
@@ -413,17 +438,17 @@ Typically this is ``glsl`` or ``hlsl``.
 
 :param ~renderdoc.ShaderStage stage: The shader stage to fetch from.
 :return: The currently bound read-only resoruces.
-:rtype: ``dict`` with :class:`~renderdoc.BindpointMap` keys, to lists of :class:`BoundResource`.
+:rtype: ``list`` of :class:`BoundResourceArray` entries
 )");
-  QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(ShaderStage stage);
+  rdcarray<BoundResourceArray> GetReadOnlyResources(ShaderStage stage);
 
   DOCUMENT(R"(Retrieves the read/write resources bound to a particular shader stage.
 
 :param ~renderdoc.ShaderStage stage: The shader stage to fetch from.
 :return: The currently bound read/write resoruces.
-:rtype: ``dict`` with :class:`~renderdoc.BindpointMap` keys, to lists of :class:`BoundResource`.
+:rtype: ``list`` of :class:`BoundResourceArray` entries
 )");
-  QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(ShaderStage stage);
+  rdcarray<BoundResourceArray> GetReadWriteResources(ShaderStage stage);
 
   DOCUMENT(R"(Retrieves the read/write resources bound to the depth-stencil output.
 
@@ -437,7 +462,7 @@ Typically this is ``glsl`` or ``hlsl``.
 :return: The currently bound output targets.
 :rtype: ``list`` of :class:`BoundResource`.
 )");
-  QVector<BoundResource> GetOutputTargets();
+  rdcarray<BoundResource> GetOutputTargets();
 
 private:
   const D3D11Pipe::State *m_D3D11 = NULL;

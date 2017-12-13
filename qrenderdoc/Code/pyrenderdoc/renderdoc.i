@@ -82,6 +82,7 @@
 %ignore rdcarray::end;
 %ignore rdcarray::front;
 %ignore rdcarray::back;
+%ignore rdcarray::at;
 %ignore rdcarray::data;
 %ignore rdcarray::assign;
 %ignore rdcarray::insert;
@@ -98,6 +99,10 @@
 %ignore rdcarray::reserve;
 %ignore rdcarray::swap;
 %ignore rdcarray::push_back;
+%ignore rdcarray::takeAt;
+%ignore rdcarray::indexOf;
+%ignore rdcarray::contains;
+%ignore rdcarray::removeOne;
 %ignore rdcarray::operator=;
 %ignore rdcarray::operator[];
 %ignore rdcstr::operator=;

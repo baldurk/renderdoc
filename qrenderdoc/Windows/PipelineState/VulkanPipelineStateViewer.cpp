@@ -2309,11 +2309,9 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
 
   QString entryFunc = lit("EditedShader%1S").arg(ToQStr(stage->stage, GraphicsAPI::Vulkan)[0]);
 
-  QString mainfile;
+  rdcstrpairs files;
 
-  QStringMap files;
-
-  bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files, mainfile);
+  bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files);
 
   if(hasOrigSource)
   {
@@ -2327,28 +2325,27 @@ void VulkanPipelineStateViewer::shaderEdit_clicked()
     if(!m_Ctx.Config().SPIRVDisassemblers.isEmpty())
       glsl = disassembleSPIRV(shaderDetails);
 
-    mainfile = lit("generated.glsl");
-
-    files[mainfile] = glsl;
-
-    if(glsl.isEmpty())
+    if(!glsl.isEmpty())
     {
-      m_Ctx.Replay().AsyncInvoke(
-          [this, stage, pipe, shaderDetails, entryFunc, mainfile](IReplayController *r) {
-            rdcstr disasm = r->DisassembleShader(pipe, shaderDetails, "");
+      files.clear();
+      files.push_back(make_rdcpair<rdcstr, rdcstr>("generated.glsl", glsl));
+    }
+    else
+    {
+      m_Ctx.Replay().AsyncInvoke([this, stage, pipe, shaderDetails, entryFunc](IReplayController *r) {
+        rdcstr disasm = r->DisassembleShader(pipe, shaderDetails, "");
 
-            GUIInvoke::call([this, stage, shaderDetails, entryFunc, mainfile, disasm]() {
-              QStringMap fileMap;
-              fileMap[mainfile] = disasm;
-              m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, fileMap,
-                                  mainfile);
-            });
-          });
+        GUIInvoke::call([this, stage, shaderDetails, entryFunc, disasm]() {
+          rdcstrpairs fileMap;
+          fileMap.push_back(make_rdcpair<rdcstr, rdcstr>("generated.glsl", disasm));
+          m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, fileMap);
+        });
+      });
       return;
     }
   }
 
-  m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, files, mainfile);
+  m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, files);
 }
 
 QString VulkanPipelineStateViewer::disassembleSPIRV(const ShaderReflection *shaderDetails)
@@ -2376,7 +2373,7 @@ QString VulkanPipelineStateViewer::disassembleSPIRV(const ShaderReflection *shad
     return QString();
   }
 
-  if(!disasm.args.contains(lit("{spv_bin}")))
+  if(!QString(disasm.args).contains(lit("{spv_bin}")))
   {
     RDDialog::critical(
         this, tr("Wrongly configured disassembler"),
@@ -2389,7 +2386,7 @@ QString VulkanPipelineStateViewer::disassembleSPIRV(const ShaderReflection *shad
 
     QString args = disasm.args;
 
-    bool writesToFile = disasm.args.contains(lit("{spv_disas}"));
+    bool writesToFile = args.contains(lit("{spv_disas}"));
 
     args.replace(lit("{spv_bin}"), spv_bin_file);
     args.replace(lit("{spv_disas}"), spv_disas_file);

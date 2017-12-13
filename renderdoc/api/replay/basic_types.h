@@ -167,6 +167,7 @@ public:
   const T *end() const { return elems ? elems + usedCount : NULL; }
   const T &front() const { return *elems; }
   const T &back() const { return *(elems + usedCount - 1); }
+  const T &at(size_t idx) const { return elems[idx]; }
   size_t size() const { return (size_t)usedCount; }
   size_t byteSize() const { return (size_t)usedCount * sizeof(T); }
   int32_t count() const { return (int32_t)usedCount; }
@@ -395,6 +396,40 @@ public:
     // update new size
     setUsedCount(usedCount - (int32_t)count);
   }
+
+  /////////////////////////////////////////////////////////////////
+  // Qt style helper functions
+
+  // erase & return an index
+  T takeAt(size_t offs)
+  {
+    T ret = elems[offs];
+    erase(offs);
+    return ret;
+  }
+
+  // find the first occurrence of an element
+  int32_t indexOf(const T &el, size_t first = 0, size_t last = ~0U) const
+  {
+    for(int32_t i = (int32_t)first; i < usedCount && (size_t)i < last; i++)
+    {
+      if(elems[i] == el)
+        return i;
+    }
+
+    return -1;
+  }
+
+  // return true if an element is found
+  bool contains(const T &el) const { return indexOf(el) != -1; }
+  // remove the first occurrence of an element
+  void removeOne(const T &el)
+  {
+    int idx = indexOf(el);
+    if(idx >= 0)
+      erase((size_t)idx);
+  }
+
   /////////////////////////////////////////////////////////////////
   // constructors that just forward to assign
   rdcarray(const T *in, size_t count)
@@ -632,3 +667,6 @@ struct bytebuf : public rdcarray<byte>
   }
 #endif
 };
+
+typedef rdcpair<rdcstr, rdcstr> rdcstrpair;
+typedef rdcarray<rdcstrpair> rdcstrpairs;

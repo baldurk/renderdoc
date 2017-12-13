@@ -40,7 +40,7 @@ variantType convertToVariant(const origType &val)
 }
 
 template <typename variantType, typename innerType>
-variantType convertToVariant(const QList<innerType> &val)
+variantType convertToVariant(const rdcarray<innerType> &val)
 {
   variantType ret;
   ret.reserve(val.count());
@@ -50,12 +50,12 @@ variantType convertToVariant(const QList<innerType> &val)
 }
 
 template <>
-QVariantMap convertToVariant(const QStringMap &val)
+QVariantMap convertToVariant(const rdcstrpairs &val)
 {
   QVariantMap ret;
-  for(const QString &k : val.keys())
+  for(const rdcstrpair &k : val)
   {
-    ret[k] = val[k];
+    ret[k.first] = k.second;
   }
   return ret;
 }
@@ -67,33 +67,33 @@ origType convertFromVariant(const variantType &val)
 }
 
 template <>
-QString convertFromVariant(const QVariant &val)
+rdcstr convertFromVariant(const QVariant &val)
 {
   return val.toString();
 }
 
 template <typename listType>
-listType convertFromVariant(const QList<QVariant> &val)
+listType convertFromVariant(const QVariantList &val)
 {
   listType ret;
   ret.reserve(val.count());
   for(const QVariant &s : val)
-    ret.push_back(convertFromVariant<decltype(ret.value(0))>(s));
+    ret.push_back(convertFromVariant<typename listType::value_type>(s));
   return ret;
 }
 
 template <>
-QStringMap convertFromVariant(const QVariantMap &val)
+rdcstrpairs convertFromVariant(const QVariantMap &val)
 {
-  QStringMap ret;
+  rdcstrpairs ret;
   for(const QString &k : val.keys())
   {
-    ret[k] = val[k].toString();
+    ret.push_back(make_rdcpair<rdcstr, rdcstr>(k, val[k].toString()));
   }
   return ret;
 }
 
-bool PersistantConfig::Deserialize(const QString &filename)
+bool PersistantConfig::Deserialize(const rdcstr &filename)
 {
   QFile f(filename);
 
@@ -117,12 +117,12 @@ bool PersistantConfig::Deserialize(const QString &filename)
     return true;
   }
 
-  qInfo() << "Couldn't load layout from " << filename << " " << f.errorString();
+  qInfo() << "Couldn't load layout from " << QString(filename) << " " << f.errorString();
 
   return false;
 }
 
-bool PersistantConfig::Serialize(const QString &filename)
+bool PersistantConfig::Serialize(const rdcstr &filename)
 {
   if(!filename.isEmpty())
     m_Filename = filename;
@@ -133,7 +133,7 @@ bool PersistantConfig::Serialize(const QString &filename)
   if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
     return SaveToJSON(values, f, JSON_ID, JSON_VER);
 
-  qWarning() << "Couldn't write to " << m_Filename << " " << f.errorString();
+  qWarning() << "Couldn't write to " << QString(m_Filename) << " " << f.errorString();
 
   return false;
 }
@@ -181,7 +181,7 @@ void PersistantConfig::applyValues(const QVariantMap &values)
 
 void PersistantConfig::AddAndroidHosts()
 {
-  QMap<QString, RemoteHost *> oldHosts;
+  QMap<rdcstr, RemoteHost *> oldHosts;
   for(int i = RemoteHosts.count() - 1; i >= 0; i--)
   {
     if(RemoteHosts[i]->IsHostADB())
@@ -192,12 +192,12 @@ void PersistantConfig::AddAndroidHosts()
   }
 
   QString adbExePath =
-      QFile::exists(Android_AdbExecutablePath) ? Android_AdbExecutablePath : QString();
+      QFile::exists(Android_AdbExecutablePath) ? QString(Android_AdbExecutablePath) : QString();
 
   // Set the config setting as it will be reused when we start the remoteserver etc.
-  SetConfigSetting(lit("adbExePath"), adbExePath);
+  SetConfigSetting("adbExePath", adbExePath);
 
-  SetConfigSetting(lit("MaxConnectTimeout"), QString::number(Android_MaxConnectTimeout));
+  SetConfigSetting("MaxConnectTimeout", QString::number(Android_MaxConnectTimeout));
 
   SetConfigSetting(lit("Android_AutoPushLayerToApp"),
                    Android_AutoPushLayerToApp ? lit("1") : lit("0"));
@@ -224,7 +224,7 @@ void PersistantConfig::AddAndroidHosts()
   }
 
   // delete any leftovers
-  QMapIterator<QString, RemoteHost *> i(oldHosts);
+  QMapIterator<rdcstr, RemoteHost *> i(oldHosts);
   while(i.hasNext())
   {
     i.next();
@@ -236,15 +236,15 @@ bool PersistantConfig::SetStyle()
 {
   for(int i = 0; i < StyleData::numAvailable; i++)
   {
-    if(UIStyle == StyleData::availStyles[i].styleID)
+    if(UIStyle == rdcstr(StyleData::availStyles[i].styleID))
     {
       QApplication::setStyle(StyleData::availStyles[i].creator());
       return true;
     }
   }
 
-  if(UIStyle != QString())
-    qCritical() << "Unrecognised UI style" << UIStyle;
+  if(UIStyle != "")
+    qCritical() << "Unrecognised UI style" << QString(UIStyle);
 
   return false;
 }
@@ -255,15 +255,15 @@ PersistantConfig::~PersistantConfig()
     delete h;
 }
 
-bool PersistantConfig::Load(const QString &filename)
+bool PersistantConfig::Load(const rdcstr &filename)
 {
   bool ret = Deserialize(filename);
 
   // perform some sanitisation to make sure config is always in sensible state
-  for(const QString &key : ConfigSettings.keys())
+  for(const rdcstrpair &key : ConfigSettings)
   {
     // redundantly set each setting so it is flushed to the core dll
-    SetConfigSetting(key, ConfigSettings[key]);
+    SetConfigSetting(key.first, key.second);
   }
 
   RENDERDOC_SetConfigSetting("Disassembly_FriendlyNaming", ShaderViewer_FriendlyNaming ? "1" : "0");
@@ -275,15 +275,15 @@ bool PersistantConfig::Load(const QString &filename)
   {
     RemoteHosts.push_back(new RemoteHost(host));
 
-    if(host.Hostname == lit("localhost"))
+    if(host.IsLocalhost())
       foundLocalhost = true;
   }
 
   if(!foundLocalhost)
   {
     RemoteHost *host = new RemoteHost();
-    host->Hostname = lit("localhost");
-    RemoteHosts.insert(RemoteHosts.begin(), host);
+    host->Hostname = "localhost";
+    RemoteHosts.insert(0, host);
   }
 
   return ret;
@@ -314,7 +314,7 @@ void PersistantConfig::SetupFormatting()
   Formatter::setParams(*this);
 }
 
-void AddRecentFile(QList<QString> &recentList, const QString &file, int maxItems)
+void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file, int maxItems)
 {
   QDir dir(file);
   QString path = dir.canonicalPath();
@@ -323,7 +323,7 @@ void AddRecentFile(QList<QString> &recentList, const QString &file, int maxItems
   {
     recentList.push_back(path);
     if(recentList.count() >= maxItems)
-      recentList.removeAt(0);
+      recentList.erase(0);
   }
   else
   {
@@ -332,21 +332,34 @@ void AddRecentFile(QList<QString> &recentList, const QString &file, int maxItems
   }
 }
 
-void PersistantConfig::SetConfigSetting(const QString &name, const QString &value)
+void PersistantConfig::SetConfigSetting(const rdcstr &name, const rdcstr &value)
 {
   if(name.isEmpty())
     return;
 
-  ConfigSettings[name] = value;
-  RENDERDOC_SetConfigSetting(name.toUtf8().data(), value.toUtf8().data());
+  bool found = false;
+  for(rdcstrpair &kv : ConfigSettings)
+  {
+    if(kv.first == name)
+    {
+      kv.second = value;
+      found = true;
+      break;
+    }
+  }
+
+  if(!found)
+    ConfigSettings.push_back(make_rdcpair(name, value));
+  RENDERDOC_SetConfigSetting(name.data(), value.data());
 }
 
-QString PersistantConfig::GetConfigSetting(const QString &name)
+rdcstr PersistantConfig::GetConfigSetting(const rdcstr &name)
 {
-  if(ConfigSettings.contains(name))
-    return ConfigSettings[name];
+  for(const rdcstrpair &kv : ConfigSettings)
+    if(kv.first == name)
+      return kv.second;
 
-  return QString();
+  return "";
 }
 
 SPIRVDisassembler::SPIRVDisassembler(const QVariant &var)

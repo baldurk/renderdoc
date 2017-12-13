@@ -2080,22 +2080,21 @@ void D3D12PipelineStateViewer::shaderEdit_clicked()
 
   QString entryFunc = lit("EditedShader%1S").arg(ToQStr(stage->stage, GraphicsAPI::D3D12)[0]);
 
-  QString mainfile;
+  rdcstrpairs files;
 
-  QStringMap files;
-
-  bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files, mainfile);
+  bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files);
 
   if(!hasOrigSource)
   {
-    mainfile = lit("generated.hlsl");
-    files[mainfile] = m_Common.GenerateHLSLStub(shaderDetails, entryFunc);
+    files.clear();
+    files.push_back(make_rdcpair<rdcstr, rdcstr>(
+        "generated.hlsl", m_Common.GenerateHLSLStub(shaderDetails, entryFunc)));
   }
 
   if(files.empty())
     return;
 
-  m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, files, mainfile);
+  m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, files);
 }
 
 void D3D12PipelineStateViewer::shaderSave_clicked()
@@ -2117,7 +2116,8 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
                                                       const ShaderResource *shaderInput,
                                                       const QString &extraParams)
 {
-  QString name = view.Resource == ResourceId() ? tr("Empty") : m_Ctx.GetResourceName(view.Resource);
+  QString name =
+      view.Resource == ResourceId() ? tr("Empty") : QString(m_Ctx.GetResourceName(view.Resource));
   QString typeName = tr("Unknown");
   QString format = tr("Unknown");
   uint64_t w = 1;

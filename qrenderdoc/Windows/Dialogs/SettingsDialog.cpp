@@ -243,9 +243,9 @@ void SettingsDialog::on_chooseSearchPaths_clicked()
   OrderedListEditor listEd(tr("Shader debug info search paths"), tr("Search Path"),
                            BrowseMode::Folder, this);
 
-  listEd.setItems(m_Ctx.Config()
-                      .GetConfigSetting(lit("shader.debug.searchPaths"))
-                      .split(QLatin1Char(';'), QString::SkipEmptyParts));
+  QString setting = m_Ctx.Config().GetConfigSetting("shader.debug.searchPaths");
+
+  listEd.setItems(setting.split(QLatin1Char(';'), QString::SkipEmptyParts));
 
   int res = RDDialog::show(&listEd);
 

@@ -2215,26 +2215,21 @@ void GLPipelineStateViewer::shaderEdit_clicked()
 
   QString entryFunc = lit("EditedShader%1S").arg(ToQStr(stage->stage, GraphicsAPI::OpenGL)[0]);
 
-  QString mainfile;
+  rdcstrpairs files;
 
-  QStringMap files;
-
-  bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files, mainfile);
+  bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files);
 
   if(!hasOrigSource)
   {
     // this would only happen if the GL program is uploading SPIR-V instead of GLSL.
-    QString glsl = lit("// TODO - disassemble SPIR-V");
-
-    mainfile = lit("generated.glsl");
-
-    files[mainfile] = glsl;
+    files.clear();
+    files.push_back(make_rdcpair<rdcstr, rdcstr>("generated.glsl", "// TODO - disassemble SPIR-V"));
   }
 
   if(files.empty())
     return;
 
-  m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, files, mainfile);
+  m_Common.EditShader(stage->stage, stage->Object, shaderDetails, entryFunc, files);
 }
 
 void GLPipelineStateViewer::shaderSave_clicked()

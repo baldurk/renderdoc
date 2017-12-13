@@ -60,8 +60,9 @@ class ShaderViewer : public QFrame, public IShaderViewer, public ICaptureViewer
   Q_OBJECT
 
 public:
-  static IShaderViewer *EditShader(ICaptureContext &ctx, bool customShader, const QString &entryPoint,
-                                   const QStringMap &files, IShaderViewer::SaveCallback saveCallback,
+  static IShaderViewer *EditShader(ICaptureContext &ctx, bool customShader,
+                                   const QString &entryPoint, const rdcstrpairs &files,
+                                   IShaderViewer::SaveCallback saveCallback,
                                    IShaderViewer::CloseCallback closeCallback, QWidget *parent)
   {
     ShaderViewer *ret = new ShaderViewer(ctx, parent);
@@ -96,7 +97,7 @@ public:
 
   virtual void ToggleBreakpoint(int instruction = -1) override;
 
-  virtual void ShowErrors(const QString &errors) override;
+  virtual void ShowErrors(const rdcstr &errors) override;
 
   // ICaptureViewer
   void OnCaptureLoaded() override;
@@ -147,7 +148,7 @@ public slots:
 
 private:
   explicit ShaderViewer(ICaptureContext &ctx, QWidget *parent = 0);
-  void editShader(bool customShader, const QString &entryPoint, const QStringMap &files);
+  void editShader(bool customShader, const QString &entryPoint, const rdcstrpairs &files);
   void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
                    ResourceId pipeline, ShaderDebugTrace *trace, const QString &debugContext);
   bool eventFilter(QObject *watched, QEvent *event) override;

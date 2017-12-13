@@ -57,7 +57,7 @@ RemoteHost::operator QVariant() const
 void RemoteHost::CheckStatus()
 {
   // special case - this is the local context
-  if(Hostname == lit("localhost"))
+  if(Hostname == "localhost")
   {
     ServerRunning = false;
     VersionMismatch = Busy = false;
@@ -65,7 +65,7 @@ void RemoteHost::CheckStatus()
   }
 
   IRemoteServer *rend = NULL;
-  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(Hostname.toUtf8().data(), 0, &rend);
+  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(Hostname.c_str(), 0, &rend);
 
   if(status == ReplayStatus::Succeeded)
   {
@@ -108,7 +108,7 @@ void RemoteHost::Launch()
 
   if(IsHostADB())
   {
-    RENDERDOC_StartAndroidRemoteServer(Hostname.toUtf8().data());
+    RENDERDOC_StartAndroidRemoteServer(Hostname.c_str());
     QThread::msleep(WAIT_TIME);
     return;
   }

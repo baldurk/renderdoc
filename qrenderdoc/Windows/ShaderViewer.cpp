@@ -197,7 +197,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   m_Ctx.AddCaptureViewer(this);
 }
 
-void ShaderViewer::editShader(bool customShader, const QString &entryPoint, const QStringMap &files)
+void ShaderViewer::editShader(bool customShader, const QString &entryPoint, const rdcstrpairs &files)
 {
   m_Scintillas.removeOne(m_DisassemblyView);
   ui->docking->removeToolWindow(m_DisassemblyFrame);
@@ -226,10 +226,10 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
   QString title;
 
   QWidget *sel = NULL;
-  for(const QString &f : files.keys())
+  for(const rdcstrpair &kv : files)
   {
-    QString name = QFileInfo(f).fileName();
-    QString text = files[f];
+    QString name = QFileInfo(kv.first).fileName();
+    QString text = kv.second;
 
     ScintillaEdit *scintilla = AddFileScintilla(name, text);
 
@@ -246,7 +246,7 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
                                             [this]() { on_save_clicked(); });
 
     QWidget *w = (QWidget *)scintilla;
-    w->setProperty("filename", f);
+    w->setProperty("filename", kv.first);
 
     if(text.contains(entryPoint))
       sel = scintilla;
@@ -1191,10 +1191,8 @@ void ShaderViewer::updateDebugging()
       }
     }
 
-    QMap<BindpointMap, QVector<BoundResource>> rw =
-        m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
-    QMap<BindpointMap, QVector<BoundResource>> ro =
-        m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage);
+    rdcarray<BoundResourceArray> rw = m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
+    rdcarray<BoundResourceArray> ro = m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage);
 
     bool tree = false;
 
@@ -1207,10 +1205,15 @@ void ShaderViewer::updateDebugging()
       if(!bind.used)
         continue;
 
+      int idx = rw.indexOf(bind);
+
+      if(idx < 0 || rw[idx].Resources.isEmpty())
+        continue;
+
       if(bind.arraySize == 1)
       {
-        RDTreeWidgetItem *node =
-            makeResourceRegister(bind, 0, rw[bind][0], m_ShaderDetails->ReadWriteResources[i]);
+        RDTreeWidgetItem *node = makeResourceRegister(bind, 0, rw[idx].Resources[0],
+                                                      m_ShaderDetails->ReadWriteResources[i]);
         if(node)
           ui->constants->addTopLevelItem(node);
       }
@@ -1221,8 +1224,8 @@ void ShaderViewer::updateDebugging()
                                   QFormatStr("[%1]").arg(bind.arraySize), QString()});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
-          node->addChild(
-              makeResourceRegister(bind, a, rw[bind][a], m_ShaderDetails->ReadWriteResources[i]));
+          node->addChild(makeResourceRegister(bind, a, rw[idx].Resources[a],
+                                              m_ShaderDetails->ReadWriteResources[i]));
 
         tree = true;
 
@@ -1239,10 +1242,15 @@ void ShaderViewer::updateDebugging()
       if(!bind.used)
         continue;
 
+      int idx = ro.indexOf(bind);
+
+      if(idx < 0 || ro[idx].Resources.isEmpty())
+        continue;
+
       if(bind.arraySize == 1)
       {
-        RDTreeWidgetItem *node =
-            makeResourceRegister(bind, 0, ro[bind][0], m_ShaderDetails->ReadOnlyResources[i]);
+        RDTreeWidgetItem *node = makeResourceRegister(bind, 0, ro[idx].Resources[0],
+                                                      m_ShaderDetails->ReadOnlyResources[i]);
         if(node)
           ui->constants->addTopLevelItem(node);
       }
@@ -1253,8 +1261,8 @@ void ShaderViewer::updateDebugging()
                                   QFormatStr("[%1]").arg(bind.arraySize), QString()});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
-          node->addChild(
-              makeResourceRegister(bind, a, ro[bind][a], m_ShaderDetails->ReadOnlyResources[i]));
+          node->addChild(makeResourceRegister(bind, a, ro[idx].Resources[a],
+                                              m_ShaderDetails->ReadOnlyResources[i]));
 
         tree = true;
 
@@ -1550,12 +1558,12 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
   }
 }
 
-void ShaderViewer::ShowErrors(const QString &errors)
+void ShaderViewer::ShowErrors(const rdcstr &errors)
 {
   if(m_Errors)
   {
     m_Errors->setReadOnly(false);
-    m_Errors->setText(errors.toUtf8().data());
+    m_Errors->setText(errors.c_str());
     m_Errors->setReadOnly(true);
   }
 }
@@ -2070,11 +2078,12 @@ void ShaderViewer::on_save_clicked()
 
   if(m_SaveCallback)
   {
-    QMap<QString, QString> files;
+    rdcstrpairs files;
     for(ScintillaEdit *s : m_Scintillas)
     {
       QWidget *w = (QWidget *)s;
-      files[w->property("filename").toString()] = QString::fromUtf8(s->getText(s->textLength() + 1));
+      files.push_back(make_rdcpair<rdcstr, rdcstr>(
+          w->property("filename").toString(), QString::fromUtf8(s->getText(s->textLength() + 1))));
     }
     m_SaveCallback(&m_Ctx, this, files);
   }

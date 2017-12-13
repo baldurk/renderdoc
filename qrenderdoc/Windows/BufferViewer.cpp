@@ -1554,13 +1554,13 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
 {
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
-  QPair<ResourceId, uint64_t> ib = m_Ctx.CurPipelineState().GetIBuffer();
+  BoundBuffer ib = m_Ctx.CurPipelineState().GetIBuffer();
 
-  QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
+  rdcarray<BoundBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
 
   bytebuf idata;
-  if(ib.first != ResourceId() && draw && (draw->flags & DrawFlags::UseIBuffer))
-    idata = r->GetBufferData(ib.first, ib.second + draw->indexOffset * draw->indexByteWidth,
+  if(ib.Buffer != ResourceId() && draw && (draw->flags & DrawFlags::UseIBuffer))
+    idata = r->GetBufferData(ib.Buffer, ib.ByteOffset + draw->indexOffset * draw->indexByteWidth,
                              draw->numIndices * draw->indexByteWidth);
 
   uint32_t *indices = NULL;
@@ -1631,7 +1631,7 @@ void BufferViewer::RT_FetchMeshData(IReplayController *r)
   }
 
   int vbIdx = 0;
-  for(BoundVBuffer vb : vbs)
+  for(BoundBuffer vb : vbs)
   {
     bool used = false;
     bool pi = false;
@@ -2094,7 +2094,7 @@ void BufferViewer::updatePreviewColumns()
   if(!m_MeshView)
     return;
 
-  QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
+  rdcarray<BoundBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   if(draw)
@@ -2112,9 +2112,9 @@ void BufferViewer::updatePreviewColumns()
       m_VSInPosition.topo = draw->topology;
       m_VSInPosition.idxByteWidth = draw->indexByteWidth;
       m_VSInPosition.baseVertex = draw->baseVertex;
-      QPair<ResourceId, uint64_t> ib = m_Ctx.CurPipelineState().GetIBuffer();
-      m_VSInPosition.idxbuf = ib.first;
-      m_VSInPosition.idxoffs = ib.second + draw->indexOffset * draw->indexByteWidth;
+      BoundBuffer ib = m_Ctx.CurPipelineState().GetIBuffer();
+      m_VSInPosition.idxbuf = ib.Buffer;
+      m_VSInPosition.idxoffs = ib.ByteOffset + draw->indexOffset * draw->indexByteWidth;
 
       if((draw->flags & DrawFlags::UseIBuffer) && m_VSInPosition.idxByteWidth == 0)
         m_VSInPosition.idxByteWidth = 4U;
@@ -2235,7 +2235,7 @@ void BufferViewer::configureMeshColumns()
 {
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
-  QVector<VertexInputAttribute> vinputs = m_Ctx.CurPipelineState().GetVertexInputs();
+  rdcarray<VertexInputAttribute> vinputs = m_Ctx.CurPipelineState().GetVertexInputs();
 
   m_ModelVSIn->columns.reserve(vinputs.count());
   m_ModelVSIn->genericsEnabled.resize(vinputs.count());
@@ -2591,7 +2591,7 @@ void BufferViewer::ScrollToRow(BufferItemModel *model, int row)
 }
 
 void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
-                              const QString &format)
+                              const rdcstr &format)
 {
   if(!m_Ctx.IsCaptureLoaded())
     return;
@@ -2610,7 +2610,7 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
   processFormat(format);
 }
 
-void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, const QString &format)
+void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, const rdcstr &format)
 {
   if(!m_Ctx.IsCaptureLoaded())
     return;

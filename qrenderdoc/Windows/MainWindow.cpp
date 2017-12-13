@@ -323,8 +323,9 @@ void MainWindow::LoadFromFilename(const QString &filename, bool temporary)
 }
 
 void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
-                                  const QString &cmdLine, const QList<EnvironmentModification> &env,
-                                  CaptureOptions opts, std::function<void(LiveCapture *)> callback)
+                                  const QString &cmdLine,
+                                  const rdcarray<EnvironmentModification> &env, CaptureOptions opts,
+                                  std::function<void(LiveCapture *)> callback)
 {
   if(!PromptCloseCapture())
     return;
@@ -345,10 +346,9 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
       }
 
       LiveCapture *live = new LiveCapture(
-          m_Ctx,
-          m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Hostname : QString(),
-          m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Name() : QString(), ret,
-          this, this);
+          m_Ctx, m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Hostname : "",
+          m_Ctx.Replay().CurrentRemote() ? m_Ctx.Replay().CurrentRemote()->Name() : "", ret, this,
+          this);
       ShowLiveCapture(live);
       callback(live);
     });
@@ -365,20 +365,17 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
   th->deleteLater();
 }
 
-void MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env,
+void MainWindow::OnInjectTrigger(uint32_t PID, const rdcarray<EnvironmentModification> &env,
                                  const QString &name, CaptureOptions opts,
                                  std::function<void(LiveCapture *)> callback)
 {
   if(!PromptCloseCapture())
     return;
 
-  rdcarray<EnvironmentModification> envList = env.toVector().toStdVector();
-
-  LambdaThread *th = new LambdaThread([this, PID, envList, name, opts, callback]() {
+  LambdaThread *th = new LambdaThread([this, PID, env, name, opts, callback]() {
     QString capturefile = m_Ctx.TempCaptureFilename(name);
 
-    uint32_t ret =
-        RENDERDOC_InjectIntoProcess(PID, envList, capturefile.toUtf8().data(), opts, false);
+    uint32_t ret = RENDERDOC_InjectIntoProcess(PID, env, capturefile.toUtf8().data(), opts, false);
 
     GUIInvoke::call([this, PID, ret, callback]() {
       if(ret == 0)
@@ -510,11 +507,11 @@ void MainWindow::LoadCapture(const QString &filename, bool temporary, bool local
       {
         support = ReplaySupport::Unsupported;
 
-        QStringList remoteDrivers = m_Ctx.Replay().GetRemoteSupport();
+        rdcarray<rdcstr> remoteDrivers = m_Ctx.Replay().GetRemoteSupport();
 
-        for(const QString &d : remoteDrivers)
+        for(const rdcstr &d : remoteDrivers)
         {
-          if(driver == d)
+          if(driver == QString(d))
             support = ReplaySupport::Supported;
         }
       }
@@ -796,7 +793,7 @@ void MainWindow::PopulateRecentCaptureFiles()
   ui->menu_Recent_Capture_Files->setEnabled(false);
 
   int idx = 1;
-  for(int i = m_Ctx.Config().RecentCaptureFiles.size() - 1; i >= 0; i--)
+  for(int i = m_Ctx.Config().RecentCaptureFiles.count() - 1; i >= 0; i--)
   {
     const QString &filename = m_Ctx.Config().RecentCaptureFiles[i];
     ui->menu_Recent_Capture_Files->addAction(QFormatStr("&%1 %2").arg(idx).arg(filename),
@@ -823,7 +820,7 @@ void MainWindow::PopulateRecentCaptureSettings()
   ui->menu_Recent_Capture_Settings->setEnabled(false);
 
   int idx = 1;
-  for(int i = m_Ctx.Config().RecentCaptureSettings.size() - 1; i >= 0; i--)
+  for(int i = m_Ctx.Config().RecentCaptureSettings.count() - 1; i >= 0; i--)
   {
     const QString &filename = m_Ctx.Config().RecentCaptureSettings[i];
     ui->menu_Recent_Capture_Settings->addAction(QFormatStr("&%1 %2").arg(idx).arg(filename),
@@ -1123,7 +1120,7 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
     RemoteHost *host = m_Ctx.Config().RemoteHosts[i];
 
     // add localhost at the end
-    if(host->Hostname == lit("localhost"))
+    if(host->IsLocalhost())
       continue;
 
     QAction *action = new QAction(menu);
@@ -1381,7 +1378,7 @@ void MainWindow::OnEventChanged(uint32_t eventID)
 {
 }
 
-void MainWindow::RegisterShortcut(const QString &shortcut, QWidget *widget, ShortcutCallback callback)
+void MainWindow::RegisterShortcut(const rdcstr &shortcut, QWidget *widget, ShortcutCallback callback)
 {
   QKeySequence ks = QKeySequence::fromString(shortcut);
 
@@ -1401,7 +1398,7 @@ void MainWindow::RegisterShortcut(const QString &shortcut, QWidget *widget, Shor
   }
 }
 
-void MainWindow::UnregisterShortcut(const QString &shortcut, QWidget *widget)
+void MainWindow::UnregisterShortcut(const rdcstr &shortcut, QWidget *widget)
 {
   if(widget)
   {

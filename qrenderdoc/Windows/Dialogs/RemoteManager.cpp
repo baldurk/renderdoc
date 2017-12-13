@@ -145,7 +145,7 @@ void RemoteManager::setRemoteServerLive(RDTreeWidgetItem *node, bool live, bool 
   host->ServerRunning = live;
   host->Busy = busy;
 
-  if(host->Hostname == lit("localhost"))
+  if(host->IsLocalhost())
   {
     node->setIcon(0, QIcon());
     node->setText(1, QString());
@@ -230,8 +230,6 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
     GUIInvoke::call(
         [this, node, host]() { setRemoteServerLive(node, host->ServerRunning, host->Busy); });
 
-    QByteArray hostnameBytes = host->Hostname.toUtf8();
-
     uint32_t nextIdent = 0;
 
     for(;;)
@@ -239,13 +237,13 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
       // just a sanity check to make sure we don't hit some unexpected case and infinite loop
       uint32_t prevIdent = nextIdent;
 
-      nextIdent = RENDERDOC_EnumerateRemoteTargets(hostnameBytes.data(), nextIdent);
+      nextIdent = RENDERDOC_EnumerateRemoteTargets(host->Hostname.c_str(), nextIdent);
 
       if(nextIdent == 0 || prevIdent >= nextIdent)
         break;
 
       ITargetControl *conn =
-          RENDERDOC_CreateTargetControl(hostnameBytes.data(), nextIdent, username.data(), false);
+          RENDERDOC_CreateTargetControl(host->Hostname.c_str(), nextIdent, username.data(), false);
 
       if(conn)
       {
@@ -337,7 +335,7 @@ void RemoteManager::updateConnectButton()
 
     if(host)
     {
-      if(host->Hostname == lit("localhost"))
+      if(host->IsLocalhost())
       {
         ui->connect->setText(tr("Run Server"));
         ui->connect->setEnabled(false);
@@ -373,7 +371,8 @@ void RemoteManager::addNewHost()
 
     for(int i = 0; i < m_Ctx.Config().RemoteHosts.count(); i++)
     {
-      if(m_Ctx.Config().RemoteHosts[i]->Hostname.compare(host, Qt::CaseInsensitive) == 0)
+      QString hostname = m_Ctx.Config().RemoteHosts[i]->Hostname;
+      if(hostname.compare(host, Qt::CaseInsensitive) == 0)
       {
         found = true;
         break;
@@ -457,7 +456,7 @@ void RemoteManager::on_hosts_itemSelectionChanged()
 
     ui->addUpdateHost->setText(tr("Update"));
 
-    if(host->Hostname == lit("localhost") || host->IsHostADB())
+    if(host->IsLocalhost() || host->IsHostADB())
     {
       // localhost and android hosts cannot be updated or have their run command changed
       ui->addUpdateHost->setEnabled(false);
@@ -612,7 +611,7 @@ void RemoteManager::on_connect_clicked()
       {
         IRemoteServer *server = NULL;
         ReplayStatus status =
-            RENDERDOC_CreateRemoteServerConnection(host->Hostname.toUtf8().data(), 0, &server);
+            RENDERDOC_CreateRemoteServerConnection(host->Hostname.c_str(), 0, &server);
         if(server)
           server->ShutdownServerAndConnection();
         setRemoteServerLive(node, false, false);
@@ -670,9 +669,9 @@ void RemoteManager::on_deleteHost_clicked()
 
   if(res == QMessageBox::Yes)
   {
-    int idx = m_Ctx.Config().RemoteHosts.indexOf(host);
+    size_t idx = m_Ctx.Config().RemoteHosts.indexOf(host);
     // the host will be removed in queueDelete.
-    m_Ctx.Config().RemoteHosts.removeAt(idx);
+    m_Ctx.Config().RemoteHosts.erase(idx);
     m_Ctx.Config().Save();
 
     item->clear();
