@@ -2839,6 +2839,7 @@ void GLReplay::RemoveReplacement(ResourceId id)
 {
   MakeCurrentReplayContext(&m_ReplayCtx);
   m_pDriver->RemoveReplacement(id);
+  ClearPostVSCache();
 }
 
 void GLReplay::FreeTargetResource(ResourceId id)

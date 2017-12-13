@@ -1385,6 +1385,7 @@ void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)
 void D3D11Replay::RemoveReplacement(ResourceId id)
 {
   m_pDevice->GetResourceManager()->RemoveReplacement(id);
+  m_pDevice->GetDebugManager()->ClearPostVSCache();
 }
 
 vector<GPUCounter> D3D11Replay::EnumerateCounters()
