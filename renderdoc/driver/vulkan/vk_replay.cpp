@@ -5283,6 +5283,7 @@ void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
 void VulkanReplay::RemoveReplacement(ResourceId id)
 {
   GetDebugManager()->RemoveReplacement(id);
+  GetDebugManager()->ClearPostVSCache();
 }
 
 void VulkanReplay::FreeTargetResource(ResourceId id)

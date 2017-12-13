@@ -1673,6 +1673,8 @@ void D3D12Replay::RemoveReplacement(ResourceId id)
       }
     }
   }
+
+  m_pDevice->GetDebugManager()->ClearPostVSCache();
 }
 
 byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
