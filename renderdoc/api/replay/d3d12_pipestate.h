@@ -36,6 +36,31 @@ DOCUMENT(R"(Describes a single D3D12 input layout element for one vertex input.
 )");
 struct Layout
 {
+  DOCUMENT("");
+  bool operator==(const Layout &o) const
+  {
+    return SemanticName == o.SemanticName && SemanticIndex == o.SemanticIndex &&
+           Format == o.Format && InputSlot == o.InputSlot && ByteOffset == o.ByteOffset &&
+           PerInstance == o.PerInstance && InstanceDataStepRate == o.InstanceDataStepRate;
+  }
+  bool operator<(const Layout &o) const
+  {
+    if(!(SemanticName == o.SemanticName))
+      return SemanticName < o.SemanticName;
+    if(!(SemanticIndex == o.SemanticIndex))
+      return SemanticIndex < o.SemanticIndex;
+    if(!(Format == o.Format))
+      return Format < o.Format;
+    if(!(InputSlot == o.InputSlot))
+      return InputSlot < o.InputSlot;
+    if(!(ByteOffset == o.ByteOffset))
+      return ByteOffset < o.ByteOffset;
+    if(!(PerInstance == o.PerInstance))
+      return PerInstance < o.PerInstance;
+    if(!(InstanceDataStepRate == o.InstanceDataStepRate))
+      return InstanceDataStepRate < o.InstanceDataStepRate;
+    return false;
+  }
   DOCUMENT("The semantic name for this input.");
   rdcstr SemanticName;
 
@@ -74,6 +99,23 @@ with the next instance data.
 DOCUMENT("Describes a single D3D12 vertex buffer binding.")
 struct VB
 {
+  DOCUMENT("");
+  bool operator==(const VB &o) const
+  {
+    return Buffer == o.Buffer && Stride == o.Stride && Size == o.Size && Offset == o.Offset;
+  }
+  bool operator<(const VB &o) const
+  {
+    if(!(Buffer == o.Buffer))
+      return Buffer < o.Buffer;
+    if(!(Stride == o.Stride))
+      return Stride < o.Stride;
+    if(!(Size == o.Size))
+      return Size < o.Size;
+    if(!(Offset == o.Offset))
+      return Offset < o.Offset;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the buffer bound to this slot.");
   ResourceId Buffer;
 
@@ -124,6 +166,58 @@ If the value is 0, strip cutting is disabled.
 DOCUMENT("Describes the details of a D3D12 resource view - any one of UAV, SRV, RTV or DSV.");
 struct View
 {
+  DOCUMENT("");
+  bool operator==(const View &o) const
+  {
+    return Resource == o.Resource && Type == o.Type && Format == o.Format &&
+           swizzle[0] == o.swizzle[0] && swizzle[1] == o.swizzle[1] && swizzle[2] == o.swizzle[2] &&
+           swizzle[3] == o.swizzle[3] && BufferFlags == o.BufferFlags &&
+           BufferStructCount == o.BufferStructCount && ElementSize == o.ElementSize &&
+           FirstElement == o.FirstElement && NumElements == o.NumElements &&
+           CounterResource == o.CounterResource && CounterByteOffset == o.CounterByteOffset &&
+           HighestMip == o.HighestMip && NumMipLevels == o.NumMipLevels &&
+           ArraySize == o.ArraySize && FirstArraySlice == o.FirstArraySlice;
+  }
+  bool operator<(const View &o) const
+  {
+    if(!(Resource == o.Resource))
+      return Resource < o.Resource;
+    if(!(Type == o.Type))
+      return Type < o.Type;
+    if(!(Format == o.Format))
+      return Format < o.Format;
+    if(!(swizzle[0] == o.swizzle[0]))
+      return swizzle[0] < o.swizzle[0];
+    if(!(swizzle[1] == o.swizzle[1]))
+      return swizzle[1] < o.swizzle[1];
+    if(!(swizzle[2] == o.swizzle[2]))
+      return swizzle[2] < o.swizzle[2];
+    if(!(swizzle[3] == o.swizzle[3]))
+      return swizzle[3] < o.swizzle[3];
+    if(!(BufferFlags == o.BufferFlags))
+      return BufferFlags < o.BufferFlags;
+    if(!(BufferStructCount == o.BufferStructCount))
+      return BufferStructCount < o.BufferStructCount;
+    if(!(ElementSize == o.ElementSize))
+      return ElementSize < o.ElementSize;
+    if(!(FirstElement == o.FirstElement))
+      return FirstElement < o.FirstElement;
+    if(!(NumElements == o.NumElements))
+      return NumElements < o.NumElements;
+    if(!(CounterResource == o.CounterResource))
+      return CounterResource < o.CounterResource;
+    if(!(CounterByteOffset == o.CounterByteOffset))
+      return CounterByteOffset < o.CounterByteOffset;
+    if(!(HighestMip == o.HighestMip))
+      return HighestMip < o.HighestMip;
+    if(!(NumMipLevels == o.NumMipLevels))
+      return NumMipLevels < o.NumMipLevels;
+    if(!(ArraySize == o.ArraySize))
+      return ArraySize < o.ArraySize;
+    if(!(FirstArraySlice == o.FirstArraySlice))
+      return FirstArraySlice < o.FirstArraySlice;
+    return false;
+  }
   DOCUMENT("``True`` if this view is a root parameter (i.e. not in a table).");
   bool Immediate = false;
   DOCUMENT("The index in the original root signature that this descriptor came from.");
@@ -176,6 +270,52 @@ or the structured buffer element size, as appropriate.
 DOCUMENT("Describes the details of a sampler descriptor.");
 struct Sampler
 {
+  DOCUMENT("");
+  bool operator==(const Sampler &o) const
+  {
+    return Immediate == o.Immediate && RootElement == o.RootElement && TableIndex == o.TableIndex &&
+           AddressU == o.AddressU && AddressV == o.AddressV && AddressW == o.AddressW &&
+           BorderColor[0] == o.BorderColor[0] && BorderColor[1] == o.BorderColor[1] &&
+           BorderColor[2] == o.BorderColor[2] && BorderColor[3] == o.BorderColor[3] &&
+           Comparison == o.Comparison && Filter == o.Filter && MaxAniso == o.MaxAniso &&
+           MaxLOD == o.MaxLOD && MinLOD == o.MinLOD && MipLODBias == o.MipLODBias;
+  }
+  bool operator<(const Sampler &o) const
+  {
+    if(!(Immediate == o.Immediate))
+      return Immediate < o.Immediate;
+    if(!(RootElement == o.RootElement))
+      return RootElement < o.RootElement;
+    if(!(TableIndex == o.TableIndex))
+      return TableIndex < o.TableIndex;
+    if(!(AddressU == o.AddressU))
+      return AddressU < o.AddressU;
+    if(!(AddressV == o.AddressV))
+      return AddressV < o.AddressV;
+    if(!(AddressW == o.AddressW))
+      return AddressW < o.AddressW;
+    if(!(BorderColor[0] == o.BorderColor[0]))
+      return BorderColor[0] < o.BorderColor[0];
+    if(!(BorderColor[1] == o.BorderColor[1]))
+      return BorderColor[1] < o.BorderColor[1];
+    if(!(BorderColor[2] == o.BorderColor[2]))
+      return BorderColor[2] < o.BorderColor[2];
+    if(!(BorderColor[3] == o.BorderColor[3]))
+      return BorderColor[3] < o.BorderColor[3];
+    if(!(Comparison == o.Comparison))
+      return Comparison < o.Comparison;
+    if(!(Filter == o.Filter))
+      return Filter < o.Filter;
+    if(!(MaxAniso == o.MaxAniso))
+      return MaxAniso < o.MaxAniso;
+    if(!(MaxLOD == o.MaxLOD))
+      return MaxLOD < o.MaxLOD;
+    if(!(MinLOD == o.MinLOD))
+      return MinLOD < o.MinLOD;
+    if(!(MipLODBias == o.MipLODBias))
+      return MipLODBias < o.MipLODBias;
+    return false;
+  }
   DOCUMENT("``True`` if this view is a static sampler (i.e. not in a table).");
   bool Immediate = 0;
   DOCUMENT("The index in the original root signature that this descriptor came from.");
@@ -219,6 +359,31 @@ struct Sampler
 DOCUMENT("Describes the details of a constant buffer view descriptor.");
 struct CBuffer
 {
+  DOCUMENT("");
+  bool operator==(const CBuffer &o) const
+  {
+    return Immediate == o.Immediate && RootElement == o.RootElement && TableIndex == o.TableIndex &&
+           Buffer == o.Buffer && Offset == o.Offset && ByteSize == o.ByteSize &&
+           RootValues == o.RootValues;
+  }
+  bool operator<(const CBuffer &o) const
+  {
+    if(!(Immediate == o.Immediate))
+      return Immediate < o.Immediate;
+    if(!(RootElement == o.RootElement))
+      return RootElement < o.RootElement;
+    if(!(TableIndex == o.TableIndex))
+      return TableIndex < o.TableIndex;
+    if(!(Buffer == o.Buffer))
+      return Buffer < o.Buffer;
+    if(!(Offset == o.Offset))
+      return Offset < o.Offset;
+    if(!(ByteSize == o.ByteSize))
+      return ByteSize < o.ByteSize;
+    if(!(RootValues == o.RootValues))
+      return RootValues < o.RootValues;
+    return false;
+  }
   DOCUMENT("``True`` if this view is a root constant (i.e. not in a table).");
   bool Immediate = false;
   DOCUMENT("The index in the original root signature that this descriptor came from.");
@@ -242,6 +407,24 @@ struct CBuffer
 DOCUMENT("Contains all of the registers in a single register space mapped to by a root signature.");
 struct RegisterSpace
 {
+  DOCUMENT("");
+  bool operator==(const RegisterSpace &o) const
+  {
+    return ConstantBuffers == o.ConstantBuffers && Samplers == o.Samplers && SRVs == o.SRVs &&
+           UAVs == o.UAVs;
+  }
+  bool operator<(const RegisterSpace &o) const
+  {
+    if(!(ConstantBuffers == o.ConstantBuffers))
+      return ConstantBuffers < o.ConstantBuffers;
+    if(!(Samplers == o.Samplers))
+      return Samplers < o.Samplers;
+    if(!(SRVs == o.SRVs))
+      return SRVs < o.SRVs;
+    if(!(UAVs == o.UAVs))
+      return UAVs < o.UAVs;
+    return false;
+  }
   DOCUMENT("List of :class:`D3D12_CBuffer` containing the constant buffers.");
   rdcarray<CBuffer> ConstantBuffers;
   DOCUMENT("List of :class:`D3D12_Sampler` containing the samplers.");
@@ -275,6 +458,26 @@ mapping data.
 DOCUMENT("Describes a binding on the D3D12 stream-out stage.");
 struct SOBind
 {
+  DOCUMENT("");
+  bool operator==(const SOBind &o) const
+  {
+    return Buffer == o.Buffer && Offset == o.Offset && Size == o.Size &&
+           WrittenCountBuffer == o.WrittenCountBuffer && WrittenCountOffset == o.WrittenCountOffset;
+  }
+  bool operator<(const SOBind &o) const
+  {
+    if(!(Buffer == o.Buffer))
+      return Buffer < o.Buffer;
+    if(!(Offset == o.Offset))
+      return Offset < o.Offset;
+    if(!(Size == o.Size))
+      return Size < o.Size;
+    if(!(WrittenCountBuffer == o.WrittenCountBuffer))
+      return WrittenCountBuffer < o.WrittenCountBuffer;
+    if(!(WrittenCountOffset == o.WrittenCountOffset))
+      return WrittenCountOffset < o.WrittenCountOffset;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the buffer.");
   ResourceId Buffer;
   DOCUMENT(
@@ -300,6 +503,28 @@ struct Streamout
 DOCUMENT("Describes a single D3D12 viewport.");
 struct Viewport
 {
+  DOCUMENT("");
+  bool operator==(const Viewport &o) const
+  {
+    return X == o.X && Y == o.Y && Width == o.Width && Height == o.Height &&
+           MinDepth == o.MinDepth && MaxDepth == o.MaxDepth;
+  }
+  bool operator<(const Viewport &o) const
+  {
+    if(!(X == o.X))
+      return X < o.X;
+    if(!(Y == o.Y))
+      return Y < o.Y;
+    if(!(Width == o.Width))
+      return Width < o.Width;
+    if(!(Height == o.Height))
+      return Height < o.Height;
+    if(!(MinDepth == o.MinDepth))
+      return MinDepth < o.MinDepth;
+    if(!(MaxDepth == o.MaxDepth))
+      return MaxDepth < o.MaxDepth;
+    return false;
+  }
   Viewport() = default;
   Viewport(float TX, float TY, float W, float H, float MN, float MX)
       : X(TX), Y(TY), Width(W), Height(H), MinDepth(MN), MaxDepth(MX)
@@ -323,6 +548,23 @@ struct Viewport
 DOCUMENT("Describes a single D3D12 scissor rect.");
 struct Scissor
 {
+  DOCUMENT("");
+  bool operator==(const Scissor &o) const
+  {
+    return left == o.left && top == o.top && right == o.right && bottom == o.bottom;
+  }
+  bool operator<(const Scissor &o) const
+  {
+    if(!(left == o.left))
+      return left < o.left;
+    if(!(top == o.top))
+      return top < o.top;
+    if(!(right == o.right))
+      return right < o.right;
+    if(!(bottom == o.bottom))
+      return bottom < o.bottom;
+    return false;
+  }
   Scissor() = default;
   Scissor(int l, int t, int r, int b) : left(l), top(t), right(r), bottom(b) {}
   DOCUMENT("Top-left X co-ordinate of the viewport.");
@@ -427,6 +669,21 @@ struct DepthStencilState
 DOCUMENT("Describes the details of a D3D12 blend operation.");
 struct BlendEquation
 {
+  DOCUMENT("");
+  bool operator==(const BlendEquation &o) const
+  {
+    return Source == o.Source && Destination == o.Destination && Operation == o.Operation;
+  }
+  bool operator<(const BlendEquation &o) const
+  {
+    if(!(Source == o.Source))
+      return Source < o.Source;
+    if(!(Destination == o.Destination))
+      return Destination < o.Destination;
+    if(!(Operation == o.Operation))
+      return Operation < o.Operation;
+    return false;
+  }
   DOCUMENT("The :class:`BlendMultiplier` for the source blend value.");
   BlendMultiplier Source = BlendMultiplier::One;
   DOCUMENT("The :class:`BlendMultiplier` for the destination blend value.");
@@ -438,6 +695,28 @@ struct BlendEquation
 DOCUMENT("Describes the blend configuration for a given D3D12 target.");
 struct Blend
 {
+  DOCUMENT("");
+  bool operator==(const Blend &o) const
+  {
+    return Enabled == o.Enabled && LogicEnabled == o.LogicEnabled && m_Blend == o.m_Blend &&
+           m_AlphaBlend == o.m_AlphaBlend && Logic == o.Logic && WriteMask == o.WriteMask;
+  }
+  bool operator<(const Blend &o) const
+  {
+    if(!(Enabled == o.Enabled))
+      return Enabled < o.Enabled;
+    if(!(LogicEnabled == o.LogicEnabled))
+      return LogicEnabled < o.LogicEnabled;
+    if(!(m_Blend == o.m_Blend))
+      return m_Blend < o.m_Blend;
+    if(!(m_AlphaBlend == o.m_AlphaBlend))
+      return m_AlphaBlend < o.m_AlphaBlend;
+    if(!(Logic == o.Logic))
+      return Logic < o.Logic;
+    if(!(WriteMask == o.WriteMask))
+      return WriteMask < o.WriteMask;
+    return false;
+  }
   DOCUMENT("A :class:`D3D12_BlendEquation` describing the blending for colour values.");
   BlendEquation m_Blend;
   DOCUMENT("A :class:`D3D12_BlendEquation` describing the blending for alpha values.");
@@ -500,6 +779,14 @@ struct OM
 DOCUMENT("Describes the current state that a sub-resource is in.");
 struct ResourceState
 {
+  DOCUMENT("");
+  bool operator==(const ResourceState &o) const { return name == o.name; }
+  bool operator<(const ResourceState &o) const
+  {
+    if(!(name == o.name))
+      return name < o.name;
+    return false;
+  }
   DOCUMENT("A human-readable name for the current state.");
   rdcstr name;
 };
@@ -507,6 +794,16 @@ struct ResourceState
 DOCUMENT("Contains the current state of a given resource.");
 struct ResourceData
 {
+  DOCUMENT("");
+  bool operator==(const ResourceData &o) const { return id == o.id && states == o.states; }
+  bool operator<(const ResourceData &o) const
+  {
+    if(!(id == o.id))
+      return id < o.id;
+    if(!(states == o.states))
+      return states < o.states;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the resource.");
   ResourceId id;
 

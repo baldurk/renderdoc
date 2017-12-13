@@ -29,6 +29,84 @@ namespace VKPipe
 DOCUMENT("The contents of a single binding element within a descriptor set, possibly in an array.");
 struct BindingElement
 {
+  DOCUMENT("");
+  bool operator==(const BindingElement &o) const
+  {
+    return view == o.view && res == o.res && sampler == o.sampler &&
+           immutableSampler == o.immutableSampler && viewfmt == o.viewfmt &&
+           swizzle[0] == o.swizzle[0] && swizzle[1] == o.swizzle[1] && swizzle[2] == o.swizzle[2] &&
+           swizzle[3] == o.swizzle[3] && baseMip == o.baseMip && baseLayer == o.baseLayer &&
+           numMip == o.numMip && numLayer == o.numLayer && offset == o.offset && size == o.size &&
+           Filter == o.Filter && AddressU == o.AddressU && AddressV == o.AddressV &&
+           AddressW == o.AddressW && mipBias == o.mipBias && maxAniso == o.maxAniso &&
+           comparison == o.comparison && minlod == o.minlod && maxlod == o.maxlod &&
+           BorderColor[0] == o.BorderColor[0] && BorderColor[1] == o.BorderColor[1] &&
+           BorderColor[2] == o.BorderColor[2] && BorderColor[3] == o.BorderColor[3] &&
+           unnormalized == o.unnormalized;
+  }
+  bool operator<(const BindingElement &o) const
+  {
+    if(!(view == o.view))
+      return view < o.view;
+    if(!(res == o.res))
+      return res < o.res;
+    if(!(sampler == o.sampler))
+      return sampler < o.sampler;
+    if(!(immutableSampler == o.immutableSampler))
+      return immutableSampler < o.immutableSampler;
+    if(!(viewfmt == o.viewfmt))
+      return viewfmt < o.viewfmt;
+    if(!(swizzle[0] == o.swizzle[0]))
+      return swizzle[0] < o.swizzle[0];
+    if(!(swizzle[1] == o.swizzle[1]))
+      return swizzle[1] < o.swizzle[1];
+    if(!(swizzle[2] == o.swizzle[2]))
+      return swizzle[2] < o.swizzle[2];
+    if(!(swizzle[3] == o.swizzle[3]))
+      return swizzle[3] < o.swizzle[3];
+    if(!(baseMip == o.baseMip))
+      return baseMip < o.baseMip;
+    if(!(baseLayer == o.baseLayer))
+      return baseLayer < o.baseLayer;
+    if(!(numMip == o.numMip))
+      return numMip < o.numMip;
+    if(!(numLayer == o.numLayer))
+      return numLayer < o.numLayer;
+    if(!(offset == o.offset))
+      return offset < o.offset;
+    if(!(size == o.size))
+      return size < o.size;
+    if(!(Filter == o.Filter))
+      return Filter < o.Filter;
+    if(!(AddressU == o.AddressU))
+      return AddressU < o.AddressU;
+    if(!(AddressV == o.AddressV))
+      return AddressV < o.AddressV;
+    if(!(AddressW == o.AddressW))
+      return AddressW < o.AddressW;
+    if(!(mipBias == o.mipBias))
+      return mipBias < o.mipBias;
+    if(!(maxAniso == o.maxAniso))
+      return maxAniso < o.maxAniso;
+    if(!(comparison == o.comparison))
+      return comparison < o.comparison;
+    if(!(minlod == o.minlod))
+      return minlod < o.minlod;
+    if(!(maxlod == o.maxlod))
+      return maxlod < o.maxlod;
+    if(!(BorderColor[0] == o.BorderColor[0]))
+      return BorderColor[0] < o.BorderColor[0];
+    if(!(BorderColor[1] == o.BorderColor[1]))
+      return BorderColor[1] < o.BorderColor[1];
+    if(!(BorderColor[2] == o.BorderColor[2]))
+      return BorderColor[2] < o.BorderColor[2];
+    if(!(BorderColor[3] == o.BorderColor[3]))
+      return BorderColor[3] < o.BorderColor[3];
+    if(!(unnormalized == o.unnormalized))
+      return unnormalized < o.unnormalized;
+    return false;
+  }
+
   DOCUMENT("The :class:`ResourceId` of the current view object, if one is in use.");
   ResourceId view;    // bufferview, imageview, attachmentview
   DOCUMENT("The :class:`ResourceId` of the current underlying buffer or image object.");
@@ -95,6 +173,24 @@ struct BindingElement
 DOCUMENT("The contents of a single binding within a descriptor set, either arrayed or not.");
 struct DescriptorBinding
 {
+  DOCUMENT("");
+  bool operator==(const DescriptorBinding &o) const
+  {
+    return descriptorCount == o.descriptorCount && type == o.type && stageFlags == o.stageFlags &&
+           binds == o.binds;
+  }
+  bool operator<(const DescriptorBinding &o) const
+  {
+    if(!(descriptorCount == o.descriptorCount))
+      return descriptorCount < o.descriptorCount;
+    if(!(type == o.type))
+      return type < o.type;
+    if(!(stageFlags == o.stageFlags))
+      return stageFlags < o.stageFlags;
+    if(!(binds == o.binds))
+      return binds < o.binds;
+    return false;
+  }
   DOCUMENT(R"(How many descriptors are in this binding array.
 If this binding is empty/non-existant this value will be ``0``.
 )");
@@ -113,6 +209,21 @@ If :data:`descriptorCount` is 1 then this isn't an array, and this list has only
 DOCUMENT("The contents of a descriptor set.");
 struct DescriptorSet
 {
+  DOCUMENT("");
+  bool operator==(const DescriptorSet &o) const
+  {
+    return layout == o.layout && descset == o.descset && bindings == o.bindings;
+  }
+  bool operator<(const DescriptorSet &o) const
+  {
+    if(!(layout == o.layout))
+      return layout < o.layout;
+    if(!(descset == o.descset))
+      return descset < o.descset;
+    if(!(bindings == o.bindings))
+      return bindings < o.bindings;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the descriptor set layout that matches this set.");
   ResourceId layout;
   DOCUMENT("The :class:`ResourceId` of the descriptor set object.");
@@ -159,6 +270,24 @@ struct InputAssembly
 DOCUMENT("Describes the configuration of a single vertex attribute.");
 struct VertexAttribute
 {
+  DOCUMENT("");
+  bool operator==(const VertexAttribute &o) const
+  {
+    return location == o.location && binding == o.binding && format == o.format &&
+           byteoffset == o.byteoffset;
+  }
+  bool operator<(const VertexAttribute &o) const
+  {
+    if(!(location == o.location))
+      return location < o.location;
+    if(!(binding == o.binding))
+      return binding < o.binding;
+    if(!(format == o.format))
+      return format < o.format;
+    if(!(byteoffset == o.byteoffset))
+      return byteoffset < o.byteoffset;
+    return false;
+  }
   DOCUMENT("The location in the shader that is bound to this attribute.");
   uint32_t location = 0;
   DOCUMENT("The vertex binding where data will be sourced from.");
@@ -174,6 +303,22 @@ struct VertexAttribute
 DOCUMENT("Describes a vertex binding.");
 struct VertexBinding
 {
+  DOCUMENT("");
+  bool operator==(const VertexBinding &o) const
+  {
+    return vbufferBinding == o.vbufferBinding && bytestride == o.bytestride &&
+           perInstance == o.perInstance;
+  }
+  bool operator<(const VertexBinding &o) const
+  {
+    if(!(vbufferBinding == o.vbufferBinding))
+      return vbufferBinding < o.vbufferBinding;
+    if(!(bytestride == o.bytestride))
+      return bytestride < o.bytestride;
+    if(!(perInstance == o.perInstance))
+      return perInstance < o.perInstance;
+    return false;
+  }
   DOCUMENT("The vertex binding where data will be sourced from.");
   uint32_t vbufferBinding = 0;
   DOCUMENT("The byte stride between the start of one set of vertex data and the next.");
@@ -185,6 +330,16 @@ struct VertexBinding
 DOCUMENT("Describes a single Vulkan vertex buffer binding.")
 struct VB
 {
+  DOCUMENT("");
+  bool operator==(const VB &o) const { return buffer == o.buffer && offset == o.offset; }
+  bool operator<(const VB &o) const
+  {
+    if(!(buffer == o.buffer))
+      return buffer < o.buffer;
+    if(!(offset == o.offset))
+      return offset < o.offset;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the buffer bound to this slot.");
   ResourceId buffer;
   DOCUMENT("The byte offset from the start of the buffer to the beginning of the vertex data.");
@@ -205,6 +360,16 @@ struct VertexInput
 DOCUMENT("The provided value for a specialization constant.");
 struct SpecInfo
 {
+  DOCUMENT("");
+  bool operator==(const SpecInfo &o) const { return specID == o.specID && data == o.data; }
+  bool operator<(const SpecInfo &o) const
+  {
+    if(!(specID == o.specID))
+      return specID < o.specID;
+    if(!(data == o.data))
+      return data < o.data;
+    return false;
+  }
   DOCUMENT("The specialization ID");
   uint32_t specID = 0;
   DOCUMENT("A ``bytes`` with the contents of the constant.");
@@ -243,6 +408,28 @@ struct Tessellation
 DOCUMENT("Describes a single Vulkan viewport.");
 struct Viewport
 {
+  DOCUMENT("");
+  bool operator==(const Viewport &o) const
+  {
+    return x == o.x && y == o.y && width == o.width && height == o.height &&
+           minDepth == o.minDepth && maxDepth == o.maxDepth;
+  }
+  bool operator<(const Viewport &o) const
+  {
+    if(!(x == o.x))
+      return x < o.x;
+    if(!(y == o.y))
+      return y < o.y;
+    if(!(width == o.width))
+      return width < o.width;
+    if(!(height == o.height))
+      return height < o.height;
+    if(!(minDepth == o.minDepth))
+      return minDepth < o.minDepth;
+    if(!(maxDepth == o.maxDepth))
+      return maxDepth < o.maxDepth;
+    return false;
+  }
   DOCUMENT("The X co-ordinate of the viewport.");
   float x = 0.0f;
   DOCUMENT("The Y co-ordinate of the viewport.");
@@ -260,6 +447,23 @@ struct Viewport
 DOCUMENT("Describes a single Vulkan scissor region.");
 struct Scissor
 {
+  DOCUMENT("");
+  bool operator==(const Scissor &o) const
+  {
+    return x == o.x && y == o.y && width == o.width && height == o.height;
+  }
+  bool operator<(const Scissor &o) const
+  {
+    if(!(x == o.x))
+      return x < o.x;
+    if(!(y == o.y))
+      return y < o.y;
+    if(!(width == o.width))
+      return width < o.width;
+    if(!(height == o.height))
+      return height < o.height;
+    return false;
+  }
   DOCUMENT("The X co-ordinate of the scissor region.");
   int32_t x = 0;
   DOCUMENT("The Y co-ordinate of the scissor region.");
@@ -273,6 +477,9 @@ struct Scissor
 DOCUMENT("Describes a combined viewport and scissor region.");
 struct ViewportScissor
 {
+  DOCUMENT("");
+  bool operator==(const ViewportScissor &o) const { return vp == o.vp && scissor == o.scissor; }
+  bool operator<(const ViewportScissor &o) const { return vp == o.vp && scissor == o.scissor; }
   DOCUMENT("The :class:`VK_Viewport`.");
   Viewport vp;
   DOCUMENT("The :class:`VK_Scissor`.");
@@ -332,6 +539,21 @@ struct MultiSample
 DOCUMENT("Describes the details of a Vulkan blend operation.");
 struct BlendEquation
 {
+  DOCUMENT("");
+  bool operator==(const BlendEquation &o) const
+  {
+    return Source == o.Source && Destination == o.Destination && Operation == o.Operation;
+  }
+  bool operator<(const BlendEquation &o) const
+  {
+    if(!(Source == o.Source))
+      return Source < o.Source;
+    if(!(Destination == o.Destination))
+      return Destination < o.Destination;
+    if(!(Operation == o.Operation))
+      return Operation < o.Operation;
+    return false;
+  }
   DOCUMENT("The :class:`BlendMultiplier` for the source blend value.");
   BlendMultiplier Source = BlendMultiplier::One;
   DOCUMENT("The :class:`BlendMultiplier` for the destination blend value.");
@@ -343,14 +565,32 @@ struct BlendEquation
 DOCUMENT("Describes the blend configuration for a given Vulkan attachment.");
 struct Blend
 {
-  DOCUMENT("``True`` if blending is enabled for this attachment.");
-  bool blendEnable = false;
+  DOCUMENT("");
+  bool operator==(const Blend &o) const
+  {
+    return blendEnable == o.blendEnable && blend == o.blend && alphaBlend == o.alphaBlend &&
+           writeMask == o.writeMask;
+  }
+  bool operator<(const Blend &o) const
+  {
+    if(!(blendEnable == o.blendEnable))
+      return blendEnable < o.blendEnable;
+    if(!(blend == o.blend))
+      return blend < o.blend;
+    if(!(alphaBlend == o.alphaBlend))
+      return alphaBlend < o.alphaBlend;
+    if(!(writeMask == o.writeMask))
+      return writeMask < o.writeMask;
+    return false;
+  }
 
   DOCUMENT("A :class:`VK_BlendEquation` describing the blending for colour values.");
   BlendEquation blend;
   DOCUMENT("A :class:`VK_BlendEquation` describing the blending for alpha values.");
   BlendEquation alphaBlend;
 
+  DOCUMENT("``True`` if blending is enabled for this attachment.");
+  bool blendEnable = false;
   DOCUMENT("The mask for writes to the attachment.");
   uint8_t writeMask = 0;
 };
@@ -447,6 +687,40 @@ If there is no depth-stencil attachment, this index is ``-1``.
 DOCUMENT("Describes a single attachment in a framebuffer object.");
 struct Attachment
 {
+  DOCUMENT("");
+  bool operator==(const Attachment &o) const
+  {
+    return view == o.view && img == o.img && viewfmt == o.viewfmt && swizzle[0] == o.swizzle[0] &&
+           swizzle[1] == o.swizzle[1] && swizzle[2] == o.swizzle[2] && swizzle[3] == o.swizzle[3] &&
+           baseMip == o.baseMip && baseLayer == o.baseLayer && numMip == o.numMip &&
+           numLayer == o.numLayer;
+  }
+  bool operator<(const Attachment &o) const
+  {
+    if(!(view == o.view))
+      return view < o.view;
+    if(!(img == o.img))
+      return img < o.img;
+    if(!(viewfmt == o.viewfmt))
+      return viewfmt < o.viewfmt;
+    if(!(swizzle[0] == o.swizzle[0]))
+      return swizzle[0] < o.swizzle[0];
+    if(!(swizzle[1] == o.swizzle[1]))
+      return swizzle[1] < o.swizzle[1];
+    if(!(swizzle[2] == o.swizzle[2]))
+      return swizzle[2] < o.swizzle[2];
+    if(!(swizzle[3] == o.swizzle[3]))
+      return swizzle[3] < o.swizzle[3];
+    if(!(baseMip == o.baseMip))
+      return baseMip < o.baseMip;
+    if(!(baseLayer == o.baseLayer))
+      return baseLayer < o.baseLayer;
+    if(!(numMip == o.numMip))
+      return numMip < o.numMip;
+    if(!(numLayer == o.numLayer))
+      return numLayer < o.numLayer;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the image view itself.");
   ResourceId view;
   DOCUMENT("The :class:`ResourceId` of the underlying image that the view refers to.");
@@ -511,6 +785,26 @@ struct CurrentPass
 DOCUMENT("Contains the layout of a range of subresources in an image.");
 struct ImageLayout
 {
+  DOCUMENT("");
+  bool operator==(const ImageLayout &o) const
+  {
+    return baseMip == o.baseMip && baseLayer == o.baseLayer && numMip == o.numMip &&
+           numLayer == o.numLayer && name == o.name;
+  }
+  bool operator<(const ImageLayout &o) const
+  {
+    if(!(baseMip == o.baseMip))
+      return baseMip < o.baseMip;
+    if(!(baseLayer == o.baseLayer))
+      return baseLayer < o.baseLayer;
+    if(!(numMip == o.numMip))
+      return numMip < o.numMip;
+    if(!(numLayer == o.numLayer))
+      return numLayer < o.numLayer;
+    if(!(name == o.name))
+      return name < o.name;
+    return false;
+  }
   DOCUMENT("The first mip level used in the range.");
   uint32_t baseMip = 0;
   DOCUMENT("For 3D textures and texture arrays, the first slice used in the range.");
@@ -526,6 +820,14 @@ struct ImageLayout
 DOCUMENT("Contains the current layout of all subresources in the image.");
 struct ImageData
 {
+  DOCUMENT("");
+  bool operator==(const ImageData &o) const { return image == o.image; }
+  bool operator<(const ImageData &o) const
+  {
+    if(!(image == o.image))
+      return image < o.image;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the image.");
   ResourceId image;
 

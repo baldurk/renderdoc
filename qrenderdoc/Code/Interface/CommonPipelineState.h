@@ -32,6 +32,7 @@ struct ICaptureContext;
 DOCUMENT("Information about a single resource bound to a slot in an API-specific way.");
 struct BoundResource
 {
+  DOCUMENT("");
   BoundResource()
   {
     Id = ResourceId();
@@ -47,6 +48,23 @@ struct BoundResource
     typeHint = CompType::Typeless;
   }
 
+  bool operator==(const BoundResource &o) const
+  {
+    return Id == o.Id && HighestMip == o.HighestMip && FirstSlice == o.FirstSlice &&
+           typeHint == o.typeHint;
+  }
+  bool operator<(const BoundResource &o) const
+  {
+    if(Id != o.Id)
+      return Id < o.Id;
+    if(HighestMip != o.HighestMip)
+      return HighestMip < o.HighestMip;
+    if(FirstSlice != o.FirstSlice)
+      return FirstSlice < o.FirstSlice;
+    if(typeHint != o.typeHint)
+      return typeHint < o.typeHint;
+    return false;
+  }
   DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the bound resource.");
   ResourceId Id;
   DOCUMENT("For textures, the highest mip level available on this binding, or -1 for all mips");
@@ -66,6 +84,7 @@ support resource arrays, there will only be one bound resource.
 )");
 struct BoundResourceArray
 {
+  DOCUMENT("");
   BoundResourceArray() = default;
   BoundResourceArray(BindpointMap b) : BindPoint(b) {}
   BoundResourceArray(BindpointMap b, const rdcarray<BoundResource> &r) : BindPoint(b), Resources(r)
@@ -88,6 +107,21 @@ DECLARE_REFLECTION_STRUCT(BoundResourceArray);
 DOCUMENT("Information about a single vertex or index buffer binding.");
 struct BoundBuffer
 {
+  DOCUMENT("");
+  bool operator==(const BoundBuffer &o) const
+  {
+    return Buffer == o.Buffer && ByteOffset == o.ByteOffset && ByteStride == o.ByteStride;
+  }
+  bool operator<(const BoundBuffer &o) const
+  {
+    if(Buffer != o.Buffer)
+      return Buffer < o.Buffer;
+    if(ByteOffset != o.ByteOffset)
+      return ByteOffset < o.ByteOffset;
+    if(ByteStride != o.ByteStride)
+      return ByteStride < o.ByteStride;
+    return false;
+  }
   DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the buffer.");
   ResourceId Buffer;
   DOCUMENT("The offset in bytes from the start of the buffer to the data.");
@@ -114,6 +148,38 @@ DECLARE_REFLECTION_STRUCT(BoundCBuffer);
 DOCUMENT("Information about a vertex input attribute feeding the vertex shader.");
 struct VertexInputAttribute
 {
+  DOCUMENT("");
+  bool operator==(const VertexInputAttribute &o) const
+  {
+    return Name == o.Name && VertexBuffer == o.VertexBuffer &&
+           RelativeByteOffset == o.RelativeByteOffset && PerInstance == o.PerInstance &&
+           InstanceRate == o.InstanceRate && Format == o.Format &&
+           !memcmp(&GenericValue, &o.GenericValue, sizeof(GenericValue)) &&
+           GenericEnabled == o.GenericEnabled && Used == o.Used;
+  }
+  bool operator<(const VertexInputAttribute &o) const
+  {
+    if(Name != o.Name)
+      return Name < o.Name;
+    if(VertexBuffer != o.VertexBuffer)
+      return VertexBuffer < o.VertexBuffer;
+    if(RelativeByteOffset != o.RelativeByteOffset)
+      return RelativeByteOffset < o.RelativeByteOffset;
+    if(PerInstance != o.PerInstance)
+      return PerInstance < o.PerInstance;
+    if(InstanceRate != o.InstanceRate)
+      return InstanceRate < o.InstanceRate;
+    if(Format != o.Format)
+      return Format < o.Format;
+    if(memcmp(&GenericValue, &o.GenericValue, sizeof(GenericValue)) < 0)
+      return true;
+    if(GenericEnabled != o.GenericEnabled)
+      return GenericEnabled < o.GenericEnabled;
+    if(Used != o.Used)
+      return Used < o.Used;
+    return false;
+  }
+
   DOCUMENT("The name of this input. This may be a variable name or a semantic name.");
   rdcstr Name;
   DOCUMENT("The index of the vertex buffer used to provide this attribute.");

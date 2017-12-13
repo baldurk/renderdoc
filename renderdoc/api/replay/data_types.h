@@ -52,8 +52,25 @@ DECLARE_REFLECTION_STRUCT(FloatVector);
 DOCUMENT("Properties of a path on a remote filesystem.");
 struct PathEntry
 {
+  DOCUMENT("");
   PathEntry() : flags(PathProperty::NoFlags), lastmod(0), size(0) {}
   PathEntry(const char *fn, PathProperty f) : filename(fn), flags(f), lastmod(0), size(0) {}
+  bool operator==(const PathEntry &o) const
+  {
+    return filename == o.filename && flags == o.flags && lastmod == o.lastmod && size == o.size;
+  }
+  bool operator<(const PathEntry &o) const
+  {
+    if(!(filename == o.filename))
+      return filename < o.filename;
+    if(!(flags == o.flags))
+      return flags < o.flags;
+    if(!(lastmod == o.lastmod))
+      return lastmod < o.lastmod;
+    if(!(size == o.size))
+      return size < o.size;
+    return false;
+  }
   DOCUMENT("The filename of this path. This contains only the filename, not the full path.");
   rdcstr filename;
 
@@ -102,6 +119,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ResourceFormatName(const Re
 DOCUMENT("Description of the format of a resource or element.");
 struct ResourceFormat
 {
+  DOCUMENT("");
   ResourceFormat()
   {
     type = ResourceFormatType::Undefined;
@@ -113,14 +131,28 @@ struct ResourceFormat
     srgbCorrected = false;
   }
 
-  DOCUMENT("Compares two ``ResourceFormat`` objects for equality.");
   bool operator==(const ResourceFormat &r) const
   {
     return type == r.type && compCount == r.compCount && compByteWidth == r.compByteWidth &&
            compType == r.compType && bgraOrder == r.bgraOrder && srgbCorrected == r.srgbCorrected;
   }
+  bool operator<(const ResourceFormat &r) const
+  {
+    if(type != r.type)
+      return type < r.type;
+    if(compCount != r.compCount)
+      return compCount < r.compCount;
+    if(compByteWidth != r.compByteWidth)
+      return compByteWidth < r.compByteWidth;
+    if(compType != r.compType)
+      return compType < r.compType;
+    if(bgraOrder != r.bgraOrder)
+      return bgraOrder < r.bgraOrder;
+    if(srgbCorrected != r.srgbCorrected)
+      return srgbCorrected < r.srgbCorrected;
+    return false;
+  }
 
-  DOCUMENT("Compares two ``ResourceFormat`` objects for inequality.");
   bool operator!=(const ResourceFormat &r) const { return !(*this == r); }
   DOCUMENT(R"(:return: The name of the format.
 :rtype: str
@@ -159,6 +191,23 @@ DECLARE_REFLECTION_STRUCT(ResourceFormat);
 DOCUMENT("The details of a texture filter in a sampler.");
 struct TextureFilter
 {
+  DOCUMENT("");
+  bool operator==(const TextureFilter &o) const
+  {
+    return minify == o.magnify && minify == o.magnify && mip == o.mip && func == o.func;
+  }
+  bool operator<(const TextureFilter &o) const
+  {
+    if(!(minify == o.magnify))
+      return minify < o.magnify;
+    if(!(minify == o.magnify))
+      return minify < o.magnify;
+    if(!(mip == o.mip))
+      return mip < o.mip;
+    if(!(func == o.func))
+      return func < o.func;
+    return false;
+  }
   DOCUMENT("The :class:`FilterMode` to use when minifying the texture.");
   FilterMode minify = FilterMode::NoFilter;
   DOCUMENT("The :class:`FilterMode` to use when magnifying the texture.");
@@ -174,6 +223,9 @@ DECLARE_REFLECTION_STRUCT(TextureFilter);
 DOCUMENT("A description of any type of resource.");
 struct ResourceDescription
 {
+  DOCUMENT("");
+  bool operator==(const ResourceDescription &o) const { return ID == o.ID; }
+  bool operator<(const ResourceDescription &o) const { return ID < o.ID; }
   DOCUMENT("The unique :class:`ResourceId` that identifies this resource.");
   ResourceId ID;
 
@@ -225,6 +277,21 @@ DECLARE_REFLECTION_STRUCT(ResourceDescription);
 DOCUMENT("A description of a buffer resource.");
 struct BufferDescription
 {
+  DOCUMENT("");
+  bool operator==(const BufferDescription &o) const
+  {
+    return ID == o.ID && creationFlags == o.creationFlags && length == o.length;
+  }
+  bool operator<(const BufferDescription &o) const
+  {
+    if(!(ID == o.ID))
+      return ID < o.ID;
+    if(!(creationFlags == o.creationFlags))
+      return creationFlags < o.creationFlags;
+    if(!(length == o.length))
+      return length < o.length;
+    return false;
+  }
   DOCUMENT("The unique :class:`ResourceId` that identifies this buffer.");
   ResourceId ID;
 
@@ -240,6 +307,47 @@ DECLARE_REFLECTION_STRUCT(BufferDescription);
 DOCUMENT("A description of a texture resource.");
 struct TextureDescription
 {
+  DOCUMENT("");
+  bool operator==(const TextureDescription &o) const
+  {
+    return format == o.format && dimension == o.dimension && resType == o.resType &&
+           width == o.width && height == o.height && depth == o.depth && ID == o.ID &&
+           cubemap == o.cubemap && mips == o.mips && arraysize == o.arraysize &&
+           creationFlags == o.creationFlags && msQual == o.msQual && msSamp == o.msSamp &&
+           byteSize == o.byteSize;
+  }
+  bool operator<(const TextureDescription &o) const
+  {
+    if(!(format == o.format))
+      return format < o.format;
+    if(!(dimension == o.dimension))
+      return dimension < o.dimension;
+    if(!(resType == o.resType))
+      return resType < o.resType;
+    if(!(width == o.width))
+      return width < o.width;
+    if(!(height == o.height))
+      return height < o.height;
+    if(!(depth == o.depth))
+      return depth < o.depth;
+    if(!(ID == o.ID))
+      return ID < o.ID;
+    if(!(cubemap == o.cubemap))
+      return cubemap < o.cubemap;
+    if(!(mips == o.mips))
+      return mips < o.mips;
+    if(!(arraysize == o.arraysize))
+      return arraysize < o.arraysize;
+    if(!(creationFlags == o.creationFlags))
+      return creationFlags < o.creationFlags;
+    if(!(msQual == o.msQual))
+      return msQual < o.msQual;
+    if(!(msSamp == o.msSamp))
+      return msSamp < o.msSamp;
+    if(!(byteSize == o.byteSize))
+      return byteSize < o.byteSize;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceFormat` that describes the format of each pixel in the texture.");
   ResourceFormat format;
 
@@ -288,6 +396,9 @@ DECLARE_REFLECTION_STRUCT(TextureDescription);
 DOCUMENT("An individual API-level event, generally corresponds one-to-one with an API call.");
 struct APIEvent
 {
+  DOCUMENT("");
+  bool operator==(const APIEvent &o) const { return eventID == o.eventID; }
+  bool operator<(const APIEvent &o) const { return eventID < o.eventID; }
   DOCUMENT(R"(The API event's Event ID (EID).
 
 This is a 1-based count of API events in the capture. The EID is used as a reference point in
@@ -323,6 +434,28 @@ DECLARE_REFLECTION_STRUCT(APIEvent);
 DOCUMENT("A debugging message from the API validation or internal analysis and error detection.");
 struct DebugMessage
 {
+  DOCUMENT("");
+  bool operator==(const DebugMessage &o) const
+  {
+    return eventID == o.eventID && category == o.category && severity == o.severity &&
+           source == o.source && messageID == o.messageID && description == o.description;
+  }
+  bool operator<(const DebugMessage &o) const
+  {
+    if(!(eventID == o.eventID))
+      return eventID < o.eventID;
+    if(!(category == o.category))
+      return category < o.category;
+    if(!(severity == o.severity))
+      return severity < o.severity;
+    if(!(source == o.source))
+      return source < o.source;
+    if(!(messageID == o.messageID))
+      return messageID < o.messageID;
+    if(!(description == o.description))
+      return description < o.description;
+    return false;
+  }
   DOCUMENT("The :data:`EID <APIEvent.eventID>` where this debug message was found.");
   uint32_t eventID;
 
@@ -774,18 +907,17 @@ DECLARE_REFLECTION_STRUCT(FrameDescription);
 DOCUMENT("Describes a particular use of a resource at a specific :data:`EID <APIEvent.eventID>`.");
 struct EventUsage
 {
+  DOCUMENT("");
   EventUsage() : eventID(0), usage(ResourceUsage::Unused) {}
   EventUsage(uint32_t e, ResourceUsage u) : eventID(e), usage(u) {}
   EventUsage(uint32_t e, ResourceUsage u, ResourceId v) : eventID(e), usage(u), view(v) {}
-  DOCUMENT("Compares two ``EventUsage`` objects for less-than.");
   bool operator<(const EventUsage &o) const
   {
-    if(eventID != o.eventID)
+    if(!(eventID == o.eventID))
       return eventID < o.eventID;
     return usage < o.usage;
   }
 
-  DOCUMENT("Compares two ``EventUsage`` objects for equality.");
   bool operator==(const EventUsage &o) const { return eventID == o.eventID && usage == o.usage; }
   DOCUMENT("The :data:`EID <APIEvent.eventID>` where this usage happened.");
   uint32_t eventID;
@@ -834,7 +966,9 @@ struct DrawcallDescription
       outputs[i] = ResourceId();
     depthOut = ResourceId();
   }
-
+  DOCUMENT("");
+  bool operator==(const DrawcallDescription &o) const { return eventID == o.eventID; }
+  bool operator<(const DrawcallDescription &o) const { return eventID < o.eventID; }
   DOCUMENT("The :data:`EID <APIEvent.eventID>` that actually produced the drawcall.");
   uint32_t eventID;
   DOCUMENT("A 1-based index of this drawcall relative to other drawcalls.");
@@ -1061,9 +1195,9 @@ struct CounterResult
   DOCUMENT("Compares two ``CounterResult`` objects for less-than.");
   bool operator<(const CounterResult &o) const
   {
-    if(eventID != o.eventID)
+    if(!(eventID == o.eventID))
       return eventID < o.eventID;
-    if(counterID != o.counterID)
+    if(!(counterID == o.counterID))
       return counterID < o.counterID;
 
     // don't compare values, just consider equal
@@ -1107,6 +1241,21 @@ DECLARE_REFLECTION_STRUCT(PixelValue);
 DOCUMENT("The value of pixel output at a particular event.");
 struct ModificationValue
 {
+  DOCUMENT("");
+  bool operator==(const ModificationValue &o) const
+  {
+    return !memcmp(&col, &o.col, sizeof(col)) && depth == o.depth && stencil == o.stencil;
+  }
+  bool operator<(const ModificationValue &o) const
+  {
+    if(memcmp(&col, &o.col, sizeof(col)) < 0)
+      return true;
+    if(!(depth == o.depth))
+      return depth < o.depth;
+    if(!(stencil == o.stencil))
+      return stencil < o.stencil;
+    return false;
+  }
   DOCUMENT("The colour value.");
   PixelValue col;
 
@@ -1122,6 +1271,53 @@ DECLARE_REFLECTION_STRUCT(ModificationValue);
 DOCUMENT("An attempt to modify a pixel by a particular event.");
 struct PixelModification
 {
+  DOCUMENT("");
+  bool operator==(const PixelModification &o) const
+  {
+    return eventID == o.eventID && directShaderWrite == o.directShaderWrite &&
+           unboundPS == o.unboundPS && fragIndex == o.fragIndex && primitiveID == o.primitiveID &&
+           preMod == o.preMod && shaderOut == o.shaderOut && postMod == o.postMod &&
+           sampleMasked == o.sampleMasked && backfaceCulled == o.backfaceCulled &&
+           depthClipped == o.depthClipped && viewClipped == o.viewClipped &&
+           scissorClipped == o.scissorClipped && shaderDiscarded == o.shaderDiscarded &&
+           depthTestFailed == o.depthTestFailed && stencilTestFailed == o.stencilTestFailed;
+  }
+  bool operator<(const PixelModification &o) const
+  {
+    if(!(eventID == o.eventID))
+      return eventID < o.eventID;
+    if(!(directShaderWrite == o.directShaderWrite))
+      return directShaderWrite < o.directShaderWrite;
+    if(!(unboundPS == o.unboundPS))
+      return unboundPS < o.unboundPS;
+    if(!(fragIndex == o.fragIndex))
+      return fragIndex < o.fragIndex;
+    if(!(primitiveID == o.primitiveID))
+      return primitiveID < o.primitiveID;
+    if(!(preMod == o.preMod))
+      return preMod < o.preMod;
+    if(!(shaderOut == o.shaderOut))
+      return shaderOut < o.shaderOut;
+    if(!(postMod == o.postMod))
+      return postMod < o.postMod;
+    if(!(sampleMasked == o.sampleMasked))
+      return sampleMasked < o.sampleMasked;
+    if(!(backfaceCulled == o.backfaceCulled))
+      return backfaceCulled < o.backfaceCulled;
+    if(!(depthClipped == o.depthClipped))
+      return depthClipped < o.depthClipped;
+    if(!(viewClipped == o.viewClipped))
+      return viewClipped < o.viewClipped;
+    if(!(scissorClipped == o.scissorClipped))
+      return scissorClipped < o.scissorClipped;
+    if(!(shaderDiscarded == o.shaderDiscarded))
+      return shaderDiscarded < o.shaderDiscarded;
+    if(!(depthTestFailed == o.depthTestFailed))
+      return depthTestFailed < o.depthTestFailed;
+    if(!(stencilTestFailed == o.stencilTestFailed))
+      return stencilTestFailed < o.stencilTestFailed;
+    return false;
+  }
   DOCUMENT("The :data:`EID <APIEvent.eventID>` where the modification happened.");
   uint32_t eventID;
 

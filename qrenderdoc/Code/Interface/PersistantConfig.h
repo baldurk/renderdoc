@@ -31,8 +31,23 @@
 DOCUMENT("Describes an external program that can be used to disassemble SPIR-V.");
 struct SPIRVDisassembler
 {
+  DOCUMENT("");
   SPIRVDisassembler() {}
   VARIANT_CAST(SPIRVDisassembler);
+  bool operator==(const SPIRVDisassembler &o) const
+  {
+    return name == o.name && executable == o.executable && args == o.args;
+  }
+  bool operator<(const SPIRVDisassembler &o) const
+  {
+    if(name != o.name)
+      return name < o.name;
+    if(executable != o.executable)
+      return executable < o.executable;
+    if(args != o.args)
+      return args < o.args;
+    return false;
+  }
 
   DOCUMENT("The human-readable name of the program.");
   rdcstr name;

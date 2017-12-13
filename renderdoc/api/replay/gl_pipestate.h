@@ -36,6 +36,27 @@ DOCUMENT(R"(Describes the configuration for a single vertex attribute.
 )");
 struct VertexAttribute
 {
+  DOCUMENT("");
+  bool operator==(const VertexAttribute &o) const
+  {
+    return Enabled == o.Enabled && Format == o.Format &&
+           !memcmp(&GenericValue, &o.GenericValue, sizeof(GenericValue)) &&
+           BufferSlot == o.BufferSlot && RelativeOffset == o.RelativeOffset;
+  }
+  bool operator<(const VertexAttribute &o) const
+  {
+    if(!(Enabled == o.Enabled))
+      return Enabled < o.Enabled;
+    if(!(Format == o.Format))
+      return Format < o.Format;
+    if(memcmp(&GenericValue, &o.GenericValue, sizeof(GenericValue)) < 0)
+      return true;
+    if(!(BufferSlot == o.BufferSlot))
+      return BufferSlot < o.BufferSlot;
+    if(!(RelativeOffset == o.RelativeOffset))
+      return RelativeOffset < o.RelativeOffset;
+    return false;
+  }
   DOCUMENT("``True`` if this vertex attribute is enabled.");
   bool Enabled = false;
   DOCUMENT("The :class:`ResourceFormat` of the vertex attribute.");
@@ -55,6 +76,23 @@ struct VertexAttribute
 DOCUMENT("Describes a single OpenGL vertex buffer binding.")
 struct VB
 {
+  DOCUMENT("");
+  bool operator==(const VB &o) const
+  {
+    return Buffer == o.Buffer && Stride == o.Stride && Offset == o.Offset && Divisor == o.Divisor;
+  }
+  bool operator<(const VB &o) const
+  {
+    if(!(Buffer == o.Buffer))
+      return Buffer < o.Buffer;
+    if(!(Stride == o.Stride))
+      return Stride < o.Stride;
+    if(!(Offset == o.Offset))
+      return Offset < o.Offset;
+    if(!(Divisor == o.Divisor))
+      return Divisor < o.Divisor;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the buffer bound to this slot.");
   ResourceId Buffer;
 
@@ -145,6 +183,36 @@ struct FixedVertexProcessing
 DOCUMENT("Describes the details of a texture.");
 struct Texture
 {
+  DOCUMENT("");
+  bool operator==(const Texture &o) const
+  {
+    return Resource == o.Resource && FirstSlice == o.FirstSlice && HighestMip == o.HighestMip &&
+           ResType == o.ResType && Swizzle[0] == o.Swizzle[0] && Swizzle[1] == o.Swizzle[1] &&
+           Swizzle[2] == o.Swizzle[2] && Swizzle[3] == o.Swizzle[3] &&
+           DepthReadChannel == o.DepthReadChannel;
+  }
+  bool operator<(const Texture &o) const
+  {
+    if(!(Resource == o.Resource))
+      return Resource < o.Resource;
+    if(!(FirstSlice == o.FirstSlice))
+      return FirstSlice < o.FirstSlice;
+    if(!(HighestMip == o.HighestMip))
+      return HighestMip < o.HighestMip;
+    if(!(ResType == o.ResType))
+      return ResType < o.ResType;
+    if(!(Swizzle[0] == o.Swizzle[0]))
+      return Swizzle[0] < o.Swizzle[0];
+    if(!(Swizzle[1] == o.Swizzle[1]))
+      return Swizzle[1] < o.Swizzle[1];
+    if(!(Swizzle[2] == o.Swizzle[2]))
+      return Swizzle[2] < o.Swizzle[2];
+    if(!(Swizzle[3] == o.Swizzle[3]))
+      return Swizzle[3] < o.Swizzle[3];
+    if(!(DepthReadChannel == o.DepthReadChannel))
+      return DepthReadChannel < o.DepthReadChannel;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the underlying resource the view refers to.");
   ResourceId Resource;
   DOCUMENT("Valid for texture arrays or 3D textures - the first slice available.");
@@ -171,6 +239,50 @@ struct Texture
 DOCUMENT("Describes the sampler properties of a texture.");
 struct Sampler
 {
+  DOCUMENT("");
+  bool operator==(const Sampler &o) const
+  {
+    return Samp == o.Samp && AddressS == o.AddressS && AddressT == o.AddressT &&
+           AddressR == o.AddressR && BorderColor[0] == o.BorderColor[0] &&
+           BorderColor[1] == o.BorderColor[1] && BorderColor[2] == o.BorderColor[2] &&
+           BorderColor[3] == o.BorderColor[3] && Comparison == o.Comparison && Filter == o.Filter &&
+           SeamlessCube == o.SeamlessCube && MaxAniso == o.MaxAniso && MaxLOD == o.MaxLOD &&
+           MinLOD == o.MinLOD && MipLODBias == o.MipLODBias;
+  }
+  bool operator<(const Sampler &o) const
+  {
+    if(!(Samp == o.Samp))
+      return Samp < o.Samp;
+    if(!(AddressS == o.AddressS))
+      return AddressS < o.AddressS;
+    if(!(AddressT == o.AddressT))
+      return AddressT < o.AddressT;
+    if(!(AddressR == o.AddressR))
+      return AddressR < o.AddressR;
+    if(!(BorderColor[0] == o.BorderColor[0]))
+      return BorderColor[0] < o.BorderColor[0];
+    if(!(BorderColor[1] == o.BorderColor[1]))
+      return BorderColor[1] < o.BorderColor[1];
+    if(!(BorderColor[2] == o.BorderColor[2]))
+      return BorderColor[2] < o.BorderColor[2];
+    if(!(BorderColor[3] == o.BorderColor[3]))
+      return BorderColor[3] < o.BorderColor[3];
+    if(!(Comparison == o.Comparison))
+      return Comparison < o.Comparison;
+    if(!(Filter == o.Filter))
+      return Filter < o.Filter;
+    if(!(SeamlessCube == o.SeamlessCube))
+      return SeamlessCube < o.SeamlessCube;
+    if(!(MaxAniso == o.MaxAniso))
+      return MaxAniso < o.MaxAniso;
+    if(!(MaxLOD == o.MaxLOD))
+      return MaxLOD < o.MaxLOD;
+    if(!(MinLOD == o.MinLOD))
+      return MinLOD < o.MinLOD;
+    if(!(MipLODBias == o.MipLODBias))
+      return MipLODBias < o.MipLODBias;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the sampler object, if a separate one is set.");
   ResourceId Samp;
   DOCUMENT("The :class:`AddressMode` in the S direction.");
@@ -211,6 +323,21 @@ struct Sampler
 DOCUMENT("Describes the properties of a buffer.");
 struct Buffer
 {
+  DOCUMENT("");
+  bool operator==(const Buffer &o) const
+  {
+    return Resource == o.Resource && Offset == o.Offset && Size == o.Size;
+  }
+  bool operator<(const Buffer &o) const
+  {
+    if(!(Resource == o.Resource))
+      return Resource < o.Resource;
+    if(!(Offset == o.Offset))
+      return Offset < o.Offset;
+    if(!(Size == o.Size))
+      return Size < o.Size;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the buffer object.");
   ResourceId Resource;
   DOCUMENT("The byte offset from the start of the buffer.");
@@ -222,6 +349,33 @@ struct Buffer
 DOCUMENT("Describes the properties of a load/store image.");
 struct ImageLoadStore
 {
+  DOCUMENT("");
+  bool operator==(const ImageLoadStore &o) const
+  {
+    return Resource == o.Resource && Level == o.Level && Layered == o.Layered && Layer == o.Layer &&
+           ResType == o.ResType && readAllowed == o.readAllowed && writeAllowed == o.writeAllowed &&
+           Format == o.Format;
+  }
+  bool operator<(const ImageLoadStore &o) const
+  {
+    if(!(Resource == o.Resource))
+      return Resource < o.Resource;
+    if(!(Level == o.Level))
+      return Level < o.Level;
+    if(!(Layered == o.Layered))
+      return Layered < o.Layered;
+    if(!(Layer == o.Layer))
+      return Layer < o.Layer;
+    if(!(ResType == o.ResType))
+      return ResType < o.ResType;
+    if(!(readAllowed == o.readAllowed))
+      return readAllowed < o.readAllowed;
+    if(!(writeAllowed == o.writeAllowed))
+      return writeAllowed < o.writeAllowed;
+    if(!(Format == o.Format))
+      return Format < o.Format;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the texture object.");
   ResourceId Resource;
   DOCUMENT("The mip of the texture that's used in the attachment.");
@@ -262,6 +416,28 @@ struct Feedback
 DOCUMENT("Describes a single OpenGL viewport.");
 struct Viewport
 {
+  DOCUMENT("");
+  bool operator==(const Viewport &o) const
+  {
+    return Left == o.Left && Bottom == o.Bottom && Width == o.Width && Height == o.Height &&
+           MinDepth == o.MinDepth && MaxDepth == o.MaxDepth;
+  }
+  bool operator<(const Viewport &o) const
+  {
+    if(!(Left == o.Left))
+      return Left < o.Left;
+    if(!(Bottom == o.Bottom))
+      return Bottom < o.Bottom;
+    if(!(Width == o.Width))
+      return Width < o.Width;
+    if(!(Height == o.Height))
+      return Height < o.Height;
+    if(!(MinDepth == o.MinDepth))
+      return MinDepth < o.MinDepth;
+    if(!(MaxDepth == o.MaxDepth))
+      return MaxDepth < o.MaxDepth;
+    return false;
+  }
   DOCUMENT("The X co-ordinate of the left side of the viewport.");
   float Left = 0.0f;
   DOCUMENT("The Y co-ordinate of the bottom side of the viewport.");
@@ -279,6 +455,26 @@ struct Viewport
 DOCUMENT("Describes a single OpenGL scissor region.");
 struct Scissor
 {
+  DOCUMENT("");
+  bool operator==(const Scissor &o) const
+  {
+    return Left == o.Left && Bottom == o.Bottom && Width == o.Width && Height == o.Height &&
+           Enabled == o.Enabled;
+  }
+  bool operator<(const Scissor &o) const
+  {
+    if(!(Left == o.Left))
+      return Left < o.Left;
+    if(!(Bottom == o.Bottom))
+      return Bottom < o.Bottom;
+    if(!(Width == o.Width))
+      return Width < o.Width;
+    if(!(Height == o.Height))
+      return Height < o.Height;
+    if(!(Enabled == o.Enabled))
+      return Enabled < o.Enabled;
+    return false;
+  }
   DOCUMENT("The X co-ordinate of the left side of the scissor region.");
   int32_t Left = 0;
   DOCUMENT("The Y co-ordinate of the bottom side of the scissor region.");
@@ -416,6 +612,30 @@ struct StencilState
 DOCUMENT("Describes the state of a framebuffer attachment.");
 struct Attachment
 {
+  DOCUMENT("");
+  bool operator==(const Attachment &o) const
+  {
+    return Obj == o.Obj && Layer == o.Layer && Mip == o.Mip && Swizzle[0] == o.Swizzle[0] &&
+           Swizzle[1] == o.Swizzle[1] && Swizzle[2] == o.Swizzle[2] && Swizzle[3] == o.Swizzle[3];
+  }
+  bool operator<(const Attachment &o) const
+  {
+    if(!(Obj == o.Obj))
+      return Obj < o.Obj;
+    if(!(Layer == o.Layer))
+      return Layer < o.Layer;
+    if(!(Mip == o.Mip))
+      return Mip < o.Mip;
+    if(!(Swizzle[0] == o.Swizzle[0]))
+      return Swizzle[0] < o.Swizzle[0];
+    if(!(Swizzle[1] == o.Swizzle[1]))
+      return Swizzle[1] < o.Swizzle[1];
+    if(!(Swizzle[2] == o.Swizzle[2]))
+      return Swizzle[2] < o.Swizzle[2];
+    if(!(Swizzle[3] == o.Swizzle[3]))
+      return Swizzle[3] < o.Swizzle[3];
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the texture bound to this attachment.");
   ResourceId Obj;
   DOCUMENT("The slice of the texture that's used in the attachment.");
@@ -448,6 +668,21 @@ struct FBO
 DOCUMENT("Describes the details of an OpenGL blend operation.");
 struct BlendEquation
 {
+  DOCUMENT("");
+  bool operator==(const BlendEquation &o) const
+  {
+    return Source == o.Source && Destination == o.Destination && Operation == o.Operation;
+  }
+  bool operator<(const BlendEquation &o) const
+  {
+    if(!(Source == o.Source))
+      return Source < o.Source;
+    if(!(Destination == o.Destination))
+      return Destination < o.Destination;
+    if(!(Operation == o.Operation))
+      return Operation < o.Operation;
+    return false;
+  }
   DOCUMENT("The :class:`BlendMultiplier` for the source blend value.");
   BlendMultiplier Source = BlendMultiplier::One;
   DOCUMENT("The :class:`BlendMultiplier` for the destination blend value.");
@@ -459,6 +694,26 @@ struct BlendEquation
 DOCUMENT("Describes the blend configuration for a given OpenGL attachment.");
 struct Blend
 {
+  DOCUMENT("");
+  bool operator==(const Blend &o) const
+  {
+    return Enabled == o.Enabled && m_Blend == o.m_Blend && m_AlphaBlend == o.m_AlphaBlend &&
+           Logic == o.Logic && WriteMask == o.WriteMask;
+  }
+  bool operator<(const Blend &o) const
+  {
+    if(!(Enabled == o.Enabled))
+      return Enabled < o.Enabled;
+    if(!(m_Blend == o.m_Blend))
+      return m_Blend < o.m_Blend;
+    if(!(m_AlphaBlend == o.m_AlphaBlend))
+      return m_AlphaBlend < o.m_AlphaBlend;
+    if(!(Logic == o.Logic))
+      return Logic < o.Logic;
+    if(!(WriteMask == o.WriteMask))
+      return WriteMask < o.WriteMask;
+    return false;
+  }
   DOCUMENT("A :class:`GL_BlendEquation` describing the blending for colour values.");
   BlendEquation m_Blend;
   DOCUMENT("A :class:`GL_BlendEquation` describing the blending for alpha values.");

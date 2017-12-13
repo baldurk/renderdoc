@@ -37,6 +37,31 @@ DOCUMENT(R"(Describes a single D3D11 input layout element for one vertex input.
 )");
 struct Layout
 {
+  DOCUMENT("");
+  bool operator==(const Layout &o) const
+  {
+    return SemanticName == o.SemanticName && SemanticIndex == o.SemanticIndex &&
+           Format == o.Format && InputSlot == o.InputSlot && ByteOffset == o.ByteOffset &&
+           PerInstance == o.PerInstance && InstanceDataStepRate == o.InstanceDataStepRate;
+  }
+  bool operator<(const Layout &o) const
+  {
+    if(!(SemanticName == o.SemanticName))
+      return SemanticName < o.SemanticName;
+    if(!(SemanticIndex == o.SemanticIndex))
+      return SemanticIndex < o.SemanticIndex;
+    if(!(Format == o.Format))
+      return Format < o.Format;
+    if(!(InputSlot == o.InputSlot))
+      return InputSlot < o.InputSlot;
+    if(!(ByteOffset == o.ByteOffset))
+      return ByteOffset < o.ByteOffset;
+    if(!(PerInstance == o.PerInstance))
+      return PerInstance < o.PerInstance;
+    if(!(InstanceDataStepRate == o.InstanceDataStepRate))
+      return InstanceDataStepRate < o.InstanceDataStepRate;
+    return false;
+  }
   DOCUMENT("The semantic name for this input.");
   rdcstr SemanticName;
 
@@ -75,6 +100,21 @@ with the next instance data.
 DOCUMENT("Describes a single D3D11 vertex buffer binding.")
 struct VB
 {
+  DOCUMENT("");
+  bool operator==(const VB &o) const
+  {
+    return Buffer == o.Buffer && Stride == o.Stride && Offset == o.Offset;
+  }
+  bool operator<(const VB &o) const
+  {
+    if(!(Buffer == o.Buffer))
+      return Buffer < o.Buffer;
+    if(!(Stride == o.Stride))
+      return Stride < o.Stride;
+    if(!(Offset == o.Offset))
+      return Offset < o.Offset;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the buffer bound to this slot.");
   ResourceId Buffer;
 
@@ -117,6 +157,48 @@ struct IA
 DOCUMENT("Describes the details of a D3D11 resource view - any one of UAV, SRV, RTV or DSV.");
 struct View
 {
+  DOCUMENT("");
+  bool operator==(const View &o) const
+  {
+    return Object == o.Object && Resource == o.Resource && Type == o.Type && Format == o.Format &&
+           Structured == o.Structured && BufferStructCount == o.BufferStructCount &&
+           ElementSize == o.ElementSize && FirstElement == o.FirstElement &&
+           NumElements == o.NumElements && Flags == o.Flags && HighestMip == o.HighestMip &&
+           NumMipLevels == o.NumMipLevels && ArraySize == o.ArraySize &&
+           FirstArraySlice == o.FirstArraySlice;
+  }
+  bool operator<(const View &o) const
+  {
+    if(!(Object == o.Object))
+      return Object < o.Object;
+    if(!(Resource == o.Resource))
+      return Resource < o.Resource;
+    if(!(Type == o.Type))
+      return Type < o.Type;
+    if(!(Format == o.Format))
+      return Format < o.Format;
+    if(!(Structured == o.Structured))
+      return Structured < o.Structured;
+    if(!(BufferStructCount == o.BufferStructCount))
+      return BufferStructCount < o.BufferStructCount;
+    if(!(ElementSize == o.ElementSize))
+      return ElementSize < o.ElementSize;
+    if(!(FirstElement == o.FirstElement))
+      return FirstElement < o.FirstElement;
+    if(!(NumElements == o.NumElements))
+      return NumElements < o.NumElements;
+    if(!(Flags == o.Flags))
+      return Flags < o.Flags;
+    if(!(HighestMip == o.HighestMip))
+      return HighestMip < o.HighestMip;
+    if(!(NumMipLevels == o.NumMipLevels))
+      return NumMipLevels < o.NumMipLevels;
+    if(!(ArraySize == o.ArraySize))
+      return ArraySize < o.ArraySize;
+    if(!(FirstArraySlice == o.FirstArraySlice))
+      return FirstArraySlice < o.FirstArraySlice;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the view itself.");
   ResourceId Object;
 
@@ -162,6 +244,48 @@ or the structured buffer element size, as appropriate.
 DOCUMENT("Describes a sampler state object.");
 struct Sampler
 {
+  DOCUMENT("");
+  bool operator==(const Sampler &o) const
+  {
+    return Samp == o.Samp && AddressU == o.AddressU && AddressV == o.AddressV &&
+           AddressW == o.AddressW && BorderColor[0] == o.BorderColor[0] &&
+           BorderColor[1] == o.BorderColor[1] && BorderColor[2] == o.BorderColor[2] &&
+           BorderColor[3] == o.BorderColor[3] && Comparison == o.Comparison && Filter == o.Filter &&
+           MaxAniso == o.MaxAniso && MaxLOD == o.MaxLOD && MinLOD == o.MinLOD &&
+           MipLODBias == o.MipLODBias;
+  }
+  bool operator<(const Sampler &o) const
+  {
+    if(!(Samp == o.Samp))
+      return Samp < o.Samp;
+    if(!(AddressU == o.AddressU))
+      return AddressU < o.AddressU;
+    if(!(AddressV == o.AddressV))
+      return AddressV < o.AddressV;
+    if(!(AddressW == o.AddressW))
+      return AddressW < o.AddressW;
+    if(!(BorderColor[0] == o.BorderColor[0]))
+      return BorderColor[0] < o.BorderColor[0];
+    if(!(BorderColor[1] == o.BorderColor[1]))
+      return BorderColor[1] < o.BorderColor[1];
+    if(!(BorderColor[2] == o.BorderColor[2]))
+      return BorderColor[2] < o.BorderColor[2];
+    if(!(BorderColor[3] == o.BorderColor[3]))
+      return BorderColor[3] < o.BorderColor[3];
+    if(!(Comparison == o.Comparison))
+      return Comparison < o.Comparison;
+    if(!(Filter == o.Filter))
+      return Filter < o.Filter;
+    if(!(MaxAniso == o.MaxAniso))
+      return MaxAniso < o.MaxAniso;
+    if(!(MaxLOD == o.MaxLOD))
+      return MaxLOD < o.MaxLOD;
+    if(!(MinLOD == o.MinLOD))
+      return MinLOD < o.MinLOD;
+    if(!(MipLODBias == o.MipLODBias))
+      return MipLODBias < o.MipLODBias;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the sampler state object.");
   ResourceId Samp;
   DOCUMENT("The :class:`AddressMode` in the U direction.");
@@ -200,6 +324,21 @@ struct Sampler
 DOCUMENT("Describes a constant buffer binding.");
 struct CBuffer
 {
+  DOCUMENT("");
+  bool operator==(const CBuffer &o) const
+  {
+    return Buffer == o.Buffer && VecOffset == o.VecOffset && VecCount == o.VecCount;
+  }
+  bool operator<(const CBuffer &o) const
+  {
+    if(!(Buffer == o.Buffer))
+      return Buffer < o.Buffer;
+    if(!(VecOffset == o.VecOffset))
+      return VecOffset < o.VecOffset;
+    if(!(VecCount == o.VecCount))
+      return VecCount < o.VecCount;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the buffer.");
   ResourceId Buffer;
 
@@ -251,6 +390,16 @@ mapping data.
 DOCUMENT("Describes a binding on the D3D11 stream-out stage.");
 struct SOBind
 {
+  DOCUMENT("");
+  bool operator==(const SOBind &o) const { return Buffer == o.Buffer && Offset == o.Offset; }
+  bool operator<(const SOBind &o) const
+  {
+    if(!(Buffer == o.Buffer))
+      return Buffer < o.Buffer;
+    if(!(Offset == o.Offset))
+      return Offset < o.Offset;
+    return false;
+  }
   DOCUMENT("The :class:`ResourceId` of the buffer.");
   ResourceId Buffer;
 
@@ -268,6 +417,28 @@ struct SO
 DOCUMENT("Describes a single D3D11 viewport.");
 struct Viewport
 {
+  DOCUMENT("");
+  bool operator==(const Viewport &o) const
+  {
+    return X == o.X && Y == o.Y && Width == o.Width && Height == o.Height &&
+           MinDepth == o.MinDepth && MaxDepth == o.MaxDepth;
+  }
+  bool operator<(const Viewport &o) const
+  {
+    if(!(X == o.X))
+      return X < o.X;
+    if(!(Y == o.Y))
+      return Y < o.Y;
+    if(!(Width == o.Width))
+      return Width < o.Width;
+    if(!(Height == o.Height))
+      return Height < o.Height;
+    if(!(MinDepth == o.MinDepth))
+      return MinDepth < o.MinDepth;
+    if(!(MaxDepth == o.MaxDepth))
+      return MaxDepth < o.MaxDepth;
+    return false;
+  }
   Viewport() = default;
   Viewport(float TX, float TY, float W, float H, float MN, float MX, bool en)
       : X(TX), Y(TY), Width(W), Height(H), MinDepth(MN), MaxDepth(MX), Enabled(en)
@@ -293,6 +464,26 @@ struct Viewport
 DOCUMENT("Describes a single D3D11 scissor rect.");
 struct Scissor
 {
+  DOCUMENT("");
+  bool operator==(const Scissor &o) const
+  {
+    return left == o.left && top == o.top && right == o.right && bottom == o.bottom &&
+           Enabled == o.Enabled;
+  }
+  bool operator<(const Scissor &o) const
+  {
+    if(!(left == o.left))
+      return left < o.left;
+    if(!(top == o.top))
+      return top < o.top;
+    if(!(right == o.right))
+      return right < o.right;
+    if(!(bottom == o.bottom))
+      return bottom < o.bottom;
+    if(!(Enabled == o.Enabled))
+      return Enabled < o.Enabled;
+    return false;
+  }
   Scissor() = default;
   Scissor(int l, int t, int r, int b, bool en) : left(l), top(t), right(r), bottom(b), Enabled(en)
   {
@@ -404,6 +595,21 @@ struct DepthStencilState
 DOCUMENT("Describes the details of a D3D11 blend operation.");
 struct BlendEquation
 {
+  DOCUMENT("");
+  bool operator==(const BlendEquation &o) const
+  {
+    return Source == o.Source && Destination == o.Destination && Operation == o.Operation;
+  }
+  bool operator<(const BlendEquation &o) const
+  {
+    if(!(Source == o.Source))
+      return Source < o.Source;
+    if(!(Destination == o.Destination))
+      return Destination < o.Destination;
+    if(!(Operation == o.Operation))
+      return Operation < o.Operation;
+    return false;
+  }
   DOCUMENT("The :class:`BlendMultiplier` for the source blend value.");
   BlendMultiplier Source = BlendMultiplier::One;
   DOCUMENT("The :class:`BlendMultiplier` for the destination blend value.");
@@ -415,6 +621,29 @@ struct BlendEquation
 DOCUMENT("Describes the blend configuration for a given D3D11 target.");
 struct Blend
 {
+  DOCUMENT("");
+  bool operator==(const Blend &o) const
+  {
+    return Enabled == o.Enabled && LogicEnabled == o.LogicEnabled && m_Blend == o.m_Blend &&
+           m_AlphaBlend == o.m_AlphaBlend && Logic == o.Logic && WriteMask == o.WriteMask;
+  }
+  bool operator<(const Blend &o) const
+  {
+    if(!(Enabled == o.Enabled))
+      return Enabled < o.Enabled;
+    if(!(LogicEnabled == o.LogicEnabled))
+      return LogicEnabled < o.LogicEnabled;
+    if(!(m_Blend == o.m_Blend))
+      return m_Blend < o.m_Blend;
+    if(!(m_AlphaBlend == o.m_AlphaBlend))
+      return m_AlphaBlend < o.m_AlphaBlend;
+    if(!(Logic == o.Logic))
+      return Logic < o.Logic;
+    if(!(WriteMask == o.WriteMask))
+      return WriteMask < o.WriteMask;
+    return false;
+  }
+
   DOCUMENT("A :class:`D3D11_BlendEquation` describing the blending for colour values.");
   BlendEquation m_Blend;
   DOCUMENT("A :class:`D3D11_BlendEquation` describing the blending for alpha values.");

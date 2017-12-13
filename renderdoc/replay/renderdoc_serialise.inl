@@ -2034,7 +2034,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::Blend &el)
   SERIALISE_MEMBER(alphaBlend);
   SERIALISE_MEMBER(writeMask);
 
-  SIZE_CHECK(32);
+  SIZE_CHECK(28);
 }
 
 template <typename SerialiserType>

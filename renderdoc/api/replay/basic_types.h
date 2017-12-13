@@ -58,6 +58,13 @@ struct rdcpair
   A first;
   B second;
 
+  bool operator==(const rdcpair<A, B> &o) const { return first == o.first && second == o.second; }
+  bool operator<(const rdcpair<A, B> &o) const
+  {
+    if(first != o.first)
+      return first < o.first;
+    return second < o.second;
+  }
   operator std::tuple<A &, B &>() { return std::tie(first, second); }
 };
 
@@ -97,12 +104,35 @@ struct ItemHelper
     for(int32_t i = 0; i < count; i++)
       new(first + i) T();
   }
+
+  static bool equalRange(T *a, T *b, int32_t count)
+  {
+    for(int32_t i = 0; i < count; i++)
+      if(!(a[i] == b[i]))
+        return false;
+
+    return true;
+  }
+
+  static bool lessthanRange(T *a, T *b, int32_t count)
+  {
+    for(int32_t i = 0; i < count; i++)
+      if(a[i] < b[i])
+        return true;
+
+    return false;
+  }
 };
 
 template <typename T>
 struct ItemHelper<T, true>
 {
   static void initRange(T *first, int32_t itemCount) { memset(first, 0, itemCount * sizeof(T)); }
+  static bool equalRange(T *a, T *b, int32_t count) { return !memcmp(a, b, count * sizeof(T)); }
+  static bool lessthanRange(T *a, T *b, int32_t count)
+  {
+    return memcmp(a, b, count * sizeof(T)) < 0;
+  }
 };
 
 template <typename T>
@@ -156,6 +186,16 @@ public:
   // simple accessors
   T &operator[](size_t i) { return elems[i]; }
   const T &operator[](size_t i) const { return elems[i]; }
+  bool operator==(const rdcarray<T> &o) const
+  {
+    return usedCount == o.usedCount && ItemHelper<T>::equalRange(elems, o.elems, usedCount);
+  }
+  bool operator<(const rdcarray<T> &o) const
+  {
+    if(usedCount != o.usedCount)
+      return usedCount < o.usedCount;
+    return ItemHelper<T>::lessthanRange(elems, o.elems, usedCount);
+  }
   T *data() { return elems; }
   const T *data() const { return elems; }
   T *begin() { return elems ? elems : end(); }

@@ -482,6 +482,23 @@ struct EnvironmentModification
       : mod(m), sep(s), name(n), value(v)
   {
   }
+  DOCUMENT("");
+  bool operator==(const EnvironmentModification &o) const
+  {
+    return mod == o.mod && sep == o.sep && name == o.name && value == o.value;
+  }
+  bool operator<(const EnvironmentModification &o) const
+  {
+    if(!(mod == o.mod))
+      return mod < o.mod;
+    if(!(sep == o.sep))
+      return sep < o.sep;
+    if(!(name == o.name))
+      return name < o.name;
+    if(!(value == o.value))
+      return value < o.value;
+    return false;
+  }
   DOCUMENT("The :class:`modification <EnvMod>` to use.");
   EnvMod mod;
   DOCUMENT("The :class:`separator <EnvSep>` to use if needed.");
@@ -497,6 +514,24 @@ DECLARE_REFLECTION_STRUCT(EnvironmentModification);
 DOCUMENT("The format for a capture file either supported to read from, or export to");
 struct CaptureFileFormat
 {
+  DOCUMENT("");
+  bool operator==(const CaptureFileFormat &o) const
+  {
+    return name == o.name && description == o.description && openSupported == o.openSupported &&
+           convertSupported == o.convertSupported;
+  }
+  bool operator<(const CaptureFileFormat &o) const
+  {
+    if(!(name == o.name))
+      return name < o.name;
+    if(!(description == o.description))
+      return description < o.description;
+    if(!(openSupported == o.openSupported))
+      return openSupported < o.openSupported;
+    if(!(convertSupported == o.convertSupported))
+      return convertSupported < o.convertSupported;
+    return false;
+  }
   DOCUMENT("The name of the format as a single minimal string, e.g. ``rdc``.");
   rdcstr name;
 
