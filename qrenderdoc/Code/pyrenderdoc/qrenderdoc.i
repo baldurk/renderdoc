@@ -76,6 +76,8 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 %include "Code/Interface/PersistantConfig.h"
 %include "Code/Interface/RemoteHost.h"
 
+DOCUMENT("");
+
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, EventBookmark)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, SPIRVDisassembler)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BoundBuffer)

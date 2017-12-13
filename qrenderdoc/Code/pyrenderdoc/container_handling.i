@@ -94,6 +94,7 @@
     // overloads
     %feature("kwargs") pop;
     %feature("kwargs") sort;
+    %feature("kwargs") index;
 
     PyObject *append(PyObject *value)
     {
@@ -130,13 +131,25 @@
       return array_reverse($self);
     }
 
-    /*
-// named functions to implement for list compatibility
-index(x[, start[, end]]); // Return zero-based index in the list of the first item whose value is x
-count(value); // Return the number of times x appears in the list.
-extend(iterable); // Extend the list by appending all the items from the iterable
-remove(x); // Remove the first item from the list whose value is x.
-*/
+    PyObject *index(PyObject *item, PyObject *start = NULL, PyObject *end = NULL)
+    {
+      return array_indexOf($self, item, start, end);
+    }
+
+    PyObject *count(PyObject *item)
+    {
+      return array_countOf($self, item);
+    }
+
+    PyObject *extend(PyObject *items)
+    {
+      return array_selfconcat($self, items);
+    }
+
+    PyObject *remove(PyObject *item)
+    {
+      return array_removeOne($self, item);
+    }
   } // %extend Container
 %enddef // define EXTEND_ARRAY_CLASS_METHODS(Container)
 
@@ -149,26 +162,17 @@ remove(x); // Remove the first item from the list whose value is x.
 %feature("python:sq_item") array_type STRINGIZE(getitem_##unique_name);
 %feature("python:sq_ass_item") array_type STRINGIZE(setitem_##unique_name);
 %feature("python:sq_length") array_type STRINGIZE(length_##unique_name);
+%feature("python:sq_concat") array_type STRINGIZE(concat_##unique_name);
+%feature("python:sq_repeat") array_type STRINGIZE(repeat_##unique_name);
+%feature("python:sq_inplace_concat") array_type STRINGIZE(selfconcat_##unique_name);
+%feature("python:sq_inplace_repeat") array_type STRINGIZE(selfrepeat_##unique_name);
+%feature("python:mp_subscript") array_type STRINGIZE(getsubscript_##unique_name);
+%feature("python:mp_ass_subscript") array_type STRINGIZE(setsubscript_##unique_name);
 
 // https://docs.python.org/3/library/collections.abc.html
 // https://docs.python.org/3/library/stdtypes.html#typesseq-common
 // https://docs.python.org/3/library/stdtypes.html#typesseq-mutable
 // https://docs.python.org/3/library/stdtypes.html#list
-
-/*
-// slots to implement for list compatibility
-slice retrieve
-binaryfunc mp_subscript;
-
-slice set/delete
-objobjargproc mp_ass_subscript;
-
-concat/repeat
-binaryfunc sq_concat;
-ssizeargfunc sq_repeat;
-binaryfunc sq_inplace_concat;
-ssizeargfunc sq_inplace_repeat;
-*/
 
 %enddef
 
@@ -215,6 +219,84 @@ int length_##unique_name(PyObject *self, Py_ssize_t idx, PyObject *val)
     return -1;
 
   return array_len(thisptr);
+}
+
+PyObject *getsubscript_##unique_name(PyObject *self, PyObject *idx)
+{
+  array_type *thisptr = array_thisptr<array_type>(self);
+
+  if(!thisptr)
+    return NULL;
+
+  return array_getsubscript(thisptr, idx);
+}
+
+int setsubscript_##unique_name(PyObject *self, PyObject *idx, PyObject *val)
+{
+  array_type *thisptr = array_thisptr<array_type>(self);
+
+  if(!thisptr)
+    return -1;
+
+  return array_setsubscript(thisptr, idx, val);
+}
+
+PyObject *concat_##unique_name(PyObject *self, PyObject *vals)
+{
+  array_type *thisptr = array_thisptr<array_type>(self);
+
+  if(!thisptr)
+    return NULL;
+
+  return array_concat(thisptr, vals);
+}
+
+PyObject *repeat_##unique_name(PyObject *self, Py_ssize_t count)
+{
+  array_type *thisptr = array_thisptr<array_type>(self);
+
+  if(!thisptr)
+    return NULL;
+
+  return array_repeat(thisptr, count);
+}
+
+PyObject *selfconcat_##unique_name(PyObject *self, PyObject *vals)
+{
+  array_type *thisptr = array_thisptr<array_type>(self);
+
+  if(!thisptr)
+    return NULL;
+
+  PyObject *ret = array_selfconcat(thisptr, vals);
+
+  if(ret)
+  {
+    Py_DECREF(ret);
+    Py_INCREF(self);
+    return self;
+  }
+
+  return NULL;
+}
+
+PyObject *selfrepeat_##unique_name(PyObject *self, Py_ssize_t count)
+{
+  array_type *thisptr = array_thisptr<array_type>(self);
+
+  if(!thisptr)
+    return NULL;
+
+  PyObject *ret = array_selfrepeat(thisptr, count);
+
+  if(ret)
+  {
+    Py_DECREF(ret);
+    Py_INCREF(self);
+    return self;
+  }
+
+  return NULL;
 }
 %}
 

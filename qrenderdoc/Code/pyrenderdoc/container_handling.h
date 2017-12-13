@@ -214,8 +214,23 @@ fail:
 template <typename arrayType>
 PyObject *array_sort(arrayType *thisptr, PyObject *key, bool reverse)
 {
-  // TODO - implement sort
+  typedef typename arrayType::value_type val;
+  if(key)
+  {
+    SWIG_exception_fail(SWIG_RuntimeError, "key sort is not supported on rdcarray");
+  }
+  else
+  {
+    std::sort(thisptr->begin(), thisptr->end(), [](const val &a, const val &b) { return a < b; });
+  }
+
+  if(reverse)
+    array_reverse(thisptr);
+
   return SWIG_Py_Void();
+
+fail:
+  return NULL;
 }
 
 template <typename arrayType>
@@ -291,4 +306,386 @@ PyObject *array_pop(arrayType *thisptr, PyObject *index)
   return ret;
 fail:
   return NULL;
+}
+
+template <typename arrayType>
+PyObject *array_indexOf(arrayType *thisptr, PyObject *item, PyObject *start, PyObject *end)
+{
+  typename arrayType::value_type converted;
+  int res = 0;
+
+  size_t startIdx = 0;
+  size_t endIdx = ~0U;
+
+  if(start)
+  {
+    if(!PyLong_Check(start))
+    {
+      SWIG_exception_fail(SWIG_TypeError, "start index is not an integer");
+    }
+
+    startIdx = (size_t)PyLong_AsLong(start);
+  }
+
+  if(end)
+  {
+    if(!PyLong_Check(end))
+    {
+      SWIG_exception_fail(SWIG_TypeError, "end index is not an integer");
+    }
+    endIdx = (size_t)PyLong_AsLong(end);
+  }
+
+  res = ConvertFromPy(item, converted);
+
+  if(SWIG_IsOK(res))
+  {
+    int idx = thisptr->indexOf(converted, startIdx, endIdx);
+
+    if(idx < 0)
+    {
+      SWIG_exception_fail(SWIG_ValueError, "item is not in list");
+    }
+
+    return PyLong_FromLong(idx);
+  }
+
+  SWIG_exception_fail(SWIG_ArgError(res), "failed to convert element in index");
+fail:
+  return NULL;
+}
+
+template <typename arrayType>
+PyObject *array_countOf(arrayType *thisptr, PyObject *item)
+{
+  typename arrayType::value_type converted;
+  int res = ConvertFromPy(item, converted);
+
+  if(SWIG_IsOK(res))
+  {
+    int count = 0;
+
+    for(size_t i = 0; i < thisptr->size(); i++)
+      if(thisptr->at(i) == converted)
+        count++;
+
+    return PyLong_FromLong(count);
+  }
+
+  SWIG_exception_fail(SWIG_ArgError(res), "failed to convert element in count");
+fail:
+  return NULL;
+}
+
+template <typename arrayType>
+PyObject *array_removeOne(arrayType *thisptr, PyObject *item)
+{
+  typename arrayType::value_type converted;
+  int res = ConvertFromPy(item, converted);
+
+  if(SWIG_IsOK(res))
+  {
+    int idx = thisptr->indexOf(converted);
+
+    if(idx < 0)
+    {
+      SWIG_exception_fail(SWIG_ValueError, "item is not in list");
+    }
+
+    thisptr->erase(idx);
+
+    return SWIG_Py_Void();
+  }
+
+  SWIG_exception_fail(SWIG_ArgError(res), "failed to convert element in remove");
+fail:
+  return NULL;
+}
+
+template <typename arrayType>
+PyObject *array_concat(arrayType *thisptr, PyObject *items)
+{
+  Py_ssize_t count = 0;
+  PyObject *list = NULL;
+  PyObject *ret = NULL;
+
+  if(!PySequence_Check(items))
+    SWIG_exception_fail(SWIG_TypeError, "can't concatenate non-sequence");
+
+  list = PyList_New(0);
+  if(!list)
+    return NULL;
+
+  for(size_t i = 0; i < thisptr->size(); i++)
+  {
+    ret = ConvertToPy(thisptr->at(i));
+
+    PyList_Append(list, ret);
+
+    if(!ret)
+      SWIG_exception_fail(SWIG_TypeError, "failed to convert element while copying");
+  }
+
+  count = PySequence_Size(items);
+
+  for(Py_ssize_t i = 0; i < count; i++)
+  {
+    PyObject *item = PySequence_GetItem(items, i);
+    PyList_Append(list, item);
+    Py_DECREF(item);
+  }
+
+  return list;
+fail:
+  if(list)
+    Py_XDECREF(list);
+
+  return NULL;
+}
+
+template <typename arrayType>
+PyObject *array_selfconcat(arrayType *thisptr, PyObject *items)
+{
+  typename arrayType::value_type converted;
+  int res = 0;
+  Py_ssize_t count = 0;
+
+  if(!PySequence_Check(items))
+    SWIG_exception_fail(SWIG_TypeError, "can't concatenate non-sequence");
+
+  count = PySequence_Size(items);
+
+  for(Py_ssize_t i = 0; i < count; i++)
+  {
+    PyObject *item = PySequence_GetItem(items, i);
+    res = ConvertFromPy(item, converted);
+
+    if(SWIG_IsOK(res))
+      thisptr->push_back(converted);
+
+    Py_DECREF(item);
+
+    if(!SWIG_IsOK(res))
+      SWIG_exception_fail(SWIG_ArgError(res), "failed to convert element in extend");
+  }
+
+  return SWIG_Py_Void();
+
+fail:
+  return NULL;
+}
+
+template <typename arrayType>
+PyObject *array_repeat(arrayType *thisptr, Py_ssize_t count)
+{
+  PyObject *list = PyList_New(0);
+  if(!list)
+    return NULL;
+
+  if(count <= 0 || thisptr->empty())
+  {
+    return list;
+  }
+
+  PyObject *ret = NULL;
+  rdcarray<PyObject *> converted;
+
+  for(size_t i = 0; i < thisptr->size(); i++)
+  {
+    ret = ConvertToPy(thisptr->at(i));
+
+    converted.push_back(ret);
+
+    if(!ret)
+      SWIG_exception_fail(SWIG_TypeError, "failed to convert element while copying");
+  }
+
+  for(Py_ssize_t c = 0; c < count; c++)
+    for(size_t i = 0; i < converted.size(); i++)
+      PyList_Append(list, converted[i]);
+
+  return list;
+fail:
+  if(list)
+    Py_XDECREF(list);
+
+  return NULL;
+}
+
+template <typename arrayType>
+PyObject *array_selfrepeat(arrayType *thisptr, Py_ssize_t count)
+{
+  if(count <= 0 || thisptr->empty())
+  {
+    thisptr->clear();
+    return SWIG_Py_Void();
+  }
+
+  size_t origCount = thisptr->size();
+
+  thisptr->reserve(origCount * count);
+  for(Py_ssize_t i = 0; i < count - 1; i++)
+  {
+    thisptr->append(thisptr->data(), origCount);
+  }
+
+  return SWIG_Py_Void();
+}
+
+template <typename arrayType>
+PyObject *array_getsubscript(arrayType *thisptr, PyObject *idxobj)
+{
+  if(PyIndex_Check(idxobj))
+  {
+    Py_ssize_t idx = array_revindex(thisptr, idxobj);
+
+    // if an error occurred an exception has been thrown, just return NULL
+    if(idx == PY_SSIZE_T_MIN)
+      return NULL;
+
+    return array_getitem(thisptr, idx);
+  }
+
+  if(PySlice_Check(idxobj))
+  {
+    int len = thisptr->count();
+    Py_ssize_t start, stop, step, slicelength;
+
+    if(PySlice_GetIndicesEx(idxobj, len, &start, &stop, &step, &slicelength) < 0)
+      return NULL;
+
+    PyObject *list = PyList_New(0);
+    if(!list)
+      return NULL;
+
+    PyObject *ret = NULL;
+
+    for(int i = start, count = 0; count < slicelength; i += step, count++)
+    {
+      ret = ConvertToPy(thisptr->at(i));
+
+      PyList_Append(list, ret);
+
+      if(!ret)
+      {
+        Py_DECREF(list);
+        SWIG_exception_fail(SWIG_TypeError, "failed to convert element while getting slice");
+      }
+    }
+
+    return list;
+  }
+
+  SWIG_exception_fail(SWIG_TypeError, "list index not index or slice");
+
+fail:
+  return NULL;
+}
+
+template <typename arrayType>
+int array_setsubscript(arrayType *thisptr, PyObject *idxobj, PyObject *val)
+{
+  typename arrayType::value_type converted;
+  int res = 0;
+
+  if(PyIndex_Check(idxobj))
+  {
+    Py_ssize_t idx = array_revindex(thisptr, idxobj);
+
+    // if an error occurred an exception has been thrown, just return NULL
+    if(idx == PY_SSIZE_T_MIN)
+      return -1;
+
+    return array_setitem(thisptr, idx, val);
+  }
+
+  if(PySlice_Check(idxobj))
+  {
+    int len = thisptr->count();
+    Py_ssize_t start, stop, step, slicelength;
+
+    if(PySlice_GetIndicesEx(idxobj, len, &start, &stop, &step, &slicelength) < 0)
+    {
+      return -1;
+    }
+
+    if(val == NULL)
+    {
+      // we're deleting this slice. Erase all the indices
+
+      for(int i = start, count = 0; count < slicelength; i += step, count++)
+      {
+        int idx = i;
+
+        // if we're stepping forwards, erasing the earlier indices will have moved the ones to
+        // delete, so adjust the index based on how many we've deleted.
+        // if we're stepping backwards then there's no need to change anything
+        if(step > 1)
+          idx -= count;
+
+        ExtRefcount<typename arrayType::value_type>::Dec(thisptr->at(idx));
+        thisptr->erase(idx);
+      }
+    }
+    else
+    {
+      // we must be assigning an iterable object
+      if(!PySequence_Check(val))
+      {
+        SWIG_exception_fail(SWIG_TypeError, "can only assign an iterable");
+      }
+
+      Py_ssize_t vallen = PySequence_Size(val);
+
+      // if the range isn't contiguous or reversed or something, the input size must match
+      if(step != 1)
+      {
+        if(slicelength != vallen)
+        {
+          SWIG_exception_fail(SWIG_ValueError,
+                              "can't assign sequence of different size to extended slice");
+        }
+
+        for(int i = start, count = 0; count < slicelength; i += step, count++)
+        {
+          // dec refcount on previous item in this index
+          ExtRefcount<typename arrayType::value_type>::Dec(thisptr->at(i));
+
+          // convert the input item
+          PyObject *item = PySequence_GetItem(val, count);
+          res = ConvertFromPy(item, thisptr->at(i));
+          Py_DECREF(item);
+
+          if(!SWIG_IsOK(res))
+            SWIG_exception_fail(SWIG_ArgError(res), "failed to convert element in slice set");
+        }
+      }
+      else
+      {
+        // the range is contiguous. First erase it, dec refcount if needed
+        for(int i = start; i < start + slicelength; i++)
+          ExtRefcount<typename arrayType::value_type>::Dec(thisptr->at(i));
+        thisptr->erase(start, slicelength);
+
+        // then insert the new items
+        for(Py_ssize_t count = 0; count < vallen; count++)
+        {
+          PyObject *item = PySequence_GetItem(val, count);
+          res = ConvertFromPy(item, converted);
+          Py_DECREF(item);
+
+          if(!SWIG_IsOK(res))
+            SWIG_exception_fail(SWIG_ArgError(res), "failed to convert element in slice set");
+
+          thisptr->insert(count + start, converted);
+        }
+      }
+    }
+
+    return 0;
+  }
+
+  SWIG_exception_fail(SWIG_TypeError, "list index not index or slice");
+fail:
+  return -1;
 }
