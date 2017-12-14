@@ -3377,8 +3377,8 @@ void TextureViewer::on_saveTex_clicked()
       config.id = id;
   }
 
-  const auto overlayTexID = m_Output->GetDebugOverlayTexID();
-  const bool hasSelectedOverlay = (m_Output->GetTextureDisplay().overlay != DebugOverlay::NoOverlay);
+  const ResourceId overlayTexID = m_Output->GetDebugOverlayTexID();
+  const bool hasSelectedOverlay = (m_TexDisplay.overlay != DebugOverlay::NoOverlay);
   const bool hasOverlay = (hasSelectedOverlay && overlayTexID != ResourceId());
   TextureSaveDialog saveDialog(*texptr, hasOverlay, config, this);
   int res = RDDialog::show(&saveDialog);

@@ -56,7 +56,6 @@ public:
 
   ResourceId GetCustomShaderTexID() { return m_CustomShaderResourceId; }
   ResourceId GetDebugOverlayTexID() { return m_OverlayResourceId; }
-  const TextureDisplay &GetTextureDisplay() { return m_RenderData.texDisplay; }
   PixelValue PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y,
                        uint32_t sliceFace, uint32_t mip, uint32_t sample);
   rdcpair<uint32_t, uint32_t> PickVertex(uint32_t eventID, uint32_t x, uint32_t y);
