@@ -889,14 +889,14 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
     }
 
     // verify offset alignment
-    if((memoryOffset & mrq.alignment) != 0)
+    if((memoryOffset % mrq.alignment) != 0)
     {
       RDCERR(
           "Trying to bind buffer %llu to memory %llu which is type %u, "
           "but offset 0x%llx doesn't satisfy alignment 0x%llx.\n"
           "This is most likely caused by incompatible hardware or drivers between capture and "
           "replay, causing a change in memory requirements.",
-          resOrigId, memOrigId, memoryOffset, mrq.alignment);
+          resOrigId, memOrigId, memInfo.memoryTypeIndex, memoryOffset, mrq.alignment);
       m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
       return false;
     }
@@ -909,7 +909,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
           "but at offset 0x%llx the reported size of 0x%llx won't fit the 0x%llx bytes of memory.\n"
           "This is most likely caused by incompatible hardware or drivers between capture and "
           "replay, causing a change in memory requirements.",
-          resOrigId, memOrigId, memoryOffset, mrq.size, memInfo.size);
+          resOrigId, memOrigId, memInfo.memoryTypeIndex, memoryOffset, mrq.size, memInfo.size);
       m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
       return false;
     }
@@ -1000,14 +1000,14 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
     }
 
     // verify offset alignment
-    if((memoryOffset & mrq.alignment) != 0)
+    if((memoryOffset % mrq.alignment) != 0)
     {
       RDCERR(
           "Trying to bind image %llu to memory %llu which is type %u, "
           "but offset 0x%llx doesn't satisfy alignment 0x%llx.\n"
           "This is most likely caused by incompatible hardware or drivers between capture and "
           "replay, causing a change in memory requirements.",
-          resOrigId, memOrigId, memoryOffset, mrq.alignment);
+          resOrigId, memOrigId, memInfo.memoryTypeIndex, memoryOffset, mrq.alignment);
       m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
       return false;
     }
@@ -1020,7 +1020,7 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
           "but at offset 0x%llx the reported size of 0x%llx won't fit the 0x%llx bytes of memory.\n"
           "This is most likely caused by incompatible hardware or drivers between capture and "
           "replay, causing a change in memory requirements.",
-          resOrigId, memOrigId, memoryOffset, mrq.size, memInfo.size);
+          resOrigId, memOrigId, memInfo.memoryTypeIndex, memoryOffset, mrq.size, memInfo.size);
       m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
       return false;
     }
