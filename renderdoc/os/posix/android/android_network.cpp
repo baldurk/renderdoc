@@ -31,7 +31,7 @@ namespace Network
 uint32_t Socket::GetRemoteIP() const
 {
   // Android uses abstract sockets which are only "localhost" accessible
-  return ntohl(MakeIP(127, 0, 0, 1));
+  return MakeIP(127, 0, 0, 1);
 }
 
 Socket *CreateServerSocket(const char * /* bindaddr */, uint16_t port, int queuesize)
