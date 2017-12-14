@@ -6117,9 +6117,11 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       for(size_t i = 0; i < rp.subpasses[m_pDriver->m_RenderState.subpass].colorAttachments.size();
           i++)
       {
-        blackclear.colorAttachment =
-            rp.subpasses[m_pDriver->m_RenderState.subpass].colorAttachments[i];
-        atts.push_back(blackclear);
+        if(rp.subpasses[m_pDriver->m_RenderState.subpass].colorAttachments[i] != VK_ATTACHMENT_UNUSED)
+        {
+          blackclear.colorAttachment = i;
+          atts.push_back(blackclear);
+        }
       }
 
       VkClearRect rect = {
