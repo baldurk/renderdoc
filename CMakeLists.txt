@@ -208,7 +208,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         -Wno-unused-parameter
         -Wno-unused-result
         -Wno-type-limits
-        -Wno-unused-lambda-capture
         -Wno-missing-field-initializers
         -Wno-unknown-pragmas
         -Wno-reorder)
@@ -220,6 +219,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
             list(APPEND warning_flags -Wimplicit-fallthrough=2)
         endif()
+    endif()
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0)
+        list(APPEND warning_flags -Wno-unused-lambda-capture)
     endif()
 
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
