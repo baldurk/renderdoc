@@ -578,7 +578,7 @@ void CaptureDialog::androidWarn_mouseClick()
         tr("To fix this, you should repackage the APK following guidelines on the "
            "<a href='http://github.com/baldurk/renderdoc/wiki/Android-Support'>"
            "RenderDoc Wiki</a><br><br>"
-           "If you are only targeting Vulkan, RenderDoc can try to <b>add the layer for you</b>, "
+           "If you are <b>only targeting Vulkan</b>, RenderDoc can try to add the layer for you, "
            "which requires pulling the APK, patching it, uninstalling the original, and "
            "installing the modified version with a debug key. "
            "This works for many debuggable applications, but not all, especially those that "
