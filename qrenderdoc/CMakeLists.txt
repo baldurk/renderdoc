@@ -7,11 +7,16 @@ set(RENDERDOC_SWIG_PACKAGE https://github.com/baldurk/swig/archive/renderdoc-mod
 set(QMAKE_CONFIG "debug")
 set(QMAKE_LDFLAGS "")
 set(QMAKE_CXXFLAGS "")
+set(SWIG_FLAGS "")
 
 if(STATIC_QRENDERDOC)
     set(QMAKE_CXXFLAGS "-DSTATIC_QRENDERDOC=1")
     set(QMAKE_CONFIG "debug static")
     set(QMAKE_LDFLAGS "-static-libstdc++ -lutil")
+endif()
+
+if(NOT APPLE)
+    set(SWIG_FLAGS "-DSWIGWORDSIZE64")
 endif()
 
 if(QRENDERDOC_NO_CXX11_REGEX)
@@ -189,7 +194,7 @@ foreach(in ${swig_interfaces})
     get_filename_component(swig_file ${in} NAME_WE)
 
     add_custom_command(OUTPUT ${swig_file}_python.cxx ${swig_file}.py
-            COMMAND ${CMAKE_BINARY_DIR}/bin/swig -v -Wextra -Werror -DSWIGWORDSIZE64 -O -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I${CMAKE_CURRENT_SOURCE_DIR} -I${CMAKE_SOURCE_DIR}/renderdoc/api/replay -outdir ${CMAKE_CURRENT_BINARY_DIR} -o ${CMAKE_CURRENT_BINARY_DIR}/${swig_file}_python.cxx ${CMAKE_CURRENT_SOURCE_DIR}/${in}
+            COMMAND ${CMAKE_BINARY_DIR}/bin/swig -v -Wextra -Werror ${SWIG_FLAGS} -O -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I${CMAKE_CURRENT_SOURCE_DIR} -I${CMAKE_SOURCE_DIR}/renderdoc/api/replay -outdir ${CMAKE_CURRENT_BINARY_DIR} -o ${CMAKE_CURRENT_BINARY_DIR}/${swig_file}_python.cxx ${CMAKE_CURRENT_SOURCE_DIR}/${in}
             DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${in}
             DEPENDS custom_swig
             DEPENDS ${RDOC_REPLAY_FILES}
