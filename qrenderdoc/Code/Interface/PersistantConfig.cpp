@@ -191,11 +191,13 @@ void PersistantConfig::AddAndroidHosts()
     }
   }
 
-  QString adbExePath =
-      QFile::exists(Android_AdbExecutablePath) ? QString(Android_AdbExecutablePath) : QString();
+  QString androidSDKPath = QFile::exists(Android_SDKPath) ? QString(Android_SDKPath) : QString();
 
-  // Set the config setting as it will be reused when we start the remoteserver etc.
-  SetConfigSetting("adbExePath", adbExePath);
+  SetConfigSetting("androidSDKPath", androidSDKPath);
+
+  QString androidJDKPath = QFile::exists(Android_JDKPath) ? QString(Android_JDKPath) : QString();
+
+  SetConfigSetting("androidJDKPath", androidJDKPath);
 
   SetConfigSetting("MaxConnectTimeout", QString::number(Android_MaxConnectTimeout));
 

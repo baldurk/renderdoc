@@ -974,17 +974,24 @@ Only happens if the capture is not in the recent files list.</string>
           <string>Android</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_8">
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_7">
+            <property name="text">
+             <string>Java JDK path</string>
+            </property>
+           </widget>
+          </item>
           <item row="0" column="0">
            <widget class="QLabel" name="label_24">
             <property name="toolTip">
              <string>The location of adb.exe, used to control Android devices.</string>
             </property>
             <property name="text">
-             <string>Android ADB executable path</string>
+             <string>Android SDK root path</string>
             </property>
            </widget>
           </item>
-          <item row="4" column="0">
+          <item row="6" column="0">
            <spacer name="verticalSpacer_6">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -997,7 +1004,7 @@ Only happens if the capture is not in the recent files list.</string>
             </property>
            </spacer>
           </item>
-          <item row="3" column="0">
+          <item row="5" column="0">
            <widget class="QLabel" name="label_26">
             <property name="toolTip">
              <string>Automatically push the RenderDoc layer to applications that need it when running on a device with root access.
@@ -1008,7 +1015,7 @@ This can enable debugging of Vulkan apps that don't already contain the layer.</
             </property>
            </widget>
           </item>
-          <item row="3" column="1">
+          <item row="5" column="1">
            <widget class="QCheckBox" name="Android_AutoPushLayerToApp">
             <property name="toolTip">
              <string>Automatically push the RenderDoc layer to applications that need it when running on a device with root access.
@@ -1016,7 +1023,7 @@ This can enable debugging of Vulkan apps that don't already contain the layer.</
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
+          <item row="4" column="0">
            <widget class="QLabel" name="label_25">
             <property name="toolTip">
              <string>Maximum time to try connecting to the target app.</string>
@@ -1026,7 +1033,7 @@ This can enable debugging of Vulkan apps that don't already contain the layer.</
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
+          <item row="4" column="1">
            <widget class="QDoubleSpinBox" name="Android_MaxConnectTimeout">
             <property name="toolTip">
              <string>Maximum time to try connecting to the target app.</string>
@@ -1040,17 +1047,27 @@ This can enable debugging of Vulkan apps that don't already contain the layer.</
            </widget>
           </item>
           <item row="1" column="0">
-           <widget class="QLineEdit" name="Android_AdbExecutablePath">
+           <widget class="QLineEdit" name="Android_SDKPath">
             <property name="toolTip">
              <string>The location of adb.exe, used to control Android devices.</string>
             </property>
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QPushButton" name="browseAdbPath">
+           <widget class="QPushButton" name="browseAndroidSDKPath">
             <property name="toolTip">
              <string>The location of adb.exe, used to control Android devices.</string>
             </property>
+            <property name="text">
+             <string>Browse</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLineEdit" name="Android_JDKPath"/>
+          </item>
+          <item row="3" column="1">
+           <widget class="QPushButton" name="browseJDKPath">
             <property name="text">
              <string>Browse</string>
             </property>

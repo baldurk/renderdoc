@@ -108,6 +108,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used for converting capture files to and from xml.
 
+* `AOSP <https://source.android.com/>`_ - Copyright (c) 2006-2016, The Android Open Source Project, distributed under the Apache 2.0 License.
+
+  Used to simplify Android workflows by distributing some tools from the android SDK.
+
 Thanks
 ------
 

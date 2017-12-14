@@ -84,7 +84,8 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
     ui->externalDisassemblerArgs->setText(m_Ctx.Config().SPIRVDisassemblers[0].args);
     ui->externalDisassemblePath->setText(m_Ctx.Config().SPIRVDisassemblers[0].executable);
   }
-  ui->Android_AdbExecutablePath->setText(m_Ctx.Config().Android_AdbExecutablePath);
+  ui->Android_SDKPath->setText(m_Ctx.Config().Android_SDKPath);
+  ui->Android_JDKPath->setText(m_Ctx.Config().Android_JDKPath);
   ui->Android_MaxConnectTimeout->setValue(m_Ctx.Config().Android_MaxConnectTimeout);
   ui->Android_AutoPushLayerToApp->setChecked(m_Ctx.Config().Android_AutoPushLayerToApp);
 
@@ -388,17 +389,48 @@ void SettingsDialog::on_browseTempCaptureDirectory_clicked()
   m_Ctx.Config().Save();
 }
 
-void SettingsDialog::on_browseAdbPath_clicked()
+void SettingsDialog::on_browseAndroidSDKPath_clicked()
 {
-  QString adb = RDDialog::getExecutableFileName(
-      this, tr("Locate adb executable"),
-      QFileInfo(m_Ctx.Config().Android_AdbExecutablePath).absoluteDir().path());
+  QString adb = RDDialog::getExistingDirectory(
+      this, tr("Locate SDK root folder (containing build-tools, platform-tools)"),
+      QFileInfo(m_Ctx.Config().Android_SDKPath).absoluteDir().path());
 
   if(!adb.isEmpty())
   {
-    ui->Android_AdbExecutablePath->setText(adb);
-    m_Ctx.Config().Android_AdbExecutablePath = adb;
+    ui->Android_SDKPath->setText(adb);
+    m_Ctx.Config().Android_SDKPath = adb;
   }
+
+  m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_Android_SDKPath_textEdited(const QString &adb)
+{
+  if(QFileInfo::exists(adb) || adb.isEmpty())
+    m_Ctx.Config().Android_SDKPath = adb;
+
+  m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_browseAndroidJDKPath_clicked()
+{
+  QString adb =
+      RDDialog::getExistingDirectory(this, tr("Locate JDK root folder (containing bin, jre, lib)"),
+                                     QFileInfo(m_Ctx.Config().Android_JDKPath).absoluteDir().path());
+
+  if(!adb.isEmpty())
+  {
+    ui->Android_JDKPath->setText(adb);
+    m_Ctx.Config().Android_JDKPath = adb;
+  }
+
+  m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_Android_JDKPath_textEdited(const QString &adb)
+{
+  if(QFileInfo::exists(adb) || adb.isEmpty())
+    m_Ctx.Config().Android_JDKPath = adb;
 
   m_Ctx.Config().Save();
 }
@@ -406,14 +438,6 @@ void SettingsDialog::on_browseAdbPath_clicked()
 void SettingsDialog::on_Android_MaxConnectTimeout_valueChanged(double timeout)
 {
   m_Ctx.Config().Android_MaxConnectTimeout = ui->Android_MaxConnectTimeout->value();
-
-  m_Ctx.Config().Save();
-}
-
-void SettingsDialog::on_Android_AdbExecutablePath_textEdited(const QString &adb)
-{
-  if(QFileInfo::exists(adb) || adb.isEmpty())
-    m_Ctx.Config().Android_AdbExecutablePath = adb;
 
   m_Ctx.Config().Save();
 }

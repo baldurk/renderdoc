@@ -122,7 +122,9 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, Font_PreferMonospaced, false)                     \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, Android_AdbExecutablePath, "")               \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, Android_SDKPath, "")                         \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, Android_JDKPath, "")                         \
                                                                                            \
   CONFIG_SETTING_VAL(public, int, int, Android_MaxConnectTimeout, 30)                      \
                                                                                            \
@@ -374,9 +376,17 @@ For more information about some of these settings that are user-facing see
 
   Defaults to ``False``.
 
-.. data:: Android_AdbExecutablePath
+.. data:: Android_SDKPath
 
-  The path to the ``adb`` executable to use for Android interaction.
+  The path to the root of the android SDK, to locate android tools to use for android remote hosts.
+
+  Defaults to using the tools distributed with RenderDoc.
+
+.. data:: Android_JDKPath
+
+  The path to the root of the Java JDK, to locate java for running android java tools.
+
+  Defaults to using the JAVA_HOME environment variable, if set.
 
 .. data:: Android_MaxConnectTimeout
 

@@ -51,27 +51,58 @@ cp -R plugins-win32/ dist/Release32/plugins
 find dist/Release{32,64}/ -iname '*.ipdb' -exec rm '{}' \;
 find dist/Release{32,64}/ -iname '*.iobj' -exec rm '{}' \;
 
-if [ -f bin-android32/RenderDocCmd.apk ]; then
+ANDROID32="bin-android32"
+if [ -f build-android32/bin/RenderDocCmd.apk ]; then
+	ANDROID32="build-android32/bin";
+fi
+
+ANDROID64="bin-android64"
+if [ -f build-android64/bin/RenderDocCmd.apk ]; then
+	ANDROID64="build-android64/bin";
+fi
+
+if [ -f $ANDROID32/RenderDocCmd.apk ]; then
 	# Building for android, copy the apk and vulkan layer into folders
 	mkdir -p dist/Release64/android/apk dist/Release64/android/lib/armeabi-v7a
 
-	cp bin-android32/RenderDocCmd.apk dist/Release64/android/apk
-	cp bin-android32/libVkLayer_GLES_RenderDoc.so dist/Release64/android/lib/armeabi-v7a/libVkLayer_GLES_RenderDoc.so
+	cp $ANDROID32/RenderDocCmd.apk dist/Release64/android/apk
+	cp $ANDROID32/libVkLayer_GLES_RenderDoc.so dist/Release64/android/lib/armeabi-v7a/libVkLayer_GLES_RenderDoc.so
 fi
 
-if [ -f bin-android64/RenderDocCmd.apk ]; then
-	# We don't distribute the 64-bit apk, we use armeabi-v7a for both 32-bit and 64-bit
-
+if [ -f $ANDROID64/RenderDocCmd.apk ]; then
 	# Building for android, copy the vulkan layer into folder
 	mkdir -p dist/Release64/android/lib/arm64-v8a
 
-	#cp bin-android64/RenderDocCmd.apk dist/Release64/android/apk/64
-	cp bin-android64/libVkLayer_GLES_RenderDoc.so dist/Release64/android/lib/arm64-v8a/libVkLayer_GLES_RenderDoc.so
+	# We don't distribute the 64-bit apk, we use armeabi-v7a for both 32-bit and 64-bit
+	#cp $ANDROID64/RenderDocCmd.apk dist/Release64/android/apk/64
+	cp $ANDROID64/libVkLayer_GLES_RenderDoc.so dist/Release64/android/lib/arm64-v8a/libVkLayer_GLES_RenderDoc.so
 fi
 
 # try to copy adb.exe in as well, with its dll dependencies
 if [ -f $ANDROID_SDK/platform-tools/adb.exe ] && [ -d dist/Release64/android ]; then
 	cp $ANDROID_SDK/platform-tools/{adb.exe,AdbWinApi.dll,AdbWinUsbApi.dll} dist/Release64/android/
+fi
+
+# Copy tools needed for patching apks
+if [ -d "$ANDROID_SDK/build-tools" ] && [ -d dist/Release64/android ]; then
+	BUILD_DIR=$(ls "$ANDROID_SDK/build-tools" | grep -E '^[0-9.]*$' | sort -n | tail -n 1)
+
+	if [ -f "$ANDROID_SDK/build-tools/$BUILD_DIR/aapt.exe" ]; then
+		cp "$ANDROID_SDK/build-tools/$BUILD_DIR/aapt.exe" dist/Release64/android/
+	fi
+
+	if [ -f "$ANDROID_SDK/build-tools/$BUILD_DIR/zipalign.exe" ]; then
+		cp "$ANDROID_SDK/build-tools/$BUILD_DIR/zipalign.exe" dist/Release64/android/
+	fi
+
+	if [ -f "$ANDROID_SDK/build-tools/$BUILD_DIR/lib/apksigner.jar" ]; then
+		cp "$ANDROID_SDK/build-tools/$BUILD_DIR/lib/apksigner.jar" dist/Release64/android/
+	fi
+fi
+
+# Generate a debug key for signing purposes
+if [ -f "$JAVA_HOME/bin/keytool.exe" ] && [ -d dist/Release64/android ]; then
+	keytool -genkey -keystore dist/Release64/android/renderdoc.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=, OU=, O=, L=,  S=, C="
 fi
 
 if [ -d dist/Release64/android ]; then
