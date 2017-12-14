@@ -64,6 +64,9 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   ui->pages->setItemSelected(ui->pages->item(0), true);
   ui->tabWidget->setCurrentIndex(0);
 
+  ui->pages->setMinimumWidth(ui->pages->sizeHintForColumn(0));
+  ui->pages->adjustSize();
+
   for(int i = 0; i < StyleData::numAvailable; i++)
   {
     if(StyleData::availStyles[i].styleID == m_Ctx.Config().UIStyle)
