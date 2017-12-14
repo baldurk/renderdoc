@@ -454,9 +454,8 @@ Typically this is ``glsl`` or ``hlsl``.
 
   DOCUMENT(R"(Retrieves the current index buffer binding.
 
-:return: A tuple with the buffer object bound to the index buffer slot, and the byte offset to the
-  start of the index data.
-:rtype: ``tuple`` of :class:`~renderdoc.ResourceId` and ``int``
+:return: A :class:`BoundBuffer` with the index buffer details. The stride is always 0.
+:rtype: ``BoundBuffer``
 )");
   BoundBuffer GetIBuffer();
 
