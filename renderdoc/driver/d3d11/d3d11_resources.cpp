@@ -250,6 +250,29 @@ UINT GetMipForSubresource(ID3D11Resource *res, int Subresource)
   return mipLevel;
 }
 
+ResourcePitch GetResourcePitchForSubresource(ID3D11DeviceContext *ctx, ID3D11Resource *res,
+                                             int Subresource)
+{
+  ResourcePitch pitch = {};
+  D3D11_MAPPED_SUBRESOURCE mapped = {};
+  HRESULT hr = E_INVALIDARG;
+
+  hr = ctx->Map(res, Subresource, D3D11_MAP_READ, 0, &mapped);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to map while getting resource pitch HRESULT: %s", ToStr(hr).c_str());
+  }
+  else
+  {
+    pitch.m_RowPitch = mapped.RowPitch;
+    pitch.m_DepthPitch = mapped.DepthPitch;
+    ctx->Unmap(res, Subresource);
+  }
+
+  return pitch;
+}
+
 UINT GetByteSize(ID3D11Texture1D *tex, int SubResource)
 {
   D3D11_TEXTURE1D_DESC desc;

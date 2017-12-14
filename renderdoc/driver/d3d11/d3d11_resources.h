@@ -75,6 +75,15 @@ UINT GetByteSize(ID3D11Texture3D *tex, int SubResource);
 
 UINT GetMipForSubresource(ID3D11Resource *res, int Subresource);
 
+struct ResourcePitch
+{
+  UINT m_RowPitch;
+  UINT m_DepthPitch;
+};
+
+ResourcePitch GetResourcePitchForSubresource(ID3D11DeviceContext *ctx, ID3D11Resource *res,
+                                             int Subresource);
+
 template <typename derived, typename base>
 bool CanQuery(base *b)
 {
