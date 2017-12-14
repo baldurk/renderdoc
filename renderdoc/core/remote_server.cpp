@@ -1132,6 +1132,11 @@ public:
           package.size = 0;
           package.lastmod = 0;
           package.flags = PathProperty::Executable;
+
+          // hide our own internal packages
+          if(strstr(package.filename.c_str(), "org.renderdoc."))
+            continue;
+
           packages.push_back(package);
         }
       }
