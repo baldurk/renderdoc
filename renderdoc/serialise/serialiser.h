@@ -1718,7 +1718,16 @@ class ScopedChunk;
 class Chunk
 {
 public:
-  ~Chunk() { FreeAlignedBuffer(m_Data); }
+  ~Chunk()
+  {
+    FreeAlignedBuffer(m_Data);
+
+#if !defined(RELEASE)
+    Atomic::Dec64(&m_LiveChunks);
+    Atomic::ExchAdd64(&m_TotalMem, -int64_t(m_Length));
+#endif
+  }
+
   template <typename ChunkType>
   ChunkType GetChunkType()
   {
@@ -1746,6 +1755,11 @@ public:
     memcpy(m_Data, ser.GetWriter()->GetData(), (size_t)m_Length);
 
     ser.GetWriter()->Rewind();
+
+#if !defined(RELEASE)
+    Atomic::Inc64(&m_LiveChunks);
+    Atomic::ExchAdd64(&m_TotalMem, int64_t(m_Length));
+#endif
   }
 
   byte *GetData() const { return m_Data; }
@@ -1758,6 +1772,11 @@ public:
     ret->m_Data = AllocAlignedBuffer(m_Length);
 
     memcpy(ret->m_Data, m_Data, (size_t)m_Length);
+
+#if !defined(RELEASE)
+    Atomic::Inc64(&m_LiveChunks);
+    Atomic::ExchAdd64(&m_TotalMem, int64_t(m_Length));
+#endif
 
     return ret;
   }
@@ -1780,7 +1799,7 @@ private:
   byte *m_Data;
 
 #if !defined(RELEASE)
-  static int64_t m_LiveChunks, m_MaxChunks, m_TotalMem;
+  static int64_t m_LiveChunks, m_TotalMem;
 #endif
 };
 

@@ -33,7 +33,6 @@
 
 int64_t Chunk::m_LiveChunks = 0;
 int64_t Chunk::m_TotalMem = 0;
-int64_t Chunk::m_MaxChunks = 0;
 
 #endif
 
