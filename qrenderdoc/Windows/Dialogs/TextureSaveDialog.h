@@ -38,13 +38,17 @@ class TextureSaveDialog : public QDialog
   Q_OBJECT
 
 public:
-  explicit TextureSaveDialog(const TextureDescription &t, const TextureSave &s, QWidget *parent = 0);
+  explicit TextureSaveDialog(const TextureDescription &t, bool enableOverlaySelection,
+                             const TextureSave &s, QWidget *parent = 0);
   ~TextureSaveDialog();
 
   QString filename();
 
   TextureSave config() { return saveData; }
+  bool saveOverlayInstead() { return m_saveOverlayInsteadOfSelectedTexture; }
 private slots:
+  void on_mainTex_clicked();
+  void on_overlayTex_clicked();
   void on_fileFormat_currentIndexChanged(int index);
   void on_jpegCompression_valueChanged(double arg1);
   void on_exportAllMips_toggled(bool checked);
@@ -74,6 +78,8 @@ private slots:
 private:
   Ui::TextureSaveDialog *ui;
 
+  void SetOptionsVisible(bool visible);
+
   void SetFilenameFromFiletype();
   void SetFiletypeFromFilename();
 
@@ -81,6 +87,8 @@ private:
 
   TextureDescription tex;
   TextureSave saveData;
+
+  bool m_saveOverlayInsteadOfSelectedTexture = false;
 
   bool m_Recurse = false;
 };

@@ -529,6 +529,9 @@ Should only be called for texture outputs.
 )");
   virtual ResourceId GetDebugOverlayTexID() = 0;
 
+  DOCUMENT(R"(Retrieves the :class:`TextureDisplay` associated with this output)");
+  virtual const TextureDisplay &GetTextureDisplay() = 0;
+
   DOCUMENT(R"(Retrieve the contents of a particular pixel in a texture.
 
 Should only be called for texture outputs.

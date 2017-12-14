@@ -3377,10 +3377,18 @@ void TextureViewer::on_saveTex_clicked()
       config.id = id;
   }
 
-  TextureSaveDialog saveDialog(*texptr, config, this);
+  const auto overlayTexID = m_Output->GetDebugOverlayTexID();
+  const bool hasSelectedOverlay = (m_Output->GetTextureDisplay().overlay != DebugOverlay::NoOverlay);
+  const bool hasOverlay = (hasSelectedOverlay && overlayTexID != ResourceId());
+  TextureSaveDialog saveDialog(*texptr, hasOverlay, config, this);
   int res = RDDialog::show(&saveDialog);
 
   config = saveDialog.config();
+
+  if(saveDialog.saveOverlayInstead())
+  {
+    config.id = overlayTexID;
+  }
 
   if(res)
   {
