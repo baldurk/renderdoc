@@ -15,10 +15,7 @@ if [ $# -ne 1 ] || [ $1 != "autobuild" ]; then
 	echo "Have you rebuilt the documentation? (cd docs/ && ./make.sh htmlhelp)"
 	read;
 
-	echo "Have you marked the git commit hash in version info? (./scripts/hash_version.sh)"
-	read;
-
-	echo "Now compile 32-bit and 64-bit Release builds."
+	echo "Have you built 32-bit and 64-bit Release builds?"
 	read;
 
 	echo "=== Building folders"
