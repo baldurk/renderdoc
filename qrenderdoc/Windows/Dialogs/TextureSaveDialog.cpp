@@ -28,8 +28,8 @@
 #include "Code/QRDUtils.h"
 #include "ui_TextureSaveDialog.h"
 
-TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, const TextureSave &s,
-                                     QWidget *parent)
+TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, bool enableOverlaySelection,
+                                     const TextureSave &s, QWidget *parent)
     : QDialog(parent), ui(new Ui::TextureSaveDialog)
 {
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
@@ -45,6 +45,9 @@ TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, const TextureS
   ui->sliceSelect->setFont(Formatter::PreferredFont());
   ui->blackPoint->setFont(Formatter::PreferredFont());
   ui->whitePoint->setFont(Formatter::PreferredFont());
+
+  if(!enableOverlaySelection)
+    ui->texSelectionGroup->hide();
 
   QObject::connect(&typingTimer, &QTimer::timeout, [this] { SetFiletypeFromFilename(); });
 
@@ -126,15 +129,20 @@ TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, const TextureS
 
   ui->gridWidth->setMaximum(tex.depth * tex.arraysize * tex.msSamp);
 
-  ui->mipGroup->setVisible(tex.mips > 1);
+  SetOptionsVisible(true);
+}
 
-  ui->sampleGroup->setVisible(tex.msSamp > 1);
+void TextureSaveDialog::SetOptionsVisible(bool visible)
+{
+  ui->mipGroup->setVisible(visible && tex.mips > 1);
 
-  ui->sliceGroup->setVisible(tex.depth > 1 || tex.arraysize > 1 || tex.msSamp > 1);
+  ui->sampleGroup->setVisible(visible && tex.msSamp > 1);
+
+  ui->sliceGroup->setVisible(visible && (tex.depth > 1 || tex.arraysize > 1 || tex.msSamp > 1));
 
   if(saveData.destType != FileType::DDS)
   {
-    ui->cubeCruciform->setEnabled(tex.cubemap && tex.arraysize == 6);
+    ui->cubeCruciform->setEnabled(visible && tex.cubemap && tex.arraysize == 6);
 
     if(!ui->oneSlice->isChecked() && !ui->cubeCruciform->isEnabled())
       ui->mapSlicesToGrid->setChecked(true);
@@ -186,6 +194,18 @@ void TextureSaveDialog::SetFilenameFromFiletype()
       ui->filename->setText(fn);
     }
   }
+}
+
+void TextureSaveDialog::on_mainTex_clicked()
+{
+  SetOptionsVisible(true);
+  m_saveOverlayInsteadOfSelectedTexture = false;
+}
+
+void TextureSaveDialog::on_overlayTex_clicked()
+{
+  SetOptionsVisible(false);
+  m_saveOverlayInsteadOfSelectedTexture = true;
 }
 
 void TextureSaveDialog::on_fileFormat_currentIndexChanged(int index)
