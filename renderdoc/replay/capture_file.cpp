@@ -596,7 +596,7 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
     free(thumbpixels);
   }
 
-  ret.bytes.swap(buf);
+  ret.data.swap(buf);
   ret.width = thumbwidth;
   ret.height = thumbheight;
 

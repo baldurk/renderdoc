@@ -69,10 +69,10 @@ CounterDescription GLReplay::DescribeCounter(GPUCounter counterID)
 
   desc.counterID = counterID;
   // FFBA5548-FBF8-405D-BA18-F0329DA370A0
-  desc.uuid.bytes[0] = 0xFFBA5548;
-  desc.uuid.bytes[1] = 0xFBF8405D;
-  desc.uuid.bytes[2] = 0xBA18F032;
-  desc.uuid.bytes[3] = 0x9DA370A0 ^ (uint32_t)counterID;
+  desc.uuid.words[0] = 0xFFBA5548;
+  desc.uuid.words[1] = 0xFBF8405D;
+  desc.uuid.words[2] = 0xBA18F032;
+  desc.uuid.words[3] = 0x9DA370A0 ^ (uint32_t)counterID;
 
   switch(counterID)
   {

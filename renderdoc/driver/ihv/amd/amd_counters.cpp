@@ -217,10 +217,10 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
   }
 
   // C8958C90-B706-4F22-8AF5-E0A3831B2C39
-  desc.uuid.bytes[0] = 0xC8958C90;
-  desc.uuid.bytes[1] = 0xB7064F22;
-  desc.uuid.bytes[2] = 0x8AF5E0A3 ^ strhash(desc.name.c_str());
-  desc.uuid.bytes[3] = 0x831B2C39 ^ strhash(desc.description.c_str());
+  desc.uuid.words[0] = 0xC8958C90;
+  desc.uuid.words[1] = 0xB7064F22;
+  desc.uuid.words[2] = 0x8AF5E0A3 ^ strhash(desc.name.c_str());
+  desc.uuid.words[3] = 0x831B2C39 ^ strhash(desc.description.c_str());
 
   return desc;
 }

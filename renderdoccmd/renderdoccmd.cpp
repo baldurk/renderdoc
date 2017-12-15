@@ -296,7 +296,7 @@ struct ThumbCommand : public Command
     ReplayStatus st = file->OpenFile(filename.c_str(), "rdc");
     if(st == ReplayStatus::Succeeded)
     {
-      buf = file->GetThumbnail(type, maxsize).bytes;
+      buf = file->GetThumbnail(type, maxsize).data;
     }
     else
     {

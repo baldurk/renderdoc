@@ -90,10 +90,10 @@ CounterDescription D3D11DebugManager::DescribeCounter(GPUCounter counterID)
   }
 
   // 448A0516-B50E-4312-A6DC-CFE7222FC1AC
-  desc.uuid.bytes[0] = 0x448A0516;
-  desc.uuid.bytes[1] = 0xB50E4312;
-  desc.uuid.bytes[2] = 0xA6DCCFE7;
-  desc.uuid.bytes[3] = 0x222FC1AC ^ (uint32_t)counterID;
+  desc.uuid.words[0] = 0x448A0516;
+  desc.uuid.words[1] = 0xB50E4312;
+  desc.uuid.words[2] = 0xA6DCCFE7;
+  desc.uuid.words[3] = 0x222FC1AC ^ (uint32_t)counterID;
 
   desc.category = "D3D11";
 

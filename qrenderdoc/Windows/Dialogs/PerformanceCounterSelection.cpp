@@ -364,7 +364,7 @@ void PerformanceCounterSelection::Save()
     const Uuid uuid = m_CounterToUuid[v];
     QVariantList e;
 
-    for(const byte b : uuid.bytes)
+    for(const uint32_t b : uuid.words)
     {
       e.append(b);
     }
@@ -410,11 +410,15 @@ void PerformanceCounterSelection::Load()
       QVariantList bytes = counter.toList();
       Uuid uuid;
 
-      /// TODO assert counter.size () == 4
+      if(bytes.size() != 4)
+      {
+        qWarning() << "Counter ID doesn't count 4 words";
+        continue;
+      }
 
       for(int i = 0; i < 4; ++i)
       {
-        uuid.bytes[i] = bytes[i].toUInt();
+        uuid.words[i] = bytes[i].toUInt();
       }
 
       if(!m_UuidToCounter.contains(uuid))

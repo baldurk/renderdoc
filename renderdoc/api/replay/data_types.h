@@ -1099,23 +1099,23 @@ struct Uuid
 {
   Uuid(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
   {
-    bytes[0] = a;
-    bytes[1] = b;
-    bytes[2] = c;
-    bytes[3] = d;
+    words[0] = a;
+    words[1] = b;
+    words[2] = c;
+    words[3] = d;
   }
 
-  Uuid() { bytes[0] = bytes[1] = bytes[2] = bytes[3] = 0; }
+  Uuid() { words[0] = words[1] = words[2] = words[3] = 0; }
   DOCUMENT("Compares two ``Uuid`` objects for less-than.");
   bool operator<(const Uuid &rhs) const
   {
-    return std::lexicographical_compare(bytes, bytes + 4, rhs.bytes, rhs.bytes + 4);
+    return std::lexicographical_compare(words, words + 4, rhs.words, rhs.words + 4);
   }
 
   DOCUMENT("Compares two ``Uuid`` objects for equality.");
-  bool operator==(const Uuid &rhs) const { return ::memcmp(bytes, rhs.bytes, sizeof(bytes)) == 0; }
-  DOCUMENT("The Uuid bytes.")
-  uint32_t bytes[4];
+  bool operator==(const Uuid &rhs) const { return ::memcmp(words, rhs.words, sizeof(words)) == 0; }
+  DOCUMENT("The Uuid bytes as an array of four 32-bit integers.")
+  uint32_t words[4];
 };
 
 DECLARE_REFLECTION_STRUCT(Uuid);
@@ -1384,7 +1384,7 @@ struct Thumbnail
   FileType type;
 
   DOCUMENT("The ``bytes`` byte array containing the raw data.");
-  bytebuf bytes;
+  bytebuf data;
 
   DOCUMENT("The width of the thumbnail image.");
   uint32_t width;

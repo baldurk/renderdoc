@@ -79,10 +79,10 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
   CounterDescription desc = {};
   desc.counterID = counterID;
   // 6839CB5B-FBD2-4550-B606-8C65157C684C
-  desc.uuid.bytes[0] = 0x6839CB5B;
-  desc.uuid.bytes[1] = 0xFBD24550;
-  desc.uuid.bytes[2] = 0xB6068C65;
-  desc.uuid.bytes[3] = 0x157C684C ^ (uint32_t)counterID;
+  desc.uuid.words[0] = 0x6839CB5B;
+  desc.uuid.words[1] = 0xFBD24550;
+  desc.uuid.words[2] = 0xB6068C65;
+  desc.uuid.words[3] = 0x157C684C ^ (uint32_t)counterID;
 
   switch(counterID)
   {

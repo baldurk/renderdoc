@@ -711,7 +711,7 @@ void DoSerialise(SerialiserType &ser, FloatVector &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, Uuid &el)
 {
-  SERIALISE_MEMBER(bytes);
+  SERIALISE_MEMBER(words);
 
   SIZE_CHECK(16);
 }
