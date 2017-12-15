@@ -212,7 +212,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         -Wno-unknown-pragmas
         -Wno-reorder)
     if(CMAKE_COMPILER_IS_GNUCXX)
-        list(APPEND warning_flags -Wno-unused-but-set-variable)
+        list(APPEND warning_flags -Wno-unused-but-set-variable -Wno-maybe-uninitialized)
 
         # We keep the implicit fallthrough warning for now, but allow more
         # comments to silence it.
