@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <Python.h>
+#include <stdlib.h>
 
 #include "renderdoc_replay.h"
 
@@ -31,7 +32,8 @@ std::string DoStringise(const uint32_t &el)
 {
   static char tmp[16];
   memset(tmp, 0, sizeof(tmp));
-  return itoa(el, tmp, 10);
+  snprintf(tmp, 15, "%u", el);
+  return tmp;
 }
 
 #include "renderdoc_tostr.inl"
