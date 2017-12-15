@@ -55,7 +55,11 @@ TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, bool enableOve
 
   QStringList strs;
   for(FileType i : values<FileType>())
+  {
+    if(i == FileType::Raw)
+      continue;
     strs << ToQStr(i);
+  }
 
   ui->fileFormat->addItems(strs);
 
