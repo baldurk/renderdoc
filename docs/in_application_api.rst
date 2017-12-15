@@ -303,7 +303,7 @@ The path follows the template set in :cpp:func:`SetLogFilePathTemplate` so it ma
 
     This function will determine the closest matching replay UI executable for the current RenderDoc module and launch it.
 
-    :param uint32_t connectTargetControl should be set to 1 if the UI should immediately connect to the application.
+    :param uint32_t connectTargetControl: should be set to 1 if the UI should immediately connect to the application.
     :param const char* cmdline: is an optional UTF-8 null-terminated string to be appended to the command line, e.g. a capture filename. If this parameter is NULL, the command line will be unmodified.
     :return: If the UI was successfully launched, this function will return the PID of the new process. Otherwise it will return ``0``.
 
