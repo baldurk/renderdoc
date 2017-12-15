@@ -24,7 +24,16 @@
 
 #include <Python.h>
 #include "Code/QRDUtils.h"
+#include "Styles/StyleData.h"
 #include "PythonContext.h"
+
+namespace StyleData
+{
+const ThemeDescriptor availStyles[] = {
+    ThemeDescriptor(QString(), QString(), QString(), []() -> QStyle * { return NULL; }),
+};
+const int numAvailable = sizeof(availStyles) / sizeof(ThemeDescriptor);
+};
 
 // we only support the qrenderdoc module for docs generation, so it doesn't matter that these stub
 // functions aren't valid

@@ -26,6 +26,16 @@
 
 #include "renderdoc_replay.h"
 
+template <>
+std::string DoStringise(const uint32_t &el)
+{
+  static char tmp[16];
+  memset(tmp, 0, sizeof(tmp));
+  return itoa(el, tmp, 10);
+}
+
+#include "renderdoc_tostr.inl"
+
 extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle)
 {
   return NULL;
