@@ -66,6 +66,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gl", "renderdoc\driver\gl\r
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "d3d12", "renderdoc\driver\d3d12\renderdoc_d3d12.vcxproj", "{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Python Modules", "Python Modules", "{A0E6051E-4374-42E0-9F3C-28DFC64A1029}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pyrenderdoc_module", "qrenderdoc\Code\pyrenderdoc\pyrenderdoc_module.vcxproj", "{A8998B2D-652A-47F8-955B-5654B222B4EB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qrenderdoc_module", "qrenderdoc\Code\pyrenderdoc\qrenderdoc_module.vcxproj", "{61157930-78C3-4355-8B49-4CC91B98F17B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Development|x64 = Development|x64
@@ -210,6 +216,22 @@ Global
 		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}.Release|x64.Build.0 = Release|x64
 		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}.Release|x86.ActiveCfg = Release|Win32
 		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4}.Release|x86.Build.0 = Release|Win32
+		{A8998B2D-652A-47F8-955B-5654B222B4EB}.Development|x64.ActiveCfg = Development|x64
+		{A8998B2D-652A-47F8-955B-5654B222B4EB}.Development|x64.Build.0 = Development|x64
+		{A8998B2D-652A-47F8-955B-5654B222B4EB}.Development|x86.ActiveCfg = Development|Win32
+		{A8998B2D-652A-47F8-955B-5654B222B4EB}.Development|x86.Build.0 = Development|Win32
+		{A8998B2D-652A-47F8-955B-5654B222B4EB}.Release|x64.ActiveCfg = Release|x64
+		{A8998B2D-652A-47F8-955B-5654B222B4EB}.Release|x64.Build.0 = Release|x64
+		{A8998B2D-652A-47F8-955B-5654B222B4EB}.Release|x86.ActiveCfg = Release|Win32
+		{A8998B2D-652A-47F8-955B-5654B222B4EB}.Release|x86.Build.0 = Release|Win32
+		{61157930-78C3-4355-8B49-4CC91B98F17B}.Development|x64.ActiveCfg = Development|x64
+		{61157930-78C3-4355-8B49-4CC91B98F17B}.Development|x64.Build.0 = Development|x64
+		{61157930-78C3-4355-8B49-4CC91B98F17B}.Development|x86.ActiveCfg = Development|Win32
+		{61157930-78C3-4355-8B49-4CC91B98F17B}.Development|x86.Build.0 = Development|Win32
+		{61157930-78C3-4355-8B49-4CC91B98F17B}.Release|x64.ActiveCfg = Release|x64
+		{61157930-78C3-4355-8B49-4CC91B98F17B}.Release|x64.Build.0 = Release|x64
+		{61157930-78C3-4355-8B49-4CC91B98F17B}.Release|x86.ActiveCfg = Release|Win32
+		{61157930-78C3-4355-8B49-4CC91B98F17B}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -237,5 +259,8 @@ Global
 		{88C5DAC6-30A0-4CFD-AF51-540A977D1F3F} = {864A44B0-5612-451A-857F-41E3EF785EF6}
 		{F92FCDA6-A261-4EEC-9CD0-73A11FBCC459} = {864A44B0-5612-451A-857F-41E3EF785EF6}
 		{9E6B10A2-84B4-434D-ABDB-43BE4EA650F4} = {864A44B0-5612-451A-857F-41E3EF785EF6}
+		{A0E6051E-4374-42E0-9F3C-28DFC64A1029} = {89059266-9C4E-4637-AB1D-BFF1DC15096B}
+		{A8998B2D-652A-47F8-955B-5654B222B4EB} = {A0E6051E-4374-42E0-9F3C-28DFC64A1029}
+		{61157930-78C3-4355-8B49-4CC91B98F17B} = {A0E6051E-4374-42E0-9F3C-28DFC64A1029}
 	EndGlobalSection
 EndGlobal
