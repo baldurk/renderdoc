@@ -1,0 +1,126 @@
+Metadata-Version: 1.1
+Name: sphinx-paramlinks
+Version: 0.3.4
+Summary: Allows param links in Sphinx function/method descriptions to be linkable
+Home-page: http://bitbucket.org/zzzeek/sphinx-paramlinks
+Author: Mike Bayer
+Author-email: mike@zzzcomputing.com
+License: MIT
+Description: ==================
+        Sphinx Paramlinks
+        ==================
+        
+        A `Sphinx <http://sphinx.pocoo.org/>`_ extension which allows ``:param:``
+        directives within Python documentation to be linkable.
+        
+        This is an experimental, possibly-not-useful extension that's used by the
+        `SQLAlchemy <http://www.sqlalchemy.org>`_ project and related projects.
+        
+        Configuration
+        =============
+        
+        Just turn it on in ``conf.py``::
+        
+            extensions = [
+                        'sphinx_paramlinks',
+        
+                        # your other sphinx extensions
+                        # ...
+                    ]
+        
+        Stylesheet
+        ==========
+        
+        The paragraph link involves a short stylesheet, to allow the links to
+        be visible when hovered.  This sheet is called
+        ``sphinx_paramlinks.css`` and the plugin will copy it to the ``_static``
+        directory of the output automatically.   The stylesheet is added to the
+        ``css_files`` list present in the template namespace for Sphinx via the
+        ``Sphinx.add_stylesheet()`` hook.
+        
+        Features
+        ========
+        
+        * ``:param:`` directives within Sphinx function/method descriptions
+          will be given a paragraph link so that they can be linked
+          to externally.
+        
+        * A new text role ``:paramref:`` is added, which works like ``:meth:``,
+          ``:func:``, etc.  Just append the parameter name as an additional token::
+        
+             :paramref:`.EnvironmentContext.configure.transactional_ddl`
+        
+          The directive makes use of the existing Python role to do the method/function
+          lookup, searching first the ``:meth:``, then the ``:class:``, and then  the
+          ``:func:`` role; then the parameter name is applied separately to produce the
+          final reference link. (new in 0.3.4, search for ``:meth:`` / ``:func:`` /
+          ``:class:`` individually  rather than using ``:obj:`` which catches lots of
+          things that don't have parameters)
+        
+        * The paramlinks are also added to the master index as well as the list
+          of domain objects, which allows them to be searchable through the
+          searchindex.js system.  (new in 0.3.0)
+        
+        Compatibility
+        =============
+        
+        Python Compatibility
+        --------------------
+        
+        The extension was developed on Python 2.7, but is compatible with at least
+        Python 3.3 as well.  It contains one ``u''`` literal - these are supported again
+        as of Python 3.3.
+        
+        Sphinx Compatibility
+        --------------------
+        
+        I've tried *very* hard to make as few assumptions as possible about Sphinx
+        and to use only very simple public APIs, so that architectural changes in future
+        Sphinx versions won't break this plugin.   To come up with this plugin I
+        spent many hours with Sphinx source and tried many different approaches to
+        various elements of functionality; hopefully what's here is as simple and
+        stable as possible based on the current extension capabilities of Sphinx.
+        
+        One element that involves using a bit of internals is the usage of the
+        ``sphinx.domains.python.PyXRefRole`` class, which is currently the
+        Sphinx class that defines roles for things like ``:meth:``,
+        ``:func:``, etc.  The object is used as-is in order to define the
+        ``:paramref:`` role; the product of this role is later transformed
+        using standard hooks.
+        
+        Another assumption is that in order to locate the RST nodes Sphinx
+        creates for the ``:param:`` tags, we look at ``nodes.strong``,
+        assuming that this is the type of node currently used to render
+        ``:param:`` within RST.  If this changes, or needs to be expanded to
+        support other domains, this traversal can be opened up as needed.
+        This part was difficult as Sphinx really doesn't provide any hooks
+        into how the "Info Field List" aspect of domains is handled.
+        
+        Overall, the approach here is to apply extra information to constructs
+        going into the Sphinx system, then do some transformations as the data
+        comes back out.   This relies on as little of how Sphinx does its
+        thing as possible, rather than going with custom domains and heavy use
+        of injected APIs which may change in future releases.
+        
+        Future Enhancements / Missing Features
+        ======================================
+        
+        The extension currently does only ``:param:`` elements within the
+        Python role, but could also be expanded to support other Python role
+        elements such as ``:returns:``, ``:raises:``, etc., and perhaps also
+        could be made to support similar features in other roles.
+        
+        Another area that's not addressed at all is search.   While the params here
+        are linked, these objects are currently not part of the search index Sphinx
+        creates in any usable way.   I don't know what would be involved to make that
+        work.
+Keywords: sphinx
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Documentation

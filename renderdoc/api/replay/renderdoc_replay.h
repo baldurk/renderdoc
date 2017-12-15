@@ -1353,7 +1353,7 @@ struct ICaptureFile : public ICaptureAccess
   DOCUMENT(R"(Initialises the capture handle from a file.
 
 This method supports converting from non-native representations via structured data, by specifying
-the input format in the :param:`filetype` parameter. The list of supported formats can be retrieved
+the input format in the :paramref:`OpenFile.filetype` parameter. The list of supported formats can be retrieved
 by calling :meth:`GetCaptureFileFormats`.
 
 ``rdc`` is guaranteed to always be a supported filetype, and will be assumed if the filetype is
@@ -1370,7 +1370,7 @@ empty or unrecognised.
 
 This may be useful if you don't want to parse the whole file or already have the file in memory.
 
-For the :param:`filetype` parameter, see :meth:`OpenFile`.
+For the :paramref:`OpenBuffer.filetype` parameter, see :meth:`OpenFile`.
 
 :param bytes buffer: The buffer containing the data to process.
 :param str filetype: The format of the given file.
@@ -1452,7 +1452,7 @@ replay support.
 This function may only be called if the handle is 'empty' - i.e. no file has been opened with
 :meth:`OpenFile` or :meth:`OpenBuffer`.
 
-.. note:: The only supported values for :param:`thumbType` are :data:`FileType.JPG`,
+.. note:: The only supported values for :paramref:`SetMetadata.thumbType` are :data:`FileType.JPG`,
   :data:`FileType.PNG`, :data:`FileType.TGA`, and :data:`FileType.BMP`.
 
 :param str driverName: The name of the driver. Must be a recognised driver name (even if replay
@@ -1460,9 +1460,12 @@ This function may only be called if the handle is 'empty' - i.e. no file has bee
 :param int machineIdent: The encoded machine identity value. Optional value and can be left to 0, as
   the bits to set are internally defined, so only generally useful if copying a machine ident from
   an existing capture.
-:param FileType thumbType: The file type of the thumbnail. Ignored if :param:`thumbData` is empty.
-:param int thumbWidth: The width of the thumbnail. Ignored if :param:`thumbData` is empty.
-:param int thumbHeight: The height of the thumbnail. Ignored if :param:`thumbData` is empty.
+:param FileType thumbType: The file type of the thumbnail. Ignored if
+  :paramref:`SetMetadata.thumbData` is empty.
+:param int thumbWidth: The width of the thumbnail. Ignored if :paramref:`SetMetadata.thumbData` is
+  empty.
+:param int thumbHeight: The height of the thumbnail. Ignored if :paramref:`SetMetadata.thumbData` is
+  empty.
 :param bytes thumbData: The raw data of the thumbnail. If empty, no thumbnail is set.
 )");
   virtual void SetMetadata(const char *driverName, uint64_t machineIdent, FileType thumbType,
@@ -1508,14 +1511,14 @@ The data is copied internally so it can be destroyed after calling this function
 
   DOCUMENT(R"(Retrieves the embedded thumbnail from the capture.
 
-.. note:: The only supported values for :param:`type` are :data:`FileType.JPG`,
+.. note:: The only supported values for :paramref:`GetThumbnail.type` are :data:`FileType.JPG`,
   :data:`FileType.PNG`, :data:`FileType.TGA`, and :data:`FileType.BMP`.
 
 :param FileType type: The image format to convert the thumbnail to.
 :param int maxsize: The largest width or height allowed. If the thumbnail is larger, it's resized.
 :return: The raw contents of the thumbnail, converted to the desired type at the desired max
   resolution.
-:rtype: Thumbnail.
+:rtype: Thumbnail
   )");
   virtual Thumbnail GetThumbnail(FileType type, uint32_t maxsize) = 0;
 
@@ -1771,8 +1774,8 @@ DOCUMENT(R"(Begin injecting speculatively into all new processes started on the 
 supported by platform, configuration, and setup begin injecting speculatively into all new processes
 started on the system.
 
-This function can only be called if global hooking is supported (see :ref:`CanGlobalHook`) and if
-global hooking is not active (see :ref:`IsGlobalHookActive`).
+This function can only be called if global hooking is supported (see :func:`CanGlobalHook`) and if
+global hooking is not active (see :func:`IsGlobalHookActive`).
 
 This function must be called when the process is running with administrator/superuser permissions.
 
@@ -1781,23 +1784,23 @@ This function must be called when the process is running with administrator/supe
 :param str logfile: Where to store any captures.
 :param CaptureOptions opts: The capture options to use when injecting into the program.
 :return: ``True`` if the hook is active, ``False`` if something went wrong. The hook must be closed
-  with :ref:`StopGlobalHook` before the application is closed.
+  with :func:`StopGlobalHook` before the application is closed.
 :rtype: ``bool``
 )");
 extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch,
                                                                      const char *logfile,
                                                                      const CaptureOptions &opts);
 
-DOCUMENT(R"(Stop the global hook that was activated by :ref:`StartGlobalHook`.
+DOCUMENT(R"(Stop the global hook that was activated by :func:`StartGlobalHook`.
 
-This function can only be called if global hooking is supported (see :ref:`CanGlobalHook`) and if
-global hooking is active (see :ref:`IsGlobalHookActive`).
+This function can only be called if global hooking is supported (see :func:`CanGlobalHook`) and if
+global hooking is active (see :func:`IsGlobalHookActive`).
 )");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StopGlobalHook();
 
 DOCUMENT(R"(Determines if the global hook is active or not.
 
-This function can only be called if global hooking is supported (see :ref:`CanGlobalHook`).
+This function can only be called if global hooking is supported (see :func:`CanGlobalHook`).
 
 :return: ``True`` if the hook is active, or ``False`` if the hook is inactive.
 :rtype: ``bool``

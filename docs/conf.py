@@ -35,6 +35,8 @@ sys.path.insert(0, os.path.abspath(modulepath))
 # path to module libraries for linux
 sys.path.insert(0, os.path.abspath('../build/bin'))
 
+sys.path.insert(0, os.path.abspath('sphinx_exts'))
+
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -43,7 +45,7 @@ sys.path.insert(0, os.path.abspath('../build/bin'))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc']
+extensions = ['sphinx.ext.autodoc', 'sphinx_paramlinks']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -100,7 +102,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'python_api']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'python_api', 'sphinx_exts']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.

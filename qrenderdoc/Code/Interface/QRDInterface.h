@@ -138,7 +138,7 @@ See the documentation for :meth:`RegisterShortcut` for what these shortcuts are 
 
 :param str shortcut: The text string representing the shortcut, e.g. 'Ctrl+S'. To unregister all
   shortcuts for a particular widget, you can pass an empty string here. In this case,
-  :param:`widget` must not be ``None``.
+  :paramref:`UnregisterShortcut.widget` must not be ``None``.
 :param QWidget widget: A handle to the widget used as the context for the shortcut, or ``None``
   if referring to a global shortcut.
 )");
