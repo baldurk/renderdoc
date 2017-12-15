@@ -117,6 +117,7 @@ std::string DoStringise(const FileType &el)
     STRINGISE_ENUM_CLASS(TGA);
     STRINGISE_ENUM_CLASS(HDR);
     STRINGISE_ENUM_CLASS(EXR);
+    STRINGISE_ENUM_CLASS(Raw);
   }
   END_ENUM_STRINGISE();
 }
