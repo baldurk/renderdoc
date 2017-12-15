@@ -20,6 +20,7 @@ Table of Contents
    introduction
    in_application_api
    credits_acknowledgements
+   python_api/index
    getting_started/index
    behind_scenes/index
    how/index
