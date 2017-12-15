@@ -64,6 +64,12 @@ if(ANDROID)
         message(FATAL_ERROR "ANDROID_SDK environment variable must be defined for Android build")
     endif()
 
+    if(STRIP_ANDROID_LIBRARY AND CMAKE_STRIP AND CMAKE_BUILD_TYPE STREQUAL "Release")
+        add_custom_command(TARGET renderdoccmd POST_BUILD
+            COMMAND echo Stripping $<TARGET_FILE:renderdoccmd>
+            COMMAND ${CMAKE_STRIP} --strip-unneeded $<TARGET_FILE:renderdoccmd>)
+    endif()
+
     set(ANDROID_BUILD_TOOLS_VERSION "" CACHE STRING "Version of Android build-tools to use instead of the default")
     if(ANDROID_BUILD_TOOLS_VERSION STREQUAL "")
         set(ANDROID_BUILD_TOOLS_VERSION "26.0.1")

@@ -375,6 +375,12 @@ if(ANDROID)
     set_target_properties(renderdoc PROPERTIES LINK_FLAGS "-Wl,--build-id")
     # rename output library
     set_target_properties(renderdoc PROPERTIES OUTPUT_NAME "VkLayer_GLES_RenderDoc")
+
+    if(STRIP_ANDROID_LIBRARY AND CMAKE_STRIP AND CMAKE_BUILD_TYPE STREQUAL "Release")
+        add_custom_command(TARGET renderdoc POST_BUILD
+            COMMAND echo Stripping $<TARGET_FILE:renderdoc>
+            COMMAND ${CMAKE_STRIP} --strip-unneeded $<TARGET_FILE:renderdoc>)
+    endif()
 endif()
 
 install (TARGETS renderdoc DESTINATION lib${LIB_SUFFIX}/${LIB_SUBFOLDER})
