@@ -77,7 +77,7 @@ struct RichResourceText
   QString text;
 
   // the ideal width for the document
-  int idealWidth;
+  int idealWidth = 0;
 
   // cache the context once we've obtained it.
   ICaptureContext *ctxptr = NULL;
