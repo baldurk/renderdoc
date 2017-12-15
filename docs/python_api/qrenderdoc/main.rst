@@ -22,7 +22,7 @@ Replay Manager
 LogViewer Interface
 -------------------
 
-.. autoclass:: qrenderdoc.LogViewer
+.. autoclass:: qrenderdoc.CaptureViewer
   :members:
   :undoc-members:
 

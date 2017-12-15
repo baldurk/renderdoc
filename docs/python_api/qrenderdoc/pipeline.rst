@@ -19,7 +19,11 @@ Bindings
   :members:
   :undoc-members:
 
-.. autoclass:: qrenderdoc.BoundVBuffer
+.. autoclass:: qrenderdoc.BoundResourceArray
+  :members:
+  :undoc-members:
+
+.. autoclass:: qrenderdoc.BoundBuffer
   :members:
   :undoc-members:
 
