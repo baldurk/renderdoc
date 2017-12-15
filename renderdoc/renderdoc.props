@@ -5,6 +5,7 @@
   <!-- fetch the path of the assembly, and unescape it so MSBuild doesn't choke on brackets in "Program Files (x86)" -->
   <PropertyGroup>
     <LibGit2SharpPath>$([MSBuild]::Unescape("$(DevEnvDir)\CommonExtensions\Microsoft\TeamFoundation\Team Explorer\LibGit2Sharp.dll"))</LibGit2SharpPath>
+    <LibGit2SharpPath Condition="!exists('$(LibGit2SharpPath)')">$([MSBuild]::Unescape("$(VSInstallDir)\Common7\IDE\CommonExtensions\Microsoft\TeamFoundation\Team Explorer\LibGit2Sharp.dll"))</LibGit2SharpPath>
   </PropertyGroup>
 
   <!-- Declare the task with some inline code -->
