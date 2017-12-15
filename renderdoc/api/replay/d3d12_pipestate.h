@@ -347,7 +347,7 @@ struct Sampler
   DOCUMENT(R"(Check if the border color is used in this D3D12 sampler.
 
 :return: ``True`` if the border color is used, ``False`` otherwise.
-:rtype: bool
+:rtype: ``bool``
 )");
   bool UseBorder() const
   {

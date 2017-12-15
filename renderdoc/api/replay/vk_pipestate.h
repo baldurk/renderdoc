@@ -161,7 +161,7 @@ struct BindingElement
   DOCUMENT(R"(For samplers - check if the border color is used in this Vulkan sampler.
 
 :return: ``True`` if the border color is used, ``False`` otherwise.
-:rtype: bool
+:rtype: ``bool``
 )");
   bool UseBorder() const
   {

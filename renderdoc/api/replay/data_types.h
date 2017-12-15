@@ -155,7 +155,7 @@ struct ResourceFormat
 
   bool operator!=(const ResourceFormat &r) const { return !(*this == r); }
   DOCUMENT(R"(:return: The name of the format.
-:rtype: str
+:rtype: ``str``
 )");
   rdcstr Name() const
   {
@@ -165,7 +165,7 @@ struct ResourceFormat
   }
 
   DOCUMENT(R"(:return: ``True`` if the ``ResourceFormat`` is a 'special' non-regular type.
-:type: bool
+:type: ``bool``
 )");
   bool Special() const { return type != ResourceFormatType::Regular; }
   DOCUMENT(R"(The :class:`ResourceFormatType` of this format. If the value is not
@@ -1366,7 +1366,7 @@ pixel.
   DOCUMENT(R"(Determine if this fragment passed all tests and wrote to the texture.
 
 :return: ``True`` if it passed all tests, ``False`` if it failed any.
-:rtype: bool
+:rtype: ``bool``
 )");
   bool passed() const
   {

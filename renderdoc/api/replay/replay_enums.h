@@ -1493,7 +1493,7 @@ DOCUMENT(R"(Return the number of control points in a patch list ``Topology``
 
 :param Topology t: The patch list topology
 :return: The number of control points in the specified topology
-:rtype: int
+:rtype: ``int``
 )");
 constexpr inline uint32_t PatchList_Count(Topology topology)
 {
@@ -1506,7 +1506,7 @@ DOCUMENT(R"(Check whether or not this is a strip-type topology.
 
 :param Topology t: The topology to check.
 :return: ``True`` if it describes a strip topology, ``False`` for a list.
-:rtype: int
+:rtype: ``int``
 )");
 constexpr inline bool IsStrip(Topology topology)
 {
@@ -2659,7 +2659,7 @@ DOCUMENT(R"(Check whether or not this is an AMD private counter.
 
 :param GPUCounter c: The counter.
 :return: ``True`` if it is an AMD private counter, ``False`` if it's not.
-:rtype: bool
+:rtype: ``bool``
 )");
 inline constexpr bool IsAMDCounter(GPUCounter c)
 {
@@ -2670,7 +2670,7 @@ DOCUMENT(R"(Check whether or not this is an Intel private counter.
 
 :param GPUCounter c: The counter.
 :return: ``True`` if it is an Intel private counter, ``False`` if it's not.
-:rtype: bool
+:rtype: ``bool``
 )");
 inline constexpr bool IsIntelCounter(GPUCounter c)
 {
@@ -2681,7 +2681,7 @@ DOCUMENT(R"(Check whether or not this is an Nvidia private counter.
 
 :param GPUCounter c: The counter.
 :return: ``True`` if it is an Nvidia private counter, ``False`` if it's not.
-:rtype: bool
+:rtype: ``bool``
 )");
 inline constexpr bool IsNvidiaCounter(GPUCounter c)
 {

@@ -689,7 +689,7 @@ or hardware-specific ISA formats.
 :param str target: The name of the disassembly target to generate for. Must be one of the values
   returned by :meth:`GetDisassemblyTargets`, or empty to use the default generation.
 :return: The disassembly text, or an error message if something went wrong.
-:rtype: str
+:rtype: ``str``
 )");
   virtual rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                    const char *target) = 0;
@@ -1144,7 +1144,7 @@ already has the same type or name, it will be overwritten (two sections cannot s
 or name).
 
 :param SectionProperties props: The properties of the section to be written.
-:param byte contents: The raw contents of the section.
+:param bytes contents: The raw contents of the section.
 )");
   virtual void WriteSection(const SectionProperties &props, const bytebuf &contents) = 0;
 
@@ -1389,7 +1389,7 @@ file.
 
 :param str filename: The filename to copy to.
 :return: ``True`` if the operation succeeded.
-:rtype: bool
+:rtype: ``bool``
 )");
   virtual bool CopyFileTo(const char *filename) = 0;
 
@@ -1412,7 +1412,7 @@ The error string is not reset by calling this function so it's safe to call mult
 any other function call may reset the error string to empty.
 
 :return: The error string, if one exists, or an empty string.
-:rtype: str
+:rtype: ``str``
 )");
   virtual rdcstr ErrorString() = 0;
 
