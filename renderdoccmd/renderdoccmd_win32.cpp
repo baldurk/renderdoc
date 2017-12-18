@@ -39,6 +39,31 @@ using std::string;
 using std::wstring;
 using std::vector;
 
+static std::string conv(const std::wstring &str)
+{
+  std::string ret;
+  // worst case each char takes 4 bytes to encode
+  ret.resize(str.size() * 4 + 1);
+
+  WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, &ret[0], (int)ret.size(), NULL, NULL);
+
+  ret.resize(strlen(ret.c_str()));
+
+  return ret;
+}
+
+static std::wstring conv(const std::string &str)
+{
+  std::wstring ret;
+  ret.resize(str.size() + 1);
+
+  MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &ret[0], int(ret.size() + 1));
+
+  ret.resize(wcslen(ret.c_str()));
+
+  return ret;
+}
+
 HINSTANCE hInstance = NULL;
 
 #if defined(RELEASE)
@@ -287,19 +312,7 @@ struct UpgradeCommand : public Command
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
-    string originalpath = parser.get<string>("path");
-
-    wstring wide_path;
-
-    {
-      wchar_t *conv = new wchar_t[originalpath.size() + 1];
-
-      MultiByteToWideChar(CP_UTF8, 0, originalpath.c_str(), -1, conv, int(originalpath.size() + 1));
-
-      wide_path = conv;
-
-      delete[] conv;
-    }
+    wstring wide_path = conv(parser.get<string>("path"));
 
     // Wait for UI to exit
     Sleep(3000);
@@ -657,18 +670,12 @@ struct GlobalHookCommand : public Command
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
-    string pathmatch = parser.get<string>("match");
+    wstring wpathmatch = conv(parser.get<string>("match"));
     string logfile = parser.get<string>("logfile");
     string debuglog = parser.get<string>("debuglog");
 
     CaptureOptions cmdopts;
     readCapOpts(parser.get<string>("capopts").c_str(), &cmdopts);
-
-    size_t len = pathmatch.length();
-    wstring wpathmatch;
-    wpathmatch.resize(len);
-    MultiByteToWideChar(CP_UTF8, 0, pathmatch.c_str(), -1, &wpathmatch[0], (int)len);
-    wpathmatch.resize(wcslen(wpathmatch.c_str()));
 
     // make sure the user doesn't accidentally run this with 'a' as a parameter or something.
     // "a.exe" is over 4 characters so this limit should not be a problem.
@@ -823,17 +830,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
 
   argv.resize(argc);
   for(size_t i = 0; i < argv.size(); i++)
-  {
-    size_t len = wcslen(wargv[i]);
-    len *= 4;    // worst case, every UTF-8 character takes 4 bytes
-    argv[i].resize(len + 1);
-    argv[i][len] = 0;
-    char *cstr = (char *)&argv[i][0];
-
-    WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, cstr, (int)len + 1, NULL, NULL);
-
-    argv[i].resize(strlen(cstr));
-  }
+    argv[i] = conv(wstring(wargv[i]));
 
   if(argv.empty())
     argv.push_back("renderdoccmd");
