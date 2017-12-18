@@ -654,7 +654,7 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
 
     return ret;
   }
-  else if(type == CT_MenuBarItem || type == CT_MenuItem)
+  else if(type == CT_MenuItem)
   {
     QSize ret = size;
 
@@ -663,13 +663,27 @@ QSize RDStyle::sizeFromContents(ContentsType type, const QStyleOption *opt, cons
 
     const QStyleOptionMenuItem *menuitem = qstyleoption_cast<const QStyleOptionMenuItem *>(opt);
 
-    if(type == CT_MenuItem && menuitem->maxIconWidth)
-    {
-      // add room for an icon
+    // add room for an icon
+    if(menuitem->maxIconWidth)
       ret.setWidth(ret.width() + Constants::MenuBarMargin + menuitem->maxIconWidth);
-    }
 
     return ret;
+  }
+  else if(type == CT_MenuBarItem)
+  {
+    const QStyleOptionMenuItem *menuitem = qstyleoption_cast<const QStyleOptionMenuItem *>(opt);
+    int iconSize = pixelMetric(QStyle::PM_SmallIconSize, opt, widget);
+    QSize sz = menuitem->fontMetrics.size(Qt::TextShowMnemonic, menuitem->text);
+
+    if(!menuitem->icon.isNull())
+    {
+      sz.setWidth(sz.width() + Constants::MenuBarMargin + iconSize);
+      sz = sz.expandedTo(QSize(1, iconSize));
+    }
+
+    sz += QSize(Constants::MenuBarMargin * 2, Constants::MenuBarMargin);
+
+    return sz;
   }
   else if(type == CT_MenuBar || type == CT_Menu)
   {
@@ -1617,6 +1631,23 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
     }
 
     rect.adjust(Constants::MenuBarMargin, 0, -Constants::MenuBarMargin, 0);
+
+    if(!menuitem->icon.isNull())
+    {
+      int iconSize = pixelMetric(QStyle::PM_SmallIconSize, opt, widget);
+
+      QPixmap pix = menuitem->icon.pixmap(
+          iconSize, iconSize, (menuitem->state & State_Enabled) ? QIcon::Normal : QIcon::Disabled);
+
+      if(!pix.isNull())
+      {
+        QRectF iconRect = rect;
+        iconRect.setWidth(iconSize);
+        drawItemPixmap(p, iconRect.toRect(), Qt::AlignCenter | Qt::AlignTop | Qt::TextHideMnemonic,
+                       pix);
+        rect.adjust(iconSize + Constants::MenuBarMargin, 0, 0, 0);
+      }
+    }
 
     if(menuitem->menuItemType == QStyleOptionMenuItem::Normal)
     {
