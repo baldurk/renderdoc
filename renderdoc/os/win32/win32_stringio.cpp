@@ -636,6 +636,30 @@ bool logfile_open(const char *filename)
   return logHandle != NULL;
 }
 
+std::string logfile_readall(const char *filename)
+{
+  wstring wfn = StringFormat::UTF82Wide(string(filename));
+  HANDLE h = CreateFileW(wfn.c_str(), FILE_READ_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+  std::string ret;
+
+  if(h != NULL)
+  {
+    DWORD len = GetFileSize(h, NULL);
+
+    ret.resize(len);
+
+    DWORD dummy = len;
+
+    ReadFile(h, &ret[0], len, &dummy, NULL);
+
+    CloseHandle(h);
+  }
+
+  return ret;
+}
+
 void logfile_append(const char *msg, size_t length)
 {
   if(logHandle)

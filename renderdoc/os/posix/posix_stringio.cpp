@@ -484,6 +484,28 @@ void ReleaseFDAfterFork()
     close(logfileFD);
 }
 
+std::string logfile_readall(const char *filename)
+{
+  FILE *f = FileIO::fopen(filename, "r");
+
+  std::string ret;
+
+  if(f == NULL)
+    return ret;
+
+  FileIO::fseek64(f, 0, SEEK_END);
+  uint64_t size = FileIO::ftell64(f);
+  FileIO::fseek64(f, 0, SEEK_SET);
+
+  ret.resize((size_t)size);
+
+  FileIO::fread(&ret[0], 1, ret.size(), f);
+
+  FileIO::fclose(f);
+
+  return ret;
+}
+
 bool logfile_open(const char *filename)
 {
   logfileFD = open(filename, O_APPEND | O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);

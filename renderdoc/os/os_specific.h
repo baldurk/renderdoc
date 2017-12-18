@@ -290,6 +290,10 @@ bool logfile_open(const char *filename);
 void logfile_append(const char *msg, size_t length);
 void logfile_close(const char *filename);
 
+// read the whole logfile into memory. This may race with processes writing, but it will read the
+// whole of the file at some point. Useful since normal file reading may fail on the shared logfile
+std::string logfile_readall(const char *filename);
+
 // utility functions
 inline bool dump(const char *filename, const void *buffer, size_t size)
 {
