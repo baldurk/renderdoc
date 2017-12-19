@@ -154,6 +154,7 @@
     <addaction name="action_Send_Error_Report"/>
     <addaction name="menu_Reported_Bugs"/>
     <addaction name="separator"/>
+    <addaction name="action_Check_for_Updates"/>
     <addaction name="action_Update_Available"/>
     <addaction name="separator"/>
     <addaction name="action_Source_on_GitHub"/>
@@ -364,8 +365,15 @@
    </property>
   </action>
   <action name="action_Update_Available">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../Resources/resources.qrc">
+     <normaloff>:/hourglass.png</normaloff>:/hourglass.png</iconset>
+   </property>
    <property name="text">
-    <string>Update Available</string>
+    <string>No update available</string>
    </property>
   </action>
   <action name="action_Source_on_GitHub">
@@ -441,6 +449,11 @@
   <action name="action_Clear_Reported_Bugs">
    <property name="text">
     <string>&amp;Clear Reported Bugs</string>
+   </property>
+  </action>
+  <action name="action_Check_for_Updates">
+   <property name="text">
+    <string>Check for updates</string>
    </property>
   </action>
  </widget>

@@ -498,6 +498,98 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistrati
   RenderDoc::Inst().UpdateVulkanLayerRegistration(systemLevel);
 }
 
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateInstalledVersionNumber()
+{
+#if ENABLED(RDOC_WIN32)
+  HKEY key = NULL;
+
+  LSTATUS ret =
+      RegCreateKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+                      0, NULL, 0, KEY_READ | KEY_WRITE, NULL, &key, NULL);
+
+  if(ret != ERROR_SUCCESS)
+  {
+    if(key)
+      RegCloseKey(key);
+
+    return;
+  }
+
+  bool done = false;
+
+  char guidName[256] = {};
+  for(DWORD idx = 0; ret == ERROR_SUCCESS && !done; idx++)
+  {
+    // enumerate all the uninstall keys
+    ret = RegEnumKeyA(key, idx, guidName, sizeof(guidName) - 1);
+
+    if(ret == ERROR_NO_MORE_ITEMS)
+    {
+      break;
+    }
+    else if(ret != ERROR_SUCCESS)
+    {
+      break;
+    }
+
+    // open the key as we'll need it for RegSetValueExA
+    HKEY subkey = NULL;
+    ret = RegCreateKeyExA(key, guidName, 0, NULL, 0, KEY_READ | KEY_WRITE, NULL, &subkey, NULL);
+
+    if(ret == ERROR_SUCCESS && subkey)
+    {
+      char DisplayName[256] = {};
+      char Publisher[256] = {};
+      DWORD len = sizeof(DisplayName) - 1;
+
+      // fetch DisplayName and Publisher values
+      ret = RegGetValueA(subkey, NULL, "DisplayName", RRF_RT_ANY, NULL, DisplayName, &len);
+
+      // allow the value to silently not exist
+      if(ret != ERROR_SUCCESS)
+      {
+        DisplayName[0] = 0;
+        ret = ERROR_SUCCESS;
+      }
+
+      len = sizeof(Publisher) - 1;
+      ret = RegGetValueA(subkey, NULL, "Publisher", RRF_RT_ANY, NULL, Publisher, &len);
+
+      if(ret != ERROR_SUCCESS)
+      {
+        Publisher[0] = 0;
+        ret = ERROR_SUCCESS;
+      }
+
+      // if this is our key, set the version number
+      if(!strcmp(DisplayName, "RenderDoc") && !strcmp(Publisher, "Baldur Karlsson"))
+      {
+        DWORD Version = (RENDERDOC_VERSION_MAJOR << 24) | (RENDERDOC_VERSION_MINOR << 16);
+        DWORD VersionMajor = RENDERDOC_VERSION_MAJOR;
+        DWORD VersionMinor = RENDERDOC_VERSION_MINOR;
+        std::string DisplayVersion = MAJOR_MINOR_VERSION_STRING ".0";
+
+        RegSetValueExA(subkey, "Version", 0, REG_DWORD, (const BYTE *)&Version, sizeof(Version));
+        RegSetValueExA(subkey, "VersionMajor", 0, REG_DWORD, (const BYTE *)&VersionMajor,
+                       sizeof(VersionMajor));
+        RegSetValueExA(subkey, "VersionMinor", 0, REG_DWORD, (const BYTE *)&VersionMinor,
+                       sizeof(VersionMinor));
+        RegSetValueExA(subkey, "DisplayVersion", 0, REG_SZ, (const BYTE *)DisplayVersion.c_str(),
+                       (DWORD)DisplayVersion.size() + 1);
+        done = true;
+      }
+    }
+
+    if(subkey)
+      RegCloseKey(subkey);
+  }
+
+  if(key)
+    RegCloseKey(key);
+
+#endif
+}
+
 static std::string ResourceFormatName(const ResourceFormat &fmt)
 {
   std::string ret;

@@ -144,7 +144,6 @@ void CrashDialog::resizeEvent(QResizeEvent *)
 {
   recentre();
 }
-
 void CrashDialog::recentre()
 {
   QRect scr = QApplication::desktop()->screenGeometry();
@@ -187,10 +186,11 @@ void CrashDialog::on_send_clicked()
   if(ui->captureUpload->isChecked())
   {
     QMessageBox::StandardButton result = RDDialog::question(
-        this, tr("Are you sure?"),
-        tr("Uploading your capture file will send it privately to the RenderDoc server where I can "
-           "use it to reproduce your problem.\n\nAre you sure you are OK with sending the capture "
-           "securely to RenderDoc's website?"));
+        this, tr("Are you sure?"), tr("Uploading your capture file will send it privately to the "
+                                      "RenderDoc server where I can "
+                                      "use it to reproduce your problem.\n\nAre you sure you are "
+                                      "OK with sending the capture "
+                                      "securely to RenderDoc's website?"));
 
     if(result != QMessageBox::Yes)
     {
@@ -334,7 +334,6 @@ void CrashDialog::sendReport()
         ui->uploadRetry->setEnabled(true);
       });
 
-  ui->progressBar->setMaximum(10000);
   ui->progressBar->setValue(0);
   ui->progressText->setText(tr("Uploading report...\nCalculating time remaining"));
 
@@ -344,46 +343,8 @@ void CrashDialog::sendReport()
   m_UploadTimer->start();
 
   QObject::connect(m_Request, &QNetworkReply::uploadProgress, [this](qint64 sent, qint64 total) {
-    if(total > 0 && total > sent)
-    {
-      ui->progressBar->setValue(int(10000.0 * (double(sent) / double(total))));
-
-      double sentMB = double(sent) / 1000000.0;
-      double totalMB = double(total) / 1000000.0;
-
-      double secondsElapsed = double(m_UploadTimer->nsecsElapsed()) * 1.0e-9;
-
-      double speedMBS = sentMB / secondsElapsed;
-
-      qulonglong secondsRemaining = qulonglong(double(totalMB - sentMB) / speedMBS);
-
-      if(secondsElapsed > 1.0)
-      {
-        QString remainString;
-
-        qulonglong minutesRemaining = (secondsRemaining / 60) % 60;
-        qulonglong hoursRemaining = (secondsRemaining / 3600);
-        secondsRemaining %= 60;
-
-        if(hoursRemaining > 0)
-          remainString = QFormatStr("%1:%2:%3")
-                             .arg(hoursRemaining, 2, 10, QLatin1Char('0'))
-                             .arg(minutesRemaining, 2, 10, QLatin1Char('0'))
-                             .arg(secondsRemaining, 2, 10, QLatin1Char('0'));
-        else if(minutesRemaining > 0)
-          remainString = QFormatStr("%1:%2")
-                             .arg(minutesRemaining, 2, 10, QLatin1Char('0'))
-                             .arg(secondsRemaining, 2, 10, QLatin1Char('0'));
-        else
-          remainString = tr("%1 seconds").arg(secondsRemaining);
-
-        ui->progressText->setText(tr("Uploading report...\n%1 MB / %2 MB. %3 remaining (%4 MB/s)")
-                                      .arg(sentMB, 0, 'f', 2)
-                                      .arg(totalMB, 0, 'f', 2)
-                                      .arg(remainString)
-                                      .arg(speedMBS, 0, 'f', 2));
-      }
-    }
+    UpdateTransferProgress(sent, total, m_UploadTimer, ui->progressBar, ui->progressText,
+                           tr("Uploading report..."));
   });
 
   QObject::connect(m_Request, &QNetworkReply::finished, [this]() {

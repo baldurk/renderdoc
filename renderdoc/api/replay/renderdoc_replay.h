@@ -1876,6 +1876,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistrati
 // Miscellaneous!
 //////////////////////////////////////////////////////////////////////////
 
+DOCUMENT("Internal function for updating installed version number in windows registry.");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateInstalledVersionNumber();
+
 DOCUMENT("Internal function for initialising global process environment in a replay program.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitGlobalEnv(GlobalEnvironment env,
                                                                    const rdcarray<rdcstr> &args);

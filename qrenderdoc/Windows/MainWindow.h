@@ -138,6 +138,8 @@ private slots:
   void on_action_Counter_Viewer_triggered();
   void on_action_Resource_Inspector_triggered();
   void on_action_Send_Error_Report_triggered();
+  void on_action_Check_for_Updates_triggered();
+  void on_action_Update_Available_triggered();
 
   // manual slots
   void saveLayout_triggered();
@@ -161,6 +163,17 @@ private:
   bool eventFilter(QObject *watched, QEvent *event) override;
 
   QString dragFilename(const QMimeData *mimeData);
+
+  enum class UpdateResult
+  {
+    Disabled,
+    Unofficial,
+    Toosoon,
+    Latest,
+    Upgrade,
+  };
+
+  typedef std::function<void(UpdateResult)> UpdateResultMethod;
 
   Ui::MainWindow *ui;
   ICaptureContext &m_Ctx;
@@ -187,6 +200,13 @@ private:
   bool m_OwnTempCapture = false;
 
   QString m_LastSaveCapturePath;
+
+  void CheckUpdates(bool forceCheck = false, UpdateResultMethod callback = UpdateResultMethod());
+  void SetUpdateAvailable();
+  void SetNoUpdate();
+  void UpdatePopup();
+  bool HandleMismatchedVersions();
+  bool IsVersionMismatched();
 
   void setCaptureHasErrors(bool errors);
 

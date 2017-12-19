@@ -121,6 +121,29 @@ int main(int argc, char *argv[])
     }
   }
 
+  bool updateApplied = false;
+
+  for(int i = 0; i < argc; i++)
+  {
+    if(!QString::compare(QString::fromUtf8(argv[i]), lit("--updatefailed"), Qt::CaseInsensitive))
+    {
+      if(i < argc - 1)
+        RDDialog::critical(NULL, QApplication::translate("qrenderdoc", "Error updating"),
+                           QApplication::translate("qrenderdoc", "Error applying update: %1")
+                               .arg(QString::fromUtf8(argv[i + 1])));
+      else
+        RDDialog::critical(NULL, QApplication::translate("qrenderdoc", "Error updating"),
+                           QApplication::translate("qrenderdoc", "Unknown error applying update"));
+    }
+
+    if(!QString::compare(QString::fromUtf8(argv[i]), lit("--updatedone"), Qt::CaseInsensitive))
+    {
+      updateApplied = true;
+
+      RENDERDOC_UpdateInstalledVersionNumber();
+    }
+  }
+
   QString remoteHost;
   uint remoteIdent = 0;
 
@@ -325,6 +348,13 @@ int main(int argc, char *argv[])
           qInfo() << "running" << f;
           py.ctx().executeFile(f);
         }
+      }
+
+      if(updateApplied)
+      {
+        config.CheckUpdate_UpdateAvailable = false;
+        config.CheckUpdate_UpdateResponse = "";
+        config.Save();
       }
 
       while(ctx.isRunning())

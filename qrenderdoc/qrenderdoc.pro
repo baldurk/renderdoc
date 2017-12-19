@@ -172,6 +172,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Styles/RDTweakedNativeStyle/RDTweakedNativeStyle.cpp \
     Windows/Dialogs/AboutDialog.cpp \
     Windows/Dialogs/CrashDialog.cpp \
+    Windows/Dialogs/UpdateDialog.cpp \
     Windows/MainWindow.cpp \
     Windows/EventBrowser.cpp \
     Windows/TextureViewer.cpp \
@@ -244,6 +245,7 @@ HEADERS += Code/CaptureContext.h \
     Styles/RDTweakedNativeStyle/RDTweakedNativeStyle.h \
     Windows/Dialogs/AboutDialog.h \
     Windows/Dialogs/CrashDialog.h \
+    Windows/Dialogs/UpdateDialog.h \
     Windows/MainWindow.h \
     Windows/EventBrowser.h \
     Windows/TextureViewer.h \
@@ -299,6 +301,7 @@ HEADERS += Code/CaptureContext.h \
     Windows/Dialogs/AnalyticsPromptDialog.h
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/Dialogs/CrashDialog.ui \
+    Windows/Dialogs/UpdateDialog.ui \
     Windows/MainWindow.ui \
     Windows/EventBrowser.ui \
     Windows/TextureViewer.ui \

@@ -47,6 +47,7 @@
 #include "Windows/Dialogs/SettingsDialog.h"
 #include "Windows/Dialogs/SuggestRemoteDialog.h"
 #include "Windows/Dialogs/TipsDialog.h"
+#include "Windows/Dialogs/UpdateDialog.h"
 #include "ui_MainWindow.h"
 #include "version.h"
 
@@ -180,11 +181,30 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   ui->action_Send_Error_Report->setEnabled(false);
 #endif
 
+  m_NetManager = new QNetworkAccessManager(this);
+
+#if !defined(Q_OS_WIN32)
+  // update checks only happen on windows
+  {
+    QList<QAction *> actions = ui->menu_Help->actions();
+    int idx = actions.indexOf(ui->action_Update_Available);
+    idx++;
+    if(idx < actions.count() && actions[idx]->isSeparator())
+      delete actions[idx];
+
+    delete ui->action_Update_Available;
+    ui->action_Update_Available = NULL;
+
+    delete ui->action_Check_for_Updates;
+    ui->action_Check_for_Updates = NULL;
+  }
+#endif
+
   PopulateRecentCaptureFiles();
   PopulateRecentCaptureSettings();
   PopulateReportedBugs();
 
-  m_NetManager = new QNetworkAccessManager(this);
+  CheckUpdates();
 
   rdcarray<BugReport> bugs = m_Ctx.Config().CrashReport_ReportedBugs;
   LambdaThread *bugupdate = new LambdaThread([this, bugs]() {
@@ -854,6 +874,47 @@ void MainWindow::SetTitle()
   SetTitle(m_Ctx.GetCaptureFilename());
 }
 
+bool MainWindow::HandleMismatchedVersions()
+{
+  if(IsVersionMismatched())
+  {
+    qCritical() << "Version mismatch between UI (" << lit(MAJOR_MINOR_VERSION_STRING) << ")"
+                << "and core"
+                << "(" << QString::fromUtf8(RENDERDOC_GetVersionString()) << ")";
+
+#if !RENDERDOC_OFFICIAL_BUILD
+    RDDialog::critical(
+        this, tr("Unofficial build - mismatched versions"),
+        tr("You are running an unofficial build with mismatched core and UI versions.\n"
+           "Double check where you got your build from and do a sanity check!"));
+#else
+    QMessageBox::StandardButton res = RDDialog::critical(
+        this, tr("Mismatched versions"),
+        tr("RenderDoc has detected mismatched versions between its internal module and UI.\n"
+           "This is likely caused by a buggy update in the past which partially updated your "
+           "install."
+           "Likely because a program was running with renderdoc while the update happened.\n"
+           "You should reinstall RenderDoc immediately as this configuration is almost guaranteed "
+           "to crash.\n\n"
+           "Would you like to open the downloads page to reinstall?"),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if(res == QMessageBox::Yes)
+      QDesktopServices::openUrl(QUrl(lit("https://renderdoc.org/builds")));
+
+    SetUpdateAvailable();
+#endif
+    return true;
+  }
+
+  return false;
+}
+
+bool MainWindow::IsVersionMismatched()
+{
+  return QString::fromLatin1(RENDERDOC_GetVersionString()) != lit(MAJOR_MINOR_VERSION_STRING);
+}
+
 void MainWindow::ClearRecentCaptureFiles()
 {
   m_Ctx.Config().RecentCaptureFiles.clear();
@@ -952,14 +1013,150 @@ void MainWindow::PopulateReportedBugs()
 
   if(unread)
   {
-    ui->menu_Help->setIcon(Icons::bug());
+    if(!m_Ctx.Config().CheckUpdate_UpdateAvailable)
+      ui->menu_Help->setIcon(Icons::bug());
     ui->menu_Reported_Bugs->setIcon(Icons::bug());
   }
   else
   {
-    ui->menu_Help->setIcon(QIcon());
+    if(!m_Ctx.Config().CheckUpdate_UpdateAvailable)
+      ui->menu_Help->setIcon(QIcon());
     ui->menu_Reported_Bugs->setIcon(QIcon());
   }
+}
+
+void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
+{
+  if(!ui->action_Update_Available)
+    return;
+
+  bool mismatch = HandleMismatchedVersions();
+  if(mismatch)
+    return;
+
+  if(!forceCheck && !m_Ctx.Config().CheckUpdate_AllowChecks)
+  {
+    ui->action_Update_Available->setText(tr("Update checks disabled"));
+    ui->action_Update_Available->setEnabled(false);
+    if(callback)
+      callback(UpdateResult::Disabled);
+    return;
+  }
+
+#if RENDERDOC_OFFICIAL_BUILD
+  if(m_Ctx.Config().CheckUpdate_UpdateAvailable)
+  {
+    if(m_Ctx.Config().CheckUpdate_UpdateResponse.isEmpty())
+    {
+      forceCheck = true;
+    }
+    else if(!forceCheck)
+    {
+      SetUpdateAvailable();
+      return;
+    }
+  }
+
+  QDateTime today = QDateTime::currentDateTime();
+  QDateTime compare = today.addDays(-2);
+
+  qint64 diff = compare.secsTo(m_Ctx.Config().CheckUpdate_LastUpdate);
+
+  if(!forceCheck && diff > 0)
+  {
+    if(callback)
+      callback(UpdateResult::Toosoon);
+    return;
+  }
+
+  m_Ctx.Config().CheckUpdate_LastUpdate = today;
+  m_Ctx.Config().Save();
+
+#if QT_POINTER_SIZE == 4
+  QString bitness = lit("32");
+#else
+  QString bitness = lit("64");
+#endif
+  QString versionCheck = lit(MAJOR_MINOR_VERSION_STRING);
+
+  statusText->setText(tr("Checking for updates..."));
+
+  statusProgress->setVisible(true);
+  statusProgress->setMinimumSize(QSize(200, 0));
+  statusProgress->setMinimum(0);
+  statusProgress->setMaximum(0);
+
+  // call out to the status-check to see when the bug report was last updated
+  QNetworkReply *req = m_NetManager->get(QNetworkRequest(QUrl(
+      lit("https://renderdoc.org/getupdateurl/%1/%2?htmlnotes=1").arg(bitness).arg(versionCheck))));
+
+  QObject::connect(req, OverloadedSlot<QNetworkReply::NetworkError>::of(&QNetworkReply::error),
+                   [this, req](QNetworkReply::NetworkError) {
+                     qCritical() << "Network error:" << req->errorString();
+                   });
+
+  QObject::connect(req, &QNetworkReply::finished, [this, req, callback]() {
+    QString response = QString::fromUtf8(req->readAll());
+
+    statusText->setText(QString());
+    statusProgress->setVisible(false);
+    statusProgress->setMaximum(1000);
+
+    if(response.isEmpty())
+    {
+      m_Ctx.Config().CheckUpdate_UpdateAvailable = false;
+      m_Ctx.Config().CheckUpdate_UpdateResponse = "";
+      m_Ctx.Config().Save();
+      SetNoUpdate();
+
+      if(callback)
+        callback(UpdateResult::Latest);
+
+      return;
+    }
+
+    m_Ctx.Config().CheckUpdate_UpdateAvailable = true;
+    m_Ctx.Config().CheckUpdate_UpdateResponse = response;
+    m_Ctx.Config().Save();
+    SetUpdateAvailable();
+    UpdatePopup();
+  });
+#else    //! RENDERDOC_OFFICIAL_BUILD
+  {
+    if(callback)
+      callback(UpdateResult::Unofficial);
+    return;
+  }
+#endif
+}
+
+void MainWindow::SetUpdateAvailable()
+{
+  if(!ui->action_Update_Available)
+    return;
+
+  ui->menu_Help->setIcon(Icons::hourglass());
+  ui->action_Update_Available->setEnabled(true);
+  ui->action_Update_Available->setText(tr("An update is available"));
+}
+
+void MainWindow::SetNoUpdate()
+{
+  if(!ui->action_Update_Available)
+    return;
+
+  ui->menu_Help->setIcon(QIcon());
+  ui->action_Update_Available->setEnabled(false);
+  ui->action_Update_Available->setText(tr("No update available"));
+}
+
+void MainWindow::UpdatePopup()
+{
+  if(!m_Ctx.Config().CheckUpdate_UpdateAvailable || !m_Ctx.Config().CheckUpdate_AllowChecks)
+    return;
+
+  UpdateDialog update((QString)m_Ctx.Config().CheckUpdate_UpdateResponse);
+  RDDialog::show(&update);
 }
 
 void MainWindow::ShowLiveCapture(LiveCapture *live)
@@ -1124,6 +1321,7 @@ void MainWindow::setProgress(float val)
   else
   {
     statusProgress->setVisible(true);
+    statusProgress->setMaximum(1000);
     statusProgress->setValue(1000 * val);
   }
 }
@@ -1970,6 +2168,54 @@ void MainWindow::on_action_Send_Error_Report_triggered()
   PopulateReportedBugs();
 
   QFile::remove(QString(report));
+}
+
+void MainWindow::on_action_Check_for_Updates_triggered()
+{
+  CheckUpdates(true, [this](UpdateResult updateResult) {
+    switch(updateResult)
+    {
+      case UpdateResult::Disabled:
+      case UpdateResult::Toosoon:
+      {
+        // won't happen, we forced the check
+        break;
+      }
+      case UpdateResult::Unofficial:
+      {
+        QMessageBox::StandardButton res =
+            RDDialog::question(this, tr("Unofficial build"),
+                               tr("You are running an unofficial build, not a stable release.\n"
+                                  "Updates are only available for installed release builds\n\n"
+                                  "Would you like to open the builds list in a browser?"));
+
+        if(res == QMessageBox::Yes)
+          QDesktopServices::openUrl(lit("https://renderdoc.org/builds"));
+        break;
+      }
+      case UpdateResult::Latest:
+      {
+        RDDialog::information(this, tr("Latest version"),
+                              tr("You are running the latest version."));
+        break;
+      }
+      case UpdateResult::Upgrade:
+      {
+        // CheckUpdates() will have shown a dialog for this
+        break;
+      }
+    }
+  });
+}
+
+void MainWindow::on_action_Update_Available_triggered()
+{
+  bool mismatch = HandleMismatchedVersions();
+  if(mismatch)
+    return;
+
+  SetUpdateAvailable();
+  UpdatePopup();
 }
 
 void MainWindow::saveLayout_triggered()

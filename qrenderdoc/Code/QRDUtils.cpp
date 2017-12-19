@@ -26,6 +26,7 @@
 #include <QAbstractTextDocumentLayout>
 #include <QApplication>
 #include <QElapsedTimer>
+#include <QElapsedTimer>
 #include <QFileSystemModel>
 #include <QFontDatabase>
 #include <QGridLayout>
@@ -38,6 +39,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QProcess>
+#include <QProgressBar>
 #include <QProgressDialog>
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
@@ -1556,6 +1558,75 @@ void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinis
   // to clean itself up
   tickerSemaphore.tryAcquire();
   progressTickerThread.wait();
+}
+
+void UpdateTransferProgress(qint64 xfer, qint64 total, QElapsedTimer *timer,
+                            QProgressBar *progressBar, QLabel *progressLabel, QString progressText)
+{
+  if(xfer >= total)
+  {
+    progressBar->setMaximum(10000);
+    progressBar->setValue(10000);
+    return;
+  }
+
+  if(total <= 0)
+  {
+    progressBar->setMaximum(10000);
+    progressBar->setValue(0);
+    return;
+  }
+
+  progressBar->setMaximum(10000);
+  progressBar->setValue(int(10000.0 * (double(xfer) / double(total))));
+
+  double xferMB = double(xfer) / 1000000.0;
+  double totalMB = double(total) / 1000000.0;
+
+  double secondsElapsed = double(timer->nsecsElapsed()) * 1.0e-9;
+
+  double speedMBS = xferMB / secondsElapsed;
+
+  qulonglong secondsRemaining = qulonglong(double(totalMB - xferMB) / speedMBS);
+
+  if(secondsElapsed > 1.0)
+  {
+    QString remainString;
+
+    qulonglong minutesRemaining = (secondsRemaining / 60) % 60;
+    qulonglong hoursRemaining = (secondsRemaining / 3600);
+    secondsRemaining %= 60;
+
+    if(hoursRemaining > 0)
+      remainString = QFormatStr("%1:%2:%3")
+                         .arg(hoursRemaining, 2, 10, QLatin1Char('0'))
+                         .arg(minutesRemaining, 2, 10, QLatin1Char('0'))
+                         .arg(secondsRemaining, 2, 10, QLatin1Char('0'));
+    else if(minutesRemaining > 0)
+      remainString = QFormatStr("%1:%2")
+                         .arg(minutesRemaining, 2, 10, QLatin1Char('0'))
+                         .arg(secondsRemaining, 2, 10, QLatin1Char('0'));
+    else
+      remainString = QApplication::translate("qrenderdoc", "%1 seconds").arg(secondsRemaining);
+
+    double speed = speedMBS;
+
+    bool MBs = true;
+    if(speedMBS < 1)
+    {
+      MBs = false;
+      speed *= 1000;
+    }
+
+    progressLabel->setText(
+        QApplication::translate("qrenderdoc", "%1\n%2 MB / %3 MB. %4 remaining (%5 %6)")
+            .arg(progressText)
+            .arg(xferMB, 0, 'f', 2)
+            .arg(totalMB, 0, 'f', 2)
+            .arg(remainString)
+            .arg(speed, 0, 'f', 2)
+            .arg(MBs ? lit("MB/s") : lit("KB/s")));
+  }
 }
 
 void setEnabledMultiple(const QList<QWidget *> &widgets, bool enabled)

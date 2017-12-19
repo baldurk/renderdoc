@@ -578,6 +578,7 @@
     <ClCompile Include="$(IntDir)generated\moc_RDTweakedNativeStyle.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_AboutDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_CrashDialog.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_UpdateDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_AnalyticsConfirmDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_AnalyticsPromptDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_APIInspector.cpp" />
@@ -690,6 +691,7 @@
     <ClCompile Include="Windows\CommentView.cpp" />
     <ClCompile Include="Windows\Dialogs\AboutDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\CrashDialog.cpp" />
+    <ClCompile Include="Windows\Dialogs\UpdateDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\AnalyticsConfirmDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\AnalyticsPromptDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp" />
@@ -888,6 +890,7 @@
     <ClInclude Include="Code\Resources.h" />
     <ClInclude Include="$(IntDir)generated\ui_AboutDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_CrashDialog.h" />
+    <ClInclude Include="$(IntDir)generated\ui_UpdateDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_AnalyticsConfirmDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_AnalyticsPromptDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_APIInspector.h" />
@@ -1123,6 +1126,12 @@
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\CrashDialog.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\UpdateDialog.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
       <Message>MOC %(Filename).h</Message>
@@ -1369,6 +1378,12 @@
       <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\CrashDialog.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\UpdateDialog.ui">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
       <Message>UIC %(Filename).ui</Message>

@@ -222,6 +222,12 @@ void SettingsDialog::on_CheckUpdate_AllowChecks_toggled(bool checked)
 {
   m_Ctx.Config().CheckUpdate_AllowChecks = ui->CheckUpdate_AllowChecks->isChecked();
 
+  if(!m_Ctx.Config().CheckUpdate_AllowChecks)
+  {
+    m_Ctx.Config().CheckUpdate_UpdateAvailable = false;
+    m_Ctx.Config().CheckUpdate_UpdateResponse = "";
+  }
+
   m_Ctx.Config().Save();
 }
 

@@ -515,6 +515,8 @@ class QGridLayout;
 void addGridLines(QGridLayout *grid, QColor gridColor);
 
 class QProgressDialog;
+class QProgressBar;
+class QElapsedTimer;
 
 typedef std::function<float()> ProgressUpdateMethod;
 typedef std::function<bool()> ProgressFinishedMethod;
@@ -526,6 +528,9 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
 
 void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinishedMethod finished,
                         ProgressUpdateMethod update = ProgressUpdateMethod());
+
+void UpdateTransferProgress(qint64 xfer, qint64 total, QElapsedTimer *timer,
+                            QProgressBar *progressBar, QLabel *progressLabel, QString progressText);
 
 void setEnabledMultiple(const QList<QWidget *> &widgets, bool enabled);
 
