@@ -286,7 +286,7 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
   // pessimistic DepthPitch alignment
   const UINT WorstDepthPitchAlign = 256;
 
-  ResourcePitch pitch = {WorstRowPitchAlign, WorstDepthPitchAlign};
+  ResourcePitch pitch = {};
 
   D3D11ResourceType type = IdentifyTypeByPtr(res);
 
@@ -362,14 +362,11 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
           numRows = AlignUp4(numRows) / 4;
 
         if(stage)
+        {
           pitch = GetResourcePitchForSubresource(m_pImmediateContext->GetReal(), stage, sub);
-        else
-          pitch = {WorstRowPitchAlign, WorstDepthPitchAlign};
+          ret += pitch.m_RowPitch * numRows;
+        }
 
-        const UINT RowPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
-        const UINT WorstRowPitch = AlignUp(RowPitch, pitch.m_RowPitch);
-
-        ret += WorstRowPitch * numRows;
         ret += (uint32_t)WriteSerialiser::GetChunkAlignment();
       }
     }
@@ -394,21 +391,11 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
       UINT mip = GetMipForSubresource(tex, sub);
 
       if(stage)
+      {
         pitch = GetResourcePitchForSubresource(m_pImmediateContext->GetReal(), stage, sub);
-      else
-        pitch = {WorstRowPitchAlign, WorstDepthPitchAlign};
+        ret += pitch.m_DepthPitch * RDCMAX(1U, desc.Depth >> mip);
+      }
 
-      uint32_t numRows = RDCMAX(1U, desc.Height >> mip);
-      if(IsBlockFormat(desc.Format))
-        numRows = AlignUp4(numRows) / 4;
-
-      const UINT RowPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
-      const UINT WorstRowPitch = AlignUp(RowPitch, pitch.m_RowPitch);
-
-      const UINT DepthPitch = WorstRowPitch * numRows;
-      const UINT WorstDepthPitch = AlignUp(DepthPitch, pitch.m_DepthPitch);
-
-      ret += WorstDepthPitch * RDCMAX(1U, desc.Depth >> mip);
       ret += (uint32_t)WriteSerialiser::GetChunkAlignment();
     }
   }
