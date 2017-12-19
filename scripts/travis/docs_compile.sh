@@ -2,4 +2,4 @@
 set -ev
 
 cd docs/
-make html
+make html SPHINXOPTS=-W
