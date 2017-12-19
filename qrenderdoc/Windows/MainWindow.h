@@ -43,6 +43,7 @@ class QProgressBar;
 class QToolButton;
 class CaptureDialog;
 class LiveCapture;
+class QNetworkAccessManager;
 
 class MainWindow : public QMainWindow, public IMainWindow, public ICaptureViewer
 {
@@ -102,6 +103,7 @@ public:
   void showResourceInspector() { on_action_Resource_Inspector_triggered(); }
   void PopulateRecentCaptureFiles();
   void PopulateRecentCaptureSettings();
+  void PopulateReportedBugs();
 private slots:
   // automatic slots
   void on_action_Exit_triggered();
@@ -135,6 +137,7 @@ private slots:
   void on_action_Show_Tips_triggered();
   void on_action_Counter_Viewer_triggered();
   void on_action_Resource_Inspector_triggered();
+  void on_action_Send_Error_Report_triggered();
 
   // manual slots
   void saveLayout_triggered();
@@ -176,6 +179,8 @@ private:
   QTimer m_MessageTick;
   QSemaphore m_RemoteProbeSemaphore;
   LambdaThread *m_RemoteProbe;
+
+  QNetworkAccessManager *m_NetManager;
 
   bool m_messageAlternate = false;
 

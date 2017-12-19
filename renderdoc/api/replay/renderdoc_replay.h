@@ -1880,9 +1880,16 @@ DOCUMENT("Internal function for initialising global process environment in a rep
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitGlobalEnv(GlobalEnvironment env,
                                                                    const rdcarray<rdcstr> &args);
 
-DOCUMENT("Internal function for triggering exception handler.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs,
-                                                                             bool crashed);
+DOCUMENT("Internal function for creating a bug report zip.");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const char *logfile,
+                                                                     const char *dumpfile,
+                                                                     rdcstr &report);
+
+DOCUMENT("Internal function for registering a memory region to be saved with crash dumps.");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_RegisterMemoryRegion(void *base, size_t size);
+
+DOCUMENT("Internal function for unregistering a memory region to be saved with crash dumps.");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UnregisterMemoryRegion(void *base);
 
 DOCUMENT(R"(Sets the location for the diagnostic log output, shared by captured programs and the
 analysis program.

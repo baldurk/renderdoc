@@ -60,6 +60,8 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
   m_CaptureLoaded = false;
   m_LoadInProgress = false;
 
+  RENDERDOC_RegisterMemoryRegion(this, sizeof(CaptureContext));
+
   memset(&m_APIProps, 0, sizeof(m_APIProps));
 
   m_CurD3D11PipelineState = &m_DummyD3D11;
@@ -93,6 +95,7 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
 
 CaptureContext::~CaptureContext()
 {
+  RENDERDOC_UnregisterMemoryRegion(this);
   delete m_Icon;
   m_Renderer.CloseThread();
   delete m_MainWindow;
@@ -128,6 +131,9 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const rdcstr &origFi
                                  bool temporary, bool local)
 {
   m_LoadInProgress = true;
+
+  if(local)
+    m_Config.CrashReport_LastOpenedCapture = origFilename;
 
   bool newCapture = (!temporary && !Config().RecentCaptureFiles.contains(origFilename));
 
@@ -792,6 +798,8 @@ void CaptureContext::CloseCapture()
 {
   if(!m_CaptureLoaded)
     return;
+
+  m_Config.CrashReport_LastOpenedCapture = QString();
 
   m_CaptureTemporary = false;
 

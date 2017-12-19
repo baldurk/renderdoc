@@ -15,7 +15,9 @@
 
 %{
   #define ENABLE_QT_CONVERT
+  #define RENDERDOC_QT_COMPAT
 
+  #include <QColor>
   #include <QDateTime>
   #include <QTimeZone>
   #include <QMap>
@@ -85,6 +87,7 @@ TEMPLATE_ARRAY_INSTANTIATE(rdcarray, VertexInputAttribute)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BoundResource)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BoundResourceArray)
 TEMPLATE_ARRAY_INSTANTIATE(rdcarray, rdcstrpair)
+TEMPLATE_ARRAY_INSTANTIATE(rdcarray, BugReport)
 TEMPLATE_ARRAY_INSTANTIATE_PTR(rdcarray, ICaptureViewer)
 
 // unignore the function from above

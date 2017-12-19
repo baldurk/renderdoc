@@ -31,6 +31,7 @@
 #include "core/core.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
+#include "miniz/miniz.h"
 #include "strings/string_utils.h"
 
 // these entry points are for the replay/analysis side - not for the application.
@@ -237,32 +238,62 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitGlobalEnv(GlobalEnviron
     argsVec.push_back(a.c_str());
 
   RenderDoc::Inst().ProcessGlobalEnvironment(env, argsVec);
-}
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs,
-                                                                             bool crashed)
-{
   if(RenderDoc::Inst().GetCrashHandler() == NULL)
     return;
 
-  if(exceptionPtrs)
+  for(const rdcstr &s : args)
   {
-    RenderDoc::Inst().GetCrashHandler()->WriteMinidump(exceptionPtrs);
-  }
-  else
-  {
-    if(!crashed)
+    if(s == "--crash")
     {
-      RDCLOG("Writing crash log");
-    }
-
-    RenderDoc::Inst().GetCrashHandler()->WriteMinidump();
-
-    if(!crashed)
-    {
-      RenderDoc::Inst().RecreateCrashHandler();
+      RenderDoc::Inst().UnloadCrashHandler();
+      return;
     }
   }
+
+  RenderDoc::Inst().RecreateCrashHandler();
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const char *logfile,
+                                                                     const char *dumpfile,
+                                                                     rdcstr &report)
+{
+  mz_zip_archive zip;
+  RDCEraseEl(zip);
+
+  report = FileIO::GetTempFolderFilename() + "/renderdoc_report.zip";
+
+  FileIO::Delete(report.c_str());
+
+  mz_zip_writer_init_file(&zip, report.c_str(), 0);
+
+  if(dumpfile && dumpfile[0])
+    mz_zip_writer_add_file(&zip, "minidump.dmp", dumpfile, NULL, 0, MZ_BEST_COMPRESSION);
+
+  if(logfile && logfile[0])
+  {
+    std::string contents = FileIO::logfile_readall(logfile);
+    mz_zip_writer_add_mem(&zip, "error.log", contents.data(), contents.length(), MZ_BEST_COMPRESSION);
+  }
+
+  mz_zip_writer_finalize_archive(&zip);
+  mz_zip_writer_end(&zip);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_RegisterMemoryRegion(void *base, size_t size)
+{
+  ICrashHandler *handler = RenderDoc::Inst().GetCrashHandler();
+
+  if(handler)
+    handler->RegisterMemoryRegion(base, size);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UnregisterMemoryRegion(void *base)
+{
+  ICrashHandler *handler = RenderDoc::Inst().GetCrashHandler();
+
+  if(handler)
+    handler->UnregisterMemoryRegion(base);
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC

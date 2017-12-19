@@ -33,10 +33,13 @@ ReplayManager::ReplayManager()
 {
   m_Running = false;
   m_Thread = NULL;
+
+  RENDERDOC_RegisterMemoryRegion(this, sizeof(ReplayManager));
 }
 
 ReplayManager::~ReplayManager()
 {
+  RENDERDOC_UnregisterMemoryRegion(this);
 }
 
 void ReplayManager::OpenCapture(const QString &capturefile, float *progress)

@@ -28,6 +28,8 @@
 #include <QFileInfo>
 #include <QMimeData>
 #include <QMouseEvent>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QPixmapCache>
 #include <QProgressBar>
 #include <QProgressDialog>
@@ -39,6 +41,7 @@
 #include "Widgets/Extended/RDLabel.h"
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
+#include "Windows/Dialogs/CrashDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/Dialogs/RemoteManager.h"
 #include "Windows/Dialogs/SettingsDialog.h"
@@ -171,8 +174,79 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
   SetTitle();
 
+#if defined(RELEASE)
+  ui->action_Send_Error_Report->setEnabled(true);
+#else
+  ui->action_Send_Error_Report->setEnabled(false);
+#endif
+
   PopulateRecentCaptureFiles();
   PopulateRecentCaptureSettings();
+  PopulateReportedBugs();
+
+  m_NetManager = new QNetworkAccessManager(this);
+
+  rdcarray<BugReport> bugs = m_Ctx.Config().CrashReport_ReportedBugs;
+  LambdaThread *bugupdate = new LambdaThread([this, bugs]() {
+    QDateTime now = QDateTime::currentDateTimeUtc();
+
+    // loop over all the bugs
+    for(const BugReport &b : bugs)
+    {
+      // check bugs every two days
+      qint64 diff = b.CheckDate.secsTo(now);
+      if(diff > 2 * 24 * 60 * 60)
+      {
+        // update the check date on the stored bug
+        GUIInvoke::call([this, b, now]() {
+          for(BugReport &bug : m_Ctx.Config().CrashReport_ReportedBugs)
+          {
+            if(bug.ID == b.ID)
+            {
+              bug.CheckDate = now;
+              break;
+            }
+          }
+          m_Ctx.Config().Save();
+
+          // call out to the status-check to see when the bug report was last updated
+          QNetworkReply *reply =
+              m_NetManager->get(QNetworkRequest(QUrl(QString(b.URL()) + lit("/check"))));
+
+          QObject::connect(reply, &QNetworkReply::finished, [this, reply, b]() {
+            QString response = QString::fromUtf8(reply->readAll());
+
+            if(response.isEmpty())
+              return;
+
+            // only look at the first line of the response
+            int idx = response.indexOf(QLatin1Char('\n'));
+
+            if(idx > 0)
+              response.truncate(idx);
+
+            QDateTime update = QDateTime::fromString(response, lit("yyyy-MM-dd HH:mm:ss"));
+
+            // if there's been an update since the last check, set unread
+            if(update.isValid() && update > b.CheckDate)
+            {
+              for(BugReport &bug : m_Ctx.Config().CrashReport_ReportedBugs)
+              {
+                if(bug.ID == b.ID)
+                {
+                  bug.UnreadUpdates = true;
+                  break;
+                }
+              }
+              PopulateReportedBugs();
+            }
+          });
+        });
+      }
+    }
+  });
+  bugupdate->selfDelete(true);
+  bugupdate->start();
 
   ui->toolWindowManager->setToolWindowCreateCallback([this](const QString &objectName) -> QWidget * {
     return m_Ctx.CreateBuiltinWindow(objectName);
@@ -832,6 +906,60 @@ void MainWindow::PopulateRecentCaptureSettings()
 
   ui->menu_Recent_Capture_Settings->addSeparator();
   ui->menu_Recent_Capture_Settings->addAction(ui->action_Clear_Capture_Settings_History);
+}
+
+void MainWindow::PopulateReportedBugs()
+{
+  ui->menu_Reported_Bugs->clear();
+
+  ui->menu_Reported_Bugs->setEnabled(false);
+
+  bool unread = false;
+
+  int idx = 1;
+  for(int i = m_Ctx.Config().CrashReport_ReportedBugs.count() - 1; i >= 0; i--)
+  {
+    BugReport &bug = m_Ctx.Config().CrashReport_ReportedBugs[i];
+    QString fmt = tr("&%1: Bug reported at %2");
+
+    if(bug.UnreadUpdates)
+      fmt = tr("&%1: (Update) Bug reported at %2");
+
+    QAction *action =
+        ui->menu_Reported_Bugs->addAction(fmt.arg(idx).arg(bug.SubmitDate.toString()), [this, i] {
+          BugReport &bug = m_Ctx.Config().CrashReport_ReportedBugs[i];
+
+          QDesktopServices::openUrl(QString(bug.URL()));
+
+          bug.UnreadUpdates = false;
+          m_Ctx.Config().Save();
+
+          PopulateReportedBugs();
+        });
+    idx++;
+
+    if(bug.UnreadUpdates)
+    {
+      action->setIcon(Icons::bug());
+      unread = true;
+    }
+
+    ui->menu_Reported_Bugs->setEnabled(true);
+  }
+
+  ui->menu_Reported_Bugs->addSeparator();
+  ui->menu_Reported_Bugs->addAction(ui->action_Clear_Reported_Bugs);
+
+  if(unread)
+  {
+    ui->menu_Help->setIcon(Icons::bug());
+    ui->menu_Reported_Bugs->setIcon(Icons::bug());
+  }
+  else
+  {
+    ui->menu_Help->setIcon(QIcon());
+    ui->menu_Reported_Bugs->setIcon(QIcon());
+  }
 }
 
 void MainWindow::ShowLiveCapture(LiveCapture *live)
@@ -1820,6 +1948,28 @@ void MainWindow::on_action_Resource_Inspector_triggered()
     ToolWindowManager::raiseToolWindow(resourceInspector);
   else
     ui->toolWindowManager->addToolWindow(resourceInspector, mainToolArea());
+}
+
+void MainWindow::on_action_Send_Error_Report_triggered()
+{
+  rdcstr report;
+  RENDERDOC_CreateBugReport(RENDERDOC_GetLogFile(), "", report);
+
+  QVariantMap json;
+
+  json[lit("version")] = lit(FULL_VERSION_STRING);
+  json[lit("gitcommit")] = lit(GIT_COMMIT_HASH);
+  json[lit("replaycrash")] = 1;
+  json[lit("report")] = (QString)report;
+
+  CrashDialog crash(m_Ctx.Config(), json, this);
+
+  RDDialog::show(&crash);
+
+  m_Ctx.Config().Save();
+  PopulateReportedBugs();
+
+  QFile::remove(QString(report));
 }
 
 void MainWindow::saveLayout_triggered()

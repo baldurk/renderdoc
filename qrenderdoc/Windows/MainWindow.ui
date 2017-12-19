@@ -140,11 +140,19 @@
     <property name="title">
      <string>&amp;Help</string>
     </property>
+    <widget class="QMenu" name="menu_Reported_Bugs">
+     <property name="title">
+      <string>&amp;Reported Bugs</string>
+     </property>
+     <addaction name="separator"/>
+     <addaction name="action_Clear_Reported_Bugs"/>
+    </widget>
     <addaction name="action_View_Documentation"/>
     <addaction name="action_View_Diagnostic_Log_File"/>
     <addaction name="action_Show_Tips"/>
     <addaction name="separator"/>
     <addaction name="action_Send_Error_Report"/>
+    <addaction name="menu_Reported_Bugs"/>
     <addaction name="separator"/>
     <addaction name="action_Update_Available"/>
     <addaction name="separator"/>
@@ -428,6 +436,11 @@
   <action name="action_Recompress_Capture">
    <property name="text">
     <string>Re&amp;compress Capture</string>
+   </property>
+  </action>
+  <action name="action_Clear_Reported_Bugs">
+   <property name="text">
+    <string>&amp;Clear Reported Bugs</string>
    </property>
   </action>
  </widget>

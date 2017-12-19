@@ -385,3 +385,28 @@ SPIRVDisassembler::operator QVariant() const
 
   return map;
 }
+
+BugReport::BugReport(const QVariant &var)
+{
+  QVariantMap map = var.toMap();
+  if(map.contains(lit("ID")))
+    ID = map[lit("ID")].toString();
+  if(map.contains(lit("SubmitDate")))
+    SubmitDate = map[lit("SubmitDate")].toDateTime();
+  if(map.contains(lit("CheckDate")))
+    CheckDate = map[lit("CheckDate")].toDateTime();
+  if(map.contains(lit("UnreadUpdates")))
+    UnreadUpdates = map[lit("UnreadUpdates")].toBool();
+}
+
+BugReport::operator QVariant() const
+{
+  QVariantMap map;
+
+  map[lit("ID")] = ID;
+  map[lit("SubmitDate")] = SubmitDate;
+  map[lit("CheckDate")] = CheckDate;
+  map[lit("UnreadUpdates")] = UnreadUpdates;
+
+  return map;
+}

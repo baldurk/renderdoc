@@ -577,6 +577,7 @@
     <ClCompile Include="$(IntDir)generated\moc_RDStyle.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_RDTweakedNativeStyle.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_AboutDialog.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_CrashDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_AnalyticsConfirmDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_AnalyticsPromptDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_APIInspector.cpp" />
@@ -688,6 +689,7 @@
     <ClCompile Include="Windows\DebugMessageView.cpp" />
     <ClCompile Include="Windows\CommentView.cpp" />
     <ClCompile Include="Windows\Dialogs\AboutDialog.cpp" />
+    <ClCompile Include="Windows\Dialogs\CrashDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\AnalyticsConfirmDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\AnalyticsPromptDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp" />
@@ -885,6 +887,7 @@
     <ClInclude Include="Code\pyrenderdoc\structured_conversion.h" />
     <ClInclude Include="Code\Resources.h" />
     <ClInclude Include="$(IntDir)generated\ui_AboutDialog.h" />
+    <ClInclude Include="$(IntDir)generated\ui_CrashDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_AnalyticsConfirmDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_AnalyticsPromptDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_APIInspector.h" />
@@ -1114,6 +1117,12 @@
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\AboutDialog.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\CrashDialog.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui" -I"$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
       <Message>MOC %(Filename).h</Message>
@@ -1359,6 +1368,12 @@
       <Message>UIC %(Filename).ui</Message>
       <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
     </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\CrashDialog.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\AnalyticsConfirmDialog.ui">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
@@ -1519,42 +1534,6 @@
     <None Include="Code\pyrenderdoc\pyconversion.h" />
     <None Include="Code\pyrenderdoc\pyconversion.i" />
     <None Include="Code\pyrenderdoc\cosmetics.i" />
-    <None Include="Resources\128.png" />
-    <None Include="Resources\accept.png" />
-    <None Include="Resources\add.png" />
-    <None Include="Resources\arrow_in.png" />
-    <None Include="Resources\arrow_join.png" />
-    <None Include="Resources\arrow_undo.png" />
-    <None Include="Resources\asterisk_orange.png" />
-    <None Include="Resources\chart_curve.png" />
-    <None Include="Resources\cog.png" />
-    <None Include="Resources\cog_go.png" />
-    <None Include="Resources\color_wheel.png" />
-    <None Include="Resources\connect.png" />
-    <None Include="Resources\cross.png" />
-    <None Include="Resources\crosshatch.png" />
-    <None Include="Resources\delete.png" />
-    <None Include="Resources\disconnect.png" />
-    <None Include="Resources\find.png" />
-    <None Include="Resources\fit_window.png" />
-    <None Include="Resources\flag_green.png" />
-    <None Include="Resources\flip_y.png" />
-    <None Include="Resources\folder_page.png" />
-    <None Include="Resources\glsl.xml" />
-    <None Include="Resources\hlsl.xml" />
-    <None Include="Resources\hourglass.png" />
-    <None Include="Resources\icon.ico" />
-    <None Include="Resources\information.png" />
-    <None Include="Resources\new_window.png" />
-    <None Include="Resources\link.png" />
-    <None Include="Resources\page_white_database.png" />
-    <None Include="Resources\page_white_delete.png" />
-    <None Include="Resources\page_white_edit.png" />
-    <None Include="Resources\page_white_go.png" />
-    <None Include="Resources\page_white_link.png" />
-    <None Include="Resources\page_white_stack.png" />
-    <None Include="Resources\plugin_add.png" />
-    <None Include="Resources\red_x_16.png" />
     <CustomBuild Include="Resources\resources.qrc">
       <AdditionalInputs>Resources\resources.qrc;$(ProjectDir)3rdparty\qt\$(Platform)\bin\rcc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(ProjectDir)3rdparty\qt\$(Platform)\bin\rcc.exe" -name resources Resources\resources.qrc -o "$(IntDir)generated\qrc_resources.cpp"</Command>
@@ -1573,31 +1552,6 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
       <Message>RCC qtconf.qrc</Message>
       <Outputs>$(IntDir)generated\qrc_qtconf.cpp</Outputs>
     </CustomBuild>
-    <None Include="Resources\runback.png" />
-    <None Include="Resources\runcursor.png" />
-    <None Include="Resources\runfwd.png" />
-    <None Include="Resources\save.png" />
-    <None Include="Resources\stepnext.png" />
-    <None Include="Resources\stepprev.png" />
-    <None Include="Resources\tick.png" />
-    <None Include="Resources\time.png" />
-    <None Include="Resources\timeline_marker.png" />
-    <None Include="Resources\topologies\topo_linelist.png" />
-    <None Include="Resources\topologies\topo_linelist_adj.png" />
-    <None Include="Resources\topologies\topo_linestrip.png" />
-    <None Include="Resources\topologies\topo_linestrip_adj.png" />
-    <None Include="Resources\topologies\topo_patch.png" />
-    <None Include="Resources\topologies\topo_pointlist.png" />
-    <None Include="Resources\topologies\topo_trilist.png" />
-    <None Include="Resources\topologies\topo_trilist_adj.png" />
-    <None Include="Resources\topologies\topo_tristrip.png" />
-    <None Include="Resources\topologies\topo_tristrip_adj.png" />
-    <None Include="Resources\wand.png" />
-    <None Include="Resources\wireframe_mesh.png" />
-    <None Include="Resources\wrench.png" />
-    <None Include="Resources\zoom.png" />
-    <None Include="Resources\action.png" />
-    <None Include="Resources\action_hover.png" />
     <CustomBuild Include="Windows\Dialogs\PerformanceCounterSelection.ui">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(IntDir)generated\ui_%(Filename).h</Command>
@@ -1605,6 +1559,9 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
       <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
       <SubType>Designer</SubType>
     </CustomBuild>
+    <None Include="Resources\logo.svg" />
+    <None Include="Resources\qt.conf" />
+    <None Include="Resources\README.md" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="3rdparty\python\python36.zip">
@@ -1742,6 +1699,119 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <ResourceCompile Include="Resources\qrenderdoc.rc">
       <PreprocessorDefinitions>RENDERDOC_PY_PATH=.\..\$(SolutionRelativeIntDir)\generated\renderdoc.py;QRENDERDOC_PY_PATH=.\..\$(SolutionRelativeIntDir)\generated\qrenderdoc.py;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\action%402x.png" />
+    <Image Include="Resources\action.png" />
+    <Image Include="Resources\action_hover%402x.png" />
+    <Image Include="Resources\action_hover.png" />
+    <Image Include="Resources\add%402x.png" />
+    <Image Include="Resources\add.png" />
+    <Image Include="Resources\arrow_in%402x.png" />
+    <Image Include="Resources\arrow_in.png" />
+    <Image Include="Resources\arrow_join%402x.png" />
+    <Image Include="Resources\arrow_join.png" />
+    <Image Include="Resources\arrow_left%402x.png" />
+    <Image Include="Resources\arrow_left.png" />
+    <Image Include="Resources\arrow_out%402x.png" />
+    <Image Include="Resources\arrow_out.png" />
+    <Image Include="Resources\arrow_right%402x.png" />
+    <Image Include="Resources\arrow_right.png" />
+    <Image Include="Resources\arrow_undo%402x.png" />
+    <Image Include="Resources\arrow_undo.png" />
+    <Image Include="Resources\asterisk_orange%402x.png" />
+    <Image Include="Resources\asterisk_orange.png" />
+    <Image Include="Resources\bug%402x.png" />
+    <Image Include="Resources\bug.png" />
+    <Image Include="Resources\chart_curve%402x.png" />
+    <Image Include="Resources\chart_curve.png" />
+    <Image Include="Resources\checkerboard%402x.png" />
+    <Image Include="Resources\checkerboard.png" />
+    <Image Include="Resources\cog%402x.png" />
+    <Image Include="Resources\cog.png" />
+    <Image Include="Resources\color_wheel%402x.png" />
+    <Image Include="Resources\color_wheel.png" />
+    <Image Include="Resources\connect%402x.png" />
+    <Image Include="Resources\connect.png" />
+    <Image Include="Resources\control_base_blue%402x.png" />
+    <Image Include="Resources\control_base_blue.png" />
+    <Image Include="Resources\control_cursor_blue%402x.png" />
+    <Image Include="Resources\control_cursor_blue.png" />
+    <Image Include="Resources\control_end_blue%402x.png" />
+    <Image Include="Resources\control_end_blue.png" />
+    <Image Include="Resources\control_nan_blue%402x.png" />
+    <Image Include="Resources\control_nan_blue.png" />
+    <Image Include="Resources\control_play_blue%402x.png" />
+    <Image Include="Resources\control_play_blue.png" />
+    <Image Include="Resources\control_reverse_blue%402x.png" />
+    <Image Include="Resources\control_reverse_blue.png" />
+    <Image Include="Resources\control_sample_blue%402x.png" />
+    <Image Include="Resources\control_sample_blue.png" />
+    <Image Include="Resources\control_start_blue%402x.png" />
+    <Image Include="Resources\control_start_blue.png" />
+    <Image Include="Resources\cross%402x.png" />
+    <Image Include="Resources\cross.png" />
+    <Image Include="Resources\del%402x.png" />
+    <Image Include="Resources\del.png" />
+    <Image Include="Resources\disconnect%402x.png" />
+    <Image Include="Resources\disconnect.png" />
+    <Image Include="Resources\find%402x.png" />
+    <Image Include="Resources\find.png" />
+    <Image Include="Resources\flag_green%402x.png" />
+    <Image Include="Resources\flag_green.png" />
+    <Image Include="Resources\flip_y%402x.png" />
+    <Image Include="Resources\flip_y.png" />
+    <Image Include="Resources\folder%402x.png" />
+    <Image Include="Resources\folder.png" />
+    <Image Include="Resources\folder_page_white%402x.png" />
+    <Image Include="Resources\folder_page_white.png" />
+    <Image Include="Resources\hourglass%402x.png" />
+    <Image Include="Resources\hourglass.png" />
+    <Image Include="Resources\house%402x.png" />
+    <Image Include="Resources\house.png" />
+    <Image Include="Resources\icon.ico" />
+    <Image Include="Resources\information%402x.png" />
+    <Image Include="Resources\information.png" />
+    <Image Include="Resources\link%402x.png" />
+    <Image Include="Resources\link.png" />
+    <Image Include="Resources\page_go%402x.png" />
+    <Image Include="Resources\page_go.png" />
+    <Image Include="Resources\page_white_code%402x.png" />
+    <Image Include="Resources\page_white_code.png" />
+    <Image Include="Resources\page_white_database%402x.png" />
+    <Image Include="Resources\page_white_database.png" />
+    <Image Include="Resources\page_white_delete%402x.png" />
+    <Image Include="Resources\page_white_delete.png" />
+    <Image Include="Resources\page_white_edit%402x.png" />
+    <Image Include="Resources\page_white_edit.png" />
+    <Image Include="Resources\page_white_link%402x.png" />
+    <Image Include="Resources\page_white_link.png" />
+    <Image Include="Resources\page_white_stack%402x.png" />
+    <Image Include="Resources\page_white_stack.png" />
+    <Image Include="Resources\plugin_add%402x.png" />
+    <Image Include="Resources\plugin_add.png" />
+    <Image Include="Resources\save%402x.png" />
+    <Image Include="Resources\save.png" />
+    <Image Include="Resources\tick%402x.png" />
+    <Image Include="Resources\tick.png" />
+    <Image Include="Resources\time%402x.png" />
+    <Image Include="Resources\time.png" />
+    <Image Include="Resources\timeline_marker%402x.png" />
+    <Image Include="Resources\timeline_marker.png" />
+    <Image Include="Resources\upfolder%402x.png" />
+    <Image Include="Resources\upfolder.png" />
+    <Image Include="Resources\wand%402x.png" />
+    <Image Include="Resources\wand.png" />
+    <Image Include="Resources\wireframe_mesh%402x.png" />
+    <Image Include="Resources\wireframe_mesh.png" />
+    <Image Include="Resources\wrench%402x.png" />
+    <Image Include="Resources\wrench.png" />
+    <Image Include="Resources\zoom%402x.png" />
+    <Image Include="Resources\zoom.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="Resources\glsl.xml" />
+    <Xml Include="Resources\hlsl.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

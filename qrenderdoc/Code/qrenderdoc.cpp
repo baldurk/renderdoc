@@ -33,6 +33,7 @@
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Code/pyrenderdoc/PythonContext.h"
+#include "Windows/Dialogs/CrashDialog.h"
 #include "Windows/MainWindow.h"
 #include "version.h"
 
@@ -150,6 +151,15 @@ int main(int argc, char *argv[])
     }
   }
 
+  QString crashReportPath;
+  if(argc == 3 && !QString::compare(QString::fromUtf8(argv[1]), lit("--crash"), Qt::CaseInsensitive))
+  {
+    crashReportPath = QString::fromUtf8(argv[2]);
+
+    // 'consume' the report path so it doesn't get opened as a capture file
+    argc = 2;
+  }
+
   QList<QString> pyscripts;
 
   for(int i = 0; i + 1 < argc; i++)
@@ -226,17 +236,37 @@ int main(int argc, char *argv[])
 
     GUIInvoke::init();
 
-    PythonContext::GlobalInit();
-
     {
       GlobalEnvironment env;
 #if defined(RENDERDOC_PLATFORM_LINUX)
       env.xlibDisplay = QX11Info::display();
 #endif
-      RENDERDOC_InitGlobalEnv(env, rdcarray<rdcstr>());
+      rdcarray<rdcstr> args;
+      if(!crashReportPath.isEmpty())
+        args.push_back("--crash");
+      RENDERDOC_InitGlobalEnv(env, args);
     }
 
+    if(!crashReportPath.isEmpty())
     {
+      QFile f(crashReportPath);
+
+      if(f.exists() && f.open(QIODevice::ReadOnly | QIODevice::Text))
+      {
+        QVariantMap json = JSONToVariant(QString::fromUtf8(f.readAll()));
+
+        if(json.contains(lit("report")))
+        {
+          CrashDialog dialog(config, json);
+
+          RDDialog::show(&dialog);
+        }
+      }
+    }
+    else
+    {
+      PythonContext::GlobalInit();
+
       CaptureContext ctx(filename, remoteHost, remoteIdent, temp, config);
 
       Analytics::Prompt(ctx, config);
@@ -305,8 +335,9 @@ int main(int argc, char *argv[])
       }
 
       config.Save();
+
+      PythonContext::GlobalShutdown();
     }
-    PythonContext::GlobalShutdown();
 
     Formatter::shutdown();
   }

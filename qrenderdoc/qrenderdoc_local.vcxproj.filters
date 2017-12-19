@@ -7,9 +7,6 @@
     <Filter Include="Resources">
       <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resources\Files">
-      <UniqueIdentifier>{c6877252-7f18-4c63-a2f7-66b1913d8ada}</UniqueIdentifier>
-    </Filter>
     <Filter Include="3rdparty">
       <UniqueIdentifier>{476acc91-c8c7-4ba7-9835-c0b566f562dd}</UniqueIdentifier>
     </Filter>
@@ -81,6 +78,9 @@
     </Filter>
     <Filter Include="Styles\RDTweakedNativeStyle">
       <UniqueIdentifier>{c0be5204-4ee0-4948-87b4-cc957b6f8953}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\Files">
+      <UniqueIdentifier>{c6877252-7f18-4c63-a2f7-66b1913d8ada}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -690,6 +690,12 @@
     <ClCompile Include="Code\Interface\Analytics.cpp">
       <Filter>Code\Interface</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_CrashDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\Dialogs\CrashDialog.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1040,191 +1046,11 @@
     <ClInclude Include="$(IntDir)generated\ui_AnalyticsPromptDialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_CrashDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\128.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\accept.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\add.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\arrow_in.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\arrow_join.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\arrow_undo.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\asterisk_orange.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\chart_curve.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\cog.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\cog_go.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\color_wheel.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\connect.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\cross.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\crosshatch.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\delete.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\disconnect.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\find.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\fit_window.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\flag_green.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\flip_y.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\folder_page.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\glsl.xml">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\hlsl.xml">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\hourglass.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\icon.ico">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\information.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\link.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\new_window.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\page_white_database.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\page_white_delete.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\page_white_edit.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\page_white_go.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\page_white_link.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\page_white_stack.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\plugin_add.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\red_x_16.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\runback.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\runcursor.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\runfwd.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\save.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\stepnext.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\stepprev.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\tick.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\time.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\timeline_marker.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\topologies\topo_linelist.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\topologies\topo_linelist_adj.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\topologies\topo_linestrip.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\topologies\topo_linestrip_adj.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\topologies\topo_patch.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\topologies\topo_pointlist.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\topologies\topo_trilist.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\topologies\topo_trilist_adj.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\topologies\topo_tristrip.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\topologies\topo_tristrip_adj.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\wand.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\wireframe_mesh.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\wrench.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\zoom.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\action_hover.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\action.png">
-      <Filter>Resources\Files</Filter>
-    </None>
     <None Include="Code\pyrenderdoc\pyconversion.h">
       <Filter>Code\pyrenderdoc</Filter>
     </None>
@@ -1239,6 +1065,15 @@
     </None>
     <None Include="Code\pyrenderdoc\ext_refcounts.i">
       <Filter>Code\pyrenderdoc</Filter>
+    </None>
+    <None Include="Resources\logo.svg">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\qt.conf">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\README.md">
+      <Filter>Resources\Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -1574,5 +1409,342 @@
     <CustomBuild Include="Windows\Dialogs\AnalyticsPromptDialog.ui">
       <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\CrashDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\CrashDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\action.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\action%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\action_hover.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\action_hover%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\add.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\add%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\arrow_in.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\arrow_in%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\arrow_join.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\arrow_join%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\arrow_left.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\arrow_left%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\arrow_out.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\arrow_out%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\arrow_right.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\arrow_right%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\arrow_undo.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\arrow_undo%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\asterisk_orange.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\asterisk_orange%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\bug.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\bug%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\chart_curve.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\chart_curve%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\checkerboard.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\checkerboard%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\cog.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\cog%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\color_wheel.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\color_wheel%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\connect.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\connect%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_base_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_base_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_cursor_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_cursor_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_end_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_end_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_nan_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_nan_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_play_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_play_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_sample_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_sample_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_start_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_start_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\cross.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\cross%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\del.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\del%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\disconnect.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\disconnect%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\find.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\find%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\flag_green.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\flag_green%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\flip_y.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\flip_y%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\folder.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\folder%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\folder_page_white.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\folder_page_white%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\hourglass.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\hourglass%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\house.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\house%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\icon.ico">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\information.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\information%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\link.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\link%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_go.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_go%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_white_code.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_white_code%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_white_database.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_white_database%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_white_delete.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_white_delete%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_white_edit.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_white_edit%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_white_link.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_white_link%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_white_stack.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\page_white_stack%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\plugin_add.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\plugin_add%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\save.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\save%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\tick.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\tick%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\time.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\time%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\timeline_marker.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\timeline_marker%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\upfolder.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\upfolder%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\wand.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\wand%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\wireframe_mesh.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\wireframe_mesh%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\wrench.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\wrench%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\zoom.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\zoom%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="Resources\glsl.xml">
+      <Filter>Resources\Files</Filter>
+    </Xml>
+    <Xml Include="Resources\hlsl.xml">
+      <Filter>Resources\Files</Filter>
+    </Xml>
   </ItemGroup>
 </Project>

@@ -59,6 +59,50 @@ struct SPIRVDisassembler
 
 DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
 
+#define BUGREPORT_URL "https://renderdoc.org/bugreporter"
+
+DOCUMENT("Describes a submitted bug report.");
+struct BugReport
+{
+  DOCUMENT("");
+  BugReport() { UnreadUpdates = false; }
+  VARIANT_CAST(BugReport);
+  bool operator==(const BugReport &o) const
+  {
+    return ID == o.ID && SubmitDate == o.SubmitDate && CheckDate == o.CheckDate &&
+           UnreadUpdates == o.UnreadUpdates;
+  }
+  bool operator<(const BugReport &o) const
+  {
+    if(ID != o.ID)
+      return ID < o.ID;
+    if(SubmitDate != o.SubmitDate)
+      return SubmitDate < o.SubmitDate;
+    if(CheckDate != o.CheckDate)
+      return CheckDate < o.CheckDate;
+    if(UnreadUpdates != o.UnreadUpdates)
+      return UnreadUpdates < o.UnreadUpdates;
+    return false;
+  }
+  DOCUMENT("The private ID of the bug report.");
+  rdcstr ID;
+  DOCUMENT("The original date when this bug was submitted.");
+  QDateTime SubmitDate;
+  DOCUMENT("The last date that we checked for updates.");
+  QDateTime CheckDate;
+  DOCUMENT("Unread updates to the bug exist");
+  bool UnreadUpdates = false;
+
+  DOCUMENT(R"(Gets the URL for this report.
+
+:return: The URL to the report.
+:rtype: ``str``
+)");
+  rdcstr URL() const { return lit(BUGREPORT_URL "/report/%1").arg(QString(ID)); }
+};
+
+DECLARE_REFLECTION_STRUCT(BugReport);
+
 #define CONFIG_SETTING_VAL(access, variantType, type, name, defaultValue) \
   access:                                                                 \
   type name = defaultValue;
@@ -151,6 +195,16 @@ DECLARE_REFLECTION_STRUCT(SPIRVDisassembler);
   CONFIG_SETTING_VAL(public, bool, bool, Analytics_TotalOptOut, false)                     \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, Analytics_ManualCheck, false)                     \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, CrashReport_EmailNagged, false)                   \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, CrashReport_ShouldRememberEmail, true)            \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, CrashReport_EmailAddress, "")                \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, CrashReport_LastOpenedCapture, "")           \
+                                                                                           \
+  CONFIG_SETTING(public, QVariantList, rdcarray<BugReport>, CrashReport_ReportedBugs)      \
                                                                                            \
   CONFIG_SETTING(private, QVariantMap, rdcstrpairs, ConfigSettings)                        \
                                                                                            \
@@ -459,6 +513,35 @@ For more information about some of these settings that are user-facing see
   report that is sent out.
 
   Defaults to ``False``.
+
+.. data:: CrashReport_EmailNagged
+
+  ``True`` if the user has been prompted to enter their email address on a crash report. This really
+  helps find fixes for bugs, so we prompt the user once only if they didn't enter an email. Once the
+  prompt has happened, regardless of the answer this is set to true and remains there forever.
+
+  Defaults to ``False``.
+
+.. data:: CrashReport_ShouldRememberEmail
+
+  ``True`` if the email address entered in the crash reporter should be remembered for next time. If
+  no email is entered then nothing happens (any previous saved email is kept).
+
+  Defaults to ``True``.
+
+.. data:: CrashReport_EmailAddress
+
+  The saved email address for pre-filling out in crash reports.
+
+.. data:: CrashReport_LastOpenedCapture
+
+  The last opened capture, to send if any crash is encountered. This is different to the most recent
+  opened file, because it's set before any processing happens (recent files are only added to the
+  list when they successfully open), and it's cleared again when the capture is closed.
+
+.. data:: CrashReport_ReportedBugs
+
+  A list of :class:`BugReport` detailing previously submitted bugs that we're watching for updates.
 
 )");
 class PersistantConfig
