@@ -365,9 +365,9 @@ int main(int argc, char *argv[])
       }
 
       config.Save();
-
-      PythonContext::GlobalShutdown();
     }
+
+    PythonContext::GlobalShutdown();
 
     Formatter::shutdown();
   }

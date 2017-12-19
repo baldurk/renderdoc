@@ -467,6 +467,9 @@ void PythonContext::Finish()
 
 void PythonContext::GlobalShutdown()
 {
+  if(!initialised())
+    return;
+
   // must happen on the UI thread
   if(qApp->thread() != QThread::currentThread())
   {
