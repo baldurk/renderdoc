@@ -210,21 +210,19 @@ foreach(in ${swig_interfaces})
     list(APPEND swig_output ${swig_file}.py.c)
 endforeach()
 
+add_custom_target(swig-bindings ALL DEPENDS ${swig_output})
+
+if(ENABLE_QRENDERDOC)
+
 # The case here is deliberately not matching the executable name
 # This means the custom command doesn't create this output file,
 # which causes CMake to rerun this target every time so that Qt
 # can do dependency checking and rebuild anything necessary.
 add_custom_command(OUTPUT QRenderDoc
-	COMMAND ${QMAKE_QT5_COMMAND} "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND $(MAKE)
-	DEPENDS RenderDoc.icns
-	DEPENDS ${swig_output})
-add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc)
-
-# Build python modules - primarily used for constructing documentation
-if(UNIX AND NOT APPLE)
-    add_subdirectory(Code/pyrenderdoc)
-endif()
+    COMMAND ${QMAKE_QT5_COMMAND} "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND $(MAKE)
+    DEPENDS RenderDoc.icns)
+add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc DEPENDS swig-bindings)
 
 install (PROGRAMS ${CMAKE_BINARY_DIR}/bin/qrenderdoc DESTINATION bin)
 
@@ -245,3 +243,10 @@ install (CODE "MESSAGE(\"sudo update-menus\")")
 install (CODE "MESSAGE(\"sudo update-mime-database /usr/share/mime/\")")
 install (CODE "MESSAGE(\"sudo gtk-update-icon-cache /usr/share/icons/hicolor/\")")
 install (CODE "MESSAGE(\"NB: Your paths may vary.\")")
+
+endif() # if(ENABLE_QRENDERDOC)
+
+# Build python modules - primarily used for constructing documentation
+if(ENABLE_PYRENDERDOC AND UNIX AND NOT APPLE)
+    add_subdirectory(Code/pyrenderdoc)
+endif()

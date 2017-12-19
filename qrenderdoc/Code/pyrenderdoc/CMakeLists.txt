@@ -78,8 +78,8 @@ set_target_properties(_renderdoc PROPERTIES PREFIX "")
 set_target_properties(_qrenderdoc PROPERTIES PREFIX "")
 
 # Make sure we build after the wrappers are generated
-add_dependencies(_renderdoc build-qrenderdoc)
-add_dependencies(_qrenderdoc build-qrenderdoc)
+add_dependencies(_renderdoc swig-bindings)
+add_dependencies(_qrenderdoc swig-bindings)
 
 # Copy in the .py wrappers from qrenderdoc's build
 add_custom_command(

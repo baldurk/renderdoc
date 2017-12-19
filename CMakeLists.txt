@@ -117,6 +117,7 @@ option(ENABLE_GLES "Enable GL ES driver" OFF)
 option(ENABLE_VULKAN "Enable Vulkan driver" ON)
 option(ENABLE_RENDERDOCCMD "Enable renderdoccmd" ON)
 option(ENABLE_QRENDERDOC "Enable qrenderdoc" ON)
+option(ENABLE_PYRENDERDOC "Enable renderdoc python modules" ON)
 
 option(ENABLE_XLIB "Enable xlib windowing support" ON)
 option(ENABLE_XCB "Enable xcb windowing support" ON)
@@ -160,6 +161,10 @@ if(ANDROID)
     # Android doesn't support the Qt UI for obvious reasons
     message(STATUS "Disabling qrenderdoc for android build")
     set(ENABLE_QRENDERDOC OFF CACHE BOOL "" FORCE)
+
+    # Android also doesn't support the python modules
+    message(STATUS "Disabling renderdoc python modules for android build")
+    set(ENABLE_PYRENDERDOC OFF CACHE BOOL "" FORCE)
 
     message(STATUS "Using Android ABI ${ANDROID_ABI}")
     message(STATUS "Using Android native API level ${ANDROID_NATIVE_API_LEVEL}")
@@ -257,7 +262,10 @@ if(ENABLE_RENDERDOCCMD)
     add_subdirectory(renderdoccmd)
 endif()
 
-if(ENABLE_QRENDERDOC)
+# these variables are handled within the CMakeLists.txt in qrenderdoc,
+# but we need to add it if either is enabled since the swig bindings
+# are handled in common
+if(ENABLE_QRENDERDOC OR ENABLE_PYRENDERDOC)
     add_subdirectory(qrenderdoc)
 endif()
 
