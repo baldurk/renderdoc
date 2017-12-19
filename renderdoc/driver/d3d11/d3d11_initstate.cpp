@@ -280,12 +280,6 @@ uint32_t WrappedID3D11Device::GetSize_InitialState(ResourceId id, ID3D11DeviceCh
 
   uint32_t ret = 128;    // type, Id, plus breathing room
 
-  // pessimistic RowPitch alignment where we can't determine it correctly.
-  const UINT WorstRowPitchAlign = 256;
-
-  // pessimistic DepthPitch alignment
-  const UINT WorstDepthPitchAlign = 256;
-
   ResourcePitch pitch = {};
 
   D3D11ResourceType type = IdentifyTypeByPtr(res);
