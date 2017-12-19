@@ -50,6 +50,7 @@ target_include_directories(_renderdoc ${MODULE_INCLUDES})
 target_link_libraries(_renderdoc PRIVATE renderdoc)
             
 add_library(_qrenderdoc SHARED
+    ${CMAKE_BINARY_DIR}/qrenderdoc/renderdoc_python.cxx
     ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_python.cxx
     ../Interface/CommonPipelineState.cpp
     ../Interface/PersistantConfig.cpp
