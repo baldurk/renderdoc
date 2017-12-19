@@ -432,6 +432,7 @@ void ImageViewer::RefreshFile()
   texDetails.format = rgba8_unorm;
 
   // reasonable defaults
+  texDetails.resType = TextureDim::Texture2D;
   texDetails.dimension = 2;
   texDetails.arraysize = 1;
   texDetails.width = 1;
@@ -590,11 +591,29 @@ void ImageViewer::RefreshFile()
     texDetails.depth = read_data.depth;
     texDetails.mips = read_data.mips;
     texDetails.format = read_data.format;
-    texDetails.dimension = 1;
-    if(texDetails.width > 1)
-      texDetails.dimension = 2;
     if(texDetails.depth > 1)
+    {
+      texDetails.resType = TextureDim::Texture3D;
       texDetails.dimension = 3;
+    }
+    else if(texDetails.cubemap)
+    {
+      texDetails.resType =
+          texDetails.arraysize > 1 ? TextureDim::TextureCubeArray : TextureDim::TextureCube;
+      texDetails.dimension = 2;
+    }
+    else if(texDetails.width > 1)
+    {
+      texDetails.resType =
+          texDetails.arraysize > 1 ? TextureDim::Texture2DArray : TextureDim::Texture2D;
+      texDetails.dimension = 2;
+    }
+    else
+    {
+      texDetails.resType =
+          texDetails.arraysize > 1 ? TextureDim::Texture1DArray : TextureDim::Texture1D;
+      texDetails.dimension = 1;
+    }
 
     m_FrameRecord.frameInfo.uncompressedFileSize = 0;
     for(uint32_t i = 0; i < texDetails.arraysize * texDetails.mips; i++)
