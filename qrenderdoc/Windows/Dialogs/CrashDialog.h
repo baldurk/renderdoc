@@ -49,9 +49,6 @@ public:
 private slots:
   // automatic slots
   void on_send_clicked();
-
-  void sendReport();
-
   void on_cancel_clicked();
   void on_uploadCancel_clicked();
   void on_uploadRetry_clicked();
@@ -70,6 +67,7 @@ private:
 
   void recentre();
   void setStage(ReportStage stage);
+  void sendReport();
 
   Ui::CrashDialog *ui;
 
