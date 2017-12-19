@@ -44,8 +44,10 @@
 // commits are cherry-picked or local patches are applied, this should still point to the hash of
 // the tree that the build was based on.
 //
-// Windows users can run ./scripts/hash_version.sh from the root of the checkout to set this, anyone
-// else should set BUILD_VERSION_HASH in the cmake build command.
+// Windows users using VS2015 and above should get this defined as part of the build process as
+// long as they are running from within a git clone. If not, it can be manually defined here.
+// On other platforms git will be invoked directly if possible, but if the build isn't running
+// from within a clone you should set BUILD_VERSION_HASH in the cmake build command.
 #if !defined(GIT_COMMIT_HASH)
 #define GIT_COMMIT_HASH "NO_GIT_COMMIT_HASH_DEFINED"
 #endif
@@ -88,7 +90,7 @@
 
 // You should NOT enable this variable. This is used by upstream builds to determine whether
 // this is an official build e.g. that should send crash reports.
-#define RENDERDOC_OFFICIAL_BUILD 0
+#define RENDERDOC_OFFICIAL_BUILD 1
 
 // The major and minor version that describe this build. These numbers are modified linearly
 // upstream and should not be modified downstream. You can set DISTRIBUTION_VERSION to include any

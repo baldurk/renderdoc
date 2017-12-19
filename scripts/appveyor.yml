@@ -65,8 +65,6 @@ build_script:
       return
     }
 
-    sh -c ./scripts/hash_version.sh
-
     msbuild renderdoc.sln /v:m "/p:Configuration=$env:CONFIGURATION" "/p:Platform=$env:PLATFORM" /p:PlatformToolset=v140
 
 test_script:
