@@ -149,7 +149,8 @@ int main(int argc, char *argv[])
 
   for(int i = 0; i + 1 < argc; i++)
   {
-    if(!QString::compare(QString::fromUtf8(argv[i]), lit("--remoteaccess"), Qt::CaseInsensitive))
+    if(!QString::compare(QString::fromUtf8(argv[i]), lit("--remoteaccess"), Qt::CaseInsensitive) ||
+       !QString::compare(QString::fromUtf8(argv[i]), lit("--targetcontrol"), Qt::CaseInsensitive))
     {
       QRegularExpression regexp(lit("^([a-zA-Z0-9_-]+:)?([0-9]+)$"));
 
