@@ -90,7 +90,7 @@
 
 // You should NOT enable this variable. This is used by upstream builds to determine whether
 // this is an official build e.g. that should send crash reports.
-#define RENDERDOC_OFFICIAL_BUILD 1
+#define RENDERDOC_OFFICIAL_BUILD 0
 
 // The major and minor version that describe this build. These numbers are modified linearly
 // upstream and should not be modified downstream. You can set DISTRIBUTION_VERSION to include any
