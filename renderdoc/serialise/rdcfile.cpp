@@ -696,6 +696,12 @@ int RDCFile::SectionIndex(const char *name) const
     if(m_Sections[i].name == name)
       return int(i);
 
+  // last ditch, see if name is a known section type and search for that type. This should have been
+  // normalised on write, but maybe it didn't
+  for(SectionType s : values<SectionType>())
+    if(ToStr(s) == name)
+      return SectionIndex(s);
+
   return -1;
 }
 
