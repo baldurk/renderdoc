@@ -2615,7 +2615,15 @@ HRESULT WrappedID3D11Device::CreateQuery(const D3D11_QUERY_DESC *pQueryDesc, ID3
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateQuery);
       Serialise_CreateQuery(GET_SERIALISER, pQueryDesc, &wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      WrappedID3D11Query1 *q = (WrappedID3D11Query1 *)wrapped;
+      ResourceId id = q->GetResourceID();
+
+      RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+      D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->Length = 0;
+
+      record->AddChunk(scope.Get());
     }
 
     *ppQuery = wrapped;
@@ -2636,6 +2644,10 @@ bool WrappedID3D11Device::Serialise_CreatePredicate(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
+    // We don't use predicates directly, so removing this flag doesn't make any direct difference.
+    // It means we can query the result via GetData which we can't if the flag is set.
+    Descriptor.MiscFlags &= ~D3D11_QUERY_MISC_PREDICATEHINT;
+
     ID3D11Predicate *ret;
     HRESULT hr = m_pDevice->CreatePredicate(&Descriptor, &ret);
 
@@ -2652,6 +2664,12 @@ bool WrappedID3D11Device::Serialise_CreatePredicate(SerialiserType &ser,
     }
 
     AddResource(pPredicate, ResourceType::Query, "Predicate");
+
+    // prime the predicate with a true result, so that if we end up referencing a predicate that was
+    // filled in a previous frame that we don't have the data for, we default to passing.
+    m_pImmediateContext->Begin(ret);
+    GetDebugManager()->RenderForPredicate();
+    m_pImmediateContext->End(ret);
   }
 
   return true;
@@ -2681,7 +2699,15 @@ HRESULT WrappedID3D11Device::CreatePredicate(const D3D11_QUERY_DESC *pPredicateD
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreatePredicate);
       Serialise_CreatePredicate(GET_SERIALISER, pPredicateDesc, &wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      WrappedID3D11Predicate *p = (WrappedID3D11Predicate *)wrapped;
+      ResourceId id = p->GetResourceID();
+
+      RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+      D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->Length = 0;
+
+      record->AddChunk(scope.Get());
     }
 
     *ppPredicate = wrapped;
@@ -2702,8 +2728,14 @@ bool WrappedID3D11Device::Serialise_CreateCounter(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    ID3D11Counter *ret;
-    HRESULT hr = m_pDevice->CreateCounter(&Descriptor, &ret);
+    // counters may not always be available on the replay, so instead we create a timestamp query as
+    // a dummy. We never replay any counter fetch since it doesn't affect rendering, so the
+    // difference doesn't matter.
+    D3D11_QUERY_DESC dummyQueryDesc;
+    dummyQueryDesc.Query = D3D11_QUERY_TIMESTAMP;
+    dummyQueryDesc.MiscFlags = 0;
+    ID3D11Query *ret;
+    HRESULT hr = m_pDevice->CreateQuery(&dummyQueryDesc, &ret);
 
     if(FAILED(hr))
     {
@@ -2712,7 +2744,7 @@ bool WrappedID3D11Device::Serialise_CreateCounter(SerialiserType &ser,
     }
     else
     {
-      ret = new WrappedID3D11Counter(ret, this);
+      ret = new WrappedID3D11Query1(ret, this);
 
       GetResourceManager()->AddLiveResource(pCounter, ret);
     }
@@ -2747,7 +2779,15 @@ HRESULT WrappedID3D11Device::CreateCounter(const D3D11_COUNTER_DESC *pCounterDes
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateCounter);
       Serialise_CreateCounter(GET_SERIALISER, pCounterDesc, &wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      WrappedID3D11Counter *c = (WrappedID3D11Counter *)wrapped;
+      ResourceId id = c->GetResourceID();
+
+      RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+      D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->Length = 0;
+
+      record->AddChunk(scope.Get());
     }
 
     *ppCounter = wrapped;

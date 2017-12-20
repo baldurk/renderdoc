@@ -77,7 +77,7 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
   const QIcon &action = Icons::action();
   const QIcon &action_hover = Icons::action_hover();
 
-  RDLabel *shaderLabels[] = {
+  RDLabel *objectLabels[] = {
       ui->vsShader, ui->hsShader, ui->dsShader,   ui->gsShader,
       ui->psShader, ui->csShader, ui->iaBytecode,
   };
@@ -137,7 +137,7 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
   for(QToolButton *b : viewButtons)
     QObject::connect(b, &QToolButton::clicked, this, &D3D11PipelineStateViewer::shaderView_clicked);
 
-  for(RDLabel *b : shaderLabels)
+  for(RDLabel *b : objectLabels)
   {
     b->setAutoFillBackground(true);
     b->setBackgroundRole(QPalette::ToolTipBase);
@@ -173,7 +173,7 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
   addGridLines(ui->blendStateGridLayout, palette().color(QPalette::WindowText));
   addGridLines(ui->depthStateGridLayout, palette().color(QPalette::WindowText));
 
-  for(RDLabel *st : {ui->depthState, ui->blendState, ui->rastState})
+  for(RDLabel *st : {ui->depthState, ui->blendState, ui->rastState, ui->predicate})
   {
     st->setAutoFillBackground(true);
     st->setBackgroundRole(QPalette::ToolTipBase);
@@ -847,6 +847,8 @@ void D3D11PipelineStateViewer::clearState()
   ui->stencilRef->setText(lit("FF"));
 
   ui->stencils->clear();
+
+  ui->predicateGroup->setVisible(false);
 }
 
 void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, RDLabel *shader,
@@ -1538,6 +1540,21 @@ void D3D11PipelineStateViewer::setState()
   ui->slopeScaledBias->setText(Formatter::Format(state.m_RS.m_State.SlopeScaledDepthBias));
   ui->forcedSampleCount->setText(QString::number(state.m_RS.m_State.ForcedSampleCount));
   ui->conservativeRaster->setPixmap(state.m_RS.m_State.ConservativeRasterization ? tick : cross);
+
+  ////////////////////////////////////////////////
+  // Predication
+
+  if(state.m_Predicate.Obj == ResourceId())
+  {
+    ui->predicateGroup->setVisible(false);
+  }
+  else
+  {
+    ui->predicateGroup->setVisible(true);
+    ui->predicate->setText(ToQStr(state.m_Predicate.Obj));
+    ui->predicateValue->setText(state.m_Predicate.Value ? lit("TRUE") : lit("FALSE"));
+    ui->predicatePassing->setPixmap(state.m_Predicate.Passing ? tick : cross);
+  }
 
   ////////////////////////////////////////////////
   // Output Merger

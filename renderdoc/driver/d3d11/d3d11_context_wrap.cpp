@@ -6400,21 +6400,49 @@ bool WrappedID3D11DeviceContext::Serialise_Begin(SerialiserType &ser, ID3D11Asyn
 
   SERIALISE_CHECK_READ_ERRORS();
 
+  if(IsReplayingAndReading() && pAsync)
+  {
+    ID3D11Asynchronous *unwrapped = NULL;
+
+    // only replay predicates which can affect rendering, don't re-submit queries or counters (that
+    // might even interfere with queries we want to run)
+    if(WrappedID3D11Predicate::IsAlloc(pAsync))
+      unwrapped = UNWRAP(WrappedID3D11Predicate, pAsync);
+
+    // if you change this to replay other types, check with Serialise_CreateCounter which creates
+    // dummy queries to ensure it always succeeds.
+
+    if(unwrapped)
+      m_pRealContext->Begin(unwrapped);
+  }
+
   return true;
 }
 
 void WrappedID3D11DeviceContext::Begin(ID3D11Asynchronous *pAsync)
 {
   ID3D11Asynchronous *unwrapped = NULL;
+  ResourceId id;
 
   if(WrappedID3D11Query1::IsAlloc(pAsync))
+  {
     unwrapped = UNWRAP(WrappedID3D11Query1, pAsync);
+    id = ((WrappedID3D11Query1 *)pAsync)->GetResourceID();
+  }
   else if(WrappedID3D11Predicate::IsAlloc(pAsync))
+  {
     unwrapped = UNWRAP(WrappedID3D11Predicate, pAsync);
+    id = ((WrappedID3D11Predicate *)pAsync)->GetResourceID();
+  }
   else if(WrappedID3D11Counter::IsAlloc(pAsync))
+  {
     unwrapped = UNWRAP(WrappedID3D11Counter, pAsync);
+    id = ((WrappedID3D11Counter *)pAsync)->GetResourceID();
+  }
   else
+  {
     RDCERR("Unexpected ID3D11Asynchronous");
+  }
 
   SERIALISE_TIME_CALL(m_pRealContext->Begin(unwrapped));
 
@@ -6426,6 +6454,8 @@ void WrappedID3D11DeviceContext::Begin(ID3D11Asynchronous *pAsync)
     Serialise_Begin(GET_SERIALISER, pAsync);
 
     m_ContextRecord->AddChunk(scope.Get());
+
+    MarkResourceReferenced(id, eFrameRef_Read);
   }
 }
 
@@ -6436,21 +6466,49 @@ bool WrappedID3D11DeviceContext::Serialise_End(SerialiserType &ser, ID3D11Asynch
 
   SERIALISE_CHECK_READ_ERRORS();
 
+  if(IsReplayingAndReading() && pAsync)
+  {
+    ID3D11Asynchronous *unwrapped = NULL;
+
+    // only replay predicates which can affect rendering, don't re-submit queries or counters (that
+    // might even interfere with queries we want to run)
+    if(WrappedID3D11Predicate::IsAlloc(pAsync))
+      unwrapped = UNWRAP(WrappedID3D11Predicate, pAsync);
+
+    // if you change this to replay other types, check with Serialise_CreateCounter which creates
+    // dummy queries to ensure it always succeeds.
+
+    if(unwrapped)
+      m_pRealContext->End(unwrapped);
+  }
+
   return true;
 }
 
 void WrappedID3D11DeviceContext::End(ID3D11Asynchronous *pAsync)
 {
   ID3D11Asynchronous *unwrapped = NULL;
+  ResourceId id;
 
   if(WrappedID3D11Query1::IsAlloc(pAsync))
+  {
     unwrapped = UNWRAP(WrappedID3D11Query1, pAsync);
+    id = ((WrappedID3D11Query1 *)pAsync)->GetResourceID();
+  }
   else if(WrappedID3D11Predicate::IsAlloc(pAsync))
+  {
     unwrapped = UNWRAP(WrappedID3D11Predicate, pAsync);
+    id = ((WrappedID3D11Predicate *)pAsync)->GetResourceID();
+  }
   else if(WrappedID3D11Counter::IsAlloc(pAsync))
+  {
     unwrapped = UNWRAP(WrappedID3D11Counter, pAsync);
+    id = ((WrappedID3D11Counter *)pAsync)->GetResourceID();
+  }
   else
+  {
     RDCERR("Unexpected ID3D11Asynchronous");
+  }
 
   SERIALISE_TIME_CALL(m_pRealContext->End(unwrapped));
 
@@ -6462,6 +6520,8 @@ void WrappedID3D11DeviceContext::End(ID3D11Asynchronous *pAsync)
     Serialise_End(GET_SERIALISER, pAsync);
 
     m_ContextRecord->AddChunk(scope.Get());
+
+    MarkResourceReferenced(id, eFrameRef_Read);
   }
 }
 
@@ -6494,7 +6554,16 @@ bool WrappedID3D11DeviceContext::Serialise_SetPredication(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    m_pRealContext->SetPredication(pPredicate, PredicateValue ? TRUE : FALSE);
+    // we don't replay predication as it can be confusing and inconsistent. We just store the state
+    // so that we can manually check whether it *would* have passed or failed.
+    m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->Predicate, pPredicate);
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->PredicateValue,
+                                   PredicateValue ? TRUE : FALSE);
+
+    /*
+    m_pRealContext->SetPredication(UNWRAP(WrappedID3D11Predicate, pPredicate),
+                                   PredicateValue ? TRUE : FALSE);
+                                   */
   }
 
   return true;
@@ -6503,6 +6572,13 @@ bool WrappedID3D11DeviceContext::Serialise_SetPredication(SerialiserType &ser,
 void WrappedID3D11DeviceContext::SetPredication(ID3D11Predicate *pPredicate, BOOL PredicateValue)
 {
   m_EmptyCommandList = false;
+
+  m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->Predicate, pPredicate);
+  m_CurrentPipelineState->Change(m_CurrentPipelineState->PredicateValue, PredicateValue);
+
+  // on replay don't actually apply any predication. Just update the state and bail
+  if(IsReplayMode(m_State))
+    return;
 
   SERIALISE_TIME_CALL(
       m_pRealContext->SetPredication(UNWRAP(WrappedID3D11Predicate, pPredicate), PredicateValue));
@@ -6515,6 +6591,12 @@ void WrappedID3D11DeviceContext::SetPredication(ID3D11Predicate *pPredicate, BOO
     Serialise_SetPredication(GET_SERIALISER, pPredicate, PredicateValue);
 
     m_ContextRecord->AddChunk(scope.Get());
+
+    if(pPredicate)
+    {
+      ResourceId id = ((WrappedID3D11Predicate *)pPredicate)->GetResourceID();
+      MarkResourceReferenced(id, eFrameRef_Read);
+    }
   }
 }
 

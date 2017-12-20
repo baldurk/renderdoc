@@ -3819,6 +3819,18 @@ void D3D11DebugManager::ClearPostVSCache()
   m_PostVSData.clear();
 }
 
+void D3D11DebugManager::RenderForPredicate()
+{
+  // just somehow draw a quad that renders some pixels to fill the predicate with TRUE
+  m_WrappedContext->ClearState();
+  D3D11_VIEWPORT viewport = {0, 0, 1, 1, 0.0f, 1.0f};
+  m_WrappedContext->RSSetViewports(1, &viewport);
+  m_WrappedContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
+  m_WrappedContext->PSSetShader(m_DebugRender.WireframePS, NULL, 0);
+  m_WrappedContext->OMSetRenderTargets(1, &m_DebugRender.PickPixelRT, NULL);
+  m_WrappedContext->Draw(3, 0);
+}
+
 MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
   D3D11PostVSData postvs;

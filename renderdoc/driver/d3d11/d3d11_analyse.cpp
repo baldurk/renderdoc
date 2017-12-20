@@ -5167,6 +5167,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
     // if the sample mask set at this event doesn't have the right bit set
     TestMustFail_SampleMask = 1 << 10,
+
+    // if predication was failing at this event
+    Predication_Failed = 1 << 11,
   };
 
 #if 1
@@ -5486,6 +5489,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     {
       flags[ev] |= TestMustFail_SampleMask;
     }
+
+    if(!m_WrappedContext->GetCurrentPipelineState()->PredicationWouldPass())
+      flags[ev] |= Predication_Failed;
 
     m_pDevice->CreateRasterizerState(&rd, &newRS);
     m_pImmediateContext->RSSetState(newRS);
@@ -5916,6 +5922,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
           mod.scissorClipped = true;
         if(flags[i] & TestMustFail_SampleMask)
           mod.sampleMasked = true;
+        if(flags[i] & Predication_Failed)
+          mod.predicationSkipped = true;
 
         m_WrappedDevice->ReplayLog(0, events[i].eventID, eReplay_WithoutDraw);
 

@@ -1362,6 +1362,8 @@ pixel.
   bool depthTestFailed;
   DOCUMENT("``True`` if stencil testing eliminated this fragment.");
   bool stencilTestFailed;
+  DOCUMENT("``True`` if predicated rendering skipped this call.");
+  bool predicationSkipped;
 
   DOCUMENT(R"(Determine if this fragment passed all tests and wrote to the texture.
 
@@ -1371,7 +1373,7 @@ pixel.
   bool passed() const
   {
     return !sampleMasked && !backfaceCulled && !depthClipped && !viewClipped && !scissorClipped &&
-           !shaderDiscarded && !depthTestFailed && !stencilTestFailed;
+           !shaderDiscarded && !depthTestFailed && !stencilTestFailed && !predicationSkipped;
   }
 };
 

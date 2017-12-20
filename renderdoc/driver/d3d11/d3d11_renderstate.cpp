@@ -41,6 +41,8 @@ D3D11RenderState::D3D11RenderState(D3D11RenderState::EmptyInit)
   RDCEraseEl(OM);
   RDCEraseEl(CS);
   RDCEraseEl(CSUAVs);
+  Predicate = NULL;
+  PredicateValue = FALSE;
   Clear();
 
   m_ImmediatePipeline = false;
@@ -61,6 +63,8 @@ D3D11RenderState::D3D11RenderState(const D3D11RenderState &other)
   RDCEraseEl(OM);
   RDCEraseEl(CS);
   RDCEraseEl(CSUAVs);
+  Predicate = NULL;
+  PredicateValue = FALSE;
 
   m_ImmediatePipeline = false;
   m_pDevice = NULL;
@@ -83,6 +87,9 @@ void D3D11RenderState::CopyState(const D3D11RenderState &other)
   memcpy(&OM, &other.OM, sizeof(OM));
   memcpy(&CS, &other.CS, sizeof(CS));
   memcpy(&CSUAVs, &other.CSUAVs, sizeof(CSUAVs));
+
+  Predicate = other.Predicate;
+  PredicateValue = other.PredicateValue;
 
   m_ViewportScissorPartial = other.m_ViewportScissorPartial;
 
@@ -143,6 +150,8 @@ void D3D11RenderState::ReleaseRefs()
 
   ReleaseRef(OM.DepthView);
 
+  ReleaseRef(Predicate);
+
   RDCEraseEl(IA);
   RDCEraseEl(VS);
   RDCEraseEl(HS);
@@ -154,6 +163,7 @@ void D3D11RenderState::ReleaseRefs()
   RDCEraseEl(OM);
   RDCEraseEl(CS);
   RDCEraseEl(CSUAVs);
+  Predicate = NULL;
 }
 
 void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool initial) const
@@ -253,6 +263,12 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
                                   initial ? eFrameRef_Unknown : eFrameRef_Read);
     ctx->MarkResourceReferenced(GetViewResourceResID(OM.DepthView),
                                 initial ? eFrameRef_Unknown : eFrameRef_Write);
+  }
+
+  if(Predicate)
+  {
+    ctx->MarkResourceReferenced(GetIDForResource(Predicate),
+                                initial ? eFrameRef_Unknown : eFrameRef_Read);
   }
 }
 
@@ -394,6 +410,8 @@ void D3D11RenderState::AddRefs()
     TakeRef(OM.UAVs[i]);
 
   TakeRef(OM.DepthView);
+
+  TakeRef(Predicate);
 }
 
 D3D11RenderState::D3D11RenderState(WrappedID3D11DeviceContext *context)
@@ -490,6 +508,8 @@ D3D11RenderState::D3D11RenderState(WrappedID3D11DeviceContext *context)
     context->OMGetRenderTargetsAndUnorderedAccessViews(
         OM.UAVStartSlot, OM.RenderTargets, &OM.DepthView, OM.UAVStartSlot,
         D3D11_PS_CS_UAV_REGISTER_COUNT - OM.UAVStartSlot, OM.UAVs);
+
+  context->GetPredication(&Predicate, &PredicateValue);
 }
 
 void D3D11RenderState::Clear()
@@ -498,9 +518,40 @@ void D3D11RenderState::Clear()
   OM.BlendFactor[0] = OM.BlendFactor[1] = OM.BlendFactor[2] = OM.BlendFactor[3] = 1.0f;
   OM.SampleMask = 0xffffffff;
 
+  Predicate = NULL;
+  PredicateValue = FALSE;
+
   for(size_t i = 0; i < ARRAY_COUNT(VS.CBCounts); i++)
     VS.CBCounts[i] = HS.CBCounts[i] = DS.CBCounts[i] = GS.CBCounts[i] = PS.CBCounts[i] =
         CS.CBCounts[i] = 4096;
+}
+
+bool D3D11RenderState::PredicationWouldPass()
+{
+  if(Predicate == NULL)
+    return true;
+
+  BOOL data = TRUE;
+
+  HRESULT hr = S_FALSE;
+
+  do
+  {
+    hr = m_pDevice->GetImmediateContext()->GetData(Predicate, &data, sizeof(BOOL), 0);
+  } while(hr == S_FALSE);
+  RDCASSERTEQUAL(hr, S_OK);
+
+  // From SetPredication for PredicateValue:
+  //
+  // "If TRUE, rendering will be affected by when the predicate's conditions are met. If FALSE,
+  // rendering will be affected when the conditions are not met."
+  //
+  // Which is really confusingly worded. 'rendering will be affected' means 'no rendering will
+  // happen', and 'conditions are met' for e.g. an occlusion query means that it passed.
+  // Thus a passing occlusion query has value TRUE and is 'condition is met', so for a typical "skip
+  // when occlusion query fails" the value will be FALSE.
+
+  return PredicateValue != data;
 }
 
 void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
@@ -583,6 +634,8 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
     context->OMSetRenderTargetsAndUnorderedAccessViews(
         OM.UAVStartSlot, OM.RenderTargets, OM.DepthView, OM.UAVStartSlot,
         D3D11_PS_CS_UAV_REGISTER_COUNT - OM.UAVStartSlot, OM.UAVs, UAV_keepcounts);
+
+  context->SetPredication(Predicate, PredicateValue);
 }
 
 void D3D11RenderState::TakeRef(ID3D11DeviceChild *p)
@@ -1269,6 +1322,12 @@ bool D3D11RenderState::IsBoundForWrite(ID3D11InputLayout *resource)
 }
 
 template <>
+bool D3D11RenderState::IsBoundForWrite(ID3D11Predicate *resource)
+{
+  return false;
+}
+
+template <>
 bool D3D11RenderState::IsBoundForWrite(ID3D11ClassInstance *resource)
 {
   return false;
@@ -1472,6 +1531,8 @@ void DoSerialise(SerialiserType &ser, D3D11RenderState &el)
   SERIALISE_MEMBER(SO);
   SERIALISE_MEMBER(RS);
   SERIALISE_MEMBER(OM);
+  SERIALISE_MEMBER(Predicate);
+  SERIALISE_MEMBER(PredicateValue);
 
   if(ser.IsReading())
     el.AddRefs();

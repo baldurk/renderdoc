@@ -1216,6 +1216,14 @@ void D3D11Replay::SavePipelineState()
       ret.m_OM.m_State.m_BackFace.FailOp = StencilOp::Keep;
     }
   }
+
+  /////////////////////////////////////////////////
+  // Predication
+  /////////////////////////////////////////////////
+
+  ret.m_Predicate.Obj = rm->GetOriginalID(GetIDForResource(rs->Predicate));
+  ret.m_Predicate.Value = rs->PredicateValue == TRUE ? true : false;
+  ret.m_Predicate.Passing = rs->PredicationWouldPass();
 }
 
 ReplayStatus D3D11Replay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)

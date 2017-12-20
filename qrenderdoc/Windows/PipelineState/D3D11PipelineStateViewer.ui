@@ -76,7 +76,7 @@
          <string>Show Disabled Items</string>
         </property>
         <property name="icon">
-         <iconset resource="../../Resources/resources.qrc">
+         <iconset>
           <normaloff>:/page_white_delete.png</normaloff>:/page_white_delete.png</iconset>
         </property>
         <property name="checkable">
@@ -99,7 +99,7 @@
          <string>Show Empty Items</string>
         </property>
         <property name="icon">
-         <iconset resource="../../Resources/resources.qrc">
+         <iconset>
           <normaloff>:/page_white_database.png</normaloff>:/page_white_database.png</iconset>
         </property>
         <property name="checkable">
@@ -122,7 +122,7 @@
          <string>Export</string>
         </property>
         <property name="icon">
-         <iconset resource="../../Resources/resources.qrc">
+         <iconset>
           <normaloff>:/save.png</normaloff>:/save.png</iconset>
         </property>
         <property name="checkable">
@@ -313,7 +313,7 @@
                  <string>View the mesh input data</string>
                 </property>
                 <property name="pixmap">
-                 <pixmap resource="../../Resources/resources.qrc">:/wireframe_mesh.png</pixmap>
+                 <pixmap>:/wireframe_mesh.png</pixmap>
                 </property>
                 <property name="scaledContents">
                  <bool>true</bool>
@@ -368,7 +368,7 @@
                  <string/>
                 </property>
                 <property name="pixmap">
-                 <pixmap resource="../../Resources/resources.qrc">:/topologies/topo_trilist.svg</pixmap>
+                 <pixmap>:/topologies/topo_trilist.svg</pixmap>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
@@ -418,7 +418,7 @@
                  <string>View</string>
                 </property>
                 <property name="icon">
-                 <iconset resource="../../Resources/resources.qrc">
+                 <iconset>
                   <normaloff>:/action.png</normaloff>:/action.png</iconset>
                 </property>
                 <property name="toolButtonStyle">
@@ -483,6 +483,12 @@
                <spacer name="horizontalSpacer_2">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
                 </property>
                </spacer>
               </item>
@@ -616,7 +622,7 @@
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -636,7 +642,7 @@
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -656,7 +662,7 @@
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -987,7 +993,7 @@
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1007,7 +1013,7 @@
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1027,7 +1033,7 @@
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1355,7 +1361,7 @@
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1375,7 +1381,7 @@
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1395,7 +1401,7 @@
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1723,7 +1729,7 @@
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1743,7 +1749,7 @@
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -1763,7 +1769,7 @@
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -2273,7 +2279,7 @@
                <string/>
               </property>
               <property name="pixmap">
-               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+               <pixmap>:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2289,7 +2295,7 @@
                <string/>
               </property>
               <property name="pixmap">
-               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+               <pixmap>:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2305,7 +2311,7 @@
                <string/>
               </property>
               <property name="pixmap">
-               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+               <pixmap>:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2339,7 +2345,7 @@
                <string/>
               </property>
               <property name="pixmap">
-               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+               <pixmap>:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2456,7 +2462,7 @@
                <string/>
               </property>
               <property name="pixmap">
-               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+               <pixmap>:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2485,7 +2491,7 @@
                <string/>
               </property>
               <property name="pixmap">
-               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+               <pixmap>:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2536,7 +2542,7 @@
          </layout>
         </widget>
        </item>
-       <item row="1" column="0">
+       <item row="2" column="0">
         <widget class="QGroupBox" name="viewportsGroup">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -2591,7 +2597,7 @@
          </layout>
         </widget>
        </item>
-       <item row="1" column="1">
+       <item row="2" column="1">
         <widget class="QGroupBox" name="scissorGroup">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -2642,6 +2648,67 @@
              <number>50</number>
             </attribute>
            </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="2">
+        <widget class="QGroupBox" name="predicateGroup">
+         <property name="title">
+          <string>Predication</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_41">
+          <item>
+           <widget class="RDLabel" name="predicate">
+            <property name="frameShape">
+             <enum>QFrame::Box</enum>
+            </property>
+            <property name="margin">
+             <number>4</number>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>Value:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="predicateValue">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>FALSE</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Passing:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="predicatePassing"/>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_5">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </widget>
@@ -2705,7 +2772,7 @@
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -2725,7 +2792,7 @@
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -2745,7 +2812,7 @@
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset resource="../../Resources/resources.qrc">
+             <iconset>
               <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
@@ -3239,7 +3306,7 @@
                    <string/>
                   </property>
                   <property name="pixmap">
-                   <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+                   <pixmap>:/cross.png</pixmap>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -3330,7 +3397,7 @@
                    <string/>
                   </property>
                   <property name="pixmap">
-                   <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+                   <pixmap>:/cross.png</pixmap>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -3411,7 +3478,7 @@
                    <string/>
                   </property>
                   <property name="pixmap">
-                   <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+                   <pixmap>:/cross.png</pixmap>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -3437,7 +3504,7 @@
                    <string/>
                   </property>
                   <property name="pixmap">
-                   <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+                   <pixmap>:/cross.png</pixmap>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -3618,7 +3685,7 @@
                    <string/>
                   </property>
                   <property name="pixmap">
-                   <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+                   <pixmap>:/cross.png</pixmap>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -3853,7 +3920,7 @@
                 <string>View</string>
                </property>
                <property name="icon">
-                <iconset resource="../../Resources/resources.qrc">
+                <iconset>
                  <normaloff>:/action.png</normaloff>:/action.png</iconset>
                </property>
                <property name="toolButtonStyle">
@@ -3873,7 +3940,7 @@
                 <string>Edit</string>
                </property>
                <property name="icon">
-                <iconset resource="../../Resources/resources.qrc">
+                <iconset>
                  <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
                </property>
                <property name="toolButtonStyle">
@@ -3893,7 +3960,7 @@
                 <string>Save</string>
                </property>
                <property name="icon">
-                <iconset resource="../../Resources/resources.qrc">
+                <iconset>
                  <normaloff>:/save.png</normaloff>:/save.png</iconset>
                </property>
                <property name="toolButtonStyle">
@@ -3969,7 +4036,7 @@
                 <string/>
                </property>
                <property name="icon">
-                <iconset resource="../../Resources/resources.qrc">
+                <iconset>
                  <normaloff>:/wrench.png</normaloff>:/wrench.png</iconset>
                </property>
                <property name="autoRaise">
@@ -4314,8 +4381,6 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="../../Resources/resources.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

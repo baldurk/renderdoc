@@ -268,6 +268,11 @@ struct D3D11RenderState
     ID3D11UnorderedAccessView *UAVs[D3D11_1_UAV_SLOT_COUNT];
   } OM;
 
+  ID3D11Predicate *Predicate;
+  BOOL PredicateValue;
+
+  bool PredicationWouldPass();
+
   void SetImmediatePipeline(WrappedID3D11Device *device)
   {
     m_ImmediatePipeline = true;
@@ -310,6 +315,9 @@ private:
 
 template <>
 bool D3D11RenderState::IsBoundForWrite(ID3D11InputLayout *resource);
+
+template <>
+bool D3D11RenderState::IsBoundForWrite(ID3D11Predicate *resource);
 
 template <>
 bool D3D11RenderState::IsBoundForWrite(ID3D11ClassInstance *resource);

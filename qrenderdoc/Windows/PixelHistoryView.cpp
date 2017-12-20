@@ -547,6 +547,8 @@ private:
       s += tr("\nDepth test failed");
     if(mod.stencilTestFailed)
       s += tr("\nStencil test failed");
+    if(mod.predicationSkipped)
+      s += tr("\nPredicated rendering skipped");
 
     return s;
   }

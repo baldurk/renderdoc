@@ -704,8 +704,21 @@ struct OM
   View DepthTarget;
   DOCUMENT("``True`` if depth access to the depth-stencil target is read-only.");
   bool DepthReadOnly = false;
-  DOCUMENT("``True`` if stenncil access to the depth-stencil target is read-only.");
+  DOCUMENT("``True`` if stencil access to the depth-stencil target is read-only.");
   bool StencilReadOnly = false;
+};
+
+DOCUMENT("Describes the current state of predicated rendering.");
+struct Predication
+{
+  DOCUMENT("The :class:`ResourceId` of the active predicate.");
+  ResourceId Obj;
+
+  DOCUMENT("The value to go along with the predicate.");
+  bool Value = false;
+
+  DOCUMENT("``True`` if the current predicate would render.");
+  bool Passing = false;
 };
 
 DOCUMENT("The full current D3D11 pipeline state.");
@@ -735,6 +748,9 @@ struct State
 
   DOCUMENT("A :class:`D3D11_OM` describing the output merger pipeline stage.");
   OM m_OM;
+
+  DOCUMENT("A :class:`Predication` describing the predicated rendering state.");
+  Predication m_Predicate;
 };
 
 };    // namespace D3D11Pipe
@@ -759,4 +775,5 @@ DECLARE_REFLECTION_STRUCT(D3D11Pipe::Blend);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::BlendEquation);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::BlendState);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::OM);
+DECLARE_REFLECTION_STRUCT(D3D11Pipe::Predication);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::State);

@@ -768,8 +768,9 @@ void DoSerialise(SerialiserType &ser, PixelModification &el)
   SERIALISE_MEMBER(shaderDiscarded);
   SERIALISE_MEMBER(depthTestFailed);
   SERIALISE_MEMBER(stencilTestFailed);
+  SERIALISE_MEMBER(predicationSkipped);
 
-  SIZE_CHECK(96);
+  SIZE_CHECK(100);
 }
 
 template <typename SerialiserType>
@@ -1073,6 +1074,16 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::OM &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D11Pipe::Predication &el)
+{
+  SERIALISE_MEMBER(Obj);
+  SERIALISE_MEMBER(Value);
+  SERIALISE_MEMBER(Passing);
+
+  SIZE_CHECK(16);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11Pipe::State &el)
 {
   SERIALISE_MEMBER(m_IA);
@@ -1089,7 +1100,9 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::State &el)
   SERIALISE_MEMBER(m_RS);
   SERIALISE_MEMBER(m_OM);
 
-  SIZE_CHECK(1488);
+  SERIALISE_MEMBER(m_Predicate);
+
+  SIZE_CHECK(1504);
 }
 
 #pragma endregion D3D11 pipeline state
