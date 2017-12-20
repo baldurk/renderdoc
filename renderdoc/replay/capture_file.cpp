@@ -655,6 +655,8 @@ void CaptureFile::WriteSection(const SectionProperties &props, const bytebuf &co
 
   writer->Write(contents.data(), contents.size());
 
+  writer->Finish();
+
   delete writer;
 }
 
