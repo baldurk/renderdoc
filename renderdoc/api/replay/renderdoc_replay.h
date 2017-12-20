@@ -1103,6 +1103,13 @@ and construction of files.
 )");
 struct ICaptureAccess
 {
+  DOCUMENT(R"(Retrieve the total number of available sections.
+
+:return: The number of sections in the capture
+:rtype: ``int``.
+)");
+  virtual int GetSectionCount() = 0;
+
   DOCUMENT(R"(Locate the index of a section by its name. Returns ``-1`` if the section is not found.
 
 This index should not be cached, as writing sections could re-order the indices.

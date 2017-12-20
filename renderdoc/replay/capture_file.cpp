@@ -165,6 +165,7 @@ public:
 
   // ICaptureAccess
 
+  int GetSectionCount();
   int FindSectionByName(const char *name);
   int FindSectionByType(SectionType type);
   SectionProperties GetSectionProperties(int index);
@@ -601,6 +602,14 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
   ret.height = thumbheight;
 
   return ret;
+}
+
+int CaptureFile::GetSectionCount()
+{
+  if(!m_RDC)
+    return 0;
+
+  return m_RDC->NumSections();
 }
 
 int CaptureFile::FindSectionByName(const char *name)

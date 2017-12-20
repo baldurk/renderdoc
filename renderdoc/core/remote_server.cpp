@@ -35,7 +35,7 @@
 #include "strings/string_utils.h"
 #include "replay_proxy.h"
 
-static const uint32_t RemoteServerProtocolVersion = 2;
+static const uint32_t RemoteServerProtocolVersion = 3;
 
 enum RemoteServerPacket
 {
@@ -61,6 +61,7 @@ enum RemoteServerPacket
   eRemoteServer_ListDir,
   eRemoteServer_ExecuteAndInject,
   eRemoteServer_ShutdownServer,
+  eRemoteServer_GetSectionCount,
   eRemoteServer_FindSectionByName,
   eRemoteServer_FindSectionByType,
   eRemoteServer_GetSectionProperties,
@@ -557,6 +558,18 @@ static void ActiveRemoteClientThread(ClientThread *threadData)
         WRITE_DATA_SCOPE();
         SCOPED_SERIALISE_CHUNK(eRemoteServer_GetResolve);
         SERIALISE_ELEMENT(StackFrames);
+      }
+    }
+    else if(type == eRemoteServer_GetSectionCount)
+    {
+      reader.EndChunk();
+
+      int count = rdc ? rdc->NumSections() : 0;
+
+      {
+        WRITE_DATA_SCOPE();
+        SCOPED_SERIALISE_CHUNK(eRemoteServer_GetSectionCount);
+        SERIALISE_ELEMENT(count);
       }
     }
     else if(type == eRemoteServer_FindSectionByName)
@@ -1406,6 +1419,37 @@ public:
     }
 
     rend->Shutdown();
+  }
+
+  int GetSectionCount()
+  {
+    if(!Connected())
+      return 0;
+
+    {
+      WRITE_DATA_SCOPE();
+      SCOPED_SERIALISE_CHUNK(eRemoteServer_GetSectionCount);
+    }
+
+    int count = 0;
+
+    {
+      READ_DATA_SCOPE();
+      RemoteServerPacket type = ser.ReadChunk<RemoteServerPacket>();
+
+      if(type == eRemoteServer_GetSectionCount)
+      {
+        SERIALISE_ELEMENT(count);
+      }
+      else
+      {
+        RDCERR("Unexpected response to GetSectionCount");
+      }
+
+      ser.EndChunk();
+    }
+
+    return count;
   }
 
   int FindSectionByName(const char *name)
