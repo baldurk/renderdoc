@@ -2979,7 +2979,8 @@ ResourceId GLReplay::CreateProxyTexture(const TextureDescription &templateTex)
     gl.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, templateTex.mips - 1);
   }
 
-  if(templateTex.format.bgraOrder && target != eGL_NONE)
+  // Swizzle R/B channels only for non BGRA textures
+  if(templateTex.format.bgraOrder && target != eGL_NONE && baseFormat != eGL_BGRA)
   {
     if(HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle])
     {
