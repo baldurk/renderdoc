@@ -913,8 +913,9 @@ void LiveCapture::captureAdded(uint32_t ID, const QString &executable, const QSt
   cap->name = executable;
   cap->api = api;
   cap->timestamp = timestamp;
-  cap->thumb = QImage(thumbnail.data(), thumbWidth, thumbHeight, QImage::Format_RGB888)
-                   .copy(0, 0, thumbWidth, thumbHeight);
+  cap->thumb =
+      QImage(thumbnail.data(), thumbWidth, thumbHeight, thumbWidth * 3, QImage::Format_RGB888)
+          .copy(0, 0, thumbWidth, thumbHeight);
   cap->saved = false;
   cap->path = path;
   cap->local = local;
