@@ -417,7 +417,7 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, fl
     SectionProperties frameCapture;
     frameCapture.flags = SectionFlags::ZstdCompressed;
     frameCapture.type = SectionType::FrameCapture;
-    frameCapture.name = SectionTypeNames[uint32_t(frameCapture.type)];
+    frameCapture.name = ToStr(frameCapture.type);
     frameCapture.version = GetStructuredData().version;
 
     StreamWriter *writer = output.WriteSection(frameCapture);

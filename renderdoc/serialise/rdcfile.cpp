@@ -30,24 +30,6 @@
 #include "lz4io.h"
 #include "zstdio.h"
 
-const char *SectionTypeNames[] = {
-    // unknown
-    "",
-    // FrameCapture
-    "renderdoc/internal/framecapture",
-    // ResolveDatabase
-    "renderdoc/internal/resolvedb",
-    // FrameBookmarks
-    "renderdoc/ui/bookmarks",
-    // Notes
-    "renderdoc/ui/notes",
-    // Resource Renames
-    "renderdoc/ui/resrenames",
-};
-
-RDCCOMPILE_ASSERT(ARRAY_COUNT(SectionTypeNames) == (size_t)SectionType::Count,
-                  "Missing section name");
-
 // not provided by tinyexr, just do by hand
 bool is_exr_file(FILE *f)
 {
@@ -815,7 +797,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
 
   // normalise names for known sections
   if(type != SectionType::Unknown && type < SectionType::Count)
-    name = SectionTypeNames[(size_t)type];
+    name = ToStr(type);
 
   if(name.empty())
   {
@@ -836,7 +818,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
 
   if(SectionIndex(type) >= 0 || SectionIndex(name.c_str()) >= 0)
   {
-    if(type == SectionType::FrameCapture || name == SectionTypeNames[(int)SectionType::FrameCapture])
+    if(type == SectionType::FrameCapture || name == ToStr(SectionType::FrameCapture))
     {
       // simple case - if there are no other sections then we can just overwrite the existing frame
       // capture.

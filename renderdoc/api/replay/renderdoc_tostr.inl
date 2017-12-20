@@ -786,11 +786,11 @@ std::string DoStringise(const SectionType &el)
 {
   BEGIN_ENUM_STRINGISE(SectionType);
   {
-    STRINGISE_ENUM_CLASS_NAMED(FrameCapture, "Frame Capture");
-    STRINGISE_ENUM_CLASS_NAMED(ResolveDatabase, "Callstack Resolve Database");
-    STRINGISE_ENUM_CLASS_NAMED(Bookmarks, "Bookmarks");
-    STRINGISE_ENUM_CLASS_NAMED(Notes, "Notes");
-    STRINGISE_ENUM_CLASS_NAMED(ResourceRenames, "Resource Renames");
+    STRINGISE_ENUM_CLASS_NAMED(FrameCapture, "renderdoc/internal/framecapture");
+    STRINGISE_ENUM_CLASS_NAMED(ResolveDatabase, "renderdoc/internal/resolvedb");
+    STRINGISE_ENUM_CLASS_NAMED(Bookmarks, "renderdoc/ui/bookmarks");
+    STRINGISE_ENUM_CLASS_NAMED(Notes, "renderdoc/ui/notes");
+    STRINGISE_ENUM_CLASS_NAMED(ResourceRenames, "renderdoc/ui/resrenames");
   }
   END_ENUM_STRINGISE();
 }
