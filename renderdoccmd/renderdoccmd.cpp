@@ -643,7 +643,7 @@ struct ConvertCommand : public Command
                        formatOptions);
     parser.add<string>("convert-format", 'c', "The format of the output file.", false, "",
                        formatOptions);
-    parser.add("list-formats", '\0', "print a list of target formats");
+    parser.add("list-formats", '\0', "Print a list of target formats.");
     parser.stop_at_rest(true);
   }
   virtual const char *Description() { return "Convert between capture formats."; }
@@ -653,9 +653,9 @@ struct ConvertCommand : public Command
   {
     if(parser.exist("list-formats"))
     {
-      std::cerr << "Available formats:" << std::endl;
+      std::cout << "Available formats:" << std::endl;
       for(CaptureFileFormat f : m_Formats)
-        std::cerr << "'" << (std::string)f.name << "': " << (std::string)f.description << std::endl;
+        std::cout << "'" << (std::string)f.name << "': " << (std::string)f.description << std::endl;
       return 0;
     }
 
@@ -882,6 +882,210 @@ struct CapAltBitCommand : public Command
   }
 };
 
+struct EmbeddedSectionCommand : public Command
+{
+  bool m_Extract = false;
+  EmbeddedSectionCommand(const GlobalEnvironment &env, bool extract) : Command(env)
+  {
+    m_Extract = extract;
+  }
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.set_footer("<capture.rdc>");
+    parser.add<std::string>("section", 's', "The embedded section name.");
+    parser.add<std::string>("file", 'f', m_Extract ? "The file to write the section contents to."
+                                                   : "The file to read the section contents from.");
+    parser.add("no-clobber", 'n', m_Extract ? "Don't overwrite the file if it already exists."
+                                            : "Don't overwrite the section if it already exists.");
+
+    if(!m_Extract)
+    {
+      parser.add("lz4", 0, "Use LZ4 to compress the data.");
+      parser.add("zstd", 0, "Use Zstandard to compress the data.");
+    }
+
+    parser.add("list-sections", 0, "Print a list of known sections.");
+  }
+  virtual const char *Description()
+  {
+    if(m_Extract)
+      return "Extract an arbitrary section of data from a capture.";
+    else
+      return "Inject an arbitrary section of data into a capture.";
+  }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    if(parser.exist("list-sections"))
+    {
+      std::cout << "Known sections:" << std::endl;
+      for(SectionType s : values<SectionType>())
+        std::cout << ToStr(s) << std::endl;
+      return 0;
+    }
+
+    std::vector<std::string> rest = parser.rest();
+    if(rest.empty())
+    {
+      std::cerr << "Error: this command requires a filename to load." << std::endl
+                << std::endl
+                << parser.usage();
+      return 0;
+    }
+
+    std::string rdc = rest[0];
+
+    rest.erase(rest.begin());
+
+    RENDERDOC_InitGlobalEnv(m_Env, convertArgs(rest));
+
+    std::string file = parser.get<std::string>("file");
+    std::string section = parser.get<std::string>("section");
+    bool noclobber = parser.exist("no-clobber");
+    bool lz4 = !m_Extract && parser.exist("lz4");
+    bool zstd = !m_Extract && parser.exist("zstd");
+
+    if(zstd && lz4)
+    {
+      std::cerr << "Can't compress with Zstandard and lz4 - ignoring lz4." << std::endl;
+      lz4 = false;
+    }
+
+    ICaptureFile *capfile = RENDERDOC_OpenCaptureFile();
+
+    ReplayStatus status = capfile->OpenFile(rdc.c_str(), "");
+
+    if(status != ReplayStatus::Succeeded)
+    {
+      capfile->Shutdown();
+      std::cerr << "Couldn't load '" << rdc << "': " << ToStr(status) << std::endl;
+      return 1;
+    }
+
+    if(m_Extract)
+    {
+      int idx = capfile->FindSectionByName(section.c_str());
+
+      if(idx < 0)
+      {
+        std::cerr << "'" << rdc << "' has no section called '" << section << "'" << std::endl;
+        std::cerr << "Available sections are:" << std::endl;
+
+        int num = capfile->GetSectionCount();
+
+        for(int i = 0; i < num; i++)
+          std::cerr << "    " << capfile->GetSectionProperties(i).name.c_str() << std::endl;
+
+        capfile->Shutdown();
+        return 1;
+      }
+
+      FILE *f = NULL;
+
+      if(noclobber)
+      {
+        f = fopen(file.c_str(), "rb");
+        bool exists = (f != NULL);
+        fclose(f);
+        f = NULL;
+
+        if(exists)
+        {
+          capfile->Shutdown();
+          std::cerr << "Refusing to overwrite '" << file << "'" << std::endl;
+          return 1;
+        }
+      }
+
+      f = fopen(file.c_str(), "wb");
+
+      if(!f)
+      {
+        capfile->Shutdown();
+        std::cerr << "Couldn't open destination file '" << file << "'" << std::endl;
+        return 1;
+      }
+      else
+      {
+        bytebuf blob = capfile->GetSectionContents(idx);
+
+        capfile->Shutdown();
+
+        fwrite(blob.data(), 1, blob.size(), f);
+        fclose(f);
+
+        std::cout << "Wrote '" << section << "' from '" << rdc << "' to '" << file << "'."
+                  << std::endl;
+      }
+    }
+    else    // insert/embed
+    {
+      int idx = capfile->FindSectionByName(section.c_str());
+
+      if(idx >= 0)
+      {
+        if(noclobber)
+        {
+          capfile->Shutdown();
+          std::cerr << "Refusing to overwrite section '" << section << "' in '" << rdc << "'"
+                    << std::endl;
+          return 1;
+        }
+        else
+        {
+          std::cout << "Overwriting section '" << section << "' in '" << rdc << "'" << std::endl;
+        }
+      }
+
+      FILE *f = fopen(file.c_str(), "rb");
+
+      if(!f)
+      {
+        capfile->Shutdown();
+        std::cerr << "Couldn't open source file '" << file << "'" << std::endl;
+        return 1;
+      }
+
+      bytebuf blob;
+
+      fseek(f, 0, SEEK_END);
+      size_t len = (size_t)ftell(f);
+      fseek(f, 0, SEEK_SET);
+
+      blob.resize(len);
+      fread(blob.data(), 1, len, f);
+
+      fclose(f);
+
+      SectionProperties props;
+      props.name = section;
+
+      for(SectionType s : values<SectionType>())
+      {
+        if(ToStr(s) == section)
+        {
+          props.type = s;
+          break;
+        }
+      }
+
+      if(zstd)
+        props.flags |= SectionFlags::ZstdCompressed;
+      if(lz4)
+        props.flags |= SectionFlags::LZ4Compressed;
+
+      capfile->WriteSection(props, blob);
+
+      capfile->Shutdown();
+
+      std::cout << "Wrote '" << section << "' from '" << file << "' to '" << rdc << "'." << std::endl;
+    }
+
+    return 0;
+  }
+};
+
 REPLAY_PROGRAM_MARKER()
 
 int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
@@ -917,6 +1121,8 @@ int renderdoccmd(const GlobalEnvironment &env, std::vector<std::string> &argv)
     add_command("capaltbit", new CapAltBitCommand(env));
     add_command("test", new TestCommand(env));
     add_command("convert", new ConvertCommand(env));
+    add_command("embed", new EmbeddedSectionCommand(env, false));
+    add_command("extract", new EmbeddedSectionCommand(env, true));
 
     if(argv.size() <= 1)
     {
