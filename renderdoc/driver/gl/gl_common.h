@@ -450,6 +450,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(99, 99, EXT_clip_cull_distance)                   \
   EXT_TO_CHECK(99, 99, EXT_multisample_compatibility)            \
   EXT_TO_CHECK(99, 99, EXT_read_format_bgra)                     \
+  EXT_TO_CHECK(99, 99, EXT_texture_format_BGRA8888)              \
   EXT_TO_CHECK(99, 99, NV_polygon_mode)                          \
   EXT_TO_CHECK(99, 99, NV_read_depth)                            \
   EXT_TO_CHECK(99, 99, NV_read_stencil)                          \

@@ -3141,6 +3141,11 @@ bool GLReplay::IsTextureSupported(const ResourceFormat &format)
   if(format.type == ResourceFormatType::ASTC)
     return false;
 
+  // BGRA is not accepted as an internal format in case of GL
+  // EXT_texture_format_BGRA8888 is required for creating BGRA proxy textures in case of GLES
+  if(format.bgraOrder)
+    return IsGLES && HasExt[EXT_texture_format_BGRA8888];
+
   return true;
 }
 
