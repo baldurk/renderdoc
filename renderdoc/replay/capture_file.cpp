@@ -590,6 +590,8 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
       {
         RDCERR("Unsupported file type %d in thumbnail fetch", type);
         free(thumbpixels);
+        ret.width = 0;
+        ret.height = 0;
         return ret;
       }
     }

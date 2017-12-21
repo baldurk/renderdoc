@@ -274,10 +274,10 @@ private:
 
   ID3D12RootSignature *m_HistogramRootSig = NULL;
   // one per texture type, one per int/uint/float
-  ID3D12PipelineState *m_TileMinMaxPipe[10][3];
-  ID3D12PipelineState *m_HistogramPipe[10][3];
+  ID3D12PipelineState *m_TileMinMaxPipe[10][3] = {};
+  ID3D12PipelineState *m_HistogramPipe[10][3] = {};
   // one per int/uint/float
-  ID3D12PipelineState *m_ResultMinMaxPipe[3];
+  ID3D12PipelineState *m_ResultMinMaxPipe[3] = {};
   ID3D12Resource *m_MinMaxResultBuffer = NULL;
   ID3D12Resource *m_MinMaxTileBuffer = NULL;
 
@@ -387,9 +387,9 @@ private:
   map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
 
   static const uint32_t m_MaxMeshPicks = 500;
-  ID3D12Resource *m_PickVB;
-  uint32_t m_PickSize;
-  ID3D12Resource *m_PickResultBuf;
+  ID3D12Resource *m_PickVB = NULL;
+  uint32_t m_PickSize = 0;
+  ID3D12Resource *m_PickResultBuf = NULL;
 
   uint64_t m_SOBufferSize = 128;
   ID3D12Resource *m_SOBuffer = NULL;
@@ -400,22 +400,22 @@ private:
   map<uint32_t, D3D12PostVSData> m_PostVSData;
   map<uint32_t, uint32_t> m_PostVSAlias;
 
-  ID3D12Resource *m_CustomShaderTex;
+  ID3D12Resource *m_CustomShaderTex = NULL;
   ResourceId m_CustomShaderResourceId;
 
   HighlightCache m_HighlightCache;
 
-  int m_width, m_height;
+  int m_width = 1, m_height = 1;
 
-  uint64_t m_OutputWindowID;
-  uint64_t m_DSVID;
-  uint64_t m_CurrentOutputWindow;
+  uint64_t m_OutputWindowID = 0;
+  uint64_t m_DSVID = 0;
+  uint64_t m_CurrentOutputWindow = 0;
   map<uint64_t, OutputWindow> m_OutputWindows;
 
-  WrappedID3D12Device *m_WrappedDevice;
-  ID3D12Device *m_Device;
+  WrappedID3D12Device *m_WrappedDevice = NULL;
+  ID3D12Device *m_Device = NULL;
 
-  IDXGIFactory4 *m_pFactory;
+  IDXGIFactory4 *m_pFactory = NULL;
 
-  D3D12ResourceManager *m_ResourceManager;
+  D3D12ResourceManager *m_ResourceManager = NULL;
 };

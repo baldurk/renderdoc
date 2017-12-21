@@ -29,7 +29,12 @@
 
 struct ProgramUniformValue
 {
-  ProgramUniformValue() { RDCEraseEl(data); }
+  ProgramUniformValue()
+  {
+    Type = eGL_NONE;
+    Location = 0;
+    RDCEraseEl(data);
+  }
   GLenum Type;
   int32_t Location;
 
@@ -47,7 +52,7 @@ DECLARE_REFLECTION_STRUCT(ProgramUniformValue);
 struct ProgramUniform
 {
   std::string Basename;
-  bool IsArray;
+  bool IsArray = false;
 
   std::vector<ProgramUniformValue> Values;
 };

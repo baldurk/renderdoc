@@ -393,7 +393,7 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
     int result = connect(s, ptr->ai_addr, (int)ptr->ai_addrlen);
     if(result == SOCKET_ERROR)
     {
-      fd_set setW, setE;
+      fd_set setW = {}, setE = {};
       FD_ZERO(&setW);
       FD_ZERO(&setE);
 
