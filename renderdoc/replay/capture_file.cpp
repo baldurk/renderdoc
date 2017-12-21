@@ -99,6 +99,8 @@ static RDCThumb convertThumb(FileType thumbType, uint32_t thumbWidth, uint32_t t
 
     ret.pixels = pixels;
     ret.len = (uint32_t)len;
+
+    free(decoded);
   }
 
   return ret;
