@@ -1264,6 +1264,13 @@ void MainWindow::show()
         apiInspector,
         ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
                                          ui->toolWindowManager->areaOf(eventBrowser), 0.3f));
+
+    QWidget *timelineBar = m_Ctx.GetTimelineBar()->Widget();
+
+    ui->toolWindowManager->addToolWindow(
+        timelineBar,
+        ToolWindowManager::AreaReference(ToolWindowManager::TopWindowSide,
+                                         ui->toolWindowManager->areaOf(textureViewer), 0.2f));
   }
 
   QMainWindow::show();
