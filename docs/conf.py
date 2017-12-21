@@ -26,11 +26,13 @@ import struct
 
 # path to module libraries for windows
 if struct.calcsize("P") == 8:
-	modulepath = '../x64/Development'
+	binpath = '../x64/'
 else:
-	modulepath = '../Win32/Development'
+	binpath = '../Win32/'
 
-sys.path.insert(0, os.path.abspath(modulepath))
+# Prioritise release over development builds
+sys.path.insert(0, os.path.abspath(binpath + 'Development'))
+sys.path.insert(0, os.path.abspath(binpath + 'Release'))
 
 # path to module libraries for linux
 sys.path.insert(0, os.path.abspath('../build/bin'))
