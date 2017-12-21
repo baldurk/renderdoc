@@ -669,7 +669,10 @@ void RemoteManager::on_deleteHost_clicked()
 
   if(res == QMessageBox::Yes)
   {
-    size_t idx = m_Ctx.Config().RemoteHosts.indexOf(host);
+    int32_t idx = m_Ctx.Config().RemoteHosts.indexOf(host);
+    if(idx < 0)
+      return;
+
     // the host will be removed in queueDelete.
     m_Ctx.Config().RemoteHosts.erase(idx);
     m_Ctx.Config().Save();
