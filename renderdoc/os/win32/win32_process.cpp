@@ -1396,7 +1396,8 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   pSec.nLength = sizeof(pSec);
   tSec.nLength = sizeof(tSec);
 
-  wchar_t *paramsAlloc = new wchar_t[2048];
+  std::wstring paramsAlloc;
+  paramsAlloc.resize(2048);
 
   // serialise to string with two chars per byte
   string optstr;
@@ -1416,7 +1417,7 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   std::string debugLogfile = RDCGETLOGFILE();
   wstring wdebugLogfile = StringFormat::UTF82Wide(debugLogfile);
 
-  _snwprintf_s(paramsAlloc, 2047, 2047,
+  _snwprintf_s(&paramsAlloc[0], 2047, 2047,
                L"\"%ls\" globalhook --match \"%ls\" --logfile \"%ls\" --debuglog \"%ls\" "
                L"--capopts \"%hs\"",
                cmdpathNative.c_str(), wpathmatch.c_str(), wlogfile.c_str(), wdebugLogfile.c_str(),
@@ -1461,7 +1462,7 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   }
 
   // launch the process
-  BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, true, 0, NULL, NULL, &si, &pi);
+  BOOL retValue = CreateProcessW(NULL, &paramsAlloc[0], &pSec, &tSec, true, 0, NULL, NULL, &si, &pi);
 
   // we don't need this end anymore, the child has it
   CloseHandle(childEnd);
@@ -1477,9 +1478,11 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   CloseHandle(pi.hThread);
   CloseHandle(pi.hProcess);
 
+  RDCEraseEl(pi);
+
 // repeat the process for the Wow32 renderdoccmd
 #if ENABLED(RDOC_X64)
-  _snwprintf_s(paramsAlloc, 2047, 2047,
+  _snwprintf_s(&paramsAlloc[0], 2047, 2047,
                L"\"%ls\" globalhook --match \"%ls\" --logfile \"%ls\" --debuglog \"%ls\" "
                L"--capopts \"%hs\"",
                cmdpathWow32.c_str(), wpathmatch.c_str(), wlogfile.c_str(), wdebugLogfile.c_str(),
@@ -1515,7 +1518,7 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
     si.hStdInput = childEnd;
   }
 
-  retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, true, 0, NULL, NULL, &si, &pi);
+  retValue = CreateProcessW(NULL, &paramsAlloc[0], &pSec, &tSec, true, 0, NULL, NULL, &si, &pi);
 
   // we don't need this end anymore
   CloseHandle(childEnd);
