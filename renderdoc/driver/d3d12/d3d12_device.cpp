@@ -2398,7 +2398,10 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
   StreamReader *reader = rdc->ReadSection(sectionIdx);
 
   if(reader->IsErrored())
+  {
+    delete reader;
     return ReplayStatus::FileIOFailed;
+  }
 
   ReadSerialiser ser(reader, Ownership::Stream);
 

@@ -3078,7 +3078,10 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
   StreamReader *reader = rdc->ReadSection(sectionIdx);
 
   if(reader->IsErrored())
+  {
+    delete reader;
     return ReplayStatus::FileIOFailed;
+  }
 
   ReadSerialiser ser(reader, Ownership::Stream);
 
