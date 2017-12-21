@@ -234,7 +234,7 @@ HEADERS += Code/CaptureContext.h \
     Code/Resources.h \
     Code/pyrenderdoc/PythonContext.h \
     Code/pyrenderdoc/pyconversion.h \
-    Code/pyrenderdoc/document_check.h \
+    Code/pyrenderdoc/interface_check.h \
     Code/Interface/QRDInterface.h \
     Code/Interface/Analytics.h \
     Code/Interface/CommonPipelineState.h \

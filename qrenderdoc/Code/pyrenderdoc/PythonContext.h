@@ -55,7 +55,7 @@ public:
   static void GlobalInit();
   static void GlobalShutdown();
 
-  bool CheckDocstrings();
+  bool CheckInterfaces();
 
   QString versionString();
 

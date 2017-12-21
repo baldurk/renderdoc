@@ -1004,9 +1004,6 @@
     <ClInclude Include="Code\Interface\QRDInterface.h">
       <Filter>Code\Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Code\pyrenderdoc\document_check.h">
-      <Filter>Code\pyrenderdoc</Filter>
-    </ClInclude>
     <ClInclude Include="Code\ReplayManager.h">
       <Filter>Code</Filter>
     </ClInclude>
@@ -1057,6 +1054,9 @@
     </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_UpdateDialog.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\pyrenderdoc\interface_check.h">
+      <Filter>Code\pyrenderdoc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

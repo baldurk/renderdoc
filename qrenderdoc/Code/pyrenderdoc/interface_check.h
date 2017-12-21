@@ -24,7 +24,101 @@
 
 #pragma once
 
-inline bool check_docstrings(swig_type_info **swig_types, size_t numTypes)
+// verify the interface.
+// We check that docstrings aren't duplicated, which is a symptom of missing DOCUMENT()
+// macros around newly added classes/members.
+// For enums, verify that all constants are documented in the parent docstring
+// Generally we ensure naming is roughly OK:
+// * types, member functions, and enum values must match the regexp /[A-Z][a-zA-Z0-9]+/
+//   ie. we don't use underscore_seperated_words or mixedCase / camelCase.
+// * data members should be mixedCase / camelCase. So matching /[a-z][a-zA-Z0-9]+/
+// This isn't quite python standards but it fits best with the C++ code and the important
+// thing is that it's self-consistent.
+
+enum class NameType
+{
+  Type,
+  EnumValue,
+  Method,
+  Member,
+};
+
+inline bool checkname(const char *baseType, std::string name, NameType nameType)
+{
+  // skip __ prefixed names
+  if(name.length() > 2 && name[0] == '_' && name[1] == '_')
+    return false;
+
+  // skip any rdctype based types that are converted into equivalent python types
+  if((baseType && strstr(baseType, "rdcarray")) || name.find("rdcarray") != std::string::npos)
+    return false;
+  if((baseType && strstr(baseType, "bytebuf")) || name.find("bytebuf") != std::string::npos)
+    return false;
+  if((baseType && strstr(baseType, "rdcstr")) || name.find("rdcstr") != std::string::npos)
+    return false;
+  if((baseType && strstr(baseType, "StructuredBufferList")) ||
+     name.find("StructuredBufferList") != std::string::npos)
+    return false;
+  if((baseType && strstr(baseType, "StructuredChunkList")) ||
+     name.find("StructuredChunkList") != std::string::npos)
+    return false;
+  if((baseType && strstr(baseType, "StructuredObjectList")) ||
+     name.find("StructuredObjectList") != std::string::npos)
+    return false;
+
+  // allow the config to have different names
+  if((baseType && strstr(baseType, "PersistantConfig")) ||
+     name.find("PersistantConfig") != std::string::npos)
+    return false;
+
+  // skip swig internal type
+  if((baseType && strstr(baseType, "SwigPyObject")) || name.find("SwigPyObject") != std::string::npos)
+    return false;
+
+  // remove the module prefix, if this is a type name we're checking
+  if(!strncmp(name.c_str(), "renderdoc.", 10))
+    name.erase(0, 10);
+  if(!strncmp(name.c_str(), "qrenderdoc.", 11))
+    name.erase(0, 11);
+
+  // skip a few well-known members
+  if(name == "this" || name == "thisown")
+    return false;
+
+  bool member = (nameType == NameType::Member);
+
+  // look for invalid name
+  bool badfirstChar = false;
+  if(member)
+    badfirstChar = name[0] < 'a' || name[0] > 'z';
+  else
+    badfirstChar = name[0] < 'A' || name[0] > 'Z';
+
+  if(badfirstChar || name.find('_') != std::string::npos)
+  {
+    const char *nameTypeStr = "";
+
+    switch(nameType)
+    {
+      case NameType::EnumValue: nameTypeStr = "enum value"; break;
+      case NameType::Member: nameTypeStr = "member variable"; break;
+      case NameType::Method: nameTypeStr = "method"; break;
+      case NameType::Type: nameTypeStr = "type"; break;
+    }
+
+    snprintf(convert_error, sizeof(convert_error) - 1,
+             "Name of %s '%s.%s' does not match naming scheme.\n"
+             "Should start with %s letter and not contain underscores",
+             nameTypeStr, baseType, name.c_str(), member ? "lowercase" : "uppercase");
+    RENDERDOC_LogMessage(LogType::Error, "QTRD", __FILE__, __LINE__, convert_error);
+
+    return true;
+  }
+
+  return false;
+}
+
+inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
 {
   // track all errors and fatal error at the end, so we see all of the problems at once instead of
   // requiring rebuilds over and over.
@@ -56,6 +150,8 @@ inline bool check_docstrings(swig_type_info **swig_types, size_t numTypes)
       errors_found = true;
     }
 
+    errors_found |= checkname("renderdoc", typeobj->tp_name, NameType::Type);
+
     PyObject *dict = typeobj->tp_dict;
 
     // check the object's dict to see if this is an enum (or struct with constants).
@@ -74,8 +170,8 @@ inline bool check_docstrings(swig_type_info **swig_types, size_t numTypes)
           PyObject *key = PyList_GetItem(keys, i);
           PyObject *value = PyDict_GetItem(dict, key);
 
-          // if this key is a string (it should be) and the value is an integer, it's a constant
-          if(PyUnicode_Check(key) && PyLong_Check(value))
+          // if this key is a string (it should be)
+          if(PyUnicode_Check(key))
           {
             char *str = NULL;
             Py_ssize_t len = 0;
@@ -84,12 +180,27 @@ inline bool check_docstrings(swig_type_info **swig_types, size_t numTypes)
 
             if(str == NULL || len == 0)
             {
+              snprintf(convert_error, sizeof(convert_error) - 1,
+                       "Couldn't get member name for %i'th member of '%s'", (int)i, typeobj->tp_name);
               RENDERDOC_LogMessage(LogType::Error, "QTRD", __FILE__, __LINE__, convert_error);
               errors_found = true;
             }
             else
             {
-              constants.insert(std::string(str, str + len));
+              std::string name(str, str + len);
+
+              NameType nameType = NameType::Member;
+
+              // if the value is an integer, it's a constant
+              if(PyLong_Check(value))
+              {
+                constants.insert(name);
+                nameType = NameType::EnumValue;
+              }
+
+              // if it's a callable it's a method, ignore it
+              if(!PyCallable_Check(value) && !PyType_IsSubtype(value->ob_type, &PyStaticMethod_Type))
+                errors_found |= checkname(typeobj->tp_name, name, nameType);
             }
 
             Py_DecRef(bytes);
@@ -149,6 +260,8 @@ inline bool check_docstrings(swig_type_info **swig_types, size_t numTypes)
     while(method->ml_doc)
     {
       std::string method_doc = method->ml_doc;
+
+      checkname(typeobj->tp_name, method->ml_name, NameType::Method);
 
       size_t i = 0;
       while(method_doc[i] == '\n')

@@ -79,20 +79,20 @@ int main(int argc, char *argv[])
 
       bool errors = false;
 
-      qInfo() << "Checking python binding docstrings.";
+      qInfo() << "Checking python binding consistency.";
 
       {
         PythonContextHandle py;
-        errors = py.ctx().CheckDocstrings();
+        errors = py.ctx().CheckInterfaces();
       }
 
       if(errors)
       {
-        qCritical() << "Found errors in python binding docstrings. Please fix!";
+        qCritical() << "Found errors in python bindings. Please fix!";
         return 1;
       }
 
-      qInfo() << "Python binding docstrings are consistent.";
+      qInfo() << "Python bindings are consistent.";
       return 0;
     }
   }

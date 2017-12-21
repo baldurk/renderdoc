@@ -113,30 +113,28 @@ TEMPLATE_ARRAY_INSTANTIATE_PTR(rdcarray, ICaptureViewer)
 
 %header %{
   #include <set>
-  #include "Code/pyrenderdoc/document_check.h"
+  #include "Code/pyrenderdoc/interface_check.h"
 
-  // verify that docstrings aren't duplicated, which is a symptom of missing DOCUMENT()
-  // macros around newly added classes/members.
-  // For enums, verify that all constants are documented in the parent docstring
-  static swig_type_info **docCheckTypes;
-  static size_t docCheckNumTypes = 0;
+  // check interface, see interface_check.h for more information
+  static swig_type_info **interfaceCheckTypes;
+  static size_t interfaceCheckNumTypes = 0;
 
-  bool CheckQtDocstrings()
+  bool CheckQtInterface()
   {
 #if defined(RELEASE)
     return false;
 #else
-    if(docCheckNumTypes == 0)
+    if(interfaceCheckNumTypes == 0)
       return false;
 
-    return check_docstrings(docCheckTypes, docCheckNumTypes);
+    return check_interface(interfaceCheckTypes, interfaceCheckNumTypes);
 #endif
   }
 %}
 
 %init %{
-  docCheckTypes = swig_type_initial;
-  docCheckNumTypes = sizeof(swig_type_initial)/sizeof(swig_type_initial[0]);
+  interfaceCheckTypes = swig_type_initial;
+  interfaceCheckNumTypes = sizeof(swig_type_initial)/sizeof(swig_type_initial[0]);
 %}
 
 // declare functions for using swig opaque wrap/unwrap of QWidget, for when pyside isn't available.
