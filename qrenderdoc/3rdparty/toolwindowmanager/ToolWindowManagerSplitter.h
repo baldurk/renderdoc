@@ -31,7 +31,8 @@
  * \brief The ToolWindowManagerSplitter class is a splitter that tweaks how sizes are allocated in
  * children when a child is removed.
  */
-class ToolWindowManagerSplitter : public QSplitter {
+class ToolWindowManagerSplitter : public QSplitter
+{
   Q_OBJECT
 public:
   //! Creates new tab bar.
@@ -44,4 +45,4 @@ protected:
   void childEvent(QChildEvent *) Q_DECL_OVERRIDE;
 };
 
-#endif // TOOLWINDOWMANAGERSPLITTER_H
+#endif    // TOOLWINDOWMANAGERSPLITTER_H

@@ -25,10 +25,10 @@
 #ifndef TOOLWINDOWMANAGER_H
 #define TOOLWINDOWMANAGER_H
 
-#include <QWidget>
 #include <QHash>
-#include <QVariant>
 #include <QLabel>
+#include <QVariant>
+#include <QWidget>
 
 #include <functional>
 
@@ -48,7 +48,8 @@ class QSplitter;
  *
  * See https://github.com/Riateche/toolwindowmanager for detailed description.
  */
-class ToolWindowManager : public QWidget {
+class ToolWindowManager : public QWidget
+{
   Q_OBJECT
   /*!
    * \brief Whether or not to allow floating windows to be created.
@@ -92,7 +93,8 @@ public:
   virtual ~ToolWindowManager();
 
   //! Toolwindow properties
-  enum ToolWindowProperty {
+  enum ToolWindowProperty
+  {
     //! Disables all drag/docking ability by the user
     DisallowUserDocking = 0x1,
     //! Hides the close button on the tab for this tool window
@@ -108,7 +110,8 @@ public:
   };
 
   //! Type of AreaReference.
-  enum AreaReferenceType {
+  enum AreaReferenceType
+  {
     //! The area tool windows has been added to most recently.
     LastUsedArea,
     //! New area in a detached window.
@@ -142,47 +145,50 @@ public:
   /*!
    * \brief The AreaReference class represents a place where tool windows should be moved.
    */
-  class AreaReference {
+  class AreaReference
+  {
   public:
     /*!
      * Creates an area reference of the given \a type. If \a type requires specifying
-     * area, it should be given in \a area argument. Otherwise \a area should have default value (0).
+     * area, it should be given in \a area argument. Otherwise \a area should have default value
+     * (0).
      */
-    AreaReference(AreaReferenceType type = NoArea, ToolWindowManagerArea* area = 0, float percentage = 0.5f);
+    AreaReference(AreaReferenceType type = NoArea, ToolWindowManagerArea *area = 0,
+                  float percentage = 0.5f);
     //! Returns type of the reference.
     AreaReferenceType type() const { return m_type; }
     //! Returns area of the reference, or 0 if it was not specified.
-    ToolWindowManagerArea* area() const;
+    ToolWindowManagerArea *area() const;
 
   private:
     AreaReferenceType m_type;
-    QWidget* m_widget;
+    QWidget *m_widget;
     float m_percentage;
     bool dragResult;
-    QWidget* widget() const { return m_widget; }
+    QWidget *widget() const { return m_widget; }
     float percentage() const { return m_percentage; }
-    AreaReference(AreaReferenceType type, QWidget* widget);
-    void setWidget(QWidget* widget);
+    AreaReference(AreaReferenceType type, QWidget *widget);
+    void setWidget(QWidget *widget);
 
     friend class ToolWindowManager;
-
   };
 
   /*!
    * Adds \a toolWindow to the manager and moves it to the position specified by
    * \a area. This function is a shortcut for ToolWindowManager::addToolWindows.
    */
-  void addToolWindow(QWidget* toolWindow, const AreaReference& area);
+  void addToolWindow(QWidget *toolWindow, const AreaReference &area,
+                     ToolWindowProperty properties = ToolWindowProperty(0));
 
   /*!
    * Sets the set of \a properties on \a toolWindow that is already added to the manager.
    */
-  void setToolWindowProperties(QWidget* toolWindow, ToolWindowProperty properties);
+  void setToolWindowProperties(QWidget *toolWindow, ToolWindowProperty properties);
 
   /*!
    * Returns the set of \a properties on \a toolWindow.
    */
-  ToolWindowProperty toolWindowProperties(QWidget* toolWindow);
+  ToolWindowProperty toolWindowProperties(QWidget *toolWindow);
 
   /*!
    * \brief Adds \a toolWindows to the manager and moves it to the position specified by
@@ -196,46 +202,50 @@ public:
    * and ToolWindowManager::restoreState functions, you must set objectName() of each added
    * tool window to a non-empty unique string.
    */
-  void addToolWindows(QList<QWidget*> toolWindows, const AreaReference& area);
+  void addToolWindows(QList<QWidget *> toolWindows, const AreaReference &area,
+                      ToolWindowProperty properties = ToolWindowProperty(0));
 
   /*!
    * Returns area that contains \a toolWindow, or 0 if \a toolWindow is hidden.
    */
-  ToolWindowManagerArea* areaOf(QWidget* toolWindow);
+  ToolWindowManagerArea *areaOf(QWidget *toolWindow);
 
   /*!
    * \brief Moves \a toolWindow to the position specified by \a area.
    *
    * \a toolWindow must be added to the manager prior to calling this function.
    */
-  void moveToolWindow(QWidget* toolWindow, AreaReference area);
+  void moveToolWindow(QWidget *toolWindow, AreaReference area);
 
   /*!
    * \brief Moves \a toolWindows to the position specified by \a area.
    *
    * \a toolWindows must be added to the manager prior to calling this function.
    */
-  void moveToolWindows(QList<QWidget*> toolWindows, AreaReference area);
+  void moveToolWindows(QList<QWidget *> toolWindows, AreaReference area);
 
   /*!
    * \brief Removes \a toolWindow from the manager. \a toolWindow becomes a hidden
    * top level widget. The ownership of \a toolWindow is returned to the caller.
    */
-  void removeToolWindow(QWidget* toolWindow);
+  void removeToolWindow(QWidget *toolWindow);
+
+  /*!
+  * Returns if \a toolWindow is floating instead of being docked.
+  */
+  bool isFloating(QWidget *toolWindow);
 
   /*!
    * \brief Returns all tool window added to the manager.
    */
-  const QList<QWidget*>& toolWindows() { return m_toolWindows; }
-
+  const QList<QWidget *> &toolWindows() { return m_toolWindows; }
   /*!
    * Hides \a toolWindow.
    *
    * \a toolWindow must be added to the manager prior to calling this function.
    */
-  void hideToolWindow(QWidget* toolWindow) { moveToolWindow(toolWindow, NoArea); }
-  
-  static ToolWindowManager* managerOf(QWidget* toolWindow);
+  void hideToolWindow(QWidget *toolWindow) { moveToolWindow(toolWindow, NoArea); }
+  static ToolWindowManager *managerOf(QWidget *toolWindow);
   static void closeToolWindow(QWidget *toolWindow);
   static void raiseToolWindow(QWidget *toolWindow);
 
@@ -247,56 +257,53 @@ public:
   /*!
    * \brief restoreState
    */
-  void restoreState(const QVariantMap& data);
+  void restoreState(const QVariantMap &data);
 
-  typedef std::function<QWidget*(const QString &)> CreateCallback;
+  typedef std::function<QWidget *(const QString &)> CreateCallback;
 
   void setToolWindowCreateCallback(const CreateCallback &cb) { m_createCallback = cb; }
-  QWidget *createToolWindow(const QString& objectName);
+  QWidget *createToolWindow(const QString &objectName);
 
   void setHotspotPixmap(AreaReferenceType ref, const QPixmap &pix) { m_pixmaps[ref] = pix; }
-
   void setDropHotspotMargin(int pixels);
   bool dropHotspotMargin() { return m_dropHotspotMargin; }
-
   void setDropHotspotDimension(int pixels);
   bool dropHotspotDimension() { return m_dropHotspotDimension; }
-
   /*! \cond PRIVATE */
   void setAllowFloatingWindow(bool pixels);
   bool allowFloatingWindow() { return m_allowFloatingWindow; }
   /*! \endcond */
-
 
 signals:
   /*!
    * \brief This signal is emitted when \a toolWindow may be hidden or shown.
    * \a visible indicates new visibility state of the tool window.
    */
-  void toolWindowVisibilityChanged(QWidget* toolWindow, bool visible);
+  void toolWindowVisibilityChanged(QWidget *toolWindow, bool visible);
 
 private:
-  QList<QWidget*> m_toolWindows; // all added tool windows
-  QHash<QWidget*, ToolWindowProperty> m_toolWindowProperties; // all tool window properties
-  QList<ToolWindowManagerArea*> m_areas; // all areas for this manager
-  QList<ToolWindowManagerWrapper*> m_wrappers; // all wrappers for this manager
+  QList<QWidget *> m_toolWindows;                                 // all added tool windows
+  QHash<QWidget *, ToolWindowProperty> m_toolWindowProperties;    // all tool window properties
+  QList<ToolWindowManagerArea *> m_areas;                         // all areas for this manager
+  QList<ToolWindowManagerWrapper *> m_wrappers;                   // all wrappers for this manager
   // list of tool windows that are currently dragged, or empty list if there is no current drag
-  QList<QWidget*> m_draggedToolWindows;
-  ToolWindowManagerWrapper* m_draggedWrapper; // the wrapper if a whole float window is being dragged
-  ToolWindowManagerArea* m_hoverArea; // the area currently being hovered over in a drag
+  QList<QWidget *> m_draggedToolWindows;
+  ToolWindowManagerWrapper
+      *m_draggedWrapper;                 // the wrapper if a whole float window is being dragged
+  ToolWindowManagerArea *m_hoverArea;    // the area currently being hovered over in a drag
   // a semi-transparent preview of where the dragged toolwindow(s) will be docked
-  QWidget* m_previewOverlay;
-  QWidget* m_previewTabOverlay;
-  QLabel* m_dropHotspots[NumReferenceTypes];
+  QWidget *m_previewOverlay;
+  QWidget *m_previewTabOverlay;
+  QLabel *m_dropHotspots[NumReferenceTypes];
   QPixmap m_pixmaps[NumReferenceTypes];
 
-  bool m_allowFloatingWindow; // Allow floating windows from this docking area
-  int m_dropHotspotMargin; // The pixels between drop hotspot icons
-  int m_dropHotspotDimension; // The pixel dimension of the hotspot icons
+  bool m_allowFloatingWindow;    // Allow floating windows from this docking area
+  int m_dropHotspotMargin;       // The pixels between drop hotspot icons
+  int m_dropHotspotDimension;    // The pixel dimension of the hotspot icons
 
   CreateCallback m_createCallback;
 
-  ToolWindowManagerWrapper* wrapperOf(QWidget* toolWindow);
+  ToolWindowManagerWrapper *wrapperOf(QWidget *toolWindow);
 
   void drawHotspotPixmaps();
 
@@ -304,14 +311,14 @@ private:
 
   // last widget used for adding tool windows, or 0 if there isn't one
   // (warning: may contain pointer to deleted object)
-  ToolWindowManagerArea* m_lastUsedArea;
-  //remove tool window from its area (if any) and set parent to 0
-  void releaseToolWindow(QWidget* toolWindow);
-  void simplifyLayout(); //remove constructions that became useless
-  void startDrag(const QList<QWidget*>& toolWindows, ToolWindowManagerWrapper *wrapper);
+  ToolWindowManagerArea *m_lastUsedArea;
+  // remove tool window from its area (if any) and set parent to 0
+  void releaseToolWindow(QWidget *toolWindow);
+  void simplifyLayout();    // remove constructions that became useless
+  void startDrag(const QList<QWidget *> &toolWindows, ToolWindowManagerWrapper *wrapper);
 
-  QVariantMap saveSplitterState(QSplitter* splitter);
-  QSplitter* restoreSplitterState(const QVariantMap& data);
+  QVariantMap saveSplitterState(QSplitter *splitter);
+  QSplitter *restoreSplitterState(const QVariantMap &data);
 
   AreaReferenceType currentHotspot();
 
@@ -319,7 +326,6 @@ private:
   void abortDrag();
   void finishDrag();
   bool dragInProgress() { return !m_draggedToolWindows.isEmpty(); }
-
   friend class ToolWindowManagerArea;
   friend class ToolWindowManagerWrapper;
 
@@ -331,7 +337,7 @@ protected:
    * \brief Creates new splitter and sets its default properties. You may reimplement
    * this function to change properties of all splitters used by this class.
    */
-  virtual QSplitter* createSplitter();
+  virtual QSplitter *createSplitter();
   /*!
    * \brief Creates new area and sets its default properties. You may reimplement
    * this function to change properties of all tab widgets used by this class.
@@ -341,10 +347,12 @@ protected:
 private slots:
   void tabCloseRequested(int index);
   void windowTitleChanged(const QString &title);
-
 };
 
-inline ToolWindowManager::ToolWindowProperty operator|(ToolWindowManager::ToolWindowProperty a, ToolWindowManager::ToolWindowProperty b)
-{ return ToolWindowManager::ToolWindowProperty(int(a) | int(b)); }
+inline ToolWindowManager::ToolWindowProperty operator|(ToolWindowManager::ToolWindowProperty a,
+                                                       ToolWindowManager::ToolWindowProperty b)
+{
+  return ToolWindowManager::ToolWindowProperty(int(a) | int(b));
+}
 
-#endif // TOOLWINDOWMANAGER_H
+#endif    // TOOLWINDOWMANAGER_H

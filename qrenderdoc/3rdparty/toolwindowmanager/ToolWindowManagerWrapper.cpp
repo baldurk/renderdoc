@@ -23,21 +23,20 @@
  *
  */
 #include "ToolWindowManagerWrapper.h"
-#include "ToolWindowManager.h"
-#include "ToolWindowManagerArea.h"
-#include <QVBoxLayout>
+#include <QApplication>
+#include <QDebug>
 #include <QDragEnterEvent>
 #include <QMimeData>
-#include <QDebug>
-#include <QApplication>
 #include <QSplitter>
-#include <QTimer>
-#include <QStylePainter>
 #include <QStyleOption>
+#include <QStylePainter>
+#include <QTimer>
+#include <QVBoxLayout>
+#include "ToolWindowManager.h"
+#include "ToolWindowManagerArea.h"
 
-ToolWindowManagerWrapper::ToolWindowManagerWrapper(ToolWindowManager *manager, bool floating) :
-  QWidget(manager)
-, m_manager(manager)
+ToolWindowManagerWrapper::ToolWindowManagerWrapper(ToolWindowManager *manager, bool floating)
+    : QWidget(manager), m_manager(manager)
 {
   Qt::WindowFlags flags = Qt::Tool;
 
@@ -58,7 +57,7 @@ ToolWindowManagerWrapper::ToolWindowManagerWrapper(ToolWindowManager *manager, b
 
   m_floating = floating;
 
-  QVBoxLayout* mainLayout = new QVBoxLayout(this);
+  QVBoxLayout *mainLayout = new QVBoxLayout(this);
   mainLayout->setContentsMargins(0, 0, 0, 0);
   mainLayout->setMargin(0);
   mainLayout->setSpacing(0);
@@ -73,52 +72,61 @@ ToolWindowManagerWrapper::ToolWindowManagerWrapper(ToolWindowManager *manager, b
   m_frameWidth = 0;
   m_titleHeight = 0;
 
-  if (floating && (flags & Qt::FramelessWindowHint)) {
+  if(floating && (flags & Qt::FramelessWindowHint))
+  {
     m_closeButtonSize = style()->pixelMetric(QStyle::PM_SmallIconSize, 0, this);
 
     QFontMetrics titleFontMetrics = fontMetrics();
     int mw = style()->pixelMetric(QStyle::PM_DockWidgetTitleMargin, 0, this);
 
-    m_titleHeight = qMax(m_closeButtonSize + 2, titleFontMetrics.height() + 2*mw);
+    m_titleHeight = qMax(m_closeButtonSize + 2, titleFontMetrics.height() + 2 * mw);
 
     m_frameWidth = style()->pixelMetric(QStyle::PM_DockWidgetFrameWidth, 0, this);
 
-    mainLayout->setContentsMargins(QMargins(m_frameWidth+4, m_frameWidth+4 + m_titleHeight,
-                                            m_frameWidth+4, m_frameWidth+4));
+    mainLayout->setContentsMargins(QMargins(m_frameWidth + 4, m_frameWidth + 4 + m_titleHeight,
+                                            m_frameWidth + 4, m_frameWidth + 4));
   }
 
-  if (floating) {
+  if(floating)
+  {
     installEventFilter(this);
     updateTitle();
   }
 }
 
-ToolWindowManagerWrapper::~ToolWindowManagerWrapper() {
+ToolWindowManagerWrapper::~ToolWindowManagerWrapper()
+{
   m_manager->m_wrappers.removeOne(this);
 }
 
-void ToolWindowManagerWrapper::updateTitle() {
-  if (!m_floating)
+void ToolWindowManagerWrapper::updateTitle()
+{
+  if(!m_floating)
     return;
 
   // find the best candidate for a 'title' for this floating window.
-  if (layout()->count() > 0) {
+  if(layout()->count() > 0)
+  {
     QWidget *child = layout()->itemAt(0)->widget();
 
-    while (child) {
+    while(child)
+    {
       // if we've found an area, use its currently selected tab's text
-      if (ToolWindowManagerArea* area = qobject_cast<ToolWindowManagerArea*>(child)) {
+      if(ToolWindowManagerArea *area = qobject_cast<ToolWindowManagerArea *>(child))
+      {
         setWindowTitle(area->tabText(area->currentIndex()));
         return;
       }
       // otherwise we should have a splitter
-      if (QSplitter* splitter = qobject_cast<QSplitter*>(child)) {
+      if(QSplitter *splitter = qobject_cast<QSplitter *>(child))
+      {
         // if it's empty, just bail
-        if (splitter->count() == 0)
+        if(splitter->count() == 0)
           break;
 
         // if it's vertical, we pick the first child and recurse
-        if (splitter->orientation() == Qt::Vertical) {
+        if(splitter->orientation() == Qt::Vertical)
+        {
           child = splitter->widget(0);
           continue;
         }
@@ -128,8 +136,10 @@ void ToolWindowManagerWrapper::updateTitle() {
         QList<int> sizes = splitter->sizes();
         int maxIdx = 0;
         int maxSize = sizes[0];
-        for (int i=1; i < sizes.count(); i++) {
-          if (sizes[i] > maxSize) {
+        for(int i = 1; i < sizes.count(); i++)
+        {
+          if(sizes[i] > maxSize)
+          {
             maxSize = sizes[i];
             maxIdx = i;
           }
@@ -148,22 +158,31 @@ void ToolWindowManagerWrapper::updateTitle() {
   setWindowTitle(QStringLiteral("Tool Window"));
 }
 
-void ToolWindowManagerWrapper::closeEvent(QCloseEvent *event) {
-  QList<QWidget*> toolWindows;
-  foreach(ToolWindowManagerArea* tabWidget, findChildren<ToolWindowManagerArea*>()) {
-    if (ToolWindowManager::managerOf(tabWidget) == m_manager) {
+void ToolWindowManagerWrapper::closeEvent(QCloseEvent *event)
+{
+  // abort dragging caused by QEvent::NonClientAreaMouseButtonPress in eventFilter function
+  m_manager->abortDrag();
+
+  QList<QWidget *> toolWindows;
+  foreach(ToolWindowManagerArea *tabWidget, findChildren<ToolWindowManagerArea *>())
+  {
+    if(ToolWindowManager::managerOf(tabWidget) == m_manager)
+    {
       toolWindows << tabWidget->toolWindows();
     }
   }
 
-  foreach(QWidget* toolWindow, toolWindows) {
-    if (!m_manager->allowClose(toolWindow)) {
+  foreach(QWidget *toolWindow, toolWindows)
+  {
+    if(!m_manager->allowClose(toolWindow))
+    {
       event->ignore();
       return;
     }
   }
 
-  foreach(QWidget* toolWindow, toolWindows) {
+  foreach(QWidget *toolWindow, toolWindows)
+  {
     if(m_manager->toolWindowProperties(toolWindow) & ToolWindowManager::HideOnClose)
       m_manager->hideToolWindow(toolWindow);
     else
@@ -171,43 +190,48 @@ void ToolWindowManagerWrapper::closeEvent(QCloseEvent *event) {
   }
 }
 
-bool ToolWindowManagerWrapper::eventFilter(QObject *object, QEvent *event) {
+bool ToolWindowManagerWrapper::eventFilter(QObject *object, QEvent *event)
+{
   const Qt::CursorShape shapes[(int)ResizeDirection::Count] = {
-    Qt::SizeFDiagCursor,
-    Qt::SizeBDiagCursor,
-    Qt::SizeBDiagCursor,
-    Qt::SizeFDiagCursor,
-    Qt::SizeVerCursor,
-    Qt::SizeHorCursor,
-    Qt::SizeVerCursor,
-    Qt::SizeHorCursor,
+      Qt::SizeFDiagCursor, Qt::SizeBDiagCursor, Qt::SizeBDiagCursor, Qt::SizeFDiagCursor,
+      Qt::SizeVerCursor,   Qt::SizeHorCursor,   Qt::SizeVerCursor,   Qt::SizeHorCursor,
   };
 
-  if (object == this) {
-    if (event->type() == QEvent::MouseButtonRelease ||
-        event->type() == QEvent::NonClientAreaMouseButtonRelease) {
+  if(object == this)
+  {
+    if(event->type() == QEvent::MouseButtonRelease ||
+       event->type() == QEvent::NonClientAreaMouseButtonRelease)
+    {
       m_dragReady = false;
       m_dragDirection = ResizeDirection::Count;
-      if (!m_dragActive && m_closeRect.contains(mapFromGlobal(QCursor::pos()))) {
+      if(!m_dragActive && m_closeRect.contains(mapFromGlobal(QCursor::pos())))
+      {
         // catch clicks on the close button
         close();
-      } else {
+      }
+      else
+      {
         // if the mouse button is released, let the manager finish the drag and don't call any more
         // updates for any further move events
         m_dragActive = false;
         m_manager->updateDragPosition();
       }
-    } else if (event->type() == QEvent::MouseMove ||
-               event->type() == QEvent::NonClientAreaMouseMove) {
+    }
+    else if(event->type() == QEvent::MouseMove || event->type() == QEvent::NonClientAreaMouseMove)
+    {
       // if we're ready to start a drag, check how far we've moved and start the drag if past a
       // certain pixel threshold.
-      if (m_dragReady) {
-        if ((QCursor::pos() - m_dragStartCursor).manhattanLength() > 10) {
+      if(m_dragReady)
+      {
+        if((QCursor::pos() - m_dragStartCursor).manhattanLength() > 10)
+        {
           m_dragActive = true;
           m_dragReady = false;
-          QList<QWidget*> toolWindows;
-          foreach(ToolWindowManagerArea* tabWidget, findChildren<ToolWindowManagerArea*>()) {
-            if (ToolWindowManager::managerOf(tabWidget) == m_manager) {
+          QList<QWidget *> toolWindows;
+          foreach(ToolWindowManagerArea *tabWidget, findChildren<ToolWindowManagerArea *>())
+          {
+            if(ToolWindowManager::managerOf(tabWidget) == m_manager)
+            {
               toolWindows << tabWidget->toolWindows();
             }
           }
@@ -215,109 +239,121 @@ bool ToolWindowManagerWrapper::eventFilter(QObject *object, QEvent *event) {
         }
       }
       // if the drag is active, update it in the manager.
-      if (m_dragActive) {
+      if(m_dragActive)
+      {
         m_manager->updateDragPosition();
 
-        // on non-windows we have no native title bar, so we need to move the window ourselves
+// on non-windows we have no native title bar, so we need to move the window ourselves
 #if !defined(Q_OS_WIN32)
         move(QCursor::pos() - (m_dragStartCursor - m_dragStartGeometry.topLeft()));
 #endif
       }
-      if (titleRect().contains(mapFromGlobal(QCursor::pos()))) {
+      if(titleRect().contains(mapFromGlobal(QCursor::pos())))
+      {
         // if we're in the title bar, repaint to pick up motion over the close button
         update();
       }
-      
+
       ResizeDirection dir = checkResize();
 
-      if (m_dragDirection != ResizeDirection::Count) {
+      if(m_dragDirection != ResizeDirection::Count)
+      {
         dir = m_dragDirection;
 
         QRect g = geometry();
 
-        switch (dir) {
-          case ResizeDirection::NW:
-            g.setTopLeft(QCursor::pos());
-            break;
-          case ResizeDirection::NE:
-            g.setTopRight(QCursor::pos());
-            break;
-          case ResizeDirection::SW:
-            g.setBottomLeft(QCursor::pos());
-            break;
-          case ResizeDirection::SE:
-            g.setBottomRight(QCursor::pos());
-            break;
-          case ResizeDirection::N:
-            g.setTop(QCursor::pos().y());
-            break;
-          case ResizeDirection::E:
-            g.setRight(QCursor::pos().x());
-            break;
-          case ResizeDirection::S:
-            g.setBottom(QCursor::pos().y());
-            break;
-          case ResizeDirection::W:
-            g.setLeft(QCursor::pos().x());
-            break;
-          case ResizeDirection::Count:
-            break;
+        switch(dir)
+        {
+          case ResizeDirection::NW: g.setTopLeft(QCursor::pos()); break;
+          case ResizeDirection::NE: g.setTopRight(QCursor::pos()); break;
+          case ResizeDirection::SW: g.setBottomLeft(QCursor::pos()); break;
+          case ResizeDirection::SE: g.setBottomRight(QCursor::pos()); break;
+          case ResizeDirection::N: g.setTop(QCursor::pos().y()); break;
+          case ResizeDirection::E: g.setRight(QCursor::pos().x()); break;
+          case ResizeDirection::S: g.setBottom(QCursor::pos().y()); break;
+          case ResizeDirection::W: g.setLeft(QCursor::pos().x()); break;
+          case ResizeDirection::Count: break;
         }
 
         setGeometry(g);
       }
 
-      if (dir != ResizeDirection::Count) {
+      if(dir != ResizeDirection::Count)
+      {
         setCursor(shapes[(int)dir]);
-        
+
         QObjectList children = this->children();
-        for (int i = 0; i < children.size(); ++i) {
-          if (QWidget *w = qobject_cast<QWidget*>(children.at(i))) {
-            if (!w->testAttribute(Qt::WA_SetCursor)) {
+        for(int i = 0; i < children.size(); ++i)
+        {
+          if(QWidget *w = qobject_cast<QWidget *>(children.at(i)))
+          {
+            if(!w->testAttribute(Qt::WA_SetCursor))
+            {
               w->setCursor(Qt::ArrowCursor);
             }
           }
         }
-      } else {
+      }
+      else
+      {
         unsetCursor();
       }
-
-    } else if (event->type() == QEvent::MouseButtonPress) {
+    }
+    else if(event->type() == QEvent::MouseButtonPress)
+    {
       ResizeDirection dir = checkResize();
       m_dragStartCursor = QCursor::pos();
       m_dragStartGeometry = geometry();
-      if (dir == ResizeDirection::Count)
+      if(dir == ResizeDirection::Count)
         m_dragReady = true;
       else
         m_dragDirection = dir;
-    } else if (event->type() == QEvent::NonClientAreaMouseButtonPress) {
+    }
+    else if(event->type() == QEvent::NonClientAreaMouseButtonPress)
+    {
       m_dragActive = true;
       m_dragReady = false;
       m_dragStartCursor = QCursor::pos();
       m_dragStartGeometry = geometry();
-      QList<QWidget*> toolWindows;
-      foreach(ToolWindowManagerArea* tabWidget, findChildren<ToolWindowManagerArea*>()) {
-        if (ToolWindowManager::managerOf(tabWidget) == m_manager) {
+      QList<QWidget *> toolWindows;
+      foreach(ToolWindowManagerArea *tabWidget, findChildren<ToolWindowManagerArea *>())
+      {
+        if(ToolWindowManager::managerOf(tabWidget) == m_manager)
+        {
           toolWindows << tabWidget->toolWindows();
         }
       }
       m_manager->startDrag(toolWindows, this);
-    } else if (event->type() == QEvent::Move && m_dragActive) {
+    }
+    else if(event->type() == QEvent::Move && m_dragActive)
+    {
       m_manager->updateDragPosition();
       m_moveTimeout->start();
-    } else if (event->type() == QEvent::Leave) {
+    }
+    else if(event->type() == QEvent::Leave)
+    {
       unsetCursor();
-    } else if (event->type() == QEvent::MouseButtonDblClick &&
-               titleRect().contains(mapFromGlobal(QCursor::pos()))) {
-      if (isMaximized()) {
+    }
+    else if(event->type() == QEvent::MouseButtonDblClick &&
+            titleRect().contains(mapFromGlobal(QCursor::pos())))
+    {
+      if(isMaximized())
+      {
         showNormal();
-      } else {
+      }
+      else
+      {
         showMaximized();
       }
-    } else if (event->type() == QEvent::NonClientAreaMouseButtonDblClick) {
-      if (isMaximized()) {
+    }
+    else if(event->type() == QEvent::NonClientAreaMouseButtonDblClick)
+    {
+      if(isMaximized())
+      {
         showNormal();
-      } else {
+      }
+      else
+      {
         showMaximized();
       }
     }
@@ -325,8 +361,9 @@ bool ToolWindowManagerWrapper::eventFilter(QObject *object, QEvent *event) {
   return QWidget::eventFilter(object, event);
 }
 
-void ToolWindowManagerWrapper::paintEvent(QPaintEvent *) {
-  if (!m_floating || m_titleHeight == 0)
+void ToolWindowManagerWrapper::paintEvent(QPaintEvent *)
+{
+  if(!m_floating || m_titleHeight == 0)
     return;
 
   {
@@ -349,7 +386,7 @@ void ToolWindowManagerWrapper::paintEvent(QPaintEvent *) {
     titlebarOptions.verticalTitleBar = false;
 
     p.drawControl(QStyle::CE_DockWidgetTitle, titlebarOptions);
-    
+
     QStyleOptionToolButton buttonOpt;
 
     buttonOpt.initFrom(this);
@@ -358,16 +395,18 @@ void ToolWindowManagerWrapper::paintEvent(QPaintEvent *) {
     buttonOpt.activeSubControls = 0;
     buttonOpt.features = QStyleOptionToolButton::None;
     buttonOpt.arrowType = Qt::NoArrow;
-    buttonOpt.state = QStyle::State_Active|QStyle::State_Enabled|QStyle::State_AutoRaise;
+    buttonOpt.state = QStyle::State_Active | QStyle::State_Enabled | QStyle::State_AutoRaise;
 
-    if (m_closeRect.contains(mapFromGlobal(QCursor::pos()))) {
-      buttonOpt.state |= QStyle::State_MouseOver|QStyle::State_Raised;
+    if(m_closeRect.contains(mapFromGlobal(QCursor::pos())))
+    {
+      buttonOpt.state |= QStyle::State_MouseOver | QStyle::State_Raised;
     }
 
     buttonOpt.rect = m_closeRect;
     buttonOpt.icon = m_closeIcon;
 
-    if (style()->styleHint(QStyle::SH_DockWidget_ButtonsHaveFrame, 0, this)) {
+    if(style()->styleHint(QStyle::SH_DockWidget_ButtonsHaveFrame, 0, this))
+    {
       style()->drawPrimitive(QStyle::PE_PanelButtonTool, &buttonOpt, &p, this);
     }
 
@@ -377,6 +416,9 @@ void ToolWindowManagerWrapper::paintEvent(QPaintEvent *) {
 
 void ToolWindowManagerWrapper::resizeEvent(QResizeEvent *)
 {
+  // abort dragging caused by QEvent::NonClientAreaMouseButtonPress in eventFilter function
+  m_manager->abortDrag();
+
   QStyleOptionDockWidget option;
 
   option.initFrom(this);
@@ -399,25 +441,34 @@ QRect ToolWindowManagerWrapper::titleRect()
   return ret;
 }
 
-QVariantMap ToolWindowManagerWrapper::saveState() {
-  if (layout()->count() > 2) {
+QVariantMap ToolWindowManagerWrapper::saveState()
+{
+  if(layout()->count() > 2)
+  {
     qWarning("too many children for wrapper");
     return QVariantMap();
   }
-  if (isWindow() && layout()->count() == 0) {
+  if(isWindow() && layout()->count() == 0)
+  {
     qWarning("empty top level wrapper");
     return QVariantMap();
   }
   QVariantMap result;
   result[QStringLiteral("geometry")] = saveGeometry().toBase64();
-  QSplitter* splitter = findChild<QSplitter*>(QString(), Qt::FindDirectChildrenOnly);
-  if (splitter) {
+  QSplitter *splitter = findChild<QSplitter *>(QString(), Qt::FindDirectChildrenOnly);
+  if(splitter)
+  {
     result[QStringLiteral("splitter")] = m_manager->saveSplitterState(splitter);
-  } else {
-    ToolWindowManagerArea* area = findChild<ToolWindowManagerArea*>();
-    if (area) {
+  }
+  else
+  {
+    ToolWindowManagerArea *area = findChild<ToolWindowManagerArea *>();
+    if(area)
+    {
       result[QStringLiteral("area")] = area->saveState();
-    } else if (layout()->count() > 0) {
+    }
+    else if(layout()->count() > 0)
+    {
       qWarning("unknown child");
       return QVariantMap();
     }
@@ -425,59 +476,86 @@ QVariantMap ToolWindowManagerWrapper::saveState() {
   return result;
 }
 
-void ToolWindowManagerWrapper::restoreState(const QVariantMap &savedData) {
+void ToolWindowManagerWrapper::restoreState(const QVariantMap &savedData)
+{
   restoreGeometry(QByteArray::fromBase64(savedData[QStringLiteral("geometry")].toByteArray()));
-  if (layout()->count() > 1) {
+  if(layout()->count() > 1)
+  {
     qWarning("wrapper is not empty");
     return;
   }
-  if (savedData.contains(QStringLiteral("splitter"))) {
-    layout()->addWidget(m_manager->restoreSplitterState(savedData[QStringLiteral("splitter")].toMap()));
-  } else if (savedData.contains(QStringLiteral("area"))) {
-    ToolWindowManagerArea* area = m_manager->createArea();
+  if(savedData.contains(QStringLiteral("splitter")))
+  {
+    layout()->addWidget(
+        m_manager->restoreSplitterState(savedData[QStringLiteral("splitter")].toMap()));
+  }
+  else if(savedData.contains(QStringLiteral("area")))
+  {
+    ToolWindowManagerArea *area = m_manager->createArea();
     area->restoreState(savedData[QStringLiteral("area")].toMap());
     layout()->addWidget(area);
   }
 }
 
-void ToolWindowManagerWrapper::moveTimeout() {
+void ToolWindowManagerWrapper::moveTimeout()
+{
   m_manager->updateDragPosition();
 
-  if (!m_manager->dragInProgress()) {
+  if(!m_manager->dragInProgress())
+  {
     m_moveTimeout->stop();
   }
 }
 
-ToolWindowManagerWrapper::ResizeDirection ToolWindowManagerWrapper::checkResize() {
-  if (m_titleHeight == 0)
+ToolWindowManagerWrapper::ResizeDirection ToolWindowManagerWrapper::checkResize()
+{
+  if(m_titleHeight == 0)
     return ResizeDirection::Count;
 
   // check if we should offer to resize
   QRect rect = this->rect();
   QPoint testPos = mapFromGlobal(QCursor::pos());
 
-  if (m_closeRect.contains(testPos))
+  if(m_closeRect.contains(testPos))
     return ResizeDirection::Count;
 
   const int resizeMargin = 4;
 
-  if (rect.contains(testPos)) {
+  if(rect.contains(testPos))
+  {
     // check corners first, then horizontal/vertical
-    if (testPos.x() < rect.x() + resizeMargin*4 && testPos.y() < rect.y() + resizeMargin*4) {
+    if(testPos.x() < rect.x() + resizeMargin * 4 && testPos.y() < rect.y() + resizeMargin * 4)
+    {
       return ResizeDirection::NW;
-    } else if (testPos.x() > rect.width() - resizeMargin*4 && testPos.y() < rect.y() + resizeMargin*4) {
+    }
+    else if(testPos.x() > rect.width() - resizeMargin * 4 && testPos.y() < rect.y() + resizeMargin * 4)
+    {
       return ResizeDirection::NE;
-    } else if (testPos.x() < rect.x() + resizeMargin*4 && testPos.y() > rect.height() - resizeMargin*4) {
+    }
+    else if(testPos.x() < rect.x() + resizeMargin * 4 &&
+            testPos.y() > rect.height() - resizeMargin * 4)
+    {
       return ResizeDirection::SW;
-    } else if (testPos.x() > rect.width() - resizeMargin*4 && testPos.y() > rect.height() - resizeMargin*4) {
+    }
+    else if(testPos.x() > rect.width() - resizeMargin * 4 &&
+            testPos.y() > rect.height() - resizeMargin * 4)
+    {
       return ResizeDirection::SE;
-    } else if (testPos.x() < rect.x() + resizeMargin) {
+    }
+    else if(testPos.x() < rect.x() + resizeMargin)
+    {
       return ResizeDirection::W;
-    } else if (testPos.x() > rect.width() - resizeMargin) {
+    }
+    else if(testPos.x() > rect.width() - resizeMargin)
+    {
       return ResizeDirection::E;
-    } else if (testPos.y() < rect.y() + resizeMargin) {
+    }
+    else if(testPos.y() < rect.y() + resizeMargin)
+    {
       return ResizeDirection::N;
-    } else if (testPos.y() > rect.height() - resizeMargin) {
+    }
+    else if(testPos.y() > rect.height() - resizeMargin)
+    {
       return ResizeDirection::S;
     }
   }

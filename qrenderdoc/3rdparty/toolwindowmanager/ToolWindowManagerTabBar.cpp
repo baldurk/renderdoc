@@ -23,16 +23,15 @@
  *
  */
 #include "ToolWindowManager.h"
-#include "ToolWindowManagerTabBar.h"
-#include "ToolWindowManagerArea.h"
-#include "ToolWindowManagerWrapper.h"
 #include <QMouseEvent>
 #include <QStyle>
-#include <QStylePainter>
 #include <QStyleOption>
+#include <QStylePainter>
+#include "ToolWindowManagerArea.h"
+#include "ToolWindowManagerTabBar.h"
+#include "ToolWindowManagerWrapper.h"
 
-ToolWindowManagerTabBar::ToolWindowManagerTabBar(QWidget *parent) :
-  QTabBar(parent)
+ToolWindowManagerTabBar::ToolWindowManagerTabBar(QWidget *parent) : QTabBar(parent)
 {
   m_tabsClosable = false;
 
@@ -66,23 +65,27 @@ ToolWindowManagerTabBar::ToolWindowManagerTabBar(QWidget *parent) :
   m_close.hover = m_close.clicked = false;
 }
 
-ToolWindowManagerTabBar::~ToolWindowManagerTabBar() {
+ToolWindowManagerTabBar::~ToolWindowManagerTabBar()
+{
 }
 
 bool ToolWindowManagerTabBar::useMinimalBar() const
 {
-  if (count() > 1)
+  if(count() > 1)
     return false;
 
-  if (m_area) {
+  if(m_area)
+  {
     return m_area->useMinimalTabBar();
   }
   return true;
 }
 
-QSize ToolWindowManagerTabBar::sizeHint() const {
-  if(useMinimalBar()) {
-    if (floatingWindowChild())
+QSize ToolWindowManagerTabBar::sizeHint() const
+{
+  if(useMinimalBar())
+  {
+    if(floatingWindowChild())
       return QSize(0, 0);
 
     QFontMetrics fm = fontMetrics();
@@ -90,7 +93,7 @@ QSize ToolWindowManagerTabBar::sizeHint() const {
     int iconSize = style()->pixelMetric(QStyle::PM_SmallIconSize, 0, this);
     int mw = style()->pixelMetric(QStyle::PM_DockWidgetTitleMargin, 0, this);
 
-    int h = qMax(fm.height(), iconSize) + 2*mw;
+    int h = qMax(fm.height(), iconSize) + 2 * mw;
 
     return QSize(m_area->width(), h);
   }
@@ -98,9 +101,11 @@ QSize ToolWindowManagerTabBar::sizeHint() const {
   return QTabBar::sizeHint();
 }
 
-QSize ToolWindowManagerTabBar::minimumSizeHint() const {
-  if (useMinimalBar()) {
-    if (floatingWindowChild())
+QSize ToolWindowManagerTabBar::minimumSizeHint() const
+{
+  if(useMinimalBar())
+  {
+    if(floatingWindowChild())
       return QSize(0, 0);
 
     QFontMetrics fm = fontMetrics();
@@ -108,7 +113,7 @@ QSize ToolWindowManagerTabBar::minimumSizeHint() const {
     int iconSize = style()->pixelMetric(QStyle::PM_SmallIconSize, 0, this);
     int mw = style()->pixelMetric(QStyle::PM_DockWidgetTitleMargin, 0, this);
 
-    int h = qMax(fm.height(), iconSize) + 2*mw;
+    int h = qMax(fm.height(), iconSize) + 2 * mw;
 
     return QSize(h, h);
   }
@@ -116,13 +121,16 @@ QSize ToolWindowManagerTabBar::minimumSizeHint() const {
   return QTabBar::minimumSizeHint();
 }
 
-bool ToolWindowManagerTabBar::inButton(QPoint pos) {
+bool ToolWindowManagerTabBar::inButton(QPoint pos)
+{
   return m_pin.rect.contains(pos) || m_close.rect.contains(pos);
 }
 
-void ToolWindowManagerTabBar::paintEvent(QPaintEvent *event) {
-  if (useMinimalBar()) {
-    if (floatingWindowChild())
+void ToolWindowManagerTabBar::paintEvent(QPaintEvent *event)
+{
+  if(useMinimalBar())
+  {
+    if(floatingWindowChild())
       return;
 
     QStylePainter p(this);
@@ -138,8 +146,8 @@ void ToolWindowManagerTabBar::paintEvent(QPaintEvent *event) {
     option.floatable = true;
 
     Shape s = shape();
-    option.verticalTitleBar = s == RoundedEast || s == TriangularEast ||
-                              s == RoundedWest || s == TriangularWest;
+    option.verticalTitleBar =
+        s == RoundedEast || s == TriangularEast || s == RoundedWest || s == TriangularWest;
 
     p.drawControl(QStyle::CE_DockWidgetTitle, option);
 
@@ -153,17 +161,17 @@ void ToolWindowManagerTabBar::paintEvent(QPaintEvent *event) {
     buttonOpt.activeSubControls = 0;
     buttonOpt.features = QStyleOptionToolButton::None;
     buttonOpt.arrowType = Qt::NoArrow;
-    buttonOpt.state = QStyle::State_Active|QStyle::State_Enabled|QStyle::State_AutoRaise;
+    buttonOpt.state = QStyle::State_Active | QStyle::State_Enabled | QStyle::State_AutoRaise;
 
     buttonOpt.rect = m_pin.rect;
     buttonOpt.icon = m_pin.icon;
 
     ToolWindowManager::ToolWindowProperty props =
-      m_area->m_manager->toolWindowProperties(m_area->widget(0));
+        m_area->m_manager->toolWindowProperties(m_area->widget(0));
 
     bool tabClosable = (props & ToolWindowManager::HideCloseButton) == 0;
 
-    if (!tabClosable && !m_pin.rect.isEmpty())
+    if(!tabClosable && !m_pin.rect.isEmpty())
       buttonOpt.rect = m_close.rect;
 
     QStyle::State prevState = buttonOpt.state;
@@ -173,13 +181,15 @@ void ToolWindowManagerTabBar::paintEvent(QPaintEvent *event) {
     else if(m_pin.hover)
       buttonOpt.state |= QStyle::State_Raised | QStyle::State_MouseOver;
 
-    if (style()->styleHint(QStyle::SH_DockWidget_ButtonsHaveFrame, 0, this)) {
+    if(style()->styleHint(QStyle::SH_DockWidget_ButtonsHaveFrame, 0, this))
+    {
       style()->drawPrimitive(QStyle::PE_PanelButtonTool, &buttonOpt, &p, this);
     }
 
     style()->drawComplexControl(QStyle::CC_ToolButton, &buttonOpt, &p, this);
 
-    if (m_tabsClosable && tabClosable) {
+    if(m_tabsClosable && tabClosable)
+    {
       buttonOpt.rect = m_close.rect;
       buttonOpt.icon = m_close.icon;
 
@@ -198,10 +208,11 @@ void ToolWindowManagerTabBar::paintEvent(QPaintEvent *event) {
   QTabBar::paintEvent(event);
 }
 
-void ToolWindowManagerTabBar::resizeEvent(QResizeEvent *event) {
+void ToolWindowManagerTabBar::resizeEvent(QResizeEvent *event)
+{
   QTabBar::resizeEvent(event);
 
-  if (count() > 1 || floatingWindowChild())
+  if(count() > 1 || floatingWindowChild())
     return;
 
   m_titleRect = QRect(0, 0, size().width(), sizeHint().height());
@@ -222,95 +233,110 @@ void ToolWindowManagerTabBar::resizeEvent(QResizeEvent *event) {
   m_pin.rect = QRect();
 }
 
-void ToolWindowManagerTabBar::mousePressEvent(QMouseEvent *event) {
+void ToolWindowManagerTabBar::mousePressEvent(QMouseEvent *event)
+{
   QTabBar::mousePressEvent(event);
 
-  if (count() > 1 || floatingWindowChild())
+  if(count() > 1 || floatingWindowChild())
     return;
 
   ButtonData prevPin = m_pin;
   ButtonData prevClose = m_close;
 
   ToolWindowManager::ToolWindowProperty props =
-    m_area->m_manager->toolWindowProperties(m_area->widget(0));
+      m_area->m_manager->toolWindowProperties(m_area->widget(0));
 
   bool tabClosable = (props & ToolWindowManager::HideCloseButton) == 0;
 
   QRect pinRect = m_pin.rect;
   QRect closeRect = m_close.rect;
 
-  if (!tabClosable) {
-    if (!pinRect.isEmpty())
+  if(!tabClosable)
+  {
+    if(!pinRect.isEmpty())
       pinRect = closeRect;
     closeRect = QRect();
   }
 
-  if (pinRect.contains(mapFromGlobal(QCursor::pos())) &&
-     event->buttons() & Qt::LeftButton) {
+  if(pinRect.contains(mapFromGlobal(QCursor::pos())) && event->buttons() & Qt::LeftButton)
+  {
     m_pin.clicked = true;
-  } else {
+  }
+  else
+  {
     m_pin.clicked = false;
   }
 
-  if (closeRect.contains(mapFromGlobal(QCursor::pos())) &&
-     event->buttons() & Qt::LeftButton) {
+  if(closeRect.contains(mapFromGlobal(QCursor::pos())) && event->buttons() & Qt::LeftButton)
+  {
     m_close.clicked = true;
-  } else {
+  }
+  else
+  {
     m_close.clicked = false;
   }
 
-  if (prevPin != m_pin || prevClose != m_close)
+  if(prevPin != m_pin || prevClose != m_close)
     update();
 
   event->accept();
 }
 
-void ToolWindowManagerTabBar::mouseMoveEvent(QMouseEvent *event) {
+void ToolWindowManagerTabBar::mouseMoveEvent(QMouseEvent *event)
+{
   QTabBar::mouseMoveEvent(event);
 
-  if (count() > 1 || floatingWindowChild())
+  if(count() > 1 || floatingWindowChild())
     return;
 
   ButtonData prevPin = m_pin;
   ButtonData prevClose = m_close;
 
   ToolWindowManager::ToolWindowProperty props =
-    m_area->m_manager->toolWindowProperties(m_area->widget(0));
+      m_area->m_manager->toolWindowProperties(m_area->widget(0));
 
   bool tabClosable = (props & ToolWindowManager::HideCloseButton) == 0;
 
   QRect pinRect = m_pin.rect;
   QRect closeRect = m_close.rect;
 
-  if (!tabClosable) {
-    if (!pinRect.isEmpty())
+  if(!tabClosable)
+  {
+    if(!pinRect.isEmpty())
       pinRect = closeRect;
     closeRect = QRect();
   }
 
-  if (pinRect.contains(mapFromGlobal(QCursor::pos()))) {
+  if(pinRect.contains(mapFromGlobal(QCursor::pos())))
+  {
     m_pin.hover = true;
-    if (event->buttons() & Qt::LeftButton)
+    if(event->buttons() & Qt::LeftButton)
       m_pin.clicked = true;
-  } else {
+  }
+  else
+  {
     m_pin.hover = false;
     m_pin.clicked = false;
   }
 
-  if (closeRect.contains(mapFromGlobal(QCursor::pos()))) {
+  if(closeRect.contains(mapFromGlobal(QCursor::pos())))
+  {
     m_close.hover = true;
-    if (event->buttons() & Qt::LeftButton)
+    if(event->buttons() & Qt::LeftButton)
       m_close.clicked = true;
-  } else {
+  }
+  else
+  {
     m_close.hover = false;
     m_close.clicked = false;
   }
 
-  if (prevPin != m_pin || prevClose != m_close)
+  if(prevPin != m_pin || prevClose != m_close)
     update();
 }
 
-void ToolWindowManagerTabBar::leaveEvent(QEvent *) {
+void ToolWindowManagerTabBar::leaveEvent(QEvent *)
+{
   m_pin.hover = false;
   m_pin.clicked = false;
 
@@ -320,27 +346,30 @@ void ToolWindowManagerTabBar::leaveEvent(QEvent *) {
   update();
 }
 
-void ToolWindowManagerTabBar::mouseReleaseEvent(QMouseEvent *event) {
+void ToolWindowManagerTabBar::mouseReleaseEvent(QMouseEvent *event)
+{
   QTabBar::mouseReleaseEvent(event);
 
-  if (count() > 1 || floatingWindowChild())
+  if(count() > 1 || floatingWindowChild())
     return;
 
   ToolWindowManager::ToolWindowProperty props =
-    m_area->m_manager->toolWindowProperties(m_area->widget(0));
+      m_area->m_manager->toolWindowProperties(m_area->widget(0));
 
   bool tabClosable = (props & ToolWindowManager::HideCloseButton) == 0;
 
   QRect pinRect = m_pin.rect;
   QRect closeRect = m_close.rect;
 
-  if (!tabClosable) {
-    if (!pinRect.isEmpty())
+  if(!tabClosable)
+  {
+    if(!pinRect.isEmpty())
       pinRect = closeRect;
     closeRect = QRect();
   }
 
-  if (pinRect.contains(mapFromGlobal(QCursor::pos()))) {
+  if(pinRect.contains(mapFromGlobal(QCursor::pos())))
+  {
     // process a pin of these tabs
 
     m_pin.clicked = false;
@@ -350,8 +379,9 @@ void ToolWindowManagerTabBar::mouseReleaseEvent(QMouseEvent *event) {
     event->accept();
   }
 
-  if (closeRect.contains(mapFromGlobal(QCursor::pos()))) {
-    if (m_area)
+  if(closeRect.contains(mapFromGlobal(QCursor::pos())))
+  {
+    if(m_area)
       m_area->tabCloseRequested(0);
 
     m_close.clicked = false;
@@ -362,25 +392,31 @@ void ToolWindowManagerTabBar::mouseReleaseEvent(QMouseEvent *event) {
   }
 }
 
-void ToolWindowManagerTabBar::tabInserted(int) {
+void ToolWindowManagerTabBar::tabInserted(int)
+{
   updateClosable();
 }
 
-void ToolWindowManagerTabBar::tabRemoved(int) {
+void ToolWindowManagerTabBar::tabRemoved(int)
+{
   updateClosable();
 }
 
-void ToolWindowManagerTabBar::updateClosable() {
-  QTabBar::setTabsClosable(m_tabsClosable && count() > 1);
+void ToolWindowManagerTabBar::updateClosable()
+{
+  QTabBar::setTabsClosable(m_tabsClosable && !useMinimalBar());
 }
 
-bool ToolWindowManagerTabBar::floatingWindowChild() const {
+bool ToolWindowManagerTabBar::floatingWindowChild() const
+{
   ToolWindowManagerArea *area = qobject_cast<ToolWindowManagerArea *>(parentWidget());
 
-  if (area) {
-    ToolWindowManagerWrapper *wrapper = qobject_cast<ToolWindowManagerWrapper *>(area->parentWidget());
+  if(area)
+  {
+    ToolWindowManagerWrapper *wrapper =
+        qobject_cast<ToolWindowManagerWrapper *>(area->parentWidget());
 
-    if (wrapper && wrapper->floating())
+    if(wrapper && wrapper->floating())
       return true;
   }
 
