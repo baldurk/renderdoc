@@ -2773,6 +2773,8 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 {
   D3D11RenderStateTracker tracker(m_WrappedContext);
 
+  D3D11MarkerRegion marker("PickPixel");
+
   m_pImmediateContext->OMSetRenderTargets(1, &m_DebugRender.PickPixelRT, NULL);
 
   float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
